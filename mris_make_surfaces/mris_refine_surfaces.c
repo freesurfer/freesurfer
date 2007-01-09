@@ -1,15 +1,20 @@
 /**
  * @file  mris_refine_surfaces.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief refines the surfaces lh(rh).pial and lh(rh).white
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This program refines the surfaces lh(rh).pial and lh(rh).white
+ * around the region specified by the label file, producing lh(rh).pialhires
+ * and lh(rh).whitehires. The subject must be processed beforehand to have
+ * mri/filled, mri/wm, surf/lh(rh).orig, surf/lh(rh).white, surf/lh(rh).pial 
+ * in the subject directory.  The lowtohires.xfm is an optional argument 
+ * to give.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/01/09 19:16:11 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,16 +29,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// mris_finer_surfaces.c
-// original: written by Bruce Fischl (June 16, 1998)
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:11 $
-// Revision       : $Revision: 1.11 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +49,8 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.11 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = 
+"$Id: mris_refine_surfaces.c,v 1.12 2007/01/09 19:16:11 nicks Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -64,7 +60,8 @@ int main(int argc, char *argv[]) ;
 #define BRIGHT_LABEL         130
 #define BRIGHT_BORDER_LABEL  100
 
-//static int  MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, float *pwhite_mean, float *pwhite_std, float *pgray_mean, float *pgray_std) ;
+//static int  MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, 
+//float *pwhite_mean, float *pwhite_std, float *pgray_mean, float *pgray_std) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
@@ -149,28 +146,29 @@ static int num_dilate = 0 ;
 
 static double max_white = MAX_WHITE ;
 static  int   max_border_white_set = 0,
-                                     min_border_white_set = 0,
-                                                            min_gray_at_white_border_set = 0,
-                                                                                           max_gray_set = 0,
-                                                                                                          max_gray_at_csf_border_set = 0,
-                                                                                                                                       min_gray_at_csf_border_set = 0,
-                                                                                                                                                                    min_csf_set = 0,
-                                                                                                                                                                                  max_csf_set = 0 ;
+  min_border_white_set = 0,
+  min_gray_at_white_border_set = 0,
+  max_gray_set = 0,
+  max_gray_at_csf_border_set = 0,
+  min_gray_at_csf_border_set = 0,
+  min_csf_set = 0,
+  max_csf_set = 0 ;
 
 static  float   max_border_white = MAX_BORDER_WHITE,
-                                   min_border_white = MIN_BORDER_WHITE,
-                                                      min_gray_at_white_border = MIN_GRAY_AT_WHITE_BORDER,
-                                                                                 max_gray = MAX_GRAY,
-                                                                                            max_gray_at_csf_border = MAX_GRAY_AT_CSF_BORDER,
-                                                                                                                     min_gray_at_csf_border = MIN_GRAY_AT_CSF_BORDER,
-                                                                                                                                              min_csf = MIN_CSF,
-                                                                                                                                                        max_csf = MAX_CSF ;
+  min_border_white = MIN_BORDER_WHITE,
+  min_gray_at_white_border = MIN_GRAY_AT_WHITE_BORDER,
+  max_gray = MAX_GRAY,
+  max_gray_at_csf_border = MAX_GRAY_AT_CSF_BORDER,
+  min_gray_at_csf_border = MIN_GRAY_AT_CSF_BORDER,
+  min_csf = MIN_CSF,
+  max_csf = MAX_CSF ;
 
 static char sdir[STRLEN] = "" ;
 static char suffix[STRLEN] = "" ;
 
 static int MGZ = 0; // for use with MGZ format
-static float check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires) ; //defined at the end
+static float check_contrast_direction
+(MRI_SURFACE *mris,MRI *mri_hires) ; //defined at the end
 
 #define MIN_BORDER_DIST 15.0  // mm from border
 
@@ -180,7 +178,7 @@ main(int argc, char *argv[]) {
   int           ac, nargs, i, label_val, replace_val, msec, n_averages, j ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL,
-                                       *mri_filled, *mri_hires, *mri_hires_pial ;
+    *mri_filled, *mri_hires, *mri_hires_pial ;
   MRI           *mri_tran = 0;
   float         max_len ;
   float         white_mean, white_std, gray_mean, gray_std ;
@@ -189,7 +187,10 @@ main(int argc, char *argv[]) {
   LT            *lt =0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.11 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mris_refine_surfaces.c,v 1.12 2007/01/09 19:16:11 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -231,9 +232,9 @@ main(int argc, char *argv[]) {
     argc -= nargs ;
     argv += nargs ;
   }
-  ///////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////
   // make sure that subjects_dir is set
-  ///////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////
   if (!strlen(sdir))  // -sdir option
   {
     cp = getenv("SUBJECTS_DIR") ;
@@ -252,7 +253,8 @@ main(int argc, char *argv[]) {
     printf("\thires volume = %s\n", argv[3]);
     printf("\tlabel file   = %s\n", argv[4]);
     if (argc==5)
-      printf("\txfm          = assumes lowres to highres ras-to-ras identity\n");
+      printf("\txfm          = assumes lowres to highres "
+             "ras-to-ras identity\n");
     else if (argc==6)
       printf("\txfm          = %s\n", argv[5]);
     else if (argc > 6) {
@@ -287,7 +289,7 @@ main(int argc, char *argv[]) {
   // read hires volume
   ///////////////////////////////////////////////////////////////////////
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, argv[3]) ;
-  if (MGZ) sprintf(fname, "%s.mgz",fname);
+  if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading hires volume %s...\n", fname) ;
   mri_hires = mri_hires_pial = MRIread(fname);
   if (!mri_hires)
@@ -296,7 +298,8 @@ main(int argc, char *argv[]) {
   /////////////////////////////////////////
   // no idea why Tosa was doing this  setMRIforSurface(mri_hires);
 
-  if (apply_median_filter) // -median option ... modify mri_hires using the filter
+  if (apply_median_filter) /* -median option ... modify 
+                              mri_hires using the filter */
   {
     MRI *mri_tmp ;
 
@@ -316,7 +319,8 @@ main(int argc, char *argv[]) {
     // allocate hires_xform->xform
     hires_xform = TransformAlloc(MNI_TRANSFORM_TYPE, NULL);
     if (!hires_xform)
-      ErrorExit(ERROR_NOFILE, "%s: could not allocate hires xform %s", Progname, argv[3]) ;
+      ErrorExit(ERROR_NOFILE, 
+                "%s: could not allocate hires xform %s", Progname, argv[3]) ;
     hires_lta = (LTA *) (hires_xform->xform);
     lt = &hires_lta->xforms[0];
     lt->sigma = 1.0f ;
@@ -329,7 +333,8 @@ main(int argc, char *argv[]) {
     fprintf(stderr, "reading lowrestohires.xfm %s....\n", argv[5]);
     hires_xform = TransformRead(argv[5]) ;
     if (!hires_xform)
-      ErrorExit(ERROR_NOFILE, "%s: could not read hires xform %s", Progname, argv[3]) ;
+      ErrorExit(ERROR_NOFILE, 
+                "%s: could not read hires xform %s", Progname, argv[3]) ;
     hires_lta = (LTA *)(hires_xform->xform) ;
   }
 
@@ -338,15 +343,15 @@ main(int argc, char *argv[]) {
   if (parms.momentum < 0.0)
     parms.momentum = 0.0 /*0.75*/ ;
 
-  ////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
   // timer starts here
-  ////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
   TimerStart(&then) ;
   ///////////////////////////////////////////////////////////////////////
   // read filled volume (rh = 127 and lh = 255)
   ///////////////////////////////////////////////////////////////////////
   sprintf(fname, "%s/%s/mri/filled", sdir, sname) ;
-  if (MGZ) sprintf(fname, "%s.mgz",fname);
+  if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading mri/filled %s...\n", fname) ;
   mri_filled = MRIread(fname) ;
   if (!mri_filled)
@@ -363,12 +368,11 @@ main(int argc, char *argv[]) {
     replace_val = lh_label ;
   }
 
-
   ///////////////////////////////////////////////////////////////
   // read mri_wm
   ///////////////////////////////////////////////////////////////
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
-  if (MGZ) sprintf(fname, "%s.mgz",fname);
+  if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading wm volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
   if (!mri_wm)
@@ -424,7 +428,8 @@ main(int argc, char *argv[]) {
     fprintf(stderr, "reading the label file %s...\n", fname);
     hires_label = LabelRead(NULL, fname) ;
     if (!hires_label)
-      ErrorExit(ERROR_NOFILE, "%s: could not read hires label %s", Progname, argv[2]) ;
+      ErrorExit(ERROR_NOFILE, 
+                "%s: could not read hires label %s", Progname, argv[2]) ;
     if (num_dilate > 0)
       LabelDilate(hires_label, mris, num_dilate) ;
 
@@ -434,7 +439,8 @@ main(int argc, char *argv[]) {
       fprintf(stderr, "reading the label file %s...\n", fname);
       olabel = LabelRead(NULL, fname) ;
       if (!olabel)
-        ErrorExit(ERROR_NOFILE, "%s: could not read label %s", Progname, fname) ;
+        ErrorExit(ERROR_NOFILE, 
+                  "%s: could not read label %s", Progname, fname) ;
       if (num_dilate > 0)
         LabelDilate(olabel, mris, num_dilate) ;
       hires_label = LabelCombine(olabel, hires_label) ;
@@ -489,7 +495,11 @@ main(int argc, char *argv[]) {
                               &white_mean, &white_std, &gray_mean,
                               &gray_std) ;
 #else
-    MRIScomputeClassStatistics(mris, mri_hires,&white_mean, &white_std, &gray_mean, &gray_std) ;
+    MRIScomputeClassStatistics(mris, mri_hires,
+                               &white_mean, 
+                               &white_std, 
+                               &gray_mean, 
+                               &gray_std) ;
 #endif
 
     //    if (abs(white_mean-110) > 50)
@@ -539,7 +549,8 @@ main(int argc, char *argv[]) {
   if (nbrs > 1)
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
-  sprintf(parms.base_name, "%s%s%s", white_matter_name, output_suffix, suffix) ;
+  sprintf(parms.base_name, "%s%s%s", 
+          white_matter_name, output_suffix, suffix) ;
 
   ///////////////////////////////////////////////////////////////////////////
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
@@ -644,7 +655,7 @@ main(int argc, char *argv[]) {
       break ;
   }
   // end of loop
-  //////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////
 
   if (!nowhite) {
     sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname,hemi,white_matter_name,
@@ -710,7 +721,8 @@ main(int argc, char *argv[]) {
   parms.t = parms.start_t = 0 ;
   sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
   parms.niterations = ngray ;
-  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* save white-matter positions */
+  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* save white-matter 
+                                                        positions */
   parms.l_surf_repulse = l_surf_repulse ;
 
   MRISsetVals(mris, -1) ;  /* clear target intensities */
@@ -759,33 +771,39 @@ main(int argc, char *argv[]) {
       parms.n_averages = n_averages ;
       parms.l_tsmooth = l_tsmooth ;
       /*
-        replace bright stuff such as eye sockets with 255. Simply zeroing it out
+        replace bright stuff such as eye sockets with 255. 
+        Simply zeroing it out
         would make the border always go through the sockets, and ignore subtle
         local minima in intensity at the border of the sockets. Will set to 0
-        after border values have been computed so that it doesn't mess up gradients.
+        after border values have been computed so that it 
+        doesn't mess up gradients.
       */
       if (inverted_contrast == 0) {
         if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
           MRIwrite(mri_hires, "pial_masked.mgh") ;
       }
       if (inverted_contrast)
-        MRIScomputeInvertedPialBorderValues(mris, mri_hires, mri_smooth, max_gray,
-                                            max_gray_at_csf_border, min_gray_at_csf_border,
-                                            min_csf,(max_csf+max_gray_at_csf_border)/2,
-                                            current_sigma, 2*max_thickness, parms.fp) ;
+        MRIScomputeInvertedPialBorderValues
+          (mris, mri_hires, mri_smooth, max_gray,
+           max_gray_at_csf_border, min_gray_at_csf_border,
+           min_csf,(max_csf+max_gray_at_csf_border)/2,
+           current_sigma, 2*max_thickness, parms.fp) ;
       else
-        MRIScomputeBorderValues(mris, mri_hires, mri_smooth, max_gray,
-                                max_gray_at_csf_border, min_gray_at_csf_border,
-                                min_csf,(max_csf+max_gray_at_csf_border)/2,
-                                current_sigma, 2*max_thickness, parms.fp,
-                                GRAY_CSF, NULL, 0) ;
+        MRIScomputeBorderValues
+          (mris, mri_hires, mri_smooth, max_gray,
+           max_gray_at_csf_border, min_gray_at_csf_border,
+           min_csf,(max_csf+max_gray_at_csf_border)/2,
+           current_sigma, 2*max_thickness, parms.fp,
+           GRAY_CSF, NULL, 0) ;
       if (vavgs) {
-        fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
+        fprintf(stderr, 
+                "averaging target values for %d iterations...\n",vavgs) ;
         MRISaverageMarkedVals(mris, vavgs) ;
         if (Gdiag_no > 0) {
           VERTEX *v ;
           v = &mris->vertices[Gdiag_no] ;
-          fprintf(stderr,"v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
+          fprintf(stderr,
+                  "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
                   Gdiag_no, v->val, v->mean, v->d) ;
         }
       }
@@ -1005,25 +1023,35 @@ usage_exit(void) {
 
 static void
 print_usage(void) {
-  fprintf(stderr, "usage: %s [options] <subject_name> <hemi> <hires volume> <label> [<lowtohires.xfm>]\n",
+  fprintf(stderr, "usage: %s [options] <subject_name> <hemi> "
+          "<hires volume> <label> [<lowtohires.xfm>]\n",
           Progname) ;
   fprintf(stderr, "options:\n");
   fprintf(stderr, "       -sdir $(SUBJECTS_DIR) : specifies SUBJECTS_DIR\n");
   fprintf(stderr, "       -mgz                  : use .mgz volumes\n");
-  fprintf(stderr, "       -suffix $(SUFFIX)     : add $(SUFFIX) to the final surfaces\n");
-  fprintf(stderr, "\nsample: mris_refine_surface agt rh hires rh_hires.label\n");
-  fprintf(stderr, "        where hires is located at $(SUBJECTS_DIR)/agt/mri/hires, \n");
-  fprintf(stderr, "        rh_hires.label is located at $(SUBJECTS_DIR)/agt/label/rh_hires.label.\n");
+  fprintf(stderr, "       -suffix $(SUFFIX)     : "
+          "add $(SUFFIX) to the final surfaces\n");
+  fprintf(stderr, "\nsample: mris_refine_surface agt rh "
+          "hires rh_hires.label\n");
+  fprintf(stderr, "        where hires is located at "
+          "$(SUBJECTS_DIR)/agt/mri/hires, \n");
+  fprintf(stderr, "        rh_hires.label is located at "
+          "$(SUBJECTS_DIR)/agt/label/rh_hires.label.\n");
 }
 
 static void
 print_help(void) {
   print_usage() ;
-  fprintf(stderr, "\nThis program refines the surfaces lh(rh).pial and lh(rh).white\n");
-  fprintf(stderr, "around the region specified by the label file, producing lh(rh).pialhires\n");
-  fprintf(stderr, "and lh(rh).whitehires. The subject must be processed beforehand to have\n");
-  fprintf(stderr, "mri/filled, mri/wm, surf/lh(rh).orig, surf/lh(rh).white, surf/lh(rh).pial in the \n");
-  fprintf(stderr, "subject directory.  The lowtohires.xfm is an optional argument to give.\n");
+  fprintf(stderr, "\nThis program refines the surfaces lh(rh).pial "
+          "and lh(rh).white\n");
+  fprintf(stderr, "around the region specified by the label file, "
+          "producing lh(rh).pialhires\n");
+  fprintf(stderr, "and lh(rh).whitehires. The subject must be "
+          "processed beforehand to have\n");
+  fprintf(stderr, "mri/filled, mri/wm, surf/lh(rh).orig, "
+          "surf/lh(rh).white, surf/lh(rh).pial in the \n");
+  fprintf(stderr, "subject directory.  The lowtohires.xfm is "
+          "an optional argument to give.\n");
   exit(1) ;
 }
 
@@ -1194,13 +1222,20 @@ check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires) {
   }
   mean_inside /= (float)n ;
   mean_outside /= (float)n ;
-  printf("mean inside = %2.1f, mean outside = %2.1f\n", mean_inside, mean_outside) ;
+  printf("mean inside = %2.1f, mean outside = %2.1f\n", 
+         mean_inside, mean_outside) ;
   return(mean_inside - mean_outside) ;
 }
 
 #if 0
 static int
-MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, float *pwhite_mean, float *pwhite_std, float *pgray_mean, float *pgray_std) {
+MRIScomputeClassStatistics(MRI_SURFACE *mris, 
+                           MRI *mri, 
+                           float *pwhite_mean, 
+                           float *pwhite_std, 
+                           float *pgray_mean, 
+                           float *pgray_std) 
+{
   Real    val, x, y, z, xw, yw, zw ;
   int     total_vertices, vno ;
   VERTEX  *v ;
@@ -1250,12 +1285,15 @@ MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, float *pwhite_mean, floa
   }
 
   *pwhite_mean = mean_white /= (float)total_vertices ;
-  *pwhite_std = std_white = sqrt(std_white / (float)total_vertices - mean_white*mean_white) ;
+  *pwhite_std = std_white = 
+    sqrt(std_white / (float)total_vertices - mean_white*mean_white) ;
   *pgray_mean = mean_gray /= (float)total_vertices ;
-  *pgray_std = std_gray = sqrt(std_gray / (float)total_vertices - mean_gray*mean_gray) ;
+  *pgray_std = std_gray = 
+    sqrt(std_gray / (float)total_vertices - mean_gray*mean_gray) ;
   nsigma = (mean_gray-mean_white) / (std_gray+std_white) ;
   gw_thresh = mean_white + nsigma*std_white ;
-  printf("white %2.1f +- %2.1f,    gray %2.1f +- %2.1f, G/W boundary at %2.1f\n",
+  printf("white %2.1f +- %2.1f,    gray %2.1f +- %2.1f, "
+         "G/W boundary at %2.1f\n",
          mean_white, std_white, mean_gray, std_gray, gw_thresh) ;
 
   if (fpwm) {

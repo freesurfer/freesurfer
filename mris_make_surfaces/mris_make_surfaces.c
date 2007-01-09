@@ -1,15 +1,19 @@
 /**
  * @file  mris_make_surfaces.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief creates white matter and grey matter surface files.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This program positions the tessellation of the cortical surface
+ * at the white matter surface, then the gray matter surface
+ * and generate surface files for these surfaces as well as a
+ * 'curvature' file for the cortical thickness, and a surface file
+ * which approximates layer IV of the cortical sheet.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.81 $
+ *    $Date: 2007/01/09 19:16:10 $
+ *    $Revision: 1.82 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.81 2006/12/29 02:09:11 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.82 2007/01/09 19:16:10 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -177,22 +181,22 @@ static float max_thickness = 5.0 ;
 #define MAX_CSF                40
 
 static  int   max_border_white_set = 0,
-                                     min_border_white_set = 0,
-                                                            min_gray_at_white_border_set = 0,
-                                                                                           max_gray_set = 0,
-                                                                                                          max_gray_at_csf_border_set = 0,
-                                                                                                                                       min_gray_at_csf_border_set = 0,
-                                                                                                                                                                    min_csf_set = 0,
-                                                                                                                                                                                  max_csf_set = 0 ;
+  min_border_white_set = 0,
+  min_gray_at_white_border_set = 0,
+  max_gray_set = 0,
+  max_gray_at_csf_border_set = 0,
+  min_gray_at_csf_border_set = 0,
+  min_csf_set = 0,
+  max_csf_set = 0 ;
 
 static  float   max_border_white = MAX_BORDER_WHITE,
-                                   min_border_white = MIN_BORDER_WHITE,
-                                                      min_gray_at_white_border = MIN_GRAY_AT_WHITE_BORDER,
-                                                                                 max_gray = MAX_GRAY,
-                                                                                            max_gray_at_csf_border = MAX_GRAY_AT_CSF_BORDER,
-                                                                                                                     min_gray_at_csf_border = MIN_GRAY_AT_CSF_BORDER,
-                                                                                                                                              min_csf = MIN_CSF,
-                                                                                                                                                        max_csf = MAX_CSF ;
+  min_border_white = MIN_BORDER_WHITE,
+  min_gray_at_white_border = MIN_GRAY_AT_WHITE_BORDER,
+  max_gray = MAX_GRAY,
+  max_gray_at_csf_border = MAX_GRAY_AT_CSF_BORDER,
+  min_gray_at_csf_border = MIN_GRAY_AT_CSF_BORDER,
+  min_csf = MIN_CSF,
+  max_csf = MAX_CSF ;
 static char sdir[STRLEN] = "" ;
 
 static int MGZ = 0; // for use with MGZ format
@@ -206,8 +210,8 @@ main(int argc, char *argv[]) {
   int           ac, nargs, i, label_val, replace_val, msec, n_averages, j ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL,
-                                       *mri_smooth = NULL, *mri_mask = NULL,
-                                                                       *mri_filled, *mri_T1, *mri_labeled, *mri_T1_white = NULL, *mri_T1_pial ;
+    *mri_smooth = NULL, *mri_mask = NULL,
+    *mri_filled, *mri_T1, *mri_labeled, *mri_T1_white = NULL, *mri_T1_pial ;
   float         max_len ;
   float         white_mean, white_std, gray_mean, gray_std ;
   double        l_intensity, current_sigma, thresh = 0;
@@ -218,13 +222,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.81 2006/12/29 02:09:11 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.82 2007/01/09 19:16:10 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.81 2006/12/29 02:09:11 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.82 2007/01/09 19:16:10 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -301,7 +305,7 @@ main(int argc, char *argv[]) {
           sdir, sname, hemi) ;
 
   sprintf(fname, "%s/%s/mri/filled", sdir, sname) ;
-  if (MGZ) sprintf(fname, "%s.mgz",fname);
+  if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_filled = MRIread(fname) ;
   if (!mri_filled)
@@ -319,7 +323,7 @@ main(int argc, char *argv[]) {
   }
 
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, T1_name) ;
-  if (MGZ) sprintf(fname, "%s.mgz",fname);
+  if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_T1 = mri_T1_pial = MRIread(fname) ;
 
@@ -331,7 +335,7 @@ main(int argc, char *argv[]) {
 
   if (white_fname != NULL) {
     sprintf(fname, "%s/%s/mri/%s", sdir, sname, white_fname) ;
-    if (MGZ) sprintf(fname, "%s.mgz",fname);
+    if (MGZ) strcat(fname, ".mgz");
     fprintf(stderr, "reading volume %s...\n", fname) ;
     mri_T1_white = MRIread(fname) ;
     if (!mri_T1_white)
@@ -423,7 +427,7 @@ main(int argc, char *argv[]) {
     MRIwrite(mri_T1, "r.mgz") ;
 
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
-  if (MGZ) sprintf(fname, "%s.mgz",fname);
+  if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
   if (!mri_wm)
@@ -1660,7 +1664,7 @@ MRIsmoothMasking(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask_val,
         /* this is a hack to prevent smoothing of non-white values */
         if (MRIvox(mri_mask, x, y, z) > WM_MIN_VAL) {
           avg = 0 ;  /* only average if a masked
-                                                                        value is close to this one */
+                        value is close to this one */
           for (zk = -whalf ; zk <= whalf ; zk++) {
             zi = mri_mask->zi[z+zk] ;
             for (yk = -whalf ; yk <= whalf ; yk++) {
@@ -1694,7 +1698,6 @@ MRIsmoothMasking(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask_val,
               }
             }
           }
-
         }
         *pdst++ = (BUFTYPE)nint((float)mean/(float)nvox) ;
       }
@@ -1899,7 +1902,8 @@ smooth_contra_hemi(MRI *mri_filled,
                    MRI *mri_src,
                    MRI *mri_dst,
                    float ipsi_label,
-                   float contra_label) {
+                   float contra_label) 
+{
   MRI    *mri_ctrl ;
 
   mri_dst = MRIcopy(mri_src, mri_dst) ;
