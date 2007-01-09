@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/02 21:25:15 $
- *    $Revision: 1.57 $
+ *    $Author: greve $
+ *    $Date: 2007/01/09 07:37:29 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.57 $";
+char *MRI_INFO_VERSION = "$Revision: 1.58 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.57 2007/01/02 21:25:15 nicks Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.58 2007/01/09 07:37:29 greve Exp $";
 
 char *Progname ;
 char *inputlist[100];
@@ -89,6 +89,8 @@ int PrintOrientation = 0;
 int PrintSliceDirection = 0;
 int PrintCRAS = 0;
 int PrintVoxel = 0;
+int PrintAutoAlign = 0;
+
 int VoxelCRS[3];
 FILE *fpout;
 int PrintToFile = 0;
@@ -194,6 +196,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--format")) PrintFormat = 1;
     else if (!strcasecmp(option, "--orientation")) PrintOrientation = 1;
     else if (!strcasecmp(option, "--slicedirection")) PrintSliceDirection = 1;
+    else if (!strcasecmp(option, "--autoalign")) PrintAutoAlign = 1;
     else if (!strcasecmp(option, "--o")) {
       PrintToFile = 1;
       outfile = pargv[0];
@@ -257,6 +260,7 @@ static void print_usage(void) {
   printf("   --format : file format\n");
   printf("   --orientation : orientation string (eg, LPS, RAS, RPI)\n");
   printf("   --slicedirection : primary slice direction (eg, axial)\n");
+  printf("   --autoalign : print auto align matrix (if it exists)\n");
   printf("   --voxel c r s : dump voxel value from col row slice "
          "(0-based, all frames)\n");
   printf("   --o file : print flagged results to file \n");
@@ -496,6 +500,14 @@ static void do_file(char *fname) {
   }
   if (PrintSliceDirection) {
     fprintf(fpout,"%s\n",MRIsliceDirectionName(mri));
+    return;
+  }
+  if (PrintAutoAlign) {
+    if(mri->AutoAlign == NULL){
+      fprintf(fpout,"No auto align matrix present\n");
+      return;
+    }
+    MatrixPrint(fpout,mri->AutoAlign);
     return;
   }
   if (PrintVoxel) {
