@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/05 19:17:43 $
- *    $Revision: 1.375 $
+ *    $Author: greve $
+ *    $Date: 2007/01/09 00:41:35 $
+ *    $Revision: 1.376 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.375 $";
+char *MRI_C_VERSION = "$Revision: 1.376 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -5411,6 +5411,7 @@ MRI *MRIallocHeader(int width, int height, int depth, int type)
 
   mri->i_to_r__ = extract_i_to_r(mri);
   mri->r_to_i__ = extract_r_to_i(mri);
+  mri->AutoAlign = NULL;
 
   // Chunking memory management
   mri->ischunked = 0;
@@ -5496,13 +5497,11 @@ MRIfree(MRI **pmri)
   if (mri->register_mat != NULL)
     MatrixFree(&(mri->register_mat));
 
-  if (mri->i_to_r__)
-    MatrixFree(&mri->i_to_r__);
-  if (mri->r_to_i__)
-    MatrixFree(&mri->r_to_i__);
+  if (mri->i_to_r__)    MatrixFree(&mri->i_to_r__);
+  if (mri->r_to_i__)    MatrixFree(&mri->r_to_i__);
+  if (mri->AutoAlign)   MatrixFree(&mri->AutoAlign);
 
-  for (i = 0 ; i < mri->ncmds ; i++)
-    free(mri->cmdlines[i]) ;
+  for (i = 0 ; i < mri->ncmds ; i++) free(mri->cmdlines[i]) ;
 
   free(mri) ;
   *pmri = NULL ;
@@ -5800,6 +5799,10 @@ int MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
 
   mri_dst->i_to_r__ = MatrixCopy(mri_src->i_to_r__, mri_dst->i_to_r__);
   mri_dst->r_to_i__ = MatrixCopy(mri_src->r_to_i__, mri_dst->r_to_i__);
+  if(mri_src->AutoAlign != NULL){
+    mri_dst->AutoAlign = MatrixCopy(mri_src->AutoAlign,NULL);
+  }
+
 
   for (i = 0 ; i < mri_src->ncmds ; i++)
   {

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.327 $
+ *    $Author: greve $
+ *    $Date: 2007/01/09 00:41:23 $
+ *    $Revision: 1.328 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -139,6 +139,8 @@ typedef struct
   char   *cmdlines[MAX_CMDS] ;
   int    ncmds;
   double outside_val ; // 0 by default, but could be something else
+
+  MATRIX *AutoAlign; // For Andre
 
   // "Chunking" memory management. "Chunking" is where the entire 4D
   // volume is allocated one big buffer.

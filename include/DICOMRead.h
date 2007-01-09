@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.22 $
+ *    $Author: greve $
+ *    $Date: 2007/01/09 00:41:22 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -249,6 +249,7 @@ DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid);
 DCM_OBJECT *GetObjectFromFile(char *fname, unsigned long options);
 int IsSiemensDICOM(char *dcmfile);
 char *SiemensAsciiTag(char *dcmfile, char *TagString);
+char *SiemensAsciiTagEx(char *dcmfile, char *TagString, int cleanup);
 int dcmGetNCols(char *dcmfile);
 int dcmGetNRows(char *dcmfile);
 int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes);
@@ -257,8 +258,8 @@ int dcmImageDirCos(char *dcmfile,
                    float *Vrx, float *Vry, float *Vrz);
 int sdcmSliceDirCos(char *dcmfile, float *Vsx, float *Vsy, float *Vsz);
 int dcmImagePosition(char *dcmfile, float *x, float *y, float *z);
-
 int sdcmIsMosaic(char *dcmfile, int *pNcols, int *pNrows, int *pNslices, int *pNframes);
+MATRIX *sdcmAutoAlignMatrix(char *dcmfile);
 
 int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi);
 int FreeSDCMFileInfo(SDCMFILEINFO **ppsdcmfi);

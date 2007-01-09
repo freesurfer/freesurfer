@@ -7,8 +7,8 @@
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/04 23:09:59 $
- *    $Revision: 1.104 $
+ *    $Date: 2007/01/09 00:41:35 $
+ *    $Revision: 1.105 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -279,6 +279,9 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
            sdfi->RepetitionTime,vol->tr);
   }
 
+  // Load the AutoAlign Matrix, if one is there
+  vol->AutoAlign = sdcmAutoAlignMatrix(dcmfile);
+
   /* Return now if we're not loading pixel data */
   if (!LoadVolume) return(vol);
 
@@ -452,6 +455,54 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
 
   return(vol);
 }
+/*!/
+  \fn MATRIX *sdcmAutoAlignMatrix(char *dcmfile)
+  \brief Extracts the Auto Align Matrix from the Siemens ascii header.
+*/
+MATRIX *sdcmAutoAlignMatrix(char *dcmfile)
+{
+  char *tmpstr;
+  char sdcmtag[1000];
+  int n,row,col;
+  MATRIX *M;
+  double v;
+
+  /* Check for the existence of the 15th matrix element. If the
+     auto align matrix exists, then this item must be 1. */
+  tmpstr = SiemensAsciiTagEx(dcmfile, "sAutoAlign.dAAMatrix[15]", 0);
+  if(tmpstr == NULL) return(NULL); 
+
+  printf("AutoAlign matrix detected \n");
+  free(tmpstr);
+  M = MatrixAlloc(4,4,MATRIX_REAL);
+  n = 0;
+  for(row=1; row<=4; row++){
+    for(col=1; col<=4; col++){
+      sprintf(sdcmtag,"sAutoAlign.dAAMatrix[%d]",n);
+      n++;
+      tmpstr = SiemensAsciiTagEx(dcmfile, sdcmtag, 0);
+      if(tmpstr == NULL) v = 0;
+      else{
+	sscanf(tmpstr,"%lf",&v);
+	free(tmpstr);
+      }
+      M->rptr[row][col] = v;
+      if(Gdiag_no > 0){
+	printf("n=%2d c=%d r=%d %lf ----------------------\n",n,col,row,v);
+	printf("%s\n",sdcmtag);
+	if(tmpstr) printf("%s",tmpstr);
+      }
+    }
+  }
+
+  printf("AutoAlign Matrix --------------------- \n");
+  MatrixPrint(stdout,M);
+  printf("\n");
+
+  return(M);
+}
+
+
 /*---------------------------------------------------------------
   GetElementFromFile() - gets an element from a DICOM file. Returns
   a pointer to the object (or NULL upon failure).
