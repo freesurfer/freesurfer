@@ -1,0 +1,271 @@
+#!/bin/csh -f
+# rawfunc2surf-sess 
+#
+set VERSION    = '$Id: rawfunc2surf-sess,v 1.1 2007/01/10 09:43:30 greve Exp $';
+set cmdargs = ($argv);
+
+set instem   = fmc; 
+set outstem  = (); 
+set hemilist  = (); 
+set subject  = ();
+set projfrac = 0.5;
+set fwhm = ();
+set RunListFile = ();
+set fsd = "bold";
+
+set nolog = 0;
+set infmt = ();
+set outfmt = mgh;
+if($?FSF_OUTPUT_FORMAT) then
+  set outfmt = $FSF_OUTPUT_FORMAT;
+endif
+
+set PrintHelp = 0;
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo $SessList
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set ProjectDir = `pwd`;
+
+# Create a log file #
+if(! $nolog ) then
+  mkdir -p log
+  set LF = $ProjectDir/log/rawfunc2surf-sess
+  rm -f $LF
+else
+  set LF = /dev/null
+endif
+echo Logfile is $LF
+
+date | tee -a $LF
+uname -a | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`" | tee -a $LF
+echo $0 | tee -a $LF
+echo $cmdargs | tee -a $LF
+
+## go through each session ##
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+
+  pushd $sess/$fsd > /dev/null
+
+  if(! -e register.dat) then
+    echo "ERROR: cannot find register.dat" |& tee -a $LF
+    exit 1;
+  endif
+
+  set RunList = `getrunlist . $RunListFile`;
+  if($status || $#RunList == 0) then
+    echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+    exit 1;
+  endif
+  echo "RunList: $RunList" |& tee -a $LF
+
+  foreach run ($RunList)  
+    echo "  $sessid Run $run -----------" |& tee -a $LF
+    date |& tee -a $LF
+    set inbase = $run/$instem
+    set infmt = `getformat_from_stem $inbase`
+    set invol = $inbase.$infmt
+    foreach hemi ($hemilist)
+      set outsurf = $hemi.$outstem.$outfmt
+      set cmd = (mri_vol2surf --reg register.dat --mov $invol --out $outsurf)
+      set cmd = ($cmd --hemi $hemi --projfrac $projfrac)
+      if($#subject) set cmd = ($cmd --trgsubject $subject)
+      if($#fwhm)    set cmd = ($cmd --surf-fwhm $fwhm)
+      echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+      echo "cd `pwd`" |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+      echo "" |& tee -a $LF
+      echo "" |& tee -a $LF
+    end # hemi
+
+  end # run
+
+  popd > /dev/null
+end # sess
+
+date | tee -a $LF
+echo "rawfunc2surf-sess done" | tee -a $LF
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-i":
+      if ( $#argv < 1) goto arg1err;
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv < 1) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-h":
+      if ( $#argv < 1) goto arg1err;
+      set hemilist = ($hemilist $argv[1]); shift;
+      breaksw
+
+    case "-subject":
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "-projfrac":
+      if ( $#argv == 0) goto arg1err;
+      set projfrac = $argv[1]; shift;
+      breaksw
+
+    case "-fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-runlistfile":
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set RunListFile = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-perrun":
+      set PerRun = 1;
+      set targoffmid = 1;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+    case "-g":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#instem == 0) then
+    echo "ERROR: no input stem specified"
+    exit 1
+  endif
+
+  if($#outstem == 0) then
+    echo "ERROR: no output stem specified"
+    exit 1
+  endif
+
+  if($#hemilist == 0) set hemilist = (lh rh)
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: rawfunc2surf-sess"
+  echo ""
+  echo "  -i instem  : input volume"
+  echo "  -o outstem : out will be hemi.outstem"
+  echo ""
+  echo "  -h hemi : default is both lh and rh"
+  echo "  -s subject     : default is fsaverage"
+  echo "  -projfrac frac : default is 0.5"
+  echo "  -fwhm fwhm     : surface smoothing"
+  echo "  -rlf runlistfile"
+  echo "  -fsd dir        (optional - default = bold)"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo ""
+  echo "   -version           : print version and exit"
+  echo "   -debug"
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
