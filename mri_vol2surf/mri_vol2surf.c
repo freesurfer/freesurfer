@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/09 23:41:11 $
- *    $Revision: 1.35 $
+ *    $Date: 2007/01/10 09:40:05 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.35 2007/01/09 23:41:11 greve Exp $
+  $Id: mri_vol2surf.c,v 1.36 2007/01/10 09:40:05 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -88,7 +88,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.35 2007/01/09 23:41:11 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.36 2007/01/10 09:40:05 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.35 2007/01/09 23:41:11 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.36 2007/01/10 09:40:05 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -536,6 +536,7 @@ int main(int argc, char **argv) {
     nSmoothSteps = MRISfwhm2nitersSubj(surf_fwhm,trgsubject,hemi,"white");
     if(nSmoothSteps == -1) exit(1);
     printf("Surface smoothing by fwhm = %g (n=%d)\n",surf_fwhm,nSmoothSteps);
+    fflush(stdout);
     MRISsmoothMRI(SurfOut, SurfVals2, nSmoothSteps, NULL, SurfVals2);
   }
 
