@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:32 $
- *    $Revision: 1.36 $
+ *    $Author: greve $
+ *    $Date: 2007/01/10 22:36:59 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.36 2006/12/29 01:49:32 nicks Exp $
+  $Id: fmriutils.c,v 1.37 2007/01/10 22:36:59 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.36 2006/12/29 01:49:32 nicks Exp $");
+  return("$Id: fmriutils.c,v 1.37 2007/01/10 22:36:59 greve Exp $");
 }
 
 
@@ -145,7 +145,7 @@ MRI *fMRIvariance(MRI *fmri, float DOF, int RmMean, MRI *var)
   int c, r, s, f;
   double val,sumsqval, sumval;
 
-  if (DOF < 0) DOF = fmri->nframes;
+  if (DOF < 0) DOF = fmri->nframes - RmMean;
 
   if (var==NULL)
   {
@@ -190,7 +190,7 @@ MRI *fMRIvariance(MRI *fmri, float DOF, int RmMean, MRI *var)
         }
         MRIFseq_vox(var,c,r,s,0) = sumsqval/DOF;
         if (RmMean)
-          MRIFseq_vox(var,c,r,s,0) -= ((sumval/DOF)*(sumval/DOF));
+          MRIFseq_vox(var,c,r,s,0) -= ((sumval/fmri->nframes)*(sumval/fmri->nframes));
       }
     }
   }
