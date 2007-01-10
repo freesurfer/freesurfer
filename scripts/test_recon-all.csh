@@ -30,8 +30,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/06 00:01:15 $
-#    $Revision: 1.4 $
+#    $Date: 2007/01/10 03:13:57 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.4 2007/01/06 00:01:15 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.5 2007/01/10 03:13:57 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -189,6 +189,9 @@ sleep 5
 #
 # run recon-all
 #
+
+# setup the libsafe buffer overflow and format string violation detector
+if (-e /lib/libsafe.so.2) setenv LD_PRELOAD /lib/libsafe.so.2
 
 #
 # gather-up possible input volumes
