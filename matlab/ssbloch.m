@@ -20,7 +20,30 @@ function [s,fa] = ssbloch(tr,te,fa,t1,t2s,pd)
 %  Gray:  T1 = 1331ms, T2* = 42-52 ms
 %  White: T1 =  832ms, T2* = 45-48 ms
 %   
-% $Id: ssbloch.m,v 1.2 2006/08/15 03:20:40 greve Exp $
+
+
+%
+% ssbloch.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.3 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 % This is something from Gary G. Mildly related.  Using IR, collect
 % data with TR >> expected_T1, e.g. 5s, and with TIs of 100 200 500

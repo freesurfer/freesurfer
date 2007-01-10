@@ -15,6 +15,29 @@ function [S, v, f, ORIGIN] = read_vf(fname, patch)
 % patch: flag: if 1, try to get patch-information, i.e. indices of vertices and faces
 % in generating original surface, if 0, we don't need this information
 
+
+%
+% read_vf.m
+%
+% Original Author: Bruce Fischl
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 fn = spm_str_manip(fname, 'r');
 
 source = 0;

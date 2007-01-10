@@ -1,11 +1,33 @@
 function [A_lh, A_rh]=cortical_label_adf(subject, p_val)
-
 % Computes the area of the different cortical labels 
 % and compare them to the normal range
 % Uses p_value to detect the abnormal areas
 % Uses the lh/rh.parc.txt files
 %
-% $Id: cortical_labeling_afd_txt.m,v 1.1 2005/06/01 17:25:59 wastiaux Exp $
+
+
+%
+% cortical_labeling_afd_txt.m
+%
+% Original Author: Laurence Wastiaux
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 if (nargin<2 | nargin>2)
     msg=sprintf('USAGE: [L, R]=cortical_label_adf(subject, p_val)');

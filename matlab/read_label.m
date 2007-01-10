@@ -8,7 +8,30 @@ function [l] = read_label(sname, lname)
 %
 % IMPORTANT: the vertex number is 0-based.
 % 
-% $Id: read_label.m,v 1.4 2005/01/23 17:19:23 greve Exp $
+
+
+%
+% read_label.m
+%
+% Original Author: Bruce Fischl
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.5 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 l = [];
 

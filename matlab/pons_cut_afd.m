@@ -1,11 +1,33 @@
 function [D]=pons_cut_adf(subject, th_pval)
-
 % For the subject "subject": computes the Dice coefficient D=2*Nab/(Na+Nb)
 %  Na is the volume of the Cerebellum+Brain-stem obtrained trough the volume-based labeling
 %     Nb is the volume "filled" obtained from the surface-based stream
 %              Nab is the volume of the overlap
 %
-% $Id: pons_cut_afd.m,v 1.1 2005/06/01 17:40:03 wastiaux Exp $
+
+
+%
+% pons_cut_afd.m
+%
+% Original Author: Laurence Wastiaux
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.3 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 
 if (nargin<2 | nargin>2)
@@ -18,14 +40,6 @@ CorDir1=strcat(subject,'/mri/aseg/');
 CorDir2=strcat(subject,'/mri/filled/');
 d1=dir(CorDir1);
 d2=dir(CorDir2);
-
-%%% Get the table's directory %%%
-if(getenv('FREESURFER_HOME'))
-    fsh=getenv('FREESURFER_HOME');
-    fsafdDir=strcat(fsh, '/fsafd');
-else
-    error(sprintf('Impossible to find FREESURFER_HOME\n'));
-end
 
 if (length(d1)<3)
     mess1=sprintf('Cannot find the coronals of the volume aseg for the subject %s',subject);
@@ -89,6 +103,13 @@ function [p_sup]=compute_pval(val)
 %load('/space/okapi/3/data/laurence/ADF/cutting_planes/Dice_pons.mat'); %loads Dpons
 %Load Buckner stats %
 %stat_file='/space/okapi/3/data/laurence/ADF/cutting_planes/PonsCutDice.adf';
+%%% Get the table's directory %%%
+if(getenv('FREESURFER_HOME'))
+    fsh=getenv('FREESURFER_HOME');
+    fsafdDir=strcat(fsh, '/fsafd');
+else
+    error(sprintf('Impossible to find FREESURFER_HOME\n'));
+end
 stat_file=strcat(fsafdDir, '/PonsCutDice.adf');
 fid=fopen(stat_file);
 if(fid==-1)

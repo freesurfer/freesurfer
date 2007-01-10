@@ -1,5 +1,4 @@
 function [dr,dl]=cc_cut_adf(subject, name,th_pval)
-
 %           For each subject "subject":
 % Computes the Dice coefficients measuring the overlap
 % of the WM volume in right and left hemispheres to check  
@@ -7,21 +6,36 @@ function [dr,dl]=cc_cut_adf(subject, name,th_pval)
 %
 % Uses .lta transform and p values
 %
-% $Id: cc_cut_afd.m,v 1.1 2005/06/01 17:39:14 wastiaux Exp $
+
+
+%
+% cc_cut_afd.m
+%
+% Original Author: Laurence Wastiaux
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.3 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 
 
 if (nargin<1 | nargin>3)
     msg=sprintf('USAGE: [Dr,Dl]=cc_cut_adf(Subject)');
     disp(msg)
-end
-
-%%% Get the table's directory %%%
-if(getenv('FREESURFER_HOME'))
-    fsh=getenv('FREESURFER_HOME');
-    fsafdDir=strcat(fsh, '/fsafd');
-else
-    error(sprintf('Impossible to find FREESURFER_HOME\n'));
 end
 
 %%  Load the .lta Talairach transform matrix  %%
@@ -177,6 +191,13 @@ function [rpinf,lpinf]=compute_pval(rval, lval)
 %load('/space/okapi/3/data/laurence/ADF/cutting_planes/Dice_cc_lrh_lta.mat'); %loads Dr Dl
 %rh_stat_file='/space/okapi/3/data/laurence/ADF/cutting_planes/rh.CorpusCallosumCutDice.adf';
 %lh_stat_file='/space/okapi/3/data/laurence/ADF/cutting_planes/lh.CorpusCallosumCutDice.adf';
+%%% Get the table's directory %%%
+if(getenv('FREESURFER_HOME'))
+    fsh=getenv('FREESURFER_HOME');
+    fsafdDir=strcat(fsh, '/fsafd');
+else
+    error(sprintf('Impossible to find FREESURFER_HOME\n'));
+end
 rh_stat_file=strcat(fsafdDir, '/rh.CorpusCallosumCutDice.adf');
 lh_stat_file=strcat(fsafdDir, '/lh.CorpusCallosumCutDice.adf');
 fidrh=fopen(rh_stat_file);

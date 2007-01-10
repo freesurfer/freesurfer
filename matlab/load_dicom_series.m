@@ -16,7 +16,30 @@ function [vol, M, tmpdcminfo, mr_parms] = load_dicom_series(seriesno,dcmdir,dcmf
 %
 % Bugs: will not load multiple frames or mosaics properly.
 %
-% $Id: load_dicom_series.m,v 1.4 2003/08/20 19:42:44 ebeth Exp $
+
+
+%
+% load_dicom_series.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.5 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 if(nargin < 1 | nargin > 3)
   fprintf('[vol, M, dcminfo] = load_dicom_series(seriesno,<dcmdir>,<dcmfile>)\n');

@@ -1,7 +1,5 @@
 % mksubfov.m
 %
-% $Id: mksubfov.m,v 1.3 2006/03/31 06:30:01 greve Exp $
-%
 % The purpose of this matlab script is to create the
 % mni305.cor.subfov1.mgz and mni305.cor.subfov2.mgz volumes.  These
 % are the same data as found in mni305.cor.mgz, but the field-of-view
@@ -23,6 +21,29 @@
 % This just reduces the size by a factor of 4.
 %
 % You should be in $DEV/distribution/averages when running this script
+
+
+%
+% mksubfov.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.4 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 % Load in the pixel values. These are 1mm, isotropic
 cor = MRIread('mni305.cor.mgz');

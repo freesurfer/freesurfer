@@ -10,7 +10,7 @@ function [M_V] = vox2ras_ksolve(M_R, Vc_Ps, varargin)
 %%
 %% VERSION
 %%
-%%	$Id: vox2ras_ksolve.m,v 1.5 2004/06/08 19:10:21 rudolph Exp $
+%%	$Id: vox2ras_ksolve.m,v 1.6 2007/01/10 22:55:10 nicks Exp $
 %%
 %% SYNOPSIS
 %%
@@ -63,6 +63,29 @@ function [M_V] = vox2ras_ksolve(M_R, Vc_Ps, varargin)
 %% 26 May 2004
 %% o Initial design and coding.
 %%
+
+
+%
+% vox2ras_ksolve.m
+%
+% Original Author: Rudolph Pienaar
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.6 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 M_V		= M_R;
 M_V(4,:)	= M_R(4,:)*0;

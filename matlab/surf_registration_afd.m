@@ -2,7 +2,30 @@ function [prv ] = surf_registration_adf(subject, th_pval)
 
 %% Tests the overall surface based registration %%
 %
-% $Id: surf_registration_afd.m,v 1.1 2005/06/01 17:57:36 wastiaux Exp $
+
+
+%
+% surf_registration_afd.m
+%
+% Original Author: Laurence Wastiaux
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 
 hemi = sprintf('lh');

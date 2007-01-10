@@ -1,5 +1,4 @@
 function [vertex_coords, faces] = read_surf(fname)
-
 %
 % [vertex_coords, faces] = read_surf(fname)
 % reads a the vertex coordinates and face lists from a surface file
@@ -7,6 +6,29 @@ function [vertex_coords, faces] = read_surf(fname)
 % time due to the goofy format that they are stored in. If the faces
 % output variable is not specified, they will not be read so it 
 % should execute pretty quickly.
+%
+
+
+%
+% read_surf.m
+%
+% Original Author: Bruce Fischl
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.3 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
 

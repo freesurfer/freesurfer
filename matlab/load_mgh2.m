@@ -10,7 +10,30 @@ function [vol, M, mr_parms] = load_mgh2(fname)
 %
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh2.m,v 1.2 2003/04/30 19:32:53 greve Exp $
+
+
+%
+% load_mgh2.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.3 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 vol = [];
 M = [];

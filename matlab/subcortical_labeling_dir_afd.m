@@ -8,7 +8,30 @@ function [Dvol,I]=check_ROI_dir(Dirname, th_pval)
 % Right-Pallidum Left-Amygdala Right-Amygdala Left-Accumbens-area Right-Accumbens-area 
 %      3rd-Ventricle 4th-Ventricle Left-Inf-Lat-Vent Right-Inf-Lat-Vent) 
 %
-% $Id: subcortical_labeling_dir_afd.m,v 1.1 2005/06/01 17:48:55 wastiaux Exp $
+
+
+%
+% subcortical_labeling_dir_afd.m
+%
+% Original Author: Laurence Wastiaux
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 
 

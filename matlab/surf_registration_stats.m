@@ -1,6 +1,29 @@
 function [Dsubj, nf, r, thdemean, M] = surf_registration_stats(dirname, arg2, arg3)
 
-% $Id: surf_registration_stats.m,v 1.1 2005/06/01 17:57:49 wastiaux Exp $
+
+%
+% surf_registration_stats.m
+%
+% Original Author: Laurence Wastiaux
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
+
 
 LoadTHMat=1;
 D=[];

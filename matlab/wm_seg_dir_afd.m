@@ -1,5 +1,4 @@
 function [Dice, Pval, Isubj]=wm_seg_dir_adf(dirname, th_pval)
-
 %         For all the subjects in the directory "dirname": 
 %           Computes the Dice coefficients D=2Nab/Na+Nb 
 %                           where:
@@ -9,7 +8,30 @@ function [Dice, Pval, Isubj]=wm_seg_dir_adf(dirname, th_pval)
 %
 %  Uses the p values (NB, Dices coefficients take some time to compute...)
 %
-% $Id: wm_seg_dir_afd.m,v 1.1 2005/06/01 14:41:18 wastiaux Exp $
+
+
+%
+% wm_seg_dir_afd.m
+%
+% Original Author: Laurence Wastiaux
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 
 if (nargin<2 | nargin>2)

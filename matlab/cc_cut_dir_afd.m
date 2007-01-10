@@ -1,5 +1,4 @@
  function [ddr, ddl, Isubj]=cc_cut_dir_adf(dirname, th_pval)
-
 % For each subject in the directory "dirname":
 % Computes the Dice coefficients measuring the overlap
 % of the WM volume in right and left hemispheres to check  
@@ -7,7 +6,30 @@
 %
 % Uses the p values
 % 
-% $Id: cc_cut_dir_afd.m,v 1.1 2005/06/01 17:39:19 wastiaux Exp $
+
+
+%
+% cc_cut_dir_afd.m
+%
+% Original Author: Laurence Wastiaux
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 if (nargin<1 | nargin>2)
     msg=sprintf('USAGE: [Dr,Dl]=cc_cut_dir_adf(dirname, th_pval)');

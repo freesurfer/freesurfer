@@ -10,7 +10,7 @@ function [M_R] = vox2ras_rsolveAA(Vc_C, inPlaneRotation, varargin)
 %%
 %% VERSION
 %%
-%% 	$Id: vox2ras_rsolveAA.m,v 1.3 2004/06/08 19:08:05 rudolph Exp $
+%% 	$Id: vox2ras_rsolveAA.m,v 1.4 2007/01/10 22:55:10 nicks Exp $
 %%
 %% SYNOPSIS
 %%
@@ -64,6 +64,29 @@ function [M_R] = vox2ras_rsolveAA(Vc_C, inPlaneRotation, varargin)
 %% 02 June 2004
 %% o Initial design and coding.
 %%
+
+
+%
+% vox2ras_rsolveAA.m
+%
+% Original Author: Rudolph Pienaar
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.4 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 M_R		= zeros(4, 4);
 Vc_Cn		= Vc_C./(norm(Vc_C));

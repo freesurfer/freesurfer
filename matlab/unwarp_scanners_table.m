@@ -1,4 +1,5 @@
-% $Id: unwarp_scanners_table.m,v 1.3 2005/01/05 19:53:24 czanner Exp $
+function m = unwarp_scanners_table()
+
 % 
 % Edit this structure, then run it to build the table.
 % 
@@ -14,7 +15,28 @@
 %
 % S.Czanner, added table for Avanto, 01-2005
 
-function m = unwarp_scanners_table()
+
+%
+% unwarp_scanners_table.m
+%
+% Original Author: Elizabeth Haley
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.4 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 global TABLE;
 unwarp_init_globals(0); % 0 = called by script - probably not!

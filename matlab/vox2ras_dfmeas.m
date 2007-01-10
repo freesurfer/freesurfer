@@ -10,7 +10,7 @@ function [M_V] = vox2ras_dfmeas(str_filename, varargin)
 %%
 %% VERSION
 %%
-%%	$Id: vox2ras_dfmeas.m,v 1.8 2004/06/09 16:30:51 rudolph Exp $
+%%	$Id: vox2ras_dfmeas.m,v 1.9 2007/01/10 22:55:10 nicks Exp $
 %%
 %% SYNOPSIS
 %%
@@ -118,6 +118,29 @@ function [M_V] = vox2ras_dfmeas(str_filename, varargin)
 %% 02 June 2004
 %% o vox2ras_rsolveAA
 %%
+
+
+%
+% vox2ras_dfmeas.m
+%
+% Original Author: Rudolph Pienaar
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.9 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 %% Check for override specifications and set default values
 ch_override		= '0';

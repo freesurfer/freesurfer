@@ -6,7 +6,30 @@ function [D, Isubj]=ribbon_dir_adf(dirname, th_pval)
 %         1- from the subcortical labeling   
 %         2- as the space between the white and the pial surface 
 %
-% $Id: ribbon_dir_afd.m,v 1.1 2005/06/01 15:25:57 wastiaux Exp $
+
+
+%
+% ribbon_dir_afd.m
+%
+% Original Author: Laurence Wastiaux
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 
 

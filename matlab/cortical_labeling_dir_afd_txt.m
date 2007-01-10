@@ -1,12 +1,34 @@
 function [Dl, Dr,I]=cortical_label_dir_adf(dirname, p_val)
-
 % Computes the area of the different cortical labels 
 % and compare them to the normal range for all the 
 % subjects in directory "dirname"
 % Uses the p_values to detect the abnormal structures
 % Uses the lh/rh.parc.txt files
 %
-% $Id: cortical_labeling_dir_afd_txt.m,v 1.1 2005/06/01 17:26:23 wastiaux Exp $
+
+
+%
+% cortical_labeling_dir_afd_txt.m
+%
+% Original Author: Laurence Wastiaux
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 
 if (nargin<2 | nargin>2)

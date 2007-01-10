@@ -18,7 +18,30 @@ function err = MRIwrite(mri,fstring)
 % keep the same precision set mri.outbext = mri.srcbext.  This only
 % applies to bhdr format.
 % 
-% $Id: MRIwrite.m,v 1.8 2006/04/11 04:33:32 greve Exp $
+
+
+%
+% MRIwrite.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.9 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 err = 1;
 

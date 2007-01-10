@@ -11,7 +11,30 @@ function hdr = load_nifti_hdr(niftifile)
 % Endianness is returned as hdr.endian, which is either 'l' or 'b'. 
 % When opening again, use fp = fopen(niftifile,'r',hdr.endian);
 %
-% $Id: load_nifti_hdr.m,v 1.5 2006/04/11 04:00:15 greve Exp $
+
+
+%
+% load_nifti_hdr.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.6 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 hdr = [];
 

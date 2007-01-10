@@ -8,9 +8,32 @@ function N = sampleSize(stdS, effectsize, alpha, targetPOWER, alternative);
 % effectsize is the effect to look for (difference in means of two groups)
 % alpha is the significance level, default = 0.01
 % power is the desired power, default = 0.8
-% alternative is a string for either 'one-sided' or 'two-sided'; defaul is 'two-sided'
-% tested against http://www.stat.uiowa.edu/~rlenth/Power/, and the results match perfectly
+% alternative is a string for either 'one-sided' or 'two-sided'; 
+% default is 'two-sided'
+% tested against http://www.stat.uiowa.edu/~rlenth/Power/, 
+% and the results match perfectly
 
+%
+% sampleSize.m
+%
+% Original Author: Xaio Han
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.4 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 if nargin < 2,
     error('Insufficient Inputs');

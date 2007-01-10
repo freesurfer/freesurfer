@@ -14,7 +14,30 @@ function [fpr,tpr,auc,fdr,nthresh] = bmmroc(pA,pI,lambda,ntrials,nthresh)
 % auc - area under the [ROC] curv
 % fdr - false dicovery rate as a function of threshold
 %
-% $Id: bmmroc.m,v 1.3 2006/08/16 04:16:38 greve Exp $
+
+
+%
+% bmmroc.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.4 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 
 if(nargin < 4 | nargin > 5)
   fprintf('[fpr tpr auc] = bmmroc(pA,pI,lambda,ntrials,<nthresh>)\n');

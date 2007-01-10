@@ -10,7 +10,29 @@ function r = save_mgh(vol, fname, M, mr_parms);
 %
 % See also: load_mgh, vox2ras_0to1
 %
-% $Id: save_mgh.m,v 1.6 2004/07/26 14:08:50 fischl Exp $
+%
+
+
+%
+% save_mgh.m
+%
+% Original Author: Bruce Fischl
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.7 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
 r = 1;

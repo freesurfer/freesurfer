@@ -1,5 +1,4 @@
 function [vertices, label, colortable] = Read_Brain_Annotation(filename)
-
 % [vertices, label, colortable] = Read_Brain_Annotation(annotfilename.annot)
 %
 % vertices expected to be simply from 0 to number of vertices - 1;
@@ -13,6 +12,29 @@ function [vertices, label, colortable] = Read_Brain_Annotation(filename)
 % colortable.table = n x 5 matrix. 1st column is r, 2nd column is g, 3rd column
 % is b, 4th column is flag, 5th column is resultant integer values
 % calculated from r + g*2^8 + b*2^16 + flag*2^24. flag expected to be all 0.
+
+
+%
+% read_annotation.m
+%
+% Original Author: Bruce Fischl
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.4 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 fp = fopen(filename, 'r', 'b');
 

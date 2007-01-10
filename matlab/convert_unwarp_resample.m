@@ -1,4 +1,4 @@
-% $Id: convert_unwarp_resample.m,v 1.10 2005/04/13 21:33:30 greve Exp $
+function convert_unwarp_resample(infile,series,outfile,corfovflag,unwarpflag,jacflag,interp_method,user_gradwarpfile,called_by_script)
 %
 %% convert_unwarp_resample.m contains: 
 % convert_unwarp_resample()
@@ -18,7 +18,30 @@
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function convert_unwarp_resample(infile,series,outfile,corfovflag,unwarpflag,jacflag,interp_method,user_gradwarpfile,called_by_script)
+
+%
+% convert_unwarp_resample.m
+%
+% Original Author: Elizabeth Haley
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:09 $
+%    $Revision: 1.11 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
+
 
 % Converts dicom to mgh, possibly including unwarping and resampling
 % to COR FOV.  Resampling to COR needs a rewrite.

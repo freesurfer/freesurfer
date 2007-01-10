@@ -1,4 +1,5 @@
-% $Id: unwarp_resample.m,v 1.5 2004/09/13 17:49:33 greve Exp $
+function [imvol_out, M_out] = unwarp_resample(imvol,M,imvol_out_size,M_out,Mdc,unwarpflag,Jacobianflag,plotflag,interp_method,inflag,thruflag,gradfilename)
+
 %
 % In this file:
 %
@@ -8,7 +9,30 @@
 % interp_trilin, rcs2index - for interpolating in the
 %                            gradwarpvolumes
 
-function [imvol_out, M_out] = unwarp_resample(imvol,M,imvol_out_size,M_out,Mdc,unwarpflag,Jacobianflag,plotflag,interp_method,inflag,thruflag,gradfilename)
+
+%
+% unwarp_resample.m
+%
+% Original Author: Elizabeth Haley
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:55:10 $
+%    $Revision: 1.6 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
+
 
 devdir = getenv('DEV');
 d = sprintf('%s/fsfast/toolbox',devdir); % for qoe()
