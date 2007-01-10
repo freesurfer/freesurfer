@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/05 20:56:34 $
- *    $Revision: 1.13 $
+ *    $Date: 2007/01/10 22:37:17 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // mri_concat.c
-// $Id: mri_concat.c,v 1.13 2007/01/05 20:56:34 greve Exp $
+// $Id: mri_concat.c,v 1.14 2007/01/10 22:37:17 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +54,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.13 2007/01/05 20:56:34 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.14 2007/01/10 22:37:17 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -62,6 +62,7 @@ int ninputs = 0;
 char *out = NULL;
 MRI *mritmp, *mritmp0, *mriout;
 int DoMean=0;
+int DoStd=0;
 int DoMax=0;
 int DoPairedDiff=0;
 int DoPairedDiffNorm=0;
@@ -194,6 +195,18 @@ int main(int argc, char **argv) {
     mriout = mritmp;
   }
 
+  if (DoStd) {
+    printf("Computing std across frames\n");
+    if(mriout->nframes < 2){
+      printf("ERROR: cannot compute std from one frame\n");
+      exit(1);
+    }
+    mritmp = fMRIvariance(mriout, -1, 1, NULL);
+    MRIsqrt(mritmp, mritmp);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
+
   if (DoMax) {
     printf("Computing max across all frames \n");
     mritmp = MRIvolMax(mriout,NULL);
@@ -232,6 +245,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--mean"))   DoMean = 1;
+    else if (!strcasecmp(option, "--std"))    DoStd = 1;
     else if (!strcasecmp(option, "--max"))    DoMax = 1;
     else if (!strcasecmp(option, "--asl")){
       DoPairedDiff = 1;
@@ -285,7 +299,9 @@ static void print_usage(void) {
   printf("   --paired-diff-norm : same as paired-diff but scale by TP1,2 average \n");
   printf("   --paired-diff-norm1 : same as paired-diff but scale by TP1 \n");
   printf("   --paired-diff-norm2 : same as paired-diff but scale by TP2 \n");
+  printf("\n");
   printf("   --mean : compute mean of concatenated volumes\n");
+  printf("   --std  : compute std  of concatenated volumes\n");
   printf("   --max  : compute max  of concatenated volumes\n");
   printf("\n");
   printf("   --help      print out information on how to use this program\n");
@@ -345,7 +361,10 @@ static void check_options(void) {
     printf("ERROR: cannot specify both --paried-diff-norm and --paried-diff-norm2 \n");
     exit(1);
   }
-
+  if(DoMean && DoStd){
+    printf("ERROR: cannot --mean and --std\n");
+    exit(1);
+  }
   return;
 }
 
