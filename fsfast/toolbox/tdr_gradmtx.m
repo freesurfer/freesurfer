@@ -4,7 +4,30 @@ function T = tdr_gradmtx(mask)
 % Computes a matrix to compute a spatial difference between a voxel
 % and its 4 nearest neighbors within the mask in a slice.
 %
-% $Id: tdr_gradmtx.m,v 1.1 2006/05/17 05:25:10 greve Exp $
+%
+
+
+%
+% tdr_gradmtx.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:35 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 T = [];
 

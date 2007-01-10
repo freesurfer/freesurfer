@@ -8,7 +8,30 @@ function M = fast_sincmtx(len,delta,rownorm,hw)
 % mean is 1. hw is the width of the hann window. The wider
 % the width, the less the effect.
 %
-% $Id: fast_sincmtx.m,v 1.3 2003/10/27 05:22:24 greve Exp $
+%
+
+
+%
+% fast_sincmtx.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:32 $
+%    $Revision: 1.4 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 M = [];
 

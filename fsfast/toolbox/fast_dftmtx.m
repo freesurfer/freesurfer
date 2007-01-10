@@ -12,7 +12,30 @@ function [K, phmat] = fast_dftmtx(N_or_Phase)
 % For a vector f = randn(N,1); then F = fftshift(K*f); will be the
 % same as fft(f). Actually, only the magnitudes will be the same.
 %
-% $Id: fast_dftmtx.m,v 1.4 2004/01/11 18:58:08 greve Exp $
+%
+
+
+%
+% fast_dftmtx.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:30 $
+%    $Revision: 1.5 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 if(nargin ~= 1)
   fprintf('[K phmat] = fast_dftmtx(N_or_Phase)\n');

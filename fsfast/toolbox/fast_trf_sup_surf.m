@@ -4,7 +4,30 @@ function [p,p2] = fast_trf_sup_surf(t,dof,fwhm,area)
 % Based on Moo Chung, et al, Cortical thickness analysis in autism
 % with heat kernel smoothing. NeuroImage, 25, 1256-1265. 2005.
 %
-% $Id: fast_trf_sup_surf.m,v 1.1 2006/02/21 01:30:52 greve Exp $
+%
+
+
+%
+% fast_trf_sup_surf.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:32 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 p = [];
 if(nargin ~= 4)

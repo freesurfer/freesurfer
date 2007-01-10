@@ -7,7 +7,30 @@ function [log10p, nnz] = fast_log10p(p)
 %
 % nnz is the number of p values not equal to zero.
 %
-% $Id: fast_log10p.m,v 1.1 2003/05/12 18:32:27 greve Exp $
+%
+
+
+%
+% fast_log10p.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:31 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 log10p = [];
 if(nargin ~= 1)

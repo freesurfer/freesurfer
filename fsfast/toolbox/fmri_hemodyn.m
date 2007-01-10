@@ -15,7 +15,30 @@ function h = fmri_hemodyn(t, delta, tau, alpha)
 %
 % Be default, alpha = 2 (good for BOLD).
 %
-% $Id: fmri_hemodyn.m,v 1.3 2004/01/08 19:40:30 greve Exp $
+%
+%
+
+
+%
+% fmri_hemodyn.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:33 $
+%    $Revision: 1.4 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
 if(nargin ~= 3 & nargin ~= 4)

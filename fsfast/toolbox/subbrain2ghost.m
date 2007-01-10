@@ -21,7 +21,30 @@ function [rg, cg] = subbrain2ghost(imgsize,rb,cb,pedim)
 %
 % See also: indbrain2ghost
 %
-% $Id: subbrain2ghost.m,v 1.1 2004/05/07 03:09:07 greve Exp $
+%
+
+
+%
+% subbrain2ghost.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:34 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 rg = [];
 cg = [];

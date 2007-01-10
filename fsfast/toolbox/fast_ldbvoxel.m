@@ -5,7 +5,30 @@ function v = fast_ldbvoxel(stem,c,r,s,base)
 % is more than one frame, all frames are read in.
 % crs are assumed to be zero-based, unless base is set to 1.
 %
-% $Id: fast_ldbvoxel.m,v 1.3 2003/09/28 21:46:58 greve Exp $
+%
+
+
+%
+% fast_ldbvoxel.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:31 $
+%    $Revision: 1.4 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 v=[];
 

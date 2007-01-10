@@ -17,9 +17,32 @@ function [roivar, mask, navg] = fast_weiskopf_perm(fslice,nroi,mask,navg)
 % Results: never indicates that there's a problem because the
 % voxels are too dispersed across the volume.
 %
-% $Id: fast_weiskopf_perm.m,v 1.1 2004/05/04 05:04:30 greve Exp $
+%
 %
 % (c) Douglas N. Greve, 2004
+
+
+%
+% fast_weiskopf_perm.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:32 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 roivar = [];
 polyorder = 2; % detrending order

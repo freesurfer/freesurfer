@@ -15,7 +15,30 @@ function [edge, bincenter, binmap] = fast_histeq(y,nbins)
 % plot(nk(1:end-1));
 % plot should have approx 1000 = 10000/nbins at each entry
 %
-% $Id: fast_histeq.m,v 1.4 2006/11/16 05:13:30 greve Exp $
+%
+
+
+%
+% fast_histeq.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:31 $
+%    $Revision: 1.5 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 edge = [];
 

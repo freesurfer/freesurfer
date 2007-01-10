@@ -5,7 +5,30 @@ function [tcimg,cmap,cscale] = imgoverlaytc(img,overlay,ovmin,ovmax,tail,rescale
 % Creates a true-color compositive image with img as a gray-scale
 % base and overlay as a colored overlay.
 % 
-% $Id: imgoverlaytc.m,v 1.1 2003/03/04 20:47:41 greve Exp $
+%
+
+
+%
+% imgoverlaytc.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:34 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 if(nargin ~= 5 & nargin ~= 6)
   msg = 'USAGE: [imgov cmap cscale] = imgoverlaytc(img,overlay,ovmin,ovmax,tail,<rescale>)'

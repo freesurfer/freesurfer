@@ -11,7 +11,30 @@ function [F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,Sn,dof2max,edofuse)
 %
 % See also: fast_glmfit.m
 %
-% $Id: fast_fratio.m,v 1.7 2004/03/22 20:10:47 greve Exp $
+%
+
+
+%
+% fast_fratio.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:30 $
+%    $Revision: 1.8 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 if(nargin < 4 | nargin > 7)
   fprintf('[F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,<Sn>,<dof2max>,<edofuse>)\n');

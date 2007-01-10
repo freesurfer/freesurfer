@@ -16,11 +16,34 @@ function yak(varargin)
 %
 % yak(cbstring) % for callback functions
 %
-% $Id: yak.m,v 1.5 2005/09/29 19:48:15 greve Exp $
+%
+
+
+%
+% yak.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:35 $
+%    $Revision: 1.6 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 if(nargin == 0)
   msg = 'USAGE: hfig = yak(flag,options)';
-  msg = sprintf('%s\n$Id: yak.m,v 1.5 2005/09/29 19:48:15 greve Exp $',msg);
+  msg = sprintf('%s\n$Id: yak.m,v 1.6 2007/01/10 22:02:35 nicks Exp $',msg);
   qoe(msg);error(msg);
 end
 

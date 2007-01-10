@@ -57,7 +57,30 @@ function rt = fast_fxcfg(DoWhat,thing)
 % fast_fxcfg_gamma, fast_fxcfg_spmhrf, fast_fxcfg_fourier
 %
 %
-% $Id: fast_fxcfg.m,v 1.9 2003/08/28 05:12:53 greve Exp $
+%
+
+
+%
+% fast_fxcfg.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:30 $
+%    $Revision: 1.10 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 % Things to do:
 %   nregressorstot - total number of regressors

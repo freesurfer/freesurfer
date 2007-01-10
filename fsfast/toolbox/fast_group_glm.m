@@ -1,5 +1,5 @@
 % fast_group_glm.m - see groupreg-sess
-% $Id: fast_group_glm.m,v 1.4 2005/01/19 17:45:40 greve Exp $
+%
 %
 % InstemList = splitstring('$InstemList');
 % FLAXMatList = splitstring('$FLAXMatList');
@@ -13,9 +13,32 @@
 % hemicode = 'lh'; hemicode = '';
 % nthframe = 1;
 
+
+%
+% fast_group_glm.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:31 $
+%    $Revision: 1.5 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 tic;
 
-ver = '$Id: fast_group_glm.m,v 1.4 2005/01/19 17:45:40 greve Exp $';
+ver = '$Id: fast_group_glm.m,v 1.5 2007/01/10 22:02:31 nicks Exp $';
 fprintf('%s\n',ver);
 
 Cflastruct = load(FLAConMat);

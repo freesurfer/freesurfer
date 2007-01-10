@@ -12,9 +12,32 @@ function sacf = fast_spatialacf(fslice,r0,c0,maxlag,normflag)
 %
 % gauss std = fwhm/2.36
 %
-% $Id: fast_spatialacf.m,v 1.1 2004/05/03 03:27:33 greve Exp $
+%
 %
 % (c) Douglas N. Greve, 2004.
+
+
+%
+% fast_spatialacf.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:32 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 if(nargin < 4 | nargin > 5)
   fprintf('sacf = fast_spatialacf(fslice,r0,c0,maxlag,<normflag>)\n');

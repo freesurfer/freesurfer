@@ -16,7 +16,30 @@ function vol = fast_mat2vol(mat,szvol,sliceflag)
 %
 % See also fast_vol2mat.
 %
-% $Id: fast_mat2vol.m,v 1.6 2006/06/06 04:30:29 greve Exp $
+%
+
+
+%
+% fast_mat2vol.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:31 $
+%    $Revision: 1.7 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 vol = [];
 

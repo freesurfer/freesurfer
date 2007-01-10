@@ -4,7 +4,30 @@ function [evw, evrw, hit] = flac_evconw(flac,nthev,nthcon)
 % Retuns the weights of the nth EV as found in the nth contrast. If
 % the EV is not specified in the contrast, hit = 0;
 %
-% $Id: flac_evconw.m,v 1.2 2006/10/19 04:49:30 greve Exp $
+%
+
+
+%
+% flac_evconw.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:32 $
+%    $Revision: 1.3 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 evw = [];
 evrw = [];

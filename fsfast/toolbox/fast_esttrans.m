@@ -14,6 +14,29 @@ function [d1, d2, d3, match, vxc] = fast_esttrans(v1,v2,frame)
 % v1b = fast_mshift(v2, [ d1 d2 d3 ], 1);
 % v1b will now be idendical to v1
 
+
+%
+% fast_esttrans.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:30 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
 frame = 1;
 
 v1fft = fftn(v1(:,:,:,frame));

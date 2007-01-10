@@ -12,7 +12,30 @@ function md = fast_dilate(m,ndilations,erodeflag,flag2d)
 % flag2d=1, then 3x3x1. Dilation and erosion are reversible only
 % if there are no edge effects.
 %
-% $Id: fast_dilate.m,v 1.2 2006/09/07 02:32:55 greve Exp $
+%
+
+
+%
+% fast_dilate.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:30 $
+%    $Revision: 1.3 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 md = [];
 

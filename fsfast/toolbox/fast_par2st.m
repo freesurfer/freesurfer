@@ -16,7 +16,30 @@ function st = fast_par2st(par,condno,trun,stimdur)
 % If stimdur is specified, then all stimuli will have that as the
 % stimulus duration (column 3)
 %
-% $Id: fast_par2st.m,v 1.2 2006/11/15 22:46:51 greve Exp $
+%
+
+
+%
+% fast_par2st.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:31 $
+%    $Revision: 1.3 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 st = [];
 

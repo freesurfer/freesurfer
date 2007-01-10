@@ -1,8 +1,31 @@
 % fmri_isavgstg (Inter-Subject Averaging, Random Effects)
 %
-% $Id: fmri_isavgstg.m,v 1.2 2003/03/20 20:39:05 greve Exp $
+%
 
-fprintf('\n$Id: fmri_isavgstg.m,v 1.2 2003/03/20 20:39:05 greve Exp $\n');
+
+%
+% fmri_isavgstg.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:33 $
+%    $Revision: 1.3 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
+fprintf('\n$Id: fmri_isavgstg.m,v 1.3 2007/01/10 22:02:33 nicks Exp $\n');
 
 nS = size(isavgdat,1);
 tmp = load(CMtxFile);

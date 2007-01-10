@@ -11,7 +11,30 @@ function [tbl, rowid, colid] = fast_ldtable(tablefile)
 %   4. Blank lines are ignored
 %   5. Any line begining with a # is ignored
 %
-% $Id: fast_ldtable.m,v 1.2 2004/11/14 22:32:46 greve Exp $
+%
+%
+
+
+%
+% fast_ldtable.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:31 $
+%    $Revision: 1.3 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
 tbl=[];

@@ -20,7 +20,30 @@ function rt = fast_fxcfg_fir(DoWhat,thing)
 %  4. PSDMax
 %  5. BCW
 %
-% $Id: fast_fxcfg_fir.m,v 1.8 2003/08/21 03:41:30 greve Exp $
+%
+
+
+%
+% fast_fxcfg_fir.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:30 $
+%    $Revision: 1.9 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 rt = [];
 

@@ -1,6 +1,6 @@
 function r = fast_selxavg2(varargin)
 % r = fast_selxavg2(varargin)
-% '$Id: fast_selxavg2.m,v 1.7 2006/07/13 05:51:39 greve Exp $
+% '$Id: fast_selxavg2.m,v 1.8 2007/01/10 22:02:32 nicks Exp $
 %
 % For compatibility with version 1:
 %  DOF ignores tpexcl
@@ -41,8 +41,34 @@ function r = fast_selxavg2(varargin)
 %   fourier
 %   change "ces" to "gamma"
 %   
+
+
+%
+% fast_selxavg2.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:32 $
+%    $Revision: 1.8 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
+
+
 tic;
-version = '$Id: fast_selxavg2.m,v 1.7 2006/07/13 05:51:39 greve Exp $';
+version = '$Id: fast_selxavg2.m,v 1.8 2007/01/10 22:02:32 nicks Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 outfmt = 'nii';

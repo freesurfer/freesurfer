@@ -1,6 +1,6 @@
 function r = fast_compute_cvm(varargin)
 % r = fast_compute_cvm(varargin)
-% '$Id: fast_compute_cvm.m,v 1.1 2003/03/04 20:47:37 greve Exp $'
+% '$Id: fast_compute_cvm.m,v 1.2 2007/01/10 22:02:30 nicks Exp $'
 %
 % Computes the temporal covariance matrix (CVM) of a functional volume.
 % Options:
@@ -16,7 +16,30 @@ function r = fast_compute_cvm(varargin)
 % See also: fmri_cvmstruct, fmri_svcvm, fmri_ldcvm
 %  
 
-version = '$Id: fast_compute_cvm.m,v 1.1 2003/03/04 20:47:37 greve Exp $'
+
+%
+% fast_compute_cvm.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:30 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
+version = '$Id: fast_compute_cvm.m,v 1.2 2007/01/10 22:02:30 nicks Exp $'
 fprintf(1,'%s\n',version);
 r = 1;
 

@@ -8,7 +8,30 @@ function [beta, rvar, vdof, r] = fast_glmfit(y,X,Sn)
 %
 % See also: fast_fratio.m
 %
-% $Id: fast_glmfit.m,v 1.3 2003/05/02 03:43:21 greve Exp $
+%
+
+
+%
+% fast_glmfit.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:30 $
+%    $Revision: 1.4 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 if(nargin ~= 2 & nargin ~= 3)
   fprintf('[beta, rvar, vdof, r] = fast_glmfit(y,X,<Sn>)\n');

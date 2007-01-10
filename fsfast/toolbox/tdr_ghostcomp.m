@@ -1,5 +1,28 @@
 % tdr_ghostcomp.m
-% $Id: tdr_ghostcomp.m,v 1.1 2003/11/25 21:05:52 greve Exp $
+%
+
+
+%
+% tdr_ghostcomp.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:35 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 mghdir = '/autofs/space/greve_002/users/greve/fb-104.2/sm1/mgh';
 measasc = sprintf('%s/meas.asc',mghdir);

@@ -2,9 +2,32 @@ function r = fast_bfileconvert(varargin)
 % r = fast_bfileconvert(varargin)
 % Converts a bfile into another bfile. Eg, bfloat into bshort,
 % Little endian into big endian, etc.
-% '$Id: fast_bfileconvert.m,v 1.4 2004/04/09 19:03:42 greve Exp $'
+% '$Id: fast_bfileconvert.m,v 1.5 2007/01/10 22:02:30 nicks Exp $'
 
-version = '$Id: fast_bfileconvert.m,v 1.4 2004/04/09 19:03:42 greve Exp $';
+
+%
+% fast_bfileconvert.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:30 $
+%    $Revision: 1.5 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
+version = '$Id: fast_bfileconvert.m,v 1.5 2007/01/10 22:02:30 nicks Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 

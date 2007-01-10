@@ -7,7 +7,30 @@ function err = fast_svtable(tbl, rowid, colid, fname, base)
 % string in the first row and col) will be base (if no base is
 % supplied then 0000 is put as a place-holder).
 %
-% $Id: fast_svtable.m,v 1.1 2003/05/28 20:55:59 greve Exp $
+%
+
+
+%
+% fast_svtable.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:32 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 err = 1;
 

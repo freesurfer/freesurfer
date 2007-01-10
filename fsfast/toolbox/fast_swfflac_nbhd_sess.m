@@ -1,4 +1,29 @@
 % fast_swfflac_nbhd_sess.m
+
+
+%
+% fast_swfflac_nbhd_sess.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:32 $
+%    $Revision: 1.6 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
+
+
 tic;
 
 % fdr = 1;
@@ -27,7 +52,7 @@ tic;
 
 
 
-fast_swfflac_nbhd_sess_ver = '$Id: fast_swfflac_nbhd_sess.m,v 1.5 2006/09/14 02:02:54 greve Exp $';
+fast_swfflac_nbhd_sess_ver = '$Id: fast_swfflac_nbhd_sess.m,v 1.6 2007/01/10 22:02:32 nicks Exp $';
 
 SynthSeed = round(sum(100*clock)); 
 randn('state',SynthSeed); 

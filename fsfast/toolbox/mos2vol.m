@@ -15,7 +15,30 @@ function [vol, tszmos] = mos2vol(mos, szvol, tszmos)
 % See also: mos2vol vol2mos mosind2volind mossub2volsub 
 %           volind2mosind volsub2mossub defmossize
 %
-% $Id: mos2vol.m,v 1.1 2003/03/04 20:47:41 greve Exp $
+%
+
+
+%
+% mos2vol.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:34 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 if(nargin ~= 2 & nargin ~= 3)
   msg = 'USAGE: [vol tszmos] = mos2vol(mos, szvol, <tszmos>)';

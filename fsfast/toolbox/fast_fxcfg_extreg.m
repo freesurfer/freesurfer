@@ -16,7 +16,30 @@ function rt = fast_fxcfg_extreg(DoWhat,thing)
 % ExtReg Parameters:
 %  1. fname - name relative to fsd/RRR (stored in sparams not params)
 %  2. nextreg  - number of extreg to use (-1 for all) (stored in params)
-% $Id: fast_fxcfg_extreg.m,v 1.2 2003/05/07 04:29:58 greve Exp $
+%
+
+
+%
+% fast_fxcfg_extreg.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:30 $
+%    $Revision: 1.3 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 rt = [];
 

@@ -1,7 +1,7 @@
 function val = tdr_measasc(measasc,varname,flag)
 % val = tdr_measasc(measasc,varname,<flag>)
 %
-% $Id: tdr_measasc.m,v 1.5 2006/05/11 21:59:40 greve Exp $
+%
 %
 % EPI ------------------------------------------------------
 % Number of echoes: sWiPMemBlock.alFree[2] (if it exists.
@@ -24,6 +24,29 @@ function val = tdr_measasc(measasc,varname,flag)
 % time to first echo (us) - alTE[0]  % us
 % number of echoes - sWiPMemBlock.alFree[10]
 % echo spacing     - sWiPMemBlock.adFree[2] % ms
+%
+
+
+%
+% tdr_measasc.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:35 $
+%    $Revision: 1.6 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
 val = [];

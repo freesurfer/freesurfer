@@ -4,7 +4,30 @@ function [dsm, g] = fast_smooth1d(d,gsigma)
 % Gaussian smooths the columns of d. Pads with zeros so no
 % wrap-around. Uses fft. Should work on complex data. 
 %
-% $Id: fast_smooth1d.m,v 1.2 2005/09/02 17:31:39 greve Exp $
+%
+
+
+%
+% fast_smooth1d.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:32 $
+%    $Revision: 1.3 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 % Test 1
 % N = 50; gstd = 2;

@@ -13,7 +13,30 @@ function [pdf, pdfvar] = pdf_rayleigh(x,mean,log10flag)
 %   y = abs(randn(10000,1) +i*randn(10000,1));
 %   The var will be the var of the white noise times (2-pi/2)
 %
-% $Id: pdf_rayleigh.m,v 1.3 2005/03/19 00:17:43 greve Exp $
+%
+
+
+%
+% pdf_rayleigh.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:34 $
+%    $Revision: 1.4 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 pdf = [];
 if(nargin < 1 | nargin > 3)

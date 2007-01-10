@@ -3,7 +3,7 @@ function varargout = univarlab(varargin)
 %    FIG = UNIVARLAB launch univarlab GUI.
 %    UNIVARLAB('callback_name', ...) invoke the named callback.
 % Last Modified by GUIDE v2.0 20-Aug-2003 23:16:15
-% $Id: univarlab.m,v 1.8 2003/08/21 03:39:01 greve Exp $
+%
 
 % To do:
 %   Closing/Quiting functions
@@ -21,6 +21,7 @@ function varargout = univarlab(varargin)
 %   Slice Timing Correction
 %   Save all schedules, re-gen only when asked
 %   Separate synthesis model for both conditions
+
 
 if(nargin == 0)  
   % LAUNCH GUI

@@ -33,7 +33,30 @@ function Q = vqm(abc,voxsize,voldim,base)
 %     [R subj inres betres] = fmri_readreg('register.dat'); 
 %     Qf = vqm('LIA', [inres inres betres], [64 64 24], 0);
 %
-% $Id: vqm.m,v 1.1 2003/03/04 20:47:41 greve Exp $
+%
+
+
+%
+% vqm.m
+%
+% Original Author: Doug Greve
+% CVS Revision Info:
+%    $Author: nicks $
+%    $Date: 2007/01/10 22:02:35 $
+%    $Revision: 1.2 $
+%
+% Copyright (C) 2002-2007,
+% The General Hospital Corporation (Boston, MA). 
+% All rights reserved.
+%
+% Distribution, usage and copying of this software is covered under the
+% terms found in the License Agreement file named 'COPYING' found in the
+% FreeSurfer source code root directory, and duplicated here:
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+%
+% General inquiries: freesurfer@nmr.mgh.harvard.edu
+% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+%
 
 if(nargin ~= 3 & nargin ~= 4)
   msg = 'USAGE: Q = vqm(abc,voxsize,voldim,<base>)';
