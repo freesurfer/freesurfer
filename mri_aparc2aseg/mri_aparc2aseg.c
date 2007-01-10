@@ -1,15 +1,28 @@
 /**
  * @file  mri_aparc2aseg.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Maps aparc labels to aseg
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Maps the cortical labels from the automatic cortical parcellation (aparc)
+ * to the automatic segmentation volume (aseg). The result can be used as
+ * the aseg would. The algorithm is to find each aseg voxel labeled as
+ * cortex (3 and 42) and assign it the label of the closest cortical vertex.
+ * If the voxel is not in the ribbon (as defined by mri/lh.ribbon and
+ * rh.ribbon), then the voxel is marked as unknown (0). This can be turned
+ * off with --noribbon. The cortical parcellation is obtained from
+ * subject/label/hemi.aparc.annot which should be based on the
+ * curvature.buckner40.filled.desikan_killiany.gcs atlas
+ * The aseg is obtained from subject/mri/aseg.mgz and should be based on
+ * the RB40_talairach_2005-07-20.gca atlas. If these atlases are used, then
+ * the segmentations can be viewed with tkmedit and the FreeSurferColorLUT.txt
+ * color table found in $FREESURFER_HOME. These are the default atlases
+ * used by recon-all.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:04 $
- *    $Revision: 1.13 $
+ *    $Date: 2007/01/10 19:29:52 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,8 +38,6 @@
  *
  */
 
-
-// mri_aparc2aseg.c
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +65,8 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_aparc2aseg.c,v 1.13 2006/12/29 02:09:04 nicks Exp $";
+static char vcid[] = 
+"$Id: mri_aparc2aseg.c,v 1.14 2007/01/10 19:29:52 nicks Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -142,7 +154,8 @@ int main(int argc, char **argv) {
   lhpial_hash = MHTfillVertexTableRes(lhpial, NULL,CURRENT_VERTICES,hashres);
 
   if (lhwhite->nvertices != lhpial->nvertices) {
-    printf("ERROR: lh white and pial have a different number of vertices (%d,%d)\n",
+    printf("ERROR: lh white and pial have a different number of "
+           "vertices (%d,%d)\n",
            lhwhite->nvertices,lhpial->nvertices);
     exit(1);
   }
@@ -181,7 +194,8 @@ int main(int argc, char **argv) {
   rhpial_hash = MHTfillVertexTableRes(rhpial, NULL,CURRENT_VERTICES,hashres);
 
   if (rhwhite->nvertices != rhpial->nvertices) {
-    printf("ERROR: rh white and pial have a different number of vertices (%d,%d)\n",
+    printf("ERROR: rh white and pial have a different "
+           "number of vertices (%d,%d)\n",
            rhwhite->nvertices,rhpial->nvertices);
     exit(1);
   }
