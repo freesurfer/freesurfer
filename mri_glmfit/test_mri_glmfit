@@ -1,15 +1,15 @@
 #!/bin/tcsh -f
 
 #
-# test_mriglm
+# test_mri_glmfit
 #
 # execute mri_glmfit and check results against expected results
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/11 00:42:15 $
-#    $Revision: 1.3 $
+#    $Date: 2007/01/11 00:51:18 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_glmfit,v 1.3 2007/01/11 00:42:15 nicks Exp $'
+set VERSION='$Id: test_mri_glmfit,v 1.4 2007/01/11 00:51:18 nicks Exp $'
 
 umask 002
 
