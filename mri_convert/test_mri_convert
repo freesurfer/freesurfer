@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/11 01:45:48 $
-#    $Revision: 1.1 $
+#    $Date: 2007/01/11 01:48:41 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_convert,v 1.1 2007/01/11 01:45:48 nicks Exp $'
+set VERSION='$Id: test_mri_convert,v 1.2 2007/01/11 01:48:41 nicks Exp $'
 
 umask 002
 
@@ -75,7 +75,7 @@ echo ""
 #
 
 #set TEST_FILES=( dicom.mgz nifti.mgz analyze.mgz )
-set TEST_FILES=( dicom.mgz )
+set TEST_FILES=( )
 foreach tstvol ($TEST_FILES)
   # now compare expected with observed data
   set REF_VOL  = freesurfer.mgz
