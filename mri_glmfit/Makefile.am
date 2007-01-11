@@ -11,6 +11,10 @@ mri_glmfit_LDADD= $(top_srcdir)/fsgdf/libfsgdf.a \
 $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mri_glmfit_LDFLAGS=$(OS_LDFLAGS)
 
+TESTS=test_mri_glmfit
+
+EXTRA_DIST=test_mri_glmfit teststats.tar.gz
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.

@@ -1,0 +1,120 @@
+#!/bin/tcsh -f
+
+#
+# test_mriglm
+#
+# execute mri_glmfit and check results against expected results
+#
+# Original Author: Nick Schmansky
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/01/11 00:26:49 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION='$Id: test_mri_glmfit,v 1.1 2007/01/11 00:26:49 nicks Exp $'
+
+umask 002
+
+#
+# extract testing data
+#
+gunzip -c teststats.tar.gz | tar xvf -
+
+#
+# run mri_glmfit using typical input args (and the same as those used
+# to produce the expected results)
+#
+
+cd teststats
+setenv SUBJECTS_DIR $PWD
+set cmd=(mri_glmfit --seed 1234 --y lh.gender_age.thickness.10.mgh \
+  --fsgd gender_age.txt doss\
+  --glmdir lh.gender_age.glmdir \
+  --surf average lh \
+  --C age.mat)
+echo $cmd
+$cmd
+if ($status != 0) then
+  echo "mri_glmfit FAILED"
+  exit 1
+endif
+
+#
+# compare expected results with actual (produced) results
+#
+
+set EXPECTED=expected.lh.gender_age.glmdir
+set ACTUAL=lh.gender_age.glmdir
+
+set TEST_FILES=( fsgd.X.mat Xg.dat age/C.dat )
+foreach tstfile ($TEST_FILES)
+  # now compare expected with observed data
+  set cmd=(diff $EXPECTED/$tstfile $ACTUAL/$tstfile);
+  echo $cmd
+  $cmd
+  set diff_status=$status
+  if ($diff_status != 0) then
+    echo "$cmd FAILED (exit status=$diff_status)"
+    exit 1
+  endif
+end
+
+set TEST_FILES=( ar1.mgh beta.mgh eres.mgh mask.mgh rstd.mgh rvar.mgh )
+foreach tstvol ($TEST_FILES)
+  # now compare expected with observed data
+  set REF_VOL  = $EXPECTED/$tstvol
+  set TST_VOL  = $ACTUAL/$tstvol
+  set DIFF_VOL = $PWD/mri_diff-$tstvol
+  set MRIDIFFF = $PWD/mri_diff-$tstvol.txt
+  set cmd=(mri_diff --debug --thresh 0 --log $MRIDIFFF \
+           $REF_VOL $TST_VOL --diff $DIFF_VOL);
+  echo $cmd
+  $cmd
+  set diff_status=$status
+  if ($diff_status != 0) then
+    echo "$cmd FAILED (exit status=$diff_status)"
+    exit 1
+  endif
+end
+
+set EXPECTED=expected.lh.gender_age.glmdir/age
+set ACTUAL=lh.gender_age.glmdir/age
+set TEST_FILES=( F.mgh gamma.mgh sig.mgh )
+foreach tstvol ($TEST_FILES)
+  # now compare expected with observed data
+  set REF_VOL  = $EXPECTED/$tstvol
+  set TST_VOL  = $ACTUAL/$tstvol
+  set DIFF_VOL = $PWD/mri_diff-$tstvol
+  set MRIDIFFF = $PWD/mri_diff-$tstvol.txt
+  set cmd=(mri_diff --debug --thresh 0 --log $MRIDIFFF \
+           $REF_VOL $TST_VOL --diff $DIFF_VOL);
+  echo $cmd
+  $cmd
+  set diff_status=$status
+  if ($diff_status != 0) then
+    echo "$cmd FAILED (exit status=$diff_status)"
+    exit 1
+  endif
+end
+
+#
+# cleanup
+#
+cd ..
+rm -Rf teststats
+
+echo "test_mri_glmfit passed all tests"
+exit 0
