@@ -1,15 +1,27 @@
 /**
  * @file  mri_diff.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Determines whether two volumes differ.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * The basic usage is something like:
+ *
+ *   mri_diff vol1 vol2
+ *
+ * It then prints to the terminal whether they differ or not.
+ *
+ * Volumes can differ in six ways:
+ * 1. Dimension,               return status = 101
+ * 2. Resolutions,             return status = 102
+ * 3. Acquisition Parameters,  return status = 103
+ * 4. Geometry,                return status = 104
+ * 5. Precision,               return status = 105
+ * 6. Pixel Data,              return status = 106
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.16 $
+ *    $Date: 2007/01/11 17:40:39 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -161,7 +173,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.16 2006/12/29 02:09:06 nicks Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.17 2007/01/11 17:40:39 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -617,7 +629,8 @@ static void print_usage(void) {
   printf("   --notallow-prec : do not check for precision diffs\n");
   printf("   --notallow-pix  : do not check for pixel diffs\n");
   printf("   --notallow-ori  : do not check for orientation diffs\n");
-  printf("   --no-exit-on-diff : do not exit on diff (runs thru everything)\n");
+  printf("   --no-exit-on-diff : do not exit on diff "
+         "(runs thru everything)\n");
   printf("\n");
   printf("   --qa         : check res, acq, precision, "
          "and orientation only\n");
