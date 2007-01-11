@@ -6,9 +6,9 @@
 /*
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/09 00:41:35 $
- *    $Revision: 1.105 $
+ *    $Author: nicks $
+ *    $Date: 2007/01/11 02:02:02 $
+ *    $Revision: 1.106 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1756,7 +1756,7 @@ int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi)
 
   fprintf(fp,"\tVolRes            %8.4f %8.4f %8.4f \n",sdcmfi->VolRes[0],
           sdcmfi->VolRes[1],sdcmfi->VolRes[2]);
-  fprintf(fp,"\tVolDim            %3d %3d %3d \n",sdcmfi->VolDim[0],
+  fprintf(fp,"\tVolDim            %3d      %3d      %3d \n",sdcmfi->VolDim[0],
           sdcmfi->VolDim[1],sdcmfi->VolDim[2]);
   fprintf(fp,"\tVc                %8.4f %8.4f %8.4f \n",
           sdcmfi->Vc[0],sdcmfi->Vc[1],sdcmfi->Vc[2]);
