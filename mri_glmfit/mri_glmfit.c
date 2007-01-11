@@ -2,14 +2,20 @@
  * @file  mri_glmfit.c
  * @brief GLM analysis with or without FSGD files
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Performs general linear model (GLM) analysis in the volume or the
+ * surface.  Options include simulation for correction for multiple
+ * comparisons, weighted LMS, variance smoothing, PCA/SVD analysis of
+ * residuals, per-voxel design matrices, and 'self' regressors. This
+ * program performs both the estimation and inference. This program
+ * is meant to replace mris_glm (which only operated on surfaces).
+ * This program can be run in conjunction with mris_preproc.
  */
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/11 22:00:24 $
- *    $Revision: 1.107 $
+ *    $Author: nicks $
+ *    $Date: 2007/01/11 22:03:48 $
+ *    $Revision: 1.108 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,8 +31,6 @@
  *
  */
 
-
-// mri_glmfit.c
 
 /*
 
@@ -483,7 +487,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.107 2007/01/11 22:00:24 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.108 2007/01/11 22:03:48 nicks Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
