@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/11 00:26:49 $
-#    $Revision: 1.1 $
+#    $Date: 2007/01/11 00:34:58 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_glmfit,v 1.1 2007/01/11 00:26:49 nicks Exp $'
+set VERSION='$Id: test_mri_glmfit,v 1.2 2007/01/11 00:34:58 nicks Exp $'
 
 umask 002
 
@@ -59,7 +59,7 @@ endif
 set EXPECTED=expected.lh.gender_age.glmdir
 set ACTUAL=lh.gender_age.glmdir
 
-set TEST_FILES=( fsgd.X.mat Xg.dat age/C.dat )
+set TEST_FILES=( Xg.dat age/C.dat )
 foreach tstfile ($TEST_FILES)
   # now compare expected with observed data
   set cmd=(diff $EXPECTED/$tstfile $ACTUAL/$tstfile);
@@ -79,7 +79,7 @@ foreach tstvol ($TEST_FILES)
   set TST_VOL  = $ACTUAL/$tstvol
   set DIFF_VOL = $PWD/mri_diff-$tstvol
   set MRIDIFFF = $PWD/mri_diff-$tstvol.txt
-  set cmd=(mri_diff --debug --thresh 0 --log $MRIDIFFF \
+  set cmd=(mri_diff --debug --thresh 0.00003 --log $MRIDIFFF \
            $REF_VOL $TST_VOL --diff $DIFF_VOL);
   echo $cmd
   $cmd
@@ -99,7 +99,7 @@ foreach tstvol ($TEST_FILES)
   set TST_VOL  = $ACTUAL/$tstvol
   set DIFF_VOL = $PWD/mri_diff-$tstvol
   set MRIDIFFF = $PWD/mri_diff-$tstvol.txt
-  set cmd=(mri_diff --debug --thresh 0 --log $MRIDIFFF \
+  set cmd=(mri_diff --debug --thresh 0.004 --log $MRIDIFFF \
            $REF_VOL $TST_VOL --diff $DIFF_VOL);
   echo $cmd
   $cmd
