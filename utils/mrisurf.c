@@ -1,15 +1,15 @@
 /**
  * @file  mrisurf.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities operating on surfaces
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/06 14:15:59 $
- *    $Revision: 1.505 $
+ *    $Author: nicks $
+ *    $Date: 2007/01/11 22:47:39 $
+ *    $Revision: 1.506 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.505 2007/01/06 14:15:59 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.506 2007/01/11 22:47:39 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -35145,7 +35145,10 @@ static void saveSegmentation
     mris->vertices[defect->border[n]].annotation=(int)((int)(v_rgb<<8)>>8);
   }
   sprintf(name,"%s/rh.annotation%d",fname,defect->defect_number);
-  fprintf(WHICH_OUTPUT,"writting annotation file for edge clustering segmentation of defect %d\n",defect->defect_number);
+  fprintf(WHICH_OUTPUT,
+          "writting annotation file for edge clustering "
+          "segmentation of defect %d\n",
+          defect->defect_number);
 
   MRISwriteAnnotation(mris,name);
 
@@ -35338,7 +35341,13 @@ static MRIS* extractDefect(MRIS *mris,DEFECT *defect)
 
 #define EXTRACT_SMALL_SURFACE 0
 
-static void savePatch(MRI *mri, MRIS *mris,MRIS *mris_corrected,DVS *dvs,DP *dp,char *fname,TOPOLOGY_PARMS *parms)
+static void savePatch(MRI *mri, 
+                      MRIS *mris,
+                      MRIS *mris_corrected,
+                      DVS *dvs,
+                      DP *dp,
+                      char *fname,
+                      TOPOLOGY_PARMS *parms)
 {
   int i;
   VERTEX *vsrc,*vdst;
@@ -35353,7 +35362,9 @@ static void savePatch(MRI *mri, MRIS *mris,MRIS *mris_corrected,DVS *dvs,DP *dp,
   orientDefectFaces(mris_corrected,dp);
 
   if (parms->verbose==VERBOSE_MODE_LOW)
-    fprintf(WHICH_OUTPUT,"(%d , %d , %d ) - %d vertices were discarded \n",dp->tp.ninside,dp->tp.nedges,
+    fprintf(WHICH_OUTPUT,
+            "(%d , %d , %d ) - %d vertices were discarded \n",
+            dp->tp.ninside,dp->tp.nedges,
             dp->tp.nfaces,dp->tp.ndiscarded);
 
   //before smoothing and after
@@ -35381,7 +35392,9 @@ static void savePatch(MRI *mri, MRIS *mris,MRIS *mris_corrected,DVS *dvs,DP *dp,
   {
     int nvertices;
     /* transfer current coord to 'small' surface */
-    for ( nvertices = i = 0 ; i< dp->defect->nvertices+dp->defect->nchull ; i++ )
+    for ( nvertices = i = 0 ; 
+          i< dp->defect->nvertices+dp->defect->nchull ; 
+          i++ )
     {
       int vno;
       if (i<dp->defect->nvertices)
@@ -35390,7 +35403,8 @@ static void savePatch(MRI *mri, MRIS *mris,MRIS *mris_corrected,DVS *dvs,DP *dp,
         vno=dp->defect->vertex_trans[dp->defect->vertices[i]];
       }
       else
-        vno=dp->defect->vertex_trans[dp->defect->chull[i-dp->defect->nvertices]];
+        vno=
+          dp->defect->vertex_trans[dp->defect->chull[i-dp->defect->nvertices]];
       if (vno<0 || vno>=mris_corrected->nvertices) continue;
       vdst=&mris_small->vertices[nvertices++];
       vsrc=&mris_corrected->vertices[vno];
@@ -35416,7 +35430,9 @@ static void savePatch(MRI *mri, MRIS *mris,MRIS *mris_corrected,DVS *dvs,DP *dp,
   {
     int nvertices;
     /* transfer current coord to 'small' surface */
-    for ( nvertices = i = 0 ; i< dp->defect->nvertices+dp->defect->nchull ; i++ )
+    for ( nvertices = i = 0 ; 
+          i< dp->defect->nvertices+dp->defect->nchull ; 
+          i++ )
     {
       int vno;
       if (i<dp->defect->nvertices)
@@ -35478,7 +35494,8 @@ static void savePatch(MRI *mri, MRIS *mris,MRIS *mris_corrected,DVS *dvs,DP *dp,
   /* restore the vertex state */
   mrisRestoreVertexState(mris_corrected, dvs);
 
-  /* reset the edges to the unused state (unless they were in the original tessellation) */
+  /* reset the edges to the unused state 
+     (unless they were in the original tessellation) */
   for (i = 0 ; i < dp->nedges ; i++)
   {
     if (dp->etable->edges[i].used == USED_IN_NEW_TESSELLATION)
@@ -35491,7 +35508,13 @@ static void savePatch(MRI *mri, MRIS *mris,MRIS *mris_corrected,DVS *dvs,DP *dp,
   TPfree(&dp->tp);
 }
 
-static void updateVertexStatistics(MRIS *mris, MRIS* mris_corrected,DVS *dvs, RP *rp, DP *dp,int *vertex_trans,float fitness)
+static void updateVertexStatistics(MRIS *mris, 
+                                   MRIS* mris_corrected,
+                                   DVS *dvs, 
+                                   RP *rp, 
+                                   DP *dp,
+                                   int *vertex_trans,
+                                   float fitness)
 {
   DEFECT *defect;
   EDGE_TABLE *etable;
@@ -35514,7 +35537,8 @@ static void updateVertexStatistics(MRIS *mris, MRIS* mris_corrected,DVS *dvs, RP
 
   /* first mark the used vertices */
   for (i = 0 ; i < nedges ; i++)
-    if (etable->edges[i].used == USED_IN_NEW_TESSELLATION || etable->edges[i].used == USED_IN_BOTH_TESSELLATION)
+    if (etable->edges[i].used == USED_IN_NEW_TESSELLATION || 
+        etable->edges[i].used == USED_IN_BOTH_TESSELLATION)
     {
       mris_corrected->vertices[etable->edges[i].vno1].marked=FINAL_VERTEX ;
       mris_corrected->vertices[etable->edges[i].vno2].marked=FINAL_VERTEX ;
@@ -35547,7 +35571,8 @@ static void updateVertexStatistics(MRIS *mris, MRIS* mris_corrected,DVS *dvs, RP
     v = &mris_corrected->vertices[vertex_trans[defect->vertices[i]]];
     if (v->marked==FINAL_VERTEX)
     {
-      new_fitness=(v->curvbak*fitness/total_vertex_fitness) + (float)rp->nused[i]*rp->vertex_fitness[i];
+      new_fitness=(v->curvbak*fitness/total_vertex_fitness) + 
+        (float)rp->nused[i]*rp->vertex_fitness[i];
       rp->vertex_fitness[i]=new_fitness/((float)rp->nused[i]+1.0f);
       rp->nused[i]++;
     }
@@ -35555,7 +35580,12 @@ static void updateVertexStatistics(MRIS *mris, MRIS* mris_corrected,DVS *dvs, RP
   }
 }
 
-static int deleteWorstVertices(MRIS *mris,RP *rp,DEFECT *defect,int *vertex_trans,float fraction,int count)
+static int deleteWorstVertices(MRIS *mris,
+                               RP *rp,
+                               DEFECT *defect,
+                               int *vertex_trans,
+                               float fraction,
+                               int count)
 {
   int i,nvoxels,niters,init,changed;
   float max;
@@ -35638,13 +35668,16 @@ static int deleteWorstVertices(MRIS *mris,RP *rp,DEFECT *defect,int *vertex_tran
   return nvoxels;
 }
 
-/* static void defectSurfaceToVolume(MRI* mri, float x, float y, float z, int *i, int *j , int *k){ */
+/* static void defectSurfaceToVolume
+   (MRI* mri, float x, float y, float z, int *i, int *j , int *k){ */
 /*   (*i)=iVOL(mri,x); */
 /*   (*j)=jVOL(mri,x); */
 /*   (*k)=kVOL(mri,x); */
 /* } */
 
-static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
+static MRI *mriDefectVolume(MRIS *mris,
+                            EDGE_TABLE *etable,
+                            TOPOLOGY_PARMS *parms)
 {
   MRI *mri;
   VERTEX *v;
@@ -35654,7 +35687,8 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
 #endif
   int k,vno1,vno2,l,p,q,n,nmax;
   int width,height,depth;
-  float len,dx,dy,dz,x,y,z,x1,y1,z1,x2,y2,z2,xmin,xmax,ymin,ymax,zmin,zmax,scale;
+  float len,dx,dy,dz,x,y,z,x1,y1,z1,x2,y2,z2,
+    xmin,xmax,ymin,ymax,zmin,zmax,scale;
 
 
   if (parms->volume_resolution==-1)
@@ -35697,7 +35731,9 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
   mri=MRIalloc(width,height,depth,MRI_UCHAR);
 
   if (parms->verbose==VERBOSE_MODE_HIGH)
-    fprintf(WHICH_OUTPUT,"      defect volume : %d by %d by %d (scale = %d)\n",width,height,depth,(int)scale);
+    fprintf(WHICH_OUTPUT,
+            "      defect volume : %d by %d by %d (scale = %d)\n",
+            width,height,depth,(int)scale);
 
   mri->xstart=xmin;
   mri->xsize=scale;
@@ -35708,7 +35744,8 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
   mri->zstart=zmin;
   mri->zsize=scale;
 
-  /* find all the non-used voxels : go through all edges (should be sufficient) */
+  /* find all the non-used voxels : 
+     go through all edges (should be sufficient) */
   for (k = 0 ; k < etable->nedges ; k++)
   {
     vno1=etable->edges[k].vno1;
@@ -35737,7 +35774,6 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
       z2=z;
     }
 
-
     /* length */
     len=scale*sqrt(SQR(x2-x1)+SQR(y2-y1)+SQR(z2-z1));
 
@@ -35754,7 +35790,9 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
         l=iVOL(mri,x);
         p=jVOL(mri,y);
         q=kVOL(mri,z);
-        if ((l<0)||(l>=mri->width)||(p<0)||(p>=mri->height)||(q<0)||(q>=mri->depth))
+        if ((l<0)||(l>=mri->width)||
+            (p<0)||(p>=mri->height)||
+            (q<0)||(q>=mri->depth))
           continue;
         MRIvox(mri,l,p,q)=1;
       }
@@ -35765,7 +35803,9 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
       l=iVOL(mri,x1);
       p=jVOL(mri,y1);
       q=kVOL(mri,z1);
-      if ((l<0)||(l>=mri->width)||(p<0)||(p>=mri->height)||(q<0)||(q>=mri->depth))
+      if ((l<0)||(l>=mri->width) ||
+          (p<0)||(p>=mri->height)||
+          (q<0)||(q>=mri->depth))
         continue;
       MRIvox(mri,l,p,q)=1;
     }
@@ -35774,7 +35814,9 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
     l=iVOL(mri,x2);
     p=jVOL(mri,y2);
     q=kVOL(mri,z2);
-    if ((l<0)||(l>=mri->width)||(p<0)||(p>=mri->height)||(q<0)||(q>=mri->depth))
+    if ((l<0)||(l>=mri->width) ||
+        (p<0)||(p>=mri->height)||
+        (q<0)||(q>=mri->depth))
       continue;
     MRIvox(mri,l,p,q)=1;
   }
@@ -35784,7 +35826,8 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
   for ( k = 0 ; k < mris->nfaces ; k++)
   {
     // calculate three vertices
-    //fprintf(WHICH_OUTPUT,"\r  %f            ",100.0*(float)k/(float)mris->nfaces);
+    //fprintf(WHICH_OUTPUT,
+    //"\r  %f            ",100.0*(float)k/(float)mris->nfaces);
     x0 =mris->vertices[mris->faces[k].v[0]].origx;
     y0 =mris->vertices[mris->faces[k].v[0]].origy;
     z0 =mris->vertices[mris->faces[k].v[0]].origz;
@@ -35818,7 +35861,8 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
     d1 = mri->ysize*sqrt(SQR(x2-x1)+SQR(y2-y1)+SQR(z2-z1));
     d2 = mri->zsize*sqrt(SQR(x0-x2)+SQR(y0-y2)+SQR(z0-z2));
 
-    //fprintf(WHICH_OUTPUT,"(%f,%f,%f)and (%f,%f,%f)",x0,x1,x2,d0,d1,mri->xsize);
+    //fprintf(WHICH_OUTPUT,
+    // "(%f,%f,%f)and (%f,%f,%f)",x0,x1,x2,d0,d1,mri->xsize);
 
     dmax = (d0>=d1&&d0>=d2)?d0:(d1>=d0&&d1>=d2)?d1:d2;
 
@@ -35844,7 +35888,9 @@ static MRI *mriDefectVolume(MRIS *mris,EDGE_TABLE *etable,TOPOLOGY_PARMS *parms)
         j=jVOL(mri,py);
         p=kVOL(mri,pz);
 
-        if ((i<0)||(i>=mri->width)||(j<0)||(j>=mri->height)||(p<0)||(p>=mri->depth))
+        if ((i<0)||(i>=mri->width) ||
+            (j<0)||(j>=mri->height)||
+            (p<0)||(p>=mri->depth))
           continue;
 
         MRIvox(mri,i,j,p) = 0;
@@ -35884,8 +35930,16 @@ static void defectVolumeWM(MRI *mri, MRI* mri_defect, MRI *mri_wm)
       }
 }
 
-static void defectVolumeLikelihood(MRI *mri, MRI* mri_defect, MRI *mri_white, MRI *mri_gray,
-                                   HISTOGRAM *h_white, HISTOGRAM *h_gray, float white_mean, float gray_mean,int type,int contrast)
+static void defectVolumeLikelihood(MRI *mri, 
+                                   MRI* mri_defect, 
+                                   MRI *mri_white, 
+                                   MRI *mri_gray,
+                                   HISTOGRAM *h_white, 
+                                   HISTOGRAM *h_gray, 
+                                   float white_mean, 
+                                   float gray_mean,
+                                   int type,
+                                   int contrast)
 {
   int i,j,k,n;
   Real x, y, z, xv, yv, zv, val,sigma;
@@ -35914,8 +35968,10 @@ static void defectVolumeLikelihood(MRI *mri, MRI* mri_defect, MRI *mri_white, MR
         if (type == 0 )
         {
 
-          MRIFvox(mri_white,i,j,k) = log(h_white->counts[nint(MIN(val,white_mean))]) ;
-          MRIFvox(mri_gray,i,j,k) = log(h_gray->counts[nint(MAX(val,gray_mean))]) ;
+          MRIFvox(mri_white,i,j,k) = 
+            log(h_white->counts[nint(MIN(val,white_mean))]) ;
+          MRIFvox(mri_gray,i,j,k) = 
+            log(h_gray->counts[nint(MAX(val,gray_mean))]) ;
 
         }
         else
@@ -35994,17 +36050,29 @@ static void mrisComputeSurfaceStatistics(MRIS *mris,MRI *mri,HISTOGRAM *h_k1,HIS
 
   mrisComputeDefectCurvatureLogLikelihood(mris, &tp, h_k1, h_k2,mri_k1_k2) ;
   mrisComputeDefectNormalDotLogLikelihood(mris, &tp, h_dot);
-  mrisDefectFaceMRILogLikelihood(mris, mri, &tp, NULL,NULL,NULL, mri_gray_white) ;
-  mrisDefectVertexMRILogLikelihood(mris, mri, &tp, NULL,NULL,NULL, mri_gray_white) ;
+  mrisDefectFaceMRILogLikelihood(mris, mri, &tp, 
+                                 NULL,NULL,NULL, mri_gray_white) ;
+  mrisDefectVertexMRILogLikelihood(mris, mri, &tp, 
+                                   NULL,NULL,NULL, mri_gray_white) ;
   MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
 
   total_ll=(tp.face_ll+tp.vertex_ll+tp.curv_ll+tp.qcurv_ll);
 
-  fprintf(WHICH_OUTPUT,"      -face       loglikelihood: %2.4f  (%2.4f)\n",tp.face_ll,tp.face_ll/2.0);
-  fprintf(WHICH_OUTPUT,"      -vertex     loglikelihood: %2.4f  (%2.4f)\n",tp.vertex_ll,tp.vertex_ll/2.0);
-  fprintf(WHICH_OUTPUT,"      -normal dot loglikelihood: %2.4f  (%2.4f)\n",tp.curv_ll,tp.curv_ll);
-  fprintf(WHICH_OUTPUT,"      -quad curv  loglikelihood: %2.4f  (%2.4f)\n",tp.qcurv_ll,tp.qcurv_ll/2.0);
-  fprintf(WHICH_OUTPUT,"      Total Loglikelihood : %2.4f\n",total_ll);
+  fprintf(WHICH_OUTPUT,
+          "      -face       loglikelihood: %2.4f  (%2.4f)\n",
+          tp.face_ll,tp.face_ll/2.0);
+  fprintf(WHICH_OUTPUT,
+          "      -vertex     loglikelihood: %2.4f  (%2.4f)\n",
+          tp.vertex_ll,tp.vertex_ll/2.0);
+  fprintf(WHICH_OUTPUT,
+          "      -normal dot loglikelihood: %2.4f  (%2.4f)\n",
+          tp.curv_ll,tp.curv_ll);
+  fprintf(WHICH_OUTPUT,
+          "      -quad curv  loglikelihood: %2.4f  (%2.4f)\n",
+          tp.qcurv_ll,tp.qcurv_ll/2.0);
+  fprintf(WHICH_OUTPUT,
+          "      Total Loglikelihood : %2.4f\n",
+          total_ll);
 
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   MRIScomputeMetricProperties(mris);
@@ -36013,9 +36081,19 @@ static void mrisComputeSurfaceStatistics(MRIS *mris,MRI *mri,HISTOGRAM *h_k1,HIS
   TPfree(&tp);
 }
 
-static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRAM *h_white, HISTOGRAM *h_gray, MRI *mri_gw,HISTOGRAM *h_k1, HISTOGRAM *h_k2,MRI *mri_k1_k2,int verbose)
+static void computeDefectStatistics(MRI *mri,
+                                    MRIS *mris,
+                                    DEFECT *defect, 
+                                    HISTOGRAM *h_white, 
+                                    HISTOGRAM *h_gray, 
+                                    MRI *mri_gw,
+                                    HISTOGRAM *h_k1, 
+                                    HISTOGRAM *h_k2,
+                                    MRI *mri_k1_k2,
+                                    int verbose)
 {
-  float val,mean,var,mg,mw,vw,vg,total,max,white_val,gray_val,x,y,z,cx,cy,cz,ival,k1,k2,vk1,vk2,wv,gv;
+  float val,mean,var,mg,mw,vw,vg,total,max,
+    white_val,gray_val,x,y,z,cx,cy,cz,ival,k1,k2,vk1,vk2,wv,gv;
   Real xv,yv,zv,int_val;
   int i,j,n;
   HISTOGRAM *h;
@@ -36045,7 +36123,12 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   ival /= (float)defect->nvertices;
 
   if (verbose)
-    fprintf(WHICH_OUTPUT,"   computing statistics for defect %d: %d vertices\n   location: [ (%d,%d,%d) - average intensity = %3.3f ]\n",defect->defect_number,defect->nvertices,(int)cx,(int)cy,(int)cz,ival);
+    fprintf(WHICH_OUTPUT,
+            "   computing statistics for defect %d: %d vertices\n"
+            "   location: [ (%d,%d,%d) - average intensity = %3.3f ]\n",
+            defect->defect_number,
+            defect->nvertices,
+            (int)cx,(int)cy,(int)cz,ival);
 
   /* computing intensity statistics */
 
@@ -36113,7 +36196,9 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   gv = var;
 
   if (verbose)
-    fprintf(WHICH_OUTPUT,"      -gray ( %2.2f , %2.2f )  -white ( %2.2f , %2.2f )\n",gray_val,sqrt(gv),white_val,sqrt(wv));
+    fprintf(WHICH_OUTPUT,
+            "      -gray ( %2.2f , %2.2f )  -white ( %2.2f , %2.2f )\n",
+            gray_val,sqrt(gv),white_val,sqrt(wv));
 
   for (mw=0,mg=0,vw=0,vg=0,i=0 ; i < 256 ; i++)
     for (j = 0 ; j < 256 ; j++)
@@ -36130,7 +36215,9 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   vg -= SQR(mg);
 
   if (verbose)
-    fprintf(WHICH_OUTPUT,"      -gray ( %2.2f , %2.2f )  -white ( %2.2f , %2.2f ) \n",mg,sqrt(vg),mw,sqrt(vw));
+    fprintf(WHICH_OUTPUT,
+            "      -gray ( %2.2f , %2.2f )  -white ( %2.2f , %2.2f ) \n",
+            mg,sqrt(vg),mw,sqrt(vw));
 
   mw=white_val;
   mg=gray_val;
@@ -36138,11 +36225,15 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   defect->white_mean=mw;
   defect->gray_mean=mg;
 
-  defect->white_mean_ll = log(h_white->counts[MAX(0,MIN(h_white->nbins-1,nint(mw)))]);
-  defect->gray_mean_ll = log(h_gray->counts[MAX(0,MIN(h_gray->nbins-1,nint(mg)))]);
+  defect->white_mean_ll = 
+    log(h_white->counts[MAX(0,MIN(h_white->nbins-1,nint(mw)))]);
+  defect->gray_mean_ll = 
+    log(h_gray->counts[MAX(0,MIN(h_gray->nbins-1,nint(mg)))]);
 
   if (verbose)
-    fprintf(WHICH_OUTPUT,"      -intensity (%f [log = %f ]- %f [log = %f ])\n",mg,defect->gray_mean_ll,mw,defect->white_mean_ll);
+    fprintf(WHICH_OUTPUT,
+            "      -intensity (%f [log = %f ]- %f [log = %f ])\n",
+            mg,defect->gray_mean_ll,mw,defect->white_mean_ll);
 
   /* computing curvature statistics */
 
@@ -36210,7 +36301,10 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   defect->k2_mean=mean;
 
   if (verbose)
-    fprintf(WHICH_OUTPUT,"      -curv (k1=%3.3f (%3.3f) , r1 = %3.3f | k2=%3.3f (%3.3f), r2 = %3.3f )\n",defect->k1_mean,sqrt(vk1),-1.0/defect->k1_mean,
+    fprintf(WHICH_OUTPUT,
+            "      -curv (k1=%3.3f (%3.3f) , "
+            "r1 = %3.3f | k2=%3.3f (%3.3f), r2 = %3.3f )\n",
+            defect->k1_mean,sqrt(vk1),-1.0/defect->k1_mean,
             defect->k2_mean,sqrt(vk2),-1.0/defect->k2_mean);
 
   for (k1=0,vk1=0,k2=0,vk2=0,i=0 ; i < mri_k1_k2->width ; i++)
@@ -36227,19 +36321,30 @@ static void computeDefectStatistics(MRI *mri,MRIS *mris,DEFECT *defect, HISTOGRA
   vk2 -= SQR(k2);
 
   if (verbose)
-    fprintf(WHICH_OUTPUT,"      -curv (k1=%3.3f (%3.3f) , r1 = %3.3f | k2=%3.3f (%3.3f), r2 = %3.3f )\n",k1,sqrt(vk1),-1.0/k1,
+    fprintf(WHICH_OUTPUT,
+            "      -curv (k1=%3.3f (%3.3f) , r1 = %3.3f "
+            "| k2=%3.3f (%3.3f), r2 = %3.3f )\n",
+            k1,sqrt(vk1),-1.0/k1,
             k2,sqrt(vk2),-1.0/k2);
 }
 
 /* call the right smoothing and matching functions */
-static void defectMatch(MRI *mri,MRI_SURFACE *mris,DP *dp,int smooth,int match)
+static void defectMatch(MRI *mri,
+                        MRI_SURFACE *mris,
+                        DP *dp,
+                        int smooth,
+                        int match)
 {
   if (smooth) defectSmooth(mris,dp,25,0.1,smooth);
   if (match) defectMaximizeLikelihood(mri,mris,dp,40,0.5);
 }
 
 /* perform a light smoothing of the defect vertices */
-static void defectSmooth(MRI_SURFACE *mris,DP *dp, int niter,double alpha,int type)
+static void defectSmooth(MRI_SURFACE *mris,
+                         DP *dp, 
+                         int niter,
+                         double alpha,
+                         int type)
 {
   int i,n;
   VERTEX *v,*vn;
@@ -36408,7 +36513,7 @@ static void defectSmooth(MRI_SURFACE *mris,DP *dp, int niter,double alpha,int ty
       }
     }
     percentage=100.0f*percentage/(float)nstrictlyinside;
-    //          fprintf(stderr,"%2.3f %% vertices are to be smoothed\n",percentage);
+    // fprintf(stderr,"%2.3f %% vertices are to be smoothed\n",percentage);
 
     /* then, we smooth these vertices */
     if (percentage>50.0f) /* perform a light smoothing only */
@@ -36524,7 +36629,8 @@ static void defectSmooth(MRI_SURFACE *mris,DP *dp, int niter,double alpha,int ty
     }
 
 #if 0
-    fprintf(WHICH_OUTPUT,"%d (out of %d) vertices with high curvature\n",nvertices,dp->tp.ninside);
+    fprintf(WHICH_OUTPUT,"%d (out of %d) vertices with high curvature\n",
+            nvertices,dp->tp.ninside);
 
     MRISclearAnnotations(mris);
 
@@ -36588,7 +36694,12 @@ static void defectSmooth(MRI_SURFACE *mris,DP *dp, int niter,double alpha,int ty
   computeDefectVertexNormals(mris,dp);
 }
 
-static void MRISdefectMaximizeLikelihood(MRI *mri,MRI_SURFACE *mris,DP *dp, int niter,double alpha, int mode)
+static void MRISdefectMaximizeLikelihood(MRI *mri,
+                                         MRI_SURFACE *mris,
+                                         DP *dp, 
+                                         int niter,
+                                         double alpha, 
+                                         int mode)
 {
   float wm,gm,mean;
   int i,n,nvertices,*vertices;
