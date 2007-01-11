@@ -5,13 +5,13 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Andre van der Kouwe
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/04 15:44:07 $
- *    $Revision: 1.21 $
+ *    $Author: nicks $
+ *    $Date: 2007/01/11 20:15:18 $
+ *    $Revision: 1.22 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,20 +25,7 @@
  *
  */
 
-
-/////////////////////////////////////////////////////////////////////
-//
-// mriflood.c
-//
-// originally written by Andre van der Kouwe
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/01/04 15:44:07 $
-// Revision       : $Revision: 1.21 $
-//
-////////////////////////////////////////////////////////////////////
-char *MRIFLOOD_VERSION = "$Revision: 1.21 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.22 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -65,11 +52,20 @@ MRI *MRIbitwiseand(MRI *mri1,MRI *mri2,MRI *mri_dst);
 MRI *MRIbitwiseor(MRI *mri1,MRI *mri2,MRI *mri_dst);
 MRI *MRIbitwisenot(MRI *mri_src,MRI *mri_dst);
 MRI *MRImajority(MRI *mri_src,MRI *mri_dst);
-MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri_left,MRI *mri_dst);
+MRI *MRImergecortexwhitecma(MRI *mri_cortex,
+                            MRI *mri_white,
+                            MRI *mri_cma,
+                            MRI *mri_left,
+                            MRI *mri_dst);
 int HemisphereVote(MRI *mri_cma,int i,int j,int k,int halfside);
 float distance(float x,float y,float z);
-void MRIerodecerebralcortex(MRI *mri_masked,MRI *mri_cma,MRI *mri_white,MRI *mri_left);
-int IllegalCorticalNeighbour(MRI *mri_masked, MRI *mri_white, int i,int j,int k);
+void MRIerodecerebralcortex(MRI *mri_masked,
+                            MRI *mri_cma,
+                            MRI *mri_white,
+                            MRI *mri_left);
+int IllegalCorticalNeighbour(MRI *mri_masked, 
+                             MRI *mri_white, 
+                             int i,int j,int k);
 void MRIcorrecthippocampus(MRI *mri_masked,MRI *mri_dst);
 
 // return number of bits on ( possible values are 0 through 8 )
@@ -114,42 +110,56 @@ static void likelinessHistogram(MRI *mri, char *msg)
 #ifndef __OPTIMIZE__
 void DebugVoxel(char *msg, MRI *mri, int x, int y, int z)
 {
-  printf("=======================================================================\n");
+  printf("================================================================\n");
   printf("%s (%d,%d,%d) = %d\n", msg, x, y, z, MRIvox(mri, x,y,z));
 }
 #endif
 
-/* MRIribbon determines the space between the inner and outer MRI surfaces provided, */
+/* MRIribbon determines the space between the inner 
+   and outer MRI surfaces provided, */
 /* and creates a volume in mri_dst corresponding to the input format mri_src */
-MRI *MRISribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_src,MRI *mri_dst)
+MRI *MRISribbon(MRI_SURFACE *inner_mris,
+                MRI_SURFACE *outer_mris,
+                MRI *mri_src,
+                MRI *mri_dst)
 {
   MRI *mri_inter;
 
   /* Allocate new MRI structures as needed */
-  printf("MRISribbon: Creating new (_inter)MRI of %d, %d,%d...\n",mri_src->width,mri_src->height,mri_src->depth);
-  mri_inter=MRIalloc(mri_src->width,mri_src->height,mri_src->depth,mri_src->type);
+  printf("MRISribbon: Creating new (_inter)MRI of %d, %d,%d...\n",
+         mri_src->width,mri_src->height,mri_src->depth);
+  mri_inter=MRIalloc(mri_src->width,
+                     mri_src->height,
+                     mri_src->depth,
+                     mri_src->type);
   MRIcopyHeader(mri_src, mri_inter);
   if (!mri_dst)
   {
     printf("MRISribbon: Creating new (_dst)MRI...\n");
-    mri_dst=MRIalloc(mri_src->width,mri_src->height,mri_src->depth,mri_src->type);
+    mri_dst=MRIalloc(mri_src->width,
+                     mri_src->height,
+                     mri_src->depth,
+                     mri_src->type);
     MRIcopyHeader(mri_src, mri_dst);
   }
 
   printf("Creating volume inside outer shell...\n");
   /* Create volume inside outer shell */
-  /* Create shell corresponding to surface in MRI volume (includes outer shell in surface) */
-  /////////////////////////////////////////////////////////////////////////////////////
+  /* Create shell corresponding to surface 
+     in MRI volume (includes outer shell in surface) */
+  /////////////////////////////////////////////////////////
   // you should not combine MRISpartialshell() with MRIfloodoutside(), since
-  // partialshell produces the shell value of 1 to 255.  However, floodoutside uses
+  // partialshell produces the shell value of 1 to 255.  
+  // However, floodoutside uses
   // 1 as the filled value, not shell value.  For example,
   //
   //      *   255  (MRISshell)        * 254  (MRISpartialshell)
   //     255   X                      1  X
   //
-  // In the former, X is never set to 1, but the latter X becomes 1 by floodoutside
+  // In the former, X is never set to 1, 
+  // but the latter X becomes 1 by floodoutside
   // Thus floodouside never becomes really floodoutside.
-  //////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////
   MRISshell(mri_src,outer_mris,mri_inter,1);
   MRISfloodoutside(mri_inter,mri_inter);
   MRISaccentuate(mri_inter,mri_inter,1,254);
@@ -171,8 +181,10 @@ MRI *MRISribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_src,MRI
   return mri_dst;
 }
 
-/* MRISshell needs mri_src as an example of the format for the output, to match size and type.  The */
-/* surface is recreated in the MRI space (mri_dst) from the tesselated surface (mris) as voxels of 255 */
+/* MRISshell needs mri_src as an example of 
+   the format for the output, to match size and type.  The */
+/* surface is recreated in the MRI space (mri_dst) 
+   from the tesselated surface (mris) as voxels of 255 */
 MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
 {
   int width,height,depth,i,j,imnr,fno,numu,numv,u,v;
@@ -259,7 +271,9 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
         i=nint(fi);
         j=nint(fj);
         imnr=nint(fimnr);
-        if (i>=0 && i<mri_dst->width && j>=0 && j<mri_dst->height && imnr>=0 && imnr<depth)
+        if (i>=0 && i<mri_dst->width && 
+            j>=0 && j<mri_dst->height && 
+            imnr>=0 && imnr<depth)
           MRIsetVoxVal(mri_dst,i,j,imnr,0,255);
       }
     }
@@ -397,8 +411,10 @@ MRI *MRImajority(MRI *mri_src,MRI *mri_dst)
       {
         counts[countBits(mri_src, i,j,k)]++;
         vox=MRIvox(mri_src,i,j,k);
-        MRIvox(mri_dst,i,j,k)=((((vox>>7)&1)+((vox>>6)&1)+((vox>>5)&1)+
-                                ((vox>>4)&1)+((vox>>3)&1)+((vox>>2)&1)+((vox>>1)&1)+(vox&1))>4)?255:0;
+        MRIvox(mri_dst,i,j,k)=
+          ((((vox>>7)&1)+((vox>>6)&1)+((vox>>5)&1)+
+            ((vox>>4)&1)+((vox>>3)&1)+((vox>>2)&1)+
+            ((vox>>1)&1)+(vox&1))>4)?255:0;
       }
   printf("Inside the majority\n");
   for (i=0; i < 9; ++i)
@@ -437,7 +453,10 @@ MRI *MRIbitwisenot(MRI *mri_src,MRI *mri_dst)
 /* Partial shell fills the voxel space with a superresolution surface - */
 /* each voxel is divided into 8 subvoxels represented by the 8 bits of the */
 /* unsigned char in the MRI structure. */
-MRI *MRISpartialshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
+MRI *MRISpartialshell(MRI *mri_src,
+                      MRI_SURFACE *mris,
+                      MRI *mri_dst,
+                      int clearflag)
 {
   int width,height,depth,i,j,imnr,isub,jsub,isubmnr,fno,numu,numv,u,v;
   int imnr0;
@@ -512,11 +531,13 @@ MRI *MRISpartialshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
         py = py0 + (py1-py0)*(float)u/(float)numu/2;
         pz = pz0 + (pz1-pz0)*(float)u/(float)numu/2;
         /* Note mapping (x,y,z)<->(i,j,k) */
-        /* Increasing the offset of 1.5 shifts shell in the anterior direction */
+        /* Increasing the offset of 1.5 shifts shell 
+           in the anterior direction */
 //        imnr = (int)((py-yy0)/st+1.5-imnr0);
         /* Increasing the offset of 0.5 shifts shell to the right */
 //        i = (int)((xx1-px)/ps+0.5);
-        /* Increasing the offset of 1.0 shifts shell in the inferior direction */
+        /* Increasing the offset of 1.0 shifts shell in 
+           the inferior direction */
 //        j = (int)((zz1-pz)/ps+1.0);
         // MRIworldToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
         MRIsurfaceRASToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
@@ -525,8 +546,10 @@ MRI *MRISpartialshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
         imnr=nint(fimnr);
         if (i>=0 && i<IMGSIZE && j>=0 && j<IMGSIZE && imnr>=0 && imnr<depth)
         {
-          /* Each voxel has 8 subvoxels, represented by the 8 bits of the unsigned char. */
-//          isubmnr = ((int)(((py-yy0)/st+1.5-imnr0)*2))-((int)((py-yy0)/st+1.5-imnr0))*2;
+          /* Each voxel has 8 subvoxels, represented by 
+             the 8 bits of the unsigned char. */
+//          isubmnr = ((int)(((py-yy0)/st+1.5-imnr0)*2))-
+          // ((int)((py-yy0)/st+1.5-imnr0))*2;
 //          isub = ((int)(((xx1-px)/ps+0.5)*2))-((int)((xx1-px)/ps+0.5))*2;
 //          jsub = ((int)(((zz1-pz)/ps+1.0)*2))-((int)((zz1-pz)/ps+1.0))*2;
           isubmnr = (int)((fimnr-nint(fimnr))*2+1);
@@ -534,7 +557,8 @@ MRI *MRISpartialshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
           jsub = (int)((fj-nint(fj))*2+1);
           /* (isubmnr, isub, jsub) should be in the range (0..1, 0..1, 0..1) */
           /* Assume that the initial value for all voxels is zero */
-          MRIvox(mri_dst,i,j,imnr)=MRIvox(mri_dst,i,j,imnr)|subvoxmask(isub,jsub,isubmnr);
+          MRIvox(mri_dst,i,j,imnr)=
+            MRIvox(mri_dst,i,j,imnr)|subvoxmask(isub,jsub,isubmnr);
         }
       }
     }
@@ -636,19 +660,27 @@ MRI *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst)
           isub=is%2;
           jsub=js%2;
           ksub=ks%2;
-          /*printf("i,j,k,isub,jsub,ksub = %d,%d,%d,%d,%d,%d\n",i,j,k,isub,jsub,ksub);
-                    printf("curr. vox = %d,%d\n",(MRIvox(mri_src,i,j,k)&subvoxmask(isub,jsub,ksub)),(MRIvox(mri_dst,i,j,k)&subvoxmask(isub,jsub,ksub)));
-                    printf("adj. voxels = %d,%d,%d\n",(MRIvox(mri_dst,i,j,(ks-1)/2)&subvoxmask(isub,jsub,(ks-1)%2)),
-                      (MRIvox(mri_dst,(is-1)/2,j,k)&subvoxmask((is-1)%2,jsub,ksub)),
-                      (MRIvox(mri_dst,(is-1)/2,j,k)&subvoxmask((is-1)%2,jsub,ksub)));*/
+          /*printf("i,j,k,isub,jsub,ksub = 
+            %d,%d,%d,%d,%d,%d\n",i,j,k,isub,jsub,ksub);
+            printf("curr. vox = 
+            %d,%d\n",(MRIvox(mri_src,i,j,k)&subvoxmask(isub,jsub,ksub)),
+            (MRIvox(mri_dst,i,j,k)&subvoxmask(isub,jsub,ksub)));
+            printf("adj. voxels = %d,%d,%d\n",
+            (MRIvox(mri_dst,i,j,(ks-1)/2)&subvoxmask(isub,jsub,(ks-1)%2)),
+            (MRIvox(mri_dst,(is-1)/2,j,k)&subvoxmask((is-1)%2,jsub,ksub)),
+            (MRIvox(mri_dst,(is-1)/2,j,k)&subvoxmask((is-1)%2,jsub,ksub)));*/
           if (((MRIvox(mri_src,i,j,k)&subvoxmask(isub,jsub,ksub))==0)
               &&((MRIvox(mri_dst,i,j,k)&subvoxmask(isub,jsub,ksub))==0))
           {
-            if (((MRIvox(mri_dst,i,j,(ks-1)/2)&subvoxmask(isub,jsub,(ks-1)%2))>0) ||
-                ((MRIvox(mri_dst,(is-1)/2,j,k)&subvoxmask((is-1)%2,jsub,ksub))>0) ||
-                ((MRIvox(mri_dst,i,(js-1)/2,k)&subvoxmask(isub,(js-1)%2,ksub))>0))
+            if (((MRIvox(mri_dst,i,j,(ks-1)/2) &
+                  subvoxmask(isub,jsub,(ks-1)%2))>0) ||
+                ((MRIvox(mri_dst,(is-1)/2,j,k) &
+                  subvoxmask((is-1)%2,jsub,ksub))>0) ||
+                ((MRIvox(mri_dst,i,(js-1)/2,k) &
+                  subvoxmask(isub,(js-1)%2,ksub))>0))
             {
-              MRIvox(mri_dst,i,j,k)=MRIvox(mri_dst,i,j,k)|subvoxmask(isub,jsub,ksub);
+              MRIvox(mri_dst,i,j,k)=
+                MRIvox(mri_dst,i,j,k)|subvoxmask(isub,jsub,ksub);
               newfilled++;
             }
           }
@@ -669,11 +701,15 @@ MRI *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst)
           if (((MRIvox(mri_src,i,j,k)&subvoxmask(isub,jsub,ksub))==0)
               &&((MRIvox(mri_dst,i,j,k)&subvoxmask(isub,jsub,ksub))==0))
           {
-            if (((MRIvox(mri_dst,i,j,(ks+1)/2)&subvoxmask(isub,jsub,(ks+1)%2))>0) ||
-                ((MRIvox(mri_dst,(is+1)/2,j,k)&subvoxmask((is+1)%2,jsub,ksub))>0) ||
-                ((MRIvox(mri_dst,i,(js+1)/2,k)&subvoxmask(isub,(js+1)%2,ksub))>0))
+            if (((MRIvox(mri_dst,i,j,(ks+1)/2) &
+                  subvoxmask(isub,jsub,(ks+1)%2))>0) ||
+                ((MRIvox(mri_dst,(is+1)/2,j,k) &
+                  subvoxmask((is+1)%2,jsub,ksub))>0) ||
+                ((MRIvox(mri_dst,i,(js+1)/2,k) &
+                  subvoxmask(isub,(js+1)%2,ksub))>0))
             {
-              MRIvox(mri_dst,i,j,k)=MRIvox(mri_dst,i,j,k)|subvoxmask(isub,jsub,ksub);
+              MRIvox(mri_dst,i,j,k)=
+                MRIvox(mri_dst,i,j,k)|subvoxmask(isub,jsub,ksub);
               newfilled++;
             }
           }
@@ -706,32 +742,55 @@ MRI *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst)
   return mri_dst;
 }
 
-MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI_SURFACE *inner_mris_rh,MRI_SURFACE *outer_mris_rh,MRI *mri_src,MRI *mri_dst,MRI *mri_mask)
+MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,
+                       MRI_SURFACE *outer_mris_lh,
+                       MRI_SURFACE *inner_mris_rh,
+                       MRI_SURFACE *outer_mris_rh,
+                       MRI *mri_src,
+                       MRI *mri_dst,
+                       MRI *mri_mask)
 {
   MRI *mri_inter1,*mri_inter2,*mri_inter3;
 
   /* Allocate new MRI structures as needed */
   // MRIalloc uses "calloc" which sets the memory region to be filled with zero
-  mri_inter1=MRIalloc(mri_src->width,mri_src->height,mri_src->depth,mri_src->type);
+  mri_inter1=MRIalloc(mri_src->width,
+                      mri_src->height,
+                      mri_src->depth,
+                      mri_src->type);
   MRIcopyHeader(mri_src, mri_inter1);
-  mri_inter2=MRIalloc(mri_src->width,mri_src->height,mri_src->depth,mri_src->type);
+  mri_inter2=MRIalloc(mri_src->width,
+                      mri_src->height,
+                      mri_src->depth,
+                      mri_src->type);
   MRIcopyHeader(mri_src, mri_inter2);
-  mri_inter3=MRIalloc(mri_src->width,mri_src->height,mri_src->depth,mri_src->type);
+  mri_inter3=MRIalloc(mri_src->width,
+                      mri_src->height,
+                      mri_src->depth,
+                      mri_src->type);
   MRIcopyHeader(mri_src, mri_inter3);
   if (!mri_dst)
   {
-    mri_dst=MRIalloc(mri_src->width,mri_src->height,mri_src->depth,mri_src->type);
+    mri_dst=MRIalloc(mri_src->width,
+                     mri_src->height,
+                     mri_src->depth,
+                     mri_src->type);
     MRIcopyHeader(mri_src, mri_dst);
   }
 
   printf("Creating partial volume inside outer shell...\n");
   /* Create volume inside outer shell */
-  /* Create shell corresponding to surface in MRI volume (includes outer shell in surface) */
-  MRISpartialshell(mri_src,outer_mris_lh,mri_inter1,1); /* partial shell in mri_inter1 */
-  MRISpartialshell(mri_src,outer_mris_rh,mri_inter1,0); /* partial shell in mri_inter1 */
+  /* Create shell corresponding to 
+     surface in MRI volume (includes outer shell in surface) */
+  MRISpartialshell(mri_src,outer_mris_lh,mri_inter1,1); /* partial shell 
+                                                           in mri_inter1 */
+  MRISpartialshell(mri_src,outer_mris_rh,mri_inter1,0); /* partial shell 
+                                                           in mri_inter1 */
   // so far inter2 not used and thus filled with 0
-  MRISpartialfloodoutside(mri_inter1,mri_inter2); /* flooded outside shell in mri_inter2 */
-  MRIbitwisenot(mri_inter2,mri_inter2); /* flooded inside shell and shell in mri_inter2 */
+  MRISpartialfloodoutside(mri_inter1,mri_inter2); /* flooded outside shell 
+                                                     in mri_inter2 */
+  MRIbitwisenot(mri_inter2,mri_inter2); /* flooded inside shell and shell 
+                                           in mri_inter2 */
 
   printf("Creating partial volume outside inner shell...\n");
   /* Create volume outside inner shell */
@@ -744,7 +803,8 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
   printf("  - finding union of inner shell and outward-filled volume...\n");
   MRIbitwiseor(mri_inter1,mri_dst,mri_dst);
 
-  printf("Finding intersection of outershell-inside volume and innershell-outside volume\n");
+  printf("Finding intersection of outershell-inside "
+         "volume and innershell-outside volume\n");
   /* Find bitwise and of volumes to create ribbon */
   MRIbitwiseand(mri_inter2,mri_dst,mri_dst);
   /* Clear up the partial edges. */
@@ -753,8 +813,10 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
   // printf("majority cortex results =========================\n");
   // likelinessHistogram(mri_dst, "majority cortex");
 
-  /* The problem with the excessive white matter must be within this if statement.!!!!! */
-  /* If masked, change to CMA labels, add white matter label and apply to mask. */
+  /* The problem with the excessive white matter must 
+     be within this if statement.!!!!! */
+  /* If masked, change to CMA labels, add white 
+     matter label and apply to mask. */
   if (mri_mask)
   {
     printf("Using CMA labels to fine tune results\n");
@@ -781,16 +843,20 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
     // printf("Creating full volume outside inner shells (subvoxels...) **************\n");
     //////////////////////////////////////////////////////////////////////////
     // we saved the previous calculation in inter3
-    // MRISpartialshell(mri_src,inner_mris_lh,mri_inter1,1); // 1=clear, lh white matter surface
-    // MRISpartialshell(mri_src,inner_mris_rh,mri_inter1,0); // rh white matter surface
+    // MRISpartialshell(mri_src,inner_mris_lh,mri_inter1,1); 
+// 1=clear, lh white matter surface
+    // MRISpartialshell(mri_src,inner_mris_rh,mri_inter1,0); 
+// rh white matter surface
     // MRIclear(mri_inter2); // clear (needed)
-    // MRISpartialfloodoutside(mri_inter1,mri_inter2); // src dst must be different
+    // MRISpartialfloodoutside(mri_inter1,mri_inter2); 
+// src dst must be different
     // printf("  - inverting volume...\n");
     printf("Creating the inner shell volume\n");
     MRIclear(mri_inter2);
     MRIbitwisenot(mri_inter3,mri_inter2);
 
-    /* Create volume inside left outer surface as reference, mri_inter3 contains left reference. */
+    /* Create volume inside left outer surface as reference, 
+       mri_inter3 contains left reference. */
     printf("Creating full reference 'left' volume...\n");
     MRISshell(mri_src,outer_mris_lh,mri_inter3,1); // clear flag
     MRISfloodoutside(mri_inter3,mri_inter3); // src is dummy
@@ -798,7 +864,9 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
     MRISaccentuate(mri_inter3,mri_inter3,1,254); // we really need this
     MRIbitwisenot(mri_inter3,mri_inter3);
 
-    /* mri_dst contains cerebral cortex, mri_inter1 contains left side voxels, mri_inter2 contains white matter and some of the gray inner shell */
+    /* mri_dst contains cerebral cortex, 
+       mri_inter1 contains left side voxels, 
+       mri_inter2 contains white matter and some of the gray inner shell */
 
     MRIcopy(mri_dst,mri_inter1);
     MRIclear(mri_dst); // clear
@@ -812,7 +880,7 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
     likelinessHistogram(mri_inter1, "cortex");
     likelinessHistogram(mri_inter2, "white matter");
     // likelinessHistogram(mri_inter3, "lh");
-    //                        cortex   white      cma         lh     labeled out
+    //              cortex   white      cma         lh     labeled out
     printf("Merging labelled volumes...\n");
     MRImergecortexwhitecma(mri_inter1,mri_inter2,mri_mask,mri_inter3,mri_dst);
   }
@@ -839,10 +907,15 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
   return mri_dst;
 }
 
-MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri_left,MRI *mri_dst)
+MRI *MRImergecortexwhitecma(MRI *mri_cortex,
+                            MRI *mri_white,
+                            MRI *mri_cma,
+                            MRI *mri_left,
+                            MRI *mri_dst)
 {
   /* mri_cortex = cerebral cortex is labelled as 255, all else is 0.
-     mri_white  = white matter and some of the inner gray matter shell is labelled as 255, all else is 0.
+     mri_white  = white matter and some of the inner 
+     gray matter shell is labelled as 255, all else is 0.
      mri_cma    = CMA labelled volume.
 
      This function takes the mri_cma volume and replaces all instances of:
@@ -853,8 +926,10 @@ MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri
        Unknown,
      with:
        Left/Right_Cerebral_Cortex if labelled in mri_cortex;
-       Left/Right_Cerebral_White_Matter if labelled in mri_white (and not also labelled in mri_cortex),
-       where left/right is given by the CMA label side or the nearest neighbour CMA label vote;
+       Left/Right_Cerebral_White_Matter if labelled 
+       in mri_white (and not also labelled in mri_cortex),
+       where left/right is given by the CMA label 
+       side or the nearest neighbour CMA label vote;
        Unknown otherwise.
   */
 
@@ -907,7 +982,8 @@ MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri
               countwhiteunknown++;
           }
         }
-        else if ((vox==Right_Cerebral_Cortex)||(vox==Right_Cerebral_White_Matter))
+        else if ((vox==Right_Cerebral_Cortex)||
+                 (vox==Right_Cerebral_White_Matter))
         {
           if (likelyWhite && (countBitsWhite >= countBitsCortex))
             MRIvox(mri_dst,i,j,k)=Right_Cerebral_White_Matter;
@@ -927,7 +1003,8 @@ MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri
           // cases are
           //              countBitsWhite >= countBitsCortex >=0
           //              countBitsCortex > countBitsWhite >=0
-          // But we make sure that the voxel must be likely one (i.e. > 4 bits set)
+          // But we make sure that the voxel 
+          // must be likely one (i.e. > 4 bits set)
           //
           // is it white ?  more likely to be white than cortex?
           // if white and cortex has the same votes, then pick white (=)
@@ -994,7 +1071,8 @@ MRI *MRImergecortexwhitecma(MRI *mri_cortex,MRI *mri_white,MRI *mri_cma,MRI *mri
   return mri_dst;
 }
 
-/* Return 1 for left, 0 for right (searched a cube of sidelength halfside*2+1). */
+/* Return 1 for left, 
+   0 for right (searched a cube of sidelength halfside*2+1). */
 int HemisphereVote(MRI *mri_cma,int i,int j,int k,int halfside)
 {
   int x,y,z,vox;
@@ -1088,7 +1166,8 @@ int HemisphereVote(MRI *mri_cma,int i,int j,int k,int halfside)
   if ((leftvote==rightvote)&&(leftvote==0))
     return -1;
   if (leftvote==rightvote)
-    printf("Ambiguous voxel (%d, %d, %d) labelled right (%1.2f votes).\n",i,j,k,leftvote);
+    printf("Ambiguous voxel (%d, %d, %d) labelled right (%1.2f votes).\n",
+           i,j,k,leftvote);
 
   return leftvote>rightvote;
 }
@@ -1098,9 +1177,13 @@ float distance(float x,float y,float z)
   return sqrt(x*x+y*y+z*z);
 }
 
-void MRIerodecerebralcortex(MRI *mri_masked,MRI *mri_cma,MRI *mri_white,MRI *mri_left)
+void MRIerodecerebralcortex(MRI *mri_masked,
+                            MRI *mri_cma,
+                            MRI *mri_white,
+                            MRI *mri_left)
 {
-  int width,height,depth,i,j,k,vox,erodedvoxelcount,olderodedvoxelcount,unknowncount;
+  int width,height,depth,i,j,k,vox,
+    erodedvoxelcount,olderodedvoxelcount,unknowncount;
   int erodewhitecount;
   int erodecortexcma;
 
@@ -1123,7 +1206,8 @@ void MRIerodecerebralcortex(MRI *mri_masked,MRI *mri_cma,MRI *mri_white,MRI *mri
         for (i=0; i<width; i++)
         {
           vox=MRIvox(mri_masked,i,j,k);
-          /* If this voxel is not cerebral cortex, copy it directly to the destination volume */
+          /* If this voxel is not cerebral cortex, 
+             copy it directly to the destination volume */
           if ((vox==Left_Cerebral_Cortex)||(vox==Right_Cerebral_Cortex))
           {
             if (IllegalCorticalNeighbour(mri_cma, mri_white, i,j,k))
@@ -1134,8 +1218,9 @@ void MRIerodecerebralcortex(MRI *mri_masked,MRI *mri_cma,MRI *mri_white,MRI *mri
                 erodecortexcma++; // illegal and thus take the cma value again
               }
               else
-              { /* if the voxel needs to be eroded, but the CMA didn't label it,
-                                                                     check if it's in the white matter volume. */
+              { /* if the voxel needs to be eroded, 
+                   but the CMA didn't label it,
+                   check if it's in the white matter volume. */
                 // if (MRIvox(mri_white,i,j,k)==255)
                 if (likely(mri_white,i,j,k))
                 {
@@ -1160,12 +1245,14 @@ void MRIerodecerebralcortex(MRI *mri_masked,MRI *mri_cma,MRI *mri_white,MRI *mri
                 }
                 else
                 {
-                  // printf("Voxel labelled as cortex, not in white matter volume (%d,%d,%d)\n",i,j,k);
+                  // printf("Voxel labelled as cortex, 
+                  // not in white matter volume (%d,%d,%d)\n",i,j,k);
                   MRIvox(mri_masked,i,j,k)=Unknown;
                   unknowncount++;
                 }
               }
-              erodedvoxelcount++; /* only if value changed! then don't need old value */
+              erodedvoxelcount++; /* only if value changed! 
+                                     then don't need old value */
             }
           }
         }
@@ -1178,7 +1265,9 @@ void MRIerodecerebralcortex(MRI *mri_masked,MRI *mri_cma,MRI *mri_white,MRI *mri
   printf("\tcortex became unknown  : %8d\n", unknowncount);
 }
 
-int IllegalCorticalNeighbour(MRI *mri_masked, MRI *mri_white, int i,int j,int k)
+int IllegalCorticalNeighbour(MRI *mri_masked, 
+                             MRI *mri_white, 
+                             int i,int j,int k)
 {
   int width,height,depth,x,y,z,vox,illegalflag;
   int nvox, ii, jj, kk;
@@ -1195,9 +1284,11 @@ int IllegalCorticalNeighbour(MRI *mri_masked, MRI *mri_white, int i,int j,int k)
         {
           vox=MRIvox(mri_masked,x,y,z);
           /* caudate: Left_Caudate; Right_Caudate
-             lateral ventricles: Left_Lateral_Ventricle; Right_Lateral_Ventricle
+             lateral ventricles: 
+             Left_Lateral_Ventricle; Right_Lateral_Ventricle
              inferior lateral ventricle: Left_Inf_Lat_Vent; Right_Inf_Lat_Vent
-             thalamus: Left_Thalamus; Left_Thalamus_Proper; Right_Thalamus; Right_Thalamus_Proper */
+             thalamus: Left_Thalamus; Left_Thalamus_Proper; 
+             Right_Thalamus; Right_Thalamus_Proper */
           if (  (vox==Left_Lateral_Ventricle)
                 ||(vox==Right_Lateral_Ventricle)
                 ||(vox==Left_Inf_Lat_Vent)
@@ -1207,8 +1298,10 @@ int IllegalCorticalNeighbour(MRI *mri_masked, MRI *mri_white, int i,int j,int k)
             int dfy = abs(j-y);
             int dfz = abs(k-z);
             // there is a chance that there is a white matter in-between
-            // Get the in-between position closest to the ventricle and the voxel to check.
-            // There is a choice to make, since the choice can be A or B.  I pick A
+            // Get the in-between position closest to the 
+            // ventricle and the voxel to check.
+            // There is a choice to make, since the choice 
+            // can be A or B.  I pick A
             //                   V  A  *
             //                   *  B  x
             //
@@ -1227,17 +1320,21 @@ int IllegalCorticalNeighbour(MRI *mri_masked, MRI *mri_white, int i,int j,int k)
               else
                 kk = z;
               nvox = MRIvox(mri_masked, ii,jj,kk);
-              if ((nvox == Left_Cerebral_White_Matter) || (nvox == Right_Cerebral_White_Matter))
+              if ((nvox == Left_Cerebral_White_Matter) || 
+                  (nvox == Right_Cerebral_White_Matter))
               {
-                // printf("A WM (%d,%d,%d) between (%d,%d,%d) ventricle and (%d,%d,%d) cortical\n",
+                // printf("A WM (%d,%d,%d) between 
+                // (%d,%d,%d) ventricle and (%d,%d,%d) cortical\n",
                 //       ii,jj,kk, x,y,z, i, j, k);
                 continue;
               }
-              else if (nvox == Unknown) // CMA labelled as unknown, then check if it is in white volume
+              else if (nvox == Unknown) // CMA labelled as unknown, 
+                // then check if it is in white volume
               {
                 if (likely(mri_white, ii,jj,kk))
                   // nvox = MRIvox(mri_white, ii, jj, kk);
-                  // if (nvox == 255) // it is marked as white in white only volume
+                  // if (nvox == 255) // it is marked 
+                  // as white in white only volume
                   continue;
                 else
                   illegalflag++;
@@ -1282,7 +1379,8 @@ void MRIcorrecthippocampus(MRI *mri_masked,MRI *mri_dst)
       {
         vox=MRIvox(mri_masked,i,j,k);
         MRIvox(mri_dst,i,j,k)=vox;
-        /* If this voxel is not cerebral cortex, copy it directly to the destination volume */
+        /* If this voxel is not cerebral cortex, 
+           copy it directly to the destination volume */
         if ((vox==Left_Cerebral_Cortex)||(vox==Right_Cerebral_Cortex))
         {
           if (

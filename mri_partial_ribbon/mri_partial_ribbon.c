@@ -1,17 +1,21 @@
 /**
  * @file  mri_partial_ribbon.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief extract cortical ribbon
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Usage: 
+ * mri_partial_ribbon innerSurf_lh outerSurf_lh \
+ *                    innerSurf_rh outerSurf_rh \
+ *                    input_volume output_volume \
+ *                    cma_mask
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/01/11 20:15:15 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, 
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,19 +29,7 @@
  *
  */
 
-
-//////////////////////////////////////////////////////////////
-//   mri_partial_ribbon
-//
-// originally written by Andre van der Kouwe
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:08 $
-// Revision       : $Revision: 1.9 $
-//
-////////////////////////////////////////////////////////////////////
-char *MRI_PARTIAL_RIBBON_VERSION = "$Revision: 1.9 $";
+char *MRI_PARTIAL_RIBBON_VERSION = "$Revision: 1.10 $";
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -52,18 +44,24 @@ char *MRI_PARTIAL_RIBBON_VERSION = "$Revision: 1.9 $";
 char *Progname;
 
 void usage() {
-  printf("Usage: mri_partial_ribbon innerSurf_lh outerSurf_lh innerSurf_rh outerSurf_rh input_volume output_volume cma_mask\n");
+  printf("Usage: mri_partial_ribbon innerSurf_lh outerSurf_lh "
+         "innerSurf_rh outerSurf_rh input_volume output_volume cma_mask\n");
 }
 
 
 int main(int argc, char *argv[]) {
-  char *inner_mris_fname_lh,*outer_mris_fname_lh,*inner_mris_fname_rh,*outer_mris_fname_rh,*input_mri_pref,*output_mri_pref,*mask_mri_pref;
+  char *inner_mris_fname_lh,*outer_mris_fname_lh,
+    *inner_mris_fname_rh,*outer_mris_fname_rh,
+    *input_mri_pref,*output_mri_pref,*mask_mri_pref;
   MRI *mri,*mri_src,*mri_mask;
   MRI_SURFACE *inner_mris_lh,*outer_mris_lh,*inner_mris_rh,*outer_mris_rh;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_partial_ribbon.c,v 1.9 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mri_partial_ribbon.c,v 1.10 2007/01/11 20:15:15 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -131,7 +129,8 @@ int main(int argc, char *argv[]) {
     printf("Reading MRI volume directory %s.\n",mask_mri_pref);
     mri_mask=MRIread(mask_mri_pref);
     if (!mri_mask) {
-      fprintf(stderr,"Could not read MRI volume directory %s.\n",mask_mri_pref);
+      fprintf(stderr,"Could not read MRI volume directory %s.\n",
+              mask_mri_pref);
       exit(1);
     }
   } else
@@ -139,7 +138,13 @@ int main(int argc, char *argv[]) {
 
   /* Extract ribbon */
   printf("Extracting ribbon.\n");
-  mri=MRISpartialribbon(inner_mris_lh,outer_mris_lh,inner_mris_rh,outer_mris_rh,mri_src,NULL,mri_mask);
+  mri=MRISpartialribbon(inner_mris_lh,
+                        outer_mris_lh,
+                        inner_mris_rh,
+                        outer_mris_rh,
+                        mri_src,
+                        NULL,
+                        mri_mask);
 
   /* Save MRI volume to directory */
   printf("Writing volume file %s.\n",output_mri_pref);

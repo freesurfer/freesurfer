@@ -1,17 +1,16 @@
 /**
  * @file  DICOMRead.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief DICOM 3.0 reading functions
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/09 00:41:22 $
- *    $Revision: 1.23 $
+ *    $Author: nicks $
+ *    $Date: 2007/01/11 20:15:14 $
+ *    $Revision: 1.24 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -216,21 +215,39 @@ SDCMFILEINFO;
 
 void PrintDICOMInfo(DICOMInfo *dcminfo);
 CONDITION GetString(DCM_OBJECT** object, DCM_TAG tag, char **st);
-CONDITION GetUSFromString(DCM_OBJECT** object, DCM_TAG tag, unsigned short *us);
+CONDITION GetUSFromString(DCM_OBJECT** object, 
+                          DCM_TAG tag, 
+                          unsigned short *us);
 CONDITION GetShortFromString(DCM_OBJECT** object, DCM_TAG tag, short *sh);
 CONDITION GetUSFromUS(DCM_OBJECT** object, DCM_TAG tag, unsigned short *us);
 CONDITION GetShortFromShort(DCM_OBJECT** object, DCM_TAG tag, short *ss);
-CONDITION GetPixelData_Save(DCM_OBJECT** object, DCM_TAG tag, unsigned short **ad);
+CONDITION GetPixelData_Save(DCM_OBJECT** object, 
+                            DCM_TAG tag, 
+                            unsigned short **ad);
 CONDITION GetPixelData(DCM_OBJECT** object, DCM_TAG tag, void **ad);
 CONDITION GetDoubleFromString(DCM_OBJECT** object, DCM_TAG tag, double *d);
-CONDITION GetMultiDoubleFromString(DCM_OBJECT** object, DCM_TAG tag, double *d[], int multiplicity);
-CONDITION GetMultiShortFromString(DCM_OBJECT** object, DCM_TAG tag, short *us[], int multiplicity);
-CONDITION GetDICOMInfo(char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int ImageNumber);
+CONDITION GetMultiDoubleFromString(DCM_OBJECT** object, 
+                                   DCM_TAG tag, 
+                                   double *d[], 
+                                   int multiplicity);
+CONDITION GetMultiShortFromString(DCM_OBJECT** object, 
+                                  DCM_TAG tag, 
+                                  short *us[], 
+                                  int multiplicity);
+CONDITION GetDICOMInfo(char *fname, 
+                       DICOMInfo *dcminfo, 
+                       BOOL ReadImage, 
+                       int ImageNumber);
 void *ReadDICOMImage(int nfiles, DICOMInfo **aDicomInfo);
-void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStudies);
+void SortFiles(char *fNames[], 
+               int nFiles,
+               DICOMInfo ***ptrDicomArray, 
+               int *nStudies);
 int IsDICOM(char *fname);
 int ScanDir(char *PathName, char ***FileNames, int *NumberOfFiles);
-int CleanFileNames(char **FileNames, int NumberOfDICOMFiles, char ***CleanedFileNames);
+int CleanFileNames(char **FileNames, 
+                   int NumberOfDICOMFiles, 
+                   char ***CleanedFileNames);
 int DICOMRead(char *FileName, MRI **mri, int ReadImage);
 
 int SortDCMFileInfo(DICOMInfo **dcmfi_list, int nlist);
@@ -238,9 +255,6 @@ int CompareDCMFileInfo(const void *a, const void *b);
 int DCMCountFrames(DICOMInfo **dcmfi_list, int nlist);
 int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist);
 MRI *DICOMRead2(char *dcmfile, int LoadVolume);
-
-
-
 
 DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid);
 int AllocElementData(DCM_ELEMENT *e);
@@ -258,7 +272,11 @@ int dcmImageDirCos(char *dcmfile,
                    float *Vrx, float *Vry, float *Vrz);
 int sdcmSliceDirCos(char *dcmfile, float *Vsx, float *Vsy, float *Vsz);
 int dcmImagePosition(char *dcmfile, float *x, float *y, float *z);
-int sdcmIsMosaic(char *dcmfile, int *pNcols, int *pNrows, int *pNslices, int *pNframes);
+int sdcmIsMosaic(char *dcmfile, 
+                 int *pNcols, 
+                 int *pNrows, 
+                 int *pNslices, 
+                 int *pNframes);
 MATRIX *sdcmAutoAlignMatrix(char *dcmfile);
 
 int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi);

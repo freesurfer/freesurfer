@@ -8,10 +8,10 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:34 $
- *    $Revision: 1.33 $
+ *    $Date: 2007/01/11 20:15:18 $
+ *    $Revision: 1.34 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -937,7 +937,12 @@ Surf_tErr Surf_GetClosestVertexVoxel ( mriSurfaceRef   this,
   /* make a string of info */
   if ( NULL != osDescription )
   {
-    sprintf( osDescription, "Index: %d Distance: %.2f RAS Coords: %.2f %.2f %.2f", nIndex, fDistance, Surf_GetVertexCoord( vertex, iSet, Surf_tOrientation_X ), Surf_GetVertexCoord( vertex, iSet, Surf_tOrientation_Y ), Surf_GetVertexCoord( vertex, iSet, Surf_tOrientation_Z ) );
+    sprintf( osDescription, 
+             "Index: %d Distance: %.2f RAS Coords: %.2f %.2f %.2f", 
+             nIndex, fDistance, 
+             Surf_GetVertexCoord( vertex, iSet, Surf_tOrientation_X ), 
+             Surf_GetVertexCoord( vertex, iSet, Surf_tOrientation_Y ), 
+             Surf_GetVertexCoord( vertex, iSet, Surf_tOrientation_Z ) );
   }
 
   goto cleanup;

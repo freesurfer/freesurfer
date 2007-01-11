@@ -42,9 +42,9 @@
 ** Author, Date: Thomas R. Leith, 15-Apr-93
 ** Intent:  This package implements atomic functions on
 **   linked lists.
-** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:08:57 $
+** Last Update:  $Author: nicks $, $Date: 2007/01/11 20:15:14 $
 ** Source File:  $RCSfile: lst.c,v $
-** Revision:  $Revision: 1.5 $
+** Revision:  $Revision: 1.6 $
 ** Status:  $State: Exp $
 */
 
@@ -141,7 +141,7 @@ LST_Push(LST_HEAD ** list, LST_NODE * node)
   if ((*list)->tail == NULL) /* if the list was empty     */
     (*list)->tail = node; /* set the tail pointer      */
   else   /* otherwise,                */
-    (*list)->head->previous = node; /* old head now has a previous                  */
+    (*list)->head->previous = node; /* old head now has a previous */
 
   (*list)->head = node; /* set new first node        */
   (*list)->count++;  /* bump the counter          */

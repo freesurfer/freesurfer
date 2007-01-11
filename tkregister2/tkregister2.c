@@ -8,10 +8,10 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 21:36:45 $
- *    $Revision: 1.68 $
+ *    $Date: 2007/01/11 20:15:16 $
+ *    $Revision: 1.69 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -27,7 +27,7 @@
 
 #ifndef lint
 static char vcid[] =
-  "$Id: tkregister2.c,v 1.68 2006/12/29 21:36:45 nicks Exp $";
+  "$Id: tkregister2.c,v 1.69 2007/01/11 20:15:16 nicks Exp $";
 #endif /* lint */
 
 #define TCL
@@ -4169,7 +4169,7 @@ char **argv;
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.68 2006/12/29 21:36:45 nicks Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.69 2007/01/11 20:15:16 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

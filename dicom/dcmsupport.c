@@ -45,9 +45,9 @@
 **   as support for the DCM facility and for applications.
 **   These routines help parse strings and other data
 **   values that are encoded in DICOM objects.
-** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:08:57 $
+** Last Update:  $Author: nicks $, $Date: 2007/01/11 20:15:14 $
 ** Source File:  $RCSfile: dcmsupport.c,v $
-** Revision:  $Revision: 1.6 $
+** Revision:  $Revision: 1.7 $
 ** Status:  $State: Exp $
 */
 
@@ -125,7 +125,8 @@ DCM_ListToString(LST_HEAD * list, long offset, char **string) {
   p = CTN_MALLOC(length);
   if (p == NULL)
     return COND_PushCondition(DCM_MALLOCFAILURE,
-                              DCM_Message(DCM_MALLOCFAILURE), length, "DCM_ListToString");
+                              DCM_Message(DCM_MALLOCFAILURE), 
+                              length, "DCM_ListToString");
 
   *string = p;
   g = LST_Head(&list);

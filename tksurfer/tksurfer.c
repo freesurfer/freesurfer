@@ -11,11 +11,11 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/01/05 17:24:40 $
- *    $Revision: 1.238 $
+ *    $Author: nicks $
+ *    $Date: 2007/01/11 20:15:17 $
+ *    $Revision: 1.239 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -18813,7 +18813,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.238 2007/01/05 17:24:40 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.239 2007/01/11 20:15:17 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

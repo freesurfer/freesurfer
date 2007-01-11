@@ -4,11 +4,11 @@
  *
  */
 /*
- * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
+ * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 02:02:02 $
- *    $Revision: 1.106 $
+ *    $Date: 2007/01/11 20:15:18 $
+ *    $Revision: 1.107 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

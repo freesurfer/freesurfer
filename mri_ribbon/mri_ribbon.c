@@ -1,17 +1,19 @@
 /**
  * @file  mri_ribbon.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief extract cortical ribbon
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Usage: mri_ribbon \
+ *              inner_surface_fname outer_surface_fname
+ *              input_volume_pref output_volume_pref
  */
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/01/11 20:15:15 $
+ *    $Revision: 1.8 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -46,14 +48,18 @@ int main(int argc, char *argv[]) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ribbon.c,v 1.7 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mri_ribbon.c,v 1.8 2007/01/11 20:15:15 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
   /* Set command-line parameters */
   if (argc!=5) {
-    printf("Usage: mri_ribbon inner_surface_fname outer_surface_fname input_volume_pref output_volume_pref\n");
+    printf("Usage: mri_ribbon inner_surface_fname outer_surface_fname "
+           "input_volume_pref output_volume_pref\n");
     exit(1);
   }
   Progname=argv[0];

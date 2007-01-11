@@ -8,10 +8,10 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:18 $
- *    $Revision: 1.49 $
+ *    $Date: 2007/01/11 20:15:16 $
+ *    $Revision: 1.50 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -48,62 +48,62 @@
 
 /* error strings */
 char *FunV_ksaErrorString [FunV_tErr_knNumErrorCodes] = {
-      "No error.",
-      "Internal allocation failed.",
-      "Internal deletion failed.",
-      "Error parsing the given path and stem. Make sure it begins with a backslash and ends with the stem, i.e. \"/path/to/data/stem\".",
-      "Couldn't load volume.",
-      "Error accessing internal volume structure.",
-      "Error accessing internal list structure.",
-      "Error converting the second to a time point.",
-      "Couldn't allocate overlay cache.",
-      "Couldn't open file.",
-      "Overlay data not loaded.",
-      "Time course data not loaded.",
-      "Trying to init graph window when it is already inited.",
-      "Trying to draw graph when window is not inited.",
-      "Couldn't find tcl/tk script file for graph.",
-      "Couldn't load tcl/tk script file for graph.",
-      "Invlid pointer to function volume (was probably NULL).",
-      "Invalid signature in function volume (memory probably trashed).",
-      "Invalid parameter.",
-      "Invalid time point.",
-      "Invalid condition.",
-      "Invalid anatomical  voxel, data doesn't exist in functional space.",
-      "Invalid threshold, min must be less than mid.",
-      "Invalid display flag.",
-      "Wrong number of arguments.",
-      "Error accessing anatomical volume.",
-      "Couldn't load brain volume to use ask mask.",
-      "Invalid error code."
-    };
+  "No error.",
+  "Internal allocation failed.",
+  "Internal deletion failed.",
+  "Error parsing the given path and stem. Make sure it begins with a backslash and ends with the stem, i.e. \"/path/to/data/stem\".",
+  "Couldn't load volume.",
+  "Error accessing internal volume structure.",
+  "Error accessing internal list structure.",
+  "Error converting the second to a time point.",
+  "Couldn't allocate overlay cache.",
+  "Couldn't open file.",
+  "Overlay data not loaded.",
+  "Time course data not loaded.",
+  "Trying to init graph window when it is already inited.",
+  "Trying to draw graph when window is not inited.",
+  "Couldn't find tcl/tk script file for graph.",
+  "Couldn't load tcl/tk script file for graph.",
+  "Invlid pointer to function volume (was probably NULL).",
+  "Invalid signature in function volume (memory probably trashed).",
+  "Invalid parameter.",
+  "Invalid time point.",
+  "Invalid condition.",
+  "Invalid anatomical  voxel, data doesn't exist in functional space.",
+  "Invalid threshold, min must be less than mid.",
+  "Invalid display flag.",
+  "Wrong number of arguments.",
+  "Error accessing anatomical volume.",
+  "Couldn't load brain volume to use ask mask.",
+  "Invalid error code."
+};
 
 char *FunV_ksaTclCommand [FunV_knNumTclCommands] = {
-      "Overlay_DoConfigDlog",
-      "Overlay_UpdateNumTimePoints",
-      "Overlay_UpdateNumConditions",
-      "Overlay_UpdateDisplayFlag",
-      "Overlay_UpdateDataName",
-      "Overlay_UpdateTimePoint",
-      "Overlay_UpdateCondition",
-      "Overlay_UpdateThreshold",
-      "Overlay_UpdateRange",
-      "Overlay_ShowOffsetOptions",
-      "TimeCourse_DoConfigDlog",
-      "TimeCourse_BeginDrawingGraph",
-      "TimeCourse_EndDrawingGraph",
-      "TimeCourse_DrawGraph",
-      "TimeCourse_ClearData",
-      "TimeCourse_UpdateNumConditions",
-      "TimeCourse_UpdateNumPreStimPoints",
-      "TimeCourse_UpdateTimeResolution",
-      "TimeCourse_UpdateDisplayFlag",
-      "TimeCourse_UpdateDataName",
-      "TimeCourse_UpdateLocationName",
-      "TimeCourse_UpdateGraphData",
-      "TimeCourse_UpdateErrorData",
-      "TimeCourse_ShowOffsetOptions"
-    };
+  "Overlay_DoConfigDlog",
+  "Overlay_UpdateNumTimePoints",
+  "Overlay_UpdateNumConditions",
+  "Overlay_UpdateDisplayFlag",
+  "Overlay_UpdateDataName",
+  "Overlay_UpdateTimePoint",
+  "Overlay_UpdateCondition",
+  "Overlay_UpdateThreshold",
+  "Overlay_UpdateRange",
+  "Overlay_ShowOffsetOptions",
+  "TimeCourse_DoConfigDlog",
+  "TimeCourse_BeginDrawingGraph",
+  "TimeCourse_EndDrawingGraph",
+  "TimeCourse_DrawGraph",
+  "TimeCourse_ClearData",
+  "TimeCourse_UpdateNumConditions",
+  "TimeCourse_UpdateNumPreStimPoints",
+  "TimeCourse_UpdateTimeResolution",
+  "TimeCourse_UpdateDisplayFlag",
+  "TimeCourse_UpdateDataName",
+  "TimeCourse_UpdateLocationName",
+  "TimeCourse_UpdateGraphData",
+  "TimeCourse_UpdateErrorData",
+  "TimeCourse_ShowOffsetOptions"
+};
 
 FunV_tErr FunV_New ( tkmFunctionalVolumeRef* oppVolume,
                      void(*ipOverlayChangedFunction)(void),
@@ -163,19 +163,24 @@ FunV_tErr FunV_New ( tkmFunctionalVolumeRef* oppVolume,
 
   /* send a message telling the interface to hide the functional value */
   eResult = FunV_SendTkmeditTclCommand_( this,
-                                         tkm_tTclCommand_ShowFuncValue, "0" );
+                                         tkm_tTclCommand_ShowFuncValue, 
+                                         "0" );
   if ( FunV_tErr_NoError != eResult )
     FunV_Signal ( "FunV_LoadOverlay", __LINE__, eResult );
 
   /* disable func overlay display options */
-  eResult = FunV_SendTkmeditTclCommand_( this,
-                                         tkm_tTclCommand_ShowFuncOverlayOptions, "0" );
+  eResult = 
+    FunV_SendTkmeditTclCommand_( this,
+                                 tkm_tTclCommand_ShowFuncOverlayOptions, 
+                                 "0" );
   if ( FunV_tErr_NoError != eResult )
     FunV_Signal ( "FunV_LoadOverlay", __LINE__, eResult );
 
   /* disable time course display options */
-  eResult = FunV_SendTkmeditTclCommand_( this,
-                                         tkm_tTclCommand_ShowFuncTimeCourseOptions, "0" );
+  eResult = 
+    FunV_SendTkmeditTclCommand_( this,
+                                 tkm_tTclCommand_ShowFuncTimeCourseOptions, 
+                                 "0" );
   if ( FunV_tErr_NoError != eResult )
     FunV_Signal ( "FunV_LoadTimeCourse", __LINE__, eResult );
 
@@ -328,27 +333,33 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
   if ( this->mbUseOverlayCache ) {
     eResult = FunV_InitOverlayCache_( this );
     if ( FunV_tErr_NoError != eResult ) {
-      FunV_Signal( "FunV_LoadFunctionalVolume_: loading cache", __LINE__, eResult );
+      FunV_Signal( "FunV_LoadFunctionalVolume_: loading cache",
+                   __LINE__, eResult );
       eResult = FunV_tErr_NoError;
     }
   }
 
   /* send a message telling the interface to show the functional value */
   eResult = FunV_SendTkmeditTclCommand_( this,
-                                         tkm_tTclCommand_ShowFuncValue, "1" );
+                                         tkm_tTclCommand_ShowFuncValue, 
+                                         "1" );
   if ( FunV_tErr_NoError != eResult )
     FunV_Signal ( "FunV_LoadOverlay", __LINE__, eResult );
 
   /* show func overlay display options */
-  eResult = FunV_SendTkmeditTclCommand_( this,
-                                         tkm_tTclCommand_ShowFuncOverlayOptions, "1" );
+  eResult = 
+    FunV_SendTkmeditTclCommand_( this,
+                                 tkm_tTclCommand_ShowFuncOverlayOptions, 
+                                 "1" );
   if ( FunV_tErr_NoError != eResult )
     FunV_Signal ( "FunV_LoadOverlay", __LINE__, eResult );
 
   /* if we have offset data, display offset options as well. */
   if ( NULL != this->mpOverlayOffsetVolume ) {
-    eResult = FunV_SendTclCommand_( this,
-                                    FunV_tTclCommand_Ol_ShowOffsetOptions, "1" );
+    eResult = 
+      FunV_SendTclCommand_( this,
+                            FunV_tTclCommand_Ol_ShowOffsetOptions, 
+                            "1" );
     if ( FunV_tErr_NoError != eResult )
       FunV_Signal ( "FunV_LoadOverlay", __LINE__, eResult );
   }
@@ -372,15 +383,17 @@ error:
     FunV_Signal ( "FunV_LoadOverlay", __LINE__, eResult );
 
   /* hide func overlay display options */
-  eResult = FunV_SendTkmeditTclCommand_( this,
-                                         tkm_tTclCommand_ShowFuncOverlayOptions, "0" );
+  eResult = 
+    FunV_SendTkmeditTclCommand_( this,
+                                 tkm_tTclCommand_ShowFuncOverlayOptions, "0" );
   if ( FunV_tErr_NoError != eResult )
     FunV_Signal ( "FunV_LoadOverlay", __LINE__, eResult );
 
   /* hide offset options */
   if ( NULL != this->mpOverlayOffsetVolume ) {
-    eResult = FunV_SendTclCommand_( this,
-                                    FunV_tTclCommand_Ol_ShowOffsetOptions, "0" );
+    eResult = 
+      FunV_SendTclCommand_( this,
+                            FunV_tTclCommand_Ol_ShowOffsetOptions, "0" );
     if ( FunV_tErr_NoError != eResult )
       FunV_Signal ( "FunV_LoadOverlay", __LINE__, eResult );
   }
@@ -443,15 +456,18 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
     FunV_Signal ( "FunV_LoadTimeCourse", __LINE__, eResult );
 
   /* show time course display options */
-  eResult = FunV_SendTkmeditTclCommand_( this,
-                                         tkm_tTclCommand_ShowFuncTimeCourseOptions, "1" );
+  eResult = 
+    FunV_SendTkmeditTclCommand_( this,
+                                 tkm_tTclCommand_ShowFuncTimeCourseOptions, 
+                                 "1" );
   if ( FunV_tErr_NoError != eResult )
     FunV_Signal ( "FunV_LoadTimeCourse", __LINE__, eResult );
 
   /* if we have offset data, display offset options as well. */
   if ( NULL != this->mpTimeCourseOffsetVolume ) {
-    eResult = FunV_SendTclCommand_( this,
-                                    FunV_tTclCommand_TC_ShowOffsetOptions, "1" );
+    eResult = 
+      FunV_SendTclCommand_( this,
+                            FunV_tTclCommand_TC_ShowOffsetOptions, "1" );
     if ( FunV_tErr_NoError != eResult )
       FunV_Signal ( "FunV_LoadTimeCourse", __LINE__, eResult );
   }
@@ -695,8 +711,10 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
   this->manCacheOffsets[2] = xVoxl_GetZ(pMin);
 
   /* allocate the cache. */
-  nCacheSize = this->manCacheDimensions[0] *
-               this->manCacheDimensions[1] * this->manCacheDimensions[2] * sizeof(float);
+  nCacheSize = 
+    this->manCacheDimensions[0] *
+    this->manCacheDimensions[1] * 
+    this->manCacheDimensions[2] * sizeof(float);
   this->mOverlayCache = (float*) malloc( nCacheSize );
   if ( NULL == this->mOverlayCache ) {
     eResult = FunV_tErr_ErrorAllocatingOverlayCache;
@@ -815,11 +833,14 @@ FunV_tErr FunV_GetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
 
   /* check bounds */
   if ( xVoxl_GetX(ipVoxel) < this->manCacheOffsets[0]
-       || xVoxl_GetX(ipVoxel) > (this->manCacheOffsets[0] + this->manCacheDimensions[0])
+       || xVoxl_GetX(ipVoxel) > (this->manCacheOffsets[0] + 
+                                 this->manCacheDimensions[0])
        || xVoxl_GetY(ipVoxel) < this->manCacheOffsets[1]
-       || xVoxl_GetY(ipVoxel) > (this->manCacheOffsets[1] + this->manCacheDimensions[1])
+       || xVoxl_GetY(ipVoxel) > (this->manCacheOffsets[1] + 
+                                 this->manCacheDimensions[1])
        || xVoxl_GetZ(ipVoxel) < this->manCacheOffsets[2]
-       || xVoxl_GetZ(ipVoxel) > (this->manCacheOffsets[2] + this->manCacheDimensions[2]) ) {
+       || xVoxl_GetZ(ipVoxel) > (this->manCacheOffsets[2] + 
+                                 this->manCacheDimensions[2]) ) {
     *oValue = 0;
     eResult = FunV_tErr_InvalidMRIIdx;
     goto cleanup;
@@ -1068,7 +1089,7 @@ cleanup:
 }
 
 FunV_tErr FunV_SetNumPreStimPoints ( tkmFunctionalVolumeRef this,
-                                     int                    inNumPreStimPoints ) {
+                                     int inNumPreStimPoints ) {
 
   FunV_tErr         eResult            = FunV_tErr_NoError;
   FunD_tErr         eVolume            = FunD_tErr_NoError;
@@ -1107,11 +1128,12 @@ FunV_tErr FunV_SetNumPreStimPoints ( tkmFunctionalVolumeRef this,
     xUtil_snprintf( sError, sizeof(sError),
                     "Setting number of pre-stim time points to %d.",
                     inNumPreStimPoints );
-    tkm_DisplayError( sError, "Invalid number of points.",
-                      "Tkmedit couldn't set the number of pre-stim time points "
-                      "to the value you specified. Please make sure it is "
-                      "greater than 0 and less than the total number of time "
-                      "points." );
+    tkm_DisplayError
+      ( sError, "Invalid number of points.",
+        "Tkmedit couldn't set the number of pre-stim time points "
+        "to the value you specified. Please make sure it is "
+        "greater than 0 and less than the total number of time "
+        "points." );
   }
 
   /* send the new value to tcl */
@@ -1660,9 +1682,11 @@ FunV_tErr FunV_EnableRegistration  ( tkmFunctionalVolumeRef this,
   this->mbRegistrationEnabled = iNewValue;
 
   /* enable or disable the menu items */
-  eResult = FunV_SendTkmeditTclCommand_( this,
-                                         tkm_tTclCommand_ShowOverlayRegistrationOptions,
-                                         this->mbRegistrationEnabled ? "1" : "0" );
+  eResult = 
+    FunV_SendTkmeditTclCommand_
+    ( this,
+      tkm_tTclCommand_ShowOverlayRegistrationOptions,
+      this->mbRegistrationEnabled ? "1" : "0" );
   if ( FunV_tErr_NoError != eResult )
     goto error;
 

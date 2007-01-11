@@ -8,10 +8,10 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.37 $
+ *    $Date: 2007/01/11 20:15:14 $
+ *    $Revision: 1.38 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -505,9 +505,12 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
   (oMRIIdx)->mfY = *MATRIX_RELT(this->mpTmpMRIIdx,1,2); \
   (oMRIIdx)->mfZ = *MATRIX_RELT(this->mpTmpMRIIdx,1,3); \
   \
-  if( floor((oMRIIdx)->mfX+0.5) < 0 || floor((oMRIIdx)->mfX+0.5) >= this->mnDimensionX || \
-      floor((oMRIIdx)->mfY+0.5) < 0 || floor((oMRIIdx)->mfY+0.5) >= this->mnDimensionY || \
-      floor((oMRIIdx)->mfZ+0.5) < 0 || floor((oMRIIdx)->mfZ+0.5) >= this->mnDimensionZ ) { \
+  if( floor((oMRIIdx)->mfX+0.5) < 0 || \
+floor((oMRIIdx)->mfX+0.5) >= this->mnDimensionX || \
+      floor((oMRIIdx)->mfY+0.5) < 0 || \
+floor((oMRIIdx)->mfY+0.5) >= this->mnDimensionY || \
+      floor((oMRIIdx)->mfZ+0.5) < 0 || \
+floor((oMRIIdx)->mfZ+0.5) >= this->mnDimensionZ ) { \
     xVoxl_Set( oMRIIdx, 0, 0, 0 ); \
   }
 
@@ -524,9 +527,12 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
   (oScreenIdx)->mfY = *MATRIX_RELT(this->mpTmpScreenIdx,1,2); \
   (oScreenIdx)->mfZ = *MATRIX_RELT(this->mpTmpScreenIdx,1,3); \
  \
-  if( (floor((oScreenIdx)->mfX+0.5) < 0 || floor((oScreenIdx)->mfX+0.5) >= 256 || \
-       floor((oScreenIdx)->mfY+0.5) < 0 || floor((oScreenIdx)->mfY+0.5) >= 256 || \
-       floor((oScreenIdx)->mfZ+0.5) < 0 || floor((oScreenIdx)->mfZ+0.5) >= 256) ) { \
+  if( (floor((oScreenIdx)->mfX+0.5) < 0 || \
+floor((oScreenIdx)->mfX+0.5) >= 256 || \
+       floor((oScreenIdx)->mfY+0.5) < 0 || \
+floor((oScreenIdx)->mfY+0.5) >= 256 || \
+       floor((oScreenIdx)->mfZ+0.5) < 0 || \
+floor((oScreenIdx)->mfZ+0.5) >= 256) ) { \
  \
     xVoxl_Set( oScreenIdx, 0, 0, 0 ); \
   }
@@ -540,27 +546,32 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
     case MRI_UCHAR: \
       *oValue =  \
  MRIvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-  (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
+  (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5) ); \
       break; \
     case MRI_INT: \
       *oValue =  \
  MRIIvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-   (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
+   (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5) ); \
       break; \
     case MRI_LONG: \
       *oValue =  \
  MRILvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-   (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
+   (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5) ); \
       break; \
     case MRI_FLOAT: \
       *oValue =  \
  MRIFvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-   (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
+   (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5) ); \
       break; \
     case MRI_SHORT: \
       *oValue =  \
  MRISvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-   (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ); \
+   (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5) ); \
       break; \
     default: \
       *oValue = 0; \
@@ -635,27 +646,32 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
       break ; \
     case MRI_UCHAR: \
       MRIvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
+       (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
  (BUFTYPE) iValue; \
       break ; \
     case MRI_SHORT: \
       MRISvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-        (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
+        (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
  (short) iValue; \
       break ; \
     case MRI_FLOAT: \
       MRIFvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-        (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
+        (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
  (float) iValue; \
       break ; \
     case MRI_LONG: \
       MRILvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-        (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
+        (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
  (long) iValue; \
       break ; \
     case MRI_INT: \
       MRIIvox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-        (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
+        (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5) ) =  \
  (int) iValue; \
       break ; \
     }
@@ -699,31 +715,36 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
     case MRI_UCHAR: \
       *oValue =  \
  MRIseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-         (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+         (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5), \
                     iFrame ); \
       break; \
     case MRI_INT: \
       *oValue =  \
  MRIIseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+       (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5), \
                      iFrame ); \
       break; \
     case MRI_LONG: \
       *oValue =  \
  MRILseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+       (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5), \
                      iFrame ); \
       break; \
     case MRI_FLOAT: \
       *oValue =  \
  MRIFseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+       (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5), \
                      iFrame ); \
       break; \
     case MRI_SHORT: \
       *oValue =  \
  MRISseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-       (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+       (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5), \
                      iFrame ); \
       break; \
     default: \
@@ -740,31 +761,36 @@ void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
       break ; \
     case MRI_UCHAR: \
       MRIseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-           (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+           (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5), \
                   iFrame ) =  \
  (BUFTYPE) iValue; \
       break ; \
     case MRI_SHORT: \
       MRISseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-            (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+            (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5), \
                    iFrame ) =  \
  (short) iValue; \
       break ; \
     case MRI_FLOAT: \
       MRIFseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-            (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+            (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5), \
                    iFrame ) =  \
  (float) iValue; \
       break ; \
     case MRI_LONG: \
       MRILseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-            (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+            (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5), \
                    iFrame ) =  \
  (long) iValue; \
       break ; \
     case MRI_INT: \
       MRIIseq_vox( this->mpMriValues, (int)floor((this->mTmpVoxel).mfX+0.5),  \
-            (int)floor((this->mTmpVoxel).mfY+0.5), (int)floor((this->mTmpVoxel).mfZ+0.5), \
+            (int)floor((this->mTmpVoxel).mfY+0.5), \
+(int)floor((this->mTmpVoxel).mfZ+0.5), \
                    iFrame ) =  \
  (int) iValue; \
       break ; \

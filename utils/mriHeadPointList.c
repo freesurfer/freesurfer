@@ -8,10 +8,10 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:34 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/01/11 20:15:18 $
+ *    $Revision: 1.8 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -1167,8 +1167,11 @@ HPtL_tErr HPtL_AlignPointToClientVoxel ( mriHeadPointListRef this,
   fDeltaY = xVoxl_GetFloatY( &destPt ) - xVoxl_GetFloatY( &srcPt );
   fDeltaZ = xVoxl_GetFloatZ( &destPt ) - xVoxl_GetFloatZ( &srcPt );
 
-  DebugPrint( ("ana dest: %d %d %d local src %.2f %.2f %.2f\nras dest %.2f %.2f %.2f ras src %.2f %.2f %.2f delta %.2f %.2f %.2f\n",
-               xVoxl_ExpandInt( iClientVox ), xVoxl_ExpandFloat( &(iPoint->mPoint) ),
+  DebugPrint( ("ana dest: %d %d %d local src %.2f %.2f %.2f\n"
+               "ras dest %.2f %.2f %.2f ras src %.2f %.2f %.2f "
+               "delta %.2f %.2f %.2f\n",
+               xVoxl_ExpandInt( iClientVox ), 
+               xVoxl_ExpandFloat( &(iPoint->mPoint) ),
                xVoxl_ExpandFloat( &destPt ), xVoxl_ExpandFloat( &srcPt ),
                fDeltaX, fDeltaY, fDeltaZ ) );
 

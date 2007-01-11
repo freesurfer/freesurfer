@@ -12,10 +12,10 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 21:25:06 $
- *    $Revision: 1.300 $
+ *    $Date: 2007/01/11 20:15:16 $
+ *    $Revision: 1.301 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.300 $";
+char *VERSION = "$Revision: 1.301 $";
 
 #define TCL
 #define TKMEDIT
@@ -1177,7 +1177,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.300 2006/12/29 21:25:06 nicks Exp $",
+     "$Id: tkmedit.c,v 1.301 2007/01/11 20:15:16 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5810,7 +5810,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.300 2006/12/29 21:25:06 nicks Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.301 2007/01/11 20:15:16 nicks Exp $ $Name:  $\n"
     )
   );
 

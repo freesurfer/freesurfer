@@ -1,13 +1,12 @@
 ##
-## tkm_graph.tcl
-## tkm_graph fucntions for use with BLT graph
+## tkm_graph.tcl - functions for use with BLT graph
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2007/01/05 00:21:31 $
-##    $Revision: 1.5 $
+##    $Date: 2007/01/11 20:15:15 $
+##    $Revision: 1.6 $
 ##
-## Copyright (C) 2002-2007,
+## Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA). 
 ## All rights reserved.
 ##

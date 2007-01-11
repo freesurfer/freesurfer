@@ -8,10 +8,10 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:34 $
- *    $Revision: 1.42 $
+ *    $Date: 2007/01/11 20:15:18 $
+ *    $Revision: 1.43 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -2094,7 +2094,7 @@ FunD_tErr FunD_CalcFDRThreshold ( mriFunctionalDataRef this,
                       TRUE,          /* interp vals as -log10(p) */
                       pLocalMaskVol, /* optional mask volume */
                       &newMin,       /* voxel-wise thresh (vwth) 0-1,
-                                                                                                                                or if log10flag, -log10(vwth) */
+                                        or if log10flag, -log10(vwth) */
                       NULL );        /* option thresholded output */
   DebugAssertThrowX( (ERROR_NONE == eMRI),
                      eResult, FunD_tErr_ErrorPerformingFDR );

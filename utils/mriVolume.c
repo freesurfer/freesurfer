@@ -8,10 +8,10 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:34 $
- *    $Revision: 1.85 $
+ *    $Date: 2007/01/11 20:15:18 $
+ *    $Revision: 1.86 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -831,7 +831,7 @@ Volm_tErr Volm_Save ( mriVolumeRef this,
 
 
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
 Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
                                       char*        isFileName )
 {
@@ -911,8 +911,10 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
     }
     else if (getenv("USE_AVERAGE305"))
     {
-      fprintf(stderr, "INFO: Environmental variable USE_AVERAGE305 set\n");
-      fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using average_305 values\n");
+      fprintf(stderr, 
+              "INFO: Environmental variable USE_AVERAGE305 set\n");
+      fprintf(stderr, 
+              "INFO: Modifying dst c_(r,a,s), using average_305 values\n");
       tmpMRI->c_r = -0.0950;
       tmpMRI->c_a = -16.5100;
       tmpMRI->c_s = 9.7500;
@@ -920,18 +922,23 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
     }
     else
     {
-      fprintf(stderr, "INFO: Destination c_(ras) is assumed to be the same as that of src\n");
-      fprintf(stderr, "INFO: If not correct, edit transform to give destination info.\n");
+      fprintf(stderr, 
+              "INFO: Destination c_(ras) is assumed to be "
+              "the same as that of src\n");
+      fprintf(stderr, 
+              "INFO: If not correct, edit transform to "
+              "give destination info.\n");
     }
     rasToDst = extract_r_to_i(tmpMRI);
-    tmpMat = MatrixMultiply(tran->m_L, srcToRAS, NULL); // tran->m_L is rasToRAS
+    tmpMat = MatrixMultiply(tran->m_L, srcToRAS, NULL);//tran->m_L is rasToRAS
     srcToDst = MatrixMultiply(rasToDst, tmpMat, NULL);
     fprintf(stderr, "INFO: srcToDst voxel-to-voxel transform\n");
     MatrixPrint(stderr, srcToDst);
   }
   break;
   default:   /* don't know what to do yet */
-    fprintf(stderr, "LTA type (%d) isn't LINEAR_VOX_TO_VOX, LINEAR_RAS_TO_RAS - don't know what to do.\n", tran->type);
+    fprintf(stderr, "LTA type (%d) isn't LINEAR_VOX_TO_VOX, "
+            "LINEAR_RAS_TO_RAS - don't know what to do.\n", tran->type);
     LTAfree(&lta);
     return Volm_tErr_InvalidParamater;
     break ;
@@ -947,7 +954,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
     MRIfree(&tmpMRI);
   LTAfree(&lta);
 
-  /////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
   // set up this->mDisplayTransform
   //
   // assuming that mDisplayTransform is the src vox to dst vox transform
@@ -967,7 +974,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
   MatrixFree(&identity);
 
 
-  //////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
@@ -979,7 +986,8 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 
 
 /*E*
-MATRIX *Volm_VoxelXformToCoronalRasXform(MRI *mri_src, MATRIX *m_vox_c2vox_s, MATRIX *m_ras_c2ras_s)
+MATRIX *Volm_VoxelXformToCoronalRasXform
+(MRI *mri_src, MATRIX *m_vox_c2vox_s, MATRIX *m_ras_c2ras_s)
 {
   MATRIX   *V, *W, *m_tmp ;
 
@@ -1019,7 +1027,9 @@ MATRIX *Volm_VoxelXformToCoronalRasXform(MRI *mri_src, MATRIX *m_vox_c2vox_s, MA
 
 #if 0
 //E/ this case was worthless
-MATRIX *Volm_V2CVXtoR2CRX(MRI *mri_src, MATRIX *m_vox_s2vox_c, MATRIX *m_ras_s2ras_c)
+MATRIX *Volm_V2CVXtoR2CRX(MRI *mri_src, 
+                          MATRIX *m_vox_s2vox_c, 
+                          MATRIX *m_ras_s2ras_c)
 {
   MATRIX   *V, *W, *m_tmp ;
 
@@ -2350,9 +2360,10 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
                      eResult, Volm_tErr_InvalidParamater );
   if ( NULL == iParams->mComparatorFunc )
   {
-    DebugAssertThrowX((iParams->mComparatorType>Volm_tValueComparator_Invalid &&
-                       iParams->mComparatorType < Volm_knNumValueComparators),
-                      eResult, Volm_tErr_InvalidParamater );
+    DebugAssertThrowX
+      ((iParams->mComparatorType>Volm_tValueComparator_Invalid &&
+        iParams->mComparatorType < Volm_knNumValueComparators),
+       eResult, Volm_tErr_InvalidParamater );
   }
   if ( FALSE == iParams->mb3D )
   {
@@ -2775,7 +2786,8 @@ Volm_tErr Volm_MakeColorTable ( mriVolumeRef this )
       lookuptable entries with intensity values from min->max so
       that by lowering the range of min->max, you increase the
       granularity of intensities in the visible values. */
-      fComponent = (1.0 / (1.0 + exp( (((value-min)/(max-min))-thresh) * -squash )));
+      fComponent = 
+        (1.0 / (1.0 + exp( (((value-min)/(max-min))-thresh) * -squash )));
 
       /* set the float color */
       this->mafColorTable[entry].mfRed   = fComponent;
@@ -3583,7 +3595,9 @@ Volm_tErr Volm_SetMinVoxelSizeToOne ( mriVolumeRef this )
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
 
   /* Calculate the scale factor and size the xyzsize values. */
-  scale = 1.0/MIN(MIN(this->mpMriValues->xsize, this->mpMriValues->ysize),this->mpMriValues->zsize) ;
+  scale = 1.0/MIN(MIN(this->mpMriValues->xsize, 
+                      this->mpMriValues->ysize),
+                  this->mpMriValues->zsize) ;
   printf("scaling voxel sizes up by %2.2f\n", scale) ;
   this->mpMriValues->xsize *= scale ;
   this->mpMriValues->ysize *= scale ;
@@ -3603,7 +3617,9 @@ Volm_tErr Volm_SetMinVoxelSizeToOne ( mriVolumeRef this )
   this->mpMriValues->zstart = -this->mpMriValues->zend;
 
   /* Find the overall fov. */
-  this->mpMriValues->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) : (fov_y > fov_z ? fov_y : fov_z) );
+  this->mpMriValues->fov = (fov_x > fov_y ? 
+                            (fov_x > fov_z ? fov_x : fov_z) : 
+                            (fov_y > fov_z ? fov_y : fov_z) );
 
   /* Set from the newly fov'd MRI. */
   DebugNote( ("Setting from MRI") );

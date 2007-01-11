@@ -8,10 +8,10 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:18 $
- *    $Revision: 1.136 $
+ *    $Date: 2007/01/11 20:15:16 $
+ *    $Revision: 1.137 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,14 +25,6 @@
  *
  */
 
-
-//
-// tkmDisplayArea.c
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:18 $
-// Revision       : $Revision: 1.136 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -576,7 +568,8 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
      be equal to each other, so this shouldn't be an issue. */
   nSize = MAX( MAX(this->mnVolumeSizeX, this->mnVolumeSizeY),
                this->mnVolumeSizeZ) ;
-  this->mpFrameBuffer = (GLubyte*) malloc( nSize * nSize * DspA_knNumBytesPerPixel );
+  this->mpFrameBuffer = 
+    (GLubyte*) malloc( nSize * nSize * DspA_knNumBytesPerPixel );
   if ( NULL == this->mpFrameBuffer ) {
     eResult = DspA_tErr_AllocationFailed;
     goto error;
@@ -2336,8 +2329,9 @@ DspA_tErr DspA_SetSurfaceLineColor ( tkmDisplayAreaRef this,
   if ( sFocusedDisplay == this ) {
 
     /* send the tcl update. */
-    sprintf ( sTclArguments, "%d %d %f %f %f", (int)iSurface, (int)iVertexSet,
-              xColr_ExpandFloat( &(this->maSurfaceLineColor[iSurface][iVertexSet])));
+    sprintf 
+      ( sTclArguments, "%d %d %f %f %f", (int)iSurface, (int)iVertexSet,
+        xColr_ExpandFloat( &(this->maSurfaceLineColor[iSurface][iVertexSet])));
     tkm_SendTclCommand( tkm_tTclCommand_UpdateSurfaceLineColor,
                         sTclArguments );
   }
@@ -2993,9 +2987,10 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
     goto error;
 
 #if 0
-  DebugPrint( ("Mouse up screen x %d y %d buffer x %d y %d volume %f %f %f\n",
-               ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
-               xVoxl_ExpandFloat( pVolumeVox ) ) );
+  DebugPrint( 
+    ("Mouse up screen x %d y %d buffer x %d y %d volume %f %f %f\n",
+     ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
+     xVoxl_ExpandFloat( pVolumeVox ) ) );
 #endif
 
   switch ( sTool ) {
@@ -3353,9 +3348,10 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
     goto error;
 
 #if 0
-  DebugPrint( ("Mouse down screen x %d y %d buffer x %d y %d volume %d %d %d\n",
-               ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
-               xVoxl_ExpandInt( pVolumeVox ) ) );
+  DebugPrint
+    ( ("Mouse down screen x %d y %d buffer x %d y %d volume %d %d %d\n",
+       ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
+       xVoxl_ExpandInt( pVolumeVox ) ) );
 #endif
 
 
@@ -3569,8 +3565,10 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
        !ipEvent->mbAltKey ) {
 
     /* Get the delta. */
-    delta.mfX = (float)(this->mLastClick.mnX - ipEvent->mWhere.mnX) / (float)this->mnZoomLevel / 2.0;
-    delta.mfY = (float)(this->mLastClick.mnY - ipEvent->mWhere.mnY) / (float)this->mnZoomLevel / 2.0;
+    delta.mfX = (float)(this->mLastClick.mnX - ipEvent->mWhere.mnX) / 
+      (float)this->mnZoomLevel / 2.0;
+    delta.mfY = (float)(this->mLastClick.mnY - ipEvent->mWhere.mnY) / 
+      (float)this->mnZoomLevel / 2.0;
 
     /* flip y if horizontal cuz our freaking screen is upside down */
     if ( this->mOrientation == mri_tOrientation_Horizontal )
@@ -3612,8 +3610,10 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
     if ( !ipEvent->mbCtrlKey ) {
 
       /* figure out how much we've moved */
-      delta.mfX = (float)(this->mLastClick.mnX - ipEvent->mWhere.mnX) / (float)this->mnZoomLevel / 2.0;
-      delta.mfY = (float)(this->mLastClick.mnY - ipEvent->mWhere.mnY) / (float)this->mnZoomLevel / 2.0;
+      delta.mfX = (float)(this->mLastClick.mnX - ipEvent->mWhere.mnX) / 
+        (float)this->mnZoomLevel / 2.0;
+      delta.mfY = (float)(this->mLastClick.mnY - ipEvent->mWhere.mnY) / 
+        (float)this->mnZoomLevel / 2.0;
 
       /* flip y if horizontal cuz our freaking screen is upside down */
       if ( this->mOrientation == mri_tOrientation_Horizontal )
@@ -3822,11 +3822,13 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
       break;
     case 'g':
       eResult =
-        DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_SegmentationVolumeOverlay );
+        DspA_ToggleDisplayFlag( this, 
+                                DspA_tDisplayFlag_SegmentationVolumeOverlay );
       break;
     case 'i':
       eResult =
-        DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_InterpolateSurfaceVertices );
+        DspA_ToggleDisplayFlag( this, 
+                                DspA_tDisplayFlag_InterpolateSurfaceVertices );
       break;
     case 'k':
       eWindowResult = MWin_ToggleLinkedCursorFlag( this->mpWindow );
@@ -3856,7 +3858,8 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
       break;
     case 'v':
       eResult =
-        DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_DisplaySurfaceVertices );
+        DspA_ToggleDisplayFlag( this, 
+                                DspA_tDisplayFlag_DisplaySurfaceVertices );
       break;
     case 'z':
       tkm_RestoreUndoList();
@@ -3972,7 +3975,8 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
       break;
     case 'g':
       eResult =
-        DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_AuxSegmentationVolume );
+        DspA_ToggleDisplayFlag( this, 
+                                DspA_tDisplayFlag_AuxSegmentationVolume );
       break;
     case 'm':
       tkm_ShowNearestSurfaceVertex( Surf_tVertexSet_Main );
@@ -4671,7 +4675,8 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
             vertexSet < Surf_knNumVertexSets; vertexSet++ ) {
 
         /* if this surface is visible... */
-        if ( this->mabDisplayFlags[vertexSet + DspA_tDisplayFlag_MainSurface] ) {
+        if ( this->mabDisplayFlags[vertexSet + 
+                                   DspA_tDisplayFlag_MainSurface] ) {
 
           /* get the list. */
           list = DspA_GetSurfaceList_( this, nSurface,
@@ -4683,15 +4688,15 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
           }
 
           /* set the color */
-          xColr_PackFloatArray(&(this->maSurfaceLineColor[nSurface][vertexSet]),
-                               faColor );
+          xColr_PackFloatArray
+            (&(this->maSurfaceLineColor[nSurface][vertexSet]), faColor );
 
           /* draw the points. */
           glLineWidth(  this->manSurfaceLineWidth[nSurface][vertexSet] );
           DspA_ParsePointList_( this, GL_LINES, list, faColor );
 
           /* if vertices are visible... */
-          if ( this->mabDisplayFlags[DspA_tDisplayFlag_DisplaySurfaceVertices] ) {
+          if (this->mabDisplayFlags[DspA_tDisplayFlag_DisplaySurfaceVertices]){
 
             /* invert color */
             faColor[0] = 1.0 - faColor[0];
@@ -5059,11 +5064,27 @@ DspA_tErr DspA_DrawLines_ ( tkmDisplayAreaRef this ) {
     goto cleanup;
 
   /* convert to zoomed coords. */
-  drawPoint1.mfX = ((float)this->mnZoomLevel * ((float)(this->mLineVertex1.mnX) - xVoxl_GetFloatX(this->mpZoomCenter))) + (float)(this->mnVolumeSizeX/2.0);
-  drawPoint1.mfY = ((float)this->mnZoomLevel * ((float)(this->mLineVertex1.mnY) - xVoxl_GetFloatY(this->mpZoomCenter))) + (float)(this->mnVolumeSizeY/2.0);
+  drawPoint1.mfX = 
+    ((float)this->mnZoomLevel * 
+     ((float)(this->mLineVertex1.mnX) - 
+      xVoxl_GetFloatX(this->mpZoomCenter))) + 
+    (float)(this->mnVolumeSizeX/2.0);
+  drawPoint1.mfY = 
+    ((float)this->mnZoomLevel * 
+     ((float)(this->mLineVertex1.mnY) - 
+      xVoxl_GetFloatY(this->mpZoomCenter))) + 
+    (float)(this->mnVolumeSizeY/2.0);
 
-  drawPoint2.mfX = ((float)this->mnZoomLevel * ((float)(this->mLineVertex2.mnX) - xVoxl_GetFloatX(this->mpZoomCenter))) + (float)(this->mnVolumeSizeX/2.0);
-  drawPoint2.mfY = ((float)this->mnZoomLevel * ((float)(this->mLineVertex2.mnY) - xVoxl_GetFloatY(this->mpZoomCenter))) + (float)(this->mnVolumeSizeY/2.0);
+  drawPoint2.mfX = 
+    ((float)this->mnZoomLevel * 
+     ((float)(this->mLineVertex2.mnX) - 
+      xVoxl_GetFloatX(this->mpZoomCenter))) + 
+    (float)(this->mnVolumeSizeX/2.0);
+  drawPoint2.mfY = 
+    ((float)this->mnZoomLevel * 
+     ((float)(this->mLineVertex2.mnY) - 
+      xVoxl_GetFloatY(this->mpZoomCenter))) + 
+    (float)(this->mnVolumeSizeY/2.0);
 
   /* y flip */
   drawPoint1.mfY = GLDRAW_Y_FLIP(drawPoint1.mfY);
@@ -5147,7 +5168,8 @@ DspA_tErr DspA_DrawFunctionalOverlay_ ( tkmDisplayAreaRef this ) {
     /* get an interpolated value within the range of -max to +max
        determined by the y value */
     funcValue = (FunV_tFunctionalValue)
-                ( (float)(this->mnVolumeSizeY - nY) * (float)((max*2.0)/(float)this->mnVolumeSizeY) - max );
+                ( (float)(this->mnVolumeSizeY - nY) * 
+                  (float)((max*2.0)/(float)this->mnVolumeSizeY) - max );
 
     /* get the functional color for this value */
     eFunctional = FunV_GetColorForValue( this->mpFunctionalVolume,
@@ -5799,7 +5821,8 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
                                            &mriIdx, TRUE, &funcValue );
 
       /* If we're masking to the aux volume, check its value first. */
-      if (this->mabDisplayFlags[DspA_tDisplayFlag_MaskFunctionalOverlayToAux]) {
+      if (this->mabDisplayFlags[DspA_tDisplayFlag_MaskFunctionalOverlayToAux]) 
+      {
 
         Volm_GetValueAtIdx( this->mpVolume[tkm_tVolumeType_Aux],
                             &anaIdx, &anaValue );
@@ -5808,9 +5831,10 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
       /* if it was a valid voxel and if we're masking to aux the aux
       value is not 0 */
       if ( FunV_tErr_NoError == eFunctional &&
-           ((this->mabDisplayFlags[DspA_tDisplayFlag_MaskFunctionalOverlayToAux] &&
-             anaValue != 0)   ||
-            !this->mabDisplayFlags[DspA_tDisplayFlag_MaskFunctionalOverlayToAux])) {
+       ((this->mabDisplayFlags[DspA_tDisplayFlag_MaskFunctionalOverlayToAux] &&
+         anaValue != 0)   ||
+        !this->mabDisplayFlags[DspA_tDisplayFlag_MaskFunctionalOverlayToAux])) 
+      {
 
         /* Get the current color and convert it to float. */
         color.mfRed   = (float)pDest[DspA_knRedPixelCompIndex] /
@@ -5938,19 +5962,22 @@ DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
      Idx space, though, so */
   switch ( this->mOrientation ) {
   case mri_tOrientation_Coronal:
-    e3DList = x3Lst_GetItemsInZPlane( this->mpControlPoints,
-                                      DspA_GetCurrentSliceNumberInMRIIdx_(this),
-                                      &list );
+    e3DList = x3Lst_GetItemsInZPlane
+      ( this->mpControlPoints,
+        DspA_GetCurrentSliceNumberInMRIIdx_(this),
+        &list );
     break;
   case mri_tOrientation_Sagittal:
-    e3DList = x3Lst_GetItemsInXPlane( this->mpControlPoints,
-                                      DspA_GetCurrentSliceNumberInMRIIdx_(this),
-                                      &list );
+    e3DList = x3Lst_GetItemsInXPlane
+      ( this->mpControlPoints,
+        DspA_GetCurrentSliceNumberInMRIIdx_(this),
+        &list );
     break;
   case mri_tOrientation_Horizontal:
-    e3DList = x3Lst_GetItemsInYPlane( this->mpControlPoints,
-                                      DspA_GetCurrentSliceNumberInMRIIdx_(this),
-                                      &list );
+    e3DList = x3Lst_GetItemsInYPlane
+      ( this->mpControlPoints,
+        DspA_GetCurrentSliceNumberInMRIIdx_(this),
+        &list );
     break;
   default:
     eResult = DspA_tErr_InvalidOrientation;
@@ -6354,19 +6381,21 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
        set the iterator to our view */
     DspA_ConvertPlaneToVolume_ ( this, &zeroPoint, nSlice, this->mOrientation,
                                  &curPlane );
-    eSurface = Surf_SetIteratorPosition( this->mpSurface[iSurface], &curPlane );
+    eSurface = 
+      Surf_SetIteratorPosition( this->mpSurface[iSurface], &curPlane );
     if ( Surf_tErr_NoErr != eSurface )
       goto error;
 
     bPointsOnThisFace = FALSE;
 
     /* while we have vertices to check.. */
-    while ( (eSurface = Surf_GetNextAndNeighborVertex( this->mpSurface[iSurface],
-                        vertexSet,
-                        &anaVertex,
-                        &nVertexIndex,
-                        &anaNeighborVertex,
-                        &nNeighborVertexIndex ))
+    while ( (eSurface = 
+             Surf_GetNextAndNeighborVertex( this->mpSurface[iSurface],
+                                            vertexSet,
+                                            &anaVertex,
+                                            &nVertexIndex,
+                                            &anaNeighborVertex,
+                                            &nNeighborVertexIndex ))
             != Surf_tErr_LastFace ) {
 
       /* if the line between these two points intersects the
@@ -6375,9 +6404,10 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
                             this->mOrientation, &normAnaVertex );
       DspA_NormalizeVoxel_( &anaNeighborVertex,
                             this->mOrientation, &normAnaNeighborVertex );
-      if ( xUtil_LineIntersectsPlane( &normAnaVertex, &normAnaNeighborVertex,
-                                      nSlice,
-                                      &intersectionPt, &interpIntersectionPt)) {
+      if ( xUtil_LineIntersectsPlane
+           ( &normAnaVertex, &normAnaNeighborVertex,
+             nSlice,
+             &intersectionPt, &interpIntersectionPt)) {
 
         /* fill out a node. */
         drawListNode.mbVertex = TRUE;
@@ -6983,8 +7013,12 @@ DspA_tErr DspA_BuildLineToolVoxelList_( tkmDisplayAreaRef this ) {
   qy = this->mLineVertex2.mnY;
 
   this->mNumLineVoxels = 0;
-  for ( bufferPt.mnY = 0; bufferPt.mnY < this->mnVolumeSizeY; bufferPt.mnY += this->mnZoomLevel ) {
-    for ( bufferPt.mnX = 0; bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX += this->mnZoomLevel ) {
+  for ( bufferPt.mnY = 0; 
+        bufferPt.mnY < this->mnVolumeSizeY; 
+        bufferPt.mnY += this->mnZoomLevel ) {
+    for ( bufferPt.mnX = 0; 
+          bufferPt.mnX < this->mnVolumeSizeX; 
+          bufferPt.mnX += this->mnZoomLevel ) {
 
       eResult = DspA_ConvertBufferToVolume_ ( this, &bufferPt, &anaIdx );
       if ( DspA_tErr_NoErr == eResult ) {
@@ -7043,8 +7077,9 @@ DspA_tErr DspA_InitSurfaceLists_( tkmDisplayAreaRef this,
   for ( nSurface = 0; nSurface < tkm_knNumSurfaceTypes; nSurface++ ) {
 
     /* allocate surface point lists. */
-    this->maSurfaceLists[nSurface] = (xGrowableArrayRef*)
-                                     malloc (sizeof(xGrowableArrayRef) * inNumLists );
+    this->maSurfaceLists[nSurface] = 
+      (xGrowableArrayRef*)
+      malloc (sizeof(xGrowableArrayRef) * inNumLists );
 
     /* set all lists to null */
     for ( nDrawList = inNumLists - 1; nDrawList >= 0; nDrawList-- ) {
@@ -7156,7 +7191,10 @@ xGrowableArrayRef DspA_GetSurfaceList_ ( tkmDisplayAreaRef this,
 
   if ( NULL != this->maSurfaceLists ) {
     pList = this->maSurfaceLists [iSurface]
-            [ DspA_GetSurfaceListIndex_( this, iOrientation, iVertexSet, inSlice ) ];
+            [ DspA_GetSurfaceListIndex_( this, 
+                                         iOrientation, 
+                                         iVertexSet, 
+                                         inSlice ) ];
   }
 
   return pList;
@@ -7288,9 +7326,11 @@ DspA_tErr DspA_ConvertVolumeToBufferf_ ( tkmDisplayAreaRef this,
   /* now zoom the coords to our zoomed buffer state and return them */
   opBufferPt->mfX = (fZoomLevel * (fX - xVoxl_GetFloatX(this->mpZoomCenter))) +
                     (fVolumeSize/2.0);
-  opBufferPt->mfY = (fZoomLevel * (fY -
-                                   GLDRAW_Y_FLIP_FLOAT(xVoxl_GetFloatY(this->mpZoomCenter)))) +
-                    (fVolumeSize/2.0);
+  opBufferPt->mfY = 
+    (fZoomLevel * 
+     (fY - 
+      GLDRAW_Y_FLIP_FLOAT(xVoxl_GetFloatY(this->mpZoomCenter)))) +
+    (fVolumeSize/2.0);
 
   goto cleanup;
 
@@ -7588,8 +7628,10 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
                 this->manSurfaceLineWidth[nSurface][nVertexSet] );
       tkm_SendTclCommand( tkm_tTclCommand_UpdateSurfaceLineWidth,
                           sTclArguments );
-      sprintf ( sTclArguments, "%d %d %f %f %f", (int)nSurface,(int)nVertexSet,
-                xColr_ExpandFloat( &(this->maSurfaceLineColor[nSurface][nVertexSet])));
+      sprintf ( sTclArguments, "%d %d %f %f %f", 
+                (int)nSurface,(int)nVertexSet,
+                xColr_ExpandFloat
+                ( &(this->maSurfaceLineColor[nSurface][nVertexSet])));
       tkm_SendTclCommand( tkm_tTclCommand_UpdateSurfaceLineColor,
                           sTclArguments );
     }
@@ -7628,9 +7670,10 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   Volm_ConvertIdxToMRIIdx(this->mpVolume[tkm_tVolumeType_Main],
                           iAnaIdx, &MRIIdx);
 
-  // *****************************************************************************
+  // **********************************************************************
   // To be implemented: need to tell whether these values are valid or not.
-  sprintf(sTclArguments, "%s %d %d %d", DspA_ksaDisplaySet[iSet], xVoxl_ExpandInt(&MRIIdx) );
+  sprintf(sTclArguments, "%s %d %d %d", 
+          DspA_ksaDisplaySet[iSet], xVoxl_ExpandInt(&MRIIdx) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeCursor, sTclArguments );
 
 
@@ -7655,7 +7698,8 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   tkm_SendTclCommand( tkm_tTclCommand_UpdateRASCursor, sTclArguments );
 
   /* also convert to mni and send those coords along. */
-  if (NULL != this->mpVolume[tkm_tVolumeType_Main]->mpMriValues->linear_transform) {
+  if (NULL != 
+      this->mpVolume[tkm_tVolumeType_Main]->mpMriValues->linear_transform) {
     Volm_ConvertIdxToMNITal( this->mpVolume[tkm_tVolumeType_Main],
                              iAnaIdx, &voxel );
     sprintf( sTclArguments, "%s %.1f %.1f %.1f",
@@ -8092,7 +8136,8 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 #define knNumValues 20
       histoParams.mafValues1 = (float*) calloc( knNumValues, sizeof(float) );
       histoParams.mafValues2 = (float*) calloc( knNumValues, sizeof(float) );
-      histoParams.masXAxisLabels = (char**) calloc( knNumValues, sizeof(float) );
+      histoParams.masXAxisLabels = 
+        (char**) calloc( knNumValues, sizeof(float) );
 
       /* fill them up with some random nubmers and cma labels */
       histoParams.mnNumValues = knNumValues;
@@ -8649,7 +8694,7 @@ void DspA_SetUpOpenGLPort_ ( tkmDisplayAreaRef this ) {
      ( right, top, -near ) is upper right */
 
   glOrtho        ( 0, this->mnVolumeSizeX, this->mnVolumeSizeY, 0, -1.0, 1.0 );
-  //glOrtho        ( 0, this->mnVolumeSizeX, 0, this->mnVolumeSizeX, -1.0, 1.0 );
+  //glOrtho ( 0, this->mnVolumeSizeX, 0, this->mnVolumeSizeX, -1.0, 1.0 );
   eGL = glGetError ();
   if ( GL_NO_ERROR != eGL )
     DebugPrint( ("glOrtho got error %d\n", eGL ) );
@@ -8683,9 +8728,10 @@ void DspA_DebugPrint_ ( tkmDisplayAreaRef this ) {
                this->mfFrameBufferScaleY ) );
   DebugPrint( ("\tzoom level %d center %d, %d, %d\n",
                this->mnZoomLevel, xVoxl_ExpandInt(this->mpZoomCenter) ) );
-  DebugPrint( ("\tcursor %d, %d, %d orientation %s slice %d tool %d\n",
-               xVoxl_ExpandInt(this->mpCursor), DspA_ksaOrientation[this->mOrientation],
-               DspA_GetCurrentSliceNumber_(this), sTool ) );
+  DebugPrint( 
+    ("\tcursor %d, %d, %d orientation %s slice %d tool %d\n",
+     xVoxl_ExpandInt(this->mpCursor), DspA_ksaOrientation[this->mOrientation],
+     DspA_GetCurrentSliceNumber_(this), sTool ) );
 }
 
 void DspA_Signal ( char* isFuncName, int inLineNum, DspA_tErr ieCode ) {
@@ -8842,10 +8888,12 @@ tBoolean xUtil_LineIntersectsPlane ( xVoxelRef         ipAnaIdxA,
   }
 
   /* interpolate to find the intersection. */
-  interpIntersectionPt.mfX = (xVoxl_GetFloatX( ipAnaIdxA ) +
-                              fAlpha * (xVoxl_GetFloatX(ipAnaIdxB) - xVoxl_GetFloatX(ipAnaIdxA)));
-  interpIntersectionPt.mfY = (xVoxl_GetFloatY( ipAnaIdxA ) +
-                              fAlpha * (xVoxl_GetFloatY(ipAnaIdxB) - xVoxl_GetFloatY(ipAnaIdxA)));
+  interpIntersectionPt.mfX = 
+    (xVoxl_GetFloatX( ipAnaIdxA ) +
+     fAlpha * (xVoxl_GetFloatX(ipAnaIdxB) - xVoxl_GetFloatX(ipAnaIdxA)));
+  interpIntersectionPt.mfY = 
+    (xVoxl_GetFloatY( ipAnaIdxA ) +
+     fAlpha * (xVoxl_GetFloatY(ipAnaIdxB) - xVoxl_GetFloatY(ipAnaIdxA)));
 
   /* return the points. */
   *opIntersectionPt = intersectionPt;
@@ -8958,7 +9006,8 @@ DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
     } else {
 
       /* switch on the draw flag to see which point to get. */
-      if (this->mabDisplayFlags[DspA_tDisplayFlag_InterpolateSurfaceVertices]) {
+      if (this->mabDisplayFlags[DspA_tDisplayFlag_InterpolateSurfaceVertices]) 
+      {
         drawPoint.mfX = drawListNode.mInterpIntersectionPoint.mfX;
         drawPoint.mfY = drawListNode.mInterpIntersectionPoint.mfY;
       } else {
@@ -8967,8 +9016,14 @@ DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
       }
 
       /* convert to zoomed coords. */
-      drawPoint.mfX = ((float)this->mnZoomLevel * (drawPoint.mfX - xVoxl_GetFloatX(this->mpZoomCenter))) + (float)(this->mnVolumeSizeX/2.0);
-      drawPoint.mfY = ((float)this->mnZoomLevel * (drawPoint.mfY - xVoxl_GetFloatY(this->mpZoomCenter))) + (float)(this->mnVolumeSizeY/2.0);
+      drawPoint.mfX = 
+        ((float)this->mnZoomLevel * 
+         (drawPoint.mfX - xVoxl_GetFloatX(this->mpZoomCenter))) + 
+        (float)(this->mnVolumeSizeX/2.0);
+      drawPoint.mfY = 
+        ((float)this->mnZoomLevel * 
+         (drawPoint.mfY - xVoxl_GetFloatY(this->mpZoomCenter))) + 
+        (float)(this->mnVolumeSizeY/2.0);
 
       /* y flip */
       drawPoint.mfY = GLDRAW_Y_FLIP(drawPoint.mfY);

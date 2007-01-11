@@ -3,10 +3,10 @@
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2007/01/05 00:21:32 $
-##    $Revision: 1.43 $
+##    $Date: 2007/01/11 20:15:15 $
+##    $Revision: 1.44 $
 ##
-## Copyright (C) 2002-2007,
+## Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA). 
 ## All rights reserved.
 ##

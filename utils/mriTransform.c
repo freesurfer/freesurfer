@@ -8,10 +8,10 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:34 $
- *    $Revision: 1.17 $
+ *    $Date: 2007/01/11 20:15:18 $
+ *    $Revision: 1.18 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -129,7 +129,8 @@ Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
   DebugAssertThrowX( (NULL != LTATransform),
                      eResult, Trns_tErr_LTAImportFailed );
 
-  this->type = LTATransform->type ;  /* if RAS will be converted to voxel later */
+  this->type = LTATransform->type ;  /* if RAS will be converted 
+                                        to voxel later */
 
   /* copy the matrix out of it */
   Trns_CopyARAStoBRAS( this, LTATransform->xforms[0].m_L );
