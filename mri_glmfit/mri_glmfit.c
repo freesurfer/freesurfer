@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.104 $
+ *    $Author: greve $
+ *    $Date: 2007/01/11 04:17:58 $
+ *    $Revision: 1.105 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -478,7 +478,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.104 2006/12/29 02:09:06 nicks Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.105 2007/01/11 04:17:58 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -560,7 +560,7 @@ int DiagCluster=0;
 double  InterVertexDistAvg, InterVertexDistStdDev, avgvtxarea, ar1mn, ar1std, ar1max;
 double eresgstd, eresfwhm, searchspace;
 double car1mn, rar1mn,sar1mn,cfwhm,rfwhm,sfwhm;
-MRI *ar1=NULL, *z=NULL, *zabs=NULL;
+MRI *ar1=NULL, *z=NULL, *zabs=NULL, *cnr=NULL;
 
 CSD *csd;
 RFS *rfs;
@@ -1310,6 +1310,13 @@ int main(int argc, char **argv) {
     sig=MRIlog10(mriglm->p[n],NULL,sig,1);
     if (mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
 
+    // Compute and Save CNR
+    if(mriglm->glm->C[n]->rows == 1){
+      cnr = MRIdivide(mriglm->gamma[n], rstd, NULL) ;
+      sprintf(tmpstr,"%s/%s/cnr.%s",GLMDir,mriglm->glm->Cname[n],format);
+      MRIwrite(cnr,tmpstr);
+      MRIfree(&cnr);
+    }
 
     // If it is t-test (ie, one row) then apply the sign
     if (mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
