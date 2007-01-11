@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/11 04:17:58 $
- *    $Revision: 1.105 $
+ *    $Date: 2007/01/11 16:56:54 $
+ *    $Revision: 1.106 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -478,7 +478,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.105 2007/01/11 04:17:58 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.106 2007/01/11 16:56:54 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -579,6 +579,7 @@ MRI  *fa, *ra, *vr, *adc, *dwi, *dwisynth,*dwires,*dwirvar;
 MRI  *ivc;
 
 int useasl = 0;
+double asl1val = 1, asl2val = 0;
 
 char *format = "mgh";
 
@@ -712,12 +713,12 @@ int main(int argc, char **argv) {
   if (useasl) {
     mriglm->Xg = MatrixConstVal(1.0, mriglm->y->nframes, 2, NULL);
     for (n=0; n < mriglm->y->nframes; n += 2) {
-      mriglm->Xg->rptr[n+1][2] = 1;
-      mriglm->Xg->rptr[n+2][2] = 0;
+      mriglm->Xg->rptr[n+1][2] = asl1val;
+      mriglm->Xg->rptr[n+2][2] = asl2val;
     }
-    nContrasts = 2;
+    nContrasts = 3;
     mriglm->glm->ncontrasts = nContrasts;
-    mriglm->glm->Cname[0] = "lvc";
+    mriglm->glm->Cname[0] = "perfusion";
     mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 2, NULL);
     mriglm->glm->C[0]->rptr[1][1] = 0;
     mriglm->glm->C[0]->rptr[1][2] = 1;
@@ -725,6 +726,10 @@ int main(int argc, char **argv) {
     mriglm->glm->C[1] = MatrixConstVal(0.0, 1, 2, NULL);
     mriglm->glm->C[1]->rptr[1][1] = 1;
     mriglm->glm->C[1]->rptr[1][2] = 0;
+    mriglm->glm->Cname[2] = "label";
+    mriglm->glm->C[2] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[2]->rptr[1][1] = 1;
+    mriglm->glm->C[2]->rptr[1][2] = 1;
   }
   if (fsgd != NULL) {
     mriglm->Xg = gdfMatrix(fsgd,gd2mtx_method,NULL);
@@ -1516,6 +1521,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
     else if (!strcasecmp(option, "--asl")) useasl = 1;
+    else if (!strcasecmp(option, "--asl-rev")){
+      useasl = 1;
+      asl1val = 0;
+      asl2val = 1;
+    }
     else if (!strcmp(option, "--no-fix-vertex-area")) {
       printf("Turning off fixing of vertex area\n");
       MRISsetFixVertexAreaValue(0);
