@@ -1,15 +1,15 @@
 /**
  * @file  mri_segstats.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Computes statistics from a segmentation.
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.21 $
+ *    $Author: greve $
+ *    $Date: 2007/01/11 23:05:00 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,7 @@
 #include "version.h"
 #include "cma.h"
 #include "gca.h"
+#include "fsenv.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -77,7 +78,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.21 2006/12/29 02:09:08 nicks Exp $";
+  "$Id: mri_segstats.c,v 1.22 2007/01/11 23:05:00 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -89,6 +90,7 @@ char *BrainMaskFile = NULL;
 char *StatTableFile = NULL;
 char *FrameAvgFile = NULL;
 char *FrameAvgVolFile = NULL;
+char *SpatFrameAvgFile = NULL;
 int DoFrameAvg = 0;
 int frame = 0;
 int synth = 0;
@@ -134,7 +136,7 @@ int main(int argc, char **argv) {
   float voxelvolume,vol;
   float min, max, range, mean, std;
   FILE *fp;
-  double  **favg;
+  double  **favg, *favgmn;
   struct utsname uts;
   char *cmdline;
   char tmpstr[1000];
@@ -701,17 +703,30 @@ int main(int argc, char **argv) {
   // Average input across space to create a waveform
   // for each segmentation
   if (DoFrameAvg) {
-    printf("Computing frame average\n");
+    printf("Computing spatial average of each frame\n");
     favg = (double **) calloc(sizeof(double *),nsegid);
     for (n=0; n < nsegid; n++)
       favg[n] = (double *) calloc(sizeof(double),invol->nframes);
+    favgmn = (double *) calloc(sizeof(double *),nsegid);
     for (n=0; n < nsegid; n++) {
       printf("%3d",n);
       if (n%20 == 19) printf("\n");
       fflush(stdout);
       MRIsegFrameAvg(seg, StatSumTable[n].id, invol, favg[n]);
+      favgmn[n] = 0.0;
+      for(f=0; f < invol->nframes; f++) favgmn[n] += favg[n][f];
+      favgmn[n] /= invol->nframes;
     }
     printf("\n");
+
+    // Save mean over space and frames in simple text file
+    // Each seg on a separate line
+    if(SpatFrameAvgFile) {
+      printf("Writing to %s\n",SpatFrameAvgFile);
+      fp = fopen(SpatFrameAvgFile,"w");
+      for (n=0; n < nsegid; n++) fprintf(fp,"%g\n",favgmn[n]);
+      fclose(fp);
+    }
 
     // Save as a simple text file
     if (FrameAvgFile) {
@@ -769,6 +784,11 @@ static int parse_commandline(int argc, char **argv) {
     else if ( !strcmp(option, "--brain-vol-from-seg") ) BrainVolFromSeg = 1;
     else if ( !strcmp(option, "--etiv") ) DoETIV = 1;
 
+    else if ( !strcmp(option, "--sd") ) {
+      if(nargc < 1) argnerr(option,1);
+      FSENVsetSUBJECTS_DIR(pargv[0]);
+      nargsused = 1;
+    }
     else if ( !strcmp(option, "--ctab-default") ) {
       FREESURFER_HOME = getenv("FREESURFER_HOME");
       ctabfile = (char *) calloc(sizeof(char),1000);
@@ -848,6 +868,11 @@ static int parse_commandline(int argc, char **argv) {
     } else if ( !strcmp(option, "--avgwf") ) {
       if (nargc < 1) argnerr(option,1);
       FrameAvgFile = pargv[0];
+      DoFrameAvg = 1;
+      nargsused = 1;
+    } else if ( !strcmp(option, "--sfavg") ) {
+      if (nargc < 1) argnerr(option,1);
+      SpatFrameAvgFile = pargv[0];
       DoFrameAvg = 1;
       nargsused = 1;
     } else if ( !strcmp(option, "--avgwfvol") ) {
@@ -937,6 +962,7 @@ static void print_usage(void) {
   printf("Average waveform options\n");
   printf("   --avgwf textfile  : save into an ascii file\n");
   printf("   --avgwfvol mrivol : save as a binary mri 'volume'\n");
+  printf("   --sfavg textfile  : save mean across space and frame\n");
   printf("\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
