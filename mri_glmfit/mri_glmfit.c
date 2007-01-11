@@ -1,15 +1,15 @@
 /**
  * @file  mri_glmfit.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief GLM analysis with or without FSGD files
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/11 16:56:54 $
- *    $Revision: 1.106 $
+ *    $Date: 2007/01/11 22:00:24 $
+ *    $Revision: 1.107 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -324,6 +324,11 @@ Flag to save the condition number of the design matrix at eaach voxel.
 Normally, this is not very useful except for debugging. It is totally
 useless if not using weights or PVRs.
 
+--nii
+
+Use nifti as output format instead of mgh. This might not work with 
+surfaces.
+
 --seed seed
 
 Use seed as the seed for the random number generator. By default, mri_glmfit
@@ -478,7 +483,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.106 2007/01/11 16:56:54 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.107 2007/01/11 22:00:24 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1520,6 +1525,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
+    else if (!strcasecmp(option, "--nii")) format = "nii";
     else if (!strcasecmp(option, "--asl")) useasl = 1;
     else if (!strcasecmp(option, "--asl-rev")){
       useasl = 1;
