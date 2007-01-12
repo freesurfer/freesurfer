@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:16 $
- *    $Revision: 1.301 $
+ *    $Author: greve $
+ *    $Date: 2007/01/12 20:52:22 $
+ *    $Revision: 1.302 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.301 $";
+char *VERSION = "$Revision: 1.302 $";
 
 #define TCL
 #define TKMEDIT
@@ -1177,7 +1177,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.301 2007/01/11 20:15:16 nicks Exp $",
+     "$Id: tkmedit.c,v 1.302 2007/01/12 20:52:22 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1239,8 +1239,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-conform      : conform the main anatomical volume\n");
     printf("-aux-conform  : conform the aux anatomical volume\n");
     printf("\n");
-    printf("-overlay <file>            : load functional overlay volume\n");
-    printf("-overlay-reg-find          : find overlay registration "
+    printf("-overlay <file>            : load functional overlay volume (-ov)\n");
+    printf("-overlay-reg-find          : find overlay registration (-oreg)"
            "volume in data dir\n");
     printf("-overlay-reg-identity      : generate identity for "
            "overlay registration volume\n");
@@ -1263,8 +1263,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-overlaycache <1|0>      : uses overlay cache (default off)\n");
     printf("\n");
     printf("-sdir <subjects dir>       : (default is getenv(SUBJECTS_DIR)\n");
-    printf("-timecourse <file>         : load functional timecourse volume\n");
-    printf("-timecourse-reg-find       : find timecourse registration "
+    printf("-timecourse <file>         : load functional timecourse volume (-t)\n");
+    printf("-timecourse-reg-find       : find timecourse registration (-treg)"
            "volume in data dir\n");
     printf("-timecourse-reg-identity   : generate identity for "
            "timecourse registration volume\n");
@@ -1574,7 +1574,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg += 2;
         }
 
-      } else if ( MATCH( sArg, "-overlay" ) ) {
+      } else if ( MATCH( sArg, "-overlay" ) || MATCH( sArg, "-ov" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
@@ -1601,7 +1601,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg ++;
         }
 
-      } else if ( MATCH( sArg, "-overlay-reg" ) || MATCH( sArg, "-orf" ) ) {
+      } else if ( MATCH( sArg, "-overlay-reg" ) || MATCH( sArg, "-orf" ) || MATCH( sArg, "-oreg" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
@@ -1663,7 +1663,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg ++;
         }
 
-      } else if ( MATCH( sArg, "-timecourse" ) ) {
+      } else if ( MATCH( sArg, "-timecourse" ) || MATCH( sArg, "-t" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 ) {
@@ -1685,7 +1685,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg ++;
         }
 
-      } else if ( MATCH( sArg, "-timecourse-reg" ) ) {
+      } else if ( MATCH( sArg, "-timecourse-reg" ) || MATCH( sArg, "-treg" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
@@ -1960,6 +1960,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           DebugNote( ("Parsing -fmax option") );
           max = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
           bMax = TRUE;
+          bThresh = TRUE;
           nCurrentArg +=2 ;
         } else {
           /* misuse of that switch */
@@ -5810,7 +5811,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.301 2007/01/11 20:15:16 nicks Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.302 2007/01/12 20:52:22 greve Exp $ $Name:  $\n"
     )
   );
 
