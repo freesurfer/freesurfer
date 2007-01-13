@@ -1,15 +1,18 @@
 /**
  * @file  mris_topology.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief surface topology correction utilities
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * "Automated Manifold Surgery: Constructing Geometrically Accurate and
+ * Topologically Correct Models of the Human Cerebral Cortex",
+ * Fischl, B., Liu, A. and Dale, A.M.
+ * (2001) IEEE Transactions on Medical Imaging, 20(1):70-80.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Florence Segonne
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:19 $
- *    $Revision: 1.31 $
+ *    $Date: 2007/01/13 00:15:49 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,13 +40,21 @@ bool doesMRISselfIntersect(MRIS *mris_work,TOPOFIX_PARMS &parms);
 
 //check the new vertices : val2, val2bak... marked2=-1 ?
 
-extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &parms) {
-
+extern "C" bool MRIScorrectDefect(MRIS *mris, 
+                                  int defect_number,
+                                  TOPOFIX_PARMS &parms) 
+{
   int euler = MRISgetEuler(mris, defect_number);
-  fprintf(WHICH_OUTPUT,"\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nCorrecting Topology of defect %d with euler number %d (%d loops) \n",parms.defect_number,euler,(1-euler)/2);
+  fprintf(WHICH_OUTPUT,
+          "\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n"
+          "Correcting Topology of defect %d with "
+          "euler number %d (%d loops) \n",
+          parms.defect_number,euler,(1-euler)/2);
 
   if (euler == 1) {
-    fprintf(WHICH_OUTPUT,"   Nothing to correct for defect %d!!\n",parms.defect_number);
+    fprintf(WHICH_OUTPUT,
+            "   Nothing to correct for defect %d!!\n",
+            parms.defect_number);
     return true;
   }
 
@@ -98,13 +109,15 @@ extern "C" bool MRIScorrectDefect(MRIS *mris, int defect_number,TOPOFIX_PARMS &p
   if (parms.verbose) {
     fprintf(WHICH_OUTPUT,"INITIAL FITNESS :  %3.5f \n",parms.initial_fitness);
     fprintf(WHICH_OUTPUT,"FINAL FITNESS   :  %3.5f \n",parms.fitness);
-    fprintf(WHICH_OUTPUT,"# generated patches : %d (%d self-intersecting)\n",parms.ngeneratedpatches,parms.nselfintersectingpatches);
+    fprintf(WHICH_OUTPUT,"# generated patches : %d (%d self-intersecting)\n",
+            parms.ngeneratedpatches,parms.nselfintersectingpatches);
   }
 
   return true;
 }
 
-bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms) {
+bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms) 
+{
 #if __PRINT_MODE
   fprintf(WHICH_OUTPUT,"Correcting Topology\n");
 #endif
@@ -113,7 +126,8 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms) {
   //what is the maximum face generating a cutting loop
   parms.max_face = mris->nfaces;
   parms.nattempts = nint(parms.nattempts_percent*mris->nfaces+1);
-  parms.nminimal_attempts=nint(parms.minimal_loop_percent*mris->nfaces+parms.nminattempts);
+  parms.nminimal_attempts=
+    nint(parms.minimal_loop_percent*mris->nfaces+parms.nminattempts);
 
   MRIScomputeNormals(mris);
   MRIScomputeTriangleProperties(mris);
@@ -126,13 +140,16 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms) {
   int nloops = (1-MRISgetEuler(mris))/2;
   //we limit the total number of attempts to 2000!
   parms.nattempts = __MIN(2000/nloops,parms.nattempts);
-  //parms.nminimal_attempts = __MIN(__MAX(1000/nloops,500),parms.nminimal_attempts);
+  //parms.nminimal_attempts = 
+  // __MIN(__MAX(1000/nloops,500),parms.nminimal_attempts);
 
 
   for (int n = 0 ; n < nloops ; n++) {
     if (parms.verbose>=VERBOSE_MODE_MEDIUM) {
-      fprintf(WHICH_OUTPUT,"      max face = %d(%d) - loop = %d (%d)  - ntries = [%d,%d]\n",
-              parms.max_face,mris->nfaces,n+1,nloops, parms.nattempts,parms.nminimal_attempts);
+      fprintf(WHICH_OUTPUT,
+              "      max face = %d(%d) - loop = %d (%d)  - ntries = [%d,%d]\n",
+              parms.max_face,mris->nfaces,n+1,nloops, 
+              parms.nattempts,parms.nminimal_attempts);
     }
     bool correct = MRISincreaseEuler(mris,parms);
     if (correct == false) return false;
@@ -143,7 +160,8 @@ bool MRIScorrectPatchTopology(MRIS* &mris,TOPOFIX_PARMS &parms) {
 #define WS 0
 
 
-extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms) {
+extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms) 
+{
   int nattempts=parms.nattempts;
   int final_euler = -1;
 
@@ -162,7 +180,9 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms) {
 
   for (int n = 0 ; n < nattempts ; n++) {
     if (parms.verbose>=VERBOSE_MODE_HIGH)
-      fprintf(WHICH_OUTPUT, "\r      %3.2f%% [%5d,%5d]",n*100.0/nattempts,n,nattempts);
+      fprintf(WHICH_OUTPUT, 
+              "\r      %3.2f%% [%5d,%5d]",
+              n*100.0/nattempts,n,nattempts);
 
     //generate a surface
     Surface *surface = MRIStoSurface(mris);
@@ -173,7 +193,9 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms) {
     int init_euler = euler;
 
 #if __PRINT_MODE
-    fprintf(WHICH_OUTPUT,"BEFORE %d (%d: %d, %d)\n",euler,n,surface->nvertices,surface->nfaces);
+    fprintf(WHICH_OUTPUT,
+            "BEFORE %d (%d: %d, %d)\n",
+            euler,n,surface->nvertices,surface->nfaces);
 #endif
 
     //increase the euler number by 2
@@ -181,17 +203,23 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms) {
     if (n == 0 )
       correct = surface->CutPatch(-2,parms.max_face,parms.nminimal_attempts);
     else
-      correct = surface->CutPatch(-1,parms.max_face,10);//always trying 10 times at least
+      correct = surface->CutPatch(-1,
+                                  parms.max_face,
+                                  10);//always trying 10 times at least
 
     npatches++;
 
     if (correct < 0) {
-      fprintf(WHICH_OUTPUT,"\r      PBM: Euler Number incorrect for surface (defect %d)\n",parms.defect_number);
+      fprintf(WHICH_OUTPUT,
+              "\r      PBM: Euler Number incorrect for surface (defect %d)\n",
+              parms.defect_number);
       delete surface;
       continue;
     }
 #if __PRINT_MODE
-    fprintf(WHICH_OUTPUT,"AFTER %d (%d,%d)\n",surface->GetEuler(),surface->nvertices,surface->nfaces);
+    fprintf(WHICH_OUTPUT,
+            "AFTER %d (%d,%d)\n",
+            surface->GetEuler(),surface->nvertices,surface->nfaces);
 #endif
 
 
@@ -200,12 +228,16 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms) {
     delete surface;
 
     MRIScopyHeader(mris,mris_work);
-    MRISsaveVertexPositions(mris_work,INFLATED_VERTICES); //saving current vertex positions into inflated
+    MRISsaveVertexPositions(mris_work, INFLATED_VERTICES); /*saving current 
+                                                             vertex positions 
+                                                             into inflated */
     parms.mris_defect=mris_work;
 
     euler = MRISgetEuler(mris_work);
     if (euler != init_euler+2) {
-      fprintf(WHICH_OUTPUT,"\r      PBM: Euler Number incorrect for mris (defect %d)\n",parms.defect_number);
+      fprintf(WHICH_OUTPUT,
+              "\r      PBM: Euler Number incorrect for mris (defect %d)\n",
+              parms.defect_number);
       MRISfree(&mris_work);
       continue;
     }
@@ -227,14 +259,16 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms) {
     bool selfintersect = doesMRISselfIntersect(mris_work,parms);
     if (selfintersect) {
       nintersections++;
-      if (parms.verbose>=VERBOSE_MODE_HIGH) fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
+      if (parms.verbose>=VERBOSE_MODE_HIGH) 
+        fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
       if (parms.minimal_mode && best_mris==NULL) {
         nattempts = __MAX(50,nattempts);
       }
     } else {
       //compute associated fitness
       double fitness = MRIScomputeFitness(mris_work,&parms,1);
-      //if(parms.verbose>=VERBOSE_MODE_MEDIUM) fprintf(WHICH_OUTPUT,"\r      fitness (o)is %3.5f \n",fitness);
+      //if(parms.verbose>=VERBOSE_MODE_MEDIUM) 
+      //  fprintf(WHICH_OUTPUT,"\r      fitness (o)is %3.5f \n",fitness);
       //update if necessary
       if (best_mris == NULL || fitness > best_fitness) {
         if (best_mris) MRISfree(&best_mris);
@@ -242,7 +276,8 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms) {
         best_fitness = fitness;
         final_euler = euler;
         if (parms.verbose>=VERBOSE_MODE_MEDIUM) {
-          fprintf(WHICH_OUTPUT,"\r      BEST FITNESS (o)is %3.5f \n",best_fitness);
+          fprintf(WHICH_OUTPUT,
+                  "\r      BEST FITNESS (o)is %3.5f \n",best_fitness);
           MRISprintInfo(&parms);
         }
 #if WS
@@ -283,12 +318,14 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms) {
 
 #endif
 
-    //if(parms.verbose>=VERBOSE_MODE_MEDIUM) fprintf(WHICH_OUTPUT,"\r      fitness (m)is %3.5f \n",fitness);
+    //if(parms.verbose>=VERBOSE_MODE_MEDIUM) 
+    //fprintf(WHICH_OUTPUT,"\r      fitness (m)is %3.5f \n",fitness);
     //check if the surface self-intersects
     selfintersect = doesMRISselfIntersect(mris_work,parms);
     if (selfintersect) {
       nintersections++;
-      if (parms.verbose>=VERBOSE_MODE_HIGH) fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
+      if (parms.verbose>=VERBOSE_MODE_HIGH) 
+        fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
       MRISfree(&mris_work);
       continue;
     }
@@ -301,7 +338,8 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms) {
       best_fitness = fitness;
       final_euler=euler;
       if (parms.verbose>=VERBOSE_MODE_MEDIUM) {
-        fprintf(WHICH_OUTPUT,"\r      BEST FITNESS (M) is %3.5f \n",best_fitness);
+        fprintf(WHICH_OUTPUT,
+                "\r      BEST FITNESS (M) is %3.5f \n",best_fitness);
         MRISprintInfo(&parms);
       }
 #if WS
@@ -322,11 +360,15 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms) {
     fprintf(WHICH_OUTPUT,"\r                             \r");
 
   if (parms.verbose>=VERBOSE_MODE_MEDIUM)
-    fprintf(WHICH_OUTPUT,"      %d patches have been generated - %d self-intersected\n",npatches,nintersections);
+    fprintf(WHICH_OUTPUT,
+            "      %d patches have been generated - %d self-intersected\n",
+            npatches,nintersections);
 
   //update the surface
   if (best_mris == NULL ) {
-    fprintf(WHICH_OUTPUT,"PBM : Could Not Increase Euler Number for defect %d\n",parms.defect_number);
+    fprintf(WHICH_OUTPUT,
+            "PBM : Could Not Increase Euler Number for defect %d\n",
+            parms.defect_number);
     return false;
   }
 
@@ -341,14 +383,16 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms) {
   return true;
 }
 
-bool doesMRISselfIntersect(MRIS *mris_work,TOPOFIX_PARMS &parms) {
+bool doesMRISselfIntersect(MRIS *mris_work,TOPOFIX_PARMS &parms) 
+{
   if (parms.no_self_intersections==false) return false;
 
   //checking self-intersections
   return IsMRISselfIntersecting(mris_work);
 }
 
-extern "C" MRIS *MRISduplicateOver(MRIS *mris,int mode) {
+extern "C" MRIS *MRISduplicateOver(MRIS *mris,int mode) 
+{
   MRIS *mris_dst;
   //clone the surface mris
   mris_dst = MRISclone(mris);
@@ -396,7 +440,8 @@ extern "C" MRIS *MRISduplicateOver(MRIS *mris,int mode) {
     n_extra_faces =__MAX(mris->max_faces-mris->nfaces,0);
   }
   //now allocate the extra space
-  VERTEX *vertices = (VERTEX*)calloc(mris->nvertices+n_extra_vertices,sizeof(VERTEX));
+  VERTEX *vertices = 
+    (VERTEX*)calloc(mris->nvertices+n_extra_vertices,sizeof(VERTEX));
   FACE *faces = (FACE*)calloc(mris->nfaces+n_extra_faces,sizeof(FACE));
   for (int n = 0 ; n < mris_dst->nvertices ; n++) {
     vertices[n] = mris_dst->vertices[n];
@@ -414,7 +459,8 @@ extern "C" MRIS *MRISduplicateOver(MRIS *mris,int mode) {
 }
 
 
-extern "C" int MRISgetEuler(MRIS *mris, int defect_number) {
+extern "C" int MRISgetEuler(MRIS *mris, int defect_number) 
+{
   int *list_of_faces,nfaces;
 
   if (defect_number < 0) {
@@ -467,8 +513,10 @@ extern "C" int MRISgetEuler(MRIS *mris, int defect_number) {
   return euler;
 }
 
-extern "C"  int MRISgetEulerNumber(const MRIS *mris, const int *list_of_faces, int nfs) {
-
+extern "C" int MRISgetEulerNumber(const MRIS *mris, 
+                                  const int *list_of_faces, 
+                                  int nfs) 
+{
   int nv,nf,ne;
 
   //we need to allocate the edge structure for the faces in the list
@@ -544,7 +592,8 @@ extern "C"  int MRISgetEulerNumber(const MRIS *mris, const int *list_of_faces, i
   return (nv-ne+nf);
 }
 
-extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number) {
+extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number) 
+{
   int *list_of_faces, nfaces;
 
   /* count the number of faces and vertices */
@@ -666,7 +715,8 @@ extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number) {
   return mrip;
 }
 
-void MRISinitSurface(MRIS *mris) {
+void MRISinitSurface(MRIS *mris) 
+{
   VERTEX *v;
 
   for (int n = 0 ; n < mris->nvertices ; n++) {
@@ -733,11 +783,11 @@ void MRISinitSurface(MRIS *mris) {
     v->v3num = v->vnum;
     v->vtotal = v->vnum;
   }
-
 }
 
 
-MRIP *MRIPalloc(int nvertices, int nfaces) {
+MRIP *MRIPalloc(int nvertices, int nfaces) 
+{
   MRIP *patch;
 
   /* allocate the patch */
@@ -775,7 +825,8 @@ void MRIPfree(MRIP **mrip) {
 
 }
 
-MRIP *MRIPclone(MRIP *src) {
+MRIP *MRIPclone(MRIP *src) 
+{
   MRIP *dst;
 
   /* allocate the patch */
@@ -787,8 +838,8 @@ MRIP *MRIPclone(MRIP *src) {
   return dst;
 }
 
-Surface *MRIStoSurface(MRIS *mris) {
-
+Surface *MRIStoSurface(MRIS *mris) 
+{
   //allocation of the surface
   Surface *surface=new Surface(mris->max_vertices,mris->max_faces);
   surface->nvertices = mris->nvertices;
@@ -815,8 +866,8 @@ Surface *MRIStoSurface(MRIS *mris) {
   return surface;
 }
 
-void MRIScopyHeader(MRIS *mris_src,MRIS *mris_dst) {
-
+void MRIScopyHeader(MRIS *mris_src,MRIS *mris_dst) 
+{
   mris_dst->type = mris_src->type;  // missing
   mris_dst->hemisphere = mris_src->hemisphere ;
   mris_dst->xctr = mris_src->xctr ;
@@ -859,10 +910,13 @@ void MRIScopyHeader(MRIS *mris_src,MRIS *mris_dst) {
   copyVolGeom(&mris_src->vg, &mris_dst->vg);
 }
 
-MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris) {
-
+MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris) 
+{
   if (mris==NULL) {//allocate the new surface
-    mris=MRISoverAlloc(surface->maxvertices,surface->maxfaces,surface->nvertices,surface->nfaces);
+    mris=MRISoverAlloc(surface->maxvertices,
+                       surface->maxfaces,
+                       surface->nvertices,
+                       surface->nfaces);
   }
   mris->nvertices=surface->nvertices;
   mris->nfaces=surface->nfaces;
@@ -920,7 +974,8 @@ MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris) {
 }
 
 
-bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip) {
+bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip) 
+{
   int nvertices=mrip->n_vertices,nfaces=mrip->n_faces;
   int *vto = mrip->vtrans_to,*fto=mrip->ftrans_to;
 
@@ -933,7 +988,6 @@ bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip) {
   if (new_faces+mris_dst->nfaces>=mris_dst->max_faces) {
     ErrorExit("Not Enough Face Space in mris_dst!");
   }
-
 
   MRIS *mris = mrip->mris;
 
