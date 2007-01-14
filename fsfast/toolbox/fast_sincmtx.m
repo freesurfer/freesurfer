@@ -1,24 +1,23 @@
 function M = fast_sincmtx(len,delta,rownorm,hw)
 % M = fast_sincmtx(len,delta,<rownorm>,<hw>)
-% Create a sinc interpolation matrix. Given a vector y,
-% yhat = M*y will be the sinc interpolation of y shifted
-% backwards by delta, where delta is a fration of the 
-% distance between y. If rownorm is set to non-zero, then
-% each row of the matrix M is normalized so that the
-% mean is 1. hw is the width of the hann window. The wider
-% the width, the less the effect.
 %
+% Create a sinc interpolation matrix. Given a vector y, yhat = M*y
+% will be the sinc interpolation of y shifted backwards by delta,
+% where delta is a fration of the distance between y. If rownorm is
+% set to non-zero, then each row of the matrix M is normalized so that
+% the mean is 1. hw is the width of the hann window. The wider the
+% window, the less the effect of the window. Setting hw=0 is like
+% setting hw = infinity.
 %
+% $Id: fast_sincmtx.m,v 1.5 2007/01/14 06:18:56 greve Exp $
 
-
-%
 % fast_sincmtx.m
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.4 $
+%    $Author: greve $
+%    $Date: 2007/01/14 06:18:56 $
+%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -49,7 +48,7 @@ M = zeros(len);
 i = 1:len;
 for n = 1:len
   x = i - n - delta;
-  if(hw > 0) r = sinc(x) .* hann(x,hw);
+  if(hw > 0) r = sinc(x) .* fast_hann(x,hw);
   else       r = sinc(x);
   end
   if(rownorm) r = r/sum(r); end
@@ -67,12 +66,3 @@ y(inz) = sin(pi*x(inz)) ./ (pi*x(inz));
 
 return;
 
-%-----------------------------------------------------------%
-function h = hann(x,tau)
-
-alpha = 0.5; % 0.54 for Hamming
-h = zeros(size(x));
-ind = find(abs(x) < tau);
-h(ind) = alpha + (1-alpha)*cos(pi*x(ind)/tau);
-
-return;
