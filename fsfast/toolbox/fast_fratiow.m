@@ -25,9 +25,9 @@ function [F, dof1, dof2, ces, cescvm] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:30 $
-%    $Revision: 1.8 $
+%    $Author: greve $
+%    $Date: 2007/01/15 02:29:00 $
+%    $Revision: 1.9 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -92,7 +92,8 @@ if(isempty(nacf))
   end
   if(nargout == 5) 
     invcescvmr = inv(cescvmr);
-    cescvm = invcescvmr(:) * rvar; % outer product
+    cescvm = zeros(dof1.^2,nv);
+    cescvm(:,indnz) = invcescvmr(:) * rvar; % outer product
   end
 else
   if(isempty(nacfmap)) nacfmap = ones(nnz,1); 
