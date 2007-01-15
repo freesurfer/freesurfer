@@ -1,13 +1,13 @@
 #!/bin/csh -f
 # rawfunc2surf-sess 
 #
-set VERSION    = '$Id: rawfunc2surf-sess,v 1.2 2007/01/15 00:44:38 greve Exp $';
+set VERSION    = '$Id: rawfunc2surf-sess,v 1.3 2007/01/15 02:34:26 greve Exp $';
 set cmdargs = ($argv);
 
 set instem   = fmc; 
 set outstem  = (); 
 set hemilist  = (); 
-set subject  = ();
+set subject  = (fsaverage);
 set projfrac = 0.5;
 set fwhm = ();
 set RunListFile = ();
@@ -53,10 +53,10 @@ if(! $nolog ) then
   mkdir -p log
   set LF = $ProjectDir/log/rawfunc2surf-sess
   # Below to help prevent collisions when parallel
-  if($#hemi == 1) set LF = $LF.$hemi
+  if($#hemilist == 1) set LF = $LF.$hemilist
   if($#SessList == 1) then
-    set sessid = `basename $sess`;
-    set LF = $LF.$hemi.$sess
+    set sessid = `basename $SessList`;
+    set LF = $LF.$sessid
   endif
   rm -f $LF
 else
@@ -110,18 +110,32 @@ foreach sess ($SessList)
       echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
       echo "cd `pwd`" |& tee -a $LF
       echo $cmd |& tee -a $LF
-      #$cmd |& tee -a $LF
+      $cmd |& tee -a $LF
       if($status) exit 1;
 
-      # Create a meanval file
-      if(-e $inbase.meanval) then
-        cp $inbase.meanval $outbase.meanval
-      else
-        set maskstem = $sess/$fsd/masks/brain
-        echo "mask $maskstem" |& tee -a $LF
-        set maskfmt = `getformat_from_stem $maskstem`
-        if(! $status) then
-	  set mask = $maskstem.$maskfmt
+      # Resample mask and possibly create meanval file
+      # Does not need to be done for each run, but easier
+      set maskstem = $sess/$fsd/masks/brain
+      echo "mask $maskstem" |& tee -a $LF
+      set maskfmt = `getformat_from_stem $maskstem`
+      if(! $status) then
+        set mask = $maskstem.$maskfmt
+        set masksurf = $sess/$fsd/masks/$hemi.brain.$outfmt
+        set cmd = (mri_vol2surf --reg register.dat --interp nearest \
+                   --mov $mask --out $masksurf)
+        set cmd = ($cmd --hemi $hemi --projfrac $projfrac)
+        if($#subject)        set cmd = ($cmd --trgsubject $subject)
+        if($outfmt == "mgh") set cmd = ($cmd --no-reshape)
+        echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+        echo "cd `pwd`" |& tee -a $LF
+        echo $cmd |& tee -a $LF
+        $cmd |& tee -a $LF
+        if($status) exit 1;
+
+        # Create a meanval file
+        if(-e $inbase.meanval) then
+          cp $inbase.meanval $outbase.meanval
+        else
           set cmd = (mri_segstats --seg $mask --id 1 --sum /tmp/blah.$$ \
                      --in $invol --sfavg $outbase.meanval )
           echo "cd `pwd`" |& tee -a $LF
@@ -129,7 +143,9 @@ foreach sess ($SessList)
           $cmd |& tee -a $LF
           if($status) exit 1;
         endif
+
       endif
+
 
       echo "" |& tee -a $LF
       echo "" |& tee -a $LF
