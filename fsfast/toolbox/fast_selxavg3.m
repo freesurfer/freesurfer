@@ -7,9 +7,9 @@
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.17 $
+%    $Author: greve $
+%    $Date: 2007/01/15 05:29:46 $
+%    $Revision: 1.18 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -26,9 +26,7 @@
 
 % MultiVar t
 % Automatically creating mask?
-% Inorming residual when not whitening?
 
-% Force choice autostim/noautostim 
 % Force choice on whitening or not
 % Force choice of mask
 % How to check that analyses are not being mixed?
@@ -92,7 +90,8 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-outanadir = sprintf('%s/%s/%s/%s-new',outtop,sessname,flac0.fsd,flac0.name);
+outanadir = sprintf('%s/%s/%s/%s',outtop,sessname,flac0.fsd,flac0.name);
+fprintf('outanadir = %s\n',outanadir);
 xfile = sprintf('%s/X.mat',outanadir);
 outresdir = sprintf('%s/res',outanadir);
 
@@ -671,7 +670,7 @@ if(DoContrasts)
 end % DoContrasts
 
 %------------------------------------------------------%
-if(~isempty(analysis) & ~DoGLMFit)
+if(~isempty(analysis) & DoGLMFit)
 
 % Construct selxavg-style h.dat strucutre for backwards compat
 SumXtX = Ctask*X'*X*Ctask';
@@ -724,6 +723,7 @@ hd.gfTau    = [];%?
 %  hd.gfTau   = -1*ones(1,s.spmhrf + 1);
 %end;
 fname = sprintf('%s/h.dat',outanadir);
+fprintf('Saving h.dat to %s\n',fname);
 fmri_svdat3(fname,hd);
 % hd2 = fmri_lddat3('sxa.dat');
 
