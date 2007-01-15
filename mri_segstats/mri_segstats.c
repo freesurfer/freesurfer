@@ -8,8 +8,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/11 23:05:00 $
- *    $Revision: 1.22 $
+ *    $Date: 2007/01/15 23:39:54 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,7 +78,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.22 2007/01/11 23:05:00 greve Exp $";
+  "$Id: mri_segstats.c,v 1.23 2007/01/15 23:39:54 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -104,6 +104,7 @@ int NonEmptyOnly = 0;
 int UserSegIdList[1000];
 int nUserSegIdList = 0;
 int DoExclSegId = 0, ExclSegId = 0;
+int DoExclCtxGMWM= 0;
 char *gcafile = NULL;
 GCA *gca;
 
@@ -423,7 +424,11 @@ int main(int argc, char **argv) {
   printf("Computing statistics for each segmentation\n");
   fflush(stdout);
   for (n=0; n < nsegid; n++) {
-    if (DoExclSegId && StatSumTable[n].id == ExclSegId) continue;
+    if(DoExclSegId && StatSumTable[n].id == ExclSegId) continue;
+    if(DoExclCtxGMWM && 
+       (StatSumTable[n].id ==  2 || StatSumTable[n].id == 3 ||
+	StatSumTable[n].id == 41 || StatSumTable[n].id == 42) )
+      continue; // excludes Cortical GM and WM
 
     printf("%3d   %3d  %s ",n,StatSumTable[n].id,StatSumTable[n].name);
     fflush(stdout);
@@ -494,13 +499,21 @@ int main(int argc, char **argv) {
     for (n=0; n < nsegid; n++) {
       if (NonEmptyOnly && StatSumTable[n].nhits==0) continue;
       if (DoExclSegId && StatSumTable[n].id==ExclSegId) continue;
+      if(DoExclCtxGMWM && 
+	 (StatSumTable[n].id ==  2 || StatSumTable[n].id == 3 ||
+	  StatSumTable[n].id == 41 || StatSumTable[n].id == 42) )
+	continue; // excludes Cortical GM and WM
       nsegidrep ++;
     }
     StatSumTable2 = (STATSUMENTRY *) calloc(sizeof(STATSUMENTRY),nsegidrep);
     nthsegid = 0;
     for (n=0; n < nsegid; n++) {
-      if (NonEmptyOnly && StatSumTable[n].nhits==0) continue;
-      if (DoExclSegId && StatSumTable[n].id==ExclSegId) continue;
+      if(NonEmptyOnly && StatSumTable[n].nhits==0) continue;
+      if(DoExclSegId && StatSumTable[n].id==ExclSegId) continue;
+      if(DoExclCtxGMWM && 
+	 (StatSumTable[n].id ==  2 || StatSumTable[n].id == 3 ||
+	  StatSumTable[n].id == 41 || StatSumTable[n].id == 42) )
+	continue; // excludes Cortical GM and WM
       StatSumTable2[nthsegid].id    = StatSumTable[n].id;
       StatSumTable2[nthsegid].nhits = StatSumTable[n].nhits;
       StatSumTable2[nthsegid].vol   = StatSumTable[n].vol;
@@ -605,9 +618,10 @@ int main(int argc, char **argv) {
       fprintf(fp,"# PVVolFile  %s \n",PVVolFile);
       fprintf(fp,"# PVVolFileTimeStamp  %s \n",VERfileTimeStamp(PVVolFile));
     }
-    if (DoExclSegId)  fprintf(fp,"# ExcludeSegId %d \n",ExclSegId);
-    if (NonEmptyOnly) fprintf(fp,"# Only reporting non-empty segmentations\n");
-    if (!mris) fprintf(fp,"# VoxelVolume_mm3 %g \n",voxelvolume);
+    if(DoExclSegId)  fprintf(fp,"# ExcludeSegId %d \n",ExclSegId);
+    if(DoExclCtxGMWM)fprintf(fp,"# Excluding Cortical Gray and White Matter\n");
+    if(NonEmptyOnly) fprintf(fp,"# Only reporting non-empty segmentations\n");
+    if(!mris) fprintf(fp,"# VoxelVolume_mm3 %g \n",voxelvolume);
     else      fprintf(fp,"# VertexArea_mm2 %g \n",voxelvolume);
     fprintf(fp,"# TableCol  1 ColHeader Index \n");
     fprintf(fp,"# TableCol  1 FieldName Index \n");
@@ -783,6 +797,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nonempty")) NonEmptyOnly = 1;
     else if ( !strcmp(option, "--brain-vol-from-seg") ) BrainVolFromSeg = 1;
     else if ( !strcmp(option, "--etiv") ) DoETIV = 1;
+    else if ( !strcmp(option, "--excl-ctxgmwm") ) DoExclCtxGMWM = 1;
 
     else if ( !strcmp(option, "--sd") ) {
       if(nargc < 1) argnerr(option,1);
@@ -942,6 +957,7 @@ static void print_usage(void) {
   printf("   --ctab-gca gcafile: get color table from GCA (CMA)\n");
   printf("   --id segid <--id segid> : manually specify seg ids\n");
   printf("   --excludeid segid : exclude seg id from report\n");
+  printf("   --excl-ctxgmwm : exclude cortical gray and white matter\n");
   printf("   --nonempty : only report non-empty segmentations\n");
   printf("\n");
   printf("Masking options\n");
@@ -1061,6 +1077,12 @@ static void print_help(void) {
     "\n"
     "Exclude the given segmentation id from report. This can be convenient\n"
     "for removing id=0. Only one segid can be targeted for exclusion.\n"
+    "\n"
+    "--excl-ctxgmwm\n"
+    "\n"
+    "Exclude cortical gray and white matter. These are assumed to be IDs\n"
+    "2, 3, 41, and 42. The volume structures are more accurately measured\n"
+    "using surface-based methods (see mris_volume).\n"
     "\n"
     "--nonempty\n"
     "\n"
