@@ -1,6 +1,6 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.39 2007/01/10 22:02:31 nicks Exp $'
+% '$Id: fast_selxavg.m,v 1.40 2007/01/15 02:29:36 greve Exp $'
 
 
 %
@@ -8,9 +8,9 @@ function r = fast_selxavg(varargin)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.39 $
+%    $Author: greve $
+%    $Date: 2007/01/15 02:29:36 $
+%    $Revision: 1.40 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@ function r = fast_selxavg(varargin)
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_selxavg.m,v 1.39 2007/01/10 22:02:31 nicks Exp $';
+version = '$Id: fast_selxavg.m,v 1.40 2007/01/15 02:29:36 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -459,8 +459,8 @@ for slice = firstslice:lastslice
 	  if(slice == firstslice)
 	    mri = MRIread(instem,1);
 	  end
-	  nrows = mri.volsize(2);
-	  ncols = mri.volsize(1);
+	  nrows = mri.volsize(1);
+	  ncols = mri.volsize(2);
 	  ntp = mri.nframes;
 	  ns = mri.volsize(3);
 	end
@@ -484,11 +484,13 @@ for slice = firstslice:lastslice
 	    fprintf('       Loading %s\n',instem);
 	    ymri(run) = MRIread(instem); 
 	  end
-	  y = squeeze(ymri(run).vol(:,:,slice+1,:));
+	  y = ymri(run).vol(:,:,slice+1,:);
+	  y = permute(y,[1 2 4 3]); % instead of squeeze
+	  %y = squeeze(ymri(run).vol(:,:,slice+1,:));
 	end
       else
         %fprintf(1,'       Synthesizing Data for Slice %d \n',slice);
-        y = randn(ntrs, nrows, ncols);
+        y = randn(nrows, ncols, ntrs);
       end
 
       % Exlude Points %
@@ -686,7 +688,7 @@ for slice = firstslice:lastslice
     
   % Save the mean image %
   if(RmBaseline)
-    hoffset = reshape(hhat(NTaskAvgs+1,:), [ncols nrows]); % From 1st Run
+    hoffset = reshape(hhat(NTaskAvgs+1,:), [nrows ncols ]); % From 1st Run
     indz = find(hoffset==0);
     hoffset(indz) = 1;
     fname = sprintf('%s-offset_%03d.bfloat',hstem,slice);
@@ -731,7 +733,7 @@ for slice = firstslice:lastslice
   end
     
   tmp = eres_var;
-  tmp = reshape(tmp',[ncols nrows]);
+  tmp = reshape(tmp',[nrows ncols]);
   rstd.vol(:,:,slice+1) = sqrt(tmp);
 
   % Omnibus Significance Test %
@@ -754,7 +756,7 @@ for slice = firstslice:lastslice
     F = sign(qsum) .* Fnum ./ Fden;
     if(~isempty(fomnibusstem))
       fname = sprintf('%s_%03d.bfloat',fomnibusstem,slice);
-      tmp = reshape(F,[ncols nrows]);
+      tmp = reshape(F,[nrows ncols]);
       if(~s.UseMRIread) 
 	fmri_svbfile(tmp,fname);
 	%if(s.UseMRIread) fast_svbhdr(mristruct,fomnibusstem,1); end
@@ -775,7 +777,7 @@ for slice = firstslice:lastslice
       indz = find(p==0);
       p(indz) = 1;
       p = sign(p).*(-log10(abs(p)));
-      tmp = reshape(p,[ncols nrows]);
+      tmp = reshape(p,[nrows ncols]);
       if(~s.UseMRIread) 
 	fname = sprintf('%s_%03d.bfloat',pomnibusstem,slice);
 	fmri_svbfile(tmp,fname);
@@ -792,13 +794,13 @@ for slice = firstslice:lastslice
     P = diag(p);
     sigvar = sum(hhat .* ((P'*SumXtX*P) * hhat))/(ntrstot);  %'
 
-    sigvar = reshape(sigvar,[ncols nrows]);
+    sigvar = reshape(sigvar,[nrows ncols]);
     fname = sprintf('%s/sigvar_%03d.bfloat',s.snrdir,slice);
     fmri_svbfile(sigvar,fname);
     fname = sprintf('%s/sigstd_%03d.bfloat',s.snrdir,slice);
     fmri_svbfile(sqrt(sigvar),fname);
     
-    resvar = reshape(eres_std.^2,[ncols nrows]);
+    resvar = reshape(eres_std.^2,[nrows ncols ]);
     fname = sprintf('%s/resvar_%03d.bfloat',s.snrdir,slice);
     fmri_svbfile(resvar,fname);
     fname = sprintf('%s/resstd_%03d.bfloat',s.snrdir,slice);
