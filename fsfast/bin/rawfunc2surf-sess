@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # rawfunc2surf-sess 
 #
-set VERSION    = '$Id: rawfunc2surf-sess,v 1.1 2007/01/10 09:43:30 greve Exp $';
+set VERSION    = '$Id: rawfunc2surf-sess,v 1.2 2007/01/15 00:44:38 greve Exp $';
 set cmdargs = ($argv);
 
 set instem   = fmc; 
@@ -12,6 +12,7 @@ set projfrac = 0.5;
 set fwhm = ();
 set RunListFile = ();
 set fsd = "bold";
+set interp = trilinear
 
 set nolog = 0;
 set infmt = ();
@@ -51,6 +52,12 @@ set ProjectDir = `pwd`;
 if(! $nolog ) then
   mkdir -p log
   set LF = $ProjectDir/log/rawfunc2surf-sess
+  # Below to help prevent collisions when parallel
+  if($#hemi == 1) set LF = $LF.$hemi
+  if($#SessList == 1) then
+    set sessid = `basename $sess`;
+    set LF = $LF.$hemi.$sess
+  endif
   rm -f $LF
 else
   set LF = /dev/null
@@ -92,16 +99,38 @@ foreach sess ($SessList)
     set infmt = `getformat_from_stem $inbase`
     set invol = $inbase.$infmt
     foreach hemi ($hemilist)
-      set outsurf = $hemi.$outstem.$outfmt
+      set outbase = $run/$hemi.$outstem
+      set outsurf = $outbase.$outfmt
       set cmd = (mri_vol2surf --reg register.dat --mov $invol --out $outsurf)
       set cmd = ($cmd --hemi $hemi --projfrac $projfrac)
+      set cmd = ($cmd --interp $interp)
       if($#subject) set cmd = ($cmd --trgsubject $subject)
       if($#fwhm)    set cmd = ($cmd --surf-fwhm $fwhm)
+      if($outfmt == "mgh") set cmd = ($cmd --no-reshape)
       echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
       echo "cd `pwd`" |& tee -a $LF
       echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
+      #$cmd |& tee -a $LF
       if($status) exit 1;
+
+      # Create a meanval file
+      if(-e $inbase.meanval) then
+        cp $inbase.meanval $outbase.meanval
+      else
+        set maskstem = $sess/$fsd/masks/brain
+        echo "mask $maskstem" |& tee -a $LF
+        set maskfmt = `getformat_from_stem $maskstem`
+        if(! $status) then
+	  set mask = $maskstem.$maskfmt
+          set cmd = (mri_segstats --seg $mask --id 1 --sum /tmp/blah.$$ \
+                     --in $invol --sfavg $outbase.meanval )
+          echo "cd `pwd`" |& tee -a $LF
+          echo $cmd |& tee -a $LF
+          $cmd |& tee -a $LF
+          if($status) exit 1;
+        endif
+      endif
+
       echo "" |& tee -a $LF
       echo "" |& tee -a $LF
     end # hemi
@@ -150,6 +179,11 @@ while( $#argv != 0 )
     case "-projfrac":
       if ( $#argv == 0) goto arg1err;
       set projfrac = $argv[1]; shift;
+      breaksw
+
+    case "-interp":
+      if ( $#argv == 0) goto arg1err;
+      set interp = $argv[1]; shift;
       breaksw
 
     case "-fwhm":
@@ -242,6 +276,7 @@ usage_exit:
   echo "  -h hemi : default is both lh and rh"
   echo "  -s subject     : default is fsaverage"
   echo "  -projfrac frac : default is 0.5"
+  echo "  -interp method : default is trilinear (alt nearest)"
   echo "  -fwhm fwhm     : surface smoothing"
   echo "  -rlf runlistfile"
   echo "  -fsd dir        (optional - default = bold)"
@@ -252,8 +287,10 @@ usage_exit:
   echo "   -s  sessid      "
   echo "   -d  srchdir     "
   echo ""
-  echo "   -version           : print version and exit"
+  echo "   -help      : as if"
+  echo "   -version   : print version and exit"
   echo "   -debug"
+  echo ""
 
   if(! $PrintHelp) exit 1;
 
@@ -262,10 +299,69 @@ usage_exit:
   echo "------------------------------------------------------------"
   cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 
-  echo "------------------------------------------------------------"
-
 exit 1;
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
+
+Resamples raw functional data to the surface of fsaverage (or some other
+subject), possibly including smoothing on the surface. The raw funtional
+data can then be used as input to FS-FAST analysis.
+
+-i instem
+
+Usually the stem of the motion-correct (but not volume-smoothed) data.
+The format will automatically be detected. If the instem has an instem.meanval,
+then this is copied to hemi.outstem.meanval. If it does not have a meanval 
+file, then one is created based on the brain mask if that exists. If the
+brain mask does not exist, then no meanval file is created.
+
+-o outstem
+
+Stem of the output file. The actual output stem will be hemi.outstem.
+By default, this will be in mgh format (ie, the output file will be
+hemi.outstem.mgh). If a different output format is desired, set the
+FSF_OUTPUT_FORMAT environment variable. Eg, 
+    setenv FSF_OUTPUT_FORMAT nii
+
+-h hemi
+
+Hemisphere (lh or rh). By default, it does both.
+
+-s subject
+
+Sample onto the surface of subject instead of fsaverage.
+
+-projfrac frac
+
+Sample surface frac way between the white and the white and
+gray. Default is 0.5 (ie, half way).
+
+-interp method
+
+Interpolation method. Uses trilinear by default. Can also specify
+nearest for nearest neighbor.
+
+-fwhm fwhm
+
+Smooth on the surface by fwhm mm. Note: this can take a long time.
+Default is no smoothing.
+
+-rlf runlistfile
+
+Only perform func2surf on the runs in the run list file.
+
+-fsd functionalsubdir
+
+Specify the functional subdir (default is bold).
+
+EXAMPLE:
+
+rawfunc2surf-sess -i fmc -o fmc.fsaverage.sm5 -h lh -fwhm 5 -s tldata
+
+Resamples fmc volume to the surface of fsaverage and then smoothes on
+the surface by 5 mm FWHM. The output will be lh.fmc.fsaverage.sm5.mgh.
+Projfrac would be 0.5 (default) and it would use trilinear interpolation
+(default).
+
 
