@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:39 $
- *    $Revision: 1.22 $
+ *    $Author: greve $
+ *    $Date: 2007/01/16 01:05:02 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1708,4 +1708,59 @@ MRI *MRISannotIndex2Seg(MRIS *mris)
     MRIsetVoxVal(seg,vno,0,0,0,annotid);
   }
   return(seg);
+}
+
+
+
+/*!/
+  \fn double MRISvolumeInSurf(MRIS *mris)
+  \brief Computes the volume inside a surface. (Xiao)
+*/
+double MRISvolumeInSurf(MRIS *mris)
+{
+  int fno;
+  double total_volume, face_area;
+  VECTOR *v_a, *v_b, *v_n, *v_cen;
+  VERTEX  *v0, *v1, *v2;
+  FACE *face;
+
+  v_a = VectorAlloc(3, MATRIX_REAL) ;
+  v_b = VectorAlloc(3, MATRIX_REAL) ;
+  v_n = VectorAlloc(3, MATRIX_REAL) ;       /* normal vector */
+  v_cen = VectorAlloc(3, MATRIX_REAL) ;     /* centroid vector */
+
+  total_volume = 0;
+  for (fno = 0 ; fno < mris->nfaces ; fno++) {
+    face = &mris->faces[fno] ;
+    if (face->ripflag)
+      continue ;
+
+    v0 = &mris->vertices[face->v[0]] ;
+    v1 = &mris->vertices[face->v[1]] ;
+    v2 = &mris->vertices[face->v[2]] ;
+
+    VERTEX_EDGE(v_a, v0, v1) ;
+    VERTEX_EDGE(v_b, v0, v2) ;
+
+    /* face normal vector */
+    V3_CROSS_PRODUCT(v_a, v_b, v_n) ;
+    face_area = V3_LEN(v_n) * 0.5f ;
+
+    V3_NORMALIZE(v_n, v_n) ;             /* make it a unit vector */
+
+    /* compute face centroid */
+    V3_X(v_cen) = (v0->x + v1->x + v2->x)/3.0;
+    V3_Y(v_cen) = (v0->y + v1->y + v2->y)/3.0;
+    V3_Z(v_cen) = (v0->z + v1->z + v2->z)/3.0;
+
+    total_volume += V3_DOT(v_cen, v_n)*face_area;
+  }
+
+  MatrixFree(&v_cen);
+  MatrixFree(&v_a);
+  MatrixFree(&v_b);
+  MatrixFree(&v_n);
+
+  total_volume /= 3.0;
+  return(total_volume);
 }

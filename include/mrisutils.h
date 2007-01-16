@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.9 $
+ *    $Author: greve $
+ *    $Date: 2007/01/16 01:02:21 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,5 +49,6 @@ double MRISfwhmFromAR1(MRIS *surf, double ar1);
 int MRISscale(MRIS *mris, double scale);
 int MRISseg2annot(MRIS *mris, MRI *surfseg, COLOR_TABLE *ctab);
 MRI *MRISannotIndex2Seg(MRIS *mris);
+double MRISvolumeInSurf(MRIS *mris);
 
 #endif
