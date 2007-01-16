@@ -8,8 +8,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/16 00:13:26 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/01/16 02:32:40 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,7 +78,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.24 2007/01/16 00:13:26 greve Exp $";
+  "$Id: mri_segstats.c,v 1.25 2007/01/16 02:32:40 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -258,23 +258,28 @@ int main(int argc, char **argv) {
     mris = MRISread(tmpstr);
     if(mris==NULL) exit(1);
     lhwhitevol = MRISvolumeInSurf(mris);
+    MRISfree(&mris);
 
     sprintf(tmpstr,"%s/%s/surf/lh.pial",SUBJECTS_DIR,subject);
     mris = MRISread(tmpstr);
     if(mris==NULL) exit(1);
     lhpialvol = MRISvolumeInSurf(mris);
     lhctxvol = lhpialvol - lhwhitevol;
+    MRISfree(&mris);
 
     sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
     mris = MRISread(tmpstr);
     if(mris==NULL) exit(1);
     rhwhitevol = MRISvolumeInSurf(mris);
+    MRISfree(&mris);
 
     sprintf(tmpstr,"%s/%s/surf/rh.pial",SUBJECTS_DIR,subject);
     mris = MRISread(tmpstr);
     if(mris==NULL) exit(1);
     rhpialvol = MRISvolumeInSurf(mris);
     rhctxvol = rhpialvol - rhwhitevol;
+    MRISfree(&mris);
+    mris = NULL;
 
     printf("lh surface-based volumes (mm3): w = %lf,  p = %lf c = %lf \n",
 	   lhwhitevol,lhpialvol,lhctxvol);
