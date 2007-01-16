@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 20:37:07 $
- *    $Revision: 1.219 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/16 23:23:44 $
+ *    $Revision: 1.220 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -7929,7 +7929,7 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
     /*    printf("\t%d segments:\n", mriseg->nsegments) ;*/
     for (j = 0 ; j < mriseg->nsegments ; j++)
     {
-      if (IS_LAT_VENT(i) && mriseg->segments[j].nvoxels > 20)
+      if (IS_LAT_VENT(i) && mriseg->segments[j].nvoxels > 200)
         continue ;
       /* printf("\t\t%02d: %d voxels", j, mriseg->segments[j].nvoxels) ;*/
       if ((float)mriseg->segments[j].nvoxels / (float)nvox < MIN_SEG_PCT)
@@ -8023,6 +8023,8 @@ gcaReclassifyVoxel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
   // for (i = 0 ; i <= 255 ; i++) // should not go up to 255 but MAX_CMA_LABEL
   for (i=0; i < MAX_CMA_LABEL; i++)
   {
+    if (mri_labels->type == MRI_UCHAR && i >= 256)
+      break ;
     if (nbr_labels[i] > 0)  // if neighbors has this label, then
     {
       MRIvox(mri_labels, x, y, z) = i ;
