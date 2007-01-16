@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/08 20:39:12 $
-#    $Revision: 1.57 $
+#    $Author: greve $
+#    $Date: 2007/01/16 00:14:33 $
+#    $Revision: 1.58 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.57 2007/01/08 20:39:12 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.58 2007/01/16 00:14:33 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1198,31 +1198,6 @@ if($DoCALabel) then
   echo $cmd > $touchdir/ca_label.touch
 endif
 
-#-------------- ASeg Stats --------------#
-if($DoSegStats) then
-  # Stats on the automatic segmentation
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# ASeg Stats `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir > /dev/null
-  set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
-  set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
-  set cmd = ($cmd --pv mri/norm.mgz )
-  set cmd = ($cmd --excludeid 0)
-  set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
-  set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
-  set cmd = ($cmd --in-intensity-units MR)
-  set cmd = ($cmd --etiv --subject $subjid $xopts);
-  #set cmd = ($cmd --ctab-gca $FREESURFER_HOME/average/$GCA)
-  set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
-  set cmd = ($cmd $xopts);
-  $PWD |& tee -a $LF
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  echo $cmd > $touchdir/segstats.touch
-endif
-
 # ----------- Intensity Normalization2 ------------------------#
 if($DoNormalization2) then
   echo "#--------------------------------------------" \
@@ -1827,6 +1802,33 @@ foreach hemi ($hemilist)
   endif
 
 end # Loop over hemilist
+
+#-------------- ASeg Stats --------------#
+if($DoSegStats) then
+  # Stats on the automatic segmentation
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# ASeg Stats `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir > /dev/null
+  set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
+  set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
+  set cmd = ($cmd --pv mri/norm.mgz )
+  set cmd = ($cmd --excludeid 0)
+  set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
+  set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
+  set cmd = ($cmd --in-intensity-units MR)
+  set cmd = ($cmd --etiv --subject $subjid $xopts);
+  set cmd = ($cmd --surf-ctxgmwm)
+  #set cmd = ($cmd --ctab-gca $FREESURFER_HOME/average/$GCA)
+  set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
+  set cmd = ($cmd $xopts);
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/segstats.touch
+endif
+
 
 # ----------------- AParc2ASeg ---------------------------------------- #
 if($DoAParc2ASeg) then
