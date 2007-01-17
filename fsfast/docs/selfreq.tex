@@ -1,4 +1,4 @@
-% $Id: selfreq.tex,v 1.1 2005/05/04 17:00:49 greve Exp $
+% $Id: selfreq.tex,v 1.2 2007/01/17 18:52:41 greve Exp $
 \documentclass[10pt]{article}
 \usepackage{amsmath}
 %\usepackage{draftcopy}
@@ -269,6 +269,71 @@ following content:
   setenv noexit
   tksurfer -$name $hemi 1000a -tcl eccen-flat.tcl
 \end{verbatim}
+
+
+\section{mri\_glmfit and selfreq}
+
+Testing multiple regressors across subjects is challenging in that
+there are multiple measures per subject (usually there is only
+one). One could test a magnitude, but then that does not have 0 mean.
+Another is to estimate the real and imaginary components across
+subject separately and then perform an multivariate (F) test on
+those. This assumes that there is no correlation between the real/imag
+within a subject. This is what is described below.
+
+
+\begin{verbatim}
+
+# Get real components
+foreach session
+  mri_convert h-lh.bhdr h-lh-real.mgh --frame 7 # grab real component
+end
+mri_concat allssessions/h-lh-real.mgh --o allsession.h-lh-real.mgh
+
+# Get imaginary components
+foreach session
+  mri_convert h-lh.bhdr h-lh-imag.mgh --frame 8 # grab imaginary component
+end
+mri_concat allsessions/h-lh-imag.mgh --o allsession.h-lh-imag.mgh
+
+# Now concat the real and imag
+mri_concat allsession.h-lh-real.mgh allsession.h-lh-imag.mgh 
+  --o allsession.h-lh-complex.mgh
+
+\end{verbatim}
+
+Create an fsgd file with your subjects divided into two groups, one
+for real and one for imaginary. If you already have groups/classes,
+then you will need to divide those into two. Take your normal fsgd
+file with each subject listed once and concatenate the subject list
+(ie, the Input lines). Put the first half in the real group and the
+second half in the imaginary group. If you have variables
+(covariates), then those stay the same for each subject. In the case
+where you have only one group (dividied into real and imag), then the
+first regressor will be the mean real part and the second will be the
+mean imaginary part. Create the following contrast matrix (adding 0s
+if you have covariates):
+\begin{verbatim}
+1 0
+0 1
+\end{verbatim}
+This will test the magnitude=0.
+
+If you have two groups (say Male and Female), then you'd create four
+classes, eg:
+\begin{verbatim}
+Class RealMale
+Class RealFemale
+Class ImagMale
+Class ImagFemale
+\end{verbatim}
+
+You would then create the following contrast matrix:
+\begin{verbatim}
+1 1 0 0
+0 0 1 1
+\end{verbatim}
+
 
 
 \end{document}
