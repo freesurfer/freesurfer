@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 22:47:39 $
- *    $Revision: 1.506 $
+ *    $Author: segonne $
+ *    $Date: 2007/01/17 14:22:30 $
+ *    $Revision: 1.507 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.506 2007/01/11 22:47:39 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.507 2007/01/17 14:22:30 segonne Exp $");
 }
 
 /*-----------------------------------------------------
@@ -51585,6 +51585,7 @@ MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract)
   VERTEX *v,*vp1,*vp2;
   int n,vn0,vn1,vn2,p,count,max_c,max_nbr,found,ncpt;
   int nv,ne,nf,nX,tX,tv,te,tf;
+	float cx,cy,cz;
 
   /* use marked field for counting purposes */
   MRISclearMarks(mris);
@@ -51631,14 +51632,21 @@ MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract)
     /* computing Euler Number of component */
     ne=0;
     nv=0;
+		cx=cy=cz=0.0f;
     for (vn1=0; vn1 < mris->nvertices ;vn1++)
     {
       vp1=&mris->vertices[vn1];
       if (vp1->marked!=count) continue;
       ne += vp1->vnum;
       nv++;
+			cx += vp1->x;
+			cy += vp1->y;
+			cz += vp1->z;
     }
-    ne /= 2;
+		cx /= nv; // center of gravity
+		cy /= nv;
+		cz /= nv;
+    ne /= 2; // half the number of edges
     /* now counting faces */
     nf=0;
     for (vn1=0; vn1 < mris->nfaces ;vn1++)
@@ -51651,8 +51659,8 @@ MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract)
     te += ne;
     tf += nf;
     fprintf(stderr,
-            "\n...%d voxel in cpt #%d: X=%d [v=%d,e=%d,f=%d]",
-            ncpt,count,nX,nv,ne,nf);
+            "\n   %d voxel in cpt #%d: X=%d [v=%d,e=%d,f=%d] located at (%f, %f, %f)",
+            ncpt,count,nX,nv,ne,nf,cx,cy,cz);
   }
   fprintf(stderr,"\nFor the whole surface: X=%d [v=%d,e=%d,f=%d]",tX,tv,te,tf);
 
