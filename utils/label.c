@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:33 $
- *    $Revision: 1.67 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/17 21:06:05 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1708,9 +1708,9 @@ LABEL *MaskSurfLabel(LABEL *lbl, MRI *SurfMask,
 int
 LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
 {
-  int n, num_new_lvs, label_vno, vno, add, neighbor_index, neighbor_vno,
-    check_vno, found;
+  int n, num_new_lvs, label_vno, vno, neighbor_index, neighbor_vno, found;
   LV* new_lv;
+  VERTEX *vn ;
 
   if (NULL == area)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelErode: NULL label"));
@@ -1728,38 +1728,35 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
                                   "LabelErode: couldn't allocate new_lv"));
     num_new_lvs = 0;
 
+    MRISclearMarks(mris) ;
+    LabelMark(area, mris) ; // all vertices in label now have v->marked==1
+
     /* For each vertex in the label... */
     for (label_vno = 0; label_vno < area->n_points; label_vno++)
     {
       vno = area->lv[label_vno].vno;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
 
-      /* Check its neighbors in the surface. If all of them are in
-         the label as well, add this vno to the dest label and
-         increment our count. */
-      add = 1;
+      // check to see if we should not add this label (if one of it's nbrs is not in label)
+      found = 0 ;
       for (neighbor_index = 0;
            neighbor_index < mris->vertices[vno].vnum; neighbor_index++)
       {
         neighbor_vno = mris->vertices[vno].v[neighbor_index];
 
         /* Look for neighbor_vno in the label. */
-        found = 0;
-        for (check_vno = 0; check_vno < area->n_points; check_vno++)
-          if (area->lv[check_vno].vno == neighbor_vno)
-          {
-            found = 1;
-            break;
-          }
-
-        /* If we didn't find it, don't add this label vertex. */
-        if (!found)
-          add = 0;
+        vn = &mris->vertices[neighbor_vno] ;
+        if (vn->marked == 0) // found a nbr not in the label 
+        {
+          found = 1;
+          break;
+        }
       }
 
-      if (add)
+      if (found == 0) // all nbrs on - add it to the new label
       {
-        memcpy (&new_lv[num_new_lvs], &area->lv[label_vno],
-                sizeof(LV) );
+        memcpy (&new_lv[num_new_lvs], &area->lv[label_vno],sizeof(LV));
         num_new_lvs++;
       }
     }
@@ -1771,16 +1768,17 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
     area->n_points = num_new_lvs;
     area->max_points = num_new_lvs;
   }
-
+  
+  MRISclearMarks(mris) ;
   return (NO_ERROR);
 }
 
 int
 LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
 {
-  int n, num_new_lvs, vno, label_vno, add, neighbor_index, neighbor_vno,
-    found, check_vno;
-  LV* new_lv;
+  int    n, num_new_lvs, vno, neighbor_index, neighbor_vno,found;
+  LV     *new_lv;
+  VERTEX *vn, *v ;
 
   if (NULL == area)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelDilate: NULL label"));
@@ -1791,6 +1789,9 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
 
   for (n = 0; n< num_times; n++ )
   {
+    MRISclearMarks(mris) ;
+    LabelMark(area, mris) ; // all vertices in label now have v->marked==1
+
     /* Allocate an LV array the size of the surface. */
     new_lv = (LV*) calloc( mris->nvertices, sizeof(LV) );
     if (NULL == new_lv)
@@ -1798,58 +1799,42 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
                                   "LabelDilate: couldn't allocate new_lv"));
     num_new_lvs = 0;
 
-
     /* Copy the existing lvs over first and increment our count. */
     memcpy (new_lv, area->lv, area->n_points * sizeof(LV));
     num_new_lvs = area->n_points;
 
 
     /* For each vertex in the label... */
-    for (label_vno = 0; label_vno < area->n_points; label_vno++)
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      vno = area->lv[label_vno].vno;
+      v = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->marked == 1) // already in label
+        continue ;
 
-      /* Check its neighbors. If any are not in the label, and are
-        not already in the new label, add it to the new label. */
-      for (neighbor_index = 0;
-           neighbor_index < mris->vertices[vno].vnum; neighbor_index++)
+      // Check its neighbors. If any are in the label, add it
+      found = 0 ;
+      for (neighbor_index = 0; neighbor_index < v->vnum; neighbor_index++)
       {
+          /* Look for neighbor_vno in the label. */
         neighbor_vno = mris->vertices[vno].v[neighbor_index];
-        add = 0;
-
-        /* Look for neighbor_vno in the label. */
-        found = 0;
-        for (check_vno = 0; check_vno < area->n_points; check_vno++)
-          if (area->lv[check_vno].vno == neighbor_vno)
-          {
-            found = 1;
-            break;
-          }
-
-        /* If we didn't find it, look for it in the new label. */
-        if (!found)
+        vn = &mris->vertices[neighbor_vno] ;
+        if (vn->marked > 0) 
         {
-          found = 0;
-          for (check_vno = 0; check_vno < num_new_lvs; check_vno++)
-            if (new_lv[check_vno].vno == neighbor_vno)
-            {
-              found = 1;
-              break;
-            }
-
-          /* If we didn't find it there, add it. */
-          if (!found)
-            add = 1;
+          found = 1;
+          break;
         }
+      }
 
-        if (add)
-        {
-          new_lv[num_new_lvs].vno = neighbor_vno;
-          new_lv[num_new_lvs].x = mris->vertices[neighbor_vno].x;
-          new_lv[num_new_lvs].y = mris->vertices[neighbor_vno].y;
-          new_lv[num_new_lvs].z = mris->vertices[neighbor_vno].z;
-          num_new_lvs++;
-        }
+      // add it if at least one nbr was found that was in label
+      if (found)
+      {
+        new_lv[num_new_lvs].vno = vno ;
+        new_lv[num_new_lvs].x = v->x;
+        new_lv[num_new_lvs].y = v->y;
+        new_lv[num_new_lvs].z = v->z;
+        num_new_lvs++;
       }
     }
 
