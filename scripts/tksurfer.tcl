@@ -2,9 +2,9 @@
 ## tksurfer.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2007/01/05 00:21:36 $
-##    $Revision: 1.131 $
+##    $Author: kteich $
+##    $Date: 2007/01/17 18:51:17 $
+##    $Revision: 1.132 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -3734,6 +3734,7 @@ proc ShowToolBar { isWhich ibShow } {
 proc MoveToolWindow { inX inY } {
     wm geometry . +$inX+$inY
     wm deiconify .
+    raise .
 }
 
 proc SelectVertex { ivno } {
