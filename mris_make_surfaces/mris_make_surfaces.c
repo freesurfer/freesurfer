@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/09 19:16:10 $
- *    $Revision: 1.82 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/17 21:06:23 $
+ *    $Revision: 1.83 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.82 2007/01/09 19:16:10 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.83 2007/01/17 21:06:23 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -222,13 +222,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.82 2007/01/09 19:16:10 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.83 2007/01/17 21:06:23 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.82 2007/01/09 19:16:10 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.83 2007/01/17 21:06:23 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -812,17 +812,67 @@ main(int argc, char *argv[]) {
     fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
     MRISaverageVertexPositions(mris, smoothwm) ;
     MRISwrite(mris, fname) ;
-    if (mri_aseg && label_cortex) {
-      LABEL *lcortex ;
+    if (mri_aseg && label_cortex) 
+    {
+      LABEL *lcortex, **labels ;
+      int   n, max_l, max_n, nlabels ;
+
       lcortex = make_cortex_label(mris, mri_aseg) ;
-      LabelErode(lcortex, mris, 3) ;
-      LabelDilate(lcortex, mris, 2) ;
+      if (Gdiag & DIAG_VERBOSE_ON)
+      {
+        sprintf(fname,
+                "%s/%s/label/%s.%s%s%s_orig.label",
+                sdir, sname,hemi,"cortex",
+                output_suffix,suffix);
+        printf("writing cortex label to %s...\n", fname) ;
+        LabelWrite(lcortex, fname) ;
+      }
+      LabelErode(lcortex, mris, 4) ;
+      if (Gdiag & DIAG_VERBOSE_ON)
+      {
+        sprintf(fname,
+                "%s/%s/label/%s.%s%s%s_erode.label",
+                sdir, sname,hemi,"cortex",
+                output_suffix,suffix);
+        printf("writing cortex label to %s...\n", fname) ;
+        LabelWrite(lcortex, fname) ;
+      }
+      LabelDilate(lcortex, mris, 4) ;
+      if (Gdiag & DIAG_VERBOSE_ON)
+      {
+        sprintf(fname,
+                "%s/%s/label/%s.%s%s%s_dilate.label",
+                sdir, sname,hemi,"cortex",
+                output_suffix,suffix);
+        printf("writing cortex label to %s...\n", fname) ;
+        LabelWrite(lcortex, fname) ;
+      }
+      MRISclearMarks(mris) ;
+      LabelMark(lcortex, mris) ;
+      MRISsegmentMarked(mris, &labels, &nlabels, 1) ;
+      max_n = 0 ; max_l = labels[0]->n_points ;
+      for (n = 1 ; n < nlabels ; n++)
+        if (labels[n]->n_points > max_l)
+        {
+          max_l = labels[n]->n_points ;
+          max_n = n ;
+        }
+      for (n = 0 ; n < nlabels ; n++)
+      {
+        if (n != max_n)
+          LabelUnmark(labels[n], mris) ;
+        LabelFree(&labels[n]) ;
+      }
+      LabelFree(&lcortex) ;
+      lcortex = LabelFromMarkedSurface(mris) ;
+        
       sprintf(fname,
               "%s/%s/label/%s.%s%s%s.label",
               sdir, sname,hemi,"cortex",
               output_suffix,suffix);
       printf("writing cortex label to %s...\n", fname) ;
       LabelWrite(lcortex, fname) ;
+      LabelFree(&lcortex) ;
     }
 
 #if 0
@@ -2058,9 +2108,11 @@ make_cortex_label(MRI_SURFACE *mris, MRI *mri_aseg) {
           label == Right_Accumbens_area ||
           label == Left_Caudate ||
           label == Right_Caudate ||
+          IS_CC(label) || 
 #if 0   // putamen can be adjacent to insula in aseg
           label == Left_Putamen ||
           label == Right_Putamen ||
+
 #endif
           label == Left_Pallidum ||
           label == Right_Pallidum ||
