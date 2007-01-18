@@ -1,15 +1,31 @@
 /**
  * @file  mri_ca_register.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief high-dimensional alignment with canonical atlas
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Example usage:
+ *  mri_ca_register -align -mask brainmask.mgz \
+ *    -T transforms/talairach.lta norm.mgz \
+ *    $FREESURFER_HOME/average/RB_all_2006-02-15.gca \
+ *    transforms/talairach.m3z
+ *
+ * Inputs:
+ *    brainmask.mgz
+ *    transforms/talairach.lta
+ *    norm.mgz
+ *
+ * Outputs:
+ *    transforms/talairach.m3z
+ *
+ * Reference:
+ *   "Automatically Parcellating the Human Cerebral Cortex", Fischl et al.
+ *   (2004). Cerebral Cortex, 14:11-22.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:05 $
- *    $Revision: 1.62 $
+ *    $Date: 2007/01/18 22:58:55 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,18 +40,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// mri_ca_regiser.c
-//
-// by Bruce Fischl
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:05 $
-// Revision       : $Revision: 1.62 $
-
 
 #include <math.h>
 #include <stdlib.h>
@@ -185,7 +189,10 @@ main(int argc, char *argv[]) {
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.62 2006/12/29 02:09:05 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mri_ca_register.c,v 1.63 2007/01/18 22:58:55 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -316,7 +323,8 @@ main(int argc, char *argv[]) {
     printf("mapping GCA into %d-dimensional FLASH space...\n",
            mri_inputs->nframes) ;
     gca_tmp = GCAcreateFlashGCAfromParameterGCA
-              (gca, TRs, fas, TEs, mri_inputs->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
+              (gca, TRs, fas, TEs, 
+               mri_inputs->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
     GCAfree(&gca) ;
     gca = gca_tmp ;
     if (ninputs != gca->ninputs)
@@ -652,7 +660,6 @@ main(int argc, char *argv[]) {
           gcamn->log_p = 0 ;
 
         }
-
       }
     }
 
@@ -1278,7 +1285,8 @@ get_option(int argc, char *argv[]) {
     }
 
   } else if (!stricmp(option, "no-re-init") ||
-             !stricmp(option, "no-reinit") || !stricmp(option, "no_re_init") ) {
+             !stricmp(option, "no-reinit") || 
+             !stricmp(option, "no_re_init") ) {
     reinit = 0; //donot reinitialize GCAM with the multiple linear registration
   } else if (!stricmp(option, "cross-sequence-new") ||
              !stricmp(option, "cross_sequence_new")) {
