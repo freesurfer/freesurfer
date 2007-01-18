@@ -2,13 +2,15 @@
  * @file  mri_pretess.c
  * @brief make sure a filled volume can be tessellated
  *
+ * Changes white matter (WM) segmentation so that the neighbors of all
+ * voxels labeled as WM have a face in common - no edges or corners allowed.
  */
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/18 19:53:19 $
- *    $Revision: 1.15 $
+ *    $Date: 2007/01/18 20:23:47 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -862,12 +864,12 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_pretess.c,v 1.15 2007/01/18 19:53:19 nicks Exp $", 
+     "$Id: mri_pretess.c,v 1.16 2007/01/18 20:23:47 nicks Exp $", 
      "$Name:  $");
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mri_pretess.c,v 1.15 2007/01/18 19:53:19 nicks Exp $", 
+     "$Id: mri_pretess.c,v 1.16 2007/01/18 20:23:47 nicks Exp $", 
      "$Name:  $", 
      cmdline);
 
