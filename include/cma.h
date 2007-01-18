@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.37 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/18 12:26:44 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -190,6 +190,8 @@
 #define CC_Central        253
 #define CC_Mid_Anterior   254
 #define CC_Anterior       255
+
+#define IS_CC(l) (l >= CC_Posterior && l <= CC_Anterior)
 
 // vascular and lymph labels (from Alex G)
 #define Aorta                    331
