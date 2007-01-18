@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/01/18 22:14:48 $
- *    $Revision: 1.16 $
+ *    $Date: 2007/01/18 22:25:16 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.c,v 1.16 2007/01/18 22:14:48 nommert Exp $
+// $Id: dti.c,v 1.17 2007/01/18 22:25:16 nommert Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.16 2007/01/18 22:14:48 nommert Exp $");
+  return("$Id: dti.c,v 1.17 2007/01/18 22:25:16 nommert Exp $");
 }
 
 
@@ -873,7 +873,7 @@ MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc)
                 vsum += v1*v2;
               }
 	      
-              if (fabs(vsum)>1) vsum = 1
+              if (fabs(vsum)>1) vsum = 1;
               angle = acos(fabs(vsum));
               anglesum += angle;
               //printf("%7.4lf %7.4lf  %7.4lf\n",vsum,angle,anglesum);
