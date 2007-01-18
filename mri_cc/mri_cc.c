@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:05 $
- *    $Revision: 1.13 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/18 14:08:41 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,9 +33,9 @@
 // date: 01/27/04
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:05 $
-// Revision       : $Revision: 1.13 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2007/01/18 14:08:41 $
+// Revision       : $Revision: 1.14 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -66,7 +66,7 @@
 #include "mrisegment.h"
 #include "tritri.h"
 
-//static char vcid[] = "$Id: mri_cc.c,v 1.13 2006/12/29 02:09:05 nicks Exp $";
+//static char vcid[] = "$Id: mri_cc.c,v 1.14 2007/01/18 14:08:41 fischl Exp $";
 
 
 static int use_aseg = 1 ;
@@ -418,9 +418,6 @@ main(int argc, char *argv[]) {
         }
       }
     }
-
-#define IS_CC(l) ((l) == CC_Posterior || (l) == CC_Mid_Posterior || \
- (l) == CC_Central || (l) == CC_Mid_Anterior || (l) == CC_Anterior)
 
     // fill small holes in cc due to interpolation
     for (i = 0 ; i < mri_cc->width ; i++) {
