@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/01/16 00:14:33 $
-#    $Revision: 1.58 $
+#    $Author: nicks $
+#    $Date: 2007/01/18 22:00:55 $
+#    $Revision: 1.59 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.58 2007/01/16 00:14:33 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.59 2007/01/18 22:00:55 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1300,14 +1300,29 @@ if($DoFill) then
   if($#LHSeedCRS)   set seedopts = ($seedopts -lhv $LHSeedCRS);
   if($#RHSeedCRS)   set seedopts = ($seedopts -rhv $RHSeedCRS);
   set cmd = (mri_fill -a ../scripts/ponscc.cut.log $seedopts)
-  if(-e transforms/talairach.lta) set cmd = ($cmd  -xform transforms/talairach.lta)
-  if($UseAseg)      set cmd = ($cmd -segmentation aseg.mgz);
+  if(-e transforms/talairach.lta) then
+    set cmd = ($cmd  -xform transforms/talairach.lta)
+  endif
+  if($UseAseg) set cmd = ($cmd -segmentation aseg.mgz);
   if(! $UseOldTopoFix) set cmd = ($cmd -topofix norm.mgz);
   set cmd = ($cmd $xopts wm.mgz filled.mgz)
   $PWD |& tee -a $LF
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
+
+  # necessary second pretess, per f.segonne
+  set xopts = `fsr-getxopts mri_pretess $XOptsFile`;
+  set cmd = (mri_pretess $xopts filled.mgz 255 norm.mgz filled.mgz)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) goto error_exit;
+
+  set cmd = (mri_pretess $xopts filled.mgz 127 norm.mgz filled.mgz)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) goto error_exit;
+
   echo $cmd > $touchdir/fill.touch
 endif
 
@@ -1336,6 +1351,15 @@ foreach hemi ($hemilist)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
+
+    # remove possible extra components, per f.segonne
+    set xopts = `fsr-getxopts mris_extract_main_component $XOptsFile`;
+    set cmd = (mris_extract_main_component $xopts ../surf/$hemi.orig.nofix \
+               ../surf/$hemi.orig.nofix)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
     echo $cmd > $touchdir/$hemi.tessellate.touch
   endif
 
