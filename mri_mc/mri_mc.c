@@ -2,14 +2,13 @@
  * @file  mri_mc.c
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Florent Segonne
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:07 $
- *    $Revision: 1.15 $
+ *    $Date: 2007/01/18 19:53:19 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,16 +24,6 @@
  *
  */
 
-
-/**
- * @file   mri_mc.c
- * @author Florent Segonne
- * @date   Wed Oct 13 11:47:18 2004
- *
- * @brief  sample dummy program
- *
- *
- */
 
 #include <math.h>
 #include <stdio.h>
@@ -161,7 +150,8 @@ void initTesselationParms(tesselation_parms *parms) {
     for (j=0;j<height;j++) {
       im[k][j] = (unsigned char *)calloc(width,sizeof(char));
       if (!im[k][j])
-        ErrorExit(ERROR_NO_MEMORY,"MRIStesselate: could not allocate the image");
+        ErrorExit(ERROR_NO_MEMORY,
+                  "MRIStesselate: could not allocate the image");
     }
   }
   parms->im=im;
@@ -184,12 +174,10 @@ void initTesselationParms(tesselation_parms *parms) {
     xmax[n]=ymax[n]=zmax[n]=0;
   }
 
-
   for (k=1;k<depth-1;k++)
     for (j=1;j<height-1;j++)
       for (i=1;i<width-1;i++)
         im[k][j][i]=MRIvox(mri,i,j,k);
-
 
   for (k=1;k<mri->depth-1;k++)
     for (j=1;j<mri->height-1;j++)
@@ -263,7 +251,8 @@ void allocateTesselation(tesselation_parms *parms) {
   parms->face_index_table0 = (int *)lcalloc(6*imgsize,sizeof(int));
   parms->face_index_table1 = (int *)lcalloc(6*imgsize,sizeof(int));
 
-  parms->vertex = (quad_vertex_type *)lcalloc(MAXVERTICES,sizeof(quad_vertex_type));
+  parms->vertex = 
+    (quad_vertex_type *)lcalloc(MAXVERTICES,sizeof(quad_vertex_type));
   parms->maxvertices=MAXVERTICES;
   //  parms->vertex_index_table = (int *)lcalloc(8*imgsize,sizeof(int));
 
@@ -504,7 +493,8 @@ int saveTesselation2(tesselation_parms *parms) {
   mris=MRISoverAlloc(pct_over*parms->vertex_index,pct_over*parms->face_index
                      ,parms->vertex_index,parms->face_index);
 
-  fprintf(stderr,"\n(surface with %d faces and %d vertices)...",parms->face_index,parms->vertex_index);
+  fprintf(stderr,"\n(surface with %d faces and %d vertices)...",
+          parms->face_index,parms->vertex_index);
 
   mris->type=MRIS_TRIANGULAR_SURFACE;
   /*first init vertices*/
@@ -619,17 +609,24 @@ int saveTesselation2(tesselation_parms *parms) {
     int f;
     float v0[3],v1[3],d1,d2,d3;
     for (f=0;f<mris->nfaces;f++) {
-      v0[0] = mris->vertices[mris->faces[f].v[2]].x - mris->vertices[mris->faces[f].v[0]].x;
-      v0[1] = mris->vertices[mris->faces[f].v[2]].y - mris->vertices[mris->faces[f].v[0]].y;
-      v0[2] = mris->vertices[mris->faces[f].v[2]].z - mris->vertices[mris->faces[f].v[0]].z;
-      v1[0] = mris->vertices[mris->faces[f].v[1]].x - mris->vertices[mris->faces[f].v[0]].x;
-      v1[1] = mris->vertices[mris->faces[f].v[1]].y - mris->vertices[mris->faces[f].v[0]].y;
-      v1[2] = mris->vertices[mris->faces[f].v[1]].z - mris->vertices[mris->faces[f].v[0]].z;
+      v0[0] = mris->vertices[mris->faces[f].v[2]].x - 
+        mris->vertices[mris->faces[f].v[0]].x;
+      v0[1] = mris->vertices[mris->faces[f].v[2]].y - 
+        mris->vertices[mris->faces[f].v[0]].y;
+      v0[2] = mris->vertices[mris->faces[f].v[2]].z - 
+        mris->vertices[mris->faces[f].v[0]].z;
+      v1[0] = mris->vertices[mris->faces[f].v[1]].x - 
+        mris->vertices[mris->faces[f].v[0]].x;
+      v1[1] = mris->vertices[mris->faces[f].v[1]].y - 
+        mris->vertices[mris->faces[f].v[0]].y;
+      v1[2] = mris->vertices[mris->faces[f].v[1]].z - 
+        mris->vertices[mris->faces[f].v[0]].z;
       d1 = -v1[1]*v0[2] + v0[1]*v1[2];
       d2 = v1[0]*v0[2] - v0[0]*v1[2];
       d3 = -v1[0]*v0[1] + v0[0]*v1[1];
       if (sqrt(d1*d1+d2*d2+d3*d3)/2>0.5)
-        fprintf(stderr,"\n Face #%d -> %f %d %d %d ",f,sqrt(d1*d1+d2*d2+d3*d3)/2,mris->faces[f].v[0],
+        fprintf(stderr,"\n Face #%d -> %f %d %d %d ",
+                f,sqrt(d1*d1+d2*d2+d3*d3)/2,mris->faces[f].v[0],
                 mris->faces[f].v[1],mris->faces[f].v[2]);
     }
   }
@@ -701,7 +698,10 @@ void generateMCtesselation(tesselation_parms * parms) {
           ref+=32;
         if (((k+1)<mri->depth) && ((j+1)<mri->height) && MRIvox(mri,i,j+1,k+1))
           ref+=64;
-        if (((k+1)<mri->depth) && ((j+1)<mri->height) && ((i+1)<mri->width) && MRIvox(mri,i+1,j+1,k+1))
+        if (((k+1)<mri->depth) && 
+            ((j+1)<mri->height) && 
+            ((i+1)<mri->width) && 
+            MRIvox(mri,i+1,j+1,k+1))
           ref+=128;
 
         tab2[ind]=(ref/16);
@@ -844,11 +844,11 @@ void generateMCtesselation(tesselation_parms * parms) {
         //fprintf(stderr,"?");
 
         //fprintf(stderr,"\n ");
-        //for(p=0;p<12;p++) fprintf(stderr,": p=%d vt=%d v=%d ",p,vt[p],vind[p]);
+        //for(p=0;p<12;p++) fprintf(stderr,": p=%d vt=%d v=%d ",
+        //p,vt[p],vind[p]);
 
         if (debug)
           pause();
-
 
       }
       tmp=vj1;
@@ -886,7 +886,10 @@ int main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_mc.c,v 1.15 2006/12/29 02:09:07 nicks Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string 
+    (argc, argv, 
+     "$Id: mri_mc.c,v 1.16 2007/01/18 19:53:19 nicks Exp $", "$Name:  $", 
+     cmdline);
   Progname=argv[0];
 
   if (!stricmp(argv[1], "-d")) {
@@ -897,8 +900,10 @@ int main(int argc, char *argv[]) {
   }
 
   if (argc < 4) {
-    fprintf(stderr,"\n\nUSAGE: mri_mc input_volume label_value output_surface [connectivity]");
-    fprintf(stderr,"\noption connectivity: 1=6+,2=18,3=6,4=26 (default=1)\n\n");
+    fprintf(stderr,"\n\nUSAGE: mri_mc input_volume "
+            "label_value output_surface [connectivity]");
+    fprintf(stderr,
+            "\noption connectivity: 1=6+,2=18,3=6,4=26 (default=1)\n\n");
     exit(-1);
   }
 
@@ -915,7 +920,10 @@ int main(int argc, char *argv[]) {
   {
     MRI *mri_tmp ;
     mri_tmp = MRIalloc(mri->width+2, mri->height+2, mri->depth+2, mri->type) ;
-    MRIextractInto(mri, mri_tmp, 0, 0, 0, mri->width, mri->height, mri->depth, 1, 1, 1) ;
+    MRIextractInto(mri, mri_tmp, 
+                   0, 0, 0, 
+                   mri->width, mri->height, mri->depth, 
+                   1, 1, 1) ;
     MRIfree(&mri) ;
     mri = mri_tmp ;
   }
@@ -926,8 +934,11 @@ int main(int argc, char *argv[]) {
 
     MRIvalRange(mri, &min_val, &max_val) ;
     if (min_val < 0 || max_val > 255)
-      ErrorExit(ERROR_UNSUPPORTED, "%s: input volume (val range [%2.1f %2.1f]) must be convertible to UCHAR",
-                Progname, min_val, max_val) ;
+      ErrorExit
+        (ERROR_UNSUPPORTED, 
+         "%s: input volume (val range [%2.1f %2.1f]) must be "
+         "convertible to UCHAR",
+         Progname, min_val, max_val) ;
     printf("changing type of input volume to 8 bits/voxel...\n") ;
     mri_tmp = MRIchangeType(mri, MRI_UCHAR, 0.0, 0.999, TRUE) ;
     MRIfree(&mri) ;
@@ -956,7 +967,6 @@ int main(int argc, char *argv[]) {
   mris=parms->mris_table[0];
   free(parms->mris_table);
   freeTesselationParms(&parms);
-
 
   {
     float dist,max_e=0.0;

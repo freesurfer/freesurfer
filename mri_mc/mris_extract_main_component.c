@@ -1,15 +1,14 @@
 /**
  * @file  mris_extract_main_component.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief extract the main connected component from a surface
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Florent Segonne
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:07 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/01/18 19:53:19 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -22,17 +21,6 @@
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
- *
- */
-
-
-/**
- * @file   dummy.c
- * @author Yasunari Tosa
- * @date   Wed Oct 13 11:47:18 2004
- *
- * @brief  sample dummy program
- *
  *
  */
 
@@ -63,7 +51,10 @@ int main(int argc, char *argv[]) {
   Progname=argv[0];
 
   if (argc < 3) {
-    fprintf(stderr,"\n\nUSAGE: mris_extract_main_component input_surface output_surface\n\n");
+    fprintf
+      (stderr,
+       "\n\nUSAGE: mris_extract_main_component "
+       "input_surface output_surface\n\n");
     exit(-1);
   }
 
