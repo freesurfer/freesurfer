@@ -11,15 +11,15 @@ TEXFILES=$(wildcard *.tex)
 foo_DATA = $(TEXFILES:%.tex=%.pdf)
 
 .ps.pdf:
-	@ps2pdf $< $@
-	@rm -f $< *.aux *.log
+	ps2pdf $< $@
+	rm -f $< *.aux *.log
 
 .dvi.ps:
-	@dvips $< -o $@ >& /dev/null
-	@rm -f $<
+	dvips $< -o $@ >& /dev/null
+	rm -f $<
 
 .tex.dvi:
-	@latex $< >& /dev/null
+	latex $< >& /dev/null
 
 clean:
 	rm -f *.aux *.log *.ps
@@ -27,5 +27,5 @@ clean:
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
