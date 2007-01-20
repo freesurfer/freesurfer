@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/18 22:00:55 $
-#    $Revision: 1.59 $
+#    $Date: 2007/01/20 00:09:33 $
+#    $Revision: 1.60 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.59 2007/01/18 22:00:55 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.60 2007/01/20 00:09:33 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1311,18 +1311,6 @@ if($DoFill) then
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
 
-  # necessary second pretess, per f.segonne
-  set xopts = `fsr-getxopts mri_pretess $XOptsFile`;
-  set cmd = (mri_pretess $xopts filled.mgz 255 norm.mgz filled.mgz)
-  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-  if($RunIt) $cmd |& tee -a $LF
-  if($status) goto error_exit;
-
-  set cmd = (mri_pretess $xopts filled.mgz 127 norm.mgz filled.mgz)
-  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-  if($RunIt) $cmd |& tee -a $LF
-  if($status) goto error_exit;
-
   echo $cmd > $touchdir/fill.touch
 endif
 
@@ -1344,13 +1332,25 @@ foreach hemi ($hemilist)
     echo "#@# Tessellate $hemi `date`" \
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
-    set xopts = `fsr-getxopts mri_tessellate $XOptsFile`;
-    set cmd = (mri_tessellate $xopts ../mri/filled.mgz $hemivalue \
-               ../surf/$hemi.orig.nofix)
     $PWD |& tee -a $LF
+
+    # necessary second pretess, per f.segonne
+    set xopts = `fsr-getxopts mri_pretess $XOptsFile`;
+    set cmd = (mri_pretess $xopts ../mri/filled.mgz $hemivalue \
+                ../mri/norm.mgz ../mri/filled-pretess$hemivalue.mgz)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
+    set xopts = `fsr-getxopts mri_tessellate $XOptsFile`;
+    set cmd = (mri_tessellate $xopts ../mri/filled-pretess$hemivalue.mgz \
+                $hemivalue ../surf/$hemi.orig.nofix)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
+    set cmd = (rm -f ../mri/filled-pretess$hemivalue.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
 
     # remove possible extra components, per f.segonne
     set xopts = `fsr-getxopts mris_extract_main_component $XOptsFile`;
