@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2006/12/29 20:38:30 $
- *    $Revision: 1.43 $
+ *    $Date: 2007/01/21 18:41:24 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "version.h"
 
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.43 2006/12/29 20:38:30 fischl Exp $";
+  "$Id: mris_sphere.c,v 1.44 2007/01/21 18:41:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -119,13 +119,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.43 2006/12/29 20:38:30 fischl Exp $",
+   "$Id: mris_sphere.c,v 1.44 2007/01/21 18:41:24 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.43 2006/12/29 20:38:30 fischl Exp $",
+           "$Id: mris_sphere.c,v 1.44 2007/01/21 18:41:24 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -330,7 +330,7 @@ main(int argc, char *argv[]) {
   } else
     MRISunfold(mris, &parms, max_passes) ;
   if (remove_negative) {
-    parms.niterations = 5000 ;
+    parms.niterations = 1000 ;
     MRISremoveOverlapWithSmoothing(mris,&parms) ;
   }
   if (!load) {
