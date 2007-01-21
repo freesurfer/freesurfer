@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/09 19:33:09 $
- *    $Revision: 1.43 $
+ *    $Date: 2007/01/21 18:37:59 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,7 +45,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.43 2007/01/09 19:33:09 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.44 2007/01/21 18:37:59 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -126,10 +126,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.43 2007/01/09 19:33:09 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.44 2007/01/21 18:37:59 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.43 2007/01/09 19:33:09 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.44 2007/01/21 18:37:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -334,7 +334,7 @@ main(int argc, char *argv[]) {
     MRISregister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
 
   if (remove_negative) {
-    parms.niterations = 5000 ;
+    parms.niterations = 1000 ;
     MRISremoveOverlapWithSmoothing(mris,&parms) ;
   }
   fprintf(stderr, "writing registered surface to %s...\n", out_fname) ;
