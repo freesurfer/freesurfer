@@ -2,14 +2,13 @@
  * @file  mrisurf.c
  * @brief utilities operating on surfaces
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: segonne $
- *    $Date: 2007/01/17 14:22:30 $
- *    $Revision: 1.507 $
+ *    $Author: nicks $
+ *    $Date: 2007/01/22 07:42:30 $
+ *    $Revision: 1.508 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +605,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.507 2007/01/17 14:22:30 segonne Exp $");
+  return("$Id: mrisurf.c,v 1.508 2007/01/22 07:42:30 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -31168,6 +31167,8 @@ mrisPlaceVertexInOrigFace(MRI_SURFACE *mris, VERTEX *v, int fno)
   l1_len, l_len, P[3], theta1, theta2, dot, theta_ratio, len_scale,
   e1[3], e2[3], etmp[3], x, y ;
   int     ret ;
+
+  e2[0]=0.0;  e2[1]=0.0;  e2[2]=0.0;
 
   /* first compute point where normal to vertex intersects face */
   dir[0] = v->nx ;
