@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.289 2007/01/08 22:25:18 kteich Exp $"
+# "$Id: configure.in,v 1.290 2007/01/22 07:43:18 nicks Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -283,6 +283,8 @@ AC_SUBST(SHARED_CFLAGS)
 AC_SUBST(SHARED_LDFLAGS)
 
 AC_MSG_NOTICE(OS is $OS)
+
+AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
 
 ##############################################################
 # cpu optimization
