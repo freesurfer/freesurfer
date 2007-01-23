@@ -1,15 +1,15 @@
 /**
  * @file  mri_volsynth.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Synthsizes data with various statistical properties.
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.20 $
+ *    $Author: greve $
+ *    $Date: 2007/01/23 05:50:29 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.20 2006/12/29 02:09:10 nicks Exp $
+  $Id: mri_volsynth.c,v 1.21 2007/01/23 05:50:29 greve Exp $
 */
 
 #include <stdio.h>
@@ -56,6 +56,7 @@
 #include "mri_circulars.h"
 
 MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt);
+double MRIsum2All(MRI *mri);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -74,7 +75,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.20 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.21 2007/01/23 05:50:29 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -110,10 +111,13 @@ int numdof =  2;
 int dendof = 20;
 int AddOffset=0;
 MRI *offset;
+char *sum2file = NULL;
 
 /*---------------------------------------------------------------*/
-int main(int argc, char **argv) {
-  double voxradius;
+int main(int argc, char **argv) 
+{
+  double voxradius,val;
+  FILE *fp;
 
   Progname = argv[0] ;
   argc --;
@@ -302,6 +306,17 @@ int main(int argc, char **argv) {
   //if(volfmtid == NULL) MRIwrite(mri,volid);
   //else MRIwriteType(mri,volid,);
 
+  if(sum2file){
+    val = MRIsum2All(mri);
+    fp = fopen(sum2file,"w");
+    if(fp == NULL){
+      printf("ERROR: opening %s\n",sum2file);
+      exit(1);
+    }
+    printf("sum2all: %20.10lf\n",val);
+    fprintf(fp,"%20.10lf\n",val);
+  }
+
   return(0);
 }
 /* ------------------------------------------------------------------ */
@@ -330,6 +345,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--norescale")) rescale=0;
     else if (!strcasecmp(option, "--offset")) AddOffset=1;
 
+    else if (!strcmp(option, "--sum2")) {
+      if (nargc < 1) argnerr(option,1);
+      sum2file = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--vol")) {
       if (nargc < 1) argnerr(option,1);
       volid = pargv[0];
@@ -339,7 +359,8 @@ static int parse_commandline(int argc, char **argv) {
         nargsused ++;
         volfmtid = checkfmt(volfmt);
       } else volfmtid = getfmtid(volid);
-    } else if (!strcmp(option, "--temp")) {
+    } 
+    else if (!strcmp(option, "--temp")) {
       if (nargc < 1) argnerr(option,1);
       tempid = pargv[0];
       nargsused = 1;
@@ -481,6 +502,7 @@ static void print_usage(void) {
   printf("\n");
   printf(" Other arguments\n");
   printf("   --fwhm fwhmmm : smooth by FWHM mm\n");
+  printf("   --sum2 fname : save sum vol^2 into fname\n");
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -616,7 +638,7 @@ static int isflag(char *flag) {
 }
 
 /*---------------------------------------------------------------*/
-MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt) {
+ MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt) {
   int c,r,s,f;
   double val;
 
@@ -636,4 +658,24 @@ MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt) {
     }
   }
   return(mrisqrt);
+}
+
+/*---------------------------------------------------------------*/
+double MRIsum2All(MRI *mri)
+{
+  int c,r,s,f;
+  double sum2all,val;
+
+  sum2all = 0;
+  for (c=0; c < mri->width; c++) {
+    for (r=0; r < mri->height; r++) {
+      for (s=0; s < mri->depth; s++) {
+        for (f=0; f < mri->nframes; f++) {
+          val = MRIgetVoxVal(mri,c,r,s,f);
+	  sum2all += (val*val);
+        }
+      }
+    }
+  }
+  return(sum2all);
 }
