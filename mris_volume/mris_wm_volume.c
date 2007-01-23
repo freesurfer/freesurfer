@@ -1,16 +1,17 @@
 /**
  * @file  mris_wm_volume.c
- * @brief computes the interior volume of the ?h.white surfaces (excluding subcortical labels)
+ * @brief computes the interior volume of the ?h.white surfaces 
+ * (excluding subcortical labels)
  *
- * computes the interior volume of the ?h.white surfaces (excluding subcortical labels),
- * uses the aseg.mgz and the ?h.white surfaces.
+ * computes the interior volume of the ?h.white surfaces (excluding 
+ * subcortical labels), uses the aseg.mgz and the ?h.white surfaces.
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/22 14:26:38 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2007/01/23 20:39:06 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,16 +26,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/01/22 14:26:38 $
-// Revision       : $Revision: 1.1 $
-//
-////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +46,9 @@
 #include "cma.h"
 
 
-double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolution) ;
+double MRIScomputeWhiteVolume(MRI_SURFACE *mris, 
+                              MRI *mri_aseg, 
+                              double resolution) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
@@ -80,7 +73,10 @@ main(int argc, char *argv[])
   MRI           *mri_aseg ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_wm_volume.c,v 1.1 2007/01/22 14:26:38 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mris_wm_volume.c,v 1.2 2007/01/23 20:39:06 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -124,7 +120,9 @@ main(int argc, char *argv[])
   sprintf(fname, "%s/%s/mri/%s", sdir, subject, aseg_name) ;
   mri_aseg = MRIread(fname) ;
   if (mri_aseg == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s", Progname, fname) ;
+    ErrorExit(ERROR_NOFILE, 
+              "%s: could not read segmentation volume %s", 
+              Progname, fname) ;
 
   total_volume = MRIScomputeWhiteVolume(mris, mri_aseg, resolution) ;
   printf("%g\n", total_volume);
@@ -188,7 +186,8 @@ get_option(int argc, char *argv[]) {
 static void
 usage_exit(int code) {
   printf("usage: %s <subject> <hemi>\n", Progname) ;
-  printf("\t This program computes the volume of the enclosed ?h.white surface,\n\tignoring non-wm voxels in the aseg.\n");
+  printf("\t This program computes the volume of the enclosed ?h.white "
+         "surface,\n\tignoring non-wm voxels in the aseg.\n");
   printf("\t use -v option to output more messages\n");
   printf("  -SDIR SUBJECTS_DIR \n");
   printf("  -white whitesurfname \n");
@@ -201,7 +200,7 @@ MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolution)
 {
   MRI    *mri_filled ;
   MATRIX *m_vox2vox ;
-  double total_volume, vox_volume ;
+  double total_volume=0.0, vox_volume ;
   int    x, y, z, label, xa, ya, za ;
   VECTOR *v1, *v2 ;
   Real   val ;
