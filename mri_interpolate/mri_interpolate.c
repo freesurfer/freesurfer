@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/23 12:22:08 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2007/01/23 19:29:58 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,18 +24,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// mri_interpolate
-// written by Bruce Fischl
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/01/23 12:22:08 $
-// Revision       : $Revision: 1.2 $
-//
-////////////////////////////////////////////////////////////////////
 
 #include <math.h>
 #include <stdlib.h>
@@ -65,7 +53,7 @@ static int get_option(int argc, char *argv[]) ;
 static int navgs = 50 ;
 
 /*
-   command line consists of three inputs:
+   command line consists of two inputs:
 
    argv[1]  - input volume
    argv[2]  - output volume
@@ -76,13 +64,14 @@ int
 main(int argc, char *argv[]) {
   char         *in_fname, *out_fname, **av ;
   MRI          *mri_in, *mri_ctrl, *mri_out;
-  int          ac, nargs,x, y,z ;
+  int          ac, nargs=0, x, y, z ;
   char         cmdline[CMD_LINE_LEN] ;
   Real         val;
 
-  make_cmd_version_string(argc, argv,
-                          "$Id: mri_interpolate.c,v 1.2 2007/01/23 12:22:08 fischl Exp $",
-                          "$Name:  $",cmdline);
+  make_cmd_version_string
+    (argc, argv,
+     "$Id: mri_interpolate.c,v 1.3 2007/01/23 19:29:58 nicks Exp $",
+     "$Name:  $",cmdline);
   setRandomSeed(-1L) ;
   Progname = argv[0] ;
 
@@ -100,7 +89,6 @@ main(int argc, char *argv[]) {
     exit (0);
   argc -= nargs;
 
-
   if (argc < 2)
     ErrorExit
     (ERROR_BADPARM,
@@ -109,6 +97,7 @@ main(int argc, char *argv[]) {
   in_fname = argv[1] ;
   out_fname = argv[2] ;
 
+  mri_in=MRIread(in_fname);
   MRIaddCommandLine(mri_in, cmdline) ;
 
   mri_ctrl = MRIclone(mri_in,NULL);
