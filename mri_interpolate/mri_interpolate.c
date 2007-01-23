@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/23 01:33:41 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/01/23 12:22:08 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,8 +32,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/01/23 01:33:41 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2007/01/23 12:22:08 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -81,12 +81,8 @@ main(int argc, char *argv[]) {
   Real         val;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_interpolate.c,v 1.1 2007/01/23 01:33:41 fischl Exp $",
+                          "$Id: mri_interpolate.c,v 1.2 2007/01/23 12:22:08 fischl Exp $",
                           "$Name:  $",cmdline);
-  if (nargs && argc - nargs == 1)
-    exit (0);
-  argc -= nargs;
-
   setRandomSeed(-1L) ;
   Progname = argv[0] ;
 
@@ -100,6 +96,10 @@ main(int argc, char *argv[]) {
     argc -= nargs ;
     argv += nargs ;
   }
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
+
 
   if (argc < 2)
     ErrorExit
