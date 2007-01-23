@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/12 20:52:22 $
- *    $Revision: 1.302 $
+ *    $Author: kteich $
+ *    $Date: 2007/01/23 19:39:07 $
+ *    $Revision: 1.303 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.302 $";
+char *VERSION = "$Revision: 1.303 $";
 
 #define TCL
 #define TKMEDIT
@@ -1177,7 +1177,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.302 2007/01/12 20:52:22 greve Exp $",
+     "$Id: tkmedit.c,v 1.303 2007/01/23 19:39:07 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -3381,14 +3381,19 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
   /* convert idx to ras */
   eVolume = Volm_ConvertIdxToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
                                      iAnaIdx, &MRIIdx );
+  /* TESTING: ONLY WRITE SURFACE RAS */
+  /*
   if ( gbUseRealRAS ) {
     eVolume = Volm_ConvertMRIIdxToRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
                                        &MRIIdx, &ras );
   } else {
+  */
     eVolume =
       Volm_ConvertMRIIdxToSurfaceRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
                                       &MRIIdx, &ras );
+    /*
   }
+    */
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
                      eResult, tkm_tErr_ErrorAccessingVolume );
 
@@ -3466,14 +3471,19 @@ void ReadCursorFromEditFile ( char* isFileName ) {
   xVoxl_SetFloat( &ras, fRASX, fRASY, fRASZ );
 
   /* convert to screen voxel. */
+  /* TESTING: ONLY WRITE SURFACE RAS */
+  /*
   if ( gbUseRealRAS ) {
     eVolume = Volm_ConvertRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
                                        &ras, &MRIIdx );
   } else {
+  */
     eVolume =
       Volm_ConvertSurfaceRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
                                       &ras, &MRIIdx );
+    /*
   }
+    */
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
                      eResult, tkm_tErr_ErrorAccessingVolume );
   eVolume = Volm_ConvertMRIIdxToIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
@@ -5811,7 +5821,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.302 2007/01/12 20:52:22 greve Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.303 2007/01/23 19:39:07 kteich Exp $ $Name:  $\n"
     )
   );
 
