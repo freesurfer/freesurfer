@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 22:03:48 $
- *    $Revision: 1.108 $
+ *    $Author: greve $
+ *    $Date: 2007/01/23 21:38:41 $
+ *    $Revision: 1.109 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -487,7 +487,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.108 2007/01/11 22:03:48 nicks Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.109 2007/01/23 21:38:41 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -661,7 +661,7 @@ int main(int argc, char **argv) {
   if (! DontSave) {
     if (GLMDir != NULL) {
       printf("Creating output directory %s\n",GLMDir);
-      err = mkdir(GLMDir,(mode_t)-1);
+      err = mkdir(GLMDir,0777);
       if (err != 0 && errno != EEXIST) {
         printf("ERROR: creating directory %s\n",GLMDir);
         perror(NULL);
@@ -1306,7 +1306,7 @@ int main(int argc, char **argv) {
 
     // Create output directory for contrast
     sprintf(tmpstr,"%s/%s",GLMDir,mriglm->glm->Cname[n]);
-    mkdir(tmpstr,(mode_t)-1);
+    mkdir(tmpstr,0777);
 
     // Dump contrast matrix
     sprintf(tmpstr,"%s/%s/C.dat",GLMDir,mriglm->glm->Cname[n]);
@@ -1458,7 +1458,7 @@ int main(int argc, char **argv) {
   if (pcaSave) {
     printf("Computing PCA (%d)\n",npca);
     sprintf(tmpstr,"%s/pca-eres",GLMDir);
-    mkdir(tmpstr,(mode_t)-1);
+    mkdir(tmpstr,0777);
     err=MRIpca(mriglm->eres, &Upca, &Spca, &Vpca, mriglm->mask);
     if (err) exit(1);
     sprintf(tmpstr,"%s/pca-eres/v.%s",GLMDir,format);
