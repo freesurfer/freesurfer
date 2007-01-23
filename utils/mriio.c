@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/09 08:03:46 $
- *    $Revision: 1.325 $
+ *    $Date: 2007/01/23 21:41:45 $
+ *    $Revision: 1.326 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1797,7 +1797,7 @@ static int corWrite(MRI *mri, char *fname)
   }
 
   /* Create the directory */
-  rv = mkdir(fname_use,(mode_t)-1);
+  rv = mkdir(fname_use,0777);
   if (rv != 0 && errno != EEXIST)
   {
     printf("ERROR: creating directory %s\n",fname_use);

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:32 $
- *    $Revision: 1.18 $
+ *    $Author: greve $
+ *    $Date: 2007/01/23 21:41:45 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.18 2006/12/29 01:49:32 nicks Exp $
+// $Id: fsglm.c,v 1.19 2007/01/23 21:41:45 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -152,7 +152,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.18 2006/12/29 01:49:32 nicks Exp $");
+  return("$Id: fsglm.c,v 1.19 2007/01/23 21:41:45 greve Exp $");
 }
 
 
@@ -608,7 +608,7 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
   FILE *fp;
   int c;
 
-  mkdir(dumpdir,(mode_t)-1);
+  mkdir(dumpdir,0777);
 
   sprintf(fname,"%s/y.dat",dumpdir);
   MatrixWriteTxt(fname, glm->y);
@@ -652,7 +652,7 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
       sprintf(condir,"%s/%s",dumpdir,glm->Cname[c]);
     else
       sprintf(condir,"%s/contrast%03d",dumpdir,c+1);
-    mkdir(condir,(mode_t)-1);
+    mkdir(condir,0777);
 
     sprintf(fname,"%s/C.dat",condir);
     MatrixWriteTxt(fname, glm->C[c]);

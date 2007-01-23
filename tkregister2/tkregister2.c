@@ -7,9 +7,9 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:16 $
- *    $Revision: 1.69 $
+ *    $Author: greve $
+ *    $Date: 2007/01/23 21:46:09 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 #ifndef lint
 static char vcid[] =
-  "$Id: tkregister2.c,v 1.69 2007/01/11 20:15:16 nicks Exp $";
+  "$Id: tkregister2.c,v 1.70 2007/01/23 21:46:09 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -3087,7 +3087,7 @@ void write_reg(char *fname) {
     make_backup(talxfmfile);
     regio_write_mincxfm(talxfmfile,RegMatTmp,xfmfileinfo);
     sprintf(touchfile,"%s/%s/touch",subjectsdir,pname);
-    if (!fio_IsDirectory(touchfile)) mkdir(touchfile,(mode_t)-1);
+    if (!fio_IsDirectory(touchfile)) mkdir(touchfile,0777);
     sprintf(touchfile,"%s/%s/touch/talairach.tkregister2.touch",
             subjectsdir,pname);
     fp = fopen(touchfile,"w");
@@ -4169,7 +4169,7 @@ char **argv;
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.69 2007/01/11 20:15:16 nicks Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.70 2007/01/23 21:46:09 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
