@@ -20,6 +20,7 @@ MRISUBDIRS=check_siemens_dir \
 	repair_siemens_file \
 	mkxsubjreg \
 	rbftest \
+	mri_interpolate \
 	mri_jacobian \
 	mri_add_xform_to_header \
 	mri_bias \
@@ -209,7 +210,6 @@ MRISSUBDIRS=label_area \
 	mris_twoclass \
 	mris_w_to_curv \
 	mris_volume \
-	mris_wm_volume \
 	mris_volmask \
 	mris_thickness_diff \
 	mris_ms_surface_CNR \

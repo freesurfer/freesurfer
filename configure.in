@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.290 2007/01/22 07:43:18 nicks Exp $"
+# "$Id: configure.in,v 1.291 2007/01/23 01:32:59 fischl Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1934,6 +1934,7 @@ AC_OUTPUT([Makefile
            mri_modify/Makefile
            mri_morphology/Makefile
            mri_jacobian/Makefile
+           mri_interpolate/Makefile
            mri_ms_EM/Makefile
            mri_ms_EM_with_atlas/Makefile
            mri_ms_LDA/Makefile
