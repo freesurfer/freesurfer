@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.77 2006/11/15 00:24:06 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.78 2007/01/24 18:25:18 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -27,6 +27,13 @@ if ("$OSTYPE" == "Linux") setenv OSTYPE Linux
 if ("$OSTYPE" == "darwin") setenv OSTYPE Darwin
 if ("$OSTYPE" == "Darwin") setenv OSTYPE Darwin
 set OS=${OSTYPE}
+
+if ("$OSTYPE" == "Darwin") then
+  # Mac OS X chmod and chgrp need -L flag to follow symbolic links
+  set change_flags=(-RL)
+else
+  set change_flags=(-R)
+endif
 
 #
 # Set up directories.
@@ -360,10 +367,10 @@ if ($status != 0) then
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
-  chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
-  echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
-  chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
+  echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
+  echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
   chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
   chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
   exit 1
@@ -387,10 +394,10 @@ if ($status != 0) then
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
-  chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
-  echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
-  chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
+  echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
+  echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
   chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
   chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
   exit 1  
@@ -417,10 +424,10 @@ if ("${RELEASE_TYPE}" == "dev") then
     rm -f ${FAILED_FILE}
     touch ${FAILED_FILE}
     # set group write bit on files changed by make tools:
-    echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
-    chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
-    echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
-    chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
+    echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
+    chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
+    echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
+    chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
     chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
     chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
     exit 1  
@@ -451,16 +458,16 @@ if ($status != 0) then
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
-  chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
-  echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
-  chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
+  echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
+  echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
   chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
   chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
   # and the fsaverage in the subjects dir...
-  echo "CMD: chmod -R g+rw ${DEST_DIR}/subjects/fsaverage" >>& $OUTPUTF
-  chmod -R g+rw ${DEST_DIR}/subjects/fsaverage >>& $OUTPUTF
-  chgrp -R fsdev ${DEST_DIR}/subjects/fsaverage >>& $OUTPUTF
+  echo "CMD: chmod ${change_flags} g+rw ${DEST_DIR}/subjects/fsaverage" >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${DEST_DIR}/subjects/fsaverage >>& $OUTPUTF
+  chgrp ${change_flags} fsdev ${DEST_DIR}/subjects/fsaverage >>& $OUTPUTF
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
@@ -489,18 +496,18 @@ mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin >>& $OUTPUTF
 echo "##########################################################" >>& $OUTPUTF
 echo "Setting permissions" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
-echo "CMD: chgrp -R fsdev ${DEST_DIR}" >>& $OUTPUTF
-chgrp -R fsdev ${DEST_DIR} >>& $OUTPUTF
-echo "CMD: chmod -R g+rw ${DEST_DIR}" >>& $OUTPUTF
-chmod -R g+rw ${DEST_DIR} >>& $OUTPUTF
-echo "CMD: chgrp -R fsdev ${DEV_DIR}" >>& $OUTPUTF
-chgrp -R fsdev ${DEV_DIR} >>& $OUTPUTF
-echo "CMD: chmod -R g+rw ${DEV_DIR}" >>& $OUTPUTF
-chmod -R g+rw ${DEV_DIR} >>& $OUTPUTF
+echo "CMD: chgrp ${change_flags} fsdev ${DEST_DIR}" >>& $OUTPUTF
+chgrp ${change_flags} fsdev ${DEST_DIR} >>& $OUTPUTF
+echo "CMD: chmod ${change_flags} g+rw ${DEST_DIR}" >>& $OUTPUTF
+chmod ${change_flags} g+rw ${DEST_DIR} >>& $OUTPUTF
+echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
+chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
+echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
+chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
 chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
 chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
-echo "CMD: chmod -R g+rw ${LOG_DIR}" >>& $OUTPUTF
-chmod -R g+rw ${LOG_DIR} >>& $OUTPUTF
+echo "CMD: chmod ${change_flags} g+rw ${LOG_DIR}" >>& $OUTPUTF
+chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
 
 
 #
@@ -627,7 +634,7 @@ if ("$RELEASE_TYPE" == "dev") then
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
   # make sure all files in DEST_DIR are group writable
-  set cmd=(chmod -R g+rw ${DEST_DIR})
+  set cmd=(chmod ${change_flags} g+rw ${DEST_DIR})
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
 endif
