@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/05 19:17:43 $
- *    $Revision: 1.26 $
+ *    $Date: 2007/01/24 23:47:52 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -164,7 +164,7 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
   /* Find the time string. */
   seconds = time(NULL);
   gmtime_r (&seconds, &broken_time);
-  sprintf (time_stamp, "%02d/%02d/%02d-%02d:%02d:%02d-GMT",
+  sprintf (time_stamp, "20%02d/%02d/%02d-%02d:%02d:%02d-GMT",
            broken_time.tm_year%100, /* mod here to change 103 to 03 */
            broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
            broken_time.tm_mday, broken_time.tm_hour,
@@ -335,7 +335,7 @@ handle_version_option (int argc, char** argv,
       /* Find the time string. */
       seconds = time(NULL);
       gmtime_r (&seconds, &broken_time);
-      sprintf (time_stamp, "%02d/%02d/%02d-%02d:%02d:%02d-GMT",
+      sprintf (time_stamp, "20%02d/%02d/%02d-%02d:%02d:%02d-GMT",
                broken_time.tm_year%100, /* mod here to change 103 to 03 */
                broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
                broken_time.tm_mday, broken_time.tm_hour,
