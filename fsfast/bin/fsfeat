@@ -1,0 +1,278 @@
+#! /bin/csh -f
+#
+# fsfeat - freesurfer front end for FSL's FEAT
+# For more info on FEAT see www.fmrib.ox.ac.uk/fsl
+
+# Things to do:
+#   1. nframes
+#   2. init mtxs
+#   3. sigs
+#   4. use reg-feat2anat
+#   5. compare TR
+#   6. allow sch dir input?
+# mkfsldesign-sess
+# fsfeat-sess
+
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2007/01/25 06:53:02 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: fsfeat,v 1.1 2007/01/25 06:53:02 greve Exp $';
+set inputargs = ($argv);
+
+set fsf     = ();
+set srcdir  = ();
+set outdir  = ();
+set subject = ();
+set PrintHelp = 0;
+
+#### If no arguments, print usage and exit ####
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+##### Print out version info, if needed ####
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+if($FSLOUTPUTTYPE == NIFTI)    set outext = nii;
+if($FSLOUTPUTTYPE == NIFTI_GZ) set outext = nii.gz
+if($FSLOUTPUTTYPE == ANALYZE) then
+  echo "ERROR: get a real format!"
+  exit 1;
+endif
+
+#set LF = $outdir/evfunc.log
+#rm -f $LF
+#date >> $LF
+#echo $0 $inputargs >> $LF
+
+set outdirpath = $outdir.feat
+rm -r $outdirpath
+
+set tmp = `fsfget $fsf feat_files`;
+set fname = `basename $tmp`;
+set invol = $srcdir/$fname
+if(! -e $invol) then
+  echo "ERROR: cannot find $invol"
+  exit 1;
+endif
+
+isanalyze $invol
+if($status) then
+  echo "Get a real format"
+  exit 1;
+endif
+
+set stdvol = $FSLDIR/etc/standard/avg152T1.img
+set initmtx = /tmp/fsfeat.design.$$.initfsl.mtx
+set cmd = (tkregister2 --targ $stdvol --mov $invol \
+   --reg /tmp/$$.reg --fslregout $initmtx --regheader --noedit);
+echo $cmd 
+$cmd
+if($status) exit 1;
+
+
+set tmpfsf = /tmp/fsfeat.design.$$.fsf
+cp $fsf $tmpfsf
+echo $tmpfsf
+
+echo "#-------------------------------------------" >> $tmpfsf
+echo "#  fsfeat customizations"                     >> $tmpfsf
+echo "#-------------------------------------------" >> $tmpfsf
+echo "# `date`"   >> $tmpfsf
+echo "# $VERSION" >> $tmpfsf
+echo "set feat_files(1)" '"'$invol'"' >> $tmpfsf
+echo "set fmri(init_standard)" '"'$initmtx'"' >> $tmpfsf
+# init_initial_highres init_initial_highres
+
+set nEVs = `fsfget $fsf evs_orig`;
+@ nthEV = 0;
+while ($nthEV < $nEVs)
+  @ nthEV = $nthEV + 1;
+  set tmp = `grep fmri\(custom$nthEV\) $fsf | awk '{print $3}'| sed 's/\"//g'`
+  if($#tmp == 0) continue;
+  set sch = `basename $tmp`;
+  echo $nthEV $sch
+  set schpath = $srcdir/$sch
+  if(! -e $schpath) then
+    echo "ERROR: cannot find $schpath"
+    exit 1;
+  endif
+  echo "set fmri(custom$nthEV)" '"'$schpath'"' >> $tmpfsf
+end
+
+# set fmri(npts) 144
+echo "set fmri(outputdir)" '"'$outdirpath'"'  >> $tmpfsf
+echo "set fmri(featwatcher_yn) 0"             >> $tmpfsf
+
+feat $tmpfsf
+if($status) exit 1;
+
+if($#subject) then
+  set cmd = (fslregister --s $subject --mov $outdirpath/example_func.$outext\
+     --reg $outdirpath/register.dat );
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+endif
+
+echo " " 
+echo "fsfeat done" 
+echo " " 
+
+exit 0;
+###--------------------------------------------###
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--fsf"
+      if ( $#argv == 0) goto arg1err;
+      set fsf = $argv[1]; shift;
+      breaksw
+
+    case "--srcdir":
+      if ( $#argv == 0) goto arg1err;
+      set srcdir = $argv[1]; shift;
+      breaksw
+
+    case "--outdir":
+      if ( $#argv == 0) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--subject":
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag unrecognized"
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#fsf == 0) then
+    echo "ERROR: must specify a design.fsf"
+    exit 1;
+  endif
+
+  if($#srcdir == 0) then
+    echo "ERROR: must specify a srcdir"
+    exit 1;
+  endif
+
+  if(! -e $fsf) then
+    echo "ERROR: cannot find $fsf"
+    exit 1;
+  endif
+
+  if(! -e $srcdir) then
+    echo "ERROR: cannot find $srcdir"
+    exit 1;
+  endif
+  pushd $srcdir > /dev/null
+  set srcdir = `pwd`;
+  popd > /dev/null
+
+  if($#subject) then
+    set sd = $SUBJECTS_DIR/$subject
+    if(! -e $sd) then
+      echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+      exit 1;
+    endif
+  endif
+
+  if($#outdir == 0) then
+    echo "ERROR: must specify an outdir"
+    exit 1;
+  endif
+  if(-e $outdir) then
+    pushd $outdir > /dev/null
+    set outdir = `pwd`;
+    popd > /dev/null
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fsfeat "
+  echo ""
+  echo "  --fsf     design.fsf"
+  echo "  --srcdir  sourcedir"
+  echo "  --outdir  outputdir : will be outputdir.feat"
+  echo ""
+  echo "  --subject subject (optional)"
+  echo ""
+
+
+  if( ! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Help!
