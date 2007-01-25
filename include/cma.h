@@ -1,15 +1,16 @@
 /**
  * @file  cma.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief constants for neuroanatomical structures.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * constants and macros for neuroanatomical and some vascular structures.
+ * Originally it was just cma labels, but it has been generalized.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/25 01:42:54 $
- *    $Revision: 1.39 $
+ *    $Date: 2007/01/25 01:44:25 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
