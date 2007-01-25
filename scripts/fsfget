@@ -1,0 +1,154 @@
+#!/bin/sh
+# $Id: fsfget,v 1.1 2007/01/25 00:20:46 greve Exp $
+# fsfget - extract params from fsl/feat design.fsf file
+# 
+# Elements of the fmri() struct
+#   ncon_{orig,real} - number of contrasts
+#   nftests_{orig,real} - number of F contrasts
+#   evs_orig - number of original EVs
+#   evs_real - number of real EVs
+#   evtitle1 - name of EV1
+#   custom1  - name of EV1's schedule file
+#   conname_real.1 "nov-v-fix" - name of 1st contrast
+#   conname_orig.1 - not sure what the diff is
+# 
+#   version
+#   tr
+#   smooth
+#   temphp_yn - 0/1 flag indicating the use of HPF
+#   paradigm_hp - HPF cutoff value
+#   st - 0/1 flag indicating the use of slice timgin
+#
+# Other parameters not in the fmri() struct:
+#   feat_files(1) - first input volume
+
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2007/01/25 00:20:46 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+# the next line restarts using tclsh \
+exec /usr/bin/tclsh "$0" "$@"
+
+if { $argc != 2 } {
+    puts "Usage: fsfget design.fsf paramname";
+    exit 1;
+}
+
+set fsf [lindex $argv 0];
+set param [lindex $argv 1];
+
+# Make sure fsf file is there
+if { ! [file exists $fsf] } {
+   puts "ERROR: file $fsf does not exist"
+   exit 1;
+}
+source $fsf
+
+# Extract params for those not in the fmri() struct 
+if { ! [ string compare $param "feat_files" ] } {
+ puts "$feat_files(1)";
+ exit 0;
+}
+
+# If it gets here, then param must be in the fmri() struct.
+# If not, then there will be an error with a non-zero exit.
+puts "$fmri($param)";
+
+exit 0
+
+
+#---------------------------------------------------------------------
+puts $fp "featversion $fmri(version)"
+puts $fp "tr_sec $fmri(tr)"
+puts $fp "ndelete $fmri(ndelete)"
+puts $fp "prestats $fmri(filtering_yn)"
+puts $fp "brain_thresh $fmri(brain_thresh)"
+puts $fp "slicetiming $fmri(st)"
+puts $fp "smoothingfwhm $fmri(smooth)"
+puts $fp "templp_yn fmri(templp_yn)" # Low-pass filtering flag
+puts $fp "prewhiten_yn fmri(prewhiten_yn)" 
+puts $fp "evs_orig fmri(evs_orig)"  # number of orig evs
+puts $fp "evs_real fmri(evs_real)"  # number of real evs
+puts $fp "ncon_orig fmri(ncon_orig)" 
+puts $fp "ncon_real fmri(ncon_real)" 
+puts $fp "nftests_orig fmri(nftests_orig)" 
+puts $fp "nftests_real fmri(nftests_real)" 
+puts $fp "regstandard_yn fmri(regstandard_yn)" # register to standard space
+puts $fp "regstandard fmri(regstandard)" # vol (need only basename)
+puts $fp "regstandard_search fmri(regstandard_search)" 
+puts $fp "regstandard_dof fmri(regstandard_dof)" 
+puts $fp "temphp_yn fmri(temphp_yn)" # High-pass filtering flag
+puts $fp "paradigm_hp fmri(paradigm_hp)" 
+#puts $fp "fmri()" 
+#puts $fp "fmri()" 
+#puts $fp "fmri()" 
+#puts $fp "fmri()" 
+#puts $fp "fmri()" 
+
+# Basic waveform shape (EV 1)
+# 0 : Square
+# 1 : Sinusoid
+# 2 : Custom (1 entry per volume)
+# 3 : Custom (3 column format)
+# 4 : Interaction
+# set fmri(shape1) 3
+# Convolution (EV 1)
+# 0 : None
+# 1 : Gaussian
+# 2 : Gamma
+# 3 : Double-Gamma HRF
+# 4 : Gamma basis functions
+# 5 : Sine basis functions
+# 6 : FIR basis functions
+# set fmri(convolve1) 2
+# Convolve phase (EV 1)
+# set fmri(convolve_phase1) 0
+# Apply temporal filtering (EV 1)
+# set fmri(tempfilt_yn1) 1
+# Add temporal derivative (EV 1)
+# set fmri(deriv_yn1) 1
+# Gamma sigma (EV 1)
+# set fmri(gammasigma1) 3
+# Gamma delay (EV 1)
+# set fmri(gammadelay1) 6
+# Orthogonalise EV 1 wrt EV 0
+# set fmri(ortho1.0) 0
+# Orthogonalise EV 1 wrt EV 1
+# set fmri(ortho1.1) 0
+# Orthogonalise EV 1 wrt EV 2
+# set fmri(ortho1.2) 0
+
+# Title for contrast_real 1
+# set fmri(conname_real.1) "Dev > Std"
+# Real contrast_real vector 1 element 1
+# set fmri(con_real1.1) 1
+# Real contrast_real vector 1 element 2
+# set fmri(con_real1.2) 0
+# Real contrast_real vector 1 element 3
+# set fmri(con_real1.3) -1
+
+
+close $fp;
+
+exit 0;
+
+
+
+
+
