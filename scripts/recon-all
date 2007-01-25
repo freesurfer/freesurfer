@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/22 20:49:59 $
-#    $Revision: 1.61 $
+#    $Date: 2007/01/25 20:40:46 $
+#    $Revision: 1.62 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.61 2007/01/22 20:49:59 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.62 2007/01/25 20:40:46 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -116,6 +116,7 @@ set IsWashuMPRAGE = 0 # if 1, then -washu_mprage added to mri_normalize/segment
 set DoCropsize256 = 0 # if 1, then crop to 256^3 during mri_convert -conform
 set NoNormMGZ = 0; # set to 1 when -nosubcortseg or -noaseg flag is used,
                    # which causes norm.mgz not to used during inorm2 step
+set NoWMSA = 0;      # if 1, then -nowmsa flag is added to mri_ca_label
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -1172,6 +1173,7 @@ if($DoCALabel) then
   set cmd = ($cmd $UseCAAlign)
   if($BigVentricles) set cmd = ($cmd -bigventricles)
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
+  if($NoWMSA) set cmd = ($cmd -nowmsa)
   if( ! $longitudinal ) then
     # default stream:
     set cmd = ($cmd $xopts norm.mgz \
@@ -2903,6 +2905,10 @@ while( $#argv != 0 )
 
     case "-cropsize256":
       set DoCropsize256 = 1;
+      breaksw;
+
+    case "-nowmsa":
+      set NoWMSA = 1;
       breaksw;
 
     default:
