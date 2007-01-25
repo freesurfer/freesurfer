@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/25 19:53:52 $
- *    $Revision: 1.15 $
+ *    $Date: 2007/01/25 19:58:22 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,8 @@ int string_to_type(char *string);
 char *type_to_string(int type);
 
 int mri_identify(char *fname);
-int mri_identify_from_stem(char *stem);
+char *IDnameFromStem(char *stem);
+int IDtypeFromStem(char *stem);
 
 int is_cor(char *fname);
 int is_genesis(char *fname);

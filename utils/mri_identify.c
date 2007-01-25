@@ -7,8 +7,8 @@
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/25 19:53:32 $
- *    $Revision: 1.56 $
+ *    $Date: 2007/01/25 19:58:17 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -390,13 +390,12 @@ int mri_identify(char *fname_passed)
 }  /*  end mri_identify()  */
 
 /*
-  \fn int mri_identify_from_stem(char *stem)
+  \fn int IDtypeFromStem(char *stem)
   \brief Returns the file type from the stem by looking on disk.
      This can be dependent on order, if more than one file type
      exists with the same stem.
 */
-
-int mri_identify_from_stem(char *stem)
+int IDtypeFromStem(char *stem)
 {
   char tmpstr[2000];
 
@@ -419,6 +418,34 @@ int mri_identify_from_stem(char *stem)
   if (fio_FileExistsReadable(tmpstr)) return(BSHORT_FILE);
 
   return(MRI_VOLUME_TYPE_UNKNOWN);
+}
+
+/*
+  \fn char *IDnameFromStem(char *stem)
+  \brief Returns the full file name from the stem by looking on disk.
+     This can be dependent on order, if more than one file type
+     exists with the same stem.
+*/
+char *IDnameFromStem(char *stem)
+{
+  char tmpstr[2000];
+
+  sprintf(tmpstr,"%s.nii",stem);
+  if (fio_FileExistsReadable(tmpstr)) return(strcpyalloc(tmpstr));
+
+  sprintf(tmpstr,"%s.nii.gz",stem);
+  if (fio_FileExistsReadable(tmpstr)) return(strcpyalloc(tmpstr));
+
+  sprintf(tmpstr,"%s.mgh",stem);
+  if (fio_FileExistsReadable(tmpstr)) return(strcpyalloc(tmpstr));
+
+  sprintf(tmpstr,"%s_000.bfloat",stem);
+  if(fio_FileExistsReadable(tmpstr))  return(strcpyalloc(tmpstr));
+
+  sprintf(tmpstr,"%s_000.bshort",stem);
+  if (fio_FileExistsReadable(tmpstr)) return(strcpyalloc(tmpstr));
+
+  return(NULL);
 }
 
 int is_cor(char *fname)
