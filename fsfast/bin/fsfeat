@@ -4,12 +4,9 @@
 # For more info on FEAT see www.fmrib.ox.ac.uk/fsl
 
 # Things to do:
-#   1. nframes
 #   2. init mtxs
-#   3. sigs
-#   4. use reg-feat2anat
+#   3. sigs, contrast names
 #   5. compare TR
-#   6. allow sch dir input?
 # mkfsldesign-sess
 # fsfeat-sess
 
@@ -17,8 +14,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/01/25 06:53:02 $
-#    $Revision: 1.1 $
+#    $Date: 2007/01/25 23:02:06 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -34,11 +31,12 @@
 #
 
 
-set VERSION = '$Id: fsfeat,v 1.1 2007/01/25 06:53:02 greve Exp $';
+set VERSION = '$Id: fsfeat,v 1.2 2007/01/25 23:02:06 greve Exp $';
 set inputargs = ($argv);
 
 set fsf     = ();
-set srcdir  = ();
+set invol   = ();
+set schdir  = ();
 set outdir  = ();
 set subject = ();
 set PrintHelp = 0;
@@ -70,32 +68,25 @@ check_params_return:
 if($FSLOUTPUTTYPE == NIFTI)    set outext = nii;
 if($FSLOUTPUTTYPE == NIFTI_GZ) set outext = nii.gz
 if($FSLOUTPUTTYPE == ANALYZE) then
-  echo "ERROR: get a real format!"
+  echo "ERROR: FSLOUTPUTTYPE == ANALYZE, get a real format!"
   exit 1;
 endif
 
-#set LF = $outdir/evfunc.log
-#rm -f $LF
-#date >> $LF
-#echo $0 $inputargs >> $LF
-
+# This cannot exist, or else get +s
 set outdirpath = $outdir.feat
 rm -r $outdirpath
 
-set tmp = `fsfget $fsf feat_files`;
-set fname = `basename $tmp`;
-set invol = $srcdir/$fname
-if(! -e $invol) then
-  echo "ERROR: cannot find $invol"
-  exit 1;
-endif
+# Get number of time points from input volume
+set tmpfile = /tmp/fsfeat.nframes.$$.dat
+set cmd = (mri_info --o $tmpfile --nframes $invol)
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
+set nframes = `cat $tmpfile`;
+rm -f $tmpfile
 
-isanalyze $invol
-if($status) then
-  echo "Get a real format"
-  exit 1;
-endif
-
+# Create initial example_func to std matrix
 set stdvol = $FSLDIR/etc/standard/avg152T1.img
 set initmtx = /tmp/fsfeat.design.$$.initfsl.mtx
 set cmd = (tkregister2 --targ $stdvol --mov $invol \
@@ -104,11 +95,12 @@ echo $cmd
 $cmd
 if($status) exit 1;
 
-
+# Temporary fsf file
 set tmpfsf = /tmp/fsfeat.design.$$.fsf
 cp $fsf $tmpfsf
 echo $tmpfsf
 
+# Add customizations
 echo "#-------------------------------------------" >> $tmpfsf
 echo "#  fsfeat customizations"                     >> $tmpfsf
 echo "#-------------------------------------------" >> $tmpfsf
@@ -116,6 +108,7 @@ echo "# `date`"   >> $tmpfsf
 echo "# $VERSION" >> $tmpfsf
 echo "set feat_files(1)" '"'$invol'"' >> $tmpfsf
 echo "set fmri(init_standard)" '"'$initmtx'"' >> $tmpfsf
+echo "set fmri(npts) $nframes" >> $tmpfsf
 # init_initial_highres init_initial_highres
 
 set nEVs = `fsfget $fsf evs_orig`;
@@ -124,9 +117,10 @@ while ($nthEV < $nEVs)
   @ nthEV = $nthEV + 1;
   set tmp = `grep fmri\(custom$nthEV\) $fsf | awk '{print $3}'| sed 's/\"//g'`
   if($#tmp == 0) continue;
+  if($#schdir == 0)  set schdir = `dirname $invol`;
   set sch = `basename $tmp`;
   echo $nthEV $sch
-  set schpath = $srcdir/$sch
+  set schpath = $schdir/$sch
   if(! -e $schpath) then
     echo "ERROR: cannot find $schpath"
     exit 1;
@@ -141,9 +135,44 @@ echo "set fmri(featwatcher_yn) 0"             >> $tmpfsf
 feat $tmpfsf
 if($status) exit 1;
 
+# Compute sigs from zstats
+set statsdir = $outdirpath.feat/stats
+set nzstats = `ls $statsdir/zstat*.$outext | wc -w`;
+echo nzstats = $nzstats
+@ nthzstat = 0;
+while ($nthzstat <= $nzstats)
+  @ nthzstat = $nthzstat + 1;
+  set z = $statsdir/zstat$nthzstat.$outext
+  set cmd = (mri_z2p --z $z --logp $sig --signed)
+  pwd
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+  # symlink to meaningful name here
+  set conname = `fsfget $fsf conname_real.$nthzstat`
+  if($#conname != 0) then
+    set sig2 = $statsdir/$conname.sig.$outext
+    ln -s $sig $sig2
+  endif
+end
+
+# Compute sigs from zfstats
+set nzstats = `ls $statsdir/zfstat*.$outext | wc -w`;
+echo nzfstats = $nzfstats
+@ nthzfstat = 0;
+while ($nthzfstat <= $nzfstats)
+  @ nthzfstat = $nthzfstat + 1;
+  set zf = $statsdir/zfstat$nthzfstat.$outext
+  set sig = $statsdir/zfsig$nthzfstat.$outext
+  set cmd = (mri_z2p --z $zf --logp $sig) # not signed
+  pwd
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+end
+
 if($#subject) then
-  set cmd = (fslregister --s $subject --mov $outdirpath/example_func.$outext\
-     --reg $outdirpath/register.dat );
+  set cmd = (reg-feat2anat --featdir $outdirpath --subject $subject);
   echo $cmd
   $cmd
   if($status) exit 1;
@@ -170,14 +199,19 @@ while( $#argv != 0 )
       set fsf = $argv[1]; shift;
       breaksw
 
-    case "--srcdir":
+    case "--i":
       if ( $#argv == 0) goto arg1err;
-      set srcdir = $argv[1]; shift;
+      set invol = $argv[1]; shift;
       breaksw
 
     case "--outdir":
       if ( $#argv == 0) goto arg1err;
       set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--schdir":
+      if ( $#argv == 0) goto arg1err;
+      set schdir = $argv[1]; shift;
       breaksw
 
     case "--subject":
@@ -208,8 +242,18 @@ check_params:
     exit 1;
   endif
 
-  if($#srcdir == 0) then
-    echo "ERROR: must specify a srcdir"
+  if($#invol == 0) then
+    echo "ERROR: must specify a input volume"
+    exit 1;
+  endif
+  if(! -e $invol) then
+    echo "ERROR: cannot find $invol"
+    exit 1;
+  endif
+
+  isanalyze $invol
+  if($status) then
+    echo "ERROR: get a real format"
     exit 1;
   endif
 
@@ -218,13 +262,15 @@ check_params:
     exit 1;
   endif
 
-  if(! -e $srcdir) then
-    echo "ERROR: cannot find $srcdir"
-    exit 1;
+  if($#schdir) then
+    if(! -e $schdir) then
+      echo "ERROR: cannot find $schdir"
+      exit 1;
+    endif
+    pushd $schdir > /dev/null
+    set schdir = `pwd`;
+    popd > /dev/null
   endif
-  pushd $srcdir > /dev/null
-  set srcdir = `pwd`;
-  popd > /dev/null
 
   if($#subject) then
     set sd = $SUBJECTS_DIR/$subject
@@ -259,7 +305,9 @@ usage_exit:
   echo "fsfeat "
   echo ""
   echo "  --fsf     design.fsf"
-  echo "  --srcdir  sourcedir"
+  echo "  --i       input volume"
+  echo "  --schdir  schedule directory (if needed)"
+  echo ""
   echo "  --outdir  outputdir : will be outputdir.feat"
   echo ""
   echo "  --subject subject (optional)"
