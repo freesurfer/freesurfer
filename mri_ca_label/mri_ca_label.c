@@ -1,15 +1,17 @@
 /**
  * @file  mri_ca_label.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief anisotropic nonstationary markov random field labeling
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Program for computing the MAP segmentation modeling the labeling as an
+ * anisotropic nonstationary markov random field (based on manually labeled data
+ * compiled into an atlas and stored in a .gca file)
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:04 $
- *    $Revision: 1.78 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/25 13:40:46 $
+ *    $Revision: 1.79 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,6 +50,7 @@
 #include "mrinorm.h"
 #include "version.h"
 
+static int GCAremoveWMSA(GCA *gca) ;
 static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
 
@@ -57,7 +60,8 @@ static int avgs = 0 ;
 static int norm_PD = 0;
 static int map_to_flash = 0 ;
 
-static int wmsa = 0 ;
+static int wmsa = 0 ;   // apply wmsa postprocessing (using T2/PD data)
+static int nowmsa = 0 ; // remove all wmsa labels from the atlas
 
 static int handle_expanded_ventricles = 0;
 
@@ -167,13 +171,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.78 2006/12/29 02:09:04 nicks Exp $",
+   "$Id: mri_ca_label.c,v 1.79 2007/01/25 13:40:46 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.78 2006/12/29 02:09:04 nicks Exp $",
+           "$Id: mri_ca_label.c,v 1.79 2007/01/25 13:40:46 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -239,6 +243,8 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
               Progname, gca_fname) ;
 
+  if (nowmsa)
+    GCAremoveWMSA(gca) ;
   extra = 0 ;
   if (gca->flags & GCA_XGRAD)
     extra += ninputs ;
@@ -823,6 +829,9 @@ get_option(int argc, char *argv[]) {
   if (!stricmp(option, "NOGIBBS")) {
     no_gibbs = 1 ;
     printf("disabling gibbs priors...\n") ;
+  } else if (!stricmp(option, "nowmsa")) {
+    nowmsa = 1 ;
+    printf("disabling WMSA labels\n") ;
   } else if (!stricmp(option, "WM")) {
     wm_fname = argv[2] ;
     nargs = 1 ;
@@ -2929,3 +2938,67 @@ load_val_vector(VECTOR *v_means, MRI *mri_inputs, int x, int y, int z) {
 }
 
 #endif
+static int
+GCAremoveWMSA(GCA *gca)
+{
+  int        x, y, z, n, found, i ;
+  GCA_PRIOR  *gcap ;
+  GCA_NODE   *gcan ;
+  double     ptotal ;
+
+  for (x = 0 ; x < gca->prior_width ; x++)
+  {
+    for (y = 0 ; y < gca->prior_height ; y++)
+    {
+      for (z = 0 ; z < gca->prior_depth ; z++)
+      {
+        gcap = &gca->priors[x][y][z] ;
+        if (gcap==NULL)
+          continue;
+        found = 0 ;
+        for (n = 0 ; n < gcap->nlabels ; n++)
+        {
+          if (IS_HYPO(gcap->labels[n]))
+          {
+            found = 1 ;
+            gcap->priors[n] = 1e-10 ;
+            break ;
+          }
+        }
+        if (found) // renormalize priors 
+        {
+          ptotal = 0 ;
+          for (n = 0 ; n < gcap->nlabels ; n++)
+            ptotal += gcap->priors[n] ;
+          if (!FZERO(ptotal))
+            for (n = 0 ; n < gcap->nlabels ; n++)
+              gcap->priors[n] /= ptotal ;
+        }
+      }
+    }
+  }
+
+  for (x = 0 ; x < gca->node_width ; x++)
+  {
+    for (y = 0 ; y < gca->node_height ; y++)
+    {
+      for (z = 0 ; z < gca->node_depth ; z++)
+      {
+        gcan = &gca->nodes[x][y][z] ;
+        if (gcan==NULL)
+          continue;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          if (IS_HYPO(gcan->labels[n]))
+          {
+            for (i = 0 ; i < gca->ninputs ; i++)
+              gcan->gcs[n].means[i] = -1e4 ;
+            break ;
+          }
+        }
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+
