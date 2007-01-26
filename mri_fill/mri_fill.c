@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/09 20:19:21 $
- *    $Revision: 1.109 $
+ *    $Date: 2007/01/26 20:37:03 $
+ *    $Revision: 1.110 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@
 #include "mrisegment.h"
 
 static char vcid[] =
-  "$Id: mri_fill.c,v 1.109 2007/01/09 20:19:21 nicks Exp $";
+  "$Id: mri_fill.c,v 1.110 2007/01/26 20:37:03 nicks Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -1553,7 +1553,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_fill.c,v 1.109 2007/01/09 20:19:21 nicks Exp $", "$Name:  $",
+   "$Id: mri_fill.c,v 1.110 2007/01/26 20:37:03 nicks Exp $", "$Name:  $",
    cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -1561,7 +1561,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_fill.c,v 1.109 2007/01/09 20:19:21 nicks Exp $", 
+           "$Id: mri_fill.c,v 1.110 2007/01/26 20:37:03 nicks Exp $", 
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2172,13 +2172,14 @@ main(int argc, char *argv[]) {
     }
   } else // erase brain stem in any case
   {
-    printf("ERASING BRAINSTEM") ;
+    printf("Erasing brainstem...") ;
     MRIsetLabelValues(mri_im, mri_seg, mri_im, Brain_Stem, 0) ;
 #if 0
     MRIsetLabelValues(mri_im, mri_seg, mri_im, Left_VentralDC, 0) ;
     MRIsetLabelValues(mri_im, mri_seg, mri_im, Right_VentralDC, 0) ;
 #endif
     mri_pons = NULL ;
+    printf("done.\n");
   }
 
   MRIfree(&mri_tal) ;
