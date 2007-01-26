@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.7 2006/11/14 21:24:00 greve Exp $
+# $Id: asegstats2table,v 1.8 2007/01/26 21:22:54 greve Exp $
 import sys;
 import os;
 import string;
@@ -37,6 +37,9 @@ import tempfile;
 # reported. This can be changed by specifying the maximum segmentation
 # number with --maxsegno. This can be convenient for removing
 # segmentations that are always empty.
+
+# By default, uses stats/aseg.stats. This can be changed to
+# subdir/statsfile with --subdir subdir --statsfile statsfile.
 
 # ENDHELP
 # -------------------------------------------------------------------
@@ -89,6 +92,7 @@ def argnerr(narg,flag):
 def parse_args(argv):
   global Version,debug;
   global tablefile, SUBJECTS, nsubjects, meas, maxsegno;
+  global subdir, statsname;
 
   del argv[0]; # get past program name (del is like shift)
 
@@ -118,6 +122,13 @@ def parse_args(argv):
     elif(flag == "--maxsegno"):
       if(len(argv) < 1): argnerr(1,flag);
       maxsegno = string.atof(argv[0]);  del argv[0];
+    elif(flag == "--statsfile"):
+      if(len(argv) < 1): argnerr(1,flag);
+      statsname = argv[0];  del argv[0];
+    elif(flag == "--subdir"):
+      if(len(argv) < 1): argnerr(1,flag);
+      subdir = argv[0];  del argv[0];
+      print "%s" % (subdir);
     elif(flag == "--help"):
       print_usage();
       print_help();
@@ -176,13 +187,15 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.7 2006/11/14 21:24:00 greve Exp $';
+Version = '$Id: asegstats2table,v 1.8 2007/01/26 21:22:54 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
 meas = 'volume';
 maxsegno = -1;
 debug = 0;
+statsname = 'aseg.stats';
+subdir = 'stats';
 
 nargs = len(sys.argv) - 1;
 if(nargs == 0):
@@ -208,9 +221,9 @@ fptbl = open(tablefile,'w');
 nthsubj = 1;
 for subject in SUBJECTS:
 
-  statsfile = SUBJECTS_DIR + '/' + subject + '/stats/' + 'aseg.stats';
+  statsfile = SUBJECTS_DIR + '/' + subject + '/' + subdir + '/' + statsname;
   if(not os.path.exists(statsfile)):
-    sys.stdout.write('ERROR: cannot find %s' % (statsfile) );
+    sys.stdout.write('ERROR: cannot find %s\n' % (statsfile) );
     sys.exit(1);
   #endif
   if(debug): print "%s" % (statsfile);
