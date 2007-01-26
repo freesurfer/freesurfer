@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:17 $
- *    $Revision: 1.239 $
+ *    $Author: greve $
+ *    $Date: 2007/01/26 19:35:43 $
+ *    $Revision: 1.240 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -695,6 +695,7 @@ float maxstress = 1e10;
 float avgstress = 0;
 int senstype = 0;
 double fthresh = 2.0;
+double fmax;
 double wt = 0.5;
 double wa = 0.5;
 double ws = 0.5;
@@ -2058,6 +2059,16 @@ int  mai(int argc,char *argv[])
   InitDebugging("tksurfer") ;
   EnableDebuggingOutput ;
 
+  // Read in env defaults
+  if(getenv("FS_TKFTHRESH")){
+    sscanf(getenv("FS_TKFTHRESH"),"%lf",&fthresh);
+  }
+  if(getenv("FS_TKFMAX")){
+    sscanf(getenv("FS_TKFMAX"),"%lf",&fmax);
+    fmid = (fmax+fthresh)/2.0;
+    fslope = 1.0/(fmax-fthresh);
+  }
+
   /* This is a pre-pass of our arguments and just looks for -option
      options and copies their information for later use. It actually
      memmoves the argv contents so that the old arg parsing code can
@@ -2065,11 +2076,12 @@ int  mai(int argc,char *argv[])
      that should be rewritten. */
   for (i = 0 ; i < argc ; i++) {
     /*      fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);*/
-    if (!stricmp(argv[i], "-o") || !stricmp(argv[i], "-overlay")) {
+    if (!stricmp(argv[i], "-o") || !stricmp(argv[i], "-ov") || 
+	!stricmp(argv[i], "-overlay")) {
       nargs = 2 ;
       functional_fname = argv[i+1] ;
     } else if (!stricmp(argv[i], "-overlay-reg") ||
-               !stricmp(argv[i], "-orf")) {
+               !stricmp(argv[i], "-orf") || !stricmp(argv[i], "-ovreg")) {
       nargs = 2 ;
       strncpy (overlay_reg, argv[i+1], sizeof(overlay_reg) );
       overlay_reg_type = FunD_tRegistration_File;
@@ -2145,11 +2157,11 @@ int  mai(int argc,char *argv[])
       fprintf(stderr, "using white suffix %s\n", white_suffix) ;
     }
     /* begin rkt */
-    else if (!stricmp(argv[i], "-timecourse")) {
+    else if (!stricmp(argv[i], "-timecourse") || !stricmp(argv[i], "-t")) {
       nargs = 2;
       strncpy (timecourse_fname, argv[i+1], sizeof(timecourse_fname));
       load_timecourse = TRUE;
-    } else if (!stricmp(argv[i], "-timecourse-reg")) {
+    } else if (!stricmp(argv[i], "-timecourse-reg") || !stricmp(argv[i], "-treg")) {
       nargs = 2;
       strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
       timecourse_reg_type = FunD_tRegistration_File;
@@ -18813,7 +18825,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.239 2007/01/11 20:15:17 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.240 2007/01/26 19:35:43 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
