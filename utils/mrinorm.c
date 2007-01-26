@@ -1,15 +1,17 @@
 /**
  * @file  mrinorm.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for normalizing MRI intensity values
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * "Cortical Surface-Based Analysis I: Segmentation and Surface
+ * Reconstruction", Dale, A.M., Fischl, B., Sereno, M.I.
+ * (1999) NeuroImage 9(2):179-194
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:35 $
- *    $Revision: 1.83 $
+ *    $Date: 2007/01/26 18:53:03 $
+ *    $Revision: 1.84 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,18 +27,6 @@
  *
  */
 
-
-/*
- *       FILE NAME:   mrinorm.c
- *
- *       DESCRIPTION: utilities for normalizing MRI intensity values
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        4/9/97
- *
- */
-
-/* $Id: mrinorm.c,v 1.83 2006/12/29 01:49:35 nicks Exp $ */
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -157,8 +147,9 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
   {
     mri_field = *pmri_field ;
     if (!mri_field)
-      *pmri_field = mri_field =
-                      MRIalloc(BIAS_IMAGE_WIDTH, mri_src->height, 1, MRI_UCHAR) ;
+      *pmri_field = 
+        mri_field =
+        MRIalloc(BIAS_IMAGE_WIDTH, mri_src->height, 1, MRI_UCHAR) ;
   }
 
   if (npoints > MAX_SPLINE_POINTS)
@@ -222,8 +213,9 @@ mriSplineNormalizeShort(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
   {
     mri_field = *pmri_field ;
     if (!mri_field)
-      *pmri_field = mri_field =
-                      MRIalloc(BIAS_IMAGE_WIDTH, mri_src->height, 1, MRI_UCHAR) ;
+      *pmri_field = 
+        mri_field =
+        MRIalloc(BIAS_IMAGE_WIDTH, mri_src->height, 1, MRI_UCHAR) ;
   }
 
   if (npoints > MAX_SPLINE_POINTS)
@@ -1186,7 +1178,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                   }
                   if ((abs(xk) + abs(yk) + abs(zk)) > 1)
                     continue ;  /* only allow 4 (6 in 3-d)
-                                                                                                           connectivity */
+                                   connectivity */
 
                   /* now make sure that a
                      6-connected neighbor exists that
@@ -1339,8 +1331,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                         && (abs(yk)<=1)
                         && (abs(zk)<=1))
                     {
-                      n++ ;   /* count # of
-                                                                                                                       27-connected control points */
+                      n++ ;   /* count # of 27-connected control points */
                       mean_val += val ;
                       if (val > max_val)
                         max_val = val ;
@@ -1349,7 +1340,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                     }
                     if ((abs(xk) + abs(yk) + abs(zk)) > 1)
                       continue ;  /* only allow 4 (6 in 3-d)
-                                                                                                                   connectivity */
+                                     connectivity */
                     if (val >= hi_thresh || val <= low_thresh)
                       too_low = 1 ;
                   }
@@ -1491,8 +1482,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                       low_gradients++ ;
                   }
                   if ((abs(xk) + abs(yk) + abs(zk)) > 1)
-                    continue ;  /* only allow 4 (6 in 3-d)
-                                                                                                           connectivity */
+                    continue ;  /* only allow 4 (6 in 3-d) connectivity */
                 }
               }
             }
@@ -1722,7 +1712,7 @@ MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
     {
       for (x = 0 ; x < width ; x++)
       {
-        if ((int)MRIgetVoxVal(mri_ctrl, x, y, z, 0))   /* already a control point */
+        if ((int)MRIgetVoxVal(mri_ctrl, x, y, z, 0))/*already a controlpoint*/
           continue ;
         switch (mri_src->type)
         {
@@ -2304,8 +2294,7 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
         src = *psrc++ ;
         if (!ctrl)
           val = 0 ;
-        else   /* find mean in region,
-                                                                and use it as bias field estimate */
+        else   /* find mean in region, and use it as bias field estimate */
         {
           val = src ;
           total++ ;
@@ -2328,8 +2317,7 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
           }
           val = mean / (float)n ;
 #else
-          val = MRIFvox(mri_src, x, y, z) ; /* it's already
-          reduced, don't avg*/
+          val = MRIFvox(mri_src, x, y, z) ;/* it's already reduced,don't avg*/
 #endif
         }
         *pdst++ = val ;
@@ -2364,8 +2352,7 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
         for (x = 0 ; x < width ; x++)
         {
           mark = *pmarked++ ;
-          if (mark != CONTROL_MARKED)  /* not a neighbor of
-                                                                                                  a marked point */
+          if (mark != CONTROL_MARKED)  /* not a neighbor of a marked point */
           {
             pdst++ ;
             ;
@@ -2395,8 +2382,7 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
           }
           if (n > 0)  /* some neighbors were on */
           {
-            MRIvox(mri_ctrl, x, y, z) = CONTROL_TMP ; /* it has a
-                                                                                                                   value */
+            MRIvox(mri_ctrl, x, y, z) = CONTROL_TMP ; /* it has a value */
             *pdst++ = mean / (float)n ;
             nchanged++ ;
           }
@@ -2473,12 +2459,11 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
         if (!ctrl)
           val = 0 ;
         else   /* find mean in region,
-                                                                and use it as bias field estimate */
+                  and use it as bias field estimate */
         {
           val = src ;
           total++ ;
-          val = MRISvox(mri_src, x, y, z) ;/* it's already reduced,
-                                                                                              don't avg*/
+          val = MRISvox(mri_src, x, y, z) ;/* it's already reduced,don't avg*/
         }
         *pdst++ = val ;
       }
@@ -2533,8 +2518,7 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
           if (x == Gx && y == Gy && z == Gz)
             DiagBreak() ;
           mark = *pmarked++ ;
-          if (mark != CONTROL_NBR)  /* not a neighbor of
-                                                                                               a marked point */
+          if (mark != CONTROL_NBR)  /* not a neighbor of a marked point */
           {
             pdst++ ;
             ;
@@ -2636,12 +2620,11 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
         if (!ctrl)
           val = 0 ;
         else   /* find mean in region, and use
-                                                                it as bias field estimate */
+                  it as bias field estimate */
         {
           val = src ;
           total++ ;
-          val = MRIFvox(mri_src, x, y, z) ;/* it's already reduced,
-                                                                                              don't avg*/
+          val = MRIFvox(mri_src, x, y, z) ;/* it's already reduced, don't avg*/
         }
         *pdst++ = val ;
       }
@@ -2696,7 +2679,7 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
             DiagBreak() ;
           mark = MRIgetVoxVal(mri_marked, x, y, z, 0) ;
           if (mark != CONTROL_NBR)  /* not a neighbor
-                                                                                               of a marked point */
+                                       of a marked point */
           {
             pdst++ ;
             ;
@@ -2799,13 +2782,11 @@ mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
         src = (float)*psrc++ ;
         if (!ctrl)
           val = 0 ;
-        else   /* find mean in region, and use it
-                                                                as bias field estimate */
+        else   /* find mean in region, and use it as bias field estimate */
         {
           val = src ;
           total++ ;
-          val = MRIvox(mri_src, x, y, z) ;/* it's already reduced,
-                                                                                             don't avg*/
+          val = MRIvox(mri_src, x, y, z) ;/* it's already reduced, don't avg*/
         }
         *pdst++ = val ;
       }
@@ -2860,8 +2841,7 @@ mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
           if (x == Gx && y == Gy && z == Gz)
             DiagBreak() ;
           mark = *pmarked++ ;
-          if (mark != CONTROL_NBR)  /* not a neighbor of
-                                                                                               a marked point */
+          if (mark != CONTROL_NBR)  /* not a neighbor of a marked point */
           {
             pdst++ ;
             ;
@@ -2987,8 +2967,7 @@ MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
         src = *psrc++ ;
         if (!ctrl)
           val = 0 ;
-        else   /* find mean in region, and use it
-          as bias field estimate */
+        else /* find mean in region, and use it as bias field estimate */
         {
           val = src ;
           total++ ;
@@ -3078,8 +3057,7 @@ don't avg*/
           }
           if (n > 0)  /* some neighbors were on */
           {
-            MRIvox(mri_ctrl, x, y, z) = CONTROL_TMP ; /* it has
-            a value */
+            MRIvox(mri_ctrl, x, y, z) = CONTROL_TMP ; /* it has a value */
             *pdst++ = nint((float)mean / (float)n) ;
             nchanged++ ;
           }
@@ -3152,8 +3130,7 @@ MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
         for (x = 0 ; x < width ; x++)
         {
           ctrl = *pctrl++ ;
-          if (ctrl == CONTROL_MARKED)   /* marked point - don't
-                                                                                                   change it */
+          if (ctrl == CONTROL_MARKED)   /* marked point - don't change it */
           {
             ptmp++ ;
             continue ;
@@ -3234,8 +3211,7 @@ MRIaverageFixedPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
         for (x = 0 ; x < width ; x++)
         {
           ctrl = *pctrl++ ;
-          if (ctrl != CONTROL_MARKED)   /* marked point - don't
-                                                                                                   change it */
+          if (ctrl != CONTROL_MARKED) /* marked point - don't change it */
           {
             ptmp++ ;
             continue ;
@@ -3321,8 +3297,7 @@ MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
         for (x = 0 ; x < width ; x++)
         {
           ctrl = *pctrl++ ;
-          if (ctrl == CONTROL_MARKED)   /* marked point - don't
-                                                                                                   change it */
+          if (ctrl == CONTROL_MARKED)   /* marked point - don't change it */
           {
             ptmp++ ;
             continue ;
@@ -3426,8 +3401,7 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
           if (x == Gx && y == Gy && z == Gz)
             DiagBreak() ;
           ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, 0) ;
-          if (ctrl == CONTROL_MARKED)   /* marked point - don't
-                                                                                                   change it */
+          if (ctrl == CONTROL_MARKED)   /* marked point - don't change it */
           {
             ptmp++ ;
             continue ;
@@ -3651,8 +3625,7 @@ mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
         for (x = 0 ; x < width ; x++)
         {
           ctrl = *pctrl++ ;
-          if (ctrl == CONTROL_MARKED)   /* marked point - don't
-                                                                                                   change it */
+          if (ctrl == CONTROL_MARKED)   /* marked point - don't change it */
           {
             ptmp++ ;
             continue ;
@@ -3731,8 +3704,7 @@ mriSoapBubbleExpandFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
         for (x = 0 ; x < width ; x++)
         {
           ctrl = *pctrl++ ;
-          if (ctrl == CONTROL_MARKED)   /* marked point - don't
-                                                                                                   change it */
+          if (ctrl == CONTROL_MARKED)   /* marked point - don't change it */
           {
             ptmp++ ;
             continue ;
@@ -4143,9 +4115,7 @@ remove_extreme_control_points(MRI *mri_orig,
                      min_ctrl_val =
                        min_val = max_val =
                                    max_nbr_val = val ;  /* value at center */
-            val_above = val0+max_delta_above ;/* assume
-                                                                                                           asymmetric
-                                                                                                           distribution */
+            val_above = val0+max_delta_above ;/* assume asymmetric distbtion */
             val_below = val0-max_delta_below ;
             ncontrol = 0 ; /* # of control points in nbhd */
             for (xk = -2 ; xk <= 2 ; xk++)
@@ -4389,7 +4359,7 @@ remove_gray_matter_control_points(MRI *mri_ctrl,
     printf("after %d erosions, %d voxels remaining\n", n, num) ;
     mri_tmp = MRIerode(mri_ctrl_inside, mri_tmp) ;
     if (MRIvoxelsInLabel(mri_tmp,1) <= 100) /* don't copy empty (or
-                                                                       nearly empty) image */
+                                               nearly empty) image */
       break ;
     MRIcopy(mri_tmp, mri_ctrl_inside) ;
   }
@@ -4465,8 +4435,7 @@ remove_gray_matter_control_points(MRI *mri_ctrl,
     {
       for (z = 0 ; z < mri_src->depth ; z++)
       {
-        if (MRIvox(mri_ctrl_inside,x,y,z)) /* check to make
-                                                                                      sure not in gm */
+        if (MRIvox(mri_ctrl_inside,x,y,z)) /* check to make sure not in gm */
         {
           val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
           for (xk = -whalf ; xk <= whalf ; xk++)
@@ -4506,8 +4475,7 @@ remove_gray_matter_control_points(MRI *mri_ctrl,
     {
       for (z = 0 ; z < mri_src->depth ; z++)
       {
-        if (MRIvox(mri_ctrl_outside,x,y,z)) /* check to make sure
-                                                                                       not in gm */
+        if (MRIvox(mri_ctrl_outside,x,y,z)) /* check to make sure not in gm */
         {
           val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
           hi_thresh = val0 + 2*delta_std ;
@@ -4528,8 +4496,7 @@ remove_gray_matter_control_points(MRI *mri_ctrl,
           }
           else
             n = removed = 0 ;
-          if (val0 > low_thresh)  /* pretty certain it's
-                                                                                     wm regardless */
+          if (val0 > low_thresh)  /* pretty certain it's wm regardless */
             continue ;
           if (!removed) for (xk = -whalf ; xk <= whalf ; xk++)
             {
@@ -4546,8 +4513,7 @@ remove_gray_matter_control_points(MRI *mri_ctrl,
                     val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
                     if (xi == Gvx && yi == Gvy && Gz == Gvz)
                       DiagBreak() ;
-                    if (val > hi_thresh) /* too big a change to
-                                                                                                                                  be valid bias */
+                    if (val > hi_thresh)/* too big a change to be valid bias*/
                     {
                       /* mark it as remove even though
                          it might not be - no
@@ -4575,8 +4541,7 @@ remove_gray_matter_control_points(MRI *mri_ctrl,
                                  "retaining due to lack "
                                  "of CSF proximity\n",
                                  val, xi, yi, zi) ;
-                        nretained++ ;  /* in body of white
-                                                                                                                                        matter, keep it */
+                        nretained++ ;  /* in body of white matter, keep it */
                       }
                       break ;
                     }
@@ -4597,7 +4562,6 @@ remove_gray_matter_control_points(MRI *mri_ctrl,
       }
     }
   }
-
 
   for (n = 0 ; n < num_control_points ; n++)
   {
