@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/01/17 18:51:17 $
-##    $Revision: 1.132 $
+##    $Date: 2007/01/26 20:23:53 $
+##    $Revision: 1.133 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -3170,6 +3170,8 @@ proc CreateMenuBar { ifwMenuBar } {
 		    UpdateAndRedraw } }
 	    { command "Delete Selected Path"
 		{ path_remove_selected_path } }
+	    { command "Mark Selected Path"
+		{ path_mark_selected_path; UpdateAndRedraw } }
 	    { command "Custom Fill..."
 		{ DoCustomFillDlog } }
 	    { command "Fill Stats"
