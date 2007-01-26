@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/26 19:35:43 $
- *    $Revision: 1.240 $
+ *    $Author: kteich $
+ *    $Date: 2007/01/26 20:22:52 $
+ *    $Revision: 1.241 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -1888,6 +1888,10 @@ int path_update_bounding_boxes ();
 /* Mark the path as selected. If this changes the selected path, cause
    a redraw event. */
 int path_select (int index);
+
+/* Mark the vertices in the path. */
+int path_mark_selected_path ();
+int path_mark (int index);
 
 /* Updates the path_is_path array after a path has been added or
    removed. */
@@ -18563,6 +18567,10 @@ int W_path_remove_selected_path WBEGIN
 ERR(1,"Wrong # args: path_remove_selected_path")
 path_remove_selected_path();
 WEND
+int W_path_mark_selected_path WBEGIN
+ERR(1,"Wrong # args: path_mark_selected_path")
+path_mark_selected_path();
+WEND
 int W_path_save WBEGIN
 ERR(2,"Wrong # args: path_save fname")
 path_save(argv[1]);
@@ -18825,7 +18833,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.240 2007/01/26 19:35:43 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.241 2007/01/26 20:22:52 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19589,6 +19597,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_path_new_path_from_marked_vertices, REND);
   Tcl_CreateCommand(interp, "path_remove_selected_path",
                     (Tcl_CmdProc*) W_path_remove_selected_path, REND);
+  Tcl_CreateCommand(interp, "path_mark_selected_path",
+                    (Tcl_CmdProc*) W_path_mark_selected_path, REND);
   Tcl_CreateCommand(interp, "path_save",
                     (Tcl_CmdProc*) W_path_save, REND);
   Tcl_CreateCommand(interp, "path_load",
@@ -25506,6 +25516,33 @@ int path_select (int index) {
   /* If this changes which path is selected, redraw. */
   if (old_selected != path_selected_path)
     redraw();
+
+  return (ERROR_NONE);
+}
+
+int path_mark_selected_path () {
+
+  /* Call path_mark on currently selected path. */
+  path_mark (path_selected_path);
+  
+  return (ERROR_NONE);
+}
+
+int path_mark (int index) {
+
+  int path_vno;
+  
+  if (path_selected_path < 0 ||
+      path_selected_path >= path_num_paths)
+    ErrorReturn(ERROR_BADPARM,
+		(ERROR_BADPARM, "path_mark: path index not valid"));
+  
+  /* Mark all vertices in the path. */
+  for (path_vno = 0;
+       path_vno < path_paths[index].num_vertices;
+       path_vno++ ) {
+    mark_vertex (path_paths[index].vertices[path_vno], TRUE);
+  }
 
   return (ERROR_NONE);
 }
