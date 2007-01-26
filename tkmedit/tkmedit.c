@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/01/23 19:39:07 $
- *    $Revision: 1.303 $
+ *    $Author: greve $
+ *    $Date: 2007/01/26 19:16:59 $
+ *    $Revision: 1.304 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.303 $";
+char *VERSION = "$Revision: 1.304 $";
 
 #define TCL
 #define TKMEDIT
@@ -1050,8 +1050,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   char         sError[tkm_knErrStringLen] = "";
   char*        pEnvVar                    = NULL;
 
-  tBoolean     bSubjectDeclared = FALSE;
-  tBoolean     bUsingMRIRead    = FALSE;
+  tBoolean     bSubjectDeclared   = FALSE;
+  tBoolean     bGetSubjectFromReg = FALSE;
+  tBoolean     bUsingMRIRead      = FALSE;
 
   char         sSubject[tkm_knPathLen]  = "";
   char         sImageDir[tkm_knPathLen] = "";
@@ -1170,6 +1171,16 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   eFunctional = FunV_GetThreshold( gFunctionalVolume, &min, &mid, &slope );
   DebugAssertThrow( (FunV_tErr_NoError == eFunctional ) );
 
+  // Read in env defaults
+  if(getenv("FS_TKFTHRESH")){
+    sscanf(getenv("FS_TKFTHRESH"),"%f",&min);
+    bThresh = TRUE;
+  }
+  if(getenv("FS_TKFMAX")){
+    sscanf(getenv("FS_TKFMAX"),"%f",&max);
+    bMax = TRUE;
+  }
+
   /* First look for the version option and handle that. If found,
      shorten our argc and argv count. If those are the only args we
      had, exit. */
@@ -1177,7 +1188,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.303 2007/01/23 19:39:07 kteich Exp $",
+     "$Id: tkmedit.c,v 1.304 2007/01/26 19:16:59 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1192,7 +1203,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("Anatomical Data\n");
     printf("\n");
     printf("subject image_type  : looks in $SUBJECTS_DIR/subject/mri "
-           "for image_type\n");
+           "for image_type. If subject=getreg, gets subject from ov reg\n");
     printf("-f absolute_path    : specify volume directory or file\n");
     printf("\n");
     printf("Surface\n");
@@ -1250,7 +1261,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
            "in same path as\n");
     printf("                            :  volume)\n");
     printf("\n");
-    printf("-fthresh <value>       : specify min, mid, and slope threshold\n");
+    printf("-fthresh <value> : threshold for overlay (FS_TKFTHRESH)\n");
+    printf("-fmax <value>    : max/sat for overlay (FS_TKFMAX)\n");
     printf("-fmid <value>          : values for functional overlay display\n");
     printf("-fslope <value>        : (default is 0, 1.0, and 1.0)\n");
     printf("-fsmooth <sigma>       : smooth functional overlay "
@@ -1617,7 +1629,16 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           }
           overlayRegType = FunD_tRegistration_File;
           nCurrentArg += 2;
-
+	  if(bGetSubjectFromReg){
+	    FILE *fp;
+	    fp = fopen(sOverlayRegistration,"r");
+	    fscanf(fp,"%s",sSubject);
+	    fclose(fp);
+	    printf("Setting subject name to %s\n",sSubject);
+	    DebugNote( ("Setting subject home from env") );
+	    eResult = SetSubjectHomeDirFromEnv( sSubject );
+	    DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
+	  }
         } else {
 
           /* misuse of that option */
@@ -1914,9 +1935,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           bSubjectDeclared = TRUE;
           nCurrentArg += 2;
 
-          /* save subject home */
-          DebugNote( ("Setting subject home directory to %s", sSubject) );
-          SetSubjectHomeDir( sSubject );
+	  DebugNote( ("Setting subject home directory to %s", sSubject) );
+	  SetSubjectHomeDir( sSubject );
 
           /* disable automatic file name making because there's no
              home dir, really */
@@ -2403,9 +2423,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
         bSubjectDeclared = TRUE;
         nCurrentArg ++;
 
-        /* save subject home */
-        DebugNote( ("Setting user home dir to %s", gsUserHomeDir) );
-        SetSubjectHomeDir( gsUserHomeDir );
+	/* save subject home */
+	DebugNote( ("Setting user home dir to %s", gsUserHomeDir) );
+	SetSubjectHomeDir( gsUserHomeDir );
       }
 
     } else {
@@ -2439,10 +2459,15 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
             bSubjectDeclared = TRUE;
             nCurrentArg += 2;
 
-            /* save subject home */
-            DebugNote( ("Setting subject home from env") );
-            eResult = SetSubjectHomeDirFromEnv( sSubject );
-            DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
+	    if(!MATCH(sSubject,"getreg")){
+	      /* save subject home */
+	      DebugNote( ("Setting subject home from env") );
+	      eResult = SetSubjectHomeDirFromEnv( sSubject );
+	      DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
+	    } else {
+	      printf("Getting subject from registration file.\n");
+	      bGetSubjectFromReg = TRUE;
+	    }
           }
 
           /* check for a surface. if we have enough args... */
@@ -5821,7 +5846,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.303 2007/01/23 19:39:07 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.304 2007/01/26 19:16:59 greve Exp $ $Name:  $\n"
     )
   );
 
