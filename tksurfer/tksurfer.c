@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/01/26 20:22:52 $
- *    $Revision: 1.241 $
+ *    $Author: greve $
+ *    $Date: 2007/01/27 07:56:20 $
+ *    $Revision: 1.242 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -695,7 +695,7 @@ float maxstress = 1e10;
 float avgstress = 0;
 int senstype = 0;
 double fthresh = 2.0;
-double fmax;
+double tksfmax;
 double wt = 0.5;
 double wa = 0.5;
 double ws = 0.5;
@@ -2068,9 +2068,9 @@ int  mai(int argc,char *argv[])
     sscanf(getenv("FS_TKFTHRESH"),"%lf",&fthresh);
   }
   if(getenv("FS_TKFMAX")){
-    sscanf(getenv("FS_TKFMAX"),"%lf",&fmax);
-    fmid = (fmax+fthresh)/2.0;
-    fslope = 1.0/(fmax-fthresh);
+    sscanf(getenv("FS_TKFMAX"),"%lf",&tksfmax);
+    fmid = (tksfmax+fthresh)/2.0;
+    fslope = 1.0/(tksfmax-fthresh);
   }
 
   /* This is a pre-pass of our arguments and just looks for -option
@@ -18833,7 +18833,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.241 2007/01/26 20:22:52 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.242 2007/01/27 07:56:20 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
