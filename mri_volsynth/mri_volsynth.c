@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/23 05:50:29 $
- *    $Revision: 1.21 $
+ *    $Date: 2007/01/28 05:35:01 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.21 2007/01/23 05:50:29 greve Exp $
+  $Id: mri_volsynth.c,v 1.22 2007/01/28 05:35:01 greve Exp $
 */
 
 #include <stdio.h>
@@ -75,7 +75,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.21 2007/01/23 05:50:29 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.22 2007/01/28 05:35:01 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -116,6 +116,7 @@ char *sum2file = NULL;
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) 
 {
+  int c,r,s;
   double voxradius,val;
   FILE *fp;
 
@@ -251,6 +252,19 @@ int main(int argc, char **argv)
     mri = MRIdivide(mri,mri2,mri);
     MRIscalarMul(mri, mri, (double)dendof/numdof) ;
     MRIfree(&mri2);
+  } else if (strcmp(pdfname,"voxcrs")==0) {
+    // three frames. 1st=col, 2nd=row, 3rd=slice
+    printf("Filling with vox CRS\n");
+    mri = MRIconst(dim[0], dim[1], dim[2], 3, 0, NULL);
+    for(c=0; c < mri->width; c ++){
+      for(r=0; r < mri->height; r ++){
+	for(s=0; s < mri->depth; s ++){
+	  MRIsetVoxVal(mri,c,r,s,0,c);
+	  MRIsetVoxVal(mri,c,r,s,1,r);
+	  MRIsetVoxVal(mri,c,r,s,2,s);
+	}
+      }
+    }
   } else {
     printf("ERROR: pdf %s unrecognized, must be gaussian, uniform, const, or delta\n",
            pdfname);
@@ -489,7 +503,8 @@ static void print_usage(void) {
   printf(" Value distribution flags\n");
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
-  printf("   --pdf pdfname : <gaussian>, uniform, const, delta, sphere, z, t, F, chi2\n");
+  printf("   --pdf pdfname : <gaussian>, uniform, const, delta, \n");
+  printf("      sphere, z, t, F, chi2, voxcrs\n");
   printf("   --gmean mean : use mean for gaussian (def is 0)\n");
   printf("   --gstd  std  : use std for gaussian standard dev (def is 1)\n");
   printf("   --delta-crsf col row slice frame : 0-based\n");
