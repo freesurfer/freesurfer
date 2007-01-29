@@ -1,14 +1,16 @@
 #! /bin/csh -f
 #
 # mkfeat-sess - freesurfer front end for configuring
-# an analysis with FSL's FEAT.
+#   an analysis with FSL's FEAT.
+
+# 1. clone does not work (needs to be customized)
 
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/01/29 15:28:07 $
-#    $Revision: 1.1 $
+#    $Date: 2007/01/29 15:40:44 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,15 +26,16 @@
 #
 
 
-set VERSION = '$Id: mkfeat-sess,v 1.1 2007/01/29 15:28:07 greve Exp $';
+set VERSION = '$Id: mkfeat-sess,v 1.2 2007/01/29 15:40:44 greve Exp $';
 set inputargs = ($argv);
 
-set analyhsis = ();
+set analysis  = ();
 set funcstem  = ();
 set fsd       = ();
 set rlf       = ();
 set force     = 0;
 set globschdir = ();
+set clone  = ();
 
 set tmpdir    = ();
 set cleanup   = 1;
@@ -92,6 +95,9 @@ if($#tmpdir == 0) set tmpdir = $rundir/mkfeat-sess.$$
 echo tmpdir is $tmpdir
 rm -rf $tmpdir
 mkdir $tmpdir
+
+# Copy the clone
+if($#clone) cp $clone/design.fsf $tmpdir
 
 # Copy input to tmp dir
 set cmd = (mri_convert $invol $tmpdir/f.nii)
@@ -165,6 +171,27 @@ while( $#argv != 0 )
     case "-a"
       if ( $#argv == 0) goto arg1err;
       set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-clone"
+      if ( $#argv == 0) goto arg1err;
+      set clone = $argv[1]; shift;
+      if(! -e $clone) then
+        echo "ERROR: cannot find $clone"
+        exit 1;
+      endif
+      if(! -e $clone/design.fsf) then
+        echo "ERROR: cannot find $clone/design.fsf"
+        exit 1;
+      endif
+      set inf = $clone/analysis.info
+      if(! -e $inf) then
+        echo "ERROR: cannot find $inf"
+        exit 1;
+      endif
+      set fsd = `cat $inf | awk '{if($1 == "fsd") print $2}'`;
+      set funcstem   = `cat $inf | awk '{if($1 == "funcstem") print $2}'`;
+      set globschdir = `cat $inf | awk '{if($1 == "globschdir") print $2}'`;
       breaksw
 
     case "-funcstem":
@@ -269,6 +296,7 @@ usage_exit:
   echo "  -runlistfile rlf"
   echo "  -s templatesess"
   echo "  -globscheddir dir"
+  echo "  -clone analysis"
   echo ""
   echo "  -force"
   echo "  -help"
