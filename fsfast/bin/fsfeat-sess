@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/01/29 19:08:23 $
-#    $Revision: 1.2 $
+#    $Date: 2007/01/29 19:06:36 $
+#    $Revision: 1.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat-sess,v 1.2 2007/01/29 19:08:23 greve Exp $';
+set VERSION = '$Id: fsfeat-sess,v 1.1 2007/01/29 19:06:36 greve Exp $';
 set inputargs = ($argv);
 
 set analysis   = ();
@@ -146,7 +146,7 @@ foreach sess ($SessList)
     if($#subject) set cmd = ($cmd --subject $subject);
     pwd | tee -a $LF
     echo $cmd | tee -a $LF
-    $cmd |& tee -a $LF
+    #$cmd |& tee -a $LF
     if($status) exit 1;
 
     if($#tmpdir) rm -rf $tmpdir
