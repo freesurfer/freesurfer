@@ -14,8 +14,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/01/29 19:06:09 $
-#    $Revision: 1.3 $
+#    $Date: 2007/01/29 19:10:17 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -31,7 +31,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat,v 1.3 2007/01/29 19:06:09 greve Exp $';
+set VERSION = '$Id: fsfeat,v 1.4 2007/01/29 19:10:17 greve Exp $';
 set inputargs = ($argv);
 
 set fsf     = ();
@@ -161,9 +161,10 @@ while ($nthzstat < $nzstats)
   # symlink to meaningful name here
   set conname = `fsfget $fsf conname_real.$nthzstat`
   if($#conname != 0) then
-    set sig2 = $statsdir/$conname.sig.$outext
-    if(-e $sig2) rm $sig2
-    ln -s $sig $sig2
+    pushd $statsdir > /dev/null
+    if(-e $conname.sig.$outext) rm $conname.sig.$outext
+    ln -s zsig$nthzstat.$outext $conname.sig.$outext
+    popd  > /dev/null
   endif
 end
 
