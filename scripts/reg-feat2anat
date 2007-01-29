@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/06 00:01:15 $
-#    $Revision: 1.23 $
+#    $Author: greve $
+#    $Date: 2007/01/29 16:32:17 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,10 +25,10 @@
 #
 
 
-set VERSION = '$Id: reg-feat2anat,v 1.23 2007/01/06 00:01:15 nicks Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.24 2007/01/29 16:32:17 greve Exp $'
 set FeatDir = ();
 set subject = ();
-set anatvol = brain;
+set anatvol = brainmask;
 set dof = 6;
 set bins = 256;
 set maxangle = 90;
