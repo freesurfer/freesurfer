@@ -1,0 +1,287 @@
+#! /bin/csh -f
+#
+# mkfeat-sess - freesurfer front end for configuring
+# an analysis with FSL's FEAT.
+
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2007/01/29 15:28:07 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: mkfeat-sess,v 1.1 2007/01/29 15:28:07 greve Exp $';
+set inputargs = ($argv);
+
+set analyhsis = ();
+set funcstem  = ();
+set fsd       = ();
+set rlf       = ();
+set force     = 0;
+set globschdir = ();
+
+set tmpdir    = ();
+set cleanup   = 1;
+set PrintHelp = 0;
+
+#### If no arguments, print usage and exit ####
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+##### Print out version info, if needed ####
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+# Only for a template
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+if($FSLOUTPUTTYPE == NIFTI)    set outext = nii;
+if($FSLOUTPUTTYPE == NIFTI_GZ) set outext = nii.gz
+if($FSLOUTPUTTYPE == ANALYZE) then
+  echo "ERROR: FSLOUTPUTTYPE == ANALYZE, get a real format!"
+  exit 1;
+endif
+
+set funcdirpath = $SessList[1]/$fsd
+set runlist = `getrunlist $funcdirpath $rlf`;
+if($status) then
+  echo $runlist
+  exit 1;
+endif
+
+set rundir = $funcdirpath/$runlist[1]
+set stem = $rundir/$funcstem
+set inext = `fast_getext $stem`;
+if($status) then
+  echo "$inext"
+  exit 1;
+endif
+set invol = $stem.$inext
+
+if($#tmpdir == 0) set tmpdir = $rundir/mkfeat-sess.$$
+echo tmpdir is $tmpdir
+rm -rf $tmpdir
+mkdir $tmpdir
+
+# Copy input to tmp dir
+set cmd = (mri_convert $invol $tmpdir/f.nii)
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# Copy schedule files to tmp dir
+if(! $#globschdir) then
+  cp $rundir/*.sch $tmpdir
+else
+  cp $globschdir/r001/* $tmpdir
+endif
+
+pushd $tmpdir
+Feat 
+if($status) exit 1;
+popd
+
+if(! -e $tmpdir/design.fsf) then
+  echo "ERROR: cannot find $tmpdir/design.fsf"
+  exit 1;
+endif
+
+set fslversion = `cat $FSLDIR/etc/fslversion`;
+
+mkdir -p $analysis
+set fsf = $analysis/design.fsf
+rm -f $fsf
+echo "# This file created with the freesurfer mkfeat-sess wrapper" >> $fsf
+echo "# $VERSION"      >> $fsf
+echo "# `pwd`"         >> $fsf
+echo "# $0"            >> $fsf
+echo "# $inputargs"    >> $fsf
+echo "# `date`"        >> $fsf
+echo "# user $user"    >> $fsf
+echo "# `uname -a` "   >> $fsf
+echo "# FSL version $fslversion" >> $fsf
+echo "# ------------------------------ "   >> $fsf
+echo ""   >> $fsf
+
+cat $tmpdir/design.fsf >> $fsf
+
+set infofile = $analysis/analysis.info
+rm -f $infofile
+echo "analysis $analysis"  >> $infofile
+echo "fsd $fsd"            >> $infofile
+echo "funcstem $funcstem"  >> $infofile
+if($#globschdir) echo "globschdir $globschdir"  >> $infofile
+
+if($cleanup) rm -r $tmpdir
+
+echo " " 
+echo "mkfeat-sess done" 
+echo " " 
+
+exit 0;
+###--------------------------------------------###
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-analysis"
+    case "-a"
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-funcstem":
+    case "-f":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-runlistfile":
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set rlf = $argv[1]; shift;
+      breaksw
+
+    case "-globscheddir":
+      if ( $#argv == 0) goto arg1err;
+      set globscheddir = $argv[1]; shift;
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-force":
+      set force = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag unrecognized"
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis == 0) then
+    echo "ERROR: must specify an analysis name"
+    exit 1;
+  endif
+  if(-e $analysis) then
+    if(! $force) then
+      echo "ERROR: $analysis alread exists. You have three options"
+      echo "  1. delete it, or" 
+      echo "  2. rename it, or" 
+      echo "  3. rerun with -force (which will delete it)" 
+      exit 1;
+    endif
+    rm -r $analysis
+  endif
+
+  if($#funcstem == 0) then
+    echo "ERROR: must specify a funcstem"
+    exit 1;
+  endif
+
+  if(! $#fsd) set fsd = bold;
+
+  if($#globschdir) then
+    set d = $globschdir/r001
+    if(! -e $d) then
+      echo "ERROR: cannot find $d"
+      exit 1;
+    endif
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "mkfeat-sess "
+  echo ""
+  echo "  -analysis analysis"
+  echo "  -funcstem stem"
+  echo "  -fsd FSD"
+  echo "  -runlistfile rlf"
+  echo "  -s templatesess"
+  echo "  -globscheddir dir"
+  echo ""
+  echo "  -force"
+  echo "  -help"
+  echo "  -debug"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Help!
