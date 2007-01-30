@@ -140,6 +140,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_apply_inu_correction
 
 MRISSUBDIRS=label_area \
+	label2patch \
 	spherical_stats \
 	stim \
 	stim_polar \

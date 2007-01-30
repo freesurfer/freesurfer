@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.291 2007/01/23 01:32:59 fischl Exp $"
+# "$Id: configure.in,v 1.292 2007/01/30 18:02:49 fischl Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1861,6 +1861,7 @@ AC_OUTPUT([Makefile
            include/topology/Makefile
            include/fs_vnl/Makefile
            label_area/Makefile
+           label2patch/Makefile
            log/Makefile
            matlab/Makefile
            mkxsubjreg/Makefile
