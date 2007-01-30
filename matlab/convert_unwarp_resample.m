@@ -25,8 +25,8 @@ function convert_unwarp_resample(infile,series,outfile,corfovflag,unwarpflag,jac
 % Original Author: Elizabeth Haley
 % CVS Revision Info:
 %    $Author: nicks $
-%    $Date: 2007/01/10 22:55:09 $
-%    $Revision: 1.11 $
+%    $Date: 2007/01/30 21:22:38 $
+%    $Revision: 1.12 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -282,7 +282,7 @@ if isfield(dcminfo(1),'StationName')
   SN = dcminfo(1).StationName;
 else SN = ''; end
 
-gradfilename = header2map(dcminfo(1).Manufacturer,dcminfo(1).ManufacturersModelName,SSN,IN,SN);
+gradfilename = header2map(dcminfo(1).Manufacturer,dcminfo(1).ManufacturerModelName,SSN,IN,SN);
 fprintf('load_dicom_and_stuff: INFO: gradwarpfile is %s\n',gradfilename); %EDEBUG%
 
 return;
