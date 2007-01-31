@@ -1,15 +1,18 @@
 /**
  * @file  gcsa.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Gaussian Classifier (Surface) Atlas utilities
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Utilities for creating and using the cortical parcellation atlas.
+ * See:
+ * "Automatically Parcellating the Human Cerebral Cortex", Fischl et al.
+ * (2004). Cerebral Cortex, 14:11-22.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:32 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/01/31 00:24:11 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -347,7 +350,10 @@ int GCSAsourceToPriorVertexNo(GCSA *gcsa, VERTEX *v)
 {
   int vdstno;
   float dmin;
-  vdstno = MHTfindClosestVertexNo(gcsa->mht_priors, gcsa->mris_priors, v, &dmin) ;
+  vdstno = MHTfindClosestVertexNo(gcsa->mht_priors, 
+                                  gcsa->mris_priors, 
+                                  v, 
+                                  &dmin) ;
   return(vdstno) ;
 }
 
@@ -522,8 +528,7 @@ GCSAnormalizeCovariances(GCSA *gcsa)
         MatrixScalarMul(gcs->m_cov,
                         1.0/(gcs->total_training-1.0f),gcs->m_cov);
 
-      if (gcs->total_training < 5)    /* not that many
-                                                     samples - regularize */
+      if (gcs->total_training < 5)    /* not that many samples - regularize */
       {
         for (i = 1 ; i <= gcsa->ninputs ; i++)
         {
@@ -715,7 +720,10 @@ GCSAread(char *fname)
   icno_classifiers = freadInt(fp) ;
   icno_priors = freadInt(fp) ;
 
-  gcsa = GCSAalloc(ninputs,icno_priors, icno_classifiers) ;
+  //printf("GCSAread(): ninputs=%d, icno_classifiers=%d, icno_priors=%d\n",
+  //     ninputs,icno_classifiers,icno_priors);
+
+  gcsa = GCSAalloc(ninputs, icno_priors, icno_classifiers) ;
 
   for (i = 0 ; i < ninputs ; i++)
   {
@@ -2311,7 +2319,9 @@ double    det, vars[1000], min_det ;
   else
     min_det = MIN_DET ;
 
-  for (regularized = fixed = j = 0 ; j < gcsa->mris_classifiers->nvertices ; j++)
+  for (regularized = fixed = j = 0 ; 
+       j < gcsa->mris_classifiers->nvertices ; 
+       j++)
     {
       if (j == Gdiag_no)
         DiagBreak() ;
