@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/17 21:06:05 $
- *    $Revision: 1.68 $
+ *    $Date: 2007/01/31 17:27:26 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -544,6 +544,8 @@ LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris)
     vno = area->lv[n].vno ;
     if (vno < 0 || vno >= mris->nvertices)
       continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     v = &mris->vertices[vno] ;
     v->ripflag = 0 ;
   }
@@ -1399,7 +1401,7 @@ LabelIsCompletelyUnassigned(LABEL *area, int *unassigned)
 int
 LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
 {
-  int     n, i, vno, min_vno, nfilled = 0 ;
+  int     n, i, vno, min_vno, nfilled = 0, max_vno ;
   LV      *lv ;
   MHT     *mht ;
   MHBT    *bucket ;
@@ -1408,7 +1410,11 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   float   dx, dy, dz, x, y, z, dist, min_dist ;
   int     num_not_found;
   float   vx, vy, vz;
+  double  max_spacing ;
   vx = vy = vz = -1;
+
+  MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, 
+                                NULL,&max_vno);
 
   for (i = n = 0 ; n < area->n_points ; n++)
   {
@@ -1424,7 +1430,7 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
           i) ;
 
   /* if we can't find a vertex within 10 mm of the point, something is wrong */
-  mht = MHTfillVertexTableRes(mris, NULL, coords, 10.0) ;
+  mht = MHTfillVertexTableRes(mris, NULL, coords, 2*max_spacing) ;
   fprintf(stderr, "assigning vertex numbers to label...\n") ;
   num_not_found = 0;
   for (n = 0 ; n < area->n_points ; n++)
@@ -1440,8 +1446,6 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
     z = lv->z ;
     min_dist = 10000.0 ;
     min_vno = -1 ;
-    if (Gdiag_no == 55)
-      lv->vno = MRISfindClosestOriginalVertex(mris, lv->x, lv->y, lv->z) ;
     if (bucket)
     {
       for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++)
@@ -1466,9 +1470,19 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
       }
     }
     if (min_vno == -1)
+    {
+      switch (coords)
+      {
+      case ORIG_VERTICES:
+        min_vno = MRISfindClosestOriginalVertex(mris, lv->x, lv->y, lv->z) ;
+        break ;
+      default:
+        break ;
+      }
+    }
+    if (min_vno == -1)
       num_not_found++;
-    else
-      lv->vno = min_vno ;
+    lv->vno = min_vno ;
   }
   LabelRemoveDuplicates(area) ;
   MHTfree(&mht) ;
