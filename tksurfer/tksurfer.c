@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/27 07:56:20 $
- *    $Revision: 1.242 $
+ *    $Author: fischl $
+ *    $Date: 2007/01/31 17:13:04 $
+ *    $Revision: 1.243 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -97,7 +97,9 @@ void val_to_curv(void) ;
 void val_to_stat(void) ;
 void stat_to_val(void) ;
 
+static void label_from_stats(int field) ;
 static void label_to_stat(int which_overlay) ;
+static void label_set_stats(float val ) ;
 static void f_to_t(void) ;
 static void t_to_p(int dof) ;
 static void f_to_p(int numer_dof, int denom_dof) ;
@@ -903,6 +905,7 @@ int mark_contiguous_vertices_with_similar_curvature();
 int mark_contiguous_vertices_over_thresh();
 /* end rkt */
 void clear_ripflags(void) ;
+void clear_vals(void) ;
 void cut_marked_vertices(int closedcurveflag) ;
 void cut_plane(void) ;
 void cut_vertex(void) ;
@@ -12365,6 +12368,17 @@ clear_curvature(void) {
 }
 
 void
+clear_vals(void) {
+  VERTEX *v;
+  int k;
+
+  for (k=0;k<mris->nvertices;k++) {
+    v = &mris->vertices[k];
+    v->val = 0;
+  }
+}
+
+void
 normalize_curvature(int which_norm) {
   MRISnormalizeCurvature(mris, which_norm) ;
 }
@@ -16965,6 +16979,8 @@ int W_sol_plot  PARM;
 int W_remove_triangle_links  PARM;
 
 int W_label_to_stat  PARM;
+int W_label_from_stats  PARM;
+int W_set_stats  PARM;
 int W_f_to_t  PARM;
 int W_t_to_p  PARM;
 int W_f_to_p  PARM;
@@ -17046,6 +17062,7 @@ int W_compute_curvature  PARM;
 int W_compute_CMF  PARM;
 int W_compute_cortical_thickness PARM;
 int W_clear_curvature  PARM;
+int W_clear_vals  PARM;
 int W_clear_ripflags  PARM;
 int W_restore_ripflags  PARM;
 int W_floodfill_marked_patch  PARM;
@@ -17558,6 +17575,11 @@ WEND
 int                  W_clear_curvature  WBEGIN
 ERR(1,"Wrong # args: clear_curvature")
 clear_curvature();
+WEND
+
+int                  W_clear_vals  WBEGIN
+ERR(1,"Wrong # args: clear_vals")
+clear_vals();
 WEND
 
 int                  W_clear_ripflags  WBEGIN
@@ -18095,6 +18117,16 @@ WEND
 int                  W_label_to_stat  WBEGIN
 ERR(2,"Wrong # args: label_to_stat ")
 label_to_stat(atoi(argv[1]));
+WEND
+
+int                  W_label_from_stats  WBEGIN
+ERR(2,"Wrong # args: label_from_stats ")
+label_from_stats(atoi(argv[1]));
+WEND
+
+int                  W_label_set_stats  WBEGIN
+ERR(2,"Wrong # args: label_set_stats ")
+label_set_stats(atof(argv[1]));
 WEND
 
 int                  W_remove_triangle_links  WBEGIN
@@ -18833,7 +18865,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.242 2007/01/27 07:56:20 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.243 2007/01/31 17:13:04 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19204,6 +19236,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_compute_cortical_thickness,     REND);
   Tcl_CreateCommand(interp, "clear_curvature",
                     (Tcl_CmdProc*) W_clear_curvature,    REND);
+  Tcl_CreateCommand(interp, "clear_vals",
+                    (Tcl_CmdProc*) W_clear_vals,    REND);
   Tcl_CreateCommand(interp, "clear_ripflags",
                     (Tcl_CmdProc*) W_clear_ripflags,     REND);
   Tcl_CreateCommand(interp, "restore_ripflags",
@@ -19414,6 +19448,12 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_f_to_t, REND);
   Tcl_CreateCommand(interp, "label_to_stat",
                     (Tcl_CmdProc*) W_label_to_stat, REND);
+
+  Tcl_CreateCommand(interp, "label_from_stats",
+                    (Tcl_CmdProc*) W_label_from_stats, REND);
+  Tcl_CreateCommand(interp, "label_set_stats",
+                    (Tcl_CmdProc*) W_label_set_stats, REND);
+
   Tcl_CreateCommand(interp, "t_to_p",
                     (Tcl_CmdProc*) W_t_to_p, REND);
   Tcl_CreateCommand(interp, "f_to_p",
@@ -24016,6 +24056,7 @@ int labl_save (int index, char* fname) {
     return (ERROR_BADPARM);
 
   /* Get a copy of our label. */
+	printf("label at index %d with %d points\n", index, labl_labels[index].label->n_points) ;
   label = LabelCopy (labl_labels[index].label, NULL);
   if (NULL == label)
     return (ERROR_BADPARM);
@@ -24418,6 +24459,7 @@ int labl_new_from_marked_vertices (int *new_index_out) {
   VERTEX* v = NULL;
   int new_index;
   char tcl_command[NAME_LENGTH + 50];
+  float val ;
 
   /* count the number of marked vertices. */
   num_marked_verts = 0;
@@ -24443,9 +24485,11 @@ int labl_new_from_marked_vertices (int *new_index_out) {
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     if (v->marked) {
+      sclv_get_value(v, sclv_current_field, &val) ;
       label->lv[label_vno].x = v->x;
       label->lv[label_vno].y = v->y;
       label->lv[label_vno].z = v->z;
+      label->lv[label_vno].stat = val ;
       label->lv[label_vno].vno = vno;
       label_vno++;
     }
@@ -25012,6 +25056,8 @@ int labl_remove_all () {
     labl_remove (0);
     labels--;
   }
+  labl_num_labels_created = 0;
+	labl_num_labels = 0 ;
 
   return (ERROR_NONE);
 }
@@ -26956,5 +27002,77 @@ transform_brain(void) {
   vset_save_surface_vertices(VSET_MAIN) ;
   vset_set_current_set(vset_current_set) ;
   redraw() ;
+}
+
+static void
+label_set_stats(float val)
+{
+  int   i ;
+  LABEL *area ;
+
+  if (labl_selected_label< 0)
+    return;
+  area = labl_labels[labl_selected_label].label ;
+  for (i = 0 ; i < area->n_points ; i++)
+    area->lv[i].stat = val ;
+}
+
+static void
+label_from_stats(int field)
+{
+  int    n, vno, new_index ;
+  VERTEX *v ;
+  float  val ;
+  LABEL  *l ;
+  char   tcl_command[STRLEN] ;
+
+  for (n = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+    
+    sclv_get_value(v, field, &val) ;
+    if  (!FZERO(val))
+      n++ ;
+  }
+
+  l = LabelAlloc(n, NULL, NULL) ;
+  strncpy( l->subject_name, pname, 100 );
+  for (n = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+    
+    sclv_get_value(v, field, &val) ;
+    if  (!FZERO(val))
+    {
+      l->lv[n].vno = vno ;
+      l->lv[n].x = v->x ;
+      l->lv[n].y = v->y ;
+      l->lv[n].z = v->z ;
+      l->lv[n].stat = val ;
+      n++ ;
+    }
+  }
+  l->n_points = n ;
+  LabelToWhite (l, mris);
+  /* add this label to our list. */
+  labl_add (l, &new_index);
+	printf("new label created at index %d with %d points\n", new_index, n) ;
+
+  /* select this label */
+  labl_select (new_index);
+
+  surface_compiled = 0 ;
+
+  /* if the fill dlog is open, this will update it. */
+  sprintf (tcl_command, "LabelsChanged");
+  send_tcl_command (tcl_command);
 }
 
