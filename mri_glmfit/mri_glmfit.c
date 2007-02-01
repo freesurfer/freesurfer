@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/23 21:38:41 $
- *    $Revision: 1.109 $
+ *    $Date: 2007/02/01 00:45:15 $
+ *    $Revision: 1.110 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -88,6 +88,7 @@ USAGE: ./mri_glmfit
    --help      print out information on how to use this program
    --version   print out version and exit
    --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)
+   --allowsubjrep allow subject names to repeat in the fsgd file
 
 ENDUSAGE --------------------------------------------------------------
 
@@ -487,7 +488,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.109 2007/01/23 21:38:41 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.110 2007/02/01 00:45:15 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1530,6 +1531,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
     else if (!strcasecmp(option, "--nii")) format = "nii";
+    else if (!strcasecmp(option, "--allowsubjrep"))
+      fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if (!strcasecmp(option, "--asl")) useasl = 1;
     else if (!strcasecmp(option, "--asl-rev")){
       useasl = 1;
@@ -1801,6 +1804,7 @@ static void print_usage(void) {
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)\n");
+  printf("   --allowsubjrep allow subject names to repeat in the fsgd file\n");
   printf("\n");
 }
 /* --------------------------------------------- */
