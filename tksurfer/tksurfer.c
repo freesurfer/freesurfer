@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/02/01 12:20:45 $
- *    $Revision: 1.244 $
+ *    $Author: nicks $
+ *    $Date: 2007/02/01 20:26:15 $
+ *    $Revision: 1.245 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -18865,7 +18865,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.244 2007/02/01 12:20:45 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.245 2007/02/01 20:26:15 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -27022,7 +27022,7 @@ label_from_stats(int field)
 {
   int    n, vno, new_index ;
   VERTEX *v ;
-  float  val ;
+  float  val =0.0;
   LABEL  *l ;
   char   tcl_command[STRLEN] ;
 
