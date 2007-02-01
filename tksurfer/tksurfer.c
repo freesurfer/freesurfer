@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/31 17:13:04 $
- *    $Revision: 1.243 $
+ *    $Date: 2007/02/01 12:20:45 $
+ *    $Revision: 1.244 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -18865,7 +18865,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.243 2007/01/31 17:13:04 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.244 2007/02/01 12:20:45 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24459,7 +24459,7 @@ int labl_new_from_marked_vertices (int *new_index_out) {
   VERTEX* v = NULL;
   int new_index;
   char tcl_command[NAME_LENGTH + 50];
-  float val ;
+  float val = 0;
 
   /* count the number of marked vertices. */
   num_marked_verts = 0;
