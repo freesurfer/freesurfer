@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/02 04:18:01 $
-#    $Revision: 1.9 $
+#    $Date: 2007/02/02 04:40:00 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask,v 1.9 2007/02/02 04:18:01 greve Exp $';
+set VERSION = '$Id: mkbrainmask,v 1.10 2007/02/02 04:40:00 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -55,7 +55,7 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-setenv FSLOUTPUTTYPE ANALYZE
+setenv FSLOUTPUTTYPE NIFTI
 
 #---------------------------------------------------#
 set outdir = `dirname $outstem`;
@@ -70,8 +70,8 @@ endif
 mkdir -p $scratchdir
 echo "Scratch Dir is $scratchdir" 
 
-# Convert to analyze
-set inimg = $scratchdir/in.img
+# Convert to nifti
+set inimg = $scratchdir/in.nii
 set cmd = (mri_convert $instem $inimg)
 pwd
 echo $cmd
@@ -92,8 +92,8 @@ if($status) then
 endif
 
 # Binarize
-set cmd = (mri_binarize --i $scratchdir/brain_mask.img --min .01 \
-                        --o $scratchdir/brain_mask.img );
+set cmd = (mri_binarize --i $scratchdir/brain_mask.nii --min .01 \
+                        --o $scratchdir/brain_mask.nii );
 echo $cmd
 $cmd 
 if($status) exit 1;
@@ -101,7 +101,7 @@ if($status) exit 1;
 #------------------------------------------------------------------
 if($ndilates > 0) then
   echo Diliating $ndilates
-  set srcmask = $scratchdir/brain_mask.img
+  set srcmask = $scratchdir/brain_mask.nii
   @ n = 1
   while( $n <= $ndilates) 
     set cmd = (avwmaths $srcmask -dil $srcmask)
@@ -119,7 +119,7 @@ endif
 #------------------------------------------------------------------
 if($nerodes > 0) then
   echo Eroding $nerodes
-  set srcmask = $scratchdir/brain_mask.img
+  set srcmask = $scratchdir/brain_mask.nii
   @ n = 1
   while( $n <= $nerodes) 
     set cmd = (avwmaths $srcmask -ero $srcmask)
@@ -134,11 +134,8 @@ if($nerodes > 0) then
   end
 endif
 
-# Copy .mat file to outbase
-cp $scratchdir/in.mat $scratchdir/brain_mask.mat
-
-# Convert the binary mask back to bshort #
-set cmd = (mri_convert $scratchdir/brain_mask.img $outstem -odt short)
+# Convert the binary mask to output
+set cmd = (mri_convert $scratchdir/brain_mask.nii $outstem)
 pwd
 echo $cmd
 $cmd
