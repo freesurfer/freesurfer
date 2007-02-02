@@ -1,16 +1,27 @@
 % fast_fmriqa.m
+% d = voxel size
+%   gstd = d/sqrt(-4*log(ar1));
+%   fwhm = gstd*sqrt(log(256.0));
+%   fwhm = sqrt(log(256.0))*d/sqrt(-4*log(ar1));
+
 tic;
 
-infile = 'fqa.nii';
-polyorder = 2;
+m = MRIread('maske4');
+indm = find(m.vol);
+
+%infile = 'fqa.fa10.nii';
+%outdir = 'qa.fa10';
+infile = 'f2.nii';
 outdir = 'qa';
+
+polyorder = 2;
 synth = 0;
 
 mkdirp(outdir);
 
 fprintf('Loading data   %g\n',toc);
 f = MRIread(infile);
-f.vol = f.vol(:,:,:,1:50);
+%f.vol = f.vol(:,:,:,1:50);
 f.nframes = size(f.vol,4);
 nf = f.nframes;
 nv = prod(size(f.vol));
@@ -88,7 +99,7 @@ MRIwrite(ar1s,fname);
 
 % Begin smoothing:
 fprintf('Smoothing   %g\n',toc);
-fwhmlist = [3 6 9]';
+fwhmlist = [1 2 3]';
 nfwhm = length(fwhmlist);
 delta = zeros(f.volsize);
 delta(round(end/2),round(end/2),round(end/2)) = 1;
@@ -96,7 +107,7 @@ fsmvar = f;
 fsmvar.vol = zeros([f.volsize nfwhm]);
 clear sumk2;
 nth = 0;
-nfuse = 50;
+nfuse = nf;
 for fwhm = fwhmlist'
   fprintf('%d/%d  %g   %g\n',nth,nfwhm,fwhm,toc);
   nth = nth + 1;
@@ -128,5 +139,16 @@ pctscnvar.vol = 100*scnvar.vol./swnvar.vol;
 pctscnvar.vol(indz) = 0;
 fname = sprintf('%s/pctscnvar.nii',outdir);
 MRIwrite(pctscnvar,fname);
+
+fprintf('swn = %g, scn = %g\n', ...
+	mean(swnvar.vol(indm)),...
+	mean(scnvar.vol(indm)));
+
+figure(1);
+imagesc(vol2mos(swnvar.vol),[-5 40]);colorbar
+figure(2);
+imagesc(vol2mos(scnvar.vol),[-5 5]);colorbar
+figure(3);
+imagesc(vol2mos(pctscnvar.vol),[0 40]);colorbar
 
 fprintf('Done   %g\n',toc);
