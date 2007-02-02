@@ -7,7 +7,7 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.292 2007/01/30 18:02:49 fischl Exp $"
+# "$Id: configure.in,v 1.293 2007/02/02 19:43:10 kteich Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2065,6 +2065,7 @@ AC_OUTPUT([Makefile
            nmovie/Makefile
            optseq2/Makefile
            orient_mri/Makefile
+           qdec2/Makefile
            rbftest/Makefile
            regdat2xfm/Makefile
            repair_siemens_file/Makefile
