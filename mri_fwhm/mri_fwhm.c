@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.13 $
+ *    $Author: greve $
+ *    $Date: 2007/02/02 05:10:22 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -245,7 +245,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.13 2006/12/29 02:09:06 nicks Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.14 2007/02/02 05:10:22 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -319,29 +319,21 @@ int main(int argc, char *argv[]) {
   if (debug) dump_options(stdout);
 
   // ------------- load or synthesize input ---------------------
-  if (!synth) {
-    InVals = MRIreadType(inpath,InValsType);
-    if (InVals == NULL) exit(1);
-    if (InVals->nframes < 10 && !SmoothOnly) {
-      printf("ERROR: nframes = %d, need at least 10\n",InVals->nframes);
-      exit(1);
-    }
-    if (InVals->type != MRI_FLOAT) {
-      mritmp = MRISeqchangeType(InVals, MRI_FLOAT, 0, 0, 0);
-      MRIfree(&InVals);
-      InVals = mritmp;
-    }
-  } else {
-    InVals = MRIreadHeader(inpath,InValsType);
-    if (InVals == NULL) exit(1);
-    if (InVals->nframes < 10) {
-      printf("ERROR: nframes = %d, need at least 10\n",InVals->nframes);
-      exit(1);
-    }
-    if (InVals->type != MRI_FLOAT) InVals->type = MRI_FLOAT;
+  InVals = MRIreadType(inpath,InValsType);
+  if (InVals == NULL) exit(1);
+  if (InVals->nframes < 10 && !SmoothOnly) {
+    printf("ERROR: nframes = %d, need at least 10\n",InVals->nframes);
+    exit(1);
+  }
+  if (InVals->type != MRI_FLOAT) {
+    mritmp = MRISeqchangeType(InVals, MRI_FLOAT, 0, 0, 0);
+    MRIfree(&InVals);
+    InVals = mritmp;
+  }
+  if(synth) {
     printf("Synthesizing %d frames, Seed = %d\n",nframes,SynthSeed);
-    InVals = MRIrandn(InVals->width, InVals->height, InVals->depth, nframes,
-                      0, 1, NULL);
+    MRIrandn(InVals->width, InVals->height, InVals->depth, 
+	     InVals->nframes, 0, 1, InVals);
   }
   voxelvolume = InVals->xsize * InVals->ysize * InVals->zsize ;
   printf("voxelvolume %g mm3\n",voxelvolume);
