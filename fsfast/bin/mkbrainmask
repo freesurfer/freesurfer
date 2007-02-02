@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.8 $
+#    $Author: greve $
+#    $Date: 2007/02/02 04:18:01 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask,v 1.8 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: mkbrainmask,v 1.9 2007/02/02 04:18:01 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -70,7 +70,7 @@ endif
 mkdir -p $scratchdir
 echo "Scratch Dir is $scratchdir" 
 
-echo "# ---------- Converting to .img ------------------ #"
+# Convert to analyze
 set inimg = $scratchdir/in.img
 set cmd = (mri_convert $instem $inimg)
 pwd
@@ -90,6 +90,13 @@ if($status) then
   echo "ERROR: bet failed"
   exit 1;
 endif
+
+# Binarize
+set cmd = (mri_binarize --i $scratchdir/brain_mask.img --min .01 \
+                        --o $scratchdir/brain_mask.img );
+echo $cmd
+$cmd 
+if($status) exit 1;
 
 #------------------------------------------------------------------
 if($ndilates > 0) then
@@ -131,7 +138,6 @@ endif
 cp $scratchdir/in.mat $scratchdir/brain_mask.mat
 
 # Convert the binary mask back to bshort #
-echo "# ---------- Converting binary mask back to bshort ------------------ #"
 set cmd = (mri_convert $scratchdir/brain_mask.img $outstem -odt short)
 pwd
 echo $cmd
