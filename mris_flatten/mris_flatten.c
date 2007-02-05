@@ -1,15 +1,17 @@
 /**
  * @file  mris_flatten.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief flatten a surface patch
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * "Cortical Surface-Based Analysis II: Inflation, Flattening, and a
+ * Surface-Based Coordinate System", Fischl, B., Sereno, M.I., Dale, A.M.
+ * (1999) NeuroImage, 9(2):195-207.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.29 $
+ *    $Date: 2007/02/05 20:43:22 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,8 +26,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,7 +45,8 @@
 #include "version.h"
 #include "fastmarching.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.29 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = 
+"$Id: mris_flatten.c,v 1.30 2007/02/05 20:43:22 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -88,7 +89,10 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_flatten.c,v 1.29 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mris_flatten.c,v 1.30 2007/02/05 20:43:22 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -114,8 +118,8 @@ main(int argc, char *argv[]) {
   parms.momentum = 0.9 ;
   parms.desired_rms_height = -1.0 ;
   parms.base_name[0] = 0 ;
-  parms.nbhd_size = 20 ;    /* out to 7-connected neighbors */
-  parms.max_nbrs = 20 ;    /* 12 at each distance */
+  parms.nbhd_size = 7 ;    /* out to 7-connected neighbors */
+  parms.max_nbrs = 12 ;    /* 12 at each distance */
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
@@ -414,7 +418,8 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "ou")) {
     original_unfold_surf_name = argv[2] ;
     nargs = 1 ;
-    fprintf(stderr,"reading original unfolding surface from %s...\n",original_unfold_surf_name);
+    fprintf(stderr,"reading original unfolding surface from %s...\n",
+            original_unfold_surf_name);
   } else if (!stricmp(option, "as")) {
     parms.area_coef_scale = atof(argv[2]) ;
     printf("setting area coef scale to %2.3f\n",
@@ -432,7 +437,8 @@ get_option(int argc, char *argv[]) {
     case 'O':
       original_surf_name = argv[2] ;
       nargs = 1 ;
-      fprintf(stderr,"reading original surface from %s...\n",original_surf_name);
+      fprintf(stderr,"reading original surface from %s...\n",
+              original_surf_name);
       break ;
     case 'B':
       base_dt_scale = atof(argv[2]) ;
@@ -446,7 +452,8 @@ get_option(int argc, char *argv[]) {
     case 'D':
       disturb = atof(argv[2]) ;
       nargs = 1 ;
-      fprintf(stderr, "disturbing vertex positions by %2.3f\n",(float)disturb) ;
+      fprintf(stderr, "disturbing vertex positions by %2.3f\n",
+              (float)disturb) ;
       break ;
     case 'R':
       randomly_flatten = !randomly_flatten ;
@@ -467,7 +474,8 @@ get_option(int argc, char *argv[]) {
       Gdiag |= DIAG_WRITE ;
       sscanf(argv[2], "%d", &parms.write_iterations) ;
       nargs = 1 ;
-      fprintf(stderr, "using write iterations = %d\n", parms.write_iterations) ;
+      fprintf(stderr, "using write iterations = %d\n", 
+              parms.write_iterations) ;
       break ;
     case 'I':
       inflate = 1 ;
