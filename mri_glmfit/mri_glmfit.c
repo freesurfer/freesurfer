@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/02/01 00:45:15 $
- *    $Revision: 1.110 $
+ *    $Date: 2007/02/05 19:02:24 $
+ *    $Revision: 1.111 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -88,7 +88,8 @@ USAGE: ./mri_glmfit
    --help      print out information on how to use this program
    --version   print out version and exit
    --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)
-   --allowsubjrep allow subject names to repeat in the fsgd file
+   --allowsubjrep allow subject names to repeat in the fsgd file (must appear
+                  before --fsgd)
 
 ENDUSAGE --------------------------------------------------------------
 
@@ -488,7 +489,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.110 2007/02/01 00:45:15 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.111 2007/02/05 19:02:24 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1804,7 +1805,8 @@ static void print_usage(void) {
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)\n");
-  printf("   --allowsubjrep allow subject names to repeat in the fsgd file\n");
+  printf("   --allowsubjrep allow subject names to repeat in the fsgd file \n");
+  printf("                  (must appear before --fsgd)\n");
   printf("\n");
 }
 /* --------------------------------------------- */
