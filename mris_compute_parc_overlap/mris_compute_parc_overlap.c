@@ -1,15 +1,35 @@
 /**
  * @file  mris_compute_parc_overlap.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief compare two parcellated (annotated) surfaces and computes Dice coeff.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Compares two parcellated (annotated) surfaces
+ * and computes an overall Dice coefficient.
+ * 
+ * Usage:
+ *   mris_compute_parc_overlap --s subject --hemi hemi \
+ *   --annot1 annotfile --annot2 annotfile
+ *
+ * Required:
+ *   --s subject          subject to check
+ *   --hemi hemi          hemisphere: rh or lh
+ *   --annot1 annotfile   first .annot file
+ *   --annot2 annotfile   second .annot file
+ * 
+ * Optional:
+ *   --sd subj_dir        set SUBJECTS_DIR
+ *   --version            version info
+ *   --help               this usage info
+ * 
+ * Example:
+ *   mris_compute_parc_overlap --s bert --hemi lh \
+ *     --annot1 aparc --annot2 aparc.ernie
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/02/05 21:31:56 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -22,13 +42,6 @@
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
- *
- */
-
-
-/*
- * This is a simple program to compare two parcellated (annotated) surfaces
- * to compute the label Dice coefficients.
  *
  */
 
@@ -52,7 +65,7 @@ static int  singledash(char *flag);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.2 2006/12/29 02:09:10 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.3 2007/02/05 21:31:56 nicks Exp $";
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
 static char *hemi = NULL;
@@ -242,7 +255,7 @@ static void usage(int exit_val) {
   fprintf
   (fout,
    "Compares two parcellated (annotated) surfaces\n"
-   "and computes and overall Dice coefficient.\n\n") ;
+   "and computes an overall Dice coefficient.\n\n") ;
   fprintf
   (fout,
    "Usage:\n"
