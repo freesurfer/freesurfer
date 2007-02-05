@@ -28,8 +28,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/05 21:31:56 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/02/05 22:07:28 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@ static int  singledash(char *flag);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.3 2007/02/05 21:31:56 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.4 2007/02/05 22:07:28 nicks Exp $";
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
 static char *hemi = NULL;
@@ -143,11 +143,21 @@ int main(int argc, char *argv[]) {
   char *ctabname1 = white1->ct->fname;
   char *ctabname2 = white2->ct->fname;
   if (strcmp(ctabname1,ctabname2) != 0) {
-    printf("ERROR: annotation files based on different colortables:\n");
+    // just a warning, as the table could nonetheless be identical
+    printf("Warning: annotation files based on different colortables:\n");
     printf("\tannot1: %s\n",ctabname1);
     printf("\tannot2: %s\n",ctabname2);
+  }
+  int ctab_nentries1 = white1->ct->nentries;
+  int ctab_nentries2 = white2->ct->nentries;
+  if (ctab_nentries1 != ctab_nentries2) {
+    printf("ERROR: annotation files have unequal number of "
+           "colortable entries:\n");
+    printf("\tannot1: %d entries\n",ctab_nentries1);
+    printf("\tannot2: %d entries\n",ctab_nentries2);
     exit(1);
   }
+
   if (white1->nvertices != white2->nvertices) {
     printf("ERROR: (white1->nvertices=%d != white2->nvertices=%d)",
            white1->nvertices,white2->nvertices);
