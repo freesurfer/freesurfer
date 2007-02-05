@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/25 20:40:46 $
-#    $Revision: 1.62 $
+#    $Author: greve $
+#    $Date: 2007/02/05 19:00:49 $
+#    $Revision: 1.63 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.62 2007/01/25 20:40:46 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.63 2007/02/05 19:00:49 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1860,7 +1860,7 @@ if($DoSegStats) then
   set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
   set cmd = ($cmd --in-intensity-units MR)
   set cmd = ($cmd --etiv --subject $subjid $xopts);
-  set cmd = ($cmd --surf-ctxgmwm)
+  #set cmd = ($cmd --surf-ctxgmwm) # this is not accurate either
   #set cmd = ($cmd --ctab-gca $FREESURFER_HOME/average/$GCA)
   set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
   set cmd = ($cmd $xopts);
