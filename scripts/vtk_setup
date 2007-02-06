@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/06 00:01:15 $
-#    $Revision: 1.3 $
+#    $Date: 2007/02/06 20:32:38 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,9 @@ if ( $?FS_VTK_HOME ) then
   endif
 
   if ( -e $FS_VTK_HOME/lib ) then
+
     setenv VTKLIBPATH $FS_VTK_HOME/lib
+
     if(! $?LD_LIBRARY_PATH ) then
       setenv LD_LIBRARY_PATH $VTKLIBPATH
     else
@@ -54,6 +56,16 @@ if ( $?FS_VTK_HOME ) then
     else
       setenv DYLD_LIBRARY_PATH "$VTKLIBPATH":"$DYLD_LIBRARY_PATH"
     endif
+
+    # if vtk python wrappers were built...
+    if ( -e $VTKLIBPATH/python2.3/site-packages) then
+      if(! $?PYTHONPATH ) then
+        setenv PYTHONPATH $VTKLIBPATH/python2.3/site-packages
+      else
+        setenv PYTHONPATH "$VTKLIBPATH/python2.3/site-packages":"$PYTHONPATH"
+      endif
+    endif
+
   endif
 
   # default: assume platform has VTK libs installed somewhere
