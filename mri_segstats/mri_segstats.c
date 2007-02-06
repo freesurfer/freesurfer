@@ -8,8 +8,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/16 02:32:40 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/02/06 17:57:49 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,6 +24,35 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
+
+/* 
+  Subcort stuff that needs to be removed from the surface-based white
+  matter volume:
+
+?16  Brain-Stem                            119  159  176    0
+
+? 4  Left-Lateral-Ventricle                120   18  134    0
+?10  Left-Thalamus-Proper                    0  118   14    0
+ 11  Left-Caudate                          122  186  220    0
+ 12  Left-Putamen                          236   13  176    0
+ 13  Left-Pallidum                          12   48  255    0
+ 17  Left-Hippocampus                      220  216   20    0
+?18  Left-Amygdala                         103  255  255    0
+?26  Left-Accumbens-area                   255  165    0    0
+?28  Left-VentralDC                        165   42   42    0
+
+?43  Right-Lateral-Ventricle               120   18  134    0
+?49  Right-Thalamus-Proper                   0  118   14    0
+ 50  Right-Caudate                         122  186  220    0
+ 51  Right-Putamen                         236   13  176    0
+ 52  Right-Pallidum                         13   48  255    0
+ 53  Right-Hippocampus                     220  216   20    0
+?54  Right-Amygdala                        103  255  255    0
+?58  Right-Accumbens-area                  255  165    0    0
+?60  Right-VentralDC                       165   42   42    0
+
+
+*/
 
 
 #include <stdio.h>
@@ -78,7 +107,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.25 2007/01/16 02:32:40 greve Exp $";
+  "$Id: mri_segstats.c,v 1.26 2007/02/06 17:57:49 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
