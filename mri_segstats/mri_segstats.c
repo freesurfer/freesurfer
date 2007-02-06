@@ -8,8 +8,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/02/06 17:57:49 $
- *    $Revision: 1.26 $
+ *    $Date: 2007/02/06 19:38:16 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -107,7 +107,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.26 2007/02/06 17:57:49 greve Exp $";
+  "$Id: mri_segstats.c,v 1.27 2007/02/06 19:38:16 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -126,7 +126,7 @@ int synth = 0;
 int debug = 0;
 int dontrun = 0;
 long seed = 0;
-MRI *seg, *invol, *famri, *maskvol, *pvvol, *brainvol;
+MRI *seg, *invol, *famri, *maskvol, *pvvol, *brainvol, *mri_aseg;
 int nsegid0, *segidlist0;
 int nsegid, *segidlist;
 int NonEmptyOnly = 0;
@@ -135,6 +135,7 @@ int nUserSegIdList = 0;
 int DoExclSegId = 0, ExclSegId = 0;
 int DoExclCtxGMWM= 0;
 int DoSurfCtxGMWM = 0;
+int DoSurfWMVol = 0;
 double lhwhitevol, lhpialvol, lhctxvol;
 double rhwhitevol, rhpialvol, rhctxvol;
 
@@ -278,6 +279,30 @@ int main(int argc, char **argv) {
       exit(1);
     }
     ctab = GCAcolorTableCMA(gca);
+  }
+
+  if(DoSurfWMVol){
+    printf("Getting Cerebral WM volumes from surface\n");
+
+    sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
+    mri_aseg = MRIread(tmpstr);
+    if(mri_aseg == NULL) exit(1);
+
+    sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    lhwhitevol = MRIScomputeWhiteVolume(mris, mri_aseg, 1.0/4.0);
+    MRISfree(&mris);
+    printf("lh white matter volume %g\n",lhwhitevol);
+
+    sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
+    mris = MRISread(tmpstr);
+    if(mris==NULL) exit(1);
+    rhwhitevol = MRIScomputeWhiteVolume(mris, mri_aseg, 1.0/4.0);
+    MRISfree(&mris);
+    printf("rh white matter volume %g\n",rhwhitevol);
+
+    MRIfree(&mri_aseg);
   }
 
   if(DoSurfCtxGMWM){
@@ -695,6 +720,10 @@ int main(int argc, char **argv) {
       fprintf(fp,"# surface-based-volume mm3 rh-cerebral-white-matter %lf\n",rhwhitevol);
       fprintf(fp,"# surface-based-volume mm3 rh-cerebral-cortex       %lf\n",rhctxvol);
     }
+    if(DoSurfWMVol){
+      fprintf(fp,"# surface-based-volume mm3 lh-cerebral-white-matter %lf\n",lhwhitevol);
+      fprintf(fp,"# surface-based-volume mm3 rh-cerebral-white-matter %lf\n",rhwhitevol);
+    }
     if(DoExclSegId)  fprintf(fp,"# ExcludeSegId %d \n",ExclSegId);
     if(DoExclCtxGMWM)fprintf(fp,"# Excluding Cortical Gray and White Matter\n");
     if(NonEmptyOnly) fprintf(fp,"# Only reporting non-empty segmentations\n");
@@ -876,6 +905,7 @@ static int parse_commandline(int argc, char **argv) {
     else if ( !strcmp(option, "--etiv") ) DoETIV = 1;
     else if ( !strcmp(option, "--excl-ctxgmwm") ) DoExclCtxGMWM = 1;
     else if ( !strcmp(option, "--surf-ctxgmwm") ) DoSurfCtxGMWM = 1;
+    else if ( !strcmp(option, "--surf-wm-vol") )  DoSurfWMVol = 1;
 
     else if ( !strcmp(option, "--sd") ) {
       if(nargc < 1) argnerr(option,1);
@@ -1036,7 +1066,7 @@ static void print_usage(void) {
   printf("   --id segid <--id segid> : manually specify seg ids\n");
   printf("   --excludeid segid : exclude seg id from report\n");
   printf("   --excl-ctxgmwm : exclude cortical gray and white matter\n");
-  printf("   --surf-ctxgmwm : compute coritcal gray and white volumes from surf\n");
+  printf("   --surf-wm-vol : compute coritcal white volume from surf\n");
   printf("   --nonempty : only report non-empty segmentations\n");
   printf("\n");
   printf("Masking options\n");
@@ -1163,17 +1193,15 @@ static void print_help(void) {
     "2, 3, 41, and 42. The volume structures are more accurately measured\n"
     "using surface-based methods (see mris_volume).\n"
     "\n"
-    "--surf-ctxgmwm\n"
+    "--surf-wm-vol\n"
     "\n"
-    "Compute cortical gray and white matter volumes based on the white and\n"
-    "pial surfaces. This is more accurate than from the aseg. The aseg \n"
+    "Compute cortical matter volume based on the volume encompassed by the \n"
+    "white surface. This is more accurate than from the aseg. The aseg \n"
     "values for these are still reported in the table, but there will be\n"
     "the following lines in the table:\n"
     "\n"
     "  # surface-based-volume mm3 lh-cerebral-white-matter 266579.428518\n"
-    "  # surface-based-volume mm3 lh-cerebral-cortex       230267.243704\n"
     "  # surface-based-volume mm3 rh-cerebral-white-matter 265945.120671\n"
-    "  # surface-based-volume mm3 rh-cerebral-cortex       236389.131763\n"
     "\n"
     "--nonempty\n"
     "\n"
