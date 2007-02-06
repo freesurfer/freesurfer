@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/22 07:42:30 $
- *    $Revision: 1.508 $
+ *    $Author: greve $
+ *    $Date: 2007/02/06 18:20:19 $
+ *    $Revision: 1.509 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,6 +61,7 @@
 #include "talairachex.h"
 #include "annotation.h"
 #include "topology/topo_parms.h"
+#include "cma.h"
 
 #define DMALLOC 0
 
@@ -605,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.508 2007/01/22 07:42:30 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.509 2007/02/06 18:20:19 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -59036,4 +59037,66 @@ MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius)
   }
 
   return(NO_ERROR) ;
+}
+
+/*!
+  \fn double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolution)
+  \brief Computes surface-based white matter volume, excluding subcort
+*/
+double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolution)
+{
+  MRI    *mri_filled ;
+  MATRIX *m_vox2vox ;
+  double total_volume=0.0, vox_volume ;
+  int    x, y, z, label, xa, ya, za ;
+  VECTOR *v1, *v2 ;
+  Real   val ;
+
+  mri_filled = MRISfillInterior(mris, resolution, NULL) ;
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri_filled, mri_aseg) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
+  vox_volume = mri_filled->xsize * mri_filled->ysize * mri_filled->zsize ;
+
+  for (x = 0 ; x < mri_filled->width ; x++)
+  {
+    V3_X(v1) = x ;
+    for (y = 0 ; y < mri_filled->height ; y++)
+    {
+      V3_Y(v1) = y ;
+      for (z = 0 ; z < mri_filled->depth ; z++)
+      {
+        val = MRIgetVoxVal(mri_filled, x, y, z, 0) ;
+        if (FZERO(val))
+          continue ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        V3_Z(v1) = z ;
+        MatrixMultiply(m_vox2vox, v1, v2) ;
+        xa = nint(V3_X(v2)) ; ya = nint(V3_Y(v2)) ; za = nint(V3_Z(v2)) ;
+        if (xa < 0 || xa >= mri_aseg->width ||
+            ya < 0 || ya >= mri_aseg->height ||
+            za < 0 || za >= mri_aseg->depth)
+          continue ;
+        label = (int)MRIgetVoxVal(mri_aseg, xa, ya, za, 0) ;
+        if (xa == Gx && ya == Gy && za == Gz)
+          DiagBreak() ;
+        switch (label)
+        {
+        case Left_Cerebral_Cortex:
+        case Right_Cerebral_Cortex:
+        case Left_Cerebral_White_Matter:
+        case Right_Cerebral_White_Matter:
+        case Left_WM_hypointensities:
+        case Right_WM_hypointensities:
+          total_volume += vox_volume ;
+          break ;
+        }
+      }
+    }
+  }
+
+  MatrixFree(&m_vox2vox) ; MatrixFree(&v1) ; MatrixFree(&v2) ;
+  MRIfree(&mri_filled) ;
+  return(total_volume) ;
 }

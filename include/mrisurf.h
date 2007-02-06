@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/09 19:32:00 $
- *    $Revision: 1.277 $
+ *    $Author: greve $
+ *    $Date: 2007/02/06 18:20:18 $
+ *    $Revision: 1.278 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 
 
-/* $Id: mrisurf.h,v 1.277 2007/01/09 19:32:00 fischl Exp $ */
+/* $Id: mrisurf.h,v 1.278 2007/02/06 18:20:18 greve Exp $ */
 
 #ifndef MRISURF_H
 #define MRISURF_H
@@ -1521,5 +1521,6 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs) ;
 int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris,double l_lambda) ;
 int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring) ;
 int MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius) ;
+double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolution);
 
 #endif
