@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/02/06 21:28:34 $
-#    $Revision: 1.5 $
+#    $Date: 2007/02/06 21:45:48 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -58,12 +58,12 @@ if ( $?FS_VTK_HOME ) then
     endif
 
     # if vtk python wrappers were built...
-    if ( -e $VTKLIBPATH/python2.2/site-packages) then
-      setenv VTKPYPATH $VTKLIBPATH/python2.2/site-packages
+    if ( -e $VTKLIBPATH/python2.4/site-packages) then
+      setenv VTKPYPATH $VTKLIBPATH/python2.4/site-packages
     else if ( -e $VTKLIBPATH/python2.3/site-packages) then
       setenv VTKPYPATH $VTKLIBPATH/python2.3/site-packages
-    else if ( -e $VTKLIBPATH/python2.4/site-packages) then
-      setenv VTKPYPATH $VTKLIBPATH/python2.4/site-packages
+    else if ( -e $VTKLIBPATH/python2.2/site-packages) then
+      setenv VTKPYPATH $VTKLIBPATH/python2.2/site-packages
     endif
     if ( $?VTKPYPATH ) then
       if(! $?PYTHONPATH ) then
