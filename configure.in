@@ -7,7 +7,6 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
-# "$Id: configure.in,v 1.293 2007/02/02 19:43:10 kteich Exp $"
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1239,8 +1238,8 @@ AC_MSG_CHECKING(ITK directory)
 
 AC_ARG_WITH(itk-dir,
   [  --with-itk-dir=DIR      where the root of ITK is installed.],
-  [  itk_i="$withval/include"
-     ac_itk_includes="$itk_i"
+  [  itk_i="$withval/include/InsightToolkit"
+     ac_itk_includes="$itk_i $itk_i/Algorithms $itk_i/BasicFilters $itk_i/Common $itk_i/IO $itk_i/Numerics $itk_i/SpatialObject $itk_i/Utilities"
      ac_itk_libraries="$withval"/lib/InsightToolkit
      ITK_DIR="$withval"
      itk_apps="yes"
@@ -1284,6 +1283,24 @@ else
 fi
 
 AM_CONDITIONAL(ENABLE_ITK_APPS, test "$itk_apps" = "yes")
+
+LIBS_ITK="$ac_itk_libraries/libITKAlgorithms.a \
+$ac_itk_libraries/libITKIO.a \
+$ac_itk_libraries/libITKMetaIO.a \
+$ac_itk_libraries/libITKniftiio.a \
+$ac_itk_libraries/libITKNrrdIO.a \
+$ac_itk_libraries/libitkpng.a \
+$ac_itk_libraries/libitksys.a \
+$ac_itk_libraries/libitktiff.a \
+$ac_itk_libraries/libitkv3p_netlib.a \
+$ac_itk_libraries/libitkzlib.a \
+$ac_itk_libraries/libITKCommon.a \
+$ac_itk_libraries/libitkgdcm.a \
+$ac_itk_libraries/libitkopenjpeg.a \
+$ac_itk_libraries/libitkjpeg8.a \
+$ac_itk_libraries/libitkjpeg12.a \
+$ac_itk_libraries/libitkjpeg16.a \
+$ac_itk_libraries/libITKDICOMParser.a"
 
 AC_SUBST(ITK_CFLAGS)
 AC_SUBST(ITK_LIBS)
@@ -1760,7 +1777,7 @@ fi
 # VXL_CFLAGS, VXL_LIBS
 # VTK_CFLAGS, VTK_LIBS
 # KWWIDGETS_CFLAGS, KWWIDGETS_LIBS, ENABLE_KWWIDGETS_APPS
-#
+# ITK_CFLAGS, ITK_LIBS
 LIBS=$ac_save_libs
 CPPFLAGS=$ac_save_cppflags
 LDFLAGS=$ac_save_ldflags
@@ -1781,11 +1798,15 @@ AC_SUBST(LIBS_TCL_OPENGL)
 # some common flags and libs
 ###########################################################
 CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS"
-LDFLAGS="$LDFLAGS $JPEG_LIBS $TIFF_LIBS $MNI_LIBS $VXL_LIBS $NIFTI_LIBS"
-LIBS="-ljpeg -ltiff -lz -lm $LIB_CRYPT $LIBS"
+LDFLAGS="$LDFLAGS $JPEG_LIBS $TIFF_LIBS $MNI_LIBS $VXL_LIBS $NIFTI_LIBS $ITK_LIBS"
+# The order is important here. When adding or removing a lib, be sure
+# to test the link line to make sure you don't need to adjust the
+# order.
+LIBS="-ljpeg -ltiff -lz -lm $LIB_CRYPT -ldl -lpthread $LIBS"
 LIBS="$LIBS $LIBS_MNI"
 LIBS="$LIBS $LIBS_VXL"
 LIBS="$LIBS $LIBS_NIFTI"
+LIBS="$LIBS_ITK $LIBS "
 
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
@@ -2090,7 +2111,9 @@ AC_OUTPUT([Makefile
            utils/NrrdIO/Makefile
            utils/test/Makefile
            utilscpp/Makefile
-           utilscpp/test/Makefile])
+           utilscpp/test/Makefile
+	   vtkfsio/Makefile
+	   vtkutils/Makefile])
 
 ########################################################################
 AC_MSG_RESULT(

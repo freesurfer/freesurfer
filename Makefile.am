@@ -261,7 +261,9 @@ SUBDIRS=include \
 	$(DTISUBDIRS) \
 	fsfast \
 	matlab \
-	scuba
+	scuba \
+	vtkfsio \
+	vtkutils
 
 # build stamp and symlinks to necessary 3rd-party packages
 install-data-hook:
