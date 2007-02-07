@@ -2,15 +2,15 @@
  * @file  mrisurf.h
  * @brief MRI_SURFACE utilities.
  *
- * Utilities, constants and structure definitions for manipulation and i/o of surfaces
- * derived from MRI volumes.
+ * Utilities, constants and structure definitions for manipulation 
+ * and i/o of surfaces derived from MRI volumes.
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/02/06 18:20:18 $
- *    $Revision: 1.278 $
+ *    $Author: nicks $
+ *    $Date: 2007/02/07 22:43:42 $
+ *    $Revision: 1.279 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,9 +26,6 @@
  *
  */
 
-
-
-/* $Id: mrisurf.h,v 1.278 2007/02/06 18:20:18 greve Exp $ */
 
 #ifndef MRISURF_H
 #define MRISURF_H
@@ -272,18 +269,18 @@ typedef struct
   float        canon_area ;
   int          noscale ;          /* don't scale by surface area if true */
   float        *dx2 ;             /* an extra set of gradient
-                                             (not always alloced) */
+                                     (not always alloced) */
   float        *dy2 ;
   float        *dz2 ;
   COLOR_TABLE  *ct ;
   int          useRealRAS;        /* if 0, vertex position is a
-                                             conformed volume RAS with c_(r,a,s)=0 */
+                                     conformed volume RAS with c_(r,a,s)=0 */
   /* if 1, verteix position is a
      real RAS (volume stored RAS)         */
   /* The default is 0.        */
   VOL_GEOM     vg;                /* volume information from which
-                                             this surface is created.
-                                             check validity by vg.valid = 1 or not */
+                                     this surface is created.
+                                     check validity by vg.valid = 1 or not */
   char   *cmdlines[MAX_CMDS] ;
   int    ncmds;
   float  group_avg_surface_area ;  // average of total surface area for group
@@ -410,8 +407,8 @@ typedef struct
   float   l_scurv ;           /* coefficient of curvature term */
   float   l_lap ;             // coefficient of laplacian term
   float   l_link ;            /* coefficient of link term to keep
-                                         white and pial vertices approximately
-                                         along normal */
+                                 white and pial vertices approximately
+                                 along normal */
   float   l_spring ;          /* coefficient of spring term */
   float   l_spring_norm ;     /* coefficient of normalize spring term */
   float   l_tspring ;         /* coefficient of tangential spring term */
@@ -468,7 +465,7 @@ typedef struct
   int     frame_no ;          /* current frame in template parameterization */
   MRI_SP  *mrisp_template ;   /* parameterization of canonical surface */
   MRI_SP  *mrisp_blurred_template ; /* parameterization of canonical
-                                               surface convolve with Gaussian */
+                                       surface convolve with Gaussian */
   double  area_coef_scale ;
   float   sigma ;             /* blurring scale */
 
@@ -1241,7 +1238,7 @@ typedef struct
   MRI_SURFACE *mris_total ; // single surface with all other surfs in it
   VERTEX_INFO *vi ;                   // one/vertex in mris_total
   int         vstart[MAX_SURFACES] ;  /* starting index of this
-                                                 surface in mris_total vertices */
+                                         surface in mris_total vertices */
 }
 MRI_SURFACE_ARRAY, MSA ;
 #if 1
@@ -1264,7 +1261,9 @@ MRI   *MRISaccentuate(MRI *mri_src,
                       MRI *mri_dst,
                       int lo_thresh,
                       int hi_thresh);
-MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_interior) ;
+MRI *MRISfillInterior(MRI_SURFACE *mris, 
+                      double resolution, 
+                      MRI *mri_interior) ;
 MRI   *MRISshell(MRI *mri_src,
                  MRI_SURFACE *mris,
                  MRI *mri_dst,
@@ -1519,8 +1518,14 @@ int MRISsegmentAnnotated(MRI_SURFACE *mris,
                          float min_label_area) ;
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs) ;
 int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris,double l_lambda) ;
-int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring) ;
-int MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius) ;
-double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolution);
+int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris, 
+                                              double gaussian_norm, 
+                                              double l_spring) ;
+int MRISmakeDensityMap(MRI_SURFACE *mris, 
+                       double resolution, 
+                       double radius) ;
+double MRIScomputeWhiteVolume(MRI_SURFACE *mris, 
+                              MRI *mri_aseg, 
+                              double resolution);
 
 #endif
