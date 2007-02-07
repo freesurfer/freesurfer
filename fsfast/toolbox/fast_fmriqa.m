@@ -11,7 +11,7 @@ indm = find(m.vol);
 
 %infile = 'fqa.fa10.nii';
 %outdir = 'qa.fa10';
-infile = 'f2.nii';
+infile = 'f.nii';
 outdir = 'qa';
 
 polyorder = 2;
@@ -42,6 +42,30 @@ fmat = fast_vol2mat(f);
 [betamat rvarmat vdof rmat] = fast_glmfit(fmat,X);
 res = f;
 res.vol = fast_mat2vol(rmat,f.volsize);
+
+[U S V] = fast_svd(rmat(:,indm));
+ds2 = diag(S).^2;
+pvs = 100*ds2/sum(ds2);
+cpvs = cumsum(pvs);
+Vtmp = zeros(size(rmat));
+Vtmp(:,indm) = V';
+vv = fast_mat2vol(Vtmp,f.volsize);
+fname = sprintf('%s/V.nii',outdir);
+tmp = f;
+tmp.vol = vv(:,:,:,1:20);
+MRIwrite(tmp,fname);
+
+fname = sprintf('%s/U.dat',outdir);
+fp = fopen(fname,'w');
+fmt = repmat('%g ',[1 20]);
+fmt = [fmt '\n'];
+fprintf(fp,fmt,U(:,1:20)');
+fclose(fp);
+
+fname = sprintf('%s/pvs.dat',outdir);
+fp = fopen(fname,'w');
+fprintf(fp,'%5.2f   %5.2f\n',[pvs cpvs]');
+fclose(fp);
 
 fmn = f;
 fmn.vol = fast_mat2vol(betamat(1,:),f.volsize);
