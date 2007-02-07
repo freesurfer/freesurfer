@@ -16,9 +16,9 @@ function flacnew = flac_customize(flac)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.20 $
+%    $Author: greve $
+%    $Date: 2007/02/07 22:49:36 $
+%    $Revision: 1.21 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -109,14 +109,22 @@ for nthev = 1:nev
     % reprsented for this run. This will cause a bailout unless
     % flac.AllowMissingCond is set.
     if(isempty(flac.parfile))
-      stfpath = sprintf('%s/%s',runpath,ev.stf);
+      if(isempty(flac.schdir))
+	stfpath = sprintf('%s/%s',runpath,ev.stf);
+      else
+	stfpath = sprintf('%s/r%03d/%s',flac.schdir,flac.nthrun,ev.stf);
+      end
       st = fast_ldstf(stfpath);
       if(isempty(st) & ~flac.AllowMissingCond)
 	fprintf('ERROR: reading timing file %s\n',stfpath);
 	flacnew = []; return; 
       end
     else
-      parpath = sprintf('%s/%s',runpath,flac.parfile);
+      if(isempty(flac.schdir))
+	parpath = sprintf('%s/%s',runpath,flac.parfile);
+      else
+	parpath = sprintf('%s/r%03d/%s',flac.schdir,flac.nthrun,flac.par);
+      end
       par = fmri_ldpar(parpath);
       if(isempty(par))
 	fprintf('ERROR: loading %s \n',flac.parfile);
