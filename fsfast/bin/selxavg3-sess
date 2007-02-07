@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/07 23:28:27 $
-#    $Revision: 1.6 $
+#    $Date: 2007/02/07 23:39:57 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.6 2007/02/07 23:28:27 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.7 2007/02/07 23:39:57 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -82,8 +82,9 @@ if($#analysis) then
     exit 1;
   endif
   set fsd  = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+  set analysisname = $analysis
 else
-  set analysis = `cat $flacfile | awk '{if($1 == "flacname") print $2}'`
+  set analysisname = `cat $flacfile | awk '{if($1 == "flacname") print $2}'`
   set inherit = $flacfile
   while(1)
     set tmp = `cat $inherit | awk '{if($1 == "INHERIT") print $2}'`
@@ -151,7 +152,7 @@ foreach sess ($SessList)
   endif
 
   set funcdir = $sess/$fsd
-  set anadir = $sess/$fsd/$analysis
+  set anadir = $sess/$fsd/$analysisname
   if(-e $anadir && $DoGLMFit) then
     echo "analysis $analysis alread exists" | tee -a $LF
     if($Skip == 0 && $Overwrite == 0) then
