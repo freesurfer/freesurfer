@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.3 $
+#    $Author: greve $
+#    $Date: 2007/02/07 22:48:34 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.3 2007/01/09 22:41:18 nicks Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.4 2007/02/07 22:48:34 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -140,7 +140,7 @@ foreach sess ($SessList)
   echo "SynthSeed      = $SynthSeed;"      >> $MLF
   echo "sess           = '$sess';"         >> $MLF
   echo "analysis = '$analysis';" >> $MLF
-  echo "flac     = '$flacfile';" >> $MLF
+  echo "flacname = '$flacfile';" >> $MLF
   if($#OutParent == 0) echo "outtop = '$OutParent';" >> $MLF
   echo "fast_selxavg3;" >> $MLF
   if($nthsess > 1 && ! $monly)  then
@@ -275,14 +275,23 @@ check_params:
     exit 1
   endif
 
-  if($#analysis == 0) then
-    echo "ERROR: no analysis name specified"
+  if($#analysis == 0 && $flacfile == 0) then
+    echo "ERROR: no analysis name or flac file specified"
     exit 1
   endif
 
-  if(! -d $analysis ) then
-    echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
-    exit 1;
+  if($#analysis != 0) then 
+    if(! -d $analysis ) then
+      echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+      exit 1;
+    endif
+  endif
+
+  if($#flacfile != 0) then
+    if(! -e $flacfile ) then
+      echo "ERROR: flac file $flacfile does not exist"
+      exit 1;
+    endif
   endif
 
 goto check_params_return;
