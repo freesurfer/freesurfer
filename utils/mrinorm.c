@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/26 18:53:03 $
- *    $Revision: 1.84 $
+ *    $Date: 2007/02/07 20:33:49 $
+ *    $Revision: 1.85 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -811,7 +811,8 @@ MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni)
   if (npeaks == 0)
     ErrorReturn(NULL,
                 (ERROR_BADPARM,
-                 "MRInormalize: could not find any valid peaks"));
+                 "MRInormalize: could not find any valid peaks.\n"
+                 "\nMake sure the Talairach alignment is correct!\n"));
   mri_dst = MRIsplineNormalize(mri_src, mri_dst,NULL,inputs,outputs,npeaks);
 
   if (Gdiag & DIAG_SHOW)
