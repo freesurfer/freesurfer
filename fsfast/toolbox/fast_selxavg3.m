@@ -8,8 +8,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/01/15 05:29:46 $
-%    $Revision: 1.18 $
+%    $Date: 2007/02/07 23:40:11 $
+%    $Revision: 1.19 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -637,7 +637,15 @@ if(DoContrasts)
       end
     end
     
+    % Contrast output
     outcondir = sprintf('%s/%s',outanadir,flacC.con(nthcon).name);
+    try 
+      % Delete condir if it is there
+      fileattrib(outcondir);
+      rmdir(outcondir,'s');
+    catch; 
+    end
+
     err = mkdirp(outcondir);
     if(err) return; end
 
