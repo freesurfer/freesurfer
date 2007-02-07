@@ -13,9 +13,9 @@ function flac = fast_ldflac(flacfile,flac)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.25 $
+%    $Author: greve $
+%    $Date: 2007/02/07 22:49:23 $
+%    $Revision: 1.26 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -54,6 +54,7 @@ if(isempty(flac))
   flac.formatext = '';
   flac.tpexcfile = '';
   flac.parfile = '';
+  flac.schdir = ''; % dir where schedules or pars can be found
   flac.par = [];
   flac.tpexc = [];
   flac.perrun = 0;
@@ -142,7 +143,8 @@ while(1)
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
    case 'tpexclude',   flac.tpexcfile   = sscanf(tline,'%*s %s',1);
    case 'parfile',     flac.parfile     = sscanf(tline,'%*s %s',1);
-   case 'ACFSEG',      flac.acfsegstem  = sscanf(tline,'%*s %s',1);
+   case 'schdir',      flac.schdir      = sscanf(tline,'%*s %s',1);
+   case 'acfseg',      flac.acfsegstem  = sscanf(tline,'%*s %s',1);
    case 'INHERIT',     
     inheritflacname  = sscanf(tline,'%*s %s',1);
     flacdir = fast_dirname(flacfile);
