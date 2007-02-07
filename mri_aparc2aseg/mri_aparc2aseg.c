@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/10 19:29:52 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/02/07 22:48:26 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.14 2007/01/10 19:29:52 nicks Exp $";
+"$Id: mri_aparc2aseg.c,v 1.15 2007/02/07 22:48:26 nicks Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -409,7 +409,7 @@ int main(int argc, char **argv) {
         if (rhwvtx < 0) drhw = 1000000000000000.0;
         if (rhpvtx < 0) drhp = 1000000000000000.0;
 
-        if (dlhw < dlhp && dlhw < drhw && dlhw < drhp) {
+        if (dlhw < dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0) {
           annot = lhwhite->vertices[lhwvtx].annotation;
           hemi = 1;
           if (lhwhite->ct)
@@ -418,7 +418,7 @@ int main(int argc, char **argv) {
             annotid = annotation_to_index(annot);
           dmin = dlhw;
         }
-        if (dlhp < dlhw && dlhp < drhw && dlhp < drhp) {
+        if (dlhp < dlhw && dlhp < drhw && dlhp < drhp && lhpvtx >= 0) {
           annot = lhwhite->vertices[lhpvtx].annotation;
           hemi = 1;
           if (lhwhite->ct)
@@ -428,7 +428,7 @@ int main(int argc, char **argv) {
           dmin = dlhp;
         }
 
-        if (drhw < dlhp && drhw < dlhw && drhw < drhp) {
+        if (drhw < dlhp && drhw < dlhw && drhw < drhp && rhwvtx >= 0) {
           annot = rhwhite->vertices[rhwvtx].annotation;
           hemi = 2;
           if (rhwhite->ct)
@@ -437,7 +437,7 @@ int main(int argc, char **argv) {
             annotid = annotation_to_index(annot);
           dmin = drhw;
         }
-        if (drhp < dlhp && drhp < drhw && drhp < dlhw) {
+        if (drhp < dlhp && drhp < drhw && drhp < dlhw && rhpvtx >= 0) {
           annot = rhwhite->vertices[rhpvtx].annotation;
           hemi = 2;
           if (rhwhite->ct)
@@ -446,7 +446,11 @@ int main(int argc, char **argv) {
             annotid = annotation_to_index(annot);
           dmin = drhp;
         }
-        if (annotid == 0) {
+        if (annotid == 0 && 
+            lhwvtx >= 0 &&
+            lhpvtx >= 0 &&
+            rhwvtx >= 0 &&
+            rhpvtx >= 0) {
           printf("%d %d %d %d\n",
                  lhwhite->vertices[lhwvtx].ripflag,
                  lhpial->vertices[lhpvtx].ripflag,

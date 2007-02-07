@@ -10,7 +10,7 @@ mri_aparc2aseg_SOURCES=mri_aparc2aseg.c
 mri_aparc2aseg_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mri_aparc2aseg_LDFLAGS=$(OS_LDFLAGS)
 
-#TESTS=test_mri_aparc2aseg
+TESTS=test_mri_aparc2aseg
 
 EXTRA_DIST=test_mri_aparc2aseg testdata.tar.gz
 
