@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/17 21:06:23 $
- *    $Revision: 1.83 $
+ *    $Author: nicks $
+ *    $Date: 2007/02/07 00:10:33 $
+ *    $Revision: 1.84 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.83 2007/01/17 21:06:23 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.84 2007/02/07 00:10:33 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -222,13 +222,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.83 2007/01/17 21:06:23 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.84 2007/02/07 00:10:33 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.83 2007/01/17 21:06:23 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.84 2007/02/07 00:10:33 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1607,7 +1607,11 @@ print_help(void) {
           "-c    create curvature and area files from white matter surface\n"
          );
   fprintf(stderr,
-          "-a <avgs>   average curvature values <avgs> times (default=10)\n");
+        "-pa <avgs>  average pial curvature "
+          "values a max of <avgs> times (default=16)\n");
+  fprintf(stderr,
+        "-wa <avgs>  average white curvature "
+          "values a max of <avgs> times (default=4)\n");
   fprintf(stderr,
           "-whiteonly  only generate white matter surface\n") ;
   exit(1) ;
