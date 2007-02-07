@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/07 23:39:57 $
-#    $Revision: 1.7 $
+#    $Date: 2007/02/07 23:59:02 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.7 2007/02/07 23:39:57 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.8 2007/02/07 23:59:02 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -39,6 +39,8 @@ set MLF = ();
 
 set DoGLMFit = 1;
 set DoContrasts = 1;
+set DoFWHM = 1;
+set SaveRes = 0;
 
 set Skip  = 0;
 set Overwrite = 0;
@@ -197,11 +199,6 @@ echo "------------------------------------------" >> $LF
 cat $MLF >> $LF
 echo "------------------------------------------" >> $LF
 
-if($nprocs == 0) then
-  echo "INFO: no data sets needed processing" | tee -a $LF
-  exit 0;
-endif
-
 if(! $monly && $nprocs > 0) then
   echo "------------------------------------------" | tee -a $LF
   echo "------- matlab output --------------------" | tee -a $LF
@@ -215,11 +212,44 @@ if(! $monly && $nprocs > 0) then
   rm -f $okfile
 endif
 
-# Should now go through each session and compute fwhm, then del res
+if($DoFWHM) then
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "Computing FWHM" |& tee -a $LF
+  foreach sess ($SessList)
+    set sessbase = `basename $sess`;
+    set sessdir  = `dirname  $sess`;
+    echo "-------------------------------------------" |& tee -a $LF
+    echo "$sess " |& tee -a $LF
+    date |& tee -a $LF
+    set anadir = $sess/$fsd/$analysisname
+    set resdir = $anadir/res
+    if(! -e $resdir) continue
+    set all = $resdir/all.nii
+    set cmd = (mri_concat $resdir/res-???.* --o $all)
+    pwd |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    set sumfile = $anadir/fwhm.dat
+    set cmd = (mri_fwhm --i $all --mask $anadir/mask.nii --sum $sumfile)
+    pwd |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    if(! $SaveRes) then
+      rm -r $resdir
+    endif
+  end
+endif
 
 if($#flacfile == 0) then
   set sxadat = $sess/$fsd/$analysis/h.dat
   cp $sxadat $analysis
+endif
+
+if($nprocs == 0) then
+  echo "INFO: no data sets needed processing" | tee -a $LF
+  exit 0;
 endif
 
 echo "Started at $StartTime"
@@ -269,6 +299,10 @@ while( $#argv != 0 )
     case "-co":
       set DoGLMFit = 0;
       set DoContrasts = 1;
+      breaksw
+
+    case "-svres":
+      set SaveRes = 1;
       breaksw
 
     case "-skip":
@@ -360,6 +394,7 @@ usage_exit:
   echo "Optional Arguments:";
   echo ""
   echo "   -contrasts-only : only compute contrasts (estimation done) <-co>"
+  echo "   -svres          : save residuals (usually not needed)"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  ..."
