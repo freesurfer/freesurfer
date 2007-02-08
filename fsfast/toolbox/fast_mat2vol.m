@@ -24,9 +24,9 @@ function vol = fast_mat2vol(mat,szvol,sliceflag)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.7 $
+%    $Author: greve $
+%    $Date: 2007/02/08 21:41:47 $
+%    $Revision: 1.8 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -53,13 +53,13 @@ if(isfield(mat,'volmat'))
   mat   = mat.volmat;
 else
   if(nargin < 2)  
-    fprintf('ERROR: need szvol if mat is not an mri struct\n');
+    fprintf('ERROR: fast_mat2vol: need szvol if mat is not an mri struct\n');
     return;
   end
 end
 
 if(length(szvol) < 2)
-  fprintf('ERROR: szvol dim must be >= 2\n');
+  fprintf('ERROR: fast_mat2vol: szvol dim must be >= 2\n');
   return;
 end
 
@@ -73,7 +73,8 @@ end
 nv = prod(szvol);
 
 if(nv ~= size(mat,2) )
-  fprintf('ERROR: szvol inconsistent with mat2d\n');
+  fprintf('ERROR: fast_mat2vol: szvol inconsistent with mat2d\n');
+  fprintf('  nv = %d, size(mat,2) = %d\n',nv,size(mat,2));
   return;
 end
 nframes = size(mat,1);
