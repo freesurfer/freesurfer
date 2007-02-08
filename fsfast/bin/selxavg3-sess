@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/07 23:59:02 $
-#    $Revision: 1.8 $
+#    $Date: 2007/02/08 00:07:45 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.8 2007/02/07 23:59:02 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.9 2007/02/08 00:07:45 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -393,6 +393,8 @@ usage_exit:
   echo ""
   echo "Optional Arguments:";
   echo ""
+  echo "   -skip           : skip session of already analyzed"
+  echo "   -overwrite      : delete analysis if session of already analyzed"
   echo "   -contrasts-only : only compute contrasts (estimation done) <-co>"
   echo "   -svres          : save residuals (usually not needed)"
   echo ""
