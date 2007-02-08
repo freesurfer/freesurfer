@@ -4,6 +4,7 @@
 
 AM_CPPFLAGS= -Wno-deprecated \
 	$(X_CFLAGS) \
+	$(TCL_CFLAGS) \
 	$(VXL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	$(VTK_CXXFLAGS) \
