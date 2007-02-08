@@ -28,8 +28,8 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/08 03:45:34 $
-%    $Revision: 1.10 $
+%    $Date: 2007/02/08 04:23:53 $
+%    $Revision: 1.11 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -45,6 +45,8 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 %
 
 Xfir = [];
+a = [];
+Xfirss = [];
 
 if(nargin < 4 | nargin > 5)
   fprintf('Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>)\n');
@@ -52,11 +54,6 @@ if(nargin < 4 | nargin > 5)
 end
 if(~exist('usew','var')) usew = []; end
 if(isempty(usew)) usew = 0; end
-
-psdmin  = psdwin(1);  % start of PSD window
-psdmax  = psdwin(2);  % end of PSD window
-dpsd    = psdwin(3);  % increment of PSD window
-npsdwin = round((psdmax-psdmin)/dpsd);
 
 % Empty st means that the condition is not present. This
 % can only happen when the user has specified
@@ -66,17 +63,37 @@ if(isempty(st))
   return;
 end
 
-% If weights are not specified, set them to 1
-if(size(st,2) < 3 | ~usew) st(:,3) = 1; end
+psdmin  = psdwin(1);  % start of PSD window
+psdmax  = psdwin(2);  % end of PSD window
+dpsd    = psdwin(3);  % increment of PSD window
+npsdwin = round((psdmax-psdmin)/dpsd);
+nstim      = size(st,1);
 
-npres   = size(st,1); % number of presentations
+% SubSampling
+ssr = round(TR/dpsd); % Rate
+nrows = ntp*ssr; % Number of rows after subsampling
+
+% Presentation onset times
+stimonset  = st(:,1); 
+
+% Presentation duration - use dpsd if not specified
+if(size(st,2) < 2)
+  stimdur = dpsd*ones(nstim,1);
+else
+  stimdur = st(:,2); 
+end
+
+% Presentation weights - if not specified, set them to 1
+if(size(st,2) < 3 | ~usew) 
+  stimweight = ones(nstim,1);
+else
+  stimweight = st(:,3);
+end
 
 % The following two pieces of code prevent the case where stimuli
 % of the same type are presented in a overlapping manner. It is,
 % of course, ok to have the presentations of different stimulus
 % types overlap (or even be simultaneous).
-
-% Make sure that presentations are not simultaneous
 st = sortrows(st); % sort in order of onset time
 d = diff(st(:,1));
 ind = find(d == 0);
@@ -85,56 +102,25 @@ if(~isempty(ind))
   return;
 end
 
-% Check whether the offset of one stimulus is past the onset of the
-% next. Allows them to overlay by less than dpsd/2.
-tonset  = st(:,1);
-toffset = st(:,1) + st(:,2);
-ind = find(toffset(1:end-1) > (tonset(2:end) + dpsd/2));
-if(~isempty(ind))
-  fprintf('ERROR: fast_st2fir: two or more presentations overlap\n');
-  return;
+% Build the first teoplitz vector
+a = zeros(nrows,1);
+for nthstim = 1:nstim
+  ionset = round(stimonset(nthstim)/dpsd) + 1; % start row
+  if(ionset > nrows) continue; end
+  ndur = round(stimdur(nthstim)/dpsd);
+  ioffset = ionset+ndur-1; % end row
+  if(ioffset > nrows) ioffset = nrows; end
+  a(ionset:ioffset) = stimweight(nthstim);
 end
 
-% Alloc and set to 0
-Xfir = zeros(ntp,npsdwin);
+% Build the second teoplitz vector
+b = zeros(1,npsdwin);
+b(1) = a(1);
 
-% Go through each presentation
-for nthpres = 1:npres
-  tonset0  = st(nthpres,1);
-  duration = st(nthpres,2);
-  weight   = st(nthpres,3);
-  if(duration == 0) nduration = 1;
-  else              nduration = duration/dpsd;
-  end
+% Construct the matrix
+Xfirss = toeplitz(a,b);
 
-  % Go through each increment in the duration
-  for nthduration = 1:nduration
-    tonset = tonset0 + (nthduration-1)*dpsd;
-  
-    % Rows in the design matrix (0-based)
-    r1 = round((tonset+psdmin)/TR);
-    r2 = round((tonset+psdmax)/TR);
-    r = r1:r2;
-    
-    % Columns in the design matrix (0-based)
-    c = round((TR*r-(tonset+psdmin))/dpsd);
-    
-    % Convert to 1-based
-    r = r + 1;
-    c = c + 1;
-    
-    % Only keep the ones that are in bounds
-    indok = find(r > 0 & r <= ntp & c > 0 & c <= npsdwin);
-    if(isempty(indok)) continue; end
-    r = r(indok);
-    c = c(indok);
+% Subsample 
+Xfir = Xfirss(1:ssr:end,:);
 
-    % Compute the indicies in the design matrix
-    ind = sub2ind(size(Xfir),r,c);
-    % Set the components in the design matrix to the weight
-    Xfir(ind) = Xfir(ind) + weight;
-  end
-  
-end
-
-return
+return;
