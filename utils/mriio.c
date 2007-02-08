@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/23 21:41:45 $
- *    $Revision: 1.326 $
+ *    $Author: nicks $
+ *    $Date: 2007/02/08 21:02:23 $
+ *    $Revision: 1.327 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,7 +78,6 @@
 #include "nifti1.h"
 #include "nifti1_io.h"
 #include "znzlib.h"
-#include "NrrdIO.h"
 #include "mri_circulars.h"
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
@@ -166,8 +165,8 @@ static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr);
 static void swap_nifti_1_header(struct nifti_1_header *hdr);
 static MRI *MRISreadCurvAsMRI(char *curvfile, int read_volume);
 
-static MRI *mriNrrdRead(char *fname, int read_volume);
-static int mriNrrdWrite(MRI *mri, char *fname);
+extern MRI *mriNrrdRead(char *fname, int read_volume);
+extern int mriNrrdWrite(MRI *mri, char *fname);
 
 /********************************************/
 
@@ -14610,212 +14609,6 @@ MRIaddCommandLine(MRI *mri, char *cmdline)
   return(NO_ERROR) ;
 }
 
-
-static MRI *mriNrrdRead(char *fname, int read_volume)
-{
-  Nrrd *nrrd = nrrdNew();
-  MRI *mri = NULL;
-  int mriDataType = MRI_UCHAR;
-  size_t nFrames;
-
-  unsigned int rangeAxisNum, rangeAxisIdx[NRRD_DIM_MAX];
-
-  int errorType = NO_ERROR;
-  char errorString[50];
-
-  //just give an error until read function is complete and tested
-  ErrorReturn(NULL,
-              (ERROR_UNSUPPORTED,
-               "mriNrrdRead(): Nrrd input not yet supported"));
-
-  //from errno.h?
-  errno = 0; //is this neccesary because of error.c:ErrorPrintf's use of errno?
-
-  if (nrrdLoad(nrrd, fname, NULL) != 0)
-  {
-    char *err = biffGetDone(NRRD);
-    ErrorPrintf(ERROR_BADFILE,
-                "mriNrrdRead(): error opening file %s:\n%s", fname, err);
-    free(err);
-    return NULL;
-  }
-
-  if ((nrrd->dim != 3) && (nrrd->dim != 4))
-  {
-    ErrorPrintf(ERROR_UNSUPPORTED,
-                "mriNrrdRead(): %hd dimensions in %s; unspported",
-                nrrd->dim, fname);
-    nrrdNuke(nrrd);
-    return NULL;
-  }
-
-  //errorString is only length = 50. careful with sprintf
-  switch (nrrd->type)
-  {
-
-    //Does nrrdLoad() generate an error for nrrdTypeUnkown and nrrdTypeDefault?
-  case nrrdTypeUnknown: //fall through to next
-      //case nrrdTypeDefault:
-      errorType = ERROR_BADFILE;
-    sprintf(errorString, "unset/unknown");
-    break;
-
-    //types we don't support. should/can we convert?
-  case nrrdTypeChar:
-    errorType = ERROR_UNSUPPORTED;
-    sprintf(errorString, "signed char");
-    break;
-  case nrrdTypeUShort:
-    errorType = ERROR_UNSUPPORTED;
-    sprintf(errorString, "unsigned short");
-    break;
-  case nrrdTypeUInt:
-    errorType = ERROR_UNSUPPORTED;
-    sprintf(errorString, "unsigned int");
-    break;
-  case nrrdTypeLLong:
-    errorType = ERROR_UNSUPPORTED;
-    sprintf(errorString, "long long int");
-    break;
-  case nrrdTypeULLong:
-    errorType = ERROR_UNSUPPORTED;
-    sprintf(errorString, "unsigned long long int");
-    break;
-  case nrrdTypeDouble:
-    errorType = ERROR_UNSUPPORTED;
-    sprintf(errorString, "double");
-    break;
-  case nrrdTypeBlock:
-    errorType = ERROR_UNSUPPORTED;
-    sprintf(errorString, "user defined block");
-    break;
-
-    //supported types. is MRI_INT 32 bits? is MRI_LONG 32 or 64?
-    //what size is MRI_FLOAT?
-  case nrrdTypeUChar:
-    mriDataType = MRI_UCHAR;
-    break;
-  case nrrdTypeShort:
-    mriDataType = MRI_SHORT;
-    break;
-  case nrrdTypeInt:
-    mriDataType = MRI_INT;
-    break;
-  case nrrdTypeFloat:
-    mriDataType = MRI_FLOAT;
-    break;
-  }
-
-  if (errorType != NO_ERROR)
-  {
-    nrrdNuke(nrrd);
-    ErrorPrintf(errorType, "mriNrrdRead(): unsupported type: %s", errorString);
-    return NULL;
-  }
-
-  rangeAxisNum = nrrdRangeAxesGet(nrrd, rangeAxisIdx);
-
-  if (rangeAxisNum > 1)
-  {
-    nrrdNuke(nrrd);
-    ErrorPrintf(ERROR_UNSUPPORTED,
-                "mriNrrdRead(): handling more than one non-scalar "
-                "axis not currently supported");
-    return NULL;
-  }
-
-  //if the range (dependent variable, i.e. time point, diffusion dir,
-  //anything non-spatial) is not on the 4th axis, then permute
-  //so that it is
-  if ((rangeAxisNum == 1) && (rangeAxisIdx[0] != 3))
-  {
-    Nrrd *ntmp = nrrdNew();
-    unsigned int axmap[NRRD_DIM_MAX];
-    int axis;
-    //axmap[i] = j means: axis i in the output will be the input's axis j
-
-    axmap[nrrd->dim - 1] = rangeAxisIdx[0];
-    for (axis = 0; axis < nrrd->dim - 1; axis++)
-    {
-      axmap[axis] = axis + (axis >= rangeAxisIdx[0]);
-    }
-
-    // The memory size of the input and output of nrrdAxesPermute is
-    // the same; the existing nrrd->data is re-used.
-    if (nrrdCopy(ntmp, nrrd) || nrrdAxesPermute(nrrd, ntmp, axmap))
-    {
-      char *err =  biffGetDone(NRRD);
-      //doesn't seem to be an appropriate error code for this case
-      ErrorPrintf
-        (ERROR_BADFILE,
-         "mriNrrdRead(): error permuting independent axis in %s: \n%s",
-         fname, err);
-      nrrdNuke(ntmp);
-      free(err);
-      return NULL;
-    }
-    nrrdNuke(ntmp);
-  }
-
-  //data in nrrd have been permuted so first 3 axes are spatial
-  //and next if present is non-spatial
-  if (nrrd->dim == 4) nFrames = nrrd->axis[3].size;
-  else nFrames = 1;
-  mri = MRIallocSequence(nrrd->axis[0].size, nrrd->axis[1].size,
-                         nrrd->axis[2].size, mriDataType, nFrames);
-
-  if (mri == NULL)
-  {
-    nrrdNuke(nrrd);
-    //error message
-    return NULL;
-  }
-
-  //error if nrrd->space_units is present and != "mm"?
-
-  mri->xsize = nrrd->axis[0].spacing;
-  mri->ysize = nrrd->axis[1].spacing;
-  mri->zsize = nrrd->axis[2].spacing;
-
-  /*   if (nrrdTypeBlock == nrrd->type) */
-  /*     { */
-  /*       ErrorReturn */
-  /*  (NULL, (ERROR_BADFILE,
-      "nrrdRead(): cannot currently handle nrrdTypeBlock")); */
-  /*     } */
-
-  /*   if (nio->endian == airEndianLittle) */
-  /*     { */
-  /* #if (BYTE_ORDER != LITTLE_ENDIAN) */
-  /*       swap_bytes_flag = 1; */
-  /* #endif */
-  /*     } */
-  /*   else if (nio->endian == airEndianBig) */
-  /*     { */
-  /* #if (BYTE_ORDER == LITTLE_ENDIAN) */
-  /*       swap_bytes_flag = 1; */
-  /* #endif */
-  /*     } */
-
-  /*   if (nio->encoding == nrrdEncodingAscii) */
-  /*     { */
-  /*       mode = "rt"; */
-  /*     } */
-  /*   else */
-  /*     { */
-  /*       mode = "rb"; */
-  /*     } */
-
-  return mri;
-}
-
-static int mriNrrdWrite(MRI *mri, char *fname)
-{
-  //just give an error until write function is complete and tested
-  ErrorReturn
-  (ERROR_UNSUPPORTED,
-   (ERROR_UNSUPPORTED, "mriNrrdWrite(): Nrrd output not yet supported"));
-}
 
 /*------------------------------------------------------------------
   niiPrintHdr() - this dumps (most of) the nifti header to the given

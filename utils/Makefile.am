@@ -5,8 +5,8 @@
 NrrdIO_dir = NrrdIO
 cephes_dir = cephes
 
-if ENABLE_ITK_APPS
-ITK_THINGS=$(NIFTI_CFLAGS) -DHAVE_ITK_LIBS
+if HAVE_ITK_LIBS
+ITK_THINGS=$(ITK_CFLAGS) -DHAVE_ITK_LIBS
 else
 ITK_THINGS=
 endif

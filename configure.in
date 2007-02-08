@@ -1302,6 +1302,7 @@ else
 fi
 
 AM_CONDITIONAL(ENABLE_ITK_APPS, test "$itk_apps" = "yes")
+AM_CONDITIONAL(HAVE_ITK_LIBS, test "$itk_apps" = "yes")
 
 AC_SUBST(ITK_CFLAGS)
 AC_SUBST(ITK_LIBS)

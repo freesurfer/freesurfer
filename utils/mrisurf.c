@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/02/06 18:20:19 $
- *    $Revision: 1.509 $
+ *    $Author: nicks $
+ *    $Date: 2007/02/08 21:02:23 $
+ *    $Revision: 1.510 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.509 2007/02/06 18:20:19 greve Exp $");
+  return("$Id: mrisurf.c,v 1.510 2007/02/08 21:02:23 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1966,7 +1966,8 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
         }
         if (vn->d >= UNFOUND_DIST/2)
         {
-          printf("***** WARNING - surface distance not found at vno %d ******", vall[n]) ;
+          printf("***** WARNING - surface distance not found at vno %d ******",
+                 vall[n]) ;
           DiagBreak() ;
         }
         if ((vall[n] == diag_vno1 && vno == diag_vno2) ||
@@ -2073,8 +2074,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
               if (angle < min_angle)
                 done = 0 ;
             }
-            if (++niter > found)  /* couldn't find enough at
-                                               this difference */
+            if (++niter > found)  /* couldn't find enough at this difference */
             {
               min_angle *= 0.75f ;  /* be more liberal */
               niter = 0 ;
@@ -2873,7 +2873,6 @@ MRIScomputeNormals(MRI_SURFACE *mris)
 
   i = 0 ;
 
-
 #if 0
   if (mris->status == MRIS_PLANE)
   {
@@ -2882,88 +2881,84 @@ MRIScomputeNormals(MRI_SURFACE *mris)
   }
 #endif
   for (k=0;k<mris->nfaces;k++) if (mris->faces[k].ripflag)
-    {
-      f = &mris->faces[k];
-      for (n=0;n<VERTICES_PER_FACE;n++)
-        mris->vertices[f->v[n]].border = TRUE;
-    }
-
+  {
+    f = &mris->faces[k];
+    for (n=0;n<VERTICES_PER_FACE;n++)
+      mris->vertices[f->v[n]].border = TRUE;
+  }
 
   for (k=0;k<mris->nvertices;k++) if (!mris->vertices[k].ripflag)
+  {
+    v = &mris->vertices[k];
+    snorm[0]=snorm[1]=snorm[2]=0;
+    v->area = 0;
+
+    for (num = n=0;n<v->num;n++) if (!mris->faces[v->f[n]].ripflag)
     {
-      v = &mris->vertices[k];
-      snorm[0]=snorm[1]=snorm[2]=0;
-      v->area = 0;
+      num++ ;
+      mrisNormalFace(mris, v->f[n] , (int)v->n[n] , norm);
+      snorm[0] += norm[0];
+      snorm[1] += norm[1];
+      snorm[2] += norm[2];
 
-      for (num = n=0;n<v->num;n++) if (!mris->faces[v->f[n]].ripflag)
-        {
-          num++ ;
-          mrisNormalFace(mris, v->f[n] , (int)v->n[n] , norm);
-          snorm[0] += norm[0];
-          snorm[1] += norm[1];
-          snorm[2] += norm[2];
-
-
-
-          /* Note: overestimates area by *2 !! */
-          v->area += mrisTriangleArea(mris, v->f[n], (int)v->n[n]);
-        }
-      if (!num)
-        continue ;
-      mrisNormalize(snorm);
-
-      if (fix_vertex_area) v->area /= 3.0 ;
-      else                v->area /= 2.0 ;
-
-      if (v->origarea<0)        /* has never been set */
-        v->origarea = v->area;
-
-      len = sqrt(snorm[0]*snorm[0] + snorm[1]*snorm[1] + snorm[2]*snorm[2]) ;
-      if (!FZERO(len))
-      {
-        v->nx = snorm[0];
-        v->ny = snorm[1];
-        v->nz = snorm[2];
-        i = 0 ;
-      }
-      else
-      {
-        if (i++ > 5)
-          continue ;
-
-        if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-          fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
-
-        if (mris->status == MRIS_SPHERICAL_PATCH ||
-            mris->status == MRIS_PARAMETERIZED_SPHERE ||
-            mris->status == MRIS_SPHERE)
-          fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
-
-        v->x += (float)randomNumber(-RAN, RAN) ;
-        v->y += (float)randomNumber(-RAN, RAN) ;
-        /* normal is always (0,0,+-1) anyway */
-        if (mris->status == MRIS_PLANE || mris->status == MRIS_CUT)
-        {
-          v->nx = v->ny = 0.0f ;
-          v->nz = 1.0f ;
-          continue ;
-        }
-
-        v->z += (float)randomNumber(-RAN, RAN) ;
-        for (n=0;n<v->vnum;n++) /*if (!mris->faces[v->f[n]].ripflag)*/
-        {
-          mris->vertices[v->v[n]].x += (float)randomNumber(-RAN, RAN) ;
-          mris->vertices[v->v[n]].y += (float)randomNumber(-RAN, RAN) ;
-          mris->vertices[v->v[n]].z += (float)randomNumber(-RAN, RAN) ;
-        }
-        k-- ;   /* recalculate the normal for this vertex */
-      }
+      /* Note: overestimates area by *2 !! */
+      v->area += mrisTriangleArea(mris, v->f[n], (int)v->n[n]);
     }
+    if (!num)
+      continue ;
+    mrisNormalize(snorm);
+
+    if (fix_vertex_area) v->area /= 3.0 ;
+    else                v->area /= 2.0 ;
+
+    if (v->origarea<0)        /* has never been set */
+      v->origarea = v->area;
+
+    len = sqrt(snorm[0]*snorm[0] + snorm[1]*snorm[1] + snorm[2]*snorm[2]) ;
+    if (!FZERO(len))
+    {
+      v->nx = snorm[0];
+      v->ny = snorm[1];
+      v->nz = snorm[2];
+      i = 0 ;
+    }
+    else
+    {
+      if (i++ > 5)
+        continue ;
+
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+        fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
+
+      if (mris->status == MRIS_SPHERICAL_PATCH ||
+          mris->status == MRIS_PARAMETERIZED_SPHERE ||
+          mris->status == MRIS_SPHERE)
+        fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
+
+      v->x += (float)randomNumber(-RAN, RAN) ;
+      v->y += (float)randomNumber(-RAN, RAN) ;
+      /* normal is always (0,0,+-1) anyway */
+      if (mris->status == MRIS_PLANE || mris->status == MRIS_CUT)
+      {
+        v->nx = v->ny = 0.0f ;
+        v->nz = 1.0f ;
+        continue ;
+      }
+
+      v->z += (float)randomNumber(-RAN, RAN) ;
+      for (n=0;n<v->vnum;n++) /*if (!mris->faces[v->f[n]].ripflag)*/
+      {
+        mris->vertices[v->v[n]].x += (float)randomNumber(-RAN, RAN) ;
+        mris->vertices[v->v[n]].y += (float)randomNumber(-RAN, RAN) ;
+        mris->vertices[v->v[n]].z += (float)randomNumber(-RAN, RAN) ;
+      }
+      k-- ;   /* recalculate the normal for this vertex */
+    }
+  }
 #if 0
   mris->vertices[0].nx = mris->vertices[0].ny = 0 ;
   mris->vertices[0].nz = mris->vertices[0].nz / fabs(mris->vertices[0].nz) ;
 #endif
-
 
   return(NO_ERROR) ;
 }
@@ -37798,7 +37793,10 @@ typedef struct
 }
 INTERSECTION_TABLE , IT;
 
-static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DVS* dvs, DP* dp)
+static int retessellateDefect(MRI_SURFACE *mris, 
+                              MRI_SURFACE *mris_corrected, 
+                              DVS* dvs, 
+                              DP* dp)
 {
   double max_len;
   int     i, j, max_i, max_added, nadded, index,ndiscarded;
@@ -37886,27 +37884,36 @@ static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DV
 
       if (it[i].intersected) continue;
 
-      if (et[i].used && et[i].used!=USED_IN_ORIGINAL_TESSELLATION) /* already exists in tessellation - don't add it again */
+      if (et[i].used && 
+          et[i].used!=USED_IN_ORIGINAL_TESSELLATION) /* already exists in 
+                                                        tessellation - don't 
+                                                        add it again */
         continue;  /* edge status must be USED_IN_TESSELLATION */
 
       /* check if this edge really exists */
-      if (mris_corrected->vertices[et[i].vno1].marked==DISCARDED_VERTEX) continue;
-      if (mris_corrected->vertices[et[i].vno2].marked==DISCARDED_VERTEX) continue;
+      if (mris_corrected->vertices[et[i].vno1].marked==DISCARDED_VERTEX) 
+        continue;
+      if (mris_corrected->vertices[et[i].vno2].marked==DISCARDED_VERTEX) 
+        continue;
 
       //TO BE CHECKED (used in RandomRetessellation)
       if (mris_corrected->vertices[et[i].vno1].ripflag) continue;
       if (mris_corrected->vertices[et[i].vno2].ripflag) continue;
 
-      if (etable && etable->use_overlap==USE_OVERLAP)   /* use pre-computed intersection table */
+      if (etable && 
+          etable->use_overlap==USE_OVERLAP)   /* use pre-computed 
+                                                 intersection table */
       {
         int intersects = 0 ;
 
         for (j = 0 ; j < etable->noverlap[i] ; j++)
-          if (et[etable->overlapping_edges[i][j]].used
-              && et[etable->overlapping_edges[i][j]].used!=USED_IN_ORIGINAL_TESSELLATION)
+          if (et[etable->overlapping_edges[i][j]].used && 
+              et[etable->overlapping_edges[i][j]].used!=
+              USED_IN_ORIGINAL_TESSELLATION)
           {
             intersects = 1 ;
-            /* the edge i was refused because of the edge etable->overlapping_edges[i][j] */
+            /* the edge i was refused because of the edge 
+               etable->overlapping_edges[i][j] */
             it[i].intersected=2;
             it[i].vno1=et[etable->overlapping_edges[i][j]].vno1;
             it[i].vno2=et[etable->overlapping_edges[i][j]].vno2;
@@ -38127,11 +38134,13 @@ mrisDefectPatchFitness(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri,
 
     if (euler==1) break;
 
-    /* we have a surface patch with an euler number different from 1 : this is a bug!*/
+    /* we have a surface patch with an euler number 
+       different from 1 : this is a bug!*/
     /* restore the vertex state */
     mrisRestoreVertexState(mris_corrected, dvs);
 
-    /* reset the edges to the unused state (unless they were in the original tessellation) */
+    /* reset the edges to the unused state 
+       (unless they were in the original tessellation) */
     for (i = 0 ; i < dp->nedges ; i++)
     {
       if (dp->etable->edges[i].used == USED_IN_NEW_TESSELLATION)
