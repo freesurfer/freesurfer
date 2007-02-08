@@ -8,8 +8,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/07 23:40:11 $
-%    $Revision: 1.19 $
+%    $Date: 2007/02/08 21:41:36 $
+%    $Revision: 1.20 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -271,7 +271,7 @@ if(DoGLMFit)
   end
   
   % Compute baseline
-  betamn0 = mean(betamat0(ind0,:));
+  betamn0 = mean(betamat0(ind0,:),1);
   % baseline0 = mri;
   % baseline0.vol = fast_mat2vol(betamn0,mri.volsize);
   % Compute Rescale Factor
@@ -549,7 +549,7 @@ if(DoGLMFit)
        'DoSynth','SynthSeed','yrun_randn');
   
   baseline = mri;
-  baseline.vol = fast_mat2vol(mean(betamat(ind0,:)),mri.volsize);
+  baseline.vol = fast_mat2vol(mean(betamat(ind0,:),1),mri.volsize);
   fname = sprintf('%s/h-offset.%s',outanadir,ext);
   MRIwrite(baseline,fname);
 
@@ -579,8 +579,10 @@ if(DoGLMFit)
 end % DoGLMFit
 
 if(DoContrasts)
+  fprintf('Computing contrasts\n');
   
   if(~DoGLMFit)
+    fprintf('Loading previous GLM fit\n');
     load(xfile);
   
     fname = sprintf('%s/h-offset',outanadir);
@@ -603,10 +605,11 @@ if(DoContrasts)
   end
 
   %---------------------------------------------------------------%
-  fprintf('Computing contrasts\n');
+  fprintf('Starting contrasts\n');
   for nthcon = 1:ncontrasts
     C = flacC.con(nthcon).C;
     [J K] = size(C);
+    fprintf('%s J=%d -------------\n',flacC.con(nthcon).name,J);
     if(J==1)
       [Fmat dof1 dof2 cesmat cesvarmat] = ...
 	  fast_fratiow(betamat,X,rvarmat,C,acfsegmn,acfseg.vol(:));
@@ -619,7 +622,6 @@ if(DoContrasts)
     fsigmat = -log10(pmat);
 
     if(DoSynth)
-      fprintf('%s J=%d -------------\n',flacC.con(nthcon).name,J);
       cmn  = mean(cesmat(:,indmask),2);
       cstd = std(cesmat(:,indmask),[],2);
       cvar = cstd.^2;
