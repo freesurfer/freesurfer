@@ -10,8 +10,8 @@
  * Original Author: Laurence Wastiaux
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/08 18:32:28 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/02/08 20:21:26 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 //#define VERBOSE 1
 
 static char vcid[] =
-"$Id: talairach_afd.c,v 1.2 2007/02/08 18:32:28 nicks Exp $";
+"$Id: talairach_afd.c,v 1.3 2007/02/08 20:21:26 nicks Exp $";
 static int get_option(int argc, char *argv[]) ;
 static void usage(int exit_value) ;
 static char *subject_name = NULL;
@@ -90,7 +90,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: talairach_afd.c,v 1.2 2007/02/08 18:32:28 nicks Exp $",
+     "$Id: talairach_afd.c,v 1.3 2007/02/08 20:21:26 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -285,15 +285,14 @@ usage(int exit_value)
 
   fprintf(fout, "Options:\n") ;
   fprintf(fout,
-          "   -subj %%s    subject's name \n");
+          "   -subj %%s  subject's name \n");
   fprintf(fout,
-          "   -T #        threshold the p-values at # "
-          "(i.e., Talairach transforms for subjects with p-values "
-          "<= T are considered as very unlikely) \n");
+          "   -T #      threshold the p-values at #\n"
+          "             (i.e., Talairach transforms for subjects with\n"
+          "             p-values <= T are considered as very unlikely)\n");
   fprintf(fout,
-          "   -F 0/1      if 1, a message will appear only if subject "
-          "has an unlikely talairach transform\n");
-  fprintf(fout, "\n");
+          "   -F 0/1    if 1, a message will appear only if subject\n"
+          "             has an unlikely talairach transform\n");
 
   exit(exit_value) ;
 }

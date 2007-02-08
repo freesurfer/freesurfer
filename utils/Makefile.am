@@ -5,6 +5,12 @@
 NrrdIO_dir = NrrdIO
 cephes_dir = cephes
 
+if ENABLE_ITK_APPS
+ITK_THINGS=$(NIFTI_CFLAGS) -DHAVE_ITK_LIBS
+else
+ITK_THINGS=
+endif
+
 if HAVE_NIFTI_LIBS
 NIFTI_THINGS=$(NIFTI_CFLAGS) -DHAVE_NIFTI_LIBS
 else
@@ -21,7 +27,7 @@ AM_CPPFLAGS=$(X_CFLAGS) $(VXL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
 	-I$(top_srcdir)/include/NrrdIO \
-	$(NIFTI_THINGS) $(GLUT_THINGS) -DHAVE_ZLIB
+	$(ITK_THINGS) $(NIFTI_THINGS) $(GLUT_THINGS) -DHAVE_ZLIB
 
 AM_LDFLAGS=
 

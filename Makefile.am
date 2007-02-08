@@ -240,7 +240,8 @@ MISCDIRS=histo_compute_joint_density \
 	dummy \
 	hiam_make_surfaces\
 	hiam_make_template\
-	hiam_register
+	hiam_register \
+	talairach_afd
 
 SUBDIRS=include \
 	unix \

@@ -1278,29 +1278,30 @@ AC_ARG_ENABLE(itk-apps,
 
 if test "$itk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of ITK apps.])
+
+  # these are the minimum ITK libs necessary to support Nrrd IO:
+  LIBS_ITK="$ac_itk_libraries/libITKAlgorithms.a \
+  $ac_itk_libraries/libITKIO.a \
+  $ac_itk_libraries/libITKMetaIO.a \
+  $ac_itk_libraries/libITKniftiio.a \
+  $ac_itk_libraries/libITKNrrdIO.a \
+  $ac_itk_libraries/libitkpng.a \
+  $ac_itk_libraries/libitksys.a \
+  $ac_itk_libraries/libitktiff.a \
+  $ac_itk_libraries/libitkv3p_netlib.a \
+  $ac_itk_libraries/libitkzlib.a \
+  $ac_itk_libraries/libITKCommon.a \
+  $ac_itk_libraries/libitkgdcm.a \
+  $ac_itk_libraries/libitkopenjpeg.a \
+  $ac_itk_libraries/libitkjpeg8.a \
+  $ac_itk_libraries/libitkjpeg12.a \
+  $ac_itk_libraries/libitkjpeg16.a \
+  $ac_itk_libraries/libITKDICOMParser.a"
 else
   AC_MSG_RESULT([Not building ITK apps.])
 fi
 
 AM_CONDITIONAL(ENABLE_ITK_APPS, test "$itk_apps" = "yes")
-
-LIBS_ITK="$ac_itk_libraries/libITKAlgorithms.a \
-$ac_itk_libraries/libITKIO.a \
-$ac_itk_libraries/libITKMetaIO.a \
-$ac_itk_libraries/libITKniftiio.a \
-$ac_itk_libraries/libITKNrrdIO.a \
-$ac_itk_libraries/libitkpng.a \
-$ac_itk_libraries/libitksys.a \
-$ac_itk_libraries/libitktiff.a \
-$ac_itk_libraries/libitkv3p_netlib.a \
-$ac_itk_libraries/libitkzlib.a \
-$ac_itk_libraries/libITKCommon.a \
-$ac_itk_libraries/libitkgdcm.a \
-$ac_itk_libraries/libitkopenjpeg.a \
-$ac_itk_libraries/libitkjpeg8.a \
-$ac_itk_libraries/libitkjpeg12.a \
-$ac_itk_libraries/libitkjpeg16.a \
-$ac_itk_libraries/libITKDICOMParser.a"
 
 AC_SUBST(ITK_CFLAGS)
 AC_SUBST(ITK_LIBS)
@@ -2097,6 +2098,7 @@ AC_OUTPUT([Makefile
            stat_normalize/Makefile
            stim/Makefile
            stim_polar/Makefile
+           talairach_afd/Makefile
            test_makevol/Makefile
            test_tiff/Makefile
            test_window_env/Makefile
@@ -2112,8 +2114,8 @@ AC_OUTPUT([Makefile
            utils/test/Makefile
            utilscpp/Makefile
            utilscpp/test/Makefile
-	   vtkfsio/Makefile
-	   vtkutils/Makefile])
+           vtkfsio/Makefile
+           vtkutils/Makefile])
 
 ########################################################################
 AC_MSG_RESULT(

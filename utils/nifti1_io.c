@@ -1,32 +1,29 @@
 /**
  * @file  nifti1_io.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief main collection of nifti1 i/o routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Robert W Cox
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/01/08 22:40:41 $
- *    $Revision: 1.6 $
- *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
- *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *    $Author: nicks $
+ *    $Date: 2007/02/08 20:21:26 $
+ *    $Revision: 1.7 $
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-
+/* NIFTI IO code is found in the ITK library, and, of course, the NIFTI
+   library.  So if either of those libs exists when Freesurfer is configured,
+   as specified by --with-itk-dir or --with-nifti-dir, then this code is
+   not built. (NJS)
+*/
+#ifndef HAVE_ITK_LIBS
 #ifndef HAVE_NIFTI_LIBS
+
+
 
 #define _NIFTI1_IO_C_
 
@@ -5931,3 +5928,4 @@ nifti_image *nifti_image_from_ascii( char *str, int * bytes_read )
 }
 
 #endif //  HAVE_NIFTI_LIBS
+#endif //  HAVE_ITK_LIBS
