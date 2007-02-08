@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/02/07 22:04:04 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2007/02/08 00:19:28 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,7 +39,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSVolumeSource );
-vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.2 $" );
 
 vtkFSVolumeSource::vtkFSVolumeSource () :
     mMRI( NULL ),
@@ -448,7 +448,7 @@ vtkFSVolumeSource::CopyMRIToImage () {
   int cValues;
   int nZ, nY;
   int cRead;
-  int zElement;
+  int zElement=0;
 
   if ( mMRI == NULL ) {
     vtkErrorMacro( << "No MRI is present." );
