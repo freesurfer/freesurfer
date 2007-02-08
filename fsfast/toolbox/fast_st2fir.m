@@ -27,9 +27,9 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.9 $
+%    $Author: greve $
+%    $Date: 2007/02/08 03:45:34 $
+%    $Revision: 1.10 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -113,7 +113,7 @@ for nthpres = 1:npres
   
     % Rows in the design matrix (0-based)
     r1 = round((tonset+psdmin)/TR);
-    r2 = round((tonset+psdmax)/TR)-1;
+    r2 = round((tonset+psdmax)/TR);
     r = r1:r2;
     
     % Columns in the design matrix (0-based)
