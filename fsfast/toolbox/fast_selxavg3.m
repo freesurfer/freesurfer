@@ -8,8 +8,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/08 21:41:36 $
-%    $Revision: 1.20 $
+%    $Date: 2007/02/08 22:02:14 $
+%    $Revision: 1.21 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -674,6 +674,15 @@ if(DoContrasts)
       cesvar.vol = fast_mat2vol(cesvarmat,mri.volsize);
       fname = sprintf('%s/cesvar.%s',outcondir,ext);
       MRIwrite(cesvar,fname);
+    end
+
+    if(J > 1)
+      % Compute CES amplitude as the sqrt of sum of the squares
+      fprintf('Computing CES Amplitude\n');
+      cesamp = mri;
+      cesamp.vol = sqrt(sum(ces.vol.^2,4));
+      fname = sprintf('%s/cesamp.%s',outcondir,ext);
+      MRIwrite(cesamp,fname);
     end
   
   end
