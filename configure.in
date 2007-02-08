@@ -1884,6 +1884,7 @@ AC_OUTPUT([Makefile
            include/fs_vnl/Makefile
            label_area/Makefile
            label2patch/Makefile
+           label2flat/Makefile
            log/Makefile
            matlab/Makefile
            mkxsubjreg/Makefile
@@ -2074,6 +2075,7 @@ AC_OUTPUT([Makefile
            mris_surface_to_vol_distances/Makefile
            mris_talairach/Makefile
            mris_thickness/Makefile
+           mris_compute_optimal_kernel/Makefile
            mris_thickness_comparison/Makefile
            mris_thickness_diff/Makefile
            mris_transform/Makefile

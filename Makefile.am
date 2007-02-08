@@ -142,6 +142,7 @@ MRISUBDIRS=check_siemens_dir \
 
 MRISSUBDIRS=label_area \
 	label2patch \
+	label2flat \
 	spherical_stats \
 	stim \
 	stim_polar \
@@ -206,6 +207,7 @@ MRISSUBDIRS=label_area \
 	mrisp_paint \
 	mris_talairach \
 	mris_thickness \
+	mris_compute_optimal_kernel \
 	mris_thickness_comparison \
 	mris_transform \
 	mris_translate_annotation \
