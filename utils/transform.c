@@ -1,15 +1,14 @@
 /**
  * @file  transform.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for linear transforms
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:40 $
- *    $Revision: 1.104 $
+ *    $Date: 2007/02/09 21:24:44 $
+ *    $Revision: 1.105 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -22,17 +21,6 @@
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
- *
- */
-
-
-/*
- *       FILE NAME:   transform.c
- *
- *       DESCRIPTION: utilities for linear transforms
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        11/98
  *
  */
 
@@ -1512,7 +1500,8 @@ LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst)
     }
     else
     {
-      m_L = MRIvoxelXformToRasXform(mri_src, mri_dst, lta->xforms[i].m_L, NULL) ;
+      m_L = 
+        MRIvoxelXformToRasXform(mri_src, mri_dst, lta->xforms[i].m_L, NULL) ;
     }
     MatrixFree(&lta->xforms[i].m_L) ;
     lta->xforms[i].m_L = m_L ;
@@ -1636,7 +1625,10 @@ MATRIX *DevolveXFM(char *subjid, MATRIX *XFM, char *xfmname)
   return(DevolveXFMWithSubjectsDir(subjid,  XFM, xfmname, NULL)) ;
 }
 
-MATRIX *DevolveXFMWithSubjectsDir(char *subjid, MATRIX *XFM, char *xfmname, char *sdir)
+MATRIX *DevolveXFMWithSubjectsDir(char *subjid, 
+                                  MATRIX *XFM, 
+                                  char *xfmname, 
+                                  char *sdir)
 {
   MATRIX *Torig_tkreg, *invTorig_tkreg, *Torig_native, *Mfix;
   char dirname[2000], xfmpath[2000], *sd;
@@ -1802,8 +1794,9 @@ TransformFree(TRANSFORM **ptrans)
 }
 
 /*
-  take a voxel in MRI space and find the voxel in the gca/gcamorph space to which
-  it maps. Note that the caller will scale this down depending on the spacing of
+  take a voxel in MRI space and find the voxel in the 
+  gca/gcamorph space to which it maps. Note that the caller 
+  will scale this down depending on the spacing of
   the gca/gcamorph.
 */
 // no range check is done here.   user must validate the range
@@ -2255,7 +2248,8 @@ ltaReadRegisterDat(char *fname)
   lta->xforms[0].x0 = lta->xforms[0].y0 = lta->xforms[0].z0 = 0 ;
   reg = StatReadRegistration(fname) ;
   if (reg == NULL)
-    ErrorReturn(NULL,(ERROR_BADPARM, "ltaReadRegisterDat: could not read %s", fname));
+    ErrorReturn(NULL,(ERROR_BADPARM, 
+                      "ltaReadRegisterDat: could not read %s", fname));
   MatrixCopy(reg->mri2fmri, lta->xforms[0].m_L) ;
   StatFreeRegistration(&reg) ;
 
@@ -2549,7 +2543,8 @@ LTA *ltaMNIreadEx(const char *fname)
   if (strncmp("MNI Transform File", line, 18))
     ErrorReturn(NULL,
                 (ERROR_NOFILE,
-                 "ltMNIreadEx:%s does not start as 'MNI Transform File'",fname));
+                 "ltMNIreadEx:%s does not start as 'MNI Transform File'",
+                 fname));
 
   fgetl(line, 900, fp) ;   /* fileinfo line */
   if (line[0] == '%')
@@ -2818,7 +2813,10 @@ int LTAvoxelXformToRASXform(const MRI *src,
                             LT *voxTran,
                             LT *rasTran)
 {
-  MRIvoxelXformToRasXform((MRI *) src, (MRI *) dst, voxTran->m_L, rasTran->m_L);
+  MRIvoxelXformToRasXform((MRI *) src, 
+                          (MRI *) dst, 
+                          voxTran->m_L, 
+                          rasTran->m_L);
   getVolGeom(src, &voxTran->src);
   getVolGeom(dst, &voxTran->dst);
   return 1;
