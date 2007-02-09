@@ -10,8 +10,8 @@
  * Original Author: Laurence Wastiaux
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/08 20:21:26 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/02/09 00:37:27 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -49,12 +49,12 @@
 //#define VERBOSE 1
 
 static char vcid[] =
-"$Id: talairach_afd.c,v 1.3 2007/02/08 20:21:26 nicks Exp $";
+"$Id: talairach_afd.c,v 1.4 2007/02/09 00:37:27 nicks Exp $";
 static int get_option(int argc, char *argv[]) ;
 static void usage(int exit_value) ;
 static char *subject_name = NULL;
-static float threshold = -1e10;
-static int flag_failed = 0;
+#define DEFAULT_THRESHOLD 0.01f
+static float threshold = DEFAULT_THRESHOLD;
 VECTOR *ReadMeanVect(char *fname);
 MATRIX *ReadCovMat(char *fname);
 VECTOR *Load_xfm(char *fname);
@@ -90,7 +90,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: talairach_afd.c,v 1.3 2007/02/08 20:21:26 nicks Exp $",
+     "$Id: talairach_afd.c,v 1.4 2007/02/09 00:37:27 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -112,19 +112,16 @@ main(int argc, char *argv[])
   }
 
   if (argc < 1)
-    usage(1) ;
-  if (argc ==1 && threshold == -1e10) {
-    printf("default p-values threshold at 0.01\n");
-    threshold=0.01;
-  }
+    usage(1);
+
   if (subject_name==NULL) {
-    printf("you must provide a subject name\n");
+    printf("ERROR: a subject name must be provided!\n");
     usage(1);
   }
 
   fsenv=getenv("FREESURFER_HOME");
   if(!fsenv) {
-    printf("FREESURFER_HOME not defined\n");
+    printf("ERROR: FREESURFER_HOME not defined!\n");
     exit(1);
   }
 
@@ -161,10 +158,13 @@ main(int argc, char *argv[])
   pval = ComputeArea(h, bin);
 
   if(pval < threshold)
-    printf("Talairach Transform: %s failed (p=%f, pval=%f)\n",sname, p, pval);
+    printf("ERROR: talairach_afd: Talairach Transform: %s ***FAILED***"
+           " (p=%f, pval=%f < threshold=%f)\n",
+           sname, p, pval, threshold);
   else{
-    if(!flag_failed)
-      printf("Talairach Transform: %s OK (p=%f, pval=%f)\n",sname, p, pval);
+    printf("talairach_afd: Talairach Transform: %s OK "
+           "(p=%f, pval=%f >= threshold=%f)\n",
+           sname, p, pval, threshold);
   }
 
 #ifdef VERBOSE
@@ -234,18 +234,9 @@ get_option(int argc, char *argv[])
   {
     subject_name = argv[2];
     nargs = 1;
-    if(!flag_failed)
-      fprintf(stderr, "Subject: %s\n", subject_name);
   }
   else if (!stricmp(option, "T") || !stricmp(option, "threshold")){
     threshold = (float)atof(argv[2]);
-    nargs = 1;
-    if(!flag_failed)
-      fprintf(stderr, "Threshold p-values at %g\n", threshold);
-  }
-  else if (!stricmp(option, "F"))
-  {
-    flag_failed = (float)atof(argv[2]);
     nargs = 1;
   }
   else switch (toupper(*option))
@@ -278,21 +269,20 @@ usage(int exit_value)
   fout = (exit_value ? stderr : stdout);
 
   fprintf(fout,
-          "Usage: %s [options] <subject_name> <p-value threshold>\n",
+          "Usage: %s -subj <subject_name> [-T <p-value threshold>]\n",
           Progname);
   fprintf(fout,
           "This program detects talairaching failures.\n") ;
 
-  fprintf(fout, "Options:\n") ;
+  fprintf(fout, "Required:\n") ;
   fprintf(fout,
           "   -subj %%s  subject's name \n");
+  fprintf(fout, "Optional:\n") ;
   fprintf(fout,
           "   -T #      threshold the p-values at #\n"
           "             (i.e., Talairach transforms for subjects with\n"
-          "             p-values <= T are considered as very unlikely)\n");
-  fprintf(fout,
-          "   -F 0/1    if 1, a message will appear only if subject\n"
-          "             has an unlikely talairach transform\n");
+          "             p-values <= T are considered as very unlikely)\n"
+          "             default=%2.3f\n",DEFAULT_THRESHOLD);
 
   exit(exit_value) ;
 }
@@ -316,7 +306,8 @@ ReadMeanVect(char *fname)
 
   fp = fopen(fname,"r");
   if(fp == NULL){
-    printf("ERROR: main(): could not open %s\n",fname);
+    printf("ERROR: talairach_afd::ReadMeanVect(): could not open %s\n",
+           fname);
     exit(1);
   }
 
@@ -334,7 +325,8 @@ ReadMeanVect(char *fname)
     }
   }
   if (nth!=10){
-    printf("ReadMeanVect():9 componants could not be loaded\n");
+    printf("ERROR: talairach_afd::ReadMeanVect(): "
+           "9 components could not be loaded\n");
     exit(1);
   }
 
@@ -361,7 +353,7 @@ ReadCovMat(char *fname)
 
   fp = fopen(fname,"r");
   if(fp == NULL){
-    printf("ERROR: main(): could not open %s\n",fname);
+    printf("ERROR: talairach_afd::ReadCovMAt(): could not open %s\n",fname);
     exit(1);
   }
 
@@ -381,7 +373,8 @@ ReadCovMat(char *fname)
     }
   }
   if (nth!=81){
-    printf("ReadCovMAt():9x9 componants could not be loaded\n");
+    printf("ERROR: talairach_afd::ReadCovMAt(): "
+           "9x9 components could not be loaded\n");
     exit(1);
   }
 
@@ -416,12 +409,12 @@ Load_xfm(char *fname)
       sprintf(tmp_name,"%s/%s", sdir, fname);
       fp = fopen(tmp_name,"r");
       if(!fp){
-        printf("ERROR: main(): could not open %s\n",fname);
+        printf("ERROR: talairach_afd::Load_xfm(): could not open %s\n",fname);
         exit(1);
       }
     }
     else{
-      printf("ERROR: main(): SUBJECTS_DIR is not defined, "
+      printf("ERROR: talairach_afd::Load_xfm(): SUBJECTS_DIR is not defined, "
              "could not open %s\n",fname);
       exit(1);
     }
@@ -441,7 +434,8 @@ Load_xfm(char *fname)
     nth++;
   }
   if(nth!=12){
-    printf("Load_xfm(%s):3x4 componants could not be loaded\n", fname);
+    printf("ERROR: talairach_afd::Load_xfm(%s): 3x4 components could "
+           "not be loaded\n", fname);
     exit(1);
   }
   for(i=0;i<3;i++){
@@ -471,7 +465,7 @@ LoadProbas(char *fname, int *nb_samples)
 
   fp = fopen(fname,"r");
   if(fp == NULL){
-    printf("ERROR: main(): could not open %s\n",fname);
+    printf("ERROR: talairach_afd::LoadProbas(): could not open %s\n",fname);
     exit(1);
   }
 
@@ -492,13 +486,15 @@ LoadProbas(char *fname, int *nb_samples)
 
   p=(double *)calloc(len, sizeof(double));
   if(!p){
-    printf("LoadProbas(): 1-could not allocate memory for probas vector\n");
+    printf("ERROR: talairach_afd::LoadProbas(): "
+           "could not allocate memory for probas vector\n");
     exit(1);
   }
 
   fp=freopen(fname,"r", fp);
   if(fp == NULL){
-    printf("ERROR: main(): could not re-open %s\n",fname);
+    printf("ERROR: talairach_afd::LoadProbas(): could not re-open %s\n",
+           fname);
     exit(1);
   }
 
@@ -516,7 +512,8 @@ LoadProbas(char *fname, int *nb_samples)
   }
 
   if(nth!=len){
-    printf("LoadProbas(): %d componants could not be loaded\n", len);
+    printf("ERROR: talairach_afd::LoadProbas(): "
+           "%d components could not be loaded\n", len);
     exit(1);
   }
   *(nb_samples)=len;
@@ -541,7 +538,7 @@ mvnpdf(VECTOR *t, VECTOR *v_mu, MATRIX *m_sigma)
   int d;
 
   if(!t || !v_mu || !m_sigma){
-    fprintf(stderr, "mvnpdf(): Cannot compute mvnpdf\n");
+    fprintf(stderr, "ERROR: talairach_afd::mvnpdf(): cannot compute mvnpdf\n");
     exit(1);
   }
 
@@ -583,3 +580,4 @@ ComputeArea(HISTO *h, int nbin)
 
   return(s);
 }
+
