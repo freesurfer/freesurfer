@@ -1,15 +1,15 @@
 /**
  * @file  mri_binarize.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief binarizes an image
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:04 $
- *    $Revision: 1.7 $
+ *    $Author: greve $
+ *    $Date: 2007/02/09 19:12:39 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.7 2006/12/29 02:09:04 nicks Exp $
+// $Id: mri_binarize.c,v 1.8 2007/02/09 19:12:39 greve Exp $
 
 /*
   BEGINHELP
@@ -76,6 +76,15 @@ to construct crude segmentations.
 Mask input with mask. The mask volume is itself binarized at thresh
 (default is 0.5). If a voxel is not in the mask, then it will be assigned
 binvalnot or the value from the merge volume.
+
+--zero-edges
+
+Set the first and last planes in all dimensions to 0 (or --binvalnot). This
+makes sure that all the voxels on the edge of the imaging volume are 0.
+
+--zero-slice-edges
+
+Same as --zero-edges, but only for slices.
 
   ENDHELP
 */
@@ -129,7 +138,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.7 2006/12/29 02:09:04 nicks Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.8 2007/02/09 19:12:39 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -146,6 +155,10 @@ int BinVal=1;
 int BinValNot=0;
 int frame=0;
 int DoAbs=0;
+int ZeroColEdges = 0;
+int ZeroRowEdges = 0;
+int ZeroSliceEdges = 0;
+
 
 MRI *InVol,*OutVol,*MergeVol,*MaskVol;
 double MaskThresh = 0.5;
@@ -234,6 +247,12 @@ int main(int argc, char *argv[]) {
   for (c=0; c < InVol->width; c++) {
     for (r=0; r < InVol->height; r++) {
       for (s=0; s < InVol->depth; s++) {
+	if( (ZeroColEdges && (c == 0 || c == InVol->width-1)) ||
+	    (ZeroRowEdges && (r == 0 || r == InVol->height-1)) ||
+	    (ZeroSliceEdges && (s == 0 || s == InVol->depth-1)) ){
+	  MRIsetVoxVal(OutVol,c,r,s,0,BinValNot);
+	  continue;
+	}
         val = MRIgetVoxVal(InVol,c,r,s,frame);
         if (MaskVol) {
           maskval = MRIgetVoxVal(MaskVol,c,r,s,0);
@@ -257,6 +276,7 @@ int main(int argc, char *argv[]) {
     }
   }
   printf("Found %d values in range\n",nhits);
+
 
   // Save output
   MRIwrite(OutVol,OutVolFile);
@@ -288,6 +308,12 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--abs")) DoAbs = 1;
+    else if (!strcasecmp(option, "--zero-edges")){
+      ZeroColEdges = 1;
+      ZeroRowEdges = 1;
+      ZeroSliceEdges = 1;
+    }
+    else if (!strcasecmp(option, "--zero-slice-edges")) ZeroSliceEdges = 1;
 
     else if (!strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -363,6 +389,8 @@ static void print_usage(void) {
   printf("   --mask maskvol       : must be within mask \n");
   printf("   --mask-thresh thresh : set thresh for mask (def is 0.5) \n");
   printf("   --abs : take abs of invol first (ie, make unsigned)\n");
+  printf("   --zero-edges : zero the edge voxels\n");
+  printf("   --zero-slice-edges : zero the edge slice voxels\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -375,53 +403,62 @@ static void print_usage(void) {
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
-  printf("\n");
-  printf("Program to binarize a volume (or volume-encoded surface file). Can also\n");
-  printf("be used to merge with other binarizations.\n");
-  printf("\n");
-  printf("--i invol\n");
-  printf("\n");
-  printf("Input volume to be binarized. \n");
-  printf("\n");
-  printf("--min min\n");
-  printf("--max max\n");
-  printf("\n");
-  printf("Minimum and maximum thresholds. If the value at a voxel is >= min and\n");
-  printf("<= max, then its value in the output will be 1 (or --binval), otherwise\n");
-  printf("it is 0 (or --binvalnot) or the value of the merge volume at that voxel.\n");
-  printf("By default, min = -infinity and max = +infinity, but you must set one\n");
-  printf("of the thresholds.\n");
-  printf("\n");
-  printf("--o outvol\n");
-  printf("\n");
-  printf("Path to output volume.\n");
-  printf("\n");
-  printf("--binval    binval\n");
-  printf("--binvalnot binvalnot\n");
-  printf("\n");
-  printf("Value to use for those voxels that are in the threshold range\n");
-  printf("(--binval) or out of the range (--binvalnot). These must be integer\n");
-  printf("values. binvalnot only applies when a merge volume is not specified.\n");
-  printf("\n");
-  printf("--frame frameno\n");
-  printf("\n");
-  printf("Use give frame of the input. 0-based. Default is 0.\n");
-  printf("\n");
-  printf("--merge mergevol\n");
-  printf("\n");
-  printf("Merge binarization with the mergevol. If the voxel is within the threshold\n");
-  printf("range, then its value will be binval. If not, then it will inherit its\n");
-  printf("value from the value at that voxel in mergevol. mergevol must be the same\n");
-  printf("dimension as the input volume. Combining this with --binval allows you\n");
-  printf("to construct crude segmentations.\n");
-  printf("\n");
-  printf("--mask maskvol\n");
-  printf("--mask-thresh thresh\n");
-  printf("\n");
-  printf("Mask input with mask. The mask volume is itself binarized at thresh \n");
-  printf("(default is 0.5). If a voxel is not in the mask, then it will be assigned\n");
-  printf("binvalnot or the value from the merge volume.\n");
-  printf("\n");
+printf("\n");
+printf("Program to binarize a volume (or volume-encoded surface file). Can also\n");
+printf("be used to merge with other binarizations.\n");
+printf("\n");
+printf("--i invol\n");
+printf("\n");
+printf("Input volume to be binarized.\n");
+printf("\n");
+printf("--min min\n");
+printf("--max max\n");
+printf("\n");
+printf("Minimum and maximum thresholds. If the value at a voxel is >= min and\n");
+printf("<= max, then its value in the output will be 1 (or --binval), otherwise\n");
+printf("it is 0 (or --binvalnot) or the value of the merge volume at that voxel.\n");
+printf("By default, min = -infinity and max = +infinity, but you must set one\n");
+printf("of the thresholds.\n");
+printf("\n");
+printf("--o outvol\n");
+printf("\n");
+printf("Path to output volume.\n");
+printf("\n");
+printf("--binval    binval\n");
+printf("--binvalnot binvalnot\n");
+printf("\n");
+printf("Value to use for those voxels that are in the threshold range\n");
+printf("(--binval) or out of the range (--binvalnot). These must be integer\n");
+printf("values. binvalnot only applies when a merge volume is not specified.\n");
+printf("\n");
+printf("--frame frameno\n");
+printf("\n");
+printf("Use give frame of the input. 0-based. Default is 0.\n");
+printf("\n");
+printf("--merge mergevol\n");
+printf("\n");
+printf("Merge binarization with the mergevol. If the voxel is within the threshold\n");
+printf("range, then its value will be binval. If not, then it will inherit its\n");
+printf("value from the value at that voxel in mergevol. mergevol must be the same\n");
+printf("dimension as the input volume. Combining this with --binval allows you\n");
+printf("to construct crude segmentations.\n");
+printf("\n");
+printf("--mask maskvol\n");
+printf("--mask-thresh thresh\n");
+printf("\n");
+printf("Mask input with mask. The mask volume is itself binarized at thresh\n");
+printf("(default is 0.5). If a voxel is not in the mask, then it will be assigned\n");
+printf("binvalnot or the value from the merge volume.\n");
+printf("\n");
+printf("--zero-edges\n");
+printf("\n");
+printf("Set the first and last planes in all dimensions to 0 (or --binvalnot). This\n");
+printf("makes sure that all the voxels on the edge of the imaging volume are 0.\n");
+printf("\n");
+printf("--zero-slice-edges\n");
+printf("\n");
+printf("Same as --zero-edges, but only for slices.\n");
+printf("\n");
   exit(1) ;
 }
 /* --------------------------------------------- */
