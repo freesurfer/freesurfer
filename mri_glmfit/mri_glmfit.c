@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/02/05 19:02:24 $
- *    $Revision: 1.111 $
+ *    $Date: 2007/02/09 17:29:26 $
+ *    $Revision: 1.112 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -489,7 +489,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.111 2007/02/05 19:02:24 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.112 2007/02/09 17:29:26 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1561,6 +1561,7 @@ static int parse_commandline(int argc, char **argv) {
       printf("simbase %s\n",simbase);
       DoSim = 1;
       DontSave = 1;
+      prunemask = 0;
       nargsused = 4;
     } else if (!strcasecmp(option, "--sim-sign")) {
       if (nargc < 1) CMDargNErr(option,1);
