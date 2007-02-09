@@ -12,7 +12,11 @@ AM_CPPFLAGS= -Wno-deprecated \
 
 AM_LDFLAGS=
 
+if ENABLE_KWWIDGETS_APPS
 noinst_LIBRARIES= libvtkutils.a
+else
+noinst_LIBRARIES=
+endif
 
 libvtkutils_a_SOURCES=$(wildcard *.cxx)
 
