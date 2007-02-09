@@ -10,8 +10,8 @@
  * Original Author: Laurence Wastiaux
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/09 01:52:03 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/02/09 20:31:21 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -47,11 +47,12 @@
 #include "fio.h"
 
 static char vcid[] =
-"$Id: talairach_afd.c,v 1.7 2007/02/09 01:52:03 nicks Exp $";
+"$Id: talairach_afd.c,v 1.8 2007/02/09 20:31:21 nicks Exp $";
 static int get_option(int argc, char *argv[]) ;
 static void usage(int exit_value) ;
 static char *subject_name = NULL;
 static char *xfm_fname = NULL;
+static char *afd_dir = NULL;
 #define DEFAULT_THRESHOLD 0.01f
 static float threshold = DEFAULT_THRESHOLD;
 static int verbose=0;
@@ -69,12 +70,11 @@ char *Progname ;
 int main(int argc, char *argv[])
 {
   char **av;
-  char *fsenv, *sname;
+  char *fsenv=NULL, *sname=NULL;
   char fsafd[1000], tmf[1000], cvf[1000], xfm[1000], probasf[1000];
   int ac, nargs;
-  int b, msec, minutes, seconds ;
+  int b;
   int nsamples, bin;
-  struct timeb start ;
   float p, pval;
   double *ts_probas;
   VECTOR *mu;
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: talairach_afd.c,v 1.7 2007/02/09 01:52:03 nicks Exp $",
+     "$Id: talairach_afd.c,v 1.8 2007/02/09 20:31:21 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -99,8 +99,6 @@ int main(int argc, char *argv[])
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-
-  TimerStart(&start) ;
 
   ac = argc ;
   av = argv ;
@@ -119,24 +117,32 @@ int main(int argc, char *argv[])
     usage(1);
   }
 
-  fsenv=getenv("FREESURFER_HOME");
-  if(!fsenv) {
-    printf("ERROR: FREESURFER_HOME not defined!\n");
-    exit(1);
-  }
+  if (subject_name != NULL) sname=fio_basename(subject_name, NULL);
+  else if (xfm_fname) sname=xfm_fname;
 
-  sprintf(fsafd, "%s/fsafd", fsenv);
-  sprintf(tmf, "%s/TalairachingMean.adf", fsafd);
-  sprintf(cvf, "%s/TalairachingCovariance.adf", fsafd);
   if (xfm_fname == NULL) {
     sprintf(xfm, "%s/mri/transforms/talairach.xfm", subject_name);
   } else {
     // use command-line specified transform
     sprintf(xfm,xfm_fname);
   }
+
+  if (afd_dir == NULL) {
+    fsenv=getenv("FREESURFER_HOME");
+    if(!fsenv) {
+      printf("ERROR: FREESURFER_HOME not defined!\n");
+      printf("INFO: optionally use the -afd <afd directory> flag\n");
+      exit(1);
+    }
+    sprintf(fsafd, "%s/fsafd", fsenv);
+  } else {
+    // path to .afd files was specified on the command line
+    strcpy(fsafd, afd_dir);
+  }
+
+  sprintf(tmf, "%s/TalairachingMean.adf", fsafd);
+  sprintf(cvf, "%s/TalairachingCovariance.adf", fsafd);
   sprintf(probasf, "%s/TalairachingProbas.adf", fsafd);
-  if (subject_name != NULL) sname=fio_basename(subject_name, NULL);
-  else sname="<no subjid>";
 
   /*----- load 1x9 mean vector computed from training set -----*/
   mu = ReadMeanVect(tmf);
@@ -164,49 +170,48 @@ int main(int argc, char *argv[])
   pval = ComputeArea(h, bin);
 
   if(pval < threshold){
-    ret_code=1; // return a failure code
+    ret_code=1; // return a failure code when exiting
     printf("ERROR: talairach_afd: Talairach Transform: %s ***FAILED***"
-           " (p=%f, pval=%f < threshold=%f)\n",
+           " (p=%.4f, pval=%.4f < threshold=%.4f)\n",
            sname, p, pval, threshold);
   }
   else{
     printf("talairach_afd: Talairach Transform: %s OK "
-           "(p=%f, pval=%f >= threshold=%f)\n",
+           "(p=%.4f, pval=%.4f >= threshold=%.4f)\n",
            sname, p, pval, threshold);
   }
 
   if (verbose) {
     int i,j;
-    printf("\nFREESURFER_HOME=%s\n", fsenv);
-    printf("\nfsafdDir=%s\n", fsafd);
+    if (fsenv) printf("\nFREESURFER_HOME = %s\n", fsenv);
+    printf("\nfsafdDir = %s\n", fsafd);
     
     printf("\nmu:\n");
     for (i=1;i<=9;i++){
-      printf("%f  ", mu->rptr[1][i]);
+      float m= mu->rptr[1][i];
+      if (m<0) printf("%.4f  ", m);
+      else printf(" %.4f  ", m);
     }
     printf("\n\n");
     printf("sigma:\n");
     for(i=1;i<=9;i++){
       for(j=1;j<=9;j++){
-        printf("%f  ", sigma->rptr[i][j]);
+        float s=sigma->rptr[i][j];
+        if (s<0) printf("%.4f  ", s);
+        else printf(" %.4f  ", s);
       }
       printf("\n");
     }
     printf("\n");
     printf("xfm:\n");
     for(i=1;i<=9;i++){
-      printf("%f  ", txfm->rptr[1][i]);
+      float t=txfm->rptr[1][i];
+      if (t<0) printf("%.4f  ", t);
+      else printf(" %.4f  ", t);
     }
     printf("\n\n");
 
-    printf("proba = %f\n\n", p);
-
-    msec = TimerStop(&start) ;
-    seconds = nint((float)msec/1000.0f) ;
-    minutes = seconds / 60 ;
-    seconds = seconds % 60 ;
-    fprintf(stderr, "Talairach failure detection took %d minutes"
-            " and %d seconds.\n", minutes, seconds) ;
+    printf("proba = %.4f\n\n", p);
   }
 
   exit(ret_code) ;
@@ -234,6 +239,8 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "help"))
     usage(1) ;
+  else if (!stricmp(option, "-help"))
+    usage(1) ;
   else if (!stricmp(option, "version"))
     print_version() ;
   if (!stricmp(option, "subj"))
@@ -244,6 +251,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "xfm"))
   {
     xfm_fname = argv[2];
+    nargs = 1;
+  }
+  else if (!stricmp(option, "afd"))
+  {
+    afd_dir = argv[2];
     nargs = 1;
   }
   else if (!stricmp(option, "T") || !stricmp(option, "threshold")){
@@ -302,6 +314,8 @@ usage(int exit_value)
           "             (i.e., Talairach transforms for subjects with\n"
           "             p-values <= T are considered as very unlikely)\n"
           "             default=%2.3f\n",DEFAULT_THRESHOLD);
+  fprintf(fout,
+          "   -afd %%s   specify directory containing .afd data files\n");
   fprintf(fout,
           "   -V        verbose\n");
 
@@ -435,8 +449,8 @@ Load_xfm(char *fname)
       }
     }
     else{
-      printf("ERROR: talairach_afd::Load_xfm(): SUBJECTS_DIR is not defined, "
-             "could not open %s\n",fname);
+      printf("ERROR: talairach_afd::Load_xfm(): could not open %s\n",fname);
+      if (subject_name) printf("SUBJECTS_DIR is not defined!\n");
       exit(1);
     }
   }
