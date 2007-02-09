@@ -10,8 +10,8 @@
  * Original Author: Laurence Wastiaux
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/09 00:53:08 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/02/09 01:33:04 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 #include "fio.h"
 
 static char vcid[] =
-"$Id: talairach_afd.c,v 1.5 2007/02/09 00:53:08 nicks Exp $";
+"$Id: talairach_afd.c,v 1.6 2007/02/09 01:33:04 nicks Exp $";
 static int get_option(int argc, char *argv[]) ;
 static void usage(int exit_value) ;
 static char *subject_name = NULL;
@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
   MATRIX *sigma;
   VECTOR *txfm;
   HISTO *h;
+  int ret_code=0; // assume 'passed' return code
 
   mu=NULL;
   sigma=NULL;
@@ -88,7 +89,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: talairach_afd.c,v 1.5 2007/02/09 00:53:08 nicks Exp $",
+     "$Id: talairach_afd.c,v 1.6 2007/02/09 01:33:04 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -155,10 +156,12 @@ int main(int argc, char *argv[])
 
   pval = ComputeArea(h, bin);
 
-  if(pval < threshold)
+  if(pval < threshold){
+    ret_code=1; // return a failure code
     printf("ERROR: talairach_afd: Talairach Transform: %s ***FAILED***"
            " (p=%f, pval=%f < threshold=%f)\n",
            sname, p, pval, threshold);
+  }
   else{
     printf("talairach_afd: Talairach Transform: %s OK "
            "(p=%f, pval=%f >= threshold=%f)\n",
@@ -199,8 +202,8 @@ int main(int argc, char *argv[])
             " and %d seconds.\n", minutes, seconds) ;
   }
 
-  exit(0) ;
-  return(0) ;
+  exit(ret_code) ;
+  return(ret_code) ;
 }
 
 
