@@ -10,8 +10,8 @@
  * Original Author: Laurence Wastiaux
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/09 20:31:21 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/02/09 22:31:41 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -45,9 +45,10 @@
 #include "version.h"
 #include "stats.h"
 #include "fio.h"
+#include "transform.h"
 
 static char vcid[] =
-"$Id: talairach_afd.c,v 1.8 2007/02/09 20:31:21 nicks Exp $";
+"$Id: talairach_afd.c,v 1.9 2007/02/09 22:31:41 nicks Exp $";
 static int get_option(int argc, char *argv[]) ;
 static void usage(int exit_value) ;
 static char *subject_name = NULL;
@@ -90,7 +91,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: talairach_afd.c,v 1.8 2007/02/09 20:31:21 nicks Exp $",
+     "$Id: talairach_afd.c,v 1.9 2007/02/09 22:31:41 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -428,11 +429,10 @@ Load_xfm(char *fname)
 {
   FILE *fp;
   char *sdir;
-  char line[MAX_LINE_LEN], tmp_name[1000];
-  char tag[1000];
-  int nth, r, i, j;
-  float M[3][4];
+  char tmp_name[1000];
   VECTOR *v;
+  int i,j;
+  LTA *lta = LTAreadEx(fname);
 
   v = MatrixAlloc(1,9, MATRIX_REAL) ;
 
@@ -447,6 +447,7 @@ Load_xfm(char *fname)
         printf("ERROR: talairach_afd::Load_xfm(): could not open %s\n",fname);
         exit(1);
       }
+      else fname = tmp_name;
     }
     else{
       printf("ERROR: talairach_afd::Load_xfm(): could not open %s\n",fname);
@@ -454,32 +455,22 @@ Load_xfm(char *fname)
       exit(1);
     }
   }
-  while(1){
-    fgetl(line, MAX_LINE_LEN-1, fp) ;
-    if (!strcmp(line, "Linear_Transform =" ))
-      break;
-  }
-  nth=0;
-  while(1) {
-    r = fscanf(fp,"%s",tag);
-    if(r==EOF) break;
-    i=nth/4;
-    j=nth-(i*4);
-    M[i][j]=(float)atof(tag);
-    nth++;
-  }
-  if(nth!=12){
-    printf("ERROR: talairach_afd::Load_xfm(%s): 3x4 components could "
-           "not be loaded\n", fname);
+  fclose(fp);
+  // at this point, 'fname' will successfully open
+
+  // parse .xfm file
+  if (lta==NULL) {
+    printf("ERROR: talairach_afd::Load_xfm(): could not parse %s\n",fname);
     exit(1);
   }
+  //MatrixPrint(stdout,lta->xforms->m_L);
   for(i=0;i<3;i++){
     for(j=0;j<3;j++) {
-      v->rptr[1][i*3+j+1]=M[i][j];
+      v->rptr[1][i*3+j+1]=lta->xforms->m_L->rptr[i+1][j+1];
     }
   }
+  //MatrixPrint(stdout,v);
 
-  fclose(fp);
   return(v);
 }
 

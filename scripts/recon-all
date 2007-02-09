@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/02/09 20:54:05 $
-#    $Revision: 1.65 $
+#    $Date: 2007/02/09 22:31:42 $
+#    $Revision: 1.66 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.65 2007/02/09 20:54:05 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.66 2007/02/09 22:31:42 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -682,6 +682,7 @@ if($DoTalCheck) then
   set xopts = `fsr-getxopts talairach_afd $XOptsFile`;
   set xfm = transforms/talairach.xfm
   set cmd = (talairach_afd -xfm $xfm $xopts)
+  $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) then
     $cmd |& tee -a $LF
