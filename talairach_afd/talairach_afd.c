@@ -10,8 +10,8 @@
  * Original Author: Laurence Wastiaux
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/09 01:33:04 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/02/09 01:52:03 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -47,10 +47,11 @@
 #include "fio.h"
 
 static char vcid[] =
-"$Id: talairach_afd.c,v 1.6 2007/02/09 01:33:04 nicks Exp $";
+"$Id: talairach_afd.c,v 1.7 2007/02/09 01:52:03 nicks Exp $";
 static int get_option(int argc, char *argv[]) ;
 static void usage(int exit_value) ;
 static char *subject_name = NULL;
+static char *xfm_fname = NULL;
 #define DEFAULT_THRESHOLD 0.01f
 static float threshold = DEFAULT_THRESHOLD;
 static int verbose=0;
@@ -89,7 +90,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: talairach_afd.c,v 1.6 2007/02/09 01:33:04 nicks Exp $",
+     "$Id: talairach_afd.c,v 1.7 2007/02/09 01:52:03 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -113,8 +114,8 @@ int main(int argc, char *argv[])
   if (argc < 1)
     usage(1);
 
-  if (subject_name==NULL) {
-    printf("ERROR: a subject name must be provided!\n");
+  if ((subject_name==NULL) && (xfm_fname==NULL)) {
+    printf("ERROR: a subject name or .xfm filename must be provided!\n");
     usage(1);
   }
 
@@ -127,9 +128,15 @@ int main(int argc, char *argv[])
   sprintf(fsafd, "%s/fsafd", fsenv);
   sprintf(tmf, "%s/TalairachingMean.adf", fsafd);
   sprintf(cvf, "%s/TalairachingCovariance.adf", fsafd);
-  sprintf(xfm, "%s/mri/transforms/talairach.xfm", subject_name);
+  if (xfm_fname == NULL) {
+    sprintf(xfm, "%s/mri/transforms/talairach.xfm", subject_name);
+  } else {
+    // use command-line specified transform
+    sprintf(xfm,xfm_fname);
+  }
   sprintf(probasf, "%s/TalairachingProbas.adf", fsafd);
-  sname=fio_basename(subject_name, NULL);
+  if (subject_name != NULL) sname=fio_basename(subject_name, NULL);
+  else sname="<no subjid>";
 
   /*----- load 1x9 mean vector computed from training set -----*/
   mu = ReadMeanVect(tmf);
@@ -234,6 +241,11 @@ get_option(int argc, char *argv[])
     subject_name = argv[2];
     nargs = 1;
   }
+  else if (!stricmp(option, "xfm"))
+  {
+    xfm_fname = argv[2];
+    nargs = 1;
+  }
   else if (!stricmp(option, "T") || !stricmp(option, "threshold")){
     threshold = (float)atof(argv[2]);
     nargs = 1;
@@ -271,14 +283,19 @@ usage(int exit_value)
   fout = (exit_value ? stderr : stdout);
 
   fprintf(fout,
-          "Usage: %s -subj <subject_name> [-T <p-value threshold>]\n",
-          Progname);
+          "Usage: %s -subj <subject_name> [-T <p-value threshold>]\n"
+          "Or:    %s -xfm <xfm_fname> [-T <p-value threshold>]\n",
+          Progname,Progname);
   fprintf(fout,
           "This program detects Talairach alignment failures.\n") ;
 
   fprintf(fout, "Required:\n") ;
-  fprintf(fout,
+  fprintf(fout, 
           "   -subj %%s  specify subject's name \n");
+  fprintf(fout, 
+          "   or:\n") ;
+  fprintf(fout,
+          "   -xfm %%s   specify the talairach.xfm file to check \n");
   fprintf(fout, "Optional:\n") ;
   fprintf(fout,
           "   -T #      threshold the p-values at #\n"
