@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/02/06 19:38:44 $
-#    $Revision: 1.64 $
+#    $Author: nicks $
+#    $Date: 2007/02/09 20:54:05 $
+#    $Revision: 1.65 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.64 2007/02/06 19:38:44 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.65 2007/02/09 20:54:05 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -160,6 +160,7 @@ set DoMotionCor      = 0;
 set DoDeface         = 0;
 set DoNuIntensityCor = 0;
 set DoTalairach      = 0;
+set DoTalCheck       = 0;
 set DoNormalization  = 0;
 set DoNormalization2 = 0;
 set DoMaskBFS        = 0;
@@ -167,7 +168,7 @@ set UseControlPoints = 0;
 set DoSkullStrip     = 0;
 set DoSegmentation   = 0;
 set DoGCAReg         = 0;
-set DoCARegInv      = 0;
+set DoCARegInv       = 0;
 set DoCANormalize    = 0;
 set DoCAReg          = 0;
 set DoRemoveNeck     = 0;
@@ -667,8 +668,27 @@ if($DoTalairach) then
       if($status) goto error_exit;
     endif
   endif
+
   echo $cmd > $touchdir/talairach.touch
 endif
+
+# perform the failure detection scheme
+if($DoTalCheck) then
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# Talairach Failure Detection `date`" \
+    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  set xopts = `fsr-getxopts talairach_afd $XOptsFile`;
+  set xfm = transforms/talairach.xfm
+  set cmd = (talairach_afd -xfm $xfm $xopts)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+endif
+
 
 #----------- Defacing ------------------#
 if($DoDeface) then
@@ -2529,11 +2549,12 @@ while( $#argv != 0 )
     case "-autorecon-all":
       set DoMotionCor      = 1;
       set DoTalairach      = 1;
+      set DoTalCheck       = 1;
       set DoNuIntensityCor = 1;
       set DoNormalization  = 1;
       set DoSkullStrip     = 1;
       set DoGCAReg         = 1;
-      set DoCARegInv      = 1;
+      set DoCARegInv       = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
       set DoCANormalize    = 1;
@@ -2567,6 +2588,7 @@ while( $#argv != 0 )
     case "-autorecon1":
       set DoMotionCor      = 1;
       set DoTalairach      = 1;
+      set DoTalCheck       = 1;
       set DoNuIntensityCor = 1;
       set DoNormalization  = 1;
       set DoSkullStrip     = 1;
@@ -2911,6 +2933,14 @@ while( $#argv != 0 )
       set NoWMSA = 1;
       breaksw;
 
+    case "-tal-check":
+      set DoTalCheck = 1;
+      breaksw;
+
+    case "-notal-check":
+      set DoTalCheck = 0;
+      breaksw;
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -3217,7 +3247,8 @@ check_params:
   if(! $DoCleanTal && ! $DoCleanCP && ! $DoCleanBM && ! $DoConvertInput &&\
      ! $DoCleanASeg && ! $DoCleanWM && ! $DoCleanSeed && \
      ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && ! $DoCARegInv &&\
-     ! $DoMotionCor && ! $DoTalairach && ! $DoNormalization  && \
+     ! $DoMotionCor && ! $DoTalairach && ! $DoTalCheck && \
+     ! $DoNormalization  && \
      ! $DoNormalization2  && ! $DoParcStats && ! $DoParcStats2 && \
      ! $DoVersionsOnly && ! $DoDeface &&  ! $DoCleanPFH && \
      ! $DoSkullStrip && ! $DoSegmentation && ! $DoNuIntensityCor &&\
@@ -3679,6 +3710,10 @@ same number, thus producing identical results from run to run.
 
 Include this flag after -autorecon1 if images have a FOV > 256.  The
 flag causes mri_convert to crop the image to dimensions of 256^3.
+
+-notal-check
+
+Skip the automatic failure detection of Talairach alignment.
 
 EXPERT OPTIONS FILE
 
