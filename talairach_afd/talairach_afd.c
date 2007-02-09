@@ -10,10 +10,10 @@
  * Original Author: Laurence Wastiaux
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/09 00:37:27 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/02/09 00:53:08 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -46,15 +46,14 @@
 #include "stats.h"
 #include "fio.h"
 
-//#define VERBOSE 1
-
 static char vcid[] =
-"$Id: talairach_afd.c,v 1.4 2007/02/09 00:37:27 nicks Exp $";
+"$Id: talairach_afd.c,v 1.5 2007/02/09 00:53:08 nicks Exp $";
 static int get_option(int argc, char *argv[]) ;
 static void usage(int exit_value) ;
 static char *subject_name = NULL;
 #define DEFAULT_THRESHOLD 0.01f
 static float threshold = DEFAULT_THRESHOLD;
+static int verbose=0;
 VECTOR *ReadMeanVect(char *fname);
 MATRIX *ReadCovMat(char *fname);
 VECTOR *Load_xfm(char *fname);
@@ -66,13 +65,12 @@ int main(int argc, char *argv[]) ;
 
 char *Progname ;
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-  char   **av;
+  char **av;
   char *fsenv, *sname;
   char fsafd[1000], tmf[1000], cvf[1000], xfm[1000], probasf[1000];
-  int    ac, nargs;
+  int ac, nargs;
   int b, msec, minutes, seconds ;
   int nsamples, bin;
   struct timeb start ;
@@ -90,7 +88,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: talairach_afd.c,v 1.4 2007/02/09 00:37:27 nicks Exp $",
+     "$Id: talairach_afd.c,v 1.5 2007/02/09 00:53:08 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -167,42 +165,40 @@ main(int argc, char *argv[])
            sname, p, pval, threshold);
   }
 
-#ifdef VERBOSE
-  int i,j;
-  printf("FREESURFER_HOME=%s\n", fsenv);
-  printf("fsafdDir=%s\n", fsafd);
-
-  printf("mu:\n");
-  for (i=1;i<=9;i++){
-    printf("%f  ", mu->rptr[1][i]);
-  }
-  printf("\n\n");
-  printf("sigma:\n");
-  for(i=1;i<=9;i++){
-    for(j=1;j<=9;j++){
-      printf("%f  ", sigma->rptr[i][j]);
+  if (verbose) {
+    int i,j;
+    printf("\nFREESURFER_HOME=%s\n", fsenv);
+    printf("\nfsafdDir=%s\n", fsafd);
+    
+    printf("\nmu:\n");
+    for (i=1;i<=9;i++){
+      printf("%f  ", mu->rptr[1][i]);
+    }
+    printf("\n\n");
+    printf("sigma:\n");
+    for(i=1;i<=9;i++){
+      for(j=1;j<=9;j++){
+        printf("%f  ", sigma->rptr[i][j]);
+      }
+      printf("\n");
     }
     printf("\n");
+    printf("xfm:\n");
+    for(i=1;i<=9;i++){
+      printf("%f  ", txfm->rptr[1][i]);
+    }
+    printf("\n\n");
+
+    printf("proba = %f\n\n", p);
+
+    msec = TimerStop(&start) ;
+    seconds = nint((float)msec/1000.0f) ;
+    minutes = seconds / 60 ;
+    seconds = seconds % 60 ;
+    fprintf(stderr, "Talairach failure detection took %d minutes"
+            " and %d seconds.\n", minutes, seconds) ;
   }
-  printf("\n\n");
-  printf("xfm:\n");
-  for(i=1;i<=9;i++){
-    printf("%f  ", txfm->rptr[1][i]);
-  }
-  printf("\n\n");
 
-  printf("proba = %f\n", p);
-
-#endif
-
-  msec = TimerStop(&start) ;
-  seconds = nint((float)msec/1000.0f) ;
-  minutes = seconds / 60 ;
-  seconds = seconds % 60 ;
-#ifdef VERBOSE
-  fprintf(stderr, "Talairach failure detection took %d minutes"
-          " and %d seconds.\n", minutes, seconds) ;
-#endif
   exit(0) ;
   return(0) ;
 }
@@ -246,6 +242,9 @@ get_option(int argc, char *argv[])
   case 'U':
     usage(0) ;
     break ;
+  case 'V':
+    verbose=1;
+    break;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
     exit(1) ;
@@ -272,17 +271,19 @@ usage(int exit_value)
           "Usage: %s -subj <subject_name> [-T <p-value threshold>]\n",
           Progname);
   fprintf(fout,
-          "This program detects talairaching failures.\n") ;
+          "This program detects Talairach alignment failures.\n") ;
 
   fprintf(fout, "Required:\n") ;
   fprintf(fout,
-          "   -subj %%s  subject's name \n");
+          "   -subj %%s  specify subject's name \n");
   fprintf(fout, "Optional:\n") ;
   fprintf(fout,
           "   -T #      threshold the p-values at #\n"
           "             (i.e., Talairach transforms for subjects with\n"
           "             p-values <= T are considered as very unlikely)\n"
           "             default=%2.3f\n",DEFAULT_THRESHOLD);
+  fprintf(fout,
+          "   -V        verbose\n");
 
   exit(exit_value) ;
 }
