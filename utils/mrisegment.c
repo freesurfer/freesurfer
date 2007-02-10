@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:36 $
- *    $Revision: 1.18 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/10 01:39:12 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1252,4 +1252,26 @@ MRIfindMaxSegmentNumber(MRI_SEGMENTATION *mriseg)
   return(max_segno) ;
 }
 
+
+int
+MRIsegmentFill(MRI_SEGMENTATION *mriseg, int s, MRI *mri, float fillval)
+{
+  int          v, x, y, z ;
+  MRI_SEGMENT  *mseg ;
+
+  if (s < 0 || s >= mriseg->nsegments)
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, "MRIsegmentFill: invalid segment #%d",s));
+  mseg = &mriseg->segments[s] ;
+
+  for (v = 0 ; v < mseg->nvoxels ; v++)
+  {
+    x = mseg->voxels[v].x ;
+    y = mseg->voxels[v].y ;
+    z = mseg->voxels[v].z ;
+    MRIsetVoxVal(mri, x, y, z,0, fillval) ;
+  }
+
+  return(NO_ERROR) ;
+}
 
