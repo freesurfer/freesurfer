@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/02/08 21:02:23 $
- *    $Revision: 1.510 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/10 01:36:43 $
+ *    $Revision: 1.511 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.510 2007/02/08 21:02:23 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.511 2007/02/10 01:36:43 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -819,7 +819,7 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
         {
         case TAG_GROUP_AVG_SURFACE_AREA:
           mris->group_avg_surface_area = freadFloat(fp) ;
-          printf("reading group avg surface area %2.0f cm^2 from file\n",
+          fprintf(stderr, "reading group avg surface area %2.0f cm^2 from file\n",
                  mris->group_avg_surface_area/100.0) ;
           break ;
         case TAG_OLD_SURF_GEOM:
@@ -5293,7 +5293,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     fprintf(stdout, "\nRemoving remaining folds...\n") ;
   if (Gdiag & DIAG_WRITE)
     fprintf(parms->fp, "removing remaining folds...\n") ;
-#if 1
+#if 0
   parms->l_nlarea *= 5 ;
   mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
 #else
@@ -6071,7 +6071,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   MRISresetNeighborhoodSize(mris, 1) ;
   fprintf(stdout, "removing remaining folds...\n") ;
   mrisRemoveNegativeArea(mris, parms, base_averages > 32 ? 32 : base_averages,
-                         MAX_NEG_AREA_PCT, 3);
+                         MAX_NEG_AREA_PCT, 2);
   MRISresetNeighborhoodSize(mris, 3) ;
 
   if (mris->status == MRIS_PLANE)  /* smooth out remaining folds */
@@ -28872,7 +28872,7 @@ mrisReadTriangleFile(char *fname, double pct_over)
       {
       case TAG_GROUP_AVG_SURFACE_AREA:
         mris->group_avg_surface_area = freadFloat(fp) ;
-        printf("reading group avg surface area %2.0f cm^2 from file\n",
+        fprintf(stderr, "reading group avg surface area %2.0f cm^2 from file\n",
                mris->group_avg_surface_area/100.0) ;
         break ;
       case TAG_OLD_SURF_GEOM:
@@ -57993,6 +57993,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     {
       if (parms->max_nbrs < 1)
       {
+        parms->dt = 0.99 ;
         parms->max_nbrs++ ;
         printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
       }
@@ -58010,6 +58011,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       if (same++ > 25 && parms->max_nbrs < 1)
       {
         parms->max_nbrs++ ;
+        parms->dt = 0.99 ;
         printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
         last_expand = parms->t ;
         //        parms->dt /= 2 ;
@@ -58024,6 +58026,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       parms->max_nbrs++ ;
       //      parms->dt /= 2 ;
       last_expand = parms->t ;
+      parms->dt = 0.99 ;
       printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
     }
     if (parms->t == parms->niterations/2)
@@ -58032,6 +58035,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       //      parms->dt /= 2 ;
       last_expand = parms->t ;
       printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
+      parms->dt = 0.99 ;
     }
 
     if (parms->t == 3*parms->niterations/4)
@@ -58039,6 +58043,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       last_expand = parms->t ;
       //      parms->dt /= 2 ;
       parms->max_nbrs++ ;
+      parms->dt = 0.99 ;
       printf("expanding nbhd size to %d\n", parms->max_nbrs) ;
     }
 #endif
