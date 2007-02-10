@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.9 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/10 01:38:52 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,6 +71,7 @@ int              MRIsegmentFree(MRI_SEGMENTATION **pmriseg) ;
 MRI_SEGMENTATION *MRIsegmentAlloc(int max_segments, int max_voxels) ;
 MRI              *MRIsegmentToImage(MRI *mri_src, MRI *mri_dst,
                                     MRI_SEGMENTATION *mriseg, int s) ;
+int              MRIsegmentFill(MRI_SEGMENTATION *mriseg, int s, MRI *mri, float fillval) ;
 int              MRIsegmentDilate(MRI_SEGMENTATION *mriseg, MRI *mri) ;
 int              MRIsegmentDilateThreshold(MRI_SEGMENTATION *mriseg,
     MRI *mri_binary, MRI *mri_thresh,
