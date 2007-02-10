@@ -1,19 +1,17 @@
 /**
  * @file  mris_compute_optimal_kernel.c
- * @brief program for computing the optimal blurring kernel between 
- * an individual label and a group.
+ * @brief program for computing the optimal blurring kernel between an individual label and a group.
  *
- * computes the isotropic gaussian blurring kernel that is optimal in 
- * the lms sense between a group average label and an individual. 
- * Outputs the standard deviation of the kernel, which
+ * computes the isotropic gaussian blurring kernel that is optimal in the lms sense between a
+ * group average label and an individual. Outputs the standard deviation of the kernel, which
  * can be used as a measure of the accuracy of a coordinate system.
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/02/08 21:27:19 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/10 01:37:55 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +26,8 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,15 +45,10 @@
 #include "version.h"
 #include "label.h"
 
-static int MRIScomputeOptimalGaussianKernel(MRI_SURFACE *mris, 
-                                            LABEL *subject_label, 
-                                            LABEL *group_label, 
-                                            int step_size, 
-                                            int max_avgs, 
-                                            double *psigma) ;
+static int MRIScomputeOptimalGaussianKernel(MRI_SURFACE *mris, LABEL *subject_label, 
+                                            LABEL *group_label, int step_size, int max_avgs, int *pavgs) ;
 
-static char vcid[] = 
-"$Id: mris_compute_optimal_kernel.c,v 1.2 2007/02/08 21:27:19 nicks Exp $";
+static char vcid[] = "$Id: mris_compute_optimal_kernel.c,v 1.3 2007/02/10 01:37:55 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -69,21 +64,18 @@ static char orig_name[STRLEN] = ORIG_NAME ;
 static char sdir[STRLEN] = "" ;
 static int step_size = 10 ;
 static int max_avgs = 1000 ;
+static char write_fname[STRLEN] = "" ;
 
 int
 main(int argc, char *argv[]) {
-  char          **av, *subject, *cp, fname[STRLEN], 
-    *hemi, *subject_label_name, *group_label_name ;
-  int           ac, nargs ;
+  char          **av, *subject, *cp, fname[STRLEN], *hemi, *subject_label_name, *group_label_name ;
+  int           ac, nargs, avgs ;
   MRI_SURFACE   *mris ;
   LABEL         *subject_label, *group_label ;
   double        sigma ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_compute_optimal_kernel.c,v 1.2 2007/02/08 21:27:19 nicks Exp $", 
-     "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_compute_optimal_kernel.c,v 1.3 2007/02/10 01:37:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -125,21 +117,14 @@ main(int argc, char *argv[]) {
 
   subject_label = LabelRead(subject, subject_label_name) ;
   if (!subject_label)
-    ErrorExit(ERROR_NOFILE, 
-              "%s: could not read label file %s", 
-              Progname, subject_label) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not read label file %s", Progname, subject_label) ;
   group_label = LabelRead(subject, group_label_name) ;
   if (!group_label)
-    ErrorExit(ERROR_NOFILE, 
-              "%s: could not read label file %s", 
-              Progname, group_label) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not read label file %s", Progname, group_label) ;
   
-  MRIScomputeOptimalGaussianKernel(mris, 
-                                   subject_label, 
-                                   group_label, 
-                                   step_size, 
-                                   max_avgs, 
-                                   &sigma) ;
+
+  MRIScomputeOptimalGaussianKernel(mris, subject_label, group_label, step_size, max_avgs, &avgs) ;
+  sigma = sqrt(avgs*2.0/M_PI) ;
   printf("%f\n", sigma) ;
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -174,23 +159,28 @@ get_option(int argc, char *argv[]) {
   } 
   else if (!stricmp(option, "SDIR")) {
     strcpy(sdir, argv[2]) ;
-    printf("using %s as SUBJECTS_DIR...\n", sdir) ;
+    fprintf(stderr, "using %s as SUBJECTS_DIR...\n", sdir) ;
     nargs = 1 ;
   } else if (!stricmp(option, "orig")) {
     strcpy(orig_name, argv[2]) ;
     fprintf(stderr,  "reading surface from file named %s\n", orig_name) ;
     nargs = 1 ;
   } else switch (toupper(*option)) {
-    case '?':
-    case 'U':
-      print_usage() ;
-      exit(1) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+  case 'W':
+    strcpy(write_fname, argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "writing optimal overlay to %s\n", write_fname) ;
+    break ;
+  case '?':
+  case 'U':
+    print_usage() ;
+    exit(1) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
 
   return(nargs) ;
 }
@@ -204,8 +194,7 @@ usage_exit(void) {
 static void
 print_usage(void) {
   fprintf(stderr,
-          "usage: %s [options] <subject name> <hemi> "
-          "<individual label> <group label>\n",
+          "usage: %s [options] <subject name> <hemi> <individual label> <group label>\n",
           Progname) ;
 }
 
@@ -228,15 +217,11 @@ print_version(void) {
 }
 
 static int
-MRIScomputeOptimalGaussianKernel(MRI_SURFACE *mris, 
-                                 LABEL *subject_label, 
-                                 LABEL *group_label, 
-                                 int step_size, 
-                                 int max_avgs, 
-                                 double *psigma)
+MRIScomputeOptimalGaussianKernel(MRI_SURFACE *mris, LABEL *subject_label, 
+                                 LABEL *group_label, int step_size, int max_avgs, int *pnavgs)
 {
-  int          n, vno=0;
-  double       rms, min_rms, min_sigma ;
+  int          n, vno ;
+  double       rms, min_rms, min_navgs ;
   VERTEX       *v ;
   LABEL_VERTEX *lv ;
   
@@ -245,8 +230,7 @@ MRIScomputeOptimalGaussianKernel(MRI_SURFACE *mris,
   {
     lv = &subject_label->lv[n] ;
     if (lv->vno < 0 || lv->vno >= mris->nvertices)
-      ErrorExit(ERROR_BADFILE, 
-                "%s: group label has invalid vertex %d at index %d",
+      ErrorExit(ERROR_BADFILE, "%s: subject label has invalid vertex %d at index %d",
                 Progname, lv->vno, n) ;
     v = &mris->vertices[lv->vno] ;
     if (v->ripflag)
@@ -261,8 +245,7 @@ MRIScomputeOptimalGaussianKernel(MRI_SURFACE *mris,
   {
     lv = &group_label->lv[n] ;
     if (lv->vno < 0 || lv->vno >= mris->nvertices)
-      ErrorExit(ERROR_BADFILE, 
-                "%s: group label has invalid vertex %d at index %d",
+      ErrorExit(ERROR_BADFILE, "%s: group label has invalid vertex %d at index %d",
                 Progname, lv->vno, n) ;
     v = &mris->vertices[lv->vno] ;
     if (v->ripflag)
@@ -272,7 +255,7 @@ MRIScomputeOptimalGaussianKernel(MRI_SURFACE *mris,
     v->val2 = lv->stat ;
   }
 
-  min_sigma = 0 ; min_rms = mris->nvertices*1e6;
+  min_navgs = 0 ; min_rms = mris->nvertices*1e6;
 
   for (n = 0 ; n < max_avgs ; n += step_size)
   {
@@ -288,13 +271,13 @@ MRIScomputeOptimalGaussianKernel(MRI_SURFACE *mris,
     if (rms < min_rms)
     {
       min_rms = rms ;
-      min_sigma = n ;
-      fprintf(stderr, "new optimum found at avgs = %d\n", n) ;
+      min_navgs = n ;
+      fprintf(stderr, "new optimum %2.3f found at avgs = %d\n", sqrt(min_rms/mris->nvertices), n) ;
     }
     MRISaverageVals(mris, step_size) ;
   }
 
-  *psigma = min_sigma ;
+  *pnavgs = min_navgs ;
   return(NO_ERROR) ;
 }
 
