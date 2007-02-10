@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/10 01:37:55 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/02/10 14:22:33 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@
 static int MRIScomputeOptimalGaussianKernel(MRI_SURFACE *mris, LABEL *subject_label, 
                                             LABEL *group_label, int step_size, int max_avgs, int *pavgs) ;
 
-static char vcid[] = "$Id: mris_compute_optimal_kernel.c,v 1.3 2007/02/10 01:37:55 fischl Exp $";
+static char vcid[] = "$Id: mris_compute_optimal_kernel.c,v 1.4 2007/02/10 14:22:33 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -75,7 +75,7 @@ main(int argc, char *argv[]) {
   double        sigma ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_compute_optimal_kernel.c,v 1.3 2007/02/10 01:37:55 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_compute_optimal_kernel.c,v 1.4 2007/02/10 14:22:33 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -229,6 +229,7 @@ MRIScomputeOptimalGaussianKernel(MRI_SURFACE *mris, LABEL *subject_label,
   for (n = 0 ; n < subject_label->n_points ; n++)
   {
     lv = &subject_label->lv[n] ;
+    vno = lv->vno ;
     if (lv->vno < 0 || lv->vno >= mris->nvertices)
       ErrorExit(ERROR_BADFILE, "%s: subject label has invalid vertex %d at index %d",
                 Progname, lv->vno, n) ;
