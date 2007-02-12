@@ -1,15 +1,16 @@
 /**
- * @file  mri_vol2surf.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @file  mri_vol2surf.c 
+ * @brief utility for sampling volumes onto a surface.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * utility for sampling volumes onto a surface. The includes sampling from one subject
+ * to another using spherical registration.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/15 00:10:48 $
- *    $Revision: 1.38 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/12 13:43:00 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +29,7 @@
 
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.38 2007/01/15 00:10:48 greve Exp $
+  $Id: mri_vol2surf.c,v 1.39 2007/02/12 13:43:00 fischl Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -88,7 +89,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.38 2007/01/15 00:10:48 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.39 2007/02/12 13:43:00 fischl Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -192,7 +193,7 @@ int main(int argc, char **argv) {
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.38 2007/01/15 00:10:48 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.39 2007/02/12 13:43:00 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -234,7 +235,7 @@ int main(int argc, char **argv) {
       exit(1);
     }
     if (SrcVol->type != MRI_FLOAT) {
-      printf("INFO: chaning type to float\n");
+      printf("INFO: changing type to float\n");
       SrcVol = MRISeqchangeType(SrcVol,MRI_FLOAT,0,0,0);
     }
     printf("Done loading volume\n");
