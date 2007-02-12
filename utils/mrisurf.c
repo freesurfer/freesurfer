@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/10 01:36:43 $
- *    $Revision: 1.511 $
+ *    $Date: 2007/02/12 18:55:20 $
+ *    $Revision: 1.512 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.511 2007/02/10 01:36:43 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.512 2007/02/12 18:55:20 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5376,7 +5376,7 @@ void MRISsetValuesToCurvatures(MRIS *mris,int fno)
 }
 
 
-void MRISnormalizeField(MRIS *mris , int distance_field)
+void MRISnormalizeField(MRIS *mris , int distance_field, int which_norm)
 {
   int n;
   VERTEX *v;
@@ -5398,7 +5398,7 @@ void MRISnormalizeField(MRIS *mris , int distance_field)
       }
   }
   else /* gaussian */
-    MRISnormalizeCurvature(mris, NORM_MEAN);
+    MRISnormalizeCurvature(mris, which_norm);
 }
 
 
@@ -5567,7 +5567,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
       MRISresetNeighborhoodSize(mris,1);/*only use nearest neighbor distances*/
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
     }
-    MRISnormalizeField(mris,parms->fields[n].type);
+    MRISnormalizeField(mris,parms->fields[n].type, parms->fields[n].which_norm);
     MRISsetCurvaturesToOrigValues(mris,n);
   }
   MRISaverageCurvatures(mris, parms->fields[n].navgs) ;
@@ -5590,7 +5590,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
     {
       MRISfromParameterizations(parms->mrisp_template, mris,
                                 frames,indices , nframes);
-      MRISnormalizeCurvature(mris, NORM_MEAN) ;
+      MRISnormalizeCurvature(mris, parms->fields[0].which_norm) ;
       sprintf
       (fname,
        "%s/%s.target",
@@ -5661,7 +5661,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
        parms->fields[indices[n]].frame,frames[n],
        parms->fields[indices[n]].field);
       MRISsetValuesToCurvatures(mris,indices[n]);
-      MRISnormalizeField(mris,parms->fields[indices[n]].type) ;
+      MRISnormalizeField(mris,parms->fields[indices[n]].type, parms->fields[indices[n]].which_norm) ;
       MRISsetCurvaturesToValues(mris,indices[n]);
 
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -5704,7 +5704,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
        parms->fields[indices[n]].frame,frames[n],
        parms->fields[indices[n]].field);
       MRISsetValuesToCurvatures(mris,indices[n]);
-      MRISnormalizeField(mris,parms->fields[indices[n]].type) ;
+      MRISnormalizeField(mris,parms->fields[indices[n]].type, parms->fields[indices[n]].which_norm) ;
       MRISsetCurvaturesToValues(mris,indices[n]);
       if (Gdiag & DIAG_WRITE)
       {

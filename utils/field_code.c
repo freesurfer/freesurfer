@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:31 $
- *    $Revision: 1.4 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/12 18:55:20 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -155,7 +155,7 @@ int InitFieldLabel(FIELD_LABEL *label)
   return NO_ERROR;
 }
 
-int SetFieldLabel(FIELD_LABEL *label,int field,int frame,float l_corr,float l_pcorr, int navgs)
+int SetFieldLabel(FIELD_LABEL *label,int field,int frame,float l_corr,float l_pcorr, int navgs, int which_norm)
 {
   label->field=field;
   label->frame=frame;
@@ -165,6 +165,7 @@ int SetFieldLabel(FIELD_LABEL *label,int field,int frame,float l_corr,float l_pc
   label->sse=0.0f;
   label->name = NULL ;
   label->navgs = navgs ;
+  label->which_norm = which_norm ;
   return NO_ERROR;
 }
 
