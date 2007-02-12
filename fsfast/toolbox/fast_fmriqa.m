@@ -4,24 +4,46 @@
 %   fwhm = gstd*sqrt(log(256.0));
 %   fwhm = sqrt(log(256.0))*d/sqrt(-4*log(ar1));
 
+nskip = 5;
+
+t1  = 930; 
+t2s = 47;
+tr  = 2000;
+te  = 30;
+s90 = ssbloch(tr,te,90*pi/180,t1,t2s);   %??? 
+s77 = ssbloch(tr,te,77*pi/180,t1,t2s)/s90;    
+s10 = ssbloch(tr,te,10*pi/180,t1,t2s)/s90;
+
+
+for flip_angle = [10 77]
+
+infile = sprintf('f%2d.nii',flip_angle);
+outdir = sprintf('qa%2d',flip_angle);
+fprintf('infile %s\n',infile);
+
 tic;
 
-m = MRIread('maske4');
-indm = find(m.vol);
+m0 = MRIread('mask');
+m9 = MRIread('maske4');
 
-%infile = 'fqa.fa10.nii';
-%outdir = 'qa.fa10';
-infile = 'f.nii';
-outdir = 'qa';
+indm0 = find(m0.vol);
+indm9 = find(m9.vol);
+nmask9 = length(indm9);
+
 
 polyorder = 2;
 synth = 0;
 
 mkdirp(outdir);
+fname = sprintf('%s/mask.nii',outdir);
+MRIwrite(m0,fname);
+fname = sprintf('%s/maske9.nii',outdir);
+MRIwrite(m9,fname);
+
 
 fprintf('Loading data   %g\n',toc);
 f = MRIread(infile);
-%f.vol = f.vol(:,:,:,1:50);
+f.vol = f.vol(:,:,:,nskip:end);
 f.nframes = size(f.vol,4);
 nf = f.nframes;
 nv = prod(size(f.vol));
@@ -40,15 +62,22 @@ X = fast_polytrendmtx(1,nf,1,polyorder);
 
 fmat = fast_vol2mat(f);
 [betamat rvarmat vdof rmat] = fast_glmfit(fmat,X);
+
+meanmn9 = mean(betamat(1,indm9));
+rvarmn9 = mean(rvarmat(indm9));
+snrmn9 = meanmn9/sqrt(rvarmn9);
+fprintf('mn = %g  rvar = %g  snr = %g (nvox = %d)\n',...
+	meanmn9,rvarmn9,snrmn9,nmask9);
+
 res = f;
 res.vol = fast_mat2vol(rmat,f.volsize);
 
-[U S V] = fast_svd(rmat(:,indm));
+[U S V] = fast_svd(rmat(:,indm0));
 ds2 = diag(S).^2;
 pvs = 100*ds2/sum(ds2);
 cpvs = cumsum(pvs);
 Vtmp = zeros(size(rmat));
-Vtmp(:,indm) = V';
+Vtmp(:,indm0) = V';
 vv = fast_mat2vol(Vtmp,f.volsize);
 fname = sprintf('%s/V.nii',outdir);
 tmp = f;
@@ -71,6 +100,7 @@ fmn = f;
 fmn.vol = fast_mat2vol(betamat(1,:),f.volsize);
 fname = sprintf('%s/mean.nii',outdir);
 MRIwrite(fmn,fname);
+
 
 fvar = f;
 fvar.vol = fast_mat2vol(rvarmat,f.volsize);
@@ -121,6 +151,15 @@ ar1s.vol(:,:,1:end-1) = mean(rnorm.vol(:,:,1:end-1,:) .* rnorm.vol(:,:,2:end,:),
 fname = sprintf('%s/ar1s.nii',outdir);
 MRIwrite(ar1s,fname);
 
+end
+
+return
+
+figure(1);
+imagesc(vol2mos(fvar.vol));colorbar
+
+return
+
 % Begin smoothing:
 fprintf('Smoothing   %g\n',toc);
 fwhmlist = [1 2 3]';
@@ -132,6 +171,7 @@ fsmvar.vol = zeros([f.volsize nfwhm]);
 clear sumk2;
 nth = 0;
 nfuse = nf;
+if(nf > 50) nfuse = 50; end
 for fwhm = fwhmlist'
   fprintf('%d/%d  %g   %g\n',nth,nfwhm,fwhm,toc);
   nth = nth + 1;
@@ -165,14 +205,17 @@ fname = sprintf('%s/pctscnvar.nii',outdir);
 MRIwrite(pctscnvar,fname);
 
 fprintf('swn = %g, scn = %g\n', ...
-	mean(swnvar.vol(indm)),...
-	mean(scnvar.vol(indm)));
+	mean(swnvar.vol(indm9)),...
+	mean(scnvar.vol(indm9)));
 
 figure(1);
 imagesc(vol2mos(swnvar.vol),[-5 40]);colorbar
+title('SWN');
 figure(2);
 imagesc(vol2mos(scnvar.vol),[-5 5]);colorbar
+title('SCN');
 figure(3);
 imagesc(vol2mos(pctscnvar.vol),[0 40]);colorbar
+title('Percent SCN');
 
 fprintf('Done   %g\n',toc);
