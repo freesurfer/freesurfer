@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/06 00:01:14 $
-#    $Revision: 1.10 $
+#    $Date: 2007/02/12 22:03:09 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,14 +27,13 @@
 #
 
 
-set VERSION = '$Id: make_average_subject,v 1.10 2007/01/06 00:01:14 nicks Exp $'
+set VERSION = '$Id: make_average_subject,v 1.11 2007/02/12 22:03:09 nicks Exp $'
 set PrintHelp = 0;
 set sdout = ();
 set average_subject = average;
 set DoLink = 0;
 set DoSurfaces = 1;
 set DoVolumes  = 1;
-set IcoOrder = ();
 set Force = 0;
 
 set cmdargs = ($argv);
@@ -122,6 +121,12 @@ while( $#argv != 0 )
     case "--sd-out":
       if ( $#argv == 0) goto arg1err;
       set sdout = $argv[1]; shift;
+      breaksw
+
+    case "--surf_reg":
+    case "--surf-reg":
+      if($#argv < 1) goto arg1err;
+      set SurfReg = $argv[1]; shift;
       breaksw
 
     case "--no-link":
@@ -223,7 +228,9 @@ usage_exit:
   echo "   --link : link back to the original SUBJECTS_DIR with --sd-out"
   echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
   echo "   --sd      : same as --sdir"
-  echo "   --xform <transform_fname>       : filename of transform file"
+  echo "   --xform <transform_fname>   : filename of transform file"
+  echo "   --surf-reg <surface name>   : alternative registration surface"
+  echo "                                 default: sphere.reg"
   echo "   --no-surf : do not make average surfaces"
   echo "   --no-vol  : do not make average volumes"
   echo "   --force   : overwrite existing average subject data"

@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/06 00:01:14 $
-#    $Revision: 1.31 $
+#    $Date: 2007/02/12 22:03:09 $
+#    $Revision: 1.32 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 
 
-set VERSION = '$Id: make_average_surface,v 1.31 2007/01/06 00:01:14 nicks Exp $';
+set VERSION = '$Id: make_average_surface,v 1.32 2007/02/12 22:03:09 nicks Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -41,6 +41,7 @@ if ( $?SUBJECTS_DIR) then
   set SUBJECTS_DIR=($SUBJECTS_DIR)
 endif
 set average_subject=average
+set sphere_reg=sphere.reg
 set transform_fname=""
 set XFORM_FLAG=""
 set ico_no=7
@@ -50,6 +51,7 @@ set inputargs = ($argv)
 # note: SUBJECTS can be set by --subjects
 # SUBJECTS_DIR can be set by --sdir
 # average_subject can be set by --out
+# sphere_reg can be set by --surf-reg
 # transform_fname can be set by --xform (default is no file specified)
 # XFORM_FLAG appends -X to transform_fname if --xform is specified
 
@@ -160,7 +162,7 @@ foreach hemi (rh lh)
     set cmd = (mris_make_average_surface $XFORM_FLAG \
                 -i $ico_no -o $s -sdir-out $sdout\
                 ${hemi} \
-                ${s}_avg sphere.reg \
+                ${s}_avg ${sphere_reg} \
                 ${average_subject} \
                 $SUBJECTS )
     pwd  | tee -a $LF
@@ -185,7 +187,7 @@ foreach hemi (rh lh)
     set cmd = (mris_average_curvature \
                 $c \
                 ${hemi} \
-                sphere.reg \
+                ${sphere_reg} \
                 $SUBJECTS \
                 $sdout/${average_subject}/surf/${hemi}.avg_${c})
     pwd | tee -a $LF
@@ -218,14 +220,14 @@ foreach hemi (rh lh)
   mris_curvature -a 10 -w ./${hemi}.white_avg |& tee -a $LF
   echo "" | tee -a $LF
   cp ${hemi}.white_avg.H  ${hemi}.curv
-  cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg .
+  cp ${FREESURFER_HOME}/average/surf/${hemi}.sphere.reg ./${hemi}.${sphere_reg}
   if($UseSymLink) then
-    ln -s -f ${hemi}.sphere.reg ${hemi}.sphere
+    ln -s -f ${hemi}.${sphere_reg} ${hemi}.sphere
     ln -s -f ${hemi}.orig_avg ${hemi}.orig
     ln -s -f ${hemi}.white_avg ${hemi}.white
     ln -s -f ${hemi}.pial_avg ${hemi}.pial
   else
-    cp -f ${hemi}.sphere.reg ${hemi}.sphere
+    cp -f ${hemi}.${sphere_reg} ${hemi}.sphere
     cp -f ${hemi}.orig_avg ${hemi}.orig
     cp -f ${hemi}.white_avg ${hemi}.white
     cp -f ${hemi}.pial_avg ${hemi}.pial
@@ -312,6 +314,17 @@ while( $#argv != 0 )
       endif
       if ( $#argv == 0) goto arg1err;
       set average_subject = $argv[1]; shift;
+      breaksw
+
+    case "--surf-reg":
+    case "--surf_reg":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set sphere_reg = $argv[1]; shift;
       breaksw
 
     case "--topdir":
@@ -476,6 +489,8 @@ usage_exit:
   echo "   --sd-out topdir : put data here"
   echo "   --xform <transform_fname>       : filename of transform file"
   echo "   --ico <number>  : specify icosahedron number, default is 7 (ic7.tri)"
+  echo "   --surf-reg <surface name>   : alternative registration surface"
+  echo "                                 default: sphere.reg"
   echo "   --force   : overwrite existing average subject data"
   echo ""
   echo "   --help       : short descriptive help"
