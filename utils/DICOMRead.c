@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.107 $
+ *    $Author: greve $
+ *    $Date: 2007/02/12 22:52:18 $
+ *    $Revision: 1.108 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2981,26 +2981,26 @@ int sdfiIsSliceOrderReversed(SDCMFILEINFO *sdfi)
     trarev = 1;
     free(strtmp);
   }
+  printf("sagrev = %d, correv =%d, trarev = %d\n",sagrev,correv,trarev);
+  printf("Vs = %g %g %g\n",sdfi->Vs[0],sdfi->Vs[1],sdfi->Vs[2]);
 
+  // No reversal if none of the ImageNumb flags are set
   if (!sagrev && !correv && !trarev) return(0);
 
-  //printf("Vs = %g %g %g\n",sdfi->Vs[0],sdfi->Vs[1],sdfi->Vs[2]);
-  //printf("%d %d %d\n",sagrev,correv,trarev);
-
+  // Slices are primarily Sag and there is a sag reversal
   if ((fabs(sdfi->Vs[0]) > fabs(sdfi->Vs[1])) &&
       (fabs(sdfi->Vs[0]) > fabs(sdfi->Vs[2])) && sagrev) return(1);
 
+  // Slices are primarily Cor and there is a cor reversal
   if ((fabs(sdfi->Vs[1]) > fabs(sdfi->Vs[0])) &&
       (fabs(sdfi->Vs[1]) > fabs(sdfi->Vs[2])) && correv) return(1);
 
+  // Slices are primarily Axial and there is an axial reversal
   if ((fabs(sdfi->Vs[2]) > fabs(sdfi->Vs[0])) &&
       (fabs(sdfi->Vs[2]) > fabs(sdfi->Vs[1])) && trarev) return(1);
 
-  printf("sagrev = %d, correv =%d, trarev = %d\n",sagrev,correv,trarev);
-
-  printf("\n\nWARNING: Proper slice order not detected! "
-         "Suggestion: use -siemens_dicom flag instead of -dicom\n\n");
-  return(0); // should never get here
+  // If it gets here, there is no reversal
+  return(0); 
 }
 
 /*--------------------------------------------------------------*/
