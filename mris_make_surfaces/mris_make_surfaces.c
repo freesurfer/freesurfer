@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/02/07 00:10:33 $
- *    $Revision: 1.84 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/12 01:58:02 $
+ *    $Revision: 1.85 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.84 2007/02/07 00:10:33 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.85 2007/02/12 01:58:02 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -222,13 +222,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.84 2007/02/07 00:10:33 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.85 2007/02/12 01:58:02 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.84 2007/02/07 00:10:33 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.85 2007/02/12 01:58:02 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -433,6 +433,14 @@ main(int argc, char *argv[]) {
   if (!mri_wm)
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
+  if (mri_wm->type != MRI_UCHAR)
+  {
+    MRI *mri_tmp ;
+    printf("changing type of input wm volume to UCHAR...\n") ;
+    mri_tmp = MRIchangeType(mri_wm, MRI_UCHAR, 0, 255, 1) ;
+    MRIfree(&mri_wm) ;
+    mri_wm = mri_tmp ;
+  }
   //////////////////////////////////////////
   setMRIforSurface(mri_wm);
 
