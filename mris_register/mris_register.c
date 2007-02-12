@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/21 18:37:59 $
- *    $Revision: 1.44 $
+ *    $Date: 2007/02/12 18:55:58 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,7 +45,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.44 2007/01/21 18:37:59 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.45 2007/02/12 18:55:58 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -126,10 +126,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.44 2007/01/21 18:37:59 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.45 2007/02/12 18:55:58 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.44 2007/01/21 18:37:59 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.45 2007/02/12 18:55:58 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -232,41 +232,60 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could no scan hemi from %s", Progname, template_fname) ;
     strncpy(hemi, cp-2, 2) ;
     hemi[2] = 0 ;
-    mrisp_template = MRISPalloc(scale, PARAM_IMAGES);
     fprintf(stderr, "reading spherical surface %s...\n", template_fname) ;
     mris_template = MRISread(template_fname) ;
     MRISsaveVertexPositions(mris_template, CANONICAL_VERTICES) ;
     MRIScomputeMetricProperties(mris_template) ;
     MRISstoreMetricProperties(mris_template) ;
 
-    for (sno = 0; sno < SURFACES ; sno++) {
-      if (curvature_names[sno])  /* read in precomputed curvature file */
+    if (noverlays > 0)
+    {
+      mrisp_template = MRISPalloc(scale, IMAGES_PER_SURFACE*noverlays);
+      for (sno = 0; sno < noverlays ; sno++) 
       {
-        sprintf(fname, "%s/%s.%s", surf_dir, hemi, curvature_names[sno]) ;
-        if (MRISreadCurvatureFile(mris_template, fname) != NO_ERROR)
-          ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",Progname, fname) ;
-
-        /* the two next lines were not in the original code */
+        sprintf(fname, "%s/../label/%s.%s", surf_dir, hemi, overlays[sno]) ;
+        if (MRISreadValues(mris_template, fname)  != NO_ERROR)
+          ErrorExit(ERROR_NOFILE, "%s: could not read overlay from %s", Progname, fname) ;
+        MRIScopyValuesToCurvature(mris_template) ;
         MRISaverageCurvatures(mris_template, navgs) ;
         MRISnormalizeCurvature(mris_template, which_norm) ;
-      } else                       /* compute curvature of surface */
-      {
-        sprintf(fname, "%s/%s.%s", surf_dir, hemi, surface_names[sno]) ;
-        if (MRISreadVertexPositions(mris_template, fname) != NO_ERROR)
-          ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",Progname, fname) ;
-
-        if (tnbrs > 1)
-          MRISsetNeighborhoodSize(mris_template, tnbrs) ;
-        MRIScomputeMetricProperties(mris_template) ;
-        MRIScomputeSecondFundamentalForm(mris_template) ;
-        MRISuseMeanCurvature(mris_template) ;
-        MRISaverageCurvatures(mris_template, navgs) ;
-        MRISrestoreVertexPositions(mris_template, CANONICAL_VERTICES) ;
-        MRISnormalizeCurvature(mris_template, which_norm) ;
+        fprintf(stderr, "computing parameterization for overlay %s...\n", overlays[sno]);
+        MRIStoParameterization(mris_template, mrisp_template, scale, sno*3) ;
+        MRISPsetFrameVal(mrisp_template, sno*3+1, 1.0) ;
       }
-      fprintf(stderr, "computing parameterization for surface %s...\n", fname);
-      MRIStoParameterization(mris_template, mrisp_template, scale, sno*3) ;
-      MRISPsetFrameVal(mrisp_template, sno*3+1, 1.0) ;
+    }
+    else
+    {
+      mrisp_template = MRISPalloc(scale, PARAM_IMAGES);
+      for (sno = 0; sno < SURFACES ; sno++) {
+        if (curvature_names[sno])  /* read in precomputed curvature file */
+        {
+          sprintf(fname, "%s/%s.%s", surf_dir, hemi, curvature_names[sno]) ;
+          if (MRISreadCurvatureFile(mris_template, fname) != NO_ERROR)
+            ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",Progname, fname) ;
+          
+          /* the two next lines were not in the original code */
+          MRISaverageCurvatures(mris_template, navgs) ;
+          MRISnormalizeCurvature(mris_template, which_norm) ;
+        } else                       /* compute curvature of surface */
+        {
+          sprintf(fname, "%s/%s.%s", surf_dir, hemi, surface_names[sno]) ;
+          if (MRISreadVertexPositions(mris_template, fname) != NO_ERROR)
+            ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",Progname, fname) ;
+          
+          if (tnbrs > 1)
+            MRISsetNeighborhoodSize(mris_template, tnbrs) ;
+          MRIScomputeMetricProperties(mris_template) ;
+          MRIScomputeSecondFundamentalForm(mris_template) ;
+          MRISuseMeanCurvature(mris_template) ;
+          MRISaverageCurvatures(mris_template, navgs) ;
+          MRISrestoreVertexPositions(mris_template, CANONICAL_VERTICES) ;
+          MRISnormalizeCurvature(mris_template, which_norm) ;
+        }
+        fprintf(stderr, "computing parameterization for surface %s...\n", fname);
+        MRIStoParameterization(mris_template, mrisp_template, scale, sno*3) ;
+        MRISPsetFrameVal(mrisp_template, sno*3+1, 1.0) ;
+      }
     }
   } else {
     fprintf(stderr, "reading template parameterization from %s...\n",
@@ -415,7 +434,7 @@ get_option(int argc, char *argv[]) {
     }
     /* adding field into parms */
     n=parms.nfields++;
-    SetFieldLabel(&parms.fields[n],which_field,where_in_atlas,l_corr,l_pcorr,0);
+    SetFieldLabel(&parms.fields[n],which_field,where_in_atlas,l_corr,l_pcorr,0,which_norm);
     nargs = 4 ;
   }
   /* else if (!stricmp(option, "hippocampus")) */
@@ -580,6 +599,8 @@ get_option(int argc, char *argv[]) {
     fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
   } else if (!stricmp(option, "overlay")) {
     int navgs ;
+    if (noverlays == 0)
+      atlas_size = 0 ;
     if (multiframes == 0)      {
       initParms() ;
       multiframes = 1 ;
@@ -588,7 +609,7 @@ get_option(int argc, char *argv[]) {
     navgs = atof(argv[3]) ;
     printf("reading overlay from %s and smoothing it %d times\n", argv[2], navgs) ;
     n=parms.nfields++;
-    SetFieldLabel(&parms.fields[n], OVERLAY_FRAME, atlas_size,1.0,0.0, navgs);
+    SetFieldLabel(&parms.fields[n], OVERLAY_FRAME, atlas_size,1.0,0.0, navgs, which_norm);
     SetFieldName(&parms.fields[n], argv[2]) ;
     atlas_size++ ;
     nargs = 2 ;
