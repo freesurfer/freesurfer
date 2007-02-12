@@ -1,7 +1,6 @@
 #
 # Makefile.am
 #
-
 SUBDIRS=surf
 
 foodir=$(prefix)/average
