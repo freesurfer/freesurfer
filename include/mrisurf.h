@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/02/07 22:43:42 $
- *    $Revision: 1.279 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/12 18:55:37 $
+ *    $Revision: 1.280 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -551,7 +551,7 @@ int MRISrigidBodyAlignVectorGlobal(MRI_SURFACE *mris,
                                    INTEGRATION_PARMS *parms,
                                    float min_degrees,
                                    float max_degrees, int nangles);
-void MRISnormalizeField(MRIS *mris , int distance_field);
+void MRISnormalizeField(MRIS *mris , int distance_field, int which_norm);
 void MRISsetCurvaturesToValues(MRIS *mris,int fno);
 void MRISsetCurvaturesToOrigValues(MRIS *mris,int fno);
 void MRISsetOrigValuesToCurvatures(MRIS *mris,int fno);

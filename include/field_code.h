@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.5 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/12 18:55:37 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -85,6 +85,7 @@ typedef struct
   float   sse;                /* sse associated with this field */
   char    *name ;             // if user specified
   int     navgs ;
+  int     which_norm ;
 }
 FIELD_LABEL;
 
@@ -95,7 +96,8 @@ int SetFieldLabel(FIELD_LABEL *label,
                   int frame,
                   float l_corr,
                   float l_pcorr,
-                  int navgs);
+                  int navgs,
+                  int which_norm);
 
 int SetFieldName(FIELD_LABEL *label, char *name) ;
 
