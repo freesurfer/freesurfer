@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/02/13 14:23:42 $
- *    $Revision: 1.514 $
+ *    $Author: segonne $
+ *    $Date: 2007/02/13 17:15:58 $
+ *    $Revision: 1.515 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.514 2007/02/13 14:23:42 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.515 2007/02/13 17:15:58 segonne Exp $");
 }
 
 /*-----------------------------------------------------
@@ -51598,7 +51598,7 @@ MRIS* MRISextractMarkedVertices(MRIS *mris)
 
 /* extract the main connected component from a triangulation
    use the v->marked to extract the surface */
-MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract)
+MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract, int verbose , int *ncpts)
 {
   MRIS* mris_out;
   VERTEX *v,*vp1,*vp2;
@@ -51612,7 +51612,7 @@ MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract)
   tX=tv=te=tf=0;
   max_c=0;
   max_nbr=0;
-  fprintf(WHICH_OUTPUT,"\ncounting number of connected components...");
+  if(verbose) fprintf(WHICH_OUTPUT,"\ncounting number of connected components...");
   for (count=0,vn0=0; vn0 < mris->nvertices ;vn0++)
   {
     v=&mris->vertices[vn0];
@@ -51677,25 +51677,27 @@ MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract)
     tv += nv;
     te += ne;
     tf += nf;
-    fprintf(stderr,
+    if(verbose) fprintf(stderr,
             "\n   %d voxel in cpt #%d: X=%d [v=%d,e=%d,f=%d] located at (%f, %f, %f)",
             ncpt,count,nX,nv,ne,nf,cx,cy,cz);
   }
-  fprintf(stderr,"\nFor the whole surface: X=%d [v=%d,e=%d,f=%d]",tX,tv,te,tf);
+  if(verbose) fprintf(stderr,"\nFor the whole surface: X=%d [v=%d,e=%d,f=%d]",tX,tv,te,tf);
 
   if (count <= 1)
   {
-    fprintf(WHICH_OUTPUT,"\nOne single component has been found");
-    if (!do_not_extract)
+    if(verbose) fprintf(WHICH_OUTPUT,"\nOne single component has been found");
+    if (!do_not_extract && verbose)
       fprintf(WHICH_OUTPUT,"\nnothing to do");
   }
   else
   {
-    fprintf(WHICH_OUTPUT,"\n%d components have been found",count);
-    if (!do_not_extract)
+    if(verbose) fprintf(WHICH_OUTPUT,"\n%d components have been found",count);
+    if (!do_not_extract && verbose)
       fprintf(WHICH_OUTPUT,
               "\nkeeping component #%d with %d vertices",max_c,max_nbr);
   }
+
+	if(ncpts) *ncpts=count;
 
   /* nothing to do */
   if (do_not_extract) return mris;

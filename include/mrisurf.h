@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/02/13 16:23:22 $
- *    $Revision: 1.281 $
+ *    $Author: segonne $
+ *    $Date: 2007/02/13 17:15:43 $
+ *    $Revision: 1.282 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1181,7 +1181,7 @@ TOPOLOGY_PARMS ;
 
 int MRIScenterSphere(MRI_SURFACE *mris);
 int MRISmarkOrientationChanges(MRI_SURFACE *mris);
-MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract);
+MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract, int verbose, int *ncpts);
 MRIS* MRISextractMarkedVertices(MRIS *mris);
 MRIS* MRISremoveRippedSurfaceElements(MRIS *mris);
 
