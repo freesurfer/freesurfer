@@ -1,15 +1,15 @@
 /**
  * @file  mris_topo_fixer.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief optimally correcting the topology of triangulated surface
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Florent Segonne
  * CVS Revision Info:
  *    $Author: segonne $
- *    $Date: 2007/02/13 19:09:34 $
- *    $Revision: 1.23 $
+ *    $Date: 2007/02/13 19:11:56 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_topo_fixer.cpp,v 1.23 2007/02/13 19:09:34 segonne Exp $",
+   "$Id: mris_topo_fixer.cpp,v 1.24 2007/02/13 19:11:56 segonne Exp $",
    "$Name:  $",
    cmdline);
 
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.23 2007/02/13 19:09:34 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.24 2007/02/13 19:11:56 segonne Exp $",
      "$Name:  $");
 
   if (nargs && argc - nargs == 1)
