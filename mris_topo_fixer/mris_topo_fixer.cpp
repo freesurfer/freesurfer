@@ -8,8 +8,8 @@
  * Original Author: Florent Segonne
  * CVS Revision Info:
  *    $Author: segonne $
- *    $Date: 2007/02/13 19:28:06 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/02/13 19:30:47 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_topo_fixer.cpp,v 1.25 2007/02/13 19:28:06 segonne Exp $",
+   "$Id: mris_topo_fixer.cpp,v 1.26 2007/02/13 19:30:47 segonne Exp $",
    "$Name:  $",
    cmdline);
 
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.25 2007/02/13 19:28:06 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.26 2007/02/13 19:30:47 segonne Exp $",
      "$Name:  $");
 
   if (nargs && argc - nargs == 1)
@@ -282,6 +282,7 @@ int main(int argc, char *argv[]) {
       fprintf(stderr,"   The original surface does not self-intersect\n");
   }
 
+	fprintf(stderr,"\n");
   MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
   MRISaverageVertexPositions(mris, 2) ;
   if (parms.no_self_intersections) {
