@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:02 $
- *    $Revision: 1.6 $
+ *    $Author: segonne $
+ *    $Date: 2007/02/13 17:16:20 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -107,12 +107,12 @@ public:
   PatchDisk *disk;
 
   double GetLoopLength(Loop &loop);
-  void CutLoop(Loop &loop);
+  void CutLoop(Loop &loop,int very_small_patch = 0);
   bool LoopValid(Loop &loop);
   void KnitPatch(Loop &loop, PatchDisk *pdisk);
   void IncreaseEuler(int nattempts,int maxinitface = -1);
   void CorrectTopology();
-  int CutPatch(int seed=-1, int maxinitface = -1, int nattempts = 10);
+  int CutPatch(int seed=-1, int maxinitface = -1, int nattempts = 10, int very_small_patch = 0);
 
 #if 0
   int computeVertexNormals(void);

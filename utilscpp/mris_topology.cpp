@@ -10,9 +10,9 @@
 /*
  * Original Author: Florence Segonne
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/13 00:15:49 $
- *    $Revision: 1.32 $
+ *    $Author: segonne $
+ *    $Date: 2007/02/13 17:16:41 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -200,12 +200,12 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms)
 
     //increase the euler number by 2
     int correct;
-    if (n == 0 )
-      correct = surface->CutPatch(-2,parms.max_face,parms.nminimal_attempts);
+    if (n == 0 ) //the first time, try to cut with a very small patch
+      correct = surface->CutPatch(-2,parms.max_face,parms.nminimal_attempts,1);
     else
       correct = surface->CutPatch(-1,
                                   parms.max_face,
-                                  10);//always trying 10 times at least
+                                  10,1);//always trying 10 times at least
 
     npatches++;
 
@@ -257,6 +257,85 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms)
 
     //first check if the patch self-intersects
     bool selfintersect = doesMRISselfIntersect(mris_work,parms);
+
+		
+		//new version of mris_topo_fixer: generating small corrections first!
+		if(selfintersect){ //the previous surface self-intersected! -> generate another one
+			nintersections++;
+      if (parms.verbose>=VERBOSE_MODE_HIGH) fprintf(WHICH_OUTPUT,"\r      SELF-INTERSECTING PATCH\n");
+			MRISfree(&mris_work);
+
+			//generate a new surface
+			Surface *surface = MRIStoSurface(mris);
+			surface->disk=(PatchDisk*)parms.patchdisk;
+
+			//compute the euler number of the surface (mandatory for CutPatch!)
+			int euler = surface->GetEuler();
+			int init_euler = euler;
+
+#if __PRINT_MODE
+			fprintf(WHICH_OUTPUT,
+							"BEFORE %d (%d: %d, %d)\n",
+							euler,n,surface->nvertices,surface->nfaces);
+#endif
+
+			//increase the euler number by 2
+			int correct;
+			if (n == 0 ) correct = surface->CutPatch(-2,parms.max_face,parms.nminimal_attempts);
+			else correct = surface->CutPatch(-1,parms.max_face,10);//always trying 10 times at least
+
+			npatches++;
+
+			if (correct < 0) {
+				fprintf(WHICH_OUTPUT,
+								"\r      PBM: Euler Number incorrect for surface (defect %d)\n",
+								parms.defect_number);
+				delete surface;
+				continue;
+			}
+#if __PRINT_MODE
+			fprintf(WHICH_OUTPUT,
+							"AFTER %d (%d,%d)\n",
+							surface->GetEuler(),surface->nvertices,surface->nfaces);
+#endif
+
+			//transfer data into MRIS structure
+			mris_work = SurfaceToMRIS(surface,NULL);
+			delete surface;
+
+			MRIScopyHeader(mris,mris_work);
+			MRISsaveVertexPositions(mris_work, INFLATED_VERTICES); /*saving current 
+																															 vertex positions 
+																															 into inflated */
+			parms.mris_defect=mris_work;
+
+			euler = MRISgetEuler(mris_work);
+			if (euler != init_euler+2) {
+				fprintf(WHICH_OUTPUT,
+								"\r      PBM: Euler Number incorrect for mris (defect %d)\n",
+								parms.defect_number);
+				MRISfree(&mris_work);
+				continue;
+			}
+
+#if __PRINT_MODE
+			fprintf(WHICH_OUTPUT,"Topology -> %d \n",euler);
+#endif
+
+			// we have a correct surface : evaluate if valid
+			MRISinitDefectPatch(mris_work,&parms);
+
+#if WS
+			sprintf(fname,"./defect_%d_%d.asc",parms.defect_number,s_nbr++);
+			//fprintf(stderr,"%s!\n",fname);
+			MRISwrite(mris_work,fname);
+#endif
+
+			//check again if the patch self-intersects
+			selfintersect = doesMRISselfIntersect(mris_work,parms);
+		}
+		// end of the new version of mris_topo_fixer
+		////////////////////////////////////////////////////////////////////
     if (selfintersect) {
       nintersections++;
       if (parms.verbose>=VERBOSE_MODE_HIGH) 

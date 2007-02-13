@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:19 $
- *    $Revision: 1.10 $
+ *    $Author: segonne $
+ *    $Date: 2007/02/13 17:16:32 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -821,7 +821,7 @@ double Surface::GetLoopLength(Loop &loop) {
 }
 
 
-void Surface::CutLoop(Loop &loop) {
+void Surface::CutLoop(Loop &loop, int very_small_patch) {
 
   int first_v1 = -1, first_v2 = -1,  first_v3 = -1, first_v4 = -1;
 
@@ -830,10 +830,17 @@ void Surface::CutLoop(Loop &loop) {
 
   //which patch should we use ?
   int wd = 0 ;
-  if (loop.npoints < 10 ) wd = 0;//6
-  else if (loop.npoints < 14 ) wd = 1;//10
-  else if (loop.npoints <  20) wd = 2;//14
-  else wd = 3;
+	if(very_small_patch==1){
+		if (loop.npoints < 40 ) wd = 0;//6
+		else if (loop.npoints < 80 ) wd = 1;//10
+		else if (loop.npoints < 120) wd = 2;//14
+		else wd = 3;
+	}else{
+		if (loop.npoints < 10 ) wd = 0;//6
+		else if (loop.npoints < 14 ) wd = 1;//10
+		else if (loop.npoints <  20) wd = 2;//14
+		else wd = 3;
+	}
   PatchDisk *pdisk = &disk[wd];
 #if PRINT_ERROR_MODE
   cout << "loop is " << wd << " with " << GetLoopLength(loop) << endl;
@@ -1358,7 +1365,7 @@ void Surface::CorrectTopology() {
 // -1 if failure in finding the loop
 // -2 if failure in cutting the patch
 // a negative seed specifies the cutting mode
-int Surface::CutPatch(int seed, int maxinitface, int nattempts) {
+int Surface::CutPatch(int seed, int maxinitface, int nattempts, int very_small_patch) {
   int mode = 0 ;
   if (seed < 0) {
     if (seed == -2) {
@@ -1423,7 +1430,7 @@ int Surface::CutPatch(int seed, int maxinitface, int nattempts) {
   } else cutting_loop = &loop[0];
 
   // cutting the patch
-  CutLoop(*cutting_loop);
+  CutLoop(*cutting_loop,very_small_patch);
   if (loop) delete [] loop;
   //computing the new euler number
   GetEuler();
