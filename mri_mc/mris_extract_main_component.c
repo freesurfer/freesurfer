@@ -6,9 +6,9 @@
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/18 19:53:19 $
- *    $Revision: 1.3 $
+ *    $Author: segonne $
+ *    $Date: 2007/02/13 17:17:30 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
 
   mris_in=MRISread(argv[1]);
 
-  mris_out=MRISextractMainComponent(mris_in,0);
+  mris_out=MRISextractMainComponent(mris_in,0,1,0);
 
   MRISwrite(mris_out,argv[2]);
 
