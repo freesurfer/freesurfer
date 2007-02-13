@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: segonne $
- *    $Date: 2007/02/13 17:14:49 $
- *    $Revision: 1.21 $
+ *    $Date: 2007/02/13 18:42:44 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_topo_fixer.cpp,v 1.21 2007/02/13 17:14:49 segonne Exp $",
+   "$Id: mris_topo_fixer.cpp,v 1.22 2007/02/13 18:42:44 segonne Exp $",
    "$Name:  $",
    cmdline);
 
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.21 2007/02/13 17:14:49 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.22 2007/02/13 18:42:44 segonne Exp $",
      "$Name:  $");
 
   if (nargs && argc - nargs == 1)
@@ -251,7 +251,11 @@ int main(int argc, char *argv[]) {
 		fprintf
     (stderr,
      "The original surface has more than one component (%d components)!!\n",ncpts);
-    fprintf(stderr,"\nAbort !!!\n");
+		//fprintf(stderr,"   ->   Extracting the largest component of the initial surface\n");
+		//MRIS* mris_temp = MRISextractMainComponent(mris,0 , 0, &ncpts);
+    //MRISfree(&mris);
+		//mris=mris_temp;
+		fprintf(stderr,"\nAbort !!!\n");
     MRISfree(&mris);
     exit(-1);
 	}else
