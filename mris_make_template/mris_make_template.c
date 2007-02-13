@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/02 19:53:56 $
- *    $Revision: 1.22 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/13 12:20:16 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,7 +40,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.22 2007/01/02 19:53:56 nicks Exp $";
+static char vcid[] = "$Id: mris_make_template.c,v 1.23 2007/02/13 12:20:16 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -100,7 +100,7 @@ main(int argc, char *argv[]) {
   INTEGRATION_PARMS parms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.22 2007/01/02 19:53:56 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.23 2007/02/13 12:20:16 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -271,7 +271,8 @@ main(int argc, char *argv[]) {
           MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
         }
         /*    if(parms.fields[n].field!=SULC_CORR_FRAME)*/
-        MRISnormalizeField(mris,parms.fields[n].type); /* normalize values */
+        MRISnormalizeField(mris,parms.fields[n].type,
+                           parms.fields[n].which_norm); /* normalize values */
         MRISsetCurvaturesToOrigValues(mris,n);
         MRISsetCurvaturesToValues(mris,n);
       }
@@ -541,7 +542,13 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms) {
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using SUBJECTS_DIR=%s\n", subjects_dir) ;
-  } else if (!stricmp(option, "infname")) {
+  } 
+  else if (!stricmp(option, "median"))
+  {
+    which_norm = NORM_MEDIAN ;
+    printf("using median normalization\n") ;
+  }
+  else if (!stricmp(option, "infname")) {
     char fname[STRLEN] ;
     surface_names[0] = argv[2] ;
     nargs = 1 ;
@@ -586,7 +593,7 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms) {
     printf("reading overlay from %s...\n", argv[2]) ;
     multiframes = 1 ;
     n=parms->nfields++;
-    SetFieldLabel(&parms->fields[n], OVERLAY_FRAME, atlas_size,0.0,0.0, navgs);
+    SetFieldLabel(&parms->fields[n], OVERLAY_FRAME, atlas_size,0.0,0.0, navgs,which_norm);
     SetFieldName(&parms->fields[n], argv[2]) ;
     atlas_size++ ;
     nargs = 2 ;
@@ -631,7 +638,7 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms) {
     }
     /* adding field into parms */
     n=parms->nfields++;
-    SetFieldLabel(&parms->fields[n],which_field,where_in_atlas,0.0,0.0,0);
+    SetFieldLabel(&parms->fields[n],which_field,where_in_atlas,0.0,0.0,0,which_norm);
     if (where_in_atlas >= atlas_size) {
       atlas_size = where_in_atlas+1;
       fprintf(stderr,"Atlas size increased to contain at least %d frames\n",atlas_size);
@@ -714,8 +721,8 @@ static void setParms(INTEGRATION_PARMS *parms) {
   /* default template fields*/
   parms->nfields=3;
 
-  SetFieldLabel(&parms->fields[0],INFLATED_CURV_CORR_FRAME,0,0.0,0.0,0);
+  SetFieldLabel(&parms->fields[0],INFLATED_CURV_CORR_FRAME,0,0.0,0.0,0,which_norm);
   /* only use sulc for rigid registration */
-  SetFieldLabel(&parms->fields[1],SULC_CORR_FRAME,1,1.0,0.0,0);
-  SetFieldLabel(&parms->fields[2],CURVATURE_CORR_FRAME,2,0.0,0.0,0);
+  SetFieldLabel(&parms->fields[1],SULC_CORR_FRAME,1,1.0,0.0,0,which_norm);
+  SetFieldLabel(&parms->fields[2],CURVATURE_CORR_FRAME,2,0.0,0.0,0,which_norm);
 }
