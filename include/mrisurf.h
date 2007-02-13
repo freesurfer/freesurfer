@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/12 18:55:37 $
- *    $Revision: 1.280 $
+ *    $Date: 2007/02/13 16:23:22 $
+ *    $Revision: 1.281 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -622,6 +622,7 @@ int          MRISwriteDists(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadNewCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 int          MRISrectifyCurvature(MRI_SURFACE *mris) ;
+#define NORM_NONE  -1
 #define NORM_MEAN   0
 #define NORM_MEDIAN 1
 int          MRISnormalizeCurvature(MRI_SURFACE *mris, int norm_type) ;
