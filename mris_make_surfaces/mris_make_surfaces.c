@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/02/12 01:58:02 $
- *    $Revision: 1.85 $
+ *    $Author: nicks $
+ *    $Date: 2007/02/13 16:28:53 $
+ *    $Revision: 1.86 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.85 2007/02/12 01:58:02 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.86 2007/02/13 16:28:53 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -124,7 +124,6 @@ static char *dura_echo_name = NULL ;
 static int nechos = 0 ;
 
 static int in_out_in_flag = 0 ;  /* for Arthur (as are most things) */
-static int apply_median_filter = 0 ;
 
 static int nbhd_size = 20 ;
 
@@ -222,13 +221,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.85 2007/02/12 01:58:02 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.86 2007/02/13 16:28:53 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.85 2007/02/12 01:58:02 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.86 2007/02/13 16:28:53 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -352,20 +351,6 @@ main(int argc, char *argv[]) {
     }
 
     setMRIforSurface(mri_T1_white);
-  }
-  if (apply_median_filter) {
-    MRI *mri_tmp ;
-
-    fprintf(stderr, "applying median filter to T1 image...\n") ;
-    mri_tmp = MRImedian(mri_T1, NULL, 3) ;
-    MRIfree(&mri_T1) ;
-    mri_T1 = mri_tmp ;
-
-    if (mri_T1_white) {
-      mri_tmp = MRImedian(mri_T1_white, NULL, 3) ;
-      MRIfree(&mri_T1_white) ;
-      mri_T1_white = mri_tmp ; // swap
-    }
   }
 
   if (xform_fname) {
@@ -1302,8 +1287,6 @@ get_option(int argc, char *argv[]) {
     orig_pial = argv[2] ;
     printf("using %s starting pial locations...\n", orig_pial) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "median")) {
-    apply_median_filter = 1 ;
   } else if (!stricmp(option, "max_border_white")) {
     max_border_white_set = 1 ;
     max_border_white = atof(argv[2]) ;
