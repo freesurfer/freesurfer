@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/12 18:55:20 $
- *    $Revision: 1.512 $
+ *    $Date: 2007/02/13 00:54:01 $
+ *    $Revision: 1.513 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.512 2007/02/12 18:55:20 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.513 2007/02/13 00:54:01 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -992,7 +992,7 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
   sprintf(tmpstr,"%s.avg.area.mgh",fname);
   if (fio_FileExistsReadable(tmpstr))
   {
-    printf("Reading in average area %s\n",tmpstr);
+    fprintf(stderr,"Reading in average area %s\n",tmpstr);
     mri = MRIread(tmpstr);
     if (!mri)
     {
@@ -5590,7 +5590,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
     {
       MRISfromParameterizations(parms->mrisp_template, mris,
                                 frames,indices , nframes);
-      MRISnormalizeCurvature(mris, parms->fields[0].which_norm) ;
+      //      MRISnormalizeCurvature(mris, parms->fields[0].which_norm) ;
       sprintf
       (fname,
        "%s/%s.target",
