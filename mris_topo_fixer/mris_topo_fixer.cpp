@@ -8,8 +8,8 @@
  * Original Author: Florent Segonne
  * CVS Revision Info:
  *    $Author: segonne $
- *    $Date: 2007/02/13 19:11:56 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/02/13 19:28:06 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_topo_fixer.cpp,v 1.24 2007/02/13 19:11:56 segonne Exp $",
+   "$Id: mris_topo_fixer.cpp,v 1.25 2007/02/13 19:28:06 segonne Exp $",
    "$Name:  $",
    cmdline);
 
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.24 2007/02/13 19:11:56 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.25 2007/02/13 19:28:06 segonne Exp $",
      "$Name:  $");
 
   if (nargs && argc - nargs == 1)
@@ -241,10 +241,10 @@ int main(int argc, char *argv[]) {
     MRISfree(&mris);
     exit(-1);
   } else
-    fprintf(stderr,"The original surface is a valid manifold\n");
+    fprintf(stderr,"   The original surface is a valid manifold\n");
 
 	//checking if we have only one single component
-	fprintf(stderr,"Counting the number of connected components\n");
+	fprintf(stderr,"   Counting the number of connected components\n");
 	int ncpts;
 	int did_extract_main_component = 0;
 	MRISextractMainComponent(mris,1, 0, &ncpts);
@@ -269,7 +269,7 @@ int main(int argc, char *argv[]) {
     //MRISfree(&mris);
     //exit(-1);
 	}else
-		fprintf(stderr,"The original surface has one component\n");
+		fprintf(stderr,"   The original surface has one component\n");
 
   if (parms.no_self_intersections) {
     int self_intersect =  IsMRISselfIntersecting(mris);
@@ -279,7 +279,7 @@ int main(int argc, char *argv[]) {
       MRISfree(&mris);
       exit(-1);
     } else
-      fprintf(stderr,"The original surface does not self-intersect\n");
+      fprintf(stderr,"   The original surface does not self-intersect\n");
   }
 
   MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
@@ -289,7 +289,7 @@ int main(int argc, char *argv[]) {
     if (self_intersect) {
       fprintf
       (stderr,
-       "smoothing led to self-intersection: restoring original vertices\n");
+       "Smoothing led to self-intersection: restoring original vertices\n");
       MRISrestoreVertexPositions(mris,ORIGINAL_VERTICES);
     };
   }
