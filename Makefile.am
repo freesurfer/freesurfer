@@ -252,6 +252,8 @@ SUBDIRS=include \
 	rgb \
 	utils \
 	utilscpp \
+	vtkfsio \
+	vtkutils \
 	log \
 	tetgen \
 	$(FSGDF) \
@@ -264,9 +266,7 @@ SUBDIRS=include \
 	$(DTISUBDIRS) \
 	fsfast \
 	matlab \
-	scuba \
-	vtkfsio \
-	vtkutils
+	scuba
 
 # build stamp and symlinks to necessary 3rd-party packages
 install-data-hook:
