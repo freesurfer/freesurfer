@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/13 00:54:01 $
- *    $Revision: 1.513 $
+ *    $Date: 2007/02/13 14:23:42 $
+ *    $Revision: 1.514 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.513 2007/02/13 00:54:01 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.514 2007/02/13 14:23:42 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5381,6 +5381,10 @@ void MRISnormalizeField(MRIS *mris , int distance_field, int which_norm)
   int n;
   VERTEX *v;
   float max_value;
+
+  if (which_norm == NORM_NONE)
+    return ;
+
   if (distance_field)
   { /* distance fields have their max value set to 1 */
     for (max_value=0.0f,n=0; n < mris->nvertices; n++)
@@ -9928,7 +9932,8 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
   if (type != MRI_VOLUME_TYPE_UNKNOWN)
   {
     frame = MRISgetReadFrame();
-    printf("MRISreadValues: frame=%d\n",frame);
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      printf("MRISreadValues: frame=%d\n",frame);
     TempMRI = MRIreadHeader(sname,type);
     if (TempMRI==NULL) return(ERROR_BADFILE);
     if (TempMRI->nframes <= frame)
@@ -20686,6 +20691,9 @@ MRISnormalizeCurvature(MRI_SURFACE *mris, int which_norm)
   double    mean, var, std, median ;
   int       vno, vtotal ;
   VERTEX    *v ;
+
+  if (which_norm == NORM_NONE)
+    return(NO_ERROR) ;
 
   if (which_norm == NORM_MEDIAN)
   {
