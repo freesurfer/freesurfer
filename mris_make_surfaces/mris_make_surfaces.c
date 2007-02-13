@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/13 16:28:53 $
- *    $Revision: 1.86 $
+ *    $Date: 2007/02/13 16:41:17 $
+ *    $Revision: 1.87 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.86 2007/02/13 16:28:53 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.87 2007/02/13 16:41:17 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -221,13 +221,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.86 2007/02/13 16:28:53 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.87 2007/02/13 16:41:17 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.86 2007/02/13 16:28:53 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.87 2007/02/13 16:41:17 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -724,7 +724,7 @@ main(int argc, char *argv[]) {
     fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n",
             current_sigma) ;
     if (!mri_smooth)
-      mri_smooth = MRIclone(mri_T1, NULL) ;
+      mri_smooth = MRIcopy(mri_T1, NULL) ;
 #if 0
     MRIconvolveGaussian(mri_T1, mri_smooth, mri_kernel) ;
 #endif
