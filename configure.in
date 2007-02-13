@@ -1177,6 +1177,7 @@ VTK_CFLAGS=""
 VTK_CXXFLAGS=""
 VTK_LIBS=""
 VTK_LIB=""
+VTK_LIB_VTK=""
 VTK_DIR=""
 
 AC_MSG_CHECKING(VTK config)
@@ -1202,7 +1203,9 @@ AC_ARG_WITH(vtk-libraries,
 
 if test ! "$ac_vtk_includes" = "NO"; then
   AC_MSG_RESULT(VTK directory is $withval)
-  if test -e $ac_vtk_includes/vtk-5.1 ; then
+  if test -e $ac_vtk_includes/vtk-5.2 ; then
+    ac_vtk_includes="$ac_vtk_includes/vtk-5.2"
+  elif test -e $ac_vtk_includes/vtk-5.1 ; then
     ac_vtk_includes="$ac_vtk_includes/vtk-5.1"
   elif test -e $ac_vtk_includes/vtk-5.0 ; then
     ac_vtk_includes="$ac_vtk_includes/vtk-5.0"
@@ -1216,12 +1219,22 @@ fi
 if test ! "$ac_vtk_libraries" = "NO"; then
   VTK_LIBS=-L$ac_vtk_libraries
   VTK_LIB=$ac_vtk_libraries
+  if test -e $ac_vtk_libraries/vtk-5.2 ; then
+    VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.2"
+  elif test -e $ac_vtk_libraries/vtk-5.1 ; then
+    VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.1"
+  elif test -e $ac_vtk_libraries/vtk-5.0 ; then
+    VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.0"
+  elif test -e $ac_vtk_libraries/vtk ; then
+    VTK_LIB_VTK="$ac_vtk_libraries/vtk"
+  fi
 fi
 
 AC_SUBST(VTK_CFLAGS)
 AC_SUBST(VTK_CXXFLAGS)
 AC_SUBST(VTK_LIBS)
 AC_SUBST(VTK_LIB)
+AC_SUBST(VTK_LIB_VTK)
 AC_SUBST(VTK_DIR)
 
 
