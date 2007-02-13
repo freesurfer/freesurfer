@@ -6,9 +6,9 @@
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/18 19:53:19 $
- *    $Revision: 1.16 $
+ *    $Author: segonne $
+ *    $Date: 2007/02/13 18:16:32 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -888,7 +888,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mri_mc.c,v 1.16 2007/01/18 19:53:19 nicks Exp $", "$Name:  $", 
+     "$Id: mri_mc.c,v 1.17 2007/02/13 18:16:32 segonne Exp $", "$Name:  $", 
      cmdline);
   Progname=argv[0];
 
@@ -1003,7 +1003,7 @@ int main(int argc, char *argv[]) {
 
   fprintf(stderr,"\nchecking orientation of surface...");
   MRISmarkOrientationChanges(mris);
-  mris_corrected=MRISextractMainComponent(mris,0);
+  mris_corrected=MRISextractMainComponent(mris,0,1,0);
 
   MRISfree(&mris);
 
