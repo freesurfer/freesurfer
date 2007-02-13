@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.20 $
+ *    $Author: segonne $
+ *    $Date: 2007/02/13 17:14:49 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_topo_fixer.cpp,v 1.20 2006/12/29 02:09:11 nicks Exp $",
+   "$Id: mris_topo_fixer.cpp,v 1.21 2007/02/13 17:14:49 segonne Exp $",
    "$Name:  $",
    cmdline);
 
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.20 2006/12/29 02:09:11 nicks Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.21 2007/02/13 17:14:49 segonne Exp $",
      "$Name:  $");
 
   if (nargs && argc - nargs == 1)
@@ -242,6 +242,20 @@ int main(int argc, char *argv[]) {
     exit(-1);
   } else
     fprintf(stderr,"The original surface is a valid manifold\n");
+
+	//checking if we have only one single component
+	fprintf(stderr,"Counting the number of connected components\n");
+	int ncpts;
+	MRISextractMainComponent(mris,1, 0, &ncpts);
+	if(ncpts != 1){
+		fprintf
+    (stderr,
+     "The original surface has more than one component (%d components)!!\n",ncpts);
+    fprintf(stderr,"\nAbort !!!\n");
+    MRISfree(&mris);
+    exit(-1);
+	}else
+		fprintf(stderr,"The original surface has one component\n");
 
 
   if (parms.no_self_intersections) {
