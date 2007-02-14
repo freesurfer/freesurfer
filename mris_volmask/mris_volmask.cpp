@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.6 $
+ *    $Author: postelni $
+ *    $Date: 2007/02/14 22:20:21 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -206,7 +206,7 @@ main(int ac, char* av[]) {
   if ( params.bSaveDistance )
     MRIwrite
     ( dLeftWhite,
-      const_cast<char*>( (outputPath / "lh.dpial." + params.outRoot + ".mgz")
+      const_cast<char*>( (outputPath / "lh.dwhite." + params.outRoot + ".mgz")
                          .c_str() )
     );
 
