@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/02/01 20:26:15 $
- *    $Revision: 1.245 $
+ *    $Author: greve $
+ *    $Date: 2007/02/14 04:34:31 $
+ *    $Revision: 1.246 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -108,6 +108,8 @@ int mask_label(char *label_name) ;
 MRI_SURFACE *mris = NULL, *mris2 = NULL ;
 static char *sdir = NULL ;
 static char *sphere_reg ;
+MRI *mrismask = NULL;
+double mrismaskthresh = 0;
 
 static GCSA *Ggcsa = NULL ;
 #define QUAD_FILE_MAGIC_NUMBER      (-1 & 0x00ffffff)
@@ -1144,6 +1146,8 @@ void draw_vertex_hilite (int vno);
 /* draws all marked verts with white hilites, using draw_vertex_hilite(). */
 void draw_marked_vertices ();
 /* end rkt */
+
+void LoadMRISMask(void);
 
 /* external prototypes */
 void buffer_to_image(unsigned char *buf,unsigned char**im,int ysize,int xsize);
@@ -12970,15 +12974,24 @@ fill_color_array(MRI_SURFACE *mris, float *colors) {
   int mode;
   float m[4][4];
   float nz;
+  int maskout=0;
+  extern MRI *mrismask;
+  extern double mrismaskthresh;
   /* end rkt */
 
   /* So we can get vertex normals in camera space and color backfaces
      red. */
   getmatrix(m);
 
+  LoadMRISMask();
+
   for (n=0;n<mris->nvertices;n++) {
     v = &mris->vertices[n];
 
+    if(mrismask){
+      if(fabs(MRIgetVoxVal(mrismask,n,0,0,0)) < mrismaskthresh) maskout = 1;
+      else maskout = 0;
+    }
 
     /* begin rkt */
     if (simpledrawmodeflag) {
@@ -13057,7 +13070,7 @@ fill_color_array(MRI_SURFACE *mris, float *colors) {
           /* get a color based on the currently selected field
              if it is above fthresh. */
           sclv_get_value (v, sclv_current_field, &val);
-          if (val > fthresh || val < -fthresh) {
+          if ( (val > fthresh || val < -fthresh) & !maskout) {
             /* This will blend the functional color into the
             input color. */
             sclv_apply_color_for_value (val, sclv_overlay_alpha,
@@ -18865,7 +18878,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.245 2007/02/01 20:26:15 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.246 2007/02/14 04:34:31 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -27076,3 +27089,29 @@ label_from_stats(int field)
   send_tcl_command (tcl_command);
 }
 
+/*!
+  \fn void LoadMRISMask(void)
+  \brief Part of a crude hack to allow masking
+*/
+void LoadMRISMask(void)
+{
+  extern MRI *mrismask;
+  extern double mrismaskthresh;
+  char *maskfile;
+  char *threshstring;
+
+  // check whether already loaded
+  if(mrismask != NULL) return;
+
+  maskfile = getenv("TKS_MRIS_MASK_FILE");
+  if(maskfile == NULL) return;
+
+  printf("Reading mris mask %s\n",maskfile);
+  mrismask = MRIread(maskfile);
+  if(mrismask == NULL) exit(1);
+
+  threshstring = getenv("TKS_MRIS_MASK_THRESH");
+  if(threshstring == NULL) return;
+  sscanf(threshstring,"%lf",&mrismaskthresh);
+  printf("mris mask thresh = %lf\n",mrismaskthresh);
+}
