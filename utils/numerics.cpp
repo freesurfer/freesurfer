@@ -1,15 +1,13 @@
 /**
  * @file  numerics.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief Wrappers for core math routines from open-sources: VNL and CEPHES.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Dennis Jen and Silvester Czanner
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:39 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/02/15 23:36:04 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1002,9 +1000,9 @@ extern "C" void OpenDFPMin
     else if
     (
       returnCode == vnl_nonlinear_minimizer::FAILED_TOO_MANY_ITERATIONS ||
-            returnCode == vnl_nonlinear_minimizer::FAILED_FTOL_TOO_SMALL ||
-                  returnCode == vnl_nonlinear_minimizer::FAILED_XTOL_TOO_SMALL ||
-                        returnCode == vnl_nonlinear_minimizer::FAILED_GTOL_TOO_SMALL
+      returnCode == vnl_nonlinear_minimizer::FAILED_FTOL_TOO_SMALL ||
+      returnCode == vnl_nonlinear_minimizer::FAILED_XTOL_TOO_SMALL ||
+      returnCode == vnl_nonlinear_minimizer::FAILED_GTOL_TOO_SMALL
     )
     {
       ErrorExit(ERROR_BADPARM,
@@ -1109,10 +1107,10 @@ extern "C" void OpenPowell( float iaParams[], float **ioInitialDirection,
     ErrorExit(ERROR_BADPARM, "powell exceeding maximum iterations.");
   }
   else if ( returnCode == fs_powell::ERROR_FAILURE ||
-                  returnCode == fs_powell::ERROR_DODGY_INPUT ||
-                        returnCode == fs_powell::FAILED_FTOL_TOO_SMALL ||
-                              returnCode == fs_powell::FAILED_XTOL_TOO_SMALL ||
-                                    returnCode == fs_powell::FAILED_GTOL_TOO_SMALL )
+            returnCode == fs_powell::ERROR_DODGY_INPUT ||
+            returnCode == fs_powell::FAILED_FTOL_TOO_SMALL ||
+            returnCode == fs_powell::FAILED_XTOL_TOO_SMALL ||
+            returnCode == fs_powell::FAILED_GTOL_TOO_SMALL )
   {
     ErrorExit(ERROR_BADPARM, "powell error.");
   }
@@ -1405,7 +1403,7 @@ float *SplineCubicSet( int n, float t[], float y[], int ibcbeg, float ybcbeg,
     std::cout << "SPLINE_CUBIC_SET - Fatal error!\n";
     std::cout << "  The number of data points N must be at least 2.\n";
     std::cout << "  The input value is " << n << ".\n";
-    return NULL;
+    exit (1);
   }
 
   for ( i = 0; i < n - 1; i++ )
@@ -1417,7 +1415,7 @@ float *SplineCubicSet( int n, float t[], float y[], int ibcbeg, float ybcbeg,
       std::cout << "  The knots must be strictly increasing, but\n";
       std::cout << "  T(" << i   << ") = " << t[i]   << "\n";
       std::cout << "  T(" << i+1 << ") = " << t[i+1] << "\n";
-      return NULL;
+      exit (1);
     }
   }
 
@@ -1452,7 +1450,7 @@ float *SplineCubicSet( int n, float t[], float y[], int ibcbeg, float ybcbeg,
     std::cout << "  The input value is " << ibcbeg << ".\n";
     delete [] a;
     delete [] b;
-    return NULL;
+    exit (1);
   }
   //
   //  Set up the intermediate equations.
@@ -1494,7 +1492,7 @@ float *SplineCubicSet( int n, float t[], float y[], int ibcbeg, float ybcbeg,
     std::cout << "  The input value is " << ibcend << ".\n";
     delete [] a;
     delete [] b;
-    return NULL;
+    exit (1);
   }
   //
   //  Solve the linear system.
@@ -1517,7 +1515,7 @@ float *SplineCubicSet( int n, float t[], float y[], int ibcbeg, float ybcbeg,
       std::cout << "  The linear system could not be solved.\n";
       delete [] a;
       delete [] b;
-      return NULL;
+      exit (1);
     }
   }
 
