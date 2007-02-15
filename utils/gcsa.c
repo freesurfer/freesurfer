@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/31 00:24:11 $
- *    $Revision: 1.26 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/15 18:39:53 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,6 +49,7 @@
 #include "icosahedron.h"
 #include "colortab.h"
 #include "tags.h"
+#include "cma.h"
 
 #define BIG_AND_NEGATIVE            -10000000.0
 
@@ -63,7 +64,8 @@ static int    GCSAupdateNodeCovariance(GCSA_NODE *gcsan, int label,
                                        double *v_inputs, int ninputs) ;
 static int    GCSANclassify(GCSA_NODE *gcsa_node, CP_NODE *cpn,
                             double *v_inputs,
-                            int ninputs, double *pprob) ;
+                            int ninputs, double *pprob,
+                            int *exlude_list, int nexcluded) ;
 static double gcsaNbhdGibbsLogLikelihood(GCSA *gcsa, MRI_SURFACE *mris,
     double *v_inputs, int vno,
     double gibbs_coef,
@@ -925,7 +927,7 @@ GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
     gcsan = &gcsa->gc_nodes[vno_classifier] ;
 
     cpn = &gcsa->cp_nodes[vno_prior] ;
-    label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p) ;
+    label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p,NULL,0) ;
     v->annotation = label ;
     if (vno == Gdiag_no)
     {
@@ -955,9 +957,9 @@ GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
 
 static int
 GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
-              double *pprob)
+              double *pprob, int *exclude_list, int nexcluded)
 {
-  int    n, best_label, i ;
+  int    n, best_label, i, j, skip ;
   double p, ptotal, max_p, det ;
   CP     *cp ;
   GCS    *gcs ;
@@ -976,6 +978,17 @@ GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
   best_label = 0 ;
   for (n = 0 ; n < cpn->nlabels ; n++)
   {
+    for (skip = j = 0 ; j < nexcluded ; j++)
+    {
+      if (cpn->labels[n] == exclude_list[j])
+      {
+        skip = 1 ;
+        break ;
+      }
+    }
+    if (skip)
+      continue ;
+
     cp = &cpn->cps[n] ;
     gcs = getGC(gcsan, cpn->labels[n], NULL) ;
     if (!gcs)
@@ -2379,3 +2392,74 @@ double    det, vars[1000], min_det ;
   return(NO_ERROR) ;
 }
 
+int
+GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
+{
+  int        old_index, vno, vno_classifier, vno_prior, label, index, changed,
+             cc_annotation ;
+  VERTEX     *v, *v_classifier, *v_prior ;
+  GCSA_NODE  *gcsan ;
+  CP_NODE    *cpn ;
+  double     v_inputs[100], p ;
+  Real       x, y, z ;
+
+  for (changed = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    MRISorigVertexToVoxel(mris, v, mri_aseg, &x, &y, &z) ;
+    label = (int)MRIgetVoxVal(mri_aseg, nint(x), nint(y), nint(z), 0) ;
+    
+    load_inputs(v, v_inputs, gcsa->ninputs) ;
+    v_prior = GCSAsourceToPriorVertex(gcsa, v) ;
+    vno_prior = v_prior - gcsa->mris_priors->vertices ;
+    if (vno_prior == Gdiag_no)
+      DiagBreak() ;
+    v_classifier = GCSAsourceToClassifierVertex(gcsa, v_prior) ;
+    vno_classifier = v_classifier - gcsa->mris_classifiers->vertices ;
+    if (vno_classifier == Gdiag_no)
+      DiagBreak() ;
+    gcsan = &gcsa->gc_nodes[vno_classifier] ;
+
+    CTABfindAnnotation(mris->ct, v->annotation, &old_index) ;
+
+    cpn = &gcsa->cp_nodes[vno_prior] ;
+    if (IS_CC(label))
+    {
+      CTABfindName(mris->ct, "corpuscallosum", &index) ;
+      if (index != old_index)
+      {
+        CTABannotationAtIndex(mris->ct, index, &v->annotation) ;
+        changed++ ;
+      }
+    }
+    else if (IS_LAT_VENT(label) || IS_THALAMUS(label) ||
+             IS_CAUDATE(label))
+    {
+      CTABfindName(mris->ct, "unknown", &index) ;
+      if (index != old_index)
+      {
+        CTABannotationAtIndex(mris->ct, index, &v->annotation) ;
+        changed++ ;
+      }
+    }
+    else if (old_index >= 0 &&
+             !stricmp(mris->ct->entries[old_index]->name, "corpuscallosum"))
+    {
+      // find 2nd most likely label that isn't callosum
+      CTABannotationAtIndex(mris->ct, old_index, &cc_annotation) ;
+      label= GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p,
+                           &cc_annotation, 1) ;
+      if (label != v->annotation)
+      {
+        changed++ ;
+        v->annotation = label ;
+      }
+    }
+  }
+  printf("%d labels changed using aseg\n", changed) ;
+  return(NO_ERROR) ;
+}
