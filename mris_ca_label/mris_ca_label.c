@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/02 19:24:52 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/02/15 18:40:46 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,9 +44,10 @@
 #include "annotation.h"
 #include "icosahedron.h"
 #include "version.h"
+#include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.20 2007/01/02 19:24:52 fischl Exp $";
+  "$Id: mris_ca_label.c,v 1.21 2007/02/15 18:40:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -64,6 +65,7 @@ static char *read_fname = NULL ;
 static int nbrs = 2 ;
 static int filter = 10 ;
 static char *orig_name = "smoothwm" ;
+static MRI  *mri_aseg ;
 
 #if 0
 static int normalize_flag = 0 ;
@@ -230,12 +232,16 @@ main(int argc, char *argv[]) {
       printf("vertex %d: label %s\n",
              Gdiag_no,
              annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
+    if (mri_aseg)
+      GCSArelabelWithAseg(gcsa, mris, mri_aseg) ;
     printf("relabeling using gibbs priors...\n") ;
     GCSAreclassifyUsingGibbsPriors(gcsa, mris) ;
     if (Gdiag_no >= 0)
       printf("vertex %d: label %s\n",
              Gdiag_no,
              annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
+    if (mri_aseg)
+      GCSArelabelWithAseg(gcsa, mris, mri_aseg) ;
     postprocess(gcsa, mris) ;
     if (Gdiag_no >= 0)
       printf("vertex %d: label %s\n",
@@ -347,6 +353,12 @@ get_option(int argc, char *argv[]) {
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
     printf("using %s as subjects directory\n", subjects_dir) ;
+  } else if (!stricmp(option, "aseg")) {
+    mri_aseg = MRIread(argv[2]) ;
+    nargs = 1 ;
+    if (mri_aseg == NULL)
+      ErrorExit(ERROR_BADFILE, "%s: could not open %s", Progname, argv[2]);
+    printf("using %s aseg volume to correct midline\n", argv[2]) ;
   } else if (!stricmp(option, "MINAREA")) {
     MIN_AREA_PCT = atof(argv[2]) ;
     nargs = 1 ;
