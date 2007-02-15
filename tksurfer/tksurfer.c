@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/02/14 04:34:31 $
- *    $Revision: 1.246 $
+ *    $Date: 2007/02/15 04:26:14 $
+ *    $Revision: 1.247 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -12723,12 +12723,15 @@ draw_surface(void)  /* marty: combined three versions */
   VERTEX *v,*vnei;
   float curv;
 
-  if (use_vertex_arrays) {
+  //Note: use_vertex_arrays = 0 only when IRIX
+  //Note: use_display_lists apparently is always 0
+
+  if(use_vertex_arrays) {
+    // Looks like it always goes here
     glCullFace(GL_BACK);
     glEnable(GL_CULL_FACE);
     glDeleteLists(FS_Brain_List,1);
-    if (!colors)
-      init_vertex_arrays(mris) ;
+    if (!colors) init_vertex_arrays(mris) ;
     if (vertex_array_dirty==1) {
       fill_vertex_arrays(mris);
       glEnableClientState ( GL_VERTEX_ARRAY );
@@ -12740,7 +12743,7 @@ draw_surface(void)  /* marty: combined three versions */
       vertex_array_dirty = 0;
     }
     if (color_scale_changed) {
-      fill_color_array(mris, colors) ;
+      fill_color_array(mris, colors) ; // draws the overlay
       color_scale_changed = TRUE;
       glColorPointer  ( 3, GL_FLOAT, 0, colors );
     }
@@ -12783,7 +12786,8 @@ draw_surface(void)  /* marty: combined three versions */
       }
     }
     /* not use vertex arrays */
-  } else if (use_display_lists == 1 && use_vertex_arrays == 0) {
+  } 
+  else if (use_display_lists == 1 && use_vertex_arrays == 0) {
     printf(" using display lists !\n");
     glCullFace(GL_BACK);
     glEnable(GL_CULL_FACE);
@@ -12811,7 +12815,8 @@ draw_surface(void)  /* marty: combined three versions */
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       glCallList(FS_Brain_List);
     }
-  } else {
+  } 
+  else {
     if (surfaceflag) {
       for (k=0;k<mris->nfaces;k++)
         if (!mris->faces[k].ripflag) {
@@ -12902,6 +12907,7 @@ draw_surface(void)  /* marty: combined three versions */
     }
 
     if (pointsflag) {   /* with surface too, only points with z<0 drawn??! */
+      // Never gets here?
       RGBcolor(meshr,meshg,meshb);
       bgnpoint();
       for (k=0;k<mris->nvertices;k++)
@@ -12919,6 +12925,7 @@ draw_surface(void)  /* marty: combined three versions */
 
     if (verticesflag)  /* marty */
     {
+      // Never gets here?
       RGBcolor(meshr,meshg,meshb);
       for (k=0;k<mris->nvertices;k++)
         if (!mris->vertices[k].ripflag) {
@@ -12949,15 +12956,25 @@ draw_surface(void)  /* marty: combined three versions */
 
   }
   glFlush() ;
-  if (scalebarflag)
-    draw_scalebar();
-  if (colscalebarflag)
-    draw_colscalebar();
+  if (scalebarflag)    draw_scalebar();
+  if (colscalebarflag) draw_colscalebar();
   glFlush() ;
 }
 
-static void
-fill_color_array(MRI_SURFACE *mris, float *colors) {
+/*!
+  \fn static void fill_color_array(MRI_SURFACE *mris, float *colors)
+  \brief The purpose is to set the colors vector. This is a
+  3*nvertices vector of RGB triples (ie, colors[0] = r0, colors[1] =
+  g0, colors[2] = b0, colors[3] = r1, etc, where rN is the color of
+  vertex N. The RGB values are between 0 and 255. Simple stats
+  overlays when overlayflag=1 and complexvalflag=0. The value used for
+  stats is based on the sclv_current_field. The value must be >
+  fthresh or < -fthresh, otherwise it gets the color of the underlying
+  surface. Things that can affect surface color are: background (curv:
+  red/green or gray), annotation, path, stat, debug hilite, and
+  something about the surface normal.
+ */
+static void fill_color_array(MRI_SURFACE *mris, float *colors) {
   int n;
   float curv;
   VERTEX *v;
@@ -12985,6 +13002,15 @@ fill_color_array(MRI_SURFACE *mris, float *colors) {
 
   LoadMRISMask();
 
+  // modes:
+  //  REAL_VAL -> colscale = HEAT_SCALE, CYAN_TO_RED, BLU_GRE_RED, JUST_GRAY
+  //  GREEN_RED_CURV
+  //  FIELDSIGN_POS
+  //  FIELDSIGN_NEG
+  //  BORDER?
+  //  MARKED?
+
+  // Go through each vertex
   for (n=0;n<mris->nvertices;n++) {
     v = &mris->vertices[n];
 
@@ -13018,21 +13044,19 @@ fill_color_array(MRI_SURFACE *mris, float *colors) {
       if (fieldsignflag) {
         val = v->fsmask * v->fieldsign;
         if (v->fieldsign > 0) {
-          if (!revphaseflag)
-            mode = FIELDSIGN_POS;
-          else
-            mode = FIELDSIGN_NEG;
+          if (!revphaseflag)  mode = FIELDSIGN_POS;
+          else                mode = FIELDSIGN_NEG;
         } else {
           val = -val;
-          if (!revphaseflag)
-            mode = FIELDSIGN_NEG;
-          else
-            mode = FIELDSIGN_POS;
+          if (!revphaseflag)  mode = FIELDSIGN_NEG;
+          else                mode = FIELDSIGN_POS;
         }
       }
 
-      get_color_vals (val, val2, mode,
-                      &r_base, &g_base, &b_base);
+      // This gets the RGB of the background only.
+      // The RGB may be overwritten or blended later.
+      // Note: val is ignored.
+      get_color_vals(val, val2, mode, &r_base, &g_base, &b_base);
 
       /* save the base color for later comparison, but set our
          final rgb values to it for now. */
@@ -13040,10 +13064,13 @@ fill_color_array(MRI_SURFACE *mris, float *colors) {
       g = g_base;
       b = b_base;
 
-      if (labels_before_overlay_flag)
+      // This replaces the RGB with that of the label. The color may
+      // be overwritten below if a stat is above threshold thus putting
+      // the stat map ABOVE the label.
+      if(labels_before_overlay_flag)
         /* get any label color for this vertex. this will not apply
            any color if there is no label. */
-        labl_apply_color_to_vertex (n, &r, &g, &b );
+        labl_apply_color_to_vertex (n, &r, &g, &b ); // n = vertex no
 
       /* if overlay flag is on... */
       if (overlayflag) {
@@ -13066,19 +13093,23 @@ fill_color_array(MRI_SURFACE *mris, float *colors) {
           r = r_overlay;
           g = g_overlay;
           b = b_overlay;
-        } else {
+        } 
+	else {  // not complex
           /* get a color based on the currently selected field
              if it is above fthresh. */
-          sclv_get_value (v, sclv_current_field, &val);
+          sclv_get_value(v, sclv_current_field, &val);
           if ( (val > fthresh || val < -fthresh) & !maskout) {
             /* This will blend the functional color into the
             input color. */
-            sclv_apply_color_for_value (val, sclv_overlay_alpha,
+            sclv_apply_color_for_value(val, sclv_overlay_alpha,
                                         &r, &g, &b);
           }
         }
       }
 
+      // This replaces the RGB with that of the label. This will
+      // overwrite the color of a stat set above thus putting
+      // the stat map BELOW the label.
       if (!labels_before_overlay_flag)
         /* get any label color for this vertex. this will not apply
            any color if there is no label. */
@@ -13097,10 +13128,10 @@ fill_color_array(MRI_SURFACE *mris, float *colors) {
       if ( nz > 0 ) {
         r = 255;
       }
-
-    } else {
       /* end rkt */
 
+    } else { // not simpledrawmodeflag
+      // probably will never get here. dng
       /**** msurfer: single val data on gray curvature */
       if (overlayflag && !complexvalflag) {
         if (v->annotation) {
@@ -13163,22 +13194,29 @@ fill_color_array(MRI_SURFACE *mris, float *colors) {
             get_color_vals(0.0,0.0,BORDER, &r, &g, &b);
         }
       }
-    }
+    } // end not simpledrawmodeflag
 
     if (v->marked)
       get_color_vals(0.0,0.0,MARKED+v->marked-1, &r, &g, &b);
 
-    colors[3*n] = ((float)r)/255.0;
+    colors[3*n]   = ((float)r)/255.0;
     colors[3*n+1] = ((float)g)/255.0;
     colors[3*n+2] = ((float)b)/255.0;
-  }
+  } // end loop over vertices
+  
 }
 
-static int
-get_color_vals(float val, float curv, int mode,
+/*!
+  \fn int get_color_vals()
+  \brief Appears to set the RGB based only on the curv. The "val"
+    arg is immediately replaced with -foffset. Colors of the
+    overlay are controlled with sclv_apply_color_for_value().
+*/
+static int get_color_vals(float val, float curv, int mode,
                GLubyte *pr, GLubyte *pg, GLubyte *pb) {
   short r,g,b;
   float f,fr,fg,fb,tmpoffset;
+  // extern double foffset;
 
   val -= foffset ;
 
@@ -18878,7 +18916,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.246 2007/02/14 04:34:31 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.247 2007/02/15 04:26:14 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23568,6 +23606,7 @@ int sclv_apply_color_for_value (float f, float opacity,
   float or, ob, og;
   float br, bg, bb;
   float tmpoffset, f2, fr, fg, fb;
+  // extern double fcurv; // sets curv thresh
 
   r = g = b = 0.0f ;
   if (invphaseflag)
