@@ -1,15 +1,16 @@
 /**
  * @file  gcsa.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for Gaussian Classifier Surface Arrays.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * the heart of the cortical parcellation code - implements an
+ * anisotropic nonstationary MRF on the surface.
  */
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.12 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/15 18:40:19 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -135,5 +136,6 @@ int GCSAsourceToPriorVertexNo(GCSA *gcsa, VERTEX *v);
 VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v) ;
 int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose) ;
 int GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris) ;
+int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg) ;
 
 #endif
