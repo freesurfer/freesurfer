@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/02/09 22:31:42 $
-#    $Revision: 1.66 $
+#    $Date: 2007/02/15 22:59:21 $
+#    $Revision: 1.67 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.66 2007/02/09 22:31:42 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.67 2007/02/15 22:59:21 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -557,13 +557,32 @@ if($DoMotionCor) then
   else
     set cmd = ($cmd --conform)
   endif
-  if($DoCropsize256) set cmd = ($cmd --cropsize 256 256 256)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) then
     $cmd |& tee -a $LF
     if($status) goto error_exit;
     echo $cmd > $touchdir/conform.touch
+  endif
+
+  # the cropsize256 option is used to process files having a FOV >256.
+  # the image is cropped, and the center ras is properly set.
+  if($DoCropsize256) then
+    set cmd = (mri_convert $origvol $origvol)
+    set cmd1 = ($cmd --cropsize 256 256 256)
+    set CRAS = `mri_info --cras $origvol`
+    set cmd2 = ($cmd --out_center ${CRAS})
+    $PWD |& tee -a $LF
+    echo "\n $cmd1 \n"|& tee -a $LF |& tee -a $CF
+    echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $cmd1 |& tee -a $LF
+      if($status) goto error_exit;
+      echo $cmd1 > $touchdir/crop.touch
+      $cmd2 |& tee -a $LF
+      if($status) goto error_exit;
+      echo $cmd2 > $touchdir/cras.touch
+    endif
   endif
 
   # Add xfm to orig, eventhough it does not exist yet. This is a
