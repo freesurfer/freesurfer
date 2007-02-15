@@ -12,9 +12,9 @@ function [hbar, htxt] = barsegstats(segnames,segstats)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:09 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2007/02/15 23:51:41 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,7 @@ function [hbar, htxt] = barsegstats(segnames,segstats)
 
 
 mn = min(segstats(:));
+mn = 0;
 mx = max(segstats(:));
 d = mx-mn;
 a = mn+.02*d;
