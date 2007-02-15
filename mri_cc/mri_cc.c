@@ -1,15 +1,16 @@
 /**
  * @file  mri_cc.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief program for segmenting the corpus callosum
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * segments the callosum into 5 parts divided along the primary eigendirection (mostly anterior/posterior)
+ * and writes the results into aseg_with_cc.mgz
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/18 14:08:41 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/02/15 18:58:50 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +35,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/01/18 14:08:41 $
-// Revision       : $Revision: 1.14 $
+// Revision Date  : $Date: 2007/02/15 18:58:50 $
+// Revision       : $Revision: 1.15 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -66,7 +67,7 @@
 #include "mrisegment.h"
 #include "tritri.h"
 
-//static char vcid[] = "$Id: mri_cc.c,v 1.14 2007/01/18 14:08:41 fischl Exp $";
+//static char vcid[] = "$Id: mri_cc.c,v 1.15 2007/02/15 18:58:50 fischl Exp $";
 
 
 static int use_aseg = 1 ;
@@ -168,7 +169,7 @@ main(int argc, char *argv[]) {
 
   if (argc < 2)
     ErrorExit(ERROR_BADPARM,
-              "usage: %s <input volume>", Progname);
+              "usage: %s <subject>", Progname);
 
   TimerStart(&then) ;
 
@@ -1007,7 +1008,7 @@ get_option(int argc, char *argv[]) {
     case '?':
     case 'U':
       fprintf(stdout,
-              "usage: %s <input volumes> <output volume>\n",
+              "usage: %s <subject>\n",
               Progname) ;
       exit(1) ;
       break ;
