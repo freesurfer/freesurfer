@@ -1,5 +1,6 @@
 % fast_selxavg3.m
 %
+% $Id: fast_selxavg3.m,v 1.23 2007/02/16 19:10:17 greve Exp $
 
 
 %
@@ -8,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/16 18:53:25 $
-%    $Revision: 1.22 $
+%    $Date: 2007/02/16 19:10:17 $
+%    $Revision: 1.23 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -65,9 +66,12 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
+fprintf('$Id: fast_selxavg3.m,v 1.23 2007/02/16 19:10:17 greve Exp $\n');
+
 sessname = basename(sess);
 %outtop = dirname(sess);
-if(isempty(outtop)) outtop = sess; end
+if(isempty(outtop)) outtop = fast_dirname(sess); end
+fprintf('outtop = %s\n',outtop);
 
 ext = getenv('FSF_OUTPUT_FORMAT');
 if(isempty(ext)) ext = 'bhdr'; end
