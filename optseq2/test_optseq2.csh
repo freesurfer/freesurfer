@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.13 2006/11/23 04:17:19 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.14 2007/02/16 19:14:23 nicks Exp $'
 
 umask 002
 
@@ -35,6 +35,7 @@ gunzip -c test_data.tar.gz | tar xvf -
 set EXPECTED=$WD/test_data
 cd $EXPECTED
 set PROC=`uname -p`
+if ($status) set PROC=`uname -m`
 set TEST_DATA=$EXPECTED/$PROC-emot.tar.gz
 if (! -e $TEST_DATA) then
   echo "Architecture-specific test data file $TEST_DATA does not exist"
