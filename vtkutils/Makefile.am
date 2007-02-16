@@ -18,9 +18,19 @@ else
 noinst_LIBRARIES=
 endif
 
-libvtkutils_a_SOURCES=$(wildcard *.cxx)
+libvtkutils_a_SOURCES= \
+	vtkKWProgressDialog.cxx vtkKWProgressDialog.h \
+	vtkKWRGBATransferFunctionEditor.cxx vtkKWRGBATransferFunctionEditor.h \
+	vtkKWRGBATransferFunctionEditorTcl.cxx \
+	vtkFreesurferLookupTable.cxx vtkFreesurferLookupTable.h \
+	vtkRGBATransferFunction.cxx vtkRGBATransferFunction.h
 
 am_libvtkutils_a_OBJECTS=$(libvtkutils_a_SOURCES:%.cxx=%.o)
+
+# We use vtkWrapTcl to create the Tcl wrapped code for this object.
+vtkKWRGBATransferFunctionEditorTcl.cxx: vtkKWRGBATransferFunctionEditor.h
+	${VTK_DIR}/bin/vtkWrapTcl vtkKWRGBATransferFunctionEditor.h \
+	${VTK_DIR}/lib/vtk-5.0/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
 
 .cxx.o:
 	@echo "compiler: $(COMPILE) end_compiler"
