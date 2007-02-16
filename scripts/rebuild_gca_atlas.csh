@@ -22,8 +22,8 @@
 # Original author: Xiao Han
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/06 00:01:14 $
-#    $Revision: 1.7 $
+#    $Date: 2007/02/16 20:25:20 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -39,7 +39,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.7 2007/01/06 00:01:14 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.8 2007/02/16 20:25:20 nicks Exp $';
 
 #set echo=1
 
@@ -112,6 +112,11 @@ foreach subject (${ALL_SUBJS}) # check for existence of required inputs
         endif
     end
 end
+if ( ! -e ${SUBJECTS_DIR}/${ONE_SUBJECT}/mri/transforms/${TAL_MAN} ) then
+    echo "Missing ${SUBJECTS_DIR}/${ONE_SUBJECT}/mri/transforms/${TAL_MAN}!"
+    exit 1
+endif
+
 ##########################################################################
 
 
@@ -526,7 +531,7 @@ foreach subject (${SUBJECTS})
 end
 foreach subject (${SUBJECTS})
     rm -f ${SUBJECTS_DIR}/$subject/mri/brain.mgz
-    set cmd=(recon-all-dev -s $subject)
+    set cmd=(recon-all -s $subject)
     set cmd=($cmd -nuintensitycor)
     set cmd=($cmd -talairach)
     set cmd=($cmd -normalization)
