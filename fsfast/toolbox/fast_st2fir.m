@@ -28,8 +28,8 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/08 04:23:53 $
-%    $Revision: 1.11 $
+%    $Date: 2007/02/16 18:50:49 $
+%    $Revision: 1.12 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,11 @@ end
 if(~exist('usew','var')) usew = []; end
 if(isempty(usew)) usew = 0; end
 
+psdmin  = psdwin(1);  % start of PSD window
+psdmax  = psdwin(2);  % end of PSD window
+dpsd    = psdwin(3);  % increment of PSD window
+npsdwin = round((psdmax-psdmin)/dpsd);
+
 % Empty st means that the condition is not present. This
 % can only happen when the user has specified
 % flac.AllowMissingCond. Return matrix of all 0s
@@ -63,10 +68,6 @@ if(isempty(st))
   return;
 end
 
-psdmin  = psdwin(1);  % start of PSD window
-psdmax  = psdwin(2);  % end of PSD window
-dpsd    = psdwin(3);  % increment of PSD window
-npsdwin = round((psdmax-psdmin)/dpsd);
 nstim      = size(st,1);
 
 % SubSampling
