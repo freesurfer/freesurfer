@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/16 18:51:08 $
-#    $Revision: 1.11 $
+#    $Date: 2007/02/16 19:01:08 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.11 2007/02/16 18:51:08 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.12 2007/02/16 19:01:08 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -186,7 +186,7 @@ foreach sess ($SessList)
   echo "sess           = '$sess';"         >> $MLF
   echo "analysis = '$analysis';" >> $MLF
   echo "flacname = '$flacfile';" >> $MLF
-  if($#OutParent == 0) echo "outtop = '$OutParent';" >> $MLF
+  echo "outtop = '$OutParent';" >> $MLF
   echo "fast_selxavg3;" >> $MLF
   if($nthsess > 1 && ! $monly)  then
     echo "clear all;" >> $MLF
@@ -447,5 +447,6 @@ usage_exit:
   echo "   -debug"
   echo "   -nolog         : do not create a log file"
   echo "   -log logfile   : specify log file explicitly"
+  echo "   -outparent dir : save output to this dir instead of in session"
   echo ""
 exit 1;
