@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/08 18:01:59 $
-#    $Revision: 1.10 $
+#    $Date: 2007/02/16 18:51:08 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.10 2007/02/08 18:01:59 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.11 2007/02/16 18:51:08 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -38,6 +38,7 @@ set OutParent = ();
 set nolog = 0;
 set monly = 0;
 set MLF = ();
+set LF = ();
 
 set DoGLMFit = 1;
 set DoContrasts = 1;
@@ -103,6 +104,7 @@ else
 endif
 
 ##### Create a log file ######
+if($#LF == 0) then
 if($nolog) then
   set LF = /dev/null
 else
@@ -119,6 +121,7 @@ else
     set LF = $logdir/selxavg3-sess-$fsd-$analysis-$DateStr.log
     if(-e $LF) mv $LF $LF.old
   endif
+endif
 endif
 echo "--------------------------------------------------------------"
 echo "selxavg3-sess logfile is $LF"
@@ -308,8 +311,14 @@ while( $#argv != 0 )
       breaksw
 
     case "-subject":
+      # For surfaced-based estimation of fwhm
       if( $#argv < 1) goto arg1err;
       set subject =  $1; shift;
+      breaksw
+
+    case "-log":
+      if( $#argv < 1) goto arg1err;
+      set LF =  $1; shift;
       breaksw
 
     case "-monly":
@@ -334,6 +343,10 @@ while( $#argv != 0 )
 
     case "-overwrite":
       set Overwrite = 1;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
       breaksw
 
     case "-debug":
@@ -432,5 +445,7 @@ usage_exit:
   echo "Other args"
   echo "   -version       : print version and exit"
   echo "   -debug"
+  echo "   -nolog         : do not create a log file"
+  echo "   -log logfile   : specify log file explicitly"
   echo ""
 exit 1;
