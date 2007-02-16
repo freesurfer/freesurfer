@@ -8,8 +8,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/08 22:02:14 $
-%    $Revision: 1.21 $
+%    $Date: 2007/02/16 18:53:25 $
+%    $Revision: 1.22 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -67,7 +67,7 @@ end
 
 sessname = basename(sess);
 %outtop = dirname(sess);
-if(isempty(outtop)) outtop = '.'; end
+if(isempty(outtop)) outtop = sess; end
 
 ext = getenv('FSF_OUTPUT_FORMAT');
 if(isempty(ext)) ext = 'bhdr'; end
@@ -92,6 +92,9 @@ if(isempty(flac0))
 end
 outanadir = sprintf('%s/%s/%s/%s',outtop,sessname,flac0.fsd,flac0.name);
 fprintf('outanadir = %s\n',outanadir);
+err = mkdirp(outanadir);
+if(err) return; end
+
 xfile = sprintf('%s/X.mat',outanadir);
 outresdir = sprintf('%s/res',outanadir);
 
