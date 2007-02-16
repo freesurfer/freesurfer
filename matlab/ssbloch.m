@@ -19,6 +19,8 @@ function [s,fa] = ssbloch(tr,te,fa,t1,t2s,pd)
 %  At 3T, 
 %  Gray:  T1 = 1331ms, T2* = 42-52 ms
 %  White: T1 =  832ms, T2* = 45-48 ms
+%  CSF:   T1 = 4163ms                  (Chen Proc SMRI, 2001)
+%  Caud:  T1 = 1271ms                  (Chen Proc SMRI, 2001)
 %   
 
 
@@ -27,9 +29,9 @@ function [s,fa] = ssbloch(tr,te,fa,t1,t2s,pd)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:10 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2007/02/16 19:46:14 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
