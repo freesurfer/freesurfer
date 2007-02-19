@@ -22,8 +22,8 @@
 # Original author: Xiao Han
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/02/16 20:25:20 $
-#    $Revision: 1.8 $
+#    $Date: 2007/02/19 22:31:51 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -39,7 +39,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.8 2007/02/16 20:25:20 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.9 2007/02/19 22:31:51 nicks Exp $';
 
 #set echo=1
 
@@ -97,7 +97,7 @@ echo "\n\n" >>& $LF
 #
 # Inputs:
 #
-set SEG_VOL=(seg_edited6-ntv.mgz) # filename for manual segmentation
+set SEG_VOL=(seg_edited6-ntv-uchar.mgz) # filename for manual segmentation
 set ORIG_VOL=(nu.mgz)
 set MASK_VOL=(brain.mgz) # filename for brain mask
 set T1_NONECK=(nu_noneck.mgz) # file to build the atlas gca_with_skull
