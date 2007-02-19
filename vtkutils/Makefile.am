@@ -30,7 +30,7 @@ am_libvtkutils_a_OBJECTS=$(libvtkutils_a_SOURCES:%.cxx=%.o)
 # We use vtkWrapTcl to create the Tcl wrapped code for this object.
 vtkKWRGBATransferFunctionEditorTcl.cxx: vtkKWRGBATransferFunctionEditor.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWRGBATransferFunctionEditor.h \
-	${VTK_DIR}/lib/vtk-5.0/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
 
 .cxx.o:
 	@echo "compiler: $(COMPILE) end_compiler"
