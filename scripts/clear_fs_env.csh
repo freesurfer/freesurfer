@@ -6,8 +6,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/06 00:01:13 $
-#    $Revision: 1.4 $
+#    $Date: 2007/02/19 00:53:39 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,7 @@ unsetenv SUBJECTS_DIR
 unsetenv FUNCTIONALS_DIR
 unsetenv MINC_BIN_DIR
 unsetenv MINC_LIB_DIR
+unsetenv MNI_DIR
 unsetenv MNI_DATAPATH
 unsetenv MNI_PERL5LIB
 unsetenv PERL5LIB
@@ -45,3 +46,4 @@ unsetenv FSL_DIR
 unsetenv FSLDIR
 unsetenv LD_LIBRARY_PATH
 unsetenv DYLD_LIBRARY_PATH
+unsetenv FREEDIFFUSION_HOME
