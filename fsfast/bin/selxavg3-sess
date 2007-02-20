@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/20 05:32:25 $
-#    $Revision: 1.16 $
+#    $Date: 2007/02/20 05:38:55 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.16 2007/02/20 05:32:25 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.17 2007/02/20 05:38:55 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -232,7 +232,11 @@ if($DoFWHM) then
     echo "-------------------------------------------" |& tee -a $LF
     echo "$sess " |& tee -a $LF
     date |& tee -a $LF
-    set anadir = $sess/$fsd/$analysisname
+    if($#OutParent == 0) then
+      set anadir = $sess/$fsd/$analysisname
+    else
+      set anadir = $OutParent/$sess/$fsd/$analysisname
+    endif
     set resdir = $anadir/res
     if(! -e $resdir) continue
     set all = $resdir/all.nii
@@ -266,7 +270,8 @@ endif
 
 if($#flacfile == 0) then
   echo "Copying h.dat" | tee -a $LF
-  set sxadat = $sess/$fsd/$analysis/h.dat
+  # Just use the most recent one
+  set sxadat = $anadir/h.dat
   cp $sxadat $analysis
 endif
 
