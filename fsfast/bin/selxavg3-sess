@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/20 05:53:42 $
-#    $Revision: 1.18 $
+#    $Date: 2007/02/20 05:55:14 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.18 2007/02/20 05:53:42 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.19 2007/02/20 05:55:14 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -210,7 +210,7 @@ echo "------------------------------------------" >> $LF
 cat $MLF >> $LF
 echo "------------------------------------------" >> $LF
 
-if(0 && ! $monly && $nprocs > 0) then
+if(! $monly && $nprocs > 0) then
   echo "------------------------------------------" | tee -a $LF
   echo "------- matlab output --------------------" | tee -a $LF
   cat $MLF | matlab -display iconic | tee -a $LF
