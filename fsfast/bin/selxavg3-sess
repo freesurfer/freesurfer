@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/20 05:38:55 $
-#    $Revision: 1.17 $
+#    $Date: 2007/02/20 05:53:42 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.17 2007/02/20 05:38:55 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.18 2007/02/20 05:53:42 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -210,7 +210,7 @@ echo "------------------------------------------" >> $LF
 cat $MLF >> $LF
 echo "------------------------------------------" >> $LF
 
-if(! $monly && $nprocs > 0) then
+if(0 && ! $monly && $nprocs > 0) then
   echo "------------------------------------------" | tee -a $LF
   echo "------- matlab output --------------------" | tee -a $LF
   cat $MLF | matlab -display iconic | tee -a $LF
@@ -235,21 +235,26 @@ if($DoFWHM) then
     if($#OutParent == 0) then
       set anadir = $sess/$fsd/$analysisname
     else
-      set anadir = $OutParent/$sess/$fsd/$analysisname
+      set anadir = $OutParent/$sessbase/$fsd/$analysisname
     endif
     set resdir = $anadir/res
     if(! -e $resdir) continue
+
+    # concat the residuals together
     set all = $resdir/all.nii
     set cmd = (mri_concat $resdir/res-???.* --o $all)
     pwd |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
+
+    # Compute FWHM
     set sumfile = $anadir/fwhm.dat
     if($geometry == volume) then
-      set cmd = (mri_fwhm --i $all --mask $anadir/mask.nii --sum $sumfile)
+      # Volume-based cmd line
+      set cmd = (mri_fwhm --mask $anadir/mask.nii --i $all --sum $sumfile)
     else
-      # Surface-based
+      # Surface-based cmd line
       set reg = $sess/$fsd/register.dat
       if($#subject == 0) then
         set subjectuse = `reg2subj $reg`
@@ -262,9 +267,7 @@ if($DoFWHM) then
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
-    if(! $SaveRes) then
-      rm -r $resdir
-    endif
+    if(! $SaveRes) rm -r $resdir
   end
 endif
 
