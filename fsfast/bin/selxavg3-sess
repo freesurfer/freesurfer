@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/20 05:31:16 $
-#    $Revision: 1.15 $
+#    $Date: 2007/02/20 05:32:25 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.15 2007/02/20 05:31:16 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.16 2007/02/20 05:32:25 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -164,7 +164,7 @@ foreach sess ($SessList)
   if($#OutParent == 0) then
     set anadir = $sess/$fsd/$analysisname
   else
-    set sess = $OutParent/$sess/$fsd/$analysisname
+    set anadir = $OutParent/$sess/$fsd/$analysisname
   endif
   if(-e $anadir && $DoGLMFit) then
     echo "analysis $analysis alread exists" | tee -a $LF
