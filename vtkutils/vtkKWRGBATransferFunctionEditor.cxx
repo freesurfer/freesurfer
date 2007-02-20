@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/02/16 21:14:01 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/02/20 22:14:18 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -62,7 +62,7 @@
 #include <vtksys/stl/string>
 
 vtkStandardNewMacro(vtkKWRGBATransferFunctionEditor);
-vtkCxxRevisionMacro(vtkKWRGBATransferFunctionEditor, "$Revision: 1.1 $");
+vtkCxxRevisionMacro(vtkKWRGBATransferFunctionEditor, "$Revision: 1.2 $");
 
 #define VTK_KW_CTFE_COLOR_RAMP_TAG "color_ramp_tag"
 
@@ -203,14 +203,8 @@ int vtkKWRGBATransferFunctionEditor::GetFunctionPointParameter(
     return 0;
   }
 
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-  double node_value[6];
-  this->RGBATransferFunction->GetNodeValue(id, node_value);
-  *parameter = node_value[0];
-#else
   *parameter = this->RGBATransferFunction->GetDataPointer()[
                  id * (1 + this->GetFunctionPointDimensionality())];
-#endif
 
   return 1;
 }
@@ -244,15 +238,9 @@ int vtkKWRGBATransferFunctionEditor::GetFunctionPointValues(
 
   int dim = this->GetFunctionPointDimensionality();
 
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-  double node_value[6];
-  this->RGBATransferFunction->GetNodeValue(id, node_value);
-  memcpy(values, node_value + 1, dim * sizeof(double));
-#else
   memcpy(values,
          (this->RGBATransferFunction->GetDataPointer() + id * (1 + dim) + 1),
          dim * sizeof(double));
-#endif
 
   return 1;
 }
@@ -274,21 +262,12 @@ int vtkKWRGBATransferFunctionEditor::SetFunctionPointValues(
   double alphaRange[2] = {0, 1};
   vtkMath::ClampValues(&values[3], 1, alphaRange, &clamped_values[3]);
 
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-  double node_value[6];
-  this->RGBATransferFunction->GetNodeValue(id, node_value);
-#endif
-
   // This is using the AddRGBAPoint function, but is actually just
   // adding a point with a value that is already present, so it's only
   // really setting the value.
   this->RGBATransferFunction->AddRGBAPoint(
     parameter,
-    clamped_values[0], clamped_values[1], clamped_values[2], clamped_values[3]
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-    , node_value[4], node_value[5]
-#endif
-  );
+    clamped_values[0], clamped_values[1], clamped_values[2], clamped_values[3]);
 
   return 1;
 }
@@ -328,22 +307,10 @@ int vtkKWRGBATransferFunctionEditor::AddFunctionPoint(
   // Add the point
 
   int old_size = this->GetFunctionSize();
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-  if (this->GetFunctionPointId(parameter, id)) {
-    double node_value[6];
-    this->RGBATransferFunction->GetNodeValue(*id, node_value);
-    *id = this->RGBATransferFunction->AddRGBAPoint(
-            parameter,
-            clamped_values[0], clamped_values[1], clamped_values[2],
-            clamped_values[3],
-            node_value[4], node_value[5]);
-  } else
-#endif
-    {
-      *id = this->RGBATransferFunction->AddRGBAPoint( 
-	  parameter, clamped_values[0], clamped_values[1], clamped_values[2],
-	  clamped_values[3] );
-    }
+  *id = this->RGBATransferFunction->
+    AddRGBAPoint( parameter, 
+		  clamped_values[0], clamped_values[1], clamped_values[2],
+		  clamped_values[3] );
   
   return (old_size != this->GetFunctionSize());
 }
@@ -374,10 +341,6 @@ int vtkKWRGBATransferFunctionEditor::SetFunctionPoint(
   // We'll use AddRGBAPoint to add the point, but since we're
   // specifying an id, we check to see that value at that id, and
   // remove the id if it isn't the same.
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-  double node_value[6];
-  this->RGBATransferFunction->GetNodeValue(id, node_value);
-#endif
 
   // Clamp the paramater to the whole range, first three values (RGB)
   // to the whole value range, and the last value (alpha) to 0..1.
@@ -391,13 +354,10 @@ int vtkKWRGBATransferFunctionEditor::SetFunctionPoint(
   if (parameter != old_parameter) {
     this->RGBATransferFunction->RemovePoint(old_parameter);
   }
-  int new_id = this->RGBATransferFunction->AddRGBAPoint(
-                 parameter,
-                 clamped_values[0], clamped_values[1], clamped_values[2], clamped_values[3]
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-                 , node_value[4], node_value[5]
-#endif
-               );
+  int new_id = this->RGBATransferFunction->
+    AddRGBAPoint( parameter,
+		  clamped_values[0], clamped_values[1], clamped_values[2], 
+		  clamped_values[3] );
 
   if (new_id != id) {
     vtkWarningMacro(<< "Setting a function point (id: " << id << ") parameter/values resulted in a different point (id:" << new_id << "). Inconsistent.");
@@ -421,11 +381,7 @@ int vtkKWRGBATransferFunctionEditor::SetFunctionPoint(
 					     symmetric_values[0],
 					     symmetric_values[1],
 					     symmetric_values[2],
-					     symmetric_values[3]
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-					     , node_value[4], node_value[5]
-#endif
-                                              );
+					     symmetric_values[3]);
 
     this->RedrawSinglePointDependentElements(this->PointSymmetry[id]);
   }
@@ -447,15 +403,8 @@ int vtkKWRGBATransferFunctionEditor::RemoveFunctionPoint(int id) {
 
 
   // Remove the point
-
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-  double node_value[6];
-  this->RGBATransferFunction->GetNodeValue(id, node_value);
-  double parameter = node_value[0];
-#else
   double parameter = this->RGBATransferFunction->GetDataPointer()[
                        id * (1 + this->GetFunctionPointDimensionality())];
-#endif
 
   int old_size = this->GetFunctionSize();
   this->RGBATransferFunction->RemovePoint(parameter);
@@ -469,14 +418,7 @@ int vtkKWRGBATransferFunctionEditor::GetFunctionPointMidPoint(
     return 0;
   }
 
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-  double node_value[6];
-  this->RGBATransferFunction->GetNodeValue(id, node_value);
-  *pos = node_value[4];
-  return 1;
-#else
   return 0;
-#endif
 }
 
 //----------------------------------------------------------------------------
@@ -492,17 +434,7 @@ int vtkKWRGBATransferFunctionEditor::SetFunctionPointMidPoint(
     pos = 1.0;
   }
 
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-  double node_value[6];
-  this->RGBATransferFunction->GetNodeValue(id, node_value);
-  this->RGBATransferFunction->AddRGBAPoint(
-    node_value[0],
-    node_value[1], node_value[2], node_value[3], node_value[4],
-    pos, node_value[5]);
-  return 1;
-#else
   return 0;
-#endif
 }
 
 //----------------------------------------------------------------------------
@@ -512,14 +444,7 @@ int vtkKWRGBATransferFunctionEditor::GetFunctionPointSharpness(
     return 0;
   }
 
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-  double node_value[6];
-  this->RGBATransferFunction->GetNodeValue(id, node_value);
-  *sharpness = node_value[5];
-  return 1;
-#else
   return 0;
-#endif
 }
 
 //----------------------------------------------------------------------------
@@ -535,17 +460,7 @@ int vtkKWRGBATransferFunctionEditor::SetFunctionPointSharpness(
     sharpness = 1.0;
   }
 
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-  double node_value[6];
-  this->RGBATransferFunction->GetNodeValue(id, node_value);
-  this->RGBATransferFunction->AddRGBAPoint(
-    node_value[0],
-    node_value[1], node_value[2], node_value[3], node_value[4],
-    node_value[4], sharpness);
-  return 1;
-#else
   return 0;
-#endif
 }
 
 //----------------------------------------------------------------------------
@@ -618,13 +533,7 @@ void vtkKWRGBATransferFunctionEditor::UpdatePointEntries(
   }
 
   // Get the values in the right color space
-
-#if VTK_MAJOR_VERSION > 5 || (VTK_MAJOR_VERSION == 5 && VTK_MINOR_VERSION > 0)
-  double node_value[6];
-  this->RGBATransferFunction->GetNodeValue(id, node_value);
-#else
   double *node_value = this->RGBATransferFunction->GetDataPointer() + id * 4;
-#endif
 
   double *values = node_value + 1, hsv[3];
   if (this->RGBATransferFunction->GetColorSpace() == VTK_CTF_HSV) {
