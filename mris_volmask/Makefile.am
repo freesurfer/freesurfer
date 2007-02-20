@@ -15,7 +15,8 @@ $(VTK_LIBS) \
 $(VTK_FREETYPE_LIB) $(VTK_PNG_LIB) \
 $(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
 $(VTK_Z_LIB) $(VTK_EXPAT_LIB) \
--lvtkFiltering -lvtkHybrid -lvtkRendering -lvtkGraphics \
+-lvtkFiltering $(VTK_VERDICT_LIB) -lvtkHybrid \
+-lvtkRendering -lvtkGraphics \
 -lvtkImaging -lvtkftgl \
 -lvtkIO -lvtkFiltering -lvtkCommon -lvtkDICOMParser \
 -lvtksys \
