@@ -1,15 +1,19 @@
 /**
  * @file  vtkRGBATransferFunction.cxx
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Defines a transfer function for mapping a property to an RGBA color value.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This code is based on vtkColorTransferFunction. It was modified to
+ * add an alpha element to all color output. This required adding a
+ * 5th element to the Function units, and changing all Add***Point and
+ * Add***Segment functions to Add***APoint and Add***ASegment, adding
+ * an alpha parameter to each.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kitware, Inc, modified by Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/02/16 21:14:01 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/02/20 22:18:59 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +52,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkPiecewiseFunction.h"
 
-vtkCxxRevisionMacro(vtkRGBATransferFunction, "$Revision: 1.1 $");
+vtkCxxRevisionMacro(vtkRGBATransferFunction, "$Revision: 1.2 $");
 vtkStandardNewMacro(vtkRGBATransferFunction);
 
 //----------------------------------------------------------------------------

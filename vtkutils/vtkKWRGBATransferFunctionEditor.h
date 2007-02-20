@@ -1,15 +1,24 @@
 /**
  * @file  vtkKWRGBATransferFunctionEditor.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief an RGBA tfunc function editor
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * A widget that allows the user to edit a color transfer
+ * function. Note that as a subclass of
+ * vtkKWParameterValueFunctionEditor, since the 'value' range is
+ * multi-dimensional (r, g, b), this widget only allows the
+ * 'parameter' of a function point to be changed (i.e., a point can
+ * only be moved horizontally). This modifed version of
+ * vtkKWColorTransferFunctionEditor will properly over the fourth
+ * alpha component. There is no control in the editor to set alpha,
+ * but you can set it manually from the code, and the editor won't
+ * mess with it.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kitware, Inc, modified by Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/02/16 21:14:01 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/02/20 22:18:59 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

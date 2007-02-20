@@ -1,15 +1,16 @@
 /**
  * @file  vtkKWProgressDialog.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief A KWWidgets progress dialog
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * A simple KWWidgets dialog box with a progress bar tht listens to
+ * update commands.
  */
 /*
-n * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/02/07 22:03:52 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/02/20 22:18:59 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
