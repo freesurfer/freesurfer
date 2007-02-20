@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nommert $
- *    $Date: 2007/01/18 22:25:16 $
- *    $Revision: 1.17 $
+ *    $Author: greve $
+ *    $Date: 2007/02/20 11:04:38 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.c,v 1.17 2007/01/18 22:25:16 nommert Exp $
+// $Id: dti.c,v 1.18 2007/02/20 11:04:38 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.17 2007/01/18 22:25:16 nommert Exp $");
+  return("$Id: dti.c,v 1.18 2007/02/20 11:04:38 greve Exp $");
 }
 
 
@@ -172,27 +172,39 @@ int DTIloadGradients(DTI *dti, char *GradFile)
 DTI *DTIstructFromSiemensAscii(char *fname)
 {
   int err;
+  float bval;
   DTI *dti;
+  int r,n;
 
   dti = (DTI *) calloc(sizeof(DTI),1);
 
-  err = DTIparamsFromSiemensAscii(fname, &dti->bValue, &dti->nAcq,
+  err = DTIparamsFromSiemensAscii(fname, &bval, &dti->nAcq,
                                   &dti->nDir, &dti->nB0);
-  if (err)
-  {
+  if (err)  {
     free(dti);
     dti = NULL;
     return(NULL);
   }
-  err = DTIloadGradients(dti, NULL);
-  if (err)
-  {
-    free(dti);
-    dti = NULL;
-    return(NULL);
+  // Set the bValues. First nB0 = 0, next nDir = bval
+  dti->bValue = MatrixAlloc(dti->nB0 + dti->nDir,1,MATRIX_REAL);
+  r = 1;
+  for(n = 1; n <= dti->nB0; n++) {
+    dti->bValue->rptr[r][1] = 0;
+    r++;
+  }
+  for(n = 1; n <= dti->nDir; n++) {
+    dti->bValue->rptr[r][1] = bval;
+    r++;
   }
 
+  err = DTIloadGradients(dti, NULL);
+  if (err)  {
+    free(dti);
+    dti = NULL;
+    return(NULL);
+  }
   DTInormGradDir(dti);
+
   DTIdesignMatrix(dti);
 
   return(dti);
@@ -229,6 +241,7 @@ int DTInormGradDir(DTI *dti)
 int DTIdesignMatrix(DTI *dti)
 {
   int r,xr,nthacq;
+  double bval;
   MATRIX *g;
 
   g = dti->GradDirNorm;
@@ -239,15 +252,15 @@ int DTIdesignMatrix(DTI *dti)
   {
     for (r=1; r <= g->rows; r ++)
     {
+      bval = dti->bValue->rptr[r][1];
+      dti->B->rptr[xr][1] = bval * pow(g->rptr[r][1],2.0);
+      dti->B->rptr[xr][2] = 2 * bval * g->rptr[r][1]*g->rptr[r][2];
+      dti->B->rptr[xr][3] = 2 * bval * g->rptr[r][1]*g->rptr[r][3];
 
-      dti->B->rptr[xr][1] = dti->bValue * pow(g->rptr[r][1],2.0);
-      dti->B->rptr[xr][2] = 2 * dti->bValue * g->rptr[r][1]*g->rptr[r][2];
-      dti->B->rptr[xr][3] = 2 * dti->bValue * g->rptr[r][1]*g->rptr[r][3];
+      dti->B->rptr[xr][4] = bval * pow(g->rptr[r][2],2.0);
+      dti->B->rptr[xr][5] = 2 * bval * g->rptr[r][2]*g->rptr[r][3];
 
-      dti->B->rptr[xr][4] = dti->bValue * pow(g->rptr[r][2],2.0);
-      dti->B->rptr[xr][5] = 2 * dti->bValue * g->rptr[r][2]*g->rptr[r][3];
-
-      dti->B->rptr[xr][6] = dti->bValue * pow(g->rptr[r][3],2.0);
+      dti->B->rptr[xr][6] = bval * pow(g->rptr[r][3],2.0);
 
       dti->B->rptr[xr][7] = 1;
       xr++;
@@ -755,8 +768,8 @@ int DTIfslBValFile(DTI *dti, char *bvalfname)
     return(1);
   }
 
-  for (n=0; n < dti->nB0; n++)  fprintf(fp,"0 ");
-  for (n=0; n < dti->nDir; n++) fprintf(fp,"%f ",dti->bValue);
+  for (n=1; n <= dti->bValue->rows; n++)  
+    fprintf(fp,"%f ",dti->bValue->rptr[n][1]);
   fprintf(fp,"\n");
   fclose(fp);
 
