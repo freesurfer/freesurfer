@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:57 $
- *    $Revision: 1.40 $
+ *    $Author: greve $
+ *    $Date: 2007/02/20 06:21:57 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format
-  $Id: fsgdf.c,v 1.40 2006/12/29 02:08:57 nicks Exp $
+  $Id: fsgdf.c,v 1.41 2007/02/20 06:21:57 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -261,7 +261,8 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
 
   fscanf(fp,"%s",tmpstr);
   if (strcasecmp(tmpstr,"GroupDescriptorFile") != 0) {
-    printf("ERROR: gdfRead: %s is not formated properly\n",gdfname);
+    printf("ERROR: gdfRead: %s is not formated properly.\n",gdfname);
+    printf("  The first string is '%s', should be 'GroupDescriptorFile'\n",tmpstr);
     return(NULL);
   }
 
@@ -376,6 +377,7 @@ static FSGD *gdfReadV1(char *gdfname) {
   fscanf(fp,"%s",tag);
   if (strcasecmp(tag,"GroupDescriptorFile") != 0) {
     printf("ERROR: gdfReadV1: %s is not formated properly\n",gdfname);
+    printf("  The first string is '%s', should be 'GroupDescriptorFile'\n",tmpstr);
     return(NULL);
   }
 
