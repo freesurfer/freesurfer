@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/13 16:41:17 $
- *    $Revision: 1.87 $
+ *    $Date: 2007/02/20 21:52:34 $
+ *    $Revision: 1.88 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.87 2007/02/13 16:41:17 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.88 2007/02/20 21:52:34 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -221,13 +221,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.87 2007/02/13 16:41:17 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.88 2007/02/20 21:52:34 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.87 2007/02/13 16:41:17 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.88 2007/02/20 21:52:34 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -784,8 +784,7 @@ main(int argc, char *argv[]) {
 #endif
 
     if (write_vals) {
-      sprintf(fname, "./%s-white%2.2f.w", hemi, current_sigma) ;
-      //MRISwriteValues(mris, fname) ;
+      sprintf(fname, "./%s-white%2.2f.mgz", hemi, current_sigma) ;
       MRISwrite(mris, fname);
     }
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
@@ -1062,8 +1061,8 @@ main(int argc, char *argv[]) {
       }
 
       if (write_vals) {
-        sprintf(fname, "./%s-gray%2.2f.w", hemi, current_sigma) ;
-        MRISwriteValues(mris, fname) ;
+        sprintf(fname, "./%s-gray%2.2f.mgz", hemi, current_sigma) ;
+        MRISwrite(mris, fname) ;
       }
       if (!mri_smooth)
         mri_smooth = MRIcopy(mri_T1, NULL) ;
@@ -1161,8 +1160,8 @@ main(int argc, char *argv[]) {
       }
 
       if (write_vals) {
-        sprintf(fname, "./%s-white%2.2f.w", hemi, current_sigma) ;
-        MRISwriteValues(mris, fname) ;
+        sprintf(fname, "./%s-white%2.2f.mgz", hemi, current_sigma) ;
+        MRISwrite(mris, fname) ;
       }
       MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
       if (!n_averages)
@@ -1357,7 +1356,7 @@ get_option(int argc, char *argv[]) {
     fprintf(stderr,  "writing pial surface to file named %s\n", pial_name) ;
   } else if (!stricmp(option, "write_vals")) {
     write_vals = 1 ;
-    fprintf(stderr,  "writing gray and white surface targets to w files\n") ;
+    fprintf(stderr,  "writing gray and white surface targets to .mgz files\n") ;
   } else if (!stricmp(option, "name")) {
     strcpy(parms.base_name, argv[2]) ;
     nargs = 1 ;
