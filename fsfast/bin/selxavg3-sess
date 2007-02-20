@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/16 19:01:08 $
-#    $Revision: 1.12 $
+#    $Date: 2007/02/20 05:18:09 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.12 2007/02/16 19:01:08 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.13 2007/02/20 05:18:09 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -259,6 +259,7 @@ if($DoFWHM) then
 endif
 
 if($#flacfile == 0) then
+  echo "Copying h.dat" | tee -a $LF
   set sxadat = $sess/$fsd/$analysis/h.dat
   cp $sxadat $analysis
 endif
@@ -268,12 +269,12 @@ if($nprocs == 0) then
   exit 0;
 endif
 
-echo "Started at $StartTime"
-echo "Ended   at `date`"
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`" | tee -a $LF
 
-echo " "
-echo "selxavg3-sess completed"
-echo " "
+echo " " | tee -a $LF
+echo "selxavg3-sess completed" | tee -a $LF
+echo " " | tee -a $LF
 
 exit 0;
 ###############################################
