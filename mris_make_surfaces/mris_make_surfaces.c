@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/20 21:52:34 $
- *    $Revision: 1.88 $
+ *    $Date: 2007/02/20 22:28:01 $
+ *    $Revision: 1.89 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.88 2007/02/20 21:52:34 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.89 2007/02/20 22:28:01 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -221,13 +221,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.88 2007/02/20 21:52:34 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.89 2007/02/20 22:28:01 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.88 2007/02/20 21:52:34 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.89 2007/02/20 22:28:01 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -785,7 +785,7 @@ main(int argc, char *argv[]) {
 
     if (write_vals) {
       sprintf(fname, "./%s-white%2.2f.mgz", hemi, current_sigma) ;
-      MRISwrite(mris, fname);
+      MRISwriteValues(mris, fname);
     }
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
     if (add) {
@@ -1062,7 +1062,7 @@ main(int argc, char *argv[]) {
 
       if (write_vals) {
         sprintf(fname, "./%s-gray%2.2f.mgz", hemi, current_sigma) ;
-        MRISwrite(mris, fname) ;
+        MRISwriteValues(mris, fname) ;
       }
       if (!mri_smooth)
         mri_smooth = MRIcopy(mri_T1, NULL) ;
@@ -1161,7 +1161,7 @@ main(int argc, char *argv[]) {
 
       if (write_vals) {
         sprintf(fname, "./%s-white%2.2f.mgz", hemi, current_sigma) ;
-        MRISwrite(mris, fname) ;
+        MRISwriteValues(mris, fname) ;
       }
       MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
       if (!n_averages)
