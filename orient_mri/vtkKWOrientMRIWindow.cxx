@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/02/21 17:19:25 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/02/21 22:10:57 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.6 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
     vtkKWWindow(),
@@ -337,7 +337,8 @@ vtkKWOrientMRIWindow::LoadVolume ( const char* ifnVolume ) {
 
       AddRecentFile( ifnVolume, this, "LoadVolume" );
     } catch ( exception& e ) {
-      this->GetApplication()->ErrorMessage( e.what() );
+      cerr << "Error in LoadVolume: " << e.what() << endl;
+      //this->GetApplication()->ErrorMessage( e.what() );
     }
   }
 
@@ -358,7 +359,8 @@ vtkKWOrientMRIWindow::SaveVolumeWithConfirm () {
         mView->SaveVolume();
         SetStatusText( "Volume saved." );
       } catch ( exception& e ) {
-        this->GetApplication()->ErrorMessage( e.what() );
+	cerr << "Error in SaveVolumeWithConfirm: " << e.what() << endl;
+	//this->GetApplication()->ErrorMessage( e.what() );
       }
     }
   }
