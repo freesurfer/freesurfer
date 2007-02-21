@@ -14,7 +14,8 @@ orient_mri_SOURCES= \
 	OrientMRICustomIcons.cxx OrientMRICustomIcons.h \
 	OrientMRILibInit.cxx
 orient_mri_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
-	$(VTK_LIBS) -lvtkWidgets -lvtkGraphics -lvtkImaging -lvtkFiltering \
+	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
+	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
