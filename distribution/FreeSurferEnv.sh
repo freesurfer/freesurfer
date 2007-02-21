@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.36 2006/10/24 17:43:44 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.37 2007/02/21 23:05:45 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.36 2006/10/24 17:43:44 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.37 2007/02/21 23:05:45 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -380,6 +380,13 @@ if [ -n "$FSL_DIR" ]; then
         source $FSL_DIR/etc/fslconf/fsl.sh
     fi
     export FSLOUTPUTTYPE=NIFTI_GZ
+    # use local ImageMagick stuff
+    if [ -e /usr/bin/display ]; then
+        export FSLDISPLAY=/usr/bin/display
+    fi
+    if [ -e /usr/bin/convert ]; then
+        export FSLCONVERT=/usr/bin/convert
+    fi
 fi
 if [ -n "$FSL_BIN" ]; then
     PATH=$FSL_BIN:$PATH

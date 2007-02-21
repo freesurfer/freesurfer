@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.68 2006/10/24 17:43:44 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.69 2007/02/21 23:05:45 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.68 2006/10/24 17:43:44 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.69 2007/02/21 23:05:45 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -384,6 +384,9 @@ if ( $?FSL_DIR ) then
         source ${FSL_DIR}/etc/fslconf/fsl.csh
     endif
     setenv FSLOUTPUTTYPE NIFTI_GZ
+    # use local ImageMagick stuff
+    if ( -e /usr/bin/display) setenv FSLDISPLAY /usr/bin/display
+    if ( -e /usr/bin/convert) setenv FSLCONVERT /usr/bin/convert
 endif
 if ( $?FSL_BIN ) then
     set path = ( $FSL_BIN $path )
