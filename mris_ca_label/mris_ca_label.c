@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/15 18:40:46 $
- *    $Revision: 1.21 $
+ *    $Date: 2007/02/21 15:54:01 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.21 2007/02/15 18:40:46 fischl Exp $";
+  "$Id: mris_ca_label.c,v 1.22 2007/02/21 15:54:01 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -121,7 +121,7 @@ main(int argc, char *argv[]) {
                 Progname);
     strcpy(subjects_dir, cp) ;
   }
-  if (argc < 5)
+  if (argc < 6)
     usage_exit(1) ;
 
   subject_name = argv[1] ;
