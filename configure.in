@@ -1768,6 +1768,11 @@ VTK_VERDICT_LIB=""
 AC_CHECK_LIB([verdict], [main], [VTK_VERDICT_LIB="-lverdict"], [])
 AC_SUBST(VTK_VERDICT_LIB)
 
+# libvtkMPEG2Encode disappeared from VTK v5.1.0, so test for it
+VTK_MPEG2ENCODE_LIB=""
+AC_CHECK_LIB([vtkMPEG2Encode], [main], [VTK_MPEG2ENCODE_LIB="-lvtkMPEG2Encode"], [])
+AC_SUBST(VTK_MPEG2ENCODE_LIB)
+
 # check for KWWidget libs only if kww app building is enabled
 if test ! "x$kww_apps" = "xNO"; then
   LDFLAGS="$LDFLAGS $LIB_TCL"

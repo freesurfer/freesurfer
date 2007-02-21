@@ -20,7 +20,7 @@ $(VTK_Z_LIB) $(VTK_EXPAT_LIB) \
 -lvtkImaging -lvtkftgl \
 -lvtkIO -lvtkFiltering -lvtkCommon -lvtkDICOMParser \
 -lvtksys \
--lvtkMPEG2Encode -lvtkexoIIc -lvtkNetCDF
+$(VTK_MPEG2ENCODE_LIB) -lvtkexoIIc -lvtkNetCDF
 
 # put a wrapper around the bin, used to setup VTK enviro vars
 install-exec-hook:
