@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.4 $
+ *    $Author: kteich $
+ *    $Date: 2007/02/21 17:19:25 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,21 +26,22 @@
  */
 
 
+#include "OrientMRICustomIcons.h"
+#include "vtkKWApplication.h"
+#include "vtkKWIcon.h"
+#include "vtkKWLoadSaveDialog.h"
+#include "vtkKWMenu.h"
+#include "vtkKWMessageDialog.h"
 #include "vtkKWOrientMRIWindow.h"
-#include "vtkObjectFactory.h"
+#include "vtkKWPushButton.h"
 #include "vtkKWToolbar.h"
 #include "vtkKWToolbarSet.h"
-#include "vtkKWLoadSaveDialog.h"
-#include "vtkKWMessageDialog.h"
-#include "vtkKWIcon.h"
-#include "vtkKWMenu.h"
-#include "vtkKWPushButton.h"
-#include "OrientMRICustomIcons.h"
+#include "vtkObjectFactory.h"
 
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.5 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
     vtkKWWindow(),
@@ -336,7 +337,7 @@ vtkKWOrientMRIWindow::LoadVolume ( const char* ifnVolume ) {
 
       AddRecentFile( ifnVolume, this, "LoadVolume" );
     } catch ( exception& e ) {
-      ErrorMessage( e.what() );
+      this->GetApplication()->ErrorMessage( e.what() );
     }
   }
 
@@ -357,7 +358,7 @@ vtkKWOrientMRIWindow::SaveVolumeWithConfirm () {
         mView->SaveVolume();
         SetStatusText( "Volume saved." );
       } catch ( exception& e ) {
-        ErrorMessage( e.what() );
+        this->GetApplication()->ErrorMessage( e.what() );
       }
     }
   }
