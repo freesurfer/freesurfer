@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/16 23:46:36 $
-#    $Revision: 1.3 $
+#    $Date: 2007/02/22 00:57:42 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,18 +24,19 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_aparc2aseg,v 1.3 2007/01/16 23:46:36 nicks Exp $'
+set VERSION='$Id: test_mri_aparc2aseg,v 1.4 2007/02/22 00:57:42 nicks Exp $'
 
 umask 002
 
 setenv SUBJECTS_DIR $PWD
 
+if ( -e testdata) then
+  echo "rm -Rf testdata"
+  rm -Rf testdata
+endif
+
 echo "gunzip -c testdata.tar.gz | tar xvf -"
 gunzip -c testdata.tar.gz | tar xvf -
-if ($status != 0) then
-  echo "test_mri_aparc2aseg FAILED"
-  exit 1
-endif
 
 set cmd=(./mri_aparc2aseg --s testdata --ribbon)
 echo ""
