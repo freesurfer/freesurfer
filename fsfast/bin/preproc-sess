@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.9 $
+#    $Author: greve $
+#    $Date: 2007/02/22 19:09:25 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.9 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: preproc-sess,v 1.10 2007/02/22 19:09:25 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -47,6 +47,7 @@ set DoInorm  = 1;
 set DoMask   = 1;
 set nskip = 0; # for inorm
 set nolog = 0;
+set targgrp = ();
 
 set PrintHelp = 0;
 if($#argv == 0) goto usage_exit;
@@ -132,7 +133,7 @@ foreach sess ($SessList)
   echo "ProjectDir $ProjectDir" >> $LF
 
   if($DoMC) then
-    set cmd = (mc-sess -fstem $mcinstem -fmcstem $mcoutstem -umask $umask);
+    set cmd = (mc-sess -fstem $mcinstem -fmcstem $mcoutstem)
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd -new)
     if($MCPerRun) set cmd = ($cmd -perrun)
     if($#mcnthrun) set cmd = ($cmd -targnthrun $mcnthrun)
@@ -153,7 +154,7 @@ foreach sess ($SessList)
 
   if($DoSmooth) then
     set cmd = (spatialsmooth-sess -i $sminstem -o $smoutstem -fwhm $fwhm)
-    set cmd = ($cmd  -fsd $fsd -umask $umask);
+    set cmd = ($cmd  -fsd $fsd)
     set cmd = ($cmd -s $sessid -d $sessparent)
     if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
     if($nolog)     set cmd = ($cmd -nolog);
@@ -171,7 +172,7 @@ foreach sess ($SessList)
 
   if($DoInorm) then
     set cmd = (inorm-sess -funcstem $inormstem )
-    set cmd = ($cmd  -fsd $fsd -umask $umask);
+    set cmd = ($cmd  -fsd $fsd)
     set cmd = ($cmd -s $sessid -d $sessparent)
     set cmd = ($cmd -nskip $nskip)
     if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
@@ -190,7 +191,7 @@ foreach sess ($SessList)
 
   if($DoMask) then
     set cmd = (mkbrainmask-sess -maskstem $maskstem)
-    set cmd = ($cmd -fsd $fsd -umask $umask);
+    set cmd = ($cmd -fsd $fsd)
     set cmd = ($cmd -s $sessid -d $sessparent)
     if($nolog) set cmd = ($cmd -nolog);
     echo "$sessid Inorm ------------------------" |& tee -a $LF
@@ -347,6 +348,15 @@ while( $#argv != 0 )
       umask $1; shift;
       breaksw
 
+    case "-gperm":
+      umask 02;
+      breaksw
+
+    case "-ugroup":
+      if ( $#argv == 0) goto arg1err;
+      set targgrp = $1; shift;
+      breaksw
+
     default:
       echo ERROR: Flag $flag unrecognized. 
       echo $cmdline
@@ -361,6 +371,15 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
+  if($#targgrp) then
+    set curgrp = `id -gn`
+    if($targgrp != $curgrp) then
+      echo "ERROR: your current unix group is $curgrp, but your desired "
+      echo "       target group is $targgrp. Change to the new group"
+      echo "       with 'newgrp $targgrp' then re-run"
+      exit 1;
+    endif
+  endif
 
   if($DoMC) then
     if($#mcinstem == 0)  set mcinstem = f;
@@ -446,6 +465,10 @@ usage_exit:
   echo "   -df srchdirfile ..."
   echo "   -s  sessid      ..."
   echo "   -d  srchdir     ..."
+  echo ""
+  echo "Other options"
+  echo "  -gperm : use group-writable unix permissions"
+  echo "  -ugroup group : desired unix group"
   echo ""
   echo ""
 
