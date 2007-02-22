@@ -9,9 +9,9 @@ function [nslices, nrows, ncols, nt, endian, bext, hdrdat] = fmri_bvoldim(stem)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2007/02/22 17:26:45 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -38,9 +38,51 @@ if(nargin ~= 1)
   msg = 'USAGE: [nslices nrows ncols nt] = fmri_bvoldim(stem)';
   qoe(msg); error(msg);
 end
-
 stem = deblank(stem);
 
+% First try to get all the info from the bhdr. This circumvents the
+% problem of having extra slices laying around from some larger 
+% volume. The extra slices do not get overwritten when a smaller
+% volume is created.
+bhdr = sprintf('%s.bhdr',stem);
+if(fast_fileexists(bhdr))
+  mri = fast_ldbhdr(stem);
+  nrows   = mri.voldim(1);
+  ncols   = mri.voldim(2);
+  nslices = mri.voldim(3);
+  nt      = mri.nframes;
+  bext = 'bshort';
+  fname = sprintf('%s_000.%s',stem,bext);  
+  if(~fast_fileexists(fname))
+    bext = 'bfloat';
+    fname = sprintf('%s_000.%s',stem,bext);  
+    if(~fast_fileexists(fname))
+      fprintf('ERROR: cannot find slice 000 for %s\n',stem);
+      nslices = 0;
+      nrows   = 0;
+      ncols   = 0;
+      nt      = 0;
+      return;
+    end
+  end
+  fname = sprintf('%s_000.hdr',stem);
+  fid = fopen(fname,'r');
+  if(fid == -1) 
+    nslices = 0;
+    fprintf('ERROR: cannot find %s\n',fname);
+  end
+  hdr = fscanf(fid,'%d',[1,4]);
+  if(isempty(hdr))
+    fprintf('ERROR: reading %s\n',fname);
+    nslices = 0;
+    return;
+  end
+  endian = hdr(4);
+  fclose(fid);
+  return;
+end
+
+% If it gets here, there is not bhdr file
 firstslice = -1;
 nslices = 0;
 for slice = 0:1000
