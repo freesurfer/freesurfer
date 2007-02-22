@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:16 $
-#    $Revision: 1.7 $
+#    $Author: greve $
+#    $Date: 2007/02/22 23:11:03 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,24 +23,29 @@
 #
 
 
-set VERSION = '$Id: aseg2funcmask-sess,v 1.7 2007/01/09 22:41:16 nicks Exp $';
+set VERSION = '$Id: aseg2funcmask-sess,v 1.8 2007/02/22 23:11:03 greve Exp $';
 
 set cmdargs = ($argv);
 
 set segvol    = aseg;
-set osegvol   = aseg;
-set infmt       = ();
-set outfmt      = nii.gz;
+set osegvol   = ();
+set infmt     = ();
 set fsd       = bold;
 set funcstem  = f;
 set DoASeg    = 1;
-set DoAParc   = 1;
+set DoAParc   = 0;
 set nolog     = 0;
 set PerRun    = 0;
 set RunListFile = ();
 set RegFile   = register.dat
 set FillThresh = 0.1;
 set PrintHelp = 0;
+
+if($?FSF_OUTPUT_FORMAT) then
+  set outfmt = $?FSF_OUTPUT_FORMAT;
+else
+  set outfmt    = nii.gz;
+endif
 
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -221,6 +226,14 @@ while( $#argv != 0 )
       set FillThresh = $argv[1]; shift;
       breaksw
 
+    case "-aparc+aseg":
+      set segvol = aparc+aseg;
+      breaksw
+
+    case "-aparc+aseg+wm":
+      set segvol = aparc+aseg+wm;
+      breaksw
+
     case "-nolog":
       set nolog = 1;
       breaksw
@@ -270,6 +283,8 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
+if($#osegvol == 0) set osegvol = $segvol;
+
 goto check_params_return;
 ############--------------##################
 
@@ -286,14 +301,17 @@ usage_exit:
   echo ""
   echo "Optional Arguments:";
   echo "   -seg segvol : use mri/segvol instead of mri/aseg"
-  echo "   -oseg osegvol : use fsd/masks/osegvol instead of fsd/masks/aseg"
+  echo "   -aparc+aseg : use mri/aparc+aseg.mgz"
+  echo ""
   echo "   -fsd fsd : use fsd instead of bold"
   echo "   -rlf runlistfile "
   echo "   -func funcstem : only used for template, default f "
-  echo "   -infmt  fmt : input format <auto>, nii.gz, bhdr, mgh, etc"
+  echo ""
   echo "   -outfmt fmt : output format <nii.gz>, mgh, bhdr, etc"
-  echo "   -noaseg   : do not map volume-based subcort segmentation"
-  echo "   -noaparc  : do not map surfaced-based cort segmentation"
+  echo "   -oseg osegvol : use fsd/masks/osegvol instead of fsd/masks/segvol"
+#  echo "   -infmt  fmt : input format <auto>, nii.gz, bhdr, mgh, etc"
+#  echo "   -noaseg   : do not map volume-based subcort segmentation"
+#  echo "   -noaparc  : do not map surfaced-based cort segmentation"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  ..."
