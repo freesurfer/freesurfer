@@ -32,12 +32,12 @@ vtkKWRGBATransferFunctionEditorTcl.cxx: vtkKWRGBATransferFunctionEditor.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWRGBATransferFunctionEditor.h \
 	${VTK_LIB_VTK}/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
 
-.cxx.o:
-	@echo "compiler: $(COMPILE) end_compiler"
-	source='$<' object='$@' libtool=no \
-	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
-	$(CCDEPMODE) $(depcomp) \
-	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
+# .cxx.o:
+# 	@echo "compiler: $(COMPILE) end_compiler"
+# 	source='$<' object='$@' libtool=no \
+# 	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
+# 	$(CCDEPMODE) $(depcomp) \
+# 	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
