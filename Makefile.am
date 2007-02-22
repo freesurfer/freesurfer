@@ -6,7 +6,7 @@ foodir=$(prefix)
 foo_DATA=README COPYING NEWS AUTHORS
 
 DMRISUBDIRS=dmri_poistats \
-  dti_tensoreig  
+  dmri_tensoreig  
 
 GLSUBDIRS=mris2rgb \
 	nmovie \

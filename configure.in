@@ -1950,8 +1950,8 @@ AC_OUTPUT([Makefile
            distribution/sessions/Makefile
            distribution/subjects/Makefile
            dmri_poistats/Makefile
+           dmri_tensoreig/Makefile
            dngtester/Makefile
-           dti_tensoreig/Makefile
            dummy/Makefile
            fsfast/Makefile
            fsfast/bin/Makefile
