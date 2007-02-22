@@ -632,7 +632,6 @@ AC_SUBST(NIFTI_DIR)
 
 AM_CONDITIONAL(HAVE_NIFTI_LIBS, ! test "x$ac_nifti_dir" = "xNO")
 
-
 ################################################################
 # VXL
 ################################################################
@@ -1236,6 +1235,74 @@ AC_SUBST(VTK_LIBS)
 AC_SUBST(VTK_LIB)
 AC_SUBST(VTK_LIB_VTK)
 AC_SUBST(VTK_DIR)
+
+################################################################
+# TCLAP
+################################################################
+ac_tclap_includes="NO"
+TCLAP_CFLAGS=""
+AC_MSG_CHECKING(TCLAP directory)
+AC_ARG_WITH(tclap-dir,
+  [  --with-tclap-dir=DIR      where the root of TCLAP is installed.],
+  [  ac_tclap_includes="$withval/include"
+     TCLAP_DIR="$withval"
+     tclap_apps="yes"
+     AC_SUBST(TCLAP_DIR)
+  ])
+
+if test ! "$ac_tclap_includes" = "NO"; then
+  AC_MSG_RESULT(TCLAP directory is $withval)
+  for item in $ac_tclap_includes; do
+      TCLAP_CFLAGS="${TCLAP_CFLAGS} -I${item}"
+  done
+else
+  AC_MSG_RESULT(TCLAP directory is not supplied)
+fi
+  
+if test "$tclap_apps" = "yes"; then
+  AC_MSG_RESULT([Enabled building of TCLAP apps.])
+else
+  AC_MSG_RESULT([Not building TCLAP apps.])
+fi
+
+AM_CONDITIONAL(ENABLE_TCLAP_APPS, test "$tclap_apps" = "yes")
+AM_CONDITIONAL(HAVE_TCLAP_INCLUDES, test "$tclap_apps" = "yes")
+
+AC_SUBST(TCLAP_CFLAGS)
+
+################################################################
+# Module Description Parser
+################################################################
+ac_mdp_includes="NO"
+MDP_CFLAGS=""
+AC_MSG_CHECKING(Module Description Parser directory)
+AC_ARG_WITH(mdp-dir,
+  [  --with-mdp-dir=DIR      where the root of MDP is installed.],
+  [  ac_mdp_includes="$withval"
+     MDP_DIR="$withval"
+     mdp_apps="yes"
+     AC_SUBST(MDP_DIR)
+  ])
+
+if test ! "$ac_mdp_includes" = "NO"; then
+  AC_MSG_RESULT(MDP directory is $withval)
+  for item in $ac_mdp_includes; do
+      MDP_CFLAGS="${MDP_CFLAGS} -I${item}"
+  done
+else
+  AC_MSG_RESULT(Module Description Parser directory is not supplied)
+fi
+  
+if test "$mdp_apps" = "yes"; then
+  AC_MSG_RESULT([Enabled building of Module Description Parser apps.])
+else
+  AC_MSG_RESULT([Not building Module Description Parser apps.])
+fi
+
+AM_CONDITIONAL(ENABLE_MDP_APPS, test "$mdp_apps" = "yes")
+AM_CONDITIONAL(HAVE_MDP_INCLUDES, test "$mdp_apps" = "yes")
+
+AC_SUBST(MDP_CFLAGS)
 
 
 ################################################################
@@ -1882,6 +1949,7 @@ AC_OUTPUT([Makefile
            distribution/lib/bem/Makefile
            distribution/sessions/Makefile
            distribution/subjects/Makefile
+           dmri_poistats/Makefile
            dngtester/Makefile
            dti_tensoreig/Makefile
            dummy/Makefile

@@ -5,7 +5,8 @@
 foodir=$(prefix)
 foo_DATA=README COPYING NEWS AUTHORS
 
-DTISUBDIRS=dti_tensoreig
+DMRISUBDIRS=dmri_poistats \
+  dti_tensoreig  
 
 GLSUBDIRS=mris2rgb \
 	nmovie \
@@ -263,7 +264,7 @@ SUBDIRS=include \
 	$(STATSDIRS) \
 	$(MISCDIRS) \
 	$(GLSUBDIRS) \
-	$(DTISUBDIRS) \
+	$(DMRISUBDIRS) \
 	fsfast \
 	matlab \
 	scuba
