@@ -9,11 +9,12 @@ DEFS=
 # add ITK
 if HAVE_ITK_LIBS
 
-if HAVE_TCLAP_INCLUDES
-
-if HAVE_MDP_INCLUDES
-
 ITK_THINGS=$(ITK_CFLAGS) -DHAVE_ITK_LIBS
+
+UI_DIR = ui
+UI_SRCS = \
+  $(UI_DIR)/CommandParser.cxx \
+  $(UI_DIR)/FreeSurferExecutable.cxx
 
 DATAMODEL_DIR = datamodel
 DATAMODEL_SRCS = \
@@ -54,12 +55,13 @@ IO_SRCS = \
 	$(IO_DIR)/itkMGHImageIO.cxx $(IO_DIR)/itkMGHImageIO.h \
 	$(IO_DIR)/itkMGHImageIOFactory.cxx $(IO_DIR)/itkMGHImageIOFactory.h
 
-AM_CPPFLAGS =	$(X_CFLAGS) $(VXL_CFLAGS) $(TCLAP_CFLAGS) $(MDP_CFLAGS) \
+AM_CPPFLAGS =	$(X_CFLAGS) $(VXL_CFLAGS) \
   -I$(top_srcdir)/include \
   $(ITK_THINGS) -DHAVE_ZLIB
   
 bin_PROGRAMS = dmri_poistats
 dmri_poistats_SOURCES = \
+  $(UI_SRCS) \
   $(BSPLINES_SRCS) \
   $(DATAMODEL_SRCS) \
   $(DATA_SRCS) \
@@ -73,12 +75,6 @@ dmri_poistats_LDADD = $(LIBS_ITK) \
 	-lITKMetaIO -litksys -lITKEXPAT -lITKniftiio -lITKznz -litkzlib
 dmri_poistats_LDFLAGS = $(OS_LDFLAGS)
 dmri_poistats_CXXFLAGS = 
-
-endif
-# end mdp
-
-endif
-# end tclap
 
 endif
 #end itk

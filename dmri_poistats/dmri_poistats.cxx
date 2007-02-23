@@ -1,3 +1,30 @@
+/**
+ * @file  dmri_poistats.cxx
+ * @brief Finds the most probable path between two seed regions.
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: Dennis Jen, Dave Tuch (matlab prototype) 
+ * CVS Revision Info:
+ *    $Author$
+ *    $Date$
+ *    $Revision$
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
 #include <iostream>
 #include <string>
 #include <cstdlib>
@@ -22,7 +49,209 @@
 
 #include "datamodel/events/CommandUpdate.h"
 
-#include "PoistatsCLICLP.h"
+#include "ui/CommandParser.h"
+#include "ui/FreeSurferExecutable.h"
+
+/**
+ * C++ replacement of the matlab Poistats.
+ */
+class Poistats : public FreeSurferExecutable {
+
+  public:
+    // required
+    static const std::string FLAG_INPUT_STEM;
+    static const std::string FLAG_OUTPUT_DIRECTORY;
+    static const std::string FLAG_SEEDS;
+    static const std::string FLAG_SAMPLE_STEM;
+    static const std::string FLAG_NUM_CONTROL_POINTS;
+    static const std::string FLAG_SIGMA;
+  
+    // optional
+    static const std::string FLAG_MASK_STEM;
+    static const std::string FLAG_NUM_SAMPLES;
+    static const std::string FLAG_SEED_VALUES;    
+    static const std::string FLAG_NUM_REPLICAS;      
+    static const int DEFAULT_NUM_SEEDS = 100;    
+    static const std::string FLAG_REPLICA_EXCHANGE_PROBABILITY;
+    static const std::string FLAG_SIGMA_TIME_CONSTANT;    
+    static const std::string FLAG_POINTS_TO_IMAGE_GAMMA;
+    static const std::string FLAG_IS_SYMMETRIC_DATA;
+    static const std::string FLAG_IS_OUTPUT_NII;
+
+    Poistats( int inArgs, char ** iaArgs );
+    ~Poistats();
+
+    /**
+     * Fills in the arguments and returns true of the arguments can be filled.
+     */
+    bool FillArguments();    
+    void Run();
+  
+  private:
+
+    // required arguments
+    const char *m_InputStem;
+    const char *m_OutputDir;
+    const char *m_Seeds;
+    const char *m_SampleStem;  
+    int m_nControlPoints;
+    int m_Sigma;
+    
+    // optional arguments
+    char *m_MaskStem;
+    int m_nSamples;
+    std::vector< int > m_SeedValues;
+    int m_nReplicas;
+  
+    double m_ReplicaExchangeProbability;  
+    double m_SigmaTimeConstant;      
+    double m_PointsToImageGamma;
+  
+    bool m_IsSymmetricData;
+    bool m_IsOutputNii;
+};
+
+// required flags
+const std::string Poistats::FLAG_INPUT_STEM = "-i";
+const std::string Poistats::FLAG_OUTPUT_DIRECTORY = "-o";
+const std::string Poistats::FLAG_SEEDS = "-seeds";
+const std::string Poistats::FLAG_SAMPLE_STEM = "-sample";
+const std::string Poistats::FLAG_NUM_CONTROL_POINTS = "-nc";
+const std::string Poistats::FLAG_SIGMA = "-sigma";
+
+// optional flags
+const std::string Poistats::FLAG_MASK_STEM = "-m";
+const std::string Poistats::FLAG_NUM_SAMPLES = "-ns";
+const std::string Poistats::FLAG_SEED_VALUES = "-seednums";
+const std::string Poistats::FLAG_NUM_REPLICAS = "-nreplicas";
+const std::string Poistats::FLAG_IS_SYMMETRIC_DATA = "-symmetric";
+const std::string Poistats::FLAG_IS_OUTPUT_NII = "-nii";
+
+// these are new additions for playing with the parameter space
+const std::string Poistats::FLAG_REPLICA_EXCHANGE_PROBABILITY = "-exchangeprob";
+const std::string Poistats::FLAG_SIGMA_TIME_CONSTANT = "-timeconst";
+const std::string Poistats::FLAG_POINTS_TO_IMAGE_GAMMA = "-gamma";
+
+
+Poistats::Poistats( int inArgs, char ** iaArgs ) : 
+  FreeSurferExecutable( inArgs, iaArgs ) {
+  SetName( "poistats", "find optimal path in tensor volume" );  
+
+  SetNextRequiredArgument( FLAG_INPUT_STEM, "dtensorinstem", 
+    "dtensor input stem", "dtensor", "must specify a dtensor input filename" );
+  SetNextRequiredArgument( FLAG_OUTPUT_DIRECTORY, "outdir", "", "poistats",
+    "must specify an output directory" );
+  SetNextRequiredArgument( FLAG_SEEDS, "seedstem", 
+    "Volume containing numerical labels to use as seed regions.", "seedvol",
+    "must specify a seed volume" );
+  SetNextRequiredArgument( FLAG_SAMPLE_STEM, "samplestem", 
+    "Instem for volume to sample. For example: fa, trace", "fa", 
+    "must specify a sampling volume" );
+  SetNextRequiredArgument( FLAG_NUM_CONTROL_POINTS, "ncontrolpoints", 
+    "Number of control points used to describe path. Number should be approximately the number of 'turns' in the path. Almost always 1 or 2.", 
+    "2", "must specify number of control points" );
+  SetNextRequiredArgument( FLAG_SIGMA, "sigmasize", 
+    "Search distance for path control points in units voxels. The search distance should be approximately the distance between the midpoint of the seed path and the target location", 
+    "10", "must specify search distance" );
+
+  SetNextOptionalArgument( FLAG_MASK_STEM, "maskstem", 
+    "Instem for mask. The path will not be allowed to contact the mask. The mask can be used to specify invalid regions, e.g., CSF" );
+  SetNextOptionalArgument( FLAG_NUM_SAMPLES, "nsamplepoints", 
+    "Number of points to sample along path from sample volume. For example, -ns 100 will sample 100 values along the path. Default: 100" );
+  SetNextOptionalArgument( FLAG_SEED_VALUES, "seednumvalue", 
+    "Use <seednumvalue> to define seed region. Eg, -seednums \"1 2\"" );
+  SetNextOptionalArgument( FLAG_NUM_REPLICAS, "nreplicas", 
+    "Use <nreplicas> to specify the number of replicas.  For example, -nreplicas 100 will spawn 100 replicas. Default: 100" );
+
+  SetNextOptionalArgument( FLAG_REPLICA_EXCHANGE_PROBABILITY, "exchangeprob", 
+    "Replica exchange probability.  Default: 0.05" );
+  SetNextOptionalArgument( FLAG_SIGMA_TIME_CONSTANT, "timeconst", 
+    "Sigma time constant.  Default: 200." );
+  SetNextOptionalArgument( FLAG_POINTS_TO_IMAGE_GAMMA, "gamma", 
+    "Points to image gamma.  Default: 0.5." );
+    
+  SetNextOptionalArgument( FLAG_IS_SYMMETRIC_DATA, "symmetric", 
+    "Is the tensor input stored symmetric (6 rather than 9 component storage)?  Default: false (not stored symmetrically)." );
+  SetNextOptionalArgument( FLAG_IS_OUTPUT_NII, "nii", 
+    "Should the output be stored as nifti?  Default: false" );
+
+  std::string output = "";
+  output = output + 
+    "PathDensity.nii - path probability density" + "\n\t" +
+    "OptimalPathDensity.nii - probability density of optimal path" + "\n\n\t" +
+
+    "OptimalPathSamples.txt - values of sample volume along optimal path" + "\n\t" +
+    "OptimalPathProbabilities.txt - probability values along optimal path" + "\n\t" +
+    "OptimalPath.txt - coordinates of optimal path";
+
+  SetOutput( output );
+  
+  SetChildren( "matlab: poistats" );
+  SetVersion( "Beta 1.6" );
+  SetAuthor( "David Tuch" );
+  SetBugEmail( "martinos-tech@yahoogroups.com" );
+}
+
+Poistats::~Poistats() {  
+}
+
+bool
+Poistats::FillArguments() {
+  bool isFilled = false;
+
+  std::string *requiredArguments = GetRequiredArguments();
+  
+  try {
+    m_InputStem = requiredArguments[0].c_str();
+    m_OutputDir = requiredArguments[1].c_str();
+    m_Seeds = requiredArguments[2].c_str();
+    m_SampleStem = requiredArguments[3].c_str();
+    
+    m_nControlPoints = atoi( requiredArguments[4].c_str() );
+    m_Sigma = atoi( requiredArguments[5].c_str() );
+    
+    isFilled = true;    
+  } catch(...) {
+    isFilled = false;
+  }    
+  
+  if( isFilled ) {
+    // optional parameters
+    m_MaskStem = m_Parser->GetArgument( FLAG_MASK_STEM.c_str() );
+  
+    m_nSamples = m_Parser->GetArgumentInt( FLAG_NUM_SAMPLES.c_str() );
+    if( m_nSamples <= 0) {
+      m_nSamples = DEFAULT_NUM_SEEDS;
+      
+      // TODO: use the observer
+      std::cout << "INFO: setting nsamplepoints=" << m_nSamples << std::endl;
+    }
+    
+    m_SeedValues = m_Parser->GetArgumentIntVector( FLAG_SEED_VALUES.c_str() );
+
+    m_nReplicas = m_Parser->GetArgumentInt( FLAG_NUM_REPLICAS.c_str() );
+    
+    m_ReplicaExchangeProbability = m_Parser->GetArgumentDouble( 
+      FLAG_REPLICA_EXCHANGE_PROBABILITY.c_str() );
+
+    m_SigmaTimeConstant = m_Parser->GetArgumentDouble( 
+      FLAG_SIGMA_TIME_CONSTANT.c_str() );
+
+    m_PointsToImageGamma = m_Parser->GetArgumentDouble( 
+      FLAG_POINTS_TO_IMAGE_GAMMA.c_str() );
+
+    m_IsSymmetricData = m_Parser->GetArgumentBoolean( 
+      FLAG_IS_SYMMETRIC_DATA.c_str() );
+
+    m_IsOutputNii = m_Parser->GetArgumentBoolean( FLAG_IS_OUTPUT_NII.c_str() );
+    
+  }
+      
+  // TODO: delete requiredArguments  
+  
+  return isFilled;
+}
+
 
 bool
 IsNifti( std::string fileExtension ) {
@@ -63,41 +292,6 @@ GetNiftiTransform( const char *filename ) {
   return rval;
 } 
 
-void 
-WriteData( const std::string fileName, 
-  const double *data, const int nData) {
-
-  std::cerr << "writing: " << fileName << std::endl;
-  
-  std::ofstream output( fileName.c_str() );
-  
-  for( int cData=0; cData<nData; cData++ ) {
-    output << data[ cData ] << std::endl;
-  }
-  
-  output.close();
-    
-}
-
-void 
-WriteData( const std::string fileName, 
-  double **dataArray, const int nRows, const int nCols ) {
-
-  std::cerr << "writing: " << fileName << std::endl;
-  
-  std::ofstream output( fileName.c_str() );
-  
-  for( int cRow=0; cRow<nRows; cRow++ ) {
-    for( int cCol=0; cCol<nCols; cCol++ ) {
-      output << dataArray[ cRow ][ cCol ] << "   ";
-    }    
-    output << std::endl;
-  }
-  
-  output.close();
-    
-}
-
 std::string 
 GetFieldAndParameter( std::string field, std::string parameter ) {
   std::ostringstream output;
@@ -119,19 +313,6 @@ GetCurrentDirectory() {
   getcwd( cwd, nChars );
   
   return std::string( cwd );
-}
-
-std::string 
-GetCommandArguments( int argc, char * argv[] ) {  
-
-  std::ostringstream output;
-
-  for( int cArg=0; cArg<argc; cArg++ ) {
-    output << argv[ cArg ] << " ";
-  }
-  output << std::endl;
-  
-  return output.str();
 }
 
 std::string 
@@ -200,32 +381,25 @@ void PrintUsageError( std::string error ) {
   std::cerr << "\n*** usage error: " << error << std::endl << std::endl;
 }
 
-int main (int argc, char * argv[]) {
-
-  PARSE_ARGS;
-  
+void
+Poistats::Run() {
   // add the MGH/MGZ reader
   itk::ObjectFactoryBase::RegisterFactory( itk::MGHImageIOFactory::New() ); 
     
   CommandUpdate::Pointer observer = CommandUpdate::New();
-  
-  if( argc <= 1 ) {
-    std::cerr << "\nuse --help flag for usage\n" << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  if( !outputDirectory.empty() ) {
-    observer->SetOutputDirectory( outputDirectory );
+    
+  if( m_OutputDir != NULL ) {
+    observer->SetOutputDirectory( m_OutputDir );
   } else {
     PrintUsageError( "must specify output directory" );
-    return EXIT_FAILURE;
+    return;
   }
   observer->SetLogFileName( "poistats.log" );
 
   observer->PostMessage( "-- Poistats " + GetVersion() + " --\n\n" );
   
   observer->PostMessage( GetFieldAndParameter( "Command", 
-    GetCommandArguments( argc, argv ) ) );
+    m_CommandLineArguments ) );
 
   observer->PostMessage( GetFieldAndParameter( "FreeSurfer Home", 
     GetFreeSurferHome() ) );
@@ -243,13 +417,13 @@ int main (int argc, char * argv[]) {
 
   observer->PostMessage( GetFieldAndParameter( "Machine", GetMachine() ) );
   
-  std::string imageFileExtension = GetFileExtension( diffusionTensorImage );
+  std::string imageFileExtension = GetFileExtension( m_InputStem );
 
   typedef TensorReaderStrategy::TensorPixelType TensorPixelType;
   typedef TensorReaderStrategy::TensorImageType TensorImageType;
 
   TensorReaderStrategy *tensorReader = NULL;
-  if( !isSymmetricTensorData ){
+  if( !m_IsSymmetricData ){
     
     if( IsMGH( imageFileExtension ) ){
       tensorReader = new AsymmetricTensorVectorReaderStrategy();
@@ -261,7 +435,7 @@ int main (int argc, char * argv[]) {
     tensorReader = new SymmetricTensorReaderStrategy();
   }
   tensorReader->SetObserver( observer );
-  tensorReader->SetFileName( diffusionTensorImage );
+  tensorReader->SetFileName( m_InputStem );
   TensorImageType::Pointer tensors = tensorReader->GetTensors();
   
   delete tensorReader;
@@ -278,7 +452,7 @@ int main (int argc, char * argv[]) {
   // to the canonical directions rather than the true calculated directions
   if( IsNifti( imageFileExtension ) ) {
 
-    mat44 transform = GetNiftiTransform( diffusionTensorImage.c_str() );
+    mat44 transform = GetNiftiTransform( m_InputStem );
   
     TensorImageType::DirectionType direction = tensors->GetDirection();
     for( int cRow=0; cRow<3; cRow++ ) {
@@ -299,14 +473,14 @@ int main (int argc, char * argv[]) {
   // read seed volume
   typedef itk::ImageFileReader< PoistatsFilterType::SeedVolumeType > SeedReaderType;
   SeedReaderType::Pointer seedReader = SeedReaderType::New();
-  seedReader->SetFileName( seedRegions );
+  seedReader->SetFileName( m_Seeds );
   try { 
     seedReader->Update();
   } catch( itk::ExceptionObject & excp ) {
     std::ostringstream output;
     output << "Error reading the series." << std::endl << excp << std::endl;
     observer->PostErrorMessage( output.str() );
-    return EXIT_FAILURE;
+    return;
   }
   poistatsFilter->SetSeedVolume( seedReader->GetOutput() );
   
@@ -329,67 +503,68 @@ int main (int argc, char * argv[]) {
   polarity[ 2 ][ 2 ] = 1;
   poistatsFilter->SetPolarity( polarity );
 
-  poistatsFilter->SetNumberOfControlPoints( numberOfControlPoints );
-  poistatsFilter->SetInitialSigma( sigma );
+  poistatsFilter->SetNumberOfControlPoints( m_nControlPoints );
+  poistatsFilter->SetInitialSigma( m_Sigma );
 
   observer->PostMessage( "reading sampling volume...\n" );
 
   // read sampling volume
   typedef itk::ImageFileReader< PoistatsFilterType::SamplingVolumeType > SamplingReaderType;
   SamplingReaderType::Pointer samplingReader = SamplingReaderType::New();
-  samplingReader->SetFileName( sample );
+  samplingReader->SetFileName( m_SampleStem );
   try { 
     samplingReader->Update();
   } catch( itk::ExceptionObject & excp ) {
     std::ostringstream output;
     output << "Error reading the series." << std::endl << excp << std::endl;
     observer->PostErrorMessage( output.str() );
-    return EXIT_FAILURE;
+    return;
   }
   poistatsFilter->SetSamplingVolume( samplingReader->GetOutput() );
   
   // set number of sample points
-  poistatsFilter->SetNumberOfSamplePoints( numberOfSamplePoints );
+  poistatsFilter->SetNumberOfSamplePoints( m_nSamples );
 
   // read mask volume if it exists
-  if( mask.size() != 0 ) {
+  if( m_MaskStem != NULL ) {
     observer->PostMessage( "reading mask...\n" );
     typedef itk::ImageFileReader< PoistatsFilterType::MaskVolumeType > MaskReaderType;
     MaskReaderType::Pointer maskReader = MaskReaderType::New();
-    maskReader->SetFileName( mask );
+    maskReader->SetFileName( m_MaskStem );
     try { 
       maskReader->Update();
     } catch( itk::ExceptionObject & excp ) {
       std::ostringstream output;
       output << "Error reading the series." << std::endl << excp << std::endl;
       observer->PostErrorMessage( output.str() );
-      return EXIT_FAILURE;
+      return;
     }
     poistatsFilter->SetMaskVolume( maskReader->GetOutput() );
   }
 
   // seeds the seeds to be used if they exist  
-  for( std::vector< int >::iterator seedIt = seedRegionsToUse.begin();
-    seedIt != seedRegionsToUse.end(); seedIt++ ) {
+  for( std::vector< int >::iterator seedIt = m_SeedValues.begin();
+    seedIt != m_SeedValues.end(); seedIt++ ) {
   
     int seedValueToUse = ( *seedIt );
     poistatsFilter->SetNextSeedValueToUse( seedValueToUse );      
   }
   
-  if( exchangeProbability > 0 ) {
-    poistatsFilter->SetReplicaExchangeProbability( exchangeProbability );
+  if( m_ReplicaExchangeProbability > 0 ) {
+    poistatsFilter->SetReplicaExchangeProbability( 
+      m_ReplicaExchangeProbability );
   }
 
-  if( timeConstant > 0 ) {
-    poistatsFilter->SetSigmaTimeConstant( timeConstant );
+  if( m_SigmaTimeConstant > 0 ) {
+    poistatsFilter->SetSigmaTimeConstant( m_SigmaTimeConstant );
   }
   
-  if( gamma > 0 ) {
-    poistatsFilter->SetPointsToImageGamma( gamma );
+  if( m_PointsToImageGamma > 0 ) {
+    poistatsFilter->SetPointsToImageGamma( m_PointsToImageGamma );
   }
 
-  if( numberOfReplicas > 0 ) {
-    poistatsFilter->SetNumberOfReplicas( numberOfReplicas );
+  if( m_nReplicas > 0 ) {
+    poistatsFilter->SetNumberOfReplicas( m_nReplicas );
   }
 
   // compute the poi
@@ -399,11 +574,11 @@ int main (int argc, char * argv[]) {
     std::ostringstream output;
     output << "Error thrown in poistats filter." << std::endl << excp << std::endl;
     observer->PostErrorMessage( output.str() );
-    return EXIT_FAILURE;
+    return;
   }
  
  // this overrides the default output file format
-  if( isOutputNii ){
+  if( m_IsOutputNii ){
     imageFileExtension = ".nii";
   }
   
@@ -411,7 +586,7 @@ int main (int argc, char * argv[]) {
   WriterType::Pointer writer = WriterType::New();
 
   // write aggregate densities
-  std::string densityFileName = (std::string)outputDirectory + 
+  std::string densityFileName = (std::string)m_OutputDir + 
     (std::string)"/PathDensity" + imageFileExtension;
   OutputImageType::Pointer pathDensity = 
     poistatsFilter->GetOutput( PoistatsFilterType::PATH_DENSITY_OUTPUT );
@@ -421,7 +596,7 @@ int main (int argc, char * argv[]) {
   observer->PostMessage( "writing: " + densityFileName + "\n" );  
   writer->Update();  
 
-  std::string optimalDensityFileName = (std::string)outputDirectory + 
+  std::string optimalDensityFileName = (std::string)m_OutputDir + 
     (std::string)"/OptimalPathDensity" + imageFileExtension;
   OutputImageType::Pointer optimalPathDensity = 
     poistatsFilter->GetOutput( PoistatsFilterType::OPTIMAL_PATH_DENSITY_OUTPUT );
@@ -432,24 +607,40 @@ int main (int argc, char * argv[]) {
   writer->Update();
   
   PoistatsFilterType::MatrixType finalPath = poistatsFilter->GetFinalPath();
-  const std::string finalPathFileName( (std::string)outputDirectory + 
+  const std::string finalPathFileName( (std::string)m_OutputDir + 
     (std::string)"/OptimalPath.txt" );
   WriteData( finalPathFileName, finalPath.data_array(), 
     finalPath.rows(), finalPath.cols() );
 
   PoistatsFilterType::ArrayType fa = poistatsFilter->GetSamples();  
 
-  const std::string faFileName( (std::string)outputDirectory + 
+  const std::string faFileName( (std::string)m_OutputDir + 
     (std::string)"/OptimalPathSamples.txt" );
   WriteData( faFileName, fa.data_block(), fa.size() );
   
   PoistatsFilterType::ArrayType finalPathProbabilities = 
     poistatsFilter->GetFinalPathProbabilities();
-  const std::string pathProbabilitiesFileName( (std::string)outputDirectory + 
+  const std::string pathProbabilitiesFileName( (std::string)m_OutputDir + 
     (std::string)"/OptimalPathProbabilities.txt" );
   WriteData( pathProbabilitiesFileName, 
     finalPathProbabilities.data_block(), finalPathProbabilities.size() );
     
-  return EXIT_SUCCESS;
-
+  return;
 }
+
+int main( int argc, char ** argv ) {
+  
+  FreeSurferExecutable *exe = new Poistats( argc, argv );
+
+  if( argc == 1 ) {
+    exe->PrintHelp();
+  } else {
+    bool isFilled = exe->FillArguments();
+    if( isFilled ) {
+      exe->Run();
+    }
+  }
+  
+  return 0;
+}
+
