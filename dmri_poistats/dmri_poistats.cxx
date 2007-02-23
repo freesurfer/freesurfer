@@ -28,8 +28,6 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
-#include <unistd.h>
-#include <sys/utsname.h>
 
 // for reading in the cosine directions because itk doesn't do it properly
 #include <nifti1_io.h>
@@ -58,6 +56,9 @@
 class Poistats : public FreeSurferExecutable {
 
   public:
+  
+    static const std::string FLAG_DELIMITER;
+  
     // required
     static const std::string FLAG_INPUT_STEM;
     static const std::string FLAG_OUTPUT_DIRECTORY;
@@ -109,43 +110,63 @@ class Poistats : public FreeSurferExecutable {
   
     bool m_IsSymmetricData;
     bool m_IsOutputNii;
+
+    bool IsNifti( std::string fileExtension );
+    bool IsMGH( std::string fileExtension );
+    
+    mat44 GetNiftiTransform( const char *filename );
+
 };
 
+const std::string Poistats::FLAG_DELIMITER = "--";
+
 // required flags
-const std::string Poistats::FLAG_INPUT_STEM = "-i";
-const std::string Poistats::FLAG_OUTPUT_DIRECTORY = "-o";
-const std::string Poistats::FLAG_SEEDS = "-seeds";
-const std::string Poistats::FLAG_SAMPLE_STEM = "-sample";
-const std::string Poistats::FLAG_NUM_CONTROL_POINTS = "-nc";
-const std::string Poistats::FLAG_SIGMA = "-sigma";
+const std::string Poistats::FLAG_INPUT_STEM = Poistats::FLAG_DELIMITER + "i";
+const std::string Poistats::FLAG_OUTPUT_DIRECTORY = 
+  Poistats::FLAG_DELIMITER + "o";
+const std::string Poistats::FLAG_SEEDS = 
+  Poistats::FLAG_DELIMITER + "seeds";
+const std::string Poistats::FLAG_SAMPLE_STEM = 
+  Poistats::FLAG_DELIMITER + "sample";
+const std::string Poistats::FLAG_NUM_CONTROL_POINTS = 
+  Poistats::FLAG_DELIMITER + "nc";
+const std::string Poistats::FLAG_SIGMA = Poistats::FLAG_DELIMITER + "sigma";
 
 // optional flags
-const std::string Poistats::FLAG_MASK_STEM = "-m";
-const std::string Poistats::FLAG_NUM_SAMPLES = "-ns";
-const std::string Poistats::FLAG_SEED_VALUES = "-seednums";
-const std::string Poistats::FLAG_NUM_REPLICAS = "-nreplicas";
-const std::string Poistats::FLAG_IS_SYMMETRIC_DATA = "-symmetric";
-const std::string Poistats::FLAG_IS_OUTPUT_NII = "-nii";
+const std::string Poistats::FLAG_MASK_STEM = Poistats::FLAG_DELIMITER + "m";
+const std::string Poistats::FLAG_NUM_SAMPLES = Poistats::FLAG_DELIMITER + "ns";
+const std::string Poistats::FLAG_SEED_VALUES = 
+  Poistats::FLAG_DELIMITER + "seednums";
+const std::string Poistats::FLAG_NUM_REPLICAS = 
+  Poistats::FLAG_DELIMITER + "nreplicas";
+const std::string Poistats::FLAG_IS_SYMMETRIC_DATA = 
+  Poistats::FLAG_DELIMITER + "symmetric";
+const std::string Poistats::FLAG_IS_OUTPUT_NII = 
+  Poistats::FLAG_DELIMITER + "nii";
 
 // these are new additions for playing with the parameter space
-const std::string Poistats::FLAG_REPLICA_EXCHANGE_PROBABILITY = "-exchangeprob";
-const std::string Poistats::FLAG_SIGMA_TIME_CONSTANT = "-timeconst";
-const std::string Poistats::FLAG_POINTS_TO_IMAGE_GAMMA = "-gamma";
-
+const std::string Poistats::FLAG_REPLICA_EXCHANGE_PROBABILITY = 
+  Poistats::FLAG_DELIMITER + "exchangeprob";
+const std::string Poistats::FLAG_SIGMA_TIME_CONSTANT = 
+  Poistats::FLAG_DELIMITER + "timeconst";
+const std::string Poistats::FLAG_POINTS_TO_IMAGE_GAMMA = 
+  Poistats::FLAG_DELIMITER + "gamma";
 
 Poistats::Poistats( int inArgs, char ** iaArgs ) : 
   FreeSurferExecutable( inArgs, iaArgs ) {
   SetName( "poistats", "find optimal path in tensor volume" );  
 
   SetNextRequiredArgument( FLAG_INPUT_STEM, "dtensorinstem", 
-    "dtensor input stem", "dtensor", "must specify a dtensor input filename" );
-  SetNextRequiredArgument( FLAG_OUTPUT_DIRECTORY, "outdir", "", "poistats",
-    "must specify an output directory" );
+    "Diffusion tensor input", 
+    "dtensor", "must specify a dtensor input filename" );
+  SetNextRequiredArgument( FLAG_OUTPUT_DIRECTORY, "outdir", 
+    "Output directory.",
+    "poistats", "must specify an output directory" );
   SetNextRequiredArgument( FLAG_SEEDS, "seedstem", 
-    "Volume containing numerical labels to use as seed regions.", "seedvol",
-    "must specify a seed volume" );
+    "Volume containing numerical labels to use as seed regions.", 
+    "seedvol", "must specify a seed volume" );
   SetNextRequiredArgument( FLAG_SAMPLE_STEM, "samplestem", 
-    "Instem for volume to sample. For example: fa, trace", "fa", 
+    "Instem for volume to sample. For example: fa, trace", "fa.", 
     "must specify a sampling volume" );
   SetNextRequiredArgument( FLAG_NUM_CONTROL_POINTS, "ncontrolpoints", 
     "Number of control points used to describe path. Number should be approximately the number of 'turns' in the path. Almost always 1 or 2.", 
@@ -177,18 +198,16 @@ Poistats::Poistats( int inArgs, char ** iaArgs ) :
 
   std::string output = "";
   output = output + 
-    "PathDensity.nii - path probability density" + "\n\t" +
-    "OptimalPathDensity.nii - probability density of optimal path" + "\n\n\t" +
+    "PathDensity.nii - path probability density" + "\n   " +
+    "OptimalPathDensity.nii - probability density of optimal path" + "\n\n   " +
 
-    "OptimalPathSamples.txt - values of sample volume along optimal path" + "\n\t" +
-    "OptimalPathProbabilities.txt - probability values along optimal path" + "\n\t" +
+    "OptimalPathSamples.txt - values of sample volume along optimal path" + "\n   " +
+    "OptimalPathProbabilities.txt - probability values along optimal path" + "\n   " +
     "OptimalPath.txt - coordinates of optimal path";
 
   SetOutput( output );
   
-  SetChildren( "matlab: poistats" );
-  SetVersion( "Beta 1.6" );
-  SetAuthor( "David Tuch" );
+  SetVersion( "0.1" );
   SetBugEmail( "martinos-tech@yahoogroups.com" );
 }
 
@@ -252,9 +271,8 @@ Poistats::FillArguments() {
   return isFilled;
 }
 
-
 bool
-IsNifti( std::string fileExtension ) {
+Poistats::IsNifti( std::string fileExtension ) {
 
   bool isNifti = false;
   
@@ -266,7 +284,7 @@ IsNifti( std::string fileExtension ) {
 }
 
 bool
-IsMGH( std::string fileExtension ) {
+Poistats::IsMGH( std::string fileExtension ) {
 
   bool isMGH = false;
   
@@ -278,7 +296,7 @@ IsMGH( std::string fileExtension ) {
 }
 
 mat44
-GetNiftiTransform( const char *filename ) {
+Poistats::GetNiftiTransform( const char *filename ) {
   mat44 rval;
   nifti_image *img = nifti_image_read(filename, false);
   if(img == 0) {
@@ -292,94 +310,6 @@ GetNiftiTransform( const char *filename ) {
   return rval;
 } 
 
-std::string 
-GetFieldAndParameter( std::string field, std::string parameter ) {
-  std::ostringstream output;
-  output << field << ": \n" << "  " << parameter << std::endl << std::endl;
-  return output.str();
-}
-
-std::string 
-GetVersion() {
-  return "1.0 Beta";
-}
-
-std::string 
-GetCurrentDirectory() {
-  
-  const int nChars = 2000;
-  char cwd[ nChars ];
-  
-  getcwd( cwd, nChars );
-  
-  return std::string( cwd );
-}
-
-std::string 
-GetOperatingSystem() {  
-  utsname uts;
-  uname( &uts );    
-  std::string name( uts.sysname );
-  return name;
-}
-
-std::string
-GetHostName() {
-  utsname uts;
-  uname( &uts );
-  std::string name( uts.nodename );
-  return name;
-}
-
-std::string
-GetMachine() {
-  utsname uts;
-  uname( &uts );
-  std::string machine( uts.machine );
-  return machine;
-}
-
-std::string
-GetEnvironmentVariable( std::string variable ) {
-  char *result = std::getenv( variable.c_str() );
-  std::string stringResult;
-  if( result == NULL ) {
-    stringResult = "not set";
-  } else {
-    stringResult = std::string( result );
-  }
-  return stringResult;
-}
-
-std::string 
-GetFreeSurferHome() {
-  return GetEnvironmentVariable( "FREESURFER_HOME" );
-}
-
-std::string 
-GetSubjectsDirectory() {
-  return GetEnvironmentVariable( "SUBJECTS_DIR" );
-}
-
-std::string
-GetFileExtension( std::string fileName ) {
-
-  // take in part from itk  
-  std::string::size_type ext = fileName.rfind( '.' );
-  std::string exts = fileName.substr( ext );
-  if( exts == ".gz" ) {
-    std::string::size_type dotpos = fileName.rfind( '.', ext-1 );
-    if( dotpos != std::string::npos ) {
-      exts = fileName.substr(dotpos);
-    }
-  }  
-  
-  return exts;
-}
-
-void PrintUsageError( std::string error ) {
-  std::cerr << "\n*** usage error: " << error << std::endl << std::endl;
-}
 
 void
 Poistats::Run() {
