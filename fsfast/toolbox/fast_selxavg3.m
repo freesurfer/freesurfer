@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.23 2007/02/16 19:10:17 greve Exp $
+% $Id: fast_selxavg3.m,v 1.24 2007/02/23 18:40:24 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/16 19:10:17 $
-%    $Revision: 1.23 $
+%    $Date: 2007/02/23 18:40:24 $
+%    $Revision: 1.24 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.23 2007/02/16 19:10:17 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.24 2007/02/23 18:40:24 greve Exp $\n');
 
 sessname = basename(sess);
 %outtop = dirname(sess);
@@ -117,16 +117,17 @@ yrun_randn = [];
 
 
 % Load the brain mask
-mask = MRIread(flac0.maskfspec);
-if(isempty(mask))
-  fprintf('ERROR: cannot load %s\n',flac0.maskfspec);
-  %return;
-end
-if(0)
-fname = sprintf('%s/bold/005/f.bhdr',sess);
-mri = MRIread(fname);
-mask = mri;
-mask.vol = ones(mri.volsize);
+if(~isempty(flac0.maskfspec))
+  mask = MRIread(flac0.maskfspec);
+  if(isempty(mask))
+    fprintf('ERROR: cannot load %s\n',flac0.maskfspec);
+    return;
+  end
+else
+  tmp = MRIread(flac0.funcfspec,1);
+  mask = tmp;
+  mask.vol = ones(tmp.volsize);
+  clear tmp;
 end
 
 indmask = find(mask.vol);

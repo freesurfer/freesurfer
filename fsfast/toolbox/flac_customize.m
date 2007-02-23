@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/07 22:49:36 $
-%    $Revision: 1.21 $
+%    $Date: 2007/02/23 18:40:25 $
+%    $Revision: 1.22 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -244,9 +244,13 @@ flacnew.resfspec = sprintf('%s/%s/%s/%s/res',flacnew.sess,...
 			    flacnew.fsd,flacnew.name,...
 			    flacnew.runlist(flacnew.nthrun,:));
 
-flacnew.maskfspec = sprintf('%s/%s/masks/%s%s',flacnew.sess,...
-			    flacnew.fsd,flacnew.mask);
-
+if(~isempty(flacnew.mask))
+  flacnew.maskfspec = sprintf('%s/%s/masks/%s%s',flacnew.sess,...
+			      flacnew.fsd,flacnew.mask);
+else
+  flacnew.maskfspec = '';
+end
+  
 flacnew.acfsegfspec = sprintf('%s/%s/masks/%s',flacnew.sess,...
 		      flacnew.fsd,flacnew.acfsegstem);
 
