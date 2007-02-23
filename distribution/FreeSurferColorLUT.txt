@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.28 2007/02/23 23:38:55 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.29 2007/02/23 23:46:35 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -236,6 +236,24 @@
 407 BA2                                     120 118 14  0
 408 BAun1                                   123 186 220 0
 409 BAun2                                   238 13  176 0
+
+# HiRes Hippocampus labeling
+500 right_CA2/3                             17  85  136 0
+501 right_alveus                            119 187 102 0
+502 right_CA1                               204 68  34  0
+503 right_fimbria                           204 0   255 0
+504 right_presubiculum                      221 187 17  0
+505 right_hippocampal fissure               153 221 238 0
+506 right_CA4/DG                            51  17  17  0
+507 right_subiculum                         0   119 85  0
+508 left_CA2/3                              17  85  137 0
+509 left_alveus                             119 187 103 0
+510 left_CA1                                204 68  35  0
+511 left_fimbria                            204 0   254 0
+512 left_presubiculum                       221 187 16  0
+513 left_hippocampal fissure                153 221 239 0
+514 left_CA4/DG                             51  17  18  0
+515 left_subiculum                          0   119 86  0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg in which the aseg cortex label is replaced
