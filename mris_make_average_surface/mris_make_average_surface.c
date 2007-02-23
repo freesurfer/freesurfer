@@ -1,15 +1,21 @@
 /**
  * @file  mris_make_average_surface.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief create single surface from averages of a subject list
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This program will average the orig surfaces from the given subject
+ * list into a single surface using Talairach coords and the spherical
+ * transform.  The cooridinates of the vertices are the average of the
+ * talairach coordinates (as defined by mri/transforms/talairach.xfm)
+ * of the vertices from the input subjects.  The results will be saved
+ * in a the specified subject's directory.  This default behavior can
+ * be changed with option flags.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.23 $
+ *    $Date: 2007/02/23 00:48:15 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,17 +31,6 @@
  *
  */
 
-
-//
-//  mris_make_average_surface.c
-//
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:10 $
-// Revision       : $Revision: 1.23 $
-//
-////////////////////////////////////////////////////////////////////
 /*
 BEGINHELP
 
@@ -103,6 +98,7 @@ ENDHELP
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include "macros.h"
 #include "error.h"
@@ -118,7 +114,8 @@ ENDHELP
 #include "gca.h"
 #include "gcamorph.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.23 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = 
+"$Id: mris_make_average_surface.c,v 1.24 2007/02/23 00:48:15 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -144,17 +141,19 @@ main(int argc, char *argv[]) {
   *mdir, ico_fname[STRLEN], *hemi, *out_sname ;
   int          ac, nargs, i, vno, n ;
   VERTEX       *v ;
-  MRI_SURFACE  *mris, *mris_ico ;
-  MRI_SP       *mrisp, *mrisp_total ;
+  MRI_SURFACE  *mris_ico ;
+  MRI_SP       *mrisp_total ;
   LTA          *lta ;
-  MRI          *mri ;
   VOL_GEOM      vg;
   float        average_surface_area = 0.0 ;
   MATRIX *XFM=NULL;
   GCA_MORPH *gcam=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.23 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mris_make_average_surface.c,v 1.24 2007/02/23 00:48:15 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -165,8 +164,8 @@ main(int argc, char *argv[]) {
 
   mdir = getenv("FREESURFER_HOME") ;
   if (!mdir)
-    ErrorExit(ERROR_BADPARM, "%s: no FREESURFER_HOME in environment.\n",Progname);
-
+    ErrorExit(ERROR_BADPARM, 
+              "%s: no FREESURFER_HOME in environment.\n",Progname);
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
@@ -177,7 +176,8 @@ main(int argc, char *argv[]) {
   if (sdir == NULL) {
     sdir =  getenv("SUBJECTS_DIR");
     if (!sdir)
-      ErrorExit(ERROR_BADPARM, "%s: no SUBJECTS_DIR in environment.\n",Progname);
+      ErrorExit(ERROR_BADPARM, 
+                "%s: no SUBJECTS_DIR in environment.\n",Progname);
   }
   if (sdirout == NULL) sdirout = sdir;
   if (argc < 6) usage_exit() ;
@@ -200,6 +200,10 @@ main(int argc, char *argv[]) {
 #define SCALE 1
   mrisp_total = MRISPalloc(SCALE, 3) ;
   for (n = 0, i = 5 ; i < argc ; i++) {
+    MRI *mri;
+    MRI_SURFACE *mris;
+    MRI_SP *mrisp;
+
     printf("\n---------------------------------------------------\n");
     printf("#@# processing subject %d/%d %s...\n", i-4,argc-5,argv[i]) ;
     fflush(stdout);
@@ -223,7 +227,8 @@ main(int argc, char *argv[]) {
       sprintf(fname, "%s/%s/mri/transforms/%s", sdir, argv[i], xform_name) ;
       lta = LTAreadEx(fname) ;
       if (!lta)
-        ErrorExit(ERROR_BADPARM, "%s: could not read transform from %s", Progname, fname) ;
+        ErrorExit(ERROR_BADPARM, 
+                  "%s: could not read transform from %s", Progname, fname) ;
     }
 
     // read T1 volume
@@ -237,12 +242,14 @@ main(int argc, char *argv[]) {
     fflush(stdout);
 
     if (!mri)
-      ErrorExit(ERROR_BADPARM, "%s: could not read reference MRI volume from %s",
+      ErrorExit(ERROR_BADPARM, 
+                "%s: could not read reference MRI volume from %s",
                 Progname, fname) ;
 
     // save current vertex position into ->cx
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-    // get the vertex position from ->origx, ... (get the "pial" vertex position)
+    // get the vertex position from ->origx, ... 
+    // (get the "pial" vertex position)
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRIScomputeMetricProperties(mris) ;
     printf("  Surface area: %2.1f cm^2\n", mris->total_area/100) ;
@@ -257,6 +264,7 @@ main(int argc, char *argv[]) {
       XFM = DevolveXFMWithSubjectsDir(argv[i], NULL, "talairach.xfm", sdir);
       if (XFM == NULL) exit(1);
       MRISmatrixMultiply(mris, XFM);
+      MatrixFree(&XFM);
     } else if (!strcmp(xform_name,"talairach.m3z")) {
       printf("  Applying GCA Morph\n");
       fflush(stdout);
@@ -270,10 +278,12 @@ main(int argc, char *argv[]) {
       exit(1);
     }
 
-    // save transformed position in ->orig (store "pial" vertices position in orig)
+    // save transformed position in ->orig 
+    // (store "pial" vertices position in orig)
     MRIScomputeMetricProperties(mris) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-    // get the vertex position from ->cx (note that this is not transformed)  sphere.reg vertices
+    // get the vertex position from ->cx 
+    // (note that this is not transformed)  sphere.reg vertices
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
     // mris contains sphere.reg in vertex and pial vertices in orig
     // map to a theta-phi space and accumulate values
@@ -304,7 +314,8 @@ main(int argc, char *argv[]) {
                  DEFAULT_RADIUS/MRISaverageRadius(mris_ico)) ;
   // save current ico position to ->cx, cy, cz
   MRISsaveVertexPositions(mris_ico, CANONICAL_VERTICES) ;
-  // using mrisp_total to calculate position into ->origx, origy, origz (orig is the "pial" vertices)
+  // using mrisp_total to calculate position into ->origx, origy, origz 
+  // (orig is the "pial" vertices)
   MRIScoordsFromParameterization(mrisp_total, mris_ico) ;
   // copy geometry info
   memcpy((void *) &mris_ico->vg, (void *) &vg, sizeof (VOL_GEOM));
@@ -323,7 +334,8 @@ main(int argc, char *argv[]) {
     }
   }
   // write *h.sphere.reg
-  sprintf(fname, "%s/%s/surf/%s.%s", sdirout, out_sname, hemi, canon_surf_name) ;
+  sprintf(fname, "%s/%s/surf/%s.%s", 
+          sdirout, out_sname, hemi, canon_surf_name) ;
   if (Gdiag & DIAG_SHOW)
     printf("writing average canonical surface to %s\n", fname);
   MRISwrite(mris_ico, fname) ;
@@ -443,7 +455,8 @@ usage_exit(void) {
 
 static void
 print_usage(void) {
-  printf("mris_make_average_surface [options] hemi outsurfname cansurfname outsubject \n");
+  printf("mris_make_average_surface [options] hemi "
+         "outsurfname cansurfname outsubject \n");
   printf("       subj1 subj2 subj3 ...\n");
   printf("  Run with -help for more info\n");
 }
@@ -452,17 +465,24 @@ static void
 print_help(void) {
   print_usage() ;
   printf("\n");
-  printf("  This program will average the orig surfaces from the given subject\n");
-  printf("  list into a single surface using Talairach coords and the spherical\n");
-  printf("  transform.  The cooridinates of the vertices are the average of the\n");
-  printf("  talairach coordinates (as defined by mri/transforms/talairach.xfm)\n");
-  printf("  of the vertices from the input subjects.  The results will be saved\n");
-  printf("  in a the specified subject's directory.  This default behavior can\n");
+  printf("  This program will average the orig surfaces "
+         "from the given subject\n");
+  printf("  list into a single surface using "
+         "Talairach coords and the spherical\n");
+  printf("  transform.  The cooridinates of the vertices are the "
+         "average of the\n");
+  printf("  talairach coordinates (as defined by "
+         "mri/transforms/talairach.xfm)\n");
+  printf("  of the vertices from the input subjects.  "
+         "The results will be saved\n");
+  printf("  in a the specified subject's directory.  "
+         "This default behavior can\n");
   printf("  be changed with option flags.\n");
   printf("\n");
   printf("  The user must supply at least 4 arguments, plus subject list:\n");
   printf("\n");
-  printf("  mris_make_average_surface [options] hemi outsurfname cansurfname outsubject \n");
+  printf("  mris_make_average_surface [options] "
+         "hemi outsurfname cansurfname outsubject \n");
   printf("    subj1 subj2 subj3 ...\n");
   printf("\n");
   printf("  hemi - hemisphere,  lh or rh\n");
@@ -486,7 +506,8 @@ print_help(void) {
   printf("\n");
   printf("  -sdir-out sdirout\n");
   printf("\n");
-  printf("  Save results in sdirout/outsubject instead of SUBJECTS_IDR/outsubject.\n");
+  printf("  Save results in sdirout/outsubject "
+         "instead of SUBJECTS_IDR/outsubject.\n");
   printf("\n");
   printf("  -nonorm\n");
   printf("\n");
