@@ -180,7 +180,7 @@ Poistats::Poistats( int inArgs, char ** iaArgs ) :
   SetNextOptionalArgument( FLAG_NUM_SAMPLES, "nsamplepoints", 
     "Number of points to sample along path from sample volume. For example, -ns 100 will sample 100 values along the path. Default: 100" );
   SetNextOptionalArgument( FLAG_SEED_VALUES, "seednumvalue", 
-    "Use <seednumvalue> to define seed region. Eg, -seednums \"1 2\"" );
+    "Use <seednumvalue> to define seed region. Eg, -seednums 1,2" );
   SetNextOptionalArgument( FLAG_NUM_REPLICAS, "nreplicas", 
     "Use <nreplicas> to specify the number of replicas.  For example, -nreplicas 100 will spawn 100 replicas. Default: 100" );
 
