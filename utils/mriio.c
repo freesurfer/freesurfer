@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/08 21:02:23 $
- *    $Revision: 1.327 $
+ *    $Date: 2007/02/23 00:50:21 $
+ *    $Revision: 1.328 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -12057,20 +12057,22 @@ mghRead(char *fname, int read_volume, int frame)
       fp = popen(command, "r");
       if (!fp)
       {
+        int tmperrno=errno;
         errno = 0;
         ErrorReturn(NULL, (ERROR_BADPARM,
                            "mghRead: encountered error executing: '%s'"
-                           ",frame %d",
-                           command,frame)) ;
+                           ",frame %d, errno %d",
+                           command,frame,tmperrno)) ;
       }
       if (errno)
       {
+        int tmperrno=errno;
         pclose(fp);
         errno = 0;
         ErrorReturn(NULL, (ERROR_BADPARM,
                            "mghRead: encountered error executing: '%s'"
-                           ",frame %d",
-                           command,frame)) ;
+                           ",frame %d,errno=%d",
+                           command,frame,tmperrno)) ;
       }
     }
     else if (!stricmp(ext, "mgh"))
