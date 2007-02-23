@@ -1,15 +1,14 @@
 /**
  * @file  image.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief image processing utilities
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:33 $
- *    $Revision: 1.105 $
+ *    $Date: 2007/02/23 00:49:47 $
+ *    $Revision: 1.106 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,16 +24,6 @@
  *
  */
 
-
-/*
- *       FILE NAME:   image.c
- *
- *       DESCRIPTION: image processing utilities
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        2/5/96
- *
-*/
 
 /*-----------------------------------------------------
                     INCLUDE FILES
