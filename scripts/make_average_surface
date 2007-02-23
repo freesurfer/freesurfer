@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/02/12 22:03:09 $
-#    $Revision: 1.32 $
+#    $Date: 2007/02/23 00:58:44 $
+#    $Revision: 1.33 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,8 +26,10 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
+# increase number of allowable open files to maximum:
+limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.32 2007/02/12 22:03:09 nicks Exp $';
+set VERSION = '$Id: make_average_surface,v 1.33 2007/02/23 00:58:44 nicks Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
