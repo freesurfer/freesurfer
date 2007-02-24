@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/09 21:24:44 $
- *    $Revision: 1.105 $
+ *    $Date: 2007/02/24 01:29:52 $
+ *    $Revision: 1.106 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1712,6 +1712,7 @@ MATRIX *DevolveXFMWithSubjectsDir(char *subjid,
       LTAvoxelTransformToCoronalRasTransform(lta);
     XFM = MatrixCopy(lta->xforms[0].m_L,NULL);
     LTAfree(&lta);
+    fclose(fp);
   }
 
   /* Mfix = Torig_native*inv(Torig_tkreg) */
@@ -2541,10 +2542,13 @@ LTA *ltaMNIreadEx(const char *fname)
 
   fgetl(line, 900, fp) ;   /* MNI Transform File */
   if (strncmp("MNI Transform File", line, 18))
+  {
+    fclose(fp);
     ErrorReturn(NULL,
                 (ERROR_NOFILE,
                  "ltMNIreadEx:%s does not start as 'MNI Transform File'",
                  fname));
+  }
 
   fgetl(line, 900, fp) ;   /* fileinfo line */
   if (line[0] == '%')
@@ -2590,6 +2594,7 @@ get_transform:
     cp = fgetl(line, 900, fp) ;
     if (!cp)
     {
+      fclose(fp);
       LTAfree(&lta) ;
       ErrorReturn(NULL,
                   (ERROR_BADFILE,
