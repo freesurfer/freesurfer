@@ -58,7 +58,7 @@ IO_SRCS = \
 AM_CPPFLAGS =	$(X_CFLAGS) $(VXL_CFLAGS) \
   -I$(top_srcdir)/include \
   $(ITK_THINGS) -DHAVE_ZLIB
-  
+
 bin_PROGRAMS = dmri_poistats
 dmri_poistats_SOURCES = \
   $(UI_SRCS) \
@@ -79,9 +79,11 @@ dmri_poistats_CXXFLAGS =
 endif
 #end itk
 
+EXTRA_DIST=datamodel io
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
