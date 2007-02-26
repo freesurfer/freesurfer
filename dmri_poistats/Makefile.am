@@ -11,49 +11,50 @@ if HAVE_ITK_LIBS
 
 ITK_THINGS=$(ITK_CFLAGS) -DHAVE_ITK_LIBS
 
-UI_DIR = ui
 UI_SRCS = \
-  $(UI_DIR)/CommandParser.cxx \
-  $(UI_DIR)/FreeSurferExecutable.cxx
+  ui/CommandParser.cxx \
+  ui/FreeSurferExecutable.cxx
 
-DATAMODEL_DIR = datamodel
 DATAMODEL_SRCS = \
-	$(DATAMODEL_DIR)/PoistatsModel.cxx (DATAMODEL_DIR)/PoistatsModel.h
+	datamodel/PoistatsModel.cxx \
+	datamodel/PoistatsModel.h
 
-DATA_DIR = $(DATAMODEL_DIR)/data
 DATA_SRCS = \
-	$(DATA_DIR)/PoistatsReplica.cxx $(DATA_DIR)/PoistatsReplica.h \
-	$(DATA_DIR)/PoistatsReplicas.cxx $(DATA_DIR)/PoistatsReplicas.h
+	datamodel/data/PoistatsReplica.cxx \
+	datamodel/data/PoistatsReplica.h \
+	datamodel/data/PoistatsReplicas.cxx \
+	datamodel/data/PoistatsReplicas.h
 
-EVENTS_DIR = $(DATAMODEL_DIR)/events
 EVENTS_SRCS = \
-  $(EVENTS_DIR)/PoistatsEvents.h \
-  $(EVENTS_DIR)/CommandUpdate.cxx $(EVENTS_DIR)/CommandUpdate.h
+  datamodel/events/PoistatsEvents.h \
+  datamodel/events/CommandUpdate.cxx \
+  datamodel/events/CommandUpdate.h
 
-UTILS_DIR = $(DATAMODEL_DIR)/utils
 UTILS_SRCS = \
-	$(UTILS_DIR)/itkPoistatsFilter.txx $(UTILS_DIR)/itkPoistatsFilter.h
+	datamodel/utils/itkPoistatsFilter.txx \
+	datamodel/utils/itkPoistatsFilter.h
 
-BSPLINES_DIR = $(UTILS_DIR)/bspline
 BSPLINES_SRCS = \
-	$(BSPLINES_DIR)/itkBSplineKernelFunction.txx \
-	  $(BSPLINES_DIR)/itkBSplineKernelFunction.h \
-	$(BSPLINES_DIR)/itkBSplineDataPointSetToImageFilter.txx \
-    $(BSPLINES_DIR)/itkBSplineDataPointSetToImageFilter.h \
-	$(BSPLINES_DIR)/itkPointSetToImageFilter.txx \
-	  $(BSPLINES_DIR)/itkPointSetToImageFilter.h
+	datamodel/utils/bspline/itkBSplineKernelFunction.txx \
+	datamodel/utils/bspline/itkBSplineKernelFunction.h \
+	datamodel/utils/bspline/itkBSplineDataPointSetToImageFilter.txx \
+  datamodel/utils/bspline/itkBSplineDataPointSetToImageFilter.h \
+	datamodel/utils/bspline/itkPointSetToImageFilter.txx \
+	datamodel/utils/bspline/itkPointSetToImageFilter.h
 
-IO_DIR = io
 IO_SRCS = \
-	$(IO_DIR)/AsymmetricTensorReaderStrategy.cxx \
-	  $(IO_DIR)/AsymmetricTensorReaderStrategy.h \
-	$(IO_DIR)/AsymmetricTensorVectorReaderStrategy.cxx \
-	  $(IO_DIR)/AsymmetricTensorVectorReaderStrategy.h \
-	$(IO_DIR)/SymmetricTensorReaderStrategy.cxx \
-	  $(IO_DIR)/SymmetricTensorReaderStrategy.h \
-	$(IO_DIR)/TensorReaderStrategy.cxx $(IO_DIR)/TensorReaderStrategy.h \
-	$(IO_DIR)/itkMGHImageIO.cxx $(IO_DIR)/itkMGHImageIO.h \
-	$(IO_DIR)/itkMGHImageIOFactory.cxx $(IO_DIR)/itkMGHImageIOFactory.h
+	io/AsymmetricTensorReaderStrategy.cxx \
+	io/AsymmetricTensorReaderStrategy.h \
+	io/AsymmetricTensorVectorReaderStrategy.cxx \
+	io/AsymmetricTensorVectorReaderStrategy.h \
+	io/SymmetricTensorReaderStrategy.cxx \
+	io/SymmetricTensorReaderStrategy.h \
+	io/TensorReaderStrategy.cxx \
+	io/TensorReaderStrategy.h \
+	io/itkMGHImageIO.cxx \
+	io/itkMGHImageIO.h \
+	io/itkMGHImageIOFactory.cxx \
+	io/itkMGHImageIOFactory.h
 
 AM_CPPFLAGS =	$(X_CFLAGS) $(VXL_CFLAGS) \
   -I$(top_srcdir)/include \
@@ -71,7 +72,8 @@ dmri_poistats_SOURCES = \
   dmri_poistats.cxx 
 dmri_poistats_LDADD = $(LIBS_ITK) \
 	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
-	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib -litkvnl -litkvcl \
+	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
+	-litkvnl -litkvcl \
 	-lITKMetaIO -litksys -lITKEXPAT -lITKniftiio -lITKznz -litkzlib
 dmri_poistats_LDFLAGS = $(OS_LDFLAGS)
 dmri_poistats_CXXFLAGS = 
@@ -79,11 +81,12 @@ dmri_poistats_CXXFLAGS =
 endif
 #end itk
 
-EXTRA_DIST=datamodel io
+EXTRA_DIST=datamodel io ui $(wildcard *.h) $(wildcard *.txx)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=
+EXCLUDE_FILES=io/CVS ui/CVS datamodel/CVS datamodel/utils/CVS \
+	datamodel/utils/bspline/CVS datamodel/events/CVS datamodel/data/CVS
 include $(top_srcdir)/Makefile.extra
 
