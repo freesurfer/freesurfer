@@ -38,8 +38,8 @@ BSPLINES_DIR = $(UTILS_DIR)/bspline
 BSPLINES_SRCS = \
 	$(BSPLINES_DIR)/itkBSplineKernelFunction.txx \
 	  $(BSPLINES_DIR)/itkBSplineKernelFunction.h \
-	$(BSPLINES_DIR)/itkBSplineScatteredDataPointSetToImageFilter.txx \
-    $(BSPLINES_DIR)/itkBSplineScatteredDataPointSetToImageFilter.h \
+	$(BSPLINES_DIR)/itkBSplineDataPointSetToImageFilter.txx \
+    $(BSPLINES_DIR)/itkBSplineDataPointSetToImageFilter.h \
 	$(BSPLINES_DIR)/itkPointSetToImageFilter.txx \
 	  $(BSPLINES_DIR)/itkPointSetToImageFilter.h
 

@@ -1,12 +1,15 @@
 #ifndef __PoistatsReplicas_h
 #define __PoistatsReplicas_h
 
-#include <itkArray.h>
-
 #include <vector>
 
-#include "PoistatsReplica.h"
+#include "dmri_poistats/datamodel/utils/bspline/itkBSplineDataPointSetToImageFilter.h"
+
+#include <itkArray.h>
+
 #include "dmri_poistats/datamodel/PoistatsModel.h"
+
+#include "PoistatsReplica.h"
 
 /** \class PoistatsReplica
  * 
@@ -138,7 +141,7 @@ private:
 
   typedef itk::PointSet< VectorType, 1 > PointSetType;
     
-  typedef itk::BSplineScatteredDataPointSetToImageFilter
+  typedef itk::BSplineDataPointSetToImageFilter
      < PointSetType, OutputImageType >  CubicSplineFilterType;
   typedef CubicSplineFilterType::Pointer CubicSplineFilterPointer;
 

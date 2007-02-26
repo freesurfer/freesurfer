@@ -1,5 +1,6 @@
-#include "PoistatsReplicas.h"
 #include <iostream>
+
+#include "PoistatsReplicas.h"
 
 PoistatsReplicas::PoistatsReplicas() 
 {

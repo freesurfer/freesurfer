@@ -2,8 +2,8 @@
 #define _itkPoistatsFilter_txx
 
 #include <itkBSplineInterpolateImageFunction.h>
-#include <itkImageRegionIterator.h>
-#include <itkNonUniformBSpline.h>
+//#include <itkImageRegionIterator.h>
+//#include <itkNonUniformBSpline.h>
 #include <itkPointSet.h>
 
 // for calculating the elapsed time
@@ -11,8 +11,6 @@
 
 #include <vnl/vnl_diag_matrix.h>
 #include <vnl/vnl_cross.h>
-
-#include "bspline/itkBSplineScatteredDataPointSetToImageFilter.h"
 
 #include "itkPoistatsFilter.h"
 

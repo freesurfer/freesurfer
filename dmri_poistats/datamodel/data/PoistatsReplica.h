@@ -5,7 +5,6 @@
 #include <itkArray.h>
 
 #include <itkPointSet.h>
-#include "dmri_poistats/datamodel/utils/bspline/itkBSplineScatteredDataPointSetToImageFilter.h"
 
 #include "dmri_poistats/datamodel/PoistatsModel.h"
 
