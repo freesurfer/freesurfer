@@ -86,6 +86,7 @@ AsymmetricTensorVectorReaderStrategy::GetTensors(){
         fullTensorIndex[ 0 ] = cImageRow;
         fullTensorIndex[ 1 ] = cImageCol;
         fullTensorIndex[ 2 ] = cImageSlice;
+        fullTensorIndex[ 3 ] = 0;
         
         FullTensorImageType::PixelType pixel = 
           fullTensors->GetPixel( fullTensorIndex );
