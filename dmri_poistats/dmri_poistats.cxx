@@ -154,7 +154,7 @@ const std::string Poistats::FLAG_POINTS_TO_IMAGE_GAMMA =
 
 Poistats::Poistats( int inArgs, char ** iaArgs ) : 
   FreeSurferExecutable( inArgs, iaArgs ) {
-  SetName( "poistats", "find optimal path in tensor volume" );  
+  SetName( "dmri_poistats", "find optimal path in tensor volume" );  
 
   SetNextRequiredArgument( FLAG_INPUT_STEM, "dtensorinstem", 
     "Diffusion tensor input", 
