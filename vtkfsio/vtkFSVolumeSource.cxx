@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/02/08 00:19:28 $
- *    $Revision: 1.2 $
+ *    $Author: kteich $
+ *    $Date: 2007/02/26 22:51:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,7 +39,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSVolumeSource );
-vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.3 $" );
 
 vtkFSVolumeSource::vtkFSVolumeSource () :
     mMRI( NULL ),
@@ -444,7 +444,7 @@ vtkFSVolumeSource::CopyMRIToImage () {
   vtkShortArray         *shortScalars = NULL;
   vtkLongArray          *longScalars = NULL;
   vtkFloatArray         *floatScalars = NULL;
-  void* pixels = NULL;
+  void* pixels;
   int cValues;
   int nZ, nY;
   int cRead;
@@ -458,13 +458,14 @@ vtkFSVolumeSource::CopyMRIToImage () {
   int zX = mMRI->width;
   int zY = mMRI->height;
   int zZ = mMRI->depth;
+  int zFrames = mMRI->nframes;
 
   // This object's output space is in voxel coordinates.
   mImageData->SetDimensions( zX, zY, zZ );
   mImageData->SetSpacing( 1, 1, 1 );
   mImageData->SetOrigin( -zX/2, -zY/2, -zZ/2 );
   mImageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
-  mImageData->SetNumberOfScalarComponents( 1 );
+  mImageData->SetNumberOfScalarComponents( zFrames );
 
   // create the scalars for all of the images. set the element size
   // for the data we will read.
@@ -513,9 +514,44 @@ vtkFSVolumeSource::CopyMRIToImage () {
 
   // Copy the slice data into the scalars.
   vtkDebugMacro (<< "Copying " << cValues << " values into the scalars array");
+  float* tuple = (float*) malloc( sizeof(float) * zFrames );
   cRead = 0;
+  pixels = NULL;
   for ( nZ = 0; nZ < zZ; nZ++ ) {
     for ( nY = 0; nY < zY; nY++ ) {
+
+#if 0
+      for ( int nX = 0; nX < zY; nX++ ) {
+	
+	switch ( mMRI->type ) {
+	case MRI_UCHAR:
+	  for ( int nFrame = 0; nFrame < zFrames; nFrame++ ) 
+	    tuple[nFrame] = MRIseq_vox( mMRI, nX, nY, nZ, nFrame );
+	  break;
+	case MRI_INT:
+	  for ( int nFrame = 0; nFrame < zFrames; nFrame++ ) 
+	    tuple[nFrame] = MRIIseq_vox( mMRI, nX, nY, nZ, nFrame );
+	  break;
+	case MRI_LONG:
+	  for ( int nFrame = 0; nFrame < zFrames; nFrame++ ) 
+	    tuple[nFrame] = MRILseq_vox( mMRI, nX, nY, nZ, nFrame );
+	  break;
+	case MRI_FLOAT:
+	  for ( int nFrame = 0; nFrame < zFrames; nFrame++ ) 
+	    tuple[nFrame] = MRIFseq_vox( mMRI, nX, nY, nZ, nFrame );
+	  break;
+	case MRI_SHORT:
+	  for ( int nFrame = 0; nFrame < zFrames; nFrame++ ) 
+	    tuple[nFrame] = MRISseq_vox( mMRI, nX, nY, nZ, nFrame );
+	  break;
+	default:
+	  break ;
+	}
+      }
+      scalars->InsertNextTuple( tuple );
+
+#else
+      // Not sure how this will work when reading in frames.
       vtkDebugMacro (<< "Getting a write pointer for " <<
                      cValues << " values");
       switch ( mMRI->type ) {
@@ -543,9 +579,11 @@ vtkFSVolumeSource::CopyMRIToImage () {
       }
       memcpy( pixels, mMRI->slices[nZ][nY], zX* zElement );
       cRead += zX;
+#endif
     }
   }
-
+  free( tuple );
+  
   // Assign the scalars array to the image.
   mImageData->GetPointData()->SetScalars( scalars );
 
