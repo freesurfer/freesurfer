@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.79 2007/02/06 22:54:53 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.80 2007/02/26 00:52:54 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -33,6 +33,11 @@ if ("$OSTYPE" == "Darwin") then
   set change_flags=(-RL)
 else
   set change_flags=(-R)
+endif
+
+# on minerva, use gcc v4.1
+if ("$HOSTNAME" == "minerva") then
+  setenv PATH "/space/minerva/1/users/nicks/pkgs/gcc4.1/install/bin":"$PATH"
 endif
 
 #
