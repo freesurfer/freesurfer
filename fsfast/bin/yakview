@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:19 $
-#    $Revision: 1.10 $
+#    $Author: greve $
+#    $Date: 2007/02/27 17:38:23 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -28,13 +28,13 @@
 
 
 
-set YAKVIEW_VER = '\$Id: yakview,v 1.10 2007/01/09 22:41:19 nicks Exp $'
+set YAKVIEW_VER = '\$Id: yakview,v 1.11 2007/02/27 17:38:23 greve Exp $'
 
 # Set Default Values #
 set imgstem = ();
 set sigstem = ();
 set sigmaskstem = ();
-set sigmaskthresh = 750;
+set sigmaskthresh = 0.5;
 set sigmaskinv = 0;
 set hdrstem = ();
 set rawstem = ();
