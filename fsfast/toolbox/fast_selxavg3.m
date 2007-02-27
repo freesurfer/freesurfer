@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.24 2007/02/23 18:40:24 greve Exp $
+% $Id: fast_selxavg3.m,v 1.25 2007/02/27 21:26:59 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/23 18:40:24 $
-%    $Revision: 1.24 $
+%    $Date: 2007/02/27 21:26:59 $
+%    $Revision: 1.25 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.24 2007/02/23 18:40:24 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.25 2007/02/27 21:26:59 greve Exp $\n');
 
 sessname = basename(sess);
 %outtop = dirname(sess);
@@ -336,6 +336,8 @@ if(DoGLMFit)
     yhatrun = Xrun*betamat0;
     rrun = yrun - yhatrun;
     rsserun = sum(rrun.^2);
+    indz = find(rsserun == 0); % keep zeros from screwing stuff up
+    rsserun(indz) = max(rsserun);
     rsse = rsse + rsserun;
     rho1run = sum(rrun(1:end-1,:).*rrun(2:end,:))./rsserun;
     rho1.vol(:,:,:,nthrun) = fast_mat2vol(rho1run,rho1.volsize);
@@ -555,11 +557,15 @@ if(DoGLMFit)
   save(xfile,'X','flac0','runflac','RescaleFactor',...
        'rfm','acfseg','nrho1segmn','acfsegmn',...
        'DoSynth','SynthSeed','yrun_randn');
-  
+
   baseline = mri;
   baseline.vol = fast_mat2vol(mean(betamat(ind0,:),1),mri.volsize);
   fname = sprintf('%s/h-offset.%s',outanadir,ext);
   MRIwrite(baseline,fname);
+
+  indz  = find(baseline.vol==0);
+  indnz = find(baseline.vol~=0);
+  fprintf('Found %d zero voxels\n',length(indz));
 
   beta = mri;
   beta.vol = fast_mat2vol(betamat,beta.volsize);
@@ -575,6 +581,18 @@ if(DoGLMFit)
   rstd.vol = sqrt(rvar.vol);
   fname = sprintf('%s/rstd.%s',outanadir,ext);
   MRIwrite(rstd,fname);
+  
+  snr = mri;
+  snr.vol = zeros(snr.volsize);
+  snr.vol = baseline.vol./sqrt(rvar.vol);
+  snr.vol(indnz) = baseline.vol(indnz)./rstd.vol(indnz);
+  fname = sprintf('%s/snr.%s',outanadir,ext);
+  MRIwrite(snr,fname);
+  
+  snr2 = snr;
+  snr2.vol = snr.vol.^2;
+  fname = sprintf('%s/snr2.%s',outanadir,ext);
+  MRIwrite(snr2,fname);
   
   if(DoSynth)
     bmn  = mean(betamat(1:nTask,indmask),2);
@@ -596,6 +614,8 @@ if(DoContrasts)
     fname = sprintf('%s/h-offset',outanadir);
     baseline = MRIread(fname);
     if(isempty(baseline)) return; end
+    indz  = find(baseline.vol==0);
+    indnz = find(baseline.vol~=0);
 
     fname = sprintf('%s/beta',outanadir);
     beta = MRIread(fname);
@@ -664,6 +684,12 @@ if(DoContrasts)
     fname = sprintf('%s/ces.%s',outcondir,ext);
     MRIwrite(ces,fname);
     
+    cespct = mri;
+    cespct.vol = zeros(cespct.volsize)
+    cespct.vol(indnz) = 100*ces.vol(indnz)./baseline.vol(indnz);
+    fname = sprintf('%s/cespct.%s',outcondir,ext);
+    MRIwrite(cespct,fname);
+    
     fsig = mri;
     fsig.vol = fast_mat2vol(fsigmat,mri.volsize);
     fname = sprintf('%s/fsig.%s',outcondir,ext);
@@ -682,15 +708,28 @@ if(DoContrasts)
       cesvar.vol = fast_mat2vol(cesvarmat,mri.volsize);
       fname = sprintf('%s/cesvar.%s',outcondir,ext);
       MRIwrite(cesvar,fname);
+
+      cesvarpct = mri;
+      cesvarpct.vol = zeros(cesvarpct.volsize)
+      cesvarpct.vol(indnz) = (100.^2)*cesvar.vol(indnz)./(baseline.vol(indnz).^2);
+      fname = sprintf('%s/cesvarpct.%s',outcondir,ext);
+      MRIwrite(cesvarpct,fname);
+    
     end
 
     if(J > 1)
       % Compute CES amplitude as the sqrt of sum of the squares
-      fprintf('Computing CES Amplitude\n');
-      cesamp = mri;
-      cesamp.vol = sqrt(sum(ces.vol.^2,4));
-      fname = sprintf('%s/cesamp.%s',outcondir,ext);
-      MRIwrite(cesamp,fname);
+      fprintf('Computing CES Magnitude\n');
+      cesmag = mri;
+      cesmag.vol = sqrt(sum(ces.vol.^2,4));
+      fname = sprintf('%s/cesmag.%s',outcondir,ext);
+      MRIwrite(cesmag,fname);
+
+      cesmagpct = mri;
+      cesmagpct.vol = zeros(cesmagpct.volsize);
+      cesmagpct.vol(indnz) = 100*cesmag.vol(indnz)./baseline.vol(indnz);
+      fname = sprintf('%s/cesmagpct.%s',outcondir,ext);
+      MRIwrite(cesmagpct,fname);
     end
   
   end
