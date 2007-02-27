@@ -8,8 +8,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/27 00:05:17 $
-%    $Revision: 1.10 $
+%    $Date: 2007/02/27 17:56:19 $
+%    $Revision: 1.11 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 %
 
 fprintf(1,'\n\n');
-fprintf(1,'yakview: $Id: yakview.m,v 1.10 2007/02/27 00:05:17 greve Exp $\n');
+fprintf(1,'yakview: $Id: yakview.m,v 1.11 2007/02/27 17:56:19 greve Exp $\n');
 
 if(~exist('UseVersion')) UseVersion = 2; end
 
@@ -165,6 +165,7 @@ if(~isempty(SigFile))
     if(~isempty(cutends))  p([1 size(p,1)],:,:) = cutends;  end
     if(~isempty(SigMaskFile))
       pmask = MRIread(SigMaskFile);
+      pmask = pmask.vol;
       if(0)
       switch(fmtimg)
        case 0, 
