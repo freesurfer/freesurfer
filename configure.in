@@ -1881,6 +1881,7 @@ AC_OUTPUT([Makefile
            distribution/sessions/Makefile
            distribution/subjects/Makefile
            dmri_poistats/Makefile
+           dmri_poistats/test/Makefile
            dmri_tensoreig/Makefile
            dngtester/Makefile
            dummy/Makefile

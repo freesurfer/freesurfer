@@ -87,3 +87,4 @@ EXCLUDE_FILES=io/CVS ui/CVS datamodel/CVS datamodel/utils/CVS \
 	datamodel/utils/bspline/CVS datamodel/events/CVS datamodel/data/CVS
 include $(top_srcdir)/Makefile.extra
 
+SUBDIRS=test
