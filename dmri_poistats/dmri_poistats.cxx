@@ -218,9 +218,8 @@ bool
 Poistats::FillArguments() {
   bool isFilled = false;
 
-  std::string *requiredArguments = GetRequiredArguments();
-  
   try {
+    std::string *requiredArguments = GetRequiredArguments();  
     m_InputStem = requiredArguments[0].c_str();
     m_OutputDir = requiredArguments[1].c_str();
     m_Seeds = requiredArguments[2].c_str();
@@ -561,13 +560,25 @@ Poistats::Run() {
 int main( int argc, char ** argv ) {
   
   FreeSurferExecutable *exe = new Poistats( argc, argv );
+  
+  bool shouldPrintHelp = false;
 
   if( argc == 1 ) {
+    shouldPrintHelp = true;
+  } else if( argc == 2 ) {
+    if( argv[ 1 ] == std::string( "--help" ) ) {
+      shouldPrintHelp = true;
+    }
+  }
+  
+  if( shouldPrintHelp ) {
     exe->PrintHelp();
   } else {
     bool isFilled = exe->FillArguments();
     if( isFilled ) {
       exe->Run();
+    } else {
+      std::cerr << "\nuse --help for usage" << std::endl;
     }
   }
   
