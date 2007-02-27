@@ -7,9 +7,9 @@
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:35 $
-%    $Revision: 1.9 $
+%    $Author: greve $
+%    $Date: 2007/02/27 00:05:17 $
+%    $Revision: 1.10 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 %
 
 fprintf(1,'\n\n');
-fprintf(1,'yakview: $Id: yakview.m,v 1.9 2007/01/10 22:02:35 nicks Exp $\n');
+fprintf(1,'yakview: $Id: yakview.m,v 1.10 2007/02/27 00:05:17 greve Exp $\n');
 
 if(~exist('UseVersion')) UseVersion = 2; end
 
@@ -71,6 +71,9 @@ if(~ImgMkMosaic)
   s = s(:,:,1); % keep only first plane of the base 
   basesize = size(s)
 else
+  s = MRIread(ImgFile);
+  s = s.vol;
+  if(0)
   switch(fmtimg)
    case 0, 
     s = fmri_ldbvolume(ImgFile);
@@ -80,9 +83,10 @@ else
     s = load_mgh(ImgFile,[],1);
     s = permute(s,[3 2 1 4]);
   end
+  end
   fprintf('%g  sec\n',toc);
   s = s(:,:,:,1);
-  s = permute(s, [2 3 1]);   % row, col, slice
+  %s = permute(s, [2 3 1]);   % row, col, slice
   fprintf(1,'Making Base Mosaic ... '); tic;
   switch(MosaicDirection)
      case 'row'
@@ -144,7 +148,10 @@ if(~isempty(SigFile))
       p = p.*pmask;
       clear pmask
     end
-  else
+  else % It is a mosaic
+    p = MRIread(SigFile);
+    p = p.vol;
+    if(0)
     switch(fmtimg)
      case 0, 
       p = fmri_ldbvolume(SigFile);
@@ -154,8 +161,11 @@ if(~isempty(SigFile))
       p = load_mgh(SigFile);
       p = permute(p,[3 2 1 4]);
     end
+    end
     if(~isempty(cutends))  p([1 size(p,1)],:,:) = cutends;  end
     if(~isempty(SigMaskFile))
+      pmask = MRIread(SigMaskFile);
+      if(0)
       switch(fmtimg)
        case 0, 
 	pmask = fmri_ldbvolume(SigMaskFile);
@@ -164,6 +174,7 @@ if(~isempty(SigFile))
        case 2, 
 	pmask = load_mgh(SigMaskFile,[],1);
 	pmask = permute(pmask,[3 2 1 4]);
+      end
       end
       pmask = abs(pmask) > SigMaskThresh;
       if(SigMaskInv) 
@@ -176,7 +187,7 @@ if(~isempty(SigFile))
     end
     fprintf('%g  sec\n',toc);
     fprintf(1,'Making Overlay Mosaic ... '); tic;
-    p = permute(p, [2 3 1 4]);  
+    %p = permute(p, [2 3 1 4]);  
     switch(MosaicDirection)
        case 'row'
          p = permute(p, [3 2 1 4]);  
