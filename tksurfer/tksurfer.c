@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/02/15 04:26:14 $
- *    $Revision: 1.247 $
+ *    $Author: kteich $
+ *    $Date: 2007/02/27 17:17:59 $
+ *    $Revision: 1.248 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -18916,7 +18916,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.247 2007/02/15 04:26:14 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.248 2007/02/27 17:17:59 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -26329,12 +26329,19 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
           /* calc the vector from u to v. */
           vu_x = u->x - v->x;
           vu_y = u->y - v->y;
-          vu_z = u->z - v->z;
+	  if (flag2d)
+	    vu_z = 0;
+	  else
+	    vu_z = u->z - v->z;
 
           /* recalc the weight. */
-          dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
-                         ((v->y - u->y) * (v->y - u->y)) +
-                         ((v->z - u->z) * (v->z - u->z)));
+	  if (flag2d)
+	    dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
+			   ((v->y - u->y) * (v->y - u->y)));
+	  else
+	    dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
+			   ((v->y - u->y) * (v->y - u->y)) +
+			   ((v->z - u->z) * (v->z - u->z)));
 
           /* if this is a new shortest path, update the predecessor,
              weight, and add it to the list of ones to check next. */
