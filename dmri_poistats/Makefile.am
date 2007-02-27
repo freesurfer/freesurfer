@@ -2,9 +2,6 @@
 # Makefile.am for poistats
 #
 
-# include this so that the -DHAVE_CONFIG_H flag isn't included when compiling
-DEFS=
-
 #itk is required for building poistats
 # add ITK
 if HAVE_ITK_LIBS
