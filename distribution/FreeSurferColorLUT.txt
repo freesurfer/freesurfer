@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.29 2007/02/23 23:46:35 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.30 2007/02/27 21:30:35 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -243,7 +243,7 @@
 502 right_CA1                               204 68  34  0
 503 right_fimbria                           204 0   255 0
 504 right_presubiculum                      221 187 17  0
-505 right_hippocampal fissure               153 221 238 0
+505 right_hippocampal_fissure               153 221 238 0
 506 right_CA4/DG                            51  17  17  0
 507 right_subiculum                         0   119 85  0
 508 left_CA2/3                              17  85  137 0
@@ -251,7 +251,7 @@
 510 left_CA1                                204 68  35  0
 511 left_fimbria                            204 0   254 0
 512 left_presubiculum                       221 187 16  0
-513 left_hippocampal fissure                153 221 239 0
+513 left_hippocampal_fissure                153 221 239 0
 514 left_CA4/DG                             51  17  18  0
 515 left_subiculum                          0   119 86  0
 
