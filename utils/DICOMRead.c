@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/02/12 22:52:18 $
- *    $Revision: 1.108 $
+ *    $Date: 2007/02/27 23:22:16 $
+ *    $Revision: 1.109 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,6 +58,8 @@ void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex);
 
 static BOOL IsTagPresent[NUMBEROFTAGS];
 static int sliceDirCosPresent;
+static  const char *jpegCompressed_UID = "1.2.840.10008.1.2.4";
+static  const char *rllEncoded_UID     = "1.2.840.10008.1.2.5";
 
 //#define _DEBUG
 
@@ -284,6 +286,13 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
 
   /* Return now if we're not loading pixel data */
   if (!LoadVolume) return(vol);
+
+  if(strcmp(sdfi->TransferSyntaxUID,"1.2.840.10008.1.2.4.70")==0)
+  {
+    printf("ERROR: the pixel data cannot be loaded as it is JPEG compressed.\n");
+    printf("       (Transfer Syntax UID: %s)\n",sdfi->TransferSyntaxUID);
+    exit(1);
+  }
 
   /* Dump info about the first file to stdout */
   DumpSDCMFileInfo(stdout,sdfi);
@@ -3457,8 +3466,6 @@ CONDITION GetDICOMInfo(char *fname,
   // see http://www.psychology.nottingham.ac.uk/staff/cr1/dicom.html
   // for a discussion on this element
   char uid_buf[64];
-  const char *jpegCompressed_UID = "1.2.840.10008.1.2.4";
-  const char *rllEncoded_UID     = "1.2.840.10008.1.2.5";
 
   cond=DCM_OpenFile(fname, DCM_PART10FILE|DCM_ACCEPTVRMISMATCH, object);
   if (cond != DCM_NORMAL)
@@ -3505,9 +3512,12 @@ CONDITION GetDICOMInfo(char *fname,
   uid_buf[strlen(jpegCompressed_UID)]=0;
   if (strcmp(uid_buf,jpegCompressed_UID)==0)
   {
-    printf("ERROR: JPEG compressed image data not supported!\n");
-    printf("       (Transfer Syntax UID: %s)\n",dcminfo->TransferSyntaxUID);
-    exit(1);
+    // Don't do anything about this until pixel data are loaded
+    //printf("WARNING: JPEG compressed image data not supported!\n");
+    //printf("         (Transfer Syntax UID: %s)\n",dcminfo->TransferSyntaxUID);
+    //Do not exit here because we may want only to read the header and 
+    // not the pixel data.
+    //exit(1);
   }
   // RLL encoded data is *not* supported by freesurfer
   strncpy(uid_buf,dcminfo->TransferSyntaxUID,sizeof(uid_buf));
@@ -4586,6 +4596,15 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
     free(dcminfo);
     return(mri);
   }
+
+  if(strcmp(dcminfo[0]->TransferSyntaxUID,"1.2.840.10008.1.2.4.70")==0)
+  {
+    printf("ERROR: the pixel data cannot be loaded as it is JPEG compressed.\n");
+    printf("       (Transfer Syntax UID: %s)\n",dcminfo[0]->TransferSyntaxUID);
+    exit(1);
+  }
+  printf("TransferSyntaxUID: --%s--\n",dcminfo[0]->TransferSyntaxUID);
+  printf("jpegUID:           --%s--\n",jpegCompressed_UID);
 
   printf("Loading pixel data\n");
   nvox = RefDCMInfo.Columns * RefDCMInfo.Rows;
