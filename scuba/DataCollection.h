@@ -1,15 +1,20 @@
 /**
  * @file  DataCollection.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Base abstract data collection object
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This class is the base class for all data objects in Scuba. A 'collection'
+ * is usually a primary data object, such as a volume or surface, and its
+ * associated data, such as ROIs. This file also defines the DataLocation
+ * class, which is encapsulates different coordinate spaces such as RAS and
+ * data indicies.
+
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:13 $
- *    $Revision: 1.22 $
+ *    $Author: kteich $
+ *    $Date: 2007/02/28 18:33:14 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
