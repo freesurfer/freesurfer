@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/28 19:19:49 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,7 +42,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_density.c,v 1.2 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = "$Id: mris_density.c,v 1.3 2007/02/28 19:19:49 fischl Exp $";
 
 
 int main(int argc, char *argv[]) ;
@@ -57,15 +57,18 @@ char *Progname ;
 
 static double resolution = 1.0/8.0 ;
 static double radius = 20 ;
+static char *density_fname = NULL ;
+static char *translate_fname = NULL ;
 
 int
 main(int argc, char *argv[]) {
   char          **av, *out_fname, *in_fname ;
   int           ac, nargs ;
   MRI_SURFACE   *mris ;
+  MRI           *mri_density ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_density.c,v 1.2 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_density.c,v 1.3 2007/02/28 19:19:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -92,7 +95,48 @@ main(int argc, char *argv[]) {
   mris = MRISread(in_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",Progname, in_fname) ;
-  MRISmakeDensityMap(mris, resolution, radius) ;
+  if (translate_fname && Gdiag_no >= 0)
+  {
+    MRI_SURFACE *mris2 ;
+    float       x0, y0, z0, dist, min_dist, x, y, z ;
+    int         vno, min_vno;
+    char        surf_name[STRLEN] ;
+    VERTEX      *v ;
+
+    mris2 = MRISread(translate_fname) ;
+    if (!mris2)
+      ErrorExit(ERROR_NOFILE, "%s: could not load translation surface %s", Progname, translate_fname) ;
+    FileNameOnly(translate_fname, surf_name) ;
+    if (MRISreadCanonicalCoordinates(mris, surf_name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read canonical coords from %s", Progname, surf_name) ;
+    x0 = mris2->vertices[Gdiag_no].x ;
+    y0 = mris2->vertices[Gdiag_no].y ;
+    z0 = mris2->vertices[Gdiag_no].z ;
+    min_dist = 1e10 ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      x = v->cx ; y = v->cy ; z = v->cz ;
+      dist = sqrt(SQR(x-x0) + SQR(y-y0) + SQR(z-z0)) ;
+      if (dist < min_dist)
+      {
+        min_dist = dist ;
+        min_vno = vno ;
+      }
+    }
+    printf("translating to vertex %d (min dist = %2.1f)\n", min_vno, min_dist) ;
+    Gdiag_no = min_vno ;
+  }
+    
+  MRISmakeDensityMap(mris, resolution, radius, Gdiag_no, &mri_density) ;
+  if (density_fname != NULL)
+  {
+    printf("writing density volume for %d to %s\n", Gdiag_no, density_fname) ;
+    MRIwrite(mri_density, density_fname) ;
+    MRIfree(&mri_density) ;
+  }
 
   fprintf(stderr, "writing density map to curvature file %s...\n", out_fname) ;
   MRISwriteCurvature(mris, out_fname) ;
@@ -119,26 +163,36 @@ get_option(int argc, char *argv[]) {
     radius = atof(argv[2]) ;
     nargs =  1 ;
     printf("using radius = %2.3f\n", radius) ;
+  } else if (!stricmp(option, "debug")) {
+    Gdiag_no = atoi(argv[2]) ;
+    density_fname = argv[3] ;
+    nargs =  2 ;
+    printf("debugging vertex %d, and writing density map for it to %s\n", Gdiag_no, density_fname) ;
   } else switch (toupper(*option)) {
-    case 'R':
-      resolution = (double)atof(argv[2]) ;
-      nargs = 1 ;
-      printf("setting resolution for intermediate calculations to %2.4f\n", resolution) ;
-      break ;
-    case 'V':
-      Gdiag_no = atoi(argv[2]) ;
-      nargs = 1 ;
-      break ;
-    case '?':
-    case 'U':
-      print_usage() ;
-      exit(1) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+  case 'R':
+    resolution = (double)atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting resolution for intermediate calculations to %2.4f\n", resolution) ;
+    break ;
+  case 'T':
+    translate_fname = argv[2] ;
+    printf("translating vertex %d on surface %s to current surface\n", Gdiag_no, translate_fname) ;
+    nargs = 1 ;
+    break ;
+  case 'V':
+    Gdiag_no = atoi(argv[2]) ;
+    nargs = 1 ;
+    break ;
+  case '?':
+  case 'U':
+    print_usage() ;
+    exit(1) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
 
   return(nargs) ;
 }
