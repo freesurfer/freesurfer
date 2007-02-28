@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/02/21 16:48:23 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/02/28 00:07:24 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.14 2007/02/21 16:48:23 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.15 2007/02/28 00:07:24 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.14 2007/02/21 16:48:23 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.15 2007/02/28 00:07:24 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
     return(0);
   }
 
-  tag=DCM_MAKETAG(grouptag,elementtag);
+  tag = DCM_MAKETAG(grouptag,elementtag);
 
   COND_PopCondition(1);
   object = GetObjectFromFile(dicomfile, 0);
@@ -381,7 +381,7 @@ static void print_usage(void) {
   fprintf(stdout, "\n");
   fprintf(stdout, "   --i dicomfile     : path to dicom file \n");
   fprintf(stdout, "   --t group element : dicom group and element\n");
-  fprintf(stdout, "   --d directive     : <val> filetype, tag, desc, mult, rep \n");
+  fprintf(stdout, "   --d directive     : <val>, length, filetype, tag, desc, mult, rep \n");
   fprintf(stdout, "   --no-name         : do not print patient name (10,10) with dump \n");
   fprintf(stdout, "   --view            : view the image  \n");
   fprintf(stdout, "   --o file          : dump binary pixel data into file  \n");
@@ -535,6 +535,8 @@ static void check_options(void) {
     fprintf(stderr,"ERROR: must specify output file when querying value of  pixel data\n");
     exit(1);
   }
+
+  if(debug) DCM_Debug(1);
 
   return;
 }
