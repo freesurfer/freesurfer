@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: segonne $
- *    $Date: 2007/02/13 17:15:43 $
- *    $Revision: 1.282 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/28 19:18:43 $
+ *    $Revision: 1.283 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -312,6 +312,7 @@ positive areas */
 that will
 maximize the
 positive areas */
+#define IPFLAG_NOSCALE_TOL            0x8000   // don't scale tol with navgs
 
 #define INTEGRATE_LINE_MINIMIZE    0  /* use quadratic fit */
 #define INTEGRATE_MOMENTUM         1
@@ -975,6 +976,7 @@ int   MRIScopyMeansToValues(MRI_SURFACE *mris) ;
 int   MRIScopyCurvatureToValues(MRI_SURFACE *mris) ;
 int   MRIScopyCurvatureToImagValues(MRI_SURFACE *mris) ;
 int   MRIScopyCurvatureFromValues(MRI_SURFACE *mris) ;
+int   MRIScopyVal2ToVal(MRI_SURFACE *mris) ;
 int   MRIScopyCurvatureFromImagValues(MRI_SURFACE *mris) ;
 int   MRIScopyImaginaryMeansToValues(MRI_SURFACE *mris) ;
 int   MRIScopyStandardErrorsToValues(MRI_SURFACE *mris) ;
@@ -1522,9 +1524,8 @@ int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris,double l_lambda) ;
 int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris, 
                                               double gaussian_norm, 
                                               double l_spring) ;
-int MRISmakeDensityMap(MRI_SURFACE *mris, 
-                       double resolution, 
-                       double radius) ;
+int
+MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius, int diag_no, MRI **pmri);
 double MRIScomputeWhiteVolume(MRI_SURFACE *mris, 
                               MRI *mri_aseg, 
                               double resolution);
