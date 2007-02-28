@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.25 2007/02/27 21:26:59 greve Exp $
+% $Id: fast_selxavg3.m,v 1.26 2007/02/28 20:52:58 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/27 21:26:59 $
-%    $Revision: 1.25 $
+%    $Date: 2007/02/28 20:52:58 $
+%    $Revision: 1.26 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.25 2007/02/27 21:26:59 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.26 2007/02/28 20:52:58 greve Exp $\n');
 
 sessname = basename(sess);
 %outtop = dirname(sess);
@@ -565,7 +565,7 @@ if(DoGLMFit)
 
   indz  = find(baseline.vol==0);
   indnz = find(baseline.vol~=0);
-  fprintf('Found %d zero voxels\n',length(indz));
+  fprintf('Found %d zero-valued voxels\n',length(indz));
 
   beta = mri;
   beta.vol = fast_mat2vol(betamat,beta.volsize);
@@ -685,7 +685,7 @@ if(DoContrasts)
     MRIwrite(ces,fname);
     
     cespct = mri;
-    cespct.vol = zeros(cespct.volsize)
+    cespct.vol = zeros(cespct.volsize);
     cespct.vol(indnz) = 100*ces.vol(indnz)./baseline.vol(indnz);
     fname = sprintf('%s/cespct.%s',outcondir,ext);
     MRIwrite(cespct,fname);
@@ -710,7 +710,7 @@ if(DoContrasts)
       MRIwrite(cesvar,fname);
 
       cesvarpct = mri;
-      cesvarpct.vol = zeros(cesvarpct.volsize)
+      cesvarpct.vol = zeros(cesvarpct.volsize);
       cesvarpct.vol(indnz) = (100.^2)*cesvar.vol(indnz)./(baseline.vol(indnz).^2);
       fname = sprintf('%s/cesvarpct.%s',outcondir,ext);
       MRIwrite(cesvarpct,fname);
@@ -730,6 +730,22 @@ if(DoContrasts)
       cesmagpct.vol(indnz) = 100*cesmag.vol(indnz)./baseline.vol(indnz);
       fname = sprintf('%s/cesmagpct.%s',outcondir,ext);
       MRIwrite(cesmagpct,fname);
+    
+      tsigmatall = [];
+      for nthj = 1:J
+	Cj = C(nthj,:);
+	[Fmat dof1 dof2 cesmat cesvarmat] = ...
+	    fast_fratiow(betamat,X,rvarmat,Cj,acfsegmn,acfseg.vol(:));
+	pmat = FTest(dof1, dof2, Fmat);
+	ind = find(pmat == 0); pmat(ind) = 1;
+	tsigmat = -log10(pmat) .* sign(cesmat);
+	tsigmatall(nthj,:) = tsigmat;
+      end
+      tsigall = mri;
+      tsigall.vol = fast_mat2vol(tsigmatall,mri.volsize);
+      fname = sprintf('%s/sig.%s',outcondir,ext);
+      MRIwrite(tsigall,fname);
+    
     end
   
   end
