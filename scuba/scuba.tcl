@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/01/09 17:02:31 $
-#    $Revision: 1.237 $
+#    $Date: 2007/02/28 18:33:23 $
+#    $Revision: 1.238 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.237 2007/01/09 17:02:31 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.238 2007/02/28 18:33:23 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2855,6 +2855,7 @@ proc UpdateCurrentCollectionInCollectionProperites {} {
 		-label "Delete $gaCollection(current,label)..."
 	}
 	Surface {
+
 	    # Pack the type panel.
 	    grid $gaWidget(collectionProperties,surface) \
 		-column 0 -row 2 -sticky news
@@ -2867,11 +2868,14 @@ proc UpdateCurrentCollectionInCollectionProperites {} {
 	    set gaCollection(current,surfaceTransformVolume) \
 		[GetSurfaceDataToSurfaceTransformVolume $colID]
 
-	    # Select the right in the surface transform menu
+	    # Select the right volume in the surface transform
+	    # menu. This might fail if we don't have a surface loaded.
 	    $gaWidget(collectionProperties,surfaceTransformMenu) config \
 		-disablecallback 1
-	    $gaWidget(collectionProperties,surfaceTransformMenu) config \
-		-value $gaCollection(current,surfaceTransformVolume)
+	    catch {
+		$gaWidget(collectionProperties,surfaceTransformMenu) config \
+		    -value $gaCollection(current,surfaceTransformVolume)
+	    }
 	    $gaWidget(collectionProperties,surfaceTransformMenu) config \
 		-disablecallback 0    
 
@@ -2895,6 +2899,7 @@ proc UpdateCurrentCollectionInCollectionProperites {} {
 		$gaWidget(Menu,fileMenuDeleteIndex) \
 		-state normal \
 		-label "Delete $gaCollection(current,label)..."
+
 	}
     }
 
@@ -6736,7 +6741,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.237 2007/01/09 17:02:31 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.238 2007/02/28 18:33:23 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
