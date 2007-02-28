@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: segonne $
- *    $Date: 2007/02/13 17:15:58 $
- *    $Revision: 1.515 $
+ *    $Author: fischl $
+ *    $Date: 2007/02/28 19:19:20 $
+ *    $Revision: 1.516 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.515 2007/02/13 17:15:58 segonne Exp $");
+  return("$Id: mrisurf.c,v 1.516 2007/02/28 19:19:20 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1311,6 +1311,10 @@ MRISread(char *fname)
   MRI_SURFACE  *mris ;
 
   mris = MRISreadOverAlloc(fname, 0.0) ;
+  if (mris == NULL)
+    return(NULL) ;
+  MRISsetNeighborhoodSize(mris, 3) ;   // find nbhds out to 3-nbrs
+  MRISresetNeighborhoodSize(mris, 1) ; // reset current size to 1-nbrs
   return(mris) ;
 }
 
@@ -1527,15 +1531,30 @@ MRISfree(MRI_SURFACE **pmris)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     if (mris->vertices[vno].f)
+    {
       free(mris->vertices[vno].f) ;
+      mris->vertices[vno].f = NULL ;
+    }
     if (mris->vertices[vno].n)
+    {
       free(mris->vertices[vno].n) ;
+      mris->vertices[vno].n = NULL ;
+    }
     if (mris->vertices[vno].dist)
+    {
       free(mris->vertices[vno].dist) ;
+      mris->vertices[vno].dist = NULL ;
+    }
     if (mris->vertices[vno].dist_orig)
+    {
       free(mris->vertices[vno].dist_orig) ;
+      mris->vertices[vno].dist_orig = NULL ;
+    }
     if (mris->vertices[vno].v)
+    {
       free(mris->vertices[vno].v) ;
+      mris->vertices[vno].v = NULL ;
+    }
   }
 
   if (mris->vertices)
@@ -1553,6 +1572,11 @@ MRISfree(MRI_SURFACE **pmris)
       LTAfree(&(mris->lta));
   }
 
+  {
+    int i ;
+    for (i = 0 ; i < mris->ncmds ; i++)
+      free(mris->cmdlines[i]) ;
+  }
   free(mris) ;
   return(NO_ERROR) ;
 }
@@ -4939,7 +4963,10 @@ MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
 
   if (Gdiag & DIAG_WRITE)
+  {
     fclose(parms->fp) ;
+    parms->fp = NULL ;
+  }
 
   mrisProjectSurface(mris) ;
   return(mris) ;
@@ -4954,7 +4981,8 @@ MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   ------------------------------------------------------*/
 static float sigmas[] =
   {
-    4.0f, 2.0f, 1.0f, 0.5f
+    //    16.00, 4.0f, 2.0f, 1.0f, 0.5f
+    8.00f, 4.00f, 2.0f, 0.5f
   } ;
 #define NSIGMAS  (sizeof(sigmas)  / sizeof(sigmas[0]))
 
@@ -4996,27 +5024,49 @@ MRISsetOriginalFileName(char *orig_name)
 #define SURFACES         sizeof(curvature_names) / sizeof(curvature_names[0])
 #define PARAM_IMAGES         (IMAGES_PER_SURFACE*SURFACES)
 
+/*
+  Note that at the start of this function, the ORIGINAL_VERTICES must
+  contain the surface that has the metric properties to be preserved (e.g. 
+  smoothwm, white), and the CANONICAL_VERTICES must contain the uniform
+  spherical surface (e.g. ?h.sphere).
+*/
 int
 MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
              INTEGRATION_PARMS *parms,
              int max_passes, float min_degrees, float max_degrees, int nangles)
 {
   float   sigma, target_sigma, dof ;
-  int     i, /*steps,*/ done, sno, ino, msec, min_averages=0, nsurfaces ;
+  int     i, start_t, done, sno, ino, msec, min_averages=0, nsurfaces ;
   MRI_SP  *mrisp ;
   char    fname[STRLEN], base_name[STRLEN], path[STRLEN] ;
   double  base_dt ;
   struct  timeb start ;
-  static  int first = 1 ;
+  int first = 1 ;
+  INTEGRATION_PARMS saved_parms ;
+
+  saved_parms = *parms ;
 
   if (IS_QUADRANGULAR(mris))
     MRISremoveTriangleLinks(mris) ;
   TimerStart(&start) ;
-  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   FileNamePath(mris->fname, path) ;
   sprintf(base_name, "%s/%s.%s", path,
           mris->hemisphere == LEFT_HEMISPHERE ? "lh":"rh", parms->base_name);
 
+  if (parms->nbhd_size > 3)
+  {
+    int nbrs[MAX_NBHD_SIZE] ;
+
+    printf("sampling long-range distances\n") ;
+    memset(nbrs, 0, MAX_NBHD_SIZE*sizeof(nbrs[0])) ;
+    for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
+      nbrs[i] = parms->max_nbrs ;
+    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRISsampleDistances(mris, nbrs, parms->nbhd_size) ;
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    MRIScomputeMetricProperties(mris) ;
+  }
   base_dt = parms->dt ;
   if (Gdiag & DIAG_WRITE)
   {
@@ -5024,12 +5074,12 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     (fname, "%s.%s.out",
      mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
     if (!parms->start_t)
-    {
       parms->fp = fopen(fname, "w") ;
-      if (!parms->fp)
-        ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
-                  Progname, fname) ;
-    }
+    else
+      parms->fp = fopen(fname, "a") ;
+    if (!parms->fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+                Progname, fname) ;
     mrisLogIntegrationParms(parms->fp, mris,parms) ;
   }
   if (Gdiag & DIAG_SHOW)
@@ -5038,13 +5088,6 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
   MRISuseMeanCurvature(mris) ;
   MRISnormalizeCurvature(mris, NORM_MEAN) ;
   MRISstoreMeanCurvature(mris) ;
-
-  if (parms->nbhd_size > 0)  /* compute long-range distances */
-  {
-    int i, nbrs[MAX_NBHD_SIZE] ;
-    for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
-      nbrs[i] = parms->max_nbrs ;
-  }
 
   if (parms->flags & IP_NO_SULC)
   {
@@ -5086,13 +5129,13 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   "MRISregister", fname) ;
 
-      MRISsetNeighborhoodSize(mris, 3) ;  /* back to max */
+      MRISresetNeighborhoodSize(mris, 3) ;  /* back to max */
       MRIScomputeMetricProperties(mris) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;
       MRISnormalizeCurvature(mris, NORM_MEAN) ;
-      MRISresetNeighborhoodSize(mris,1);/*only use nearest
-                                 neighbor distances*/
+      MRISresetNeighborhoodSize(mris,1);/*only use nearest neighbor distances*/
+
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
       MRIScomputeMetricProperties(mris) ;
     }
@@ -5113,7 +5156,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     {
       /* only small adjustments needed after 1st time around */
       parms->tol *= 2.0f ;
-      parms->l_corr /= 20.0f ;  /* should be more adaptive */
+      parms->l_corr /= 20.0f ;  // should be more adaptive - used to be 20
       if (Gdiag & DIAG_WRITE)
         mrisLogIntegrationParms(parms->fp, mris, parms) ;
       if (Gdiag & DIAG_SHOW)
@@ -5148,7 +5191,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       if (Gdiag & DIAG_WRITE && !i && (!parms->start_t || sno <= 1))
       {
         MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-        MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+        MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
         MRIScomputeMetricProperties(mris) ;
         MRISfromParameterization(mrisp_template, mris, ino);
         MRISnormalizeCurvature(mris, NORM_MEAN) ;
@@ -5302,15 +5345,25 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
   parms->l_area = parms->l_parea = 0 ;
   mrisRemoveNegativeArea(mris,parms,parms->n_averages,MAX_NEG_AREA_PCT,3);
 #endif
+#if 0
   MRISPfree(&parms->mrisp) ;
   MRISPfree(&parms->mrisp_template) ;
+#endif
   msec = TimerStop(&start) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stdout, "registration took %2.2f hours\n",
             (float)msec/(1000.0f*60.0f*60.0f));
   if (Gdiag & DIAG_WRITE)
+  {
     fprintf(parms->fp, "registration took %2.2f hours\n",
             (float)msec/(1000.0f*60.0f*60.0f));
+    fclose(parms->fp) ;
+    parms->fp = NULL ;
+  }
+
+  start_t = parms->start_t ;
+  *parms = *(&saved_parms) ;
+  parms->start_t = start_t ;
   return(NO_ERROR) ;
 }
 
@@ -5789,6 +5842,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
   mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
 
 
+#if 0
   /* free everything */
   MRISPfree(&parms->mrisp) ;
   MRISPfree(&parms->mrisp_template) ;
@@ -5803,6 +5857,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
     free(vp);
     v->vp=NULL;
   }
+#endif
 
   free(frames);
   free(indices);
@@ -6757,7 +6812,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   l_area = parms->l_area ;
   write_iterations = parms->write_iterations ;
   niterations = parms->niterations ;
-  if ((parms->flags & IPFLAG_QUICK) == 0)
+  if (((parms->flags & IPFLAG_QUICK) == 0) && ((parms->flags & IPFLAG_NOSCALE_TOL) == 0))
     tol = parms->tol * sqrt(((double)n_averages + 1.0) / 1024.0);
   else
     tol = parms->tol ;
@@ -7071,7 +7126,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   double  sse, sse_area, sse_angle, delta, sse_curv, sse_spring, sse_dist,
   area_scale, sse_corr, sse_neg_area, l_corr, sse_val, sse_sphere,
-  sse_grad, sse_nl_area, sse_tspring, sse_repulse, sse_tsmooth,
+  sse_grad, sse_nl_area, sse_nl_dist, sse_tspring, sse_repulse, sse_tsmooth,
   sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap, sse_lap, sse_dura;
   int     ano, fno ;
   FACE    *face ;
@@ -7089,6 +7144,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   sse_repulse = 
     sse_nl_area = 
+    sse_nl_dist = 
     sse_corr =
     sse_angle = 
     sse_neg_area = 
@@ -7144,7 +7200,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (!FZERO(parms->l_nlarea))
     sse_nl_area = mrisComputeNonlinearAreaSSE(mris) ;
   if (!FZERO(parms->l_nldist))
-    sse_nl_area = mrisComputeNonlinearDistanceSSE(mris) ;
+    sse_nl_dist = mrisComputeNonlinearDistanceSSE(mris) ;
   if (!FZERO(parms->l_dist))
     sse_dist = mrisComputeDistanceError(mris) ;
   if (!FZERO(parms->l_spring))
@@ -7187,6 +7243,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     (double)parms->l_expandwrap * sse_expandwrap +
     (double)parms->l_grad      * sse_grad +
     (double)parms->l_parea     * sse_area +
+    (double)parms->l_nldist    * sse_nl_dist +
     (double)parms->l_nlarea    * sse_nl_area +
     (double)parms->l_angle     * sse_angle +
     (double)parms->l_dist      * sse_dist +
@@ -16563,6 +16620,12 @@ mrisComputeDistanceError(MRI_SURFACE *mris)
 #endif
       if (v->dist_orig[n] >= UNFOUND_DIST)
         continue ;
+      if (DZERO(v->dist_orig[n]))
+      {
+        fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!\n",
+                vno, n, v->dist_orig[n]) ;
+        DiagBreak() ;
+      }
       delta = dist_scale*v->dist[n] - v->dist_orig[n] ;
 
       if (fabs(delta) > fabs(max_del))
@@ -28076,7 +28139,7 @@ mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sse += (del0 * del0) ;
   }
 
-  return(parms->l_intensity * sse) ;
+  return(sse) ;
 }
 /*-----------------------------------------------------
   Parameters:
@@ -28118,7 +28181,7 @@ mrisComputeIntensityGradientError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sse += (del0 * del0) ;
   }
 
-  return(parms->l_grad * sse) ;
+  return(sse) ;
 }
 /*-----------------------------------------------------
   Parameters:
@@ -28303,7 +28366,7 @@ mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double r0)
 #endif
   }
 
-  return(l_sphere * sse) ;
+  return(sse) ;
 }
 /*-----------------------------------------------------
   Parameters:
@@ -28411,6 +28474,28 @@ MRIScopyCurvatureToValues(MRI_SURFACE *mris)
     if (v->ripflag)
       continue ;
     v->val = v->curv ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
+MRIScopyVal2ToVal(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->val = v->val2 ;
   }
   return(NO_ERROR) ;
 }
@@ -57979,7 +58064,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   min_neg = negative = MRIScountNegativeTriangles(mris) ;
   min_neg_iter = 0 ;
   last_expand = 0 ;
-  parms->t -= parms->start_t ;
+  parms->t = parms->start_t ;
   while (negative > 0)
   {
     old_neg = negative ;
@@ -58058,7 +58143,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     }
 #endif
 
-    if (parms->t > parms->niterations)
+    if (parms->t-parms->start_t > parms->niterations)
       break ;
   }
 
@@ -59014,10 +59099,10 @@ MRISsetAllMarks(MRI_SURFACE *mris, int mark)
 }
 #include "diag.h"
 int
-MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius)
+MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius, int diag_no, MRI **pmri)
 {
   MRI           *mri_interior ;
-  int           x, y, z, vno, num ;
+  int           x, y, z, vno, num, vradius ;
   VERTEX        *v ;
   double        volume, dist, dx, dy, dz, sphere_volume ;
   Real          xf, yf, zf ;
@@ -59026,34 +59111,48 @@ MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius)
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_interior, "int.mgz") ;
 
+  if (diag_no >= 0)
+  {
+    *pmri = MRIclone(mri_interior, NULL) ;
+  }
+
   volume = mri_interior->xsize * mri_interior->ysize * mri_interior->zsize ;
   sphere_volume = volume*M_PI*radius*radius*radius*4/3 ;
+  vradius = radius / (MIN(MIN(mri_interior->xsize, mri_interior->ysize), mri_interior->zsize)) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     if (v->ripflag)
       continue ;
     MRISvertexToVoxel(mris, v, mri_interior, &xf, &yf, &zf) ;
-    for (num = 0, x = floor(xf-radius) ; x <= ceil(xf+radius) ; x++)
+    for (num = 0, x = floor(xf-vradius) ; x <= ceil(xf+vradius) ; x++)
     {
       if (x < 0 || x >= mri_interior->width)
         continue ;
-      for (y = floor(yf-radius) ; y <= ceil(yf+radius) ; y++)
+      for (y = floor(yf-vradius) ; y <= ceil(yf+vradius) ; y++)
       {
         if (y < 0 || y >= mri_interior->height)
           continue ;
-        for (z = floor(zf-radius) ; z <= ceil(zf+radius) ; z++)
+        for (z = floor(zf-vradius) ; z <= ceil(zf+vradius) ; z++)
         {
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
           if (z < 0 || z >= mri_interior->depth)
             continue ;
           dx = x-xf ;
           dy = y-yf ;
           dz = z-zf ;
           dist = sqrt(dx*dx + dy*dy + dz*dz) ;
-          if (dist > radius)
+          if (dist > vradius)
             continue ;
           if (MRIgetVoxVal(mri_interior, x, y, z, 0) > 0)
+          {
             num++ ;
+            if (vno == Gdiag_no)
+              MRIsetVoxVal(*pmri, x, y, z, 0, 1.0) ;
+          }
         }
       }
     }
