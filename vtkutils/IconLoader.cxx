@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/01 19:56:45 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/03/01 20:02:17 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,19 +76,19 @@ IconLoader::SetPushButtonIcon ( const char* isKey,
   if( maTIFFData.end() == tTIFFData )
     throw runtime_error( string("Icon key ") + 
 			 string(isKey) + 
-			 string("not found in data map.") );
+			 string(" not found in data map.") );
 
   map<string,int>::iterator tWidth = maWidth.find( isKey );
   if( maWidth.end() == tWidth )
     throw runtime_error( string("Icon key ") + 
 			 string(isKey) + 
-			 string("not found in width map.") );
+			 string(" not found in width map.") );
 
   map<string,int>::iterator tHeight = maHeight.find( isKey );
   if( maWidth.end() == tHeight )
     throw runtime_error( string("Icon key ") + 
 			 string(isKey) + 
-			 string("not found in height map.") );
+			 string(" not found in height map.") );
 
   if ( NULL == tTIFFData->second )
     throw runtime_error( string("Icon with key ") + 
@@ -107,19 +107,19 @@ IconLoader::SetCheckButtonIcon ( const char* isKey,
   if( maTIFFData.end() == tTIFFData )
     throw runtime_error( string("Icon key ") + 
 			 string(isKey) + 
-			 string("not found in data map.") );
+			 string(" not found in data map.") );
 
   map<string,int>::iterator tWidth = maWidth.find( isKey );
   if( maWidth.end() == tWidth )
     throw runtime_error( string("Icon key ") + 
 			 string(isKey) + 
-			 string("not found in width map.") );
+			 string(" not found in width map.") );
 
   map<string,int>::iterator tHeight = maHeight.find( isKey );
   if( maWidth.end() == tHeight )
     throw runtime_error( string("Icon key ") + 
 			 string(isKey) + 
-			 string("not found in height map.") );
+			 string(" not found in height map.") );
 
   if ( NULL == tTIFFData->second )
     throw runtime_error( string("Icon with key ") + 
@@ -138,7 +138,7 @@ IconLoader:: SetMenuItemIcon ( const char* isKey,
   if( mabTkIconLoaded.end() == tbLoaded )
     throw runtime_error( string("Icon key ") + 
 			 string(isKey) + 
-			 string("not found in loaded map.") );
+			 string(" not found in loaded map.") );
   
   if ( !tbLoaded->second )
     throw runtime_error( string("Icon with key ") + 
