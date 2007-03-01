@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.28 2007/03/01 03:06:49 greve Exp $
+% $Id: fast_selxavg3.m,v 1.29 2007/03/01 19:33:46 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/01 03:06:49 $
-%    $Revision: 1.28 $
+%    $Date: 2007/03/01 19:33:46 $
+%    $Revision: 1.29 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -68,7 +68,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.28 2007/03/01 03:06:49 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.29 2007/03/01 19:33:46 greve Exp $\n');
 
 sessname = basename(sess);
 %outtop = dirname(sess);
@@ -730,17 +730,19 @@ if(DoContrasts)
 
     if(J > 1)
       % Compute CES amplitude as the sqrt of sum of the squares
-      fprintf('Computing CES Magnitude\n');
-      cesmag = mri;
-      cesmag.vol = sqrt(sum(ces.vol.^2,4));
-      fname = sprintf('%s/cesmag.%s',outcondir,ext);
-      MRIwrite(cesmag,fname);
-
-      cesmagpct = mri;
-      cesmagpct.vol = zeros(cesmagpct.volsize);
-      cesmagpct.vol(indnz) = 100*cesmag.vol(indnz)./baseline.vol(indnz);
-      fname = sprintf('%s/cesmagpct.%s',outcondir,ext);
-      MRIwrite(cesmagpct,fname);
+      if(J < 20) % 20 to prevent it from going crazy
+	fprintf('Computing CES Magnitude\n');
+	cesmag = mri;
+	cesmag.vol = sqrt(sum(ces.vol.^2,4));
+	fname = sprintf('%s/cesmag.%s',outcondir,ext);
+	MRIwrite(cesmag,fname);
+	
+	cesmagpct = mri;
+	cesmagpct.vol = zeros(cesmagpct.volsize);
+	cesmagpct.vol(indnz) = 100*cesmag.vol(indnz)./baseline.vol(indnz);
+	fname = sprintf('%s/cesmagpct.%s',outcondir,ext);
+	MRIwrite(cesmagpct,fname);
+      end
     
       tsigmatall = [];
       for nthj = 1:J
