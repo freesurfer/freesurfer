@@ -1,0 +1,209 @@
+#!/bin/tcsh -f
+
+#
+# parc_atlas_jackknife_test
+#
+# Performs 'jackknife' estimation of classifier accuracy.
+#
+# Given a set of N manually labeled subjects, N atlases trained on N-1 number 
+# of subjects are created, and the one excluded subject is used to test the
+# accuracy of this atlas, based on the Dice coefficient(s).
+# The overall classifier accuracy is the mean of all the results.
+#
+# Original author: Nick Schmansky
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/03/01 06:19:26 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.1 2007/03/01 06:19:26 nicks Exp $';
+
+set DoTrain=1
+set DoClassify=1
+set DoTest=1
+set RunIt=1
+set PBS=0
+if ("$HOST" == "seychelles") set PBS=1
+set pbs_flags="-l nodes=1:opteron -m $USER"
+#set echo=1
+
+if ( ! $?SUBJECTS_DIR) then
+    setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas
+endif
+echo "SUBJECTS_DIR: $SUBJECTS_DIR"
+
+#
+# check for necessary binaries, script, input files
+#
+echo "Train:    `which mris_ca_train`"
+if ($status) then
+    echo "mris_ca_train not found (source a Freesurfer home)"
+    exit 1
+endif
+echo "Classify: `which mris_ca_label`"
+if ($status) then
+    echo "mris_ca_label not found (source a Freesurfer home)"
+    exit 1
+endif
+echo "Test:     `which mris_compute_parc_overlap`"
+if ($status) then
+    echo "mris_compute_parc_overlap not found (source a Freesurfer home)"
+    exit 1
+endif
+if ( ! -e ${SUBJECTS_DIR}/scripts/jackknife_subjects.csh) then
+    echo "${SUBJECTS_DIR}/scripts/jackknife_subjects.csh is missing!"
+    echo "This file should SUBJECTS to all the subjects to test."
+    exit 1
+else
+    # these are the subjects to use in training, leaving one out for testing
+    source ${SUBJECTS_DIR}/scripts/jackknife_subjects.csh
+endif
+if ( ! -e ${SUBJECTS_DIR}/scripts/colortable_final.txt) then
+    echo "$SUBJECTS_DIR/scripts/colortable_final.txt is missing!"
+    exit 1
+endif
+foreach s ($SUBJECTS)
+    foreach hemi (rh lh)
+        set f=$SUBJECTS_DIR/$s/surf/$hemi.sphere.reg
+        if ( ! -e $f) then
+            echo "$f is missing!"
+            exit 1
+        endif
+        set f=$SUBJECTS_DIR/$s/label/$hemi.aparc_edited.annot
+        if ( ! -e $f) then
+            echo "$f is missing!"
+            echo "This is the manual labeled surface."
+            exit 1
+        endif
+    end
+end
+
+
+cd $SUBJECTS_DIR
+mkdir -p jackknife
+cd jackknife
+setenv WD $PWD
+echo "WD: $WD"
+
+set ALL_SUBJECTS=($SUBJECTS)
+
+#
+# for N number of subjects, create N atlases, where one subject is excluded
+# from each atlas training set
+#
+if ($DoTrain) then
+foreach test_subj ($ALL_SUBJECTS)
+
+    # create a SUBJECTS array containing all subject *except* test_subj
+    unsetenv SUBJECTS
+    set SUBJECTS = (  )
+    foreach s ($ALL_SUBJECTS)
+        if ("$s" != "$test_subj") set SUBJECTS = ( $SUBJECTS $s )
+    end
+
+    # now train using these $SUBJECTS
+    foreach hemi (rh lh)
+        set atlas="${WD}/${hemi}.atlas_leaveout_${test_subj}.gcs"
+        set cmd=(mris_ca_train \
+            -t $SUBJECTS_DIR/scripts/colortable_final.txt \
+            $hemi \
+            sphere.reg \
+            aparc_edited \
+            $SUBJECTS \
+            ${atlas})
+        echo ${cmd}
+        if ($RunIt) then
+            rm -f ${atlas}
+            if ($PBS) then
+                pbsubmit ${pbs_flags} -c "${cmd}"
+            else
+                ${cmd} &
+            endif
+        endif
+    end
+end
+endif
+unsetenv SUBJECTS
+
+
+#
+# now run the automatic parcellation on each subject, running against
+# the atlas built w/o that subject
+#
+if ($DoClassify) then
+foreach test_subj ($ALL_SUBJECTS)
+    foreach hemi (rh lh)
+        set atlas="${WD}/${hemi}.atlas_leaveout_${test_subj}.gcs"
+        while (! -e $atlas)
+            echo "waiting for $atlas..."
+            sleep 10
+        end
+        set annot="$SUBJECTS_DIR/$test_subj/label/$hemi.aparc_jackknife.annot"
+        set cmd=(mris_ca_label \
+            -t ${SUBJECTS_DIR}/scripts/colortable_final.txt \
+            ${test_subj} \
+            ${hemi} \
+            sphere.reg \
+            ${atlas} \
+            ${annot} )
+        echo ${cmd}
+        if ($RunIt) then
+            rm -f ${annot}
+            if ($PBS) then
+                pbsubmit ${pbs_flags} -c "${cmd}"
+            else
+                ${cmd} &
+            endif
+        endif
+    end
+end
+endif
+
+#
+# now test each atlas by comparing the subjects automatic classificatio 
+# against its manual labeling
+#
+if ($DoTest) then
+foreach test_subj ($ALL_SUBJECTS)
+    foreach hemi (rh lh)
+        set manual="aparc_edited"
+        set auto="aparc_jackknife"
+        set f="${SUBJECTS_DIR}/${test_subj}/label/$hemi.${auto}.annot"
+        while (! -e $f)
+            echo "waiting for ${f}..."
+            sleep 10
+        end
+        set cmd=(mris_compute_parc_overlap \
+            --s ${test_subj} \
+            --hemi ${hemi} \
+            --annot1 ${manual} \
+            --annot2 ${auto} )
+        echo ${cmd}
+        if ($RunIt) then
+            set DiceK=${WD}/dice_${test_subj}_${hemi}.txt
+            if ($PBS) then
+                pbsubmit ${pbs_flags} -c "${cmd} > ${DiceK}"
+            else
+                ${cmd} > ${DiceK} &
+            endif
+        endif
+    end
+end
+endif
+
+if ( ! $PBS) then
+    echo "parc_atlas_jackknife_test completed successfully"
+endif
