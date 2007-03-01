@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.4 $
+#    $Author: greve $
+#    $Date: 2007/03/01 03:07:59 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mc-afni2,v 1.4 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: mc-afni2,v 1.5 2007/03/01 03:07:59 greve Exp $';
 
 set invol = ();
 set outvol = ();
@@ -78,6 +78,18 @@ if($frame >= $nframes) then
   exit 1;
 endif
 
+# Set up output mcdat
+if($#mcdat == 0) set mcdat = $outvol.mcdat 
+if(-e $mcdat) then
+  if(! -w $mcdat) then
+    echo ""
+    echo "ERROR: $mcdat exists and you don't have perms to overwrite it"
+    ls -l `pwd`/$mcdat
+    echo ""
+    exit 1;
+  endif
+endif
+
 # Output directory
 set outdir = `dirname $outvol`;
 mkdir -p $outdir
@@ -103,8 +115,6 @@ hostname >> $LF
 uname -a >> $LF
 which 3dvolreg >> $LF
 
-# Set up output mcdat
-if($#mcdat == 0) set mcdat = $outvol.mcdat 
 echo "mcdat file is $mcdat" |& tee -a $LF
 
 # Tmp Dir
