@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.46 $
+ *    $Author: fischl $
+ *    $Date: 2007/03/01 18:05:06 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.46 2006/12/29 02:09:08 nicks Exp $
+  $Id: mri_surf2surf.c,v 1.47 2007/03/01 18:05:06 fischl Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -314,7 +314,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.46 2006/12/29 02:09:08 nicks Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.47 2007/03/01 18:05:06 fischl Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -408,7 +408,7 @@ int main(int argc, char **argv) {
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.46 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.47 2007/03/01 18:05:06 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -481,7 +481,7 @@ int main(int argc, char **argv) {
   printf("Loading source data\n");
   if (!strcmp(srctypestring,"curv")) { /* curvature file */
     if (fio_FileExistsReadable(srcvalfile)) {
-      memset(fname,0,strlen(fname));
+      memset(fname,0,strlen(srcvalfile)+1);
       memcpy(fname,srcvalfile,strlen(srcvalfile));
     } else
       sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,srcvalfile);
