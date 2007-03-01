@@ -28,8 +28,8 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/01 02:10:03 $
-%    $Revision: 1.13 $
+%    $Date: 2007/03/01 19:15:26 $
+%    $Revision: 1.14 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -107,7 +107,7 @@ end
 a = zeros(nrows,1);
 for nthstim = 1:nstim
   ionset = round((stimonset(nthstim)+psdmin)/dpsd) + 1; % start row
-  if(ionset < 0) continue; end
+  if(ionset <= 0) continue; end
   if(ionset > nrows) continue; end
   ndur = round(stimdur(nthstim)/dpsd);
   ioffset = ionset+ndur-1; % end row
