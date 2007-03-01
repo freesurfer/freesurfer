@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:39 $
- *    $Revision: 1.24 $
+ *    $Author: greve $
+ *    $Date: 2007/03/01 18:06:35 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.24 2006/12/29 01:49:39 nicks Exp $
+  $Id: resample.c,v 1.25 2007/03/01 18:06:35 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another,
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -862,7 +862,7 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
                     int ReverseMapFlag, int UseHash)
 {
   MRI *TrgSurfVals = NULL;
-  int svtx, tvtx, f,n, nunmapped, nrevhits,nSrcLost;
+  int svtx, tvtx, f,n, nrevhits,nSrcLost;
   VERTEX *v;
   MHT *SrcHash, *TrgHash;
   float dmin;
@@ -921,7 +921,6 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
     Go through the forwad loop (finding closest srcvtx to each trgvtx).
     This maps each target vertex to a source vertex */
   printf("Surf2Surf: Forward Loop (%d)\n",TrgSurfReg->nvertices);
-  nunmapped = 0;
   for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++)
   {
     if (!UseHash)
@@ -940,15 +939,10 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
     /* find closest source vertex */
     v = &(TrgSurfReg->vertices[tvtx]);
     if (UseHash) svtx = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,v,&dmin);
-    else        svtx = MRISfindClosestVertex(SrcSurfReg,v->x,v->y,v->z,&dmin);
+    else         svtx = MRISfindClosestVertex(SrcSurfReg,v->x,v->y,v->z,&dmin);
 
-    if (svtx < 0)
-    {/* this can only happen with MHT */
-      nunmapped ++;
-      printf("Unmapped: %3d tvtx = %6d, %6.2f %6.2f %6.2f\n",
-             nunmapped,tvtx,v->x,v->y,v->z);
-      continue;
-    }
+    /* hash table failed, so use brute force */
+    if(svtx < 0) svtx = MRISfindClosestVertex(SrcSurfReg,v->x,v->y,v->z,&dmin);
 
     /* update the number of hits and distance */
     MRIFseq_vox((*SrcHits),svtx,0,0,0) ++;
@@ -995,14 +989,10 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
         /* find closest target vertex */
         v = &(SrcSurfReg->vertices[svtx]);
         if (UseHash) tvtx = MHTfindClosestVertexNo(TrgHash,TrgSurfReg,v,&dmin);
-        else        tvtx = MRISfindClosestVertex(TrgSurfReg,v->x,v->y,v->z,&dmin);
-        if (tvtx < 0)
-        {/* this can only happen with MHT */
-          nunmapped ++;
-          printf("Unmapped: %3d svtx = %6d, %6.2f %6.2f %6.2f\n",
-                 nunmapped,svtx,v->x,v->y,v->z);
-          continue;
-        }
+        else         tvtx = MRISfindClosestVertex(TrgSurfReg,v->x,v->y,v->z,&dmin);
+	/* Hash table failed, so use brute force */
+        if(tvtx < 0) tvtx = MRISfindClosestVertex(TrgSurfReg,v->x,v->y,v->z,&dmin);
+
         /* update the number of hits and distance */
         MRIFseq_vox((*SrcHits),svtx,0,0,0) ++;
         MRIFseq_vox((*TrgHits),tvtx,0,0,0) ++;
