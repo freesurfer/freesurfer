@@ -942,7 +942,7 @@ PoistatsFilter<TInputImage, TOutputImage>
   // this initialization of the for loop is long
   for ( 
     inputImageIt = inputImageIt.Begin(),
-    odfLookUpTableIt = odfLookUpTableIt.Begin(),
+    odfLookUpTableIt = odfLookUpTableIt.Begin();
     
     !inputImageIt.IsAtEnd() &&
     !odfLookUpTableIt.IsAtEnd();
