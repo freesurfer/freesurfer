@@ -2,9 +2,9 @@
 ## tkUtils.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2007/01/05 00:21:26 $
-##    $Revision: 1.22 $
+##    $Author: kteich $
+##    $Date: 2007/03/01 16:53:44 $
+##    $Revision: 1.23 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -515,6 +515,9 @@ proc tkuMakeOptionMenu { ifwTop args } {
     # Create the menu.
     set mw [menu $ifwTop.fwmw.mbw.mw]
 
+    tkuPopulateOptionMenu $mw $mw.mbw $aArgs(-entries) $aArgs(-command)
+
+    if { 0 } {
     # If we have more than 30 entries...
     set lEntries $aArgs(-entries)
     if { [llength $lEntries] > 30 } {
@@ -565,6 +568,7 @@ proc tkuMakeOptionMenu { ifwTop args } {
 
 	incr nEntry
     }
+}
 
     pack $ifwTop.fwmw.mbw \
 	-side left \
@@ -587,6 +591,59 @@ proc tkuSetOptionMenuText { ifwTop {isText "Choose:"} } {
 	
     if { $err != 0 } {
 	puts "tkuSetOptionMenuText: Error setting text, maybe not really a menu?"
+    }
+}
+
+proc tkuPopulateOptionMenu { iMenu iMenuButton ilEntries iCommand } {
+
+    # If we have more than 30 entries...
+    if { [llength $ilEntries] > 30 } {
+
+	# For each entry...
+	set nEntry 0
+	set nSubMenu 0
+	while { $nEntry < [llength $ilEntries] } {
+
+	    # Get an entry 29 items down (or < 29 if we don't have
+	    # that many items.
+	    set nTopEntry [expr $nEntry + 29]
+	    if { $nTopEntry >= [llength $ilEntries] } {
+		set nTopEntry [expr [llength $ilEntries] - 1]
+	    }
+
+	    # Create a submenu. Add the submenu to the main menu,
+	    # giving it a label consisting of the entry and the entry
+	    # 29 items down.
+	    menu $iMenu.mw$nSubMenu
+	    $iMenu add cascade -menu $iMenu.mw$nSubMenu \
+		-label "[lindex $ilEntries $nEntry] -> [lindex $ilEntries $nTopEntry]"
+
+	    # Look at the entry 30 items from now.
+	    incr nEntry 30
+	    incr nSubMenu
+	}
+    }
+
+    # For each entry...
+    set nEntry 0
+    foreach entry $ilEntries {
+
+	# If we have more than 30, we're adding it to one of our
+	# submenus. Otherwise, we're adding to the main menu.
+	if { [llength $ilEntries] > 30 } {
+	    set curMenu $iMenu.mw[expr $nEntry / 30]
+	} else {
+	    set curMenu $iMenu
+	}
+
+	# Add the item. The command sets the text of the menu button
+	# to this entry's text, and calls the user command with the
+	# entry index.
+	$curMenu add command \
+	    -command "$iMenuButton config -text [lindex $ilEntries $nEntry]; $iCommand $nEntry" \
+	    -label [lindex $ilEntries $nEntry]
+
+	incr nEntry
     }
 }
 
