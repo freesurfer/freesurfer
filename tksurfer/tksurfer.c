@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/02/27 17:17:59 $
- *    $Revision: 1.248 $
+ *    $Author: fischl $
+ *    $Date: 2007/03/01 14:46:37 $
+ *    $Revision: 1.249 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -925,6 +925,7 @@ void find_closest_marked_vertex (int screen_x, int screen_y,
 
 /* end rkt */
 void mark_vertex(int vindex, int onoroff) ;
+void mark_translated_vertex(int vindex, int onoroff, char *sphere_surf) ;
 void mark_face(int fno) ;
 void mark_annotation(int selection) ;
 void mark_faces(int vno) ;
@@ -16084,6 +16085,41 @@ find_closest_marked_vertex (int screen_x, int screen_y,
 /* end rkt */
 
 void
+mark_translated_vertex(int vindex, int onoroff, char *surf_fname) 
+{
+  MRI_SURFACE *mris2 ;
+  float       x0, y0, z0, dist, min_dist, x, y, z ;
+  int         vno, min_vno=0;
+  char        surf_name[STRLEN] ;
+  VERTEX      *v ;
+
+  mris2 = MRISread(surf_fname) ;
+  if (!mris2)
+    ErrorExit(ERROR_NOFILE, "%s: could not load translation surface %s", Progname, surf_fname) ;
+  FileNameOnly(surf_fname, surf_name) ;
+  read_canon_vertex_coordinates(surf_name)  ;
+  x0 = mris2->vertices[vindex].x ;
+  y0 = mris2->vertices[vindex].y ;
+  z0 = mris2->vertices[vindex].z ;
+  min_dist = 1e10 ; min_vno = -1 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    x = v->cx ; y = v->cy ; z = v->cz ;
+    dist = sqrt(SQR(x-x0) + SQR(y-y0) + SQR(z-z0)) ;
+    if (dist < min_dist)
+    {
+      min_dist = dist ;
+      min_vno = vno ;
+    }
+  }
+  printf("translating to vertex %d (min dist = %2.1f)\n", min_vno, min_dist) ;
+  mark_vertex(min_vno, onoroff) ;
+}
+
+void
 mark_vertex(int vindex, int onoroff) {
   int i,j;
   VERTEX *v ;
@@ -17212,6 +17248,7 @@ int W_read_vertex_list  PARM;
 int W_draw_cursor  PARM;
 int W_draw_marked_vertices  PARM;
 int W_mark_vertex  PARM;
+int W_mark_translated_vertex  PARM;
 int W_draw_all_cursor  PARM;
 int W_draw_all_vertex_cursor  PARM;
 int W_clear_all_vertex_cursor  PARM;
@@ -18294,6 +18331,11 @@ ERR(3,"Wrong # args: mark_vertex <vertex_number> <on_or_off>")
 mark_vertex(atoi(argv[1]),atoi(argv[2]));
 WEND
 
+int                  W_mark_translated_vertex  WBEGIN
+ERR(4,"Wrong # args: mark_translated_vertex <vertex_number> <on_or_off> <reg surf>")
+mark_translated_vertex(atoi(argv[1]),atoi(argv[2]), argv[3]);
+WEND
+
 int                  W_draw_all_cursor  WBEGIN
 ERR(1,"Wrong # args: draw_all_cursor")
 draw_all_cursor();
@@ -18916,7 +18958,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.248 2007/02/27 17:17:59 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.249 2007/03/01 14:46:37 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19547,6 +19589,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_draw_marked_vertices, REND);
   Tcl_CreateCommand(interp, "mark_vertex",
                     (Tcl_CmdProc*) W_mark_vertex, REND);
+  Tcl_CreateCommand(interp, "mark_translated_vertex",
+                    (Tcl_CmdProc*) W_mark_translated_vertex, REND);
   Tcl_CreateCommand(interp, "draw_all_cursor",
                     (Tcl_CmdProc*) W_draw_all_cursor, REND);
   Tcl_CreateCommand(interp, "draw_all_vertex_cursor",
