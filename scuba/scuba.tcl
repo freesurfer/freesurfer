@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/02/28 18:33:23 $
-#    $Revision: 1.238 $
+#    $Date: 2007/03/01 16:53:24 $
+#    $Revision: 1.239 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.238 2007/02/28 18:33:23 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.239 2007/03/01 16:53:24 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -282,7 +282,6 @@ proc SetSubjectName { isSubject } {
 
     # Select it in the subjects loader.
     SelectSubjectInSubjectsLoader $isSubject
-	
 }
 
 proc GetSubjectName {} {
@@ -1404,10 +1403,11 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 
     frame $fwData -relief ridge -border 2
 
+    # We use a tixOptionMenu but we'll actually manually pack the
+    # items with tkuPopulateOptionMenu which sets its own command
+    # callback per item. This is so it will make submenus properly.
     tixOptionMenu $fwData.fwMenu \
-	-label "Subject:" \
-	-variable gaSubject(current,menuIndex) \
-	-command { SubjectsLoaderSubjectMenuCallback }
+	-label "Subject:"
     set gaWidget(subjectsLoader,subjectsMenu) $fwData.fwMenu
 
     grid $fwData.fwMenu  -column 0 -row 0 -columnspan 2 -sticky new
@@ -4314,16 +4314,12 @@ proc SelectSubjectInSubjectsLoader { isSubject } {
 	return
     }
 
-    # Make sure that this is the item selected in the menu. Disale the
-    # callback and set the value of the menu to the index of this
-    # subject name in the subject name list. Then reenable the callback.
-    $gaWidget(subjectsLoader,subjectsMenu) config -disablecallback 1
-    $gaWidget(subjectsLoader,subjectsMenu) config -value $nSubject
-    $gaWidget(subjectsLoader,subjectsMenu) config -disablecallback 0
+    # Set the name in the menu.
+    [$gaWidget(subjectsLoader,subjectsMenu) subwidget menubutton] \
+	config -text "$isSubject"
 
     # We need to populate the data menus for this subject.  Empty them
     # first.
-
     set lEntries [$gaWidget(subjectsLoader,volumeMenu) entries]
     foreach entry $lEntries { 
 	$gaWidget(subjectsLoader,volumeMenu) delete $entry
@@ -4407,14 +4403,18 @@ proc UpdateSubjectList {} {
 
     set gaSubject(nameList) {}
 
-    # Disable the menu.
-    $gaWidget(subjectsLoader,subjectsMenu) config -disablecallback 1
-
     # Build the ID list. Go through and make sure each is a
     # directory. Trim slashes.
-    set lContents [dir -full $env(SUBJECTS_DIR)]
+    set lContents [dir $env(SUBJECTS_DIR)]
     foreach sItem $lContents {
-	if { [file isdirectory $env(SUBJECTS_DIR)/$sItem] } {
+
+	set bDir [file isdirectory [file join $env(SUBJECTS_DIR) $sItem]]
+	if { !$bDir } {
+	    # Put this in a catch block because it can fail, but we
+	    # don't really care if it does.
+	    catch { set bDir [file isdirectory [file readlink [file join $env(SUBJECTS_DIR) $sItem]]] }
+	}
+	if { $bDir } {
 	    lappend gaSubject(nameList) [string trim $sItem /]
 	}
     }
@@ -4426,19 +4426,19 @@ proc UpdateSubjectList {} {
     }
     
     # Add the entries from the subject name list to the menu.
-    set nSubject 0
-    foreach sSubject $gaSubject(nameList) {
-	$gaWidget(subjectsLoader,subjectsMenu) add command $nSubject -label $sSubject
-	incr nSubject
-    }
-
-    # Reenable the menu.
-    $gaWidget(subjectsLoader,subjectsMenu) config -disablecallback 0
+    tkuPopulateOptionMenu \
+	[$gaWidget(subjectsLoader,subjectsMenu) subwidget menu] \
+	[$gaWidget(subjectsLoader,subjectsMenu) subwidget menubutton] \
+	$gaSubject(nameList) SubjectsLoaderSubjectMenuCallback
 
     # If we don't have a subject select, select the first one.
     if { ![info exists gaSubject(current,id)] } {
 	SelectSubjectInSubjectsLoader [lindex $gaSubject(nameList) 0]
     }
+}
+
+proc noOp { int } {
+
 }
 
 # TRANSFORM PROPERTIES FUNCTIONS =========================================
@@ -6741,7 +6741,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.238 2007/02/28 18:33:23 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.239 2007/03/01 16:53:24 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
