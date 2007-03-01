@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/20 06:07:48 $
-#    $Revision: 1.21 $
+#    $Date: 2007/03/01 02:52:40 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.21 2007/02/20 06:07:48 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.22 2007/03/01 02:52:40 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -169,7 +169,7 @@ foreach sess ($SessList)
   echo anadir = $anadir | tee -a $LF
   if(-e $anadir && $DoGLMFit) then
     echo "analysis $analysis alread exists for $sessbase" | tee -a $LF
-    if($Skip == 0 && $Overwrite == 0) then
+    if($Skip == 0 && $Overwrite == 0 && ! $monly) then
       echo "ERROR: analysis $analysis already exists. You must " | tee -a $LF
       echo "       specify whether to -skip or -overwrite" | tee -a $LF
       exit 1;
@@ -179,7 +179,7 @@ foreach sess ($SessList)
       continue;
     endif
     echo " ... reanalyzing (deleting old analysis)" | tee -a $LF
-    rm -r $anadir
+    if( ! $monly) rm -r $anadir
   endif
   @ nprocs = $nprocs + 1;
 
