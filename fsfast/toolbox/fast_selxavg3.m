@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.26 2007/02/28 20:52:58 greve Exp $
+% $Id: fast_selxavg3.m,v 1.27 2007/03/01 02:51:19 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/28 20:52:58 $
-%    $Revision: 1.26 $
+%    $Date: 2007/03/01 02:51:19 $
+%    $Revision: 1.27 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,8 @@
 % Force choice on whitening or not
 % Force choice of mask
 % How to check that analyses are not being mixed?
+% RFx, FFx, MFx 2nd level analysis
+% Func2ROI
 
 % JK?
 % Per-run?
@@ -66,7 +68,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.26 2007/02/28 20:52:58 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.27 2007/03/01 02:51:19 greve Exp $\n');
 
 sessname = basename(sess);
 %outtop = dirname(sess);
@@ -94,6 +96,11 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
+
+nruns = size(flac0.runlist,1);
+fprintf('nruns = %d\n',nruns);
+ncontrasts = length(flac0.con);
+
 outanadir = sprintf('%s/%s/%s/%s',outtop,sessname,flac0.fsd,flac0.name);
 fprintf('outanadir = %s\n',outanadir);
 err = mkdirp(outanadir);
@@ -102,9 +109,6 @@ if(err) return; end
 xfile = sprintf('%s/X.mat',outanadir);
 outresdir = sprintf('%s/res',outanadir);
 
-nruns = size(flac0.runlist,1);
-fprintf('nruns = %d\n',nruns);
-ncontrasts = length(flac0.con);
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -397,7 +401,8 @@ if(DoGLMFit)
 
     acfseg = mri;
     acfseg.vol = zeros(acfseg.volsize);
-    if(1)
+    if(0)
+      fprintf('WARNING: using untested whitening\n');
       a = betamn0(indmask);
       a = a/std(a);
       b = rvarmat0(indmask);
@@ -414,7 +419,6 @@ if(DoGLMFit)
     end
     fname = sprintf('%s/acfseg.%s',outanadir,ext);
     MRIwrite(acfseg,fname);
-
     clear rvarmat0 betamat0;
     
     % Compute average ar1 in each seg and corresponding acf
@@ -424,10 +428,16 @@ if(DoGLMFit)
     S    = zeros(ntptot,ntptot,flac0.acfbins);
     Sinv = zeros(ntptot,ntptot,flac0.acfbins);
     W    = zeros(ntptot,ntptot,flac0.acfbins);
+    fname = sprintf('%s/acfsegLUT.txt',outanadir);
+    fp = fopen(fname,'w');
     for nthseg = 1:flac0.acfbins
       indseg = find(acfseg.vol==nthseg);
       nsegvox = length(indseg);
       nrho1segmn(nthseg) = mean(nrho1mn.vol(indseg));
+      fprintf(fp,'%2d \t AR1(%0.2f) \t %3d %3d %3d \t %7.4f\n',...
+	      nthseg,nrho1segmn(nthseg),...
+	      round(255*rand),round(255*rand),round(255*rand),...
+	      nrho1segmn(nthseg));
       %nrho1segmn(nthseg) = 0; % No whitening
       acfsegmn(:,nthseg) = nrho1segmn(nthseg).^(nn-1);
       fprintf('  seg  %2d  %5d  nrho1 = %5.3f (t=%4.1f)\n',....
@@ -444,6 +454,7 @@ if(DoGLMFit)
 	W(indrun,indrun,nthseg) = Wrun;
       end
     end
+    fclose(fp);
 
     % First pass thru the data to compute beta
     fprintf('GLS Beta Pass \n');
