@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.27 2007/03/01 02:51:19 greve Exp $
+% $Id: fast_selxavg3.m,v 1.28 2007/03/01 03:06:49 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/01 02:51:19 $
-%    $Revision: 1.27 $
+%    $Date: 2007/03/01 03:06:49 $
+%    $Revision: 1.28 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -68,7 +68,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.27 2007/03/01 02:51:19 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.28 2007/03/01 03:06:49 greve Exp $\n');
 
 sessname = basename(sess);
 %outtop = dirname(sess);
@@ -756,6 +756,15 @@ if(DoContrasts)
       tsigall.vol = fast_mat2vol(tsigmatall,mri.volsize);
       fname = sprintf('%s/sig.%s',outcondir,ext);
       MRIwrite(tsigall,fname);
+
+      [sigmin rmin]  = max(abs(tsigmatall));
+      indmin = sub2ind(size(tsigmatall),rmin,1:nvox);
+      % log10(J) is bonf cor 
+      sigmin = sign(tsigmatall(indmin)).*(sigmin - log10(J)); 
+      tminsig = mri;
+      tminsig.vol = fast_mat2vol(sigmin,mri.volsize);
+      fname = sprintf('%s/minsig.%s',outcondir,ext);
+      MRIwrite(tminsig,fname);
     
     end
   
