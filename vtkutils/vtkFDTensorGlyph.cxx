@@ -103,7 +103,12 @@ void vtkFDTensorGlyph::Execute() {
   for (int x = 0; x < dim[0]; x++) {
     for (int y = 0; y < dim[1]; y++) {
       for (int z = 0; z < dim[2]; z++) {
-	tensorComponents = (float *)input->GetScalarPointer(x + extent[0], y + extent[2], z + extent[4]);
+	tensorComponents =
+	  (float *)input->GetScalarPointer(x + extent[0],
+					   y + extent[2],
+					   z + extent[4]);
+	// Should this be used instead?
+	//	tensorComponents = (float *)input->GetScalarPointer(x, y, z);
 	faval = tensorComponents[FA];
 	if (faval == 0) continue;
 	normalizedFA = (faval - faRange[0]) / (faRange[1] - faRange[0]);

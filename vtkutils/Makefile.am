@@ -24,7 +24,8 @@ libvtkutils_a_SOURCES= \
 	vtkKWRGBATransferFunctionEditorTcl.cxx \
 	vtkFreesurferLookupTable.cxx vtkFreesurferLookupTable.h \
 	vtkRGBATransferFunction.cxx vtkRGBATransferFunction.h \
-	vtkFDTensorGlyph.cxx vtkFDTensorGlyph.h
+	vtkFDTensorGlyph.cxx vtkFDTensorGlyph.h \
+	IconLoader.cxx IconLoader.h
 
 am_libvtkutils_a_OBJECTS=$(libvtkutils_a_SOURCES:%.cxx=%.o)
 
