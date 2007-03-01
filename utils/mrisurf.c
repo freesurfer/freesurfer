@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/28 19:19:20 $
- *    $Revision: 1.516 $
+ *    $Date: 2007/03/01 18:51:23 $
+ *    $Revision: 1.517 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.516 2007/02/28 19:19:20 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.517 2007/03/01 18:51:23 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -59102,9 +59102,9 @@ int
 MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius, int diag_no, MRI **pmri)
 {
   MRI           *mri_interior ;
-  int           x, y, z, vno, num, vradius ;
+  int           x, y, z, vno, num, vradius, xmin, xmax, ymin, ymax, zmin, zmax ;
   VERTEX        *v ;
-  double        volume, dist, dx, dy, dz, sphere_volume ;
+  double        dist, dx, dy, dz, sphere_volume ;
   Real          xf, yf, zf ;
 
   mri_interior = MRISfillInterior(mris, resolution, NULL) ;
@@ -59116,9 +59116,8 @@ MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius, int diag
     *pmri = MRIclone(mri_interior, NULL) ;
   }
 
-  volume = mri_interior->xsize * mri_interior->ysize * mri_interior->zsize ;
-  sphere_volume = volume*M_PI*radius*radius*radius*4/3 ;
   vradius = radius / (MIN(MIN(mri_interior->xsize, mri_interior->ysize), mri_interior->zsize)) ;
+  sphere_volume = vradius * vradius * vradius * M_PI * 4 / 3 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -59127,15 +59126,18 @@ MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius, int diag
     if (v->ripflag)
       continue ;
     MRISvertexToVoxel(mris, v, mri_interior, &xf, &yf, &zf) ;
-    for (num = 0, x = floor(xf-vradius) ; x <= ceil(xf+vradius) ; x++)
+    xmin = floor(xf-vradius) ; xmax = ceil(xf+vradius) ;
+    ymin = floor(yf-vradius) ; ymax = ceil(yf+vradius) ;
+    zmin = floor(zf-vradius) ; zmax = ceil(zf+vradius) ;
+    for ( num = 0, x = xmin ; x <= xmax ; x++)
     {
       if (x < 0 || x >= mri_interior->width)
         continue ;
-      for (y = floor(yf-vradius) ; y <= ceil(yf+vradius) ; y++)
+      for (y = ymin ; y <= ymax ; y++)
       {
         if (y < 0 || y >= mri_interior->height)
           continue ;
-        for (z = floor(zf-vradius) ; z <= ceil(zf+vradius) ; z++)
+        for (z = zmin ; z <= zmax ; z++)
         {
           if (x == Gx && y == Gy && z == Gz)
             DiagBreak() ;
@@ -59156,7 +59158,7 @@ MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius, int diag
         }
       }
     }
-    v->curv = num*volume / sphere_volume ;
+    v->curv = (double)num/sphere_volume ;
   }
 
   return(NO_ERROR) ;
