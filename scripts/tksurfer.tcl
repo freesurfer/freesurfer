@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/01/26 20:23:53 $
-##    $Revision: 1.133 $
+##    $Date: 2007/03/01 19:47:44 $
+##    $Revision: 1.134 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -4829,7 +4829,10 @@ proc GDF_Load { ifnGDF {iOverlay 0} } {
     global gbGDFLoaded gGDFID
 
     set ID [FsgdfPlot_Read $ifnGDF]
-    if { $ID < 0 } { return }
+    if { $ID < 0 } { 
+	puts "Error loading GDF $ifnGDF"
+	return 
+    }
 
     set gGDFID $ID
     FsgdfPlot_ShowWindow $gGDFID
