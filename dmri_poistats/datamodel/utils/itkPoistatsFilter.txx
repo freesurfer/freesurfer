@@ -2,8 +2,6 @@
 #define _itkPoistatsFilter_txx
 
 #include <itkBSplineInterpolateImageFunction.h>
-//#include <itkImageRegionIterator.h>
-//#include <itkNonUniformBSpline.h>
 #include <itkPointSet.h>
 
 // for calculating the elapsed time
@@ -579,11 +577,14 @@ PoistatsFilter< TInputImage, TOutputImage >
   this->InvokeEvent( StartEvent() );
     
   itkDebugMacro( << "parsing seed volume" );  
+  // extracts the start and end regions of interest
   this->ParseSeedVolume();
 
   itkDebugMacro( << "initializing paths" );
+  // initializes all the paths of the replicas, connects start and end regions
   this->InitPaths();
   
+  // creates odfs throughout tensor volume
   this->ConstructOdfList();
 
   // initialize temperatures to be regularily spaced between 0.05 and 0.1
@@ -599,18 +600,22 @@ PoistatsFilter< TInputImage, TOutputImage >
   
   this->SetGlobalMinEnergy( maxDouble );
 
-  const int nSpatialDimensions = 3;  
-  MatrixType finalBestPath( m_Replicas->GetNumberOfSteps(), 
-    nSpatialDimensions );
+  const int numberOfSpatialDimensions = 3;  
+  MatrixType finalBestPath( this->m_Replicas->GetNumberOfSteps(), 
+    numberOfSpatialDimensions );
   
-  const double lullEnergyDifferenceThreshold = .5*1e-3;
+  const double lullEnergyDifferenceThreshold = 0.0005;
   
-  const bool isMoreThanOneReplica = m_Replicas->GetNumberOfReplicas() > 1;
+  const bool isMoreThanOneReplica = this->m_Replicas->GetNumberOfReplicas() > 1;
 
   // this iterates until a minimum is found or we iterate too much      
-  for( m_CurrentIteration=1, m_CurrentLull=0;
-       m_CurrentIteration < this->GetMaxTime() && m_CurrentLull < this->GetMaxLull();
-       m_CurrentIteration++ ) {
+  for( this->m_CurrentIteration=1, this->m_CurrentLull=0;
+       
+       this->m_CurrentIteration < this->GetMaxTime() && 
+       this->m_CurrentLull < this->GetMaxLull();
+       
+       this->m_CurrentIteration++ )
+    {
 
     // start the clock
     clock_t startClock = clock();
@@ -627,9 +632,9 @@ PoistatsFilter< TInputImage, TOutputImage >
     for( int cReplica=0; cReplica<this->GetNumberOfReplicas(); cReplica++ ) {
     
       //if time > 1, prevpath{i} = trialpath{i}; end;
-      const bool isNotFirst = m_CurrentIteration != 1;
-      if( isNotFirst ) {
-        m_Replicas->CopyCurrentToPreviousTrialPath( cReplica );
+      const bool isFirst = m_CurrentIteration == 1;
+      if( !isFirst ) {
+        this->m_Replicas->CopyCurrentToPreviousTrialPath( cReplica );
       }
 
       // get the low resolution path for this replica
@@ -650,7 +655,7 @@ PoistatsFilter< TInputImage, TOutputImage >
                                        perturbedTrialPath->cols() );
       
       // we want to obtain an index into our image, so round the path
-      RoundPath( &roundedPath, perturbedTrialPath );
+      this->RoundPath( &roundedPath, perturbedTrialPath );
       
       ArrayPointer odfs[ this->GetNumberOfSteps() ];
       this->GetOdfsAtPoints( odfs, &roundedPath );
@@ -660,7 +665,7 @@ PoistatsFilter< TInputImage, TOutputImage >
         energy(i) = odfpathenergy(trialpath{i}, odfs, geo);
       */
       const double meanPathEnergy = 
-        CalculateOdfPathEnergy( perturbedTrialPath, odfs, NULL );
+        this->CalculateOdfPathEnergy( perturbedTrialPath, odfs, NULL );
 
       this->m_Replicas->SetCurrentMeanEnergy( cReplica, meanPathEnergy );
 
@@ -669,16 +674,16 @@ PoistatsFilter< TInputImage, TOutputImage >
         Delta = (energy(i)-energyprev(i))/temp(i);
         updateprobability = min(1, exp(-Delta));
         if rand(1) <= updateprobability;
-        */   
+      */   
       // update the energy, and always set it initially to the first replica
       if( this->m_Replicas->ShouldUpdateEnergy( cReplica ) || 
-        ( cReplica == 0 &&  !isNotFirst ) ) {
+        ( cReplica == 0 &&  isFirst ) ) {
       
         /* MATLAB:
           basepath{i} = lowtrialpath; 
           bestpath{i} = trialpath{i};
         */
-        m_Replicas->FoundBestPath( cReplica, &lowTrialPath );
+        this->m_Replicas->FoundBestPath( cReplica, &lowTrialPath );
 
         /* MATLAB:                
           if energy(i) < globalminenergy
@@ -691,7 +696,7 @@ PoistatsFilter< TInputImage, TOutputImage >
 
           PoistatsReplica::CopyPath( perturbedTrialPath, &finalBestPath );
 
-          SetGlobalMinEnergy( 
+          this->SetGlobalMinEnergy( 
             this->m_Replicas->GetCurrentMeanEnergy( cReplica ) );
           
         }
@@ -702,9 +707,10 @@ PoistatsFilter< TInputImage, TOutputImage >
       }
       
       // MATLAB: if  time > 1 & rand(1) < replicaexchprob
-      const bool shouldExchange = isNotFirst && isMoreThanOneReplica &&
-        ( m_PoistatsModel->GetRandomNumber() < this->GetReplicaExchangeProbability() );
-            
+      const bool shouldExchange = !isFirst && isMoreThanOneReplica &&
+        ( this->m_PoistatsModel->GetRandomNumber() < 
+          this->GetReplicaExchangeProbability() );
+
       if( shouldExchange ) {
       
         // get a random replica and the next replica with the next highest mean
@@ -713,27 +719,27 @@ PoistatsFilter< TInputImage, TOutputImage >
         this->m_Replicas->GetRandomSortedFirstSecondReplicas( 
           randomReplicaIndex, followingRandomReplicaIndex );
           
-        const double probabilityExchange = this->m_Replicas->
-          CalculateProbablityExchange( randomReplicaIndex, 
-                                       followingRandomReplicaIndex );
+        const double probabilityExchange = 
+          this->m_Replicas->CalculateProbablityExchange( randomReplicaIndex, 
+          followingRandomReplicaIndex );
 
-        if( m_PoistatsModel->GetRandomNumber() <= probabilityExchange ) {
+        if( this->m_PoistatsModel->GetRandomNumber() <= probabilityExchange ) {
 
           this->m_Replicas->ExchangeTemperatures( randomReplicaIndex, 
-            followingRandomReplicaIndex );          
-          m_Exchanges++;
+            followingRandomReplicaIndex );
+          this->m_Exchanges++;
             
         }
         
       }
           
-    }
+    } // end of peturbing every replica for a single iteration
     
     // MATLAB:denergy = (mean(energy)-mean(energyprev))/mean(energy);        
     m_CurrentEnergyDifference = 
       this->m_Replicas->GetNormalizedMeanCurrentPreviousEnergiesDifference();
       
-    /*MATLAB:
+    /* MATLAB:
       if abs(denergy) < lulldenergy
         lull = lull + 1;
       else
@@ -752,11 +758,6 @@ PoistatsFilter< TInputImage, TOutputImage >
     // MATLAB: temp = coolfactor*temp;     
     this->m_Replicas->CoolTemperatures( this->GetCoolFactor() );
 
-    /* MATLAB: 
-      fprintf('%3d   lull: %2d  denergy: %+5f  mean: %f  bottom: %f   min: %f   globalmin: %f  exchs: %2d  (%f)\n', ...
-      time, lull, denergy, mean(energy), prctile(energy,10), min(energy), globalminenergy, exchanges, tm);
-    */
-
     clock_t endClock = clock();
     const double elapsedTime = 
       static_cast< double >( endClock - startClock ) / CLOCKS_PER_SEC;
@@ -765,11 +766,11 @@ PoistatsFilter< TInputImage, TOutputImage >
     // let our observers know that we've iterated
     this->InvokeEvent( IterationEvent() );            
     
-  }
+  } // we've found an optimal path
 
   // our user has specified the number of sample point to use
-  MatrixPointer rethreadedFinalPath = m_Replicas->RethreadPath( &finalBestPath, 
-    this->GetNumberOfSamplePoints() );
+  MatrixPointer rethreadedFinalPath = this->m_Replicas->RethreadPath( 
+    &finalBestPath, this->GetNumberOfSamplePoints() );
 
   // this is the path that we'll output to the user
   this->SetFinalPath( *rethreadedFinalPath );
@@ -938,10 +939,10 @@ PoistatsFilter<TInputImage, TOutputImage>
   const int nTensorRows = 3;
   const int nTensorColumns = 3;
 
+  // this initialization of the for loop is long
   for ( 
     inputImageIt = inputImageIt.Begin(),
     odfLookUpTableIt = odfLookUpTableIt.Begin(),
-    maskIt = maskIt.Begin(); 
     
     !inputImageIt.IsAtEnd() &&
     !odfLookUpTableIt.IsAtEnd();
@@ -953,11 +954,7 @@ PoistatsFilter<TInputImage, TOutputImage>
     bool isPixelMasked = false;
         
     if( isMaskUsed ) {
-      const MaskType pixel = maskIt.Value();
-      
-      if( pixel == 0 ) {            
-        isPixelMasked = true;
-      }
+      isPixelMasked = maskIt.Value() == 0;
     }
         
     bool hasZero = false;        
@@ -1008,7 +1005,8 @@ PoistatsFilter<TInputImage, TOutputImage>
         for( int cTensorColumn=0; cTensorColumn<nTensorColumns; 
           cTensorColumn++ ) {
 
-          const int cTensorFlippedColumn = ( nTensorColumns - 1 ) - cTensorColumn;
+          const int cTensorFlippedColumn = 
+            ( nTensorColumns - 1 ) - cTensorColumn;
           
           const double flippedValue = 
             currentTensor( cFlippedTensorRow, cTensorFlippedColumn );
@@ -1040,6 +1038,7 @@ PoistatsFilter<TInputImage, TOutputImage>
                 
     }
     
+    // increment the mask iterator if a mask is provided
     if( isMaskUsed ) {
       ++maskIt;    
     }
