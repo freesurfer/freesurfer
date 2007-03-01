@@ -6,7 +6,7 @@
 # Usage:
 #
 #   test_recon-all.csh [-rsd <reference subj source dir>] \
-#                      [-rd <reference subjid>] \
+#                      [-rs <reference subjid>] \
 #                      [-tsd <test subject dest dir>] \
 #                      [-ts <test subjid>] \
 #                      [-fshome <FREESURFER_HOME>]
@@ -30,8 +30,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/10 03:13:57 $
-#    $Revision: 1.5 $
+#    $Date: 2007/03/01 00:16:49 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.5 2007/01/10 03:13:57 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.6 2007/03/01 00:16:49 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -111,6 +111,35 @@ while( $#argv != 0 )
     case "-fshome":
       if ( $#argv < 1) goto arg1err;
       setenv FREESURFER_HOME $argv[1]; shift;
+      breaksw
+
+    case "-norecon":
+      setenv SKIP_RECON 1
+      breaksw
+
+    case "-help":
+    case "--help":
+      echo "test_recon-all.csh [-rsd <reference subj source dir>]"
+      echo "                   [-rs <reference subjid>]"
+      echo "                   [-tsd <test subject dest dir>]"
+      echo "                   [-ts <test subjid>]"
+      echo "                   [-fshome <FREESURFER_HOME>]"
+      echo "                   [-norecon]"
+      echo "\nthe defaults are:"
+      echo "  <reference subj source dir> = /space/freesurfer/test/subjects/$PROC"
+      echo "  <reference subjid> = bert"
+      echo "  <test subject dest dir> = /tmp"
+      echo "  <test subjid> = bert"
+      echo "  <FREESURFER_HOME> = /usr/local/freesurfer/stable"
+      echo "\nthe utilities run by this script include:"
+      echo "  recon-all (unless -norecon is specified)"
+      echo "  mri_diff"
+      echo "  mri_compute_seg_overlap"
+      echo "  mris_diff"
+      echo "  mri_surf2surf"
+      echo "  mris_compute_parc_overlap"
+      echo "  diff"
+      exit 1
       breaksw
 
     default:
