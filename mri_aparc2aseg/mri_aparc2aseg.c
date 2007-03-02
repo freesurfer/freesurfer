@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/02/07 22:48:26 $
- *    $Revision: 1.15 $
+ *    $Author: greve $
+ *    $Date: 2007/03/02 18:00:28 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.15 2007/02/07 22:48:26 nicks Exp $";
+"$Id: mri_aparc2aseg.c,v 1.16 2007/03/02 18:00:28 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -613,7 +613,7 @@ static void print_usage(void) {
   //printf("   --oaparc file : output aparc-only volume file\n");
   printf("   --ribbon : use mri/hemi.ribbon.mgz as a mask for ctx.\n");
   printf("\n");
-  printf("   --a2005 : use aparc.a2005 instead of aparc\n");
+  printf("   --a2005s : use aparc.a2005s instead of aparc\n");
   printf("   --annot annotname : use annotname instead of aparc\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
