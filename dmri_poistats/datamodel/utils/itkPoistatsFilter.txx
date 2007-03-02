@@ -1855,40 +1855,46 @@ PoistatsFilter<TInputImage, TOutputImage>
   itk::ImageRegionConstIterator< SeedVolumeType > seedIt(
     this->m_SeedVolume, this->m_SeedVolume->GetLargestPossibleRegion() );
 
-  for( SeedPairList::iterator valuesIt = seedValueCountPairs.begin();
-    valuesIt != seedValueCountPairs.end(); valuesIt++ ) {
-        
-    const SeedType seedValue = ( *valuesIt ).first;
-    const int nCurrentSeed = ( *valuesIt ).second;
-    
-    itkDebugMacro( << "  ( seed value, number of seeds ): (" << seedValue << ", " << nCurrentSeed << " )" );
+  if( seedValueCountPairs.size() > 1 ) {
 
-    MatrixPointer currentSeeds = 
-      new MatrixType( nCurrentSeed, SeedVolumeIndexType::GetIndexDimension() );
-
-    int cCurrentSeeds = 0;
-
-    this->m_Seeds.push_back( currentSeeds );
-
-    for ( seedIt = seedIt.Begin(); !seedIt.IsAtEnd(); ++seedIt ) {    
-
-      SeedType pixelValue = seedIt.Value();
-
-      if( pixelValue == seedValue ) {
-        SeedVolumeIndexType seedIndex = seedIt.GetIndex();
-        for( unsigned int cIndex=0; cIndex<SeedVolumeIndexType::GetIndexDimension(); 
-          cIndex++ ) {
+    for( SeedPairList::iterator valuesIt = seedValueCountPairs.begin();
+      valuesIt != seedValueCountPairs.end(); valuesIt++ ) {
           
-          ( *currentSeeds )[ cCurrentSeeds  ][ cIndex  ] = seedIndex[ cIndex ];
+      const SeedType seedValue = ( *valuesIt ).first;
+      const int nCurrentSeed = ( *valuesIt ).second;
+      
+      itkDebugMacro( << "  ( seed value, number of seeds ): (" << seedValue << ", " << nCurrentSeed << " )" );
+  
+      MatrixPointer currentSeeds = 
+        new MatrixType( nCurrentSeed, SeedVolumeIndexType::GetIndexDimension() );
+  
+      int cCurrentSeeds = 0;
+  
+      this->m_Seeds.push_back( currentSeeds );
+  
+      for ( seedIt = seedIt.Begin(); !seedIt.IsAtEnd(); ++seedIt ) {    
+  
+        SeedType pixelValue = seedIt.Value();
+  
+        if( pixelValue == seedValue ) {
+          SeedVolumeIndexType seedIndex = seedIt.GetIndex();
+          for( unsigned int cIndex=0; cIndex<SeedVolumeIndexType::GetIndexDimension(); 
+            cIndex++ ) {
+            
+            ( *currentSeeds )[ cCurrentSeeds  ][ cIndex  ] = seedIndex[ cIndex ];
+            
+          }
+  
+          cCurrentSeeds++;
           
         }
-
-        cCurrentSeeds++;
         
       }
       
     }
-    
+  
+  } else {
+    itkGenericExceptionMacro (<< "not enough seed regions.");    
   }
 
 }
