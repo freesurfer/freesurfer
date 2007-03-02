@@ -1,0 +1,283 @@
+#!/bin/tcsh -f
+# fsfeatffx
+#
+
+set VERSION = '$Id: fsfeatffx,v 1.1 2007/03/02 06:41:57 greve Exp $'
+
+set FeatDirList = ();
+set GFeatDir = ();
+
+set debug = 0;
+set PrintHelp = 0;
+
+set ProcId = $$; # Process Id
+
+set cmdargs = ($argv);
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 1;
+endif
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+echo "#@# Starting fsfeatffx "
+date
+pwd
+echo $0
+echo $cmdargs
+echo $VERSION
+
+# Make sure that FSL/Feat is there
+which feat > /dev/null
+if($status) then
+  echo "ERROR: cannot find feat command. Make sure that FSL "
+  echo "       is installed and the binaries are in your path."
+  exit 1;
+endif
+
+# Parse the command-line arguments
+goto parse_args;
+parse_args_return:
+
+# Check the command-line arguments
+goto check_params;
+check_params_return:
+
+set ext = `getformat_from_stem $FeatDirList[1]/example_func`
+if($status) then
+  echo $ext
+  exit 1;
+endif
+
+set tmpdir = /tmp/fsfeatffx.$ProcId
+mkdir -p $tmpdir
+
+set FSLVersion = `cat $FSLDIR/etc/fslversion`;
+echo "--------------------------------------------------"
+echo "Writing design.secondlevel.ffx.fsf"
+echo "--------------------------------------------------"
+
+# Create a local copy of the template
+set ConfFileLocal = $tmpdir/design.secondlevel.ffx.fsf
+cp $FREESURFER_HOME/fsfast/bin/design.secondlevel.ffx.fsf $ConfFileLocal
+#cp design.fsf $ConfFileLocal
+echo "" >> $ConfFileLocal
+echo "# Everything below this line has been written by fsfeatffx-visit" >> $ConfFileLocal
+echo "# VERSION $VERSION"  >> $ConfFileLocal
+echo "# CMDARDS $cmdargs"  >> $ConfFileLocal
+echo "# PWD `pwd`"  >> $ConfFileLocal
+echo "# USER $user"  >> $ConfFileLocal
+echo "# HOSTNAME `hostname` "  >> $ConfFileLocal
+echo "# PLATFORM `uname -a` "  >> $ConfFileLocal
+echo "# DATE `date` "  >> $ConfFileLocal
+
+# Define output directory
+echo "set fmri(outputdir) $GFeatDir"  | tee -a $ConfFileLocal
+# Define number of input COPE's
+set ncope = `ls $FeatDirList[1]/stats/cope*.$ext | wc -l`
+echo "set fmri(ncopeinputs) $ncope" | tee -a $ConfFileLocal
+@ k = 1
+while ($k <= $ncope)
+  echo "set fmri(copeinput.$k) 1"   | tee -a $ConfFileLocal
+  @ k = $k + 1
+end
+# Define input directories, EV values, and group memberships
+@ j = 0;
+foreach featdir ($FeatDirList)
+  @ j = $j + 1;
+  if(! -e $featdir) then
+    echo "ERROR: input directory $featdir does not exist"
+    exit 1
+  endif
+  set ncopetmp = `ls $featdir/stats/cope*.$ext | wc -l`
+  if($ncopetmp != $ncope) then
+    echo "ERROR: expected $ncope COPE's, found $ncopetmp in $featdir"
+    exit 1
+  endif
+  echo "set feat_files($j) $featdir"  | tee -a $ConfFileLocal
+  echo "set fmri(evg$j.1) 1"        | tee -a $ConfFileLocal
+  echo "set fmri(groupmem.$j) 1"    | tee -a $ConfFileLocal
+end
+# Define number of first-level analyses
+echo "set fmri(multiple) $#FeatDirList"        | tee -a $ConfFileLocal
+# Define number of total volumes (same as above)
+echo "set fmri(npts) $#FeatDirList"            | tee -a $ConfFileLocal
+echo "# FSLVersion   $FSLVersion" >> $ConfFileLocal
+
+# Analyze
+set StartTime = `date`;
+set cmd = (feat $ConfFileLocal)
+echo "--------------------------------------------------"
+date
+pwd
+echo $cmd
+$cmd
+if($status) then
+  echo "ERROR: feat failed"
+  exit 1
+endif
+
+# Make sure that the report file is there
+set repfile = $GFeatDir.gfeat/report.html
+if(! -e $repfile) then
+  echo "ERROR: cannot find FSL report file $repfile"
+  exit 1;
+endif
+
+# Copy freesurfer registration matrix, all should be the same
+set reg = $FeatDirList[1]/reg/freesurfer/anat2std.register.dat
+if(-e $reg) cp $reg $GFeatDir.gfeat/fs.register.dat
+
+# Compute sig from z for each contrast
+set siglist = ();
+@ nthcope = 1
+while ($nthcope <= $ncope)
+  set fsf = $FeatDirList[1]/design.fsf
+  set statsdir = $GFeatDir.gfeat/cope$nthcope.feat/stats
+  set z   = $statsdir/zstat1.$ext 
+  set sig = $statsdir/zsig1.$ext
+  set cmd = (mri_z2p --z $z --log10p $sig --signed)
+  echo $cmd
+  $cmd 
+  if($status) exit 1;
+  set siglist = ($siglist $sig);
+  set conname = `fsfget $fsf conname_real.$nthcope`
+  if($#conname != 0) then
+    pushd $GFeatDir.gfeat > /dev/null
+    ln -sf cope$nthcope.feat/stats/zsig1.$ext $conname.sig.$ext
+    ln -sf cope$nthcope.feat $conname.feat
+    popd  > /dev/null
+  endif
+  @ nthcope = $nthcope + 1;
+end
+set cmd = (mri_concat $siglist --o $GFeatDir.gfeat/all.sig.$ext)
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# Cleanup the tmpdir
+rm -r $tmpdir
+
+echo ""
+echo ""
+echo "To see results, point your browser to:"
+echo ""
+echo "  $repfile"
+echo ""
+echo ""
+echo ""
+
+set EndTime = `date`;
+echo "Started at $StartTime"
+echo "Ended   at $EndTime"
+
+echo "fsfeatffx done"
+
+exit 0
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = ($argv)
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--feat":
+      if ( $#argv == 0) goto arg1err;
+      set featdir = $argv[1];
+      if( ! -e $featdir) then
+        echo "ERROR: cannot find $featdir"
+        exit 1;
+      endif
+      set featdir = `getfullpath $featdir`; # FSL needs full path
+      set FeatDirList = ($FeatDirList $featdir); shift;
+      breaksw
+
+    case "--gfeat":
+      if ( $#argv == 0) goto arg1err;
+      set GFeatDir = $argv[1]; shift;
+      if(-e $GFeatDir.gfeat) then
+        echo "ERROR: $GFeatDir.gfeat already exists, delete"
+        exit 1;
+      endif
+      set parent = `dirname $GFeatDir`;
+      mkdir -p $parent
+      set parent = `getfullpath $parent`;
+      set GFeatDir = $parent/`basename $GFeatDir`;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      set debug = 1;
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag not recognized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#FeatDirList == 0) then 
+  echo "ERROR: no input feat dirs specified"
+  exit 1;
+endif
+
+if($#GFeatDir == 0) then
+  echo "ERROR: no output gfeat dir specfied"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: fsfeatffx"
+  echo ""
+  echo " --feat featdir1 <--feat featdir2 ...> "
+  echo " --gfeat gfeatdir : do not include .gfeat"
+  echo ""
+  echo " --version            : print version and exit"
+  echo " --help               : print help and exit"
+  echo " --debug              : turn on debugging"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Performs Second-Level Analysis using the FSL FEAT program.
+
