@@ -472,11 +472,17 @@ Poistats::Run() {
   }
 
   // seeds the seeds to be used if they exist  
-  for( std::vector< int >::iterator seedIt = m_SeedValues.begin();
-    seedIt != m_SeedValues.end(); seedIt++ ) {
-  
-    int seedValueToUse = ( *seedIt );
-    poistatsFilter->SetNextSeedValueToUse( seedValueToUse );      
+  if( m_SeedValues.size() == 1 ) {
+    std::ostringstream output;
+    output << "If specifying seed number, you must specify at least two labels." << std::endl;
+    observer->PostErrorMessage( output.str() );
+    return;
+  } else {
+    for( std::vector< int >::iterator seedIt = m_SeedValues.begin();
+      seedIt != m_SeedValues.end(); seedIt++ ) {        
+      int seedValueToUse = ( *seedIt );
+      poistatsFilter->SetNextSeedValueToUse( seedValueToUse );      
+    }
   }
   
   if( m_ReplicaExchangeProbability > 0 ) {
