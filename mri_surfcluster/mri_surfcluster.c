@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:09 $
- *    $Revision: 1.33 $
+ *    $Author: greve $
+ *    $Date: 2007/03/02 04:53:51 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.33 2006/12/29 02:09:09 nicks Exp $
+  $Id: mri_surfcluster.c,v 1.34 2007/03/02 04:53:51 greve Exp $
 */
 
 #include <stdio.h>
@@ -59,6 +59,8 @@
 #include "version.h"
 #include "annotation.h"
 #include "fsenv.h"
+#include "randomfields.h"
+
 
 LABEL *MaskToSurfaceLabel(MRI *mask, double thresh, int sign);
 
@@ -77,7 +79,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.33 2006/12/29 02:09:09 nicks Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.34 2007/03/02 04:53:51 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -168,6 +170,7 @@ int AdjustThreshWhenOneTail=1;
 char *voxwisesigfile=NULL;
 MRI  *voxwisesig;
 int ReallyUseAverage7 = 0;
+double fwhm = -1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -181,7 +184,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.33 2006/12/29 02:09:09 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.34 2007/03/02 04:53:51 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -410,6 +413,15 @@ int main(int argc, char **argv) {
       scs[n].pval_clusterwise_hi  = pvalHi;
     }
   }
+  if (fwhm > 0) {
+    for (n=0; n < NClusters; n++) {
+      ClusterSize = scs[n].area;
+      pval = RFprobZClusterSigThresh(ClusterSize, thmin, fwhm, totarea, 2);
+      scs[n].pval_clusterwise     = pval;
+      scs[n].pval_clusterwise_low = 0;
+      scs[n].pval_clusterwise_hi  = 0;
+    }
+  }
 
   if (debug) {
     printf("-------------------------------------\n");
@@ -466,6 +478,7 @@ int main(int argc, char **argv) {
       fprintf(fp,"# CSD contrast %s\n",csd->contrast);
       fprintf(fp,"# CSD confint  %lf\n",ciPct);
     }
+    if(fwhm > 0) fprintf(fp,"# fwhm %lf\n",fwhm);
 
     fprintf(fp,"# Overall max %g at vertex %d\n",overallmax,overallmaxvtx);
     fprintf(fp,"# Overall min %g at vertex %d\n",overallmin,overallminvtx);
@@ -799,6 +812,10 @@ static int parse_commandline(int argc, char **argv) {
       subjectsdir = pargv[0];
       FSENVsetSUBJECTS_DIR(subjectsdir);
       nargsused = 1;
+    } else if (!strcmp(option, "--fwhm")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&fwhm);
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -1053,7 +1070,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.33 2006/12/29 02:09:09 nicks Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.34 2007/03/02 04:53:51 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
