@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/03/01 06:19:26 $
-#    $Revision: 1.1 $
+#    $Date: 2007/03/02 12:16:06 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,25 +29,118 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.1 2007/03/01 06:19:26 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.2 2007/03/02 12:16:06 nicks Exp $';
 
-set DoTrain=1
-set DoClassify=1
-set DoTest=1
+# defaults:
+setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas
+set DoRegister=0
+set DoTrain=0
+set DoClassify=0
+set DoTest=0
 set RunIt=1
-set PBS=0
+set PBS=0 # see next line: if on cluster machine, use pbsubmit
 if ("$HOST" == "seychelles") set PBS=1
-set pbs_flags="-l nodes=1:opteron -m $USER"
-#set echo=1
+set pbs_flags="-l nodes=1:opteron"
 
-if ( ! $?SUBJECTS_DIR) then
-    setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas
+# parse command line
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "-register":
+    case "--register":
+      set DoRegister=1
+      breaksw
+
+    case "-train":
+    case "--train":
+      set DoTrain=1
+      breaksw
+
+    case "-classify":
+    case "--classify":
+      set DoClassify=1
+      breaksw
+
+    case "-test":
+    case "--test":
+      set DoTest=1
+      breaksw
+
+    case "-all":
+    case "--all":
+      set DoTrain=1
+      set DoClassify=1
+      set DoTest=1
+      breaksw
+
+    case "-sd":
+    case "--sd":
+      if ( $#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "-fshome":
+    case "--fshome":
+      if ( $#argv < 1) goto arg1err;
+      setenv FREESURFER_HOME $argv[1]; shift;
+      source $FREESURFER_HOME/SetUpFreeSurfer.csh
+      breaksw
+
+    case "-dontrun":
+    case "--dontrun":
+      set RunIt=0
+      breaksw
+
+    case "-mail":
+    case "--mail":
+      set pbs_flags=(${pbs_flags} -m $USER)
+      breaksw
+
+    case "-help":
+    case "--help":
+      echo "parc_atlas_jackknife_test [options]"
+      echo ""
+      echo "options:"
+      echo "  -register         run mris_register: creates .sphere.reg files"
+      echo "  -train            run mris_ca_train: creates .gcs files"
+      echo "  -classify         run mris_ca_label: creates .annot files"
+      echo "  -test             run mris_compute_parc_overlap"
+      echo "  -all              -train, -classify, -test"
+      echo "  -sd <subjects dir>          override default subjects dir"
+      echo "  -fshome <FREESURFER_HOME>   source a new FREESURFER_HOME "
+      echo "  -dontrun          dont execute the commands"
+      exit 1
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+echo "SUBJECTS_DIR:    $SUBJECTS_DIR"
+echo "FREESURFER_HOME: $FREESURFER_HOME"
+
+if ( ! $DoRegister && ! $DoTrain && ! $DoClassify && ! $DoTest) then
+    echo "Nothing to do!  Use --help for options"
+    exit 1
 endif
-echo "SUBJECTS_DIR: $SUBJECTS_DIR"
 
 #
-# check for necessary binaries, script, input files
+# check for necessary binaries, script, and input files
 #
+echo "Register: `which mris_register`"
+if ($status) then
+    echo "mris_ca_train not found (source a Freesurfer home)"
+    exit 1
+endif
 echo "Train:    `which mris_ca_train`"
 if ($status) then
     echo "mris_ca_train not found (source a Freesurfer home)"
@@ -80,12 +173,12 @@ foreach s ($SUBJECTS)
         set f=$SUBJECTS_DIR/$s/surf/$hemi.sphere.reg
         if ( ! -e $f) then
             echo "$f is missing!"
-            exit 1
+            if ( ! $DoRegister) exit 1
         endif
         set f=$SUBJECTS_DIR/$s/label/$hemi.aparc_edited.annot
         if ( ! -e $f) then
             echo "$f is missing!"
-            echo "This is the manual labeled surface."
+            echo "This is the manually labeled surface."
             exit 1
         endif
     end
@@ -99,6 +192,41 @@ setenv WD $PWD
 echo "WD: $WD"
 
 set ALL_SUBJECTS=($SUBJECTS)
+
+#
+# Optionally create the sphere.reg file
+#
+if ($DoRegister) then
+set tif="average.CURVATURE.tif"
+foreach test_subj ($ALL_SUBJECTS)
+    foreach hemi (rh lh)
+        set sphere_reg="${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere.reg"
+        set cmd=(mris_register \
+            -curv ${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere \
+            ${SUBJECTS_DIR}/average/${hemi}.${tif} \
+            ${sphere_reg})
+        if ($RunIt) then
+            if (-e ${sphere_reg}) rm -f ${sphere_reg}
+            if ($PBS) then
+                pbsubmit ${pbs_flags} -c "${cmd}"
+            else
+                ${cmd} &
+            endif
+        endif
+    end
+end
+foreach test_subj ($ALL_SUBJECTS)
+    foreach hemi (rh lh)
+        set sphere_reg="${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere.reg"
+        if ($RunIt) then
+            while (! -e $sphere_reg)
+                echo "waiting for ${sphere_reg}..."
+                sleep 60
+            end
+        endif
+    end
+end
+endif
 
 #
 # for N number of subjects, create N atlases, where one subject is excluded
@@ -126,7 +254,7 @@ foreach test_subj ($ALL_SUBJECTS)
             ${atlas})
         echo ${cmd}
         if ($RunIt) then
-            rm -f ${atlas}
+            if (-e ${atlas}) rm -f ${atlas}
             if ($PBS) then
                 pbsubmit ${pbs_flags} -c "${cmd}"
             else
@@ -147,10 +275,12 @@ if ($DoClassify) then
 foreach test_subj ($ALL_SUBJECTS)
     foreach hemi (rh lh)
         set atlas="${WD}/${hemi}.atlas_leaveout_${test_subj}.gcs"
-        while (! -e $atlas)
-            echo "waiting for $atlas..."
-            sleep 10
-        end
+        if ($RunIt) then
+            while (! -e $atlas)
+                echo "waiting for $atlas..."
+                sleep 10
+            end
+        endif
         set annot="$SUBJECTS_DIR/$test_subj/label/$hemi.aparc_jackknife.annot"
         set cmd=(mris_ca_label \
             -t ${SUBJECTS_DIR}/scripts/colortable_final.txt \
@@ -161,7 +291,7 @@ foreach test_subj ($ALL_SUBJECTS)
             ${annot} )
         echo ${cmd}
         if ($RunIt) then
-            rm -f ${annot}
+            if (-e ${annot}) rm -f ${annot}
             if ($PBS) then
                 pbsubmit ${pbs_flags} -c "${cmd}"
             else
@@ -182,10 +312,12 @@ foreach test_subj ($ALL_SUBJECTS)
         set manual="aparc_edited"
         set auto="aparc_jackknife"
         set f="${SUBJECTS_DIR}/${test_subj}/label/$hemi.${auto}.annot"
-        while (! -e $f)
-            echo "waiting for ${f}..."
-            sleep 10
-        end
+        if ($RunIt) then
+            while (! -e $f)
+                echo "waiting for ${f}..."
+                sleep 10
+            end
+        endif
         set cmd=(mris_compute_parc_overlap \
             --s ${test_subj} \
             --hemi ${hemi} \
@@ -194,6 +326,7 @@ foreach test_subj ($ALL_SUBJECTS)
         echo ${cmd}
         if ($RunIt) then
             set DiceK=${WD}/dice_${test_subj}_${hemi}.txt
+            if (-e ${DiceK}) rm -f ${DiceK}
             if ($PBS) then
                 pbsubmit ${pbs_flags} -c "${cmd} > ${DiceK}"
             else
@@ -202,8 +335,26 @@ foreach test_subj ($ALL_SUBJECTS)
         endif
     end
 end
+set avgfile=${WD}/dice_avg.txt
+if (-e ${avgfile}) rm -f ${avgfile}
+set sum=0
+@ count=0
+foreach test_subj ($ALL_SUBJECTS)
+    foreach hemi (rh lh)
+        if ($RunIt) then
+            set DiceK=${WD}/dice_${test_subj}_${hemi}.txt
+            while ( ! -e $DiceK)
+                sleep 1
+            end
+            sleep 1
+            set dice=`grep Dice ${DiceK} | awk '{ print $4 }'`
+            set sum=`echo "${sum} + ${dice}" | bc`
+            @ count++
+        endif
+    end
+end
+set avg=`echo "scale=4; ${sum} / ${count}" | bc`
+echo "${avg}" > ${avgfile}
 endif
 
-if ( ! $PBS) then
-    echo "parc_atlas_jackknife_test completed successfully"
-endif
+echo "parc_atlas_jackknife_test complete"
