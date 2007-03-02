@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/03/01 18:51:23 $
- *    $Revision: 1.517 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/02 23:56:32 $
+ *    $Revision: 1.518 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.517 2007/03/01 18:51:23 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.518 2007/03/02 23:56:32 kteich Exp $");
 }
 
 /*-----------------------------------------------------
@@ -3768,10 +3768,9 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
 float *
 MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname)
 {
-  int    k,i,vnum,fnum;
-  float  *cvec ;
-  FILE   *fp;
   char   *cp, path[STRLEN], fname[STRLEN] ;
+  float* cvec = NULL;
+  int return_code = ERROR_NONE;
 
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
@@ -3787,30 +3786,59 @@ MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname)
   else
     strcpy(fname, sname) ;  /* path specified explcitly */
 
+  /* Try to read an array of values from this file. If we get an
+     error, return NULL. */
+  return_code = MRISreadCurvatureIntoArray (fname, mris->nvertices, &cvec);
+  if (NO_ERROR != return_code)
+    return NULL;
+
+  /* Return the array we read. */
+  return cvec;
+}
+
+int
+MRISreadCurvatureIntoArray(const char *sname,
+			   int in_array_size,
+			   float** out_array)
+{
+  int    k,i,vnum,fnum;
+  float  *cvec ;
+  FILE   *fp;
+  
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "reading curvature file...") ;
 
-  fp = fopen(fname,"r");
+  fp = fopen(sname,"r");
   if (fp==NULL)
-    return(NULL) ;
+    ErrorReturn(ERROR_BADFILE, 
+		(ERROR_BADFILE, "MRISreadCurvatureVectorIntoArray(%s): fopen failed", sname)) ;
 
   fread3(&vnum,fp);
   if (vnum == NEW_VERSION_MAGIC_NUMBER)
   {
     fclose(fp) ;
-    return(MRISreadNewCurvatureVector(mris, fname)) ;
+    return(MRISreadNewCurvatureIntoArray(sname, in_array_size, out_array)) ;
   }
 
+  /* If that wasn't the magic number, it should be our number of
+     vertices, and should match the array size we were passed. */
+  if (vnum != in_array_size)
+    {
+      fclose(fp);
+      return(ERROR_BADFILE);
+    }
+
+  /* This value is ignored. */
   fread3(&fnum,fp);
-  if (vnum!= mris->nvertices)
-  {
-    fclose(fp) ;
-    return(NULL) ;
-  }
-  cvec = (float *)calloc(mris->nvertices, sizeof(float)) ;
+
+  /* Allocate vector to size of vnum. */
+  cvec = (float *)calloc(in_array_size, sizeof(float)) ;
   if (!cvec)
-    ErrorExit(ERROR_NOMEMORY, "MRISreadCurvatureVector(%s): calloc failed",
-              fname) ;
+    {
+      fclose(fp);
+      ErrorReturn(ERROR_NOMEMORY, 
+		  (ERROR_NOMEMORY, "MRISreadCurvatureVectorIntoArray(%s): calloc failed", sname)) ;
+    }
 
   for (k=0;k<vnum;k++)
   {
@@ -3818,7 +3846,11 @@ MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname)
     cvec[k] = i/100.0 ;
   }
   fclose(fp);
-  return(cvec) ;
+
+  /* Return what we read. */
+  *out_array = cvec;
+
+  return (ERROR_NONE);
 }
 
 
@@ -9976,39 +10008,94 @@ MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
 int
 MRISreadValues(MRI_SURFACE *mris, char *sname)
 {
+  float* array = NULL;
+  int return_code = 0;
+  int vno;
+
+  /* Try to read an array of values from this file. If we get an
+     error, pass the code back up. */
+  return_code = MRISreadValuesIntoArray (sname, mris->nvertices, &array);
+  if (NO_ERROR != return_code)
+    return return_code;
+
+  /* Read all the values from the array into our val field. */
+  for (vno = 0; vno < mris->nvertices; vno++)
+    {
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      mris->vertices[vno].val = array[vno];
+    }
+
+  /* MRISreadValuesIntoArray allocates its own array, so free it
+     here. */
+  free (array);
+
+  return(NO_ERROR);
+}
+
+
+int
+MRISreadValuesIntoArray(const char* sname, 
+			int in_array_size,
+			float** out_array)
+{
   int   i,k,num,ilat, vno ;
-  float f;
-  float lat, *cvec;
+  float f = 0;
+  float lat;
   FILE  *fp;
   char  *cp, fname[STRLEN] ;
   int   type, frame, nv, c,r,s;
   MRI *TempMRI;
+  float *array;
+  int return_code;
 
-  // First try to load it as a volume
-  type = mri_identify(sname);
+  if (sname == NULL || out_array == NULL)
+    ErrorReturn( ERROR_BADPARM,
+		 (ERROR_BADPARM, "Parameter was NULL.") );
+  if (in_array_size < 0)
+    ErrorReturn( ERROR_BADPARM,
+		 (ERROR_BADPARM, "in_array_size was negative.") );
+
+  /* First try to load it as a volume */
+  strncpy( fname, sname, sizeof(fname) );
+  type = mri_identify(fname);
   if (type != MRI_VOLUME_TYPE_UNKNOWN)
   {
     frame = MRISgetReadFrame();
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       printf("MRISreadValues: frame=%d\n",frame);
-    TempMRI = MRIreadHeader(sname,type);
+    TempMRI = MRIreadHeader(fname,type);
     if (TempMRI==NULL) return(ERROR_BADFILE);
     if (TempMRI->nframes <= frame)
     {
-      printf("ERROR: attempted to read frame %d from %s\n",frame,sname);
-      printf("  but this file only has %d frames.\n",TempMRI->nframes);
-      return(ERROR_BADFILE);
+      MRIfree(&TempMRI);
+      ErrorReturn(ERROR_BADFILE,
+		  (ERROR_BADFILE,
+		   "ERROR: attempted to read frame %d from %s\n     but this file only has %d frames.\n",frame,fname,TempMRI->nframes));
     }
     nv = TempMRI->width * TempMRI->height * TempMRI->depth;
-    if (nv != mris->nvertices)
-    {
-      printf("ERROR: number of vertices in %s does not match surface (%d,%d)",
-             sname,nv,mris->nvertices);
-      return(1);
-    }
     MRIfree(&TempMRI);
-    TempMRI = MRIread(sname);
+
+    /* Make sure the size is what we're expecting. */
+    if (nv != in_array_size)
+      {
+	ErrorReturn( ERROR_BADFILE,
+		     (ERROR_BADFILE, "ERROR: Reading %s as volume encoded scalar file, but size doesn't match expected size of %d\n", sname, in_array_size));
+      }
+
+    /* Read the MRI of values. */
+    TempMRI = MRIread(fname);
     if (TempMRI==NULL) return(ERROR_BADFILE);
+
+    /* Initialize our array. */
+    array = (float*) calloc (in_array_size, sizeof(float));
+    if (NULL == array)
+      ErrorReturn( ERROR_BADPARM,
+		   (ERROR_BADPARM, "ERROR: Reading file value file %s\n"
+		    "  Couldn't allocate array of size %s\n", 
+		    fname, nv) );
+
+    /* Read all the values into the array. */
     vno = 0;
     for (s=0; s < TempMRI->depth; s++)
     {
@@ -10016,67 +10103,108 @@ MRISreadValues(MRI_SURFACE *mris, char *sname)
       {
         for (c=0; c < TempMRI->width; c++)
         {
-          mris->vertices[vno].val = MRIgetVoxVal(TempMRI,c,r,s,frame);
+	  array[vno] = MRIgetVoxVal(TempMRI,c,r,s,frame);
           vno++;
         }
       }
     }
     MRIfree(&TempMRI);
+
+    /* Set the outgoing array and size. */
+    *out_array = array;
+
     return(NO_ERROR);
   }
+  
 
-  cvec = MRISreadCurvatureVector(mris, sname) ;
-  if (cvec)
-  {
-    printf("reading values from curvature-format file...\n") ;
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
+  /* Next, try reading a curvature file. If we don't get an error, the
+     array is filled out, so we can return now.*/
+  return_code = MRISreadCurvatureIntoArray(sname, in_array_size, out_array) ;
+  if (ERROR_NONE == return_code)
     {
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      mris->vertices[vno].val = cvec[vno];
+      printf("reading values from curvature-format file...\n") ;
+      return ERROR_NONE;
     }
-    free(cvec) ;
-  }
-  else
-  {
-    strcpy(fname, sname) ;
-    cp = strrchr(fname, '.') ;
-    if (!cp || *(cp+1) != 'w')
-      strcat(fname, ".w") ;
-    fp = fopen(fname,"rb");
-    if (fp==NULL)
-      ErrorReturn(ERROR_NOFILE,
-                  (ERROR_NOFILE,
-                   "MRISreadValues: File %s not found\n",fname));
-    fread2(&ilat,fp);
-    lat = ilat/10.0;
 
-    for (k=0;k<mris->nvertices;k++)
-      mris->vertices[k].val=0;
-    if (fread3(&num,fp) < 1)
-      ErrorReturn(ERROR_BADFILE,
-                  (ERROR_BADFILE,
-                   "MRISreadValues(%s): could not read # of vertices",
-                   fname)) ;
-    for (i=0;i<num;i++)
+  
+  /* Now we try an old .w file. If the file name doesn't have .w on
+     it, append it now. */
+  strcpy(fname, sname) ;
+  cp = strrchr(fname, '.') ;
+  if (!cp || *(cp+1) != 'w')
+    strcat(fname, ".w") ;
+
+  /* Try opening the file. */
+  fp = fopen(fname,"rb");
+  if (fp==NULL)
+    ErrorReturn(ERROR_NOFILE,
+		(ERROR_NOFILE,
+		 "MRISreadValuesIntoArray: File %s not found\n",fname));
+
+  /* Read something... Seems to be ignored now. */
+  fread2(&ilat,fp);
+  lat = ilat/10.0;
+  
+  /* Read the number of values. */
+  if (fread3(&num,fp) < 1)
     {
+      fclose (fp);
+      ErrorReturn(ERROR_BADFILE,
+		  (ERROR_BADFILE,
+		   "MRISreadValues(%s): could not read # of vertices",
+		   fname)) ;
+    }
+
+  /* The .w format, being sparse, doesn't require the number of values
+     in the file to match the expected amount (usually
+     mris->vertices), so we don't test that here. We'll test each
+     index invidiually later. */
+
+  /* Initialize our array. Note that we do it to the size that we got
+     passed in, which might be different than num. */
+  array = (float*) calloc (in_array_size, sizeof(float));
+  if (NULL == array)
+    {
+      fclose (fp);
+      ErrorReturn( ERROR_BADPARM,
+		   (ERROR_BADPARM, "ERROR: Reading file value file %s\n"
+		    "  Couldn't allocate array of size %s\n", 
+		    sname, num) );
+    }
+
+  /* Read the values into the array. */
+  for (i=0;i<num;i++)
+    {
+      /* Read the value index. */
       if (fread3(&k,fp) < 1)
         ErrorReturn(ERROR_BADFILE,
                     (ERROR_BADFILE,
                      "MRISreadValues(%s): could not read %dth vno",
                      fname, i)) ;
+
+      /* Check the index we read to make sure it's less than the size
+	 we're expecting. */
+      if (k >= in_array_size || k<0 )
+	{
+	  printf("MRISreadValues: vertex index out of range: %d f=%f\n",k,f);
+	  continue;
+	}
+
+      if (k == Gdiag_no)
+	DiagBreak() ;
+
+      /* Read the value. */
       f = freadFloat(fp) ;
-      if (k>=mris->nvertices||k<0)
-        printf("MRISreadValues: vertex index out of range: %d f=%f\n",k,f);
-      else
-      {
-        if (k == Gdiag_no)
-          DiagBreak() ;
-        mris->vertices[k].val = f;
-      }
+      
+      /* Set it in the array. */
+      array[k] = f;
     }
-    fclose(fp);
-  }
+
+  fclose(fp);
+
+  /* Set the outgoing array and size. */
+  *out_array = array;
+
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -55099,10 +55227,9 @@ MRISreadNewCurvatureFile(MRI_SURFACE *mris, char *sname)
 float *
 MRISreadNewCurvatureVector(MRI_SURFACE *mris, char *sname)
 {
-  int    k,vnum,fnum, vals_per_vertex ;
-  float  *cvec ;
-  FILE   *fp;
   char   *cp, path[STRLEN], fname[STRLEN] ;
+  float  *cvec  = NULL;
+  int return_code = ERROR_NONE;
 
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
@@ -55118,44 +55245,80 @@ MRISreadNewCurvatureVector(MRI_SURFACE *mris, char *sname)
   else
     strcpy(fname, sname) ;  /* path specified explcitly */
 
+  /* Try to read an array of values from this file. If we get an
+     error, return NULL. */
+  return_code = MRISreadNewCurvatureIntoArray (fname, mris->nvertices, &cvec);
+  if (NO_ERROR != return_code)
+    return NULL;
+
+  /* Return the array we read. */
+  return cvec;
+}
+
+int
+MRISreadNewCurvatureIntoArray(const char *sname,
+			      int in_array_size,
+			      float** out_array)
+{
+  int    k,vnum,fnum;
+  float  *cvec ;
+  FILE   *fp;
+  int vals_per_vertex;
+
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "reading curvature file...") ;
 
-  fp = fopen(fname,"r");
+  fp = fopen(sname,"r");
   if (fp==NULL)
-    return(NULL) ;
+    ErrorReturn(ERROR_BADFILE,
+		(ERROR_BADFILE, "MRISreadNewCurvatureIntoArray(%s): fopen failed"));
 
+  /* This is the version number. */
   fread3(&vnum,fp);
   if (vnum != NEW_VERSION_MAGIC_NUMBER)
   {
     fclose(fp) ;
-    return(MRISreadCurvatureVector(mris, fname)) ;
+    return(MRISreadCurvatureIntoArray(sname, in_array_size, out_array)) ;
   }
 
+  /* Read number of vertices and faces. */
   vnum = freadInt(fp);
   fnum = freadInt(fp);
-  if (vnum!= mris->nvertices)
+
+  /* Make sure the number of vertices mathces what we're expecting. */
+  if (vnum != in_array_size)
   {
     fclose(fp) ;
-    return(NULL) ;
+    ErrorReturn(ERROR_BADFILE,
+		(ERROR_BADFILE, "MRISreadNewCurvatureIntoArray(%s): number of vertices (%d) doesn't match what was expected (%d)", sname, vnum, in_array_size));
   }
+  
+  /* Number of values per vertex. */
   vals_per_vertex = freadInt(fp) ;
   if (vals_per_vertex != 1)
   {
     fclose(fp) ;
-    return(NULL) ;
+    ErrorReturn(ERROR_BADFILE,
+		(ERROR_BADFILE, "MRISreadNewCurvatureIntoArray(%s): vals_per_vertex was not 1", sname));
   }
 
-  cvec = (float *)calloc(mris->nvertices, sizeof(float)) ;
+  /* Allocate to size of vnum.*/
+  cvec = (float *)calloc(in_array_size, sizeof(float)) ;
   if (!cvec)
     ErrorExit(ERROR_NOMEMORY, "MRISreadNewCurvatureVector(%s): calloc failed",
-              fname) ;
+              sname) ;
+
+  /* Read in values. */
   for (k=0;k<vnum;k++)
   {
     cvec[k] = freadFloat(fp) ;
   }
   fclose(fp);
-  return(cvec) ;
+
+  /* Return what we read. */
+  *out_array = cvec;
+
+  return (ERROR_NONE);
 }
 /*-----------------------------------------------------
   Parameters:

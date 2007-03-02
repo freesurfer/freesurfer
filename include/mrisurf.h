@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/02/28 19:18:43 $
- *    $Revision: 1.283 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/02 23:56:19 $
+ *    $Revision: 1.284 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -593,13 +593,16 @@ int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 float        *MRISreadNewCurvatureVector(MRI_SURFACE *mris, char *sname) ;
+int          MRISreadNewCurvatureIntoArray(const char *fname, int in_array_size, float** out_array) ;
 float        *MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname) ;
+int          MRISreadCurvatureIntoArray(const char *fname, int in_array_size, float** out_array) ;
 int          MRISreadFloatFile(MRI_SURFACE *mris, char *fname) ;
 #define MRISreadCurvature MRISreadCurvatureFile
 
 MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf,
                       char *subject, char *hemi, char *subjectsdir);
 int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
+int          MRISreadValuesIntoArray(const char *fname, int in_array_size, float** out_array) ;
 int          MRISreadAnnotation(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAnnotation(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadValuesBak(MRI_SURFACE *mris, char *fname) ;
