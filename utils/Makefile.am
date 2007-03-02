@@ -43,17 +43,6 @@ am_libutils_a_OBJECTS = $(libutils_a_SOURCES:%.c=%.o) \
 #lib_LTLIBRARIES= libutils.la
 #libutils_la_SOURCES = $(wildcard *.c) $(wildcard *.h)
 
-if HAVE_MAC_OSX
-# mrisurf must be compiled w/o optimization enabled, in order 
-# to mask a segfault appearing on the Mac when running mris_fix_topology
-mrisurf.o: mrisurf.c
-	@echo "compiling mrisurf.c to mrisurf.o (with -O0)"
-	source='$<' object='$@' libtool=no \
-	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
-	$(CCDEPMODE) $(depcomp) \
-	$(COMPILE) -O0 -c `test -f '$<' || echo '$(srcdir)/'`$<
-endif
-
 .c.o:
 	source='$<' object='$@' libtool=no \
 	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
