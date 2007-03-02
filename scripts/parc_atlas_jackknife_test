@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/03/02 12:16:06 $
-#    $Revision: 1.2 $
+#    $Date: 2007/03/02 23:59:34 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,18 +29,22 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.2 2007/03/02 12:16:06 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.3 2007/03/02 23:59:34 nicks Exp $';
 
 # defaults:
 setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas
 set DoRegister=0
+set DoRegCopy=0
 set DoTrain=0
 set DoClassify=0
 set DoTest=0
+set DoDiceAvg=0
 set RunIt=1
 set PBS=0 # see next line: if on cluster machine, use pbsubmit
 if ("$HOST" == "seychelles") set PBS=1
 set pbs_flags="-l nodes=1:opteron"
+set reg_dist=""
+set reg_append=""
 
 # parse command line
 set cmdline = ($argv);
@@ -53,6 +57,24 @@ while( $#argv != 0 )
     case "-register":
     case "--register":
       set DoRegister=1
+      breaksw
+
+    case "-reg_dist":
+    case "--reg_dist":
+      set DoRegister=1
+      set reg_dist="-dist $argv[1]"; shift;
+      breaksw
+
+    case "-reg_append":
+    case "--reg_append":
+      set DoRegister=1
+      set reg_append="$argv[1]"; shift;
+      breaksw
+
+    case "-reg_copy":
+    case "--reg_copy":
+      set DoRegCopy=1
+      set reg_append="$argv[1]"; shift;
       breaksw
 
     case "-train":
@@ -70,22 +92,26 @@ while( $#argv != 0 )
       set DoTest=1
       breaksw
 
+    case "-avg":
+    case "--avg":
+      set DoDiceAvg=1
+      breaksw
+
     case "-all":
     case "--all":
       set DoTrain=1
       set DoClassify=1
       set DoTest=1
+      set DoDiceAvg=1
       breaksw
 
     case "-sd":
     case "--sd":
-      if ( $#argv < 1) goto arg1err;
       setenv SUBJECTS_DIR $argv[1]; shift;
       breaksw
 
     case "-fshome":
     case "--fshome":
-      if ( $#argv < 1) goto arg1err;
       setenv FREESURFER_HOME $argv[1]; shift;
       source $FREESURFER_HOME/SetUpFreeSurfer.csh
       breaksw
@@ -106,6 +132,7 @@ while( $#argv != 0 )
       echo ""
       echo "options:"
       echo "  -register         run mris_register: creates .sphere.reg files"
+      echo "  -reg_dist <arg>   run mris_register with '-dist <arg>' flag"
       echo "  -train            run mris_ca_train: creates .gcs files"
       echo "  -classify         run mris_ca_label: creates .annot files"
       echo "  -test             run mris_compute_parc_overlap"
@@ -125,13 +152,18 @@ while( $#argv != 0 )
 
 end
 
-echo "SUBJECTS_DIR:    $SUBJECTS_DIR"
-echo "FREESURFER_HOME: $FREESURFER_HOME"
-
-if ( ! $DoRegister && ! $DoTrain && ! $DoClassify && ! $DoTest) then
+if ( ! $DoRegister && \
+     ! $DoRegCopy && \
+     ! $DoTrain && \
+     ! $DoClassify && \
+     ! $DoTest && \
+     ! $DoDiceAvg) then
     echo "Nothing to do!  Use --help for options"
     exit 1
 endif
+
+echo "SUBJECTS_DIR    $SUBJECTS_DIR"
+echo "FREESURFER_HOME $FREESURFER_HOME"
 
 #
 # check for necessary binaries, script, and input files
@@ -173,7 +205,7 @@ foreach s ($SUBJECTS)
         set f=$SUBJECTS_DIR/$s/surf/$hemi.sphere.reg
         if ( ! -e $f) then
             echo "$f is missing!"
-            if ( ! $DoRegister) exit 1
+            if ( ! $DoRegister && ! $DoRegCopy ) exit 1
         endif
         set f=$SUBJECTS_DIR/$s/label/$hemi.aparc_edited.annot
         if ( ! -e $f) then
@@ -189,9 +221,10 @@ cd $SUBJECTS_DIR
 mkdir -p jackknife
 cd jackknife
 setenv WD $PWD
-echo "WD: $WD"
+echo "WD:       $WD"
 
 set ALL_SUBJECTS=($SUBJECTS)
+
 
 #
 # Optionally create the sphere.reg file
@@ -201,7 +234,8 @@ set tif="average.CURVATURE.tif"
 foreach test_subj ($ALL_SUBJECTS)
     foreach hemi (rh lh)
         set sphere_reg="${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere.reg"
-        set cmd=(mris_register \
+        set sphere_reg="${sphere_reg}${reg_append}"
+        set cmd=(mris_register ${reg_dist} \
             -curv ${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere \
             ${SUBJECTS_DIR}/average/${hemi}.${tif} \
             ${sphere_reg})
@@ -218,6 +252,7 @@ end
 foreach test_subj ($ALL_SUBJECTS)
     foreach hemi (rh lh)
         set sphere_reg="${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere.reg"
+        set sphere_reg="${sphere_reg}${reg_append}"
         if ($RunIt) then
             while (! -e $sphere_reg)
                 echo "waiting for ${sphere_reg}..."
@@ -227,6 +262,29 @@ foreach test_subj ($ALL_SUBJECTS)
     end
 end
 endif
+
+
+#
+# Optionally copy named sphere.reg files (those created using -reg_append)
+#
+if ($DoRegCopy) then
+foreach test_subj ($ALL_SUBJECTS)
+    foreach hemi (rh lh)
+        set sphere_reg="${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere.reg"
+        set copy_sphere_reg="${sphere_reg}${reg_append}"
+        set cmd1=(mv ${sphere_reg} ${sphere_reg}.bak)
+        set cmd2=(cp ${copy_sphere_reg} ${sphere_reg})
+        if ($RunIt) then
+            echo $cmd1
+            ${cmd1}
+            echo $cmd2
+            ${cmd2}
+            if ($status) exit 1
+        endif
+    end
+end
+endif
+
 
 #
 # for N number of subjects, create N atlases, where one subject is excluded
@@ -302,8 +360,9 @@ foreach test_subj ($ALL_SUBJECTS)
 end
 endif
 
+
 #
-# now test each atlas by comparing the subjects automatic classificatio 
+# now test each atlas by comparing the subjects automatic classification 
 # against its manual labeling
 #
 if ($DoTest) then
@@ -335,7 +394,27 @@ foreach test_subj ($ALL_SUBJECTS)
         endif
     end
 end
+endif
+
+
+#
+# Calc the overall dice average. assumes the -test (DoTest) stage has run
+#
 set avgfile=${WD}/dice_avg.txt
+if ($DoDiceAvg) then
+foreach test_subj ($ALL_SUBJECTS)
+    foreach hemi (rh lh)
+        if ($RunIt) then
+            set DiceK=${WD}/dice_${test_subj}_${hemi}.txt
+            while ( ! -e $DiceK)
+                echo "waiting for ${DiceK}..."
+                sleep 10
+            end
+        endif
+    end
+end
+sleep 2
+echo "Calculating overall average Dice coefficient..."
 if (-e ${avgfile}) rm -f ${avgfile}
 set sum=0
 @ count=0
@@ -348,13 +427,21 @@ foreach test_subj ($ALL_SUBJECTS)
             end
             sleep 1
             set dice=`grep Dice ${DiceK} | awk '{ print $4 }'`
+            if ($status) exit 1
             set sum=`echo "${sum} + ${dice}" | bc`
+            if ($status) exit 1
             @ count++
         endif
     end
 end
 set avg=`echo "scale=4; ${sum} / ${count}" | bc`
+if ($status) exit 1
 echo "${avg}" > ${avgfile}
 endif
 
+
+#
+# done
+#
 echo "parc_atlas_jackknife_test complete"
+if (-e $avgfile) echo "Average Dice: `cat $avgfile`"
