@@ -30,8 +30,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/03/01 00:16:49 $
-#    $Revision: 1.6 $
+#    $Date: 2007/03/02 18:40:07 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.6 2007/03/01 00:16:49 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.7 2007/03/02 18:40:07 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -479,15 +479,19 @@ foreach statfile ($STATS_FILES)
   set cmd1a=(grep -v "TimeStamp" $REF_STAT)
   set cmd1b=(grep -v "CreationTime" $SUBJECTS_DIR/ref.stats)
   set cmd1c=(grep -v "cvs_version" $SUBJECTS_DIR/ref.stats)
+  set cmd1d=(grep -v "${REF_SUBJ}" $SUBJECTS_DIR/ref.stats)
   echo $cmd1a
   echo $cmd1b
   echo $cmd1c
+  echo $cmd1d
   set cmd2a=(grep -v "TimeStamp" $TST_STAT)
   set cmd2b=(grep -v "CreationTime" $SUBJECTS_DIR/tst.stats)
   set cmd2c=(grep -v "cvs_version" $SUBJECTS_DIR/tst.stats)
+  set cmd2d=(grep -v "${TEST_SUBJ}" $SUBJECTS_DIR/tst.stats)
   echo $cmd2a
   echo $cmd2b
   echo $cmd2c
+  echo $cmd2d
   set cmd3=(diff $SUBJECTS_DIR/ref.$statfile $SUBJECTS_DIR/tst.$statfile)
   echo $cmd3
   if ($RunIt) then
@@ -497,12 +501,16 @@ foreach statfile ($STATS_FILES)
     $cmd1b >& $SUBJECTS_DIR/ref.stats.tmp
     mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.stats
     $cmd1c >& $SUBJECTS_DIR/ref.stats.tmp
+    mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.stats
+    $cmd1d >& $SUBJECTS_DIR/ref.stats.tmp
     mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.$statfile
     $cmd2a >& $SUBJECTS_DIR/tst.stats.tmp
     mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.stats
     $cmd2b >& $SUBJECTS_DIR/tst.stats.tmp
     mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.stats
     $cmd2c >& $SUBJECTS_DIR/tst.stats.tmp
+    mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.stats
+    $cmd2d >& $SUBJECTS_DIR/tst.stats.tmp
     mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.$statfile
     $cmd3 >& $STATSDIFFF
     set stats_diff_status=$status
