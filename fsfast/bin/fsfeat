@@ -14,8 +14,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/01/29 19:13:27 $
-#    $Revision: 1.5 $
+#    $Date: 2007/03/02 05:29:15 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -31,7 +31,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat,v 1.5 2007/01/29 19:13:27 greve Exp $';
+set VERSION = '$Id: fsfeat,v 1.6 2007/03/02 05:29:15 greve Exp $';
 set inputargs = ($argv);
 
 set fsf     = ();
@@ -180,7 +180,7 @@ while ($nthzfstat < $nzfstats)
   @ nthzfstat = $nthzfstat + 1;
   set zf = $statsdir/zfstat$nthzfstat.$outext
   set sig = $statsdir/zfsig$nthzfstat.$outext
-  set cmd = (mri_z2p --z $zf --logp $sig) # not signed
+  set cmd = (mri_z2p --z $zf --log10p $sig) # not signed
   pwd
   echo $cmd
   $cmd
