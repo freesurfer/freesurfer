@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/02/15 22:59:21 $
-#    $Revision: 1.67 $
+#    $Date: 2007/03/02 18:01:30 $
+#    $Revision: 1.68 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.67 2007/02/15 22:59:21 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.68 2007/03/02 18:01:30 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -648,6 +648,8 @@ if($DoTalairach) then
     |& tee -a $LF |& tee -a $CF
   echo "#@# Talairach `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
+  set xfm = transforms/talairach.xfm
+  set xfma = transforms/talairach.auto.xfm
   if ( $longitudinal ) then
     # longitudinal processing stream:
     set tal_targ = ${MINC_BIN_DIR}/../share/mni_autoreg/average_305.mnc
@@ -656,19 +658,18 @@ if($DoTalairach) then
         |& tee -a $LF
       goto error_exit;
     endif
-    if( -e $tp1dir/mri/transforms/talairach.xfm) then
-      set tal_xfm = talairach.xfm
+    if( -e $tp1dir/mri/$xfm) then
+      set tal_xfm = $xfm
     else
-      set tal_xfm = talairach.auto.xfm
+      set tal_xfm = $xfma
     endif
     set cmd = (mri_concatenate_lta -invert1 -tal \
       $tp1dir/mri/orig.mgz $tal_targ \
       $tp1dir/mri/transforms/$regfile \
-      $tp1dir/mri/transforms/$tal_xfm \
-      $subjdir/mri/transforms/talairach.auto.xfm)
+      $tp1dir/mri/$tal_xfm \
+      $subjdir/mri/$xfma)
   else
     # default processing:
-    set xfma = transforms/talairach.auto.xfm
     set xopts = `fsr-getxopts talairach $XOptsFile`;
     set cmd = (talairach --i nu.mgz --xfm $xfma $xopts)
   endif
@@ -676,7 +677,6 @@ if($DoTalairach) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
-  set xfm = transforms/talairach.xfm
   if($DoCleanTal || ! -e $xfm) then
     if(-e $xfm) cp $xfm transforms/bak/talairach.xfm.$DateString
     set cmd = (cp $xfma $xfm)
