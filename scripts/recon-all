@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/03/02 18:01:30 $
-#    $Revision: 1.68 $
+#    $Author: greve $
+#    $Date: 2007/03/02 18:16:53 $
+#    $Revision: 1.69 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.68 2007/03/02 18:01:30 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.69 2007/03/02 18:16:53 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1918,12 +1918,21 @@ if($DoAParc2ASeg) then
   echo "#@# AParc-to-ASeg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
+  # Rahul's
   set cmd = (mri_aparc2aseg --s $subjid --ribbon $xopts)
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  #if($RunIt) $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/aparc2aseg.touch
+  # Now do Christophe's
+  set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
+  set cmd = (mri_aparc2aseg --s $subjid --ribbon --a2005s $xopts)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
-  echo $cmd > $touchdir/aparc2aseg.touch
+  echo $cmd > $touchdir/aparc.a2005s2aseg.touch
 endif
 
 
