@@ -2,7 +2,7 @@
 # fsfeatffx
 #
 
-set VERSION = '$Id: fsfeatffx,v 1.1 2007/03/02 06:41:57 greve Exp $'
+set VERSION = '$Id: fsfeatffx,v 1.2 2007/03/02 06:45:57 greve Exp $'
 
 set FeatDirList = ();
 set GFeatDir = ();
@@ -64,8 +64,8 @@ echo "Writing design.secondlevel.ffx.fsf"
 echo "--------------------------------------------------"
 
 # Create a local copy of the template
-set ConfFileLocal = $tmpdir/design.secondlevel.ffx.fsf
-cp $FREESURFER_HOME/fsfast/bin/design.secondlevel.ffx.fsf $ConfFileLocal
+set ConfFileLocal = $tmpdir/ffx.fsf
+cp $FREESURFER_HOME/fsfast/bin/crossrun.ffx.fsf $ConfFileLocal
 #cp design.fsf $ConfFileLocal
 echo "" >> $ConfFileLocal
 echo "# Everything below this line has been written by fsfeatffx-visit" >> $ConfFileLocal
