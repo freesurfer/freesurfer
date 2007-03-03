@@ -30,8 +30,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/03/02 18:40:07 $
-#    $Revision: 1.7 $
+#    $Date: 2007/03/03 00:00:17 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.7 2007/03/02 18:40:07 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.8 2007/03/03 00:00:17 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -161,8 +161,9 @@ echo "FREESURFER_HOME: $FREESURFER_HOME"
 # running another test run until somebody figures out why it failed.
 # the flag file 'test_recon-all_FAILED' will  need to be deleted manually.
 if (-e $SUBJECTS_DIR/test_recon-all_FAILED) then
-    mail -s "Prior $PROC test_recon-all FAILED! Fix it!" \
-        $MAIL_LIST < /dev/null
+    set msg="Prior $PROC test_recon-all FAILED! Fix it!"
+    echo ${msg}
+    mail -s "${msg}" $MAIL_LIST < /dev/null > /dev/null
     exit 1
 endif
 
@@ -172,7 +173,9 @@ endif
 # completion of recon-all, and so should not exist
 if (-e $SUBJECTS_DIR/$TEST_SUBJ) then
   if ($?SKIP_RECON) goto continue1
-    mail -s "$PROC test_recon-all already running!" $MAIL_LIST < /dev/null
+    set msg="$PROC test_recon-all already running!"
+    echo ${msg}
+    mail -s "${msg}" $MAIL_LIST < /dev/null > /dev/null
     exit 1
   continue1:
 endif
@@ -185,8 +188,9 @@ endif
 rm -f $SUBJECTS_DIR/ref_subj
 ln -s $SUBJ_REF_DIR/$REF_SUBJ $SUBJECTS_DIR/ref_subj
 if ($status) then
-    mail -s "test_recon-all FAILED to create ref_subj symlink!" \
-        $MAIL_LIST < /dev/null
+    set msg="test_recon-all FAILED to create ref_subj symlink!"
+    echo ${msg}
+    mail -s "${msg}" $MAIL_LIST < /dev/null > /dev/null
     exit 1
 endif
 
