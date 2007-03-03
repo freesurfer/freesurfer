@@ -1,15 +1,19 @@
 /**
  * @file  vtkFSVolumeSource.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Source for FreeSurfer MRI volumes
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This will read any FS MRI volume with the MRIRead command, and
+ * provide a VTK StructuredPointsSource output port. The output is in
+ * 'index' space, with the corner at 0,0,0. There are also functions
+ * for getting the 'RAS' space transforms, which should be used to
+ * display the output properly in RAS space.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/02/07 22:04:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/03/03 00:04:11 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,15 +28,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-// .NAME vtkFSVolumeSource - Source for FreeSurfer MRI volumes
-// .SECTION Description
-// This will read any FS MRI volume with the MRIRead command, and
-// provide a VTK StructuredPointsSource output port. The output is in
-// 'index' space, with the corner at 0,0,0. There are also functions
-// for getting the 'RAS' space transforms, which should be used to
-// display the output properly in RAS space.
 
 #ifndef __vtkFSVolumeSource_h
 #define __vtkFSVolumeSource_h

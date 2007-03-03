@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/02/07 22:04:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/03/03 00:04:11 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -70,6 +70,10 @@ public:
   float GetRASCenterX () const;
   float GetRASCenterY () const;
   float GetRASCenterZ () const;
+
+  // Description:
+  // Returns the number of vertices in the surface.
+  int GetNumberOfVertices () const;
 
   // Description:
   // Get the vertex number from a RAS or surface RAS point. This uses

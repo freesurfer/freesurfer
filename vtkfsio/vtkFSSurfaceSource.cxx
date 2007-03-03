@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/02/07 22:04:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/03/03 00:04:11 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,7 +36,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceSource );
-vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.2 $" );
 
 vtkFSSurfaceSource::vtkFSSurfaceSource() :
     mMRIS( NULL ),
@@ -268,6 +268,15 @@ vtkFSSurfaceSource::GetRASCenterZ () const {
 }
 
 int
+vtkFSSurfaceSource::GetNumberOfVertices () const {
+
+  if( mMRIS )
+    return mMRIS->nvertices;
+  else
+    return 0;
+}
+
+int
 vtkFSSurfaceSource::FindVertexAtRAS ( float const iRAS[3], float* oDistance ) {
 
   float surf[3];
@@ -355,16 +364,6 @@ vtkFSSurfaceSource::Execute () {
   newPolys->Squeeze(); // since we've estimated size; reclaim some space
   output->SetPolys( newPolys );
   newPolys->Delete();
-
-
-  vtkFloatArray* scalars = vtkFloatArray::New();
-  scalars->Allocate( cVertices );
-  scalars->SetNumberOfComponents( 1 );
-  for( int n = 0; n < cVertices; n++ ) {
-    scalars->InsertNextValue( (float)n/(float)cVertices * 2.0 - 1.0 );
-  }
-  output->GetPointData()->SetScalars( scalars );
-  scalars->Delete();
 
 }
 

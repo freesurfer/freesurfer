@@ -1,15 +1,19 @@
 /**
  * @file  vtkFSVolumeSource.cxx
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Source for FreeSurfer MRI volumes
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This will read any FS MRI volume with the MRIRead command, and
+ * provide a VTK StructuredPointsSource output port. The output is in
+ * 'index' space, with the corner at 0,0,0. There are also functions
+ * for getting the 'RAS' space transforms, which should be used to
+ * display the output properly in RAS space.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/02/27 22:37:29 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/03/03 00:04:11 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +29,17 @@
  *
  */
 
+//
+// Why use a source and not a reader?
+//
+// Unlike most VTK pipelines, this object is designed to hold an
+// easily editable volume. We keep the actual MRI object in memory and
+// allow operations on it, basically a wrapper for the C object and
+// functions defined in mri*.c. Then, when it changes, we copy the new
+// volume into the output. This doesn't quite fit well into the VTK
+// way of things, but it's better than changing a file and re-reading
+// it every time.
+//
 
 #include <stdexcept>
 #include "vtkFSVolumeSource.h"
@@ -40,7 +55,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSVolumeSource );
-vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.5 $" );
 
 vtkFSVolumeSource::vtkFSVolumeSource () :
     mMRI( NULL ),
