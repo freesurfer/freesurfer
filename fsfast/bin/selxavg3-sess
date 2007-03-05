@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/05 22:25:53 $
-#    $Revision: 1.23 $
+#    $Date: 2007/03/05 23:01:10 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.23 2007/03/05 22:25:53 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.24 2007/03/05 23:01:10 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -201,7 +201,7 @@ foreach sess ($SessList)
   echo "flacname = '$flacfile';" >> $MLF
   echo "outtop = '$OutParent';" >> $MLF
   echo "fast_selxavg3;" >> $MLF
-  echo "if(~file_exists(okfile) && ~monly); quit; end"
+  echo "if(~file_exists(okfile) && ~monly); quit; end" >> $MLF
   if($nthsess > 1 && ! $monly)  then
     echo "clear all;" >> $MLF
     echo "pack;" >> $MLF
