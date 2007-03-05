@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/03/02 20:09:49 $
-#    $Revision: 1.70 $
+#    $Date: 2007/03/05 21:43:58 $
+#    $Revision: 1.71 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.70 2007/03/02 20:09:49 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.71 2007/03/05 21:43:58 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -139,8 +139,8 @@ set face_template  = face.gca
 set GCA      = RB_all_2006-02-15.gca
 set GCASkull = RB_all_withskull_2006-02-15.gca
 
-# For cortical registration, as found in:
-# $FREESURFER_HOME/average/$hemi.$AvgCurvTif
+# For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
+set AvgCurvTifPath = "${FREESURFER_HOME}/average"
 set AvgCurvTif = average.curvature.filled.buckner40.tif
 
 # For cortical parcellation atlas, as found in:
@@ -1699,7 +1699,7 @@ foreach hemi ($hemilist)
       |& tee -a $LF |& tee -a $CF
     echo "#@# Surf Reg $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
-    set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
+    set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
     set xopts = `fsr-getxopts mris_register $XOptsFile`;
     set cmd = (mris_register -curv)
     if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
@@ -1727,7 +1727,7 @@ foreach hemi ($hemilist)
       |& tee -a $LF |& tee -a $CF
     echo "#@# Jacobian $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
-    set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
+    set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
     set xopts = `fsr-getxopts mris_register $XOptsFile`;
     set cmd = (mris_register -curv -norot -jacobian \
         ../surf/$hemi.jacobian -dist 0)
@@ -1753,7 +1753,7 @@ foreach hemi ($hemilist)
     echo "#@# Contra Surf Reg $hemi `date`" \
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
-    set AvgTif = $FREESURFER_HOME/average/$nothemi.$AvgCurvTif
+    set AvgTif = ${AvgCurvTifPath}/$nothemi.${AvgCurvTif}
     set xopts = `fsr-getxopts mris_register $XOptsFile`;
     set cmd = (mris_register -curv -reverse ../surf/$hemi.sphere)
     if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
@@ -1771,7 +1771,7 @@ foreach hemi ($hemilist)
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
     echo "#@# AvgCurv $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    set AvgTif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif
+    set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mrisp_paint $XOptsFile`;
     # -a 5 means to smooth 5 iterations
@@ -2971,6 +2971,16 @@ while( $#argv != 0 )
       set DoTalCheck = 0;
       breaksw;
 
+    case "-avgcurvtifpath":
+      if ( $#argv < 1) goto arg1err;
+      set AvgCurvTifPath = $argv[1]; shift;
+      breaksw
+
+    case "-avgcurvtif":
+      if ( $#argv < 1) goto arg1err;
+      set AvgCurvTif = $argv[1]; shift;
+      breaksw
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -3186,7 +3196,7 @@ check_params:
   endif
 
   foreach hemi ($hemilist)
-    set avgtif = $FREESURFER_HOME/average/$hemi.$AvgCurvTif;
+    set avgtif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif};
     if(! -e $avgtif) then
       echo "ERROR: cannot find $avgtif."
       exit 1;
@@ -4180,6 +4190,12 @@ step: orig, brainmask, or norm.  The default is orig.
 
 If the orig pial surface data is not available, then specify this flag so that
 mris_make_surfaces does not attempt to use it.
+
+Example:
+
+  recon-all -all -long -tp1 <subjidtp1> -s <subjid>
+
+(Notice that the -all flag is included. A work directive flag is required.)
 
 
 MANUAL CHECKING AND EDITING OF SURFACES
