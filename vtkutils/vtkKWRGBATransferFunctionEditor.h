@@ -17,8 +17,8 @@
  * Original Author: Kitware, Inc, modified by Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/02/20 22:18:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/03/05 20:24:25 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -205,7 +205,7 @@ public:
   virtual int GetFunctionPointParameter(int id, double *parameter);
   virtual int GetFunctionPointDimensionality();
 
-  // Descriptions:
+  // Description:
   // Modifcations to the original vtkKWColorTransferFunctionEditor
   // design, this lets us set up an editor to have a certain number of
   // points, with the option of being symmetrical. For example, in the
@@ -215,6 +215,9 @@ public:
   void SetPointCountMinimum ( int min );
   void SetPointCountMaximum ( int max );
   void SetPointSymmetry ( int id1, int id2 );
+
+  // Description:
+  void SetPointSticky ( int id1, int id2 );
 
   // Description:
   // Callbacks. Internal, do not use.
@@ -318,10 +321,14 @@ protected:
   // Redraw the histogram
   virtual void RedrawHistogram();
 
+  void UpdateSymmetricalPointsTo ( int id, bool deeper );
+  void UpdateStickyPointsTo ( int id, double delta, bool deeper );
+
   int PointCountMinimum;
   int PointCountMaximum;
   //BTX
   std::map<int,int> PointSymmetry;
+  std::map<int,int> PointSticky;
   //ETX
 
 private:
