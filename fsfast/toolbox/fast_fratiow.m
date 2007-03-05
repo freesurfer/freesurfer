@@ -26,8 +26,8 @@ function [F, dof1, dof2, ces, cescvm] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/01/15 02:29:00 $
-%    $Revision: 1.9 $
+%    $Date: 2007/03/05 23:00:35 $
+%    $Revision: 1.10 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -68,6 +68,7 @@ dof1 = size(C,1); % J %
 dof2 = nf-nbeta;
 
 % Handle case where some voxels are zero
+nvox = size(rvar,2);
 indz  = find(rvar == 0);
 indnz = find(rvar ~= 0);
 if(~isempty(indz))
@@ -101,6 +102,7 @@ else
   end
   nbins = size(nacf,2);
   F = zeros(1,nnz);
+  cescvm = zeros(dof1,nvox);
   for nthbin = 0:nbins
     indbin = find(nacfmap==nthbin);
     nbin = length(indbin);
