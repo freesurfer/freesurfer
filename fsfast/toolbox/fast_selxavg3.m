@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.30 2007/03/05 22:25:46 greve Exp $
+% $Id: fast_selxavg3.m,v 1.31 2007/03/05 22:52:55 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/05 22:25:46 $
-%    $Revision: 1.30 $
+%    $Date: 2007/03/05 22:52:55 $
+%    $Revision: 1.31 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -68,7 +68,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.30 2007/03/05 22:25:46 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.31 2007/03/05 22:52:55 greve Exp $\n');
 
 sessname = basename(sess);
 %outtop = dirname(sess);
@@ -595,7 +595,6 @@ if(DoGLMFit)
   
   snr = mri;
   snr.vol = zeros(snr.volsize);
-  snr.vol = baseline.vol./sqrt(rvar.vol);
   snr.vol(indnz) = baseline.vol(indnz)./rstd.vol(indnz);
   fname = sprintf('%s/snr.%s',outanadir,ext);
   MRIwrite(snr,fname);
