@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.29 2007/03/01 19:33:46 greve Exp $
+% $Id: fast_selxavg3.m,v 1.30 2007/03/05 22:25:46 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/01 19:33:46 $
-%    $Revision: 1.29 $
+%    $Date: 2007/03/05 22:25:46 $
+%    $Revision: 1.30 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -68,7 +68,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.29 2007/03/01 19:33:46 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.30 2007/03/05 22:25:46 greve Exp $\n');
 
 sessname = basename(sess);
 %outtop = dirname(sess);
@@ -776,80 +776,82 @@ end % DoContrasts
 %------------------------------------------------------%
 if(~isempty(analysis) & DoGLMFit)
 
-% Construct selxavg-style h.dat strucutre for backwards compat
-SumXtX = Ctask*X'*X*Ctask';
-NTaskAvgs = nTask;
-eres_std = sqrt(rvarmat);
-evtaskind = flac_evtaskind(flac0);
-evtask1 = flac0.ev(evtaskind(1));
-hd = fmri_hdrdatstruct;
-hd.TR = flac0.TR;
-hd.TER = evtask1.psdwin(3);
-hd.TimeWindow = evtask1.psdwin(2)-evtask1.psdwin(1);
-hd.TPreStim   = -evtask1.psdwin(1);
-hd.Nc = length(evtaskind)+1;
-Nc = hd.Nc;
-hd.Nnnc = hd.Nc - 1;
-hd.Nh = nTask/hd.Nnnc;
-Navgs_per_cond = hd.Nh;
-hd.DOF = dof2;
-hd.Npercond = 0; % N presentations per cond, who cares?
-hd.Nruns = nruns;
-hd.Ntp = ntptot;
-hd.Nrows = mri.volsize(1);
-hd.Ncols = mri.volsize(2);
-hd.Nskip = 0; % Who cares?
-tmp = flac_evindex(flac0,'Poly');
-if(~isempty(tmp))
-  hd.DTOrder = flac0.ev(tmp).params(1) + 1;
-else
-  hd.DTOrder = 1;
-end
-hd.RescaleFactor = RescaleFactor; 
-hd.HanningRadius = 0.0;
-hd.BrainAirSeg = 0;
-hd.NullCondId    = 0;
-hd.SumXtX        = SumXtX;
-hd.nNoiseAC      = 0;
-hd.CondIdMap     = [0:hd.Nc-1];
-hCovMtx          = Ctask*inv(X'*X)*Ctask';
-hd.hCovMtx       = hCovMtx;
-hd.WhitenFlag    = 0;
-hd.runlist       = [1:nruns];
-hd.funcstem      = flac0.funcstem;
-hd.parname       = flac0.parfile;
-hd.GammaFit = 0; %?
-hd.gfDelta  = [];%?
-hd.gfTau    = [];%?
-%if(s.spmhrf > -1) % Hack
-%  hd.GammaFit = s.spmhrf + 1;
-%  hd.gfDelta = -1*ones(1,s.spmhrf + 1);
-%  hd.gfTau   = -1*ones(1,s.spmhrf + 1);
-%end;
-fname = sprintf('%s/h.dat',outanadir);
-fprintf('Saving h.dat to %s\n',fname);
-fmri_svdat3(fname,hd);
-% hd2 = fmri_lddat3('sxa.dat');
+  % Construct selxavg-style h.dat strucutre for backwards compat
+  SumXtX = Ctask*X'*X*Ctask';
+  NTaskAvgs = nTask;
+  eres_std = sqrt(rvarmat);
+  evtaskind = flac_evtaskind(flac0);
+  evtask1 = flac0.ev(evtaskind(1));
+  hd = fmri_hdrdatstruct;
+  hd.TR = flac0.TR;
+  hd.TER = evtask1.psdwin(3);
+  hd.TimeWindow = evtask1.psdwin(2)-evtask1.psdwin(1);
+  hd.TPreStim   = -evtask1.psdwin(1);
+  hd.Nc = length(evtaskind)+1;
+  Nc = hd.Nc;
+  hd.Nnnc = hd.Nc - 1;
+  hd.Nh = nTask/hd.Nnnc;
+  Navgs_per_cond = hd.Nh;
+  hd.DOF = dof2;
+  hd.Npercond = 0; % N presentations per cond, who cares?
+  hd.Nruns = nruns;
+  hd.Ntp = ntptot;
+  hd.Nrows = mri.volsize(1);
+  hd.Ncols = mri.volsize(2);
+  hd.Nskip = 0; % Who cares?
+  tmp = flac_evindex(flac0,'Poly');
+  if(~isempty(tmp))
+    hd.DTOrder = flac0.ev(tmp).params(1) + 1;
+  else
+    hd.DTOrder = 1;
+  end
+  hd.RescaleFactor = RescaleFactor; 
+  hd.HanningRadius = 0.0;
+  hd.BrainAirSeg = 0;
+  hd.NullCondId    = 0;
+  hd.SumXtX        = SumXtX;
+  hd.nNoiseAC      = 0;
+  hd.CondIdMap     = [0:hd.Nc-1];
+  hCovMtx          = Ctask*inv(X'*X)*Ctask';
+  hd.hCovMtx       = hCovMtx;
+  hd.WhitenFlag    = 0;
+  hd.runlist       = [1:nruns];
+  hd.funcstem      = flac0.funcstem;
+  hd.parname       = flac0.parfile;
+  hd.GammaFit = 0; %?
+  hd.gfDelta  = [];%?
+  hd.gfTau    = [];%?
+  %if(s.spmhrf > -1) % Hack
+  %  hd.GammaFit = s.spmhrf + 1;
+  %  hd.gfDelta = -1*ones(1,s.spmhrf + 1);
+  %  hd.gfTau   = -1*ones(1,s.spmhrf + 1);
+  %end;
+  fname = sprintf('%s/h.dat',outanadir);
+  fprintf('Saving h.dat to %s\n',fname);
+  fmri_svdat3(fname,hd);
+  % hd2 = fmri_lddat3('sxa.dat');
 
-% -------- Convert to selavg format -------------- %
-hhattmp = betamat(1:NTaskAvgs,:);
-hhattmp = [zeros(Navgs_per_cond,nvox); hhattmp]; % Add zero for cond 0
-hhattmp2 = reshape(hhattmp,[Navgs_per_cond Nc nvox]);
-hstd = sqrt( (diag(hCovMtx).*diag(SumXtX)) * eres_std.^2);
-hstdtmp = hstd(1:NTaskAvgs,:); % Remove offset and baseline
-hstdtmp = [repmat(eres_std, [Navgs_per_cond 1]); hstdtmp]; % Add 0 for cond 0
-hstdtmp2 = reshape(hstdtmp,[Navgs_per_cond Nc nvox]);
+  % -------- Convert to selavg format -------------- %
+  hhattmp = betamat(1:NTaskAvgs,:);
+  hhattmp = [zeros(Navgs_per_cond,nvox); hhattmp]; % Add zero for cond 0
+  hhattmp2 = reshape(hhattmp,[Navgs_per_cond Nc nvox]);
+  hstd = sqrt( (diag(hCovMtx).*diag(SumXtX)) * eres_std.^2);
+  hstdtmp = hstd(1:NTaskAvgs,:); % Remove offset and baseline
+  hstdtmp = [repmat(eres_std, [Navgs_per_cond 1]); hstdtmp]; % Add 0 for cond 0
+  hstdtmp2 = reshape(hstdtmp,[Navgs_per_cond Nc nvox]);
+  
+  %--- Merge Averages and StdDevs ---%
+  tmp = zeros(Navgs_per_cond,2,Nc,nvox);
+  tmp(:,1,:,:) = hhattmp2;
+  tmp(:,2,:,:) = hstdtmp2;
+  tmp = reshape(tmp,[Navgs_per_cond*2*Nc mri.volsize ]);
+  tmp = permute(tmp,[2 3 4 1]);
+  hsxa = mri;
+  hsxa.vol = tmp;
+  fname = sprintf('%s/h.%s',outanadir,ext);
+  MRIwrite(hsxa,fname);
+end % sxa format
 
-%--- Merge Averages and StdDevs ---%
-tmp = zeros(Navgs_per_cond,2,Nc,nvox);
-tmp(:,1,:,:) = hhattmp2;
-tmp(:,2,:,:) = hstdtmp2;
-tmp = reshape(tmp,[Navgs_per_cond*2*Nc mri.volsize ]);
-tmp = permute(tmp,[2 3 4 1]);
-hsxa = mri;
-hsxa.vol = tmp;
-fname = sprintf('%s/h.%s',outanadir,ext);
-MRIwrite(hsxa,fname);
+if(exist('okfile','var'))  fmri_touch(okfile); end
 
 return;
-end

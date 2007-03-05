@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/01 02:52:40 $
-#    $Revision: 1.22 $
+#    $Date: 2007/03/05 22:25:53 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.22 2007/03/01 02:52:40 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.23 2007/03/05 22:25:53 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -141,6 +141,9 @@ set StartTime = `date`;
 if($#MLF == 0) set MLF = /tmp/selxavg3-sess-$$.m
 rm -f $MLF
 
+set okfile = /tmp/selxavg3-sess-$$.ok
+rm -f $okfile
+
 ### Go through each session ###
 @ nthsess = 0;
 @ nprocs = 0;
@@ -183,9 +186,12 @@ foreach sess ($SessList)
   endif
   @ nprocs = $nprocs + 1;
 
-  echo "monly          = $monly;"       >> $MLF
-  echo "DoGLMFit       = $DoGLMFit;"    >> $MLF
-  echo "DoContrasts    = $DoContrasts;" >> $MLF
+  echo "which fast_selxavg3"               >> $MLF
+  echo "okfile         = '$okfile';"       >> $MLF
+  echo "if(fast_fileexists(okfile)) delete(okfile); end" >> $MLF
+  echo "monly          = $monly;"          >> $MLF
+  echo "DoGLMFit       = $DoGLMFit;"       >> $MLF
+  echo "DoContrasts    = $DoContrasts;"    >> $MLF
   echo "DoSynth        = $DoSynth;"        >> $MLF
   echo "SynthNoiseAmp  = $SynthNoiseAmp;"  >> $MLF
   echo "SynthSignalAmp = $SynthSignalAmp;" >> $MLF
@@ -195,17 +201,13 @@ foreach sess ($SessList)
   echo "flacname = '$flacfile';" >> $MLF
   echo "outtop = '$OutParent';" >> $MLF
   echo "fast_selxavg3;" >> $MLF
+  echo "if(~file_exists(okfile) && ~monly); quit; end"
   if($nthsess > 1 && ! $monly)  then
     echo "clear all;" >> $MLF
     echo "pack;" >> $MLF
   endif
 
 end # Loop over sessions #
-
-set okfile = /tmp/selxavg3-sess-$$.ok
-rm -f $okfile
-echo "okfile is $okfile"
-echo "fmri_touch('$okfile');" >> $MLF;
 
 echo "------------------------------------------" >> $LF
 cat $MLF >> $LF
@@ -224,7 +226,22 @@ if(! $monly && $nprocs > 0) then
   rm -f $okfile
 endif
 
-if($DoFWHM) then
+# Copy the flac
+if(! $monly) then
+  foreach sess ($SessList)
+    set sessbase = `basename $sess`;
+    set sessdir  = `dirname  $sess`;
+    if($#OutParent == 0) then
+      set anadir = $sess/$fsd/$analysisname
+    else
+      set anadir = $OutParent/$sessbase/$fsd/$analysisname
+    endif
+    cp $flacfile $anadir 
+  end
+endif
+
+# Compute FWHM
+if($DoFWHM && ! $monly) then
   echo "-------------------------------------------" |& tee -a $LF
   echo "Computing FWHM" |& tee -a $LF
   foreach sess ($SessList)
