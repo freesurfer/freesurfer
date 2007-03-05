@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/03/05 22:26:47 $
-#    $Revision: 1.4 $
+#    $Date: 2007/03/05 22:33:25 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.4 2007/03/05 22:26:47 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.5 2007/03/05 22:33:25 nicks Exp $';
 
 # defaults:
 setenv SUBJECTS_DIR /space/tensor/20/users/buckner_cortical_atlas
@@ -118,7 +118,7 @@ while( $#argv != 0 )
 
     case "-binhome":
     case "--binhome":
-      set BIN_HOME $argv[1]; shift;
+      set BIN_HOME = $argv[1]; shift;
       set path = ( ${BIN_HOME} $path )
       rehash
       setenv SURFER_FRONTDOOR 1
