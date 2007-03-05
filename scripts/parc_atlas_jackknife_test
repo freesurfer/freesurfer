@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/03/02 23:59:34 $
-#    $Revision: 1.3 $
+#    $Date: 2007/03/05 22:26:47 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,10 +29,10 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.3 2007/03/02 23:59:34 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.4 2007/03/05 22:26:47 nicks Exp $';
 
 # defaults:
-setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas
+setenv SUBJECTS_DIR /space/tensor/20/users/buckner_cortical_atlas
 set DoRegister=0
 set DoRegCopy=0
 set DoTrain=0
@@ -116,6 +116,14 @@ while( $#argv != 0 )
       source $FREESURFER_HOME/SetUpFreeSurfer.csh
       breaksw
 
+    case "-binhome":
+    case "--binhome":
+      set BIN_HOME $argv[1]; shift;
+      set path = ( ${BIN_HOME} $path )
+      rehash
+      setenv SURFER_FRONTDOOR 1
+      breaksw
+
     case "-dontrun":
     case "--dontrun":
       set RunIt=0
@@ -133,12 +141,15 @@ while( $#argv != 0 )
       echo "options:"
       echo "  -register         run mris_register: creates .sphere.reg files"
       echo "  -reg_dist <arg>   run mris_register with '-dist <arg>' flag"
+      echo "  -reg_append <string>  append <string> to end of $hemi.sphere.reg"
+      echo "  -reg_copy <string> cp $hemi.sphere.reg<string> $hemi.sphere.reg"
       echo "  -train            run mris_ca_train: creates .gcs files"
       echo "  -classify         run mris_ca_label: creates .annot files"
       echo "  -test             run mris_compute_parc_overlap"
       echo "  -all              -train, -classify, -test"
       echo "  -sd <subjects dir>          override default subjects dir"
       echo "  -fshome <FREESURFER_HOME>   source a new FREESURFER_HOME "
+      echo "  -binhome <path to binaries> specify an explicit path "
       echo "  -dontrun          dont execute the commands"
       exit 1
       breaksw
@@ -239,12 +250,16 @@ foreach test_subj ($ALL_SUBJECTS)
             -curv ${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere \
             ${SUBJECTS_DIR}/average/${hemi}.${tif} \
             ${sphere_reg})
+        set LF="${SUBJECTS_DIR}/${test_subj}/surf"
+        set LF="${LF}/${hemi}.mris_register${reg_append}.log"
         if ($RunIt) then
+            echo "`which mris_register`" > ${LF}
+            echo "${cmd}" >> ${LF}
             if (-e ${sphere_reg}) rm -f ${sphere_reg}
             if ($PBS) then
-                pbsubmit ${pbs_flags} -c "${cmd}"
+                pbsubmit ${pbs_flags} -c "${cmd} >> ${LF}"
             else
-                ${cmd} &
+                ${cmd} >> ${LF} &
             endif
         endif
     end
