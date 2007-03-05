@@ -158,15 +158,15 @@ Poistats::Poistats( int inArgs, char ** iaArgs ) :
 
   SetNextRequiredArgument( FLAG_INPUT_STEM, "dtensorinstem", 
     "Diffusion tensor input", 
-    "dtensor", "must specify a dtensor input filename" );
+    "dtensor.nii", "must specify a dtensor input filename" );
   SetNextRequiredArgument( FLAG_OUTPUT_DIRECTORY, "outdir", 
     "Output directory.",
     "poistats", "must specify an output directory" );
   SetNextRequiredArgument( FLAG_SEEDS, "seedstem", 
     "Volume containing numerical labels to use as seed regions.", 
-    "seedvol", "must specify a seed volume" );
+    "seedvol.nii", "must specify a seed volume" );
   SetNextRequiredArgument( FLAG_SAMPLE_STEM, "samplestem", 
-    "Instem for volume to sample. For example: fa, trace", "fa.", 
+    "Instem for volume to sample. For example: fa, trace", "fa.nii", 
     "must specify a sampling volume" );
   SetNextRequiredArgument( FLAG_NUM_CONTROL_POINTS, "ncontrolpoints", 
     "Number of control points used to describe path. Number should be approximately the number of 'turns' in the path. Almost always 1 or 2.", 
@@ -319,6 +319,15 @@ Poistats::Run() {
     
   if( m_OutputDir != NULL ) {
     observer->SetOutputDirectory( m_OutputDir );
+
+// TODO: create output directory
+//      err = mkdir(outdir,0777);
+//      if (err != 0 && errno != EEXIST) {
+//        printf("ERROR: creating directory %s\n",outdir);
+//        perror(NULL);
+//        exit(1);
+//      } 
+
   } else {
     PrintUsageError( "must specify output directory" );
     return;
