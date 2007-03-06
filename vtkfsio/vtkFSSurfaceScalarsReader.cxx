@@ -18,7 +18,7 @@ extern "C" {
 
 using namespace std;
 
-vtkCxxRevisionMacro(vtkFSSurfaceScalarsReader, "$Revision: 1.2 $");
+vtkCxxRevisionMacro(vtkFSSurfaceScalarsReader, "$Revision: 1.3 $");
 vtkStandardNewMacro(vtkFSSurfaceScalarsReader);
 
 vtkFSSurfaceScalarsReader::vtkFSSurfaceScalarsReader () :
@@ -75,6 +75,7 @@ vtkFSSurfaceScalarsReader::RequestData ( vtkInformation*,
   // MRISreadValuesIntoArray allocated the array, so we free it.
   free( values );
   
+#if 0
   // Set the scalars in the output.
   vtkPolyData* output = vtkPolyData::GetData( iOutputVector );
   if( !output ) {
@@ -82,6 +83,7 @@ vtkFSSurfaceScalarsReader::RequestData ( vtkInformation*,
     return 0; // 0 is failure
   }
   output->GetPointData()->SetScalars( scalars );
+#endif
 
   return 1; // 1 is success
 }
