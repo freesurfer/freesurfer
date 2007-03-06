@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:41 $
- *    $Revision: 1.33 $
+ *    $Author: greve $
+ *    $Date: 2007/03/06 05:08:28 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,6 +37,8 @@
 #include "resample.h"
 #include "transform.h"
 #include "matrix.h"
+#include "randomfields.h"
+#include "utils.h"
 #define VOLCLUSTER_SRC
 #include "volcluster.h"
 
@@ -1546,6 +1548,8 @@ int CSDfreeData(CLUSTER_SIM_DATA *csd)
   if (csd->mcs_cdf) HISTOfree(&csd->mcs_cdf);
   if (csd->ms_pdf) HISTOfree(&csd->ms_pdf);
   if (csd->ms_cdf) HISTOfree(&csd->ms_cdf);
+  if (csd->grf_cdf) free(csd->grf_cdf);
+  csd->grf_cdf = NULL;
 
   return(0);
 }
@@ -1878,14 +1882,21 @@ int CSDcheckSimType(char *simtype)
   -------------------------------------------------------------------*/
 int CSDpdf(CSD *csd, int nbins)
 {
-  int     n;
-  float   min,max;
+  int     n,dim;
+  float   min,max,ClusterSize,zthresh;
+  RFS     *rfs;
 
-  if (nbins < 1)
-  {
+  if (nbins < 1){
     nbins = sqrt(csd->nreps);
     if (nbins == 0) nbins = 1;
   }
+
+  if (!strcmp(csd->anattype,"surface")) dim = 2; // surface
+  else                                  dim = 3; // volume
+  rfs = RFspecInit(0,NULL);
+  rfs->name = strcpyalloc("gaussian");
+  rfs->params[0] = 0;
+  rfs->params[1] = 1;
 
   // Maximum Cluster Size ------------------------------------
   min=csd->MaxClusterSize[0];
@@ -1898,6 +1909,12 @@ int CSDpdf(CSD *csd, int nbins)
   csd->mcs_pdf = HISTObins(nbins,min,max);
   HISTOcount(csd->mcs_pdf,csd->MaxClusterSize,csd->nreps);
 
+  csd->grf_cdf = (double *) calloc(nbins,sizeof(double));
+
+  //compute zthreshold assuming thresh = -log10(pthresh)
+  zthresh = RFp2StatVal(rfs, pow(10,-csd->thresh));
+  printf("zthresh = %g\n",zthresh);
+
   for (n=0; n < csd->mcs_pdf->nbins; n++)
   {
     //printf("%d %g %g\n",n,csd->mcs_pdf->bins[n],csd->mcs_pdf->counts[n]);
@@ -1905,9 +1922,16 @@ int CSDpdf(CSD *csd, int nbins)
   }
 
   csd->mcs_cdf = HISTOcopy(csd->mcs_pdf,NULL);
-  for (n=1; n < csd->mcs_pdf->nbins; n++)
+  for (n=1; n < csd->mcs_pdf->nbins; n++){
     csd->mcs_cdf->counts[n] =
       csd->mcs_cdf->counts[n-1] + csd->mcs_pdf->counts[n];
+
+    // Compute clusterwise sig with GRF
+    ClusterSize = csd->mcs_pdf->bins[n];
+    csd->grf_cdf[n] = 
+      RFprobZClusterSigThresh(ClusterSize, zthresh, csd->nullfwhm, 
+			      csd->searchspace, dim);
+  }
 
   // Maximum Sig ------------------------------------
   min=csd->MaxSig[0];
@@ -1959,14 +1983,15 @@ int CSDprintPDF(FILE *fp, CSD *csd)
   fprintf(fp,"# CSD PDF/CDF\n");
   CSDprintHeader(fp,csd);
   fprintf(fp,"# nbins %d\n",csd->mcs_pdf->nbins);
-  fprintf(fp,"# BinNo  MaxClustBin MaxClustPDF MaxClustCDF"
+  fprintf(fp,"# BinNo  MaxClustBin MaxClustPDF MaxClustCDF GRFCDF"
           "    MaxSigBin MaxSigPDF MaxSigCDF\n");
   for (nthbin = 0; nthbin < csd->mcs_pdf->nbins; nthbin++)
   {
-    fprintf(fp,"%4d      %f   %f     %f     %f  %f  %f \n",nthbin,
+    fprintf(fp,"%4d      %f   %f     %f  %f     %f  %f  %f \n",nthbin,
             csd->mcs_pdf->bins[nthbin],
             csd->mcs_pdf->counts[nthbin],
             csd->mcs_cdf->counts[nthbin],
+            csd->grf_cdf[nthbin],
             csd->ms_pdf->bins[nthbin],
             csd->ms_pdf->counts[nthbin],
             csd->ms_cdf->counts[nthbin]);

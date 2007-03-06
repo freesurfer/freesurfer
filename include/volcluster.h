@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.17 $
+ *    $Author: greve $
+ *    $Date: 2007/03/06 05:08:29 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -140,6 +140,7 @@ typedef struct
   int mergedflag;     // Flag to indicate that two or more merged
   HISTOGRAM *mcs_pdf, *mcs_cdf; // max cluster size
   HISTOGRAM *ms_pdf, *ms_cdf;   // max sig
+  double *grf_cdf; // for Gauss Rand Fields
 }
 CLUSTER_SIM_DATA, CSD;
 
