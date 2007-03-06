@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/03/06 16:36:14 $
- *    $Revision: 1.250 $
+ *    $Date: 2007/03/06 16:37:06 $
+ *    $Revision: 1.251 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -615,7 +615,7 @@ int rectphaseflag = FALSE;
 int truncphaseflag = FALSE;
 int scalebarflag = FALSE;
 int colscalebarflag = FALSE;
-int text_colscalebarflag = TRUE;
+int colscalebar_text_flag = TRUE;
 int surfaceflag = TRUE;
 int pointsflag = FALSE;
 int statflag = FALSE; /* vertex (fMRI) stats read in ? */
@@ -2115,8 +2115,8 @@ int  mai(int argc,char *argv[])
       fprintf(stderr, "setting colscalebarflag to %d\n", colscalebarflag) ;
     } else if (!stricmp(argv[i], "-colscaletext")) {
       nargs = 2 ;
-      text_colscalebarflag = atoi(argv[i+1]) ;
-      fprintf(stderr, "setting text_colscalebarflag to %d\n", text_colscalebarflag) ;
+      colscalebar_text_flag = atoi(argv[i+1]) ;
+      fprintf(stderr, "setting colscalebar_text_flag to %d\n", colscalebar_text_flag) ;
     } else if (!stricmp(argv[i], "-scalebarflag")) {
       nargs = 2 ;
       scalebarflag = atoi(argv[i+1]) ;
@@ -14259,7 +14259,7 @@ draw_colscalebar(void) {
         NSEGMENTS-1 == i ||
         pos_fmin_segment == i ||
         neg_fmin_segment == i) {
-      if (text_colscalebarflag)
+      if (colscalebar_text_flag)
       {
         /* Draw an extra little line to our label. */
         glBegin (GL_LINES);
@@ -18970,7 +18970,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.250 2007/03/06 16:36:14 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.251 2007/03/06 16:37:06 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19817,7 +19817,7 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"scalebarflag",(char *)&scalebarflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"colscalebarflag",(char *)&colscalebarflag,
               TCL_LINK_BOOLEAN);
-  Tcl_LinkVar(interp,"colscalebarflag_text",(char *)&text_colscalebarflag,
+  Tcl_LinkVar(interp,"colscalebar_text_flag",(char *)&colscalebar_text_flag,
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"pointsflag",(char *)&pointsflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"surfaceflag",(char *)&surfaceflag, TCL_LINK_BOOLEAN);
