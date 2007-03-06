@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/03 00:04:11 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/03/06 15:25:30 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,6 +45,7 @@ class vtkFSSurfaceScalarsReader : public vtkPolyDataAlgorithm {
   void PrintSelf ( ostream& os, vtkIndent indent );
 
   void SetFileName ( const char* ifn );
+  const char* GetFileName () const;
 
   vtkSetMacro(NumberOfValues,int);
   vtkGetMacro(NumberOfValues,int);

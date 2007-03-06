@@ -18,7 +18,7 @@ extern "C" {
 
 using namespace std;
 
-vtkCxxRevisionMacro(vtkFSSurfaceScalarsReader, "$Revision: 1.1 $");
+vtkCxxRevisionMacro(vtkFSSurfaceScalarsReader, "$Revision: 1.2 $");
 vtkStandardNewMacro(vtkFSSurfaceScalarsReader);
 
 vtkFSSurfaceScalarsReader::vtkFSSurfaceScalarsReader () :
@@ -36,6 +36,12 @@ void
 vtkFSSurfaceScalarsReader::SetFileName ( const char* ifn ) {
 
   FileName = ifn;
+}
+
+const char*
+vtkFSSurfaceScalarsReader::GetFileName () const {
+
+  return FileName.c_str();
 }
 
 int
@@ -71,6 +77,10 @@ vtkFSSurfaceScalarsReader::RequestData ( vtkInformation*,
   
   // Set the scalars in the output.
   vtkPolyData* output = vtkPolyData::GetData( iOutputVector );
+  if( !output ) {
+    vtkErrorMacro(<< "No output for vtkFSSurfaceScalarsReader" );
+    return 0; // 0 is failure
+  }
   output->GetPointData()->SetScalars( scalars );
 
   return 1; // 1 is success
