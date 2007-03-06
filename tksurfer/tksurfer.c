@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/03/01 14:46:37 $
- *    $Revision: 1.249 $
+ *    $Date: 2007/03/06 16:36:14 $
+ *    $Revision: 1.250 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -56,6 +56,7 @@
 #include "gcsa.h"
 #include "mri2.h"
 #include "path.h"
+#include "fsenv.h"
 
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
 
@@ -614,6 +615,7 @@ int rectphaseflag = FALSE;
 int truncphaseflag = FALSE;
 int scalebarflag = FALSE;
 int colscalebarflag = FALSE;
+int text_colscalebarflag = TRUE;
 int surfaceflag = TRUE;
 int pointsflag = FALSE;
 int statflag = FALSE; /* vertex (fMRI) stats read in ? */
@@ -2111,6 +2113,10 @@ int  mai(int argc,char *argv[])
       nargs = 2 ;
       colscalebarflag = atoi(argv[i+1]) ;
       fprintf(stderr, "setting colscalebarflag to %d\n", colscalebarflag) ;
+    } else if (!stricmp(argv[i], "-colscaletext")) {
+      nargs = 2 ;
+      text_colscalebarflag = atoi(argv[i+1]) ;
+      fprintf(stderr, "setting text_colscalebarflag to %d\n", text_colscalebarflag) ;
     } else if (!stricmp(argv[i], "-scalebarflag")) {
       nargs = 2 ;
       scalebarflag = atoi(argv[i+1]) ;
@@ -2151,6 +2157,7 @@ int  mai(int argc,char *argv[])
       nargs = 2 ;
       sdir = argv[i+1] ;
       fprintf(stderr, "using SUBJECTS_DIR %s\n", sdir) ;
+      FSENVsetSUBJECTS_DIR(sdir);
     } else if (!stricmp(argv[i], "-reassign")) {
       reassign = 1 ;
       nargs = 1 ;
@@ -14252,33 +14259,37 @@ draw_colscalebar(void) {
         NSEGMENTS-1 == i ||
         pos_fmin_segment == i ||
         neg_fmin_segment == i) {
-      /* Draw an extra little line to our label. */
-      glBegin (GL_LINES);
-      glVertex3f (v[0], v[1], v[2]);
-      glVertex3f (v[0]-2, v[1], v[2]);
-      glEnd ();
-
-      /* Calc how many decimals our label should have. */
-      abs_func_value = fabs(stat);
-      if (abs_func_value > 1 || abs_func_value == 0) num_decimals = 2;
-      else if (abs_func_value > 0.1) num_decimals = 3;
-      else if (abs_func_value > 0.01) num_decimals = 4;
-      else if (abs_func_value > 0.001) num_decimals = 5;
-      else if (abs_func_value > 0.0001) num_decimals = 6;
-      else if (abs_func_value > 0.00001) num_decimals = 7;
-      else if (abs_func_value > 0.000001) num_decimals = 8;
-      else if (abs_func_value > 0.0000001) num_decimals = 9;
-      else num_decimals = 10;
-
-      /* Create the label string. */
-      sprintf (format, "%%2.%df", num_decimals);
-      sprintf (label, format, stat);
-
-      /* Draw it. */
-      glColor3f (1.0, 1.0, 1.0);
-      glRasterPos3i (v[0] - (strlen(label)*4) - 2, v[1], v[2]);
-      for (cur_char = 0; cur_char < strlen(label); cur_char++) {
-        glutBitmapCharacter (GLUT_BITMAP_8_BY_13, label[cur_char]);
+      if (text_colscalebarflag)
+      {
+        /* Draw an extra little line to our label. */
+        glBegin (GL_LINES);
+        glVertex3f (v[0], v[1], v[2]);
+        glVertex3f (v[0]-2, v[1], v[2]);
+        glEnd ();
+        
+        /* Calc how many decimals our label should have. */
+        abs_func_value = fabs(stat);
+        if (abs_func_value > 1 || abs_func_value == 0) num_decimals = 2;
+        else if (abs_func_value > 0.1) num_decimals = 3;
+        else if (abs_func_value > 0.01) num_decimals = 4;
+        else if (abs_func_value > 0.001) num_decimals = 5;
+        else if (abs_func_value > 0.0001) num_decimals = 6;
+        else if (abs_func_value > 0.00001) num_decimals = 7;
+        else if (abs_func_value > 0.000001) num_decimals = 8;
+        else if (abs_func_value > 0.0000001) num_decimals = 9;
+        else num_decimals = 10;
+        
+        /* Create the label string. */
+        sprintf (format, "%%2.%df", num_decimals);
+        sprintf (label, format, stat);
+        
+      
+        /* Draw it. */
+        glColor3f (1.0, 1.0, 1.0);
+        glRasterPos3i (v[0] - (strlen(label)*4) - 2, v[1], v[2]);
+        for (cur_char = 0; cur_char < strlen(label); cur_char++) {
+          glutBitmapCharacter (GLUT_BITMAP_8_BY_13, label[cur_char]);
+        }
       }
     }
     /* end rkt */
@@ -16990,6 +17001,7 @@ print_help_tksurfer(void) {
   printf("-fthresh <value>             : set the overlay threshold minimum value\n");
   printf("-foffset <value>             : set the overlay threshold offset value\n");
   printf("-colscalebarflag <1|0>       : display color scale bar\n");
+  printf("-colscaletext <1|0>          : display text in color scale bar\n");
   printf("-truncphaseflag <1|0>        : truncate the overlay display\n");
   printf("-revphaseflag <1|0>          : reverse the overlay display\n");
   printf("-invphaseflag <1|0>          : invert the overlay display\n");
@@ -18958,7 +18970,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.249 2007/03/01 14:46:37 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.250 2007/03/06 16:36:14 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19804,6 +19816,8 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"flag2d",(char *)&flag2d, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"scalebarflag",(char *)&scalebarflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"colscalebarflag",(char *)&colscalebarflag,
+              TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"colscalebarflag_text",(char *)&text_colscalebarflag,
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"pointsflag",(char *)&pointsflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"surfaceflag",(char *)&surfaceflag, TCL_LINK_BOOLEAN);
