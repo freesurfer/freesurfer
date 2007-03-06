@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/01 19:47:44 $
-##    $Revision: 1.134 $
+##    $Date: 2007/03/06 19:43:05 $
+##    $Revision: 1.135 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -220,6 +220,12 @@ set gaLinkedVars(funcmin) 0
 set gaLinkedVars(funcmax) 0
 set gaLinkedVars(scalebarflag) 0
 set gaLinkedVars(colscalebarflag) 0
+set gaLinkedVars(colscalebarvertflag) 1
+set gaLinkedVars(colscalebar_text_flag) 1
+set gaLinkedVars(colscalebar_xpos) 0.95
+set gaLinkedVars(colscalebar_ypos) -0.7
+set gaLinkedVars(colscalebar_width) 0.05
+set gaLinkedVars(colscalebar_height) 0.5
 set gaLinkedVars(verticesflag) 0
 set gaLinkedVars(cmid) 0
 set gaLinkedVars(dipavg) 0
@@ -245,7 +251,9 @@ array set gaLinkedVarGroups {
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
     view { curvflag flagsurfcolor vertexset overlayflag scalebarflag 
-	colscalebarflag verticesflag currentvaluefield drawcursorflag }
+	colscalebarflag colscalebarvertflag colscalebar_text_flag
+	colscalebar_xpos colscalebar_ypos colscalebar_width
+	colscalebar_height verticesflag currentvaluefield drawcursorflag }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
     all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
@@ -5229,6 +5237,31 @@ proc DoGotoPoint {} {
     select_orig_vertex_coordinates
 }
 
+proc SetColorScaleBarToVerticalBottomRight {} {
+    global gaLinkedVars
+
+    set gaLinkedVars(colscalebarflag) 1
+    set gaLinkedVars(colscalebarvertflag) 1
+    set gaLinkedVars(colscalebar_xpos) 0.95
+    set gaLinkedVars(colscalebar_ypos) -0.7
+    set gaLinkedVars(colscalebar_width) 0.05
+    set gaLinkedVars(colscalebar_height) 0.5
+
+    SendLinkedVarGroup view
+}
+
+proc SetColorScaleBarToHorizontalBottomLeft {} {
+    global gaLinkedVars
+
+    set gaLinkedVars(colscalebarflag) 1
+    set gaLinkedVars(colscalebarvertflag) 0
+    set gaLinkedVars(colscalebar_xpos) -0.7
+    set gaLinkedVars(colscalebar_ypos) -0.9
+    set gaLinkedVars(colscalebar_width) 0.5
+    set gaLinkedVars(colscalebar_height) 0.05
+
+    SendLinkedVarGroup view
+}
 
 proc CreateImages {} {
 
