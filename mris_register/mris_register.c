@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/12 18:55:58 $
- *    $Revision: 1.45 $
+ *    $Date: 2007/03/06 20:35:02 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,7 @@
 #include <math.h>
 #include <ctype.h>
 
+#include "timer.h"
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
@@ -45,7 +46,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.45 2007/02/12 18:55:58 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.46 2007/03/06 20:35:02 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -72,9 +73,11 @@ static char *curvature_names[] = {
 #define SURFACES         sizeof(curvature_names) / sizeof(curvature_names[0])
 #define PARAM_IMAGES         (IMAGES_PER_SURFACE*SURFACES)
 
+static int multi_scale = 0 ;
 static int which_norm = NORM_MEAN ;
 static int navgs = 0 ;
 static int single_surf = 0 ;
+static double l_ocorr = 1.0 ;
 static char *annot_name = NULL ;
 static int atlas_size=3;
 static int max_passes = 4 ;
@@ -96,6 +99,7 @@ static char *overlays[MAX_OVERLAYS]  ;
 char *Progname ;
 static char curvature_fname[STRLEN] = "" ;
 static char *orig_name = "smoothwm" ;
+static char *canon_name = "sphere" ;
 static char *jacobian_fname = NULL ;
 static char *inflated_name = NULL ;
 
@@ -120,20 +124,22 @@ static int remove_negative = 1 ;
 int
 main(int argc, char *argv[]) {
   char         **av, *surf_fname, *template_fname, *out_fname, fname[STRLEN],*cp;
-  int          ac, nargs,err ;
+  int          ac, nargs,err, msec ;
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp_template ;
 
   char cmdline[CMD_LINE_LEN] ;
+  struct  timeb start ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.45 2007/02/12 18:55:58 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_register.c,v 1.46 2007/03/06 20:35:02 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.45 2007/02/12 18:55:58 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.46 2007/03/06 20:35:02 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
+  TimerStart(&start) ;
   Gdiag = DIAG_SHOW ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -142,16 +148,16 @@ main(int argc, char *argv[]) {
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = PROJECT_SPHERE ;
   parms.flags |= IP_USE_CURVATURE ;
-  parms.tol = 1e-0*2.5 ;
+  parms.tol = 0.5 ;    // was 1e-0*2.5
   parms.min_averages = 0 ;
   parms.l_area = 0.0 ;
   parms.l_parea = 0.2f ;
-  parms.l_dist = 0.1 ;
+  parms.l_dist = 0.5 ; // used to be 0.1
   parms.l_corr = 1.0f ;
   parms.l_nlarea = 1 ;
   parms.l_pcorr = 0.0f ;
   parms.niterations = 25 ;
-  parms.n_averages = 256 ;
+  parms.n_averages = 1024 ;   // used to be 256
   parms.write_iterations = 100 ;
   parms.dt_increase = 1.01 /* DT_INCREASE */;
   parms.dt_decrease = 0.99 /* DT_DECREASE*/ ;
@@ -166,8 +172,8 @@ main(int argc, char *argv[]) {
   parms.dt = 0.9 ;
   parms.momentum = 0.95 ;
   parms.desired_rms_height = -1.0 ;
-  parms.nbhd_size = 0 ;
-  parms.max_nbrs = 0 ;
+  parms.nbhd_size = -10 ;
+  parms.max_nbrs = 10 ;
 
   ac = argc ;
   av = argv ;
@@ -202,6 +208,7 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
 
+  MRISresetNeighborhoodSize(mris, 1) ;
   if (annot_name) {
     if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
       ErrorExit(ERROR_BADPARM, "%s: could not read annot file %s", Progname, annot_name) ;
@@ -249,7 +256,7 @@ main(int argc, char *argv[]) {
         MRIScopyValuesToCurvature(mris_template) ;
         MRISaverageCurvatures(mris_template, navgs) ;
         MRISnormalizeCurvature(mris_template, which_norm) ;
-        fprintf(stderr, "computing parameterization for overlay %s...\n", overlays[sno]);
+        fprintf(stderr, "computing parameterization for overlay %s...\n", fname);
         MRIStoParameterization(mris_template, mrisp_template, scale, sno*3) ;
         MRISPsetFrameVal(mrisp_template, sno*3+1, 1.0) ;
       }
@@ -332,6 +339,13 @@ main(int argc, char *argv[]) {
     exit(1);
   }
 
+  if (MRISreadCanonicalCoordinates(mris, canon_name) != NO_ERROR)
+    ErrorExit(ERROR_BADFILE, "%s: could not read canon surface %s",
+              Progname, canon_name) ;
+
+#if 0
+  MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;  // uniform spherical positions
+#endif
   if (multiframes) {
     if (use_initial_registration)
       MRISvectorRegister(mris, mrisp_template, &parms, max_passes,
@@ -349,9 +363,51 @@ main(int argc, char *argv[]) {
     parms.l_pcorr = 0.0f ;
 #endif
     MRISvectorRegister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
-  } else
-    MRISregister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
+  } 
+  else
+  {
+    double l_dist = parms.l_dist ;
+    if (multi_scale > 0)
+    {
+      int i ;
 
+      parms.l_dist = l_dist * pow(5.0, (multi_scale-1.0)) ;
+      parms.flags |= IPFLAG_NOSCALE_TOL ;
+      parms.flags &= ~IP_USE_CURVATURE ;
+      for (i = 0 ; i < multi_scale ; i++)
+      {
+        printf("***************** round %d, l_dist = %2.3f *******************\n", i,
+               parms.l_dist) ;
+        MRISregister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
+        parms.flags |= IP_NO_RIGID_ALIGN ;
+        parms.flags &= ~IP_USE_INFLATED ;
+        parms.l_dist /= 5 ;
+      }
+
+      if (parms.nbhd_size < 0)
+      {
+        parms.nbhd_size *= -1 ;
+        printf("******** starting 2nd epoch, with long-range distances *********\n");
+        parms.l_dist = l_dist * pow(5.0, (multi_scale-2.0)) ;
+        for (i = 1 ; i < multi_scale ; i++)
+        {
+          printf("***************** round %d, l_dist = %2.3f *******************\n", i,
+                 parms.l_dist) ;
+          MRISregister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
+          parms.l_dist /= 5 ;
+        }
+      }
+      printf("****** final curvature registration ***************\n") ;
+      if (parms.nbhd_size > 0)
+        parms.nbhd_size *= -1 ;  // disable long-range stuff
+      parms.l_dist *= 5 ;
+      parms.flags |= (IP_USE_CURVATURE | IP_NO_SULC);
+      MRISregister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
+    }
+    else
+      MRISregister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
+
+  }
   if (remove_negative) {
     parms.niterations = 1000 ;
     MRISremoveOverlapWithSmoothing(mris,&parms) ;
@@ -368,6 +424,10 @@ main(int argc, char *argv[]) {
 #endif
   }
 
+  msec = TimerStop(&start) ;
+  if (Gdiag & DIAG_SHOW)
+    printf("registration took %2.2f hours\n",
+           (float)msec/(1000.0f*60.0f*60.0f));
   MRISPfree(&mrisp_template) ;
   MRISfree(&mris) ;
   exit(0) ;
@@ -394,6 +454,17 @@ get_option(int argc, char *argv[]) {
   {
     which_norm = NORM_MEDIAN ;
     printf("using median normalization\n") ;
+  } else if (!stricmp(option, "vnum") || !stricmp(option, "distances")) {
+    parms.nbhd_size = atof(argv[2]) ;
+    parms.max_nbrs = atof(argv[3]) ;
+    nargs = 2 ;
+    fprintf(stderr, "nbr size = %d, max neighbors = %d\n",
+            parms.nbhd_size, parms.max_nbrs) ;
+  }
+  else if (!stricmp(option, "nonorm"))
+  {
+    which_norm = NORM_NONE ;
+    printf("disabling normalization\n") ;
   }
   else if (!stricmp(option, "vector")) {
     fprintf(stderr,"\nMultiframe Mode:\n");
@@ -497,6 +568,10 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "inflated")) {
     fprintf(stderr, "using inflated surface for initial alignment\n") ;
     parms.flags |= IP_USE_INFLATED ;
+  } else if (!stricmp(option, "multi_scale")) {
+    multi_scale = atoi(argv[2]) ;
+    fprintf(stderr, "using %d scales for morphing\n", multi_scale) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "nsurfaces")) {
     parms.nsurfaces = atoi(argv[2]) ;
     nargs = 1 ;
@@ -597,6 +672,11 @@ get_option(int argc, char *argv[]) {
     parms.dt_decrease = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
+  } else if (!stricmp(option, "ocorr")) {
+    l_ocorr = atof(argv[2]) ;
+    printf("setting overlay correlation coefficient to %2.1f\n", l_ocorr) ;
+    nargs = 1 ;
+    fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
   } else if (!stricmp(option, "overlay")) {
     int navgs ;
     if (noverlays == 0)
@@ -609,10 +689,14 @@ get_option(int argc, char *argv[]) {
     navgs = atof(argv[3]) ;
     printf("reading overlay from %s and smoothing it %d times\n", argv[2], navgs) ;
     n=parms.nfields++;
-    SetFieldLabel(&parms.fields[n], OVERLAY_FRAME, atlas_size,1.0,0.0, navgs, which_norm);
+    SetFieldLabel(&parms.fields[n], OVERLAY_FRAME, atlas_size,l_ocorr,0.0, navgs, which_norm);
     SetFieldName(&parms.fields[n], argv[2]) ;
     atlas_size++ ;
     nargs = 2 ;
+  } else if (!stricmp(option, "canon")) {
+      canon_name = argv[2] ;
+      nargs = 1 ;
+      fprintf(stderr, "using %s for canonical properties...\n", canon_name) ;
   } else if (!stricmp(option, "overlay-dir")) {
     parms.overlay_dir = strcpyalloc(argv[2]) ;
     nargs = 1 ;
