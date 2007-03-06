@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.27 $
+ *    $Author: greve $
+ *    $Date: 2007/03/06 17:52:32 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -95,7 +95,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.27 2006/12/29 02:09:10 nicks Exp $";
+  "$Id: mri_volcluster.c,v 1.28 2007/03/06 17:52:32 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -172,12 +172,17 @@ char *SUBJECTS_DIR=NULL;
 char *subject=NULL;
 char *segvolfile=NULL;
 char *segvolpath=NULL;
+MRI *segvol0=NULL;
 MRI *segvol=NULL;
+char *ctabfile;
+COLOR_TABLE *ctab = NULL;
+int ctabindex;
 
 double fwhm = -1;
 int nmask;
 double searchspace;
 int FixMNI = 1;
+MATRIX *Tin, *invTin, *Ttemp, *vox2vox;
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -193,7 +198,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.27 2006/12/29 02:09:10 nicks Exp $",
+     "$Id: mri_volcluster.c,v 1.28 2007/03/06 17:52:32 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -290,8 +295,20 @@ int main(int argc, char **argv) {
 
   if (segvolpath != NULL) {
     // Only half-way thru getting this implemented. It might not be helpful.
-    segvol = MRIread(segvolpath);
-    if (segvol == NULL) exit(1);
+    segvol0 = MRIread(segvolpath);
+    if(segvol0 == NULL) exit(1);
+    Tin     = MRIxfmCRS2XYZtkreg(segvol0);
+    invTin  = MatrixInverse(Tin,NULL);
+    Ttemp   = MRIxfmCRS2XYZtkreg(vol);
+    vox2vox = MatrixMultiply(invTin,FSA2Func,NULL);
+    segvol  = MRIcloneBySpace(vol,-1,1);
+    MRIvol2Vol(segvol0,segvol,vox2vox,SAMPLE_NEAREST,0);
+    MatrixMultiply(vox2vox,Ttemp,vox2vox);
+    MatrixFree(&Tin);
+    MatrixFree(&invTin);
+    MatrixFree(&Ttemp);
+    MatrixFree(&vox2vox);
+    MRIfree(&segvol0);
   }
 
   if (sizethresh == 0) sizethresh = sizethreshvox*voxsize;
@@ -515,8 +532,12 @@ int main(int argc, char **argv) {
               ClusterList[n]->pval_clusterwise_low,
               ClusterList[n]->pval_clusterwise_hi);
     else if (fwhm > 0)
-      fprintf(fpsum,"  %7.5lf\n",ClusterList[n]->pval_clusterwise);
-    else fprintf(fpsum,"\n");
+      fprintf(fpsum,"  %7.5lf",ClusterList[n]->pval_clusterwise);
+    if(segvolfile){
+      ctabindex = MRIgetVoxVal(segvol,col,row,slc,0);
+      fprintf(fpsum,"  %s",ctab->entries[ctabindex]->name);
+    }
+    fprintf(fpsum,"\n");
   }
   if (sumfile != NULL) fclose(fpsum);
 
@@ -623,8 +644,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&Gdiag_no);
       nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--ctab")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      ctabfile = pargv[0];
+      nargsused = 1;
     } else if (!strcasecmp(option, "--seg")) {
-      if (nargc < 1) CMDargNErr(option,2);
+      if(nargc < 1) CMDargNErr(option,2);
       subject = pargv[0];
       segvolfile = pargv[1];
       SUBJECTS_DIR = getenv("SUBJECTS_DIR");
@@ -1270,6 +1296,15 @@ static void check_options(void) {
     err = 1;
   }
 
+  if(segvolfile != NULL){
+    if(ctabfile == NULL){
+      ctabfile = (char *) calloc(sizeof(char),1000);
+      sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",getenv("FREESURFER_HOME"));
+      printf("Using defalt ctab %s\n",ctabfile);
+    }
+    ctab = CTABreadASCII(ctabfile);
+    if(ctab == NULL) exit(1);
+  }
 
   if (err) exit(1);
   return;
