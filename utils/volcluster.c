@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/06 05:08:28 $
- *    $Revision: 1.34 $
+ *    $Date: 2007/03/06 16:35:06 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1883,7 +1883,7 @@ int CSDcheckSimType(char *simtype)
 int CSDpdf(CSD *csd, int nbins)
 {
   int     n,dim;
-  float   min,max,ClusterSize,zthresh;
+  float   min,max,ClusterSize;
   RFS     *rfs;
 
   if (nbins < 1){
@@ -1911,10 +1911,6 @@ int CSDpdf(CSD *csd, int nbins)
 
   csd->grf_cdf = (double *) calloc(nbins,sizeof(double));
 
-  //compute zthreshold assuming thresh = -log10(pthresh)
-  zthresh = RFp2StatVal(rfs, pow(10,-csd->thresh));
-  printf("zthresh = %g\n",zthresh);
-
   for (n=0; n < csd->mcs_pdf->nbins; n++)
   {
     //printf("%d %g %g\n",n,csd->mcs_pdf->bins[n],csd->mcs_pdf->counts[n]);
@@ -1929,7 +1925,7 @@ int CSDpdf(CSD *csd, int nbins)
     // Compute clusterwise sig with GRF
     ClusterSize = csd->mcs_pdf->bins[n];
     csd->grf_cdf[n] = 
-      RFprobZClusterSigThresh(ClusterSize, zthresh, csd->nullfwhm, 
+      RFprobZClusterSigThresh(ClusterSize, csd->thresh, csd->nullfwhm, 
 			      csd->searchspace, dim);
   }
 
@@ -1990,11 +1986,11 @@ int CSDprintPDF(FILE *fp, CSD *csd)
     fprintf(fp,"%4d      %f   %f     %f  %f     %f  %f  %f \n",nthbin,
             csd->mcs_pdf->bins[nthbin],
             csd->mcs_pdf->counts[nthbin],
-            csd->mcs_cdf->counts[nthbin],
+            1.0-csd->mcs_cdf->counts[nthbin],
             csd->grf_cdf[nthbin],
             csd->ms_pdf->bins[nthbin],
             csd->ms_pdf->counts[nthbin],
-            csd->ms_cdf->counts[nthbin]);
+            1.0-csd->ms_cdf->counts[nthbin]);
   }
   return(0);
 }
