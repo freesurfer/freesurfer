@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.80 2007/02/26 00:52:54 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.81 2007/03/06 23:01:42 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -681,5 +681,17 @@ if ("$RELEASE_TYPE" == "stable") then
     # force stable build to run again by removing a CVS'd file:
     rm -f ${DEV_DIR}/setup_configure
     ${SCRIPT_DIR}/build_stable-pub.csh
+  endif
+endif
+
+# on minerva, create the source code tarball (no big deal if it fails)
+if ("$HOSTNAME" == "minerva") then
+  if ("$RELEASE_TYPE" == "dev") then
+    cd ${DEV_DIR}
+    cd scuba
+    make dist-exec-hook
+    cd ..
+    make dist
+    if ($status) mail -s "make dist failed on minerva" nicks < /dev/null
   endif
 endif
