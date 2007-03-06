@@ -578,7 +578,11 @@ PoistatsFilter< TInputImage, TOutputImage >
     
   itkDebugMacro( << "parsing seed volume" );  
   // extracts the start and end regions of interest
-  this->ParseSeedVolume();
+  try {
+    this->ParseSeedVolume();
+  } catch( itk::ExceptionObject & excp ) {
+    throw excp;
+  }
 
   itkDebugMacro( << "initializing paths" );
   // initializes all the paths of the replicas, connects start and end regions
@@ -1785,14 +1789,15 @@ PoistatsFilter<TInputImage, TOutputImage>
 }
 
 /**
- * Return in seeds1 the union of seeds1 and seeds2.
+ * Return in seeds1 the union of seeds1 and seeds2.  Throws an exception if
+ * all seeds in seeds2 aren't found.
  */
 template <class TInputImage, class TOutputImage>
 void 
 PoistatsFilter<TInputImage, TOutputImage>
 ::TakeUnionOfSeeds( std::vector< std::pair< SeedType, int > > *seeds1,
                     std::vector< SeedType > *seeds2 ) {
-
+                    
   typedef std::pair< SeedType, int > SeedValueCountPairType;
   typedef std::vector< SeedValueCountPairType > SeedPairList;
   
@@ -1803,6 +1808,8 @@ PoistatsFilter<TInputImage, TOutputImage>
         
     const SeedType value2 = ( *values2It );
     
+    bool isSeedFound = false;
+    
     for( SeedPairList::iterator values1It = seeds1->begin();
       values1It != seeds1->end(); ++values1It ) {
   
@@ -1810,8 +1817,13 @@ PoistatsFilter<TInputImage, TOutputImage>
 
       if( value1 == value2 ) {
         seedUnion.push_back( *values1It );
+        isSeedFound = true;
       }
 
+    }
+    
+    if( !isSeedFound ) {
+      itkGenericExceptionMacro (<< "seed " << value2 << " not found in seed volume.");    
     }
             
   }
@@ -1849,7 +1861,11 @@ PoistatsFilter<TInputImage, TOutputImage>
   if( this->m_SeedValuesToUse.empty() ) {
     this->InvokeEvent( SeedsUsingAllEvent() );
   } else {
-    TakeUnionOfSeeds( &seedValueCountPairs, &this->m_SeedValuesToUse );
+    try {
+      TakeUnionOfSeeds( &seedValueCountPairs, &this->m_SeedValuesToUse );
+    } catch( itk::ExceptionObject & excp ) {
+      throw excp;
+    }
   }
   
   itk::ImageRegionConstIterator< SeedVolumeType > seedIt(
