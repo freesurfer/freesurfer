@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/03/07 17:11:11 $
- *    $Revision: 1.519 $
+ *    $Date: 2007/03/07 21:23:29 $
+ *    $Revision: 1.520 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.519 2007/03/07 17:11:11 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.520 2007/03/07 21:23:29 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -7175,6 +7175,8 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #endif
 
   sse_repulse = 
+    sse_repulse_ratio =
+    sse_tsmooth = 
     sse_nl_area = 
     sse_nl_dist = 
     sse_corr =
@@ -16755,6 +16757,7 @@ mrisComputeDistanceError(MRI_SURFACE *mris)
       {
         fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!\n",
                 vno, n, v->dist_orig[n]) ;
+        fflush(stderr);
         DiagBreak() ;
         if (++err_cnt > max_errs) 
         {
@@ -16999,7 +17002,7 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht)
              min_d, v_sse) ;
     }
   }
-  return(sse_repulse) ;
+  return(l_repulse * sse_repulse) ;
 }
 #endif
 
