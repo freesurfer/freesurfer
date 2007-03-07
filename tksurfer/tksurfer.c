@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/03/07 02:00:57 $
- *    $Revision: 1.253 $
+ *    $Date: 2007/03/07 02:47:00 $
+ *    $Revision: 1.254 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -14368,7 +14368,7 @@ draw_colscalebar(void) {
           if (colscalebarvertflag)
             glRasterPos3i (v[0] - (strlen(label)*4) - 2, v[1], v[2]);
           else
-            glRasterPos3i (v[0], v[1]+2, v[2]);
+            glRasterPos3i (v[0]-2*strlen(label)/2, v[1]+5, v[2]);
 #if 0          
           printf("print out %s,label_format[%d] = %s \n", label,
                  j, label_format[j]) ;
@@ -19055,7 +19055,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.253 2007/03/07 02:00:57 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.254 2007/03/07 02:47:00 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
