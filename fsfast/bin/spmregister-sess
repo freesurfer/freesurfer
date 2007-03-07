@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.13 $
+#    $Author: greve $
+#    $Date: 2007/03/07 22:41:04 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: spmregister-sess,v 1.13 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: spmregister-sess,v 1.14 2007/03/07 22:41:04 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -34,11 +34,13 @@ set nolog        = 0;
 set Run          = ();
 set PerRun       = 0;
 set RunListFile  = ();
-set fsvol        = brain;
+set fsvol        = brainmask;
 set regfilename  = register.dat
 set funcstem     = f;
 set fmt          = ();
-set frame        = 0;
+set frame        = ();
+set midframe     = 0;
+set svtemplate   = 1;
 
 ## If there are no options, just print the usage ##
 if($#argv == 0) goto usage_exit;
@@ -183,14 +185,20 @@ foreach sess ($SessList)
       set regfile = $funcdir/fs.register.dat
       set cmd = (spmregister --s $subject --mov $movfile \
         --reg $regfile --fsvol $fsvol)
-      if($frame)  set cmd = ($cmd --frame $frame)
+      if($midframe) set cmd = ($cmd --mid-frame)
+      if($#frame)   set cmd = ($cmd --frame $frame)
+      if($#svtemplate) then
+        set template = $funcdir/template.$fmtuse
+        set cmd = ($cmd --template-out $template)
+      endif
+      pwd |& tee -a $LF
+      echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
       if($status) then 
         echo "ERROR: spmregister failed" |& tee -a $LF
         exit 1;
       endif
     end  # Loop over runs
-
 
   endif
 
@@ -225,6 +233,8 @@ while( $#argv != 0 )
 
     case "-perrun":
       set PerRun = 1;
+      set midframe = 1;
+      set svtemplate = 1;
       breaksw
 
     case "-rlf":
@@ -240,6 +250,15 @@ while( $#argv != 0 )
     case "-frame":
       if ( $#argv == 0) goto arg1err;
       set frame = $argv[1]; shift;
+      breaksw
+
+    case "-mid-frame":
+      set midframe = 1;
+      breaksw
+
+    case "-sv-template":
+    case "-sv-temp":
+      set svtemplate = 1;
       breaksw
 
     case "-fsvol":
@@ -310,6 +329,11 @@ check_params:
     exit 1;
   endif
 
+  if($#frame && $midframe) then
+    echo "ERROR: cannot -frame and -mid-frame"
+    exit 1;
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -327,12 +351,14 @@ usage_exit:
   echo "   -df srchdirfile ..."
   echo "   -s  sessid      ..."
   echo "   -d  srchdir     ..."
-  echo "   -fsd dir       : functional subdirectory ($fsd)"
-  echo "   -run RRR       : register to run RRR"
-  echo "   -perrun        : register each run separately"
+  echo "   -fsd dir     : functional subdirectory ($fsd)"
+  echo "   -run RRR     : register to run RRR"
+  echo "   -perrun      : register each run separately (implies -mid-frame and -sv-template)"
   echo "   -rlf RLF       : run-list file (with -perrun)"
   echo "   -funcstem stem : default is f"
   echo "   -frame frameno : 0-based frame no (default 0)"
+  echo "   -mid-frame     : use middle frame"
+  echo "   -sv-template   : save template used for registration"
   echo "   -fsvol volid   : FreeSurfer vol id (default is $fsvol)"
   echo "   -regfile file  : Save reg as file instead of register.dat"
   echo "   -fmt format    : format of functional: <auto>, nii.gz, bhdr, mgh, etc"
