@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/07 22:41:04 $
-#    $Revision: 1.14 $
+#    $Date: 2007/03/07 22:43:47 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: spmregister-sess,v 1.14 2007/03/07 22:41:04 greve Exp $';
+set VERSION = '$Id: spmregister-sess,v 1.15 2007/03/07 22:43:47 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -261,6 +261,11 @@ while( $#argv != 0 )
       set svtemplate = 1;
       breaksw
 
+    case "-no-sv-template":
+    case "-no-sv-temp":
+      set svtemplate = 0;
+      breaksw
+
     case "-fsvol":
       if ( $#argv < 1) goto arg1err;
       set fsvol = $argv[1]; shift;
@@ -358,7 +363,8 @@ usage_exit:
   echo "   -funcstem stem : default is f"
   echo "   -frame frameno : 0-based frame no (default 0)"
   echo "   -mid-frame     : use middle frame"
-  echo "   -sv-template   : save template used for registration"
+  echo "   -sv-template    : save template used for registration"
+  echo "   -no-sv-template : turn off saving template used for registration"
   echo "   -fsvol volid   : FreeSurfer vol id (default is $fsvol)"
   echo "   -regfile file  : Save reg as file instead of register.dat"
   echo "   -fmt format    : format of functional: <auto>, nii.gz, bhdr, mgh, etc"
