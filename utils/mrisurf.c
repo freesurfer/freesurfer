@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/02 23:56:32 $
- *    $Revision: 1.518 $
+ *    $Author: nicks $
+ *    $Date: 2007/03/07 17:11:11 $
+ *    $Revision: 1.519 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -606,7 +606,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.518 2007/03/02 23:56:32 kteich Exp $");
+  return("$Id: mrisurf.c,v 1.519 2007/03/07 17:11:11 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -16707,7 +16707,7 @@ static double
 mrisComputeDistanceError(MRI_SURFACE *mris)
 {
   VERTEX  *v ;
-  int     vno, n, nvertices, max_v, max_n ;
+  int     vno, n, nvertices, max_v, max_n, err_cnt, max_errs ;
   double  dist_scale, sse_dist, delta, v_sse, max_del ;
 
 #if METRIC_SCALE
@@ -16725,6 +16725,9 @@ mrisComputeDistanceError(MRI_SURFACE *mris)
 #endif
   max_del = -1.0 ;
   max_v = max_n = -1 ;
+
+  err_cnt=0;
+  max_errs=1000;
 
   for (sse_dist = 0.0, nvertices = vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -16753,6 +16756,12 @@ mrisComputeDistanceError(MRI_SURFACE *mris)
         fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!\n",
                 vno, n, v->dist_orig[n]) ;
         DiagBreak() ;
+        if (++err_cnt > max_errs) 
+        {
+          ErrorExit
+          (ERROR_NONE,
+           "mrisComputeDistanceError: Too many errors!\n") ;
+        }
       }
       delta = dist_scale*v->dist[n] - v->dist_orig[n] ;
 
