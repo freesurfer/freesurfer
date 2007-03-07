@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/06 19:42:33 $
- *    $Revision: 1.252 $
+ *    $Author: fischl $
+ *    $Date: 2007/03/07 02:00:57 $
+ *    $Revision: 1.253 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -616,6 +616,10 @@ int truncphaseflag = FALSE;
 int scalebarflag = FALSE;
 int colscalebarflag = FALSE;
 int colscalebar_text_flag = TRUE;
+char *colscalebar_fbottom_text = NULL ; //used with truncphaseflag
+char *colscalebar_fthresh_text = NULL ;
+char *colscalebar_fmid_text = NULL ;
+char *colscalebar_fmax_text = NULL ;
 int colscalebarvertflag = TRUE;
 int surfaceflag = TRUE;
 int pointsflag = FALSE;
@@ -14217,7 +14221,8 @@ draw_colscalebar(void) {
   float bar_min_value;
   float bar_max_value;
   float bar_range;
-  int label_at_segment[4];
+  int label_at_segment[4] ;
+  char *label_format[4] ;
 
   maxval = fmid+0.5/fslope;
   pushmatrix();
@@ -14229,20 +14234,24 @@ draw_colscalebar(void) {
 
   /* This is an array of segement indices at which we will draw
      labels. Init them to -1 for now. */
-  for (i=0; i<4; i++) label_at_segment[i] = -1;
+  for (i=0; i<4; i++) 
+  {
+    label_at_segment[i] = -1;
+    label_format[i] = NULL;  // format to override for this segment
+  }
 
   /* Find the min and max value for the bar depending on our display
      flags. */
   if (truncphaseflag)
-    {
-      bar_min_value = 0;
-      bar_max_value = maxval;
-    }
+  {
+    bar_min_value = 0;
+    bar_max_value = maxval;
+  }
   else
-    {
-      bar_min_value = -maxval;
-      bar_max_value = maxval;
-    }
+  {
+    bar_min_value = -maxval;
+    bar_max_value = maxval;
+  }
 
   /* The full range of the bar. */
   bar_range = bar_max_value - bar_min_value;
@@ -14250,18 +14259,26 @@ draw_colscalebar(void) {
   /* Find where we should draw our labels. */
   func_per_segment = bar_range / (float)NSEGMENTS;
   if (truncphaseflag)
-    {
-      label_at_segment[0] = (fthresh / func_per_segment);
-      label_at_segment[1] = 0;
-      label_at_segment[2] = NSEGMENTS-1;
-    }
+  {
+    label_format[0] = colscalebar_fthresh_text ;
+    label_format[1] = colscalebar_fbottom_text ;
+    label_format[2] = colscalebar_fmax_text ;
+    label_at_segment[0] = (fthresh / func_per_segment);
+    label_at_segment[1] = 0;
+    label_at_segment[2] = NSEGMENTS-1;
+  }
   else
-    {
-      label_at_segment[0] = (NSEGMENTS/2) + (-fthresh / func_per_segment);
-      label_at_segment[1] = (NSEGMENTS/2) - (-fthresh / func_per_segment);
-      label_at_segment[2] = 0;
-      label_at_segment[3] = NSEGMENTS-1;
-    }
+  {
+    label_format[0] = colscalebar_fthresh_text ;
+    label_format[1] = colscalebar_fthresh_text ;
+    label_format[2] = colscalebar_fmid_text ;
+    label_format[3] = colscalebar_fmax_text ;
+
+    label_at_segment[0] = (NSEGMENTS/2) + (-fthresh / func_per_segment);
+    label_at_segment[1] = (NSEGMENTS/2) - (-fthresh / func_per_segment);
+    label_at_segment[2] = 0;
+    label_at_segment[3] = NSEGMENTS-1;
+  }
 
   /* For each segment... */
   for (i=0;i<NSEGMENTS;i++) {
@@ -14279,79 +14296,87 @@ draw_colscalebar(void) {
     }
     bgnquadrangle() ;
     if (colscalebarvertflag)
-      {
-	v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);
-	v[1] =
-	  fov*sf*(colscalebar_ypos+colscalebar_height*(i/(NSEGMENTS-1.0)-0.5));
-	v[2] = fov*sf*9.99;
-	v3f(v);
-	v[0] = fov*sf*(colscalebar_xpos+colscalebar_width/2);
-	v3f(v);
-	v[1] =
-      fov*sf*(colscalebar_ypos+colscalebar_height*((i+1)/(NSEGMENTS-1.0)-0.5));
-	v3f(v);
-	v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);
-	v3f(v);
-      } 
+    {
+      v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);
+      v[1] =
+        fov*sf*(colscalebar_ypos+colscalebar_height*(i/(NSEGMENTS-1.0)-0.5));
+      v[2] = fov*sf*9.99;
+      v3f(v);
+      v[0] = fov*sf*(colscalebar_xpos+colscalebar_width/2);
+      v3f(v);
+      v[1] =
+        fov*sf*(colscalebar_ypos+colscalebar_height*((i+1)/(NSEGMENTS-1.0)-0.5));
+      v3f(v);
+      v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);
+      v3f(v);
+    } 
     else
-      {
-	v[0] =
-	  fov*sf*(colscalebar_xpos+colscalebar_width*(i/(NSEGMENTS-1.0)-0.5));
-	v[1] = fov*sf*(colscalebar_ypos-colscalebar_height/2);
-	v[2] = fov*sf*9.99;
-	v3f(v);
-	v[0] =
-      fov*sf*(colscalebar_xpos+colscalebar_width*((i+1)/(NSEGMENTS-1.0)-0.5));
-	v3f(v);
-	v[1] = fov*sf*(colscalebar_ypos+colscalebar_height/2);
-	v3f(v);
-	v[0] =
-	  fov*sf*(colscalebar_xpos+colscalebar_width*(i/(NSEGMENTS-1.0)-0.5));
-	v3f(v);
-      }
+    {
+      v[0] =
+        fov*sf*(colscalebar_xpos+colscalebar_width*(i/(NSEGMENTS-1.0)-0.5));
+      v[1] = fov*sf*(colscalebar_ypos-colscalebar_height/2);
+      v[2] = fov*sf*9.99;
+      v3f(v);
+      v[0] =
+        fov*sf*(colscalebar_xpos+colscalebar_width*((i+1)/(NSEGMENTS-1.0)-0.5));
+      v3f(v);
+      v[1] = fov*sf*(colscalebar_ypos+colscalebar_height/2);
+      v3f(v);
+      v[0] =
+        fov*sf*(colscalebar_xpos+colscalebar_width*(i/(NSEGMENTS-1.0)-0.5));
+      v3f(v);
+    }
     endpolygon();
 
     /* Check our list of segements at which to draw labels, and see if
        this is one of them. */
     if (colscalebar_text_flag)
       for (j=0; j <4; j++)
-	if (label_at_segment[j] == i)
-	  {
-	    /* Draw an extra little line to our label. */
-	    glBegin (GL_LINES);
-	    glVertex3f (v[0], v[1], v[2]);
-	    if (colscalebarvertflag)
-	      glVertex3f (v[0]-2, v[1], v[2]);
-	    else
-	      glVertex3f (v[0], v[1]+2, v[2]);
-	    glEnd ();
+        if (label_at_segment[j] == i)
+        {
+          /* Draw an extra little line to our label. */
+          glBegin (GL_LINES);
+          glVertex3f (v[0], v[1], v[2]);
+          if (colscalebarvertflag)
+            glVertex3f (v[0]-2, v[1], v[2]);
+          else
+            glVertex3f (v[0], v[1]+2, v[2]);
+          glEnd ();
 	    
-	    /* Calc how many decimals our label should have. */
-	    abs_func_value = fabs(stat);
-	    if (abs_func_value > 1 || abs_func_value == 0) num_decimals = 2;
-	    else if (abs_func_value > 0.1) num_decimals = 3;
-	    else if (abs_func_value > 0.01) num_decimals = 4;
-	    else if (abs_func_value > 0.001) num_decimals = 5;
-	    else if (abs_func_value > 0.0001) num_decimals = 6;
-	    else if (abs_func_value > 0.00001) num_decimals = 7;
-	    else if (abs_func_value > 0.000001) num_decimals = 8;
-	    else if (abs_func_value > 0.0000001) num_decimals = 9;
-	    else num_decimals = 10;
+          /* Calc how many decimals our label should have. */
+          abs_func_value = fabs(stat);
+          if (abs_func_value > 1 || abs_func_value == 0) num_decimals = 2;
+          else if (abs_func_value > 0.1) num_decimals = 3;
+          else if (abs_func_value > 0.01) num_decimals = 4;
+          else if (abs_func_value > 0.001) num_decimals = 5;
+          else if (abs_func_value > 0.0001) num_decimals = 6;
+          else if (abs_func_value > 0.00001) num_decimals = 7;
+          else if (abs_func_value > 0.000001) num_decimals = 8;
+          else if (abs_func_value > 0.0000001) num_decimals = 9;
+          else num_decimals = 10;
 	    
-	    /* Create the label string. */
-	    sprintf (format, "%%2.%df", num_decimals);
-	    sprintf (label, format, stat);
+          /* Create the label string. */
+          if(label_format[j])
+            strcpy(format, label_format[j]) ;
+          else
+            sprintf (format, "%%2.%df", num_decimals);
+
+          sprintf (label, format, stat);
 	    
-	    /* Draw it. */
-	    glColor3f (1.0, 1.0, 1.0);
-	    if (colscalebarvertflag)
-	      glRasterPos3i (v[0] - (strlen(label)*4) - 2, v[1], v[2]);
-	    else
-	      glRasterPos3i (v[0], v[1]+2, v[2]);
-	    for (cur_char = 0; cur_char < strlen(label); cur_char++) {
-	      glutBitmapCharacter (GLUT_BITMAP_8_BY_13, label[cur_char]);
-	    }
-	  }
+          /* Draw it. */
+          glColor3f (1.0, 1.0, 1.0);
+          if (colscalebarvertflag)
+            glRasterPos3i (v[0] - (strlen(label)*4) - 2, v[1], v[2]);
+          else
+            glRasterPos3i (v[0], v[1]+2, v[2]);
+#if 0          
+          printf("print out %s,label_format[%d] = %s \n", label,
+                 j, label_format[j]) ;
+#endif
+          for (cur_char = 0; cur_char < strlen(label); cur_char++) {
+            glutBitmapCharacter (GLUT_BITMAP_8_BY_13, label[cur_char]);
+          }
+        }
   }
 
   popmatrix();
@@ -19030,7 +19055,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.252 2007/03/06 19:42:33 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.253 2007/03/07 02:00:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19879,6 +19904,13 @@ int main(int argc, char *argv[])   /* new main */
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"colscalebar_text_flag",(char *)&colscalebar_text_flag,
               TCL_LINK_BOOLEAN);
+
+
+  Tcl_LinkVar(interp,"fbottom_text",(char *)&colscalebar_fbottom_text,TCL_LINK_STRING);
+  Tcl_LinkVar(interp,"fthresh_text",(char *)&colscalebar_fthresh_text,TCL_LINK_STRING);
+  Tcl_LinkVar(interp,"fmid_text",(char *)&colscalebar_fmid_text,TCL_LINK_STRING);
+  Tcl_LinkVar(interp,"fmax_text",(char *)&colscalebar_fmax_text,TCL_LINK_STRING);
+
   Tcl_LinkVar(interp,"colscalebarvertflag",(char *)&colscalebarvertflag,
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"pointsflag",(char *)&pointsflag, TCL_LINK_BOOLEAN);
