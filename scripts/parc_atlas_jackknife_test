@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/03/05 22:33:25 $
-#    $Revision: 1.5 $
+#    $Date: 2007/03/07 23:06:43 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.5 2007/03/05 22:33:25 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.6 2007/03/07 23:06:43 nicks Exp $';
 
 # defaults:
 setenv SUBJECTS_DIR /space/tensor/20/users/buckner_cortical_atlas
@@ -118,10 +118,12 @@ while( $#argv != 0 )
 
     case "-binhome":
     case "--binhome":
+      if ( ! $?FREESURFER_HOME) then 
+        source /usr/local/freesurfer/nmr-dev-env
+      endif
       set BIN_HOME = $argv[1]; shift;
       set path = ( ${BIN_HOME} $path )
       rehash
-      setenv SURFER_FRONTDOOR 1
       breaksw
 
     case "-dontrun":
@@ -141,16 +143,36 @@ while( $#argv != 0 )
       echo "options:"
       echo "  -register         run mris_register: creates .sphere.reg files"
       echo "  -reg_dist <arg>   run mris_register with '-dist <arg>' flag"
-      echo "  -reg_append <string>  append <string> to end of $hemi.sphere.reg"
-      echo "  -reg_copy <string> cp $hemi.sphere.reg<string> $hemi.sphere.reg"
+      echo "  -reg_append <string>  append <string> to end of ?h.sphere.reg"
+      echo "  -reg_copy <string> cp ?h.sphere.reg<string> ?h.sphere.reg"
       echo "  -train            run mris_ca_train: creates .gcs files"
       echo "  -classify         run mris_ca_label: creates .annot files"
       echo "  -test             run mris_compute_parc_overlap"
       echo "  -all              -train, -classify, -test"
       echo "  -sd <subjects dir>          override default subjects dir"
       echo "  -fshome <FREESURFER_HOME>   source a new FREESURFER_HOME "
-      echo "  -binhome <path to binaries> specify an explicit path "
+      echo "  -binhome <path to binaries> specify override path to binaries"
       echo "  -dontrun          dont execute the commands"
+      echo ""
+      echo "example1:"
+      echo "  Assuming the subjects to test are listed in the SUBJECTS var"
+      echo "  declared in the scripts/jackknife_subjects.csh file, and that"
+      echo "  each of these subjects has a surf/?h.sphere.reg and a manually"
+      echo "  edited file named surf/?h.aparc_edited.annot, and there exists"
+      echo "  a color LUT named scripts/colortable_final.txt, then the"
+      echo "  following command will perform a jackknife accuracy test: "
+      echo ""
+      echo "  parc_atlas_jackknife_test -all"
+      echo ""
+      echo "  The test is conducted as follows: Given a set of N manually "
+      echo "  labeled subjects, N atlases trained on N-1 number of subjects "
+      echo "  are created, and the one excluded subject is used to test the"
+      echo "  accuracy of this atlas, based on the Dice coefficient(s)."
+      echo "  The overall classifier accuracy is the mean of all the results."
+      echo "  The results are written to the directory named 'jackknife'."
+      echo "  The default SUBJECTS_DIR is:"
+      echo "    $SUBJECTS_DIR"
+      echo ""
       exit 1
       breaksw
 
@@ -181,22 +203,22 @@ echo "FREESURFER_HOME $FREESURFER_HOME"
 #
 echo "Register: `which mris_register`"
 if ($status) then
-    echo "mris_ca_train not found (source a Freesurfer home)"
+    echo "mris_ca_train not found (use -fshome or -binhome)"
     exit 1
 endif
 echo "Train:    `which mris_ca_train`"
 if ($status) then
-    echo "mris_ca_train not found (source a Freesurfer home)"
+    echo "mris_ca_train not found (use -fshome or -binhome)"
     exit 1
 endif
 echo "Classify: `which mris_ca_label`"
 if ($status) then
-    echo "mris_ca_label not found (source a Freesurfer home)"
+    echo "mris_ca_label not found (use -fshome or -binhome)"
     exit 1
 endif
 echo "Test:     `which mris_compute_parc_overlap`"
 if ($status) then
-    echo "mris_compute_parc_overlap not found (source a Freesurfer home)"
+    echo "mris_compute_parc_overlap not found (use -fshome or -binhome)"
     exit 1
 endif
 if ( ! -e ${SUBJECTS_DIR}/scripts/jackknife_subjects.csh) then
@@ -247,19 +269,24 @@ foreach test_subj ($ALL_SUBJECTS)
         set sphere_reg="${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere.reg"
         set sphere_reg="${sphere_reg}${reg_append}"
         set cmd=(mris_register ${reg_dist} \
-            -curv ${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere \
+            -nocurv ${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere \
             ${SUBJECTS_DIR}/average/${hemi}.${tif} \
             ${sphere_reg})
         set LF="${SUBJECTS_DIR}/${test_subj}/surf"
         set LF="${LF}/${hemi}.mris_register${reg_append}.log"
         if ($RunIt) then
-            echo "`which mris_register`" > ${LF}
-            echo "${cmd}" >> ${LF}
+            echo "`which mris_register`" |& tee ${LF}
+            echo "${cmd}" |& tee -a ${LF}
             if (-e ${sphere_reg}) rm -f ${sphere_reg}
             if ($PBS) then
-                pbsubmit ${pbs_flags} -c "${cmd} >> ${LF}"
+                set cmdf=(${WD}/${hemi}.${test_subj}${reg_append}.cmd)
+                echo "#! /bin/tcsh -ef" > ${cmdf}
+                echo "limit filesize 10megabytes" >> ${cmdf}
+                echo "${cmd} |& tee -a ${LF}" >> ${cmdf}
+                chmod a+x ${cmdf}
+                pbsubmit ${pbs_flags} -c "${cmdf}"
             else
-                ${cmd} >> ${LF} &
+                ${cmd} |& tee -a ${LF} &
             endif
         endif
     end
@@ -402,9 +429,9 @@ foreach test_subj ($ALL_SUBJECTS)
             set DiceK=${WD}/dice_${test_subj}_${hemi}.txt
             if (-e ${DiceK}) rm -f ${DiceK}
             if ($PBS) then
-                pbsubmit ${pbs_flags} -c "${cmd} > ${DiceK}"
+                pbsubmit ${pbs_flags} -c "${cmd} >& ${DiceK}"
             else
-                ${cmd} > ${DiceK} &
+                ${cmd} >& ${DiceK} &
             endif
         endif
     end
@@ -451,7 +478,7 @@ foreach test_subj ($ALL_SUBJECTS)
 end
 set avg=`echo "scale=4; ${sum} / ${count}" | bc`
 if ($status) exit 1
-echo "${avg}" > ${avgfile}
+echo "${avg}" >& ${avgfile}
 endif
 
 
