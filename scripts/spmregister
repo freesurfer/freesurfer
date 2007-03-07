@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/06 00:01:15 $
-#    $Revision: 1.16 $
+#    $Author: greve $
+#    $Date: 2007/03/07 21:48:46 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,11 +23,11 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.16 2007/01/06 00:01:15 nicks Exp $';
+set VERSION = '$Id: spmregister,v 1.17 2007/03/07 21:48:46 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
-set fsvol  = brain;
+set fsvol  = brainmask;
 set refvol = ();
 set movvol = ();
 set debug = 0;
@@ -37,7 +37,9 @@ set monly = 0;
 set MLF = ();
 set PrintHelp = 0;
 set zero_center = 1;
-set frame = 0;
+set frame = ();
+set midframe = 0;
+set templateout = ();
 set MGZ = ();
 set nolog = 0;
 set ForceRAS = 0;
@@ -112,7 +114,8 @@ set movvolbase = $tmpdir/movvol.spmregister
 set movvolimg  = $movvolbase.img
 set cmd = (mri_convert $movvol $movvolimg)
 if($zero_center) set cmd = ($cmd -ic 0 0 0)
-if($frame)  set cmd = ($cmd --nskip $frame)
+if($midframe) set cmd = ($cmd --mid-frame)
+if($#frame)   set cmd = ($cmd --frame $frame)
 if($ForceRAS) set cmd = ($cmd --in_orientation RAS) # for spm tal
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
@@ -231,6 +234,11 @@ echo $cmd  |& tee -a $LF
 $cmd       |& tee -a $LF
 if($status) exit 1;
 
+if($#templateout) then
+  mri_convert $movvolimg $templateout
+  if($status) exit 1;
+endif
+
 # Cleanup
 if($cleanup) then
   echo "Cleaning up" |& tee -a $LF
@@ -251,7 +259,11 @@ else
 endif
 
 echo "To check results, run:"
-echo "tkregister2 --mov $movvol --reg $regfile $tmp"
+if($#templateout) then
+  echo "tkregister2 --mov $templateout --reg $regfile $tmp"
+else
+  echo "tkregister2 --mov $movvol --reg $regfile $tmp"
+endif
 echo " "
 
 
@@ -282,9 +294,18 @@ while( $#argv != 0 )
       set movvol = $argv[1]; shift;
       breaksw
 
+    case "--template-out":
+      if ( $#argv < 1) goto arg1err;
+      set templateout = $argv[1]; shift;
+      breaksw
+
     case "--frame":
       if ( $#argv < 1) goto arg1err;
       set frame = $argv[1]; shift;
+      breaksw
+
+    case "--mid-frame":
+      set midframe = 1;
       breaksw
 
     case "--reg":
@@ -376,6 +397,11 @@ check_params:
     exit 1;
   endif
 
+  if($#frame && $midframe) then
+    echo "ERROR: cannot --frame AND --mid-frame"
+    exit 1;
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -403,6 +429,8 @@ usage_exit:
   echo ""
   echo "Optional Arguments"
   echo "   --frame frameno : reg to frameno (default 0=1st)"
+  echo "   --mid-frame : reg to middle frame (not with --frame)"
+  echo "   --template-out template : save template (good with --frame)"
   echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
   echo "   --force-ras : force input geometry to be RAS"
   echo ""
@@ -450,6 +478,15 @@ Use something other than the first frame. Eg, with FSL may want
 to use the middle frame. For SPM analyze, you should specify the
 file that corresonds to the frame you want because each file only
 has one frame.
+
+--mid-frame
+
+Use the middle frame of the mov volume as the template.
+
+--template-out template
+
+Save the mov template. Good when template is something other than
+the first frame of the mov volume.
 
 --force-ras
 
