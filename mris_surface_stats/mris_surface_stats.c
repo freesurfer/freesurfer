@@ -1,15 +1,19 @@
 /**
  * @file  mris_surface_stats.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief compute the stat-map of scalars defined on the surface
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This command computes the mean and std of both the signed and unsigned 
+ * thickness differences and outputs the results to different files as 
+ * specified by the different options. The user can define the hemisphere 
+ * "${hemi}$", and the number of smoothing iterations "$N" applied to the 
+ * input difference maps.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/03/07 22:37:07 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,19 +28,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// mris_surface_stats.c
-// compute the stat-map of scalars defined on the surface
-// original author: Xiao Han
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:11 $
-// Revision       : $Revision: 1.3 $
-//
-////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,7 +85,8 @@ static int nSmoothSteps = 0;
 #endif
 #define MAX_SURFACES 200
 
-static char vcid[] = "$Id: mris_surface_stats.c,v 1.3 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = 
+"$Id: mris_surface_stats.c,v 1.4 2007/03/07 22:37:07 nicks Exp $";
 
 int
 main(int argc, char *argv[]) {
@@ -113,7 +105,10 @@ main(int argc, char *argv[]) {
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_surface_stats.c,v 1.3 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mris_surface_stats.c,v 1.4 2007/03/07 22:37:07 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -138,17 +133,18 @@ main(int argc, char *argv[]) {
   // printf("command line parsing finished\n");
 
   if (first_group_size > 0 && (zscore_fname == NULL)) {
-    printf("Pls use -zscore to specify output Zscore; o.w., nothing will be output. Exit. \n");
-    exit(0);
+    printf("Please use -zscore to specify output Zscore; "
+           "o.w., nothing will be output.\n");
+    exit(1);
   }
 
   if (argc > 2 && stat_fname == NULL) {
-    printf("Use -out_name option to specify output stat file name. Exit. \n");
+    printf("Use -out_name option to specify output stat file name.\n");
     exit(1);
   }
 
   if (surf_fname == NULL) {
-    printf("Use -surf_name option to specify underlying surface file name. Exit. \n");
+    printf("Use -surf_name option to specify underlying surface file name.\n");
     exit(1);
   }
 
@@ -203,9 +199,11 @@ main(int argc, char *argv[]) {
     }
 
     if (nSmoothSteps > 0) {
-      printf("Smooth input data  by %d steps\n", nSmoothSteps);
-      MyMRISsmoothMRI(mri_surf, surfVal[nsurfaces], nSmoothSteps, surfVal[nsurfaces]);
-
+      printf("Smooth input data by %d steps\n", nSmoothSteps);
+      MyMRISsmoothMRI(mri_surf, 
+                      surfVal[nsurfaces], 
+                      nSmoothSteps, 
+                      surfVal[nsurfaces]);
     }
     nsurfaces++ ;
   }
@@ -217,7 +215,8 @@ main(int argc, char *argv[]) {
   // printf("Compute statistics \n");
 
   if (nsurfaces_total == 1) {
-    // printf("Only one surface, compute the stats across the whole surface (excluding the masked areas if mask is given) \n");
+    // printf("Only one surface, compute the stats across the "
+    // "whole surface (excluding the masked areas if mask is given) \n");
     mean = 0;
     absmean = 0;
     std = 0;
@@ -244,7 +243,9 @@ main(int argc, char *argv[]) {
     else
       std = sqrt(std);
 
-    printf("Stats over surface (%d vertices): mean = %g, std = %g, absmean = %g, absstd = %g \n", total, mean, std, absmean, absstd);
+    printf("Stats over surface (%d vertices): mean = %g, std = %g, "
+           "absmean = %g, absstd = %g \n", 
+           total, mean, std, absmean, absstd);
 
     for (i=0; i < nsurfaces_total; i++) {
       MRIfree(&surfVal[i]);
@@ -252,7 +253,6 @@ main(int argc, char *argv[]) {
     MRISfree(&mri_surf);
 
     exit(0);
-
   }
 
   mriMean = MRIclone(surfVal[0], NULL);
@@ -339,7 +339,8 @@ main(int argc, char *argv[]) {
       MRIsetVoxVal(mriStd2, index, 0, 0, 0, std);
 
       scalar = MRIgetVoxVal(mriMean, index, 0, 0, 0) - mean;
-      scalar /= sqrt(0.5*(MRIgetVoxVal(mriStd, index, 0, 0, 0)*MRIgetVoxVal(mriStd, index, 0, 0, 0) + std*std));
+      scalar /= sqrt(0.5*(MRIgetVoxVal(mriStd, index, 0, 0, 0) *
+                          MRIgetVoxVal(mriStd, index, 0, 0, 0) + std*std));
 
       if (debugflag == 1 && debugvtx == index) {
         printf("mean of group2 = %g, std of group1 = %g \n", mean, std);
@@ -418,12 +419,12 @@ main(int argc, char *argv[]) {
     }
   }
 
-
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  printf("Std computation took %d minutes and %d seconds.\n", minutes, seconds) ;
+  printf("Std computation took %d minutes and %d seconds.\n", 
+         minutes, seconds) ;
 
   for (i=0; i < nsurfaces_total; i++) {
     MRIfree(&surfVal[i]);
@@ -436,6 +437,7 @@ main(int argc, char *argv[]) {
 
   exit(0);
 }
+
 
 /* --------------------------------------------- */
 static void print_version(void) {
@@ -456,37 +458,38 @@ get_option(int argc, char *argv[]) {
 
   option = argv[1] + 1 ;            /* past '-' */
 
-  if (!stricmp(option, "out_fname")
-      || !stricmp(option, "out_name")
-      || !stricmp(option, "out")
+  if (!stricmp(option, "out_fname") || 
+      !stricmp(option, "out_name")  || 
+      !stricmp(option, "out")
      ) {
     stat_fname = argv[2];
     printf("using %s as output file \n", stat_fname);
     nargs = 1;
-  } else if (!stricmp(option, "mean_fname")
-             || !stricmp(option, "mean_name")
-             || !stricmp(option, "mean")
+  } else if (!stricmp(option, "mean_fname") || 
+             !stricmp(option, "mean_name")  || 
+             !stricmp(option, "mean")
             ) {
     mean_fname = argv[2];
     printf("using %s as output file for mean \n", mean_fname);
     nargs = 1;
-  } else if (!stricmp(option, "mask_fname")
-             || !stricmp(option, "mask_name")
-             || !stricmp(option, "mask")
+  } else if (!stricmp(option, "mask_fname") || 
+             !stricmp(option, "mask_name")  || 
+             !stricmp(option, "mask")
             ) {
     mask_fname = argv[2];
-    //      printf("using %s as  file for surface mask (vertices within mask be exclued from statistics) \n", mask_fname);
+    //      printf("using %s as  file for surface mask "
+    // "(vertices within mask be exclued from statistics) \n", mask_fname);
     nargs = 1;
-  } else if (!stricmp(option, "absmean_fname")
-             || !stricmp(option, "absmean_name")
-             || !stricmp(option, "absmean")
+  } else if (!stricmp(option, "absmean_fname") || 
+             !stricmp(option, "absmean_name")  || 
+             !stricmp(option, "absmean")
             ) {
     absmean_fname = argv[2];
     printf("using %s as output file for abs-mean \n", absmean_fname);
     nargs = 1;
-  } else if (!stricmp(option, "absstd_fname")
-             || !stricmp(option, "absstd_name")
-             || !stricmp(option, "absstd")
+  } else if (!stricmp(option, "absstd_fname") || 
+             !stricmp(option, "absstd_name")  || 
+             !stricmp(option, "absstd")
             ) {
     absstd_fname = argv[2];
     printf("using %s as output file for std-of-abs-mean \n", absstd_fname);
@@ -497,9 +500,9 @@ get_option(int argc, char *argv[]) {
     srctypestring = argv[2];
     srctype = string_to_type(srctypestring);
     nargs = 1 ;
-  } else if (!stricmp(option, "surf")
-             || !stricmp(option, "surf_name")
-             || !stricmp(option, "surf_file")
+  } else if (!stricmp(option, "surf") || 
+             !stricmp(option, "surf_name") || 
+             !stricmp(option, "surf_file")
             ) {
     surf_fname = argv[2];
     nargs = 1;
@@ -511,7 +514,8 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "first_group_size")) {
     first_group_size = atoi(argv[2]);
     nargs = 1;
-    printf("The first %d of input data belongs to one group. \n", first_group_size);
+    printf("The first %d of input data belongs to one group. \n", 
+           first_group_size);
   } else if (!stricmp(option, "zscore")) {
     zscore_fname = argv[2];
     nargs = 1;
@@ -540,22 +544,75 @@ get_option(int argc, char *argv[]) {
   ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
-  printf("usage: %s [options] <data1> ... <dataN>\n", Progname) ;
-  printf("This program computes the std of several data maps (paint-type) defined on the same surface. Other stats can be ouput using -absmean or -mean options.\n");
+  printf("Usage: %s [options] <data1> ... <dataN>\n\n", Progname) ;
 
-  printf("Options includes:\n");
-  printf("\t -debug %%d to set the surface vertex to debug \n");
-  printf("\t -surf_name %%s to set the surface filename\n");
-  printf("\t -mask_name %%s to set the filename for surface mask \n");
-  printf("\t -out_name %%s to set the output filename (std of data)\n");
-  printf("\t -mean %%s to set the output filename for mean\n");
-  printf("\t -absmean %%s to set the output filename for abs-mean\n");
-  printf("\t -absstd %%s to set the output filename for std-of-abs-mean \n");
-  printf("\t -zscore %%s to set the output filename for zscore (only if first_group_size > 0) \n");
-  printf("\t -first_group_size %%d: how many subjects in the beginning belong to first group \n");
-  printf("\t -nsmooth %%d number of smoothing steps\n");
-  printf("\t -src_type %%s input surface data format (default = paint) \n");
-  printf("\t -trg_type  %%s output format (default = paint) \n");
+  printf("This program computes the group-wise mean and std of the \n"
+         "thickness differences at every vertex of the template surface.\n\n");
+
+  printf("Options include:\n\n");
+  printf(" -nsmooth %%d     specify number of smoothing steps\n");
+  printf(" -surf_name %%s   set the surface filename\n");
+  printf(" -mask_name %%s   set the filename for surface mask \n");
+  printf(" -out_name %%s    set the output filename (std of data)\n");
+  printf(" -mean %%s        set the output filename for mean\n");
+  printf(" -absmean %%s     set the output filename for abs-mean\n");
+  printf(" -absstd %%s      set the output filename for std-of-abs-mean \n");
+  printf(" -zscore %%s      set the output filename for zscore\n"
+         "                 (only if first_group_size > 0) \n");
+  printf(" -first_group_size %%d:   specify how many subjects in the \n"
+         "                         beginning belong to first group \n");
+  printf(" -src_type %%s    input surface data format (default = paint) \n");
+  printf(" -trg_type %%s    output format (default = paint) \n");
+  printf(" -debug %%d       specify which surface vertex number to debug\n\n");
+
+  printf("Example:\n\n");
+  printf("  mris_surface_stats -mask some_mask.label \\\n");
+  printf("    -nsmooth $N \\\n");
+  printf("    -surf_name $SUBJECTS_DIR/1000/surf/${hemi}.white \\\n");
+  printf("    -src_type paint \\\n");
+  printf("    -out_name $SUBJECTS_DIR/groupstudy/${hemi}_std_${N}.mgh \\\n");
+  printf("    -absmean $SUBJECTS_DIR/groupstudy/${hemi}_absmean_${N}.mgh \\\n");
+  printf("    -mean $SUBJECTS_DIR/groupstudy/${hemi}_mean_${N}.mgh \\\n");
+  printf("    -absstd $SUBJECTS_DIR/groupstudy/${hemi}_absstd_${N}.mgh \\\n");
+  printf("    $SUBJECTS_DIR/groupstudy/1???_${hemi}_thickness_diff_resampled_to_1001.mgh\n");
+
+  printf("\nThis command computes the mean and std of both the signed and \n"
+         "unsigned thickness differences and outputs the results to \n"
+         "different files as specified by the different options. The user \n"
+         "can define the hemisphere ${hemi}$, and the number of smoothing\n"
+         "iterations $N applied to the input difference maps. The other \n"
+         "options are:\n\n");
+  printf(  " -mask  specifies a surface mask, where vertices within the \n"
+           " mask will be excluded in all the computation (smoothing and \n"
+           " statistics). If not specified, all vertices are used.\n\n"
+           " -nsmooth  specifies the number of smoothing iterations before \n"
+           " statistics are computed; N=60 roughly corresponds to a surface \n"
+           " based Gaussian kernel of size 6mm. If not specified, no \n"
+           " smoothing is performed.\n\n"
+           " -surf_name  is the template surface (can be any surface of \n"
+           " the template subject, named 1000 in this example). \n"
+           " This option is required.\n\n"
+           " -src_type   means the same as in mri_surf2surf or \n"
+           " mris_thickness_diff.\n\n"
+           " -out_name  stores the standard deviation map of the input \n"
+           " thickness difference maps. This option is required.\n\n"
+           " -absmean  stores the absolute average map of the input \n"
+           " thickness difference maps.\n\n"
+           " -mean  stores the average map of the input thickness \n"
+           " difference maps.\n\n"
+           " -absstd  stores the standard deviation map of the absolute \n"
+           " differences.\n\n"
+           " 1???_${hemi}_thickness_diff_resampled_to_1001.mgh  refers to \n"
+           " the list of .mgh files created in a prior step that are to be \n"
+           " used as input for this step. If those files are stored under \n"
+           " the same directory, you can indeed use \n"
+           " 1???_${hemi}_thickness_diff_resampled.mgh instead of listing \n"
+           " each individual file explicitly, or \n"
+           " 1*_${hemi}_thickness_diff_resampled.mgh.  Note: this assumes \n"
+           " the subject id's begin with 1.\n\n");
+  printf("The statistical maps can be displayed on the template subject's \n"
+         "surfaces, which can be used to visualize the spatially varying \n"
+         "pattern of the thickness measurement variability.\n\n");
 
   exit(code) ;
 }
