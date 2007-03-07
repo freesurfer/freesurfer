@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.31 2007/03/05 22:52:55 greve Exp $
+% $Id: fast_selxavg3.m,v 1.32 2007/03/07 05:20:26 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/05 22:52:55 $
-%    $Revision: 1.31 $
+%    $Date: 2007/03/07 05:20:26 $
+%    $Revision: 1.32 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -25,8 +25,7 @@
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
-% MultiVar t
-% Automatically creating mask?
+% Automatically create mask?
 
 % Force choice on whitening or not
 % Force choice of mask
@@ -34,12 +33,6 @@
 % RFx, FFx, MFx 2nd level analysis
 % Func2ROI
 
-% JK?
-% Per-run?
-% Save LUT for ACF Seg
-
-% analysis
-% sessdir
 
 if(0)
   monly       = 1;
@@ -68,7 +61,15 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.31 2007/03/05 22:52:55 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.32 2007/03/07 05:20:26 greve Exp $\n');
+
+if(DoSynth)
+  if(SynthSeed < 0) SynthSeed = sum(100*clock); end
+  fprintf('SynthSeed     = %10d\n',SynthSeed);
+  fprintf('SynthNoiseAmp    = %d\n',SynthNoiseAmp);
+  fprintf('SynthNoiseAR1   = %g\n',SynthNoiseAR1);
+  fprintf('SynthSignalAmp   = %d\n',SynthSignalAmp);
+end
 
 sessname = basename(sess);
 %outtop = dirname(sess);
@@ -101,136 +102,146 @@ nruns = size(flac0.runlist,1);
 fprintf('nruns = %d\n',nruns);
 ncontrasts = length(flac0.con);
 
-outanadir = sprintf('%s/%s/%s/%s',outtop,sessname,flac0.fsd,flac0.name);
-fprintf('outanadir = %s\n',outanadir);
-err = mkdirp(outanadir);
-if(err) return; end
+outanadir0 = sprintf('%s/%s/%s/%s',outtop,sessname,flac0.fsd,flac0.name);
 
-xfile = sprintf('%s/X.mat',outanadir);
-outresdir = sprintf('%s/res',outanadir);
-
-
-if(DoSynth)
-  if(SynthSeed < 0) SynthSeed = sum(100*clock); end
-  fprintf('SynthSeed     = %10d\n',SynthSeed);
-  fprintf('SynthNoiseAmp    = %d\n',SynthNoiseAmp);
-  fprintf('SynthNoiseAR1   = %g\n',SynthNoiseAR1);
-  fprintf('SynthSignalAmp   = %d\n',SynthSignalAmp);
-end
-yrun_randn = [];
-
-
-% Load the brain mask
-if(~isempty(flac0.maskfspec))
-  mask = MRIread(flac0.maskfspec);
-  if(isempty(mask))
-    fprintf('ERROR: cannot load %s\n',flac0.maskfspec);
-    return;
-  end
-else
-  tmp = MRIread(flac0.funcfspec,1);
-  mask = tmp;
-  mask.vol = ones(tmp.volsize);
-  clear tmp;
+%%%%%%%
+if(perrun | jkrun) outer_runlist = [1:nruns];
+else outer_runlist = 1;
 end
 
-indmask = find(mask.vol);
-nmask = length(indmask);
-nslices = mask.volsize(3);
-nvox = prod(mask.volsize);
-fprintf('Found %d/%d (%4.1f) voxels in mask\n',nmask,nvox,100*nmask/nvox);
-mri = mask; % save as template
+for nthouter = outer_runlist
 
-% Create a volume with vox val = the slice 
-svol = zeros(mri.volsize);
-for s = 1:nslices,  svol(:,:,s) = s; end
-
-%---------------------------------------------%
-fprintf('Creating Design Matrix\n');
-Xt = [];
-Xn = [];
-tpindrun = [];
-clear runflac;
-tic;
-for nthrun = 1:nruns
-  flac = flac0;
-  flac.nthrun = nthrun;
-  flac = flac_customize(flac);
-  if(isempty(flac)) 
-    if(~monly) quit;  end
-    return; 
+  outerrun = flac0.runlist(nthouter,:);
+  if(perrun)      
+    outanadir = sprintf('%s/pr%s',outanadir0,outerrun);
+    nthrunlist = nthouter;
+  elseif(jkrun)  
+    outanadir = sprintf('%s/jk%s',outanadir0,outerrun);
+    nthrunlist = setxor(nthouter,[1:nruns]);
+  else            
+    outanadir = outanadir0;
+    nthrunlist = 1;
   end
-  runflac(nthrun).flac = flac;
 
-  indtask = flac_taskregind(flac);
-  Xtr = flac.X(:,indtask);
-  nTaskRun = size(Xtr,2);
+  fprintf('\n\n');
+  fprintf('outanadir = %s\n',outanadir);
+  err = mkdirp(outanadir);
+  if(err) return; end
 
-  indnuis = flac_nuisregind(flac);
-  Xnr = flac.X(:,indnuis);
-  nNuisRun = size(Xnr,2);
+  xfile = sprintf('%s/X.mat',outanadir);
+  outresdir = sprintf('%s/res',outanadir);
 
-  Za = zeros(size(Xn,1),  size(Xnr,2));
-  Zb = zeros(size(Xnr,1), size(Xn,2));
+  % Load the brain mask
+  if(~isempty(flac0.maskfspec))
+    mask = MRIread(flac0.maskfspec);
+    if(isempty(mask))
+      fprintf('ERROR: cannot load %s\n',flac0.maskfspec);
+      return;
+    end
+  else
+    tmp = MRIread(flac0.funcfspec,1);
+    mask = tmp;
+    mask.vol = ones(tmp.volsize);
+    clear tmp;
+  end
+
+  indmask = find(mask.vol);
+  nmask = length(indmask);
+  nslices = mask.volsize(3);
+  nvox = prod(mask.volsize);
+  fprintf('Found %d/%d (%4.1f) voxels in mask\n',nmask,nvox,100*nmask/nvox);
+  mri = mask; % save as template
+
+  % Create a volume with vox val = the slice 
+  svol = zeros(mri.volsize);
+  for s = 1:nslices,  svol(:,:,s) = s; end
+
+  %---------------------------------------------%
+  fprintf('Creating Design Matrix\n');
+  Xt = [];
+  Xn = [];
+  tpindrun = [];
+  clear runflac;
+  tic;
+  for nthrun = nthrunlist
+    flac = flac0;
+    flac.nthrun = nthrun;
+    flac = flac_customize(flac);
+    if(isempty(flac)) 
+      if(~monly) quit;  end
+      return; 
+    end
+    runflac(nthrun).flac = flac;
+    
+    indtask = flac_taskregind(flac);
+    Xtr = flac.X(:,indtask);
+    nTaskRun = size(Xtr,2);
+    
+    indnuis = flac_nuisregind(flac);
+    Xnr = flac.X(:,indnuis);
+    nNuisRun = size(Xnr,2);
+    
+    Za = zeros(size(Xn,1),  size(Xnr,2));
+    Zb = zeros(size(Xnr,1), size(Xn,2));
+    
+    Xt = [Xt; Xtr];
+    Xn = [Xn Za; Zb Xnr];
+    
+    % Keep track of which tps belong to which runs
+    tpindrun = [tpindrun; nthrun*ones(flac.ntp,1)];
+    
+    % Keep track of which regressors are the mean
+    if(nthrun == nthrunlist(1)) reg0 = zeros(1,nTaskRun); end
+    reg0run = zeros(1,nNuisRun);
+    reg0run(1) = 1;
+    reg0 = [reg0 reg0run];
+  end
+  % These are the actual indices of the mean regressors
+  ind0 = find(reg0);
+
+  % Create the full design matrix
+  X = [Xt Xn];
+  nTask = size(Xt,2);
+  nNuis = size(Xn,2);
+  nX = size(X,2);
+  ntptot = size(X,1);
+  DOF = ntptot - nX;
+  B0 = inv(X'*X)*X';
+  Ctask = [eye(nTask) zeros(nTask,nNuis)];
+  nn = [1:ntptot]';
+  R = eye(ntptot) - X*inv(X'*X)*X';
   
-  Xt = [Xt; Xtr];
-  Xn = [Xn Za; Zb Xnr];
+  fprintf('Computing compensation for resdual AR1 bias\n');
+  [rfm.M rfm.rrho1 rfm.nrho1 rfm.nrho1hat] = fast_rfm2nrho1(R);
+  fprintf('AR1 Correction M: %g %g\n',rfm.M(1),rfm.M(2));
 
-  % Keep track of which tps belong to which runs
-  tpindrun = [tpindrun; nthrun*ones(flac.ntp,1)];
-
-  % Keep track of which regressors are the mean
-  if(nthrun == 1) reg0 = zeros(1,nTaskRun); end
-  reg0run = zeros(1,nNuisRun);
-  reg0run(1) = 1;
-  reg0 = [reg0 reg0run];
-end
-% These are the actual indices of the mean regressors
-ind0 = find(reg0);
-
-% Create the full design matrix
-X = [Xt Xn];
-nTask = size(Xt,2);
-nNuis = size(Xn,2);
-nX = size(X,2);
-ntptot = size(X,1);
-DOF = ntptot - nX;
-B0 = inv(X'*X)*X';
-Ctask = [eye(nTask) zeros(nTask,nNuis)];
-nn = [1:ntptot]';
-R = eye(ntptot) - X*inv(X'*X)*X';
-
-fprintf('Computing compensation for resdual AR1 bias\n');
-[rfm.M rfm.rrho1 rfm.nrho1 rfm.nrho1hat] = fast_rfm2nrho1(R);
-fprintf('AR1 Correction M: %g %g\n',rfm.M(1),rfm.M(2));
-
-%---------------------------------------------%
-% The contrast matrices were originally computed assuming
-% only a single run's worth of nuisance regressors. Recompute.
-fprintf('Computing contrast matrices\n');
-flacC = flac0;
-for nthcon = 1:ncontrasts
-  indtask = flac_taskregind(flac0);
-  C = flacC.con(nthcon).C;
-  C = C(:,indtask);
-  for nthrun = 1:nruns
-    flac = flac_customize(flac0);
-    Crun = flac.con(nthcon).C;
-    indnuis = flac_nuisregind(flac);    
-    Cnuis = Crun(:,indnuis);
-    C = [C Cnuis];
+  %---------------------------------------------%
+  % The contrast matrices were originally computed assuming
+  % only a single run's worth of nuisance regressors. Recompute.
+  fprintf('Computing contrast matrices\n');
+  flacC = flac0;
+  for nthcon = 1:ncontrasts
+    indtask = flac_taskregind(flac0);
+    C = flacC.con(nthcon).C;
+    C = C(:,indtask);
+    for nthrun = nthrunlist
+      flac = flac_customize(flac0);
+      Crun = flac.con(nthcon).C;
+      indnuis = flac_nuisregind(flac);    
+      Cnuis = Crun(:,indnuis);
+      C = [C Cnuis];
+    end
+    [J K] = size(C);
+    flacC.con(nthcon).C = C;
+    M = C*inv(X'*X)*C';
+    eff = 1/trace(M);
+    vrf = 1/mean(diag(M));
+    flacC.con(nthcon).M = M;
+    flacC.con(nthcon).eff = eff;
+    flacC.con(nthcon).vrf = vrf;
+    fprintf('%2d %-10s J=%d  eff = %6.1f   vrf = %6.1f\n',...
+	    nthcon,flac0.con(nthcon).name,J,eff,vrf);
   end
-  [J K] = size(C);
-  flacC.con(nthcon).C = C;
-  M = C*inv(X'*X)*C';
-  eff = 1/trace(M);
-  vrf = 1/mean(diag(M));
-  flacC.con(nthcon).M = M;
-  flacC.con(nthcon).eff = eff;
-  flacC.con(nthcon).vrf = vrf;
-  fprintf('%2d %-10s J=%d  eff = %6.1f   vrf = %6.1f\n',...
-	  nthcon,flac0.con(nthcon).name,J,eff,vrf);
-end
 
 if(DoGLMFit)
   % Make the output dirs
@@ -243,7 +254,8 @@ if(DoGLMFit)
   fprintf('OLS Beta Pass \n');
   tic;
   betamat0 = zeros(nX,nvox);
-  for nthrun = 1:nruns
+  yrun_randn = [];
+  for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
     flac = flac0;
     flac.nthrun = nthrun;
@@ -307,7 +319,7 @@ if(DoGLMFit)
   rsse = 0;
   rho1 = mri;
   rho2 = mri; % not really rho2
-  for nthrun = 1:nruns
+  for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
     flac = flac0;
     flac.nthrun = nthrun;
@@ -442,7 +454,7 @@ if(DoGLMFit)
       acfsegmn(:,nthseg) = nrho1segmn(nthseg).^(nn-1);
       fprintf('  seg  %2d  %5d  nrho1 = %5.3f (t=%4.1f)\n',....
 	      nthseg,nsegvox,nrho1segmn(nthseg),toc);
-      for nthrun = 1:nruns
+      for nthrun = nthrunlist
 	indrun = find(tpindrun == nthrun);
 	nnrun = 1:runflac(nthrun).flac.ntp;
 	acfsegrun = nrho1segmn(nthseg).^(nnrun-1);
@@ -460,7 +472,7 @@ if(DoGLMFit)
     fprintf('GLS Beta Pass \n');
     tic;
     betamat = zeros(nX,nvox);
-    for nthrun = 1:nruns
+    for nthrun = nthrunlist
       fprintf('  run %d    t=%4.1f\n',nthrun,toc);
       flac = flac0;
       flac.nthrun = nthrun;
@@ -508,7 +520,7 @@ if(DoGLMFit)
     if(err) return; end
     tic;
     rsse = 0;
-    for nthrun = 1:nruns
+    for nthrun = nthrunlist
       fprintf('  run %d    t=%4.1f\n',nthrun,toc);
       flac = flac0;
       flac.nthrun = nthrun;
@@ -793,7 +805,7 @@ if(~isempty(analysis) & DoGLMFit)
   Navgs_per_cond = hd.Nh;
   hd.DOF = dof2;
   hd.Npercond = 0; % N presentations per cond, who cares?
-  hd.Nruns = nruns;
+  hd.Nruns = length(nthrunlist);
   hd.Ntp = ntptot;
   hd.Nrows = mri.volsize(1);
   hd.Ncols = mri.volsize(2);
@@ -814,7 +826,7 @@ if(~isempty(analysis) & DoGLMFit)
   hCovMtx          = Ctask*inv(X'*X)*Ctask';
   hd.hCovMtx       = hCovMtx;
   hd.WhitenFlag    = 0;
-  hd.runlist       = [1:nruns];
+  hd.runlist       = nthrunlist;
   hd.funcstem      = flac0.funcstem;
   hd.parname       = flac0.parfile;
   hd.GammaFit = 0; %?
@@ -850,6 +862,8 @@ if(~isempty(analysis) & DoGLMFit)
   fname = sprintf('%s/h.%s',outanadir,ext);
   MRIwrite(hsxa,fname);
 end % sxa format
+
+end % outer run loop
 
 if(exist('okfile','var'))  fmri_touch(okfile); end
 

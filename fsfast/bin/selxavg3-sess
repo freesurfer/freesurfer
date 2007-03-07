@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/05 23:01:10 $
-#    $Revision: 1.24 $
+#    $Date: 2007/03/07 05:20:27 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.24 2007/03/05 23:01:10 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.25 2007/03/07 05:20:27 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -33,6 +33,8 @@ set flacfile = ();
 set fsd = bold
 set geometry = volume
 set subject = ();
+set perrun = 0;
+set jkrun  = 0;
 
 set OutParent = ();
 set nolog = 0;
@@ -172,7 +174,7 @@ foreach sess ($SessList)
   echo anadir = $anadir | tee -a $LF
   if(-e $anadir && $DoGLMFit) then
     echo "analysis $analysis alread exists for $sessbase" | tee -a $LF
-    if($Skip == 0 && $Overwrite == 0 && ! $monly) then
+    if($Skip == 0 && $Overwrite == 0 && ! $monly && ! $perrun && ! $jkrun) then
       echo "ERROR: analysis $analysis already exists. You must " | tee -a $LF
       echo "       specify whether to -skip or -overwrite" | tee -a $LF
       exit 1;
@@ -181,8 +183,10 @@ foreach sess ($SessList)
       echo " ... skipping" | tee -a $LF
       continue;
     endif
-    echo " ... reanalyzing (deleting old analysis)" | tee -a $LF
-    if( ! $monly) rm -r $anadir
+    if( ! $monly && ! $perrun && ! $jkrun) then
+      echo " ... reanalyzing (deleting old analysis)" | tee -a $LF
+      rm -r $anadir
+    endif
   endif
   @ nprocs = $nprocs + 1;
 
@@ -190,6 +194,8 @@ foreach sess ($SessList)
   echo "okfile         = '$okfile';"       >> $MLF
   echo "if(fast_fileexists(okfile)) delete(okfile); end" >> $MLF
   echo "monly          = $monly;"          >> $MLF
+  echo "perrun         = $perrun;"         >> $MLF
+  echo "jkrun          = $jkrun;"          >> $MLF
   echo "DoGLMFit       = $DoGLMFit;"       >> $MLF
   echo "DoContrasts    = $DoContrasts;"    >> $MLF
   echo "DoSynth        = $DoSynth;"        >> $MLF
@@ -201,7 +207,7 @@ foreach sess ($SessList)
   echo "flacname = '$flacfile';" >> $MLF
   echo "outtop = '$OutParent';" >> $MLF
   echo "fast_selxavg3;" >> $MLF
-  echo "if(~file_exists(okfile) && ~monly); quit; end" >> $MLF
+  echo "if(~fast_fileexists(okfile) && ~monly); quit; end" >> $MLF
   if($nthsess > 1 && ! $monly)  then
     echo "clear all;" >> $MLF
     echo "pack;" >> $MLF
@@ -236,7 +242,7 @@ if(! $monly) then
     else
       set anadir = $OutParent/$sessbase/$fsd/$analysisname
     endif
-    cp $flacfile $anadir 
+    if($#flacfile) cp $flacfile $anadir 
   end
 endif
 
@@ -251,49 +257,67 @@ if($DoFWHM && ! $monly) then
     echo "$sess " |& tee -a $LF
     date |& tee -a $LF
     if($#OutParent == 0) then
-      set anadir = $sess/$fsd/$analysisname
+      set anadir0 = $sess/$fsd/$analysisname
     else
-      set anadir = $OutParent/$sessbase/$fsd/$analysisname
+      set anadir0 = $OutParent/$sessbase/$fsd/$analysisname
     endif
-    set resdir = $anadir/res
-    if(! -e $resdir) continue
 
-    # concat the residuals together
-    set all = $resdir/all.nii
-    set cmd = (mri_concat $resdir/res-???.* --o $all)
-    pwd |& tee -a $LF
-    echo $cmd |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) exit 1;
-
-    # Compute FWHM
-    set sumfile = $anadir/fwhm.dat
-    if($geometry == volume) then
-      # Volume-based cmd line
-      set cmd = (mri_fwhm --mask $anadir/mask.nii --i $all --sum $sumfile)
+    if($perrun) then
+      set anadirlist = (`ls -d $anadir0/pr[0-9][0-9][0-9]`)
+    else if ($jkrun) then
+      set anadirlist = (`ls -d $anadir0/jk[0-9][0-9][0-9]`)
     else
-      # Surface-based cmd line
-      set reg = $sess/$fsd/register.dat
-      if($#subject == 0) then
-        set subjectuse = `reg2subj $reg`
+      set anadirlist = ($anadir0);
+    endif
+
+    foreach anadir ($anadirlist)
+
+      set resdir = $anadir/res
+      if(! -e $resdir) continue
+
+      # concat the residuals together
+      set all = $resdir/all.nii
+      set cmd = (mri_concat $resdir/res-???.* --o $all)
+      pwd |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+
+      # Compute FWHM
+      set sumfile = $anadir/fwhm.dat
+      if($geometry == volume) then
+        # Volume-based cmd line
+        set cmd = (mri_fwhm --mask $anadir/mask.nii --i $all --sum $sumfile)
       else
-        set subjectuse = $subject
+        # Surface-based cmd line
+        set reg = $sess/$fsd/register.dat
+        if($#subject == 0) then
+          set subjectuse = `reg2subj $reg`
+        else
+          set subjectuse = $subject
+        endif
+        set cmd = (mris_fwhm --i $all --s $subjectuse \
+                   --hemi $geometry --sum $sumfile)
       endif
-      set cmd = (mris_fwhm --i $all --s $subjectuse --hemi $geometry --sum $sumfile)
-    endif
-    pwd |& tee -a $LF
-    echo $cmd |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) exit 1;
-    if(! $SaveRes) rm -r $resdir
-  end
+      pwd |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+      if(! $SaveRes) rm -r $resdir
+
+    end # loop over anadir
+
+  end # End Loop over session
+
 endif
 
 if($#flacfile == 0) then
   echo "Copying h.dat" | tee -a $LF
   # Just use the most recent one
   set sxadat = $anadir/h.dat
-  cp $sxadat $analysis |& tee -a $LF
+  set cmd = (cp $sxadat $analysis)
+  echo $cmd
+  $cmd |& tee -a $LF
 endif
 
 if($nprocs == 0) then
@@ -364,6 +388,14 @@ while( $#argv != 0 )
     case "-co":
       set DoGLMFit = 0;
       set DoContrasts = 1;
+      breaksw
+
+    case "-perrun":
+      set perrun = 1;
+      breaksw
+
+    case "-jkrun":
+      set jkrun = 1;
       breaksw
 
     case "-svres":
@@ -443,6 +475,11 @@ check_params:
     endif
   endif
 
+  if($perrun && $jkrun) then
+    echo "ERROR: cannot -perrun AND -jkrun"
+    exit 1
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -468,6 +505,8 @@ usage_exit:
   echo "   -svres          : save residuals (usually not needed)"
   echo "   -surf hemi      : assume raw data is on a surface"
   echo "   -subject subject : override subject name"
+  echo "   -perrun        : analyze each run separately"
+  echo "   -jkrun         : jackknife runs"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  ..."
