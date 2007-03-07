@@ -34,14 +34,39 @@ vtkKWRGBATransferFunctionEditorTcl.cxx: vtkKWRGBATransferFunctionEditor.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWRGBATransferFunctionEditor.h \
 	${VTK_LIB_VTK}/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
 
-# .cxx.o:
-# 	@echo "compiler: $(COMPILE) end_compiler"
-# 	source='$<' object='$@' libtool=no \
-# 	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
-# 	$(CCDEPMODE) $(depcomp) \
-# 	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
 
 EXTRA_DIST=$(wildcard *.h)
+
+
+check_PROGRAMS=vtkKWRGBATransferFunctionEditorTester
+
+# vtkKWRGBATransferFunctionEditorTester test program
+vtkKWRGBATransferFunctionEditorTester_SOURCES=vtkKWRGBATransferFunctionEditorTester.cxx vtkKWRGBATransferFunctionEditorTesterTcl.cxx RgbatransferfunctioneditortesterLibInit.cxx
+vtkKWRGBATransferFunctionEditorTesterTcl.cxx: vtkKWRGBATransferFunctionEditorTester.h
+	${VTK_DIR}/bin/vtkWrapTcl vtkKWRGBATransferFunctionEditorTester.h \
+	${VTK_LIB_VTK}/hints 1 vtkKWRGBATransferFunctionEditorTesterTcl.cxx
+RgbatransferfunctioneditortesterLibInit.cxx: RgbatransferfunctioneditortesterLibInit.data
+	${VTK_DIR}/bin/vtkWrapTclInit RgbatransferfunctioneditortesterLibInit.data RgbatransferfunctioneditortesterLibInit.cxx
+vtkKWRGBATransferFunctionEditorTester_LDADD=\
+	$(top_srcdir)/fsgdf/libfsgdf.a \
+	$(top_srcdir)/vtkfsio/libvtkfsio.a \
+	$(top_srcdir)/vtkutils/libvtkutils.a \
+	$(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
+	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
+	-lvtkImaging -lvtkFiltering \
+	-lvtkCommon -lvtksys \
+	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
+	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+	$(VTK_PNG_LIB) $(VTK_Z_LIB) \
+	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
+	-lvtkFilteringTCL -lvtkWidgetsTCL \
+	-lvtkHybridTCL -lvtkGraphicsTCL -lvtkImagingTCL -lvtkIOTCL \
+	-lvtkCommonTCL \
+	$(KWWIDGETS_LIBS) -lKWWidgets
+
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
