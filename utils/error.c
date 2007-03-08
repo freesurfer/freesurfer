@@ -1,15 +1,14 @@
 /**
  * @file  error.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief error handling routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:31 $
- *    $Revision: 1.18 $
+ *    $Date: 2007/03/08 20:07:46 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,15 +25,6 @@
  */
 
 
-/*
- *       FILE NAME:   error.c
- *
- *       DESCRIPTION: error handling routines
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        2/5/96
- *
- */
 /*-----------------------------------------------------
                     INCLUDE FILES
 -------------------------------------------------------*/
@@ -80,6 +70,7 @@ int Gerror = NO_ERROR ;
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
 
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -93,6 +84,8 @@ rgb_error(char *error_str)
   ErrorPrintf(ERROR_BADPARM, error_str) ;
   return ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -120,6 +113,8 @@ ErrorInit(char *fname,
   /* probably should be some info into log file like date/user etc... */
   return(NO_ERROR) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -136,6 +131,8 @@ ErrorExit(int ecode, char *fmt, ...)
   va_start(args, fmt) ;
   vfprintf(stderr, fmt, args) ;
   fprintf(stderr, "\n") ;
+  fflush(stderr);
+  fflush(stdout);
   if (errno)
     perror(NULL) ;
   if (hipserrno)
@@ -146,6 +143,7 @@ ErrorExit(int ecode, char *fmt, ...)
   else
     exit(ecode) ;
 }
+
 
 /*-----------------------------------------------------
         Parameters:
@@ -164,12 +162,13 @@ ErrorPrintf(int ecode, char *fmt, ...)
   va_start(args, fmt) ;
   (*error_vfprintf)(stderr, fmt, args) ;
   fprintf(stderr, "\n") ;
+  fflush(stderr);
+  fflush(stdout);
   va_end(args);
   if (errno)
     perror(NULL) ;
   if (hipserrno)
     perr(ecode, "Hips error:") ;
-
 
   va_start(args, fmt) ;
   fp = fopen(ERROR_FNAME, "a") ;
@@ -182,6 +181,8 @@ ErrorPrintf(int ecode, char *fmt, ...)
   va_end(args);
   return(ecode) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 

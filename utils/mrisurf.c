@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/08 18:31:43 $
- *    $Revision: 1.524 $
+ *    $Author: nicks $
+ *    $Date: 2007/03/08 20:07:46 $
+ *    $Revision: 1.525 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -607,7 +607,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.524 2007/03/08 18:31:43 greve Exp $");
+  return("$Id: mrisurf.c,v 1.525 2007/03/08 20:07:46 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -16836,7 +16836,7 @@ mrisComputeDistanceError(MRI_SURFACE *mris)
         if (++err_cnt > max_errs) 
         {
           ErrorExit
-          (ERROR_NONE,
+          (ERROR_BADLOOP,
            "mrisComputeDistanceError: Too many errors!\n") ;
         }
       }

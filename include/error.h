@@ -1,15 +1,14 @@
 /**
  * @file  error.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief error handling prototypes
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.15 $
+ *    $Date: 2007/03/08 20:07:47 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,16 +24,6 @@
  *
  */
 
-
-/*
- *       FILE NAME:   error.h
- *
- *       DESCRIPTION: error handling prototypes
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        2/5/96
- *
-*/
 
 #ifndef ERROR_H
 #define ERROR_H
@@ -65,7 +54,7 @@ int     ErrorPrintf(int ecode, char *fmt, ...) ;
 #define ERROR_BADFILE         -5
 #define ERROR_BAD_FILE        ERROR_BADFILE
 #define ERROR_SIZE            -6
-
+#define ERROR_BADLOOP         -7
 
 extern int Gerror ;    /* global error value */
 
