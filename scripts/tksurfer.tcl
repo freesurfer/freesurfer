@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/06 19:43:05 $
-##    $Revision: 1.135 $
+##    $Date: 2007/03/08 16:49:09 $
+##    $Revision: 1.136 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -222,8 +222,8 @@ set gaLinkedVars(scalebarflag) 0
 set gaLinkedVars(colscalebarflag) 0
 set gaLinkedVars(colscalebarvertflag) 1
 set gaLinkedVars(colscalebar_text_flag) 1
-set gaLinkedVars(colscalebar_xpos) 0.95
-set gaLinkedVars(colscalebar_ypos) -0.7
+set gaLinkedVars(colscalebar_xpos) 0.925
+set gaLinkedVars(colscalebar_ypos) -0.95
 set gaLinkedVars(colscalebar_width) 0.05
 set gaLinkedVars(colscalebar_height) 0.5
 set gaLinkedVars(verticesflag) 0
@@ -5242,8 +5242,8 @@ proc SetColorScaleBarToVerticalBottomRight {} {
 
     set gaLinkedVars(colscalebarflag) 1
     set gaLinkedVars(colscalebarvertflag) 1
-    set gaLinkedVars(colscalebar_xpos) 0.95
-    set gaLinkedVars(colscalebar_ypos) -0.7
+    set gaLinkedVars(colscalebar_xpos) 0.925
+    set gaLinkedVars(colscalebar_ypos) -0.95
     set gaLinkedVars(colscalebar_width) 0.05
     set gaLinkedVars(colscalebar_height) 0.5
 
@@ -5255,8 +5255,8 @@ proc SetColorScaleBarToHorizontalBottomLeft {} {
 
     set gaLinkedVars(colscalebarflag) 1
     set gaLinkedVars(colscalebarvertflag) 0
-    set gaLinkedVars(colscalebar_xpos) -0.7
-    set gaLinkedVars(colscalebar_ypos) -0.9
+    set gaLinkedVars(colscalebar_xpos) -0.925
+    set gaLinkedVars(colscalebar_ypos) -0.97
     set gaLinkedVars(colscalebar_width) 0.5
     set gaLinkedVars(colscalebar_height) 0.05
 
