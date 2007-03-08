@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/08 05:58:41 $
-#    $Revision: 1.15 $
+#    $Date: 2007/03/08 20:17:27 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: paint-sess,v 1.15 2007/03/08 05:58:41 greve Exp $';
+set VERSION = '$Id: paint-sess,v 1.16 2007/03/08 20:17:27 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -620,7 +620,7 @@ check_params:
     echo "ERROR: cannot mix individual and group sessions"
     exit 1;
   endif
-  if($IsGroup && $space == sph && $ProjFrac != 0) then
+  if($IsGroup && $space == sph && $#ProjFrac) then
     echo "ERROR: cannot use -projfrac with spherical space in group analysis"
     exit 1;
   endif
