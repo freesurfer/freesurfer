@@ -51,7 +51,7 @@ vtkKWRGBATransferFunctionEditorTester_LDADD=\
 	$(top_srcdir)/fsgdf/libfsgdf.a \
 	$(top_srcdir)/vtkfsio/libvtkfsio.a \
 	$(top_srcdir)/vtkutils/libvtkutils.a \
-	$(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
