@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/03/08 18:27:24 $
- *    $Revision: 1.523 $
+ *    $Author: greve $
+ *    $Date: 2007/03/08 18:31:43 $
+ *    $Revision: 1.524 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -607,7 +607,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.523 2007/03/08 18:27:24 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.524 2007/03/08 18:31:43 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -13447,8 +13447,9 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       if (!((n+1) % 5))     /* print some diagnostics */
       {
         fprintf(stdout,
-                "%3.3d: dt: %2.4f, rms radial error=%2.3f, avgs=%d\n",
-                n+1,(float)delta_t, (float)rms_radial_error, n_averages);
+                "%3.3d/%d: dt: %2.4f, rms radial error=%2.3f, avgs=%d\n",
+                n+1, parms->start_t+niterations, (float)delta_t, 
+		(float)rms_radial_error, n_averages);
         if (Gdiag & DIAG_WRITE)
         {
           fprintf(parms->fp,
