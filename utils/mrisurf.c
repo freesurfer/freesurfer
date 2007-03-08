@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/03/07 21:36:37 $
- *    $Revision: 1.521 $
+ *    $Author: fischl $
+ *    $Date: 2007/03/08 18:26:32 $
+ *    $Revision: 1.522 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -356,6 +356,7 @@ static double mrisComputeCorrelationError(MRI_SURFACE *mris,
     INTEGRATION_PARMS *parms,
     int use_stds) ;
 static int    mrisComputeVertexDistances(MRI_SURFACE *mris) ;
+static int    mrisComputeOriginalVertexDistances(MRI_SURFACE *mris) ;
 static double mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                                float *parea_rms, float *pangle_rms,
                                float *pcurv_rms, float *pdist_rms,
@@ -606,7 +607,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.521 2007/03/07 21:36:37 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.522 2007/03/08 18:26:32 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -2771,6 +2772,7 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
   if (Gdiag & DIAG_SHOW && mris->nsize > 1 && DIAG_VERBOSE_ON)
     fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs) ;
   mrisComputeVertexDistances(mris) ;
+  mrisComputeOriginalVertexDistances(mris) ;
   return(NO_ERROR) ;
 }
 
@@ -3046,6 +3048,74 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
         if (angle > M_PI || angle < -M_PI || d > circumference/2 || angle < 0)
           DiagBreak() ;
         v->dist[n] = d ;
+      }
+      break ;
+    }
+  }
+
+  VectorFree(&v1) ;
+  VectorFree(&v2) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------------------
+  Calculate distances between each vertex and all of its neighbors.
+  CVD.
+  ----------------------------------------------------------------*/
+static int
+mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
+{
+  int     vno, n, vtotal, *pv ;
+  VERTEX  *v, *vn ;
+  float   d, xd, yd, zd, circumference = 0.0f, angle ;
+  VECTOR  *v1, *v2 ;
+
+  v1 = VectorAlloc(3, MATRIX_REAL) ;
+  v2 = VectorAlloc(3, MATRIX_REAL) ;
+
+  for (vno=0;vno<mris->nvertices;vno++)
+  {
+    v = &mris->vertices[vno];
+    if (v->ripflag || v->dist_orig == NULL) continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    vtotal = v->vtotal ;
+    switch (mris->status)
+    {
+    default:   /* don't really know what to do in other cases */
+    case MRIS_PLANE:
+      for (pv = v->v, n = 0 ; n < vtotal ; n++)
+      {
+        vn = &mris->vertices[*pv++] ;
+        if (vn->ripflag) continue ;
+        xd = v->origx - vn->origx ;
+        yd = v->y - vn->origy ;
+        zd = v->origz - vn->origz ;
+        d = xd*xd + yd*yd + zd*zd ;
+        v->dist_orig[n] = sqrt(d) ;
+      }
+      DiagBreak() ;
+      break ;
+    case MRIS_PARAMETERIZED_SPHERE:
+    case MRIS_SPHERE:
+      VECTOR_LOAD(v1, v->origx, v->origy, v->origz) ;  /* radius vector */
+      if (FZERO(circumference))   /* only calculate once */
+        circumference = M_PI * 2.0 * V3_LEN(v1) ;
+      for (pv = v->v, n = 0 ; n < vtotal ; n++)
+      {
+        vn = &mris->vertices[*pv++] ;
+        if (vn->ripflag) continue ;
+        VECTOR_LOAD(v2, vn->origx, vn->origy, vn->origz) ;  /* radius vector */
+        angle = fabs(Vector3Angle(v1, v2)) ;
+#if 0
+        xd = v->x - vn->x ;
+        yd = v->y - vn->y ;
+        zd = v->z - vn->z ;
+        d = sqrt(xd*xd + yd*yd + zd*zd) ;
+#endif
+        d = circumference * angle / (2.0 * M_PI) ;
+        if (angle > M_PI || angle < -M_PI || d > circumference/2 || angle < 0)
+          DiagBreak() ;
+        v->dist_orig[n] = d ;
       }
       break ;
     }
@@ -7106,7 +7176,8 @@ mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   }
 
   sse_corr = mrisComputeCorrelationError(mris, parms, 1) ;
-  sse_dist = mrisComputeDistanceError(mris) ;
+  if (!DZERO(parms->l_dist))
+    sse_dist = mrisComputeDistanceError(mris) ;
 
 #if 0
   if (!FZERO(parms->l_spring))
