@@ -37,16 +37,22 @@ vtkKWRGBATransferFunctionEditorTcl.cxx: vtkKWRGBATransferFunctionEditor.h
 
 EXTRA_DIST=$(wildcard *.h)
 
-
+if ENABLE_KWWIDGETS_APPS
 check_PROGRAMS=vtkKWRGBATransferFunctionEditorTester
+else
+check_PROGRAMS=
+endif
 
 # vtkKWRGBATransferFunctionEditorTester test program
-vtkKWRGBATransferFunctionEditorTester_SOURCES=vtkKWRGBATransferFunctionEditorTester.cxx vtkKWRGBATransferFunctionEditorTesterTcl.cxx RgbatransferfunctioneditortesterLibInit.cxx
+vtkKWRGBATransferFunctionEditorTester_SOURCES=vtkKWRGBATransferFunctionEditorTester.cxx \
+	vtkKWRGBATransferFunctionEditorTesterTcl.cxx \
+	RgbatransferfunctioneditortesterLibInit.cxx
 vtkKWRGBATransferFunctionEditorTesterTcl.cxx: vtkKWRGBATransferFunctionEditorTester.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWRGBATransferFunctionEditorTester.h \
 	${VTK_LIB_VTK}/hints 1 vtkKWRGBATransferFunctionEditorTesterTcl.cxx
 RgbatransferfunctioneditortesterLibInit.cxx: RgbatransferfunctioneditortesterLibInit.data
-	${VTK_DIR}/bin/vtkWrapTclInit RgbatransferfunctioneditortesterLibInit.data RgbatransferfunctioneditortesterLibInit.cxx
+	${VTK_DIR}/bin/vtkWrapTclInit RgbatransferfunctioneditortesterLibInit.data \
+	RgbatransferfunctioneditortesterLibInit.cxx
 vtkKWRGBATransferFunctionEditorTester_LDADD=\
 	$(top_srcdir)/fsgdf/libfsgdf.a \
 	$(top_srcdir)/vtkfsio/libvtkfsio.a \
