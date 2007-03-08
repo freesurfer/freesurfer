@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/03/08 20:07:46 $
- *    $Revision: 1.525 $
+ *    $Author: fischl $
+ *    $Date: 2007/03/08 22:41:08 $
+ *    $Revision: 1.526 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -607,7 +607,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.525 2007/03/08 20:07:46 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.526 2007/03/08 22:41:08 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5084,7 +5084,8 @@ MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 static float sigmas[] =
   {
     //    16.00, 4.0f, 2.0f, 1.0f, 0.5f
-    8.00f, 4.00f, 2.0f, 0.5f
+    //    8.00f, 4.00f, 2.0f, 0.5f
+    4.00f, 2.0f, 1.0f, 0.5f
   } ;
 #define NSIGMAS  (sizeof(sigmas)  / sizeof(sigmas[0]))
 
