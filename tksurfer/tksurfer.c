@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/03/07 02:47:00 $
- *    $Revision: 1.254 $
+ *    $Date: 2007/03/08 13:47:48 $
+ *    $Revision: 1.255 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -14211,7 +14211,8 @@ void
 draw_colscalebar(void) {
   int i, j;
   float v[3], tmpzf, stat, maxval;
-  int NSEGMENTS = 100;
+  int NSEGMENTS = 100 ;
+  void *font_size;
   float abs_func_value;
   float func_per_segment;
   int num_decimals;
@@ -14366,9 +14367,15 @@ draw_colscalebar(void) {
           /* Draw it. */
           glColor3f (1.0, 1.0, 1.0);
           if (colscalebarvertflag)
+          {
+            font_size = ((void *)GLUT_BITMAP_8_BY_13) ;
             glRasterPos3i (v[0] - (strlen(label)*4) - 2, v[1], v[2]);
+          }
           else
+          {
             glRasterPos3i (v[0]-2*strlen(label)/2, v[1]+5, v[2]);
+            font_size = ((void *)GLUT_BITMAP_9_BY_15);
+          }
 #if 0          
           printf("print out %s,label_format[%d] = %s \n", label,
                  j, label_format[j]) ;
@@ -19055,7 +19062,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.254 2007/03/07 02:47:00 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.255 2007/03/08 13:47:48 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
