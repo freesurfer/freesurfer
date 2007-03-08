@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/03/08 13:47:48 $
- *    $Revision: 1.255 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/08 16:48:17 $
+ *    $Revision: 1.256 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -288,8 +288,8 @@ int Tix_SafeInit ( Tcl_Interp* interp );
 #define SCALEBAR_MM          10
 #define SCALEBAR_XPOS       0.9
 #define SCALEBAR_YPOS       0.9
-#define COLSCALEBAR_XPOS    0.95
-#define COLSCALEBAR_YPOS   -0.70
+#define COLSCALEBAR_XPOS    0.925
+#define COLSCALEBAR_YPOS   -0.95
 #define COLSCALEBAR_WIDTH   0.05
 #define COLSCALEBAR_HEIGHT  0.5
 
@@ -14187,10 +14187,12 @@ draw_second_surface(void)   /* for blink doublebuffer--FIX: no 2d */
 
 void
 draw_scalebar(void) {
+  float old_width;
   float v[3], tmpzf;
 
   pushmatrix();
   tmpzf = zf;  /* push zf */
+  glGetFloatv (GL_LINE_WIDTH, &old_width);
   linewidth(SCALEBAR_WIDTH);
   RGBcolor(scalebar_bright,scalebar_bright,scalebar_bright);
   restore_zero_position();  /* zf => 1.0 */
@@ -14205,6 +14207,7 @@ draw_scalebar(void) {
   endline();
   popmatrix();
   zf = tmpzf;
+  linewidth (old_width);
 }
 
 void
@@ -14298,33 +14301,28 @@ draw_colscalebar(void) {
     bgnquadrangle() ;
     if (colscalebarvertflag)
     {
-      v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);
-      v[1] =
-        fov*sf*(colscalebar_ypos+colscalebar_height*(i/(NSEGMENTS-1.0)-0.5));
+      v[0] = fov*sf*colscalebar_xpos;
+      v[1] = fov*sf*(colscalebar_ypos+colscalebar_height*(i/(NSEGMENTS-1.0)));
       v[2] = fov*sf*9.99;
       v3f(v);
-      v[0] = fov*sf*(colscalebar_xpos+colscalebar_width/2);
+      v[0] = fov*sf*(colscalebar_xpos+colscalebar_width);
       v3f(v);
-      v[1] =
-        fov*sf*(colscalebar_ypos+colscalebar_height*((i+1)/(NSEGMENTS-1.0)-0.5));
+      v[1] = fov*sf*(colscalebar_ypos+colscalebar_height*((i+1)/(NSEGMENTS-1.0)));
       v3f(v);
-      v[0] = fov*sf*(colscalebar_xpos-colscalebar_width/2);
+      v[0] = fov*sf*colscalebar_xpos;
       v3f(v);
     } 
     else
     {
-      v[0] =
-        fov*sf*(colscalebar_xpos+colscalebar_width*(i/(NSEGMENTS-1.0)-0.5));
-      v[1] = fov*sf*(colscalebar_ypos-colscalebar_height/2);
+      v[0] = fov*sf*(colscalebar_xpos+colscalebar_width*(i/(NSEGMENTS-1.0)));
+      v[1] = fov*sf*colscalebar_ypos;
       v[2] = fov*sf*9.99;
       v3f(v);
-      v[0] =
-        fov*sf*(colscalebar_xpos+colscalebar_width*((i+1)/(NSEGMENTS-1.0)-0.5));
+      v[0] = fov*sf*(colscalebar_xpos+colscalebar_width*((i+1)/(NSEGMENTS-1.0)));
       v3f(v);
-      v[1] = fov*sf*(colscalebar_ypos+colscalebar_height/2);
+      v[1] = fov*sf*(colscalebar_ypos+colscalebar_height);
       v3f(v);
-      v[0] =
-        fov*sf*(colscalebar_xpos+colscalebar_width*(i/(NSEGMENTS-1.0)-0.5));
+      v[0] = fov*sf*(colscalebar_xpos+colscalebar_width*(i/(NSEGMENTS-1.0)));
       v3f(v);
     }
     endpolygon();
@@ -19062,7 +19060,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.255 2007/03/08 13:47:48 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.256 2007/03/08 16:48:17 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
