@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.14 $
+#    $Author: greve $
+#    $Date: 2007/03/08 05:58:41 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: paint-sess,v 1.14 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: paint-sess,v 1.15 2007/03/08 05:58:41 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -695,6 +695,7 @@ usage_exit:
   echo "   -contrast contrastname : contrast name"
   echo "   -map      mapname      : <sig>, minsig, iminsig, t"
   echo "   -offset   n            : 0-based image offset"
+  echo "   -srcsubject  srcsubjectname : name of subject used as -trgsubjec in func2sph"
   echo "   -subject  subjectname  : name of subject on which to paint (with group data)"
   echo "   -space    spacename    : space from which to paint (native, tal, sph)"
   echo "   -spacedir spacedir     : get data from spacedir"
