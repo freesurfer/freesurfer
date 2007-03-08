@@ -1,15 +1,18 @@
 /**
  * @file  mri_surf2surf.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Resamples data from one surface onto another.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Purpose: Resamples data from one surface onto another. If
+ * both the source and target subjects are the same, this is
+ * just a format conversion. The source or target subject may
+ * be ico.  Can handle data with multiple frames.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/03/01 18:05:06 $
- *    $Revision: 1.47 $
+ *    $Author: nicks $
+ *    $Date: 2007/03/08 18:25:34 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,16 +28,6 @@
  *
  */
 
-
-/*----------------------------------------------------------
-  Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.47 2007/03/01 18:05:06 fischl Exp $
-  Author: Douglas Greve
-  Purpose: Resamples data from one surface onto another. If
-  both the source and target subjects are the same, this is
-  just a format conversion. The source or target subject may
-  be ico.  Can handle data with multiple frames.
-  -----------------------------------------------------------*/
 
 /*
 BEGINHELP
@@ -314,7 +307,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.47 2007/03/01 18:05:06 fischl Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.48 2007/03/08 18:25:34 nicks Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -408,7 +401,7 @@ int main(int argc, char **argv) {
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.47 2007/03/01 18:05:06 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.48 2007/03/08 18:25:34 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
