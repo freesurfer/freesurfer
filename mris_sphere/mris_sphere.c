@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/03/08 18:27:46 $
- *    $Revision: 1.46 $
+ *    $Author: greve $
+ *    $Date: 2007/03/08 18:36:08 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "version.h"
 
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.46 2007/03/08 18:27:46 fischl Exp $";
+  "$Id: mris_sphere.c,v 1.47 2007/03/08 18:36:08 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -110,7 +110,7 @@ static int remove_negative = 1 ;
 int
 main(int argc, char *argv[]) {
   char         **av, *in_surf_fname, *out_fname, fname[STRLEN], *cp ;
-  int          ac, nargs, msec ;
+  int          ac, nargs, msec, err ;
   MRI_SURFACE  *mris ;
   struct timeb then ;
   float        max_dim ;
@@ -119,13 +119,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.46 2007/03/08 18:27:46 fischl Exp $",
+   "$Id: mris_sphere.c,v 1.47 2007/03/08 18:36:08 greve Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.46 2007/03/08 18:27:46 fischl Exp $",
+           "$Id: mris_sphere.c,v 1.47 2007/03/08 18:36:08 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -206,8 +206,11 @@ main(int argc, char *argv[]) {
   fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
     mrisDisturbVertices(mris, disturb) ;
-  if (quick == 0) // don't need original properties unless preserving metric
-    MRISreadOriginalProperties(mris, orig_name) ;
+  if (quick == 0) {
+    // don't need original properties unless preserving metric
+    err = MRISreadOriginalProperties(mris, orig_name) ;
+    if(err) exit(1);
+  }
   if (smooth_avgs > 0) {
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
