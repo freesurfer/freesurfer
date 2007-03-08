@@ -17,8 +17,8 @@
  * Original Author: Kitware, Inc, modified by Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/05 20:24:24 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/03/08 22:56:48 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,7 +71,7 @@
 #include <vtksys/stl/string>
 
 vtkStandardNewMacro(vtkKWRGBATransferFunctionEditor);
-vtkCxxRevisionMacro(vtkKWRGBATransferFunctionEditor, "$Revision: 1.4 $");
+vtkCxxRevisionMacro(vtkKWRGBATransferFunctionEditor, "$Revision: 1.5 $");
 
 #define VTK_KW_CTFE_COLOR_RAMP_TAG "color_ramp_tag"
 
@@ -104,6 +104,9 @@ vtkKWRGBATransferFunctionEditor::vtkKWRGBATransferFunctionEditor() {
   for (i = 0; i < VTK_KW_CTFE_NB_ENTRIES; i++) {
     this->ValueEntries[i] = vtkKWEntryWithLabel::New();
   }
+
+  this->UpdateDepth = 0;
+  this->DontUpdateSticky = false;
 
   this->ValueRangeVisibilityOff();
 }
@@ -352,6 +355,8 @@ int vtkKWRGBATransferFunctionEditor::SetFunctionPoint(
     }
   }
 
+  this->UpdateDepth++;
+
   // We'll use AddRGBAPoint to add the point, but since we're
   // specifying an id, we check to see that value at that id, and
   // remove the id if it isn't the same.
@@ -378,14 +383,17 @@ int vtkKWRGBATransferFunctionEditor::SetFunctionPoint(
     return 0;
   }
 
-    
-  UpdateSymmetricalPointsTo( id, true );
-  UpdateStickyPointsTo( id, parameter - old_parameter, true );
+  if( this->UpdateDepth < 3 ) {
+    UpdateSymmetricalPointsTo( id );
+    UpdateStickyPointsTo( id, parameter - old_parameter );
+  }
+
+  this->UpdateDepth--;
 
   return 1;
 }
 
-void vtkKWRGBATransferFunctionEditor::UpdateSymmetricalPointsTo ( int id, bool deeper ) {
+void vtkKWRGBATransferFunctionEditor::UpdateSymmetricalPointsTo ( int id ) {
 
   // Set the symmetric point if available.
   if ( this->PointSymmetry.find(id) != this->PointSymmetry.end() ) {
@@ -398,42 +406,26 @@ void vtkKWRGBATransferFunctionEditor::UpdateSymmetricalPointsTo ( int id, bool d
     double old_parameter;
     this->GetFunctionPointParameter(symmetric_id, &old_parameter);
 
-
     double new_parameter = -parameter;
-
-    double pre_parameter;
-    this->GetFunctionPointParameter(symmetric_id-1, &pre_parameter);
-    if( new_parameter <= pre_parameter )
-      new_parameter = pre_parameter + 0.00001;
-
-    double next_parameter;
-    this->GetFunctionPointParameter(symmetric_id+1, &next_parameter);
-    if( new_parameter >= next_parameter )
-      new_parameter = next_parameter - 0.00001;
-
-    double symmetric_values[
-      vtkKWParameterValueFunctionEditor::MaxFunctionPointDimensionality];
+    
+    double symmetric_values
+      [vtkKWParameterValueFunctionEditor::MaxFunctionPointDimensionality];
     this->GetFunctionPointValues( symmetric_id, symmetric_values );
 
-    this->RGBATransferFunction->RemovePoint(old_parameter);
+    // Move the point.
+    this->MoveFunctionPointInColorSpace( symmetric_id, 
+					 new_parameter, symmetric_values,
+			 this->RGBATransferFunction->GetColorSpace());
 
-    this->RGBATransferFunction->AddRGBAPoint(new_parameter,
-					     symmetric_values[0],
-					     symmetric_values[1],
-					     symmetric_values[2],
-					     symmetric_values[3]);
-
-    this->RedrawSinglePointDependentElements(symmetric_id);
-    
     // Set the sticky point if available.
-    if( deeper )
-      UpdateStickyPointsTo( symmetric_id, 
-			    new_parameter - old_parameter,
-			    false );
+    UpdateStickyPointsTo( symmetric_id, new_parameter - old_parameter );
   }
 }
 
-void vtkKWRGBATransferFunctionEditor::UpdateStickyPointsTo ( int id, double delta, bool deeper ) {
+void vtkKWRGBATransferFunctionEditor::UpdateStickyPointsTo ( int id, double delta ) {
+
+  if( this->DontUpdateSticky )
+    return;
 
   // Set the sticky point if available.
   if ( this->PointSticky.find(id) != this->PointSticky.end() ) {
@@ -447,34 +439,24 @@ void vtkKWRGBATransferFunctionEditor::UpdateStickyPointsTo ( int id, double delt
     this->GetFunctionPointParameter(sticky_id, &old_parameter);
 
     double new_parameter = old_parameter + delta;
+    if( sticky_id < id ) 
+      new_parameter = parameter-0.0001;
+    else
+      new_parameter = parameter+0.0001;
 
-    double pre_parameter;
-    this->GetFunctionPointParameter(sticky_id-1, &pre_parameter);
-    if( new_parameter <= pre_parameter )
-      new_parameter = pre_parameter + 0.00001;
-
-    double next_parameter;
-    this->GetFunctionPointParameter(sticky_id+1, &next_parameter);
-    if( new_parameter >= next_parameter )
-      new_parameter = next_parameter - 0.00001;
-
-    double sticky_values[
-      vtkKWParameterValueFunctionEditor::MaxFunctionPointDimensionality];
+    double sticky_values
+      [vtkKWParameterValueFunctionEditor::MaxFunctionPointDimensionality];
     this->GetFunctionPointValues( sticky_id, sticky_values );
 
-    this->RGBATransferFunction->RemovePoint(old_parameter);
+    // Move the point.
+    this->DontUpdateSticky = true;
+    this->MoveFunctionPointInColorSpace( sticky_id, 
+					 new_parameter, sticky_values,
+			 this->RGBATransferFunction->GetColorSpace());
+    this->DontUpdateSticky = false;
 
-    this->RGBATransferFunction->AddRGBAPoint(new_parameter,
-					     sticky_values[0],
-					     sticky_values[1],
-					     sticky_values[2],
-					     sticky_values[3]);
-
-    this->RedrawSinglePointDependentElements(sticky_id);
-    
     // Set the symmetrical point if available.
-    if( deeper )
-      UpdateSymmetricalPointsTo( sticky_id, true );
+    UpdateSymmetricalPointsTo( sticky_id );
   }
 }
 

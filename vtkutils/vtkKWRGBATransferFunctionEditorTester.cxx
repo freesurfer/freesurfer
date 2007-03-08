@@ -41,7 +41,7 @@ main ( int iArgc, char** iArgv ) {
 }
 
 vtkStandardNewMacro( vtkKWRGBATransferFunctionEditorTester );
-vtkCxxRevisionMacro( vtkKWRGBATransferFunctionEditorTester, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWRGBATransferFunctionEditorTester, "$Revision: 1.2 $" );
 
 void
 vtkKWRGBATransferFunctionEditorTester::Start ( int iArgc, char** iArgv ) {
@@ -107,21 +107,22 @@ vtkKWRGBATransferFunctionEditorTester::Start ( int iArgc, char** iArgv ) {
   histogram->BuildHistogram( values, 0 );
   mEditor->SetHistogram( histogram );
 
-  colors->AddRGBAPoint( -3, 0, 1, 1, 1 );
-  colors->AddRGBAPoint( -2, 0, 0, 1, 1 );
-  colors->AddRGBAPoint( -1, 0, 0, 1, 1 );
-  colors->AddRGBAPoint( -0.9999, 0.5, 0.5, 0.5, 1 );
-  colors->AddRGBAPoint(  0.9999, 0.5, 0.5, 0.5, 1 );
-  colors->AddRGBAPoint(  1, 1, 0, 0, 1 );
-  colors->AddRGBAPoint(  2, 1, 0, 0, 1 );
-  colors->AddRGBAPoint(  3, 1, 1, 0, 1 );
-  colors->Build();
-  
   double range[2];
   values->GetRange( range );
   mEditor->SetWholeParameterRange( range[0], range[1] );
   mEditor->SetVisibleParameterRangeToWholeParameterRange();
 
+#if 0
+  colors->AddRGBAPoint( -3, 0, 1, 1, 1 );
+  colors->AddRGBAPoint( -2, 0, 0, 1, 1 );
+  colors->AddRGBAPoint( -1, 0, 0, 1, 1 );
+  colors->AddRGBAPoint( -0.5, 0.5, 0.5, 0.5, 1 );
+  colors->AddRGBAPoint(  0.5, 0.5, 0.5, 0.5, 1 );
+  colors->AddRGBAPoint(  1, 1, 0, 0, 1 );
+  colors->AddRGBAPoint(  2, 1, 0, 0, 1 );
+  colors->AddRGBAPoint(  3, 1, 1, 0, 1 );
+  colors->Build();
+  
   mEditor->SetPointCountMinimum( 8 );
   mEditor->SetPointCountMaximum( 8 );
   mEditor->SetPointSymmetry( 0, 7 ); // max
@@ -129,7 +130,21 @@ vtkKWRGBATransferFunctionEditorTester::Start ( int iArgc, char** iArgv ) {
   mEditor->SetPointSymmetry( 2, 5 ); // min
   mEditor->SetPointSticky( 2, 3 ); // -min to gray
   mEditor->SetPointSticky( 4, 5 ); // gray to min
-
+#else
+  colors->AddRGBAPoint( -3, 0, 1, 1, 1 );
+  colors->AddRGBAPoint( -2, 0, 0, 1, 1 );
+  colors->AddRGBAPoint( -1, 0, 0, 1, 1 );
+  colors->AddRGBAPoint(  1, 1, 0, 0, 1 );
+  colors->AddRGBAPoint(  2, 1, 0, 0, 1 );
+  colors->AddRGBAPoint(  3, 1, 1, 0, 1 );
+  colors->Build();
+  
+  mEditor->SetPointCountMinimum( 6 );
+  mEditor->SetPointCountMaximum( 6 );
+  mEditor->SetPointSymmetry( 0, 5 ); // max
+  mEditor->SetPointSymmetry( 1, 4 ); // mid
+  mEditor->SetPointSymmetry( 2, 3 ); // min
+#endif
 
   this->Script( "pack %s -side top -fill x -expand y",
 		mEditor->GetWidgetName() );

@@ -17,8 +17,8 @@
  * Original Author: Kitware, Inc, modified by Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/05 20:24:25 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/03/08 22:56:48 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -321,14 +321,16 @@ protected:
   // Redraw the histogram
   virtual void RedrawHistogram();
 
-  void UpdateSymmetricalPointsTo ( int id, bool deeper );
-  void UpdateStickyPointsTo ( int id, double delta, bool deeper );
+  void UpdateSymmetricalPointsTo ( int id );
+  void UpdateStickyPointsTo ( int id, double delta );
 
   int PointCountMinimum;
   int PointCountMaximum;
   //BTX
   std::map<int,int> PointSymmetry;
   std::map<int,int> PointSticky;
+  int UpdateDepth;
+  int DontUpdateSticky;
   //ETX
 
 private:
