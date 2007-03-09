@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/09 22:51:42 $
- *    $Revision: 1.114 $
+ *    $Date: 2007/03/09 23:11:35 $
+ *    $Revision: 1.115 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -491,7 +491,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.114 2007/03/09 22:51:42 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.115 2007/03/09 23:11:35 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -759,19 +759,25 @@ int main(int argc, char **argv) {
     for (n=0; n < mriglm->y->nframes; n += 1) {
       mriglm->Xg->rptr[n+1][3] -= dtmp/mriglm->y->nframes;
     }
-    // Test linear and quad
-    nContrasts = 2;
+    // Test mean, linear and quad
+    // mean is not an important test, but snr = cnr
+    nContrasts = 3;
     mriglm->glm->ncontrasts = nContrasts;
-    mriglm->glm->Cname[0] = "linear";
+    mriglm->glm->Cname[0] = "mean";
     mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 3, NULL);
-    mriglm->glm->C[0]->rptr[1][1] = 0;
-    mriglm->glm->C[0]->rptr[1][2] = 1;
+    mriglm->glm->C[0]->rptr[1][1] = 1;
+    mriglm->glm->C[0]->rptr[1][2] = 0;
     mriglm->glm->C[0]->rptr[1][3] = 0;
-    mriglm->glm->Cname[1] = "quad";
+    mriglm->glm->Cname[1] = "linear";
     mriglm->glm->C[1] = MatrixConstVal(0.0, 1, 3, NULL);
     mriglm->glm->C[1]->rptr[1][1] = 0;
-    mriglm->glm->C[1]->rptr[1][2] = 0;
-    mriglm->glm->C[1]->rptr[1][3] = 1;
+    mriglm->glm->C[1]->rptr[1][2] = 1;
+    mriglm->glm->C[1]->rptr[1][3] = 0;
+    mriglm->glm->Cname[2] = "quad";
+    mriglm->glm->C[2] = MatrixConstVal(0.0, 1, 3, NULL);
+    mriglm->glm->C[2]->rptr[1][1] = 0;
+    mriglm->glm->C[2]->rptr[1][2] = 0;
+    mriglm->glm->C[2]->rptr[1][3] = 1;
   }
   if (fsgd != NULL) {
     mriglm->Xg = gdfMatrix(fsgd,gd2mtx_method,NULL);
