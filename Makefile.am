@@ -276,7 +276,7 @@ install-data-hook:
 	if test ! "x$(MNI_DIR)" = "x" ; then \
 		if test ! "$(MNI_DIR)" = "$(DESTDIR)$(prefix)/mni" ; then \
 			if test -e $(MNI_DIR) ; then \
-				rm -f $(DESTDIR)$(prefix)/mni ; \
+				rm -Rf $(DESTDIR)$(prefix)/mni ; \
 				ln -s $(MNI_DIR) $(DESTDIR)$(prefix)/mni ; \
 			fi; \
 		fi; \
@@ -284,7 +284,7 @@ install-data-hook:
 	if test ! "x$(FSLDIR)" = "x" ; then \
 		if test ! "$(FSLDIR)" = "$(DESTDIR)$(prefix)/fsl" ; then \
 			if test -e $(FSLDIR) ; then \
-				rm -f $(DESTDIR)$(prefix)/fsl ; \
+				rm -Rf $(DESTDIR)$(prefix)/fsl ; \
 				ln -s $(FSLDIR) $(DESTDIR)$(prefix)/fsl ; \
 			fi; \
 		fi; \
@@ -292,7 +292,7 @@ install-data-hook:
 	if test ! "x$(TCL_DIR)" = "x" ; then \
 		if test ! "$(TCL_DIR)" = "$(DESTDIR)$(prefix)/lib/tcltktixblt" ; then \
 			if test -e $(TCL_DIR) ; then \
-				rm -f $(DESTDIR)$(prefix)/lib/tcltktixblt ; \
+				rm -Rf $(DESTDIR)$(prefix)/lib/tcltktixblt ; \
 				ln -s $(TCL_DIR) $(DESTDIR)$(prefix)/lib/tcltktixblt ; \
 			fi; \
 		fi; \
@@ -300,7 +300,7 @@ install-data-hook:
 	if test ! "x$(VTK_DIR)" = "x" ; then \
 		if test ! "$(VTK_DIR)" = "$(DESTDIR)$(prefix)/lib/vtk" ; then \
 			if test -e $(VTK_DIR) ; then \
-				rm -f $(DESTDIR)$(prefix)/lib/vtk ; \
+				rm -Rf $(DESTDIR)$(prefix)/lib/vtk ; \
 				ln -s $(VTK_DIR) $(DESTDIR)$(prefix)/lib/vtk ; \
 			fi; \
 		fi; \
