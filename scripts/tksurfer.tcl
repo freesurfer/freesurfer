@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/08 16:49:09 $
-##    $Revision: 1.136 $
+##    $Date: 2007/03/09 23:39:17 $
+##    $Revision: 1.137 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -221,7 +221,12 @@ set gaLinkedVars(funcmax) 0
 set gaLinkedVars(scalebarflag) 0
 set gaLinkedVars(colscalebarflag) 0
 set gaLinkedVars(colscalebarvertflag) 1
-set gaLinkedVars(colscalebar_text_flag) 1
+set gaLinkedVars(colscalebartextflag) 1
+set gaLinkedVars(colscalebaruselabelsflag) 0
+set gaLinkedVars(colscalebar_label1) ""
+set gaLinkedVars(colscalebar_label2) ""
+set gaLinkedVars(colscalebar_label3) ""
+set gaLinkedVars(colscalebar_label4) ""
 set gaLinkedVars(colscalebar_xpos) 0.925
 set gaLinkedVars(colscalebar_ypos) -0.95
 set gaLinkedVars(colscalebar_width) 0.05
@@ -251,12 +256,14 @@ array set gaLinkedVarGroups {
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
     view { curvflag flagsurfcolor vertexset overlayflag scalebarflag 
-	colscalebarflag colscalebarvertflag colscalebar_text_flag
+	colscalebarflag colscalebarvertflag colscalebartextflag
 	colscalebar_xpos colscalebar_ypos colscalebar_width
-	colscalebar_height verticesflag currentvaluefield drawcursorflag }
+	colscalebar_height colscalebaruselabelsflag colscalebar_label1
+	colscalebar_label2 colscalebar_label3 colscalebar_label4
+	verticesflag currentvaluefield drawcursorflag }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
-    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
+    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag colscalebarvertflag colscalebartextflag colscalebar_xpos colscalebar_ypos colscalebar_width colscalebar_height colscalebaruselabelsflag colscalebar_label1 colscalebar_label2 colscalebar_label3 colscalebar_label4verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints func_graph_avg_mode }
     label { colortablename selectlabelflag drawlabelflag labelstyle labels_before_overlay_flag }
