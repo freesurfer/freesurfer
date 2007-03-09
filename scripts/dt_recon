@@ -2,12 +2,13 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.4 2007/01/06 07:23:06 greve Exp $';
+set VERSION = '$Id: dt_recon,v 1.5 2007/03/09 18:46:08 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
 
 set InputVol = ();
+set DoEddyCorrect = 1;
 set subject = ();
 
 set PrintHelp = 0;
@@ -80,28 +81,33 @@ echo "" | tee -a $LF
 echo "" | tee -a $LF
 
 # Eddy/Motion Correct (needs its own tmp dir)
-echo "#@#-------------------------------" |  tee -a $LF
-echo "Eddy/Motion Correct" |  tee -a $LF
-date |  tee -a $LF
 set fec = $OutDir/dwi-ec.nii
-set ectmp = $OutDir/ectmp
-mkdir -p $ectmp
-pushd $ectmp > /dev/null
-set cmd = (eddy_correct $f $fec 0) # 0 for 1st frame
-#set cmd = (cp $f $fec)
-echo "cd `pwd`" |  tee -a $LF
-echo $cmd       |  tee -a $LF 
-$cmd            |& tee -a $LF
-if($status) exit 1;
-if(! -e $fec) then
-  echo "ERROR: when running eddy_correct" | tee -a $LF 
-  exit 1;
+if($DoEddyCorrect) then
+  echo "#@#-------------------------------" |  tee -a $LF
+  echo "Eddy/Motion Correct" |  tee -a $LF
+  date |  tee -a $LF
+  set ectmp = $OutDir/ectmp
+  mkdir -p $ectmp
+  pushd $ectmp > /dev/null
+  set cmd = (eddy_correct $f $fec 0) # 0 for 1st frame
+  #set cmd = (cp $f $fec)
+  echo "cd `pwd`" |  tee -a $LF
+  echo $cmd       |  tee -a $LF 
+  $cmd            |& tee -a $LF
+  if($status) exit 1;
+  if(! -e $fec) then
+    echo "ERROR: when running eddy_correct" | tee -a $LF 
+    exit 1;
+  endif
+  popd > /dev/null
+  rm -r $ectmp
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+else
+  echo "#@#-------------------------------" |  tee -a $LF
+  echo "Skipping Eddy/Motion Correct" |  tee -a $LF
+  set fec = $f
 endif
-popd > /dev/null
-rm -r $ectmp
-echo "" | tee -a $LF
-echo "" | tee -a $LF
-
 
 # Fit tensors
 echo "#@#-------------------------------" |  tee -a $LF
@@ -209,6 +215,10 @@ while( $#argv != 0 )
       set OutDir = $argv[1]; shift;
       breaksw
 
+    case "--no-ec":
+      set DoEddyCorrect = 0;
+      breaksw
+
     case "--verbose":
       set verbose = 1;
       breaksw
@@ -309,6 +319,7 @@ usage_exit:
   echo "   --o outputdir"
   echo ""
   echo " Other Arguments (Optional)"
+  echo "  --no-ec          : turn off eddy/motion correction"
   echo "  --sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
   echo "  --debug          : print out lots of info"
   echo "  --version        : print version of this script and exit"
