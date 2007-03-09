@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/03/05 21:43:58 $
-#    $Revision: 1.71 $
+#    $Author: greve $
+#    $Date: 2007/03/09 18:43:44 $
+#    $Revision: 1.72 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.71 2007/03/05 21:43:58 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.72 2007/03/09 18:43:44 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1923,7 +1923,7 @@ if($DoAParc2ASeg) then
   set cmd = (mri_aparc2aseg --s $subjid --ribbon $xopts)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  #if($RunIt) $cmd |& tee -a $LF
+  if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
   echo $cmd > $touchdir/aparc2aseg.touch
   # Now do Christophe's
