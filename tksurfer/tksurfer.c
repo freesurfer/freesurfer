@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/09 23:39:00 $
- *    $Revision: 1.257 $
+ *    $Date: 2007/03/12 15:44:38 $
+ *    $Revision: 1.258 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -616,6 +616,7 @@ int truncphaseflag = FALSE;
 int scalebarflag = FALSE;
 int colscalebarflag = FALSE;
 int colscalebartextflag = TRUE;
+int colscalebartickflag = TRUE;
 char *colscalebar_label[4] = {NULL, NULL, NULL, NULL} ;
 int colscalebar_font_size = 1; /* 1 is small, 2 is med, 3 is big */
 int colscalebarvertflag = TRUE;
@@ -14327,73 +14328,80 @@ draw_colscalebar(void) {
 
     /* Check our list of segements at which to draw labels, and see if
        this is one of them. */
-    if (colscalebartextflag)
+    if (colscalebartextflag || colscalebartickflag)
       for (j=0; j <4; j++)
         if (label_at_segment[j] == i)
         {
-          /* Draw an extra little line to our label. */
-          glBegin (GL_LINES);
-          glVertex3f (v[0], v[1], v[2]);
-          if (colscalebarvertflag)
-            glVertex3f (v[0]-2, v[1], v[2]);
-          else
-            glVertex3f (v[0], v[1]+2, v[2]);
-          glEnd ();
 
-          /* Create the label string. Otherwise generate a format
-	     string from the decimal size of our value and print the
-	     value to the string. */
-          if (colscalebaruselabelsflag && colscalebar_label[j])
+	  if (colscalebartickflag)
 	    {
-	      strcpy (label, colscalebar_label[j]);
+	      /* Draw an extra little line to our label. */
+	      glBegin (GL_LINES);
+	      glVertex3f (v[0], v[1], v[2]);
+	      if (colscalebarvertflag)
+		glVertex3f (v[0]-2, v[1], v[2]);
+	      else
+		glVertex3f (v[0], v[1]+2, v[2]);
+	      glEnd ();
 	    }
-          else
+
+	  if (colscalebartextflag)
 	    {
-	      /* Calc how many decimals our label should have. */
-	      abs_func_value = fabs(stat);
-	      if (abs_func_value > 1 || abs_func_value == 0) num_decimals = 2;
-	      else if (abs_func_value > 0.1) num_decimals = 3;
-	      else if (abs_func_value > 0.01) num_decimals = 4;
-	      else if (abs_func_value > 0.001) num_decimals = 5;
-	      else if (abs_func_value > 0.0001) num_decimals = 6;
-	      else if (abs_func_value > 0.00001) num_decimals = 7;
-	      else if (abs_func_value > 0.000001) num_decimals = 8;
-	      else if (abs_func_value > 0.0000001) num_decimals = 9;
-	      else num_decimals = 10;
+	      /* Create the label string. Otherwise generate a format
+		 string from the decimal size of our value and print the
+		 value to the string. */
+	      if (colscalebaruselabelsflag && colscalebar_label[j])
+		{
+		  strcpy (label, colscalebar_label[j]);
+		}
+	      else
+		{
+		  /* Calc how many decimals our label should have. */
+		  abs_func_value = fabs(stat);
+		  if (abs_func_value > 1 || abs_func_value == 0) num_decimals = 2;
+		  else if (abs_func_value > 0.1) num_decimals = 3;
+		  else if (abs_func_value > 0.01) num_decimals = 4;
+		  else if (abs_func_value > 0.001) num_decimals = 5;
+		  else if (abs_func_value > 0.0001) num_decimals = 6;
+		  else if (abs_func_value > 0.00001) num_decimals = 7;
+		  else if (abs_func_value > 0.000001) num_decimals = 8;
+		  else if (abs_func_value > 0.0000001) num_decimals = 9;
+		  else num_decimals = 10;
+		  
+		  /* Make a format string with that many decimals. */
+		  sprintf (format, "%%2.%df", num_decimals);
+		  
+		  /* Copy the value to the label using that format string. */
+		  sprintf (label, format, stat);
+		}
 	      
-	      /* Make a format string with that many decimals. */
-	      sprintf (format, "%%2.%df", num_decimals);
-
-	      /* Copy the value to the label using that format string. */
-	      sprintf (label, format, stat);
-	    }
-
-          /* Figure out a good label position based. Here,
-	     strlen(label)*3.1 + strlen(label)*colscalebar_font_size*0.6 is
-	     a good rough estimate as to the width of the string. */
-          glColor3f (1.0, 1.0, 1.0);
-          if (colscalebarvertflag)
-	    {
-	      glRasterPos3i (v[0] - (((float)strlen(label)*3.1) + 
+	      /* Figure out a good label position based. Here,
+		 strlen(label)*3.1 + strlen(label)*colscalebar_font_size*0.6 is
+		 a good rough estimate as to the width of the string. */
+	      glColor3f (1.0, 1.0, 1.0);
+	      if (colscalebarvertflag)
+		{
+		  glRasterPos3i (v[0] - (((float)strlen(label)*3.1) + 
 		      ((float)strlen(label)*(float)colscalebar_font_size*0.6))
-			     - 2,
-			     v[1], v[2]);
-	    }
-          else
-	    {
-	      glRasterPos3i (v[0] - (((float)strlen(label)*3.1) + 
+				 - 2,
+				 v[1], v[2]);
+		}
+	      else
+		{
+		  glRasterPos3i (v[0] - (((float)strlen(label)*3.1) + 
 		      ((float)strlen(label)*(float)colscalebar_font_size*0.6))
-			     / 2, 
-			     v[1] + 5, v[2]);
+				 / 2, 
+				 v[1] + 5, v[2]);
+		}
+	      
+	      /* Draw the string. */
+	      for (cur_char = 0; cur_char < strlen(label); cur_char++) {
+		glutBitmapCharacter (glut_font, label[cur_char]);
+	      }
 	    }
-
-	  /* Draw the string. */
-          for (cur_char = 0; cur_char < strlen(label); cur_char++) {
-	    glutBitmapCharacter (glut_font, label[cur_char]);
-          }
         }
   }
-
+  
   popmatrix();
   zf = tmpzf;
 }
@@ -19070,7 +19078,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.257 2007/03/09 23:39:00 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.258 2007/03/12 15:44:38 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19918,6 +19926,8 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"colscalebarflag",(char *)&colscalebarflag,
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"colscalebartextflag",(char *)&colscalebartextflag,
+              TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"colscalebartickflag",(char *)&colscalebartickflag,
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"colscalebaruselabelsflag",(char *)&colscalebaruselabelsflag,
               TCL_LINK_BOOLEAN);
