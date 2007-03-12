@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/07 05:20:27 $
-#    $Revision: 1.25 $
+#    $Date: 2007/03/12 22:41:22 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.25 2007/03/07 05:20:27 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.26 2007/03/12 22:41:22 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -226,7 +226,7 @@ if(! $monly && $nprocs > 0) then
   echo "------------------------------------------" | tee -a $LF
   rm $MLF
   if(! -e $okfile) then
-    echo "ERROR: fast_selxavg() failed\n";
+    echo "ERROR: fast_selxavg3() failed\n";
     exit 1;
   endif
   rm -f $okfile
