@@ -8,9 +8,9 @@ function runlist = fast_runlist(dirname,runlistfile)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.4 $
+%    $Author: greve $
+%    $Date: 2007/03/12 22:41:07 $
+%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -43,6 +43,10 @@ end
 if(~exist('runlistfile')) runlistfile = ''; end
 if(~isempty(runlistfile))
   rlf = sprintf('%s/%s',dirname,runlistfile);
+  if(~fast_fileexists(rlf))
+    fprintf('ERROR: %s does not exist\n',rlf);
+    return;
+  end
   runlist = fast_runlistfile(rlf);
   % Should check that they exist too
   return;
