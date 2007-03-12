@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/09 23:39:17 $
-##    $Revision: 1.137 $
+##    $Date: 2007/03/12 17:54:07 $
+##    $Revision: 1.138 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -222,7 +222,9 @@ set gaLinkedVars(scalebarflag) 0
 set gaLinkedVars(colscalebarflag) 0
 set gaLinkedVars(colscalebarvertflag) 1
 set gaLinkedVars(colscalebartextflag) 1
+set gaLinkedVars(colscalebartickflag) 1
 set gaLinkedVars(colscalebaruselabelsflag) 0
+set gaLinkedVars(colscalebar_font_size) 1
 set gaLinkedVars(colscalebar_label1) ""
 set gaLinkedVars(colscalebar_label2) ""
 set gaLinkedVars(colscalebar_label3) ""
@@ -257,13 +259,14 @@ array set gaLinkedVarGroups {
     inflate { sulcflag }
     view { curvflag flagsurfcolor vertexset overlayflag scalebarflag 
 	colscalebarflag colscalebarvertflag colscalebartextflag
+	colscalebartickflag colscalebar_font_size
 	colscalebar_xpos colscalebar_ypos colscalebar_width
 	colscalebar_height colscalebaruselabelsflag colscalebar_label1
 	colscalebar_label2 colscalebar_label3 colscalebar_label4
 	verticesflag currentvaluefield drawcursorflag }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
-    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag colscalebarvertflag colscalebartextflag colscalebar_xpos colscalebar_ypos colscalebar_width colscalebar_height colscalebaruselabelsflag colscalebar_label1 colscalebar_label2 colscalebar_label3 colscalebar_label4verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
+    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag colscalebarvertflag colscalebartextflag colscalebartickflag colscalebar_xpos colscalebar_ypos colscalebar_width colscalebar_height colscalebaruselabelsflag colscalebar_font_size colscalebar_label1 colscalebar_label2 colscalebar_label3 colscalebar_label4 verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints func_graph_avg_mode }
     label { colortablename selectlabelflag drawlabelflag labelstyle labels_before_overlay_flag }
@@ -624,7 +627,6 @@ proc DoFileDlog { which } {
 
 proc DoSwapSurfaceFieldsDlog {} {
 
-    global gDialog
     global glSwapField gaSwapFieldInfo
 
     set wwDialog .wwSwapSurfaceFieldsDlog
@@ -680,7 +682,6 @@ proc DoSwapSurfaceFieldsDlog {} {
 
 proc DoConfigLightingDlog {} {
 
-    global gDialog
     global gaLinkedVars
 
     set wwDialog .wwConfigLightingDlog
@@ -886,7 +887,6 @@ proc UpdateHistogramData { iMin iMax iIncrement iNum ilData } {
 
 proc DoConfigOverlayDisplayDlog {} {
     
-    global gDialog
     global gaLinkedVars
     global gCopyFieldTarget
     global gaHistoWidget
@@ -1364,7 +1364,6 @@ proc DoConfigOverlayDisplayDlog {} {
 }
 
 proc ShowOverlayHelpWindow {} {
-    global gDialog
 
     set wwDialog .wwConfigOverlayHelpDlog
     if { [Dialog_Create $wwDialog "Overlay Help" {-borderwidth 10}] } {
@@ -1563,10 +1562,92 @@ proc SetOverlayField {} {
     UpdateAndRedraw 
 }
 
+proc DoConfigScaleBarDlog {} {
+    global gaLinkedVars
+    UpdateLinkedVarGroup view
+
+    set wwDialog .wwConfigScaleBarDlog
+
+    if { [Dialog_Create $wwDialog "Configure Overlay Scale Bar" {-borderwidth 10}] } {
+	
+	set rbwOrientation  $wwDialog.rbwOrientation
+	set cbTicks         $wwDialog.cbTicks
+	set cbLabels        $wwDialog.cbLabels
+	set fwLabelsOptions $wwDialog.fwLabelsOptions
+	set fwButtons       $wwDialog.fwButtons
+	
+	tkm_MakeRadioButtons $rbwOrientation x "" \
+	    gaLinkedVars(colscalebarvertflag) {
+		{text "Vertical" 1 {SetColorScaleBarToVerticalBottomRight} 
+		    "Display the scale bar vertically on lower right corner" }
+		{text "Horizontal" 0 {SetColorScaleBarToHorizontalBottomLeft} 
+		    "Display the scale bar horizzontally on the bottom right" }
+	    }
+	
+	tkm_MakeCheckboxes $cbTicks x {
+	    {text "Show Ticks" gaLinkedVars(colscalebartickflag) {} 
+		"Show ticks next to labels"}
+	}
+	
+	tkm_MakeCheckboxes $cbLabels x {
+	    {text "Show Labels" gaLinkedVars(colscalebartextflag) {} 
+		"Show labels at the min and max values"}
+	}
+	
+	tixLabelFrame $fwLabelsOptions \
+	    -label "Labels Options"
+	
+	set fwLabelsOptionsSub [$fwLabelsOptions subwidget frame]
+	set owFont $fwLabelsOptionsSub.owFont
+	set cbUseLabels $fwLabelsOptionsSub.cbUseLabels
+	set ewLabel1 $fwLabelsOptionsSub.ewLabel1
+	set ewLabel2 $fwLabelsOptionsSub.ewLabel2
+	set ewLabel3 $fwLabelsOptionsSub.ewLabel3
+	set ewLabel4 $fwLabelsOptionsSub.ewLabel4
+
+	tixOptionMenu $owFont -label "Font Size:" \
+	    -variable gaLinkedVars(colscalebar_font_size) \
+	    -options {
+		label.anchor e
+		label.width 9
+		menubutton.width 8
+	    }
+	$owFont add command 1 -label "Normal Sans Serif"
+	$owFont add command 2 -label "Large Sans Serif"
+	$owFont add command 3 -label "Large Serif"
+
+	tkm_MakeCheckboxes $cbUseLabels x {
+	    {text "Override Labels" gaLinkedVars(colscalebaruselabelsflag) {} 
+		"Show text instead of values for labels"}
+	}
+	
+	tkm_MakeEntry $ewLabel1 "Label 1" gaLinkedVars(colscalebar_label1) 20 {}
+	tkm_MakeEntry $ewLabel2 "Label 2" gaLinkedVars(colscalebar_label2) 20 {}
+	tkm_MakeEntry $ewLabel3 "Label 3" gaLinkedVars(colscalebar_label3) 20 {}
+	tkm_MakeEntry $ewLabel4 "Label 4" gaLinkedVars(colscalebar_label4) 20 {}
+
+	pack $owFont $cbUseLabels $ewLabel1 $ewLabel2 $ewLabel3 $ewLabel4 \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+
+	tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
+	    { SendLinkedVarGroup view; UpdateAndRedraw } {}
+	
+	pack $rbwOrientation $cbTicks $cbLabels $fwLabelsOptions $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+    }
+}
+
 
 proc DoConfigCurvatureDisplayDlog {} {
 
-    global gDialog
     global gaLinkedVars
     UpdateLinkedVarGroup curvature
 
@@ -1628,7 +1709,6 @@ proc DoConfigCurvatureDisplayDlog {} {
 
 proc DoConfigPhaseEncodedDataDisplayDlog {} {
 
-    global gDialog
     global gaLinkedVars
     UpdateLinkedVarGroup phase
 
@@ -1662,7 +1742,7 @@ proc DoConfigPhaseEncodedDataDisplayDlog {} {
 
 proc DoLoadOverlayDlog {} {
 
-    global gDialog gaLinkedVars
+    global gaLinkedVars
     global gaScalarValueID gsaLabelContents
     global glShortcutDirs
     global sFileName
@@ -1769,7 +1849,7 @@ proc DoLoadOverlayDlog {} {
 
 proc DoLoadTimeCourseDlog {} {
 
-    global gDialog gaLinkedVars
+    global gaLinkedVars
     global glShortcutDirs
     global sFileName
     global FunD_tRegistration
@@ -1882,7 +1962,6 @@ proc DoLoadFunctionalFile { inField isFileName iRegistrationType isRegistrationF
 
 proc DoSaveValuesAsDlog {} {
 
-    global gDialog
     global gaScalarValueID gsaLabelContents
     global glShortcutDirs
     global sFileName
@@ -1944,7 +2023,7 @@ proc DoSaveValuesAsDlog {} {
 }
 
 proc GDF_LoadDlog {} {
-    global gDialog gaLinkedVars
+    global gaLinkedVars
     global gaScalarValueID gsaLabelContents
     global sFileName
     global glShortcutDirs
@@ -2006,8 +2085,6 @@ proc GDF_LoadDlog {} {
 
 proc DoLabelToOverlayDlog {} {
 
-    global gDialog
-
     set wwDialog .wwLabelToOverlayDlog
 
     if { [Dialog_Create $wwDialog "Copy Label Statistics to Overlay" {-borderwidth 10}] } {
@@ -2043,8 +2120,6 @@ proc DoLabelToOverlayDlog {} {
 }
 
 proc DoSmoothOverlayDlog {} {
-
-    global gDialog
 
     set wwDialog .wwSmoothOverlayDlog
 
@@ -2086,8 +2161,6 @@ proc DoSmoothOverlayDlog {} {
 
 proc DoSmoothCurvatureDlog {} {
 
-    global gDialog
-
     set wwDialog .wwSmoothCurvDlog
 
     if { [Dialog_Create $wwDialog "Smooth Curvature" {-borderwidth 10}] } {
@@ -2116,7 +2189,6 @@ proc DoSmoothCurvatureDlog {} {
 
 proc DoInflateDlog {} {
 
-    global gDialog
     global gaLinkedVars
     UpdateLinkedVarGroup inflate
 
@@ -2154,7 +2226,6 @@ proc DoInflateDlog {} {
 
 proc DoDecimationDlog {} {
 
-    global gDialog
     global glShortcutDirs
 
     set wwDialog .wwDecimationDlog
@@ -2199,8 +2270,6 @@ proc DoDecimationDlog {} {
 
 proc DoSendToSubjectDlog {} {
 
-    global gDialog
-
     set wwDialog .wwSendToSubjectDlog
 
     if { [Dialog_Create $wwDialog "Send To Subject" {-borderwidth 10}] } {
@@ -2228,8 +2297,6 @@ proc DoSendToSubjectDlog {} {
 }
 
 proc DoSelectVertexDlog {} {
-
-    global gDialog
 
     set wwDialog .wwSelectVertexDlog
 
@@ -2261,7 +2328,6 @@ proc DoSelectVertexDlog {} {
 
 proc DoCustomFillDlog {} {
 
-    global gDialog
     global gFillParms
     global gaFillAction
 
@@ -2379,7 +2445,6 @@ proc DoCustomFillDlog {} {
 
 proc DoEditVertexDlog {} {
 
-    global gDialog
     global gEditVertexParms
     global gaEditVertexAction
 
@@ -2489,7 +2554,7 @@ proc LabelsChanged {} {
 
 proc DoLoadLabelValueFileDlog {} {
 
-    global gDialog gaLinkedVars
+    global gaLinkedVars
     global gaScalarValueID gsaLabelContents
     global glShortcutDirs
     global sFileName
@@ -2903,7 +2968,10 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { command "Lighting..."
 		{DoConfigLightingDlog} }
 	    { command "Overlay..."
-			    {DoConfigOverlayDisplayDlog}
+		{DoConfigOverlayDisplayDlog}
+		mg_OverlayLoaded  }
+	    { command "Overlay Scale Bar..."
+		{DoConfigScaleBarDlog}
 		mg_OverlayLoaded  }
 	    { command "Time Course..."
 		{Graph_DoConfig}
@@ -3537,6 +3605,14 @@ proc CreateToolBar { ifwToolBar } {
 	}
     }
     bind $fwOverlay.cb0 <Control-Button-3> "DoLoadOverlayDlog"
+
+    bind $fwOverlay.cb1 <Control-Button-1> {
+	if { [tkm_IsGroupEnabled mg_OverlayLoaded] } {
+	    DoConfigScaleBarDlog
+	    set gaLinkedVars(colscalebarflag) \
+		[expr !$gaLinkedVars(colscalebarflag)]
+	}
+    }
 
     # Label buttons.
     tkm_MakeCheckboxes $fwLabels h { 
@@ -4202,7 +4278,7 @@ proc Graph_SetNumConditions { inNumConditions } {
 
 proc Graph_DoConfigDlog {} {
     
-    global gDialog gbShowTimeCourseOffsetOptions
+    global  gbShowTimeCourseOffsetOptions
     global gbErrorBars gbTimeCourseOffset
     global gGraphSetting gnNumTimeCourseConditions glGraphColors 
     global gbPreStimOffset
@@ -4317,7 +4393,6 @@ proc Graph_ShowOffsetOptions { ibShow } {
 
 proc Graph_DoPrintSeriesDlog { } {
 
-    global gDialog
     global sSuffix sPathOrMarked
 
     set wwDialog .wwPrintGraphSeries
@@ -5757,32 +5832,30 @@ set tDlogSpecs(MaskLabel) \
 
 proc CheckFileAndDoCmd { iFile iFunction } {
 
-    global gDialog
-    
     if { [file exists $iFile] == 0 } {
-  $iFunction
+	$iFunction
     } else {
-
-  set wwDialog .wwOKReplaceDlog
-  if { [Dialog_Create $wwDialog "File Exists" {-borderwidth 10}] } {
-      
-      set fwWarning          $wwDialog.fwWarning
-      set fwMessage          $wwDialog.fwMessage
-      set fwButtons          $wwDialog.fwButtons
-      
-      tkm_MakeBigLabel $fwWarning "$iFile exists."
-      tkm_MakeNormalLabel $fwMessage "Okay to overwrite?"
-      
-      # buttons.
-      tkm_MakeCancelOKButtons $fwButtons $wwDialog [list $iFunction]
-      
-      pack $fwWarning $fwMessage $fwButtons \
-        -side top       \
-        -expand yes     \
-        -fill x         \
-        -padx 5         \
-        -pady 5
-  }
+	
+	set wwDialog .wwOKReplaceDlog
+	if { [Dialog_Create $wwDialog "File Exists" {-borderwidth 10}] } {
+	    
+	    set fwWarning          $wwDialog.fwWarning
+	    set fwMessage          $wwDialog.fwMessage
+	    set fwButtons          $wwDialog.fwButtons
+	    
+	    tkm_MakeBigLabel $fwWarning "$iFile exists."
+	    tkm_MakeNormalLabel $fwMessage "Okay to overwrite?"
+	    
+	    # buttons.
+	    tkm_MakeCancelOKButtons $fwButtons $wwDialog [list $iFunction]
+	    
+	    pack $fwWarning $fwMessage $fwButtons \
+		-side top       \
+		-expand yes     \
+		-fill x         \
+		-padx 5         \
+		-pady 5
+	}
     }
 }
 
