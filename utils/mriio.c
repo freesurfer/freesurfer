@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/02/23 00:50:21 $
- *    $Revision: 1.328 $
+ *    $Author: greve $
+ *    $Date: 2007/03/12 21:17:05 $
+ *    $Revision: 1.329 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1921,9 +1921,17 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   mri = NULL;
   mosaic_size = 0;
 
+  /* Check whether it is really a dicom file with ima extension*/
+  if(IsDICOM(fname)){
+    printf("INFO: this looks like a dicom, not an old Siemens .ima file, ");
+    printf("so I'm going to unpack it as a dicom.\n");
+    //printf("If this fails, run mri_convert with -it dicom\n");
+    mri = DICOMRead2(fname, read_volume_flag);
+    return(mri);
+  }
+
   ifi = imaLoadFileInfo(fname);
-  if (ifi == NULL)
-  {
+  if(ifi == NULL){
     printf("ERROR: siemensRead(): %s\n",fname);
     return(NULL);
   }
@@ -1973,13 +1981,6 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
     ErrorReturn(NULL,
                 (ERROR_BADFILE, 
                  "siemensRead(): file %s doesn't exist", fname_use));
-  }
-
-  /* Check whether it is really a dicom file */
-  if (IsDICOM(fname_use))
-  {
-    printf("WARNING: this looks like a dicom, not an old Siemens .ima file ");
-    printf("If this fails, run mri_convert with -it dicom\n");
   }
 
   /* --- get the low image number --- */
