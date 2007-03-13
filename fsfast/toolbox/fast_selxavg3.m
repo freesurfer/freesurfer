@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.33 2007/03/07 06:32:50 greve Exp $
+% $Id: fast_selxavg3.m,v 1.34 2007/03/13 05:14:57 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/07 06:32:50 $
-%    $Revision: 1.33 $
+%    $Date: 2007/03/13 05:14:57 $
+%    $Revision: 1.34 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.33 2007/03/07 06:32:50 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.34 2007/03/13 05:14:57 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -151,6 +151,7 @@ for nthouter = outer_runlist
   nvox = prod(mask.volsize);
   fprintf('Found %d/%d (%4.1f) voxels in mask\n',nmask,nvox,100*nmask/nvox);
   mri = mask; % save as template
+  mri.vol = []; % blank
 
   % Create a volume with vox val = the slice 
   svol = zeros(mri.volsize);
@@ -317,7 +318,7 @@ if(DoGLMFit)
   fprintf('OLS Residual Pass \n');
   tic;
   rsse = 0;
-  rho1 = mri;
+  rho1 = mri; 
   rho2 = mri; % not really rho2
   for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
@@ -356,9 +357,9 @@ if(DoGLMFit)
     rsserun(indz) = max(rsserun);
     rsse = rsse + rsserun;
     rho1run = sum(rrun(1:end-1,:).*rrun(2:end,:))./rsserun;
-    rho1.vol(:,:,:,nthrun) = fast_mat2vol(rho1run,rho1.volsize);
+    rho1.vol(:,:,:,end+1) = fast_mat2vol(rho1run,rho1.volsize);
     %rho2run = sum(rrun(1:end-2,:).*rrun(3:end,:))./rsserun;
-    %rho2.vol(:,:,:,nthrun) = fast_mat2vol(rho2run,rho2.volsize);
+    %rho2.vol(:,:,:,end+1) = fast_mat2vol(rho2run,rho2.volsize);
     if(flac0.acfbins == 0)
       %fprintf('WARNING: unwhitened residuals are not intensity norm\n');
       fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
