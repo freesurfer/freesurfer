@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.34 2007/03/13 05:14:57 greve Exp $
+% $Id: fast_selxavg3.m,v 1.35 2007/03/14 23:09:09 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/13 05:14:57 $
-%    $Revision: 1.34 $
+%    $Date: 2007/03/14 23:09:09 $
+%    $Revision: 1.35 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.34 2007/03/13 05:14:57 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.35 2007/03/14 23:09:09 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -562,14 +562,17 @@ if(DoGLMFit)
       rsserun = sum(rrun.^2);
       rsse = rsse + rsserun;
       
+      clear yrun;
+      pack;
+
       fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
       rrunmri = mri;
       rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
       MRIwrite(rrunmri,fname);
       
-      clear yrun rrun rrunmri;
+      clear rrun rrunmri;
       pack;
-    end
+    end % run list
     rvarmat = rsse/DOF;
   else
     fprintf('Not Whitening\n');
