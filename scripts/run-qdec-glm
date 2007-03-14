@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/06 00:01:15 $
-#    $Revision: 1.8 $
+#    $Date: 2007/03/14 04:04:44 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set version = '$Id: run-qdec-glm,v 1.8 2007/01/06 00:01:15 nicks Exp $';
+set version = '$Id: run-qdec-glm,v 1.9 2007/03/14 04:04:44 nicks Exp $';
 
 if($#argv != 1) then
   echo "run-qdec-glm qdecdir"
@@ -94,13 +94,27 @@ foreach c ($contrasts)
   echo $c
 end
 
+if (-e $SUBJECTS_DIR/average) then
+    set avgsubj="average"
+    set glmflag=""
+else if (-e $SUBJECTS_DIR/fsaverage) then
+    set avgsubj="fsaverage"
+    set glmflag=""
+else if (-e $SUBJECTS_DIR/average7) then
+    set avgsubj="average7"
+    set glmflag="--really-use-average7"
+else
+    echo "An average subject was not found in $SUBJECTS_DIR"
+    exit 1;
+endif
+
 #----------- Concatenate inputs ------------------#
 echo "Concatenating Inputs"
 set subjlist = `grep Input $fsgdf | awk '{print $2}'`;
 set y = $qdecdir/y.mgh
 set cmd = (mri_concat --o $y)
 foreach subj ($subjlist)
-  set infile = $SUBJECTS_DIR/$subj/surf/$hemi.$measure.fwhm$fwhm.average7.mgh
+  set infile = $SUBJECTS_DIR/$subj/surf/$hemi.$measure.fwhm$fwhm.${avgsubj}.mgh
   if(! -e $infile) then
     echo "ERROR: $infile does not exist"
     exit 1;
@@ -116,7 +130,7 @@ set nsubjects = `cat /tmp/nframes.$$.dat`;
 
 # ----------- Run the GLM -------------------------
 set cmd = (mri_glmfit --y $y --fsgd $fsgdf dods --glmdir $qdecdir \
-  --really-use-average7 --surf average7 lh)
+  ${glmflag} --surf ${avgsubj} $hemi)
 foreach c ($contrasts)
   set cmat = $cdir/$c.mat
   set cmd = ($cmd --C $cmat)
@@ -199,10 +213,10 @@ echo "set curvflag 1; " >> $tclfile
 echo "redraw" >> $tclfile
 
 echo "cd $qdecdir"
-echo "tksurfer average7 $hemi inflated -tcl qdec.show.tcl"
+echo "tksurfer ${avgsubj} $hemi inflated -tcl qdec.show.tcl"
 
 cd $qdecdir
-tksurfer average7 $hemi inflated -tcl qdec.show.tcl
+tksurfer ${avgsubj} $hemi inflated -tcl qdec.show.tcl
 
 
 
