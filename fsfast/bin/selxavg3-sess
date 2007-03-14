@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/12 22:41:22 $
-#    $Revision: 1.26 $
+#    $Date: 2007/03/14 23:10:09 $
+#    $Revision: 1.27 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.26 2007/03/12 22:41:22 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.27 2007/03/14 23:10:09 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -142,6 +142,12 @@ set StartTime = `date`;
 
 if($#MLF == 0) set MLF = /tmp/selxavg3-sess-$$.m
 rm -f $MLF
+echo "% `date`  " >> $MLF
+echo "% `pwd`  " >> $MLF
+echo "% $flacfile $analysis  " >> $MLF
+echo "  " >> $MLF
+echo "  " >> $MLF
+
 
 set okfile = /tmp/selxavg3-sess-$$.ok
 rm -f $okfile
@@ -190,6 +196,7 @@ foreach sess ($SessList)
   endif
   @ nprocs = $nprocs + 1;
 
+  echo "%--------------------------------" >> $MLF
   echo "which fast_selxavg3"               >> $MLF
   echo "okfile         = '$okfile';"       >> $MLF
   echo "if(fast_fileexists(okfile)) delete(okfile); end" >> $MLF
@@ -208,10 +215,12 @@ foreach sess ($SessList)
   echo "outtop = '$OutParent';" >> $MLF
   echo "fast_selxavg3;" >> $MLF
   echo "if(~fast_fileexists(okfile) && ~monly); quit; end" >> $MLF
-  if($nthsess > 1 && ! $monly)  then
+  if($#SessList > 1 && ! $monly)  then
     echo "clear all;" >> $MLF
     echo "pack;" >> $MLF
   endif
+  echo "  " >> $MLF
+  echo "  " >> $MLF
 
 end # Loop over sessions #
 
