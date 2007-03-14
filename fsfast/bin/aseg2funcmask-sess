@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/22 23:45:04 $
-#    $Revision: 1.9 $
+#    $Date: 2007/03/14 23:09:46 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: aseg2funcmask-sess,v 1.9 2007/02/22 23:45:04 greve Exp $';
+set VERSION = '$Id: aseg2funcmask-sess,v 1.10 2007/03/14 23:09:46 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -309,6 +309,7 @@ usage_exit:
   echo ""
   echo "   -outfmt fmt : output format <nii.gz>, mgh, bhdr, etc"
   echo "   -oseg osegvol : use fsd/masks/osegvol instead of fsd/masks/segvol"
+  echo "   -perrun : map on a run-by-run basis"
 #  echo "   -infmt  fmt : input format <auto>, nii.gz, bhdr, mgh, etc"
 #  echo "   -noaseg   : do not map volume-based subcort segmentation"
 #  echo "   -noaparc  : do not map surfaced-based cort segmentation"
@@ -363,6 +364,9 @@ segmentation is given in $FREESURFER_HOME/Simple_surface_labels2002.txt.
 The cortical segmentation in functional space is stored in 
 fsd/masks/?h.aparc (one for each hemisphere).
 
+PerRun:
+
+Looks for RRR/fs.register.dat, output goes into RRR/masks.
 
 
 
