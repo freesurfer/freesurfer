@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/12 15:44:38 $
- *    $Revision: 1.258 $
+ *    $Author: greve $
+ *    $Date: 2007/03/14 23:01:35 $
+ *    $Revision: 1.259 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -110,7 +110,8 @@ MRI_SURFACE *mris = NULL, *mris2 = NULL ;
 static char *sdir = NULL ;
 static char *sphere_reg ;
 MRI *mrismask = NULL;
-double mrismaskthresh = 0;
+double mrismaskthresh = -1;
+char *mrismaskfile = NULL;
 
 static GCSA *Ggcsa = NULL ;
 #define QUAD_FILE_MAGIC_NUMBER      (-1 & 0x00ffffff)
@@ -505,6 +506,8 @@ int framenum = 0;
 long frame_xdim = 600;
 long frame_ydim = 600;
 int ilat = 0;  /* latency */
+
+int BlendActivation = 1;
 
 int sub_num ;
 #if 0
@@ -2150,10 +2153,22 @@ int  mai(int argc,char *argv[])
       nargs = 2 ;
       patch_name = argv[i+1] ;
       fprintf(stderr, "displaying patch %s...\n", patch_name) ;
+    } else if (!stricmp(argv[i], "-mask")) {
+      nargs = 2 ;
+      mrismaskfile = argv[i+1] ;
+      fprintf(stderr, "mrismaskfile %s...\n", mrismaskfile) ;
+    } else if (!stricmp(argv[i], "-mask-thresh")) {
+      nargs = 2 ;
+      mrismaskthresh = atof(argv[i+1]) ;
+      fprintf(stderr, "setting mrismaskthresh to %2.4f\n", mrismaskthresh) ;
     } else if (!stricmp(argv[i], "-fmid")) {
       nargs = 2 ;
       fmid = atof(argv[i+1]) ;
       fprintf(stderr, "setting fmid to %2.4f\n", fmid) ;
+    } else if (!stricmp(argv[i], "-noblend")) {
+      nargs = 1 ;
+      BlendActivation = 0;
+      fprintf(stderr, "turning off blending of activation\n");
     } else if (!stricmp(argv[i], "-foffset")) {
       nargs = 2 ;
       foffset = atof(argv[i+1]) ;
@@ -13117,9 +13132,8 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
           sclv_get_value(v, sclv_current_field, &val);
           if ( (val > fthresh || val < -fthresh) & !maskout) {
             /* This will blend the functional color into the
-            input color. */
-            sclv_apply_color_for_value(val, sclv_overlay_alpha,
-                                        &r, &g, &b);
+            input color. rgb are currently the background color*/
+            sclv_apply_color_for_value(val, sclv_overlay_alpha,&r, &g, &b);
           }
         }
       }
@@ -17108,6 +17122,7 @@ print_help_tksurfer(void) {
   printf("-fmid <value>                : set the overlay threshold midpoint value\n");
   printf("-fthresh <value>             : set the overlay threshold minimum value\n");
   printf("-foffset <value>             : set the overlay threshold offset value\n");
+  printf("-noblend                     : do not blend activation with background\n");
   printf("-colscalebarflag <1|0>       : display color scale bar\n");
   printf("-colscaletext <1|0>          : display text in color scale bar\n");
   printf("-truncphaseflag <1|0>        : truncate the overlay display\n");
@@ -19078,7 +19093,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.258 2007/03/12 15:44:38 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.259 2007/03/14 23:01:35 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23786,17 +23801,14 @@ int sclv_apply_color_for_value (float f, float opacity,
   float ftmp,c1,c2;
   float min, mid, max;
   float or, ob, og;
-  float br, bg, bb;
+  float br, bg, bb, ar, ag;
   float tmpoffset, f2, fr, fg, fb;
   // extern double fcurv; // sets curv thresh
 
   r = g = b = 0.0f ;
-  if (invphaseflag)
-    f = -f;
-  if (truncphaseflag && f<0)
-    f = 0;
-  if (rectphaseflag)
-    f = fabs(f);
+  if (invphaseflag)           f = -f;
+  if (truncphaseflag && f<0)  f = 0;
+  if (rectphaseflag)          f = fabs(f);
 
   /* rkt: same way values are calc'd in tkmedit. The main difference
      is that max is 0.5/slope + mid instead of 1/slope + mid, to make
@@ -23828,16 +23840,19 @@ int sclv_apply_color_for_value (float f, float opacity,
          into the functional color so that a func value right at
          the threshold doesn't look black, but translucent. the
          rest is a standard interpolated color scale. */
-      or = br *
-           ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      og = bg *
-           ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      ob = bb *
-           ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      r = or +
-          ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-      g = og +
-          ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+      or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+      og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+      ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+      ar = ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+      ag = ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+      if(BlendActivation){
+	r = or + ar;
+	g = og + ag;
+      }
+      else{
+	r = ar;
+	g = ag;
+      }
       b = ob;
     } else {
       f = -f;
@@ -27325,21 +27340,25 @@ void LoadMRISMask(void)
 {
   extern MRI *mrismask;
   extern double mrismaskthresh;
-  char *maskfile;
+  extern char *mrismaskfile;
   char *threshstring;
 
   // check whether already loaded
   if(mrismask != NULL) return;
 
-  maskfile = getenv("TKS_MRIS_MASK_FILE");
-  if(maskfile == NULL) return;
+  if(mrismaskfile == NULL){
+    mrismaskfile = getenv("TKS_MRIS_MASK_FILE");
+    if(mrismaskfile == NULL) return;
+  }
 
-  printf("Reading mris mask %s\n",maskfile);
-  mrismask = MRIread(maskfile);
+  printf("Reading mris mask %s\n",mrismaskfile);
+  mrismask = MRIread(mrismaskfile);
   if(mrismask == NULL) exit(1);
 
-  threshstring = getenv("TKS_MRIS_MASK_THRESH");
-  if(threshstring == NULL) return;
-  sscanf(threshstring,"%lf",&mrismaskthresh);
-  printf("mris mask thresh = %lf\n",mrismaskthresh);
+  if(mrismaskthresh < 0){
+    threshstring = getenv("TKS_MRIS_MASK_THRESH");
+    if(threshstring == NULL) return;
+    sscanf(threshstring,"%lf",&mrismaskthresh);
+    printf("mris mask thresh = %lf\n",mrismaskthresh);
+  }
 }
