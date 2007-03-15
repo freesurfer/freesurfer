@@ -1,15 +1,14 @@
 /**
  * @file  mrisegment.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief calc and filter MRI data based on planes of least variance
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/02/10 01:39:12 $
- *    $Revision: 1.19 $
+ *    $Author: nicks $
+ *    $Date: 2007/03/15 21:15:49 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,16 +25,6 @@
  */
 
 
-/*
- *       FILE NAME:   mrisegment.c
- *
- *       DESCRIPTION: utilities for calculating and filtering
- *                    MRI data based on planes of least variance
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
- *
- */
 /*-----------------------------------------------------
   INCLUDE FILES
   -------------------------------------------------------*/
@@ -64,7 +53,8 @@
   STATIC PROTOTYPES
   -------------------------------------------------------*/
 
-static int mriSegmentReallocateVoxels(MRI_SEGMENTATION *mriseg, int sno,
+static int mriSegmentReallocateVoxels(MRI_SEGMENTATION *mriseg, 
+                                      int sno,
                                       int max_voxels) ;
 static int mriSegmentReallocateSegments(MRI_SEGMENTATION *mriseg,
                                         int max_segments) ;
@@ -177,8 +167,7 @@ MRImaxsegment(MRI *mri, float low_val, float hi_val)
               {
 #if 1
                 if ((abs(xk) + abs(yk) + abs(zk)) > 1)
-                  continue ;  /* only allow 4 (6 in 3-d)
-                                                                                                               connectivity */
+                  continue ;  /* only allow 4 (6 in 3-d) connectivity */
 #endif
 
                 xi = x+xk ;
@@ -280,8 +269,7 @@ MRImaxsegment(MRI *mri, float low_val, float hi_val)
               fprintf(stdout, "allocating new label %d (%d total)\n",
                       label, mriseg->nsegments) ;
             break ;
-          case 1:          /* assign this voxel to the
-                                                                                        one that it borders */
+          case 1:          /* assign this voxel to the one that it borders */
             for (nvox = 0 ; nvox < NBR_VOX ; nvox++)
               if (border_labels[nvox] >= 0)
               {
@@ -291,8 +279,7 @@ MRImaxsegment(MRI *mri, float low_val, float hi_val)
             // points to the same label position
             mseg = &mriseg->segments[label] ;
             break ;
-          default:         /* merge segments and assign
-                                                                                        to lowest number */
+          default:         /* merge segments and assign to lowest number */
             mseg = NULL ;
             for (nvox = 0 ; nvox < NBR_VOX ; nvox++)
             {
@@ -313,8 +300,7 @@ MRImaxsegment(MRI *mri, float low_val, float hi_val)
                     &mriseg->segments[border_labels[nvox]] ;
                   if (mseg2->found == 0)
                   {
-                    mseg2->found = 1 ;  /* prevent merging
-                                                                                                                                             more than once */
+                    mseg2->found = 1 ;  /* prevent merging more than once */
                     // merge to the label position
                     if (mriSegmentMerge(mriseg,
                                         label,
@@ -328,7 +314,6 @@ MRImaxsegment(MRI *mri, float low_val, float hi_val)
                     }
                   }
                 }
-
               }
             }
             // reset found
@@ -445,8 +430,7 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
               {
 #if 1
                 if ((abs(xk) + abs(yk) + abs(zk)) > 1)
-                  continue ;  /* only allow 4 (6 in 3-d)
-                                                                                                               connectivity */
+                  continue ;  /* only allow 4 (6 in 3-d) connectivity */
 #endif
 
                 xi = x+xk ;
@@ -489,8 +473,7 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
               fprintf(stdout, "allocating new label %d (%d total)\n",
                       label, mriseg->nsegments) ;
             break ;
-          case 1:          /* assign this voxel to the
-                                                                                        one that it borders */
+          case 1:          /* assign this voxel to the one that it borders */
             for (nvox = 0 ; nvox < NBR_VOX ; nvox++)
               if (border_labels[nvox] >= 0)
               {
@@ -500,8 +483,7 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
             // points to the same label position
             mseg = &mriseg->segments[label] ;
             break ;
-          default:         /* merge segments and assign
-                                                                                        to lowest number */
+          default:         /* merge segments and assign to lowest number */
             mseg = NULL ;
             for (nvox = 0 ; nvox < NBR_VOX ; nvox++)
             {
@@ -522,8 +504,7 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
                     &mriseg->segments[border_labels[nvox]] ;
                   if (mseg2->found == 0)
                   {
-                    mseg2->found = 1 ;  /* prevent merging
-                                                                                                                                             more than once */
+                    mseg2->found = 1 ;  /* prevent merging more than once */
                     // merge to the label position
                     if (mriSegmentMerge(mriseg,
                                         label,
@@ -707,13 +688,15 @@ mriSegmentMerge(MRI_SEGMENTATION *mriseg, int s0, int s1, MRI *mri_labeled)
   Description
   ------------------------------------------------------*/
 static int
-mriSegmentReallocateVoxels(MRI_SEGMENTATION *mriseg, int sno,
+mriSegmentReallocateVoxels(MRI_SEGMENTATION *mriseg, 
+                           int sno,
                            int max_voxels)
 {
   MRI_SEGMENT *mseg ;
   // MSV         *old_voxels ;
   MSV         *new_voxels;
   int         v ;
+  size_t      memsize;
 
   if (max_voxels <= 0)
     max_voxels = MAX_VOXELS ;
@@ -729,7 +712,8 @@ mriSegmentReallocateVoxels(MRI_SEGMENTATION *mriseg, int sno,
   if (mseg->max_voxels == max_voxels)
     max_voxels = mseg->max_voxels + 10;
 
-  new_voxels = (MSV *)realloc(mseg->voxels, max_voxels*sizeof(MSV)) ;
+  memsize = max_voxels*sizeof(MSV);
+  new_voxels = (MSV *)realloc(mseg->voxels, memsize) ;
   if (!new_voxels)
     // if (!mseg->voxels)
   {
@@ -739,8 +723,8 @@ mriSegmentReallocateVoxels(MRI_SEGMENTATION *mriseg, int sno,
     ErrorReturn(ERROR_NOMEMORY,
                 (ERROR_NOMEMORY,
                  "mriSegmentReallocateVoxels: "
-                 "could not alloc %d voxels for sno %d",
-                 max_voxels, sno)) ;
+                 "could not alloc %d voxels (%d KB) for sno %d",
+                 max_voxels, memsize/1024, sno)) ;
   }
   // realloc
   mseg->voxels = new_voxels;
