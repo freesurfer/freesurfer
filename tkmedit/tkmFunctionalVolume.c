@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/15 16:29:14 $
- *    $Revision: 1.51 $
+ *    $Date: 2007/03/15 16:30:30 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -34,7 +34,7 @@
 #include "mri.h"
 #include "error.h"
 
-tBoolean bBlendActivation = FALSE;
+tBoolean bBlendActivation = TRUE;
 
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
 
