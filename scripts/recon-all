@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/15 20:39:00 $
-#    $Revision: 1.73 $
+#    $Date: 2007/03/15 20:48:53 $
+#    $Revision: 1.74 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.73 2007/03/15 20:39:00 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.74 2007/03/15 20:48:53 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -197,7 +197,6 @@ set DoCortParc2      = 0;
 set DoParcStats      = 0;
 set DoParcStats2     = 0;
 set DoCortRibbonVolMask = 0;
-set DoJacobian       = 0;
 
 
 setenv LANG C # Required by MNI tool
@@ -1886,23 +1885,6 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.aparcstats2.touch
   endif
 
-  # -------- Jacobian ----------------------------
-  if($DoJacobian) then
-    echo "#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Jacobian $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/surf
-    set cmd = (mris_register -norot -jacobian $hemi.jacobian \
-                -curv -dist 0 $hemi.sphere.reg \
-                $AvgTif $hemi.sphere.jacobian.reg)
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.jacobian.touch
-  endif
-
 end # Loop over hemilist
 
 #-------------- ASeg Stats --------------#
@@ -2437,13 +2419,6 @@ while( $#argv != 0 )
       breaksw
     case "-nocortribbon":
       set DoCortRibbonVolMask = 0;
-      breaksw
-
-    case "-jacobian":
-      set DoJacobian = 1;
-      breaksw
-    case "-nojacobian":
-      set DoJacobian = 0;
       breaksw
 
     case "-sphere":
