@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/03/15 20:48:53 $
-#    $Revision: 1.74 $
+#    $Author: nicks $
+#    $Date: 2007/03/15 21:13:25 $
+#    $Revision: 1.75 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.74 2007/03/15 20:48:53 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.75 2007/03/15 21:13:25 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -311,6 +311,7 @@ mri_em_register -all-info >> $LF
 mri_ca_normalize -all-info >> $LF
 mri_ca_register -all-info >> $LF
 mri_ca_label -all-info >> $LF
+mri_pretess -all-info >> $LF
 mri_fill -all-info >> $LF
 mri_tessellate -all-info >> $LF
 mri_concatenate_lta -all-info >> $LF
