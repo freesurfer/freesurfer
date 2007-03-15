@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/09 10:01:00 $
- *    $Revision: 1.137 $
+ *    $Date: 2007/03/15 22:34:24 $
+ *    $Revision: 1.138 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.137 2007/01/09 10:01:00 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.138 2007/03/15 22:34:24 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -272,7 +272,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.137 2007/01/09 10:01:00 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.138 2007/03/15 22:34:24 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1237,6 +1237,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
+  printf("$Id: mri_convert.c,v 1.138 2007/03/15 22:34:24 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
