@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/15 16:29:14 $
- *    $Revision: 1.305 $
+ *    $Date: 2007/03/15 16:35:47 $
+ *    $Revision: 1.306 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.305 $";
+char *VERSION = "$Revision: 1.306 $";
 
 #define TCL
 #define TKMEDIT
@@ -1188,7 +1188,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.305 2007/03/15 16:29:14 greve Exp $",
+     "$Id: tkmedit.c,v 1.306 2007/03/15 16:35:47 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1295,6 +1295,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-segmentation-opacity <opacity>    : opacity of the "
            "segmentation \n");
     printf("                                   : overlay (default is 0.3)\n");
+    printf("-aseg : load aseg.mgz and standard color table\n");
+    printf("-aparc+aseg : load aparc+aseg.mgz and standard color table\n");
     printf("\n");
     printf("-seg-conform      : conform the main segmentation volume\n");
     printf("-aux-seg-conform  : conform the aux segmentation volume\n");
@@ -1776,6 +1778,22 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
         DebugNote( ("Enabling registration.") );
         bEnablingRegistration = TRUE;
         nCurrentArg ++;
+
+      } else if ( MATCH( sArg, "-aseg" ) ) {
+	xUtil_strncpy( sSegmentationPath, "aseg.mgz",
+		       sizeof(sSegmentationPath) );
+	pEnvVar = getenv("FREESURFER_HOME");
+	sprintf( sSegmentationColorFile,"%s/FreeSurferColorLUT.txt", pEnvVar );
+	bLoadingSegmentation = TRUE;
+        nCurrentArg += 1;
+
+      } else if ( MATCH( sArg, "-aparc+aseg" ) ) {
+	xUtil_strncpy( sSegmentationPath, "aparc+aseg.mgz",
+		       sizeof(sSegmentationPath) );
+	pEnvVar = getenv("FREESURFER_HOME");
+	sprintf( sSegmentationColorFile,"%s/FreeSurferColorLUT.txt", pEnvVar );
+	bLoadingSegmentation = TRUE;
+        nCurrentArg += 1;
 
       } else if ( MATCH( sArg, "-segmentation" ) ||
                   MATCH( sArg, "-seg" ) ||
@@ -5852,7 +5870,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.305 2007/03/15 16:29:14 greve Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.306 2007/03/15 16:35:47 greve Exp $ $Name:  $\n"
     )
   );
 
