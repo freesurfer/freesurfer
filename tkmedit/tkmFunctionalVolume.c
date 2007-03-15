@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:16 $
- *    $Revision: 1.50 $
+ *    $Author: greve $
+ *    $Date: 2007/03/15 16:29:14 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,8 @@
 #include "xUtilities.h"
 #include "mri.h"
 #include "error.h"
+
+tBoolean bBlendActivation = FALSE;
 
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
 
@@ -2124,11 +2126,18 @@ cleanup:
   return eResult;
 }
 
+void FunV_SetBlendActivation(tBoolean bFlag)
+{
+  extern tBoolean bBlendActivation;
+  bBlendActivation = bFlag;
+}
+
 FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
                                   FunV_tFunctionalValue  iValue,
                                   xColor3fRef            iBaseColor,
                                   xColor3fRef            oColor ) {
 
+  extern tBoolean bBlendActivation;
   FunV_tErr eResult = FunV_tErr_NoError;
   float     f       = 0; /* functional value */
   float     r       = 0; /* final color */
@@ -2144,6 +2153,7 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   float     mid     = 0;
   float     max     = 0;
   float     tmp     = 0;
+  float     ar = 0, ag = 0;
 
   /* set up values */
   f = (float)iValue;
@@ -2227,8 +2237,16 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
     or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
     og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
     ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-    r = or + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-    g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+    ar = ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+    ag = ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+    if(bBlendActivation){
+      r = or + ar;
+      g = og + ag;
+    }
+    else{
+      r = ar;
+      g = ag;
+    }
     b = ob;
   } else {
     f = -f;

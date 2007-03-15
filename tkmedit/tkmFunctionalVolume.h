@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:16 $
- *    $Revision: 1.24 $
+ *    $Author: greve $
+ *    $Date: 2007/03/15 16:29:14 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -467,5 +467,7 @@ FunV_tErr FunV_Verify ( tkmFunctionalVolumeRef this );
 void FunV_Signal ( char* isFuncName, int inLineNum, FunV_tErr ieCode );
 char * FunV_GetErrorString ( FunV_tErr inErr );
 
+/* dng */
+void FunV_SetBlendActivation(tBoolean bFlag);
 
 #endif

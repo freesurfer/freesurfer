@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/26 19:16:59 $
- *    $Revision: 1.304 $
+ *    $Date: 2007/03/15 16:29:14 $
+ *    $Revision: 1.305 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.304 $";
+char *VERSION = "$Revision: 1.305 $";
 
 #define TCL
 #define TKMEDIT
@@ -1188,7 +1188,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.304 2007/01/26 19:16:59 greve Exp $",
+     "$Id: tkmedit.c,v 1.305 2007/03/15 16:29:14 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1267,6 +1267,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-fslope <value>        : (default is 0, 1.0, and 1.0)\n");
     printf("-fsmooth <sigma>       : smooth functional overlay "
            "after loading\n");
+    printf("-noblend               : do not blend activation color with backgound\n");
     printf("\n");
     printf("-revphaseflag <1|0>      : reverses phase display"
            " in overlay (default off)\n");
@@ -1951,6 +1952,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
                             "file name of the data to use." );
           nCurrentArg ++;
         }
+
+      } else if ( MATCH( sArg, "-noblend" ) ) {
+
+	FunV_SetBlendActivation(FALSE);
+        nCurrentArg += 1;
 
       } else if ( MATCH( sArg, "-fthresh" ) ) {
 
@@ -5846,7 +5852,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.304 2007/01/26 19:16:59 greve Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.305 2007/03/15 16:29:14 greve Exp $ $Name:  $\n"
     )
   );
 
