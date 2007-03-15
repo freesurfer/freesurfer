@@ -4,9 +4,9 @@
 # talairach
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/06 00:01:15 $
-#    $Revision: 1.5 $
+#    $Author: greve $
+#    $Date: 2007/03/15 23:23:11 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -22,12 +22,13 @@
 #
 
 #
-set VERSION = '$Id: talairach,v 1.5 2007/01/06 00:01:15 nicks Exp $'
+set VERSION = '$Id: talairach,v 1.6 2007/03/15 23:23:11 greve Exp $'
 setenv LANG C # needed by MNI perl module
 
 
 set InVol = ();
 set XFM = ();
+set Protocol = icbm
 
 set LF = ();
 set debug = 0;
@@ -90,7 +91,7 @@ endif
 echo "--------------------------------------------"
 set cmd = (mritotal -verbose -debug -clobber \
 	    -modeldir ${MINC_BIN_DIR}/../share/mni_autoreg \
-	    -protocol icbm \
+	    -protocol $Protocol \
 	    $tmpdir/src.mnc $XFM)
 echo $cmd |& tee -a
 $cmd >> $LF
@@ -122,6 +123,17 @@ while( $#argv != 0 )
     case "--i":
       if ( $#argv == 0) goto arg1err;
       set InVol = $argv[1]; shift;
+      breaksw
+
+    case "--protocol-default":
+      set Protocol = default;
+      # Refers to the MNI default protocol
+      # Does not use default by default, uses icbm.
+      breaksw
+
+    case "--protocol-icbm":
+      set Protocol = icbm;
+      # Does not use default by default, uses icbm.
       breaksw
 
     case "--xfm":
@@ -207,3 +219,9 @@ that maps the input volume to the MNI305. Note: does not add
 the xfm to the header of the input file. See mri_add_xform_to_header.
 When called by recon-all, the xfm is added to the header after
 the transform is computed.
+
+mritotal is documented here:
+www.bic.mni.mcgill.ca/users/louis/MNI_AUTOREG_home/readme/node1.html
+
+minctracc is documented here:
+www.bic.mni.mcgill.ca/users/louis/tracc/tracc_doc/section3_1.html
