@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:07 $
- *    $Revision: 1.22 $
+ *    $Author: greve $
+ *    $Date: 2007/03/16 22:17:18 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.22 2006/12/29 02:09:07 nicks Exp $
+  $Id: mri_label2vol.c,v 1.23 2007/03/16 22:17:18 greve Exp $
 */
 
 
@@ -84,7 +84,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.22 2006/12/29 02:09:07 nicks Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.23 2007/03/16 22:17:18 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -129,6 +129,8 @@ int LabelCode;
 int UseNativeVox2RAS=0;
 int UseNewASeg2Vol=1;
 
+int UseAParcPlusASeg = 0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   int  nargs, nthlabel, float2int, err, nthpoint, vtxno;
@@ -140,11 +142,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.22 2006/12/29 02:09:07 nicks Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.23 2007/03/16 22:17:18 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.22 2006/12/29 02:09:07 nicks Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.23 2007/03/16 22:17:18 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -203,12 +205,12 @@ int main(int argc, char **argv) {
   printf("Label RAS-to-Vox: --------\n");
   MatrixPrint(stdout,Tras2vox);
 
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  if (SUBJECTS_DIR==NULL) {
+    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+    exit(1);
+  }
   if (SurfNeeded) {
-    SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-    if (SUBJECTS_DIR==NULL) {
-      fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
-      exit(1);
-    }
     // Load the surface used for projection
     Surf = MRISloadSurfSubject(subject,hemi,SurfId,SUBJECTS_DIR);
     if (Surf == NULL) {
@@ -231,7 +233,13 @@ int main(int argc, char **argv) {
     }
   }
   /*-------------------------------------------------------------*/
-  if (ASegFSpec != NULL) {
+  if(UseAParcPlusASeg){
+    if(subject == NULL) subject = regsubject;
+    sprintf(fname,"%s/%s/mri/aparc+aseg.mgz",SUBJECTS_DIR,subject);
+    ASegFSpec = strcpyalloc(fname);
+  }
+
+  if(ASegFSpec != NULL) {
     ASeg = MRIread(ASegFSpec);
     if (ASeg == NULL) {
       printf("ERROR: loading aseg %s\n",ASegFSpec);
@@ -419,6 +427,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--invertmtx"))  InvertMtx = 1;
     else if (!strcasecmp(option, "--new-aseg2vol"))  UseNewASeg2Vol = 1;
     else if (!strcasecmp(option, "--no-new-aseg2vol"))  UseNewASeg2Vol = 0;
+    else if (!strcasecmp(option, "--aparc+aseg"))  UseAParcPlusASeg = 1;
 
     else if (!strcmp(option, "--label")) {
       if (nargc < 1) argnerr(option,1);
@@ -511,6 +520,7 @@ static void print_usage(void) {
   printf("   --label labelid <--label labelid>  \n");
   printf("   --annot annotfile : surface annotation file  \n");
   printf("   --seg   segpath : segmentation\n");
+  printf("   --aparc+aseg  : use aparc+aseg.mgz in subjectdir\n");
   printf("\n");
   printf("   --temp tempvolid : template volume\n");
   printf("   --reg regmat : VolXYZ = R*LabelXYZ\n");
@@ -794,7 +804,13 @@ static void argnerr(char *option, int n) {
 static void check_options(void) {
   if (DoProj) SurfNeeded = 1;
 
-  if (nlabels == 0 && AnnotFile == NULL && ASegFSpec == NULL) {
+  if(UseAParcPlusASeg && subject == NULL && RegMatFile == NULL){
+    printf("ERROR: you must spec --subject or --reg with --aparc+aseg\n");
+    exit(1);
+  }
+
+  if(nlabels == 0 && AnnotFile == NULL && 
+     ASegFSpec == NULL && !UseAParcPlusASeg) {
     printf("ERROR: you must spec at least one label or annot file\n");
     exit(1);
   }
@@ -824,9 +840,9 @@ static void check_options(void) {
       exit(1);
     }
   }
-  if (subject != NULL && !DoProj && AnnotFile==NULL)
+  if(subject != NULL && !DoProj && AnnotFile==NULL && !UseAParcPlusASeg)
     printf("INFO: subject not needed, igorning.\n");
-  if (hemi != NULL && !DoProj && AnnotFile==NULL)
+  if(hemi != NULL && !DoProj && AnnotFile==NULL)
     printf("INFO: hemi not needed, igorning.\n");
 
   return;
