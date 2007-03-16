@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/10 22:37:17 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/03/16 20:34:05 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // mri_concat.c
-// $Id: mri_concat.c,v 1.14 2007/01/10 22:37:17 greve Exp $
+// $Id: mri_concat.c,v 1.15 2007/03/16 20:34:05 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +54,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.14 2007/01/10 22:37:17 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.15 2007/03/16 20:34:05 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -64,6 +64,8 @@ MRI *mritmp, *mritmp0, *mriout;
 int DoMean=0;
 int DoStd=0;
 int DoMax=0;
+int DoPaired=0;
+int DoPairedAvg=0;
 int DoPairedDiff=0;
 int DoPairedDiffNorm=0;
 int DoPairedDiffNorm1=0;
@@ -117,9 +119,9 @@ int main(int argc, char **argv) {
   }
   printf("nframestot = %d\n",nframestot);
 
-  if (DoPairedDiff) {
+  if (DoPaired) {
     if (remainder(nframestot,2) != 0) {
-      printf("ERROR: --paired-diff specified but there are an "
+      printf("ERROR: --paired-xxx specified but there are an "
              "odd number of frames\n");
       exit(1);
     }
@@ -155,8 +157,8 @@ int main(int argc, char **argv) {
   }
 
 
-  if (DoPairedDiff) {
-    printf("Performing paired difference\n");
+  if (DoPaired) {
+    printf("Combining pairs\n");
     mritmp = MRIcloneBySpace(mriout,-1,mriout->nframes/2);
     for (c=0; c < nc; c++) {
       for (r=0; r < nr; r++) {
@@ -165,16 +167,25 @@ int main(int argc, char **argv) {
           for (f=0; f < mriout->nframes; f+=2) {
             v1 = MRIgetVoxVal(mriout,c,r,s,f);
             v2 = MRIgetVoxVal(mriout,c,r,s,f+1);
-            v = v1-v2; // difference
-            if (DoPairedDiffNorm) {
+	    v = 0;
+            if(DoPairedAvg) {
+              v = (v1+v2)/2.0;
+	    }
+            if(DoPairedDiff) {
+	      v = v1-v2; // difference
+	    }
+            if(DoPairedDiffNorm) {
+	      v = v1-v2; // difference
               vavg = (v1+v2)/2.0;
               if (vavg != 0.0) v = v/vavg;
             }
-            if (DoPairedDiffNorm1) {
+            if(DoPairedDiffNorm1) {
+	      v = v1-v2; // difference
               if (v1 != 0.0) v = v/v1;
               else v = 0;
             }
-            if (DoPairedDiffNorm2) {
+            if(DoPairedDiffNorm2) {
+	      v = v1-v2; // difference
               if (v2 != 0.0) v = v/v2;
               else v = 0;
             }
@@ -251,16 +262,26 @@ static int parse_commandline(int argc, char **argv) {
       DoPairedDiff = 1;
       DoMean = 1;
     }
-    else if (!strcasecmp(option, "--paired-diff")) DoPairedDiff = 1;
+    else if (!strcasecmp(option, "--paired-avg")){
+      DoPaired = 1;
+      DoPairedAvg = 1;
+    }
+    else if (!strcasecmp(option, "--paired-diff")){
+      DoPaired = 1;
+      DoPairedDiff = 1;
+    }
     else if (!strcasecmp(option, "--paired-diff-norm")) {
       DoPairedDiff = 1;
       DoPairedDiffNorm = 1;
+      DoPaired = 1;
     } else if (!strcasecmp(option, "--paired-diff-norm1")) {
       DoPairedDiff = 1;
       DoPairedDiffNorm1 = 1;
+      DoPaired = 1;
     } else if (!strcasecmp(option, "--paired-diff-norm2")) {
       DoPairedDiff = 1;
       DoPairedDiffNorm2 = 1;
+      DoPaired = 1;
     } else if ( !strcmp(option, "--i") ) {
       if (nargc < 1) argnerr(option,1);
       inlist[ninputs] = pargv[0];
@@ -295,6 +316,7 @@ static void print_usage(void) {
   printf("   --i invol <--i invol ...> (don't need --i) \n");
   printf("   --o out \n");
   printf("\n");
+  printf("   --paired-avg  : compute paired avg (1+2, 3d+4, etc) \n");
   printf("   --paired-diff : compute paired diff (1-2, 3-4, etc) \n");
   printf("   --paired-diff-norm : same as paired-diff but scale by TP1,2 average \n");
   printf("   --paired-diff-norm1 : same as paired-diff but scale by TP1 \n");
@@ -347,6 +369,10 @@ static void check_options(void) {
   }
   if (out == NULL) {
     printf("ERROR: no output specified\n");
+    exit(1);
+  }
+  if(DoPairedDiff && DoPairedAvg) {
+    printf("ERROR: cannot specify both --paried-diff-xxx and --paried-avg \n");
     exit(1);
   }
   if (DoPairedDiffNorm1 && DoPairedDiffNorm2) {
