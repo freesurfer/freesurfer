@@ -18,9 +18,9 @@ function hdr = load_nifti_hdr(niftifile)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:09 $
-%    $Revision: 1.6 $
+%    $Author: greve $
+%    $Date: 2007/03/16 21:46:00 $
+%    $Revision: 1.7 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -128,9 +128,10 @@ hdr.srow_z = hdr.srow_z * xyzscale;
 % look at time units and convert to msec if needed
 tunits = bitand(hdr.xyzt_units,3*16+8); % 0x38 
 switch(tunits)
-  case  8, tscale = 1000.000; % seconds
-  case 16, tscale =    1.000; % msec
-  case 32, tscale =     .001; % microsec
+ case  8, tscale = 1000.000; % seconds
+ case 16, tscale =    1.000; % msec
+ case 32, tscale =     .001; % microsec
+ otherwise,  tscale = 0; 
 end
 hdr.pixdim(5) = hdr.pixdim(5) * tscale;
 
