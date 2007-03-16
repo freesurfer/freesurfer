@@ -2,9 +2,9 @@
 ## fsgdfPlot.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2007/01/05 00:21:10 $
-##    $Revision: 1.16 $
+##    $Author: kteich $
+##    $Date: 2007/03/16 18:47:22 $
+##    $Revision: 1.17 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -564,6 +564,9 @@ proc FsgdfPlot_ParseHeader { ifnHeader } {
 # from scratch.
 proc FsgdfPlot_PlotData { iID } {
     global gWidgets gPlot gGDF
+
+    # Make sure the window is showing.
+    FsgdfPlot_ShowWindow $iID
 
     # Don't plot if the window isn't built or we don't have data.
     if { ![info exists gWidgets($iID,bWindowBuilt)] ||
