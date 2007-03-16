@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/16 19:19:06 $
-##    $Revision: 1.18 $
+##    $Date: 2007/03/16 19:20:16 $
+##    $Revision: 1.19 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -218,7 +218,6 @@ proc FsgdfPlot_BuildWindow { iID } {
 
     # Note that the window has been built.
     set gWidgets($iID,bWindowBuilt) 1
-    puts "SETTING gWidgets($iID,bWindowBuilt) to $gWidgets($iID,bWindowBuilt)"
 }
 
 # Builds the window elements that are dependant on data, including the
