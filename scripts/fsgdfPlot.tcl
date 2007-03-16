@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/16 18:47:22 $
-##    $Revision: 1.17 $
+##    $Date: 2007/03/16 19:19:06 $
+##    $Revision: 1.18 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -120,7 +120,7 @@ set kValid(lColors) {red blue green yellow black purple orange pink brown}
 
 # Builds the main window. Assumes the header is already read.
 proc FsgdfPlot_BuildWindow { iID } {
-    global gWidgets gGDF
+    global gWidgets gGDF gPlot
 
     set wwTop         .fsgdf-$iID
     set gwPlot        $wwTop.gwPlot
@@ -201,10 +201,16 @@ proc FsgdfPlot_BuildWindow { iID } {
 
     # Set the variable menu value to the header's default variable
     # index.
+    $owVar config -disablecallback 1
     $owVar config -value $gGDF($iID,nDefaultVariable)
+    set gPlot($iID,state,nVariable) $gGDF($iID,nDefaultVariable)
+    $owVar config -disablecallback 0
 
     # Set our initial legen mode to class.
+    $owLegendMode config -disablecallback 1
     $owLegendMode config -value class
+    set gPlot($iID,state,legend) class
+    $owLegendMode config -disablecallback 0
 
     # Create the pen for our active element.
     $gwPlot pen create activeElement \
@@ -212,6 +218,7 @@ proc FsgdfPlot_BuildWindow { iID } {
 
     # Note that the window has been built.
     set gWidgets($iID,bWindowBuilt) 1
+    puts "SETTING gWidgets($iID,bWindowBuilt) to $gWidgets($iID,bWindowBuilt)"
 }
 
 # Builds the window elements that are dependant on data, including the
@@ -253,8 +260,8 @@ proc FsgdfPlot_BuildDynamicWindowElements { iID } {
 	foreach marker $kValid(lMarkers) {
 	    $owMarker add command $marker -label $marker
 	}
-	$owMarker config -disablecallback 0
 	$owMarker config -value $gGDF($iID,classes,$nClass,marker)
+	$owMarker config -disablecallback 0
 
 	tixOptionMenu $owColor \
 	    -command "FsgdfPlot_SetNthClassColor $iID $nClass" \
@@ -263,8 +270,8 @@ proc FsgdfPlot_BuildDynamicWindowElements { iID } {
 	foreach color $kValid(lColors) {
 	    $owColor add command $color -label $color
 	}
-	$owColor config -disablecallback 0
 	$owColor config -value $gGDF($iID,classes,$nClass,color)
+	$owColor config -disablecallback 0
 
 	# We're packing them in two columns (of three columns each).
 	set nCol [expr ($nClass % 2) * 3]
@@ -565,7 +572,6 @@ proc FsgdfPlot_ParseHeader { ifnHeader } {
 proc FsgdfPlot_PlotData { iID } {
     global gWidgets gPlot gGDF
 
-    # Make sure the window is showing.
     FsgdfPlot_ShowWindow $iID
 
     # Don't plot if the window isn't built or we don't have data.
@@ -969,7 +975,7 @@ proc FsgdfPlot_Init {} {
 # Read a header file.
 proc FsgdfPlot_Read { ifnHeader } {
     global gbLibLoaded
-    if { !$gbLibLoaded } { return -1 }
+    if { !$gbLibLoaded } { puts "NOT LOADED" ; ereturn -1 }
     set ID [FsgdfPlot_ParseHeader $ifnHeader]
     return $ID
 }
