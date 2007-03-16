@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.5 $
+#    $Author: greve $
+#    $Date: 2007/03/16 20:36:43 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.5 2007/01/09 22:41:18 nicks Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.6 2007/03/16 20:36:43 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -36,6 +36,7 @@ set mapname = ces
 set interp = trilin
 set fwhm = ();
 set paireddiff = 0;
+set pairedavg  = 0;
 set ToVol = 0;
 set ToSurf = 0;
 set Force = 0;
@@ -152,6 +153,7 @@ end # Loop over sessions
 echo "------------------------------------" |& tee -a $LF
 set cmd = (mri_concat $maplist --o $outvol)
 if($paireddiff) set cmd = ($cmd --paired-diff)
+if($pairedavg)  set cmd = ($cmd --paired-avg)
 pwd |& tee -a $LF
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
@@ -284,6 +286,10 @@ while( $#argv != 0 )
       set paireddiff = 1;
       breaksw
 
+    case "-paired-avg"
+      set pairedavg = 1;
+      breaksw
+
     case "-debug":
       set verbose = 1;
       set echo = 1;
@@ -386,6 +392,11 @@ check_params:
   if($#tmpdir == 0) set tmpdir = $outdir/tmp-isxconcat-sess
   mkdir -p $tmpdir
 
+  if($paireddiff && $pairedavg) then
+    echo "ERROR: cannot --paired-diff and --paired-avg";
+    exit 1;
+  endif
+
 
 goto check_params_return;
 ############--------------##################
@@ -409,6 +420,7 @@ usage_exit:
   echo "   -interp method  : trilinear (def) or nearest"
   echo "   -fwhm fwhm      : smooth by fwhm"
   echo "   -paired-diff    : compute 1-2, 3-4, etc"
+  echo "   -paired-avg     : compute avg 1+2, 3+4, etc"
   echo ""
   echo "  Volume-based options:"
   echo "   -talres res     : 1 or 2 mm (def is 2)"
