@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.9 $
+ *    $Author: greve $
+ *    $Date: 2007/03/17 18:52:50 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -144,7 +144,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.9 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.10 2007/03/17 18:52:50 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -176,6 +176,8 @@ int nitersonly=0;
 
 char *Xfile=NULL;
 MATRIX *X=NULL;
+
+char *ar1fname = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -290,10 +292,14 @@ int main(int argc, char *argv[]) {
 
   printf("Computing spatial AR1 \n");
   ar1 = MRISar1(surf, InVals, mask, NULL);
+  if(ar1fname)  MRIwrite(ar1,ar1fname);
 
   // Average AR1 over all vertices
   RFglobalStats(ar1, mask, &ar1mn, &ar1std, &ar1max);
+  printf("ar1mn = %g, ar1std = %g, ar1max = %g\n",ar1mn, ar1std, ar1max);
+  printf("avg vertex dist %g\n",surf->avg_vertex_dist);
   fwhm = MRISfwhmFromAR1(surf, ar1mn);
+  printf("avg vertex dist %g\n",surf->avg_vertex_dist);
 
   printf("fwhm = %lf\n",fwhm);
   fflush(stdout);
@@ -383,6 +389,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sumfile = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--ar1")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      ar1fname = pargv[0];
+      nargsused = 1;
     } else if (!strcasecmp(option, "--fwhm")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&infwhm);
@@ -431,6 +441,7 @@ static void print_usage(void) {
   printf("   --mask maskfile\n");
   printf("   --X x.mat : matlab4 detrending matrix\n");
   printf("   --sum sumfile\n");
+  printf("   --ar1 ar1vol : save spatial ar1 as an overlay\n");
   printf("   \n");
   printf("   --fwhm fwhm : apply before measuring\n");
   printf("   --niters-only : only report on niters for fwhm\n");
