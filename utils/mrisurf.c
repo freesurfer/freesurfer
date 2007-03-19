@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/03/08 22:41:08 $
- *    $Revision: 1.526 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/19 20:07:49 $
+ *    $Revision: 1.527 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -607,7 +607,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.526 2007/03/08 22:41:08 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.527 2007/03/19 20:07:49 kteich Exp $");
 }
 
 /*-----------------------------------------------------
@@ -9867,9 +9867,10 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
 int
 MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
 {
-  int   i,j,vno,num, need_hemi ;
-  FILE  *fp;
-  char  *cp, fname[STRLEN], path[STRLEN], fname_no_path[STRLEN] ;
+  int vno, need_hemi;
+  int return_code;
+  char *cp, fname[STRLEN], path[STRLEN], fname_no_path[STRLEN] ;
+  int *array;
 #if 0
   int   numannothist;
   float f;
@@ -9904,51 +9905,25 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
       strcat(fname, ".annot") ;
   }
 
-  fp = fopen(fname,"r");
-  if (fp==NULL)
-    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "could not read annot file %s",
-                               fname)) ;
+  /* Try to read it into an array. */
+  return_code = MRISreadAnnotationIntoArray (fname, mris->nvertices, &array);
+  if (NO_ERROR != return_code)
+    return return_code;
+
+  /* If we got an array, fill in our annotation values. */
   MRISclearAnnotations(mris) ;
-  num = freadInt(fp) ;
-  for (j=0;j<num;j++)
-  {
-    vno = freadInt(fp) ;
-    i = freadInt(fp) ;
-    if (vno == Gdiag_no)
-      DiagBreak() ;
-    if (vno>=mris->nvertices||vno<0)
-      fprintf
-      (stderr,
-       "MRISreadAnnotation: vertex index out of range: %d i=%d\n",vno,i);
-    else
+  for (vno = 0; vno < mris->nvertices; vno++)
     {
-      mris->vertices[vno].annotation = i;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      mris->vertices[vno].annotation = array[vno];
     }
-  }
 
-  while (1)
-  {
-    int tag ;
-
-    tag = freadInt(fp) ;
-    if (feof(fp))
-      break;
-
-    switch (tag)
-    {
-    case TAG_OLD_COLORTABLE:
-      fprintf(stderr, "reading colortable from annotation file...\n") ;
-      mris->ct = CTABreadFromBinary(fp) ;
-      fprintf
-      (stderr,
-       "colortable with %d entries read (originally %s)\n",
-       mris->ct->nentries, mris->ct->fname) ;
-      break ;
-    default:
-      break ;
-    }
-  }
-  fclose(fp);
+  /* Try to read in a color table. If we read one, it will be
+     allocated, otherwise it will stay NULL. */
+  return_code = MRISreadCTABFromAnnotationIfPresent (fname, &mris->ct );
+  if (NO_ERROR != return_code)
+    return return_code;
 
 #if 0
   for (vno=0;vno<vertex_index;vno++)
@@ -10007,6 +9982,159 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
 
   return(NO_ERROR) ;
 }
+
+/*----------------------------------------------------- 
+
+  Parameters: fname is the file name of the annotation. in_array_size
+    is the size of the array to allocate, but also a 'hint' as to the
+    number of vertices expected in the file. This will return the
+    allocated array in *out_array.
+
+  Returns value: Standard error code.
+
+  Description: Opens an annotation file and attempts to read label
+    indices from it. If successful, will allocate an array of ints,
+    populate it, and return a pointer to it. Will return an error code
+    if not succesful. This could be due to an invalid file, or an
+    incorrect number of vertices in the annotation file.
+    
+ ------------------------------------------------------*/
+int
+MRISreadAnnotationIntoArray(const char* fname,
+			    int in_array_size, 
+			    int** out_array )
+{
+  int   i,j,vno,num;
+  FILE  *fp;
+  int* array = NULL;
+
+  if (fname == NULL || out_array == NULL)
+    ErrorReturn( ERROR_BADPARM,
+		 (ERROR_BADPARM, "Parameter was NULL.") );
+  if (in_array_size < 0)
+    ErrorReturn( ERROR_BADPARM,
+		 (ERROR_BADPARM, "in_array_size was negative.") );
+
+  /* Initialize our array. Note that we do it to the size that we got
+     passed in, which might be different than the number of values in
+     the file. */
+  array = (int*) calloc (in_array_size, sizeof(int));
+  if (NULL == array)
+    ErrorReturn( ERROR_BADPARM,
+		 (ERROR_BADPARM, "ERROR: Reading annot value file %s\n"
+		  "  Couldn't allocate array of size %s\n", 
+		  fname, in_array_size) );
+
+  /* Open the file. */
+  fp = fopen(fname,"r");
+  if (fp==NULL)
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "could not read annot file %s",
+                               fname)) ;
+
+  /* First int is the number of elements. */
+  num = freadInt(fp) ;
+
+  /* For each one, read in a vno and an int for the annotation
+     value. Check the vno. */
+  for (j=0;j<num;j++)
+  {
+    vno = freadInt(fp) ;
+    i = freadInt(fp) ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    
+    /* Check the index we read to make sure it's less than the size
+       we're expecting. */
+    if (vno >= in_array_size || vno < 0)
+      fprintf(stderr,
+       "MRISreadAnnotation: vertex index out of range: %d i=%d\n",vno,i);
+    else
+      array[vno] = i;
+  }
+
+  fclose(fp);
+
+  /* Set the outgoing array. */
+  *out_array = array;
+
+  return(NO_ERROR) ;
+}
+
+/*----------------------------------------------------- 
+
+  Parameters: fname is the file name of the annotation. This will
+    return the allocated table in *out_table.
+
+  Returns value: Standard error code. If the file is fine but no color
+    table is present, it will return NO_ERROR, but out_table will not
+    be set.
+
+  Description: Opens an annotation file and skips to the tag section
+    of the file, after the values. Looks for the TAG_OLD_COLORTABLE
+    value, and if present, reads in a color table. 
+    
+*/
+int MRISreadCTABFromAnnotationIfPresent(const char *fname, 
+					COLOR_TABLE** out_table) {
+
+  int   skip,j,num;
+  FILE  *fp;
+  COLOR_TABLE* ctab = NULL;
+  int tag;
+
+  if (fname == NULL || out_table == NULL)
+    ErrorReturn( ERROR_BADPARM,
+		 (ERROR_BADPARM, "Parameter was NULL.") );
+
+  /* Open the file. */
+  fp = fopen(fname,"r");
+  if (fp==NULL)
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "could not read annot file %s",
+                               fname)) ;
+
+  /* First int is the number of elements. */
+  num = freadInt(fp) ;
+
+  /* Skip two ints per num, to the end of the values section, where
+     the tags are. */
+  for (j = 0; j < num; j++)
+    {
+      skip = freadInt (fp);
+      skip = freadInt (fp);
+    }
+
+  /* Check for tags. Right now we only have one possibility for tags,
+     but if we add in more tags, we'll have to skip past other tags
+     and their data sections here. Of course, we don't have an easy
+     way to determine the length of the data section for the tag. If
+     we hit EOF here, there is no tag. */
+  tag = freadInt (fp);
+  if (feof(fp))
+    {
+      fclose (fp);
+      return ERROR_NONE;
+    }
+
+  if (TAG_OLD_COLORTABLE == tag) 
+    {
+      /* We have a color table, read it with CTABreadFromBinary. If it
+	 fails, it will print its own error message. */
+      fprintf(stderr, "reading colortable from annotation file...\n") ;
+      ctab = CTABreadFromBinary (fp);
+      if (NULL != ctab)
+	fprintf(stderr, "colortable with %d entries read (originally %s)\n",
+		ctab->nentries, ctab->fname);
+    }
+
+  fclose (fp);
+
+  /* Return the table if we got one. */
+  if( NULL != ctab )
+    *out_table = ctab;
+
+  return ERROR_NONE;
+}
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -10278,7 +10406,7 @@ MRISreadValuesIntoArray(const char* sname,
 
   fclose(fp);
 
-  /* Set the outgoing array and size. */
+  /* Set the outgoing array. */
   *out_array = array;
 
   return(NO_ERROR) ;
