@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/20 06:10:27 $
- *    $Revision: 1.72 $
+ *    $Date: 2007/03/20 06:26:08 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 #ifndef lint
 static char vcid[] =
-  "$Id: tkregister2.c,v 1.72 2007/03/20 06:10:27 greve Exp $";
+  "$Id: tkregister2.c,v 1.73 2007/03/20 06:26:08 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -2016,21 +2016,21 @@ void draw_image2(int imc,int ic,int jc) {
           f = rVoxVal;
           break;
         }
+        movimg[r][c] = f;
 	if(DoSlicePrescription){
 	  if(icMov == 0 || irMov == 0   || isMov == 0 ||
-	     icMov == mov_vol->width-1  ||
-	     irMov == mov_vol->height-1 ||
-	     isMov == mov_vol->depth-1  ||
-	     isMov%4 == 0) 
-	    f = 255;
+	     icMov == mov_vol->width-1  || irMov == mov_vol->height-1 ||
+	     isMov == mov_vol->depth-1  || isMov%4 == 0) {
+	    targimg[r][c] = 255;
+	    movimg[r][c] = 255;
+	  }
 	}
-        movimg[r][c] = f;
 
         if (movimgmax  < movimg[r][c])  movimgmax  = movimg[r][c];
         if (movimgmin  > movimg[r][c])  movimgmin  = movimg[r][c];
 
-      }
-    }
+      } // image column
+    } // image row
 
     /* Auto-control of intensity - this does not work very well*/
     targimgrange = targimgmax - targimgmin;
@@ -4185,7 +4185,7 @@ char **argv;
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.72 2007/03/20 06:10:27 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.73 2007/03/20 06:26:08 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
