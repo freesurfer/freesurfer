@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/23 21:46:09 $
- *    $Revision: 1.70 $
+ *    $Date: 2007/03/20 06:00:54 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 #ifndef lint
 static char vcid[] =
-  "$Id: tkregister2.c,v 1.70 2007/01/23 21:46:09 greve Exp $";
+  "$Id: tkregister2.c,v 1.71 2007/03/20 06:00:54 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -335,6 +335,7 @@ char colormap[512];
 int use_draw_image2 = 1;
 int interpmethod = SAMPLE_TRILINEAR;
 int use_inorm = 1;
+int DoSlicePrescription = 0;
 
 char subjectid[1000];
 char *mov_vol_id = NULL;
@@ -2014,6 +2015,10 @@ void draw_image2(int imc,int ic,int jc) {
           f = rVoxVal;
           break;
         }
+	if(DoSlicePrescription){
+	  if(isMov%2 == 0) f = 200;
+	  else             f = 255;
+	}
         movimg[r][c] = f;
 
         if (movimgmax  < movimg[r][c])  movimgmax  = movimg[r][c];
@@ -2037,6 +2042,7 @@ void draw_image2(int imc,int ic,int jc) {
         } else movimg[r][c] *= fscale_2;
       }
     }
+
     if (Gdiag_no > 0) {
       printf("targimg: %g %g %g\n",targimgmin,targimgmax,targimgrange);
       printf("movimg:  %g %g %g\n",movimgmin,movimgmax,movimgrange);
@@ -2642,6 +2648,11 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         break;
       case XK_t:
         interpmethod = SAMPLE_TRILINEAR;
+        updateflag = TRUE;
+        break;
+
+      case 'e':
+	DoSlicePrescription = !DoSlicePrescription;
         updateflag = TRUE;
         break;
 
@@ -4169,7 +4180,7 @@ char **argv;
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.70 2007/01/23 21:46:09 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.71 2007/03/20 06:00:54 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
