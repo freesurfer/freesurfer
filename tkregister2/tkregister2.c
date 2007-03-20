@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/20 06:00:54 $
- *    $Revision: 1.71 $
+ *    $Date: 2007/03/20 06:10:27 $
+ *    $Revision: 1.72 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 #ifndef lint
 static char vcid[] =
-  "$Id: tkregister2.c,v 1.71 2007/03/20 06:00:54 greve Exp $";
+  "$Id: tkregister2.c,v 1.72 2007/03/20 06:10:27 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -1168,6 +1168,8 @@ static void print_usage(void) {
   printf("\n");
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
+  printf("   --help : usage and documentation\n");
+  printf("\n");
   printf("   --targ target volume <fmt>\n");
   printf("   --fstarg : target is relative to subjectid/mri\n");
   printf("   --fsl-targ : use FSLDIR/etc/standard/avg152T1.img\n");
@@ -1204,8 +1206,6 @@ static void print_usage(void) {
   printf("   --int intvol intreg : "
          "use registration from intermediate volume \n");
   printf("   --gdiagno n : set debug level\n");
-  printf("\n");
-  printf("   --help : usage documentation\n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
 }
@@ -1561,6 +1561,7 @@ static void print_help(void) {
     "2 dispaly moveable\n"
     "a increase moveable frame by 1\n"
     "b decrease moveable frame by 1\n"
+    "e toggle slice prescription indicator\n"
     "i intensity normalize images\n"
     "n use nearest neighbor interpolation\n"
     "t use trilinear interpolation\n"
@@ -2016,8 +2017,12 @@ void draw_image2(int imc,int ic,int jc) {
           break;
         }
 	if(DoSlicePrescription){
-	  if(isMov%2 == 0) f = 200;
-	  else             f = 255;
+	  if(icMov == 0 || irMov == 0   || isMov == 0 ||
+	     icMov == mov_vol->width-1  ||
+	     irMov == mov_vol->height-1 ||
+	     isMov == mov_vol->depth-1  ||
+	     isMov%4 == 0) 
+	    f = 255;
 	}
         movimg[r][c] = f;
 
@@ -4180,7 +4185,7 @@ char **argv;
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.71 2007/03/20 06:00:54 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.72 2007/03/20 06:10:27 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
