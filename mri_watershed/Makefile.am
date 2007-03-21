@@ -5,10 +5,14 @@
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=
 
-bin_PROGRAMS = mri_watershed
+bin_PROGRAMS = mri_watershed  mri_validate_skull_stripped
 mri_watershed_SOURCES=mri_watershed.cpp
 mri_watershed_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mri_watershed_LDFLAGS=$(OS_LDFLAGS)
+
+mri_validate_skull_stripped_SOURCES=mri_validate_skull_stripped.cpp
+mri_validate_skull_stripped_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_validate_skull_stripped_LDFLAGS=$(OS_LDFLAGS)
 
 SUBDIRS=brain_volume
 
