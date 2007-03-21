@@ -307,8 +307,9 @@ void PoistatsReplicas::SetInitialPoints( const MatrixPointer points ) {
   if( m_InitialPoints != NULL ) {
     delete m_InitialPoints;
   }
+  
   m_InitialPoints = new MatrixType( *points );
-    
+  
   const int nEndPoints = 2;
   const int nTotalControlPoints = GetNumberOfControlPoints() + nEndPoints;
 
@@ -487,7 +488,7 @@ PoistatsReplicas::RethreadPath(
   const double gridCeiling = 1.0;
   ArrayType originalPathGrid( originalPath->rows() );
   PoistatsReplica::SpaceEvenly( &originalPathGrid, gridFloor, gridCeiling );
-
+  
   // interploate the spline
   MatrixPointer rethreadedPath = this->CubicSplineInterpolation( 
     originalPath, &originalPathGrid, nNewSamples );
@@ -550,7 +551,12 @@ PoistatsReplicas::CubicSplineInterpolation(
 
   CubicSplineFilterType::ArrayType nControlPoints;
 
-  const int nTotalControlPoints = GetNumberOfControlPoints() + 2;
+  // this is the number of control points that the spline will use to
+  // interpolate -- not completely related to the number of control points that
+  // poistats uses for the monte carlo part of the algorithm.  Sometimes with 
+  // too few points, it still can't find a good fit and fails, so we're 
+  // increasing it a bit.
+  const int nTotalControlPoints = this->GetNumberOfControlPoints() + 3;
   nControlPoints.Fill( nTotalControlPoints );
   m_CubicSplineFilter->SetNumberOfControlPoints( nControlPoints );
 
@@ -564,7 +570,9 @@ PoistatsReplicas::CubicSplineInterpolation(
   const double resampledStepSize = 1.0 / 
     ( static_cast< double >( nNewSamples ) - 1.0 );
         
+  // evaluate at regular steps
   for( int cRow=0; cRow<nNewSamples; cRow++ ) {
+    
     double t = static_cast< double >( cRow ) * resampledStepSize;
     const double maxT = 1.0;
     if( t > maxT ) {
