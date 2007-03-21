@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/02 04:53:51 $
- *    $Revision: 1.34 $
+ *    $Date: 2007/03/21 20:12:05 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.34 2007/03/02 04:53:51 greve Exp $
+  $Id: mri_surfcluster.c,v 1.35 2007/03/21 20:12:05 greve Exp $
 */
 
 #include <stdio.h>
@@ -51,6 +51,7 @@
 #include "mri2.h"
 #include "mri_identify.h"
 #include "mrisurf.h"
+#include "mrisutils.h"
 #include "MRIio_old.h"
 #include "fio.h"
 #include "volcluster.h"
@@ -79,7 +80,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.34 2007/03/02 04:53:51 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.35 2007/03/21 20:12:05 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -91,7 +92,7 @@ int   srcfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *srcsurfid = "white";
 char *srcsubjid = NULL;
 int   srcframe = 0;
-float thmin = -1, thmax = -1;
+double thmin = -1, thmax = -1;
 char *thsign = NULL;
 int   thsignid = 0;
 float minarea = 0;
@@ -105,9 +106,7 @@ char *masksignstr  = NULL;
 int  masksign  = 0;
 float maskthresh = 0.5; // assume binary
 
-char *labelfile = NULL;
 int  nth = -1;
-char *labelbase = NULL;
 
 char *omaskid = NULL;
 char *omaskfmt = "paint";
@@ -118,7 +117,7 @@ char  *clabelfile=NULL;
 char  *maskfile=NULL;
 LABEL *clabel=NULL;
 int   clabelinv = 0;
-
+int   UseCortexLabel = 0;
 
 char *outid = NULL;
 char *outfmt = "paint";
@@ -171,6 +170,7 @@ char *voxwisesigfile=NULL;
 MRI  *voxwisesig;
 int ReallyUseAverage7 = 0;
 double fwhm = -1;
+double fdr = -1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.34 2007/03/02 04:53:51 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.35 2007/03/21 20:12:05 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -313,6 +313,10 @@ int main(int argc, char **argv) {
     MRIfree(&srcval);
   }
 
+  // In case of mask, Fill undefval = 1
+  for (vtx = 0; vtx < srcsurf->nvertices; vtx++)
+    srcsurf->vertices[vtx].undefval = 1;
+
   // ---------- Constrain with clabel ----------------------- //
   if (clabel) {
     if (clabelinv) {
@@ -320,22 +324,30 @@ int main(int argc, char **argv) {
       for (n=0; n<clabel->n_points; n++) {
         vtx = clabel->lv[n].vno;
         srcsurf->vertices[vtx].val = 0.0;
+        srcsurf->vertices[vtx].undefval = 0;
       }
     } else {
       // Constrain to be INSIDE clabel by OUTSIDE setting values to 0
-      // Trickier -- use val2 to create a mask
+      // Fill all undefvals with 0
       for (vtx = 0; vtx < srcsurf->nvertices; vtx++)
-        srcsurf->vertices[vtx].val2 = 1;
+	srcsurf->vertices[vtx].undefval = 0;
+      // Change undefvals in mask to 1
       for (n=0; n<clabel->n_points; n++) {
         vtx = clabel->lv[n].vno;
-        srcsurf->vertices[vtx].val2 = 0;
+        srcsurf->vertices[vtx].undefval = 1;
       }
-      for (vtx = 0; vtx < srcsurf->nvertices; vtx++) {
-        if (srcsurf->vertices[vtx].val2)
+      // Now set the overlay values to 0
+      for(vtx = 0; vtx < srcsurf->nvertices; vtx++) {
+        if(! srcsurf->vertices[vtx].undefval)
           srcsurf->vertices[vtx].val = 0.0;
       }
     }
   }
+  n = 0;
+  for (vtx = 0; vtx < srcsurf->nvertices; vtx++)
+    if(srcsurf->vertices[vtx].undefval) n++;
+  printf("number of voxels in search space = %d\n",n);
+
 
   /* Compute the overall max and min */
   for (vtx = 0; vtx < srcsurf->nvertices; vtx++) {
@@ -381,6 +393,33 @@ int main(int argc, char **argv) {
     MRIwrite(voxwisesig,voxwisesigfile);
     MRIfree(&srcval);
     MRIfree(&voxwisesig);
+  }
+
+  if(fdr > 0){
+    printf("Setting voxel-wise threshold with FDR = %lf\n",fdr);
+    printf("Assuming input map is -log10(p)\n");
+    err = MRISfdr2vwth(srcsurf, fdr, thsignid, 1, 1, &thmin);
+    if(err){
+      printf("ERROR: computing FDR threshold\n");
+      exit(1);
+    }
+    printf("FDR Voxel-wise threshold is %g\n",thmin);
+  }
+
+  if(thsignid != 0 && AdjustThreshWhenOneTail) {
+    // user has requested a tailed threshold, so adjust threshold
+    // to account for a one-tailed test. This requires that the
+    // input be -log10(p), where p is computed from a two-tailed
+    // test.
+    printf("Adjusting threshold for 1-tailed test.\n");
+    printf("If the input is not a -log10(p) volume, re-run with --no-adjust.\n");
+    thminadj = thmin - log10(2.0);
+    if (thmax > 0) thmaxadj = thmax - log10(2.0);
+    else           thmaxadj = thmax;
+  } else {
+    printf("NOT Adjusting threshold for 1-tailed test\n");
+    thminadj = thmin;
+    thmaxadj = thmax;
   }
 
   /*---------------------------------------------------------*/
@@ -455,6 +494,7 @@ int main(int argc, char **argv) {
     if (annotname) fprintf(fp,"# annot %s\n",annotname);
     fprintf(fp,"# SUBJECTS_DIR %s\n",subjectsdir);
 
+    if(fdr>0) fprintf(fp,"# FDR %lf\n",fdr);
     fprintf(fp,"# Minimum Threshold %g\n",thmin);
     if (thmax < 0)
       fprintf(fp,"# Maximum Threshold infinity\n");
@@ -611,6 +651,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mask-inv")) clabelinv = 1;
     else if (!strcasecmp(option, "--no-adjust")) AdjustThreshWhenOneTail=0;
     else if (!strcmp(option, "--csdpdf-only")) csdpdfonly = 1;
+    else if (!strcmp(option, "--cortex")) UseCortexLabel = 1;
     else if (!strcmp(option, "--no-fix-vertex-area")) {
       printf("Turning off fixing of vertex area\n");
       MRISsetFixVertexAreaValue(0);
@@ -684,9 +725,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       csdpdffile = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--fdr")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&fdr);
+      nargsused = 1;
     } else if (!strcmp(option, "--thmin")) {
       if (nargc < 1) argnerr(option,1);
-      sscanf(pargv[0],"%f",&thmin);
+      sscanf(pargv[0],"%lf",&thmin);
       if (thmin < 0) {
         printf("ERROR: thmin = %g, must be >= 0\n",thmin);
         printf("       use sign to set sign\n");
@@ -695,7 +740,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (!strcmp(option, "--thmax")) {
       if (nargc < 1) argnerr(option,1);
-      sscanf(pargv[0],"%f",&thmax);
+      sscanf(pargv[0],"%lf",&thmax);
       if (thmax < 0) {
         printf("ERROR: thmax = %g, must be >= 0\n",thmax);
         printf("       use sign to set sign\n");
@@ -747,17 +792,9 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       annotname = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--label")) {
-      if (nargc < 1) argnerr(option,1);
-      labelfile = pargv[0];
-      nargsused = 1;
     } else if (!strcmp(option, "--nth")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nth);
-      nargsused = 1;
-    } else if (!strcmp(option, "--labelbase")) {
-      if (nargc < 1) argnerr(option,1);
-      labelbase = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--sum")) {
       if (nargc < 1) argnerr(option,1);
@@ -843,11 +880,12 @@ static void print_usage(void) {
   printf("   --thmax  threshold : maximum intensity threshold\n");
   printf("   --sign   sign      : <abs> or pos/neg for one-sided tests\n");
   printf("   --no-adjust  : do not adjust thresh for one-tailed tests\n");
+  printf("   --fdr FDR  : set thmin with False Discovery Rate\n");
   printf("\n");
   printf("   --subject  subjid    : source surface subject (can be ico)\n");
   printf("   --hemi hemi          : lh or rh \n");
   printf("   --surf     surface   : get coorindates from surface (white)\n");
-  printf("   --annot    annotname : report annotation for max vertex\n");
+  printf("   --annot    annotname : report annotation for max vertex (eg, aparc)\n");
   printf("   --frame frameno      : 0-based source frame number\n");
   printf("\n");
   printf("   --csd csdfile <--csd csdfile ...>\n");
@@ -857,6 +895,7 @@ static void print_usage(void) {
   printf("   --csdpdf-only : write csd pdf file and exit.\n");
   printf("\n");
   printf("   --clabel labelfile : constrain to be within clabel\n");
+  printf("   --cortex : set clabel to be subject/label/hemi.cortex.label\n");
   printf("   --mask maskfile : constrain to be within mask\n");
   printf("   --mask-inv : constrain to be OUTSIDE mask or clabel\n");
   printf("   --sum sumfile     : text summary file\n");
@@ -953,6 +992,11 @@ static void print_help(void) {
     "subtracting log10(2.0) is like dividing the p-value by 2 (ie, changing it\n"
     "from a two-tailed test to a one-tailed test). If the input map does not\n"
     "meet these criteria, then run with --no-adjust.\n"
+    "\n"
+    "--fdr FDR\n"
+    "\n"
+    "Set thmin with False Discovery Rate. 0 < FDR < 1. Usually something \n"
+    "like .01 or .05. Only when input is -log10(p).\n"
     "\n"
     "--csd csdfile <--csd csdfile>\n"
     "\n"
@@ -1070,7 +1114,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.34 2007/03/02 04:53:51 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.35 2007/03/21 20:12:05 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
@@ -1099,6 +1143,8 @@ static void print_help(void) {
 }
 /* --------------------------------------------- */
 static void check_options(void) {
+  char tmpstr[2000];
+
   if (csdpdffile) {
     if (csd == NULL) {
       printf("ERROR: need --csd with --csdpdf");
@@ -1149,22 +1195,6 @@ static void check_options(void) {
   if (stringmatch(thsign,"pos")) thsignid = +1;
   if (stringmatch(thsign,"abs")) thsignid =  0;
   if (stringmatch(thsign,"neg")) thsignid = -1;
-
-  if (thsignid != 0 && AdjustThreshWhenOneTail) {
-    // user has requested a tailed threshold, so adjust threshold
-    // to account for a one-tailed test. This requires that the
-    // input be -log10(p), where p is computed from a two-tailed
-    // test.
-    printf("Adjusting threshold for 1-tailed test.\n");
-    printf("If the input is not a -log10(p) volume, re-run with --no-adjust.\n");
-    thminadj = thmin - log10(2.0);
-    if (thmax > 0) thmaxadj = thmax - log10(2.0);
-    else          thmaxadj = thmax;
-  } else {
-    printf("NOT Adjusting threshold for 1-tailed test\n");
-    thminadj = thmin;
-    thmaxadj = thmax;
-  }
   printf("thsign = %s, id = %d\n",thsign,thsignid);
 
   if (hemi == NULL) {
@@ -1180,8 +1210,8 @@ static void check_options(void) {
     printf("ERROR: srcsubjid must be supplied\n");
     exit(1);
   }
-  if (thmin < 0) {
-    printf("ERROR: thmin must be supplied\n");
+  if(thmin < 0 && fdr < 0) {
+    printf("ERROR: thmin or fdr must be supplied\n");
     exit(1);
   }
   if (srcframe < 0) srcframe = 0;
@@ -1237,6 +1267,15 @@ static void check_options(void) {
     exit(1);
   }
 
+  if(UseCortexLabel && clabelfile){
+    printf("ERROR: cannot specify both --clabel and --cortex\n");
+    exit(1);
+  }
+  if(UseCortexLabel){
+    sprintf(tmpstr,"%s/%s/label/%s.cortex.label",subjectsdir,srcsubjid,hemi);
+    clabelfile = strcpyalloc(tmpstr);
+  }
+
   if (clabelfile != NULL && maskfile != NULL) {
     printf("ERROR: cannot specify both --clabel and --mask\n");
     exit(1);
@@ -1261,6 +1300,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"thsign         = %s\n",thsign);
   fprintf(fp,"thmin          = %g\n",thmin);
   fprintf(fp,"thmax          = %g\n",thmax);
+  fprintf(fp,"fdr            = %g\n",fdr);
   fprintf(fp,"minarea        = %g\n",minarea);
   fprintf(fp,"xfmfile        = %s\n",xfmfile);
   if (maskid != NULL) {
@@ -1273,9 +1313,7 @@ static void dump_options(FILE *fp) {
     fprintf(fp,"clabelfile     = %s\n",clabelfile);
     fprintf(fp,"clabelinv      = %d\n",clabelinv);
   }
-  if (labelfile != NULL)  fprintf(fp,"labelfile   = %s\n",labelfile);
-  if (labelbase != NULL)  fprintf(fp,"labelbase   = %s\n",labelbase);
-  if (labelbase != NULL)  fprintf(fp,"nth         = %d\n",nth);
+  fprintf(fp,"nth         = %d\n",nth);
 
   if (outid != NULL)  fprintf(fp,"outid    = %s %s\n",outid, outfmt);
 
