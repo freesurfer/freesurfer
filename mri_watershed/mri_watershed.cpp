@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/03/21 15:19:15 $
- *    $Revision: 1.56 $
+ *    $Date: 2007/03/22 18:47:28 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,11 +33,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nommert $
-// Revision Date  : $Date: 2007/03/21 15:19:15 $
-// Revision       : $Revision: 1.56 $
+// Revision Date  : $Date: 2007/03/22 18:47:28 $
+// Revision       : $Revision: 1.57 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.56 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.57 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -761,7 +761,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.56 2007/03/21 15:19:15 nommert Exp $", "$Name:  $",
+   "$Id: mri_watershed.cpp,v 1.57 2007/03/22 18:47:28 nommert Exp $", "$Name:  $",
    cmdline);
 
   Progname=argv[0];
@@ -773,7 +773,7 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.56 2007/03/21 15:19:15 nommert Exp $", "$Name:  $");
+           "$Id: mri_watershed.cpp,v 1.57 2007/03/22 18:47:28 nommert Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1386,7 +1386,6 @@ static void AnalyzeT1Volume(STRIP_PARMS *parms,MRI_variables *MRI_var) {
     T1number[k]=0;
     
     
-  fprintf(stdout,"\nAnnnnnnnnnnnaaaaaaaaaaaaaaaaaaaalllllllllllllllllllyyyyyyyyzzzzzzzzzzze\n");
   
   
   /*detect if we are in a T1 volume*/
@@ -3473,6 +3472,10 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var) {
   write_image(MRI_var);
 
   if (parms->template_deformation!=2) {
+  
+  
+    fprintf(stdout,"\nAnnnnnnnnnnnaaaaaaaaaaaaaaaaaaaalllllllllllllllllllyyyyyyyyzzzzzzzzzzze\n");
+
     init_direction(MRI_var);
 
     /*compute some global intensity values*/
@@ -4051,7 +4054,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var) {
   MRI_var->CSF_intensity=MRI_var->CSF_intens[GLOBAL];
 
   
-#ifndef __OPTIMIZE__
+
   if(parms->Tregion == 1){
     for (j=0;j<6;j++)
      fprintf(stdout,"\n %s   CSF_MIN=%d, CSF_intensity=%d, CSF_MAX=%d , nb = %i",
@@ -4060,7 +4063,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var) {
   else
   fprintf(stdout,"\n %s   CSF_MIN=%d, CSF_intensity=%d, CSF_MAX=%d , nb = %i",
             region_to_name(GLOBAL),MRI_var->CSF_MIN[GLOBAL], MRI_var->CSF_intens[GLOBAL],MRI_var->CSF_MAX[GLOBAL], n[GLOBAL]);
-#endif
+
   /////////////////////////////////////////////////////////////////////////////
   /*Determination of MRI_var->GM_intensity[j]*/
   /////////////////////////////////////////////////////////////////////////////
@@ -8748,11 +8751,14 @@ void calcForce2(double &force0, double &force1, double &force,
         }
       }
     }
-    // heuristic
-    force += valforce + tanh(nc*0.1);
   }
 
+  // heuristic
+  force += valforce + tanh(nc*0.1);
 
+
+
+    //if (kv%10==0 )fprintf(stdout, "%i :  %f \n", force);
 
 }
 
@@ -8896,7 +8902,6 @@ static void FitShape(MRI_variables *MRI_var,  STRIP_PARMS *parms,
 
       // force calculation
       calcForce(fST,fSN,fN, x,y,z, sx,sy,sz,sd, nx,ny,nz, MRI_var, parms, k);
-      
 
       f1m+=fSN;
       f2m+=fN;
