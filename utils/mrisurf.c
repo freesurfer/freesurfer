@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/19 20:07:49 $
- *    $Revision: 1.527 $
+ *    $Author: fischl $
+ *    $Date: 2007/03/23 13:45:37 $
+ *    $Revision: 1.528 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -205,10 +205,12 @@ static int mris_readval_frame = -1;
 static int fix_vertex_area = 1;
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
+#if 0
 static MRI_SP *MRISPiterative_blur(MRI_SURFACE *mris, 
                                    MRI_SP *mrisp_source, 
                                    MRI_SP *mrisp_dst, 
                                    float sigma, int frame) ;
+#endif
 static int enforce_links(MRI_SURFACE *mris) ;
 static int enforce_link_positions(MRI_SURFACE *mris) ;
 static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev);
@@ -607,7 +609,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.527 2007/03/19 20:07:49 kteich Exp $");
+  return("$Id: mrisurf.c,v 1.528 2007/03/23 13:45:37 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5138,7 +5140,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
              INTEGRATION_PARMS *parms,
              int max_passes, float min_degrees, float max_degrees, int nangles)
 {
-  float   sigma, target_sigma, dof ;
+  float   sigma /*, target_sigma, dof*/ ;
   int     i, start_t, done, sno, ino, msec, min_averages=0, nsurfaces ;
   MRI_SP  *mrisp ;
   char    fname[STRLEN], base_name[STRLEN], path[STRLEN] ;
@@ -5188,10 +5190,6 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
   if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris,parms) ;
 
-  MRISuseMeanCurvature(mris) ;
-  MRISnormalizeCurvature(mris, NORM_MEAN) ;
-  MRISstoreMeanCurvature(mris) ;
-
   if (parms->flags & IP_NO_SULC)
   {
     fprintf(stderr,"will not use the sulcal depth map\n");
@@ -5232,7 +5230,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   "MRISregister", fname) ;
 
-      MRISresetNeighborhoodSize(mris, 3) ;  /* back to max */
+      MRISresetNeighborhoodSize(mris, -1) ;  /* back to max */
       MRIScomputeMetricProperties(mris) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;
@@ -5242,24 +5240,30 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
       MRIScomputeMetricProperties(mris) ;
     }
-    MRISstoreMeanCurvature(mris) ;
+    MRISstoreMeanCurvature(mris) ; // store current curv target in H
 
     if (Gdiag & DIAG_SHOW)
     {
       if (curvature_names[sno])
-        fprintf(stdout, "reading precomputed curvature from %s\n",fname) ;
+        printf("reading precomputed curvature from %s\n",fname) ;
       else
-        fprintf(stdout, "calculating curvature of %s surface\n",fname) ;
+        printf("calculating curvature of %s surface\n",fname) ;
     }
 
     if (Gdiag & DIAG_WRITE)
-      fprintf(parms->fp,"calculating curvature of %s surface\n",fname);
+    {
+      if (curvature_names[sno])
+        fprintf(parms->fp,"using precomputed curvature from %s\n",fname);
+      else
+        fprintf(parms->fp,"calculating curvature of %s surface\n",fname);
+    }
 
     if (sno == 2 && parms->flags & IP_USE_CURVATURE)
     {
       /* only small adjustments needed after 1st time around */
       parms->tol *= 2.0f ;
       parms->l_corr /= 20.0f ;  // should be more adaptive - used to be 20
+      parms->l_spring = .5 ;     // regularize mesh
       if (Gdiag & DIAG_WRITE)
         mrisLogIntegrationParms(parms->fp, mris, parms) ;
       if (Gdiag & DIAG_SHOW)
@@ -5306,9 +5310,9 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
         MRIScomputeMetricProperties(mris) ;
       }
-      MRISuseMeanCurvature(mris) ;
+      MRISuseMeanCurvature(mris) ;  // restore current target
       mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
-#if 0
+#if 1
       parms->mrisp = MRISPblur(mrisp, NULL, sigma, 0) ;
       parms->mrisp_template = MRISPblur(mrisp_template, NULL, sigma, ino) ;
       MRISPblur(parms->mrisp_template, 
@@ -6610,9 +6614,9 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   ------------------------------------------------------*/
 static float neg_area_ratios[] =
   {
-    0.01f, 0.001f, 0.0001f,
+    1e-8, 0.001f, 0.0001f,
     0.00001, 0.000001, 0.00001,
-    0.0001, 0.001, 0.01f
+    0.0001, 1e-8
   } ;
 #define MAX_PASSES (sizeof(neg_area_ratios) / sizeof(neg_area_ratios[0]))
 static int
@@ -6642,6 +6646,8 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                 Progname, fname) ;
     mrisLogIntegrationParms(parms->fp, mris, parms) ;
   }
+  if (Gdiag & DIAG_SHOW)
+    mrisLogIntegrationParms(stderr, mris, parms) ;
   pct_neg = 100.0*mris->neg_area/(mris->neg_area+mris->total_area) ;
   if (pct_neg <= min_area_pct)
     return(0) ;   /* no steps */
@@ -59407,6 +59413,7 @@ enforce_link_positions(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
+#if 0
 static MRI_SP *
 MRISPiterative_blur(MRI_SURFACE *mris, 
                     MRI_SP *mrisp_src, 
@@ -59432,6 +59439,7 @@ MRISPiterative_blur(MRI_SURFACE *mris,
   free(curvs) ;
   return(mrisp_dst) ;
 }
+#endif
 int
 MRISripMarked(MRI_SURFACE *mris)
 {
