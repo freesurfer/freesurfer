@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/03/15 21:13:25 $
-#    $Revision: 1.75 $
+#    $Author: greve $
+#    $Date: 2007/03/23 03:47:26 $
+#    $Revision: 1.76 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.75 2007/03/15 21:13:25 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.76 2007/03/23 03:47:26 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1743,31 +1743,6 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.jacobian.touch
   endif
 
-  #-------- Contra Surface Registration ----------------#
-  if($DoContraSurfReg) then
-    if($hemi == lh) then
-      set nothemi = rh;
-    else
-      set nothemi = lh;
-    endif
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Contra Surf Reg $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    set AvgTif = ${AvgCurvTifPath}/$nothemi.${AvgCurvTif}
-    set xopts = `fsr-getxopts mris_register $XOptsFile`;
-    set cmd = (mris_register -curv -reverse ../surf/$hemi.sphere)
-    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
-    set cmd = ($cmd $xopts)
-    set cmd = ($cmd $AvgTif ../surf/$hemi.$nothemi.sphere.reg)
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.sphreg.contra.touch
-  endif
-
   #---------------- Average Curv for Display----------------------#
   if($DoAvgCurv) then
     echo "#--------------------------------------------" \
@@ -1938,6 +1913,34 @@ if($DoAParc2ASeg) then
   echo $cmd > $touchdir/aparc.a2005s2aseg.touch
 endif
 
+# -----------------------------------------------------------
+# Do Contra Surface Registration here so don't have 
+# to wait for other results
+foreach hemi ($hemilist)
+  if($DoContraSurfReg) then
+    if($hemi == lh) then
+      set nothemi = rh;
+    else
+      set nothemi = lh;
+    endif
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Contra Surf Reg $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set AvgTif = ${AvgCurvTifPath}/$nothemi.${AvgCurvTif}
+    set xopts = `fsr-getxopts mris_register $XOptsFile`;
+    set cmd = (mris_register -curv -reverse ../surf/$hemi.sphere)
+    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
+    set cmd = ($cmd $xopts)
+    set cmd = ($cmd $AvgTif ../surf/$hemi.$nothemi.sphere.reg)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.sphreg.contra.touch
+  endif
+end # hemi
 
 echo "" |& tee -a $LF
 echo "#------------------------------------------" |& tee -a $LF
