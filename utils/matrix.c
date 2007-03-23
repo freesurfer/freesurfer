@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/09 08:20:54 $
- *    $Revision: 1.105 $
+ *    $Date: 2007/03/23 20:23:28 $
+ *    $Revision: 1.106 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: matrix.c,v 1.105 2007/01/09 08:20:54 greve Exp $
+// $Id: matrix.c,v 1.106 2007/03/23 20:23:28 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -3616,3 +3616,49 @@ MatrixCheckFinite(MATRIX *m)
     }
   return(retval) ;
 }
+
+/*!
+  \fn MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k)
+  \brief Kronecker tensor product.
+*/
+MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k)
+{
+  int rows, cols;
+  int r1, c1, r2, c2, r, c;
+  double v1, v2;
+  
+  rows = m1->rows * m2->rows;
+  cols = m1->cols * m2->cols;
+
+  if(!k){
+    k = MatrixAlloc(rows,cols,MATRIX_REAL);
+    if(!k){
+      printf("ERROR: MatrixKron: could not alloc %d %d\n",rows,cols);
+      return(NULL);
+    }
+  }
+  else {
+    if(k->rows != rows || k->cols != cols){
+      printf("ERROR: MatrixKron: dimension mismatch %d %d vs %d %d\n",
+	     rows,cols,k->rows,k->cols);
+      return(NULL);
+    }
+  }
+
+  for(r1 = 1; r1 <= m1->rows; r1++){
+    for(c1 = 1; c1 <= m1->cols; c1++){
+      v1 = m1->rptr[r1][c1];
+      for(r2 = 1; r2 <= m2->rows; r2++){
+	for(c2 = 1; c2 <= m2->cols; c2++){
+	  v2 = m2->rptr[r2][c2];
+	  r = (r1-1)*m2->rows + r2;
+	  c = (c1-1)*m2->cols + c2;
+	  //printf("%d %d   %d %d   %d %d\n",r1,c1,r2,c2,r,c);
+	  k->rptr[r][c] = v1*v2;
+	}
+      }
+    }
+  }
+  return(k);
+}
+

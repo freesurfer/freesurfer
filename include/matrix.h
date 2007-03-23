@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/09 08:20:54 $
- *    $Revision: 1.62 $
+ *    $Date: 2007/03/23 20:23:28 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -261,5 +261,6 @@ MATRIX *MatrixFromRigidParameters(MATRIX *m, double xr, double yr, double zr,
                                   double xt, double yt, double zt);
 
 int MatrixCheckFinite(MATRIX *m);
+MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k);
 
 #endif
