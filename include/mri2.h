@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.16 $
+ *    $Author: greve $
+ *    $Date: 2007/03/23 05:01:02 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,6 +60,7 @@ MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst);
 MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s);
 MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out);
 MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out);
+MRI *MRIvote(MRI *in, MRI *mask, MRI *vote);
 
 #define VOX2VOXREGTYPE_FILE 0 /* Use specifed file */
 #define VOX2VOXREGTYPE_FIND 1 /* Look for register.dat in movable MRI dir */
