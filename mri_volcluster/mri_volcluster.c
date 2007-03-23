@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/06 17:52:32 $
- *    $Revision: 1.28 $
+ *    $Date: 2007/03/23 19:09:58 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -95,7 +95,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.28 2007/03/06 17:52:32 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.29 2007/03/23 19:09:58 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.28 2007/03/06 17:52:32 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.29 2007/03/23 19:09:58 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -875,6 +875,7 @@ static void print_usage(void) {
   printf("   --sum file   : text summary file \n");
   printf("   --out      output volid \n");
   printf("   --ocn      output cluster number volid \n");
+  printf("   --cwsig    clusterwise sig volid \n");
   printf("\n");
   printf("   --thmin   minthresh : minimum intensity threshold\n");
   printf("   --thmax   maxthresh : maximum intensity threshold\n");
