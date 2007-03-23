@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2006/12/30 16:38:32 $
- *    $Revision: 1.27 $
+ *    $Author: greve $
+ *    $Date: 2007/03/23 19:55:51 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1978,4 +1978,58 @@ MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, float x, fl
   }
 
   return(vmin) ;
+}
+
+/*!/
+  \fn MRI *MHThashTest(MRIS *SrcSurfReg, MRIS *TrgSurfReg, float Res, int *count)
+  \brief Tests hash by comparing to brute force. Returns mri struct with 3 frames:
+    1. distinace to closest vertex found by brute force
+    2. distinace to closest vertex found by hash
+    3. abs diff
+    count is the number of times the abs diff was > .000001
+*/
+MRI *MHThashTest(MRIS *SrcSurfReg, MRIS *TrgSurfReg, float Res, int *count)
+{
+  MRI *mri;
+  MHT *SrcHash;
+  int tvtx;
+  VERTEX *v;
+  float dmin1,dmin2;
+  int msecFitTime;
+  struct timeb  mytimer;
+
+  //SrcSurfReg = MRISread("/homes/4/greve/subjects/tl-wm/surf/lh.sphere.reg") ;
+  //TrgSurfReg = MRISread("/homes/4/greve/subjects/sh-wm/surf/lh.sphere.reg") ;
+
+  printf("Creating source hash, Res = %g\n",Res);
+  SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL,CURRENT_VERTICES,Res);
+
+  mri = MRIallocSequence(TrgSurfReg->nvertices,1,1,MRI_FLOAT,3);
+  printf("Starting loop %d\n",TrgSurfReg->nvertices);
+  printf("vtxno   runtime  count       dmin1      dmin2      diff\n");
+  TimerStart(&mytimer) ;
+  *count = 0;
+  for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++){
+    //if(tvtx%500 == 0) {printf("\n"); fflush(stdout);}
+    v = &(TrgSurfReg->vertices[tvtx]);
+    MRISfindClosestVertex(SrcSurfReg,v->x,v->y,v->z,&dmin1);
+    MRIsetVoxVal(mri,tvtx,0,0,0,dmin1);
+    MHTfindClosestVertexNo(SrcHash,SrcSurfReg,v,&dmin2);
+    MRIsetVoxVal(mri,tvtx,0,0,1,dmin2);
+    MRIsetVoxVal(mri,tvtx,0,0,1,fabs(dmin1-dmin2));
+    if(fabs(dmin1-dmin2) > .000001) {
+      (*count)++;
+      msecFitTime = TimerStop(&mytimer) ;
+      printf("%6d  %4.1f  %3d    %f %f     %f \n",
+	     tvtx,msecFitTime/(1000.0*60.0),*count,dmin1,dmin2,fabs(dmin1-dmin2)); 
+    }
+    if(tvtx%100 == 0) {
+      msecFitTime = TimerStop(&mytimer) ;
+      printf("%6d    %4.1f     %3d    %f   %f     %f \n",
+	     tvtx,msecFitTime/(1000.0*60.0),*count,dmin1,dmin2,fabs(dmin1-dmin2)); 
+      fflush(stdout);
+    }
+  }
+  MHTfree(&SrcHash);
+  return(mri);
 }

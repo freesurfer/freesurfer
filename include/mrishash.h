@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2006/12/30 16:37:53 $
- *    $Revision: 1.17 $
+ *    $Author: greve $
+ *    $Date: 2007/03/23 19:55:50 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -132,5 +132,6 @@ MRIS_HASH_TABLE *MHTaddToVertexTableRes(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, 
 MHT *msaMHTfillTable(MRI_SURFACE_ARRAY *msa, MHT *mht) ;
 MHT *msaMHTfillVertexTable(MRI_SURFACE_ARRAY *msa, MHT *mht, int which);
 
+MRI *MHThashTest(MRIS *SrcSurfReg, MRIS *TrgSurfReg, float Res, int *count);
 
 #endif
