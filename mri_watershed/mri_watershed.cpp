@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/03/22 18:47:28 $
- *    $Revision: 1.57 $
+ *    $Date: 2007/03/23 16:04:50 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,11 +33,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nommert $
-// Revision Date  : $Date: 2007/03/22 18:47:28 $
-// Revision       : $Revision: 1.57 $
+// Revision Date  : $Date: 2007/03/23 16:04:50 $
+// Revision       : $Revision: 1.58 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.57 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.58 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -761,7 +761,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.57 2007/03/22 18:47:28 nommert Exp $", "$Name:  $",
+   "$Id: mri_watershed.cpp,v 1.58 2007/03/23 16:04:50 nommert Exp $", "$Name:  $",
    cmdline);
 
   Progname=argv[0];
@@ -773,7 +773,7 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.57 2007/03/22 18:47:28 nommert Exp $", "$Name:  $");
+           "$Id: mri_watershed.cpp,v 1.58 2007/03/23 16:04:50 nommert Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4560,7 +4560,7 @@ static void analyseGM(unsigned long CSF_percent[6][256],
     MRI_var->GM_MIN[i]=int(MAX(0,-b/a));
 #ifndef __OPTIMIZE__
 
-
+  int j;
  fprintf(stdout,"\ngmnumber lead for :GLOBAL Rc Lc Rb Lb OTHER ");
   for (j=0;j<6;j++)  
     fprintf(stdout, "\n    GM_intensity = %d, GM_MIN = %d\n",
