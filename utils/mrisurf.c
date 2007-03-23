@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/03/23 13:45:37 $
- *    $Revision: 1.528 $
+ *    $Date: 2007/03/23 20:01:21 $
+ *    $Revision: 1.529 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -609,7 +609,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.528 2007/03/23 13:45:37 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.529 2007/03/23 20:01:21 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5263,7 +5263,11 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       /* only small adjustments needed after 1st time around */
       parms->tol *= 2.0f ;
       parms->l_corr /= 20.0f ;  // should be more adaptive - used to be 20
+#if 1
       parms->l_spring = .5 ;     // regularize mesh
+#else
+      MRISclearOrigDistances(mris) ;  // replicates old bug
+#endif
       if (Gdiag & DIAG_WRITE)
         mrisLogIntegrationParms(parms->fp, mris, parms) ;
       if (Gdiag & DIAG_SHOW)
@@ -16920,6 +16924,7 @@ mrisComputeDistanceError(MRI_SURFACE *mris)
   VERTEX  *v ;
   int     vno, n, nvertices, max_v, max_n, err_cnt, max_errs ;
   double  dist_scale, sse_dist, delta, v_sse, max_del ;
+  static int first = 1 ;
 
 #if METRIC_SCALE
   if (mris->patch)
@@ -16962,8 +16967,9 @@ mrisComputeDistanceError(MRI_SURFACE *mris)
 #endif
       if (v->dist_orig[n] >= UNFOUND_DIST)
         continue ;
-      if (DZERO(v->dist_orig[n]))
+      if (DZERO(v->dist_orig[n]) && first)
       {
+        first = 0 ;
         fprintf(stderr, "v[%d]->dist_orig[%d] = %f!!!!\n",
                 vno, n, v->dist_orig[n]) ;
         fflush(stderr);
@@ -29665,7 +29671,7 @@ MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
         DiagBreak() ;
 
       memset(histo, 0, sizeof(histo)) ;
-      for (n = 0 ; n < v->vnum ; n++)
+      for (n = 0 ; n < v->vtotal ; n++)
       {
         vn = &mris->vertices[v->v[n]] ;
         index = annotation_to_index(vn->annotation) ;
@@ -55002,6 +55008,23 @@ MRISclearOrigArea(MRI_SURFACE *mris)
     if (v->ripflag)
       continue ;
     v->origarea = 0 ;
+  }
+  return(NO_ERROR) ;
+}
+
+int
+MRISclearOrigDistances(MRI_SURFACE *mris)
+{
+  int     vno, n ;
+  VERTEX  *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    for (n = 0 ;  n < v->vtotal ; n++)
+      v->dist_orig[n] = 0 ;
   }
   return(NO_ERROR) ;
 }
