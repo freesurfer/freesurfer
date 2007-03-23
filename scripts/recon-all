@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/23 03:47:26 $
-#    $Revision: 1.76 $
+#    $Date: 2007/03/23 04:42:51 $
+#    $Revision: 1.77 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.76 2007/03/23 03:47:26 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.77 2007/03/23 04:42:51 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -189,6 +189,7 @@ set DoSphere         = 0;
 set DoSurfReg        = 0;
 set DoJacobian       = 0;
 set DoContraSurfReg  = 0;
+set DoContraSurfRegWithinSubject = 0;
 set DoAvgCurv        = 0;
 set DoMorphRGB       = 0;
 set DoFinalSurfs     = 0;
@@ -1917,6 +1918,8 @@ endif
 # Do Contra Surface Registration here so don't have 
 # to wait for other results
 foreach hemi ($hemilist)
+
+  # Registers ipsi and contra
   if($DoContraSurfReg) then
     if($hemi == lh) then
       set nothemi = rh;
@@ -1940,6 +1943,34 @@ foreach hemi ($hemilist)
     if($status) goto error_exit;
     echo $cmd > $touchdir/$hemi.sphreg.contra.touch
   endif
+
+  # Register ipsi to contra directly (instead of thru sphere)
+  # Creates lh.rh.sphere (note that there is no .reg)
+  if($DoContraSurfRegWithinSubject) then
+    cd $subjdir/surf
+    if($hemi == lh) then
+      set nothemi = rh;
+    else
+      set nothemi = lh;
+    endif
+    if(! -e $nothemi.inflated.H) then
+      echo "ERROR: cannot find $nothemi.inflated.H, try running -inflate2" \
+          |& tee -a $LF
+      goto error_exit;
+    endif
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Contra Surf Reg Within Subject $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    set cmd = (mris_register -dist 0.3 -reverse -1 \
+       ./$hemi.sphere ./$nothemi.sphere ./$hemi.$nothemi.sphere)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.sphere.contra.touch
+  endif
+
 end # hemi
 
 echo "" |& tee -a $LF
@@ -2453,6 +2484,13 @@ while( $#argv != 0 )
       set DoContraSurfReg = 0;
       breaksw
 
+    case "-contrasurfreg-subj":
+      set DoContraSurfRegWithinSubject = 1;
+      breaksw
+    case "-nocontrasurfreg-subj":
+      set DoContraSurfRegWithinSubject = 0;
+      breaksw
+
     case "-avgcurv":
       set DoAvgCurv = 1;
       breaksw
@@ -2611,7 +2649,7 @@ while( $#argv != 0 )
       set DoCortRibbonVolMask = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
-      set DoContraSurfReg  = 1;
+      set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
       set DoCortParc       = 1;
       set DoParcStats      = 1;
@@ -2739,7 +2777,7 @@ while( $#argv != 0 )
     case "-autorecon3":
       set DoSphere         = 1;
       set DoSurfReg        = 1;
-      set DoContraSurfReg  = 1;
+      set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
       set DoCortParc       = 1;
       set DoParcStats      = 1;
@@ -3302,8 +3340,8 @@ check_params:
      ! $DoFix  && ! $DoSmooth2 && ! $DoInflate2  && ! $DoSphere &&\
      ! $DoSkullLTA &&\
      ! $DoSurfReg  && ! $DoContraSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
-     ! $DoMorphRGB && ! $DoFinalSurfs && \
-     ! $DoCortRibbonVolMask && ! $DoJacobian &&\
+     ! $DoMorphRGB && ! $DoFinalSurfs && ! $DoContraSurfRegWithinSubject &&\
+     ! $DoCortRibbonVolMask && ! $DoJacobian && \
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoMaskBFS) then
      echo "ERROR: nothing to do"
      exit 1;
