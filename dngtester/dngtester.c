@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:57 $
- *    $Revision: 1.26 $
+ *    $Author: greve $
+ *    $Date: 2007/03/23 06:25:07 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -62,6 +62,7 @@
 #include "matrix.h"
 #include "matfile.h"
 #include "randomfields.h"
+#include "mri2.h"
 
 // setenv SUBJECTS_DIR /space/greve/1/users/greve/subjects
 // /autofs/space/greve_001/users/greve/dev/trunk/dngtester
@@ -71,8 +72,6 @@
 // Atlas: $SUBJECTS_DIR/avgtst/mri/T1MLV.mgz
 
 MRI *MRIsetSliceNo(MRI *mri, MRI *out);
-MRI *MRIvote(MRI *in, MRI *mask, MRI *vote);
-
 
 LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R);
 char *Progname = "dngtester";
@@ -97,9 +96,12 @@ int msecFitTime;
 double a,b,zthresh,pthresh;
 
 MRI *fMRIvariance2(MRI *fmri, float DOF, int RmMean, MRI *var);
+void printrgb(void);
 
 /*----------------------------------------*/
 int main(int argc, char **argv) {
+  printrgb();
+  return(0);
 
   printf("Reading\n");
   mri = MRIread(argv[1]);
@@ -207,102 +209,6 @@ MRI *fMRIvariance2(MRI *fmri, float DOF, int RmMean, MRI *var) {
 
   return(var);
 }
-
-/*---------------------------------------------------------------
-  MRIvote() - select the most frequently occuring value measured
-  across frames in each voxel. NOT TESTED YET!
-  ---------------------------------------------------------------*/
-MRI *MRIvote(MRI *in, MRI *mask, MRI *vote) {
-  int c, r, s, f, f0, ncols, nrows, nslices,nframes;
-  float m;
-  double vmax,v,v0;
-  int runlen, runlenmax;
-  MRI *sorted;
-
-  if (0 && in->type != MRI_INT && in->type != MRI_SHORT &&
-      in->type != MRI_LONG && in->type != MRI_UCHAR) {
-    printf("ERROR: MRIvote(): input is not of integer class\n");
-    return(NULL);
-  }
-
-  sorted = MRIsort(in,mask,NULL);
-  if (sorted == NULL) return(NULL);
-
-  ncols   = in->width;
-  nrows   = in->height;
-  nslices = in->depth;
-  nframes = in->nframes;
-
-  if (vote==NULL) {
-    vote = MRIallocSequence(ncols, nrows, nslices, in->type, 1);
-    if (vote==NULL) {
-      printf("ERROR: MRIvote: could not alloc\n");
-      return(NULL);
-    }
-    MRIcopyHeader(in,vote);
-    vote->nframes = 1;
-  }
-  if (in->type != vote->type) {
-    printf("ERROR: MRIvote: type mismatch\n");
-    return(NULL);
-  }
-  if (vote->width != ncols   || vote->height  != nrows ||
-      vote->depth != nslices || vote->nframes != 1) {
-    printf("ERROR: MRIvote: dimension mismatch\n");
-    return(NULL);
-  }
-
-  vmax = 0;
-  runlenmax = 0;
-  for (s=0; s<nslices; s++) {
-    for (r=0; r<nrows; r++) {
-      for (c=0; c<ncols; c++) {
-        if (mask) {
-          m = MRIgetVoxVal(mask,c,r,s,0);
-          if (m < 0.5) continue;
-        }
-        v0 = MRIgetVoxVal(sorted,c,r,s,0); // value at start of run
-        f0 = 0;                            // frame at start of run
-        f = 1;
-        while (f < nframes) {
-          v = MRIgetVoxVal(sorted,c,r,s,f);
-          if (v0 != v) {
-            // new value is different than that of run start
-            runlen = f - f0; // runlength for v0
-            if (runlenmax < runlen) {
-              runlenmax = runlen;
-              vmax = v0;
-              v0 = v;
-              f0 = f;
-            }
-          }
-          f++;
-        }
-        // Need to do this one more time in case last value
-        // has the longest run
-        runlen = f - f0;
-        if (runlenmax < runlen) {
-          runlenmax = runlen;
-          vmax = v0;
-          v0 = v;
-          f0 = f;
-        }
-        MRIsetVoxVal(vote,c,r,s,0,vmax);
-        // Should probably keep track of max run length
-      } // cols
-    } // rows
-  } // slices
-
-  MRIfree(&sorted);
-  return(vote);
-}
-
-
-
-
-
-
-
 
 
 
@@ -421,4 +327,30 @@ double pcluster(double clustersize, double vthresh, double fwhm,
 #endif
 
   return(p);
+}
+
+void printrgb(void)
+{
+  double f,r,g,b;
+
+  for(f=0; f<64; f++){
+    if(f < 25)      r =  0.0;
+    else if(f < 40) r = -1.5 + .065*f;
+    else if(f < 57) r =  1.0;
+    else            r =  4.5 - .065*f;
+
+    if(f < 9)       g =  0.0;
+    else if(f < 23) g = -0.5 + .065*f;
+    else if(f < 41) g =  1.0;
+    else if(f < 55) g =  3.5 - .065*f;
+    else            g = 0;
+
+    if(f < 7)       b =  0.5 + .065*f;
+    else if(f < 25) b =  1.0;
+    else if(f < 40) b =  2.5 - .065*f;
+    else            b =  0.0;
+
+    printf("%6.4f %6.4f %6.4f %6.4f\n",f,r,g,b);
+
+  }
 }
