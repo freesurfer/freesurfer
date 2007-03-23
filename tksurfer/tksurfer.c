@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/14 23:01:35 $
- *    $Revision: 1.259 $
+ *    $Date: 2007/03/23 02:49:10 $
+ *    $Revision: 1.260 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -6071,7 +6071,7 @@ read_image_info(char *fpref) {
     mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
   }
 
-  if (NULL == mri_header) {
+  if(NULL == mri_header) {
     sprintf (fname, "%s/%s/mri/T1.mgh", subjectsdir, pname);
     fTest = fopen (fname, "r");
     if (NULL != fTest) {
@@ -6080,7 +6080,7 @@ read_image_info(char *fpref) {
     }
   }
 
-  if (NULL == mri_header) {
+  if(NULL == mri_header) {
     sprintf (fname, "%s/%s/mri/T1.mgz", subjectsdir, pname);
     fTest = fopen (fname, "r");
     if (NULL != fTest) {
@@ -6088,10 +6088,30 @@ read_image_info(char *fpref) {
       mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
     }
   }
+  if(NULL == mri_header) {
+    sprintf (fname, "%s/%s/mri/orig.mgz", subjectsdir, pname);
+    fTest = fopen (fname, "r");
+    if (NULL != fTest) {
+      fclose (fTest);
+      mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+    }
+  }
+  if(NULL == mri_header) {
+    sprintf (fname, "%s/%s/mri/orig.mgh", subjectsdir, pname);
+    fTest = fopen (fname, "r");
+    if (NULL != fTest) {
+      fclose (fTest);
+      mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+    }
+  }
 
+  if(NULL == mri_header) {
+    printf ("ERROR: could not read header info from T1 or orig in %s/%s/mri\n",
+	    subjectsdir, pname);
+    exit(1);
+  }
   if (mri_header) {
     printf ("surfer: Reading header info from %s\n", fname);
-
     imnr0 = mri_header->imnr0;
     imnr1 = mri_header->imnr1;
     xnum = mri_header->width;
@@ -6104,13 +6124,8 @@ read_image_info(char *fpref) {
     yy1 = mri_header->yend;
     zz0 = mri_header->zstart;
     zz1 = mri_header->zend;
-
     fov = MRIfovCol( mri_header );
-
     MRIfree (&mri_header);
-  } else {
-    printf("surfer: ### Could not find anatomical header information.\n");
-    exit(1);
   }
 
   /* RKT: Check for fov == 0, which is incorrect. If it is, set it to
@@ -19093,7 +19108,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.259 2007/03/14 23:01:35 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.260 2007/03/23 02:49:10 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
