@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/21 15:54:01 $
- *    $Revision: 1.22 $
+ *    $Date: 2007/03/23 20:00:07 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.22 2007/02/21 15:54:01 fischl Exp $";
+  "$Id: mris_ca_label.c,v 1.23 2007/03/23 20:00:07 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -146,7 +146,7 @@ main(int argc, char *argv[]) {
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s for %s",
               Progname, fname, subject_name) ;
-  MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRISresetNeighborhoodSize(mris, nbrs) ;
   mris->ct = gcsa->ct ; /* hack so that color table
                                    will get written into annot file */
 
