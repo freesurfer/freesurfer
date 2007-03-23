@@ -11,9 +11,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/03 00:04:11 $
- *    $Revision: 1.5 $
+ *    $Author: dsjen $
+ *    $Date: 2007/03/23 15:19:46 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSVolumeSource );
-vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.6 $" );
 
 vtkFSVolumeSource::vtkFSVolumeSource () :
     mMRI( NULL ),
@@ -537,36 +537,36 @@ vtkFSVolumeSource::CopyMRIToImage () {
   for ( nZ = 0; nZ < zZ; nZ++ ) {
     for ( nY = 0; nY < zY; nY++ ) {
 #if 1
-      for ( int nX = 0; nX < zY; nX++ ) {
-	for ( int nFrame = 0; nFrame < zFrames; nFrame++ ) {
+      for ( int nX = 0; nX < zX; nX++ ) {
+        for ( int nFrame = 0; nFrame < zFrames; nFrame++ ) {
 	  
-	  switch ( mMRI->type ) {
-	  case MRI_UCHAR:
-	    scalars->InsertComponent( nTuple, nFrame, 
-				      MRIseq_vox( mMRI, nX, nY, nZ, nFrame ) );
-	    break;
-	  case MRI_INT:
-	    scalars->InsertComponent( nTuple, nFrame, 
-				      MRIIseq_vox( mMRI, nX, nY, nZ, nFrame ) );
-	    break;
-	  case MRI_LONG:
-	    scalars->InsertComponent( nTuple, nFrame, 
-				      MRILseq_vox( mMRI, nX, nY, nZ, nFrame ) );
-	    break;
-	  case MRI_FLOAT:
-	    scalars->InsertComponent( nTuple, nFrame, 
-				      MRIFseq_vox( mMRI, nX, nY, nZ, nFrame ) );
-	    break;
-	  case MRI_SHORT:
-	    scalars->InsertComponent( nTuple, nFrame, 
-				      MRISseq_vox( mMRI, nX, nY, nZ, nFrame ) );
-	    break;
-	  default:
-	    break;
-	  }
+      	  switch ( mMRI->type ) {
+      	  case MRI_UCHAR:
+      	    scalars->InsertComponent( nTuple, nFrame, 
+      				      MRIseq_vox( mMRI, nX, nY, nZ, nFrame ) );
+      	    break;
+      	  case MRI_INT:
+      	    scalars->InsertComponent( nTuple, nFrame, 
+      				      MRIIseq_vox( mMRI, nX, nY, nZ, nFrame ) );
+      	    break;
+      	  case MRI_LONG:
+      	    scalars->InsertComponent( nTuple, nFrame, 
+      				      MRILseq_vox( mMRI, nX, nY, nZ, nFrame ) );
+      	    break;
+      	  case MRI_FLOAT:
+      	    scalars->InsertComponent( nTuple, nFrame, 
+      				      MRIFseq_vox( mMRI, nX, nY, nZ, nFrame ) );
+      	    break;
+      	  case MRI_SHORT:
+      	    scalars->InsertComponent( nTuple, nFrame, 
+      				      MRISseq_vox( mMRI, nX, nY, nZ, nFrame ) );
+      	    break;
+      	  default:
+      	    break;
+      	  }
 	  
-	  nTuple++;
-	}
+        nTuple++;
+        }
       }
       
 #else
