@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/19 20:07:57 $
- *    $Revision: 1.285 $
+ *    $Author: fischl $
+ *    $Date: 2007/03/23 20:00:30 $
+ *    $Revision: 1.286 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1380,6 +1380,7 @@ int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
 
 
 int MRISclearOrigArea(MRI_SURFACE *mris) ;
+int MRISclearOrigDistances(MRI_SURFACE *mris) ;
 int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
                 MRIS_HASH_TABLE *mht, int which) ;
 int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
