@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/23 19:55:51 $
- *    $Revision: 1.28 $
+ *    $Date: 2007/03/24 17:29:35 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1994,7 +1994,7 @@ MRI *MHThashTest(MRIS *SrcSurfReg, MRIS *TrgSurfReg, float Res, int *count)
   MHT *SrcHash;
   int tvtx;
   VERTEX *v;
-  float dmin1,dmin2;
+  float dmin1=0,dmin2=0;
   int msecFitTime;
   struct timeb  mytimer;
 
