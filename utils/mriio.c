@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/12 21:17:05 $
- *    $Revision: 1.329 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/26 19:36:26 $
+ *    $Revision: 1.330 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1697,7 +1697,7 @@ static MRI *corRead(char *fname, int read_volume)
     }
     for (j = 0;j < mri->height;j++)
     {
-      if (fread(mri->slices[i-mri->imnr0][j], 1, mri->width, fp) <
+      if ((int)fread(mri->slices[i-mri->imnr0][j], 1, mri->width, fp) <
           mri->width)
       {
         MRIfree(&mri);
@@ -1872,7 +1872,7 @@ static int corWrite(MRI *mri, char *fname)
     }
     for (j = 0;j < mri->height;j++)
     {
-      if (fwrite(mri->slices[i-mri->imnr0][j], 1, mri->width, fp) <
+      if ((int)fwrite(mri->slices[i-mri->imnr0][j], 1, mri->width, fp) <
           mri->width)
       {
         fclose(fp);
@@ -5466,7 +5466,7 @@ static MRI *genesisRead(char *fname, int read_volume)
 
       for (y = 0;y < mri->height;y++)
       {
-        if (fread(&MRISseq_vox(mri, 0, y, slice, frame),
+        if ((int)fread(&MRISseq_vox(mri, 0, y, slice, frame),
                   sizeof(short), mri->width, fp) != mri->width)
         {
           fclose(fp);
@@ -5757,7 +5757,7 @@ static MRI *gelxRead(char *fname, int read_volume)
 
       for (y = 0;y < mri->height;y++)
       {
-        if (fread(mri->slices[i-im_low][y], 2, mri->width, fp) !=
+        if ((int)fread(mri->slices[i-im_low][y], 2, mri->width, fp) !=
             mri->width)
         {
           fclose(fp);
@@ -6711,7 +6711,7 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
     k = i + mri->depth*frame;
     for (j = 0;j < mri->height;j++)
     {
-      if (fwrite(mri->slices[k][j], bytes_per_voxel, mri->width, fp) !=
+      if ((int)fwrite(mri->slices[k][j], bytes_per_voxel, mri->width, fp) !=
           mri->width)
       {
         errno = 0;
@@ -6984,7 +6984,7 @@ static int analyzeWrite4D(MRI *mri, char *fname)
       k = i + mri->depth*frame;
       for (j = 0;j < mri->height;j++)
       {
-        if (fwrite(mri->slices[k][j], bytes_per_voxel, mri->width, fp) !=
+        if ((int)fwrite(mri->slices[k][j], bytes_per_voxel, mri->width, fp) !=
             mri->width)
         {
           errno = 0;
@@ -7237,7 +7237,7 @@ static MRI *gdfRead(char *fname, int read_volume)
   x_ras_d, y_ras_d, z_ras_d, c_ras_d;
   int data_type;
   int orientation = MRI_UNDEFINED;
-  char *or;
+  char *or_ptr;
   char os_orig[STRLEN];
   float units_factor;
   char file_path_1[STRLEN], file_path_2[STRLEN];
@@ -7423,13 +7423,13 @@ static MRI *gdfRead(char *fname, int read_volume)
   }
 
   /* --- orientation --- */
-  or = strrchr(orientation_string, ' ');
-  or = (or == NULL ? orientation_string : or+1);
-  if (strncmp(or, "cor", 3) == 0)
+  or_ptr = strrchr(orientation_string, ' ');
+  or_ptr = (or_ptr == NULL ? orientation_string : or_ptr+1);
+  if (strncmp(or_ptr, "cor", 3) == 0)
     orientation = MRI_CORONAL;
-  else if (strncmp(or, "sag", 3) == 0)
+  else if (strncmp(or_ptr, "sag", 3) == 0)
     orientation = MRI_SAGITTAL;
-  else if (strncmp(or, "ax", 2) == 0 || strncmp(or, "hor", 3) == 0)
+  else if (strncmp(or_ptr, "ax", 2) == 0 || strncmp(or_ptr, "hor", 3) == 0)
     orientation = MRI_HORIZONTAL;
   else if (!(x_ras_d && y_ras_d && z_ras_d))
   {
@@ -7690,7 +7690,7 @@ static MRI *gdfRead(char *fname, int read_volume)
     {
       for (j = 0;j < mri->height;j++)
       {
-        if (fread(ucbuf, 1, mri->width, fp) != mri->width)
+        if ((int)fread(ucbuf, 1, mri->width, fp) != mri->width)
         {
           free(ucbuf);
           MRIfree(&mri);
@@ -7708,7 +7708,7 @@ static MRI *gdfRead(char *fname, int read_volume)
     {
       for (j = 0;j < mri->height;j++)
       {
-        if (fread(sbuf, sizeof(short), mri->width, fp) != mri->width)
+        if ((int)fread(sbuf, sizeof(short), mri->width, fp) != mri->width)
         {
           free(sbuf);
           MRIfree(&mri);
@@ -7731,7 +7731,7 @@ static MRI *gdfRead(char *fname, int read_volume)
     {
       for (j = 0;j < mri->height;j++)
       {
-        if (fread(fbuf, sizeof(float), mri->width, fp) != mri->width)
+        if ((int)fread(fbuf, sizeof(float), mri->width, fp) != mri->width)
         {
           free(fbuf);
           MRIfree(&mri);
@@ -9383,7 +9383,7 @@ static MRI *ximgRead(char *fname, int read_volume)
 
       for (y = 0;y < mri->height;y++)
       {
-        if (fread(mri->slices[i-im_low][y], 2, mri->width, fp) !=
+        if ((int)fread(mri->slices[i-im_low][y], 2, mri->width, fp) !=
             mri->width)
         {
           fclose(fp);
@@ -10217,7 +10217,7 @@ static int nifti1Write(MRI *mri, char *fname)
       for (j = 0;j < mri->height;j++)
       {
         buf = &MRIseq_vox(mri, 0, j, k, t);
-        if (fwrite(buf, hdr.bitpix/8, mri->width, fp) != mri->width)
+        if ((int)fwrite(buf, hdr.bitpix/8, mri->width, fp) != mri->width)
         {
           fclose(fp);
           errno = 0;
@@ -10956,9 +10956,9 @@ static int niiWrite(MRI *mri, char *fname)
   }
 
   // Fill in space to the voxel offset
-  nfill = hdr.vox_offset-sizeof(hdr);
+  nfill = (int)hdr.vox_offset-sizeof(hdr);
   chbuf = (char *) calloc(nfill,sizeof(char));
-  if (znzwrite(chbuf, sizeof(char), nfill, fp) != nfill)
+  if ((int)znzwrite(chbuf, sizeof(char), nfill, fp) != nfill)
   {
     znzclose(fp);
     errno = 0;
@@ -10974,7 +10974,7 @@ static int niiWrite(MRI *mri, char *fname)
       for (j = 0;j < mri->height;j++)
       {
         buf = &MRIseq_vox(mri, 0, j, k, t);
-        if (znzwrite(buf, hdr.bitpix/8, mri->width, fp) != mri->width)
+        if ((int)znzwrite(buf, hdr.bitpix/8, mri->width, fp) != mri->width)
         {
           znzclose(fp);
           errno = 0;
@@ -11472,7 +11472,7 @@ MRI *MRIreadGeRoi(char *fname, int n_slices)
 
       for (y = 0;y < mri->height;y++)
       {
-        if (fread(mri->slices[i][y], 2, mri->width, fp) != mri->width)
+        if ((int)fread(mri->slices[i][y], 2, mri->width, fp) != mri->width)
         {
           fclose(fp);
           MRIfree(&mri);
@@ -11766,7 +11766,7 @@ MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type)
   /* every width x height pixels should be another slice */
   for (slice = 0 ; slice < depth ; slice++)
   {
-    if (fread(buf, data_size[type], pixels, fp) != pixels)
+    if ((int)fread(buf, data_size[type], pixels, fp) != pixels)
     {
       errno = 0;
       ErrorReturn(NULL,
@@ -12215,7 +12215,7 @@ mghRead(char *fname, int read_volume, int frame)
     {
       for (z = 0 ; z < depth ; z++)
       {
-        if (fread(buf, sizeof(char), bytes, fp) != bytes)
+        if ((int)fread(buf, sizeof(char), bytes, fp) != bytes)
         {
           // fclose(fp) ;
           myclose(fp);
@@ -12386,7 +12386,7 @@ mghRead(char *fname, int read_volume, int frame)
           ErrorExit(ERROR_NOMEMORY,
                     "mghRead(%s): too many commands (%d) in file",
                     fname,mri->ncmds);
-        mri->cmdlines[mri->ncmds] = calloc(len+1, sizeof(char)) ;
+        mri->cmdlines[mri->ncmds] = (char*) calloc(len+1, sizeof(char)) ;
         fread(mri->cmdlines[mri->ncmds], sizeof(char), len, fp) ;
         mri->cmdlines[mri->ncmds][len] = 0 ;
         mri->ncmds++ ;
@@ -12593,7 +12593,7 @@ mghWrite(MRI *mri, char *fname, int frame)
           }
           break ;
         case MRI_UCHAR:
-          if (fwrite(&MRIseq_vox(mri,0,y,z,frame),
+          if ((int)fwrite(&MRIseq_vox(mri,0,y,z,frame),
                      sizeof(BUFTYPE), width, fp)
               != width)
           {
@@ -13019,7 +13019,7 @@ mghAppend(MRI *mri, char *fname, int frame)
           }
           break ;
         case MRI_UCHAR:
-          if (fwrite(&MRIseq_vox(mri,0,y,z,frame),
+          if ((int)fwrite(&MRIseq_vox(mri,0,y,z,frame),
                      sizeof(BUFTYPE), width, fp)
               != width)
           {
