@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/03/23 15:19:46 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/03/26 17:09:08 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSVolumeSource );
-vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.7 $" );
 
 vtkFSVolumeSource::vtkFSVolumeSource () :
     mMRI( NULL ),
@@ -225,10 +225,10 @@ vtkFSVolumeSource::Execute () {
   output->SetSpacing( mImageData->GetSpacing() );
   output->SetOrigin( mImageData->GetOrigin() );
   output->SetDimensions( mImageData->GetDimensions() );
-
+  
   // Just pass the output a pointer to our scalars.
   output->GetPointData()->SetScalars
-  ( mImageData->GetPointData()->GetScalars() );
+    ( mImageData->GetPointData()->GetScalars() );
 }
 
 
@@ -252,8 +252,49 @@ vtkFSVolumeSource::ExecuteInformation () {
 
 
 float
-vtkFSVolumeSource::GetValueAtIndex (float iIdxX, float iIdxY, float iIdxZ ) {
+vtkFSVolumeSource::GetValueAtIndex (float iIdxX, float iIdxY, float iIdxZ, float iIdxFrame ) {
 
+  if ( mMRI == NULL ) {
+    vtkErrorMacro( << "No MRI is present." );
+    return -1;
+  }
+
+  int aDimensions[3];
+  mImageData->GetDimensions( aDimensions );
+  if ( iIdxX < 0 || iIdxX >= aDimensions[0] ||
+       iIdxY < 0 || iIdxY >= aDimensions[1] ||
+       iIdxZ < 0 || iIdxZ >= aDimensions[2] ) {
+    return -1;
+  }
+
+  float oValue = -1;
+  switch ( mMRI->type ) {
+  case MRI_UCHAR:
+    oValue = MRIseq_vox( mMRI, (int)iIdxX, (int)iIdxY, (int)iIdxZ, (int)iIdxFrame );
+    break;
+  case MRI_INT:
+    oValue = MRIIseq_vox( mMRI, (int)iIdxX, (int)iIdxY, (int)iIdxZ, (int)iIdxFrame );
+    break;
+  case MRI_LONG:
+    oValue = MRILseq_vox( mMRI, (int)iIdxX, (int)iIdxY, (int)iIdxZ, (int)iIdxFrame );
+    break;
+  case MRI_FLOAT:
+    oValue = MRIFseq_vox( mMRI, (int)iIdxX, (int)iIdxY, (int)iIdxZ, (int)iIdxFrame );
+    break;
+  case MRI_SHORT:
+    oValue = MRISvox( mMRI, (int)iIdxX, (int)iIdxY, (int)iIdxZ );
+    break;
+  default:
+    oValue = 0;
+    break ;
+  }
+
+  return oValue;
+
+}
+
+float
+vtkFSVolumeSource::GetValueAtIndex (float iIdxX, float iIdxY, float iIdxZ ) {
 
   if ( mMRI == NULL ) {
     vtkErrorMacro( << "No MRI is present." );
@@ -520,9 +561,15 @@ vtkFSVolumeSource::CopyMRIToImage () {
   default:
     break ;
   }
+
   if ( NULL == scalars ) {
     vtkErrorMacro(<< "Couldn't allocate scalars array.");
     return;
+  }
+  
+  // change the number of components to store tuples
+  if( zFrames > 1 ) {
+    scalars->SetNumberOfComponents( zFrames );
   }
 
   cValues = zX * zY * zZ;
@@ -559,14 +606,15 @@ vtkFSVolumeSource::CopyMRIToImage () {
       	    break;
       	  case MRI_SHORT:
       	    scalars->InsertComponent( nTuple, nFrame, 
-      				      MRISseq_vox( mMRI, nX, nY, nZ, nFrame ) );
+      				      MRISseq_vox( mMRI, nX, nY, nZ, nFrame ) );                    
       	    break;
       	  default:
       	    break;
       	  }
 	  
-        nTuple++;
         }
+        nTuple++;
+                
       }
       
 #else
@@ -605,7 +653,7 @@ vtkFSVolumeSource::CopyMRIToImage () {
   
   // Assign the scalars array to the image.
   mImageData->GetPointData()->SetScalars( scalars );
-
+  
   scalars->Delete();
 
   this->Modified();

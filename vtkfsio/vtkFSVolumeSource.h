@@ -11,9 +11,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/03 00:04:11 $
- *    $Revision: 1.2 $
+ *    $Author: dsjen $
+ *    $Date: 2007/03/26 17:09:08 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -89,6 +89,8 @@ public:
   float GetValueAtIndex ( float iIdxX, float iIdxY, float iIdxZ );
   void  SetValueAtIndex ( float iIdxX, float iIdxY, float iIdxZ,
                           float iValue );
+  float GetValueAtIndex (float iIdxX, float iIdxY, float iIdxZ, float iIdxFrame );
+
 
   // Description:
   // Get the min and max value in the volume.
