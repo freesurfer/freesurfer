@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/15 16:35:47 $
- *    $Revision: 1.306 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/26 19:40:10 $
+ *    $Revision: 1.307 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.306 $";
+char *VERSION = "$Revision: 1.307 $";
 
 #define TCL
 #define TKMEDIT
@@ -151,6 +151,7 @@ char *tkm_ksaErrorStrings [tkm_knNumErrorCodes] = {
       "Couldn't load the FSGDF file.",
       "Error accessing a file.",
       "Error accessing the anatomical volume.",
+      "Error accessing the RAS transform.",
       "Error accessing the segmentation.",
       "Error accessing the functional volume.",
       "Error accessing the list.",
@@ -403,7 +404,7 @@ static mriVolumeRef     gAnatomicalVolume[tkm_knNumVolumeTypes];
 static int              gnAnatomicalDimensionX = 0;
 static int              gnAnatomicalDimensionY = 0;
 static int              gnAnatomicalDimensionZ = 0;
-static mriTransformRef  gIdxToRASTransform    = NULL;
+static mriTransformRef  gMRIIdxToAnaIdxTransform    = NULL;
 static tBoolean         gbAnatomicalVolumeDirty[tkm_knNumVolumeTypes];
 
 tkm_tErr LoadVolume    ( tkm_tVolumeType iType,
@@ -1163,6 +1164,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   char          sAnnotation[tkm_knPathLen] = "";
   char          sAnnotationColorTable[tkm_knPathLen] = "";
 
+  tBoolean      bMIP = FALSE;
+
   DebugEnterFunction( ("ParseCmdLineArgs( argc=%d, argv=%s )",
                        argc, argv[0]) );
 
@@ -1188,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.306 2007/03/15 16:35:47 greve Exp $",
+     "$Id: tkmedit.c,v 1.307 2007/03/26 19:40:10 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1304,6 +1307,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-headpts <points> [<trans>]   : load head points file "
            "and optional\n");
     printf("                              : transformation\n");
+    printf("\n");
+    printf("-mip: turn on maximum intensity projection");
     printf("\n");
     printf("-interface script    : specify interface script "
            "(default is tkmedit.tcl)\n");
@@ -2409,6 +2414,13 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
         gbUseCsurfInterface = TRUE;
         nCurrentArg ++;
 
+      } else if ( MATCH( sArg, "-mip" ) ) {
+
+        /* Set the maximum intensity projection flag */
+        DebugNote( ("Parsing -mip option") );
+        bMIP = TRUE;
+        nCurrentArg ++;
+
       } else {
 
         /* unrecognized option, build an error message and ignore it. */
@@ -2587,13 +2599,13 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   if ( bScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( gAnatomicalVolume[tkm_tVolumeType_Main] );
     Volm_GetIdxToRASTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
-                               &gIdxToRASTransform );
+                               &gMRIIdxToAnaIdxTransform );
     AllocateSelectionVolume();
 
     /* This changes when you resize the volume like that, so get it
        again. */
     Volm_GetIdxToRASTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
-                               &gIdxToRASTransform );
+                               &gMRIIdxToAnaIdxTransform );
 
   }
 
@@ -2624,7 +2636,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     if ( bScaleUpVolume ) {
       Volm_SetMinVoxelSizeToOne( gAnatomicalVolume[tkm_tVolumeType_Aux] );
       Volm_GetIdxToRASTransform( gAnatomicalVolume[tkm_tVolumeType_Aux],
-                                 &gIdxToRASTransform );
+                                 &gMRIIdxToAnaIdxTransform );
     }
   }
 
@@ -2792,6 +2804,13 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
                 nUseOverlayCacheFlag) );
     eFunctional = FunV_UseOverlayCache( gFunctionalVolume,
                                         (tBoolean) nUseOverlayCacheFlag );
+  }
+
+  /* Maximum intensity projection. */
+  if ( bMIP ) {
+    DebugNote( ("Setting MIP flag on\n") );
+    MWin_SetDisplayFlag( gMeditWindow, -1,
+			 DspA_tDisplayFlag_MaxIntProj, bMIP );
   }
 
   /* rkt - commented out because the functional volume should no
@@ -3268,15 +3287,15 @@ tkm_tErr CalcAndSetSurfaceClientTransformation ( tkm_tSurfaceType iType ) {
   DebugEnterFunction( ("CalcAndSetSurfaceClientTransformation( iType=%d )",
                        (int)iType) );
 
-  // gIdxToRASTransform keeps track of
+  // gMRIIdxToAnaIdxTransform keeps track of
   //        src ---> RAS
   //  non-   |        |
   //  triv   |        |identity
   //         V        V
   //    conformed --> RAS
   //      256^3
-  DebugNote( ("Cloning gIdxToRASTransform to get surfaceTransform") );
-  eTrns = Trns_DeepClone( gIdxToRASTransform, &surfaceTransform );
+  DebugNote( ("Cloning gMRIIdxToAnaIdxTransform to get surfaceTransform") );
+  eTrns = Trns_DeepClone( gMRIIdxToAnaIdxTransform, &surfaceTransform );
   DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
                      eResult, tkm_tErr_CouldntAllocate );
 
@@ -3323,8 +3342,8 @@ tkm_tErr CalcAndSetSurfaceClientTransformation ( tkm_tSurfaceType iType ) {
 
   // in order to calculate ARAStoBRAS,
   // we use   ( RAS-> src ) then  ( src -> conformed )  then ( B->RAS )
-  tmp1 = MatrixInverse(gIdxToRASTransform->mAtoRAS, NULL);
-  tmp2 = MatrixMultiply(gIdxToRASTransform->mAtoB, tmp1, NULL);
+  tmp1 = MatrixInverse(gMRIIdxToAnaIdxTransform->mAtoRAS, NULL);
+  tmp2 = MatrixMultiply(gMRIIdxToAnaIdxTransform->mAtoB, tmp1, NULL);
   tmp1 = MatrixMultiply(surfaceTransform->mBtoRAS, tmp2, NULL);
   Trns_CopyARAStoBRAS(surfaceTransform, tmp1);
 
@@ -5870,7 +5889,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.306 2007/03/15 16:35:47 greve Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.307 2007/03/26 19:40:10 kteich Exp $ $Name:  $\n"
     )
   );
 
@@ -8382,7 +8401,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   if ( gbScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( newVolume );
     Volm_GetIdxToRASTransform( newVolume,
-                               &gIdxToRASTransform );
+                               &gMRIIdxToAnaIdxTransform );
   }
 
   /* if the volume exists, get the brightness and contrast to restore
@@ -8484,7 +8503,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
       /* get a ptr to the idx to ras transform */
       DebugNote( ("Getting a pointer to the idx to RAS transform") );
       Volm_GetIdxToRASTransform( gAnatomicalVolume[iType],
-                                 &gIdxToRASTransform );
+                                 &gMRIIdxToAnaIdxTransform );
       break;
     case tkm_tVolumeType_Aux:
       eWindow =  MWin_SetAuxVolume( gMeditWindow, -1,
@@ -12072,6 +12091,8 @@ tkm_tErr LoadHeadPts ( char* isHeadPtsFile,
   char      sTransformFile[tkm_knPathLen] = "";
   char*      spTransformFileArg      = NULL;
   char      sError[tkm_knErrStringLen]    = "";
+  MATRIX*   anaIdxToRASTransform = NULL;
+  MATRIX*   RAStoAnaIdxTransform = NULL;
 
   DebugEnterFunction( ("LoadHeadPts( isHeadPtsFile=%s, isTransformFile=%s )",
                        isHeadPtsFile, isTransformFile) );
@@ -12089,9 +12110,23 @@ tkm_tErr LoadHeadPts ( char* isHeadPtsFile,
     spTransformFileArg = NULL;
   }
 
+  /* Get a transform going from RAS -> ana Idx for our client
+     transform. This is ras->b from our Idx->RAS transform, so we need
+     to get b->ras and invert it..*/
+  DebugNote( ("Getting RAS->anaIdx transform") );
+  Trns_GetBtoRAS( gMRIIdxToAnaIdxTransform, &anaIdxToRASTransform );
+  DebugAssertThrowX( (NULL != anaIdxToRASTransform),
+		     eResult, tkm_tErr_ErrorAccessingTransform );
+
+  DebugNote( ("Inverting RAS->anaIdx transform") );
+  RAStoAnaIdxTransform = MatrixInverse( anaIdxToRASTransform, NULL );
+  DebugAssertThrowX( (NULL != RAStoAnaIdxTransform),
+		     eResult, tkm_tErr_ErrorAccessingTransform );
+
+  /* Read the head points. */
   DebugNote( ("Creating head points list") );
-  eHeadPts = HPtL_New( &gHeadPoints,
-                       sHeadPtsFile, spTransformFileArg, gIdxToRASTransform );
+  eHeadPts = HPtL_New( &gHeadPoints, sHeadPtsFile, spTransformFileArg, 
+		       RAStoAnaIdxTransform ); 
   DebugAssertThrowX( (HPtL_tErr_NoErr == eHeadPts),
                      eResult, tkm_tErr_CouldntLoadHeadPointsList );
 
@@ -12115,6 +12150,16 @@ tkm_tErr LoadHeadPts ( char* isHeadPtsFile,
                     "transform file you specified wasn't valid or "
                     "found. " );
   EndDebugCatch;
+
+  if( NULL != anaIdxToRASTransform ) {
+    DebugNote( ("Freeing anaIdxToRASTransform") );
+    MatrixFree( &anaIdxToRASTransform );
+  }
+
+  if( NULL != RAStoAnaIdxTransform ) {
+    DebugNote( ("Freeing RAStoAnaIdxTransform") );
+    MatrixFree( &RAStoAnaIdxTransform );
+  }
 
   DebugExitFunction;
 

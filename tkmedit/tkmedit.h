@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:16 $
- *    $Revision: 1.53 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/26 19:40:11 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -87,6 +87,7 @@ typedef enum {
   tkm_tErr_CouldntLoadGDF,
   tkm_tErr_ErrorAccessingFile,
   tkm_tErr_ErrorAccessingVolume,
+  tkm_tErr_ErrorAccessingTransform,
   tkm_tErr_ErrorAccessingSegmentationVolume,
   tkm_tErr_ErrorAccessingFunctionalVolume,
   tkm_tErr_ErrorAccessingList,
