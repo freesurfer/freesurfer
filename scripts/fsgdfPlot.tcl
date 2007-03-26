@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/16 19:20:16 $
-##    $Revision: 1.19 $
+##    $Date: 2007/03/26 20:54:24 $
+##    $Revision: 1.20 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -293,6 +293,26 @@ proc FsgdfPlot_BuildDynamicWindowElements { iID } {
 # ID number for the fsgdf.
 proc FsgdfPlot_ParseHeader { ifnHeader } {
     global gGDF gPlot gWidgets kValid
+
+    # Make sure the file exists and has a PlotFile line. If not, we
+    # can't graph it.
+    if { ![file readable $ifnHeader] } {
+	puts "FSGD file doesn't exist or isn't readable."
+	return -1
+    }
+
+    set bFound 0
+    set fHeader [open $ifnHeader "r"]
+    while { [gets $fHeader sLine] >= 0 } {
+	if { [regexp -- PlotFile $sLine] } {
+	    set bFound 1
+	    break
+	}
+    }
+    if { !$bFound } {
+	puts "FSGD file doesn't contain a PlotFile entry."
+	return -1
+    }
 
     # Generate a new ID.
     set ID 0
