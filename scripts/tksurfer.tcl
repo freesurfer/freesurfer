@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/26 21:10:06 $
-##    $Revision: 1.139 $
+##    $Date: 2007/03/26 21:15:38 $
+##    $Revision: 1.140 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -84,7 +84,7 @@ array set gaFileNameDefDirs [list \
     kFileName_BEM       "$home/$subject/bem" \
     kFileName_FMRI      "$home/$subject/fmri" \
     kFileName_RGB       "$home/$subject/rgb" \
-    kFileName_TIFF      "$home/$subject/rgb" \
+    kFileName_TIFF      "$home/$subject/tiff" \
     kFileName_Home      "$home/$subject" \
     kFileName_PWD       "$env(PWD)" \
     kFileName_CSURF     "$env(FREESURFER_HOME)" \
