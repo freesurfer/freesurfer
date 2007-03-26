@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/26 20:54:24 $
-##    $Revision: 1.20 $
+##    $Date: 2007/03/26 22:22:43 $
+##    $Revision: 1.21 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -91,6 +91,7 @@ source $fnUtils
 #     state
 #       nVariable - the index of the current variable
 #       info - the info string displayed in lwInfo
+#       focusInfo - the info string displayed for the focused item
 #       lPoints - list of points
 #       pointsChanged - dirty flag for points
 #       data,subjects,n - where n is 0 -> cSubjects
@@ -127,6 +128,7 @@ proc FsgdfPlot_BuildWindow { iID } {
     set lwInfo        $wwTop.lwInfo
     set owVar         $wwTop.owVar
     set owLegendMode  $wwTop.owLegendMode
+    set lwFocus       $wwTop.lwFocus
     set fwClassConfig $wwTop.fwClassConfig
 
 
@@ -173,6 +175,11 @@ proc FsgdfPlot_BuildWindow { iID } {
     $owLegendMode add command class -label "View by class"
     $owLegendMode config -disablecallback 0
 
+    # Make the focus label.
+    set gPlot($iID,state,focusInfo) ""
+    tkuMakeActiveLabel $lwFocus \
+	-variable gPlot($iID,state,focusInfo)
+
     # Make a frame for the class controls, which we'll fill in later.
     tixLabelFrame $fwClassConfig -label "Configure Classes"
 
@@ -181,18 +188,21 @@ proc FsgdfPlot_BuildWindow { iID } {
     grid $lwInfo        -column 0 -row 1 -sticky nwe
     grid $owLegendMode  -column 1 -row 1 -sticky se
     grid $owVar         -column 2 -row 1 -sticky se
-    grid $fwClassConfig -column 0 -row 2 -columnspan 3 -sticky ews
+    grid $lwFocus       -column 0 -row 2 -columnspan 3 -sticky nwe
+    grid $fwClassConfig -column 0 -row 3 -columnspan 3 -sticky ews
     grid columnconfigure $wwTop 0 -weight 1
     grid columnconfigure $wwTop 1 -weight 0
     grid columnconfigure $wwTop 2 -weight 0
     grid rowconfigure $wwTop 0 -weight 1
     grid rowconfigure $wwTop 1 -weight 0
     grid rowconfigure $wwTop 2 -weight 0
+    grid rowconfigure $wwTop 3 -weight 0
 
     # Set the names in the gWidgets array.
     set gWidgets($iID,wwTop)          $wwTop
     set gWidgets($iID,gwPlot)         $gwPlot
     set gWidgets($iID,lwInfo)         $lwInfo
+    set gWidgets($iID,lwFocus)        $lwFocus
     set gWidgets($iID,owVar)          $owVar
     set gWidgets($iID,fwClassConfig)  [$fwClassConfig subwidget frame]
 
@@ -886,6 +896,7 @@ proc FsgdfPlot_UnfocusElement { iID } {
 	FsgdfPlot_UnhilightElement $iID $gPlot($iID,state,hiElement)
 	set gPlot($iID,state,hiElement) ""
 	$gWidgets($iID,gwPlot) marker delete hover
+	set gPlot($iID,state,focusInfo) ""
     }
 }
 
@@ -907,16 +918,34 @@ proc FsgdfPlot_FocusElement { iID iElement inSubjInClass iX iY } {
     # parameter we got (index of the data point, also the
     # subject-in-class index) to get th subject index, and then the
     # subject name.
+    set nSubj 0
+    set sId ""
+    set nClass [FsgdfPlot_GetClassIndexFromLabel $iID $iElement]
     if { $gPlot($iID,state,legend) == "subject" } {
+	set nSubj [FsgdfPlot_GetSubjectIndexFromID $iID $iElement]
 	set sId $iElement
     } else {
-	set nClass [FsgdfPlot_GetClassIndexFromLabel $iID $iElement]
 	set nSubj $gGDF($iID,classes,$nClass,subjects,$inSubjInClass,index)
 	set sId $gGDF($iID,subjects,$nSubj,id)
     }
+    set nVariable $gPlot($iID,state,nVariable)
+
+    set sValue [format "%.0f" $gPlot($iID,state,data,subjects,$nSubj,variable)]
+    set sMeasurement [format "%.3f" $gPlot($iID,state,data,subjects,$nSubj,measurement)]
+    set sStdDev ""
+    if { $gPlot($iID,state,data,subjects,$nSubj,stdDev) != 0 } {
+	set sStdDev " +/- [format "%.3f" $gPlot($iID,state,data,subjects,$nSubj,stdDev)]"
+    }
+
+    set sShortLabel "$sId ($sValue$sStdDev, $sMeasurement)"
+
+    set sLongLabel "$sId: $gGDF($iID,variables,$nVariable,label) = $sValue$sStdDev, $gGDF($iID,measurementName) = $sMeasurement"
+
     $gWidgets($iID,gwPlot) marker create text \
-	-name hover -text $sId -anchor nw \
+	-name hover -text $sShortLabel -anchor nw \
 	-coords [list $iX $iY]
+
+    set gPlot($iID,state,focusInfo) $sLongLabel
 }
 
 
