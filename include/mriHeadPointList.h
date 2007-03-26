@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:14 $
- *    $Revision: 1.4 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/26 19:36:57 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -103,14 +103,14 @@ mriHeadPointList, *mriHeadPointListRef;
 HPtL_tErr HPtL_New    ( mriHeadPointListRef* oList,
                         char*                isListName,
                         char*                isTransformName,
-                        mriTransformRef      iClientTransform );
+                        MATRIX*              iClientTransform );
 HPtL_tErr HPtL_Delete ( mriHeadPointListRef* opList );
 
 HPtL_tErr HPtL_ReadHeadListFile_ ( mriHeadPointListRef this,
                                    char*               isListName );
 HPtL_tErr HPtL_CreateTransform_  ( mriHeadPointListRef this,
                                    char*               isTransformName,
-                                   mriTransformRef     iClientTransform );
+                                   MATRIX*             iClientTransform );
 
 HPtL_tErr HPtL_ConvertListToClientSpace_ ( mriHeadPointListRef this );
 

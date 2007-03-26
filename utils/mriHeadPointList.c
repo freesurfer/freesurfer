@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.8 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/26 19:36:48 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@ char *HPtL_ksaErrorStrings [HPtL_knNumErrorCodes] = {
 HPtL_tErr HPtL_New ( mriHeadPointListRef* oList,
                      char*                isListName,
                      char*                isTransformName,
-                     mriTransformRef      iClientTransform )
+                     MATRIX*              iClientTransform )
 {
 
   mriHeadPointListRef this    = NULL;
@@ -104,7 +104,8 @@ HPtL_tErr HPtL_New ( mriHeadPointListRef* oList,
     goto error;
 
   /* read in the transform file. makes a transform object for us with
-     the clients a->ras and the transform file as the b->ras */
+     the clients transform as aras->a and the transform file as the
+     b->ras */
   DebugNote( ("Creating transform file") );
   eResult = HPtL_CreateTransform_( this, isTransformName,
                                    iClientTransform );
@@ -282,7 +283,7 @@ cleanup:
 
 HPtL_tErr HPtL_CreateTransform_ ( mriHeadPointListRef this,
                                   char*               isTransformName,
-                                  mriTransformRef     iClientTransform )
+                                  MATRIX*             iClientTransform )
 {
 
   HPtL_tErr       eResult       = HPtL_tErr_NoErr;
@@ -292,10 +293,10 @@ HPtL_tErr HPtL_CreateTransform_ ( mriHeadPointListRef this,
   mriTransformRef transform     = NULL;
   FILE*           file          = NULL;
   MATRIX*         mTmp          = NULL;
+  MATRIX*         clientTransformI  = NULL;
   int             nRow          = 0;
   int             nCol          = 0;
   float           fValue        = 0;
-  MATRIX*         mClientTransform = NULL;
   tBoolean        bGood         = FALSE;
 
   DebugEnterFunction( ("HPtL_CreateTransform_( this=%p, isTransformName=%s, "
@@ -384,31 +385,22 @@ HPtL_tErr HPtL_CreateTransform_ ( mriHeadPointListRef this,
   /* if there is a client matrix.. */
   if ( NULL != iClientTransform )
   {
-
-    /* try to get their aras->bras */
-    DebugNote( ("Getting client ARAStoBRAS") );
-    eTransform = Trns_GetARAStoBRAS( iClientTransform, &mClientTransform );
-    if ( Trns_tErr_NoErr != eTransform )
-    {
-      eResult = HPtL_tErr_ErrorAccessingClientTransform;
-      goto error;
-    }
-
-    /* if we got one... */
-    if ( NULL != mClientTransform )
-    {
-
-      /* copy in their a->ras as our a->ras */
-      DebugNote( ("Copying client AtoRAS") );
-      eTransform = Trns_CopyAtoRAS( transform, mClientTransform );
+    /* copy it in as our aras->a. We have to invert it and copy it in
+       as a->ras */
+    DebugNote( ("Inverting client transform") );
+    clientTransformI = MatrixInverse( iClientTransform, NULL );
+    if( clientTransformI ) {
+      
+      DebugNote( ("Copying client transform invert") );
+      eTransform = Trns_CopyAtoRAS( transform, clientTransformI );
       if ( Trns_tErr_NoErr != eTransform )
-      {
-        eResult = HPtL_tErr_ErrorCreatingTransform;
-        goto error;
-      }
+	{
+	  eResult = HPtL_tErr_ErrorCreatingTransform;
+	  goto error;
+	}
     }
   }
-
+  
   /* use an identity matrix as our a->b */
   DebugNote( ("Making identity matrix") );
   MatrixIdentity( 4, mTmp );
@@ -454,6 +446,12 @@ HPtL_tErr HPtL_CreateTransform_ ( mriHeadPointListRef this,
     MatrixFree( &mTmp );
   }
 
+  if ( NULL != clientTransformI )
+  {
+    DebugNote( ("Deleting client transform inverse") );
+    MatrixFree( &clientTransformI );
+  }
+
   DebugExitFunction;
 
   return eResult;
@@ -482,9 +480,9 @@ HPtL_tErr HPtL_ConvertListToClientSpace_ ( mriHeadPointListRef this )
     DebugNote( ("Multiplying point %.2f, %.2f, %.2f by 1000",
                 xVoxl_ExpandFloat(&(pHeadPt->mPoint)) ) );
     xVoxl_SetFloat( &(pHeadPt->mClientPoint),
-                    xVoxl_GetFloatX( &(pHeadPt->mPoint) ) * 1000.0,
-                    xVoxl_GetFloatY( &(pHeadPt->mPoint) ) * 1000.0,
-                    xVoxl_GetFloatZ( &(pHeadPt->mPoint) ) * 1000.0 );
+                    xVoxl_GetFloatX( &(pHeadPt->mPoint) ),
+                    xVoxl_GetFloatY( &(pHeadPt->mPoint) ),
+                    xVoxl_GetFloatZ( &(pHeadPt->mPoint) ) );
 
     /* run the transform */
     DebugNote( ("Transforming point %.2f, %.2f, %.2f to client space",
