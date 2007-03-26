@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:19 $
-#    $Revision: 1.22 $
+#    $Author: greve $
+#    $Date: 2007/03/26 22:20:18 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.22 2007/01/09 22:41:19 nicks Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.23 2007/03/26 22:20:18 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -52,13 +52,13 @@ set ForceRegHeader = 0;
 set fmt = ();
 set MGZ = ();
 
-## If there are no options, just print the usage ##
-if($#argv == 0) then
+set PrintHelp = 0;
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
   goto usage_exit;
-  exit 1;
 endif
-
-## Look for version option ##
 set n = `echo $argv | grep version | wc -l` 
 if($n != 0) then
   echo $VERSION
@@ -380,6 +380,8 @@ while( $#argv != 0 )
 
     case "-perrun":
       set DoPerRun = 1;
+      set regfilename = fs.register.dat
+      set funcstem = template;
       breaksw
 
     case "-plane":
@@ -576,4 +578,28 @@ usage_exit:
 
   echo "Also see tkregister2 --help"
 
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
 exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+tkregister-sess allows users to visually inspect the registration 
+computed from spmregister-sess, fslregister-sess, or autoreg-sess.
+
+
+
+
+-perrun 
+
+Matches spmregier-sess -perrun, ie, runs registration on a run-by-run
+basis, uses "template" as the funcstem and fs.register.dat as the
+registration file.
+
+
