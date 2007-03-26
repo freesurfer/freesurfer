@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/12 17:54:07 $
-##    $Revision: 1.138 $
+##    $Date: 2007/03/26 21:10:06 $
+##    $Revision: 1.139 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -4965,17 +4965,26 @@ proc GDF_SendCurrentPoints {} {
 
     set nCurOverlay $gaLinkedVars(currentvaluefield)
     set lMarkedVnos $gState(lSelectedVnos)
+    set lValidVnos {}
 
     FsgdfPlot_BeginPointList $gGDFID
     foreach vno $lMarkedVnos {
+	if { $vno >= 0 } {
+	    lappend lValidVnos $vno
+	}
+    }
+
+    foreach vno $lValidVnos {
 	FsgdfPlot_AddPoint $gGDFID $vno 0 0
     }
     FsgdfPlot_EndPointList $gGDFID 
 
-    if { [llength $lMarkedVnos] == 1 } {
-	set gGDFState(info) "Vertex number [lindex $lMarkedVnos 0]"
+    if { [llength $lValidVnos] == 0 } {
+	set gGDFState(info) ""
+    } elseif { [llength $lValidVnos] == 1 } {
+	set gGDFState(info) "Vertex number [lindex $lValidVnos 0]"
     } else {
-	set gGDFState(info) "Average of [llength $lMarkedVnos] Marked Vertices"
+	set gGDFState(info) "Average of [llength $lValidVnos] Marked Vertices"
     }
     FsgdfPlot_SetInfo $gGDFID $gGDFState(info)
 }
