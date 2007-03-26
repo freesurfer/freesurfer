@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:16 $
- *    $Revision: 1.137 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/26 16:38:51 $
+ *    $Revision: 1.138 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -4195,6 +4195,13 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
            (sBrush.mnRadius-1) * (sBrush.mnRadius-1) ) ) {
       continue;
     }
+
+    /* Check the bounds */
+    if( xVoxl_GetX(&MRIIdx) < 0 || xVoxl_GetX(&MRIIdx) >= nDimensionX ||
+	xVoxl_GetY(&MRIIdx) < 0 || xVoxl_GetY(&MRIIdx) >= nDimensionY ||
+	xVoxl_GetZ(&MRIIdx) < 0 || xVoxl_GetZ(&MRIIdx) >= nDimensionZ )
+      continue;
+
 
     /* Add this voxel to the list and increment the count. */
     xVoxl_Copy( &(paBrushedVoxs[nBrushedVoxs]), &MRIIdx );
