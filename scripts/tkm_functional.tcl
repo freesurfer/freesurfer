@@ -2,9 +2,9 @@
 ## tkm_functional.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2007/01/11 20:15:15 $
-##    $Revision: 1.35 $
+##    $Author: kteich $
+##    $Date: 2007/03/26 22:22:15 $
+##    $Revision: 1.36 $
 ##
 ## Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA). 
@@ -523,33 +523,66 @@ proc Overlay_DoConfigDlog {} {
 	frame $fwThresholdEntries
 	tkm_MakeEntry $fwThresholdEntries.fwMin \
 	    "Min" gfThreshold(min) 6 {
-		Overlay_SetMin $gfThreshold(min)
-		if { [string match $gThresholdMode linear] } {
-		    Overlay_CalcNewLinearThreshold
+		if { [regexp {^[-+]?([0-9]*\.[0-9]+|[0-9]+)$} \
+			  $gfThreshold(min)] } {
+		    Overlay_SetMin $gfThreshold(min)
+		    if { [string match $gThresholdMode linear] } {
+			Overlay_CalcNewLinearThreshold
+		    }
+		} else {
+		    bell
 		}
 	    }
 	tkm_MakeEntry $fwThresholdEntries.fwMid \
 	    "Mid" gfThreshold(mid) 6 {
-		Overlay_SetMid $gfThreshold(mid)
-		Overlay_CalcNewPiecewiseThresholdSlopeFromMidMax
+		if { [regexp {^[-+]?([0-9]*\.[0-9]+|[0-9]+)$} \
+			  $gfThreshold(mid)] } {
+		    Overlay_SetMid $gfThreshold(mid)
+		    Overlay_CalcNewPiecewiseThresholdSlopeFromMidMax
+		} else {
+		    bell
+		}
 	    }
 	tkm_MakeEntry $fwThresholdEntries.fwMax \
 	    "Max" gfThreshold(max) 6 {
-		Overlay_SetMax $gfThreshold(max)
-		if { [string match $gThresholdMode linear] } {
-		    Overlay_CalcNewLinearThreshold
-		} elseif { [string match $gThresholdMode piecewise] } {
-		    Overlay_CalcNewPiecewiseThresholdSlopeFromMidMax
+		if { [regexp {^[-+]?([0-9]*\.[0-9]+|[0-9]+)$} \
+			  $gfThreshold(max)] } {
+		    Overlay_SetMax $gfThreshold(max)
+		    if { [string match $gThresholdMode linear] } {
+			Overlay_CalcNewLinearThreshold
+		    } elseif { [string match $gThresholdMode piecewise] } {
+			Overlay_CalcNewPiecewiseThresholdSlopeFromMidMax
+		    }
+		} else {
+		    bell
 		}
 	    }
 	tkm_MakeEntry $fwThresholdEntries.fwSlope \
 	    "Slope" gfThreshold(slope) 6 {
-		Overlay_SetSlope $gfThreshold(slope)
-		Overlay_CalcNewPiecewiseThresholdMaxFromMidSlope
+		if { [regexp {^[-+]?([0-9]*\.[0-9]+|[0-9]+)$} \
+			  $gfThreshold(slope)] } {
+		    Overlay_SetSlope $gfThreshold(slope)
+		    Overlay_CalcNewPiecewiseThresholdMaxFromMidSlope
+		} else {
+		    bell
+		}
 	    }
 	pack $fwThresholdEntries.fwMin $fwThresholdEntries.fwMid \
 	    $fwThresholdEntries.fwMax $fwThresholdEntries.fwSlope \
 	    -side left
+	
+	# Add field validators to only allow the user to enter
+	# floating numbers. These validators allow partial numbers
+	# like "-", "-2.", and even "". We'll check for complete
+	# numbers in the callback functions.
+ 	$fwThresholdEntries.fwMin.ewEntry config -validate all \
+ 	    -vcmd {regexp {^[-+]?([0-9]*\.[0-9]*|[0-9]*)$} %P}
+ 	$fwThresholdEntries.fwMid.ewEntry config -validate all \
+ 	    -vcmd {regexp {^[-+]?([0-9]*\.[0-9]*|[0-9]*)$} %P}
+ 	$fwThresholdEntries.fwMax.ewEntry config -validate all \
+ 	    -vcmd {regexp {^[-+]?([0-9]*\.[0-9]*|[0-9]*)$} %P}
+ 	$fwThresholdEntries.fwSlope.ewEntry config -validate all \
+ 	    -vcmd {regexp {^[-+]?([0-9]*\.[0-9]*|[0-9]*)$} %P}
 	
 	# Save these widgets because we'll enable or disable them when
 	# we check the Simple Mode cb.
