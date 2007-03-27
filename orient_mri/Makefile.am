@@ -1,6 +1,8 @@
 AM_CFLAGS=-I$(top_srcdir)/include \
 	$(VTK_CFLAGS) $(KWWIDGETS_CFLAGS) $(TCL_CFLAGS)
 AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
+	-I$(top_srcdir)/vtkfsio \
+	-I$(top_srcdir)/vtkutils \
 	$(VTK_CXXFLAGS) $(KWWIDGETS_CXXFLAGS) $(TCL_CFLAGS)
 
 if ENABLE_KWWIDGETS_APPS
@@ -10,10 +12,11 @@ orient_mri_SOURCES= \
 	vtkKWOrientMRIApp.cxx vtkKWOrientMRIApp.h vtkKWOrientMRIAppTcl.cxx \
 	vtkKWOrientMRIWindow.cxx vtkKWOrientMRIWindow.h vtkKWOrientMRIWindowTcl.cxx \
 	vtkKWOrientMRIView.cxx vtkKWOrientMRIView.h vtkKWOrientMRIViewTcl.cxx \
-	vtkFSVolumeSource.cxx vtkFSVolumeSource.h \
-	OrientMRICustomIcons.cxx OrientMRICustomIcons.h \
 	OrientMRILibInit.cxx
-orient_mri_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
+orient_mri_LDADD= \
+	$(top_srcdir)/vtkfsio/libvtkfsio.a \
+	$(top_srcdir)/vtkutils/libvtkutils.a \
+	$(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
@@ -29,6 +32,9 @@ orient_mri_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
 	-lvtkCommonTCL \
 	$(KWWIDGETS_LIBS) -lKWWidgets
 orient_mri_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
+
+orient_mridir=$(prefix)/lib/resource
+orient_mri_DATA=OrientMRIIcons.txt
 
 vtkKWOrientMRIAppTcl.cxx: vtkKWOrientMRIApp.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWOrientMRIApp.h \

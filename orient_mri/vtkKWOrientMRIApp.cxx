@@ -1,15 +1,16 @@
 /**
  * @file  vtkKWOrientMRIApp.cxx
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Command line parsing and startup
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Creates our window, does some setup stuff, parses command line
+ * args.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.3 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/27 21:24:36 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,6 +28,8 @@
 
 
 #include "vtkKWOrientMRIApp.h"
+
+#include "IconLoader.h"
 #include "vtkKWOrientMRIWindow.h"
 #include "vtkObjectFactory.h"
 
@@ -36,7 +39,7 @@ const char* vtkKWOrientMRIApp::sMainWindowWidthRegKey = "MainWindowWidth";
 const char* vtkKWOrientMRIApp::sMainWindowHeightRegKey = "MainWindowHeight";
 
 vtkStandardNewMacro( vtkKWOrientMRIApp );
-vtkCxxRevisionMacro( vtkKWOrientMRIApp, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIApp, "$Revision: 1.4 $" );
 
 vtkKWOrientMRIApp::vtkKWOrientMRIApp () :
     vtkKWApplication(),
@@ -52,18 +55,38 @@ vtkKWOrientMRIApp::~vtkKWOrientMRIApp () {
 void
 vtkKWOrientMRIApp::Start ( int argc, char* argv[] ) {
 
+  // Init the icon loader with the app and load our icons.
+  try {
+    IconLoader::Initialize( this );
+
+    try {
+      IconLoader::LoadIconsFromFile( "./OrientMRIIcons.txt" );
+    }
+    catch(...) {
+      char* pfnFreesurferDir = getenv( "FREESURFER_HOME" );
+      if( NULL != pfnFreesurferDir ) {
+	string fnIcons = 
+	  string(pfnFreesurferDir) + "/lib/resource/OrientMRIIcons.txt";
+	IconLoader::LoadIconsFromFile( fnIcons.c_str() );
+      }
+    }
+  }
+  catch( exception& e ) {
+    cerr << "Error loading icons: " << e.what() << endl;
+  }
+
   // Create the main window.
   mWindow = vtkKWOrientMRIWindow::New();
   mWindow->SetApplication( this );
   this->AddWindow( mWindow );
   mWindow->Create();
 
-  SetName( "orient_mri" );
-  RestoreApplicationSettingsFromRegistry();
+  this->SetName( "orient_mri" );
+  this->RestoreApplicationSettingsFromRegistry();
 
   mWindow->SetSize( mMainWindowWidth, mMainWindowHeight );
 
-  SetHelpDialogStartingPage("https://surfer.nmr.mgh.harvard.edu/fswiki/orient_5fmri");
+  this->SetHelpDialogStartingPage("https://surfer.nmr.mgh.harvard.edu/fswiki/orient_5fmri");
 
   mWindow->Display();
 
@@ -90,7 +113,7 @@ vtkKWOrientMRIApp::Start ( int argc, char* argv[] ) {
       do {
         string s( argv[++i] );
         try {
-          LoadVolume( s.c_str() );
+          this->LoadVolume( s.c_str() );
         } catch ( exception& e ) {
           cerr << "Error loading volume \"" << s << "\": " << e.what();
         }

@@ -1,15 +1,18 @@
 /**
  * @file  vtkKWOrientMRIWindow.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Loads and works on data, handles UI commands
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Populates menus and toolbars with commands. Handles dialog boxes
+ * for loading and saving data. Owns the data objects. Calculates the
+ * new transform based on the camera orientation and writes it to the
+ * volume.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.4 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/27 21:24:36 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +37,9 @@
 
 class vtkKWMenu;
 class vtkKWPushButton;
+class vtkFSVolumeSource;
+class vtkScalarsToColors;
+class vtkMatrix4x4;
 
 class vtkKWOrientMRIWindow : public vtkKWWindow {
 
@@ -42,21 +48,39 @@ public:
   static vtkKWOrientMRIWindow* New ();
   vtkTypeRevisionMacro( vtkKWOrientMRIWindow, vtkKWWindow );
 
+  // Description:
   // Override to create our interior.
   virtual void Create ();
 
+  // Description:
+  // Load a volume and display it in the view.
   void LoadVolumeFromDlog ();
   void LoadVolume ( const char* ifnVolume );
 
+  // Description:
+  // Save the volume with its new transform.
   void SaveVolumeWithConfirm ();
   void SaveVolumeAsFromDlog ();
+  void SaveVolume ( const char* ifnVolume );
+  void SaveVolume ();
 
+  // Description:
+  // Throw away the user modified transform and go back to the
+  // original version.
   void RevertToSavedTransform ();
-
+  
+  // Description:
+  // Set the volume's transform based on the current camera
+  // orientation.
   void TransformVolume ();
 
+  // Description:
+  // Go back to the original camera position that shows the entirety
+  // of the volume with the X plane parallel to the camera plane.
   void RestoreView ();
 
+  // Description:
+  // Zoom.
   void ZoomBy ( float iFactor );
   void ZoomIn ();
   void ZoomOut ();
@@ -66,9 +90,13 @@ protected:
   vtkKWOrientMRIWindow ();
   virtual ~vtkKWOrientMRIWindow ();
 
+  // Our view object.
   vtkKWOrientMRIView* mView;
 
+  // Dirty if we've done any transforming that could be saved.
+  bool mbDirty;
 
+  // Description:
   // Enable or disable buttons and menu items based on program state.
   void UpdateCommandStatus ();
 
@@ -103,6 +131,15 @@ protected:
 
   // The icons to associate with our commands.
   vtkKWIcon* maIcons[kcCommands];
+  
+  // Data.
+  vtkFSVolumeSource* mVolume;
+  vtkLookupTable* mLUT;
+
+  // Transform objects.
+  vtkMatrix4x4* mOriginalVoxelToRASMatrix;
+  vtkMatrix4x4* mOriginalView;
+  vtkMatrix4x4* mOriginalViewI;
 
   //ETX
 };

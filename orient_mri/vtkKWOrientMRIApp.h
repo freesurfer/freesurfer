@@ -1,15 +1,16 @@
 /**
  * @file  vtkKWOrientMRIApp.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Command line parsing and startup
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Creates our window, does some setup stuff, parses command line
+ * args.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.2 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/27 21:24:36 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

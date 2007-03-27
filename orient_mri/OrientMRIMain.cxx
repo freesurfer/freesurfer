@@ -1,15 +1,15 @@
 /**
  * @file  OrientMRIMain.cxx
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief main function
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Starts up our libraries and runs the application.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.3 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/27 21:24:36 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,7 +31,6 @@
 #include <vtksys/CommandLineArguments.hxx>
 
 #include "vtkKWOrientMRIApp.h"
-#include "OrientMRICustomIcons.h"
 
 extern "C" {
 
@@ -58,17 +57,12 @@ int main ( int argc, char** argv ) {
   // Create the app.
   vtkKWOrientMRIApp* app = vtkKWOrientMRIApp::New();
 
-  // Init the custom icons lib.
-  OrientMRICustomIcons::Initialize( app );
-
   // Run the app.
   app->Start( argc, argv );
   int rApp = app->GetExitStatus();
 
   // Delete.
   app->Delete();
-
-  OrientMRICustomIcons::ShutDown();
 
   return rApp;
 }
