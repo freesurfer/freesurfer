@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/27 20:25:08 $
-#    $Revision: 1.18 $
+#    $Date: 2007/03/27 20:30:21 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.18 2007/03/27 20:25:08 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.19 2007/03/27 20:30:21 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -142,10 +142,12 @@ srcvol  = '$movvolimg';
 okfile  = '$okfile';
 
 if(exist('spm_coreg') ~= 2)
-  fprintf('ERROR: cannot find spm_coreg.m. Make sure that the spm2\n');
+  fprintf('ERROR: cannot find spm_coreg.m. Make sure that the SPM\n');
   fprintf('   package is in your matlab path (check ~/matlab/startup)\n');
   return; quit;
 end
+
+which spm_coreg
 
 global defaults
 spm_defaults			% load spm2's default fields
@@ -453,8 +455,9 @@ exit 1;
 BEGINHELP
 
 Registers a volume to its FreeSurfer anatomical using SPMs spm_coreg
-and creates a FreeSurfer register.dat file. Does not resample. Requires
-matlab and spm2. The registration is rigid (ie, 6 DOF).
+with Normalised Mutual Information and creates a FreeSurfer
+register.dat file. Does not resample. Requires matlab and SPM (should
+work with either spm2 or spm5). The registration is rigid (ie, 6 DOF).
 
 --s subjid
 
