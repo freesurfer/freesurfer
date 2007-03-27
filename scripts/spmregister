@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/07 21:48:46 $
-#    $Revision: 1.17 $
+#    $Date: 2007/03/27 20:25:08 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.17 2007/03/07 21:48:46 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.18 2007/03/27 20:25:08 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -67,6 +67,7 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+if($#frame == 0) set frame = 0;
 
 set movvoldir = `dirname $movvol`;
 if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.$$
@@ -174,12 +175,16 @@ disp(sprintf('using %s as the source image',srcvol));
 [pth1,nam1,ext1] = fileparts(deblank(targvol));
 [pth2,nam2,ext2] = fileparts(deblank(srcvol));
 
-VG	= spm_vol(spm_get('Files',pth1,[nam1 ext1]));	% target image
+%tmp = spm_get('Files',pth1,[nam1 ext1]);
+tmp = sprintf('%s/%s%s',pth1,nam1,ext1);
+VG	= spm_vol(tmp);	% target image
 if(isempty(VG))
   fprintf('ERROR: loading target %s\n',targvol);
   return; quit;
 end
-VF	= spm_vol(spm_get('Files',pth2,[nam2 ext2]));	% source image
+% tmp = spm_get('Files',pth2,[nam2 ext2])
+tmp = sprintf('%s/%s%s',pth2,nam2,ext2);
+VF	= spm_vol(tmp);	% source image
 if(isempty(VF))
   fprintf('ERROR: loading source %s\n',srcvol);
   return; quit;
@@ -474,10 +479,10 @@ the subjectname.
 
 --frame frameno
 
-Use something other than the first frame. Eg, with FSL may want
-to use the middle frame. For SPM analyze, you should specify the
-file that corresonds to the frame you want because each file only
-has one frame.
+Use something other than the first frame. Eg, FSL uses the the middle
+frame (see --mid-frame). For SPM analyze, you should specify the file
+that corresonds to the frame you want because each file only has one
+frame.
 
 --mid-frame
 
