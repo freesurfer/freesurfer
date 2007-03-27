@@ -5,3 +5,9 @@ RevertVolume IMAGEDIR/icon_matrix_erase.tif IMAGEDIR/icon_matrix_erase.gif
 RestoreView IMAGEDIR/icon_home.tif IMAGEDIR/icon_home.gif
 ZoomIn IMAGEDIR/icon_zoom_in.tif IMAGEDIR/icon_zoom_in.gif
 ZoomOut IMAGEDIR/icon_zoom_out.tif IMAGEDIR/icon_zoom_out.gif
+RotateXPos IMAGEDIR/icon_arrow_rot_x_pos.tif IMAGEDIR/icon_arrow_rot_x_pos.gif
+RotateXNeg IMAGEDIR/icon_arrow_rot_x_neg.tif IMAGEDIR/icon_arrow_rot_x_neg.gif
+RotateYPos IMAGEDIR/icon_arrow_rot_y_pos.tif IMAGEDIR/icon_arrow_rot_y_pos.gif
+RotateYNeg IMAGEDIR/icon_arrow_rot_y_neg.tif IMAGEDIR/icon_arrow_rot_y_neg.gif
+RotateZPos IMAGEDIR/icon_arrow_rot_z_pos.tif IMAGEDIR/icon_arrow_rot_z_pos.gif
+RotateZNeg IMAGEDIR/icon_arrow_rot_z_neg.tif IMAGEDIR/icon_arrow_rot_z_neg.gif

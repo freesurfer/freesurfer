@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/27 21:24:36 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/03/27 22:40:28 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,7 +51,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.7 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.8 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
     vtkKWWindow(),
@@ -62,7 +62,12 @@ vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
     mOriginalVoxelToRASMatrix( NULL ),
     mOriginalView( NULL ),
     mOriginalViewI( NULL ) {
-
+  for( int nCmd = 0; nCmd < kcCommands; nCmd++ ) {
+    maCommandEnabled[nCmd] = false;
+    maMenuItems[nCmd].menu = NULL;
+    maMenuItems[nCmd].nItem = -1;
+    maPushButtons[nCmd] = NULL;
+  }
 }
 
 vtkKWOrientMRIWindow::~vtkKWOrientMRIWindow () {
@@ -128,6 +133,12 @@ vtkKWOrientMRIWindow::Create () {
     case CmdRestoreView:
     case CmdZoomOut:
     case CmdZoomIn:
+    case CmdRotateXPos:
+    case CmdRotateXNeg:
+    case CmdRotateYPos:
+    case CmdRotateYNeg:
+    case CmdRotateZPos:
+    case CmdRotateZNeg:
       maPushButtons[(Command)nCmd] = vtkKWPushButton::New();
       maPushButtons[(Command)nCmd]->SetParent( toolbar->GetFrame() );
       maPushButtons[(Command)nCmd]->Create();
@@ -212,11 +223,63 @@ vtkKWOrientMRIWindow::Create () {
   // Zoom In
   maPushButtons[CmdZoomIn]->SetText( "Zoom In" );
   maPushButtons[CmdZoomIn]->SetBalloonHelpString( "Zoom In" );
-  maPushButtons[CmdZoomIn]->
-    SetImageToPredefinedIcon( vtkKWIcon::IconMagGlass );
   maPushButtons[CmdZoomIn]->SetCommand( this, "ZoomIn" );
   try {
     IconLoader::SetPushButtonIcon( "ZoomIn", maPushButtons[CmdZoomIn] );
+  } catch (...) {}
+
+  // Rotate X Pos
+  maPushButtons[CmdRotateXPos]->SetText( "Rotate" );
+  maPushButtons[CmdRotateXPos]->SetBalloonHelpString( "Rotate" );
+  maPushButtons[CmdRotateXPos]->
+    SetCommand( mView, "AnimateCameraElevatePositive" );
+  try {
+    IconLoader::SetPushButtonIcon( "RotateXPos", maPushButtons[CmdRotateXPos]);
+  } catch (...) {}
+
+  // Rotate X Neg
+  maPushButtons[CmdRotateXNeg]->SetText( "Rotate" );
+  maPushButtons[CmdRotateXNeg]->SetBalloonHelpString( "Rotate" );
+  maPushButtons[CmdRotateXNeg]->
+    SetCommand( mView, "AnimateCameraElevateNegative" );
+  try {
+    IconLoader::SetPushButtonIcon( "RotateXNeg", maPushButtons[CmdRotateXNeg]);
+  } catch (...) {}
+
+  // Rotate Y Pos
+  maPushButtons[CmdRotateYPos]->SetText( "Rotate" );
+  maPushButtons[CmdRotateYPos]->SetBalloonHelpString( "Rotate" );
+  maPushButtons[CmdRotateYPos]->
+    SetCommand( mView, "AnimateCameraAzimuthNegative" );
+  try {
+    IconLoader::SetPushButtonIcon( "RotateYPos", maPushButtons[CmdRotateYPos]);
+  } catch (...) {}
+
+  // Rotate Y Neg
+  maPushButtons[CmdRotateYNeg]->SetText( "Rotate" );
+  maPushButtons[CmdRotateYNeg]->SetBalloonHelpString( "Rotate" );
+  maPushButtons[CmdRotateYNeg]->
+    SetCommand( mView, "AnimateCameraAzimuthPositive" );
+  try {
+    IconLoader::SetPushButtonIcon( "RotateYNeg", maPushButtons[CmdRotateYNeg]);
+  } catch (...) {}
+
+  // Rotate Z Pos
+  maPushButtons[CmdRotateZPos]->SetText( "Rotate" );
+  maPushButtons[CmdRotateZPos]->SetBalloonHelpString( "Rotate" );
+  maPushButtons[CmdRotateZPos]->
+    SetCommand( mView, "AnimateCameraRollNegative" );
+  try {
+    IconLoader::SetPushButtonIcon( "RotateZPos", maPushButtons[CmdRotateZPos]);
+  } catch (...) {}
+
+  // Rotate Z Neg
+  maPushButtons[CmdRotateZNeg]->SetText( "Rotate" );
+  maPushButtons[CmdRotateZNeg]->SetBalloonHelpString( "Rotate" );
+  maPushButtons[CmdRotateZNeg]->
+    SetCommand( mView, "AnimateCameraRollPositive" );
+  try {
+    IconLoader::SetPushButtonIcon( "RotateZNeg", maPushButtons[CmdRotateZNeg]);
   } catch (...) {}
 
   // Build the menus. File menu.
@@ -378,7 +441,9 @@ vtkKWOrientMRIWindow::LoadVolume ( const char* ifnVolume ) {
     mLUT->SetHueRange( 0, 0 );
     mLUT->SetValueRange( 0, 1 );
     mLUT->Build();
-    
+    for ( int nEntry = 0; nEntry < mLUT->GetIndex(10); nEntry++ )
+      mLUT->SetTableValue( nEntry, 0, 0, 0, 0 );
+
     // Set it in the view.
     mView->SetCurrentVolumeColors( mLUT );
 
@@ -623,13 +688,19 @@ vtkKWOrientMRIWindow::UpdateCommandStatus () {
 
   // Determine the enabled state of our commands.
   maCommandEnabled[CmdLoadVolume] = true;
-  maCommandEnabled[CmdSaveVolume] = (mView != NULL && mbDirty);
-  maCommandEnabled[CmdSaveVolumeAs] = (mView != NULL && mbDirty);
-  maCommandEnabled[CmdTransformVolume] = (mView != NULL && mVolume != NULL);
-  maCommandEnabled[CmdRevertVolume] = (mView != NULL && mbDirty);
+  maCommandEnabled[CmdSaveVolume] = (mView && mbDirty);
+  maCommandEnabled[CmdSaveVolumeAs] = (mView && mbDirty);
+  maCommandEnabled[CmdTransformVolume] = (mView && mVolume);
+  maCommandEnabled[CmdRevertVolume] = (mView && mbDirty);
   maCommandEnabled[CmdRestoreView] = true;
   maCommandEnabled[CmdZoomIn] = true;
   maCommandEnabled[CmdZoomOut] = true;
+  maCommandEnabled[CmdRotateXPos] = (mView && mVolume);
+  maCommandEnabled[CmdRotateXNeg] = (mView && mVolume);
+  maCommandEnabled[CmdRotateYPos] = (mView && mVolume);
+  maCommandEnabled[CmdRotateYNeg] = (mView && mVolume);
+  maCommandEnabled[CmdRotateZPos] = (mView && mVolume);
+  maCommandEnabled[CmdRotateZNeg] = (mView && mVolume);
 
   // Set the state in the menus and buttons.
   for ( int nCmd = 0; nCmd < kcCommands; nCmd++ ) {

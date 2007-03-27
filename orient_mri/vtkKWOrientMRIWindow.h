@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/27 21:24:36 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/03/27 22:40:28 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -112,6 +112,12 @@ protected:
     CmdRestoreView,
     CmdZoomOut,
     CmdZoomIn,
+    CmdRotateXPos,
+    CmdRotateXNeg,
+    CmdRotateYPos,
+    CmdRotateYNeg,
+    CmdRotateZPos,
+    CmdRotateZNeg,
     kcCommands
   };
   bool maCommandEnabled[kcCommands];
@@ -129,9 +135,6 @@ protected:
   // The toolbar button associated with each command.
   vtkKWPushButton* maPushButtons[kcCommands];
 
-  // The icons to associate with our commands.
-  vtkKWIcon* maIcons[kcCommands];
-  
   // Data.
   vtkFSVolumeSource* mVolume;
   vtkLookupTable* mLUT;
