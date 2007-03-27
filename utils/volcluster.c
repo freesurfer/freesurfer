@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/06 16:35:06 $
- *    $Revision: 1.35 $
+ *    $Date: 2007/03/27 04:04:26 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1636,9 +1636,11 @@ CSD *CSDmerge(CSD *csd1, CSD *csd2)
     printf("ERROR: CSDmerge: CSDs have different threshold signs\n");
     return(NULL);
   }
-  if (csd1->searchspace != csd2->searchspace)
-  {
+  if(fabs(csd1->searchspace - csd2->searchspace) > .01){
+    // These can sometimes be different when run on different machines
     printf("ERROR: CSDmerge: CSDs have different search spaces\n");
+    printf("%g %g   %g\n,",csd1->searchspace,csd2->searchspace,
+	   csd1->searchspace-csd2->searchspace);
     return(NULL);
   }
   if (csd1->nullfwhm != csd2->nullfwhm)
