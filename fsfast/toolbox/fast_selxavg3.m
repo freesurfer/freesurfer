@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.35 2007/03/14 23:09:09 greve Exp $
+% $Id: fast_selxavg3.m,v 1.36 2007/03/27 21:59:34 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/14 23:09:09 $
-%    $Revision: 1.35 $
+%    $Date: 2007/03/27 21:59:34 $
+%    $Revision: 1.36 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.35 2007/03/14 23:09:09 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.36 2007/03/27 21:59:34 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -202,6 +202,14 @@ for nthouter = outer_runlist
 
   % Create the full design matrix
   X = [Xt Xn];
+  XtX = X'*X;
+  XCond = cond(XtX);
+  fprintf('XCond = %g\n',XCond);
+  if(XCond > 10000000)
+    fprintf('ERROR: design is ill-conditioned\n');
+    keyboard
+    return;
+  end
   nTask = size(Xt,2);
   nNuis = size(Xn,2);
   nX = size(X,2);
