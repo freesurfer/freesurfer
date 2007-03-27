@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/03/26 17:09:08 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/03/27 19:00:22 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSVolumeSource );
-vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.7 $" );
+vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.8 $" );
 
 vtkFSVolumeSource::vtkFSVolumeSource () :
     mMRI( NULL ),
@@ -282,7 +282,7 @@ vtkFSVolumeSource::GetValueAtIndex (float iIdxX, float iIdxY, float iIdxZ, float
     oValue = MRIFseq_vox( mMRI, (int)iIdxX, (int)iIdxY, (int)iIdxZ, (int)iIdxFrame );
     break;
   case MRI_SHORT:
-    oValue = MRISvox( mMRI, (int)iIdxX, (int)iIdxY, (int)iIdxZ );
+    oValue = MRISseq_vox( mMRI, (int)iIdxX, (int)iIdxY, (int)iIdxZ, (int)iIdxFrame );
     break;
   default:
     oValue = 0;
