@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:46 $
- *    $Revision: 1.21 $
+ *    $Author: dsjen $
+ *    $Date: 2007/03/27 18:42:48 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -134,7 +134,7 @@ public:
   static void TestFunction2Gradient( float *p, float *g );
 
   static void StepFunction( int itno, float sse, void *parms, float *p );
-
+  
   // setUp is called automatically before each test
   void setUp();
 
@@ -521,7 +521,7 @@ NRWrapperTest::TestDFPMinHelper
 {
 
   int iter = 0;
-  float fret = 0;
+  float fret = expectedFret;
   float ftol = .1;
 
   float *p = vector( 1, numberOfParameters );
@@ -614,6 +614,12 @@ NRWrapperTest::TestOpenDFPMin()
   CPPUNIT_ASSERT( *isCalled );
   CPPUNIT_ASSERT( isSuccess );
   delete isCalled;
+  
+//  // TODO:
+//  isSuccess = TestDFPMinHelper
+//              ( mFunction3Size, mExpectedFret3, mExpectedP3,
+//                TestFunction3, TestFunction3Gradient, NULL, NULL );
+//  CPPUNIT_ASSERT( isSuccess );  
 
   TearDownMinimizationTestResults();
 }

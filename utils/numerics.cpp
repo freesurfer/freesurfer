@@ -5,9 +5,9 @@
 /*
  * Original Author: Dennis Jen and Silvester Czanner
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/02/15 23:36:04 $
- *    $Revision: 1.7 $
+ *    $Author: dsjen $
+ *    $Date: 2007/03/27 18:42:48 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -945,7 +945,7 @@ extern "C" void OpenDFPMin
     void (*iStepFunction)(int, float, void *, float *),
     void *iStepFunctionParams,
     void (*iUserCallBackFunction)(float[]) )
-{
+{  
   fs_cost_function costFunction( iFunction, iDerivativeFunction, n );
 
   vnl_vector< double > finalParameters( n );
@@ -961,17 +961,30 @@ extern "C" void OpenDFPMin
 
   minimizer.memory = 7;
 
-  minimizer.line_search_accuracy = 0.1;  // increased accuracy
+  // increased accuracy
+  minimizer.line_search_accuracy = 0.1;  
 
-  minimizer.set_x_tolerance( static_cast< double >( 0.001 ) );
-  minimizer.set_f_tolerance( static_cast< double >( 0.001 ) );
+  const double functionTolerance = 0.001;
+  minimizer.set_x_tolerance( functionTolerance );
+  minimizer.set_f_tolerance( 0.1 );
 
   // I had to set the gradient convergence tolerance or else
   //       it refused to converge on the second test -- this  impacts the
   //       convergence!
   minimizer.set_g_tolerance( static_cast< double >( iTolerance ) );
 
-  bool isSuccess = minimizer.minimize( finalParameters );
+  // keep iterating if the error isn't significantly better
+  bool isSuccess = true;
+  float previousValue = *oFinalFunctionReturn;
+  bool shouldContinue = true;
+  while( shouldContinue && isSuccess ) {
+    isSuccess = minimizer.minimize( finalParameters );
+    float currentValue = minimizer.get_end_error();
+    
+    if( (previousValue - currentValue ) / previousValue <= iTolerance ) {
+      shouldContinue = false;
+    }
+  }
 
   if ( isSuccess )
   {
