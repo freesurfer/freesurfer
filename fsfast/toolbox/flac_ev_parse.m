@@ -14,9 +14,9 @@ function ev = flac_ev_parse(tline)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.13 $
+%    $Author: greve $
+%    $Date: 2007/03/27 23:05:31 $
+%    $Revision: 1.14 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -271,6 +271,17 @@ switch (ev.model)
  case {'nyquist'} % Temporal nyquist
   % 0 parameters
   % EV Nyq nyquist nuiss 
+  ev.nreg = 1;
+  ev.ishrf = 0;  
+
+ %--------------------------------------------
+ case {'asl'} % Just ones on the odds or the evens
+  % 1 parameters
+  % EV ASL asl task odd-or-even
+  [item c] = sscanfitem(tline,5);
+  if(c ~= 1) fprintf('Format error: %s: odd-or-even\n',ev.model); ev=[]; return; end
+  if(strcmp(item,'tag-first'))   ev.params(1) = 0; end
+  if(strcmp(item,'tag-second'))  ev.params(1) = 1; end
   ev.nreg = 1;
   ev.ishrf = 0;  
 

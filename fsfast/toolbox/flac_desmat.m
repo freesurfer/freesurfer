@@ -15,9 +15,9 @@ function flacnew = flac_desmat(flac)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.10 $
+%    $Author: greve $
+%    $Date: 2007/03/27 23:05:32 $
+%    $Revision: 1.11 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -80,6 +80,10 @@ for nthev = 1:nev
       flacnew.ev(nthev).X = X;
      case {'nyquist'}  
       X = 2*(rem([1:flac.ntp]',2)-.5);
+      flacnew.ev(nthev).X = X;
+     case {'asl'}  
+      X = zeros(flac.ntp,1);
+      X(1+ev.params(1):2:end) = 1;
       flacnew.ev(nthev).X = X;
      case {'nonpar','selfregseg'}  
       % Nonpar X must be already loaded with flac_customize.
