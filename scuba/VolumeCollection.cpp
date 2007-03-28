@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.103 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/28 21:37:51 $
+ *    $Revision: 1.104 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1846,22 +1846,10 @@ VolumeCollection::FindRASPointsInCircle ( float iPointA[3], float iPointB[3],
   for ( tPoints = squarePoints.begin(); tPoints != squarePoints.end();
         ++tPoints ) {
 
-    // Get the point. This is actually the corner of the voxel in
-    // RAS. We want to take that, convert to index, add 0.5 to it, and
-    // convert back to RAS to get the RAS of the center of the voxel.
     Point3<float> pointRAS = *tPoints;
-    Point3<float> pointIdx;
-    Point3<float> centerRAS;
 
-    RASToMRIIndex( pointRAS.xyz(), pointIdx.xyz() );
-    pointIdx[0] += 0.5;
-    pointIdx[1] += 0.5;
-    pointIdx[2] += 0.5;
-    MRIIndexToRAS( pointIdx.xyz(), centerRAS.xyz() );
-
-    // If the center voxel is within the radius, add the original
-    // corner RAS point.
-    if ( VectorOps::Distance( centerRAS, center ) <= iRadius ) {
+    // If it's within the radius, add the original corner RAS point.
+    if ( VectorOps::Distance( pointRAS, center ) < iRadius ) {
       oPoints.push_back( pointRAS );
     }
   }
