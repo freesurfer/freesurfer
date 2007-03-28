@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/27 22:40:28 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/03/28 20:04:49 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,6 +37,8 @@
 
 class vtkKWMenu;
 class vtkKWPushButton;
+class vtkKWRadioButton;
+class vtkFreesurferLookupTable;
 class vtkFSVolumeSource;
 class vtkScalarsToColors;
 class vtkMatrix4x4;
@@ -65,6 +67,11 @@ public:
   void SaveVolume ();
 
   // Description:
+  // Load a color table for the volume.
+  void LoadLUTFromDlog ();
+  void LoadLUT ( const char* ifnLUT );
+
+  // Description:
   // Throw away the user modified transform and go back to the
   // original version.
   void RevertToSavedTransform ();
@@ -85,6 +92,12 @@ public:
   void ZoomIn ();
   void ZoomOut ();
 
+  // Description:
+  // Change the color table for the volume.
+  void UseGrayScaleColors ();
+  void UseLUTColors ();
+  
+
 protected:
 
   vtkKWOrientMRIWindow ();
@@ -100,18 +113,19 @@ protected:
   // Enable or disable buttons and menu items based on program state.
   void UpdateCommandStatus ();
 
-  // For keeping track of buttons and menu items that relate to
-  // commands, and whether or not they should be enabled.
   //BTX
   enum Command {
     CmdLoadVolume = 0,
     CmdSaveVolume,
     CmdSaveVolumeAs,
+    CmdLoadLUT,
     CmdTransformVolume,
     CmdRevertVolume,
     CmdRestoreView,
     CmdZoomOut,
     CmdZoomIn,
+    CmdUseGrayScaleColors,
+    CmdUseLUTColors,
     CmdRotateXPos,
     CmdRotateXNeg,
     CmdRotateYPos,
@@ -120,7 +134,6 @@ protected:
     CmdRotateZNeg,
     kcCommands
   };
-  bool maCommandEnabled[kcCommands];
 
   // Struct for associating a menu and an entry item.
   typedef struct {
@@ -130,14 +143,39 @@ protected:
   MenuItem;
 
   // The menu items associated with each command.
-  MenuItem maMenuItems[kcCommands];
+  MenuItem mMenuLoadVolume;
+  MenuItem mMenuSaveVolume;
+  MenuItem mMenuSaveVolumeAs;
+  MenuItem mMenuLoadLUT;
+  MenuItem mMenuTransformVolume;
+  MenuItem mMenuRevertVolume;
+  MenuItem mMenuRestoreView;
+  MenuItem mMenuZoomOut;
+  MenuItem mMenuZoomIn;
+  MenuItem mMenuUseGrayScaleColors;
+  MenuItem mMenuUseLUTColors;
 
-  // The toolbar button associated with each command.
-  vtkKWPushButton* maPushButtons[kcCommands];
+  // The toolbar buttons associated with each command.
+  vtkKWPushButton* mBtnLoadVolume;
+  vtkKWPushButton* mBtnSaveVolume;
+  vtkKWPushButton* mBtnTransformVolume;
+  vtkKWPushButton* mBtnRevertVolume;
+  vtkKWPushButton* mBtnRestoreView;
+  vtkKWPushButton* mBtnZoomOut;
+  vtkKWPushButton* mBtnZoomIn;
+  vtkKWRadioButton* mRadBtnUseGrayScaleColors;
+  vtkKWRadioButton* mRadBtnUseLUTColors;
+  vtkKWPushButton* mBtnRotateXPos;
+  vtkKWPushButton* mBtnRotateXNeg;
+  vtkKWPushButton* mBtnRotateYPos;
+  vtkKWPushButton* mBtnRotateYNeg;
+  vtkKWPushButton* mBtnRotateZPos;
+  vtkKWPushButton* mBtnRotateZNeg;
 
   // Data.
   vtkFSVolumeSource* mVolume;
-  vtkLookupTable* mLUT;
+  vtkLookupTable* mGrayScaleColors;
+  vtkFreesurferLookupTable* mLUTColors;
 
   // Transform objects.
   vtkMatrix4x4* mOriginalVoxelToRASMatrix;

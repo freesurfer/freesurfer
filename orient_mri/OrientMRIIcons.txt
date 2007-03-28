@@ -1,10 +1,13 @@
 LoadVolume IMAGEDIR/icon_folder.tif IMAGEDIR/icon_folder.gif 
 SaveVolume IMAGEDIR/icon_disk.tif IMAGEDIR/icon_disk.gif
+LoadLUT IMAGEDIR/icon_folder.tif IMAGEDIR/icon_folder.gif 
 TransformVolume IMAGEDIR/icon_matrix_write.tif IMAGEDIR/icon_matrix_write.gif
 RevertVolume IMAGEDIR/icon_matrix_erase.tif IMAGEDIR/icon_matrix_erase.gif
 RestoreView IMAGEDIR/icon_home.tif IMAGEDIR/icon_home.gif
 ZoomIn IMAGEDIR/icon_zoom_in.tif IMAGEDIR/icon_zoom_in.gif
 ZoomOut IMAGEDIR/icon_zoom_out.tif IMAGEDIR/icon_zoom_out.gif
+UseGrayScaleColors IMAGEDIR/icon_disk.tif IMAGEDIR/icon_disk.gif
+UseLUTColors IMAGEDIR/icon_disk.tif IMAGEDIR/icon_disk.gif
 RotateXPos IMAGEDIR/icon_arrow_rot_x_pos.tif IMAGEDIR/icon_arrow_rot_x_pos.gif
 RotateXNeg IMAGEDIR/icon_arrow_rot_x_neg.tif IMAGEDIR/icon_arrow_rot_x_neg.gif
 RotateYPos IMAGEDIR/icon_arrow_rot_y_pos.tif IMAGEDIR/icon_arrow_rot_y_pos.gif

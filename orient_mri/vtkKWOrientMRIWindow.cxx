@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/27 22:40:28 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/03/28 20:04:49 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,7 @@
 
 #include "IconLoader.h"
 #include "vtkCamera.h"
+#include "vtkFreesurferLookupTable.h"
 #include "vtkFSVolumeSource.h"
 #include "vtkKWApplication.h"
 #include "vtkKWIcon.h"
@@ -41,6 +42,8 @@
 #include "vtkKWMenu.h"
 #include "vtkKWMessageDialog.h"
 #include "vtkKWPushButton.h"
+#include "vtkKWRadioButton.h"
+#include "vtkKWRadioButtonSet.h"
 #include "vtkKWToolbar.h"
 #include "vtkKWToolbarSet.h"
 #include "vtkLookupTable.h"
@@ -51,23 +54,18 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.8 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.9 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
     vtkKWWindow(),
     mView( NULL ),
     mbDirty( false ),
     mVolume( NULL ),
-    mLUT( NULL ),
+    mGrayScaleColors( NULL ),
+    mLUTColors( NULL ),
     mOriginalVoxelToRASMatrix( NULL ),
     mOriginalView( NULL ),
     mOriginalViewI( NULL ) {
-  for( int nCmd = 0; nCmd < kcCommands; nCmd++ ) {
-    maCommandEnabled[nCmd] = false;
-    maMenuItems[nCmd].menu = NULL;
-    maMenuItems[nCmd].nItem = -1;
-    maPushButtons[nCmd] = NULL;
-  }
 }
 
 vtkKWOrientMRIWindow::~vtkKWOrientMRIWindow () {
@@ -76,8 +74,10 @@ vtkKWOrientMRIWindow::~vtkKWOrientMRIWindow () {
     mView->Delete();
   if( mVolume )
     mVolume->Delete();
-  if( mLUT )
-    mLUT->Delete();
+  if( mGrayScaleColors )
+    mGrayScaleColors->Delete();
+  if( mLUTColors )
+    mLUTColors->Delete();
   if( mOriginalVoxelToRASMatrix )
     mOriginalVoxelToRASMatrix->Delete();
   if( mOriginalView )
@@ -112,187 +112,231 @@ vtkKWOrientMRIWindow::Create () {
   toolbar->Create();
   this->GetMainToolbarSet()->AddToolbar( toolbar );
 
-  // Make our commands. For each one, we make a toolbar button,
-  // associate the command with the button, and then make a menu
-  // entry.
+  // Populate the toolbar.
+
+  // Load Volume
+  mBtnLoadVolume = vtkKWPushButton::New();
+  mBtnLoadVolume->SetParent( toolbar->GetFrame() );
+  mBtnLoadVolume->Create();
+  toolbar->AddWidget( mBtnLoadVolume );
+  mBtnLoadVolume->SetText( "Load Volume" );
+  mBtnLoadVolume->SetBalloonHelpString( "Load Volume" );
+  mBtnLoadVolume->SetCommand( this, "LoadVolumeFromDlog" );
+  try { IconLoader::SetPushButtonIcon( "LoadVolume", mBtnLoadVolume ); }
+  catch (...) {}
+
+  // Save Volume
+  mBtnSaveVolume = vtkKWPushButton::New();
+  mBtnSaveVolume->SetParent( toolbar->GetFrame() );
+  mBtnSaveVolume->Create();
+  toolbar->AddWidget( mBtnSaveVolume );
+  mBtnSaveVolume->SetText( "Save Volume" );
+  mBtnSaveVolume->SetBalloonHelpString( "Save Volume" );
+  mBtnSaveVolume->SetCommand( this, "SaveVolumeWithConfirm" );
+  try { IconLoader::SetPushButtonIcon( "SaveVolume", mBtnSaveVolume ); }
+  catch (...) {}
+
+  vtkKWFrame* spacer = vtkKWFrame::New();
+  spacer->SetParent( toolbar->GetFrame() );
+  spacer->Create();
+  spacer->SetWidth( 5 );
+  toolbar->AddWidget( spacer );
+  spacer->Delete();
+
+  // Transform Volume
+  mBtnTransformVolume = vtkKWPushButton::New();
+  mBtnTransformVolume->SetParent( toolbar->GetFrame() );
+  mBtnTransformVolume->Create();
+  toolbar->AddWidget( mBtnTransformVolume );
+  mBtnTransformVolume->SetText( "Transform Volume" );
+  mBtnTransformVolume->SetBalloonHelpString( "Transform Volume");
+  mBtnTransformVolume->SetCommand( this, "TransformVolume" );
+  try { IconLoader::SetPushButtonIcon( "TransformVolume", mBtnTransformVolume ); }
+  catch (...) {}
+
+  // Revert.
+  mBtnRevertVolume = vtkKWPushButton::New();
+  mBtnRevertVolume->SetParent( toolbar->GetFrame() );
+  mBtnRevertVolume->Create();
+  toolbar->AddWidget( mBtnRevertVolume );
+  mBtnRevertVolume->SetText( "Revert Volume" );
+  mBtnRevertVolume->SetBalloonHelpString( "Revert Volume" );
+  mBtnRevertVolume->SetCommand( this, "RevertToSavedTransform" );
+  try { IconLoader::SetPushButtonIcon( "RevertVolume", mBtnRevertVolume ); }
+  catch (...) {}
+
+  spacer = vtkKWFrame::New();
+  spacer->SetParent( toolbar->GetFrame() );
+  spacer->Create();
+  spacer->SetWidth( 5 );
+  toolbar->AddWidget( spacer );
+  spacer->Delete();
+
+  // Color table radio button set.
+  vtkKWRadioButtonSet* radBtnSetColors = vtkKWRadioButtonSet::New();
+  radBtnSetColors->SetParent( toolbar->GetFrame() );
+  radBtnSetColors->Create();
+  toolbar->AddWidget( radBtnSetColors );
+  radBtnSetColors->PackHorizontallyOn();
+
+  mRadBtnUseGrayScaleColors = radBtnSetColors->AddWidget( 1 );
+  mRadBtnUseGrayScaleColors->IndicatorVisibilityOff();
+  try { IconLoader::SetCheckButtonIcon( "UseGrayScaleColors", mRadBtnUseGrayScaleColors ); }
+  catch (...) {}
+  mRadBtnUseGrayScaleColors->SelectedStateOn();
+  mRadBtnUseGrayScaleColors->SetCommand( this, "UseGrayScaleColors" );
+
+  mRadBtnUseLUTColors = radBtnSetColors->AddWidget( 0 );
+  mRadBtnUseLUTColors->SetCommand( this, "UseLUTColors" );
+  mRadBtnUseLUTColors->IndicatorVisibilityOff();
+  try { IconLoader::SetCheckButtonIcon( "UseLUTColors", mRadBtnUseLUTColors ); }
+  catch (...) {}
+
+  spacer = vtkKWFrame::New();
+  spacer->SetParent( toolbar->GetFrame() );
+  spacer->Create();
+  spacer->SetWidth( 5 );
+  toolbar->AddWidget( spacer );
+  spacer->Delete();
+
+  // Restore View
+  mBtnRestoreView = vtkKWPushButton::New();
+  mBtnRestoreView->SetParent( toolbar->GetFrame() );
+  mBtnRestoreView->Create();
+  toolbar->AddWidget( mBtnRestoreView );
+  mBtnRestoreView->SetText( "Restore View" );
+  mBtnRestoreView->SetBalloonHelpString( "Restore View" );
+  mBtnRestoreView->SetCommand( this, "RestoreView" );
+  try { IconLoader::SetPushButtonIcon( "RestoreView", mBtnRestoreView ); }
+  catch (...) {}
+
+  spacer = vtkKWFrame::New();
+  spacer->SetParent( toolbar->GetFrame() );
+  spacer->Create();
+  spacer->SetWidth( 5 );
+  toolbar->AddWidget( spacer );
+  spacer->Delete();
+
+  // Zoom Out
+  mBtnZoomOut = vtkKWPushButton::New();
+  mBtnZoomOut->SetParent( toolbar->GetFrame() );
+  mBtnZoomOut->Create();
+  toolbar->AddWidget( mBtnZoomOut );
+  mBtnZoomOut->SetText( "Zoom Out" );
+  mBtnZoomOut->SetBalloonHelpString( "Zoom Out" );
+  mBtnZoomOut->SetCommand( this, "ZoomOut" );
+  try { IconLoader::SetPushButtonIcon( "ZoomOut", mBtnZoomOut ); }
+  catch (...) {}
+
+  // Zoom In
+  mBtnZoomIn = vtkKWPushButton::New();
+  mBtnZoomIn->SetParent( toolbar->GetFrame() );
+  mBtnZoomIn->Create();
+  toolbar->AddWidget( mBtnZoomIn );
+  mBtnZoomIn->SetText( "Zoom In" );
+  mBtnZoomIn->SetBalloonHelpString( "Zoom In" );
+  mBtnZoomIn->SetCommand( this, "ZoomIn" );
+  try { IconLoader::SetPushButtonIcon( "ZoomIn", mBtnZoomIn ); }
+  catch (...) {}
+
+  spacer = vtkKWFrame::New();
+  spacer->SetParent( toolbar->GetFrame() );
+  spacer->Create();
+  spacer->SetWidth( 5 );
+  toolbar->AddWidget( spacer );
+  spacer->Delete();
+
+  // Rotate X Pos
+  mBtnRotateXPos = vtkKWPushButton::New();
+  mBtnRotateXPos->SetParent( toolbar->GetFrame() );
+  mBtnRotateXPos->Create();
+  toolbar->AddWidget( mBtnRotateXPos );
+  mBtnRotateXPos->SetText( "Rotate" );
+  mBtnRotateXPos->SetBalloonHelpString( "Rotate" );
+  mBtnRotateXPos->SetCommand( mView, "AnimateCameraElevatePositive" );
+  try { IconLoader::SetPushButtonIcon( "RotateXPos", mBtnRotateXPos); }
+  catch (...) {}
+
+  // Rotate X Neg
+  mBtnRotateXNeg = vtkKWPushButton::New();
+  mBtnRotateXNeg->SetParent( toolbar->GetFrame() );
+  mBtnRotateXNeg->Create();
+  toolbar->AddWidget( mBtnRotateXNeg );
+  mBtnRotateXNeg->SetText( "Rotate" );
+  mBtnRotateXNeg->SetBalloonHelpString( "Rotate" );
+  mBtnRotateXNeg->SetCommand( mView, "AnimateCameraElevateNegative" );
+  try { IconLoader::SetPushButtonIcon( "RotateXNeg", mBtnRotateXNeg); }
+  catch (...) {}
+
+  // Rotate Y Pos
+  mBtnRotateYPos = vtkKWPushButton::New();
+  mBtnRotateYPos->SetParent( toolbar->GetFrame() );
+  mBtnRotateYPos->Create();
+  toolbar->AddWidget( mBtnRotateYPos );
+  mBtnRotateYPos->SetText( "Rotate" );
+  mBtnRotateYPos->SetBalloonHelpString( "Rotate" );
+  mBtnRotateYPos->SetCommand( mView, "AnimateCameraAzimuthNegative" );
+  try { IconLoader::SetPushButtonIcon( "RotateYPos", mBtnRotateYPos); }
+  catch (...) {}
+
+  // Rotate Y Neg
+  mBtnRotateYNeg = vtkKWPushButton::New();
+  mBtnRotateYNeg->SetParent( toolbar->GetFrame() );
+  mBtnRotateYNeg->Create();
+  toolbar->AddWidget( mBtnRotateYNeg );
+  mBtnRotateYNeg->SetText( "Rotate" );
+  mBtnRotateYNeg->SetBalloonHelpString( "Rotate" );
+  mBtnRotateYNeg->SetCommand( mView, "AnimateCameraAzimuthPositive" );
+  try { IconLoader::SetPushButtonIcon( "RotateYNeg", mBtnRotateYNeg); }
+  catch (...) {}
+
+  // Rotate Z Pos
+  mBtnRotateZPos = vtkKWPushButton::New();
+  mBtnRotateZPos->SetParent( toolbar->GetFrame() );
+  mBtnRotateZPos->Create();
+  toolbar->AddWidget( mBtnRotateZPos );
+  mBtnRotateZPos->SetText( "Rotate" );
+  mBtnRotateZPos->SetBalloonHelpString( "Rotate" );
+  mBtnRotateZPos->SetCommand( mView, "AnimateCameraRollNegative" );
+  try { IconLoader::SetPushButtonIcon( "RotateZPos", mBtnRotateZPos); }
+  catch (...) {}
+
+  // Rotate Z Neg
+  mBtnRotateZNeg = vtkKWPushButton::New();
+  mBtnRotateZNeg->SetParent( toolbar->GetFrame() );
+  mBtnRotateZNeg->Create();
+  toolbar->AddWidget( mBtnRotateZNeg );
+  mBtnRotateZNeg->SetText( "Rotate" );
+  mBtnRotateZNeg->SetBalloonHelpString( "Rotate" );
+  mBtnRotateZNeg->SetCommand( mView, "AnimateCameraRollPositive" );
+  try { IconLoader::SetPushButtonIcon( "RotateZNeg", mBtnRotateZNeg); }
+  catch (...) {}
+
+  // Start making our menu bars.
   int nFilePos = GetFileMenuInsertPosition();
   int nEditPos = 0;
   int nViewPos = GetViewMenuInsertPosition();
 
-  memset( maPushButtons, 0, sizeof(vtkKWPushButton*) * kcCommands );
-  memset( maMenuItems, 0, sizeof(MenuItem) * kcCommands );
-  memset( maCommandEnabled, 0, sizeof(bool) * kcCommands );
-
-  // Init our toolbar buttons with common settings.
-  for ( int nCmd = 0; nCmd < kcCommands; nCmd++ ) {
-    switch( nCmd ) {
-    case CmdLoadVolume:
-    case CmdSaveVolume:
-    case CmdTransformVolume:
-    case CmdRevertVolume:
-    case CmdRestoreView:
-    case CmdZoomOut:
-    case CmdZoomIn:
-    case CmdRotateXPos:
-    case CmdRotateXNeg:
-    case CmdRotateYPos:
-    case CmdRotateYNeg:
-    case CmdRotateZPos:
-    case CmdRotateZNeg:
-      maPushButtons[(Command)nCmd] = vtkKWPushButton::New();
-      maPushButtons[(Command)nCmd]->SetParent( toolbar->GetFrame() );
-      maPushButtons[(Command)nCmd]->Create();
-      maPushButtons[(Command)nCmd]->SetWidth( 30 );
-      maPushButtons[(Command)nCmd]->SetHeight( 30 );
-      maPushButtons[(Command)nCmd]->
-	SetImageToPredefinedIcon( vtkKWIcon::IconFileOpen ); // Placeholder.
-      toolbar->AddWidget( maPushButtons[(Command)nCmd] );
-      maPushButtons[(Command)nCmd]->Delete();
-    default:
-      break;
-    }
-  }
-
-  // Load Volume
-  maPushButtons[CmdLoadVolume]->SetText( "Load Volume" );
-  maPushButtons[CmdLoadVolume]->SetBalloonHelpString( "Load Volume" );
-  maPushButtons[CmdLoadVolume]->
-    SetImageToPredefinedIcon( vtkKWIcon::IconFileOpen );
-  maPushButtons[CmdLoadVolume]->
-    SetImageToPredefinedIcon( vtkKWIcon::IconFileOpen );
-  maPushButtons[CmdLoadVolume]->SetCommand( this, "LoadVolumeFromDlog" );
-  try {
-    IconLoader::SetPushButtonIcon( "LoadVolume", 
-				   maPushButtons[CmdLoadVolume] );
-  } catch (...) {}
-
-  // Save Volume
-  maPushButtons[CmdSaveVolume]->SetText( "Save Volume" );
-  maPushButtons[CmdSaveVolume]->SetBalloonHelpString( "Save Volume" );
-  maPushButtons[CmdSaveVolume]->
-    SetImageToPredefinedIcon( vtkKWIcon::IconFloppy );
-  maPushButtons[CmdSaveVolume]->SetCommand( this, "SaveVolumeWithConfirm" );
-  try {
-    IconLoader::SetPushButtonIcon( "SaveVolume", 
-				   maPushButtons[CmdSaveVolume] );
-  } catch (...) {}
-
-  // Transform Volume
-  maPushButtons[CmdTransformVolume]->SetText( "Transform Volume" );
-  maPushButtons[CmdTransformVolume]->SetBalloonHelpString( "Transform Volume");
-  maPushButtons[CmdTransformVolume]->
-    SetImageToPredefinedIcon( vtkKWIcon::IconGridLinear );
-  maPushButtons[CmdTransformVolume]->SetCommand( this, "TransformVolume" );
-  try {
-    IconLoader::SetPushButtonIcon( "TransformVolume",
-				   maPushButtons[CmdTransformVolume] );
-  } catch (...) {}
-
-  // Revert.
-  maPushButtons[CmdRevertVolume]->SetText( "Revert Volume" );
-  maPushButtons[CmdRevertVolume]->SetBalloonHelpString( "Revert Volume" );
-  maPushButtons[CmdRevertVolume]->
-    SetImageToPredefinedIcon( vtkKWIcon::IconBrowserBack );
-  maPushButtons[CmdRevertVolume]->SetCommand( this, "RevertToSavedTransform" );
-  try {
-    IconLoader::SetPushButtonIcon( "RevertVolume",
-				   maPushButtons[CmdRevertVolume] );
-  } catch (...) {}
-
-  // Restore View
-  maPushButtons[CmdRestoreView]->SetText( "Restore View" );
-  maPushButtons[CmdRestoreView]->SetBalloonHelpString( "Restore View" );
-  maPushButtons[CmdRestoreView]->
-    SetImageToPredefinedIcon( vtkKWIcon::IconReload );
-  maPushButtons[CmdRestoreView]->SetCommand( this, "RestoreView" );
-  try {
-    IconLoader::SetPushButtonIcon( "RestoreView", 
-				   maPushButtons[CmdRestoreView] );
-  } catch (...) {}
-
-  // Zoom Out
-  maPushButtons[CmdZoomOut]->SetText( "Zoom Out" );
-  maPushButtons[CmdZoomOut]->SetBalloonHelpString( "Zoom Out" );
-  maPushButtons[CmdZoomOut]->
-    SetImageToPredefinedIcon( vtkKWIcon::IconMagGlass );
-  maPushButtons[CmdZoomOut]->SetCommand( this, "ZoomOut" );
-  try {
-    IconLoader::SetPushButtonIcon( "ZoomOut", maPushButtons[CmdZoomOut] );
-  } catch (...) {}
-
-  // Zoom In
-  maPushButtons[CmdZoomIn]->SetText( "Zoom In" );
-  maPushButtons[CmdZoomIn]->SetBalloonHelpString( "Zoom In" );
-  maPushButtons[CmdZoomIn]->SetCommand( this, "ZoomIn" );
-  try {
-    IconLoader::SetPushButtonIcon( "ZoomIn", maPushButtons[CmdZoomIn] );
-  } catch (...) {}
-
-  // Rotate X Pos
-  maPushButtons[CmdRotateXPos]->SetText( "Rotate" );
-  maPushButtons[CmdRotateXPos]->SetBalloonHelpString( "Rotate" );
-  maPushButtons[CmdRotateXPos]->
-    SetCommand( mView, "AnimateCameraElevatePositive" );
-  try {
-    IconLoader::SetPushButtonIcon( "RotateXPos", maPushButtons[CmdRotateXPos]);
-  } catch (...) {}
-
-  // Rotate X Neg
-  maPushButtons[CmdRotateXNeg]->SetText( "Rotate" );
-  maPushButtons[CmdRotateXNeg]->SetBalloonHelpString( "Rotate" );
-  maPushButtons[CmdRotateXNeg]->
-    SetCommand( mView, "AnimateCameraElevateNegative" );
-  try {
-    IconLoader::SetPushButtonIcon( "RotateXNeg", maPushButtons[CmdRotateXNeg]);
-  } catch (...) {}
-
-  // Rotate Y Pos
-  maPushButtons[CmdRotateYPos]->SetText( "Rotate" );
-  maPushButtons[CmdRotateYPos]->SetBalloonHelpString( "Rotate" );
-  maPushButtons[CmdRotateYPos]->
-    SetCommand( mView, "AnimateCameraAzimuthNegative" );
-  try {
-    IconLoader::SetPushButtonIcon( "RotateYPos", maPushButtons[CmdRotateYPos]);
-  } catch (...) {}
-
-  // Rotate Y Neg
-  maPushButtons[CmdRotateYNeg]->SetText( "Rotate" );
-  maPushButtons[CmdRotateYNeg]->SetBalloonHelpString( "Rotate" );
-  maPushButtons[CmdRotateYNeg]->
-    SetCommand( mView, "AnimateCameraAzimuthPositive" );
-  try {
-    IconLoader::SetPushButtonIcon( "RotateYNeg", maPushButtons[CmdRotateYNeg]);
-  } catch (...) {}
-
-  // Rotate Z Pos
-  maPushButtons[CmdRotateZPos]->SetText( "Rotate" );
-  maPushButtons[CmdRotateZPos]->SetBalloonHelpString( "Rotate" );
-  maPushButtons[CmdRotateZPos]->
-    SetCommand( mView, "AnimateCameraRollNegative" );
-  try {
-    IconLoader::SetPushButtonIcon( "RotateZPos", maPushButtons[CmdRotateZPos]);
-  } catch (...) {}
-
-  // Rotate Z Neg
-  maPushButtons[CmdRotateZNeg]->SetText( "Rotate" );
-  maPushButtons[CmdRotateZNeg]->SetBalloonHelpString( "Rotate" );
-  maPushButtons[CmdRotateZNeg]->
-    SetCommand( mView, "AnimateCameraRollPositive" );
-  try {
-    IconLoader::SetPushButtonIcon( "RotateZNeg", maPushButtons[CmdRotateZNeg]);
-  } catch (...) {}
-
-  // Build the menus. File menu.
+  // File menu.
   // Load Volume.
   this->GetFileMenu()->
     InsertCommand( nFilePos, "L&oad Volume...", this, "LoadVolumeFromDlog" );
   this->GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
   this->GetFileMenu()->SetItemAccelerator( nFilePos, "Ctrl+O" );
-  try {
-    IconLoader::SetMenuItemIcon( "LoadVolume", GetFileMenu(), nFilePos );
-  } catch (...) {}
-  maMenuItems[CmdLoadVolume].menu = GetFileMenu();
-  maMenuItems[CmdLoadVolume].nItem = nFilePos;
+  try { IconLoader::SetMenuItemIcon( "LoadVolume", GetFileMenu(), nFilePos ); }
+  catch (...) {}
+  mMenuLoadVolume.menu = GetFileMenu();
+  mMenuLoadVolume.nItem = nFilePos;
+  nFilePos++;
+
+  // Load LUT.
+  this->GetFileMenu()->
+    InsertCommand( nFilePos, "Load LUT...", this, "LoadLUTFromDlog" );
+  this->GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
+  try { IconLoader::SetMenuItemIcon( "LoadLUT", GetFileMenu(), nFilePos ); }
+  catch (...) {}
+  mMenuLoadLUT.menu = GetFileMenu();
+  mMenuLoadLUT.nItem = nFilePos;
   nFilePos++;
 
   this->GetFileMenu()->InsertSeparator( nFilePos++ );
@@ -302,22 +346,20 @@ vtkKWOrientMRIWindow::Create () {
     InsertCommand( nFilePos, "&Save Volume", this, "SaveVolumeWithConfirm" );
   this->GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
   this->GetFileMenu()->SetItemAccelerator( nFilePos, "Ctrl+S" );
-  try {
-    IconLoader::SetMenuItemIcon( "SaveVolume", GetFileMenu(), nFilePos );
-  } catch (...) {}
-  maMenuItems[CmdSaveVolume].menu = GetFileMenu();
-  maMenuItems[CmdSaveVolume].nItem = nFilePos;
+  try {IconLoader::SetMenuItemIcon( "SaveVolume", GetFileMenu(), nFilePos );}
+  catch (...) {}
+  mMenuSaveVolume.menu = GetFileMenu();
+  mMenuSaveVolume.nItem = nFilePos;
   nFilePos++;
 
   // Save Volume As.
   this->GetFileMenu()->
     InsertCommand( nFilePos, "Save Volume As...", this,"SaveVolumeAsFromDlog");
   this->GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
-  try {
-    IconLoader::SetMenuItemIcon( "SaveVolume", GetFileMenu(), nFilePos );
-  } catch (...) {}
-  maMenuItems[CmdSaveVolumeAs].menu = GetFileMenu();
-  maMenuItems[CmdSaveVolumeAs].nItem = nFilePos;
+  try {IconLoader::SetMenuItemIcon( "SaveVolume", GetFileMenu(), nFilePos );}
+  catch (...) {}
+  mMenuSaveVolumeAs.menu = GetFileMenu();
+  mMenuSaveVolumeAs.nItem = nFilePos;
   nFilePos++;
 
   this->GetFileMenu()->InsertSeparator( nFilePos++ );
@@ -332,11 +374,10 @@ vtkKWOrientMRIWindow::Create () {
     InsertCommand( nEditPos, "Trans&form Volume", this, "TransformVolume" );
   this->GetEditMenu()->SetItemCompoundModeToLeft( nEditPos );
   this->GetEditMenu()->SetItemAccelerator( nEditPos, "Ctrl+F" );
-  try {
-    IconLoader::SetMenuItemIcon( "TransformVolume", GetEditMenu(), nEditPos );
-  } catch (...) {}
-  maMenuItems[CmdTransformVolume].menu = GetEditMenu();
-  maMenuItems[CmdTransformVolume].nItem = nEditPos;
+  try {IconLoader::SetMenuItemIcon("TransformVolume",GetEditMenu(),nEditPos);}
+  catch (...) {}
+  mMenuTransformVolume.menu = GetEditMenu();
+  mMenuTransformVolume.nItem = nEditPos;
   nEditPos++;
 
   this->GetEditMenu()->InsertSeparator( nEditPos++ );
@@ -346,11 +387,10 @@ vtkKWOrientMRIWindow::Create () {
     InsertCommand( nEditPos, "&Revert Volume", this, "RevertToSavedTransform");
   this->GetEditMenu()->SetItemCompoundModeToLeft( nEditPos );
   this->GetEditMenu()->SetItemAccelerator( nEditPos, "Ctrl+R" );
-  try {
-    IconLoader::SetMenuItemIcon( "RevertVolume", GetEditMenu(), nEditPos );
-  } catch (...) {}
-  maMenuItems[CmdRevertVolume].menu = GetEditMenu();
-  maMenuItems[CmdRevertVolume].nItem = nEditPos;
+  try {IconLoader::SetMenuItemIcon( "RevertVolume", GetEditMenu(), nEditPos );}
+  catch (...) {}
+  mMenuRevertVolume.menu = GetEditMenu();
+  mMenuRevertVolume.nItem = nEditPos;
   nEditPos++;
 
   // View menu.
@@ -359,11 +399,31 @@ vtkKWOrientMRIWindow::Create () {
     InsertCommand( nViewPos, "Restore &View", this, "RestoreView");
   this->GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
   this->GetViewMenu()->SetItemAccelerator( nViewPos, "Ctrl+V" );
-  try {
-    IconLoader::SetMenuItemIcon( "RestoreView", GetViewMenu(), nViewPos );
-  } catch (...) {}
-  maMenuItems[CmdRestoreView].menu = GetViewMenu();
-  maMenuItems[CmdRestoreView].nItem = nViewPos;
+  try {IconLoader::SetMenuItemIcon( "RestoreView", GetViewMenu(), nViewPos );}
+  catch (...) {}
+  mMenuRestoreView.menu = GetViewMenu();
+  mMenuRestoreView.nItem = nViewPos;
+  nViewPos++;
+
+  this->GetViewMenu()->InsertSeparator( nViewPos++ );
+
+  // Color scale items.
+  this->GetViewMenu()->
+    InsertCommand( nViewPos, "Use GrayScale Colors", this, "UseGrayScaleColors");
+  this->GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
+  try {IconLoader::SetMenuItemIcon( "UseGrayScaleColors", GetViewMenu(), nViewPos );}
+  catch (...) {}
+  mMenuUseGrayScaleColors.menu = GetViewMenu();
+  mMenuUseGrayScaleColors.nItem = nViewPos;
+  nViewPos++;
+
+  this->GetViewMenu()->
+    InsertCommand( nViewPos, "Use LUT Colors", this, "UseLUTColors");
+  this->GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
+  try {IconLoader::SetMenuItemIcon( "UseLUTColors", GetViewMenu(), nViewPos );}
+  catch (...) {}
+  mMenuUseLUTColors.menu = GetViewMenu();
+  mMenuUseLUTColors.nItem = nViewPos;
   nViewPos++;
 
   this->GetViewMenu()->InsertSeparator( nViewPos++ );
@@ -372,26 +432,21 @@ vtkKWOrientMRIWindow::Create () {
   this->GetViewMenu()->
     InsertCommand( nViewPos, "Zoom Out", this, "ZoomOut");
   this->GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
-  //  GetViewMenu()->SetItemAccelerator( nViewPos, "Ctrl+Minus" );
-  try {
-    IconLoader::SetMenuItemIcon( "ZoomOut", GetViewMenu(), nViewPos );
-  } catch (...) {}
-  maMenuItems[CmdZoomOut].menu = GetViewMenu();
-  maMenuItems[CmdZoomOut].nItem = nViewPos;
+  try { IconLoader::SetMenuItemIcon( "ZoomOut", GetViewMenu(), nViewPos ); }
+  catch (...) {}
+  mMenuZoomOut.menu = GetViewMenu();
+  mMenuZoomOut.nItem = nViewPos;
   nViewPos++;
 
   // Zoom In.
   this->GetViewMenu()->
     InsertCommand( nViewPos, "Zoom In", this, "ZoomIn");
   this->GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
-  //  GetViewMenu()->SetItemAccelerator( nViewPos, "Ctrl+Plus" );
-  try {
-    IconLoader::SetMenuItemIcon( "ZoomIn", GetViewMenu(), nViewPos );
-  } catch (...) {}
-  maMenuItems[CmdZoomIn].menu = GetViewMenu();
-  maMenuItems[CmdZoomIn].nItem = nViewPos;
+  try { IconLoader::SetMenuItemIcon( "ZoomIn", GetViewMenu(), nViewPos ); }
+  catch (...) {}
+  mMenuZoomIn.menu = GetViewMenu();
+  mMenuZoomIn.nItem = nViewPos;
   nViewPos++;
-
 
   // Update our menu and buttons.
   this->UpdateCommandStatus();
@@ -434,18 +489,15 @@ vtkKWOrientMRIWindow::LoadVolume ( const char* ifnVolume ) {
     mView->SetCurrentVolume( mVolume );
     
     // Create a basic LUT if we don't have one yet.
-    if( !mLUT ) 
-      mLUT = vtkLookupTable::New();
-    mLUT->SetTableRange( mVolume->GetMinValue(), mVolume->GetMaxValue() );
-    mLUT->SetSaturationRange( 0, 0 );
-    mLUT->SetHueRange( 0, 0 );
-    mLUT->SetValueRange( 0, 1 );
-    mLUT->Build();
-    for ( int nEntry = 0; nEntry < mLUT->GetIndex(10); nEntry++ )
-      mLUT->SetTableValue( nEntry, 0, 0, 0, 0 );
-
-    // Set it in the view.
-    mView->SetCurrentVolumeColors( mLUT );
+    if( !mGrayScaleColors ) 
+      mGrayScaleColors = vtkLookupTable::New();
+    mGrayScaleColors->SetTableRange( mVolume->GetMinValue(), mVolume->GetMaxValue() );
+    mGrayScaleColors->SetSaturationRange( 0, 0 );
+    mGrayScaleColors->SetHueRange( 0, 0 );
+    mGrayScaleColors->SetValueRange( 0, 1 );
+    mGrayScaleColors->Build();
+    for ( int nEntry = 0; nEntry < mGrayScaleColors->GetIndex(10); nEntry++ )
+      mGrayScaleColors->SetTableValue( nEntry, 0, 0, 0, 0 );
 
     // Calculate the inverse of our starting viewing transform here so
     // can use it later.
@@ -469,8 +521,11 @@ vtkKWOrientMRIWindow::LoadVolume ( const char* ifnVolume ) {
     if ( NULL == mOriginalVoxelToRASMatrix )
       mOriginalVoxelToRASMatrix = vtkMatrix4x4::New();
     mOriginalVoxelToRASMatrix->DeepCopy( mVolume->GetVoxelToRASMatrix() );
+
+    // Use grayscale for now.
+    this->UseGrayScaleColors();
     
-    this->SetStatusText( "Volume loaded." );
+    this->SetStatusText( "Volumnne loaded." );
     this->AddRecentFile( ifnVolume, this, "LoadVolume" );
     
   } catch ( exception& e ) {
@@ -552,6 +607,60 @@ vtkKWOrientMRIWindow::SaveVolume ( const char* ifnVolume ) {
 
   // No longer dirty.
   mbDirty = false;
+}
+
+void
+vtkKWOrientMRIWindow::LoadLUTFromDlog () {
+
+  vtkKWLoadSaveDialog* dialog = vtkKWLoadSaveDialog::New();
+  dialog->SetApplication( GetApplication() );
+  dialog->Create();
+  dialog->SetFileTypes( "{LUT {.txt *Colors* *LUT*}} {All {*}}" );
+  dialog->RetrieveLastPathFromRegistry( "LoadLUT" );
+  dialog->SetDefaultExtension( ".txt" );
+  if ( dialog->Invoke() ) {
+    dialog->SaveLastPathToRegistry( "LoadLUT" );
+    string fnLUT( dialog->GetFileName() );
+    this->LoadLUT( fnLUT.c_str() );
+  }
+}
+
+void
+vtkKWOrientMRIWindow::LoadLUT ( const char* ifnLUT ) {
+
+  if( !mView ) throw runtime_error( "mView was NULL" );
+
+  try {
+    
+    // Try to load the table.
+    char fnLUT[1024];
+    strncpy( fnLUT, ifnLUT, sizeof(fnLUT) );
+    COLOR_TABLE* ctab = CTABreadASCII( fnLUT );
+    if ( NULL == ctab ) {
+      throw new runtime_error( string("Couldn't open color table file ") +
+			       ifnLUT );
+    }
+      
+    // Create a table if not already.
+    if ( NULL == mLUTColors )
+      mLUTColors = vtkFreesurferLookupTable::New();
+    mLUTColors->BuildFromCTAB( ctab );
+    
+    // Free the ctab.
+    CTABfree( &ctab );
+
+    // Use this LUT.
+    this->UseLUTColors();
+
+    this->SetStatusText( "LUT loaded." );
+    this->AddRecentFile( ifnLUT, this, "LoadLUT" );
+    
+  } catch ( exception& e ) {
+    this->GetApplication()->ErrorMessage( e.what() );
+  }
+
+  // Update our menu and buttons.
+  this->UpdateCommandStatus();
 }
 
 void
@@ -683,39 +792,73 @@ vtkKWOrientMRIWindow::ZoomOut () {
   this->ZoomBy( 0.5 );
 }
 
+void 
+vtkKWOrientMRIWindow::UseGrayScaleColors () {
+
+  if( !mView ) throw runtime_error( "mView was NULL" );
+  if( !mGrayScaleColors ) throw runtime_error( "mGrayScaleColors was NULL" );
+  if( !mRadBtnUseGrayScaleColors ) throw runtime_error( "mRadBtnUseGrayScaleColors was NULL" );
+
+  // Change the colors.
+  mView->SetCurrentVolumeColors( mGrayScaleColors );
+  mView->Render();
+  
+  // Turn on our radio buttion.
+  mRadBtnUseGrayScaleColors->SelectedStateOn();
+}
+
+void
+vtkKWOrientMRIWindow::UseLUTColors () {
+
+  if( !mView ) throw runtime_error( "mView was NULL" );
+  if( !mLUTColors ) throw runtime_error( "mLUTColors was NULL" );
+  if( !mRadBtnUseLUTColors ) throw runtime_error( "mRadBtnUseLUTColors was NULL" );
+
+  // Change the colors.
+  mView->SetCurrentVolumeColors( mLUTColors );
+  mView->Render();
+
+  // Turn on our radio buttion.
+  mRadBtnUseLUTColors->SelectedStateOn();
+}
+
 void
 vtkKWOrientMRIWindow::UpdateCommandStatus () {
 
-  // Determine the enabled state of our commands.
-  maCommandEnabled[CmdLoadVolume] = true;
-  maCommandEnabled[CmdSaveVolume] = (mView && mbDirty);
-  maCommandEnabled[CmdSaveVolumeAs] = (mView && mbDirty);
-  maCommandEnabled[CmdTransformVolume] = (mView && mVolume);
-  maCommandEnabled[CmdRevertVolume] = (mView && mbDirty);
-  maCommandEnabled[CmdRestoreView] = true;
-  maCommandEnabled[CmdZoomIn] = true;
-  maCommandEnabled[CmdZoomOut] = true;
-  maCommandEnabled[CmdRotateXPos] = (mView && mVolume);
-  maCommandEnabled[CmdRotateXNeg] = (mView && mVolume);
-  maCommandEnabled[CmdRotateYPos] = (mView && mVolume);
-  maCommandEnabled[CmdRotateYNeg] = (mView && mVolume);
-  maCommandEnabled[CmdRotateZPos] = (mView && mVolume);
-  maCommandEnabled[CmdRotateZNeg] = (mView && mVolume);
+  if( !mView ) throw runtime_error( "mView was NULL" );
 
-  // Set the state in the menus and buttons.
-  for ( int nCmd = 0; nCmd < kcCommands; nCmd++ ) {
-    if ( maCommandEnabled[(Command)nCmd] ) {
-      if ( NULL != maPushButtons[(Command)nCmd] )
-        maPushButtons[(Command)nCmd]->SetStateToNormal();
-      if ( NULL != maMenuItems[(Command)nCmd].menu )
-        maMenuItems[(Command)nCmd].menu->
-        SetItemStateToNormal( maMenuItems[(Command)nCmd].nItem );
-    } else {
-      if ( NULL != maPushButtons[(Command)nCmd] )
-        maPushButtons[(Command)nCmd]->SetStateToDisabled();
-      if ( NULL != maMenuItems[(Command)nCmd].menu )
-        maMenuItems[(Command)nCmd].menu->
-        SetItemStateToDisabled( maMenuItems[(Command)nCmd].nItem );
-    }
+  // Determine the enabled state of our commands.
+  if( mVolume && mbDirty ) {
+    mBtnSaveVolume->SetStateToNormal();
+    mMenuSaveVolume.menu->SetItemStateToNormal( mMenuSaveVolume.nItem );
+    mMenuSaveVolumeAs.menu->SetItemStateToNormal( mMenuSaveVolumeAs.nItem );
+    mBtnRevertVolume->SetStateToNormal();
+    mMenuRevertVolume.menu->SetItemStateToNormal( mMenuRevertVolume.nItem );
+    mBtnTransformVolume->SetStateToNormal();
+    mMenuTransformVolume.menu->SetItemStateToNormal( mMenuTransformVolume.nItem );
+  } else {
+    mBtnSaveVolume->SetStateToDisabled();
+    mMenuSaveVolume.menu->SetItemStateToDisabled( mMenuSaveVolume.nItem );
+    mMenuSaveVolumeAs.menu->SetItemStateToDisabled( mMenuSaveVolumeAs.nItem );
+    mBtnRevertVolume->SetStateToDisabled();
+    mMenuRevertVolume.menu->SetItemStateToDisabled( mMenuRevertVolume.nItem );
+    mBtnTransformVolume->SetStateToDisabled();
+    mMenuTransformVolume.menu->SetItemStateToDisabled( mMenuTransformVolume.nItem );
+  }
+
+  if( mVolume && mGrayScaleColors ) {
+    mRadBtnUseGrayScaleColors->SetStateToNormal();
+    mMenuUseGrayScaleColors.menu->SetItemStateToNormal( mMenuUseGrayScaleColors.nItem );
+  } else {
+    mRadBtnUseGrayScaleColors->SetStateToDisabled();
+    mMenuUseGrayScaleColors.menu->SetItemStateToDisabled( mMenuUseGrayScaleColors.nItem );
+  }
+
+  if( mVolume && mLUTColors ) {
+    mRadBtnUseLUTColors->SetStateToNormal();
+    mMenuUseLUTColors.menu->SetItemStateToNormal( mMenuUseLUTColors.nItem );
+  } else {
+    mRadBtnUseLUTColors->SetStateToDisabled();
+    mMenuUseLUTColors.menu->SetItemStateToDisabled( mMenuUseLUTColors.nItem );
   }
 }
