@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/06 00:01:13 $
-#    $Revision: 1.23 $
+#    $Author: greve $
+#    $Date: 2007/03/28 21:52:35 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,11 +27,16 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.23 2007/01/06 00:01:13 nicks Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.24 2007/03/28 21:52:35 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
 set mag = ();
+set real1 = ();
+set imag1 = ();
+set real2 = ();
+set imag2 = ();
+
 set epi = ();
 
 # Difference between first and second echoes of the B0 Map
@@ -134,12 +139,35 @@ if(! -e $exf) then
   exit 1;
 endif
 
-# Keep only the first frame from mag
-set cmd = (avwroi $mag $tmpdir/mag 0 1)
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
-set mag = $tmpdir/mag.$ext
+if($UseComplex) then
+  # construct complex of 1st echo
+  set complex1 = $tmpdir/complex1
+  set cmd = (avwcomplex -complex $real1 $imag1 $complex1);
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  # construct complex of 2nd echo
+  set complex2 = $tmpdir/complex2
+  set cmd = (avwcomplex -complex $real2 $imag2 $complex2);
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  # construct mag from 1st echo
+  set mag = $tmpdir/mag.$ext
+  set cmd = (avwcomplex -realabs $complex1 $mag)
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+else
+  # Keep only the first frame from mag
+  set cmd = (avwroi $mag $tmpdir/mag 0 1)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  set mag = $tmpdir/mag.$ext
+endif
 if($#epimat) cp $epimat `dirname $mag`/`basename $mag .$ext`.mat
 
 # Create brain mask from the mag
@@ -168,35 +196,60 @@ while($nthdil <= 3)
 end
 if($#epimat) cp $epimat `dirname $head`/`basename $head .$ext`.mat # Copy matfile
 
-# Rescale the delta phase to be between -pi and pi. Starts out
-# at 0 - 4095. Make sure the phase is float precision with _32R
-set cmd = (avwmaths_32R $dph -sub 2047.5 -mul 0.00153436 $tmpdir/dph)
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
-set dph = $tmpdir/dph
-if($#epimat) cp $epimat `dirname $dph`/`basename $dph .$ext`.mat # Copy matfile
+# ------------ Unwrap --------------------
+if($UseComplex) then
+  echo ""|& tee -a $LF
+  echo "Unwarping Echo 1 Phase "|& tee -a $LF
+  set ph1uw = $tmpdir/ph1uw.$ext
+  set cmd = (prelude -c $complex1 -o $ph1uw -f -v -m $head);
+  $cmd |& tee -a $LF
+  if($status) exit 1;
 
-# Do the phase unwrapping (-f for 3D, -v for verbose)
-set cmd = (prelude -p $dph -a $mag -o $dph -f -v -m $head);
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
+  echo ""|& tee -a $LF
+  echo "Unwarping Echo 2 Phase " |& tee -a $LF
+  set ph2uw = $tmpdir/ph2uw.$ext
+  set cmd = (prelude -c $complex2 -o $ph2uw -f -v -m $head);
+  $cmd |& tee -a $LF
+  if($status) exit 1;
 
-# FUGUE wants a phase image for each echo, but we only have
-# phase difference between echoes. So create an image of 0s
-# and merging with the phase diff.
-set ph1 = $tmpdir/ph1.$ext
-set cmd = (avwmaths $dph -mul 0 $ph1)
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
-# Merge, baby, merge
-set ph2 = $tmpdir/ph.$ext
-set cmd = (avwmerge -t $ph2 $ph1 $dph)
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
+  echo ""|& tee -a $LF
+  echo "Merging " |& tee -a $LF
+  set ph2 = $tmpdir/ph.$ext
+  set cmd = (avwmerge -t $ph2 $ph1uw $ph2uw)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+else
+  # Rescale the delta phase to be between -pi and pi. Starts out
+  # at 0 - 4095. Make sure the phase is float precision with _32R
+  set cmd = (avwmaths_32R $dph -sub 2047.5 -mul 0.00153436 $tmpdir/dph)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  set dph = $tmpdir/dph
+  if($#epimat) cp $epimat `dirname $dph`/`basename $dph .$ext`.mat # Copy matfile
+
+  # Do the phase unwrapping (-f for 3D, -v for verbose)
+  set cmd = (prelude -p $dph -a $mag -o $dph -f -v -m $head);
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  # FUGUE wants a phase image for each echo, but we only have
+  # phase difference between echoes. So create an image of 0s
+  # and merging with the phase diff.
+  set ph1 = $tmpdir/ph1.$ext
+  set cmd = (avwmaths $dph -mul 0 $ph1)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  # Merge, baby, merge
+  set ph2 = $tmpdir/ph.$ext
+  set cmd = (avwmerge -t $ph2 $ph1 $dph)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
 
 # Create the voxel shift map (VSM) in the mag/phase space. Use mag as
 # input to assure that VSM is same dimension as mag. The input only affects
@@ -380,6 +433,30 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--complex":
+      if ( $#argv < 4) goto arg4err;
+      set real1 = $argv[1]; shift;
+      if(! -e $real1) then
+        echo "ERROR: cannot find $real1"
+        exit 1;
+      endif
+      set imag1 = $argv[1]; shift;
+      if(! -e $imag1) then
+        echo "ERROR: cannot find $imag1"
+        exit 1;
+      endif
+      set real2 = $argv[1]; shift;
+      if(! -e $real2) then
+        echo "ERROR: cannot find $real2"
+        exit 1;
+      endif
+      set imag2 = $argv[1]; shift;
+      if(! -e $imag2) then
+        echo "ERROR: cannot find $imag2"
+        exit 1;
+      endif
+      set UseComplex = 1;
+      breaksw
     case "--exf":
       if ( $#argv == 0) goto arg1err;
       set exf = $argv[1]; shift;
@@ -480,14 +557,20 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#mag == 0) then
-    echo "ERROR: no magnitude volume specified"
-    exit 1;
+  if(($#mag || $#dph) && $UseComplex) then
+    echo "ERROR: cannot spec --mag/--dph and --complex"
+    exit 1
   endif
 
-  if($#dph == 0) then
-    echo "ERROR: no phase diff volume specified"
-    exit 1;
+  if(! $UseComplex) then
+    if($#mag == 0) then
+      echo "ERROR: no magnitude volume specified"
+      exit 1;
+    endif
+    if($#dph == 0) then
+      echo "ERROR: no phase diff volume specified"
+      exit 1;
+    endif
   endif
 
   if($#tediff == 0) then
@@ -558,15 +641,25 @@ arg1err:
 ############--------------##################
 
 ############--------------##################
+arg4err:
+  echo "ERROR: flag $flag requires four arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
 usage_exit:
   echo ""
   echo "USAGE: epidewarp.fsl"
   echo ""
   echo "Inputs"
+  echo ""
   echo "  --mag volid     : B0 magnitude volume"
   echo "  --dph volid     : B0 phase difference volume"
+  echo "  --complex r1 i1 r2 i2 : B0 map in complex values"
+  echo ""
   echo "  --exf volid     : example func volume (or use epi)"
   echo "  --epi volid     : epi volume to unwarp"
+  echo ""
   echo "  --tediff tediff : difference in B0 field map TEs"
   echo "  --esp esp       : EPI echo spacing"
   echo "  --sigma sigmamm : 2D spatial gaussing smoothing stddev (def 2mm)"
@@ -653,13 +746,18 @@ ARGUMENTS
 --mag magvolid
 
 Magnitude volume from the B0 fieldmap. If more than one frame is
-present, then only the first is used.
+present, then only the first is used. Not with --complex.
 
 --dph phasediffvolid
 
 Phase difference volume (Echo2-Echo1). These are assumed to be scaled
 between 0 to 4095 for -pi to pi. Eg, dph.ext, where ext is either nii,
-nii.gz, or img.
+nii.gz, or img. Not with --complex.
+
+--complex real1 imag1 real2 imag2
+
+Specify B0 field map with real and imaginary components instead of
+mag and phase. 
 
 --exf examplevolid
 
