@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/28 05:35:01 $
- *    $Revision: 1.22 $
+ *    $Date: 2007/03/29 17:52:39 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.22 2007/01/28 05:35:01 greve Exp $
+  $Id: mri_volsynth.c,v 1.23 2007/03/29 17:52:39 greve Exp $
 */
 
 #include <stdio.h>
@@ -75,7 +75,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.22 2007/01/28 05:35:01 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.23 2007/03/29 17:52:39 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -112,6 +112,7 @@ int dendof = 20;
 int AddOffset=0;
 MRI *offset;
 char *sum2file = NULL;
+int NoOutput = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -315,10 +316,10 @@ int main(int argc, char **argv)
     fMRIaddOffset(mri, offset, NULL, mri);
   }
 
-  printf("Saving\n");
-  MRIwriteAnyFormat(mri,volid,volfmt,-1,NULL);
-  //if(volfmtid == NULL) MRIwrite(mri,volid);
-  //else MRIwriteType(mri,volid,);
+  if(!NoOutput){
+    printf("Saving\n");
+    MRIwriteAnyFormat(mri,volid,volfmt,-1,NULL);
+  }
 
   if(sum2file){
     val = MRIsum2All(mri);
@@ -328,6 +329,7 @@ int main(int argc, char **argv)
       exit(1);
     }
     printf("sum2all: %20.10lf\n",val);
+    printf("vrf: %20.10lf\n",1/val);
     fprintf(fp,"%20.10lf\n",val);
   }
 
@@ -351,17 +353,21 @@ static int parse_commandline(int argc, char **argv) {
 
     nargsused = 0;
 
-    if (!strcasecmp(option, "--help"))  print_help() ;
-    else if (!strcasecmp(option, "--version")) print_version() ;
-    else if (!strcasecmp(option, "--debug"))   debug = 1;
+    if (!strcasecmp(option, "--help"))           print_help() ;
+    else if (!strcasecmp(option, "--version"))   print_version() ;
+    else if (!strcasecmp(option, "--debug"))     debug = 1;
     else if (!strcasecmp(option, "--nogmnnorm")) gmnnorm = 0;
-    else if (!strcasecmp(option, "--rescale")) rescale=1;
+    else if (!strcasecmp(option, "--rescale"))   rescale=1;
     else if (!strcasecmp(option, "--norescale")) rescale=0;
-    else if (!strcasecmp(option, "--offset")) AddOffset=1;
+    else if (!strcasecmp(option, "--offset"))    AddOffset=1;
+    else if (!strcasecmp(option, "--no-output")) NoOutput = 1;
 
     else if (!strcmp(option, "--sum2")) {
       if (nargc < 1) argnerr(option,1);
       sum2file = pargv[0];
+      pdfname  = "delta";
+      NoOutput = 1;
+      nframes  = 1;
       nargsused = 1;
     } 
     else if (!strcmp(option, "--vol")) {
@@ -516,8 +522,8 @@ static void print_usage(void) {
   printf("   --rescale : rescale z, t, F, or chi2 after smoothing\n");
   printf("\n");
   printf(" Other arguments\n");
-  printf("   --fwhm fwhmmm : smooth by FWHM mm\n");
-  printf("   --sum2 fname : save sum vol^2 into fname\n");
+  printf("   --fwhm fwhm_mm : smooth by FWHM mm\n");
+  printf("   --sum2 fname   : save sum vol^2 into fname (implies delta,nf=1,no-output)\n");
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -552,8 +558,8 @@ static void check_options(void) {
   struct timeval tv;
   FILE *fp;
 
-  if (volid == NULL) {
-    printf("A volume path must be supplied\n");
+  if(volid == NULL && !NoOutput) {
+    printf("A volume path must be supplied unless --no-output\n");
     exit(1);
   }
   if (seed < 0) {
