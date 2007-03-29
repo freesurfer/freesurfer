@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.38 2007/03/27 23:19:03 greve Exp $
+% $Id: fast_selxavg3.m,v 1.39 2007/03/29 23:14:34 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/27 23:19:03 $
-%    $Revision: 1.38 $
+%    $Date: 2007/03/29 23:14:34 $
+%    $Revision: 1.39 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.38 2007/03/27 23:19:03 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.39 2007/03/29 23:14:34 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -797,7 +797,12 @@ if(DoContrasts)
       tminsig.vol = fast_mat2vol(sigmin,mri.volsize);
       fname = sprintf('%s/minsig.%s',outcondir,ext);
       MRIwrite(tminsig,fname);
-    
+
+      rminmri = mri;
+      rminmri.vol = fast_mat2vol(rmin,mri.volsize);
+      fname = sprintf('%s/iminsig.%s',outcondir,ext);
+      MRIwrite(rminmri,fname);
+      
     end
   
   end
