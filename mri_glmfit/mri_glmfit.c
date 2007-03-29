@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/28 05:54:33 $
- *    $Revision: 1.116 $
+ *    $Date: 2007/03/29 01:10:40 $
+ *    $Revision: 1.117 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -493,7 +493,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.116 2007/03/28 05:54:33 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.117 2007/03/29 01:10:40 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -601,6 +601,10 @@ int useqa = 0;
 char *format = "mgh";
 char *surfname = "white";
 
+int SubSample = 0;
+int SubSampStart = 0;
+int SubSampDelta = 0;
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs,n, m, absflag;
@@ -704,7 +708,24 @@ int main(int argc, char **argv) {
     MRIfree(&mriglm->y);
     mriglm->y = mritmp;
   }
-  nvoxels = mriglm->y->width*mriglm->y->height*mriglm->y->depth;
+  if(SubSample){
+    printf("Subsampling start=%d delta = %d, nframes = %d \n",SubSampStart, SubSampDelta,
+	   mriglm->y->nframes);
+    if( (mriglm->y->nframes % SubSampDelta) != 0){
+      printf("ERROR: delta is not an interger divisor of the frames\n");
+      exit(1);
+    }
+    if( SubSampStart > SubSampDelta ){
+      printf("ERROR: subsample start > delta\n");
+      exit(1);
+    }
+    mritmp = fMRIsubSample(mriglm->y, SubSampStart, SubSampDelta, -1, NULL);
+    if(mritmp == NULL) exit(1);
+    MRIfree(&mriglm->y);
+    mriglm->y = mritmp;
+  }
+
+  nvoxels = mriglm->y->width * mriglm->y->height * mriglm->y->depth;
 
   // X ---------------------------------------------------------
   //Load global X------------------------------------------------
@@ -1773,7 +1794,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
       fsgd = gdfRead(fsgdfile,0);
       if (fsgd==NULL) exit(1);
-      if (CMDnthIsArg(nargc, pargv, 1)) {
+      if(CMDnthIsArg(nargc, pargv, 1)) {
         gd2mtx_method = pargv[1];
         nargsused ++;
         if (gdfCheckMatrixMethod(gd2mtx_method)) exit(1);
@@ -1784,6 +1805,12 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       MaxVoxBase = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--subsample")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&SubSampStart);
+      sscanf(pargv[1],"%d",&SubSampDelta);
+      SubSample = 1;
+      nargsused = 2;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -2261,7 +2288,6 @@ static void check_options(void) {
     printf("ERROR: cannot use variance smoothing with mc-z or mc-t simulation\n");
     exit(1);
   }
-
   return;
 }
 
@@ -2305,6 +2331,10 @@ static void dump_options(FILE *fp) {
   for (n=0; n < nSelfReg; n++) {
     fprintf(fp,"SelfRegressor %d  %4d %4d %4d\n",n+1,
             crsSelfReg[n][0],crsSelfReg[n][1],crsSelfReg[n][2]);
+  }
+  if(SubSample){
+    fprintf(fp,"SubSampStart %d\n",SubSampStart);
+    fprintf(fp,"SubSampDelta %d\n",SubSampDelta);
   }
 
   return;
