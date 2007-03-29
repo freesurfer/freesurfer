@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/09 00:41:23 $
- *    $Revision: 1.328 $
+ *    $Date: 2007/03/29 19:08:02 $
+ *    $Revision: 1.329 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -454,9 +454,10 @@ MRI   *MRIremoveHoles(MRI *mri_src, MRI*mri_dst, int wsize, float pct) ;
 /* morphology */
 MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
 MRI   *MRIerode(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIerode2D(MRI *mri_src, MRI *mri_dst);
 MRI   *MRIerodeRegion(MRI *mri_src, MRI *mri_dst,int wsize,MRI_REGION *region);
 MRI   *MRIdilate(MRI *mri_src, MRI *mri_dst) ;
-MRI    *MRIdilateUchar(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIdilateUchar(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIopen(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIclose(MRI *mri_src, MRI *mri_dst) ;
 /* the following use 4 (or 6 in 3-D) connectivity */

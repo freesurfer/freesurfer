@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/04 22:55:48 $
- *    $Revision: 1.48 $
+ *    $Author: greve $
+ *    $Date: 2007/03/29 19:08:03 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -334,15 +334,8 @@ MRImorph(MRI *mri_src, MRI *mri_dst, int which)
   }
   return(mri_dst) ;
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-MRI *
-MRIerode(MRI *mri_src, MRI *mri_dst)
+/*-----------------------------------------------------*/
+MRI * MRIerode(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same ;
   BUFTYPE *pdst, min_val, val ;
@@ -427,6 +420,50 @@ MRIerode(MRI *mri_src, MRI *mri_dst)
   }
   if (same)
   {
+    MRIcopy(mri_dst, mri_src) ;
+    MRIfree(&mri_dst) ;
+    mri_dst = mri_src ;
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------*/
+MRI * MRIerode2D(MRI *mri_src, MRI *mri_dst)
+{
+  int     width, height, depth, x, y, z, x0, y0, xi, yi, same ;
+  Real fmin_val, fval ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
+
+  width  = mri_src->width ;
+  height = mri_src->height ;
+  depth  = mri_src->depth ;
+
+  if(!mri_dst)  mri_dst = MRIclone(mri_src, NULL) ;
+
+  if (mri_dst == mri_src){
+    same = 1 ;
+    mri_dst = MRIclone(mri_src, NULL) ;
+  }
+  else same = 0 ;
+
+  for (z = 0 ; z < depth ; z++)    {
+    for (y = 0 ; y < height ; y++)  {
+      for (x = 0 ; x < width ; x++) {
+	fmin_val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+	for (y0 = -1 ; y0 <= 1 ; y0++){
+	  yi = mri_src->yi[y+y0] ;
+	  for (x0 = -1 ; x0 <= 1 ; x0++){
+	    xi = mri_src->xi[x+x0] ;
+	    fval = MRIgetVoxVal(mri_src, xi,yi,z, 0) ;
+	    if (fval < fmin_val) fmin_val = fval ;
+	  } // xi
+	} // yi
+	MRIsetVoxVal(mri_dst, x, y, z, 0, fmin_val) ;
+      } // x
+    } // y
+  } // z
+  if(same){
+    // dst and src point to the same MRI struct
     MRIcopy(mri_dst, mri_src) ;
     MRIfree(&mri_dst) ;
     mri_dst = mri_src ;
