@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:40 $
- *    $Revision: 1.20 $
+ *    $Author: greve $
+ *    $Date: 2007/03/29 04:19:56 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,13 +38,19 @@
 #include "proto.h"
 #include "numerics.h"
 
-/*---------------------------------------------------------------
-  fdr2vwth() - returns the voxel-wise threshold given the
-  False Discovery Rate. Complement to vwth2fdr().
-  p - list of values between 0 and 1.
-  np - number in p.
-  fdr - False Discovery Rate, between 0 and 1.
-  Return: threshold between 0 and 1.
+/*----------------------------------------------------*/
+/*!
+  \fn double fdr2vwth(double *p, int np, double fdr)
+  \brief returns the voxel-wise threshold given the
+    False Discovery Rate. Complement to vwth2fdr().
+  \param p - list of values between 0 and 1.
+  \param np - number in p.
+  \param fdr - False Discovery Rate, between 0 and 1.
+  \return threshold between 0 and 1. If no values meet 
+    the FDR criterion, then a value slightly smaller
+    than the smallest p is returned. This is assures
+    that no voxels will be above/below threshold.
+
   Note: values in p will be changed (sorted ascending).
   Ref: http://www.sph.umich.edu/~nichols/FDR/FDR.m
   Thresholding of Statistical Maps in Functional Neuroimaging Using
@@ -64,8 +70,10 @@ double fdr2vwth(double *p, int np, double fdr)
   for (n=np-1;n>=0; n--)
     if (p[n] < r*(n+1)) return(p[n]);
 
-  // If p[n] never goes less than r*(n+1), then return the smallest p
-  return(p[0]);
+  // If p[n] never goes less than r*(n+1), then return a value
+  // slightly smaller than the smallest value of p so that 
+  // nothing is above threshold
+  return(0.9*p[0]);
 }
 
 
