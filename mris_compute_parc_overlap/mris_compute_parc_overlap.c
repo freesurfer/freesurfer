@@ -29,8 +29,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/03/28 20:06:09 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/03/29 15:48:49 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -83,7 +83,7 @@ static int  singledash(char *flag);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.5 2007/03/28 20:06:09 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.6 2007/03/29 15:48:49 nicks Exp $";
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
 static char *hemi = NULL;
@@ -285,12 +285,12 @@ int main(int argc, char *argv[])
     /*
      * while we are looping in this Dice calc, we need to gather some
      * info for the other way of assessing accuracy (the mean-min-distances): 
-     * determine if this vertex is a label boundary (outline).
+     * determine if this vertex is a label boundary (outline) by checking
+     * if any of its neighbors have annotations that are different.
      * if so, indicate by setting the 'border' field (we are stealing this
      * field for our own use).
      */
     v1->border=0;
-    v2->border=0;
     int neighbor_vno;
     for (neighbor_vno = 0; neighbor_vno < v1->vnum; neighbor_vno++ )
     {
@@ -298,7 +298,16 @@ int main(int argc, char *argv[])
       if (v1Neighbor->annotation != v1->annotation)
       {
         v1->border=1; // this neighbor is a foreigner! (a different label)
-        v2->border=1; // surface2 is a copy of surface1
+        break;
+      }
+    }
+    v2->border=0;
+    for (neighbor_vno = 0; neighbor_vno < v2->vnum; neighbor_vno++ )
+    {
+      VERTEX *v2Neighbor = &surface2->vertices[v2->v[neighbor_vno]];
+      if (v2Neighbor->annotation != v2->annotation)
+      {
+        v2->border=1;
         break;
       }
     }
@@ -313,20 +322,22 @@ int main(int argc, char *argv[])
              colorTabIndex1,MAX_LABELS);
       exit(1);
     }
-    if (surf1BoundaryLabels[colorTabIndex1].annotation == 0 )
+    if (surf1BoundaryLabels[colorTabIndex1].annotation == 0)
     {
       // store-away the annotation identifier
       surf1BoundaryLabels[colorTabIndex1].annotation = v1->annotation;
     }
-    else
+    else if (v1->annotation != 0)
     {
       // sanity check of our data structures
       if (surf1BoundaryLabels[colorTabIndex1].annotation != v1->annotation)
       {
         printf("ERROR: "
-               "surf1BoundaryLabels[colorTabIndex1].annotation=0x%8.8X != "
+               "surf1BoundaryLabels[%d].annotation=0x%8.8X != "
                "v1->annotation=0x%8.8X\n",
-               surf1BoundaryLabels[colorTabIndex1].annotation, v1->annotation);
+               colorTabIndex1,
+               surf1BoundaryLabels[colorTabIndex1].annotation, 
+               v1->annotation);
         exit(1);
       }
     }
@@ -340,20 +351,22 @@ int main(int argc, char *argv[])
              colorTabIndex2,MAX_LABELS);
       exit(1);
     }
-    if (surf2BoundaryLabels[colorTabIndex2].annotation == 0 )
+    if (surf2BoundaryLabels[colorTabIndex2].annotation == 0)
     {
       // store-away the annotation identifier
       surf2BoundaryLabels[colorTabIndex2].annotation = v2->annotation;
     }
-    else
+    else if (v2->annotation != 0)
     {
       // sanity check of our data structures
       if (surf2BoundaryLabels[colorTabIndex2].annotation != v2->annotation)
       {
         printf("ERROR:"
-               "surf2BoundaryLabels[colorTabIndex2].annotation=0x%8.8X != "
+               "surf2BoundaryLabels[%d].annotation=0x%8.8X != "
                "v2->annotation=0x%8.8X\n",
-               surf2BoundaryLabels[colorTabIndex2].annotation, v2->annotation);
+               colorTabIndex2,
+               surf2BoundaryLabels[colorTabIndex2].annotation, 
+               v2->annotation);
         exit(1);
       }
     }
@@ -491,16 +504,18 @@ static void calcMeanMinLabelDistances(void)
               if (v1->annotation != surf2BoundaryLabels[cti].annotation)
               {
                 printf("ERROR: v1->annotation=0x%8.8X != "
-                       "surf2BoundaryLabels[cti].annotation=0x%8.8X\n",
+                       "surf2BoundaryLabels[%d].annotation=0x%8.8X\n",
                        v1->annotation,
+                       cti,
                        surf2BoundaryLabels[cti].annotation);
                 exit(1);
               }
               if (v2->annotation != surf1BoundaryLabels[cti].annotation)
               {
                 printf("ERROR: v2->annotation=0x%8.8X != "
-                       "surf1BoundaryLabels[cti].annotation=0x%8.8X\n",
+                       "surf1BoundaryLabels[%d].annotation=0x%8.8X\n",
                        v2->annotation,
+                       cti,
                        surf1BoundaryLabels[cti].annotation);
                 exit(1);
               }
@@ -528,7 +543,6 @@ static void calcMeanMinLabelDistances(void)
       surf1BoundaryLabels[cti].meanMinDist /= boundaryVertexNum;
     }
   }
-
 
   /*
    * now do it all over again, this time from surface 2 to surface 1 (since
@@ -569,16 +583,18 @@ static void calcMeanMinLabelDistances(void)
               if (v2->annotation != surf1BoundaryLabels[cti].annotation)
               {
                 printf("ERROR: v2->annotation=0x%8.8X != "
-                       "surf1BoundaryLabels[cti].annotation=0x%8.8X\n",
+                       "surf1BoundaryLabels[%d].annotation=0x%8.8X\n",
                        v2->annotation,
+                       cti,
                        surf1BoundaryLabels[cti].annotation);
                 exit(1);
               }
               if (v1->annotation != surf2BoundaryLabels[cti].annotation)
               {
                 printf("ERROR: v1->annotation=0x%8.8X != "
-                       "surf2BoundaryLabels[cti].annotation=0x%8.8X\n",
+                       "surf2BoundaryLabels[%d].annotation=0x%8.8X\n",
                        v1->annotation,
+                       cti,
                        surf2BoundaryLabels[cti].annotation);
                 exit(1);
               }
@@ -613,7 +629,12 @@ static void calcMeanMinLabelDistances(void)
    */
   float overallMeanMinDist=0;
   int ctiCount=0;
-  printf("\nLabel name:\tLabel-to-label mean minimum distance (mm):\n");
+  printf("\nAverage minimium distance error table\n"
+         "-------------------------------------\n"
+         "L1->L2(mm):"
+         "\tL2->L1(mm):"
+         "\tAvg(mm):"
+         "\tLabel Name:\n");
   for (cti=0; cti < MAX_LABELS; cti++)
   {
     // for each label...(valid label if nonzero annot id, and skip unknown)
@@ -635,7 +656,11 @@ static void calcMeanMinLabelDistances(void)
       avg += surf2BoundaryLabels[cti].meanMinDist;
       avg /= 2;
       CTABcopyName(surface1->ct, cti, tmpstr, sizeof(tmpstr));
-      printf("%s:\t%f\n", tmpstr, avg);
+      printf("%f\t%f\t%f\t%s\n", 
+             surf1BoundaryLabels[cti].meanMinDist,
+             surf2BoundaryLabels[cti].meanMinDist,
+             avg,
+             tmpstr);
       // for overall average:
       overallMeanMinDist+=avg;
       ctiCount++;
