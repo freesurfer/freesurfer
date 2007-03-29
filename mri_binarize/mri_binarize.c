@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/02/09 19:12:39 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/03/29 18:45:20 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,13 +26,14 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.8 2007/02/09 19:12:39 greve Exp $
+// $Id: mri_binarize.c,v 1.9 2007/03/29 18:45:20 greve Exp $
 
 /*
   BEGINHELP
 
 Program to binarize a volume (or volume-encoded surface file). Can also
-be used to merge with other binarizations.
+be used to merge with other binarizations. Binarization can be done
+based on threshold or on matched values.
 
 --i invol
 
@@ -45,7 +46,12 @@ Minimum and maximum thresholds. If the value at a voxel is >= min and
 <= max, then its value in the output will be 1 (or --binval), otherwise
 it is 0 (or --binvalnot) or the value of the merge volume at that voxel.
 By default, min = -infinity and max = +infinity, but you must set one
-of the thresholds.
+of the thresholds. Cannot be used with --match.
+
+--match matchvalue <--match matchvalue>
+
+Binarize based on matching values. Any number of match values can be 
+specified. Cannot be used with --min/--max.
 
 --o outvol
 
@@ -54,9 +60,9 @@ Path to output volume.
 --binval    binval
 --binvalnot binvalnot
 
-Value to use for those voxels that are in the threshold range
+Value to use for those voxels that are in the threshold/match
 (--binval) or out of the range (--binvalnot). These must be integer
-values. binvalnot only applies when a merge volume is not specified.
+values. binvalnot only applies when a merge volume is NOT specified.
 
 --frame frameno
 
@@ -65,10 +71,10 @@ Use give frame of the input. 0-based. Default is 0.
 --merge mergevol
 
 Merge binarization with the mergevol. If the voxel is within the threshold
-range, then its value will be binval. If not, then it will inherit its
-value from the value at that voxel in mergevol. mergevol must be the same
-dimension as the input volume. Combining this with --binval allows you
-to construct crude segmentations.
+range (or matches), then its value will be binval. If not, then it will 
+inherit its value from the value at that voxel in mergevol. mergevol must 
+be the same dimension as the input volume. Combining this with --binval 
+allows you to construct crude segmentations.
 
 --mask maskvol
 --mask-thresh thresh
@@ -104,6 +110,7 @@ double round(double x);
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <unistd.h>
+#include <float.h>
 
 #include "macros.h"
 #include "utils.h"
@@ -138,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.8 2007/02/09 19:12:39 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.9 2007/03/29 18:45:20 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -159,14 +166,18 @@ int ZeroColEdges = 0;
 int ZeroRowEdges = 0;
 int ZeroSliceEdges = 0;
 
+int DoMatch = 0;
+int nMatch = 0;
+int MatchValues[1000];
+int Matched = 0;
 
 MRI *InVol,*OutVol,*MergeVol,*MaskVol;
 double MaskThresh = 0.5;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, c, r, s, nhits, InMask;
-  double val,outputval,maskval;
+  int nargs, c, r, s, nhits, InMask, n;
+  double val,maskval,mergeval;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -242,39 +253,64 @@ int main(int argc, char *argv[]) {
   MRIcopyHeader(InVol, OutVol);
 
   // Binarize
+  mergeval = BinValNot;
   InMask = 1;
   nhits = 0;
   for (c=0; c < InVol->width; c++) {
     for (r=0; r < InVol->height; r++) {
       for (s=0; s < InVol->depth; s++) {
-	if( (ZeroColEdges && (c == 0 || c == InVol->width-1)) ||
-	    (ZeroRowEdges && (r == 0 || r == InVol->height-1)) ||
+	if(MergeVol) mergeval = MRIgetVoxVal(MergeVol,c,r,s,0);
+
+	// Skip if on the edge
+	if( (ZeroColEdges &&   (c == 0 || c == InVol->width-1))  ||
+	    (ZeroRowEdges &&   (r == 0 || r == InVol->height-1)) ||
 	    (ZeroSliceEdges && (s == 0 || s == InVol->depth-1)) ){
-	  MRIsetVoxVal(OutVol,c,r,s,0,BinValNot);
+	  MRIsetVoxVal(OutVol,c,r,s,0,mergeval);
 	  continue;
 	}
-        val = MRIgetVoxVal(InVol,c,r,s,frame);
-        if (MaskVol) {
+
+	// Skip if not in the mask
+        if(MaskVol) {
           maskval = MRIgetVoxVal(MaskVol,c,r,s,0);
-          if (maskval > MaskThresh) InMask = 1;
-          else                     InMask = 0;
+          if(maskval < MaskThresh){
+	    MRIsetVoxVal(OutVol,c,r,s,0,mergeval);
+	  }
         }
-        if ((MinThreshSet && (val < MinThresh)) ||
-            (MaxThreshSet && (val > MaxThresh)) ||
-            !InMask ) {
-          // Not in the Range
-          if (MergeVol)
-            outputval = MRIgetVoxVal(MergeVol,c,r,s,0);
-          else
-            outputval = BinValNot;
-        } else {
-          outputval = BinVal;
-          nhits ++;
+
+	// Get the value at this voxel
+        val = MRIgetVoxVal(InVol,c,r,s,frame);
+
+	if(DoMatch){
+	  // Check for a match
+	  Matched = 0;
+	  for(n=0; n < nMatch; n++){
+	    if(fabs(val - MatchValues[n]) < 2*FLT_MIN){
+	      MRIsetVoxVal(OutVol,c,r,s,0,BinVal);
+	      Matched = 1;
+	      nhits ++;
+	      break;
+	    }
+	  }
+	  if(!Matched) MRIsetVoxVal(OutVol,c,r,s,0,mergeval);
+	}
+	else{
+	  // Determine whether it is in range
+	  if((MinThreshSet && (val < MinThresh)) ||
+	     (MaxThreshSet && (val > MaxThresh))){
+	    // It is NOT in the Range
+	    MRIsetVoxVal(OutVol,c,r,s,0,mergeval);
+	  }
+	  else {
+	    // It is in the Range
+	    MRIsetVoxVal(OutVol,c,r,s,0,BinVal);
+	    nhits ++;
+	  }
         }
-        MRIsetVoxVal(OutVol,c,r,s,0,outputval);
-      }
-    }
-  }
+
+      } // slice
+    } // row
+  } // col
+
   printf("Found %d values in range\n",nhits);
 
 
@@ -314,6 +350,23 @@ static int parse_commandline(int argc, char **argv) {
       ZeroSliceEdges = 1;
     }
     else if (!strcasecmp(option, "--zero-slice-edges")) ZeroSliceEdges = 1;
+    else if (!strcasecmp(option, "--wm")){
+      nMatch = 2;
+      MatchValues[0] =  2;
+      MatchValues[1] = 41;
+      DoMatch = 1;
+    }
+    else if (!strcasecmp(option, "--ventricles")){
+      nMatch = 6;
+      MatchValues[0] =  4; // Left-Lateral-Ventricle
+      MatchValues[1] =  5; // Left-Inf-Lat-Vent
+      MatchValues[2] = 14; // 3rd-Ventricle
+      MatchValues[3] = 43; // Right-Lateral-Ventricle
+      MatchValues[4] = 44; // Right-Inf-Lat-Vent
+      MatchValues[5] = 72; // 5th-Ventricle
+      //MatchValues[3] = 15; // 4th-Ventricle 
+      DoMatch = 1;
+    }
 
     else if (!strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -353,6 +406,12 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&BinValNot);
       nargsused = 1;
+    } else if (!strcasecmp(option, "--match")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&MatchValues[nMatch]);
+      nMatch ++;
+      DoMatch = 1;
+      nargsused = 1;
     } else if (!strcasecmp(option, "--frame")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&frame);
@@ -378,8 +437,13 @@ static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --i invol  : input volume \n");
+  printf("   \n");
   printf("   --min min  : min thresh (def is -inf)\n");
   printf("   --max max  : max thresh (def is +inf)\n");
+  printf("   --match matchval <--match matchval>  : match instead of threshold\n");
+  printf("   --wm : set match vals to 2 and 41 (aseg for cerebral WM)\n");
+  printf("   --ventricles : set match vals those for aseg ventricles (not 4th)\n");
+  printf("   \n");
   printf("   --o outvol : output volume \n");
   printf("   \n");
   printf("   --binval    val    : set vox within thresh to val (default is 1) \n");
@@ -405,7 +469,8 @@ static void print_help(void) {
   print_usage() ;
 printf("\n");
 printf("Program to binarize a volume (or volume-encoded surface file). Can also\n");
-printf("be used to merge with other binarizations.\n");
+printf("be used to merge with other binarizations. Binarization can be done\n");
+printf("based on threshold or on matched values.\n");
 printf("\n");
 printf("--i invol\n");
 printf("\n");
@@ -418,7 +483,12 @@ printf("Minimum and maximum thresholds. If the value at a voxel is >= min and\n"
 printf("<= max, then its value in the output will be 1 (or --binval), otherwise\n");
 printf("it is 0 (or --binvalnot) or the value of the merge volume at that voxel.\n");
 printf("By default, min = -infinity and max = +infinity, but you must set one\n");
-printf("of the thresholds.\n");
+printf("of the thresholds. Cannot be used with --match.\n");
+printf("\n");
+printf("--match matchvalue <--match matchvalue>\n");
+printf("\n");
+printf("Binarize based on matching values. Any number of match values can be \n");
+printf("specified. Cannot be used with --min/--max.\n");
 printf("\n");
 printf("--o outvol\n");
 printf("\n");
@@ -427,9 +497,9 @@ printf("\n");
 printf("--binval    binval\n");
 printf("--binvalnot binvalnot\n");
 printf("\n");
-printf("Value to use for those voxels that are in the threshold range\n");
+printf("Value to use for those voxels that are in the threshold/match\n");
 printf("(--binval) or out of the range (--binvalnot). These must be integer\n");
-printf("values. binvalnot only applies when a merge volume is not specified.\n");
+printf("values. binvalnot only applies when a merge volume is NOT specified.\n");
 printf("\n");
 printf("--frame frameno\n");
 printf("\n");
@@ -438,10 +508,10 @@ printf("\n");
 printf("--merge mergevol\n");
 printf("\n");
 printf("Merge binarization with the mergevol. If the voxel is within the threshold\n");
-printf("range, then its value will be binval. If not, then it will inherit its\n");
-printf("value from the value at that voxel in mergevol. mergevol must be the same\n");
-printf("dimension as the input volume. Combining this with --binval allows you\n");
-printf("to construct crude segmentations.\n");
+printf("range (or matches), then its value will be binval. If not, then it will \n");
+printf("inherit its value from the value at that voxel in mergevol. mergevol must \n");
+printf("be the same dimension as the input volume. Combining this with --binval \n");
+printf("allows you to construct crude segmentations.\n");
 printf("\n");
 printf("--mask maskvol\n");
 printf("--mask-thresh thresh\n");
@@ -476,20 +546,28 @@ static void check_options(void) {
     printf("ERROR: must specify output volume\n");
     exit(1);
   }
-  if (MinThreshSet == 0 && MaxThreshSet == 0) {
-    printf("ERROR: must specify minimum and/or maximum threshold\n");
+  if(MinThreshSet == 0 && MaxThreshSet == 0 && !DoMatch ) {
+    printf("ERROR: must specify minimum and/or maximum threshold or match values\n");
     exit(1);
   }
-  if (MaxThreshSet && MinThreshSet && MaxThresh < MinThresh) {
-    printf("ERROR: max thresh = %g < min thresh = %g\n",
-           MaxThresh,MinThresh);
+  if((MinThreshSet != 0 || MaxThreshSet != 0) && DoMatch ) {
+    printf("ERROR: cannot specify threshold and match values\n");
     exit(1);
+  }
+  if(!DoMatch){
+    if (MaxThreshSet && MinThreshSet && MaxThresh < MinThresh) {
+      printf("ERROR: max thresh = %g < min thresh = %g\n",
+	     MaxThresh,MinThresh);
+      exit(1);
+    }
   }
   return;
 }
 
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
+  int n;
+
   fprintf(fp,"\n");
   fprintf(fp,"%s\n",vcid);
   fprintf(fp,"cwd %s\n",cwd);
@@ -502,14 +580,24 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"input      %s\n",InVolFile);
   fprintf(fp,"frame      %d\n",frame);
   fprintf(fp,"output     %s\n",OutVolFile);
-  if (MinThreshSet)
-    fprintf(fp,"min        %g\n",MinThresh);
-  else
-    fprintf(fp,"min        -infinity\n");
-  if (MaxThreshSet)
-    fprintf(fp,"max        %g\n",MaxThresh);
-  else
-    fprintf(fp,"max        +infinity\n");
+
+  if(!DoMatch){
+    fprintf(fp,"Binarizing based on threshold\n");
+    if (MinThreshSet)
+      fprintf(fp,"min        %g\n",MinThresh);
+    else
+      fprintf(fp,"min        -infinity\n");
+    if (MaxThreshSet)
+      fprintf(fp,"max        %g\n",MaxThresh);
+    else
+      fprintf(fp,"max        +infinity\n");
+  }
+  else {
+    fprintf(fp,"Binarizing based on matching values\n");
+    fprintf(fp,"nMatch %d\n",nMatch);
+    for(n=0; n < nMatch; n++)
+      fprintf(fp,"%2d  %4d\n",n,MatchValues[n]);
+  }
   fprintf(fp,"binval        %d\n",BinVal);
   fprintf(fp,"binvalnot     %d\n",BinValNot);
   if (MergeVolFile)
