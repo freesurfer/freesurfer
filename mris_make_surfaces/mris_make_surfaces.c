@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/02/20 22:28:01 $
- *    $Revision: 1.89 $
+ *    $Author: fischl $
+ *    $Date: 2007/03/29 20:22:11 $
+ *    $Revision: 1.90 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.89 2007/02/20 22:28:01 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.90 2007/03/29 20:22:11 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -221,13 +221,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.89 2007/02/20 22:28:01 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.90 2007/03/29 20:22:11 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.89 2007/02/20 22:28:01 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.90 2007/03/29 20:22:11 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1969,7 +1969,7 @@ smooth_contra_hemi(MRI *mri_filled,
 
 static int
 fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) {
-  int      vno, label, contra_wm_label ;
+  int      vno, label, contra_wm_label, nvox, total_vox, adjacent ;
   VERTEX   *v ;
   double   xv, yv, zv, val, xs, ys, zs, d ;
 
@@ -1984,6 +1984,8 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) {
       continue ;
     if (vno == Gdiag_no )
       DiagBreak() ;
+
+    // search outwards
     for (d = 0 ; d <= 2 ; d += 0.5) {
       xs = v->x + d*v->nx ;
       ys = v->y + d*v->ny ;
@@ -2002,10 +2004,6 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) {
           label == Right_Accumbens_area ||
           label == Left_Caudate ||
           label == Right_Caudate ||
-#if 0   // putamen can be adjacent to insula in aseg
-          label == Left_Putamen ||
-          label == Right_Putamen ||
-#endif
           label == Left_Pallidum ||
           label == Right_Pallidum ||
           label == Third_Ventricle ||
@@ -2013,7 +2011,10 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) {
           label == Left_Thalamus_Proper ||
           label == Brain_Stem ||
           label == Left_VentralDC ||
-          label == Right_VentralDC) {
+          label == Right_VentralDC)
+      {
+        if (label == Left_Putamen || label == Right_Putamen)
+          DiagBreak() ;
         MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
         MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
         v->val = val ;
@@ -2021,6 +2022,8 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) {
         v->ripflag = 1 ;
       }
     }
+
+    // search inwards
     for (d = 0 ; d <= 2 ; d += 0.5) {
       xs = v->x - d*v->nx ;
       ys = v->y - d*v->ny ;
@@ -2031,7 +2034,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) {
         MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
-      if (label == contra_wm_label ||
+      if ((label == contra_wm_label ||
           label == Left_Lateral_Ventricle ||
           label == Third_Ventricle ||
           label == Right_Lateral_Ventricle ||
@@ -2039,10 +2042,6 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) {
           label == Right_Accumbens_area ||
           label == Left_Caudate ||
           label == Right_Caudate ||
-#if 0
-          label == Left_Putamen ||
-          label == Right_Putamen ||
-#endif
           label == Left_Pallidum ||
           label == Right_Thalamus_Proper ||
           label == Left_Thalamus_Proper ||
@@ -2050,7 +2049,49 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) {
           label == Third_Ventricle ||
           label == Brain_Stem ||
           label == Left_VentralDC ||
-          label == Right_VentralDC) {
+          label == Right_VentralDC) ||
+          // putamen can be adjacent to insula in aseg
+          ((label == Left_Putamen || label == Right_Putamen) &&
+           ((mris->hemisphere == LEFT_HEMISPHERE && v->nx > 0) ||
+            (mris->hemisphere == RIGHT_HEMISPHERE && v->nx < 0))))
+
+      {
+        if (label == Left_Putamen || label == Right_Putamen)
+          DiagBreak() ;
+        MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+        MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
+        v->val = val ;
+        v->d = 0 ;
+        v->ripflag = 1 ;
+      }
+    }
+    
+    /* now check for putamen superior to this point. If there's a lot
+       of it there, then we are in basal forebrain and not cortex. */
+    for (adjacent = total_vox = nvox = 0, d = 0 ; 
+         d <= 10 ; d += 0.5, total_vox++) 
+    {
+      xs = v->x ; ys = v->y ;
+      zs = v->z + d ;  // sample superiorly
+      if (mris->useRealRAS)
+        MRIworldToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+      else
+        MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+      label = nint(val) ;
+      if (label == Left_Putamen || label == Right_Putamen)
+      {
+        nvox++ ;
+        if (d < 1.5)
+          adjacent = 1 ; // right next to putamen
+      }
+    }
+    if (adjacent && (double)nvox/(double)total_vox > 0.5) // more than 50% putamen
+    {
+      if (v->nz < 0 &&
+          fabs(v->nz) > fabs(v->nx) &&
+          fabs(v->nz) > fabs(v->ny))  // inferior pointing normal
+      {
         MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
         MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
         v->val = val ;
@@ -2069,7 +2110,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) {
 static LABEL *
 make_cortex_label(MRI_SURFACE *mris, MRI *mri_aseg) {
   LABEL    *lcortex ;
-  int      vno, label ;
+  int      vno, label, nvox, total_vox, adjacent ;
   VERTEX   *v ;
   double   xv, yv, zv, val, xs, ys, zs, d ;
 
@@ -2103,11 +2144,6 @@ make_cortex_label(MRI_SURFACE *mris, MRI *mri_aseg) {
           label == Left_Caudate ||
           label == Right_Caudate ||
           IS_CC(label) || 
-#if 0   // putamen can be adjacent to insula in aseg
-          label == Left_Putamen ||
-          label == Right_Putamen ||
-
-#endif
           label == Left_Pallidum ||
           label == Right_Pallidum ||
           IS_HIPPO(label) ||
@@ -2118,10 +2154,37 @@ make_cortex_label(MRI_SURFACE *mris, MRI *mri_aseg) {
           label == Left_Thalamus_Proper ||
           label == Brain_Stem ||
           label == Left_VentralDC ||
-          label == Right_VentralDC) {
+          label == Right_VentralDC)
+      {
+        if (label == Left_Putamen || label == Right_Putamen)
+          DiagBreak() ;
         v->marked = 0 ;
       }
     }
+    // putamen can be adjacent to insula in aseg, but shouldn't be inferior
+    /* now check for putamen superior to this point. If there's a lot
+       of it there, then we are in basal forebrain and not cortex. */
+    for (adjacent = total_vox = nvox = 0, d = 0 ; 
+         d <= 10 ; d += 0.5, total_vox++) 
+    {
+      xs = v->x ; ys = v->y ;
+      zs = v->z + d ;  // sample superiorly
+      if (mris->useRealRAS)
+        MRIworldToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+      else
+        MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+      label = nint(val) ;
+      if (label == Left_Putamen || label == Right_Putamen)
+      {
+        nvox++ ;
+        if (d < 1.5)
+          adjacent = 1 ;
+      }
+    }
+    if (adjacent &&
+        (double)nvox/(double)total_vox > 0.5) // more than 50% putamen
+      v->marked = 0 ;
   }
   lcortex = LabelFromMarkedSurface(mris) ;
   return(lcortex) ;
