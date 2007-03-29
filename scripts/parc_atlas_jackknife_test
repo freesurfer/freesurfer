@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/03/07 23:06:43 $
-#    $Revision: 1.6 $
+#    $Date: 2007/03/29 18:57:26 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.6 2007/03/07 23:06:43 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.7 2007/03/29 18:57:26 nicks Exp $';
 
 # defaults:
 setenv SUBJECTS_DIR /space/tensor/20/users/buckner_cortical_atlas
@@ -73,6 +73,13 @@ while( $#argv != 0 )
 
     case "-reg_copy":
     case "--reg_copy":
+      set DoRegCopy=1
+      set reg_append="$argv[1]"; shift;
+      breaksw
+
+    case "-reg_append_and_copy":
+    case "--reg_append_and_copy":
+      set DoRegister=1
       set DoRegCopy=1
       set reg_append="$argv[1]"; shift;
       breaksw
@@ -196,6 +203,9 @@ if ( ! $DoRegister && \
 endif
 
 echo "SUBJECTS_DIR    $SUBJECTS_DIR"
+if ( ! $?FREESURFER_HOME) then 
+   source /usr/local/freesurfer/nmr-dev-env
+endif
 echo "FREESURFER_HOME $FREESURFER_HOME"
 
 #
@@ -269,7 +279,8 @@ foreach test_subj ($ALL_SUBJECTS)
         set sphere_reg="${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere.reg"
         set sphere_reg="${sphere_reg}${reg_append}"
         set cmd=(mris_register ${reg_dist} \
-            -nocurv ${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere \
+            -curv -a 256 -parea 0.2 -dist 0.1 -tol 10 \
+            ${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere \
             ${SUBJECTS_DIR}/average/${hemi}.${tif} \
             ${sphere_reg})
         set LF="${SUBJECTS_DIR}/${test_subj}/surf"
@@ -426,12 +437,12 @@ foreach test_subj ($ALL_SUBJECTS)
             --annot2 ${auto} )
         echo ${cmd}
         if ($RunIt) then
-            set DiceK=${WD}/dice_${test_subj}_${hemi}.txt
-            if (-e ${DiceK}) rm -f ${DiceK}
+            set outFile=${WD}/compute_parc_overlap_${test_subj}_${hemi}.txt
+            if (-e ${outFile}) rm -f ${outFile}
             if ($PBS) then
-                pbsubmit ${pbs_flags} -c "${cmd} >& ${DiceK}"
+                pbsubmit ${pbs_flags} -c "${cmd} > ${outFile}"
             else
-                ${cmd} >& ${DiceK} &
+                ${cmd} >& ${outFile} &
             endif
         endif
     end
@@ -442,35 +453,63 @@ endif
 #
 # Calc the overall dice average. assumes the -test (DoTest) stage has run
 #
-set avgfile=${WD}/dice_avg.txt
 if ($DoDiceAvg) then
 foreach test_subj ($ALL_SUBJECTS)
     foreach hemi (rh lh)
         if ($RunIt) then
-            set DiceK=${WD}/dice_${test_subj}_${hemi}.txt
-            while ( ! -e $DiceK)
-                echo "waiting for ${DiceK}..."
+            set outFile=${WD}/compute_parc_overlap_${test_subj}_${hemi}.txt
+            while ( ! -e $outFile)
+                echo "waiting for ${outFile}..."
                 sleep 10
             end
+            cat $outFile > /dev/null
         endif
     end
 end
 sleep 2
+
 echo "Calculating overall average Dice coefficient..."
+set avgfile=${WD}/dice_avg.txt
 if (-e ${avgfile}) rm -f ${avgfile}
 set sum=0
 @ count=0
 foreach test_subj ($ALL_SUBJECTS)
     foreach hemi (rh lh)
         if ($RunIt) then
-            set DiceK=${WD}/dice_${test_subj}_${hemi}.txt
-            while ( ! -e $DiceK)
+            set outFile=${WD}/compute_parc_overlap_${test_subj}_${hemi}.txt
+            while ( ! -e $outFile)
                 sleep 1
             end
             sleep 1
-            set dice=`grep Dice ${DiceK} | awk '{ print $4 }'`
+            set dice=`grep Dice ${outFile} | awk '{ print $4 }'`
             if ($status) exit 1
             set sum=`echo "${sum} + ${dice}" | bc`
+            if ($status) exit 1
+            @ count++
+        endif
+    end
+end
+set avg=`echo "scale=4; ${sum} / ${count}" | bc`
+if ($status) exit 1
+echo "${avg}" >& ${avgfile}
+endif
+
+echo "Calculating overall mean min distance..."
+set avgfile=${WD}/mean_min.txt
+if (-e ${avgfile}) rm -f ${avgfile}
+set sum=0
+@ count=0
+foreach test_subj ($ALL_SUBJECTS)
+    foreach hemi (rh lh)
+        if ($RunIt) then
+            set outFile=${WD}/compute_parc_overlap_${test_subj}_${hemi}.txt
+            while ( ! -e $outFile)
+                sleep 1
+            end
+            sleep 1
+            set meanmin=`grep mean ${outFile} | awk '{ print $7 }'`
+            if ($status) exit 1
+            set sum=`echo "scale=4; ${sum} + ${meanmin}" | bc`
             if ($status) exit 1
             @ count++
         endif
@@ -486,4 +525,5 @@ endif
 # done
 #
 echo "parc_atlas_jackknife_test complete"
-if (-e $avgfile) echo "Average Dice: `cat $avgfile`"
+if (-e ${WD}/dice_avg.txt) echo "Average Dice: `cat ${WD}/dice_avg.txt`"
+if (-e ${WD}/mean_min.txt) echo "Mean min: `cat ${WD}/mean_min.txt`"
