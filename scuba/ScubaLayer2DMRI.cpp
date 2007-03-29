@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.150 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/29 21:36:34 $
+ *    $Revision: 1.151 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2484,19 +2484,20 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
         // If this is a mouse down event, open up an undo action and
         // enter batch mode.
         UndoManager& undoList = UndoManager::GetManager();
+	int actionListID = -1;
 
         if ( iInput.IsButtonDownEvent() ) {
           if ( ScubaToolState::voxelEditing == iTool.GetMode() ) {
             if ( iInput.Button() == 2 ) {
-              undoList.BeginAction( "Edit Voxel" );
+              actionListID = undoList.BeginAction( "Edit Voxel" );
             } else if ( iInput.Button() == 3 ) {
-              undoList.BeginAction( "Erase Voxel" );
+              actionListID = undoList.BeginAction( "Erase Voxel" );
             }
           } else if ( ScubaToolState::roiEditing == iTool.GetMode() ) {
             if ( iInput.Button() == 2 ) {
-              undoList.BeginAction( "Selection Brush" );
+              actionListID = undoList.BeginAction( "Selection Brush" );
             } else if ( iInput.Button() == 3 ) {
-              undoList.BeginAction( "Unselection Brush" );
+              actionListID = undoList.BeginAction( "Unselection Brush" );
             }
           }
 
@@ -2644,7 +2645,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
               }
 
               // Add the undo item.
-              undoList.AddAction( action );
+              undoList.AddAction( actionListID, action );
             }
 
             delete &loc;
@@ -2657,7 +2658,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
         // If this is a mouse up event, close the undo stuff and end
         // batch mode.
         if ( iInput.IsButtonUpEvent() ) {
-          undoList.EndAction();
+          undoList.EndAction( actionListID );
 
           // End batch change mode.
           switch ( iTool.GetMode() ) {
@@ -2786,9 +2787,10 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
             mCurrentPath->SetSelected( true );
 
             // Make a undo list entry.
-            undoList.BeginAction( "New Path" );
-            undoList.AddAction( new UndoNewPathAction( mCurrentPath ) );
-            undoList.EndAction();
+            int actionListID = undoList.BeginAction( "New Path" );
+            undoList.AddAction( actionListID, 
+				new UndoNewPathAction( mCurrentPath ) );
+            undoList.EndAction( actionListID );
 
             break;
           case 2:
@@ -2900,9 +2902,10 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
               // The UndoAction will keep a pointer to the path until it
               // goes off the undo list. It will be deleted then.
-              undoList.BeginAction( "Delete Path" );
-              undoList.AddAction( new UndoDeletePathAction( delPath ) );
-              undoList.EndAction();
+              int actionListID = undoList.BeginAction( "Delete Path" );
+              undoList.AddAction( actionListID,
+				  new UndoDeletePathAction( delPath ) );
+              undoList.EndAction( actionListID );
             }
           }
 
@@ -3674,10 +3677,11 @@ void
 ScubaLayer2DMRI::SelectVoxelsOnPath( Path<float>& iPath, bool ibSelect ) {
 
   UndoManager& undoList = UndoManager::GetManager();
+  int actionListID;
   if ( ibSelect )
-    undoList.BeginAction( "Select Path" );
+    actionListID = undoList.BeginAction( "Select Path" );
   else
-    undoList.BeginAction( "Unselect Path" );
+    actionListID = undoList.BeginAction( "Unselect Path" );
 
   int cVertices = iPath.GetNumVertices();
   for ( int nCurVertex = 1; nCurVertex < cVertices; nCurVertex++ ) {
@@ -3709,13 +3713,13 @@ ScubaLayer2DMRI::SelectVoxelsOnPath( Path<float>& iPath, bool ibSelect ) {
 
       UndoAction* action =
         new UndoSelectionAction( mVolume, ibSelect, rasPoint.xyz() );
-      undoList.AddAction( action );
+      undoList.AddAction( actionListID, action );
 
       delete &loc;
     }
   }
 
-  undoList.EndAction();
+  undoList.EndAction( actionListID );
 }
 
 
@@ -3894,7 +3898,7 @@ ScubaLayer2DMRIFloodVoxelEdit::DoBegin () {
   // Start our undo action.
   UndoManager& undoList = UndoManager::GetManager();
 
-  undoList.BeginAction( "Voxel Fill" );
+  mActionListID = undoList.BeginAction( "Voxel Fill" );
 
   mVolume->BeginBatchChanges();
 }
@@ -3909,7 +3913,7 @@ ScubaLayer2DMRIFloodVoxelEdit::DoEnd () {
 
   // End our undo action.
   UndoManager& undoList = UndoManager::GetManager();
-  undoList.EndAction();
+  undoList.EndAction( mActionListID );
 
   mVolume->EndBatchChanges();
 }
@@ -3950,7 +3954,7 @@ ScubaLayer2DMRIFloodVoxelEdit::DoVoxel ( float iRAS[3], int iFrame ) {
   UndoVoxelEditAction* action =
     new UndoVoxelEditAction( mVolume, mValue, origValue, iRAS, iFrame );
 
-  undoList.AddAction( action );
+  undoList.AddAction( mActionListID, action );
 
   delete &loc;
 }
@@ -4012,9 +4016,9 @@ ScubaLayer2DMRIFloodSelect::DoBegin () {
   UndoManager& undoList = UndoManager::GetManager();
 
   if ( mbSelect ) {
-    undoList.BeginAction( "Selection Fill" );
+    mActionListID = undoList.BeginAction( "Selection Fill" );
   } else {
-    undoList.BeginAction( "Unselection Fill" );
+    mActionListID = undoList.BeginAction( "Unselection Fill" );
   }
 
   mVolume->BeginBatchROIChanges();
@@ -4030,7 +4034,7 @@ ScubaLayer2DMRIFloodSelect::DoEnd () {
 
   // End our undo action.
   UndoManager& undoList = UndoManager::GetManager();
-  undoList.EndAction();
+  undoList.EndAction( mActionListID );
 
   mVolume->EndBatchROIChanges();
 }
@@ -4067,12 +4071,12 @@ ScubaLayer2DMRIFloodSelect::DoVoxel ( float iRAS[3], int iFrame ) {
     mVolume->Select( loc );
     UndoSelectionAction* action =
       new UndoSelectionAction( mVolume, true, iRAS );
-    undoList.AddAction( action );
+    undoList.AddAction( mActionListID, action );
   } else {
     mVolume->Unselect( loc );
     UndoSelectionAction* action =
       new UndoSelectionAction( mVolume, false, iRAS );
-    undoList.AddAction( action );
+    undoList.AddAction( mActionListID, action );
   }
 
   delete &loc;

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.58 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/29 21:36:34 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -426,6 +426,7 @@ public:
   virtual bool CompareVoxel ( float iRAS[3], int iFrame );
   virtual void DoVoxel ( float iRAS[3], int iFrame );
 
+  int mActionListID;
   float mValue;
 };
 
@@ -441,6 +442,7 @@ public:
   virtual bool CompareVoxel ( float iRAS[3], int iFrame );
   virtual void DoVoxel ( float iRAS[3], int iFrame );
 
+  int mActionListID;
   bool mbSelect;
 };
 

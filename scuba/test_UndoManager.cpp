@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.6 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/29 21:36:35 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -107,18 +107,18 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
       data[n] = kOrigValue;
     }
 
-    undoList.BeginAction( "Change values" );
+    int id = undoList.BeginAction( "Change values" );
 
     for ( int n = 0; n < 10; n ++ ) {
       if ( n%2 ) {
         data[n] = kNewValue;
         TestUndoAction* action  =
           new TestUndoAction ( data, n, kOrigValue, kNewValue );
-        undoList.AddAction( action );
+        undoList.AddAction( id, action );
       }
     }
 
-    undoList.EndAction();
+    undoList.EndAction( id );
 
     for ( int n = 0; n < 10; n ++ ) {
       if ( n%2 ) {
@@ -231,7 +231,7 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
 
     // Try a second list but don't add any undo actions to it. Then
     // undo, and make sure the list is the same.
-    undoList.BeginAction( "Dummy" );
+    id = undoList.BeginAction( "Dummy" );
 
     for ( int n = 0; n < 10; n ++ ) {
       if ( n%2 ) {
@@ -241,7 +241,7 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
       }
     }
 
-    undoList.EndAction();
+    undoList.EndAction( id );
 
     undoList.Undo();
 
@@ -265,21 +265,44 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
 
 
 
+    data.clear();
+    // Try multiple concurrent IDs. Make 10 ten lists, one for each
+    // change, and build them all at the same time, then undo 10
+    // times.
+    int ids[10];
+    for( int n = 0; n < 10; n++ ) {
+      data[n] = kNewValue;
+      ids[n] = undoList.BeginAction( "Change" );
+      TestUndoAction* action  =
+	new TestUndoAction ( data, n, kOrigValue, kNewValue );
+      undoList.AddAction( ids[n], action );
+    }
+    for( int n = 0; n < 10; n++ ) {
+      undoList.EndAction( ids[n] );
+    }
+    for( int n = 0; n < 10; n++ ) {
+      undoList.Undo();
+    }
+    for ( int n = 0; n < 10; n ++ ) {
+      Assert((kOrigValue == data[n]), "post-undo after multiple undo lists wasn't correct" );
+    }
+
+
     // Do the same undo test we did before but through tcl.
-    undoList.BeginAction( "Change values" );
+    id = undoList.BeginAction( "Change values" );
 
     for ( int n = 0; n < 10; n ++ ) {
       if ( n%2 ) {
         data[n] = kNewValue;
         TestUndoAction* action  =
           new TestUndoAction ( data, n, kOrigValue, kNewValue );
-        undoList.AddAction( action );
+        undoList.AddAction( id, action );
       } else {
         data[n] = kOrigValue;
       }
     }
 
-    undoList.EndAction();
+    undoList.EndAction( id );
 
     rTcl = Tcl_Eval( iInterp, "Undo" );
     AssertTclOK( rTcl );
@@ -325,11 +348,11 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
       data[n] = kNewValue;
       stringstream ssTitle;
       ssTitle  << "Change value " << n;
-      undoList.BeginAction( ssTitle.str() );
+      id = undoList.BeginAction( ssTitle.str() );
       TestUndoAction* action =
         new TestUndoAction( data, n, kOrigValue, kNewValue );
-      undoList.AddAction( action );
-      undoList.EndAction();
+      undoList.AddAction( id, action );
+      undoList.EndAction( id );
 
       {
         stringstream ssErr;
@@ -426,8 +449,8 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
     // test if the right one is being deleted.)
     undoList.Clear();
     for ( int n = 0; n < undoList.mcMaxActions + 2; n++ ) {
-      undoList.BeginAction( "test" );
-      undoList.EndAction();
+      id = undoList.BeginAction( "test" );
+      undoList.EndAction( id );
 
       Assert( (undoList.mUndoActions.size() + undoList.mRedoActions.size() <=
                (unsigned int)undoList.mcMaxActions),
@@ -440,8 +463,8 @@ UndoManagerTester::Test ( Tcl_Interp* iInterp ) {
               "Went above max number of actions." );
     }
     for ( int n = 0; n < 10; n++ ) {
-      undoList.BeginAction( "test" );
-      undoList.EndAction();
+      id = undoList.BeginAction( "test" );
+      undoList.EndAction( id );
 
       Assert( (undoList.mUndoActions.size() + undoList.mRedoActions.size() <=
                (unsigned int)undoList.mcMaxActions),

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.4 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/29 21:36:35 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,7 @@
 
 #include "string_fixed.h"
 #include <list>
+#include <map>
 #include "TclCommandManager.h"
 
 
@@ -70,18 +71,20 @@ class UndoManager : public TclCommandListener {
 public:
 
   static UndoManager& GetManager ();
-
+  
   // Call to begin and end a new undoable action. In between call
   // AddAction with subclassed UndoActions to implement the
   // action. The title should be something that works with "Undo" or
   // "Redo" at the beginning. It will show up in the Edit menu bar. So
   // use something like "Selection", so it comes out as "Undo
-  // Selection" and "Redo Selection."
-  void BeginAction ( std::string isTitle );
-  void EndAction ();
+  // Selection" and "Redo Selection." Beginning an action returns an
+  // ID which should be passed to AddAction and EndAction to specify
+  // the action.
+  int BeginAction ( std::string isTitle );
+  void EndAction ( int iID );
 
   // Adds an action to the Undo list.
-  void AddAction ( UndoAction* iAction );
+  void AddAction ( int iID, UndoAction* iAction );
 
   // Get titles for our undo and redo actions.
   std::string GetUndoTitle ();
@@ -103,8 +106,8 @@ protected:
 
   UndoManager();
 
-  // Action we're currently building.
-  UndoableAction* mCurrentAction;
+  // Actions we're currently building.
+  std::map<int,UndoableAction*> maCurrentActions;
 
   // List of undo and redo actions.
   std::list<UndoableAction*> mUndoActions;

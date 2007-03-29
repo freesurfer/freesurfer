@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.7 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/29 21:36:35 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,33 +51,39 @@ UndoManager::GetManager () {
   return *sManager;
 }
 
-UndoManager::UndoManager () {
-  mcMaxActions = 30;
+UndoManager::UndoManager () :
+  mcMaxActions( 30 ) {
 }
 
-void
+int
 UndoManager::BeginAction ( std::string isTitle ) {
 
-  mCurrentAction = new UndoableAction();
-  mCurrentAction->msTitle = isTitle;
+  int nNextAction = maCurrentActions.size();
+
+  maCurrentActions[nNextAction] = new UndoableAction();
+  maCurrentActions[nNextAction]->msTitle = isTitle;
+
+  return nNextAction;
 }
 
 void
-UndoManager::AddAction ( UndoAction* iAction ) {
+UndoManager::AddAction ( int iID, UndoAction* iAction ) {
 
-  if ( NULL == mCurrentAction ) {
-    throw runtime_error( "Tried to add undo action without beginning an action first." );
-  }
+  if( maCurrentActions.find( iID ) == maCurrentActions.end() ) 
+    throw runtime_error( "Tried to add undo action to a non-existant or closed list." );
 
-  mCurrentAction->mActions.push_back( iAction );
+  maCurrentActions[iID]->mActions.push_back( iAction );
 }
 
 void
-UndoManager::EndAction () {
+UndoManager::EndAction ( int iID ) {
 
-  mUndoActions.push_back( mCurrentAction );
-  mCurrentAction = NULL;
+  if( maCurrentActions.find( iID ) == maCurrentActions.end() ) 
+    throw runtime_error( "Tried to add undo action to a non-existant or closed list." );
 
+  mUndoActions.push_back( maCurrentActions[iID] );
+  maCurrentActions.erase( iID );
+  
   if ( mUndoActions.size() + mRedoActions.size() >
        (unsigned int)mcMaxActions ) {
 
