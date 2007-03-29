@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/26 22:22:43 $
-##    $Revision: 1.21 $
+##    $Date: 2007/03/29 18:24:59 $
+##    $Revision: 1.22 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -72,6 +72,7 @@ source $fnUtils
 #       label - label for this class
 #       marker - marker for this class
 #       color - color for this class
+#       cSubjects - number of subjects
 #       subjects,n - n is 0 -> num subjects in this class
 #         index - index of the subject
 #     classes,label - label is the label
@@ -103,6 +104,8 @@ source $fnUtils
 #         visible - whether or not is visible
 #       classes,n - where n is 0 -> cClasses
 #         visible - whether or not is visible
+#         mean - mean measurement for subects in this class
+#         stdDev - stdDev for subjects in this class
 #       legend - subject or class
 #       bTryRegressionLine - whether or not to try getting the offset/slope
 # gWidgets - names of widgets
@@ -559,6 +562,7 @@ proc FsgdfPlot_ParseHeader { ifnHeader } {
 		incr nSubjInClass
 	    }
 	}
+	set gGDF($ID,classes,$nClass,cSubjects) $nSubjInClass
     }
 
     # We now have a header.
@@ -670,6 +674,12 @@ proc FsgdfPlot_PlotData { iID } {
 		}
 	    }
 
+	    # Now that we calculated the values for all our subjects,
+	    # we get the average for this class.
+	    if { $gPlot($iID,state,pointsChanged) } {
+		FsgdfPlot_CalculateClassAverageMeasurement $iID $nClass
+	    }
+
 	    if { $gPlot($iID,state,classes,$nClass,visible) } {
 		set bHide 0
 		set color $gGDF($iID,classes,$nClass,color)
@@ -677,14 +687,15 @@ proc FsgdfPlot_PlotData { iID } {
 		set bHide 1
 		set color white
 	    }
+	    # Draw all our points.
 	    $gw element create $gGDF($iID,classes,$nClass,label) \
 		-data $lData \
 		-symbol $gGDF($iID,classes,$nClass,marker) \
 		-color $color -linewidth 0 -outlinewidth 1 -hide $bHide \
 		-activepen activeElement
 
-	    # We're drawing a series of elements here that each need a
-	    # unique name.
+	    # Draw error bars. We're drawing a series of elements here
+	    # that each need a unique name.
 	    set nErrorIndex 0
 	    foreach lBar $lErrorBars {
 		$gw element create error$nClass$nErrorIndex \
@@ -695,6 +706,33 @@ proc FsgdfPlot_PlotData { iID } {
 		    -pixels 5
 
 		incr nErrorIndex
+	    }
+
+	    # Draw the mean line.
+	    if { 1 } {
+	    set x1 -200
+	    set y1 $gPlot($iID,state,classes,$nClass,mean)
+	    set x2 200
+	    set y2 $gPlot($iID,state,classes,$nClass,mean)
+	    $gw marker create line \
+		-coords [list $x1 $y1 $x2 $y2] \
+		-outline $gGDF($iID,classes,$nClass,color) \
+		-dashes {3 3}
+
+	    # Draw the stddev lines for the mean line.
+	    set y1 [expr $gPlot($iID,state,classes,$nClass,mean) - $gPlot($iID,state,classes,$nClass,stdDev)]
+	    set y2 [expr $gPlot($iID,state,classes,$nClass,mean) - $gPlot($iID,state,classes,$nClass,stdDev)]
+	    $gw marker create line \
+		-coords [list $x1 $y1 $x2 $y2] \
+		-outline $gGDF($iID,classes,$nClass,color) \
+		-dashes {1 3}
+
+	    set y1 [expr $gPlot($iID,state,classes,$nClass,mean) + $gPlot($iID,state,classes,$nClass,stdDev)]
+	    set y2 [expr $gPlot($iID,state,classes,$nClass,mean) + $gPlot($iID,state,classes,$nClass,stdDev)]
+	    $gw marker create line \
+		-coords [list $x1 $y1 $x2 $y2] \
+		-outline $gGDF($iID,classes,$nClass,color) \
+		-dashes {1 3}
 	    }
 	}
 
@@ -834,6 +872,49 @@ proc FsgdfPlot_CalculateSubjectMeasurement { iID inSubject } {
     set gPlot($iID,state,data,subjects,$inSubject,measurement) $mean
     set gPlot($iID,state,data,subjects,$inSubject,stdDev) $stdDev
 
+}
+
+# Accesses and calculates the average measurment values for the
+# subjects in the passed class. Stores the values in gPlot. Depends on
+# the values calculated by FsgdfPlot_CalculateClassAverageMeasurement
+# first.
+proc FsgdfPlot_CalculateClassAverageMeasurement { iID inClass } {
+    global gPlot gGDF
+
+    # Make sure we have subjects in this class.
+    if { $gGDF($iID,classes,$inClass,cSubjects) == 0 } {
+	set gPlot($iID,state,classes,$inClass,mean) 0
+	set gPlot($iID,state,classes,$inClass,stdDev) 0
+	return
+    }
+
+    # Get the average of the points we've been given.
+    set sumMean 0
+    set sumVar 0
+    for { set nSubjInClass 0 } { $nSubjInClass < $gGDF($iID,classes,$inClass,cSubjects) } { incr nSubjInClass } {
+
+	# This is the overall subject index.
+	set nSubj $gGDF($iID,classes,$inClass,subjects,$nSubjInClass,index)
+
+	# This is set in FsgdfPlot_CalculateSubjectMeasurement as the
+	# average measurement for all points for this subject
+	# currently being graphed.
+	set meas $gPlot($iID,state,data,subjects,$nSubj,measurement)
+
+	set sumMean [expr $sumMean + $meas]
+	set sumVar [expr $sumVar + pow($meas,2.0)]
+    }
+    set mean 0
+    set stdDev 0
+
+    set mean [expr $sumMean / $gGDF($iID,classes,$inClass,cSubjects).0]
+    if { $gGDF($iID,classes,$inClass,cSubjects) > 1 } {
+	set stdDev [expr sqrt($sumVar / $gGDF($iID,classes,$inClass,cSubjects).0 - pow($mean,2))]
+    }
+    
+    # Store the values in gPlot.
+    set gPlot($iID,state,classes,$inClass,mean) $mean
+    set gPlot($iID,state,classes,$inClass,stdDev) $stdDev
 }
 
 
