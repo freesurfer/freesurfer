@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/29 18:45:20 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/03/29 18:52:21 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.9 2007/03/29 18:45:20 greve Exp $
+// $Id: mri_binarize.c,v 1.10 2007/03/29 18:52:21 greve Exp $
 
 /*
   BEGINHELP
@@ -145,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.9 2007/03/29 18:45:20 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.10 2007/03/29 18:52:21 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -173,6 +173,8 @@ int Matched = 0;
 
 MRI *InVol,*OutVol,*MergeVol,*MaskVol;
 double MaskThresh = 0.5;
+
+int nErode3d = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -313,6 +315,10 @@ int main(int argc, char *argv[]) {
 
   printf("Found %d values in range\n",nhits);
 
+  if(nErode3d > 0){
+    printf("Eroding %d voxels in 3d\n",nErode3d);
+    for(n=0; n<nErode3d; n++) MRIerode(OutVol,OutVol);
+  }
 
   // Save output
   MRIwrite(OutVol,OutVolFile);
@@ -416,6 +422,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&frame);
       nargsused = 1;
+    } else if (!strcasecmp(option, "--erode")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nErode3d);
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -455,6 +465,7 @@ static void print_usage(void) {
   printf("   --abs : take abs of invol first (ie, make unsigned)\n");
   printf("   --zero-edges : zero the edge voxels\n");
   printf("   --zero-slice-edges : zero the edge slice voxels\n");
+  printf("   --erode nerode: erode binarization in 3D\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -579,6 +590,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
   fprintf(fp,"input      %s\n",InVolFile);
   fprintf(fp,"frame      %d\n",frame);
+  fprintf(fp,"nErode3d   %d\n",nErode3d);
   fprintf(fp,"output     %s\n",OutVolFile);
 
   if(!DoMatch){
