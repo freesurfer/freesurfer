@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/03/01 16:53:24 $
-#    $Revision: 1.239 $
+#    $Date: 2007/03/30 16:47:49 $
+#    $Revision: 1.240 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.239 2007/03/01 16:53:24 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.240 2007/03/30 16:47:49 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5813,14 +5813,14 @@ proc ToggleVisibilityInTopmostUnlockedLayer { iViewID } {
 
 # DATA LOADING =====================================================
 
-proc MakeVolumeCollectionUsingTemplate { iColID } {
-    dputs "MakeVolumeCollectionUsingTemplate  $iColID  "
+proc MakeVolumeCollectionUsingTemplate { iColID iType } {
+    dputs "MakeVolumeCollectionUsingTemplate  $iColID $iType "
 
 
     set err [catch { set colID [MakeDataCollection Volume] } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return -1 }
 
-    set err [catch { MakeVolumeUsingTemplate $colID $iColID } sResult]
+    set err [catch { MakeVolumeUsingTemplate $colID $iColID $iType } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return -1 }
 
     # Get a good name for the collection.
@@ -5905,11 +5905,11 @@ proc Make2DMRISLayer { isLabel } {
     return $layerID
 }
 
-proc NewVolume { iTemplateID ibCreateLayer iFrameIDToAdd } {
+proc NewVolume { iTemplateID iType ibCreateLayer iFrameIDToAdd } {
     dputs "NewVolume  $iTemplateID $ibCreateLayer $iFrameIDToAdd  "
 
     set err [catch { 
-	set colID [MakeVolumeCollectionUsingTemplate $iTemplateID] 
+	set colID [MakeVolumeCollectionUsingTemplate $iTemplateID $iType] 
     } sResult]
     if { 0 != $err } { tkuErrorDlog "$sResult"; return }
 
@@ -6138,18 +6138,25 @@ proc DoNewVolumeDlog {} {
 	 $gaCollection(current,id) >= -1 &&
 	 [string match $gaCollection(current,type) Volume] } {
 
+	# Make our list of options to go in the type menu.
+	set lTypes { {-1 "Same as template"} {0 "Unsigned char"} {1 "Integer"} {3 "Float"} }
+
 	tkuDoFileDlog -title "New Volume" \
 	    -prompt1 "Will make a new volume using volume \"$gaCollection(current,label)\" as a template." \
 	    -type1 note \
 	    -type2 checkbox \
 	    -prompt2 "Automatically add new layer to all views" \
 	    -defaultvalue2 1 \
+	    -prompt3 "Data type: " \
+	    -type3 menu \
+	    -menu3 $lTypes \
+	    -defaultitem3 1 \
 	    -okCmd { 
 		set frameID -1
 		if { %s2 } {
 		    set frameID $gFrameWidgetToID($gaWidget(scubaFrame))
 		}
-		NewVolume $gaCollection(current,id) 1 $frameID
+		NewVolume $gaCollection(current,id) %s3 1 $frameID
 	    }
 	
     } else {
@@ -6741,7 +6748,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.239 2007/03/01 16:53:24 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.240 2007/03/30 16:47:49 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

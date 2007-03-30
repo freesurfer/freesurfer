@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/28 21:37:51 $
- *    $Revision: 1.104 $
+ *    $Date: 2007/03/30 16:47:49 $
+ *    $Revision: 1.105 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -94,10 +94,13 @@ VolumeCollection::VolumeCollection () :
                          "collectionID fileName",
                          "Writes a series of structure ROIs to a "
                          "segmentation volume." );
-  commandMgr.AddCommand( *this, "MakeVolumeUsingTemplate", 2,
-                         "collectionID templateCollectionID",
+  commandMgr.AddCommand( *this, "MakeVolumeUsingTemplate", 3,
+                         "collectionID templateCollectionID type",
                          "Makes a volume using an existing volume "
-                         "as a template." );
+                         "as a template. type should be 0 for uchar, "
+			 "1 for int, 2 for long, 3 for float, and 4 "
+			 "for short, or -1 to copy from the template "
+			 "volume." );
   commandMgr.AddCommand( *this, "SaveVolume", 1,
                          "collectionID", "Save volume with its file name." );
   commandMgr.AddCommand( *this, "SaveVolumeWithFileName", 2,
@@ -206,7 +209,13 @@ VolumeCollection::SetFileName ( string& ifnMRI ) {
 }
 
 void
-VolumeCollection::MakeUsingTemplate ( int iCollectionID ) {
+VolumeCollection::MakeUsingTemplate ( int iCollectionID, int iType ) {
+
+  if( iType < -1 || iType > MRI_SHORT ) {
+    stringstream ssError;
+    ssError << "iType " << iType << " was invalid.";
+    throw runtime_error( ssError.str() );
+  }
 
   VolumeCollection* vol = NULL;
   try {
@@ -223,9 +232,13 @@ VolumeCollection::MakeUsingTemplate ( int iCollectionID ) {
     throw runtime_error( "Couldn't get MRI from template" );
   }
 
+  int type = iType;
+  if( iType == -1 )
+    type = mri->type;
+
   // Allocate the mri with the size from the template.
   MRI* newMri = MRIallocSequence( mri->width, mri->height, mri->depth,
-                                  mri->type, mri->nframes );
+                                  type, mri->nframes );
   if ( NULL == newMri ) {
     throw runtime_error( "Couldn't allocate new mri." );
   }
@@ -979,6 +992,16 @@ VolumeCollection::SetMRIValue ( VolumeLocation& iLoc,
   }
 }
 
+int
+VolumeCollection::GetDataType () {
+
+  if( NULL != mMRI ) {
+    return mMRI->type;
+  } 
+
+  return -1;
+}
+
 void
 VolumeCollection::MakeMagnitudeVolume () {
 
@@ -1155,7 +1178,7 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     }
   }
 
-  // MakeVolumeUsingTemplate <collectionID> <templateID>
+  // MakeVolumeUsingTemplate <collectionID> <templateID> <type>
   if ( 0 == strcmp( isCommand, "MakeVolumeUsingTemplate" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
     if ( ERANGE == errno ) {
@@ -1171,7 +1194,14 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
         return error;
       }
 
-      MakeUsingTemplate( templateID );
+      int type = strtol(iasArgv[3], (char**)NULL, 10);
+      if ( ERANGE == errno ) {
+        sResult = "bad type";
+        return error;
+
+      }
+
+      MakeUsingTemplate( templateID, type );
     }
   }
 

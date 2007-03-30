@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.66 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/30 16:47:49 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -116,8 +116,11 @@ public:
     return mfnMRI;
   }
 
-  // Creates an MRI using an existing data collection as a template.
-  void MakeUsingTemplate ( int iCollectionID );
+  // Creates an MRI using an existing data collection as a
+  // template. If iType is -1, it will copy the type from the template
+  // volume, otherwise it will use the given type. iType should be a
+  // valid MRI_ type from mri.h.
+  void MakeUsingTemplate ( int iCollectionID, int iType );
 
   // Load an MRI from the currently named volume.
   void LoadVolume ();
@@ -200,6 +203,10 @@ public:
 
   // Sets value.
   void SetMRIValue ( VolumeLocation& iLoc, float const iValue );
+
+  // Returns the data type. This is a valid number from mri.h like
+  // MRI_UCHAR,
+  int GetDataType ();
 
   virtual TclCommandResult
   DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );

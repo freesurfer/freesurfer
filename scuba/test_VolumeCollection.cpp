@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.18 $
+ *    $Author: kteich $
+ *    $Date: 2007/03/30 16:47:49 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -200,15 +200,52 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     }
 
 
-    // Create a new one from template.
-    VolumeCollection* vol2 = new VolumeCollection();
-    vol2->MakeUsingTemplate( vol->GetID() );
-    Assert( (vol->mVoxelSize[0] == vol2->mVoxelSize[0] &&
-             vol->mVoxelSize[1] == vol2->mVoxelSize[1] &&
-             vol->mVoxelSize[2] == vol2->mVoxelSize[2]),
-            "NewUsingTemplate failed, vol2 didn't match vol's voxelsize" );
+    {
+      // Create a new one from template.
+      VolumeCollection* vol2 = new VolumeCollection();
+      vol2->MakeUsingTemplate( vol->GetID(), -1 );
+      Assert( (vol->mVoxelSize[0] == vol2->mVoxelSize[0] &&
+	       vol->mVoxelSize[1] == vol2->mVoxelSize[1] &&
+	       vol->mVoxelSize[2] == vol2->mVoxelSize[2]),
+	      "NewUsingTemplate failed, vol2 didn't match vol's voxelsize" );
+      Assert( (vol->GetDataType() == vol2->GetDataType()),
+	    "NewUsingTemplate(-1) failed, vol2 didn't match vol's data type" );
+      delete vol2;
+    }
+    
+    {
+      VolumeCollection* vol2 = new VolumeCollection();
+      vol2->MakeUsingTemplate( vol->GetID(), MRI_FLOAT );
+      Assert( (vol->mVoxelSize[0] == vol2->mVoxelSize[0] &&
+	       vol->mVoxelSize[1] == vol2->mVoxelSize[1] &&
+	       vol->mVoxelSize[2] == vol2->mVoxelSize[2]),
+	      "NewUsingTemplate failed, vol2 didn't match vol's voxelsize" );
+      Assert( (MRI_FLOAT == vol2->GetDataType()),
+	      "NewUsingTemplate(float) failed, vol2 wasn't a float" );
+      
+      int idx[3] = { 0, 0, 0 };
+      VolumeLocation& loc =
+	(VolumeLocation&) vol2->MakeLocationFromIndex( idx );
+      vol2->SetMRIValue( loc, 0.6789 );
+      float value = vol2->GetMRINearestValue(loc);
 
+      stringstream ssError;
+      ssError << "NewUsingTemplate(float) failed value comparison, "
+	      << "was expecting 0.6789 but got " << value;
+      Assert( (fabs(0.6789 - value) < 0.00001), ssError.str() );
+      delete vol2;
+    }
 
+    {
+      VolumeCollection* vol2 = NULL;
+      try {
+	vol2 = new VolumeCollection();
+	vol2->MakeUsingTemplate( vol->GetID(), 10000 );
+	throw runtime_error( "MakeUsingTemplate(10000) didn't throw an error");
+      }
+      catch(...) {}
+      delete vol2;
+    }
 
     dataTransform.SetMainTransform( 1, 0, 0, 0,
                                     0, 1, 0, 0,
@@ -428,7 +465,6 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     vol->SetDataToWorldTransform( 0 );
 
     delete vol;
-    delete vol2;
     delete testVol;
   } catch ( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;
