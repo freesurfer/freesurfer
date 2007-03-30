@@ -1,8 +1,13 @@
 % fast_fcreg.m
-% $Id: fast_fcreg.m,v 1.1 2007/03/29 23:15:02 greve Exp $
+% $Id: fast_fcreg.m,v 1.2 2007/03/30 00:05:40 greve Exp $
 
-sess = 'mgh-bm';
-flacfile = 'wm0xmc.flac';
+%flacfile = 'wm0xmc.flac';
+flacfile = 'flac/pure-rest0.flac';
+
+%for nthsess = [1 3 4 5 6]
+for nthsess = [1]
+%sess = 'mgh-data/mgh-101.1';
+sess = sprintf('mgh-data/mgh-10%d.1',nthsess);
 % contrast
 % map
 % thresh: val, sign
@@ -97,6 +102,7 @@ for nthrun = 1:nruns
     fprintf('%2d segid = %d,  nseg = %g\n',nthseg,segid,nseg);
     fseg = fmat(:,indseg);
     rseg = mean(Rd*fseg,2);
+    rseg = rseg/sqrt(sum(rseg.^2));
     fcreg = [fcreg rseg];
   end
   
@@ -106,7 +112,7 @@ for nthrun = 1:nruns
   fprintf('\n');
 end
 
-
+end
 
 
 
