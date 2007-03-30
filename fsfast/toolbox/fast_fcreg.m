@@ -1,24 +1,17 @@
 % fast_fcreg.m
-% $Id: fast_fcreg.m,v 1.2 2007/03/30 00:05:40 greve Exp $
+% $Id: fast_fcreg.m,v 1.3 2007/03/30 05:25:10 greve Exp $
 
-%flacfile = 'wm0xmc.flac';
-flacfile = 'flac/pure-rest0.flac';
-
-%for nthsess = [1 3 4 5 6]
-for nthsess = [1]
-%sess = 'mgh-data/mgh-101.1';
-sess = sprintf('mgh-data/mgh-10%d.1',nthsess);
+%flacfile
+%sess 
+%segfile
 % contrast
 % map
 % thresh: val, sign
-
-segfile = 'aparc+aseg';
 % Left: thal hippo caudmidfront pericalc
-segidlist = [10 17 1003 1021];
-fcregstem = 'fcreg';
-
-perrun = 1;
-nnuis = 10;
+% segidlist = [10 17 1003 1021];
+% fcregstem = 'fcreg';
+% perrun = 1;
+% nnuis = 10;
 
 
 flac = fast_ldflac(flacfile);
@@ -111,8 +104,8 @@ for nthrun = 1:nruns
   
   fprintf('\n');
 end
+if(exist('okfile','var'))  fmri_touch(okfile); end
 
-end
 
 
 
