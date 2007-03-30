@@ -1,0 +1,259 @@
+#!/bin/csh -f
+# fcreg-sess
+#
+set VERSION    = '$Id: fcreg-sess,v 1.1 2007/03/30 05:26:03 greve Exp $';
+set cmdargs = ($argv);
+
+set flac = ();
+set fcregstem  = (); 
+set segstem    = "aparc+aseg"; 
+set segidlist  = ()
+set nnuis = 10;
+set perrun = 0;
+set monly = 0;
+set MLF = ();
+
+set nolog = 0;
+
+set PrintHelp = 0;
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo $SessList
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set ProjectDir = `pwd`;
+
+# Create a log file #
+if(! $nolog ) then
+  mkdir -p log
+  set LF = $ProjectDir/log/fcreg-sess.log
+  # Below to help prevent collisions when parallel
+  if($#SessList == 1) then
+    set sessid = `basename $SessList`;
+    set LF = $LF.$sessid
+  endif
+  rm -f $LF
+else
+  set LF = /dev/null
+endif
+echo Logfile is $LF
+
+date | tee -a $LF
+uname -a | tee -a $LF
+echo "cd `pwd`" | tee -a $LF
+echo $0 | tee -a $LF
+echo $cmdargs | tee -a $LF
+
+if($#MLF == 0) set MLF = /tmp/fcreg-sess.$$.m
+rm -f $MLF
+
+set okfile = /tmp/fcreg-sess.$$.ok
+rm -f $okfile
+
+echo "monly     = '$monly';" >> $MLF
+echo "okfile    = '$okfile';" >> $MLF
+echo "flacfile  = '$flac';" >> $MLF
+echo "segfile   = '$segstem';" >> $MLF
+echo "segidlist = [$segidlist];" >> $MLF
+echo "fcregstem = '$fcregstem';" >> $MLF
+echo "perrun    = $perrun;" >> $MLF
+echo "nnuis     = $nnuis;" >> $MLF
+
+## go through each session ##
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  echo "sess = '$sess';">> $MLF
+  echo "if(fast_fileexists(okfile)) delete(okfile); end" >> $MLF
+  echo "fast_fcreg;" >> $MLF
+  echo "if(~fast_fileexists(okfile) && ~monly); quit; end" >> $MLF
+
+end # sess
+echo "------------------------------------------" >> $LF
+cat $MLF >> $LF
+echo "------------------------------------------" >> $LF
+
+if(! $monly) then
+  echo "------------------------------------------" | tee -a $LF
+  echo "------- matlab output --------------------" | tee -a $LF
+  cat $MLF | matlab -display iconic | tee -a $LF
+  echo "------------------------------------------" | tee -a $LF
+  rm $MLF
+  if(! -e $okfile) then
+    echo "ERROR: fast_fcreg() failed\n";
+    exit 1;
+  endif
+  rm -f $okfile
+endif
+
+
+date | tee -a $LF
+echo "fcreg-sess done" | tee -a $LF
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-flac":
+      if ( $#argv < 1) goto arg1err;
+      set flac = $argv[1]; shift;
+      breaksw
+
+    case "-fcreg":
+      if ( $#argv < 1) goto arg1err;
+      set fcregstem = $argv[1]; shift;
+      breaksw
+
+    case "-seg":
+      if ( $#argv < 1) goto arg1err;
+      set segstem = $argv[1]; shift;
+      breaksw
+
+    case "-segid":
+      if ( $#argv < 1) goto arg1err;
+      set segidlist = ($segidlist $argv[1]); shift;
+      breaksw
+
+    case "-nnuis":
+      if ( $#argv < 1) goto arg1err;
+      set nnuis = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv < 1) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-perrun":
+      set perrun = 1;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+    case "-g":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#flac == 0) then
+    echo "ERROR: no flac specified"
+    exit 1
+  endif
+
+  if($#fcregstem == 0) then
+    echo "ERROR: no fcreg stem specified"
+    exit 1
+  endif
+
+  if($#segidlist == 0) then
+    echo "ERROR: no segmentations specified"
+    exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: fcreg-sess"
+  echo ""
+  echo "  -flac flac  "
+  echo "  -fcreg fcregstem "
+  echo "  -segid segid <-segid segid>"
+  echo ""
+  echo "  -nnuis nnuis ";
+  echo "  -perrun";
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo ""
+  echo "   -monly mfile.m"
+  echo "   -help      : yea, as if"
+  echo "   -version   : print version and exit"
+  echo "   -debug"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+What are you looking at?
