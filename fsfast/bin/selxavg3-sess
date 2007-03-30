@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/14 23:10:09 $
-#    $Revision: 1.27 $
+#    $Date: 2007/03/30 00:05:57 $
+#    $Revision: 1.28 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.27 2007/03/14 23:10:09 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.28 2007/03/30 00:05:57 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -191,7 +191,7 @@ foreach sess ($SessList)
     endif
     if( ! $monly && ! $perrun && ! $jkrun) then
       echo " ... reanalyzing (deleting old analysis)" | tee -a $LF
-      rm -r $anadir
+      rm -f $anadir/* $anadir/*/*sig* $anadir/*/*cnr* $anadir/*/*ces* >& /dev/null
     endif
   endif
   @ nprocs = $nprocs + 1;
@@ -411,6 +411,10 @@ while( $#argv != 0 )
       set SaveRes = 1;
       breaksw
 
+    case "-no-fwhm":
+      set DoFWHM = 0;
+      breaksw
+
     case "-skip":
       set Skip = 1;
       breaksw
@@ -516,6 +520,7 @@ usage_exit:
   echo "   -subject subject : override subject name"
   echo "   -perrun        : analyze each run separately"
   echo "   -jkrun         : jackknife runs"
+  echo "   -no-fwhm       : do not compute FWHM"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  ..."
