@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/29 21:36:34 $
- *    $Revision: 1.151 $
+ *    $Date: 2007/03/30 15:36:53 $
+ *    $Revision: 1.152 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2778,7 +2778,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
         if ( NULL == mCurrentPath ) {
 
           switch ( iInput.Button() ) {
-          case 1:
+          case 1: {
             mFirstPathRAS.Set( iRAS );
             mCurrentPath = new Path<float>;
             pathMgr.ManagePath( *mCurrentPath );
@@ -2792,7 +2792,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 				new UndoNewPathAction( mCurrentPath ) );
             undoList.EndAction( actionListID );
 
-            break;
+	  } break;
           case 2:
           case 3:
             if ( !iInput.IsShiftKeyDown() ) {
