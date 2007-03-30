@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/29 21:36:34 $
- *    $Revision: 1.59 $
+ *    $Date: 2007/03/30 16:39:22 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -410,6 +410,9 @@ protected:
   // Cache of color values for an opacity.
   GLubyte mColorTimesOpacity[256];
   GLubyte mColorTimesOneMinusOpacity[256];
+
+  // The undo manager action ID for the current drawing operation.
+  int mCurrentDrawingOperationActionID;
 };
 
 // Flooders ============================================================

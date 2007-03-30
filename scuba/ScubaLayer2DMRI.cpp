@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/30 15:36:53 $
- *    $Revision: 1.152 $
+ *    $Date: 2007/03/30 16:39:22 $
+ *    $Revision: 1.153 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,7 +91,8 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
     mbDrawEditingLine(false),
     mCurrentPath(false),
     mRowStartRAS(NULL),
-    mColIncrementRAS(NULL) {
+    mColIncrementRAS(NULL),
+    mCurrentDrawingOperationActionID(-1) {
 
   SetOutputStreamToCerr();
 
@@ -2484,20 +2485,23 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
         // If this is a mouse down event, open up an undo action and
         // enter batch mode.
         UndoManager& undoList = UndoManager::GetManager();
-	int actionListID = -1;
 
         if ( iInput.IsButtonDownEvent() ) {
           if ( ScubaToolState::voxelEditing == iTool.GetMode() ) {
             if ( iInput.Button() == 2 ) {
-              actionListID = undoList.BeginAction( "Edit Voxel" );
+              mCurrentDrawingOperationActionID = 
+		undoList.BeginAction( "Edit Voxel" );
             } else if ( iInput.Button() == 3 ) {
-              actionListID = undoList.BeginAction( "Erase Voxel" );
+              mCurrentDrawingOperationActionID = 
+		undoList.BeginAction( "Erase Voxel" );
             }
           } else if ( ScubaToolState::roiEditing == iTool.GetMode() ) {
             if ( iInput.Button() == 2 ) {
-              actionListID = undoList.BeginAction( "Selection Brush" );
+              mCurrentDrawingOperationActionID =
+		undoList.BeginAction( "Selection Brush" );
             } else if ( iInput.Button() == 3 ) {
-              actionListID = undoList.BeginAction( "Unselection Brush" );
+              mCurrentDrawingOperationActionID = 
+		undoList.BeginAction( "Unselection Brush" );
             }
           }
 
@@ -2645,7 +2649,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
               }
 
               // Add the undo item.
-              undoList.AddAction( actionListID, action );
+              undoList.AddAction( mCurrentDrawingOperationActionID, action );
             }
 
             delete &loc;
@@ -2658,7 +2662,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
         // If this is a mouse up event, close the undo stuff and end
         // batch mode.
         if ( iInput.IsButtonUpEvent() ) {
-          undoList.EndAction( actionListID );
+          undoList.EndAction( mCurrentDrawingOperationActionID );
+	  mCurrentDrawingOperationActionID = -1;
 
           // End batch change mode.
           switch ( iTool.GetMode() ) {
