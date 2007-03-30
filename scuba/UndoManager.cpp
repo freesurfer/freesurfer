@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/29 21:36:35 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/03/30 16:47:02 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -79,7 +79,7 @@ void
 UndoManager::EndAction ( int iID ) {
 
   if( maCurrentActions.find( iID ) == maCurrentActions.end() ) 
-    throw runtime_error( "Tried to add undo action to a non-existant or closed list." );
+    throw runtime_error( "Tried to end a non-existant or closed list." );
 
   mUndoActions.push_back( maCurrentActions[iID] );
   maCurrentActions.erase( iID );
