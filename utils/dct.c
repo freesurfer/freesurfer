@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/03/31 20:20:14 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/04/01 13:29:17 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,8 +35,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/03/31 20:20:14 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2007/04/01 13:29:17 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -391,6 +391,7 @@ DCTupdate(DCT *dct)
       DCTtransformPoint(dct, x, y, z, &xd, &yd, &zd) ;
       switch (i)
       {
+      default:
       case 0:  jd = xd/dct->res ; break ;
       case 1:  jd = yd/dct->res ; break ; 
       case 2:  jd = zd/dct->res ; break ; 
