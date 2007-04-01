@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/09 00:41:35 $
- *    $Revision: 1.376 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/01 15:14:25 $
+ *    $Revision: 1.377 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.376 $";
+char *MRI_C_VERSION = "$Revision: 1.377 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -919,6 +919,67 @@ inline void MRIdbl2ptr(double v, void *pmric, int mritype)
   }
 }
 
+/*-------------------------------------------------------------------*/
+/*!
+  \fn float MRIgetVoxDx(MRI *mri, int c, int r, int s, int f)
+  \brief Returns voxel x derivative as a float regardless of the underlying data type.
+  \param MRI *mri - input MRI
+  \param int c - column
+  \param int r - row
+  \param int s - slice
+  \param int f - frame
+  \return float intensity x derivative at the given col, row, slice, frame
+*/
+float
+MRIgetVoxDx(MRI *mri, int c, int r, int s, int f)
+{
+  float Ip1, Im1 ;
+
+  Ip1 = MRIgetVoxVal(mri, c+1, r, s, f) ;
+  Im1 = MRIgetVoxVal(mri, c-1, r, s, f) ;
+  return((Ip1-Im1)/(2.0*mri->xsize)) ;
+}
+/*-------------------------------------------------------------------*/
+/*!
+  \fn float MRIgetVoxDy(MRI *mri, int c, int r, int s, int f)
+  \brief Returns voxel y derivative as a float regardless of the underlying data type.
+  \param MRI *mri - input MRI
+  \param int c - column
+  \param int r - row
+  \param int s - slice
+  \param int f - frame
+  \return float intensity y derivative at the given col, row, slice, frame
+  This function is general but slow. See also MRIptr2dbl().
+*/
+float
+MRIgetVoxDy(MRI *mri, int c, int r, int s, int f)
+{
+  float Ip1, Im1 ;
+
+  Ip1 = MRIgetVoxVal(mri, c, r+1, s, f) ;
+  Im1 = MRIgetVoxVal(mri, c, r-1, s, f) ;
+  return((Ip1-Im1)/(2.0*mri->ysize)) ;
+}
+/*-------------------------------------------------------------------*/
+/*!
+  \fn float MRIgetVoxDz(MRI *mri, int c, int r, int s, int f)
+  \brief Returns voxel z derivative as a float regardless of the underlying data type.
+  \param MRI *mri - input MRI
+  \param int c - column
+  \param int r - row
+  \param int s - slice
+  \param int f - frame
+  \return float intensity z derivative at the given col, row, slice, frame
+*/
+float
+MRIgetVoxDz(MRI *mri, int c, int r, int s, int f)
+{
+  float Ip1, Im1 ;
+
+  Ip1 = MRIgetVoxVal(mri, c, r, s+1, f) ;
+  Im1 = MRIgetVoxVal(mri, c, r, s-1, f) ;
+  return((Ip1-Im1)/(2.0*mri->zsize)) ;
+}
 /*-------------------------------------------------------------------*/
 /*!
   \fn float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f)
