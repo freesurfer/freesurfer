@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/23 20:23:28 $
- *    $Revision: 1.106 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/01 03:04:13 $
+ *    $Revision: 1.107 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: matrix.c,v 1.106 2007/03/23 20:23:28 greve Exp $
+// $Id: matrix.c,v 1.107 2007/04/01 03:04:13 fischl Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -3660,5 +3660,20 @@ MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k)
     }
   }
   return(k);
+}
+
+/*!
+  \fn double MatrixRowDotProduct(MATRIX *m, int row, VECTOR *v)
+  \brief dot product of a vector with the row of a matrix
+*/
+double
+MatrixRowDotProduct(MATRIX *m, int row, VECTOR *v)
+{
+  double dot ;
+  int    col ;
+
+  for (dot = 0.0, col = 1 ; col <= m->cols ; col++)
+    dot += (*MATRIX_RELT(m, row, col) * VECTOR_ELT(v, col)) ;
+  return(dot) ;
 }
 
