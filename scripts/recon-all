@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/03/23 04:42:51 $
-#    $Revision: 1.77 $
+#    $Author: nicks $
+#    $Date: 2007/04/01 03:03:26 $
+#    $Revision: 1.78 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.77 2007/03/23 04:42:51 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.78 2007/04/01 03:03:26 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -117,6 +117,7 @@ set DoCropsize256 = 0 # if 1, then crop to 256^3 during mri_convert -conform
 set NoNormMGZ = 0; # set to 1 when -nosubcortseg or -noaseg flag is used,
                    # which causes norm.mgz not to used during inorm2 step
 set NoWMSA = 0;      # if 1, then -nowmsa flag is added to mri_ca_label
+set DoQdecCache = 0; # if 1, then create smoothed fsaverage surface files
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -1973,6 +1974,46 @@ foreach hemi ($hemilist)
 
 end # hemi
 
+
+# ---------------------------------------------------------------
+# Create the smoothed surfaces to fsaverage target needed by Qdec.
+# Jobs are started in parallel.
+# Output is logged to files named mris_preproc.${hemi}.${CacheOutFile}.log.
+if ($DoQdecCache) then
+    cd $subjdir/surf
+    $PWD |& tee -a $LF
+    set target=fsaverage
+    foreach hemi ($hemilist)
+        foreach measure ( thickness curv sulc )
+            foreach fwhm ( 0 5 10 15 20 25 )
+                set CacheOutFile=(${measure}.fwhm${fwhm}.${target})
+                set preproc_log=(mris_preproc.${hemi}.${CacheOutFile}.log)
+                if (-e ${preproc_log}) rm -f ${preproc_log}
+                set cmd=(mris_preproc \
+                    --hemi $hemi \
+                    --meas $measure \
+                    --fwhm $fwhm \
+                    --target $target \
+                    --cache-out ${CacheOutFile}.mgh \
+                    --s ${subjid} \
+                    --out mris_preproc.${hemi}.${CacheOutFile}.mgh \
+                    --log ${preproc_log})
+                echo "#--------------------------------------------" \
+                    |& tee -a $LF |& tee -a $CF
+                echo "#@# Qdec Cache $hemi $measure $fwhm `date`" \
+                    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+                echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+                echo "Output logged to ${preproc_log} \n" \
+                    |& tee -a $LF |& tee -a $CF
+                if($RunIt) $cmd > /dev/null &
+                if($status) goto error_exit;
+                echo $cmd > $touchdir/$hemi.$measure.$fwhm.qcache.touch
+            end # fwhm
+        end # measure
+    end # hemi
+endif
+
+
 echo "" |& tee -a $LF
 echo "#------------------------------------------" |& tee -a $LF
 echo "" |& tee -a $LF
@@ -3024,6 +3065,10 @@ while( $#argv != 0 )
       set AvgCurvTif = $argv[1]; shift;
       breaksw
 
+    case "-qcache":
+      set DoQdecCache = 1;
+      breaksw;
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -3338,7 +3383,7 @@ check_params:
      ! $DoFill && ! $DoTessellate && ! $DoAParc2ASeg && \
      ! $DoSmooth1  && ! $DoInflate1 && ! $DoQSphere && ! $DoRemoveNeck &&\
      ! $DoFix  && ! $DoSmooth2 && ! $DoInflate2  && ! $DoSphere &&\
-     ! $DoSkullLTA &&\
+     ! $DoSkullLTA && ! $DoQdecCache &&\
      ! $DoSurfReg  && ! $DoContraSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
      ! $DoMorphRGB && ! $DoFinalSurfs && ! $DoContraSurfRegWithinSubject &&\
      ! $DoCortRibbonVolMask && ! $DoJacobian && \
