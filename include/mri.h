@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/29 19:08:02 $
- *    $Revision: 1.329 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/01 15:13:49 $
+ *    $Revision: 1.330 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -175,6 +175,9 @@ MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R);
 int MRIhfs2Sphinx(MRI *mri);
 
 #ifdef __cplusplus
+float  MRIgetVoxDx(MRI *mri, int c, int r, int s, int f);
+float  MRIgetVoxDy(MRI *mri, int c, int r, int s, int f);
+float  MRIgetVoxDz(MRI *mri, int c, int r, int s, int f);
 float  MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
 int    MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
 void   MRIdbl2ptr(double v, void *pmric, int mritype);
@@ -1121,6 +1124,7 @@ double MRIestimateTIV(char* theLtaFile,
 int MRInormalizeFrames(MRI *mri);
 MRI *MRIsort(MRI *in, MRI *mask, MRI *sorted);
 int CompareDoubles(const void *a, const void *b);
+int MRIlabelInVolume(MRI *mri_src, int label) ;
 
 // types of MRI sequences
 #define MRI_UNKNOWN          0
