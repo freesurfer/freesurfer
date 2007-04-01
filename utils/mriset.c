@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/29 19:08:03 $
- *    $Revision: 1.49 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/01 15:13:25 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2719,4 +2719,16 @@ MRI *MRIsphereMask(int ncols, int nrows, int nslices, int nframes,
     }
   }
   return(mri);
+}
+int
+MRIlabelInVolume(MRI *mri_src, int label)
+{
+	int x, y, z ;
+
+	for (x = 0 ; x < mri_src->width ; x++)
+		for (y = 0 ; y < mri_src->height ; y++)
+			for (z = 0 ; z < mri_src->depth ; z++)
+				if ((int)MRIgetVoxVal(mri_src, x, y, z, 0) == label)
+					return(1) ;
+	return(0) ;
 }
