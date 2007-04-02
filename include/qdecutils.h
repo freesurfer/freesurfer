@@ -1,15 +1,14 @@
 /**
  * @file  qdecutils.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief QDEC Query-Design-Estimation-Contrast
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/04/02 22:18:00 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,9 +24,6 @@
  *
  */
 
-
-// QDEC Query-Design-Estimation-Contrast
-// $Id: qdecutils.h,v 1.9 2006/12/29 02:09:00 nicks Exp $
 
 #ifndef QDEC_INC
 #define QDEC_INC
@@ -57,6 +53,7 @@ typedef struct
 QDEC_FACTOR, QDECF;
 /*---------------------------------------------------------*/
 
+
 /*---------------------------------------------------------*/
 typedef struct
 {
@@ -67,6 +64,7 @@ typedef struct
 }
 QDEC_CONTRAST, QDECC;
 /*---------------------------------------------------------*/
+
 
 /*---------------------------------------------------------*/
 typedef struct
@@ -80,6 +78,7 @@ typedef struct
 }
 QDEC_DESIGN, QDECD;
 /*---------------------------------------------------------*/
+
 
 /*---------------------------------------------------------*/
 typedef struct
@@ -96,8 +95,6 @@ typedef struct
 }
 QDEC_DESIGN_GUI, QDECDGUI;
 /*---------------------------------------------------------*/
-
-
 
 
 const char *QDECsrcVersion(void);
