@@ -1,15 +1,52 @@
 /**
  * @file  fsgdf.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Utilities for reading freesurfer group descriptor file format
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
+ *  1. Tags are NOT case sensitive.
+ *  2. Labels are case sensitive.
+ *  3. When multiple items appear on a line, they can be
+ *     separated by any white space (ie, blank or tab).
+ *  4. Any line where # appears as the first non-white space
+ *     character is ignored (ie, a comment).
+ *  5. The Variables line should appear before the first Input line.
+ *  6. All Class lines should appear before the first Input line.
+ *  7. Variable label replications are not allowed.
+ *  8. Class label replications are not allowed.
+ *  9. Subject Id replications are not allowed.
+ * 10. If a class label is not used, a warning is printed out.
+ * 11. The DefaultVariable must be a member of the Variable list.
+ * 12. No error is generated if a tag does not match.
+ * 13. Empty lines are OK.
+ * 14. A class label can optionally be followed by a class marker.
+ * 15. A class marker can optionally be followed by a class color.
+ *
+ *  Example of a legal file:
+ *  ------------------------- cut here ------------------
+GroupDescriptorFile 1
+Title MyTitle
+MeasurementName thickness
+RegistrationSubject average7
+PlotFile /space/greve/1/users/greve/f_000.bfloat
+
+Class Class1 plus blue
+CLASS Class2 circle green
+SomeTag
+Variables             Age  Weight   IQ
+Input subjid1 Class1   10    100   1000
+Input subjid2 Class2   20    200   2000
+#Input subjid3 Class2   20    200   2000
+DefaultVariable Age
+ *   ------------------------- cut here ------------------
+ *
+ *  NOTE: SomeTag is not a valid tag, so it will be ignored.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/02/20 06:21:57 $
- *    $Revision: 1.41 $
+ *    $Author: nicks $
+ *    $Date: 2007/04/02 19:57:35 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,53 +62,6 @@
  *
  */
 
-
-/*
-  fsgdf.c
-  Utilities for reading freesurfer group descriptor file format
-  $Id: fsgdf.c,v 1.41 2007/02/20 06:21:57 greve Exp $
-
-  See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
-
-  1. Tags are NOT case sensitive.
-  2. Labels are case sensitive.
-  3. When multiple items appear on a line, they can be
-     separated by any white space (ie, blank or tab).
-  4. Any line where # appears as the first non-white space
-     character is ignored (ie, a comment).
-  5. The Variables line should appear before the first Input line.
-  6. All Class lines should appear before the first Input line.
-  7. Variable label replications are not allowed.
-  8. Class label replications are not allowed.
-  9. Subject Id replications are not allowed.
- 10. If a class label is not used, a warning is printed out.
- 11. The DefaultVariable must be a member of the Variable list.
- 12. No error is generated if a tag does not match.
- 13. Empty lines are OK.
- 14. A class label can optionally be followed by a class marker.
- 15. A class marker can optionally be followed by a class color.
-
-  Example of a legal file:
-  ------------------------- cut here ------------------
-  GroupDescriptorFile 1
-  Title MyTitle
-  MeasurementName thickness
-  RegistrationSubject average7
-  PlotFile /space/greve/1/users/greve/f_000.bfloat
-
-  Class Class1 plus blue
-  CLASS Class2 circle green
-  SomeTag
-  Variables             Age  Weight   IQ
-  Input subjid1 Class1   10    100   1000
-  Input subjid2 Class2   20    200   2000
-  #Input subjid3 Class2   20    200   2000
-  DefaultVariable Age
-  ------------------------- cut here ------------------
-
-  NOTE: SomeTag is not a valid tag, so it will be ignored.
-
-*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,15 +82,12 @@
 #include "fsgdf.h"
 #undef FSGDF_SRC
 
-
 /* This should be in ctype.h, but the compiler complains */
 #ifndef Darwin
 #ifndef isblank
 int isblank (int c);
 #endif
 #endif
-
-//static int gdfClassNo(FSGD *gd, char *class);
 
 static FSGD *gdfReadV1(char *gdfname);
 static int gdfPrintV1(FILE *fp, FSGD *gd);
@@ -124,6 +111,8 @@ FSGD *gdfAlloc(int version) {
   gd->LogY = 0;
   return(gd);
 }
+
+
 /*--------------------------------------------------*/
 int gdfFree(FSGD **ppgd) {
   FSGD *gd;
@@ -140,6 +129,8 @@ int gdfFree(FSGD **ppgd) {
   *ppgd = NULL;
   return(0);
 }
+
+
 /*--------------------------------------------------*/
 int gdfWrite(char *gdfname, FSGD *gd) {
   FILE *fp;
@@ -153,6 +144,7 @@ int gdfWrite(char *gdfname, FSGD *gd) {
   fclose(fp);
   return(0);
 }
+
 
 /*--------------------------------------------------*/
 int gdfPrintHeader(FILE *fp, FSGD *gd) {
@@ -168,10 +160,13 @@ int gdfPrintHeader(FILE *fp, FSGD *gd) {
   }
   return(r);
 }
+
+
 /*--------------------------------------------------*/
 int gdfPrintStdout(FSGD *gd) {
   return gdfPrintHeader(stdout,gd);
 }
+
 
 /*--------------------------------------------------*/
 static int gdfPrintV1(FILE *fp, FSGD *gd) {
@@ -227,7 +222,8 @@ static int gdfPrintV1(FILE *fp, FSGD *gd) {
     for (n=0; n < gd->ninputs; n++) {
       //fprintf(fp,"Input %s %s (id=%d) ",gd->subjid[n],
       //        gd->classlabel[gd->subjclassno[n]],gd->subjclassno[n]+1);
-      fprintf(fp,"Input %s %s ",gd->subjid[n],gd->classlabel[gd->subjclassno[n]]);
+      fprintf(fp,"Input %s %s ",
+              gd->subjid[n],gd->classlabel[gd->subjclassno[n]]);
       if (gd->nvariables > 0) {
         for (m=0; m < gd->nvariables; m++)
           fprintf(fp,"%g ",gd->varvals[n][m]);
@@ -238,6 +234,7 @@ static int gdfPrintV1(FILE *fp, FSGD *gd) {
 
   return(0);
 }
+
 
 /*--------------------------------------------------*/
 FSGD *gdfRead(char *gdfname, int LoadData) {
@@ -261,8 +258,9 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
 
   fscanf(fp,"%s",tmpstr);
   if (strcasecmp(tmpstr,"GroupDescriptorFile") != 0) {
-    printf("ERROR: gdfRead: %s is not formated properly.\n",gdfname);
-    printf("  The first string is '%s', should be 'GroupDescriptorFile'\n",tmpstr);
+    printf("ERROR: gdfRead: %s is not formatted properly.\n",gdfname);
+    printf("  The first string is '%s', should be 'GroupDescriptorFile'\n",
+           tmpstr);
     return(NULL);
   }
 
@@ -300,7 +298,8 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
     }
     gd->X = ReadMatlabFileVariable(datafilename,"X");
     if (gd->X == NULL) {
-      printf("ERROR: gdfRead: could not read variable X from %s\n",gd->DesignMatFile);
+      printf("ERROR: gdfRead: could not read variable X from %s\n",
+             gd->DesignMatFile);
       return(NULL);
     }
     Xt = MatrixTranspose(gd->X,NULL);
@@ -312,9 +311,10 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
     MatrixFree(&iXtX);
 
     if (strcmp(gd->DesignMatMethod,"none") == 0) {
-      printf("\n WARNING: the creation method of the design matrix is unknown.\n"
-             " This is OK, however, you will not be able to view regresssion\n"
-             " lines in the scatter plot viewer of tksurfer/tkmedit.\n\n");
+      printf(
+        "\n WARNING: the creation method of the design matrix is unknown.\n"
+        " This is OK, however, you will not be able to view regression\n"
+        " lines in the scatter plot viewer of tksurfer/tkmedit.\n\n");
     }
   }
 
@@ -355,6 +355,7 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
   return(gd);
 }
 
+
 /*--------------------------------------------------*/
 static FSGD *gdfReadV1(char *gdfname) {
   FSGD *gd;
@@ -377,7 +378,8 @@ static FSGD *gdfReadV1(char *gdfname) {
   fscanf(fp,"%s",tag);
   if (strcasecmp(tag,"GroupDescriptorFile") != 0) {
     printf("ERROR: gdfReadV1: %s is not formated properly\n",gdfname);
-    printf("  The first string is '%s', should be 'GroupDescriptorFile'\n",tmpstr);
+    printf("  The first string is '%s', should be 'GroupDescriptorFile'\n",
+           tmpstr);
     return(NULL);
   }
 
@@ -400,8 +402,13 @@ static FSGD *gdfReadV1(char *gdfname) {
     if (Gdiag_no > 0) printf("fsgd tag: %s\n",tag);
 
     if (!strcasecmp(tag,"Title")) {
-      r = fscanf(fp,"%s",gd->title);
-      if (r==EOF) goto formaterror;
+      // account for possible whitespace in title text
+      char c[2];c[0]=0;c[1]=0;
+      while (c[0] != '\n') {
+        r = fscanf(fp,"%c",&c[0]);
+        if (r==EOF) goto formaterror;
+        strcat(gd->title, c);
+      }
       continue;
     }
 
@@ -478,7 +485,9 @@ static FSGD *gdfReadV1(char *gdfname) {
       }
       r = gdfCountItemsOnLine(fp);
       if (r==0) {
-        fprintf(stderr,"WARNING: gdfReadV1: no variables on 'Variables' line found\n");
+        fprintf(
+          stderr,
+          "WARNING: gdfReadV1: no variables on 'Variables' line found\n");
         continue;
       }
       for (m=0; m < r; m++)
@@ -486,7 +495,8 @@ static FSGD *gdfReadV1(char *gdfname) {
       gd->nvariables = r;
       r = gdfCheckVarRep(gd);
       if (r != -1) {
-        printf("ERROR: gdfReadV1: variable label %s appears multiple times\n",gd->varlabel[r]);
+        printf("ERROR: gdfReadV1: variable label %s appears multiple times\n",
+               gd->varlabel[r]);
         goto formaterror;
       }
       continue;
@@ -517,12 +527,14 @@ static FSGD *gdfReadV1(char *gdfname) {
     /*----------------- Input Line ---------------------*/
     if (!strcasecmp(tag,"Input")) {
       if (gd->ninputs > FSGDF_NINPUTS_MAX) {
-        printf("ERROR: gdfReadV1: the number of inputs in FSGD file exceeds the maximum allowed %d\n",
+        printf("ERROR: gdfReadV1: the number of inputs in FSGD file "
+               "exceeds the maximum allowed %d\n",
                FSGDF_NINPUTS_MAX);
         return(NULL);
       }
       if (gd->nclasses == 0) {
-        printf("FSGDF Format Error: no classes defined before the first input line.\n");
+        printf("FSGDF Format Error: no classes defined before "
+               "the first input line.\n");
         return(NULL);
       }
       n = gd->ninputs; /* current input number */
@@ -541,15 +553,20 @@ static FSGD *gdfReadV1(char *gdfname) {
 
       r = gdfCountItemsOnLine(fp);
       if (r != gd->nvariables) {
-        printf("ERROR: gdfReadV1: Input line %d, subjid = %s\n",n+1,gd->subjid[n]);
+        printf("ERROR: gdfReadV1: Input line %d, subjid = %s\n",
+               n+1,gd->subjid[n]);
         printf("       Found %d variables, expected. %d \n",r,gd->nvariables);
         //printf("%s\n",tmpstr);
         goto formaterror;
       }
       for (m=0; m < gd->nvariables; m++) fscanf(fp,"%f",&gd->varvals[n][m]);
       for (m=0; m < gd->nvarsfromfile; m++) {
-        sprintf(tmpstr,"%s/%s/%s",env->SUBJECTS_DIR,gd->subjid[n],gd->tablefile[m]);
-        err = gdfGetDDataFromTable(tmpstr,gd->varfield[m],gd->fieldcol[m],gd->datacol[m],&d);
+        sprintf(tmpstr,"%s/%s/%s",
+                env->SUBJECTS_DIR,gd->subjid[n],gd->tablefile[m]);
+        err = gdfGetDDataFromTable(tmpstr,
+                                   gd->varfield[m],
+                                   gd->fieldcol[m],
+                                   gd->datacol[m],&d);
         if (err) {
           gdfFree(&gd);
           return(NULL);
@@ -572,32 +589,37 @@ static FSGD *gdfReadV1(char *gdfname) {
 
   r = gdfCheckClassRep(gd);
   if (r != -1) {
-    printf("ERROR: gdfReadV1: class label %s appears multiple times\n",gd->classlabel[r]);
+    printf("ERROR: gdfReadV1: class label %s appears multiple times\n",
+           gd->classlabel[r]);
     sprintf(tag,"Class");
     goto formaterror;
   }
 
   r = gdfCheckAllClassesUsed(gd);
   if (r != -1)
-    printf("WARNING: gdfReadV1: class %s is defined but not used.\n",gd->classlabel[r]);
+    printf("WARNING: gdfReadV1: class %s is defined but not used.\n",
+           gd->classlabel[r]);
 
   r = gdfCheckSubjRep(gd);
   if (r != -1) {
     /* See gdfCheckSubjRep() for fsgdf_AllowSubjRep usage */
-    printf("ERROR: gdfReadV1: subject id %s appears multiple times\n",gd->subjid[r]);
+    printf("ERROR: gdfReadV1: subject id %s appears multiple times\n",
+           gd->subjid[r]);
     sprintf(tag,"Input");
     goto formaterror;
   }
 
   r = gdfGetDefVarLabelNo(gd);
   if (r == -1) {
-    printf("ERROR: gdfReadV1: default varible %s does not exist in list\n",gd->defvarlabel);
+    printf("ERROR: gdfReadV1: default varible %s does not exist in list\n",
+           gd->defvarlabel);
     sprintf(tag,"DefaultVariable");
     goto formaterror;
   }
 
   if (gd->DeMean == -1 && gd->nvariables > 0) {
-    printf("INFO: DeMeanFlag keyword not found, DeMeaning will NOT be done.\n");
+    printf("INFO: DeMeanFlag keyword not found,"
+           " DeMeaning will NOT be done.\n");
     gd->DeMean = 0;
   } else {
     if (gd->DeMean) printf("INFO: demeaning continous variables\n");
@@ -615,6 +637,7 @@ formaterror:
   FSENVfree(&env);
   return(NULL);
 }
+
 
 /*--------------------------------------------------
   gdfGetDataMRIHeader() - returns the MRI header
@@ -659,6 +682,8 @@ int gdfClassNo(FSGD *gd, char *class_number) {
     if (!strcmp(gd->classlabel[code],class_number)) return(code);
   return(-1);
 }
+
+
 /*--------------------------------------------------
   gdfCountItemsInString() returns the number of items
   in the given string, where an item is defined as
@@ -683,6 +708,8 @@ int gdfCountItemsInString(char *str) {
 
   return(nhits);
 }
+
+
 /*-------------------------------------------------------------------
   gdfGetNthItemFromString() - extracts the nth item from a string.
   An item is defined as one or more non-white space chars. If nth
@@ -713,6 +740,8 @@ char *gdfGetNthItemFromString(char *str, int nth) {
   item = strcpyalloc(tmpstr);
   return(item);
 }
+
+
 /*--------------------------------------------------
   gdfCountItemsOnLine() returns the number of items
   before the next newline, where an item is defined as
@@ -732,6 +761,8 @@ int gdfCountItemsOnLine(FILE *fp) {
 
   return(nitems);
 }
+
+
 /*--------------------------------------------------
   gdfCheckClassRep() - checks whether there are any
   repetitions in the class labels. Returns 0 if
@@ -746,6 +777,8 @@ static int gdfCheckClassRep(FSGD *gd) {
         return(n);
   return(-1);
 }
+
+
 /*--------------------------------------------------
   gdfCheckVarRep() - checks whether there are any
   repetitions in the variable labels. Returns -1 if
@@ -761,6 +794,8 @@ static int gdfCheckVarRep(FSGD *gd) {
         return(n);
   return(-1);
 }
+
+
 /*--------------------------------------------------
   gdfCheckSubjRep() - checks whether there are any
   repetitions in the subject labels. Returns -1 if
@@ -783,6 +818,8 @@ static int gdfCheckSubjRep(FSGD *gd) {
         return(n);
   return(-1);
 }
+
+
 /*--------------------------------------------------
   gdfCheckAllClassesUsed() - checks whether all classes
   defined are present in the subject data. Returns -1
@@ -801,6 +838,8 @@ static int gdfCheckAllClassesUsed(FSGD *gd) {
 
   return(-1);
 }
+
+
 /*--------------------------------------------------
   gdfGetDefVarLabelNo() - returns the label number
   of the default variable. If the default variable
@@ -818,6 +857,8 @@ static int gdfGetDefVarLabelNo(FSGD *gd) {
       return(n);
   return(-1);
 }
+
+
 /*--------------------------------------------------
   gdfGetVarLabelNo() - returns the label number of the given
   variable. If there is no match, -1 is returned. Otherwise,
@@ -831,6 +872,8 @@ int gdfGetVarLabelNo(FSGD *gd, char *LabelName) {
       return(n);
   return(-1);
 }
+
+
 /*--------------------------------------------------------*/
 int gdfVarMeans(FSGD *gd) {
   int vno, n;
@@ -895,6 +938,7 @@ int gdfClassVarMeans(FSGD *gd) {
   return(0);
 }
 
+
 /*--------------------------------------------------------
   gdfMatrixDOSS() - creates a design matrix that models each
   class as having a Different Offset, but models having the
@@ -925,6 +969,8 @@ MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X) {
 
   return(X);
 }
+
+
 /*--------------------------------------------------------
   gdfMatrixDODS() - creates a design matrix that models each
   class as having a Different Offset and Different Slope. The
@@ -960,6 +1006,8 @@ MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X) {
 
   return(X);
 }
+
+
 /*---------------------------------------------------*/
 int gdfCheckMatrixMethod(char *gd2mtx_method) {
   if ( strcmp(gd2mtx_method,"doss") == 0 ||
@@ -971,6 +1019,8 @@ int gdfCheckMatrixMethod(char *gd2mtx_method) {
   printf("       Legal values are dods, doss, and none.\n");
   return(1);
 }
+
+
 /*---------------------------------------------------*/
 MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X) {
   if (gdfCheckMatrixMethod(gd2mtx_method)) return(NULL);
@@ -989,6 +1039,7 @@ MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X) {
 
   return(X);
 }
+
 
 /*------------------------------------------------------------
   gdfOffsetSlope() - computes the offset and slope regression
@@ -1010,7 +1061,8 @@ int gdfOffsetSlope(FSGD *gd, int classno, int varno,
 
   if (strlen(gd->DesignMatMethod) == 0 ||
       strcmp(gd->DesignMatMethod,"none") == 0) {
-    printf("ERROR: gdfOffsetSlope: cannot determine the offset and slope for the \n"
+    printf("ERROR: gdfOffsetSlope: cannot determine the offset "
+           "and slope for the \n"
            "given group descriptor because the design matrix \n"
            "creation method is unknown\n");
     return(1);
@@ -1070,7 +1122,6 @@ int gdfOffsetSlope(FSGD *gd, int classno, int varno,
 }
 
 
-
 /*------------------------------------------------------------
   gdfGetTitle() - copies the title into the output argument.
   ------------------------------------------------------------*/
@@ -1082,6 +1133,7 @@ int gdfGetTitle(FSGD *gd, char *title) {
 
   return(0);
 }
+
 
 /*------------------------------------------------------------
   gdfGetMeasurementName() - copies the measurment name into
@@ -1096,6 +1148,7 @@ int gdfGetMeasurementName(FSGD *gd, char *name) {
   return(0);
 }
 
+
 /*------------------------------------------------------------
   gdfGetFWHM() - returns ResFWHM.
   ------------------------------------------------------------*/
@@ -1103,6 +1156,8 @@ double gdfGetFWHM(FSGD *gd) {
   if (NULL == gd)  return(-1);
   return(gd->ResFWHM);
 }
+
+
 /*------------------------------------------------------------
   gdfGetLogY() - returns LogY flag
   ------------------------------------------------------------*/
@@ -1110,6 +1165,8 @@ int gdfGetlogY(FSGD *gd) {
   if (NULL == gd)  return(-1);
   return(gd->LogY);
 }
+
+
 /*------------------------------------------------------------
   gdfGetSubjectName() - copies the subject name into the
   output argument.
@@ -1122,6 +1179,7 @@ int gdfGetSubjectName(FSGD *gd, char *name) {
 
   return(0);
 }
+
 
 /*------------------------------------------------------------
   gdfGetDataFileName() - copies the data file name into the
@@ -1136,6 +1194,7 @@ int gdfGetDataFileName(FSGD *gd, char *filename) {
   return(0);
 }
 
+
 /*------------------------------------------------------------
   gdfGetNumClasses() - returns the number of classes in the
   output argument.
@@ -1148,6 +1207,7 @@ int gdfGetNumClasses(FSGD *gd, int *nclasses) {
 
   return(0);
 }
+
 
 /*------------------------------------------------------------
   gdfGetNthClassLabel() - copies the nth class label into the
@@ -1164,6 +1224,7 @@ int gdfGetNthClassLabel(FSGD *gd, int nclass, char *label) {
   return(0);
 }
 
+
 /*------------------------------------------------------------
   gdfGetNthClassMarker() - copies the nth class marker into the
   output argument where nclass is from 0 -> nclasses.
@@ -1179,6 +1240,7 @@ int gdfGetNthClassMarker(FSGD *gd, int nclass, char *marker) {
   return(0);
 }
 
+
 /*------------------------------------------------------------
   gdfGetNthClassColor() - copies the nth class color into the
   output argument where nclass is from 0 -> nclasses.
@@ -1193,6 +1255,7 @@ int gdfGetNthClassColor(FSGD *gd, int nclass, char *color) {
 
   return(0);
 }
+
 
 /*------------------------------------------------------------
   gdfGetNumVariables() - returns the number of variables in the output
@@ -1212,6 +1275,7 @@ int gdfGetNumVariables(FSGD *gd, int *nvariables) {
 
   return(0);
 }
+
 
 /*------------------------------------------------------------
   gdfGetNthVariableLabel() - copies the nth variable label into the
@@ -1234,6 +1298,7 @@ int gdfGetNthVariableLabel(FSGD *gd, int nvariable, char *label) {
   return(0);
 }
 
+
 /*------------------------------------------------------------
   gdfGetNthVariableDefault() - copies of name of
   the default variable to the output argument.
@@ -1251,6 +1316,7 @@ int gdfGetDefaultVariable(FSGD *gd, char *label) {
   return(0);
 }
 
+
 /*------------------------------------------------------------
   gdfGetNthVariableDefaultIndex() - copies of index of
   the default variable to the output parameter
@@ -1264,6 +1330,7 @@ int gdfGetDefaultVariableIndex(FSGD *gd, int *nvariable) {
   return(0);
 }
 
+
 /*------------------------------------------------------------
   gdfGetNumSubjects() - returns the number of subjects in the
   output parameter.
@@ -1276,6 +1343,7 @@ int gdfGetNumSubjects(FSGD *gd, int *nsubjects) {
 
   return(0);
 }
+
 
 /*------------------------------------------------------------
   gdfGetNthSubjectID() - copies the id of the nth subject into
@@ -1292,6 +1360,7 @@ int gdfGetNthSubjectID(FSGD *gd, int nsubject, char *id) {
   return(0);
 }
 
+
 /*------------------------------------------------------------
   gdfGetNthSubjectClass() - returns the index of the nth subject's
   class in the output parameter where nsubject is from 0 -> ninputs.
@@ -1306,6 +1375,7 @@ int gdfGetNthSubjectClass(FSGD *gd, int nsubject, int *class_number) {
 
   return(0);
 }
+
 
 /*------------------------------------------------------------
   gdfGetNthSubjectNthValue() - returns the index of the nth subject's
@@ -1331,6 +1401,7 @@ int gdfGetNthSubjectNthValue(FSGD *gd, int nsubject,
 
   return(0);
 }
+
 
 /*------------------------------------------------------------
   gdfGetNthSubjectMeasurement() - returns a measurement value
@@ -1417,13 +1488,16 @@ int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject,
 
   return(0);
 }
+
+
 /*-------------------------------------------------------
   gdfSubSet() - creates a new FSGD with only the Classes
   and Variables listed. If nClasses == -1, all classes
   are included. If nVars == -1, all variables are included.
   -------------------------------------------------------*/
 FSGD *gdfSubSet(FSGD *infsgd, int nClasses, char **ClassList,
-                int nVars, char **VarList) {
+                int nVars, char **VarList) 
+{
   FSGD *fsgd;
   int n, nCUse, nVUse, c, ic, v, iv, ninputs, ok;
 
@@ -1498,6 +1572,7 @@ FSGD *gdfSubSet(FSGD *infsgd, int nClasses, char **ClassList,
   return(fsgd);
 }
 
+
 /*---------------------------------------------------------
   gdfStringIndex() - gets the 0-based index number of the
   string in the list. If the string is not found, returns -1.
@@ -1509,6 +1584,8 @@ int gdfStringIndex(char *str, char **list, int nlist) {
     if (strcmp(str,list[index]) == 0) return(index);
   return(-1);
 }
+
+
 /*---------------------------------------------------------
   gdfCopySubjIdppc - Copy subjid to a pointer to a pointer
   to a char.
@@ -1527,6 +1604,8 @@ char **gdfCopySubjIdppc(FSGD *fsgd) {
 
   return(ppc);
 }
+
+
 /*-------------------------------------------------------------
   gdfContrastDODS() - creates a contrast matrix for the DODS design
   matrix. wClass are the weights for each class; if NULL, then all
@@ -1556,6 +1635,7 @@ MATRIX *gdfContrastDODS(FSGD *fsgd, float *wClass, float *wCovar) {
 
   return(C);
 }
+
 
 /*-------------------------------------------------------------------------
   gdfGetSDataFromTable() - gets a cell from a table and returns as a string.
@@ -1614,6 +1694,7 @@ char *gdfGetSDataFromTable(char *tablefile, char *field,
          field,tablefile,fieldcol);
   return(NULL);
 }
+
 
 /*-------------------------------------------------------------------------
   gdfGetDDataFromTable() - same as gdfGetSDataFromTable() but converts
