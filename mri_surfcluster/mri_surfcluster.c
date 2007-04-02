@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/21 20:12:05 $
- *    $Revision: 1.35 $
+ *    $Date: 2007/04/02 22:44:05 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.35 2007/03/21 20:12:05 greve Exp $
+  $Id: mri_surfcluster.c,v 1.36 2007/04/02 22:44:05 greve Exp $
 */
 
 #include <stdio.h>
@@ -80,7 +80,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.35 2007/03/21 20:12:05 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.36 2007/04/02 22:44:05 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -160,6 +160,7 @@ char *csdfile;
 double pvalLow, pvalHi, ciPct=90, pval, ClusterSize;
 char *csdpdffile = NULL;
 int csdpdfonly = 0;
+char *csdoutfile = NULL;
 
 MRI *merged, *mask;
 
@@ -184,7 +185,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.35 2007/03/21 20:12:05 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.36 2007/04/02 22:44:05 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -721,6 +722,10 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
+    } else if (!strcmp(option, "--csd-out")) {
+      if(nargc < 1) argnerr(option,1);
+      csdoutfile = pargv[0];
+      nargsused = 1;
     } else if (!strcmp(option, "--csdpdf")) {
       if (nargc < 1) argnerr(option,1);
       csdpdffile = pargv[0];
@@ -893,6 +898,7 @@ static void print_usage(void) {
   printf("   --cwsig cwsig : map of cluster-wise significances\n");
   printf("   --csdpdf csdpdffile\n");
   printf("   --csdpdf-only : write csd pdf file and exit.\n");
+  printf("   --csd-out out.csd : write out merged csd files as one.\n");
   printf("\n");
   printf("   --clabel labelfile : constrain to be within clabel\n");
   printf("   --cortex : set clabel to be subject/label/hemi.cortex.label\n");
@@ -1114,7 +1120,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.35 2007/03/21 20:12:05 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.36 2007/04/02 22:44:05 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
@@ -1145,14 +1151,22 @@ static void print_help(void) {
 static void check_options(void) {
   char tmpstr[2000];
 
-  if (csdpdffile) {
+  if(csdoutfile){
+    if(csd == NULL){
+      printf("ERROR: need --csd with --csd-out \n");
+      exit(1);
+    }
+    CSDwrite(csdoutfile, csd);
+  }
+
+  if(csdpdffile) {
     if (csd == NULL) {
       printf("ERROR: need --csd with --csdpdf");
       exit(1);
     }
     CSDpdf(csd,-1);
     CSDwritePDF(csdpdffile,csd);
-    if (csdpdfonly) exit(0);
+    if(csdpdfonly) exit(0);
   }
 
   if (csd != NULL) {
