@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/01 03:03:26 $
-#    $Revision: 1.78 $
+#    $Date: 2007/04/02 22:16:55 $
+#    $Revision: 1.79 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.78 2007/04/01 03:03:26 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.79 2007/04/02 22:16:55 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1880,7 +1880,12 @@ if($DoSegStats) then
   set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
   set cmd = ($cmd --in-intensity-units MR)
   set cmd = ($cmd --etiv --subject $subjid $xopts);
-  set cmd = ($cmd --surf-wm-vol)
+  if ( ( -e surf/lh.white ) && ( -e surf/rh.white ) ) then
+    set cmd = ($cmd --surf-wm-vol)
+  else
+    echo "\nINFO: ?h.white surfaces not available to mri_segstats.\n"\
+     |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  endif
   #set cmd = ($cmd --ctab-gca $FREESURFER_HOME/average/$GCA)
   set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
   set cmd = ($cmd $xopts);
