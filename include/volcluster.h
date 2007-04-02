@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/06 05:08:29 $
- *    $Revision: 1.18 $
+ *    $Date: 2007/04/02 22:43:08 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -194,5 +194,6 @@ CHT *CHTread(char *fname);
 int CHTcompare(CHT *src, CHT *targ);
 int CHTsetSignString(CHT *cht, char *ithr_sign);
 int CHTsignId(char *ithr_sign);
+int CSDwrite(char *fname, CSD *csd);
 
 #endif

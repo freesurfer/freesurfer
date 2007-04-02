@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/27 04:04:26 $
- *    $Revision: 1.36 $
+ *    $Date: 2007/04/02 22:43:09 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2009,5 +2009,17 @@ int CSDwritePDF(char *fname, CSD *csd)
     return(1);
   }
   CSDprintPDF(fp, csd);
+  return(0);
+}
+/*------------------------------------------------------------------------*/
+int CSDwrite(char *fname, CSD *csd)
+{
+  FILE *fp;
+  fp = fopen(fname,"w");
+  if(!fp){
+    printf("ERROR: could not open %s\n",fname);
+    return(1);
+  }
+  CSDprint(fp, csd);
   return(0);
 }
