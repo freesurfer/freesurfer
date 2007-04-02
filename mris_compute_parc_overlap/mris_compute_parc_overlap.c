@@ -24,13 +24,16 @@
  * Example:
  *   mris_compute_parc_overlap --s bert --hemi lh \
  *     --annot1 aparc --annot2 aparc.ernie
+ *
+ *   mris_compute_parc_overlap --s bert --hemi lh \
+ *     --label1 precentral --label2 precentral
  */
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/01 01:03:45 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/04/02 00:32:06 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -55,7 +58,7 @@
 #include "hipsu.h"
 #include "error.h"
 
-#define MAX_VNOS 150000
+#define MAX_VNOS 200000
 typedef struct _labelInfo
 {
   int annotation;      /* its annotation identifier */
@@ -77,9 +80,10 @@ static char skippedLabels[MAX_SKIPPED_LABELS];
 // this mini colortable is used when two labels are being compared
 static const COLOR_TABLE_ENTRY unknown = 
 {"unknown", 0,0,0,255, 0,0,0,255};
-static const COLOR_TABLE_ENTRY Label = 
-{"Label", 220,20,20,255, 0.8,0.08,0.08,1};
-static const CTE *entries[2] = {&unknown, &Label};
+static COLOR_TABLE_ENTRY userLabel = 
+{ "user label name gets copied here             ", 
+  220,20,20,255, 0.8,0.08,0.08,1};
+static const CTE *entries[2] = {&unknown, &userLabel};
 static const COLOR_TABLE miniColorTable = 
 {(CTE**)entries, 2, "miniColorTable", 2};
 
@@ -98,7 +102,7 @@ static void padWhite(char* str, int maxLen);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.8 2007/04/01 01:03:45 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.9 2007/04/02 00:32:06 nicks Exp $";
 static char *FREESURFER_HOME = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -112,7 +116,13 @@ static LABEL *label1 = NULL;
 static LABEL *label2 = NULL;
 static MRIS *surface1 = NULL;
 static MRIS *surface2 = NULL;
-static int debug = 0;
+static int debug_overlap = 0;
+static int debug_boundaries = 0;
+static int debug_labels = 0;
+static int use_label1_xyz = 0;
+static int use_label2_xyz = 0;
+static int check_label1_xyz = 1;
+static int check_label2_xyz = 1;
 static char tmpstr[2000];
 
 
@@ -178,7 +188,7 @@ int main(int argc, char *argv[])
   else if (label1name) 
   {
     sprintf(filename,"%s.%s",hemi,label1name);
-    printf("\nLoading label file %s\n",filename);
+    printf("Loading label file %s...",filename);
     fflush(stdout);
     label1 = LabelRead(subject,filename);
     if (label1==NULL)
@@ -186,7 +196,10 @@ int main(int argc, char *argv[])
       printf("ERROR: LabelRead() failed to read %s\n",filename);
       exit(1);
     }
+    printf(" %d vertices.\n",label1->n_points);
     surface1->ct = (CT*)&miniColorTable;
+    // put this label name in our color table
+    strcpy(userLabel.name,label1name);
   }
 
 
@@ -208,7 +221,7 @@ int main(int argc, char *argv[])
   else if (label2name) 
   {
     sprintf(filename,"%s.%s",hemi,label2name);
-    printf("\nLoading label file %s\n",filename);
+    printf("Loading label file %s...",filename);
     fflush(stdout);
     label2 = LabelRead(subject,filename);
     if (label2==NULL)
@@ -216,6 +229,7 @@ int main(int argc, char *argv[])
       printf("ERROR: LabelRead() failed to read %s\n",filename);
       exit(1);
     }
+    printf(" %d vertices.\n",label2->n_points);
     surface2->ct = (CT*)&miniColorTable;
     overlapSurf->ct = (CT*)&miniColorTable;
   }
@@ -254,7 +268,7 @@ int main(int argc, char *argv[])
   // stupid sanity check:
   if (surface1->nvertices != surface2->nvertices)
   {
-    printf("ERROR: (surface1->nvertices=%d != surface2->nvertices=%d)",
+    printf("ERROR: (surface1->nvertices=%d != surface2->nvertices=%d\n)",
            surface1->nvertices,surface2->nvertices);
     exit(1);
   }
@@ -262,7 +276,7 @@ int main(int argc, char *argv[])
   // don't want to overrun our global array of label info.
   if (surface1->nvertices >= MAX_VNOS)
   {
-    printf("ERROR: (surface1->nvertices=%d >= MAX_VNOS=%d)",
+    printf("ERROR: surface1->nvertices=%d >= MAX_VNOS=%d\n",
            surface1->nvertices,MAX_VNOS);
     exit(1); // need to increase MAX_VNOS
   }
@@ -301,19 +315,19 @@ int main(int argc, char *argv[])
 
   /*
    * if we are performing a label comparison, then get the annotation info
-   * for the name 'Label', from our local mini colortable
+   * for our'userLabel', from our local mini colortable
    */
   int label_index=0;
   int label_annot=0;
   if (label1 && label2)
   {
-    CTABfindName((CT*)&miniColorTable, "Label", &label_index);
+    CTABfindName((CT*)&miniColorTable, label1name, &label_index);
     if (label_index == -1)
     {
       printf
-        ("ERROR: could not retrieve index for label 'Label'\n");
+        ("ERROR: could not retrieve index for label '%s'\n",label1name);
       exit(1);
-    }// else printf("label 'Label' has index %d\n",label_index);
+    }// else printf("label '%s' has index %d\n",label1name,label_index);
     if (label_index >= MAX_LABELS)
     {
       printf
@@ -325,9 +339,10 @@ int main(int argc, char *argv[])
     if (err != NO_ERROR)
     {
       printf
-        ("ERROR: could not retrieve annotation for label 'Label'\n");
+        ("ERROR: could not retrieve annotation for label '%s'\n",label1name);
       exit(1);
-    }// else printf("label 'Label' has annotation 0x%8.8X\n",label_annot);
+    }// else printf("label '%s' has annotation 0x%8.8X\n",
+    //label1namelabel_annot);
   }
 
   /*
@@ -351,27 +366,32 @@ int main(int argc, char *argv[])
       {
         if (label1->lv[n].vno == vno)
         {
-#if 0          
-          // this vertex is a label vertex, so check its coordinates
-          if (label1->lv[n].x != v1->x)
+          if (use_label1_xyz)
           {
-            printf("ERROR: label1 vno=%d has x=%f, while surface x=%f\n",
-                   vno, label1->lv[n].x, v1->x);
-            exit(1);
+            // replace surface x,y,z coordinates with those found in label file
+            v1->x = label1->lv[n].x;
+            v1->y = label1->lv[n].y;
+            v1->z = label1->lv[n].z;
           }
-          if (label1->lv[n].y != v1->y)
+          if (check_label1_xyz)
           {
-            printf("ERROR: label1 vno=%d has y=%f, while surface y=%f\n",
-                   vno, label1->lv[n].y, v1->y);
-            exit(1);
+            // this vertex is a label vertex, so check its coordinates
+            if (label1->lv[n].x != v1->x)
+            {
+              printf("ERROR: label1 vno=%d has x=%f, while surface x=%f\n",
+                     vno, label1->lv[n].x, v1->x);
+            }
+            if (label1->lv[n].y != v1->y)
+            {
+              printf("ERROR: label1 vno=%d has y=%f, while surface y=%f\n",
+                     vno, label1->lv[n].y, v1->y);
+            }
+            if (label1->lv[n].z != v1->z)
+            {
+              printf("ERROR: label1 vno=%d has z=%f, while surface z=%f\n",
+                     vno, label1->lv[n].z, v1->z);
+            }
           }
-          if (label1->lv[n].z != v1->z)
-          {
-            printf("ERROR: label1 vno=%d has z=%f, while surface z=%f\n",
-                   vno, label1->lv[n].z, v1->z);
-            exit(1);
-          }
-#endif
           // looks good, so give it an annotation
           v1->annotation = label_annot;
           vo->annotation = label_annot; // the overlap (debugging) surface
@@ -383,41 +403,49 @@ int main(int argc, char *argv[])
       {
         if (label2->lv[n].vno == vno)
         {
-#if 0
-          // this vertex is a label vertex, so check its coordinates
-          if (label2->lv[n].x != v2->x)
+          if (use_label2_xyz)
           {
-            printf("ERROR: label2 vno=%d has x=%f, while surface x=%f\n",
-                   vno, label2->lv[n].x, v2->x);
-            //exit(1);
+            // replace surface x,y,z coordinates with those found in label file
+            v2->x = label2->lv[n].x;
+            v2->y = label2->lv[n].y;
+            v2->z = label2->lv[n].z;
           }
-          if (label2->lv[n].y != v2->y)
+          if (check_label2_xyz)
           {
-            printf("ERROR: label2 vno=%d has y=%f, while surface y=%f\n",
-                   vno, label2->lv[n].y, v2->y);
-            //exit(1);
+            // this vertex is a label vertex, so check its coordinates
+            if (label2->lv[n].x != v2->x)
+            {
+              printf("ERROR: label2 vno=%d has x=%f, while surface x=%f\n",
+                     vno, label2->lv[n].x, v2->x);
+            }
+            if (label2->lv[n].y != v2->y)
+            {
+              printf("ERROR: label2 vno=%d has y=%f, while surface y=%f\n",
+                     vno, label2->lv[n].y, v2->y);
+            }
+            if (label2->lv[n].z != v2->z)
+            {
+              printf("ERROR: label2 vno=%d has z=%f, while surface z=%f\n",
+                     vno, label2->lv[n].z, v2->z);
+            }
           }
-          if (label2->lv[n].z != v2->z)
-          {
-            printf("ERROR: label2 vno=%d has z=%f, while surface z=%f\n",
-                   vno, label2->lv[n].z, v2->z);
-            //exit(1);
-          }
-#endif
           // looks good, so give it an annotation
           v2->annotation = label_annot;
           vo->annotation = label_annot; // the overlap (debugging) surface
         }
       }
     }
-#if 0
-    sprintf(tmpstr,"%s/%s/label/%s.label1.annot",SUBJECTS_DIR,subject,hemi);
-    printf("Writing %s\n",tmpstr);
-    MRISwriteAnnotation(surface1,tmpstr);
-    sprintf(tmpstr,"%s/%s/label/%s.label2.annot",SUBJECTS_DIR,subject,hemi);
-    printf("Writing %s\n",tmpstr);
-    MRISwriteAnnotation(surface2,tmpstr);
-#endif
+    if (debug_labels)
+    {
+      sprintf(tmpstr,"%s/%s/label/%s.label1.annot",SUBJECTS_DIR,subject,hemi);
+      printf("Writing %s...",tmpstr);
+      MRISwriteAnnotation(surface1,tmpstr);
+      printf("done.\n");
+      sprintf(tmpstr,"%s/%s/label/%s.label2.annot",SUBJECTS_DIR,subject,hemi);
+      printf("Writing %s...",tmpstr);
+      MRISwriteAnnotation(surface2,tmpstr);
+      printf("done.\n");
+    }
   }
 
 
@@ -426,14 +454,15 @@ int main(int argc, char *argv[])
    * Do vertex-by-vertex comparison 
    * ------------------------------
    */
-  printf("Checking %d vertices...\n",surface1->nvertices);
+  printf("Checking %d surface vertices...\n",surface1->nvertices);
   fflush(stdout);
   fflush(stderr);
   int mismatchCount=0;
+  int dice_overlap=0; // for Dice calc
+  int dice_surf1=0; // for Dice calc
+  int dice_surf2=0; // for Dice calc
+  int dice_union=0;
   int n;
-  int surfannot_overlap = 0; // for Dice calc
-  int surfannot1 = 0;        // for Dice calc
-  int surfannot2 = 0;        // for Dice calc
   for (n = 0; n < surface1->nvertices; n++)
   {
     /*
@@ -472,24 +501,30 @@ int main(int argc, char *argv[])
     }
 
     /*
-     * compare: gather Dice info (skipping excluded labels)
+     * compare: gather Dice info (skipping overlapping excluded labels)
      */
     //printf("colorTabIndex1=%d, colorTabIndex2=%d\n",
     //colorTabIndex1, colorTabIndex2);
-    if ( ! isExcludedLabel(colorTabIndex1))
+    if (( isExcludedLabel(colorTabIndex1)) &&
+        ( isExcludedLabel(colorTabIndex2)))
+    {
+      // skip overlapping excluded labels
+    }
+    else
     {
       if (colorTabIndex1 != colorTabIndex2)
       {
-        if (debug) printf("colorTabIndex1=%d != colorTabIndex2=%d\n",
-                          colorTabIndex1, colorTabIndex2);
+        //printf("colorTabIndex1=%d != colorTabIndex2=%d\n",
+        //     colorTabIndex1, colorTabIndex2);
         mismatchCount++; // hey!  a mismatch!  used later for Dice calc
       }
-      if (colorTabIndex1 != 0)
+      else if (colorTabIndex1 == colorTabIndex2) 
       {
-        if (colorTabIndex1 == colorTabIndex2) surfannot_overlap++; // union
-        surfannot1++;  // used later for Dice calc
-        surfannot2++;  // used later for Dice calc
+        dice_overlap++; // intersection
       }
+      dice_union++;
+      if (colorTabIndex1) dice_surf1++;
+      if (colorTabIndex2) dice_surf2++;
     }
 
     /*
@@ -625,16 +660,19 @@ int main(int argc, char *argv[])
    * print Dice results, and write-out the ?h.overlap.annot debug file
    */
 
-  printf("Found %d mismatches out of %d vertices\n",
-         mismatchCount,surface1->nvertices);
+  if (debug_overlap)
+  {
+    sprintf(tmpstr,"%s/%s/label/%s.overlap.annot",
+            SUBJECTS_DIR,subject,hemi);
+    printf("Writing %s...",tmpstr);
+    MRISwriteAnnotation(overlapSurf,tmpstr);
+    printf("done.\n");
+  }
 
-  sprintf(tmpstr,"%s/%s/label/%s.overlap.annot",
-          SUBJECTS_DIR,subject,hemi);
-  printf("Writing %s\n",tmpstr);
-  MRISwriteAnnotation(overlapSurf,tmpstr);
-
+  printf("Found %d overlaps (%d mismatches) out of %d checked vertices\n",
+         dice_overlap,mismatchCount,dice_union);
   printf("Overall Dice = %1.4f \n",
-         surfannot_overlap*2.0/(float)(surfannot1 + surfannot2));
+         dice_overlap*2.0/(float)(dice_surf1 + dice_surf2));
 
   /*
    * Calc and print mean-distance results
@@ -670,7 +708,7 @@ static void addToExcludedLabelsList(COLOR_TABLE *ct, char *labelToExclude)
   }
   else
   {
-    printf("Excluding label '%s' from measurements\n",labelToExclude);
+    //printf("Excluding label '%s' from measurements\n",labelToExclude);
     excludedLabelsList[numExcludedLabels] = index; // add to list
     if (++numExcludedLabels >= 10000)
     {
@@ -727,40 +765,45 @@ static int isExcludedLabel(int colortabIndex)
  */
 static void calcMeanMinLabelDistances(void)
 {
-#if 0
-  // write-out annotation files where just the boundaries are labelled, 
-  // useful for debug (to check if indeed the 'border' vertices are borders)
-  int n;
-  for (n = 0; n < surface1->nvertices; n++)
+  if (debug_boundaries)
   {
-    VERTEX *v1 = &surface1->vertices[n];
-    if ( ! v1->border)
+    // write-out annotation files where just the boundaries are labelled, 
+    // useful for debug (to check if indeed the 'border' vertices are borders)
+    int n;
+    for (n = 0; n < surface1->nvertices; n++)
     {
-      // not a boundary vertex, so make it black (unknown), so that only
-      // boundary vertices are displayed
-      v1->annotation = unknown_annot;
+      VERTEX *v1 = &surface1->vertices[n];
+      if ( ! v1->border)
+      {
+        // not a boundary vertex, so make it black (unknown), so that only
+        // boundary vertices are displayed
+        v1->annotation = unknown_annot;
+      }
     }
-  }
-  sprintf(tmpstr,"%s/%s/label/%s.boundary1.annot",
-          SUBJECTS_DIR,subject,hemi);
-  printf("Writing %s\n",tmpstr);
-  MRISwriteAnnotation(surface1,tmpstr);
-  // surface 2
-  for (n = 0; n < surface2->nvertices; n++)
-  {
-    VERTEX *v2 = &surface2->vertices[n];
-    if ( ! v2->border)
+    sprintf(tmpstr,"%s/%s/label/%s.boundary1.annot",
+            SUBJECTS_DIR,subject,hemi);
+    printf("Writing %s...",tmpstr);
+    MRISwriteAnnotation(surface1,tmpstr);
+    printf("done.\n");
+
+    // surface 2
+    for (n = 0; n < surface2->nvertices; n++)
     {
-      // not a boundary vertex, so make it black (unknown), so that only
-      // boundary vertices are displayed
-      v2->annotation = unknown_annot;
+      VERTEX *v2 = &surface2->vertices[n];
+      if ( ! v2->border)
+      {
+        // not a boundary vertex, so make it black (unknown), so that only
+        // boundary vertices are displayed
+        v2->annotation = unknown_annot;
+      }
     }
+    sprintf(tmpstr,"%s/%s/label/%s.boundary2.annot",
+            SUBJECTS_DIR,subject,hemi);
+    printf("Writing %s...",tmpstr);
+    MRISwriteAnnotation(surface2,tmpstr);
+    printf("done.\n");
   }
-  sprintf(tmpstr,"%s/%s/label/%s.boundary2.annot",
-          SUBJECTS_DIR,subject,hemi);
-  printf("Writing %s\n",tmpstr);
-  MRISwriteAnnotation(surface2,tmpstr);
-#endif
+
 
   /*
    * for every point on the boundary of label on surface 1,
@@ -1008,7 +1051,7 @@ static void usage(int exit_val)
 
   fprintf
   (fout,
-   "Compares two parcellated (annotated) surfaces\n"
+   "Compares two parcellated (annotated or labeled) surfaces\n"
    "and computes an overall Dice coefficient\n"
    "and mean minimum distances (mm).\n\n") ;
   fprintf
@@ -1018,15 +1061,26 @@ static void usage(int exit_val)
    "    --annot1 annotfile --annot2 annotfile\n\n",
    progname);
   fprintf(fout, "Required:\n");
-  fprintf(fout, "  --s subject          subject to check\n");
-  fprintf(fout, "  --hemi hemi          hemisphere: rh or lh\n");
-  fprintf(fout, "  --annot1 annotfile   first .annot file\n");
-  fprintf(fout, "  --annot2 annotfile   second .annot file\n");
+  fprintf(fout, "  --s subject              subject to check\n");
+  fprintf(fout, "  --hemi hemi              hemisphere: rh or lh\n");
+  fprintf(fout, "  and:\n");
+  fprintf(fout, "    --annot1 annotfile     first .annot file\n");
+  fprintf(fout, "    --annot2 annotfile     second .annot file\n");
+  fprintf(fout, "  or:\n");
+  fprintf(fout, "    --label1 labelfile     first .label file\n");
+  fprintf(fout, "    --label2 labelfile     second .label file\n");
   fprintf(fout, "\nOptional:\n");
-  fprintf(fout, "  --sd subj_dir        set SUBJECTS_DIR\n");
-  fprintf(fout, "  --version            version info\n");
-  fprintf(fout, "  --help               this usage info\n");
-  fprintf(fout, "\nExample:\n");
+  fprintf(fout, "  --sd subj_dir            set SUBJECTS_DIR\n");
+  fprintf(fout, "  --nocheck-label1-xyz     when loading label1 file, don't\n"
+                "                           check x,y,z coords to surface\n"
+                "                           default: check x,y,x\n");
+  fprintf(fout, "  --nocheck-label2-xyz     ditto for label2\n");
+  fprintf(fout, "  --use-label1-xyz         replace surface x,y,z coords\n"
+                "                           with those in label1 file\n");
+  fprintf(fout, "  --use-label2-xyz         ditto for label2\n");
+  fprintf(fout, "  --version                version info\n");
+  fprintf(fout, "  --help                   this usage info\n");
+  fprintf(fout, "\nExample 1:\n");
   fprintf
   (fout,
    "  %s --s bert --hemi lh \\"
@@ -1061,6 +1115,26 @@ static void usage(int exit_val)
    "around the label borders."
    "\n",progname,progname);
 
+  fprintf(fout, "\nExample 2:\n");
+  fprintf
+  (fout,
+   "  %s --s bert --hemi lh \\"
+   "\n    --label1 precentral --label2 precentral\n",
+   progname);
+  fprintf
+  (fout,
+   "\nIn this example, two label files are specified.  Just those two\n"
+   "labels are compared.\n");
+  fprintf
+  (fout,
+   "\nWhen comparing the labels at two vertices, the following labels are\n"
+   "excluded from measurements if both vertices have the same label:\n"
+    "  unknown\n"
+    "  corpuscallosum\n"
+    "  Unknown\n"
+    "  Corpus_callosum\n"
+    );
+
   exit(exit_val);
 }  /*  end usage()  */
 
@@ -1087,7 +1161,7 @@ static int parse_commandline(int argc, char **argv)
   {
 
     option = pargv[0];
-    if (debug) printf("%d %s\n",nargc,option);
+    //printf("%d %s\n",nargc,option);
     nargc -= 1;
     pargv += 1;
 
@@ -1095,7 +1169,23 @@ static int parse_commandline(int argc, char **argv)
 
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
-    else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--debug-overlap")) debug_overlap = 1;
+    else if (!strcasecmp(option, "--nodebug-overlap")) debug_overlap = 0;
+    else if (!strcasecmp(option, "--debug-boundaries")) debug_boundaries = 1;
+    else if (!strcasecmp(option, "--nodebug-boundaries")) debug_boundaries = 0;
+    else if (!strcasecmp(option, "--debug-labels")) debug_labels = 1;
+    else if (!strcasecmp(option, "--nodebug-labels")) debug_labels = 0;
+    else if (!strcasecmp(option, "--check-label1-xyz")) check_label1_xyz = 1;
+    else if (!strcasecmp(option, "--nocheck-label1-xyz")) check_label1_xyz = 0;
+    else if (!strcasecmp(option, "--check-label2-xyz")) check_label2_xyz = 1;
+    else if (!strcasecmp(option, "--nocheck-label2-xyz")) check_label2_xyz = 0;
+    else if (!strcasecmp(option, "--nocheck-xyz"))
+    {
+      check_label1_xyz = 0;
+      check_label2_xyz = 0;
+    }
+    else if (!strcasecmp(option, "--use-label1-xyz")) use_label1_xyz = 1;
+    else if (!strcasecmp(option, "--use-label2-xyz")) use_label2_xyz = 1;
     else if (!strcmp(option, "--sd"))
     {
       if (nargc < 1) argnerr(option,1);
