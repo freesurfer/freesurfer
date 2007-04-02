@@ -32,8 +32,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/02 00:32:06 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/04/02 18:10:45 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -81,7 +81,7 @@ static char skippedLabels[MAX_SKIPPED_LABELS];
 static const COLOR_TABLE_ENTRY unknown = 
 {"unknown", 0,0,0,255, 0,0,0,255};
 static COLOR_TABLE_ENTRY userLabel = 
-{ "user label name gets copied here             ", 
+{ "user label name gets copied here                   ", 
   220,20,20,255, 0.8,0.08,0.08,1};
 static const CTE *entries[2] = {&unknown, &userLabel};
 static const COLOR_TABLE miniColorTable = 
@@ -102,7 +102,7 @@ static void padWhite(char* str, int maxLen);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.9 2007/04/02 00:32:06 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.10 2007/04/02 18:10:45 nicks Exp $";
 static char *FREESURFER_HOME = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -168,8 +168,8 @@ int main(int argc, char *argv[])
     fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
     exit(1);
   }
-  surface2 = MRISread(tmpstr);
-  MRIS *overlapSurf = MRISread(tmpstr); // a debugging surface
+  surface2 = MRISclone(surface1);
+  MRIS *overlapSurf = MRISclone(surface1); // a debugging surface
 
   /* --- Load subject's 'reference' annotation or label onto surface1 ---- */
   if (annot1)
@@ -232,6 +232,8 @@ int main(int argc, char *argv[])
     printf(" %d vertices.\n",label2->n_points);
     surface2->ct = (CT*)&miniColorTable;
     overlapSurf->ct = (CT*)&miniColorTable;
+    strcat(userLabel.name,"->");
+    strcat(userLabel.name,label2name);
   }
 
   /* make sure there are a valid color look-up tables */
@@ -321,13 +323,13 @@ int main(int argc, char *argv[])
   int label_annot=0;
   if (label1 && label2)
   {
-    CTABfindName((CT*)&miniColorTable, label1name, &label_index);
+    CTABfindName((CT*)&miniColorTable, userLabel.name, &label_index);
     if (label_index == -1)
     {
       printf
         ("ERROR: could not retrieve index for label '%s'\n",label1name);
       exit(1);
-    }// else printf("label '%s' has index %d\n",label1name,label_index);
+    }// else printf("label '%s' has index %d\n",userLabel.name,label_index);
     if (label_index >= MAX_LABELS)
     {
       printf
@@ -339,10 +341,11 @@ int main(int argc, char *argv[])
     if (err != NO_ERROR)
     {
       printf
-        ("ERROR: could not retrieve annotation for label '%s'\n",label1name);
+        ("ERROR: could not retrieve annotation for label '%s'\n",
+         userLabel.name);
       exit(1);
     }// else printf("label '%s' has annotation 0x%8.8X\n",
-    //label1namelabel_annot);
+    //userLabel.name,label_annot);
   }
 
   /*
@@ -671,7 +674,10 @@ int main(int argc, char *argv[])
 
   printf("Found %d overlaps (%d mismatches) out of %d checked vertices\n",
          dice_overlap,mismatchCount,dice_union);
-  printf("Overall Dice = %1.4f \n",
+  printf("\n"
+         "----------------------\n"
+         "Overall Dice = %1.4f \n"
+         "----------------------\n",
          dice_overlap*2.0/(float)(dice_surf1 + dice_surf2));
 
   /*
@@ -978,8 +984,8 @@ static void calcMeanMinLabelDistances(void)
   int ctiCount=0;
   printf("\n"
          "Average minimium distance error table:\n"
-         "--------------------------------------\n"
-         "Label Name:                         Avg(mm):\n");
+         "--------------------------------------------\n"
+         "Label:                              Avg(mm):\n");
   for (cti=0; cti < MAX_LABELS; cti++)
   {
     if (isExcludedLabel(cti)) continue;  // skip excluded labels from calc
@@ -1017,7 +1023,11 @@ static void calcMeanMinLabelDistances(void)
   }
 
   overallMeanMinDist /= ctiCount;
-  printf("\nOverall mean min distance (mm) = %f\n",overallMeanMinDist);
+  printf("\n"
+         "-------------------------------------------\n"
+         "Overall mean min distance (mm) = %f\n"
+         "-------------------------------------------\n",
+         overallMeanMinDist);
 
   // if any labels were skipped, print a warning...
   int cnt=0;
@@ -1186,6 +1196,11 @@ static int parse_commandline(int argc, char **argv)
     }
     else if (!strcasecmp(option, "--use-label1-xyz")) use_label1_xyz = 1;
     else if (!strcasecmp(option, "--use-label2-xyz")) use_label2_xyz = 1;
+    else if (!strcasecmp(option, "--use-label-xyz")) 
+    {
+      use_label1_xyz = 1;
+      use_label2_xyz = 1;
+    }
     else if (!strcmp(option, "--sd"))
     {
       if (nargc < 1) argnerr(option,1);
