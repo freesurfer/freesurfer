@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/20 06:26:08 $
- *    $Revision: 1.73 $
+ *    $Date: 2007/04/02 04:44:30 $
+ *    $Revision: 1.74 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 #ifndef lint
 static char vcid[] =
-  "$Id: tkregister2.c,v 1.73 2007/03/20 06:26:08 greve Exp $";
+  "$Id: tkregister2.c,v 1.74 2007/04/02 04:44:30 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -389,6 +389,8 @@ TRANSFORM *FSXform = NULL;
 LTA *lta = NULL;
 LT  *linxfm = NULL;
 char *ltafname;
+char *ltaoutfname;
+LTA *TransformRegDat2LTA2(MRI *targ, MRI *mov, MATRIX *R);
 
 
 /**** ------------------ main ------------------------------- ****/
@@ -1100,6 +1102,10 @@ static int parse_commandline(int argc, char **argv) {
       lta = (LTA*) FSXform->xform;
       linxfm = &(lta->xforms[0]);
       RegMat = TransformLTA2RegDat(lta);
+      nargsused = 1;
+    } else if (!strcmp(option, "--ltaout")) {
+      if (nargc < 1) argnerr(option,1);
+      ltaoutfname = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--fslregout")) {
       if (nargc < 1) argnerr(option,1);
@@ -3084,6 +3090,7 @@ void  read_fslreg(char *fname) {
 /*-----------------------------------------------------*/
 void write_reg(char *fname) {
   extern char *fslregoutfname, *subjectsdir, *pname;
+  extern char *ltaoutfname;
   extern int fstal;
   extern char talxfmfile[2000];
   extern MATRIX *RegMat, *Mtc;
@@ -3091,6 +3098,7 @@ void write_reg(char *fname) {
   int i,j;
   FILE *fp;
   char touchfile[1000];
+  LTA *lta;
 
   editedmatrix = FALSE;
 
@@ -3133,8 +3141,13 @@ void write_reg(char *fname) {
   PR
   fclose(fp);
 
-  if (fslregoutfname != NULL) write_fslreg(fslregoutfname);
-  if (xfmoutfname != NULL) write_xfmreg(xfmoutfname);
+  if(fslregoutfname != NULL) write_fslreg(fslregoutfname);
+  if(xfmoutfname != NULL) write_xfmreg(xfmoutfname);
+  if(ltaoutfname != NULL){
+    lta = TransformRegDat2LTA2(targ_vol, mov_vol, RegMatTmp);
+    LTAwrite(lta, ltaoutfname);
+    LTAfree(&lta);
+  }
 
   return;
 }
@@ -4167,6 +4180,7 @@ static Tcl_Interp *interp;
 static Tcl_DString command;
 static int tty;
 
+
 int main(argc, argv)   /* new main */
 int argc;
 char **argv;
@@ -4185,7 +4199,7 @@ char **argv;
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.73 2007/03/20 06:26:08 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.74 2007/04/02 04:44:30 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4515,4 +4529,34 @@ static int MRItagVol(MRI *mri, float val) {
       for (s=0; s < mri->depth; s++)
         MRIsetVoxVal(mri,c,r,s,0,.9*max);
   return(0);
+}
+/*---------------------------------------------------------*/
+LTA *TransformRegDat2LTA2(MRI *targ, MRI *mov, MATRIX *R)
+{
+  LTA *lta;
+  MATRIX *vox2vox; // Targ->Mov
+  MATRIX *Ttarg, *Tmov, *invTmov;
+
+  Ttarg = MRIxfmCRS2XYZtkreg(targ);
+  Tmov  = MRIxfmCRS2XYZtkreg(mov);
+  invTmov = MatrixInverse(Tmov,NULL);
+
+  // vox2vox = invTmov * R * Ttarg
+  vox2vox = MatrixMultiply(invTmov,R,NULL);
+  MatrixMultiply(vox2vox,Ttarg,vox2vox);
+  vox2vox = MatrixInverse(vox2vox,vox2vox);
+
+  lta = LTAalloc(1,NULL);
+  lta->type = LINEAR_VOX_TO_VOX;
+  lta->xforms[0].type = LINEAR_VOX_TO_VOX;
+  getVolGeom(targ,&lta->xforms[0].src);
+  getVolGeom(mov,&lta->xforms[0].dst);
+  lta->xforms[0].m_L = MatrixCopy(vox2vox,NULL);
+
+  MatrixFree(&Ttarg);
+  MatrixFree(&Tmov);
+  MatrixFree(&invTmov);
+  MatrixFree(&vox2vox);
+
+  return(lta);
 }
