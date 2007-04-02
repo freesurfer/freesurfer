@@ -13,9 +13,9 @@ function z = fast_p2z(p)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2007/04/02 23:06:44 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -36,7 +36,8 @@ if(nargin ~= 1)
   return;
 end
 
-z = erfinv(1-abs(p)) .* sign(p);
+z = sqrt(2)*erfcinv(2*abs(p)) .* sign(p);
+
 
 return;
 
