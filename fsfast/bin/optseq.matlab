@@ -1,0 +1,594 @@
+#! /bin/csh -f
+
+#
+# optseq.matlab
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2007/04/02 17:27:06 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: optseq.matlab,v 1.1 2007/04/02 17:27:06 greve Exp $';
+
+set pforder = 0;
+
+if ( $#argv < 5 ) then
+  echo ""
+  echo "USAGE: optseq.matlab [-options] -ntp ntp -npercond n1 <n2 ...> -o outprefix";
+  echo "   -npercond n1 <n2 ...> : number of stimuli for each non-null condition in a session";
+  echo "   -tpercond t1 <t2 ...> : duration of each stimulus type ";
+  echo "   -o outprefix          : prefix of output paradigm files "
+  echo "   -ntp  ntp             : Number of time points to be collected for each run";
+  echo "Options:";
+  echo "   -label l1 <l2 ...> : label for each non-null condition";
+  echo "   -nsessions <int> : number of sessions (1)";
+  echo "   -nruns <int>     : number of runs in each session (1)";
+  echo "   -TR    <float>   : TR to use (2 sec)";
+  echo "   -TER   <float>   : Temporal resolution of the estimate (TR)";
+  echo "   -Tres  <float>   : Temporal resolution of the stimulus presentation (TER)";
+  echo "   -tprescan <float>   : time before first scan to present first stim (0)";
+  echo "   -timewindow <float> : Time Window of estimate (20 sec)";
+  echo "   -prestim   <float>  : part of timewindow to use for prestim baseline (0)";
+  echo "   -polyfit <int>   : order of polynomial drift correction ";
+  echo "   -nsearch <int>   : number of sequences over which to search (100)";
+  echo "   -tsearch <float> : number of hours over which to search ";
+  echo "   -seed    <int> : seed for random number generator (auto)";
+  echo "   -mail  user    : mail user when finished"
+  echo "   -monly mfile   : generate matlab file only"
+  echo ""
+  echo "  $VERSION"
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
+  echo ""
+  exit 1;
+endif
+
+##### Create a log file ######
+set LF = optseq.log
+if(-e $LF) mv $LF $LF.old
+
+echo "--------------------------------------------------------------"
+echo "optseq logfile is $LF"
+echo "--------------------------------------------------------------"
+
+
+echo "optseq log file" >> $LF
+echo $VERSION   >> $LF
+echo "$0"     >> $LF
+echo "$argv"  >> $LF
+pwd           >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+echo "  $VERSION"
+
+# Set Default Values #
+set nPerCond = ();
+set tPerCond = ();
+set Label = ();
+set outstem = ();
+set QuitOnError = 1;
+set Ntp = 0;
+set TR   = 2;
+set TER  = ();
+set Tres = ();
+set TW = 20;
+set TPreStim = 0;
+set GammaParams = ();
+set TPreScan = 0;
+set nRuns = 1;
+set nSearch    = 100;
+set nMinSearch = ();
+set PctSearch = ();
+set TSearch = 0;
+set nSwap = -1;
+set seed = -1;
+set monly = 0;
+set mailuser = ();
+set Nsessions = 1;
+set FindWorst = 0; # for testing purposes
+set MaxEffLimit = [];
+
+goto parse_args;
+parse_args_return:
+goto check_args;
+check_args_return:
+
+if( $#TER  == 0 ) set TER  = $TR;
+if( $#Tres == 0 ) set Tres = $TER;
+
+set MATLAB = `getmatlab`;
+if($status) then
+  echo "ERROR: could not find matlab"
+  exit 1;
+endif
+
+if ($monly) then
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+else
+  set TARGET = "$MATLAB -display iconic"
+endif  
+
+set OutDir = `dirname $outstem`;
+mkdir -p $OutDir
+
+set LF = $outstem.log
+rm -f $LF
+
+if($#Label > 0) then
+  set UseLabel = 1;
+else 
+  set UseLabel = 0;
+endif
+
+echo "$LF" >> $LF
+date  >> $LF
+echo "Nsessions:  $Nsessions"  >> $LF
+echo "Nruns:      $nRuns" >> $LF
+echo "Ntp:        $Ntp"  >> $LF
+echo "nPerCond:   $nPerCond"  >> $LF
+echo "tPerCond:   $tPerCond"  >> $LF
+echo "TR:         $TR seconds" >> $LF
+echo "TER:        $TER seconds" >> $LF
+echo "Tres:       $Tres seconds" >> $LF
+echo "TimeWindow  $TW seconds" >> $LF
+echo "TPreStim    $TPreStim seconds" >> $LF
+echo "GammaParams $GammaParams" >> $LF
+echo "PFOrder     $pforder" >> $LF
+echo "TPreScan    $TPreScan seconds" >> $LF
+echo "nsearch:    $nSearch" >> $LF
+echo "tsearch:    $TSearch" >> $LF
+
+set okfile = /tmp/ok_"$$".tmp
+if(! $monly ) then
+  rm -f $okfile
+  touch $okfile
+endif
+
+set StartDate = `date`;
+#---------------------------------------------------------------#
+$TARGET  <<EOF
+
+  global QuitOnError;
+  if( ~ $monly ) 
+    QuitOnError = 1; 
+  else
+    QuitOnError = 0; 
+  end
+
+  seed = $seed ;
+  if(seed == -1)
+    seed = sum(100*clock);
+    fprintf('seed = %d\n',seed);
+  end
+  rand('state',  seed);
+  randn('state', seed);
+  oss = fmri_optseqstruct;
+
+  oss.Nsessions  = $Nsessions;
+  oss.TR         = $TR;
+  oss.Ntp        = $Ntp;
+  oss.Trun       = $Ntp * $TR;
+  oss.Nruns      = $nRuns;
+  oss.TER        = $TER;
+  oss.TimeWindow = $TW;
+  oss.TPreStim   = $TPreStim;
+  oss.GammaParams = [$GammaParams];
+  oss.pforder    = $pforder;
+  oss.TPreScan   = $TPreScan;
+  oss.Tres       = $Tres;
+  oss.Npercond   = [$nPerCond];
+  oss.Tpercond   = [$tPerCond];
+  oss.Nsearch    = $nSearch;
+  oss.Tsearch    = 3600 * $TSearch;
+
+  oss.Nc = length(oss.Npercond) + 1;
+  oss.FindWorst = $FindWorst; % for testing purposes
+  if(~isempty([$MaxEffLimit]))
+    oss.MaxEffLimit = $MaxEffLimit;  % for testing purposes
+  end
+
+  NtpTot = oss.Ntp * oss.Nruns;
+  if(~isempty(oss.GammaParams))
+    NhTot = (oss.Nc-1);
+  else
+    NhTot  = (oss.Nc-1)*oss.TimeWindow/oss.TER;
+  end
+
+  if(NhTot >= NtpTot)
+    msg = sprintf('Not enough time points for given TER, TW, and NConds');
+    qoe(msg); error(msg);
+  end
+
+  if($UseLabel) 
+    CondLabel = splitstring('$Label');
+    CondLabel = strvcat('null',CondLabel);
+  else
+    CondLabel = '';
+  end
+
+  %% This is where the actual searching/optimizing is done %%
+  [par trmin tsearched nsearched optstats] = fmri_optseq(oss);
+
+  % Collect stats %
+  travg = optstats(1);
+  trstd = optstats(2);
+  trmax = optstats(3);
+  effavg = optstats(4);
+  effstd = optstats(5);
+  effmin = optstats(6);
+  effmax = optstats(7);
+
+  for s = 1:oss.Nsessions
+    fprintf('Session %3d: Eff = %g, trmin = %g\n',s,1/trmin(s),trmin(s));
+    for n = 1:oss.Nruns
+      p0 = par(:,:,n,s);
+      ind = find(p0(:,1) < oss.Trun);
+      p1 = p0(ind,:);
+      nrunevents = size(p1,1);
+      fname = sprintf('$outstem-s%03d-r%03d.dat',s,n);
+      fid = fopen(fname,'w');
+      for event = 1:nrunevents,
+        eventtime = p1(event,1);
+        eventtype = p1(event,2);
+        if(eventtype ~= 0) 
+          dt = oss.Tpercond(eventtype);
+        else
+          if(event < nrunevents) 
+            dt = p1(event+1,1) - p1(event,1);
+          else
+            dt = oss.Trun - p1(event,1);
+          end
+        end
+        if($UseLabel) 
+          fprintf(fid,'%8.3f   %2d  %8.3f     %s\n',...
+                  eventtime,eventtype,dt,CondLabel(eventtype+1,:));
+        else
+          fprintf(fid,'%8.3f   %2d  %8.3f \n',...
+                  eventtime,eventtype,dt);
+        end
+      end
+    end
+  end
+
+  fid = fopen('$LF','a');
+  if(fid == -1)
+    msg = 'Could not open $LF';
+    qoe(msg);error(msg);
+  end
+  fprintf(fid,'seed = %10d\n',seed);
+
+  fprintf(fid,'NhTot = %d\n',NhTot);
+  fprintf(fid,'Event Types :\n');
+  for n=1:oss.Nc-1
+    fprintf(fid,'%2d %4d %8.4f ',n,oss.Npercond(n),oss.Tpercond(n));
+    if($UseLabel) 
+      fprintf(fid,'%s\n',CondLabel(n+1,:) );
+    else
+      fprintf(fid,'\n');
+    end
+  end
+
+  fprintf(fid,'tsearched = %g\n',tsearched);
+  fprintf(fid,'nsearched = %d\n',nsearched);
+  fprintf(fid,'Average Trace %g\n',travg);  
+  fprintf(fid,'StdDev  Trace %g\n',trstd);  
+  fprintf(fid,'Average Eff   %g\n',effavg);  
+  fprintf(fid,'StdDev  Eff   %g\n',effstd);  
+  fprintf(fid,'Maximum Eff   %g\n',effmax);
+  fprintf(fid,'Minimum Eff   %g\n',effmin);
+  for s = 1:oss.Nsessions
+    eff = 1/trmin(s);
+    fprintf(fid,'Session %3d  Eff = %8.3f, Trace = %8.3f AvgVarRed = %8.3f\n',...
+            s,eff,trmin(s),eff*NhTot);
+  end
+  fclose(fid);
+
+  if( ~ $monly ) 
+    unix('rm -f $okfile'); 
+    quit;
+  end
+  
+EOF
+#----------------------------------------------------------#
+
+date  >> $LF
+
+if(-e $okfile && ! $monly) then
+  echo "ERROR in execution"
+  rm -f $okfile
+  exit 1;
+endif
+
+if ( $#mailuser > 0 ) then
+  echo "optseq done at `date`" | mail -s "optseq `date`" $mailuser
+endif
+
+echo "Start: $StartDate"
+echo "End:   `date`"
+
+exit 0;
+############--------------##################
+parse_args:
+
+set NoNSearch = 0;
+set NoTSearch = 0;
+
+set npc_hunt = 0;
+set tpc_hunt = 0;
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o":
+      if( $#argv == 0) goto arg1err;
+      if( $#outstem != 0 ) then
+        echo ERROR: only one outstem allowed.
+        exit 1
+      endif
+      set outstem = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-TR":
+      if( $#argv == 0) goto arg1err;
+      set TR = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-Ntp":
+    case "-ntp":
+      if( $#argv == 0) goto arg1err;
+      set Ntp = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-TER":
+      if( $#argv == 0) goto arg1err;
+      set TER = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-Tres":
+      if( $#argv == 0) goto arg1err;
+      set Tres = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-TW":
+    case "-tw":
+    case "-timewindow":
+      if( $#argv == 0) goto arg1err;
+      set TW = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-prestim":
+    case "-tprestim":
+      if( $#argv == 0) goto arg1err;
+      set TPreStim = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-gammafit":
+      if( $#argv < 2) goto arg2err;
+      set GammaParams = ($argv[1] $argv[2]);
+      shift; shift;
+      breaksw
+
+    case "-polyfit":
+    case "-pf":
+      if( $#argv == 0) goto arg1err;
+      set pforder = $argv[1]; shift;
+      breaksw
+
+    case "-tprescan":
+      if( $#argv == 0) goto arg1err;
+      set TPreScan = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-nRuns":
+    case "-nruns":
+      if( $#argv == 0) goto arg1err;
+      set nRuns  = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-Nsessions":
+    case "-nsessions":
+      if( $#argv == 0) goto arg1err;
+      set Nsessions  = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-nSearch":
+    case "-nsearch":
+      if($NoNSearch) then
+        echo "ERROR: cannot specify -nsearch and -tsearch"
+        exit 1;
+      endif
+      set NoTSearch = 1;
+      if( $#argv == 0) goto arg1err;
+      set nSearch  = $argv[1]; shift;
+      set TSearch  = 0;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-nminsearch":
+      if( $#argv == 0) goto arg1err;
+      set nMinSearch  = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-tsearch":
+      if($NoTSearch) then
+        echo "ERROR: cannot specify -nsearch and -tsearch"
+        exit 1;
+      endif
+      set NoNSearch = 1;
+      if( $#argv == 0) goto arg1err;
+      set TSearch  = $argv[1]; shift;
+      set nSearch  = 0;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-pctsearch":
+      if( $#argv == 0) goto arg1err;
+      set PctSearch  = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-nSwap"
+    case "-nswap"
+      if( $#argv == 0) goto arg1err;
+      set nSwap  = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-seed":
+      if( $#argv == 0) goto arg1err;
+      set seed  = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-npercond":
+    case "-npc":
+      if( $#argv < 1) then
+        echo "ERROR: there must be at least 1 condition"
+        exit 1;
+      endif
+      set npc_hunt = 1;
+      set tpc_hunt = 0;
+      breaksw
+
+    case "-tpercond":
+    case "-tpc":
+      if( $#argv < 1) then
+        echo "ERROR: there must be at least 1 condition"
+        exit 1;
+      endif
+      set tpc_hunt = 1;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-label"
+      if( $#nPerCond == 0) then
+        echo "ERROR: must specify -npercond before -label"
+        exit 1;
+      endif
+      if( $#argv < $#nPerCond) then
+        echo "ERROR: there must be $nPerCond labels"
+        exit 1;
+      endif
+      @ n = 0;
+      set Label = ();
+      while($n < $#nPerCond)
+        set Label = ($Label $argv[1]); shift;
+        @ n = $n + 1;
+      end
+      set tpc_hunt = 0;
+      set npc_hunt = 0;
+      breaksw
+
+    case "-metric":
+      if( $#argv == 0) goto arg1err;
+      set metric  = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-maxefflimit":
+    case "-mel":
+      if( $#argv == 0) goto arg1err;
+      set MaxEffLimit  = $argv[1]; shift;
+      breaksw
+
+    case "-findworst":
+      set FindWorst = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      breaksw
+
+    case "-monly":
+      if( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1; 
+      set QuitOnError = 0;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    case "-mail":
+      if( $#argv == 0) goto arg1err;
+      set mailuser = $argv[1]; shift;
+      set npc_hunt = 0; set tpc_hunt = 0;
+      breaksw
+
+    default:
+      if($npc_hunt) then
+        set nPerCond = ($nPerCond $flag);
+      else if($tpc_hunt) then
+        set tPerCond = ($tPerCond $flag);
+      else
+        echo ERROR: Flag $flag unrecognized.
+        echo $cmdline
+        exit 1
+      endif
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_args:
+
+  if($#outstem == 0) then
+    echo "ERROR: no outstem specified"
+    exit 1;
+  endif
+
+  if($#nPerCond < 1) then
+    echo $#nPerCond
+    echo "ERROR: at least one condition must be specified with -npercond"
+    exit 1;
+  endif
+
+  if($#tPerCond != $#nPerCond ) then
+    echo $#tPerCond
+    echo "ERROR: number of items in -tpercond must be equal to -npercond"
+    exit 1;
+  endif
+
+  if($Ntp == 0) then
+    echo "ERROR: ntp must be > 0"
+    exit 1;
+  endif
+
+  #if($#RunDuration == 0) then
+  #  echo "ERROR: Must specify the run duration"
+  #  exit 1;
+  #endif
+
+goto check_args_return;
+############--------------##################
