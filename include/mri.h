@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/04/03 04:11:39 $
- *    $Revision: 1.331 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/03 15:24:44 $
+ *    $Revision: 1.332 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -267,8 +267,7 @@ int   MRIboundingBox(MRI *mri, int thresh, MRI_REGION *region) ;
 int   MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,
     MRI_REGION *region) ;
 int   MRIboundingBoxNbhd(MRI *mri, int thresh, int wsize,MRI_REGION *region) ;
-MRI *MRIsetBoundingBox(MRI *template, MRI_REGION *region, 
-		       double InVal, double OutVal);
+MRI *MRIsetBoundingBox(MRI *mri_template, MRI_REGION *region, double InVal, double OutVal);
 
 /* coordinate transforms */
 MRI   *MRItranslate(MRI *mri_src, MRI *mri_dst,
