@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/04/01 15:13:25 $
- *    $Revision: 1.50 $
+ *    $Author: greve $
+ *    $Date: 2007/04/03 04:11:41 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2731,4 +2731,74 @@ MRIlabelInVolume(MRI *mri_src, int label)
 				if ((int)MRIgetVoxVal(mri_src, x, y, z, 0) == label)
 					return(1) ;
 	return(0) ;
+}
+
+/*!
+  \fn MRI *MRIsetBoundingBox(MRI *template, MRI_REGION *region, 
+                             double InVal, double OutVal)
+  \brief Sets the values inside of the region to be InVal and
+         the values outside to be OutVal. template is a 
+	 geometry template. 
+*/
+MRI *MRIsetBoundingBox(MRI *template, MRI_REGION *region, 
+		       double InVal, double OutVal)
+{
+  MRI *mri;
+  int x2, y2, z2;
+  int c, r, s;
+
+  if(region->x < 0) region->x = 0;
+  if(region->y < 0) region->y = 0;
+  if(region->z < 0) region->z = 0;
+
+  if(region->dx < 0) region->dx = template->width;
+  if(region->dy < 0) region->dy = template->height;
+  if(region->dz < 0) region->dz = template->depth;
+
+  if(region->x >= template->width){
+    printf("ERROR: MRIsegBoundingBox: region x >= width\n");
+    return(NULL);
+  }
+  if(region->y >= template->height){
+    printf("ERROR: MRIsegBoundingBox: region y >= height\n");
+    return(NULL);
+  }
+  if(region->z >= template->depth){
+    printf("ERROR: MRIsegBoundingBox: region z >= depth\n");
+    return(NULL);
+  }
+  x2 = region->x + region->dx;
+  y2 = region->y + region->dy;
+  z2 = region->z + region->dz;
+
+  if(x2 >= template->width){
+    printf("ERROR: MRIsegBoundingBox: region x2 >= width\n");
+    return(NULL);
+  }
+  if(y2 >= template->height){
+    printf("ERROR: MRIsegBoundingBox: region y2 >= height\n");
+    return(NULL);
+  }
+  if(z2 >= template->depth){
+    printf("ERROR: MRIsegBoundingBox: region z2 >= depth\n");
+    return(NULL);
+  }
+
+  mri = MRIcloneBySpace(template, MRI_FLOAT, 1);
+  if(mri == NULL) return(NULL);
+    
+
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	if(c >= region->x && c <= x2 &&
+	   r >= region->y && r <= y2 &&
+	   s >= region->z && s <= z2)
+	  MRIsetVoxVal(mri,c,r,s,0,InVal);
+	else
+	  MRIsetVoxVal(mri,c,r,s,0,OutVal);
+      }
+    }
+  }
+  return(mri);
 }
