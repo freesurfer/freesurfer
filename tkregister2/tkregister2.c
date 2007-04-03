@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/02 04:44:30 $
- *    $Revision: 1.74 $
+ *    $Date: 2007/04/03 23:27:24 $
+ *    $Revision: 1.75 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 #ifndef lint
 static char vcid[] =
-  "$Id: tkregister2.c,v 1.74 2007/04/02 04:44:30 greve Exp $";
+  "$Id: tkregister2.c,v 1.75 2007/04/03 23:27:24 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -193,6 +193,10 @@ static int nth_is_arg(int nargc, char **argv, int nth);
 static int checkfmt(char *fmt);
 static int MRIisConformant(MRI *vol);
 static int MRItagVol(MRI *mri, float val);
+
+MATRIX *TransformLTA2RegDatB(LTA *lta);
+MATRIX *vg_i_to_r_tkr(const VOL_GEOM *vg);
+
 
 #ifndef TRUE
 #  define TRUE 1
@@ -389,8 +393,6 @@ TRANSFORM *FSXform = NULL;
 LTA *lta = NULL;
 LT  *linxfm = NULL;
 char *ltafname;
-char *ltaoutfname;
-LTA *TransformRegDat2LTA2(MRI *targ, MRI *mov, MATRIX *R);
 
 
 /**** ------------------ main ------------------------------- ****/
@@ -1101,11 +1103,10 @@ static int parse_commandline(int argc, char **argv) {
       if (FSXform == NULL) exit(1);
       lta = (LTA*) FSXform->xform;
       linxfm = &(lta->xforms[0]);
-      RegMat = TransformLTA2RegDat(lta);
-      nargsused = 1;
-    } else if (!strcmp(option, "--ltaout")) {
-      if (nargc < 1) argnerr(option,1);
-      ltaoutfname = pargv[0];
+      //RegMat = TransformLTA2RegDatB(lta);
+      // Assume RAS2RAS and uses vox2ras from input volumes:
+      XFM = lta->xforms[0].m_L;
+      mkheaderreg = 1;
       nargsused = 1;
     } else if (!strcmp(option, "--fslregout")) {
       if (nargc < 1) argnerr(option,1);
@@ -3090,7 +3091,6 @@ void  read_fslreg(char *fname) {
 /*-----------------------------------------------------*/
 void write_reg(char *fname) {
   extern char *fslregoutfname, *subjectsdir, *pname;
-  extern char *ltaoutfname;
   extern int fstal;
   extern char talxfmfile[2000];
   extern MATRIX *RegMat, *Mtc;
@@ -3098,7 +3098,6 @@ void write_reg(char *fname) {
   int i,j;
   FILE *fp;
   char touchfile[1000];
-  LTA *lta;
 
   editedmatrix = FALSE;
 
@@ -3141,13 +3140,8 @@ void write_reg(char *fname) {
   PR
   fclose(fp);
 
-  if(fslregoutfname != NULL) write_fslreg(fslregoutfname);
-  if(xfmoutfname != NULL) write_xfmreg(xfmoutfname);
-  if(ltaoutfname != NULL){
-    lta = TransformRegDat2LTA2(targ_vol, mov_vol, RegMatTmp);
-    LTAwrite(lta, ltaoutfname);
-    LTAfree(&lta);
-  }
+  if (fslregoutfname != NULL) write_fslreg(fslregoutfname);
+  if (xfmoutfname != NULL) write_xfmreg(xfmoutfname);
 
   return;
 }
@@ -4180,7 +4174,6 @@ static Tcl_Interp *interp;
 static Tcl_DString command;
 static int tty;
 
-
 int main(argc, argv)   /* new main */
 int argc;
 char **argv;
@@ -4199,7 +4192,7 @@ char **argv;
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.74 2007/04/02 04:44:30 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.75 2007/04/03 23:27:24 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4530,33 +4523,66 @@ static int MRItagVol(MRI *mri, float val) {
         MRIsetVoxVal(mri,c,r,s,0,.9*max);
   return(0);
 }
-/*---------------------------------------------------------*/
-LTA *TransformRegDat2LTA2(MRI *targ, MRI *mov, MATRIX *R)
+
+MATRIX *TransformLTA2RegDatB(LTA *lta)
 {
-  LTA *lta;
   MATRIX *vox2vox; // Targ->Mov
-  MATRIX *Ttarg, *Tmov, *invTmov;
+  MATRIX *R=NULL,*Tdst, *Tsrc;
+  MATRIX *Ndst, *Nsrc;
+  MRI *mrisrc=NULL, *mridst=NULL;
+  VOL_GEOM *vg;
 
-  Ttarg = MRIxfmCRS2XYZtkreg(targ);
-  Tmov  = MRIxfmCRS2XYZtkreg(mov);
-  invTmov = MatrixInverse(Tmov,NULL);
+  if(lta->type == LINEAR_VOX_TO_VOX){
+    printf("Vox 2 Vox\n");
+    vox2vox = MatrixCopy(lta->xforms[0].m_L,NULL);
 
-  // vox2vox = invTmov * R * Ttarg
-  vox2vox = MatrixMultiply(invTmov,R,NULL);
-  MatrixMultiply(vox2vox,Ttarg,vox2vox);
-  vox2vox = MatrixInverse(vox2vox,vox2vox);
+    // Scanner Vox2RAS:
+    Nsrc = vg_i_to_r(&(lta->xforms[0].src));
+    Ndst = vg_i_to_r(&(lta->xforms[0].dst));
+    Tsrc = vg_i_to_r_tkr(&(lta->xforms[0].src));
+    Tdst = vg_i_to_r_tkr(&(lta->xforms[0].dst));
 
-  lta = LTAalloc(1,NULL);
-  lta->type = LINEAR_VOX_TO_VOX;
-  lta->xforms[0].type = LINEAR_VOX_TO_VOX;
-  getVolGeom(targ,&lta->xforms[0].src);
-  getVolGeom(mov,&lta->xforms[0].dst);
-  lta->xforms[0].m_L = MatrixCopy(vox2vox,NULL);
 
-  MatrixFree(&Ttarg);
-  MatrixFree(&Tmov);
-  MatrixFree(&invTmov);
-  MatrixFree(&vox2vox);
+    // vox2vox = invTmov * R * Ttarg
+    // R = Tmov * vox2vox * invTtarg
+    R = MatrixMultiply(Tmov,vox2vox,NULL);
+    R = MatrixMultiply(R,invTtarg,R);
+    
+    MatrixFree(&Ttarg);
+    MatrixFree(&Tmov);
+    MatrixFree(&invTtarg);
+    MatrixFree(&vox2vox);
+  }
+  if(lta->type == LINEAR_RAS_TO_RAS){
+    printf("RAS 2 RAS\n");
+    vg = &(lta->xforms[0].src);
+    mrisrc = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR);
+    useVolGeomToMRI(vg, mrisrc);
+    vg = &(lta->xforms[0].dst);
+    mridst = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR);
+    useVolGeomToMRI(vg, mridst);
+    R = MRItkRegMtx(mridst,mrisrc,lta->xforms[0].m_L);
+    MatrixInverse(R,R);
+    printf("LTA ---------------------------\n");
+    MatrixPrint(stdout,lta->xforms[0].m_L);
+    printf("---------------------------\n");
+    printf("R LTA ---------------------------\n");
+    MatrixPrint(stdout,R);
+    printf("---------------------------\n");
+    MRIfree(&mrisrc);
+    MRIfree(&mridst);
+  }
 
-  return(lta);
+  return(R);
+}
+
+MATRIX *vg_i_to_r_tkr(const VOL_GEOM *vg)
+{
+  MATRIX *mat =0;
+  MRI *tmp = 0;
+  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR);
+  useVolGeomToMRI(vg, tmp);
+  mat = MRIxfmCRS2XYZtkreg(tmp);
+  MRIfree(&tmp);
+  return mat;
 }
