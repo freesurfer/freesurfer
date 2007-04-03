@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/03 21:17:51 $
- *    $Revision: 1.23 $
+ *    $Date: 2007/04/03 21:29:34 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -178,6 +178,8 @@ COLOR_TABLE *CTABreadASCII(char *fname)
   }
 
   fclose(fp);
+
+  CTABfindDuplicateNames(ct);
 
   //CTABfindDuplicateAnnotations(ct);
 
@@ -1068,6 +1070,41 @@ int CTABfindDuplicateAnnotations(COLOR_TABLE *ct)
   {
     printf("CTABfindDuplicateAnnotations: %d duplicate annotation "
            "values found in:\n  %s",
+           dupCount/2,ct->fname);
+  }
+  return dupCount/2;
+}
+
+
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+int CTABfindDuplicateNames(COLOR_TABLE *ct)
+{
+  int idx1;
+  int idx2;
+  int dupCount=0;
+  for (idx1 = 0; idx1 < ct->nentries; idx1++)
+  {
+    if (NULL != ct->entries[idx1])
+    {
+      for (idx2 = 0; idx2 < ct->nentries; idx2++)
+      {
+        if ((NULL != ct->entries[idx2]) && (idx1 != idx2))
+        {
+          char *name1 = ct->entries[idx1]->name;
+          char *name2 = ct->entries[idx2]->name;
+          if (strcmp(name1,name2)==0)
+          {
+            dupCount++;
+            printf("ERROR: label name '%s' is duplicated!\n",name1);
+          }
+        }
+      }
+    }
+  }
+  if (dupCount > 0)
+  {
+    printf("CTABfindDuplicateNames: %d duplicate names found in:\n  %s\n",
            dupCount/2,ct->fname);
   }
   return dupCount/2;
