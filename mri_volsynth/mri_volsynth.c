@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/29 17:52:39 $
- *    $Revision: 1.23 $
+ *    $Date: 2007/04/03 02:16:04 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.23 2007/03/29 17:52:39 greve Exp $
+  $Id: mri_volsynth.c,v 1.24 2007/04/03 02:16:04 greve Exp $
 */
 
 #include <stdio.h>
@@ -56,7 +56,6 @@
 #include "mri_circulars.h"
 
 MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt);
-double MRIsum2All(MRI *mri);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -75,7 +74,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.23 2007/03/29 17:52:39 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.24 2007/04/03 02:16:04 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -366,7 +365,7 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sum2file = pargv[0];
       pdfname  = "delta";
-      NoOutput = 1;
+      //NoOutput = 1;
       nframes  = 1;
       nargsused = 1;
     } 
@@ -681,22 +680,3 @@ static int isflag(char *flag) {
   return(mrisqrt);
 }
 
-/*---------------------------------------------------------------*/
-double MRIsum2All(MRI *mri)
-{
-  int c,r,s,f;
-  double sum2all,val;
-
-  sum2all = 0;
-  for (c=0; c < mri->width; c++) {
-    for (r=0; r < mri->height; r++) {
-      for (s=0; s < mri->depth; s++) {
-        for (f=0; f < mri->nframes; f++) {
-          val = MRIgetVoxVal(mri,c,r,s,f);
-	  sum2all += (val*val);
-        }
-      }
-    }
-  }
-  return(sum2all);
-}

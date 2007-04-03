@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/23 05:01:02 $
- *    $Revision: 1.17 $
+ *    $Date: 2007/04/03 02:16:01 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,4 +68,6 @@ MRI *MRIvote(MRI *in, MRI *mask, MRI *vote);
 int MRImakeVox2VoxReg(MRI* targ, MRI* mov,
                       int regtype, char* regname,
                       mriTransformRef* transform);
+double MRIsum2All(MRI *mri);
+
 #endif

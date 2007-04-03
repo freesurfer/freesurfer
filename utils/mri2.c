@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/23 05:01:03 $
- *    $Revision: 1.32 $
+ *    $Date: 2007/04/03 02:16:03 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.32 2007/03/23 05:01:03 greve Exp $
+  $Id: mri2.c,v 1.33 2007/04/03 02:16:03 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -1974,4 +1974,26 @@ cleanup:
     MatrixFree(&targ_tkregras_to_mov_tkregras);
 
   return(retcode);
+}
+/*!
+  \fn double MRIsum2All(MRI *mri)
+  \breif squares and then sums all the voxels.
+*/
+double MRIsum2All(MRI *mri)
+{
+  int c,r,s,f;
+  double sum2all,val;
+
+  sum2all = 0;
+  for (c=0; c < mri->width; c++) {
+    for (r=0; r < mri->height; r++) {
+      for (s=0; s < mri->depth; s++) {
+        for (f=0; f < mri->nframes; f++) {
+          val = MRIgetVoxVal(mri,c,r,s,f);
+	  sum2all += (val*val);
+        }
+      }
+    }
+  }
+  return(sum2all);
 }
