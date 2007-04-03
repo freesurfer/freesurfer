@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/02/02 05:10:22 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/04/03 02:36:10 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -245,7 +245,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.14 2007/02/02 05:10:22 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.15 2007/04/03 02:36:10 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -287,6 +287,8 @@ double automaskthresh = .1;
 int nerode = 0;
 int SmoothOnly = 0;
 
+char *sum2file = NULL;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, n, Ntp, nsearch, nsearch2=0;
@@ -321,7 +323,7 @@ int main(int argc, char *argv[]) {
   // ------------- load or synthesize input ---------------------
   InVals = MRIreadType(inpath,InValsType);
   if (InVals == NULL) exit(1);
-  if (InVals->nframes < 10 && !SmoothOnly) {
+  if (InVals->nframes < 10 && !SmoothOnly && !sum2file) {
     printf("ERROR: nframes = %d, need at least 10\n",InVals->nframes);
     exit(1);
   }
@@ -395,8 +397,21 @@ int main(int argc, char *argv[]) {
   // Make a copy, if needed, prior to doing anything to data
   if (outpath) InValsCopy = MRIcopy(InVals,NULL);
 
+  // Compute variance reduction factor -------------------
+  if(sum2file){
+    ftmp = MRIsum2All(InVals);
+    fp = fopen(sum2file,"w");
+    if(fp == NULL){
+      printf("ERROR: opening %s\n",sum2file);
+      exit(1);
+    }
+    printf("sum2all: %20.10lf\n",ftmp);
+    printf("vrf: %20.10lf\n",1/ftmp);
+    fprintf(fp,"%20.10lf\n",ftmp);
+  }
+
   //------------------------ Detrend ------------------
-  if (DetrendOrder >= 0) {
+  if(DetrendOrder >= 0) {
     Ntp = InVals->nframes;
     printf("Polynomial detrending, order = %d\n",DetrendOrder);
     X = MatrixAlloc(Ntp,DetrendOrder+1,MATRIX_REAL);
@@ -407,7 +422,7 @@ int main(int argc, char *argv[]) {
     if (DetrendOrder >= 2)
       for (n=0;n<Ntp;n++) X->rptr[n+1][3] = pow((n-ftmp),2.0)/(ftmp*ftmp);
   }
-  if (X) {
+  if(X){
     printf("Detrending\n");
     if (X->rows != InVals->nframes) {
       printf("ERROR: dimension mismatch between X and input\n");
@@ -452,7 +467,7 @@ int main(int argc, char *argv[]) {
   }
 
   // ------ Save smoothed/detrended ------------------------------
-  if (outpath) {
+  if(outpath) {
     printf("Saving to %s\n",outpath);
     // Smoothed output will not be masked
     if (SaveDetrended && X) {
@@ -472,6 +487,7 @@ int main(int argc, char *argv[]) {
     MRIwrite(InValsCopy,outpath);
     MRIfree(&InValsCopy);
   }
+
 
   // ----------- Compute smoothness -----------------------------
   printf("Computing spatial AR1 in volume.\n");
@@ -616,6 +632,10 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
       outpath = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--sum2")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sum2file = pargv[0];
       nargsused = 1;
     } else if (!strcasecmp(option, "--X")) {
       if (nargc < 1) CMDargNErr(option,1);
