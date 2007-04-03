@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/03/28 19:15:30 $
- *    $Revision: 1.22 $
+ *    $Date: 2007/04/03 21:17:51 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -178,6 +178,8 @@ COLOR_TABLE *CTABreadASCII(char *fname)
   }
 
   fclose(fp);
+
+  //CTABfindDuplicateAnnotations(ct);
 
   /* Return the new color table. */
   return(ct);
@@ -1027,6 +1029,48 @@ int CTABfindAnnotation(COLOR_TABLE *ct, int annotation, int *index)
   result = CTABfindRGBi (ct, r, g, b, index);
 
   return (result);
+}
+
+
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+int CTABfindDuplicateAnnotations(COLOR_TABLE *ct)
+{
+  int idx1;
+  int idx2;
+  int dupCount=0;
+  for (idx1 = 0; idx1 < ct->nentries; idx1++)
+  {
+    if (NULL != ct->entries[idx1])
+    {
+      int annot1;
+      CTABannotationAtIndex(ct,idx1,&annot1);
+      for (idx2 = 0; idx2 < ct->nentries; idx2++)
+      {
+        if ((NULL != ct->entries[idx2]) && (idx1 != idx2))
+        {
+          int annot2;
+          CTABannotationAtIndex(ct,idx2,&annot2);
+          if (annot1 == annot2)
+          {
+            dupCount++;
+            printf("ERROR: labels '%s'\n"
+                   "          and '%s'\n"
+                   "       have duplicate annotations!\n",
+                   ct->entries[idx1]->name,
+                   ct->entries[idx2]->name);
+          }
+        }
+      }
+    }
+  }
+  if (dupCount > 0)
+  {
+    printf("CTABfindDuplicateAnnotations: %d duplicate annotation "
+           "values found in:\n  %s",
+           dupCount/2,ct->fname);
+  }
+  return dupCount/2;
 }
 
 

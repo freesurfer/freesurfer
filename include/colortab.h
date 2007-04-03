@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/03/28 19:16:41 $
- *    $Revision: 1.15 $
+ *    $Date: 2007/04/03 21:17:52 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -115,6 +115,9 @@ int CTABcopyName(COLOR_TABLE *ct, int index, char *name, size_t name_len);
    values are shifted into a single integer. */
 int CTABannotationAtIndex(COLOR_TABLE *ct, int index, int *annot);
 int CTABfindAnnotation(COLOR_TABLE *ctab, int annotation, int *index);
+
+/* Searches the table for duplicate annotation values, returns the count. */
+int CTABfindDuplicateAnnotations(COLOR_TABLE *ct);
 
 /* Searches through the table and finds the first entry with the given
    information. Sets index to the found index. Sets it to -1 if the
