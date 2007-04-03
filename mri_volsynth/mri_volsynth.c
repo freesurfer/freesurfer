@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/03 02:16:04 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/04/03 04:12:52 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.24 2007/04/03 02:16:04 greve Exp $
+  $Id: mri_volsynth.c,v 1.25 2007/04/03 04:12:52 greve Exp $
 */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.24 2007/04/03 02:16:04 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.25 2007/04/03 04:12:52 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -112,6 +112,7 @@ int AddOffset=0;
 MRI *offset;
 char *sum2file = NULL;
 int NoOutput = 0;
+MRI_REGION boundingbox;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -265,6 +266,10 @@ int main(int argc, char **argv)
 	}
       }
     }
+  } else if (strcmp(pdfname,"boundingbox")==0) {
+    printf("Setting bounding box \n");
+    mri = MRIsetBoundingBox(mritemp,&boundingbox,1,0);
+    if(!mri) exit(1);
   } else {
     printf("ERROR: pdf %s unrecognized, must be gaussian, uniform, const, or delta\n",
            pdfname);
@@ -437,6 +442,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       pdfname = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--bb")) {
+      if (nargc < 6) argnerr(option,6);
+      sscanf(pargv[0],"%d",&boundingbox.x);
+      sscanf(pargv[1],"%d",&boundingbox.y);
+      sscanf(pargv[2],"%d",&boundingbox.z);
+      sscanf(pargv[3],"%d",&boundingbox.dx);
+      sscanf(pargv[4],"%d",&boundingbox.dy);
+      sscanf(pargv[5],"%d",&boundingbox.dz);
+      pdfname = "boundingbox";
+      nargsused = 6;
     } else if (!strcmp(option, "--dof-num")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&numdof);
@@ -510,6 +525,7 @@ static void print_usage(void) {
   printf("   --seedfile fname : write seed value to this file\n");
   printf("   --pdf pdfname : <gaussian>, uniform, const, delta, \n");
   printf("      sphere, z, t, F, chi2, voxcrs\n");
+  printf("   --bb c r s dc dr ds : bounding box \n");
   printf("   --gmean mean : use mean for gaussian (def is 0)\n");
   printf("   --gstd  std  : use std for gaussian standard dev (def is 1)\n");
   printf("   --delta-crsf col row slice frame : 0-based\n");
@@ -679,4 +695,3 @@ static int isflag(char *flag) {
   }
   return(mrisqrt);
 }
-
