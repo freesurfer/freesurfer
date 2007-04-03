@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.30 2007/02/27 21:30:35 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.31 2007/04/03 21:32:58 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -246,14 +246,17 @@
 505 right_hippocampal_fissure               153 221 238 0
 506 right_CA4/DG                            51  17  17  0
 507 right_subiculum                         0   119 85  0
-508 left_CA2/3                              17  85  137 0
-509 left_alveus                             119 187 103 0
-510 left_CA1                                204 68  35  0
-511 left_fimbria                            204 0   254 0
-512 left_presubiculum                       221 187 16  0
-513 left_hippocampal_fissure                153 221 239 0
-514 left_CA4/DG                             51  17  18  0
-515 left_subiculum                          0   119 86  0
+508 right_fornix                            20  100 200 0
+
+550 left_CA2/3                              17  85  137 0
+551 left_alveus                             119 187 103 0
+552 left_CA1                                204 68  35  0
+553 left_fimbria                            204 0   254 0
+554 left_presubiculum                       221 187 16  0
+555 left_hippocampal_fissure                153 221 239 0
+556 left_CA4/DG                             51  17  18  0
+557 left_subiculum                          0   119 86  0
+558 left_fornix                             20  100 201 0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg in which the aseg cortex label is replaced
