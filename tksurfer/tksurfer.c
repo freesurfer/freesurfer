@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/04 17:03:25 $
- *    $Revision: 1.262 $
+ *    $Date: 2007/04/04 21:01:05 $
+ *    $Revision: 1.263 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -1546,7 +1546,7 @@ static int sclv_cur_timepoint = 0;
 static int sclv_cur_condition = 0;
 
 static double sclv_overlay_alpha = 1.0;
-static int sclv_opaque = 0; /* If on, min->mid will be a solid color */
+static int sclv_opaque = 1; /* If on, min->mid will be a solid color */
 
 #define sclv_set_value(v,i,n) \
  switch((i)) { \
@@ -19099,7 +19099,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.262 2007/04/04 17:03:25 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.263 2007/04/04 21:01:05 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
