@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/26 21:15:38 $
-##    $Revision: 1.140 $
+##    $Date: 2007/04/04 17:02:11 $
+##    $Revision: 1.141 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -191,6 +191,7 @@ set gaLinkedVars(truncphaseflag) 0
 set gaLinkedVars(invphaseflag) 0
 set gaLinkedVars(revphaseflag) 0
 set gaLinkedVars(complexvalflag) 0
+set gaLinkedVars(fopaqueflag) 0
 set gaLinkedVars(ignorezeroesinhistogramflag) 1
 set gaLinkedVars(labels_before_overlay_flag) 0
 set gaLinkedVars(currentvaluefield) 0
@@ -250,8 +251,8 @@ set gaLinkedVars(func_graph_avg_mode) $gaFuncGraphAvgMode(single)
 # groups of variables that get sent to c code together
 array set gaLinkedVarGroups {
     scene { light0 light1 light2 light3 offset }
-    overlay { falpha colscale truncphaseflag invphaseflag revphaseflag 
-	complexvalflag foffset fthresh fmid fslope fmin fmax 
+    overlay { falpha fopaqueflag colscale truncphaseflag invphaseflag
+	revphaseflag complexvalflag foffset fthresh fmid fslope fmin fmax 
 	fnumtimepoints fnumconditions ftimepoint fcondition 
 	ignorezeroesinhistogramflag autosetfslope labels_before_overlay_flag}
     curvature { cslope cmid cmin cmax forcegraycurvatureflag }
@@ -997,19 +998,11 @@ proc DoConfigOverlayDisplayDlog {} {
 	grid $cbwRYGBWheel  -column 2 -row 2 -sticky w
 	grid $cbwTwoCond    -column 3 -row 2 -sticky w
 	
-	# checkboxes for truncate, inverse, reverse phase, complex values
-	if { 0 } {
-	tkm_MakeCheckboxes $fwFlags y {
-	    { text "Truncate" gaLinkedVars(truncphaseflag) {} }
-	    { text "Inverse" gaLinkedVars(invphaseflag) {} }
-	    { text "Reverse" gaLinkedVars(revphaseflag) {} }
-	    { text "Complex" gaLinkedVars(complexvalflag) {} } }
-	} 
-
 	set lwOptions        $fwFlags.lwOptions
         set cbwTruncate      $fwFlags.cbwTruncate
         set cbwInverse       $fwFlags.cbwInverse
         set cbwComplex       $fwFlags.cbwComplex
+        set cbwOpaque        $fwFlags.cbwOpaque
 
         frame $fwFlags -relief ridge -border 2
 
@@ -1029,11 +1022,17 @@ proc DoConfigOverlayDisplayDlog {} {
 	    -variable gaLinkedVars(complexvalflag) \
 	    -text "Complex" \
 	    -font [tkm_GetNormalFont]
+	checkbutton $cbwOpaque \
+	    -variable gaLinkedVars(fopaqueflag) \
+	    -text "Opaque" \
+	    -font [tkm_GetNormalFont] \
+	    -command {SendLinkedVarGroup overlay}
 
 	grid $lwOptions   -column 0 -row 0 -columnspan 3
 	grid $cbwTruncate -column 0 -row 1 -stick w
 	grid $cbwInverse  -column 1 -row 1 -stick w
 	grid $cbwComplex  -column 2 -row 1 -stick w
+	grid $cbwOpaque   -column 3 -row 1 -stick w
 
 	# create the histogram frame and subunits
 	frame $fwHisto -relief ridge -border 2
