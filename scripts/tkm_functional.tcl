@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/26 22:22:15 $
-##    $Revision: 1.36 $
+##    $Date: 2007/04/04 21:55:42 $
+##    $Revision: 1.37 $
 ##
 ## Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA). 
@@ -70,7 +70,7 @@ set gfOverlayAlpha 1.0
 set gOverlaySampleType $FunD_tSampleType(nearest)
 set gFDRRate 0.05
 set gbFDMask 0
-set gThresholdMode linear
+set gThresholdMode linear-opaque
 
 set glAllColors {Red Green Blue Purple Brown Pink Gray LightBlue Yellow Orange}
 set gnMaxColors [llength $glAllColors]
@@ -488,8 +488,6 @@ proc Overlay_DoConfigDlog {} {
 		     "set gbReverse \$gbReverse" } \
 		 { text "Grayscale" gbGrayscale
 		     "set gbGrayscale \$gbGrayscale" } \
-		 { text "Opaque" gbOpaque
-		     "set gbOpaque \$gbOpaque" } \
 		 $lOffsetOptions ]
 	tkm_MakeRadioButtons $fwSampleType x "Sample Type" gOverlaySampleType \
 	    [list \
@@ -516,7 +514,7 @@ proc Overlay_DoConfigDlog {} {
 	    { text "Ignore Threshold" gbIgnoreThreshold
 		"set gbIgnoreThreshold \$gbIgnoreThreshold" } }
 
-	# If we're in linear threshold mode, only the min and max
+	# If we're in a linear threshold mode, only the min and max
 	# fields are active, and setting them should just calc a new
 	# linear threshold. If in piecewise mode, setting the mid,
 	# max, and slope calc new piecewise threshold values.
@@ -526,7 +524,8 @@ proc Overlay_DoConfigDlog {} {
 		if { [regexp {^[-+]?([0-9]*\.[0-9]+|[0-9]+)$} \
 			  $gfThreshold(min)] } {
 		    Overlay_SetMin $gfThreshold(min)
-		    if { [string match $gThresholdMode linear] } {
+		    if { [string match $gThresholdMode linear-opaque] ||
+			 [string match $gThresholdMode linear-blend] } {
 			Overlay_CalcNewLinearThreshold
 		    }
 		} else {
@@ -548,7 +547,8 @@ proc Overlay_DoConfigDlog {} {
 		if { [regexp {^[-+]?([0-9]*\.[0-9]+|[0-9]+)$} \
 			  $gfThreshold(max)] } {
 		    Overlay_SetMax $gfThreshold(max)
-		    if { [string match $gThresholdMode linear] } {
+		    if { [string match $gThresholdMode linear-opaque] ||
+			 [string match $gThresholdMode linear-blend] } {
 			Overlay_CalcNewLinearThreshold
 		    } elseif { [string match $gThresholdMode piecewise] } {
 			Overlay_CalcNewPiecewiseThresholdSlopeFromMidMax
@@ -589,11 +589,17 @@ proc Overlay_DoConfigDlog {} {
 	set gaOverlayDlogWidgets(fmid) $fwThresholdEntries.fwMid 
 	set gaOverlayDlogWidgets(fslope) $fwThresholdEntries.fwSlope 
 
+	# Our threshold mode selector. There are two linear modes, one
+	# opaque and one blended, and a piecewise mode. However, what
+	# we really control is two thresh-setting modes, linear and
+	# piecewise, and an opaque mode. Every time we change here, we
+	# set the opaque flag mode as well as the thresh mode.
 	tkm_MakeRadioButtons $fwThreshMode x "Threshold" \
 	    gThresholdMode {
-	    {text "Linear" linear {Overlay_UpdateDlogInfo} "" }
-	    {text "Piecewise" piecewise {Overlay_UpdateDlogInfo} "" }
-	}
+		{text "Linear" linear-blend {set gbOpaque 0; Overlay_UpdateDlogInfo} "" }
+		{text "Linear opaque" linear-opaque {set gbOpaque 1; Overlay_UpdateDlogInfo} "" }
+		{text "Piecewise" piecewise {set gbOpaque 0; Overlay_UpdateDlogInfo} "" }
+	    }
 
 	frame $fwFDR
 	tkm_MakeButtons $bwFDR \
@@ -655,7 +661,8 @@ proc Overlay_UpdateDlogInfo { } {
     # If we're using the simple threshold mode, disable the fmid and
     # fslope fields.
     set state normal
-    if { [string match $gThresholdMode linear] } { 
+    if { [string match $gThresholdMode linear-opaque] ||
+	 [string match $gThresholdMode linear-blend] } { 
 	set state disabled 
     } elseif { [string match $gThresholdMode piecewise] } { 
 	set state normal 
