@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/04/04 21:01:39 $
-##    $Revision: 1.142 $
+##    $Date: 2007/04/04 21:51:30 $
+##    $Revision: 1.143 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -811,7 +811,8 @@ proc SetMid { iWidget inThresh } {
 	$iWidget marker create line \
 	    -coords [list $negMid -Inf $negMid Inf] \
 	    -name negmid -outline blue
-    } elseif { [string match $gaHistogramData(threshMode) linear] } {
+    } elseif { [string match $gaHistogramData(threshMode) linear-opaque] ||
+	       [string match $gaHistogramData(threshMode) linear-blend] } {
 	$iWidget marker delete mid negmid
     }
 }
@@ -1068,7 +1069,10 @@ proc DoConfigOverlayDisplayDlog {} {
 	bind $gaHistoWidget(graph) <ButtonPress-1> \
 	    { 
 		SetMin %W [%W axis invtransform x %x] 
-		if { [string match $gaHistogramData(threshMode) linear] } { 
+		if { [string match $gaHistogramData(threshMode) \
+			  linear-opaque] ||
+		     [string match $gaHistogramData(threshMode) \
+			  linear-blend] } { 
 		    CalcNewLinearThreshold $gaHistoWidget(graph)
 		}
 	    }
@@ -1082,7 +1086,10 @@ proc DoConfigOverlayDisplayDlog {} {
 	bind $gaHistoWidget(graph) <ButtonPress-3> \
 	    { 
 		SetMax %W [%W axis invtransform x %x]
-		if { [string match $gaHistogramData(threshMode) linear] } { 
+	     if { [string match $gaHistogramData(threshMode) \
+		       linear-opaque] ||
+		  [string match $gaHistogramData(threshMode) \
+		       linear-blend] } { 
 		    CalcNewLinearThreshold $gaHistoWidget(graph)
 		} elseif { [string match $gaHistogramData(threshMode) piecewise] } {
 		    CalcNewPiecewiseThresholdSlopeFromMidMax $gaHistoWidget(graph)
@@ -1118,7 +1125,9 @@ proc DoConfigOverlayDisplayDlog {} {
 			  $gaLinkedVars(fthresh)] } {
 		    SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)
 		    if { [string match $gaHistogramData(threshMode) \
-			      linear] } { 
+			      linear-opaque] ||
+			 [string match $gaHistogramData(threshMode) \
+			      linear-blend] } { 
 			CalcNewLinearThreshold $gaHistoWidget(graph)
 		    }
 		} else {
@@ -1146,7 +1155,9 @@ proc DoConfigOverlayDisplayDlog {} {
 			  $gaLinkedVars(fthresh)] } {
 		    SetMax $gaHistoWidget(graph) $gaLinkedVars(fthreshmax)
 		    if { [string match $gaHistogramData(threshMode) \
-			      linear] } { 
+			      linear-opaque] ||
+			 [string match $gaHistogramData(threshMode) \
+			      linear-blend] } { 
 			CalcNewLinearThreshold $gaHistoWidget(graph)
 		    } elseif { [string match $gaHistogramData(threshMode)\
 				    piecewise] } {   
@@ -1223,10 +1234,8 @@ proc DoConfigOverlayDisplayDlog {} {
 	# Our threshMode selector. There are two linear modes, one
 	# opaque and one blended, and a piecewise mode. However, what
 	# we really control is two thresh-setting modes, linear and
-	# piecewise, and an opaque mode. So we create three options
-	# out of these, and when we test for the threshMode, we just
-	# look for the string linear, which is present in two modes,
-	# and every time we change here, we set the opaque flag mode.
+	# piecewise, and an opaque mode. Wvery time we change here, we
+	# set the opaque flag mode as well as the thresh mode.
 	tkm_MakeRadioButtons $fwThreshMode x "Threshold" \
 	    gaHistogramData(threshMode) {
 		{text "Linear" linear-blend {set gaLinkedVars(fopaqueflag) 0; SendLinkedVarGroup overlay; UpdateOverlayDlogInfo} "" }
@@ -1432,7 +1441,8 @@ proc UpdateOverlayDlogInfo {} {
     # If we're using a linear threshold mode, disable the fmid and
     # fslope fields. 
     set state normal
-    if { [string match $gaHistogramData(threshMode) linear] } { 
+    if { [string match $gaHistogramData(threshMode) linear-opaque] ||
+	 [string match $gaHistogramData(threshMode) linear-blend] } { 
 	set state disabled 
     } elseif { [string match $gaHistogramData(threshMode) piecewise] } { 
 	set state normal 
@@ -1443,7 +1453,8 @@ proc UpdateOverlayDlogInfo {} {
     $gaHistoWidget(fslope).ewEntry configure -state $state
 
     # If in a linear mode, delete the mid line.
-    if { [string match $gaHistogramData(threshMode) linear] } {     
+    if { [string match $gaHistogramData(threshMode) linear-opaque] ||
+	 [string match $gaHistogramData(threshMode) linear-blend] } {     
 	catch { 
 	    $gaHistoWidget(graph) marker delete mid negmid
 	}
