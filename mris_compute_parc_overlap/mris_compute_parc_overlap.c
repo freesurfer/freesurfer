@@ -32,8 +32,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/02 18:10:45 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/04/04 20:20:52 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -102,7 +102,7 @@ static void padWhite(char* str, int maxLen);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.10 2007/04/02 18:10:45 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.11 2007/04/04 20:20:52 nicks Exp $";
 static char *FREESURFER_HOME = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -1085,9 +1085,11 @@ static void usage(int exit_val)
                 "                           check x,y,z coords to surface\n"
                 "                           default: check x,y,x\n");
   fprintf(fout, "  --nocheck-label2-xyz     ditto for label2\n");
+  fprintf(fout, "  --nocheck-label-xyz      do not check label1 and label2\n");
   fprintf(fout, "  --use-label1-xyz         replace surface x,y,z coords\n"
                 "                           with those in label1 file\n");
   fprintf(fout, "  --use-label2-xyz         ditto for label2\n");
+  fprintf(fout, "  --use-label-xyz          use label1 and label2 coords\n");
   fprintf(fout, "  --version                version info\n");
   fprintf(fout, "  --help                   this usage info\n");
   fprintf(fout, "\nExample 1:\n");
