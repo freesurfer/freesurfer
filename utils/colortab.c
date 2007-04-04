@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/03 21:29:34 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/04/04 14:19:04 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1045,13 +1045,13 @@ int CTABfindDuplicateAnnotations(COLOR_TABLE *ct)
   {
     if (NULL != ct->entries[idx1])
     {
-      int annot1;
+      int annot1=0;
       CTABannotationAtIndex(ct,idx1,&annot1);
       for (idx2 = 0; idx2 < ct->nentries; idx2++)
       {
         if ((NULL != ct->entries[idx2]) && (idx1 != idx2))
         {
-          int annot2;
+          int annot2=0;
           CTABannotationAtIndex(ct,idx2,&annot2);
           if (annot1 == annot2)
           {
