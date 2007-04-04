@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/04/04 17:02:11 $
-##    $Revision: 1.141 $
+##    $Date: 2007/04/04 21:01:39 $
+##    $Revision: 1.142 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -150,7 +150,7 @@ set FunD_tRegistration(noneNeeded) 3
 
 # set some default histogram data
 set gaHistogramData(zoomed) 0
-set gaHistogramData(threshMode) linear
+set gaHistogramData(threshMode) linear-opaque
 set gaHistogramData(autoRange) 1
 set gaHistogramData(minXRange) -1
 set gaHistogramData(maxXRange) -1
@@ -1002,7 +1002,6 @@ proc DoConfigOverlayDisplayDlog {} {
         set cbwTruncate      $fwFlags.cbwTruncate
         set cbwInverse       $fwFlags.cbwInverse
         set cbwComplex       $fwFlags.cbwComplex
-        set cbwOpaque        $fwFlags.cbwOpaque
 
         frame $fwFlags -relief ridge -border 2
 
@@ -1022,17 +1021,11 @@ proc DoConfigOverlayDisplayDlog {} {
 	    -variable gaLinkedVars(complexvalflag) \
 	    -text "Complex" \
 	    -font [tkm_GetNormalFont]
-	checkbutton $cbwOpaque \
-	    -variable gaLinkedVars(fopaqueflag) \
-	    -text "Opaque" \
-	    -font [tkm_GetNormalFont] \
-	    -command {SendLinkedVarGroup overlay}
 
 	grid $lwOptions   -column 0 -row 0 -columnspan 3
 	grid $cbwTruncate -column 0 -row 1 -stick w
 	grid $cbwInverse  -column 1 -row 1 -stick w
 	grid $cbwComplex  -column 2 -row 1 -stick w
-	grid $cbwOpaque   -column 3 -row 1 -stick w
 
 	# create the histogram frame and subunits
 	frame $fwHisto -relief ridge -border 2
@@ -1068,7 +1061,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	$gaHistoWidget(graph) axis config x -rotate 90.0 -stepsize 5
 
 	# Bind the button pressing events to set the thresholds. In
-	# linear thresh mode, clicking min or max will calc a new
+	# the linear thresh modes, clicking min or max will calc a new
 	# linear threshold. In piecewise mode, clicking mid or max
 	# will update the slope. Only set the midpoint if we're
 	# in piecewise thresh mode.
@@ -1132,7 +1125,7 @@ proc DoConfigOverlayDisplayDlog {} {
 		    bell
 		}
 	    }
-	# Mid field isn't active in linear threshold mode.
+	# Mid field isn't active in the linear threshold modes.
 	tkm_MakeEntry $ewMid "Mid" gaLinkedVars(fmid) 6 \
 	    {
 		if { [regexp {^[-+]?([0-9]*\.[0-9]+|[0-9]+)$} \
@@ -1164,7 +1157,7 @@ proc DoConfigOverlayDisplayDlog {} {
 		    bell
 		}
 	    }
-	# Slope field isn't active in linear threshold mode.
+	# Slope field isn't active in the linear threshold modes.
 	tkm_MakeEntry $ewSlope "Slope" gaLinkedVars(fslope) 6 \
 	    {
 		if { [regexp {^[-+]?([0-9]*\.[0-9]+|[0-9]+)$} \
@@ -1227,11 +1220,18 @@ proc DoConfigOverlayDisplayDlog {} {
 	    -text "Ignore Zeroes in Histogram" \
 	    -font [tkm_GetNormalFont]
 
-
+	# Our threshMode selector. There are two linear modes, one
+	# opaque and one blended, and a piecewise mode. However, what
+	# we really control is two thresh-setting modes, linear and
+	# piecewise, and an opaque mode. So we create three options
+	# out of these, and when we test for the threshMode, we just
+	# look for the string linear, which is present in two modes,
+	# and every time we change here, we set the opaque flag mode.
 	tkm_MakeRadioButtons $fwThreshMode x "Threshold" \
 	    gaHistogramData(threshMode) {
-	    {text "Linear" linear {UpdateOverlayDlogInfo} "" }
-	    {text "Piecewise" piecewise {UpdateOverlayDlogInfo} "" }
+		{text "Linear" linear-blend {set gaLinkedVars(fopaqueflag) 0; SendLinkedVarGroup overlay; UpdateOverlayDlogInfo} "" }
+		{text "Linear opaque" linear-opaque {set gaLinkedVars(fopaqueflag) 1; SendLinkedVarGroup overlay; UpdateOverlayDlogInfo} "" }
+		{text "Piecewise" piecewise {set gaLinkedVars(fopaqueflag) 0; SendLinkedVarGroup overlay; UpdateOverlayDlogInfo} "" }
 	}
 
 	# Label frame for the x axis range.
@@ -1429,7 +1429,7 @@ proc UpdateOverlayDlogInfo {} {
 		-label "Condition (0-$nMaxCondition)"
     }
     
-    # If we're using the linear threshold mode, disable the fmid and
+    # If we're using a linear threshold mode, disable the fmid and
     # fslope fields. 
     set state normal
     if { [string match $gaHistogramData(threshMode) linear] } { 
@@ -1442,7 +1442,7 @@ proc UpdateOverlayDlogInfo {} {
     $gaHistoWidget(fslope).lwLabel configure -state $state
     $gaHistoWidget(fslope).ewEntry configure -state $state
 
-    # If in linear mode, delete the mid line.
+    # If in a linear mode, delete the mid line.
     if { [string match $gaHistogramData(threshMode) linear] } {     
 	catch { 
 	    $gaHistoWidget(graph) marker delete mid negmid
