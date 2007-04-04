@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/26 19:40:10 $
- *    $Revision: 1.307 $
+ *    $Date: 2007/04/04 20:19:06 $
+ *    $Revision: 1.308 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.307 $";
+char *VERSION = "$Revision: 1.308 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.307 2007/03/26 19:40:10 kteich Exp $",
+     "$Id: tkmedit.c,v 1.308 2007/04/04 20:19:06 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -2598,14 +2598,14 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   /* If we're scaling up, do it now. Re-allocate the selection volume too. */
   if ( bScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( gAnatomicalVolume[tkm_tVolumeType_Main] );
-    Volm_GetIdxToRASTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
-                               &gMRIIdxToAnaIdxTransform );
+    Volm_GetMRIIdxToAnaIdxTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
+				     &gMRIIdxToAnaIdxTransform );
     AllocateSelectionVolume();
 
     /* This changes when you resize the volume like that, so get it
        again. */
-    Volm_GetIdxToRASTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
-                               &gMRIIdxToAnaIdxTransform );
+    Volm_GetMRIIdxToAnaIdxTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
+				     &gMRIIdxToAnaIdxTransform );
 
   }
 
@@ -2635,8 +2635,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     }
     if ( bScaleUpVolume ) {
       Volm_SetMinVoxelSizeToOne( gAnatomicalVolume[tkm_tVolumeType_Aux] );
-      Volm_GetIdxToRASTransform( gAnatomicalVolume[tkm_tVolumeType_Aux],
-                                 &gMRIIdxToAnaIdxTransform );
+      Volm_GetMRIIdxToAnaIdxTransform( gAnatomicalVolume[tkm_tVolumeType_Aux],
+				       &gMRIIdxToAnaIdxTransform );
     }
   }
 
@@ -5889,7 +5889,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.307 2007/03/26 19:40:10 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.308 2007/04/04 20:19:06 kteich Exp $ $Name:  $\n"
     )
   );
 
@@ -8400,8 +8400,8 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
 
   if ( gbScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( newVolume );
-    Volm_GetIdxToRASTransform( newVolume,
-                               &gMRIIdxToAnaIdxTransform );
+    Volm_GetMRIIdxToAnaIdxTransform( newVolume,
+				     &gMRIIdxToAnaIdxTransform );
   }
 
   /* if the volume exists, get the brightness and contrast to restore
@@ -8501,9 +8501,9 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
       DebugAssertThrow( (MWin_tErr_NoErr == eWindow ) );
 
       /* get a ptr to the idx to ras transform */
-      DebugNote( ("Getting a pointer to the idx to RAS transform") );
-      Volm_GetIdxToRASTransform( gAnatomicalVolume[iType],
-                                 &gMRIIdxToAnaIdxTransform );
+      DebugNote( ("Getting a pointer to the MRI idx to ana idx transform") );
+      Volm_GetMRIIdxToAnaIdxTransform( gAnatomicalVolume[iType],
+				       &gMRIIdxToAnaIdxTransform );
       break;
     case tkm_tVolumeType_Aux:
       eWindow =  MWin_SetAuxVolume( gMeditWindow, -1,
@@ -12110,6 +12110,7 @@ tkm_tErr LoadHeadPts ( char* isHeadPtsFile,
     spTransformFileArg = NULL;
   }
 
+#if 0
   /* Get a transform going from RAS -> ana Idx for our client
      transform. This is ras->b from our Idx->RAS transform, so we need
      to get b->ras and invert it..*/
@@ -12122,6 +12123,16 @@ tkm_tErr LoadHeadPts ( char* isHeadPtsFile,
   RAStoAnaIdxTransform = MatrixInverse( anaIdxToRASTransform, NULL );
   DebugAssertThrowX( (NULL != RAStoAnaIdxTransform),
 		     eResult, tkm_tErr_ErrorAccessingTransform );
+#else
+
+  /* We want surface RAS -> ana Idx for our client transform, as the
+     head points are in surface RAS space. */
+  DebugNote( ("Getting surface RAS->anaIdx transform from volume") );
+  RAStoAnaIdxTransform = 
+    voxelFromSurfaceRAS_(gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues);
+  DebugAssertThrowX( (NULL != RAStoAnaIdxTransform),
+		     eResult, tkm_tErr_ErrorAccessingTransform );
+#endif
 
   /* Read the head points. */
   DebugNote( ("Creating head points list") );
