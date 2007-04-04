@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:  
  *    $Author: nommert $
- *    $Date: 2007/04/02 16:31:03 $
- *    $Revision: 1.59 $
+ *    $Date: 2007/04/04 21:48:41 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,11 +33,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nommert $
-// Revision Date  : $Date: 2007/04/02 16:31:03 $
-// Revision       : $Revision: 1.59 $
+// Revision Date  : $Date: 2007/04/04 21:48:41 $
+// Revision       : $Revision: 1.60 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.59 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.60 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -197,6 +197,7 @@ typedef struct STRIP_PARMS {
   MRI *mri_atlas_cerebellum;
   MRI *mri_atlas_cerebellumgw;
   GCA *gca;
+  TRANSFORM *transform;
 }
 STRIP_PARMS ;
 
@@ -249,10 +250,7 @@ typedef struct {
   int atlas;
   int validation;
   int verbose_mode;
-  int dark_iter;
-  
-  TRANSFORM *transform;
-  
+  int dark_iter;  
 }
 MRI_variables;
 
@@ -272,8 +270,7 @@ static void Error(char *string);
 static int get_option(int argc, char *argv[],STRIP_PARMS *parms) ;
 static STRIP_PARMS* init_parms(void);
 static MRI_variables* init_variables(MRI *mri_with_skull);
-MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
-                   STRIP_PARMS *parms, TRANSFORM *transform);
+MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull, STRIP_PARMS *parms);
 static void MRIVfree(MRI_variables *MRI_var);
 /*WATERSHED FUNCTIONS*/
 static int Watershed(STRIP_PARMS *parms,MRI_variables *MRI_var);
@@ -420,23 +417,33 @@ int (*myVoxelToWorld)(MRI *mri,
 ///////////////////////////////////////////////////////////////////
 
 void usageHelp() {
-  fprintf(stdout, "\nUsage: %s [options] input_file output_file (registration_file if -b, -w, -seedpt, or -ta)", Progname);
+  fprintf(stdout, "\nUsage: %s [options] input_file output_file", Progname);
   fprintf(stdout, "\noptions are:");
-  fprintf(stdout, "\n The four first options require the registration file (.lta) to the atlas (use mri_em_register to create it)");
-  fprintf(stdout, "\n-b                   : "
-          "use the basins merging using atlas information");
-  fprintf(stdout, "\n-w                   : "
-          "preweight the input image using atlas information");
-  fprintf(stdout, "\n-seedpt              : "
-          "determine seedpoints using atlas information");
-  fprintf(stdout, "\n-ta                  : "
-          "template deformation using atlas information");
+  
+  fprintf(stdout, "\n-brain_atlas  tr.lta : "
+  			"use the registration file (tr.lta) to take advantage of atlas information ");
+  fprintf(stdout, "\n                       "
+  			"The default parameters are : -w 0.97 -b 0.32 -h 10 -seedpt -ta "
+  		  "\n                       "
+		  	"You can use one of the five following flags to change these default parms :  ");
+  
+  fprintf(stdout, "\n-soft                : "
+          "Soft version - more conservative (-w 0.77 instead of 0.97");
+  fprintf(stdout, "\n-w weight            : "
+          "preweight the input image using atlas information (no_w = 1)");
+  fprintf(stdout, "\n-b proba_merging     : "
+          "use the basins merging using atlas information (no_b = 1)");
+  fprintf(stdout, "\n-no_seedpt           : "
+          "dont use (seedpoints using atlas information)");
+  fprintf(stdout, "\n-no_ta               : "
+          "dont use (template deformation using atlas information)");
+	  
+	  
   fprintf(stdout, "\n \n-atlas               : "
           "use the atlas information to correct the segmentation");
   fprintf(stdout, "\n-less                : shrink the surface");
   fprintf(stdout, "\n-more                : expand the surface");
   fprintf(stdout, "\n-wat                 : use only the watershed algorithm");
-  fprintf(stdout, "\n-w                   : pre-weight the intensity; no T1 analysis");
   fprintf(stdout, "\n-T1                  : specify T1 input volume");
   fprintf(stdout, "\n-noT1                : "
           "specify no T1 analysis.  Useful when running out of memory");
@@ -500,6 +507,19 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms) {
   if (!strcmp(option, "-help")) {
     usageHelp();
     exit(0);
+  } 
+   else if (!strcmp(option, "brain_atlas")) {
+    fprintf(stdout,"Mode:          Use the information of atlas (default : -w 0.97 -b 0.32 -h 10 -seedpt -ta)\n") ;
+    parms->transform = TransformRead(argv[2]) ;
+    if (!parms->transform)
+      Error("Cannot read the transform\n");
+    nargs=1;
+  } else if (!strcmp(option, "soft")) {
+      fprintf(stdout,"Mode:          Soft version with the informnation of the atlas (-w 0.77 instead of 0.97)\n") ;
+      if(parms->preweight)
+        Error("Double definition of the preweight\n");
+      parms->preweight=0.77;
+    nargs=0;
   } else if (!strcmp(option, "more")) {
     parms->skull_type=1;
     nargs = 0 ;
@@ -596,17 +616,17 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms) {
     parms->template_deformation=0;
     fprintf(stdout,"Mode:          Watershed algorithm only\n") ;
     nargs = 0 ;
-  } else if (!strcmp(option, "ta")) {
+  } else if (!strcmp(option, "no_ta")) {
     parms->Tregion=1;
-    fprintf(stdout,"Mode:          Template deformation region params\n") ;
+    fprintf(stdout,"Mode:          no (Template deformation region params)\n") ;
     nargs = 0 ;
   } else if (!strcmp(option, "atlas")) {
     parms->atlas=1;
     fprintf(stdout,"Mode:          Atlas analysis\n") ;
     nargs = 0 ;
-  } else if (!strcmp(option, "seedpt")) {
+  } else if (!strcmp(option, "no_seedpt")) {
     parms->seedprior=1;
-    fprintf(stdout,"Mode:          Seed points with atlas (2 in cbm)\n") ;
+    fprintf(stdout,"Mode:          no (Seed points with atlas (2 in cbm))\n") ;
     nargs = 0 ;
   } else if (!strcmp(option, "man")) {
     fprintf(stdout,"Mode:          Modification of the local parameters\n") ;
@@ -615,7 +635,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms) {
     parms->manual_TRANSITION_intensity=atoi(argv[3]);
     parms->manual_GM_intensity=atoi(argv[4]);
     nargs=3;
-  } else if (!strcmp(option, "keep")) {
+  }else if (!strcmp(option, "keep")) {
     parms->KeepEdits = 1;
     parms->PreEditVolName  = argv[2];
     parms->PostEditVolName = argv[3];
@@ -679,6 +699,8 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms) {
    case 'W':
       if (argc < 5)
         Error("\n-w option needs the value of the parameter pre-weight\n"); //0.8
+      if(parms->preweight)
+        Error("Double definition of the preweight\n");
       parms->preweight=atof(argv[2]);
       fprintf(stdout,"Mode:          Pre-Weight %f \n", parms->preweight) ;
       nargs=1;
@@ -743,14 +765,13 @@ void writeSurface(char *fname, MRI_variables *var, STRIP_PARMS *parms) {
 // main
 ////////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[]) {
-  char  *in_fname, *out_fname, *transform_fname=NULL;
-  int nargs, c, r ,s, use_atlas;
+  char  *in_fname, *out_fname;
+  int nargs, c, r ,s;
   MRI *mri_with_skull, *mri_input, *mri_without_skull=NULL, *mri_mask;
   MRI *PreEditVol=NULL, *PostEditVol=NULL, *mritmp=NULL;
   float preval, postval, outval;
   
   
-  TRANSFORM *transform = NULL;
   char gcafile[1000];
   int x, y, z, k;
   GCA_PRIOR *gcap;
@@ -761,7 +782,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.59 2007/04/02 16:31:03 nommert Exp $", "$Name:  $",
+   "$Id: mri_watershed.cpp,v 1.60 2007/04/04 21:48:41 nommert Exp $", "$Name:  $",
    cmdline);
 
   Progname=argv[0];
@@ -773,7 +794,7 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.59 2007/04/02 16:31:03 nommert Exp $", "$Name:  $");
+           "$Id: mri_watershed.cpp,v 1.60 2007/04/04 21:48:41 nommert Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -786,48 +807,23 @@ int main(int argc, char *argv[]) {
     argv += nargs ;
   }
 
-  if ( parms->seedprior || parms->preweight || parms->basinprior || parms->Tregion)
-    use_atlas = 1;
-  else
-    use_atlas = 0;
-
-  if (use_atlas){
-    if (argc<4) {
-      usageHelp();
-      exit(1);
-    };}
-  else{
-    if (argc<3) {
-      usageHelp();
-      exit(1);
-    };}
-  
-  
-
-  if (use_atlas){
-    in_fname = argv[argc-3];
-    out_fname = argv[argc-2];
-    transform_fname = argv[argc-1];
-  }
-  else{
-    in_fname = argv[argc-2];
-    out_fname = argv[argc-1];
+  if (argc<3) {
+    usageHelp();
+    exit(1);
   }
   
-  if (use_atlas)
-    fprintf(stdout,"\n*********************************************************"
-            "\nThe input file is %s"
-            "\nThe output file is %s"
-	    "\nThe registration file is %s"
-            "\nIf this is incorrect, please exit with CTL-C\n\n",
-            in_fname,out_fname, transform_fname);
-  else
-    fprintf(stdout,"\n*********************************************************"
-            "\nThe input file is %s"
-            "\nThe output file is %s"
-            "\nIf this is incorrect, please exit with CTL-C\n\n",
-            in_fname,out_fname);
+  in_fname = argv[argc-2];
+  out_fname = argv[argc-1];
   
+  
+  fprintf(stdout,"\n*********************************************************"
+          "\nThe input file is %s"
+          "\nThe output file is %s"
+          "\nIf this is incorrect, please exit with CTL-C\n\n",
+          in_fname,out_fname);
+  
+  if (( parms->Tregion || parms->seedprior ||parms->basinprior || parms->preweight ) && !parms->transform)
+    Error("One of the flag you're using need a registration file to be effective\n");
 
   /*************** PROG *********************/
  
@@ -843,14 +839,33 @@ int main(int argc, char *argv[]) {
   // readin input volume
   mri_with_skull = MRIread(in_fname) ;
   mri_input = MRIread(in_fname) ;
-  if (use_atlas)
-    transform = TransformRead(transform_fname) ;
   
   if (!mri_with_skull)
     Error("read failed\n");
   MRIaddCommandLine(mri_with_skull, cmdline) ;
   
-  if (use_atlas) {
+  if (parms->transform) {
+  
+  // Change default parameters when we use atlas information
+    if(parms->Tregion==0)
+      parms->Tregion=1;
+    else
+      parms->Tregion=0;
+    if(!parms->seedprior)
+      parms->seedprior=1;
+    else
+      parms->seedprior=0;
+    if(!parms->basinprior)
+      parms->basinprior=0.32;
+    if(!parms->preweight)
+      parms->preweight=0.97;
+    if(parms->hpf=25)
+      parms->hpf=10;
+    
+      
+    printf("%i  %f  %f  %f  %d ",  parms->Tregion, parms->seedprior, parms->basinprior, parms->preweight, parms->hpf);
+  
+  
     //Create an MRI atlas, with the probability to be inside the brain
     printf("Reading gca atlas\n");
     sprintf(gcafile,"/autofs/space/blade_004/users/nommert/dev/tntest/talairach_with_skull_new.gca");
@@ -883,7 +898,7 @@ int main(int argc, char *argv[]) {
  
   if (parms->preweight){
   printf("Weighting the input with atlas information\n");
-  MRI_weight_atlas(mri_with_skull, transform, parms );
+  MRI_weight_atlas(mri_with_skull, parms->transform, parms );
   }
   
   if (mriConformed(mri_with_skull) == 0) {
@@ -906,7 +921,7 @@ int main(int argc, char *argv[]) {
 
   /* Main routine */
   // mri_with_skull is UCHAR volume, mri_without_skull = NULL at this time
-  mri_without_skull=MRIstripSkull(mri_with_skull, mri_without_skull,parms, transform);
+  mri_without_skull=MRIstripSkull(mri_with_skull, mri_without_skull,parms);
   if (mri_without_skull == NULL) {
     printf("\n**********************************************************\n");
     printf("         MRIstripSkull failed.\n");
@@ -1165,8 +1180,7 @@ void MRI_weight_atlas(MRI *mri_with_skull, TRANSFORM *transform, STRIP_PARMS *pa
   Description: strip the skull from the input image
   ------------------------------------------------------*/
 
-MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
-                   STRIP_PARMS *parms, TRANSFORM *transform) {
+MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull, STRIP_PARMS *parms) {
   char fname[512];
   MRI_variables *MRI_var = NULL;
   MRI *mri_tp;
@@ -1189,7 +1203,6 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
   // mri_orig = mri_with_skull
   MRI_var=init_variables(mri_with_skull);
   MRI_var->verbose_mode=parms->surf_dbg;
-  MRI_var->transform = transform;
 
   // mri_src = mri_with_skull, mri_dst = mri_with_skull
   MRI_var->mri_src=mri_tp;
@@ -2348,7 +2361,7 @@ double DistanceToSeeds(int i,int j,int k,int seeds[100][3], int n){
    for (j=2;j<MRI_var->height-2;j++)
      for (i=2;i<MRI_var->width-2;i++) {
        vox = MRIvox(MRI_var->mri_src,i,j,k);
-       GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, MRI_var->transform, i, j, k, &xp, &yp, &zp);
+       GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, parms->transform, i, j, k, &xp, &yp, &zp);
        if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128) 
          if (MRIgetVoxVal(parms->mri_atlas_cerebellum, xp, yp, zp, 0)>0){
 	   mean+=vox;
@@ -2389,7 +2402,7 @@ double DistanceToSeeds(int i,int j,int k,int seeds[100][3], int n){
        for (i=2;i<MRI_var->width-2;i++) {
 	 if (n<2){
 	   vox = MRIvox(MRI_var->mri_src,i,j,k);
-	   GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, MRI_var->transform, i, j, k, &xp, &yp, &zp);
+	   GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, parms->transform, i, j, k, &xp, &yp, &zp);
 	   if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128    &&  DistanceToSeeds(i,j,k,seeds,n)>10) 
              if (vox <mean_cer+var_cer/2 && vox >mean_cer-var_cer/2 && MRIgetVoxVal(parms->mri_atlas_cerebellum, xp, yp, zp, 0)>0.9 ){
 	       seeds[n][0] = i;
@@ -2408,7 +2421,7 @@ double DistanceToSeeds(int i,int j,int k,int seeds[100][3], int n){
 	 if (n<number_seed){
 	   vox = MRIvox(MRI_var->mri_src,i,j,k);
 	     if (vox>=MRI_var->WM_MIN && vox<=MRI_var->WM_MAX && DistanceToSeeds(i,j,k,seeds,n)>40){
-	     GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, MRI_var->transform, i, j, k, &xp, &yp, &zp);
+	     GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, parms->transform, i, j, k, &xp, &yp, &zp);
 	     if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128) {
 	       if (MRIgetVoxVal(parms->mri_atlas_brain, xp, yp, zp, 0)>0.995){ 
 		 seeds[n][0] = i;
@@ -3072,7 +3085,7 @@ static int TRYMERGE(int i,int j, int k,MRI_variables *MRI_var) {
       else
         cell1=cell;
       if (cell->type){
-	GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, MRI_var->transform, i, j, k, &xp, &yp, &zp);
+	GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, parms->transform, i, j, k, &xp, &yp, &zp);
 	if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128)
   	  ((BasinCell*)cell1->next)->prior+=MRIgetVoxVal(parms->mri_atlas_brain, xp, yp, zp, 0);
       }
@@ -4353,7 +4366,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var) {
 
 int AtlasToRegion(int i, int j, int k,STRIP_PARMS *parms, MRI_variables *MRI_var){
   int xp, yp, zp, label;
-  GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, MRI_var->transform, i, j, k, &xp, &yp, &zp);
+  GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, parms->transform, i, j, k, &xp, &yp, &zp);
   if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128 ){
     label = (parms->gca)->priors[xp][yp][zp].labels[0];
     if (IS_CER(label))
