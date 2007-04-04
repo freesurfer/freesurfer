@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/23 02:49:10 $
- *    $Revision: 1.260 $
+ *    $Author: kteich $
+ *    $Date: 2007/04/04 17:01:46 $
+ *    $Revision: 1.261 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -506,8 +506,6 @@ int framenum = 0;
 long frame_xdim = 600;
 long frame_ydim = 600;
 int ilat = 0;  /* latency */
-
-int BlendActivation = 1;
 
 int sub_num ;
 #if 0
@@ -1548,6 +1546,7 @@ static int sclv_cur_timepoint = 0;
 static int sclv_cur_condition = 0;
 
 static double sclv_overlay_alpha = 1.0;
+static int sclv_opaque = 0;
 
 #define sclv_set_value(v,i,n) \
  switch((i)) { \
@@ -2165,10 +2164,6 @@ int  mai(int argc,char *argv[])
       nargs = 2 ;
       fmid = atof(argv[i+1]) ;
       fprintf(stderr, "setting fmid to %2.4f\n", fmid) ;
-    } else if (!stricmp(argv[i], "-noblend")) {
-      nargs = 1 ;
-      BlendActivation = 0;
-      fprintf(stderr, "turning off blending of activation\n");
     } else if (!stricmp(argv[i], "-foffset")) {
       nargs = 2 ;
       foffset = atof(argv[i+1]) ;
@@ -13255,14 +13250,13 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
 /*!
   \fn int get_color_vals()
   \brief Appears to set the RGB based only on the curv. The "val"
-    arg is immediately replaced with -foffset. Colors of the
+    arg is immediately offset with foffset. Colors of the
     overlay are controlled with sclv_apply_color_for_value().
 */
 static int get_color_vals(float val, float curv, int mode,
                GLubyte *pr, GLubyte *pg, GLubyte *pb) {
   short r,g,b;
   float f,fr,fg,fb,tmpoffset;
-  // extern double foffset;
 
   val -= foffset ;
 
@@ -14473,52 +14467,50 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
     if (f>=0) {
       /* rkt: changed this to make it match up with the tkmedit
          method. */
-#if 0
-      r = tmpoffset*
-          ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
-      g = tmpoffset*
-          ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fmid)?0:(f<fmid+0.5/fslope)?1*(f-fmid)*fslope:1);
-      b = tmpoffset*
-          ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0);
-#endif
-      or = tmpoffset *
-           ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      og = tmpoffset *
-           ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      ob = tmpoffset *
-           ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      r = or +
-          ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-      g = og +
-          ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-      b = ob;
-
+      if (sclv_opaque)
+	{
+	  /* If opaque, don't use blending at all. Min->mid is all
+	     red, and mid->max gets yellower. */
+	  r = ((f<min) ? tmpoffset : 1.0);
+	  g = ((f<min) ? tmpoffset : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+	  b = ((f<min) ? tmpoffset : 0);
+	}
+      else
+	{
+	  or = tmpoffset *
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  og = tmpoffset *
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  ob = tmpoffset *
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  r = or +
+	    ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+	  g = og +
+	    ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+	  b = ob;
+	}	  
     } else {
       f = -f;
-#if 0
-      b = tmpoffset*
-          ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
-      g = tmpoffset*
-          ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
-          ((f<fmid)?0:(f<fmid+0.5/fslope)?1*(f-fmid)*fslope:1);
-      r = tmpoffset*
-          ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0);
-#endif
-      or = tmpoffset *
-           ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      og = tmpoffset *
-           ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      ob = tmpoffset *
-           ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      b = ob +
-          ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-      g = og +
-          ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-      r = or;
-
+      if (sclv_opaque)
+	{
+	  b = ((f<min) ? tmpoffset : 1.0);
+	  g = ((f<min) ? tmpoffset : (f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+	  r = ((f<min) ? tmpoffset : 0);
+	}
+      else 
+	{
+	  or = tmpoffset *
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  og = tmpoffset *
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  ob = tmpoffset *
+	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+	  b = ob +
+	    ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+	  g = og +
+	    ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+	  r = or;
+	}
     }
     r = r*255;
     g = g*255;
@@ -17137,7 +17129,6 @@ print_help_tksurfer(void) {
   printf("-fmid <value>                : set the overlay threshold midpoint value\n");
   printf("-fthresh <value>             : set the overlay threshold minimum value\n");
   printf("-foffset <value>             : set the overlay threshold offset value\n");
-  printf("-noblend                     : do not blend activation with background\n");
   printf("-colscalebarflag <1|0>       : display color scale bar\n");
   printf("-colscaletext <1|0>          : display text in color scale bar\n");
   printf("-truncphaseflag <1|0>        : truncate the overlay display\n");
@@ -19108,7 +19099,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.260 2007/03/23 02:49:10 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.261 2007/04/04 17:01:46 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20007,6 +19998,8 @@ int main(int argc, char *argv[])   /* new main */
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"ignorezeroesinhistogramflag",
               (char *)&ignorezeroesinhistogramflag,
+              TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"fopaqueflag",(char *)&sclv_opaque,
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"labels_before_overlay_flag",
               (char *)&labels_before_overlay_flag,
@@ -23816,7 +23809,7 @@ int sclv_apply_color_for_value (float f, float opacity,
   float ftmp,c1,c2;
   float min, mid, max;
   float or, ob, og;
-  float br, bg, bb, ar, ag;
+  float br, bg, bb;
   float tmpoffset, f2, fr, fg, fb;
   // extern double fcurv; // sets curv thresh
 
@@ -23851,38 +23844,44 @@ int sclv_apply_color_for_value (float f, float opacity,
 
   if (colscale==HEAT_SCALE) {
     if (f>=0) {
-      /* the offset is a portion of the color that is 'blended'
-         into the functional color so that a func value right at
-         the threshold doesn't look black, but translucent. the
-         rest is a standard interpolated color scale. */
-      or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      ar = ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-      ag = ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-      if(BlendActivation){
-	r = or + ar;
-	g = og + ag;
-      }
-      else{
-	r = ar;
-	g = ag;
-      }
-      b = ob;
+      if (sclv_opaque)
+	{
+	  /* If opaque, don't use blending at all. Min->mid is all
+	     red, and mid->max gets yellower. */
+	  r = ((f<min) ? br : 1.0);
+	  g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+	  b = ((f<min) ? bb : 0);
+	}
+      else
+	{
+	  /* the offset is a portion of the color that is 'blended'
+	     into the functional color so that a func value right at
+	     the threshold doesn't look black, but translucent. the
+	     rest is a standard interpolated color scale. */
+	  or = br * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
+	  og = bg * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
+	  ob = bb * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
+	  r = or + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+	  g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+	  b = ob;
+	}
     } else {
       f = -f;
-      or = br *
-           ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      og = bg *
-           ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      ob = bb *
-           ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      b = ob +
-          ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-      g = og +
-          ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-      r = or;
-
+      if (sclv_opaque)
+	{
+	  b = ((f<min) ? bb : 1.0);
+	  g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+	  r = ((f<min) ? br : 0);
+	}
+      else 
+	{
+	  or = br * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
+	  og = bg * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
+	  ob = bb * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
+	  b = ob + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+	  g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+	  r = or;
+	}
     }
     r = r*255;
     g = g*255;
