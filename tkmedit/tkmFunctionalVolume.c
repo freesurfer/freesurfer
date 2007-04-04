@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/04 21:26:17 $
- *    $Revision: 1.53 $
+ *    $Date: 2007/04/04 21:55:23 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -155,6 +155,9 @@ FunV_tErr FunV_New ( tkmFunctionalVolumeRef* oppVolume,
   /* set flags to false */
   for ( nFlag = 0; nFlag < FunV_knNumDisplayFlags; nFlag++ )
     this->mabDisplayFlags[nFlag] = FALSE;
+
+  /* default flag values */
+  this->mabDisplayFlags[FunV_tDisplayFlag_Ol_Opaque] = TRUE;
 
   /* set functions */
   this->mpOverlayChangedFunction    = ipOverlayChangedFunction;
@@ -2144,6 +2147,7 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   float     mid     = 0;
   float     max     = 0;
   float     tmp     = 0;
+  int       bOpaque = this->mabDisplayFlags[FunV_tDisplayFlag_Ol_Opaque];
 
   /* set up values */
   f = (float)iValue;
@@ -2152,12 +2156,14 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   bg = iBaseColor->mfGreen;
   bb = iBaseColor->mfBlue;
 
+#if 0
   /* if we're opaque, use no background color */
   if ( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_Opaque] ) {
     br = 0;
     bg = 0;
     bb = 0;
   }
+#endif
 
   /*
     if( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_IgnoreThreshold] ) {
@@ -2222,22 +2228,45 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   /* calc the color */
   if ( f >= 0 ) {
 
-    /* the offset is a portion of the color that is 'blended' into the
-       functional color. the rest is a standard interpolated color scale. */
-    or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-    og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-    ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-    r = or + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-    g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-    b = ob;
+    if( bOpaque ) {
+
+      /* If opaque, don't use blending at all. Min->mid is all
+	 red, and mid->max gets yellower. */
+      r = ((f<min) ? br : 1.0);
+      g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+      b = ((f<min) ? bb : 0);
+ 
+    } else {
+
+      /* the offset is a portion of the color that is 'blended' into
+	 the functional color. the rest is a standard interpolated
+	 color scale. */
+      or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+      og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+      ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+      r = or + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+      g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+      b = ob;
+    }
+
   } else {
     f = -f;
-    or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-    og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-    ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-    b = ob + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-    g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-    r = or;
+
+    if( bOpaque ) {
+
+      b = ((f<min) ? bb : 1.0);
+      g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+      r = ((f<min) ? br : 0);
+
+    } else {
+
+      or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+      og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+      ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+      b = ob + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+      g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+      r = or;
+    }
   }
 
   /* cap values at 1 just in case */
