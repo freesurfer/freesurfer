@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.11 $
+ *    $Author: greve $
+ *    $Date: 2007/04/04 21:13:08 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,7 +51,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probe_ima.c,v 1.11 2006/12/29 02:09:08 nicks Exp $";
+static char vcid[] = "$Id: mri_probe_ima.c,v 1.12 2007/04/04 21:13:08 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probe_ima.c,v 1.11 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probe_ima.c,v 1.12 2007/04/04 21:13:08 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -215,7 +215,7 @@ int main(int argc, char **argv) {
         exit(1);
       }
 
-      sprintf(tmpstr,"%s.bshort",bstem);
+      sprintf(tmpstr,"%s_000.bshort",bstem);
       fp = fopen(tmpstr,"w");
       if (fp == NULL) {
         printf("ERROR: cannot open %s for writing\n",tmpstr);
@@ -224,7 +224,7 @@ int main(int argc, char **argv) {
       fwrite(pixeldata, sizeof(short), npixels, fp);
       fclose(fp);
 
-      sprintf(tmpstr,"%s.hdr",bstem);
+      sprintf(tmpstr,"%s_000.hdr",bstem);
       fp = fopen(tmpstr,"w");
       if (fp == NULL) {
         printf("ERROR: cannot open %s for writing\n",tmpstr);
@@ -314,6 +314,10 @@ static int parse_commandline(int argc, char **argv) {
       attrname = pargv[0];
       getattr = 1;
       nargsused = 1;
+    } else if (!strcmp(option, "--ob")) {
+      if (nargc < 1) argnerr(option,1);
+      bstem = pargv[0];
+      nargsused = 1;
     } else if (!strcmp(option, "--dictionary")) {
       DumpImaDictionary(stdout);
       exit(0);
@@ -375,8 +379,8 @@ static void print_usage(void) {
 #if 0
   fprintf(stdout, "   --view          : view the image  \n");
   fprintf(stdout, "   --o file        : dump binary pixel data into file\n");
-  fprintf(stdout, "   --ob stem       : dump binary pixel data into bshort\n");
 #endif
+  fprintf(stdout, "   --ob stem             : dump binary pixel data into bshort\n");
   fprintf(stdout, "   --help                : how to use this program \n");
   fprintf(stdout, "   --version             : print version and exit\n");
 
@@ -445,6 +449,10 @@ static void print_help(void) {
          "     bytes in the type, and the string length. If only the imafile is supplied,\n"
          "     the dictionary will be printed out with the value as a seventh column.\n"
          "\n"
+         "  --ob bstem\n"
+         "\n"
+         "     Save pixel data to bstem_000.bshort instead of img_000.bshort\n"
+         "\n"
          "DICTIONARY\n"
          "\n"
          "The dictionary is a list of character strings (keys) that describe an \n"
@@ -471,7 +479,7 @@ static void print_help(void) {
          "  patname   : patient name \n"
          "  patdob    : patient date of birth (YYYYMMDD)\n"
          "  patgender : patient gender\n"
-         "  pixeldata : stores pixel data as a 2D image in img.bshort\n"
+         "  pixeldata : stores pixel data as a 2D image in img_000.bshort\n"
          "\n"
          "AUTHOR\n"
          "\n"
