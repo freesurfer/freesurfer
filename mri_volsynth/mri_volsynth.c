@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/04 16:53:32 $
- *    $Revision: 1.26 $
+ *    $Date: 2007/04/04 16:56:37 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.26 2007/04/04 16:53:32 greve Exp $
+  $Id: mri_volsynth.c,v 1.27 2007/04/04 16:56:37 greve Exp $
 */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.26 2007/04/04 16:53:32 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.27 2007/04/04 16:56:37 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
   else if (strcmp(pdfname,"uniform")==0)
     mri = MRIdrand48(dim[0], dim[1], dim[2], dim[3], 0, 1, NULL);
   else if (strcmp(pdfname,"const")==0)
-    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 1, NULL);
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], ValueA, NULL);
   else if (strcmp(pdfname,"sphere")==0) {
     voxradius = sqrt( pow(dim[0]/2.0,2)+pow(dim[1]/2.0,2)+pow(dim[2]/2.0,2) )/2.0;
     printf("voxradius = %lf\n",voxradius);
@@ -559,7 +559,7 @@ static void print_help(void) {
   printf("Synthesizes a volume with the given geometry and pdf. Default pdf \n");
   printf("is gaussian (mean 0, std 1). If uniform is chosen, then the min\n");
   printf("is 0 and the max is 1. If const is chosen, then all voxels are set\n");
-  printf("to 1. If delta, the middle voxel is set to 1, the rest to 0 unless\n");
+  printf("to ValA. If delta, the middle voxel is set to 1, the rest to 0 unless\n");
   printf("the actual location is chosen with --delta-crsf. If sphere, then\n");
   printf("a spherical binary mask centered in the volume with radius half\n");
   printf("the field of view.\n");
