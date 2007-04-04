@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/04 20:19:06 $
- *    $Revision: 1.308 $
+ *    $Date: 2007/04/04 21:26:17 $
+ *    $Revision: 1.309 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.308 $";
+char *VERSION = "$Revision: 1.309 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.308 2007/04/04 20:19:06 kteich Exp $",
+     "$Id: tkmedit.c,v 1.309 2007/04/04 21:26:17 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1975,11 +1975,6 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
                             "file name of the data to use." );
           nCurrentArg ++;
         }
-
-      } else if ( MATCH( sArg, "-noblend" ) ) {
-
-	FunV_SetBlendActivation(FALSE);
-        nCurrentArg += 1;
 
       } else if ( MATCH( sArg, "-fthresh" ) ) {
 
@@ -5889,7 +5884,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.308 2007/04/04 20:19:06 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.309 2007/04/04 21:26:17 kteich Exp $ $Name:  $\n"
     )
   );
 
