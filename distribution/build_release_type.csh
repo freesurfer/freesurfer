@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.81 2007/03/06 23:01:42 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.82 2007/04/04 16:04:56 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -16,8 +16,8 @@ set RELEASE_TYPE=$1
 set STABLE_VER_NUM="v3.0.5"
 set STABLE_PUB_VER_NUM="v3.0.5"
 
-set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu kteich@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=(fsdev@nmr.mgh.harvard.edu)
+set SUCCESS_MAIL_LIST=(nicks kteich)
+set FAILURE_MAIL_LIST=(nicks kteich fischl greve dsjen)
 #set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
 
 set HOSTNAME=`hostname -s`
@@ -37,7 +37,7 @@ endif
 
 # on minerva, use gcc v4.1
 if ("$HOSTNAME" == "minerva") then
-  setenv PATH "/space/minerva/1/users/nicks/pkgs/gcc4.1/install/bin":"$PATH"
+#  setenv PATH "/space/minerva/1/users/nicks/pkgs/gcc4.1/install/bin":"$PATH"
 endif
 
 #
