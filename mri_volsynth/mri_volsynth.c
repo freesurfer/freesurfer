@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/04 16:56:37 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/04/05 02:59:06 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.27 2007/04/04 16:56:37 greve Exp $
+  $Id: mri_volsynth.c,v 1.28 2007/04/05 02:59:06 greve Exp $
 */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.27 2007/04/04 16:56:37 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.28 2007/04/05 02:59:06 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -270,6 +270,8 @@ int main(int argc, char **argv)
     }
   } else if (strcmp(pdfname,"boundingbox")==0) {
     printf("Setting bounding box \n");
+    if(mritemp == NULL)
+      mritemp = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
     mri = MRIsetBoundingBox(mritemp,&boundingbox,ValueA,ValueB);
     if(!mri) exit(1);
   } else {
