@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/29 01:10:40 $
- *    $Revision: 1.117 $
+ *    $Date: 2007/04/05 04:11:27 $
+ *    $Revision: 1.118 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,7 @@ USAGE: ./mri_glmfit
 
    --fwhm fwhm : smooth input by fwhm
    --var-fwhm fwhm : smooth variance by fwhm
+   --no-mask-smooth : do not mask when smoothing
 
    --mask maskfile : binary mask
    --label labelfile : use label as mask, surfaces only
@@ -493,7 +494,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.117 2007/03/29 01:10:40 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.118 2007/04/05 04:11:27 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -530,6 +531,7 @@ double FWHM=0;
 double SmoothLevel=0;
 double VarFWHM=0;
 double VarSmoothLevel=0;
+int UseMaskWithSmoothing = 1; 
 double ResFWHM;
 
 char voxdumpdir[1000];
@@ -1595,6 +1597,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--allowsubjrep"))
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if (!strcasecmp(option, "--qa")) useqa = 1;
+    else if (!strcasecmp(option, "--no-mask-smooth")) UseMaskWithSmoothing = 0;
     else if (!strcasecmp(option, "--asl")) useasl = 1;
     else if (!strcasecmp(option, "--asl-rev")){
       useasl = 1;
@@ -2305,6 +2308,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"user     %s\n",VERuser());
   fprintf(fp,"FixVertexAreaFlag = %d\n",MRISgetFixVertexAreaValue());
 
+  fprintf(fp,"UseMaskWithSmoothing     %d\n",UseMaskWithSmoothing);
   if (FWHM > 0) {
     fprintf(fp,"fwhm     %lf\n",FWHM);
     if (surf != NULL) fprintf(fp,"niters    %lf\n",SmoothLevel);
@@ -2344,19 +2348,29 @@ static void dump_options(FILE *fp) {
 static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel) {
   extern int DoSim;
   extern struct timeb  mytimer;
+  extern int UseMaskWithSmoothing;
   double gstd;
 
   if (surf == NULL) {
     gstd = SmthLevel/sqrt(log(256.0));
     if (!DoSim || debug || Gdiag_no > 0)
-      printf("  Volume Smoothing by FWHM=%lf, Gstd=%lf, t=%lf\n",SmthLevel,gstd,TimerStop(&mytimer)/1000.0);
-    MRImaskedGaussianSmooth(mri, mask, gstd, mri);
+      printf("  Volume Smoothing by FWHM=%lf, Gstd=%lf, t=%lf\n",
+	     SmthLevel,gstd,TimerStop(&mytimer)/1000.0);
+    if(UseMaskWithSmoothing)
+      MRImaskedGaussianSmooth(mri, mask, gstd, mri);
+    else
+      MRImaskedGaussianSmooth(mri, NULL, gstd, mri);
     if (!DoSim || debug || Gdiag_no > 0)
       printf("  Done Volume Smoothing t=%lf\n",TimerStop(&mytimer)/1000.0);
-  } else {
+  } 
+  else {
     if (!DoSim || debug || Gdiag_no > 0)
-      printf("  Surface Smoothing by %d iterations, t=%lf\n",(int)SmthLevel,TimerStop(&mytimer)/1000.0);
-    MRISsmoothMRI(surf, mri, SmthLevel, mask, mri);
+      printf("  Surface Smoothing by %d iterations, t=%lf\n",
+	     (int)SmthLevel,TimerStop(&mytimer)/1000.0);
+    if(UseMaskWithSmoothing)
+      MRISsmoothMRI(surf, mri, SmthLevel, mask, mri);
+    else
+      MRISsmoothMRI(surf, mri, SmthLevel, NULL, mri);
     if (!DoSim || debug || Gdiag_no > 0)
       printf("  Done Surface Smoothing t=%lf\n",TimerStop(&mytimer)/1000.0);
   }
