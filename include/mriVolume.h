@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:14 $
- *    $Revision: 1.38 $
+ *    $Author: kteich $
+ *    $Date: 2007/04/05 15:13:26 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -155,7 +155,7 @@ typedef struct
 
   Volm_tSampleType mSampleType;  /* How to sample the volume */
 
-  mriTransformRef    mIdxToRASTransform;           /* idx -> ras (by MRI) */
+  mriTransformRef    mMRIIdxToAnaIdxTransform; /* MRI -> ana (via scnr RAS) */
   mriTransformRef    mDisplayTransform;            /* buf -> index */
   mriTransformRef    mMNITalLtzToRealTalTransform; /* tal (z<0) -> real tal */
   mriTransformRef    mMNITalGtzToRealTalTransform; /* tal (z>0) -> real tal */
@@ -346,8 +346,8 @@ Volm_tErr Volm_ConvertSurfaceRASToMRIIdx  ( mriVolumeRef this,
     xVoxelRef    iSurfaceRAS,
     xVoxelRef    oMRIIdx );
 
-Volm_tErr Volm_GetIdxToRASTransform ( mriVolumeRef     this,
-                                      mriTransformRef* opTransform );
+Volm_tErr Volm_GetMRIIdxToAnaIdxTransform ( mriVolumeRef     this,
+					    mriTransformRef* opTransform );
 
 /* Generic flood algorithm. Starts at a user-supplied voxel and floods
    outwards, in 3D or inplane, and for every valid voxel, calls the
@@ -426,8 +426,8 @@ Volm_tErr Volm_Conform ( mriVolumeRef this );
 Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
                              MRI*        iMRI );
 
-/* Calculates this->mIdxToRASTransform baesd on resample method. */
-Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this );
+/* Calculates this->mMRIIdxToAnaIdxTransform baesd on resample method. */
+Volm_tErr Volm_CalculateMRIIdxToAnaIdx_ ( mriVolumeRef this );
 
 /* For the max values in an orientation. */
 Volm_tErr Volm_GetMaxValueAtMRIIdx_ ( mriVolumeRef     this,

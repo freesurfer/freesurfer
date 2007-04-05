@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.86 $
+ *    $Author: kteich $
+ *    $Date: 2007/04/05 15:13:18 $
+ *    $Revision: 1.87 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -88,7 +88,7 @@ Volm_tErr Volm_New ( mriVolumeRef* opVolume )
   this->mpMaxValuesY           = NULL;
   this->mpMaxValuesZ           = NULL;
   this->mSampleType            = Volm_tSampleType_Nearest;
-  this->mIdxToRASTransform     = NULL;
+  this->mMRIIdxToAnaIdxTransform     = NULL;
   this->mDisplayTransform      = NULL;
   this->mScannerTransform      = NULL;
   memset( this->msSubjectName, 0, sizeof( this->msSubjectName ) );
@@ -275,11 +275,11 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
                      eResult, Volm_tErr_CouldntCopyVolume );
 
   /* copy the transforms */
-  if ( NULL != this->mIdxToRASTransform )
+  if ( NULL != this->mMRIIdxToAnaIdxTransform )
   {
-    DebugNote( ("Copying index to RAS transform") );
-    eTransform = Trns_DeepClone( this->mIdxToRASTransform,
-                                 &(clone->mIdxToRASTransform) );
+    DebugNote( ("Copying MRI index to ana idx transform") );
+    eTransform = Trns_DeepClone( this->mMRIIdxToAnaIdxTransform,
+                                 &(clone->mMRIIdxToAnaIdxTransform) );
     DebugAssertThrowX( (Trns_tErr_NoErr == eTransform),
                        eResult, Volm_tErr_CouldntCopyTransform );
   }
@@ -598,7 +598,7 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   return eResult;
 }
 
-Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this )
+Volm_tErr Volm_CalculateMRIIdxToAnaIdx_ ( mriVolumeRef this )
 {
 
   Volm_tErr eResult           = Volm_tErr_NoErr;
@@ -606,18 +606,16 @@ Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this )
   MATRIX*   idxToRASTransform = NULL;
   MATRIX*   BtoRAS            = NULL;
 
-  DebugEnterFunction( ("Volm_CalculateIdxToRAS_( this=%p )", this) );
+  DebugEnterFunction( ("Volm_CalculateMRIIdxToAnaIdx_( this=%p )", this) );
 
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
 
-  /* This is a very strange function and should be rewritten. The
-     original intention was to have a matrix that went from A->B
-     index->RAS. But in reality, this function creates a matrix that
-     in which A is MRI Idx and B is conformed idx or Ana idx. The RAS
-     space is scanner RAS space. Then you can use A->RAS and RAS->A to
-     convert between scanner RAS and MRI idx, and B->RAS and RAS->B to
-     convert between scanner RAS and Ana Idx.
+  /* This function creates a matrix that in which A is MRI Idx and B
+     is conformed idx or Ana idx. The RAS space is scanner RAS
+     space. Then you can use A->RAS and RAS->A to convert between
+     scanner RAS and MRI idx, and B->RAS and RAS->B to convert between
+     scanner RAS and Ana Idx.
 
      Furthermore, this transform is never used in mriVolume.c, as we
      now use the MRIworldToVoxel etc functions. But this transform is
@@ -642,15 +640,15 @@ Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this )
   */
 
   /* Delete existing transform. */
-  if ( NULL != this->mIdxToRASTransform )
+  if ( NULL != this->mMRIIdxToAnaIdxTransform )
   {
-    DebugNote( ("Deleting existing idx to ras transform") );
-    Trns_Delete( &(this->mIdxToRASTransform) );
+    DebugNote( ("Deleting existing MRI idx to ana idx transform") );
+    Trns_Delete( &(this->mMRIIdxToAnaIdxTransform) );
   }
 
   /* Build the idxToRAS transform. */
-  DebugNote( ("Creating idx to ras transform") );
-  Trns_New( &this->mIdxToRASTransform );
+  DebugNote( ("Creating MRI idx to ana idx transform") );
+  Trns_New( &this->mMRIIdxToAnaIdxTransform );
 
   identity = MatrixIdentity( 4, NULL );
 
@@ -661,11 +659,11 @@ Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this )
   DebugAssertThrowX( (NULL != idxToRASTransform),
                      eResult, Volm_tErr_AllocationFailed );
   DebugNote( ("Copying idx to ras transform matrix into AtoRAS") );
-  Trns_CopyAtoRAS( this->mIdxToRASTransform, idxToRASTransform );
+  Trns_CopyAtoRAS( this->mMRIIdxToAnaIdxTransform, idxToRASTransform );
 
   /* ARSToBRAS is identity. */
   DebugNote( ("Copying identity matrix into ARAStoBRAS") );
-  Trns_CopyARAStoBRAS( this->mIdxToRASTransform, identity );
+  Trns_CopyARAStoBRAS( this->mMRIIdxToAnaIdxTransform, identity );
 
   /* BtoRAS = AtoRAS * m_resample */
   /*        = extract_i_to_r * m_resample */
@@ -673,7 +671,7 @@ Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this )
   /* This goes from Ana Idx or conformed index to scanner RAS. */
   DebugNote( ("Copying calc'd matrix into BtoRAS") );
   BtoRAS = MatrixMultiply(idxToRASTransform, this->m_resample, NULL);
-  Trns_CopyBtoRAS(this->mIdxToRASTransform, BtoRAS);
+  Trns_CopyBtoRAS(this->mMRIIdxToAnaIdxTransform, BtoRAS);
 
   DebugNote( ("Freeing BtoRAS tmp matrix") );
   MatrixFree(&BtoRAS);
@@ -1389,8 +1387,8 @@ Volm_tErr Volm_SetResampleMethod ( mriVolumeRef         this,
   }
 
 
-  /* Recalc the idxtoras transform. */
-  Volm_CalculateIdxToRAS_( this );
+  /* Recalc the mri idx to and idx transform. */
+  Volm_CalculateMRIIdxToAnaIdx_( this );
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -2285,14 +2283,14 @@ Volm_tErr Volm_ConvertSurfaceRASToMRIIdx ( mriVolumeRef this,
   return eResult;
 }
 
-Volm_tErr Volm_GetIdxToRASTransform ( mriVolumeRef     this,
-                                      mriTransformRef* opTransform )
+Volm_tErr Volm_GetMRIIdxToAnaIdxTransform ( mriVolumeRef     this,
+					    mriTransformRef* opTransform )
 {
 
   Volm_tErr eResult = Volm_tErr_NoErr;
 
-  DebugEnterFunction( ("Volm_GetIdxToRASTransform( this=%p, opTransform=%p )",
-                       this, opTransform) );
+  DebugEnterFunction( ("Volm_GetMRIIdxToAnaIdxTransform( this=%p, "
+		       "opTransform=%p )", this, opTransform) );
 
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
@@ -2303,11 +2301,11 @@ Volm_tErr Volm_GetIdxToRASTransform ( mriVolumeRef     this,
                      eResult, Volm_tErr_InvalidParamater );
 
   /* make sure we have the transform */
-  DebugAssertThrowX( (NULL != this->mIdxToRASTransform),
+  DebugAssertThrowX( (NULL != this->mMRIIdxToAnaIdxTransform),
                      eResult, Volm_tErr_IdxToRASTransformNotPresent );
 
   /* return a pointer to it */
-  *opTransform = this->mIdxToRASTransform;
+  *opTransform = this->mMRIIdxToAnaIdxTransform;
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
