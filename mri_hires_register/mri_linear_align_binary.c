@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.14 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/05 23:17:04 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,9 +33,9 @@
 // Nov. 9th ,2000
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:06 $
-// Revision       : $Revision: 1.14 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2007/04/05 23:17:04 $
+// Revision       : $Revision: 1.15 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -82,7 +82,7 @@ static int use_target_label = 1 ;
 
 static int write_snapshot(MRI *mri_target, MRI *mri_source,
                           MATRIX *m_vox_xform, MORPH_PARMS *parms,
-                          int fno, int conform, char *fname) ;
+                          int fno, int conform, char *fname, int nfilter) ;
 
 static double MAX_TRANS = 30 ;
 
@@ -193,7 +193,7 @@ main(int argc, char *argv[]) {
   char       **av, *source_fname, *target_fname, *out_fname, fname[STRLEN] ;
   int        ac, nargs, i ;
   MRI        *mri_target, *mri_source, *mri_tmp, *mri_dist_src = NULL,
-      *mri_dist_target = NULL ;
+      *mri_dist_target = NULL, *mri_whole_source, *mri_whole_target ;
   VOXEL_LIST *vl_target, *vl_source ;
   MRI_REGION  box ;
   struct timeb start ;
@@ -231,7 +231,7 @@ main(int argc, char *argv[]) {
   if (!mri_source)
     ErrorExit(ERROR_NOFILE, "%s: could not read source label volume %s",
               Progname, source_fname) ;
-
+  mri_whole_source = MRIcopy(mri_source, NULL) ; // to keep track of orig geom
 
   mri_orig_source = MRIcopy(mri_source, NULL) ;
   if (wm == 1)   // only doing white matter
@@ -295,6 +295,7 @@ main(int argc, char *argv[]) {
   if (!mri_target)
     ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s",
               Progname, target_fname) ;
+  mri_whole_target = MRIcopy(mri_target, NULL) ; // to keep track of orig geom
 
   if (wm == 1)   // only doing white matter
   {
@@ -346,7 +347,7 @@ main(int argc, char *argv[]) {
 
   if (wm || use_target_label)   // debugging
   {
-    mri_orig_source = mri_source ;
+    //    mri_orig_source = mri_source ;
   }
   if (pf_overlap == compute_distance_transform_sse) {
     printf("creating distance transforms...\n") ;
@@ -419,6 +420,7 @@ main(int argc, char *argv[]) {
     VLSTfree(&vl_source) ;
   }
 
+  m_L = ((LTA *)(transform->xform))->xforms[0].m_L ;
   printf("final vox2vox matrix:\n") ;
   MatrixPrint(stdout, m_L) ;
   {
@@ -453,7 +455,7 @@ main(int argc, char *argv[]) {
     MRIfree(&mri_aligned) ;
   }
   LTAvoxelToRasXform((LTA *)(transform->xform), mri_source, mri_target) ;
-  LTAsetVolGeom((LTA *)(transform->xform), mri_orig_source, mri_target) ;
+  LTAsetVolGeom((LTA *)(transform->xform), mri_whole_source, mri_whole_target);
   TransformWrite(transform, out_fname) ;
 
   msec = TimerStop(&start) ;
@@ -687,7 +689,7 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
       write_snapshot
       (mri_target,
        mri_orig_source,
-       m_vox_xform, parms, parms->start_t,conform,NULL);
+       m_vox_xform, parms, parms->start_t,conform,NULL, nfilter);
     }
     parms->start_t++ ;
   } else {
@@ -706,7 +708,7 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   MatrixPrint(stdout, m_vox_xform) ;
   if (Gdiag & DIAG_WRITE && parms->write_iterations > 0) {
     write_snapshot(mri_target, mri_orig_source,
-                   m_vox_xform, parms, parms->start_t,conform,NULL);
+                   m_vox_xform, parms, parms->start_t,conform,NULL,nfilter);
   }
   parms->start_t++ ;
 #define MIN_SCALES 3
@@ -740,7 +742,7 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
     if (parms->write_iterations != 0) {
       write_snapshot(mri_target, mri_orig_source,
                      ((LTA *)(transform->xform))->xforms[0].m_L,
-                     parms, parms->start_t+niter, conform, NULL) ;
+                     parms, parms->start_t+niter, conform, NULL, nfilter) ;
 
     }
     printf("Result so far: scale %2.3f: max overlap = %2.4f, "
@@ -1453,7 +1455,7 @@ powell_minimize(VOXEL_LIST *vl_target,
     printf("%3.3d: best alignment after powell: %2.3f (%d steps)\n",
            parms.start_t,fret, iter) ;
     write_snapshot(vl_target->mri, mri_orig_source,
-                   mat, &parms, parms.start_t++,conform,NULL);
+                   mat, &parms, parms.start_t++,conform,NULL, nfilter);
   } while (fret < fstart) ;
 
   free_matrix(xi, 1, NPARMS, 1, NPARMS) ;
@@ -1516,7 +1518,7 @@ powell_minimize_rigid(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
          parms.start_t,fret, iter,
          DEGREES(p[1]), DEGREES(p[2]), DEGREES(p[3]), p[4], p[5], p[6]) ;
   write_snapshot(vl_target->mri, vl_source->mri,
-                 mat, &parms, parms.start_t++,1,NULL);
+                 mat, &parms, parms.start_t++,1,NULL, nfilter);
   Gdiag = diag ;
   do {
     for (r = 1 ; r <= NPARMS_RIGID ; r++) {
@@ -1539,7 +1541,7 @@ powell_minimize_rigid(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, MATRIX *mat)
            parms.start_t,fret, iter,
            DEGREES(p[1]), DEGREES(p[2]), DEGREES(p[3]), p[4], p[5], p[6]) ;
     write_snapshot(vl_target->mri, vl_source->mri,
-                   mat, &parms, parms.start_t++,1,NULL);
+                   mat, &parms, parms.start_t++,1,NULL, nfilter);
   } while (fret < fstart) ;
 
   free_matrix(xi, 1, NPARMS_RIGID, 1, NPARMS_RIGID) ;
@@ -1568,10 +1570,11 @@ compute_powell_rigid_sse(float *p) {
 
 static int
 write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
-               MORPH_PARMS *parms, int fno, int conform, char *in_fname) {
+               MORPH_PARMS *parms, int fno, int conform, char *in_fname, int nfilter) {
   MRI *mri_aligned ;
   char fname[STRLEN] ;
   LTA  *lta ;
+  int  i ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     printf("source->target vox->vox transform:\n") ;
@@ -1590,6 +1593,14 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
     // (mri_source_intensity, mri_target, m_vox_xform) ;
     mri_aligned = MRITransformedCenteredMatrix
                   (mri_source, mri_target, m_vox_xform) ;
+  }
+
+  for (i = 1 ; i <= nfilter ; i++) 
+  {
+    MRI *mri_filtered ;
+
+    mri_filtered = MRImodeFilter(mri_aligned, NULL, i) ;
+    MRIfree(&mri_aligned) ; mri_aligned = mri_filtered ;
   }
   if (in_fname)
     sprintf(fname, "%s_%s", parms->base_name, in_fname) ;
