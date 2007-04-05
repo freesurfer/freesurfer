@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:  
  *    $Author: nommert $
- *    $Date: 2007/04/04 21:48:41 $
- *    $Revision: 1.60 $
+ *    $Date: 2007/04/05 14:20:13 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,11 +33,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nommert $
-// Revision Date  : $Date: 2007/04/04 21:48:41 $
-// Revision       : $Revision: 1.60 $
+// Revision Date  : $Date: 2007/04/05 14:20:13 $
+// Revision       : $Revision: 1.61 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.60 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.61 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -782,7 +782,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.60 2007/04/04 21:48:41 nommert Exp $", "$Name:  $",
+   "$Id: mri_watershed.cpp,v 1.61 2007/04/05 14:20:13 nommert Exp $", "$Name:  $",
    cmdline);
 
   Progname=argv[0];
@@ -794,7 +794,7 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.60 2007/04/04 21:48:41 nommert Exp $", "$Name:  $");
+           "$Id: mri_watershed.cpp,v 1.61 2007/04/05 14:20:13 nommert Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -859,13 +859,10 @@ int main(int argc, char *argv[]) {
       parms->basinprior=0.32;
     if(!parms->preweight)
       parms->preweight=0.97;
-    if(parms->hpf=25)
+    if(parms->hpf==25)
       parms->hpf=10;
     
-      
-    printf("%i  %f  %f  %f  %d ",  parms->Tregion, parms->seedprior, parms->basinprior, parms->preweight, parms->hpf);
-  
-  
+#define DIST_MODE 1  
     //Create an MRI atlas, with the probability to be inside the brain
     printf("Reading gca atlas\n");
     sprintf(gcafile,"/autofs/space/blade_004/users/nommert/dev/tntest/talairach_with_skull_new.gca");
