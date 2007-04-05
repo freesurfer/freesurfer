@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/03 23:27:24 $
- *    $Revision: 1.75 $
+ *    $Date: 2007/04/05 19:33:52 $
+ *    $Revision: 1.76 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 #ifndef lint
 static char vcid[] =
-  "$Id: tkregister2.c,v 1.75 2007/04/03 23:27:24 greve Exp $";
+  "$Id: tkregister2.c,v 1.76 2007/04/05 19:33:52 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -946,7 +946,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nofstarg"))  fstarg = 0;
     else if (!strcasecmp(option, "--nofix"))     fixtkreg = 0;
     else if (!strcasecmp(option, "--fixonly"))   fixonly = 1;
-    else if (!strcasecmp(option, "--inorm"))    use_inorm = 1;
+    else if (!strcasecmp(option, "--inorm"))     use_inorm = 1;
+    else if (!strcasecmp(option, "--no-inorm"))  use_inorm = 0;
     else if (!strcasecmp(option, "--regheader")) mkheaderreg = 1;
     else if (!strcasecmp(option, "--identity"))  identityreg = 1;
     else if (!strcasecmp(option, "--noedit"))    noedit = 1;
@@ -1015,6 +1016,7 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--movbright")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fscale_2);
+      use_inorm = 0;
       nargsused = 1;
     } else if (!strcmp(option, "--movscale")) {
       if (nargc < 1) argnerr(option,1);
@@ -1177,13 +1179,16 @@ static void print_usage(void) {
   printf("\n");
   printf("   --help : usage and documentation\n");
   printf("\n");
+  printf("   --mov  movable volume  <fmt> \n");
   printf("   --targ target volume <fmt>\n");
   printf("   --fstarg : target is relative to subjectid/mri\n");
+  printf("   --reg  register.dat : input/output registration file\n");
+  printf("   --regheader : compute regstration from headers\n");
   printf("   --fsl-targ : use FSLDIR/etc/standard/avg152T1.img\n");
   printf("   --fsl-targ-lr : use FSLDIR/etc/standard/avg152T1_LR-marked.img\n");
-  printf("   --mov  movable volume  <fmt> \n");
   printf("   --fstal : set mov to be tal and reg to be tal xfm  \n");
   printf("   --movbright  f : brightness of movable volume\n");
+  printf("   --no-inorm  : turn off intensity normalization\n");
   printf("   --plane  orient  : startup view plane <cor>, sag, ax\n");
   printf("   --slice  sliceno : startup slice number\n");
   printf("   --volview volid  : startup with targ or mov\n");
@@ -1192,8 +1197,6 @@ static void print_usage(void) {
   printf("   --surf surfname : display surface as an overlay \n");
   printf("   --lh-only : only load/display left hemi \n");
   printf("   --rh-only : only load/display right hemi \n");
-  printf("   --reg  register.dat : input/output registration file\n");
-  printf("   --regheader : compute regstration from headers\n");
   printf("   --xfm file : MNI-style registration input matrix\n");
   printf("   --xfmout file : MNI-style registration output matrix\n");
   printf("   --fsl file : FSL-style registration input matrix\n");
@@ -4192,7 +4195,7 @@ char **argv;
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.75 2007/04/03 23:27:24 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.76 2007/04/05 19:33:52 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
