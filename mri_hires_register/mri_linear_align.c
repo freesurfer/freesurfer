@@ -1,15 +1,16 @@
 /**
  * @file  mri_linear_align.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief optimal linear alignment of two MR volumes
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * compute the optimal linear alignment between two MR volumes
+ * using various criteria. First does a global search, then powell.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.11 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/05 16:05:09 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,9 +34,9 @@
 // Nov. 9th ,2000
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:06 $
-// Revision       : $Revision: 1.11 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2007/04/05 16:05:09 $
+// Revision       : $Revision: 1.12 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -101,6 +102,10 @@ static double compute_likelihood(VOXEL_LIST *vl_target,
                                  VOXEL_LIST *vl_source,
                                  MATRIX *m_L,
                                  float intensity_scale) ;
+static double compute_gradient_match(VOXEL_LIST *vl_target,
+																		 VOXEL_LIST *vl_source,
+																		 MATRIX *m_L,
+																		 float intensity_scale) ;
 static double compute_trimmed_likelihood(VOXEL_LIST *vl_target,
     VOXEL_LIST *vl_source,
     MATRIX *m_L,
@@ -160,6 +165,7 @@ main(int argc, char *argv[]) {
   Progname = argv[0] ;
   ac = argc ;
   av = argv ;
+  pf_likelihood = compute_likelihood ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
@@ -180,7 +186,6 @@ main(int argc, char *argv[]) {
               Progname, source_fname) ;
   mri_orig_source = MRIcopy(mri_source, NULL) ;
 
-  pf_likelihood = compute_likelihood ;
 
   MRIboundingBox(mri_source, 0, &box) ;
   box.x -= PAD ;
@@ -230,62 +235,51 @@ main(int argc, char *argv[]) {
   MRIvalRange(mri_target, &fmin, &fmax) ;
   vl_target = VLSTcreate(mri_target,1,fmax+1,NULL,skip,0);
   vl_target->mri2 = mri_target ;
+	vl_target->mri_grad = MRIsobel(mri_target, NULL, NULL) ;
   for (i = 0 ; i < 1 ; i++) {
+		MRI *mri_grad = NULL;
+
     printf("------------- outer loop iteration %d ---------------\n",i) ;
     MRIvalRange(mri_target, &fmin, &fmax) ;
+		if ((mri_grad == NULL) && (pf_likelihood == compute_gradient_match))
+		{
+			mri_grad = MRIsobel(mri_source, NULL, NULL) ;
+		}
     vl_source = VLSTcreate(mri_source, 1, fmax+1, NULL, skip, 0) ;
     vl_source->mri2 = mri_source ;
+		vl_source->mri_grad = mri_grad ;
 
     transform = compute_optimal_transform(vl_target, vl_source, &parms, transform) ;
     VLSTfree(&vl_source) ;
     vl_source = VLSTcreate(mri_source, 1, fmax+1, NULL, skip/4, 0) ;
     vl_source->mri2 = mri_source ;
-    if (parms.rigid == 0) {
-      powell_minimize(vl_target, vl_source,
-                      ((LTA *)(transform->xform))->xforms[0].m_L) ;
-      pf_likelihood = compute_trimmed_likelihood ;
-      ignore_pct = 0.01 ;
-      printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
-      powell_minimize(vl_target, vl_source,
-                      ((LTA *)(transform->xform))->xforms[0].m_L) ;
-      ignore_pct = 0.05 ;
-      printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
-      powell_minimize(vl_target, vl_source,
-                      ((LTA *)(transform->xform))->xforms[0].m_L) ;
-#if 0
-      ignore_pct = 0.2 ;
-      printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
-      powell_minimize(vl_target, vl_source,
-                      ((LTA *)(transform->xform))->xforms[0].m_L) ;
-
-      ignore_pct = 0.5 ;
-      printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
-      powell_minimize(vl_target, vl_source,
-                      ((LTA *)(transform->xform))->xforms[0].m_L) ;
-#endif
-    } else {
-      powell_minimize_rigid(vl_target, vl_source,((LTA *)(transform->xform))->xforms[0].m_L) ;
-      pf_likelihood = compute_trimmed_likelihood ;
-      ignore_pct = 0.01 ;
-      printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
-      powell_minimize_rigid(vl_target, vl_source,
-                            ((LTA *)(transform->xform))->xforms[0].m_L) ;
-      ignore_pct = 0.05 ;
-      printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
-      powell_minimize_rigid(vl_target, vl_source,
-                            ((LTA *)(transform->xform))->xforms[0].m_L) ;
-#if 0
-      ignore_pct = 0.2 ;
-      printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
-      powell_minimize_rigid(vl_target, vl_source,
-                            ((LTA *)(transform->xform))->xforms[0].m_L) ;
-
-      ignore_pct = 0.5 ;
-      printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
-      powell_minimize_rigid(vl_target, vl_source,
-                            ((LTA *)(transform->xform))->xforms[0].m_L) ;
-#endif
-    }
+		vl_source->mri_grad = mri_grad ;
+		powell_minimize(vl_target, vl_source,
+										((LTA *)(transform->xform))->xforms[0].m_L) ;
+		if (pf_likelihood == compute_likelihood) // use  robust trimming to tweak
+		{
+			if (parms.rigid == 0) {
+				pf_likelihood = compute_trimmed_likelihood ;
+				ignore_pct = 0.01 ;
+				printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
+				powell_minimize(vl_target, vl_source,
+												((LTA *)(transform->xform))->xforms[0].m_L) ;
+				ignore_pct = 0.05 ;
+				printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
+				powell_minimize(vl_target, vl_source,
+												((LTA *)(transform->xform))->xforms[0].m_L) ;
+			} else {
+				pf_likelihood = compute_trimmed_likelihood ;
+				ignore_pct = 0.01 ;
+				printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
+				powell_minimize_rigid(vl_target, vl_source,
+															((LTA *)(transform->xform))->xforms[0].m_L) ;
+				ignore_pct = 0.05 ;
+				printf("setting ignore pct to %2.3f\n", ignore_pct*100) ;
+				powell_minimize_rigid(vl_target, vl_source,
+															((LTA *)(transform->xform))->xforms[0].m_L) ;
+			}
+		}
 
     VLSTfree(&vl_source) ;
     if (apply_transform) {
@@ -312,8 +306,8 @@ main(int argc, char *argv[]) {
 
   printf("final vox2vox matrix:\n") ;
   MatrixPrint(stdout, ((LTA *)(transform->xform))->xforms[0].m_L) ;
-  LTAsetVolGeom((LTA *)(transform->xform), mri_orig_source, mri_target) ;
   LTAvoxelToRasXform((LTA *)(transform->xform), mri_source, mri_target) ;
+  LTAsetVolGeom((LTA *)(transform->xform), mri_orig_source, mri_orig_target) ;
   if (apply_transform) {
     MRI *mri_aligned ;
     MATRIX *m_vox_xform ;
@@ -377,6 +371,9 @@ get_option(int argc, char *argv[]) {
     Gsz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("viewing voxel (%d, %d, %d)\n", Gsx, Gsy, Gsz) ;
+  } else if (!stricmp(option, "gradient")) {
+		printf("using gradient error functional\n") ;
+		pf_likelihood = compute_gradient_match ;
   } else if (!stricmp(option, "trans")) {
     MAX_TRANS = atof(argv[2]) ;
     nargs = 1 ;
@@ -456,8 +453,11 @@ compute_optimal_transform(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source,
   *MATRIX_RELT(m_origin, 4, 4) = 1 ;
   m_inv_origin = MatrixInverse(m_origin, NULL) ;
   if (transform == NULL) {
+    LTA *lta ;
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
-    m_vox_xform = ((LTA *)(transform->xform))->xforms[0].m_L ;
+    lta = (LTA *)(transform->xform);
+    m_vox_xform = lta->xforms[0].m_L ;
+    LTAsetVolGeom(lta, mri_source, mri_target) ;
 
     m_target_ras2vox = MRIgetRasToVoxelXform(mri_target) ;
     m_source_vox2ras = MRIgetVoxelToRasXform(mri_source) ;
@@ -600,7 +600,7 @@ compute_likelihood(VOXEL_LIST *vl_target,
   m_L_inv = MatrixInverse(m_L, NULL) ;
   if (m_L_inv == NULL)
     ErrorExit
-    (ERROR_BADPARM, "compute_distance_transform_sse: singular matrix.") ;
+    (ERROR_BADPARM, "compute_likelihood: singular matrix.") ;
 
   mri_target = vl_target->mri2 ;
   mri_source = vl_source->mri2 ;
@@ -1387,3 +1387,179 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
 
   return(NO_ERROR) ;
 }
+static double
+compute_gradient_match(VOXEL_LIST *vl_target,
+											 VOXEL_LIST *vl_source,
+											 MATRIX *m_L,
+											 float intensity_scale)
+{
+  int     x, y, z, width, height, depth,
+  hwidth, hheight, hdepth, i ;
+  VECTOR  *v1, *v2 ;
+  MRI     *mri_target, *mri_source, *mri_grad_source, *mri_grad_target ;
+  double  match ;
+  Real    num, xd, yd, zd, dxs, dys, dzs, dxt, dyt, dzt, dens,dx,dy,dz, 
+		      dent, ctheta, dot, norms, normt, den, e1x, e1y,e1z,e2x,e2y,e2z,
+          e3x, e3y, e3z;
+  MATRIX  *m_L_inv, *m_I, *m_basis ;
+
+  // find rotated basis for gradient vectors
+  m_I = MatrixIdentity(4,NULL);
+  *MATRIX_RELT(m_I, 4,1)= 1.0; 
+  *MATRIX_RELT(m_I, 4,2)= 1.0; 
+  *MATRIX_RELT(m_I, 4,3)= 1.0;
+  m_basis = MatrixMultiply(m_L,m_I,NULL) ;
+  e1x = *MATRIX_RELT(m_basis, 1,1);
+  e1y = *MATRIX_RELT(m_basis, 2,1);
+  e1z = *MATRIX_RELT(m_basis, 3,1);
+  e2x = *MATRIX_RELT(m_basis, 1,2);
+  e2y = *MATRIX_RELT(m_basis, 2,2);
+  e2z = *MATRIX_RELT(m_basis, 3,2);
+  e3x = *MATRIX_RELT(m_basis, 1,3);
+  e3y = *MATRIX_RELT(m_basis, 2,3);
+  e3z = *MATRIX_RELT(m_basis, 3,3);
+
+  MatrixFree(&m_I) ; MatrixFree(&m_basis);
+  m_L_inv = MatrixInverse(m_L, NULL) ;
+  if (m_L_inv == NULL)
+    ErrorExit
+    (ERROR_BADPARM, "compute_gradient_match: singular matrix.") ;
+
+  mri_target = vl_target->mri2 ;mri_source = vl_source->mri2 ;
+  mri_grad_target = vl_target->mri_grad ;
+  mri_grad_source = vl_source->mri_grad ;
+
+  v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
+  *MATRIX_RELT(v1, 4, 1) = 1.0 ; *MATRIX_RELT(v2, 4, 1) = 1.0 ;
+
+  width = mri_target->width ; height = mri_target->height;
+  depth = mri_target->depth;
+  hwidth = mri_source->width ;hheight = mri_source->height ;
+  hdepth = mri_source->depth;
+
+  /* go through both voxel lists and compute the match
+     map it to the source, and if the source hasn't been counted yet, count it.
+  */
+
+	den = num = dens = dent = 0 ;
+  for (i = 0 ; i < vl_source->nvox ; i++) {
+    x = vl_source->xi[i] ; y = vl_source->yi[i] ; z = vl_source->zi[i] ;
+		MRIsampleVolumeFrameType(mri_grad_source, x, y, z, 0,SAMPLE_NEAREST, &dxs);
+		MRIsampleVolumeFrameType(mri_grad_source, x, y, z, 1,SAMPLE_NEAREST, &dys);
+		MRIsampleVolumeFrameType(mri_grad_source, x, y, z, 2,SAMPLE_NEAREST, &dzs);
+    V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+    MatrixMultiply(m_L, v1, v2) ;
+    xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
+    if (xd < 0)
+      xd = 0 ;
+    else if (xd >= width-1)
+      xd = width-1 ;
+    if (yd < 0)
+      yd = 0 ;
+    else if (yd >= height-1)
+      yd = height-1 ;
+    if (zd < 0)
+      zd = 0 ;
+    else if (zd >= depth-1)
+      zd = depth-1 ;
+		MRIsampleVolumeFrameType(mri_grad_target,xd,yd,zd,0,SAMPLE_TRILINEAR,&dx);
+		MRIsampleVolumeFrameType(mri_grad_target,xd,yd,zd,1,SAMPLE_TRILINEAR,&dy);
+		MRIsampleVolumeFrameType(mri_grad_target,xd,yd,zd,2,SAMPLE_TRILINEAR,&dz);
+    dxt = dx*e1x + dy*e1y + dz*e1z ;
+    dyt = dx*e2x + dy*e2y + dz*e2z ;
+    dzt = dx*e3x + dy*e3y + dz*e3z ;
+		norms = sqrt(dxs*dxs+dys*dys+dzs*dzs) ;
+		normt = sqrt(dxt*dxt+dyt*dyt+dzt*dzt) ;
+		dot = dxs*dxt + dys*dyt + dzs*dzt ;
+		if (DZERO(dot))
+			ctheta = 0 ;
+		else
+			ctheta = dot / (fabs(norms)*fabs(normt)) ;
+#if 0
+		num += dot*ctheta ;
+		if (!finite(num) || !finite(dens) || !finite(dent))
+			DiagBreak() ;
+		dens += norms ; dent += normt ;
+		den += norms * normt ;
+		if (dot*ctheta > norms*normt)
+			DiagBreak() ;
+		if (dot*ctheta > sqrt(norms*normt))
+			DiagBreak() ;
+#else
+		num += norms*normt*(ctheta*ctheta) ;
+    if ((!DZERO(norms) || !DZERO(normt)) && DZERO(norms*normt))
+      den += MAX(norms,normt) ;
+		den += (norms*normt) ;
+#endif
+  }
+
+  /* now count target voxels that weren't mapped to in union */
+  for (i = 0 ; i < vl_target->nvox ; i++) {
+    x = vl_target->xi[i] ; y = vl_target->yi[i] ; z = vl_target->zi[i] ;
+    V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+    MatrixMultiply(m_L, v1, v2) ;
+		MRIsampleVolumeFrameType(mri_grad_target, x, y, z, 0,SAMPLE_NEAREST, &dx);
+		MRIsampleVolumeFrameType(mri_grad_target, x, y, z, 1,SAMPLE_NEAREST, &dy);
+		MRIsampleVolumeFrameType(mri_grad_target, x, y, z, 2,SAMPLE_NEAREST, &dz);
+    dxt = dx*e1x + dy*e1y + dz*e1z ;
+    dyt = dx*e2x + dy*e2y + dz*e2z ;
+    dzt = dx*e3x + dy*e3y + dz*e3z ;
+
+    xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
+    if (xd < 0)
+      xd = 0 ;
+    else if (xd >= hwidth-1)
+      xd = hwidth-1 ;
+    if (yd < 0)
+      yd = 0 ;
+    else if (yd >= hheight-1)
+      yd = hheight-1 ;
+    if (zd < 0)
+      zd = 0 ;
+    else if (zd >= hdepth-1)
+      zd = hdepth-1 ;
+		MRIsampleVolumeFrameType(mri_grad_source,xd,yd,zd,0,SAMPLE_TRILINEAR,&dxs);
+		MRIsampleVolumeFrameType(mri_grad_source,xd,yd,zd,1,SAMPLE_TRILINEAR,&dys);
+		MRIsampleVolumeFrameType(mri_grad_source,xd,yd,zd,2,SAMPLE_TRILINEAR,&dzs);
+		norms = sqrt(dxs*dxs+dys*dys+dzs*dzs) ;
+		normt = sqrt(dxt*dxt+dyt*dyt+dzt*dzt) ;
+		dot = dxs*dxt + dys*dyt + dzs*dzt ;
+		if (DZERO(dot))
+			ctheta = 0 ;
+		else
+			ctheta = dot / (fabs(norms)*fabs(normt)) ;
+#if 0
+		num += dot * ctheta ;
+		dens += norms ; dent += normt ;
+		if (!finite(num) || !finite(dens) || !finite(dent))
+			DiagBreak() ;
+		if (dot*ctheta > sqrt(norms*normt))
+			DiagBreak() ;
+		den += norms * normt ;
+		if (dot*ctheta > norms*normt)
+			DiagBreak() ;
+#else
+		num += norms*normt*(ctheta*ctheta) ;
+    if ((!DZERO(norms) || !DZERO(normt)) && DZERO(norms*normt))
+      den += MAX(norms,normt);
+		den += norms*normt;
+#endif
+	}
+
+#if 0
+	if (DZERO(dens) || DZERO(dent))
+		match = 0 ;
+	else
+		match = num / den ;
+#else
+	if (DZERO(den))
+		match = 0 ;
+	else
+		match = num / den ;
+#endif
+  VectorFree(&v1) ;
+  VectorFree(&v2) ;
+  MatrixFree(&m_L_inv) ;
+  return(match) ;
+}
+
