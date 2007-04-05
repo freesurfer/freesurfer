@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/05 02:59:06 $
- *    $Revision: 1.28 $
+ *    $Date: 2007/04/05 03:24:33 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.28 2007/04/05 02:59:06 greve Exp $
+  $Id: mri_volsynth.c,v 1.29 2007/04/05 03:24:33 greve Exp $
 */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.28 2007/04/05 02:59:06 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.29 2007/04/05 03:24:33 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -115,12 +115,13 @@ int NoOutput = 0;
 MRI_REGION boundingbox;
 double ValueA = 1;
 double ValueB = 0;
+double voxradius = -1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) 
 {
   int c,r,s;
-  double voxradius,val;
+  double val;
   FILE *fp;
 
   Progname = argv[0] ;
@@ -176,11 +177,12 @@ int main(int argc, char **argv)
   else if (strcmp(pdfname,"const")==0)
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], ValueA, NULL);
   else if (strcmp(pdfname,"sphere")==0) {
-    voxradius = sqrt( pow(dim[0]/2.0,2)+pow(dim[1]/2.0,2)+pow(dim[2]/2.0,2) )/2.0;
+    if(voxradius < 0)
+      voxradius = sqrt( pow(dim[0]/2.0,2)+pow(dim[1]/2.0,2)+pow(dim[2]/2.0,2) )/2.0;
     printf("voxradius = %lf\n",voxradius);
     mri = MRIsphereMask(dim[0], dim[1], dim[2], dim[3],
                         dim[0]/2.0, dim[1]/2.0, dim[2]/2.0,
-                        voxradius, 1, NULL);
+                        voxradius, ValueA, NULL);
   } else if (strcmp(pdfname,"delta")==0) {
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], delta_off_value, NULL);
     if (delta_crsf_speced == 0) {
@@ -468,6 +470,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&ValueB);
       nargsused = 1;
+    } else if (!strcmp(option, "--radius")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&voxradius);
+      nargsused = 1;
     } else if (!strcmp(option, "--dof-den") || !strcmp(option, "--dof")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&dendof);
@@ -549,6 +555,7 @@ static void print_usage(void) {
   printf("   --rescale : rescale z, t, F, or chi2 after smoothing\n");
   printf("   --val-a value : set ValA (default 1)\n");
   printf("   --val-b value : set ValB (default 0)\n");
+  printf("   --radius voxradius : raius (in voxels) for sphere\n");
   printf("\n");
   printf(" Other arguments\n");
   printf("   --fwhm fwhm_mm : smooth by FWHM mm\n");
