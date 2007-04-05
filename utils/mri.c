@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/01 15:14:25 $
- *    $Revision: 1.377 $
+ *    $Date: 2007/04/05 16:10:11 $
+ *    $Revision: 1.378 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.377 $";
+char *MRI_C_VERSION = "$Revision: 1.378 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -14525,6 +14525,7 @@ MRIcopyVolGeomFromMRI(MRI *mri, VOL_GEOM *vg)
   vg->y_s = mri->y_s ;
   vg->z_s = mri->z_s ;
   vg->c_s = mri->c_s ;
+  vg->valid = mri->ras_good_flag ;
   strcpy(vg->fname, mri->fname) ;
   return(NO_ERROR) ;
 }
