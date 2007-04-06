@@ -267,7 +267,8 @@ SUBDIRS=include \
 	$(DMRISUBDIRS) \
 	fsfast \
 	matlab \
-	scuba
+	scuba \
+	scuba2
 
 # build stamp and symlinks to necessary 3rd-party packages
 install-data-hook:

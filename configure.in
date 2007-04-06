@@ -2121,6 +2121,7 @@ AC_OUTPUT([Makefile
            rgb/Makefile
            scripts/Makefile
            scuba/Makefile
+           scuba2/Makefile
            spherical_stats/Makefile
            stat_normalize/Makefile
            stim/Makefile
