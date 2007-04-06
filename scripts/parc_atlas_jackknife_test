@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/03/29 18:57:26 $
-#    $Revision: 1.7 $
+#    $Date: 2007/04/06 18:22:41 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.7 2007/03/29 18:57:26 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.8 2007/04/06 18:22:41 nicks Exp $';
 
 # defaults:
 setenv SUBJECTS_DIR /space/tensor/20/users/buckner_cortical_atlas
@@ -279,7 +279,6 @@ foreach test_subj ($ALL_SUBJECTS)
         set sphere_reg="${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere.reg"
         set sphere_reg="${sphere_reg}${reg_append}"
         set cmd=(mris_register ${reg_dist} \
-            -curv -a 256 -parea 0.2 -dist 0.1 -tol 10 \
             ${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere \
             ${SUBJECTS_DIR}/average/${hemi}.${tif} \
             ${sphere_reg})
@@ -296,6 +295,7 @@ foreach test_subj ($ALL_SUBJECTS)
                 echo "${cmd} |& tee -a ${LF}" >> ${cmdf}
                 chmod a+x ${cmdf}
                 pbsubmit ${pbs_flags} -c "${cmdf}"
+                sleep 10
             else
                 ${cmd} |& tee -a ${LF} &
             endif
@@ -368,6 +368,7 @@ foreach test_subj ($ALL_SUBJECTS)
             if (-e ${atlas}) rm -f ${atlas}
             if ($PBS) then
                 pbsubmit ${pbs_flags} -c "${cmd}"
+                sleep 10
             else
                 ${cmd} &
             endif
@@ -405,6 +406,7 @@ foreach test_subj ($ALL_SUBJECTS)
             if (-e ${annot}) rm -f ${annot}
             if ($PBS) then
                 pbsubmit ${pbs_flags} -c "${cmd}"
+                sleep 10
             else
                 ${cmd} &
             endif
@@ -441,6 +443,7 @@ foreach test_subj ($ALL_SUBJECTS)
             if (-e ${outFile}) rm -f ${outFile}
             if ($PBS) then
                 pbsubmit ${pbs_flags} -c "${cmd} > ${outFile}"
+                sleep 10
             else
                 ${cmd} >& ${outFile} &
             endif
