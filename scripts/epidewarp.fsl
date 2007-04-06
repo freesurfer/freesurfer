@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/28 21:52:35 $
-#    $Revision: 1.24 $
+#    $Date: 2007/04/06 22:27:01 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.24 2007/03/28 21:52:35 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.25 2007/04/06 22:27:01 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -56,6 +56,7 @@ set vsmmag = ();
 set exfdw = ();
 set exf = ();
 set DoMagExfReg = 1;
+set UseComplex = 0;
 
 set tmpdir = ();
 set cleanup = 1;
