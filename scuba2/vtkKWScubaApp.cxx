@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/04/06 22:35:55 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@ const char* vtkKWScubaApp::sMainWindowWidthRegKey = "MainWindowWidth";
 const char* vtkKWScubaApp::sMainWindowHeightRegKey = "MainWindowHeight";
 
 vtkStandardNewMacro( vtkKWScubaApp );
-vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.2 $" );
 
 vtkKWScubaApp::vtkKWScubaApp () :
     mWindow( NULL ),
@@ -56,10 +56,21 @@ vtkKWScubaApp::vtkKWScubaApp () :
   // Init the icon loader with the app and load our icons.
   try {
     IconLoader::Initialize( this );
-    IconLoader::LoadIconsFromFile( "ScubaIcons.txt" );
+
+    try {
+      IconLoader::LoadIconsFromFile( "./ScubaIcons.txt" );
+    }
+    catch(...) {
+      char* pfnFreesurferDir = getenv( "FREESURFER_HOME" );
+      if( NULL != pfnFreesurferDir ) {
+	string fnIcons = 
+	  string(pfnFreesurferDir) + "/lib/resource/ScubaIcons.txt";
+	IconLoader::LoadIconsFromFile( fnIcons.c_str() );
+      }
+    }
   }
   catch( exception& e ) {
-    cerr << "Error loading icons: " << endl << e.what();
+    cerr << "Error loading icons: " << e.what() << endl;
   }
 
   // Create the main window.
