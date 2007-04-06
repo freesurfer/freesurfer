@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/06 05:53:19 $
- *    $Revision: 1.28 $
+ *    $Date: 2007/04/06 06:17:04 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,6 +63,7 @@
 #include "matfile.h"
 #include "randomfields.h"
 #include "mri2.h"
+#include "annotation.h"
 
 // setenv SUBJECTS_DIR /space/greve/1/users/greve/subjects
 // /autofs/space/greve_001/users/greve/dev/trunk/dngtester
@@ -107,6 +108,7 @@ MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters);
 /*----------------------------------------*/
 int main(int argc, char **argv) {
   int err;
+  int *nunits;
 
   subject = "tl-wm";
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
@@ -121,6 +123,11 @@ int main(int argc, char **argv) {
   if(err) exit(1);
   mri = GetMyMask(surf);
   MRISdilateMask(surf, mri, 28, 20);
+
+  nunits = (int *)calloc(surf->ct->nentries, sizeof(int)) ;
+  nunits[28] = 5;
+  MRISdivideAnnotation(surf, nunits) ;
+  MRISwriteAnnotation(surf, "lh.fbirn.annot") ;
 
   return(0);
 
