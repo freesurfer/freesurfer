@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/04 21:01:05 $
- *    $Revision: 1.263 $
+ *    $Date: 2007/04/06 21:36:50 $
+ *    $Revision: 1.264 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -1993,6 +1993,91 @@ int num_cached_tcl_commands = 0;
 int max_num_cached_tcl_commands = 0;
 void send_tcl_command (char* cmd);
 void send_cached_tcl_commands ();
+
+/* ---------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------- caption */
+
+/* The caption is a string that is drawn on the top of the window when
+   enabled. It can contain a mix of static text and substituted
+   values, such as "My brain" or "My brain: Vertex !V" where !V is
+   substituted with the vertex number that was clicked. Use the
+   function cptn_set_format_string() to set the string, and the codes
+   listed below. There is also a Tk interface with a list of codes. */
+
+/* Flag to control whether it's drawn or not. */
+int cptn_draw_flag = FALSE;
+
+/* Location of the caption rectangle and string. This puts it in the
+   top of the window. */
+#define CPTN_FONT GLUT_BITMAP_8_BY_13
+#define CPTN_LOC_RECTANGLE_LEFT -0.97
+#define CPTN_LOC_RECTANGLE_RIGHT 0.97
+#define CPTN_LOC_RECTANGLE_TOP 0.97
+#define CPTN_LOC_RECTANGLE_BOTTOM 0.9
+#define CPTN_LOC_CAPTION_X -0.95
+#define CPTN_LOC_CAPTION_Y 0.92
+
+/* The format string uses the codes listed below to stand in for
+   values that will be calcualted when update_labels() is run. The
+   value string is the working result of that, and is drawn to the
+   screen. */
+#define CPTN_STRING_LEN 1024
+char* cptn_format_string = NULL;
+char* cptn_value_string = NULL;
+
+#define CPTN_CODE_VERTEXINDEX "!V" /* vertex index */
+#define CPTN_CODE_DISTANCE "!D"	/* distance */
+#define CPTN_CODE_COORDS_RAS "!R" /* RAS coords */
+#define CPTN_CODE_COORDS_MNITAL "!M" /* mni tal coords */
+#define CPTN_CODE_COORDS_TAL "!T" /* tal coords */
+#define CPTN_CODE_COORDS_INDEX "!I" /* MRI index */
+#define CPTN_CODE_COORDS_NORMAL "!N" /* normal */
+#define CPTN_CODE_COORDS_SPHERE_XYZ "!sxyz" /* spherical XYZ */
+#define CPTN_CODE_COORDS_SPHERE_RT "!srt" /* spherical RT */
+#define CPTN_CODE_CURVATURE "!C" /* curvature */
+#define CPTN_CODE_FIELDSIGN "!F" /* fieldsign */
+#define CPTN_CODE_FIELD_PREFIX "!o"
+#define CPTN_CODE_FIELD0 "!o1"	/* overlay layer 1 */
+#define CPTN_CODE_FIELD1 "!o2"	/* overlay layer 2 */
+#define CPTN_CODE_FIELD2 "!o3"	/* overlay layer 3 */
+#define CPTN_CODE_FIELD3 "!o4"	/* overlay layer 4 */
+#define CPTN_CODE_FIELD4 "!o5"	/* overlay layer 5 */
+#define CPTN_CODE_FIELD5 "!o6"	/* overlay layer 6 */
+#define CPTN_CODE_FIELD6 "!o7"	/* overlay layer 7 */
+#define CPTN_CODE_FIELD7 "!o8" /* overlay layer 8 */
+#define CPTN_CODE_FIELD8 "!o9" /* overlay layer 9 */
+#define CPTN_CODE_AMPLITUDE "!amp" /* amplitude */
+#define CPTN_CODE_ANGLE "!amp" /* angle */
+#define CPTN_CODE_DEGREE "!deg" /* degree */
+#define CPTN_CODE_LABEL "!L"	/* label */
+#define CPTN_CODE_ANNOTATION "!A" /* annotation */
+#define CPTN_CODE_MRIVALUE "!mriv" /* MRI value */
+#define CPTN_CODE_PARCELLATION_NAME "!P" /* parcellation */
+
+/* Initializes strings. */
+int cptn_initialize ();
+
+/* Call to set the format string for the caption, using the codes
+   listed above. */
+int cptn_set_format_string ( char* in );
+
+/* Call to clear the value string. This is done because the actual
+   caption is built up in the update_labels() function as the values
+   are calculated. This will set the caption string to the format
+   string.*/
+int cptn_clear_value_string ();
+
+/* Fill out a value for a code using sprintf format string and
+   arguments. */
+int cptn_sprintf_for_code (const char* code, const char* format, ... );
+
+/* Draw the current caption to the window. */
+int cptn_draw ();
+
+/* Substitute a code in the caption string with an actual value. */
+int cptn_substitute_code_with_value (char* caption, int caption_size, 
+				     const char* code, char* value);
 
 /* ---------------------------------------------------------------------- */
 
@@ -5426,6 +5511,10 @@ select_vertex(short sx,short sy) {
     update_labels(LABELSET_CURSOR, vno, d);
   }
 
+  /* Redraw our caption if we need to. */
+  if (cptn_draw_flag)
+    cptn_draw();
+
   /* end rkt */
 }
 
@@ -5462,6 +5551,10 @@ select_vertex_by_vno (int vno) {
   if (vno>=0) {
     update_labels(LABELSET_CURSOR, vno, 0);
   }
+
+  /* Redraw our caption if we need to. */
+  if (cptn_draw_flag)
+    cptn_draw();
 }
 
 void
@@ -13000,6 +13093,7 @@ draw_surface(void)  /* marty: combined three versions */
   glFlush() ;
   if (scalebarflag)    draw_scalebar();
   if (colscalebarflag) draw_colscalebar();
+  if (cptn_draw_flag)  cptn_draw();
   glFlush() ;
 }
 
@@ -14401,7 +14495,7 @@ draw_colscalebar(void) {
 	      /* Figure out a good label position based. Here,
 		 strlen(label)*3.1 + strlen(label)*colscalebar_font_size*0.6 is
 		 a good rough estimate as to the width of the string. */
-	      glColor3f (1.0, 1.0, 1.0);
+	      glColor3f (1.0, 0.0, 1.0);
 	      if (colscalebarvertflag)
 		{
 		  glRasterPos3i (v[0] - (((float)strlen(label)*3.1) + 
@@ -17424,7 +17518,7 @@ int W_mark_contiguous_vertices_with_similar_curvature PARM;
 int W_rip_all_vertices_except_contiguous_upripped PARM;
 int W_func_calc_correlation_and_write_to_overlay PARM;
 int W_func_normalize PARM;
-
+int W_cptn_set_format_string PARM;
 /* end rkt */
 
 #define TkCreateMainWindow Tk_CreateMainWindow
@@ -19009,6 +19103,11 @@ ERR(1,"Wrong # args: func_normalize")
 func_normalize();
 WEND
 
+int W_cptn_set_format_string WBEGIN
+ERR(2,"Wrong # args: cptn_set_format_string string")
+cptn_set_format_string(argv[1]);
+WEND
+
 
 
 /* end rkt */
@@ -19099,7 +19198,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.263 2007/04/04 21:01:05 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.264 2007/04/06 21:36:50 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19128,6 +19227,7 @@ int main(int argc, char *argv[])   /* new main */
   labl_initialize();
   cncl_initialize();
   path_initialize();
+  cptn_initialize();
   /* end rkt */
 
   /* get tksurfer tcl startup script location from environment */
@@ -19910,6 +20010,9 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_CreateCommand(interp, "rip_all_vertices_except_contiguous_upripped",
                     (Tcl_CmdProc*) W_rip_all_vertices_except_contiguous_upripped, REND);
 
+  Tcl_CreateCommand(interp, "cptn_set_format_string",
+                    (Tcl_CmdProc*) W_cptn_set_format_string, REND);
+
   /* end rkt */
   /*=======================================================================*/
   /***** link global surfer BOOLEAN variables to tcl equivalents */
@@ -20003,6 +20106,8 @@ int main(int argc, char *argv[])   /* new main */
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"labels_before_overlay_flag",
               (char *)&labels_before_overlay_flag,
+              TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"cptn_draw_flag",(char *)&cptn_draw_flag,
               TCL_LINK_BOOLEAN);
   /* end rkt */
   /*=======================================================================*/
@@ -20168,6 +20273,8 @@ int main(int argc, char *argv[])   /* new main */
   /* begin rkt */
   Tcl_LinkVar(interp,"colortablename",
               (char *)&labl_color_table_name,TCL_LINK_STRING);
+  Tcl_LinkVar(interp,"captionformat",
+              (char *)&cptn_format_string,TCL_LINK_STRING);
   /* end rkt */
 
   /*=======================================================================*/
@@ -21151,17 +21258,33 @@ update_labels(int label_set, int vno, float dmin) {
   if ( vno < 0 || vno >= mris->nvertices )
     return;
 
+  /* If this is our cursor label set, we'll be updating captions
+     too. */
+  if (0 == label_set)
+    cptn_clear_value_string();
+
   /* get the vertex */
   v = &mris->vertices[vno];
 
-  /* send each label value */
+  /* send each label value. If this is the cursor label set, update
+     the caption, too. */
   sprintf(command, "UpdateLabel %d %d %d", label_set, LABEL_VERTEXINDEX, vno);
   send_tcl_command(command);
+  if (0 == label_set)
+    cptn_sprintf_for_code (CPTN_CODE_VERTEXINDEX, "%d", vno);
+
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_DISTANCE, dmin);
   send_tcl_command(command);
+  if (0 == label_set)
+    cptn_sprintf_for_code (CPTN_CODE_DISTANCE, "%f", dmin);
+
   sprintf(command,"UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
           label_set, LABEL_COORDS_RAS, v->origx, v->origy, v->origz);
   send_tcl_command(command);
+  if (0 == label_set)
+    cptn_sprintf_for_code (CPTN_CODE_COORDS_RAS, "(%.2f, %.2f, %.2f)", 
+			   v->origx, v->origy, v->origz);
+
   if (MRIflag && MRIloaded) {
     imnr = (int)((v->y-yy0)/st+0.5);
     i = (int)((zz1-v->z)/ps+0.5);
@@ -21169,9 +21292,15 @@ update_labels(int label_set, int vno, float dmin) {
     sprintf(command, "UpdateLabel %d %d \"(%d  %d  %d)\"",
             label_set, LABEL_COORDS_INDEX, imnr, i, j);
     send_tcl_command(command);
+    if (0 == label_set)
+      cptn_sprintf_for_code (CPTN_CODE_COORDS_INDEX, "(%d, %d, %d)", 
+			     imnr, i, j);
+
     sprintf(command, "UpdateLabel %d %d %d",
             label_set, LABEL_MRIVALUE, im[imnr][i][j]);
     send_tcl_command(command);
+    if (0 == label_set)
+      cptn_sprintf_for_code (CPTN_CODE_MRIVALUE, "%d", im[imnr][i][j]);
   }
   /* if we have a tal transform, compute the tal. */
   if (transform_loaded) {
@@ -21179,17 +21308,26 @@ update_labels(int label_set, int vno, float dmin) {
     sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
             label_set, LABEL_COORDS_TAL, x_tal, y_tal, z_tal );
     send_tcl_command(command);
+    if (0 == label_set)
+      cptn_sprintf_for_code (CPTN_CODE_COORDS_TAL, "(%.2f, %.2f, %.2f)",
+			     x_tal, y_tal, z_tal);
 
     conv_ras_to_mnital( v->origx, v->origy, v->origz,
                         &x_mni, &y_mni, &z_mni );
     sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
             label_set, LABEL_COORDS_MNITAL, x_mni, y_mni, z_mni );
     send_tcl_command(command);
+    if (0 == label_set)
+      cptn_sprintf_for_code (CPTN_CODE_COORDS_MNITAL, "(%.2f, %.2f, %.2f)",
+			     x_mni, y_mni, z_mni);
   }
 
   sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
           label_set, LABEL_COORDS_NORMAL, v->nx, v->ny, v->nz);
   send_tcl_command(command);
+  if (0 == label_set)
+    cptn_sprintf_for_code (CPTN_CODE_COORDS_NORMAL, "(%.2f, %.2f, %.2f)",
+			   v->nx, v->ny, v->nz);
 
   /* if a canon surface isn't loaded, make a name and see if it exists. */
   if (canonsurfloaded == FALSE && canonsurffailed == FALSE) {
@@ -21234,19 +21372,31 @@ update_labels(int label_set, int vno, float dmin) {
     sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
             label_set, LABEL_COORDS_SPHERE_XYZ, sx, sy, sz );
     send_tcl_command(command);
+    if (0 == label_set)
+      cptn_sprintf_for_code (CPTN_CODE_COORDS_SPHERE_XYZ, "(%.2f, %.2f, %.2f)",
+			     sx, sy, sz);
+     
     sprintf(command, "UpdateLabel %d %d \"(%2.1f  %2.1f)\"",
             label_set, LABEL_COORDS_SPHERE_RT,
             DEGREES(phi), DEGREES(theta) );
     send_tcl_command(command);
+    if (0 == label_set)
+      cptn_sprintf_for_code (CPTN_CODE_COORDS_SPHERE_RT, "(%2.1f, %2.1f)", 
+			     DEGREES(phi), DEGREES(theta));
   }
 
   sprintf(command, "UpdateLabel %d %d %f",
           label_set, LABEL_CURVATURE, v->curv);
   send_tcl_command(command);
+  if (0 == label_set)
+    cptn_sprintf_for_code (CPTN_CODE_CURVATURE, "%f", v->curv);
+     
   sprintf(command, "UpdateLabel %d %d %f",
           label_set, LABEL_FIELDSIGN, v->fieldsign);
   send_tcl_command(command);
-
+  if (0 == label_set)
+    cptn_sprintf_for_code (CPTN_CODE_FIELDSIGN, "%f", v->fieldsign);
+     
   /* overlay labels. draw the current one in stars. */
   for (field = 0; field < NUM_SCALAR_VALUES; field++ ) {
     sclv_get_value(v,field,&value);
@@ -21258,31 +21408,36 @@ update_labels(int label_set, int vno, float dmin) {
               LABEL_VAL + field, value);
     }
     send_tcl_command(command);
-  }
-#if 0
-  sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_VAL, v->val);
-  send_tcl_command(command);
-  sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_VAL2, v->val2);
-  send_tcl_command(command);
-  sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_VALBAK, v->valbak);
-  send_tcl_command(command);
-  sprintf(command, "UpdateLabel %d %d %f",
-          label_set, LABEL_VAL2BAK, v->val2bak);
-  send_tcl_command(command);
-  sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_VALSTAT, v->stat);
-#endif
 
-  send_tcl_command(command);
+    if (0 == label_set)
+      {    
+	/* Build the string for the code here be affixing the field
+	   number + 1 to the prefix, e.g. field 0 -> !o1 */
+	sprintf (command, "%s%d", CPTN_CODE_FIELD_PREFIX, field+1);
+	cptn_sprintf_for_code (command, "%f", value);
+      }
+  }
+
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_AMPLITUDE,
           hypot(v->val,v->val2));
   send_tcl_command(command);
+  if (0 == label_set)
+    cptn_sprintf_for_code (CPTN_CODE_AMPLITUDE, "%f", hypot(v->val,v->val2));
+     
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_ANGLE,
           (float)(atan2(v->val2,v->val)*180.0/M_PI));
   send_tcl_command(command);
+  if (0 == label_set)
+    cptn_sprintf_for_code (CPTN_CODE_ANGLE, "%f", 
+			   (float)(atan2(v->val2,v->val)*180.0/M_PI));
+     
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_DEGREE,
           (float)(atan2(v->val2,v->val)/(2*M_PI)));
   send_tcl_command(command);
-
+  if (0 == label_set)
+    cptn_sprintf_for_code (CPTN_CODE_DEGREE, "%f",
+			   (float)(atan2(v->val2,v->val)/(2*M_PI)));
+     
   /* send label update. */
   err = labl_find_label_by_vno( vno, 0, label_index_array,
                                 2, &num_labels_found );
@@ -21292,14 +21447,24 @@ update_labels(int label_set, int vno, float dmin) {
               label_set, LABEL_LABEL,
               labl_labels[label_index_array[0]].name,
               num_labels_found-1);
+      if (0 == label_set)
+	cptn_sprintf_for_code (CPTN_CODE_LABEL, "%s, %d others",
+			       labl_labels[label_index_array[0]].name,
+			       num_labels_found-1 );
+     
     } else {
       sprintf(command, "UpdateLabel %d %d \"%s\"", label_set, LABEL_LABEL,
               labl_labels[label_index_array[0]].name );
+      cptn_sprintf_for_code (CPTN_CODE_LABEL, "%s",
+			     labl_labels[label_index_array[0]].name);
     }
     send_tcl_command(command);
   } else {
     sprintf(command, "UpdateLabel %d %d \"None.\"", label_set, LABEL_LABEL );
     send_tcl_command(command);
+    if (0 == label_set)
+     cptn_sprintf_for_code (CPTN_CODE_LABEL, "None");
+    
   }
 
   //  if (annotationloaded)
@@ -21310,6 +21475,9 @@ update_labels(int label_set, int vno, float dmin) {
   sprintf(command, "UpdateLabel %d %d \"%d (%d  %d  %d)\"",
           label_set, LABEL_ANNOTATION, v->annotation, r, g, b);
   send_tcl_command(command);
+  if (0 == label_set)
+    cptn_sprintf_for_code (CPTN_CODE_ANNOTATION, "%d (%d, %d, %d)", 
+			   v->annotation, r, g, b);
   //    }
 
   if (parc_flag && v->val > 0 && parc_names[(int)nint(v->val)]) {
@@ -21317,6 +21485,9 @@ update_labels(int label_set, int vno, float dmin) {
             label_set, LABEL_PARCELLATION_NAME,
             parc_names[(int)nint(v->val)]);
     send_tcl_command(command);
+    if (0 == label_set)
+      cptn_sprintf_for_code (CPTN_CODE_PARCELLATION_NAME, "%s",
+			     parc_names[(int)nint(v->val)] );
   }
 }
 
@@ -26673,6 +26844,165 @@ void send_cached_tcl_commands () {
   }
 
   num_cached_tcl_commands = 0;
+}
+
+/* ---------------------------------------------------------------------- */
+
+int
+cptn_initialize () 
+{
+  cptn_format_string = (char*) calloc (CPTN_STRING_LEN, sizeof(char));
+  if (NULL == cptn_format_string)
+    ErrorReturn (ERROR_NO_MEMORY,
+		 (ERROR_NO_MEMORY, "cptn_initialize: Couldn't init format string"));
+  
+  cptn_value_string = (char*) calloc (CPTN_STRING_LEN, sizeof(char));
+  if (NULL == cptn_value_string)
+    ErrorReturn (ERROR_NO_MEMORY,
+		 (ERROR_NO_MEMORY, "cptn_initialize: Couldn't init value string"));
+  
+  /* Initial value. */
+  strncpy (cptn_format_string, "Vertex: !V", CPTN_STRING_LEN);
+
+  return ERROR_NONE;
+}
+
+int
+cptn_set_format_string ( char* in ) 
+{
+  if (NULL == in)
+    ErrorReturn (ERROR_BADPARM,
+		 (ERROR_BADPARM, "cptn_set_format_string: in was NULL"));
+
+  if (NULL == cptn_format_string)
+    ErrorReturn (ERROR_BADPARM,
+		 (ERROR_BADPARM, "cptn_set_format_string: format string was NULL"));
+
+  strncpy (cptn_format_string, in, CPTN_STRING_LEN);
+
+  return ERROR_NONE;
+}
+
+int cptn_clear_value_string ()
+{
+  if (NULL == cptn_value_string)
+    ErrorReturn (ERROR_BADPARM,
+		 (ERROR_BADPARM, "cptn_clear_value_string: value string was NULL"));
+
+  strncpy (cptn_value_string, cptn_format_string, CPTN_STRING_LEN);
+
+  return ERROR_NONE;
+}
+
+
+int
+cptn_sprintf_for_code (const char* code, const char* format, ... )
+{
+  va_list args;
+  char value[1024];
+
+  if (NULL == cptn_value_string)
+    ErrorReturn (ERROR_BADPARM,
+		 (ERROR_BADPARM, "cptn_sprintf_for_code: value string was NULL"));
+
+  /* sprintf the value into a string */
+  va_start (args, format);
+  vsnprintf (value, sizeof(value), format, args);
+  va_end (args);
+
+  /* Make the substitution in the caption. */
+  cptn_substitute_code_with_value (cptn_value_string,
+				   CPTN_STRING_LEN, code, value);
+
+  return ERROR_NONE;
+}
+
+int
+cptn_draw ()
+{
+  int cur_char;
+
+  if (NULL == cptn_value_string)
+    ErrorReturn (ERROR_BADPARM,
+		 (ERROR_BADPARM, "cptn_draw: value string was NULL"));
+
+  glPushMatrix();
+  glLoadIdentity();
+
+  /* Draw a rectangle under our caption, both to clear the old caption
+     and to provide a contrasting background. */
+  glNormal3f (0.0, 0.0, 1.0);
+  glColor3f (0.0, 0.0, 0.0);
+  glBegin (GL_QUADS);
+  glVertex3f (fov*sf * CPTN_LOC_RECTANGLE_LEFT,
+	      fov*sf * CPTN_LOC_RECTANGLE_BOTTOM, fov*sf * 10 );
+  glVertex3f (fov*sf * CPTN_LOC_RECTANGLE_RIGHT, 
+	      fov*sf * CPTN_LOC_RECTANGLE_BOTTOM, fov*sf * 10 );
+  glVertex3f (fov*sf * CPTN_LOC_RECTANGLE_RIGHT, 
+	      fov*sf * CPTN_LOC_RECTANGLE_TOP, fov*sf * 10 );
+  glVertex3f (fov*sf * CPTN_LOC_RECTANGLE_LEFT, 
+	      fov*sf * CPTN_LOC_RECTANGLE_TOP, fov*sf * 10 );
+  glEnd ();
+
+  /* Note that the color of bitmaps is taken from the raster color,
+     which is only set when glRasterPos is called. So set the color
+     first, then call glRasterPos. */
+  glNormal3f (0.0, 0.0, 1.0);
+  glColor3f (1.0, 1.0, 1.0);
+  glRasterPos3f (fov*sf * CPTN_LOC_CAPTION_X,
+		 fov*sf * CPTN_LOC_CAPTION_Y, fov*sf * 10 );
+
+  /* Draw the caption. */
+  for (cur_char = 0; cur_char < strlen(cptn_value_string); cur_char++) {
+    glutBitmapCharacter (CPTN_FONT, cptn_value_string[cur_char]);
+  }
+
+  glFinish();
+
+  glPopMatrix();
+
+  return ERROR_NONE;
+}
+
+int
+cptn_substitute_code_with_value (char* caption, int caption_size, 
+				 const char* code, char* value)
+{
+
+  char tmp[1024];
+  char* found;
+
+  if (strlen(code) < 2)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM,
+                 "cptn_subtitute_code_with_value: code invalid.\n"));
+ 
+  /* Copy the caption into a tmp string, find the code and replace it
+     with %s, then use sprintf to copy the value in there. Then copy
+     it back into the caption and back into the tmp string, and try to
+     find it again..*/
+  strncpy (tmp, caption, sizeof(tmp));
+
+  found = strstr (tmp, code);
+  while (NULL != found)
+    {
+      found[0] = '%'; /* So "Vertex !V" turns into "Vertex %s" */
+      found[1] = 's'; /* which we can use as a sprintf argument. */
+
+      /* If the code is longer than 2 chars, we need to copy the
+	 string back for each extra char to take up the space. */
+      if (strlen(code) > 2)
+	strcpy (&found[2], &found[strlen(code)]);
+
+      /* Sprintf the value in. */
+      snprintf (caption, caption_size, tmp, value);
+
+      /* Copy caption into tmp and find again. */
+      strncpy (tmp, caption, sizeof(tmp));
+      found = strstr (tmp, code );
+    }
+ 
+  return ERROR_NONE;
 }
 
 /* ---------------------------------------------------------------------- */
