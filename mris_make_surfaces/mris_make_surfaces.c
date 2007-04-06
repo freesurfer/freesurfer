@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/03/29 20:22:11 $
- *    $Revision: 1.90 $
+ *    $Date: 2007/04/06 20:26:38 $
+ *    $Revision: 1.91 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.90 2007/03/29 20:22:11 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.91 2007/04/06 20:26:38 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -74,7 +74,7 @@ static double  compute_brain_thresh(MRI_SURFACE *mris,
 static int fix_midline(MRI_SURFACE *mris,
                        MRI *mri_aseg,
                        MRI *mri_brain,
-                       char *hemi) ;
+                       char *hemi, int which) ;
 static MRI *smooth_contra_hemi(MRI *mri_filled,
                                MRI *mri_src,
                                MRI *mri_dst,
@@ -221,13 +221,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.90 2007/03/29 20:22:11 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.91 2007/04/06 20:26:38 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.90 2007/03/29 20:22:11 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.91 2007/04/06 20:26:38 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -645,7 +645,7 @@ main(int argc, char *argv[]) {
       parms.sigma = current_sigma ;
       thresh = mark_dura(mris, mri_ratio, mri_T1, current_sigma) ;
       if (mri_aseg)
-        fix_midline(mris, mri_aseg, mri_T1, hemi) ;
+        fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE) ;
       MRIScomputeBorderValues
       (mris, mri_T1, mri_smooth, max_gray,
        max_gray_at_csf_border, min_gray_at_csf_border,
@@ -740,7 +740,7 @@ main(int argc, char *argv[]) {
     parms.n_averages = n_averages ;
     MRISprintTessellationStats(mris, stderr) ;
     if (mri_aseg)
-      fix_midline(mris, mri_aseg, mri_T1, hemi) ;
+      fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE) ;
     MRIScomputeBorderValues(mris, mri_T1, mri_smooth,
                             MAX_WHITE, max_border_white, min_border_white,
                             min_gray_at_white_border,
@@ -796,6 +796,9 @@ main(int argc, char *argv[]) {
       break ;
   }
 
+  MRISunrip(mris) ;
+  if (mri_aseg)
+    fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF) ;
   if (!nowhite) {
     sprintf(fname,
             "%s/%s/surf/%s.%s%s%s",
@@ -1968,7 +1971,9 @@ smooth_contra_hemi(MRI *mri_filled,
 }
 
 static int
-fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) {
+fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
+            int which)
+{
   int      vno, label, contra_wm_label, nvox, total_vox, adjacent ;
   VERTEX   *v ;
   double   xv, yv, zv, val, xs, ys, zs, d ;
@@ -2035,21 +2040,21 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) {
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
       if ((label == contra_wm_label ||
-          label == Left_Lateral_Ventricle ||
-          label == Third_Ventricle ||
-          label == Right_Lateral_Ventricle ||
-          label == Left_Accumbens_area ||
-          label == Right_Accumbens_area ||
-          label == Left_Caudate ||
-          label == Right_Caudate ||
-          label == Left_Pallidum ||
-          label == Right_Thalamus_Proper ||
-          label == Left_Thalamus_Proper ||
-          label == Right_Pallidum ||
-          label == Third_Ventricle ||
-          label == Brain_Stem ||
-          label == Left_VentralDC ||
-          label == Right_VentralDC) ||
+           label == Left_Lateral_Ventricle ||
+           label == Third_Ventricle ||
+           label == Right_Lateral_Ventricle ||
+           label == Left_Accumbens_area ||
+           label == Right_Accumbens_area ||
+           label == Left_Caudate ||
+           label == Right_Caudate ||
+           label == Left_Pallidum ||
+           label == Right_Thalamus_Proper ||
+           label == Left_Thalamus_Proper ||
+           label == Right_Pallidum ||
+           label == Third_Ventricle ||
+           label == Brain_Stem ||
+           label == Left_VentralDC ||
+           label == Right_VentralDC) ||
           // putamen can be adjacent to insula in aseg
           ((label == Left_Putamen || label == Right_Putamen) &&
            ((mris->hemisphere == LEFT_HEMISPHERE && v->nx > 0) ||
@@ -2065,27 +2070,29 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi) {
         v->ripflag = 1 ;
       }
     }
-    
+
+
     /* now check for putamen superior to this point. If there's a lot
        of it there, then we are in basal forebrain and not cortex. */
-    for (adjacent = total_vox = nvox = 0, d = 0 ; 
-         d <= 10 ; d += 0.5, total_vox++) 
-    {
-      xs = v->x ; ys = v->y ;
-      zs = v->z + d ;  // sample superiorly
-      if (mris->useRealRAS)
-        MRIworldToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
-      else
-        MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
-      MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
-      label = nint(val) ;
-      if (label == Left_Putamen || label == Right_Putamen)
+    if (which == GRAY_WHITE)
+      for (adjacent = total_vox = nvox = 0, d = 0 ; 
+           d <= 10 ; d += 0.5, total_vox++) 
       {
-        nvox++ ;
-        if (d < 1.5)
-          adjacent = 1 ; // right next to putamen
+        xs = v->x ; ys = v->y ;
+        zs = v->z + d ;  // sample superiorly
+        if (mris->useRealRAS)
+          MRIworldToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+        else
+          MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+        MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+        label = nint(val) ;
+        if (label == Left_Putamen || label == Right_Putamen)
+        {
+          nvox++ ;
+          if (d < 1.5)
+            adjacent = 1 ; // right next to putamen
+        }
       }
-    }
     if (adjacent && (double)nvox/(double)total_vox > 0.5) // more than 50% putamen
     {
       if (v->nz < 0 &&
