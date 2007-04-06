@@ -224,7 +224,7 @@ ScubaLibInit.cxx:
 endif
 
 EXTRA_DIST=ScubaIcons.txt $(wildcard *.h) $(wildcard *.cxx) \
-	$(wildcard *.data)
+	$(wildcard *.data) ScubaIcons.txt
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
