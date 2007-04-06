@@ -1,0 +1,162 @@
+/**
+ * @file  vtkKWScubaLayer3DDTI.h
+ * @brief A vtkKWScubaLayer that displays DTI glyphs
+ *
+ */
+/*
+ * Original Author: Kevin Teich
+ * CVS Revision Info:
+ *    $Author: kteich $
+ *    $Date: 2007/04/06 22:23:05 $
+ *    $Revision: 1.1 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+#ifndef vtkKWScubaLayer3DDTI_h
+#define vtkKWScubaLayer3DDTI_h
+
+#include <list>
+#include "vtkKWScubaLayer.h"
+#include "ScubaInfoItem.h"
+
+//BTX
+class ScubaCollectionPropertiesDTI;
+//ETX
+class vtkFDTensorGlyph;
+class vtkImageClip;
+class vtkPolyDataMapper;
+class vtkTransform;
+class vtkImageReslice;
+class vtkImageResample;
+class vtkLODActor;
+class vtkActor;
+class vtkImageShrink3D;
+class vtkKWCheckButton;
+class vtkKWCheckButton;
+
+class vtkKWScubaLayer3DDTI : public vtkKWScubaLayer {
+
+public:
+
+  static vtkKWScubaLayer3DDTI* New ();
+  vtkTypeRevisionMacro( vtkKWScubaLayer3DDTI, vtkKWScubaLayer );
+
+  // Description:
+  // Sets the surface in the layer.
+  //BTX
+  void SetDTIProperties ( ScubaCollectionPropertiesDTI* const iProperties );
+  //ETX
+
+  // Description:
+  // Listens for:
+  // OpacityChanged - Changes the mesh's property's opacity.
+  // FastModeChanged - Dis/connects the decimated mapper to the actor.
+  // Layer3DInfoChanged - Changes the slice plane origin and normal,
+  // and adjusts the actor's position.  
+  //BTX
+  void DoListenToMessage ( std::string const isMessage,
+			   void* const iData );
+  //ETX
+
+  // Description:
+  // Load the surface and set up.
+  void Create ();
+
+  // Returns the bounds of the surface.
+  virtual void GetRASBounds ( float ioBounds[6] ) const;
+
+  // Description:
+  // Returns the shortest edge distance.
+  virtual void Get3DRASZIncrementHint ( float ioHint[3]) const;
+
+  // Description:
+  // Return our index and value info.
+  //BTX
+  void GetInfoItems ( float iRAS[3], std::list<ScubaInfoItem>& ilInfo ) const;
+  //ETX
+  
+  // Description:
+  // Changes whether the tensor on a plane is displayed.
+  void SetIsPlaneXVisible( int ibIsVisible );
+  void SetIsPlaneYVisible( int ibIsVisible );
+  void SetIsPlaneZVisible( int ibIsVisible );
+  
+  // Description:
+  // Callback for when displaying all tensors in the volume, rather than slice.
+  void SetIsShowingAll( int ibIsShowingAll );
+  
+
+protected:
+
+  vtkKWScubaLayer3DDTI ();
+  virtual ~vtkKWScubaLayer3DDTI ();
+
+  // Description:
+  // Populate a UI page with controls for this layer.
+  virtual void AddControls ( vtkKWWidget* iPanel );
+  virtual void RemoveControls ();
+  
+  void UpdatePlanes();
+  void UpdatePlanes( bool hasDetailUpdated );
+  
+  //BTX
+  ScubaCollectionPropertiesDTI const* mDTIProperties;
+
+  // Pipeline -------------------------------------------------------------
+  vtkImageReslice* mVolumeToRAS;
+  vtkImageReslice* mVolumeToRASSlice[ 3 ];
+  vtkImageShrink3D* mReducedVolume;
+  vtkImageClip* mClips[ 3 ];
+  vtkTransform* mSliceTransform[3];
+  vtkFDTensorGlyph* mGlyphs[ 3 ];
+  vtkPolyDataMapper* mPlaneMappers[ 3 ];
+  vtkLODActor* mPlaneActors[ 3 ];
+  vtkLODActor* mGlyphEdgeActors[ 3 ];
+  // ----------------------------------------------------------------------
+
+  float mWorldCenter[3];
+  float mWorldSize[3];
+
+  vtkKWCheckButton* mIsPlaneXVisbleButton;
+  vtkKWCheckButton* mIsPlaneYVisbleButton;
+  vtkKWCheckButton* mIsPlaneZVisbleButton;
+  
+  vtkKWCheckButton* mIsShowingAllButton;
+  
+  enum {
+    X_PLANE = 0,
+    Y_PLANE = 1,
+    Z_PLANE = 2
+  };
+  
+  //ETX
+
+private:
+
+  void UpdateGlyphScaling () ;
+
+  void UpdateDetail () ;
+  
+  int GetCurrentShrinkage ();
+  
+  void UpdateEdges ();
+  
+  bool mIsPlaneXVisible;
+  bool mIsPlaneYVisible;
+  bool mIsPlaneZVisible;
+  bool mIsShowingAll;
+};
+
+#endif
