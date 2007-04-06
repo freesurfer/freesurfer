@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/23 06:25:07 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/04/06 05:53:19 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -94,12 +94,36 @@ int err,n;
 struct timeb  mytimer;
 int msecFitTime;
 double a,b,zthresh,pthresh;
+char *SUBJECTS_DIR;
+char tmpstr[2000];
+MRIS *surf;
 
 MRI *fMRIvariance2(MRI *fmri, float DOF, int RmMean, MRI *var);
 void printrgb(void);
+MRI *GetMyMask(MRIS *surf);
+MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters);
+
 
 /*----------------------------------------*/
 int main(int argc, char **argv) {
+  int err;
+
+  subject = "tl-wm";
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
+  printf("\nReading lh white surface \n %s\n",tmpstr);
+  surf = MRISread(tmpstr);
+  if(!surf) exit(1);
+
+  sprintf(tmpstr,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
+  printf("Loading annotations from %s\n",tmpstr);
+  err = MRISreadAnnotation(surf, tmpstr);
+  if(err) exit(1);
+  mri = GetMyMask(surf);
+  MRISdilateMask(surf, mri, 28, 20);
+
+  return(0);
+
   printrgb();
   return(0);
 
@@ -353,4 +377,109 @@ void printrgb(void)
     printf("%6.4f %6.4f %6.4f %6.4f\n",f,r,g,b);
 
   }
+}
+/*-------------------------------------------------------------
+  MRI *GetMyMask(MRIS *surf) - creates a mask at the intersection
+  of SFG and CAcing, PAcing, and RAcing.
+  -------------------------------------------------------------*/
+MRI *GetMyMask(MRIS *surf)
+{
+  int vtxno, annot, annotid, nnbrs, nbrvtx, nthnbr, nbrannotid; 
+  VERTEX *vtx;
+  int superiorfrontal, posteriorcingulate;
+  int caudalanteriorcingulate, rostralanteriorcingulate;
+  MRI *mri;
+
+  superiorfrontal = 28;
+  posteriorcingulate = 23;
+  caudalanteriorcingulate = 2;
+  rostralanteriorcingulate = 26;
+
+  mri = MRIalloc(surf->nvertices, 1, 1, MRI_INT) ;
+
+  for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+
+    vtx = &(surf->vertices[vtxno]);
+    annot = surf->vertices[vtxno].annotation;
+    CTABfindAnnotation(surf->ct, annot, &annotid);
+
+    if(annotid != superiorfrontal && 
+       annotid != posteriorcingulate &&
+       annotid != caudalanteriorcingulate && 
+       annotid != rostralanteriorcingulate) continue;
+
+    nnbrs = surf->vertices[vtxno].vnum;
+    for (nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+      nbrvtx = surf->vertices[vtxno].v[nthnbr];
+      if (surf->vertices[nbrvtx].ripflag) continue; //skip ripped vtxs
+      annot = surf->vertices[nbrvtx].annotation;
+      CTABfindAnnotation(surf->ct, annot, &nbrannotid);
+      if(annotid == superiorfrontal && 
+	 (nbrannotid == posteriorcingulate ||
+	  nbrannotid == caudalanteriorcingulate ||
+	  nbrannotid == rostralanteriorcingulate) ){
+	MRIsetVoxVal(mri,vtxno,0,0,0,1);
+      }
+    }
+  }
+
+  MRIwrite(mri,"mymask.mgh");
+
+  return(mri);
+}
+
+MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters)
+{
+  int vtxno, annot, annotid, nnbrs, nbrvtxno, nthnbr, nthiter;
+  VERTEX *vtx;
+  MRI *mri1, *mri2;
+  float val;
+
+  //superiorfrontal = 28;
+
+  mri1 = MRIcopy(mask,NULL);
+  mri2 = MRIcopy(mask,NULL);
+
+  for(nthiter = 0; nthiter < niters; nthiter++){
+    printf("iter %d\n",nthiter);
+
+    for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+      vtx = &(surf->vertices[vtxno]);
+
+      if(annotidmask > -1){
+	annot = surf->vertices[vtxno].annotation;
+	CTABfindAnnotation(surf->ct, annot, &annotid);
+	if(annotid != annotidmask){
+	  MRIsetVoxVal(mri2,vtxno,0,0,0,0);
+	  continue;
+	}
+      }
+
+      val = MRIgetVoxVal(mri1,vtxno,0,0,0);
+
+      if(val){
+	MRIsetVoxVal(mri2,vtxno,0,0,0,1);
+	continue;
+      }
+      // If it gets here, the vtx is in the annot and has not been set 
+      nnbrs = surf->vertices[vtxno].vnum;
+      for (nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+	nbrvtxno = surf->vertices[vtxno].v[nthnbr];
+	if (surf->vertices[nbrvtxno].ripflag) continue; //skip ripped vtxs
+	val = MRIgetVoxVal(mri1,nbrvtxno,0,0,0);
+	if(val){
+	  MRIsetVoxVal(mri2,vtxno,0,0,0,1);
+	  continue;
+	}
+      }
+    }
+    MRIcopy(mri2,mri1);
+  
+  }
+
+  MRIfree(&mri2);
+
+  MRIwrite(mri1,"mymask2.mgh");
+
+  return(mri1);
 }
