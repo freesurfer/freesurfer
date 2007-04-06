@@ -150,6 +150,7 @@ MRISSUBDIRS=label_area \
 	tridec \
 	mris_shrinkwrap \
 	mris_density \
+	mris_fbirn_annot \
 	mris_fill \
 	mris_add_template \
 	mris_anatomical_stats \
