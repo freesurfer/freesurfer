@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:30 $
- *    $Revision: 1.16 $
+ *    $Author: greve $
+ *    $Date: 2007/04/06 06:11:52 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,7 @@
 #include "mrisurf.h"
 #include "label.h"
 #include "colortab.h"
+#include "diag.h"
 
 #define ANNOTATION_SRC
 #include "annotation.h"
@@ -369,3 +370,232 @@ int set_atable_from_ctable(COLOR_TABLE *pct)
 
   return(NO_ERROR) ;
 }
+int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) {
+  int   *done, vno, index, nadded, i, num, j, annot, new_annot ;
+  VERTEX *v ;
+  COLOR_TABLE *ct ;
+  int rgb_scale = 30 ; // need to pass as arg
+
+
+  MRIScomputeMetricProperties(mris) ;
+  MRIScomputeSecondFundamentalForm(mris) ;
+  done = (int *)calloc(mris->ct->nentries, sizeof(int)) ;
+  if (done == NULL)
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d index table",
+              Progname, mris->ct->nentries) ;
+
+  MRISclearMarks(mris) ;
+  MRISsetNeighborhoodSize(mris, 2) ;
+  for (nadded = vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag || v->annotation <= 0)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    CTABfindAnnotation(mris->ct, v->annotation, &index) ;
+    if (index <= 0 || done[index])  // don't do unknown (index = 0)
+      continue ;
+    if (index == Gdiag_no)
+      DiagBreak() ;
+#if 0
+    if (stricmp("postcentral", mris->ct->entries[index]->name))
+      continue ;
+#endif
+    num = MRISdivideAnnotationUnit(mris, v->annotation, nunits[index]) ;
+    nadded += num ;
+    done[index] = 1+num ;
+  }
+
+  printf("allocating new colortable with %d additional units...\n", nadded) ;
+  ct = CTABalloc(mris->ct->nentries+nadded) ;
+  index = mris->ct->nentries ;
+  for (i = 0 ; i < mris->ct->nentries ; i++) {
+    if (i == Gdiag_no)
+      DiagBreak() ;
+    *(ct->entries[i]) = *(mris->ct->entries[i]) ;
+    for (j = 1 ; j < done[i] ; j++) {
+      int offset, new_index, ri, gi, bi, found ;
+
+      *(ct->entries[index]) = *(mris->ct->entries[i]) ;
+      sprintf(ct->entries[index]->name, "%s_div%d", ct->entries[i]->name, j+1) ;
+      offset = j ;
+      found = 0 ;
+      do {
+        ri = (ct->entries[i]->ri+rgb_scale*offset) % 256 ;
+        gi = (ct->entries[i]->gi+rgb_scale*offset) % 256 ;
+        bi = (ct->entries[i]->bi+rgb_scale*offset) % 256 ;
+        CTABfindRGBi(ct, ri, gi, bi, &new_index) ;
+        if (new_index < 0)  // couldn't find this r,g,b set - can use it for new entry
+        {
+          ct->entries[index]->ri = ri ;
+          ct->entries[index]->gi = gi ;
+          ct->entries[index]->bi = bi ;
+
+          ct->entries[index]->rf = (float)ri/255.0f;
+          ct->entries[index]->gf = (float)gi/255.0f;
+          ct->entries[index]->bf = (float)bi/255.0f;
+          found = 1 ;
+
+          CTABannotationAtIndex(ct, i, &annot) ;
+          CTABannotationAtIndex(ct, index, &new_annot) ;
+          // translate old annotations to new ones
+          for (vno = 0 ; vno < mris->nvertices ; vno++) {
+            v = &mris->vertices[vno] ;
+            if (v->ripflag || v->marked != j || v->annotation != annot)
+              continue ;
+            v->annotation = new_annot ;
+          }
+        }
+        else {
+          offset++ ;
+          found = 0 ;
+        }
+      } while (!found) ;
+      index++ ;
+    }
+  }
+  CTABfree(&mris->ct) ;
+  mris->ct = ct ;
+  return(NO_ERROR) ;
+}
+
+/*
+  will split up parcellation units based on area and write the index of the
+  new unit into the marked field (marked=0->old annot, marked=1-> 1st new subdivision, etc..)
+  and will also put the continuous measure of how far along the eigendirection the
+  vertex is into v->curv (in [0 1]).
+
+  return the # of additional parcellation units that have been added
+*/
+int
+MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits) {
+  int    vno, num, min_vno ;
+  VERTEX *v, *vc ;
+  float  cx, cy, cz, dist, min_dist, evalues[3], u, w, dx, dy, dz,
+  min_dot, max_dot, e1x, e1y, e1z, dot, mx ;
+  MATRIX *m_obs, *m_obs_T, *m_cov, *m_eig ;
+
+
+  if (nunits < 2)
+    return(0);
+
+  // compute centroid of annotation
+  cx = cy = cz = 0 ;
+  for (num = vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag || v->annotation != annot)
+      continue ;
+    cx += v->x ;
+    cy += v->y ;
+    cz += v->z ;
+    num++ ;
+  }
+  if (num == 0) // unused parcellation
+    return(0) ;
+
+  cx /= num ;
+  cy /= num ;
+  cz /= num ;
+
+  // find vertex in annotation closest to centroid
+  min_dist = 100000 ;
+  min_vno = -1 ;
+  vc = NULL ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag || v->annotation != annot)
+      continue ;
+    dist = sqrt(SQR(v->x-cx)+SQR(v->y-cy)+SQR(v->z-cz));
+    if (dist < min_dist) {
+      min_vno = vno;
+      min_dist = dist ;
+      vc = v ;
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("using v %d as closest (%2.3f mm) from centroid (%2.1f, %2.1f, %2.1f)\n",
+           min_vno, min_dist, cx, cy, cz) ;
+
+  // now compute eigensystem around this vertex
+  m_obs = MatrixAlloc(2, num, MATRIX_REAL) ;
+  for (num = vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag || v->annotation != annot)
+      continue ;
+    dx = v->x - cx ;
+    dy = v->y - cy ;
+    dz = v->z - cz ;
+    u = vc->e1x * dx + vc->e1y * dy + vc->e1z*dz ;
+    w = vc->e2x * dx + vc->e2y * dy + vc->e2z*dz ;
+    *MATRIX_RELT(m_obs, 1, num+1) = u ;
+    *MATRIX_RELT(m_obs, 2, num+1) = w ;
+    num++ ;
+  }
+
+  m_obs_T = MatrixTranspose(m_obs, NULL) ;
+  m_cov = MatrixMultiply(m_obs,m_obs_T, NULL) ;
+  m_eig = MatrixEigenSystem(m_cov, evalues, NULL) ;
+  e1x = *MATRIX_RELT(m_eig, 1,1) * vc->e1x + *MATRIX_RELT(m_eig, 2,1) * vc->e2x;
+  e1y = *MATRIX_RELT(m_eig, 1,1) * vc->e1y + *MATRIX_RELT(m_eig, 2,1) * vc->e2y;
+  e1z = *MATRIX_RELT(m_eig, 1,1) * vc->e1z + *MATRIX_RELT(m_eig, 2,1) * vc->e2z;
+  if (fabs(e1x) > fabs(e1y) &&  fabs(e1x) > fabs(e1z))
+    mx = e1x ;
+  else if (fabs(e1y) > fabs(e1z))
+    mx = e1y ;
+  else
+    mx = e1z ;
+  //  if (mx < 0)
+  if (e1y < 0)  // orient them from posterior to anterior
+  {
+    e1x *= -1 ;
+    e1y *= -1 ;
+    e1z *= -1 ;
+  }
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    MatrixPrint(stdout, m_eig) ;
+  dist = sqrt(e1x*e1x + e1y*e1y + e1z*e1z) ;
+  e1x /= dist ;
+  e1y /= dist ;
+  e1z /= dist ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("principle eigendirection = (%2.3f, %2.3f, %2.3f)\n",e1x,e1y,e1z) ;
+  min_dot = 10000 ;
+  max_dot = -min_dot ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag || v->annotation != annot)
+      continue ;
+    dx = v->x - cx ;
+    dy = v->y - cy ;
+    dz = v->z - cz ;
+    dot = dx*e1x + dy*e1y + dz*e1z ;
+    if (dot > max_dot)
+      max_dot = dot ;
+    if (dot < min_dot)
+      min_dot = dot ;
+  }
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag || v->annotation != annot)
+      continue ;
+    if  (vno == Gdiag_no)
+      DiagBreak() ;
+    dx = v->x - cx ;
+    dy = v->y - cy ;
+    dz = v->z - cz ;
+    dot = dx*e1x + dy*e1y + dz*e1z ;
+    v->curv = (dot - min_dot) / (max_dot-min_dot) ;
+    v->marked = (int)(nunits * v->curv) ;
+    if (v->marked >= nunits)
+      v->marked = nunits-1 ;  // one with max_dot will be just too big
+  }
+
+  MatrixFree(&m_obs) ;
+  MatrixFree(&m_cov) ;
+  MatrixFree(&m_obs_T) ;
+  return(nunits-1) ;
+}
+
