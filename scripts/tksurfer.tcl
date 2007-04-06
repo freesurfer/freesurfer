@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/04/04 21:51:30 $
-##    $Revision: 1.143 $
+##    $Date: 2007/04/06 21:37:05 $
+##    $Revision: 1.144 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -247,7 +247,10 @@ set gaLinkedVars(timeresolution) 0
 set gaLinkedVars(numprestimpoints) 0
 set gaLinkedVars(colortablename) ""
 set gaLinkedVars(func_graph_avg_mode) $gaFuncGraphAvgMode(single)
-    
+set gaLinkedVars(drawcursorflag) 1
+set gaLinkedVars(cptn_draw_flag) 0
+set gaLinkedVars(captionformat) ""
+
 # groups of variables that get sent to c code together
 array set gaLinkedVarGroups {
     scene { light0 light1 light2 light3 offset }
@@ -264,7 +267,8 @@ array set gaLinkedVarGroups {
 	colscalebar_xpos colscalebar_ypos colscalebar_width
 	colscalebar_height colscalebaruselabelsflag colscalebar_label1
 	colscalebar_label2 colscalebar_label3 colscalebar_label4
-	verticesflag currentvaluefield drawcursorflag }
+	verticesflag currentvaluefield drawcursorflag cptn_draw_flag 
+	captionformat }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
     all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag colscalebarvertflag colscalebartextflag colscalebartickflag colscalebar_xpos colscalebar_ypos colscalebar_width colscalebar_height colscalebaruselabelsflag colscalebar_font_size colscalebar_label1 colscalebar_label2 colscalebar_label3 colscalebar_label4 verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
@@ -1655,6 +1659,68 @@ proc DoConfigScaleBarDlog {} {
     }
 }
 
+proc DoConfigCaptionDlog {} {
+    global gaLinkedVars
+    global gTmpCaption
+
+    UpdateLinkedVarGroup view
+    set gTmpCaption $gaLinkedVars(captionformat)
+
+    set wwDialog .wwConfigCaptionDlog
+
+    if { [Dialog_Create $wwDialog "Configure Caption" {-borderwidth 10}] } {
+	
+	set fwCaption    $wwDialog.fwCaption
+	set fwInfo       $wwDialog.fwInfo
+	set fwButtons    $wwDialog.fwButtons
+	
+	tkm_MakeEntry $fwCaption "Caption format: " gTmpCaption 40 {}
+
+	tixScrolledText $fwInfo -scrollbar y
+	[$fwInfo subwidget text] config -wrap word -relief ridge -bd 1
+	[$fwInfo subwidget text] insert end "Use this format string to specify te content of the caption. You can use a mix of text and codes that will be substituted with values, such as \"My brain\" or \"My brain: Vertex !V\" where !V is substituted with the vertex number that was clicked. You can use multiple codes, e.g. \"Vertex !V (!o1) in region !A\".
+
+\t!V: Vertex index
+\t!D: Distance
+\t!R: RAS coords
+\t!M: MNI Tal coords
+\t!T: Tal coords
+\t!I: MRI index
+\t!N: Normal
+\t!sxyz: Spherical XYZ
+\t!srt: Spherical RT
+\t!C: Curvature
+\t!F: Fieldsign
+\t!o1: Overlay layer 1
+\t!o2: Overlay layer 2
+\t!o3: Overlay layer 3
+\t!o4: Overlay layer 4
+\t!o5: Overlay layer 5
+\t!o6: Overlay layer 6
+\t!o7: Overlay layer 7
+\t!o8: Overlay layer 8
+\t!o9: Overlay layer 9
+\t!amp: Amplitude
+\t!amp: Angle
+\t!deg: Degree
+\t!L: Label
+\t!A: Annotation
+\t!mriv: MRI value
+\t!P: Parcellation"
+
+	tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
+	    { set gaLinkedVars(captionformat) $gTmpCaption; SendLinkedVarGroup view; UpdateAndRedraw } {}
+	
+	grid $fwCaption -row 0 -column 0 -sticky new  -pady 5
+	grid $fwInfo    -row 1 -column 0 -sticky news -pady 5
+	grid $fwButtons -row 2 -column 0 -sticky sew  -pady 5
+
+	grid rowconfigure $wwDialog 0 -weight 0
+	grid rowconfigure $wwDialog 1 -weight 1
+	grid rowconfigure $wwDialog 2 -weight 0
+    }
+}
+
 
 proc DoConfigCurvatureDisplayDlog {} {
 
@@ -2983,6 +3049,8 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { command "Overlay Scale Bar..."
 		{DoConfigScaleBarDlog}
 		mg_OverlayLoaded  }
+	    { command "Overlay Caption..."
+		{DoConfigCaptionDlog} }
 	    { command "Time Course..."
 		{Graph_DoConfig}
 		mg_TimeCourseLoaded }
@@ -3145,6 +3213,11 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { SendLinkedVarGroup view
 		UpdateAndRedraw }
 	    gaLinkedVars(drawcursorflag) }
+	{ check
+	    "Caption"
+	    { SendLinkedVarGroup view
+		UpdateAndRedraw }
+	    gaLinkedVars(cptn_draw_flag) }
     }
 
     
