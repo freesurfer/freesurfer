@@ -10,11 +10,11 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/05 20:43:22 $
- *    $Revision: 1.30 $
+ *    $Date: 2007/04/06 21:36:04 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -45,8 +45,8 @@
 #include "version.h"
 #include "fastmarching.h"
 
-static char vcid[] = 
-"$Id: mris_flatten.c,v 1.30 2007/02/05 20:43:22 nicks Exp $";
+static char vcid[] =
+  "$Id: mris_flatten.c,v 1.31 2007/04/06 21:36:04 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -82,17 +82,18 @@ static float rescale = 1.0f ;
 
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char         **av, in_surf_fname[STRLEN], *in_patch_fname, *out_patch_fname,
   fname[STRLEN], path[STRLEN], *cp, hemi[10] ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_flatten.c,v 1.30 2007/02/05 20:43:22 nicks Exp $", 
-     "$Name:  $");
+  nargs = handle_version_option
+          (argc, argv,
+           "$Id: mris_flatten.c,v 1.31 2007/04/06 21:36:04 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -122,7 +123,8 @@ main(int argc, char *argv[]) {
   parms.max_nbrs = 12 ;    /* 12 at each distance */
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -139,17 +141,20 @@ main(int argc, char *argv[]) {
   if (!cp)
     cp = in_patch_fname ;
   cp = strchr(cp, '.') ;
-  if (cp) {
+  if (cp)
+  {
     strncpy(hemi, cp-2, 2) ;
     hemi[2] = 0 ;
-  } else
+  }
+  else
     strcpy(hemi, "lh") ;
   if (one_surf_flag)
     sprintf(in_surf_fname, "%s", in_patch_fname) ;
   else
     sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name) ;
 
-  if (parms.base_name[0] == 0) {
+  if (parms.base_name[0] == 0)
+  {
     FileNameOnly(out_patch_fname, fname) ;
     cp = strchr(fname, '.') ;
     if (cp)
@@ -163,7 +168,8 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_surf_fname) ;
 
-  if (sphere_flag) {
+  if (sphere_flag)
+  {
     MRIScenter(mris, mris) ;
     mris->radius = MRISaverageRadius(mris) ;
     MRISstoreMetricProperties(mris) ;
@@ -174,14 +180,16 @@ main(int argc, char *argv[]) {
   {
     mris->patch = 1 ;
     mris->status = MRIS_PATCH ;
-    if (!FEQUAL(rescale,1)) {
+    if (!FEQUAL(rescale,1))
+    {
       MRISscaleBrain(mris, mris, rescale) ;
       MRIScomputeMetricProperties(mris) ;
     }
     MRISstoreMetricProperties(mris) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
 
-  } else {
+  } else
+  {
     if (MRISreadPatch(mris, in_patch_fname) != NO_ERROR)
       ErrorExit(ERROR_BADPARM, "%s: could not read patch file %s",
                 Progname, in_patch_fname) ;
@@ -194,16 +202,20 @@ main(int argc, char *argv[]) {
   fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
     mrisDisturbVertices(mris, disturb) ;
-  if (parms.niterations > 0) {
+  if (parms.niterations > 0)
+  {
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
-    if (!FZERO(parms.l_unfold) || !FZERO(parms.l_expand)) {
+    if (!FZERO(parms.l_unfold) || !FZERO(parms.l_expand))
+    {
       static INTEGRATION_PARMS p2 ;
       sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name) ;
-      if (stricmp(original_unfold_surf_name,"none") == 0) {
+      if (stricmp(original_unfold_surf_name,"none") == 0)
+      {
         printf("using current position of patch as initial position\n") ;
         MRISstoreMetricProperties(mris) ;  /* use current positions */
-      } else if (!sphere_flag && !one_surf_flag)
+      }
+      else if (!sphere_flag && !one_surf_flag)
         MRISreadOriginalProperties(mris, original_unfold_surf_name) ;
       *(&p2) = *(&parms) ;
       p2.l_dist = 0 ;
@@ -260,7 +272,8 @@ main(int argc, char *argv[]) {
     MRISwritePatch(mris, out_patch_fname) ;
   }
 
-  if (plane_flag || sphere_flag) {
+  if (plane_flag || sphere_flag)
+  {
     char fname[STRLEN] ;
     FILE *fp ;
 
@@ -300,33 +313,49 @@ main(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
   float f ;
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
+  {
     print_help() ;
+  }
   else if (!stricmp(option, "-version"))
+  {
     print_version() ;
+  }
   else if (!stricmp(option, "sphere"))
+  {
     sphere_flag = 1 ;
+  }
   else if (!stricmp(option, "plane"))
+  {
     plane_flag = 1 ;
-  else if (!stricmp(option, "rescale")) {
+  }
+  else if (!stricmp(option, "rescale"))
+  {
     rescale = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "rescaling brain by %2.3f\n", rescale) ;
-  } else if (!stricmp(option, "dist")) {
+  }
+  else if (!stricmp(option, "dist"))
+  {
     sscanf(argv[2], "%f", &parms.l_dist) ;
     nargs = 1 ;
     fprintf(stderr, "l_dist = %2.3f\n", parms.l_dist) ;
-  } else if (!stricmp(option, "expand")) {
+  }
+  else if (!stricmp(option, "expand"))
+  {
     sscanf(argv[2], "%f", &parms.l_expand) ;
     nargs = 1 ;
     printf("setting l_expand = %2.3f\n", parms.l_expand) ;
-  } else if (!stricmp(option, "unfold")) {
+  }
+  else if (!stricmp(option, "unfold"))
+  {
     MRI *mri_kernel, *mri_tmp ;
 
     sscanf(argv[2], "%f", &parms.l_unfold) ;
@@ -341,91 +370,133 @@ get_option(int argc, char *argv[]) {
     MRIfree(&mri_tmp) ;
     nargs = 2 ;
     fprintf(stderr, "l_unfold = %2.3f\n", parms.l_unfold) ;
-  } else if (!stricmp(option, "boundary")) {
+  }
+  else if (!stricmp(option, "boundary"))
+  {
     sscanf(argv[2], "%f", &parms.l_boundary) ;
     nargs = 1 ;
     fprintf(stderr, "l_boundary = %2.3f\n", parms.l_boundary) ;
-  } else if (!stricmp(option, "lm")) {
+  }
+  else if (!stricmp(option, "lm"))
+  {
     parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
     fprintf(stderr, "integrating with line minimization\n") ;
-  } else if (!stricmp(option, "dt")) {
+  }
+  else if (!stricmp(option, "dt"))
+  {
     parms.dt = atof(argv[2]) ;
     parms.base_dt = base_dt_scale*parms.dt ;
     nargs = 1 ;
     fprintf(stderr, "momentum with dt = %2.2f\n", parms.dt) ;
-  } else if (!stricmp(option, "curv")) {
+  }
+  else if (!stricmp(option, "curv"))
+  {
     sscanf(argv[2], "%f", &parms.l_curv) ;
     nargs = 1 ;
     fprintf(stderr, "using l_curv = %2.3f\n", parms.l_curv) ;
-  } else if (!stricmp(option, "nospring"))
+  }
+  else if (!stricmp(option, "nospring"))
+  {
     nospring = 1 ;
-  else if (!stricmp(option, "area")) {
+  }
+  else if (!stricmp(option, "area"))
+  {
     sscanf(argv[2], "%f", &parms.l_area) ;
     nargs = 1 ;
     fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
-  } else if (!stricmp(option, "boundary")) {
+  }
+  else if (!stricmp(option, "boundary"))
+  {
     sscanf(argv[2], "%f", &parms.l_boundary) ;
     nargs = 1 ;
     fprintf(stderr, "using l_boundary = %2.3f\n", parms.l_boundary) ;
-  } else if (!stricmp(option, "adaptive")) {
+  }
+  else if (!stricmp(option, "adaptive"))
+  {
     parms.integration_type = INTEGRATE_ADAPTIVE ;
     fprintf(stderr, "using adaptive time step integration\n") ;
-  } else if (!stricmp(option, "nbrs")) {
+  }
+  else if (!stricmp(option, "nbrs"))
+  {
     nbrs = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
-  } else if (!stricmp(option, "spring")) {
+  }
+  else if (!stricmp(option, "spring"))
+  {
     sscanf(argv[2], "%f", &parms.l_spring) ;
     nargs = 1 ;
     fprintf(stderr, "using l_spring = %2.3f\n", parms.l_spring) ;
-  } else if (!stricmp(option, "name")) {
+  }
+  else if (!stricmp(option, "name"))
+  {
     strcpy(parms.base_name, argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using base name = %s\n", parms.base_name) ;
-  } else if (!stricmp(option, "angle")) {
+  }
+  else if (!stricmp(option, "angle"))
+  {
     sscanf(argv[2], "%f", &parms.l_angle) ;
     nargs = 1 ;
     fprintf(stderr, "using l_angle = %2.3f\n", parms.l_angle) ;
-  } else if (!stricmp(option, "area")) {
+  }
+  else if (!stricmp(option, "area"))
+  {
     sscanf(argv[2], "%f", &parms.l_area) ;
     nargs = 1 ;
     fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
-  } else if (!stricmp(option, "tol")) {
+  }
+  else if (!stricmp(option, "tol"))
+  {
     if (sscanf(argv[2], "%e", &f) < 1)
       ErrorExit(ERROR_BADPARM, "%s: could not scan tol from %s",
                 Progname, argv[2]) ;
     parms.tol = (double)f ;
     nargs = 1 ;
     fprintf(stderr, "using tol = %2.2e\n", (float)parms.tol) ;
-  } else if (!stricmp(option, "error_ratio")) {
+  }
+  else if (!stricmp(option, "error_ratio"))
+  {
     parms.error_ratio = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "error_ratio=%2.3f\n", parms.error_ratio) ;
-  } else if (!stricmp(option, "dt_inc")) {
+  }
+  else if (!stricmp(option, "dt_inc"))
+  {
     parms.dt_increase = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "dt_increase=%2.3f\n", parms.dt_increase) ;
-  } else if (!stricmp(option, "vnum") || (!stricmp(option, "distances"))) {
+  }
+  else if (!stricmp(option, "vnum") || (!stricmp(option, "distances")))
+  {
     parms.nbhd_size = atof(argv[2]) ;
     parms.max_nbrs = atof(argv[3]) ;
     nargs = 2 ;
     fprintf(stderr, "sampling %d neighbors out to a distance of %d mm\n",
             parms.max_nbrs, parms.nbhd_size) ;
-  } else if (!stricmp(option, "dt_dec")) {
+  }
+  else if (!stricmp(option, "dt_dec"))
+  {
     parms.dt_decrease = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
-  } else if (!stricmp(option, "ou")) {
+  }
+  else if (!stricmp(option, "ou"))
+  {
     original_unfold_surf_name = argv[2] ;
     nargs = 1 ;
     fprintf(stderr,"reading original unfolding surface from %s...\n",
             original_unfold_surf_name);
-  } else if (!stricmp(option, "as")) {
+  }
+  else if (!stricmp(option, "as"))
+  {
     parms.area_coef_scale = atof(argv[2]) ;
     printf("setting area coef scale to %2.3f\n",
            parms.area_coef_scale) ;
     nargs = 1 ;
-  } else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case 'P':
       max_passes = atoi(argv[2]) ;
       fprintf(stderr, "limitting unfolding to %d passes\n", max_passes) ;
@@ -474,7 +545,7 @@ get_option(int argc, char *argv[]) {
       Gdiag |= DIAG_WRITE ;
       sscanf(argv[2], "%d", &parms.write_iterations) ;
       nargs = 1 ;
-      fprintf(stderr, "using write iterations = %d\n", 
+      fprintf(stderr, "using write iterations = %d\n",
               parms.write_iterations) ;
       break ;
     case 'I':
@@ -503,13 +574,15 @@ get_option(int argc, char *argv[]) {
 }
 
 static void
-print_usage(void) {
+print_usage(void)
+{
   fprintf(stderr,
-          "usage: %s [options] <input patch> <output patch>\n", Progname) ;
+          "Usage: %s [options] <input patch> <output patch>\n", Progname) ;
 }
 
 static void
-print_help(void) {
+print_help(void)
+{
   print_usage() ;
   fprintf(stderr,
           "\nThis program will flatten a surface patch\n");
@@ -524,17 +597,20 @@ print_help(void) {
 }
 
 static void
-print_version(void) {
+print_version(void)
+{
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
 
 static int
-mrisDisturbVertices(MRI_SURFACE *mris, double amount) {
+mrisDisturbVertices(MRI_SURFACE *mris, double amount)
+{
   int    vno ;
   VERTEX *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -546,24 +622,28 @@ mrisDisturbVertices(MRI_SURFACE *mris, double amount) {
   return(NO_ERROR) ;
 }
 int
-MRISscaleUp(MRI_SURFACE *mris) {
+MRISscaleUp(MRI_SURFACE *mris)
+{
   int     vno, n, max_v, max_n ;
   VERTEX  *v ;
   float   ratio, max_ratio ;
 
   max_ratio = 0.0f ;
   max_v = max_n = 0 ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
-    for (n = 0 ; n < v->vnum ; n++) {
+    for (n = 0 ; n < v->vnum ; n++)
+    {
       if (FZERO(v->dist[n]))   /* would require infinite scaling */
         continue ;
       ratio = v->dist_orig[n] / v->dist[n] ;
-      if (ratio > max_ratio) {
+      if (ratio > max_ratio)
+      {
         max_v = vno ;
         max_n = n ;
         max_ratio = ratio ;
@@ -576,7 +656,8 @@ MRISscaleUp(MRI_SURFACE *mris) {
 #if 0
   MRISscaleBrain(mris, mris, max_ratio) ;
 #else
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
