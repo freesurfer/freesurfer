@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/06 18:22:41 $
-#    $Revision: 1.8 $
+#    $Date: 2007/04/07 21:58:43 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.8 2007/04/06 18:22:41 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.9 2007/04/07 21:58:43 nicks Exp $';
 
 # defaults:
 setenv SUBJECTS_DIR /space/tensor/20/users/buckner_cortical_atlas
@@ -295,7 +295,7 @@ foreach test_subj ($ALL_SUBJECTS)
                 echo "${cmd} |& tee -a ${LF}" >> ${cmdf}
                 chmod a+x ${cmdf}
                 pbsubmit ${pbs_flags} -c "${cmdf}"
-                sleep 10
+                sleep 3
             else
                 ${cmd} |& tee -a ${LF} &
             endif
@@ -368,7 +368,7 @@ foreach test_subj ($ALL_SUBJECTS)
             if (-e ${atlas}) rm -f ${atlas}
             if ($PBS) then
                 pbsubmit ${pbs_flags} -c "${cmd}"
-                sleep 10
+                sleep 3
             else
                 ${cmd} &
             endif
@@ -406,7 +406,7 @@ foreach test_subj ($ALL_SUBJECTS)
             if (-e ${annot}) rm -f ${annot}
             if ($PBS) then
                 pbsubmit ${pbs_flags} -c "${cmd}"
-                sleep 10
+                sleep 3
             else
                 ${cmd} &
             endif
@@ -443,7 +443,6 @@ foreach test_subj ($ALL_SUBJECTS)
             if (-e ${outFile}) rm -f ${outFile}
             if ($PBS) then
                 pbsubmit ${pbs_flags} -c "${cmd} > ${outFile}"
-                sleep 10
             else
                 ${cmd} >& ${outFile} &
             endif
