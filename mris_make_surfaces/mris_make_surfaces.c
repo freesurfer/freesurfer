@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/04/06 23:57:14 $
- *    $Revision: 1.92 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/07 01:18:32 $
+ *    $Revision: 1.93 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.92 2007/04/06 23:57:14 greve Exp $";
+  "$Id: mris_make_surfaces.c,v 1.93 2007/04/07 01:18:32 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -221,13 +221,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.92 2007/04/06 23:57:14 greve Exp $",
+   "$Id: mris_make_surfaces.c,v 1.93 2007/04/07 01:18:32 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.92 2007/04/06 23:57:14 greve Exp $",
+           "$Id: mris_make_surfaces.c,v 1.93 2007/04/07 01:18:32 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2075,6 +2075,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     /* now check for putamen superior to this point. If there's a lot
        of it there, then we are in basal forebrain and not cortex. */
     if (which == GRAY_WHITE)
+    {
       for (adjacent = total_vox = nvox = 0, d = 0 ; 
            d <= 10 ; d += 0.5, total_vox++) 
       {
@@ -2093,17 +2094,18 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
             adjacent = 1 ; // right next to putamen
         }
       }
-    if (adjacent && (double)nvox/(double)total_vox > 0.5) // more than 50% putamen
-    {
-      if (v->nz < 0 &&
-          fabs(v->nz) > fabs(v->nx) &&
-          fabs(v->nz) > fabs(v->ny))  // inferior pointing normal
+      if (adjacent && (double)nvox/(double)total_vox > 0.5) // more than 50% putamen
       {
-        MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
-        MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
-        v->val = val ;
-        v->d = 0 ;
-        v->ripflag = 1 ;
+        if (v->nz < 0 &&
+            fabs(v->nz) > fabs(v->nx) &&
+            fabs(v->nz) > fabs(v->ny))  // inferior pointing normal
+        {
+          MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+          MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
+          v->val = val ;
+          v->d = 0 ;
+          v->ripflag = 1 ;
+        }
       }
     }
   }
