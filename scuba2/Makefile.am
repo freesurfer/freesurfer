@@ -79,87 +79,87 @@ scuba2_DATA=ScubaIcons.txt
 
 vtkKWScubaAppTcl.cxx: vtkKWScubaApp.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaApp.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaAppTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaAppTcl.cxx
 
 vtkKWScubaWindowTcl.cxx: vtkKWScubaWindow.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaWindow.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaWindowTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaWindowTcl.cxx
 
 vtkKWScubaViewTcl.cxx: vtkKWScubaView.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaView.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaViewTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaViewTcl.cxx
 
 vtkKWScubaLayerTcl.cxx: vtkKWScubaLayer.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayerTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayerTcl.cxx
 
 vtkKWScubaLayerCollectionTcl.cxx: vtkKWScubaLayerCollection.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayerCollection.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayerCollectionTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayerCollectionTcl.cxx
 
 vtkKWScubaLayerCollectionMRITcl.cxx: vtkKWScubaLayerCollectionMRI.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayerCollectionMRI.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayerCollectionMRITcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayerCollectionMRITcl.cxx
 
 vtkKWScubaLayerCollectionMRISTcl.cxx: vtkKWScubaLayerCollectionMRIS.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayerCollectionMRIS.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayerCollectionMRISTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayerCollectionMRISTcl.cxx
 
 vtkKWScubaLayerCollectionDTITcl.cxx: vtkKWScubaLayerCollectionDTI.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayerCollectionDTI.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayerCollectionDTITcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayerCollectionDTITcl.cxx
 
 vtkKWScubaLayerCollectionPathTcl.cxx: vtkKWScubaLayerCollectionPath.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayerCollectionPath.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayerCollectionPathTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayerCollectionPathTcl.cxx
 
 vtkKWScubaLayer2DMRITcl.cxx: vtkKWScubaLayer2DMRI.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer2DMRI.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayer2DMRITcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer2DMRITcl.cxx
 
 vtkKWScubaLayer3DMRITcl.cxx: vtkKWScubaLayer3DMRI.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer3DMRI.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayer3DMRITcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer3DMRITcl.cxx
 
 vtkKWScubaLayer2DMRISTcl.cxx: vtkKWScubaLayer2DMRIS.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer2DMRIS.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayer2DMRISTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer2DMRISTcl.cxx
 
 vtkKWScubaLayer3DMRISTcl.cxx: vtkKWScubaLayer3DMRIS.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer3DMRIS.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayer3DMRISTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer3DMRISTcl.cxx
 
 vtkKWScubaLayer2DDTITcl.cxx: vtkKWScubaLayer2DDTI.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer2DDTI.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayer2DDTITcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer2DDTITcl.cxx
 
 vtkKWScubaLayer3DDTITcl.cxx: vtkKWScubaLayer3DDTI.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer3DDTI.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayer3DDTITcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer3DDTITcl.cxx
 
 vtkKWScubaLayer2DPathTcl.cxx: vtkKWScubaLayer2DPath.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer2DPath.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayer2DPathTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer2DPathTcl.cxx
 
 vtkKWScubaLayer3DPathTcl.cxx: vtkKWScubaLayer3DPath.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer3DPath.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaLayer3DPathTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer3DPathTcl.cxx
 
 vtkScubaInteractorStyleTcl.cxx: vtkScubaInteractorStyle.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkScubaInteractorStyle.h \
-	${VTK_LIB_DIR}/hints 1 vtkScubaInteractorStyleTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkScubaInteractorStyleTcl.cxx
 
 vtkKWScubaToolTcl.cxx: vtkKWScubaTool.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaTool.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaToolTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaToolTcl.cxx
 
 vtkKWScubaToolNavigateTcl.cxx: vtkKWScubaToolNavigate.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaToolNavigate.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaToolNavigateTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaToolNavigateTcl.cxx
 
 vtkKWScubaToolEdit2DMRITcl.cxx: vtkKWScubaToolEdit2DMRI.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaToolEdit2DMRI.h \
-	${VTK_LIB_DIR}/hints 1 vtkKWScubaToolEdit2DMRITcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaToolEdit2DMRITcl.cxx
 
 ScubaLibInit.cxx: ScubaLibInit.data
 	${VTK_DIR}/bin/vtkWrapTclInit ScubaLibInit.data ScubaLibInit.cxx
