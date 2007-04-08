@@ -10,11 +10,11 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:06 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2007/04/08 04:19:57 $
+ *    $Revision: 1.2 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -65,7 +65,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaView );
-vtkCxxRevisionMacro( vtkKWScubaView, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaView, "$Revision: 1.2 $" );
 
 map<vtkRenderWindow*,vtkKWScubaView*> vtkKWScubaView::mRenderWindowToViewMap;
 
@@ -1564,7 +1564,7 @@ vtkKWScubaView::PickPointAndCallToolEvent ( vtkKWScubaWindow* iWindow,
   if ( props->GetNumberOfItems() > 0 ) {
     props->InitTraversal();
     vtkProp* prop;
-    while ( prop = props->GetNextProp() ) {
+    while ( (prop = props->GetNextProp()) ) {
       vtkKWScubaLayer* layer = vtkKWScubaLayer::GetLayerFromProp( prop );
       if ( layer ) {
         int slot = this->GetSlotOfLayer( layer );
