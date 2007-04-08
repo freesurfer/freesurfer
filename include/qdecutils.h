@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/02 22:18:00 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/04/08 15:25:34 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -97,6 +97,8 @@ QDEC_DESIGN_GUI, QDECDGUI;
 /*---------------------------------------------------------*/
 
 
+int QDECnSubjects(QDECD *D);
+const char *QDECfileName(QDECD *D);
 const char *QDECsrcVersion(void);
 int QDECisContinuousFactor(QDECF *F);
 int QDECisDiscreteFactor(QDECF *F);
