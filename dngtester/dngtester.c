@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/06 06:17:04 $
- *    $Revision: 1.29 $
+ *    $Date: 2007/04/09 23:37:20 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -98,36 +98,100 @@ double a,b,zthresh,pthresh;
 char *SUBJECTS_DIR;
 char tmpstr[2000];
 MRIS *surf;
+char *hemi;
 
 MRI *fMRIvariance2(MRI *fmri, float DOF, int RmMean, MRI *var);
 void printrgb(void);
 MRI *GetMyMask(MRIS *surf);
-MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters);
+MRI *GetMyMask2(MRIS *surf);
 
+MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters, int newid);
+COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name);
+int MRISmercator(MRIS *surf);
 
 /*----------------------------------------*/
 int main(int argc, char **argv) {
-  int err;
+  int err,area32p,area32v,superiorfrontal,medialorbitofrontal;
+  int rostralanteriorcingulate, rostralmiddlefrontal;
+  int index;
   int *nunits;
+  COLOR_TABLE *ct ;
 
   subject = "tl-wm";
+  hemi = "rh";
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
+  sprintf(tmpstr,"%s/%s/surf/%s.sphere",SUBJECTS_DIR,subject,hemi);
   printf("\nReading lh white surface \n %s\n",tmpstr);
   surf = MRISread(tmpstr);
   if(!surf) exit(1);
 
-  sprintf(tmpstr,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
+  if(0){
+  MRISmercator(surf);
+  sprintf(tmpstr,"%s/%s/surf/%s.mercator",SUBJECTS_DIR,subject,hemi);
+  MRISwrite(surf,tmpstr);
+  exit(0);
+  }
+
+  sprintf(tmpstr,"%s/%s/label/%s.aparc.annot",SUBJECTS_DIR,subject,hemi);
   printf("Loading annotations from %s\n",tmpstr);
   err = MRISreadAnnotation(surf, tmpstr);
   if(err) exit(1);
+
+  ct = CTABaddEntry(surf->ct,"area32p");
+  CTABfree(&surf->ct);
+  surf->ct = ct;
+
+  ct = CTABaddEntry(surf->ct,"area32v");
+  CTABfree(&surf->ct);
+  surf->ct = ct;
+
+  CTABfindName(surf->ct, "area32p", &area32p);
+  CTABfindName(surf->ct, "area32v", &area32v);
+  CTABfindName(surf->ct, "superiorfrontal", &superiorfrontal);
+  CTABfindName(surf->ct, "medialorbitofrontal", &medialorbitofrontal);
+  CTABfindName(surf->ct, "rostralanteriorcingulate", &rostralanteriorcingulate);
+  CTABfindName(surf->ct, "rostralmiddlefrontal", &rostralmiddlefrontal);
+
+  mri = GetMyMask2(surf);
+  MRISdilateMask(surf, mri, medialorbitofrontal, 12, area32v);
+
   mri = GetMyMask(surf);
-  MRISdilateMask(surf, mri, 28, 20);
+  MRISdilateMask(surf, mri, superiorfrontal, 12, area32p);
+
 
   nunits = (int *)calloc(surf->ct->nentries, sizeof(int)) ;
-  nunits[28] = 5;
+  nunits[rostralanteriorcingulate] = 3;
+  nunits[rostralmiddlefrontal] = 3;
+  nunits[superiorfrontal] = 5;
+  nunits[area32p] = 2;
+  //nunits[area32v] = 2;
+
   MRISdivideAnnotation(surf, nunits) ;
-  MRISwriteAnnotation(surf, "lh.fbirn.annot") ;
+
+  CTABfindName(surf->ct, "area32p", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area32p_pseudo");
+
+  CTABfindName(surf->ct, "area32p_div2", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area32a_pseudo");
+
+  CTABfindName(surf->ct, "area32v", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area32v_pseudo");
+
+  //CTABfindName(surf->ct, "area32v_div2", &index);
+  //sprintf(surf->ct->entries[index]->name, "%s","area32v_pseudo");
+
+
+  CTABfindName(surf->ct, "rostralanteriorcingulate", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area24d_pseudo");
+
+  CTABfindName(surf->ct, "rostralanteriorcingulate_div2", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area24pg_pseudo");
+
+  CTABfindName(surf->ct, "rostralanteriorcingulate_div3", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area24v_pseudo");
+
+  sprintf(tmpstr,"%s.fbirn.annot",hemi);
+  MRISwriteAnnotation(surf, tmpstr);
 
   return(0);
 
@@ -323,68 +387,6 @@ MRI *MRIsetSliceNo(MRI *mri, MRI *out) {
 
   return(out);
 }
-
-/*--------------------------------------------------------*/
-double pcluster(double clustersize, double vthresh, double fwhm,
-                double searchsize, int dim) {
-  double p,W,dLh,Em,beta,pvthresh,Pnk;
-
-  W = fwhm/sqrt(4.0*log(2.0));
-  dLh = pow(W,-dim);
-
-  Em = searchsize * pow(2*M_PI,-(dim+1)/2.0) * dLh *
-       (pow(vthresh,dim-1.0) - 1) *  exp(-pow(vthresh,2)/2);
-
-  pvthresh = 1.0-sc_cdf_gaussian_Q(-vthresh,1);
-
-  beta = pow( (gamma(dim/2.0+1)*Em) / (searchsize*pvthresh),2.0/dim );
-
-  // Prob than n >= k, ie, the number of voxels in a cluster >= csize
-  Pnk = exp(-beta * pow(clustersize,2.0/dim));
-  p = 1 - exp(-Em*Pnk);
-
-#if 0
-  printf("csize = %lf\n",clustersize);
-  printf("vthresh = %lf\n",vthresh);
-  printf("fwhm = %lf\n",fwhm);
-  printf("searchsize = %lf\n",searchsize);
-  printf("dim = %d\n",dim);
-  printf("W = %lf dLh %lf\n",W,dLh);
-  printf("Em = %lf\n",Em);
-  printf("pvthresh = %lf\n",pvthresh);
-  printf("beta = %lf\n",beta);
-  printf("Pnk = %lf\n",Pnk);
-  printf("p = %lf\n",p);
-#endif
-
-  return(p);
-}
-
-void printrgb(void)
-{
-  double f,r,g,b;
-
-  for(f=0; f<64; f++){
-    if(f < 25)      r =  0.0;
-    else if(f < 40) r = -1.5 + .065*f;
-    else if(f < 57) r =  1.0;
-    else            r =  4.5 - .065*f;
-
-    if(f < 9)       g =  0.0;
-    else if(f < 23) g = -0.5 + .065*f;
-    else if(f < 41) g =  1.0;
-    else if(f < 55) g =  3.5 - .065*f;
-    else            g = 0;
-
-    if(f < 7)       b =  0.5 + .065*f;
-    else if(f < 25) b =  1.0;
-    else if(f < 40) b =  2.5 - .065*f;
-    else            b =  0.0;
-
-    printf("%6.4f %6.4f %6.4f %6.4f\n",f,r,g,b);
-
-  }
-}
 /*-------------------------------------------------------------
   MRI *GetMyMask(MRIS *surf) - creates a mask at the intersection
   of SFG and CAcing, PAcing, and RAcing.
@@ -405,6 +407,7 @@ MRI *GetMyMask(MRIS *surf)
   mri = MRIalloc(surf->nvertices, 1, 1, MRI_INT) ;
 
   for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+    MRIsetVoxVal(mri,vtxno,0,0,0, 0);
 
     vtx = &(surf->vertices[vtxno]);
     annot = surf->vertices[vtxno].annotation;
@@ -430,19 +433,64 @@ MRI *GetMyMask(MRIS *surf)
     }
   }
 
-  MRIwrite(mri,"mymask.mgh");
+  //MRIwrite(mri,"mymask.mgh");
 
   return(mri);
 }
 
-MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters)
+/*-------------------------------------------------------------
+  MRI *GetMyMask(MRIS *surf) - creates a mask at the intersection
+  of SFG and CAcing, PAcing, and RAcing.
+  -------------------------------------------------------------*/
+MRI *GetMyMask2(MRIS *surf)
 {
-  int vtxno, annot, annotid, nnbrs, nbrvtxno, nthnbr, nthiter;
+  int vtxno, annot, annotid, nnbrs, nbrvtx, nthnbr, nbrannotid; 
+  VERTEX *vtx;
+  int medialorbitofrontal, rostralanteriorcingulate;
+  MRI *mri;
+
+  CTABfindName(surf->ct, "medialorbitofrontal", &medialorbitofrontal);
+  CTABfindName(surf->ct, "rostralanteriorcingulate", &rostralanteriorcingulate);
+
+  printf("medialorbitofrontal %d\n",medialorbitofrontal);
+  printf("rostralanteriorcingulate %d\n",rostralanteriorcingulate);
+
+  mri = MRIalloc(surf->nvertices, 1, 1, MRI_INT) ;
+
+  for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+    MRIsetVoxVal(mri,vtxno,0,0,0, 0);
+
+    vtx = &(surf->vertices[vtxno]);
+    annot = surf->vertices[vtxno].annotation;
+    CTABfindAnnotation(surf->ct, annot, &annotid);
+
+    if(annotid != medialorbitofrontal) continue;
+
+    nnbrs = surf->vertices[vtxno].vnum;
+    for (nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+
+      nbrvtx = surf->vertices[vtxno].v[nthnbr];
+      if (surf->vertices[nbrvtx].ripflag) continue; //skip ripped vtxs
+
+      annot = surf->vertices[nbrvtx].annotation;
+      CTABfindAnnotation(surf->ct, annot, &nbrannotid);
+      if(nbrannotid == rostralanteriorcingulate)
+	MRIsetVoxVal(mri,vtxno,0,0,0,1);
+
+    }
+  }
+
+  //MRIwrite(mri,"area32v.mgh");
+
+  return(mri);
+}
+/*---------------------------------------------------------------------*/
+MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters, int newid)
+{
+  int vtxno, annot, annotid, nnbrs, nbrvtxno, nthnbr, nthiter,new_annot ;
   VERTEX *vtx;
   MRI *mri1, *mri2;
   float val;
-
-  //superiorfrontal = 28;
 
   mri1 = MRIcopy(mask,NULL);
   mri2 = MRIcopy(mask,NULL);
@@ -486,7 +534,77 @@ MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters)
 
   MRIfree(&mri2);
 
-  MRIwrite(mri1,"mymask2.mgh");
+  //MRIwrite(mri1,"mymask2.mgh");
+  
+  CTABannotationAtIndex(surf->ct, newid, &new_annot) ;
+
+  for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+    if(MRIgetVoxVal(mri1,vtxno,0,0,0))
+      surf->vertices[vtxno].annotation = new_annot;
+  }
 
   return(mri1);
+}
+/*-------------------------------------------------------*/
+COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name)
+{
+  COLOR_TABLE *ct ;
+  COLOR_TABLE_ENTRY *cte;
+  int nentries,i;
+
+  nentries = ctold->nentries ;
+  ct = CTABalloc(nentries+1);
+
+  for (i = 0 ; i < nentries ; i++) 
+    memcpy(ct->entries[i],ctold->entries[i],sizeof(COLOR_TABLE_ENTRY)) ;
+
+  //    *(ct->entries[i]) = *(ctold->entries[i]) ;
+
+  cte = ct->entries[nentries];
+  sprintf(cte->name, "%s",name);
+  cte->ri = floor(drand48()*256);
+  cte->gi = floor(drand48()*256);
+  cte->bi = floor(drand48()*256);
+  cte->rf = (float)cte->ri/255.0f;
+  cte->gf = (float)cte->gi/255.0f;
+  cte->bf = (float)cte->bi/255.0f;
+  printf("RGB %d %d %d\n",cte->ri,cte->gi,cte->bi);
+
+  return(ct);
+
+}
+/*-------------------------------------------------------*/
+int MRISmercator(MRIS *surf)
+{
+  int vtxno;
+  VERTEX *vtx;
+  double x,y,z;
+  double xmin,xmax,zmin,zmax;
+
+  xmin=zmin =  1e10;
+  xmax=zmax = -1e10;
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
+    vtx = &(surf->vertices[vtxno]);
+    x = vtx->x;
+    y = vtx->y;
+    z = vtx->z;
+    vtx->x = (100*(atan2(x,y)))/M_PI;
+    vtx->y = 0;
+    // z stays the same
+    x = vtx->x;
+    if(xmin > x) xmin = x;
+    if(xmax < x) xmax = x;
+    if(zmin > z) zmin = z;
+    if(zmax < z) zmax = z;
+  }
+
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
+    vtx = &(surf->vertices[vtxno]);
+    if(fabs(vtx->x - xmax) < 3) vtx->y = -100;
+    if(fabs(vtx->x - xmin) < 3) vtx->y = -100;
+    if(fabs(vtx->z - zmax) < 3) vtx->y = -100;
+    if(fabs(vtx->z - zmin) < 3) vtx->y = -100;
+  }
+
+  return(0);
 }
