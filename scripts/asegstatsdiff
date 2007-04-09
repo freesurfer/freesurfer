@@ -1,0 +1,69 @@
+#! /bin/tcsh -ef
+
+if ( "x$1" == "x" || "x$2" == "x" ) then
+    echo "Usage: asegstatsdiff <subj1> <subj2>"
+    echo ""
+    echo "The utility asegstats2table is executed given the two subjects"
+    echo "as input, and producing an output table called asegstats.txt."
+    echo "Then, another row is added to that table containing the percent"
+    echo "difference between the data of each of the two subjects."
+    echo "The return code is the number of structures found to have nonzero"
+    echo "percentage differences.  "
+    exit 1
+endif
+
+if ( ! -e $SUBJECTS_DIR/$1 ) then
+    echo "$SUBJECTS_DIR/$1 does not exist!"
+    exit 1
+endif
+if ( ! -e $SUBJECTS_DIR/$2 ) then
+    echo "$SUBJECTS_DIR/$2 does not exist!"
+    exit 1
+endif
+
+asegstats2table --s $1 --s $2 --t asegstats.txt > /dev/null
+
+set labels=`grep volume asegstats.txt`
+set subj1=`grep $1 asegstats.txt`
+set subj2=`grep $2 asegstats.txt`
+
+if ( "$#labels" != "$#subj1" ) then
+    echo "Label row and Subj1 row have unequal number of columns!" 
+    exit 1
+endif
+if ( "$#subj1" != "$#subj2" ) then
+    echo "Subj1 and Subj2 rows have unequal number of columns" 
+    exit 1
+endif
+
+set total=$#subj1
+@ total++
+set idx=2
+set newrow=( "pctdiff" )
+set diffcount=0
+while ( "$idx" != "$total" )
+
+    set label=$labels[$idx]
+    set struct1=$subj1[$idx]
+    set struct2=$subj2[$idx]
+    set diff=`echo "scale=4; ${struct1} - ${struct2}" | bc`
+    if ($status) exit 1
+    if ( "$diff" != "0" ) then
+        set pctdiff=`echo "scale=4; ${diff} / ${struct1}" | bc`
+        if ($status) exit 1
+        set pctdiff=`echo "scale=4; ${pctdiff} * 100" | bc`
+        if ($status) exit 1
+        echo "${pctdiff}\t\t${label}"
+        set newrow=( ${newrow} ${pctdiff} )
+        @ count++
+    else
+        set newrow=( ${newrow} 0 )
+    endif
+
+    @ idx++
+
+end
+
+echo "${newrow}" >> asegstats.txt
+
+exit ${count}

@@ -7,6 +7,7 @@ aparc2feat \
 aseg2feat \
 aparcstats2table \
 asegstats2table \
+asegstatsdiff \
 batchjobs \
 bblabel \
 browse-minc-header.tcl \
