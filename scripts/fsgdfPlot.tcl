@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2007/04/09 04:51:07 $
-##    $Revision: 1.23 $
+##    $Date: 2007/04/09 05:17:22 $
+##    $Revision: 1.24 $
 ##
 ## Original Author: Kevin Teich
 ##
@@ -415,8 +415,7 @@ proc FsgdfPlot_ParseHeader { ifnHeader } {
       # Look for the marker in the array of valid markers. If
       # it's not found, output a warning and set it to the
       # default.
-      set n [lsearch -exact $kValid(lMarkers) \
-             $gGDF($ID,classes,$nClass,marker)]
+      set n [lsearch -exact $kValid(lMarkers) $gGDF($ID,classes,$nClass,marker)]
       if { $n == -1 } {
         puts "WARNING: Marker for class $gGDF($ID,classes,$nClass,label) was invalid."
         set gGDF($ID,classes,$nClass,marker) \
@@ -532,8 +531,7 @@ proc FsgdfPlot_ParseHeader { ifnHeader } {
         for { set nVariable 0 } \
           { $nVariable < $gGDF($ID,cVariables) } { incr nVariable } {
 
-            set lResults [gdfGetNthSubjectNthValue \
-                      $gGDF($ID,object) $nSubject $nVariable]
+            set lResults [gdfGetNthSubjectNthValue $gGDF($ID,object) $nSubject $nVariable]
             set err [lindex $lResults 0]
             if { 0 == $err } {
               set gGDF($ID,subjects,$nSubject,variables,$nVariable,value) \
@@ -661,9 +659,7 @@ proc FsgdfPlot_PlotData { iID } {
             FsgdfPlot_CalculateSubjectMeasurement $iID $nSubj
           }
 
-          set gPlot($iID,state,data,subjects,$nSubj,variable) \
-            $gGDF($iID,subjects,$nSubj,variables,\
-                      $gPlot($iID,state,nVariable),value)
+          set gPlot($iID,state,data,subjects,$nSubj,variable) $gGDF($iID,subjects,$nSubj,variables,$gPlot($iID,state,nVariable),value)
 
           lappend lData $gPlot($iID,state,data,subjects,$nSubj,variable)
           lappend lData $gPlot($iID,state,data,subjects,$nSubj,measurement)
@@ -723,19 +719,15 @@ proc FsgdfPlot_PlotData { iID } {
           -dashes {3 3}
 
         # Draw the stddev lines for the mean line.
-        set y1 [expr $gPlot($iID,state,classes,$nClass,mean) - \
-                    $gPlot($iID,state,classes,$nClass,stdDev)]
-        set y2 [expr $gPlot($iID,state,classes,$nClass,mean) - \
-                    $gPlot($iID,state,classes,$nClass,stdDev)]
+        set y1 [expr $gPlot($iID,state,classes,$nClass,mean) - $gPlot($iID,state,classes,$nClass,stdDev)]
+        set y2 [expr $gPlot($iID,state,classes,$nClass,mean) - $gPlot($iID,state,classes,$nClass,stdDev)]
         $gw marker create line \
           -coords [list $x1 $y1 $x2 $y2] \
           -outline $gGDF($iID,classes,$nClass,color) \
           -dashes {1 3}
 
-        set y1 [expr $gPlot($iID,state,classes,$nClass,mean) + \
-                    $gPlot($iID,state,classes,$nClass,stdDev)]
-        set y2 [expr $gPlot($iID,state,classes,$nClass,mean) + \
-                    $gPlot($iID,state,classes,$nClass,stdDev)]
+        set y1 [expr $gPlot($iID,state,classes,$nClass,mean) + $gPlot($iID,state,classes,$nClass,stdDev)]
+        set y2 [expr $gPlot($iID,state,classes,$nClass,mean) + $gPlot($iID,state,classes,$nClass,stdDev)]
         $gw marker create line \
           -coords [list $x1 $y1 $x2 $y2] \
           -outline $gGDF($iID,classes,$nClass,color) \
@@ -758,9 +750,7 @@ proc FsgdfPlot_PlotData { iID } {
         FsgdfPlot_CalculateSubjectMeasurement $iID $nSubj
       }
 
-      set gPlot($iID,state,data,subjects,$nSubj,variable) \
-        $gGDF($iID,subjects,$nSubj,variables,\
-                  $gPlot($iID,state,nVariable),value)
+      set gPlot($iID,state,data,subjects,$nSubj,variable) $gGDF($iID,subjects,$nSubj,variables,$gPlot($iID,state,nVariable),value)
 
       if {  $gPlot($iID,state,subjects,$nSubj,visible) } {
         set bHide 0
@@ -771,8 +761,7 @@ proc FsgdfPlot_PlotData { iID } {
       }
 
       $gw element create $gGDF($iID,subjects,$nSubj,id) \
-        -data [list $gPlot($iID,state,data,subjects,$nSubj,variable) \
-               $gPlot($iID,state,data,subjects,$nSubj,measurement)] \
+        -data [list $gPlot($iID,state,data,subjects,$nSubj,variable) $gPlot($iID,state,data,subjects,$nSubj,measurement)] \
         -symbol $gGDF($iID,classes,$gGDF($iID,subjects,$nSubj,nClass),marker) \
         -color $color -linewidth 0 -outlinewidth 1 -hide $bHide \
         -activepen activeElement
@@ -780,10 +769,8 @@ proc FsgdfPlot_PlotData { iID } {
       set meas $gPlot($iID,state,data,subjects,$nSubj,measurement)
       set stdDev $gPlot($iID,state,data,subjects,$nSubj,stdDev)
       $gw element create error$nSubj \
-        -data [list $gPlot($iID,state,data,subjects,$nSubj,variable) \
-               [expr $meas - $stdDev] \
-               $gPlot($iID,state,data,subjects,$nSubj,variable) \
-               [expr $meas + $stdDev]] \
+        -data [list $gPlot($iID,state,data,subjects,$nSubj,variable) [expr $meas - $stdDev] \
+               $gPlot($iID,state,data,subjects,$nSubj,variable) [expr $meas + $stdDev]] \
         -color $color \
         -symbol splus \
         -label "" \
@@ -812,8 +799,7 @@ proc FsgdfPlot_PlotData { iID } {
         set cGood 0
         foreach lPoint $gPlot($iID,state,lPoints) {
           scan $lPoint "%d %d %d" x y z
-          set lResults [gdfOffsetSlope $gGDF($iID,object) \
-                    $nClass $nVar $x $y $z]
+          set lResults [gdfOffsetSlope $gGDF($iID,object) $nClass $nVar $x $y $z]
           set err [lindex $lResults 0]
           if { 0 == $err } {
             set offset [expr $offset + [lindex $lResults 1]]
@@ -858,8 +844,7 @@ proc FsgdfPlot_CalculateSubjectMeasurement { iID inSubject } {
   foreach lPoint $gPlot($iID,state,lPoints) {
 
     scan $lPoint "%d %d %d" x y z
-    set lResults [gdfGetNthSubjectMeasurement $gGDF($iID,object) \
-              $inSubject $x $y $z]
+    set lResults [gdfGetNthSubjectMeasurement $gGDF($iID,object) $inSubject $x $y $z]
     set err [lindex $lResults 0]
     if { 0 == $err } {
       set sumMean [expr $sumMean + [lindex $lResults 1]]
@@ -1022,8 +1007,7 @@ proc FsgdfPlot_FocusElement { iID iElement inSubjInClass iX iY } {
   set nVariable $gPlot($iID,state,nVariable)
 
   set sValue [format "%.0f" $gPlot($iID,state,data,subjects,$nSubj,variable)]
-  set sMeasurement [format "%.3f" \
-                        $gPlot($iID,state,data,subjects,$nSubj,measurement)]
+  set sMeasurement [format "%.3f" $gPlot($iID,state,data,subjects,$nSubj,measurement)]
   set sStdDev ""
   if { $gPlot($iID,state,data,subjects,$nSubj,stdDev) != 0 } {
     set sStdDev " +/- [format "%.3f" $gPlot($iID,state,data,subjects,$nSubj,stdDev)]"
@@ -1033,9 +1017,7 @@ proc FsgdfPlot_FocusElement { iID iElement inSubjInClass iX iY } {
 
   set sLongLabel "$sId: $gGDF($iID,variables,$nVariable,label) = $sValue$sStdDev, $gGDF($iID,measurementName) = $sMeasurement"
 
-  $gWidgets($iID,gwPlot) marker create text \
-    -name hover -text $sShortLabel -anchor nw \
-    -coords [list $iX $iY]
+  $gWidgets($iID,gwPlot) marker create text -name hover -text $sShortLabel -anchor nw -coords [list $iX $iY]
 
   set gPlot($iID,state,focusInfo) $sLongLabel
 }
