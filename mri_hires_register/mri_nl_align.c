@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/02 14:02:03 $
- *    $Revision: 1.12 $
+ *    $Author: postelni $
+ *    $Date: 2007/04/09 18:07:02 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,9 +33,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/01/02 14:02:03 $
-// Revision       : $Revision: 1.12 $
+// Revision Author: $Author: postelni $
+// Revision Date  : $Date: 2007/04/09 18:07:02 $
+// Revision       : $Revision: 1.13 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -103,6 +103,8 @@ main(int argc, char *argv[])
 	LTA          *lta ;
 
 
+	/* initialize the morph params */
+	memset(&mp, 0, sizeof(GCA_MORPH_PARMS));
 	/* for nonlinear morph */
 	mp.l_jacobian = 1 ;
 	mp.l_distance = 0 ;
@@ -425,9 +427,9 @@ get_option(int argc, char *argv[])
 	}
 	else if (!stricmp(option, "apply"))
 	{
-    apply_transform = atoi(argv[2]) ;
-    nargs = 1 ;
-    printf("%sapplying transform after registration\n", apply_transform ? "" : "not ") ;
+	  apply_transform = atoi(argv[2]) ;
+	  nargs = 1 ;
+	  printf("%sapplying transform after registration\n", apply_transform ? "" : "not ") ;
   }
 	else switch (*option)
 	{
