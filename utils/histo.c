@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:33 $
- *    $Revision: 1.49 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/09 17:11:46 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -179,6 +179,8 @@ HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   histo_dst->bin_size = histo_src->bin_size ;
   memcpy(histo_dst->counts, histo_src->counts, sizeof(*histo_src->counts)*histo_src->nbins) ;
   memcpy(histo_dst->bins, histo_src->bins, sizeof(*histo_src->bins)*histo_src->nbins) ;
+  histo_dst->min = histo_src->min ;
+  histo_dst->max = histo_src->max ;
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
@@ -543,6 +545,8 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
   {
     histo_dst = HISTOalloc(nbins) ;
     histo_dst->bin_size = histo_src->bin_size ;
+    histo_dst->min = histo_src->min ;
+    histo_dst->max = histo_src->max ;
   }
   else
   {
