@@ -1,14 +1,21 @@
 #! /bin/tcsh -ef
 
-if ( "x$1" == "x" || "x$2" == "x" ) then
-    echo "USAGE: asegstatsdiff <subj1> <subj2>"
+if ( "x$1" == "x" || \
+     "x$2" == "x" || \
+     "x$3" == "x" || \
+     "x$4" == "x" || \
+     "x$5" == "x") then
+    echo "USAGE: aparcstatsdiff <subj1> <subj2> <hemi> <parc> <meas>"
     echo ""
-    echo "The utility asegstats2table is executed given the two subjects"
-    echo "as input, and an output table called asegstats.txt is produced."
+    echo "The utility aparcstats2table is executed given the two subjects"
+    echo "as input, along with hemisphere (rh or lh), parcellation scheme"
+    echo "(aparc or aparc.a2005s) and measure (area, volume, thickness), "
+    echo "and an output table called aparcstats-hemi.parc.meas.txt "
+    echo "is produced."
     echo "Then, another row is added to that table containing the percent"
     echo "difference between the data of each of the two subjects."
     echo "Mainly this is used to evaluate the effect of a code change on"
-    echo "the aseg morphometry data for a given subject (before and after)."
+    echo "the aparc morphometry data for a given subject (before and after)."
     echo "The return code is the number of structures found to have nonzero"
     echo "percentage differences."
     exit 1
@@ -26,15 +33,38 @@ if ( "x$1" == "x$2" ) then
     echo "Subject names must be different."
     exit 1
 endif
+if ( "x$3" != "xrh" && "x$3" != "xlh" ) then
+    echo "Third parameter must be either rh or lh"
+    exit 1
+endif
+if ( "x$4" != "xaparc" && "x$4" != "xaparc.a2005s" ) then
+    echo "Fourth parameter must be either aparc or aparc.a2005s"
+    exit 1
+endif
+if ( "x$5" != "xarea" && "x$5" != "xvolume" && "x$5" != "xthickness") then
+    echo "Fifth parameter must be either area, volume or thickness"
+    exit 1
+endif
 
-asegstats2table --s $1 --s $2 --t asegstats.txt > /dev/null
+set hemi=$3
+set parc=$4
+set meas=$5
+set stat="${hemi}.${parc}.${meas}"
+set outfile=aparcstats-${stat}.txt
 
-set labels=`grep volume asegstats.txt`
-set subj1=`grep $1 asegstats.txt`
-set subj2=`grep $2 asegstats.txt`
+aparcstats2table \
+    --subjects $1 $2 \
+    --hemi $hemi \
+    --parc $parc \
+    --meas $meas \
+    --t $outfile > /dev/null
+
+set labels=`grep ${stat} ${outfile}`
+set subj1=`grep $1 ${outfile}`
+set subj2=`grep $2 ${outfile}`
 
 if ( "$#labels" != "$#subj1" ) then
-    echo "Label row and Subj1 row have unequal number of columns!" 
+    echo "Label row and Subj1 row have unequal number of columns!"
     echo "$#labels"
     echo "$#subj1"
     exit 1
@@ -74,6 +104,6 @@ while ( "$idx" != "$total" )
 
 end
 
-echo "${newrow}" >> asegstats.txt
+echo "${newrow}" >> ${outfile}
 
 exit ${count}

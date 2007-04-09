@@ -30,8 +30,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/03/03 00:00:17 $
-#    $Revision: 1.8 $
+#    $Date: 2007/04/09 02:23:04 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.8 2007/03/03 00:00:17 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.9 2007/04/09 02:23:04 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -532,6 +532,35 @@ foreach statfile ($STATS_FILES)
     chmod g+rw $SUBJECTS_DIR/ref.*
     chmod g+rw $SUBJECTS_DIR/tst.*
   endif # ($RunIt)
+end
+
+asegstatsdiff --s ref_subj --s $TEST_SUBJ > $LOG_DIR/asegstatsdiff.txt
+set stats_diff_status=$status
+if ($stats_diff_status != 0) then
+  printf "***FAILED :: asegstatsdiff (exit status=$stats_diff_status)\n" \
+       >>& $OUTPUTF
+  setenv FOUND_ERROR 1
+  # continue running tests
+else
+  printf "   pass :: asegstatsdiff\n" >>& $OUTPUTF
+endif
+
+foreach hemi (rh lh)
+    foreach parc (aparc aparc.a2005s)
+        foreach meas (area volume thickness)
+        aparcstatsdiff --s ref_subj $TEST_SUBJ $hemi $parc $meas \
+            > $LOG_DIR/aparcstatsdiff-$hemi-$parc-$meas.txt
+        set stats_diff_status=$status
+        if ($stats_diff_status != 0) then
+            printf "***FAILED :: aparcstatsdiff-$hemi-$parc-$meas (exit status=$stats_diff_status)\n" \
+                >>& $OUTPUTF
+            setenv FOUND_ERROR 1
+            # continue running tests
+        else
+            printf "   pass :: aparcstatsdiff-$hemi-$parc-$meas\n" >>& $OUTPUTF
+        endif
+        end
+    end
 end
 
 
