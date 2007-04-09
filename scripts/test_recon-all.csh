@@ -30,8 +30,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/09 02:23:04 $
-#    $Revision: 1.9 $
+#    $Date: 2007/04/09 04:26:06 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.9 2007/04/09 02:23:04 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.10 2007/04/09 04:26:06 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -428,8 +428,10 @@ foreach hemi ($TEST_HEMIS)
     set cmd=($cmd --srcsubject ref_subj)
     set cmd=($cmd --trgsubject $TEST_SUBJ)
     set cmd=($cmd --hemi $hemi)
-    set cmd=($cmd --sval-annot $SUBJECTS_DIR/ref_subj/label/$hemi.$aparcname.annot)
-    set cmd=($cmd --tval $SUBJECTS_DIR/$TEST_SUBJ/label/$hemi.${REF_SUBJ}_ref.$aparcname.annot)
+    set cmd=($cmd --sval-annot \
+        $SUBJECTS_DIR/ref_subj/label/$hemi.$aparcname.annot)
+    set cmd=($cmd --tval \
+        $SUBJECTS_DIR/$TEST_SUBJ/label/$hemi.${REF_SUBJ}_ref.$aparcname.annot)
     echo $cmd
     if ($RunIt) then
       set S2SF=$LOG_DIR/mri_surf2surf-$hemi.$aparcname.txt
@@ -534,7 +536,10 @@ foreach statfile ($STATS_FILES)
   endif # ($RunIt)
 end
 
-asegstatsdiff --s ref_subj --s $TEST_SUBJ > $LOG_DIR/asegstatsdiff.txt
+set cmd=(asegstatsdiff ref_subj $TEST_SUBJ $LOG_DIR)
+echo $cmd
+set outfile=($LOG_DIR/asegstatsdiff.txt)
+$cmd > $outfile
 set stats_diff_status=$status
 if ($stats_diff_status != 0) then
   printf "***FAILED :: asegstatsdiff (exit status=$stats_diff_status)\n" \
@@ -544,12 +549,16 @@ if ($stats_diff_status != 0) then
 else
   printf "   pass :: asegstatsdiff\n" >>& $OUTPUTF
 endif
+sort -n $outfile > $outfile.tmp
+mv $outfile.tmp $outfile
 
 foreach hemi (rh lh)
     foreach parc (aparc aparc.a2005s)
         foreach meas (area volume thickness)
-        aparcstatsdiff --s ref_subj $TEST_SUBJ $hemi $parc $meas \
-            > $LOG_DIR/aparcstatsdiff-$hemi-$parc-$meas.txt
+        set cmd=(aparcstatsdiff ref_subj $TEST_SUBJ $hemi $parc $meas $LOG_DIR)
+        echo $cmd
+        set outfile=($LOG_DIR/aparcstatsdiff-$hemi-$parc-$meas.txt)
+        $cmd > $outfile
         set stats_diff_status=$status
         if ($stats_diff_status != 0) then
             printf "***FAILED :: aparcstatsdiff-$hemi-$parc-$meas (exit status=$stats_diff_status)\n" \
@@ -559,9 +568,30 @@ foreach hemi (rh lh)
         else
             printf "   pass :: aparcstatsdiff-$hemi-$parc-$meas\n" >>& $OUTPUTF
         endif
+        sort -n $outfile > $outfile.tmp
+        mv $outfile.tmp $outfile
         end
     end
 end
+
+
+#
+# Organize the pile of results
+#
+cd $LOG_DIR
+mkdir -p mri_diff > /dev/null
+mkdir -p mris_diff > /dev/null
+mkdir -p aseg > /dev/null
+mkdir -p aparc > /dev/null
+mv mri_diff* mri_diff/ > /dev/null
+mv mris_diff* mris_diff/ > /dev/null
+mv *seg* aseg/ > /dev/null
+mv aparc* aparc/ > /dev/null
+mv *.aparc* aparc/ > /dev/null
+# these are the files we really care about:
+ln -s aseg/asegstatsdiff.txt > /dev/null
+ln -s aparc/aparcstatsdiff-rh-aparc-thickness.txt > /dev/null
+ln -s aparc/aparcstatsdiff-lh-aparc-thickness.txt > /dev/null
 
 
 #
@@ -569,8 +599,10 @@ end
 # has completed (beginning of this script checks if subject dir exists,
 # and doesnt start recon-all if it does)
 #
-rm -Rf $SUBJECTS_DIR/$TEST_SUBJ-done
-mv $SUBJECTS_DIR/$TEST_SUBJ $SUBJECTS_DIR/$TEST_SUBJ-done
+if ( ! $?SKIP_RECON) then
+    rm -Rf $SUBJECTS_DIR/$TEST_SUBJ-done
+    mv $SUBJECTS_DIR/$TEST_SUBJ $SUBJECTS_DIR/$TEST_SUBJ-done
+endif
 
 
 #

@@ -1,7 +1,7 @@
 #! /bin/tcsh -ef
 
 if ( "x$1" == "x" || "x$2" == "x" ) then
-    echo "USAGE: asegstatsdiff <subj1> <subj2>"
+    echo "USAGE: asegstatsdiff <subj1> <subj2> [<outdir>]"
     echo ""
     echo "The utility asegstats2table is executed given the two subjects"
     echo "as input, and an output table called asegstats.txt is produced."
@@ -11,6 +11,7 @@ if ( "x$1" == "x" || "x$2" == "x" ) then
     echo "the aseg morphometry data for a given subject (before and after)."
     echo "The return code is the number of structures found to have nonzero"
     echo "percentage differences."
+    echo "[<outdir>] - optionally specify a directory to write asegstats.txt"
     exit 1
 endif
 
@@ -26,12 +27,17 @@ if ( "x$1" == "x$2" ) then
     echo "Subject names must be different."
     exit 1
 endif
+if ( "x$3" != "x" ) then
+    set outfile=$3/asegstats.txt
+else
+    set outfile=./asegstats.txt
+endif
 
-asegstats2table --s $1 --s $2 --t asegstats.txt > /dev/null
+asegstats2table --s $1 --s $2 --t ${outfile} > /dev/null
 
-set labels=`grep volume asegstats.txt`
-set subj1=`grep $1 asegstats.txt`
-set subj2=`grep $2 asegstats.txt`
+set labels=`grep volume ${outfile}`
+set subj1=`grep $1 ${outfile}`
+set subj2=`grep $2 ${outfile}`
 
 if ( "$#labels" != "$#subj1" ) then
     echo "Label row and Subj1 row have unequal number of columns!" 
@@ -63,9 +69,9 @@ while ( "$idx" != "$total" )
         if ($status) exit 1
         set pctdiff=`echo "scale=4; ${pctdiff} * 100" | bc`
         if ($status) exit 1
-        echo "${pctdiff}\t\t${label}"
+        echo "${pctdiff}\t\t${label}   (s1:${struct1}, s2:${struct2})"
         set newrow=( ${newrow} ${pctdiff} )
-        @ count++
+        @ diffcount++
     else
         set newrow=( ${newrow} 0 )
     endif
@@ -74,6 +80,6 @@ while ( "$idx" != "$total" )
 
 end
 
-echo "${newrow}" >> asegstats.txt
+echo "${newrow}" >> ${outfile}
 
-exit ${count}
+exit ${diffcount}
