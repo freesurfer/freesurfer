@@ -9,11 +9,11 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2007/04/09 22:38:09 $
+ *    $Revision: 1.2 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -68,6 +68,11 @@ class ScubaCollectionPropertiesDTI {
     Least, Less, Normal
   };
   virtual TensorDetailType GetTensorDetail () const = 0;
+
+ protected:
+
+  ScubaCollectionPropertiesDTI () {};
+  virtual ~ScubaCollectionPropertiesDTI () {};
 
 };
 

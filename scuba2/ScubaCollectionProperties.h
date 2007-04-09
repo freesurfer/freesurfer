@@ -9,11 +9,11 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2007/04/09 22:38:09 $
+ *    $Revision: 1.2 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -43,6 +43,11 @@ class ScubaCollectionProperties {
   // Return the opacity for this layer from 0-1. Changes will be
   // broadcast with the "OpacityChanged" message.
   virtual float GetOpacity () const = 0;
+
+ protected:
+
+  ScubaCollectionProperties () {};
+  virtual ~ScubaCollectionProperties () {};
 };
 
 #endif
