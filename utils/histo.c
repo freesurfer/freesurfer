@@ -1,15 +1,15 @@
 /**
  * @file  histo.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief 1d histogram utilities.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Utilities for computing and analyzing 1 dimensional histograms.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/09 17:11:46 $
- *    $Revision: 1.50 $
+ *    $Date: 2007/04/09 17:12:37 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
