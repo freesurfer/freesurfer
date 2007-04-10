@@ -26,12 +26,14 @@
 #     mri_surf2surf
 #     mris_compute_parc_overlap
 #     diff
+#     asegstatsdiff
+#     aparcstatsdiff
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/09 04:26:06 $
-#    $Revision: 1.10 $
+#    $Date: 2007/04/10 16:48:01 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -47,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.10 2007/04/09 04:26:06 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.11 2007/04/10 16:48:01 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -139,6 +141,8 @@ while( $#argv != 0 )
       echo "  mri_surf2surf"
       echo "  mris_compute_parc_overlap"
       echo "  diff"
+      echo "  asegstatsdiff"
+      echo "  aparcstatsdiff"
       exit 1
       breaksw
 
@@ -536,7 +540,7 @@ foreach statfile ($STATS_FILES)
   endif # ($RunIt)
 end
 
-set cmd=(asegstatsdiff ref_subj $TEST_SUBJ $LOG_DIR)
+set cmd=($DEV_PATH/asegstatsdiff ref_subj $TEST_SUBJ $LOG_DIR)
 echo $cmd
 set outfile=($LOG_DIR/asegstatsdiff.txt)
 $cmd > $outfile
@@ -555,7 +559,8 @@ mv $outfile.tmp $outfile
 foreach hemi (rh lh)
     foreach parc (aparc aparc.a2005s)
         foreach meas (area volume thickness)
-        set cmd=(aparcstatsdiff ref_subj $TEST_SUBJ $hemi $parc $meas $LOG_DIR)
+        set cmd=($DEV_PATH/aparcstatsdiff \
+            ref_subj $TEST_SUBJ $hemi $parc $meas $LOG_DIR)
         echo $cmd
         set outfile=($LOG_DIR/aparcstatsdiff-$hemi-$parc-$meas.txt)
         $cmd > $outfile
