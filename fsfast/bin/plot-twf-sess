@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.8 $
+#    $Author: greve $
+#    $Date: 2007/04/10 21:59:11 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: plot-twf-sess,v 1.8 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: plot-twf-sess,v 1.9 2007/04/10 21:59:11 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -45,6 +45,7 @@ set RunList = ();
 set PrintHelp = 0;
 set corner = tr;
 set nolog = 0;
+set UseXV = 0;
 
 if($#argv == 0)  goto usage_exit;
 
@@ -181,11 +182,13 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  #echo "INFO: launching xv"
-  #xv $imgfile &
-  echo "INFO: launching display"
-  display $imgfile &
-
+  if($UseXV) then
+    echo "INFO: launching xv"
+    xv $imgfile &
+  else
+    echo "INFO: launching display"
+    display $imgfile &
+  endif
 
 end # End loop over sessions
 
@@ -294,6 +297,10 @@ while( $#argv != 0 )
       set xlabel = "Time Point"
       set datcoly = 2;
       set title = "Mean In-Brain Temporal Waveform (std=1)"
+      breaksw
+
+    case "-xv":
+      set UseXV = 1;
       breaksw
 
     case "-nolog":
