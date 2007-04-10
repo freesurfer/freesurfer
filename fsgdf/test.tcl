@@ -1,12 +1,12 @@
-#! /usr/bin/tixwish
-
 ##
 ## test.tcl
 ##
+## Original author: Kevin Teich
+##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2007/01/05 00:20:54 $
-##    $Revision: 1.10 $
+##    $Date: 2007/04/10 20:56:56 $
+##    $Revision: 1.11 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:57 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/04/10 20:56:56 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,12 +34,14 @@
 #define Assert(x,s) \
     if( !(x) ) { \
       fprintf (stderr, "Error: %s\n", s ); \
+      exit(1); \
     } \
 
 #define AssertTclOK(x,s) \
     if( TCL_OK != (x) ) { \
       fprintf (stderr, "Tcl_Eval returned not TCL_OK:\n"  \
          "Trying: %s\nResult: %s\n", s, interp->result ); \
+      exit(1); \
     } \
 
 
@@ -87,18 +89,26 @@ int main (int argc, char** argv) {
   printf("C Test successful.\n\n");
 
 
+  printf("Tcl_CreateInterp..."); fflush(stdout);
   Tcl_Interp* interp = Tcl_CreateInterp();
   Assert( NULL != interp, "Tcl_CreateInterp returned null" );
+  printf("done.\n");
 
+  printf("Tcl_Init..."); fflush(stdout);
   rTcl = Tcl_Init( interp );
   AssertTclOK( rTcl, "Tcl_Init returned not TCL_OK" );
+  printf("done.\n");
 
   /* Initialize our Fsgdf functions. This is in fsgdf_wrap.c */
+  printf("Fsgdf_Init..."); fflush(stdout);
   rTcl = Fsgdf_Init( interp );
   AssertTclOK( rTcl, "Fsgdf_Init failed" );
+  printf("done.\n");
 
-  rTcl = Tcl_EvalFile( interp, "test.tcl" );
+  printf("Tcl_EvalFile( test.tcl )..."); fflush(stdout);
+  rTcl = Tcl_EvalFile( interp, "./test.tcl" );
   AssertTclOK( rTcl, "Tcl_EvalFile returned not TCL_OK" );
+  printf("done.\n");
 
   printf("Tcl Test successful.\n\n");
 
