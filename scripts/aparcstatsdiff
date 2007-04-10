@@ -1,4 +1,4 @@
-#! /bin/tcsh -ef
+#! /bin/tcsh -f
 
 if ( "x$1" == "x" || \
      "x$2" == "x" || \
@@ -9,7 +9,7 @@ if ( "x$1" == "x" || \
     echo ""
     echo "The utility aparcstats2table is executed given the two subjects"
     echo "as input, along with hemisphere (rh or lh), parcellation scheme"
-    echo "(aparc or aparc.a2005s) and measure (area, volume, thickness), "
+    echo "(aparc or aparc.a2005s) and measure (area, volume, or thickness), "
     echo "and an output table called aparcstats-hemi.parc.meas.txt "
     echo "is produced."
     echo "Then, another row is added to that table containing the percent"
@@ -18,7 +18,9 @@ if ( "x$1" == "x" || \
     echo "the aparc morphometry data for a given subject (before and after)."
     echo "The return code is the number of structures found to have nonzero"
     echo "percentage differences."
+    echo ""
     echo "[<outdir>] - optionally specify a directory to write aparcstats-hemi.parc.meas.txt"
+    echo ""
     exit 1
 endif
 
@@ -56,13 +58,20 @@ else
     set outfile=aparcstats-${stat}.txt
 endif
 
-aparcstats2table \
-    --subjects $1 $2 \
-    --hemi $hemi \
-    --parc $parc \
-    --meas $meas \
-    --t ${outfile} > /dev/null
-
+set cmd=(aparcstats2table \
+        --subjects $1 $2 \
+        --hemi $hemi \
+        --parc $parc \
+        --meas $meas \
+        --t ${outfile})
+$cmd > /tmp/aparcstats2table.txt
+if ($status) then
+    echo "FAILED: $cmd"
+    cat /tmp/aparcstats2table.txt
+    exit 1
+endif
+rm -f /tmp/aparcstats2table.txt
+    
 set labels=`grep ${stat} ${outfile}`
 set subj1=`grep $1 ${outfile}`
 set subj2=`grep $2 ${outfile}`
@@ -85,19 +94,22 @@ set total=$#subj1
 set idx=2
 set newrow=( "pctdiff" )
 set diffcount=0
+set stdoutfile=(/tmp/aparcstatsdiff.txt)
+rm -f $stdoutfile
 while ( "$idx" != "$total" )
 
     set label=$labels[$idx]
     set struct1=$subj1[$idx]
     set struct2=$subj2[$idx]
-    set diff=`echo "scale=4; ${struct1} - ${struct2}" | bc`
+    set diff=`echo "scale=4; ${struct2} - ${struct1}" | bc`
     if ($status) exit 1
     if ( "$diff" != "0" ) then
         set pctdiff=`echo "scale=4; ${diff} / ${struct1}" | bc`
         if ($status) exit 1
         set pctdiff=`echo "scale=4; ${pctdiff} * 100" | bc`
         if ($status) exit 1
-        echo "${pctdiff}\t\t${label}   (s1:${struct1}, s2:${struct2})"
+        echo "${pctdiff}\t\t${label}   (s1: ${struct1}, s2: ${struct2})" \
+            >> $stdoutfile
         set newrow=( ${newrow} ${pctdiff} )
         @ diffcount++
     else
@@ -108,6 +120,13 @@ while ( "$idx" != "$total" )
 
 end
 
+# add the new row to table output by aparcstats2table
 echo "${newrow}" >> ${outfile}
+
+# output the column of non-zero structures, sorted by % change
+echo "% diff:\t\tlabel:   (subject1: value, subject2: value)"
+echo "-------\t\t-------------------------------------------"
+cat $stdoutfile | sort -n
+rm -f $stdoutfile
 
 exit ${diffcount}

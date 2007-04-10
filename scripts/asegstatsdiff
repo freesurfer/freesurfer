@@ -1,4 +1,4 @@
-#! /bin/tcsh -ef
+#! /bin/tcsh -f
 
 if ( "x$1" == "x" || "x$2" == "x" ) then
     echo "USAGE: asegstatsdiff <subj1> <subj2> [<outdir>]"
@@ -11,7 +11,9 @@ if ( "x$1" == "x" || "x$2" == "x" ) then
     echo "the aseg morphometry data for a given subject (before and after)."
     echo "The return code is the number of structures found to have nonzero"
     echo "percentage differences."
+    echo ""
     echo "[<outdir>] - optionally specify a directory to write asegstats.txt"
+    echo ""
     exit 1
 endif
 
@@ -33,7 +35,14 @@ else
     set outfile=./asegstats.txt
 endif
 
-asegstats2table --s $1 --s $2 --t ${outfile} > /dev/null
+set cmd=(asegstats2table --s $1 --s $2 --t ${outfile})
+$cmd > /tmp/asegstats2table.txt
+if ($status) then
+    echo "FAILED: $cmd"
+    cat /tmp/asegstats2table.txt
+    exit 1
+endif
+rm -f /tmp/asegstats2table.txt
 
 set labels=`grep volume ${outfile}`
 set subj1=`grep $1 ${outfile}`
@@ -57,19 +66,22 @@ set total=$#subj1
 set idx=2
 set newrow=( "pctdiff" )
 set diffcount=0
+set stdoutfile=(/tmp/asegstatsdiff.txt)
+rm -f $stdoutfile
 while ( "$idx" != "$total" )
 
     set label=$labels[$idx]
     set struct1=$subj1[$idx]
     set struct2=$subj2[$idx]
-    set diff=`echo "scale=4; ${struct1} - ${struct2}" | bc`
+    set diff=`echo "scale=4; ${struct2} - ${struct1}" | bc`
     if ($status) exit 1
     if ( "$diff" != "0" ) then
         set pctdiff=`echo "scale=4; ${diff} / ${struct1}" | bc`
         if ($status) exit 1
         set pctdiff=`echo "scale=4; ${pctdiff} * 100" | bc`
         if ($status) exit 1
-        echo "${pctdiff}\t\t${label}   (s1:${struct1}, s2:${struct2})"
+        echo "${pctdiff}\t\t${label}   (s1: ${struct1}, s2: ${struct2})" \
+            >> $stdoutfile
         set newrow=( ${newrow} ${pctdiff} )
         @ diffcount++
     else
@@ -80,6 +92,13 @@ while ( "$idx" != "$total" )
 
 end
 
+# add the new row to table output by asegstats2table
 echo "${newrow}" >> ${outfile}
+
+# output the column of non-zero structures, sorted by % change
+echo "% diff:\t\tlabel:   (subject1:value, subject2:value)"
+echo "-------\t\t-------------------------------------------"
+cat $stdoutfile | sort -n
+rm -f $stdoutfile
 
 exit ${diffcount}

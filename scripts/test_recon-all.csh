@@ -32,10 +32,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/10 16:48:01 $
-#    $Revision: 1.11 $
+#    $Date: 2007/04/10 19:43:49 $
+#    $Revision: 1.12 $
 #
-# Copyright (C) 2002-2007,
+# Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.11 2007/04/10 16:48:01 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.12 2007/04/10 19:43:49 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -457,6 +457,7 @@ foreach hemi ($TEST_HEMIS)
     set cmd=($cmd --hemi $hemi)
     set cmd=($cmd --annot1 $aparcname)
     set cmd=($cmd --annot2 ${REF_SUBJ}_ref.$aparcname)
+    set cmd=($cmd --debug-overlap)
     echo $cmd
     if ($RunIt) then
       set MCPOF=$LOG_DIR/mris_comp_parc_olap-$hemi.$aparcname.txt
@@ -553,8 +554,6 @@ if ($stats_diff_status != 0) then
 else
   printf "   pass :: asegstatsdiff\n" >>& $OUTPUTF
 endif
-sort -n $outfile > $outfile.tmp
-mv $outfile.tmp $outfile
 
 foreach hemi (rh lh)
     foreach parc (aparc aparc.a2005s)
@@ -573,8 +572,6 @@ foreach hemi (rh lh)
         else
             printf "   pass :: aparcstatsdiff-$hemi-$parc-$meas\n" >>& $OUTPUTF
         endif
-        sort -n $outfile > $outfile.tmp
-        mv $outfile.tmp $outfile
         end
     end
 end
@@ -597,7 +594,8 @@ mv *.aparc* aparc/ > /dev/null
 ln -s aseg/asegstatsdiff.txt > /dev/null
 ln -s aparc/aparcstatsdiff-rh-aparc-thickness.txt > /dev/null
 ln -s aparc/aparcstatsdiff-lh-aparc-thickness.txt > /dev/null
-
+ln -s aparc/mris_comp_parc_olap-rh.aparc.txt > /dev/null
+ln -s aparc/mris_comp_parc_olap-lh.aparc.txt > /dev/null
 
 #
 # move completed run to another dir, indicating that recon-all test
