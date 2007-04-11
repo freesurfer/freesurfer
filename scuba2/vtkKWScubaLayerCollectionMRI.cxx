@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/11 18:50:20 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/04/11 18:51:55 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayerCollectionMRI );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollectionMRI, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollectionMRI, "$Revision: 1.3 $" );
 
 vtkKWScubaLayerCollectionMRI::vtkKWScubaLayerCollectionMRI () :
   mLUTTable( NULL ),
@@ -228,7 +228,7 @@ vtkKWScubaLayerCollectionMRI::AddControls ( vtkKWWidget* iPanel ) {
                     mRangeWindowLevel->GetWidgetName() );
 
       break;
-    case HeatScale:
+    case HeatScale: {
 
       vtkKWHistogram* histogram = vtkKWHistogram::New();
       histogram->
@@ -292,7 +292,7 @@ vtkKWScubaLayerCollectionMRI::AddControls ( vtkKWWidget* iPanel ) {
       mRGBAEditorHeatScale->SetPointSymmetry( 1, 4 );
       mRGBAEditorHeatScale->SetPointSymmetry( 2, 3 );
 
-      break;
+      } break;
     case LUT: {
 
       mLabelLUTFileName = vtkKWLabel::New();
