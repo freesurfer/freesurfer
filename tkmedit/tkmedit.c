@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/04 21:26:17 $
- *    $Revision: 1.309 $
+ *    $Author: msh $
+ *    $Date: 2007/04/11 22:23:51 $
+ *    $Revision: 1.310 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.309 $";
+char *VERSION = "$Revision: 1.310 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.309 2007/04/04 21:26:17 kteich Exp $",
+     "$Id: tkmedit.c,v 1.310 2007/04/11 22:23:51 msh Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -4863,7 +4863,7 @@ int TclLoadMainSurface ( ClientData inClientData, Tcl_Interp* inInterp,
     break;
   default:
     Tcl_SetResult ( inInterp,
-                    "wrong # args: LoadMainSurface 0=main,1=aux"
+                    "wrong # args: LoadMainSurface 0=main,1=aux "
                     "surface_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -4892,7 +4892,7 @@ int TclLoadPialSurface ( ClientData inClientData, Tcl_Interp* inInterp,
     break;
   default:
     Tcl_SetResult ( inInterp,
-                    "wrong # args: LoadPialSurface 0=main,1=aux"
+                    "wrong # args: LoadPialSurface 0=main,1=aux "
                     "surface_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -4921,7 +4921,7 @@ int TclLoadOriginalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
     break;
   default:
     Tcl_SetResult ( inInterp,
-                    "wrong # args: LoadOriginalSurface 0=main,1=aux"
+                    "wrong # args: LoadOriginalSurface 0=main,1=aux "
                     "surface_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -5884,7 +5884,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.309 2007/04/04 21:26:17 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.310 2007/04/11 22:23:51 msh Exp $ $Name:  $\n"
     )
   );
 
@@ -7026,7 +7026,8 @@ int mask;
     if ((code != TCL_OK) || (tty))
       puts(interp->result);
 prompt:
-  if (tty)  Prompt(interp, gotPartial);
+  if (tty) Prompt(interp, gotPartial);
+  fflush(stdout);
   Tcl_ResetResult(interp);
 }
 
@@ -7055,7 +7056,6 @@ defaultPrompt:
       goto defaultPrompt;
     }
   }
-  fflush(stdout);
 }
 
 /* ================================================ Control point utilities */

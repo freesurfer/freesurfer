@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:16 $
- *    $Revision: 1.38 $
+ *    $Author: msh $
+ *    $Date: 2007/04/11 22:23:51 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -311,6 +311,12 @@ MWin_tErr MWin_PlaceToolWindow_ ( tkmMeditWindowRef this );
 MWin_tErr MWin_ChangeFocusedDisplayAreaBy_( tkmMeditWindowRef this,
     int    inDelta );
 
+/* Show a window */
+MWin_tErr MWin_ShowWindow ( tkmMeditWindowRef this );
+
+/* Hide a window from display */
+MWin_tErr MWin_HideWindow ( tkmMeditWindowRef this );
+
 /* register tcl commands */
 MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
                                      Tcl_Interp*       ipInterp );
@@ -438,6 +444,18 @@ int MWin_TclSetFuncOverlayAlpha ( ClientData  iClientData,
                                   int   argc,
                                   char*   argv[] );
 int MWin_TclRedrawAll       ( ClientData  iClientData,
+                              Tcl_Interp* ipInterp,
+                              int   argc,
+                              char*   argv[] );
+int MWin_TclHideWindow       ( ClientData  iClientData,
+                              Tcl_Interp* ipInterp,
+                              int   argc,
+                              char*   argv[] );
+int MWin_TclShowWindow       ( ClientData  iClientData,
+                              Tcl_Interp* ipInterp,
+                              int   argc,
+                              char*   argv[] );
+int MWin_TclPositionWindow  ( ClientData  iClientData,
                               Tcl_Interp* ipInterp,
                               int   argc,
                               char*   argv[] );

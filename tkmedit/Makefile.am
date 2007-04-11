@@ -33,7 +33,7 @@ install-exec-hook:
 	mv $(srcdir)/tkmedit $(DESTDIR)$(bindir)/tkmedit.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/tkmedit
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/tkmedit
-	echo "tkmedit.bin \$$argv" >> $(DESTDIR)$(bindir)/tkmedit
+	echo "exec tkmedit.bin \$$argv" >> $(DESTDIR)$(bindir)/tkmedit
 	chmod a+x $(DESTDIR)$(bindir)/tkmedit
 else
 all:

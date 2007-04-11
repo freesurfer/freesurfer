@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:16 $
- *    $Revision: 1.60 $
+ *    $Author: msh $
+ *    $Date: 2007/04/11 22:23:51 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -2949,6 +2949,78 @@ cleanup:
 
 }
 
+MWin_tErr MWin_PositionWindow ( tkmMeditWindowRef this, int x, int y ) {
+
+  MWin_tErr eResult     = MWin_tErr_NoErr;
+
+  glutPositionWindow(x,y);
+  glutShowWindow();
+
+  goto cleanup;
+
+  goto error;
+error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_PositionWindow: %s\n",
+                 eResult, MWin_GetErrorString(eResult) ) );
+  }
+
+cleanup:
+
+  return eResult;
+}
+
+
+
+MWin_tErr MWin_ShowWindow ( tkmMeditWindowRef this ) {
+
+  MWin_tErr eResult     = MWin_tErr_NoErr;
+
+
+  glutShowWindow();
+
+  goto cleanup;
+
+  goto error;
+error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_ShowWindow: %s\n",
+                 eResult, MWin_GetErrorString(eResult) ) );
+  }
+
+cleanup:
+
+  return eResult;
+}
+
+
+MWin_tErr MWin_HideWindow ( tkmMeditWindowRef this ) {
+
+  MWin_tErr eResult     = MWin_tErr_NoErr;
+
+
+  glutHideWindow();
+
+  goto cleanup;
+
+  goto error;
+error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_HideWindow: %s\n",
+                 eResult, MWin_GetErrorString(eResult) ) );
+  }
+
+cleanup:
+
+  return eResult;
+}
+
 
 
 MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
@@ -3045,6 +3117,15 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
                       (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "RedrawAll",
                       (Tcl_CmdProc*) MWin_TclRedrawAll,
+                      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( ipInterp, "HideWindow",
+                      (Tcl_CmdProc*) MWin_TclHideWindow,
+                      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( ipInterp, "ShowWindow",
+                      (Tcl_CmdProc*) MWin_TclShowWindow,
+                      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( ipInterp, "PositionWindow",
+                      (Tcl_CmdProc*) MWin_TclPositionWindow,
                       (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
 
   goto cleanup;
@@ -5064,3 +5145,175 @@ cleanup:
 
   return eTclResult;
 }
+
+int MWin_TclHideWindow( ClientData  ipClientData,
+                        Tcl_Interp* ipInterp,
+                        int         argc,
+                        char*       argv[] ) {
+
+  tkmMeditWindowRef this         = NULL;
+  int               eTclResult   = TCL_OK;
+  MWin_tErr         eResult      = MWin_tErr_NoErr;
+  char              sError[256]  = "";
+
+  /* grab us from the client data ptr */
+  this = (tkmMeditWindowRef) ipClientData;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if not accepting commands yet, return. */
+  if ( !this->mbAcceptingTclCommands )
+    goto cleanup;
+
+  /* redraw all. */
+
+  eResult = MWin_HideWindow ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  goto cleanup;
+
+error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+
+    sprintf ( sError, "Error %d in MWin_HideWindow: %s\n",
+              eResult, MWin_GetErrorString(eResult) );
+
+    DebugPrint( (sError ) );
+
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
+  }
+
+  eTclResult = TCL_ERROR;
+
+cleanup:
+
+  return eTclResult;
+}
+
+int MWin_TclShowWindow( ClientData  ipClientData,
+                        Tcl_Interp* ipInterp,
+                        int         argc,
+                        char*       argv[] ) {
+
+  tkmMeditWindowRef this         = NULL;
+  int               eTclResult   = TCL_OK;
+  MWin_tErr         eResult      = MWin_tErr_NoErr;
+  char              sError[256]  = "";
+
+  /* grab us from the client data ptr */
+  this = (tkmMeditWindowRef) ipClientData;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if not accepting commands yet, return. */
+  if ( !this->mbAcceptingTclCommands )
+    goto cleanup;
+
+  /* redraw all. */
+
+  eResult = MWin_ShowWindow ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  goto cleanup;
+
+error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+
+    sprintf ( sError, "Error %d in MWin_ShowWindow: %s\n",
+              eResult, MWin_GetErrorString(eResult) );
+
+    DebugPrint( (sError ) );
+
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
+  }
+
+  eTclResult = TCL_ERROR;
+
+cleanup:
+
+  return eTclResult;
+}
+
+int MWin_TclPositionWindow ( ClientData  iClientData,
+			     Tcl_Interp* ipInterp,
+			     int         argc,
+			     char*       argv[] ) {
+  
+  tkmMeditWindowRef this         = NULL;
+  int               eTclResult   = TCL_OK;
+  MWin_tErr         eResult      = MWin_tErr_NoErr;
+  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
+  char              sError[256]  = "";
+  int               posx, posy;
+
+  /* grab us from the client data ptr */
+  this = (tkmMeditWindowRef) iClientData;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if not accepting commands yet, return. */
+  if ( !this->mbAcceptingTclCommands )
+    goto cleanup;
+
+  /* verify the last clicked display area index. */
+  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the number of arguments. */
+  if ( argc != 3 ) {
+    eResult = MWin_tErr_WrongNumberArgs;
+    goto error;
+  }
+
+  /* Get the argument. */
+  posx = atoi( argv[1] );
+  posy = atoi( argv[1] );
+
+  /* pass on to the last clicked display. */
+  eDispResult = MWin_PositionWindow ( this, posx, posy );
+
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  goto cleanup;
+
+error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+
+    sprintf ( sError, "Error %d in MWin_TclSetFuncOverlayAlpha: %s\n",
+              eResult, MWin_GetErrorString(eResult) );
+
+    DebugPrint( (sError ) );
+
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
+  }
+
+  eTclResult = TCL_ERROR;
+
+cleanup:
+
+  return eTclResult;
+}
+
