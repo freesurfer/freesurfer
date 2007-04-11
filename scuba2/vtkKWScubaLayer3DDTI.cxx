@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/04/11 18:50:20 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DDTI, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DDTI, "$Revision: 1.2 $" );
 
 vtkKWScubaLayer3DDTI::vtkKWScubaLayer3DDTI () :
   mDTIProperties( NULL ),
@@ -572,7 +572,7 @@ vtkKWScubaLayer3DDTI::UpdatePlanes ( bool hasDetailChanged ) {
       mSliceTransform[dim]->Translate( reposition, 0, 0 );
 
       // current slice position to extract from the tensor volume
-      const int position = static_cast< int >( floor( ras[ dim ] / currentShrinkage ) );
+      const int position = static_cast< int >( floor( (float)(ras[ dim ] / currentShrinkage) ) );
       mClips[ dim ]->SetOutputWholeExtent( 
         position, position, 
         bounds[ 2 ], bounds[ 3 ], 
@@ -587,7 +587,7 @@ vtkKWScubaLayer3DDTI::UpdatePlanes ( bool hasDetailChanged ) {
       mSliceTransform[dim]->Identity();
       mSliceTransform[dim]->Translate( 0, reposition, 0 );
 
-      const int position = static_cast< int >( floor( ras[ dim ] / currentShrinkage ) );
+      const int position = static_cast< int >( floor( (float)(ras[ dim ] / currentShrinkage) ) );
       mClips[ dim ]->SetOutputWholeExtent( 
         bounds[ 0 ], bounds[ 1 ], 
         position, position, 
@@ -602,7 +602,7 @@ vtkKWScubaLayer3DDTI::UpdatePlanes ( bool hasDetailChanged ) {
       mSliceTransform[dim]->Identity();
       mSliceTransform[dim]->Translate( 0, 0, reposition );
 
-      const int position = static_cast< int >( floor( ras[ dim ] / currentShrinkage ) );
+      const int position = static_cast< int >( floor( (float)(ras[ dim ] / currentShrinkage) ) );
       mClips[ dim ]->SetOutputWholeExtent( 
         bounds[ 0 ], bounds[ 1 ],
         bounds[ 2 ], bounds[ 3 ],

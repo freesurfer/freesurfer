@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/04/11 18:50:20 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.2 $" );
 
 vtkKWScubaLayer2DDTI::vtkKWScubaLayer2DDTI () :
   mDTIProperties( NULL ),
@@ -391,7 +391,7 @@ vtkKWScubaLayer2DDTI::Update2DInfo () {
   // using this reposition value to take into effect the reduced
   // volume size.
   float reposition = 
-    fabs((int)rasZ % (int)this->GetCurrentShrinkageValue()) + 1;
+    (float)abs((int)rasZ % (int)this->GetCurrentShrinkageValue()) + 1;
 
   int inPlane = mViewProperties->Get2DInPlane();
   mActor->SetPosition( (inPlane==0) ? -(rasZ - mWorldCenter[0]) + reposition :
