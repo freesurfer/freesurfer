@@ -1,17 +1,16 @@
 /**
  * @file  test.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test fsgd stuff using sample data
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/10 20:56:56 $
- *    $Revision: 1.12 $
+ *    $Date: 2007/04/11 19:46:51 $
+ *    $Revision: 1.13 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,11 +24,9 @@
  *
  */
 
-
 #include <tcl.h>
 #include "fsgdf.h"
 #include "fsgdf_wrap.h"
-
 
 #define Assert(x,s) \
     if( !(x) ) { \
@@ -44,8 +41,7 @@
       exit(1); \
     } \
 
-
-char *Progname="fsgdf test app";
+char *Progname="fsgdf_test_app";
 
 int main (int argc, char** argv) {
   FSGD *gd;
@@ -88,7 +84,6 @@ int main (int argc, char** argv) {
 
   printf("C Test successful.\n\n");
 
-
   printf("Tcl_CreateInterp..."); fflush(stdout);
   Tcl_Interp* interp = Tcl_CreateInterp();
   Assert( NULL != interp, "Tcl_CreateInterp returned null" );
@@ -107,7 +102,11 @@ int main (int argc, char** argv) {
 
   printf("Tcl_EvalFile( test.tcl )..."); fflush(stdout);
   rTcl = Tcl_EvalFile( interp, "./test.tcl" );
-  AssertTclOK( rTcl, "Tcl_EvalFile returned not TCL_OK" );
+  if( TCL_OK != rTcl ) {
+    fprintf (stderr, "Tcl_EvalFile( test.tcl ) returned not TCL_OK:\n" 
+             "rTcl=%d\nResult: %s\n", rTcl, interp->result );
+    // don't exit 1, as an error will return if a display is not available
+  }
   printf("done.\n");
 
   printf("Tcl Test successful.\n\n");
