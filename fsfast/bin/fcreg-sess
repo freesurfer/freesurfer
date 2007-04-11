@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcreg-sess
 #
-set VERSION    = '$Id: fcreg-sess,v 1.1 2007/03/30 05:26:03 greve Exp $';
+set VERSION    = '$Id: fcreg-sess,v 1.2 2007/04/11 23:51:52 greve Exp $';
 set cmdargs = ($argv);
 
 set flac = ();
@@ -9,6 +9,8 @@ set fcregstem  = ();
 set segstem    = "aparc+aseg"; 
 set segidlist  = ()
 set nnuis = 10;
+set wmorthog = 1;
+set vcsforthog = 1;
 set perrun = 0;
 set monly = 0;
 set MLF = ();
@@ -77,6 +79,8 @@ echo "segidlist = [$segidlist];" >> $MLF
 echo "fcregstem = '$fcregstem';" >> $MLF
 echo "perrun    = $perrun;" >> $MLF
 echo "nnuis     = $nnuis;" >> $MLF
+echo "WMOrthog  = $wmorthog;" >> $MLF
+echo "VCSFOrthog = $vcsforthog;" >> $MLF
 
 ## go through each session ##
 foreach sess ($SessList)
@@ -144,6 +148,16 @@ while( $#argv != 0 )
       set segidlist = ($segidlist $argv[1]); shift;
       breaksw
 
+    case "-wm-segid":
+      set segidlist = ($segidlist 2 41);
+      set wmorthog = 0;
+      breaksw
+
+    case "-vcsf-segid":
+      set segidlist = ($segidlist 4 5 14 43 44 72);
+      set vcsforthog = 0;
+      breaksw
+
     case "-nnuis":
       if ( $#argv < 1) goto arg1err;
       set nnuis = $argv[1]; shift;
@@ -153,6 +167,22 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set MLF = $argv[1]; shift;
       set monly = 1;
+      breaksw
+
+    case "-wmorthog":
+      set wmorthog = 1;
+      breaksw
+
+    case "-no-wmorthog":
+      set wmorthog = 0;
+      breaksw
+
+    case "-vcsforthog":
+      set vcsforthog = 1;
+      breaksw
+
+    case "-no-vcsforthog":
+      set vcsforthog = 0;
       breaksw
 
     case "-perrun":
@@ -231,6 +261,10 @@ usage_exit:
   echo ""
   echo "  -nnuis nnuis ";
   echo "  -perrun";
+  echo "  -no-wmorthog : do not orth wrt white matter":
+  echo "  -no-vcsforthog : do not orth wrt ventricular CSF":
+  echo "  -wm-segid   : set segids to 2 and 41"
+  echo "  -vcsf-segid   : set segids to 4 5 14 43 44 72"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "

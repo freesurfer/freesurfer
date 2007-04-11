@@ -1,5 +1,5 @@
 % fast_fcreg.m
-% $Id: fast_fcreg.m,v 1.3 2007/03/30 05:25:10 greve Exp $
+% $Id: fast_fcreg.m,v 1.4 2007/04/11 23:51:52 greve Exp $
 
 %flacfile
 %sess 
@@ -46,40 +46,51 @@ for nthrun = 1:nruns
   seg = MRIread(segpath);
   if(isempty(seg)) return; end
 
-  wm   = (seg.vol ==  2 | seg.vol == 41);
-  wm = fast_dilate(wm,1,1,1); % erode 1 in-plane
-  indwm = find(wm);
-  nwm = length(indwm);
+  if(WMOrthog)
+    wm   = (seg.vol ==  2 | seg.vol == 41);
+    wm = fast_dilate(wm,1,1,1); % erode 1 in-plane
+    indwm = find(wm);
+    nwm = length(indwm);
+    fprintf('nwm = %d\n',nwm);
+  else
+    indwm = [];
+  end
 
-  vcsf = (seg.vol ==  4 | seg.vol == 43 | ...
-	  seg.vol ==  5 | seg.vol == 44 | ...
-	  seg.vol == 14 | seg.vol == 72);
-  vcsf = fast_dilate(vcsf,1,1,1); % erode 1 in-plane
-  indvcsf = find(vcsf);
-  nvcsf = length(indvcsf);
-
-  fprintf('nwm = %d, nvcsf = %d\n',nwm,nvcsf);
+  if(VCSFOrthog)
+    vcsf = (seg.vol ==  4 | seg.vol == 43 | ...
+	    seg.vol ==  5 | seg.vol == 44 | ...
+	    seg.vol == 14 | seg.vol == 72);
+    vcsf = fast_dilate(vcsf,1,1,1); % erode 1 in-plane
+    indvcsf = find(vcsf);
+    nvcsf = length(indvcsf);
+    fprintf('nvcsf = %d\n',nvcsf);
+  else
+    indvcsf = [];
+  end
 
   f = MRIread(runflac.funcfspec);
   if(isempty(f)) return; end
   fmat  = fast_vol2mat(f);
 
-  % Construct the nuisance matrix
-  rwm   = R*fmat(:,indwm);
-  rvcsf = R*fmat(:,indvcsf);
-  A = [rwm rvcsf];
-  [u s v] = fast_svd(A);
-  ds2 = diag(s).^2;
-  pvsn = 100*ds2/sum(ds2);
-  cpvsn = cumsum(pvsn);
-  fprintf('NPVS (%d):  ',nnuis);
-  fprintf('%4.1f ',pvsn(1:10));
-  fprintf('\n');
-  fprintf('NCPVS (%d):  ',nnuis);
-  fprintf('%4.1f ',cpvsn(1:10));
-  fprintf('\n');
+  Xd = X;
+  if(WMOrthog | VCSFOrthog)
+    % Construct the nuisance matrix
+    rwm   = R*fmat(:,indwm);
+    rvcsf = R*fmat(:,indvcsf);
+    A = [rwm rvcsf];
+    [u s v] = fast_svd(A);
+    ds2 = diag(s).^2;
+    pvsn = 100*ds2/sum(ds2);
+    cpvsn = cumsum(pvsn);
+    fprintf('NPVS (%d):  ',nnuis);
+    fprintf('%4.1f ',pvsn(1:10));
+    fprintf('\n');
+    fprintf('NCPVS (%d):  ',nnuis);
+    fprintf('%4.1f ',cpvsn(1:10));
+    fprintf('\n');
 
-  Xd = [X u(:,[1:nnuis])];
+    Xd = [Xd u(:,[1:nnuis])];
+  end
   Rd = eye(nframes) - Xd*inv(Xd'*Xd)*Xd';
   
   fcreg = [];
