@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:35 $
- *    $Revision: 1.49 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/11 20:20:31 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1286,7 +1286,7 @@ MRIzSobel(MRI *mri_src, MRI *mri_z, int frame)
 
   if (mri_src->type != MRI_UCHAR)
   {
-    return MRIxSobelForAllTypes (mri_src, mri_z, frame);
+    return MRIzSobelForAllTypes (mri_src, mri_z, frame);
   }
 
   if (!mri_z)
@@ -4112,7 +4112,7 @@ MRI *
 MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
 {
   int      x, y, z, width, height, depth, xk, yk, zk, xi, yi, zi,
-  slabel, dlabel, nw, ng ;
+           slabel, dlabel, nw, ng ;
   BUFTYPE  *psrc, *pdst ;
 
   if (!mri_dst)
@@ -4122,74 +4122,147 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  for (nw = ng = z = 0 ; z < depth ; z++)
+  if (mri_src->type == MRI_UCHAR)
   {
-    for (y = 0 ; y < height ; y++)
+    for (nw = ng = z = 0 ; z < depth ; z++)
     {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
+      for (y = 0 ; y < height ; y++)
       {
-        slabel = *psrc++ ;
-
-        dlabel = MRI_AMBIGUOUS ;
-        if (slabel == MRI_WHITE)  /* see if it is next to an MRI_NOT_WHITE */
+        psrc = &MRIvox(mri_src, 0, y, z) ;
+        pdst = &MRIvox(mri_dst, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
         {
-          for (zk = -1 ; zk <= 1 ; zk++)
+          slabel = *psrc++ ;
+          
+          dlabel = MRI_AMBIGUOUS ;
+          if (slabel == MRI_WHITE)  /* see if it is next to an MRI_NOT_WHITE */
           {
-            zi = mri_src->zi[z+zk] ;
-            for (yk = -1 ; yk <= 1 ; yk++)
+            for (zk = -1 ; zk <= 1 ; zk++)
             {
-              yi = mri_src->yi[y+yk] ;
-              for (xk = -1 ; xk <= 1 ; xk++)
+              zi = mri_src->zi[z+zk] ;
+              for (yk = -1 ; yk <= 1 ; yk++)
               {
-                xi = mri_src->xi[x+xk] ;
-                if (MRIvox(mri_src, xi, yi, zi) == MRI_NOT_WHITE)
+                yi = mri_src->yi[y+yk] ;
+                for (xk = -1 ; xk <= 1 ; xk++)
                 {
-                  dlabel = MRI_WHITE ;  /* mark it as a white border voxel */
-                  break ;
+                  xi = mri_src->xi[x+xk] ;
+                  if (MRIvox(mri_src, xi, yi, zi) == MRI_NOT_WHITE)
+                  {
+                    dlabel = MRI_WHITE ;  /* mark it as a white border voxel */
+                    break ;
+                  }
                 }
+                if (dlabel == MRI_WHITE)
+                  break ;
               }
               if (dlabel == MRI_WHITE)
                 break ;
             }
-            if (dlabel == MRI_WHITE)
-              break ;
           }
-        }
-        else if (slabel == MRI_NOT_WHITE)/*see if it is next to an MRI_WHITE */
-        {
-          for (zk = -1 ; zk <= 1 ; zk++)
+          else if (slabel == MRI_NOT_WHITE)/*see if it is next to an MRI_WHITE */
           {
-            zi = mri_src->zi[z+zk] ;
-            for (yk = -1 ; yk <= 1 ; yk++)
+            for (zk = -1 ; zk <= 1 ; zk++)
             {
-              yi = mri_src->yi[y+yk] ;
-              for (xk = -1 ; xk <= 1 ; xk++)
+              zi = mri_src->zi[z+zk] ;
+              for (yk = -1 ; yk <= 1 ; yk++)
               {
-                xi = mri_src->xi[x+xk] ;
-                if (MRIvox(mri_src, xi, yi, zi) == MRI_WHITE)
+                yi = mri_src->yi[y+yk] ;
+                for (xk = -1 ; xk <= 1 ; xk++)
                 {
-                  dlabel = MRI_NOT_WHITE ; /* mark it as a gray border voxel */
-                  break ;
+                  xi = mri_src->xi[x+xk] ;
+                  if (MRIvox(mri_src, xi, yi, zi) == MRI_WHITE)
+                  {
+                    dlabel = MRI_NOT_WHITE ; /* mark it as a gray border voxel */
+                    break ;
+                  }
                 }
+                if (dlabel == MRI_NOT_WHITE)
+                  break ;
               }
               if (dlabel == MRI_NOT_WHITE)
                 break ;
             }
-            if (dlabel == MRI_NOT_WHITE)
-              break ;
           }
+          
+          if (dlabel == MRI_WHITE)
+            nw++ ;
+          else if (dlabel == MRI_NOT_WHITE)
+            ng++ ;
+          *pdst++ = dlabel ;
         }
-
-        if (dlabel == MRI_WHITE)
-          nw++ ;
-        else if (dlabel == MRI_NOT_WHITE)
-          ng++ ;
-        *pdst++ = dlabel ;
       }
     }
   }
+  else  // not UCHAR
+  {
+    for (nw = ng = z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          slabel = nint(MRIgetVoxVal(mri_src, x, y, z, 0)) ;
+          
+          dlabel = MRI_AMBIGUOUS ;
+          if (slabel == MRI_WHITE)  /* see if it is next to an MRI_NOT_WHITE */
+          {
+            for (zk = -1 ; zk <= 1 ; zk++)
+            {
+              zi = mri_src->zi[z+zk] ;
+              for (yk = -1 ; yk <= 1 ; yk++)
+              {
+                yi = mri_src->yi[y+yk] ;
+                for (xk = -1 ; xk <= 1 ; xk++)
+                {
+                  xi = mri_src->xi[x+xk] ;
+                  if ((int)MRIgetVoxVal(mri_src, xi, yi, zi,0) == MRI_NOT_WHITE)
+                  {
+                    dlabel = MRI_WHITE ;  /* mark it as a white border voxel */
+                    break ;
+                  }
+                }
+                if (dlabel == MRI_WHITE)
+                  break ;
+              }
+              if (dlabel == MRI_WHITE)
+                break ;
+            }
+          }
+          else if (slabel == MRI_NOT_WHITE)/*see if it is next to an MRI_WHITE */
+          {
+            for (zk = -1 ; zk <= 1 ; zk++)
+            {
+              zi = mri_src->zi[z+zk] ;
+              for (yk = -1 ; yk <= 1 ; yk++)
+              {
+                yi = mri_src->yi[y+yk] ;
+                for (xk = -1 ; xk <= 1 ; xk++)
+                {
+                  xi = mri_src->xi[x+xk] ;
+                  if ((int)MRIgetVoxVal(mri_src, xi, yi, zi,0) == MRI_WHITE)
+                  {
+                    dlabel = MRI_NOT_WHITE ; /* mark it as a gray border voxel */
+                    break ;
+                  }
+                }
+                if (dlabel == MRI_NOT_WHITE)
+                  break ;
+              }
+              if (dlabel == MRI_NOT_WHITE)
+                break ;
+            }
+          }
+          
+          if (dlabel == MRI_WHITE)
+            nw++ ;
+          else if (dlabel == MRI_NOT_WHITE)
+            ng++ ;
+          MRIsetVoxVal(mri_dst, x, y,z,0, dlabel) ;
+        }
+      }
+    }
+  }
+
   if (Gdiag & DIAG_SHOW)
   {
     fprintf(stderr, "border white:  %8d voxels (%2.2f%%)\n",
