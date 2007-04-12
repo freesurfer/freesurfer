@@ -4,9 +4,9 @@
 ## test_tkUtils.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2007/01/05 00:21:52 $
-##    $Revision: 1.10 $
+##    $Author: kteich $
+##    $Date: 2007/04/12 19:15:14 $
+##    $Revision: 1.11 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -21,7 +21,7 @@
 ## Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 ##
 
-source $env(DEV)/scripts/tkUtils.tcl
+source ../scripts/tkUtils.tcl
 package require Tix
 
 if { [catch {
@@ -123,12 +123,12 @@ for {set n 0} {$n < 100} {incr n} {
     lappend low2 $n
 }
 
-tkuMakeLongOptionMenu .ow1 \
+tkuMakeOptionMenu .ow1 \
     -entries $low1 \
     -label "No submenus" \
     -command puts
 
-tkuMakeLongOptionMenu .ow2 \
+tkuMakeOptionMenu .ow2 \
     -entries $low2 \
     -labelwidth 10 \
     -label "Submenus" \
