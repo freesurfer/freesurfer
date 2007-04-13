@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/17 14:01:09 $
- *    $Revision: 1.221 $
+ *    $Date: 2007/04/13 13:22:49 $
+ *    $Revision: 1.222 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -266,6 +266,10 @@ GCA_PRIOR *getGCAP(GCA *gca,
                    MRI *mri,
                    TRANSFORM *transform,
                    int xv, int yv, int zv) ;
+GCA_PRIOR *getGCAPfloat(GCA *gca,
+                        MRI *mri,
+                        TRANSFORM *transform,
+                        float xv, float yv, float zv) ;
 GCA_NODE *getGCAN(GCA *gca,
                   MRI *mri,
                   TRANSFORM *transform,
@@ -616,6 +620,18 @@ getGCAP(GCA *gca, MRI *mri, TRANSFORM *transform, int xv, int yv, int zv)
   GCA_PRIOR *gcap=NULL;
 
   if (!GCAsourceVoxelToPrior(gca, mri, transform, xv, yv, zv, &xp, &yp, &zp))
+    gcap = &gca->priors[xp][yp][zp] ;
+
+  return(gcap) ;
+}
+
+GCA_PRIOR *
+getGCAPfloat(GCA *gca, MRI *mri, TRANSFORM *transform, float xv, float yv, float zv)
+{
+  int       xp, yp, zp ;
+  GCA_PRIOR *gcap=NULL;
+
+  if (!GCAsourceFloatVoxelToPrior(gca, mri, transform, xv, yv, zv, &xp, &yp, &zp))
     gcap = &gca->priors[xp][yp][zp] ;
 
   return(gcap) ;
@@ -1117,6 +1133,48 @@ GCApriorToVoxel(GCA *gca, MRI *mri, int xp, int yp, int zp,
 int
 GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
                       int xv, int yv, int zv, int *pxp, int *pyp, int *pzp)
+{
+  float   xt, yt, zt ;
+  Real    xrt, yrt, zrt, xrp, yrp, zrp;
+
+  LTA *lta;
+  if (transform->type != MORPH_3D_TYPE)
+  {
+    if (transform->type == LINEAR_VOX_TO_VOX)
+    {
+      lta = (LTA *) transform->xform;
+      // transform point to talairach volume point
+      TransformWithMatrix(lta->xforms[0].m_L,
+                          xv, yv, zv, &xrt, &yrt, &zrt);
+      xt = xrt;
+      yt = yrt;
+      zt = zrt;
+      // TransformSample(transform, xv, yv, zv, &xt, &yt, &zt) ;
+    }
+    else
+      ErrorExit(ERROR_BADPARM, \
+                "GCAsourceVoxelToPrior: needs vox-to-vox transform") ;
+  }
+  else // morph 3d type can go directly from source to template
+  {
+    TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
+  }
+  // get the position in gca from talairach volume
+  GCAvoxelToPriorReal(gca, gca->mri_tal__, xt, yt, zt, &xrp, &yrp, &zrp) ;
+  *pxp = nint(xrp) ;
+  *pyp = nint(yrp) ;
+  *pzp = nint(zrp) ;
+  if (*pxp < 0 || *pyp < 0 || *pzp < 0 ||
+      *pxp >= gca->prior_width ||
+      *pyp >= gca->prior_height ||
+      *pzp >= gca->prior_depth)
+    return(ERROR_BADPARM) ;
+  return (NO_ERROR) ;
+}
+
+int
+GCAsourceFloatVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
+                           float xv, float yv, float zv, int *pxp, int *pyp, int *pzp)
 {
   float   xt, yt, zt ;
   Real    xrt, yrt, zrt, xrp, yrp, zrp;
@@ -9793,7 +9851,7 @@ GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca,
 
 float
 GCAlabelProbability(MRI *mri_src, GCA *gca, TRANSFORM *transform,
-                    int x, int y, int z, int label)
+                    float x, float y, float z, int label)
 {
   int      xn, yn, zn ;
   GCA_NODE *gcan ;
@@ -20749,3 +20807,30 @@ gcapBrainIsPossible(GCA_PRIOR *gcap)
   return(possible) ;
 }
 #endif
+float
+GCAcomputeLabelPosterior(GCA *gca, TRANSFORM *transform, MRI *mri, float x, float y, float z, int label)
+{
+  float    p, plabel, vals[MAX_GCA_INPUTS], ptotal ;
+  GCA_PRIOR *gcap ;
+  int       n, olabel ;
+
+  load_vals(mri, x, y, z, vals, gca->ninputs) ;
+  gcap = getGCAPfloat(gca, mri, transform, x, y, z) ;
+  plabel = GCAlabelProbability(mri, gca, transform, x, y, z, label) ;
+
+  for (ptotal = 0.0, n = 0 ; n < gcap->nlabels ; n++)
+  {
+    olabel = gcap->labels[n] ;
+    if (olabel == label)
+      p = plabel ;
+    else
+      p = GCAlabelProbability(mri, gca, transform, x, y, z, olabel);
+    ptotal += p ;
+    
+  }
+
+  if (!FZERO(ptotal))
+    plabel /= ptotal ;
+  return(plabel) ;
+}
+
