@@ -92,7 +92,7 @@ all:
 	@echo "Building Tcl/Tk apps not enabled."
 	@echo "Run configure with either --enable-tcltk-apps or --with-tcl-dir=DIR"
 endif
-bin_PROGRAMS=${SCUBA_TCLTK} ${SCUBA_QT}
+bin_PROGRAMS=${SCUBA_TCLTK}
 
 EXTRA_PROGRAMS=
 scuba_SOURCES=$(UTILITIES_SRCS) \
