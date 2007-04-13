@@ -6,9 +6,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/13 20:24:51 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,6 @@ class vtkImageResample;
 class vtkLODActor;
 class vtkActor;
 class vtkImageShrink3D;
-class vtkKWCheckButton;
 class vtkKWCheckButton;
 
 class vtkKWScubaLayer3DDTI : public vtkKWScubaLayer {
