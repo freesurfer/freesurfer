@@ -6,9 +6,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/11 18:50:20 $
- *    $Revision: 1.2 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/13 21:05:44 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.3 $" );
 
 vtkKWScubaLayer2DDTI::vtkKWScubaLayer2DDTI () :
   mDTIProperties( NULL ),
@@ -290,14 +290,40 @@ vtkKWScubaLayer2DDTI::GetInfoItems ( float iRAS[3],
                                       list<ScubaInfoItem>& ilInfo ) const {
 
   ScubaInfoItem info;
+  
+  if( mDTIProperties ) {
 
-  info.Clear();
-  info.SetLabel( "" );
-  info.SetValue( "" );
-  info.SetShortenHint( false );
+    // get the index of the RAS our FA volume
+    vtkFSVolumeSource* faSource = mDTIProperties->GetFAVolumeSource();
+    int index[ 3 ];
+    faSource->ConvertRASToIndex( iRAS[0], iRAS[1], iRAS[2],
+      index[0], index[1], index[2] );
+      
+    // get the fa at this index
+    const float fa = faSource->GetValueAtIndex( index[0], index[1], index[2] );
+    
+    char infoValue[1024];
+    snprintf( infoValue, sizeof(infoValue), "%f", fa );
 
-  // Return it.
-  ilInfo.push_back( info );
+    info.Clear();
+    info.SetLabel( "FA" );
+    info.SetValue( infoValue );
+    info.SetShortenHint( false );
+  
+    // Return it.
+    ilInfo.push_back( info );
+    
+  } else {
+
+    info.Clear();
+    info.SetLabel( "" );
+    info.SetValue( "" );
+    info.SetShortenHint( false );
+  
+    // Return it.
+    ilInfo.push_back( info );
+    
+  }
 }
 
 void
