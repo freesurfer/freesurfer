@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/25 13:40:46 $
- *    $Revision: 1.79 $
+ *    $Date: 2007/04/13 13:22:32 $
+ *    $Revision: 1.80 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,13 +171,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.79 2007/01/25 13:40:46 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.80 2007/04/13 13:22:32 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.79 2007/01/25 13:40:46 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.80 2007/04/13 13:22:32 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -501,7 +501,7 @@ main(int argc, char *argv[]) {
 
     if (TransformFileNameType(xform_fname) == MORPH_3D_TYPE) {
       gcam = (GCA_MORPH *)(transform->xform);
-      printf("Atlas used for the 3D morph was %s\n", gcam->atlas.fname);
+      printf("Atlas used< for the 3D morph was %s\n", gcam->atlas.fname);
     }
 
     TransformInvert(transform, mri_inputs) ;
@@ -1435,10 +1435,10 @@ edit_hippocampus
           }
           case Left_Hippocampus:
             pwm = GCAlabelProbability
-                  (mri_inputs, gca, transform, x, y, z,
+                  (mri_inputs, gca, transform, (float)x, (float)y, (float)z,
                    Left_Cerebral_White_Matter) ;
             phippo = GCAlabelProbability
-                     (mri_inputs, gca, transform, x, y, z,
+                     (mri_inputs, gca, transform, (float)x, (float)y, (float)z,
                       Left_Hippocampus) ;
             if (phippo > 2*pwm)
               continue ;  /* don't let it change */
@@ -1477,10 +1477,10 @@ edit_hippocampus
             break ;
           case Right_Hippocampus:
             pwm = GCAlabelProbability
-                  (mri_inputs, gca, transform, x, y, z,
+                  (mri_inputs, gca, transform, (float)x, (float)y, (float)z,
                    Right_Cerebral_White_Matter) ;
             phippo = GCAlabelProbability
-                     (mri_inputs, gca, transform, x, y, z,
+                     (mri_inputs, gca, transform, (float)x, (float)y, (float)z,
                       Right_Hippocampus) ;
             if (phippo > 2*pwm)
               continue ;  /* don't let it change */
