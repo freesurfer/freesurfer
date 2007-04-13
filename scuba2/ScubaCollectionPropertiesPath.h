@@ -11,9 +11,9 @@
 /*
  * Original Author: Dennis Jen
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/09 22:38:09 $
- *    $Revision: 1.2 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/13 20:29:21 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,8 @@ class ScubaCollectionPropertiesPath {
   // Description:
   // Get a pointer to the color that cooresponds to the underlying scalar value.
   virtual void GetPointColor( const int iPointIndex, double &r, double &g, double &b ) const = 0;
+  
+  virtual double GetPointSampleValue( const int iPointIndex ) const = 0;
 
  protected:
 

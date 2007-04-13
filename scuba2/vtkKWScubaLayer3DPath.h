@@ -6,9 +6,9 @@
 /*
  * Original Author: Dennis Jen
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/13 20:29:21 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,7 @@ class vtkPolyDataNormals;
 class vtkStripper;
 class vtkTubeFilter;
 class vtkKWScaleWithEntry;
+class vtkKWCheckButton;
 
 class vtkKWScubaLayer3DPath : public vtkKWScubaLayer {
 
@@ -75,6 +76,14 @@ class vtkKWScubaLayer3DPath : public vtkKWScubaLayer {
     // Description:
     // Callback for when the tube radius changes
     void SetTubeRadius( float iRadius );
+    
+    // Description:
+    // Callback for changing the radius of the tube by the sample data
+    void SetScaleTubeRadius( int ibIsScaling );
+
+    // Description:
+    // Callback for coloring the tube by the sample data
+    void SetColoredTube( int ibIsColored );    
       
   protected:
 
@@ -119,7 +128,10 @@ class vtkKWScubaLayer3DPath : public vtkKWScubaLayer {
     vtkPolyDataMapper* mTubeMapper;
     vtkActor* mTubeActor;
     
-    vtkKWScaleWithEntry *mScaleTubeRadius;
+    vtkKWScaleWithEntry *mScaleTubeRadius;    
+
+    vtkKWCheckButton *mChkBtnScaleTubeRadius;
+    vtkKWCheckButton *mChkBtnColorTubeRadius;
     //ETX
 
     vtkStripper *mTriangleStripper;
@@ -138,6 +150,9 @@ class vtkKWScubaLayer3DPath : public vtkKWScubaLayer {
     int mPathMode;
     
     double mTubeRadius;
+    
+    bool mbIsTubeRadiusScaled;
+    bool mbIsTubeRadiusColored;
         
 };
 

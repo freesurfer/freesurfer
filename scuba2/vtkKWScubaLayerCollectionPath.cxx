@@ -6,9 +6,9 @@
 /*
  * Original Author: Dennis Jen
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/13 20:29:21 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,8 @@
 #include "vtkKWChangeColorButton.h"
 #include "vtkKWRadioButton.h"
 #include "vtkKWRadioButtonSet.h"
+#include "vtkKWRadioButtonSetWithLabel.h"
+
 #include "vtkFSVolumeSource.h"
 #include "vtkObjectFactory.h"
 
@@ -46,7 +48,7 @@ using namespace std;
 const double vtkKWScubaLayerCollectionPath::DEFAULT_COLOR[] = { 0.4, 0.5, 1.0 };
 
 vtkStandardNewMacro( vtkKWScubaLayerCollectionPath );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollectionPath, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollectionPath, "$Revision: 1.2 $" );
 
 vtkKWScubaLayerCollectionPath::vtkKWScubaLayerCollectionPath ():
   mPathVolumeSource( NULL ),
@@ -136,22 +138,23 @@ vtkKWScubaLayerCollectionPath::AddControls ( vtkKWWidget* iPanel ) {
   mPathColorButton->SetCommand( this, "SetPathColor" );
   
   // Path Threshold
-  vtkKWRadioButtonSet* radBtnSetPathThreshold = vtkKWRadioButtonSet::New();
+  vtkKWRadioButtonSetWithLabel* radBtnSetPathThreshold = vtkKWRadioButtonSetWithLabel::New();
   radBtnSetPathThreshold->SetParent( iPanel );
   radBtnSetPathThreshold->Create();
-  radBtnSetPathThreshold->PackHorizontallyOn();
+  radBtnSetPathThreshold->GetWidget()->PackHorizontallyOn();
+  radBtnSetPathThreshold->SetLabelText( "Threshold: " );
   
   char sTclCmd[1024];
 
-  vtkKWRadioButton* radBtnLowThreshold = radBtnSetPathThreshold->AddWidget( 0 );
-  radBtnLowThreshold->SetText( "Low Threshold" );
+  vtkKWRadioButton* radBtnLowThreshold = radBtnSetPathThreshold->GetWidget()->AddWidget( 0 );
+  radBtnLowThreshold->SetText( "Low" );
   sprintf( sTclCmd, "SetPathThresholdMode %d", PATH_THRESHOLD_LOW );
   radBtnLowThreshold->SetCommand( this, sTclCmd );
   if ( mPathThreshold == PATH_THRESHOLD_LOW )
     radBtnLowThreshold->SelectedStateOn();
 
-  vtkKWRadioButton* radBtnHighThreshold = radBtnSetPathThreshold->AddWidget( 1 );
-  radBtnHighThreshold->SetText( "High Threshold" );
+  vtkKWRadioButton* radBtnHighThreshold = radBtnSetPathThreshold->GetWidget()->AddWidget( 1 );
+  radBtnHighThreshold->SetText( "High" );
   sprintf( sTclCmd, "SetPathThresholdMode %d", PATH_THRESHOLD_HIGH );
   radBtnHighThreshold->SetCommand( this, sTclCmd );
   if ( mPathThreshold == PATH_THRESHOLD_HIGH )
@@ -168,7 +171,10 @@ vtkKWScubaLayerCollectionPath::AddControls ( vtkKWWidget* iPanel ) {
 
 void 
 vtkKWScubaLayerCollectionPath::RemoveControls () {
-  mPathColorButton->Delete();
+  if( mPathColorButton ) {
+    mPathColorButton->Delete();
+    mPathColorButton = NULL;
+  }
 }
 
 // called by the color change button too
@@ -204,6 +210,23 @@ vtkKWScubaLayerCollectionPath::GetPointColor( const int iPointIndex, double &r, 
   b = sample[ dimIndex ];
     
 }
+
+double
+vtkKWScubaLayerCollectionPath::GetPointSampleValue( const int iPointIndex ) const {
+  
+  // this is NOT the right way to get the samples.  The sample reader should
+  // read line by line rather than read in the 3 coordinates at a time and
+  // making me do this mod madness
+  
+  const int index = iPointIndex / 3;
+  const int dimIndex = iPointIndex % 3;
+  
+  const double* sample = mSamplesReader->GetOutput()->GetPoint( index );
+  
+  return sample[ dimIndex ];
+    
+}
+
 
 void 
 vtkKWScubaLayerCollectionPath::SetPathThresholdMode ( int iMode ) {

@@ -6,9 +6,9 @@
 /*
  * Original Author: Dennis Jen
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/13 20:29:21 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,15 +49,19 @@
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
 #include "vtkTubeFilter.h"
+#include "vtkFloatArray.h"
+#include "vtkPointData.h"
 
 #include "vtkKWRadioButtonSet.h"
+#include "vtkKWRadioButtonSetWithLabel.h"
 #include "vtkKWRadioButton.h"
 #include "vtkKWScaleWithEntry.h"
+#include "vtkKWCheckButton.h"
 
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DPath );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.2 $" );
 
 vtkKWScubaLayer3DPath::vtkKWScubaLayer3DPath () :
   mPathProperties( NULL ),
@@ -73,7 +77,9 @@ vtkKWScubaLayer3DPath::vtkKWScubaLayer3DPath () :
   mNormals( NULL ),
   mMapper( NULL ),
   mPathMode( TUBE_MODE ),
-  mTubeRadius( 1.0 ) {
+  mTubeRadius( 1.0 ),
+  mbIsTubeRadiusScaled( true ),
+  mbIsTubeRadiusColored( true ) {
 };
 
 vtkKWScubaLayer3DPath::~vtkKWScubaLayer3DPath () {
@@ -233,24 +239,70 @@ vtkKWScubaLayer3DPath::SetTubeRadius( float iRadius ) {
 }
 
 void 
+vtkKWScubaLayer3DPath::SetScaleTubeRadius( int ibIsScaling ) {
+
+  if( ibIsScaling != mbIsTubeRadiusScaled ) {
+    mbIsTubeRadiusScaled = ibIsScaling;
+    
+    if( mTubeFilter ) {
+    
+      if( mbIsTubeRadiusScaled ) {
+        mTubeFilter->SetVaryRadiusToVaryRadiusByScalar();
+      } else {
+        mTubeFilter->SetVaryRadiusToVaryRadiusOff();
+      }
+      
+      this->PipelineChanged();
+    
+    }
+    
+  }
+  
+}
+
+void 
+vtkKWScubaLayer3DPath::SetColoredTube( int ibIsColored ) {
+  
+  if( ibIsColored != mbIsTubeRadiusColored ) {
+    mbIsTubeRadiusColored = ibIsColored;
+
+    if( mTubeMapper ) {
+    
+      if( mbIsTubeRadiusColored ) {
+        mTubeMapper->ScalarVisibilityOn();
+      } else {
+        mTubeMapper->ScalarVisibilityOff();
+      }
+      
+      this->PipelineChanged();
+    
+    }
+    
+  }
+  
+}
+
+
+void 
 vtkKWScubaLayer3DPath::AddControls ( vtkKWWidget* iPanel ) {
   
   // Path Representation
-  vtkKWRadioButtonSet* radBtnSetPathMode = vtkKWRadioButtonSet::New();
+  vtkKWRadioButtonSetWithLabel* radBtnSetPathMode = vtkKWRadioButtonSetWithLabel::New();
   radBtnSetPathMode->SetParent( iPanel );
   radBtnSetPathMode->Create();
-  radBtnSetPathMode->PackHorizontallyOn();
+  radBtnSetPathMode->GetWidget()->PackHorizontallyOn();
+  radBtnSetPathMode->SetLabelText( "Mode: " );
   
   char sTclCmd[1024];
 
-  vtkKWRadioButton* radBtnTubeMode = radBtnSetPathMode->AddWidget( 0 );
+  vtkKWRadioButton* radBtnTubeMode = radBtnSetPathMode->GetWidget()->AddWidget( 0 );
   radBtnTubeMode->SetText( "Tube" );
   sprintf( sTclCmd, "SetPathMode %d", TUBE_MODE );
   radBtnTubeMode->SetCommand( this, sTclCmd );
   if ( mPathMode == TUBE_MODE )
     radBtnTubeMode->SelectedStateOn();
 
-  vtkKWRadioButton* radBtnThresholdMode = radBtnSetPathMode->AddWidget( 1 );
+  vtkKWRadioButton* radBtnThresholdMode = radBtnSetPathMode->GetWidget()->AddWidget( 1 );
   radBtnThresholdMode->SetText( "Threshold" );
   sprintf( sTclCmd, "SetPathMode %d", THRESHOLD_MODE );
   radBtnThresholdMode->SetCommand( this, sTclCmd );
@@ -267,19 +319,57 @@ vtkKWScubaLayer3DPath::AddControls ( vtkKWWidget* iPanel ) {
   mScaleTubeRadius->Create();
   mScaleTubeRadius->SetLabelText( "Tube Radius: " );
   mScaleTubeRadius->SetRange( 0, 5 );
-  mScaleTubeRadius->SetResolution( 0.5 );
+  mScaleTubeRadius->SetResolution( 0.1 );
   mScaleTubeRadius->SetEntryWidth( 3 );
   mScaleTubeRadius->SetCommand( this, "SetTubeRadius" );
   mScaleTubeRadius->SetValue( mTubeRadius );
   
-  this->Script( "pack %s %s -side top -fill x -anchor nw",
+  // check box for scaling radius of tube by sampled scalar
+  mChkBtnScaleTubeRadius = vtkKWCheckButton::New();
+  mChkBtnScaleTubeRadius->SetParent( iPanel );
+  mChkBtnScaleTubeRadius->Create();
+  mChkBtnScaleTubeRadius->SetAnchorToWest();
+  mChkBtnScaleTubeRadius->SetText( "Scale Tube Radius" );
+  mChkBtnScaleTubeRadius->SetCommand( this, "SetScaleTubeRadius" );
+  if ( mbIsTubeRadiusScaled )
+    mChkBtnScaleTubeRadius->SelectedStateOn();
+    
+  // check box for coloring tube by sampled scalar
+  mChkBtnColorTubeRadius = vtkKWCheckButton::New();
+  mChkBtnColorTubeRadius->SetParent( iPanel );
+  mChkBtnColorTubeRadius->Create();
+  mChkBtnColorTubeRadius->SetAnchorToWest();
+  mChkBtnColorTubeRadius->SetText( "Color Tube Radius" );
+  mChkBtnColorTubeRadius->SetCommand( this, "SetColoredTube" );
+  if ( mbIsTubeRadiusColored )
+    mChkBtnColorTubeRadius->SelectedStateOn();
+  
+  this->Script( "pack %s %s %s %s -side top -fill x -anchor nw",
                 radBtnSetPathMode->GetWidgetName(),
-                mScaleTubeRadius->GetWidgetName() );
+                mScaleTubeRadius->GetWidgetName(),
+                mChkBtnScaleTubeRadius->GetWidgetName(),
+                mChkBtnColorTubeRadius->GetWidgetName() );
                 
 }
 
 void 
 vtkKWScubaLayer3DPath::RemoveControls () {
+  
+  if( mScaleTubeRadius ) {
+    mScaleTubeRadius->Delete();
+    mScaleTubeRadius = NULL;
+  }
+  
+  if( mChkBtnScaleTubeRadius ) {
+    mChkBtnScaleTubeRadius->Delete();
+    mChkBtnScaleTubeRadius = NULL;
+  }
+  
+  if( mChkBtnColorTubeRadius ) {
+    mChkBtnColorTubeRadius->Delete();
+    mChkBtnColorTubeRadius = NULL;
+  }
+  
 }
 
 void 
@@ -362,14 +452,23 @@ vtkKWScubaLayer3DPath::CreateTube() {
     lines->InsertCellPoint( i );    
   }
   
-  // TODO: you might want to add field data here for visualizing the underlying
-  // scalar data
+  // set up the scalar data that was sampled by the pathway
+  vtkFloatArray *sampleData = vtkFloatArray::New();
+  sampleData->SetName( "SampleData" );
+  for( int i=0; i<100; i++ ) {
+    const double value = mPathProperties->GetPointSampleValue( i );
+    sampleData->InsertNextValue( value );
+  }
+
+  // add the points, lines, and sample data    
   vtkPolyData *polyData = vtkPolyData::New();
   polyData->SetPoints( inputPoints );
   polyData->SetLines( lines );
+  polyData->GetPointData()->SetScalars( sampleData );
   
   inputPoints->Delete();
   lines->Delete();
+  sampleData->Delete();
   
   // Add thickness to the resulting line.
   mTubeFilter = vtkTubeFilter::New();
@@ -377,10 +476,22 @@ vtkKWScubaLayer3DPath::CreateTube() {
   mTubeFilter->SetInput( polyData );
   mTubeFilter->SetRadius( mTubeRadius );
   
+  if( mbIsTubeRadiusScaled ) {
+    mTubeFilter->SetVaryRadiusToVaryRadiusByScalar();
+  } else {
+    mTubeFilter->SetVaryRadiusToVaryRadiusOff();
+  }
+      
   polyData->Delete();
   
   mTubeMapper = vtkPolyDataMapper::New();
   mTubeMapper->SetInputConnection( mTubeFilter->GetOutputPort() );
+  
+  if( mbIsTubeRadiusColored ) {
+    mTubeMapper->ScalarVisibilityOn();
+  } else {
+    mTubeMapper->ScalarVisibilityOff();
+  }
 
   mTubeActor = vtkActor::New();
   mTubeActor->SetMapper( mTubeMapper );
