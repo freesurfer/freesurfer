@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/01/03 21:27:08 $
- *    $Revision: 1.79 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/13 13:23:42 $
+ *    $Revision: 1.80 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -231,6 +231,9 @@ int    GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
 int    GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
                              int xv, int yv, int zv,
                              int *pxp, int *pyp, int *pzp) ;
+int    GCAsourceFloatVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
+                                  float xv, float yv, float zv,
+                                  int *pxp, int *pyp, int *pzp) ;
 int  GCAnodeToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform,
                           int xv, int yv, int zv,
                           int *pxn, int *pyn, int *pzn) ;
@@ -292,7 +295,7 @@ MRI *
 GCAnormalizeSamplesAllChannels(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
                                TRANSFORM *transform, char *ctl_point_fname);
 float GCAlabelProbability(MRI *mri_src, GCA *gca, TRANSFORM *transform,
-                          int x, int y, int z, int label) ;
+                          float x, float y, float z, int label) ;
 MRI   *GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                                MRI *mri_dst, TRANSFORM *transform, int max_iter,
                                float min_ratio) ;
@@ -380,6 +383,7 @@ void GCAsetVolGeom(GCA *gca, VOL_GEOM *vg);
 int GCAregularizeCovarianceMatrices(GCA *gca, double lambda) ;
 int GCAreplaceRightWithLeft(GCA *gca) ;
 int GCAcomputeLabelStats(GCA *gca, int target_label, float *pvar, float *means);
+float GCAcomputeLabelPosterior(GCA *gca, TRANSFORM *transform, MRI *mri, float x, float y, float z, int label) ;
 GCA_NODE *GCAbuildRegionalGCAN(GCA *gca, int x, int y, int z, int wsize) ;
 int set_mean_vector(GC1D *gc, VECTOR *v_means, int ninputs) ;
 int set_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
