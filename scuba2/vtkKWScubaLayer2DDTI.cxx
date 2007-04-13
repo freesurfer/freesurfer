@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/13 21:05:44 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/04/13 21:46:31 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.4 $" );
 
 vtkKWScubaLayer2DDTI::vtkKWScubaLayer2DDTI () :
   mDTIProperties( NULL ),
@@ -262,9 +262,19 @@ vtkKWScubaLayer2DDTI::DoListenToMessage ( string isMessage, void* iData ) {
   } else if( isMessage == "TensorScalingChanged" ) {
     this->UpdateGlyphScaling();
   } else if( isMessage == "RenderEdgesChanged" ) {
-
+    this->UpdateEdges();
   } else if( isMessage == "Layer2DInfoChanged" ) {
     this->Update2DInfo();
+  } else if( isMessage == "TensorInterpolationChanged" ) {
+
+    if( NULL != mDTIProperties && NULL != mVolumeToRAS ) {
+      
+      mVolumeToRAS->SetInterpolationMode( 
+        mDTIProperties->GetTensorInterpolationType() );
+
+      this->PipelineChanged();
+    }
+
   }
 }
 
@@ -289,7 +299,6 @@ void
 vtkKWScubaLayer2DDTI::GetInfoItems ( float iRAS[3],
                                       list<ScubaInfoItem>& ilInfo ) const {
 
-  ScubaInfoItem info;
   
   if( mDTIProperties ) {
 
@@ -305,16 +314,40 @@ vtkKWScubaLayer2DDTI::GetInfoItems ( float iRAS[3],
     char infoValue[1024];
     snprintf( infoValue, sizeof(infoValue), "%f", fa );
 
-    info.Clear();
-    info.SetLabel( "FA" );
-    info.SetValue( infoValue );
-    info.SetShortenHint( false );
-  
+    ScubaInfoItem faInfo;
+    faInfo.Clear();
+    faInfo.SetLabel( "FA" );
+    faInfo.SetValue( infoValue );
+    faInfo.SetShortenHint( false );
+
     // Return it.
-    ilInfo.push_back( info );
+    ilInfo.push_back( faInfo );
+ 
+    // return the eigenvalues
+    vtkFSVolumeSource* eigenValuesSource = mDTIProperties->GetEigenValueVolumeSource();
+//    eigenValuesSource->ConvertRASToIndex( iRAS[0], iRAS[1], iRAS[2],
+//      index[0], index[1], index[2] );
+      
+    // each location will have three eigenvalues
+    float eigenValues[ 3 ];
+    for( int cValue=0; cValue<3; cValue++ ) {
+//      cerr << "  getting value: " << cValue << std::endl;
+      eigenValues[ cValue ] = eigenValuesSource->GetValueAtIndex( index[0], index[1], index[2], cValue );
+    }
+    snprintf( infoValue, sizeof(infoValue), "%f %f %f", eigenValues[ 0 ], eigenValues[ 1 ], eigenValues[ 2 ] );
+    ScubaInfoItem eigenValueInfo;
+    eigenValueInfo.Clear();
+    eigenValueInfo.SetLabel( "Eigen Values" );
+    eigenValueInfo.SetValue( infoValue );
+    eigenValueInfo.SetShortenHint( false );
+
+    // Return the eigenvalues
+    ilInfo.push_back( eigenValueInfo );  
+  
     
   } else {
 
+    ScubaInfoItem info;
     info.Clear();
     info.SetLabel( "" );
     info.SetValue( "" );
@@ -419,13 +452,20 @@ vtkKWScubaLayer2DDTI::Update2DInfo () {
   float reposition = 
     (float)abs((int)rasZ % (int)this->GetCurrentShrinkageValue()) + 1;
 
-  int inPlane = mViewProperties->Get2DInPlane();
+  const int inPlane = mViewProperties->Get2DInPlane();
   mActor->SetPosition( (inPlane==0) ? -(rasZ - mWorldCenter[0]) + reposition :
 		       mWorldCenter[0],
 		       (inPlane==1) ? -(rasZ - mWorldCenter[1]) + reposition :
 		       mWorldCenter[1],
 		       (inPlane==2) ? -(rasZ - mWorldCenter[2]) - reposition :
 		       mWorldCenter[2] );
+  mEdgeActor->SetPosition( (inPlane==0) ? -(rasZ - mWorldCenter[0]) + reposition :
+           mWorldCenter[0],
+           (inPlane==1) ? -(rasZ - mWorldCenter[1]) + reposition :
+           mWorldCenter[1],
+           (inPlane==2) ? -(rasZ - mWorldCenter[2]) - reposition :
+           mWorldCenter[2] );
+
 
   this->PipelineChanged();
 }
@@ -449,3 +489,13 @@ vtkKWScubaLayer2DDTI::GetCurrentShrinkageValue () {
   
   return shrinkage;
 }
+
+void
+vtkKWScubaLayer2DDTI::UpdateEdges() {
+  
+  const bool isEdgeVisible = mDTIProperties->GetRenderEdges();
+  mEdgeActor->SetVisibility( isEdgeVisible );    
+
+  this->PipelineChanged();
+}
+

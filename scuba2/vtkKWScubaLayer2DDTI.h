@@ -6,9 +6,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/13 21:46:31 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -104,6 +104,10 @@ protected:
   // Description:
   // Return a value corresponding to a shrinkage type.
   int GetCurrentShrinkageValue ();
+
+  // Description:
+  // Updates the tensor edge display.
+  void UpdateEdges();
 
   //BTX
   ScubaCollectionPropertiesDTI const* mDTIProperties;
