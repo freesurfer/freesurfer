@@ -6,9 +6,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/11 18:50:20 $
- *    $Revision: 1.2 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/13 21:43:39 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DDTI, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DDTI, "$Revision: 1.3 $" );
 
 vtkKWScubaLayer3DDTI::vtkKWScubaLayer3DDTI () :
   mDTIProperties( NULL ),
@@ -77,6 +77,7 @@ vtkKWScubaLayer3DDTI::vtkKWScubaLayer3DDTI () :
     mSliceTransform[ n ] = NULL;
     mPlaneMappers[ n ] = NULL;
     mPlaneActors[ n ] = NULL;
+    mGlyphEdgeActors[ n ] = NULL;
   }
     
 }
@@ -108,6 +109,9 @@ vtkKWScubaLayer3DDTI::~vtkKWScubaLayer3DDTI () {
 
     if ( mPlaneActors[ n ] )
       mPlaneActors[ n ]->Delete();
+
+    if ( mGlyphEdgeActors[ n ] )
+      mGlyphEdgeActors[ n ]->Delete();
       
   }
   
@@ -353,8 +357,7 @@ vtkKWScubaLayer3DDTI::DoListenToMessage ( string isMessage, void* iData ) {
     if ( mViewProperties->GetFastMode() ) {
 
       // we probably don't need to do anything with less detail
-      if( mDTIProperties->GetTensorDetail() !=
-	  ScubaCollectionPropertiesDTI::Least ) {
+      if( mDTIProperties->GetTensorDetail() != ScubaCollectionPropertiesDTI::Least ) {
 
         for( int n = 0; n<3; n++ ) {          
           mPlaneActors[ n ]->GetProperty()->SetRepresentationToPoints ();
