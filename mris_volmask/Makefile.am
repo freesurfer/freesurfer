@@ -24,7 +24,7 @@ $(VTK_MPEG2ENCODE_LIB) -lvtkexoIIc -lvtkNetCDF
 
 # put a wrapper around the bin, used to setup VTK enviro vars
 install-exec-hook:
-	mv $(srcdir)/mris_volmask $(DESTDIR)$(bindir)/mris_volmask.bin
+	cp $(srcdir)/mris_volmask $(DESTDIR)$(bindir)/mris_volmask.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/mris_volmask
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
 		>> $(DESTDIR)$(bindir)/mris_volmask
