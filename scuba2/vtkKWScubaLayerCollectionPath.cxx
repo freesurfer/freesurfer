@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/13 20:29:21 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/04/16 18:44:08 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,13 +42,15 @@
 #include "vtkTransform.h"
 
 #include <string>
+#include <iostream>
+#include <vector>
 
 using namespace std;
 
 const double vtkKWScubaLayerCollectionPath::DEFAULT_COLOR[] = { 0.4, 0.5, 1.0 };
 
 vtkStandardNewMacro( vtkKWScubaLayerCollectionPath );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollectionPath, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollectionPath, "$Revision: 1.3 $" );
 
 vtkKWScubaLayerCollectionPath::vtkKWScubaLayerCollectionPath ():
   mPathVolumeSource( NULL ),
@@ -218,15 +220,21 @@ vtkKWScubaLayerCollectionPath::GetPointSampleValue( const int iPointIndex ) cons
   // read line by line rather than read in the 3 coordinates at a time and
   // making me do this mod madness
   
-  const int index = iPointIndex / 3;
-  const int dimIndex = iPointIndex % 3;
-  
-  const double* sample = mSamplesReader->GetOutput()->GetPoint( index );
-  
-  return sample[ dimIndex ];
+//  const int index = iPointIndex / 3;
+//  const int dimIndex = iPointIndex % 3;
+//  
+//  const double* sample = mSamplesReader->GetOutput()->GetPoint( index );
+//  
+//  return sample[ dimIndex ];
+
+  return mSamples[ iPointIndex ];
     
 }
 
+int
+vtkKWScubaLayerCollectionPath::GetNumberOfSamples() const {
+  return mSamples.size();
+}
 
 void 
 vtkKWScubaLayerCollectionPath::SetPathThresholdMode ( int iMode ) {
@@ -295,9 +303,10 @@ vtkKWScubaLayerCollectionPath::LoadPathVolumeFromFileName () {
   // read in the values sampled along the path
   const char* sPathSamples = "/OptimalPathSamples.txt";
   string fnOptimalPathSamples = this->GetFullFileName ( sPathSamples );
-  mSamplesReader = vtkSimplePointsReader::New();
-  mSamplesReader->SetFileName( fnOptimalPathSamples.c_str() );
-  mSamplesReader->Update();
+//  mSamplesReader = vtkSimplePointsReader::New();
+//  mSamplesReader->SetFileName( fnOptimalPathSamples.c_str() );
+//  mSamplesReader->Update();
+  this->ReadSamples( fnOptimalPathSamples.c_str() );
   
   // read in the path density
   mPathVolumeSource = vtkFSVolumeSource::New();
@@ -381,5 +390,27 @@ vtkKWScubaLayerCollectionPath::GetFullFileName ( const char* sShortFileName ) co
   }
   
   return fullFileName;
+  
+}
+
+void 
+vtkKWScubaLayerCollectionPath::ReadSamples( const char* fnSamples ) {
+
+  string s;
+  ifstream samplesFile( fnSamples );
+
+  double sample = 0.0;
+  
+  // read all the samples
+  while( samplesFile >> s ) {
+    
+    // convert the sample to double format
+    stringstream stream;
+    stream << s;
+    stream >> sample;
+    
+    // add the sample the samples vector
+    mSamples.insert( mSamples.end(), sample );
+  }
   
 }

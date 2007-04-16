@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/13 20:29:21 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/04/16 18:44:08 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,8 @@
 
 #include "vtkKWScubaLayerCollection.h"
 #include "ScubaCollectionPropertiesPath.h"
+
+#include <vector>
 
 class vtkFSVolumeSource;
 class vtkSimplePointsReader;
@@ -72,6 +74,10 @@ class vtkKWScubaLayerCollectionPath : public vtkKWScubaLayerCollection
     // Get the scalar value at a point.
     virtual double GetPointSampleValue( const int iPointIndex ) const;
     
+    // Description:
+    // Get the number of samples that were read.
+    virtual int GetNumberOfSamples() const;
+    
     // Description.
     // Set the mode that we should threshold
     void SetPathThresholdMode ( int iMode );
@@ -99,6 +105,8 @@ class vtkKWScubaLayerCollectionPath : public vtkKWScubaLayerCollection
     //BTX
     std::string GetFullFileName ( const char* sShortFileName ) const;
     //ETX
+    
+    void ReadSamples( const char* fnSamples );
 
   private:
 
@@ -125,6 +133,9 @@ class vtkKWScubaLayerCollectionPath : public vtkKWScubaLayerCollection
     
     double mPathThreshold;
     
+    //BTX
+    std::vector< double > mSamples;
+    //ETX
 
 };
 

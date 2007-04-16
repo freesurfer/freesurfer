@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/13 20:29:21 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/04/16 18:44:08 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DPath );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.3 $" );
 
 vtkKWScubaLayer3DPath::vtkKWScubaLayer3DPath () :
   mPathProperties( NULL ),
@@ -455,9 +455,15 @@ vtkKWScubaLayer3DPath::CreateTube() {
   // set up the scalar data that was sampled by the pathway
   vtkFloatArray *sampleData = vtkFloatArray::New();
   sampleData->SetName( "SampleData" );
-  for( int i=0; i<100; i++ ) {
-    const double value = mPathProperties->GetPointSampleValue( i );
-    sampleData->InsertNextValue( value );
+  
+  // error check to make sure that number of samples is the same as the number
+  // of points
+  if( nPoints == mPathProperties->GetNumberOfSamples() ) {
+    // get the scalar data
+    for( int i=0; i<mPathProperties->GetNumberOfSamples(); i++ ) {
+      const double value = mPathProperties->GetPointSampleValue( i );
+      sampleData->InsertNextValue( value );
+    }
   }
 
   // add the points, lines, and sample data    
