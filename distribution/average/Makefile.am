@@ -36,6 +36,7 @@ install: install-fooDATA
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
 	gunzip -c fsaverage.tar.gz | tar xvf -
 	mv fsaverage $(DESTDIR)$(prefix)/subjects
+	cd surf; make install
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
