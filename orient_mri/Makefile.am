@@ -92,7 +92,7 @@ vtkKWOrientMRIViewTcl.cxx:
 OrientMRILibInit.cxx:
 endif
 
-EXTRA_DIST=$(wildcard *.h) $(wildcard *.cxx) $(wildcard *.data)
+EXTRA_DIST=$(wildcard *.h) $(wildcard *.cxx) $(wildcard *.data) $(orient_mri_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
