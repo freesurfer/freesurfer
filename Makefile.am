@@ -16,6 +16,7 @@ GLSUBDIRS=mris2rgb \
 	tksurfer \
 	mri_probedicom \
 	orient_mri \
+	qdec \
 	qdec2
 
 MRISUBDIRS=check_siemens_dir \
@@ -252,11 +253,11 @@ SUBDIRS=include \
 	dicom \
 	hipsstubs \
 	rgb \
+	log \
 	utils \
 	utilscpp \
 	vtkfsio \
 	vtkutils \
-	log \
 	tetgen \
 	$(FSGDF) \
 	$(MRISUBDIRS) \
