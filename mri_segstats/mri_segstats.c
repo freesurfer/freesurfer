@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/16 22:13:04 $
- *    $Revision: 1.30 $
+ *    $Date: 2007/04/16 23:26:08 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.30 2007/04/16 22:13:04 greve Exp $";
+"$Id: mri_segstats.c,v 1.31 2007/04/16 23:26:08 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1327,7 +1327,8 @@ static void print_help(void) {
       "      what you want to quote.\n"
       "  (2) BrainSeg - sum of the volume of the structures identified in the aseg.mgz\n"
       "      volume. This will  include cerebellum and ventricles but should exclude\n"
-      "      ventricles.\n"
+      "      ventricles. This does not include partial volume compensation, so \n"
+      "      this number might be different than the sum of the segmentation volumes.\n"
       "  (3) IntraCranialVol (ICV) - estimate of the intracranial volume based on the\n"
       "      talairach transform. See surfer.nmr.mgh.harvard.edu/fswiki/eTIV for more\n"
       "      details. This is the same measure as Estimated Total Intracranial Volume\n"
