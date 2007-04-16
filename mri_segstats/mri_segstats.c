@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/16 22:11:55 $
- *    $Revision: 1.29 $
+ *    $Date: 2007/04/16 22:13:04 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.29 2007/04/16 22:11:55 greve Exp $";
+"$Id: mri_segstats.c,v 1.30 2007/04/16 22:13:04 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1330,7 +1330,7 @@ static void print_help(void) {
       "      ventricles.\n"
       "  (3) IntraCranialVol (ICV) - estimate of the intracranial volume based on the\n"
       "      talairach transform. See surfer.nmr.mgh.harvard.edu/fswiki/eTIV for more\n"
-      "      details. This is the same measure as Estimated Total Intracranial Volume (eTIV).\n"
+      "      details. This is the same measure as Estimated Total Intracranial Volume\n"
       "      (eTIV).\n"
       "\n"
       "SUMMARY FILE FORMAT\n"
