@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/15 00:53:47 $
- *    $Revision: 1.28 $
+ *    $Author: greve $
+ *    $Date: 2007/04/16 22:11:55 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.28 2007/04/15 00:53:47 nicks Exp $";
+"$Id: mri_segstats.c,v 1.29 2007/04/16 22:11:55 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -867,7 +867,10 @@ int main(int argc, char **argv) {
     if(SpatFrameAvgFile) {
       printf("Writing to %s\n",SpatFrameAvgFile);
       fp = fopen(SpatFrameAvgFile,"w");
-      for (n=0; n < nsegid; n++) fprintf(fp,"%g\n",favgmn[n]);
+      for (n=0; n < nsegid; n++) {
+	fprintf(fp,"%g\n",favgmn[n]);
+	printf("%d %g\n",n,favgmn[n]);
+      }
       fclose(fp);
     }
 
@@ -1130,6 +1133,7 @@ static void print_help(void) {
       "  - SUMMARY\n"
       "  - COMMAND-LINE ARGUMENTS\n"
       "  - SPECIFYING SEGMENTATION IDS\n"
+      "  - MEASURES OF BRAIN VOLUME\n"
       "  - SUMMARY FILE FORMAT\n"
       "  - EXAMPLES\n"
       "  - SEE ALSO\n"
@@ -1314,6 +1318,20 @@ static void print_help(void) {
       "     all the ids from the segmentation volume are used.\n"
       "This list can be further reduced by specifying masks, --nonempty,\n"
       "and --excludeid.\n"
+      "\n"
+      "MEASURES OF BRAIN VOLUME\n"
+      "\n"
+      "There will be three measures of brain volume in the output summary file:\n"
+      "  (1) BrainMask - total volume of non-zero voxels in brainmask.mgz. This will\n"
+      "      include cerebellum, ventricles, and possibly dura. This is probably not\n"
+      "      what you want to quote.\n"
+      "  (2) BrainSeg - sum of the volume of the structures identified in the aseg.mgz\n"
+      "      volume. This will  include cerebellum and ventricles but should exclude\n"
+      "      ventricles.\n"
+      "  (3) IntraCranialVol (ICV) - estimate of the intracranial volume based on the\n"
+      "      talairach transform. See surfer.nmr.mgh.harvard.edu/fswiki/eTIV for more\n"
+      "      details. This is the same measure as Estimated Total Intracranial Volume (eTIV).\n"
+      "      (eTIV).\n"
       "\n"
       "SUMMARY FILE FORMAT\n"
       "\n"
