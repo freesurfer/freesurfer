@@ -6,9 +6,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/17 16:05:14 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,7 +40,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayerCollectionDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollectionDTI, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollectionDTI, "$Revision: 1.2 $" );
 
 vtkKWScubaLayerCollectionDTI::vtkKWScubaLayerCollectionDTI () :
   mFAVolumeSource( NULL ),
@@ -197,8 +197,8 @@ vtkKWScubaLayerCollectionDTI::AddControls ( vtkKWWidget* iPanel ) {
   this->Script( "pack %s %s %s %s -side top -fill x",
                 radBtnSetInterpolation->GetWidgetName(),
                 mChkBtnRenderEdges->GetWidgetName(),
-		radBtnSetTensorScaling->GetWidgetName(),
-		radBtnSetTensorDetail->GetWidgetName() );
+                radBtnSetTensorScaling->GetWidgetName(),
+                radBtnSetTensorDetail->GetWidgetName() );
 
   radBtnSetTensorScaling->Delete();
   radBtnSetTensorDetail->Delete();
@@ -246,6 +246,27 @@ vtkKWScubaLayerCollectionDTI::GetFAVolumeSource() const {
 vtkFSVolumeSource* 
 vtkKWScubaLayerCollectionDTI::GetEigenValueVolumeSource() const {
   return mEValuesVolumeSource;
+}
+
+vtkFSVolumeSource* 
+vtkKWScubaLayerCollectionDTI::GetEigenVectorVolumeSource( const int iSource ) const {
+  
+  const int first = 1;
+  const int second = 2;
+  const int third = 3;
+  
+  vtkFSVolumeSource* source = NULL;
+  
+  if( first == iSource ) {
+    source = this->GetEigenVector1VolumeSource();
+  } else if( second == iSource ) {
+    source = this->GetEigenVector2VolumeSource();    
+  } else if( third == iSource ) {
+    source = this->GetEigenVector3VolumeSource();    
+  } 
+  
+  return source;
+  
 }
 
 vtkFSVolumeSource* 

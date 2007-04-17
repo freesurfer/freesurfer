@@ -9,9 +9,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/09 22:38:09 $
- *    $Revision: 1.2 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/17 16:05:14 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,7 @@ class ScubaCollectionPropertiesDTI {
   virtual vtkImageAppendComponents* GetMergedSource () const = 0;
   virtual vtkFSVolumeSource* GetFAVolumeSource() const = 0;
   virtual vtkFSVolumeSource* GetEigenValueVolumeSource() const = 0;
+  virtual vtkFSVolumeSource* GetEigenVectorVolumeSource( const int iSource ) const = 0;
   virtual vtkFSVolumeSource* GetEigenVector1VolumeSource() const = 0;
   virtual vtkFSVolumeSource* GetEigenVector2VolumeSource() const = 0;
   virtual vtkFSVolumeSource* GetEigenVector3VolumeSource() const = 0;

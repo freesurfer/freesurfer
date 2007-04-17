@@ -6,9 +6,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/17 16:05:14 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,6 +60,7 @@ class vtkKWScubaLayerCollectionDTI : public vtkKWScubaLayerCollection
   vtkImageAppendComponents* GetMergedSource () const;
   vtkFSVolumeSource* GetFAVolumeSource() const;
   vtkFSVolumeSource* GetEigenValueVolumeSource() const;
+  vtkFSVolumeSource* GetEigenVectorVolumeSource( const int iSource ) const;
   vtkFSVolumeSource* GetEigenVector1VolumeSource() const;
   vtkFSVolumeSource* GetEigenVector2VolumeSource() const;
   vtkFSVolumeSource* GetEigenVector3VolumeSource() const;

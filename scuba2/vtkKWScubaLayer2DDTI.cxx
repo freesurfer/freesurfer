@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/13 21:46:31 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/04/17 16:05:14 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.5 $" );
 
 vtkKWScubaLayer2DDTI::vtkKWScubaLayer2DDTI () :
   mDTIProperties( NULL ),
@@ -325,15 +325,13 @@ vtkKWScubaLayer2DDTI::GetInfoItems ( float iRAS[3],
  
     // return the eigenvalues
     vtkFSVolumeSource* eigenValuesSource = mDTIProperties->GetEigenValueVolumeSource();
-//    eigenValuesSource->ConvertRASToIndex( iRAS[0], iRAS[1], iRAS[2],
-//      index[0], index[1], index[2] );
       
     // each location will have three eigenvalues
     float eigenValues[ 3 ];
     for( int cValue=0; cValue<3; cValue++ ) {
-//      cerr << "  getting value: " << cValue << std::endl;
       eigenValues[ cValue ] = eigenValuesSource->GetValueAtIndex( index[0], index[1], index[2], cValue );
     }
+    
     snprintf( infoValue, sizeof(infoValue), "%f %f %f", eigenValues[ 0 ], eigenValues[ 1 ], eigenValues[ 2 ] );
     ScubaInfoItem eigenValueInfo;
     eigenValueInfo.Clear();
@@ -343,6 +341,33 @@ vtkKWScubaLayer2DDTI::GetInfoItems ( float iRAS[3],
 
     // Return the eigenvalues
     ilInfo.push_back( eigenValueInfo );  
+    
+    for( int n=0; n<3; n++ ) {
+      
+      const int currentEigenVectorId = n + 1;
+      
+      // get the eigenvectors
+      vtkFSVolumeSource* eigenVectorSource = mDTIProperties->GetEigenVectorVolumeSource( currentEigenVectorId );
+      float eigenVector[ 3 ];
+  
+      for( int cValue=0; cValue<3; cValue++ ) {
+        eigenVector[ cValue ] = eigenVectorSource->GetValueAtIndex( index[0], index[1], index[2], cValue );
+      }
+      
+      snprintf( infoValue, sizeof(infoValue), "%f %f %f", eigenVector[ 0 ], eigenVector[ 1 ], eigenVector[ 2 ] );
+      ScubaInfoItem eigenVectorInfo;
+      eigenVectorInfo.Clear();
+      
+      char label[1024];
+      snprintf( label, sizeof(label), "Eigen Vector %i", currentEigenVectorId );
+      eigenVectorInfo.SetLabel( label );
+      eigenVectorInfo.SetValue( infoValue );
+      eigenVectorInfo.SetShortenHint( false );
+  
+      // Return the eigenvector
+      ilInfo.push_back( eigenVectorInfo );  
+    }
+
   
     
   } else {
