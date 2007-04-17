@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/03 00:04:11 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/04/17 16:34:00 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,7 +36,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceSource );
-vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.3 $" );
 
 vtkFSSurfaceSource::vtkFSSurfaceSource() :
     mMRIS( NULL ),
@@ -306,6 +306,29 @@ vtkFSSurfaceSource::FindVertexAtSurfaceRAS ( float const iSurfaceRAS[3],
   }
 
   return nClosestVertex;
+}
+
+void
+vtkFSSurfaceSource::GetRASAtVertex ( int inVertex, float ioRAS[3] ) {
+
+  float surfaceRAS[3];
+  this->GetSurfaceRASAtVertex( inVertex, surfaceRAS );
+
+  this->ConvertSurfaceToRAS( surfaceRAS, ioRAS );
+}
+
+void
+vtkFSSurfaceSource::GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3] ) {
+
+  if( mMRIS == NULL )
+    throw runtime_error( "GetRASAtVertex: mMRIS was NULL" );
+
+  if( inVertex < 0 || inVertex >= mMRIS->nvertices )
+    throw runtime_error( "GetRASAtVertex: inVertex was invalid" );
+
+  ioRAS[0] = mMRIS->vertices[inVertex].x;
+  ioRAS[1] = mMRIS->vertices[inVertex].y;
+  ioRAS[2] = mMRIS->vertices[inVertex].z;
 }
 
 void

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/06 15:25:31 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/04/17 16:34:00 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -82,6 +82,11 @@ public:
   // returned there.
   int FindVertexAtRAS        ( float const iRAS[3],        float* oDistance );
   int FindVertexAtSurfaceRAS ( float const iSurfaceRAS[3], float* oDistance );
+
+  // Description:
+  // Get the RAS or surface RAS coords at a vertex index.
+  void GetRASAtVertex        ( int inVertex, float ioRAS[3] );
+  void GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3] );
 
   MRIS* GetMRIS() { return mMRIS; }
 
