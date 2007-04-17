@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/04/07 01:18:32 $
- *    $Revision: 1.93 $
+ *    $Author: nicks $
+ *    $Date: 2007/04/17 19:51:05 $
+ *    $Revision: 1.94 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.93 2007/04/07 01:18:32 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.94 2007/04/17 19:51:05 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -221,13 +221,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.93 2007/04/07 01:18:32 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.94 2007/04/17 19:51:05 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.93 2007/04/07 01:18:32 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.94 2007/04/17 19:51:05 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1357,6 +1357,7 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "pial")) {
     strcpy(pial_name, argv[2]) ;
     fprintf(stderr,  "writing pial surface to file named %s\n", pial_name) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "write_vals")) {
     write_vals = 1 ;
     fprintf(stderr,  "writing gray and white surface targets to .mgz files\n") ;
