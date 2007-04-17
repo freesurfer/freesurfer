@@ -2,9 +2,9 @@
 ## tkm_wrappers.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2007/01/11 20:15:15 $
-##    $Revision: 1.44 $
+##    $Author: greve $
+##    $Date: 2007/04/17 23:31:41 $
+##    $Revision: 1.45 $
 ##
 ## Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA). 
@@ -745,12 +745,14 @@ proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep {
 	tkm_MakeEntry $isFrame.ew \
 	    $isText $iVariable 4 "if { \[set $iVariable\] > $min && \[set $iVariable\] < $max } { $iSetFunc \[set $iVariable\] } else { tk_messageBox -icon error -message \"Value must be between $min and $max.\" }"
     
+        # DNG added wrap-around
 	button $isFrame.bwDec -text "-" \
-	    -command "if { \[set $iVariable\] > $min } { incr $iVariable -$ifStep; $iSetFunc \[set $iVariable\] }" \
+	    -command "if { \[set $iVariable\] > $min } { incr $iVariable -$ifStep; $iSetFunc \[set $iVariable\] } else { set $iVariable $max;}" \
 	    -padx 1 -pady 0
 	
+        # DNG added wrap-around
 	button $isFrame.bwInc -text "+" \
-	    -command "if { \[set $iVariable\] < $max } { incr $iVariable $ifStep; $iSetFunc \[set $iVariable\] }" \
+	    -command "if { \[set $iVariable\] < $max } { incr $iVariable $ifStep; $iSetFunc \[set $iVariable\] } else { set $iVariable $min;}" \
 	    -padx 0 -pady 0
 
     } else {
