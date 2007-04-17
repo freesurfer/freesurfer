@@ -35,13 +35,13 @@ vtkKWRGBATransferFunctionEditorTcl.cxx: vtkKWRGBATransferFunctionEditor.h
 	${VTK_LIB_VTK}/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
 
 
-EXTRA_DIST=$(wildcard *.h)
-
 if ENABLE_KWWIDGETS_APPS
 check_PROGRAMS=vtkKWRGBATransferFunctionEditorTester
 else
 check_PROGRAMS=
 endif
+
+#TESTS=$(check_PROGRAMS)
 
 # vtkKWRGBATransferFunctionEditorTester test program
 vtkKWRGBATransferFunctionEditorTester_SOURCES=vtkKWRGBATransferFunctionEditorTester.cxx \
@@ -73,6 +73,7 @@ vtkKWRGBATransferFunctionEditorTester_LDADD=\
 	-lvtkCommonTCL \
 	$(KWWIDGETS_LIBS) -lKWWidgets
 
+EXTRA_DIST=$(wildcard *.h) $(wildcard *.data)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
