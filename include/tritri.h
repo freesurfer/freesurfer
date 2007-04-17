@@ -1,15 +1,19 @@
 /**
  * @file  tritri.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief macros and prototypes for triangle/triangle intersection and some 3-vectors.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * the header file for tritri.c that implements the fast triangle/triangle intersection
+ * detection code used by the surface deformations to prevent a surface from passing
+ * through itself. See:
+ * "A Fast Triangle-Triangle Intersection Test",
+ * Journal of Graphics Tools, 2(2), 1997
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/17 14:58:33 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/04/17 15:00:29 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
