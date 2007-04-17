@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/17 00:21:03 $
-#    $Revision: 1.80 $
+#    $Date: 2007/04/17 22:05:54 $
+#    $Revision: 1.81 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.80 2007/04/17 00:21:03 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.81 2007/04/17 22:05:54 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -98,8 +98,8 @@ set UnCompress = 0    # if 1, add '-uncompress' to mri_ca_reg
 set BigVentricles = 0 # if 1, add '-bigventricles' to mri_ca_label and reg.
                       # else, add '-nobigventricles'
 set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
-set UseOldTopoFix = 0 # if 1, use mris_fix_topology instead of mris_topo_fixer
-set UseNewTopoFix = 1 # if 1, use mris_topo_fixer instead of mris_fix_topology
+set UseOldTopoFix = 1 # if 1, use mris_fix_topology instead of mris_topo_fixer
+set UseNewTopoFix = 0 # if 1, use mris_topo_fixer instead of mris_fix_topology
 set NoRandomness = 0 # if 1, seed critical binaries with identical seeds, to
                      # ensure consistency in surface creation. otherwise, the
                      # default is to seed with current time and date,
@@ -1513,17 +1513,39 @@ foreach hemi ($hemilist)
       set cmd = (mris_fix_topology -mgz -sphere qsphere.nofix)
       if($FixWithGA) set cmd = ($cmd -ga)
       if($FixDiagOnly) set cmd = ($cmd -diagonly)
+      if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+      set cmd = ($cmd $xopts $subjid $hemi)
+      $PWD |& tee -a $LF
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      # check if total defect index != 0, meaning, euler # != 2 (surface bad)
+      set cmd = (mris_euler_number $hemi.orig)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) then 
+        $cmd >& mris_euler_number.log
+        if($status) goto error_exit;
+        set defect_idx=`grep "total defect index" mris_euler_number.log | awk '{print $5}'`
+        if("$defect_idx" != "0") then
+          echo "mris_fix_topology failed! (euler number != 2)" |& tee -a $LF
+          echo "Trying mris_topo_fixer..." |& tee -a $LF
+          set UseNewTopoFix = 1
+          set UseOldTopoFix = 0
+        endif
+        cat mris_euler_number.log |& tee -a $LF
+        rm -f mris_euler_number.log
+      endif
     endif
     if($UseNewTopoFix) then
       set xopts = `fsr-getxopts mris_topo_fixer $XOptsFile`;
       set cmd = (mris_topo_fixer -mgz -warnings)
+      if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+      set cmd = ($cmd $xopts $subjid $hemi)
+      $PWD |& tee -a $LF
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
     endif
-    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
-    set cmd = ($cmd $xopts $subjid $hemi)
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    if($status) goto error_exit;
     # run surface intersection checker/fixer
     set xopts = `fsr-getxopts mris_remove_intersection $XOptsFile`;
     set cmd = (mris_remove_intersection)
@@ -1536,7 +1558,7 @@ foreach hemi ($hemilist)
     set cmd = (rm ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd
-    if(! $UseOldTopoFix) then
+    if($UseNewTopoFix) then
       # Copy *h.orig_corrected to *h.orig
       set cmd = (cp ../surf/$hemi.orig_corrected ../surf/$hemi.orig )
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
