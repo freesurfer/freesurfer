@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.6 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/17 14:58:33 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,11 @@ int triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
               dest[0]=v1[1]*v2[2]-v1[2]*v2[1]; \
               dest[1]=v1[2]*v2[0]-v1[0]*v2[2]; \
               dest[2]=v1[0]*v2[1]-v1[1]*v2[0];
+
+#define CROSS3(xd,yd,zd,v1x,v1y,v1z,v2x,v2y,v2z)                      \
+              xd = v1y*v2z-v1z*v2y; \
+              yd = v1z*v2x-v1x*v2z; \
+              zd = v1x*v2y-v1y*v2x;
 
 #define DOT(v1,v2) (v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2])
 #define VLEN(v)    (sqrt(DOT(v,v)))
