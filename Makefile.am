@@ -16,7 +16,6 @@ GLSUBDIRS=mris2rgb \
 	tksurfer \
 	mri_probedicom \
 	orient_mri \
-	qdec \
 	qdec2
 
 MRISUBDIRS=check_siemens_dir \
