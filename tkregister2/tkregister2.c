@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/05 19:33:52 $
- *    $Revision: 1.76 $
+ *    $Date: 2007/04/18 05:39:17 $
+ *    $Revision: 1.77 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 #ifndef lint
 static char vcid[] =
-  "$Id: tkregister2.c,v 1.76 2007/04/05 19:33:52 greve Exp $";
+  "$Id: tkregister2.c,v 1.77 2007/04/18 05:39:17 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -129,6 +129,7 @@ void  read_fslreg(char *fname);
 void write_reg(char fname[]);
 void write_fslreg(char *fname);
 void write_xfmreg(char *fname);
+void write_lta(char *fname);
 void make_backup(char fname[]);
 void save_rgb(char fname[]);
 void scrsave_to_rgb(char fname[]);
@@ -393,6 +394,7 @@ TRANSFORM *FSXform = NULL;
 LTA *lta = NULL;
 LT  *linxfm = NULL;
 char *ltafname;
+char *ltaoutfname=NULL;
 
 
 /**** ------------------ main ------------------------------- ****/
@@ -1102,13 +1104,21 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       ltafname = pargv[0];
       FSXform = TransformRead(ltafname);
-      if (FSXform == NULL) exit(1);
+      if(FSXform == NULL) exit(1);
       lta = (LTA*) FSXform->xform;
+      if(lta->type != LINEAR_RAS_TO_RAS){
+	printf("ERROR: LTA input is not RAS to RAS\n");
+	exit(1);
+      }
       linxfm = &(lta->xforms[0]);
       //RegMat = TransformLTA2RegDatB(lta);
       // Assume RAS2RAS and uses vox2ras from input volumes:
       XFM = lta->xforms[0].m_L;
       mkheaderreg = 1;
+      nargsused = 1;
+    } else if (!strcmp(option, "--ltaout")) {
+      if(nargc < 1) argnerr(option,1);
+      ltaoutfname = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--fslregout")) {
       if (nargc < 1) argnerr(option,1);
@@ -1362,6 +1372,15 @@ static void print_help(void) {
     "  Use the matrix produced by an MNI prgram as the "
     "  initial registration.\n"
     "  Note: the matrix should map from the mov to the target.\n"
+    "  \n"
+    "  --lta ltafile \n"
+    "  \n"
+    "  RAS-to-RAS linear transform array file."
+    "  Note: the matrix should map from the mov to the target.\n"
+    "  \n"
+    "  --ltaout ltaoutfile \n"
+    "  \n"
+    "  RAS-to-RAS linear transform array file."
     "  \n"
     "  --s identity\n"
     "  \n"
@@ -3145,6 +3164,7 @@ void write_reg(char *fname) {
 
   if (fslregoutfname != NULL) write_fslreg(fslregoutfname);
   if (xfmoutfname != NULL) write_xfmreg(xfmoutfname);
+  if (ltaoutfname != NULL) write_lta(ltaoutfname);
 
   return;
 }
@@ -3209,6 +3229,45 @@ void write_xfmreg(char *fname) {
 
   return;
 }
+/*-----------------------------------------------------*/
+void write_lta(char *fname) {
+  extern MRI *mov_vol, *targ_vol0;
+  extern MATRIX *RegMat;
+  LTA              *lta ;
+  LINEAR_TRANSFORM *lt ;
+  MATRIX *Mxfm=NULL, *RegMatTmp=NULL;
+  VOL_GEOM srcG, dstG;
+  FILE *fp;
+
+  RegMatTmp = MatrixMultiply(RegMat,Mtc,NULL);
+  Mxfm = MRItkReg2Native(targ_vol0, mov_vol, RegMatTmp);
+
+  lta = LTAalloc(1, NULL) ;
+  lt = &lta->xforms[0] ;
+  lt->sigma = 1.0f ;
+  lt->x0 = lt->y0 = lt->z0 = 0 ;
+  lta->type = LINEAR_RAS_TO_RAS;
+  lt->m_L = MatrixCopy(Mxfm,NULL);
+
+  getVolGeom(mov_vol,   &srcG);
+  getVolGeom(targ_vol0, &dstG);
+  lta->xforms[0].src = dstG;
+  lta->xforms[0].dst = srcG;
+
+  fp = fopen(fname,"w");
+  if(!fp){
+    printf("ERROR: cannot open %s for writing\n",fname);
+    exit(1);
+  }
+  LTAprint(fp, lta);
+
+  MatrixFree(&Mxfm);
+  MatrixFree(&RegMatTmp);
+  LTAfree(&lta);
+
+  return;
+}
+
 /*-----------------------------------------------------*/
 void make_backup(char *fname) {
   char command[2*NAME_LENGTH];
@@ -4195,7 +4254,7 @@ char **argv;
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.76 2007/04/05 19:33:52 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.77 2007/04/18 05:39:17 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
