@@ -1,18 +1,16 @@
 /**
  * @file  mris_jacobian.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief computes the jacobian of a surface mapping
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/04/18 21:16:10 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -41,7 +39,8 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_jacobian.c,v 1.6 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = 
+"$Id: mris_jacobian.c,v 1.7 2007/04/18 21:16:10 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -61,13 +60,17 @@ static int noscale = 0 ;
 char *Progname ;
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char         **av, *orig_surf, *mapped_surf, *out_fname;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_jacobian.c,v 1.6 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mris_jacobian.c,v 1.7 2007/04/18 21:16:10 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -77,10 +80,10 @@ main(int argc, char *argv[]) {
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -102,7 +105,9 @@ main(int argc, char *argv[]) {
   MRISstoreMetricProperties(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   if (MRISreadVertexPositions(mris, mapped_surf) != NO_ERROR)
-    ErrorExit(ERROR_BADPARM, "%s: could not read target surface %s",Progname,mapped_surf) ;
+    ErrorExit(ERROR_BADPARM, 
+              "%s: could not read target surface %s",
+              Progname,mapped_surf) ;
   MRIScomputeMetricProperties(mris) ;
 
   compute_area_ratios(mris, noscale) ;  /* will put results in v->curv */
@@ -119,12 +124,13 @@ main(int argc, char *argv[]) {
 }
 
 /*----------------------------------------------------------------------
-            Parameters:
+  Parameters:
 
-           Description:
+  Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int    nargs = 0 ;
   char   *option ;
 
@@ -133,13 +139,18 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "log")) {
+  else if (!stricmp(option, "log"))
+  {
     log_flag = 1 ;
     fprintf(stderr, "computing log of jacobian...\n") ;
-  } else if (!stricmp(option, "invert")) {
+  }
+  else if (!stricmp(option, "invert"))
+  {
     invert_flag = 1 ;
     fprintf(stderr, "computing inverse of jacobian<1 locations...\n") ;
-  } else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case 'N':
       noscale = 1 ;
       printf("not scaling by total surface area\n") ;
@@ -163,40 +174,50 @@ get_option(int argc, char *argv[]) {
 }
 
 static void
-usage_exit(void) {
+usage_exit(void)
+{
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void) {
-  fprintf(stderr,
-          "usage: %s [options] <original surface> <mapped surface> <jacobian file name>\n",
-          Progname) ;
+print_usage(void)
+{
+  fprintf
+    (stderr,
+     "Usage:\n"
+     "%s [options] <original surface> <mapped surface> <jacobian file name>\n",
+     Progname) ;
 }
 
 static void
-print_help(void) {
+print_help(void)
+{
   print_usage() ;
 
-
   fprintf(stderr,
-          "\nThis program computes the jacobian of a surface mapping\n") ;
-  fprintf(stderr, "\nvalid options are:\n\n") ;
-  fprintf(stderr, "\t-log:\tcompute and write out log of jacobian\n") ;
-  fprintf(stderr, "\t-noscale:\tdon't scale jacobian by total surface areas\n") ;
-  fprintf(stderr, "\t-invert:\tcompute -1/jacobian for jacobian<1\n") ;
+          "\nThis program computes the Jacobian of a surface mapping.\n") ;
+  fprintf(stderr, 
+          "\nOptions:\n\n") ;
+  fprintf(stderr, 
+          "  -log     : compute and write out log of jacobian\n") ;
+  fprintf(stderr, 
+          "  -noscale : don't scale jacobian by total surface areas\n") ;
+  fprintf(stderr, 
+          "  -invert  : compute -1/jacobian for jacobian<1\n") ;
   exit(1) ;
 }
 
 static void
-print_version(void) {
+print_version(void)
+{
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
 
 static int
-compute_area_ratios(MRI_SURFACE *mris, int noscale) {
+compute_area_ratios(MRI_SURFACE *mris, int noscale)
+{
   VERTEX  *v ;
   int     vno ;
   float   area_scale ;
@@ -205,7 +226,8 @@ compute_area_ratios(MRI_SURFACE *mris, int noscale) {
     area_scale = 1 ;
   else
     area_scale = mris->total_area / mris->orig_area  ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -215,20 +237,26 @@ compute_area_ratios(MRI_SURFACE *mris, int noscale) {
       v->origarea = SMALL ;
     v->curv = v->area / (v->origarea*area_scale) ;
     if (!finite(v->curv))
-      ErrorPrintf(ERROR_BADPARM, "vertex %d not finite (area %2.1f, origarea %2.1f, scale %2.1f", vno, v->area, v->origarea, area_scale) ;
+      ErrorPrintf
+        (ERROR_BADPARM, 
+         "vertex %d not finite (area %2.1f, origarea %2.1f, scale %2.1f", 
+         vno, v->area, v->origarea, area_scale) ;
   }
 
   return(NO_ERROR) ;
 }
 
+
 static int
-log_ratios(MRI_SURFACE *mris) {
+log_ratios(MRI_SURFACE *mris)
+{
   VERTEX  *v ;
   int     vno ;
   float   area_scale ;
 
   area_scale = mris->total_area / mris->orig_area  ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -242,14 +270,18 @@ log_ratios(MRI_SURFACE *mris) {
 
   return(NO_ERROR) ;
 }
+
+
 static int
-invert_ratios(MRI_SURFACE *mris) {
+invert_ratios(MRI_SURFACE *mris)
+{
   VERTEX  *v ;
   int     vno ;
   float   area_scale ;
 
   area_scale = mris->total_area / mris->orig_area  ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
