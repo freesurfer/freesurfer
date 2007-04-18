@@ -1,5 +1,5 @@
 /**
- * @file  vtkMeditInteractorStyle.h
+ * @file  vtkFreesurferLookupTable.h
  * @brief A VTK table that reads Freesurfer LUT files
  *
  * This is a vtkLookupTable subclass that can read the Freesurfer LUT
@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/02/16 21:14:00 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/04/18 19:11:38 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
