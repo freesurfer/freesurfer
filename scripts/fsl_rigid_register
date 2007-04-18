@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/06 00:01:14 $
-#    $Revision: 1.18 $
+#    $Author: greve $
+#    $Date: 2007/04/18 05:39:50 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 #
 
-set VERSION = '$Id: fsl_rigid_register,v 1.18 2007/01/06 00:01:14 nicks Exp $';
+set VERSION = '$Id: fsl_rigid_register,v 1.19 2007/04/18 05:39:50 greve Exp $';
 
 setenv FSLOUTPUTTYPE ANALYZE
 
@@ -217,7 +217,12 @@ if($#applyxfm == 0) then
 
   if($#ltamatfile) then
     rm -f $ltamatfile
-    mri_fslmat_to_lta $invol $refvol $fslmatfile $ltamatfile
+    #mri_fslmat_to_lta $invol $refvol $fslmatfile $ltamatfile
+    set cmd = (tkregister2 --noedit --targ $refvol --mov $invol \
+        --reg /tmp/reg.$$ --fsl $fslmatfile --ltaout $ltamatfile);
+    echo $cmd
+    $cmd
+    if($status) exit 1
   endif
 
 endif
