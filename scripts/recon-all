@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/18 21:51:07 $
-#    $Revision: 1.82 $
+#    $Date: 2007/04/18 22:31:17 $
+#    $Revision: 1.83 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.82 2007/04/18 21:51:07 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.83 2007/04/18 22:31:17 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -189,6 +189,7 @@ set DoSmooth2        = 0;
 set DoInflate2       = 0;
 set DoSphere         = 0;
 set DoSurfReg        = 0;
+set DoJacobianWhite  = 0;
 set DoJacobian       = 0;
 set DoContraSurfReg  = 0;
 set DoContraSurfRegWithinSubject = 0;
@@ -1747,8 +1748,16 @@ foreach hemi ($hemilist)
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
     echo $cmd > $touchdir/$hemi.sphreg.touch
+  endif
 
-    # produce the jacobian
+  #---------------- Jacobian --------------------------#
+  if($DoJacobianWhite) then
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Jacobian white $hemi `date`" \
+        |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    # produce the jacobian, from the white surface to the sphere
     set cmd = (mris_jacobian \
                 ../surf/$hemi.white \
                 ../surf/$hemi.sphere.reg \
@@ -1756,7 +1765,7 @@ foreach hemi ($hemilist)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.jacobian.touch
+    echo $cmd > $touchdir/$hemi.jacobian_white.touch
   endif
 
   #------------ Surface Registration, maximal distortion ---------#
@@ -2556,6 +2565,13 @@ while( $#argv != 0 )
       set DoSurfReg = 0;
       breaksw
 
+    case "-jacobian_white":
+      set DoJacobianWhite = 1;
+      breaksw
+    case "-nojacobian_white":
+      set DoJacobianWhite = 0;
+      breaksw
+
     case "-jacobian":
       set DoJacobian = 1;
       breaksw
@@ -2737,6 +2753,7 @@ while( $#argv != 0 )
       set DoSurfReg        = 1;
       set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
+      set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
@@ -2865,6 +2882,7 @@ while( $#argv != 0 )
       set DoSurfReg        = 1;
       set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
+      set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
@@ -2895,6 +2913,7 @@ while( $#argv != 0 )
       set DoSurfReg        = 1;
       set DoContraSurfReg  = 0;
       set DoAvgCurv        = 1;
+      set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
@@ -3431,7 +3450,7 @@ check_params:
      ! $DoSkullLTA && ! $DoQdecCache &&\
      ! $DoSurfReg  && ! $DoContraSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
      ! $DoMorphRGB && ! $DoFinalSurfs && ! $DoContraSurfRegWithinSubject &&\
-     ! $DoCortRibbonVolMask && ! $DoJacobian && \
+     ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobian && \
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoMaskBFS) then
      echo "ERROR: nothing to do"
      exit 1;
@@ -3762,6 +3781,7 @@ Run times are approximate for an AMD Opteron 64bit 2.5GHz processor:
   -<no>cortribbon       < 1 min     per hemisphere
   -<no>sphere           1-2 hours   per hemisphere
   -<no>surfreg            1 hour    per hemisphere
+  -<no>jacobian_white   < 1 min     per hemisphere
   -<no>contrasurfreg      1 hour    per hemisphere
   -<no>avgcurv          < 1 min     per hemisphere
   -<no>cortparc           1 min     per hemisphere
@@ -3940,6 +3960,7 @@ The following FreeSurfer binaries will accept an expert option:
   mris_make_surfaces
   mris_surf2vol
   mris_register
+  mris_jacobian
   mrisp_paint
   mris_ca_label
   mris_anatomical_stats
@@ -4190,14 +4211,6 @@ distortion.  This step is necessary in order to register the surface
 to the spherical atlas. (also known as the spherical morph). Calls
 mris_sphere. Creates surf/?h.sphere.  The -autorecon3 stage begins here.
 
-Jacobian (-<no>jacobian)
-
-Computes how much an individual surface must be distorted in order to
-perfectly match the atlas (ie, distance contraints are turned
-off). Creates ?h.jacobian (a curv formatted file) and
-?h.sphere.jacobian.reg (a surface file). This stage is not done
-automatically because it can add about an hour per hemi.
-
 Ipsilateral Surface Registation (Spherical Morph) (-<no>surfreg)
 
 Registers the orig surface to the spherical atlas through
@@ -4205,6 +4218,21 @@ surf/?h.sphere. The surfaces are first coarsely registered by aligning
 the large scale folding patterns found in ?h.sulc and then fine tuned
 using the small-scale patterns as in ?h.curv.
 Calls mris_register. Creates surf/?h.sphere.reg.
+
+Jacobian (-<no>jacobian_white)
+
+Computes how much the white surface was distorted in order to register
+to the spherical atlas. Creates ?h.jacobian_white (a curv formatted file).
+This step follows surface registeration.
+
+Jacobian (-<no>jacobian)
+
+Computes how much an individual surface must be distorted in order to
+perfectly match the atlas (ie, distance contraints are turned
+off). Creates ?h.jacobian (a curv formatted file) and
+?h.sphere.jacobian.reg (a surface file). This stage is not done
+automatically because it can add about an hour per hemi (runs mris_register
+with the -norot and -dist 0 flags).
 
 Contralateral Surface Registation (Spherical Morph) (-<no>contrasurfreg)
 
