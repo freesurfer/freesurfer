@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/17 22:05:54 $
-#    $Revision: 1.81 $
+#    $Date: 2007/04/18 21:51:07 $
+#    $Revision: 1.82 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.81 2007/04/17 22:05:54 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.82 2007/04/18 21:51:07 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1747,9 +1747,19 @@ foreach hemi ($hemilist)
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
     echo $cmd > $touchdir/$hemi.sphreg.touch
+
+    # produce the jacobian
+    set cmd = (mris_jacobian \
+                ../surf/$hemi.white \
+                ../surf/$hemi.sphere.reg \
+                ../surf/$hemi.jacobian_white)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.jacobian.touch
   endif
 
-  #---------------- Surface Registration --------------------------#
+  #------------ Surface Registration, maximal distortion ---------#
   if($DoJacobian) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -2013,7 +2023,7 @@ if ($DoQdecCache) then
     $PWD |& tee -a $LF
     set target=fsaverage
     foreach hemi ($hemilist)
-        foreach measure ( thickness curv sulc )
+        foreach measure ( thickness curv sulc area jacobian_white )
             foreach fwhm ( 0 5 10 15 20 25 )
                 set CacheOutFile=(${measure}.fwhm${fwhm}.${target})
                 set preproc_log=(mris_preproc.${hemi}.${CacheOutFile}.log)
