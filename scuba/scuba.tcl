@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/03/30 16:47:49 $
-#    $Revision: 1.240 $
+#    $Date: 2007/04/19 22:27:17 $
+#    $Revision: 1.241 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.240 2007/03/30 16:47:49 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.241 2007/04/19 22:27:17 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2109,6 +2109,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwPropsCommon.swOpacity -column 0 -row 2 -columnspan 2 -sticky we
     grid $fwPropsCommon.cbwReportInfo -column 0 -row 3 -columnspan 2 -sticky we
 
+
     # 2DMRI layer settings ----------------------------------------------
     frame $fwProps2DMRI
     tkuMakeToolbar $fwProps2DMRI.tbwColorMapMethod \
@@ -2196,20 +2197,12 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     }
     set gaWidget(layerProperties,minMaxSliders) $fwGrayscale.swMinMax
 
-    tkuMakeSliders $fwGrayscale.swFrame -sliders { 
-	{ -label "Frame" -variable gaLayer(current,frame)
-	    -min 0 -max 0 -entry 1 -entrywidth 3 -resolution 1
-	    -command {Set2DMRILayerCurrentFrame $gaLayer(current,id) $gaLayer(current,frame); UpdateMouseLabelArea; UpdateCursorLabelArea; RedrawFrame [GetMainFrameID]} }
-    }
-    set gaWidget(layerProperties,grayscaleFrameSlider) $fwGrayscale.swFrame
-
     grid $fwGrayscale.tbwSampleMethod   -column 0 -row 0 -sticky ew
     grid $fwGrayscale.cbwClearZero      -column 0 -row 1 -sticky ew
     grid $fwGrayscale.swBC              -column 0 -row 2 -sticky ew
     grid $fwGrayscale.swLevel           -column 0 -row 3 -sticky ew
     grid $fwGrayscale.swWindow          -column 0 -row 4 -sticky ew
     grid $fwGrayscale.swMinMax          -column 0 -row 5 -sticky ew
-    grid $fwGrayscale.swFrame           -column 0 -row 6 -sticky ew
 
     # Heatscale setting -------------------------------------------------
     tkuMakeToolbar $fwHeatscale.tbwSampleMethod \
@@ -2286,14 +2279,6 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	-fill x \
 	-expand yes
 
-
-    tkuMakeSliders $fwHeatscale.swFrame -sliders { 
-	{ -label "Frame" -variable gaLayer(current,frame)
-	    -min 0 -max 0 -entry 1 -entrywidth 3 -resolution 1
-	    -command {Set2DMRILayerCurrentFrame $gaLayer(current,id) $gaLayer(current,frame); UpdateMouseLabelArea; UpdateCursorLabelArea; RedrawFrame [GetMainFrameID]} }
-    }
-    set gaWidget(layerProperties,heatscaleFrameSlider) $fwHeatscale.swFrame
-
     tkuMakeSliders $fwHeatscale.swCondition -sliders { 
 	{ -label "Condition" -variable gaLayer(current,condition)
 	    -min 0 -max 0 -entry 1 -entrywidth 3
@@ -2313,8 +2298,6 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwHeatscale.ewOffset          -column 0 -row 3 -sticky ew
     grid $fwHeatscale.fwFDR             -column 0 -row 4 -sticky ew
     grid $fwHeatscale.cbwOptions        -column 0 -row 5 -sticky ew
-    grid $fwHeatscale.swFrame           -column 0 -row 6 -sticky ew
-    set gaWidget(layerProperties,heatscaleFrameSliderRow) 6
     set gaWidget(layerProperties,heatscaleConditionSliderRow) 6
     set gaWidget(layerProperties,heatscaleTimePointSliderRow) 7
     
@@ -2338,6 +2321,13 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwLUT.cbwClearZero      -column 0 -row 1 -sticky ew
 
     # Remaining 2dMRI settings -----------------------------------------
+    tkuMakeSliders $fwProps2DMRI.swFrame -sliders { 
+	{ -label "Frame" -variable gaLayer(current,frame)
+	    -min 0 -max 0 -entry 1 -entrywidth 3 -resolution 1
+	    -command {Set2DMRILayerCurrentFrame $gaLayer(current,id) $gaLayer(current,frame); UpdateMouseLabelArea; UpdateCursorLabelArea; RedrawFrame [GetMainFrameID]} }
+    }
+    set gaWidget(layerProperties,frameSlider) $fwProps2DMRI.swFrame
+
     tkuMakeCheckboxes $fwProps2DMRI.cbwEditableROI \
 	-font [tkuNormalFont] \
 	-checkboxes { 
@@ -2361,9 +2351,11 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 
     grid $fwProps2DMRI.tbwColorMapMethod  -column 0 -row 0 -sticky ew
     grid $fwProps2DMRI.fwCMap             -column 0 -row 1 -sticky ew
-    grid $fwProps2DMRI.cbwEditableROI     -column 0 -row 2 -sticky ew
-    grid $fwProps2DMRI.swROIOpacity       -column 0 -row 3 -sticky ew
-    grid $fwProps2DMRI.mwMask             -column 0 -row 4 -sticky ew
+    grid $fwProps2DMRI.swFrame            -column 0 -row 2 -sticky we
+    set gaWidget(layerProperties,frameSliderRow) 2
+    grid $fwProps2DMRI.cbwEditableROI     -column 0 -row 3 -sticky ew
+    grid $fwProps2DMRI.swROIOpacity       -column 0 -row 4 -sticky ew
+    grid $fwProps2DMRI.mwMask             -column 0 -row 5 -sticky ew
     set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
 
     # 2DMRIS layer settings -----------------------------------------------
@@ -3327,15 +3319,16 @@ proc SelectLayerInLayerProperties { iLayerID } {
 			     abs($gaLayer(current,maxValue)) ) ] \
 		[GetLayerPreferredValueIncrement $gaLayer(current,id)]
 	    
-
 	    # Length of frame slider.
 	    set volID [Get2DMRILayerVolumeCollection $iLayerID]
 	    set gaLayer(current,numFrames) [GetVolumeNumberOfFrames $volID]
-	    foreach slider {grayscaleFrameSlider heatscaleFrameSlider} {
-		tkuUpdateSlidersRange $gaWidget(layerProperties,$slider) \
-		    0 [expr $gaLayer(current,numFrames) - 1] 1
-	    }
-
+	    tkuUpdateSlidersRange $gaWidget(layerProperties,frameSlider) \
+		0 [expr $gaLayer(current,numFrames) - 1] 1
+	    # Make sure it's packed.
+	    grid $gaWidget(layerProperties,frameSlider) \
+		-column 0 -row $gaWidget(layerProperties,frameSliderRow) \
+		-columnspan 2 -sticky ew
+    
 	    # If we're using time point data, update the time point sliders.
 	    if { [GetVolumeInterpretFramesAsTime $volID] } {
 		set gaLayer(current,numConditions) \
@@ -3351,18 +3344,11 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		    0 [expr $gaLayer(current,numTimePoints) - 1] 1
 
 		# Also unpack the other slider and pack this one.
-		grid forget $gaWidget(layerProperties,heatscaleFrameSlider)
+		grid forget $gaWidget(layerProperties,frameSlider)
 		grid $gaWidget(layerProperties,heatscaleConditionSlider) \
 		    -column 0 -row $gaWidget(layerProperties,heatscaleConditionSliderRow)  -sticky ew
 		grid $gaWidget(layerProperties,heatscaleTimePointSlider) \
 		    -column 0 -row $gaWidget(layerProperties,heatscaleTimePointSliderRow) -sticky ew
-	    } else {
-		# Make sure we're using the frame slider and not the
-		# tp/condition sliders.
-		grid $gaWidget(layerProperties,heatscaleFrameSlider) \
-		    -column 0 -row $gaWidget(layerProperties,heatscaleFrameSliderRow) -sticky ew
-		grid forget $gaWidget(layerProperties,heatscaleConditionSlider)
-		grid forget $gaWidget(layerProperties,heatscaleTimePointSlider)
 	    }
 
 	    # Get the type specific properties.
@@ -3499,12 +3485,10 @@ proc AdjustLayerPropertiesEnabledWidgets {} {
 	    }
 
 	    # Only enable frame slider if we have > 1 frames.
-	    foreach slider {grayscaleFrameSlider heatscaleFrameSlider} {
-		if { $gaLayer(current,numFrames) > 1 } {
-		    tkuSetSlidersEnabled $gaWidget(layerProperties,$slider) 1
-		} else {
-		    tkuSetSlidersEnabled $gaWidget(layerProperties,$slider) 0
-		}
+	    if { $gaLayer(current,numFrames) > 1 } {
+		tkuSetSlidersEnabled $gaWidget(layerProperties,frameSlider) 1
+	    } else {
+		tkuSetSlidersEnabled $gaWidget(layerProperties,frameSlider) 0
 	    }
 	}
     }
@@ -6748,7 +6732,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.240 2007/03/30 16:47:49 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.241 2007/04/19 22:27:17 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
