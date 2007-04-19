@@ -14,8 +14,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/02 05:29:15 $
-#    $Revision: 1.6 $
+#    $Date: 2007/04/19 04:41:21 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -31,7 +31,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat,v 1.6 2007/03/02 05:29:15 greve Exp $';
+set VERSION = '$Id: fsfeat,v 1.7 2007/04/19 04:41:21 greve Exp $';
 set inputargs = ($argv);
 
 set fsf     = ();
@@ -133,7 +133,6 @@ while ($nthEV < $nEVs)
   echo "set fmri(custom$nthEV)" '"'$schpath'"' >> $tmpfsf
 end
 
-# set fmri(npts) 144
 echo "set fmri(outputdir)" '"'$outdirpath'"'  >> $tmpfsf
 echo "set fmri(featwatcher_yn) 0"             >> $tmpfsf
 
@@ -163,8 +162,9 @@ while ($nthzstat < $nzstats)
   set conname = `fsfget $fsf conname_real.$nthzstat`
   if($#conname != 0) then
     pushd $statsdir > /dev/null
-    if(-e $conname.sig.$outext) rm $conname.sig.$outext
-    ln -s zsig$nthzstat.$outext $conname.sig.$outext
+    set tmp = "$conname.sig.$outext"
+    if(-e "$tmp") rm "$tmp";
+    ln -s zsig$nthzstat.$outext "$tmp";
     popd  > /dev/null
   endif
   set concatlist = ($concatlist $sig);
@@ -178,7 +178,7 @@ echo nzfstats = $nzfstats
 @ nthzfstat = 0;
 while ($nthzfstat < $nzfstats)
   @ nthzfstat = $nthzfstat + 1;
-  set zf = $statsdir/zfstat$nthzfstat.$outext
+  set zf  = $statsdir/zfstat$nthzfstat.$outext
   set sig = $statsdir/zfsig$nthzfstat.$outext
   set cmd = (mri_z2p --z $zf --log10p $sig) # not signed
   pwd
