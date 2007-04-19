@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/05 18:48:37 $
- *    $Revision: 1.62 $
+ *    $Author: nommert $
+ *    $Date: 2007/04/19 13:52:29 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-char *MRI_WATERSHED_VERSION = "$Revision: 1.62 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.63 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -154,7 +154,9 @@ typedef struct STRIP_PARMS
   /*to use the automatic seeds with the atlas*/
   float seedprior;
   /*to use the preweighting with prior*/
-  float preweight;
+  float preweight; 
+  /*to use the preweighting with prior*/
+  float preweightemp;
   /*to use the merging of the basins, using the atlas*/
   float basinprior;
   /*to compute region parameters for the template deformation*/
@@ -429,25 +431,23 @@ void usageHelp()
 {
   fprintf(stdout, "\nUsage: %s [options] input_file output_file", Progname);
   fprintf(stdout, "\noptions are:");
-
-  fprintf(stdout, "\n-brain_atlas  tr.lta : "
-          "use the registration file (tr.lta) to take "
-          "advantage of atlas information ");
-  fprintf(stdout, "\n                       "
-          "The default parameters are : -w 0.97 -b 0.32 -h 10 -seedpt -ta "
-          "\n                       "
-          "You can use one of the five following "
-          "flags to change these default parms :  ");
-
-  fprintf(stdout, "\n-soft                : "
-          "Soft version - more conservative (-w 0.77 instead of 0.97");
-  fprintf(stdout, "\n-w weight            : "
-          "preweight the input image using atlas information (no_w = 1)");
-  fprintf(stdout, "\n-b proba_merging     : "
-          "use the basins merging using atlas information (no_b = 1)");
-  fprintf(stdout, "\n-no_seedpt           : "
+  
+  fprintf(stdout, "\n-brain_atlas  atlas.gca   register.lta : "
+  			"use the registration file (tr.lta) to take advantage of atlas (.gca) information "
+  		  "\n                       "
+  			"The default parameters are :  : -w 0.82 -b 0.32 -h 10 -seedpt -ta -wta "
+  		  "\n                       "
+		  	"You can use one of the five following flags to change these default parms :  ");
+  
+  fprintf(stdout, "\n   -w weight         : "
+          "preweight the input image using atlas information (no_w -> 1)");
+  fprintf(stdout, "\n   -no_wta           : "
+          "dont use the preweighting fot the template deformation");
+  fprintf(stdout, "\n   -b proba_merging  : "
+          "use the basins merging using atlas information (no_b -> 1)");
+  fprintf(stdout, "\n   -no_seedpt        : "
           "dont use (seedpoints using atlas information)");
-  fprintf(stdout, "\n-no_ta               : "
+  fprintf(stdout, "\n   -no_ta            : "
           "dont use (template deformation using atlas information)");
 
   fprintf(stdout, "\n \n-atlas               : "
@@ -520,27 +520,18 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
   {
     usageHelp();
     exit(0);
-  }
-  else if (!strcmp(option, "brain_atlas"))
-  {
-    fprintf(stdout,"Mode:          Use the information of atlas "
-            "(default : -w 0.97 -b 0.32 -h 10 -seedpt -ta)\n") ;
-    parms->transform = TransformRead(argv[2]) ;
+  } 
+   else if (!strcmp(option, "brain_atlas")) {
+    fprintf(stdout,"Mode:          Use the information of atlas (default parms, --help for details)\n") ;
+    parms->gca = GCAread(argv[2]);
+    if(parms->gca == NULL)
+      Error("Cannot read the atlas\n");
+    parms->transform = TransformRead(argv[3]) ;
+
     if (!parms->transform)
       Error("Cannot read the transform\n");
-    nargs=1;
-  }
-  else if (!strcmp(option, "soft"))
-  {
-    fprintf(stdout,"Mode:          Soft version with the informnation of "
-            "the atlas (-w 0.77 instead of 0.97)\n") ;
-    if (parms->preweight)
-      Error("Double definition of the preweight\n");
-    parms->preweight=0.77;
-    nargs=0;
-  }
-  else if (!strcmp(option, "more"))
-  {
+    nargs=2;
+  } else if (!strcmp(option, "more")) {
     parms->skull_type=1;
     nargs = 0 ;
     fprintf(stdout,"Mode:          surface expanded") ;
@@ -670,9 +661,11 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     parms->Tregion=1;
     fprintf(stdout,"Mode:          no (Template deformation region params)\n");
     nargs = 0 ;
-  }
-  else if (!strcmp(option, "atlas"))
-  {
+  } else if (!strcmp(option, "no_wta")) {
+    parms->preweightemp=1;
+    fprintf(stdout,"Mode:          preweight in template deformation\n") ;
+    nargs = 0 ;
+  } else if (!strcmp(option, "atlas")) {
     parms->atlas=1;
     fprintf(stdout,"Mode:          Atlas analysis\n") ;
     nargs = 0 ;
@@ -775,6 +768,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
       nargs=1;
       break ;
     case 'H':
+      fprintf(stdout,"Mode:          Preflooding height manually specified\n") ;
       if (argc < 5)
         Error("\n-h needs preflooding height, input, "
               "and output argument.\n");
@@ -835,10 +829,10 @@ int main(int argc, char *argv[])
 {
   char  *in_fname, *out_fname;
   int nargs, c, r ,s;
-  MRI *mri_with_skull, *mri_input, *mri_without_skull=NULL, *mri_mask;
+  MRI *mri_with_skull, *mri_without_skull=NULL, *mri_mask;
   MRI *PreEditVol=NULL, *PostEditVol=NULL, *mritmp=NULL;
   float preval, postval, outval;
-  char gcafile[1000];
+
   int x, y, z, k;
   GCA_PRIOR *gcap;
   float value_brain, value_cer, value_cergw;
@@ -847,7 +841,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.62 2007/04/05 18:48:37 nicks Exp $", 
+   "$Id: mri_watershed.cpp,v 1.63 2007/04/19 13:52:29 nommert Exp $", 
    "$Name:  $",
    cmdline);
 
@@ -860,7 +854,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.62 2007/04/05 18:48:37 nicks Exp $", 
+           "$Id: mri_watershed.cpp,v 1.63 2007/04/19 13:52:29 nommert Exp $", 
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -890,14 +884,10 @@ int main(int argc, char *argv[])
           "\nThe output file is %s"
           "\nIf this is incorrect, please exit with CTL-C\n\n",
           in_fname,out_fname);
+ 
+  if (( parms->Tregion || parms->seedprior ||parms->basinprior || parms->preweight || parms->preweightemp) && !parms->transform)
+    Error("One of the flag you're using need a registration file to be effective\n");
 
-  if (( parms->Tregion || 
-        parms->seedprior ||
-        parms->basinprior || 
-        parms->preweight ) && 
-      !parms->transform)
-    Error("One of the flags you're using needs a "
-          "registration file to be effective\n");
 
   /*************** PROG *********************/
 
@@ -913,7 +903,6 @@ int main(int argc, char *argv[])
   /* initialisation */
   // readin input volume
   mri_with_skull = MRIread(in_fname) ;
-  mri_input = MRIread(in_fname) ;
 
   if (!mri_with_skull)
     Error("read failed\n");
@@ -926,42 +915,31 @@ int main(int argc, char *argv[])
       parms->Tregion=1;
     else
       parms->Tregion=0;
-    if (!parms->seedprior)
+    if(!parms->seedprior)
       parms->seedprior=1;
     else
       parms->seedprior=0;
-    if (!parms->basinprior)
+    if(!parms->preweightemp)
+      parms->preweightemp=1;
+    else
+      parms->preweightemp=0;      
+    if(!parms->basinprior)
       parms->basinprior=0.32;
-    if (!parms->preweight)
-      parms->preweight=0.97;
-    if (parms->hpf==25)
+    if(!parms->preweight)
+      parms->preweight=0.82;
+    if(parms->hpf==25)
       parms->hpf=10;
+  
+  
+    
+    parms->mri_atlas_brain = MRIalloc((parms->gca)->prior_width, (parms->gca)->prior_height, (parms->gca)->prior_depth, MRI_FLOAT) ;
+    parms->mri_atlas_cerebellum = MRIalloc((parms->gca)->prior_width, (parms->gca)->prior_height, (parms->gca)->prior_depth, MRI_FLOAT) ;
+    parms->mri_atlas_cerebellumgw = MRIalloc((parms->gca)->prior_width, (parms->gca)->prior_height, (parms->gca)->prior_depth, MRI_FLOAT) ;
 
-#define DIST_MODE 1
-    //Create an MRI atlas, with the probability to be inside the brain
-    printf("Reading gca atlas\n");
-    sprintf(gcafile,"/autofs/space/blade_004/users/nommert/dev/tntest/talairach_with_skull_new.gca");
-    parms->gca = GCAread(gcafile);
-    if (parms->gca == NULL) exit(1);
-    parms->mri_atlas_brain = MRIalloc((parms->gca)->prior_width, 
-                                      (parms->gca)->prior_height, 
-                                      (parms->gca)->prior_depth, 
-                                      MRI_FLOAT) ;
-    parms->mri_atlas_cerebellum = MRIalloc((parms->gca)->prior_width, 
-                                           (parms->gca)->prior_height, 
-                                           (parms->gca)->prior_depth, 
-                                           MRI_FLOAT) ;
-    parms->mri_atlas_cerebellumgw = MRIalloc((parms->gca)->prior_width, 
-                                             (parms->gca)->prior_height, 
-                                             (parms->gca)->prior_depth, 
-                                             MRI_FLOAT) ;
+    for (z = 0 ; z < (parms->gca)->prior_depth ; z++)  {
+      for (y = 0 ; y < (parms->gca)->prior_height ; y++)    {
+	for (x = 0 ; x < (parms->gca)->prior_width ; x++)      {
 
-    for (z = 0 ; z < (parms->gca)->prior_depth ; z++)
-    {
-      for (y = 0 ; y < (parms->gca)->prior_height ; y++)
-      {
-        for (x = 0 ; x < (parms->gca)->prior_width ; x++)
-        {
           gcap = &(parms->gca)->priors[x][y][z] ;
           value_brain = 0;
           value_cer = 0;
@@ -982,14 +960,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (parms->preweight)
-  {
-    printf("Weighting the input with atlas information\n");
-    MRI_weight_atlas(mri_with_skull, parms->transform, parms );
-  }
-
-  if (mriConformed(mri_with_skull) == 0)
-  {
+  if (mriConformed(mri_with_skull) == 0) {
     printf("conforming input...\n") ;
     mri_with_skull = MRIconform(mri_with_skull) ;
     conformed = 1 ;
@@ -1021,9 +992,7 @@ int main(int argc, char *argv[])
     free(parms);
     return -1;
   }
-  if ( parms->preweight ||
-       conformed || 
-       type_changed)  /* make output volume the same type as input volume */
+  if ( parms->preweightemp || conformed || type_changed)  /* make output volume the same type as input volume */
   {
     mri_with_skull = MRIread(in_fname) ;
     if (!mri_with_skull)
@@ -1136,6 +1105,7 @@ static STRIP_PARMS* init_parms(void)
 
   /*pre weight of the image - no T1 analysis*/
   sp->preweight=0;
+  sp->preweightemp=0;
   /*find seed points with atlas information*/
   sp->seedprior=0;
   /*merges basins with atlas information*/
@@ -1313,6 +1283,12 @@ MRI *MRIstripSkull(MRI *mri_with_skull,
   mri_tp=MRIclone(mri_with_skull,NULL);
   mri_tp=MRIcopy(mri_with_skull,NULL);
 
+  
+  if (parms->preweight){
+    printf("Weighting the input with atlas information before watershed\n");
+    MRI_weight_atlas(mri_tp, parms->transform, parms );
+  }
+  
   if (!mri_without_skull)
     mri_without_skull=MRIclone(mri_with_skull,NULL); // just copy to output
   else if (mri_without_skull->type!=mri_with_skull->type)
@@ -1323,7 +1299,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull,
   MRI_var->verbose_mode=parms->surf_dbg;
 
   // mri_src = mri_with_skull, mri_dst = mri_with_skull
-  MRI_var->mri_src=mri_tp;
+  MRI_var->mri_src=mri_tp;  
   MRI_var->mri_dst=mri_without_skull;
 
   /*watershed process*/
@@ -1333,23 +1309,30 @@ MRI *MRIstripSkull(MRI *mri_with_skull,
     MRIfree(&mri_tp);
     return NULL;
   }
+  
+//  MRI_var->mri_src  	//sk weighted  //   mri_without_skull  // NO IMAGE    //MRI_var->mri_orig	// sk no weighed   //   mri_with_skull	// sk no weighed
+
   /*Only the watershed algorithm*/
   if (!parms->template_deformation)
   {
     /*in case the src volume was modified (scaling of the intensity)*/
     // free(mri_tp);
+    
     MRIfree(&mri_tp);
     mri_tp=MRIclone(mri_with_skull,NULL);
     mri_tp=MRIcopy(mri_with_skull,NULL);
-    MRI_var->mri_src = mri_tp ;
 
+    MRI_var->mri_src = mri_tp ;
     Save(MRI_var);
     FreeMem(MRI_var);
-  }
-  else                   /*template deformation process*/
+    
+//  	MRI_var->mri_src     // result (1st) - not weighted
+
+  } else                   /*template deformation process*/
+
   {
-    if (parms->surf_dbg)
-    {
+   
+    if (parms->surf_dbg) {
       MRI_var->mri_dst=MRIclone(mri_with_skull,NULL);
       MRI_var->mri_dst=MRIcopy(mri_with_skull,NULL);
     }
@@ -1372,15 +1355,19 @@ MRI *MRIstripSkull(MRI *mri_with_skull,
           for (i=0;i<MRI_var->width;i++)
             MRIvox(MRI_var->mri_src,i,j,k)=
               (unsigned short)MIN(255,scale*MRIvox(mri_with_skull,i,j,k));
-    }
-    else
-    {
+    } else {	
       int i,j,k;
       for (k=0;k<MRI_var->depth;k++)
         for (j=0;j<MRI_var->height;j++)
           for (i=0;i<MRI_var->width;i++)
             MRIvox(MRI_var->mri_src,i,j,k)=MRIvox(mri_with_skull,i,j,k);
     }
+
+     if (parms->preweightemp){
+       printf("Weighting the input with before template \n");
+       MRI_weight_atlas(MRI_var->mri_src, parms->transform, parms );
+     }
+
 
     Template_Deformation(parms,MRI_var);
     // MRIfree(&smooth);
@@ -1484,6 +1471,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull,
   /*normal mode saving*/
   else
     mri_without_skull=MRIcopy(MRI_var->mri_src,NULL);
+
 
 
   MRIVfree(MRI_var);
@@ -2597,110 +2585,80 @@ static void AnalyzeCerebellum(STRIP_PARMS *parms,
 
  Description:
  ------------------------------------------------------*/
-static void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var)
-{
-  int i,j,k,n=0, cbm;
-  int xp, yp, zp, save=0;
-  double vox;
-  MRI *MRI_seedpoint;
-  int seeds[50][3];
-  float mean_cer, var_cer;
-  int number_seed = 20;
 
-  AnalyzeCerebellum(parms,MRI_var,mean_cer, var_cer);
+ static void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
+   int i,j,k,n=0, cbm;
+   int xp, yp, zp, save=0;
+   double vox;
+   MRI *MRI_seedpoint;
+   int seeds[50][3];
+   float mean_cer, var_cer;
+   int number_seed = 20;
 
-  fprintf(stdout,"\n      Looking for seedpoints ");
+   AnalyzeCerebellum(parms,MRI_var,mean_cer, var_cer);
+  
+   fprintf(stdout,"\n      Looking for seedpoints ");
 
-  for (k=2;k<MRI_var->depth-2;k++)
-    for (j=2;j<MRI_var->height-2;j++)
-      for (i=2;i<MRI_var->width-2;i++)
-      {
-        if (n<2)
-        {
-          vox = MRIvox(MRI_var->mri_src,i,j,k);
-          GCAsourceVoxelToPrior(parms->gca, 
-                                MRI_var->mri_src, 
-                                parms->transform, 
-                                i, j, k, 
-                                &xp, &yp, &zp);
-          if (xp>0 && yp>0 && zp>0 && 
-              xp<128 && yp<128 && zp<128 &&  
-              DistanceToSeeds(i,j,k,seeds,n)>10)
-            if (vox <mean_cer+var_cer/2 && 
-                vox >mean_cer-var_cer/2 && 
-                MRIgetVoxVal(parms->mri_atlas_cerebellum, xp, yp, zp, 0)>0.9 )
-            {
-              seeds[n][0] = i;
-              seeds[n][1] = j;
-              seeds[n][2] = k;
-              n++;
-            }
-        }
-      }
-  fprintf(stdout,"\n        %i found in the cerebellum ", n);
-  cbm = n;
+   for (k=2;k<MRI_var->depth-2;k++)
+     for (j=2;j<MRI_var->height-2;j++)
+       for (i=2;i<MRI_var->width-2;i++) {
+	 if (n<2){
+	   vox = MRIvox(MRI_var->mri_src,i,j,k);
+	   GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, parms->transform, i, j, k, &xp, &yp, &zp);
+	   if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128    &&  DistanceToSeeds(i,j,k,seeds,n)>10) 
+             if (vox <mean_cer+var_cer/2 && vox >mean_cer-var_cer/2 && MRIgetVoxVal(parms->mri_atlas_cerebellum, xp, yp, zp, 0)>0.9 ){
+	       seeds[n][0] = i;
+	       seeds[n][1] = j;
+	       seeds[n][2] = k;
+	       n++;
+	     } 
+	 }
+       }
+   fprintf(stdout,"\n        %i found in the cerebellum ", n);
+   cbm = n;
 
-  for (k=2;k<MRI_var->depth-2;k++)
-    for (j=2;j<MRI_var->height-2;j++)
-      for (i=2;i<MRI_var->width-2;i++)
-      {
-        if (n<number_seed)
-        {
-          vox = MRIvox(MRI_var->mri_src,i,j,k);
-          if (vox>=MRI_var->WM_MIN && 
-              vox<=MRI_var->WM_MAX && 
-              DistanceToSeeds(i,j,k,seeds,n)>40)
-          {
-            GCAsourceVoxelToPrior(parms->gca, 
-                                  MRI_var->mri_src, 
-                                  parms->transform, 
-                                  i, j, k, 
-                                  &xp, &yp, &zp);
-            if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128)
-            {
-              if (MRIgetVoxVal(parms->mri_atlas_brain, xp, yp, zp, 0)>0.995)
-              {
-                seeds[n][0] = i;
-                seeds[n][1] = j;
-                seeds[n][2] = k;
-                n++;
-              }
-            }
-          }
-        }
-      }
-  fprintf(stdout,"\n        %i found in the rest of the brain ", n-cbm);
+   for (k=2;k<MRI_var->depth-2;k++)
+     for (j=2;j<MRI_var->height-2;j++)
+       for (i=2;i<MRI_var->width-2;i++) {
+	 if (n<number_seed){
+	   vox = MRIvox(MRI_var->mri_src,i,j,k);
+	     if (vox>=MRI_var->WM_MIN && vox<=MRI_var->WM_MAX && DistanceToSeeds(i,j,k,seeds,n)>40){
+	     GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, parms->transform, i, j, k, &xp, &yp, &zp);
+	     if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128) {
+	       if (MRIgetVoxVal(parms->mri_atlas_brain, xp, yp, zp, 0)>0.995){ 
+		 seeds[n][0] = i;
+		 seeds[n][1] = j;
+		 seeds[n][2] = k;
+		 n++;
+	       }
+	     }
+	   }
+	 }
+       }
+   fprintf(stdout,"\n        %i found in the rest of the brain ", n-cbm);
+  
+   if (save){		// an easy way to take a look of the seeds we've found
+     MRI_seedpoint = MRIalloc(MRI_var->width, MRI_var->height, MRI_var->depth, (MRI_var->mri_src)->type) ;
 
-  if (save)
-  {
-    MRI_seedpoint = MRIalloc(MRI_var->width, 
-                             MRI_var->height, 
-                             MRI_var->depth, 
-                             (MRI_var->mri_src)->type) ;
+     for (k=2;k<MRI_var->depth-2;k++)
+       for (j=2;j<MRI_var->height-2;j++)
+	 for (i=2;i<MRI_var->width-2;i++) {
+	 vox = DistanceToSeeds(i,j,k,seeds,n);
+	 if (vox<5 && vox>2)
+           MRIsetVoxVal(MRI_seedpoint, i, j, k, 0, 0);
+	 else
+           MRIsetVoxVal(MRI_seedpoint, i, j, k, 0, MRIgetVoxVal(MRI_var->mri_src, i, j, k, 0));
+	 }
 
-    for (k=2;k<MRI_var->depth-2;k++)
-      for (j=2;j<MRI_var->height-2;j++)
-        for (i=2;i<MRI_var->width-2;i++)
-        {
-          vox = DistanceToSeeds(i,j,k,seeds,n);
-          if (vox<5 && vox>2)
-            MRIsetVoxVal(MRI_seedpoint, i, j, k, 0, 0);
-          else
-            MRIsetVoxVal(MRI_seedpoint, i, j, k, 0, 
-                         MRIgetVoxVal(MRI_var->mri_src, i, j, k, 0));
-        }
-
-    MRIwrite(MRI_seedpoint,"/autofs/space/blade_004/users/nommert/dev/tntest/seedpoint.mgh");
-  }
-  for (i=0;i<n;i++)
-  {
-    parms->seed_coord[parms->nb_seed_points][0] = seeds[i][0];
-    parms->seed_coord[parms->nb_seed_points][1] = seeds[i][1];
-    parms->seed_coord[parms->nb_seed_points][2] = seeds[i][2];
-    parms->nb_seed_points++;
-  }
-}
-
+     MRIwrite(MRI_seedpoint,"  the path of the seed image  "); 
+   }
+   for (i=0;i<n;i++){
+     parms->seed_coord[parms->nb_seed_points][0] = seeds[i][0];
+     parms->seed_coord[parms->nb_seed_points][1] = seeds[i][1];
+     parms->seed_coord[parms->nb_seed_points][2] = seeds[i][2];
+     parms->nb_seed_points++;
+   } 
+ } 
 
 /*-----------------------------------------------------
   Parameters:
@@ -4295,7 +4253,7 @@ void MRIScomputeCloserLabel(STRIP_PARMS *parms,MRI_variables *MRI_var)
                mris->vertices[kv].ny + a*n1[1]+b*n2[1];
             pz=mris->vertices[kv].z-(h+c)*
                mris->vertices[kv].nz + a*n1[2]+b*n2[2];
-            myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
+            myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz); //aaaaaaaaaaaaaaaaa
             i=(int)(tx+0.5);
             j=(int)(ty+0.5);
             k=(int)(tz+0.5);
@@ -9478,9 +9436,8 @@ void calcForce2(double &force0, double &force1, double &force,
   {
     mean(test_samp,samp_mean);
     if (samp_mean[1]<MRI_var->TRANSITION_intensity[label] &&
-        samp_mean[2]<MRI_var->TRANSITION_intensity[label])
-    {
-      if (samp_mean[label]*100>samp_mean[1]*90)
+        samp_mean[2]<MRI_var->TRANSITION_intensity[label]) {
+      if (samp_mean[0]*100>samp_mean[1]*90)
         if (samp_mean[1]*100>samp_mean[2]*90)
           valforce-=0.1;
     }
@@ -9542,8 +9499,6 @@ void calcForce2(double &force0, double &force1, double &force,
 
   // heuristic
   force += valforce + tanh(nc*0.1);
-
-  //if (kv%10==0 )fprintf(stdout, "%i :  %f \n", force);
 
 }
 
