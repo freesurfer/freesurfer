@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/11 20:20:31 $
- *    $Revision: 1.50 $
+ *    $Date: 2007/04/19 20:18:26 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1116,7 +1116,8 @@ MRIxSobelForAllTypes(MRI *mri_src, MRI *mri_x, int frame)
 
       for (x = 1 ; x < width ; x++)
       {
-
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
         mr_pix_val = MRIgetVoxVal (mri_src, mr_pix[0], mr_pix[1], mr_pix[2],0);
         br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
@@ -1249,7 +1250,8 @@ MRIySobelForAllTypes(MRI *mri_src, MRI *mri_y, int frame)
 
       for (x = 1 ; x < width ; x++)
       {
-
+        if (Gx == x && y == Gy && z == Gz)
+          DiagBreak() ;
         tr_pix_val = MRIgetVoxVal (mri_src, tr_pix[0], tr_pix[1], tr_pix[2],0);
         br_pix_val = MRIgetVoxVal (mri_src, br_pix[0], br_pix[1], br_pix[2],0);
         right =  (br_pix_val - tr_pix_val) ;
@@ -5064,5 +5066,85 @@ MRIsmoothLabel(MRI *mri_intensity, MRI *mri_label, MRI *mri_smooth, int niter, i
 
   MRIfree(&mri_tmp) ;
   return(mri_smooth) ;
+}
+
+MRI *
+MRIxDerivative(MRI *mri_src, MRI *mri_dx)
+{
+  int  x, y, z ;
+  Real dx ;
+
+  if (mri_dx == NULL)
+  {
+    mri_dx = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_dx) ;
+  }
+
+  for (x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+#if 0
+        dx = MRIsampleXDerivative(mri_src, x, y, z,1) ;
+#else
+        dx = MRIvoxelDx(mri_src, x, y, z) ;
+#endif
+        MRIsetVoxVal(mri_dx, x, y, z, 0, dx) ;
+      }
+  return(mri_dx) ;
+}
+
+MRI *
+MRIyDerivative(MRI *mri_src, MRI *mri_dy)
+{
+  int  x, y, z ;
+  Real dy ;
+
+  if (mri_dy == NULL)
+  {
+    mri_dy = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_dy) ;
+  }
+
+  for (x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+#if 0
+        dy = MRIsampleYDerivative(mri_src, x, y, z,1) ;
+#else
+        dy = MRIvoxelDy(mri_src, x, y, z) ;
+#endif
+        MRIsetVoxVal(mri_dy, x, y, z, 0, dy) ;
+      }
+  return(mri_dy) ;
+}
+
+MRI *
+MRIzDerivative(MRI *mri_src, MRI *mri_dz)
+{
+  int  x, y, z ;
+  Real dz ;
+
+  if (mri_dz == NULL)
+  {
+    mri_dz = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_dz) ;
+  }
+
+  for (x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+#if 0
+        dz = MRIsampleZDerivative(mri_src, x, y, z,1) ;
+#else
+        dz = MRIvoxelDz(mri_src, x, y, z) ;
+#endif
+        MRIsetVoxVal(mri_dz, x, y, z, 0, dz) ;
+      }
+  return(mri_dz) ;
 }
 
