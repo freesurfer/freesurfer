@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/28 20:04:49 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/04/19 21:50:40 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.9 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.10 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
     vtkKWWindow(),
@@ -828,22 +828,26 @@ vtkKWOrientMRIWindow::UpdateCommandStatus () {
   if( !mView ) throw runtime_error( "mView was NULL" );
 
   // Determine the enabled state of our commands.
+  if( mVolume ) {
+    mBtnTransformVolume->SetStateToNormal();
+    mMenuTransformVolume.menu->SetItemStateToNormal( mMenuTransformVolume.nItem );
+  } else {
+    mBtnTransformVolume->SetStateToDisabled();
+    mMenuTransformVolume.menu->SetItemStateToDisabled( mMenuTransformVolume.nItem );
+  }
+
   if( mVolume && mbDirty ) {
     mBtnSaveVolume->SetStateToNormal();
     mMenuSaveVolume.menu->SetItemStateToNormal( mMenuSaveVolume.nItem );
     mMenuSaveVolumeAs.menu->SetItemStateToNormal( mMenuSaveVolumeAs.nItem );
     mBtnRevertVolume->SetStateToNormal();
     mMenuRevertVolume.menu->SetItemStateToNormal( mMenuRevertVolume.nItem );
-    mBtnTransformVolume->SetStateToNormal();
-    mMenuTransformVolume.menu->SetItemStateToNormal( mMenuTransformVolume.nItem );
   } else {
     mBtnSaveVolume->SetStateToDisabled();
     mMenuSaveVolume.menu->SetItemStateToDisabled( mMenuSaveVolume.nItem );
     mMenuSaveVolumeAs.menu->SetItemStateToDisabled( mMenuSaveVolumeAs.nItem );
     mBtnRevertVolume->SetStateToDisabled();
     mMenuRevertVolume.menu->SetItemStateToDisabled( mMenuRevertVolume.nItem );
-    mBtnTransformVolume->SetStateToDisabled();
-    mMenuTransformVolume.menu->SetItemStateToDisabled( mMenuTransformVolume.nItem );
   }
 
   if( mVolume && mGrayScaleColors ) {
