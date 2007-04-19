@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/05 16:10:11 $
- *    $Revision: 1.378 $
+ *    $Date: 2007/04/19 20:19:37 $
+ *    $Revision: 1.379 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.378 $";
+char *MRI_C_VERSION = "$Revision: 1.379 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -9588,8 +9588,8 @@ MRIsampleXDerivative(MRI *mri, int x, int y, int z, int dir)
     for (yk = -1 ; yk <= 1 ; yk++)
     {
       yi = mri->yi[y+yk] ;
-      dx += dir*MRIvox(mri, xi, yi, zi) ;  /* x+dir */
-      dx -= dir*MRIvox(mri, x, yi, zi) ;   /* - x */
+      dx += dir*MRIgetVoxVal(mri, xi, yi, zi,0) ;  /* x+dir */
+      dx -= dir*MRIgetVoxVal(mri, x, yi, zi, 0) ;   /* - x */
       nvox += 2 ;
     }
   }
@@ -9620,8 +9620,8 @@ MRIsampleYDerivative(MRI *mri, int x, int y, int z, int dir)
     for (xk = -1 ; xk <= 1 ; xk++)
     {
       xi = mri->xi[x+xk] ;
-      dy += dir*MRIvox(mri, xi, yi, zi) ;  /* x+dir */
-      dy -= dir*MRIvox(mri, x, yi, zi) ;   /* - x */
+      dy += dir*MRIgetVoxVal(mri, xi, yi, zi, 0) ;  /* x+dir */
+      dy -= dir*MRIgetVoxVal(mri, x, yi, zi, 0) ;   /* - x */
       nvox += 2 ;
     }
   }
@@ -9652,8 +9652,8 @@ MRIsampleZDerivative(MRI *mri, int x, int y, int z, int dir)
     for (yk = -1 ; yk <= 1 ; yk++)
     {
       yi = mri->yi[y+yk] ;
-      dz += dir*MRIvox(mri, xi, yi, zi) ;  /* x+dir */
-      dz -= dir*MRIvox(mri, x, yi, zi) ;   /* - x */
+      dz += dir*MRIgetVoxVal(mri, xi, yi, zi, 0) ;  /* x+dir */
+      dz -= dir*MRIgetVoxVal(mri, x, yi, zi, 0) ;   /* - x */
       nvox += 2 ;
     }
   }
@@ -14353,44 +14353,51 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
 
   do
   {
-    for (i = 0 ; i < vl_new->nvox ; i++)
+    int j ;
+    for (j = 0 ; j < 2 ; j++)
     {
-      x = vl_new->xi[i] ;
-      y = vl_new->yi[i] ;
-      z = vl_new->zi[i] ;
-      found = 0 ;
-      min_dist = 1e8 ;
-      for (xk = -1 ; xk <= 1 ; xk++)  // find min dist of nbrs
+      for (i = 0 ; i < vl_new->nvox ; i++)
       {
-        xi = mri_src->xi[x+xk] ;
-        for (yk = -1 ; yk <= 1 ; yk++)
+        x = vl_new->xi[i] ;
+        y = vl_new->yi[i] ;
+        z = vl_new->zi[i] ;
+        found = 0 ;
+        min_dist = 1e8 ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        for (xk = -1 ; xk <= 1 ; xk++)  // find min dist of nbrs
         {
-          yi = mri_src->yi[y+yk] ;
-          for (zk = -1 ; zk <= 1 ; zk++)
+          xi = mri_src->xi[x+xk] ;
+          for (yk = -1 ; yk <= 1 ; yk++)
           {
-            zi = mri_src->zi[z+zk] ;
-            if (MRIvox(mri_processed, xi, yi, zi) == 0)
-              continue ;
-            dist = MRIgetVoxVal(mri_dist, xi, yi, zi, 0) ;
-            dist += sqrt(xk*xk+yk*yk+zk*zk) ;
-            if (found == 0 || dist < min_dist)
+            yi = mri_src->yi[y+yk] ;
+            for (zk = -1 ; zk <= 1 ; zk++)
             {
-              found = 1 ;
-              min_dist = dist ;
+              zi = mri_src->zi[z+zk] ;
+              if (MRIvox(mri_processed, xi, yi, zi) == 0)
+                continue ;
+              dist = MRIgetVoxVal(mri_dist, xi, yi, zi, 0) ;
+              dist += sqrt(xk*xk+yk*yk+zk*zk) ;
+              if (found == 0 || dist < min_dist)
+              {
+                found = 1 ;
+                min_dist = dist ;
+              }
             }
           }
         }
+        
+        if (found > 0)
+        {
+          changed++ ;
+          MRIsetVoxVal(mri_dist, x, y, z, 0, min_dist) ;
+          MRIsetVoxVal(mri_processed, x, y, z, 0, 1) ;
+          if (min_dist > biggest_dist)
+            biggest_dist = min_dist ;
+        }
+        else
+          DiagBreak() ;
       }
-
-      if (found > 0)
-      {
-        changed++ ;
-        MRIsetVoxVal(mri_dist, x, y, z, 0, min_dist) ;
-        if (min_dist > biggest_dist)
-          biggest_dist = min_dist ;
-      }
-      else
-        DiagBreak() ;
     }
 
     VLSTfree(&vl_current) ;
@@ -14403,8 +14410,7 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
     else
       printf("examining %d voxels...\n", vl_new->nvox) ;
 #endif
-  }
-  while (vl_new != NULL) ;
+  } while (vl_new != NULL) ;
 
   if (mode != DTRANS_MODE_OUTSIDE)  // set interior distances to negative vals
   {
@@ -14428,6 +14434,52 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
       }
     }
   }
+
+  MRIsetValues(mri_processed, 1.0) ;
+  do
+  {
+    changed = 0 ;
+    for (x = 0 ; x < mri_dist->width ; x++)
+      for (y = 0 ; y < mri_dist->height ; y++)
+        for (z = 0 ; z < mri_dist->depth ; z++)
+        {
+          if (MRIvox(mri_processed, x, y,z) == 0)
+            continue ;
+          min_dist = MRIgetVoxVal(mri_dist, x, y, z, 0) ;
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
+          found = 0; 
+          for (xk = -1 ; xk <= 1 ; xk++)  // find min dist of nbrs
+          {
+            xi = mri_dist->xi[x+xk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = mri_dist->yi[y+yk] ;
+              for (zk = -1 ; zk <= 1 ; zk++)
+              {
+                zi = mri_dist->zi[z+zk] ;
+                dist = MRIgetVoxVal(mri_dist, xi, yi, zi, 0) ;
+                dist += sqrt(xk*xk+yk*yk+zk*zk) ;
+                if (dist < min_dist)
+                {
+                  found = 1 ;
+                  min_dist = dist ;
+                }
+              }
+            }
+          }
+          if (found)
+          {
+            MRIsetVoxVal(mri_dist, x, y, z, 0, min_dist) ;
+            changed++ ;
+          }
+          else
+            MRIsetVoxVal(mri_processed, x, y, z, 0, 0) ;
+        }
+
+    MRIdilate(mri_processed, mri_processed) ;
+  } while (changed > 0) ;
+
 
   mri_dist->outside_val = biggest_dist+1 ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -14970,4 +15022,22 @@ int CompareDoubles(const void *a, const void *b)
   if (ad < bd) return(-1);
   if (ad > bd) return(+1);
   return(0);
+}
+MRI *
+MRIaddScalar(MRI *mri_src, MRI *mri_dst, float scalar)
+{
+  float  val ;
+  int    x, y, z, f ;
+
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+  for (f = 0 ; f < mri_dst->nframes ; f++)
+    for (x = 0 ; x < mri_dst->width ; x++)
+      for (y = 0 ; y < mri_dst->height ; y++)
+        for (z = 0 ; z < mri_dst->depth ; z++)
+        {
+          val = MRIgetVoxVal(mri_dst, x, y, z, f) ;
+          MRIsetVoxVal(mri_dst, x, y, z, f, val+scalar) ;
+        }
+  return(mri_dst) ;
 }
