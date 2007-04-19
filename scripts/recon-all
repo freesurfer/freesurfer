@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/18 22:31:17 $
-#    $Revision: 1.83 $
+#    $Date: 2007/04/19 01:40:54 $
+#    $Revision: 1.84 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.83 2007/04/18 22:31:17 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.84 2007/04/19 01:40:54 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4222,17 +4222,19 @@ Calls mris_register. Creates surf/?h.sphere.reg.
 Jacobian (-<no>jacobian_white)
 
 Computes how much the white surface was distorted in order to register
-to the spherical atlas. Creates ?h.jacobian_white (a curv formatted file).
-This step follows surface registeration.
+to the spherical atlas during the -surfreg step. Creates ?h.jacobian_white 
+(a curv formatted file). This step follows the surface registration step.
 
 Jacobian (-<no>jacobian)
 
-Computes how much an individual surface must be distorted in order to
-perfectly match the atlas (ie, distance contraints are turned
-off). Creates ?h.jacobian (a curv formatted file) and
-?h.sphere.jacobian.reg (a surface file). This stage is not done
-automatically because it can add about an hour per hemi (runs mris_register
-with the -norot and -dist 0 flags).
+Run spherical registration with no metric distortion penalty. This will 
+cause surface geometry to align regardless of the amount of distortion 
+induced (ie, distance contraints are turned off). The distortion will then 
+be quantified by the jacobian of the transform. Creates ?h.jacobian (a curv 
+formatted file) and ?h.sphere.jacobian.reg (a surface file). This step is 
+not run automatically because it can add about an hour per hemi.  Note: the 
+file ?h.jacobian_white (see prior help text) is the Jacobian of the white 
+surface to sphere alignment from -surfreg.
 
 Contralateral Surface Registation (Spherical Morph) (-<no>contrasurfreg)
 
