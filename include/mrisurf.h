@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/03/23 20:00:30 $
- *    $Revision: 1.286 $
+ *    $Date: 2007/04/19 20:20:37 $
+ *    $Revision: 1.287 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -411,6 +411,7 @@ typedef struct
                                  white and pial vertices approximately
                                  along normal */
   float   l_spring ;          /* coefficient of spring term */
+  float   l_nlspring ;        /* nonlinear spring term */
   float   l_spring_norm ;     /* coefficient of normalize spring term */
   float   l_tspring ;         /* coefficient of tangential spring term */
   float   l_nspring ;         /* coefficient of normal spring term */
@@ -503,6 +504,9 @@ typedef struct
   int     check_tol ;         // to avoid changing mris_make_surfaces
   char    *overlay_dir;       // subject/overlay_dir/parms->fields[n].fname
   int     nsurfaces ;         // if 0 use default
+  MRI     *mri_ll ;           // log-likelihood image
+  double  rmin ;
+  double  rmax ;              // for nonlinear spring term
 }
 INTEGRATION_PARMS ;
 

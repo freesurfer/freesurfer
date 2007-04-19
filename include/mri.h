@@ -1,15 +1,15 @@
 /**
  * @file  mri.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief prototypes and structures for working with MRI volumes.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ *  prototypes and structures for working with MRI volumes.
  */
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/03 15:24:44 $
- *    $Revision: 1.332 $
+ *    $Date: 2007/04/19 20:20:37 $
+ *    $Revision: 1.333 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -304,6 +304,7 @@ int   MRIdumpBuffer(MRI *mri, FILE *fp) ;
 MRI   *MRIsubtract(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabsdiff(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
+MRI   *MRIaddScalar(MRI *mri_src, MRI *mri_dst, float scalar) ;
 MRI   *MRIaverage(MRI *mri_src, int dof, MRI *mri_dst) ;
 MRI   *MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
@@ -602,6 +603,9 @@ float MRIsampleCardinalDerivative(MRI *mri, int x, int y, int z,
 float MRIsampleXDerivative(MRI *mri, int x, int y, int z, int dir) ;
 float MRIsampleYDerivative(MRI *mri, int x, int y, int z, int dir) ;
 float MRIsampleZDerivative(MRI *mri, int x, int y, int z, int dir) ;
+MRI   *MRIxDerivative(MRI *mri_src, MRI *mri_dx) ;
+MRI   *MRIyDerivative(MRI *mri_src, MRI *mri_dy) ;
+MRI   *MRIzDerivative(MRI *mri_src, MRI *mri_dz) ;
 
 /* resampling routines */
 MRI   *MRIupsample2(MRI *mri_src, MRI *mri_dst) ;
