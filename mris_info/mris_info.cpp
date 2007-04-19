@@ -1,17 +1,16 @@
 /**
  * @file  mris_info.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Prints out information about a surface file
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/04/19 19:03:08 $
+ *    $Revision: 1.26 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,11 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// mris_info.cpp
-//
 
 #include <iostream>
 #include <iomanip>
@@ -68,9 +62,10 @@ static void print_version(void);
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
-static char vcid[] = "$Id: mris_info.cpp,v 1.25 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = 
+"$Id: mris_info.cpp,v 1.26 2007/04/19 19:03:08 nicks Exp $";
 using namespace std;
-char *surffile=NULL, *outfile=NULL;
+char *surffile=NULL, *outfile=NULL, *curvfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
 int debug = 0;
 char tmpstr[2000];
@@ -79,6 +74,8 @@ int talairach_flag = 0 ;
 MATRIX *XFM=NULL;
 int rescale = 0;
 double scale=0;
+int diag_vno=-1;
+
 
 /*------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -123,9 +120,25 @@ int main(int argc, char *argv[]) {
   }
   MRIScomputeMetricProperties(mris) ;
 
-  if (Gdiag_no >= 0)
-    printf("v %d: (%2.1f, %2.1f, %2.1f)\n", Gdiag_no,
-           mris->vertices[Gdiag_no].x, mris->vertices[Gdiag_no].y, mris->vertices[Gdiag_no].z) ;
+  if (diag_vno >= 0)
+  {
+    printf("v %d: (%2.1f, %2.1f, %2.1f)\n", 
+           diag_vno,
+           mris->vertices[diag_vno].x, 
+           mris->vertices[diag_vno].y, 
+           mris->vertices[diag_vno].z) ;
+    return(0);
+  }
+
+  // attempt to load curvature info, which has the side-effect of checking
+  // that the number of vertices is the same (exiting with error if not)
+  if (curvfile) {
+    printf("\n");
+    if (MRISreadCurvatureFile(mris,curvfile)) {
+      printf("\n");
+      exit(1);
+    }
+  }
 
   if (rescale) {
     if (mris->group_avg_surface_area == 0) {
@@ -178,8 +191,12 @@ int main(int argc, char *argv[]) {
   if (mris->group_avg_surface_area > 0) {
     cout << "group avg surface area: " << mris->group_avg_surface_area << endl;
   }
-  cout << "ctr         : (" << mris->xctr << ", " << mris->yctr << ", " << mris->zctr << ")" << endl;
-  cout << "vertex locs : " << (mris->useRealRAS ? "scannerRAS" : "surfaceRAS") << endl;
+  cout << "ctr         : (" << mris->xctr 
+       << ", " << mris->yctr 
+       << ", " << mris->zctr 
+       << ")" << endl;
+  cout << "vertex locs : " 
+       << (mris->useRealRAS ? "scannerRAS" : "surfaceRAS") << endl;
   if (mris->lta) {
     cout << "talairch.xfm: " << endl;
     MatrixPrint(stdout, mris->lta->xforms[0].m_L);
@@ -240,9 +257,9 @@ int main(int argc, char *argv[]) {
 
   if (outfile != NULL) fclose(fp);
 
-
   MRISfree(&mris);
 }
+
 
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
@@ -274,11 +291,11 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if ( !strcmp(option, "--v") ) {
       if (nargc < 1) argnerr(option,1);
-      Gdiag_no = atoi(pargv[0]);
+      diag_vno = atoi(pargv[0]);
       nargsused = 1;
-    } else if ( !strcmp(option, "--o") ) {
+    } else if ( !strcmp(option, "--c") ) {
       if (nargc < 1) argnerr(option,1);
-      outfile = pargv[0];
+      curvfile = pargv[0];
       nargsused = 1;
     } else if ( !strcmp(option, "--s") ) {
       if (nargc < 3) argnerr(option,3);
@@ -301,25 +318,34 @@ static int parse_commandline(int argc, char **argv) {
   }
   return(0);
 }
+
 /* ------------------------------------------------------ */
 static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
+
+
 /* --------------------------------------------- */
 static void print_usage(void) {
-  printf("USAGE: %s   surfacefile\n",Progname) ;
-  printf("\n");
+  printf("USAGE: %s [options] <surfacefile>\n",Progname) ;
+  printf("\nOptions:\n");
   printf("  --o outfile : save some data to outfile\n");
   printf("  --s subject hemi surfname : instead of surfacefile\n");
   printf("  --t : apply talairach xfm before reporting info\n");
-  printf("  --r : rescale group surface so metrics same as avg of individuals\n");
-  printf("  --v : print out vertex information\n") ;
+  printf("  --r : rescale group surface so metrics same as "
+         "avg of individuals\n");
+  printf("  --v vnum : print out vertex information for vertex vnum\n") ;
+  printf("  --c curvfile : load the specified curvature file, which\n");
+  printf("                 has the side-effect of checking that the\n");
+  printf("                 number of vertices matches the surface, and\n");
+  printf("                 exiting with error if not.\n");
   printf("\n");
   printf("  --version   : print version and exits\n");
   printf("  --help      : no clue what this does\n");
   printf("\n");
 }
+
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
@@ -330,6 +356,7 @@ static void print_help(void) {
   printf("\n");
   exit(1);
 }
+
 /* --------------------------------------------- */
 static void argnerr(char *option, int n) {
   if (n==1)
@@ -338,6 +365,7 @@ static void argnerr(char *option, int n) {
     fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
   exit(-1);
 }
+
 /* --------------------------------------------- */
 static void print_version(void) {
   printf("%s\n", vcid) ;
