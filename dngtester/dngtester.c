@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/09 23:37:20 $
- *    $Revision: 1.30 $
+ *    $Date: 2007/04/19 22:43:18 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -117,20 +117,21 @@ int main(int argc, char **argv) {
   int *nunits;
   COLOR_TABLE *ct ;
 
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   subject = "tl-wm";
   hemi = "rh";
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   sprintf(tmpstr,"%s/%s/surf/%s.sphere",SUBJECTS_DIR,subject,hemi);
   printf("\nReading lh white surface \n %s\n",tmpstr);
   surf = MRISread(tmpstr);
   if(!surf) exit(1);
 
-  if(0){
+  if(1){
   MRISmercator(surf);
   sprintf(tmpstr,"%s/%s/surf/%s.mercator",SUBJECTS_DIR,subject,hemi);
   MRISwrite(surf,tmpstr);
   exit(0);
   }
+
 
   sprintf(tmpstr,"%s/%s/label/%s.aparc.annot",SUBJECTS_DIR,subject,hemi);
   printf("Loading annotations from %s\n",tmpstr);
@@ -579,31 +580,45 @@ int MRISmercator(MRIS *surf)
   int vtxno;
   VERTEX *vtx;
   double x,y,z;
-  double xmin,xmax,zmin,zmax;
+  double xmin,xmax,ymin,ymax,zmin,zmax;
+  double dthresh;
+  dthresh = 5;
 
-  xmin=zmin =  1e10;
-  xmax=zmax = -1e10;
+  xmin=ymin=zmin =  1e10;
+  xmax=ymax=zmax = -1e10;
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
     vtx = &(surf->vertices[vtxno]);
     x = vtx->x;
     y = vtx->y;
     z = vtx->z;
-    vtx->x = (100*(atan2(x,y)))/M_PI;
-    vtx->y = 0;
+    vtx->x = 0;
+    vtx->y = (100*(atan2(y,-x)))/M_PI;
     // z stays the same
+
     x = vtx->x;
+    y = vtx->y;
+    z = vtx->z;
     if(xmin > x) xmin = x;
     if(xmax < x) xmax = x;
+    if(ymin > y) ymin = y;
+    if(ymax < y) ymax = y;
     if(zmin > z) zmin = z;
     if(zmax < z) zmax = z;
   }
 
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
     vtx = &(surf->vertices[vtxno]);
-    if(fabs(vtx->x - xmax) < 3) vtx->y = -100;
-    if(fabs(vtx->x - xmin) < 3) vtx->y = -100;
-    if(fabs(vtx->z - zmax) < 3) vtx->y = -100;
-    if(fabs(vtx->z - zmin) < 3) vtx->y = -100;
+    if(0){
+      if(fabs(vtx->x - xmax) < dthresh) vtx->y = -100;
+      if(fabs(vtx->x - xmin) < dthresh) vtx->y = -100;
+      if(fabs(vtx->z - zmax) < dthresh) vtx->y = -100;
+      if(fabs(vtx->z - zmin) < dthresh) vtx->y = -100;
+    } else {
+      if(fabs(vtx->y - ymax) < dthresh) vtx->x = -100;
+      if(fabs(vtx->y - ymin) < dthresh) vtx->x = -100;
+      if(fabs(vtx->z - zmax) < dthresh) vtx->x = -100;
+      if(fabs(vtx->z - zmin) < dthresh) vtx->x = -100;
+    }
   }
 
   return(0);
