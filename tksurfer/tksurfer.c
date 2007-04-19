@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 21:36:50 $
- *    $Revision: 1.264 $
+ *    $Date: 2007/04/19 22:53:22 $
+ *    $Revision: 1.265 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -1527,11 +1527,11 @@ typedef struct {
 
   int num_freq_bins;
   int ***frequencies; /* the frequency of values in num_freq_bins for
-                                     each time point and condition i.e.
-                                     frequency[cond][tp][bin] */
+			 each time point and condition i.e.
+			 frequency[cond][tp][bin] */
   int num_zeroes_in_zero_bin;   /* This contains the number of 0s in the 0 */
   int zero_bin_index;           /* bin. We do this separately so we
-                                               can turn off the 0 displa  easily. */
+				   can turn off the 0 displa  easily. */
 
 }
 SCLV_FIELD_INFO;
@@ -2047,8 +2047,10 @@ char* cptn_value_string = NULL;
 #define CPTN_CODE_FIELD6 "!o7"	/* overlay layer 7 */
 #define CPTN_CODE_FIELD7 "!o8" /* overlay layer 8 */
 #define CPTN_CODE_FIELD8 "!o9" /* overlay layer 9 */
+#define CPTN_CODE_CONDITION  "!cond" /* condition */
+#define CPTN_CODE_TIME_POINT "!tp" /* time point */
 #define CPTN_CODE_AMPLITUDE "!amp" /* amplitude */
-#define CPTN_CODE_ANGLE "!amp" /* angle */
+#define CPTN_CODE_ANGLE "!ang" /* angle */
 #define CPTN_CODE_DEGREE "!deg" /* degree */
 #define CPTN_CODE_LABEL "!L"	/* label */
 #define CPTN_CODE_ANNOTATION "!A" /* annotation */
@@ -19198,7 +19200,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.264 2007/04/06 21:36:50 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.265 2007/04/19 22:53:22 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21270,18 +21272,18 @@ update_labels(int label_set, int vno, float dmin) {
      the caption, too. */
   sprintf(command, "UpdateLabel %d %d %d", label_set, LABEL_VERTEXINDEX, vno);
   send_tcl_command(command);
-  if (0 == label_set)
+  if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_VERTEXINDEX, "%d", vno);
 
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_DISTANCE, dmin);
   send_tcl_command(command);
-  if (0 == label_set)
+  if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_DISTANCE, "%f", dmin);
 
   sprintf(command,"UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
           label_set, LABEL_COORDS_RAS, v->origx, v->origy, v->origz);
   send_tcl_command(command);
-  if (0 == label_set)
+  if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_COORDS_RAS, "(%.2f, %.2f, %.2f)", 
 			   v->origx, v->origy, v->origz);
 
@@ -21292,14 +21294,14 @@ update_labels(int label_set, int vno, float dmin) {
     sprintf(command, "UpdateLabel %d %d \"(%d  %d  %d)\"",
             label_set, LABEL_COORDS_INDEX, imnr, i, j);
     send_tcl_command(command);
-    if (0 == label_set)
+    if (LABELSET_CURSOR == label_set)
       cptn_sprintf_for_code (CPTN_CODE_COORDS_INDEX, "(%d, %d, %d)", 
 			     imnr, i, j);
 
     sprintf(command, "UpdateLabel %d %d %d",
             label_set, LABEL_MRIVALUE, im[imnr][i][j]);
     send_tcl_command(command);
-    if (0 == label_set)
+    if (LABELSET_CURSOR == label_set)
       cptn_sprintf_for_code (CPTN_CODE_MRIVALUE, "%d", im[imnr][i][j]);
   }
   /* if we have a tal transform, compute the tal. */
@@ -21308,7 +21310,7 @@ update_labels(int label_set, int vno, float dmin) {
     sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
             label_set, LABEL_COORDS_TAL, x_tal, y_tal, z_tal );
     send_tcl_command(command);
-    if (0 == label_set)
+    if (LABELSET_CURSOR == label_set)
       cptn_sprintf_for_code (CPTN_CODE_COORDS_TAL, "(%.2f, %.2f, %.2f)",
 			     x_tal, y_tal, z_tal);
 
@@ -21317,7 +21319,7 @@ update_labels(int label_set, int vno, float dmin) {
     sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
             label_set, LABEL_COORDS_MNITAL, x_mni, y_mni, z_mni );
     send_tcl_command(command);
-    if (0 == label_set)
+    if (LABELSET_CURSOR == label_set)
       cptn_sprintf_for_code (CPTN_CODE_COORDS_MNITAL, "(%.2f, %.2f, %.2f)",
 			     x_mni, y_mni, z_mni);
   }
@@ -21325,7 +21327,7 @@ update_labels(int label_set, int vno, float dmin) {
   sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
           label_set, LABEL_COORDS_NORMAL, v->nx, v->ny, v->nz);
   send_tcl_command(command);
-  if (0 == label_set)
+  if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_COORDS_NORMAL, "(%.2f, %.2f, %.2f)",
 			   v->nx, v->ny, v->nz);
 
@@ -21372,7 +21374,7 @@ update_labels(int label_set, int vno, float dmin) {
     sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
             label_set, LABEL_COORDS_SPHERE_XYZ, sx, sy, sz );
     send_tcl_command(command);
-    if (0 == label_set)
+    if (LABELSET_CURSOR == label_set)
       cptn_sprintf_for_code (CPTN_CODE_COORDS_SPHERE_XYZ, "(%.2f, %.2f, %.2f)",
 			     sx, sy, sz);
      
@@ -21380,7 +21382,7 @@ update_labels(int label_set, int vno, float dmin) {
             label_set, LABEL_COORDS_SPHERE_RT,
             DEGREES(phi), DEGREES(theta) );
     send_tcl_command(command);
-    if (0 == label_set)
+    if (LABELSET_CURSOR == label_set)
       cptn_sprintf_for_code (CPTN_CODE_COORDS_SPHERE_RT, "(%2.1f, %2.1f)", 
 			     DEGREES(phi), DEGREES(theta));
   }
@@ -21388,13 +21390,13 @@ update_labels(int label_set, int vno, float dmin) {
   sprintf(command, "UpdateLabel %d %d %f",
           label_set, LABEL_CURVATURE, v->curv);
   send_tcl_command(command);
-  if (0 == label_set)
+  if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_CURVATURE, "%f", v->curv);
      
   sprintf(command, "UpdateLabel %d %d %f",
           label_set, LABEL_FIELDSIGN, v->fieldsign);
   send_tcl_command(command);
-  if (0 == label_set)
+  if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_FIELDSIGN, "%f", v->fieldsign);
      
   /* overlay labels. draw the current one in stars. */
@@ -21409,7 +21411,7 @@ update_labels(int label_set, int vno, float dmin) {
     }
     send_tcl_command(command);
 
-    if (0 == label_set)
+    if (LABELSET_CURSOR == label_set)
       {    
 	/* Build the string for the code here be affixing the field
 	   number + 1 to the prefix, e.g. field 0 -> !o1 */
@@ -21421,20 +21423,20 @@ update_labels(int label_set, int vno, float dmin) {
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_AMPLITUDE,
           hypot(v->val,v->val2));
   send_tcl_command(command);
-  if (0 == label_set)
+  if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_AMPLITUDE, "%f", hypot(v->val,v->val2));
      
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_ANGLE,
           (float)(atan2(v->val2,v->val)*180.0/M_PI));
   send_tcl_command(command);
-  if (0 == label_set)
+  if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_ANGLE, "%f", 
 			   (float)(atan2(v->val2,v->val)*180.0/M_PI));
      
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_DEGREE,
           (float)(atan2(v->val2,v->val)/(2*M_PI)));
   send_tcl_command(command);
-  if (0 == label_set)
+  if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_DEGREE, "%f",
 			   (float)(atan2(v->val2,v->val)/(2*M_PI)));
      
@@ -21447,7 +21449,7 @@ update_labels(int label_set, int vno, float dmin) {
               label_set, LABEL_LABEL,
               labl_labels[label_index_array[0]].name,
               num_labels_found-1);
-      if (0 == label_set)
+      if (LABELSET_CURSOR == label_set)
 	cptn_sprintf_for_code (CPTN_CODE_LABEL, "%s, %d others",
 			       labl_labels[label_index_array[0]].name,
 			       num_labels_found-1 );
@@ -21462,7 +21464,7 @@ update_labels(int label_set, int vno, float dmin) {
   } else {
     sprintf(command, "UpdateLabel %d %d \"None.\"", label_set, LABEL_LABEL );
     send_tcl_command(command);
-    if (0 == label_set)
+    if (LABELSET_CURSOR == label_set)
      cptn_sprintf_for_code (CPTN_CODE_LABEL, "None");
     
   }
@@ -21475,7 +21477,7 @@ update_labels(int label_set, int vno, float dmin) {
   sprintf(command, "UpdateLabel %d %d \"%d (%d  %d  %d)\"",
           label_set, LABEL_ANNOTATION, v->annotation, r, g, b);
   send_tcl_command(command);
-  if (0 == label_set)
+  if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_ANNOTATION, "%d (%d, %d, %d)", 
 			   v->annotation, r, g, b);
   //    }
@@ -21485,10 +21487,22 @@ update_labels(int label_set, int vno, float dmin) {
             label_set, LABEL_PARCELLATION_NAME,
             parc_names[(int)nint(v->val)]);
     send_tcl_command(command);
-    if (0 == label_set)
+    if (LABELSET_CURSOR == label_set)
       cptn_sprintf_for_code (CPTN_CODE_PARCELLATION_NAME, "%s",
 			     parc_names[(int)nint(v->val)] );
   }
+
+  /* Although we don't update the time point and condition in the
+     label section, we kind of need to update the caption with their
+     values here, so do that. */
+  if( sclv_current_field != -1 )
+    {
+      cptn_sprintf_for_code (CPTN_CODE_TIME_POINT, "%d",
+			 sclv_field_info[sclv_current_field].cur_timepoint );
+      
+      cptn_sprintf_for_code (CPTN_CODE_CONDITION, "%d",
+			 sclv_field_info[sclv_current_field].cur_condition );
+    }
 }
 
 /* ------------------------------------------------------------- the window */
@@ -23542,6 +23556,11 @@ int sclv_set_timepoint_of_field (int field,
 
     free (values);
   }
+
+  /* This is kind of a hack to update the caption in case it has time
+     point and condition codes in it. Otherwise it won't get updated
+     until we click a vertex. */
+  update_labels (LABELSET_CURSOR, selection, 0);
 
   return (ERROR_NONE);
 }
