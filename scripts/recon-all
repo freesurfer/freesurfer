@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/19 01:40:54 $
-#    $Revision: 1.84 $
+#    $Date: 2007/04/20 17:05:02 $
+#    $Revision: 1.85 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.84 2007/04/19 01:40:54 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.85 2007/04/20 17:05:02 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -190,7 +190,7 @@ set DoInflate2       = 0;
 set DoSphere         = 0;
 set DoSurfReg        = 0;
 set DoJacobianWhite  = 0;
-set DoJacobian       = 0;
+set DoJacobianDist0  = 0;
 set DoContraSurfReg  = 0;
 set DoContraSurfRegWithinSubject = 0;
 set DoAvgCurv        = 0;
@@ -1750,7 +1750,7 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.sphreg.touch
   endif
 
-  #---------------- Jacobian --------------------------#
+  #---------------- Jacobian white --------------------------#
   if($DoJacobianWhite) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -1768,24 +1768,25 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.jacobian_white.touch
   endif
 
-  #------------ Surface Registration, maximal distortion ---------#
-  if($DoJacobian) then
+  #--- Surface Registration, allow maximal distortion, produce Jacobian ---#
+  if($DoJacobianDist0) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
-    echo "#@# Jacobian $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    echo "#@# Jacobian dist0 $hemi `date`" \
+        |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
     set xopts = `fsr-getxopts mris_register $XOptsFile`;
     set cmd = (mris_register -curv -norot -jacobian \
-        ../surf/$hemi.jacobian -dist 0)
+        ../surf/$hemi.jacobian_dist0 -dist 0)
     set cmd = ($cmd $xopts)
     set cmd = ($cmd ../surf/$hemi.sphere.reg $AvgTif \
-        ../surf/$hemi.sphere.jacobian.reg)
+        ../surf/$hemi.sphere.dist0.jacobian.reg)
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.jacobian.touch
+    echo $cmd > $touchdir/$hemi.jacobian_dist0.touch
   endif
 
   #---------------- Average Curv for Display----------------------#
@@ -2572,11 +2573,11 @@ while( $#argv != 0 )
       set DoJacobianWhite = 0;
       breaksw
 
-    case "-jacobian":
-      set DoJacobian = 1;
+    case "-jacobian_dist0":
+      set DoJacobianDist0 = 1;
       breaksw
-    case "-nojacobian":
-      set DoJacobian = 0;
+    case "-nojacobian_dist0":
+      set DoJacobianDist0 = 0;
       breaksw
 
     case "-contrasurfreg":
@@ -3450,7 +3451,7 @@ check_params:
      ! $DoSkullLTA && ! $DoQdecCache &&\
      ! $DoSurfReg  && ! $DoContraSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
      ! $DoMorphRGB && ! $DoFinalSurfs && ! $DoContraSurfRegWithinSubject &&\
-     ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobian && \
+     ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoMaskBFS) then
      echo "ERROR: nothing to do"
      exit 1;
@@ -4225,16 +4226,16 @@ Computes how much the white surface was distorted in order to register
 to the spherical atlas during the -surfreg step. Creates ?h.jacobian_white 
 (a curv formatted file). This step follows the surface registration step.
 
-Jacobian (-<no>jacobian)
+Surface Registation, maximal distortion, with Jacobian (-<no>jacobian_dist0)
 
 Run spherical registration with no metric distortion penalty. This will 
 cause surface geometry to align regardless of the amount of distortion 
 induced (ie, distance contraints are turned off). The distortion will then 
-be quantified by the jacobian of the transform. Creates ?h.jacobian (a curv 
-formatted file) and ?h.sphere.jacobian.reg (a surface file). This step is 
-not run automatically because it can add about an hour per hemi.  Note: the 
-file ?h.jacobian_white (see prior help text) is the Jacobian of the white 
-surface to sphere alignment from -surfreg.
+be quantified by the Jacobian of the transform. Creates ?h.jacobian_dist0 (a
+curv formatted file) and ?h.sphere.dist0.jacobian.reg (a surface file). This 
+step is not run automatically because it can add about an hour per hemi.  
+Note: the file ?h.jacobian_white (see prior help text) is the Jacobian of 
+the white surface to spherical atlas alignment from -surfreg.
 
 Contralateral Surface Registation (Spherical Morph) (-<no>contrasurfreg)
 
