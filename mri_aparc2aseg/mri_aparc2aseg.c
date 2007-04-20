@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/02 18:00:28 $
- *    $Revision: 1.16 $
+ *    $Author: postelni $
+ *    $Date: 2007/04/20 22:19:43 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.16 2007/03/02 18:00:28 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.17 2007/04/20 22:19:43 postelni Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -103,7 +103,8 @@ float hashres = 16;
 int main(int argc, char **argv) {
   int nargs, err, asegid, c, r, s, nctx, annot,vtxno,nripped;
   int annotid, IsCortex=0, IsWM=0, IsHypo=0, hemi=0, segval=0;
-  float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0, RibbonVal;
+  int isRibbonWM=0, isRibbonGM=0, RibbonVal=0;
+  float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -349,6 +350,55 @@ int main(int argc, char **argv) {
         if (IsHypo && LabelHypoAsWM && MRIgetVoxVal(filled,c,r,s,0))
           IsWM = 1;
 
+	// integrate surface information
+	//
+	// Only Do This for GM,WM or Unknown labels in the ASEG !!!
+	//
+	// priority is given to the ribbon computed from the surface
+	// namely
+	//  ribbon=GM => GM
+	//  aseg=GM AND ribbon=WM => WM
+	//  ribbon=UNKNOWN => UNKNOWN
+        if (UseNewRibbon && ( IsCortex || IsWM || (!asegid) ) )
+	    {
+	      RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
+	      isRibbonGM = (RibbonVal%100==10);
+	      isRibbonWM = (RibbonVal%100==20);
+	      if ( isRibbonGM && !IsCortex )
+		{
+	      // set it according to the hemi as GM
+		  if ( RibbonVal/100 == 0 )
+		    {
+		      MRIsetVoxVal(ASeg,c,r,s,0, 42);
+		    }
+		  else
+		    {
+		      MRIsetVoxVal(ASeg,c,r,s,0, 3);
+		    }
+		  IsCortex = 1;
+		  IsWM = 0;
+		}
+	      else if ( isRibbonWM && !IsWM )
+		{
+		  // set it according to the hemi as WM
+		  if ( RibbonVal/100 == 0 ) // integer division - 0 = LH for ribbon
+		    {
+		      MRIsetVoxVal(ASeg,c,r,s,0, 2);
+		    }
+		  else // RH
+		    {
+		      MRIsetVoxVal(ASeg,c,r,s,0, 41);
+		    }
+		  IsCortex = 0;
+		  IsWM = 1;
+		} // 
+	      else if ( !RibbonVal && asegid )
+		{
+		  MRIsetVoxVal(ASeg,c,r,s,0,0);
+		  continue;
+		}
+	    }
+	
         // If it's not labeled as cortex or wm in the aseg, skip
         if (!IsCortex && !IsWM) continue;
 
@@ -369,18 +419,7 @@ int main(int argc, char **argv) {
             }
           }
         }
-        if (UseNewRibbon) {
-          RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
-          if (IsCortex) { // ASeg says it's in cortex
-            if (RibbonVal < 0.5) {
-              // but it is not part of the ribbon,
-              // so set it to unknown (0) and go to the next voxel.
-              MRIsetVoxVal(ASeg,c,r,s,0,0);
-              continue;
-            }
-          }
-        }
-
+	
         // Convert the CRS to RAS
         CRS->rptr[1][1] = c;
         CRS->rptr[2][1] = r;
@@ -446,6 +485,8 @@ int main(int argc, char **argv) {
             annotid = annotation_to_index(annot);
           dmin = drhp;
         }
+	// why was this here in the first place?
+	/*
         if (annotid == 0 && 
             lhwvtx >= 0 &&
             lhpvtx >= 0 &&
@@ -456,7 +497,7 @@ int main(int argc, char **argv) {
                  lhpial->vertices[lhpvtx].ripflag,
                  rhwhite->vertices[rhwvtx].ripflag,
                  rhpial->vertices[rhpvtx].ripflag);
-        }
+		 } */
 
         if ( IsCortex && hemi == 1) segval = annotid+1000 + baseoffset;
         if ( IsCortex && hemi == 2) segval = annotid+2000 + baseoffset;
@@ -551,7 +592,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--ribbon"))  UseRibbon = 1;
-    else if (!strcasecmp(option, "--new-ribbon"))  UseNewRibbon = 1;
+    else if (!strcasecmp(option, "--volmask"))  UseNewRibbon = 1;
     else if (!strcasecmp(option, "--noribbon"))  UseRibbon = 0;
     else if (!strcasecmp(option, "--labelwm"))  LabelWM = 1;
     else if (!strcasecmp(option, "--hypo-as-wm"))  LabelHypoAsWM = 1;
@@ -612,6 +653,7 @@ static void print_usage(void) {
   printf("   --o volfile : output aparc+aseg volume file\n");
   //printf("   --oaparc file : output aparc-only volume file\n");
   printf("   --ribbon : use mri/hemi.ribbon.mgz as a mask for ctx.\n");
+  printf("   --volmask: use mri/ribbon.mgz as a mask of  GM/WM as obtained from the surface - created with mris_volmask. \n");
   printf("\n");
   printf("   --a2005s : use aparc.a2005s instead of aparc\n");
   printf("   --annot annotname : use annotname instead of aparc\n");
@@ -738,3 +780,4 @@ static int singledash(char *flag) {
   if (flag[0] == '-' && flag[1] != '-') return(1);
   return(0);
 }
+
