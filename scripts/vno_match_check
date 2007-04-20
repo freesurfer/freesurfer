@@ -27,6 +27,10 @@ foreach hemi ( rh lh )
     set vno_orig=`mris_info $hemi.orig \
         |& grep "num vertices:" \
         |& awk '{print $3}'`
+    if ("x$vno_orig" == "x") then
+        echo "Error running mris_info"
+        exit 1
+    endif
 
     # and check that all the other surfaces have this same number
     foreach surf ( white pial inflated )
@@ -35,6 +39,10 @@ foreach hemi ( rh lh )
         set vno=`mris_info $hemi.$surf \
             |& grep "num vertices:" \
             |& awk '{print $3}'`
+        if ("x$vno" == "x") then
+            echo "Error running mris_info"
+            exit 1
+        endif
 
         if ( "$vno_orig" != "$vno" ) then
             echo "ERROR: $subj/surf/$hemi.orig has $vno_orig vertices"
