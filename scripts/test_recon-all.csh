@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/16 17:48:13 $
-#    $Revision: 1.13 $
+#    $Date: 2007/04/20 22:59:50 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.13 2007/04/16 17:48:13 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.14 2007/04/20 22:59:50 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -595,23 +595,6 @@ mv mris_diff* mris_diff/ > /dev/null
 mv *seg* aseg/ > /dev/null
 mv aparc* aparc/ > /dev/null
 mv *.aparc* aparc/ > /dev/null
-
-# these are the files we really care about:
-rm -f asegstatsdiff.txt > /dev/null
-ln -s aseg/asegstatsdiff.txt > /dev/null
-
-rm -f aparcstatsdiff-rh-aparc-thickness.txt > /dev/null
-ln -s aparc/aparcstatsdiff-rh-aparc-thickness.txt > /dev/null
-
-rm -f aparcstatsdiff-lh-aparc-thickness.txt > /dev/null
-ln -s aparc/aparcstatsdiff-lh-aparc-thickness.txt > /dev/null
-
-rm -f mris_comp_parc_olap-rh.aparc.txt > /dev/null
-ln -s aparc/mris_comp_parc_olap-rh.aparc.txt > /dev/null
-
-rm -f mris_comp_parc_olap-lh.aparc.txt > /dev/null
-ln -s aparc/mris_comp_parc_olap-lh.aparc.txt > /dev/null
-
 
 #
 # move completed run to another dir, indicating that recon-all test
