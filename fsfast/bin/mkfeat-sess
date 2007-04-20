@@ -9,8 +9,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/02 05:05:42 $
-#    $Revision: 1.4 $
+#    $Date: 2007/04/20 05:17:17 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 #
 
 
-set VERSION = '$Id: mkfeat-sess,v 1.4 2007/03/02 05:05:42 greve Exp $';
+set VERSION = '$Id: mkfeat-sess,v 1.5 2007/04/20 05:17:17 greve Exp $';
 set inputargs = ($argv);
 
 set analysis  = ();
@@ -115,7 +115,11 @@ else
 endif
 
 pushd $tmpdir
-Feat 
+if($#clone) then 
+  Feat design.fsf
+else
+  Feat 
+endif
 if($status) exit 1;
 popd
 
