@@ -98,7 +98,9 @@ echo "${newrow}" >> ${outfile}
 # output the column of non-zero structures, sorted by % change
 echo "% diff:\t\tlabel:   (subject1:value, subject2:value)"
 echo "-------\t\t-------------------------------------------"
-cat $stdoutfile | sort -n
-rm -f $stdoutfile
+if ( -e $stdoutfile ) then
+    cat $stdoutfile | sort -n
+    rm -f $stdoutfile
+endif
 
 exit ${diffcount}
