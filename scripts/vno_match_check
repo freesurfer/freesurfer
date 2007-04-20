@@ -2,6 +2,16 @@
 
 #set echo=1
 
+if ( ("x$1" == "x") || ( "x$1" == "x-help" ) || ( "x$1" == "x--help" ) ) then
+    echo "USAGE: vno_match_check <subjid>"
+    echo ""
+    echo "Checks that all surfaces and surface data files for subject <subjid>"
+    echo "have the same number of vertices. Exits with status code 0 if ok."
+    echo "Exits with status code 1 if any mismatches found."
+    echo "If the second argument is 'debug', then progress text is printed."
+    exit 1
+endif
+
 if ( ! $?SUBJECTS_DIR ) then
     echo "SUBJECTS_DIR is not declared"
     exit 1
@@ -10,11 +20,6 @@ endif
 set subj=$1
 if ( ! -e $SUBJECTS_DIR/$subj/surf ) then
     echo "$SUBJECTS_DIR/$subj/surf does not exist"
-    echo ""
-    echo "USAGE: vno_match_check <subjid>"
-    echo ""
-    echo "Checks that all surface and surface data files for subject <subjid>"
-    echo "have the same number of vertices."
     exit 1
 endif
 
@@ -23,7 +28,7 @@ cd $SUBJECTS_DIR/$subj/surf
 foreach hemi ( rh lh )
     
     # get number of vertices of the orig surface
-    if ("x$2" != "x") echo "Checking $hemi.orig..."
+    if ("x$2" != "x") echo "Checking $subj/surf/$hemi.orig..."
     set vno_orig=`mris_info $hemi.orig \
         |& grep "num vertices:" \
         |& awk '{print $3}'`
@@ -35,7 +40,7 @@ foreach hemi ( rh lh )
     # and check that all the other surfaces have this same number
     foreach surf ( white pial inflated )
 
-        if ("x$2" != "x") echo "Checking $hemi.$surf..."
+        if ("x$2" != "x") echo "Checking $subj/surf/$hemi.$surf..."
         set vno=`mris_info $hemi.$surf \
             |& grep "num vertices:" \
             |& awk '{print $3}'`
@@ -45,8 +50,8 @@ foreach hemi ( rh lh )
         endif
 
         if ( "$vno_orig" != "$vno" ) then
-            echo "ERROR: $subj/surf/$hemi.orig has $vno_orig vertices"
-            echo "while  $subj/surf/$hemi.$surf has $vno"
+            echo "\nERROR: $subj/surf/$hemi.orig has $vno_orig vertices,"
+            echo "       $subj/surf/$hemi.$surf has $vno vertices\n"
             exit 1
         endif
 
@@ -55,7 +60,7 @@ foreach hemi ( rh lh )
     # now check that the curvature files have the correct number of vertices
     foreach curv ( curv sulc area thickness )
 
-        if ("x$2" != "x") echo "Checking $hemi.$curv..."
+        if ("x$2" != "x") echo "Checking $subj/surf/$hemi.$curv..."
         mris_info $hemi.orig --c $hemi.$curv >& /tmp/mris_info.log
         if ($status) then
             grep ERROR /tmp/mris_info.log
@@ -66,4 +71,4 @@ foreach hemi ( rh lh )
 
 end
 
-echo "Pass: all surfaces and surface data for subject $subj have the same number of vertices."
+if ("x$2" != "x") echo "Pass: all surfaces and surface data for subject $subj have the same number of vertices."
