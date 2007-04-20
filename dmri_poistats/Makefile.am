@@ -57,7 +57,11 @@ AM_CPPFLAGS =	$(X_CFLAGS) $(VXL_CFLAGS) \
   -I$(top_srcdir)/include \
   $(ITK_THINGS) -DHAVE_ZLIB
 
-bin_PROGRAMS = dmri_poistats
+bin_PROGRAMS = \
+  dmri_poistats \
+  dmri_initialize_path
+
+# poistats
 dmri_poistats_SOURCES = \
   $(UI_SRCS) \
   $(BSPLINES_SRCS) \
@@ -74,6 +78,16 @@ dmri_poistats_LDADD = $(LIBS_ITK) \
 	-lITKMetaIO -litksys -lITKEXPAT -lITKniftiio -lITKznz -litkzlib
 dmri_poistats_LDFLAGS = $(OS_LDFLAGS)
 dmri_poistats_CXXFLAGS = 
+
+# initialize poistats path stuff
+dmri_initialize_path_SOURCES = \
+	$(UI_SRCS) \
+	datamodel/utils/InitializePath.h \
+	datamodel/utils/InitializePath.cxx \
+  dmri_initialize_path.cxx 
+dmri_initialize_path_LDADD = $(addprefix $(top_srcdir)/, $(LIBS_MGH) utilscpp/libutilscpp.a )
+dmri_initialize_path_LDFLAGS = $(OS_LDFLAGS)
+dmri_initialize_path_CXXFLAGS = 
 
 endif
 #end itk
