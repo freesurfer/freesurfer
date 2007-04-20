@@ -10,9 +10,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/03/08 18:25:34 $
- *    $Revision: 1.48 $
+ *    $Author: greve $
+ *    $Date: 2007/04/20 20:44:48 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -307,7 +307,7 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.48 2007/03/08 18:25:34 nicks Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.49 2007/04/20 20:44:48 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -401,7 +401,7 @@ int main(int argc, char **argv) {
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.48 2007/03/08 18:25:34 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.49 2007/04/20 20:44:48 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -552,7 +552,7 @@ int main(int argc, char **argv) {
     }
 
     if (SrcVals->width != SrcSurfReg->nvertices) {
-      fprintf(stderr,"ERROR: dimesion inconsitency in source data\n");
+      fprintf(stderr,"ERROR: dimension inconsistency in source data\n");
       fprintf(stderr,"       Number of surface vertices = %d\n",
               SrcSurfReg->nvertices);
       fprintf(stderr,"       Number of value vertices = %d\n",SrcVals->width);

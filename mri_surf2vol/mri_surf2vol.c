@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/20 20:21:34 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/04/20 20:45:22 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.20 2007/04/20 20:21:34 greve Exp $
+  $Id: mri_surf2vol.c,v 1.21 2007/04/20 20:45:22 greve Exp $
 */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_surf2vol.c,v 1.20 2007/04/20 20:21:34 greve Exp $";
+  "$Id: mri_surf2vol.c,v 1.21 2007/04/20 20:45:22 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_surf2vol.c,v 1.20 2007/04/20 20:21:34 greve Exp $",
+           "$Id: mri_surf2vol.c,v 1.21 2007/04/20 20:45:22 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
         SurfVal = mritmp;
       }
       if (SurfVal->width != SrcSurf->nvertices) {
-        fprintf(stderr,"ERROR: dimesion inconsitency in source data\n");
+        fprintf(stderr,"ERROR: dimension inconsistency in source data\n");
         fprintf(stderr,"       Number of surface vertices = %d\n",
                 SrcSurf->nvertices);
         fprintf(stderr,"      Number of value vertices = %d\n",SurfVal->width);
