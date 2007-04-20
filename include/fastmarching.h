@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.4 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/20 19:57:05 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,9 +33,9 @@
 //
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:08:59 $
-// Revision       : $Revision: 1.4 $
+// Revision Author: $Author: dsjen $
+// Revision Date  : $Date: 2007/04/20 19:57:05 $
+// Revision       : $Revision: 1.5 $
 
 // include guard
 #ifndef fastmarching_h
@@ -320,20 +320,23 @@ private:
   }
 
 public:
-  void InitFromMRI(MRI *_mri, int label)
+  void InitFromMRI( MRI *_mri, const int label)
   {
-
-    if (sign>0)
+    
+    // sign is the template parameter (+/-1)
+    if ( sign > 0 )
     {
+      // this is a macro that goes through all elements of _mri
       mapMRI_XYZ(_mri,x,y,z)
       {
-        int val=MRIvox(_mri,x,y,z);
-        if (val!=label)
+        const int val = MRIvox( _mri, x, y, z);
+        if( val != label )
         {
-          MRIFvox(mri,x,y,z)=limit;
+          // mri was in the constructor
+          MRIFvox(mri,x,y,z) = limit;
           continue;
         }
-        MRIvox(status,x,y,z)=eForbidden;
+        MRIvox( status, x, y, z ) = eForbidden;
       }
     }
     else
@@ -408,8 +411,8 @@ public:
       int val=MRIvox(_mri,(int)xv,(int)yv,(int)zv);
       if (val!=label)
       {
-        MRIvox(mri_seg,x,y,z)=0;
-        MRIFvox(mri,x,y,z)=limit;
+        MRIvox(mri_seg,x,y,z) = 0;
+        MRIFvox(mri,x,y,z) = limit;
         continue;
       }
       MRIvox(mri_seg,x,y,z)=1;
