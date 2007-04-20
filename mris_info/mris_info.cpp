@@ -7,8 +7,8 @@
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/19 19:03:08 $
- *    $Revision: 1.26 $
+ *    $Date: 2007/04/20 00:53:51 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,7 +63,7 @@ static void print_version(void);
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
 static char vcid[] = 
-"$Id: mris_info.cpp,v 1.26 2007/04/19 19:03:08 nicks Exp $";
+"$Id: mris_info.cpp,v 1.27 2007/04/20 00:53:51 nicks Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL, *curvfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
@@ -138,6 +138,7 @@ int main(int argc, char *argv[]) {
       printf("\n");
       exit(1);
     }
+    print("%s has the same number of vertices as %s\n",curvfile,surffile);
   }
 
   if (rescale) {
