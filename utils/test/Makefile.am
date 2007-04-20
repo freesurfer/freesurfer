@@ -10,7 +10,7 @@ LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 CHECKS=mnitest i2rtest icotest extest \
 	mghxform inftest checkanalyze \
 	test_mri_identify test_c_nr_wrapper \
-	sc_test
+	sc_test tiff_write_image
 
 BROKEN=difftool test_mriio mri_compute_stats \
   surftest mri_ms_LDA \
@@ -40,6 +40,7 @@ checkanalyze_SOURCES=checkanalyze.cpp
 test_mri_identify_SOURCES=test_mri_identify.cpp
 test_c_nr_wrapper_SOURCES=test_c_nr_wrapper.c
 sc_test_SOURCES=sc_test.c
+tiff_write_image_SOURCES=tiff_write_image.c
 #test_mriio_SOURCES=test_mriio.cpp
 #surftest_SOURCES=surftest.cpp
 #difftool_SOURCES=difftool.cpp
