@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/03/23 20:01:21 $
- *    $Revision: 1.529 $
+ *    $Author: greve $
+ *    $Date: 2007/04/20 20:43:48 $
+ *    $Revision: 1.530 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -609,7 +609,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.529 2007/03/23 20:01:21 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.530 2007/04/20 20:43:48 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -55835,7 +55835,7 @@ MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf,
 
     if (SrcVals->width != Surf->nvertices)
     {
-      fprintf(stdout,"ERROR: dimesion inconsitency in source data\n");
+      fprintf(stdout,"ERROR: dimension inconsistency in source data\n");
       fprintf(stdout,"       Number of surface vertices = %d\n",
               Surf->nvertices);
       fprintf(stdout,"       Number of value vertices = %d\n",SrcVals->width);
