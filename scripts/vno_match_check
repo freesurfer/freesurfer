@@ -26,9 +26,14 @@ endif
 cd $SUBJECTS_DIR/$subj/surf
 
 foreach hemi ( rh lh )
-    
+
+   
     # get number of vertices of the orig surface
     if ("x$2" != "x") echo "Checking $subj/surf/$hemi.orig..."
+    if ( ! -e $SUBJECTS_DIR/$subj/surf/$hemi.orig ) then
+        echo "ERROR: $SUBJECTS_DIR/$subj/surf/$hemi.orig does not exist!"
+        exit 1
+    endif
     set vno_orig=`mris_info $hemi.orig \
         |& grep "num vertices:" \
         |& awk '{print $3}'`
@@ -38,9 +43,13 @@ foreach hemi ( rh lh )
     endif
 
     # and check that all the other surfaces have this same number
-    foreach surf ( white pial inflated )
+    foreach surf ( white pial inflated smoothwm sphere )
 
         if ("x$2" != "x") echo "Checking $subj/surf/$hemi.$surf..."
+        if ( ! -e $SUBJECTS_DIR/$subj/surf/$hemi.$surf ) then
+            echo "ERROR: $SUBJECTS_DIR/$subj/surf/$hemi.$surf does not exist!"
+            exit 1
+        endif
         set vno=`mris_info $hemi.$surf \
             |& grep "num vertices:" \
             |& awk '{print $3}'`
@@ -50,8 +59,7 @@ foreach hemi ( rh lh )
         endif
 
         if ( "$vno_orig" != "$vno" ) then
-            echo "\nERROR: $subj/surf/$hemi.orig has $vno_orig vertices,"
-            echo "       $subj/surf/$hemi.$surf has $vno vertices\n"
+            echo "\nERROR: $subj/surf/$hemi.orig has $vno_orig vertices, $subj/surf/$hemi.$surf has $vno vertices\n"
             exit 1
         endif
 
@@ -61,6 +69,10 @@ foreach hemi ( rh lh )
     foreach curv ( curv sulc area thickness )
 
         if ("x$2" != "x") echo "Checking $subj/surf/$hemi.$curv..."
+        if ( ! -e $SUBJECTS_DIR/$subj/surf/$hemi.$curv ) then
+            echo "ERROR: $SUBJECTS_DIR/$subj/surf/$hemi.$curv does not exist!"
+            exit 1
+        endif
         mris_info $hemi.orig --c $hemi.$curv >& /tmp/mris_info.log
         if ($status) then
             grep ERROR /tmp/mris_info.log
