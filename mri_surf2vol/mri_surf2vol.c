@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:09 $
- *    $Revision: 1.19 $
+ *    $Author: greve $
+ *    $Date: 2007/04/20 20:21:34 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.19 2006/12/29 02:09:09 nicks Exp $
+  $Id: mri_surf2vol.c,v 1.20 2007/04/20 20:21:34 greve Exp $
 */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_surf2vol.c,v 1.19 2006/12/29 02:09:09 nicks Exp $";
+  "$Id: mri_surf2vol.c,v 1.20 2007/04/20 20:21:34 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -124,6 +124,7 @@ int UseVolRegIdentity = 0;
 FSENV *fsenv;
 int fstalres;
 char tmpstr[2000];
+float ProjFracStart=0.0, ProjFracDelta=0.05, ProjFracStop=1.0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -136,7 +137,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_surf2vol.c,v 1.19 2006/12/29 02:09:09 nicks Exp $",
+           "$Id: mri_surf2vol.c,v 1.20 2007/04/20 20:21:34 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -274,7 +275,8 @@ int main(int argc, char **argv) {
 
   printf("INFO: mapping vertices to closest voxel\n");
   if (fillribbon) {   /* fill entire ribbon */
-    for (nhits = 0, projfrac = 0.0 ; projfrac <= 1.0 ; projfrac += 0.05) {
+    nhits = 0; 
+    for (projfrac = ProjFracStart ; projfrac <= ProjFracStop ; projfrac += ProjFracDelta) {
       VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
       if (VtxVol == NULL) {
         printf("ERROR: could not map vertices to voxels\n");
@@ -287,14 +289,14 @@ int main(int argc, char **argv) {
       nhits += n ;
       MRIfree(&VtxVol) ;
     }
-#if 0
     /* nhits is not valid yet for filling the ribbon.
        MRIsurf2Vol needs to be rewritten to take into
        account the fact that the same voxel get mapped
        many times
     */
-    printf("INFO: sampled %d voxels in the volume\n",nhits);
-#endif
+    // This is a hack for when there's a merge volume
+    projfrac = (ProjFracStart+ProjFracStop)/2;
+    VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
   } else {  /* sample from one point */
     VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
     if (VtxVol == NULL) {
@@ -419,6 +421,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 0) argnerr(option,1);
       nargsused = 0;
       fillribbon = 1 ;
+    } else if ( !strcmp(option, "--fill-projfrac") ) {
+      if (nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%f",&ProjFracStart);
+      sscanf(pargv[1],"%f",&ProjFracStop);
+      sscanf(pargv[2],"%f",&ProjFracDelta);
+      fillribbon = 1 ;
+      nargsused = 3;
     } else if (istringnmatch(option, "--volregidentity",16)) {
       if (nargc < 1) argnerr(option,1);
       srcsubject = pargv[0];
@@ -524,6 +533,7 @@ static void print_usage(void) {
   printf("  --surf surfname (default is white)\n");
   printf("  --projfrac thickness fraction \n");
   printf("  --fillribbon\n");
+  printf("  --fill-projfrac start stop delta : implies --fillribbon\n");
   printf("  --volreg volume registration file\n");
   printf("  --volregidentity subjid : use identity "
          "(must supply subject name)\n");
@@ -589,7 +599,13 @@ static void print_help(void) {
     "\n"
     "--fillribbon\n"
     "\n"
-    "Fill the entire ribbon (iterate projfrac from 0 to 1)\n"
+    "Fill the entire ribbon (iterate projfrac from 0 to 1 by .05)\n"
+    "\n"
+    "--fill-projfrac start stop delta\n"
+    "\n"
+    "Fill the entire ribbon by iterating projfrac from min to max by delta.\n"
+    "Note that the volume can be filled 'into' the surface by setting stop < 0,\n"
+    "eg, --fill-projfrac -1 0 0.05\n"
     "\n"
     "--volreg volume registration file\n"
     "\n"
