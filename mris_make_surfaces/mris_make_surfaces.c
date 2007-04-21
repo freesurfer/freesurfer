@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/17 19:51:05 $
- *    $Revision: 1.94 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/21 16:27:58 $
+ *    $Revision: 1.95 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.94 2007/04/17 19:51:05 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.95 2007/04/21 16:27:58 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -221,13 +221,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.94 2007/04/17 19:51:05 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.95 2007/04/21 16:27:58 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.94 2007/04/17 19:51:05 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.95 2007/04/21 16:27:58 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1975,15 +1975,22 @@ static int
 fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
             int which)
 {
-  int      vno, label, contra_wm_label, nvox=0, total_vox=0, adjacent=0 ;
+  int      vno, label, contra_wm_label, nvox=0, total_vox=0, adjacent=0,
+           wm_label ;
   VERTEX   *v ;
   double   xv, yv, zv, val, xs, ys, zs, d ;
 
   printf("inhibiting deformation at non-cortical midline structures...\n") ;
   if (stricmp(hemi, "lh") == 0)
+  {
     contra_wm_label = Right_Cerebral_White_Matter ;
+    wm_label = Left_Cerebral_White_Matter ;
+  }
   else
+  {
     contra_wm_label = Left_Cerebral_White_Matter ;
+    wm_label = Right_Cerebral_White_Matter ;
+  }
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -2006,8 +2013,9 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
           label == Left_Lateral_Ventricle ||
           label == Third_Ventricle ||
           label == Right_Lateral_Ventricle ||
-          label == Left_Accumbens_area ||
-          label == Right_Accumbens_area ||
+          ((label == Left_Accumbens_area ||
+            label == Right_Accumbens_area) &&  // only for gray/white
+           which == GRAY_WHITE) ||
           label == Left_Caudate ||
           label == Right_Caudate ||
           label == Left_Pallidum ||
@@ -2040,12 +2048,15 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
         MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
+      if (d < 1.1 && label == wm_label)
+        break ;   // found real white matter next to surface
       if ((label == contra_wm_label ||
            label == Left_Lateral_Ventricle ||
            label == Third_Ventricle ||
            label == Right_Lateral_Ventricle ||
-           label == Left_Accumbens_area ||
-           label == Right_Accumbens_area ||
+           ((label == Left_Accumbens_area ||
+             label == Right_Accumbens_area) &&
+            which == GRAY_WHITE)||
            label == Left_Caudate ||
            label == Right_Caudate ||
            label == Left_Pallidum ||
