@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/20 17:05:02 $
-#    $Revision: 1.85 $
+#    $Date: 2007/04/21 22:00:32 $
+#    $Revision: 1.86 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.85 2007/04/20 17:05:02 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.86 2007/04/21 22:00:32 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1521,7 +1521,7 @@ foreach hemi ($hemilist)
       if($RunIt) $cmd |& tee -a $LF
       if($status) goto error_exit;
       # check if total defect index != 0, meaning, euler # != 2 (surface bad)
-      set cmd = (mris_euler_number $hemi.orig)
+      set cmd = (mris_euler_number ../surf/$hemi.orig)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) then 
         $cmd >& mris_euler_number.log
