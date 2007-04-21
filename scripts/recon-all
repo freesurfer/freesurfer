@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/21 22:00:32 $
-#    $Revision: 1.86 $
+#    $Date: 2007/04/21 22:11:30 $
+#    $Revision: 1.87 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.86 2007/04/21 22:00:32 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.87 2007/04/21 22:11:30 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1498,16 +1498,6 @@ foreach hemi ($hemilist)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
-    if(! $UseOldTopoFix) then
-      set cmd = (cp ../surf/$hemi.qsphere.nofix ../surf/$hemi.qsphere)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      set cmd = (cp ../surf/$hemi.smoothwm.nofix ../surf/$hemi.smoothwm)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
     # Now can run fixer
     if($UseOldTopoFix) then
       set xopts = `fsr-getxopts mris_fix_topology $XOptsFile`;
@@ -1538,6 +1528,14 @@ foreach hemi ($hemilist)
       endif
     endif
     if($UseNewTopoFix) then
+      set cmd = (cp ../surf/$hemi.qsphere.nofix ../surf/$hemi.qsphere)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      set cmd = (cp ../surf/$hemi.smoothwm.nofix ../surf/$hemi.smoothwm)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
       set xopts = `fsr-getxopts mris_topo_fixer $XOptsFile`;
       set cmd = (mris_topo_fixer -mgz -warnings)
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
