@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2007/04/17 16:22:22 $
- *    $Revision: 1.26 $
+ *    $Date: 2007/04/22 02:31:52 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,8 @@
 
 #define  STRBUF  65536
 #define  MAX_FILES  1000
-#define  CE( x )  fprintf(stdout, ( x ))
+#define  CO( x )  fprintf(stdout, ( x ))
+#define  CE( x )  fprintf(stderr, ( x ))
 #define  START_i   3
 
 // Calculations performed on the curvature surface
@@ -68,6 +69,13 @@ typedef enum _secondOrderType {
   e_Scaled 		= 10, 	// "Raw" scaled curvature
   e_ScaledTrans 	= 11 	// Scaled and translated curvature
 } e_secondOrderType;
+
+typedef enum _surfaceIntegrals {
+  e_natural		= 0,	// "Natural" (native) integral - no conditions
+  e_rectified		= 1,	// curvature is first rectified
+  e_pos			= 2,	// only positive curvatures are considered
+  e_neg			= 3     // only negative curvatures are considered
+} e_surfaceIntegral;
 
 // Set of possible output curvature files
 char* Gppch[] = {
@@ -93,7 +101,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.26 2007/04/17 16:22:22 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.27 2007/04/22 02:31:52 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -127,11 +135,14 @@ int MRISusePrincipleCurvatureFunction(
 	float 			(*f)(float k1, float k2)
 );
 
-double MRIScomputeSurfaceIntegral(
+short MRIScomputeSurfaceIntegral(
 	MRI_SURFACE* 	pmris, 
 	int* 		p_verticesCounted,
+	float*		pf_areaCounted,
 	short		(*fcond)(VERTEX*	pv),
-	float		(*fv)	(VERTEX*	pv)	
+	float		(*fv)	(VERTEX*	pv),
+	float*		pf_meanIntegral,
+	float*		pf_areaNormalizedIntegral	
 );
 
 int    comp(const void *p, const void *q);    // Compare p and q for qsort()
@@ -278,6 +289,8 @@ static int G_bins   = 1;
 static int Gb_maxUlps  = 0;
 static int G_maxUlps  = 0;
 
+static int	Gb_postScale			= 0;
+static float	Gf_postScale			= 0.;
 static int	Gb_lowPassFilter		= 0;
 static float	Gf_lowPassFilter		= 0.;
 static int	Gb_lowPassFilterGaussian	= 0;
@@ -388,7 +401,7 @@ main(int argc, char *argv[]) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.26 2007/04/17 16:22:22 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.27 2007/04/22 02:31:52 rudolph Exp $", "$Name:  $");
 //   ret = longOpts_process(argc, argv);
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -587,6 +600,65 @@ main(int argc, char *argv[]) {
   return(0) ;  /* for ansi */
 }
 
+short
+surfaceIntegrals_compute(
+	MRIS*			apmris,
+	e_surfaceIntegral	aeSI_type,
+	float*			apf_meanIntegral,
+	int*			ap_vertices,
+	float*			apf_areaNormalizedIntegral,
+	float*			apf_area
+) {
+  //
+  // PRECONDITIONS
+  // o amris must have been prepared with a call to
+  //   MRIScomputeSecondFundamentalForm(...)
+  // o ae_type defines the integral type to perform
+  //
+  // POSTCONDITIONS
+  // o integral and vertex count are returned in pointers
+  // o OK / not OK returned in function name
+  //
+
+  short b_ret	= 0;
+
+  switch(aeSI_type) {
+    case e_natural:
+	b_ret		= MRIScomputeSurfaceIntegral(
+				apmris, ap_vertices, apf_area,
+				f_allVertices,
+				f_pass,
+				apf_meanIntegral,
+				apf_areaNormalizedIntegral);
+    break;
+    case e_rectified:
+	b_ret		= MRIScomputeSurfaceIntegral(
+				apmris, ap_vertices, apf_area,
+				f_allVertices,
+				f_absCurv,
+				apf_meanIntegral,
+				apf_areaNormalizedIntegral); 
+    break;
+    case e_pos:
+	b_ret		= MRIScomputeSurfaceIntegral(
+				apmris, ap_vertices, apf_area,
+				f_greaterEqualZero,
+				f_absCurv,
+				apf_meanIntegral,
+				apf_areaNormalizedIntegral);
+    break;
+    case e_neg:
+	b_ret		= MRIScomputeSurfaceIntegral(
+				apmris, ap_vertices, apf_area,
+				f_lessThanZero,
+				f_absCurv,
+				apf_meanIntegral,
+				apf_areaNormalizedIntegral);
+    break;
+  }
+  return b_ret;
+}
+
 void secondOrderParams_print(
   MRIS*   apmris,
   e_secondOrderType aesot,
@@ -613,10 +685,17 @@ void secondOrderParams_print(
   float f_minExplicit  		= 0.;
   int  	vmax   			= -1;
   int  	vmin   			= -1;
-  float	f_SInatural		= 0.0;	int SInaturalVertices	= 0;
-  float f_SIabs			= 0.0; 	int SIabsVertices	= 0;
-  float f_SIpos			= 0.0;	int SIposVertices	= 0;
-  float f_SIneg			= 0.0;  int SInegVertices	= 0;
+
+  // Surface integral variables
+  float	f_SInaturalMean		= 0.0;	int SInaturalVertices	= 0;
+  float f_SIabsMean		= 0.0; 	int SIabsVertices	= 0;
+  float f_SIposMean		= 0.0;	int SIposVertices	= 0;
+  float f_SInegMean		= 0.0;  int SInegVertices	= 0;
+
+  float	f_SInaturalAreaNorm	= 0.0;	float f_SInaturalArea	= 0.0;
+  float f_SIabsAreaNorm		= 0.0; 	float f_SIabsArea	= 0.0;
+  float f_SIposAreaNorm		= 0.0;	float f_SIposArea	= 0.0;
+  float f_SInegAreaNorm		= 0.0;  float f_SInegArea	= 0.0;
 
   sprintf(pch_type, " ");
   if (Gb_zeroVertex)
@@ -713,6 +792,7 @@ void secondOrderParams_print(
   case e_S:
     sprintf(pch_type, "S");
     MRISusePrincipleCurvatureFunction(apmris, f_sharpnessCurvature);
+    MRISminMaxCurvaturesSearch(apmris, &vmin, &vmax, &f_minExplicit, &f_maxExplicit);
     sprintf(pch_out, "\nS");
     f_min = apmris->min_curv;
     f_max = apmris->max_curv;
@@ -720,6 +800,7 @@ void secondOrderParams_print(
   case e_C:
     sprintf(pch_type, "C");
     MRISusePrincipleCurvatureFunction(apmris, f_curvednessCurvature);
+    MRISminMaxCurvaturesSearch(apmris, &vmin, &vmax, &f_minExplicit, &f_maxExplicit);
     sprintf(pch_out, "\nC");
     f_min = apmris->min_curv;
     f_max = apmris->max_curv;
@@ -727,6 +808,7 @@ void secondOrderParams_print(
   case e_BE:
     sprintf(pch_type, "BE");
     MRISusePrincipleCurvatureFunction(apmris, f_bendingEnergyCurvature);
+    MRISminMaxCurvaturesSearch(apmris, &vmin, &vmax, &f_minExplicit, &f_maxExplicit);
     sprintf(pch_out, "\nBE");
     f_min = apmris->min_curv;
     f_max = apmris->max_curv;
@@ -734,6 +816,7 @@ void secondOrderParams_print(
   case e_SI:
     sprintf(pch_type, "SI");
     MRISusePrincipleCurvatureFunction(apmris, f_shapeIndexCurvature);
+    MRISminMaxCurvaturesSearch(apmris, &vmin, &vmax, &f_minExplicit, &f_maxExplicit);
     sprintf(pch_out, "\nSI");
     f_min = apmris->min_curv;
     f_max = apmris->max_curv;
@@ -745,25 +828,24 @@ void secondOrderParams_print(
     break;
   }
 
-  f_SInatural	= MRIScomputeSurfaceIntegral(
-				apmris, &SInaturalVertices,
-				f_allVertices,
-				f_pass);
-  f_SIabs	= MRIScomputeSurfaceIntegral(
-				apmris, &SIabsVertices,
-				f_allVertices,
-				f_absCurv);
-  f_SIpos	= MRIScomputeSurfaceIntegral(
-				apmris, &SIposVertices,
-				f_greaterEqualZero,
-				f_absCurv);
-  f_SIneg	= MRIScomputeSurfaceIntegral(
-				apmris, &SInegVertices,
-				f_lessThanZero,
-				f_absCurv);
+  surfaceIntegrals_compute(apmris, e_natural, 		 	
+				&f_SInaturalMean, 	&SInaturalVertices,
+				&f_SInaturalAreaNorm,	&f_SInaturalArea);
 
-  sprintf(pch_min, "%s min =", pch_type);
-  sprintf(pch_max, "%s max =", pch_type);
+  surfaceIntegrals_compute(apmris, e_rectified, 	 	
+				&f_SIabsMean,		&SIabsVertices,
+				&f_SIabsAreaNorm,	&f_SIabsArea);
+ 
+  surfaceIntegrals_compute(apmris, e_pos, 		 	
+				&f_SIposMean,		&SIposVertices,
+				&f_SIposAreaNorm,	&f_SIposArea);
+  
+  surfaceIntegrals_compute(apmris, e_neg, 		 	
+				&f_SInegMean,		&SInegVertices,
+				&f_SInegAreaNorm,	&f_SInegArea);
+
+  sprintf(pch_min, "%s min:", pch_type);
+  sprintf(pch_max, "%s max:", pch_type);
 
   Gf_mean = MRIScomputeAverageCurvature(apmris, &Gf_sigma);
   sprintf(pch_text, "%s Curvature (using '%s.%s'):",
@@ -772,32 +854,57 @@ void secondOrderParams_print(
   fprintf(stdout, " %10.4f +- %2.4f\n", Gf_mean, Gf_sigma);
   fprintf(stdout, "%10s%-40s", pch_type, " Total number of vertices:");
   fprintf(stdout, "%10.4d\n", apmris->nvertices);
+  fprintf(stdout, "%10s%-40s", pch_type, " Total surface area:");
+  fprintf(stdout, "%10.4f\n", apmris->total_area);
   fprintf(stdout, "%10s%-40s", pch_type, " Average Vertex Area:");
   fprintf(stdout, "%10.4f\n", apmris->avg_vertex_area);
-  fprintf(stdout, "%10s%-40s", pch_type, " Normalized Natural Surface Integral:");
+
+  fprintf(stdout, "%10s%-40s", pch_type, " Mean Natural Surface Integral:");
   fprintf(stdout, "%10.4f across %d (%05.2f%s) vertices\n", 
-			f_SInatural, SInaturalVertices, 
+			f_SInaturalMean, SInaturalVertices, 
 			100 * (float)SInaturalVertices / apmris->nvertices, "%");
-  fprintf(stdout, "%10s%-40s", pch_type, " Normalized Rectified Surface Integral:");
+  fprintf(stdout, "%10s%-40s", pch_type, " Mean Rectified Surface Integral:");
   fprintf(stdout, "%10.4f across %d (%05.2f%s) vertices\n", 
-			f_SIabs, SIabsVertices, 
+			f_SIabsMean, SIabsVertices, 
 			100 * (float)SIabsVertices / apmris->nvertices, "%");
-  fprintf(stdout, "%10s%-40s", pch_type, " Normalized Positive Surface Integral:");
+  fprintf(stdout, "%10s%-40s", pch_type, " Mean Positive Surface Integral:");
   fprintf(stdout, "%10.4f across %d (%05.2f%s) vertices\n", 
-			f_SIpos, SIposVertices, 
+			f_SIposMean, SIposVertices, 
 			100 * (float)SIposVertices / apmris->nvertices, "%");
-  fprintf(stdout, "%10s%-40s", pch_type, " Normalized Negative Surface Integral:");
+  fprintf(stdout, "%10s%-40s", pch_type, " Mean Negative Surface Integral:");
   fprintf(stdout, "%10.4f across %d (%05.2f%s) vertices\n", 
-			f_SIneg, SInegVertices, 
+			f_SInegMean, SInegVertices, 
 			100 * (float)SInegVertices / apmris->nvertices, "%");
+
+  fprintf(stdout, "%10s%-40s", pch_type, " AreaNorm Natural Surface Integral:");
+  fprintf(stdout, "%10.4f across %f (%05.2f%s) mm^2\n", 
+			f_SInaturalAreaNorm, f_SInaturalArea, 
+			100 * f_SInaturalArea / apmris->total_area, "%");
+  fprintf(stdout, "%10s%-40s", pch_type, " AreaNorm Rectified Surface Integral:");
+  fprintf(stdout, "%10.4f across %f (%05.2f%s) mm^2\n", 
+			f_SIabsAreaNorm, f_SIabsArea, 
+			100 * f_SIabsArea / apmris->total_area, "%");
+  fprintf(stdout, "%10s%-40s", pch_type, " AreaNorm Positive Surface Integral:");
+  fprintf(stdout, "%10.4f across %f (%05.2f%s) mm^2\n", 
+			f_SIposAreaNorm, f_SIposArea, 
+			100 * f_SIposArea / apmris->total_area, "%");
+  fprintf(stdout, "%10s%-40s", pch_type, " AreaNorm Negative Surface Integral:");
+  fprintf(stdout, "%10.4f across %f (%05.2f%s) mm^2\n", 
+			f_SInegAreaNorm, f_SInegArea, 
+			100 * f_SInegArea / apmris->total_area, "%");
 
   if (GpFILE_allLog)
     fprintf(GpFILE_allLog, "mean/sigma = %20.4f +- %2.4f\n", Gf_mean, Gf_sigma);
   if (Gb_minMaxShow) {
-    fprintf(stdout,
+    fprintf(stdout, "%10s%-40s", pch_type, " min:");
+    fprintf(stdout, "%10.4f at vertex %-8d\n", f_min, vmin);
+    fprintf(stdout, "%10s%-40s", pch_type, " max:");
+    fprintf(stdout, "%10.4f at vertex %-8d\n", f_max, vmax);
+
+/*    fprintf(stdout,
             "%*s%20.6f\tvertex = %d\n%*s%20.6f\tvertex = %d\n",
             G_leftCols, pch_min, f_min, vmin,
-            G_leftCols, pch_max, f_max, vmax);
+            G_leftCols, pch_max, f_max, vmax);*/
     if (GpFILE_allLog)
       fprintf(GpFILE_allLog, "min = %f\nmax = %f\n",
               f_min, f_max);
@@ -1062,12 +1169,15 @@ MRISusePrincipleCurvatureFunction(
   return(NO_ERROR) ;
 }
 
-double
+short
 MRIScomputeSurfaceIntegral(
 	MRI_SURFACE* 	pmris, 
 	int* 		p_verticesCounted,
+	float*		pf_areaCounted,
 	short		(*fcond)(VERTEX*	pv),
-	float		(*fv)	(VERTEX*	pv)	
+	float		(*fv)	(VERTEX*	pv),
+	float*		pf_meanIntegral,
+	float*		pf_areaNormalizedIntegral	
 ) {
   //
   // DESCRIPTION
@@ -1106,48 +1216,58 @@ MRIScomputeSurfaceIntegral(
 
   VERTEX*	pv ;
   int       	vno ;
-  double    	f_total, f_n ;
-  short		b_canCount	= 1;
-  float		f_ret		= -1.0;
+  double    	f_total, f_n, f_totalArea ;
+  short		b_canCount		= 1;
+  short		b_ret			= 0;
 
   *p_verticesCounted = 0;
-  for (f_n = f_total = 0.0, vno = 0 ; vno < pmris->nvertices ; vno++) {
+  for (f_n = f_total =f_totalArea = 0.0, vno = 0 ; vno < pmris->nvertices ; vno++) {
+    b_canCount = 1;
     pv = &pmris->vertices[vno] ;
     if (pv->ripflag)
       continue ;
  
     if(Gb_lowPassFilter) {
 	if(fabs(pv->curv)<fabs(Gf_lowPassFilter))
-	    b_canCount = 1;
+	    b_canCount &= 1;
 	else
-	    b_canCount = 0;
+	    b_canCount &= 0;
     }
     if(Gb_highPassFilter) {
 	if(fabs(pv->curv)>=fabs(Gf_highPassFilter))
-	    b_canCount = 1;
+	    b_canCount &= 1;
 	else
-	    b_canCount = 0;
+	    b_canCount &= 0;
     }
     if(Gb_lowPassFilterGaussian) {
 	if(fabs(pv->K)<fabs(Gf_lowPassFilterGaussian))
-	    b_canCount = 1;
+	    b_canCount &= 1;
 	else
-	    b_canCount = 0;
+	    b_canCount &= 0;
     }
     if(Gb_highPassFilterGaussian) {
 	if(fabs(pv->K)>=fabs(Gf_highPassFilterGaussian))
-	    b_canCount = 1;
+	    b_canCount &= 1;
 	else
-	    b_canCount = 0;
+	    b_canCount &= 0;
     }
     if(b_canCount && (*fcond)(pv)) {
-        f_total += ((*fv)(pv) * pv->area) ;
-        f_n 	+= 1.0 ;
+        f_total 		+= ((*fv)(pv) * pv->area) ;
+        f_n 			+= 1.0 ;
+	(*pf_areaCounted) 	+= pv->area;
 	(*p_verticesCounted)++;
     }
   }
-  if(f_n > 1) 	f_ret = f_total/f_n;
-  return(f_ret);
+  if(f_n > 1) {
+    *pf_meanIntegral		= f_total / f_n;
+    *pf_areaNormalizedIntegral	= f_total / (*pf_areaCounted);
+    b_ret 			= 1;
+  }
+  if(Gb_postScale){	
+    *pf_meanIntegral 		*= Gf_postScale;
+    *pf_areaNormalizedIntegral	*= Gf_postScale;
+  }
+  return(b_ret);
 }
 
 int
@@ -1566,6 +1686,12 @@ get_option(int argc, char *argv[]) {
     nargs			= 1;
     fprintf(stderr, "Setting rectified high pass filter to %f\n", 
 			Gf_highPassFilter);
+  } else if (!stricmp(option, "-postScale")) {
+    Gb_postScale		= 1;
+    Gf_postScale		= atof(argv[2]);
+    nargs			= 1;
+    fprintf(stderr, "Setting post scale factor to %f\n", 
+			Gf_postScale);
   } else if (!stricmp(option, "-writeCurvatureFiles")) {
     Gb_writeCurvatureFiles	= 1;
     fprintf(stderr, "Toggling save flag on curvature files\n");
@@ -1744,7 +1870,7 @@ outputFiles_open(void) {
   //
 
   if (Gb_output2File) {
-    CE("\n\tFiles processed for this curvature:\n");
+    CO("\n\tFiles processed for this curvature:\n");
     printf("%*s\n", G_leftCols*2, Gpch_log);
     if ((GpFILE_log=fopen(Gpch_log, "a"))==NULL)
       ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for apending.\n",
@@ -2208,7 +2334,7 @@ print_help(void) {
           \n\
           \n");
 
-  CE(pch_synopsis);
+  CO(pch_synopsis);
   exit(1) ;
 }
 
