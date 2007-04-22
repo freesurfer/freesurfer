@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2007/04/22 02:31:52 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/04/22 02:32:53 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -101,7 +101,7 @@ typedef enum _OFSP {
 } e_OFSP;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.27 2007/04/22 02:31:52 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.28 2007/04/22 02:32:53 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -401,7 +401,7 @@ main(int argc, char *argv[]) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.27 2007/04/22 02:31:52 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.28 2007/04/22 02:32:53 rudolph Exp $", "$Name:  $");
 //   ret = longOpts_process(argc, argv);
   if (nargs && argc - nargs == 1)
     exit (0);
