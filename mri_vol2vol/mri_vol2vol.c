@@ -8,9 +8,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/04 14:07:54 $
- *    $Revision: 1.30 $
+ *    $Author: greve $
+ *    $Date: 2007/04/23 18:57:25 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.30 2007/01/04 14:07:54 fischl Exp $
+  $Id: mri_vol2vol.c,v 1.31 2007/04/23 18:57:25 greve Exp $
 
 */
 
@@ -420,7 +420,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.30 2007/01/04 14:07:54 fischl Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.31 2007/04/23 18:57:25 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -478,6 +478,7 @@ TRANSFORM *Rtransform;  //types : M3D, M3Z, LTA, FSLMAT, DAT, OCT(TA), XFM
 GCAM      *gcam;
 char gcamfile[1000];
 MRI_REGION region;
+char *m3zfile = "talairach.m3z";
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -485,12 +486,12 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.30 2007/01/04 14:07:54 fischl Exp $",
+                          "$Id: mri_vol2vol.c,v 1.31 2007/04/23 18:57:25 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.30 2007/01/04 14:07:54 fischl Exp $",
+                                "$Id: mri_vol2vol.c,v 1.31 2007/04/23 18:57:25 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -645,7 +646,8 @@ int main(int argc, char **argv) {
     Rtransform->xform = (void *)TransformRegDat2LTA(template, mov, R);
 
     printf("Reading gcam\n");
-    sprintf(gcamfile,"%s/%s/mri/transforms/talairach.m3z",SUBJECTS_DIR,subject);
+    sprintf(gcamfile,"%s/%s/mri/transforms/%s",
+	    SUBJECTS_DIR,subject,m3zfile);
     gcam = GCAMread(gcamfile);
     if(gcam == NULL) exit(1);
 
@@ -737,6 +739,10 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--morph")) {
       DoMorph = 1;
       fstarg = 1;
+    } else if (istringnmatch(option, "--m3z",0)) {
+      if (nargc < 1) argnerr(option,1);
+      m3zfile = pargv[0];
+      nargsused = 1;
     } else if (istringnmatch(option, "--mov",0)) {
       if (nargc < 1) argnerr(option,1);
       movvolfile = pargv[0];
