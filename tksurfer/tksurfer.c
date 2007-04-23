@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/19 22:53:22 $
- *    $Revision: 1.265 $
+ *    $Date: 2007/04/23 16:59:16 $
+ *    $Revision: 1.266 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -13151,6 +13151,8 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
   // Go through each vertex
   for (n=0;n<mris->nvertices;n++) {
     v = &mris->vertices[n];
+    
+    r_base = g_base = b_base = 0;
 
     if(mrismask){
       if(fabs(MRIgetVoxVal(mrismask,n,0,0,0)) < mrismaskthresh) maskout = 1;
@@ -13191,9 +13193,10 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
         }
       }
 
-      // This gets the RGB of the background only.
-      // The RGB may be overwritten or blended later.
-      // Note: val is ignored.
+      /* This gets the RGB of the background only.  The RGB may be
+	 overwritten or blended later.  Note: val is NOT ignored, so
+	 we need to pass in the current overlay value. */
+      sclv_get_value(v, sclv_current_field, &val);
       get_color_vals(val, val2, mode, &r_base, &g_base, &b_base);
 
       /* save the base color for later comparison, but set our
@@ -13236,11 +13239,11 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
           /* get a color based on the currently selected field
              if it is above fthresh. */
           sclv_get_value(v, sclv_current_field, &val);
-          if ( (val > fthresh || val < -fthresh) & !maskout) {
+          if ( !maskout) {
             /* This will blend the functional color into the
-            input color. rgb are currently the background color*/
+	       input color. rgb are currently the background color*/
             sclv_apply_color_for_value(val, sclv_overlay_alpha,&r, &g, &b);
-          }
+	  }
         }
       }
 
@@ -14497,7 +14500,7 @@ draw_colscalebar(void) {
 	      /* Figure out a good label position based. Here,
 		 strlen(label)*3.1 + strlen(label)*colscalebar_font_size*0.6 is
 		 a good rough estimate as to the width of the string. */
-	      glColor3f (1.0, 0.0, 1.0);
+	      glColor3f (1.0, 1.0, 1.0);
 	      if (colscalebarvertflag)
 		{
 		  glRasterPos3i (v[0] - (((float)strlen(label)*3.1) + 
@@ -19200,7 +19203,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.265 2007/04/19 22:53:22 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.266 2007/04/23 16:59:16 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24002,6 +24005,9 @@ int sclv_apply_color_for_value (float f, float opacity,
   float br, bg, bb;
   float tmpoffset, f2, fr, fg, fb;
   // extern double fcurv; // sets curv thresh
+
+  /* Adjust by foffset. */
+  f -= foffset;
 
   r = g = b = 0.0f ;
   if (invphaseflag)           f = -f;
