@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/04/20 20:43:48 $
- *    $Revision: 1.530 $
+ *    $Author: nicks $
+ *    $Date: 2007/04/23 02:23:31 $
+ *    $Revision: 1.531 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -609,7 +609,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.530 2007/04/20 20:43:48 greve Exp $");
+  return("$Id: mrisurf.c,v 1.531 2007/04/23 02:23:31 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -35645,8 +35645,7 @@ static void generateOrdering(DP *dp,SEGMENTATION *segmentation, int i)
     for (n=0; n < nseg;n++)
     {
       r=nint(randomNumber(0.0, (double)nseg-1)) ;
-      //rd=(float)rand();
-      //k=(int)(rd/(float)RAND_MAX*(float)(nedges-1.));
+
       val=seg_order[n];
       seg_order[n]=seg_order[r];
       seg_order[r]=val;
@@ -38607,8 +38606,7 @@ mrisDefectPatchFitness(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri,
         for (i=0; i < dp->nedges ; i++)
         {
           p=nint(randomNumber(0.0, (double)dp->nedges-1)) ;
-          //rd=(float)rand();
-          //k=(int)(rd/(float)RAND_MAX*(float)(nedges-1.));
+
           tp=dp->ordering[i];
           dp->ordering[i]=dp->ordering[p];
           dp->ordering[p]=tp;
@@ -47862,9 +47860,6 @@ mrisTessellateDefect
       {
         k=nint(randomNumber(0.0, (double)nedges-1)) ;
 
-        rd=(float)rand();
-        k=(int)(rd/(float)RAND_MAX*(float)(nedges-1.));
-
         tmp=ordering[j];
         ordering[j]=ordering[k];
         ordering[k]=tmp;
@@ -49830,7 +49825,7 @@ mrisComputeRandomRetessellation
 {
   DEFECT_VERTEX_STATE *dvs ;
   DEFECT_PATCH        dp;
-  int niters,m,rd, tmp,best_i, i,j, k,noverlap ;
+  int niters,m, tmp,best_i, i,j, k,noverlap ;
   int *overlap ,ngenerations,nbests,last_euthanasia;
   int nremovedvertices,nfinalvertices;
   double              fitness, best_fitness;
@@ -50026,9 +50021,6 @@ mrisComputeRandomRetessellation
         for (j=0; j< nedges;j++)
         {
           k=nint(randomNumber(0.0, (double)nedges-1)) ;
-
-          rd=(float)rand();
-          k=(int)(rd/(float)RAND_MAX*(float)(nedges-1.));
 
           tmp=dp.ordering[j];
           dp.ordering[j]=dp.ordering[k];
