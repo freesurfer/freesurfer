@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: postelni $
- *    $Date: 2007/04/23 19:19:52 $
- *    $Revision: 1.139 $
+ *    $Date: 2007/04/23 21:40:06 $
+ *    $Revision: 1.140 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,6 +68,7 @@ int main(int argc, char *argv[]) {
   float invert_val;
   int in_info_flag, out_info_flag;
   int template_info_flag;
+  int voxel_size_flag;
   int nochange_flag ;
   int conform_flag;
   int conform_min;  // conform to the smallest dimension
@@ -87,6 +88,7 @@ int main(int argc, char *argv[]) {
   int crop_center[3], sizes_good_flag, crop_size[3] ;
   float in_i_directions[3], in_j_directions[3], in_k_directions[3];
   float out_i_directions[3], out_j_directions[3], out_k_directions[3];
+  float voxel_size[3];
   int in_i_direction_flag, in_j_direction_flag, in_k_direction_flag;
   int out_i_direction_flag, out_j_direction_flag, out_k_direction_flag;
   int  in_orientation_flag = FALSE;
@@ -172,7 +174,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.139 2007/04/23 19:19:52 postelni Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.140 2007/04/23 21:40:06 postelni Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -224,6 +226,7 @@ int main(int argc, char *argv[]) {
   invert_val = -1.0;
   in_info_flag = FALSE;
   out_info_flag = FALSE;
+  voxel_size_flag = FALSE;
   conform_flag = FALSE; // TRUE;
   nochange_flag = FALSE ;
   parse_only_flag = FALSE;
@@ -272,7 +275,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.139 2007/04/23 19:19:52 postelni Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.140 2007/04/23 21:40:06 postelni Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -654,6 +657,11 @@ int main(int argc, char *argv[]) {
             strcmp(argv[i], "--out_k_count") == 0) {
       get_ints(argc, argv, &i, &out_n_k, 1);
       out_n_k_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-vs") == 0 ||
+	    strcmp(argv[i], "-voxsize") == 0 ) {
+      get_floats(argc, argv, &i, voxel_size, 3);
+      voxel_size_flag = TRUE;
     }
     else if(strcmp(argv[i], "-ini") == 0 ||
             strcmp(argv[i], "-iic") == 0 ||
@@ -1237,7 +1245,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.139 2007/04/23 19:19:52 postelni Exp $\n");
+  printf("$Id: mri_convert.c,v 1.140 2007/04/23 21:40:06 postelni Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1841,6 +1849,29 @@ int main(int argc, char *argv[]) {
       template->z_a =  1.0;
       template->z_s =  0.0;
     }
+    else if ( voxel_size_flag ) {
+      template = MRIallocHeader(mri->width,
+				mri->height,
+				mri->depth,
+				mri->type );
+      MRIcopyHeader( mri, template );
+
+      template->width   = (int) ceil( mri->xsize * mri->width / voxel_size[0] );
+      template->height  = (int) ceil( mri->ysize * mri->height / voxel_size[1] );
+      template->depth   = (int) ceil( mri->zsize * mri->depth / voxel_size[2] );
+
+      template->xsize = voxel_size[0];
+      template->ysize = voxel_size[1];
+      template->zsize = voxel_size[2];
+
+      template->xstart = - template->width / 2;
+      template->xend   = template->width / 2;
+      template->ystart = - template->height / 2;
+      template->yend   = template->height / 2;
+      template->zstart = - template->depth / 2;
+      template->zend   = template->depth / 2;
+
+    }
   }
 
   /* ----- apply command-line parameters ----- */
@@ -2274,6 +2305,7 @@ void usage(FILE *stream) {
   fprintf(stream, "  -oni, -oic, --out_i_count <count>\n");
   fprintf(stream, "  -onj, -ojc, --out_j_count <count>\n");
   fprintf(stream, "  -onk, -okc, --out_k_count <count>\n");
+  fprintf(stream, "  -vs, --voxsize <size_x> <size_y> <size_z> : specify the size (mm) - useful for upsampling or downsampling\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -ois, --out_i_size <size>\n");
   fprintf(stream, "  -ojs, --out_j_size <size>\n");
