@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/20 19:57:05 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/04/23 18:58:06 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: dsjen $
-// Revision Date  : $Date: 2007/04/20 19:57:05 $
-// Revision       : $Revision: 1.5 $
+// Revision Date  : $Date: 2007/04/23 18:58:06 $
+// Revision       : $Revision: 1.6 $
 
 // include guard
 #ifndef fastmarching_h
@@ -200,20 +200,27 @@ public:
 
   void Run(float _limit)
   {
+    // I used google translate to translate the French...
+    
     // On memorise l'etendue du fast marching
+    // One stores the extent of the fast marching
     limit = _limit;
 
     // Tant qu'il y a des points trial
+    // As long as there are points trial
     while (!trial_heap.empty())
     {
 
       // On enleve de la pile le point trial de valeur la plus faible
+      // One removes pile the weakest point trial of the value 
       stCoord pt = trial_heap.top();
 
       // Si on a atteint la limite
+      // If the limit were reached
       if (sign*MRIFvox(mri,pt.x,pt.y,pt.z) >= sign*limit)
       {
         // On vide la pile et on marque tous ses points comme far
+        // One empties the pile and one marks all his points like far
         while (!trial_heap.empty())
         {
           pt = trial_heap.top();
@@ -224,11 +231,13 @@ public:
         return;
       }
       // On enleve le point de la pile et on l'ajoute a la liste des points alive
+      // One removes the point of the pile and one adds it to the alive list of the points
       trial_heap.pop();
       MRIvox(status,pt.x,pt.y,pt.z) = eAlive;
       alive_list.push_back(pt);
 
       // On determine les voisins du point et on les met a jour
+      // Given the neighbors of the point and one they are updated
       const int x = pt.x;
       const int y = pt.y;
       const int z = pt.z;
@@ -267,11 +276,13 @@ private:
   {
 
     // On prend le minimum de chaque paire de voisins
+    // One takes the minimum of each pair of neighbors
     float A = (x==0) ? sign*_GetValue(x+1,y,z) : (x==width-1) ? sign*_GetValue(x-1,y,z) : MIN( sign*_GetValue(x+1,y,z), sign*_GetValue(x-1,y,z) );
     float B = (y==0) ? sign*_GetValue(x,y+1,z) : (y==height-1) ? sign*_GetValue(x,y-1,z) : MIN( sign*_GetValue(x,y+1,z), sign*_GetValue(x,y-1,z) );
     float C = (z==0) ? sign*_GetValue(x,y,z+1) : (z==depth-1) ? sign*_GetValue(x,y,z-1) : MIN( sign*_GetValue(x,y,z+1), sign*_GetValue(x,y,z-1) );
 
     // On reordonne les valeurs pour avoir C>=B>=A
+    // One reorders the values to have C>=B>=A
     if (A>B)
     {
       const float tmp = A;
