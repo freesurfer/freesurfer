@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/05 19:17:43 $
- *    $Revision: 1.59 $
+ *    $Date: 2007/04/23 02:29:53 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -92,6 +92,7 @@ setRandomSeed(long seed)
 
   // also seed the 'standard' random number generators: rand() and random()
   srand(seed);
+  srand48(seed);
   srandom(seed);
 
   // seed vnl_random thingy
