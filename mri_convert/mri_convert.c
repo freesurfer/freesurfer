@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/15 22:34:24 $
- *    $Revision: 1.138 $
+ *    $Author: postelni $
+ *    $Date: 2007/04/23 19:19:52 $
+ *    $Revision: 1.139 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.138 2007/03/15 22:34:24 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.139 2007/04/23 19:19:52 postelni Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -272,7 +272,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.138 2007/03/15 22:34:24 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.139 2007/04/23 19:19:52 postelni Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1237,7 +1237,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.138 2007/03/15 22:34:24 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.139 2007/04/23 19:19:52 postelni Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1695,7 +1695,7 @@ int main(int argc, char *argv[]) {
         MRIcopyHeader(tmp, mri_transformed);
         MRIfree(&tmp);
         tmp = 0;
-        mri_transformed =  LTAtransform(mri, mri_transformed, lta_transform);
+        mri_transformed =  LTAtransformInterp(mri, mri_transformed, lta_transform, resample_type_val);
       } else {
         printf("Applying LTAtransformInterp (resample_type %d)\n",
                resample_type_val);
