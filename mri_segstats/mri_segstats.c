@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/16 23:26:08 $
- *    $Revision: 1.31 $
+ *    $Date: 2007/04/23 06:49:22 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.31 2007/04/16 23:26:08 greve Exp $";
+"$Id: mri_segstats.c,v 1.32 2007/04/23 06:49:22 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -151,6 +151,7 @@ char *masksign=NULL;
 int   nmaskhits;
 int   nbrainsegvoxels = 0;
 double brainsegvolume = 0;
+double brainsegvolume2 = 0;
 int   nbrainmaskvoxels = 0;
 double brainmaskvolume = 0;
 int   BrainVolFromSeg = 0;
@@ -169,7 +170,7 @@ char *annot   = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
-  int nargs, n, n0, skip, nhits, f, nsegidrep, ind, nthsegid;
+  int nargs, n, n0, skip, nhits, f, nsegidrep, id, ind, nthsegid;
   int c,r,s,err;
   float voxelvolume,vol;
   float min, max, range, mean, std;
@@ -635,6 +636,16 @@ int main(int argc, char **argv) {
   }
   printf("Reporting on %3d segmentations\n",nsegid);
 
+  if(BrainVolFromSeg) {
+    brainsegvolume2 = 0.0;
+    for(n=0; n < nsegid; n++) {
+      id = StatSumTable[n].id;
+      if(!IS_BRAIN(id)) continue ;
+      if(IS_CSF(id) || IS_CSF_CLASS(id)) continue;
+      brainsegvolume2 += StatSumTable[n].vol;
+    }
+  }
+
   /* Dump the table to the screen */
   if (debug) {
     for (n=0; n < nsegid; n++) {
@@ -680,6 +691,9 @@ int main(int argc, char **argv) {
               "Brain Mask Volume, %f, mm^3\n",brainmaskvolume);
     }
     if (BrainVolFromSeg) {
+      fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, "
+              "Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
+              brainsegvolume2);
       fprintf(fp,"# Measure BrainSeg, BrainSegNVox, "
               "Number of Brain Segmentation Voxels, %7d, unitless\n",
               nbrainsegvoxels);
@@ -1322,14 +1336,18 @@ static void print_help(void) {
       "MEASURES OF BRAIN VOLUME\n"
       "\n"
       "There will be three measures of brain volume in the output summary file:\n"
-      "  (1) BrainMask - total volume of non-zero voxels in brainmask.mgz. This will\n"
+      "  (1) BrainSegNotVent - sum of the volume of the structures identified in \n"
+      "      the aseg.mgz volume this will include cerebellum but not ventricles,\n"
+      "      CSF and dura. Includes partial volume compensation with --pv.\n"
+      "      This is probably the number you want to report.\n"
+      "  (2) BrainMask - total volume of non-zero voxels in brainmask.mgz. This will\n"
       "      include cerebellum, ventricles, and possibly dura. This is probably not\n"
-      "      what you want to quote.\n"
-      "  (2) BrainSeg - sum of the volume of the structures identified in the aseg.mgz\n"
+      "      what you want to report.\n"
+      "  (3) BrainSeg - sum of the volume of the structures identified in the aseg.mgz\n"
       "      volume. This will  include cerebellum and ventricles but should exclude\n"
-      "      ventricles. This does not include partial volume compensation, so \n"
+      "      dura. This does not include partial volume compensation, so \n"
       "      this number might be different than the sum of the segmentation volumes.\n"
-      "  (3) IntraCranialVol (ICV) - estimate of the intracranial volume based on the\n"
+      "  (4) IntraCranialVol (ICV) - estimate of the intracranial volume based on the\n"
       "      talairach transform. See surfer.nmr.mgh.harvard.edu/fswiki/eTIV for more\n"
       "      details. This is the same measure as Estimated Total Intracranial Volume\n"
       "      (eTIV).\n"
