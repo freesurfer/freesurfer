@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/19 20:19:37 $
- *    $Revision: 1.379 $
+ *    $Date: 2007/04/23 15:26:41 $
+ *    $Revision: 1.380 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.379 $";
+char *MRI_C_VERSION = "$Revision: 1.380 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -6547,8 +6547,11 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
       "MRItoImageView(%d, %d): unsupported view/slice direction %d",
       slice, view, src_slice_direction)) ;
   }
-  if (slice < 0 || slice >= d)
+  if (slice < 0)
+    slice = nint(6.0*d/10.0) ;
+  else if (slice >= d)
     ErrorReturn(NULL, (ERROR_BADPARM, "MRItoImageView: bad slice %d\n",slice));
+    
 
 #if 0
   format = (mri->type == MRI_UCHAR) ? PFBYTE :

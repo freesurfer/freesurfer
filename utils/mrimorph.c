@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:35 $
- *    $Revision: 1.66 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/23 15:26:41 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,9 +38,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 01:49:35 $
-// Revision       : $Revision: 1.66 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2007/04/23 15:26:41 $
+// Revision       : $Revision: 1.67 $
 */
 
 /*-----------------------------------------------------
@@ -4643,22 +4643,22 @@ MRIwriteImageViews(MRI *mri, char *base_name, int target_size)
   }
 
   if (Gdiag & DIAG_SHOW)
-    fprintf(stdout, "writing image views to ???_%s.rgb...\n", base_name) ;
-  if (Gsz >= 0 && Gsz < mri->depth)
+    fprintf(stdout, "writing image views to ???_%s.tif...\n", base_name) ;
+  if (z >= 0)
     mriWriteImageView(mri, base_name, target_size, MRI_CORONAL, z) ;
-  else if (Gvz >= 0 && Gvz < mri->depth)
+  else if (Gvz >= 0)
     mriWriteImageView(mri, base_name, target_size, MRI_CORONAL, Gvz) ;
   else
     mriWriteImageView(mri, base_name, target_size, MRI_CORONAL, -1) ;
 
-  if (Gsx >= 0 && Gsx < mri->width)
+  if (x >= 0)
     mriWriteImageView(mri, base_name, target_size, MRI_SAGITTAL, x) ;
-  else if (Gvx >= 0 && Gvx < mri->width)
+  else if (Gvx >= 0)
     mriWriteImageView(mri, base_name, target_size, MRI_SAGITTAL, Gvx) ;
   else
     mriWriteImageView(mri, base_name, target_size, MRI_SAGITTAL, -1) ;
 
-  if (Gsy >= 0 && Gsy < mri->height)
+  if (y >= 0)
     mriWriteImageView(mri, base_name, target_size, MRI_HORIZONTAL, y) ;
   else if (Gvy >= 0 && Gvy < mri->height)
     mriWriteImageView(mri, base_name, target_size, MRI_HORIZONTAL, Gvy) ;
@@ -4681,7 +4681,7 @@ mriWriteImageView(MRI *mri, char *base_name, int target_size, int view,
   char  fname[STRLEN], *prefix ;
   IMAGE *I ;
   float scale ;
-  int   slice_direction ;
+  //  int   slice_direction ;
 
   switch (view)
   {
@@ -4697,6 +4697,7 @@ mriWriteImageView(MRI *mri, char *base_name, int target_size, int view,
     break ;
   }
 
+#if 0
   if (slice < 0)    /* pick middle slice */
   {
     slice_direction = getSliceDirection(mri);
@@ -4734,6 +4735,7 @@ mriWriteImageView(MRI *mri, char *base_name, int target_size, int view,
       }
     }
   }
+#endif
   I = MRItoImageView(mri, NULL, slice, view, 0) ;
   if (!I)
     ErrorReturn(Gerror, (Gerror, "MRItoImageView failed")) ;
@@ -4747,7 +4749,7 @@ mriWriteImageView(MRI *mri, char *base_name, int target_size, int view,
     ImageFree(&I) ;
     I = Itmp ;
   }
-  sprintf(fname, "%s_%s.rgb", prefix, base_name) ;
+  sprintf(fname, "%s_%s.tif", prefix, base_name) ;
   ImageWrite(I, fname) ;
   ImageFree(&I) ;
   return(NO_ERROR) ;
@@ -8944,7 +8946,11 @@ static int ComputeStepTransform(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, fl
 #ifdef NPARMS
 #undef NPARMS
 #endif
+#if 1
 #define NPARMS 13 // remove offset at 14
+#else
+#define NPARMS 14 // scale is 13 and offset is 14
+#endif
   float Mvec[NPARMS];
 
   //  float  evalues[4] ;
@@ -9034,6 +9040,9 @@ static int ComputeStepTransform(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, fl
     Mvec[8] = 1.0;
     Mvec[12] = 1.0;
 
+    Mvec[0] = 1.0; Mvec[4] = 1.0; Mvec[8] = 1.0; Mvec[12] = 1.0; 
+    if (NPARMS == 14)
+      Mvec[13] = 0.0 ; // offset
   }
   else
   {
