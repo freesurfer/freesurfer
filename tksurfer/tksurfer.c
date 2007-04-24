@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/23 16:59:16 $
- *    $Revision: 1.266 $
+ *    $Date: 2007/04/24 22:18:51 $
+ *    $Revision: 1.267 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -12475,7 +12475,10 @@ compute_curvature(void) {
   float x,y,z,dx,dy,dz,r;
   VERTEX *v;
   int k,m;
+  float min_curv, max_curv;
 
+  min_curv = 99999;
+  max_curv = -99999;
   for (k=0;k<mris->nvertices;k++) {
     v = &mris->vertices[k];
     x = v->x;
@@ -12490,10 +12493,24 @@ compute_curvature(void) {
       if (r>0)
         v->curv += (dx*v->nx+dy*v->ny+dz*v->nz)/r;
     }
+
+    if (v->curv < min_curv) min_curv = v->curv;
+    if (v->curv > max_curv) max_curv = v->curv;
   }
 
   /* begin rkt */
+
+  /* save the curv min and max. */
+  mris->min_curv = cmin = min_curv;
+  mris->max_curv = cmax = max_curv;
+  
+  curvloaded = TRUE;
   enable_menu_set (MENUSET_CURVATURE_LOADED, 1);
+  send_tcl_command ("ShowLabel kLabel_Curvature 1");
+
+  /* turn on the curvflag */
+  curvflag = 1;
+
   /* end rkt */
 }
 
@@ -19203,7 +19220,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.266 2007/04/23 16:59:16 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.267 2007/04/24 22:18:51 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
