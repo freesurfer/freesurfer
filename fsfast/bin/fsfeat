@@ -14,8 +14,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/04/19 04:41:21 $
-#    $Revision: 1.7 $
+#    $Date: 2007/04/24 21:38:31 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -31,7 +31,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat,v 1.7 2007/04/19 04:41:21 greve Exp $';
+set VERSION = '$Id: fsfeat,v 1.8 2007/04/24 21:38:31 greve Exp $';
 set inputargs = ($argv);
 
 set fsf     = ();
@@ -142,6 +142,14 @@ if(! -e $outdirpath/example_func.$outext) then
   echo "ERROR: feat failed"
   exit 1;
 endif
+
+# Compute the mean image (after intensity scaling)
+set cmd = (avwmaths $outdirpath/filtered_func_data \
+  -Tmean $outdirpath/mean_func)
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
 
 # Compute sigs from zstats
 set statsdir = $outdirpath/stats
