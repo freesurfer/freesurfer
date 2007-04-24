@@ -5,11 +5,11 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Florent Segonne  
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/23 18:58:06 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/04/24 16:34:06 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,18 +24,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// fastmarching.h
-//
-// original: written by Florent Segonne (Feb, 2005)
-//
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: dsjen $
-// Revision Date  : $Date: 2007/04/23 18:58:06 $
-// Revision       : $Revision: 1.6 $
 
 // include guard
 #ifndef fastmarching_h
@@ -109,15 +97,22 @@ class HeapCompare : std::binary_function<stCoord, stCoord, bool>
   public:
     HeapCompare(MRI *_mri) : mri(_mri)
     {}
+    
     bool operator() (const stCoord &a, const stCoord &b) const
     {
       return (sign * MRIFvox(mri,a.x,a.y,a.z) > sign * MRIFvox(mri,b.x,b.y,b.z));
     }
+    
   };
+
   typedef std::priority_queue<stCoord,std::vector<stCoord>,HeapCompare> CoordHeap;
+
 protected:
+
   //members
+
 public:
+
   MRI *mri;
   CoordHeap trial_heap;
   CoordList alive_list;
@@ -128,12 +123,12 @@ public:
 public:
 
   //constructor, destructor
-  FastMarching(MRI *_mri): mri(_mri),trial_heap(HeapCompare(mri))
+  FastMarching(MRI *_mri): mri(_mri), trial_heap( HeapCompare( mri ) )
   {
-    status=MRIalloc(mri->width,mri->height,mri->depth,MRI_UCHAR);
-    width=mri->width;
-    height=mri->height;
-    depth=mri->depth;
+    status = MRIalloc( mri->width, mri->height, mri->depth, MRI_UCHAR );
+    width = mri->width;
+    height = mri->height;
+    depth = mri->depth;
     Init();
   }
 
@@ -173,6 +168,10 @@ public:
       trial_heap.push(stCoord(x,y,z));
     }
   }
+  
+  /**
+   * If the status of the point is eFar, then add it to the alive list
+   */
   void AddAlivePoint(const int x, const int y, const int z)
   {
     if ( MRIvox(status,x,y,z) == eFar)
@@ -181,20 +180,35 @@ public:
       alive_list.push_back(stCoord(x,y,z));
     }
   }
+  
   void InitTrialFromAlive()
   {
 
-    for (const_CoordListIterator i=begin();i!=end();i++)
+    for (const_CoordListIterator i=begin(); i!=end(); i++)
     {
+      
       const int x = i->x;
       const int y = i->y;
       const int z = i->z;
-      if (x>0) AddTrialPoint(x-1,y,z);
-      if (x<width-1) AddTrialPoint(x+1,y,z);
-      if (y>0) AddTrialPoint(x,y-1,z);
-      if (y<height-1) AddTrialPoint(x,y+1,z);
-      if (z>0) AddTrialPoint(x,y,z-1);
-      if (z<depth-1) AddTrialPoint(x,y,z+1);
+
+      if (x > 0) 
+        AddTrialPoint(x-1,y,z);
+
+      if (x<width-1) 
+        AddTrialPoint(x+1,y,z);
+
+      if (y>0) 
+        AddTrialPoint(x,y-1,z);
+
+      if (y<height-1) 
+        AddTrialPoint(x,y+1,z);
+
+      if (z>0) 
+        AddTrialPoint(x,y,z-1);
+
+      if (z<depth-1) 
+        AddTrialPoint(x,y,z+1);
+
     }
   }
 
@@ -210,7 +224,6 @@ public:
     // As long as there are points trial
     while (!trial_heap.empty())
     {
-
       // On enleve de la pile le point trial de valeur la plus faible
       // One removes pile the weakest point trial of the value 
       stCoord pt = trial_heap.top();
@@ -331,66 +344,95 @@ private:
   }
 
 public:
+
   void InitFromMRI( MRI *_mri, const int label)
   {
     
     // sign is the template parameter (+/-1)
     if ( sign > 0 )
     {
-      // this is a macro that goes through all elements of _mri
+      // this is a macro that goes through all elements of _mri.  All pixels 
+      // indices in _mri that aren't equal to label will be set the limit
       mapMRI_XYZ(_mri,x,y,z)
       {
         const int val = MRIvox( _mri, x, y, z);
+        
+        // if the pixel value isn't the label, then set mri to be at the limit
         if( val != label )
         {
           // mri was in the constructor
           MRIFvox(mri,x,y,z) = limit;
-          continue;
+        } else {
+          MRIvox( status, x, y, z ) = eForbidden;
         }
-        MRIvox( status, x, y, z ) = eForbidden;
       }
     }
     else
     {
+      // all pixels in mri that correspond to label _mri will be set to the
+      // limit
       mapMRI_XYZ(_mri,x,y,z)
       {
-        int val=MRIvox(_mri,x,y,z);
+        const int val=MRIvox(_mri,x,y,z);
         if (val==label)
         {
           MRIFvox(mri,x,y,z)=limit;
-          continue;
+        } else {
+          MRIvox(status,x,y,z)=eForbidden;
         }
-        MRIvox(status,x,y,z)=eForbidden;
       }
     }
-
+    
     mapMRI_XYZ(_mri,x,y,z)
     {
-      int val1=MRIvox(_mri,x,y,z),val2;
-      int px,py,pz;
-      px = (x < width-1) ? x+1:x;
-      py = (y < height-1) ? y+1:y;
-      pz = (z < depth-1) ? z+1:z;
+
+      // these are indices and will be either equal to the corresponding
+      // index or the index + 1 dependong on if we've iterated beyond the
+      // dimensions of our image
+      const int px = (x < width-1) ? x+1:x;
+      const int py = (y < height-1) ? y+1:y;
+      const int pz = (z < depth-1) ? z+1:z;
+      
+      // get the values of the volume that has the label
+      //const int val1 = MRIvox( _mri, x, y, z );
+      // TODO: what if it's not a float label?  I think we need to check...
+      const int val1 = static_cast< int >( MRIFvox( _mri, x, y, z ) );
+
+      // this was the old way of getting the label.  It wasn't returning the
+      // right results, so I changed it to the current
+      // int val2 = MRIvox( _mri, px, y, z );
+      int val2 = static_cast< int >( MRIFvox( _mri, px, y, z ) );
+
       bool add = false;
-      val2=MRIvox(_mri,px,y,z);
-      if (val1!=val2 && (val1==label || val2==label))
+
+      // if the values aren't equal and one of them is the label, then
+      // run _AddAlivePoint
+
+      if (val1 != val2 && ( val1 == label || val2 == label ) )
       {
         add = true;
-        _AddAlivePoint(px,y,z);
+        _AddAlivePoint( px, y, z );
       }
-      val2=MRIvox(_mri,x,py,z);
-      if (val1!=val2 && (val1==label || val2==label))
+
+      val2 = static_cast< int >( MRIFvox( _mri, x, py, z ) );
+
+      if ( val1!=val2 && (val1==label || val2==label))
       {
         add = true;
         _AddAlivePoint(x,py,z);
       }
-      val2=MRIvox(_mri,x,y,pz);
-      if (val1!=val2 && (val1==label || val2==label))
+
+      val2 = static_cast< int >( MRIFvox( _mri, x, y, pz ) );
+
+      if ( val1 != val2 && ( val1 == label || val2 == label ) )
       {
         add = true;
         _AddAlivePoint(x,y,pz);
       }
-      if (add) _AddAlivePoint(x,y,z);
+
+      if ( add )
+        _AddAlivePoint(x,y,z);
+        
     }
 
     InitTrialFromAlive();
@@ -472,12 +514,19 @@ public:
 
   }
 
+  /**
+   * If the state is not eForbidden, add it to the heap.
+   */
   void _AddAlivePoint(int x, int y, int z)
   {
+
     const eState st = (eState)MRIvox(status,x,y,z);
-    if (st==eForbidden) return;
-    MRIFvox(mri,x,y,z)=sign*0.5;
-    AddAlivePoint(x,y,z);
+
+    if (st != eForbidden) {
+      MRIFvox(mri,x,y,z) = sign * 0.5;
+      AddAlivePoint(x,y,z);
+    }
+    
   }
 
 };
