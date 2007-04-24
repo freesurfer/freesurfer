@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.2 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/24 15:51:25 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,6 +68,7 @@ int main(int argc, char *argv[]) {
   fprintf(stderr,"label=%d distance=%f mode=%d\n",label,max_distance,mode);
 
   mri_distance=MRIalloc(mri->width,mri->height,mri->depth,MRI_FLOAT);
+  MRIcopyHeader(mri, mri_distance) ;
 
   mri_distance=MRIextractDistanceMap(mri,mri_distance,label, max_distance, mode);
 
