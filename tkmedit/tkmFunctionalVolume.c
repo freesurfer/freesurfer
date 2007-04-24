@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/24 05:09:24 $
- *    $Revision: 1.55 $
+ *    $Date: 2007/04/24 06:44:01 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -2704,6 +2704,43 @@ cleanup:
   return eResult;
 }
 
+// DNG's attempt to circumvent the normal tkmedit plotter
+// Plan:
+//   1. Create a PlotInfo struct and reader 
+//   2. Add plot info file/struct to tkmFunctionalVolumeRef struct
+//   3. Hijack FunD_FindAndParseStemHeader_() in utils/mriFunctionalDataAccess.c
+//   4. Hijack FunV_DrawGraph
+FunV_tErr DNGFunV_DrawGraph(tkmFunctionalVolumeRef this ) ;
+FunV_tErr DNGFunV_DrawGraph(tkmFunctionalVolumeRef this ) 
+{
+  static float afValues[1000];
+  int n = 0, m = 0;
+  xVoxelRef pVoxel  = NULL;
+  FunV_tErr eResult = FunV_tErr_NoError;
+
+  /* if graph window isn't open, bail */
+  if( !(this->mbGraphInited) ) {
+    eResult = FunV_tErr_GraphWindowNotInited;
+    return(eResult);
+  }
+
+  xList_GetNextItemFromPosition( this->mpSelectedVoxels, (void**)&pVoxel );
+  printf("%f %f %f\n",pVoxel->mfX,pVoxel->mfY,pVoxel->mfZ);
+
+  /* send the command for starting to draw the graph */
+  FunV_SendTclCommand_( this, FunV_tTclCommand_TC_BeginDrawingGraph, "" );
+
+  for(n=0; n < 4; n++){
+    for(m=0; m < 10+n; m++) afValues[m] = drand48() + 2*n;
+    FunV_SendGraphData_( this, n, 10+n, afValues );
+  }
+
+  /* finish drawing */
+  FunV_SendTclCommand_( this, FunV_tTclCommand_TC_EndDrawingGraph, "" );
+
+  return(0);
+}
+
 FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
 
   FunV_tErr             eResult         = FunV_tErr_NoError;
@@ -2720,8 +2757,7 @@ FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
 
   /* verify us */
   eResult = FunV_Verify( this );
-  if ( FunV_tErr_NoError != eResult )
-    goto error;
+  if ( FunV_tErr_NoError != eResult )  goto error;
 
   /* if graph window isn't open, bail */
   if ( !(this->mbGraphInited) ) {
