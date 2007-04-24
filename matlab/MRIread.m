@@ -17,6 +17,18 @@ function mri = MRIread(fstring,headeronly)
 % 1-based indices. The volume is rows, cols, slices frames,
 % but the vox2ras expects col, row, slice.
 %
+% !!!! If you intend to use indices obtained from Matlab in FreeSurfer programs
+%
+% bear in mind that mri.vox(j+1, i+1, k+1) = mri(i,j,k)
+%
+% where mri(i,j,k) refers to indices as they are seen in scuba, tkmedit 
+% or used in binaries such as mri_convert
+%
+% This happens because matlab uses row major (ie, the "fasted" dim
+% goes from one row to the next), whereas C uses col major. 
+% So if you simply load in a matrix and view it with imagesc, 
+% it will appear to be transposed.
+%
 % If headeronly=1, then the pixel data are not read in.
 %
 % If the input is a bhdr, then mri.srcbext is set to either bshort
@@ -34,9 +46,9 @@ function mri = MRIread(fstring,headeronly)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:09 $
-%    $Revision: 1.16 $
+%    $Author: postelni $
+%    $Date: 2007/04/24 20:50:45 $
+%    $Revision: 1.17 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
