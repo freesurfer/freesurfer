@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/04 21:55:23 $
- *    $Revision: 1.54 $
+ *    $Author: greve $
+ *    $Date: 2007/04/24 05:09:24 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -2784,6 +2784,10 @@ FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
     }
 
     /* send the values to the graph */
+    /* This is what actually does the plotting (dng), eg, the values
+       can be changed with:
+       for(nth = 0; nth < nNumTimePoints; nth++) afValues[nth] = nth;
+    */
     FunV_SendGraphData_( this, nCondition, nNumTimePoints, afValues );
 
     /* if there is error data present.. */
