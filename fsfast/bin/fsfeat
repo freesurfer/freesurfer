@@ -5,17 +5,15 @@
 
 # Things to do:
 #   2. init mtxs
-#   3. sigs, contrast names
 #   5. compare TR
-# mkfsldesign-sess
-# fsfeat-sess
+
 
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/04/24 21:38:31 $
-#    $Revision: 1.8 $
+#    $Date: 2007/04/24 21:45:47 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -31,7 +29,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat,v 1.8 2007/04/24 21:38:31 greve Exp $';
+set VERSION = '$Id: fsfeat,v 1.9 2007/04/24 21:45:47 greve Exp $';
 set inputargs = ($argv);
 
 set fsf     = ();
@@ -39,6 +37,8 @@ set invol   = ();
 set schdir  = ();
 set outdir  = ();
 set subject = ();
+set keep_residuals = 0;
+
 set PrintHelp = 0;
 
 #### If no arguments, print usage and exit ####
@@ -114,6 +114,12 @@ echo "# $VERSION" >> $tmpfsf
 echo "set feat_files(1)" '"'$invol'"' >> $tmpfsf
 echo "set fmri(init_standard)" '"'$initmtx'"' >> $tmpfsf
 echo "set fmri(npts) $nframes" >> $tmpfsf
+if($keep_residuals) then
+  # Note: the fsf may be set up to keep the residuals, so 
+  # this can only be set up to keep them. Ie, it will not
+  # set up to delete them if keep_residuals is 0.
+  echo "set fmri(cleanup_residuals_yn) 0" >> $tmpfsf
+endif
 # init_initial_highres init_initial_highres
 
 set nEVs = `fsfget $fsf evs_orig`;
@@ -245,6 +251,10 @@ while( $#argv != 0 )
       set subject = $argv[1]; shift;
       breaksw
 
+    case "--svres":
+      set keep_residuals = 1;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1;
@@ -337,6 +347,7 @@ usage_exit:
   echo "  --outdir  outputdir : will be outputdir.feat"
   echo ""
   echo "  --subject subject (optional)"
+  echo "  --svres   : save resduals"
   echo ""
 
 

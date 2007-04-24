@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/02 18:24:38 $
-#    $Revision: 1.4 $
+#    $Date: 2007/04/24 21:47:34 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat-sess,v 1.4 2007/03/02 18:24:38 greve Exp $';
+set VERSION = '$Id: fsfeat-sess,v 1.5 2007/04/24 21:47:34 greve Exp $';
 set inputargs = ($argv);
 
 set analysis   = ();
@@ -32,6 +32,7 @@ set globschdir = ();
 set sveres     = 0;
 set PrintHelp  = 0;
 set CreateLog  = 1;
+set keep_residuals = 0;
 
 #### If no arguments, print usage and exit ####
 if($#argv == 0) goto usage_exit;
@@ -149,6 +150,7 @@ foreach sess ($SessList)
     set cmd = (fsfeat --fsf $fsf --i $invol --schdir $schdir)
     set cmd = ($cmd --outdir $outdir)
     if($#subject) set cmd = ($cmd --subject $subject);
+    if($keep_residuals) set cmd = ($cmd --svres);
     pwd | tee -a $LF
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
@@ -210,6 +212,10 @@ while( $#argv != 0 )
     case "-df":
       shift;
       # ignore getsesspath arguments 
+      breaksw
+
+    case "-svres":
+      set keep_residuals = 1;
       breaksw
 
     case "-debug":
@@ -278,6 +284,7 @@ usage_exit:
   echo "  -analysis analysis"
   echo "  -s, -sf, -d, -df"
   echo ""
+  echo "  -svres   : save resduals"
   echo "  -help"
   echo "  -debug"
   echo ""
