@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: postelni $
- *    $Date: 2007/04/20 22:19:43 $
- *    $Revision: 1.17 $
+ *    $Author: greve $
+ *    $Date: 2007/04/24 17:33:09 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.17 2007/04/20 22:19:43 postelni Exp $";
+"$Id: mri_aparc2aseg.c,v 1.18 2007/04/24 17:33:09 greve Exp $";
 char *Progname = NULL;
 char *SUBJECTS_DIR = NULL;
 char *subject = NULL;
@@ -629,6 +629,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&hashres);
       nargsused = 1;
+    } else if (!strcmp(option, "--wmparc-dmin")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&dminctx);
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -767,6 +771,7 @@ static void dump_options(FILE *fp) {
   if (LabelWM) {
     printf("labeling wm\n");
     if (LabelHypoAsWM) printf("labeling hypo-intensities as wm\n");
+    printf("dminctx %f\n",dminctx);
   }
   fprintf(fp,"RipUnknown %d\n",RipUnknown);
   return;
