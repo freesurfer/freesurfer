@@ -6,7 +6,7 @@
 # This script builds the subcortical atlas from a set of manually labelled
 # training data sets.
 # The user should call the script under a cluster machine (seychelles).
-# In addition, a "subject.csh" script should be available under the
+# In addition, a "subjects.csh" script should be available under the
 # $SUBJECTS_DIR/scripts directory, which defines the training subject names
 # and the first subject ($ONE_SUBJECT) to be used for building the initial
 # template. Eg. /space/dijon/32/users/xhan/RBnew/scripts/subjects.csh
@@ -15,15 +15,17 @@
 # The registration file should be put under
 # $SUBJECTS_DIR/$ONE_SUBJECT/mri/transforms/$TAL_MAN
 # The script assumes the existence of following files under
-# each subject's mri directory: nu.mgz, brain.mgz, and nu_noneck.mgz
+# each subject's mri directory: nu.mgz, brain.mgz, nu_noneck.mgz and
+# aseg_edited.mgz, where aseg_edited.mgz is the manually labelled volume
+# from which the training data is derived.
 # The final atlas is stored as $SUBJECTS_DIR/average/RB_all_`date +%F`.gca
 # "nu_noneck.mgz" is needed for every subject to build the gca with skull.
 #
 # Original author: Xiao Han
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/02/19 22:31:51 $
-#    $Revision: 1.9 $
+#    $Date: 2007/04/25 18:52:23 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -39,7 +41,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.9 2007/02/19 22:31:51 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.10 2007/04/25 18:52:23 nicks Exp $';
 
 #set echo=1
 
@@ -97,7 +99,7 @@ echo "\n\n" >>& $LF
 #
 # Inputs:
 #
-set SEG_VOL=(seg_edited6-ntv-uchar.mgz) # filename for manual segmentation
+set SEG_VOL=(aseg_edited.mgz) # filename for manual segmentation
 set ORIG_VOL=(nu.mgz)
 set MASK_VOL=(brain.mgz) # filename for brain mask
 set T1_NONECK=(nu_noneck.mgz) # file to build the atlas gca_with_skull
