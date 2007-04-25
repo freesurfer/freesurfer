@@ -12,8 +12,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/04/24 21:45:47 $
-#    $Revision: 1.9 $
+#    $Date: 2007/04/25 00:11:28 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat,v 1.9 2007/04/24 21:45:47 greve Exp $';
+set VERSION = '$Id: fsfeat,v 1.10 2007/04/25 00:11:28 greve Exp $';
 set inputargs = ($argv);
 
 set fsf     = ();
@@ -82,14 +82,7 @@ rm -fr $outdirpath
 echo $outdir
 
 # Get number of time points from input volume
-set tmpfile = /tmp/fsfeat.nframes.$$.dat
-set cmd = (mri_info --o $tmpfile --nframes $invol)
-pwd
-echo $cmd
-$cmd
-if($status) exit 1;
-set nframes = `cat $tmpfile`;
-rm -f $tmpfile
+set nframes = `avwinfo $invol | awk '{if($1 == dim4) print $2}'`
 
 # Create initial example_func to std matrix
 set stdvol = $FSLDIR/etc/standard/avg152T1.img
@@ -114,12 +107,8 @@ echo "# $VERSION" >> $tmpfsf
 echo "set feat_files(1)" '"'$invol'"' >> $tmpfsf
 echo "set fmri(init_standard)" '"'$initmtx'"' >> $tmpfsf
 echo "set fmri(npts) $nframes" >> $tmpfsf
-if($keep_residuals) then
-  # Note: the fsf may be set up to keep the residuals, so 
-  # this can only be set up to keep them. Ie, it will not
-  # set up to delete them if keep_residuals is 0.
-  echo "set fmri(cleanup_residuals_yn) 0" >> $tmpfsf
-endif
+# always keep residuals here; maybe deleted later
+echo "set fmri(cleanup_residuals_yn) 0" >> $tmpfsf
 # init_initial_highres init_initial_highres
 
 set nEVs = `fsfget $fsf evs_orig`;
@@ -144,18 +133,89 @@ echo "set fmri(featwatcher_yn) 0"             >> $tmpfsf
 
 feat $tmpfsf
 if($status) exit 1;
-if(! -e $outdirpath/example_func.$outext) then
+
+set exf = $outdirpath/example_func.$outext
+if(! -e $exf) then
   echo "ERROR: feat failed"
   exit 1;
 endif
 
+set mask = $outdirpath/mask
+
 # Compute the mean image (after intensity scaling)
+set mean_func = $outdirpath/mean_func
 set cmd = (avwmaths $outdirpath/filtered_func_data \
-  -Tmean $outdirpath/mean_func)
+  -Tmean $mean_func)
 pwd
 echo $cmd
 $cmd
 if($status) exit 1;
+
+# Compute residual variance
+set res4d = $outdirpath/stats/res4d
+set rvar  = $outdirpath/stats/rvar
+set dof = `cat $outdirpath/stats/dof`
+set cmd = (avwmaths++  $res4d -sqr -Tmean -div $dof -mul $nframes $rvar)
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# Compute residual stddev
+set rstd  = $outdirpath/stats/rstd
+set cmd = (avwmaths++  $rvar -sqrt $rstd)
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# Compute FSNR
+set fsnr  = $outdirpath/stats/fsnr
+set cmd = (avwmaths++  $mean_func -div $rstd $fsnr)
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# Compute FSNR2
+set fsnr2  = $outdirpath/stats/fsnr2
+set cmd = (avwmaths++  $fsnr -sqr $fsnr2)
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# Compute averages over the mask
+set qadir = $outdirpath/qa
+mkdir -p $qadir
+avwmeants -m $mask -i $exf       -o $qadir/example_func.dat
+avwmeants -m $mask -i $mean_func -o $qadir/mean_func.dat # always 1000
+avwmeants -m $mask -i $rvar      -o $qadir/rvar.dat
+avwmeants -m $mask -i $rstd      -o $qadir/rstd.dat
+avwmeants -m $mask -i $fsnr      -o $qadir/fsnr.dat
+avwmeants -m $mask -i $fsnr2     -o $qadir/fsnr2.dat
+
+# Redo smoothness estimation, saving the fwhm
+set cmd = (smoothest -d $dof -r $res4d -m $mask -V)
+echo $cmd
+$cmd >& $qadir/fwhm.log
+if($status) exit 1;
+
+set fwhmx = `grep FWHM fwhm.log | grep mm | awk '{print $3}'`;
+set fwhmy = `grep FWHM fwhm.log | grep mm | awk '{print $7}'`;
+set fwhmz = `grep FWHM fwhm.log | grep mm | awk '{print $11}'`;
+echo "$fwhmx $fwhmy $fwhmz" > $qadir/fwhm.dat
+
+# Now put it all in one file
+rm -f $qadir/qa.dat
+foreach q (example_func rvar rstd fsnr fsnr2 fwhm mean_func)
+  set v = `cat $qadir/$q.dat`;
+  echo -n $v >> $qadir/qa.dat
+end
+echo "" >> $qadir/qa.dat
+
+# Now delete the residuals
+if(! $keep_residuals) rm $res4d
 
 # Compute sigs from zstats
 set statsdir = $outdirpath/stats
