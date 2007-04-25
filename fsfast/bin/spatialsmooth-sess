@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.12 $
+#    $Author: greve $
+#    $Date: 2007/04/25 22:02:55 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.12 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.13 2007/04/25 22:02:55 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -45,6 +45,7 @@ endif
 
 set nolog = 0;
 set tmpdir = ();
+set cleanup = 1;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -166,24 +167,25 @@ foreach sess ($SessList)
       echo "ERROR: ipfsl failed to create output"
       exit 1
     endif
+    if($#tmpdir == 0) rm -r tmp.ipfsl
 
-  if($inorm) then
-    echo "INFO: intensity normalizing smoothed volume"
-    if(! $use_new_inorm) then
-      set cmd = (inorm -i $run/$outstem -TR $TR -ipr $IPR -bpr $BPR)    
-    else
-      set cmd = (inorm2 -i $run/$outstem);
+    if($inorm) then
+      echo "INFO: intensity normalizing smoothed volume"
+      if(! $use_new_inorm) then
+        set cmd = (inorm -i $run/$outstem -TR $TR -ipr $IPR -bpr $BPR)    
+      else
+        set cmd = (inorm2 -i $run/$outstem);
+      endif
+      echo ---------------------------------------------- |& tee -a $LF
+      $PWDCMD   |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      echo ---------------------------------------------- |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) then
+        echo "ERROR: inorm failed"
+        exit 1
+      endif
     endif
-    echo ---------------------------------------------- |& tee -a $LF
-    $PWDCMD   |& tee -a $LF
-    echo $cmd |& tee -a $LF
-    echo ---------------------------------------------- |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) then
-      echo "ERROR: inorm failed"
-      exit 1
-    endif
-  endif
 
   end # Loop over runs
 
@@ -277,6 +279,15 @@ while( $#argv != 0 )
     case "-tmp":
       if ( $#argv == 0) goto arg1err;
       set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "-cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "-no-cleanup":
+      set cleanup = 0;
       breaksw
 
     case "-nolog":
