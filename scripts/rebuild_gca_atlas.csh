@@ -24,8 +24,8 @@
 # Original author: Xiao Han
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/25 20:22:14 $
-#    $Revision: 1.11 $
+#    $Date: 2007/04/25 20:24:20 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -41,7 +41,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.11 2007/04/25 20:22:14 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.12 2007/04/25 20:24:20 nicks Exp $';
 
 #set echo=1
 
@@ -118,7 +118,7 @@ foreach subject (${ALL_SUBJS}) # check for existence of required inputs
             echo "${SUBJECTS_DIR}/$subject/mri/$input is in float format!"
             echo "To convert: mri_convert -odt uchar -ns 1 infile outfile"
             exit 1
-        end
+        endif
     end
 end
 if ( ! -e ${SUBJECTS_DIR}/${ONE_SUBJECT}/mri/transforms/${TAL_MAN} ) then
