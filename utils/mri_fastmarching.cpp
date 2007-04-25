@@ -58,21 +58,32 @@ extern "C" MRI *MRIextractDistanceMap( MRI *mri_src, MRI *mri_dst, int label, fl
     const int outside = 1;
     const int inside = 2;
     const int both = 3;
+    
+    // positive inside and positive outside
+    const int bothUnsigned = 4;
   
-    if ( mode == outside || mode == both ) {
+    if ( mode == outside || mode == both || mode == bothUnsigned ) {
       FastMarching< +1 > fastmarching_out( mri_distance );
       fastmarching_out.SetLimit( max_distance );
       fastmarching_out.InitFromMRI( mri_src, label );
       fastmarching_out.Run( max_distance );
     }
     
-    if ( mode == inside || mode == both ) {
+    if ( mode == inside || mode == both || mode == bothUnsigned ) {
       FastMarching< -1 > fastmarching_in( mri_distance );
       fastmarching_in.SetLimit( -max_distance );
       fastmarching_in.InitFromMRI( mri_src, label );
       fastmarching_in.Run( -max_distance );
     }
     
+    // if unsigned, then we want than the inside and out to be positive
+    if( bothUnsigned ) {
+      for(int z =0 ; z < mri_distance->depth ; z++)
+        for(int y = 0 ; y < mri_distance->height ; y++)
+          for(int x = 0 ; x < mri_distance->width ; x++)
+            MRIFvox( mri_distance, x, y, z) = fabs( MRIFvox( mri_distance, x, y, z) );
+    }
+        
   }
 
   return mri_distance;

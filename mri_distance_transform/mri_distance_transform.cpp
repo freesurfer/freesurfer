@@ -5,11 +5,11 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Florent Segonne 
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/24 15:51:25 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/04/25 15:49:17 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
   Progname=argv[0];
 
   fprintf(stderr,"mri_distance_transform input_distance label max_distance mode[=1] output\n");
-  fprintf(stderr,"mode : 1 = outside , mode : 2 = inside , mode : 3 = both\n");
+  fprintf(stderr,"mode : 1 = outside , mode : 2 = inside , mode : 3 = both, mode : 4 = both unsigned \n");
 
   mri=MRIread(argv[1]);
   label=atoi(argv[2]);
