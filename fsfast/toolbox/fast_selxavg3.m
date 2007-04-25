@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.39 2007/03/29 23:14:34 greve Exp $
+% $Id: fast_selxavg3.m,v 1.40 2007/04/25 23:43:03 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/29 23:14:34 $
-%    $Revision: 1.39 $
+%    $Date: 2007/04/25 23:43:03 $
+%    $Revision: 1.40 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.39 2007/03/29 23:14:34 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.40 2007/04/25 23:43:03 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -197,25 +197,30 @@ for nthouter = outer_runlist
     reg0run(1) = 1;
     reg0 = [reg0 reg0run];
   end
-  % These are the actual indices of the mean regressors
+  % These are the true indices of the mean regressors
   ind0 = find(reg0);
 
   % Create the full design matrix
   X = [Xt Xn];
-  XtX = X'*X;
-  XCond = cond(XtX);
-  fprintf('XCond = %g\n',XCond);
-  if(XCond > 10000000)
-    fprintf('ERROR: design is ill-conditioned\n');
-    tmpxfile = sprintf('%s/Xtmp.mat',outanadir);
-    save(tmpxfile,'X','flac');
-    return;
-  end
   nTask = size(Xt,2);
   nNuis = size(Xn,2);
   nX = size(X,2);
   ntptot = size(X,1);
   DOF = ntptot - nX;
+
+  % Check condition, normalize to distinguish from scaled
+  Xsss = sqrt(sum(X.^2));
+  Xn = X ./ repmat(Xsss,[ntptot 1]);
+  XtX = Xn'*Xn;
+  XCond = cond(XtX);
+  fprintf('XCond = %g (normalized)\n',XCond);
+  if(XCond > 1e3)
+    fprintf('ERROR: design is ill-conditioned\n');
+    tmpxfile = sprintf('%s/Xtmp.mat',outanadir);
+    save(tmpxfile,'X','flac');
+    return;
+  end
+
   B0 = inv(X'*X)*X';
   Ctask = [eye(nTask) zeros(nTask,nNuis)];
   nn = [1:ntptot]';
