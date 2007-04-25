@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/04/19 20:20:37 $
- *    $Revision: 1.333 $
+ *    $Author: dsjen $
+ *    $Date: 2007/04/25 15:54:13 $
+ *    $Revision: 1.334 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1101,6 +1101,8 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol);
 #define DTRANS_MODE_SIGNED   1
 #define DTRANS_MODE_UNSIGNED 2
 #define DTRANS_MODE_OUTSIDE  3
+
+/** This is deprecated.  Please use MRIextractDistanceMap in fastmarching.h instead */
 MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist,
                           int label, float max_dist, int mode);
 int MRIaddCommandLine(MRI *mri, char *cmdline) ;
