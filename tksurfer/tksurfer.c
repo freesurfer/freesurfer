@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/24 22:18:51 $
- *    $Revision: 1.267 $
+ *    $Author: greve $
+ *    $Date: 2007/04/25 18:44:32 $
+ *    $Revision: 1.268 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2162,6 +2162,7 @@ int  mai(int argc,char *argv[])
   char colortable_fname[NAME_LENGTH] = "";
 
   char tcl_cmd[1024];
+  int err;
   /* end rkt */
 
   InitDebugging("tksurfer") ;
@@ -2578,7 +2579,8 @@ int  mai(int argc,char *argv[])
   }
 
   if (load_annotation) {
-    labl_import_annotation (annotation_fname);
+    err = labl_import_annotation (annotation_fname);
+    if(getenv("TK_EXIT_ON_CMD_ERROR")!=NULL) exit(1);
   }
 
   /* If we didn't load an annotation or color table filename, load the
@@ -19220,7 +19222,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.267 2007/04/24 22:18:51 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.268 2007/04/25 18:44:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24764,6 +24766,12 @@ int labl_import_annotation (char *fname) {
   for (vno = 0; vno < mris->nvertices; vno++)
     mris->vertices[vno].annotation = 0;
   mris_err = MRISreadAnnotation (mris, fname);
+  if(mris_err){
+    printf("\n");
+    printf("ERROR: could not load %s\n",fname);
+    printf("\n");
+    return (ERROR_NO_FILE);
+  }
 
   /* Check if we got an embedded color table. */
   if (mris->ct) {
