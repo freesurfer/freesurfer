@@ -24,8 +24,8 @@
 # Original author: Xiao Han
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/25 18:52:23 $
-#    $Revision: 1.10 $
+#    $Date: 2007/04/25 20:22:14 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -41,7 +41,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.10 2007/04/25 18:52:23 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.11 2007/04/25 20:22:14 nicks Exp $';
 
 #set echo=1
 
@@ -112,12 +112,20 @@ foreach subject (${ALL_SUBJS}) # check for existence of required inputs
             echo "Missing ${SUBJECTS_DIR}/$subject/mri/$input!"
             exit 1
         endif
+        # make sure its not in float format, which mri_ca_train doesnt like
+        mri_info ${SUBJECTS_DIR}/$subject/mri/$input | grep "type: FLOAT"
+        if ( ! $status ) then
+            echo "${SUBJECTS_DIR}/$subject/mri/$input is in float format!"
+            echo "To convert: mri_convert -odt uchar -ns 1 infile outfile"
+            exit 1
+        end
     end
 end
 if ( ! -e ${SUBJECTS_DIR}/${ONE_SUBJECT}/mri/transforms/${TAL_MAN} ) then
     echo "Missing ${SUBJECTS_DIR}/${ONE_SUBJECT}/mri/transforms/${TAL_MAN}!"
     exit 1
 endif
+
 
 ##########################################################################
 
