@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcreg-sess
 #
-set VERSION    = '$Id: fcreg-sess,v 1.2 2007/04/11 23:51:52 greve Exp $';
+set VERSION    = '$Id: fcreg-sess,v 1.3 2007/04/25 23:41:49 greve Exp $';
 set cmdargs = ($argv);
 
 set flac = ();
@@ -154,7 +154,8 @@ while( $#argv != 0 )
       breaksw
 
     case "-vcsf-segid":
-      set segidlist = ($segidlist 4 5 14 43 44 72);
+      set segidlist = ($segidlist 4 5 14 43 44);
+      #set segidlist = ($segidlist 4 5 14 43 44 72);
       set vcsforthog = 0;
       breaksw
 
