@@ -12,8 +12,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/04/25 00:11:28 $
-#    $Revision: 1.10 $
+#    $Date: 2007/04/25 00:51:49 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat,v 1.10 2007/04/25 00:11:28 greve Exp $';
+set VERSION = '$Id: fsfeat,v 1.11 2007/04/25 00:51:49 greve Exp $';
 set inputargs = ($argv);
 
 set fsf     = ();
@@ -82,7 +82,9 @@ rm -fr $outdirpath
 echo $outdir
 
 # Get number of time points from input volume
-set nframes = `avwinfo $invol | awk '{if($1 == dim4) print $2}'`
+avwinfo $invol | awk '{if($1 == "dim4") print $2}'
+if($status) exit 1;
+set nframes = `avwinfo $invol |& awk '{if($1 == "dim4") print $2}'`
 
 # Create initial example_func to std matrix
 set stdvol = $FSLDIR/etc/standard/avg152T1.img
@@ -144,7 +146,7 @@ set mask = $outdirpath/mask
 
 # Compute the mean image (after intensity scaling)
 set mean_func = $outdirpath/mean_func
-set cmd = (avwmaths $outdirpath/filtered_func_data \
+set cmd = (avwmaths_32R $outdirpath/filtered_func_data \
   -Tmean $mean_func)
 pwd
 echo $cmd
@@ -155,7 +157,7 @@ if($status) exit 1;
 set res4d = $outdirpath/stats/res4d
 set rvar  = $outdirpath/stats/rvar
 set dof = `cat $outdirpath/stats/dof`
-set cmd = (avwmaths++  $res4d -sqr -Tmean -div $dof -mul $nframes $rvar)
+set cmd = (avwmaths_32R  $res4d -sqr -Tmean -div $dof -mul $nframes $rvar)
 pwd
 echo $cmd
 $cmd
@@ -163,7 +165,7 @@ if($status) exit 1;
 
 # Compute residual stddev
 set rstd  = $outdirpath/stats/rstd
-set cmd = (avwmaths++  $rvar -sqrt $rstd)
+set cmd = (avwmaths_32R  $rvar -sqrt $rstd)
 pwd
 echo $cmd
 $cmd
@@ -171,7 +173,7 @@ if($status) exit 1;
 
 # Compute FSNR
 set fsnr  = $outdirpath/stats/fsnr
-set cmd = (avwmaths++  $mean_func -div $rstd $fsnr)
+set cmd = (avwmaths_32R  $mean_func -div $rstd $fsnr)
 pwd
 echo $cmd
 $cmd
@@ -179,7 +181,7 @@ if($status) exit 1;
 
 # Compute FSNR2
 set fsnr2  = $outdirpath/stats/fsnr2
-set cmd = (avwmaths++  $fsnr -sqr $fsnr2)
+set cmd = (avwmaths_32R  $fsnr -sqr $fsnr2)
 pwd
 echo $cmd
 $cmd
@@ -195,22 +197,26 @@ avwmeants -m $mask -i $rstd      -o $qadir/rstd.dat
 avwmeants -m $mask -i $fsnr      -o $qadir/fsnr.dat
 avwmeants -m $mask -i $fsnr2     -o $qadir/fsnr2.dat
 
+# Number of voxels in the mask
+cat $outdirpath/stats/smoothness | \
+    awk '{if($1 == "VOLUME") print $2}' > $qadir/nmask.dat
+
 # Redo smoothness estimation, saving the fwhm
 set cmd = (smoothest -d $dof -r $res4d -m $mask -V)
 echo $cmd
 $cmd >& $qadir/fwhm.log
 if($status) exit 1;
 
-set fwhmx = `grep FWHM fwhm.log | grep mm | awk '{print $3}'`;
-set fwhmy = `grep FWHM fwhm.log | grep mm | awk '{print $7}'`;
-set fwhmz = `grep FWHM fwhm.log | grep mm | awk '{print $11}'`;
+set fwhmx = `grep FWHM $qadir/fwhm.log | grep mm | awk '{print $3}'`;
+set fwhmy = `grep FWHM $qadir/fwhm.log | grep mm | awk '{print $7}'`;
+set fwhmz = `grep FWHM $qadir/fwhm.log | grep mm | awk '{print $11}'`;
 echo "$fwhmx $fwhmy $fwhmz" > $qadir/fwhm.dat
 
 # Now put it all in one file
 rm -f $qadir/qa.dat
-foreach q (example_func rvar rstd fsnr fsnr2 fwhm mean_func)
+foreach q (nmask mean_func rstd fsnr fwhm example_func fsnr2 rvar )
   set v = `cat $qadir/$q.dat`;
-  echo -n $v >> $qadir/qa.dat
+  echo -n "$v ">> $qadir/qa.dat
 end
 echo "" >> $qadir/qa.dat
 
