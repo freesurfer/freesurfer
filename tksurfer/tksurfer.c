@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/25 18:44:32 $
- *    $Revision: 1.268 $
+ *    $Date: 2007/04/25 19:02:08 $
+ *    $Revision: 1.269 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2580,7 +2580,7 @@ int  mai(int argc,char *argv[])
 
   if (load_annotation) {
     err = labl_import_annotation (annotation_fname);
-    if(getenv("TK_EXIT_ON_CMD_ERROR")!=NULL) exit(1);
+    if(err && getenv("TK_EXIT_ON_CMD_ERROR")!=NULL) exit(1);
   }
 
   /* If we didn't load an annotation or color table filename, load the
@@ -19222,7 +19222,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.268 2007/04/25 18:44:32 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.269 2007/04/25 19:02:08 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -24883,7 +24883,7 @@ int labl_import_annotation (char *fname) {
     printf ("surfer: WARNING: no labels imported; annotation was empty\n" );
   }
 
-  return (ERROR_NONE);
+  return(ERROR_NONE);
 }
 
 int labl_export_annotation (char *fname) {
