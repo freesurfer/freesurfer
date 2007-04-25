@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/16 18:44:08 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/04/25 19:24:48 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DPath );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.4 $" );
 
 vtkKWScubaLayer3DPath::vtkKWScubaLayer3DPath () :
   mPathProperties( NULL ),
@@ -452,6 +452,11 @@ vtkKWScubaLayer3DPath::CreateTube() {
     lines->InsertCellPoint( i );    
   }
   
+  // add the points, lines, and sample data    
+  vtkPolyData *polyData = vtkPolyData::New();
+  polyData->SetPoints( inputPoints );
+  polyData->SetLines( lines );
+
   // set up the scalar data that was sampled by the pathway
   vtkFloatArray *sampleData = vtkFloatArray::New();
   sampleData->SetName( "SampleData" );
@@ -464,13 +469,8 @@ vtkKWScubaLayer3DPath::CreateTube() {
       const double value = mPathProperties->GetPointSampleValue( i );
       sampleData->InsertNextValue( value );
     }
+    polyData->GetPointData()->SetScalars( sampleData );
   }
-
-  // add the points, lines, and sample data    
-  vtkPolyData *polyData = vtkPolyData::New();
-  polyData->SetPoints( inputPoints );
-  polyData->SetLines( lines );
-  polyData->GetPointData()->SetScalars( sampleData );
   
   inputPoints->Delete();
   lines->Delete();
