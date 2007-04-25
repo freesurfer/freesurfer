@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/25 19:02:08 $
- *    $Revision: 1.269 $
+ *    $Date: 2007/04/25 19:14:17 $
+ *    $Revision: 1.270 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2155,6 +2155,7 @@ int  mai(int argc,char *argv[])
   char timecourse_offset_reg[NAME_LENGTH];
 
   int load_annotation = FALSE;
+  int load_curv = FALSE;
   char annotation_fname[NAME_LENGTH] = "";
 
   int load_colortable = FALSE;
@@ -2189,6 +2190,7 @@ int  mai(int argc,char *argv[])
 	!stricmp(argv[i], "-overlay")) {
       nargs = 2 ;
       functional_fname = argv[i+1] ;
+      load_curv = TRUE;
     } else if (!stricmp(argv[i], "-overlay-reg") ||
                !stricmp(argv[i], "-orf") || !stricmp(argv[i], "-ovreg")) {
       nargs = 2 ;
@@ -2317,6 +2319,9 @@ int  mai(int argc,char *argv[])
       nargs = 2 ;
       strncpy (annotation_fname, argv[i+1], sizeof(annotation_fname));
       load_annotation = TRUE;
+    } else if (!stricmp(argv[i], "-curv")){
+      nargs = 1 ;
+      load_curv = TRUE;
     } else if (!stricmp(argv[i], "-colortable") ||
                !stricmp(argv[i], "-ctab")) {
       nargs = 2 ;
@@ -2526,27 +2531,25 @@ int  mai(int argc,char *argv[])
     if (FileExists(fname))
       read_canon_vertex_coordinates(fname) ;
   }
-  if (functional_fname)  /* -o specified on command line */
-  {
+
+  if (functional_fname){  /* -o specified on command line */
     if (strlen(functional_fname) > 2 &&
         strcmp (&functional_fname[strlen(functional_fname)-2], ".w") == 0) {
       read_binary_values(functional_fname) ;
-
-      read_binary_curvature(cfname) ;
-      val_to_stat() ;
-      overlayflag = TRUE ;
-      colscale = HEAT_SCALE ;
     } else {
-
       sclv_read_from_volume(functional_fname, overlay_reg_type,
                             overlay_reg, SCLV_VAL);
-
-      read_binary_curvature(cfname) ;
-      val_to_stat() ;
-      overlayflag = TRUE ;
-      colscale = HEAT_SCALE ;
     }
+    overlayflag = TRUE ;
+    colscale = HEAT_SCALE ;
   }
+
+  if(load_curv){
+    read_binary_curvature(cfname) ;
+    val_to_stat() ;
+  }
+
+
 #if 0
   read_binary_areas(afname);
 #endif
@@ -17237,6 +17240,8 @@ print_help_tksurfer(void) {
   printf("-annotation <filename> : load an annotation\n");
   printf("-colortable <filename> : load a color table file\n");
   printf("\n");
+  printf("-curv : automatically load ?h.curv\n");
+  printf("\n");
 
   printf("-overlay          <filename> : load an overlay volume\n");
   printf("-overlay-reg      <filename> : use a file for the overlay registration\n");
@@ -19222,7 +19227,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.269 2007/04/25 19:02:08 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.270 2007/04/25 19:14:17 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
