@@ -47,96 +47,97 @@ InitializePath::SetSeedValues( std::vector< int > *values ) {
 void 
 InitializePath::CalculateInitialPath() {
   
-  std::cerr << "CalculateInitialPath" << std::endl;
-
   // TODO: using the second seed as the destination
   const int destinationSeedLabel = ( *m_SeedValues )[ 1 ];
   
   // create the distance transform, all the values should be set before running
   MRI *distanceTransform = this->GetDistanceVolume( destinationSeedLabel );
   
-  MRIwrite( distanceTransform, "/autofs/space/heraclitus_001/users/dsjen/data/InitPath/DistanceTransform.mgz" );
+  // TODO: remove this
+//  MRIwrite( distanceTransform, "/autofs/space/heraclitus_001/users/dsjen/data/InitPath/DistanceTransform2.mgz" );
   
   // now that we have the transform to get to the second seed, we want to take
   // the derivatives of the distance transform to see what direction we need
   // to take to get to the second seed
   MRI *gradients = MRIsobel( distanceTransform, NULL, NULL );
+
+  // TODO: remove this
+  // we'd need to write out each component of the gradient or have some sort of scalar gradient...
+  //MRIwrite( gradients, "/autofs/space/heraclitus_001/users/dsjen/data/InitPath/eigvec1.nii.gz" );
   
   // pick a random starting point within the starting seed region
   const int startSeedLabel = ( *m_SeedValues )[ 0 ];
-  int currentPoint[3];
-  this->GetRandomSeedPoint( currentPoint, startSeedLabel );
+  int currentPointInt[3];
+  this->GetRandomSeedPoint( currentPointInt, startSeedLabel );
   
+  // there values are only use when iterating and saving double values, rather
+  // than rounding to the int
+  double currentPointDouble[3];
+  double previousPointDouble[3];
+  for( int i=0; i<3; i++ ) {
+    currentPointDouble[i] = currentPointInt[i];
+    previousPointDouble[i] = currentPointInt[i];
+  }
+    
   // starting at our random seed point, we want to move it toward the second
-  // seed region and also following the eigenvector
-  
+  // seed region and also following the eigenvector  
   std::vector< int* > destinationSeeds = this->GetSeedPoints( destinationSeedLabel );
   
   // this will be a vector with 3 columns
-  std::vector< int* > path;
+  std::vector< double* > path;
   
   // keep iterating until you've reached your destination region
-  while( !this->IsInRegion( currentPoint, destinationSeeds ) ) {
-
-  // TODO: remove these lines
-//  for( int i=0; i<100; i++ ) {
-//    std::cerr << "  i: " << i << std::endl;
+  while( !this->IsInRegion( currentPointInt, destinationSeeds ) ) {
         
     // this random number between 0 and 1 will be the percentage that the point
     // is moved along the eigenvector or toward the destination point
     const float pixelJump = 1;
     const float randomNumber = OpenRan1( &m_RandomTimeSeed ) * pixelJump;
+
     for( int cDim=0; cDim<3; cDim++ ) {
-      
-      // TODO: you have to make sure that the dimensions are correct here
-      
       // get the eigenvector at the current point
-      const float eigenVector = MRIFseq_vox( m_EigenVectors, currentPoint[ 0 ], 
-        currentPoint[ 1 ], currentPoint[ 2 ], cDim );
+      const float eigenVector = MRIFseq_vox( m_EigenVectors, currentPointInt[ 0 ], 
+        currentPointInt[ 1 ], currentPointInt[ 2 ], cDim );
 
       // get the gradient at the current point
-      const float gradient = MRIFseq_vox( gradients, currentPoint[ 0 ], 
-        currentPoint[ 1 ], currentPoint[ 2 ], cDim );
-        
-      const float newPoint = currentPoint[ cDim ] + randomNumber * -gradient
-        + ( pixelJump - randomNumber ) * eigenVector;
-        
-      // TODO: maybe I should be storing doubles instead of ints...
-      currentPoint[ cDim ] = static_cast< int >( round( newPoint ) );
+        const double gradient = MRIgetVoxVal( gradients, currentPointInt[ 0 ], 
+          currentPointInt[ 1 ], currentPointInt[ 2 ], cDim );
+
+      currentPointDouble[cDim] = previousPointDouble[cDim] - randomNumber * gradient
+        + (pixelJump - randomNumber ) * eigenVector;
       
     }
                 
     // add point to be saved
-    int* point = new int[ 3 ];
+    double* point = new double[ 3 ];
     path.push_back( point );
     
     // copy the current point in
     for( int cDim=0; cDim<3; cDim++ ) {
-      point[ cDim ] = currentPoint[ cDim ];
+      point[ cDim ] = currentPointDouble[ cDim ];
       
+      previousPointDouble[cDim] = currentPointDouble[cDim];
+      currentPointInt[ cDim ] = static_cast< int >( round( currentPointDouble[cDim] ) );
       std::cerr << point[ cDim ] << "  ";
     }
     std::cerr << std::endl;
-    
+        
   }
   
-  std::cerr << "  clean up path data" << std::endl;
-    
+  // copy the path to the matrix output
+  this->CopyPathToOutput( path );
+  
   // clean up the data
   this->FreeVector( destinationSeeds );
   this->FreeVector( path );
   
-  std::cerr << "  free gradient" << std::endl;
   if( gradients != NULL ) {
     MRIfree( &gradients );
   }
 
-  std::cerr << "  free distance transform" << std::endl;
   if( distanceTransform != NULL ) {
     MRIfree( &distanceTransform );
   }
-  
-  std::cerr << "end CalculateInitialPath" << std::endl;
   
 }
 
@@ -149,16 +150,14 @@ MRI*
 InitializePath::GetDistanceVolume( const int label ) {
   
   // TODO: this might need to be changed, but this is the default in mri_distance_transform
-  const int maxDistance = 10;
+  const int maxDistance = 999;
 
   // from mri_distance_transform  mode : 1 = outside , mode : 2 = inside , mode : 3 = both
   const int mode = 1;
   
-  // from fastmarching -- doesn't work properly
-  // MRI* distanceTransform = MRIextractDistanceMap( m_SeedVolume, NULL, label, maxDistance, mode);
-
-  // this is from mri.h and seems to work
-  MRI* distanceTransform = MRIdistanceTransform( m_SeedVolume, NULL, label, maxDistance, mode );
+  // from fastmarching
+  MRI* distanceTransform = MRIextractDistanceMap( m_SeedVolume, NULL, label, maxDistance, mode);
+  MRIcopyHeader( m_SeedVolume, distanceTransform);
                           
   return distanceTransform;
 }
@@ -254,3 +253,37 @@ InitializePath::FreeVector( std::vector< int* > v ) {
   v.clear();
   
 }
+
+void 
+InitializePath::FreeVector( std::vector< double* > v ) {
+
+  // clean up the data
+  for( std::vector< double* >::iterator it = v.begin(); it != v.end(); it++ ) {
+    delete[] ( *it );
+  }
+  v.clear();
+  
+}
+
+void 
+InitializePath::CopyPathToOutput( std::vector< double* > path ) {
+
+  // just in case something was in it
+  if( m_InitialPath != NULL ) {
+      MatrixFree( &m_InitialPath );
+      m_InitialPath = NULL;
+  }
+  
+  // allocate the matrix
+  m_InitialPath = MatrixAlloc( path.size(), 3, MATRIX_REAL );
+  
+  int row = 0;
+  // copy the elements
+  for( std::vector< double* >::iterator it = path.begin(); it != path.end(); it++, row++ ) {
+    for( int col=0; col<3; col++ ) {      
+      m_InitialPath->rptr[ row+1 ][ col+1 ] = ( *it )[ col ];
+    }
+  }
+  
+}
+

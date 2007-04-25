@@ -169,16 +169,10 @@ InitializePathExe::Run() {
   // get the resulting pathway
   MATRIX *path = initializePath.GetInitialPath();
   
-// TODO: removing this temporarily  
 //  // save the pathway to the output directory
-//  const std::string pathFileName( (std::string)m_OutputDir + 
-//    (std::string)"/InitialPath.txt" );
-//  WriteData( pathFileName, path->data, path->rows, path->cols );
-  
-  if( path != NULL ) {
-    MatrixFree( &path );
-    path = NULL;
-  }
+  const std::string pathFileName( (std::string)m_OutputDir + 
+    (std::string)"/InitialPath.txt" );
+  WriteData( pathFileName, path->data, path->rows, path->cols );
 
   MRIfree( &eigenVectors );
   MRIfree( &seedVolume );

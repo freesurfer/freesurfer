@@ -77,6 +77,10 @@ private:
    * Frees the memory stored in the vector and clears the vector.
    */ 
   void FreeVector( std::vector< int* > v );
+
+  void FreeVector( std::vector< double* > v );
+  
+  void CopyPathToOutput( std::vector< double* > path );
   
 };
 
