@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:17 $
-#    $Revision: 1.8 $
+#    $Author: greve $
+#    $Date: 2007/04/25 23:41:20 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: ipfsl,v 1.8 2007/01/09 22:41:17 nicks Exp $';
+set VERSION = '$Id: ipfsl,v 1.9 2007/04/25 23:41:20 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -54,17 +54,17 @@ if($n != 0) then
   exit 0;
 endif
 
-if(! $?FSL_DIR) then
-  echo "ERROR: FSL_DIR environment variable not defined"
+if(! $?FSLDIR) then
+  echo "ERROR: FSLDIR environment variable not defined"
   exit 1;
 endif
-set IPFSL = $FSL_DIR/bin/ip
+set IPFSL = $FSLDIR/bin/ip
 if(! -e $IPFSL) then
   echo "ERROR: cannot find $IPFSL"
   exit 1;
 endif
 
-setenv FSLOUTPUTTYPE ANALYZE
+setenv FSLOUTPUTTYPE NIFTI
 
 goto parse_args;
 parse_args_return:
@@ -93,7 +93,7 @@ echo "Scratch Dir is $scratchdir"
 set inbase  = `basename $instem`;
 set outbase = `basename $outstem`;
 
-echo "# ---------- Converting to .img ------------------ #"
+echo "# ---------- Converting to .nii ------------------ #"
 set infmtuse = `getformat_from_stem $instem $infmt`
 if($status) then
   echo "$infmtuse" 
@@ -102,7 +102,7 @@ endif
 echo "Input  format is $infmtuse"
 echo "Output format is $outfmt"
 set cmd = (mri_convert $instem.$infmtuse)
-set cmd = ($cmd $scratchdir/$inbase.img --out_type analyze4d)
+set cmd = ($cmd $scratchdir/$inbase.nii)
 $cmd
 if($status) then
   pwd
@@ -127,7 +127,7 @@ set outmatfile = $scratchdir/$outbase.mat
 cp $inmatfile $outmatfile
 
 echo "# ---------- Converting output to bvolume ------------------ #"
-set cmd = (mri_convert $scratchdir/$outbase.img --in_type analyze4d)
+set cmd = (mri_convert $scratchdir/$outbase.nii)
 set cmd = ($cmd $outstem.$outfmt)
 $cmd
 if($status) then
@@ -140,7 +140,7 @@ endif
 if($makemask) then
   cp $inmatfile $scratchdir/$maskbase.mat
   echo "# ---------- Converting mask to bshort ------------------ #"
-  set cmd = (mri_convert $scratchdir/$maskbase.img --in_type analyze4d)
+  set cmd = (mri_convert $scratchdir/$maskbase.nii)
   set cmd = ($cmd $maskstem.$outfmt )
   $cmd
   if($status) then
@@ -332,7 +332,6 @@ usage_exit:
   echo "   -umask umask    : set unix file permission mask"
   echo "   -version        : print version and exit"
   echo ""
-  echo "This is a front-end for the fsl ip program. It works on bvolumes"
-  echo "instead of analyze."
+  echo "This is a front-end for the fsl ip program."
   echo ""
 exit 1;
