@@ -8,8 +8,8 @@
  * Original Author: Florent Segonne  
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/24 16:34:06 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/04/25 15:48:03 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -153,7 +153,7 @@ public:
     alive_list.clear();
     mapMRI_XYZ(status,x,y,z) MRIvox(status,x,y,z)=eFar;
   }
-
+  
   void SetLimit(float _limit)
   {
     limit=_limit;
@@ -224,21 +224,22 @@ public:
     // As long as there are points trial
     while (!trial_heap.empty())
     {
+      
       // On enleve de la pile le point trial de valeur la plus faible
       // One removes pile the weakest point trial of the value 
       stCoord pt = trial_heap.top();
 
       // Si on a atteint la limite
       // If the limit were reached
-      if (sign*MRIFvox(mri,pt.x,pt.y,pt.z) >= sign*limit)
+      if ( sign * MRIFvox( mri, pt.x, pt.y, pt.z ) >= sign * limit )
       {
         // On vide la pile et on marque tous ses points comme far
         // One empties the pile and one marks all his points like far
         while (!trial_heap.empty())
         {
           pt = trial_heap.top();
-          MRIvox(status,pt.x,pt.y,pt.z) = eFar;
-          MRIFvox(mri,pt.x,pt.y,pt.z) = limit;
+          MRIvox( status, pt.x, pt.y, pt.z ) = eFar;
+          MRIFvox( mri, pt.x, pt.y, pt.z ) = limit;
           trial_heap.pop();
         }
         return;
@@ -254,12 +255,21 @@ public:
       const int x = pt.x;
       const int y = pt.y;
       const int z = pt.z;
-      if (x>0) _UpdatePoint(x-1,y,z);
-      if (x<width-1) _UpdatePoint(x+1,y,z);
-      if (y>0) _UpdatePoint(x,y-1,z);
-      if (y<height-1) _UpdatePoint(x,y+1,z);
-      if (z>0) _UpdatePoint(x,y,z-1);
-      if (z<depth-1) _UpdatePoint(x,y,z+1);
+
+      if ( x > 0 ) 
+        _UpdatePoint( x-1, y, z );        
+      if ( x < width-1 ) 
+        _UpdatePoint( x+1, y, z );
+
+      if ( y > 0 ) 
+        _UpdatePoint( x, y-1, z );
+      if ( y < height-1 ) 
+        _UpdatePoint( x, y+1, z );
+
+      if ( z > 0 ) 
+        _UpdatePoint( x, y, z-1 );
+      if ( z < depth-1 ) 
+        _UpdatePoint( x, y, z+1 );
     }
   }
 
@@ -302,6 +312,7 @@ private:
       A = B;
       B = tmp;
     }
+
     if (B>C)
     {
       const float tmp = B;
@@ -315,32 +326,41 @@ private:
       B = tmp;
     }
 
+    float returnValue = sign * ( A+1 );
+
     // On suppose sol>=C : premier trinome
     float a = 3;
     float b = -(A+B+C);
     float c = A*A + B*B + C*C - 1;
     float delta = b*b - a*c;
-    if (delta>=0)
-    {
-      const float sol = ( -b + ::sqrt(delta) ) / a;
-      // On a bien sol>=C, on a gagne
-      if (sol+EPS>=C) return sign*sol;
-    }
+    float sol = ( -b + ::sqrt(delta) ) / a;    
 
-    // On supppose B<=sol<C : deuxieme trinome
-    a = 2;
-    b = -(A+B);
-    c = A*A + B*B - 1;
-    delta = b*b - a*c;
-    if (delta>=0)
-    {
-      const float sol = ( -b + ::sqrt(delta) ) / a;
-      // On a bien sol>=B, on a gagne
-      if (sol+EPS>=B) return sign*sol;
-    }
+    // On a bien sol>=C, on a gagne
+    if( delta >= 0 && sol+EPS>=C ) {
 
+      returnValue = sign*sol;
+
+    } else {
+
+      // On supppose B<=sol<C : deuxieme trinome
+      a = 2;
+      b = -(A+B);
+      c = A*A + B*B - 1;
+      delta = b*b - a*c;
+      
+      if( delta >= 0 ) {
+        
+        const float sol = ( -b + ::sqrt(delta) ) / a;
+        // On a bien sol>=B, on a gagne
+        if( sol + EPS >= B ) {
+          returnValue = sign*sol;
+        }
+      }
+
+    }
+        
     // On suppose A<=sol<B
-    return sign*(A+1);
+    return returnValue;
   }
 
 public:
@@ -355,7 +375,7 @@ public:
       // indices in _mri that aren't equal to label will be set the limit
       mapMRI_XYZ(_mri,x,y,z)
       {
-        const int val = MRIvox( _mri, x, y, z);
+        const int val = static_cast< int >( MRIFvox( _mri, x, y, z ) );      
         
         // if the pixel value isn't the label, then set mri to be at the limit
         if( val != label )
@@ -373,12 +393,13 @@ public:
       // limit
       mapMRI_XYZ(_mri,x,y,z)
       {
-        const int val=MRIvox(_mri,x,y,z);
-        if (val==label)
-        {
-          MRIFvox(mri,x,y,z)=limit;
+        // this the the value in our label volume
+        const int voxel = static_cast< int >( MRIFvox( _mri, x, y, z ) );      
+
+        if ( voxel == label ) {
+          MRIFvox( mri, x, y, z ) = limit;
         } else {
-          MRIvox(status,x,y,z)=eForbidden;
+          MRIvox( status, x, y, z ) = eForbidden;
         }
       }
     }
@@ -394,13 +415,10 @@ public:
       const int pz = (z < depth-1) ? z+1:z;
       
       // get the values of the volume that has the label
-      //const int val1 = MRIvox( _mri, x, y, z );
-      // TODO: what if it's not a float label?  I think we need to check...
       const int val1 = static_cast< int >( MRIFvox( _mri, x, y, z ) );
 
       // this was the old way of getting the label.  It wasn't returning the
       // right results, so I changed it to the current
-      // int val2 = MRIvox( _mri, px, y, z );
       int val2 = static_cast< int >( MRIFvox( _mri, px, y, z ) );
 
       bool add = false;
