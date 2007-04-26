@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/04/03 04:11:41 $
- *    $Revision: 1.51 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/26 19:03:00 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1196,7 +1196,7 @@ MRI *
 MRIerode6(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, x1, y1, z1, xi, yi, zi;
-  BUFTYPE *pdst, min_val, val ;
+  float    min_val, val ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -1211,16 +1211,15 @@ MRIerode6(MRI *mri_src, MRI *mri_dst)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         xi = mri_src->xi[x] ;
         yi = mri_src->yi[y] ;
-        min_val = 255 ;
+        min_val = 1e10 ;
         for (z1 = -1 ; z1 <= 1 ; z1++)
         {
           zi = mri_src->zi[z+z1] ;
-          val = MRIvox(mri_src, xi, yi, zi) ;
+          val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
           if (val < min_val)
             min_val = val ;
         }
@@ -1230,7 +1229,7 @@ MRIerode6(MRI *mri_src, MRI *mri_dst)
           if (!y1)    /* already done */
             continue ;
           yi = mri_src->yi[y+y1] ;
-          val = MRIvox(mri_src, xi, yi, zi) ;
+          val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
           if (val < min_val)
             min_val = val ;
         }
@@ -1240,11 +1239,11 @@ MRIerode6(MRI *mri_src, MRI *mri_dst)
           if (!y1)    /* already done */
             continue ;
           xi = mri_src->xi[x+x1] ;
-          val = MRIvox(mri_src, xi, yi, zi) ;
+          val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
           if (val < min_val)
             min_val = val ;
         }
-        *pdst++ = min_val ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, min_val) ;
       }
     }
   }
@@ -1261,7 +1260,7 @@ MRI *
 MRIdilate6(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, x1, y1, z1, xi, yi, zi;
-  BUFTYPE *pdst, max_val, val ;
+  float   max_val, val ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -1276,16 +1275,15 @@ MRIdilate6(MRI *mri_src, MRI *mri_dst)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         xi = mri_src->xi[x] ;
         yi = mri_src->yi[y] ;
-        max_val = 0 ;
+        max_val = -1e10 ;
         for (z1 = -1 ; z1 <= 1 ; z1++)
         {
           zi = mri_src->zi[z+z1] ;
-          val = MRIvox(mri_src, xi, yi, zi) ;
+          val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
           if (val > max_val)
             max_val = val ;
         }
@@ -1295,7 +1293,7 @@ MRIdilate6(MRI *mri_src, MRI *mri_dst)
           if (!y1)    /* already done */
             continue ;
           yi = mri_src->yi[y+y1] ;
-          val = MRIvox(mri_src, xi, yi, zi) ;
+          val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
           if (val > max_val)
             max_val = val ;
         }
@@ -1305,11 +1303,11 @@ MRIdilate6(MRI *mri_src, MRI *mri_dst)
           if (!y1)    /* already done */
             continue ;
           xi = mri_src->xi[x+x1] ;
-          val = MRIvox(mri_src, xi, yi, zi) ;
+          val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
           if (val > max_val)
             max_val = val ;
         }
-        *pdst++ = max_val ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, max_val) ;
       }
     }
   }
@@ -2583,7 +2581,6 @@ int
 MRIvoxelsInLabel(MRI *mri, int label)
 {
   int     width, height, depth, x, y, z, nvox, val ;
-  BUFTYPE *pbuf ;
 
   width = mri->width ;
   height = mri->height ;
@@ -2593,7 +2590,6 @@ MRIvoxelsInLabel(MRI *mri, int label)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pbuf = &MRIvox(mri, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         val = nint(MRIgetVoxVal(mri, x, y, z, 0)) ;
