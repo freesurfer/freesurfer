@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/02 14:00:00 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/04/26 19:06:46 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/01/02 14:00:00 $
-// Revision       : $Revision: 1.10 $
+// Revision Date  : $Date: 2007/04/26 19:06:46 $
+// Revision       : $Revision: 1.11 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -65,11 +65,11 @@
 
 static int PADVOX = 1 ;
 
-static int mriLabelInVolume(MRI *mri_src, int label) ;
 static int check_angio_labels(MRI *mri_source, MRI *mri_target) ;
 static int find_gcam_node(GCA_MORPH *gcam, int label, 
 													float x_ras, float y_ras, float z_ras) ;
 
+static int surf_flag = 0 ;
 static float smooth_intensities = -1.0 ;
 static int morph_to = 0 ;
 static int find_label = -1 ;
@@ -100,7 +100,6 @@ static int target_label = 128 ;
 static int skip = 2 ;
 static double distance = 1.0 ;
 
-static int fix_intensity = 0.0 ;
 static int non_artery_labels[] =
 {
 	Left_Common_IliacV,
@@ -241,9 +240,23 @@ main(int argc, char *argv[])
 	if (!mri_source)
 		ErrorExit(ERROR_NOFILE, "%s: could not read source label volume %s",Progname, source_fname) ;
 
-	mri_target = MRIread(target_fname) ;
-	if (!mri_target)
-		ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s", Progname, target_fname) ;
+  if (surf_flag)
+  {
+    MRI_SURFACE *mris ;
+    mris = MRISread(target_fname) ;
+    if (!mri_target)
+      ErrorExit(ERROR_NOFILE, "%s: could not read target surface %s",
+                Progname, target_fname) ;
+    mri_target = MRISfillInterior(mris, .25, NULL) ;
+    MRIreplaceValues(mri_target, mri_target, 1, target_aseg_label) ;
+    MRISfree(&mris) ;
+  }
+  else
+  {
+    mri_target = MRIread(target_fname) ;
+    if (!mri_target)
+      ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s", Progname, target_fname) ;
+  }
 	mri_orig_target = MRIcopy(mri_target, NULL) ;
 
 	// crop input volumes
@@ -388,21 +401,29 @@ main(int argc, char *argv[])
 	
 	mp.max_grad = 0.3*mri_source->xsize ;
 
-	if (transform == NULL)
-		transform = TransformAlloc(LINEAR_RAS_TO_RAS, NULL) ;
-
-	if (transform->type != MORPH_3D_TYPE)  // initializing m3d from a linear transform
+	if (transform == NULL || transform->type != MORPH_3D_TYPE)  // initializing m3d from a linear transform
 	{
     double det ;
 		new_transform = 1 ;
-		lta = ((LTA *)(transform->xform)) ;
-    det = MatrixDeterminant( lta->xforms[0].m_L) ;
-		m_L = MRIrasXformToVoxelXform(mri_source, mri_target, lta->xforms[0].m_L, NULL) ;
-		MatrixFree(&lta->xforms[0].m_L) ;
+
+    if (transform == NULL)
+    {
+      transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
+      m_L = MRIgetVoxelToVoxelXform(mri_source, mri_target) ;
+      lta = ((LTA *)(transform->xform)) ;
+    }
+    else
+    {
+      lta = ((LTA *)(transform->xform)) ;
+      det = MatrixDeterminant( lta->xforms[0].m_L) ;
+      m_L = MRIrasXformToVoxelXform(mri_source, mri_target, lta->xforms[0].m_L, NULL) ;
+    }
+
+    MatrixFree(&lta->xforms[0].m_L) ;
+		lta->xforms[0].m_L = m_L ;
 		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 			write_snapshot(mri_target, mri_source, m_L, &mp, 0, 1,"linear_init");
 
-		lta->xforms[0].m_L = m_L ;
     det = MatrixDeterminant( lta->xforms[0].m_L) ;
 		printf("initializing GCAM with vox->vox matrix:\n") ;
 		MatrixPrint(stdout, m_L) ;
@@ -702,6 +723,7 @@ get_option(int argc, char *argv[])
 		regrid = atoi(argv[2]) ;
 		mp.regrid = True ;
     printf("enabling regridding...\n") ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "view"))
 	{
@@ -775,6 +797,11 @@ get_option(int argc, char *argv[])
 		printf("skipping %d voxels in source data...\n", skip) ;
 		nargs = 1 ;
 	}
+	else if (!stricmp(option, "surf"))
+	{
+    surf_flag = 1 ;
+    printf("interpreting target as a surface\n") ;
+  }
 	else if (!stricmp(option, "hippo"))
 	{
 		which = HIPPO ;
@@ -985,6 +1012,7 @@ estimate_densities(GCA_MORPH *gcam, MRI *mri_target, MRI *mri_intensities, MRI *
 	GCAM_LABEL_TRANSLATION_TABLE gcam_ltt ;
 	int                          i ;
 
+  memset(&gcam_ltt, 0, sizeof(gcam_ltt)) ;
 	gcam_ltt.nlabels = 0 ;
 
 	memset(gcam_ltt.means, 0, sizeof(gcam_ltt.means)) ;
@@ -995,225 +1023,277 @@ estimate_densities(GCA_MORPH *gcam, MRI *mri_target, MRI *mri_intensities, MRI *
   gcam_ltt.input_labels[gcam_ltt.nlabels] = alveus ;
   gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
 	gcam_ltt.scales[gcam_ltt.nlabels] = 1.0 /* .95 */ ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 530 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
-			gcam_ltt.nlabels++ ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+  {
+    gcam_ltt.second_labels[gcam_ltt.nlabels] = Left_Hippocampus ;
+    gcam_ltt.second_label_pct[gcam_ltt.nlabels] = .25 ;
+    gcam_ltt.nlabels++ ;
+  }
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = left_alveus ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Cerebral_White_Matter ;
+	gcam_ltt.scales[gcam_ltt.nlabels] = 1.0 /* .95 */ ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+  {
+    gcam_ltt.second_labels[gcam_ltt.nlabels] = Left_Hippocampus ;
+    gcam_ltt.second_label_pct[gcam_ltt.nlabels] = .25 ;
+    gcam_ltt.nlabels++ ;
+  }
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = right_alveus ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
+	gcam_ltt.scales[gcam_ltt.nlabels] = 1.0 /* .95 */ ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+  {
+    gcam_ltt.second_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+    gcam_ltt.second_label_pct[gcam_ltt.nlabels] = .25 ;
+    gcam_ltt.nlabels++ ;
+  }
+
   gcam_ltt.input_labels[gcam_ltt.nlabels] = perforant_pathway ;
   gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
 	gcam_ltt.scales[gcam_ltt.nlabels] = 1.0 /* .95 */ ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 640 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
   gcam_ltt.input_labels[gcam_ltt.nlabels] = parasubiculum ;
   gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
+
   gcam_ltt.input_labels[gcam_ltt.nlabels] = presubiculum ;
   gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
   gcam_ltt.input_labels[gcam_ltt.nlabels] = subiculum ;
   gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
+
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = right_presubiculum ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = left_presubiculum ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Hippocampus ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = right_subiculum ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = left_subiculum ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Hippocampus ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+
   gcam_ltt.input_labels[gcam_ltt.nlabels] = CA1 ;
   gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
+
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = right_CA1 ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = left_CA1 ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Hippocampus ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+
+
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = right_CA2_3 ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = left_CA2_3 ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Hippocampus ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = right_CA4_DG ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = left_CA4_DG ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Hippocampus ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+
   gcam_ltt.input_labels[gcam_ltt.nlabels] = CA2 ;
   gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
   gcam_ltt.input_labels[gcam_ltt.nlabels] = CA3 ;
   gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
   gcam_ltt.input_labels[gcam_ltt.nlabels] = CA4 ;
   gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = GC_DG ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = HATA ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
+
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = left_fimbria ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Cerebral_White_Matter ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+  {
+    gcam_ltt.second_labels[gcam_ltt.nlabels] = Left_Hippocampus ;
+    gcam_ltt.second_label_pct[gcam_ltt.nlabels] = .25 ;
+		gcam_ltt.nlabels++ ;
+  }
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = right_fimbria ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+  {
+    gcam_ltt.second_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+    gcam_ltt.second_label_pct[gcam_ltt.nlabels] = .25 ;
+		gcam_ltt.nlabels++ ;
+  }
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = fimbria ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 530 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+  {
+    gcam_ltt.second_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+    gcam_ltt.second_label_pct[gcam_ltt.nlabels] = .25 ;
 		gcam_ltt.nlabels++ ;
+  }
+
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = lateral_ventricle ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Lateral_Ventricle ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = molecular_layer_HP ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
+
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = hippocampal_fissure ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Inf_Lat_Vent ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 525 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = right_hippocampal_fissure ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Inf_Lat_Vent ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = left_hippocampal_fissure ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Inf_Lat_Vent ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = entorhinal_cortex ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_Cortex ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = molecular_layer_subiculum ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Amygdala ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Cerebral_White_Matter ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 580 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Cerebral_Cortex ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_Cortex ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Inf_Lat_Vent ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Inf_Lat_Vent ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 
+#if 0
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Left_hippocampal_fissure ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Inf_Lat_Vent ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Left_CADG_head ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Left_subiculum ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Left_fimbria ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Cerebral_White_Matter ;
 	gcam_ltt.scales[gcam_ltt.nlabels] = 1.0 /* .95 */ ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+  {
+    gcam_ltt.second_labels[gcam_ltt.nlabels] = Left_Hippocampus ;
+    gcam_ltt.second_label_pct[gcam_ltt.nlabels] = .25 ;
 		gcam_ltt.nlabels++ ;
+  }
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Right_hippocampal_fissure ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Inf_Lat_Vent ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 540 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Right_CADG_head ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Right_subiculum ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Right_fimbria ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
 	gcam_ltt.scales[gcam_ltt.nlabels] = 1.0 /* .95 */ ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 690 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+  {
+    gcam_ltt.second_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+    gcam_ltt.second_label_pct[gcam_ltt.nlabels] = .25 ;
 		gcam_ltt.nlabels++ ;
+  }
+#endif
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Right_choroid_plexus ;
-	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Inf_Lat_Vent ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+  {
+    gcam_ltt.second_labels[gcam_ltt.nlabels] = Right_Inf_Lat_Vent ;
+    gcam_ltt.second_label_pct[gcam_ltt.nlabels] = .25 ;
 		gcam_ltt.nlabels++ ;
+  }
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Left_choroid_plexus ;
-	gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Inf_Lat_Vent ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Hippocampus ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+  {
+    gcam_ltt.second_labels[gcam_ltt.nlabels] = Left_Inf_Lat_Vent ;
+    gcam_ltt.second_label_pct[gcam_ltt.nlabels] = .25 ;
 		gcam_ltt.nlabels++ ;
+  }
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Left_Thalamus ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Thalamus_Proper ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Right_Thalamus ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Thalamus_Proper ;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = Conn_Tissue ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Lateral_Ventricle;
-	if (fix_intensity)
-		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
-	if (mriLabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
 		gcam_ltt.nlabels++ ;
 
 
@@ -1345,16 +1425,4 @@ MRImapRegionToTargetMRI(MRI *mri_src, MRI *mri_dst, MRI_REGION *box)
 	box->dx = xmax-xmin+1 ; box->dy = ymax-ymin+1 ; box->dz = zmax-zmin+1 ; 
 	MatrixFree(&m_vox2vox) ; VectorFree(&v1) ; VectorFree(&v2) ;
 	return(NO_ERROR) ;
-}
-static int
-mriLabelInVolume(MRI *mri_src, int label)
-{
-	int x, y, z ;
-
-	for (x = 0 ; x < mri_src->width ; x++)
-		for (y = 0 ; y < mri_src->height ; y++)
-			for (z = 0 ; z < mri_src->depth ; z++)
-				if ((int)MRIgetVoxVal(mri_src, x, y, z, 0) == label)
-					return(1) ;
-	return(0) ;
 }
