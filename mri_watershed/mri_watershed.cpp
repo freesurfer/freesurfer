@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: nommert $
- *    $Date: 2007/04/19 13:52:29 $
- *    $Revision: 1.63 $
+ *    $Author: nicks $
+ *    $Date: 2007/04/26 22:47:37 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-char *MRI_WATERSHED_VERSION = "$Revision: 1.63 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.64 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -841,7 +841,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.63 2007/04/19 13:52:29 nommert Exp $", 
+   "$Id: mri_watershed.cpp,v 1.64 2007/04/26 22:47:37 nicks Exp $", 
    "$Name:  $",
    cmdline);
 
@@ -854,7 +854,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.63 2007/04/19 13:52:29 nommert Exp $", 
+           "$Id: mri_watershed.cpp,v 1.64 2007/04/26 22:47:37 nicks Exp $", 
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -5012,8 +5012,7 @@ static void analyseGM(unsigned long CSF_percent[6][256],
   else
     MRI_var->GM_MIN[i]=int(MAX(0,-b/a));
 #ifndef __OPTIMIZE__
-
-
+  int j;
   fprintf(stdout,"\ngmnumber lead for :GLOBAL Rc Lc Rb Lb OTHER ");
   for (j=0;j<6;j++)
     fprintf(stdout, "\n    GM_intensity = %d, GM_MIN = %d\n",
