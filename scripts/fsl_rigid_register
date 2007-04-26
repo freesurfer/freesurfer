@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/04/26 05:42:09 $
-#    $Revision: 1.22 $
+#    $Date: 2007/04/26 06:31:05 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 #
 
-set VERSION = '$Id: fsl_rigid_register,v 1.22 2007/04/26 05:42:09 greve Exp $';
+set VERSION = '$Id: fsl_rigid_register,v 1.23 2007/04/26 06:31:05 greve Exp $';
 
 setenv FSLOUTPUTTYPE NIFTI
 
@@ -52,6 +52,7 @@ set fslmatfile = ();
 set regmatfile = ();
 set xfmmatfile = ();
 set ltamatfile = ();
+set subject = (); # only for regmat output
 
 # To left-right reverse the input volume, know what you are doing
 set LeftRightReverse = 0; # Change with -left-right-reverse (uses 12 dof)
@@ -211,6 +212,7 @@ if($#applyxfm == 0) then
     set cmd = ($cmd --fslreg $fslmatfile)
     set cmd = ($cmd --noedit);
     if($#xfmmatfile)  set cmd = ($cmd --xfmout $xfmmatfile);
+    if($#subject)     set cmd = ($cmd --s $subject); # just puts it in register.dat
     echo "--------------------------------------"
     pwd
     echo $cmd
@@ -292,6 +294,12 @@ while( $#argv != 0 )
     case "-regmat":
       if ( $#argv < 1) goto arg1err;
       set regmatfile = $argv[1]; shift;
+      breaksw
+
+    case "-subject":
+      # Just for putting in register.dat
+      if ( $#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
       breaksw
 
     case "-xfmmat":
@@ -495,6 +503,7 @@ usage_exit:
   echo "   -tmpdir  tmpdir : same as -tmp"
   echo "   -nocleanup  : do not delete temporary files"
   echo "   -cleanup  : delete temporary files (default)"
+  echo "   -subject subject  : only puts it in the register.dat file"
   echo ""
   echo "   -version : print version and exit"
   echo "   -help    : print help and exit"
