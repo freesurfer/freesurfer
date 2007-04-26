@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/13 13:23:42 $
- *    $Revision: 1.80 $
+ *    $Date: 2007/04/26 18:18:54 $
+ *    $Revision: 1.81 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -94,7 +94,7 @@ typedef struct
   float   *means ;
   float   *covars ;
   float   **label_priors ;
-  unsigned char    **labels ;
+  unsigned short    **labels ;
   short   *nlabels;
   short   n_just_priors ;
   int     ntraining ;
@@ -106,7 +106,7 @@ typedef struct
 {
   short nlabels ;
   short max_labels ;
-  unsigned char  *labels ;
+  unsigned short  *labels ;
   float *priors ;
   int   total_training ;
 }
@@ -116,7 +116,7 @@ typedef struct
 {
   int  nlabels ;
   int  max_labels ;   /* amount allocated */
-  unsigned char *labels ;
+  unsigned short *labels ;
   GC1D *gcs ;
   int  total_training ;  /* total # of times this node was was accessed */
 }
@@ -383,6 +383,8 @@ void GCAsetVolGeom(GCA *gca, VOL_GEOM *vg);
 int GCAregularizeCovarianceMatrices(GCA *gca, double lambda) ;
 int GCAreplaceRightWithLeft(GCA *gca) ;
 int GCAcomputeLabelStats(GCA *gca, int target_label, float *pvar, float *means);
+float GCAcomputeLabelLikelihood(GCA *gca, TRANSFORM *transform, MRI *mri, 
+                                float x, float y, float z, int label) ;
 float GCAcomputeLabelPosterior(GCA *gca, TRANSFORM *transform, MRI *mri, float x, float y, float z, int label) ;
 GCA_NODE *GCAbuildRegionalGCAN(GCA *gca, int x, int y, int z, int wsize) ;
 int set_mean_vector(GC1D *gc, VECTOR *v_means, int ninputs) ;
