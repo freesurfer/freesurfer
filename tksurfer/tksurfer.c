@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/25 19:14:17 $
- *    $Revision: 1.270 $
+ *    $Date: 2007/04/26 21:53:10 $
+ *    $Revision: 1.271 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2333,8 +2333,16 @@ int  mai(int argc,char *argv[])
       scriptok = TRUE;
     }
     /* end rkt */
-    else
+    else {
       nargs = 0 ;
+      if(i >= 4){
+	printf("WARNING: flag %s unrecognized\n",argv[i]);
+	if(getenv("TK_EXIT_ON_CMD_ERROR")!=NULL){
+	  printf("  ... and exiting because of it.\n");
+	  exit(1);
+	}
+      }
+    }
     if (nargs > 0) {
       if (argc-(nargs+i) > 0)
         memmove(argv+i, argv+i+nargs, (argc-(nargs+i))*sizeof(char*)) ;
@@ -17216,7 +17224,7 @@ void
 print_help_tksurfer(void) {
   printf("usage: tksurfer subject hemisphere surface [options]\n");
   printf("\n");
-  printf("surface    : a subject directory in the SUBJECTS_DIR path\n");
+  printf("subject    : a subject directory in the SUBJECTS_DIR path\n");
   printf("hemipshere : rh or lh\n");
   printf("surface    : a surface file name relative to the "
          "subject's surf directory\n");
@@ -19227,7 +19235,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.270 2007/04/25 19:14:17 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.271 2007/04/26 21:53:10 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
