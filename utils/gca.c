@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/13 13:22:49 $
- *    $Revision: 1.222 $
+ *    $Date: 2007/04/26 18:17:33 $
+ *    $Revision: 1.223 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1521,8 +1521,8 @@ gcaAllocMax(int ninputs,
                       gcan->max_labels) ;
           // allocate label storage up to max_labels
           gcan->labels =
-            (unsigned char *)calloc(gcan->max_labels,
-                                    sizeof(unsigned char)) ;
+            (unsigned short *)calloc(gcan->max_labels,
+                                    sizeof(unsigned short)) ;
           if (!gcan->labels)
             ErrorExit(ERROR_NOMEMORY,
                       "GCANalloc: couldn't allocate labels to %d",
@@ -1562,8 +1562,8 @@ gcaAllocMax(int ninputs,
           /* allocate new ones */
           // allocate label space
           gcap->labels =
-            (unsigned char *)calloc(max_labels,
-                                    sizeof(unsigned char)) ;
+            (unsigned short *)calloc(max_labels,
+                                    sizeof(unsigned short)) ;
           if (!gcap->labels)
             ErrorExit(ERROR_NOMEMORY, \
                       "GCANalloc: couldn't allocate labels to %d",
@@ -2281,8 +2281,8 @@ GCAread(char *fname)
           if (gcan->nlabels)
           {
             gcan->labels = \
-                           (unsigned char *)calloc(gcan->nlabels,
-                                                   sizeof(unsigned char)) ;
+                           (unsigned short *)calloc(gcan->nlabels,
+                                                   sizeof(unsigned short)) ;
             if (!gcan->labels)
               ErrorExit(ERROR_NOMEMORY,
                         "GCAread(%s): could not allocate %d "
@@ -2305,7 +2305,7 @@ GCAread(char *fname)
           {
             int r, c;
             gc = &gcan->gcs[n] ;
-            gcan->labels[n] = (unsigned char)fgetc(fp) ;
+            gcan->labels[n] = (unsigned short)fgetc(fp) ;
             for (r = 0 ; r < gca->ninputs ; r++)
               gc->means[r] = freadFloat(fp) ;
             for (i = r = 0 ; r < gca->ninputs ; r++)
@@ -2326,8 +2326,8 @@ GCAread(char *fname)
                           "couldn't expand gcs to %d",
                           fname,gc->nlabels) ;
               gc->labels[i] =
-                (unsigned char *)calloc(gc->nlabels[i], \
-                                        sizeof(unsigned char)) ;
+                (unsigned short *)calloc(gc->nlabels[i], \
+                                        sizeof(unsigned short)) ;
               if (!gc->labels)
                 ErrorExit(ERROR_NOMEMORY,
                           "GCAread(%s): couldn't expand "
@@ -2336,7 +2336,7 @@ GCAread(char *fname)
 #endif
               for (j = 0 ; j < gc->nlabels[i] ; j++)
               {
-                gc->labels[i][j] = (unsigned char)freadInt(fp) ;
+                gc->labels[i][j] = (unsigned short)freadInt(fp) ;
                 gc->label_priors[i][j] = freadFloat(fp) ;
               }
             }
@@ -2389,8 +2389,8 @@ GCAread(char *fname)
           if (gcan->nlabels)
           {
             gcan->labels =
-              (unsigned char *)calloc(gcan->nlabels,
-                                      sizeof(unsigned char)) ;
+              (unsigned short *)calloc(gcan->nlabels,
+                                      sizeof(unsigned short)) ;
             if (!gcan->labels)
               ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not "
                         "allocate %d "
@@ -2416,7 +2416,7 @@ GCAread(char *fname)
 
             gc = &gcan->gcs[n] ;
 
-            gcan->labels[n] = (unsigned char)fgetc(fp) ;
+            gcan->labels[n] = (unsigned short)fgetc(fp) ;
 
             for (r = 0 ; r < gca->ninputs ; r++)
               gc->means[r] = freadFloat(fp) ;
@@ -2437,8 +2437,8 @@ GCAread(char *fname)
                           "couldn't expand gcs to %d",
                           fname,gc->nlabels) ;
               gc->labels[i] =
-                (unsigned char *)calloc(gc->nlabels[i], \
-                                        sizeof(unsigned char)) ;
+                (unsigned short *)calloc(gc->nlabels[i], \
+                                        sizeof(unsigned short)) ;
               if (!gc->labels)
                 ErrorExit(ERROR_NOMEMORY,
                           "GCAread(%s): couldn't expand "
@@ -2446,7 +2446,7 @@ GCAread(char *fname)
                           fname, gc->nlabels[i]) ;
               for (j = 0 ; j < gc->nlabels[i] ; j++)
               {
-                gc->labels[i][j] = (unsigned char)freadInt(fp) ;
+                gc->labels[i][j] = (unsigned short)freadInt(fp) ;
                 gc->label_priors[i][j] = freadFloat(fp) ;
               }
             }
@@ -2471,8 +2471,8 @@ GCAread(char *fname)
           if (gcap->nlabels)
           {
             gcap->labels =
-              (unsigned char *)calloc(gcap->nlabels, \
-                                      sizeof(unsigned char)) ;
+              (unsigned short *)calloc(gcap->nlabels, \
+                                      sizeof(unsigned short)) ;
             if (!gcap->labels)
               ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not "
                         "allocate %d "
@@ -2493,7 +2493,7 @@ GCAread(char *fname)
           }
           for (n = 0 ; n < gcap->nlabels ; n++)
           {
-            gcap->labels[n] = (unsigned char)fgetc(fp) ;
+            gcap->labels[n] = (unsigned short)fgetc(fp) ;
             gcap->priors[n] = freadFloat(fp) ;
           }
         }
@@ -2663,7 +2663,7 @@ GCAupdatePrior(GCA *gca, MRI *mri, int xn, int yn, int zn, int label)
     if (n >= gcap->max_labels)
     {
       int  old_max_labels ;
-      unsigned char *old_labels ;
+      unsigned short *old_labels ;
       float *old_priors ;
 
       old_max_labels = gcap->max_labels ;
@@ -2679,7 +2679,7 @@ GCAupdatePrior(GCA *gca, MRI *mri, int xn, int yn, int zn, int label)
                   "GCANupdatePriors: couldn't expand priors to %d",
                   gcap->max_labels) ;
       gcap->labels =
-        (unsigned char *)calloc(gcap->max_labels, sizeof(unsigned char)) ;
+        (unsigned short *)calloc(gcap->max_labels, sizeof(unsigned short)) ;
       if (!gcap->labels)
         ErrorExit(ERROR_NOMEMORY,
                   "GCANupdatePriors: couldn't expand labels to %d",
@@ -2688,7 +2688,7 @@ GCAupdatePrior(GCA *gca, MRI *mri, int xn, int yn, int zn, int label)
       /* copy the old ones over */
       memmove(gcap->priors, old_priors, old_max_labels*sizeof(float)) ;
       memmove(gcap->labels, old_labels,
-              old_max_labels*sizeof(unsigned char)) ;
+              old_max_labels*sizeof(unsigned short)) ;
 
       /* free the old ones */
       free(old_priors) ;
@@ -2836,7 +2836,7 @@ GCAupdateNode(GCA *gca, MRI *mri,
     if (n >= gcan->max_labels)
     {
       int  old_max_labels ;
-      unsigned char *old_labels ;
+      unsigned short *old_labels ;
       GC1D *old_gcs ;
 
       old_max_labels = gcan->max_labels ;
@@ -2856,7 +2856,7 @@ GCAupdateNode(GCA *gca, MRI *mri,
                   "GCANupdateNode: couldn't expand gcs to %d",
                   gcan->max_labels) ;
       gcan->labels =
-        (unsigned char *)calloc(gcan->max_labels, sizeof(unsigned char)) ;
+        (unsigned short *)calloc(gcan->max_labels, sizeof(unsigned short)) ;
       if (!gcan->labels)
         ErrorExit(ERROR_NOMEMORY,
                   "GCANupdateNode: couldn't expand labels to %d",
@@ -2869,7 +2869,7 @@ GCAupdateNode(GCA *gca, MRI *mri,
       copy_gcs(old_max_labels, old_gcs, gcan->gcs, gca->ninputs) ;
 #endif
       memmove(gcan->labels, old_labels,
-              old_max_labels*sizeof(unsigned char)) ;
+              old_max_labels*sizeof(unsigned short)) ;
 
       /* free the old ones */
       free(old_gcs) ;
@@ -3804,8 +3804,8 @@ GCAreduce(GCA *gca_src)
                           "GCANreduce: couldn't expand gcs to %d",
                           gcan_dst->max_labels) ;
               gcan_dst->labels =
-                (unsigned char *)calloc(gcan_dst->max_labels,
-                                        sizeof(unsigned char)) ;
+                (unsigned short *)calloc(gcan_dst->max_labels,
+                                        sizeof(unsigned short)) ;
               if (!gcan_dst->labels)
                 ErrorExit(ERROR_NOMEMORY,
                           "GCANupdateNode: couldn't expand "
@@ -3822,7 +3822,7 @@ GCAreduce(GCA *gca_src)
 #endif
 
               memmove(gcan_dst->labels, old_labels,
-                      old_max_labels*sizeof(unsigned char)) ;
+                      old_max_labels*sizeof(unsigned short)) ;
 
               /* free the old ones */
               free(old_gcs) ;
@@ -5503,7 +5503,7 @@ GCAlabelMri(GCA *gca, MRI *mri, int label, TRANSFORM *transform)
                            " type %d",
                            mri->type)) ;
             case MRI_UCHAR:
-              MRIseq_vox(mri, x, y, z,frame) = (unsigned char)val ;
+              MRIseq_vox(mri, x, y, z,frame) = (unsigned short)val ;
               break ;
             case MRI_SHORT:
               MRISseq_vox(mri, x, y, z,frame) = (short)val ;
@@ -6197,7 +6197,7 @@ GCAupdateNodeGibbsPriors(GCA *gca, MRI*mri, int xn, int yn, int zn,
     if (n >= gc->nlabels[i])   /* not there - reallocate stuff */
     {
 #if 1
-      unsigned char *old_labels ;
+      unsigned short *old_labels ;
       float *old_label_priors ;
 
       old_labels = gc->labels[i] ;
@@ -6210,7 +6210,7 @@ GCAupdateNodeGibbsPriors(GCA *gca, MRI*mri, int xn, int yn, int zn,
         ErrorExit(ERROR_NOMEMORY, "GCAupdateNodeGibbsPriors: "
                   "couldn't expand gcs to %d" ,gc->nlabels[i]+1) ;
       gc->labels[i] =
-        (unsigned char *)calloc(gc->nlabels[i]+1, sizeof(unsigned char)) ;
+        (unsigned short *)calloc(gc->nlabels[i]+1, sizeof(unsigned short)) ;
       if (!gc->labels[i])
         ErrorExit(ERROR_NOMEMORY,
                   "GCANupdateNode: couldn't expand labels to %d",
@@ -6221,7 +6221,7 @@ GCAupdateNodeGibbsPriors(GCA *gca, MRI*mri, int xn, int yn, int zn,
         memmove(gc->label_priors[i], old_label_priors,
                 gc->nlabels[i]*sizeof(float)) ;
         memmove(gc->labels[i], old_labels,
-                gc->nlabels[i]*sizeof(unsigned char)) ;
+                gc->nlabels[i]*sizeof(unsigned short)) ;
 
         /* free the old ones */
         free(old_label_priors) ;
@@ -9867,6 +9867,9 @@ GCAlabelProbability(MRI *mri_src, GCA *gca, TRANSFORM *transform,
 
     load_vals(mri_src, x, y, z, vals, gca->ninputs) ;
     gc = GCAfindGC(gca, xn, yn, zn, label) ;
+    if (gc == NULL || gc->ntraining == 0)
+      gc = findClosestValidGC(gca, xn, yn, zn, label, 0) ;
+
     if (gc == NULL)
       plabel = 0.0 ;
     else
@@ -10585,6 +10588,7 @@ cma_label_to_name(int label)
     return("Cerebral_Cortex") ;
   if (label == Inf_Lat_Vent  )
     return("Inf_Lat_Vent") ;
+#if 0
   if (Left_hippocampal_fissure == label)
     return("Left_hippocampal_fissure") ;
   if (Left_CADG_head == label)
@@ -10601,8 +10605,62 @@ cma_label_to_name(int label)
     return("Right_subiculum") ;
   if (Right_fimbria == label)
     return("Right_fimbria") ;
+#endif
   if (Fornix == label)
     return("Fornix") ;
+
+  if (label == V1)
+    return("V1") ;
+  if (label == V2)
+    return("V2") ;
+  if (label == BA44)
+    return("BA44") ;
+  if (label == BA45)
+    return("BA45") ;
+  if (label == BA4a)
+    return("BA4a") ;
+  if (label == BA4p)
+    return("BA4p") ;
+  if (label == BA6)
+    return("BA6") ;
+  if (label == BA2)
+    return("BA2") ;
+  if (label == BAun1)
+    return("BAun1") ;
+  if (label == BAun2)
+    return("BAun2") ;
+  if (label == right_CA2_3)
+    return("right_CA2_3") ;
+  if (label == right_alveus)
+    return("right_alveus") ;
+  if (label == right_CA1)
+    return("right_CA1") ;
+  if (label == right_fimbria)
+    return("right_fimbria") ;
+  if (label == right_presubiculum)
+    return("right_presubiculum") ;
+  if (label == right_hippocampal_fissure)
+    return("right_hippocampal_fissure") ;
+  if (label == right_CA4_DG)
+    return("right_CA4_DG") ;
+  if (label == right_subiculum)
+    return("right_subiculum") ;
+  if (label == left_CA2_3)
+    return("left_CA2_3") ;
+  if (label == left_alveus)
+    return("left_alveus") ;
+  if (label == left_CA1)
+    return("left_CA1") ;
+  if (label == left_fimbria)
+    return("left_fimbria") ;
+  if (label == left_presubiculum)
+    return("left_presubiculum") ;
+  if (label == left_hippocampal_fissure)
+    return("left_hippocampal_fissure") ;
+  if (label == left_CA4_DG)
+    return("left_CA4_DG") ;
+  if (label == left_subiculum)
+    return("left_subiculum") ;
 
   return(name) ;
 }
@@ -12688,51 +12746,61 @@ static GC1D *
 findClosestValidGC(GCA *gca, int x0, int y0, int z0, int label, int check_var)
 {
   GC1D       *gc, *gc_min ;
-  int        x, y, z, n ;
+  int        x, y, z, n, wsize ;
   double     dist, min_dist, det ;
   GCA_NODE   *gcan ;
   MATRIX     *m_cov_inv ;
 
   min_dist = gca->node_width+gca->node_height+gca->node_depth ;
+  wsize = 1 ;
   gc_min = NULL ;
-#define WSIZE 3
-  for (x = x0-WSIZE ; x <= x0+WSIZE ; x++)
+  do
   {
-    if (x < 0 || x >= gca->node_width)
-      continue ;
-    for (y = y0-WSIZE ; y <= y0+WSIZE ; y++)
+    for (x = x0-wsize ; x <= x0+wsize ; x++)
     {
-      if (y < 0 || y >= gca->node_height)
+      if (x < 0 || x >= gca->node_width)
         continue ;
-      for (z = z0-WSIZE ; z <= z0+WSIZE  ; z++)
+      for (y = y0-wsize ; y <= y0+wsize ; y++)
       {
-        if (z < 0 || z >= gca->node_depth)
+        if (y < 0 || y >= gca->node_height)
           continue ;
-        gcan = &gca->nodes[x][y][z] ;
-        for (n = 0 ; n < gcan->nlabels && min_dist > 1 ; n++)
+        for (z = z0-wsize ; z <= z0+wsize  ; z++)
         {
-          if (gcan->labels[n] != label)
-            continue ;
-          gc = &gcan->gcs[n] ;
-          det = covariance_determinant(gc, gca->ninputs) ;
-          m_cov_inv =
-            load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
-          if (m_cov_inv == NULL)
-            det = -1 ;
-          else
-            MatrixFree(&m_cov_inv) ;
-          if (check_var && det <= MIN_DET)
+          if (z < 0 || z >= gca->node_depth)
             continue ;
           dist = sqrt(SQR(x-x0)+SQR(y-y0)+SQR(z-z0)) ;
-          if (dist < min_dist)
+          if (dist < wsize-2)
+            continue ;  // already checked
+
+          gcan = &gca->nodes[x][y][z] ;
+          for (n = 0 ; n < gcan->nlabels ; n++)
           {
-            gc_min = gc ;
-            min_dist = dist ;
+            if (gcan->labels[n] != label)
+              continue ;
+            gc = &gcan->gcs[n] ;
+            det = covariance_determinant(gc, gca->ninputs) ;
+            m_cov_inv =
+              load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
+            if (m_cov_inv == NULL)
+              det = -1 ;
+            else
+              MatrixFree(&m_cov_inv) ;
+            if ((check_var && det <= MIN_DET) || gc->ntraining == 0)
+              continue ;
+            if (dist < min_dist)
+            {
+              gc_min = gc ;
+              min_dist = dist ;
+              if (FEQUAL(dist, 1.0))
+                return(gc_min) ;
+            }
           }
         }
       }
     }
-  }
+    wsize += 2 ;   // search next ring
+  } while (gc_min == NULL) ;
+
   if (gc_min)   /* found one in immediate nbhd */
     return(gc_min) ;
 
@@ -12750,7 +12818,7 @@ findClosestValidGC(GCA *gca, int x0, int y0, int z0, int label, int check_var)
             continue ;
           gc = &gcan->gcs[n] ;
           det = covariance_determinant(gc, gca->ninputs) ;
-          if (check_var && det <= 0)
+          if ((check_var && det <= 0) || gc->ntraining == 0)
             continue ;
           dist = sqrt(SQR(x-x0)+SQR(y-y0)+SQR(z-z0)) ;
           if (dist < min_dist)
@@ -13257,7 +13325,7 @@ alloc_gcs(int nlabels, int flags, int ninputs)
   {
     gcs[i].nlabels = (short *)calloc(GIBBS_NEIGHBORHOOD, sizeof(short)) ;
     gcs[i].labels =
-      (unsigned char **)calloc(GIBBS_NEIGHBORHOOD, sizeof(unsigned char *)) ;
+      (unsigned short **)calloc(GIBBS_NEIGHBORHOOD, sizeof(unsigned short *)) ;
     gcs[i].label_priors =
       (float **)calloc(GIBBS_NEIGHBORHOOD, sizeof(float *)) ;
     if (!gcs[i].nlabels || !gcs[i].labels || !gcs[i].label_priors)
@@ -13322,8 +13390,8 @@ copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs)
         gcs_dst[i].label_priors[j] =
           (float *)calloc(gcs_src[i].nlabels[j],sizeof(float)) ;
         gcs_dst[i].labels[j] =
-          (unsigned char *)calloc(gcs_src[i].nlabels[j],
-                                  sizeof(unsigned char)) ;
+          (unsigned short *)calloc(gcs_src[i].nlabels[j],
+                                  sizeof(unsigned short)) ;
         if (!gcs_dst[i].label_priors[j] || !gcs_dst[i].labels[j])
           ErrorExit(ERROR_NOMEMORY,
                     "copy_gcs(%d): i=%d, j=%d, could not gibbs\n",
@@ -13988,8 +14056,8 @@ GCAcreateWeightedFlashGCAfromParameterGCA(GCA *gca_T1PD,
           free(gcap_dst->labels) ;
 
           gcap_dst->labels =
-            (unsigned char *)calloc(gcap_src->nlabels,
-                                    sizeof(unsigned char)) ;
+            (unsigned short *)calloc(gcap_src->nlabels,
+                                    sizeof(unsigned short)) ;
           if (!gcap_dst->labels)
             ErrorExit(ERROR_NOMEMORY,
                       "GCAcreateWeightedFlashGCAfromParameterGCA:"
@@ -14037,8 +14105,8 @@ GCAcreateWeightedFlashGCAfromParameterGCA(GCA *gca_T1PD,
                    gca_flash->ninputs) ;
 
           gcan_dst->labels =
-            (unsigned char *)calloc(gcan_src->nlabels,
-                                    sizeof(unsigned char)) ;
+            (unsigned short *)calloc(gcan_src->nlabels,
+                                    sizeof(unsigned short)) ;
           if (!gcan_dst->labels)
             ErrorExit(ERROR_NOMEMORY,
                       "GCAcreateWeightedFlashGCAfromParameterGCA:"
@@ -14067,8 +14135,8 @@ GCAcreateWeightedFlashGCAfromParameterGCA(GCA *gca_T1PD,
                         "GCAcreateWeightedFlashGCAfromParameterGCA: "
                         "to %d",gc_src->nlabels[i]);
             gc_dst->labels[i] =
-              (unsigned char *)calloc(gc_src->nlabels[i], \
-                                      sizeof(unsigned char)) ;
+              (unsigned short *)calloc(gc_src->nlabels[i], \
+                                      sizeof(unsigned short)) ;
             if (!gc_dst->labels)
               ErrorExit(ERROR_NOMEMORY,
                         "GCAcreateWeightedFlashGCAfromParameterGCA:"
@@ -14221,8 +14289,8 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD,
           free(gcap_dst->labels) ;
 
           gcap_dst->labels =
-            (unsigned char *)calloc(gcap_src->nlabels,
-                                    sizeof(unsigned char)) ;
+            (unsigned short *)calloc(gcap_src->nlabels,
+                                    sizeof(unsigned short)) ;
           if (!gcap_dst->labels)
             ErrorExit(ERROR_NOMEMORY,
                       "GCAcreateFlashGCAfromParameterGCA: "
@@ -14270,8 +14338,8 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD,
                    gca_flash->ninputs) ;
 
           gcan_dst->labels =
-            (unsigned char *)calloc(gcan_src->nlabels,
-                                    sizeof(unsigned char)) ;
+            (unsigned short *)calloc(gcan_src->nlabels,
+                                    sizeof(unsigned short)) ;
           if (!gcan_dst->labels)
             ErrorExit(ERROR_NOMEMORY,
                       "GCAcreateFlashGCAfromParameterGCA: "
@@ -14299,8 +14367,8 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD,
                         "GCAcreateFlashGCAfromParameterGCA: to %d",
                         gc_src->nlabels[i]);
             gc_dst->labels[i] =
-              (unsigned char *)calloc(gc_src->nlabels[i], \
-                                      sizeof(unsigned char)) ;
+              (unsigned short *)calloc(gc_src->nlabels[i], \
+                                      sizeof(unsigned short)) ;
             if (!gc_dst->labels)
               ErrorExit(ERROR_NOMEMORY,
                         "GCAcreateFlashGCAfromParameterGCA: to %d",
@@ -14785,8 +14853,8 @@ GCAcreateFlashGCAfromFlashGCA(GCA *gca_flash_src,
           free(gcap_dst->labels) ;
 
           gcap_dst->labels =
-            (unsigned char *)calloc(gcap_src->nlabels,
-                                    sizeof(unsigned char)) ;
+            (unsigned short *)calloc(gcap_src->nlabels,
+                                    sizeof(unsigned short)) ;
           if (!gcap_dst->labels)
             ErrorExit(ERROR_NOMEMORY,
                       "GCAcreateFlashGCAfromFlashGCA: "
@@ -14848,8 +14916,8 @@ GCAcreateFlashGCAfromFlashGCA(GCA *gca_flash_src,
           }
 
           gcan_dst->labels =
-            (unsigned char *)calloc(gcan_src->nlabels,
-                                    sizeof(unsigned char)) ;
+            (unsigned short *)calloc(gcan_src->nlabels,
+                                    sizeof(unsigned short)) ;
           if (!gcan_dst->labels)
             ErrorExit(ERROR_NOMEMORY, "GCAcreateFlashGCAfromFlashGCA: "
                       "couldn't allocate %d labels",
@@ -14875,8 +14943,8 @@ GCAcreateFlashGCAfromFlashGCA(GCA *gca_flash_src,
                         "GCAcreateFlashGCAfromFlashGCA: to %d",
                         gc_src->nlabels[i]);
             gc_dst->labels[i] =
-              (unsigned char *)calloc(gc_src->nlabels[i],
-                                      sizeof(unsigned char)) ;
+              (unsigned short *)calloc(gc_src->nlabels[i],
+                                      sizeof(unsigned short)) ;
             if (!gc_dst->labels)
               ErrorExit(ERROR_NOMEMORY,
                         "GCAcreateFlashGCAfromFlashGCA: to %d",
@@ -18463,7 +18531,7 @@ GCAbuildRegionalGCAN(GCA *gca, int xn, int yn, int zn, int wsize)
 
   gcan->nlabels = gcan->max_labels = nlabels ;
   gcan->gcs = alloc_gcs(nlabels, GCA_NO_MRF, gca->ninputs) ;
-  gcan->labels = (unsigned char *)calloc(nlabels, sizeof(char)) ;
+  gcan->labels = (unsigned short *)calloc(nlabels, sizeof(unsigned short)) ;
 
   for (nlabels = 0, n = 0 ; n <= MAX_CMA_LABELS ; n++)
   {
@@ -18508,7 +18576,7 @@ GCA *GCAcompactify(GCA *gca)
   GCA_PRIOR *gcap = 0;
   GCA_NODE  *gcan = 0;
   float *old_priors;
-  unsigned char *old_labels;
+  unsigned short *old_labels;
   GC1D *old_gcs;
   int n, nmax;
   int i,j, k;
@@ -18527,7 +18595,7 @@ GCA *GCAcompactify(GCA *gca)
         // {
         //   short nlabels ;
         //   short max_labels ;        modify
-        //   unsigned char  *labels ;  modify
+        //   unsigned short  *labels ;  modify
         //   float *priors ;           modify
         //   int   total_training ;
         // } GCA_PRIOR ;
@@ -18548,21 +18616,21 @@ GCA *GCAcompactify(GCA *gca)
                         "GCANupdatePriors: couldn't expand priors to %d",
                         gcap->max_labels) ;
             gcap->labels =
-              (unsigned char *)calloc(n, sizeof(unsigned char)) ;
+              (unsigned short *)calloc(n, sizeof(unsigned short)) ;
             if (!gcap->labels)
               ErrorExit(ERROR_NOMEMORY,
                         "GCANupdatePriors: couldn't expand labels to %d",
                         gcap->max_labels) ;
             /* copy the old ones over */
             memmove(gcap->priors, old_priors, n*sizeof(float)) ;
-            memmove(gcap->labels, old_labels, n*sizeof(unsigned char)) ;
+            memmove(gcap->labels, old_labels, n*sizeof(unsigned short)) ;
 
             /* free the old ones */
             free(old_priors) ;
             free(old_labels) ;
             gcap->max_labels = gcap->nlabels;
 
-            byteSaved += (sizeof(float)+sizeof(unsigned char))*(nmax-n);
+            byteSaved += (sizeof(float)+sizeof(unsigned short))*(nmax-n);
           }
         }
       }
@@ -18587,7 +18655,7 @@ GCA *GCAcompactify(GCA *gca)
             // {
             // int  nlabels ;
             // int  max_labels ;         modify
-            // unsigned char *labels ;   modify
+            // unsigned short *labels ;   modify
             // GC1D *gcs ;               modify
             // int  total_training ;
             /* total # of times this node was was accessed */
@@ -18602,19 +18670,19 @@ GCA *GCAcompactify(GCA *gca)
                         gcan->max_labels) ;
             // only allocate what is needed
             gcan->labels =
-              (unsigned char *)calloc(n, sizeof(unsigned char)) ;
+              (unsigned short *)calloc(n, sizeof(unsigned short)) ;
             if (!gcan->labels)
               ErrorExit(ERROR_NOMEMORY,
                         "GCANupdateNode: couldn't expand labels to %d",
                         gcan->max_labels) ;
             copy_gcs(n, old_gcs, gcan->gcs, gca->ninputs);
-            memmove(gcan->labels, old_labels, n*sizeof(unsigned char)) ;
+            memmove(gcan->labels, old_labels, n*sizeof(unsigned short)) ;
 
             /* free the old ones */
             free(old_gcs) ;
             free(old_labels) ;
             gcan->max_labels = n;
-            byteSaved += (sizeof(float)+sizeof(unsigned char))*(nmax-n);
+            byteSaved += (sizeof(float)+sizeof(unsigned short))*(nmax-n);
           }
         }
       }
@@ -20816,17 +20884,75 @@ GCAcomputeLabelPosterior(GCA *gca, TRANSFORM *transform, MRI *mri, float x, floa
 
   load_vals(mri, x, y, z, vals, gca->ninputs) ;
   gcap = getGCAPfloat(gca, mri, transform, x, y, z) ;
-  plabel = GCAlabelProbability(mri, gca, transform, x, y, z, label) ;
+  if (gcap == NULL)
+    return(0.0) ;
 
+  if (gcap->total_training > 0)
+    plabel = .01 / gcap->total_training ;
+  else
+    plabel = 0.0 ;
   for (ptotal = 0.0, n = 0 ; n < gcap->nlabels ; n++)
   {
     olabel = gcap->labels[n] ;
+    p = 
+      GCAlabelProbability(mri, gca, transform, x, y, z, olabel)
+      * gcap->priors[n];
     if (olabel == label)
-      p = plabel ;
-    else
-      p = GCAlabelProbability(mri, gca, transform, x, y, z, olabel);
+      plabel = p ;
+
     ptotal += p ;
-    
+  }
+
+  if (!FZERO(ptotal))
+    plabel /= ptotal ;
+  return(plabel) ;
+}
+
+float
+GCAcomputeLabelLikelihood(GCA *gca, TRANSFORM *transform, MRI *mri, float x, float y, float z, int label)
+{
+  float    p, plabel, vals[MAX_GCA_INPUTS], ptotal ;
+  GCA_PRIOR *gcap ;
+  int       n, olabel, found = 0 ;
+
+  gcap = getGCAPfloat(gca, mri, transform, x, y, z) ;
+  if (gcap == NULL)
+    return(0.0) ;
+
+  if (gcap->total_training > 0)
+    plabel = .01 / gcap->total_training ;
+  else
+    plabel = 0.0 ;
+  for (ptotal = 0.0, n = 0 ; n < gcap->nlabels ; n++)
+  {
+    olabel = gcap->labels[n] ;
+    p =  GCAlabelProbability(mri, gca, transform, x, y, z, olabel);
+    if (olabel == label)
+    {
+      found = 1 ;
+      plabel = p ;
+    }
+
+    ptotal += p ;
+  }
+
+  if (found == 0)
+  {
+    GC1D *gc ;
+    int  xn, yn, zn ;
+
+    if (!GCAsourceVoxelToNode(gca, mri, transform, x, y, z, &xn, &yn, &zn))
+    {
+      gc = findClosestValidGC(gca, xn, yn, zn, label, 0) ;
+      if (gc == NULL)
+        DiagBreak() ;
+      else
+      {
+        load_vals(mri, x, y, z, vals, gca->ninputs) ;
+        plabel = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, label) ;
+        ptotal += plabel ;
+      }
+    }
   }
 
   if (!FZERO(ptotal))
