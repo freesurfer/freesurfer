@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: postelni $
- *    $Date: 2007/04/23 21:40:06 $
- *    $Revision: 1.140 $
+ *    $Author: greve $
+ *    $Date: 2007/04/26 05:31:21 $
+ *    $Revision: 1.141 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -166,6 +166,7 @@ int main(int argc, char *argv[]) {
   float fwhm, gstd;
   char cmdline[STRLEN] ;
   int sphinx_flag = FALSE;
+  int LeftRightReverse = FALSE;
   char AutoAlignFile[STRLEN];
   MATRIX *AutoAlign = NULL;
 
@@ -174,7 +175,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.140 2007/04/23 21:40:06 postelni Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.141 2007/04/26 05:31:21 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -275,7 +276,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.140 2007/04/23 21:40:06 postelni Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.141 2007/04/26 05:31:21 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -289,6 +290,7 @@ int main(int argc, char *argv[]) {
       reorder_flag = TRUE;
     }
     else if(strcmp(argv[i], "--debug") == 0) debug = 1;
+    else if(strcmp(argv[i], "--left-right-reverse") == 0) LeftRightReverse = 1;
     else if(strcmp(argv[i], "--invert_contrast") == 0)
       get_floats(argc, argv, &i, &invert_val, 1);
     else if(strcmp(argv[i], "-i") == 0 ||
@@ -1231,6 +1233,9 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+
+
+
   if (roi_flag && in_volume_type != GENESIS_FILE) {
     errno = 0;
     ErrorPrintf(ERROR_BADPARM, "rois must be in GE format");
@@ -1245,7 +1250,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.140 2007/04/23 21:40:06 postelni Exp $\n");
+  printf("$Id: mri_convert.c,v 1.141 2007/04/26 05:31:21 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1371,6 +1376,22 @@ int main(int argc, char *argv[]) {
   if (mri == NULL) {
     if (in_like_flag) MRIfree(&mri_in_like);
     exit(1);
+  }
+
+  if(LeftRightReverse){
+    printf("WARNING: applying left-right reversal to the input geometry\n"
+	   "without reversing the pixel data. This will likely make \n"
+	   "the volume geometry WRONG, so make sure you know what you  \n"
+	   "are doing.\n");
+    mri->x_r *= -1.0;
+    mri->x_a *= -1.0;
+    mri->x_s *= -1.0;
+    if(in_like_flag) {
+      printf("WARNING: also applying left-right reversal to the in_like geometry\n");
+      mri_in_like->x_r *= -1.0;
+      mri_in_like->x_a *= -1.0;
+      mri_in_like->x_s *= -1.0;
+    }
   }
 
   if (fwhm > 0) {
