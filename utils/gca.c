@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/26 18:17:33 $
- *    $Revision: 1.223 $
+ *    $Date: 2007/04/26 19:02:37 $
+ *    $Revision: 1.224 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -10609,10 +10609,10 @@ cma_label_to_name(int label)
   if (Fornix == label)
     return("Fornix") ;
 
-  if (label == V1)
-    return("V1") ;
-  if (label == V2)
-    return("V2") ;
+  if (label == BA17)
+    return("BA17") ;
+  if (label == BA18)
+    return("BA18") ;
   if (label == BA44)
     return("BA44") ;
   if (label == BA45)
