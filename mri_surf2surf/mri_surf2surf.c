@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/20 20:44:48 $
- *    $Revision: 1.49 $
+ *    $Date: 2007/04/26 06:46:37 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -304,10 +304,11 @@ int GetNVtxsFromWFile(char *wfile);
 int GetICOOrderFromValFile(char *filename, char *fmt);
 int GetNVtxsFromValFile(char *filename, char *fmt);
 int dump_surf(char *fname, MRIS *surf, MRI *mri);
+MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.49 2007/04/20 20:44:48 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.50 2007/04/26 06:46:37 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -401,7 +402,7 @@ int main(int argc, char **argv) {
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.49 2007/04/20 20:44:48 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.50 2007/04/26 06:46:37 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -418,10 +419,6 @@ int main(int argc, char **argv) {
 
   if (argc == 0) usage_exit();
 
-  parse_commandline(argc, argv);
-  check_options();
-  dump_options(stdout);
-
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if (SUBJECTS_DIR==NULL) {
     fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
@@ -432,6 +429,10 @@ int main(int argc, char **argv) {
     fprintf(stderr,"ERROR: FREESURFER_HOME not defined in environment\n");
     exit(1);
   }
+
+  parse_commandline(argc, argv);
+  check_options();
+  dump_options(stdout);
 
   /* --------- Load the registration surface for source subject --------- */
   if (!strcmp(srcsubject,"ico")) { /* source is ico */
@@ -791,6 +792,8 @@ static int parse_commandline(int argc, char **argv) {
   float ipr, bpr, intensity;
   int float2int,err;
   char *regsubject;
+  MATRIX *M;
+  MRI *lrmri;
 
   if (argc < 1) usage_exit();
 
@@ -870,6 +873,26 @@ static int parse_commandline(int argc, char **argv) {
                                 &intensity, &XFM, &float2int);
       if (err) exit(1);
       XFM = MatrixInverse(XFM,NULL);
+      ApplyReg = 1;
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--reg-inv-lrrev")) {
+      // See docs below on MRIleftRightRevMatrix() for what this
+      // is and how it works.
+      if (nargc < 1) argnerr(option,1);
+      err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
+                                &intensity, &XFM, &float2int);
+      if (err) exit(1);
+      XFM = MatrixInverse(XFM,NULL);
+      sprintf(tmpstr,"%s/%s/mri/brain.mgz",SUBJECTS_DIR,regsubject);
+      printf("%s\n",tmpstr);
+      lrmri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+      if(lrmri == NULL) exit(1);
+      M = MRIleftRightRevMatrix(lrmri);
+      M->rptr[1][1] = -1.0;
+      M->rptr[1][4] = +1.0;
+      XFM = MatrixMultiply(XFM,M,XFM);
+      MatrixFree(&M);
+      MRIfree(&lrmri);
       ApplyReg = 1;
       nargsused = 1;
     } else if (!strcasecmp(option, "--sval-area")) {
@@ -1925,3 +1948,48 @@ int DumpSurface(MRIS *surf, char *outfile) {
 }
 
 
+// This function computes a ras2ras matrix which accomplishes
+// a left-right voxel flip. This was developed as part of a 
+// project to evaluate how well registering an anatomical to
+// its left-right flipped self would do at inter-hemispheric
+// registration. It is called above in conjunction with a
+// register.dat matrix computed with something like:
+//   fsl_rigid_register -r brain.mgz -i brain.mgz -o brain.lrrev12.mgz 
+//      -left-right-reverse -regmat lrrev12.reg -subject subjectid
+// You can then
+//   mri_surf2surf --s subject --hemi lh --sval-xyz white 
+//     --tval lh.lrrev12.white --tval-xyz --reg-inv-lrrev ../mri/lrrev12.reg
+// To test:
+//   tkmedit subject brain.lrrev12.mgz lh.lrrev12.white -aux brain.mgz
+// The lh.lrrev12.white should be on the right side of the brain and
+// aligned with the folds of brain.lrrev12.mgz. 
+// 
+// This surface can then be applied to map functional values from the 
+// right hemisphere to the left by specifying 
+//   mri_vol2vol --reg register.dat --hemi lh --surf lrrev12.white ...
+//
+// M = vox2ras * V * inv(vox2ras), where V is the vox2vox matrix
+// that accomplishes a left-right reversal
+MATRIX *MRIleftRightRevMatrix(MRI *mri)
+{
+  MATRIX *V, *K, *invK, *M;
+
+  // V is a Vox2Vox matrix that performs a LR flip
+  V = MatrixIdentity(4,NULL);
+  V->rptr[1][1] = -1;
+  V->rptr[1][4] = mri->width - 1;
+
+  // Vox2RAS matrix
+  K = MRIxfmCRS2XYZ(mri,0);
+  invK = MatrixInverse(K,NULL);
+
+  // M = K*V*inv(K)
+  M = MatrixMultiply(K,V,NULL);
+  M = MatrixMultiply(M,invK,M);
+
+  MatrixFree(&V);
+  MatrixFree(&K);
+  MatrixFree(&invK);
+
+  return(M);
+}
