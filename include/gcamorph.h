@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/01 15:12:50 $
- *    $Revision: 1.45 $
+ *    $Date: 2007/04/26 18:57:07 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -298,6 +298,8 @@ typedef struct
   double means[MAX_LTT_LABELS] ;
   double scales[MAX_LTT_LABELS] ;
   int    done[MAX_LTT_LABELS] ;
+  int    second_labels[MAX_LTT_LABELS] ;
+  double second_label_pct[MAX_LTT_LABELS] ;
 }
 GCAM_LABEL_TRANSLATION_TABLE ;
 MRI  *GCAMinitDensities(GCA_MORPH *gcam, 
