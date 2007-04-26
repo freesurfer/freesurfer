@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/04/26 05:16:59 $
-#    $Revision: 1.20 $
+#    $Date: 2007/04/26 05:38:35 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 #
 
-set VERSION = '$Id: fsl_rigid_register,v 1.20 2007/04/26 05:16:59 greve Exp $';
+set VERSION = '$Id: fsl_rigid_register,v 1.21 2007/04/26 05:38:35 greve Exp $';
 
 setenv FSLOUTPUTTYPE NIFTI
 
@@ -52,6 +52,9 @@ set fslmatfile = ();
 set regmatfile = ();
 set xfmmatfile = ();
 set ltamatfile = ();
+
+# To left-right reverse the input volume, know what you are doing
+set LeftRightReverse = 0; # Change with -left-right-reverse (uses 12 dof)
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e -version | wc -l`
@@ -109,7 +112,7 @@ endif
 
 # Convert input to nifti #
 isnifti $invol # exit status == 1 if nifti
-if($status == 1) then
+if($status == 1 && ! $LeftRightReverse) then
   set involimg   = $invol
   set involdir   = `dirname $invol`;
   set involbase = $involdir/`basename $invol .nii`;
@@ -118,6 +121,7 @@ else
   set involbase = $tmpdir/invol.fsl_rigid_register
   set involimg  = $involbase.nii
   set cmd = (mri_convert $invol $involimg)
+  if($LeftRightReverse) set cmd = ($cmd --left-right-reverse)
   echo "--------------------------------------"
   pwd
   echo $cmd
@@ -359,6 +363,11 @@ while( $#argv != 0 )
     case "-maxangle":
       if ( $#argv < 1) goto arg1err;
       set maxangle = $argv[1]; shift;
+      breaksw
+
+    case "-left-right-reverse":
+      set LeftRightReverse = 1;
+      set dof = 12;
       breaksw
 
     case "-verbose":
