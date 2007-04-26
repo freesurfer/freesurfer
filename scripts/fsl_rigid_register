@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/04/26 05:38:35 $
-#    $Revision: 1.21 $
+#    $Date: 2007/04/26 05:42:09 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 #
 
-set VERSION = '$Id: fsl_rigid_register,v 1.21 2007/04/26 05:38:35 greve Exp $';
+set VERSION = '$Id: fsl_rigid_register,v 1.22 2007/04/26 05:42:09 greve Exp $';
 
 setenv FSLOUTPUTTYPE NIFTI
 
@@ -236,6 +236,14 @@ if($cleanup) then
   echo "Cleaning up"
   if($initgeom) rm $initxfm
   rm -rf $tmpdir
+endif
+
+if($LeftRightReverse) then
+  echo ""
+  echo "WARNING: input was left-right reversed prior to registration"
+  echo "because this is what you said you wanted. Make sure you"
+  echo "know what you are doing."
+  echo ""
 endif
 
 echo " "
