@@ -7,9 +7,9 @@
 /*
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.22 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/26 19:04:07 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.22 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.23 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -1461,6 +1461,29 @@ MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_interior)
 
   mris->useRealRAS = saved_use_Real_RAS ;
 
+  {
+    MRI    *mri_tmp ;
+    MATRIX *m, *m_invertz ;
+    Real    val ;
+
+    // invert one dimension (z) so that ras2vox xform has negative determinant (standard)
+    m_invertz = MatrixIdentity(4, NULL) ;
+    *MATRIX_RELT(m_invertz, 3,3) = -1 ;
+    *MATRIX_RELT(m_invertz, 3, 4) = (mri_interior->depth-1) ;
+    mri_tmp = MRIclone(mri_interior, NULL) ;
+    m = MatrixMultiply(m_vox2ras, m_invertz, NULL) ;
+    MRIsetVoxelToRasXform(mri_tmp, m) ;
+    MatrixFree(&m) ; MatrixFree(&m_invertz) ;
+
+    for (x = 0 ; x < mri_interior->width ; x++)
+      for (y = 0 ; y < mri_interior->height ; y++)
+        for (z = 0 ; z < mri_interior->depth ; z++)
+        {
+          val = MRIgetVoxVal(mri_interior, x, y, z, 0) ;
+          MRIsetVoxVal(mri_tmp, x, y, (mri_tmp->depth-1)-z, 0, val) ;
+        }
+    MRIfree(&mri_interior) ; mri_interior = mri_tmp ;
+  }
   MRIfree(&mri_outside) ;
   MRIfree(&mri_shell) ;
   MatrixFree(&m_vox2ras) ;
