@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/04/25 15:54:13 $
- *    $Revision: 1.334 $
+ *    $Author: nommert $
+ *    $Date: 2007/04/26 14:21:35 $
+ *    $Revision: 1.335 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -492,6 +492,7 @@ MRI   *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ);
 MRI   *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, float std, MRI *targ);
 MRI   *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst,
     MRI *mri_gaussian) ;
+MRI *MRIgaussianSmoothFFT(MRI *mri_src, float std, int norm, MRI *dst) ; 
 MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
