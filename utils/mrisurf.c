@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/23 02:23:31 $
- *    $Revision: 1.531 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/26 19:03:33 $
+ *    $Revision: 1.532 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -338,7 +338,8 @@ static int    mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris,
     double l_repulse, MHT *mht);
 static int    mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris,
     double l_tsmooth) ;
-static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris) ;
+static double mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris);
 static double mrisComputeIntensityError(MRI_SURFACE *mris,
                                         INTEGRATION_PARMS *parms);
 static double mrisComputeDuraError(MRI_SURFACE *mris,
@@ -479,6 +480,8 @@ static int  mrisFindNormalDistanceLimits(MRI_SURFACE *mris, MRI *mri_filled,
     float *pmax_inward_distance) ;
 #endif
 
+static int  mrisComputeNonlinearSpringTerm(MRI_SURFACE *mris,double l_nlspring, 
+                                           INTEGRATION_PARMS *parms);
 static int  mrisComputeTangentialSpringTerm(MRI_SURFACE *mris,double l_spring);
 static int   mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring) ;
 static int   mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno) ;
@@ -609,7 +612,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.531 2007/04/23 02:23:31 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.532 2007/04/26 19:03:33 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5447,8 +5450,10 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     fprintf(stdout, "\nRemoving remaining folds...\n") ;
   if (Gdiag & DIAG_WRITE)
     fprintf(parms->fp, "removing remaining folds...\n") ;
-#if 0
-  parms->l_nlarea *= 5 ;
+#if 1
+  parms->l_nlarea *= 100  ; 
+  parms->l_parea /= 100 ;
+  parms->l_spring /= 100 ; parms->l_corr /= 100 ; parms->l_dist /= 100;
   mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
 #else
   parms->l_nlarea = 1 ;
@@ -7028,6 +7033,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     MRISaverageGradients(mris, n_averages) ;
     mrisComputeSpringTerm(mris, parms->l_spring) ;
     mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
+    mrisComputeNonlinearSpringTerm(mris, parms->l_nlspring, parms) ;
     mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
     if (Gdiag & DIAG_WRITE && parms->write_iterations > 0 && DIAG_VERBOSE_ON)
     {
@@ -7243,7 +7249,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   double  sse, sse_area, sse_angle, delta, sse_curv, sse_spring, sse_dist,
   area_scale, sse_corr, sse_neg_area, l_corr, sse_val, sse_sphere,
   sse_grad, sse_nl_area, sse_nl_dist, sse_tspring, sse_repulse, sse_tsmooth,
-  sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap, sse_lap, sse_dura;
+  sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap, sse_lap, sse_dura, sse_nlspring;
   int     ano, fno ;
   FACE    *face ;
   MHT     *mht_v_current = NULL ;
@@ -7277,6 +7283,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sse_curv = 
     sse_dist = 
     sse_tspring = 
+    sse_nlspring =
     sse_grad = 0.0;
 
   if (!FZERO(parms->l_repulse))
@@ -7327,6 +7334,8 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sse_lap = mrisComputeLaplacianEnergy(mris) ;
   if (!FZERO(parms->l_tspring))
     sse_tspring = mrisComputeTangentialSpringEnergy(mris) ;
+  if (!FZERO(parms->l_nlspring))
+    sse_nlspring = mrisComputeNonlinearSpringEnergy(mris, parms) ;
   if (!FZERO(parms->l_curv))
     sse_curv = mrisComputeQuadraticCurvatureSSE(mris, parms->l_curv) ;
   l_corr = (double)(parms->l_corr + parms->l_pcorr) ;
@@ -7365,6 +7374,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     (double)parms->l_nlarea    * sse_nl_area +
     (double)parms->l_angle     * sse_angle +
     (double)parms->l_dist      * sse_dist +
+    (double)parms->l_nlspring  * sse_nlspring +
     (double)parms->l_spring    * sse_spring +
     (double)parms->l_dura      * sse_dura +
     (double)parms->l_tspring   * sse_tspring +
@@ -7867,6 +7877,8 @@ MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
           dx += vn->dx ;
           dy += vn->dy ;
           dz += vn->dz ;
+          if (!devFinite(dx) || !devFinite(dy) || !devFinite(dz))
+            DiagBreak() ;
 #if 0
           if (vno == Gdiag_no)
           {
@@ -7889,6 +7901,8 @@ MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         v = &mris->vertices[vno] ;
         if (v->ripflag)
           continue ;
+        if (!devFinite(v->tdx) || !devFinite(v->tdy) || !devFinite(v->tdz))
+          DiagBreak() ;
         v->dx = v->tdx ;
         v->dy = v->tdy ;
         v->dz = v->tdz ;
@@ -13371,6 +13385,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
       MRISaverageGradients(mris, n_averages) ;
       mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
+      mrisComputeNonlinearSpringTerm(mris, parms->l_nlspring, parms) ;
       mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
       mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
       mrisComputeSpringTerm(mris, parms->l_spring) ;
@@ -13556,6 +13571,7 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       mrisComputeConvexityTerm(mris, parms->l_convex) ;
 
       mrisComputeLaplacianTerm(mris, parms->l_lap) ;
+      mrisComputeNonlinearSpringTerm(mris, parms->l_nlspring, parms) ;
       mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
       MRISaverageGradients(mris, n_averages) ;
       mrisComputeSpringTerm(mris, parms->l_spring) ;
@@ -16754,6 +16770,8 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
     fprintf(fp, ", l_spring_norm=%2.3f", parms->l_spring_norm) ;
   if (!FZERO(parms->l_tspring))
     fprintf(fp, ", l_tspring=%2.3f", parms->l_tspring) ;
+  if (!FZERO(parms->l_nlspring))
+    fprintf(fp, ", l_nlspring=%2.3f", parms->l_nlspring) ;
   if (!FZERO(parms->l_nspring))
     fprintf(fp, ", l_nspring=%2.3f", parms->l_nspring) ;
   if (!FZERO(parms->l_dist))
@@ -17691,6 +17709,126 @@ mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris)
       v_sse += dist_sq ;
     }
     sse_spring += area_scale * v_sse ;
+  }
+  return(sse_spring) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+    compute nonlinear spring energy (stolen from BET, thanks Steve)
+------------------------------------------------------*/
+#define RMIN 1
+#define RMAX 5
+
+static int
+mrisComputeNonlinearSpringTerm(MRI_SURFACE *mris,double l_nlspring, INTEGRATION_PARMS *parms)
+{
+  int     vno, n ;
+  double  area_scale, sse_spring, E, F, f, rmin, rmax ;
+  VERTEX  *v, *vn ;
+  float   dx, dy, dz, nc, r, lsq, mean_vdist ;
+
+  if (FZERO(parms->l_nlspring))
+    return(NO_ERROR) ;
+
+#if METRIC_SCALE
+  if (mris->patch)
+    area_scale = 1.0 ;
+  else
+    area_scale = mris->orig_area / mris->total_area ;
+#else
+  area_scale = 1.0 ;
+#endif
+
+  mean_vdist = MRIScomputeVertexSpacingStats(mris, NULL, NULL, NULL, NULL, NULL) ;
+  lsq = mean_vdist * mean_vdist ;
+
+  rmax = parms->rmax ; rmin = parms->rmin ;
+  if (FZERO(rmin) || FZERO(rmax))
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, 
+                 "mrisComputeNonlinearSpringTerm: rmin or rmax = 0!"));
+
+  F = 6.0 / (1.0/rmin - 1.0/rmax) ;
+  E = (1.0/rmin + 1.0/rmax)/2 ;
+  for (sse_spring = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    for (n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      dx = vn->x - v->x ; dy = vn->y - v->y ; dz = vn->z - v->z ;
+      //      lsq = dx*dx + dy*dy + dz*dz ;
+      nc = dx * v->nx + dy*v->ny + dz*v->nz ;
+      dx = nc * v->nx ; dy = nc*v->ny ; dz = nc*v->nz ; // sn
+      r = lsq / fabs(2.0*nc) ;
+      if (r < rmin)
+        DiagBreak() ;
+      f = nc*(1 + tanh(F*(1.0/r - E)))/2.0 ;
+      if (vno == Gdiag_no)
+        printf("l_nlspring: f = %2.3f (r = %2.2f), dx = (%2.2f, %2.2f, %2.2f)\n", f, r,
+               v->nx*f*l_nlspring, v->ny*f*l_nlspring, v->nz*f*l_nlspring) ;
+      v->dx += v->nx*f*l_nlspring ;
+      v->dy += v->ny*f*l_nlspring ;
+      v->dz += v->nz*f*l_nlspring ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+static double
+mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  int     vno, n ;
+  double  area_scale, sse_spring, E, F, f, rmin, rmax ;
+  VERTEX  *v, *vn ;
+  float   dx, dy, dz, nc, r, lsq, mean_vdist ;
+
+  mean_vdist = MRIScomputeVertexSpacingStats(mris, NULL, NULL, NULL, NULL, NULL) ;
+  lsq = mean_vdist * mean_vdist ;
+#if METRIC_SCALE
+  if (mris->patch)
+    area_scale = 1.0 ;
+  else
+    area_scale = mris->orig_area / mris->total_area ;
+#else
+  area_scale = 1.0 ;
+#endif
+
+  rmin = parms->rmin ; rmax = parms->rmax ;
+  if (FZERO(rmin) || FZERO(rmax))
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, 
+                 "mrisComputeNonlinearSpringTerm: rmin or rmax = 0!"));
+
+  F = 6.0 / (1.0/rmin - 1.0/rmax) ;
+  E = (1.0/rmin + 1.0/rmax)/2 ;
+  for (sse_spring = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    for (n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      dx = vn->x - v->x ; dy = vn->y - v->y ; dz = vn->z - v->z ;
+      //      lsq = dx*dx + dy*dy + dz*dz ;
+      nc = dx * v->nx + dy*v->ny + dz*v->nz ;
+      dx = nc * v->nx ; dy = nc*v->ny ; dz = nc*v->nz ; // sn
+      r += lsq / fabs(2.0*nc) ;
+    }
+    r /= v->vnum ;
+    f = (1 + tanh(F*(1.0/r - E))); f *= f;
+    if (vno == Gdiag_no)
+      printf("E_nlspring: f = %2.3f (r = %2.2f)\n", f, r) ;
+    sse_spring += area_scale * f ;
   }
   return(sse_spring) ;
 }
@@ -22530,7 +22668,8 @@ MRISfindClosestVertex(MRI_SURFACE *mris,
       min_v = vno ;
     }
   }
-  *dmin = min_d;
+  if (dmin != NULL)
+    *dmin = min_d;
   return(min_v) ;
 }
 /*-----------------------------------------------------
@@ -23493,6 +23632,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   avgs = parms->n_averages ;
   last_rms = rms = mrisRmsValError(mris, mri_brain) ;
   last_sse = sse = MRIScomputeSSE(mris, parms) ;
+  if (DZERO(parms->l_intensity) && parms->l_external > 0)
+    last_rms = rms = 10*sqrt(sse/mris->nvertices) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stdout, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.2f\n",
             0, 0.0f, (float)sse, (float)rms);
@@ -23559,6 +23700,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
     /*    mrisComputeAverageNormalTerm(mris, avgs, parms->l_nspring) ;*/
     /*    mrisComputeCurvatureTerm(mris, parms->l_curv) ;*/
+    mrisComputeNonlinearSpringTerm(mris, parms->l_nlspring, parms) ;
     mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
 
 #if 0
@@ -23591,6 +23733,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       MRIScomputeMetricProperties(mris) ;
       rms = mrisRmsValError(mris, mri_brain) ;
       sse = MRIScomputeSSE(mris, parms) ;
+      if (DZERO(parms->l_intensity) && parms->l_external > 0)
+        rms = 10*sqrt(sse/mris->nvertices) ;
       done = 1 ;
       /* check to see if the error decreased substantially, if not
       reduce the  step size  */
@@ -23604,6 +23748,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
                 "rms = %2.2f, time step reduction %d of %d to %2.3f...\n",
                 rms, nreductions, MAX_REDUCTIONS+1, dt) ;
         mrisClearMomentum(mris) ;
+#if 1
         if (rms > last_rms)  /* error increased - reject step */
         {
           MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
@@ -23614,6 +23759,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
           */
           done = (nreductions > MAX_REDUCTIONS) ;
         }
+#endif
       }
     }
     while (!done) ;
@@ -23625,6 +23771,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
                              deformation amount */
     rms = mrisRmsValError(mris, mri_brain) ;
     sse = MRIScomputeSSE(mris, parms) ;
+    if (DZERO(parms->l_intensity) && parms->l_external > 0)
+      rms = 10*sqrt(sse/mris->nvertices) ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.2f\n",
               n+1,(float)delta_t, (float)sse, (float)rms);
@@ -23787,6 +23935,7 @@ MRISpositionSurface_mef(MRI_SURFACE *mris,
     mrisComputeThicknessSmoothnessTerm(mris, parms->l_tsmooth) ;
     mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
     mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
+    mrisComputeNonlinearSpringTerm(mris, parms->l_nlspring, parms) ;
     mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
 
 
@@ -30900,6 +31049,7 @@ MRISexpandSurface(MRI_SURFACE *mris,
 #endif
       }
 
+      mrisComputeNonlinearSpringTerm(mris, parms->l_nlspring, parms) ;
       mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
       MRISaverageGradients(mris, avgs) ;
       mrisAsynchronousTimeStep
@@ -55650,6 +55800,7 @@ mrisComputePositioningGradients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
   /*    mrisComputeAverageNormalTerm(mris, avgs, parms->l_nspring) ;*/
   /*    mrisComputeCurvatureTerm(mris, parms->l_curv) ;*/
+  mrisComputeNonlinearSpringTerm(mris, parms->l_nlspring, parms) ;
   mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
 
 
