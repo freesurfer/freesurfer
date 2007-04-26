@@ -849,7 +849,9 @@ if test "x$TIXWISH" = "x"; then
 fi
 # well check
 if test "x$TIXWISH" = "x"; then
+if test ! "x$tcltk_apps" = "xNO"; then
   AC_MSG_ERROR([FATAL: tixwish not found. Use --with-tixwish=... to specify])
+fi
 fi
 
 AC_SUBST(TIXWISH)
