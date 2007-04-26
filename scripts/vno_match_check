@@ -3,12 +3,15 @@
 #set echo=1
 
 if ( ("x$1" == "x") || ( "x$1" == "x-help" ) || ( "x$1" == "x--help" ) ) then
-    echo "USAGE: vno_match_check <subjid>"
+    echo "USAGE: vno_match_check <subjid> [option]"
     echo ""
     echo "Checks that all surfaces and surface data files for subject <subjid>"
     echo "have the same number of vertices. Exits with status code 0 if ok."
-    echo "Exits with status code 1 if any mismatches found."
-    echo "If the second argument is 'debug', then progress text is printed."
+    echo "Exits with status code 1 and error message if any mismatches found."
+    echo "Options: (only one is accepted)"
+    echo "  debug     progress text is printed"
+    echo "  rh        right hemi only" 
+    echo "  lh        left hemi only" 
     exit 1
 endif
 
@@ -25,8 +28,11 @@ endif
 
 cd $SUBJECTS_DIR/$subj/surf
 
-foreach hemi ( rh lh )
+set hemis=( rh lh )
+if ("x$2" == "xrh") set hemis=( rh )
+if ("x$2" == "xlh") set hemis=( lh )
 
+foreach hemi ( $hemis )
    
     # get number of vertices of the orig surface
     if ("x$2" != "x") echo "Checking $subj/surf/$hemi.orig..."

@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/21 22:11:30 $
-#    $Revision: 1.87 $
+#    $Date: 2007/04/26 19:40:53 $
+#    $Revision: 1.88 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.87 2007/04/21 22:11:30 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.88 2007/04/26 19:40:53 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -201,6 +201,7 @@ set DoCortParc2      = 0;
 set DoParcStats      = 0;
 set DoParcStats2     = 0;
 set DoCortRibbonVolMask = 0;
+set DoVnoMatchCheck  = 0;
 
 
 setenv LANG C # Required by MNI tool
@@ -1905,6 +1906,21 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.aparcstats2.touch
   endif
 
+  # ---------- Surface Vertices Number Match Check --------------
+  if($DoVnoMatchCheck) then
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Vno Match Check $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set cmd = (vno_match_check $subjid $hemi);
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.vnomatchcheck.touch
+  endif
+
 end # Loop over hemilist
 
 #-------------- ASeg Stats --------------#
@@ -3132,6 +3148,10 @@ while( $#argv != 0 )
       set DoQdecCache = 1;
       breaksw;
 
+    case "-vno_match_check":
+      set DoVnoMatchCheck = 1;
+      breaksw;
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -3446,7 +3466,7 @@ check_params:
      ! $DoFill && ! $DoTessellate && ! $DoAParc2ASeg && \
      ! $DoSmooth1  && ! $DoInflate1 && ! $DoQSphere && ! $DoRemoveNeck &&\
      ! $DoFix  && ! $DoSmooth2 && ! $DoInflate2  && ! $DoSphere &&\
-     ! $DoSkullLTA && ! $DoQdecCache &&\
+     ! $DoSkullLTA && ! $DoQdecCache  && ! $DoVnoMatchCheck &&\
      ! $DoSurfReg  && ! $DoContraSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
      ! $DoMorphRGB && ! $DoFinalSurfs && ! $DoContraSurfRegWithinSubject &&\
      ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
