@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/04/18 05:39:50 $
-#    $Revision: 1.19 $
+#    $Date: 2007/04/26 05:16:59 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,9 +27,9 @@
 #
 #
 
-set VERSION = '$Id: fsl_rigid_register,v 1.19 2007/04/18 05:39:50 greve Exp $';
+set VERSION = '$Id: fsl_rigid_register,v 1.20 2007/04/26 05:16:59 greve Exp $';
 
-setenv FSLOUTPUTTYPE ANALYZE
+setenv FSLOUTPUTTYPE NIFTI
 
 set refvol = ();
 set invol = ();
@@ -41,7 +41,7 @@ set cleanup = 1;
 set PrintHelp = 0;
 set applyxfm = ();
 set initxfm = ();
-set initgeom = 0;
+set initgeom = 1;
 set dof = 6;
 set maxangle = 90;
 set bins = 256;
@@ -88,17 +88,17 @@ endif
 mkdir -p $tmpdir
 
 # Convert reference to analyze
-isanalyze $refvol # exit status == 1 if analyze
+isnifti $refvol # exit status == 1 if nifti
 if($status == 1) then
   set refvolimg  = $refvol
   set refvoldir   = `dirname $refvol`;
-  set refvolbase = $refvoldir/`basename $refvol .img`;
-  echo "Reference is analyze, not converting"
+  set refvolbase = $refvoldir/`basename $refvol .nii`;
+  echo "Reference is nifti, not converting"
   #echo "refvolimg $refvolimg"
   #echo "refvolbase $refvolbase"
 else
   set refvolbase = $tmpdir/refvol.fsl_rigid_register
-  set refvolimg  = $refvolbase.img
+  set refvolimg  = $refvolbase.nii
   set cmd = (mri_convert $refvol $refvolimg)
   echo "--------------------------------------"
   pwd
@@ -107,16 +107,16 @@ else
   if($status) exit 1;
 endif
 
-# Convert input to analyze #
-isanalyze $invol # exit status == 1 if analyze
+# Convert input to nifti #
+isnifti $invol # exit status == 1 if nifti
 if($status == 1) then
   set involimg   = $invol
   set involdir   = `dirname $invol`;
-  set involbase = $involdir/`basename $invol .img`;
-  echo "Input is analyze, not converting"
+  set involbase = $involdir/`basename $invol .nii`;
+  echo "Input is nifti, not converting"
 else
   set involbase = $tmpdir/invol.fsl_rigid_register
-  set involimg  = $involbase.img
+  set involimg  = $involbase.nii
   set cmd = (mri_convert $invol $involimg)
   echo "--------------------------------------"
   pwd
@@ -144,16 +144,16 @@ if($initgeom) then
 endif
 
 # Check the output format
-isanalyze $outvol # exit status == 1 if analyze
+isnifti $outvol # exit status == 1 if nifti
 if($status == 1) then
   set outvolimg   = $outvol
   set outvoldir   = `dirname $outvol`;
-  set outvolbase = $outvoldir/`basename $outvol .img`;
+  set outvolbase = $outvoldir/`basename $outvol .nii`;
   set convertout = 0;
-  echo "Output is analyze, not converting"
+  echo "Output is nifti, not converting"
 else
   set outvolbase = $tmpdir/outvol.fsl_rigid_register
-  set outvolimg  = $outvolbase.img
+  set outvolimg  = $outvolbase.nii
   set convertout = 1;
 endif
 
@@ -183,11 +183,11 @@ if($status) then
 endif
 
 # Copy analyze .mat from ref to output
-cp $refvolbase.mat $outvolbase.mat
+# cp $refvolbase.mat $outvolbase.mat
 
 # Convert to the output format
 if($convertout) then
-  set cmd = (mri_convert $outvolbase.img $outvol);
+  set cmd = (mri_convert $outvolbase.nii $outvol);
   echo "--------------------------------------"
   pwd
   echo $cmd
