@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/04/06 21:37:05 $
-##    $Revision: 1.144 $
+##    $Date: 2007/04/26 14:59:54 $
+##    $Revision: 1.145 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -1700,8 +1700,10 @@ proc DoConfigCaptionDlog {} {
 \t!o7: Overlay layer 7
 \t!o8: Overlay layer 8
 \t!o9: Overlay layer 9
+\t!cond: Overlay condition
+\t!tp: Overlay time point
 \t!amp: Amplitude
-\t!amp: Angle
+\t!ang: Angle
 \t!deg: Degree
 \t!L: Label
 \t!A: Annotation
@@ -3049,7 +3051,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { command "Overlay Scale Bar..."
 		{DoConfigScaleBarDlog}
 		mg_OverlayLoaded  }
-	    { command "Overlay Caption..."
+	    { command "Caption..."
 		{DoConfigCaptionDlog} }
 	    { command "Time Course..."
 		{Graph_DoConfig}
