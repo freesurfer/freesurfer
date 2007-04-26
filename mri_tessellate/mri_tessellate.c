@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:09 $
- *    $Revision: 1.31 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/26 21:44:21 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,9 +30,9 @@
 // mri_tessellate.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:09 $
-// Revision       : $Revision: 1.31 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2007/04/26 21:44:21 $
+// Revision       : $Revision: 1.32 $
 //
 //
 // How it works.
@@ -74,7 +74,7 @@
 //
 
 
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.31 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.32 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,7 +98,7 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.31 $";
 #include "mrisurf.h"
 
 static char vcid[] =
-  "$Id: mri_tessellate.c,v 1.31 2006/12/29 02:09:09 nicks Exp $";
+  "$Id: mri_tessellate.c,v 1.32 2007/04/26 21:44:21 fischl Exp $";
 
 #define SQR(x) ((x)*(x))
 
@@ -164,13 +164,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_tessellate.c,v 1.31 2006/12/29 02:09:09 nicks Exp $",
+   "$Id: mri_tessellate.c,v 1.32 2007/04/26 21:44:21 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_tessellate.c,v 1.31 2006/12/29 02:09:09 nicks Exp $",
+           "$Id: mri_tessellate.c,v 1.32 2007/04/26 21:44:21 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -570,14 +570,24 @@ get_option(int argc, char *argv[]) {
 int
 is_hippo(int label) {
   switch (label) {
-  case Left_fimbria:
-  case Left_subiculum:
-  case Left_CADG_head:
+  case left_fimbria:
+  case left_subiculum:
+  case left_CA2_3:
+  case left_CA1:
+  case left_CA4_DG:
+  case left_presubiculum:
+  case left_hippocampal_fissure:
+  case left_alveus:
+  case right_alveus:
+  case right_hippocampal_fissure:
+  case right_presubiculum:
   case Left_Hippocampus:
   case Right_Hippocampus:
-  case Right_fimbria:
-  case Right_subiculum:
-  case Right_CADG_head:
+  case right_fimbria:
+  case right_subiculum:
+  case right_CA2_3:
+  case right_CA1:
+  case right_CA4_DG:
     return(1) ;
   default:
     break ;
