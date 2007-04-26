@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/25 01:44:25 $
- *    $Revision: 1.40 $
+ *    $Date: 2007/04/26 19:02:19 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -176,6 +176,7 @@
 #define Cerebral_Cortex           220
 #define Inf_Lat_Vent              221
 
+#if 0
 #define Left_hippocampal_fissure  193
 #define Left_CADG_head            194
 #define Left_subiculum            195
@@ -184,6 +185,7 @@
 #define Right_CADG_head           198
 #define Right_subiculum           199
 #define Right_fimbria             200
+#endif
 
 #define Fornix                    250
 #define CC_Posterior      251
@@ -225,7 +227,37 @@
 #define Pos_Lymph                358
 #define Neg_Lymph                359
 
-#define MAX_LABEL Neg_Lymph
+// Brodmann Areas
+#define BA17 400  //                                      206 62  78  0
+#define BA18 401  //                                      121 18  134 0
+#define BA44 402  //                                    199 58  250 0
+#define BA45 403  //                                    1   148 0   0
+#define BA4a 404  //                                    221 248 164 0
+#define BA4p 405  //                                    231 148 34  0
+#define BA6 406  //                                     1   118 14  0
+#define BA2 407  //                                     120 118 14  0
+#define BAun1 408  //                                   123 186 220 0
+#define BAun2 409  //                                   238 13  176 0
+
+// HiRes Hippocampus labeling
+#define right_CA2_3 500  //                             17  85  136 0
+#define right_alveus 501  //                            119 187 102 0
+#define right_CA1 502  //                               204 68  34  0
+#define right_fimbria 503  //                           204 0   255 0
+#define right_presubiculum 504  //                      221 187 17  0
+#define right_hippocampal_fissure 505  //               153 221 238 0
+#define right_CA4_DG 506  //                            51  17  17  0
+#define right_subiculum 507  //                         0   119 85  0
+#define left_CA2_3 508  //                              17  85  137 0
+#define left_alveus 509  //                             119 187 103 0
+#define left_CA1 510  //                                204 68  35  0
+#define left_fimbria 511  //                            204 0   254 0
+#define left_presubiculum 512  //                       221 187 16  0
+#define left_hippocampal_fissure 513  //                153 221 239 0
+#define left_CA4_DG 514  //                             51  17  18  0
+#define left_subiculum 515  //                          0   119 86  0
+
+#define MAX_LABEL left_subiculum
 #define MAX_CMA_LABEL (MAX_LABEL)
 #define MAX_CMA_LABELS (MAX_CMA_LABEL+1)
 
@@ -339,7 +371,7 @@ char *cma_label_to_name(int label) ;
 
 #define IS_WHITE_CLASS(l) (((l) == Left_Cerebral_White_Matter) || ((l) == Right_Cerebral_White_Matter))
 
-#define IS_CSF_CLASS(l) (((l) == Left_Lateral_Ventricle) || ((l) == Right_Lateral_Ventricle) || ((l) == CSF) || ((l) == CSF_SA) || ((l) == Third_Ventricle) || ((l) == Fourth_Ventricle) || ((l) == Fifth_Ventricle) || ((l) == Left_hippocampal_fissure) || ((l) == Right_hippocampal_fissure) || ((l) == hippocampal_fissure))
+#define IS_CSF_CLASS(l) (((l) == Left_Lateral_Ventricle) || ((l) == Right_Lateral_Ventricle) || ((l) == CSF) || ((l) == CSF_SA) || ((l) == Third_Ventricle) || ((l) == Fourth_Ventricle) || ((l) == Fifth_Ventricle) || ((l) == left_hippocampal_fissure) || ((l) == right_hippocampal_fissure) || ((l) == hippocampal_fissure))
 
 #define IS_CLASS(l,c) (c == CSF_CLASS ? IS_CSF_CLASS(l) : c == GM_CLASS ? IS_GRAY_CLASS(l) : IS_WHITE_CLASS(l))
 #endif
