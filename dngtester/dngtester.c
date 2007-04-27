@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/19 22:43:18 $
- *    $Revision: 1.31 $
+ *    $Date: 2007/04/27 21:39:22 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -117,6 +117,26 @@ int main(int argc, char **argv) {
   int *nunits;
   COLOR_TABLE *ct ;
 
+  mri = MRIread(argv[1]);
+  if(!mri) exit(1);
+
+  printf("Computing\n");
+
+  mri2 = fMRIcovariance(mri, 0, -1, NULL, NULL);
+  if(!mri2) exit(1);
+  MRIwrite(mri2,"var.mgh");
+
+  mri2 = fMRIcovariance(mri, 1, -1, NULL, NULL);
+  if(!mri2) exit(1);
+  MRIwrite(mri2,"covar1.mgh");
+
+  mri2 = fMRItemporalAR1(mri, -1, NULL,NULL);
+  MRIwrite(mri2,"ar1.mgh");
+
+  exit(0);
+  
+
+
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   subject = "tl-wm";
   hemi = "rh";
@@ -202,22 +222,6 @@ int main(int argc, char **argv) {
   printf("Reading\n");
   mri = MRIread(argv[1]);
   printf("chunck %d\n",mri->ischunked);
-
-  mri2 = fMRIvariance(mri, -1, 1, NULL);
-
-  printf("Var1 --------\n");
-  TimerStart(&mytimer) ;
-  for (n=0; n < 1; n++)  fMRIvariance(mri, -1, 1, mri2);
-  msecFitTime = TimerStop(&mytimer) ;
-  printf("t = %lf\n",(double)msecFitTime/n);
-  MRIwrite(mri2,"var1.mgh");
-
-  printf("Var2 --------\n");
-  TimerStart(&mytimer) ;
-  for (n=0; n < 1; n++)  fMRIvariance2(mri, -1, 1, mri2);
-  msecFitTime = TimerStop(&mytimer) ;
-  printf("t = %lf\n",(double)msecFitTime/n);
-  MRIwrite(mri2,"var2.mgh");
 
   printf("Done\n");
 
@@ -623,3 +627,4 @@ int MRISmercator(MRIS *surf)
 
   return(0);
 }
+
