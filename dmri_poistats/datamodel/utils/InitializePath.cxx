@@ -53,22 +53,21 @@ InitializePath::CalculateInitialPath() {
   // create the distance transform, all the values should be set before running
   MRI *distanceTransform = this->GetDistanceVolume( destinationSeedLabel );
   
-  // TODO: remove this
-//  MRIwrite( distanceTransform, "/autofs/space/heraclitus_001/users/dsjen/data/InitPath/DistanceTransform2.mgz" );
-  
   // now that we have the transform to get to the second seed, we want to take
   // the derivatives of the distance transform to see what direction we need
   // to take to get to the second seed
-  MRI *gradients = MRIsobel( distanceTransform, NULL, NULL );
-
-  // TODO: remove this
-  // we'd need to write out each component of the gradient or have some sort of scalar gradient...
-  //MRIwrite( gradients, "/autofs/space/heraclitus_001/users/dsjen/data/InitPath/eigvec1.nii.gz" );
+  MRI *gradientsVolume = MRIsobel( distanceTransform, NULL, NULL );
   
   // pick a random starting point within the starting seed region
   const int startSeedLabel = ( *m_SeedValues )[ 0 ];
   int currentPointInt[3];
   this->GetRandomSeedPoint( currentPointInt, startSeedLabel );
+  
+  // pick a random end point.  This will be used for determining the initial
+  // previous point so that the correct orientation of the eigenvector can be
+  // obtained.
+  int endPoint[3];
+  this->GetRandomSeedPoint( endPoint, destinationSeedLabel );  
   
   // there values are only use when iterating and saving double values, rather
   // than rounding to the int
@@ -76,7 +75,11 @@ InitializePath::CalculateInitialPath() {
   double previousPointDouble[3];
   for( int i=0; i<3; i++ ) {
     currentPointDouble[i] = currentPointInt[i];
-    previousPointDouble[i] = currentPointInt[i];
+    
+    // the previous point is set to this initially so that when the orientation
+    // of the eigenvector is determined, we can find the one that points most
+    // toward the end point initially
+    previousPointDouble[i] = currentPointInt[i] - endPoint[i];
   }
     
   // starting at our random seed point, we want to move it toward the second
@@ -85,26 +88,40 @@ InitializePath::CalculateInitialPath() {
   
   // this will be a vector with 3 columns
   std::vector< double* > path;
+
+  std::cerr << "starting..." << std::endl;
   
   // keep iterating until you've reached your destination region
   while( !this->IsInRegion( currentPointInt, destinationSeeds ) ) {
-        
+            
+    // get the eigenvector
+    double eigenVector[3];
+    this->GetEigenVector( currentPointInt, eigenVector );
+    
+    // get the eigenvector or flip it based on the previous point
+    if( this->ShouldFlipEigenVector( previousPointDouble, currentPointDouble, eigenVector ) ) {
+      for( int cDim=0; cDim<3; cDim++ ) {
+        eigenVector[cDim] *= -1;
+      }
+    }
+    
+    // get the gradients
+    double gradients[3];
+    this->GetGradient( gradientsVolume, currentPointInt, gradients );
+
     // this random number between 0 and 1 will be the percentage that the point
     // is moved along the eigenvector or toward the destination point
     const float pixelJump = 1;
     const float randomNumber = OpenRan1( &m_RandomTimeSeed ) * pixelJump;
-
+    
+    // get the next point in the path
     for( int cDim=0; cDim<3; cDim++ ) {
-      // get the eigenvector at the current point
-      const float eigenVector = MRIFseq_vox( m_EigenVectors, currentPointInt[ 0 ], 
-        currentPointInt[ 1 ], currentPointInt[ 2 ], cDim );
 
-      // get the gradient at the current point
-        const double gradient = MRIgetVoxVal( gradients, currentPointInt[ 0 ], 
-          currentPointInt[ 1 ], currentPointInt[ 2 ], cDim );
+      currentPointDouble[cDim] = currentPointDouble[cDim] - randomNumber * gradients[cDim]
+        + (pixelJump - randomNumber ) * eigenVector[cDim];
 
-      currentPointDouble[cDim] = previousPointDouble[cDim] - randomNumber * gradient
-        + (pixelJump - randomNumber ) * eigenVector;
+      // TODO: this is only to follow the princliple eigendirection
+//      currentPointDouble[cDim] = previousPointDouble[cDim] + eigenVector;
       
     }
                 
@@ -131,8 +148,8 @@ InitializePath::CalculateInitialPath() {
   this->FreeVector( destinationSeeds );
   this->FreeVector( path );
   
-  if( gradients != NULL ) {
-    MRIfree( &gradients );
+  if( gradientsVolume != NULL ) {
+    MRIfree( &gradientsVolume );
   }
 
   if( distanceTransform != NULL ) {
@@ -287,3 +304,52 @@ InitializePath::CopyPathToOutput( std::vector< double* > path ) {
   
 }
 
+void 
+InitializePath::GetGradient( MRI* gradientsVol, int *index, double *oGradient ) {
+
+  for( int cDim=0; cDim<3; cDim++ ) {
+    // get the gradient at the current point
+    oGradient[ cDim ] = MRIgetVoxVal( gradientsVol, index[ 0 ], index[ 1 ], 
+      index[ 2 ], cDim );
+      
+  }
+  
+}
+
+void 
+InitializePath::GetEigenVector( int *index, double *oVector ) {
+
+  for( int cDim=0; cDim<3; cDim++ ) {
+    // get the eigenvector at the current point
+    oVector[ cDim ] = MRIgetVoxVal( m_EigenVectors, index[ 0 ], index[ 1 ], 
+      index[ 2 ], cDim );
+  }
+  
+}
+
+bool 
+InitializePath::ShouldFlipEigenVector( const double* const previousPoint, 
+  const double* const currentPoint, const double* const eigenVector ) {
+  
+  bool shouldFlip = false;
+  
+  // the vector pointing from the previous to the current point
+  double differenceVector[3];
+  for( int cDim=0; cDim<3; cDim++ ) {
+    differenceVector[cDim] = currentPoint[cDim] - previousPoint[cDim];
+  }
+  
+  double dotProject = 0.0;
+  for( int cDim=0; cDim<3; cDim++ ) {
+    dotProject += differenceVector[ cDim ] * eigenVector[ cDim ];
+  }
+  
+  // if the dot project is less than 0, then the flipped eigenVector is a better
+  // fit -- it doesn't move move the pathway in a largely different angle.
+  if( dotProject < 0 ) {
+    shouldFlip = true;
+  }
+  
+  return shouldFlip;
+  
+}

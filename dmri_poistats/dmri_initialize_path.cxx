@@ -174,8 +174,14 @@ InitializePathExe::Run() {
     (std::string)"/InitialPath.txt" );
   WriteData( pathFileName, path->data, path->rows, path->cols );
 
-  MRIfree( &eigenVectors );
-  MRIfree( &seedVolume );
+  if( eigenVectors != NULL ) {
+    MRIfree( &eigenVectors );
+  }
+  
+  if( seedVolume != NULL ) {
+    MRIfree( &seedVolume );
+  }
+  
 }
 
 MRI* 

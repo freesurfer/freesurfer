@@ -82,6 +82,22 @@ private:
   
   void CopyPathToOutput( std::vector< double* > path );
   
+  /**
+   * Gets the gradient and returns it in oGradient.
+   */
+  void GetGradient( MRI* gradientsVol, int *index, double *oGradient );
+
+  /**
+   * Gets the eigenvector at index and returns it in oVector.
+   */
+  void GetEigenVector( int *index, double *oVector );
+  
+  /**
+   * Determines if the eigenvector should be flipped (because they're symmetric)
+   * when using it to find the next position along the initial path.
+   */
+  bool ShouldFlipEigenVector( const double* const previousPoint, const double* const currentPoint, const double* const eigenVector );
+  
 };
 
 #endif
