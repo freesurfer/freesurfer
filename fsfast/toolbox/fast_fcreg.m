@@ -1,5 +1,5 @@
 % fast_fcreg.m
-% $Id: fast_fcreg.m,v 1.4 2007/04/11 23:51:52 greve Exp $
+% $Id: fast_fcreg.m,v 1.5 2007/04/27 22:53:57 greve Exp $
 
 %flacfile
 %sess 
@@ -100,8 +100,9 @@ for nthrun = 1:nruns
     indseg = find(seg.vol == segid);
     nseg = length(indseg);
     if(nseg == 0)
-      fprintf('ERROR: cannot find any segid = %d\n',segid);
-      return;
+      fprintf('WARNING: cannot find any segid = %d\n',segid);
+      %return;
+      continue;
     end
     fprintf('%2d segid = %d,  nseg = %g\n',nthseg,segid,nseg);
     fseg = fmat(:,indseg);
