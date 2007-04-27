@@ -2,9 +2,9 @@
 ## tkmedit.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2007/01/05 00:21:33 $
-##    $Revision: 1.122 $
+##    $Author: kteich $
+##    $Date: 2007/04/27 18:34:42 $
+##    $Revision: 1.123 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -1691,34 +1691,65 @@ proc DoAuxSaveDlog {} {
 
 proc DoAskSaveChangesDlog {} {
 
-    global gDialog
+  global gDialog
 
-    set wwDialog .wwSaveDlog
+	set wwDialog .wwSaveDlog
 
-    # try to create the dlog...
-    if { [Dialog_Create $wwDialog "Save Changes" {-borderwidth 10}] } {
+	# try to create the dlog...
+	if { [Dialog_Create $wwDialog "Save Changes" {-borderwidth 10}] } {
 
-	set fwMain    $wwDialog.fwMain
-	set fwButtons $wwDialog.fwButtons
+		set fwMain    $wwDialog.fwMain
+		set fwButtons $wwDialog.fwButtons
 	
-	# prompt
-	tkm_MakeNormalLabel $fwMain\
-	    "Do you wish to save changes to the main volume?"
+		# prompt
+		tkm_MakeNormalLabel $fwMain \
+		"Do you wish to save changes to the main volume?"
 	
-	# ok and cancel buttons.
-	tkm_MakeButtons $fwButtons { \
-	    {text "Yes" {SaveVolume 0; QuitMedit} } \
-   	    {text "No" { QuitMedit }} }
-	
-	pack $fwMain $fwButtons \
-	    -side top       \
-	    -expand yes     \
-	    -fill x         \
-	    -padx 5         \
-	    -pady 5
-    }
-}
+		# ok and cancel buttons.
+		tkm_MakeButtons $fwButtons {
+			{text "Save and Quit" {SaveVolume 0; QuitMedit} }
+			{text "Just Quit" { QuitMedit } }
+			{text "Don't Quit" { Dialog_Close .wwSaveDlog} } 
+		}
 
+		pack $fwMain $fwButtons \
+		-side top       \
+		-expand yes     \
+		-fill x         \
+		-padx 5         \
+		-pady 5
+	}
+}	
+
+proc DoAskQuitDlog {} {
+
+  global gDialog
+
+	set wwDialog .wwQuitDlog
+
+	# try to create the dlog...
+	if { [Dialog_Create $wwDialog "Quit" {-borderwidth 10}] } {
+
+		set fwMain    $wwDialog.fwMain
+		set fwButtons $wwDialog.fwButtons
+	
+		# prompt
+		tkm_MakeNormalLabel $fwMain "Do you wish to quit?"
+	
+		# ok and cancel buttons.
+		tkm_MakeButtons $fwButtons {
+			{text "Quit" {QuitMedit} }
+			{text "Cancel" { Dialog_Close .wwQuitDlog} } 
+		}
+
+		pack $fwMain $fwButtons \
+		-side top       \
+		-expand yes     \
+		-fill x         \
+		-padx 5         \
+		-pady 5
+	}
+}	
 
 proc DoBrushInfoDlog {} {
 
@@ -5049,9 +5080,9 @@ proc AllowSaveThenQuit {} {
     global gbVolumeDirty
 
     if { $gbVolumeDirty } {
-	DoAskSaveChangesDlog;
+	    DoAskSaveChangesDlog;
     } else {
-	QuitMedit;
+	    DoAskQuitDlog;
     }
 }
 
