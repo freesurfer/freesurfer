@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/05 04:11:27 $
- *    $Revision: 1.118 $
+ *    $Date: 2007/04/27 21:28:54 $
+ *    $Revision: 1.119 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -494,7 +494,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.118 2007/04/05 04:11:27 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.119 2007/04/27 21:28:54 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1478,7 +1478,8 @@ int main(int argc, char **argv) {
     MRIwrite(dwires,tmpstr);
 
     printf("Computing dwi rvar\n");
-    dwirvar = fMRIvariance(dwires, mriglm->glm->dof, 0, NULL);
+    //dwirvar = fMRIvariance(dwires, mriglm->glm->dof, 0, NULL);
+    dwirvar = fMRIcovariance(dwires, 0, mriglm->beta->nframes, 0, NULL);
     sprintf(tmpstr,"%s/dwirvar.%s",GLMDir,format);
     MRIwrite(dwirvar,tmpstr);
 

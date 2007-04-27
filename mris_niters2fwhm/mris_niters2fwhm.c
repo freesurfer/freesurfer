@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.11 $
+ *    $Author: greve $
+ *    $Date: 2007/04/27 21:28:54 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_niters2fwhm.c,v 1.11 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: mris_niters2fwhm.c,v 1.12 2007/04/27 21:28:54 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -165,7 +165,8 @@ int main(int argc, char *argv[]) {
     //MRISsmoothMRI(surf, mri, 1, NULL, mri);
     MRISgaussianSmooth2(surf, mri0, nthiter, mri, 5.0);
 
-    var = fMRIvariance(mri, dof, 0, var);
+    //var = fMRIvariance(mri, dof, 0, var);
+    var = fMRIcovariance(mri, 0, mri->nframes-dof, 0, var);
     RFglobalStats(var, NULL, &vrfmn, &vrfstd, &gmax);
     gstd = 1/(2*sqrt(vrfmn*PI));
     fwhm = gstd*sqrt(log(256.0));

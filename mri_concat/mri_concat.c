@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/16 20:34:05 $
- *    $Revision: 1.15 $
+ *    $Date: 2007/04/27 21:28:54 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // mri_concat.c
-// $Id: mri_concat.c,v 1.15 2007/03/16 20:34:05 greve Exp $
+// $Id: mri_concat.c,v 1.16 2007/04/27 21:28:54 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +54,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.15 2007/03/16 20:34:05 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.16 2007/04/27 21:28:54 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -212,7 +212,9 @@ int main(int argc, char **argv) {
       printf("ERROR: cannot compute std from one frame\n");
       exit(1);
     }
-    mritmp = fMRIvariance(mriout, -1, 1, NULL);
+    //mritmp = fMRIvariance(mriout, -1, 1, NULL);
+    mritmp = fMRIcovariance(mriout, 0, -1, NULL, NULL);
+
     MRIsqrt(mritmp, mritmp);
     MRIfree(&mriout);
     mriout = mritmp;
