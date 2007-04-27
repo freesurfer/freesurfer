@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/27 21:28:54 $
- *    $Revision: 1.119 $
+ *    $Date: 2007/04/27 21:53:25 $
+ *    $Revision: 1.120 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,6 +71,7 @@ USAGE: ./mri_glmfit
    --sim-sign signstring : abs, pos, or neg. Default is abs.
 
    --pca : perform pca/svd analysis on residual
+   --tar1 : compute and save temporal AR1 of residual 
    --save-yhat : flag to save signal estimate
    --save-cond  : flag to save design matrix condition at each voxel
    --voxdump col row slice  : dump voxel GLM and exit
@@ -494,7 +495,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.119 2007/04/27 21:28:54 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.120 2007/04/27 21:53:25 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -577,7 +578,7 @@ int DiagCluster=0;
 double  InterVertexDistAvg, InterVertexDistStdDev, avgvtxarea, ar1mn, ar1std, ar1max;
 double eresgstd, eresfwhm, searchspace;
 double car1mn, rar1mn,sar1mn,cfwhm,rfwhm,sfwhm;
-MRI *ar1=NULL, *z=NULL, *zabs=NULL, *cnr=NULL;
+MRI *ar1=NULL, *tar1=NULL, *z=NULL, *zabs=NULL, *cnr=NULL;
 
 CSD *csd;
 RFS *rfs;
@@ -606,6 +607,8 @@ char *surfname = "white";
 int SubSample = 0;
 int SubSampStart = 0;
 int SubSampDelta = 0;
+
+int DoTemporalAR1 = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1348,6 +1351,13 @@ int main(int argc, char **argv) {
     }
   }
 
+  if(DoTemporalAR1){
+    printf("Computing temporal AR1\n");
+    tar1 = fMRItemporalAR1(mriglm->eres, mriglm->beta->nframes, mriglm->mask,NULL);
+    sprintf(tmpstr,"%s/tar1.%s",GLMDir,format);    
+    MRIwrite(tar1,tmpstr);
+  }
+
   // Save estimation results
   printf("Writing results\n");
   MRIwrite(mriglm->beta,betaFile);
@@ -1597,6 +1607,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nii")) format = "nii";
     else if (!strcasecmp(option, "--allowsubjrep"))
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
+    else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
     else if (!strcasecmp(option, "--qa")) useqa = 1;
     else if (!strcasecmp(option, "--no-mask-smooth")) UseMaskWithSmoothing = 0;
     else if (!strcasecmp(option, "--asl")) useasl = 1;
