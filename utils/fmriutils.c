@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/28 01:00:46 $
- *    $Revision: 1.38 $
+ *    $Date: 2007/04/27 21:25:53 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.38 2007/03/28 01:00:46 greve Exp $
+  $Id: fmriutils.c,v 1.39 2007/04/27 21:25:53 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.38 2007/03/28 01:00:46 greve Exp $");
+  return("$Id: fmriutils.c,v 1.39 2007/04/27 21:25:53 greve Exp $");
 }
 
 
@@ -138,66 +138,130 @@ MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
   return(outmri);
 }
 
-
-/*--------------------------------------------------------*/
-MRI *fMRIvariance(MRI *fmri, float DOF, int RmMean, MRI *var)
+/*!
+\fn MRI *fMRIcovariance(MRI *fmri, int Lag, float DOFAdjust, MRI *mask, MRI *covar)
+\brief Computes the temporal covariance at Lag at each voxel where mask > 0.5. Does
+not remove the mean unless DOFAdjust < 0.
+\param fmri - input
+\param Lag - covariance lag (0 for simple variance)
+\param DOFAdjust - DOF = nframes - DOFAdjust. If DOFAdjust < 0, then removes the mean
+and resets DOFAdjust=1.
+\param mask - only compute where mask > 0.5 (or everywhere if mask is NULL)
+\param covar - output (can be NULL).
+*/
+MRI *fMRIcovariance(MRI *fmri, int Lag, float DOFAdjust, MRI *mask, MRI *covar)
 {
-  int c, r, s, f;
-  double val,sumsqval, sumval;
+  int RemoveMean = 0;
+  int DOF,DOFLag,c,r,s,f;
+  double sumv1v2, val1, val2, valmean;
+  MRI *mean=NULL;
 
-  if (DOF < 0) DOF = fmri->nframes - RmMean;
+  if(DOFAdjust < 0){
+    RemoveMean = 1;
+    DOFAdjust = 1;
+  }
 
-  if (var==NULL)
-  {
-    var = MRIallocSequence(fmri->width, fmri->height, fmri->depth,
-                           MRI_FLOAT, 1);
-    if (var==NULL)
-    {
+  if(Lag < 0 || Lag >= fmri->nframes){
+    printf("ERROR: fMRIcovariance: Lag out of bound %d \n",Lag);
+    return(NULL);
+  }
+
+  DOF = fmri->nframes - DOFAdjust;
+
+  DOFLag = DOF - Lag;
+  if(DOFLag <= 0){
+    printf("ERROR: fMRIcovariance: DOFLag = %d <= 0 (DOF=%d, Lag=%d)\n",
+	   DOFLag,DOF,Lag);
+    return(NULL);
+  }
+  
+  if(covar == NULL){
+    covar = MRIallocSequence(fmri->width, fmri->height, fmri->depth,
+			     MRI_FLOAT, 1);
+    if (covar==NULL) {
       printf("ERROR: fMRIvariance: could not alloc\n");
       return(NULL);
     }
-    MRIcopyHeader(fmri,var);
-  }
-  else
-  {
-    if (var->width  != fmri->width ||
-        var->height != fmri->height ||
-        var->depth  != fmri->depth)
-    {
-      printf("ERROR: fMRIvariance: output dimension mismatch\n");
-      return(NULL);
-    }
-    if (var->type != MRI_FLOAT)
-    {
-      printf("ERROR: fMRIvariance: structure passed is not MRI_FLOAT\n");
-      return(NULL);
-    }
+    MRIcopyHeader(fmri,covar);
   }
 
-  for (c=0; c < fmri->width; c++)
-  {
-    for (r=0; r < fmri->height; r++)
-    {
-      for (s=0; s < fmri->depth; s++)
-      {
-        sumval = 0;
-        sumsqval = 0;
-        for (f=0; f < fmri->nframes; f++)
-        {
-          val = MRIgetVoxVal(fmri, c, r, s, f);
-          sumsqval += (val*val);
-          if (RmMean) sumval += val;
+  if(RemoveMean) mean = MRIframeMean(fmri,NULL);
+
+  valmean = 0;
+  for (c=0; c < fmri->width; c++)  {
+    for (r=0; r < fmri->height; r++) {
+      for (s=0; s < fmri->depth; s++) {
+	if(mask){
+	  if(MRIgetVoxVal(mask, c, r, s, 0) < 0.5){
+	    MRIFseq_vox(covar,c,r,s,0) = 0;
+	    continue;
+	  }
+	}
+	if(RemoveMean) valmean = MRIgetVoxVal(mean, c, r, s, 0);
+        sumv1v2 = 0;
+        for (f=0; f < fmri->nframes - Lag; f++){
+          val1 = MRIgetVoxVal(fmri, c, r, s, f);
+          val2 = MRIgetVoxVal(fmri, c, r, s, f+Lag);
+          sumv1v2 += ((val1-valmean)*(val2-valmean));
         }
-        MRIFseq_vox(var,c,r,s,0) = sumsqval/DOF;
-        if (RmMean)
-          MRIFseq_vox(var,c,r,s,0) -= ((sumval/fmri->nframes)*(sumval/fmri->nframes));
+        MRIFseq_vox(covar,c,r,s,0) = sumv1v2/DOFLag;
       }
     }
   }
+  
+  MRIfree(&mean);
 
-  return(var);
+  return(covar);
 }
 
+/*!
+\fn MRI *fMRItemporalAR1(MRI *fmri, float DOFAdjust, MRI *mask, MRI *ar1)
+\brief Computes the temporal AR(1) at each voxel where mask > 0.5. Does
+not remove the mean unless DOFAdjust < 0.
+\param fmri - input
+\param DOFAdjust - DOF = nframes - DOFAdjust. If DOFAdjust < 0, then removes the mean
+and resets DOFAdjust=1.
+\param mask - only compute where mask > 0.5 (or everywhere if mask is NULL)
+\param ar1 - output (can be NULL).
+*/
+MRI *fMRItemporalAR1(MRI *fmri, float DOFAdjust, MRI *mask, MRI *ar1)
+{
+  int c,r,s;
+  double voxvar,voxcovar;
+  MRI *var, *covar;
+
+  var   = fMRIcovariance(fmri, 0, DOFAdjust, mask, NULL);
+  covar = fMRIcovariance(fmri, 1, DOFAdjust, mask, NULL);
+
+  if(ar1 == NULL){
+    ar1 = MRIallocSequence(fmri->width, fmri->height, fmri->depth,
+			     MRI_FLOAT, 1);
+    if (ar1==NULL) {
+      printf("ERROR: fMRItemporalAR1: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(fmri,ar1);
+  }
+
+  for (c=0; c < fmri->width; c++)  {
+    for (r=0; r < fmri->height; r++) {
+      for (s=0; s < fmri->depth; s++) {
+	if(mask){
+	  if(MRIgetVoxVal(mask, c, r, s, 0) < 0.5){
+	    MRIFseq_vox(ar1,c,r,s,0) = 0;
+	    continue;
+	  }
+	}
+	voxvar = MRIFseq_vox(var,c,r,s,0);
+	if(voxvar == 0) MRIFseq_vox(ar1,c,r,s,0) = 0;
+	voxcovar = MRIFseq_vox(covar,c,r,s,0);
+	MRIFseq_vox(ar1,c,r,s,0) = voxcovar/voxvar;
+      }
+    }
+  }
+  
+  return(ar1);
+}
 
 /*--------------------------------------------------------
   fMRIsumSquare() - computes the sum of the squares over the
@@ -1611,7 +1675,8 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
   }
 
   // pre-compute the variance
-  srcvar = fMRIvariance(srctmp, -1, 0, NULL);
+  //srcvar = fMRIvariance(srctmp, -1, 0, NULL);
+  srcvar = fMRIcovariance(srctmp, 0, -1, mask, NULL);
 
   // Loop thru all voxels
   nframes = srctmp->nframes;

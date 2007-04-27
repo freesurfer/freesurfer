@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.21 $
+ *    $Author: greve $
+ *    $Date: 2007/04/27 21:25:53 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,8 @@ MRIGLM;
 
 const char *fMRISrcVersion(void);
 MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri);
-MRI *fMRIvariance(MRI *fmri, float DOF, int RmMean, MRI *var);
+MRI *fMRIcovariance(MRI *fmri, int Lag, float DOFAdjust, MRI *mask, MRI *covar);
+
 MRI *fMRIcomputeT(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *t);
 MRI *fMRIcomputeF(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *F);
 MRI *fMRIsigT(MRI *t, float DOF, MRI *p);
@@ -101,6 +102,7 @@ double MRIframeMax(MRI *vol, int frame, MRI *mask, int absflag,
                    int *cmax, int *rmax, int *smax);
 MRI *MRIframeMean(MRI *vol, MRI *volmn);
 MRI *fMRIdetrend(MRI *y, MATRIX *X);
+MRI *fMRItemporalAR1(MRI *fmri, float DOFAdjust, MRI *mask, MRI *ar1);
 MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1);
 int fMRIspatialAR1Mean(MRI *src, MRI *mask, double *car1mn,
                        double *rar1mn,double *sar1mn);
