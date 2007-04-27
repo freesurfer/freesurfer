@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/04/11 23:50:52 $
-%    $Revision: 1.23 $
+%    $Date: 2007/04/27 22:54:31 $
+%    $Revision: 1.24 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -156,13 +156,18 @@ for nthev = 1:nev
   % Non-parametric regressors - load and demean matrix
   if(strcmp(ev.model,'nonpar'))
     nonparpath = sprintf('%s/%s',runpath,ev.nonparname);
-    npmri = MRIread(nonparpath);
-    if(isempty(npmri))
+    extreg = fmri_ldbvolume(nonparpath);
+    %npmri = MRIread(nonparpath);
+    if(isempty(extreg))
       fprintf('ERROR: loading %s\n',nonparpath);
       flacnew = [];
       return;
     end
-    X = fast_vol2mat(npmri.vol);
+    if(size(extreg,3)~=1) extreg = squeeze(extreg)';
+    else                  extreg = squeeze(extreg);
+    end
+    %X = fast_vol2mat(npmri.vol);
+    X = extreg;
     if(size(X,1) ~= flacnew.ntp)
       fprintf('ERROR: nonpar time point mismatch %s\n',nonparpath);
       flacnew = [];
@@ -170,6 +175,8 @@ for nthev = 1:nev
     end
     if(size(X,2) < ev.params(1))
       fprintf('ERROR: not enough columns %s\n',nonparpath);
+      size(X)
+      keyboard
       flacnew = [];
       return;
     end
