@@ -174,6 +174,7 @@ InitializePathExe::Run() {
     (std::string)"/InitialPath.txt" );
   WriteData( pathFileName, path->data, path->rows, path->cols );
 
+  // TODO: for some reason this throws and error, glibc detected *** free(): invalid pointer: 
   if( eigenVectors != NULL ) {
     MRIfree( &eigenVectors );
   }

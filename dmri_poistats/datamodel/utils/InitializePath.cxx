@@ -46,115 +46,111 @@ InitializePath::SetSeedValues( std::vector< int > *values ) {
 
 void 
 InitializePath::CalculateInitialPath() {
-  
-  // TODO: using the second seed as the destination
-  const int destinationSeedLabel = ( *m_SeedValues )[ 1 ];
-  
-  // create the distance transform, all the values should be set before running
-  MRI *distanceTransform = this->GetDistanceVolume( destinationSeedLabel );
-  
-  // now that we have the transform to get to the second seed, we want to take
-  // the derivatives of the distance transform to see what direction we need
-  // to take to get to the second seed
-  MRI *gradientsVolume = MRIsobel( distanceTransform, NULL, NULL );
-  
-  // pick a random starting point within the starting seed region
-  const int startSeedLabel = ( *m_SeedValues )[ 0 ];
-  int currentPointInt[3];
-  this->GetRandomSeedPoint( currentPointInt, startSeedLabel );
-  
-  // pick a random end point.  This will be used for determining the initial
-  // previous point so that the correct orientation of the eigenvector can be
-  // obtained.
-  int endPoint[3];
-  this->GetRandomSeedPoint( endPoint, destinationSeedLabel );  
-  
-  // there values are only use when iterating and saving double values, rather
-  // than rounding to the int
-  double currentPointDouble[3];
-  double previousPointDouble[3];
-  for( int i=0; i<3; i++ ) {
-    currentPointDouble[i] = currentPointInt[i];
-    
-    // the previous point is set to this initially so that when the orientation
-    // of the eigenvector is determined, we can find the one that points most
-    // toward the end point initially
-    previousPointDouble[i] = currentPointInt[i] - endPoint[i];
-  }
-    
-  // starting at our random seed point, we want to move it toward the second
-  // seed region and also following the eigenvector  
-  std::vector< int* > destinationSeeds = this->GetSeedPoints( destinationSeedLabel );
-  
+
   // this will be a vector with 3 columns
   std::vector< double* > path;
-
-  std::cerr << "starting..." << std::endl;
   
-  // keep iterating until you've reached your destination region
-  while( !this->IsInRegion( currentPointInt, destinationSeeds ) ) {
-            
-    // get the eigenvector
-    double eigenVector[3];
-    this->GetEigenVector( currentPointInt, eigenVector );
+  for( unsigned int cSeeds = 0; cSeeds < ( m_SeedValues->size() - 1 ); cSeeds++ ) {
+  
+    // using the next seed as the destination
+    const int destinationSeedLabel = ( *m_SeedValues )[ cSeeds+1 ];
     
-    // get the eigenvector or flip it based on the previous point
-    if( this->ShouldFlipEigenVector( previousPointDouble, currentPointDouble, eigenVector ) ) {
-      for( int cDim=0; cDim<3; cDim++ ) {
-        eigenVector[cDim] *= -1;
-      }
-    }
+    // create the distance transform, all the values should be set before running
+    MRI *distanceTransform = this->GetDistanceVolume( destinationSeedLabel );
     
-    // get the gradients
-    double gradients[3];
-    this->GetGradient( gradientsVolume, currentPointInt, gradients );
-
-    // this random number between 0 and 1 will be the percentage that the point
-    // is moved along the eigenvector or toward the destination point
-    const float pixelJump = 1;
-    const float randomNumber = OpenRan1( &m_RandomTimeSeed ) * pixelJump;
+    // now that we have the transform to get to the second seed, we want to take
+    // the derivatives of the distance transform to see what direction we need
+    // to take to get to the second seed
+    MRI *gradientsVolume = MRIsobel( distanceTransform, NULL, NULL );
     
-    // get the next point in the path
-    for( int cDim=0; cDim<3; cDim++ ) {
-
-      currentPointDouble[cDim] = currentPointDouble[cDim] - randomNumber * gradients[cDim]
-        + (pixelJump - randomNumber ) * eigenVector[cDim];
-
-      // TODO: this is only to follow the princliple eigendirection
-//      currentPointDouble[cDim] = previousPointDouble[cDim] + eigenVector;
+    // pick a random starting point within the starting seed region
+    const int startSeedLabel = ( *m_SeedValues )[ cSeeds ];
+    int currentPointInt[3];
+    this->GetRandomSeedPoint( currentPointInt, startSeedLabel );
+    
+    // pick a random end point.  This will be used for determining the initial
+    // previous point so that the correct orientation of the eigenvector can be
+    // obtained.
+    int endPoint[3];
+    this->GetRandomSeedPoint( endPoint, destinationSeedLabel );  
+    
+    // there values are only use when iterating and saving double values, rather
+    // than rounding to the int
+    double currentPointDouble[3];
+    double previousPointDouble[3];
+    for( int i=0; i<3; i++ ) {
+      currentPointDouble[i] = currentPointInt[i];
       
+      // the previous point is set to this initially so that when the orientation
+      // of the eigenvector is determined, we can find the one that points most
+      // toward the end point initially
+      previousPointDouble[i] = currentPointInt[i] - endPoint[i];
     }
-                
-    // add point to be saved
-    double* point = new double[ 3 ];
-    path.push_back( point );
-    
-    // copy the current point in
-    for( int cDim=0; cDim<3; cDim++ ) {
-      point[ cDim ] = currentPointDouble[ cDim ];
       
-      previousPointDouble[cDim] = currentPointDouble[cDim];
-      currentPointInt[ cDim ] = static_cast< int >( round( currentPointDouble[cDim] ) );
-      std::cerr << point[ cDim ] << "  ";
-    }
-    std::cerr << std::endl;
+    // starting at our random seed point, we want to move it toward the second
+    // seed region and also following the eigenvector  
+    std::vector< int* > destinationSeeds = this->GetSeedPoints( destinationSeedLabel );
         
-  }
+    // keep iterating until you've reached your destination region
+    while( !this->IsInRegion( currentPointInt, destinationSeeds ) ) {
+              
+      // get the eigenvector
+      double eigenVector[3];
+      this->GetEigenVector( currentPointInt, eigenVector );
+      
+      // get the eigenvector or flip it based on the previous point
+      if( this->ShouldFlipEigenVector( previousPointDouble, currentPointDouble, eigenVector ) ) {
+        for( int cDim=0; cDim<3; cDim++ ) {
+          eigenVector[cDim] *= -1;
+        }
+      }
+      
+      // get the gradients
+      double gradients[3];
+      this->GetGradient( gradientsVolume, currentPointInt, gradients );
   
+      // this random number between 0 and 1 will be the percentage that the point
+      // is moved along the eigenvector or toward the destination point
+      const float pixelJump = 1;
+      const float randomNumber = OpenRan1( &m_RandomTimeSeed ) * pixelJump;
+      
+      // get the next point in the path
+      for( int cDim=0; cDim<3; cDim++ ) {
+  
+        currentPointDouble[cDim] = currentPointDouble[cDim] - randomNumber * gradients[cDim]
+          + (pixelJump - randomNumber ) * eigenVector[cDim];
+        
+      }
+                  
+      // add point to be saved
+      double* point = new double[ 3 ];
+      path.push_back( point );
+      
+      // copy the current point in
+      for( int cDim=0; cDim<3; cDim++ ) {
+        point[ cDim ] = currentPointDouble[ cDim ];
+        
+        previousPointDouble[cDim] = currentPointDouble[cDim];
+        currentPointInt[ cDim ] = static_cast< int >( round( currentPointDouble[cDim] ) );
+      }
+          
+    }
+    
+    // clean up the data
+    this->FreeVector( destinationSeeds );
+  
+    if( gradientsVolume != NULL ) {
+      MRIfree( &gradientsVolume );
+    }
+  
+    if( distanceTransform != NULL ) {
+      MRIfree( &distanceTransform );
+    }
+  }
+
   // copy the path to the matrix output
   this->CopyPathToOutput( path );
-  
-  // clean up the data
-  this->FreeVector( destinationSeeds );
   this->FreeVector( path );
-  
-  if( gradientsVolume != NULL ) {
-    MRIfree( &gradientsVolume );
-  }
-
-  if( distanceTransform != NULL ) {
-    MRIfree( &distanceTransform );
-  }
   
 }
 
