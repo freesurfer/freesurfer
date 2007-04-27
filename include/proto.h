@@ -1,15 +1,14 @@
 /**
  * @file  proto.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief function prototypes of common system functions
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.34 $
+ *    $Date: 2007/04/27 02:23:41 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,8 +40,9 @@
 #endif
 
 /*----------------- ALL PLATFORMS *--------------------*/
+#ifndef Windows_NT
 int stricmp(char *str1, char *str2) ;
-
+#endif
 
 /*----------- SunOS -----------------------*/
 #ifdef SunOSX
@@ -148,8 +148,12 @@ double rint(double x) ;
 #define isnan(f) 0
 #define unlink _unlink
 #define hypot  _hypot
-
 #endif   /* MSDOS */
+
+/*----------- Windows Cygwin -----------------------*/
+#ifdef Windows_NT
+#define nint(f)   ((int) (floor(f + .5)))
+#endif   /* Windows Cygwin */
 
 #endif   /* #ifndef PROTO_H */
 

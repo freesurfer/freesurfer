@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/23 21:30:24 $
- *    $Revision: 1.61 $
+ *    $Date: 2007/04/27 02:23:44 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -746,6 +746,7 @@ angleDistance(float theta1, float theta2)
   return(adist) ;
 }
 /*#ifndef SunOS*/
+#ifndef Windows_NT
 int
 stricmp(char *str1, char *str2)
 {
@@ -757,6 +758,7 @@ stricmp(char *str1, char *str2)
   StrUpper(buf2) ;
   return(strcmp(buf1, buf2)) ;
 }
+#endif
 /*#endif*/
 
 /*------------------------------------------------------------------------

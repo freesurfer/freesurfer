@@ -270,6 +270,15 @@ case "${target}" in
  SHARED_LDFLAGS="-shared "
  CPPFLAGS="-g -O2 $NSALIASING $WALL $WERROR $NUPRAG"
  ;;
+ i*86-pc-cygwin)
+ OS=Windows_NT
+ OS_CPPFLAGS=
+ OS_LDFLAGS=
+ DYNAMIC_LIB_EXT=
+ SHARED_CFLAGS=
+ SHARED_LDFLAGS=
+ CPPFLAGS="-g -O2 $NSALIASING $WALL $WERROR $NUPRAG"
+ ;;
 esac
 AC_SUBST(OS)
 AC_SUBST(OS_CPPFLAGS)
@@ -1649,14 +1658,19 @@ if test ! "x$tcltk_apps" = "xNO"; then
     [
       AC_CHECK_LIB([tcl8.3],[Tcl_Init],
       [LIB_TCL=-ltcl8.3],
+  # check tcl83
+      [
+        AC_CHECK_LIB([tcl83],[Tcl_Init],
+        [LIB_TCL=-ltcl83],
   # check tcl
-      [ AC_CHECK_LIB([tcl],[Tcl_Init],
-        [LIB_TCL=-ltcl],
+        [ AC_CHECK_LIB([tcl],[Tcl_Init],
+          [LIB_TCL=-ltcl],
   # check tclstub
-        [ AC_CHECK_LIB([tclstub],[Tcl_Init],
-          [LIB_TCL=-ltclstub],
-          [AC_MSG_ERROR([FATAL: libtcl not found. \
+          [ AC_CHECK_LIB([tclstub],[Tcl_Init],
+            [LIB_TCL=-ltclstub],
+            [AC_MSG_ERROR([FATAL: libtcl not found. \
 Check config.log. Set LDFLAGS or --with-tcl-dir.])        ] )
+          ])
         ])
       ])
     ])
@@ -1671,12 +1685,17 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])        ] )
     [
       AC_CHECK_LIB([tk8.3],[Tk_Init],
       [LIB_TK=-ltk8.3],
-  # check tk
+  # check tk83
       [
-        AC_CHECK_LIB([tk],[Tk_Init],
-        [LIB_TK=-ltk],
-        [AC_MSG_ERROR([FATAL: libtk not found. \
+        AC_CHECK_LIB([tk83],[Tk_Init],
+        [LIB_TK=-ltk83],
+  # check tk
+        [
+          AC_CHECK_LIB([tk],[Tk_Init],
+          [LIB_TK=-ltk],
+          [AC_MSG_ERROR([FATAL: libtk not found. \
 Check config.log. Set LDFLAGS or --with-tcl-dir.])
+          ])
         ])
       ])
     ])
@@ -1693,11 +1712,16 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
         AC_CHECK_LIB([tix8.1.8.3], [Tix_Init],
         [LIB_TIX=-ltix8.1.8.3],
         [
+  # check tix8183
+          AC_CHECK_LIB([tix8183], [Tix_Init],
+          [LIB_TIX=-ltix8183],
+          [
   # check tix8.4
-          AC_CHECK_LIB([Tix8.4], [Tix_Init],
-          [LIB_TIX=-lTix8.4],
-          [AC_MSG_ERROR([FATAL: libtix not found. \
+            AC_CHECK_LIB([Tix8.4], [Tix_Init],
+            [LIB_TIX=-lTix8.4],
+            [AC_MSG_ERROR([FATAL: libtix not found. \
 Check config.log. Set LDFLAGS or --with-tcl-dir.])
+            ])
           ])
         ])
       ])

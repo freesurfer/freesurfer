@@ -1,15 +1,14 @@
 /**
  * @file  matrix.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Matrix utilities
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/04/01 03:04:13 $
- *    $Revision: 1.107 $
+ *    $Author: nicks $
+ *    $Date: 2007/04/27 02:23:44 $
+ *    $Revision: 1.108 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,8 +24,6 @@
  *
  */
 
-
-// $Id: matrix.c,v 1.107 2007/04/01 03:04:13 fischl Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -44,7 +41,11 @@
 #ifdef SunOS
 #include <limits.h> // defines FLT_MIN
 #else
+#ifdef Windows_NT
+#include <float.h> // defines FLT_MIN
+#else
 #include <values.h> // defines FLT_MIN
+#endif
 #endif
 #endif
 

@@ -22,7 +22,7 @@ tkmedit_LDADD= 	$(top_srcdir)/fsgdf/libfsgdf.a \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
 	$(X_LIBS) $(GLUT_LIBS)
-tkmedit_LDFLAGS=
+tkmedit_LDFLAGS=$(LDFLAGS_TCL)
 else
 bin_PROGRAMS=
 endif

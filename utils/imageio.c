@@ -1,15 +1,14 @@
 /**
  * @file  imageio.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief image processing utilities
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/20 21:12:14 $
- *    $Revision: 1.41 $
+ *    $Author: nicks $
+ *    $Date: 2007/04/27 02:23:44 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,17 +24,9 @@
  *
  */
 
-
 /*
- *       FILE NAME:   image.c
- *
- *       DESCRIPTION: image processing utilities
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        2/5/96
- *
  * replaced alloc_image with alloc_image_buffer (dng, 3/12/96).
-*/
+ */
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -1128,12 +1119,14 @@ TiffReadImage(char *fname, int frame0)
 }
 
 #ifndef Darwin
+#ifndef Windows_NT
 /* unresolved in libtiff for some reason... */
 void __eprintf(void) ;
 
 void
 __eprintf(void)
 {}
+#endif
 #endif
 
 /*----------------------------------------------------------------------

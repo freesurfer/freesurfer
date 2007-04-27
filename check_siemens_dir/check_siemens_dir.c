@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:56 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/04/27 02:23:40 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,9 @@ char *Progname;
 
 #ifndef Darwin
 #ifndef SunOS
+#ifndef Windows_NT
 extern void swab(const void *from, void *to, size_t n);
+#endif
 #endif
 #endif
 
@@ -70,7 +72,10 @@ int main(int argc, char *argv[]) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: check_siemens_dir.c,v 1.8 2006/12/29 02:08:56 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: check_siemens_dir.c,v 1.9 2007/04/27 02:23:40 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -132,13 +137,15 @@ void check_directory(DIR *dp, char *dir_name) {
       if (strcmp(&(de->d_name)[fname_length-4], ".ima") == 0) {
         if (sscanf(de->d_name, "%d-%d-%d.ima", &exam, &series, &image) == 3) {
           if (image >= MAX_FILES || image <= 0) {
-            printf("image number out of range (file is %s, MAX_FILES is %d)\n", de->d_name, MAX_FILES);
+            printf("image number out of range (file is %s, MAX_FILES is %d)\n",
+       de->d_name, MAX_FILES);
           } else {
             sprintf(full_fname, "%s/%s", dir_name, de->d_name);
             strcpy(files[image].fname, full_fname);
             fp = fopen(full_fname, "r");
             if (fp == NULL) {
-              printf("error opening file %s; can't check file length\n", full_fname);
+              printf("error opening file %s; can't check file length\n", 
+         full_fname);
               files[image].length = -1;
             } else {
               fseek(fp, 0, SEEK_END);
@@ -215,7 +222,8 @@ void check_directory(DIR *dp, char *dir_name) {
 
   for (i = first_image;i < MAX_FILES;i++) {
     if (files[i].image != -1) {
-      /* --- ignore jumps back in series -- we'll get these in the out of place image checks --- */
+      /* --- ignore jumps back in series -- 
+   we'll get these in the out of place image checks --- */
       if (files[i].series == last_series + 1)
         last_series = files[i].series;
       else if (files[i].series > last_series) {
@@ -252,7 +260,8 @@ void check_directory(DIR *dp, char *dir_name) {
   for (i = first_image;i < MAX_FILES;i++) {
     if (files[i].image != -1) {
       if (files[i].series < last_series) {
-        printf("image out of place: %d-%d-%d.ima\n", files[i].exam, files[i].series, files[i].image);
+        printf("image out of place: %d-%d-%d.ima\n", 
+         files[i].exam, files[i].series, files[i].image);
       } else
         last_series = files[i].series;
     }
@@ -262,9 +271,16 @@ void check_directory(DIR *dp, char *dir_name) {
   /* ----- check file sizes ----- */
   for (i = first_image;i < MAX_FILES;i++) {
     if (files[i].image != -1 && files[image].length != -1) {
-      if (files[i].length != files[i].rows * files[i].cols * files[i].bytes_per_voxel + 6144) {
-        printf("bad file size for file %d-%d-%d.ima:\n", files[i].exam, files[i].series, files[i].image);
-        printf("  6144 (hdr) + %d rows * %d cols * %d bpv != %d (file length)\n", files[i].rows, files[i].cols, files[i].bytes_per_voxel, files[i].length);
+      if (files[i].length != 
+    files[i].rows * files[i].cols * files[i].bytes_per_voxel + 6144) {
+        printf("bad file size for file %d-%d-%d.ima:\n", 
+         files[i].exam, files[i].series, files[i].image);
+        printf("  6144 (hdr) + %d rows * %d cols * "
+         "%d bpv != %d (file length)\n", 
+         files[i].rows, 
+         files[i].cols, 
+         files[i].bytes_per_voxel, 
+         files[i].length);
       }
     }
   }

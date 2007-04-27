@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/24 23:47:52 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/04/27 02:23:44 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,6 +78,9 @@
 # else
 #  define PLATFORM "SunOS"
 # endif
+#endif
+#if defined(Windows_NT)
+#  define PLATFORM "Windows"
 #endif
 
 

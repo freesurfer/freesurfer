@@ -1,15 +1,20 @@
 /**
  * @file  mghendian.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief BYTE_ORDER, LITTLE_ENDIAN, BIG_ENDIAN and BYTE_ORDER
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * SGI  /usr/include/sys/endian.h (decides on _MIPSEB or _MIPSEL)       LITTLE_ENDIAN/BIG_ENDIAN
+ * Mac /usr/include/machine/endian.h (decides on __ppc__ or __i386__)  LITTLE_EHNDIAN/BIG_ENDIAN
+ * Linux  /usr/include/endian.h -> /usr/include/bits/endian.h             __LITTLE_ENDIAN/__BIG_ENDIAN
+ * Solaris /usr/include/sys/isa_defs.h                                     _LITTLE_ENDIUAN/_BIG_ENDIAN
+ *
+ * BSD defines non-underscore variables
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/04/27 02:23:41 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,6 +58,24 @@
 
 /*////////////Linux///////////////////////////*/
 #ifdef linux
+#include <endian.h>
+
+#ifndef BYTE_ORDER
+#define BYTE_ORDER __BYTE_ORDER
+#endif
+
+#ifndef LITTLE_ENDIAN
+#define LITTLE_ENDIAN __LITTLE_ENDIAN
+#endif
+
+#ifndef BIG_ENDIAN
+#define BIG_ENDIAN __BIG_ENDIAN
+#endif
+
+#endif
+
+/*////////////Windows Cygwin///////////////////////////*/
+#ifdef Windows_NT
 #include <endian.h>
 
 #ifndef BYTE_ORDER
