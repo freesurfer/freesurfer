@@ -4,14 +4,14 @@
  *
  * segments the callosum into 5 parts divided along the primary
  * eigendirection (mostly anterior/posterior)
- * and writes the results into aseg_with_cc.mgz
+ * and writes the results into aseg.mgz
  */
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/27 19:29:37 $
- *    $Revision: 1.16 $
+ *    $Date: 2007/04/27 19:43:25 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -549,7 +549,7 @@ main(int argc, char *argv[])
       }
     }
 
-    sprintf(ofname,"%s/%s/mri/aseg_with_cc.mgz",data_dir,argv[1]) ;
+    sprintf(ofname,"%s/%s/mri/aseg.mgz",data_dir,argv[1]) ;
     fprintf(stdout, "writing aseg with callosum to to %s...\n", ofname) ;
     MRIwrite(mri_aseg, ofname) ;
   }
@@ -1203,6 +1203,18 @@ get_option(int argc, char *argv[])
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
     nargs = 3 ;
   }
+  else if ((!stricmp(option, "help")) ||
+           (!stricmp(option, "-help")))
+  {
+    fprintf(stdout,
+            "Usage: %s <subject>\n\n",
+            Progname) ;
+    fprintf(stdout,
+            "Segments the corpus callosum into five parts divided along\n"
+            "the primary eigendirection (mostly anterior/posterior), and\n"
+            "writes the results to <subject>/mri/aseg.mgz\n");
+    exit(1);
+  }
   else switch (toupper(*option))
     {
     case '?':
@@ -1237,6 +1249,7 @@ get_option(int argc, char *argv[])
       fprintf(stdout,"setting callosum thickness to %d mm\n", 2*dxi+1);
       nargs = 1;
       break;
+
     default:
       fprintf(stdout, "unknown option %s\n", argv[1]) ;
       exit(1) ;
