@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: msh $
- *    $Date: 2007/04/11 22:23:51 $
- *    $Revision: 1.310 $
+ *    $Date: 2007/04/28 14:03:27 $
+ *    $Revision: 1.311 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.310 $";
+char *VERSION = "$Revision: 1.311 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.310 2007/04/11 22:23:51 msh Exp $",
+     "$Id: tkmedit.c,v 1.311 2007/04/28 14:03:27 msh Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5884,7 +5884,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.310 2007/04/11 22:23:51 msh Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.311 2007/04/28 14:03:27 msh Exp $ $Name:  $\n"
     )
   );
 
@@ -6276,7 +6276,7 @@ int main ( int argc, char** argv ) {
   /* if we're running in a terminal shell, make our tcl shell interactive
      so we can enter commands. */
   DebugNote( ("Determining if this is a tty shell") );
-  tty = isatty(0);
+  tty    = isatty(0);
   DebugNote( ("Setting tcl_interactive var to %d", (int)tty) );
   Tcl_SetVar( interp, "tcl_interactive", (tty) ? "1" : "0", TCL_GLOBAL_ONLY );
 
@@ -6993,6 +6993,7 @@ int mask;
   static int gotPartial = 0;
   char *cmd;
   int code, count;
+  int tcl_interactive = 0;
 
   count = read(fileno(stdin), input, BUFFER_SIZE);
   if (count <= 0) {
@@ -7022,8 +7023,19 @@ int mask;
   code = Tcl_RecordAndEval(interp, cmd, TCL_EVAL_GLOBAL);
   Tk_CreateFileHandler(0, TK_READABLE, StdinProc, (ClientData) 0);
   Tcl_DStringFree(&command);
+  {
+    /*
+     * Check whether tcl_interactive has been set 
+     * to enforce interactive-like behavior
+     */
+    char *ints  = (char *)Tcl_GetVar(interp,
+				     "tcl_interactive", 
+				     TCL_GLOBAL_ONLY);
+    if (!ints || sscanf(ints,"%d",&tcl_interactive) != 1)
+      tcl_interactive = 0;
+  }
   if (*interp->result != 0)
-    if ((code != TCL_OK) || (tty))
+    if ((code != TCL_OK) || (tty) || (tcl_interactive) )
       puts(interp->result);
 prompt:
   if (tty) Prompt(interp, gotPartial);

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: msh $
- *    $Date: 2007/04/11 22:23:51 $
- *    $Revision: 1.39 $
+ *    $Date: 2007/04/28 14:03:27 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -76,7 +76,7 @@ typedef enum {
 #define MWin_knMaxNumAreas     16
 #define MWin_kAllDisplayAreas -1
 
-#define MWin_knSpaceBetweenWindowAndPanel 20
+#define MWin_knSpaceBetweenWindowAndPanel 5
 
 struct tkmMeditWindow {
 
@@ -459,6 +459,14 @@ int MWin_TclPositionWindow  ( ClientData  iClientData,
                               Tcl_Interp* ipInterp,
                               int   argc,
                               char*   argv[] );
+int MWin_TclGetWindowSize ( ClientData  iClientData,
+			    Tcl_Interp* ipInterp,
+			    int   argc,
+			    char*   argv[] );
+int MWin_TclPlaceToolWindow ( ClientData  iClientData,
+			      Tcl_Interp* ipInterp,
+			      int   argc,
+			      char*   argv[] );
 
 #endif
 

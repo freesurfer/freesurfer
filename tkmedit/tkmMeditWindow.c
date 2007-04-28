@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: msh $
- *    $Date: 2007/04/11 22:23:51 $
- *    $Revision: 1.61 $
+ *    $Date: 2007/04/28 14:03:27 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -2869,11 +2869,12 @@ MWin_tErr MWin_PlaceToolWindow_ ( tkmMeditWindowRef this ) {
 
   MWin_tErr eResult            = MWin_tErr_NoErr;
   char      sTclArguments[256] = "";
+  int       offset             = 7; /* For better positioning with window frames into account */
 
   /* move tool window to just under our position */
   sprintf( sTclArguments, "+%d+%d",
-           glutGet( GLUT_WINDOW_X ),
-           glutGet( GLUT_WINDOW_Y ) + this->mnHeight +
+           glutGet( GLUT_WINDOW_X ) - offset,
+           glutGet( GLUT_WINDOW_Y ) + offset + this->mnHeight +
            MWin_knSpaceBetweenWindowAndPanel );
   tkm_SendTclCommand( tkm_tTclCommand_MoveToolWindow, sTclArguments );
 
@@ -2977,7 +2978,6 @@ cleanup:
 MWin_tErr MWin_ShowWindow ( tkmMeditWindowRef this ) {
 
   MWin_tErr eResult     = MWin_tErr_NoErr;
-
 
   glutShowWindow();
 
@@ -3126,6 +3126,12 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
                       (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "PositionWindow",
                       (Tcl_CmdProc*) MWin_TclPositionWindow,
+                      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( ipInterp, "GetWindowSize",
+                      (Tcl_CmdProc*) MWin_TclGetWindowSize,
+                      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( ipInterp, "PlaceToolWindow",
+                      (Tcl_CmdProc*) MWin_TclPlaceToolWindow,
                       (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
 
   goto cleanup;
@@ -3347,7 +3353,7 @@ int MWin_TclSetCursor ( ClientData  iClientData,
     goto cleanup;
 
   /* verify the number of arguments. */
-  if ( argc < 4 ) {
+  if ( argc < 5 ) {
     eResult = MWin_tErr_WrongNumberArgs;
     goto error;
   }
@@ -5289,6 +5295,136 @@ int MWin_TclPositionWindow ( ClientData  iClientData,
 
   /* pass on to the last clicked display. */
   eDispResult = MWin_PositionWindow ( this, posx, posy );
+
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  goto cleanup;
+
+error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+
+    sprintf ( sError, "Error %d in MWin_TclSetFuncOverlayAlpha: %s\n",
+              eResult, MWin_GetErrorString(eResult) );
+
+    DebugPrint( (sError ) );
+
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
+  }
+
+  eTclResult = TCL_ERROR;
+
+cleanup:
+
+  return eTclResult;
+}
+
+int MWin_TclGetWindowSize ( ClientData  iClientData,
+			    Tcl_Interp* ipInterp,
+			    int         argc,
+			    char*       argv[] ) {
+  
+  tkmMeditWindowRef this         = NULL;
+  int               eTclResult   = TCL_OK;
+  MWin_tErr         eResult      = MWin_tErr_NoErr;
+  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
+  char              sError[256]  = "";
+  int               x,y,w,h;
+
+  /* grab us from the client data ptr */
+  this = (tkmMeditWindowRef) iClientData;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if not accepting commands yet, return. */
+  if ( !this->mbAcceptingTclCommands )
+    goto cleanup;
+
+  /* verify the last clicked display area index. */
+  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the number of arguments. */
+  if ( argc != 1 ) {
+    eResult = MWin_tErr_WrongNumberArgs;
+    goto error;
+  }
+  eDispResult = MWin_GetWindowSize ( this, &x, &y, &w, &h );
+
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  else {
+    char result[100];
+    sprintf(result,"%d %d %d %d",x,y,w,h);
+    Tcl_SetResult( ipInterp, result, TCL_VOLATILE );
+  }
+  goto cleanup;
+
+error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+
+    sprintf ( sError, "Error %d in MWin_TclSetFuncOverlayAlpha: %s\n",
+              eResult, MWin_GetErrorString(eResult) );
+
+    DebugPrint( (sError ) );
+
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
+  }
+
+  eTclResult = TCL_ERROR;
+
+cleanup:
+
+  return eTclResult;
+}
+
+int MWin_TclPlaceToolWindow ( ClientData  iClientData,
+			      Tcl_Interp* ipInterp,
+			      int         argc,
+			      char*       argv[] ) {
+  
+  tkmMeditWindowRef this         = NULL;
+  int               eTclResult   = TCL_OK;
+  MWin_tErr         eResult      = MWin_tErr_NoErr;
+  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
+  char              sError[256]  = "";
+
+  /* grab us from the client data ptr */
+  this = (tkmMeditWindowRef) iClientData;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if not accepting commands yet, return. */
+  if ( !this->mbAcceptingTclCommands )
+    goto cleanup;
+
+  /* verify the last clicked display area index. */
+  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the number of arguments. */
+  if ( argc != 1 ) {
+    eResult = MWin_tErr_WrongNumberArgs;
+    goto error;
+  }
+  eDispResult = MWin_PlaceToolWindow_ ( this );
 
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
