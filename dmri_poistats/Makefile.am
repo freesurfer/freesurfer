@@ -29,7 +29,9 @@ EVENTS_SRCS = \
 
 UTILS_SRCS = \
 	datamodel/utils/itkPoistatsFilter.txx \
-	datamodel/utils/itkPoistatsFilter.h
+	datamodel/utils/itkPoistatsFilter.h \
+	datamodel/utils/InitializePath.h \
+	datamodel/utils/InitializePath.cxx
 
 BSPLINES_SRCS = \
 	datamodel/utils/bspline/itkBSplineKernelFunction.txx \
@@ -75,17 +77,19 @@ dmri_poistats_LDADD = $(LIBS_ITK) \
 	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
 	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
 	-litkvnl -litkvcl \
-	-lITKMetaIO -litksys -lITKEXPAT -lITKniftiio -lITKznz -litkzlib
+	-lITKMetaIO -litksys -lITKEXPAT -lITKniftiio -lITKznz -litkzlib \
+	$(addprefix $(top_srcdir)/, $(LIBS_MGH) )
 dmri_poistats_LDFLAGS = $(OS_LDFLAGS)
 dmri_poistats_CXXFLAGS = 
 
 # initialize poistats path stuff
 dmri_initialize_path_SOURCES = \
 	$(UI_SRCS) \
+	$(DATAMODEL_SRCS) \
 	datamodel/utils/InitializePath.h \
 	datamodel/utils/InitializePath.cxx \
   dmri_initialize_path.cxx 
-dmri_initialize_path_LDADD = $(addprefix $(top_srcdir)/, $(LIBS_MGH) utilscpp/libutilscpp.a )
+dmri_initialize_path_LDADD = $(addprefix $(top_srcdir)/, $(LIBS_MGH) )
 dmri_initialize_path_LDFLAGS = $(OS_LDFLAGS)
 dmri_initialize_path_CXXFLAGS = 
 

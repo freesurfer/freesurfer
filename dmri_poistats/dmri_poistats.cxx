@@ -50,6 +50,9 @@
 #include "ui/CommandParser.h"
 #include "ui/FreeSurferExecutable.h"
 
+/** This is needed by the freesurfer utils library */
+char *Progname;
+
 /**
  * C++ replacement of the matlab Poistats.
  */
@@ -78,6 +81,7 @@ class Poistats : public FreeSurferExecutable {
     static const std::string FLAG_POINTS_TO_IMAGE_GAMMA;
     static const std::string FLAG_IS_SYMMETRIC_DATA;
     static const std::string FLAG_IS_OUTPUT_NII;
+    static const std::string FLAG_EIGENVECTOR_STEM;
 
     Poistats( int inArgs, char ** iaArgs );
     ~Poistats();
@@ -110,6 +114,8 @@ class Poistats : public FreeSurferExecutable {
   
     bool m_IsSymmetricData;
     bool m_IsOutputNii;
+    
+    char *m_EigenVectorStem;
 
     bool IsNifti( std::string fileExtension );
     bool IsMGH( std::string fileExtension );
@@ -143,6 +149,8 @@ const std::string Poistats::FLAG_IS_SYMMETRIC_DATA =
   Poistats::FLAG_DELIMITER + "symmetric";
 const std::string Poistats::FLAG_IS_OUTPUT_NII = 
   Poistats::FLAG_DELIMITER + "nii";
+const std::string Poistats::FLAG_EIGENVECTOR_STEM = 
+  Poistats::FLAG_DELIMITER + "eigvec";
 
 // these are new additions for playing with the parameter space
 const std::string Poistats::FLAG_REPLICA_EXCHANGE_PROBABILITY = 
@@ -195,6 +203,8 @@ Poistats::Poistats( int inArgs, char ** iaArgs ) :
     "Is the tensor input stored symmetric (6 rather than 9 component storage)?  Default: false (not stored symmetrically)." );
   SetNextOptionalArgument( FLAG_IS_OUTPUT_NII, "nii", 
     "Should the output be stored as nifti?  Default: false" );
+  SetNextOptionalArgument( FLAG_EIGENVECTOR_STEM, "eigvec", 
+    "Should the paths be initialized by following the principle eigenvector?  Specify the eigenvector volume following this flag." );
 
   std::string output = "";
   output = output + 
@@ -262,6 +272,8 @@ Poistats::FillArguments() {
       FLAG_IS_SYMMETRIC_DATA.c_str() );
 
     m_IsOutputNii = m_Parser->GetArgumentBoolean( FLAG_IS_OUTPUT_NII.c_str() );
+
+    m_EigenVectorStem = m_Parser->GetArgument( FLAG_EIGENVECTOR_STEM.c_str() );
     
   }
       
@@ -510,6 +522,13 @@ Poistats::Run() {
   if( m_nReplicas > 0 ) {
     poistatsFilter->SetNumberOfReplicas( m_nReplicas );
   }
+  
+  // read in the eigenvectors
+  if( m_EigenVectorStem != NULL ) {
+    observer->PostMessage( "reading eigenvectors...\n" );
+    
+    
+  }
 
   // compute the poi
   try { 
@@ -573,6 +592,9 @@ Poistats::Run() {
 }
 
 int main( int argc, char ** argv ) {
+
+  // this is needed by the freesurfer utils library
+  Progname = argv[0];
   
   FreeSurferExecutable *exe = new Poistats( argc, argv );
   
