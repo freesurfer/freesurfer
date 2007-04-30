@@ -583,6 +583,10 @@ PoistatsFilter< TInputImage, TOutputImage >
   } catch( itk::ExceptionObject & excp ) {
     throw excp;
   }
+  
+  // if a mask is being used, make it the union of the seed regions and the mask
+  // itself, in case the mask doesn't include the seed regions in it
+  this->TakeUnionOfMaskAndSeeds();
 
   itkDebugMacro( << "initializing paths" );
   // initializes all the paths of the replicas, connects start and end regions
@@ -775,7 +779,7 @@ PoistatsFilter< TInputImage, TOutputImage >
   // our user has specified the number of sample point to use
   MatrixPointer rethreadedFinalPath = this->m_Replicas->RethreadPath( 
     &finalBestPath, this->GetNumberOfSamplePoints() );
-
+    
   // this is the path that we'll output to the user
   this->SetFinalPath( *rethreadedFinalPath );
   finalBestPath = this->GetFinalPath();
@@ -1006,19 +1010,19 @@ PoistatsFilter<TInputImage, TOutputImage>
         // transpose though)
         const int cFlippedTensorRow = ( nTensorRows - 1 ) - cTensorRow;
 
-        for( int cTensorColumn=0; cTensorColumn<nTensorColumns; 
-          cTensorColumn++ ) {
+        for( int cTensorColumn=0; cTensorColumn<nTensorColumns; cTensorColumn++ ) {
 
-          const int cTensorFlippedColumn = 
-            ( nTensorColumns - 1 ) - cTensorColumn;
-          
-          const double flippedValue = 
-            currentTensor( cFlippedTensorRow, cTensorFlippedColumn );
-          const double currentPolarity = 
-            polarity[ cTensorRow ][ cTensorColumn ];
+          const int cTensorFlippedColumn = ( nTensorColumns - 1 ) - cTensorColumn;
+  
+          const double flippedValue = currentTensor( cFlippedTensorRow, cTensorFlippedColumn );
+
+// TODO: remove this if the energy is wrong...
+//          const double flippedValue = currentTensor( cTensorRow, cTensorColumn );
+
+          const double currentPolarity = polarity[ cTensorRow ][ cTensorColumn ];
                     
-          tensor[ cTensorRow ][ cTensorColumn ] = 
-            flippedValue * currentPolarity;
+          tensor[ cTensorRow ][ cTensorColumn ] = flippedValue * currentPolarity;
+//          tensor[ cTensorRow ][ cTensorColumn ] = currentTensor( cTensorRow, cTensorColumn );
           
         }
       
@@ -1456,15 +1460,22 @@ PoistatsFilter<TInputImage, TOutputImage>
   
   ComplexType odfSum( 0.0, 0.0 );
   for( int cRow=0; cRow<numberOfOdfs; cRow++ ) {
+    
+    // reset the sum for every odf
     double rowSum = 0.0;
+    
+    // all the axes (x,y,z) of this odf direction for the sum of this direction
     for( int cColumn=0; cColumn<numberOfTensorAxes; cColumn++ ) {
       rowSum += morphedGeo[ cRow ][ cColumn ] * geo[ cRow ][ cColumn ];
     }
-    
+
+    // save the sum of this particular direction
+        
     ComplexType complexRowSum( rowSum, 0 );
     complexOdf[ cRow ] = vcl_pow( complexRowSum, -1.5 );
     
     odfSum += complexOdf[ cRow ];
+
   }
   
   // normalize the odf
@@ -1486,22 +1497,23 @@ PoistatsFilter<TInputImage, TOutputImage>
   
   MatrixType pathDifference( path->rows()-1, spatialDimension );
   PoistatsReplica::CalculatePathVectors( path, &pathDifference );
-    
+  
   ArrayType magnitude( path->rows() - 1 );
   PoistatsReplica::CalculateMagnitude( &pathDifference, &magnitude );  
 
   MatrixType normalizedPathVectors( pathDifference );
+
   // normalize the vectors
   for( unsigned int cPath=0; cPath<pathDifference.rows(); cPath++ ) {
     for( unsigned int cDimension=0; cDimension<pathDifference.cols(); cDimension++ ) {
       normalizedPathVectors[ cPath ][ cDimension ] /= magnitude[ cPath ];
     }
   }
-    
+
   ArrayType anglesBetweenPathVectors( normalizedPathVectors.rows()-1 );
   CalculateAnglesBetweenVectors( &normalizedPathVectors, 
                                  &anglesBetweenPathVectors );
-  
+
   // MATLAB: if max(angles) > pi/3, energies = 1e6; end;
   static const double largeAngle = M_PI / 3.0;    
   double meanEnergy = 0.0;
@@ -1517,11 +1529,22 @@ PoistatsFilter<TInputImage, TOutputImage>
     }
 
   } else {
-
-    vnl_matrix< double > geo = this->GetTensorGeometry();  
+    
+    // find dot products between tangent vectors and geometry points    
+    vnl_matrix< double > geo = this->GetTensorGeometry();
+    
+    // in order to get the exact same results as the matlab version, I need to
+    // swap the first and last columns
+    for( unsigned int row=0; row<geo.rows(); row++ ) {
+      const double tmp = geo[ row ][ 0 ];
+      geo[ row ][ 0 ] = geo[ row ][ 2 ];
+      geo[ row ][ 2 ] = tmp;
+    }
+    
     vnl_matrix< double > dotProductPerGeoDirection( normalizedPathVectors * 
                                                     geo.transpose() );
-  
+
+    // take the absolute values of the dot products
     for( unsigned int cRow=0; cRow<dotProductPerGeoDirection.rows(); cRow++ ) {
       for( unsigned int cColumn=0; cColumn<dotProductPerGeoDirection.cols(); cColumn++ ) {
         dotProductPerGeoDirection[ cRow ][ cColumn ] = 
@@ -1537,10 +1560,10 @@ PoistatsFilter<TInputImage, TOutputImage>
           acos( dotProductPerGeoDirection[ cRow ][ cColumn ] );
       }
     }  
-    
+        
     MatrixType densityMatrix( pathGeoAngles.rows(), pathGeoAngles.cols() );
     CalculateDensityMatrix( &pathGeoAngles, &densityMatrix );
-    
+        
     /* MATLAB:
       odflist = odflist(1:(end-1),:); % n - 1 sets of odfs, because they
                                     % correspond to path segments, not path points.    
@@ -1556,14 +1579,14 @@ PoistatsFilter<TInputImage, TOutputImage>
       // sums along the rows
       for( unsigned int cColumn=0; cColumn<densityMatrix.cols(); cColumn++ ) {
         ArrayPointer odfsAtRow = odfs[ cRow ];
-        double odf = ( *odfsAtRow )[ cColumn ] ;
-        double density = densityMatrix[ cRow ][ cColumn ];
+        const double odf = ( *odfsAtRow )[ cColumn ] ;
+        const double density = densityMatrix[ cRow ][ cColumn ];
         odfListSum += odf * density;
       }
       
       odfValues[ cRow ] = odfListSum;
     }
-
+    
     /* MATLAB:    
     % compute energy
     % the energy is defined as the negative logarithm of the conditional
@@ -1602,10 +1625,18 @@ PoistatsFilter<TInputImage, TOutputImage>
 
     double rowSum = 0.0;
 
+// this was the default
+//    const double variance = 8;
+
+// this worked well when I initialized all the points on the helix
+//    const double variance = 8*8;
+
+    const double variance = 8*6;
+
     for( unsigned int cColumn=0; cColumn<angles->cols(); cColumn++ ) {
 
-      double angle = ( *angles )[ cRow ][ cColumn ];
-      double currentDensity = exp( -8.0 * angle * angle );
+      const double angle = ( *angles )[ cRow ][ cColumn ];
+      const double currentDensity = exp( -variance * angle * angle );
       
       ( *densityMatrix )[ cRow ][ cColumn ] = currentDensity;
       rowSum += currentDensity;
@@ -1893,7 +1924,11 @@ PoistatsFilter<TInputImage, TOutputImage>
         SeedType pixelValue = seedIt.Value();
   
         if( pixelValue == seedValue ) {
+ 
+          // this is the seed index that we save
           SeedVolumeIndexType seedIndex = seedIt.GetIndex();
+          
+          // this is a long for loop
           for( unsigned int cIndex=0; cIndex<SeedVolumeIndexType::GetIndexDimension(); 
             cIndex++ ) {
             
@@ -2112,7 +2147,8 @@ PoistatsFilter<TInputImage, TOutputImage>
 
 /**
  * Sets the maks volume to use.  This is optional.  If set, all non-zero areas
- * are masked when finding paths.
+ * are masked when finding paths.  The areas that the path can go will be marked
+ * with 1 and where the paths can't go will be 0.
  * 
  * @param volume Mask volume.
  */
@@ -2129,12 +2165,16 @@ PoistatsFilter<TInputImage, TOutputImage>
 
   const MaskType validValue = 1;
   const MaskType invalidValue = 0;
+
+  // the mask that the user inputs will have non zero areas for places that the
+  // path can go.  In memory, we'd like 0 to be be places that the mask can't
+  // go 1 to be where the path can go.
   
   // go through all pixels and assign value of 1 for all non-zero
   for( maskIterator = maskIterator.Begin(); !maskIterator.IsAtEnd(); ++maskIterator ) {
     
     MaskType value = maskIterator.Value();
-    
+        
     if( value != invalidValue && value != validValue ) {
       maskIterator.Set( validValue );
     }
@@ -2166,12 +2206,67 @@ PoistatsFilter<TInputImage, TOutputImage>
 
     this->m_TensorGeometry = VnlMatrixType( *NO_ZERO_SHELL_252,
       numberOfOdfs, numberOfTensorAxes );
-    
+          
   }
   
   return this->m_TensorGeometry;
   
 }
+
+/**
+ * Takes the union of the mask volume (if it exists) and the seed regions.  This
+ * is done in case the mask doesn't include the seed volume.
+ */
+template <class TInputImage, class TOutputImage>
+void
+PoistatsFilter<TInputImage, TOutputImage>
+::TakeUnionOfMaskAndSeeds() {
+
+  bool isUnmasked = false;
+
+  MaskVolumePointer mask = this->GetMaskVolume();
+  
+  // if the mask exists, take the union
+  if( mask ) {
+  
+    // go through all the seed regions and make sure that it's a valid region
+    // in the mask
+    for( unsigned int cSeed=0; cSeed<this->m_Seeds.size(); cSeed++ ) {  
+
+      MatrixPointer seedRegion = this->m_Seeds[ cSeed ];
+      
+      // go through each point in a region and make sure it's valid within the
+      // mask
+      for( unsigned int row=0; row<seedRegion->rows(); row++ ) {
+      
+        // go through each dimension of the seed and create a mask index
+        vnl_vector< double > seedIndex = seedRegion->get_row( cSeed );        
+        MaskVolumeIndexType maskIndex;
+        
+        // the seed is the index
+        for( unsigned int col=0; col<3; col++ ) {
+          maskIndex[ col ] = static_cast< int >( seedIndex[ col ] );
+        }
+        
+        // if the pixel is masked, then we want to unmask it
+        if( 0 == mask->GetPixel( maskIndex ) ) {
+          mask->SetPixel( maskIndex, 1 );
+          isUnmasked = true;
+        }
+      
+      }
+      
+    }
+  
+  
+  }
+  
+  if( isUnmasked ) {
+    this->InvokeEvent( SeedsUnmaskedEvent() );  
+  }
+
+}
+
 
 } // end namespace itk
 

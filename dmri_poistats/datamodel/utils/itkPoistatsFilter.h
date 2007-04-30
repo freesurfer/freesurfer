@@ -337,6 +337,8 @@ private:
   static void TakeUnionOfSeeds(
     std::vector< std::pair< SeedType, int > > *seeds1,
     std::vector< SeedType > *seeds2 );
+    
+  void TakeUnionOfMaskAndSeeds();
   
   typedef vnl_matrix< double > VnlMatrixType;
     
