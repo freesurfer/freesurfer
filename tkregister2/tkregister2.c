@@ -5,14 +5,14 @@
  * See: http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach
  */
 /*
- * Original Authors: Martin Sereno and Anders Dale, 1996
+ * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/04/18 05:39:17 $
- *    $Revision: 1.77 $
+ *    $Author: nicks $
+ *    $Date: 2007/04/30 01:17:20 $
+ *    $Revision: 1.78 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -25,14 +25,24 @@
  *
  */
 
+// if NO_GUI is defined when built, then tkregister2 is built without any of
+// the GUI elements, leaving only the command-line processing capability,
+// such as that used by recon-all.  this build functionality is useful when
+// when building on systems which don't readily have Tcl/Tk and OpenGL.
+#ifndef NO_GUI
+#define HAVE_TCL_TK_GL 1
+#endif
+
 #ifndef lint
 static char vcid[] =
-  "$Id: tkregister2.c,v 1.77 2007/04/18 05:39:17 greve Exp $";
+"$Id: tkregister2.c,v 1.78 2007/04/30 01:17:20 nicks Exp $";
 #endif /* lint */
 
+#ifdef HAVE_TCL_TK_GL
 #define TCL
 #include <tcl.h>
 #include <tk.h>
+#endif // HAVE_TCL_TK_GL
 #include <math.h>
 #include <string.h>
 #include <sys/time.h>
@@ -44,7 +54,7 @@ static char vcid[] =
 #include <unistd.h>
 #include <fcntl.h>
 
-#define TCL8
+#ifdef HAVE_TCL_TK_GL
 
 #ifndef OPENGL
 #define OPENGL
@@ -58,15 +68,8 @@ static char vcid[] =
 #define TCL
 #endif
 
-#ifdef TCL
-#  define PR   {if(promptflag){fputs("% ", stdout);} fflush(stdout);}
-#else
-#  define PR
-#endif
-
 #ifdef OPENGL
 #  include "xwindow.h"
-#  include "proto.h"
 #  include "macros.h"
 #  include "xwindow.h"
 #  include <X11/keysym.h>
@@ -98,7 +101,9 @@ static char vcid[] =
 #  include <gl.h>
 #  include <device.h>
 #endif
+#endif // HAVE_TCL_TK_GL
 
+#include "proto.h"
 #include "error.h"
 #include "diag.h"
 #include "utils.h"
@@ -116,16 +121,15 @@ static char vcid[] =
 
 /* Prototypes */
 
-int do_one_gl_event(Tcl_Interp *interp);
 void open_window(char name[]);
-void  resize_window_intstep();
+void resize_window_intstep();
 void move_window(int x, int y);
 void reload_buffers();
 void blinkbuffers();
 void record_swapbuffers();
 void resize_buffers(int x, int y);
 void read_reg(char fname[]);
-void  read_fslreg(char *fname);
+void read_fslreg(char *fname);
 void write_reg(char fname[]);
 void write_fslreg(char *fname);
 void write_xfmreg(char *fname);
@@ -187,17 +191,18 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
-static int  isflag(char *flag);
-static int  singledash(char *flag);
-static int  stringmatch(char *str1, char *str2);
+static int isflag(char *flag);
+static int singledash(char *flag);
+static int stringmatch(char *str1, char *str2);
 static int nth_is_arg(int nargc, char **argv, int nth);
 static int checkfmt(char *fmt);
-static int MRIisConformant(MRI *vol);
+#ifdef HAVE_TCL_TK_GL
 static int MRItagVol(MRI *mri, float val);
+#endif // HAVE_TCL_TK_GL
+static int MRIisConformant(MRI *vol);
 
 MATRIX *TransformLTA2RegDatB(LTA *lta);
 MATRIX *vg_i_to_r_tkr(const VOL_GEOM *vg);
-
 
 #ifndef TRUE
 #  define TRUE 1
@@ -260,9 +265,11 @@ unsigned char *buf, *buf_2;
 unsigned char **im[MAXIM];
 unsigned char **sim[6];
 int changed[MAXIM];
+#ifdef HAVE_TCL_TK_GL
 GLubyte *vidbuf;
 GLubyte *blinkbuft;
 GLubyte *blinkbufm;
+#endif // HAVE_TCL_TK_GL
 unsigned char *binbuff;
 int imnr0,imnr1,numimg;
 int wx0=600,wy0=100;  /* (114,302) (117,90) */
@@ -396,13 +403,21 @@ LT  *linxfm = NULL;
 char *ltafname;
 char *ltaoutfname=NULL;
 
+#ifndef HAVE_TCL_TK_GL
+#define ClientData void*
+#define Tcl_Interp void*
+#endif // HAVE_TCL_TK_GL
+
 
 /**** ------------------ main ------------------------------- ****/
 int Register(ClientData clientData,
-             Tcl_Interp *interp, 
+             Tcl_Interp *interp,
              int argc, char *argv[]) {
-  int i,j,n,c,r,s;
+  int i,j;
+#ifdef HAVE_TCL_TK_GL
+  int n,c,r,s;
   MATRIX *Vxyz=NULL, *Vcrs=NULL;
+#endif // HAVE_TCL_TK_GL
 
   Progname = argv[0] ;
   argc --;
@@ -721,6 +736,14 @@ int Register(ClientData clientData,
     exit(0);
   }
 
+#ifndef HAVE_TCL_TK_GL
+  printf("\nERROR: This tkregister2 was built without the GUI "
+         "(Tcl/Tk/OpenGL excluded).\n");
+  printf("       Functionality is limited to the following flags:\n"
+         "         --targ --mov --reg --fslregout --regheader --noedit\n");
+  exit(1);
+#else
+
   /*------------------------------------------------------*/
   if (LoadSurf) {
     if (subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
@@ -833,7 +856,6 @@ int Register(ClientData clientData,
     printf("that a .bhdr file exists\n");
   }
 
-
   xdim_2 = mov_vol->width;
   ydim_2 = mov_vol->height;
   imnr1_2 = mov_vol->depth-1;
@@ -917,8 +939,11 @@ int Register(ClientData clientData,
   updateflag = TRUE;
 
   return GL_FALSE;
+#endif // HAVE_TCL_TK_GL
+}
 
-}/****----------*********----------****----------*********----------*/
+
+/****----------*********----------****----------*********----------*/
 /* ------------------------------------------------------------------ */
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
@@ -1107,8 +1132,8 @@ static int parse_commandline(int argc, char **argv) {
       if(FSXform == NULL) exit(1);
       lta = (LTA*) FSXform->xform;
       if(lta->type != LINEAR_RAS_TO_RAS){
-	printf("ERROR: LTA input is not RAS to RAS\n");
-	exit(1);
+        printf("ERROR: LTA input is not RAS to RAS\n");
+        exit(1);
       }
       linxfm = &(lta->xforms[0]);
       //RegMat = TransformLTA2RegDatB(lta);
@@ -1177,11 +1202,15 @@ static int parse_commandline(int argc, char **argv) {
   }
   return(0);
 }
+
+
 /* ------------------------------------------------------ */
 static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
+
+
 /* --------------------------------------------- */
 static void print_usage(void) {
   printf("\n");
@@ -1229,6 +1258,8 @@ static void print_usage(void) {
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
 }
+
+
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
@@ -1711,15 +1742,19 @@ static void print_help(void) {
     "The original tkregister was written by Martin Sereno and "
     "Anders Dale\n"
     "in 1996. The original was modified by Douglas Greve in 2002.\n"
-  );
+    );
 
   exit(1) ;
 }
+
+
 /* --------------------------------------------- */
 static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
+
+
 /* --------------------------------------------- */
 static void argnerr(char *option, int n) {
   if (n==1)
@@ -1728,6 +1763,8 @@ static void argnerr(char *option, int n) {
     fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
   exit(-1);
 }
+
+
 /* --------------------------------------------- */
 static void check_options(void) {
   if (targ_vol_id == NULL) {
@@ -1767,6 +1804,8 @@ static void check_options(void) {
 
   return;
 }
+
+
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
   fprintf(fp,"target  volume %s\n",targ_vol_id);
@@ -1776,6 +1815,8 @@ static void dump_options(FILE *fp) {
 
   return;
 }
+
+
 /*---------------------------------------------------------------*/
 static int singledash(char *flag) {
   int len;
@@ -1785,6 +1826,8 @@ static int singledash(char *flag) {
   if (flag[0] == '-' && flag[1] != '-') return(1);
   return(0);
 }
+
+
 /*---------------------------------------------------------------*/
 static int isflag(char *flag) {
   int len;
@@ -1794,11 +1837,15 @@ static int isflag(char *flag) {
   if (flag[0] == '-' && flag[1] == '-') return(1);
   return(0);
 }
+
+
 /*------------------------------------------------------------*/
 static int stringmatch(char *str1, char *str2) {
   if (! strcmp(str1,str2)) return(1);
   return(0);
 }
+
+
 /*---------------------------------------------------------------*/
 static int nth_is_arg(int nargc, char **argv, int nth) {
   /* Checks that nth arg exists and is not a flag */
@@ -1812,6 +1859,8 @@ static int nth_is_arg(int nargc, char **argv, int nth) {
 
   return(1);
 }
+
+
 /*------------------------------------------------------------*/
 static int checkfmt(char *fmt) {
   int fmtid;
@@ -1823,6 +1872,8 @@ static int checkfmt(char *fmt) {
   return(fmtid);
 }
 
+
+#ifdef HAVE_TCL_TK_GL
 
 /*-----------------------------------------------
   imc = current cor - in screen coords
@@ -2046,14 +2097,14 @@ void draw_image2(int imc,int ic,int jc) {
           break;
         }
         movimg[r][c] = f;
-	if(DoSlicePrescription){
-	  if(icMov == 0 || irMov == 0   || isMov == 0 ||
-	     icMov == mov_vol->width-1  || irMov == mov_vol->height-1 ||
-	     isMov == mov_vol->depth-1  || isMov%4 == 0) {
-	    targimg[r][c] = 255;
-	    movimg[r][c] = 255;
-	  }
-	}
+        if(DoSlicePrescription){
+          if(icMov == 0 || irMov == 0   || isMov == 0 ||
+             icMov == mov_vol->width-1  || irMov == mov_vol->height-1 ||
+             isMov == mov_vol->depth-1  || isMov%4 == 0) {
+            targimg[r][c] = 255;
+            movimg[r][c] = 255;
+          }
+        }
 
         if (movimgmax  < movimg[r][c])  movimgmax  = movimg[r][c];
         if (movimgmin  > movimg[r][c])  movimgmin  = movimg[r][c];
@@ -2131,8 +2182,10 @@ void draw_image2(int imc,int ic,int jc) {
   PrevInterp = interpmethod;
   PrevMaskFlag = maskflag;
   firstpass = 0;
-
 }
+
+#endif // HAVE_TCL_TK_GL
+
 
 /*------------------------------------------------------------------
   ScreenCR2XYZMtx() - creates the matrix that converts screen
@@ -2237,6 +2290,7 @@ MATRIX *ScreenCR2XYZMtx(MATRIX *T) {
   return(T);
 }
 
+
 /*----------------------------------------------------------
   UpdateMatrices() - updates relevant transform matrices. They
   may need to be updated in response to changes in the view
@@ -2268,6 +2322,7 @@ void UpdateMatrices(void) {
   Qmov  = MatrixMultiply(invTmov,RegMat,Qmov);
   Qmov  = MatrixMultiply(Qmov,Tscreen,Qmov);
 }
+
 
 /*------------------------------------------------------------------
   int crScreenInd2AnatInd - CR origin at bottom left.
@@ -2303,6 +2358,8 @@ int crScreen2AnatInd(int c, int r, int *cor, int *hor, int *sag) {
 
   return(0);
 }
+
+
 /*------------------------------------------------------------------
   int crScreenInd2AnatXYZ - CR origin at bottom left. Better than
   AnatCRS2AnatXYZ because screen has more resolution.
@@ -2317,6 +2374,8 @@ int crScreen2AnatXYZ(int c, int r, float *x, float *y, float *z) {
 
   return(0); /*------------------------------------------*/
 }
+
+
 /*-----------------------------------------------*/
 int AnatInd2AnatXYZ(int cor, int hor, int sag,
                     float *x, float *y, float *z) {
@@ -2340,6 +2399,8 @@ int AnatInd2AnatXYZ(int cor, int hor, int sag,
 
   return(0);
 }
+
+
 /*-----------------------------------------------*/
 int FuncXYZ2FuncInd(float x, float y, float z,
                     float *col, float *row, float *slice) {
@@ -2377,6 +2438,9 @@ int FuncXYZ2FuncInd(float x, float y, float z,
   return(0);
 }
 
+
+#ifdef HAVE_TCL_TK_GL
+
 /*-----------------------------------------------------------*/
 int draw_cross_hair(int rScreen, int cScreen) {
   int r,c,k;
@@ -2404,6 +2468,7 @@ int draw_cross_hair(int rScreen, int cScreen) {
 
   return(0);
 }
+
 
 /*-----------------------------------------------------------*/
 int erase_cross_hair(int rScreen, int cScreen) {
@@ -2457,6 +2522,7 @@ int erase_cross_hair(int rScreen, int cScreen) {
 
   return(0);
 }
+
 
 /*-----------------------------------------------------------*/
 /* sx,sy are with respect to the desktop */
@@ -2522,19 +2588,19 @@ void select_pixel(short sx, short sy) {
 
   printf("------------------------------------------------------------\n");
   printf("  Screen:  %3d %3d (%d,%d,%d), inorm = %d, mov_frame = %d \n",
-         cScreen,rScreen,lvidbuf[3*kScreen], 
+         cScreen,rScreen,lvidbuf[3*kScreen],
          lvidbuf[3*kScreen+1], lvidbuf[3*kScreen+2],
          use_inorm,mov_frame);
   printf("  Anat:    (%3d %3d %3d)   (%6.1f %6.1f %6.1f)  ",
          sag,hor,cor,xAnat,yAnat,zAnat);
   if (!soob) printf("%8.4f  %6.1f\n",MRIFseq_vox(targ_vol,sag,hor,cor,0),
-                      targimg[rScreen][cScreen]);
+                    targimg[rScreen][cScreen]);
   else      printf("OutOfBounds\n");
 
   printf("  Func:    (%3d %3d %3d)   (%6.1f %6.1f %6.1f)  ",
          cFunc,rFunc,sFunc,xFunc,yFunc,zFunc);
   if (!foob) printf("%8.4f  %6.1f\n",MRIFseq_vox(mov_vol,cFunc,rFunc,sFunc,0),
-                      movimg[rScreen][cScreen]);
+                    movimg[rScreen][cScreen]);
   else      printf("OutOfBounds\n");
   printf("--------------------------------------------------------------\n");
 
@@ -2542,6 +2608,8 @@ void select_pixel(short sx, short sy) {
   invalid_buffers=1;
 
 }
+
+
 /*-----------------------------------------------------------*/
 int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 {
@@ -2686,7 +2754,7 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         break;
 
       case 'e':
-	DoSlicePrescription = !DoSlicePrescription;
+        DoSlicePrescription = !DoSlicePrescription;
         updateflag = TRUE;
         break;
 
@@ -2900,13 +2968,14 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
   return GL_FALSE;
 }
 
+
 /*-----------------------------------------------------*/
 void  open_window(char *name) {
   XSizeHints hin;
 
   if (openglwindowflag) {
     printf("medit: ### GL window already open: can't open second\n");
-    PR return;
+    return;
   }
 
   /* TKO_DEPTH because all OpenGL 4096 visuals have depth buffer!! */
@@ -2941,6 +3010,8 @@ void  open_window(char *name) {
 
   openglwindowflag = TRUE;
 }
+
+
 /*-----------------------------------------------------*/
 void  resize_window_intstep() {
 #ifdef OPENGL
@@ -2967,6 +3038,8 @@ void  resize_window_intstep() {
   }
 #endif
 }
+
+
 /*-----------------------------------------------------*/
 void move_window(int x, int y) {
 #ifdef OPENGL
@@ -2980,6 +3053,8 @@ void move_window(int x, int y) {
   } else ;
 #endif
 }
+
+
 /*-----------------------------------------------------*/
 void blinkbuffers() {
   if (blinkflag) {
@@ -2999,6 +3074,8 @@ void blinkbuffers() {
       blinkdelay--;
   }
 }
+
+
 /*-----------------------------------------------------*/
 void record_swapbuffers()    /* called by compare button */
 {
@@ -3027,6 +3104,8 @@ void record_swapbuffers()    /* called by compare button */
   visible_mode = last_visible_mode;
   last_visible_mode = swaptmp;
 }
+
+
 /*-----------------------------------------------------*/
 void resize_buffers(int x,int y) {
   free(vidbuf);
@@ -3043,6 +3122,11 @@ void resize_buffers(int x,int y) {
 #endif
   binbuff = (unsigned char *)lcalloc((size_t)(3*x*y),(size_t)sizeof(char));
 }
+
+
+#endif // HAVE_TCL_TK_GL
+
+
 /*-----------------------------------------------------*/
 void  read_reg(char *fname) {
   extern char subjectid[1000];
@@ -3080,6 +3164,8 @@ void  read_reg(char *fname) {
 
   free(tmpstr);
 }
+
+
 /*-----------------------------------------------------*/
 void  read_fslreg(char *fname) {
   extern MATRIX *FSLRegMat;
@@ -3110,6 +3196,8 @@ void  read_fslreg(char *fname) {
 
   return;
 }
+
+
 /*-----------------------------------------------------*/
 void write_reg(char *fname) {
   extern char *fslregoutfname, *subjectsdir, *pname;
@@ -3145,7 +3233,7 @@ void write_reg(char *fname) {
   fp = fopen(fname,"w");
   if (fp==NULL) {
     printf("register: ### can't create file %s\n",fname);
-    PR return;
+    return;
   }
   fprintf(fp,"%s\n",pname);
   fprintf(fp,"%f\n",ps_2);
@@ -3159,7 +3247,6 @@ void write_reg(char *fname) {
   }
   fprintf(fp,"round\n");
   printf("register: file %s written\n",fname);
-  PR
   fclose(fp);
 
   if (fslregoutfname != NULL) write_fslreg(fslregoutfname);
@@ -3168,6 +3255,8 @@ void write_reg(char *fname) {
 
   return;
 }
+
+
 /*-----------------------------------------------------*/
 void write_fslreg(char *fname) {
   extern MRI *mov_vol, *targ_vol0;
@@ -3195,6 +3284,8 @@ void write_fslreg(char *fname) {
 
   return;
 }
+
+
 /*-----------------------------------------------------*/
 void write_xfmreg(char *fname) {
   extern MRI *mov_vol, *targ_vol0;
@@ -3229,6 +3320,8 @@ void write_xfmreg(char *fname) {
 
   return;
 }
+
+
 /*-----------------------------------------------------*/
 void write_lta(char *fname) {
   extern MRI *mov_vol, *targ_vol0;
@@ -3268,6 +3361,7 @@ void write_lta(char *fname) {
   return;
 }
 
+
 /*-----------------------------------------------------*/
 void make_backup(char *fname) {
   char command[2*NAME_LENGTH];
@@ -3280,6 +3374,10 @@ void make_backup(char *fname) {
     fclose(fp);
   }
 }
+
+
+#ifdef HAVE_TCL_TK_GL
+
 /*-----------------------------------------------------*/
 void save_rgb(char *fname) {
   if (scrsaveflag) {
@@ -3289,6 +3387,7 @@ void save_rgb(char *fname) {
   }
 }
 void pix_to_rgb(char *fname) {}
+
 
 /*-----------------------------------------------------*/
 void scrsave_to_rgb(char *fname)  /* about 2X faster than pix_to_rgb */
@@ -3308,14 +3407,17 @@ void scrsave_to_rgb(char *fname)  /* about 2X faster than pix_to_rgb */
   fp = fopen(fname,"w");
   if (fp==NULL) {
     printf("register: ### can't create file %s\n",fname);
-    PR return;
+    return;
   }
   fclose(fp);
   sprintf(command,"scrsave %s %d %d %d %d\n",fname,x0,x1,y0,y1);
   system(command);
   printf("register: file %s written\n",fname);
-  PR
 }
+
+#endif // HAVE_TCL_TK_GL
+
+
 /*-----------------------------------------------------*/
 void downslice() {
   if (plane==CORONAL)
@@ -3325,6 +3427,8 @@ void downslice() {
   else if (plane==SAGITTAL)
     jc = (jc<zf)?xdim-zf+jc:jc-zf;
 }
+
+
 /*-----------------------------------------------------*/
 void upslice() {
   if (plane==CORONAL)
@@ -3334,6 +3438,8 @@ void upslice() {
   else if (plane==SAGITTAL)
     jc = (jc>=xdim-zf)?jc+zf-xdim:jc+zf;
 }
+
+
 /*-----------------------------------------------------*/
 void goto_point(char *dir) {
   char fname[NAME_LENGTH];
@@ -3344,12 +3450,14 @@ void goto_point(char *dir) {
   fp=fopen(fname,"r");
   if (fp==NULL) {
     printf("register: ### File %s not found\n",fname);
-    PR return;
+    return;
   }
   fscanf(fp,"%f %f %f",&xpt,&ypt,&zpt);
   fclose(fp);
   set_cursor(xpt,ypt,zpt);
 }
+
+
 /*-----------------------------------------------------*/
 void write_point(char *dir) {
   char fname[NAME_LENGTH];
@@ -3360,7 +3468,7 @@ void write_point(char *dir) {
   fp=fopen(fname,"w");
   if (fp==NULL) {
     printf("register: ### can't create file %s\n",fname);
-    PR return;
+    return;
   }
   xpt = xx1-ps*jc/fsf;
   ypt = yy0+st*imc/fsf;
@@ -3368,6 +3476,8 @@ void write_point(char *dir) {
   fprintf(fp,"%f %f %f\n",xpt,ypt,zpt);
   fclose(fp);
 }
+
+
 /*-----------------------------------------------------*/
 void rotate_brain(float a,char c) {
   int i,j,k;
@@ -3449,6 +3559,8 @@ void align_points() {
     translate_brain(-(zc-zc_old),'z');
   }
 }
+
+
 /*-----------------------------------------------------*/
 void translate_brain(float a, char c) {
   int i,j,k;
@@ -3477,6 +3589,8 @@ void translate_brain(float a, char c) {
       tm[i][j] = m2[i][j];
   editedmatrix = TRUE;
 }
+
+
 /*-----------------------------------------------------*/
 void scale_brain(float s, char c) {
   int i,j,k;
@@ -3505,6 +3619,8 @@ void scale_brain(float s, char c) {
       tm[i][j] = m2[i][j];
   editedmatrix = TRUE;
 }
+
+
 /*-----------------------------------------------------*/
 void mirror_brain() {
   int j;
@@ -3513,6 +3629,8 @@ void mirror_brain() {
     tm[0][j] = -tm[0][j];
   editedmatrix = TRUE;
 }
+
+
 /*-----------------------------------------------------*/
 void set_cursor(float xpt,float ypt,float zpt) {
   double dzf;
@@ -3542,6 +3660,10 @@ void set_cursor(float xpt,float ypt,float zpt) {
   /*imc = impt;*/
   jpt=ipt=impt = -1;
 }
+
+
+#ifdef HAVE_TCL_TK_GL
+
 /*-----------------------------------------------------*/
 void set_scale() {
   Colorindex i;
@@ -3566,6 +3688,8 @@ void set_scale() {
   }
   mapcolor(NUMVALS+MAPOFFSET,v,0.0,0.0);
 }
+
+
 /*-----------------------------------------------------*/
 void redraw() {
   color(0);
@@ -3579,6 +3703,8 @@ void redraw() {
   visible_plane = plane;
 
 }
+
+
 /*-----------------------------------------------------*/
 void pop_gl_window() {
 #ifdef OPENGL
@@ -3588,8 +3714,11 @@ void pop_gl_window() {
 #endif
 }
 
+#endif // HAVE_TCL_TK_GL
+
+
+
 /*-----------------------------------------------------*/
-#include "proto.h"
 void mri2pix(float xpt,float ypt,float zpt,int *jpt,int *ipt,int *impt) {
   if (ptype==0) /* Horizontal */
   {
@@ -3608,6 +3737,8 @@ void mri2pix(float xpt,float ypt,float zpt,int *jpt,int *ipt,int *impt) {
     *impt = nint((zpt-zz0)/st+0.5);
   }
 }
+
+
 /*-----------------------------------------------------*/
 int imval(float px,float py,float pz) {
   float x,y,z;
@@ -3621,6 +3752,8 @@ int imval(float px,float py,float pz) {
     return(im[imn][ynum-1-i][j]);
   else return 0;
 }
+
+
 /*-----------------------------------------------------*/
 float Error(int p,float dp) {
   int i,num;
@@ -3656,6 +3789,8 @@ float Error(int p,float dp) {
     par[p] -= dp;
   return sum;
 }
+
+
 /*-----------------------------------------------------*/
 void optimize(int maxiter) {
   float lambda = 0.03;
@@ -3680,6 +3815,8 @@ void optimize(int maxiter) {
   printf("%d: %5.2f %5.2f %5.2f %7.3f\n",
          iter,par[0],par[1],par[2],error);
 }
+
+
 /*-----------------------------------------------------*/
 void optimize2() {
   float epsilon = 0.5;
@@ -3715,6 +3852,8 @@ void optimize2() {
   printf("%5.2f %5.2f %5.2f %7.3f\n",
          par[0],par[1],par[2],error);
 }
+
+
 /*-----------------------------------------------------*/
 void read_images(char *fpref) {
   int i,j,k;                   /* loop counters */
@@ -3804,8 +3943,8 @@ void read_images(char *fpref) {
     for (j=0;j<xnum;j++)
       for (k=0;k<3;k++)
         sim[k][i][j] = sim[k+3][i][j];
-
 }
+
 
 void read_second_images(char *fpref) {
   unsigned long n;
@@ -3895,6 +4034,7 @@ void read_second_images(char *fpref) {
   printf("register: done reading to-be-registered functional images\n");
 }
 
+
 void transform(float x1,float y1,float z1,
                float *x2,float *y2,float *z2,
                float M[4][4]) {
@@ -3902,6 +4042,9 @@ void transform(float x1,float y1,float z1,
   *y2 = x1*M[1][0]+y1*M[1][1]+z1*M[1][2]+M[1][3];
   *z2 = x1*M[2][0]+y1*M[2][1]+z1*M[2][2]+M[2][3];
 }
+
+
+#ifdef HAVE_TCL_TK_GL
 /*------------------------------------------------------*/
 void blur(float factor)  /* test hack */
 {
@@ -3954,6 +4097,8 @@ void blur(float factor)  /* test hack */
   sprintf(command,"rm -f /tmp/tmp1.rgb /tmp/tmp2.rgb /tmp/tmp2.bin\n");
   system(command);
 }
+#endif // HAVE_TCL_TK_GL
+
 
 void make_filenames(char *lsubjectsdir) {
   subjectsdir = (char *)malloc(NAME_LENGTH*sizeof(char)); /* malloc for tcl */
@@ -3971,6 +4116,7 @@ void make_filenames(char *lsubjectsdir) {
   strcpy(movformat,"");
   /* TODO: init others here */
 }
+
 
 void read_float_images
 (
@@ -4103,147 +4249,147 @@ int argc,char *argv[]){
 #define WEND   return TCL_OK;}
 #define REND  (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL
 
+
+#ifdef HAVE_TCL_TK_GL
 /*=======================================================================*/
 /* function wrappers and errors */
 int                  W_move_window  WBEGIN
 ERR(3,"Wrong # args: move_window <x> <y>")
-move_window(atoi(argv[1]),atoi(argv[2]));
-WEND
+  move_window(atoi(argv[1]),atoi(argv[2]));
+  WEND
 
-int                  W_pop_gl_window  WBEGIN
-ERR(1,"Wrong # args: pop_gl_window")
-pop_gl_window();
-WEND
+  int                  W_pop_gl_window  WBEGIN
+  ERR(1,"Wrong # args: pop_gl_window")
+  pop_gl_window();
+  WEND
 
-int                  W_redraw  WBEGIN
-ERR(1,"Wrong # args: redraw")
-redraw();
-WEND
+  int                  W_redraw  WBEGIN
+  ERR(1,"Wrong # args: redraw")
+  redraw();
+  WEND
 
-int                  W_upslice WBEGIN
-ERR(1,"Wrong # args: upslice")
-upslice();
-WEND
+  int                  W_upslice WBEGIN
+  ERR(1,"Wrong # args: upslice")
+  upslice();
+  WEND
 
-int                  W_downslice WBEGIN
-ERR(1,"Wrong # args: downslice")
-downslice();
-WEND
+  int                  W_downslice WBEGIN
+  ERR(1,"Wrong # args: downslice")
+  downslice();
+  WEND
 
-int                  W_rotate_brain_x  WBEGIN
-ERR(2,"Wrong # args: rotate_brain_x <deg>")
-rotate_brain(atof(argv[1]),'x');
-WEND
+  int                  W_rotate_brain_x  WBEGIN
+  ERR(2,"Wrong # args: rotate_brain_x <deg>")
+  rotate_brain(atof(argv[1]),'x');
+  WEND
 
-int                  W_rotate_brain_y  WBEGIN
-ERR(2,"Wrong # args: rotate_brain_y <deg>")
-rotate_brain(atof(argv[1]),'y');
-WEND
+  int                  W_rotate_brain_y  WBEGIN
+  ERR(2,"Wrong # args: rotate_brain_y <deg>")
+  rotate_brain(atof(argv[1]),'y');
+  WEND
 
-int                  W_rotate_brain_z  WBEGIN
-ERR(2,"Wrong # args: rotate_brain_z <deg>")
-rotate_brain(atof(argv[1]),'z');
-WEND
+  int                  W_rotate_brain_z  WBEGIN
+  ERR(2,"Wrong # args: rotate_brain_z <deg>")
+  rotate_brain(atof(argv[1]),'z');
+  WEND
 
-int                  W_translate_brain_x  WBEGIN
-ERR(2,"Wrong # args: translate_brain_x <mm>")
-translate_brain(atof(argv[1]),'x');
-WEND
+  int                  W_translate_brain_x  WBEGIN
+  ERR(2,"Wrong # args: translate_brain_x <mm>")
+  translate_brain(atof(argv[1]),'x');
+  WEND
 
-int                  W_translate_brain_y  WBEGIN
-ERR(2,"Wrong # args: translate_brain_y <mm>")
-translate_brain(atof(argv[1]),'y');
-WEND
+  int                  W_translate_brain_y  WBEGIN
+  ERR(2,"Wrong # args: translate_brain_y <mm>")
+  translate_brain(atof(argv[1]),'y');
+  WEND
 
-int                  W_translate_brain_z  WBEGIN
-ERR(2,"Wrong # args: translate_brain_z <mm>")
-translate_brain(atof(argv[1]),'z');
-WEND
+  int                  W_translate_brain_z  WBEGIN
+  ERR(2,"Wrong # args: translate_brain_z <mm>")
+  translate_brain(atof(argv[1]),'z');
+  WEND
 
-int                  W_scale_brain_x  WBEGIN
-ERR(2,"Wrong # args: scale_brain_x <mm>")
-scale_brain(atof(argv[1]),'x');
-WEND
+  int                  W_scale_brain_x  WBEGIN
+  ERR(2,"Wrong # args: scale_brain_x <mm>")
+  scale_brain(atof(argv[1]),'x');
+  WEND
 
-int                  W_scale_brain_y  WBEGIN
-ERR(2,"Wrong # args: scale_brain_y <mm>")
-scale_brain(atof(argv[1]),'y');
-WEND
+  int                  W_scale_brain_y  WBEGIN
+  ERR(2,"Wrong # args: scale_brain_y <mm>")
+  scale_brain(atof(argv[1]),'y');
+  WEND
 
-int                  W_scale_brain_z  WBEGIN
-ERR(2,"Wrong # args: scale_brain_z <mm>")
-scale_brain(atof(argv[1]),'z');
-WEND
+  int                  W_scale_brain_z  WBEGIN
+  ERR(2,"Wrong # args: scale_brain_z <mm>")
+  scale_brain(atof(argv[1]),'z');
+  WEND
 
-int                  W_goto_point  WBEGIN
-ERR(1,"Wrong # args: goto_point")
-goto_point(tfname);
-WEND
+  int                  W_goto_point  WBEGIN
+  ERR(1,"Wrong # args: goto_point")
+  goto_point(tfname);
+  WEND
 
-int                  W_write_point  WBEGIN
-ERR(1,"Wrong # args: write_point")
-write_point(tfname);
-WEND
+  int                  W_write_point  WBEGIN
+  ERR(1,"Wrong # args: write_point")
+  write_point(tfname);
+  WEND
 
-int                  W_save_rgb  WBEGIN
-ERR(1,"Wrong # args: save_rgb")
-save_rgb(sgfname);
-WEND
+  int                  W_save_rgb  WBEGIN
+  ERR(1,"Wrong # args: save_rgb")
+  save_rgb(sgfname);
+  WEND
 
-int                  W_record_swapbuffers  WBEGIN
-ERR(1,"Wrong # args: record_swapbuffers")
-record_swapbuffers();
-WEND
+  int                  W_record_swapbuffers  WBEGIN
+  ERR(1,"Wrong # args: record_swapbuffers")
+  record_swapbuffers();
+  WEND
 
-int                  W_set_scale  WBEGIN
-ERR(1,"Wrong # args: set_scale")
-set_scale();
-WEND
+  int                  W_set_scale  WBEGIN
+  ERR(1,"Wrong # args: set_scale")
+  set_scale();
+  WEND
 
-int                  W_blur  WBEGIN
-ERR(2,"Wrong # args: blur <factor>")
-blur(atof(argv[1]));
-WEND
+  int                  W_blur  WBEGIN
+  ERR(2,"Wrong # args: blur <factor>")
+  blur(atof(argv[1]));
+  WEND
 
-int                  W_read_reg  WBEGIN
-ERR(1,"Wrong # args: read_reg")
-read_reg(regfname);
-WEND
+  int                  W_read_reg  WBEGIN
+  ERR(1,"Wrong # args: read_reg")
+  read_reg(regfname);
+  WEND
 
-int                  W_write_reg  WBEGIN
-ERR(1,"Wrong # args: write_reg")
-write_reg(regfname);
-WEND
+  int                  W_write_reg  WBEGIN
+  ERR(1,"Wrong # args: write_reg")
+  write_reg(regfname);
+  WEND
 
-int                  W_align_points  WBEGIN
-ERR(1,"Wrong # args: align_points")
-align_points();
-WEND
+  int                  W_align_points  WBEGIN
+  ERR(1,"Wrong # args: align_points")
+  align_points();
+  WEND
 
-int                  W_mirror_brain  WBEGIN
-ERR(1,"Wrong # args: mirror_brain")
-mirror_brain();
-WEND
+  int                  W_mirror_brain  WBEGIN
+  ERR(1,"Wrong # args: mirror_brain")
+  mirror_brain();
+  WEND
 /*===============================================================*/
 
 /* for tcl/tk */
-static void StdinProc _ANSI_ARGS_((ClientData clientData, int mask));
+  static void StdinProc _ANSI_ARGS_((ClientData clientData, int mask));
 static void Prompt _ANSI_ARGS_((Tcl_Interp *interp, int partial));
-#ifndef TCL8
-static Tk_Window mainWindow;
-#endif
 static Tcl_Interp *interp;
 static Tcl_DString command;
 static int tty;
 
+#else
+static void* interp;
+#endif // HAVE_TCL_TK_GL
+
+
 int main(argc, argv)   /* new main */
-int argc;
-char **argv;
+  int argc;
+  char **argv;
 {
-  int code;
-#ifndef TCL8
-  static char *display = NULL;
-#endif
   char tkregister_tcl[NAME_LENGTH];
   /* char str[NAME_LENGTH]; */
   char *envptr;
@@ -4254,12 +4400,14 @@ char **argv;
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.77 2007/04/18 05:39:17 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.78 2007/04/30 01:17:20 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
+#ifdef HAVE_TCL_TK_GL
   initcolormap();
+#endif // HAVE_TCL_TK_GL
 
   /* get tkregister tcl startup script location from environment */
   envptr = getenv("FREESURFER_HOME");
@@ -4278,22 +4426,12 @@ char **argv;
   //printf("tkregister: starting register\n");
   Register((ClientData) NULL, interp, argc, argv);/* event loop commented out*/
 
+#ifdef HAVE_TCL_TK_GL
+
   /* start tcl/tk; first make interpreter */
   interp = Tcl_CreateInterp();
 
   /* make main window (not displayed until event loop starts) */
-
-#ifdef TCL8
-  /* Tk_Init(interp); */
-#else
-  mainWindow = Tk_CreateMainWindow(interp, display, argv[0], "Tk");
-#endif
-
-  /*
-    if (mainWindow == NULL) {
-    fprintf(stderr, "%s\n", interp->result);
-    exit(1); }
-  */
 
   /* set the "tcl_interactive" variable */
   tty = isatty(0);
@@ -4408,7 +4546,7 @@ char **argv;
 
   /* run tcl/tk startup script to set vars, make interface; no display yet */
   printf("tkregister2: interface: %s\n",tkregister_tcl);
-  code = Tcl_EvalFile(interp,tkregister_tcl);
+  Tcl_EvalFile(interp,tkregister_tcl);
   if (*interp->result != 0)  printf(interp->result);
   plane = plane_init;
 
@@ -4423,11 +4561,7 @@ char **argv;
   /*Tk_MainLoop();*/  /* standard */
 
   /* dual event loop (interface window made now) */
-#ifdef TCL8
   while (Tk_GetNumMainWindows() > 0) {
-#else
-  while (tk_NumMainWindows > 0) {
-#endif
     while (Tk_DoOneEvent(TK_ALL_EVENTS|TK_DONT_WAIT)) {
       /* do all the tk events; non-blocking */
     }
@@ -4437,6 +4571,7 @@ char **argv;
   }
 
   Tcl_Eval(interp, "exit");
+#endif // HAVE_TCL_TK_GL
   exit(0);
 }
 
@@ -4448,6 +4583,7 @@ void usecnap(int usec) {
   select(0,NULL,NULL,NULL,&delay);
 }
 
+#ifdef HAVE_TCL_TK_GL
 void initcolormap() {
   int i;
   for (i=0; i<256; i++)
@@ -4465,10 +4601,11 @@ void pseudo_swapbuffers() {
     pswapnext=MOVEABLE;
   }
 }
+
 /*=== from TkMain.c ===================================================*/
 static void StdinProc(clientData, mask)
-ClientData clientData;
-int mask;
+  ClientData clientData;
+  int mask;
 {
 #define BUFFER_SIZE 4000
   char input[BUFFER_SIZE+1];
@@ -4507,15 +4644,15 @@ int mask;
   if (*interp->result != 0)
     if ((code != TCL_OK) || (tty))
       puts(interp->result);
-prompt:
+ prompt:
   if (tty)  Prompt(interp, gotPartial);
   Tcl_ResetResult(interp);
 }
 
 /*=== from TkMain.c ===================================================*/
 static void Prompt(interp, partial)
-Tcl_Interp *interp;
-int partial;
+  Tcl_Interp *interp;
+  int partial;
 {
   char *promptCmd;
   int code;
@@ -4524,7 +4661,7 @@ int partial;
     (char*)Tcl_GetVar
     (interp,partial ? "tcl_prompt2" : "tcl_prompt1",TCL_GLOBAL_ONLY);
   if (promptCmd == NULL) {
-defaultPrompt:
+  defaultPrompt:
     if (!partial)
       fputs("% ", stdout);
   } else {
@@ -4538,6 +4675,23 @@ defaultPrompt:
   }
   fflush(stdout);
 }
+
+/*----------------------------------------------*/
+static int MRItagVol(MRI *mri, float val) {
+  int r,c,s;
+  float min, max;
+
+  MRIlimits(mri,&min,&max);
+
+  for (c=0; c < 10; c+=2)
+    for (r=0; r < 10; r+=2)
+      for (s=0; s < mri->depth; s++)
+        MRIsetVoxVal(mri,c,r,s,0,.9*max);
+  return(0);
+}
+
+#endif // HAVE_TCL_TK_GL
+
 
 /*----------------------------------------------------
   MRIisConformant() - checks whether the input volume
@@ -4572,19 +4726,7 @@ static int MRIisConformant(MRI *vol) {
 
   return(1);
 }
-/*----------------------------------------------*/
-static int MRItagVol(MRI *mri, float val) {
-  int r,c,s;
-  float min, max;
 
-  MRIlimits(mri,&min,&max);
-
-  for (c=0; c < 10; c+=2)
-    for (r=0; r < 10; r+=2)
-      for (s=0; s < mri->depth; s++)
-        MRIsetVoxVal(mri,c,r,s,0,.9*max);
-  return(0);
-}
 
 MATRIX *TransformLTA2RegDatB(LTA *lta)
 {
@@ -4609,7 +4751,7 @@ MATRIX *TransformLTA2RegDatB(LTA *lta)
     // R = Tmov * vox2vox * invTtarg
     R = MatrixMultiply(Tmov,vox2vox,NULL);
     R = MatrixMultiply(R,invTtarg,R);
-    
+
     MatrixFree(&Ttarg);
     MatrixFree(&Tmov);
     MatrixFree(&invTtarg);
