@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/04/25 15:54:13 $
- *    $Revision: 1.381 $
+ *    $Author: fischl $
+ *    $Date: 2007/04/30 16:21:08 $
+ *    $Revision: 1.382 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.381 $";
+char *MRI_C_VERSION = "$Revision: 1.382 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -14363,6 +14363,24 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
   }
 
   mri_dist = MRIextractDistanceMap( mri_src, mri_dist, label, max_dist, mode);
+  if (mode == both_signed)
+  {
+    int  x, y, z ;
+    Real dist ;
+
+    for (x = 0 ; x < mri_src->width ; x++)
+      for (y = 0 ; y < mri_src->height ;  y++)
+        for (z = 0 ; z < mri_src->depth ; z++)
+        {
+          if (MRIgetVoxVal(mri_src, x, y, z, 0) == label)
+          {
+            dist = MRIgetVoxVal(mri_dist, x, y, z, 0) ;
+            if (dist > 0)
+              MRIsetVoxVal(mri_dist, x, y, z, 0, -dist) ;
+          }
+        }
+  }
+
   
   return mri_dist;  
 }
