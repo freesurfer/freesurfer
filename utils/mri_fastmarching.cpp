@@ -77,7 +77,7 @@ extern "C" MRI *MRIextractDistanceMap( MRI *mri_src, MRI *mri_dst, int label, fl
     }
     
     // if unsigned, then we want than the inside and out to be positive
-    if( bothUnsigned ) {
+    if( mode == bothUnsigned ) {
       for(int z =0 ; z < mri_distance->depth ; z++)
         for(int y = 0 ; y < mri_distance->height ; y++)
           for(int x = 0 ; x < mri_distance->width ; x++)
