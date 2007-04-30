@@ -1,6 +1,9 @@
-#include <iostream>
 
 #include "PoistatsReplicas.h"
+
+#include <iostream>
+
+#include "dmri_poistats/datamodel/utils/InitializePath.h"
 
 PoistatsReplicas::PoistatsReplicas() 
 {
@@ -252,14 +255,14 @@ double PoistatsReplicas::CalculateProbablityExchange( const int replica1,
   // Delta = -Dbeta * Denergy;
   // exchprob = min(1,exp(-Delta));
   
-  const double temperature1 = m_Replicas[ replica1 ].GetTemperature();
-  const double energy1 = m_Replicas[ replica1 ].GetCurrentMeanEnergy();
-  
+  const double temperature1 = m_Replicas[ replica1 ].GetTemperature();  
   const double temperature2 = m_Replicas[ replica2 ].GetTemperature();
-  const double energy2 = m_Replicas[ replica2 ].GetCurrentMeanEnergy();
-                               
+  // TODO: should this be the absolute value of the difference?
   const double betaDifference = 1.0/temperature1 - 1.0/temperature2;
 
+  const double energy1 = m_Replicas[ replica1 ].GetCurrentMeanEnergy();
+  const double energy2 = m_Replicas[ replica2 ].GetCurrentMeanEnergy();
+  // TODO: should this be the absolute value of the energy differene?
   const double energyDifference = energy1 - energy2;
     
   const double delta = -betaDifference * energyDifference;
@@ -332,6 +335,36 @@ void PoistatsReplicas::SetInitialPoints( const MatrixPointer points ) {
   
   delete previousPath;
   delete originalPath;  
+}
+
+// TODO: finish this method
+void PoistatsReplicas::InitializePathsUsingEigenVectors() {
+  
+//  const int nEndPoints = 2;
+//  const int nTotalControlPoints = GetNumberOfControlPoints() + nEndPoints;
+  
+  // TODO: do some stuff here
+  InitializePath initializePath( m_PoistatsModel );
+  initializePath.CalculateInitialPath();
+  
+  // for each replica, find a new base path
+  for( int cReplica=0; cReplica<m_NumberOfReplicas; cReplica++ ) {
+//    m_Replicas[ cReplica ].SetBasePath( basePath );
+  }
+  
+  // for each replica, find a new previous trial path
+  for( int cReplica=0; cReplica<m_NumberOfReplicas; cReplica++ ) {
+//    m_Replicas[ cReplica ].SetPreviousTrialPath( path );
+  }
+  
+  // set all the trial paths to zero
+  const int nSpatialDimensions = 3;
+  MatrixType zeroes( GetNumberOfSteps(), nSpatialDimensions );
+  zeroes.Fill( 0.0 );
+  
+  SetCurrentTrialPaths( &zeroes );
+  SetBestTrialPaths( &zeroes );  
+  
 }
 
 void PoistatsReplicas::SetNumberOfControlPoints( const int nPoints ) {
@@ -501,7 +534,7 @@ PoistatsReplicas::RethreadPath(
   ArrayType cumulativeSum( nNewSamples );
   PoistatsReplica::CalculateCumulativeSum( &magnitude, &cumulativeSum );
 
-  // we want to calculate a new spline that is evenly spaces in imag
+  // we want to calculate a new spline that is evenly spaces in image
   // coordinates.  We do this by calculating a new spline based on the old one
   // and setting the parametric coordinates based on the path length
   ArrayType normalizedCumulativeSum( nNewSamples );

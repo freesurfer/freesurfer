@@ -77,6 +77,8 @@ public:
   
   void SetInitialPoints( const MatrixPointer points );
   
+  void InitializePathsUsingEigenVectors();
+  
   void SetNumberOfControlPoints( const int nPoints );
   int GetNumberOfControlPoints();
 
