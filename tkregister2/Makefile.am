@@ -20,7 +20,7 @@ tkregister2_LDFLAGS=
 else
 
 # build without Tcl/Tk and OpenGL (command-line processing only)
-AM_CPPFLAGS=-DNO_GUI
+AM_CPPFLAGS=-DNO_GUI \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/dicom \
 	-I$(top_srcdir)/unix
@@ -42,8 +42,10 @@ install-exec-hook:
 	chmod a+x $(DESTDIR)$(bindir)/tkregister2
 else
 all:
+	@echo ""
 	@echo "Excluding Tcl/Tk and OpenGL elements from this tkregister2 build."
-  @echo "Run configure with either --enable-tcltk-apps or --with-tcl-dir=DIR"
+	@echo "Run configure with either --enable-tcltk-apps or --with-tcl-dir=DIR"
+	@echo ""
 endif
 
 # Our release target. Include files to be excluded here. They will be
