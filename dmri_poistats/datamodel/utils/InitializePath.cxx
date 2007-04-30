@@ -9,6 +9,7 @@
 #include <iostream>
 
 InitializePath::InitializePath() {
+  m_PoistatsModel = NULL;
   m_EigenVectors = NULL;
   m_SeedVolume = NULL;
   m_SeedValues = NULL;
@@ -18,6 +19,22 @@ InitializePath::InitializePath() {
   std::srand( ( unsigned ) time( 0 ) );
   m_RandomTimeSeed = std::rand();
   
+}
+
+InitializePath::InitializePath( PoistatsModel *model ) {
+
+  m_PoistatsModel = model;
+
+  m_EigenVectors = m_PoistatsModel->GetEigenVectors();
+  m_SeedVolume = m_PoistatsModel->GetSeedVolume();
+  m_SeedValues = m_PoistatsModel->GetSeedValues();
+  
+  m_InitialPath = NULL;
+
+  // this will be the seed value we use for getting random numbers
+  std::srand( ( unsigned ) time( 0 ) );
+  m_RandomTimeSeed = std::rand();
+
 }
 
 InitializePath::~InitializePath() {
@@ -162,7 +179,7 @@ InitializePath::GetInitialPath() {
 MRI* 
 InitializePath::GetDistanceVolume( const int label ) {
   
-  // TODO: this might need to be changed, but this is the default in mri_distance_transform
+  // TODO: this might need to be changed
   const int maxDistance = 999;
 
   // from mri_distance_transform  mode : 1 = outside , mode : 2 = inside , mode : 3 = both

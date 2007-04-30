@@ -8,11 +8,14 @@ extern "C" {
 
 #include <vector>
 
+#include "dmri_poistats/datamodel/PoistatsModel.h"
+
 class InitializePath
 {
 public:
 
   InitializePath();
+  InitializePath( PoistatsModel* model );
   ~InitializePath();
   
   /**
@@ -42,6 +45,8 @@ public:
   MATRIX* GetInitialPath();  
 
 private:
+
+  PoistatsModel *m_PoistatsModel;
 
   MRI *m_EigenVectors;
 
