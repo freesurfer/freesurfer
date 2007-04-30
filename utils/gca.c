@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/26 19:02:37 $
- *    $Revision: 1.224 $
+ *    $Date: 2007/04/30 13:10:04 $
+ *    $Revision: 1.225 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -10661,6 +10661,12 @@ cma_label_to_name(int label)
     return("left_CA4_DG") ;
   if (label == left_subiculum)
     return("left_subiculum") ;
+
+
+  if (label == left_fornix)
+    return("left_fornix") ;
+  if (label == right_fornix)
+    return("right_fornix") ;
 
   return(name) ;
 }
