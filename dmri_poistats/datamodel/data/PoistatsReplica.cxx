@@ -336,25 +336,24 @@ PoistatsReplica::GenerateConstrainedRandomPoint3D(
     
   std::vector< int > indicesOfPointsWithinRadius;
 
-  bool isPointFound = FindPointsWithinRadius( &currentPoint, possibleNewPoints, 
-    sigma, &indicesOfPointsWithinRadius );
+  const bool isPointFound = FindPointsWithinRadius( &currentPoint, 
+    possibleNewPoints, sigma, &indicesOfPointsWithinRadius );
   
   if( isPointFound ) {
         
     int min = 0;
     int max = indicesOfPointsWithinRadius.size()-1;    
     int randomIndex = m_PoistatsModel->GetRandomInt( min, max );
+    const int randomPointIndex = indicesOfPointsWithinRadius[randomIndex];
     
     for( unsigned int cColumn=0; cColumn<newRandomPoint->size(); cColumn++ ) {
       
-      double perturb = m_PoistatsModel->GetRandomNumberWithoutRange() - 0.5; 
-
-      int randomPointIndex = indicesOfPointsWithinRadius[randomIndex];
-
+      const double perturb = m_PoistatsModel->GetRandomNumber() - 0.5; 
       ( *newRandomPoint )[ cColumn ] = 
         ( *possibleNewPoints )[ randomPointIndex ][ cColumn ] + perturb;
         
     }
+    
   } else {
 
     // if the point isn't found, then we perturb the current point a little
