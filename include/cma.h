@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/26 19:02:19 $
- *    $Revision: 1.41 $
+ *    $Date: 2007/04/30 13:09:37 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -248,14 +248,17 @@
 #define right_hippocampal_fissure 505  //               153 221 238 0
 #define right_CA4_DG 506  //                            51  17  17  0
 #define right_subiculum 507  //                         0   119 85  0
-#define left_CA2_3 508  //                              17  85  137 0
-#define left_alveus 509  //                             119 187 103 0
-#define left_CA1 510  //                                204 68  35  0
-#define left_fimbria 511  //                            204 0   254 0
-#define left_presubiculum 512  //                       221 187 16  0
-#define left_hippocampal_fissure 513  //                153 221 239 0
-#define left_CA4_DG 514  //                             51  17  18  0
-#define left_subiculum 515  //                          0   119 86  0
+#define right_fornix 508  //                            20  100 200 0
+
+#define left_CA2_3 550  //                              17  85  137 0
+#define left_alveus 551  //                             119 187 103 0
+#define left_CA1 552  //                                204 68  35  0
+#define left_fimbria 553  //                            204 0   254 0
+#define left_presubiculum 554  //                       221 187 16  0
+#define left_hippocampal_fissure 555  //                153 221 239 0
+#define left_CA4_DG 556  //                             51  17  18  0
+#define left_subiculum 557  //                          0   119 86  0
+#define left_fornix 558  //                             20  100 201 0
 
 #define MAX_LABEL left_subiculum
 #define MAX_CMA_LABEL (MAX_LABEL)
