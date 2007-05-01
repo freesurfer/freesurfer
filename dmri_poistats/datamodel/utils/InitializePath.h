@@ -35,6 +35,12 @@ public:
   void SetSeedValues( std::vector< int > *values );
 
   /**
+   * Calculate and cache the gradient volumes.  This will save time when
+   * creating multiple initial paths for replicas.
+   */
+  void CacheGradientVolumes();
+
+  /**
    * This does the work of finding the initial path.
    */
   void CalculateInitialPath();
@@ -57,6 +63,8 @@ private:
   MATRIX *m_InitialPath;
   
   long m_RandomTimeSeed;
+  
+  std::vector< MRI * > m_GradientVolumes;
   
   /**
    * Gets the distance transform for label.
@@ -103,6 +111,10 @@ private:
    */
   bool ShouldFlipEigenVector( const double* const previousPoint, const double* const currentPoint, const double* const eigenVector );
   
+  /**
+   * Deallocates memory of the gradient volumes.
+   */
+  void DeleteGradientVolumes();
 };
 
 #endif

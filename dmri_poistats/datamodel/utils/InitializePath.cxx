@@ -18,6 +18,8 @@ InitializePath::InitializePath() {
   // this will be the seed value we use for getting random numbers
   std::srand( ( unsigned ) time( 0 ) );
   m_RandomTimeSeed = std::rand();
+
+  m_GradientVolumes.clear();
   
 }
 
@@ -25,15 +27,17 @@ InitializePath::InitializePath( PoistatsModel *model ) {
 
   m_PoistatsModel = model;
 
-  m_EigenVectors = m_PoistatsModel->GetEigenVectors();
-  m_SeedVolume = m_PoistatsModel->GetSeedVolume();
-  m_SeedValues = m_PoistatsModel->GetSeedValues();
+  this->SetEigenVectors( m_PoistatsModel->GetEigenVectors() );
+  this->SetSeedVolume( m_PoistatsModel->GetSeedVolume() );
+  this->SetSeedValues( m_PoistatsModel->GetSeedValues() );
   
   m_InitialPath = NULL;
 
   // this will be the seed value we use for getting random numbers
   std::srand( ( unsigned ) time( 0 ) );
   m_RandomTimeSeed = std::rand();
+
+  m_GradientVolumes.clear();
 
 }
 
@@ -43,6 +47,8 @@ InitializePath::~InitializePath() {
       MatrixFree( &m_InitialPath );
       m_InitialPath = NULL;
   }
+  
+  this->DeleteGradientVolumes();
   
 }
 
@@ -54,11 +60,56 @@ InitializePath::SetEigenVectors( MRI *eigenVectors ) {
 void 
 InitializePath::SetSeedVolume( MRI *volume ) {
   m_SeedVolume = volume;
+  
+  // calculate and cache the gradient volumes
+  this->CacheGradientVolumes();
 }
 
 void 
 InitializePath::SetSeedValues( std::vector< int > *values ) {
   m_SeedValues = values;
+
+  // calculate and cache the gradient volumes
+  this->CacheGradientVolumes();
+}
+
+void
+InitializePath::CacheGradientVolumes() {
+  
+  // make sure that the seed volume and seed values have been set
+  if( m_SeedVolume != NULL && m_SeedValues != NULL ) {
+    
+    if( !m_GradientVolumes.empty() ) {
+      // deallocate the gradient volumes if they've been allocated already
+      this->DeleteGradientVolumes();
+    }
+    
+    // there will be one less gradient volumes as seed values
+    const int nGradientVolumes = m_SeedValues->size() - 1;
+      
+    for( int cSeeds = 0; cSeeds < nGradientVolumes; cSeeds++ ) {
+    
+      // using the next seed as the destination
+      const int destinationSeedLabel = ( *m_SeedValues )[ cSeeds+1 ];
+      
+      // create the distance transform, all the values should be set before running
+      MRI *distanceTransform = this->GetDistanceVolume( destinationSeedLabel );
+      
+      // now that we have the transform to get to the second seed, we want to take
+      // the derivatives of the distance transform to see what direction we need
+      // to take to get to the second seed
+      MRI *gradientsVolume = MRIsobel( distanceTransform, NULL, NULL );
+      
+      m_GradientVolumes.push_back( gradientsVolume );
+      
+      if( distanceTransform != NULL ) {
+        MRIfree( &distanceTransform );
+      }
+      
+    }
+  
+  }
+    
 }
 
 void 
@@ -71,14 +122,11 @@ InitializePath::CalculateInitialPath() {
   
     // using the next seed as the destination
     const int destinationSeedLabel = ( *m_SeedValues )[ cSeeds+1 ];
-    
-    // create the distance transform, all the values should be set before running
-    MRI *distanceTransform = this->GetDistanceVolume( destinationSeedLabel );
-    
+        
     // now that we have the transform to get to the second seed, we want to take
     // the derivatives of the distance transform to see what direction we need
     // to take to get to the second seed
-    MRI *gradientsVolume = MRIsobel( distanceTransform, NULL, NULL );
+    MRI *gradientsVolume = m_GradientVolumes[ cSeeds ];
     
     // pick a random starting point within the starting seed region
     const int startSeedLabel = ( *m_SeedValues )[ cSeeds ];
@@ -103,7 +151,8 @@ InitializePath::CalculateInitialPath() {
       // toward the end point initially
       previousPointDouble[i] = currentPointInt[i] - endPoint[i];
     }
-      
+    
+    // TODO: we can speed things up by caching the seed points
     // starting at our random seed point, we want to move it toward the second
     // seed region and also following the eigenvector  
     std::vector< int* > destinationSeeds = this->GetSeedPoints( destinationSeedLabel );
@@ -156,13 +205,6 @@ InitializePath::CalculateInitialPath() {
     // clean up the data
     this->FreeVector( destinationSeeds );
   
-    if( gradientsVolume != NULL ) {
-      MRIfree( &gradientsVolume );
-    }
-  
-    if( distanceTransform != NULL ) {
-      MRIfree( &distanceTransform );
-    }
   }
 
   // copy the path to the matrix output
@@ -364,5 +406,20 @@ InitializePath::ShouldFlipEigenVector( const double* const previousPoint,
   }
   
   return shouldFlip;
+  
+}
+
+void 
+InitializePath::DeleteGradientVolumes() {
+  
+  // go through all the gradient volumes and deallocate them
+  for( std::vector< MRI* >::iterator it = m_GradientVolumes.begin(); it != m_GradientVolumes.end(); it++ ) {
+    MRI* volume = ( *it );
+    if( volume != NULL ) {
+      MRIfree( &volume );
+    }
+  }
+  
+  m_GradientVolumes.clear();
   
 }
