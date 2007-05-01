@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/02 16:44:14 $
- *    $Revision: 1.126 $
+ *    $Author: fischl $
+ *    $Date: 2007/05/01 16:59:11 $
+ *    $Revision: 1.127 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1582,7 +1582,7 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                    GCA_MORPH_PARMS *parms)
 {
   int             x, y, z, len, xi, yi, zi, x0, y0, z0, half_len ;
-  Real            dx, dy, dz, xp1, yp1, zp1, xm1, ym1, zm1 ;
+  Real            dx, dy, dz ;
   float           val, mean, var ;
   GCA_MORPH_NODE  *gcamn ;
   MRI             *mri_nbhd, *mri_kernel ;
@@ -1653,22 +1653,9 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
             (ERROR_UNSUPPORTED, "vector-based likelihood not written yet") ;
         }
         MRIconvolveGaussian(mri_nbhd, mri_nbhd, mri_kernel) ;
-        MRIsampleVolumeType(mri_nbhd, half_len+1, half_len, half_len, 
-                            &xp1, SAMPLE_NEAREST) ;
-        MRIsampleVolumeType(mri_nbhd, half_len-1, half_len, half_len, 
-                            &xm1, SAMPLE_NEAREST) ;
-        MRIsampleVolumeType(mri_nbhd, half_len, half_len+1, half_len, 
-                            &yp1, SAMPLE_NEAREST) ;
-        MRIsampleVolumeType(mri_nbhd, half_len, half_len-1, half_len, 
-                            &ym1, SAMPLE_NEAREST) ;
-        MRIsampleVolumeType(mri_nbhd, half_len, half_len, half_len+1, 
-                            &zp1, SAMPLE_NEAREST) ;
-        MRIsampleVolumeType(mri_nbhd, half_len, half_len, half_len-1, 
-                            &zm1, SAMPLE_NEAREST) ;
-
-        dx = -(xp1 - xm1)/2 ;
-        dy = -(yp1 - ym1)/2 ;
-        dz = -(zp1 - zm1)/2 ;
+        dx = -MRIgetVoxDx(mri_nbhd, half_len, half_len, half_len, 0) ;
+        dy = -MRIgetVoxDy(mri_nbhd, half_len, half_len, half_len, 0) ;
+        dz = -MRIgetVoxDz(mri_nbhd, half_len, half_len, half_len, 0) ;
         gcamn->dx += l_likelihood*dx ;
         gcamn->dy += l_likelihood*dy ;
         gcamn->dz += l_likelihood*dz ;
@@ -10340,25 +10327,85 @@ GCAMinitDensities(GCA_MORPH *gcam, MRI *mri_lowres_seg, MRI *mri_intensities,
       DiagBreak() ;
     if (FZERO(gcam_ltt->means[i])) /* estimate it from image */
     {
-      h = MRIhistogramLabelRegion(mri_intensities, mri_xformed_aseg, &bbox, out_label, 0) ;
+      MRI *mri_tmp, *mri_eroded ;
+      mri_tmp = MRIclone(mri_xformed_aseg, NULL) ;
+      MRIcopyLabel(mri_xformed_aseg, mri_tmp, out_label) ;
+      mri_eroded = MRIerode6(mri_tmp, NULL) ;  // account for residual misregistration/distortion
+      MRIfree(&mri_tmp) ;
+      if (MRIvoxelsInLabel(mri_eroded, out_label) >= 5000)
+      {
+        mri_tmp = MRIerode6(mri_eroded, NULL) ;
+        MRIfree(&mri_eroded) ; mri_eroded = mri_tmp ;
+      }
+      if (MRIvoxelsInLabel(mri_eroded, out_label) >= 25)
+      {
+        h = MRIhistogramLabelRegion(mri_intensities, mri_eroded, &bbox, out_label, 0) ;
+        HISTOfillHoles(h) ;
+      }
+      else
+        h = MRIhistogramLabelRegion(mri_intensities, mri_xformed_aseg, &bbox, out_label, 0) ;
+      MRIfree(&mri_eroded) ;
       HISTOclearZeroBin(h) ;
       hsmooth = HISTOsmooth(h, NULL, 2) ;
       HISTOplot(h, "h.plt") ;
       HISTOplot(hsmooth, "hsmooth.plt") ;
-      bin = HISTOfindHighestPeakInRegion(hsmooth, 0, hsmooth->nbins) ;
+      if (IS_LAT_VENT(out_label))
+        bin = HISTOfindFirstPeak(hsmooth, 3, .1) ;
+      else
+        bin = HISTOfindHighestPeakInRegion(hsmooth, 0, hsmooth->nbins) ;
       val = hsmooth->bins[bin] ;
       HISTOfree(&h) ;
       HISTOfree(&hsmooth) ;
+      if (out_label != in_label && FZERO(means[out_label]) && (gcam_ltt->second_labels[i] != 0))
+        printf("setting intensity of label %d (%s) to %2.1f\n", out_label,
+               cma_label_to_name(out_label), val) ;
+
+      means[out_label] = val ;
       means[in_label] = gcam_ltt->scales[i]*val ;
     }
     else
       means[in_label] = gcam_ltt->means[i] ;
-    printf("setting intensity of label %d (%s-->%s) to %2.1f\n", in_label,
-           cma_label_to_name(in_label), cma_label_to_name(out_label), means[in_label]) ;
+    if (gcam_ltt->second_labels[i] == 0) // otherwise will reestimate later
+      printf("setting intensity of label %d (%s-->%s) to %2.1f\n", in_label,
+             cma_label_to_name(in_label), cma_label_to_name(out_label), means[in_label]) ;
+  }
+
+  // now estimate densities for classes that are linear combinations of others (e.g. choroid)
+  for (i = 0 ; i < gcam_ltt->nlabels ; i++)
+  {
+    in_label = gcam_ltt->input_labels[i] ;
+    out_label = gcam_ltt->output_labels[i] ;
+    if (in_label == Gdiag_no)
+      DiagBreak() ;
+    if (gcam_ltt->second_labels[i] > 0)
+    {
+      double pct ;
+      pct = gcam_ltt->second_label_pct[i] ;
+      means[in_label] = (1-pct)*means[in_label] + pct*means[gcam_ltt->second_labels[i]] ;
+      printf("setting linear combo intensity of label %d (%s-->%s) to %2.1f\n", in_label,
+             cma_label_to_name(in_label), cma_label_to_name(out_label), means[in_label]) ;
+    }
   }
 
   /*  MRIfree(&mri_xformed_aseg) ;*/
   MatrixFree(&m_vox2vox) ;
+
+#if 0
+  for (x = 0 ; x < gcam->width ; x++)
+  {
+    for (y = 0 ; y < gcam->height ; y++)
+    {
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+        gcamn = &gcam->nodes[x][y][z] ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (gcamn->label == left_CA2_3)
+          gcamn->label = right_CA2_3 ;    /// only for now!!!!!!!!!!!!!!!
+      }
+    }
+  }
+#endif
 
   for (mean = 0.0, n = x = 0 ; x < gcam->width ; x++)
   {
