@@ -69,7 +69,11 @@ CommandUpdate::Execute(const itk::Object * object,
       output << "Finding " << nInitialPoints << " seeds" << std::endl;
       PostMessage( output.str() );
 
-    }
+    } else if( itk::SeedsUnmaskedEvent().CheckEvent( &event ) ) {
+      
+      PostMessage( "Seed regions unmasked...\n" );
+      
+    }    
     
   } else if( itk::GenerateOutputEvent().CheckEvent( &event ) ) {
     

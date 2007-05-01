@@ -16,6 +16,7 @@ itkEventMacro( PoistatsOdfCalculationEndEvent, PoistatsOdfCalculationEvent );
 itkEventMacro( SeedsEvent, ProgressEvent );
 itkEventMacro( SeedsUsingAllEvent, SeedsEvent );
 itkEventMacro( SeedsFoundInitialEvent, SeedsEvent );
+itkEventMacro( SeedsUnmaskedEvent, SeedsEvent );
 
 itkEventMacro( GenerateOutputEvent, ProgressEvent );
 itkEventMacro( GenerateOptimalPathDensitiesEvent, GenerateOutputEvent );
