@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/05 03:24:33 $
- *    $Revision: 1.29 $
+ *    $Date: 2007/05/01 22:44:42 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.29 2007/04/05 03:24:33 greve Exp $
+  $Id: mri_volsynth.c,v 1.30 2007/05/01 22:44:42 greve Exp $
 */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.29 2007/04/05 03:24:33 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.30 2007/05/01 22:44:42 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -116,6 +116,8 @@ MRI_REGION boundingbox;
 double ValueA = 1;
 double ValueB = 0;
 double voxradius = -1;
+
+int UseFFT = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -306,8 +308,15 @@ int main(int argc, char **argv)
   }
 
   if (gstd > 0) {
-    printf("Smoothing\n");
-    MRIgaussianSmooth(mri, gstd, gmnnorm, mri); /* gmnnorm = 1 = normalize */
+    if(!UseFFT){
+      printf("Smoothing\n");
+      MRIgaussianSmooth(mri, gstd, gmnnorm, mri); /* gmnnorm = 1 = normalize */
+    }
+    else {
+      printf("Smoothing with FFT \n");
+      mri2 = MRIcopy(mri,NULL);
+      MRI_fft_gaussian(mri2, mri, gstd, gmnnorm); /* gmnnorm = 1 = normalize */
+    }
     if (rescale) {
       printf("Rescaling\n");
       if (strcmp(pdfname,"z")==0)     RFrescale(mri,rfs,NULL,mri);
@@ -371,6 +380,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--norescale")) rescale=0;
     else if (!strcasecmp(option, "--offset"))    AddOffset=1;
     else if (!strcasecmp(option, "--no-output")) NoOutput = 1;
+    else if (!strcasecmp(option, "--fft"))       UseFFT = 1;
 
     else if (!strcmp(option, "--sum2")) {
       if (nargc < 1) argnerr(option,1);
