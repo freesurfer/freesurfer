@@ -153,11 +153,11 @@ InitializePathExe::Run() {
   InitializePath initializePath;
   
   // read eigen vectors
-  MRI* eigenVectors = this->ReadMRI( m_EigenVectorFileName );
+  MRI* eigenVectors = FreeSurferExecutable::ReadMRI( m_EigenVectorFileName );
   initializePath.SetEigenVectors( eigenVectors );
   
   // read seed volume
-  MRI* seedVolume = this->ReadMRI( m_SeedVolumeFileName );
+  MRI* seedVolume = FreeSurferExecutable::ReadMRI( m_SeedVolumeFileName );
   initializePath.SetSeedVolume( seedVolume );
   
   // set seed values to connect
@@ -183,22 +183,6 @@ InitializePathExe::Run() {
     MRIfree( &seedVolume );
   }
   
-}
-
-MRI* 
-InitializePathExe::ReadMRI( const char* fileName ) {
-
-  // read the eigenvectors
-  char* nonConstFileName = strdup( fileName );
-  MRI* volume = ::MRIread( nonConstFileName );
-  free( nonConstFileName );
-
-  if ( volume == NULL ) {
-    // TODO: throw an error
-    std::cerr << "mri read failed..." << std::endl;
-  }
-  
-  return volume;
 }
 
 int main( int argc, char ** argv ) {
