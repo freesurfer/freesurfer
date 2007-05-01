@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nommert $
- *    $Date: 2007/05/01 18:32:40 $
- *    $Revision: 1.336 $
+ *    $Author: fischl $
+ *    $Date: 2007/05/01 20:38:49 $
+ *    $Revision: 1.337 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1146,6 +1146,9 @@ int MRInormalizeFrames(MRI *mri);
 MRI *MRIsort(MRI *in, MRI *mask, MRI *sorted);
 int CompareDoubles(const void *a, const void *b);
 int MRIlabelInVolume(MRI *mri_src, int label) ;
+#define MRI_MEAN_MIN_DISTANCE 0
+double MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref, int which, FILE *fp) ;
+double MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label) ;
 
 // types of MRI sequences
 #define MRI_UNKNOWN          0
