@@ -116,7 +116,9 @@ PoistatsModel::Init() {
 void 
 PoistatsModel::FreeVector( std::vector< int > *v ) {
 
-  v->clear();
-  delete v;
+  if( v != NULL ) {
+    v->clear();
+    delete v;
+  }
   
 }
