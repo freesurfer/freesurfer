@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/26 19:03:00 $
- *    $Revision: 1.52 $
+ *    $Date: 2007/05/01 20:38:36 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2798,3 +2798,121 @@ MRI *MRIsetBoundingBox(MRI *template, MRI_REGION *region,
   }
   return(mri);
 }
+
+extern char *cma_label_to_name(int label) ;
+double
+MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref, int which, FILE *fp)
+{
+  double  total_accuracy = 0.0, accuracy ;
+  int     label, nlabels, *present, x, y, z, nvox ;
+  float   min_val, max_val, vsize ;
+
+  vsize = mri_src->xsize ;
+  MRInonzeroValRange(mri_src, &min_val, &max_val) ;
+  present = (int *)calloc(max_val+1, sizeof(int)) ;
+  if (present == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRIcomputeLabelAccuracy: could not allocate %d element array",max_val+1) ;
+
+  present[0] = 1 ; // don't do unknown/background
+  max_val = 0 ;
+  for (x = 0 ;  x < mri_src->width ; x++)
+    for (y = 0 ;  y < mri_src->height ; y++)
+      for (z = 0 ;  z < mri_src->depth ; z++)
+      {
+        label = (int)MRIgetVoxVal(mri_src, x, y, z, 0) ;
+        if (present[label])
+          continue ;
+        nvox = MRIvoxelsInLabel(mri_ref, label) ;
+        if (nvox == 0)
+        {
+          present[label] = -1 ;
+          continue ;
+        }
+        present[label] = 1 ;
+        if (label >= max_val)
+          max_val = label ;
+      }
+  for (nlabels = label = 1 ;  label <= max_val ; label++)
+  {
+    if (present[label] <= 0)
+      continue ;
+    accuracy = MRIcomputeMeanMinLabelDistance(mri_src, mri_ref, label) ;
+    nlabels++ ;
+    total_accuracy += accuracy ;
+    if (fp)
+    {
+      fprintf(fp, "%d %s %f\n", label, cma_label_to_name(label), vsize*accuracy) ;
+      fflush(fp) ;
+    }
+  }
+  total_accuracy /= nlabels ;
+  free(present) ;
+  return(total_accuracy) ;
+}
+
+double
+MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label)
+{
+  MRI   *mri_src_dist, *mri_ref_dist ;
+  int    nvox1, nvox2, x, y, z ;
+  float  xd, yd, zd ;
+  double mean_min_dist, min_dist1, min_dist2, val1, val2 ;
+  VECTOR *v1, *v2 ;
+  MATRIX *m_vox2vox ;
+
+  mri_src_dist = MRIdistanceTransform(mri_src, NULL, label, -1, DTRANS_MODE_UNSIGNED) ;
+  mri_ref_dist = MRIdistanceTransform(mri_ref, NULL, label, -1, DTRANS_MODE_UNSIGNED) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    MRIwrite(mri_src, "s.mgz") ;
+    MRIwrite(mri_ref, "r.mgz") ;
+    MRIwrite(mri_src_dist, "sd.mgz") ;
+    MRIwrite(mri_ref_dist, "rd.mgz") ;
+  }
+
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri_src, mri_ref) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1,4) = VECTOR_ELT(v2, 4) = 1.0 ;
+  for (nvox1 = 0, min_dist1 = 0.0, x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        val1 = MRIgetVoxVal(mri_src_dist, x, y, z, 0) ;
+        if (val1 > 0.5)   // not on boundary of src image
+          continue ;
+        V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+        MatrixMultiply(m_vox2vox, v1, v2) ;
+        xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
+        MRIsampleVolume(mri_ref_dist, xd, yd, zd, &val2) ;
+        nvox1++ ; min_dist1 += fabs(val2-val1) ;
+      }
+
+
+  MatrixFree(&m_vox2vox) ;
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri_ref, mri_src) ;
+  for (nvox2 = 0, min_dist2 = 0.0, x = 0 ; x < mri_ref->width ; x++)
+    for (y = 0 ; y < mri_ref->height ; y++)
+      for (z = 0 ; z < mri_ref->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        val1 = MRIgetVoxVal(mri_ref_dist, x, y, z, 0) ;
+        if (val1 > 0.5)   // not on boundary of ref image
+          continue ;
+        V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+        MatrixMultiply(m_vox2vox, v1, v2) ;
+        xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
+        MRIsampleVolume(mri_ref_dist, xd, yd, zd, &val2) ;
+        nvox2++ ; min_dist2 += fabs(val2-val1) ;
+      }
+
+  if (nvox1 == 0 || nvox2 == 0)
+    return(-1) ;
+  mean_min_dist = (min_dist1/nvox1 + min_dist2/nvox2) ;
+  MRIfree(&mri_ref_dist) ;MRIfree(&mri_src_dist) ; 
+  MatrixFree(&m_vox2vox) ; MatrixFree(&v1) ; MatrixFree(&v2) ;
+  return(mean_min_dist) ;
+}
+
