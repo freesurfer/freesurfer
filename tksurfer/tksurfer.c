@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/04/26 21:53:10 $
- *    $Revision: 1.271 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/01 21:53:45 $
+ *    $Revision: 1.272 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -136,6 +136,12 @@ static GCSA *Ggcsa = NULL ;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef Windows_NT
+int stricmp(const char* const str1, const char* const  str2) 
+{
+  return strcasecmp(str1, str2);
+}
+#endif // Windows_NT
 #include <unistd.h>
 #include <GL/gl.h>
 /* begin rkt */
@@ -516,8 +522,6 @@ face2_type *face2;
 VERTEX *vertex2;
 float total_area;
 #endif
-
-
 
 int xnum=256,ynum=256;
 unsigned long bufsize;
@@ -2187,7 +2191,7 @@ int  mai(int argc,char *argv[])
   for (i = 0 ; i < argc ; i++) {
     /*      fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);*/
     if (!stricmp(argv[i], "-o") || !stricmp(argv[i], "-ov") || 
-	!stricmp(argv[i], "-overlay")) {
+        !stricmp(argv[i], "-overlay")) {
       nargs = 2 ;
       functional_fname = argv[i+1] ;
       load_curv = TRUE;
@@ -19198,7 +19202,9 @@ void checkLicense(char* dirname) {
 #endif
 
 /* for tcl/tk */
+#ifndef Windows_NT
 static void StdinProc _ANSI_ARGS_((ClientData clientData, int mask));
+#endif
 static void Prompt _ANSI_ARGS_((Tcl_Interp *interp, int partial));
 #ifndef TCL8
 static Tk_Window mainWindow;
@@ -19219,11 +19225,9 @@ int main(int argc, char *argv[])   /* new main */
   char alias_tcl[NAME_LENGTH];
   char *envptr;
   FILE *fp;
-#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
 #ifndef USE_XGLUT_WINDOW
   struct timeval tv;
 #endif /* USE_XGLUT_WINDOW */
-#endif
   /* begin rkt */
   int found_script = FALSE;
   char* tksurfer_scripts_dir = NULL;
@@ -19235,7 +19239,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.271 2007/04/26 21:53:10 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.272 2007/05/01 21:53:45 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -19456,6 +19460,9 @@ int main(int argc, char *argv[])   /* new main */
   }
 
   Tcl_StaticPackage( interp, "BLT", Blt_Init, Blt_SafeInit );
+#ifdef Windows_NT
+#define Tix_SafeInit NULL
+#endif
   Tcl_StaticPackage( interp, "Tix", Tix_Init, Tix_SafeInit );
   /* end rkt */
 
@@ -20367,9 +20374,10 @@ int main(int argc, char *argv[])   /* new main */
   }
 
   /* always start up command line shell too (if script doesn't exit) */
+#ifndef Windows_NT
   Tk_CreateFileHandler(0, TK_READABLE, StdinProc, (ClientData) 0);
-  if (tty)
-    Prompt(interp, 0);
+#endif
+  if (tty) Prompt(interp, 0);
   fflush(stdout);
   Tcl_DStringInit(&command);
   Tcl_ResetResult(interp);
@@ -20398,14 +20406,13 @@ int main(int argc, char *argv[])   /* new main */
     }
     do_one_gl_event(interp);
 
-#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
+#ifndef sgi
     tv.tv_sec = 0;
     tv.tv_usec = 10000;
     select(0, NULL, NULL, NULL, &tv);
 #else
-  sginap((long)1);   /* block for 10 msec */
+    sginap((long)1);   /* block for 10 msec */
 #endif
-
   }
 #endif  /* USE_XGLUT_WINDOW */
 
@@ -20414,6 +20421,7 @@ int main(int argc, char *argv[])   /* new main */
   return(0) ;   /* for ansi */
 }
 
+#ifndef Windows_NT
 /*=== from TkMain.c ===================================================*/
 static void StdinProc(clientData, mask)
 ClientData clientData;
@@ -20460,6 +20468,7 @@ prompt:
   if (tty)  Prompt(interp, gotPartial);
   Tcl_ResetResult(interp);
 }
+#endif // Windows_NT
 
 /*=== from TkMain.c ===================================================*/
 static void Prompt(interp, partial)
@@ -21570,9 +21579,7 @@ void wndw_handle_event (void* data, xGWin_tEventRef event) {
   float md;
   int mvno;
   int vno;
-#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
   struct timeval tv;
-#endif
 
   switch (event->mType) {
   case xGWin_tEventType_KeyDown:
@@ -21754,7 +21761,7 @@ void wndw_handle_event (void* data, xGWin_tEventRef event) {
     /* Call the Tk event handling function. */
   while (Tk_DoOneEvent (TK_ALL_EVENTS | TK_DONT_WAIT)) {}
 
-#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
+#ifndef sgi
     tv.tv_sec = 0;
     tv.tv_usec = 10000;
     select(0, NULL, NULL, NULL, &tv);

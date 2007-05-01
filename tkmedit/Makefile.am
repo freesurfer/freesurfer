@@ -2,7 +2,9 @@
 # Makefile.am
 ##
 
-AM_CPPFLAGS=$(GLUT_CFLAGS) $(TCL_CFLAGS) $(tcl_includes) \
+AM_CPPFLAGS=$(GLUT_CFLAGS) \
+	$(TCL_CFLAGS) \
+	$(tcl_includes) \
 	-I$(top_srcdir)/include \
 	-fno-strict-aliasing
 AM_LDFLAGS=$(LDFLAGS_TCL)
@@ -18,7 +20,7 @@ tkmedit_SOURCES=tkmedit.c \
 	tkmFunctionalVolume.h \
 	tkmMeditWindow.h \
 	$(top_srcdir)/fsgdf/fsgdf_wrap.c
-tkmedit_LDADD= 	$(top_srcdir)/fsgdf/libfsgdf.a \
+tkmedit_LDADD= $(top_srcdir)/fsgdf/libfsgdf.a \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
 	$(X_LIBS) $(GLUT_LIBS)

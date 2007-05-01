@@ -516,6 +516,9 @@ if test -z "$x_includes"; then
   AC_MSG_NOTICE([x_includes set to /usr/X11R6/include \
 If not correct specify using --x-includes=])
 fi
+if test "x$OS" = "xWindows_NT"; then
+X_LIBS="-L/usr/X11R6/lib"
+fi
 X_LIBS="$X_LIBS -lX11 -lXmu"
 AC_SUBST(X_LIBS)
 
@@ -1360,7 +1363,7 @@ if test "X$with_apple_opengl_framework" = "Xyes"; then
   AC_SUBST([glut_cflags])
   AC_SUBST([glut_libs])
   AC_SUBST(with_apple_opengl_framework)
-else
+else 
   #####
   # GL
   #####
@@ -1425,6 +1428,7 @@ else
   AC_SUBST(glut_cflags)
   AC_SUBST(glut_libs)
 fi
+
 
 #####################################################
 # AX_CHECK_GL produces GL_CFLAGS GL_LIBS
@@ -1496,6 +1500,9 @@ else
     glut_fixup=yes
   fi
   if test "$OS" = "SunOS"; then
+    glut_fixup=yes
+  fi
+  if test "$OS" = "Windows_NT"; then
     glut_fixup=yes
   fi
   if test "$glut_fixup" = "yes"; then
@@ -1674,6 +1681,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])        ] )
         ])
       ])
     ])
+  AC_SUBST(LIB_TCL)
   #################### Tk needs X11 (or Aqua)
   LIBS="$X_LIBS $LIBS"
   CPPFLAGS="$GLUT_CFLAGS $GL_CFLAGS $CPPFLAGS"
@@ -1699,6 +1707,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
         ])
       ])
     ])
+  AC_SUBST(LIB_TK)
   ##################### Tix
   LIBS="$LIB_TK $LIB_TCL $LIBS"
   AC_CHECK_LIB([tix],[Tix_Init],
@@ -1726,6 +1735,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
         ])
       ])
     ])
+  AC_SUBST(LIB_TIX)
   # if test "X$with_apple_tcl_framework" = "Xyes"; then
   #   AC_CHECK_LIB([Tix8.4],[Tix_Init],[],
   #              [AC_MSG_ERROR("FATAL: libTix8.4 not found.")])
@@ -1746,6 +1756,7 @@ Check config.log. Set LDFLAGS or --with-BLT-dir.])
         ])
       ])
     ])
+  AC_SUBST(LIB_BLT)
 fi 
 
 # check for VTK libs
@@ -1870,7 +1881,9 @@ AC_SUBST(LIBS)
 ########################################################################
 if test ! "x$tcltk_apps" = "xNO"; then
   if ! test "$LIB_TCL" = "-ltcl8.4"; then
-    AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
+    if ! test "$LIB_TCL" = "-ltcl83"; then
+      AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
+    fi
   fi
 fi
 

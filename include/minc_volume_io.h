@@ -1,15 +1,14 @@
 /**
  * @file  minc_volume_io.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Wrapper for MNI's volume_io.h, to address some annoyances
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/05/01 21:53:42 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,6 +51,9 @@
 // avoid conflicts with usage of 'Status' in volume_io/basic.h
 #undef Status
 #endif
+#ifdef Windows_NT
+#undef ERROR
+#endif // Windows_NT
 #include <volume_io.h> //from MNI
 /* remove unwanted warnings between hips_basic.h vs. volume_io/basic.h */
 #undef ABS

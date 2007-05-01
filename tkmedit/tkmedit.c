@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: msh $
- *    $Date: 2007/04/28 14:03:27 $
- *    $Revision: 1.311 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/01 21:53:43 $
+ *    $Revision: 1.312 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.311 $";
+char *VERSION = "$Revision: 1.312 $";
 
 #define TCL
 #define TKMEDIT
@@ -66,7 +66,7 @@ char *VERSION = "$Revision: 1.311 $";
 
 #define SET_TCL_ENV_VAR 0
 #include <tcl.h>
-// #include <tclDecls.h>
+//#include <tclDecls.h>
 #include <tk.h>
 //
 // It seems that the later version of Tix uses ITcl and ITk
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.311 2007/04/28 14:03:27 msh Exp $",
+     "$Id: tkmedit.c,v 1.312 2007/05/01 21:53:43 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5807,7 +5807,9 @@ int TclGetSubjectDir ( ClientData inClientData, Tcl_Interp* inInterp,
 /*=======================================================================*/
 
 /* for tcl/tk */
+#ifndef Windows_NT
 static void StdinProc _ANSI_ARGS_((ClientData clientData, int mask));
+#endif // Windows_NT
 static void Prompt _ANSI_ARGS_((Tcl_Interp *interp, int partial));
 //static Tk_Window mainWindow;
 static Tcl_Interp *interp;
@@ -5884,7 +5886,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.311 2007/04/28 14:03:27 msh Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.312 2007/05/01 21:53:43 nicks Exp $ $Name:  $\n"
     )
   );
 
@@ -6234,6 +6236,9 @@ int main ( int argc, char** argv ) {
   }
 
   Tcl_StaticPackage( interp, "BLT", Blt_Init, Blt_SafeInit );
+#ifdef Windows_NT
+#define Tix_SafeInit NULL
+#endif
   Tcl_StaticPackage( interp, "Tix", Tix_Init, Tix_SafeInit );
 
   /* Initialize our Fsgdf functions. This is in fsgdf_wrap.c */
@@ -6662,9 +6667,10 @@ int main ( int argc, char** argv ) {
 
   /* always start up command line shell too */
   DebugNote( ("Creating TK file handler") );
+#ifndef Windows_NT
   Tk_CreateFileHandler(0, TK_READABLE, StdinProc, (ClientData) 0);
-  if (tty)
-    Prompt(interp, 0);
+#endif // Windows_NT
+  if (tty) Prompt(interp, 0);
   fflush(stdout);
   Tcl_DStringInit(&command);
   Tcl_ResetResult(interp);
@@ -6983,6 +6989,7 @@ void tkm_SelectGDFMRIIdx ( xVoxelRef iMRIIdx ) {
   GDFPlotMRIIdx( iMRIIdx );
 }
 
+#ifndef Windows_NT
 /*=== from TkMain.c ===================================================*/
 static void StdinProc(clientData, mask)
 ClientData clientData;
@@ -7042,6 +7049,7 @@ prompt:
   fflush(stdout);
   Tcl_ResetResult(interp);
 }
+#endif // Windows_NT
 
 /*=== from TkMain.c ===================================================*/
 static void Prompt(interp, partial)

@@ -1,15 +1,14 @@
 /**
  * @file  tkmMeditWindow.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief core windowing functions
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: msh $
- *    $Date: 2007/04/28 14:03:27 $
- *    $Revision: 1.62 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/01 21:53:43 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +24,10 @@
  *
  */
 
+#if defined(Windows_NT)
+#include <sys/time.h>
+#include <sys/select.h>
+#endif
 
 #include "tkmMeditWindow.h"
 #include "tkmDisplayArea.h"
@@ -2505,15 +2508,7 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
   int       nWidth             = 0;
   int       nHeight            = 0;
 
-#if 0
-  static struct timeval curTime1;
-  static struct timeval curTime2;
-  static unsigned long int msec1, msec2;
-#endif
-
-#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
   struct timeval tv;
-#endif
 
   /* verify us. */
   eResult = MWin_Verify ( this );
@@ -2705,7 +2700,6 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
     fprintf( stderr, " done at %lu (%lu)\n", msec2, msec2 - msec1 );
 #endif
 
-
     break;
 
   case xGWin_tEventType_Idle:
@@ -2717,7 +2711,7 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
   while (Tcl_DoOneEvent( TCL_ALL_EVENTS | TCL_DONT_WAIT )) {}
 
     /* Sleep for a bit to ease off on the CPU. */
-#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
+#ifndef sgi
     tv.tv_sec = 0;
     tv.tv_usec = 10000;
     select(0, NULL, NULL, NULL, &tv);
