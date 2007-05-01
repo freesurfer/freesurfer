@@ -8,8 +8,8 @@
  * Original Author: Florent Segonne  
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/25 15:48:03 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/05/01 16:56:01 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -375,7 +375,7 @@ public:
       // indices in _mri that aren't equal to label will be set the limit
       mapMRI_XYZ(_mri,x,y,z)
       {
-        const int val = static_cast< int >( MRIFvox( _mri, x, y, z ) );      
+        const int val = static_cast< int >( round( MRIgetVoxVal( _mri, x, y, z, 0 ) ) );      
         
         // if the pixel value isn't the label, then set mri to be at the limit
         if( val != label )
@@ -394,7 +394,7 @@ public:
       mapMRI_XYZ(_mri,x,y,z)
       {
         // this the the value in our label volume
-        const int voxel = static_cast< int >( MRIFvox( _mri, x, y, z ) );      
+        const int voxel = static_cast< int >( round( MRIgetVoxVal( _mri, x, y, z, 0 ) ) );      
 
         if ( voxel == label ) {
           MRIFvox( mri, x, y, z ) = limit;
@@ -415,11 +415,11 @@ public:
       const int pz = (z < depth-1) ? z+1:z;
       
       // get the values of the volume that has the label
-      const int val1 = static_cast< int >( MRIFvox( _mri, x, y, z ) );
+      const int val1 = static_cast< int >( round( MRIgetVoxVal( _mri, x, y, z, 0 ) ) );
 
       // this was the old way of getting the label.  It wasn't returning the
       // right results, so I changed it to the current
-      int val2 = static_cast< int >( MRIFvox( _mri, px, y, z ) );
+      int val2 = static_cast< int >( round( MRIgetVoxVal( _mri, px, y, z, 0 ) ) ); 
 
       bool add = false;
 
@@ -432,7 +432,7 @@ public:
         _AddAlivePoint( px, y, z );
       }
 
-      val2 = static_cast< int >( MRIFvox( _mri, x, py, z ) );
+      val2 = static_cast< int >( round( MRIgetVoxVal( _mri, x, py, z, 0 ) ) ); 
 
       if ( val1!=val2 && (val1==label || val2==label))
       {
@@ -440,7 +440,7 @@ public:
         _AddAlivePoint(x,py,z);
       }
 
-      val2 = static_cast< int >( MRIFvox( _mri, x, y, pz ) );
+      val2 = static_cast< int >( round( MRIgetVoxVal( _mri, x, y, pz, 0 ) ) ); 
 
       if ( val1 != val2 && ( val1 == label || val2 == label ) )
       {
