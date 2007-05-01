@@ -434,6 +434,12 @@ Poistats::Run() {
   }
   poistatsFilter->SetSeedVolume( seedReader->GetOutput() );
   
+  // read in the seeds using the MGH reader
+  MRI *mghSeedVolume = FreeSurferExecutable::ReadMRI( m_Seeds );
+  
+  // set the seeds
+  poistatsFilter->SetMghSeeds( mghSeedVolume );
+
   // set seed for random number generator
   std::srand( ( unsigned ) time( 0 ) ); 
   poistatsFilter->SetRandomSeed( std::rand() );
@@ -524,10 +530,11 @@ Poistats::Run() {
   }
   
   // read in the eigenvectors
+  MRI* mghEigenVectors = NULL;
   if( m_EigenVectorStem != NULL ) {
     observer->PostMessage( "reading eigenvectors...\n" );
-    
-    
+    mghEigenVectors = FreeSurferExecutable::ReadMRI( m_EigenVectorStem );
+    poistatsFilter->SetMghEigenVectors( mghEigenVectors );
   }
 
   // compute the poi
@@ -587,6 +594,15 @@ Poistats::Run() {
     (std::string)"/OptimalPathProbabilities.txt" );
   WriteData( pathProbabilitiesFileName, 
     finalPathProbabilities.data_block(), finalPathProbabilities.size() );
+    
+  if( mghEigenVectors != NULL ) {
+    MRIfree( &mghEigenVectors );
+  }
+  
+  if( mghSeedVolume != NULL ) {
+    MRIfree( &mghSeedVolume );
+  }
+  
     
   return;
 }

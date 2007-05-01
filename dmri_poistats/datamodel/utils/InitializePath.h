@@ -8,6 +8,8 @@ extern "C" {
 
 #include <vector>
 
+#include <itkArray2D.h>
+
 #include "dmri_poistats/datamodel/PoistatsModel.h"
 
 class InitializePath
@@ -50,6 +52,11 @@ public:
    */
   MATRIX* GetInitialPath();  
 
+  /**
+   * Returns the intial path that was found.
+   */
+  itk::Array2D< double >* GetInitialPathItkMatrix();  
+
 private:
 
   PoistatsModel *m_PoistatsModel;
@@ -60,10 +67,19 @@ private:
   
   std::vector< int > *m_SeedValues; 
   
+  // TODO: remove this version of the initial path, since it probably won't be used...
   MATRIX *m_InitialPath;
+
+  /** Initial path in itk 2d array form */
+  itk::Array2D< double > *m_InitialPathItkMatrix;
   
   long m_RandomTimeSeed;
   
+  /**
+   * Vector of gradient volumes.  The gradients will be one less than the
+   * number of seed values.  The will be calculated from the distances
+   * transform of the second seed value, third, etc.
+   **/
   std::vector< MRI * > m_GradientVolumes;
   
   /**

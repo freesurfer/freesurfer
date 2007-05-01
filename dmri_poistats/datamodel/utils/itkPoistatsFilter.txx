@@ -828,6 +828,22 @@ PoistatsFilter<TInputImage, TOutputImage>
 }
 
 template <class TInputImage, class TOutputImage>
+void 
+PoistatsFilter<TInputImage, TOutputImage>
+::SetMghEigenVectors( MRI *vectors ) {
+  this->m_PoistatsModel->SetEigenVectors( vectors );
+  this->m_PoistatsModel->SetUsingPathInitialization( true );
+}
+  
+template <class TInputImage, class TOutputImage>
+void 
+PoistatsFilter<TInputImage, TOutputImage>
+::SetMghSeeds( MRI* seeds ) {
+  this->m_PoistatsModel->SetSeedVolume( seeds );
+}
+
+
+template <class TInputImage, class TOutputImage>
 typename PoistatsFilter<TInputImage, TOutputImage>::MatrixType
 PoistatsFilter<TInputImage, TOutputImage>
 ::GetBestPathsProbabilities() {
@@ -1268,13 +1284,17 @@ PoistatsFilter<TInputImage, TOutputImage>
     end  
   */
 
-  const int nInitialPoints = this->GetNumberOfInitialPoints();  
-  const int spatialDimensions = 3;
+  if( this->m_PoistatsModel->IsUsingPathInitialization() ) {
+    this->m_Replicas->InitializePathsUsingEigenVectors();
+  } else {
+    const int nInitialPoints = this->GetNumberOfInitialPoints();
+    const int spatialDimensions = 3;
+    
+    MatrixType initialPoints( nInitialPoints, spatialDimensions );
+    this->GetInitialPoints( &initialPoints );
   
-  MatrixType initialPoints( nInitialPoints, spatialDimensions );
-  this->GetInitialPoints( &initialPoints );
-
-  this->m_Replicas->SetInitialPoints( &initialPoints );
+    this->m_Replicas->SetInitialPoints( &initialPoints );
+  }
   
   this->InvokeEvent( SeedsFoundInitialEvent() );
 }
@@ -1903,7 +1923,19 @@ PoistatsFilter<TInputImage, TOutputImage>
     this->m_SeedVolume, this->m_SeedVolume->GetLargestPossibleRegion() );
 
   if( seedValueCountPairs.size() > 1 ) {
-
+  
+    // save the seed values that will be used in the model
+    std::vector< int > *seedValues = new std::vector< int >;
+    for( SeedPairList::iterator valuesIt = seedValueCountPairs.begin();
+      valuesIt != seedValueCountPairs.end(); valuesIt++ ) {
+                
+      const SeedType seedValue = ( *valuesIt ).first;
+      seedValues->push_back( seedValue );
+      
+    }
+    this->m_PoistatsModel->SetSeedValues( seedValues );
+  
+    // save the pixel values
     for( SeedPairList::iterator valuesIt = seedValueCountPairs.begin();
       valuesIt != seedValueCountPairs.end(); valuesIt++ ) {
           

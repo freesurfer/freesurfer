@@ -18,8 +18,8 @@ PoistatsModel::PoistatsModel( const long seed ){
   this->Init();
 }
 
-PoistatsModel::~PoistatsModel() {
-  
+PoistatsModel::~PoistatsModel() {  
+  this->FreeVector( this->m_SeedValues );
 }
 
 void PoistatsModel::SetRandomSeed( const long seed ) {
@@ -111,4 +111,12 @@ PoistatsModel::Init() {
   this->m_EigenVectors = NULL;
   this->m_SeedVolume = NULL;
   this->m_SeedValues = NULL;
+}
+
+void 
+PoistatsModel::FreeVector( std::vector< int > *v ) {
+
+  v->clear();
+  delete v;
+  
 }

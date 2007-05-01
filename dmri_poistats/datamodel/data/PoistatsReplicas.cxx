@@ -337,24 +337,35 @@ void PoistatsReplicas::SetInitialPoints( const MatrixPointer points ) {
   delete originalPath;  
 }
 
-// TODO: finish this method
 void PoistatsReplicas::InitializePathsUsingEigenVectors() {
   
-//  const int nEndPoints = 2;
-//  const int nTotalControlPoints = GetNumberOfControlPoints() + nEndPoints;
+  const int nEndPoints = 2;
+  const int nTotalControlPoints = GetNumberOfControlPoints() + nEndPoints;
   
-  // TODO: do some stuff here
   InitializePath initializePath( m_PoistatsModel );
-  initializePath.CalculateInitialPath();
-  
-  // for each replica, find a new base path
+
+  // for each replica create a different initial path  
   for( int cReplica=0; cReplica<m_NumberOfReplicas; cReplica++ ) {
-//    m_Replicas[ cReplica ].SetBasePath( basePath );
-  }
-  
-  // for each replica, find a new previous trial path
-  for( int cReplica=0; cReplica<m_NumberOfReplicas; cReplica++ ) {
-//    m_Replicas[ cReplica ].SetPreviousTrialPath( path );
+    // calculate a new path
+    initializePath.CalculateInitialPath();
+    
+    // get the new path
+    MatrixPointer initialPath = initializePath.GetInitialPathItkMatrix();
+    
+    // rethread the path to the base path
+    MatrixPointer base = this->RethreadPath( initialPath, nTotalControlPoints );    
+    m_Replicas[ cReplica ].SetBasePath( base );
+    delete base;
+    
+    // rethread to the previous path
+    MatrixPointer previous = this->RethreadPath( initialPath, 
+      GetNumberOfSteps() );
+    m_Replicas[ cReplica ].SetPreviousTrialPath( previous );    
+    delete previous;
+    
+    // there's no need to delete initialPath.  InitializePath will take care of 
+    // it
+      
   }
   
   // set all the trial paths to zero

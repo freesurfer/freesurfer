@@ -68,6 +68,8 @@ private:
    * Initializes the class.
    */
   void Init();
+  
+  void FreeVector( std::vector< int > *v );  
 
 };
 

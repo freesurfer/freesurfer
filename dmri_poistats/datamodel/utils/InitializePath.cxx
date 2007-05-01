@@ -14,6 +14,7 @@ InitializePath::InitializePath() {
   m_SeedVolume = NULL;
   m_SeedValues = NULL;
   m_InitialPath = NULL;
+  m_InitialPathItkMatrix = NULL;
   
   // this will be the seed value we use for getting random numbers
   std::srand( ( unsigned ) time( 0 ) );
@@ -32,6 +33,7 @@ InitializePath::InitializePath( PoistatsModel *model ) {
   this->SetSeedValues( m_PoistatsModel->GetSeedValues() );
   
   m_InitialPath = NULL;
+  m_InitialPathItkMatrix = NULL;
 
   // this will be the seed value we use for getting random numbers
   std::srand( ( unsigned ) time( 0 ) );
@@ -46,6 +48,10 @@ InitializePath::~InitializePath() {
   if( m_InitialPath != NULL ) {
       MatrixFree( &m_InitialPath );
       m_InitialPath = NULL;
+  }
+  
+  if( m_InitialPathItkMatrix != NULL ) {
+    delete m_InitialPathItkMatrix;
   }
   
   this->DeleteGradientVolumes();
@@ -119,7 +125,7 @@ InitializePath::CalculateInitialPath() {
   std::vector< double* > path;
   
   for( unsigned int cSeeds = 0; cSeeds < ( m_SeedValues->size() - 1 ); cSeeds++ ) {
-  
+    
     // using the next seed as the destination
     const int destinationSeedLabel = ( *m_SeedValues )[ cSeeds+1 ];
         
@@ -217,6 +223,12 @@ MATRIX*
 InitializePath::GetInitialPath() {
   return m_InitialPath;
 }
+
+itk::Array2D< double >* 
+InitializePath::GetInitialPathItkMatrix() {
+  return m_InitialPathItkMatrix;
+}
+
 
 MRI* 
 InitializePath::GetDistanceVolume( const int label ) {
@@ -354,6 +366,24 @@ InitializePath::CopyPathToOutput( std::vector< double* > path ) {
   for( std::vector< double* >::iterator it = path.begin(); it != path.end(); it++, row++ ) {
     for( int col=0; col<3; col++ ) {      
       m_InitialPath->rptr[ row+1 ][ col+1 ] = ( *it )[ col ];
+    }
+  }
+  
+  // copy the output to the itk matrix
+  if( m_InitialPathItkMatrix == NULL ) {
+    m_InitialPathItkMatrix = new itk::Array2D< double >;
+  } else {
+    // if there's already something there, erase it
+    m_InitialPathItkMatrix->SetSize( 0, 0 );
+  }
+  
+  m_InitialPathItkMatrix->SetSize( path.size(), 3 );    
+    
+  row = 0;
+  // copy the elements
+  for( std::vector< double* >::iterator it = path.begin(); it != path.end(); it++, row++ ) {
+    for( int col=0; col<3; col++ ) {      
+      ( *m_InitialPathItkMatrix )( row, col ) = ( *it )[ col ];
     }
   }
   

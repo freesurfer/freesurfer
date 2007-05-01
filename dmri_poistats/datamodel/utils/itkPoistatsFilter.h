@@ -246,7 +246,12 @@ public:
       
   double GetCurrentMeanOfEnergies() const;
 
-  double GetCurrentMinOfEnergies() const;      
+  double GetCurrentMinOfEnergies() const;
+  
+  void SetMghEigenVectors( MRI *vectors );
+  
+  void SetMghSeeds( MRI* seeds );
+  
 
 protected:
   PoistatsFilter();
