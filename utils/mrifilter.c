@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/04/26 13:37:33 $
- *    $Revision: 1.52 $
+ *    $Date: 2007/05/01 18:32:26 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -5280,7 +5280,6 @@ static void	InitializeReverseBits( int levels ) {
     }
   }
 }
-
 		
 static void InitializeComplexRotations( int levels ) {
   int ln = levels;
@@ -5340,7 +5339,7 @@ static void InitializeComplexRotations( int levels ) {
    DebugAssert( length < 1024*10 , "SyncLookupTableLength : length too big" );
    DebugAssert( length >= 0 , "SyncLookupTableLength : length<0" );
    if( length > _lookupTabletLength ) {
-     int level = Log2(length);   /// TRIIIIIIIPLE   check
+     int level = Log2(length); 
      InitializeReverseBits( level );
      InitializeComplexRotations( level );
      _lookupTabletLength = length;
@@ -5483,7 +5482,6 @@ static void	RFFT( float* data, int data_length, int length, int direction ) {
  RFFTforward performs a real FFT. Here, the result is given
  in the two vectors : re and im		
 ------------------------------------------------------*/
-
 static void RFFTforward(float* data,int length, float* re, float* im ) {
   int j;
   RFFT( data, length, length, FourierForward );
@@ -5505,7 +5503,6 @@ static void RFFTforward(float* data,int length, float* re, float* im ) {
  The results are given the same way.
  ------------------------------------------------------*/
 static void CFFTforward(float* re, float* im, int length) {
-  
   float *rec, *imc; int j;
   rec = (float *) malloc( length*sizeof(float ) );
   imc = (float *) malloc( length*sizeof(float ) );
@@ -5600,33 +5597,132 @@ void switch_with_z (float *** vect, int dimension, int is_y){
   free(res);
 }
 
-/*-----------------------------------------------------
-MRIgaussianSmoothFFT take an MRI mri_src, computes the
-FFT transform of the image (with 3 1D-FFT), apply the 
-gaussian filter (params : std and norm), and then 
-computes the inverse FFT. 
-The same frame can be used to apply other filters to the
-FFT transform of an image.
- ------------------------------------------------------*/
+float ***inv_quarter(float *** vect, int dimension){
+    int transl = dimension/2;
+    int x, y, z, k, j;
+    float ***res;
+      res  = (float ***) malloc( dimension*sizeof(float** ) );
+  for ( k = 0; k<dimension; k++){
+    res[k] = (float **) malloc( dimension*sizeof(float* ) );
+    for ( j = 0; j<dimension; j++){
+    res[k][j] = (float *) malloc( dimension*sizeof(float ) );
+    }
+  }
+    for (z = 0; z < transl ; z++){
+      for (y = 0 ; y < transl ; y++){
+	for (x = 0 ; x < transl; x++)
+	  res[x][y][z] =  vect[x+transl][ y+transl][ z+transl];
+	for (x = transl ; x < dimension; x++)
+	  res[x][y][z] =  vect[x-transl][ y+transl][ z+transl];}
+      for (y = transl ; y < dimension ; y++){
+	for (x = 0 ; x < transl; x++)
+	  res[x][y][z] =  vect[x+transl][ y-transl][ z+transl];
+	for (x = transl ; x < dimension; x++)
+	  res[x][y][z] =  vect[x-transl][ y-transl][ z+transl];}
+    }
+    for (z = transl; z < dimension ; z++){
+      for (y = 0 ; y < transl ; y++){
+	for (x = 0 ; x < transl; x++)
+	  res[x][y][z] =  vect[x+transl][ y+transl][ z-transl];
+	for (x = transl ; x < dimension; x++)
+	  res[x][y][z] =  vect[x-transl][ y+transl][ z-transl];}
+      for (y = transl ; y < dimension ; y++){
+	for (x = 0 ; x < transl; x++)
+	  res[x][y][z] =  vect[x+transl][ y-transl][ z-transl];
+	for (x = transl ; x < dimension; x++)
+	  res[x][y][z] =  vect[x-transl][ y-transl][ z-transl];}
+     }
+   return(res);
+}
+float argument (float re, float im){
+ if (re ==0 && im == 0 ) return 0;
+ if (re>0)
+   return (atan(im/re));
+ if (re<0){
+   if (im>=0)
+     return (atan(im/re)+PI);
+   else
+     return (atan(im/re)-PI);
+   }
+ if (im>0)  // re == 0
+   return (PI/2);
+ else  //im<0
+   return (-PI/2);
+}
 
-MRI *MRIgaussianSmoothFFT(MRI *mri_src, float std, int norm, MRI *dst){
-  int dimension;
+void reim_to_modarg (float *** re_mod, float *** im_arg, int l){
+  int x, y, z;
+  float a, b;
+  for (z = 0; z < l ; z++)
+    for (y = 0 ; y <  l ; y++)
+      for (x = 0 ; x < l; x++){
+      a = re_mod[x][y][z];
+      b = im_arg[x][y][z];
+      re_mod[x][y][z] = sqrt(a*a+b*b);
+      im_arg[x][y][z] = argument(a, b);
+      }
+}
+
+void modarg_to_reim(float *** re_mod, float *** im_arg, int l){
+  int x, y, z;
+  float a, b;
+  for (z = 0; z < l ; z++)
+    for (y = 0 ; y <  l ; y++)
+      for (x = 0 ; x < l; x++){
+      a = re_mod[x][y][z];
+      b = im_arg[x][y][z];
+      re_mod[x][y][z] = a*cos(b);
+      im_arg[x][y][z] = a*sin(b);
+      }
+}
+
+float Dist(int x,int y,int z,int len){
+  if (len%2 == 0)
+    return ( (fabs(x-len/2+0.5)+0.5)*(fabs(x-len/2+0.5)+0.5) +                                                 
+             (fabs(y-len/2+0.5)+0.5)*(fabs(y-len/2+0.5)+0.5)  +
+	     (fabs(z-len/2-0.5)+0.5)*(fabs(z-len/2-0.5)+0.5) );
+  else
+    return ( fabs(x-(len-1)/2)*fabs(x-(len-1)/2) + 
+             fabs(y-(len-1)/2)*fabs(y-(len-1)/2) +
+	     fabs(z-(len-1)/2)*fabs(z-(len-1)/2));
+}
+
+MRI *MRI_Gaussian(int len, float std){
+  int x, y, z;
+  float val;
+  float  var = std*std;
+  float  f = 2*M_PI*std;
+  MRI *g;
+  g = MRIallocSequence(len, len, len,MRI_FLOAT, 1);
+  for (y = 0 ; y <  len ; y++)
+    for (x = 0 ; x < len; x++)
+      for (z = 0 ; z <  len; z++){
+      val = exp( -(Dist(x,y,z,len))/(2*var) )/f;
+      MRIsetVoxVal(g, x, y, z, 0, val);
+      }
+  return(g);
+}
+
+/*-----------------------------------------------------
+MRI_fft applies a FFT transform to the mri_src. The 
+result is in 2 frames : the first is the modulus (whose 
+quarters has been shiftes), the second is the argument
+ ------------------------------------------------------*/
+MRI* MRI_fft(MRI *mri_src, MRI* dst){
+  int dimension, w, h, d;
   int x, y, z, k, j;
   float ***src, ***dst_r, ***dst_i;
-  MRI *targr = NULL, *targi = NULL; 
+  
+  w = mri_src->width;
+  h = mri_src->height;
+  d = mri_src->depth;
 
   if (!IsPowerOf2(mri_src->depth) || !IsPowerOf2(mri_src->height) || !IsPowerOf2(mri_src->width)){ 
     MRI *new_mri;
-    if (mri_src->depth >= mri_src->width )
-        if (mri_src->depth >= mri_src->height )
-	  dimension = mri_src->depth;
-	else
-          dimension = mri_src->height;
+    if (d >= w )
+      dimension = (d >= h ? d :h);
     else
-      if (mri_src->height >= mri_src->width )
-        dimension = mri_src->height;
-      else
-        dimension = mri_src->width;
+      dimension = (h >= w ? h :w);
 	
     dimension = Pow2(Log2(dimension));
     new_mri = MRIallocSequence(dimension, dimension, dimension,MRI_FLOAT, 1);
@@ -5667,13 +5763,14 @@ MRI *MRIgaussianSmoothFFT(MRI *mri_src, float std, int norm, MRI *dst){
 	 src[x][y][z] = MRIgetVoxVal(mri_src,x, y, z, 0);
     
   //FFT     
-  printf("FFT : 1D ...");
+  printf("FFT : 1D -");
   for (x = 0 ; x < dimension ; x++)
     for (y = 0 ; y < dimension ; y++)
        RFFTforward(src[x][y], dimension,dst_r[x][y] ,dst_i[x][y] );
   switch_with_z(dst_r, dimension, 0);
   switch_with_z(dst_i, dimension, 0);
-  printf(" 2D ...");
+  free(src);
+  printf(" 2D -");
   for (x = 0 ; x < dimension ; x++)
     for (y = 0 ; y < dimension ; y++)
        CFFTforward(dst_r[x][y] ,dst_i[x][y], dimension);
@@ -5681,102 +5778,206 @@ MRI *MRIgaussianSmoothFFT(MRI *mri_src, float std, int norm, MRI *dst){
   switch_with_z(dst_i, dimension, 0);
   switch_with_z(dst_r, dimension, 1);
   switch_with_z(dst_i, dimension, 1);
-  printf(" 3D ... \n");
+  printf(" 3D\n");
   for (x = 0 ; x < dimension ; x++)
     for (y = 0 ; y < dimension ; y++)
        CFFTforward(dst_r[x][y] ,dst_i[x][y], dimension);
   switch_with_z(dst_r, dimension, 1);
   switch_with_z(dst_i, dimension, 1);
   
-  if (0){
-  // Display the frequency domain 
-    if (dst) MRIfree(&dst);
-    dst = MRIallocSequence(dimension, dimension, dimension,MRI_FLOAT, 1);
-    int transl = dimension/2;
-    for (z = 0; z < transl ; z++){
-      for (y = 0 ; y < transl ; y++){
-	for (x = 0 ; x < transl; x++)
-	  MRIsetVoxVal(dst, x+transl, y+transl, z+transl, 0, log(sqrt(dst_r[x][y][z]*dst_r[x][y][z]+dst_i[x][y][z]*dst_i[x][y][z])));	 
-	for (x = transl ; x < dimension; x++)
-	  MRIsetVoxVal(dst, x-transl, y+transl, z+transl, 0, log(sqrt(dst_r[x][y][z]*dst_r[x][y][z]+dst_i[x][y][z]*dst_i[x][y][z])));}	
-      for (y = transl ; y < dimension ; y++){
-	for (x = 0 ; x < transl; x++)
-	  MRIsetVoxVal(dst, x+transl, y-transl, z+transl, 0, log(sqrt(dst_r[x][y][z]*dst_r[x][y][z]+dst_i[x][y][z]*dst_i[x][y][z])));	 
-	for (x = transl ; x < dimension; x++)
-	  MRIsetVoxVal(dst, x-transl, y-transl, z+transl, 0, log(sqrt(dst_r[x][y][z]*dst_r[x][y][z]+dst_i[x][y][z]*dst_i[x][y][z])));}	
-    }
-    for (z = transl; z < dimension ; z++){
-      for (y = 0 ; y < transl ; y++){
-	for (x = 0 ; x < transl; x++)
-	  MRIsetVoxVal(dst, x+transl, y+transl, z-transl, 0, log(sqrt(dst_r[x][y][z]*dst_r[x][y][z]+dst_i[x][y][z]*dst_i[x][y][z])));	 
-	for (x = transl ; x < dimension; x++)
-	  MRIsetVoxVal(dst, x-transl, y+transl, z-transl, 0, log(sqrt(dst_r[x][y][z]*dst_r[x][y][z]+dst_i[x][y][z]*dst_i[x][y][z])));}	
-      for (y = transl ; y < dimension ; y++){
-	for (x = 0 ; x < transl; x++)
-	  MRIsetVoxVal(dst, x+transl, y-transl, z-transl, 0, log(sqrt(dst_r[x][y][z]*dst_r[x][y][z]+dst_i[x][y][z]*dst_i[x][y][z])));	 
-	for (x = transl ; x < dimension; x++)
-	  MRIsetVoxVal(dst, x-transl, y-transl, z-transl, 0, log(sqrt(dst_r[x][y][z]*dst_r[x][y][z]+dst_i[x][y][z]*dst_i[x][y][z])));}	
-     }
-    MRIwrite(dst,"mri_fft.mgz");
-  }
-  
-  //Smoothing
-  printf("Smoothing ... \n");
-  if (dst) MRIfree(&dst);
-  dst = MRIallocSequence(dimension, dimension, dimension,MRI_FLOAT, 1);
-  for (z = 0; z < dimension ; z++)
-    for (y = 0 ; y < dimension ; y++)
-      for (x = 0 ; x < dimension; x++)
-      	MRIsetVoxVal(dst, x, y, z, 0, dst_r[x][y][z]);
-  targr = MRIgaussianSmooth(dst, std, norm, targr)  ;
-  
-  
-  for (z = 0; z < dimension ; z++)
-    for (y = 0 ; y < dimension ; y++)
-      for (x = 0 ; x < dimension; x++)
-      	MRIsetVoxVal(dst, x, y, z, 0, dst_i[x][y][z]);	
-  targi = MRIgaussianSmooth(dst,std, norm, targi)  ;
-  
-  for (z = 0; z < dimension ; z++)
-    for (y = 0 ; y < dimension ; y++)
-      for (x = 0 ; x < dimension ; x++)	{
-	 dst_r[x][y][z] = MRIgetVoxVal(targr,x, y, z, 0);
-	 dst_i[x][y][z] = MRIgetVoxVal(targi,x, y, z, 0);
-      }
+  // from (real, imaginary) to (mudulus, argument)
+  reim_to_modarg ( dst_r, dst_i, dimension); 
+  dst_r = inv_quarter(dst_r, dimension);      
 
-  //FFT inverse
-  printf("inverse FFT : 1D ...");
+  if(dst) MRIfree(&dst);
+  dst = MRIallocSequence( dimension, dimension, dimension,MRI_FLOAT, 2);
+  MRIcopyHeader(mri_src, dst) ;
+
+  //Write the result
+  for (z = 0; z < dimension ; z++)
+    for (y = 0 ; y <dimension ; y++)
+      for (x = 0 ; x < dimension; x++){
+	  MRIsetVoxVal(dst ,x, y, z, 0, dst_r[x][y][z]);	
+	  MRIsetVoxVal(dst ,x, y, z, 1, dst_i[x][y][z]);
+	}	
+  free(dst_r); free(dst_i);
+  return(dst);
+}
+
+/*-----------------------------------------------------
+MRI_ifft applies an inverse FFT to the mri_src : the modulus
+on the first frame and the argument in the second. 
+The output is a single frame MRI with the real inverse.
+w h d, specifies the output size, if different from the
+size of the image in the frequency domain.
+ ------------------------------------------------------*/
+
+MRI *MRI_ifft(MRI *src, MRI *dst, int w, int h, int d){
+  int dimension;
+  int x, y, z, k, j;
+  float ***dst_r, ***dst_i;
+
+  dimension = src->width;
+
+  dst_r = (float ***) malloc( dimension*sizeof(float** ) );
+  dst_i = (float ***) malloc( dimension*sizeof(float** ) );
+  for ( k = 0; k<dimension; k++){
+    dst_r[k] = (float **) malloc( dimension*sizeof(float* ) );
+    dst_i[k] = (float **) malloc( dimension*sizeof(float* ) );
+    for ( j = 0; j<dimension; j++){
+    dst_r[k][j] = (float *) malloc( dimension*sizeof(float ) );
+    dst_i[k][j] = (float *) malloc( dimension*sizeof(float ) );
+    }
+  }
+
+  //Initialize the image and intermediate MRI
+  for (z = 0; z < dimension ; z++)
+    for (y = 0 ; y < dimension ; y++)
+      for (x = 0 ; x < dimension ; x++){
+	 dst_r[x][y][z] = MRIgetVoxVal(src,x, y, z, 0);
+	 dst_i[x][y][z] = MRIgetVoxVal(src,x, y, z, 1);
+      }
+    
+  // back to (real, imaginary)
+  dst_r = inv_quarter(dst_r, dimension);
+  modarg_to_reim (dst_r,  dst_i,dimension);
+
+   //FFT inverse
+  printf("inverse FFT : 1D -");
   for (x = 0 ; x < dimension ; x++)
     for (y = 0 ; y < dimension ; y++)
        CFFTbackward( dst_r[x][y] ,dst_i[x][y], dimension);
   switch_with_z(dst_r, dimension, 0);
   switch_with_z(dst_i, dimension, 0);
-  printf(" 2D ...");
+  printf(" 2D -");
   for (x = 0 ; x < dimension ; x++)
-    for (y = 0 ; y < dimension ; y++){
+    for (y = 0 ; y < dimension ; y++)
        CFFTbackward(dst_r[x][y] ,dst_i[x][y], dimension);
-     }
   switch_with_z(dst_r, dimension, 0);
   switch_with_z(dst_i, dimension, 0);
   switch_with_z(dst_r, dimension, 1);
   switch_with_z(dst_i, dimension, 1);
-  printf(" 3D ... \n");
+  printf(" 3D\n");
   for (x = 0 ; x < dimension ; x++)
-    for (y = 0 ; y < dimension ; y++){
+    for (y = 0 ; y < dimension ; y++)
        CFFTbackward(dst_r[x][y] ,dst_i[x][y], dimension);
-     }
   switch_with_z(dst_r, dimension, 1);
   switch_with_z(dst_i, dimension, 1);
 
+  if (dst) MRIfree(&dst);
+  if (w==0 || h==0 || d==0)
+    w=h=d=dimension;
+  dst = MRIallocSequence( w, h, d, MRI_FLOAT, 1);
+  MRIcopyHeader(src, dst) ;
+
   //Write the result
-  for (z = 0; z < dimension ; z++)
-    for (y = 0 ; y < dimension ; y++)
-      for (x = 0 ; x < dimension; x++)
-      	MRIsetVoxVal(dst, x, y, z, 0, dst_r[x][y][z]);
-	
-  free(src); free(dst_r); free(dst_i);
-  MRIfree(&targr);
+  for (z = 0; z < d ; z++)
+    for (y = 0 ; y < h ; y++)
+      for (x = 0 ; x < w; x++)
+	  MRIsetVoxVal(dst ,x, y, z, 0, dst_r[x][y][z]);	
+  free(dst_r); free(dst_i);
+
   return(dst);
 }
 
+/*-----------------------------------------------------
+MRI_fft_smooth uses the fft tool, then apply a smoothing
+filter : multiply the shifted modulus by a gaussian MRI, 
+and then computes the inverse FFT.
+The scale option allows to re-scale the intensity
+ ------------------------------------------------------*/
 
+MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int scale){
+  MRI *dst1, *dstr_sm, *g; 
+  int x, y, z;
+  dst1 = MRI_fft(src, NULL);
+  int dimension = dst1->width;
+
+  printf("Gaussian\n");
+  g = MRI_Gaussian(dimension, std);	
+  dstr_sm = MRImultiply(dst1, g, NULL); //only frame 0
+  MRIfree(&g);
+  dst1 = MRIcopyFrame(dstr_sm, dst1, 0, 0);
+  MRIfree(&dstr_sm);
+  dst = MRI_ifft(dst1, NULL, src->width, src->height, src->depth);
+  MRIfree(&dst1);
+
+ if(scale){ 
+  dst = MRIscalarMul(dst, NULL, MRImeanFrameThresh(src, 0, 0.5)/ MRImeanFrameThresh(dst, 0, .02)) ;
+  MRI *res = MRIallocSequence(src->width, src->height, src->depth,MRI_INT, 1);
+  for (z = 0; z < src->depth ; z++)
+    for (y = 0 ; y < src->height ; y++)
+      for (x = 0 ; x < src->width; x++)
+      	MRIsetVoxVal(res,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
+  MRIfree(&dst);
+  return(res);
+}
+else
+  return(dst);
+}
+
+/*-----------------------------------------------------
+MRI_fft_lowpass uses the fft tool, then apply a smoothing
+filter : keep only "percent" percent of the lowest freqs
+The scale option allows to re-scale the intensity
+ ------------------------------------------------------*/
+
+MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent, int scale){
+  MRI *dst1; 
+  int x, y, z;
+  dst1 = MRI_fft(src, NULL);
+  float threshold = (float)percent*dst1->depth/100;
+  for (z = 0; z < dst1->depth ; z++)
+    for (y = 0 ; y < dst1->height ; y++)
+      for (x = 0 ; x < dst1->width; x++){
+	   if (Dist(x, y, z, dst1->depth)> threshold*threshold)
+      	     MRIsetVoxVal(dst1,x,y,z, 0, 0);	 
+      }
+  dst = MRI_ifft(dst1, NULL, src->width, src->height, src->depth);
+  MRIfree(&dst1);
+ if(scale){ 
+  dst = MRIscalarMul(dst, NULL, MRImeanFrameThresh(src, 0, 0.5)/ MRImeanFrameThresh(dst, 0, .02)) ;
+  MRI *res = MRIallocSequence(src->width, src->height, src->depth,MRI_INT, 1);
+  for (z = 0; z < src->depth ; z++)
+    for (y = 0 ; y < src->height ; y++)
+      for (x = 0 ; x < src->width; x++)
+      	MRIsetVoxVal(res,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
+  MRIfree(&dst);
+  return(res);
+}
+else
+  return(dst);
+}
+
+/*-----------------------------------------------------
+MRI_fft_highpass uses the fft tool, then apply a smoothing
+filter : remove the "percent" percent of the lowest freqs
+The scale option allows to re-scale the intensity
+ ------------------------------------------------------*/
+
+MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent, int scale){
+  MRI *dst1; 
+  int x, y, z;
+  dst1 = MRI_fft(src, NULL);
+  float threshold = (float)percent*dst1->depth/100;
+  for (z = 0; z < dst1->depth ; z++)
+    for (y = 0 ; y < dst1->height ; y++)
+      for (x = 0 ; x < dst1->width; x++){
+	   if (Dist(x, y, z, dst1->depth)< threshold*threshold)
+      	     MRIsetVoxVal(dst1,x,y,z, 0, 0);	 
+      }
+  dst = MRI_ifft(dst1, NULL, src->width, src->height, src->depth);
+  MRIfree(&dst1);
+ if(scale){ 
+  dst = MRIscalarMul(dst, NULL, MRImeanFrameThresh(src, 0, 0.5)/ MRImeanFrameThresh(dst, 0, .02)) ;
+  MRI *res = MRIallocSequence(src->width, src->height, src->depth,MRI_INT, 1);
+  for (z = 0; z < src->depth ; z++)
+    for (y = 0 ; y < src->height ; y++)
+      for (x = 0 ; x < src->width; x++)
+      	MRIsetVoxVal(res,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
+  MRIfree(&dst);
+  return(res);
+}
+else
+  return(dst);
+}

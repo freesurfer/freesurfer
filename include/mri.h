@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/04/26 14:21:35 $
- *    $Revision: 1.335 $
+ *    $Date: 2007/05/01 18:32:40 $
+ *    $Revision: 1.336 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -174,10 +174,11 @@ MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R);
 
 int MRIhfs2Sphinx(MRI *mri);
 
-#ifdef __cplusplus
 float  MRIgetVoxDx(MRI *mri, int c, int r, int s, int f);
 float  MRIgetVoxDy(MRI *mri, int c, int r, int s, int f);
 float  MRIgetVoxDz(MRI *mri, int c, int r, int s, int f);
+
+#ifdef __cplusplus
 float  MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
 int    MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
 void   MRIdbl2ptr(double v, void *pmric, int mritype);
@@ -214,6 +215,11 @@ float MRIvoxelDirection(MRI *mri, int x, int y, int z, int wsize) ;
 float MRIvoxelGradientDir2ndDerivative(MRI *mri, int x0, int y0, int z0,
                                        int wsize) ;
 MRI  * MRIgradientDir2ndDerivative(MRI *mri_src, MRI *mri_dst, int wsize) ;
+
+
+double MRImeanFrameThresh(MRI *mri, int frame, float thresh);
+
+
 
 /* use these constants for MRIreorder */
 #define XDIM  1
@@ -492,7 +498,14 @@ MRI   *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ);
 MRI   *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, float std, MRI *targ);
 MRI   *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst,
     MRI *mri_gaussian) ;
-MRI *MRIgaussianSmoothFFT(MRI *mri_src, float std, int norm, MRI *dst) ; 
+    
+/* frequency filtering*/
+MRI* MRI_fft(MRI *mri_src, MRI* dst);
+MRI *MRI_ifft(MRI *src, MRI *dst, int w, int h, int d);
+MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int scale);
+MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent, int scale);
+MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent, int scale);
+
 MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
