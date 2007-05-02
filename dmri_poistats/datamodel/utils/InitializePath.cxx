@@ -14,7 +14,6 @@ InitializePath::InitializePath() {
   m_SeedVolume = NULL;
   m_SeedValues = NULL;
   m_InitialPath = NULL;
-  m_InitialPathItkMatrix = NULL;
   
   // this will be the seed value we use for getting random numbers
   std::srand( ( unsigned ) time( 0 ) );
@@ -33,7 +32,6 @@ InitializePath::InitializePath( PoistatsModel *model ) {
   this->SetSeedValues( m_PoistatsModel->GetSeedValues() );
   
   m_InitialPath = NULL;
-  m_InitialPathItkMatrix = NULL;
 
   // this will be the seed value we use for getting random numbers
   std::srand( ( unsigned ) time( 0 ) );
@@ -44,14 +42,9 @@ InitializePath::InitializePath( PoistatsModel *model ) {
 }
 
 InitializePath::~InitializePath() {
-
-  if( m_InitialPath != NULL ) {
-      MatrixFree( &m_InitialPath );
-      m_InitialPath = NULL;
-  }
   
-  if( m_InitialPathItkMatrix != NULL ) {
-    delete m_InitialPathItkMatrix;
+  if( m_InitialPath != NULL ) {
+    delete m_InitialPath;
   }
   
   this->DeleteGradientVolumes();
@@ -190,9 +183,12 @@ InitializePath::CalculateInitialPath() {
       for( int cDim=0; cDim<3; cDim++ ) {
   
         currentPointDouble[cDim] = currentPointDouble[cDim] - randomNumber * gradients[cDim]
-          + (pixelJump - randomNumber ) * eigenVector[cDim];
+          + ( pixelJump - randomNumber ) * eigenVector[cDim];
         
       }
+      
+      // make sure that the point is within the bounds of the image
+      this->EnsureWithinBounds( currentPointDouble );
                   
       // add point to be saved
       double* point = new double[ 3 ];
@@ -219,24 +215,20 @@ InitializePath::CalculateInitialPath() {
   
 }
 
-MATRIX* 
+itk::Array2D< double >* 
 InitializePath::GetInitialPath() {
   return m_InitialPath;
-}
-
-itk::Array2D< double >* 
-InitializePath::GetInitialPathItkMatrix() {
-  return m_InitialPathItkMatrix;
 }
 
 
 MRI* 
 InitializePath::GetDistanceVolume( const int label ) {
   
-  // TODO: this might need to be changed
+  // TODO: this might need to be changed, but I don't think letting it default
+  // will guarentee something larger than the maximum distance all the time
   const int maxDistance = 999;
 
-  // from mri_distance_transform  mode : 1 = outside , mode : 2 = inside , mode : 3 = both
+  // from mri_distance_transform  mode 1 is outside
   const int mode = 1;
   
   // from fastmarching
@@ -352,38 +344,21 @@ InitializePath::FreeVector( std::vector< double* > v ) {
 void 
 InitializePath::CopyPathToOutput( std::vector< double* > path ) {
 
-  // just in case something was in it
-  if( m_InitialPath != NULL ) {
-      MatrixFree( &m_InitialPath );
-      m_InitialPath = NULL;
+  // copy the output to the itk matrix
+  if( m_InitialPath == NULL ) {
+    m_InitialPath = new itk::Array2D< double >;
+  } else {
+    // if there's already something there, erase it
+    m_InitialPath->SetSize( 0, 0 );
   }
   
-  // allocate the matrix
-  m_InitialPath = MatrixAlloc( path.size(), 3, MATRIX_REAL );
-  
+  m_InitialPath->SetSize( path.size(), 3 );    
+    
   int row = 0;
   // copy the elements
   for( std::vector< double* >::iterator it = path.begin(); it != path.end(); it++, row++ ) {
     for( int col=0; col<3; col++ ) {      
-      m_InitialPath->rptr[ row+1 ][ col+1 ] = ( *it )[ col ];
-    }
-  }
-  
-  // copy the output to the itk matrix
-  if( m_InitialPathItkMatrix == NULL ) {
-    m_InitialPathItkMatrix = new itk::Array2D< double >;
-  } else {
-    // if there's already something there, erase it
-    m_InitialPathItkMatrix->SetSize( 0, 0 );
-  }
-  
-  m_InitialPathItkMatrix->SetSize( path.size(), 3 );    
-    
-  row = 0;
-  // copy the elements
-  for( std::vector< double* >::iterator it = path.begin(); it != path.end(); it++, row++ ) {
-    for( int col=0; col<3; col++ ) {      
-      ( *m_InitialPathItkMatrix )( row, col ) = ( *it )[ col ];
+      ( *m_InitialPath )( row, col ) = ( *it )[ col ];
     }
   }
   
@@ -451,5 +426,30 @@ InitializePath::DeleteGradientVolumes() {
   }
   
   m_GradientVolumes.clear();
+  
+}
+
+void
+InitializePath::EnsureWithinBounds( double* point ) {
+
+  // bounds of the volume
+  double bounds[] = {
+    m_SeedVolume->width,
+    m_SeedVolume->height,
+    m_SeedVolume->depth
+  };
+  
+  // go through all the dimensions and make sure the point is in the bounds
+  for( int cDim=0; cDim<3; cDim++ ) {
+    
+    // if it is less than zero, then it's out of bounds
+    if( point[ cDim ] < 0.0 ) {
+      point[ cDim ] = 0.0;
+    } else if( point[ cDim ] > bounds[ cDim ] ) {
+      // if greater than the bounds of this dimension, then out of bounds
+      point[ cDim ] = bounds[ cDim ];
+    }
+    
+  }
   
 }

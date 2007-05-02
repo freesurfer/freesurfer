@@ -350,7 +350,7 @@ void PoistatsReplicas::InitializePathsUsingEigenVectors() {
     initializePath.CalculateInitialPath();
     
     // get the new path
-    MatrixPointer initialPath = initializePath.GetInitialPathItkMatrix();
+    MatrixPointer initialPath = initializePath.GetInitialPath();
     
     // rethread the path to the base path
     MatrixPointer base = this->RethreadPath( initialPath, nTotalControlPoints );    
@@ -363,8 +363,7 @@ void PoistatsReplicas::InitializePathsUsingEigenVectors() {
     m_Replicas[ cReplica ].SetPreviousTrialPath( previous );    
     delete previous;
     
-    // there's no need to delete initialPath.  InitializePath will take care of 
-    // it
+    // there's no need to delete initialPath.  InitializePath will do it 
       
   }
   

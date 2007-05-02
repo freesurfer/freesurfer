@@ -167,12 +167,12 @@ InitializePathExe::Run() {
   initializePath.CalculateInitialPath();
   
   // get the resulting pathway
-  MATRIX *path = initializePath.GetInitialPath();
+  itk::Array2D< double > *path = initializePath.GetInitialPath();
   
-//  // save the pathway to the output directory
+  // save the pathway to the output directory
   const std::string pathFileName( (std::string)m_OutputDir + 
     (std::string)"/InitialPath.txt" );
-  WriteData( pathFileName, path->data, path->rows, path->cols );
+  WriteData( pathFileName, path->data_array(), path->rows(), path->cols() );
 
   // TODO: for some reason this throws and error, glibc detected *** free(): invalid pointer: 
   if( eigenVectors != NULL ) {

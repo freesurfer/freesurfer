@@ -3,7 +3,6 @@
 
 extern "C" {
 #include "mri.h"
-#include "matrix.h"
 }
 
 #include <vector>
@@ -50,12 +49,7 @@ public:
   /**
    * Returns the intial path that was found.
    */
-  MATRIX* GetInitialPath();  
-
-  /**
-   * Returns the intial path that was found.
-   */
-  itk::Array2D< double >* GetInitialPathItkMatrix();  
+  itk::Array2D< double >* GetInitialPath();  
 
 private:
 
@@ -67,11 +61,8 @@ private:
   
   std::vector< int > *m_SeedValues; 
   
-  // TODO: remove this version of the initial path, since it probably won't be used...
-  MATRIX *m_InitialPath;
-
   /** Initial path in itk 2d array form */
-  itk::Array2D< double > *m_InitialPathItkMatrix;
+  itk::Array2D< double > *m_InitialPath;
   
   long m_RandomTimeSeed;
   
@@ -131,6 +122,11 @@ private:
    * Deallocates memory of the gradient volumes.
    */
   void DeleteGradientVolumes();
+  
+  /**
+   * Changes the point if it is out of bounds to be at the extent of the volume.
+   */
+  void EnsureWithinBounds( double* point );
 };
 
 #endif
