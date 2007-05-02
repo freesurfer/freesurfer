@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:31 $
- *    $Revision: 1.31 $
+ *    $Author: fischl $
+ *    $Date: 2007/05/02 13:28:47 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,6 +61,7 @@
 FILE *Gstdout ;
 FILE *Gstderr ;
 FILE *Gstdin ;
+FILE *Gdiag_fp = NULL ;
 
 int Gprofile = 0 ;
 int Gvx = -1 ;

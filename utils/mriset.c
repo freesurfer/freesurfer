@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/05/01 20:38:36 $
- *    $Revision: 1.53 $
+ *    $Date: 2007/05/02 13:28:47 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2887,6 +2887,8 @@ MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label)
         xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
         MRIsampleVolume(mri_ref_dist, xd, yd, zd, &val2) ;
         nvox1++ ; min_dist1 += fabs(val2-val1) ;
+        if (((label == Gdiag_no) || (Gdiag_no < 0)) && Gdiag_fp != NULL)
+          fprintf(Gdiag_fp, "%d %f %f %f %f %f\n", label, xd, yd, zd, val1, val2) ;
       }
 
 
@@ -2904,8 +2906,10 @@ MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label)
         V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
         MatrixMultiply(m_vox2vox, v1, v2) ;
         xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
-        MRIsampleVolume(mri_ref_dist, xd, yd, zd, &val2) ;
+        MRIsampleVolume(mri_src_dist, xd, yd, zd, &val2) ;
         nvox2++ ; min_dist2 += fabs(val2-val1) ;
+        if (((label == Gdiag_no) || (Gdiag_no < 0)) && Gdiag_fp != NULL)
+          fprintf(Gdiag_fp, "%d %d %d %d %f %f\n", label, x, y, z, val2, val1) ;
       }
 
   if (nvox1 == 0 || nvox2 == 0)
