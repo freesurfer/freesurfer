@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/05/01 20:38:49 $
- *    $Revision: 1.337 $
+ *    $Author: nommert $
+ *    $Date: 2007/05/02 17:35:31 $
+ *    $Revision: 1.338 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -502,9 +502,9 @@ MRI   *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst,
 /* frequency filtering*/
 MRI* MRI_fft(MRI *mri_src, MRI* dst);
 MRI *MRI_ifft(MRI *src, MRI *dst, int w, int h, int d);
-MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int scale);
-MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent, int scale);
-MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent, int scale);
+MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm);
+MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent);
+MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent);
 
 MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize) ;

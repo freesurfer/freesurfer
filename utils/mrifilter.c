@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/05/02 15:22:37 $
- *    $Revision: 1.54 $
+ *    $Date: 2007/05/02 17:35:02 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -5904,10 +5904,8 @@ MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm){
   MRIfree(&g);
   dst1 = MRIcopyFrame(dstr_sm, dst1, 0, 0);
   MRIfree(&dstr_sm);
-  MRI_ifft(dst1, dst, src->width, src->height, src->depth);
-
-MRIwrite(dst, "test.mgz");
-
+  dst = MRI_ifft(dst1, NULL, src->width, src->height, src->depth);
+  MRIfree(&dst1);
 
  if(MRImeanFrameThresh(dst, 0, .02)>0){ 
    printf("re-scale\n");
@@ -5918,17 +5916,15 @@ MRIwrite(dst, "test.mgz");
       	MRIsetVoxVal(dst,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
   }
   return(dst);
-  MRIfree(&dst1);
 
 }
 
 /*-----------------------------------------------------
 MRI_fft_lowpass uses the fft tool, then apply a smoothing
 filter : keep only "percent" percent of the lowest freqs
-The scale option allows to re-scale the intensity
  ------------------------------------------------------*/
 
-MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent, int scale){
+MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent){
   MRI *dst1; 
   int x, y, z;
   dst1 = MRI_fft(src, NULL);
@@ -5941,7 +5937,7 @@ MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent, int scale){
       }
   dst = MRI_ifft(dst1, NULL, src->width, src->height, src->depth);
   MRIfree(&dst1);
- if(scale){ 
+ if(MRImeanFrameThresh(dst, 0, .02)>0){ 
   dst = MRIscalarMul(dst, NULL, MRImeanFrameThresh(src, 0, 0.5)/ MRImeanFrameThresh(dst, 0, .02)) ;
   for (z = 0; z < src->depth ; z++)
     for (y = 0 ; y < src->height ; y++)
@@ -5954,10 +5950,9 @@ MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent, int scale){
 /*-----------------------------------------------------
 MRI_fft_highpass uses the fft tool, then apply a smoothing
 filter : remove the "percent" percent of the lowest freqs
-The scale option allows to re-scale the intensity
  ------------------------------------------------------*/
 
-MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent, int scale){
+MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent){
   MRI *dst1; 
   int x, y, z;
   dst1 = MRI_fft(src, NULL);
@@ -5970,7 +5965,7 @@ MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent, int scale){
       }
   dst = MRI_ifft(dst1, NULL, src->width, src->height, src->depth);
   MRIfree(&dst1);
- if(scale){ 
+ if(MRImeanFrameThresh(dst, 0, .02)>0){ 
   dst = MRIscalarMul(dst, NULL, MRImeanFrameThresh(src, 0, 0.5)/ MRImeanFrameThresh(dst, 0, .02)) ;
   for (z = 0; z < src->depth ; z++)
     for (y = 0 ; y < src->height ; y++)
