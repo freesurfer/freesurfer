@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/02 19:14:31 $
-#    $Revision: 1.89 $
+#    $Date: 2007/05/02 23:43:31 $
+#    $Revision: 1.90 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.89 2007/05/02 19:14:31 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.90 2007/05/02 23:43:31 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -333,6 +333,7 @@ mris_ca_label -all-info >> $LF
 mris_euler_number -all-info >> $LF
 mris_make_surfaces -all-info >> $LF
 mris_register -all-info >> $LF
+mris_anatomical_stats -all-info >> $LF
 mrisp_paint -all-info >> $LF
 echo "#######################################" >> $LF
 echo "GCA $GCA" >> $LF
