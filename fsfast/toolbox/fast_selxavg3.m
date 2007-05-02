@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.40 2007/04/25 23:43:03 greve Exp $
+% $Id: fast_selxavg3.m,v 1.41 2007/05/02 02:50:58 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/04/25 23:43:03 $
-%    $Revision: 1.40 $
+%    $Date: 2007/05/02 02:50:58 $
+%    $Revision: 1.41 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.40 2007/04/25 23:43:03 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.41 2007/05/02 02:50:58 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -97,6 +97,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
+perrun = flac0.perrun;
 
 nruns = size(flac0.runlist,1);
 fprintf('nruns = %d\n',nruns);
