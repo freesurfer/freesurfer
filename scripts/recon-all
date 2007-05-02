@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/26 19:40:53 $
-#    $Revision: 1.88 $
+#    $Date: 2007/05/02 19:14:31 $
+#    $Revision: 1.89 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.88 2007/04/26 19:40:53 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.89 2007/05/02 19:14:31 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -119,6 +119,9 @@ set NoNormMGZ = 0; # set to 1 when -nosubcortseg or -noaseg flag is used,
                    # which causes norm.mgz not to used during inorm2 step
 set NoWMSA = 0;      # if 1, then -nowmsa flag is added to mri_ca_label
 set DoQdecCache = 0; # if 1, then create smoothed fsaverage surface files
+set measurelist = ( thickness curv sulc area jacobian_white  ) #see DoQdecCache
+set fwhmlist = ( 0 5 10 15 20 25 ) # see DoQdecCache
+set target = fsaverage # see DoQdecCache 
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -2040,41 +2043,36 @@ end # hemi
 
 # ---------------------------------------------------------------
 # Create the smoothed surfaces to fsaverage target needed by Qdec.
-# Jobs are started in parallel.
-# Output is logged to files named mris_preproc.${hemi}.${CacheOutFile}.log.
 if ($DoQdecCache) then
-    cd $subjdir/surf
-    $PWD |& tee -a $LF
-    set target=fsaverage
-    foreach hemi ($hemilist)
-        foreach measure ( thickness curv sulc area jacobian_white )
-            foreach fwhm ( 0 5 10 15 20 25 )
-                set CacheOutFile=(${measure}.fwhm${fwhm}.${target})
-                set preproc_log=(mris_preproc.${hemi}.${CacheOutFile}.log)
-                if (-e ${preproc_log}) rm -f ${preproc_log}
-                set cmd=(mris_preproc \
-                    --hemi $hemi \
-                    --meas $measure \
-                    --fwhm $fwhm \
-                    --target $target \
-                    --cache-out ${CacheOutFile}.mgh \
-                    --s ${subjid} \
-                    --out mris_preproc.${hemi}.${CacheOutFile}.mgh \
-                    --log ${preproc_log})
-                echo "#--------------------------------------------" \
-                    |& tee -a $LF |& tee -a $CF
-                echo "#@# Qdec Cache $hemi $measure $fwhm `date`" \
-                    |& tee -a $SF |& tee -a $LF |& tee -a $CF
-                echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-                echo "Output logged to ${preproc_log} \n" \
-                    |& tee -a $LF |& tee -a $CF
-                if($RunIt) $cmd > /dev/null &
-                if($status) goto error_exit;
-                echo $cmd > $touchdir/$hemi.$measure.$fwhm.qcache.touch
-            end # fwhm
-        end # measure
-    end # hemi
-endif
+  cd $subjdir/surf
+  $PWD |& tee -a $LF
+  foreach hemi ($hemilist)
+    foreach measure ($measurelist)
+      foreach fwhm ($fwhmlist)
+        set CacheOutFile=(${measure}.fwhm${fwhm}.${target})
+        set tmpfile=(tmp.${hemi}.${CacheOutFile}.mgh)
+        set cmd=(mris_preproc \
+            --s ${subjid} \
+            --hemi $hemi \
+            --meas $measure \
+            --fwhm $fwhm \
+            --target $target \
+            --cache-out ${CacheOutFile}.mgh \
+            --out $tmpfile)
+        echo "#--------------------------------------------" \
+            |& tee -a $LF |& tee -a $CF
+        echo "#@# Qdec Cache $hemi $measure fwhm$fwhm $target `date`" \
+            |& tee -a $SF |& tee -a $LF |& tee -a $CF
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $cmd |& tee -a $LF
+        if($status) goto error_exit;
+        rm -f mris_preproc.surface.${hemi}.*
+        rm -f $tmpfile
+        echo $cmd > $touchdir/$hemi.$measure.$fwhm.qcache.touch
+      end # fwhm
+    end # measure
+  end # hemi
+endif # DoQdecCache
 
 
 echo "" |& tee -a $LF
@@ -3148,6 +3146,21 @@ while( $#argv != 0 )
       set DoQdecCache = 1;
       breaksw;
 
+    case "-measure":
+      if ( $#argv < 1) goto arg1err;
+      set measurelist = $argv[1]; shift;
+      breaksw
+
+    case "-fwhm":
+      if ( $#argv < 1) goto arg1err;
+      set fwhmlist = $argv[1]; shift;
+      breaksw
+
+    case "-target":
+      if ( $#argv < 1) goto arg1err;
+      set target = $argv[1]; shift;
+      breaksw
+
     case "-vno_match_check":
       set DoVnoMatchCheck = 1;
       breaksw;
@@ -3926,6 +3939,19 @@ flag causes mri_convert to crop the image to dimensions of 256^3.
 -notal-check
 
 Skip the automatic failure detection of Talairach alignment.
+
+-qcache
+
+Produce the pre-cached files required by the Qdec utility.  These files
+are created by running mris_preproc, which creates smoothed surface data
+files sampled to the 'fsaverage' common-space surface. By default, the surface
+data for thickness, curv, sulc, area and jacobian_white are smoothed at 
+0, 5, 10, 15, 20, and 25 mm FWHM.  
+If just one set of surface data needs to be processed, then the option 
+-measure <surfmeas> can follow -qcache, where <surfmeas> is one of: thickness, 
+curv, sulc, area, jacobian_white or any surface measure. Another option is 
+-fwhm <num> where <num> is a value in mm.  Also, -target <name> allows
+specifying a common-space target other than fsaverage (the default).
 
 EXPERT OPTIONS FILE
 
