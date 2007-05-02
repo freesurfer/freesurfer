@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/27 21:49:35 $
- *    $Revision: 1.40 $
+ *    $Date: 2007/05/02 05:56:10 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.40 2007/04/27 21:49:35 greve Exp $
+  $Id: fmriutils.c,v 1.41 2007/05/02 05:56:10 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.40 2007/04/27 21:49:35 greve Exp $");
+  return("$Id: fmriutils.c,v 1.41 2007/05/02 05:56:10 greve Exp $");
 }
 
 
@@ -1790,6 +1790,162 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
   MRIfree(&srcvar);
   if (freetmp) MRIfree(&srctmp);
   return(ar1);
+}
+
+
+/*-------------------------------------------------------
+  fMRIspatialAR2() - computes spatial AR2, ie, the
+  correlation between the time course at one voxel
+  and that at a voxel two voxels over. There will be six
+  frame, 2 for each dim. If a mask is used, then
+  a voxel and all it's neighbors must be in the mask
+  in order to compute the AR2 at that point.
+  -------------------------------------------------------*/
+MRI *fMRIspatialAR2(MRI *src, MRI *mask, MRI *ar2)
+{
+  int c,r,s,f,nframes, dc,dr,ds,skip;
+  MRI *srcvar, *srctmp;
+  double m, c1sum,c2sum, r1sum,r2sum, s1sum,s2sum;
+  double v0, vc1,vc2, vr1,vr2, vs1,vs2;
+  double car2,rar2,sar2;
+  int freetmp;
+
+  freetmp = 0;
+  if (src->type != MRI_FLOAT){
+    srctmp = MRISeqchangeType(src,MRI_FLOAT,0,0,0);
+    freetmp=1;
+  }
+  else{
+    srctmp = src;
+    freetmp=0;
+  }
+
+  // alloc vol with 3 frames
+  if (ar2 == NULL){
+    ar2 = MRIcloneBySpace(src, MRI_FLOAT, 6);
+    if (ar2 == NULL){
+      printf("ERROR: could not alloc\n");
+      return(NULL);
+    }
+  }
+
+  // pre-compute the variance
+  //srcvar = fMRIvariance(srctmp, -1, 0, NULL);
+  srcvar = fMRIcovariance(srctmp, 0, -1, mask, NULL);
+
+  // Loop thru all voxels
+  nframes = srctmp->nframes;
+  for (c=0; c < srctmp->width; c++)  {
+    for (r=0; r < srctmp->height; r++)    {
+      for (s=0; s < srctmp->depth; s++)      {
+
+        // skip voxel if it's on the edge
+        if (c<2 || r<2 || s<2 ||
+            c>=(srctmp->width-2) || 
+	    r>=(srctmp->height-2) ||
+            s>=(srctmp->depth-2) ) {
+	  for(f = 0; f < 6; f++) MRIsetVoxVal(ar2,c,r,s,f,0);
+          continue;
+        }
+        // variance at center voxel
+        v0  = MRIgetVoxVal(srcvar,c,r,s,0);
+	if(v0 < 1e-6) continue; 
+        // skip if BOTH voxel and all it's neighbors are
+        // not in the mask
+        if(mask){
+          skip = 0;
+          for (dc=-2; dc<3; dc+=2){
+            for (dr=-2; dr<3; dr+=2) {
+              for (ds=-2; ds<3; ds+=2) {
+                m = MRIgetVoxVal(mask,c+dc,r+dr,s+ds,0);
+                if (m < 0.5) {
+		  for(f = 0; f < 6; f++) MRIsetVoxVal(ar2,c,r,s,f,0);
+                  skip=1;
+                }
+              }
+            }
+          }
+          if (skip) continue;
+        }
+
+        // Loop thru all frames
+        c1sum = 0;
+        c2sum = 0;
+        r1sum = 0;
+        r2sum = 0;
+        s1sum = 0;
+        s2sum = 0;
+        for (f=0; f < srctmp->nframes; f++) {
+          v0 = MRIgetVoxVal(srctmp,c,r,s,f); // value at center voxel
+
+          // temporal correlation with vox two col to left
+          vc1 = MRIgetVoxVal(srctmp,c-2,r,s,f);
+          c1sum += (v0*vc1);
+
+          // temporal correlation with vox two col to right
+          vc2 = MRIgetVoxVal(srctmp,c+2,r,s,f);
+          c2sum += (v0*vc2);
+
+          // temporal correlation with vox two row to up
+          vr1 = MRIgetVoxVal(srctmp,c,r-2,s,f);
+          r1sum += (v0*vr1);
+
+          // temporal correlation with vox two row to down
+          vr2 = MRIgetVoxVal(srctmp,c,r+2,s,f);
+          r2sum += (v0*vr2);
+
+          // temporal correlation with vox two slice in
+          vs1 = MRIgetVoxVal(srctmp,c,r,s-2,f);
+          s1sum += (v0*vs1);
+
+          // temporal correlation with vox two slice out
+          vs2 = MRIgetVoxVal(srctmp,c,r,s+2,f);
+          s2sum += (v0*vs2);
+        }
+
+        // variance at center voxel
+        v0  = MRIgetVoxVal(srcvar,c,r,s,0);
+
+        // column AR1
+        vc1 = MRIgetVoxVal(srcvar,c-2,r,s,0); //variance
+	if(vc1 > 1e-6) car2 = c1sum/(nframes*sqrt(v0*vc1)); 
+        else           car2 = 0;
+        MRIsetVoxVal(ar2,c,r,s,0,car2); // frame 0
+
+        vc2 = MRIgetVoxVal(srcvar,c+2,r,s,0);
+	if(vc2 > 1e-6) car2 = c2sum/(nframes*sqrt(v0*vc2));
+        else           car2 = 0;
+        MRIsetVoxVal(ar2,c,r,s,1,car2); // frame 1
+
+        // rows
+        vr1 = MRIgetVoxVal(srcvar,c,r-2,s,0);
+	if(vr1 > 1e-6) rar2 = r1sum/(nframes*sqrt(v0*vr1)); 
+        else           rar2 = 0;
+        MRIsetVoxVal(ar2,c,r,s,2,rar2); // frame 2
+
+        vr2 = MRIgetVoxVal(srcvar,c,r+2,s,0);
+        if(vr2 > 1e-6) rar2 = r2sum/(nframes*sqrt(v0*vr2));
+	else           rar2 = 0;
+        MRIsetVoxVal(ar2,c,r,s,3,rar2); // frame 3
+
+        // slices
+        vs1 = MRIgetVoxVal(srcvar,c,r,s-2,0);
+        if(vs1 > 1e-6) sar2 = s1sum/(nframes*sqrt(v0*vs1));
+	else           sar2 = 0;
+        MRIsetVoxVal(ar2,c,r,s,4,sar2); // frame 4
+
+        vs2 = MRIgetVoxVal(srcvar,c,r,s+2,0);
+        if(vs2 > 1e-6) sar2 = s2sum/(nframes*sqrt(v0*vs2));
+	else           sar2 = 0;
+        MRIsetVoxVal(ar2,c,r,s,5,sar2); // frame 5
+
+      } // s
+    } // r
+  } // c
+
+  MRIfree(&srcvar);
+  if (freetmp) MRIfree(&srctmp);
+  return(ar2);
 }
 
 
