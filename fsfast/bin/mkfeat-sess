@@ -9,8 +9,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/04/20 05:17:17 $
-#    $Revision: 1.5 $
+#    $Date: 2007/05/02 05:35:28 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 #
 
 
-set VERSION = '$Id: mkfeat-sess,v 1.5 2007/04/20 05:17:17 greve Exp $';
+set VERSION = '$Id: mkfeat-sess,v 1.6 2007/05/02 05:35:28 greve Exp $';
 set inputargs = ($argv);
 
 set analysis  = ();
@@ -100,7 +100,7 @@ mkdir $tmpdir
 if($#clone) cp $clone/design.fsf $tmpdir
 
 # Copy input to tmp dir
-set cmd = (mri_convert $invol $tmpdir/f.nii)
+set cmd = (mri_convert $invol $tmpdir/$funcstem.nii)
 pwd
 echo $cmd
 $cmd
