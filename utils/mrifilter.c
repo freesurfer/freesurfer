@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/05/01 18:32:26 $
- *    $Revision: 1.53 $
+ *    $Date: 2007/05/02 15:22:37 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -5687,9 +5687,9 @@ float Dist(int x,int y,int z,int len){
 	     fabs(z-(len-1)/2)*fabs(z-(len-1)/2));
 }
 
-MRI *MRI_Gaussian(int len, float std){
+MRI *MRI_Gaussian(int len, float std, int norm){
   int x, y, z;
-  float val;
+  float val, sum =0;
   float  var = std*std;
   float  f = 2*M_PI*std;
   MRI *g;
@@ -5698,8 +5698,13 @@ MRI *MRI_Gaussian(int len, float std){
     for (x = 0 ; x < len; x++)
       for (z = 0 ; z <  len; z++){
       val = exp( -(Dist(x,y,z,len))/(2*var) )/f;
+      sum += val;
       MRIsetVoxVal(g, x, y, z, 0, val);
       }
+  for (y = 0 ; y <  len ; y++)
+    for (x = 0 ; x < len; x++)
+      for (z = 0 ; z <  len; z++)
+        MRIsetVoxVal(g, x, y, z, 0, MRIgetVoxVal(g, x, y, z, 0)/sum);
   return(g);
 }
 
@@ -5887,33 +5892,34 @@ and then computes the inverse FFT.
 The scale option allows to re-scale the intensity
  ------------------------------------------------------*/
 
-MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int scale){
+MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm){
   MRI *dst1, *dstr_sm, *g; 
   int x, y, z;
   dst1 = MRI_fft(src, NULL);
   int dimension = dst1->width;
 
   printf("Gaussian\n");
-  g = MRI_Gaussian(dimension, std);	
+  g = MRI_Gaussian(dimension, std, norm);	
   dstr_sm = MRImultiply(dst1, g, NULL); //only frame 0
   MRIfree(&g);
   dst1 = MRIcopyFrame(dstr_sm, dst1, 0, 0);
   MRIfree(&dstr_sm);
-  dst = MRI_ifft(dst1, NULL, src->width, src->height, src->depth);
-  MRIfree(&dst1);
+  MRI_ifft(dst1, dst, src->width, src->height, src->depth);
 
- if(scale){ 
+MRIwrite(dst, "test.mgz");
+
+
+ if(MRImeanFrameThresh(dst, 0, .02)>0){ 
+   printf("re-scale\n");
   dst = MRIscalarMul(dst, NULL, MRImeanFrameThresh(src, 0, 0.5)/ MRImeanFrameThresh(dst, 0, .02)) ;
-  MRI *res = MRIallocSequence(src->width, src->height, src->depth,MRI_INT, 1);
   for (z = 0; z < src->depth ; z++)
     for (y = 0 ; y < src->height ; y++)
       for (x = 0 ; x < src->width; x++)
-      	MRIsetVoxVal(res,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
-  MRIfree(&dst);
-  return(res);
-}
-else
+      	MRIsetVoxVal(dst,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
+  }
   return(dst);
+  MRIfree(&dst1);
+
 }
 
 /*-----------------------------------------------------
@@ -5937,15 +5943,11 @@ MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent, int scale){
   MRIfree(&dst1);
  if(scale){ 
   dst = MRIscalarMul(dst, NULL, MRImeanFrameThresh(src, 0, 0.5)/ MRImeanFrameThresh(dst, 0, .02)) ;
-  MRI *res = MRIallocSequence(src->width, src->height, src->depth,MRI_INT, 1);
   for (z = 0; z < src->depth ; z++)
     for (y = 0 ; y < src->height ; y++)
       for (x = 0 ; x < src->width; x++)
-      	MRIsetVoxVal(res,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
-  MRIfree(&dst);
-  return(res);
-}
-else
+      	MRIsetVoxVal(dst,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
+  }
   return(dst);
 }
 
@@ -5970,14 +5972,10 @@ MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent, int scale){
   MRIfree(&dst1);
  if(scale){ 
   dst = MRIscalarMul(dst, NULL, MRImeanFrameThresh(src, 0, 0.5)/ MRImeanFrameThresh(dst, 0, .02)) ;
-  MRI *res = MRIallocSequence(src->width, src->height, src->depth,MRI_INT, 1);
   for (z = 0; z < src->depth ; z++)
     for (y = 0 ; y < src->height ; y++)
       for (x = 0 ; x < src->width; x++)
-      	MRIsetVoxVal(res,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
-  MRIfree(&dst);
-  return(res);
-}
-else
+      	MRIsetVoxVal(dst,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
+ }
   return(dst);
 }
