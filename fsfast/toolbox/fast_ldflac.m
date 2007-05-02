@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/07 22:49:23 $
-%    $Revision: 1.26 $
+%    $Date: 2007/05/02 05:31:45 $
+%    $Revision: 1.27 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,6 @@ if(isempty(flac))
   flac.schdir = ''; % dir where schedules or pars can be found
   flac.par = [];
   flac.tpexc = [];
-  flac.perrun = 0;
   flac.AllowMissingCond = 0;
   flac.autostimdur = 1; % Compute stim duration from par, TR otherwise
   % flag indicating the presence of a variable regressor EV
@@ -137,7 +136,6 @@ while(1)
    case 'inorm',       flac.inorm       = sscanf(tline,'%*s %f',1);
    case 'runlistfile', flac.runlistfile = sscanf(tline,'%*s %s',1);
    case 'whiten',      flac.whiten      = sscanf(tline,'%*s %d',1);
-   case 'perrun',      flac.perrun      = sscanf(tline,'%*s %d',1);
    case 'acfbins',     flac.acfbins     = sscanf(tline,'%*s %d',1);
    case 'stimulusdelay', flac.stimulusdelay  = sscanf(tline,'%*s %f',1);
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
