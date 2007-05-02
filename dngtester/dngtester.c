@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/27 21:39:22 $
- *    $Revision: 1.32 $
+ *    $Date: 2007/05/02 06:08:57 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -120,7 +120,16 @@ int main(int argc, char **argv) {
   mri = MRIread(argv[1]);
   if(!mri) exit(1);
 
-  printf("Computing\n");
+  printf("Computing AR2\n");
+  mri2 = fMRIspatialAR2(mri, NULL, NULL);
+  MRIwrite(mri2,"ar2.mgh");
+
+  printf("Computing AR1\n");
+  mri2 = fMRIspatialAR1(mri, NULL, NULL);
+  MRIwrite(mri2,"ar1.mgh");
+
+  exit(1);
+
 
   mri2 = fMRIcovariance(mri, 0, -1, NULL, NULL);
   if(!mri2) exit(1);
