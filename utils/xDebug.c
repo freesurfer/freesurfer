@@ -1,15 +1,14 @@
 /**
  * @file  xDebug.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief X debugging routines: creates .xdebug_tkmedit and .xdebug_tksurfer
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:41 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/05/03 19:04:01 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +29,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdarg.h>
+#include <sys/stat.h>
 #include "xDebug.h"
 
 tBoolean xDbg_gbOutput     = FALSE;
@@ -41,15 +41,13 @@ char     xDbg_sStackDesc[xDbg_knMaxDescLength]   = "";
 char     xDbg_sCurNoteDesc[xDbg_knMaxDescLength] = "";
 int      xDbg_gLineNumberOfError = 0;
 
-
-char masStackTitle[xDbg_knMaxStackDepth][xDbg_knMaxDescLength]={};
-char masStackNote[xDbg_knMaxStackDepth][xDbg_knMaxDescLength]={};
-int  mCurrentStackDepth = 0;
-void (*mSegfaultFunction)(int) = NULL;
+static char masStackTitle[xDbg_knMaxStackDepth][xDbg_knMaxDescLength]={};
+static char masStackNote[xDbg_knMaxStackDepth][xDbg_knMaxDescLength]={};
+static int  mCurrentStackDepth = 0;
+static void (*mSegfaultFunction)(int) = NULL;
 
 void xDbg_Init ( char* isFileName )
 {
-
   char sFileName[256] = "";
 
   if ( isFileName == NULL )
@@ -93,6 +91,8 @@ void xDbg_Init ( char* isFileName )
       fflush( stdout );
       xDbg_gType= xDebug_Nothing;
     }
+    // now try to set all the read/write bits, so that anybody can delete it
+    chmod ( sFileName, 0666 );
   }
   if ( xDebug_Print == xDbg_gType )
     xDbg_gStream = stderr;
@@ -112,23 +112,19 @@ void xDbg_Init ( char* isFileName )
 
 void xDbg_RegisterSegfaultHandler ( void(*iFunction)(int) )
 {
-
   mSegfaultFunction = iFunction;
 }
 
 void xDbg_ShutDown ()
 {
-
   /* close file if we opened it */
   if ( xDebug_File == xDbg_gType
        && NULL != xDbg_gStream )
     fclose( xDbg_gStream );
 }
 
-
 void xDbg_PrintStatus ()
 {
-
   fprintf( stderr, "output = %d\n", (int)xDbg_gbOutput );
   fprintf( stderr, "type = %s\n",
            (xDbg_gType == xDebug_Nothing) ? "nothing" :
@@ -146,7 +142,6 @@ void xDbg_PrintStatus ()
 
 void xDbg_PushStack ( char* isTitle, char* isNote )
 {
-
   if ( mCurrentStackDepth+1 < xDbg_knMaxStackDepth )
   {
 
@@ -166,7 +161,6 @@ void xDbg_PushStack ( char* isTitle, char* isNote )
 
 void xDbg_PopStack ()
 {
-
   if ( mCurrentStackDepth-1 >= 0 )
   {
 
@@ -187,7 +181,6 @@ void xDbg_PopStack ()
 
 char* xDbg_GetCurrentFunction ()
 {
-
   if ( mCurrentStackDepth > 0 )
   {
     return masStackTitle[mCurrentStackDepth-1];
@@ -200,7 +193,6 @@ char* xDbg_GetCurrentFunction ()
 
 void xDbg_PrintStack ()
 {
-
   int nCurDesc = 0;
   int nSpace   = 0;
 
@@ -224,7 +216,6 @@ void xDbg_PrintStack ()
 
 void xDbg_SegfaultHandler ( int inSignal )
 {
-
   DebugPrint( ("\nSegfault\n%s\n", xDbg_sCurNoteDesc ) );
 
   /* Keeps us from segfaulting more than once. */
@@ -242,7 +233,6 @@ void xDbg_SegfaultHandler ( int inSignal )
 
 void xDbg_Segfault ()
 {
-
   char* pBadPtr = 0x0;
   *pBadPtr = 1;
 }
@@ -250,7 +240,6 @@ void xDbg_Segfault ()
 
 void xDbg_Printf ( const char* iFormat, ... )
 {
-
   va_list args;
 
   if ( xDbg_gbOutput )
@@ -266,7 +255,6 @@ void xDbg_Printf ( const char* iFormat, ... )
 
 void xDbg_SetStackDesc ( const char* iFormat, ... )
 {
-
 #ifdef Solaris
   strncpy( xDbg_sStackDesc, iFormat, xDbg_knMaxDescLength );
 #else
@@ -285,7 +273,6 @@ void xDbg_SetStackDesc ( const char* iFormat, ... )
 
 void xDbg_SetCurrentNote ( const char* iFormat, ... )
 {
-
 #ifdef Solaris
   strncpy( xDbg_sCurNoteDesc, iFormat, xDbg_knMaxDescLength );
 #else
@@ -303,7 +290,6 @@ void xDbg_SetCurrentNote ( const char* iFormat, ... )
 
 char* xDbg_GetCurrentNote ()
 {
-
   return xDbg_sCurNoteDesc;
 }
 
