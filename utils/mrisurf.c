@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/26 21:21:27 $
- *    $Revision: 1.533 $
+ *    $Date: 2007/05/03 13:33:23 $
+ *    $Revision: 1.534 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -612,7 +612,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.533 2007/04/26 21:21:27 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.534 2007/05/03 13:33:23 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -3721,15 +3721,29 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
   int   mritype, frame, nv, c,r,s,vno;
   MRI *TempMRI;
 
+  cp = strchr(sname, '/') ;
+  if (!cp)                 /* no path - use same one as mris was read from */
+  {
+    cp = strchr(sname, '.') ;
+    FileNamePath(mris->fname, path) ;
+    if (cp &&
+        ((strncmp(cp-2, "lh", 2) == 0) || (strncmp(cp-2, "rh", 2) == 0)))
+      sprintf(fname, "%s/%s", path, sname) ;
+    else   /* no hemisphere specified */
+      sprintf(fname, "%s/%s.%s", path,
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+  }
+  else
+    strcpy(fname, sname) ;  /* path specified explicitly */
   mritype = mri_identify(sname);
   if (mritype != MRI_VOLUME_TYPE_UNKNOWN)
   {
     frame = MRISgetReadFrame();
-    TempMRI = MRIreadHeader(sname,mritype);
+    TempMRI = MRIreadHeader(fname,mritype);
     if (TempMRI==NULL) return(ERROR_BADFILE);
     if (TempMRI->nframes <= frame)
     {
-      printf("ERROR: attempted to read frame %d from %s\n",frame,sname);
+      printf("ERROR: attempted to read frame %d from %s\n",frame,fname);
       printf("  but this file only has %d frames.\n",TempMRI->nframes);
       return(ERROR_BADFILE);
     }
@@ -3741,7 +3755,7 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
       return(1);
     }
     MRIfree(&TempMRI);
-    TempMRI = MRIread(sname);
+    TempMRI = MRIread(fname);
     if (TempMRI==NULL) return(ERROR_BADFILE);
     vno = 0;
     curvmin = 10000.0f ;
@@ -3766,21 +3780,6 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
     mris->min_curv = curvmin ;
     return(NO_ERROR);
   }
-
-  cp = strchr(sname, '/') ;
-  if (!cp)                 /* no path - use same one as mris was read from */
-  {
-    cp = strchr(sname, '.') ;
-    FileNamePath(mris->fname, path) ;
-    if (cp &&
-        ((strncmp(cp-2, "lh", 2) == 0) || (strncmp(cp-2, "rh", 2) == 0)))
-      sprintf(fname, "%s/%s", path, sname) ;
-    else   /* no hemisphere specified */
-      sprintf(fname, "%s/%s.%s", path,
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
-  }
-  else
-    strcpy(fname, sname) ;  /* path specified explicitly */
 
 
   type = MRISfileNameType(fname) ;
