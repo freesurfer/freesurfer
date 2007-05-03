@@ -5,11 +5,11 @@
  * Dumps information about the volume to stdout.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/09 08:21:19 $
- *    $Revision: 1.59 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/03 18:52:08 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.59 $";
+char *MRI_INFO_VERSION = "$Revision: 1.60 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,46 +58,45 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.59 2007/01/09 08:21:19 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.60 2007/05/03 18:52:08 nicks Exp $";
 
 char *Progname ;
-char *inputlist[100];
-int nthinput=0;
-int PrintTR=0;
-int PrintTE=0;
-int PrintTI=0;
-int PrintFlipAngle=0;
-int PrintCRes = 0;
-int PrintType = 0 ;
-int PrintConformed = 0 ;
-int PrintRRes = 0;
-int PrintSRes = 0;
-int PrintNCols = 0;
-int PrintNRows = 0;
-int PrintNSlices = 0;
-int PrintNFrames = 0;
-int PrintFormat = 0;
-int PrintColDC   = 0;
-int PrintRowDC   = 0;
-int PrintSliceDC = 0;
-int PrintVox2RAS = 0;
-int PrintRAS2Vox = 0;
-int PrintRASGood = 0;
-int PrintVox2RAStkr = 0;
-int PrintDet = 0;
-int PrintOrientation = 0;
-int PrintSliceDirection = 0;
-int PrintCRAS = 0;
-int PrintVoxel = 0;
-int PrintAutoAlign = 0;
-
-int VoxelCRS[3];
-FILE *fpout;
-int PrintToFile = 0;
-char *outfile = NULL;
-int debug = 0;
-int intype=MRI_VOLUME_TYPE_UNKNOWN;
-char *intypestr=NULL;
+static char *inputlist[100];
+static int nthinput=0;
+static int PrintTR=0;
+static int PrintTE=0;
+static int PrintTI=0;
+static int PrintFlipAngle=0;
+static int PrintCRes = 0;
+static int PrintType = 0 ;
+static int PrintConformed = 0 ;
+static int PrintRRes = 0;
+static int PrintSRes = 0;
+static int PrintNCols = 0;
+static int PrintNRows = 0;
+static int PrintNSlices = 0;
+static int PrintNFrames = 0;
+static int PrintFormat = 0;
+static int PrintColDC   = 0;
+static int PrintRowDC   = 0;
+static int PrintSliceDC = 0;
+static int PrintVox2RAS = 0;
+static int PrintRAS2Vox = 0;
+static int PrintRASGood = 0;
+static int PrintVox2RAStkr = 0;
+static int PrintDet = 0;
+static int PrintOrientation = 0;
+static int PrintSliceDirection = 0;
+static int PrintCRAS = 0;
+static int PrintVoxel = 0;
+static int PrintAutoAlign = 0;
+static int VoxelCRS[3];
+static FILE *fpout;
+static int PrintToFile = 0;
+static char *outfile = NULL;
+static int debug = 0;
+static int intype=MRI_VOLUME_TYPE_UNKNOWN;
+static char *intypestr=NULL;
 
 
 /***-------------------------------------------------------****/
