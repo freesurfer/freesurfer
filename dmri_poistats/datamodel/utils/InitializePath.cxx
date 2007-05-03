@@ -158,7 +158,7 @@ InitializePath::CalculateInitialPath() {
         
     // keep iterating until you've reached your destination region
     while( !this->IsInRegion( currentPointInt, destinationSeeds ) ) {
-              
+
       // get the eigenvector
       double eigenVector[3];
       this->GetEigenVector( currentPointInt, eigenVector );
@@ -189,7 +189,7 @@ InitializePath::CalculateInitialPath() {
       
       // make sure that the point is within the bounds of the image
       this->EnsureWithinBounds( currentPointDouble );
-                  
+
       // add point to be saved
       double* point = new double[ 3 ];
       path.push_back( point );
@@ -201,7 +201,7 @@ InitializePath::CalculateInitialPath() {
         previousPointDouble[cDim] = currentPointDouble[cDim];
         currentPointInt[ cDim ] = static_cast< int >( round( currentPointDouble[cDim] ) );
       }
-          
+      
     }
     
     // clean up the data
@@ -292,7 +292,7 @@ InitializePath::GetSeedPoints( const int label ) {
 
 bool 
 InitializePath::IsInRegion( int *point, std::vector< int* > region ) {
-
+  
   bool isInRegion = false;
 
   // go through all the seeds and determine if point is in the region
@@ -314,7 +314,7 @@ InitializePath::IsInRegion( int *point, std::vector< int* > region ) {
     }
     
   }
-  
+
   return isInRegion;
   
 }
@@ -399,14 +399,14 @@ InitializePath::ShouldFlipEigenVector( const double* const previousPoint,
     differenceVector[cDim] = currentPoint[cDim] - previousPoint[cDim];
   }
   
-  double dotProject = 0.0;
+  double dotProduct = 0.0;
   for( int cDim=0; cDim<3; cDim++ ) {
-    dotProject += differenceVector[ cDim ] * eigenVector[ cDim ];
+    dotProduct += differenceVector[ cDim ] * eigenVector[ cDim ];
   }
   
   // if the dot project is less than 0, then the flipped eigenVector is a better
   // fit -- it doesn't move move the pathway in a largely different angle.
-  if( dotProject < 0 ) {
+  if( dotProduct < 0 ) {
     shouldFlip = true;
   }
   
@@ -433,18 +433,20 @@ void
 InitializePath::EnsureWithinBounds( double* point ) {
 
   // bounds of the volume
-  double bounds[] = {
-    m_SeedVolume->width,
-    m_SeedVolume->height,
-    m_SeedVolume->depth
+  const double bounds[] = {
+    m_SeedVolume->width - 1,
+    m_SeedVolume->height - 1,
+    m_SeedVolume->depth - 1
   };
+  
+  const double minimum = 0.0;
   
   // go through all the dimensions and make sure the point is in the bounds
   for( int cDim=0; cDim<3; cDim++ ) {
     
     // if it is less than zero, then it's out of bounds
-    if( point[ cDim ] < 0.0 ) {
-      point[ cDim ] = 0.0;
+    if( point[ cDim ] < minimum ) {
+      point[ cDim ] = minimum;
     } else if( point[ cDim ] > bounds[ cDim ] ) {
       // if greater than the bounds of this dimension, then out of bounds
       point[ cDim ] = bounds[ cDim ];
