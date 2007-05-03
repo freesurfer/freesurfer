@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/04/24 17:33:09 $
- *    $Revision: 1.18 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/03 13:38:46 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,38 +66,38 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.18 2007/04/24 17:33:09 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.19 2007/05/03 13:38:46 nicks Exp $";
 char *Progname = NULL;
-char *SUBJECTS_DIR = NULL;
-char *subject = NULL;
-char *OutASegFile = NULL;
-char *OutAParcFile = NULL;
-char *OutDistFile = NULL;
-int debug = 0;
-int UseRibbon = 0;
-int UseNewRibbon = 0;
-MRI *ASeg, *filled, *mritmp;
-MRI *AParc;
-MRI *Dist;
-MRI *lhRibbon,*rhRibbon,*RibbonSeg;
-MRIS *lhwhite, *rhwhite;
-MRIS *lhpial, *rhpial;
-MHT *lhwhite_hash, *rhwhite_hash;
-MHT *lhpial_hash, *rhpial_hash;
-VERTEX vtx, *pvtx;
-int  lhwvtx, lhpvtx, rhwvtx, rhpvtx;
-MATRIX *Vox2RAS, *CRS, *RAS;
-float dlhw, dlhp, drhw, drhp;
-float dminctx = 5.0;
-int LabelWM=0;
-int LabelHypoAsWM=0;
-int RipUnknown = 0;
+static char *SUBJECTS_DIR = NULL;
+static char *subject = NULL;
+static char *OutASegFile = NULL;
+static char *OutAParcFile = NULL;
+static char *OutDistFile = NULL;
+static int debug = 0;
+static int UseRibbon = 0;
+static int UseNewRibbon = 0;
+static MRI *ASeg, *filled, *mritmp;
+static MRI *AParc;
+static MRI *Dist;
+static MRI *lhRibbon,*rhRibbon,*RibbonSeg;
+static MRIS *lhwhite, *rhwhite;
+static MRIS *lhpial, *rhpial;
+static MHT *lhwhite_hash, *rhwhite_hash;
+static MHT *lhpial_hash, *rhpial_hash;
+static VERTEX vtx, *pvtx;
+static int  lhwvtx, lhpvtx, rhwvtx, rhpvtx;
+static MATRIX *Vox2RAS, *CRS, *RAS;
+static float dlhw, dlhp, drhw, drhp;
+static float dminctx = 5.0;
+static int LabelWM=0;
+static int LabelHypoAsWM=0;
+static int RipUnknown = 0;
 
-char tmpstr[2000];
-char annotfile[1000];
-char *annotname = "aparc";
-int baseoffset = 0;
-float hashres = 16;
+static char tmpstr[2000];
+static char annotfile[1000];
+static char *annotname = "aparc";
+static int baseoffset = 0;
+static float hashres = 16;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
