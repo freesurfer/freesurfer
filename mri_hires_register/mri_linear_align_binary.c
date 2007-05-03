@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/05 23:17:04 $
- *    $Revision: 1.15 $
+ *    $Date: 2007/05/03 11:50:56 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/04/05 23:17:04 $
-// Revision       : $Revision: 1.15 $
+// Revision Date  : $Date: 2007/05/03 11:50:56 $
+// Revision       : $Revision: 1.16 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -79,6 +79,7 @@ static int nopowell = 0 ;
 static int nfilter = 0 ;
 static int apply_transform = 1 ;
 static int use_target_label = 1 ;
+static int surf_flag = 0 ;
 
 static int write_snapshot(MRI *mri_target, MRI *mri_source,
                           MATRIX *m_vox_xform, MORPH_PARMS *parms,
@@ -291,10 +292,24 @@ main(int argc, char *argv[]) {
     mri_orig_source = mri_tmp ;
   }
 
-  mri_target = MRIread(target_fname) ;
-  if (!mri_target)
-    ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s",
-              Progname, target_fname) ;
+  if (surf_flag)
+  {
+    MRI_SURFACE *mris ;
+    mris = MRISread(target_fname) ;
+    if (!mri_target)
+      ErrorExit(ERROR_NOFILE, "%s: could not read target surface %s",
+                Progname, target_fname) ;
+    mri_target = MRISfillInterior(mris, .25, NULL) ;
+    MRIreplaceValues(mri_target, mri_target, 1, target_label) ;
+    MRISfree(&mris) ;
+  }
+  else
+  {
+    mri_target = MRIread(target_fname) ;
+    if (!mri_target)
+      ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s",
+                Progname, target_fname) ;
+  }
   mri_whole_target = MRIcopy(mri_target, NULL) ; // to keep track of orig geom
 
   if (wm == 1)   // only doing white matter
@@ -539,60 +554,64 @@ get_option(int argc, char *argv[]) {
     printf("skipping %d voxels in target...\n", target_skip) ;
     nargs = 1 ;
   } else switch (*option) {
-    case 'H':
-      hires_hippo = 1 ;
-      //    pf_overlap = compute_distance_transform_sse ;
-      use_target_label = 0 ;
-      target_label = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("assuming source is hires hippo volume, and target is %s\n",
-             cma_label_to_name(target_label)) ;
-      break ;
-    case 'L':
-      target_label = atoi(argv[2]) ;
-      printf("using %s %d as target label from source and destination\n", cma_label_to_name(target_label),target_label) ;
-      use_target_label = 1 ;
-      nargs = 1 ;
-      break ;
-    case 'B':
-      binarize = atof(argv[2]) ;
-      printf("binarizing image with thresh = %2.3f\n", binarize) ;
-      nargs = 1 ;
-      break ;
-    case 'C':
-      ncloses = atoi(argv[2]) ;
-      printf("performing %dth order close on image\n", ncloses) ;
-      nargs = 1 ;
-      break ;
-    case 'N':
-      npasses = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("using npasses=%d\n", npasses) ;
-      break ;
-    case 'W':
-      parms.write_iterations = atoi(argv[2]) ;
-      Gdiag |= DIAG_WRITE ;
-      nargs = 1 ;
-      printf("setting write iterations = %d\n", parms.write_iterations) ;
-      break ;
-    case 'R':
-      parms.rigid = 1 ;
-      printf("constraining transform to be rigid...\n") ;
-      break ;
-    case 'F':
-      nfilter = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("applying %d mode filters before writing out final volume\n",nfilter);
-      break ;
-    case '?':
-    case 'U':
-      usage_exit(1);
-      break ;
-    default:
-      printf("unknown option %s\n", argv[1]) ;
-      usage_exit(1) ;
-      break ;
-    }
+  case 'H':
+    hires_hippo = 1 ;
+    //    pf_overlap = compute_distance_transform_sse ;
+    use_target_label = 0 ;
+    target_label = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("assuming source is hires hippo volume, and target is %s\n",
+           cma_label_to_name(target_label)) ;
+    break ;
+  case 'S':
+    surf_flag = 1 ;
+    printf("interpreting target as a surface\n") ;
+    break ;
+  case 'L':
+    target_label = atoi(argv[2]) ;
+    printf("using %s %d as target label from source and destination\n", cma_label_to_name(target_label),target_label) ;
+    use_target_label = 1 ;
+    nargs = 1 ;
+    break ;
+  case 'B':
+    binarize = atof(argv[2]) ;
+    printf("binarizing image with thresh = %2.3f\n", binarize) ;
+    nargs = 1 ;
+    break ;
+  case 'C':
+    ncloses = atoi(argv[2]) ;
+    printf("performing %dth order close on image\n", ncloses) ;
+    nargs = 1 ;
+    break ;
+  case 'N':
+    npasses = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("using npasses=%d\n", npasses) ;
+    break ;
+  case 'W':
+    parms.write_iterations = atoi(argv[2]) ;
+    Gdiag |= DIAG_WRITE ;
+    nargs = 1 ;
+    printf("setting write iterations = %d\n", parms.write_iterations) ;
+    break ;
+  case 'R':
+    parms.rigid = 1 ;
+    printf("constraining transform to be rigid...\n") ;
+    break ;
+  case 'F':
+    nfilter = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("applying %d mode filters before writing out final volume\n",nfilter);
+    break ;
+  case '?':
+  case 'U':
+    usage_exit(1);
+    break ;
+  default:
+    printf("unknown option %s\n", argv[1]) ;
+    usage_exit(1) ;
+    break ;
+  }
   return(nargs) ;
 }
 
