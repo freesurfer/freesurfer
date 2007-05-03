@@ -1,6 +1,6 @@
 /**
  * @file  mri_dct_align_binary.c
- * @brief program for computing a nonlinear alignment using a discrete cosine transform
+ * @brief computes a nonlinear alignment using a discrete cosine transform
  *
  * compute the discrete cosine transform to align two binary images, typically
  * initializing with an affine xform.
@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/03/31 20:22:19 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/03 02:34:53 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,20 +25,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// mri_nl_align_binary.c
-//
-// written by Bruce Fischl
-// Nov. 9th ,2000
-// 
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/03/31 20:22:19 $
-// Revision       : $Revision: 1.1 $
-//
-////////////////////////////////////////////////////////////////////
 
 #include <math.h>
 #include <stdlib.h>
@@ -834,7 +820,7 @@ static DCT *
 find_optimal_dct(DCT *dct, MRI *mri_source, MRI *mri_target, VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, int ncoef, int skip)
 {
   DCT   *dct_tmp ;
-  int   i, global_coefs ;
+  int   i, global_coefs=0 ;
   double sse ;
 
   if (dct == NULL)
@@ -976,7 +962,7 @@ compute_distance_transform_sse(VOXEL_LIST *vl_target,VOXEL_LIST *vl_source,DCT *
 static double
 compute_overlap(VOXEL_LIST *vl_target, VOXEL_LIST *vl_source, DCT *dct) 
 {
-  int     x, y, z, i ;
+  int     x=0, y=0, z=0, i ;
   MRI     *mri_target, *mri_source ;
   double  val, source_vox, target_vox, xr, yr, zr, overlap ;
   float   xf, yf, zf ;
@@ -1059,7 +1045,7 @@ compute_recursive_optimum(DCT *dct, double scale,
                           int which_coord, int k,
                           double best_overlap)
 {
-  double overlap, best_coef, orig_coef,coef;
+  double overlap, best_coef, orig_coef=0.0,coef;
   float  *pk ;
 
   switch (which_coord)
