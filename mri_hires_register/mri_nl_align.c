@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: postelni $
- *    $Date: 2007/04/09 18:07:02 $
- *    $Revision: 1.13 $
+ *    $Author: fischl $
+ *    $Date: 2007/05/03 11:51:48 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,9 +33,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: postelni $
-// Revision Date  : $Date: 2007/04/09 18:07:02 $
-// Revision       : $Revision: 1.13 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2007/05/03 11:51:48 $
+// Revision       : $Revision: 1.14 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -177,7 +177,10 @@ main(int argc, char *argv[])
 	mri_orig_source = MRIcopy(mri_source, NULL) ;
 
 	mp.max_grad = 0.3*mri_source->xsize ;
-	
+
+	if (transform == NULL)
+    transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
+
 	if (transform->type != MORPH_3D_TYPE)  // initializing m3d from a linear transform
 	{
 		new_transform = 1 ;
