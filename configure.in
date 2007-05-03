@@ -1962,6 +1962,7 @@ AC_OUTPUT([Makefile
            mri_apply_inu_correction/Makefile
            mri_auto_fill/Makefile
            mri_average/Makefile
+           mri_dct_align/Makefile
            mri_bc_sc_bias_correct/Makefile
            mri_binarize/Makefile
            mri_build_priors/Makefile
@@ -2076,6 +2077,7 @@ AC_OUTPUT([Makefile
            mri_wmfilter/Makefile
            mri_xvolavg/Makefile
            mri_z2p/Makefile
+           mri_label_accuracy/Makefile
            mri_multispectral_segment/Makefile
            mris2rgb/Makefile
            mris_add_template/Makefile

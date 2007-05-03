@@ -24,6 +24,7 @@ MRISUBDIRS=check_siemens_dir \
 	rbftest \
 	mri_interpolate \
 	mri_jacobian \
+	mri_label_accuracy \
 	mri_add_xform_to_header \
 	mri_bias \
 	mri_annotation2label \
@@ -31,6 +32,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_aparc2wmseg \
 	mri_auto_fill \
 	mri_average \
+	mri_dct_align \
 	mri_binarize \
 	mri_build_priors \
 	mri_ca_label \
