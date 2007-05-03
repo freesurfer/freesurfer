@@ -1,15 +1,20 @@
 /**
  * @file  mri_nl_align_binary.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief nonlinear alignment of binary images.
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Basically a binary implementation of the algorithm in:
+ *
+ * Fischl B, Salat DH, van der Kouwe AJW, Makris N, Ségonne F, Dale
+ * AM. Sequence-Independent  Segmentation of Magnetic Resonance Images.
+ * NeuroImage, 2004; 23 Suppl 1, S69-84.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/26 19:06:46 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/05/03 11:50:07 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +39,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/04/26 19:06:46 $
-// Revision       : $Revision: 1.11 $
+// Revision Date  : $Date: 2007/05/03 11:50:07 $
+// Revision       : $Revision: 1.12 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -147,7 +152,9 @@ static int non_hippo_labels[] =
 	Left_Putamen,
 	Right_VentralDC,
 	Left_VentralDC,
-	Brain_Stem
+	Brain_Stem,
+  left_fornix,
+  right_fornix
 } ;
 
 #define NUM_NON_HIPPO_LABELS  (sizeof(non_hippo_labels) / sizeof(non_hippo_labels[0]))
@@ -706,7 +713,7 @@ get_option(int argc, char *argv[])
   {
     mp.l_likelihood = atof(argv[2]) ;
 		nargs = 2 ;
-    printf("setting l_log_likelihood = %2.1f\n", mp.l_log_likelihood );
+    printf("setting l_likelihood = %2.1f\n", mp.l_likelihood );
 		printf("reading intensity image from %s...\n", argv[3]) ;
 		mri_norm = MRIread(argv[3]) ;
 		if (mri_norm == NULL)
@@ -1154,6 +1161,18 @@ estimate_densities(GCA_MORPH *gcam, MRI *mri_target, MRI *mri_intensities, MRI *
     gcam_ltt.second_label_pct[gcam_ltt.nlabels] = .25 ;
 		gcam_ltt.nlabels++ ;
   }
+
+
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = right_fornix ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = left_fornix ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Cerebral_White_Matter ;
+	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
+		gcam_ltt.nlabels++ ;
+
+
 	gcam_ltt.input_labels[gcam_ltt.nlabels] = fimbria ;
 	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
 	if (MRIlabelInVolume(mri_src, gcam_ltt.input_labels[gcam_ltt.nlabels]))
