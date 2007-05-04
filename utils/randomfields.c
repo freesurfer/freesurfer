@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:39 $
- *    $Revision: 1.10 $
+ *    $Author: greve $
+ *    $Date: 2007/05/04 21:07:37 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,11 +41,14 @@
 #include "fsglm.h"
 #include "pdf.h"
 
+#undef SIGN
+#define SIGN(x) (((x)>0)? 1.0 : -1.0 )
+
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *RFSrcVersion(void)
 {
-  return("$Id: randomfields.c,v 1.10 2006/12/29 01:49:39 nicks Exp $");
+  return("$Id: randomfields.c,v 1.11 2007/05/04 21:07:37 greve Exp $");
 }
 
 /*-------------------------------------------------------------------*/
@@ -215,12 +218,11 @@ int RFsynth(MRI *rf, RFS *rfs, MRI *binmask)
   return(0);
 }
 /*!
-  \fn MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, int Signed, MRI *p)
-  \brief Converts a stat to a p value. If Signed != 0 and the voxel
-      value is < 0, then p = -2*(1-p). This converts it to TWO-SIDED
-      test.
+  \fn MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, int TwoSided, MRI *p)
+  \brief Converts a stat to a p value. If TwoSided, then computes a p value
+      based on an unsigned stat, but the sign is still passed to p.
 */
-MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, int Signed, MRI *p)
+MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, int TwoSided, MRI *p)
 {
   int c,r,s,f=0,m;
   double v,pval;
@@ -242,8 +244,8 @@ MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, int Signed, MRI *p)
         for (f=0; f < rf->nframes; f++)
         {
           v = MRIgetVoxVal(rf,c,r,s,f);
-          pval = RFstat2PVal(rfs,v);
-          if (Signed && v < 0) pval = -2*(1-pval);
+	  if(TwoSided) pval = SIGN(v)*2*RFstat2PVal(rfs,fabs(v));
+	  else         pval = RFstat2PVal(rfs,v);
           MRIsetVoxVal(p,c,r,s,f,pval);
         }
       }
@@ -252,17 +254,18 @@ MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, int Signed, MRI *p)
   return(p);
 }
 /*!
-  \fn MRI *RFz2p(MRI *z, MRI *mask, MRI *p)
-  \brief Converts z to p (single-sided).
+  \fn MRI *RFz2p(MRI *z, MRI *mask, int TwoSided, MRI *p)
+  \brief Converts z to p. If TwoSided, then computes the unsigned p,
+         but p keeps the sign of z.
 */
-MRI *RFz2p(MRI *z, MRI *mask, int Signed, MRI *p)
+MRI *RFz2p(MRI *z, MRI *mask, int TwoSided, MRI *p)
 {
   RFS *rfs;
   rfs = RFspecInit(0,NULL);
   rfs->name = strcpyalloc("gaussian");
   rfs->params[0] = 0;
   rfs->params[1] = 1;
-  p = RFstat2P(z,rfs,mask,Signed,p);
+  p = RFstat2P(z,rfs,mask,TwoSided,p);
   return(p);
 }
 

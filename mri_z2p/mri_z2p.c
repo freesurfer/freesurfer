@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.7 $
+ *    $Author: greve $
+ *    $Date: 2007/05/04 21:07:37 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,7 +76,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_z2p.c,v 1.7 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = "$Id: mri_z2p.c,v 1.8 2007/05/04 21:07:37 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -87,7 +87,7 @@ char *ZVolFile=NULL;
 char *PVolFile=NULL;
 char *Log10PVolFile=NULL;
 char *MaskVolFile=NULL;
-int Signed = 0;
+int TwoSided = 0;
 
 MRI *z,*p,*sig,*mask=NULL;
 
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
     if (mask==NULL) exit(1);
   }
 
-  p = RFz2p(z, mask, Signed, NULL);
+  p = RFz2p(z, mask, TwoSided, NULL);
 
   if (PVolFile) MRIwrite(p,PVolFile);
 
@@ -163,8 +163,10 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-    else if (!strcasecmp(option, "--signed"))   Signed = 1;
-    else if (!strcasecmp(option, "--unsigned")) Signed = 0;
+    else if (!strcasecmp(option, "--two-sided"))   TwoSided = 1;
+    else if (!strcasecmp(option, "--unsigned"))    TwoSided = 1;
+    else if (!strcasecmp(option, "--one-sided"))   TwoSided = 0;
+    else if (!strcasecmp(option, "--signed"))      TwoSided = 0;
 
     else if (!strcasecmp(option, "--z")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -217,7 +219,8 @@ static void print_usage(void) {
   printf("   --log10p sigvolfile : sig volume \n");
   printf("\n");
   printf("   --mask maskfile : mask volume \n");
-  printf("   --unsigned : singled sided (default)\n");
+  printf("   --two-sided : assume a two-sided, unsigned test (keeps sign of input)\n");
+  printf("   --one-sided : assume a one-sided, signed test\n");
   printf("   --signed : two-sided/signed pvalue (p = 2*(1-p))\n");
   printf("\n");
   printf("\n");
@@ -285,7 +288,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
-  fprintf(fp,"signed   %d\n",Signed);
+  fprintf(fp,"twosided   %d\n",TwoSided);
 
   return;
 }
