@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/05/04 14:47:08 $
- *    $Revision: 1.226 $
+ *    $Date: 2007/05/04 14:50:22 $
+ *    $Revision: 1.227 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2415,7 +2415,10 @@ GCAread(char *fname)
 
             gc = &gcan->gcs[n] ;
 
-            gcan->labels[n] = (unsigned short)freadInt(fp) ;
+						if (version == GCA_UCHAR_VERSION)
+							gcan->labels[n] = (unsigned short)fgetc(fp) ;
+						else
+							gcan->labels[n] = (unsigned short)freadInt(fp) ;
 
             for (r = 0 ; r < gca->ninputs ; r++)
               gc->means[r] = freadFloat(fp) ;
@@ -2426,7 +2429,10 @@ GCAread(char *fname)
               continue ;
             for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
             {
-              gc->nlabels[i] = freadInt(fp) ;
+							if (version == GCA_UCHAR_VERSION)
+								gc->nlabels[i] = (unsigned short)fgetc(fp) ;
+							else
+								gc->nlabels[i] = freadInt(fp) ;
 
               /* allocate new ones */
               gc->label_priors[i] =
@@ -2445,7 +2451,10 @@ GCAread(char *fname)
                           fname, gc->nlabels[i]) ;
               for (j = 0 ; j < gc->nlabels[i] ; j++)
               {
-                gc->labels[i][j] = (unsigned short)freadInt(fp) ;
+								if (version == GCA_UCHAR_VERSION)
+									gc->labels[i][j] = (unsigned short)fgetc(fp) ;
+								else
+									gc->labels[i][j] = (unsigned short)freadInt(fp) ;
                 gc->label_priors[i][j] = freadFloat(fp) ;
               }
             }
@@ -2492,7 +2501,10 @@ GCAread(char *fname)
           }
           for (n = 0 ; n < gcap->nlabels ; n++)
           {
-            gcap->labels[n] = (unsigned short)freadInt(fp) ;
+						if (version == GCA_UCHAR_VERSION)
+							gcap->labels[n] = (unsigned short)fgetc(fp) ;
+						else
+							gcap->labels[n] = (unsigned short)freadInt(fp) ;
             gcap->priors[n] = freadFloat(fp) ;
           }
         }
