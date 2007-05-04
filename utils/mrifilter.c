@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/05/02 17:35:02 $
- *    $Revision: 1.55 $
+ *    $Date: 2007/05/04 17:14:01 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -5148,6 +5148,7 @@ MRIzDerivative(MRI *mri_src, MRI *mri_dz)
   return(mri_dz) ;
 }
 
+
 /*-----------------------------------------------------
 		FFT Filter
 
@@ -5159,10 +5160,6 @@ Only one filter has been implemented so far: The Gaussian
 We have first some basic functions used in the FFT Filter.
 
 -----------------------------------------------------*/
-
-#ifndef PI
-#define PI 3.141592653
-#endif 
 
 #define FourierForward 1
 #define FourierBackward -1
@@ -5300,7 +5297,7 @@ static void InitializeComplexRotations( int levels ) {
     // positive sign ( i.e. [M,0] )
       double uR = 1;
       double uI = 0;
-      double angle = (double) PI / M * 1;
+      double angle = (double) M_PI / M * 1;
       double wR = (double) cos( angle );
       double wI = (double) sin( angle );
 
@@ -5320,7 +5317,7 @@ static void InitializeComplexRotations( int levels ) {
     // negative sign ( i.e. [M,1] )
     double uR = 1;
     double uI = 0;
-    double angle = (double) PI / M * -1;
+    double angle = (double) M_PI / M * -1;
     double wR = (double) cos( angle );
     double wI = (double) sin( angle );
 
@@ -5432,7 +5429,7 @@ static void	RFFT( float* data, int data_length, int length, int direction ) {
   DebugAssert( data_length >= length , "RFFT : length must be at least as large as data_length parameter" );
   DebugAssert(  IsPowerOf2(length) == 1 , "RFFT : length must be a power of 2" );
   float	c1 = 0.5f, c2;
-  float	theta	= (float) PI / (length/2);
+  float	theta	= (float) M_PI / (length/2);
   int i;
 
   if( direction == FourierForward ) {
@@ -5640,14 +5637,14 @@ float argument (float re, float im){
    return (atan(im/re));
  if (re<0){
    if (im>=0)
-     return (atan(im/re)+PI);
+     return (atan(im/re)+M_PI);
    else
-     return (atan(im/re)-PI);
+     return (atan(im/re)-M_PI);
    }
  if (im>0)  // re == 0
-   return (PI/2);
+   return (M_PI/2);
  else  //im<0
-   return (-PI/2);
+   return (-M_PI/2);
 }
 
 void reim_to_modarg (float *** re_mod, float *** im_arg, int l){
@@ -5677,21 +5674,16 @@ void modarg_to_reim(float *** re_mod, float *** im_arg, int l){
 }
 
 float Dist(int x,int y,int z,int len){
-  if (len%2 == 0)
-    return ( (fabs(x-len/2+0.5)+0.5)*(fabs(x-len/2+0.5)+0.5) +                                                 
-             (fabs(y-len/2+0.5)+0.5)*(fabs(y-len/2+0.5)+0.5)  +
-	     (fabs(z-len/2-0.5)+0.5)*(fabs(z-len/2-0.5)+0.5) );
-  else
-    return ( fabs(x-(len-1)/2)*fabs(x-(len-1)/2) + 
-             fabs(y-(len-1)/2)*fabs(y-(len-1)/2) +
-	     fabs(z-(len-1)/2)*fabs(z-(len-1)/2));
+  
+  return ((x-(float)len/2)*(x-(float)len/2)+(y-(float)len/2)*(y-(float)len/2)+(z-(float)len/2)*(z-(float)len/2));
+ 
 }
 
 MRI *MRI_Gaussian(int len, float std, int norm){
   int x, y, z;
   float val, sum =0;
   float  var = std*std;
-  float  f = 2*M_PI*std;
+  float  f = sqrt(2*M_PI)*std;
   MRI *g;
   g = MRIallocSequence(len, len, len,MRI_FLOAT, 1);
   for (y = 0 ; y <  len ; y++)
@@ -5705,6 +5697,7 @@ MRI *MRI_Gaussian(int len, float std, int norm){
     for (x = 0 ; x < len; x++)
       for (z = 0 ; z <  len; z++)
         MRIsetVoxVal(g, x, y, z, 0, MRIgetVoxVal(g, x, y, z, 0)/sum);
+	
   return(g);
 }
 
@@ -5717,36 +5710,37 @@ MRI* MRI_fft(MRI *mri_src, MRI* dst){
   int dimension, w, h, d;
   int x, y, z, k, j;
   float ***src, ***dst_r, ***dst_i;
+  MRI *new_mri;
   
   w = mri_src->width;
   h = mri_src->height;
   d = mri_src->depth;
 
+  //be sure it is a power of 2 size image
   if (!IsPowerOf2(mri_src->depth) || !IsPowerOf2(mri_src->height) || !IsPowerOf2(mri_src->width)){ 
-    MRI *new_mri;
     if (d >= w )
       dimension = (d >= h ? d :h);
     else
       dimension = (h >= w ? h :w);
-	
     dimension = Pow2(Log2(dimension));
-    new_mri = MRIallocSequence(dimension, dimension, dimension,MRI_FLOAT, 1);
-    MRIcopyHeader(mri_src, new_mri) ;
-    
-    for (z = 0 ; z < mri_src->depth ; z++) 
-      for (y = 0 ; y < mri_src->height ; y++) 
-	for (x = 0 ; x < mri_src->width ; x++)    
-    	  MRIsetVoxVal(new_mri, x, y, z, 0, MRIgetVoxVal(mri_src, x, y, z, 0));
-    for (z = mri_src->depth ; z < dimension ; z++)
-      for (y = mri_src->height ; y < dimension ; y++)
-	for (x = mri_src->width ; x < dimension ; x++)
-    	  MRIsetVoxVal(new_mri, x, y, z, 0, 0);
     printf("The dimension is not a power of 2. Build a new image (size : %i)\n", dimension);
-    mri_src = new_mri;
   }
   else
     dimension = mri_src->depth;
+	
+  new_mri = MRIallocSequence(dimension, dimension, dimension,MRI_FLOAT, 1);
+  MRIcopyHeader(mri_src, new_mri) ;
 
+  for (z = 0 ; z < dimension ; z++) 
+    for (y = 0 ; y < dimension ; y++) 
+      for (x = 0 ; x < dimension ; x++){ 
+        if (z>=mri_src->depth ||  y >= mri_src->height || x >= mri_src->width)
+    	  MRIsetVoxVal(new_mri, x, y, z, 0, 0);
+	else
+    	  MRIsetVoxVal(new_mri, x, y, z, 0, MRIgetVoxVal(mri_src, x, y, z, 0));
+	}
+  mri_src = new_mri;
+  
   src  = (float ***) malloc( dimension*sizeof(float** ) );
   dst_r = (float ***) malloc( dimension*sizeof(float** ) );
   dst_i = (float ***) malloc( dimension*sizeof(float** ) );
@@ -5897,9 +5891,8 @@ MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm){
   int x, y, z;
   dst1 = MRI_fft(src, NULL);
   int dimension = dst1->width;
-
   printf("Gaussian\n");
-  g = MRI_Gaussian(dimension, std, norm);	
+  g = MRI_Gaussian(dimension, dimension*0.16/std, norm);	 
   dstr_sm = MRImultiply(dst1, g, NULL); //only frame 0
   MRIfree(&g);
   dst1 = MRIcopyFrame(dstr_sm, dst1, 0, 0);
@@ -5935,6 +5928,7 @@ MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent){
 	   if (Dist(x, y, z, dst1->depth)> threshold*threshold)
       	     MRIsetVoxVal(dst1,x,y,z, 0, 0);	 
       }
+            
   dst = MRI_ifft(dst1, NULL, src->width, src->height, src->depth);
   MRIfree(&dst1);
  if(MRImeanFrameThresh(dst, 0, .02)>0){ 
@@ -5974,3 +5968,4 @@ MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent){
  }
   return(dst);
 }
+
