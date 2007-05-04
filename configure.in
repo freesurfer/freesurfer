@@ -2171,6 +2171,7 @@ AC_OUTPUT([Makefile
            stim/Makefile
            stim_polar/Makefile
            talairach_afd/Makefile
+           talairach_avi/Makefile
            test_makevol/Makefile
            test_tiff/Makefile
            test_window_env/Makefile

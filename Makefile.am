@@ -22,6 +22,8 @@ MRISUBDIRS=check_siemens_dir \
 	repair_siemens_file \
 	mkxsubjreg \
 	rbftest \
+	talairach_afd \
+	talairach_avi \
 	mri_interpolate \
 	mri_jacobian \
 	mri_label_accuracy \
@@ -246,8 +248,7 @@ MISCDIRS=histo_compute_joint_density \
 	dummy \
 	hiam_make_surfaces\
 	hiam_make_template\
-	hiam_register \
-	talairach_afd
+	hiam_register
 
 SUBDIRS=include \
 	unix \
