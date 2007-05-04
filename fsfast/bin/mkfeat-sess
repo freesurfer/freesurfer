@@ -9,8 +9,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/05/02 05:35:28 $
-#    $Revision: 1.6 $
+#    $Date: 2007/05/04 19:50:14 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 #
 
 
-set VERSION = '$Id: mkfeat-sess,v 1.6 2007/05/02 05:35:28 greve Exp $';
+set VERSION = '$Id: mkfeat-sess,v 1.7 2007/05/04 19:50:14 greve Exp $';
 set inputargs = ($argv);
 
 set analysis  = ();
@@ -91,10 +91,16 @@ if($status) then
 endif
 set invol = $stem.$inext
 
-if($#tmpdir == 0) set tmpdir = $rundir/mkfeat-sess.$$
+if($#tmpdir == 0) then
+  if($?FREESURFER_TMP_DIR) then
+    set tmpdir = $FREESURFER_TMP_DIR/mkfeat-sess.$$
+  else
+    set tmpdir = $rundir/mkfeat-sess.$$
+  endif
+endif
 echo tmpdir is $tmpdir
 rm -rf $tmpdir
-mkdir $tmpdir
+mkdir -p $tmpdir
 
 # Copy the clone
 if($#clone) cp $clone/design.fsf $tmpdir
