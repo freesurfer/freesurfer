@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/02 23:43:31 $
-#    $Revision: 1.90 $
+#    $Date: 2007/05/04 23:05:32 $
+#    $Revision: 1.91 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.90 2007/05/02 23:43:31 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.91 2007/05/04 23:05:32 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -122,6 +122,8 @@ set DoQdecCache = 0; # if 1, then create smoothed fsaverage surface files
 set measurelist = ( thickness curv sulc area jacobian_white  ) #see DoQdecCache
 set fwhmlist = ( 0 5 10 15 20 25 ) # see DoQdecCache
 set target = fsaverage # see DoQdecCache 
+
+set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -309,7 +311,7 @@ echo "program versions used" >> $LF
 echo $VERSION                >> $LF
 mri_motion_correct.fsl -version >> $LF
 flirt -version >> $LF
-talairach --version >> $LF
+talairach_avi --version >> $LF
 nu_correct -version >> $LF
 mri_normalize -all-info >> $LF
 mri_watershed -all-info >> $LF
@@ -682,8 +684,15 @@ if($DoTalairach) then
       $subjdir/mri/$xfma)
   else
     # default processing:
-    set xopts = `fsr-getxopts talairach $XOptsFile`;
-    set cmd = (talairach --i nu.mgz --xfm $xfma $xopts)
+    if ($UseMincMritotal) then
+      # use the MINC mritotal utility
+      set xopts = `fsr-getxopts talairach $XOptsFile`;
+      set cmd = (talairach --i nu.mgz --xfm $xfma $xopts)
+    else
+      # Avi Snyder's registration tools
+      set xopts = `fsr-getxopts talairach_avi $XOptsFile`;
+      set cmd = (talairach_avi --i nu.mgz --xfm $xfma $xopts)
+    endif
   endif
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2195,6 +2204,9 @@ while( $#argv != 0 )
       breaksw
     case "-notalairach":
       set DoTalairach = 0;
+      breaksw
+    case "-use-mritotal":
+      set UseMincMritotal = 1;
       breaksw
 
     case "-deface":
@@ -3790,7 +3802,7 @@ Run times are approximate for an AMD Opteron 64bit 2.5GHz processor:
 
   -<no>motioncor        < 5 min
   -<no>nuintensitycor     3 min
-  -<no>talairach          1 min
+  -<no>talairach          4 min
   -<no>normalization      3 min
   -<no>skullstrip         1 min
   -<no>gcareg             8 min
@@ -3982,7 +3994,7 @@ the user must also specify -xopts-overwrite.
 
 The following FreeSurfer binaries will accept an expert option:
 
-  talairach
+  talairach_avi
   mri_normalize
   mri_watershed
   mri_em_register
@@ -4076,17 +4088,20 @@ of some other number of iterations.
 Talairach (-<no>talairach)
 
 This computes the affine transform from the orig volume to the MNI305
-atlas using the MINC program mritotal (see Collins, et al, 1994)
-through a FreeSurfer script called talairach. Several of the downstream
+atlas using Avi Snyders 4dfp suite of image registration tools,
+through a FreeSurfer script called talairach_avi. Several of the downstream
 programs use talairach coordinates as seed points. You can/should check
 how good the talairach registration is using
-"tkregister2 --s subjid --fstal". You must have a "talairach" subject in
+"tkregister2 --s subjid --fstal". You must have an "fsaverage" subject in
 your SUBJECTS_DIR. tkregister2 allows you to compare the orig volume
 against the talairach volume resampled into the orig space. If you modify
 the registration, it will change the talairach.xfm file. Your edits will
-be overwritten if you run recon-all without specifying -notalairach. Run
-"tkregister2 --help" for more information.
+be *not* be overwritten unless you run recon-all specifying -clean-tal.
+Run "tkregister2 --help" for more information.
 Creates the files mri/transform/talairach.auto.xfm and talairach.xfm.
+The flag -tal-check will check the registration against known-good transforms.
+Adding the flag -use-mritotal after -talairach will use the MINC program 
+mritotal (see Collins, et al., 1994) to perform the transform.
 
 Normalization (-<no>normalization)
 
