@@ -1,15 +1,18 @@
 /**
  * @file  gca.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for whole-brain segmentation
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Reference:
+ * "Whole Brain Segmentation: Automated Labeling of Neuroanatomical
+ * Structures in the Human Brain", Fischl et al.
+ * (2002) Neuron, 33:341-355.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/26 18:18:54 $
- *    $Revision: 1.81 $
+ *    $Date: 2007/05/04 14:47:10 $
+ *    $Revision: 1.82 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -175,6 +178,7 @@ typedef struct
   MATRIX       *tal_i_to_r__;
   MATRIX       *tal_r_to_i__;
   MATRIX       *tmp__;
+	int          total_training ;
 }
 GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 
