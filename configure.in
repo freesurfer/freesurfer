@@ -2081,6 +2081,7 @@ AC_OUTPUT([Makefile
            mri_multispectral_segment/Makefile
            mris2rgb/Makefile
            mris_add_template/Makefile
+           mris_aseg_distance/Makefile
            mris_density/Makefile
            mris_fill/Makefile
            mris_fbirn_annot/Makefile
