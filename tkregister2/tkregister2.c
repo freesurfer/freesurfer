@@ -7,9 +7,9 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/30 01:17:20 $
- *    $Revision: 1.78 $
+ *    $Author: greve $
+ *    $Date: 2007/05/04 17:13:42 $
+ *    $Revision: 1.79 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.78 2007/04/30 01:17:20 nicks Exp $";
+"$Id: tkregister2.c,v 1.79 2007/05/04 17:13:42 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -203,6 +203,9 @@ static int MRIisConformant(MRI *vol);
 
 MATRIX *TransformLTA2RegDatB(LTA *lta);
 MATRIX *vg_i_to_r_tkr(const VOL_GEOM *vg);
+MATRIX *Load4x4(char *fname);
+char *Vox2VoxFName = NULL;
+MATRIX *Vox2Vox = NULL;
 
 #ifndef TRUE
 #  define TRUE 1
@@ -663,8 +666,9 @@ int Register(ClientData clientData,
   printf("mkheaderreg = %d, float2int = %d\n",mkheaderreg,float2int);
   if (mkheaderreg) {
     /* Compute Reg from Header Info */
-    printf("Computing reg from header\n");
-    RegMat = MRItkRegMtx(targ_vol,mov_vol,XFM);
+    printf("Computing reg from header (and possibly input matrix)\n");
+    if(!Vox2Vox) RegMat = MRItkRegMtx(targ_vol,mov_vol,XFM);
+    else         RegMat = MRItkRegMtxFromVox2Vox(targ_vol,mov_vol,Vox2Vox);
   } else if (fslregfname != NULL) {
     /* Compute Reg from FSLReg */
     RegMat = MRIfsl2TkReg(targ_vol0, mov_vol, FSLRegMat);
@@ -1136,9 +1140,17 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       linxfm = &(lta->xforms[0]);
-      //RegMat = TransformLTA2RegDatB(lta);
       // Assume RAS2RAS and uses vox2ras from input volumes:
       XFM = lta->xforms[0].m_L;
+      mkheaderreg = 1;
+      nargsused = 1;
+    } else if (!strcmp(option, "--vox2vox")){
+      if (nargc < 1) argnerr(option,1);
+      Vox2VoxFName = pargv[0];
+      Vox2Vox = Load4x4(Vox2VoxFName);
+      if(!Vox2Vox) exit(1);
+      printf("Vox2Vox Matrix \n");
+      MatrixPrint(stdout,Vox2Vox);
       mkheaderreg = 1;
       nargsused = 1;
     } else if (!strcmp(option, "--ltaout")) {
@@ -1240,6 +1252,7 @@ static void print_usage(void) {
   printf("   --xfmout file : MNI-style registration output matrix\n");
   printf("   --fsl file : FSL-style registration input matrix\n");
   printf("   --fslregout file : FSL-Style registration output matrix\n");
+  printf("   --vox2vox file : vox2vox matrix in ascii\n");
   printf("   --feat featdir : check example_func2standard registration\n");
   printf("   --identity : use identity as registration matrix\n");
   printf("   --s subjectid : set subject id \n");
@@ -1412,6 +1425,11 @@ static void print_help(void) {
     "  --ltaout ltaoutfile \n"
     "  \n"
     "  RAS-to-RAS linear transform array file."
+    "  \n"
+    "  --vox2vox vox2voxfile \n"
+    "  \n"
+    "  Input registration is a vox2vox ascii file. Vox2Vox maps target\n"
+    "  indices (c,r,s) to mov indices. Lines that begin with '#' are ignored.\n"
     "  \n"
     "  --s identity\n"
     "  \n"
@@ -4400,7 +4418,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.78 2007/04/30 01:17:20 nicks Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.79 2007/05/04 17:13:42 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4728,58 +4746,6 @@ static int MRIisConformant(MRI *vol) {
 }
 
 
-MATRIX *TransformLTA2RegDatB(LTA *lta)
-{
-  MATRIX *vox2vox; // Targ->Mov
-  MATRIX *R=NULL,*Tdst, *Tsrc;
-  MATRIX *Ndst, *Nsrc;
-  MRI *mrisrc=NULL, *mridst=NULL;
-  VOL_GEOM *vg;
-
-  if(lta->type == LINEAR_VOX_TO_VOX){
-    printf("Vox 2 Vox\n");
-    vox2vox = MatrixCopy(lta->xforms[0].m_L,NULL);
-
-    // Scanner Vox2RAS:
-    Nsrc = vg_i_to_r(&(lta->xforms[0].src));
-    Ndst = vg_i_to_r(&(lta->xforms[0].dst));
-    Tsrc = vg_i_to_r_tkr(&(lta->xforms[0].src));
-    Tdst = vg_i_to_r_tkr(&(lta->xforms[0].dst));
-
-
-    // vox2vox = invTmov * R * Ttarg
-    // R = Tmov * vox2vox * invTtarg
-    R = MatrixMultiply(Tmov,vox2vox,NULL);
-    R = MatrixMultiply(R,invTtarg,R);
-
-    MatrixFree(&Ttarg);
-    MatrixFree(&Tmov);
-    MatrixFree(&invTtarg);
-    MatrixFree(&vox2vox);
-  }
-  if(lta->type == LINEAR_RAS_TO_RAS){
-    printf("RAS 2 RAS\n");
-    vg = &(lta->xforms[0].src);
-    mrisrc = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR);
-    useVolGeomToMRI(vg, mrisrc);
-    vg = &(lta->xforms[0].dst);
-    mridst = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR);
-    useVolGeomToMRI(vg, mridst);
-    R = MRItkRegMtx(mridst,mrisrc,lta->xforms[0].m_L);
-    MatrixInverse(R,R);
-    printf("LTA ---------------------------\n");
-    MatrixPrint(stdout,lta->xforms[0].m_L);
-    printf("---------------------------\n");
-    printf("R LTA ---------------------------\n");
-    MatrixPrint(stdout,R);
-    printf("---------------------------\n");
-    MRIfree(&mrisrc);
-    MRIfree(&mridst);
-  }
-
-  return(R);
-}
-
 MATRIX *vg_i_to_r_tkr(const VOL_GEOM *vg)
 {
   MATRIX *mat =0;
@@ -4789,4 +4755,58 @@ MATRIX *vg_i_to_r_tkr(const VOL_GEOM *vg)
   mat = MRIxfmCRS2XYZtkreg(tmp);
   MRIfree(&tmp);
   return mat;
+}
+
+/*!
+  \fn MATRIX *Load4x4(char *fname)
+  \brief Reads in a 4x4 matrix. fname is an ascii file. Lines that begin with
+  # are considered comments. Blank lines are ok.
+*/
+MATRIX *Load4x4(char *fname)
+{
+  FILE *fp;
+  char s[1000];
+  int r,c,m;
+  MATRIX *mat;
+  
+  fp = fopen(fname,"r");
+  if(!fp) {
+    printf("ERROR: cannot open %s for reading\n",fname);
+    return(NULL);
+  }
+
+  mat = MatrixAlloc(4,4,MATRIX_REAL);
+  r = 1;
+  c = 1;
+  while(1){
+    m = fgetc(fp);
+    if(m == EOF){
+      printf("ERROR: reading %s: EOF at r=%d c=%d \n",fname,r,c);
+      fclose(fp);
+      return(NULL);
+    }
+    if(m == '#') {
+      // # is a comment, skip entire line
+      fgets(s,1000,fp);
+      continue; 
+    }
+    if(m == '\n' || m == '\r') continue;
+
+    ungetc(m,fp); // put it back
+
+    m = fscanf(fp,"%f",&(mat->rptr[r][c]));
+    if(m != 1){
+      printf("ERROR: reading %s: item r=%d c=%d \n",fname,r,c);
+      fclose(fp);
+      return(NULL);
+    }
+    c++;
+    if(c == 5){
+      c = 1;
+      r++;
+      if(r == 5) break;
+    }
+  }
+  fclose(fp);
+  return(mat);
 }
