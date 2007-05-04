@@ -1,0 +1,236 @@
+#! /bin/tcsh -f
+
+#
+# talairach_avi - align an image to the average_305 MNI (talairach) target
+#
+# Wrapper script to run Avi Synder's registration tool.
+#
+# Original Author: Nick Schmansky
+#
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/05/04 22:34:03 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+#
+set VERSION = '$Id: talairach_avi,v 1.1 2007/05/04 22:34:03 nicks Exp $'
+
+set InVol = ();
+set XFM = ();
+
+set LF = ();
+set debug = 0;
+set PrintHelp = 0;
+
+set cmdargs = ($argv);
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | egrep -e --help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+set n = `echo $argv | egrep -e --version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  ## gather version info used by this script
+  mri_convert --version
+  exit 0;
+endif
+
+# Parse the command-line arguments
+goto parse_args;
+parse_args_return:
+
+# Check the command-line arguments
+goto check_params;
+check_params_return:
+
+set OutDir = `dirname $XFM`;
+mkdir -p $OutDir;
+
+if($#LF == 0) set LF = ${OutDir}/talairach_avi.log
+if(-e $LF) mv $LF $LF.bak
+touch $LF
+
+pwd | tee -a $LF
+which talairach_avi | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a | tee -a $LF
+date | tee -a $LF
+
+echo ""
+echo "--------------------------------------------"
+echo ""
+
+# Convert input to analyze
+set cmd = (mri_convert $InVol talsrcimg.img)
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: converting to Analyze" |& tee -a $LF
+  exit 1;
+endif
+
+echo ""
+echo "--------------------------------------------"
+echo ""
+
+# run Avi's registration tool
+setenv REFDIR $FREESURFER_HOME/average
+set cmd = (mpr2mni305 talsrcimg)
+if ($debug) set cmd=($cmd debug)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+set st = $status
+if($st) then
+  echo "ERROR: mpr2mni305 failed, see $LF"
+  exit 1;
+endif
+
+echo ""
+echo "--------------------------------------------"
+echo ""
+
+# transform results back to mni305 space
+set cmd = (tkregister2 \
+    --mov $InVol \
+    --targ $FREESURFER_HOME/average/mni305.cor.mgz \
+    --xfmout ${XFM} \
+    --vox2vox talsrcimg_to_711-2C_as_mni_average_305_t4_vox2vox.txt \
+    --noedit \
+    --reg talsrcimg.reg.tmp.dat)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+set st = $status
+if($st) then
+  echo "ERROR: tkregister2 failed, see $LF"
+  exit 1;
+endif
+
+rm -vf talsrcimg*
+
+echo ""
+echo "--------------------------------------------"
+echo ""
+echo " " |& tee -a $LF
+echo " " |& tee -a $LF
+date | tee -a $LF
+echo "talairach_avi done" | tee -a $LF
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--i":
+      if ( $#argv == 0) goto arg1err;
+      set InVol = $argv[1]; shift;
+      breaksw
+
+    case "--xfm":
+    case "--x":
+      if ( $#argv == 0) goto arg1err;
+      set XFM = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if ( $#argv == 0) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      set debug = 1;
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag not recognized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#InVol == 0) then
+    echo "ERROR: must specify an input volume"
+    exit 1;
+  endif
+  if(! -e $InVol) then
+    echo "ERROR: input volume $InVol does not exist"
+    exit 1;
+  endif
+  if($#XFM == 0) then
+    echo "ERROR: must specify an output transform file"
+    exit 1;
+  endif
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: talairach_avi"
+  echo ""
+  echo " --i   invol  : input volume"
+  echo " --xfm outxfm : output xfm file"
+  echo ""
+  echo "Optional flags and arguments:"
+  echo ""
+  echo " --log      : log file. default is outdir/talairach_avi.log"
+  echo " --help     : print help and exit"
+  echo " --debug    : turn on debugging"
+  echo " --version  : print version and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Front-end for Avi Snyders image registration tool. Computes the 
+talairach transform that maps the input volume to the MNI average_305. 
+
+Note: does not add the xfm to the header of the input file. See 
+mri_add_xform_to_header. When called by recon-all, the xfm is added to 
+the header after the transform is computed.

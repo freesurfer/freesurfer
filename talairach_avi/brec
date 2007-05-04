@@ -1,0 +1,24 @@
+#!/bin/csh
+
+if ($#argv < 1) then
+	echo "Usage:	brec <my_file[.rec]> [-depth_limit]"
+	exit
+endif
+
+set file = $1
+if ($file:e != "rec") set file = $file.rec
+
+if (! -e $file) then
+	echo $file not found
+	exit -1
+endif
+
+@ dlimit = 0
+if (${#argv} == 2) then
+	set dlimit = `echo $argv[2] | awk '{print substr($0,2)}'`
+endif
+
+set dir = `which brec | tail -1`; set dir = $dir:h
+gawk -f $dir/brec.awk dlimit=$dlimit $file
+
+exit
