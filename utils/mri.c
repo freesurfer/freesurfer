@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/04/30 20:14:55 $
- *    $Revision: 1.383 $
+ *    $Author: greve $
+ *    $Date: 2007/05/04 00:25:17 $
+ *    $Revision: 1.384 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.383 $";
+char *MRI_C_VERSION = "$Revision: 1.384 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -394,6 +394,37 @@ MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D)
   MatrixFree(&Kmov);
   MatrixFree(&Tmov);
   MatrixFree(&invTmov);
+  MatrixFree(&invKref);
+
+  return(R);
+}
+/*!
+  \fn MATRIX *MRItkRegMtxFromVox2Vox(MRI *ref, MRI *mov, MATRIX *vox2vox)
+  \brief Creates a tkregsiter-compatible ras2ras matrix from the
+  vox2vox matrix. It is assumed that vox2vox maps the indices from the
+  ref/target volume to that of the mov volume. If vox2vox is NULL, it
+  is assumed to be the identity (which will return the same thing as
+  MRItkRegMtx()). 
+*/
+MATRIX *MRItkRegMtxFromVox2Vox(MRI *ref, MRI *mov, MATRIX *vox2vox)
+{
+  MATRIX *Kref, *Kmov;
+  MATRIX *R, *invKref;
+
+  if(vox2vox == NULL)  return(MRItkRegMtx(ref, mov, NULL));
+
+  /* TkReg Goemetry */
+  Kref = MRIxfmCRS2XYZtkreg(ref); // Ref TkReg vox2ras
+  Kmov = MRIxfmCRS2XYZtkreg(mov); // Mov TkReg vox2ras
+
+  invKref = MatrixInverse(Kref,NULL);
+
+  // R = Kmov * vox2vox * inv(Kref)
+  R = MatrixMultiply(Kmov,vox2vox,NULL);
+  MatrixMultiply(R,invKref,R);
+
+  MatrixFree(&Kref);
+  MatrixFree(&Kmov);
   MatrixFree(&invKref);
 
   return(R);

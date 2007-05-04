@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nommert $
- *    $Date: 2007/05/02 17:35:31 $
- *    $Revision: 1.338 $
+ *    $Author: greve $
+ *    $Date: 2007/05/04 00:25:16 $
+ *    $Revision: 1.339 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -158,6 +158,8 @@ MRI_IMAGE, MRI ;
 MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base); /* Native Vox2RAS Matrix
                                               (scanner and xfm too) */
 MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri);      // TkReg  Vox2RAS Matrix
+
+MATRIX *MRItkRegMtxFromVox2Vox(MRI *ref, MRI *mov, MATRIX *vox2vox); //ras2ras from vox2vox
 
 MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R); /* tkreg2native
                                                            (scanner and
