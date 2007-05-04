@@ -2,9 +2,10 @@ function [wvar, ivar] = fast_flip2wvar(mn1,mn2,var1,var2)
 % [wvar, ivar] = fast_flip2wvar(mn1,mn2,var1,var2)
 %
 % Compute white and instability noise given two measures
-% with different proportions.
+% with different proportions. The instability variance is that
+% from the first scan.
 %
-% $Id: fast_flip2wvar.m,v 1.1 2007/05/03 00:01:45 greve Exp $
+% $Id: fast_flip2wvar.m,v 1.2 2007/05/04 04:59:31 greve Exp $
 
 %
 % fast_flip2var
@@ -12,8 +13,8 @@ function [wvar, ivar] = fast_flip2wvar(mn1,mn2,var1,var2)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/03 00:01:45 $
-%    $Revision: 1.1 $
+%    $Date: 2007/05/04 04:59:31 $
+%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
