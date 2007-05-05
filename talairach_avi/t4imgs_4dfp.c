@@ -1,102 +1,29 @@
-/*$Log: t4imgs_4dfp.c,v $
-/*Revision 1.1  2007/05/04 22:34:03  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  t4imgs_4dfp.c
+ * @brief 12 parameter linear transform and average 4dfp stacks.
+ *
+ */
 /*
- * Revision 1.27  2007/05/01  05:10:26  avi
- * restore lost endrec
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:07 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.26  2007/04/29  05:17:51  avi
- * gcc v3 compliant: eliminate limits.h sunmath.h; define FLT_MAX and float rnan();
- * screen for isnan before performing numeric comparisons
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.25  2006/09/26  23:26:58  avi
- * Solaris 10
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
  *
- * Revision 1.24  2006/02/13  07:34:00  avi
- * eliminate dependency on libmri
- * create analyze hdr
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
- * Revision 1.23  2004/09/02  20:19:46  rsachs
- * Installed fns 'errm','errr','errw' & 'getroot'.
- *
- * Revision 1.22  2004/08/23  23:57:16  rsachs
- * Added nearest-neighbor interpolation.
- *
- * Revision 1.21  2001/01/10  00:49:18  avi
- * correct file_error ()
- *
- * Revision 1.20  2001/01/07  05:03:01  avi
- * -s option (3D spline interpolation)
- *
- * Revision 1.19  2001/01/07  00:23:49  avi
- * define -O to yield 111h convention
- *
- * Revision 1.18  1999/10/31  04:49:43  avi
- * mask= and slices= list file options
- *
- * Revision 1.17  1999/10/20  21:01:11  avi
- * NSTACKMAX -> no limit
- *
- * Revision 1.16  1999/10/20  04:17:37  avi
- * correct misidentification (imgreg_4dfp) in file_error ()
- *
- * Revision 1.15  1999/02/10  07:57:32  avi
- * NaN_flag
- *
- * Revision 1.14  1999/02/06  01:05:13  avi
- * more secure dimfile code
- * one-field input list lines allowed
- *
- * Revision 1.13  1999/01/28  22:23:39  avi
- * make sqrt_flag actually have an effect
- *
- * Revision 1.12  1999/01/10  04:07:50  avi
- * t4file2param_ () -> t4scale ()
- *
- * Revision 1.11  1999/01/10  02:36:05  avi
- * call t4file2param to get t4file scale
- *
- * Revision 1.10  1999/01/04  01:48:24  avi
- * call vrtflip_ on input images instead of x4dfp2ecat
- *
- * Revision 1.9  1998/12/31  06:42:37  avi
- * log to screen mmppix and center as in input and out ifh files
- *
- * Revision 1.8  1998/12/31  02:11:11  avi
- * -O111 and -O222 switches must match exactly
- *
- * Revision 1.7  1998/12/30  00:16:51  avi
- * x4dfp2ecat (,, orio) also after transform
- *
- * Revision 1.6  1998/12/29  23:23:21  avi
- * allow output orientation to be not 2
- *
- * Revision 1.5  1998/12/29  07:52:15  avi
- * -O111 -O222 -O333.n -Omy_file
- *
- * Revision 1.4  1998/12/25  08:40:00  avi
- * move code closer to imgreg_4dfp.c without yet adding new functionality.
- *
- * Revision 1.3  1998/06/28  22:06:48  avi
- * -2 option
- *
- * Revision 1.2  1997/10/11  07:04:03  avi
- * -B option (comwrp=to_711-2B_t43d)
- *
- * Revision 1.1  1997/10/11  00:17:27  avi
- * Initial revision
- **/
-/*____________________________________________________________________
-  Program:	t4imgs_4dfp
+ */
 
-  Description:	12 parameter linear transform and average 4dfp stacks.
-
-  Authors:	Avi Snyder
-
-  History:	Jan-01-97.
-  Revision:     25-Aug-04. Rimmon Sachs
-                Added nearest_neighbor interpolation option.	
-____________________________________________________________________*/
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -158,7 +85,7 @@ typedef struct {
 	int		shift;
 } RUN_INFO;
 
-static char rcsid[] = "$Id: t4imgs_4dfp.c,v 1.1 2007/05/04 22:34:03 nicks Exp $";
+static char rcsid[] = "$Id: t4imgs_4dfp.c,v 1.2 2007/05/05 00:00:07 nicks Exp $";
 int main (int argc, char *argv[]) {
 	FILE			*lstfp;			/* input image list */
 	FILE			*imgfp, *mskfp;		/* input image and mask file pointers */

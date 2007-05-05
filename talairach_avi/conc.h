@@ -1,26 +1,27 @@
-/*$Header: /space/repo/1/dev/dev/talairach_avi/conc.h,v 1.1 2007/05/04 22:33:59 nicks Exp $*/
-/*$Log: conc.h,v $
-/*Revision 1.1  2007/05/04 22:33:59  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  conc.h
+ *
+ */
 /*
- * Revision 1.6  2006/09/23  22:59:22  avi
- * add split() prototype
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.5  2006/09/23  05:07:03  avi
- * eliminate prototypes for subroutines moved elsewhere
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.4  2006/09/23  04:20:53  avi
- * provision for endian control
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
  *
- * Revision 1.3  2006/08/02  23:57:56  avi
- * newly defined conc_rewind()
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
- * Revision 1.2  2005/09/16  03:34:13  avi
- * conc_init_quiet() conc_open_quiet()
- *
- * Revision 1.1  2004/11/27  05:44:52  avi
- * Initial revision
- **/
+ */
 
 #define MAXL	256
 

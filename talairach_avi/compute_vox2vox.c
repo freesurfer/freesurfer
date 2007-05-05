@@ -1,11 +1,28 @@
-/*$Header: /space/repo/1/dev/dev/talairach_avi/compute_vox2vox.c,v 1.1 2007/05/04 22:33:59 nicks Exp $*/
-/*$Log: compute_vox2vox.c,v $
-/*Revision 1.1  2007/05/04 22:33:59  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  compute_vox2vox.c
+ *
+ */
 /*
- * Revision 1.1  2007/05/03  00:53:52  avi
- * Initial revision
- **/
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
+ *
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -28,7 +45,7 @@ extern void	vrtflip_ (int *iori, int *imgdim, float *centeri, float *mmppixi, fl
 /***********/
 /* globals */
 /***********/
-static char rcsid[] = "$Id: compute_vox2vox.c,v 1.1 2007/05/04 22:33:59 nicks Exp $";
+static char rcsid[] = "$Id: compute_vox2vox.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
 static char program[MAXL];
 
 void	t4list (FILE *fp, float *t4) {

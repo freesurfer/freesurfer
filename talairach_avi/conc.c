@@ -1,33 +1,27 @@
-/*$Header: /space/repo/1/dev/dev/talairach_avi/conc.c,v 1.1 2007/05/04 22:33:59 nicks Exp $*/
-/*$Log: conc.c,v $
-/*Revision 1.1  2007/05/04 22:33:59  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  conc.c
+ *
+ */
 /*
- * Revision 1.8  2006/09/25  04:54:45  avi
- * individual 4dfp files startrec() -> startrece()
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.7  2006/09/23  05:15:51  avi
- * #include Getifh.h (instead of ifh.h) and endianio.h
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.6  2006/09/23  04:22:37  avi
- * move err[rmw]() getroot() writeifhmc() to endianio.c
- * provide full endian control
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
  *
- * Revision 1.5  2006/08/02  23:58:33  avi
- * conc_rewind()
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
- * Revision 1.4  2006/03/16  05:53:34  avi
- * all #include local
- *
- * Revision 1.3  2005/09/16  03:29:54  avi
- * conc_init_quiet() conc_open_quiet()
- *
- * Revision 1.2  2005/09/15  04:39:20  avi
- * protect against "number_of_files" field misreads
- *
- * Revision 1.1  2004/11/27  05:44:40  avi
- * Initial revision
- **/
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -60,7 +54,7 @@ int split (char *string, char *srgv[], int maxp) {
 /********************/
 /* global variables */
 /********************/
-static char	rcsid[] = "$Id: conc.c,v 1.1 2007/05/04 22:33:59 nicks Exp $";
+static char	rcsid[] = "$Id: conc.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
 
 void conc_init_quiet (CONC_BLOCK *conc_block, char *program) {
 	strcpy (conc_block->program, program);

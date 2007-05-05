@@ -1,11 +1,28 @@
-/*$Header: /space/repo/1/dev/dev/talairach_avi/cgauss3dd.c,v 1.1 2007/05/04 22:33:59 nicks Exp $*/
-/*$Log: cgauss3dd.c,v $
-/*Revision 1.1  2007/05/04 22:33:59  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  cgauss3dd.c
+ *
+ */
 /*
- * Revision 1.1  2007/04/24  05:38:14  avi
- * Initial revision
- **/
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
+ *
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -15,7 +32,7 @@
 #include <librms.h>
 
 void gauss3dd (float *image, int *pnx, int *pny, int *pnz, float *cmppix, float *fhalf) {
-/****************************************************************************************/
+/**************************************************************************/
 /*	3D Gaussian filter + differentiation (variant of cgauss3d.c)			*/
 /*											*/
 /*	inputs: real*4 image(nx,ny,nz)	! image to be filtered				*/
@@ -29,7 +46,7 @@ void gauss3dd (float *image, int *pnx, int *pny, int *pnz, float *cmppix, float 
 /*											*/
 /*	restrictions: mixed radix FFT accepts any nx, ny, nz but 			*/
 /*				nx must be divisible by 2 				*/
-/****************************************************************************************/
+/**************************************************************************/
 	float		*a, *b;
 	double		q, factor, f2, fx, fy, fz;
 	int		i, k, n1, n2, n2ny, jndex;

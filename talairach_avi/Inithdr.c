@@ -1,38 +1,28 @@
-/*$Header: /space/repo/1/dev/dev/talairach_avi/Inithdr.c,v 1.1 2007/05/04 22:33:59 nicks Exp $*/
-/*$Log: Inithdr.c,v $
-/*Revision 1.1  2007/05/04 22:33:59  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  Inithdr.c
+ * @brief Initialize ANALYZE header using prototype ANALYZE image file
+ *
+ */
 /*
- * Revision 1.7  2007/05/04  03:08:38  avi
- * linux gcc compliant
- * cuserid -> getpwuid
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.6  2005/12/16  02:41:13  avi
- * #include ANALYZE.h -> generic; point to correct file in ifh2hdr.mak
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.5  2003/09/25  04:01:44  avi
- * get_date_log () -> in-line call to time() and cuserid() => eliminate need for libmri
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
  *
- * Revision 1.4  1999/06/24  06:33:01  avi
- * allow proto_imgfile to be (char *NULL)
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
- * Revision 1.3  1998/12/30  04:53:05  avi
- * eliminate message in absence of proto_header
- *
- * Revision 1.1  1998/05/21  16:26:56  tscull
- * Initial revision
- **/
-/*_________________________________________________________________________
-  File:		Inithdr
-
-  Usage:	Inithdr (&hdr, imgdim, voxdim, proto_imgfile)
-
-  Description:	Initialize ANALYZE header using prototype ANALYZE image file
-
-  Author:	AZS
-
-  History:	05/09/98
-___________________________________________________________________________*/
+ */
 
 #include <string.h>
 #include <time.h>
@@ -44,7 +34,7 @@ ___________________________________________________________________________*/
 
 #define MAXL		256
 
-static char rcsid[] = "$Id: Inithdr.c,v 1.1 2007/05/04 22:33:59 nicks Exp $";
+static char rcsid[] = "$Id: Inithdr.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
 void Inithdr_rcs (void) {printf ("%s\n", rcsid);}
 int Inithdr (struct dsr *phdr, int *imgdim, float *voxdim, char *proto_imgfile) {
 	FILE		*fp;

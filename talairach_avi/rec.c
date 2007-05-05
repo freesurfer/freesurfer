@@ -1,48 +1,28 @@
-/*************************************************************************************/
-/* Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006                          */
-/* Washington University, Mallinckrodt Institute of Radiology.                       */
-/* All Rights Reserved.                                                              */
-/* This software may not be reproduced, copied, or distributed without written       */
-/* permission of Washington University. For further information contact A. Z. Snyder */
-/*************************************************************************************/
-/*$Header: /space/repo/1/dev/dev/talairach_avi/rec.c,v 1.1 2007/05/04 22:34:03 nicks Exp $*/
-/*$Log: rec.c,v $
-/*Revision 1.1  2007/05/04 22:34:03  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  rec.c
+ *
+ */
 /*
- * Revision 1.11  2007/05/03  22:28:14  avi
- * gcc -Wall
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:07 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.10  2006/09/29  22:53:33  avi
- * MAXL -> 1024
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.9  2006/09/23  20:52:50  avi
- *  startrecle()  startrece () final argument now control
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
  *
- * Revision 1.8  2006/09/23  06:30:33  avi
- * provision for variable endian status
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
- * Revision 1.7  2004/09/03  20:07:01  avi
- * add .conc to special catrec file extensions
- *
- * Revision 1.6  2004/01/14  05:45:52  avi
- * add "Including:" stdout message to catrec ()
- *
- * Revision 1.5  2002/01/07  22:50:31  avi
- * terminate continuation lines with '\\' in startrecl ()
- *
- * Revision 1.4  2000/12/13  06:02:41  avi
- * replace external get_date_log () with get_time_usr ()
- *
- * Revision 1.3  2000/12/13  02:47:57  avi
- * copyright
- *
- * Revision 1.2  1999/01/21  07:51:41  avi
- * prototyping
- *
- * Revision 1.1  1999/01/21  07:20:10  avi
- * Initial revision
- **/
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -58,7 +38,7 @@
 /* global variables */
 /********************/
 static char recfile[MAXL] = "";
-static char rcsid[] = "$Id: rec.c,v 1.1 2007/05/04 22:34:03 nicks Exp $";
+static char rcsid[] = "$Id: rec.c,v 1.2 2007/05/05 00:00:07 nicks Exp $";
 
 void rec_rcsid (void) {printf ("%s\n", rcsid);}
 

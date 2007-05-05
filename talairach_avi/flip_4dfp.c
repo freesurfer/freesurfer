@@ -1,23 +1,27 @@
-/*$Header: /space/repo/1/dev/dev/talairach_avi/flip_4dfp.c,v 1.1 2007/05/04 22:33:59 nicks Exp $*/
-/*$Log: flip_4dfp.c,v $
-/*Revision 1.1  2007/05/04 22:33:59  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  flip_4dfp.c,
+ *
+ */
 /*
- * Revision 1.5  2007/05/02  01:28:30  avi
- * endian gcc v3 compliant
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.4  2004/11/16  22:26:42  rsachs
- * Installed 'setprog'. Replaced 'Get4dfpDimN' with 'get_4dfp_dimo'.
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.3  2004/02/19  01:04:23  avi
- * eliminate calls to FORTRAN dependent flip routines
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
  *
- * Revision 1.2  1999/02/03  06:40:14  avi
- * correct output name generation
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
- * Revision 1.1  1999/01/24  07:07:06  avi
- * Initial revision
- **/
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -42,7 +46,7 @@ extern void flipx (float *imgf, int *pnx, int* pny, int *pnz);	/* cflip.c */
 extern void flipy (float *imgf, int *pnx, int* pny, int *pnz);	/* cflip.c */
 extern void flipz (float *imgf, int *pnx, int* pny, int *pnz);	/* cflip.c */
 
-static char rcsid[] = "$Id: flip_4dfp.c,v 1.1 2007/05/04 22:33:59 nicks Exp $";
+static char rcsid[] = "$Id: flip_4dfp.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
 int main (int argc, char *argv[]) {
 	FILE		*imgfp, *outfp;
 	IFH		ifh;

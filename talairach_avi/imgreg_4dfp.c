@@ -1,44 +1,29 @@
-/*$Id: imgreg_4dfp.c,v 1.1 2007/05/04 22:33:59 nicks Exp $*/
-/*$Log: imgreg_4dfp.c,v $
-/*Revision 1.1  2007/05/04 22:33:59  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  imgreg_4dfp.c
+ * @brief compute image-image registration (t4file)
+ *
+ */
 /*
- * Revision 1.13  2006/09/26  19:25:43  avi
- * Solaris 10
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.12  2004/12/06  21:02:31  rsachs
- * Reinstated #include <mri/ifh.h>.
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.11  2004/09/24  19:31:23  rsachs
- * Installed 'errm','errr','errw','getroot','get_4dfp_dimo'. Removed 'Get4dfpDimN'.
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
  *
- * Revision 1.10  1999/02/03  08:16:33  avi
- * correct stdout center: listing
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
- * Revision 1.9  1998/12/24  07:41:24  avi
- * remove #include <mri/mri.h>
- *
- * Revision 1.8  1998/12/23  07:18:12  avi
- * correct reading mask into image memory
- *
- * Revision 1.7  1998/12/14  07:51:22  avi
- * minor changes
- *
- * Revision 1.6  1998/12/12  22:37:34  avi
- * file_image -> imgroot
- * file_mask  -> mskroot
- * cleaner output t4file
- *
- * Revision 1.5  1998/12/12  22:05:30  avi
- * executes
- **/
-/******************************************************************/
-/*  Program:	        imgreg                                    */
-/*  Description:	compute image-image registration (t4file) */
-/*  Authors:	        Avi Snyder                                */
-/*  History:	        Jul-26-95                                 */
-/*  SunOS -> Solaris:	12/98    AZS and Mark McAvoy              */
-/******************************************************************/
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -80,7 +65,7 @@ void read_file_float (char *filename, float *stack, int dimension, char *program
 	||  fclose (fp)) errr (program, filename);
 }
 
-static char rcsid[] = "$Id: imgreg_4dfp.c,v 1.1 2007/05/04 22:33:59 nicks Exp $";
+static char rcsid[] = "$Id: imgreg_4dfp.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
 int main (int argc, char **argv) {
 /************/
 /* imag I/O */

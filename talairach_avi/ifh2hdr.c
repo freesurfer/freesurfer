@@ -1,35 +1,28 @@
-/*$Header: /space/repo/1/dev/dev/talairach_avi/ifh2hdr.c,v 1.1 2007/05/04 22:33:59 nicks Exp $*/
-/*$Log: ifh2hdr.c,v $
-/*Revision 1.1  2007/05/04 22:33:59  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  ifh2hdr.c
+ *
+ */
 /*
- * Revision 1.9  2007/02/28  05:35:19  avi
- * Solaris 10
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.8  2006/03/26  00:10:17  avi
- * eliminate redundant screen message
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.7  2006/03/25  04:30:55  avi
- * use endianio.c subroutines
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
  *
- * Revision 1.6  2006/03/24  06:10:16  avi
- * preserve endian state of input
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
- * Revision 1.5  2005/12/16  02:38:09  avi
- * #include ifh.h and ANALYZE.h -> generic; point to correct file in ifh2hdr.mak
- *
- * Revision 1.4  2003/09/25  03:06:25  avi
- * eliminate call to Get4dfpDimN
- *
- * Revision 1.3  2003/03/15  04:28:43  avi
- * modernize error routines
- *
- * Revision 1.2  1999/11/23  02:48:03  avi
- * include ifh.orientation in output header
- *
- * Revision 1.1  1999/08/28  23:18:15  avi
- * Initial revision
- **/
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -55,7 +48,7 @@ void getrange (char *string, float *minval, float *maxval) {
 
 extern int	Inithdr (struct dsr *phdr, int *imgdim, float *voxdim, char *proto_imgfile);
 
-static char rcsid[] = "$Id: ifh2hdr.c,v 1.1 2007/05/04 22:33:59 nicks Exp $";
+static char rcsid[] = "$Id: ifh2hdr.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
 int main (int argc, char *argv[]) {
 	FILE		*fp;
 	struct dsr	hdr;

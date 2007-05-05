@@ -1,68 +1,29 @@
-/*$Header: /space/repo/1/dev/dev/talairach_avi/gauss_4dfp.c,v 1.1 2007/05/04 22:33:59 nicks Exp $*/
-/*$Log: gauss_4dfp.c,v $
-/*Revision 1.1  2007/05/04 22:33:59  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  gauss_4dfp.c
+ * @brief filters a 4dfp image volume by using the Gaussian filter
+ *
+ */
 /*
- * Revision 1.15  2007/04/23  02:37:19  avi
- * gcc v3 compliant (filter subroutines converted to C)
- * remove f_init() and f_exit()
+ * Original Authors: Tom Yang and Avi Snyder on 12/17/92
+ *                   Originally for ECAT images
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.14  2006/09/25  18:59:24  avi
- * correct bug computing conc outfile
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.13  2006/09/25  18:34:31  avi
- * Solaris 10
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
  *
- * Revision 1.12  2005/12/06  06:37:37  avi
- * conc file capability
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
- * Revision 1.11  2005/12/02  06:56:48  avi
- * better usage
- *
- * Revision 1.10  2005/07/02  03:11:57  avi
- * report current volume to stdout
- *
- * Revision 1.9  2004/10/08  18:08:45  rsachs
- * Installed 'errm','errr','errw','getroot','setprog'. Replaced 'Get4dfpDi'
- *
- * Revision 1.8  1999/01/18  03:23:54  avi
- * eliminate #include <mri/mri.h>
- * initialize outroot to ""
- *
- * Revision 1.6  1998/12/03  00:28:02  avi
- * -d option
- *
- * Revision 1.4  1998/05/20  07:29:03  avi
- * new rec subroutines
- *
- * Revision 1.3  1998/05/20  07:18:43  avi
- * clean code
- * -w option
- *
- * Revision 1.2  1998/04/17  17:12:41  tscull
- * set debug to false
- *
- * Revision 1.1  1998/03/18  18:25:56  tscull
- * Initial revision
- *
- * Revision 1.3  1997/10/02  18:14:48  tscull
- * modified usage text to be more complete and easy to read
- *
- * Revision 1.2  1997/10/02  17:56:38  tscull
- * frequency to text more compact
- *
- * Revision 1.1  1997/09/30  21:00:19  tscull
- * Initial revision
- **/
-/****************************************************************
-  Description:	This program filters a 4dfp image volume
-		by using the Gaussian filter.
-
-  History:	Created by Tom Yang and Avi Snyder on 12/17/92. 
-                Originally for ECAT images
-		Modified by AZS on 10/25/95.
-		Converted to 4dfp input by Tom Cull 9/30/97.
-*****************************************************************/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,7 +69,7 @@ void usage (char* program) {
 	exit (1);
 }
 
-static char rcsid[] = "$Id: gauss_4dfp.c,v 1.1 2007/05/04 22:33:59 nicks Exp $";
+static char rcsid[] = "$Id: gauss_4dfp.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
 int main (int argc, char **argv) {
 	CONC_BLOCK	conc_block;			/* conc i/o control block */
 	FILE 		*imgfp=NULL, *outfp=NULL;

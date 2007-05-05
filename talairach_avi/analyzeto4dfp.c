@@ -1,59 +1,28 @@
-/*$Header: /space/repo/1/dev/dev/talairach_avi/analyzeto4dfp.c,v 1.1 2007/05/04 22:33:59 nicks Exp $*/
-/*$Log: analyzeto4dfp.c,v $
-/*Revision 1.1  2007/05/04 22:33:59  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  analyzeto4dfp.c
+ *
+ */
 /*
- * Revision 1.16  2007/05/03  22:47:03  avi
- * gcc -Wall
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.15  2007/05/01  03:12:28  avi
- * change cast in hdr pointer arithmetic to (unsigned long)
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.14  2006/10/05  01:15:26  avi
- * dimensionality checking and reporting
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
  *
- * Revision 1.13  2006/10/04  05:03:38  avi
- * correct Fred Weber flip in multi-volume data
- * Solaris 10
- * eliminate -c option
- * hdr created by system call to ifh2hdr
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
- * Revision 1.12  2006/10/04  03:01:54  avi
- * option -O
- * use endianio subroutines
- *
- * Revision 1.11  2004/12/21  02:40:03  avi
- * -s option (use ROIScaleFlag)
- *
- * Revision 1.10  2004/12/14  05:12:56  avi
- * optional command line axis flips
- *
- * Revision 1.9  2004/12/14  04:41:05  avi
- * PC<->Sun byte order conversion
- * accept float input
- *
- * Revision 1.8  2004/09/09  21:48:44  avi
- * eliminate all FORTRAN dependencies
- *
- * Revision 1.7  2004/09/01  06:01:02  avi
- * accept and correct flipped orientations (3, 4, 5)
- *
- * Revision 1.6  2003/07/03  19:35:08  avi
- * add diagnostic info to stdout
- *
- * Revision 1.5  2003/05/06  02:11:09  avi
- * allow 8 bit (unsigned char) input
- *
- * Revision 1.4  1999/07/06  23:42:26  avi
- * center_flag (-c option)
- *
- * Revision 1.3  1999/02/26  06:23:14  avi
- * totally rewritten
- *
- * Revision 1.2  1999/02/26  06:02:47  avi
- * Revision 1.1  1998/05/14  18:33:45  tscull
- * Initial revision
- **/
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -77,7 +46,7 @@ extern void flipx (float *imgf, int *pnx, int* pny, int *pnz);	/* cflip.c */
 extern void flipy (float *imgf, int *pnx, int* pny, int *pnz);	/* cflip.c */
 extern void flipz (float *imgf, int *pnx, int* pny, int *pnz);	/* cflip.c */
 
-static char rcsid[] = "$Id: analyzeto4dfp.c,v 1.1 2007/05/04 22:33:59 nicks Exp $";
+static char rcsid[] = "$Id: analyzeto4dfp.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
 int main (int argc, char *argv[]) {
 	FILE		*fpimg, *fpout;
 	struct dsr	hdr;					/* ANALYZE hdr */

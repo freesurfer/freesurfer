@@ -1,12 +1,28 @@
-/*$Header: /space/repo/1/dev/dev/talairach_avi/ANALYZE.h,v 1.1 2007/05/04 22:33:58 nicks Exp $*/
-/*$Log: ANALYZE.h,v $
-/*Revision 1.1  2007/05/04 22:33:58  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  ANALYZE.h
+ *
+ */
 /*
- * Revision 1.1  2005/12/15  22:54:50  avi
- * Initial revision
- **/
- 
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
+ *
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
 /***************************************/
 /* struct dsr--the ANALYZE .hdr struct */
 /***************************************/

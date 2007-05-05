@@ -1,18 +1,27 @@
-/*$Header: /space/repo/1/dev/dev/talairach_avi/cflip.c,v 1.1 2007/05/04 22:33:59 nicks Exp $*/
-/*$Log: cflip.c,v $
-/*Revision 1.1  2007/05/04 22:33:59  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  cflip.c
+ *
+ */
 /*
- * Revision 1.3  2007/04/25  05:00:57  avi
- * properly include standard includes
- * remove local errm()
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.2  2004/11/18  20:50:57  rsachs
- * Fixed a logic error.
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.1  2004/02/19  01:04:08  avi
- * Initial revision
- **/
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
 
 #include <stdio.h>
 #include <stdlib.h>

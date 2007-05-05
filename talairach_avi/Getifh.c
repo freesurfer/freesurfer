@@ -1,79 +1,27 @@
-/****************************************************************************************/
-/* Copyright 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007			*/
-/* Washington University, Mallinckrodt Institute of Radiology.				*/
-/* All Rights Reserved.									*/
-/* This software may not be reproduced, copied, or distributed without written		*/
-/* permission of Washington University. For further information contact A. Z. Snyder.	*/
-/****************************************************************************************/
-/*$Header: /space/repo/1/dev/dev/talairach_avi/Getifh.c,v 1.1 2007/05/04 22:33:59 nicks Exp $*/
-/*$Log: Getifh.c,v $
-/*Revision 1.1  2007/05/04 22:33:59  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  Getifh.c
+ *
+ */
 /*
- * Revision 1.21  2007/05/03  22:27:28  avi
- * gcc -Wall
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:06 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.20  2007/04/02  02:58:22  avi
- * remove static CPU_is_bigendian()
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.19  2006/09/23  06:25:29  avi
- * #include endianio.h and ctype.h
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
  *
- * Revision 1.18  2006/09/23  05:31:54  avi
- * int writeifhmc ()
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
- * Revision 1.17  2006/05/04  01:45:37  avi
- * suppress "Reading:" message to stdout in Getifh()
- *
- * Revision 1.16  2006/04/07  04:24:42  avi
- * include local copy of CPU_is_bigendian
- *
- * Revision 1.15  2006/03/26  23:06:29  avi
- *
- * Revision 1.14  2006/03/24  06:07:48  avi
- * delete terminal 'n' from input lines in Getifh()
- *
- * Revision 1.13  2006/03/23  06:35:27  avi
- * correct computation of osbig in writeifhe()
- *
- * Revision 1.12  2006/03/23  04:56:34  avi
- * CPU_is_bigendian () and writeifhe ()
- *
- * Revision 1.11  2006/03/16  06:34:25  avi
- * radical pruning of fields (to go with updated ifh.h)
- * add support for endian field
- *
- * Revision 1.10  2005/12/16  02:40:22  avi
- * #include ifh.h and ANALYZE.h -> generic; point to correct file in ifh2hdr.mak
- *
- * Revision 1.9  2001/07/05  01:49:12  avi
- * better error reporting
- *
- * Revision 1.8  2000/12/13  02:46:32  avi
- * copyright
- *
- * Revision 1.7  1999/11/20  00:52:47  avi
- * break -> continue in while (fgets())
- *
- * Revision 1.6  1999/08/25  00:25:19  avi
- * ifh.h addressed directly
- *
- * Revision 1.5  1999/01/02  04:12:35  avi
- * #include local copy ifh.h for compatability with SunOS 4dfp<->ecat programs
- *
- * Revision 1.4  1998/12/13  01:19:11  avi
- * correct fscanf of center and mmppix
- *
- * Revision 1.3  1998/12/11  09:33:53  avi
- * remove atlas_origin
- * include mmppix and center
- *
- * Revision 1.2  1998/12/11  05:10:51  avi
- * mmppix[3] and center[3]
- *
- * Revision 1.1  1998/12/11  04:35:44  avi
- * Initial revision
- **/
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -84,7 +32,7 @@
 
 #define MAXL	256
 
-static char	rcsid[] = "$Id: Getifh.c,v 1.1 2007/05/04 22:33:59 nicks Exp $";
+static char	rcsid[] = "$Id: Getifh.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
 void Getifh_rcs (void) {printf ("%s\n", rcsid);}
 
 int Getifh (char *imgfile, IFH *ifhdr) {

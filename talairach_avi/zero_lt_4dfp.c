@@ -1,35 +1,27 @@
-/*$Header: /space/repo/1/dev/dev/talairach_avi/zero_lt_4dfp.c,v 1.1 2007/05/04 22:34:03 nicks Exp $*/
-/*$Log: zero_lt_4dfp.c,v $
-/*Revision 1.1  2007/05/04 22:34:03  nicks
-/*new talairach alignment utility, using Avi Snyders registration tools
+/**
+ * @file  zero_lt_4dfp.c
+ *
+ */
 /*
- * Revision 1.11  2007/05/01  04:39:58  avi
- * Solaris10 and gccc v3 compliant
+ * Original Author: Avi Z. Snyder, Washington University
+ * 
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2007/05/05 00:00:07 $
+ *    $Revision: 1.2 $
  *
- * Revision 1.10  2005/10/25  03:32:15  avi
- * allow first argumnet to be negative (not pseudo-option)
+ * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+ * Washington University, Mallinckrodt Institute of Radiology.
+ * All Rights Reserved.
  *
- * Revision 1.9  2004/11/05  22:25:09  rsachs
- * Removed 'Get4dfpDimN'. Installed 'errm,'errr','errw','getroot','get_4dfp_dimo'.
+ * This software may not be reproduced, copied, or distributed without 
+ * written permission of Washington University. For further information 
+ * contact A. Z. Snyder.
  *
- * Revision 1.8  2001/08/02  01:11:51  avi
- * correct usage
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
- * Revision 1.7  2001/08/02  00:39:42  avi
- * code standardization
- *
- * Revision 1.6  1998/12/13  00:51:22  avi
- * correct error computing dimension
- *
- * Revision 1.5  1998/12/13  00:18:57  avi
- * correct usage
- *
- * Revision 1.4  1998/10/12  22:15:07  mcavoy
- * Revision 1.2  1998/10/12  21:57:58  mcavoy
- * Revision 1.1  1998/05/08  22:32:04  tscull
- * Revision 1.2  1997/11/26  20:04:53  tscull
- * Initial revision
-*/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,7 +42,7 @@ void setprog (char *program, char **argv) {
 	strcpy (program, ptr);
 }
 
-static char rcsid[]= "$Id: zero_lt_4dfp.c,v 1.1 2007/05/04 22:34:03 nicks Exp $";
+static char rcsid[]= "$Id: zero_lt_4dfp.c,v 1.2 2007/05/05 00:00:07 nicks Exp $";
 int main (int argc, char **argv) {
 /*************/
 /* image I/O */
