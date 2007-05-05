@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.70 2007/03/29 19:01:47 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.71 2007/05/05 22:56:33 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.70 2007/03/29 19:01:47 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.71 2007/05/05 22:56:33 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -203,14 +203,18 @@ if( ! $?NO_FSFAST) then
         echo "%------------ FreeSurfer -----------------------------%" >> $SUF
         echo "fshome = getenv('FREESURFER_HOME');"                     >> $SUF
         echo "fsmatlab = sprintf('%s/matlab',fshome);"                 >> $SUF
-        echo "path(path,fsmatlab);"                                    >> $SUF
+        echo "if (exist(fsmatlab) == 7)"                               >> $SUF
+        echo "    path(path,fsmatlab);"                                >> $SUF
+        echo "end"                                                     >> $SUF
         echo "clear fshome fsmatlab;"                                  >> $SUF
         echo "%-----------------------------------------------------%" >> $SUF
         echo "" >> $SUF
         echo "%------------ FreeSurfer FAST ------------------------%" >> $SUF
         echo "fsfasthome = getenv('FSFAST_HOME');"                     >> $SUF
         echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"       >> $SUF
-        echo "path(path,fsfasttoolbox);"                               >> $SUF
+        echo "if (exist(fsfasttoolbox) == 7)"                          >> $SUF
+        echo "    path(path,fsfasttoolbox);"                           >> $SUF
+        echo "end"                                                     >> $SUF
         echo "clear fsfasthome fsfasttoolbox;"                         >> $SUF
         echo "%-----------------------------------------------------%" >> $SUF
     endif
@@ -229,11 +233,15 @@ if( ! $?NO_FSFAST) then
             echo "-----------------cut---------------------"
             echo "fshome = getenv('FREESURFER_HOME');"
             echo "fsmatlab = sprintf('%s/matlab',fsmatlab);"
-            echo "path(path,fsmatlab);"
+            echo "if (exist(fsmatlab) == 7)"
+            echo "    path(path,fsmatlab);"
+            echo "end"
             echo "clear fshome fsmatlab;"
             echo "fsfasthome = getenv('FSFAST_HOME');"
             echo "fsfasttoolbox = sprintf('%s/toolbox',fsfasthome);"
-            echo "path(path,fsfasttoolbox);"
+            echo "if (exist(fsfasttoolbox) == 7)"
+            echo "    path(path,fsfasttoolbox);"
+            echo "end"
             echo "clear fsfasthome fsfasttoolbox;"
             echo "-----------------cut---------------------"
             echo ""
