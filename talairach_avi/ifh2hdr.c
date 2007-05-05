@@ -7,8 +7,8 @@
  * 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/05 00:00:06 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/05/05 10:45:03 $
+ *    $Revision: 1.3 $
  *
  * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
  * Washington University, Mallinckrodt Institute of Radiology.
@@ -48,7 +48,7 @@ void getrange (char *string, float *minval, float *maxval) {
 
 extern int	Inithdr (struct dsr *phdr, int *imgdim, float *voxdim, char *proto_imgfile);
 
-static char rcsid[] = "$Id: ifh2hdr.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
+static char rcsid[] = "$Id: ifh2hdr.c,v 1.3 2007/05/05 10:45:03 nicks Exp $";
 int main (int argc, char *argv[]) {
 	FILE		*fp;
 	struct dsr	hdr;
@@ -56,7 +56,7 @@ int main (int argc, char *argv[]) {
 
 	char		filespc[MAXL], imgroot[MAXL];
 	float		voxsiz[3];
-	float           fmin, fmax;
+	float fmin=0.0, fmax=0.0;
 	int		imgdim[4];
 
 /***********/
