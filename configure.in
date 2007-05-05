@@ -46,6 +46,7 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_LIBTOOL_CXX
+AC_PROG_F77
 
 ################################################################
 # Checks for header files.
