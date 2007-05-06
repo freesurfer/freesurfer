@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/05/03 13:33:23 $
- *    $Revision: 1.534 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/06 02:11:55 $
+ *    $Revision: 1.535 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -612,7 +612,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.534 2007/05/03 13:33:23 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.535 2007/05/06 02:11:55 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -19334,6 +19334,45 @@ MRISwriteAscii(MRI_SURFACE *mris, char *fname)
   return(NO_ERROR) ;
 }
 
+
+/*-----------------------------------------------------
+  Description: Same as MRISwriteAscii, but write surface
+  normals instead of 
+  ------------------------------------------------------*/
+int
+MRISwriteNormalsAscii(MRI_SURFACE *mris, char *fname)
+{
+  int     vno, fno, n ;
+  VERTEX  *v ;
+  FACE    *face ;
+  FILE    *fp ;
+
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorReturn(ERROR_NOFILE,
+                (ERROR_NOFILE,
+                 "MRISwriteNormalsAscii: could not open file %s",fname));
+
+  fprintf(fp, "#!ascii version of %s (vertices are surface normals)\n", 
+          mris->fname) ;
+  fprintf(fp, "%d %d\n", mris->nvertices, mris->nfaces) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    fprintf(fp, "%f  %f  %f  %d\n", v->nx, v->ny, v->nz, v->ripflag) ;
+  }
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      fprintf(fp, "%d ", face->v[n]) ;
+    fprintf(fp, "%d\n", face->ripflag) ;
+  }
+
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
 
 /*-----------------------------------------------------
   Parameters:
