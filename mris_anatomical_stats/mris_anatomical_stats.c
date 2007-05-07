@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2007/04/16 20:27:46 $
- *    $Revision: 1.43 $
+ *    $Author: greve $
+ *    $Date: 2007/05/07 22:08:07 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.43 2007/04/16 20:27:46 rudolph Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.44 2007/05/07 22:08:07 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -116,7 +116,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_anatomical_stats.c,v 1.43 2007/04/16 20:27:46 rudolph Exp $",
+           "$Id: mris_anatomical_stats.c,v 1.44 2007/05/07 22:08:07 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -349,7 +349,7 @@ main(int argc, char *argv[]) {
 
     fprintf(fp,"# TableCol  4 ColHeader GrayVol\n");
     fprintf(fp,"# TableCol  4 FieldName Gray Matter Volume\n");
-    fprintf(fp,"# TableCol  4 Units     mm\n");
+    fprintf(fp,"# TableCol  4 Units     mm^3\n");
 
     fprintf(fp,"# TableCol  5 ColHeader ThickAvg \n");
     fprintf(fp,"# TableCol  5 FieldName Average Thickness\n");
