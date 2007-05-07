@@ -444,7 +444,7 @@ Poistats::Run() {
   std::srand( ( unsigned ) time( 0 ) ); 
   poistatsFilter->SetRandomSeed( std::rand() );
 
-  // set polarity
+  // set polarity -- specific for the scanner that was used to collect the data
   PoistatsFilterType::MatrixType polarity( 3, 3 );
   polarity[ 0 ][ 0 ] = 1;
   polarity[ 0 ][ 1 ] = 1;
@@ -510,7 +510,7 @@ Poistats::Run() {
       int seedValueToUse = ( *seedIt );
       poistatsFilter->SetNextSeedValueToUse( seedValueToUse );      
     }
-  }
+  } 
   
   if( m_ReplicaExchangeProbability > 0 ) {
     poistatsFilter->SetReplicaExchangeProbability( 
@@ -550,6 +550,11 @@ Poistats::Run() {
  // this overrides the default output file format
   if( m_IsOutputNii ){
     imageFileExtension = ".nii";
+  } else {
+    // for some reason, the nii writer isn't writing the directions out 
+    // correctly, so by default, we're going to write out as mgz for the time 
+    // being
+    imageFileExtension = ".mgz";
   }
   
   typedef itk::ImageFileWriter< PoistatsFilterType::OutputImageType > WriterType;  
