@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/05/02 17:35:16 $
- *    $Revision: 1.31 $
+ *    $Date: 2007/05/07 23:00:25 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.31 2007/05/02 17:35:16 nommert Exp $
+  $Id: mri_volsynth.c,v 1.32 2007/05/07 23:00:25 nommert Exp $
 */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.31 2007/05/02 17:35:16 nommert Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.32 2007/05/07 23:00:25 nommert Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -315,7 +315,7 @@ int main(int argc, char **argv)
     else {
       printf("Smoothing with FFT \n");
       mri2 = MRIcopy(mri,NULL);
-      mri = MRI_fft_gaussian(mri2, NULL, gstd, gmnnorm); /* gmnnorm = 1 = normalize */
+      mri = MRI_fft_gaussian(mri2, mri, gstd, gmnnorm); /* gmnnorm = 1 = normalize */
     }
     if (rescale) {
       printf("Rescaling\n");

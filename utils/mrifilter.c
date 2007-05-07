@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/05/04 17:14:01 $
- *    $Revision: 1.56 $
+ *    $Date: 2007/05/07 23:00:05 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,7 @@
 #include "box.h"
 #include "region.h"
 #include "talairachex.h"
+#include "fftutils.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -5149,536 +5150,14 @@ MRIzDerivative(MRI *mri_src, MRI *mri_dz)
 }
 
 
-/*-----------------------------------------------------
-		FFT Filter
-
-We have implemented a FFT-filtering. Which means we apply
-first a FFT to the mri, then we apply a filter; and we 
-finally apply en inverse FFT.
-Only one filter has been implemented so far: The Gaussian
-
-We have first some basic functions used in the FFT Filter.
-
------------------------------------------------------*/
-
-#define FourierForward 1
-#define FourierBackward -1
-
-const int	cMaxLength	= 4096;
-const int	cMinLength	= 1;
-static  int 	_rev=0;
-int* reversedBits;  
-int	**_reverseBits = NULL;
-static int _lookupTabletLength = -1;
-typedef struct complex {
-  double a, b;
-}complex;
-typedef struct complexF {
-  float a, b;
-}complexF;
-	
-static complex   **_uRLookup	= NULL;
-static complex   **_uILookup	= NULL;
-static complexF  **_uRLookupF	= NULL;
-static complexF  **_uILookupF	= NULL;
-
-static float   *uRLookup	= NULL;
-static float   *uILookup	= NULL;
-
-static void Error(char *string){
-  fprintf(stdout, "\nFFT Error: %s\n",string) ;
-  exit(1) ;
-}
-static void DebugAssert(int b, char *string){
-  if(!b) Error(string);
-}
-
-static  void Swap(  float *a,  float  *b ) {
-  float temp = *a;
-  *a = *b;
-  *b = temp;
-}
-static int IsPowerOf2( int x ) {
-  return	(x & (x - 1)) == 0;
-}
-static int Pow2( int exponent ) {
-  if( exponent >= 0 && exponent < 31 )
-    return 1 << exponent;
-  return	0;
-}
-static int Log2( int x ) {		//ceiling of Log2
-  if( x <= 65536 ) {if( x <= 256 ) {if( x <= 16 ) {if( x <= 4 ) {	if( x <= 2 ) 
-  {if( x <= 1 ) 	{return	0;} return 1;} return 2;} 
-  if( x <= 8 )		return 3; return 4;}
-  if( x <= 64 ) {if( x <= 32 )return 5;return 6;}
-  if( x <= 128 )	return 7;return 8;}
-  if( x <= 4096 ) {if( x <= 1024 ) {if( x <= 512 )return 9;return	10;}
-  if( x <= 2048 )	return 11;return 12;}
-  if( x <= 16384 ) {if( x <= 8192 )return 13;return 14;}
-  if( x <= 32768 )	return 15;return 16;}
-  if( x <= 16777216 ) {if( x <= 1048576) {if( x <= 262144){if( x <= 131072)return 17;return 18;}
-  if( x <= 524288 )	return	19;return	20;}
-  if( x <= 4194304 ) {if( x <= 2097152 )return 21;return 22;}
-  if( x <= 8388608 )	return 23;return 24;}
-  if( x <= 268435456 ) {if( x <= 67108864 ) {if( x <= 33554432 )return 25;return 26;}
-  if( x <= 134217728 )	return 27;return 28;}
-  if( x <= 1073741824 ) {if( x <= 536870912 )return 29;return 30;}	
-  			return	31;}
-
-static  void ReorderArray( float *data , int data_length) {
-  DebugAssert( data != NULL, "ReorderArray : Data = Null" );
-  int length = data_length / 2; 
-  int numberOfBits = Log2( length );
-  int maxBits = Pow2( numberOfBits );
-  int i,j;
-  DebugAssert( IsPowerOf2( length ) == 1, "length no power of 2"  );
-  DebugAssert( length >= cMinLength , "length < cMinLength" );
-  DebugAssert( length <= cMaxLength , "length > cMaxLength" );
-  if( _rev == 0 ) {
-    reversedBits= (int *) malloc( 512*sizeof(int) );
-    for( i = 0; i < maxBits; i ++ ) {
-      int oldBits = i;
-      int newBits = 0;
-      for( j = 0; j < numberOfBits; j ++ ) {
-	newBits = ( newBits << 1 ) | ( oldBits & 1 );
-	oldBits = ( oldBits >> 1 );
-      }
-      reversedBits[ i ] = newBits;
-    }
-  _rev = 1;
-  }
-  for( i = 0; i < length; i ++ ) {
-    int swap = reversedBits[ i ];
-    if( swap > i ) {
-      Swap( &data[ (i<<1) ], &data[ (swap<<1) ] );
-      Swap( &data[ (i<<1) + 1 ], &data[ (swap<<1) + 1 ] );
-    }
-  }
-}
-
-static int _ReverseBits( int bits, int n ) {
-  int bitsReversed = 0;
-  int i;
-  for( i = 0; i < n; i ++ ) {
-    bitsReversed = ( bitsReversed << 1 ) | ( bits & 1 );
-    bits = ( bits >> 1 );
-  }
-  return bitsReversed;
-}
-static void	InitializeReverseBits( int levels ) {
-  int i, j;
-  if(_reverseBits) free(_reverseBits);
-  _reverseBits =(int **) malloc( (levels + 1)*sizeof(int*) );  
-  for( j = 0; j < ( levels + 1 ); j ++ ) {
-    int count = (int) Pow2(j);
-    _reverseBits[j] =(int *) malloc( count*sizeof(int) ); 
-    for( i = 0; i < count; i ++ ) {
-	    _reverseBits[j][i] = _ReverseBits( i, j );
-    }
-  }
-}
-		
-static void InitializeComplexRotations( int levels ) {
-  int ln = levels;
-
-  if(_uRLookup) free(_uRLookup);
-  if(_uILookup) free(_uILookup);
-  if(_uRLookupF) free(_uRLookupF);
-  if(_uILookupF) free(_uILookupF);
-  _uRLookup =(complex **) malloc( (levels + 1)*sizeof(complex *) );
-  _uILookup =(complex **) malloc( (levels + 1)*sizeof(complex *) );
-  _uRLookupF =(complexF **) malloc( (levels + 1)*sizeof(complexF *) );
-  _uILookupF =(complexF **) malloc( (levels + 1)*sizeof(complexF *) );
-  int level, j, N = 1;
-  for( level = 1; level <= ln; level ++ ) {
-    int M = N;
-    N <<= 1;
-    {
-    // positive sign ( i.e. [M,0] )
-      double uR = 1;
-      double uI = 0;
-      double angle = (double) M_PI / M * 1;
-      double wR = (double) cos( angle );
-      double wI = (double) sin( angle );
-
-      _uRLookup[level] = (complex *) malloc( M*sizeof(complex ) );
-      _uILookup[level] = (complex *) malloc( M*sizeof(complex ) );
-      _uRLookupF[level] = (complexF *) malloc( M*sizeof(complexF ) );
-      _uILookupF[level] = (complexF *) malloc( M*sizeof(complexF ) );
-
-      for( j = 0; j < M; j ++ ) {
-	_uRLookupF[level][j].a = (float)( _uRLookup[level][j].a = uR );
-	_uILookupF[level][j].a = (float)( _uILookup[level][j].a = uI );
-	double	uwI = uR*wI + uI*wR;
-	uR = uR*wR - uI*wI;
-	uI = uwI;
-      }
-    }{
-    // negative sign ( i.e. [M,1] )
-    double uR = 1;
-    double uI = 0;
-    double angle = (double) M_PI / M * -1;
-    double wR = (double) cos( angle );
-    double wI = (double) sin( angle );
-
-    for( j = 0; j < M; j ++ ) {
-      _uRLookupF[level][j].b = (float)( _uRLookup[level][j].b = uR );
-      _uILookupF[level][j].b = (float)( _uILookup[level][j].b = uI );
-      double uwI = uR*wI + uI*wR;
-      uR = uR*wR - uI*wI;
-      uI = uwI;
-    }
-    }
-  }
-}
-
- static void	SyncLookupTableLength( int length ) {
-   DebugAssert( length < 1024*10 , "SyncLookupTableLength : length too big" );
-   DebugAssert( length >= 0 , "SyncLookupTableLength : length<0" );
-   if( length > _lookupTabletLength ) {
-     int level = Log2(length); 
-     InitializeReverseBits( level );
-     InitializeComplexRotations( level );
-     _lookupTabletLength = length;
-   }
-}
-
-static void  copy_vect(float* vect, complexF  **mat, int level, int signIndex, int M ){
-  int j;
-  if (signIndex)
-    for( j = 0; j < M; j ++ )
-      vect[j] = mat[level][j].b; 
-  else
-    for( j = 0; j < M; j ++ ){
-      vect[j] = mat[level][j].a;
-      }
-}
-/*-----------------------------------------------------
- FFT performs a complex FFT where the complex numbers are
- represented as pairs in the vector data. That is wfy we
- should have data_length >= length*2.
- The direction means either from time to frequency, or 
- from frequency to time.
-------------------------------------------------------*/
-static void	FFT( float* data, int data_length, int length, int direction ) {
-  DebugAssert( data != NULL , "FFT : DATA = NULL" );
-  DebugAssert( data_length >= length*2 , "FFT : data_length < length*2" );
-  DebugAssert( IsPowerOf2( length ) == 1 , "FFT : length is not a power of 2" );
-
-  SyncLookupTableLength( length );
-  int ln = Log2( length );
+/*!
+ \fn *MRI_Gaussian(int len, float std, int norm)
+ \param len - dimension of the MRI image
+ \param std - standard deviation of the gaussian filter
+ \param norm - 1 for normalization of the gaussian field
  
-  // reorder array  
-  ReorderArray( data , data_length);
-
-  // successive doubling
-  int N = 1;
-  int signIndex = ( direction == FourierForward ) ? 0 : 1;
-
-  int level, j, evenT;
-  for( level = 1; level <= ln; level ++ ) {
-    int M = N;
-    N <<= 1;
-
-    uRLookup = (float *) malloc( M*sizeof(float ) );
-    uILookup = (float *) malloc( M*sizeof(float ) );
-    copy_vect(uRLookup,_uRLookupF, level, signIndex , M);
-    copy_vect(uILookup,_uILookupF, level, signIndex , M);
-
-    for( j  = 0; j < M; j ++ ) {
-      float uR = uRLookup[j];
-      float uI = uILookup[j];
-
-      for( evenT = j; evenT < length; evenT += N ) {
-	int even = evenT << 1;
-	int odd = ( evenT + M ) << 1;
-	float r = data[ odd ];
-	float i = data[ odd+1 ];
-
-	float odduR = r * uR - i * uI;
-	float odduI = r * uI + i * uR;
-
-	r = data[ even ];
-	i = data[ even+1 ];
-
-	data[ even ]	= r + odduR;
-	data[ even+1 ]	= i + odduI;
-
-	data[ odd ]	= r - odduR;
-	data[ odd+1 ]	= i - odduI;
-      }
-    }
-  }
-  free(uRLookup);
-  free(uILookup);
-}
-
-/*-----------------------------------------------------
- RFFT performs a real FFT: data is a vector with the real
- input with n nb. The complex solution (n complexes) is 
- represented in the same vector data, this way :
- if the solution is :
- A	H	G	F	E	F	G	H
- 	-h*i	-c*i	-f*i		+f*i	+g*i	+h*i
- The vector data will be :
- A	E	H	h	G	g	F	f		
-------------------------------------------------------*/
-static void	RFFT( float* data, int data_length, int length, int direction ) {
-
-  DebugAssert( data != NULL , "RFFT :data" );
-  DebugAssert( data_length >= length , "RFFT : length must be at least as large as data_length parameter" );
-  DebugAssert(  IsPowerOf2(length) == 1 , "RFFT : length must be a power of 2" );
-  float	c1 = 0.5f, c2;
-  float	theta	= (float) M_PI / (length/2);
-  int i;
-
-  if( direction == FourierForward ) {
-    c2 = -0.5f;
-    FFT( data, data_length, length/2, direction );
-  }
-  else {
-    c2 = 0.5f;
-    theta = - theta;
-  }
-
-  float	wtemp = (float) sin( 0.5*theta );
-  float	wpr = -2 * wtemp*wtemp;
-  float	wpi	=(float)  sin( theta );
-  float	wr	= 1 + wpr;
-  float	wi	= wpi;
-
-  // do / undo packing
-  for( i = 1; i < length/4; i ++ ) {
-    int a = 2*i;
-    int b = length - 2*i;
-    float h1r = c1 * ( data[ a ] + data[ b ] );
-    float h1i = c1 * ( data[ a+1 ] - data[ b+1 ] );
-    float h2r = -c2 * ( data[ a+1 ] + data[ b+1 ] );
-    float h2i = c2 * ( data[ a ] - data[ b ] );
-    data[ a ]	= h1r + wr*h2r - wi*h2i;
-    data[ a+1 ]	= h1i + wr*h2i + wi*h2r;
-    data[ b ]	= h1r - wr*h2r + wi*h2i;
-    data[ b+1 ]	= -h1i + wr*h2i + wi*h2r;
-    wr = (wtemp = wr) * wpr - wi * wpi + wr;
-    wi = wi * wpr + wtemp * wpi + wi;
-  }
-
-  if( direction == FourierForward) {
-    float  hir = data[0];
-    data[0] = hir + data[1];
-    data[1] = hir - data[1];
-  }
-  else {
-    float  hir = data[0];
-    data[0] = c1 * ( hir + data[1] );
-    data[1] = c1 * ( hir - data[1] );
-    FFT( data, data_length, length/2, direction );
-  }
-}
-/*-----------------------------------------------------
- RFFTforward performs a real FFT. Here, the result is given
- in the two vectors : re and im		
-------------------------------------------------------*/
-static void RFFTforward(float* data,int length, float* re, float* im ) {
-  int j;
-  RFFT( data, length, length, FourierForward );
-  re[0]=data[0];
-  im[0]=0;
-  re[(length+2)/2-1]=data[1];
-  im[(length+2)/2-1]=0;
-  for( j = length-1; j > length/2 ; j -- ){
-    re[j] = data[2*(length-j)];
-    im[j] = data[2*(length-j)+1];
-    re[length-j] = re[j];
-    im[length-j] = -im[j];
-  }
-}
-
-/*-----------------------------------------------------
- CFFTforward performs a cplx FFT. Here, the input is given with
- one vector for the real parts and one for the imag ones.
- The results are given the same way.
- ------------------------------------------------------*/
-static void CFFTforward(float* re, float* im, int length) {
-  float *rec, *imc; int j;
-  rec = (float *) malloc( length*sizeof(float ) );
-  imc = (float *) malloc( length*sizeof(float ) );
-    
-  RFFT(re, length, length, FourierForward);
-  RFFT(im, length, length, FourierForward);
-  
-  for( j = 0; j < length; j ++ ){
-    rec[j]=re[j];
-    imc[j]=im[j];
-  }
-  re[0]=rec[0];
-  im[0]=imc[0];
-  re[(length+2)/2-1]=rec[1];
-  im[(length+2)/2-1]=imc[1];
- 
-  for( j = length-1; j > length/2 ; j -- ){
-    re[j] = rec[2*(length-j)]   - imc[2*(length-j)+1];
-    im[j] = rec[2*(length-j)+1] + imc[2*(length-j)]  ;
-    
-    re[length-j] = rec[2*(length-j)]+imc[2*(length-j)+1];
-    im[length-j] = -rec[2*(length-j)+1]+imc[2*(length-j)];
-  }
-  free(rec); free(imc);
-}
-
-/*-----------------------------------------------------
- CFFTbackward performs a cplx FFT inverse . 
- ------------------------------------------------------*/
-static void CFFTbackward(float* re, float* im, int length) {
-  float *a, *b;  int j;
-  a = (float *) malloc( length*sizeof(float ) );
-  b = (float *) malloc( length*sizeof(float ) );
-    
-  // fft(a+ib) -> fft(a) , fft(b)
-  //  re, im   ->   a        b
-  // then         ifft(a)   ifft(b)
-  //               re         im
-  
-  a[0] = re[0];
-  b[0] = im[0];
-  a[1] = re[(length+2)/2-1];
-  b[1] = im[(length+2)/2-1];
-    
-  for( j = length-1; j > length/2 ; j -- ){
-    a[2*(length-j)]=   0.5f*( re[j] + re[length-j]);
-    a[2*(length-j)+1]= 0.5f*( im[j] - im[length-j]);
-    
-    b[2*(length-j)]=   0.5f*( im[j] + im[length-j]);
-    b[2*(length-j)+1]= 0.5f*(-re[j] + re[length-j]);
-  }
-  
-  RFFT(a, length, length, FourierBackward);
-  RFFT(b, length, length, FourierBackward);
-  
-  for(j = 0; j < length; j ++ ){
-    re[j]=a[j]/(float)length*2.0f;
-    im[j]=b[j]/(float)length*2.0f;
-  }
-  free(a); free(b);
-}
-
-/*-----------------------------------------------------
- switch_with_z  switch the z coords with either the x (if
- is_y == 0) or the y (is_y ==1)one of vect.
- This function is used to perform a FFT of a 3D image with
- only 1D-FFT. We perform one 1D-FFT, then we swith 2 coords
- and perform another 1D-FFT and we repeat this process once. 
- ------------------------------------------------------*/
-void switch_with_z (float *** vect, int dimension, int is_y){
-  float *** res;
-  int x, y, z;
-  res = (float ***) malloc( dimension*sizeof(float** ) );
-
-  for (z = 0; z < dimension ; z++){
-    res[z]  = (float **) malloc( dimension*sizeof(float* ) );
-    for (y = 0 ; y < dimension ; y++)
-      res[z][y]  = (float *) malloc( dimension*sizeof(float ) );
-  }
-  for (z = 0; z < dimension ; z++)
-    for (y = 0 ; y < dimension ; y++)
-      for (x = 0 ; x < dimension ; x++){
-      if (is_y)
-        res[x][y][z] = vect[x][z][y];
-      else
-        res[x][y][z] = vect[z][y][x];
-      }
-  for (z = 0; z < dimension ; z++)
-    for (y = 0 ; y < dimension ; y++)
-      for (x = 0 ; x < dimension ; x++)
-        vect[x][y][z] = res[x][y][z];
-  free(res);
-}
-
-float ***inv_quarter(float *** vect, int dimension){
-    int transl = dimension/2;
-    int x, y, z, k, j;
-    float ***res;
-      res  = (float ***) malloc( dimension*sizeof(float** ) );
-  for ( k = 0; k<dimension; k++){
-    res[k] = (float **) malloc( dimension*sizeof(float* ) );
-    for ( j = 0; j<dimension; j++){
-    res[k][j] = (float *) malloc( dimension*sizeof(float ) );
-    }
-  }
-    for (z = 0; z < transl ; z++){
-      for (y = 0 ; y < transl ; y++){
-	for (x = 0 ; x < transl; x++)
-	  res[x][y][z] =  vect[x+transl][ y+transl][ z+transl];
-	for (x = transl ; x < dimension; x++)
-	  res[x][y][z] =  vect[x-transl][ y+transl][ z+transl];}
-      for (y = transl ; y < dimension ; y++){
-	for (x = 0 ; x < transl; x++)
-	  res[x][y][z] =  vect[x+transl][ y-transl][ z+transl];
-	for (x = transl ; x < dimension; x++)
-	  res[x][y][z] =  vect[x-transl][ y-transl][ z+transl];}
-    }
-    for (z = transl; z < dimension ; z++){
-      for (y = 0 ; y < transl ; y++){
-	for (x = 0 ; x < transl; x++)
-	  res[x][y][z] =  vect[x+transl][ y+transl][ z-transl];
-	for (x = transl ; x < dimension; x++)
-	  res[x][y][z] =  vect[x-transl][ y+transl][ z-transl];}
-      for (y = transl ; y < dimension ; y++){
-	for (x = 0 ; x < transl; x++)
-	  res[x][y][z] =  vect[x+transl][ y-transl][ z-transl];
-	for (x = transl ; x < dimension; x++)
-	  res[x][y][z] =  vect[x-transl][ y-transl][ z-transl];}
-     }
-   return(res);
-}
-float argument (float re, float im){
- if (re ==0 && im == 0 ) return 0;
- if (re>0)
-   return (atan(im/re));
- if (re<0){
-   if (im>=0)
-     return (atan(im/re)+M_PI);
-   else
-     return (atan(im/re)-M_PI);
-   }
- if (im>0)  // re == 0
-   return (M_PI/2);
- else  //im<0
-   return (-M_PI/2);
-}
-
-void reim_to_modarg (float *** re_mod, float *** im_arg, int l){
-  int x, y, z;
-  float a, b;
-  for (z = 0; z < l ; z++)
-    for (y = 0 ; y <  l ; y++)
-      for (x = 0 ; x < l; x++){
-      a = re_mod[x][y][z];
-      b = im_arg[x][y][z];
-      re_mod[x][y][z] = sqrt(a*a+b*b);
-      im_arg[x][y][z] = argument(a, b);
-      }
-}
-
-void modarg_to_reim(float *** re_mod, float *** im_arg, int l){
-  int x, y, z;
-  float a, b;
-  for (z = 0; z < l ; z++)
-    for (y = 0 ; y <  l ; y++)
-      for (x = 0 ; x < l; x++){
-      a = re_mod[x][y][z];
-      b = im_arg[x][y][z];
-      re_mod[x][y][z] = a*cos(b);
-      im_arg[x][y][z] = a*sin(b);
-      }
-}
-
-float Dist(int x,int y,int z,int len){
-  
-  return ((x-(float)len/2)*(x-(float)len/2)+(y-(float)len/2)*(y-(float)len/2)+(z-(float)len/2)*(z-(float)len/2));
- 
-}
-
+  \brief creates an MRI image with a 3D gaussian distribution
+  */
 MRI *MRI_Gaussian(int len, float std, int norm){
   int x, y, z;
   float val, sum =0;
@@ -5689,26 +5168,31 @@ MRI *MRI_Gaussian(int len, float std, int norm){
   for (y = 0 ; y <  len ; y++)
     for (x = 0 ; x < len; x++)
       for (z = 0 ; z <  len; z++){
-      val = exp( -(Dist(x,y,z,len))/(2*var) )/f;
+      val = exp( -(FFTdist(x,y,z,len))/(2*var) )/f;
       sum += val;
       MRIsetVoxVal(g, x, y, z, 0, val);
       }
-  for (y = 0 ; y <  len ; y++)
-    for (x = 0 ; x < len; x++)
-      for (z = 0 ; z <  len; z++)
-        MRIsetVoxVal(g, x, y, z, 0, MRIgetVoxVal(g, x, y, z, 0)/sum);
+  if (norm)
+    for (y = 0 ; y <  len ; y++)
+      for (x = 0 ; x < len; x++)
+        for (z = 0 ; z <  len; z++)
+          MRIsetVoxVal(g, x, y, z, 0, MRIgetVoxVal(g, x, y, z, 0)/sum);
 	
   return(g);
 }
-
-/*-----------------------------------------------------
-MRI_fft applies a FFT transform to the mri_src. The 
-result is in 2 frames : the first is the modulus (whose 
-quarters has been shiftes), the second is the argument
- ------------------------------------------------------*/
+/*!
+ \fn MRI* MRI_fft(MRI *mri_src, MRI* dst)
+ \param mri_src - the MRI source (spatial)
+ \param dst - the MRI destination (freq - 2 frames)
+ 
+  \brief MRI_fft applies a FFT transform to 
+  the mri_src. The result is in 2 frames : the 
+  first is the modulus (whose quarters has been 
+  shifted), the second is the argument
+*/
 MRI* MRI_fft(MRI *mri_src, MRI* dst){
   int dimension, w, h, d;
-  int x, y, z, k, j;
+  int x, y, z, k, j, f;
   float ***src, ***dst_r, ***dst_i;
   MRI *new_mri;
   
@@ -5717,29 +5201,62 @@ MRI* MRI_fft(MRI *mri_src, MRI* dst){
   d = mri_src->depth;
 
   //be sure it is a power of 2 size image
-  if (!IsPowerOf2(mri_src->depth) || !IsPowerOf2(mri_src->height) || !IsPowerOf2(mri_src->width)){ 
+  if (!FFTisPowerOf2(mri_src->depth) || !FFTisPowerOf2(mri_src->height) || !FFTisPowerOf2(mri_src->width)){ 
     if (d >= w )
       dimension = (d >= h ? d :h);
     else
       dimension = (h >= w ? h :w);
-    dimension = Pow2(Log2(dimension));
+    dimension = FFTpow2(FFTlog2(dimension));
     printf("The dimension is not a power of 2. Build a new image (size : %i)\n", dimension);
+    
+    new_mri = MRIallocSequence(dimension, dimension, dimension,MRI_FLOAT, mri_src->nframes);
+    MRIcopyHeader(mri_src, new_mri) ;
+  
+    for (f = 0 ; f < mri_src->nframes ; f++)
+      for (z = 0 ; z < dimension ; z++) 
+	for (y = 0 ; y < dimension ; y++) 
+	  for (x = 0 ; x < dimension ; x++){ 
+            if (z>=mri_src->depth ||  y >= mri_src->height || x >= mri_src->width)
+    	      MRIsetVoxVal(new_mri, x, y, z, f, 0);
+	    else
+    	      MRIsetVoxVal(new_mri, x, y, z, f, MRIgetVoxVal(mri_src, x, y, z, f));
+	    }
+    mri_src = new_mri;
   }
   else
     dimension = mri_src->depth;
-	
-  new_mri = MRIallocSequence(dimension, dimension, dimension,MRI_FLOAT, 1);
-  MRIcopyHeader(mri_src, new_mri) ;
-
-  for (z = 0 ; z < dimension ; z++) 
-    for (y = 0 ; y < dimension ; y++) 
-      for (x = 0 ; x < dimension ; x++){ 
-        if (z>=mri_src->depth ||  y >= mri_src->height || x >= mri_src->width)
-    	  MRIsetVoxVal(new_mri, x, y, z, 0, 0);
-	else
-    	  MRIsetVoxVal(new_mri, x, y, z, 0, MRIgetVoxVal(mri_src, x, y, z, 0));
-	}
-  mri_src = new_mri;
+    
+  if (dst == NULL){
+    dst = MRIallocSequence(mri_src->width,mri_src->height,mri_src->depth,
+                            MRI_FLOAT,2*mri_src->nframes);
+    if (dst == NULL){
+      printf("ERROR: MRI_fft: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopy(mri_src,dst);
+  }
+  else{
+    if (mri_src->width != dst->width){
+      printf("ERROR: MRI_fft: width dimension mismatch\n");
+      return(NULL);
+    }
+    if (mri_src->height != dst->height){
+      printf("ERROR: MRI_fft: height dimension mismatch\n");
+      return(NULL);
+    }
+    if (mri_src->depth != dst->depth){
+      printf("ERROR: MRI_fft: depth dimension mismatch\n");
+      return(NULL);
+    }
+    if (2*mri_src->nframes != dst->nframes){
+      printf("ERROR: MRI_fft: frames dimension mismatch\n");
+      return(NULL);
+    }
+    MRIcopyHeader(mri_src,dst);
+  }
+  
+  
+  
   
   src  = (float ***) malloc( dimension*sizeof(float** ) );
   dst_r = (float ***) malloc( dimension*sizeof(float** ) );
@@ -5755,68 +5272,101 @@ MRI* MRI_fft(MRI *mri_src, MRI* dst){
     }
   }
 
-  //Initialize the image and intermediate MRI
-  for (z = 0; z < dimension ; z++)
-    for (y = 0 ; y < dimension ; y++)
+  for (f=0; f<mri_src->nframes; f++){
+      //Initialize the image and intermediate MRI
+      for (z = 0; z < dimension ; z++)
+	for (y = 0 ; y < dimension ; y++)
+	  for (x = 0 ; x < dimension ; x++)
+	     src[x][y][z] = MRIgetVoxVal(mri_src,x, y, z, f);
+
+      //FFT   
+      if (f ==0)  printf("FFT : 1D -");
       for (x = 0 ; x < dimension ; x++)
-	 src[x][y][z] = MRIgetVoxVal(mri_src,x, y, z, 0);
-    
-  //FFT     
-  printf("FFT : 1D -");
-  for (x = 0 ; x < dimension ; x++)
-    for (y = 0 ; y < dimension ; y++)
-       RFFTforward(src[x][y], dimension,dst_r[x][y] ,dst_i[x][y] );
-  switch_with_z(dst_r, dimension, 0);
-  switch_with_z(dst_i, dimension, 0);
+	for (y = 0 ; y < dimension ; y++)
+	   RFFTforward(src[x][y], dimension,dst_r[x][y] ,dst_i[x][y] );
+      FFTswitch_with_z(dst_r, dimension, 0);
+      FFTswitch_with_z(dst_i, dimension, 0);
+      if (f ==0)  printf(" 2D -");
+      for (x = 0 ; x < dimension ; x++)
+	for (y = 0 ; y < dimension ; y++)
+	   CFFTforward(dst_r[x][y] ,dst_i[x][y], dimension);
+      FFTswitch_with_z(dst_r, dimension, 0);
+      FFTswitch_with_z(dst_i, dimension, 0);
+      FFTswitch_with_z(dst_r, dimension, 1);
+      FFTswitch_with_z(dst_i, dimension, 1);
+      if (f ==0)  printf(" 3D\n");
+      for (x = 0 ; x < dimension ; x++)
+	for (y = 0 ; y < dimension ; y++)
+	   CFFTforward(dst_r[x][y] ,dst_i[x][y], dimension);
+      FFTswitch_with_z(dst_r, dimension, 1);
+      FFTswitch_with_z(dst_i, dimension, 1);
+
+      // from (real, imaginary) to (mudulus, argument)
+      FFTreim_to_modarg ( dst_r, dst_i, dimension); 
+      dst_r = FFTinv_quarter(dst_r, dimension);      
+      //Write the result
+      for (z = 0; z < dimension ; z++)
+	for (y = 0 ; y <dimension ; y++)
+	  for (x = 0 ; x < dimension; x++){
+	      MRIsetVoxVal(dst ,x, y, z, 2*f  , dst_r[x][y][z]);	
+	      MRIsetVoxVal(dst ,x, y, z, 2*f+1, dst_i[x][y][z]);
+	    }
+  }
   free(src);
-  printf(" 2D -");
-  for (x = 0 ; x < dimension ; x++)
-    for (y = 0 ; y < dimension ; y++)
-       CFFTforward(dst_r[x][y] ,dst_i[x][y], dimension);
-  switch_with_z(dst_r, dimension, 0);
-  switch_with_z(dst_i, dimension, 0);
-  switch_with_z(dst_r, dimension, 1);
-  switch_with_z(dst_i, dimension, 1);
-  printf(" 3D\n");
-  for (x = 0 ; x < dimension ; x++)
-    for (y = 0 ; y < dimension ; y++)
-       CFFTforward(dst_r[x][y] ,dst_i[x][y], dimension);
-  switch_with_z(dst_r, dimension, 1);
-  switch_with_z(dst_i, dimension, 1);
-  
-  // from (real, imaginary) to (mudulus, argument)
-  reim_to_modarg ( dst_r, dst_i, dimension); 
-  dst_r = inv_quarter(dst_r, dimension);      
-
-  if(dst) MRIfree(&dst);
-  dst = MRIallocSequence( dimension, dimension, dimension,MRI_FLOAT, 2);
-  MRIcopyHeader(mri_src, dst) ;
-
-  //Write the result
-  for (z = 0; z < dimension ; z++)
-    for (y = 0 ; y <dimension ; y++)
-      for (x = 0 ; x < dimension; x++){
-	  MRIsetVoxVal(dst ,x, y, z, 0, dst_r[x][y][z]);	
-	  MRIsetVoxVal(dst ,x, y, z, 1, dst_i[x][y][z]);
-	}	
   free(dst_r); free(dst_i);
   return(dst);
 }
-
-/*-----------------------------------------------------
-MRI_ifft applies an inverse FFT to the mri_src : the modulus
-on the first frame and the argument in the second. 
-The output is a single frame MRI with the real inverse.
-w h d, specifies the output size, if different from the
-size of the image in the frequency domain.
- ------------------------------------------------------*/
+/*!
+ \fn MRI *MRI_ifft(MRI *src, MRI *dst, int w, int h, int d)
+ \param src - the MRI source (freq domain - 2 frames)
+ \param dst - the MRI destination (back into spatial domain)
+ \param w, h, d - dimension of the original image in the 
+ spatial domain
+ 
+  \brief MRI_ifft applies an inverse FFT to the mri_src : 
+  the modulus on the first frame and the argument in the 
+  second. The output is a single frame MRI with the real
+   inverse.w h d, specifies the output size, if different
+   from the size of the image in the frequency domain.
+*/
 
 MRI *MRI_ifft(MRI *src, MRI *dst, int w, int h, int d){
   int dimension;
-  int x, y, z, k, j;
+  int x, y, z, k, j, f;
   float ***dst_r, ***dst_i;
 
   dimension = src->width;
+
+   if(src->nframes%2 !=0)
+      printf("ERROR: MRI_ifft: frames of input\n");
+
+  if (dst == NULL){
+    dst = MRIallocSequence(w,h,d, MRI_FLOAT,src->nframes/2);
+    if (dst == NULL){
+      printf("ERROR: MRI_ifft: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(src,dst);
+  }
+  else{
+    if (w != dst->width){
+      printf("ERROR: MRI_ifft: width dimension mismatch\n");
+      return(NULL);
+    }
+    if (h != dst->height){
+      printf("ERROR: MRI_ifft: height dimension mismatch\n");
+      return(NULL);
+    }
+    if (d != dst->depth){
+      printf("ERROR: MRI_ifft: depth dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->nframes != 2*dst->nframes){
+      printf("ERROR: MRI_ifft: frames dimension mismatch\n");
+      return(NULL);
+    }
+    MRIcopyHeader(src,dst);
+  }
 
   dst_r = (float ***) malloc( dimension*sizeof(float** ) );
   dst_i = (float ***) malloc( dimension*sizeof(float** ) );
@@ -5828,144 +5378,231 @@ MRI *MRI_ifft(MRI *src, MRI *dst, int w, int h, int d){
     dst_i[k][j] = (float *) malloc( dimension*sizeof(float ) );
     }
   }
+ 
+  for (f=0; f<src->nframes/2; f++){
+      //Initialize the image and intermediate MRI
+      for (z = 0; z < dimension ; z++)
+	for (y = 0 ; y < dimension ; y++)
+	  for (x = 0 ; x < dimension ; x++){
+	     dst_r[x][y][z] = MRIgetVoxVal(src,x, y, z, 2*f  );
+	     dst_i[x][y][z] = MRIgetVoxVal(src,x, y, z, 2*f+1);
+	  }
 
-  //Initialize the image and intermediate MRI
-  for (z = 0; z < dimension ; z++)
-    for (y = 0 ; y < dimension ; y++)
-      for (x = 0 ; x < dimension ; x++){
-	 dst_r[x][y][z] = MRIgetVoxVal(src,x, y, z, 0);
-	 dst_i[x][y][z] = MRIgetVoxVal(src,x, y, z, 1);
-      }
-    
-  // back to (real, imaginary)
-  dst_r = inv_quarter(dst_r, dimension);
-  modarg_to_reim (dst_r,  dst_i,dimension);
+      // back to (real, imaginary)
+      dst_r = FFTinv_quarter(dst_r, dimension);
+      FFTmodarg_to_reim (dst_r,  dst_i,dimension);
 
-   //FFT inverse
-  printf("inverse FFT : 1D -");
-  for (x = 0 ; x < dimension ; x++)
-    for (y = 0 ; y < dimension ; y++)
-       CFFTbackward( dst_r[x][y] ,dst_i[x][y], dimension);
-  switch_with_z(dst_r, dimension, 0);
-  switch_with_z(dst_i, dimension, 0);
-  printf(" 2D -");
-  for (x = 0 ; x < dimension ; x++)
-    for (y = 0 ; y < dimension ; y++)
-       CFFTbackward(dst_r[x][y] ,dst_i[x][y], dimension);
-  switch_with_z(dst_r, dimension, 0);
-  switch_with_z(dst_i, dimension, 0);
-  switch_with_z(dst_r, dimension, 1);
-  switch_with_z(dst_i, dimension, 1);
-  printf(" 3D\n");
-  for (x = 0 ; x < dimension ; x++)
-    for (y = 0 ; y < dimension ; y++)
-       CFFTbackward(dst_r[x][y] ,dst_i[x][y], dimension);
-  switch_with_z(dst_r, dimension, 1);
-  switch_with_z(dst_i, dimension, 1);
+       //FFT inverse
+      if (f ==0)  printf("inverse FFT : 1D -");
+      for (x = 0 ; x < dimension ; x++)
+	for (y = 0 ; y < dimension ; y++)
+	   CFFTbackward( dst_r[x][y] ,dst_i[x][y], dimension);
+      FFTswitch_with_z(dst_r, dimension, 0);
+      FFTswitch_with_z(dst_i, dimension, 0);
+      if (f ==0)  printf(" 2D -");
+      for (x = 0 ; x < dimension ; x++)
+	for (y = 0 ; y < dimension ; y++)
+	   CFFTbackward(dst_r[x][y] ,dst_i[x][y], dimension);
+      FFTswitch_with_z(dst_r, dimension, 0);
+      FFTswitch_with_z(dst_i, dimension, 0);
+      FFTswitch_with_z(dst_r, dimension, 1);
+      FFTswitch_with_z(dst_i, dimension, 1);
+      if (f ==0)  printf(" 3D\n");
+      for (x = 0 ; x < dimension ; x++)
+	for (y = 0 ; y < dimension ; y++)
+	   CFFTbackward(dst_r[x][y] ,dst_i[x][y], dimension);
+      FFTswitch_with_z(dst_r, dimension, 1);
+      FFTswitch_with_z(dst_i, dimension, 1);
 
-  if (dst) MRIfree(&dst);
-  if (w==0 || h==0 || d==0)
-    w=h=d=dimension;
-  dst = MRIallocSequence( w, h, d, MRI_FLOAT, 1);
-  MRIcopyHeader(src, dst) ;
-
-  //Write the result
-  for (z = 0; z < d ; z++)
-    for (y = 0 ; y < h ; y++)
-      for (x = 0 ; x < w; x++)
-	  MRIsetVoxVal(dst ,x, y, z, 0, dst_r[x][y][z]);	
-  free(dst_r); free(dst_i);
-
-  return(dst);
-}
-
-/*-----------------------------------------------------
-MRI_fft_smooth uses the fft tool, then apply a smoothing
-filter : multiply the shifted modulus by a gaussian MRI, 
-and then computes the inverse FFT.
-The scale option allows to re-scale the intensity
- ------------------------------------------------------*/
-
-MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm){
-  MRI *dst1, *dstr_sm, *g; 
-  int x, y, z;
-  dst1 = MRI_fft(src, NULL);
-  int dimension = dst1->width;
-  printf("Gaussian\n");
-  g = MRI_Gaussian(dimension, dimension*0.16/std, norm);	 
-  dstr_sm = MRImultiply(dst1, g, NULL); //only frame 0
-  MRIfree(&g);
-  dst1 = MRIcopyFrame(dstr_sm, dst1, 0, 0);
-  MRIfree(&dstr_sm);
-  dst = MRI_ifft(dst1, NULL, src->width, src->height, src->depth);
-  MRIfree(&dst1);
-
- if(MRImeanFrameThresh(dst, 0, .02)>0){ 
-   printf("re-scale\n");
-  dst = MRIscalarMul(dst, NULL, MRImeanFrameThresh(src, 0, 0.5)/ MRImeanFrameThresh(dst, 0, .02)) ;
-  for (z = 0; z < src->depth ; z++)
-    for (y = 0 ; y < src->height ; y++)
-      for (x = 0 ; x < src->width; x++)
-      	MRIsetVoxVal(dst,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
+      //Write the result
+      for (z = 0; z < d ; z++)
+	for (y = 0 ; y < h ; y++)
+	  for (x = 0 ; x < w; x++)
+	      MRIsetVoxVal(dst ,x, y, z, f, dst_r[x][y][z]);	       
   }
+  
+  free(dst_r); free(dst_i);
   return(dst);
+}
+/*!
+ \fn MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm)
+ \param src - the MRI source (spatial domain)
+ \param dst - the MRI destination (spatial domain)
+ \param std - standard deviation of the gaussian filter 
+ \param norm - normalizes the gaussian field
+ 
+  \brief MRI_fft_smooth computes the fft transform of src, then 
+  apply a gaussian smoothing filter in the freq domain: ie multiply 
+  the shifted modulus by a gaussian MRI, and then computes the 
+  inverse FFT. The result is in dst.
+*/
+MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm){
+  MRI *src_fft = NULL, *fft_sm = NULL, *g; 
+  MRI *g_fft, *temp;
+  int dimension, f;
+  
+  if (dst == NULL){
+    dst = MRIallocSequence(src->width,src->height,src->depth,MRI_FLOAT,src->nframes);
+    if (dst == NULL){
+      printf("ERROR: MRI_fft_gaussian: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopy(src,dst);
+  }
+  else{
+    if (src->width != dst->width){
+      printf("ERROR: MRI_fft_gaussian: width dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->height != dst->height){
+      printf("ERROR: MRI_fft_gaussian: height dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->depth != dst->depth){
+      printf("ERROR: MRI_fft_gaussian: depth dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->nframes != dst->nframes){
+      printf("ERROR: MRI_fft_gaussian: frames dimension mismatch\n");
+      return(NULL);
+    }
+    if (src != dst) MRIcopy(src,dst);
+  }
+  
+  src_fft = MRI_fft(src, src_fft);
+  dimension = src_fft->width;
+  
+  printf("Gaussian "); 
+  g = MRI_Gaussian(dimension, std, norm);
+  g_fft = MRI_fft(g, NULL);
+  MRIfree(&g);
+  
+  temp = MRIallocSequence(dimension,dimension,dimension,MRI_FLOAT, 1);
+  for (f = 0 ; f < src->nframes ; f++){
+    temp = MRIcopyFrame(src_fft, temp, 2*f, 0);
+    fft_sm = MRImultiply(temp, g_fft, NULL); //only frame 0
+    src_fft = MRIcopyFrame(fft_sm, src_fft, 0, 2*f);
+  }
+  MRI_ifft(src_fft, dst, src->width, src->height, src->depth);
+  MRIfree(&src_fft);
 
+  return(dst);
 }
 
-/*-----------------------------------------------------
-MRI_fft_lowpass uses the fft tool, then apply a smoothing
-filter : keep only "percent" percent of the lowest freqs
- ------------------------------------------------------*/
+/*!
+ \fn MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent)
+ \param src - the MRI source (spatial domain)
+ \param dst - the MRI destination (spatial domain)
+ \param percent - parameter of the lowpass filter
+ 
+  \brief MRI_fft_smooth computes the fft transform of src, then 
+  apply a lowpass filter in the freq domain: ie keep only 
+  "percent" percent of the lowest freqs, and then computes the 
+  inverse FFT. The result is in dst.
+*/
 
 MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent){
-  MRI *dst1; 
-  int x, y, z;
-  dst1 = MRI_fft(src, NULL);
-  float threshold = (float)percent*dst1->depth/100;
-  for (z = 0; z < dst1->depth ; z++)
-    for (y = 0 ; y < dst1->height ; y++)
-      for (x = 0 ; x < dst1->width; x++){
-	   if (Dist(x, y, z, dst1->depth)> threshold*threshold)
-      	     MRIsetVoxVal(dst1,x,y,z, 0, 0);	 
-      }
-            
-  dst = MRI_ifft(dst1, NULL, src->width, src->height, src->depth);
-  MRIfree(&dst1);
- if(MRImeanFrameThresh(dst, 0, .02)>0){ 
-  dst = MRIscalarMul(dst, NULL, MRImeanFrameThresh(src, 0, 0.5)/ MRImeanFrameThresh(dst, 0, .02)) ;
-  for (z = 0; z < src->depth ; z++)
-    for (y = 0 ; y < src->height ; y++)
-      for (x = 0 ; x < src->width; x++)
-      	MRIsetVoxVal(dst,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
+  MRI *src_fft; 
+  int x, y, z, f;
+  
+   if (dst == NULL){
+    dst = MRIallocSequence(src->width,src->height,src->depth,MRI_FLOAT,src->nframes);
+    if (dst == NULL){
+      printf("ERROR: MRI_fft_lowpass: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopy(src,dst);
   }
+  else{
+    if (src->width != dst->width){
+      printf("ERROR: MRI_fft_lowpass: width dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->height != dst->height){
+      printf("ERROR: MRI_fft_lowpass: height dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->depth != dst->depth){
+      printf("ERROR: MRI_fft_lowpass: depth dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->nframes != dst->nframes){
+      printf("ERROR: MRI_fft_lowpass: frames dimension mismatch\n");
+      return(NULL);
+    }
+    if (src != dst) MRIcopy(src,dst);
+  }
+  
+  src_fft = MRI_fft(src, NULL);
+  float threshold = (float)percent*src_fft->depth/100;
+  
+  for (f = 0 ; f < src->nframes ; f++)
+    for (z = 0; z < src_fft->depth ; z++)
+      for (y = 0 ; y < src_fft->height ; y++)
+	for (x = 0 ; x < src_fft->width; x++){
+	     if (FFTdist(x, y, z, src_fft->depth)> threshold*threshold)
+      	       MRIsetVoxVal(src_fft,x,y,z, 2*f, 0);	 
+	}
+	
+  MRI_ifft(src_fft, dst , src->width, src->height, src->depth);
+  MRIfree(&src_fft);
   return(dst);
 }
 
-/*-----------------------------------------------------
-MRI_fft_highpass uses the fft tool, then apply a smoothing
-filter : remove the "percent" percent of the lowest freqs
- ------------------------------------------------------*/
-
+/*!
+ \fn MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent)
+ \param src - the MRI source (spatial domain)
+ \param dst - the MRI destination (spatial domain)
+ \param percent - parameter of the highpass filter
+ 
+  \brief MRI_fft_smooth computes the fft transform of src, then 
+  apply a lowpass filter in the freq domain: ie remove the 
+  "percent" percent of the lowest freqs, and then computes the 
+  inverse FFT. The result is in dst.
+*/
 MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent){
-  MRI *dst1; 
-  int x, y, z;
-  dst1 = MRI_fft(src, NULL);
-  float threshold = (float)percent*dst1->depth/100;
-  for (z = 0; z < dst1->depth ; z++)
-    for (y = 0 ; y < dst1->height ; y++)
-      for (x = 0 ; x < dst1->width; x++){
-	   if (Dist(x, y, z, dst1->depth)< threshold*threshold)
-      	     MRIsetVoxVal(dst1,x,y,z, 0, 0);	 
-      }
-  dst = MRI_ifft(dst1, NULL, src->width, src->height, src->depth);
-  MRIfree(&dst1);
- if(MRImeanFrameThresh(dst, 0, .02)>0){ 
-  dst = MRIscalarMul(dst, NULL, MRImeanFrameThresh(src, 0, 0.5)/ MRImeanFrameThresh(dst, 0, .02)) ;
-  for (z = 0; z < src->depth ; z++)
-    for (y = 0 ; y < src->height ; y++)
-      for (x = 0 ; x < src->width; x++)
-      	MRIsetVoxVal(dst,x,y,z, 0, (int)MRIgetVoxVal(dst, x, y, z, 0));	 
- }
+  MRI *src_fft; 
+  int x, y, z, f;
+  
+   if (dst == NULL){
+    dst = MRIallocSequence(src->width,src->height,src->depth,MRI_FLOAT,src->nframes);
+    if (dst == NULL){
+      printf("ERROR: MRI_fft_highpass: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopy(src,dst);
+  }
+  else{
+    if (src->width != dst->width){
+      printf("ERROR: MRI_fft_highpass: width dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->height != dst->height){
+      printf("ERROR: MRI_fft_highpass: height dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->depth != dst->depth){
+      printf("ERROR: MRI_fft_highpass: depth dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->nframes != dst->nframes){
+      printf("ERROR: MRI_fft_highpass: frames dimension mismatch\n");
+      return(NULL);
+    }
+    if (src != dst) MRIcopy(src,dst);
+  }
+    src_fft = MRI_fft(src, NULL);
+  float threshold = (float)percent*src_fft->depth/100;
+  
+  for (f = 0 ; f < src->nframes ; f++)
+    for (z = 0; z < src_fft->depth ; z++)
+      for (y = 0 ; y < src_fft->height ; y++)
+	for (x = 0 ; x < src_fft->width; x++){
+	     if (FFTdist(x, y, z, src_fft->depth)< threshold*threshold)
+      	       MRIsetVoxVal(src_fft,x,y,z, 2*f, 0);	 
+	}
+	
+  MRI_ifft(src_fft, dst , src->width, src->height, src->depth);
+  MRIfree(&src_fft);
   return(dst);
 }
-
