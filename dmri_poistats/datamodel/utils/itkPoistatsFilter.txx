@@ -407,7 +407,10 @@ PoistatsFilter<TInputImage, TOutputImage>
   
   image->SetRegions( outputRegion );
   image->SetOrigin( outputOrigin );
-  image->SetSpacing( outputSpacing );  
+  image->SetSpacing( outputSpacing );
+  
+  // set the cosine directions
+  image->SetDirection( this->GetInput()->GetDirection() );
   
   image->Allocate();
 
@@ -1287,6 +1290,7 @@ PoistatsFilter<TInputImage, TOutputImage>
   if( this->m_PoistatsModel->IsUsingPathInitialization() ) {
     this->m_Replicas->InitializePathsUsingEigenVectors();
   } else {
+
     const int nInitialPoints = this->GetNumberOfInitialPoints();
     const int spatialDimensions = 3;
     
