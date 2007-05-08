@@ -102,6 +102,7 @@ rebuild_gca_atlas.csh \
 recon-all \
 recon-all-dev \
 recon-all.2005 \
+recon-all.makefile \
 reg-feat2anat \
 register_child \
 register.csh \

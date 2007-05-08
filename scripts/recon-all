@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/04 23:05:32 $
-#    $Revision: 1.91 $
+#    $Date: 2007/05/08 20:04:43 $
+#    $Revision: 1.92 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.91 2007/05/04 23:05:32 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.92 2007/05/08 20:04:43 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -124,6 +124,7 @@ set fwhmlist = ( 0 5 10 15 20 25 ) # see DoQdecCache
 set target = fsaverage # see DoQdecCache 
 
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
+set DoMakefile = 0; # if 1, then run make -f recon-all.makefile
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -232,6 +233,15 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+if ($DoMakefile) then
+  setenv MAKE_SUBJECT $subjid
+  set make_flags=()
+  if ( ! $RunIt) set make_flags=( $make_flags -n )
+  if ($DoQdecCache) set make_flags=( $make_flags qcache )
+  make -f $FREESURFER_HOME/bin/recon-all.makefile ${make_flags}
+  exit ($status)
+endif
 
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -3178,6 +3188,15 @@ while( $#argv != 0 )
       set DoVnoMatchCheck = 1;
       breaksw;
 
+    case "-make"
+      set DoMakefile = 1;
+      breaksw;
+
+    case "-make-qcache"
+      set DoMakefile = 1;
+      set DoQdecCache = 1;
+      breaksw;
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -3496,7 +3515,8 @@ check_params:
      ! $DoSurfReg  && ! $DoContraSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
      ! $DoMorphRGB && ! $DoFinalSurfs && ! $DoContraSurfRegWithinSubject &&\
      ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
-     ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoMaskBFS) then
+     ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoMaskBFS && \
+     ! $DoMakefile) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
