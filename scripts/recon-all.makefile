@@ -94,6 +94,8 @@ QSPHERE_NOFIX_LH=$(LH).qsphere.nofix
 QSPHERE_NOFIX_RH=$(RH).qsphere.nofix
 ORIG_LH=$(LH).orig
 ORIG_RH=$(RH).orig
+QSPHERE_LH=$(LH).qsphere
+QSPHERE_RH=$(RH).qsphere
 INFLATED_LH=$(LH).inflated
 INFLATED_RH=$(RH).inflated
 WHITE_LH=$(LH).white
@@ -119,6 +121,8 @@ AUTORECON2_SURF=$(ORIG_NOFIX_LH) $(ORIG_NOFIX_RH) \
 	$(SMOOTHWM_NOFIX_LH) $(SMOOTHWM_NOFIX_RH) \
 	$(INFLATED_NOFIX_LH) $(INFLATED_NOFIX_RH) \
 	$(QSPHERE_NOFIX_LH) $(QSPHERE_NOFIX_RH) \
+	$(ORIG_LH) $(ORIG_RH) \
+	$(QSPHERE_LH) $(QSPHERE_RH) \
 	$(WHITE_LH) $(WHITE_RH) \
 	$(PIAL_LH) $(PIAL_RH) \
 	$(THICKNESS_LH) $(THICKNESS_RH) \
@@ -163,6 +167,12 @@ $(ORIG_LH): $(ORIG_NOFIX_LH) $(INFLATED_NOFIX_LH) $(QSPHERE_NOFIX_LH)
 	recon-all -s $(subj) -hemi lh -fix
 
 $(ORIG_RH): $(ORIG_NOFIX_RH) $(INFLATED_NOFIX_RH) $(QSPHERE_NOFIX_RH)
+	recon-all -s $(subj) -hemi rh -fix
+
+$(QSPHERE_LH): $(ORIG_NOFIX_LH) $(INFLATED_NOFIX_LH) $(QSPHERE_NOFIX_LH)
+	recon-all -s $(subj) -hemi lh -fix
+
+$(QSPHERE_RH): $(ORIG_NOFIX_RH) $(INFLATED_NOFIX_RH) $(QSPHERE_NOFIX_RH)
 	recon-all -s $(subj) -hemi rh -fix
 
 $(WHITE_LH): $(BRAIN) $(ORIG_LH)
@@ -604,5 +614,5 @@ $(JACOBIAN_WHITE_FWHM25_RH): $(JACOBIAN_WHITE_RH)
 
 #-------------------------------------------------------------------------
 clean:
-	rm -if $(AUTORECON1) $(AUTORECON2) $(AUTORECON3) $(QCACHE)
+	rm -f $(AUTORECON1) $(AUTORECON2) $(AUTORECON3) $(QCACHE)
 
