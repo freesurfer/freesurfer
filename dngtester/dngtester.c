@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/08 04:11:50 $
- *    $Revision: 1.34 $
+ *    $Date: 2007/05/08 04:56:44 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,6 +64,7 @@
 #include "randomfields.h"
 #include "mri2.h"
 #include "annotation.h"
+#include "mrisutils.h"
 
 // setenv SUBJECTS_DIR /space/greve/1/users/greve/subjects
 // /autofs/space/greve_001/users/greve/dev/trunk/dngtester
@@ -118,14 +119,25 @@ int main(int argc, char **argv) {
   int *nunits;
   char *parcnames[10];
   COLOR_TABLE *ct ;
+  LABEL *lcortex;
 
   subject = argv[1];
   hemi = argv[2];
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  sprintf(tmpstr,"%s/%s/surf/%s.sphere",SUBJECTS_DIR,subject,hemi);
+  sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
   printf("\nReading lh white surface \n %s\n",tmpstr);
   surf = MRISread(tmpstr);
   if(!surf) exit(1);
+
+  sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
+  mri = MRIread(tmpstr);
+  if(!mri) exit(1);
+
+  lcortex = MRIScortexLabel(surf, mri) ;
+  sprintf(tmpstr,"%s/%s/label/%s.%s.label",SUBJECTS_DIR, subject,hemi,"cortex");
+  printf("writing cortex label to %s...\n", tmpstr) ;
+  LabelWrite(lcortex, tmpstr) ;
+  exit(1);
 
   sprintf(tmpstr,"%s/%s/label/%s.aparc.annot",SUBJECTS_DIR,subject,hemi);
   printf("Loading annotations from %s\n",tmpstr);
