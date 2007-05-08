@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/16 01:02:21 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/05/08 04:54:26 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,5 +50,7 @@ int MRISscale(MRIS *mris, double scale);
 int MRISseg2annot(MRIS *mris, MRI *surfseg, COLOR_TABLE *ctab);
 MRI *MRISannotIndex2Seg(MRIS *mris);
 double MRISvolumeInSurf(MRIS *mris);
+
+LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg);
 
 #endif

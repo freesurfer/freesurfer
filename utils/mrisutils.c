@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/16 01:05:02 $
- *    $Revision: 1.23 $
+ *    $Date: 2007/05/08 04:54:27 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1763,4 +1763,86 @@ double MRISvolumeInSurf(MRIS *mris)
 
   total_volume /= 3.0;
   return(total_volume);
+}
+
+LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg) {
+  LABEL    *lcortex ;
+  int      vno, label, nvox, total_vox, adjacent ;
+  VERTEX   *v ;
+  double   xv, yv, zv, val, xs, ys, zs, d ;
+
+  printf("generating cortex label...\n") ;
+  MRISsetMarks(mris, 1) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no )
+      DiagBreak() ;
+
+    // don't sample inside here due to thin parahippocampal wm.
+    // The other interior labels
+    // will already have been ripped (and hence not marked)
+    for (d = 0 ; d <= 2 ; d += 0.5) {
+      xs = v->x + d*v->nx ;
+      ys = v->y + d*v->ny ;
+      zs = v->z + d*v->nz ;
+      if (mris->useRealRAS)
+        MRIworldToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+      else
+        MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+      label = nint(val) ;
+      if (label == Left_Lateral_Ventricle ||
+          label == Right_Lateral_Ventricle ||
+          label == Third_Ventricle ||
+          label == Left_Accumbens_area ||
+          label == Right_Accumbens_area ||
+          label == Left_Caudate ||
+          label == Right_Caudate ||
+          IS_CC(label) || 
+          label == Left_Pallidum ||
+          label == Right_Pallidum ||
+          IS_HIPPO(label) ||
+          IS_AMYGDALA(label) ||
+          IS_LAT_VENT(label) ||
+          label == Third_Ventricle ||
+          label == Right_Thalamus_Proper ||
+          label == Left_Thalamus_Proper ||
+          label == Brain_Stem ||
+          label == Left_VentralDC ||
+          label == Right_VentralDC)
+      {
+        if (label == Left_Putamen || label == Right_Putamen)
+          DiagBreak() ;
+        v->marked = 0 ;
+      }
+    }
+    // putamen can be adjacent to insula in aseg, but shouldn't be inferior
+    /* now check for putamen superior to this point. If there's a lot
+       of it there, then we are in basal forebrain and not cortex. */
+    for (adjacent = total_vox = nvox = 0, d = 0 ; 
+         d <= 10 ; d += 0.5, total_vox++) 
+    {
+      xs = v->x ; ys = v->y ;
+      zs = v->z + d ;  // sample superiorly
+      if (mris->useRealRAS)
+        MRIworldToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+      else
+        MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+      label = nint(val) ;
+      if (label == Left_Putamen || label == Right_Putamen)
+      {
+        nvox++ ;
+        if (d < 1.5)
+          adjacent = 1 ;
+      }
+    }
+    if (adjacent &&
+        (double)nvox/(double)total_vox > 0.5) // more than 50% putamen
+      v->marked = 0 ;
+  }
+  lcortex = LabelFromMarkedSurface(mris) ;
+  return(lcortex) ;
 }
