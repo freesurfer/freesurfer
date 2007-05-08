@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/02 06:08:57 $
- *    $Revision: 1.33 $
+ *    $Date: 2007/05/08 04:11:50 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -109,50 +109,76 @@ MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters, int newi
 COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name);
 int MRISmercator(MRIS *surf);
 
+
 /*----------------------------------------*/
 int main(int argc, char **argv) {
   int err,area32p,area32v,superiorfrontal,medialorbitofrontal;
   int rostralanteriorcingulate, rostralmiddlefrontal;
   int index;
   int *nunits;
+  char *parcnames[10];
   COLOR_TABLE *ct ;
 
-  mri = MRIread(argv[1]);
-  if(!mri) exit(1);
-
-  printf("Computing AR2\n");
-  mri2 = fMRIspatialAR2(mri, NULL, NULL);
-  MRIwrite(mri2,"ar2.mgh");
-
-  printf("Computing AR1\n");
-  mri2 = fMRIspatialAR1(mri, NULL, NULL);
-  MRIwrite(mri2,"ar1.mgh");
-
-  exit(1);
-
-
-  mri2 = fMRIcovariance(mri, 0, -1, NULL, NULL);
-  if(!mri2) exit(1);
-  MRIwrite(mri2,"var.mgh");
-
-  mri2 = fMRIcovariance(mri, 1, -1, NULL, NULL);
-  if(!mri2) exit(1);
-  MRIwrite(mri2,"covar1.mgh");
-
-  mri2 = fMRItemporalAR1(mri, -1, NULL,NULL);
-  MRIwrite(mri2,"ar1.mgh");
-
-  exit(0);
-  
-
-
+  subject = argv[1];
+  hemi = argv[2];
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  subject = "tl-wm";
-  hemi = "rh";
   sprintf(tmpstr,"%s/%s/surf/%s.sphere",SUBJECTS_DIR,subject,hemi);
   printf("\nReading lh white surface \n %s\n",tmpstr);
   surf = MRISread(tmpstr);
   if(!surf) exit(1);
+
+  sprintf(tmpstr,"%s/%s/label/%s.aparc.annot",SUBJECTS_DIR,subject,hemi);
+  printf("Loading annotations from %s\n",tmpstr);
+  err = MRISreadAnnotation(surf, tmpstr);
+  if(err) exit(1);
+
+  parcnames[0] = "caudalmiddlefrontal";
+  parcnames[1] = "superiorfrontal";
+  parcnames[2] = "rostralmiddlefrontal";
+  parcnames[3] = "parsopercularis";
+  parcnames[4] = "parstriangularis";
+  parcnames[5] = "parsorbitalis";
+  parcnames[6] = "lateralorbitofrontal";
+  parcnames[7] = "medialorbitofrontal";
+  parcnames[8] = "paracentral";
+  parcnames[9] = "frontalpole";
+  MRISmergeAnnotations(surf, 10, parcnames, "frontal");
+
+  parcnames[0] = "superiortemporal";
+  parcnames[1] = "entorhinal";
+  parcnames[2] = "temporalpole";
+  parcnames[3] = "fusiform";
+  parcnames[4] = "inferiortemporal";
+  parcnames[5] = "middletemporal";
+  parcnames[6] = "parahippocampal";
+  parcnames[7] = "bankssts";
+  parcnames[8] = "transversetemporal";
+  MRISmergeAnnotations(surf, 9, parcnames, "temporal");
+
+  parcnames[0] = "supramarginal";
+  parcnames[1] = "inferiorparietal";
+  parcnames[2] = "superiorparietal";
+  parcnames[3] = "precuneus";
+  MRISmergeAnnotations(surf, 4, parcnames, "parietal");
+
+  parcnames[0] = "pericalcarine";
+  parcnames[1] = "cuneus";
+  parcnames[2] = "lingual";
+  parcnames[3] = "lateraloccipital";
+  MRISmergeAnnotations(surf, 4, parcnames, "occipital");
+
+  parcnames[0] = "isthmuscingulate";  
+  parcnames[1] = "posteriorcingulate";
+  parcnames[2] = "caudalanteriorcingulate";
+  parcnames[3] = "rostralanteriorcingulate";
+  MRISmergeAnnotations(surf, 4, parcnames, "cingulate");
+
+
+  sprintf(tmpstr,"%s.lobes.annot",hemi);
+  MRISwriteAnnotation(surf, tmpstr);
+
+
+  return(1);
 
   if(1){
   MRISmercator(surf);
@@ -161,11 +187,6 @@ int main(int argc, char **argv) {
   exit(0);
   }
 
-
-  sprintf(tmpstr,"%s/%s/label/%s.aparc.annot",SUBJECTS_DIR,subject,hemi);
-  printf("Loading annotations from %s\n",tmpstr);
-  err = MRISreadAnnotation(surf, tmpstr);
-  if(err) exit(1);
 
   ct = CTABaddEntry(surf->ct,"area32p");
   CTABfree(&surf->ct);
@@ -636,4 +657,3 @@ int MRISmercator(MRIS *surf)
 
   return(0);
 }
-
