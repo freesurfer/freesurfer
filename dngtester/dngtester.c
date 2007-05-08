@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/08 04:56:44 $
- *    $Revision: 1.35 $
+ *    $Date: 2007/05/08 21:20:04 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -137,7 +137,6 @@ int main(int argc, char **argv) {
   sprintf(tmpstr,"%s/%s/label/%s.%s.label",SUBJECTS_DIR, subject,hemi,"cortex");
   printf("writing cortex label to %s...\n", tmpstr) ;
   LabelWrite(lcortex, tmpstr) ;
-  exit(1);
 
   sprintf(tmpstr,"%s/%s/label/%s.aparc.annot",SUBJECTS_DIR,subject,hemi);
   printf("Loading annotations from %s\n",tmpstr);
