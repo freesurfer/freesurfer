@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/08 20:04:43 $
-#    $Revision: 1.92 $
+#    $Date: 2007/05/08 20:26:58 $
+#    $Revision: 1.93 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.92 2007/05/08 20:04:43 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.93 2007/05/08 20:26:58 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -124,7 +124,8 @@ set fwhmlist = ( 0 5 10 15 20 25 ) # see DoQdecCache
 set target = fsaverage # see DoQdecCache 
 
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
-set DoMakefile = 0; # if 1, then run make -f recon-all.makefile
+set DoMakefile = 0; # if 1, run make -f recon-all.makefile $(MakefileTarget)
+set MakefileTarget = () # argument to recon-all -make 
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -236,9 +237,8 @@ check_params_return:
 
 if ($DoMakefile) then
   setenv MAKE_SUBJECT $subjid
-  set make_flags=()
+  set make_flags=( $MakefileTarget )
   if ( ! $RunIt) set make_flags=( $make_flags -n )
-  if ($DoQdecCache) set make_flags=( $make_flags qcache )
   make -f $FREESURFER_HOME/bin/recon-all.makefile ${make_flags}
   exit ($status)
 endif
@@ -3189,12 +3189,9 @@ while( $#argv != 0 )
       breaksw;
 
     case "-make"
+      if ( $#argv < 1) goto arg1err;
       set DoMakefile = 1;
-      breaksw;
-
-    case "-make-qcache"
-      set DoMakefile = 1;
-      set DoQdecCache = 1;
+      set MakefileTarget = $argv[1]; shift;
       breaksw;
 
     default:
