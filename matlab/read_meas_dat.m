@@ -1,12 +1,19 @@
-function varargout = read_meas_dat(filename)
+function varargout = read_meas_dat(filename, options)
 %READ_MEAS_DAT  read in VB13A-style "meas.dat"
 %
-% data = read_meas_dat(filename)
+% data = read_meas_dat(filename,<options>)
 %
 % [data, phascor1d, phascor2d, noise] = read_meas_dat(filename)
 %
 % [data, phascor1d, phascor2d, noise, patrefscan, patrefscan_phascor] = read_meas_dat(filename)
 %
+% options is a structure which allows changing of some of the defaults:
+%   options.ReverseLines - set to 0 or 1 (default is 1)
+%   options.ApplyFFTScaleFactors - set to 0 or 1 (default is 0)
+%   options.CanonicalReorderCoilChannels - set to 0 or 1 (default 1)
+% If a field does not exist, then the default is used.
+% options is optional :).
+
 
 % (based on the FAMOUS "read_mdh_adc.m" by anders, then mukund, then andre.)
 
@@ -30,10 +37,10 @@ function varargout = read_meas_dat(filename)
 %                - (PHASESTABSCAN)
 
 % jonathan polimeni <jonnyreb@padkeemao.nmr.mgh.harvard.edu>, 10/04/2006
-% $Id: read_meas_dat.m,v 1.1 2007/05/03 00:41:30 greve Exp $
+% $Id: read_meas_dat.m,v 1.2 2007/05/08 22:10:23 greve Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.1 $';
+  VERSION = '$Revision: 1.2 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
 
@@ -58,6 +65,23 @@ function varargout = read_meas_dat(filename)
   DO__CANONICAL_REORDER_COIL_CHANNELS = 1;
   DO__APPLY_FFT_SCALEFACTORS = 0;
 
+  % If the options variable is passsed, then override
+  if ( exist('options','var') ) 
+    if(isfield(options,'ReverseLines'))
+      DO__REVERSE_LINES = options.ReverseLines;
+      fprintf('DO__REVERSE_LINES %d\n',DO__REVERSE_LINES);
+    end
+    if(isfield(options,'CanonicalReorderCoilChannels'))
+      DO__CANONICAL_REORDER_COIL_CHANNELS = options.CanonicalReorderCoilChannels;
+      fprintf('DO__CANONICAL_REORDER_COIL_CHANNELS %d\n',DO__CANONICAL_REORDER_COIL_CHANNELS);
+    end
+    if(isfield(options,'ApplyFFTScaleFactors'))
+      DO__APPLY_FFT_SCALEFACTORS = options.ApplyFFTScaleFactors;
+      fprintf('DO__APPLY_FFT_SCALEFACTORS %d\n',DO__APPLY_FFT_SCALEFACTORS);
+    end
+  end
+  
+  
   t0 = clock;
 
   [fp, errstr] = fopen(filename, 'r', 'l');
