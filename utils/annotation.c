@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/06 06:11:52 $
- *    $Revision: 1.17 $
+ *    $Date: 2007/05/08 03:47:42 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -599,3 +599,86 @@ MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits) {
   return(nunits-1) ;
 }
 
+/*!
+  \fn int MRISmergeAnnotations(MRIS *mris, int nparcs, char **parcnames, char *newparcname)
+  \param mris - surface structure
+  \param nparcs - number of parcs to merge
+  \param parcnames - names of parcs to merge
+  \param newparcname - name of new parcellation
+  \brief Merges parcellations into a single parcellation with the new name. The color
+  will be that of the first parcellation in the list of names.
+  Example:
+    parcnames[0] = "caudalmiddlefrontal";
+    parcnames[1] = "rostralmiddlefrontal";
+    MRISmergeAnnotations(surf, 2, parcnames, "frontal");
+*/
+int MRISmergeAnnotations(MRIS *mris, int nparcs, char **parcnames, char *newparcname)
+{
+  int err, nthparc, parcid, nnewparcs, nthnewparc, m, match;
+  int vtxno, *annotlist;
+  COLOR_TABLE *ct ;
+  VERTEX *vtx;
+  
+  if(nparcs == 1){
+    printf("ERROR: nparcs must be > 1\n");
+    return(1);
+  }
+
+  // Make sure each parc name is in the parcellation
+  // Get the list of annotation numbers too
+  annotlist = (int *) calloc(nparcs,sizeof(int));
+  for(m = 0; m < nparcs; m++){
+    err = CTABfindName(mris->ct, parcnames[m], &parcid);
+    if(err){
+      printf("ERROR: cannot find %s in annotation\n",parcnames[m]);
+      return(1);
+    }
+    CTABannotationAtIndex(mris->ct, parcid, &(annotlist[m])) ;
+  }
+
+  // Create a new color table
+  // The merged parc gets the same color as the first listed parc
+  nnewparcs = mris->ct->nentries - nparcs + 1;
+  ct = CTABalloc(nnewparcs);
+  nthnewparc = 0;
+  for(nthparc = 0; nthparc < mris->ct->nentries; nthparc++){
+
+    // This checks whether the nth parc is in the list to merge
+    match = 0;
+    for(m = 0; m < nparcs; m++){
+      if(!strcmp(mris->ct->entries[nthparc]->name,parcnames[m])){
+	match = 1;
+	break;
+      }
+    }
+    if(match && m != 0) continue;
+    // Gets here if it is not in the list, or if it is in the list
+    // and it is the first in the list
+
+    // Copy colors to the new color table
+    *(ct->entries[nthnewparc]) = *(mris->ct->entries[nthparc]);
+
+    // If it is the first in the list, change its name
+    if(m == 0)  sprintf(ct->entries[nthnewparc]->name,"%s",newparcname);
+
+    nthnewparc ++;
+  }
+
+  // Now change the vertex annotation values of the parcs 
+  // in the list to that of the 1st list member
+  for(vtxno = 0; vtxno < mris->nvertices; vtxno++){
+    vtx = &(mris->vertices[vtxno]);
+    for(m = 0; m < nparcs; m++){
+      if(mris->vertices[vtxno].annotation == annotlist[m]){
+	mris->vertices[vtxno].annotation = annotlist[0];
+	break;
+      }
+    }
+  }
+
+  CTABfree(&mris->ct) ;
+  mris->ct = ct ;
+  free(annotlist);
+
+  return(NO_ERROR);
+}
