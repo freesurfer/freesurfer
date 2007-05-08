@@ -15,9 +15,9 @@ function fn = fast_fnorm(f,fdim,demean)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:30 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2007/05/08 02:44:41 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -40,7 +40,7 @@ if(nargin < 1 | nargin > 3)
 end
 
 if(~exist('fdim','var')) fdim = []; end
-if(isempty('fdim')) fdim = 1; end
+if(isempty(fdim)) fdim = 1; end
 
 if(~exist('demean','var')) demean = []; end
 if(isempty('demean')) demean = 1; end
