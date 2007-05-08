@@ -30,8 +30,10 @@ EVENTS_SRCS = \
 UTILS_SRCS = \
 	datamodel/utils/itkPoistatsFilter.txx \
 	datamodel/utils/itkPoistatsFilter.h \
+	datamodel/utils/InitializePath.cxx \
 	datamodel/utils/InitializePath.h \
-	datamodel/utils/InitializePath.cxx
+	datamodel/utils/EigenVectorInitPathStrategy.cxx \
+	datamodel/utils/EigenVectorInitPathStrategy.h
 
 BSPLINES_SRCS = \
 	datamodel/utils/bspline/itkBSplineKernelFunction.txx \
@@ -86,8 +88,10 @@ dmri_poistats_CXXFLAGS =
 dmri_initialize_path_SOURCES = \
 	$(UI_SRCS) \
 	$(DATAMODEL_SRCS) \
-	datamodel/utils/InitializePath.h \
 	datamodel/utils/InitializePath.cxx \
+	datamodel/utils/InitializePath.h \
+	datamodel/utils/EigenVectorInitPathStrategy.cxx \
+	datamodel/utils/EigenVectorInitPathStrategy.h \
   dmri_initialize_path.cxx 
 dmri_initialize_path_LDADD = $(addprefix $(top_srcdir)/, $(LIBS_MGH) )
 dmri_initialize_path_LDFLAGS = $(OS_LDFLAGS)

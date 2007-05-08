@@ -17,67 +17,31 @@ public:
 
   InitializePath();
   InitializePath( PoistatsModel* model );
-  ~InitializePath();
+  virtual ~InitializePath();
   
-  /**
-   * The eigenvectors that will be used in determining an initialization.
-   */
-  void SetEigenVectors( MRI *eigenVectors );
-
   /**
    * The seed volume that has the seed regions to be connected.
    */
-  void SetSeedVolume( MRI *volume );
+  virtual void SetSeedVolume( MRI *volume );
   
   /**
    * These are the initial seed values in the seed volume that are to be 
    * connected.
    */
-  void SetSeedValues( std::vector< int > *values );
-
-  /**
-   * Calculate and cache the gradient volumes.  This will save time when
-   * creating multiple initial paths for replicas.
-   */
-  void CacheGradientVolumes();
+  virtual void SetSeedValues( std::vector< int > *values );
 
   /**
    * This does the work of finding the initial path.
    */
-  void CalculateInitialPath();
+  virtual void CalculateInitialPath() = 0;
   
   /**
    * Returns the intial path that was found.
    */
   itk::Array2D< double >* GetInitialPath();  
+  
+protected:
 
-private:
-
-  PoistatsModel *m_PoistatsModel;
-
-  MRI *m_EigenVectors;
-
-  MRI *m_SeedVolume;
-  
-  std::vector< int > *m_SeedValues; 
-  
-  /** Initial path in itk 2d array form */
-  itk::Array2D< double > *m_InitialPath;
-  
-  long m_RandomTimeSeed;
-  
-  /**
-   * Vector of gradient volumes.  The gradients will be one less than the
-   * number of seed values.  The will be calculated from the distances
-   * transform of the second seed value, third, etc.
-   **/
-  std::vector< MRI * > m_GradientVolumes;
-  
-  /**
-   * Gets the distance transform for label.
-   */
-  MRI* GetDistanceVolume( const int label ); 
-  
   /**
    * Get a random seed point at index location at a label.
    */
@@ -101,32 +65,26 @@ private:
   void FreeVector( std::vector< double* > v );
   
   void CopyPathToOutput( std::vector< double* > path );
-  
-  /**
-   * Gets the gradient and returns it in oGradient.
-   */
-  void GetGradient( MRI* gradientsVol, int *index, double *oGradient );
-
-  /**
-   * Gets the eigenvector at index and returns it in oVector.
-   */
-  void GetEigenVector( int *index, double *oVector );
-  
-  /**
-   * Determines if the eigenvector should be flipped (because they're symmetric)
-   * when using it to find the next position along the initial path.
-   */
-  bool ShouldFlipEigenVector( const double* const previousPoint, const double* const currentPoint, const double* const eigenVector );
-  
-  /**
-   * Deallocates memory of the gradient volumes.
-   */
-  void DeleteGradientVolumes();
-  
+    
   /**
    * Changes the point if it is out of bounds to be at the extent of the volume.
    */
   void EnsureWithinBounds( double* point );
+
+  PoistatsModel *m_PoistatsModel;
+
+  MRI *m_SeedVolume;
+  
+  std::vector< int > *m_SeedValues; 
+  
+  /** Initial path in itk 2d array form */
+  itk::Array2D< double > *m_InitialPath;
+  
+  long m_RandomTimeSeed;
+
+private:
+
+    
 };
 
 #endif

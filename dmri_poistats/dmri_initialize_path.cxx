@@ -9,7 +9,7 @@ extern "C"
 #include "ui/CommandParser.h"
 #include "ui/FreeSurferExecutable.h"
 
-#include "datamodel/utils/InitializePath.h"
+#include "datamodel/utils/EigenVectorInitPathStrategy.h"
 
 /** This is needed by the freesurfer utils library */
 char *Progname;
@@ -109,19 +109,6 @@ InitializePathExe::InitializePathExe( int inArgs, char ** iaArgs ) :
 }
 
 InitializePathExe::~InitializePathExe() {  
-
-  if( m_EigenVectorFileName != NULL ) {
-    delete m_EigenVectorFileName; 
-  }
-  
-  if( m_SeedVolumeFileName != NULL ) {
-    delete m_SeedVolumeFileName; 
-  }
-  
-  if( m_OutputDir != NULL ) {
-    delete m_OutputDir; 
-  }
-  
 }
 
 bool
@@ -150,31 +137,31 @@ InitializePathExe::FillArguments() {
 void
 InitializePathExe::Run() {
   
-  InitializePath initializePath;
-  
+  EigenVectorInitPathStrategy *eigenPath = new EigenVectorInitPathStrategy();
   // read eigen vectors
   MRI* eigenVectors = FreeSurferExecutable::ReadMRI( m_EigenVectorFileName );
-  initializePath.SetEigenVectors( eigenVectors );
+  eigenPath->SetEigenVectors( eigenVectors );
+
+  InitializePath *initializePath = eigenPath;
   
   // read seed volume
   MRI* seedVolume = FreeSurferExecutable::ReadMRI( m_SeedVolumeFileName );
-  initializePath.SetSeedVolume( seedVolume );
+  initializePath->SetSeedVolume( seedVolume );
   
   // set seed values to connect
-  initializePath.SetSeedValues( &m_SeedValues );
+  initializePath->SetSeedValues( &m_SeedValues );
   
   // now that all the inputs are set, calculate the initial path
-  initializePath.CalculateInitialPath();
+  initializePath->CalculateInitialPath();
   
   // get the resulting pathway
-  itk::Array2D< double > *path = initializePath.GetInitialPath();
+  itk::Array2D< double > *path = initializePath->GetInitialPath();
   
   // save the pathway to the output directory
   const std::string pathFileName( (std::string)m_OutputDir + 
     (std::string)"/InitialPath.txt" );
   WriteData( pathFileName, path->data_array(), path->rows(), path->cols() );
 
-  // TODO: for some reason this throws and error, glibc detected *** free(): invalid pointer: 
   if( eigenVectors != NULL ) {
     MRIfree( &eigenVectors );
   }
@@ -183,6 +170,7 @@ InitializePathExe::Run() {
     MRIfree( &seedVolume );
   }
   
+  delete initializePath;
 }
 
 int main( int argc, char ** argv ) {

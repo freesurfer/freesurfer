@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "dmri_poistats/datamodel/utils/InitializePath.h"
+#include "dmri_poistats/datamodel/utils/EigenVectorInitPathStrategy.h"
 
 PoistatsReplicas::PoistatsReplicas() 
 {
@@ -342,15 +342,16 @@ void PoistatsReplicas::InitializePathsUsingEigenVectors() {
   const int nEndPoints = 2;
   const int nTotalControlPoints = GetNumberOfControlPoints() + nEndPoints;
   
-  InitializePath initializePath( m_PoistatsModel );
+  InitializePath *initializePath;
+  initializePath = new EigenVectorInitPathStrategy( m_PoistatsModel );
 
   // for each replica create a different initial path  
   for( int cReplica=0; cReplica<m_NumberOfReplicas; cReplica++ ) {
     // calculate a new path
-    initializePath.CalculateInitialPath();
+    initializePath->CalculateInitialPath();
     
     // get the new path
-    MatrixPointer initialPath = initializePath.GetInitialPath();
+    MatrixPointer initialPath = initializePath->GetInitialPath();
     
     // rethread the path to the base path
     MatrixPointer base = this->RethreadPath( initialPath, nTotalControlPoints );    
@@ -375,6 +376,7 @@ void PoistatsReplicas::InitializePathsUsingEigenVectors() {
   SetCurrentTrialPaths( &zeroes );
   SetBestTrialPaths( &zeroes );  
   
+  delete initializePath;
 }
 
 void PoistatsReplicas::SetNumberOfControlPoints( const int nPoints ) {
