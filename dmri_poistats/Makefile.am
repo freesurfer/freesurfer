@@ -33,7 +33,9 @@ UTILS_SRCS = \
 	datamodel/utils/InitializePath.cxx \
 	datamodel/utils/InitializePath.h \
 	datamodel/utils/EigenVectorInitPathStrategy.cxx \
-	datamodel/utils/EigenVectorInitPathStrategy.h
+	datamodel/utils/EigenVectorInitPathStrategy.h \
+	datamodel/utils/FieldLineInitPathStrategy.cxx \
+	datamodel/utils/FieldLineInitPathStrategy.h	
 
 BSPLINES_SRCS = \
 	datamodel/utils/bspline/itkBSplineKernelFunction.txx \
