@@ -37,10 +37,10 @@ function varargout = read_meas_dat(filename, options)
 %                - (PHASESTABSCAN)
 
 % jonathan polimeni <jonnyreb@padkeemao.nmr.mgh.harvard.edu>, 10/04/2006
-% $Id: read_meas_dat.m,v 1.2 2007/05/08 22:10:23 greve Exp $
+% $Id: read_meas_dat.m,v 1.3 2007/05/09 17:44:33 jonnyreb Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.2 $';
+  VERSION = '$Revision: 1.3 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
 
@@ -62,7 +62,7 @@ function varargout = read_meas_dat(filename, options)
   DO__MDH_SAVE = 0;
 
   DO__REVERSE_LINES = 1;
-  DO__CANONICAL_REORDER_COIL_CHANNELS = 1;
+  DO__CANONICAL_REORDER_COIL_CHANNELS = 0;
   DO__APPLY_FFT_SCALEFACTORS = 0;
 
   % If the options variable is passsed, then override
@@ -545,16 +545,26 @@ function varargout = read_meas_dat(filename, options)
       %%% CATEGORY #2A: phase correction reference line for iPAT ACS lines reference scan
       if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASCOR) ),
 
-        % TODO: fix the patrefscan_phascor line accumulation to match that
-        % of the data phascor lines.
-
         if ( ~FLAG_patrefscan_phascor ),
           disp('PATREFSCAN_PHASCOR detected.');
           FLAG_patrefscan_phascor = 1;
           ref_line = 0;
         end;
-        patrefscan_phascor(...
-            :,   end+1, ...     % only center line and center partition collected
+
+        % reset reference scan line counter at the beginning of each slice
+        if ( (mdh(idx).ushChannelId == 0) && ...
+             read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_FIRSTSCANINSLICE) ),
+          ref_line = 0;
+        end;
+
+
+        % increment reference scan line counter after all channels' data is in
+        if ( mdh(idx).ushChannelId == 0 ),
+          ref_line = ref_line + 1;
+        end;
+	
+	patrefscan_phascor(...
+            :,   ref_line, ...     % only center line and center partition collected
             pos(03), pos(04), pos(05), pos(06), pos(07), pos(08),       1, ...
             pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
 
@@ -842,7 +852,7 @@ function varargout = read_meas_dat(filename, options)
   % sparsity = 1 - density;
   redundancy = 1 / density;
 
-  if ( redundancy > 1 ),
+  if ( redundancy > 1 && density < 0.99 ),
     disp(sprintf('data sparsity detected---potential redundancy factor = [[ %5.1fX ]]', ...
                  redundancy));
   end;
