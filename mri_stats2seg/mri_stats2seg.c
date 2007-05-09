@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.7 $
+ *    $Author: greve $
+ *    $Date: 2007/05/09 18:18:58 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -94,7 +94,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_stats2seg.c,v 1.7 2006/12/29 02:09:08 nicks Exp $";
+static char vcid[] = "$Id: mri_stats2seg.c,v 1.8 2007/05/09 18:18:58 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -121,6 +121,7 @@ MRIS *mris;
 char tmpstr[2000];
 int DoSue, DoDavid, log10flag, datcol1;
 
+int DoStrip4 = 1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -237,6 +238,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--no-log10")) log10flag = 0;
+    else if (!strcasecmp(option, "--no-strip4")) DoStrip4 = 0;
 
     else if (!strcasecmp(option, "--stat")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -377,6 +379,7 @@ int LoadDavidsTable(char *fname, int **pplutindex, double **pplog10p) {
   double p;
   int n,segindex,nitems;
   char *item;
+  extern int DoStrip4;
 
   fsenv = FSENVgetenv();
   fp = fopen(fname,"r");
@@ -394,8 +397,10 @@ int LoadDavidsTable(char *fname, int **pplutindex, double **pplog10p) {
       item = gdfGetNthItemFromString(tmpstr,-1); // get last item
       sscanf(item,"%s",segname);
       free(item);
-      // strip off _vol
-      for (n=strlen(segname)-4;n<strlen(segname);n++) segname[n]='\0';
+      if(DoStrip4){
+	// strip off _vol
+	for (n=strlen(segname)-4;n<strlen(segname);n++) segname[n]='\0';
+      }
       err = CTABfindName(fsenv->ctab, segname, &segindex);
       if (segindex < 0) {
         printf("ERROR: reading %s, cannot find %s in color table\n",
