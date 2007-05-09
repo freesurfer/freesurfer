@@ -14,8 +14,8 @@
  * Original Author: Xaio Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/09 22:05:23 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/05/09 23:09:58 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -73,7 +73,7 @@ static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
 static char vcid[] =
-  "$Id: mris_thickness_diff.c,v 1.9 2007/05/09 22:05:23 nicks Exp $";
+  "$Id: mris_thickness_diff.c,v 1.10 2007/05/09 23:09:58 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_thickness_diff.c,v 1.9 2007/05/09 22:05:23 nicks Exp $",
+           "$Id: mris_thickness_diff.c,v 1.10 2007/05/09 23:09:58 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1131,11 +1131,33 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
     vertex = &Mesh1->vertices[index];
     nnindex = MHTfindClosestVertexNo(SrcHash,Mesh2,vertex,&dmin);
 
-    /* annIndex gives the closest vertex on
-       mris_template to the vertex #index of mris */
+    /* nnIndex gives the closest vertex on
+       mris_template to the vertex #index of mris 
+       sanity-check it: */
+    if (nnindex >= Mesh2->nvertices)
+    {
+      printf("\nERROR: ComputeDifferenceNew: MHTfindClosestVertexNo "
+             "returned nnindex=%d, which is >= nvertices=%d\n", 
+             nnindex, Mesh2->nvertices);
+      exit(1);
+    }
+    if (nnindex < 0)
+    {
+      printf("\nERROR: ComputeDifferenceNew: MHTfindClosestVertexNo "
+             "returned nnindex=%d, which is invalid\n", nnindex);
+      exit(1);
+    }
 
     /* Now need to find the closest face in order
-       to perform linear interpolation */
+       to perform linear interpolation,
+       but first, a sanity-check: */
+    if (Mesh2->vertices[nnindex].num <= 0) 
+    {
+      printf("\nERROR: ComputeDifferenceNew: \n"
+             "(Mesh2->vertices[nnindex].num=%d <= 0)\n", 
+             Mesh2->vertices[nnindex].num);
+      exit(1);
+    }
     distance = 1e30;
     closestface = 0;
     for (k=0; k < Mesh2->vertices[nnindex].num; k++)
@@ -1293,6 +1315,13 @@ void FindClosest(MRI_SURFACE *TrueMesh,
     v = &(EstMesh->vertices[index]);
 
     annIndex = MHTfindClosestVertexNo(SrcHash, TrueMesh,v,&dmin);
+
+    if (annIndex < 0)
+    {
+      printf("\nERROR:  FindClosest: MHTfindClosestVertexNo "
+             "returned annIndex=%d, which is invalid!\n", annIndex);
+      exit(1);
+    }
 
     closest[index].x = TrueMesh->vertices[annIndex].x;
     closest[index].y = TrueMesh->vertices[annIndex].y;
