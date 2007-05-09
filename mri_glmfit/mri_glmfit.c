@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/27 21:53:25 $
- *    $Revision: 1.120 $
+ *    $Date: 2007/05/09 02:05:27 $
+ *    $Revision: 1.121 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -492,10 +492,11 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
+MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.120 2007/04/27 21:53:25 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.121 2007/05/09 02:05:27 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -607,6 +608,8 @@ char *surfname = "white";
 int SubSample = 0;
 int SubSampStart = 0;
 int SubSampDelta = 0;
+
+int DoDistance = 0;
 
 int DoTemporalAR1 = 0;
 
@@ -726,6 +729,12 @@ int main(int argc, char **argv) {
     }
     mritmp = fMRIsubSample(mriglm->y, SubSampStart, SubSampDelta, -1, NULL);
     if(mritmp == NULL) exit(1);
+    MRIfree(&mriglm->y);
+    mriglm->y = mritmp;
+  }
+
+  if(DoDistance){
+    mritmp = fMRIdistance(mriglm->y, NULL);
     MRIfree(&mriglm->y);
     mriglm->y = mritmp;
   }
@@ -1610,6 +1619,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
     else if (!strcasecmp(option, "--qa")) useqa = 1;
     else if (!strcasecmp(option, "--no-mask-smooth")) UseMaskWithSmoothing = 0;
+    else if (!strcasecmp(option, "--distance")) DoDistance = 1;
     else if (!strcasecmp(option, "--asl")) useasl = 1;
     else if (!strcasecmp(option, "--asl-rev")){
       useasl = 1;
@@ -2352,6 +2362,7 @@ static void dump_options(FILE *fp) {
     fprintf(fp,"SubSampStart %d\n",SubSampStart);
     fprintf(fp,"SubSampDelta %d\n",SubSampDelta);
   }
+  if(DoDistance)  fprintf(fp,"DoDistance %d\n",DoDistance);
 
   return;
 }
@@ -2525,4 +2536,48 @@ MRI *fMRIsubSample(MRI *f, int Start, int Delta, int Stop, MRI *fsub)
   }
 
   return(fsub);
+}
+
+
+// Treats each frame triple as an xyz to compute distance
+MRI *fMRIdistance(MRI *mri, MRI *mask)
+{
+  MRI *d;
+  double dx,dy,dz,v;
+  int c,r,s,f,fd;
+
+  d = MRIallocSequence(mri->width, mri->height, mri->depth,
+		       MRI_FLOAT, mri->nframes/3);
+  if(d==NULL) {
+    printf("ERROR: fMRIdistance: could not alloc\n");
+    return(NULL);
+  }
+  MRIcopyHeader(mri,d);
+
+  printf("Computing Distance\n");
+
+  for (c=0; c < mri->width; c++)  {
+    for (r=0; r < mri->height; r++) {
+      for (s=0; s < mri->depth; s++) {
+	if(mask){
+	  if(MRIgetVoxVal(mask, c, r, s, 0) < 0.5){
+	    MRIFseq_vox(d,c,r,s,0) = 0;
+	    continue;
+	  }
+	}
+	fd = 0;
+	for(f = 0; f < mri->nframes; f+=3){
+	  dx = MRIgetVoxVal(mri, c, r, s, f+0);
+	  dy = MRIgetVoxVal(mri, c, r, s, f+1);
+	  dz = MRIgetVoxVal(mri, c, r, s, f+2);
+	  v = sqrt(dx*dx + dy*dy + dz*dz);
+	  //printf("%5d %2d %2d %3d   %3d   %g %g %g  %g\n",c,r,s,f,fd,dx,dy,dz,v);
+	  MRIsetVoxVal(d, c, r, s, fd, v);
+	  fd++;
+	}
+      }
+    }
+  }
+  //MRIwrite(d,"dist.mgh");
+  return(d);
 }
