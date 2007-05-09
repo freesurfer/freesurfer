@@ -17,33 +17,7 @@ PoistatsReplicas::PoistatsReplicas( PoistatsModel *model, const int nReplicas )
   this->SetNumberOfReplicas( nReplicas );
   
   m_InitialPoints = NULL;
-  
-  // set up cubic spline filter
-  m_CubicSplineFilter = CubicSplineFilterType::New();
-
-  OutputImageType::SizeType size;  
-//  size.Fill( 11 );
-  size.Fill( 128 );
-  m_CubicSplineFilter->SetSize( size );
-  
-  OutputImageType::PointType origin;
-  origin.Fill( 0.0 );
-  m_CubicSplineFilter->SetOrigin( origin );
-  
-  OutputImageType::SpacingType spacing;
-  spacing.Fill( 0.01 );
-
-  m_CubicSplineFilter->SetSpacing( spacing );
-
-  m_CubicSplineFilter->SetSplineOrder( 3 );    
-  
-  // TODO: try to adjust the levels to speed up the algorithm
-//  m_CubicSplineFilter->SetNumberOfLevels( 20 );
-//  m_CubicSplineFilter->SetNumberOfLevels( 15 );
-  m_CubicSplineFilter->SetNumberOfLevels( 8 );
-  
-  m_CubicSplineFilter->SetGenerateOutputImage( false );
-  
+    
 }
 
 PoistatsReplicas::~PoistatsReplicas() {
@@ -314,15 +288,15 @@ void PoistatsReplicas::SetInitialPoints( const MatrixPointer points ) {
   m_InitialPoints = new MatrixType( *points );
   
   const int nEndPoints = 2;
-  const int nTotalControlPoints = GetNumberOfControlPoints() + nEndPoints;
+  const int nTotalControlPoints = m_PoistatsModel->GetNumberOfControlPoints() + nEndPoints;
 
-  MatrixPointer originalPath = this->RethreadPath( 
+  MatrixPointer originalPath = m_PoistatsModel->RethreadPath( 
     m_InitialPoints, nTotalControlPoints );
   
   SetBasePaths( originalPath );
   
   MatrixPointer previousPath = 
-    this->RethreadPath( originalPath, GetNumberOfSteps() );    
+    m_PoistatsModel->RethreadPath( originalPath, GetNumberOfSteps() );    
 
   SetPreviousTrialPaths( previousPath );
   
@@ -340,7 +314,7 @@ void PoistatsReplicas::SetInitialPoints( const MatrixPointer points ) {
 void PoistatsReplicas::InitializePathsUsingEigenVectors() {
   
   const int nEndPoints = 2;
-  const int nTotalControlPoints = GetNumberOfControlPoints() + nEndPoints;
+  const int nTotalControlPoints = m_PoistatsModel->GetNumberOfControlPoints() + nEndPoints;
   
   InitializePath *initializePath;
   initializePath = new EigenVectorInitPathStrategy( m_PoistatsModel );
@@ -354,12 +328,12 @@ void PoistatsReplicas::InitializePathsUsingEigenVectors() {
     MatrixPointer initialPath = initializePath->GetInitialPath();
     
     // rethread the path to the base path
-    MatrixPointer base = this->RethreadPath( initialPath, nTotalControlPoints );    
+    MatrixPointer base = m_PoistatsModel->RethreadPath( initialPath, nTotalControlPoints );    
     m_Replicas[ cReplica ].SetBasePath( base );
     delete base;
     
     // rethread to the previous path
-    MatrixPointer previous = this->RethreadPath( initialPath, 
+    MatrixPointer previous = m_PoistatsModel->RethreadPath( initialPath, 
       GetNumberOfSteps() );
     m_Replicas[ cReplica ].SetPreviousTrialPath( previous );    
     delete previous;
@@ -377,14 +351,6 @@ void PoistatsReplicas::InitializePathsUsingEigenVectors() {
   SetBestTrialPaths( &zeroes );  
   
   delete initializePath;
-}
-
-void PoistatsReplicas::SetNumberOfControlPoints( const int nPoints ) {
-  m_NumberOfControlPoints = nPoints;
-}
-
-int PoistatsReplicas::GetNumberOfControlPoints() {
-  return m_NumberOfControlPoints;
 }
 
 void PoistatsReplicas::SetPreviousTrialPaths( const MatrixPointer path ) {
@@ -475,7 +441,7 @@ void PoistatsReplicas::SpaceTemperaturesEvenly(
   if( this->GetNumberOfReplicas() > 1 ) {
 
     ArrayType temperatures( this->GetNumberOfReplicas() );  
-    PoistatsReplica::SpaceEvenly( &temperatures, floorTemp, ceilingTemp );
+    PoistatsModel::SpaceEvenly( &temperatures, floorTemp, ceilingTemp );
     for( int cReplica=0; cReplica<this->GetNumberOfReplicas(); cReplica++ ) {
       const double temperature = temperatures[ cReplica ];
       this->SetTemperature( cReplica, temperature );
@@ -501,7 +467,7 @@ void PoistatsReplicas::GetPerturbedBasePath( const int replica,
 void PoistatsReplicas::PerturbCurrentTrialPath( const int replica, 
   MatrixPointer lowTrialPath, const int nSteps ) {
     
-  MatrixPointer perturbedTrialPath = this->RethreadPath( lowTrialPath, nSteps );
+  MatrixPointer perturbedTrialPath = m_PoistatsModel->RethreadPath( lowTrialPath, nSteps );
   
   m_Replicas[ replica ].SetCurrentTrialPath( perturbedTrialPath );
   
@@ -519,121 +485,4 @@ void PoistatsReplicas::FoundBestPath(
 
 void PoistatsReplicas::CopyCurrentToPreviousTrialPath( const int replica ) {
   m_Replicas[ replica ].CopyCurrentToPreviousTrialPath();
-}
-
-/**
- * Returns the path with evenly spaced sample points.
- */
-PoistatsReplicas::MatrixPointer
-PoistatsReplicas::RethreadPath(
-  MatrixPointer originalPath, const int nNewSamples ) {
-    
-  // create evenly spaced parametric points for the original path
-  const double gridFloor = 0.0;
-  const double gridCeiling = 1.0;
-  ArrayType originalPathGrid( originalPath->rows() );
-  PoistatsReplica::SpaceEvenly( &originalPathGrid, gridFloor, gridCeiling );
-  
-  // interploate the spline
-  MatrixPointer rethreadedPath = this->CubicSplineInterpolation( 
-    originalPath, &originalPathGrid, nNewSamples );
-
-  // calculate the path length of the new path at each point
-  ArrayType magnitude( nNewSamples-1 );
-  PoistatsReplica::CalculatePathMagnitude( rethreadedPath, &magnitude );
-
-  // create an array of the total path lengths as you progress along the path
-  ArrayType cumulativeSum( nNewSamples );
-  PoistatsReplica::CalculateCumulativeSum( &magnitude, &cumulativeSum );
-
-  // we want to calculate a new spline that is evenly spaces in image
-  // coordinates.  We do this by calculating a new spline based on the old one
-  // and setting the parametric coordinates based on the path length
-  ArrayType normalizedCumulativeSum( nNewSamples );
-  double pathLength = cumulativeSum[ cumulativeSum.size() - 1 ];
-    
-  for( unsigned int cRow=0; cRow<cumulativeSum.size(); cRow++ ) {
-    normalizedCumulativeSum[ cRow ] = cumulativeSum[ cRow ] / pathLength;
-  }
-
-  MatrixPointer reRethreadedPath = this->CubicSplineInterpolation( 
-    rethreadedPath, &normalizedCumulativeSum, nNewSamples );
-
-  delete rethreadedPath;
-  rethreadedPath = NULL;
-
-  return reRethreadedPath;
-}
-
-/**
- * Returns the cubic spline interpolation given a 3D path and parametric values
- * for that path.
- */
-PoistatsReplicas::MatrixPointer
-PoistatsReplicas::CubicSplineInterpolation( 
-  MatrixPointer originalPath, ArrayPointer originalPathGrid, 
-  const int nNewSamples ) {
-    
-  const int spatialDimension = 3;
-
-  PointSetType::Pointer pointSet = PointSetType::New();
-  for( unsigned int cRow=0; cRow<originalPath->rows(); cRow++ ) {
-    unsigned long i = pointSet->GetNumberOfPoints();
-
-    PointSetType::PointType point;
-    point[ 0 ]  = ( *originalPathGrid )[ cRow ];
-    
-    pointSet->SetPoint(i, point);        
-    
-    VectorType V;
-    
-    for( int cColumn = 0; cColumn<spatialDimension; cColumn++ ) {
-      V[ cColumn ] = ( *originalPath )[ cRow ][ cColumn ];
-    }
-
-    pointSet->SetPointData( i, V );
-  }
-
-  CubicSplineFilterType::ArrayType nControlPoints;
-
-  // this is the number of control points that the spline will use to
-  // interpolate -- not completely related to the number of control points that
-  // poistats uses for the monte carlo part of the algorithm.  Sometimes with 
-  // too few points, it still can't find a good fit and fails, so we're 
-  // increasing it a bit.
-  const int nTotalControlPoints = this->GetNumberOfControlPoints() + 3;
-  nControlPoints.Fill( nTotalControlPoints );
-  m_CubicSplineFilter->SetNumberOfControlPoints( nControlPoints );
-
-  m_CubicSplineFilter->SetInput( pointSet );
-
-  m_CubicSplineFilter->Update();
-
-  MatrixPointer rethreadedPath = 
-    new MatrixType( nNewSamples, spatialDimension );
-
-  const double resampledStepSize = 1.0 / 
-    ( static_cast< double >( nNewSamples ) - 1.0 );
-        
-  // evaluate at regular steps
-  for( int cRow=0; cRow<nNewSamples; cRow++ ) {
-    
-    double t = static_cast< double >( cRow ) * resampledStepSize;
-    const double maxT = 1.0;
-    if( t > maxT ) {
-      t = maxT;
-    }
-    
-    PointSetType::PointType point;
-    point[ 0 ] = t;
-    VectorType V; 
-    m_CubicSplineFilter->EvaluateAtPoint( point, V );
-    
-    for( int cColumn = 0; cColumn<spatialDimension; cColumn++ ) {
-      ( *rethreadedPath )[ cRow ][ cColumn ] = V[ cColumn ];
-    }
-    
-  }
-    
-  return rethreadedPath;  
 }

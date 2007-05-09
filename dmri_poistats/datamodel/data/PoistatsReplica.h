@@ -48,21 +48,7 @@ public:
 
   MatrixPointer GetPreviousTrialPath();
   void SetPreviousTrialPath( MatrixPointer path );
-  
-    
-  static void SpaceEvenly( ArrayPointer outputArray, const double floor, 
-    const double ceiling );
-    
-  static void CalculatePathMagnitude( 
-    MatrixPointer path, ArrayPointer magnitude );
-
-  static void CalculateCumulativeSum(
-    ArrayPointer inputArray, ArrayPointer cumulativeSum );    
-    
-  static void CalculatePathVectors( MatrixPointer path, MatrixPointer vectors );
-
-  static void CalculateMagnitude( MatrixPointer path, ArrayPointer magnitude );
-  
+        
   MatrixPointer GetCurrentTrialPath();
   
   void SetCurrentTrialPath( MatrixPointer path);

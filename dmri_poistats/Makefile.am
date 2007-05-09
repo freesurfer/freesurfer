@@ -88,14 +88,17 @@ dmri_poistats_CXXFLAGS =
 
 # initialize poistats path stuff
 dmri_initialize_path_SOURCES = \
-	$(UI_SRCS) \
-	$(DATAMODEL_SRCS) \
-	datamodel/utils/InitializePath.cxx \
-	datamodel/utils/InitializePath.h \
-	datamodel/utils/EigenVectorInitPathStrategy.cxx \
-	datamodel/utils/EigenVectorInitPathStrategy.h \
+  $(UI_SRCS) \
+  $(BSPLINES_SRCS) \
+  $(DATAMODEL_SRCS) \
+  $(UTILS_SRCS) \
   dmri_initialize_path.cxx 
-dmri_initialize_path_LDADD = $(addprefix $(top_srcdir)/, $(LIBS_MGH) )
+dmri_initialize_path_LDADD = $(LIBS_ITK) \
+	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
+	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
+	-litkvnl -litkvcl \
+	-lITKMetaIO -litksys -lITKEXPAT -lITKniftiio -lITKznz -litkzlib \
+	$(addprefix $(top_srcdir)/, $(LIBS_MGH) )
 dmri_initialize_path_LDFLAGS = $(OS_LDFLAGS)
 dmri_initialize_path_CXXFLAGS = 
 

@@ -780,7 +780,7 @@ PoistatsFilter< TInputImage, TOutputImage >
   } // we've found an optimal path
 
   // our user has specified the number of sample point to use
-  MatrixPointer rethreadedFinalPath = this->m_Replicas->RethreadPath( 
+  MatrixPointer rethreadedFinalPath = this->m_PoistatsModel->RethreadPath( 
     &finalBestPath, this->GetNumberOfSamplePoints() );
     
   // this is the path that we'll output to the user
@@ -1435,14 +1435,14 @@ template <class TInputImage, class TOutputImage>
 int
 PoistatsFilter<TInputImage, TOutputImage>
 ::GetNumberOfControlPoints() {
-  return this->m_Replicas->GetNumberOfControlPoints();
+  return this->m_PoistatsModel->GetNumberOfControlPoints();
 }
 
 template <class TInputImage, class TOutputImage>
 void
 PoistatsFilter<TInputImage, TOutputImage>
 ::SetNumberOfControlPoints( const int nPoints ) {
-  this->m_Replicas->SetNumberOfControlPoints( nPoints );
+  this->m_PoistatsModel->SetNumberOfControlPoints( nPoints );
 }
 
 template <class TInputImage, class TOutputImage>
@@ -1520,10 +1520,10 @@ PoistatsFilter<TInputImage, TOutputImage>
   const int spatialDimension = path->columns();
   
   MatrixType pathDifference( path->rows()-1, spatialDimension );
-  PoistatsReplica::CalculatePathVectors( path, &pathDifference );
+  PoistatsModel::CalculatePathVectors( path, &pathDifference );
   
   ArrayType magnitude( path->rows() - 1 );
-  PoistatsReplica::CalculateMagnitude( &pathDifference, &magnitude );  
+  PoistatsModel::CalculateMagnitude( &pathDifference, &magnitude );  
 
   MatrixType normalizedPathVectors( pathDifference );
 
@@ -1650,12 +1650,12 @@ PoistatsFilter<TInputImage, TOutputImage>
     double rowSum = 0.0;
 
 // this was the default
-//    const double variance = 8;
+    const double variance = 8;
 
 // this worked well when I initialized all the points on the helix
 //    const double variance = 8*8;
 
-    const double variance = 8*6;
+//    const double variance = 8*6;
 
     for( unsigned int cColumn=0; cColumn<angles->cols(); cColumn++ ) {
 
@@ -2044,9 +2044,9 @@ pathprobabilities = csapi(1:length(pathprobabilities), pathprobabilities, ...
   const double gridFloor = 0.0;
   const double gridCeiling = 1.0;
   ArrayType originalPathGrid( rawProbablities.rows() );
-  PoistatsReplica::SpaceEvenly( &originalPathGrid, gridFloor, gridCeiling );  
+  PoistatsModel::SpaceEvenly( &originalPathGrid, gridFloor, gridCeiling );  
   
-  MatrixPointer outputProbabilities = m_Replicas->CubicSplineInterpolation( 
+  MatrixPointer outputProbabilities = m_PoistatsModel->CubicSplineInterpolation( 
     &rawProbablities,
     &originalPathGrid,
     probabilities->size() );

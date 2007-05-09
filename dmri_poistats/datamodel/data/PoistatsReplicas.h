@@ -3,8 +3,6 @@
 
 #include <vector>
 
-#include "dmri_poistats/datamodel/utils/bspline/itkBSplineDataPointSetToImageFilter.h"
-
 #include <itkArray.h>
 
 #include "dmri_poistats/datamodel/PoistatsModel.h"
@@ -79,9 +77,6 @@ public:
   
   void InitializePathsUsingEigenVectors();
   
-  void SetNumberOfControlPoints( const int nPoints );
-  int GetNumberOfControlPoints();
-
   void SetPreviousTrialPaths( const MatrixPointer path );
   
   void SetNumberOfSteps( const int nSteps );
@@ -116,14 +111,6 @@ public:
   
   void CopyCurrentToPreviousTrialPath( const int replica );
 
-  MatrixPointer RethreadPath( 
-    MatrixPointer originalPath, const int nNewSamples );
-
-  MatrixPointer CubicSplineInterpolation( 
-    MatrixPointer originalPath,
-    ArrayPointer originalPathGrid,
-    const int nNewSamples );
-
 private:
 
   PoistatsModel *m_PoistatsModel;
@@ -133,23 +120,8 @@ private:
 
   MatrixPointer m_InitialPoints;
 
-  int m_NumberOfControlPoints;
-  
   int m_NumberOfSteps;
-
-  // cubic spline stuff
-  typedef itk::Vector< double, 3 >    VectorType;
-  typedef itk::Image< VectorType, 1 > OutputImageType;  
-
-  typedef itk::PointSet< VectorType, 1 > PointSetType;
     
-  typedef itk::BSplineDataPointSetToImageFilter
-     < PointSetType, OutputImageType >  CubicSplineFilterType;
-  typedef CubicSplineFilterType::Pointer CubicSplineFilterPointer;
-
-  CubicSplineFilterPointer m_CubicSplineFilter;    
-
-
 };
 
 #endif

@@ -1,3 +1,6 @@
+// this needs to be included or a vxl linking error emerges
+#include <itkBSplineInterpolateImageFunction.h>
+
 #include <iostream>
 #include <string>
 
@@ -10,6 +13,7 @@ extern "C"
 #include "ui/FreeSurferExecutable.h"
 
 #include "datamodel/utils/EigenVectorInitPathStrategy.h"
+#include "datamodel/utils/FieldLineInitPathStrategy.h"
 
 /** This is needed by the freesurfer utils library */
 char *Progname;
@@ -80,10 +84,6 @@ InitializePathExe::InitializePathExe( int inArgs, char ** iaArgs ) :
 
   SetName( "dmri_initialize_path", "find starting path for input to poistats" );  
 
-  SetNextRequiredArgument( FLAG_EIGENVECTOR, "eigvec", 
-    "Principle eigenvector input", 
-    "eigvec1.nii", "must specify an eigenvector volume" );
-
   SetNextRequiredArgument( FLAG_SEEDS, "seeds", 
     "Seed volume", 
     "seeds.nii", "must specify a seed volume" );
@@ -95,6 +95,7 @@ InitializePathExe::InitializePathExe( int inArgs, char ** iaArgs ) :
   SetNextOptionalArgument( FLAG_SEED_VALUES, "seednumvalue", 
     "Use <seednumvalue> to define seed region.  If nothing is specified, then all seeds are used.  More than one must be available.  Eg, --seednums 1,2" );
 
+  SetNextOptionalArgument( FLAG_EIGENVECTOR, "eigvec", "Principle eigenvector input" );
 
   std::string output = "";
   output = output + 
@@ -118,9 +119,8 @@ InitializePathExe::FillArguments() {
   try {
     std::string *requiredArguments = GetRequiredArguments();  
 
-    m_EigenVectorFileName = requiredArguments[0].c_str();
-    m_SeedVolumeFileName = requiredArguments[1].c_str();
-    m_OutputDir = requiredArguments[2].c_str();
+    m_SeedVolumeFileName = requiredArguments[0].c_str();
+    m_OutputDir = requiredArguments[1].c_str();
     
     isFilled = true;    
   } catch(...) {
@@ -129,6 +129,7 @@ InitializePathExe::FillArguments() {
 
   if( isFilled ) {  
     m_SeedValues = m_Parser->GetArgumentIntVector( FLAG_SEED_VALUES.c_str() );
+    m_EigenVectorFileName = m_Parser->GetArgument( FLAG_EIGENVECTOR.c_str() );
   }
   
   return isFilled;
@@ -136,13 +137,30 @@ InitializePathExe::FillArguments() {
 
 void
 InitializePathExe::Run() {
-  
-  EigenVectorInitPathStrategy *eigenPath = new EigenVectorInitPathStrategy();
-  // read eigen vectors
-  MRI* eigenVectors = FreeSurferExecutable::ReadMRI( m_EigenVectorFileName );
-  eigenPath->SetEigenVectors( eigenVectors );
 
-  InitializePath *initializePath = eigenPath;
+  InitializePath *initializePath = NULL;
+  
+  MRI* eigenVectors = NULL;
+
+  // if the eigenvectors were provided, then we'll run the eigenvector intialization
+  if( m_EigenVectorFileName != NULL ) {
+    EigenVectorInitPathStrategy *eigenPath = new EigenVectorInitPathStrategy();
+    // read eigen vectors
+    eigenVectors = FreeSurferExecutable::ReadMRI( m_EigenVectorFileName );
+    eigenPath->SetEigenVectors( eigenVectors );
+    
+    // use this strategy
+    initializePath = eigenPath;
+    
+  } else {
+    std::cerr << "run field line initialization..." << std::endl;
+    
+    FieldLineInitPathStrategy *fieldLinePath = new FieldLineInitPathStrategy();
+
+    // use this strategy
+    initializePath = fieldLinePath;
+    
+  }
   
   // read seed volume
   MRI* seedVolume = FreeSurferExecutable::ReadMRI( m_SeedVolumeFileName );

@@ -117,85 +117,6 @@ void PoistatsReplica::SetPreviousTrialPath( const MatrixPointer path ) {
   m_PreviousTrialPath = new MatrixType( *path );
 }
 
-void
-PoistatsReplica::SpaceEvenly( ArrayPointer outputArray, const double floor, 
-  const double ceiling ) {
-  
-  const double spacing = ( ceiling - floor ) / ( outputArray->size()-1 );
-  for( unsigned int cOutputArray=0; cOutputArray<outputArray->size(); cOutputArray++ ) {
-    ( *outputArray )[ cOutputArray ] = floor + cOutputArray * spacing;
-  }  
-}
-
-void
-PoistatsReplica::CalculatePathMagnitude( 
-  MatrixPointer path, ArrayPointer magnitude ) {
-
-  const int spatialDimension = path->columns();
-  
-  itk::Array2D< double > pathDifference( path->rows()-1, spatialDimension );
-
-  CalculatePathVectors( path, &pathDifference );
-  CalculateMagnitude( &pathDifference, magnitude );  
-}
-
-/**
- * Given a 1D array, calculate at an index and all the values preceeding it.
- */
-void
-PoistatsReplica::CalculateCumulativeSum(
-  ArrayPointer inputArray, ArrayPointer cumulativeSum ) {
-                            
-  ( *cumulativeSum )[ 0 ] = 0.0;
-  for( unsigned int cRow=1; cRow<cumulativeSum->size(); cRow++ ) {
-    ( *cumulativeSum )[ cRow ] = 0.0;
-    ( *cumulativeSum )[ cRow ] = ( *cumulativeSum )[ cRow-1 ]
-                                  + ( *inputArray )[ cRow-1 ] ;
-  }
-  
-}
-
-/**
- * Given path, gets the vector pointing from one point to the following point.
- */
-void
-PoistatsReplica::CalculatePathVectors( 
-  MatrixPointer path, MatrixPointer vectors ) {
-
-  const int spatialDimension = path->columns();
-
-  for( int cRow=0; cRow < static_cast< int >( path->rows() )-1; cRow++ ) {
-    
-    for( int cColumn=0; cColumn<spatialDimension; cColumn++ ) {
-
-      double difference = ( *path )[ cRow+1 ][ cColumn ]- 
-                          ( *path )[ cRow ][ cColumn ];
-
-      ( *vectors )[ cRow ][ cColumn ] = difference;
-    }
-  }
-                            
-}
-
-void
-PoistatsReplica::CalculateMagnitude( 
-  MatrixPointer path, ArrayPointer magnitude ) {
-
-  const int spatialDimension = path->columns();
-  for( int cRow=0; cRow < static_cast< int >( path->rows() ); cRow++ ) {
-    
-    double rowSumOfDifferenceSquared = 0.0;
-    for( int cColumn=0; cColumn<spatialDimension; cColumn++ ) {
-      
-      rowSumOfDifferenceSquared += ( *path )[ cRow ][ cColumn ] * 
-                                   ( *path )[ cRow ][ cColumn ];
-      
-    }
-    ( *magnitude )[ cRow ] = sqrt( rowSumOfDifferenceSquared );
-  }
-  
-}
-
 PoistatsReplica::MatrixPointer
 PoistatsReplica::GetCurrentTrialPath() {
   return m_CurrentTrialPath;
@@ -310,7 +231,7 @@ PoistatsReplica::GenerateUnitSphereRandom( MatrixPointer randomUnitSphere ) {
   }
   
   ArrayType magnitude( numberOfPoints );  
-  CalculateMagnitude( randomUnitSphere, &magnitude );
+  PoistatsModel::CalculateMagnitude( randomUnitSphere, &magnitude );
   
   for( unsigned int cRow=0; cRow<randomUnitSphere->rows(); cRow++ ) {
     
@@ -395,7 +316,7 @@ bool PoistatsReplica::FindPointsWithinRadius(
   }
   
   ArrayType distances( points->rows() );
-  PoistatsReplica::CalculateMagnitude( &differenceMatrix, &distances );
+  PoistatsModel::CalculateMagnitude( &differenceMatrix, &distances );
       
   for( unsigned int cRow=0; cRow<distances.size(); cRow++ ) {
     
