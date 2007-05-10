@@ -11,7 +11,7 @@ function [sig, gmn, gmnvar, t, dof, p] = fast_ffx_osgm(means,varmeans,dofs,fdim)
 %   1. The first dim, if means is a matrix
 %   2. The last dim is means has a dim > 2
 %
-% $Id: fast_ffx_osgm.m,v 1.1 2007/05/10 05:14:29 greve Exp $
+% $Id: fast_ffx_osgm.m,v 1.2 2007/05/10 06:04:49 greve Exp $
 
 % To test FPR
 % dofs = 100;
@@ -30,8 +30,8 @@ function [sig, gmn, gmnvar, t, dof, p] = fast_ffx_osgm(means,varmeans,dofs,fdim)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/10 05:14:29 $
-%    $Revision: 1.1 $
+%    $Date: 2007/05/10 06:04:49 $
+%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -58,7 +58,8 @@ mdim = size(means);
 % If fdim is not specified, try to figure out what it should be
 % If the input is a 2D matrix, then assume that fdim=1,
 % Else assume that fdim is the last dim
-if(~exist('fdim','var'))
+if(~exist('fdim','var')) fdim = []; end
+if(isempty(fdim))
   if(length(mdim) == 2)  fdim = 1;
   else                   fdim = length(mdim);
   end
@@ -79,7 +80,14 @@ end
 gmn    = mean(means,fdim);
 gmnvar = mean(varmeans,fdim)/nframes;
 
+ind = find(gmn==0);
+gmnvar(ind) = 1e10;
+
 t = gmn./sqrt(gmnvar);
+
+gmnvar(ind) = 0;
+t(ind) = 0;
+
 p = tTest(dof,t);
 sig = -log10(p).*sign(gmn);
 
