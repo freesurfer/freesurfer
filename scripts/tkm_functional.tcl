@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/04/04 21:55:42 $
-##    $Revision: 1.37 $
+##    $Date: 2007/05/10 15:57:13 $
+##    $Revision: 1.38 $
 ##
 ## Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@ set gbTruncatePositive 0
 set gbReverse        0
 set gbIgnoreThreshold      0
 set gbGrayscale      0
-set gbOpaque         0
+set gbOpaque         1
 set gbOverlayOffset  0
 set gbShowOverlayOffsetOptions 0 
 # The max here is not actually connected to a c variable; use it for
