@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/13 20:29:21 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/05/10 18:48:29 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -102,6 +102,10 @@ class vtkKWScubaLayer3DPath : public vtkKWScubaLayer {
     // Description:
     // Create the tube representation
     void CreateTube();
+    
+    // Description:
+    // Create the multiple path tube representations.
+    void CreateInitialTubes();
     
     // Description:
     // Updates the opacity of the path.

@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/16 18:44:08 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/05/10 18:48:29 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,6 +54,8 @@ class vtkKWScubaLayerCollectionPath : public vtkKWScubaLayerCollection
     vtkFSVolumeSource* GetPathVolumeSource () const;
     
     vtkSimplePointsReader* GetPathPointsSource() const;
+
+    vtkSimplePointsReader* GetInitialPointsSource() const;
     
     virtual vtkPolyData* GetMesh() const;
 
@@ -106,12 +108,15 @@ class vtkKWScubaLayerCollectionPath : public vtkKWScubaLayerCollection
     std::string GetFullFileName ( const char* sShortFileName ) const;
     //ETX
     
+    // Description:
+    // Reads in the sample values.
     void ReadSamples( const char* fnSamples );
-
+    
   private:
 
     vtkFSVolumeSource* mPathVolumeSource;
     vtkSimplePointsReader* mSimplePointsReader;
+    vtkSimplePointsReader* mInitialPointsReader;
     vtkSimplePointsReader* mSamplesReader;
   
     //BTX

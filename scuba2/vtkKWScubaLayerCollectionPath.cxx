@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/16 18:44:08 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/05/10 18:48:29 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,11 +50,12 @@ using namespace std;
 const double vtkKWScubaLayerCollectionPath::DEFAULT_COLOR[] = { 0.4, 0.5, 1.0 };
 
 vtkStandardNewMacro( vtkKWScubaLayerCollectionPath );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollectionPath, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollectionPath, "$Revision: 1.4 $" );
 
 vtkKWScubaLayerCollectionPath::vtkKWScubaLayerCollectionPath ():
   mPathVolumeSource( NULL ),
   mSimplePointsReader( NULL ),
+  mInitialPointsReader( NULL ),
   mSamplesReader( NULL ),
   mfnPathVolume( "" ),
   mContourFilter( NULL ),
@@ -80,6 +81,10 @@ vtkKWScubaLayerCollectionPath::~vtkKWScubaLayerCollectionPath () {
   
   if( mSimplePointsReader ) {
     mSimplePointsReader->Delete();
+  }
+  
+  if( mInitialPointsReader ) {
+    mInitialPointsReader->Delete();
   }
   
   if( mSamplesReader ) { 
@@ -112,6 +117,12 @@ vtkSimplePointsReader*
 vtkKWScubaLayerCollectionPath::GetPathPointsSource () const {
   return mSimplePointsReader;
 }
+
+vtkSimplePointsReader* 
+vtkKWScubaLayerCollectionPath::GetInitialPointsSource () const {
+  return mInitialPointsReader;
+}
+
 
 vtkPolyData* 
 vtkKWScubaLayerCollectionPath::GetMesh () const {
@@ -216,17 +227,6 @@ vtkKWScubaLayerCollectionPath::GetPointColor( const int iPointIndex, double &r, 
 double
 vtkKWScubaLayerCollectionPath::GetPointSampleValue( const int iPointIndex ) const {
   
-  // this is NOT the right way to get the samples.  The sample reader should
-  // read line by line rather than read in the 3 coordinates at a time and
-  // making me do this mod madness
-  
-//  const int index = iPointIndex / 3;
-//  const int dimIndex = iPointIndex % 3;
-//  
-//  const double* sample = mSamplesReader->GetOutput()->GetPoint( index );
-//  
-//  return sample[ dimIndex ];
-
   return mSamples[ iPointIndex ];
     
 }
@@ -298,14 +298,16 @@ vtkKWScubaLayerCollectionPath::LoadPathVolumeFromFileName () {
   mSimplePointsReader->SetFileName( fnOptimalPathPoints.c_str() );
   mSimplePointsReader->Update();
   
-  // TODO: read in the data line by line, instead of as points
-  
+  // this will be a collection of paths -- only for DJ testing at the moment
+  const char* sInitialPoints = "/InitialPath.txt";
+  string fnInitialPathPoints = this->GetFullFileName ( sInitialPoints );
+  mInitialPointsReader = vtkSimplePointsReader::New();
+  mInitialPointsReader->SetFileName( fnInitialPathPoints.c_str() );
+  mInitialPointsReader->Update();
+    
   // read in the values sampled along the path
   const char* sPathSamples = "/OptimalPathSamples.txt";
   string fnOptimalPathSamples = this->GetFullFileName ( sPathSamples );
-//  mSamplesReader = vtkSimplePointsReader::New();
-//  mSamplesReader->SetFileName( fnOptimalPathSamples.c_str() );
-//  mSamplesReader->Update();
   this->ReadSamples( fnOptimalPathSamples.c_str() );
   
   // read in the path density

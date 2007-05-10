@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/25 19:24:48 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/05/10 18:48:29 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DPath );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.5 $" );
 
 vtkKWScubaLayer3DPath::vtkKWScubaLayer3DPath () :
   mPathProperties( NULL ),
@@ -145,6 +145,9 @@ vtkKWScubaLayer3DPath::Create () {
 
   // this creates the tube representation of the path    
   this->CreateTube();
+  
+  // create the multiple initial paths
+  this->CreateInitialTubes();
     
   mNormals = vtkPolyDataNormals::New();
   mNormals->SetInput( mPathProperties->GetMesh() );
@@ -503,6 +506,133 @@ vtkKWScubaLayer3DPath::CreateTube() {
   mTubeActor->SetMapper( mTubeMapper );
   
   this->AddProp( mTubeActor );
+}
+
+void 
+vtkKWScubaLayer3DPath::CreateInitialTubes() {
+
+  vtkFSVolumeSource* source = mPathProperties->GetPathVolumeSource();
+
+  float worldCenter[3];
+  worldCenter[0] = source->GetRASCenterX();  
+  worldCenter[1] = source->GetRASCenterY();
+  worldCenter[2] = source->GetRASCenterZ();
+  
+  const int nTotalPoints = mPathProperties->GetInitialPointsSource()->GetOutput()->GetNumberOfPoints();
+    
+  bool isNewTube = true;
+  
+  const double newTubeDelimiter = -999;
+  
+  // go through all the points and at create new tubes when needed
+  for( int i=0; i<nTotalPoints; i++ ) {
+
+    const double *point = 
+      mPathProperties->GetInitialPointsSource()->GetOutput()->GetPoint( i );
+    
+    if( !isNewTube ) {
+      
+      isNewTube = true;
+      
+      // if all three columns are -999, then we've a new tube
+      for( int cDim = 0; cDim < 3; cDim++ ) {
+        if( newTubeDelimiter != point[ cDim ] ) {
+          isNewTube = false;
+        }
+      }
+      
+      // if we've made it through the above loop and all three elements are the
+      // new tube delimiter, then we've got a new tube
+      
+    }
+    
+    if( isNewTube ) {
+      // create the new stuff here
+      
+      // add the tube to the visualization?
+    }
+    
+    // fill the new tube with new paramters
+
+  }
+
+//  vtkPoints *inputPoints = vtkPoints::New();
+//  vtkCellArray *lines = vtkCellArray::New();
+//  lines->InsertNextCell( nPoints );
+//    
+//  // insert the tube data
+//  for( int i=0; i<nPoints; i++ ) {
+//
+//    double *point = 
+//      mPathProperties->GetPathPointsSource()->GetOutput()->GetPoint( i );
+//
+//    float RASX, RASY, RASZ;
+//    source->ConvertIndexToRAS( point[ 0 ], point[ 1 ], point[ 2 ], 
+//      RASX, RASY, RASZ );
+//
+//    // the center of the bounding volume is actually in the lower corner, so we
+//    // need to move our transformed points diagonally lower by the amount of the
+//    // world's center
+//    RASX -= worldCenter[0];
+//    RASY -= worldCenter[1];
+//    RASZ -= worldCenter[2];
+//    
+//    inputPoints->InsertPoint( i, RASX, RASY, RASZ );
+//    lines->InsertCellPoint( i );    
+//  }
+//  
+//  // add the points, lines, and sample data    
+//  vtkPolyData *polyData = vtkPolyData::New();
+//  polyData->SetPoints( inputPoints );
+//  polyData->SetLines( lines );
+//
+//  // set up the scalar data that was sampled by the pathway
+//  vtkFloatArray *sampleData = vtkFloatArray::New();
+//  sampleData->SetName( "SampleData" );
+//  
+//  // error check to make sure that number of samples is the same as the number
+//  // of points
+//  if( nPoints == mPathProperties->GetNumberOfSamples() ) {
+//    // get the scalar data
+//    for( int i=0; i<mPathProperties->GetNumberOfSamples(); i++ ) {
+//      const double value = mPathProperties->GetPointSampleValue( i );
+//      sampleData->InsertNextValue( value );
+//    }
+//    polyData->GetPointData()->SetScalars( sampleData );
+//  }
+//  
+//  inputPoints->Delete();
+//  lines->Delete();
+//  sampleData->Delete();
+//  
+//  // Add thickness to the resulting line.
+//  mTubeFilter = vtkTubeFilter::New();
+//  mTubeFilter->SetNumberOfSides( 5 );
+//  mTubeFilter->SetInput( polyData );
+//  mTubeFilter->SetRadius( mTubeRadius );
+//  
+//  if( mbIsTubeRadiusScaled ) {
+//    mTubeFilter->SetVaryRadiusToVaryRadiusByScalar();
+//  } else {
+//    mTubeFilter->SetVaryRadiusToVaryRadiusOff();
+//  }
+//      
+//  polyData->Delete();
+//  
+//  mTubeMapper = vtkPolyDataMapper::New();
+//  mTubeMapper->SetInputConnection( mTubeFilter->GetOutputPort() );
+//  
+//  if( mbIsTubeRadiusColored ) {
+//    mTubeMapper->ScalarVisibilityOn();
+//  } else {
+//    mTubeMapper->ScalarVisibilityOff();
+//  }
+//
+//  mTubeActor = vtkActor::New();
+//  mTubeActor->SetMapper( mTubeMapper );
+//  
+//  this->AddProp( mTubeActor );
+  
 }
 
 void 

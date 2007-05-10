@@ -12,8 +12,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/16 18:44:08 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/05/10 18:48:29 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,6 +45,9 @@ class ScubaCollectionPropertiesPath {
   virtual vtkFSVolumeSource* GetPathVolumeSource () const = 0;
 
   virtual vtkSimplePointsReader* GetPathPointsSource() const = 0;
+  
+  virtual vtkSimplePointsReader* GetInitialPointsSource() const = 0;
+  
   
   // Description:
   // Get a pointer to the surface representation of the pathway.
