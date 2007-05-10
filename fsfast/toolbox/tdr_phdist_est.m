@@ -1,5 +1,5 @@
-function [thetahat, beta, rvar, nover] = tdr_phdist_est(Ref,Mov,rthresh,order)
-% [thetahat beta rvar nover] = tdr_phdist_est(Ref,Mov,rthresh,order)
+function [thetahat, theta, Fsig, beta] = tdr_phdist_est(Ref,Mov,rthresh,order)
+% [thetahat, theta, Fsig, beta] = tdr_phdist_est(Ref,Mov,rthresh,order)
 %
 % Estimate the phase distortion between two waveforms.
 %
@@ -13,9 +13,8 @@ function [thetahat, beta, rvar, nover] = tdr_phdist_est(Ref,Mov,rthresh,order)
 %   Default is 2.
 %
 % thetahat - model fit of the phase distortion.
-% beta - coefficients of polynomial regressors
-% rvar - residual error variance of fit
-% nover - number of columns exceeding threshold
+% theta  - phase distortion.
+% Fsig - -log10(p) of the fit of the slope component
 %
 % RefHat = Mov .* exp(+i*thetahat);
 %
@@ -27,9 +26,9 @@ function [thetahat, beta, rvar, nover] = tdr_phdist_est(Ref,Mov,rthresh,order)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:35 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2007/05/10 23:55:16 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -50,7 +49,7 @@ nover = [];
 thetahat = [];
 
 if(nargin < 2 | nargin > 4)
-  fprintf('[thetahat beta rvar nover] = tdr_phdist_est(Ref,Mov,rthresh,order)\n');
+  fprintf('[thetahat theta Fsig beta] = tdr_phdist_est(Ref,Mov,rthresh,order)\n');
   return;
 end
 
@@ -87,8 +86,8 @@ thetaover = theta(indover,:);
 
 % Create a polynomial design matrix %
 X = fast_polytrendmtx(1,nf,1,order);
-X = fast_polytrendmtx(1,nf,1,3);
-X = X(:,[1 2 4]);
+%X = fast_polytrendmtx(1,nf,1,3);
+%X = X(:,[1 2 4]);
 
 % Use only the suprathreshold frames for estimation %
 Xover = X(indover,:);
@@ -96,7 +95,20 @@ Xover = X(indover,:);
 % Perform the estimation on suprathreshold frames %
 [beta rvar vdof] = fast_glmfit(thetaover,Xover);
 
+C = zeros(1,order+1);
+C(2) = 1;
+[F Fsig ces] = fast_fratio(beta,X,rvar,C);
+Fsig = -log10(Fsig);
+
 % Compute the estimate of the phase distortion across all frames
 thetahat = X*beta;
+
+if(min(Fsig) < 100)
+  fprintf('WARNING: tdr_phdist_est(): min(Fsig) = %g < 100  ',min(Fsig));
+  fprintf('(threshold is %g)\n',rthresh);
+end
+
+%plot(indover,thetaover,indover,Xover*beta,'+')
+%keyboard
 
 return;
