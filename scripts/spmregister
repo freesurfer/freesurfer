@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/27 20:30:21 $
-#    $Revision: 1.19 $
+#    $Date: 2007/05/10 04:24:31 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.19 2007/03/27 20:30:21 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.20 2007/05/10 04:24:31 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -137,6 +137,7 @@ if(-e $regfile) mv $regfile $regfile.$DateString
 #--------------------------------------------------------#
 tee $MLF <<EOF
 
+monly   = $monly;
 targvol = '$refvolimg';
 srcvol  = '$movvolimg';
 okfile  = '$okfile';
@@ -198,6 +199,10 @@ disp('determining coregistration parameters...')
 
 tic;
 x  = spm_coreg(VG.fname,VF.fname,defaults.coreg.estimate);
+if(isempty(x))
+  fprintf('ERROR: spm_coreg\n');
+  if(~monly) quit; end
+end
 fprintf('Finished after %g sec\n',toc);
 
 %---------write out the .mat file---see spm_coreg_ui.m line 283
@@ -213,7 +218,7 @@ fp = fopen(okfile,'w');
 fclose(fp);
 
 return;
-quit;
+if(~monly) quit; end
 
 EOF
 #--------------------------------------------------------#
@@ -441,6 +446,7 @@ usage_exit:
   echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
   echo "   --force-ras : force input geometry to be RAS"
   echo ""
+  echo "   --tmp tmpdir  : temporary dir (implies --nocleanup)"
   echo "   --nocleanup  : do not delete temporary files"
   echo "   --version : print version and exit"
   echo "   --help    : print help and exit"
