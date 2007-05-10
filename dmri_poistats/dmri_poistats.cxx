@@ -7,9 +7,9 @@
 /*
  * Original Author: Dennis Jen, Dave Tuch (matlab prototype) 
  * CVS Revision Info:
- *    $Author$
- *    $Date$
- *    $Revision$
+ *    $Author $
+ *    $Date $
+ *    $Revision $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

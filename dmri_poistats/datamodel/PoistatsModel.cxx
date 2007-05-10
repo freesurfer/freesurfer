@@ -19,7 +19,7 @@ PoistatsModel::PoistatsModel( const long seed ){
 }
 
 PoistatsModel::~PoistatsModel() {  
-  this->FreeVector( this->m_SeedValues );
+//  this->FreeVector( this->m_SeedValues );
 }
 
 void PoistatsModel::SetRandomSeed( const long seed ) {
@@ -124,7 +124,7 @@ PoistatsModel::Init() {
   m_CubicSplineFilter->SetOrigin( origin );
   
   OutputImageType::SpacingType spacing;
-  spacing.Fill( 0.01 );
+  spacing.Fill( 0.1 );
 
   m_CubicSplineFilter->SetSpacing( spacing );
 

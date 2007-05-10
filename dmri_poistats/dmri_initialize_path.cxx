@@ -141,34 +141,36 @@ InitializePathExe::Run() {
   InitializePath *initializePath = NULL;
   
   MRI* eigenVectors = NULL;
+  
+  // create the model for the initializations
+  PoistatsModel model;
+  model.SetNumberOfControlPoints( 2 );
 
+  // read seed volume
+  MRI* seedVolume = FreeSurferExecutable::ReadMRI( m_SeedVolumeFileName );
+  model.SetSeedVolume( seedVolume );
+  
+  // set seed values to connect
+  model.SetSeedValues( &m_SeedValues );
+  
   // if the eigenvectors were provided, then we'll run the eigenvector intialization
   if( m_EigenVectorFileName != NULL ) {
-    EigenVectorInitPathStrategy *eigenPath = new EigenVectorInitPathStrategy();
+
     // read eigen vectors
     eigenVectors = FreeSurferExecutable::ReadMRI( m_EigenVectorFileName );
-    eigenPath->SetEigenVectors( eigenVectors );
+    model.SetEigenVectors( eigenVectors );
     
+    EigenVectorInitPathStrategy *eigenPath = new EigenVectorInitPathStrategy( &model );
+
     // use this strategy
     initializePath = eigenPath;
     
   } else {
-    std::cerr << "run field line initialization..." << std::endl;
-    
-    FieldLineInitPathStrategy *fieldLinePath = new FieldLineInitPathStrategy();
-
+    FieldLineInitPathStrategy *fieldLinePath = new FieldLineInitPathStrategy( &model );
     // use this strategy
     initializePath = fieldLinePath;
-    
   }
-  
-  // read seed volume
-  MRI* seedVolume = FreeSurferExecutable::ReadMRI( m_SeedVolumeFileName );
-  initializePath->SetSeedVolume( seedVolume );
-  
-  // set seed values to connect
-  initializePath->SetSeedValues( &m_SeedValues );
-  
+    
   // now that all the inputs are set, calculate the initial path
   initializePath->CalculateInitialPath();
   
@@ -182,13 +184,17 @@ InitializePathExe::Run() {
 
   if( eigenVectors != NULL ) {
     MRIfree( &eigenVectors );
+    eigenVectors = NULL;
   }
   
   if( seedVolume != NULL ) {
     MRIfree( &seedVolume );
+    seedVolume = NULL;
   }
   
   delete initializePath;
+  initializePath = NULL;
+  
 }
 
 int main( int argc, char ** argv ) {

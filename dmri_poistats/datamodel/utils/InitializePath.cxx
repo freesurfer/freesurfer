@@ -21,6 +21,8 @@ InitializePath::InitializePath() {
 }
 
 InitializePath::InitializePath( PoistatsModel *model ) {
+  
+  std::cerr << "InitializePath::InitializePath( PoistatsModel *model )" << std::endl;
 
   m_PoistatsModel = model;
 

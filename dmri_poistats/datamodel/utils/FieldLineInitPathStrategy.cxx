@@ -2,10 +2,17 @@
 
 #include <iostream>
 
-FieldLineInitPathStrategy::FieldLineInitPathStrategy() {
-}
+FieldLineInitPathStrategy::FieldLineInitPathStrategy( PoistatsModel* model ) {
+  m_PoistatsModel = model;
 
-FieldLineInitPathStrategy::FieldLineInitPathStrategy( PoistatsModel* model ) { 
+  this->SetSeedVolume( m_PoistatsModel->GetSeedVolume() );
+  this->SetSeedValues( m_PoistatsModel->GetSeedValues() );
+  
+  m_InitialPath = NULL;
+
+  // this will be the seed value we use for getting random numbers
+  std::srand( ( unsigned ) time( 0 ) );
+  m_RandomTimeSeed = std::rand();
 }
 
 FieldLineInitPathStrategy::~FieldLineInitPathStrategy() { 
@@ -16,33 +23,47 @@ FieldLineInitPathStrategy::CalculateInitialPath() {
 
   // this will be a vector with 3 columns
   std::vector< double* > path;
+
+  // get the vector pointing from the start point to the end
+  int startPoint[3];
+  int endPoint[3];  
+  this->GetNewStartAndEndPoints( startPoint, endPoint );
   
   // get the look at vector
   double lookAt[3];
-  this->GetLookAtVector( lookAt );
+  this->GetLookAtVector( lookAt, startPoint, endPoint );
 
   // TODO: we eventually want to rotate the up vector
   // use the look at as the normal to a plane that intersects a sphere to get
   // an up vector--a point on the unit circle
-  const double upAngle = 0;
+//  const double upAngle = 0;
+  const double upAngle = PI;
   double up[3];
   this->GetUpVector( up, lookAt, upAngle );
-      
-  // lets create circle with 5 points for the time being at z=0
-  const int nPoints = 10;
-  const double step = PI / static_cast< double >( nPoints );
-
-  // TODO: remove this
-  const int startLabel = ( *m_SeedValues )[ 0 ];
-  int startPoint[3];
-  this->GetRandomSeedPoint( startPoint, startLabel );
-
-  // the position will the be translation component
-  // TODO: what we really want is this to be the point along the spline
-  const double position[] = { startPoint[0], startPoint[1], startPoint[2] };
   
-  for( int i=0; i<nPoints; i++ ) {
+  // lets create circle with 5 points for the time being at z=0
+  const int nSamples = 25;
 
+  // get the control points
+  PoistatsModel::MatrixType initialPoints = this->GetInitialPoints( startPoint, endPoint );
+  std::cerr << "initialpoints size: " << initialPoints.rows() << ", " << initialPoints.cols() << std::endl;
+  
+  // rethread the path
+  PoistatsModel::MatrixPointer rethreadedPath = 
+    m_PoistatsModel->RethreadPath( &initialPoints, nSamples );    
+  
+  const double step = PI / static_cast< double >( nSamples );
+
+  for( int i=0; i<nSamples; i++ ) {
+
+    // the position will the be translation component
+    // TODO: what we really want is this to be the point along the spline
+    const double position[] = { 
+      ( *rethreadedPath )[ i ][ 0 ],
+      ( *rethreadedPath )[ i ][ 1 ],
+      ( *rethreadedPath )[ i ][ 2 ]
+    };
+  
     // add point to be saved
     double* point = new double[ 3 ];
     path.push_back( point );
@@ -55,24 +76,24 @@ FieldLineInitPathStrategy::CalculateInitialPath() {
     this->GetCrossProduct( right, lookAt, up );
         
     // create the rotation matrix
-    vnl_matrix< double > rotation = this->GetRotationMatrix( lookAt, up, right, 
-      position );
+    vnl_matrix< double > rotation = this->GetRotationMatrix( lookAt, up, right );
       
     // amplitude of the sine function
     const double amplitude = 5.0;
       
     // multiple point by the rotation
-    vnl_matrix< double > rawPoint( 4, 1 );
+    vnl_matrix< double > rawPoint( 3, 1 );
     rawPoint( 0, 0 ) = i;
     rawPoint( 1, 0 ) = amplitude * sin( angle );
     rawPoint( 2, 0 ) = 0;
-    rawPoint( 3, 0 ) = 1;
     
     vnl_matrix< double > transformedPoint = rotation * rawPoint;
     
-    point[ 0 ] = transformedPoint( 0, 0 );
-    point[ 1 ] = transformedPoint( 1, 0 );
-    point[ 2 ] = transformedPoint( 2, 0 );
+    // translate the points
+    for( int cRow=0; cRow<3; cRow++ ) {
+      point[ cRow ] = transformedPoint( cRow, 0 ) + position[ cRow ];
+      point[ cRow ] = position[ cRow ];
+    }
 
     std::cerr << "point: " << point[0] << ", " << point[1] << ", " << point[0] << std::endl;
     
@@ -81,19 +102,16 @@ FieldLineInitPathStrategy::CalculateInitialPath() {
   // copy the path to the matrix output
   this->CopyPathToOutput( path );
   
+  if( rethreadedPath != NULL ) {
+    delete rethreadedPath;
+    rethreadedPath = NULL;
+  }
+  
 }
 
 void 
-FieldLineInitPathStrategy::GetLookAtVector( double *lookAtVector ) {
-
-  // get the vector pointing from the start point to the end
-  const int startLabel = ( *m_SeedValues )[ 0 ];
-  int startPoint[3];
-  this->GetRandomSeedPoint( startPoint, startLabel );
-  
-  const int endLabel = ( *m_SeedValues )[ m_SeedValues->size()-1 ];
-  int endPoint[3];
-  this->GetRandomSeedPoint( endPoint, endLabel );
+FieldLineInitPathStrategy::GetLookAtVector( double *lookAtVector, 
+  const int *startPoint, const int *endPoint ) {
   
   // put the vector in our output vector
   for( int i=0; i<3; i++ ) {
@@ -170,27 +188,70 @@ FieldLineInitPathStrategy::GetCrossProduct( double *product, const double *v1, c
 
 vnl_matrix< double >
 FieldLineInitPathStrategy::GetRotationMatrix( const double *lookAt, const double *up, 
-  const double *right, const double* position ) {
+  const double *right ) {
   
-  vnl_matrix< double > rotation( 4, 4 );
+  vnl_matrix< double > rotation( 3, 3 );
   
   for( unsigned int cRow=0; cRow<rotation.rows(); cRow++ ) {
     
-//    rotation( cRow, 0 ) = lookAt[ cRow ];
-//    rotation( cRow, 1 ) = right[ cRow ];
-//    rotation( cRow, 2 ) = up[ cRow ];
-
     // TODO: verify that this is right
     rotation( cRow, 0 ) = lookAt[ cRow ];
     rotation( cRow, 1 ) = up[ cRow ];
     rotation( cRow, 2 ) = right[ cRow ];
 
-    rotation( cRow, 3 ) = position[ cRow ];
+//    rotation( cRow, 3 ) = position[ cRow ];
     
   }
   
-  rotation( 3, 3 ) = 1.0;
+//  for( unsigned int cCol=0; cCol<rotation.cols(); cCol++ ) {
+//    
+//    // TODO: verify that this is right
+//    rotation( 0, cCol ) = right[ cCol ];
+//    rotation( 1, cCol ) = up[ cCol ];
+//    rotation( 2, cCol ) = lookAt[ cCol ];
+//    
+//  }
+  
   
   return rotation;
     
+}
+
+void 
+FieldLineInitPathStrategy::GetNewStartAndEndPoints( int *startPoint, int *endPoint ) {
+  const int startLabel = ( *m_SeedValues )[ 0 ];
+  this->GetRandomSeedPoint( startPoint, startLabel );
+  
+  const int endLabel = ( *m_SeedValues )[ m_SeedValues->size()-1 ];
+  this->GetRandomSeedPoint( endPoint, endLabel );
+}
+
+PoistatsModel::MatrixType 
+FieldLineInitPathStrategy::GetInitialPoints( const int *startPoint, const int *endPoint ) {
+  
+  PoistatsModel::MatrixType initialPoints( m_SeedValues->size(), 3 );
+  
+  // set the start and end points
+  for( unsigned int cCol=0; cCol<initialPoints.cols(); cCol++ ) {
+    initialPoints( 0, cCol ) = startPoint[ cCol ];
+    initialPoints( initialPoints.rows()-1, cCol ) = endPoint[ cCol ];
+  }
+  
+  // set all the intermediate points if there are any
+  for( unsigned int cRow=1; cRow<initialPoints.rows()-1; cRow++ ) {
+    
+    // get the intermediate point
+    const int intermediateLabel = ( *m_SeedValues )[ cRow ];
+    int point[3];
+    this->GetRandomSeedPoint( point, intermediateLabel );
+    
+    // set the point
+    for( unsigned int cCol=0; cCol<initialPoints.cols(); cCol++ ) {
+      initialPoints( cRow, cCol ) = point[ cCol ];
+    }
+    
+  }
+    
+  return initialPoints;
+  
 }

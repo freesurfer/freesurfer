@@ -9,7 +9,6 @@ class FieldLineInitPathStrategy : public InitializePath
 {
 public:
 
-  FieldLineInitPathStrategy();
   FieldLineInitPathStrategy( PoistatsModel* model );
   ~FieldLineInitPathStrategy();  
 
@@ -24,7 +23,7 @@ protected:
    * From the first and last seed point, calculate a look at vector and return
    * it.
    */
-  void GetLookAtVector( double *lookAtVector );
+  void GetLookAtVector( double *lookAtVector, const int *startPoint, const int *endPoint );
   
   /**
    * Normalizes the vector and returns it.
@@ -45,7 +44,14 @@ protected:
    * From these vectors return the rotation matrix.
    */
   vnl_matrix< double > GetRotationMatrix( const double *lookAt, const double *up, 
-    const double *right, const double* position );
+    const double *right );
+
+  /**
+   * Gets a new random end and start point from the regions.
+   */
+  void GetNewStartAndEndPoints( int *startPoint, int *endPoint );
+
+  PoistatsModel::MatrixType GetInitialPoints( const int *startPoint, const int *endPoint );
 
 };
 
