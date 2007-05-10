@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/04/09 17:12:37 $
- *    $Revision: 1.51 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/10 05:07:05 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -22,17 +22,6 @@
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
- *
- */
-
-
-/*
- *       FILE NAME:   histo.c
- *
- *       DESCRIPTION: utilities for HISTOGRAM  data structure
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
  *
  */
 
@@ -65,12 +54,25 @@ HISTOfree(HISTOGRAM **phisto)
 
   histo = *phisto ;
   *phisto = NULL ;
-  free(histo->bins) ;
-  free(histo->counts) ;
   if (histo)
+  {
+    if (histo->bins)
+    {
+      free(histo->bins) ;
+      histo->bins = NULL;
+    }
+    if (histo->counts)
+    {
+      free(histo->counts) ;
+      histo->counts = NULL;
+    }
     free(histo) ;
+  }
+
   return(NO_ERROR) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -95,6 +97,8 @@ HISTOdump(HISTOGRAM *histo, FILE *fp)
   }
   return(NO_ERROR) ;
 }
+
+
 HISTOGRAM *
 HISTOrealloc(HISTOGRAM *histo, int nbins)
 {
@@ -105,10 +109,15 @@ HISTOrealloc(HISTOGRAM *histo, int nbins)
   histo->bins = (float *)calloc(nbins, sizeof(float)) ;
   histo->counts = (float *)calloc(nbins, sizeof(float)) ;
   if (!histo->counts || !histo->bins)
-    ErrorExit(ERROR_NOMEMORY, "HISTOrealloc(%d): could not allocate histogram",nbins) ;
+    ErrorExit(ERROR_NOMEMORY, 
+              "HISTOrealloc(%d): could not allocate histogram",
+              nbins) ;
   histo->nbins = nbins ;
+
   return(histo) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -129,10 +138,15 @@ HISTOalloc(int nbins)
   histo->counts = (float *)calloc(nbins, sizeof(float)) ;
   // fprintf(stderr, "histo->bins and ->counts allocated %d bins\n", nbins);
   if (!histo->counts || !histo->bins)
-    ErrorExit(ERROR_NOMEMORY, "HISTOalloc(%d): could not allocate histogram",nbins) ;
+    ErrorExit(ERROR_NOMEMORY, 
+              "HISTOalloc(%d): could not allocate histogram",
+              nbins) ;
   histo->nbins = nbins ;
+
   return(histo) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -161,8 +175,11 @@ HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   }
 
   histo_dst->nbins -= deleted ;
+
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -177,12 +194,19 @@ HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
     histo_dst = HISTOalloc(histo_src->nbins) ;
   histo_dst->nbins = histo_src->nbins ;
   histo_dst->bin_size = histo_src->bin_size ;
-  memcpy(histo_dst->counts, histo_src->counts, sizeof(*histo_src->counts)*histo_src->nbins) ;
-  memcpy(histo_dst->bins, histo_src->bins, sizeof(*histo_src->bins)*histo_src->nbins) ;
+  memcpy(histo_dst->counts, 
+         histo_src->counts, 
+         sizeof(*histo_src->counts)*histo_src->nbins) ;
+  memcpy(histo_dst->bins, 
+         histo_src->bins, 
+         sizeof(*histo_src->bins)*histo_src->nbins) ;
   histo_dst->min = histo_src->min ;
   histo_dst->max = histo_src->max ;
+
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -237,6 +261,8 @@ HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_dst)
 
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -266,6 +292,8 @@ HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_out)
 
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -281,8 +309,11 @@ HISTOclear(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
 
   memset(histo_dst->counts, 0, histo_dst->nbins*sizeof(*histo_dst->counts)) ;
   memset(histo_dst->bins, 0, histo_dst->nbins*sizeof(*histo_dst->bins)) ;
+
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -300,8 +331,11 @@ HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   }
 
   memset(histo_dst->counts, 0, sizeof(histo_dst->counts)) ;
+
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -331,6 +365,8 @@ HISTOcompose(HISTOGRAM *histo1, HISTOGRAM *histo2, HISTOGRAM *histo_dst)
 
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -358,6 +394,8 @@ HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
 
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -420,6 +458,8 @@ HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv,
 
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -446,6 +486,8 @@ HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
 
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -472,6 +514,8 @@ HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
 
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -498,6 +542,8 @@ HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
 
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -506,7 +552,10 @@ HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
   Description
   ------------------------------------------------------*/
 HISTOGRAM *
-HISTOclearBins(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int min_val, int max_val)
+HISTOclearBins(HISTOGRAM *histo_src, 
+               HISTOGRAM *histo_dst, 
+               int min_val, 
+               int max_val)
 {
   int b ;
 
@@ -526,6 +575,8 @@ HISTOclearBins(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int min_val, int max_
 
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -552,7 +603,8 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
   {
     if (histo_dst->nbins < histo_src->nbins)
     {
-      // fprintf(stderr, "realloc: histo_dst->nbins = %d, histo_src->nbins = %d\n",
+      // fprintf(stderr, "realloc: histo_dst->nbins = %d, "
+      //"histo_src->nbins = %d\n",
       //         histo_dst->nbins, histo_src->nbins);
       HISTOrealloc(histo_dst, nbins);
     }
@@ -600,8 +652,11 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
     histo_dst->counts[b] = total ;
     histo_dst->bins[b] = histo_src->bins[b] ;
   }
+
   return(histo_dst) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -648,6 +703,8 @@ HISTOfindLastPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
 
   return(-1) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -694,6 +751,8 @@ HISTOfindFirstPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
 
   return(-1) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -745,6 +804,8 @@ HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
 
   return(-1) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -800,6 +861,8 @@ HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct)
 
   return(-1) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -858,6 +921,7 @@ HISTOfindValley(HISTOGRAM *h, int wsize, int I0, int I1)
 
   return(-1) ;
 }
+
 
 /*-----------------------------------------------------
   Parameters:
@@ -935,6 +999,8 @@ HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int I0,
 
   return(-1) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -943,7 +1009,8 @@ HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int I0,
   Description
   ------------------------------------------------------*/
 int
-HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
+HISTOfindFirstPeakInRegion(HISTOGRAM *h, 
+                           int wsize, float min_pct,
                            int b0, int b1)
 {
   int   peak, b, bw, nbins, whalf ;
@@ -988,6 +1055,8 @@ HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
 
   return(-1) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -1025,6 +1094,8 @@ HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1)
 
   return(max_count_bin) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -1052,8 +1123,11 @@ HISTOplot(HISTOGRAM *histo, char *fname)
   for (bin_no = bmin ; bin_no <= bmax ; bin_no++)
     fprintf(fp, "%f  %f\n", histo->bins[bin_no], histo->counts[bin_no]) ;
   fclose(fp) ;
+
   return(NO_ERROR) ;
 }
+
+
 /* at least one value on each side which is below the central value */
 /*
    the standard deviation of the peak around it's mean must be at least
@@ -1075,6 +1149,8 @@ HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct,
 
   return(npeaks) ;
 }
+
+
 int
 HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax)
 {
@@ -1084,8 +1160,10 @@ HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax)
   bin_size = (bmax - bmin + 1) / (float)histo->nbins ;
   bin_no = nint((val - bmin) / bin_size) ;
   histo->counts[bin_no]++ ;
+
   return(bin_no) ;
 }
+
 
 int
 HISTOfindPreviousValley(HISTOGRAM *h, int b0)
@@ -1103,8 +1181,10 @@ HISTOfindPreviousValley(HISTOGRAM *h, int b0)
       return(b) ;
     prev_val = val ;
   }
+
   return(-1) ;
 }
+
 
 int
 HISTOfindNextValley(HISTOGRAM *h, int b0)
@@ -1122,8 +1202,10 @@ HISTOfindNextValley(HISTOGRAM *h, int b0)
       return(b) ;
     prev_val = val ;
   }
+
   return(-1) ;
 }
+
 
 int
 HISTOfindNextPeak(HISTOGRAM *h, int b0, int whalf)
@@ -1145,6 +1227,7 @@ HISTOfindNextPeak(HISTOGRAM *h, int b0, int whalf)
     if (peak)
       break ;
   }
+
   return(peak ? b : -1) ;
 }
 
@@ -1168,6 +1251,7 @@ HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf)
     if (peak)
       break ;
   }
+
   return(peak ? b : -1) ;
 }
 
@@ -1188,6 +1272,7 @@ HISTOfindStartOfPeak(HISTOGRAM *h, int b0, float pct_peak)
     if (val < thresh)
       return(b) ;
   }
+
   return(b) ;
 }
 
@@ -1209,6 +1294,7 @@ HISTOfindEndOfPeak(HISTOGRAM *h, int b0, float pct_peak)
     if (val < thresh)
       return(b) ;
   }
+
   return(b) ;
 }
 
@@ -1310,6 +1396,7 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct)
   return(-1) ;
 }
 
+
 int
 HISTOfillHoles(HISTO *h)
 {
@@ -1324,8 +1411,11 @@ HISTOfillHoles(HISTO *h)
     h->counts[0] = h->counts[1] ;
   if (h->counts[h->nbins-1] == 0)
     h->counts[h->nbins-1] = h->counts[h->nbins-2] ;
+
   return(NO_ERROR) ;
 }
+
+
 int
 HISTOtotalInRegion(HISTO *h, int b0, int b1)
 {
@@ -1335,8 +1425,10 @@ HISTOtotalInRegion(HISTO *h, int b0, int b1)
   {
     total += h->counts[b] ;
   }
+
   return(total) ;
 }
+
 
 int
 HISTOclearZeroBin(HISTOGRAM *h)
@@ -1351,8 +1443,11 @@ HISTOclearZeroBin(HISTOGRAM *h)
       break ;
   }
   h->counts[b] = 0 ;
+
   return(NO_ERROR) ;
 }
+
+
 int
 HISTOfindBin(HISTOGRAM *h, float val)
 {
@@ -1364,6 +1459,8 @@ HISTOfindBin(HISTOGRAM *h, float val)
 
   return(0) ;
 }
+
+
 HISTO *
 HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end)
 {
@@ -1393,7 +1490,8 @@ histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
   double error, sse, c1, c2;
 
   if (h2->nbins > 256)
-    ErrorExit(ERROR_UNSUPPORTED, "histoComputeLinearFitError: only 256 bins allowed") ;
+    ErrorExit(ERROR_UNSUPPORTED, 
+              "histoComputeLinearFitError: only 256 bins allowed") ;
   memset(h2_done, 0, sizeof(h2_done)) ;
   for (sse = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
   {
@@ -1424,9 +1522,11 @@ histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
     error = (c2 - c1) ;
     sse += error*error ;
   }
+
   return(sse) ;
 }
 #endif
+
 
 static double
 histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
@@ -1461,8 +1561,10 @@ histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
     sse -= error;
   }
   // printf("a= %g, b= %g, sse = %g\n", a, b, sse);
+
   return(sse) ;
 }
+
 
 #define NSTEPS 100
 int
@@ -1492,8 +1594,10 @@ HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax,
 
   *pa = min_a ;
   *pb = min_b ;
+
   return(NO_ERROR) ;
 }
+
 
 HISTO *
 HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale, float offset)
@@ -1504,8 +1608,10 @@ HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale, float offset)
 
   for (b = 0 ; b < hdst->nbins ; b++)
     hdst->bins[b] = hdst->bins[b]*scale+offset ;
+
   return(hdst) ;
 }
+
 
 float
 HISTOthreshSum(HISTOGRAM *h_mask, HISTOGRAM *h_src, float m_thresh)
@@ -1518,8 +1624,11 @@ HISTOthreshSum(HISTOGRAM *h_mask, HISTOGRAM *h_src, float m_thresh)
     if (h_mask->counts[b] > m_thresh)
       total += h_src->counts[b] ;
   }
+
   return(total) ;
 }
+
+
 HISTOGRAM *
 HISTOmakePDF(HISTO *h_src, HISTO *h_dst)
 {
@@ -1538,6 +1647,8 @@ HISTOmakePDF(HISTO *h_src, HISTO *h_dst)
 
   return(h_dst) ;
 }
+
+
 /*-------------------------------------------------------------------
   HISTObins() - allocates histogram and assigns bin centers uniformly
   between min and max. The first bin is centered at min. The last
@@ -1551,8 +1662,11 @@ HISTO *HISTObins(int nbins, double min, double max)
   h = HISTOalloc(nbins);
   h->bin_size = (max-min)/(nbins-1);
   for (n=0; n < nbins; n++)  h->bins[n] = min + h->bin_size*n;
+
   return(h);
 }
+
+
 /*-------------------------------------------------------------------
   HISTOcount() - builds histogram based on samples. Must have already
   allocated hist and set bin centers.
@@ -1566,8 +1680,11 @@ int HISTOcount(HISTO *h, double *samples, int nsamples)
     bin = HISTOvalToBin(h, samples[n]);
     h->counts[bin] ++;
   }
+
   return(0);
 }
+
+
 /*----------------------------------------------------------
   HISTOvalToBin() - returns the histogram bin number for
   the given value.
@@ -1588,13 +1705,17 @@ int HISTOvalToBin(HISTO *h, double val)
       bin = nthbin;
     }
   }
+
   return(bin);
 }
+
+
 int
 HISTOvalToBinDirect(HISTOGRAM *histo, float val)
 {
   int bin_no ;
   bin_no = nint((float)(val - histo->min) / (float)histo->bin_size) ;
+
   return(bin_no) ;
 }
 
@@ -1608,5 +1729,6 @@ HISTOvalToCount(HISTOGRAM *histo, float val)
   bin_no = nint((float)(val - histo->min) / (float)histo->bin_size) ;
   if (bin_no < 0 || bin_no >= histo->nbins)
     return(0.0) ;
+
   return(histo->counts[bin_no]) ;
 }
