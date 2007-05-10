@@ -25,9 +25,9 @@ function hdr = load_nifti(niftifile,hdronly)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:09 $
-%    $Revision: 1.12 $
+%    $Author: greve $
+%    $Date: 2007/05/10 04:02:15 $
+%    $Revision: 1.13 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -91,7 +91,9 @@ fp = fopen(niftifile,'r',hdr.endian);
 fseek(fp,round(hdr.vox_offset),'bof');
 
 switch(hdr.datatype)
- case   2, [hdr.vol nitemsread] = fread(fp,inf,'char');
+ % Note: 'char' seems to work upto matlab 7.1, but 'uchar' needed
+ % for 7.2 and higher. 
+ case   2, [hdr.vol nitemsread] = fread(fp,inf,'uchar');
  case   4, [hdr.vol nitemsread] = fread(fp,inf,'short');
  case   8, [hdr.vol nitemsread] = fread(fp,inf,'int');
  case  16, [hdr.vol nitemsread] = fread(fp,inf,'float');
