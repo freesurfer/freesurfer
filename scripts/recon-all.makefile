@@ -50,6 +50,8 @@ AUTORECON2_VOL=$(SUBCORTICAL) $(BRAIN) $(WM) $(FILLED)
 
 autorecon2-vol: $(AUTORECON2_VOL)
 
+autorecon2-volonly: autorecon2-vol
+
 $(TAL_LTA): $(BRAINMASK) $(NU)
 	recon-all -s $(subj) -gcareg
 
@@ -134,6 +136,8 @@ AUTORECON2_SURF=$(ORIG_NOFIX_LH) $(ORIG_NOFIX_RH) \
 	$(RIBBON_LH) $(RIBBON_RH)
 
 autorecon2-surf: $(AUTORECON2_SURF)
+
+autorecon2-perhemi: autorecon2-surf
 
 AUTORECON2=$(AUTORECON2_VOL) $(AUTORECON2_SURF)
 

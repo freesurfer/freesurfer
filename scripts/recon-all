@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/08 20:26:58 $
-#    $Revision: 1.93 $
+#    $Date: 2007/05/10 20:43:10 $
+#    $Revision: 1.94 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.93 2007/05/08 20:26:58 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.94 2007/05/10 20:43:10 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3982,6 +3982,31 @@ If just one set of surface data needs to be processed, then the option
 curv, sulc, area, jacobian_white or any surface measure. Another option is 
 -fwhm <num> where <num> is a value in mm.  Also, -target <name> allows
 specifying a common-space target other than fsaverage (the default).
+
+-make target
+
+Runs recon-all through 'make', the standard utility used to create a file
+only if its dependencies are out-of-date.  This -make option makes use of the
+file recon-all.makefile, where the dependency chain is specified.  
+A 'target' argument must be specified.  The valid targets are:
+
+  all
+  autorecon1
+  autorecon2
+  autorecon2-volonly
+  autorecon2-perhemi
+  autorecon3
+  qcache
+
+These targets correspond to their flag equivalents in recon-all.  The 
+difference in behaviour is that files are created only if the file does not
+exist or if an input file used to create it has a newer date than the file
+in need of creation.  It is also possible to supply the full pathname to a
+particular file as a target.
+
+The flag -dontrun can also be specified to show the commands that will run
+without excuting them.
+
 
 EXPERT OPTIONS FILE
 
