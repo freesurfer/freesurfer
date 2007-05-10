@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.42 2007/05/05 04:39:21 greve Exp $
+% $Id: fast_selxavg3.m,v 1.43 2007/05/10 05:20:50 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/05 04:39:21 $
-%    $Revision: 1.42 $
+%    $Date: 2007/05/10 05:20:50 $
+%    $Revision: 1.43 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.42 2007/05/05 04:39:21 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.43 2007/05/10 05:20:50 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -128,7 +128,7 @@ for nthouter = outer_runlist
   err = mkdirp(outanadir);
   if(err) return; end
 
-  xfile = sprintf('%s/X.mat',outanadir);
+  xfile   = sprintf('%s/X.mat',outanadir);
   outresdir = sprintf('%s/res',outanadir);
 
   % Load the brain mask
@@ -207,6 +207,11 @@ for nthouter = outer_runlist
   nX = size(X,2);
   ntptot = size(X,1);
   DOF = ntptot - nX;
+  
+  doffile = sprintf('%s/X.mat',outanadir);
+  fp = fopen(doffile,'w');
+  fprintf(fp,'%d\n',DOF);
+  fclose(fp);
 
   % Check condition, normalize to distinguish from scaled
   Xsss = sqrt(sum(X.^2));
@@ -595,9 +600,10 @@ if(DoGLMFit)
     clear rvarmat0 betamat0;
   end % acfbins > 0
 
-  save(xfile,'X','flac0','runflac','RescaleFactor',...
+  save(xfile,'X','DOF','flac0','runflac','RescaleFactor',...
        'rfm','acfseg','nrho1segmn','acfsegmn',...
        'DoSynth','SynthSeed','yrun_randn');
+  
 
   baseline = mri;
   baseline.vol = fast_mat2vol(mean(betamat(ind0,:),1),mri.volsize);
