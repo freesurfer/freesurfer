@@ -12,8 +12,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/05/10 18:48:29 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/05/10 21:49:24 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,8 @@
 #ifndef ScubaCollectionPropertiesPath_h
 #define ScubaCollectionPropertiesPath_h
 
+#include <vector>
+
 class vtkFSVolumeSource;
 class vtkSimplePointsReader;
 class vtkPolyData;
@@ -46,9 +48,8 @@ class ScubaCollectionPropertiesPath {
 
   virtual vtkSimplePointsReader* GetPathPointsSource() const = 0;
   
-  virtual vtkSimplePointsReader* GetInitialPointsSource() const = 0;
-  
-  
+  virtual const std::vector< std::vector< double* >* > * GetInitialPaths() const = 0;
+    
   // Description:
   // Get a pointer to the surface representation of the pathway.
   virtual vtkPolyData* GetMesh() const = 0;

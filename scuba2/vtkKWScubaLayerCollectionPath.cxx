@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/05/10 18:48:29 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/05/10 21:49:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,12 +50,11 @@ using namespace std;
 const double vtkKWScubaLayerCollectionPath::DEFAULT_COLOR[] = { 0.4, 0.5, 1.0 };
 
 vtkStandardNewMacro( vtkKWScubaLayerCollectionPath );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollectionPath, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollectionPath, "$Revision: 1.5 $" );
 
 vtkKWScubaLayerCollectionPath::vtkKWScubaLayerCollectionPath ():
   mPathVolumeSource( NULL ),
   mSimplePointsReader( NULL ),
-  mInitialPointsReader( NULL ),
   mSamplesReader( NULL ),
   mfnPathVolume( "" ),
   mContourFilter( NULL ),
@@ -82,13 +81,37 @@ vtkKWScubaLayerCollectionPath::~vtkKWScubaLayerCollectionPath () {
   if( mSimplePointsReader ) {
     mSimplePointsReader->Delete();
   }
-  
-  if( mInitialPointsReader ) {
-    mInitialPointsReader->Delete();
-  }
-  
+    
   if( mSamplesReader ) { 
     mSamplesReader->Delete();
+  }
+  
+  if( !mInitialPaths.empty() ) {
+
+    // this is a long for loop to iterate over the initial paths
+    for( std::vector< std::vector< double* >* >::iterator itPaths = mInitialPaths.begin(); 
+      itPaths != mInitialPaths.end(); itPaths++ ) {
+        
+      std::vector< double* >* path = *itPaths;
+      
+      // another long for loop to iterate over the points in a path
+      for( std::vector< double* >::iterator itPoints = path->begin(); 
+        itPoints != path->end(); itPoints++ ) {
+          
+        double *point = ( *itPoints );
+        delete[] point;
+        point = NULL;
+        
+      }
+      
+      path->clear();
+      delete path;
+      path = NULL;
+      
+    }
+    
+    mInitialPaths.clear();
+        
   }
   
 }
@@ -118,9 +141,9 @@ vtkKWScubaLayerCollectionPath::GetPathPointsSource () const {
   return mSimplePointsReader;
 }
 
-vtkSimplePointsReader* 
-vtkKWScubaLayerCollectionPath::GetInitialPointsSource () const {
-  return mInitialPointsReader;
+const std::vector< std::vector< double* >* > *
+vtkKWScubaLayerCollectionPath::GetInitialPaths () const {
+  return &mInitialPaths;
 }
 
 
@@ -301,10 +324,8 @@ vtkKWScubaLayerCollectionPath::LoadPathVolumeFromFileName () {
   // this will be a collection of paths -- only for DJ testing at the moment
   const char* sInitialPoints = "/InitialPath.txt";
   string fnInitialPathPoints = this->GetFullFileName ( sInitialPoints );
-  mInitialPointsReader = vtkSimplePointsReader::New();
-  mInitialPointsReader->SetFileName( fnInitialPathPoints.c_str() );
-  mInitialPointsReader->Update();
-    
+  this->ReadInitialPathPoints( fnInitialPathPoints.c_str() );
+      
   // read in the values sampled along the path
   const char* sPathSamples = "/OptimalPathSamples.txt";
   string fnOptimalPathSamples = this->GetFullFileName ( sPathSamples );
@@ -414,5 +435,72 @@ vtkKWScubaLayerCollectionPath::ReadSamples( const char* fnSamples ) {
     // add the sample the samples vector
     mSamples.insert( mSamples.end(), sample );
   }
+  
+}
+
+void 
+vtkKWScubaLayerCollectionPath::ReadInitialPathPoints( const char* fnInitialPathPoints ) {
+    
+  // this is the delimiter for indicating the start of a new pathway
+  const double pathDelimiter = -999.0;
+  
+  vtkSimplePointsReader *initialPointsReader = vtkSimplePointsReader::New();
+  initialPointsReader->SetFileName( fnInitialPathPoints );
+  initialPointsReader->Update();
+    
+  const int cTotalPoints = initialPointsReader->GetOutput()->GetNumberOfPoints();
+    
+  bool bCreateNewPath = true;
+    
+  std::vector< double* > *path = NULL;
+  
+  // go through all the points and at create new tubes when needed
+  for( int nTotalPoints=0; nTotalPoints<cTotalPoints; nTotalPoints++ ) {
+
+    const double *point = initialPointsReader->GetOutput()->GetPoint( nTotalPoints );
+    
+    // determine if this is a new path
+     if( !bCreateNewPath ) {
+      
+      bCreateNewPath = true;
+      
+      // if all three columns are -999, then we've a new tube
+      for( int nDim = 0; nDim < 3 && bCreateNewPath; nDim++ ) {
+        
+        if( pathDelimiter != point[ nDim ] ) {
+          bCreateNewPath = false;
+        }
+        
+      }
+      
+      // if we've made it through the above loop and all three elements are the
+      // new tube delimiter, then we've got a new tube
+      
+    }
+    
+    // create the proper storage if we need to
+    if( bCreateNewPath ) {
+      // allocate memory for a new path
+      path = new std::vector< double* >();
+      
+      // push the path
+      mInitialPaths.push_back( path );
+      
+      bCreateNewPath = false;
+    } else {
+      // we don't want to copy the delimiter over, so we skip this if we need
+      // to create a new path
+          
+      // copy the point and save it to the path
+      double *pathPoints = new double[ 3 ];
+      for( int nDim=0; nDim<3; nDim++ ) {
+        pathPoints[ nDim ] = point[ nDim ];
+      }
+      path->push_back( pathPoints );
+    }
+    
+  }  
+  
+  initialPointsReader->Delete();
   
 }

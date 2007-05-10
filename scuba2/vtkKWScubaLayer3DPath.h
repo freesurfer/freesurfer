@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/05/10 18:48:29 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/05/10 21:49:24 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -127,6 +127,8 @@ class vtkKWScubaLayer3DPath : public vtkKWScubaLayer {
     vtkActor* mEndPointActor;
     
     vtkActorCollection* mPathPointsCollection;
+
+    vtkActorCollection* mInitialPathsActorCollection;
     
     vtkTubeFilter *mTubeFilter;
     vtkPolyDataMapper* mTubeMapper;

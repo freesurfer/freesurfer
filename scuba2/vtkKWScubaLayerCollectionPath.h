@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/05/10 18:48:29 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/05/10 21:49:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,8 +29,6 @@
 
 #include "vtkKWScubaLayerCollection.h"
 #include "ScubaCollectionPropertiesPath.h"
-
-#include <vector>
 
 class vtkFSVolumeSource;
 class vtkSimplePointsReader;
@@ -55,7 +53,9 @@ class vtkKWScubaLayerCollectionPath : public vtkKWScubaLayerCollection
     
     vtkSimplePointsReader* GetPathPointsSource() const;
 
-    vtkSimplePointsReader* GetInitialPointsSource() const;
+    //BTX
+    const std::vector< std::vector< double* >* > * GetInitialPaths() const;
+    //ETX
     
     virtual vtkPolyData* GetMesh() const;
 
@@ -111,12 +111,15 @@ class vtkKWScubaLayerCollectionPath : public vtkKWScubaLayerCollection
     // Description:
     // Reads in the sample values.
     void ReadSamples( const char* fnSamples );
+
+    // Description:
+    // Reads the intial path points and parses them into multiple pathways.
+    void ReadInitialPathPoints( const char* fnInitialPathPoints );
     
   private:
 
     vtkFSVolumeSource* mPathVolumeSource;
     vtkSimplePointsReader* mSimplePointsReader;
-    vtkSimplePointsReader* mInitialPointsReader;
     vtkSimplePointsReader* mSamplesReader;
   
     //BTX
@@ -140,6 +143,9 @@ class vtkKWScubaLayerCollectionPath : public vtkKWScubaLayerCollection
     
     //BTX
     std::vector< double > mSamples;
+    
+    // this is a vector of pathways, each consisting of 3D points
+    std::vector< std::vector< double* >* > mInitialPaths;
     //ETX
 
 };
