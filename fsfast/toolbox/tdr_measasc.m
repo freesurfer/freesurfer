@@ -1,8 +1,6 @@
 function val = tdr_measasc(measasc,varname,flag)
 % val = tdr_measasc(measasc,varname,<flag>)
 %
-%
-%
 % EPI ------------------------------------------------------
 % Number of echoes: sWiPMemBlock.alFree[2] (if it exists.
 %  if it does not exist, then it's 1 echo).
@@ -25,6 +23,18 @@ function val = tdr_measasc(measasc,varname,flag)
 % number of echoes - sWiPMemBlock.alFree[10]
 % echo spacing     - sWiPMemBlock.adFree[2] % ms
 %
+% If flag = 'epi', reads in as an epipar struct
+%  val.tDwell      % converted to usec
+%  val.tRampUp     % us
+%  val.tFlat       % us
+%  val.tRampDown   % us
+%  val.tDelSamp    % us
+%  val.echospacing % us
+%  val.TE          % us
+%  val.nkcols      
+%  val.nkrows    
+%  val.timeunits = 'usec';
+
 
 
 %
@@ -32,9 +42,9 @@ function val = tdr_measasc(measasc,varname,flag)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:35 $
-%    $Revision: 1.6 $
+%    $Author: greve $
+%    $Date: 2007/05/11 20:22:48 $
+%    $Revision: 1.7 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
