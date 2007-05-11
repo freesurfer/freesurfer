@@ -16,9 +16,9 @@ function [kvec, gvec, K, icenter] = kspacevector2(nReadout,tDwell,Tru,Tft,Trd,Td
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:34 $
-%    $Revision: 1.4 $
+%    $Author: greve $
+%    $Date: 2007/05/11 23:53:06 $
+%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -36,13 +36,18 @@ function [kvec, gvec, K, icenter] = kspacevector2(nReadout,tDwell,Tru,Tft,Trd,Td
 kvec = [];
 gvec = [];
 
-if(nargin ~= 1 & nargin ~= 6 & nargin ~= 7)
+if(nargin ~= 1 & nargin ~= 2 & nargin ~= 6 & nargin ~= 7)
   fprintf('[kvec, gvec] = kspacevector2(nReadout,tDwell,Tru,Tft,Trd,Tds,Tdelay)\n');
   fprintf('[kvec, gvec] = kspacevector2(epipar)\n');
+  fprintf('[kvec, gvec] = kspacevector2(epipar,Tdelay)\n');
   return;
 end
 
-if(nargin == 1)
+if(nargin == 2)
+  Tdelay = tDwell; % just the 2nd arg
+end
+
+if(nargin == 1 | nargin == 2)
   % epipar struct
   epipar = nReadout; % Just first arg
   nReadout = epipar.nkcols;
