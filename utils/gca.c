@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/05/07 12:21:43 $
- *    $Revision: 1.229 $
+ *    $Date: 2007/05/11 20:20:05 $
+ *    $Revision: 1.230 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -19333,6 +19333,14 @@ gcaGetLabelHistogram(GCA *gca, int label, int frame)
             //  for (r = 0 ; r < gca->ninputs ; r++)
             {
               b = nint(gc->means[frame]) ;
+              if (b < 0 || b >= h_gca->nbins)
+              {
+                DiagBreak() ;
+                if (b < 0)
+                  b = 0 ;
+                if (b >= h_gca->nbins)
+                  b = h_gca->nbins - 1 ;
+              }
               h_gca->counts[b] += prior ;
               if (!finite(gc->means[frame]))
                 DiagBreak() ;
