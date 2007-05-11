@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/02 06:16:02 $
- *    $Revision: 1.16 $
+ *    $Date: 2007/05/11 18:01:40 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -245,7 +245,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.16 2007/05/02 06:16:02 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.17 2007/05/11 18:01:40 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -267,6 +267,8 @@ char *outmaskpath=NULL;
 
 MRI *mritmp=NULL;
 char tmpstr[2000];
+
+MRI *ar1;
 
 double infwhm = 0, ingstd = 0;
 double byfwhm, tofwhm, tofwhmact, tofwhmtol=0.5;
@@ -494,7 +496,10 @@ int main(int argc, char *argv[]) {
 
   // ----------- Compute smoothness -----------------------------
   printf("Computing spatial AR1 in volume.\n");
-  fMRIspatialAR1Mean(InVals, mask, &car1mn, &rar1mn, &sar1mn);
+  ar1 = fMRIspatialAR1(InVals, mask, NULL);
+  if (ar1 == NULL) exit(1);
+  fMRIspatialAR1Mean(ar1, mask, &car1mn, &rar1mn, &sar1mn);
+
   cfwhm = RFar1ToFWHM(car1mn, InVals->xsize);
   rfwhm = RFar1ToFWHM(rar1mn, InVals->ysize);
   sfwhm = RFar1ToFWHM(sar1mn, InVals->zsize);

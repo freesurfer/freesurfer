@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/02 06:16:02 $
- *    $Revision: 1.42 $
+ *    $Date: 2007/05/11 18:01:40 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.42 2007/05/02 06:16:02 greve Exp $
+  $Id: fmriutils.c,v 1.43 2007/05/11 18:01:40 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.42 2007/05/02 06:16:02 greve Exp $");
+  return("$Id: fmriutils.c,v 1.43 2007/05/11 18:01:40 greve Exp $");
 }
 
 
@@ -1953,24 +1953,20 @@ MRI *fMRIspatialAR2(MRI *src, MRI *mask, MRI *ar2)
   fMRIspatialAR1Mean() - computes gobal mean of spatial AR1
   for col, row, and slice separately.
   ----------------------------------------------------------*/
-int fMRIspatialAR1Mean(MRI *src, MRI *mask, double *car1mn,
+int fMRIspatialAR1Mean(MRI *ar1, MRI *mask, double *car1mn,
                        double *rar1mn,double *sar1mn)
 {
   int c,r,s;
   long nhits;
   double m, car1sum,rar1sum,sar1sum;
-  MRI *ar1;
-
-  ar1 = fMRIspatialAR1(src, mask, NULL);
-  if (ar1 == NULL) return(1);
 
   car1sum=0.0;
   rar1sum=0.0;
   sar1sum=0.0;
   nhits = 0;
-  for (c=1; c < src->width-1; c++)  {
-    for (r=1; r < src->height-1; r++)    {
-      for (s=1; s < src->depth-1; s++)      {
+  for (c=1; c < ar1->width-1; c++)  {
+    for (r=1; r < ar1->height-1; r++)    {
+      for (s=1; s < ar1->depth-1; s++)      {
         if (mask)        {
           m = MRIgetVoxVal(mask,c,r,s,0);
           if (m < 0.5) continue;

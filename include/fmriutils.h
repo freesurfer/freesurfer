@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/02 06:16:02 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/05/11 18:01:40 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -105,7 +105,7 @@ MRI *fMRIdetrend(MRI *y, MATRIX *X);
 MRI *fMRItemporalAR1(MRI *fmri, float DOFAdjust, MRI *mask, MRI *ar1);
 MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1);
 MRI *fMRIspatialAR2(MRI *src, MRI *mask, MRI *ar2);
-int fMRIspatialAR1Mean(MRI *src, MRI *mask, double *car1mn,
+int fMRIspatialAR1Mean(MRI *ar1, MRI *mask, double *car1mn,
                        double *rar1mn,double *sar1mn);
 int fMRIspatialAR2Mean(MRI *src, MRI *mask, double *car2mn,
                        double *rar2mn,double *sar2mn);

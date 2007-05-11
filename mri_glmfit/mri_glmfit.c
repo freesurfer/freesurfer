@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/09 02:05:27 $
- *    $Revision: 1.121 $
+ *    $Date: 2007/05/11 18:01:40 $
+ *    $Revision: 1.122 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -496,7 +496,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.121 2007/05/09 02:05:27 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.122 2007/05/11 18:01:40 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1347,16 +1347,20 @@ int main(int argc, char **argv) {
       printf("Residual: ar1mn=%lf, ar1std=%lf, gstd=%lf, fwhm=%lf\n",
              ar1mn,ar1std,eresgstd,eresfwhm);
       //printf("Residual: ar1mn=%lf, ar1std=%lf, ar1max=%lf, gstd=%lf, fwhm=%lf\n",
-      //   ar1mn,ar1std,ar1max,eresgstd,eresfwhm);
+      //   ar1mn,ar1std,ar1max,eresgstd,eresfwhm);e
+      MRIfree(&ar1);
     } else {
       printf("Computing spatial AR1 in volume.\n");
-      fMRIspatialAR1Mean(mriglm->eres, mriglm->mask, &car1mn, &rar1mn, &sar1mn);
+      ar1 = fMRIspatialAR1(mriglm->eres, mriglm->mask, NULL);
+      if (ar1 == NULL) exit(1);
+      fMRIspatialAR1Mean(ar1, mriglm->mask, &car1mn, &rar1mn, &sar1mn);
       cfwhm = RFar1ToFWHM(car1mn, mriglm->eres->xsize);
       rfwhm = RFar1ToFWHM(rar1mn, mriglm->eres->ysize);
       sfwhm = RFar1ToFWHM(sar1mn, mriglm->eres->zsize);
       eresfwhm = sqrt((cfwhm*cfwhm + rfwhm*rfwhm + sfwhm*sfwhm)/3.0);
       printf("Residual: ar1mn = (%lf,%lf,%lf) fwhm = (%lf,%lf,%lf) %lf\n",
              car1mn,rar1mn,sar1mn,cfwhm,rfwhm,sfwhm,eresfwhm);
+      MRIfree(&ar1);
     }
   }
 
