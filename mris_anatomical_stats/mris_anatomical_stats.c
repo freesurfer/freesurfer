@@ -1,18 +1,17 @@
 /**
  * @file  mris_anatomical_stats.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief measures a variety of anatomical properties
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/05/07 22:08:07 $
- *    $Revision: 1.44 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/11 18:51:05 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -24,8 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.44 2007/05/07 22:08:07 greve Exp $";
+"$Id: mris_anatomical_stats.c,v 1.45 2007/05/11 18:51:05 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -95,14 +92,15 @@ static char *white_name = "white" ;
 static char *pial_name = "pial" ;
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char          **av, *hemi, *sname, *cp, fname[STRLEN], *surf_name ;
   int           ac, nargs, vno ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_orig ;
   double        gray_volume, wm_volume, thickness_mean=0.,
-      thickness_var=0.,
-                    mean_abs_mean_curvature, mean_abs_gaussian_curvature, ici, fi ;
+    thickness_var=0.,
+    mean_abs_mean_curvature, mean_abs_gaussian_curvature, ici, fi ;
   int           annotation = 0 ;
   FILE          *log_fp = NULL ;
   VERTEX        *v ;
@@ -115,9 +113,9 @@ main(int argc, char *argv[]) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_anatomical_stats.c,v 1.44 2007/05/07 22:08:07 greve Exp $",
-           "$Name:  $");
+    (argc, argv,
+     "$Id: mris_anatomical_stats.c,v 1.45 2007/05/11 18:51:05 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -132,7 +130,8 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -141,8 +140,22 @@ main(int argc, char *argv[]) {
   if (argc < 3)
     usage_exit() ;
 
+  if (argc > 4)
+  {
+    fprintf(stderr,"\nFlagged-options must go first in argument list.\n\n");
+    usage_exit() ;
+  }
+
+  if (tablefile && NULL==annotation_name)
+  {
+    fprintf(stderr,
+            "\nMust specify an annotation file when using -f option\n\n");
+    usage_exit() ;
+  }
+
   sname = argv[1] ;
-  if (strlen(sdir) == 0) {
+  if (strlen(sdir) == 0)
+  {
     cp = getenv("SUBJECTS_DIR") ;
     if (!cp)
       ErrorExit(ERROR_BADPARM,
@@ -166,7 +179,8 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
 
-  if (mri_kernel) {
+  if (mri_kernel)
+  {
     fprintf(stderr, "smoothing brain volume with sigma = %2.3f\n", sigma) ;
     MRIconvolveGaussian(mri_wm, mri_wm, mri_kernel) ;
 #if 0
@@ -211,12 +225,16 @@ main(int argc, char *argv[]) {
 #else
   MRISreadCurvatureFile(mris, thickness_name) ;
 
-  if (nsmooth > 0) {
+  if (nsmooth > 0)
+  {
     printf("Smooth thickness map with %d iterations on surface\n", nsmooth);
     ThicknessMap = MRIcopyMRIS(NULL, mris, 0, "curv");
-    if (ThicknessMap == NULL) {
+    if (ThicknessMap == NULL)
+    {
       printf("Unable to copy thickness data to a MRI volume \n");
-    } else {
+    }
+    else
+    {
       MRISsmoothMRI(mris, ThicknessMap, nsmooth, NULL,ThicknessMap);
       MRIScopyMRI(mris, ThicknessMap, 0, "curv");
       MRIfree(&ThicknessMap);
@@ -235,18 +253,21 @@ main(int argc, char *argv[]) {
   MRISsetNeighborhoodSize(mris, 2) ;
   MRIScomputeSecondFundamentalForm(mris) ;
 
-  if (annotation_name) {
+  if (annotation_name)
+  {
     if (MRISreadAnnotation(mris, annotation_name) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s:  could  not read annotation file %s",
                 Progname, annotation_name) ;
-    if (annotctabfile != NULL && mris->ct != NULL) {
+    if (annotctabfile != NULL && mris->ct != NULL)
+    {
       printf("Saving annotation colortable %s\n",annotctabfile);
       CTABwriteFileASCII(mris->ct,annotctabfile);
     }
   }
   printf(" ... done.\n") ;
 
-  if (label_name) {
+  if (label_name)
+  {
     LABEL  *area ;
     char   fname[STRLEN] ;
 
@@ -260,7 +281,8 @@ main(int argc, char *argv[]) {
     MRIScomputeMetricProperties(mris) ;
   }
 
-  if (histo_flag) {
+  if (histo_flag)
+  {
     sprintf(fname, "%s/%s/mri/%s", sdir, sname, mri_name) ;
     if (MGZ) strcat(fname, ".mgz");
     fprintf(stderr, "reading volume %s...\n", fname) ;
@@ -269,12 +291,15 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
                 Progname, fname) ;
     histo_gray = HISTOalloc(256) ;
-  } else {
+  }
+  else
+  {
     histo_gray = NULL ;
     mri_orig = NULL ;
   }
 
-  if (log_file_name) {
+  if (log_file_name)
+  {
     log_fp = fopen(log_file_name, "a") ;
     if (!log_fp)
       ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname,
@@ -283,10 +308,12 @@ main(int argc, char *argv[]) {
 
 #define SHOW_WHITE_MATTER_VOLUME 0
 #if SHOW_WHITE_MATTER_VOLUME
-  fprintf(stdout, "total white matter volume               = %2.0f mm^3\n",wm_volume) ;
+  fprintf(stdout, "total white matter volume               = %2.0f mm^3\n",
+          wm_volume) ;
 #endif
 
-  if (annotation_name && tabular_output_flag) {
+  if (annotation_name && tabular_output_flag)
+  {
     fprintf(stdout, "\n");
     fprintf(stdout, "table columns are:\n");
     fprintf(stdout, "    number of vertices\n");
@@ -302,7 +329,8 @@ main(int argc, char *argv[]) {
     fprintf(stdout, "\n");
   }
 
-  if (annotation_name && tablefile != NULL) {
+  if (annotation_name && tablefile != NULL)
+  {
     fp = fopen(tablefile,"w");
     fprintf(fp,"# Table of FreeSurfer cortical "
             "parcellation anatomical statistics \n");
@@ -379,6 +407,7 @@ main(int argc, char *argv[]) {
 
     fprintf(fp,"# ColHeaders StructName NumVert SurfArea GrayVol "
             "ThickAvg ThickStd MeanCurv GausCurv FoldInd CurvInd\n");
+    fflush(fp);
     fclose(fp);
   }
 
@@ -386,8 +415,8 @@ main(int argc, char *argv[]) {
   {
 #define MAX_INDICES 1000
     double  areas[MAX_INDICES],
-    volumes[MAX_INDICES], thicknesses[MAX_INDICES],
-    avg_thick, volume, thickness_vars[MAX_INDICES], std ;
+      volumes[MAX_INDICES], thicknesses[MAX_INDICES],
+      avg_thick, volume, thickness_vars[MAX_INDICES], std ;
     int     v0_index, v1_index, v2_index, fno, m, i, dofs[MAX_INDICES] ;
     VERTEX  *v0, *v1, *v2 ;
     FACE    *f ;
@@ -404,7 +433,8 @@ main(int argc, char *argv[]) {
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
     MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
     MRIScomputeMetricProperties(mris) ;
-    for (fno = 0 ; fno < mris->nfaces ; fno++) {
+    for (fno = 0 ; fno < mris->nfaces ; fno++)
+    {
       f = &mris->faces[fno] ;
       if (f->ripflag)
         continue ;
@@ -414,7 +444,8 @@ main(int argc, char *argv[]) {
       CTABfindAnnotation(mris->ct, v1->annotation,&v1_index);
       v2 = &mris->vertices[f->v[2]] ;
       CTABfindAnnotation(mris->ct, v2->annotation,&v2_index);
-      for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++) {
+      for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++)
+      {
         vno = f->v[m] ;
         v = &mris->vertices[vno] ;
         avg_thick += v->imag_val ;
@@ -429,7 +460,8 @@ main(int argc, char *argv[]) {
     // now do pial surface
     MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
     MRIScomputeMetricProperties(mris) ;
-    for (fno = 0 ; fno < mris->nfaces ; fno++) {
+    for (fno = 0 ; fno < mris->nfaces ; fno++)
+    {
       f = &mris->faces[fno] ;
       if (f->ripflag)
         continue ;
@@ -439,7 +471,8 @@ main(int argc, char *argv[]) {
       CTABfindAnnotation(mris->ct, v1->annotation,&v1_index);
       v2 = &mris->vertices[f->v[2]] ;
       CTABfindAnnotation(mris->ct, v2->annotation,&v2_index);
-      for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++) {
+      for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++)
+      {
         vno = f->v[m] ;
         v = &mris->vertices[vno] ;
         avg_thick += v->imag_val ;
@@ -455,7 +488,8 @@ main(int argc, char *argv[]) {
     // specified surface (in ORIG_VERTICES)
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRIScomputeMetricProperties(mris) ;
-    for (fno = 0 ; fno < mris->nfaces ; fno++) {
+    for (fno = 0 ; fno < mris->nfaces ; fno++)
+    {
       f = &mris->faces[fno] ;
       if (f->ripflag)
         continue ;
@@ -471,27 +505,31 @@ main(int argc, char *argv[]) {
     }
 
     // compute thickness for each annotation
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
       v0 = &mris->vertices[vno] ;
       CTABfindAnnotation(mris->ct, v0->annotation,&v0_index );
       thicknesses[v0_index] += v0->imag_val ;
       dofs[v0_index]++ ;
     }
 
-    for (i = 0 ; i < MAX_INDICES ; i++) {
+    for (i = 0 ; i < MAX_INDICES ; i++)
+    {
       if (dofs[i] == 0)
         continue ;
       thicknesses[i] /= dofs[i] ;
     }
     // compute thickness variance for each annotation
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
       v0 = &mris->vertices[vno] ;
       CTABfindAnnotation(mris->ct, v0->annotation,&v0_index );
       std = (v0->imag_val-thicknesses[v0_index]);
       thickness_vars[v0_index] += std*std ;
     }
 
-    for (i = 0 ; i < MAX_INDICES ; i++) {
+    for (i = 0 ; i < MAX_INDICES ; i++)
+    {
       if (dofs[i] == 0)
         continue ;
       if (CTABannotationAtIndex(mris->ct, i, &annotation) != NO_ERROR)
@@ -509,7 +547,8 @@ main(int argc, char *argv[]) {
       thickness_vars[i] /= dofs[i] ;
       /* output */
 
-      if (annotation_name && tablefile != NULL) {
+      if (annotation_name && tablefile != NULL)
+      {
         fp = fopen(tablefile,"a");
         fprintf(fp, "%-40s", mris->ct->entries[i]->name);
         fprintf(fp, "%5d", dofs[i]);
@@ -522,10 +561,12 @@ main(int argc, char *argv[]) {
         fprintf(fp, "  %7.3f", fi);
         fprintf(fp, "  %6.3f",ici);
         fprintf(fp, "\n");
+        fflush(fp);
         fclose(fp);
       }
 
-      if (tabular_output_flag) {
+      if (tabular_output_flag)
+      {
         fprintf(stdout, "%5d", dofs[i]);
         fprintf(stdout, "  %5.0f", areas[i]) ;
         fprintf(stdout, "  %5.0f", volumes[i]) ;
@@ -537,12 +578,14 @@ main(int argc, char *argv[]) {
         fprintf(stdout, "  %6.3f",ici);
         fprintf(stdout, "  %s", mris->ct->entries[i]->name);
         fprintf(stdout, "\n");
-      } else {
+      }
+      else
+      {
         if (mris->ct == NULL)
           ErrorExit
-          (ERROR_BADFILE,
-           "%s: no color table loaded - cannot translate annot  file",
-           Progname);
+            (ERROR_BADFILE,
+             "%s: no color table loaded - cannot translate annot  file",
+             Progname);
         fprintf(stdout,
                 "structure is \"%s\"\n", mris->ct->entries[i]->name);
         fprintf(stdout,
@@ -576,18 +619,21 @@ main(int argc, char *argv[]) {
     exit(0) ;
   }
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     if (!histo_flag && annotation_name == NULL)
       break ;
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    if (histo_flag) {
+    if (histo_flag)
+    {
       double d, xw, yw, zw, x, y, z, thickness, val ;
 
       thickness = v->imag_val ;
 
-      for (d = 0.5 ; d < (thickness-0.5) ; d += 0.1) {
+      for (d = 0.5 ; d < (thickness-0.5) ; d += 0.1)
+      {
         x = v->x+d*v->nx ;
         y = v->y+d*v->ny ;
         z = v->z+d*v->nz ;
@@ -597,10 +643,12 @@ main(int argc, char *argv[]) {
         HISTOaddSample(histo_gray, val, 0, 255) ;
       }
     }
-    if (annotation_name) {
+    if (annotation_name)
+    {
 
       annotation = v->annotation ;
-      if (mris->ct && Gdiag_no >= 0) {
+      if (mris->ct && Gdiag_no >= 0)
+      {
         CTABfindAnnotation(mris->ct, annotation,&ct_index );
         if (ct_index == Gdiag_no) /* 6 is ectorhinal */
           DiagBreak() ;
@@ -613,7 +661,7 @@ main(int argc, char *argv[]) {
       MRIScomputeMetricProperties(mris) ;
 
       MRIScopyCurvatureFromImagValues(mris) ;  /* restore
-                                                                          thickness measures */
+                                                  thickness measures */
       MRIScomputeCurvatureStats(mris, &thickness_mean, &thickness_var,
                                 ignore_below, ignore_above) ;
 
@@ -629,7 +677,8 @@ main(int argc, char *argv[]) {
 
       /* output */
 
-      if (annotation_name && tablefile != NULL) {
+      if (annotation_name && tablefile != NULL)
+      {
         fp = fopen(tablefile,"a");
         CTABfindAnnotation(mris->ct, annotation,&ct_index );
         if (ct_index < 0)
@@ -645,10 +694,12 @@ main(int argc, char *argv[]) {
         fprintf(fp, "  %7.3f", fi);
         fprintf(fp, "  %6.3f",ici);
         fprintf(fp, "\n");
+        fflush(fp);
         fclose(fp);
       }
 
-      if (tabular_output_flag) {
+      if (tabular_output_flag)
+      {
 
         fprintf(stdout, "%5d", n_vertices);
         fprintf(stdout, "  %5.0f", mris->total_area) ;
@@ -668,25 +719,27 @@ main(int argc, char *argv[]) {
 
         fprintf(stdout, "\n");
 
-      } else {
+      }
+      else
+      {
 
         if (mris->ct == NULL)
           ErrorExit
-          (ERROR_BADFILE,
-           "%s: no color table loaded - cannot translate annot  file",
-           Progname);
+            (ERROR_BADFILE,
+             "%s: no color table loaded - cannot translate annot  file",
+             Progname);
         CTABfindAnnotation(mris->ct, annotation,&ct_index );
 
         if (ct_index < 0)
           fprintf
-          (stdout,
-           "statistics for unknown label: annotation %d (%08x) "
-           "(%d %d %d)\n",
-           annotation,
-           annotation,
-           annotation&0xff,
-           (annotation>>8)&0xff,
-           (annotation>>16)&0xff) ;
+            (stdout,
+             "statistics for unknown label: annotation %d (%08x) "
+             "(%d %d %d)\n",
+             annotation,
+             annotation,
+             annotation&0xff,
+             (annotation>>8)&0xff,
+             (annotation>>16)&0xff) ;
         else
           fprintf(stdout,
                   "structure is \"%s\"\n",
@@ -725,7 +778,8 @@ main(int argc, char *argv[]) {
     }
   }
 
-  if (annotation_name == NULL) {
+  if (annotation_name == NULL)
+  {
     MRIScopyCurvatureFromImagValues(mris) ;  /* restore thickness measures */
     MRIScomputeCurvatureStats(mris, &thickness_mean, &thickness_var,
                               ignore_below, ignore_above) ;
@@ -740,28 +794,29 @@ main(int argc, char *argv[]) {
             gray_volume) ;
 
     fprintf
-    (stdout,
-     "average cortical thickness              = %2.3f mm +- %2.3f mm\n",
-     thickness_mean, sqrt(thickness_var)) ;
+      (stdout,
+       "average cortical thickness              = %2.3f mm +- %2.3f mm\n",
+       thickness_mean, sqrt(thickness_var)) ;
 
     MRISuseMeanCurvature(mris) ;
     mean_abs_mean_curvature = MRIScomputeAbsoluteCurvature(mris) ;
     fprintf
-    (stdout,
-     "average integrated rectified mean curvature     = %2.3f\n",
-     mean_abs_mean_curvature) ;
+      (stdout,
+       "average integrated rectified mean curvature     = %2.3f\n",
+       mean_abs_mean_curvature) ;
     MRISuseGaussianCurvature(mris) ;
     mean_abs_gaussian_curvature = MRIScomputeAbsoluteCurvature(mris) ;
     fprintf
-    (stdout,
-     "average integrated rectified Gaussian curvature = %2.3f\n",
-     mean_abs_gaussian_curvature) ;
+      (stdout,
+       "average integrated rectified Gaussian curvature = %2.3f\n",
+       mean_abs_gaussian_curvature) ;
     MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
     fprintf(stdout, "folding index                           = %2.3f\n", fi);
     fprintf
-    (stdout, "intrinsic curvature index               = %2.3f\n", ici);
+      (stdout, "intrinsic curvature index               = %2.3f\n", ici);
   }
-  if (log_fp) {
+  if (log_fp)
+  {
 #if SHOW_WHITE_MATTER_VOLUME
     if (!noheader)
       fprintf(log_fp, "%% %s: <wm vol> <surf area> <gray vol> "
@@ -769,17 +824,17 @@ main(int argc, char *argv[]) {
               "<integ rect. Gauss curv> <fold index> <intr curv ind>\n",
               sname) ;
     fprintf
-    (log_fp,
-     "%2.0f\t%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n",
-     wm_volume,
-     mris->total_area,
-     gray_volume,
-     thickness_mean,
-     sqrt(thickness_var),
-     mean_abs_mean_curvature,
-     mean_abs_gaussian_curvature,
-     fi,
-     ici) ;
+      (log_fp,
+       "%2.0f\t%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n",
+       wm_volume,
+       mris->total_area,
+       gray_volume,
+       thickness_mean,
+       sqrt(thickness_var),
+       mean_abs_mean_curvature,
+       mean_abs_gaussian_curvature,
+       fi,
+       ici) ;
 #else
     if (!noheader)
       fprintf(log_fp, "%% %s: <surf area> <gray vol> "
@@ -787,20 +842,21 @@ main(int argc, char *argv[]) {
               "<integ rect. Gauss curv> <fold index> <intr curv ind>\n",
               sname) ;
     fprintf
-    (log_fp,
-     "%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n",
-     mris->total_area,
-     gray_volume,
-     thickness_mean,
-     sqrt(thickness_var),
-     mean_abs_mean_curvature,
-     mean_abs_gaussian_curvature,
-     fi,
-     ici) ;
+      (log_fp,
+       "%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n",
+       mris->total_area,
+       gray_volume,
+       thickness_mean,
+       sqrt(thickness_var),
+       mean_abs_mean_curvature,
+       mean_abs_gaussian_curvature,
+       fi,
+       ici) ;
 #endif
     fclose(log_fp) ;
   }
-  if (histo_flag) {
+  if (histo_flag)
+  {
     fprintf(stderr, "plotting gray matter histogram to file %s...\n",
             gray_histo_name) ;
     HISTOplot(histo_gray, gray_histo_name) ;
@@ -817,7 +873,8 @@ main(int argc, char *argv[]) {
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
@@ -826,170 +883,194 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "log")) {
+  else if (!stricmp(option, "log"))
+  {
     log_file_name = argv[2] ;
     nargs = 1 ;
     fprintf(stderr, "outputting results to %s...\n", log_file_name) ;
-  } else if (!stricmp(option, "nsmooth")) {
+  }
+  else if (!stricmp(option, "nsmooth"))
+  {
     nsmooth = atoi(argv[2]);
     nargs = 1;
     printf("Smooth thickness by %d steps before using it \n", nsmooth);
-  } else if (!stricmp(option, "noheader")) {
+  }
+  else if (!stricmp(option, "noheader"))
+  {
     noheader = 1 ;
     printf("supressing printing of headers to log file\n") ;
-  } else if (!stricmp(option, "white")) {
+  }
+  else if (!stricmp(option, "white"))
+  {
     white_name = argv[2] ;
     nargs = 1 ;
     printf("using %s as white matter surface name\n", white_name) ;
-  } else if (!stricmp(option, "pial")) {
+  }
+  else if (!stricmp(option, "pial"))
+  {
     pial_name = argv[2] ;
     nargs = 1 ;
     printf("using %s as pial matter surface name\n", pial_name) ;
-  } else if (!stricmp(option, "sdir")) {
+  }
+  else if (!stricmp(option, "sdir"))
+  {
     char str[STRLEN] ;
     strcpy(sdir, argv[2]) ;
     printf("using  %s as  SUBJECTS_DIR...\n", sdir)  ;
     nargs = 1 ;
     sprintf(str, "SUBJECTS_DIR=%s", sdir) ;
     putenv(str) ;
-  } else if (!stricmp(option, "mgz")) {
+  }
+  else if (!stricmp(option, "mgz"))
+  {
     MGZ = 1;
     printf("INFO: assuming MGZ format for volumes.\n");
-  } else if (!stricmp(option, "COR")) {
+  }
+  else if (!stricmp(option, "COR"))
+  {
     MGZ = 0;
     printf("INFO: assuming COR format for volumes.\n");
-  } else switch (toupper(*option)) {
-    case 'T':
-      thickness_name = argv[2] ;
-      nargs = 1 ;
-      fprintf(stderr, "using thickness file %s.\n", thickness_name) ;
-      break ;
-    case 'L':
-      label_name = argv[2] ;
-      nargs = 1 ;
-      fprintf(stderr, "limiting computations to label %s.\n", label_name) ;
-      break ;
-    case 'M':
-      mri_name = argv[2] ;
-      nargs = 1 ;
-      fprintf(stderr, "computing histograms on intensity values from %s...\n",
-              mri_name) ;
-      break ;
-    case 'H':
-      histo_flag = 1 ;
-      gray_histo_name = argv[2] ;
-      nargs = 1 ;
-      fprintf
+  }
+  else switch (toupper(*option))
+  {
+  case 'T':
+    thickness_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "using thickness file %s.\n", thickness_name) ;
+    break ;
+  case 'L':
+    label_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "limiting computations to label %s.\n", label_name) ;
+    break ;
+  case 'M':
+    mri_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "computing histograms on intensity values from %s...\n",
+            mri_name) ;
+    break ;
+  case 'H':
+    histo_flag = 1 ;
+    gray_histo_name = argv[2] ;
+    nargs = 1 ;
+    fprintf
       (stderr,
        "writing histograms of intensity distributions to %s...\n",
        gray_histo_name);
-      break ;
-    case 'V':
-      Gdiag_no = atoi(argv[2]) ;
-      nargs = 1 ;
-      break ;
-    case 'A':
-      annotation_name = argv[2] ;
-      nargs = 1 ;
-      fprintf(stderr, "computing statistics for each annotation in %s.\n",
-              annotation_name) ;
-      break ;
-    case 'C':
-      annotctabfile = argv[2] ;
-      nargs = 1 ;
-      break ;
-    case 'I':
-      ignore_below = atof(argv[2]) ;
-      ignore_above = atof(argv[3]) ;
-      fprintf(stderr,
-              "only considering thicknesses in the range [%2.1f,%2.1f].\n",
-              ignore_below, ignore_above) ;
-      nargs = 2 ;
-      break ;
-    case 'B':
-      tabular_output_flag = 1;
-      nargs = 0;
-      break;
-    case 'F':
-      tablefile = argv[2] ;
-      nargs = 1 ;
-      break ;
-    case '?':
-    case 'U':
-      print_usage() ;
-      exit(1) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+    break ;
+  case 'V':
+    Gdiag_no = atoi(argv[2]) ;
+    nargs = 1 ;
+    break ;
+  case 'A':
+    annotation_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "computing statistics for each annotation in %s.\n",
+            annotation_name) ;
+    break ;
+  case 'C':
+    annotctabfile = argv[2] ;
+    nargs = 1 ;
+    break ;
+  case 'I':
+    ignore_below = atof(argv[2]) ;
+    ignore_above = atof(argv[3]) ;
+    fprintf(stderr,
+            "only considering thicknesses in the range [%2.1f,%2.1f].\n",
+            ignore_below, ignore_above) ;
+    nargs = 2 ;
+    break ;
+  case 'B':
+    tabular_output_flag = 1;
+    nargs = 0;
+    break;
+  case 'F':
+    tablefile = argv[2] ;
+    nargs = 1 ;
+    break ;
+  case '?':
+  case 'U':
+    print_usage() ;
+    exit(1) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void) {
+usage_exit(void)
+{
   print_help() ;
   exit(1) ;
 }
 
 static void
-print_usage(void) {
+print_usage(void)
+{
   fprintf(stderr,
-          "usage: %s [options] <subject name> <hemi> [<surface name>]\n",
+          "Usage: %s [options] <subject name> <hemi> [<surface name>]\n",
           Progname) ;
 }
 
 static void
-print_help(void) {
+print_help(void)
+{
   print_usage() ;
   fprintf
-  (stderr,
-   "\nThis program measures a variety of anatomical properties\n") ;
+    (stderr,
+     "\nThis program measures a variety of anatomical properties.\n") ;
   fprintf
-  (stderr, "\nvalid options are:\n\n") ;
+    (stderr, "\nValid options are:\n\n") ;
   fprintf
-  (stderr,
-   "-i  <low thresh> <hi thresh> - only consider thicknesses in\n"
-   "                               the specified range.\n") ;
+    (stderr,
+     "-i <low thresh> <hi thresh>  - only consider thicknesses in\n"
+     "                               the specified range\n") ;
   fprintf
-  (stderr,
-   "-l <label file>              - limit calculations to specified "
-   "label\n") ;
+    (stderr,
+     "-l <.label file>             - limit calculations to specified "
+     "label\n") ;
   fprintf
-  (stderr,
-   "-t <thickness file>          - use specified file for computing "
-   "thickness statistics\n") ;
+    (stderr,
+     "-t <thickness file>          - use specified file for computing\n"
+     "                               thickness statistics\n") ;
   fprintf
-  (stderr,
-   "-a <annotation file>         - compute properties for each label\n"
-   "                               in the annotation file separately"
-   "\n") ;
+    (stderr,
+     "-a <.annot file>             - compute properties for each label\n"
+     "                               in the annotation file separately\n") ;
   fprintf
-  (stderr,
-   "-b                           - tabular output\n");
+    (stderr,
+     "-b                           - tabular output\n");
   fprintf
-  (stderr,
-   "-f tablefile  - table output to a file (different format than -b) \n");
+    (stderr,
+     "-f <tablefile>               - table output to a file named tablefile\n"
+     "                               (different format than -b)\n"
+     "                               must specify an annotation file with -a");
   fprintf
-  (stderr,
-   "-log <log>    - will write the stats into a file named <log>\n");
+    (stderr,
+     "-log <log>                   - will write the stats into a file\n"
+     "                               named <log>\n");
   fprintf
-  (stderr,
-   "-nsmooth <#>   - will smooth the thicknessmap # of "
-   "iterations before using it \n");
+    (stderr,
+     "-nsmooth <#>                 - will smooth the thicknessmap # of\n"
+     "                               iterations before using it\n");
   exit(1) ;
 }
 
 static void
-print_version(void) {
+print_version(void)
+{
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
 
 double
-MRISmeasureTotalWhiteMatterVolume(MRI *mri) {
+MRISmeasureTotalWhiteMatterVolume(MRI *mri)
+{
   double  total_volume, voxel_volume ;
   int     x, y, z, width, height, depth ;
   BUFTYPE *psrc ;
@@ -998,10 +1079,13 @@ MRISmeasureTotalWhiteMatterVolume(MRI *mri) {
   height = mri->height ;
   depth = mri->depth ;
   voxel_volume = mri->xsize * mri->ysize * mri->zsize ;
-  for (total_volume = 0.0, y = 0 ; y < height ; y++) {
-    for (z = 0 ; z < depth ; z++) {
+  for (total_volume = 0.0, y = 0 ; y < height ; y++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
       psrc = &MRIvox(mri, 0, y, z) ;
-      for (x = 0 ; x < width ; x++) {
+      for (x = 0 ; x < width ; x++)
+      {
         if (*psrc++ > 10)
           total_volume += voxel_volume ;
       }
@@ -1012,12 +1096,14 @@ MRISmeasureTotalWhiteMatterVolume(MRI *mri) {
 
 int
 MRIScomputeCurvatureStats(MRI_SURFACE *mris, double *pavg, double *pvar,
-                          float ignore_below, float ignore_above) {
+                          float ignore_below, float ignore_above)
+{
   VERTEX    *v ;
   int       vno ;
   double    mean, var, n ;
 
-  for (n = mean = 0.0, vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (n = mean = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -1028,7 +1114,8 @@ MRIScomputeCurvatureStats(MRI_SURFACE *mris, double *pavg, double *pvar,
   }
 
   mean /= n ;
-  for (var = 0.0, vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (var = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -1043,7 +1130,8 @@ MRIScomputeCurvatureStats(MRI_SURFACE *mris, double *pavg, double *pvar,
   return(NO_ERROR) ;
 }
 double
-MRISmeasureCorticalGrayMatterVolume(MRI_SURFACE *mris) {
+MRISmeasureCorticalGrayMatterVolume(MRI_SURFACE *mris)
+{
   FACE      *f ;
   VERTEX    *v ;
   int       fno, m, vno ;
@@ -1052,11 +1140,13 @@ MRISmeasureCorticalGrayMatterVolume(MRI_SURFACE *mris) {
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
-  for (n = total = 0.0, fno = 0 ; fno < mris->nfaces ; fno++) {
+  for (n = total = 0.0, fno = 0 ; fno < mris->nfaces ; fno++)
+  {
     f = &mris->faces[fno] ;
     if (f->ripflag)
       continue ;
-    for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++) {
+    for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++)
+    {
       vno = f->v[m] ;
       v = &mris->vertices[vno] ;
       avg_thick += v->curv ;
@@ -1069,11 +1159,13 @@ MRISmeasureCorticalGrayMatterVolume(MRI_SURFACE *mris) {
 
   MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
-  for (fno = 0 ; fno < mris->nfaces ; fno++) {
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
     f = &mris->faces[fno] ;
     if (f->ripflag)
       continue ;
-    for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++) {
+    for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++)
+    {
       vno = f->v[m] ;
       v = &mris->vertices[vno] ;
       avg_thick += v->curv ;
@@ -1096,12 +1188,14 @@ MRISmeasureCorticalGrayMatterVolume(MRI_SURFACE *mris) {
 
 
 double
-MRIScomputeAbsoluteCurvature(MRI_SURFACE *mris) {
+MRIScomputeAbsoluteCurvature(MRI_SURFACE *mris)
+{
   VERTEX    *v ;
   int       vno ;
   double    total, n ;
 
-  for (n = total = 0.0, vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (n = total = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -1114,9 +1208,10 @@ MRIScomputeAbsoluteCurvature(MRI_SURFACE *mris) {
 
 #if 0
 int
-MRISreadAnnotFile(MRI_SURFACE *mris, char *name) {
+MRISreadAnnotFile(MRI_SURFACE *mris, char *name)
+{
   int    i,j,vno,num;
-  FILE   *fp;
+  FILE   *fp=NULL;
   char   fname[100] ;
 
   MRISbuildFileName(mris, name, fname) ;
@@ -1128,7 +1223,8 @@ MRISreadAnnotFile(MRI_SURFACE *mris, char *name) {
     mris->vertices[vno].marked = -1 ;
   num = freadInt(fp);
   /*  printf("num=%d\n",num);*/
-  for (j=0;j<num;j++) {
+  for (j=0;j<num;j++)
+  {
     vno = freadInt(fp);
     i = freadInt(fp);
     if (vno>=mris->nvertices||vno<0)
@@ -1141,11 +1237,13 @@ MRISreadAnnotFile(MRI_SURFACE *mris, char *name) {
 }
 
 int
-MRISripVerticesWithMark(MRI_SURFACE *mris, int mark) {
+MRISripVerticesWithMark(MRI_SURFACE *mris, int mark)
+{
   int      vno ;
   VERTEX   *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -1156,11 +1254,13 @@ MRISripVerticesWithMark(MRI_SURFACE *mris, int mark) {
   return(NO_ERROR) ;
 }
 int
-MRISripVerticesWithoutMark(MRI_SURFACE *mris, int mark) {
+MRISripVerticesWithoutMark(MRI_SURFACE *mris, int mark)
+{
   int      vno ;
   VERTEX   *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -1172,11 +1272,13 @@ MRISripVerticesWithoutMark(MRI_SURFACE *mris, int mark) {
 }
 
 int
-MRISreplaceMarks(MRI_SURFACE *mris, int in_mark, int out_mark) {
+MRISreplaceMarks(MRI_SURFACE *mris, int in_mark, int out_mark)
+{
   int      vno ;
   VERTEX   *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -1189,11 +1291,13 @@ MRISreplaceMarks(MRI_SURFACE *mris, int in_mark, int out_mark) {
 #endif
 
 int
-MRISripVerticesWithAnnotation(MRI_SURFACE *mris, int annotation) {
+MRISripVerticesWithAnnotation(MRI_SURFACE *mris, int annotation)
+{
   int      vno ;
   VERTEX   *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -1204,11 +1308,13 @@ MRISripVerticesWithAnnotation(MRI_SURFACE *mris, int annotation) {
   return(NO_ERROR) ;
 }
 int
-MRISripVerticesWithoutAnnotation(MRI_SURFACE *mris, int annotation) {
+MRISripVerticesWithoutAnnotation(MRI_SURFACE *mris, int annotation)
+{
   int      vno ;
   VERTEX   *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
 #if 0
     if (v->ripflag)
@@ -1226,11 +1332,13 @@ MRISripVerticesWithoutAnnotation(MRI_SURFACE *mris, int annotation) {
 int
 MRISreplaceAnnotations(MRI_SURFACE *mris,
                        int in_annotation,
-                       int out_annotation) {
+                       int out_annotation)
+{
   int      vno ;
   VERTEX   *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -1241,16 +1349,19 @@ MRISreplaceAnnotations(MRI_SURFACE *mris,
 }
 
 int
-MRISrestoreSurface(MRI_SURFACE *mris) {
+MRISrestoreSurface(MRI_SURFACE *mris)
+{
   int      vno, fno ;
   VERTEX   *v ;
   FACE     *f ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     v->ripflag = 0 ;
   }
-  for (fno = 0 ; fno < mris->nfaces ; fno++) {
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
     f = &mris->faces[fno] ;
     f->ripflag = 0 ;
   }
@@ -1258,7 +1369,8 @@ MRISrestoreSurface(MRI_SURFACE *mris) {
 }
 
 int
-MRIScountVertices(MRI_SURFACE *mris) {
+MRIScountVertices(MRI_SURFACE *mris)
+{
 
   int vno, n;
 
