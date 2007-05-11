@@ -7,8 +7,8 @@
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/20 00:53:51 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/05/11 23:01:18 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,7 @@ extern "C" {
 #include "mrisutils.h"
 #include "version.h"
 #include "proto.h"
+#include "error.h"
 
   char *Progname = "mris_info";
 }
@@ -63,9 +64,9 @@ static void print_version(void);
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
 static char vcid[] = 
-"$Id: mris_info.cpp,v 1.27 2007/04/20 00:53:51 nicks Exp $";
+"$Id: mris_info.cpp,v 1.28 2007/05/11 23:01:18 nicks Exp $";
 using namespace std;
-char *surffile=NULL, *outfile=NULL, *curvfile=NULL;
+char *surffile=NULL, *outfile=NULL, *curvfile=NULL, *annotfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
 int debug = 0;
 char tmpstr[2000];
@@ -139,6 +140,30 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
     print("%s has the same number of vertices as %s\n",curvfile,surffile);
+  }
+
+  // read number of vertices in annotation file, and check
+  // that the number of vertices is the same (exiting with error if not)
+  if (annotfile) {
+    printf("\n");  
+    /* Open the file. */
+    FILE  *fp = fopen(annotfile,"r");
+    if (fp==NULL)
+      ErrorExit(ERROR_NOFILE, 
+                 "ERROR: could not read annot file %s",
+                 annotfile) ;
+
+    /* First int is the number of elements. */
+    int numVertices = freadInt(fp) ;
+    fclose(fp);
+
+    if (numVertices != mris->nvertices ) {
+      printf("\n");
+      printf("ERROR: %s has %d vertices, while %s has %d vertices!\n",
+             annotfile, numVertices, surffile, mris->nvertices);
+      exit(1);
+    }
+    print("%s has the same number of vertices as %s\n",annotfile,surffile);
   }
 
   if (rescale) {
@@ -298,6 +323,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       curvfile = pargv[0];
       nargsused = 1;
+    } else if ( !strcmp(option, "--a") ) {
+      if (nargc < 1) argnerr(option,1);
+      annotfile = pargv[0];
+      nargsused = 1;
     } else if ( !strcmp(option, "--s") ) {
       if (nargc < 3) argnerr(option,3);
       subject  = pargv[0];
@@ -337,10 +366,12 @@ static void print_usage(void) {
   printf("  --r : rescale group surface so metrics same as "
          "avg of individuals\n");
   printf("  --v vnum : print out vertex information for vertex vnum\n") ;
-  printf("  --c curvfile : load the specified curvature file, which\n");
-  printf("                 has the side-effect of checking that the\n");
-  printf("                 number of vertices matches the surface, and\n");
-  printf("                 exiting with error if not.\n");
+  printf("  --c curvfile : check if the specified curvature file has the\n");
+  printf("                 same number of vertices as the surface, and\n");
+  printf("                 exit with error if not. This is a QA check.\n");
+  printf("  --a annotfile : check if the specified annotation file has the\n");
+  printf("                  same number of vertices as the surface, and\n");
+  printf("                  exit with error if not. This is a QA check.\n");
   printf("\n");
   printf("  --version   : print version and exits\n");
   printf("  --help      : no clue what this does\n");
