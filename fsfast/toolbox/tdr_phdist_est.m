@@ -27,8 +27,8 @@ function [thetahat, theta, Fsig, beta] = tdr_phdist_est(Ref,Mov,rthresh,order)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/11 03:53:32 $
-%    $Revision: 1.4 $
+%    $Date: 2007/05/11 06:42:16 $
+%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -81,11 +81,11 @@ if(nover == 0)
 end
 
 % Compute the phase distortion %
-%theta = unwrap(angle(Ref)-angle(Mov)); 
 theta = unwrap(angle(Ref./Mov));
 
 % Create a polynomial design matrix %
 X = fast_polytrendmtx(1,nf,1,order);
+X = [ones(nf,1) [1:nf]'];
 
 % Use only the suprathreshold frames for estimation %
 thetaover = theta(indover,:);

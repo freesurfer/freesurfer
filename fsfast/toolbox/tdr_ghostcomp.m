@@ -5,10 +5,10 @@ function [gcomp, theta, thetahat, Fsig, beta, Rrow] = tdr_ghostcomp(kpcn,epipar)
 % gcomp is (ncols n1 n2 n3) 
 % revenfixed = reven .* gcomp (careful with transpose)
 %
-% $Id: tdr_ghostcomp.m,v 1.4 2007/05/11 03:53:32 greve Exp $
+% $Id: tdr_ghostcomp.m,v 1.5 2007/05/11 06:42:16 greve Exp $
 
-order = 1;   % poly order
-rthresh = 4; % relative threshold
+order = 2;   % poly order
+rthresh = 3; % relative threshold
 
 gcomp = [];
 if(nargin ~= 2)
@@ -36,34 +36,24 @@ tDelSamp    = epipar.tDelSamp;
 % Compute the Ideal col and row DFT reconstruction matrices
 Frow = fast_dftmtx(kvec);
 Frow = fast_svdregpct(Frow,90);
-%Rrow = transpose(inv(Frow));
-Rrow = inv(Frow);
+Rrow = inv(Frow); % Dont do transpose, mult vects on right
 
 % Flip even rows left-right
 kpcn(2,:,:,:) = flipdim(kpcn(2,:,:,:),2);
 
-% kpcn is (3,ncols,n1,n2,n3) with the rows NOT LR reversed
+% kpcn is (3,ncols,n1,n2,n3)
 kpcn = reshape(kpcn,[3 ncols n1*n2*n3]);
 kpcn = permute(kpcn,[2 3 1]);
 
+% Reconstruct the rows
 pcn1 = Rrow*kpcn(:,:,1);
 pcn2 = Rrow*kpcn(:,:,2);
 pcn3 = Rrow*kpcn(:,:,3);
 
-kpcnref = (kpcn(:,:,1) + kpcn(:,:,3))/2;
-kpcnmov = kpcn(:,:,2);
-
-kpcnaref = (abs(kpcn(:,:,1)) + abs(kpcn(:,:,3)))/2;
-kpcnamov = abs(kpcn(:,:,2));
-
-% Reconstruct the rows
-%pcnref = (Rrow*kpcnref);
-%pcnmov = (Rrow*kpcnmov);
 pcnref = (pcn1+pcn3)/2;
 pcnmov = pcn2;
 
-
-[thetahat theta Fsig beta] = tdr_phdist_est(pcnref,pcnmov,rthresh,order);
+[thetahat theta Fsig beta] = tdr_phdist_est0(pcnref,pcnmov,rthresh,order);
 
 gcomp = exp(+i*thetahat);
 
@@ -74,36 +64,92 @@ pcnmovcomp = pcnmov .* gcomp;
 kpcnmovcomp = Frow*pcnmovcomp;
 
 % The compensated should look very close to the ref
+kpcnref = (kpcn(:,:,1) + kpcn(:,:,3))/2;
+kpcnmov = kpcn(:,:,2);
+abskpcnref = (abs(kpcn(:,:,1)) + abs(kpcn(:,:,3)))/2;
+abskpcnmov = abs(kpcn(:,:,2));
 nn = 1:ncols;
-plot(nn,kpcnaref(:,1),'+-',nn,kpcnamov(:,1),nn,abs(kpcnmovcomp(:,1)));
-legend('ref','mov','movcomp')
+%plot(nn,abskpcnref(:,1),'+-',nn,abskpcnmov(:,1),nn,abs(kpcnmovcomp(:,1)));
+%legend('ref','mov','movcomp')
+
 
 gcomp = reshape(gcomp,[ncols n1 n2 n3]);
 
 gcompmov = exp(+i*thetahat/2);
 gcompref = exp(-i*thetahat/2);
 
+%keyboard
+
 return;
 
-%
-% tdr_ghostcomp.m
-%
-% Original Author: Doug Greve
-% CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2007/05/11 03:53:32 $
-%    $Revision: 1.4 $
-%
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
-%
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
-%
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
-%
+%--------------------------------------------------------------------------
+function [thetahat, theta, Fsig, beta] = tdr_phdist_est0(Ref,Mov,rthresh,order)
 
+beta  = [];
+rvar  = [];
+nover = [];
+thetahat = [];
+
+if(nargin < 2 | nargin > 4)
+  fprintf('[thetahat theta Fsig beta] = tdr_phdist_est(Ref,Mov,rthresh,order)\n');
+  return;
+end
+
+if(exist('rthresh') ~= 1) rthresh = []; end 
+if(isempty(rthresh)) rthresh = 2; end 
+if(exist('order') ~= 1) order = []; end 
+if(isempty(order)) order = 2; end 
+  
+if(max(abs(size(Ref)-size(Mov))) ~= 0)
+  fprintf('ERROR: size mismatch between Ref and Mov\n');
+  return;
+end
+[nf nv] = size(Ref);
+
+RefMn = mean(abs(Ref),2);
+MovMn = mean(abs(Mov),2);
+RefMovMn = (RefMn+MovMn)/2;
+
+% Compute the absolute segmentation threshold %
+mn = mean(RefMovMn);
+athresh = rthresh * mn; 
+
+% Segment - all columns get the same segmentation %
+indover = find(RefMovMn > athresh);
+nover = length(indover);
+if(nover == 0) 
+  fprintf('ERROR: no voxels over threshold\n');
+  return;
+end
+
+% Compute the phase distortion %
+%theta = unwrap(angle(Ref./Mov));
+theta = angle(Ref./Mov);
+
+% Create a polynomial design matrix %
+X = fast_polytrendmtx(1,nf,1,order); 
+
+% Use only the suprathreshold frames for estimation %
+thetaover = unwrap(theta(indover,:));
+Xover = X(indover,:);
+
+% Perform the estimation on suprathreshold frames %
+[beta rvar vdof] = fast_glmfit(thetaover,Xover);
+
+% Compute the estimate of the phase distortion across all frames
+thetahat = X*beta;
+
+% Make thetahat pass thru 0 at first sample
+thetahat = thetahat - repmat(thetahat(1,:),[nf 1]);
+
+% Do a test to make sure things are ok
+C = zeros(1,order+1);
+C(2) = 1;
+[F Fsig ces] = fast_fratio(beta,X,rvar,C);
+Fsig = -log10(Fsig);
+if(min(Fsig) < 200)
+  fprintf('WARNING: tdr_phdist_est(): min(Fsig) = %g < 200  ',min(Fsig));
+  fprintf('(threshold is %g)\n',rthresh);
+end
+
+return;
