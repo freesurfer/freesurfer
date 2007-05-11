@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/04 17:13:42 $
- *    $Revision: 1.79 $
+ *    $Date: 2007/05/11 18:39:00 $
+ *    $Revision: 1.80 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.79 2007/05/04 17:13:42 greve Exp $";
+"$Id: tkregister2.c,v 1.80 2007/05/11 18:39:00 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1253,6 +1253,7 @@ static void print_usage(void) {
   printf("   --fsl file : FSL-style registration input matrix\n");
   printf("   --fslregout file : FSL-Style registration output matrix\n");
   printf("   --vox2vox file : vox2vox matrix in ascii\n");
+  printf("   --lta ltafile : Linear Transform Array\n");
   printf("   --feat featdir : check example_func2standard registration\n");
   printf("   --identity : use identity as registration matrix\n");
   printf("   --s subjectid : set subject id \n");
@@ -4418,7 +4419,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.79 2007/05/04 17:13:42 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.80 2007/05/11 18:39:00 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
