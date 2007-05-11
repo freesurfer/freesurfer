@@ -17,17 +17,6 @@ public:
   void CalculateInitialPath();
 
   /**
-   * The seed volume that has the seed regions to be connected.
-   */
-  virtual void SetSeedVolume( MRI *volume );
-  
-  /**
-   * These are the initial seed values in the seed volume that are to be 
-   * connected.
-   */
-  virtual void SetSeedValues( std::vector< int > *values );
-
-  /**
    * The eigenvectors that will be used in determining an initialization.
    */
   void SetEigenVectors( MRI *eigenVectors );
@@ -69,6 +58,8 @@ protected:
 private:
 
   MRI *m_EigenVectors;
+
+  bool m_IsGradientCached;
 
   /**
    * Vector of gradient volumes.  The gradients will be one less than the

@@ -11,6 +11,8 @@
 EigenVectorInitPathStrategy::EigenVectorInitPathStrategy() {
   m_EigenVectors = NULL;
   m_GradientVolumes.clear();  
+
+  m_IsGradientCached = false;
 }
 
 EigenVectorInitPathStrategy::EigenVectorInitPathStrategy( PoistatsModel *model ) {
@@ -22,6 +24,8 @@ EigenVectorInitPathStrategy::EigenVectorInitPathStrategy( PoistatsModel *model )
   
   this->SetSeedVolume( m_PoistatsModel->GetSeedVolume() );
   this->SetSeedValues( m_PoistatsModel->GetSeedValues() );
+  
+  m_IsGradientCached = false;
 
 }
 
@@ -37,8 +41,12 @@ EigenVectorInitPathStrategy::SetEigenVectors( MRI *eigenVectors ) {
 void
 EigenVectorInitPathStrategy::CacheGradientVolumes() {
   
+  std::vector< int > *seedValues = m_PoistatsModel->GetSeedValues();
+  
+  MRI *seedVolume = m_PoistatsModel->GetSeedVolume();
+    
   // make sure that the seed volume and seed values have been set
-  if( m_SeedVolume != NULL && m_SeedValues != NULL ) {
+  if( seedVolume != NULL && seedValues != NULL ) {
     
     if( !m_GradientVolumes.empty() ) {
       // deallocate the gradient volumes if they've been allocated already
@@ -46,12 +54,12 @@ EigenVectorInitPathStrategy::CacheGradientVolumes() {
     }
     
     // there will be one less gradient volumes as seed values
-    const int nGradientVolumes = m_SeedValues->size() - 1;
+    const int nGradientVolumes = seedValues->size() - 1;
       
     for( int cSeeds = 0; cSeeds < nGradientVolumes; cSeeds++ ) {
     
       // using the next seed as the destination
-      const int destinationSeedLabel = ( *m_SeedValues )[ cSeeds+1 ];
+      const int destinationSeedLabel = ( *seedValues )[ cSeeds+1 ];
       
       // create the distance transform, all the values should be set before running
       MRI *distanceTransform = this->GetDistanceVolume( destinationSeedLabel );
@@ -68,32 +76,42 @@ EigenVectorInitPathStrategy::CacheGradientVolumes() {
       }
       
     }
+    
+    m_IsGradientCached = true;
   
+  } else {
+    std::cerr << "EigenVectorInitPathStrategy::CacheGradientVolumes() -- seed volume is null" << std::endl;
   }
     
 }
 
 void 
 EigenVectorInitPathStrategy::CalculateInitialPath() {
-
+  
+  if( !m_IsGradientCached ) {
+    this->CacheGradientVolumes();
+  }
+  
+  std::vector< int > *seedValues = m_PoistatsModel->GetSeedValues();
+  
   // this will be a vector with 3 columns
   std::vector< double* > path;
   
-  for( unsigned int cSeeds = 0; cSeeds < ( m_SeedValues->size() - 1 ); cSeeds++ ) {
+  for( unsigned int cSeeds = 0; cSeeds < ( seedValues->size() - 1 ); cSeeds++ ) {
     
     // using the next seed as the destination
-    const int destinationSeedLabel = ( *m_SeedValues )[ cSeeds+1 ];
-        
+    const int destinationSeedLabel = ( *seedValues )[ cSeeds+1 ];
+    
     // now that we have the transform to get to the second seed, we want to take
     // the derivatives of the distance transform to see what direction we need
     // to take to get to the second seed
     MRI *gradientsVolume = m_GradientVolumes[ cSeeds ];
     
     // pick a random starting point within the starting seed region
-    const int startSeedLabel = ( *m_SeedValues )[ cSeeds ];
+    const int startSeedLabel = ( *seedValues )[ cSeeds ];
     int currentPointInt[3];
     this->GetRandomSeedPoint( currentPointInt, startSeedLabel );
-    
+
     // pick a random end point.  This will be used for determining the initial
     // previous point so that the correct orientation of the eigenvector can be
     // obtained.
@@ -177,23 +195,6 @@ EigenVectorInitPathStrategy::CalculateInitialPath() {
   
 }
 
-void 
-EigenVectorInitPathStrategy::SetSeedVolume( MRI *volume ) {
-  InitializePath::SetSeedVolume( volume );
-  
-  // calculate and cache the gradient volumes
-  this->CacheGradientVolumes();
-}
-
-void 
-EigenVectorInitPathStrategy::SetSeedValues( std::vector< int > *values ) {
-
-  InitializePath::SetSeedValues( values );
-
-  // calculate and cache the gradient volumes
-  this->CacheGradientVolumes();
-}
-
 MRI* 
 EigenVectorInitPathStrategy::GetDistanceVolume( const int label ) {
   
@@ -204,9 +205,11 @@ EigenVectorInitPathStrategy::GetDistanceVolume( const int label ) {
   // from mri_distance_transform  mode 1 is outside
   const int mode = 1;
   
+  MRI* seedVolume = m_PoistatsModel->GetSeedVolume();
+  
   // from fastmarching
-  MRI* distanceTransform = MRIextractDistanceMap( m_SeedVolume, NULL, label, maxDistance, mode);
-  MRIcopyHeader( m_SeedVolume, distanceTransform);
+  MRI* distanceTransform = MRIextractDistanceMap( seedVolume, NULL, label, maxDistance, mode);
+  MRIcopyHeader( seedVolume, distanceTransform);
                           
   return distanceTransform;
 }
