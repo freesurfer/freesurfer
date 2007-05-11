@@ -36,6 +36,7 @@ $(BRAINMASK): $(T1)
 #------------------- A U T O R E C O N	 2	 V O L	----------------------
 TAL_LTA=$(subj)/mri/transforms/talairach.lta
 NORM=$(subj)/mri/norm.mgz
+CP=$(subj)/tmp/control.dat
 TAL_M3Z=$(subj)/mri/transforms/talairach.m3z
 NU_NONECK=$(subj)/mri/nu_noneck.mgz
 TAL_SKULL_LTA=$(subj)/mri/transforms/talairach_with_skull.lta
@@ -45,6 +46,10 @@ SUBCORTICAL=$(TAL_LTA) $(NORM) $(TAL_M3Z) $(NU_NONECK) $(TAL_SKULL_LTA) \
 	$(ASEG) $(ASEG_STATS)
 BRAIN=$(subj)/mri/brain.mgz
 WM=$(subj)/mri/wm.mgz
+SEED_PONS=$(subj)/scripts/seed-pons.crs.man.dat
+SEED_CC=$(subj)/scripts/seed-cc.crs.man.dat
+SEED_LH=$(subj)/scripts/seed-lh.crs.man.dat
+SEED_RH=$(subj)/scripts/seed-rh.crs.man.dat
 FILLED=$(subj)/mri/filled.mgz
 AUTORECON2_VOL=$(SUBCORTICAL) $(BRAIN) $(WM) $(FILLED)
 
@@ -73,13 +78,24 @@ $(ASEG): $(NORM) $(TAL_M3Z)
 $(ASEG_STATS): $(ASEG)
 	recon-all -s $(subj) -segstats
 
-$(BRAIN): $(BRAINMASK) $(NORM)
+$(CP):
+
+$(BRAIN): $(BRAINMASK) $(NORM) $(CP)
 	recon-all -s $(subj) -normalization2
 
 $(WM): $(BRAIN) $(ASEG) $(NORM)
 	recon-all -s $(subj) -segmentation
 
-$(FILLED): $(WM) $(ASEG) $(TAL_LTA)
+$(SEED_PONS):
+
+$(SEED_CC):
+
+$(SEED_LH):
+
+$(SEED_RH):
+
+$(FILLED): $(SEED_PONS) $(SEED_CC) $(SEED_LH) $(SEED_RH) \
+	$(WM) $(ASEG) $(TAL_LTA)
 	recon-all -s $(subj) -fill
 
 
