@@ -87,6 +87,23 @@ foreach hemi ( $hemis )
 
     end
 
+    # now check that the annotation files have the correct number of vertices
+    set annot_list = ( aparc.annot aparc.a2005s.annot )
+    if ("x$2" == "xaparc_edited") set annot_list = ( $annot_list aparc_edited.annot )
+    foreach annot ( $annot_list )
+
+        if ("x$2" != "x") echo "Checking $subj/label/$hemi.$annot..."
+        if ( ! -e $SUBJECTS_DIR/$subj/label/$hemi.$annot ) then
+            echo "ERROR: $SUBJECTS_DIR/$subj/label/$hemi.$annot does not exist!"
+            exit 1
+        endif
+        mris_info $hemi.orig --a ../label/$hemi.$annot >& /tmp/mris_info.log
+        if ($status) then
+            grep ERROR /tmp/mris_info.log
+            exit 1
+        endif
+
+    end
 end
 
 if ("x$2" != "x") echo "Pass: all surfaces and surface data for subject $subj have the same number of vertices."
