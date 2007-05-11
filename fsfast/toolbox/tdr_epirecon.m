@@ -44,9 +44,9 @@ function [cimg, Rrow, epipar] = tdr_epirecon(kepi,arg2)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:35 $
-%    $Revision: 1.6 $
+%    $Author: greve $
+%    $Date: 2007/05/11 03:53:32 $
+%    $Revision: 1.7 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -79,7 +79,7 @@ if(isstr(arg2))
   epipar.tFlat     = tdr_measasc(measasc,'alRegridFlattopTime[0]'); % us
   epipar.tRampDown = tdr_measasc(measasc,'alRegridRampdownTime[0]'); % us
   epipar.tDelSamp  = tdr_measasc(measasc,'alRegridDelaySamplesTime[0]'); % us
-  epipar.eshospacing = tdr_measasc(measasc,'sFastImaging.lEchoSpacing'); % us
+  epipar.echospacing = tdr_measasc(measasc,'sFastImaging.lEchoSpacing'); % us
   epipar.nkcols    = tdr_measasc(measasc,'iNoOfFourierColumns'); 
   epipar.nkrows    = tdr_measasc(measasc,'iNoOfFourierLines'); 
 else
@@ -111,6 +111,7 @@ kvec = kspacevector2(nkcols,epipar.tDwell,epipar.tRampUp,...
 Frow = fast_dftmtx(kvec);
 Frow = Frow(:,colkeep);
 Rrow = transpose(inv(Frow'*Frow)*Frow');
+
 Fcol = fast_dftmtx(nrows);
 Rcol = inv(Fcol);
 

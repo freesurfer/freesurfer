@@ -26,9 +26,9 @@ function [kimg2, beta, phsynth] = tdr_deghost(kimg,Rrow,perev,synth)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:35 $
-%    $Revision: 1.9 $
+%    $Author: greve $
+%    $Date: 2007/05/11 03:53:32 $
+%    $Revision: 1.10 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@ function [kimg2, beta, phsynth] = tdr_deghost(kimg,Rrow,perev,synth)
 %
 
 rsubdel = 3; % region around center
-rthresh = 1; % fraction of mean to use as segmentation thresh
+rthresh = .1; % fraction of mean to use as segmentation thresh
 
 kimg2 = [];
 if(nargin < 2 | nargin > 4)
@@ -96,6 +96,7 @@ img2mn    = (abs(img2ref)+abs(img2mov))/2;
 imgrsubmn = mean(img2mn(rsub,:));
 thresh    = rthresh*mean(imgrsubmn);
 csub      = find(imgrsubmn > thresh);
+csub = [25:45];
 
 % Fit the phase difference at the segmented columns.
 % Model is offset and slope.
