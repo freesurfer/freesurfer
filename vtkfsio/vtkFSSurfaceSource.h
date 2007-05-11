@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/17 16:34:00 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/05/11 18:41:19 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,8 @@
 
 #ifndef __vtkFSSurfaceSource_h
 #define __vtkFSSurfaceSource_h
+
+#include <vector>
 
 #include "vtkSource.h"
 #include "vtkPolyData.h"
@@ -88,6 +90,12 @@ public:
   void GetRASAtVertex        ( int inVertex, float ioRAS[3] );
   void GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3] );
 
+  // Description:
+  // Return a list a of vertex indices that form the shortest path
+  // from inStartVertex to inEndVertex.
+  void FindPath ( int inStartVertex, int inEndVertex, 
+		  std::vector<int>& iolPath );
+
   MRIS* GetMRIS() { return mMRIS; }
 
 protected:
@@ -116,7 +124,6 @@ protected:
 
   // Hash table so we can look up vertices. Uses v->x,y,z.
   MRIS_HASH_TABLE* mHashTable;
-
 
 private:
   vtkFSSurfaceSource(const vtkFSSurfaceSource&);  // Not implemented.

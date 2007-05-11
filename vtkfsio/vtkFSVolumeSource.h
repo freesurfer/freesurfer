@@ -11,9 +11,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/03/26 17:09:08 $
- *    $Revision: 1.3 $
+ *    $Author: kteich $
+ *    $Date: 2007/05/11 18:41:19 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,15 @@
 extern "C" {
 #include "mri.h"
 }
+
+// These are defined in the mri headers somewhere. You will probably
+// have to do this in files that include this file.
+#ifdef X
+#undef X
+#endif
+#ifdef Y
+#undef Y
+#endif
 
 
 class vtkFSVolumeSource : public vtkStructuredPointsSource {

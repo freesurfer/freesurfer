@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/17 16:34:00 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/05/11 18:41:19 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-
+#include <vector>
 #include <stdexcept>
 #include "vtkFSSurfaceSource.h"
 #include "vtkObjectFactory.h"
@@ -36,7 +36,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceSource );
-vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.4 $" );
 
 vtkFSSurfaceSource::vtkFSSurfaceSource() :
     mMRIS( NULL ),
@@ -390,3 +390,102 @@ vtkFSSurfaceSource::Execute () {
 
 }
 
+void
+vtkFSSurfaceSource::FindPath ( int inStartVertex, int inEndVertex, 
+			       vector<int>& iolPath ) {
+
+  if( NULL == mMRIS )
+    throw runtime_error( "Must have read in a surface before attempting to find a path" );
+
+  const int cVerticies = mMRIS->nvertices;
+
+  if( inStartVertex < 0 || inStartVertex >= cVerticies )
+    throw runtime_error( "Start VNO is invalid" );
+  if( inEndVertex < 0 || inEndVertex >= cVerticies )
+    throw runtime_error( "End VNO is invalid" );
+
+  // We use these arrays to hold the state of the search. The distance
+  // is the distance from the start to that vertex to that vertex in
+  // the current shortest path we've gound. The predecessor for a
+  // vertex is the vertex number right before that vertex in the
+  // shortest path. The check vector is a list of vertices to check
+  // (our 'cloud').
+  vector<float> aDistance( cVerticies, numeric_limits<float>::max() );
+  vector<int> aPredecessor( cVerticies, -1 );
+  vector<int> aCheck;
+ 
+  // Start at the start vertex.
+  aDistance[inStartVertex] = 0;
+  aPredecessor[inStartVertex] = inStartVertex;
+  aCheck.push_back( inStartVertex );
+  
+  // While we're not done and have things to check...
+  bool bDone = false;
+  vector<int>::iterator tCheck;
+  float closestDistance = numeric_limits<float>::max();
+  vector<int>::iterator tClosestVertex;
+  int nClosestVertex;
+  while( !bDone && !aCheck.empty() ) {
+    
+    // Find the closest vertex that needs checking.
+    closestDistance = numeric_limits<float>::max();
+    nClosestVertex = -1;
+    for ( tCheck = aCheck.begin(); tCheck != aCheck.end(); ++tCheck ) {
+      if( aDistance[*tCheck] < closestDistance ) {
+	closestDistance = aDistance[*tCheck];
+	tClosestVertex = tCheck;
+      }
+    }
+    
+    // Take out the closest vertex.
+    nClosestVertex = *tClosestVertex;
+    aCheck.erase( tClosestVertex );
+    
+    // If this is it, we're done!
+    if( inEndVertex == nClosestVertex ) {
+
+      bDone = true;
+
+    } else {
+      
+      // Otherwise, look at all our neighbors. We'll call this vertex v.
+      VERTEX* v = &(mMRIS->vertices[nClosestVertex]);
+      for( int nNeighbor = 0; nNeighbor < v->vnum; nNeighbor++ ) {
+	
+	// Get a neighbor. We'll call it u.
+	int nNeighborVertex = v->v[nNeighbor];
+	VERTEX* u = &(mMRIS->vertices[nNeighborVertex]);
+	
+	// Calc the vector from u to v.
+	float vuX = u->x - v->x;
+	float vuY = u->y - v->y;
+	float vuZ = u->z - v->z;
+	
+	// Calc the distance here.
+	float distance = sqrt( vuX*vuX + vuY*vuY + vuZ*vuZ );
+	
+	// If this is a new shortest path to this vertex, update the
+	// predecessor and the distance here, and add it to the list
+	// of vertices to check next.
+	if( distance + aDistance[nClosestVertex] < 
+	    aDistance[nNeighborVertex] ) {
+	  aPredecessor[nNeighborVertex] = nClosestVertex;
+	  aDistance[nNeighborVertex] = distance + aDistance[nClosestVertex];
+	  aCheck.push_back( nNeighborVertex );
+	}
+      }
+    }
+  }
+
+  // Add the predecessors from the dest to the src in the output path.
+  iolPath.clear();
+  int nPathVertex = inEndVertex;
+  iolPath.push_back( inEndVertex );
+  while( aPredecessor[nPathVertex] != inStartVertex ) {
+    
+    iolPath.push_back( aPredecessor[nPathVertex] );
+    nPathVertex = aPredecessor[nPathVertex];
+  }
+  iolPath.push_back( inStartVertex );
+
+}
