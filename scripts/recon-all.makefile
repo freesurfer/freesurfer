@@ -80,7 +80,7 @@ $(ASEG_STATS): $(ASEG)
 
 $(CP):
 
-$(BRAIN): $(BRAINMASK) $(NORM) $(CP)
+$(BRAIN): $(BRAINMASK) $(NORM)
 	recon-all -s $(subj) -normalization2
 
 $(WM): $(BRAIN) $(ASEG) $(NORM)
@@ -94,8 +94,7 @@ $(SEED_LH):
 
 $(SEED_RH):
 
-$(FILLED): $(SEED_PONS) $(SEED_CC) $(SEED_LH) $(SEED_RH) \
-	$(WM) $(ASEG) $(TAL_LTA)
+$(FILLED): $(WM) $(ASEG) $(TAL_LTA)
 	recon-all -s $(subj) -fill
 
 
@@ -112,8 +111,6 @@ QSPHERE_NOFIX_LH=$(LH).qsphere.nofix
 QSPHERE_NOFIX_RH=$(RH).qsphere.nofix
 ORIG_LH=$(LH).orig
 ORIG_RH=$(RH).orig
-QSPHERE_LH=$(LH).qsphere
-QSPHERE_RH=$(RH).qsphere
 INFLATED_LH=$(LH).inflated
 INFLATED_RH=$(RH).inflated
 WHITE_LH=$(LH).white
@@ -140,7 +137,6 @@ AUTORECON2_SURF=$(ORIG_NOFIX_LH) $(ORIG_NOFIX_RH) \
 	$(INFLATED_NOFIX_LH) $(INFLATED_NOFIX_RH) \
 	$(QSPHERE_NOFIX_LH) $(QSPHERE_NOFIX_RH) \
 	$(ORIG_LH) $(ORIG_RH) \
-	$(QSPHERE_LH) $(QSPHERE_RH) \
 	$(WHITE_LH) $(WHITE_RH) \
 	$(PIAL_LH) $(PIAL_RH) \
 	$(THICKNESS_LH) $(THICKNESS_RH) \
@@ -187,12 +183,6 @@ $(ORIG_LH): $(ORIG_NOFIX_LH) $(INFLATED_NOFIX_LH) $(QSPHERE_NOFIX_LH)
 	recon-all -s $(subj) -hemi lh -fix
 
 $(ORIG_RH): $(ORIG_NOFIX_RH) $(INFLATED_NOFIX_RH) $(QSPHERE_NOFIX_RH)
-	recon-all -s $(subj) -hemi rh -fix
-
-$(QSPHERE_LH): $(ORIG_NOFIX_LH) $(INFLATED_NOFIX_LH) $(QSPHERE_NOFIX_LH)
-	recon-all -s $(subj) -hemi lh -fix
-
-$(QSPHERE_RH): $(ORIG_NOFIX_RH) $(INFLATED_NOFIX_RH) $(QSPHERE_NOFIX_RH)
 	recon-all -s $(subj) -hemi rh -fix
 
 $(WHITE_LH): $(BRAIN) $(ORIG_LH)
@@ -273,7 +263,6 @@ APARC_ASEG=$(subj)/mri/aparc+aseg.mgz
 
 AUTORECON3=$(SPHERE_LH) $(SPHERE_RH) \
 	$(SPHERE_REG_LH) $(SPHERE_REG_RH) \
-	$(CONTRA_REG_LH) $(CONTRA_REG_RH) \
 	$(JACOBIAN_WHITE_LH) $(JACOBIAN_WHITE_RH) \
 	$(AVG_CURV_LH) $(AVG_CURV_RH) \
 	$(APARC_ANNOT_LH) $(APARC_ANNOT_RH) \
@@ -295,12 +284,6 @@ $(SPHERE_REG_LH): $(SPHERE_LH)
 
 $(SPHERE_REG_RH): $(SPHERE_RH)
 	recon-all -s $(subj) -hemi rh -surfreg
-
-$(CONTRA_REG_LH): $(SPHERE_LH)
-	recon-all -s $(subj) -hemi lh -contrasurfreg
-
-$(CONTRA_REG_RH): $(SPHERE_RH)
-	recon-all -s $(subj) -hemi rh -contrasurfreg
 
 $(JACOBIAN_WHITE_LH): $(WHITE_LH) $(SPHERE_REG_LH)
 	recon-all -s $(subj) -hemi lh -jacobian_white
@@ -342,6 +325,13 @@ $(APARC_ASEG): $(ASEG) $(RIBBON_LH) $(RIBBON_RH) \
 	$(APARC_ANNOT_LH) $(APARC_ANNOT_RH)
 	recon-all -s $(subj) -aparc2aseg
 
+contrasurfreg: $(CONTRA_REG_LH) $(CONTRA_REG_RH)
+
+$(CONTRA_REG_LH): $(SPHERE_LH)
+	recon-all -s $(subj) -hemi lh -contrasurfreg
+
+$(CONTRA_REG_RH): $(SPHERE_RH)
+	recon-all -s $(subj) -hemi rh -contrasurfreg
 
 #------------------------- Q C A C H E ------------------------------
 TARGET=fsaverage
