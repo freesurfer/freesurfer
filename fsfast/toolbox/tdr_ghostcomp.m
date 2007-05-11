@@ -5,7 +5,7 @@ function [gcomp, theta, thetahat, Fsig, beta, Rrow] = tdr_ghostcomp(kpcn,epipar)
 % gcomp is (ncols n1 n2 n3) 
 % revenfixed = reven .* gcomp (careful with transpose)
 %
-% $Id: tdr_ghostcomp.m,v 1.5 2007/05/11 06:42:16 greve Exp $
+% $Id: tdr_ghostcomp.m,v 1.6 2007/05/11 07:08:06 greve Exp $
 
 order = 2;   % poly order
 rthresh = 3; % relative threshold
@@ -21,6 +21,7 @@ if(npcn ~= 3)
   fprintf('ERROR: npcn = %d, should be 3)\n',npcn);
   return;
 end
+nsamples = n1*n2*n3;
 
 echospacing = epipar.echospacing;
 tDwell      = epipar.tDwell;
@@ -53,7 +54,14 @@ pcn3 = Rrow*kpcn(:,:,3);
 pcnref = (pcn1+pcn3)/2;
 pcnmov = pcn2;
 
-[thetahat theta Fsig beta] = tdr_phdist_est0(pcnref,pcnmov,rthresh,order);
+for nth = 1:nsamples
+  [thetahat(:,nth) theta(:,nth) Fsig(:,nth) beta] = ...
+      tdr_phdist_est0(pcnref(:,nth),pcnmov(:,nth),rthresh,order);
+end
+
+% Use the same for everyone
+tmp = mean(thetahat,2);
+thetahat = repmat(tmp,[1 nsamples]);
 
 gcomp = exp(+i*thetahat);
 
