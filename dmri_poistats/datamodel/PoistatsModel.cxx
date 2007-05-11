@@ -133,7 +133,8 @@ PoistatsModel::Init() {
   m_CubicSplineFilter->SetOrigin( origin );
   
   OutputImageType::SpacingType spacing;
-  spacing.Fill( 0.1 );
+//  spacing.Fill( 0.1 );
+  spacing.Fill( 0.01 );
 
   m_CubicSplineFilter->SetSpacing( spacing );
 
