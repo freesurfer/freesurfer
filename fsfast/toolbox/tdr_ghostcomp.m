@@ -5,7 +5,7 @@ function [gcomp, theta, thetahat, Fsig, beta, Rrow] = tdr_ghostcomp(kpcn,epipar)
 % gcomp is (ncols n1 n2 n3) 
 % revenfixed = reven .* gcomp (careful with transpose)
 %
-% $Id: tdr_ghostcomp.m,v 1.6 2007/05/11 07:08:06 greve Exp $
+% $Id: tdr_ghostcomp.m,v 1.7 2007/05/11 20:51:47 greve Exp $
 
 order = 2;   % poly order
 rthresh = 3; % relative threshold
@@ -23,16 +23,7 @@ if(npcn ~= 3)
 end
 nsamples = n1*n2*n3;
 
-echospacing = epipar.echospacing;
-tDwell      = epipar.tDwell;
-tRampUp     = epipar.tRampUp;
-tFlat       = epipar.tFlat;
-tRampDown   = epipar.tRampDown;
-tDelSamp    = epipar.tDelSamp;
-
-
-[kvec gvec] = kspacevector2(ncols,tDwell,tRampUp,tFlat,...
-			    tRampDown,tDelSamp,0);
+[kvec gvec] = kspacevector2(epipar);
 
 % Compute the Ideal col and row DFT reconstruction matrices
 Frow = fast_dftmtx(kvec);
