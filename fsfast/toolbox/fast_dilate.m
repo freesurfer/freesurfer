@@ -20,9 +20,9 @@ function md = fast_dilate(m,ndilations,erodeflag,flag2d)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:30 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2007/05/11 21:12:04 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -75,7 +75,10 @@ for dc = -1:1
   for dr = -1:1
     for ds = dsrange
       if(dc==0 & dr==0 & ds == 0) continue; end
-      vshift = [dc dr ds];
+      vshift = [dc dr];
+      if(length(size(m)) > 2)
+	vshift = [vshift ds];
+      end
       %fprintf('%2d %2d %2d %2d  %g\n',nth,vshift,toc);
       md = md | fast_mshift(m,vshift);
       nth = nth + 1;
