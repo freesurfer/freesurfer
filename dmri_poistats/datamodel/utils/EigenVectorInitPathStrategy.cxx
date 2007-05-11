@@ -19,6 +19,9 @@ EigenVectorInitPathStrategy::EigenVectorInitPathStrategy( PoistatsModel *model )
 
   this->SetEigenVectors( m_PoistatsModel->GetEigenVectors() );
   m_GradientVolumes.clear();
+  
+  this->SetSeedVolume( m_PoistatsModel->GetSeedVolume() );
+  this->SetSeedValues( m_PoistatsModel->GetSeedValues() );
 
 }
 

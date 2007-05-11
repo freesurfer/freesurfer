@@ -279,6 +279,7 @@ PoistatsReplicas::GetPreviousTrialPath( const int replica ) {
   return m_Replicas[ replica ].GetPreviousTrialPath();
 }
 
+// TODO: I guess you could move this to a strategy too
 void PoistatsReplicas::SetInitialPoints( const MatrixPointer points ) {
 
   if( m_InitialPoints != NULL ) {
@@ -311,22 +312,22 @@ void PoistatsReplicas::SetInitialPoints( const MatrixPointer points ) {
   delete originalPath;  
 }
 
-void PoistatsReplicas::InitializePathsUsingEigenVectors() {
+void PoistatsReplicas::InitializePaths() {
   
   const int nEndPoints = 2;
   const int nTotalControlPoints = m_PoistatsModel->GetNumberOfControlPoints() + nEndPoints;
   
-  InitializePath *initializePath;
-  initializePath = new EigenVectorInitPathStrategy( m_PoistatsModel );
+  InitializePath *initializePath = m_PoistatsModel->GetPathInitializer();
 
   // for each replica create a different initial path  
   for( int cReplica=0; cReplica<m_NumberOfReplicas; cReplica++ ) {
+    
     // calculate a new path
     initializePath->CalculateInitialPath();
-    
+
     // get the new path
     MatrixPointer initialPath = initializePath->GetInitialPath();
-    
+
     // rethread the path to the base path
     MatrixPointer base = m_PoistatsModel->RethreadPath( initialPath, nTotalControlPoints );    
     m_Replicas[ cReplica ].SetBasePath( base );
@@ -350,7 +351,6 @@ void PoistatsReplicas::InitializePathsUsingEigenVectors() {
   SetCurrentTrialPaths( &zeroes );
   SetBestTrialPaths( &zeroes );  
   
-  delete initializePath;
 }
 
 void PoistatsReplicas::SetPreviousTrialPaths( const MatrixPointer path ) {

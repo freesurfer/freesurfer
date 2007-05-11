@@ -114,8 +114,8 @@ public:
 
   itkStaticConstMacro( INVALID_INDEX, int, -1 );
   
-  itkGetMacro( InitialSigma, int );
-  itkSetMacro( InitialSigma, int );
+  int GetInitialSigma() const;
+  void SetInitialSigma( const int initialSigma );
 
   itkGetMacro( NumberOfSamplePoints, int );
   itkSetMacro( NumberOfSamplePoints, int );
@@ -252,6 +252,11 @@ public:
   
   void SetMghSeeds( MRI* seeds );
   
+  void SetUsingFieldLineInitialization();
+  
+  void SetUsingEigenVectorInitialization();  
+
+  void SetUsingNormalInitialization();  
 
 protected:
   PoistatsFilter();
@@ -275,8 +280,6 @@ private:
    
   ArrayListType m_Odfs;
 
-  int m_InitialSigma;
-  
   itkStaticConstMacro( DEFAULT_NUMBER_OF_SAMPLE_POINTS, int, 100 );
 
   int m_NumberOfSamplePoints;

@@ -75,7 +75,7 @@ public:
   
   void SetInitialPoints( const MatrixPointer points );
   
-  void InitializePathsUsingEigenVectors();
+  void InitializePaths();
   
   void SetPreviousTrialPaths( const MatrixPointer path );
   

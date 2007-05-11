@@ -835,7 +835,6 @@ void
 PoistatsFilter<TInputImage, TOutputImage>
 ::SetMghEigenVectors( MRI *vectors ) {
   this->m_PoistatsModel->SetEigenVectors( vectors );
-  this->m_PoistatsModel->SetUsingPathInitialization( true );
 }
   
 template <class TInputImage, class TOutputImage>
@@ -844,7 +843,6 @@ PoistatsFilter<TInputImage, TOutputImage>
 ::SetMghSeeds( MRI* seeds ) {
   this->m_PoistatsModel->SetSeedVolume( seeds );
 }
-
 
 template <class TInputImage, class TOutputImage>
 typename PoistatsFilter<TInputImage, TOutputImage>::MatrixType
@@ -1288,12 +1286,14 @@ PoistatsFilter<TInputImage, TOutputImage>
   */
 
   if( this->m_PoistatsModel->IsUsingPathInitialization() ) {
-    this->m_Replicas->InitializePathsUsingEigenVectors();
+  
+    this->m_Replicas->InitializePaths();
+    
   } else {
 
     const int nInitialPoints = this->GetNumberOfInitialPoints();
     const int spatialDimensions = 3;
-    
+        
     MatrixType initialPoints( nInitialPoints, spatialDimensions );
     this->GetInitialPoints( &initialPoints );
   
@@ -1345,7 +1345,7 @@ PoistatsFilter<TInputImage, TOutputImage>
       
     } else {
     
-      itkGenericExceptionMacro (<< "too many seeds");            
+      itkGenericExceptionMacro (<< "too many seeds!  ");
       
     }
     
@@ -1937,6 +1937,7 @@ PoistatsFilter<TInputImage, TOutputImage>
       seedValues->push_back( seedValue );
       
     }
+    
     this->m_PoistatsModel->SetSeedValues( seedValues );
   
     // save the pixel values
@@ -2303,6 +2304,40 @@ PoistatsFilter<TInputImage, TOutputImage>
 
 }
 
+template <class TInputImage, class TOutputImage>
+int
+PoistatsFilter<TInputImage, TOutputImage>
+::GetInitialSigma() const {
+	return m_PoistatsModel->GetInitialSigma();
+}
+
+template <class TInputImage, class TOutputImage>
+void
+PoistatsFilter<TInputImage, TOutputImage>
+::SetInitialSigma( const int initialSigma ) {
+	m_PoistatsModel->SetInitialSigma( initialSigma );
+}
+
+template <class TInputImage, class TOutputImage>
+void
+PoistatsFilter<TInputImage, TOutputImage>
+::SetUsingFieldLineInitialization() {
+  m_PoistatsModel->SetInitializePathMode( PoistatsModel::INITIALIZE_FIELD_LINE );
+}
+  
+template <class TInputImage, class TOutputImage>
+void
+PoistatsFilter<TInputImage, TOutputImage>
+::SetUsingEigenVectorInitialization() {
+	m_PoistatsModel->SetInitializePathMode( PoistatsModel::INITIALIZE_EIGEN_VECTOR );
+}
+
+template <class TInputImage, class TOutputImage>
+void
+PoistatsFilter<TInputImage, TOutputImage>
+::SetUsingNormalInitialization() {
+  m_PoistatsModel->SetInitializePathMode( PoistatsModel::INITIALIZE_NORMAL );
+}
 
 } // end namespace itk
 

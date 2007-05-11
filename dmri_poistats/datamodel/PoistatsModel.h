@@ -14,9 +14,17 @@ extern "C" {
 #include "mri.h"
 }
 
+class InitializePath;
+
 class PoistatsModel
 {
 public:
+
+  enum {
+    INITIALIZE_NORMAL = 0,
+    INITIALIZE_EIGEN_VECTOR = 1,
+    INITIALIZE_FIELD_LINE = 2,
+  };
 
   typedef itk::Array2D< double > MatrixType;
   typedef MatrixType* MatrixPointer;
@@ -52,8 +60,6 @@ public:
   
   bool IsUsingPathInitialization();
 
-  void SetUsingPathInitialization( const bool isUsing );
-  
   /**
    * Returns the eigenvectors.
    */
@@ -96,14 +102,22 @@ public:
   static void CalculatePathVectors( MatrixPointer path, MatrixPointer vectors );
 
   static void CalculateMagnitude( MatrixPointer path, ArrayPointer magnitude );
-    
+  
+  int GetInitialSigma() const;
+
+  void SetInitialSigma( const int initialSigma );
+  
+  InitializePath *GetPathInitializer() const;
+  
+  void SetInitializePathMode( const int mode );
+
+  int GetInitializePathMode() const;
+      
 private:
 
   vnl_random m_RandomNumberGenerator;
   
   bool m_IsDebug;
-  
-  bool m_IsUsingPathInitialization;
   
   MRI* m_EigenVectors;
   MRI* m_SeedVolume;
@@ -112,6 +126,12 @@ private:
   CubicSplineFilterPointer m_CubicSplineFilter;
 
   int m_NumberOfControlPoints;
+  
+  int m_InitialSigma;
+  
+  InitializePath *m_PathInitializer;
+  
+  int m_InitializeMode;
     
   /**
    * Initializes the class.
@@ -119,7 +139,7 @@ private:
   void Init();
   
   void FreeVector( std::vector< int > *v );  
-
+  
 };
 
 #endif

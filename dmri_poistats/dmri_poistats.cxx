@@ -20,7 +20,7 @@
  * FreeSurfer source code root directory, and duplicated here:
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.eduf
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
@@ -82,6 +82,7 @@ class Poistats : public FreeSurferExecutable {
     static const std::string FLAG_IS_SYMMETRIC_DATA;
     static const std::string FLAG_IS_OUTPUT_NII;
     static const std::string FLAG_EIGENVECTOR_STEM;
+    static const std::string FLAG_IS_INIT_FIELD_LINE;
 
     Poistats( int inArgs, char ** iaArgs );
     ~Poistats();
@@ -116,6 +117,8 @@ class Poistats : public FreeSurferExecutable {
     bool m_IsOutputNii;
     
     char *m_EigenVectorStem;
+    
+    bool m_IsInitFieldLine;
 
     bool IsNifti( std::string fileExtension );
     bool IsMGH( std::string fileExtension );
@@ -151,6 +154,8 @@ const std::string Poistats::FLAG_IS_OUTPUT_NII =
   Poistats::FLAG_DELIMITER + "nii";
 const std::string Poistats::FLAG_EIGENVECTOR_STEM = 
   Poistats::FLAG_DELIMITER + "eigvec";
+const std::string Poistats::FLAG_IS_INIT_FIELD_LINE = 
+  Poistats::FLAG_DELIMITER + "fieldline";
 
 // these are new additions for playing with the parameter space
 const std::string Poistats::FLAG_REPLICA_EXCHANGE_PROBABILITY = 
@@ -186,11 +191,11 @@ Poistats::Poistats( int inArgs, char ** iaArgs ) :
   SetNextOptionalArgument( FLAG_MASK_STEM, "maskstem", 
     "Instem for mask. The path will not be allowed to contact the mask. The mask can be used to specify invalid regions, e.g., CSF" );
   SetNextOptionalArgument( FLAG_NUM_SAMPLES, "nsamplepoints", 
-    "Number of points to sample along path from sample volume. For example, -ns 100 will sample 100 values along the path. Default: 100" );
+    "Number of points to sample along path from sample volume. For example, --ns 100 will sample 100 values along the path. Default: 100" );
   SetNextOptionalArgument( FLAG_SEED_VALUES, "seednumvalue", 
-    "Use <seednumvalue> to define seed region. Eg, -seednums 1,2" );
+    "Use <seednumvalue> to define seed region. Eg, --seednums 1,2" );
   SetNextOptionalArgument( FLAG_NUM_REPLICAS, "nreplicas", 
-    "Use <nreplicas> to specify the number of replicas.  For example, -nreplicas 100 will spawn 100 replicas. Default: 100" );
+    "Use <nreplicas> to specify the number of replicas.  For example, --nreplicas 100 will spawn 100 replicas. Default: 100" );
 
   SetNextOptionalArgument( FLAG_REPLICA_EXCHANGE_PROBABILITY, "exchangeprob", 
     "Replica exchange probability.  Default: 0.05" );
@@ -205,6 +210,8 @@ Poistats::Poistats( int inArgs, char ** iaArgs ) :
     "Should the output be stored as nifti?  Default: false" );
   SetNextOptionalArgument( FLAG_EIGENVECTOR_STEM, "eigvec", 
     "Should the paths be initialized by following the principle eigenvector?  Specify the eigenvector volume following this flag." );
+  SetNextOptionalArgument( FLAG_IS_INIT_FIELD_LINE, "fieldline", 
+    "Should the paths be initialized by field lines?" );
 
   std::string output = "";
   output = output + 
@@ -274,6 +281,8 @@ Poistats::FillArguments() {
     m_IsOutputNii = m_Parser->GetArgumentBoolean( FLAG_IS_OUTPUT_NII.c_str() );
 
     m_EigenVectorStem = m_Parser->GetArgument( FLAG_EIGENVECTOR_STEM.c_str() );
+
+    m_IsInitFieldLine = m_Parser->GetArgumentBoolean( FLAG_IS_INIT_FIELD_LINE.c_str() );
     
   }
       
@@ -529,12 +538,20 @@ Poistats::Run() {
     poistatsFilter->SetNumberOfReplicas( m_nReplicas );
   }
   
-  // read in the eigenvectors
-  MRI* mghEigenVectors = NULL;
-  if( m_EigenVectorStem != NULL ) {
+  MRI *mghEigenVectors = NULL;
+  
+  // give the field line initialization priority over the eigenvector
+  // initialization  
+  if( m_IsInitFieldLine ) {
+    observer->PostMessage( "field line initialization...\n" );
+    poistatsFilter->SetUsingFieldLineInitialization();    
+  } else if( m_EigenVectorStem != NULL ) {
     observer->PostMessage( "reading eigenvectors...\n" );
     mghEigenVectors = FreeSurferExecutable::ReadMRI( m_EigenVectorStem );
     poistatsFilter->SetMghEigenVectors( mghEigenVectors );
+    poistatsFilter->SetUsingEigenVectorInitialization();
+  } else {
+    poistatsFilter->SetUsingNormalInitialization();
   }
 
   // compute the poi

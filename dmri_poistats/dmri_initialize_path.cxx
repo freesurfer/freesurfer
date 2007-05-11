@@ -12,8 +12,7 @@ extern "C"
 #include "ui/CommandParser.h"
 #include "ui/FreeSurferExecutable.h"
 
-#include "datamodel/utils/EigenVectorInitPathStrategy.h"
-#include "datamodel/utils/FieldLineInitPathStrategy.h"
+#include "datamodel/utils/InitializePath.h"
 
 /** This is needed by the freesurfer utils library */
 char *Progname;
@@ -39,6 +38,12 @@ class InitializePathExe : public FreeSurferExecutable {
 
     // output directory
     static const std::string FLAG_OUTPUT_DIRECTORY;
+    
+    // number of times to repeat initialization
+    static const std::string FLAG_NUMBER_OF_REPLICAS;
+    
+    // maximum distance 
+    static const std::string FLAG_RADIUS;
 
     InitializePathExe( int inArgs, char ** iaArgs );
     ~InitializePathExe();
@@ -58,6 +63,8 @@ class InitializePathExe : public FreeSurferExecutable {
     const char *m_SeedVolumeFileName;
     std::vector< int > m_SeedValues;   
     const char *m_OutputDir;
+    int m_NumberOfReplicas;
+    int m_Radius;
 
 };
 
@@ -75,12 +82,20 @@ const std::string InitializePathExe::FLAG_SEED_VALUES =
 const std::string InitializePathExe::FLAG_OUTPUT_DIRECTORY = 
   InitializePathExe::FLAG_DELIMITER + "o";
 
+const std::string InitializePathExe::FLAG_NUMBER_OF_REPLICAS = 
+  InitializePathExe::FLAG_DELIMITER + "nreplicas";
+
+const std::string InitializePathExe::FLAG_RADIUS = 
+  InitializePathExe::FLAG_DELIMITER + "radius";
+
 InitializePathExe::InitializePathExe( int inArgs, char ** iaArgs ) : 
   FreeSurferExecutable( inArgs, iaArgs ) {
 
   m_EigenVectorFileName = NULL;
   m_SeedVolumeFileName = NULL;
   m_OutputDir = NULL;
+  m_NumberOfReplicas = 1;
+  m_Radius = 1;
 
   SetName( "dmri_initialize_path", "find starting path for input to poistats" );  
 
@@ -96,6 +111,11 @@ InitializePathExe::InitializePathExe( int inArgs, char ** iaArgs ) :
     "Use <seednumvalue> to define seed region.  If nothing is specified, then all seeds are used.  More than one must be available.  Eg, --seednums 1,2" );
 
   SetNextOptionalArgument( FLAG_EIGENVECTOR, "eigvec", "Principle eigenvector input" );
+
+  SetNextOptionalArgument( FLAG_NUMBER_OF_REPLICAS, "nreplicas", 
+    "Number of times to repeat initialization" );
+
+  SetNextOptionalArgument( FLAG_RADIUS, "radius", "maximum distance the field line initialization can be away" );
 
   std::string output = "";
   output = output + 
@@ -130,6 +150,19 @@ InitializePathExe::FillArguments() {
   if( isFilled ) {  
     m_SeedValues = m_Parser->GetArgumentIntVector( FLAG_SEED_VALUES.c_str() );
     m_EigenVectorFileName = m_Parser->GetArgument( FLAG_EIGENVECTOR.c_str() );
+
+    // make sure that the number of replicas is 1 or above
+    m_NumberOfReplicas = m_Parser->GetArgumentInt( FLAG_NUMBER_OF_REPLICAS.c_str() );
+    if( m_NumberOfReplicas < 1 ) {
+      m_NumberOfReplicas = 1;
+    }
+    
+    // make sure that the number of replicas is 1 or above
+    m_Radius = m_Parser->GetArgumentInt( FLAG_RADIUS.c_str() );
+    if( m_Radius < 1 ) {
+      m_Radius = 1;
+    }
+    
   }
   
   return isFilled;
@@ -138,12 +171,11 @@ InitializePathExe::FillArguments() {
 void
 InitializePathExe::Run() {
 
-  InitializePath *initializePath = NULL;
-  
   MRI* eigenVectors = NULL;
   
   // create the model for the initializations
   PoistatsModel model;
+  model.SetInitialSigma( m_Radius );
   model.SetNumberOfControlPoints( 2 );
 
   // read seed volume
@@ -160,27 +192,49 @@ InitializePathExe::Run() {
     eigenVectors = FreeSurferExecutable::ReadMRI( m_EigenVectorFileName );
     model.SetEigenVectors( eigenVectors );
     
-    EigenVectorInitPathStrategy *eigenPath = new EigenVectorInitPathStrategy( &model );
-
-    // use this strategy
-    initializePath = eigenPath;
+    model.SetInitializePathMode( PoistatsModel::INITIALIZE_EIGEN_VECTOR );
     
   } else {
-    FieldLineInitPathStrategy *fieldLinePath = new FieldLineInitPathStrategy( &model );
-    // use this strategy
-    initializePath = fieldLinePath;
+    model.SetInitializePathMode( PoistatsModel::INITIALIZE_FIELD_LINE );
   }
+
+  InitializePath *initializePath = model.GetPathInitializer();
+  
+  bool isFirst = true;
+  
+  for( int i=0; i<m_NumberOfReplicas; i++  ) {
     
-  // now that all the inputs are set, calculate the initial path
-  initializePath->CalculateInitialPath();
-  
-  // get the resulting pathway
-  itk::Array2D< double > *path = initializePath->GetInitialPath();
-  
-  // save the pathway to the output directory
-  const std::string pathFileName( (std::string)m_OutputDir + 
-    (std::string)"/InitialPath.txt" );
-  WriteData( pathFileName, path->data_array(), path->rows(), path->cols() );
+    std::cerr << "replica: " << i << std::endl;
+    
+    // now that all the inputs are set, calculate the initial path
+    initializePath->CalculateInitialPath();
+    
+    // get the resulting pathway
+    itk::Array2D< double > *path = initializePath->GetInitialPath();
+    
+    // save the pathway to the output directory
+    const std::string pathFileName( (std::string)m_OutputDir + 
+      (std::string)"/InitialPath.txt" );
+
+    if( isFirst ) {
+      
+      // overwrite previous enteries
+      WriteData( pathFileName, path->data_array(), path->rows(), path->cols() );
+      isFirst = false;
+      
+    } else {
+      
+      // write out the delimiter
+      const float delimiter = -999;
+      float delimiterPoint[] = { delimiter, delimiter, delimiter };
+      WriteDataAppend( pathFileName, delimiterPoint, 1, 3 );
+      
+      // write the pathway appended
+      WriteDataAppend( pathFileName, path->data_array(), path->rows(), path->cols() );
+      
+    }
+        
+  }
 
   if( eigenVectors != NULL ) {
     MRIfree( &eigenVectors );
@@ -191,10 +245,7 @@ InitializePathExe::Run() {
     MRIfree( &seedVolume );
     seedVolume = NULL;
   }
-  
-  delete initializePath;
-  initializePath = NULL;
-  
+    
 }
 
 int main( int argc, char ** argv ) {

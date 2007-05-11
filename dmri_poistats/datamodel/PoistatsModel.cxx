@@ -1,5 +1,8 @@
 #include "PoistatsModel.h"
 
+#include "dmri_poistats/datamodel/utils/EigenVectorInitPathStrategy.h"
+#include "dmri_poistats/datamodel/utils/FieldLineInitPathStrategy.h"
+
 #include <iostream>
 #include <cmath>
 
@@ -20,6 +23,11 @@ PoistatsModel::PoistatsModel( const long seed ){
 
 PoistatsModel::~PoistatsModel() {  
 //  this->FreeVector( this->m_SeedValues );
+
+  if( m_PathInitializer != NULL ) {
+    delete m_PathInitializer;
+  }
+
 }
 
 void PoistatsModel::SetRandomSeed( const long seed ) {
@@ -64,11 +72,14 @@ void PoistatsModel::SetDebug( const bool isDebug ) {
 }
 
 bool PoistatsModel::IsUsingPathInitialization() {
-  return m_IsUsingPathInitialization;
-}
-
-void PoistatsModel::SetUsingPathInitialization( const bool isUsing ) {
-  m_IsUsingPathInitialization = isUsing;
+  
+  bool isInitialization = true;
+  
+  if( INITIALIZE_NORMAL == m_InitializeMode ) {
+    isInitialization = false;
+  }
+  
+  return isInitialization;
 }
 
 MRI* 
@@ -106,8 +117,6 @@ PoistatsModel::Init() {
 
   this->m_IsDebug = false;
   
-  this->m_IsUsingPathInitialization = false;
-
   this->m_EigenVectors = NULL;
   this->m_SeedVolume = NULL;
   this->m_SeedValues = NULL;
@@ -136,6 +145,8 @@ PoistatsModel::Init() {
   m_CubicSplineFilter->SetNumberOfLevels( 8 );
   
   m_CubicSplineFilter->SetGenerateOutputImage( false );
+  
+  m_PathInitializer = NULL;
 
 }
 
@@ -351,4 +362,61 @@ PoistatsModel::CalculateMagnitude(
     ( *magnitude )[ cRow ] = sqrt( rowSumOfDifferenceSquared );
   }
   
+}
+
+int 
+PoistatsModel::GetInitialSigma() const {
+  return m_InitialSigma;
+}
+
+void 
+PoistatsModel::SetInitialSigma( const int initialSigma ) {
+  m_InitialSigma = initialSigma;
+}
+
+InitializePath*
+PoistatsModel::GetPathInitializer() const {
+  return m_PathInitializer;
+}
+
+void
+PoistatsModel::SetInitializePathMode( const int mode ) {
+  
+  // only run this the mode is different than the current mode
+  if( mode != m_InitializeMode ) {
+    m_InitializeMode = mode;
+    
+    if( m_InitializeMode == INITIALIZE_NORMAL ) {
+ 
+      // if normal, we don't need an intializer
+      if( m_PathInitializer != NULL ) {
+        delete m_PathInitializer;
+        m_PathInitializer = NULL;
+      }
+ 
+    } else if( m_InitializeMode == INITIALIZE_EIGEN_VECTOR ) {
+ 
+      if( m_PathInitializer != NULL ) {
+        delete m_PathInitializer;
+        m_PathInitializer = NULL;
+      }
+      
+      m_PathInitializer = new EigenVectorInitPathStrategy( this );
+      
+    } else if( m_InitializeMode == INITIALIZE_FIELD_LINE ) {
+ 
+      if( m_PathInitializer != NULL ) {
+        delete m_PathInitializer;
+        m_PathInitializer = NULL;
+      }
+
+      m_PathInitializer = new FieldLineInitPathStrategy( this );
+      
+    }
+  }
+}
+
+int 
+PoistatsModel::GetInitializePathMode() const {
+  return m_InitializeMode;
 }
