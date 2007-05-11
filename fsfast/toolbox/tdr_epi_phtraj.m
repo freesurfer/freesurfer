@@ -1,20 +1,22 @@
-function [phx, phy, epipar] = tdr_epi_phtraj(arg1)
-% [phx, phy, epipar] = tdr_epi_phtraj(arg1)
+function [phx, phy, epipar] = tdr_epi_phtraj(arg1,delay)
+% [phx, phy, epipar] = tdr_epi_phtraj(arg1,<delay>)
 % 
 % Assumes phase space trajectory starts in upper right (phx>0 and
 % phy>0), then goes to upper left on the first line (phx>0 and
 % phy<0), then drops down one line, then goes to the right, etc.
 %
-
+% If delay is specified, then the waveform delayed by delay usec.
+%
+% $Id: tdr_epi_phtraj.m,v 1.4 2007/05/11 20:52:07 greve Exp $
 
 %
 % tdr_epi_phtraj.m
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:35 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2007/05/11 20:52:07 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -32,7 +34,7 @@ function [phx, phy, epipar] = tdr_epi_phtraj(arg1)
 phx = [];
 phy = [];
 epipar = [];
-if(nargin ~= 1)
+if(nargin ~= 1 & nargin ~= 2)
   fprintf('[phx phy epipar] = tdr_epi_phtraj(measasc)\n');
   fprintf('[phx phy epipar] = tdr_epi_phtraj(epipar)\n');
   return;
@@ -55,12 +57,14 @@ else
   epipar = arg1;
 end
 
+if(~exist('delay','var')) delay = []; end
+if(isempty(delay)) delay = 0; end
 
 % This is the phase trajectory for a column. It starts at -pi and
 % goes to pi-delta, passing thru 0 between (nkcols/2) and
 % (nkcols/2)+1. 
 phx0 = kspacevector2(epipar.nkcols,epipar.tDwell,epipar.tRampUp,...
-		     epipar.tFlat,epipar.tRampDown,epipar.tDelSamp,0);
+		     epipar.tFlat,epipar.tRampDown,epipar.tDelSamp,delay);
 
 phx = repmat(phx0,[epipar.nkrows 1]);
 % Assume first phx line starts pos and goes neg
