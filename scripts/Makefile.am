@@ -14,6 +14,7 @@ bblabel \
 browse-minc-header.tcl \
 browse-sessions \
 bugr \
+build_desikan_killiany_gcs.csh \
 check_subject \
 clear_fs_env.csh \
 cor_to_minc \
