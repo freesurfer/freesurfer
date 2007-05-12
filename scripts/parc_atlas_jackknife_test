@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/07 21:58:43 $
-#    $Revision: 1.9 $
+#    $Date: 2007/05/12 00:03:03 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,10 +29,10 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.9 2007/04/07 21:58:43 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.10 2007/05/12 00:03:03 nicks Exp $';
 
 # defaults:
-setenv SUBJECTS_DIR /space/tensor/20/users/buckner_cortical_atlas
+# setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas
 set DoRegister=0
 set DoRegCopy=0
 set DoTrain=0
@@ -163,7 +163,7 @@ while( $#argv != 0 )
       echo ""
       echo "example1:"
       echo "  Assuming the subjects to test are listed in the SUBJECTS var"
-      echo "  declared in the scripts/jackknife_subjects.csh file, and that"
+      echo "  declared in the scripts/subjects.csh file, and that"
       echo "  each of these subjects has a surf/?h.sphere.reg and a manually"
       echo "  edited file named surf/?h.aparc_edited.annot, and there exists"
       echo "  a color LUT named scripts/colortable_final.txt, then the"
@@ -177,8 +177,6 @@ while( $#argv != 0 )
       echo "  accuracy of this atlas, based on the Dice coefficient(s)."
       echo "  The overall classifier accuracy is the mean of all the results."
       echo "  The results are written to the directory named 'jackknife'."
-      echo "  The default SUBJECTS_DIR is:"
-      echo "    $SUBJECTS_DIR"
       echo ""
       exit 1
       breaksw
@@ -231,13 +229,13 @@ if ($status) then
     echo "mris_compute_parc_overlap not found (use -fshome or -binhome)"
     exit 1
 endif
-if ( ! -e ${SUBJECTS_DIR}/scripts/jackknife_subjects.csh) then
-    echo "${SUBJECTS_DIR}/scripts/jackknife_subjects.csh is missing!"
+if ( ! -e ${SUBJECTS_DIR}/scripts/subjects.csh) then
+    echo "${SUBJECTS_DIR}/scripts/subjects.csh is missing!"
     echo "This file should SUBJECTS to all the subjects to test."
     exit 1
 else
     # these are the subjects to use in training, leaving one out for testing
-    source ${SUBJECTS_DIR}/scripts/jackknife_subjects.csh
+    source ${SUBJECTS_DIR}/scripts/subjects.csh
 endif
 if ( ! -e ${SUBJECTS_DIR}/scripts/colortable_final.txt) then
     echo "$SUBJECTS_DIR/scripts/colortable_final.txt is missing!"
