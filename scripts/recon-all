@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/10 20:43:10 $
-#    $Revision: 1.94 $
+#    $Date: 2007/05/12 16:24:31 $
+#    $Revision: 1.95 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.94 2007/05/10 20:43:10 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.95 2007/05/12 16:24:31 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -238,10 +238,19 @@ check_params_return:
 if ($DoMakefile) then
   setenv MAKE_SUBJECT $subjid
   set make_flags=( $MakefileTarget )
-  if ( ! $RunIt) set make_flags=( $make_flags -n )
+  if ( ! $RunIt) set make_flags=( -n $make_flags )
+  echo "Subject '$subjid': make $make_flags"
   make -f $FREESURFER_HOME/bin/recon-all.makefile ${make_flags}
   exit ($status)
 endif
+
+echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
+
+# Get "True" FS HOME
+pushd $FREESURFER_HOME > /dev/null
+set freesurfer_home_true = `pwd`;
+popd > /dev/null
+echo "Actual FREESURFER_HOME $freesurfer_home_true"
 
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -3258,8 +3267,6 @@ check_params:
     setenv SUBJECTS_DIR `$PWD`;
     popd > /dev/null
 
-    echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
-
     set subjdir = $SUBJECTS_DIR/$subjid
 
     #------------ Legacy -----------------------------------#
@@ -3385,12 +3392,6 @@ check_params:
     echo "ERROR: environment variable FREESURFER_HOME not set."
     exit 1;
   endif
-
-  # Get "True" FS HOME
-  pushd $FREESURFER_HOME > /dev/null
-  set freesurfer_home_true = `pwd`;
-  popd > /dev/null
-  echo "Actual FREESURFER_HOME $freesurfer_home_true"
 
   if(! -e $FREESURFER_HOME ) then
     echo "ERROR: FREESURFER_HOME $FREESURFER_HOME does not exist."
