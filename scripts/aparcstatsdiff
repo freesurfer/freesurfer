@@ -24,15 +24,17 @@ if ( "x$1" == "x" || \
     exit 1
 endif
 
-if ( ! -e $SUBJECTS_DIR/$1 ) then
-    echo "$SUBJECTS_DIR/$1 does not exist!"
+set subject1=$1
+set subject2=$2
+if ( ! -e $SUBJECTS_DIR/${subject1} ) then
+    echo "$SUBJECTS_DIR/${subject1} does not exist!"
     exit 1
 endif
-if ( ! -e $SUBJECTS_DIR/$2 ) then
-    echo "$SUBJECTS_DIR/$2 does not exist!"
+if ( ! -e $SUBJECTS_DIR/${subject2} ) then
+    echo "$SUBJECTS_DIR/${subject2} does not exist!"
     exit 1
 endif
-if ( "x$1" == "x$2" ) then
+if ( "x${subject1}" == "x${subject2}" ) then
     echo "Subject names must be different."
     exit 1
 endif
@@ -58,23 +60,24 @@ else
     set outfile=aparcstats-${stat}.txt
 endif
 
+set tmpout=(/tmp/aparcstats2table-$$.txt)
 set cmd=(aparcstats2table \
-        --subjects $1 $2 \
+        --subjects ${subject1} ${subject2} \
         --hemi $hemi \
         --parc $parc \
         --meas $meas \
         --t ${outfile})
-$cmd > /tmp/aparcstats2table.txt
+$cmd >& $tmpout
 if ($status) then
     echo "FAILED: $cmd"
-    cat /tmp/aparcstats2table.txt
+    cat  $tmpout
     exit 1
 endif
-rm -f /tmp/aparcstats2table.txt
+rm -f $tmpout >& /dev/null
     
-set labels=`grep ${stat} ${outfile}`
-set subj1=`grep $1 ${outfile}`
-set subj2=`grep $2 ${outfile}`
+set labels=`grep "${stat} " ${outfile}`
+set subj1=`grep "${subject1} " ${outfile}`
+set subj2=`grep "${subject2} " ${outfile}`
 
 if ( "$#labels" != "$#subj1" ) then
     echo "Label row and Subj1 row have unequal number of columns!"
@@ -94,8 +97,8 @@ set total=$#subj1
 set idx=2
 set newrow=( "pctdiff" )
 set diffcount=0
-set stdoutfile=(/tmp/aparcstatsdiff.txt)
-rm -f $stdoutfile
+set stdoutfile=(/tmp/aparcstatsdiff-$$.txt)
+rm -f $stdoutfile >& /dev/null
 while ( "$idx" != "$total" )
 
     set label=$labels[$idx]
@@ -104,16 +107,20 @@ while ( "$idx" != "$total" )
     set diff=`echo "scale=4; ${struct2} - ${struct1}" | bc`
     if ($status) exit 1
     if ( "$diff" != "0" ) then
+      if ( "$struct1" != "0" ) then
         set pctdiff=`echo "scale=4; ${diff} / ${struct1}" | bc`
-        if ($status) exit 1
-        set pctdiff=`echo "scale=4; ${pctdiff} * 100" | bc`
-        if ($status) exit 1
-        echo "${pctdiff}\t\t${label}   (s1: ${struct1}, s2: ${struct2})" \
-            >> $stdoutfile
-        set newrow=( ${newrow} ${pctdiff} )
-        @ diffcount++
+      else
+        set pctdiff=`echo "scale=4; ${diff} / ${struct2}" | bc`
+      endif
+      if ($status) exit 1
+      set pctdiff=`echo "scale=4; ${pctdiff} * 100" | bc`
+      if ($status) exit 1
+      echo "${pctdiff}\t\t${label}   (s1: ${struct1}, s2: ${struct2})" \
+          >>& $stdoutfile
+      set newrow=( ${newrow} ${pctdiff} )
+      @ diffcount++
     else
-        set newrow=( ${newrow} 0 )
+      set newrow=( ${newrow} 0 )
     endif
 
     @ idx++
@@ -124,11 +131,19 @@ end
 echo "${newrow}" >> ${outfile}
 
 # output the column of non-zero structures, sorted by % change
+echo ""
+echo "----------------"
+echo "Aparc Stats Diff:" 
+echo "subject1: ${subject1}, subject2: ${subject2}"
+echo "hemisphere: ${hemi}, parcellation: ${parc}, measure: ${meas}"
 echo "% diff:\t\tlabel:   (subject1: value, subject2: value)"
 echo "-------\t\t-------------------------------------------"
 if ( -e $stdoutfile) then
     cat $stdoutfile | sort -n
-    rm -f $stdoutfile
+    rm -f $stdoutfile >& /dev/null
+else 
+    echo "All labels in $stat have equal measures (zero diff)."
 endif
+echo ""
 
 exit ${diffcount}

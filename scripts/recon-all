@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/12 22:42:37 $
-#    $Revision: 1.96 $
+#    $Date: 2007/05/13 23:47:52 $
+#    $Revision: 1.97 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.96 2007/05/12 22:42:37 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.97 2007/05/13 23:47:52 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -126,6 +126,8 @@ set target = fsaverage # see DoQdecCache
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
 set DoMakefile = 0; # if 1, run make -f recon-all.makefile $(MakefileTarget)
 set MakefileTarget = () # argument to recon-all -make 
+set DoAsegStatsDiff = 0; # if 1, then run asegstatsdiff
+set DoAparcStatsDiff = 0; # if 1, then run aparcstatsdiff
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -1953,6 +1955,31 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.vnomatchcheck.touch
   endif
 
+  # ------ Compare aseg stats of two subjects ------
+  if ($DoAparcStatsDiff) then
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# AParc Stats Diff `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $SUBJECTS_DIR > /dev/null
+    $PWD |& tee -a $LF
+    foreach parc (aparc)
+      foreach meas (area volume thickness)
+        set subj1=($tp1id)
+        if ( "x$subj1" == "x$subjid" ) then
+          # aparcstats2table doesnt accept identical subject names, so fake it
+          ln -s $subj1 ${tp1id}_tmp
+          set subj1=(${tp1id}_tmp)
+        endif
+        set cmd=(aparcstatsdiff $subj1 $subjid $hemi $parc $meas)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $cmd |& tee -a $LF
+        if (-e ${tp1id}_tmp) rm ${tp1id}_tmp
+      end
+    end
+    echo $cmd > $touchdir/aparcstatsdiff.touch
+  endif
+
 end # Loop over hemilist
 
 #-------------- ASeg Stats --------------#
@@ -1984,6 +2011,26 @@ if($DoSegStats) then
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
   echo $cmd > $touchdir/segstats.touch
+endif
+
+if ($DoAsegStatsDiff) then
+  # Compare aseg stats of two subjects
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# ASeg Stats Diff `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $SUBJECTS_DIR > /dev/null
+  set subj1=($tp1id)
+  if ( "x$subj1" == "x$subjid" ) then
+    # asegstats2table doesnt accept identical subject names, so fake it
+    ln -s $subj1 ${tp1id}_tmp
+    set subj1=(${tp1id}_tmp)
+  endif
+  set cmd=(asegstatsdiff $subj1 $subjid)
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if (-e ${tp1id}_tmp) rm ${tp1id}_tmp
+  echo $cmd > $touchdir/asegstatsdiff.touch
 endif
 
 
@@ -3203,6 +3250,14 @@ while( $#argv != 0 )
       set MakefileTarget = $argv[1]; shift;
       breaksw;
 
+    case "-asegstatsdiff":
+      set DoAsegStatsDiff = 1;
+      breaksw;
+
+    case "-aparcstatsdiff":
+      set DoAparcStatsDiff = 1;
+      breaksw;
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -3514,7 +3569,7 @@ check_params:
      ! $DoMorphRGB && ! $DoFinalSurfs && ! $DoContraSurfRegWithinSubject &&\
      ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoMaskBFS && \
-     ! $DoMakefile) then
+     ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff ) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
@@ -3527,6 +3582,19 @@ check_params:
   if( ($WSMore || $WSLess) && $WSPctPreFlood ) then
     echo "ERROR: cannot specify -wsmore or -wsless and -wsthresh"
     exit 1;
+  endif
+
+  if ($DoAsegStatsDiff) then
+    if ( $#tp1id != 1 ) then
+      echo "ERROR: -asegstatsdiff requires -tp1 <subjid>"
+      exit 1;
+    endif
+  endif
+  if ($DoAparcStatsDiff) then
+    if ( $#tp1id != 1 ) then
+      echo "ERROR: -aparcstatsdiff requires -tp1 <subjid>"
+      exit 1;
+    endif
   endif
 
 goto check_params_return;
