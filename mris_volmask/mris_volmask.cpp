@@ -2,14 +2,15 @@
  * @file  mris_volmask.cpp
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Uses the 4 surfaces of a scan to construct a mask volume showing the 
+ *      position of each voxel with respect to the surfaces - GM, WM, LH or RH.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Gheorghe Postelnicu
  * CVS Revision Info:
  *    $Author: postelni $
- *    $Date: 2007/02/14 22:20:21 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/05/13 15:05:25 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -334,10 +335,12 @@ main(int ac, char* av[]) {
 
 IoParams::IoParams() {
   labelBackground = 0;
-  labelLeftWhite = 10;
-  labelRightWhite = 20;
-  labelLeftRibbon = 100;
-  labelRightRibbon = 200;
+
+  labelLeftWhite = 20;
+  labelRightWhite = 120;
+
+  labelLeftRibbon = 10;
+  labelRightRibbon = 110;
 
   capValue = 3;
   bSaveDistance = false;
@@ -383,16 +386,16 @@ IoParams::parse(int ac, char* av[]) {
                           " override default value for background label value (0)"
                         );
   interface.AddOptionInt( (slbl+sl+sw).c_str(), &iLeftWhite,
-                          " override default value for left white matter label - 100"
+                          " override default value for left white matter label - 20"
                         );
   interface.AddOptionInt( (slbl+sl+srib).c_str(), &iLeftRibbon,
                           " override default value for left ribbon label - 10"
                         );
   interface.AddOptionInt( (slbl+sr+sw).c_str(), &iRightWhite,
-                          " override default value for right white matter label - 200"
+                          " override default value for right white matter label - 120"
                         );
   interface.AddOptionInt( (slbl+sr+srib).c_str(), &iRightRibbon,
-                          " override default value for right ribbon label - 20"
+                          " override default value for right ribbon label - 110"
                         );
   interface.AddOptionFloat( "cap_distance", &capValue,
                             " maximum distance up to which the signed distance function computation is accurate"
