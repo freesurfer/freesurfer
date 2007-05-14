@@ -30,9 +30,13 @@ set cmd=(mris_ca_train \
   $SUBJECTS_DIR/average/${GCS})
 
 mris_ca_train --all-info >& $LOG
-echo "\nStart: `date`\n" >> $LOG
+echo "" >> $LOG
+echo "Start: `date`" >> $LOG
+echo "" >> $LOG
 echo "${cmd} \n" >> $LOG
 
 $cmd >>& $LOG
 
-echo "\nEnd:   `date`\n" >> $LOG
+echo "" >> $LOG
+echo "End:   `date`" >> $LOG
+echo "" >> $LOG
