@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/14 00:31:43 $
- *    $Revision: 1.29 $
+ *    $Date: 2007/05/14 16:50:27 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -206,7 +206,7 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
 
   /* Build the info string. */
   sprintf (return_string, "%s %s "
-           "ProgramVersion: %s  RunTimeStamp: %s  "
+           "ProgramVersion: %s  TimeStamp: %s  "
            "BuildTimeStamp: %s  CVS: %s  User: %s  "
            "Machine: %s  Platform: %s  PlatformVersion: %s  "
            "CompilerName: %s  CompilerVersion: %d  ",
@@ -384,7 +384,7 @@ handle_version_option (int argc, char** argv,
 
       /* Build the info string. */
       fprintf (stdout, "ProgramName: %s  ProgramArguments: %s  "
-               "ProgramVersion: %s  RunTimeStamp: %s  "
+               "ProgramVersion: %s  TimeStamp: %s  "
                "BuildTimeStamp: %s  CVS: %s  User: %s  "
                "Machine: %s  Platform: %s  PlatformVersion: %s  "
                "CompilerName: %s  CompilerVersion: %d \n",
