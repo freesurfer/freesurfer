@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/11 18:41:19 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/05/14 15:37:31 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,10 +60,16 @@ public:
   // space.
   void ConvertSurfaceToRAS ( float iSurfX, float iSurfY, float iSurfZ,
                              float& oRASX, float& oRASY, float& oRASZ ) const;
+  void ConvertSurfaceToRAS ( double iSurfX, double iSurfY, double iSurfZ,
+                             double& oRASX, double& oRASY, double& oRASZ ) const;
   void ConvertRASToSurface ( float iRASX, float iRASY, float iRASZ,
                              float& oSurfX, float& oSurfY, float& oSurfZ) const;
+  void ConvertRASToSurface ( double iRASX, double iRASY, double iRASZ,
+                             double& oSurfX, double& oSurfY, double& oSurfZ) const;
   void ConvertSurfaceToRAS ( float const iSurf[3], float oRAS[3] ) const;
+  void ConvertSurfaceToRAS ( double const iSurf[3], double oRAS[3] ) const;
   void ConvertRASToSurface ( float const iRAS[3], float oSurf[3] ) const;
+  void ConvertRASToSurface ( double const iRAS[3], double oSurf[3] ) const;
 
   void GetRASBounds ( float ioBounds[6] );
 
@@ -82,13 +88,17 @@ public:
   // the hash table and finds only the closest vertex point. If
   // oDistance is not NULL, the distance to the found point will be
   // returned there.
-  int FindVertexAtRAS        ( float const iRAS[3],        float* oDistance );
-  int FindVertexAtSurfaceRAS ( float const iSurfaceRAS[3], float* oDistance );
+  int FindVertexAtRAS        ( float  const iRAS[3],       float*  oDistance );
+  int FindVertexAtRAS        ( double const iRAS[3],       double* oDistance );
+  int FindVertexAtSurfaceRAS ( float  const iSurfaceRAS[3],float*  oDistance );
+  int FindVertexAtSurfaceRAS ( double const iSurfaceRAS[3],double* oDistance );
 
   // Description:
   // Get the RAS or surface RAS coords at a vertex index.
-  void GetRASAtVertex        ( int inVertex, float ioRAS[3] );
-  void GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3] );
+  void GetRASAtVertex        ( int inVertex, float  ioRAS[3] );
+  void GetRASAtVertex        ( int inVertex, double ioRAS[3] );
+  void GetSurfaceRASAtVertex ( int inVertex, float  ioRAS[3] );
+  void GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] );
 
   // Description:
   // Return a list a of vertex indices that form the shortest path

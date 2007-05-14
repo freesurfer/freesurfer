@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/11 18:41:19 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/05/14 15:37:31 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,7 +36,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceSource );
-vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.5 $" );
 
 vtkFSSurfaceSource::vtkFSSurfaceSource() :
     mMRIS( NULL ),
@@ -168,11 +168,47 @@ vtkFSSurfaceSource::ConvertSurfaceToRAS ( float iX, float iY, float iZ,
 }
 
 void
+vtkFSSurfaceSource::ConvertSurfaceToRAS ( double iX, double iY, double iZ,
+					  double& oX, double& oY, double& oZ ) const {
+
+  double surface[3];
+  double ras[3];
+
+  surface[0] = iX;
+  surface[1] = iY;
+  surface[2] = iZ;
+
+  this->ConvertSurfaceToRAS( surface, ras );
+
+  oX = ras[0];
+  oY = ras[1];
+  oZ = ras[2];
+}
+
+void
 vtkFSSurfaceSource::ConvertRASToSurface ( float iX, float iY, float iZ,
 					  float& oX, float& oY, float& oZ ) const {
 
   float ras[3];
   float surface[3];
+  
+  ras[0] = iX;
+  ras[1] = iY;
+  ras[2] = iZ;
+  
+  this->ConvertRASToSurface( ras, surface );
+
+  oX = surface[0];
+  oY = surface[1];
+  oZ = surface[2];
+}
+
+void
+vtkFSSurfaceSource::ConvertRASToSurface ( double iX, double iY, double iZ,
+					  double& oX, double& oY, double& oZ ) const {
+
+  double ras[3];
+  double surface[3];
   
   ras[0] = iX;
   ras[1] = iY;
@@ -192,7 +228,19 @@ vtkFSSurfaceSource::ConvertSurfaceToRAS ( float const iSurf[3], float oRAS[3] ) 
 }
 
 void
+vtkFSSurfaceSource::ConvertSurfaceToRAS ( double const iSurf[3], double oRAS[3] ) const {
+
+  mSurfaceToRASTransform->TransformPoint( iSurf, oRAS );
+}
+
+void
 vtkFSSurfaceSource::ConvertRASToSurface ( float const iRAS[3], float oSurf[3] ) const {
+
+  mSurfaceToRASTransform->GetInverse()->TransformPoint( iRAS, oSurf );
+}
+
+void
+vtkFSSurfaceSource::ConvertRASToSurface ( double const iRAS[3], double oSurf[3] ) const {
 
   mSurfaceToRASTransform->GetInverse()->TransformPoint( iRAS, oSurf );
 }
@@ -286,6 +334,15 @@ vtkFSSurfaceSource::FindVertexAtRAS ( float const iRAS[3], float* oDistance ) {
 }
 
 int
+vtkFSSurfaceSource::FindVertexAtRAS ( double const iRAS[3], double* oDistance ) {
+
+  double surf[3];
+  this->ConvertRASToSurface( iRAS, surf );
+
+  return this->FindVertexAtSurfaceRAS( surf, oDistance );
+}
+
+int
 vtkFSSurfaceSource::FindVertexAtSurfaceRAS ( float const iSurfaceRAS[3],
 					     float* oDistance ) {
 
@@ -308,10 +365,42 @@ vtkFSSurfaceSource::FindVertexAtSurfaceRAS ( float const iSurfaceRAS[3],
   return nClosestVertex;
 }
 
+int
+vtkFSSurfaceSource::FindVertexAtSurfaceRAS ( double const iSurfaceRAS[3],
+					     double* oDistance ) {
+
+  VERTEX v;
+  v.x = static_cast<float>(iSurfaceRAS[0]);
+  v.y = static_cast<float>(iSurfaceRAS[1]);
+  v.z = static_cast<float>(iSurfaceRAS[2]);
+  float distance;
+  int nClosestVertex =
+    MHTfindClosestVertexNo( mHashTable, mMRIS, &v, &distance );
+
+  if ( -1 == nClosestVertex ) {
+    throw runtime_error( "No vertices found.");
+  }
+
+  if ( NULL != oDistance ) {
+    *oDistance = static_cast<double>(distance);
+  }
+
+  return nClosestVertex;
+}
+
 void
 vtkFSSurfaceSource::GetRASAtVertex ( int inVertex, float ioRAS[3] ) {
 
   float surfaceRAS[3];
+  this->GetSurfaceRASAtVertex( inVertex, surfaceRAS );
+
+  this->ConvertSurfaceToRAS( surfaceRAS, ioRAS );
+}
+
+void
+vtkFSSurfaceSource::GetRASAtVertex ( int inVertex, double ioRAS[3] ) {
+
+  double surfaceRAS[3];
   this->GetSurfaceRASAtVertex( inVertex, surfaceRAS );
 
   this->ConvertSurfaceToRAS( surfaceRAS, ioRAS );
@@ -329,6 +418,20 @@ vtkFSSurfaceSource::GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3] ) {
   ioRAS[0] = mMRIS->vertices[inVertex].x;
   ioRAS[1] = mMRIS->vertices[inVertex].y;
   ioRAS[2] = mMRIS->vertices[inVertex].z;
+}
+
+void
+vtkFSSurfaceSource::GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] ) {
+
+  if( mMRIS == NULL )
+    throw runtime_error( "GetRASAtVertex: mMRIS was NULL" );
+
+  if( inVertex < 0 || inVertex >= mMRIS->nvertices )
+    throw runtime_error( "GetRASAtVertex: inVertex was invalid" );
+
+  ioRAS[0] = static_cast<double>(mMRIS->vertices[inVertex].x);
+  ioRAS[1] = static_cast<double>(mMRIS->vertices[inVertex].y);
+  ioRAS[2] = static_cast<double>(mMRIS->vertices[inVertex].z);
 }
 
 void
@@ -418,7 +521,7 @@ vtkFSSurfaceSource::FindPath ( int inStartVertex, int inEndVertex,
   aDistance[inStartVertex] = 0;
   aPredecessor[inStartVertex] = inStartVertex;
   aCheck.push_back( inStartVertex );
-  
+
   // While we're not done and have things to check...
   bool bDone = false;
   vector<int>::iterator tCheck;
@@ -460,10 +563,10 @@ vtkFSSurfaceSource::FindPath ( int inStartVertex, int inEndVertex,
 	float vuX = u->x - v->x;
 	float vuY = u->y - v->y;
 	float vuZ = u->z - v->z;
-	
+
 	// Calc the distance here.
 	float distance = sqrt( vuX*vuX + vuY*vuY + vuZ*vuZ );
-	
+
 	// If this is a new shortest path to this vertex, update the
 	// predecessor and the distance here, and add it to the list
 	// of vertices to check next.
