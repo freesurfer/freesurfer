@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/27 02:23:44 $
- *    $Revision: 1.28 $
+ *    $Date: 2007/05/14 00:31:43 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -125,7 +125,7 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
   char *begin;
   char program_name[1024];
   char arguments[1024];
-  char time_stamp[1024];
+  char current_time_stamp[1024];
   char user[1024];
   char machine[1024];
   char platform_version[1024];
@@ -167,7 +167,7 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
   /* Find the time string. */
   seconds = time(NULL);
   gmtime_r (&seconds, &broken_time);
-  sprintf (time_stamp, "20%02d/%02d/%02d-%02d:%02d:%02d-GMT",
+  sprintf (current_time_stamp, "20%02d/%02d/%02d-%02d:%02d:%02d-GMT",
            broken_time.tm_year%100, /* mod here to change 103 to 03 */
            broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
            broken_time.tm_mday, broken_time.tm_hour,
@@ -199,15 +199,22 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
     strcpy (platform_version, kernel_info.release);
   }
 
+  // TODO: build_timestamp really ought to be passed-in as a parameter
+  // from the calling binary, to get a more accurate build time, but for
+  // now, the build time of this version.c (libutils) is better than nothing
+  char build_timestamp[] = __DATE__" "__TIME__;
+
   /* Build the info string. */
   sprintf (return_string, "%s %s "
-           "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
-           "Machine: %s Platform: %s PlatformVersion: %s "
-           "CompilerName: %s CompilerVersion: %d",
+           "ProgramVersion: %s  RunTimeStamp: %s  "
+           "BuildTimeStamp: %s  CVS: %s  User: %s  "
+           "Machine: %s  Platform: %s  PlatformVersion: %s  "
+           "CompilerName: %s  CompilerVersion: %d  ",
            program_name,
            arguments,
            version_string,
-           time_stamp,
+           current_time_stamp,
+           build_timestamp,
            id_string,
            user,
            machine,
@@ -236,7 +243,7 @@ handle_version_option (int argc, char** argv,
   char *begin;
   char program_name[1024];
   char arguments[1024];
-  char time_stamp[1024];
+  char current_time_stamp[1024];
   char user[1024];
   char machine[1024];
   char platform_version[1024];
@@ -338,7 +345,7 @@ handle_version_option (int argc, char** argv,
       /* Find the time string. */
       seconds = time(NULL);
       gmtime_r (&seconds, &broken_time);
-      sprintf (time_stamp, "20%02d/%02d/%02d-%02d:%02d:%02d-GMT",
+      sprintf (current_time_stamp, "20%02d/%02d/%02d-%02d:%02d:%02d-GMT",
                broken_time.tm_year%100, /* mod here to change 103 to 03 */
                broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
                broken_time.tm_mday, broken_time.tm_hour,
@@ -370,15 +377,22 @@ handle_version_option (int argc, char** argv,
         strcpy (platform_version, kernel_info.release);
       }
 
+      // TODO: build_timestamp really ought to be passed-in as a parameter
+      // from the calling binary, to get a more accurate build time, but for
+      // now, the build time of version.c (libutils) is better than nothing
+      char build_timestamp[] = __DATE__" "__TIME__;
+
       /* Build the info string. */
-      fprintf (stdout, "ProgramName: %s ProgramArguments: %s "
-               "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
-               "Machine: %s Platform: %s PlatformVersion: %s "
-               "CompilerName: %s CompilerVersion: %d\n",
+      fprintf (stdout, "ProgramName: %s  ProgramArguments: %s  "
+               "ProgramVersion: %s  RunTimeStamp: %s  "
+               "BuildTimeStamp: %s  CVS: %s  User: %s  "
+               "Machine: %s  Platform: %s  PlatformVersion: %s  "
+               "CompilerName: %s  CompilerVersion: %d \n",
                program_name,
                arguments,
                version_string,
-               time_stamp,
+               current_time_stamp,
+               build_timestamp,
                id_string,
                user,
                machine,
@@ -479,7 +493,7 @@ char *VERfileTimeStamp(char *fname)
   *----------------------------------------------------------*/
 char *VERcurTimeStamp(void)
 {
-  char tmpstr[2000], *time_stamp;
+  char tmpstr[2000], *current_time_stamp;
   time_t seconds;
   struct tm broken_time;
   seconds = time(NULL);
@@ -490,6 +504,6 @@ char *VERcurTimeStamp(void)
            broken_time.tm_mday, broken_time.tm_hour,
            broken_time.tm_min, broken_time.tm_sec);
   //Note: NOT Y3K compliant!
-  time_stamp = strcpyalloc(tmpstr);
-  return(time_stamp);
+  current_time_stamp = strcpyalloc(tmpstr);
+  return(current_time_stamp);
 }
