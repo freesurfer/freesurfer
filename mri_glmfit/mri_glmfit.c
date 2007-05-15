@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/11 18:01:40 $
- *    $Revision: 1.122 $
+ *    $Date: 2007/05/15 21:32:28 $
+ *    $Revision: 1.123 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -496,7 +496,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.122 2007/05/11 18:01:40 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.123 2007/05/15 21:32:28 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1393,7 +1393,12 @@ int main(int argc, char **argv) {
 
     // Create output directory for contrast
     sprintf(tmpstr,"%s/%s",GLMDir,mriglm->glm->Cname[n]);
-    mkdir(tmpstr,0777);
+    err = mkdir(tmpstr,0777);
+    if (err != 0 && errno != EEXIST) {
+      printf("ERROR: creating directory %s\n",GLMDir);
+      perror(NULL);
+      return(1);
+    }
 
     // Dump contrast matrix
     sprintf(tmpstr,"%s/%s/C.dat",GLMDir,mriglm->glm->Cname[n]);
