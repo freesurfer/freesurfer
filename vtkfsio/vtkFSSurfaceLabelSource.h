@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/15 19:07:07 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/05/15 19:33:14 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,9 +49,16 @@ public:
   vtkTypeRevisionMacro(vtkFSSurfaceLabelSource,vtkSource);
 
   // Description:
-  // This will read the label and map it to the surface.
-  void ReadLabel ( MRIS* iSurface,               char const* ifnLabel );
-  void ReadLabel ( vtkFSSurfaceSource* iSurface, char const* ifnLabel );
+  // vtkFSSurfaceLabelSource needs an MRIS object on which to map the
+  // label. The white coordinates should also be available for this
+  // surface.
+  vtkSetMacro(Mris,MRIS*);
+  vtkGetMacro(Mris,MRIS*);
+
+  // Description:
+  // The file name of the label to read.
+  vtkSetStringMacro(LabelFileName);
+  vtkGetStringMacro(LabelFileName);
 
   // Description:
   // Get the output of this source.
@@ -65,6 +72,9 @@ protected:
   ~vtkFSSurfaceLabelSource();
 
   void Execute();
+
+  char* LabelFileName;
+  MRIS* Mris;
 
 private:
   vtkFSSurfaceLabelSource(const vtkFSSurfaceLabelSource&);  // Not implemented.
