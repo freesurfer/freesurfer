@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/09 19:30:20 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/05/15 17:11:25 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_average_curvature.c,v 1.14 2007/01/09 19:30:20 fischl Exp $";
+static char vcid[] = "$Id: mris_average_curvature.c,v 1.15 2007/05/15 17:11:25 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -73,7 +73,7 @@ main(int argc, char *argv[]) {
   MRI_SP       *mrisp, *mrisp_total ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.14 2007/01/09 19:30:20 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.15 2007/05/15 17:11:25 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -173,7 +173,30 @@ main(int argc, char *argv[]) {
     VERTEX *v ;
     float  dof ;
     FILE   *fp ;
+#if 1
+    MRI    *mri ;
 
+    mri = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 2) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      MRIsetVoxVal(mri, vno, 0, 0, 0, v->curv) ;
+    }
+    MRISfromParameterization(mrisp_total, mris, 1) ;
+    /* change variances to squared standard errors */
+    dof = *IMAGEFseq_pix(mrisp_total->Ip, 0, 0, 2) ;
+    if (!FZERO(dof)) for (vno = 0 ; vno < mris->nvertices ; vno++) {
+        v = &mris->vertices[vno] ;
+        if (v->ripflag)
+          continue ;
+        v->curv /= dof ;   /* turn it into a standard error */
+        MRIsetVoxVal(mri, vno, 0, 0, 1, v->curv) ;
+      }
+    mri->dof = dof ;
+    MRIwrite(mri, out_fname) ;
+    MRIfree(&mri) ;
+
+#else
     sprintf(fname, "%s/sigavg%d-%s.w", out_fname, condition_no, ohemi);
     fprintf(stderr, "writing output means to %s\n", fname) ;
     MRISwriteCurvatureToWFile(mris, fname) ;
@@ -192,6 +215,7 @@ main(int argc, char *argv[]) {
     sprintf(fname, "%s/sigvar%d-%s.w", out_fname, condition_no, ohemi);
     fprintf(stderr, "writing output variances to %s\n", fname) ;
     MRISwriteCurvatureToWFile(mris, fname) ;
+#endif
 
     /* write out dof file */
     sprintf(fname, "%s/sigavg%d.dof", out_fname, condition_no) ;
