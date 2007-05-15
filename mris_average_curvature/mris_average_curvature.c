@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/05/15 17:11:25 $
- *    $Revision: 1.15 $
+ *    $Date: 2007/05/15 20:12:21 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_average_curvature.c,v 1.15 2007/05/15 17:11:25 fischl Exp $";
+static char vcid[] = "$Id: mris_average_curvature.c,v 1.16 2007/05/15 20:12:21 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -73,7 +73,7 @@ main(int argc, char *argv[]) {
   MRI_SP       *mrisp, *mrisp_total ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.15 2007/05/15 17:11:25 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_average_curvature.c,v 1.16 2007/05/15 20:12:21 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -152,27 +152,27 @@ main(int argc, char *argv[]) {
       MRISfree(&mris) ;
   }
 
-  if (mris==NULL) {
-    printf("No surface files found!\n");
-    exit(1);
-  }
-
   if (output_surf_name) {
     sprintf(fname, "%s/%s/surf/%s.%s", sdir,output_surf_name,ohemi,osurf);
     fprintf(stderr, "reading output surface %s...\n", fname) ;
-    MRISfree(&mris) ;
+    if (mris)
+      MRISfree(&mris) ;
     mris = MRISread(fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, fname) ;
   }
+  if (mris==NULL) {
+    printf("No output surface files found!\n");
+    exit(1);
+  }
+
   MRISfromParameterization(mrisp_total, mris, 0) ;
   if (stat_flag)    /* write out summary statistics files */
   {
     int    vno ;
     VERTEX *v ;
     float  dof ;
-    FILE   *fp ;
 #if 1
     MRI    *mri ;
 
@@ -197,6 +197,8 @@ main(int argc, char *argv[]) {
     MRIfree(&mri) ;
 
 #else
+    FILE   *fp ;
+
     sprintf(fname, "%s/sigavg%d-%s.w", out_fname, condition_no, ohemi);
     fprintf(stderr, "writing output means to %s\n", fname) ;
     MRISwriteCurvatureToWFile(mris, fname) ;
@@ -215,8 +217,6 @@ main(int argc, char *argv[]) {
     sprintf(fname, "%s/sigvar%d-%s.w", out_fname, condition_no, ohemi);
     fprintf(stderr, "writing output variances to %s\n", fname) ;
     MRISwriteCurvatureToWFile(mris, fname) ;
-#endif
-
     /* write out dof file */
     sprintf(fname, "%s/sigavg%d.dof", out_fname, condition_no) ;
     fp = fopen(fname, "w") ;
@@ -226,6 +226,8 @@ main(int argc, char *argv[]) {
     fprintf(stderr, "writing dof file %s\n", fname) ;
     fprintf(fp, "%d\n", (int)dof) ;
     fclose(fp) ;
+#endif
+
   } else {
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr,"writing blurred pattern to surface to %s\n",out_fname);
