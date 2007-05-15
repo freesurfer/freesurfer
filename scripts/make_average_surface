@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/03/23 03:35:55 $
-#    $Revision: 1.34 $
+#    $Author: nicks $
+#    $Date: 2007/05/15 17:14:26 $
+#    $Revision: 1.35 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # increase number of allowable open files to maximum:
 limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.34 2007/03/23 03:35:55 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.35 2007/05/15 17:14:26 nicks Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -362,7 +362,7 @@ while( $#argv != 0 )
       endif
       if ( $#argv == 0) goto arg1err;
       set SUBJECTS_DIR = $argv[1]; shift;
-      set SUBJECTS_DIR = `basename ${SUBJECTS_DIR}`; # remove trailing /
+      setenv SUBJECTS_DIR $SUBJECTS_DIR
       breaksw
 
     case "--xform":

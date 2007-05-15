@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/02/23 00:58:44 $
-#    $Revision: 1.16 $
+#    $Date: 2007/05/15 17:14:26 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # increase number of allowable open files to maximum:
 limit descriptors unlimited
 
-set VERSION = '$Id: make_average_volume,v 1.16 2007/02/23 00:58:44 nicks Exp $';
+set VERSION = '$Id: make_average_volume,v 1.17 2007/05/15 17:14:26 nicks Exp $';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm
@@ -225,7 +225,7 @@ while( $#argv != 0 )
       endif
       if ( $#argv == 0) goto arg1err;
       set SUBJECTS_DIR = $argv[1]; shift;
-      set SUBJECTS_DIR = `basename ${SUBJECTS_DIR}`; # remove trailing /
+      setenv SUBJECTS_DIR $SUBJECTS_DIR
       breaksw
 
     case "--nocleanup":
