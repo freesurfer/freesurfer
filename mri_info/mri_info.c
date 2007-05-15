@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/03 18:52:08 $
- *    $Revision: 1.60 $
+ *    $Author: fischl $
+ *    $Date: 2007/05/15 17:10:03 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.60 $";
+char *MRI_INFO_VERSION = "$Revision: 1.61 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.60 2007/05/03 18:52:08 nicks Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.61 2007/05/15 17:10:03 fischl Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -75,6 +75,7 @@ static int PrintSRes = 0;
 static int PrintNCols = 0;
 static int PrintNRows = 0;
 static int PrintNSlices = 0;
+static int PrintDOF = 0;
 static int PrintNFrames = 0;
 static int PrintFormat = 0;
 static int PrintColDC   = 0;
@@ -179,6 +180,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--height"))    PrintNRows = 1;
     else if (!strcasecmp(option, "--nslices"))   PrintNSlices = 1;
     else if (!strcasecmp(option, "--depth"))     PrintNSlices = 1;
+    else if (!strcasecmp(option, "--dof"))       PrintDOF = 1;
 
     else if (!strcasecmp(option, "--cdc"))       PrintColDC = 1;
     else if (!strcasecmp(option, "--rdc"))       PrintRowDC = 1;
@@ -255,6 +257,7 @@ static void print_usage(void) {
   printf("   --ras_good : print the the ras_good_flag\n");
   printf("   --cras : print the the RAS at the 'center' of the volume\n");
   printf("   --det : print the determinant of the vox2ras matrix\n");
+  printf("   --dof : print the dof stored in the header\n");
   printf("   --nframes : print number of frames to stdout\n");
   printf("   --format : file format\n");
   printf("   --orientation : orientation string (eg, LPS, RAS, RPI)\n");
@@ -399,6 +402,7 @@ static void do_file(char *fname) {
     fprintf(fpout,"%g\n",mri->ti);
     return;
   }
+
   if (PrintFlipAngle) {
     fprintf(fpout,"%g\n",mri->flip_angle);
     return;
@@ -425,6 +429,10 @@ static void do_file(char *fname) {
   }
   if (PrintNSlices) {
     fprintf(fpout,"%d\n",mri->depth);
+    return;
+  }
+  if (PrintDOF) {
+    fprintf(fpout,"%d\n",mri->dof);
     return;
   }
   if (PrintNFrames) {
@@ -539,6 +547,7 @@ static void do_file(char *fname) {
          mri->type == MRI_TENSOR  ? "TENSOR" :
          mri->type == MRI_FLOAT   ? "FLOAT" : "UNKNOWN", mri->type) ;
   printf("           fov: %2.3f\n", mri->fov) ;
+  printf("           dof: %d\n", mri->dof) ;
 #if 0
   printf("        xstart: %2.1f, xend: %2.1f\n",
          mri->xstart*mri->xsize, mri->xend*mri->xsize) ;
