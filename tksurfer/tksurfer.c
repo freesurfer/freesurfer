@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/01 21:53:45 $
- *    $Revision: 1.272 $
+ *    $Author: kteich $
+ *    $Date: 2007/05/15 15:59:55 $
+ *    $Revision: 1.273 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -14359,6 +14359,13 @@ draw_scalebar(void) {
   v[2] = fov*sf*9.99/tmpzf;
   v3f(v);
   v[0] -= SCALEBAR_MM;
+
+  /* rkt: scale for surface area */
+  if (mris->group_avg_surface_area > 0)
+    {
+      v[0] *= sqrt (mris->group_avg_surface_area / mris->total_area);
+    }
+
   v3f(v);
   endline();
   popmatrix();
@@ -19239,7 +19246,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.272 2007/05/01 21:53:45 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.273 2007/05/15 15:59:55 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
