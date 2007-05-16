@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/04/26 14:59:54 $
-##    $Revision: 1.145 $
+##    $Date: 2007/05/16 18:38:50 $
+##    $Revision: 1.146 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -6037,7 +6037,7 @@ if { [info exists env(SUBJECTS_DIR)] } {
     lappend lUserScripts $env(SUBJECTS_DIR)/scripts/tksurfer_init.tcl
 }
 lappend lUserScripts $home/$subject/scripts/tksurfer_init.tcl
-lappend lUserScripts ~/tksurfe_init.tcl
+lappend lUserScripts ~/tksurfer_init.tcl
 
 foreach fnUserScript $lUserScripts {
     if { [file exists $fnUserScript] } {
