@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/04 22:34:03 $
-#    $Revision: 1.1 $
+#    $Date: 2007/05/16 22:19:17 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 
 #
-set VERSION = '$Id: talairach_avi,v 1.1 2007/05/04 22:34:03 nicks Exp $'
+set VERSION = '$Id: talairach_avi,v 1.2 2007/05/16 22:19:17 nicks Exp $'
 
 set InVol = ();
 set XFM = ();
@@ -122,7 +122,10 @@ if($st) then
   exit 1;
 endif
 
-rm -vf talsrcimg*
+rm -vf talsrcimg.*
+rm -vf talsrcimg._g11*
+rm -vf talsrcimg_to_711-2C_as_mni_average_305_t4
+# do not delete talsrcimg_to_711-2C_as_mni_average_305_t4_vox2vox.txt 
 
 echo ""
 echo "--------------------------------------------"
