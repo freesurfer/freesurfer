@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/16 22:24:45 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/05/16 22:41:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,7 +40,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceLabelSource );
-vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.5 $" );
 
 vtkFSSurfaceLabelSource::vtkFSSurfaceLabelSource() :
   LabelFileName( NULL ), Mris( NULL ), Label( NULL ) {
@@ -105,10 +105,12 @@ vtkFSSurfaceLabelSource::AddVerticesToLabel ( int icVertices,
 
     // Make a new point.
     Label->lv[nPoint].vno = iaVertices[nVertex];
-    Label->lv[nPoint].x = Mris->vertices[iaVertices[nVertex]].whitex;
-    Label->lv[nPoint].y = Mris->vertices[iaVertices[nVertex]].whitey;
-    Label->lv[nPoint].z = Mris->vertices[iaVertices[nVertex]].whitez;
+    Label->lv[nPoint].x = Mris->vertices[iaVertices[nVertex]].x;
+    Label->lv[nPoint].y = Mris->vertices[iaVertices[nVertex]].y;
+    Label->lv[nPoint].z = Mris->vertices[iaVertices[nVertex]].z;
+    Label->lv[nPoint].deleted = 0;
 
+    Label->n_points++;
     nPoint++;
   }
 
@@ -244,7 +246,7 @@ vtkFSSurfaceLabelSource::Execute () {
     // Insert the poly.
     labelPolys->InsertNextCell( 3, poly );
   }
-  
+
   // Set the points and polys in our output
   this->GetOutput()->SetPoints( labelPoints );
   labelPoints->Delete();
