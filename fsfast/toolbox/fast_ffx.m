@@ -1,5 +1,5 @@
 function [p, gamma, gammavar, F] = fast_ffx(means,varmeans,dofs,X,C);
-% [sig gmn gmnvar t dof p] = fast_ffx(means,varmeans,dofs,X,C)
+% [p gamma gammavar F] = fast_ffx(means,varmeans,dofs,X,C);
 %
 % Group-level fixed effects analysis
 %   means    is nsamples-by-nvoxels
@@ -16,7 +16,7 @@ function [p, gamma, gammavar, F] = fast_ffx(means,varmeans,dofs,X,C);
 % When X is the ones vector and C=1, then gives the same result as
 % fast_ffx_osgm.
 %
-% $Id: fast_ffx.m,v 1.1 2007/05/16 05:53:38 greve Exp $
+% $Id: fast_ffx.m,v 1.2 2007/05/16 05:54:16 greve Exp $
 
 %
 % fast_ffx.m
@@ -24,8 +24,8 @@ function [p, gamma, gammavar, F] = fast_ffx(means,varmeans,dofs,X,C);
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/16 05:53:38 $
-%    $Revision: 1.1 $
+%    $Date: 2007/05/16 05:54:16 $
+%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -45,7 +45,7 @@ gammavar = [];
 F = [];
 
 if(nargin < 3 | nargin > 6)
-  fprintf('[sig gmn gmnvar t dof p] = fast_ffx(means,varmeans,dofs,X,C)\n');
+  fprintf('[p gamma gammavar F] = fast_ffx(means,varmeans,dofs,X,C);\n');
   return;
 end
 
