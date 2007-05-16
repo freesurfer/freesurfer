@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/31 17:27:26 $
- *    $Revision: 1.69 $
+ *    $Author: kteich $
+ *    $Date: 2007/05/16 16:06:58 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1217,6 +1217,46 @@ LabelMark(LABEL *area, MRI_SURFACE *mris)
     vno = area->lv[n].vno ;
     v = &mris->vertices[vno] ;
     v->marked = 1 ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters: A label and a surface
+
+        Returns value: An error if either parameter is NULL
+
+        Description
+
+        For every point in the label that is not deleted (doesn't have
+        it's deleted flag on), the corresponding vertex in the surface
+        has its marked flag turned on.
+
+------------------------------------------------------*/
+int
+LabelMarkUndeleted(LABEL *area, MRI_SURFACE *mris)
+{
+  int    n, vno ;
+  VERTEX *v ;
+
+  if (NULL == area || NULL == mris)
+    ErrorReturn( ERROR_BADPARM, (ERROR_BADPARM, "LabelMarkUndeleted: area or mris was NULL" ));
+
+  /* For every point, if it's not deleted, get the vno. Check the
+     vno. If it's good, set the vertex's marked flag.*/
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    if (!area->lv[n].deleted)
+      {
+	vno = area->lv[n].vno ;
+	if (vno < 0 || vno >= mris->nvertices)
+	  {
+	    printf ("LabelMarkUndeleted: label point %d had invalid vno %d\n",
+		    n, vno);
+	    continue;
+	  }
+	v = &mris->vertices[vno] ;
+	v->marked = 1 ;
+      }
   }
   return(NO_ERROR) ;
 }
