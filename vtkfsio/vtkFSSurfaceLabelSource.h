@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/15 19:33:14 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/05/16 22:12:44 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,6 +66,11 @@ public:
   vtkPolyData* GetOutput ( int inOutput );
   void         SetOutput ( vtkPolyData* iOutput );
 
+  // Description:
+  // Modify the label in memory.
+  void AddVerticesToLabel ( int icVertices, int* iaVertices );
+  void RemoveVerticesFromLabel ( int icVertices, int* iaVertices );
+
 protected:
 
   vtkFSSurfaceLabelSource();
@@ -73,8 +78,11 @@ protected:
 
   void Execute();
 
+  void ReadLabelFile ();
+
   char* LabelFileName;
   MRIS* Mris;
+  LABEL* Label;
 
 private:
   vtkFSSurfaceLabelSource(const vtkFSSurfaceLabelSource&);  // Not implemented.

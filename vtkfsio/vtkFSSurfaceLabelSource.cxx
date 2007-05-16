@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/15 19:33:14 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/05/16 22:12:44 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,10 +40,10 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceLabelSource );
-vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.3 $" );
 
 vtkFSSurfaceLabelSource::vtkFSSurfaceLabelSource() :
-  LabelFileName( NULL ), Mris( NULL ) {
+  LabelFileName( NULL ), Mris( NULL ), Label( NULL ) {
 
   this->vtkSource::SetNthOutput(0, vtkPolyData::New());
 
@@ -55,161 +55,6 @@ vtkFSSurfaceLabelSource::vtkFSSurfaceLabelSource() :
 
 vtkFSSurfaceLabelSource::~vtkFSSurfaceLabelSource () {
 
-}
-
-void
-vtkFSSurfaceLabelSource::Execute () {
-  
-  if( NULL == Mris )
-    vtkErrorMacro( << "vtkFSSurfaceLabelSource cannot exectue without a surface" );
-
-  if( NULL == LabelFileName )
-    vtkErrorMacro( << "vtkFSSurfaceLabelSource cannot exectue without a label file name" );
-
-  LABEL* label;
-
-  try {
-
-    // Load the white vertex positions in the surface.
-    int eMRIS = MRISreadWhiteCoordinates( Mris, "white" );
-    if( eMRIS != 0 )
-      throw runtime_error( "Couldn't read the white surface file, so unable to load a label." );
-    
-    // Load the label file.
-    char* fnLabel = strdup( LabelFileName );
-    label = LabelRead( NULL, fnLabel );
-    free( fnLabel );
-    if( NULL == label )
-      throw runtime_error( "Couldn't read label" );
-    
-    // Map it to the surface using the white coordinates.
-    LabelToWhite( label, Mris );
-    
-    // See if it's completely unassigned. If so, there are likely to
-    // be lots of holes in the label after we sample it to the
-    // vertices, so we'll fill it in afterwards.
-    int unassigned;
-    LabelIsCompletelyUnassigned( label, &unassigned );
-    
-    // Assign the mris vertex numbers to unnumbered vertices in the
-    // label.
-    LabelFillUnassignedVertices( Mris, label, WHITE_VERTICES );
-    
-    // If we were unassigned before, fill the holes now.
-    if( unassigned ) {
-      LABEL* filledLabel = LabelFillHoles( label, Mris, WHITE_VERTICES );
-      LabelFree( &label );
-      label = filledLabel;
-    }
-    
-    // We use marks to figure out where the label is on the surface.
-    MRISclearMarks( Mris );
-    LabelMark( label, Mris );
-    
-    // Now we have a marked surface. What we want to do is create a
-    // new poly data object without only marked faces in it. To do
-    // that, we need a list of points in the faces, and make faces
-    // that index those points. However we need to map the surface
-    // based indices to a new range of indices that only have the
-    // selected points. So we'll save a list of points and faces that
-    // are selected using the old indices, and then create a mapping.
-    
-    // For each face in the surface, if all its vertices are marked,
-    // put those points and the face in our list of ones that will go
-    // into the new poly data.
-    map<vtkIdType,map<int,double> > aPoints;
-    map<vtkIdType,map<int,vtkIdType> > aPolys;
-    int nPoly = 0;
-    for( int nFace = 0; nFace < Mris->nfaces; nFace++ ) {
-      if( Mris->vertices[Mris->faces[nFace].v[0]].marked &&
-	  Mris->vertices[Mris->faces[nFace].v[1]].marked &&
-	  Mris->vertices[Mris->faces[nFace].v[2]].marked ) {
-	
-	// We're going to make an entry for a poly with a 0-based face
-	// index, but using the same vertex index as the original
-	// surface.
-	for( int nFaceVertex = 0; 
-	     nFaceVertex < VERTICES_PER_FACE; nFaceVertex++ ) {
-	  
-	  int nVertex = Mris->faces[nFace].v[nFaceVertex];
-	  
-	  // Save the poly using the 0 based index.
-	  aPolys[nPoly][nFaceVertex] = nVertex;
-	  
-	  // Save the point with the original index. This can be
-	  // redundant, we don't care.
-	  aPoints[nVertex][0] = Mris->vertices[nVertex].x;
-	  aPoints[nVertex][1] = Mris->vertices[nVertex].y;
-	  aPoints[nVertex][2] = Mris->vertices[nVertex].z;
-	}
-	
-	nPoly++;
-      }
-    }
-    
-    // Now lets make point and poly lists out of the maps we just
-    // made.
-    vtkPoints* labelPoints = vtkPoints::New();
-    labelPoints->SetNumberOfPoints( aPoints.size() );
-    
-    vtkCellArray* labelPolys = vtkCellArray::New();
-    labelPolys->Allocate( aPolys.size() );
-    
-    vtkIdType nNextNewID = 0;
-    map<vtkIdType,vtkIdType> aOldIDToNewID;
-    
-    // For each point we saved, we need to map its surface based index
-    // to a new 0 based index.
-    map<vtkIdType,map<int,double> >::iterator tPoint;
-    for( tPoint = aPoints.begin(); tPoint != aPoints.end(); ++tPoint ) {
-      
-      // Get the old ID.
-      vtkIdType oldID = tPoint->first;
-      
-      // Build a point.
-      double point[3];
-      for( int n = 0; n < 3; n++ )
-	point[n] = tPoint->second[n];
-      
-      // Map the old ID to a new ID and save it.
-      aOldIDToNewID[oldID] = nNextNewID++;
-      
-      // Insert the point with the new ID.
-      labelPoints->SetPoint( aOldIDToNewID[oldID], point );
-    }
-    
-    // Now for each poly, add it to the polys array using the new 0
-    // based point indices.
-    map<vtkIdType,map<int,int> >::iterator tPoly;
-    for( tPoly = aPolys.begin(); tPoly != aPolys.end(); ++tPoly ) {
-      
-      // Make a poly using the new IDs.
-      vtkIdType poly[3];
-      for( int n = 0; n < 3; n++ )
-	poly[n] = aOldIDToNewID[tPoly->second[n]];
-      
-      // Insert the poly.
-      labelPolys->InsertNextCell( 3, poly );
-    }
-    
-    // Set the points and polys in our output
-    this->GetOutput()->SetPoints( labelPoints );
-    labelPoints->Delete();
-    
-    this->GetOutput()->SetPolys( labelPolys );
-    labelPolys->Delete();
-    
-  }
-  catch( exception& e ) {
-    
-    if( label )
-      LabelFree( &label );
-    
-    throw e;
-  }
-  
-  if( label )
-    LabelFree( &label );
 }
 
 vtkPolyData*
@@ -233,3 +78,217 @@ vtkFSSurfaceLabelSource::SetOutput ( vtkPolyData* iOutput ) {
 
   this->vtkSource::SetNthOutput( 0, iOutput );
 }
+
+void
+vtkFSSurfaceLabelSource::AddVerticesToLabel ( int icVertices, 
+					      int* iaVertices ) {
+  assert( icVertices > 0 );
+  assert( iaVertices );
+  assert( Mris );
+
+  // If we don't have a label make one, otherwise resize the one we
+  // have to account for the new points.
+  if( NULL == Label ) {
+    Label = LabelAlloc( icVertices, "", "" );
+  } else {
+    LabelRealloc( Label, Label->n_points + icVertices );
+  }
+
+  // For each vertex to add...
+  int nPoint = Label->n_points;
+  for( int nVertex = 0; nVertex < icVertices; nVertex++ ) {
+    
+    // Check the vertex number.
+    if( iaVertices[nVertex] < 0 ||
+	iaVertices[nVertex] >= Mris->nvertices )
+      throw runtime_error( "Invalid vertex number" );
+
+    // Make a new point.
+    Label->lv[nPoint].vno = iaVertices[nVertex];
+    Label->lv[nPoint].x = Mris->vertices[iaVertices[nVertex]].whitex;
+    Label->lv[nPoint].y = Mris->vertices[iaVertices[nVertex]].whitey;
+    Label->lv[nPoint].z = Mris->vertices[iaVertices[nVertex]].whitez;
+
+    nPoint++;
+  }
+
+  this->Modified();
+}
+
+void
+vtkFSSurfaceLabelSource::RemoveVerticesFromLabel ( int icVertices, 
+						   int* iaVertices ) {
+
+  assert( Label );
+  assert( iaVertices );
+
+  // For each vertex to remove...
+  for( int nVertex = 0; nVertex < icVertices; nVertex++ ) {
+    
+    // Check the vertex.
+    if( iaVertices[nVertex] < 0 ||
+	iaVertices[nVertex] >= Mris->nvertices )
+      throw runtime_error( "Invalid vertex number" );
+
+    // Search for this vertex in the label and if found, set its
+    // deleted flag to true.
+    for( int nPoint = 0; nPoint < Label->n_points; nPoint++ ) {
+      
+      if( Label->lv[nPoint].vno == iaVertices[nVertex] )
+	Label->lv[nPoint].deleted = 1;
+
+    }
+  }
+
+  this->Modified();
+}
+
+void
+vtkFSSurfaceLabelSource::Execute () {
+  
+  if( NULL == Mris )
+    vtkErrorMacro( << "vtkFSSurfaceLabelSource cannot exectue without a surface" );
+
+  if( NULL == Label )
+    vtkErrorMacro( << "vtkFSSurfaceLabelSource cannot exectue without a label" );
+
+  // We use marks to figure out where the label is on the surface.
+  MRISclearMarks( Mris );
+  LabelMarkUndeleted( Label, Mris );
+  
+  // Now we have a marked surface. What we want to do is create a
+  // new poly data object without only marked faces in it. To do
+  // that, we need a list of points in the faces, and make faces
+  // that index those points. However we need to map the surface
+  // based indices to a new range of indices that only have the
+  // selected points. So we'll save a list of points and faces that
+  // are selected using the old indices, and then create a mapping.
+  
+  // For each face in the surface, if all its vertices are marked,
+  // put those points and the face in our list of ones that will go
+  // into the new poly data.
+  map<vtkIdType,map<int,double> > aPoints;
+  map<vtkIdType,map<int,vtkIdType> > aPolys;
+  int nPoly = 0;
+  for( int nFace = 0; nFace < Mris->nfaces; nFace++ ) {
+    if( Mris->vertices[Mris->faces[nFace].v[0]].marked &&
+	Mris->vertices[Mris->faces[nFace].v[1]].marked &&
+	Mris->vertices[Mris->faces[nFace].v[2]].marked ) {
+      
+      // We're going to make an entry for a poly with a 0-based face
+      // index, but using the same vertex index as the original
+      // surface.
+      for( int nFaceVertex = 0; 
+	   nFaceVertex < VERTICES_PER_FACE; nFaceVertex++ ) {
+	
+	int nVertex = Mris->faces[nFace].v[nFaceVertex];
+	
+	// Save the poly using the 0 based index.
+	aPolys[nPoly][nFaceVertex] = nVertex;
+	
+	// Save the point with the original index. This can be
+	// redundant, we don't care.
+	aPoints[nVertex][0] = Mris->vertices[nVertex].x;
+	aPoints[nVertex][1] = Mris->vertices[nVertex].y;
+	aPoints[nVertex][2] = Mris->vertices[nVertex].z;
+      }
+      
+      nPoly++;
+    }
+  }
+  
+  // Now lets make point and poly lists out of the maps we just
+  // made.
+  vtkPoints* labelPoints = vtkPoints::New();
+  labelPoints->SetNumberOfPoints( aPoints.size() );
+  
+  vtkCellArray* labelPolys = vtkCellArray::New();
+  labelPolys->Allocate( aPolys.size() );
+  
+  vtkIdType nNextNewID = 0;
+  map<vtkIdType,vtkIdType> aOldIDToNewID;
+  
+  // For each point we saved, we need to map its surface based index
+  // to a new 0 based index.
+  map<vtkIdType,map<int,double> >::iterator tPoint;
+  for( tPoint = aPoints.begin(); tPoint != aPoints.end(); ++tPoint ) {
+    
+    // Get the old ID.
+    vtkIdType oldID = tPoint->first;
+    
+    // Build a point.
+    double point[3];
+    for( int n = 0; n < 3; n++ )
+      point[n] = tPoint->second[n];
+    
+    // Map the old ID to a new ID and save it.
+    aOldIDToNewID[oldID] = nNextNewID++;
+    
+    // Insert the point with the new ID.
+    labelPoints->SetPoint( aOldIDToNewID[oldID], point );
+  }
+  
+  // Now for each poly, add it to the polys array using the new 0
+  // based point indices.
+  map<vtkIdType,map<int,int> >::iterator tPoly;
+  for( tPoly = aPolys.begin(); tPoly != aPolys.end(); ++tPoly ) {
+    
+    // Make a poly using the new IDs.
+    vtkIdType poly[3];
+    for( int n = 0; n < 3; n++ )
+      poly[n] = aOldIDToNewID[tPoly->second[n]];
+    
+    // Insert the poly.
+    labelPolys->InsertNextCell( 3, poly );
+  }
+  
+  // Set the points and polys in our output
+  this->GetOutput()->SetPoints( labelPoints );
+  labelPoints->Delete();
+  
+  this->GetOutput()->SetPolys( labelPolys );
+  labelPolys->Delete();
+  
+}
+
+void
+vtkFSSurfaceLabelSource::ReadLabelFile () {
+
+  if( NULL == LabelFileName )
+    vtkErrorMacro( << "vtkFSSurfaceLabelSource cannot exectue without a label file name" );
+
+
+  // Load the white vertex positions in the surface.
+  int eMRIS = MRISreadWhiteCoordinates( Mris, "white" );
+  if( eMRIS != 0 )
+    throw runtime_error( "Couldn't read the white surface file, so unable to load a label." );
+  
+  // Load the label file.
+  char* fnLabel = strdup( LabelFileName );
+  Label = LabelRead( NULL, fnLabel );
+  free( fnLabel );
+  if( NULL == Label )
+    throw runtime_error( "Couldn't read label" );
+    
+  // Map it to the surface using the white coordinates.
+  LabelToWhite( Label, Mris );
+  
+  // See if it's completely unassigned. If so, there are likely to
+  // be lots of holes in the label after we sample it to the
+  // vertices, so we'll fill it in afterwards.
+  int unassigned;
+  LabelIsCompletelyUnassigned( Label, &unassigned );
+  
+  // Assign the mris vertex numbers to unnumbered vertices in the
+  // label.
+  LabelFillUnassignedVertices( Mris, Label, WHITE_VERTICES );
+  
+  // If we were unassigned before, fill the holes now.
+  if( unassigned ) {
+    LABEL* filledLabel = LabelFillHoles( Label, Mris, WHITE_VERTICES );
+    LabelFree( &Label );
+    Label = filledLabel;
+  }
+    
+}
+
