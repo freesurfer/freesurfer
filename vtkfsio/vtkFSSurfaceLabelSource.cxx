@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/16 22:12:44 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/05/16 22:24:45 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,7 +40,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceLabelSource );
-vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.4 $" );
 
 vtkFSSurfaceLabelSource::vtkFSSurfaceLabelSource() :
   LabelFileName( NULL ), Mris( NULL ), Label( NULL ) {
@@ -149,9 +149,12 @@ vtkFSSurfaceLabelSource::Execute () {
   if( NULL == Mris )
     vtkErrorMacro( << "vtkFSSurfaceLabelSource cannot exectue without a surface" );
 
-  if( NULL == Label )
-    vtkErrorMacro( << "vtkFSSurfaceLabelSource cannot exectue without a label" );
-
+  if( NULL == Label ) {
+    this->ReadLabelFile();
+    if( NULL == Label )
+      vtkErrorMacro( << "vtkFSSurfaceLabelSource cannot exectue without a label" );
+  }
+  
   // We use marks to figure out where the label is on the surface.
   MRISclearMarks( Mris );
   LabelMarkUndeleted( Label, Mris );
