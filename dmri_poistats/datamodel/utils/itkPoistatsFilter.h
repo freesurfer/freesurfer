@@ -258,6 +258,8 @@ public:
 
   void SetUsingNormalInitialization();  
 
+  MatrixListType GetBestTrialPaths();
+
 protected:
   PoistatsFilter();
   virtual ~PoistatsFilter();

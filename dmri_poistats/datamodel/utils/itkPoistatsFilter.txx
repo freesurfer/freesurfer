@@ -779,7 +779,7 @@ PoistatsFilter< TInputImage, TOutputImage >
     
   } // we've found an optimal path
 
-  // our user has specified the number of sample point to use
+  // user has specified the number of sample point to use
   MatrixPointer rethreadedFinalPath = this->m_PoistatsModel->RethreadPath( 
     &finalBestPath, this->GetNumberOfSamplePoints() );
     
@@ -2338,6 +2338,14 @@ PoistatsFilter<TInputImage, TOutputImage>
 ::SetUsingNormalInitialization() {
   m_PoistatsModel->SetInitializePathMode( PoistatsModel::INITIALIZE_NORMAL );
 }
+
+template <class TInputImage, class TOutputImage>
+typename PoistatsFilter<TInputImage, TOutputImage>::MatrixListType 
+PoistatsFilter<TInputImage, TOutputImage>
+::GetBestTrialPaths() {
+  return this->m_Replicas->GetBestTrialPaths();
+}
+
 
 } // end namespace itk
 

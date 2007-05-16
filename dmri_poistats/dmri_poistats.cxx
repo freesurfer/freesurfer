@@ -83,6 +83,7 @@ class Poistats : public FreeSurferExecutable {
     static const std::string FLAG_IS_OUTPUT_NII;
     static const std::string FLAG_EIGENVECTOR_STEM;
     static const std::string FLAG_IS_INIT_FIELD_LINE;
+    static const std::string FLAG_SHOULD_WRITE_BEST_PATHS;
 
     Poistats( int inArgs, char ** iaArgs );
     ~Poistats();
@@ -119,6 +120,8 @@ class Poistats : public FreeSurferExecutable {
     char *m_EigenVectorStem;
     
     bool m_IsInitFieldLine;
+    
+    bool m_ShouldWriteBestPaths;
 
     bool IsNifti( std::string fileExtension );
     bool IsMGH( std::string fileExtension );
@@ -156,6 +159,8 @@ const std::string Poistats::FLAG_EIGENVECTOR_STEM =
   Poistats::FLAG_DELIMITER + "eigvec";
 const std::string Poistats::FLAG_IS_INIT_FIELD_LINE = 
   Poistats::FLAG_DELIMITER + "fieldline";
+const std::string Poistats::FLAG_SHOULD_WRITE_BEST_PATHS =
+  Poistats::FLAG_DELIMITER + "writepaths";
 
 // these are new additions for playing with the parameter space
 const std::string Poistats::FLAG_REPLICA_EXCHANGE_PROBABILITY = 
@@ -212,6 +217,8 @@ Poistats::Poistats( int inArgs, char ** iaArgs ) :
     "Should the paths be initialized by following the principle eigenvector?  Specify the eigenvector volume following this flag." );
   SetNextOptionalArgument( FLAG_IS_INIT_FIELD_LINE, "fieldline", 
     "Should the paths be initialized by field lines?" );
+  SetNextOptionalArgument( FLAG_SHOULD_WRITE_BEST_PATHS, "writepaths",
+    "TESTING -- Should the best paths from each replicas be written out?  This will save to InitialPaths.txt for the time being" );
 
   std::string output = "";
   output = output + 
@@ -283,6 +290,8 @@ Poistats::FillArguments() {
     m_EigenVectorStem = m_Parser->GetArgument( FLAG_EIGENVECTOR_STEM.c_str() );
 
     m_IsInitFieldLine = m_Parser->GetArgumentBoolean( FLAG_IS_INIT_FIELD_LINE.c_str() );
+    
+    m_ShouldWriteBestPaths = m_Parser->GetArgumentBoolean( FLAG_SHOULD_WRITE_BEST_PATHS.c_str() );
     
   }
       
@@ -616,6 +625,44 @@ Poistats::Run() {
     (std::string)"/OptimalPathProbabilities.txt" );
   WriteData( pathProbabilitiesFileName, 
     finalPathProbabilities.data_block(), finalPathProbabilities.size() );
+    
+  // if we should write out the best paths, then get them and write them
+  if( m_ShouldWriteBestPaths ) {
+    // save the pathway to the output directory
+    const std::string pathFileName( (std::string)m_OutputDir + 
+      (std::string)"/InitialPath.txt" );
+      
+    PoistatsFilterType::MatrixListType paths = poistatsFilter->GetBestTrialPaths();
+    
+    bool isFirst = true;
+    
+    // iterate through the paths and write append them
+    for( PoistatsFilterType::MatrixListType::iterator replicaIterator = paths.begin(); 
+      replicaIterator != paths.end(); replicaIterator++ ) {
+
+      PoistatsFilterType::MatrixPointer path = *replicaIterator;
+            
+      if( isFirst ) {
+
+        // overwrite previous enteries
+        WriteData( pathFileName, path->data_array(), path->rows(), path->cols() );
+        isFirst = false;
+
+      } else {
+        
+        // only write out the delimiter if this is not the first path
+        const float delimiter = -999;
+        float delimiterPoint[] = { delimiter, delimiter, delimiter };
+        WriteDataAppend( pathFileName, delimiterPoint, 1, 3 );
+
+        // write the pathway appended
+        WriteDataAppend( pathFileName, path->data_array(), path->rows(), path->cols() );      
+
+      }
+      
+    }
+    
+  }
     
   if( mghEigenVectors != NULL ) {
     MRIfree( &mghEigenVectors );
