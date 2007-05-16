@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/24 01:29:52 $
- *    $Revision: 1.106 $
+ *    $Date: 2007/05/16 21:44:05 $
+ *    $Revision: 1.107 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1848,7 +1848,13 @@ TransformSample(TRANSFORM *transform,
   {
     lta = (LTA *)transform->xform ;
     if (lta->type != LINEAR_VOXEL_TO_VOXEL)
+    {
+      fprintf(stderr,
+              "transform.c::TransformSample: "
+              "lta->type=%d != LINEAR_VOXEL_TO_VOXEL\n",
+              lta->type);
       ErrorExit(ERROR_BADPARM, "Transform was not of voxel-to-voxel type");
+    }
     if (!v_canon)
     {
       v_input = VectorAlloc(4, MATRIX_REAL) ;
@@ -1927,7 +1933,13 @@ TransformSampleReal(TRANSFORM *transform,
   {
     lta = (LTA *)transform->xform ;
     if (lta->type != LINEAR_VOXEL_TO_VOXEL)
+    {
+      fprintf(stderr,
+              "transform.c::TransformSampleReal: "
+              "lta->type=%d != LINEAR_VOXEL_TO_VOXEL\n",
+              lta->type);
       ErrorExit(ERROR_BADPARM, "Transform was not of voxel-to-voxel type");
+    }
     if (!v_canon)
     {
       v_input = VectorAlloc(4, MATRIX_REAL) ;
@@ -2003,7 +2015,13 @@ TransformSampleInverse(TRANSFORM *transform,
   {
     lta = (LTA *)transform->xform ;
     if (lta->type != LINEAR_VOXEL_TO_VOXEL)
+    {
+      fprintf(stderr,
+              "transform.c::TransformSampleInverse: "
+              "lta->type=%d != LINEAR_VOXEL_TO_VOXEL\n",
+              lta->type);
       ErrorExit(ERROR_BADPARM, "Transform was not of voxel-to-voxel type");
+    }
 
     if (!v_canon)
     {
