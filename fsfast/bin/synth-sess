@@ -1,13 +1,12 @@
 #! /bin/csh -f
-
 #
 # synth-sess
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:19 $
-#    $Revision: 1.3 $
+#    $Author: greve $
+#    $Date: 2007/05/16 23:19:15 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,63 +22,28 @@
 #
 
 
-set VERSION = '$Id: synth-sess,v 1.3 2007/01/09 22:41:19 nicks Exp $'
+set VERSION = '$Id: synth-sess,v 1.4 2007/05/16 23:19:15 greve Exp $'
 
 set inputargs = ($argv);
 
-set sessidpath = ();
-set fsd = bold;
-set nrows = 64;
-set ncols = 64;
-set nslices = 2;
-set ntrs = ();
-set TR = ();
-set TER = ();
+set sess = ();
+
+set template = ();
 set nruns = ();
-set runidlist = ();
+
+set templatesess = ();
 set runlistfile = ();
-set nconditions = ();
-set gamma_amp   = ();
-set gamma_delta = ();
-set gamma_tau   = ();
-set condmask    = ();
-set TimeWindow  = ();
-set noisestd = ();
-set parfiles = ();
-set parname = ();
-set regfile = ();
-set mfile = ();
-set usecornoise = 0;
-set corstd = ();
-set alpha = 1;
-set rho = 0;
-set usespatcornoise = 0;
-set sevstd = ();
-set nsev = ();
-set sev1pve   = (); 
-set sevpvemin = (); 
-set pveoutfile = ();
-set monly = 0;
-set ExtNoiseIdList = ();
-set mkbaseline = 1;
-set bhdr = ();
-set extbase = ();
+set fsd = bold;
+set funcstem = f;
 
-set signalclipmax = ();
+set ntrs = ();
 
-if($#argv == 0) then
-  goto usage_exit;
-  exit 1;
-endif
-
+if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-
-set PWD = `getpwdcmd`;
-if($status) exit 1;
 
 goto parse_args;
 parse_args_return:
@@ -87,335 +51,116 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-set LF = `$PWD`/log/synth-sess.log
+mkdir -p $sess/$fsd
+set LF = $sess/synth-sess.log
 if(-e $LF) mv $LF $LF.bak
 
 echo "log file for synth-sess" >> $LF
 echo $VERSION >> $LF
 date      >> $LF
-$PWD      >> $LF
 echo $0   >> $LF
 echo $inputargs >> $LF
 
-set fsdpath = $sessidpath/$fsd
-mkdir -p $fsdpath;
+if($#templatesess) then
+  # Template Session passed
 
-touch $sessidpath/session.info
+  set RunList = `getrunlist $templatesess/$fsd $runlistfile`;
+  if($status) then
+    echo "$RunList" | tee -a $LF
+    exit 1;
+  endif
 
-if($#regfile == 0) then
-  set regfile = $fsdpath/register.dat;
-  rm -f $regfile
-  echo unknownsubject >> $regfile
-  echo 3.125 >> $regfile
-  echo 6.000 >> $regfile
-  echo 0.1 >> $regfile
-  echo "1 0 0 0" >> $regfile
-  echo "0 1 0 0" >> $regfile
-  echo "0 0 1 0" >> $regfile
-  echo "0 0 0 1" >> $regfile
+  set fstempath = $templatesess/$fsd/$RunList[1]/$funcstem;
+  set fmt = `fast_getext $fstempath`;
+  if($status) then
+    echo "$fmt" | tee -a $LF
+    exit 1;
+  endif
+  set template = $fstempath.$fmt
+
+  if(-e $templatesess/subjectname) then
+    cp $templatesess/subjectname $sess/subjectname
+  endif
+  if(-e $templatesess/$fsd/register.dat) then
+    cp $templatesess/$fsd/register.dat $sess/$fsd/register.dat
+  endif
+
 else
-  cp $regfile $fsdpath/register.dat
+  # Template Volume passed
+  set RunList = ();
+  @ nthrun = 1;
+  while($nthrun <= $nruns)
+    set runid = `printf %03d $nthrun`;
+    set RunList = ($runid);
+    @ nthrun = $nthrun + 1;
+  end
+
 endif
 
-set subject = `head -n 1 $regfile`;
-echo $subject > $sessidpath/subjectname
+foreach runid ($RunList)
+  mkdir -p $sess/$fsd/$runid
+  set func = $sess/$fsd/$runid/$funcstem.nii
+  set cmd = (mri_volsynth --vol $func --temp $template --offset)
+  if($#ntrs) set cmd = ($cmd --nframes $ntrs);
+  echo $cmd
+  $cmd |& tee $func.volsynth |& tee -a $LF
+  if($status) exit 1;
 
-set inplaneres  = `head -n 2 $regfile | tail -1`;
-set betplaneres = `head -n 3 $regfile | tail -1`;
+  if($#templatesess) then
+    # Not all these will be there
+    if($#runlistfile) then
+      cp $templatesess/$fsd/$runlistfile $sess/$fsd/
+    else
+      cp $templatesess/$fsd/*.rlf $sess/$fsd/ >& /dev/null
+    endif
+    cp $templatesess/$fsd/$runid/*.par $sess/$fsd/$runid/ >& /dev/null
+    cp $templatesess/$fsd/$runid/*.stf $sess/$fsd/$runid/ >& /dev/null
+    cp $templatesess/$fsd/$runid/*.sch $sess/$fsd/$runid/ >& /dev/null
+    cp $templatesess/$fsd/$runid/*.tpexc $sess/$fsd/$runid/ >& /dev/null
+    cp $templatesess/$fsd/$runid/mcextreg* $sess/$fsd/$runid/ >& /dev/null
+    cp $templatesess/$fsd/$runid/$funcstem.meanval $sess/$fsd/$runid/ >& /dev/null
+    cp $templatesess/$fsd/$runid/*.infodump $sess/$fsd/$runid/ >& /dev/null
+  endif
 
-set seqinfo = $fsdpath/seq.info
-rm -f $seqinfo
-echo "sequencename unknown" >> $seqinfo
-echo "nrows $nrows" >> $seqinfo
-echo "ncols $ncols" >> $seqinfo
-echo "nslcs $nslices" >> $seqinfo
-echo "rowpixelsize $inplaneres" >> $seqinfo
-echo "colpixelsize $inplaneres" >> $seqinfo
-echo "slcpixelsize $betplaneres" >> $seqinfo
-echo "ntrs $ntrs" >> $seqinfo
-echo "TR   $TR" >> $seqinfo
-
-
-@ nthrun = 1;
-foreach runid ($runidlist)
-  mkdir -p $fsdpath/$runid
-  cp $parfiles[$nthrun] $fsdpath/$runid/$parname;
-  if($#bhdr != 0) cp $bhdr $fsdpath/$runid/f.bhdr
-  @ nthrun = $nthrun + 1;
 end
 
-cd $fsdpath;
-if($#mfile == 0) set mfile = synthsess.m
-rm -f $mfile
-
-pwd
-echo $mfile
-
-#------------------------------------------------------------#
-tee $mfile >& /dev/null <<EOF
-  nrows = $nrows;
-  ncols = $ncols;
-  nslices = $nslices;
-  ntrs = $ntrs;
-  TR  = $TR;
-  TER = $TER;
-  nruns = $nruns;
-  runidlist = splitstring('$runidlist');
-  nconditions = $nconditions;
-  gamma_amp   = [$gamma_amp];
-  gamma_delta = [$gamma_delta];
-  gamma_tau   = [$gamma_tau];
-  condmaskidlist = splitstring('$condmask');
-  TW = $TimeWindow;
-  signalclipmax = [$signalclipmax];
-  noisestd = $noisestd;
-  parfile = '$parname';
-  usecornoise = $usecornoise;
-  alpha = [$alpha];
-  rho = [$rho];
-  corstd = [$corstd];
-  usespatcornoise = $usespatcornoise;
-  sevstd  = [$sevstd];
-  nsev    = [$nsev];
-  sev1pve = [$sev1pve];
-  sevpvemin = [$sevpvemin];
-  pveoutfile = '$pveoutfile';
-  ExtNoiseIdList = splitstring('$ExtNoiseIdList');
-  mkbaseline  = [$mkbaseline];
-  ExtBase = '$extbase';
-
-  baseline = 1000;
-  SynthSeed = -1;
-  if(SynthSeed < 0) SynthSeed = sum(100*clock); end
-  fprintf('SynthSeed = %10d\n',SynthSeed);
-  randn('state',SynthSeed); 
-  rand('state',SynthSeed); 
-
-  nv = nrows*ncols*nslices;
-  Nfir = round(TW/TER);
-  SubSampRate = TR/TER;
-  nters = SubSampRate*ntrs;
-
-  if(usespatcornoise)
-    fprintf('Computing Vn/Sn for SpatNoiseCor\n');
-    n0 = randn(ntrs,nv);
-    M0 = n0*n0'; %'
-    [U0 S02 tmp] = svd(M0);
-    ds02 = diag(S02);
-    S0 = sqrt(S02);
-    Vn = n0'*(U0*inv(S0)); %'
-    nnsev = 1:nsev;
-    pve = (sev1pve/100).^(nnsev);
-    ind = find(pve < (sevpvemin/100));
-    pve(ind) = sevpvemin/100;
-    pve = pve./sum(pve);
-    ds2n = sum(ds02)*pve;
-    S2n  = diag(ds2n);
-    Sn   = sqrt(S2n);
-    fid = fopen(pveoutfile,'w');
-    if(fid == -1)
-      fprintf('Could not open %s\n',pveoutfile);
-      return;
-    end
-    tmp = [nnsev' 100*pve' 100*cumsum(pve')]; %'
-    fprintf(fid,'%3d %7.2f  %7.2f\n',tmp'); %'
-    fclose(fid);
-  end
-
-  if(0) %-------------------------------------------%
-  % Compute the signal stddev/var across all runs %
-  signalstd = std(reshape1d(signal));
-  signalvar = signalstd.^2;
-  noisevar  = noisestd.^2;
-  if(noisestd > 0)
-    fprintf('SigVar = %g, NoiseVar = %g, SNR = %g\n',...
-            signalvar,noisevar,signalvar/noisevar);
-  end
-  end %-------------------------------------------%
-
-  % Construct a mean image with some structure to it %
-  % There must be voxels below .25*globalmean so that
-  % inorm does not crash. The computation of undermult
-  % assures that.
-  % signalmean = mean(reshape1d(signal));
-  if(mkbaseline)
-    if(isempty(ExtBase))
-      r1 = floor(nrows/4);
-      r2 = ceil(3*nrows/4);
-      c1 = floor(ncols/4);
-      c2 = ceil(3*ncols/4);
-      basemask = zeros(nrows,ncols);
-      basemask(r1:r2,c1:c2) = 1;
-      nover = length(find(basemask));
-      nunder = nv - nover;
-      %undermult =.5*.25*(nover*baseline + signalmean)/(baseline*(nv-.25*nunder));
-      undermult = .5*.25*(nover*baseline)/(baseline*(nv-.25*nunder));
-      baseslice = baseline * basemask + baseline*(~basemask)*undermult;
-      basevol = repmat(baseslice,[1 1 nslices]);
-      basevol = permute(basevol, [3 2 1]);
-    else
-      basevol = fmri_ldbvolume(ExtBase);
-      if(isempty(basevol))
-        fprintf('ERROR: could not read %s\n',ExtBase);
-        return;
-      end
-    end
-    basevol = repmat(basevol,[1 1 1 ntrs]);
-  else
-    basevol = 0;
-  end
-
-
-  %---- Load the condition masks, if needed -----------%
-  if(~isempty(condmaskidlist))
-    condmask = zeros(nconditions,nv);
-    for condition = 1:nconditions
-      cmid = deblank(condmaskidlist(condition,:));
-      fprintf('Loading %s\n',cmid);
-      condmask(condition,:) = reshape1d(fmri_ldbvolume(cmid))'; %'
-    end
-  else
-    condmask = [];
-  end
-
-  %---- Run Loop ----------------------------------------------------%
-  signal_all = zeros(nruns,nconditions,ntrs);
-  for runno = 1:nruns
-    runid = deblank(runidlist(runno,:));
-    runparfile = sprintf('%s/%s',deblank(runid),deblank(parfile));
-
-    %s = repmat(signal(:,runno), [1 nv]);
-
-    signal = 0;
-    par = fmri_ldpar(runparfile);
-    timehdrf = TER*[0:Nfir-1];
-    hdrf = [];
-    for condition = 1:nconditions
-      condind = find(par(:,2)==condition);
-      parcond = par(condind,:);
-      parcond(:,2) = 1;
-      Xfir = fmri_par2scm(parcond,2,nters,TER,Nfir,0);
-      h = fmri_hemodyn(timehdrf,gamma_delta(condition),gamma_tau(condition));
-      h = h/max(h);
-      h = gamma_amp(condition)*h;
-      signal_cond1d = Xfir*h;
-      signal_cond1d = signal_cond1d(1:SubSampRate:nters);
-      signal_all(runno,condition,:) = signal_cond1d;
-      if(~isempty(condmask))
-        mask = squeeze(condmask(condition,:));
-        signal_cond = signal_cond1d * mask ; 
-      else
-        signal_cond = repmat(signal_cond1d, [1 nv]);
-      end
-      signal = signal + signal_cond;
-    end
-
-    %signal_ter(:,runno) = Xfir*hdrf;
-    %signal(:,runno) = signal_ter(1:SubSampRate:nters,runno);
-
-    if(0) %-----------------------------------------------------%
-    if(~isempty(signalclipmax))
-      indpos = find(signal(:,runno) > signalclipmax);
-      signal(indpos,runno) = signalclipmax;
-      indneg = find(signal(:,runno) < -signalclipmax);
-      signal(indneg,runno) = -signalclipmax;
-      nclip = length(indpos) + length(indneg);
-    else
-      nclip = 0;
-    end
-
-    signalmin = min(signal);
-    signalmax = max(signal);
-    signalavg = mean(signal);
-    signalstd = std(signal);
-    signalrng = signalmax-signalmin;
-    if(runno == 1)
-      fprintf('-------------------------------------------\n');
-      fprintf('Signal Statistics\n');
-      fprintf('Run   Avg     Std     Min     Max    Range   nClip\n');
-    end
-    fprintf('%2d  %6.4f  %6.4f  %6.4f  %6.4f  %6.4f  %4d\n',...
-       runno,signalavg, signalstd, signalmin, signalmax, signalrng,nclip);
-    end  %-----------------------------------------------------%
-
-    % Temporally Correlated, Spatially White noise
-    ntcsw = 0;
-    if(usecornoise) 
-      ntcsw = corstd*synthcornoise(ntrs,nv,alpha,rho);
-    end
-
-    % Temporally White, Spatially Correlated noise
-    ntwsc = 0;
-    if(usespatcornoise) 
-      ntmp = randn(ntrs,nsev);
-      Mntmp = ntmp*ntmp'; %'
-      [Untmp blah blah] = svd(Mntmp);
-      ntwsc = (Untmp(:,1:nsev)*Sn)*Vn(:,1:nsev)'; %'
-      ntwsc = sevstd*ntwsc;
-    end
-
-    % Pure White Noise
-    nw = 0;
-    if(noisestd > 0) nw = noisestd*randn(ntrs,nv); end
-
-    % Final Noise Composite
-    n = nw + ntcsw + ntwsc;
-
-    f = signal + n ;
-    f = reshape(f', [nslices nrows ncols ntrs]); %'
-    f = f + basevol;
-
-    if(~isempty(ExtNoiseIdList))
-      if( size(ExtNoiseIdList,1) > 1)
-        ExtNoise = fmri_ldbvolume(deblank(ExtNoiseIdList(runno,:)));
-      else
-        ExtNoise = fmri_ldbvolume(deblank(ExtNoiseIdList(1,:)));
-      end
-      if(size(ExtNoise,1) ~= nslices)
-        fprintf('ERROR: nslices external noise = %d != %d\n',...
-		size(ExNoise,1),nslices);
-        return;
-      end
-      f = f + ExtNoise;
-    end
-
-    volid = sprintf('%s/f',deblank(runid));
-    fmri_svbvolume(f,volid);
-
-  end %--------- Run Loop ----------------%
-
-  save sigcond signal_all;
-
-EOF
-#------------------------------------------------------------#
-
-#cat $mfile 
-if(! $monly ) then
-  cat $mfile | matlab -display iconic |& tee -a $LF
-  echo " " |& tee -a $LF
-  echo " " |& tee -a $LF
-  date     |& tee -a $LF
-  echo "synth-sess: done " |& tee -a $LF
-  echo " "
-endif
-
+echo "synth-sess done"
 
 exit 0;
 ###############################################
 
 ############--------------##################
 parse_args:
-set cmdline = "$argv";
+set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
   
   switch($flag)
 
-    case "-sessidpath":
-    case "-sid":
+    case "-s":
       if ( $#argv == 0) goto arg1err;
-      set sessidpath = $1; shift;
+      set sess = $1; shift;
+      breaksw
+
+    case "-ts":
+      if ( $#argv == 0) goto arg1err;
+      set templatesess = $1; shift;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set runlistfile = $1; shift;
+      breaksw
+
+    case "-f":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $1; shift;
+      breaksw
+
+    case "-t":
+      if ( $#argv == 0) goto arg1err;
+      set template = $1; shift;
       breaksw
 
     case "-fsd":
@@ -423,160 +168,14 @@ while( $#argv != 0 )
       set fsd = $1; shift;
       breaksw
 
-    case "-nrows":
-      if ( $#argv == 0) goto arg1err;
-      set nrows = $1; shift;
-      breaksw
-
-    case "-ncols":
-      if ( $#argv == 0) goto arg1err;
-      set ncols = $1; shift;
-      breaksw
-
-    case "-nslices":
-      if ( $#argv == 0) goto arg1err;
-      set nslices = $1; shift;
-      breaksw
-
     case "-ntrs":
       if ( $#argv == 0) goto arg1err;
       set ntrs = $1; shift;
       breaksw
 
-    case "-TR":
-      if ( $#argv == 0) goto arg1err;
-      set TR = $1; shift;
-      breaksw
-
-    case "-TER":
-      if ( $#argv == 0) goto arg1err;
-      set TER = $1; shift;
-      breaksw
-
     case "-nruns":
       if ( $#argv == 0) goto arg1err;
       set nruns = $1; shift;
-      breaksw
-
-    case "-ext":
-      if ( $#argv == 0) goto arg1err;
-      set ExtNoiseIdList = ($ExtNoiseIdList $argv[1]); shift;
-      breaksw
-
-    case "-runlistfile":
-    case "-rlf":
-      if ( $#argv == 0) goto arg1err;
-      set runlistfile = $1; shift;
-      breaksw
-
-    case "-runidlist":
-      if($#nruns == 0) then
-        echo "ERROR: must spec nruns before runidlist"
-        exit 1;
-      endif
-      if( $#argv < $nruns)then
-        echo "ERROR: need $nruns arguments for -runidlist"
-        exit 1;
-      endif
-      @ run = 1;
-      while($run <= $nruns)
-        set runidlist = ($runidlist $1); shift;
-        @ run = $run + 1;
-      end
-      breaksw
-
-    case "-nconditions":
-    case "-nconds":
-      if ( $#argv == 0) goto arg1err;
-      set nconditions = $1; shift;
-      breaksw
-
-    case "-gamma":
-      if( $#argv < 3) goto arg3err;
-      set gamma_amp   = ($gamma_amp $1);   shift;
-      set gamma_delta = ($gamma_delta $1); shift;
-      set gamma_tau   = ($gamma_tau $1);   shift;
-      breaksw
-
-    case "-condmask":
-      if( $#argv < 1) goto arg1err;
-      set condmask  = ($condmask $1);   shift;
-      breaksw
-
-    case "-cornoise":
-      if( $#argv < 3) goto arg3err;
-      set corstd = $1;  shift;
-      set alpha = $1;   shift;
-      set rho   = $1;   shift;
-      set usecornoise = 1;
-      breaksw
-
-    case "-spatcornoise":
-      if( $#argv < 5) goto arg4err;
-      set sevstd     = $1;   shift;
-      set nsev       = $1;   shift;
-      set sev1pve    = $1;   shift;
-      set sevpvemin  = $1;   shift;
-      set pveoutfile = $1;   shift;
-      set usespatcornoise = 1;
-      breaksw
-
-    case "-timewindow":
-    case "-tw":
-      if ( $#argv == 0) goto arg1err;
-      set TimeWindow = $1; shift;
-      breaksw
-
-    case "-clip":
-      if ( $#argv == 0) goto arg1err;
-      set signalclipmax = $1; shift;
-      breaksw
-
-    case "-noisestd":
-      if ( $#argv == 0) goto arg1err;
-      set noisestd = $1; shift;
-      breaksw
-
-    case "-paradigm":
-    case "-p":
-      if ( $#argv == 0) goto arg1err;
-      set parfiles = ($parfiles $1); shift;
-      breaksw
-
-    case "-parname":
-      if ( $#argv == 0) goto arg1err;
-      set parname = $1; shift;
-      breaksw
-
-    case "-reg":
-    case "-regfile":
-      if ( $#argv == 0) goto arg1err;
-      set regfile = $1; shift;
-      breaksw
-
-    case "-monly":
-      if ( $#argv == 0) goto arg1err;
-      set mfile = $1; shift;
-      set monly = 1;
-      breaksw
-
-    case "-bhdr":
-      if ( $#argv == 0) goto arg1err;
-      set bhdr = `$PWD`/$1; shift;
-      breaksw
-
-    case "-extbase":
-      if ( $#argv == 0) goto arg1err;
-      set extbase = `$PWD`/$1; shift;
-      breaksw
-
-    case "-umask":
-      if ( $#argv == 0) goto arg1err;
-      umask $1; shift;
-      breaksw
-
-    case "-nobaseline":
-      set mkbaseline = 0;
       breaksw
 
     case "-verbose":
@@ -606,158 +205,41 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
-  if($#sessidpath == 0) then
-    echo "ERROR: must set sess id path"
+
+  if($#sess == 0) then
+    echo "ERROR: must set sess"
+    exit 1;
+  endif
+  if(-e $sess) then
+    echo "ERROR: $sess already exists"
     exit 1;
   endif
 
-  if($#ntrs == 0) then
-    echo "ERROR: must set ntrs"
+  if($#templatesess == 1 && $#template == 1) then
+    echo "ERROR: cannot use a template volume and template sess"
     exit 1;
   endif
 
-  if($#TR == 0) then
-    echo "ERROR: must set TR"
+  if($templatesess == 0 && $#template == 0) then
+    echo "ERROR: need either a template volume or template sess"
     exit 1;
   endif
 
-  if($#TER == 0) set TER = $TR;
-
-  if($#nruns == 0) then
-    echo "ERROR: must set nruns"
-    exit 1;
-  endif
-
-  if($#nconditions == 0) then
-    echo "ERROR: must set nconditions"
-    exit 1;
-  endif
-
-  if($#gamma_amp == 0) then
-    echo "ERROR: must set -gamma"
-    exit 1;
-  endif
-
-  if($#TimeWindow == 0) then
-    echo "ERROR: must set -timewindow"
-    exit 1;
-  endif
-
-  if($#noisestd == 0) then
-    set noisestd = 0;
-    echo "INFO: set white noise std to 0"
-  endif
-
-  if($#parfiles == 0) then
-    echo "ERROR: must set -paradigm"
-    exit 1;
-  endif
-
-  if($#parname == 0) then
-    echo "ERROR: must set -parname"
-    exit 1;
-  endif
-
-  if($#parfiles != $nruns && $#parfiles != 1) then
-    echo "ERROR: number of parfiles ($#parfiles) != nruns ($nruns)"
-    exit 1;
-  endif
-
-  if($#parfiles != $nruns && $#parfiles == 1) then
-    set tmp = $parfiles;
-    set parfiles = ();
-    @ run = 1;
-    while($run <= $nruns)
-      set parfiles = ($parfiles $tmp);
-      @ run = $run + 1;
-    end
-  endif
-
-  foreach par ($parfiles)
-    if(! -e $par) then
-      echo "ERROR: cannot find $par"
+  if($#template != 0) then
+    if(! -e $template) then
+      echo "ERROR: cannot find $template"
       exit 1;
     endif
-  end
-
-  if($#gamma_amp != $nconditions && $#gamma_amp != 1) then
-    echo "ERROR: number of gammas ($#gamma_amp) != nconditions ($nconditions)"
-    exit 1;
-  endif
-
-  if($#condmask != $nconditions && $#condmask != 0) then
-    echo "ERROR: number of condmasks ($#condmask) != nconditions ($nconditions)"
-    exit 1;
-  endif
-
-  set tmpcondmask = ();
-  if($#condmask != 0) then
-    foreach cid ($condmask)
-      set cidbase = `basename $cid`;
-      set ciddir = `dirname $cid`;
-      pushd $ciddir > /dev/null
-      set ciddir = `$PWD`;
-      set cid = $ciddir/$cidbase
-      set tmpcondmask = ($tmpcondmask $cid);
-      popd > /dev/null
-    end
-    set condmask = ($tmpcondmask);
-  endif
-
-
-  # If there's only one gamma amp to use for all conditions ... #
-  if($#gamma_amp != $nconditions && $#gamma_amp == 1) then
-    set tmp_amp   = $gamma_amp;
-    set tmp_delta = $gamma_delta;
-    set tmp_tau   = $gamma_tau;
-    set gamma_amp = ();
-    set gamma_delta = ();
-    set gamma_tau = ();
-    set gamma_tw = ();
-    @ condition = 1;
-    while($condition <= $nconditions)
-      set gamma_amp   = ($gamma_amp $tmp_amp);  
-      set gamma_delta = ($gamma_delta $tmp_delta);
-      set gamma_tau   = ($gamma_tau $tmp_tau);
-      @ condition = $condition + 1;
-    end
-  endif
-
-  if($#runidlist == 0) then
-    @ run = 1;
-    while($run <= $nruns)
-      set tmp = `printf %03d $run`;
-      set runidlist = ($runidlist $tmp);
-      @ run = $run + 1;
-    end
-  endif
-
-  if($#ExtNoiseIdList != 0) then
-    if($#ExtNoiseIdList != 1 && $#ExtNoiseIdList != $nruns) then
-      echo "ERROR: number of external noise volumes must be"
-      echo "       equal to one or the number of runs"
+   if($#nruns == 0) then
+      echo "ERROR: must set nruns"
       exit 1;
     endif
-    set TmpExt = ();
-    foreach ext ($ExtNoiseIdList)
-      if(! -e $ext"_000.hdr") then
-        echo "ERROR: cannot find $ext"
-        exit 1;
-      endif
-      pushd `dirname $ext`  > /dev/null
-      set TmpExt = ($TmpExt `$PWD`/`basename $ext`);
-      popd > /dev/null
-    end
-    set ExtNoiseIdList = ($TmpExt);
-  endif
-
-  if($#bhdr != 0) then
-    if(! -e $bhdr ) then
-      echo "ERROR: cannot find $bhdr"
+  else
+    if(! -e $templatesess) then
+      echo "ERROR: cannot find $templatesess"
       exit 1;
     endif
   endif
-
 
 goto check_params_return;
 ############--------------##################
@@ -765,53 +247,25 @@ goto check_params_return;
 ############--------------##################
 usage_exit:
   echo "USAGE: synth-sess"
+  echo ""
+  echo "   -s sess "
+  echo ""
+  echo "   -ts  templatesess"
+  echo "   -rlf runlistfile (from templatesess)"
+  echo "   -f   funcstem (from templatesess)"
+  echo ""
+  echo "   -t template "
+  echo "   -nruns nruns "
+  echo ""
   echo "Options:";
-  echo "   -sessidpath idpath"
+  echo "   -ntrs n  : override template"
   echo "   -fsd dir : functional subdirectory ($fsd)"
-  echo "   -nrows n ($nrows)"
-  echo "   -ncols n ($ncols)"
-  echo "   -nslices n ($nslices)"
-  echo "   -ntrs n "
-  echo "   -TR TR"
-  echo "   -nruns n"
-  echo "   -runidlist XXX YYY ..."
-  echo "   -nconditions n"
-  echo "   -gamma amp delta tau, ... (one for each condition)"
-  echo "   -condmask maskstem, ... (one for each condition)"
-  echo "   -timewindow width for all gamma functions"
-  echo "   -clip maxval (clip signal at max val)"
-  echo "   -noisestd stddev of white noise"
-  echo "   -cornoise alpha rho"
-  echo "   -spatcornoise std nsev sev1pve pvemin pveoutfile"
-  echo "   -ext noisevol <-ext noisevol> (one or one for each run)"
-  echo "   -nobaseline : do not add baseline signal to each voxel"
-  echo "   -paradigm paradigm.dat, ... (one for each run)"
-  echo "   -parname name : name of paradigm file in run dir"
-  echo "   -regfile registration file"
-  echo "   -bhdr bhdrfile"
+  echo ""
 exit 1;
 
 ############--------------##################
 arg1err:
   echo "ERROR: flag $flag requires one argument"
-  exit 1
-############--------------##################
-
-############--------------##################
-arg2err:
-  echo "ERROR: flag $flag requires two arguments"
-  exit 1
-############--------------##################
-
-############--------------##################
-arg3err:
-  echo "ERROR: flag $flag requires three arguments"
-  exit 1
-############--------------##################
-
-############--------------##################
-arg4err:
-  echo "ERROR: flag $flag requires four arguments"
   exit 1
 ############--------------##################
 
