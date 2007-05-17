@@ -51,6 +51,10 @@ if test "x$F77" = "x"; then
   AC_MSG_ERROR([FATAL: A Fortran compiler is required!])
 fi
 
+if test "x$F77" = "x"; then
+	AC_MSG_ERROR([FATAL: A Fortran compiler is required!])
+fi
+
 ################################################################
 # Checks for header files.
 ################################################################
