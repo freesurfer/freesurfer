@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/15 10:27:51 $
-#    $Revision: 1.98 $
+#    $Date: 2007/05/17 19:21:20 $
+#    $Revision: 1.99 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.98 2007/05/15 10:27:51 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.99 2007/05/17 19:21:20 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -687,7 +687,7 @@ if($DoTalairach) then
   set xfma = transforms/talairach.auto.xfm
   if ( $longitudinal ) then
     # longitudinal processing stream:
-    set tal_targ = ${MINC_BIN_DIR}/../share/mni_autoreg/average_305.mnc
+    set tal_targ = ${FREESURFER_HOME}/average/mni305.cor.mgz
     if( ! -e $tal_targ ) then
       echo "ERROR: template file $tal_targ for talairach reg doesn't exist" \
         |& tee -a $LF
