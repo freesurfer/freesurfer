@@ -7,9 +7,9 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/05/11 18:39:00 $
- *    $Revision: 1.80 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/17 23:00:36 $
+ *    $Revision: 1.81 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.80 2007/05/11 18:39:00 greve Exp $";
+"$Id: tkregister2.c,v 1.81 2007/05/17 23:00:36 nicks Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1135,6 +1135,10 @@ static int parse_commandline(int argc, char **argv) {
       FSXform = TransformRead(ltafname);
       if(FSXform == NULL) exit(1);
       lta = (LTA*) FSXform->xform;
+      if(lta->type != LINEAR_RAS_TO_RAS){
+        printf("INFO: LTA input is not RAS to RAS...converting...\n");
+        lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      }
       if(lta->type != LINEAR_RAS_TO_RAS){
         printf("ERROR: LTA input is not RAS to RAS\n");
         exit(1);
@@ -4419,7 +4423,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.80 2007/05/11 18:39:00 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.81 2007/05/17 23:00:36 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
