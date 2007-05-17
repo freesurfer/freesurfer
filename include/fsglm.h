@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.9 $
+ *    $Author: greve $
+ *    $Date: 2007/05/17 02:35:29 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.9 2006/12/29 02:08:59 nicks Exp $
+// $Id: fsglm.h,v 1.10 2007/05/17 02:35:29 greve Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
@@ -38,8 +38,7 @@ const char * GLMSrcVersion(void);
 #undef X
 
 #define GLMMAT_NCONTRASTS_MAX 100
-typedef struct
-{
+typedef struct {
   MATRIX *y;   // input: nframes-by-1 (can only be 1)
   MATRIX *X;   // Design matrix: nframes-by-ncols
   // Note: weighted GLM not included here. To do weighted,
@@ -51,6 +50,9 @@ typedef struct
   MATRIX *yhat;
   MATRIX *eres;
   double rvar;  // Residual error variance
+
+  MATRIX *yffxvar; // fixed-effects variance of each y
+  int ffxdof;
 
   int ncontrasts;    // Number of contrasts
   MATRIX *C[GLMMAT_NCONTRASTS_MAX];    // Contrast matrices
@@ -87,6 +89,8 @@ int GLMcMatrices(GLMMAT *glm);
 int GLMxMatrices(GLMMAT *glm);
 int GLMfit(GLMMAT *glm);
 int GLMtest(GLMMAT *glm);
+int GLMtestFFx(GLMMAT *glm);
+
 int GLManalyze(GLMMAT *glm);
 
 int GLMprofile(int nrows, int ncols, int ncon, int niters);

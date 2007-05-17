@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/23 21:41:45 $
- *    $Revision: 1.19 $
+ *    $Date: 2007/05/17 02:35:31 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.19 2007/01/23 21:41:45 greve Exp $
+// $Id: fsglm.c,v 1.20 2007/05/17 02:35:31 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -152,7 +152,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.19 2007/01/23 21:41:45 greve Exp $");
+  return("$Id: fsglm.c,v 1.20 2007/05/17 02:35:31 greve Exp $");
 }
 
 
@@ -191,6 +191,9 @@ GLMMAT *GLMalloc(void)
   glm->dof  = 0;
   glm->ill_cond_flag  = 0;
 
+  glm->yffxvar = NULL;
+  glm->ffxdof = 0;
+
   glm->Xt   = NULL;
   glm->XtX  = NULL;
   glm->iXtX = NULL;
@@ -198,8 +201,7 @@ GLMMAT *GLMalloc(void)
 
   glm->ncontrasts = 0;
 
-  for (n=0; n < GLMMAT_NCONTRASTS_MAX; n++)
-  {
+  for (n=0; n < GLMMAT_NCONTRASTS_MAX; n++){
     glm->C[n] = NULL;
     glm->Cname[n] = NULL;
     glm->Ccond[n] = -1;
@@ -292,8 +294,9 @@ int GLMfree(GLMMAT **pglm)
   if (glm->iXtX) MatrixFree(&glm->iXtX);
   if (glm->Xty)  MatrixFree(&glm->Xty);
 
-  for (n=0; n < GLMMAT_NCONTRASTS_MAX; n++)
-  {
+  if (glm->yffxvar)  MatrixFree(&glm->yffxvar);
+
+  for (n=0; n < GLMMAT_NCONTRASTS_MAX; n++){
     if (glm->C[n])           MatrixFree(&glm->C[n]);
     if (glm->Cname[n])       free(&glm->Cname[n]);
     if (glm->Mpmf[n])        MatrixFree(&glm->Mpmf[n]);
@@ -350,9 +353,8 @@ int GLMxMatrices(GLMMAT *glm)
   glm->Xt   = MatrixTranspose(glm->X,glm->Xt);
   glm->XtX  = MatrixMultiply(glm->Xt,glm->X,glm->XtX);
   Mtmp = MatrixInverse(glm->XtX,glm->iXtX);
-  if (Mtmp == NULL)
-  {
-    //printf("Matrix is Ill-conditioned\n");
+  if(Mtmp == NULL) {
+    printf("Matrix is Ill-conditioned\n");
     MatrixPrint(stdout,glm->X);
     glm->ill_cond_flag = 1;
     return(1);
@@ -360,8 +362,7 @@ int GLMxMatrices(GLMMAT *glm)
   glm->ill_cond_flag  = 0;
   glm->iXtX = Mtmp;
 
-  for (n = 0; n < glm->ncontrasts; n++)
-  {
+  for (n = 0; n < glm->ncontrasts; n++){
     // gamma = C*beta
     // gCVM  = rvar*J*C*inv(X'*X)*C'
     // F     = gamma' * inv(gCVM) * gamma;
@@ -410,7 +411,7 @@ int GLMfit(GLMMAT *glm)
 
 /*------------------------------------------------------------------------
   GLMtest() - tests all the contrasts for the given GLM. Must have already
-  run GLMcMatrices(), GLMxMatrices(), and GLMfit().
+  run GLMcMatrices(), GLMxMatrices(), and GLMfit(). See also GLMtestFFX().
   ------------------------------------------------------------------------*/
 int GLMtest(GLMMAT *glm)
 {
@@ -418,19 +419,16 @@ int GLMtest(GLMMAT *glm)
   double dtmp;
   static MATRIX *F=NULL,*mtmp=NULL;
 
-  if (glm->ill_cond_flag)
-  {
+  if (glm->ill_cond_flag) {
     // If it's ill cond, just return F=0
-    for (n = 0; n < glm->ncontrasts; n++)
-    {
+    for (n = 0; n < glm->ncontrasts; n++) {
       glm->F[n] = 0;
       glm->p[n] = 1;
     }
     return(0);
   }
 
-  for (n = 0; n < glm->ncontrasts; n++)
-  {
+  for (n = 0; n < glm->ncontrasts; n++) {
     // gamma = C*beta
     // gCVM  = rvar*J*C*inv(X'*X)*C'
     // F     = gamma' * inv(gCVM) * gamma;
@@ -451,8 +449,7 @@ int GLMtest(GLMMAT *glm)
     glm->gammat[n] = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
     glm->gCVM[n]   = MatrixScalarMul(glm->CiXtXCt[n],dtmp,glm->gCVM[n]);
     mtmp           = MatrixInverse(glm->CiXtXCt[n],glm->igCVM[n]);
-    if (mtmp != NULL)
-    {
+    if (mtmp != NULL)  {
       glm->igCVM[n]    =
         MatrixScalarMul(glm->igCVM[n],1.0/dtmp,glm->igCVM[n]);
       glm->gtigCVM[n]  =
@@ -474,6 +471,64 @@ int GLMtest(GLMMAT *glm)
   return(0);
 }
 
+/*------------------------------------------------------------------------
+  GLMtestFFx() - tests all the contrasts for the given GLM. Must have already
+  run GLMcMatrices(), GLMxMatrices(), and GLMfit(). See also GLMtest().
+  ------------------------------------------------------------------------*/
+int GLMtestFFx(GLMMAT *glm)
+{
+  double val;
+  int n, r,c;
+  static MATRIX *F=NULL,*mtmp=NULL;
+  MATRIX *Xs=NULL, *CiXtXXs=NULL, *CiXtXXst=NULL;
+
+  if (glm->ill_cond_flag) {
+    // If it's ill cond, just return F=0
+    for (n = 0; n < glm->ncontrasts; n++) {
+      glm->F[n] = 0;
+      glm->p[n] = 1;
+    }
+    return(0);
+  }
+
+  Xs = MatrixAlloc(glm->X->rows,glm->X->cols,MATRIX_REAL);
+  for(r=1; r <= glm->X->rows; r++){
+    val = sqrt(glm->yffxvar->rptr[r][1]);
+    for(c=1; c <= glm->X->cols; c++)
+      Xs->rptr[r][c] = glm->X->rptr[r][c] * val;
+  }
+
+  for(n = 0; n < glm->ncontrasts; n++){
+    if(glm->igCVM[n]==NULL)
+      glm->igCVM[n] = MatrixAlloc(glm->C[n]->rows,glm->C[n]->rows,MATRIX_REAL);
+
+    CiXtXXs  = MatrixMultiply(glm->CiXtX[n],Xs,NULL);
+    CiXtXXst = MatrixTranspose(CiXtXXs,NULL);
+    glm->gCVM[n] = MatrixMultiply(CiXtXXs,CiXtXXst,glm->gCVM[n]);
+    mtmp = MatrixInverse(glm->gCVM[n],glm->igCVM[n]);
+    if (mtmp != NULL)  {
+      glm->gtigCVM[n]  =
+        MatrixMultiply(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
+      F                = MatrixMultiply(glm->gtigCVM[n],glm->gamma[n],F);
+      glm->F[n]        = F->rptr[1][1];
+      glm->p[n]        = sc_cdf_fdist_Q(glm->F[n],glm->C[n]->rows,glm->ffxdof);
+      glm->igCVM[n] = mtmp;
+    }
+    else {
+      // this usually happens when the var is close to 0. But if this is
+      // happening, should probably use a mask.
+      glm->F[n]        = 0;
+      glm->p[n]        = 1;
+    }
+
+  }
+
+  MatrixFree(&Xs);
+  MatrixFree(&CiXtXXs);
+  MatrixFree(&CiXtXXst);
+
+  return(0);
+}
 
 /*-----------------------------------------------------------
   GLMprofile() - this can be used as both a profile and
@@ -724,3 +779,4 @@ MATRIX *GLMpmfMatrix(MATRIX *C, double *cond, MATRIX *P)
 
   return(P);
 }
+
