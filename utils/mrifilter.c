@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/05/07 23:00:05 $
- *    $Revision: 1.57 $
+ *    $Date: 2007/05/17 23:11:17 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -5160,7 +5160,7 @@ MRIzDerivative(MRI *mri_src, MRI *mri_dz)
   */
 MRI *MRI_Gaussian(int len, float std, int norm){
   int x, y, z;
-  float val, sum =0;
+  float val;
   float  var = std*std;
   float  f = sqrt(2*M_PI)*std;
   MRI *g;
@@ -5168,16 +5168,9 @@ MRI *MRI_Gaussian(int len, float std, int norm){
   for (y = 0 ; y <  len ; y++)
     for (x = 0 ; x < len; x++)
       for (z = 0 ; z <  len; z++){
-      val = exp( -(FFTdist(x,y,z,len))/(2*var) )/f;
-      sum += val;
+      val = exp( (2-FFTdist(x,y,z,len))/(2*var) )/f;
       MRIsetVoxVal(g, x, y, z, 0, val);
       }
-  if (norm)
-    for (y = 0 ; y <  len ; y++)
-      for (x = 0 ; x < len; x++)
-        for (z = 0 ; z <  len; z++)
-          MRIsetVoxVal(g, x, y, z, 0, MRIgetVoxVal(g, x, y, z, 0)/sum);
-	
   return(g);
 }
 /*!
