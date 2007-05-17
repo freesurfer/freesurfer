@@ -47,6 +47,9 @@ AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_LIBTOOL_CXX
 AC_PROG_F77
+if test "x$F77" = "x"; then
+  AC_MSG_ERROR([FATAL: A Fortran compiler is required!])
+fi
 
 ################################################################
 # Checks for header files.
