@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/16 21:44:05 $
- *    $Revision: 1.107 $
+ *    $Date: 2007/05/17 21:02:19 $
+ *    $Revision: 1.108 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,10 +58,6 @@ static LTA  *ltaReadFile(char *fname) ;
 static LTA *ltaMNIreadEx(const char *fname);
 static LTA *ltaReadFileEx(const char *fname);
 
-void initVolGeom(VOL_GEOM *vg);
-void writeVolGeom(FILE *fp, const VOL_GEOM *vg);
-void readVolGeom(FILE *fp, VOL_GEOM *vg);
-
 void vg_print(const VOL_GEOM *vg)
 {
   if (vg->valid == 1)
@@ -85,6 +81,7 @@ void vg_print(const VOL_GEOM *vg)
   else
     fprintf(stderr, "volume geometry info is either not contained "
             "or not valid.\n");
+  fflush(stderr);
 }
 
 // what should be the initialized value?
@@ -1849,11 +1846,15 @@ TransformSample(TRANSFORM *transform,
     lta = (LTA *)transform->xform ;
     if (lta->type != LINEAR_VOXEL_TO_VOXEL)
     {
-      fprintf(stderr,
-              "transform.c::TransformSample: "
-              "lta->type=%d != LINEAR_VOXEL_TO_VOXEL\n",
-              lta->type);
-      ErrorExit(ERROR_BADPARM, "Transform was not of voxel-to-voxel type");
+      int i;
+      printf("Converting to LTA type LINEAR_VOXEL_TO_VOXEL...\n");
+      lta = LTAchangeType(lta, LINEAR_VOXEL_TO_VOXEL);
+      printf("After conversion:\n");
+      for (i = 0 ; i < lta->num_xforms ; i++)
+      {
+        LINEAR_TRANSFORM *lt = &lta->xforms[i] ;
+        MatrixAsciiWriteInto(stdout, lt->m_L) ;
+      }
     }
     if (!v_canon)
     {
@@ -1934,11 +1935,15 @@ TransformSampleReal(TRANSFORM *transform,
     lta = (LTA *)transform->xform ;
     if (lta->type != LINEAR_VOXEL_TO_VOXEL)
     {
-      fprintf(stderr,
-              "transform.c::TransformSampleReal: "
-              "lta->type=%d != LINEAR_VOXEL_TO_VOXEL\n",
-              lta->type);
-      ErrorExit(ERROR_BADPARM, "Transform was not of voxel-to-voxel type");
+      int i;
+      printf("Converting to LTA type LINEAR_VOXEL_TO_VOXEL...\n");
+      lta = LTAchangeType(lta, LINEAR_VOXEL_TO_VOXEL);
+      printf("After conversion:\n");
+      for (i = 0 ; i < lta->num_xforms ; i++)
+      {
+        LINEAR_TRANSFORM *lt = &lta->xforms[i] ;
+        MatrixAsciiWriteInto(stdout, lt->m_L) ;
+      }
     }
     if (!v_canon)
     {
@@ -2016,13 +2021,16 @@ TransformSampleInverse(TRANSFORM *transform,
     lta = (LTA *)transform->xform ;
     if (lta->type != LINEAR_VOXEL_TO_VOXEL)
     {
-      fprintf(stderr,
-              "transform.c::TransformSampleInverse: "
-              "lta->type=%d != LINEAR_VOXEL_TO_VOXEL\n",
-              lta->type);
-      ErrorExit(ERROR_BADPARM, "Transform was not of voxel-to-voxel type");
+      int i;
+      printf("Converting to LTA type LINEAR_VOXEL_TO_VOXEL...\n");
+      lta = LTAchangeType(lta, LINEAR_VOXEL_TO_VOXEL);
+      printf("After conversion:\n");
+      for (i = 0 ; i < lta->num_xforms ; i++)
+      {
+        LINEAR_TRANSFORM *lt = &lta->xforms[i] ;
+        MatrixAsciiWriteInto(stdout, lt->m_L) ;
+      }
     }
-
     if (!v_canon)
     {
       v_input = VectorAlloc(4, MATRIX_REAL) ;
