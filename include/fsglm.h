@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/17 02:35:29 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/05/17 03:31:31 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.10 2007/05/17 02:35:29 greve Exp $
+// $Id: fsglm.h,v 1.11 2007/05/17 03:31:31 greve Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
@@ -85,6 +85,7 @@ GLMMAT *GLMalloc(void);
 int GLMfree(GLMMAT **pgm);
 int GLMallocX(GLMMAT *glm, int nrows, int ncols);
 int GLMallocY(GLMMAT *glm);
+int GLMallocYFFxVar(GLMMAT *glm);
 int GLMcMatrices(GLMMAT *glm);
 int GLMxMatrices(GLMMAT *glm);
 int GLMfit(GLMMAT *glm);

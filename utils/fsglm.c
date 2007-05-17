@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/17 02:35:31 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/05/17 03:31:31 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.20 2007/05/17 02:35:31 greve Exp $
+// $Id: fsglm.c,v 1.21 2007/05/17 03:31:31 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -152,7 +152,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.20 2007/05/17 02:35:31 greve Exp $");
+  return("$Id: fsglm.c,v 1.21 2007/05/17 03:31:31 greve Exp $");
 }
 
 
@@ -269,6 +269,21 @@ int GLMallocY(GLMMAT *glm)
     else MatrixFree(&glm->y);
   }
   glm->y = MatrixAlloc(glm->X->rows,1,MATRIX_REAL);
+  return(0);
+}
+
+/*---------------------------------------------------------------------
+  GLMallocYFFxVar() - allocate the yffxvar matrix. If it has already
+  been alloced and the dims are correct, then just returns. If dims
+  are not correct, frees and then  allocs. 
+------------------------------------------------------------------*/
+int GLMallocYFFxVar(GLMMAT *glm)
+{
+  if (glm->yffxvar != NULL){
+    if(glm->yffxvar->rows == glm->X->rows && glm->yffxvar->cols == 1) return(0);
+    else MatrixFree(&glm->yffxvar);
+  }
+  glm->yffxvar = MatrixAlloc(glm->X->rows,1,MATRIX_REAL);
   return(0);
 }
 
@@ -480,7 +495,7 @@ int GLMtestFFx(GLMMAT *glm)
   double val;
   int n, r,c;
   static MATRIX *F=NULL,*mtmp=NULL;
-  MATRIX *Xs=NULL, *CiXtXXs=NULL, *CiXtXXst=NULL;
+  MATRIX *Xs=NULL, *Xst=NULL,  *CiXtXXs=NULL, *CiXtXXst=NULL;
 
   if (glm->ill_cond_flag) {
     // If it's ill cond, just return F=0
@@ -497,12 +512,16 @@ int GLMtestFFx(GLMMAT *glm)
     for(c=1; c <= glm->X->cols; c++)
       Xs->rptr[r][c] = glm->X->rptr[r][c] * val;
   }
+  Xst = MatrixTranspose(Xs,NULL);
 
   for(n = 0; n < glm->ncontrasts; n++){
     if(glm->igCVM[n]==NULL)
       glm->igCVM[n] = MatrixAlloc(glm->C[n]->rows,glm->C[n]->rows,MATRIX_REAL);
 
-    CiXtXXs  = MatrixMultiply(glm->CiXtX[n],Xs,NULL);
+    glm->gamma[n]  = MatrixMultiply(glm->C[n],glm->beta,glm->gamma[n]);
+    glm->gammat[n] = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
+
+    CiXtXXs  = MatrixMultiply(glm->CiXtX[n],Xst,NULL);
     CiXtXXst = MatrixTranspose(CiXtXXs,NULL);
     glm->gCVM[n] = MatrixMultiply(CiXtXXs,CiXtXXst,glm->gCVM[n]);
     mtmp = MatrixInverse(glm->gCVM[n],glm->igCVM[n]);
@@ -524,6 +543,7 @@ int GLMtestFFx(GLMMAT *glm)
   }
 
   MatrixFree(&Xs);
+  MatrixFree(&Xst);
   MatrixFree(&CiXtXXs);
   MatrixFree(&CiXtXXst);
 

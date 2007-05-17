@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/11 18:17:19 $
- *    $Revision: 1.44 $
+ *    $Date: 2007/05/17 03:31:31 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.44 2007/05/11 18:17:19 greve Exp $
+  $Id: fmriutils.c,v 1.45 2007/05/17 03:31:31 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.44 2007/05/11 18:17:19 greve Exp $");
+  return("$Id: fmriutils.c,v 1.45 2007/05/17 03:31:31 greve Exp $");
 }
 
 
@@ -886,12 +886,10 @@ MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn)
   double v, vsum, m;
 
   //-------------------------------------------
-  if (wn == NULL)
-  {
+  if (wn == NULL)  {
     wn = MRIallocSequence(w->width,w->height,w->depth,
                           MRI_FLOAT,w->nframes);
-    if (wn == NULL)
-    {
+    if (wn == NULL)    {
       printf("ERROR: MRInormWeights(): could not alloc weights\n");
       return(NULL);
     }
@@ -899,23 +897,18 @@ MRI *MRInormWeights(MRI *w, int sqrtFlag, int invFlag, MRI *mask, MRI *wn)
   }
 
   //-------------------------------------------
-  for (c=0; c < w->width; c++)
-  {
-    for (r=0; r < w->height; r++)
-    {
-      for (s=0; s < w->depth; s++)
-      {
+  for (c=0; c < w->width; c++)  {
+    for (r=0; r < w->height; r++)    {
+      for (s=0; s < w->depth; s++)      {
 
-        if (mask != NULL)
-        {
+        if (mask != NULL)        {
           m = MRIgetVoxVal(mask,c,r,s,0);
           if (m < 0.5) continue;
         }
 
         // First go through and compute the sum
         vsum = 0;
-        for (f = 0; f < w->nframes; f++)
-        {
+        for (f = 0; f < w->nframes; f++)        {
           v = MRIgetVoxVal(w,c,r,s,f);
           if (v <= 0)
           {
@@ -974,6 +967,7 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
   mriglm->nregtot = MRIglmNRegTot(mriglm);
   GLMallocX(mriglm->glm, nf, mriglm->nregtot);
   GLMallocY(mriglm->glm);
+  if(mriglm->yffxvar) GLMallocYFFxVar(mriglm->glm);
 
   if (mriglm->w != NULL || mriglm->npvr != 0) mriglm->pervoxflag = 1;
   else                                       mriglm->pervoxflag = 0;
@@ -988,27 +982,23 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
   }
 
   // If beta has not been allocated, assume that no one has been alloced
-  if (mriglm->beta == NULL)
-  {
+  if (mriglm->beta == NULL)  {
     mriglm->beta = MRIallocSequence(nc, nr, ns, MRI_FLOAT, mriglm->nregtot) ;
     MRIcopyHeader(mriglm->y,mriglm->beta);
     mriglm->eres = MRIallocSequence(nc, nr, ns, MRI_FLOAT, nf);
     MRIcopyHeader(mriglm->y,mriglm->eres);
     mriglm->rvar = MRIallocSequence(nc, nr, ns, MRI_FLOAT, 1);
     MRIcopyHeader(mriglm->y,mriglm->rvar);
-    if (mriglm->yhatsave)
-    {
+    if (mriglm->yhatsave)    {
       mriglm->yhat = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nf);
       MRIcopyHeader(mriglm->y,mriglm->yhat);
     }
-    if (mriglm->condsave)
-    {
+    if (mriglm->condsave)    {
       mriglm->cond = MRIallocSequence(nc,nr,ns,MRI_FLOAT, 1) ;
       MRIcopyHeader(mriglm->y,mriglm->cond);
     }
 
-    for (n = 0; n < mriglm->glm->ncontrasts; n++)
-    {
+    for (n = 0; n < mriglm->glm->ncontrasts; n++)    {
       mriglm->gamma[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT,
                                           mriglm->glm->C[n]->rows);
       MRIcopyHeader(mriglm->y,mriglm->gamma[n]);
@@ -1028,15 +1018,11 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
   pctdone = 0;
   nthvox = 0;
   mriglm->n_ill_cond = 0;
-  for (c=0; c < nc; c++)
-  {
-    for (r=0; r < nr; r++)
-    {
-      for (s=0; s< ns; s++)
-      {
+  for (c=0; c < nc; c++)  {
+    for (r=0; r < nr; r++)    {
+      for (s=0; s< ns; s++)      {
         nthvox ++;
-        if (nthvox == (long) floor(.1*nvoxtot) )
-        {
+        if (nthvox == (long) floor(.1*nvoxtot) )  {
           pctdone += 10;
           printf("%2d%% ",pctdone);
           fflush(stdout);
@@ -1044,8 +1030,7 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
         }
 
         // Check the mask -----------
-        if (mriglm->mask != NULL)
-        {
+        if (mriglm->mask != NULL) {
           m = MRIgetVoxVal(mriglm->mask,c,r,s,0);
           if (m < 0.5) continue;
         }
@@ -1057,21 +1042,20 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
         GLMxMatrices(mriglm->glm);
 
         // Compute condition
-        if (mriglm->condsave)
-        {
+        if (mriglm->condsave)  {
           Xcond = MatrixConditionNumber(mriglm->glm->XtX);
           MRIsetVoxVal(mriglm->cond,c,r,s,0,Xcond);
         }
 
         // Test condition
-        if (mriglm->glm->ill_cond_flag)
-        {
+        if (mriglm->glm->ill_cond_flag) {
           mriglm->n_ill_cond ++;
           continue;
         }
 
         GLMfit(mriglm->glm);
-        GLMtest(mriglm->glm);
+	if(mriglm->yffxvar == NULL) GLMtest(mriglm->glm);
+	else                        GLMtestFFx(mriglm->glm);
 
         // Pack data back into MRI
         MRIsetVoxVal(mriglm->rvar,c,r,s,0,mriglm->glm->rvar);
@@ -1079,8 +1063,7 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
         MRIfromMatrix(mriglm->eres, c, r, s, mriglm->glm->eres);
         if (mriglm->yhatsave)
           MRIfromMatrix(mriglm->yhat, c, r, s, mriglm->glm->yhat);
-        for (n = 0; n < mriglm->glm->ncontrasts; n++)
-        {
+        for (n = 0; n < mriglm->glm->ncontrasts; n++) {
           MRIfromMatrix(mriglm->gamma[n], c, r, s, mriglm->glm->gamma[n]);
           MRIsetVoxVal(mriglm->F[n],c,r,s,0,mriglm->glm->F[n]);
           MRIsetVoxVal(mriglm->p[n],c,r,s,0,mriglm->glm->p[n]);
@@ -1117,22 +1100,21 @@ int MRIglmFit(MRIGLM *mriglm)
   mriglm->nregtot = MRIglmNRegTot(mriglm);
   GLMallocX(mriglm->glm, nf, mriglm->nregtot);
   GLMallocY(mriglm->glm);
+  if(mriglm->yffxvar) GLMallocYFFxVar(mriglm->glm);
 
   if (mriglm->w != NULL || mriglm->npvr != 0) mriglm->pervoxflag = 1;
   else                                       mriglm->pervoxflag = 0;
 
   GLMcMatrices(mriglm->glm);
 
-  if (! mriglm->pervoxflag)
-  {
+  if (! mriglm->pervoxflag){
     MatrixCopy(mriglm->Xg,mriglm->glm->X);
     mriglm->XgLoaded = 1;
     GLMxMatrices(mriglm->glm);
   }
 
   // If beta has not been allocated, assume that no one has been alloced
-  if (mriglm->beta == NULL)
-  {
+  if (mriglm->beta == NULL) {
     mriglm->beta = MRIallocSequence(nc, nr, ns, MRI_FLOAT, mriglm->nregtot) ;
     MRIcopyHeader(mriglm->y,mriglm->beta);
     mriglm->eres = MRIallocSequence(nc, nr, ns, MRI_FLOAT, nf);
@@ -1155,15 +1137,11 @@ int MRIglmFit(MRIGLM *mriglm)
   pctdone = 0;
   nthvox = 0;
   mriglm->n_ill_cond = 0;
-  for (c=0; c < nc; c++)
-  {
-    for (r=0; r < nr; r++)
-    {
-      for (s=0; s< ns; s++)
-      {
+  for (c=0; c < nc; c++)  {
+    for (r=0; r < nr; r++)    {
+      for (s=0; s< ns; s++)      {
         nthvox ++;
-        if (nthvox == (long) floor(.1*nvoxtot) )
-        {
+        if (nthvox == (long) floor(.1*nvoxtot) )        {
           pctdone += 10;
           printf("%2d%% ",pctdone);
           fflush(stdout);
@@ -1171,8 +1149,7 @@ int MRIglmFit(MRIGLM *mriglm)
         }
 
         // Check the mask -----------
-        if (mriglm->mask != NULL)
-        {
+        if (mriglm->mask != NULL)        {
           m = MRIgetVoxVal(mriglm->mask,c,r,s,0);
           if (m < 0.5) continue;
         }
@@ -1184,15 +1161,13 @@ int MRIglmFit(MRIGLM *mriglm)
         GLMxMatrices(mriglm->glm);
 
         // Compute condition
-        if (mriglm->condsave)
-        {
+        if (mriglm->condsave)        {
           Xcond = MatrixConditionNumber(mriglm->glm->XtX);
           MRIsetVoxVal(mriglm->cond,c,r,s,0,Xcond);
         }
 
         // Test condition
-        if (mriglm->glm->ill_cond_flag)
-        {
+        if (mriglm->glm->ill_cond_flag)        {
           mriglm->n_ill_cond ++;
           continue;
         }
@@ -1234,10 +1209,8 @@ int MRIglmTest(MRIGLM *mriglm)
   nvoxtot = nc*nr*ns;
 
   // If gamma[0] not been allocated, assume that no one has been alloced
-  if (mriglm->gamma[0] == NULL)
-  {
-    for (n = 0; n < mriglm->glm->ncontrasts; n++)
-    {
+  if (mriglm->gamma[0] == NULL)  {
+    for (n = 0; n < mriglm->glm->ncontrasts; n++)    {
       mriglm->gamma[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT,
                                           mriglm->glm->C[n]->rows);
       MRIcopyHeader(mriglm->y,mriglm->gamma[n]);
@@ -1256,15 +1229,11 @@ int MRIglmTest(MRIGLM *mriglm)
   //--------------------------------------------
   pctdone = 0;
   nthvox = 0;
-  for (c=0; c < nc; c++)
-  {
-    for (r=0; r < nr; r++)
-    {
-      for (s=0; s< ns; s++)
-      {
+  for (c=0; c < nc; c++)  {
+    for (r=0; r < nr; r++)    {
+      for (s=0; s< ns; s++)      {
         nthvox ++;
-        if (nthvox == (long) floor(.1*nvoxtot) )
-        {
+        if (nthvox == (long) floor(.1*nvoxtot) )  {
           pctdone += 10;
           printf("%2d%% ",pctdone);
           fflush(stdout);
@@ -1272,8 +1241,7 @@ int MRIglmTest(MRIGLM *mriglm)
         }
 
         // Check the mask -----------
-        if (mriglm->mask != NULL)
-        {
+        if (mriglm->mask != NULL)        {
           m = MRIgetVoxVal(mriglm->mask,c,r,s,0);
           if (m < 0.5) continue;
         }
@@ -1285,11 +1253,11 @@ int MRIglmTest(MRIGLM *mriglm)
         GLMxMatrices(mriglm->glm);
 
         // Test
-        GLMtest(mriglm->glm);
+	if(mriglm->yffxvar == NULL) GLMtest(mriglm->glm);
+	else                        GLMtestFFx(mriglm->glm);
 
         // Pack data back into MRI
-        for (n = 0; n < mriglm->glm->ncontrasts; n++)
-        {
+        for (n = 0; n < mriglm->glm->ncontrasts; n++)        {
           MRIfromMatrix(mriglm->gamma[n], c, r, s, mriglm->glm->gamma[n]);
           MRIsetVoxVal(mriglm->F[n],c,r,s,0,mriglm->glm->F[n]);
           MRIsetVoxVal(mriglm->p[n],c,r,s,0,mriglm->glm->p[n]);
@@ -1319,8 +1287,7 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s, int LoadBeta)
   int f, n, nthreg;
   double v;
 
-  if (mriglm->glm->X == NULL)
-  {
+  if (mriglm->glm->X == NULL)  {
     mriglm->nregtot  = mriglm->Xg->cols + mriglm->npvr;
     mriglm->glm->X   =
       MatrixAlloc(mriglm->y->nframes,mriglm->nregtot,MATRIX_REAL);
@@ -1331,13 +1298,11 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s, int LoadBeta)
   // Load y, Xg, and the per-vox reg --------------------------
   for (f = 1; f <= mriglm->y->nframes; f++)
   {
-
     // Load y
     mriglm->glm->y->rptr[f][1] = MRIgetVoxVal(mriglm->y,c,r,s,f-1);
 
     // Load Xg->X the global design matrix if needed
-    if (mriglm->w != NULL || !mriglm->XgLoaded)
-    {
+    if (mriglm->w != NULL || !mriglm->XgLoaded) {
       nthreg = 1;
       for (n = 1; n <= mriglm->Xg->cols; n++)
       {
@@ -1348,8 +1313,7 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s, int LoadBeta)
     else nthreg = mriglm->Xg->cols+1;
 
     // Load the global per-voxel regressors matrix, X = [X pvr]
-    for (n = 1; n <= mriglm->npvr; n++)
-    {
+    for (n = 1; n <= mriglm->npvr; n++) {
       mriglm->glm->X->rptr[f][nthreg] =
         MRIgetVoxVal(mriglm->pvr[n-1],c,r,s,f-1);
       nthreg++;
@@ -1358,10 +1322,8 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s, int LoadBeta)
   mriglm->XgLoaded = 1; // Set flag that Xg has been loaded
 
   // Weight X and y, X = w.*X, y = w.*y
-  if (mriglm->w != NULL && ! mriglm->skipweight)
-  {
-    for (f = 1; f <= mriglm->glm->X->rows; f++)
-    {
+  if (mriglm->w != NULL && ! mriglm->skipweight)  {
+    for (f = 1; f <= mriglm->glm->X->rows; f++) {
       v = MRIgetVoxVal(mriglm->w,c,r,s,f-1);
       mriglm->glm->y->rptr[f][1] *= v;
       for (n = 1; n <= mriglm->glm->X->cols; n++)
@@ -1369,11 +1331,18 @@ int MRIglmLoadVox(MRIGLM *mriglm, int c, int r, int s, int LoadBeta)
     }
   }
 
+  // Load ffx variance, if there
+  if(mriglm->yffxvar != NULL)  {
+    for (f = 1; f <= mriglm->glm->X->rows; f++) {
+      v = MRIgetVoxVal(mriglm->yffxvar,c,r,s,f-1);
+      mriglm->glm->yffxvar->rptr[f][1] = v;
+    }
+   mriglm-> glm->ffxdof = mriglm->ffxdof;
+  }
+
   // Beta
-  if (LoadBeta)
-  {
-    for (f = 1; f <= mriglm->glm->X->cols; f++)
-    {
+  if(LoadBeta)  {
+    for (f = 1; f <= mriglm->glm->X->cols; f++) {
       v = MRIgetVoxVal(mriglm->beta,c,r,s,f-1);
       mriglm->glm->beta->rptr[f][1] = v;
     }

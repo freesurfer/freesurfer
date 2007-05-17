@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/11 18:01:40 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/05/17 03:31:31 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,9 @@ typedef struct
   int skipweight;    // Don't use weight even if w != NULL
   MRI *mask;         // Only proc within mask
   int n_ill_cond;    // Number of ill-conditioned voxels
+
+  MRI *yffxvar;      // Fixed effects variance of each y
+  int ffxdof;        // Fixed effects DOF
 
   MRI *cond;         // condition of X'*X
   int condsave;      // Flag to compute and save cond

@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/15 21:32:28 $
- *    $Revision: 1.123 $
+ *    $Date: 2007/05/17 03:31:32 $
+ *    $Revision: 1.124 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -496,7 +496,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.123 2007/05/15 21:32:28 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.124 2007/05/17 03:31:32 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -504,6 +504,7 @@ int SynthSeed = -1;
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
 char *yhatFile=NULL, *eresFile=NULL, *wFile=NULL, *maskFile=NULL;
 char *condFile=NULL;
+char *yffxvarFile = NULL;
 char *GLMDir=NULL;
 char *pvrFiles[50];
 int yhatSave=0;
@@ -612,6 +613,7 @@ int SubSampDelta = 0;
 int DoDistance = 0;
 
 int DoTemporalAR1 = 0;
+int DoFFx = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -716,6 +718,17 @@ int main(int argc, char **argv) {
     MRIfree(&mriglm->y);
     mriglm->y = mritmp;
   }
+
+  if(DoFFx){
+    // Load yffx var--------------------------------------
+    printf("Loading yffxvar from %s\n",yffxvarFile);
+    mriglm->yffxvar = MRIread(yffxvarFile);
+    if(mriglm->yffxvar == NULL) {
+      printf("ERROR: loading yffxvar %s\n",yffxvarFile);
+      exit(1);
+    }
+  }
+
   if(SubSample){
     printf("Subsampling start=%d delta = %d, nframes = %d \n",SubSampStart, SubSampDelta,
 	   mriglm->y->nframes);
@@ -1763,6 +1776,12 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       yFile = fio_fullpath(pargv[0]);
       nargsused = 1;
+    } else if (!strcmp(option, "--yffxvar")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      yffxvarFile = fio_fullpath(pargv[0]);
+      sscanf(pargv[1],"%d",&mriglm->ffxdof);
+      DoFFx = 1;
+      nargsused = 2;
     } else if (!strcmp(option, "--mask")) {
       if (nargc < 1) CMDargNErr(option,1);
       maskFile = pargv[0];
@@ -2372,6 +2391,7 @@ static void dump_options(FILE *fp) {
     fprintf(fp,"SubSampDelta %d\n",SubSampDelta);
   }
   if(DoDistance)  fprintf(fp,"DoDistance %d\n",DoDistance);
+  fprintf(fp,"DoFFx %d\n",DoFFx);
 
   return;
 }
