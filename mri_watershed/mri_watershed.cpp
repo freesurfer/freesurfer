@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/26 22:47:37 $
- *    $Revision: 1.64 $
+ *    $Date: 2007/05/18 20:29:23 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-char *MRI_WATERSHED_VERSION = "$Revision: 1.64 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.65 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -225,7 +225,7 @@ typedef struct
   int CSF_intensity;
 
   /*,CSF_HALF_MAX,CSF_MAX,CSF_MIN;
-  int GM_MIN, GM_intensity,TRANSITION_intensity;*/
+    int GM_MIN, GM_intensity,TRANSITION_intensity;*/
   // hard to read with capital INTENSITY
 
   unsigned long gmnumber[256];
@@ -342,7 +342,7 @@ static void FitShape(MRI_variables *MRI_var,
                       const double &sd,
                       const double &nx, const double &ny, const double &nz,
                       MRI_variables *mri_var, STRIP_PARMS *parms, int kv)
-                    );
+  );
 static void read_geometry(int type,MRI_variables *MRI_var,char *surf_fname);
 static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var);
 static void brain_params(MRI_variables *MRI_var);
@@ -387,8 +387,8 @@ static void MRISinitSurfaces(MRIS *mris_curv,MRIS *mris_dCOG,
                              const MRIS *mrisphere);
 static void MRISdistanceToCOG(MRI_SURFACE *mris);
 static double mrisComputeCorrelationError(MRI_SURFACE *mris,
-    INTEGRATION_PARMS *parms,
-    int use_stds);
+                                          INTEGRATION_PARMS *parms,
+                                          int use_stds);
 void MRISchangeCoordinates(MRI_SURFACE *mris, const MRI_SURFACE *mris_orig);
 static int
 mrisRigidBodyAlignGlobal(MRIS *mris,MRIS *mris_dist, INTEGRATION_PARMS *parms,
@@ -429,25 +429,27 @@ int (*myVoxelToWorld)(MRI *mri,
 
 void usageHelp()
 {
-  fprintf(stdout, "\nUsage: %s [options] input_file output_file", Progname);
-  fprintf(stdout, "\noptions are:");
+  fprintf(stdout, "\nUsage: %s [options] input_file output_file\n", Progname);
+
+  fprintf(stdout, "\nOptions are:\n\n");
   
-  fprintf(stdout, "\n-brain_atlas  atlas.gca   register.lta : "
-  			"use the registration file (tr.lta) to take advantage of atlas (.gca) information "
-  		  "\n                       "
-  			"The default parameters are :  : -w 0.82 -b 0.32 -h 10 -seedpt -ta -wta "
-  		  "\n                       "
-		  	"You can use one of the five following flags to change these default parms :  ");
-  
-  fprintf(stdout, "\n   -w weight         : "
+  fprintf(stdout,
+          "The default parameters are: -w 0.82 -b 0.32 -h 10 "
+          "-seedpt -ta -wta "
+          "\n                       "
+          "You can use one of the five following flags to change\n"
+          "                       these default parms :  ");
+  fprintf(stdout, "\n-w weight            : "
           "preweight the input image using atlas information (no_w -> 1)");
-  fprintf(stdout, "\n   -no_wta           : "
+  fprintf(stdout, "\n-no_wta              : "
           "dont use the preweighting fot the template deformation");
-  fprintf(stdout, "\n   -b proba_merging  : "
+  fprintf(stdout, "\n-b proba_merging     : "
           "use the basins merging using atlas information (no_b -> 1)");
-  fprintf(stdout, "\n   -no_seedpt        : "
+  fprintf(stdout, "\n-h int_hpf           : "
+          "presize the preflooding height (in percent)");
+  fprintf(stdout, "\n-no_seedpt           : "
           "dont use (seedpoints using atlas information)");
-  fprintf(stdout, "\n   -no_ta            : "
+  fprintf(stdout, "\n-no_ta               : "
           "dont use (template deformation using atlas information)");
 
   fprintf(stdout, "\n \n-atlas               : "
@@ -464,7 +466,7 @@ void usageHelp()
           "use only the first template smoothing + local matching");
   fprintf(stdout, "\n-useSRAS             : "
           "use the surface RAS (c_(ras) = 0) for surface vertex position\n");
-  fprintf(stdout, "                       : "
+  fprintf(stdout, "                     : "
           "The default is to use the scanner RAS coordinate c_(ras) != 0\n");
   fprintf(stdout, "\n-surf_debug          : "
           "visualize the surfaces onto the output volume");
@@ -479,14 +481,13 @@ void usageHelp()
           "specify the radius of the brain (in voxel unit)");
   fprintf(stdout, "\n-t int_threshold     : "
           "change the threshold in the watershed analyze process");
-  fprintf(stdout, "\n-h int_hpf           : "
-          "presize the preflooding height (in percent)");
   fprintf(stdout, "\n-n                   : "
           "not use the watershed analyze process");
   fprintf(stdout, "\n-LABEL               : "
           "labelize the output volume into scalp, skull, csf, gray and white");
   fprintf(stdout, "\n-man int_csf int_trn int_gray: "
-          "to change the different parameters csf_max, "
+          "to change the different parameters csf_max,\n"
+          "                               "
           "transition_intensity and GM_intensity");
   fprintf(stdout, "\n-dark int_niter      : "
           "go to the closest darkest point during int_niter "
@@ -494,10 +495,21 @@ void usageHelp()
   fprintf(stdout, "\n-mask                : "
           "mask a volume with the brain mask");
   fprintf(stdout, "\n-keep PreEditVol PostEditVol NewWithEditsVol : "
-          "keep edits as indicated by the differences "
-          "\nbetween pre and post volumes.");
-  fprintf(stdout, "Note: this does not change output, just create "
-          "NewWithEditsVol\n");
+          "keep edits as indicated by the differences\n"
+          "                                               "
+          "between pre and post volumes.\n");
+  fprintf(stdout,
+          "                                               "
+          "Note: this does not change output,\n"
+          "                                               "
+          "just creates NewWithEditsVol\n");
+
+  fprintf(stdout, 
+          "\n-brain_atlas atlas.gca register.lta : "
+          "use the registration file (register.lta) to take advantage\n"
+          "                         "
+          "             of atlas (atlas.gca) information ");
+
   fprintf(stdout, "\n\n--help               : show this usage message");
   fprintf(stdout, "\n--version            : show the current version\n\n");
   fflush(stdout);
@@ -521,8 +533,9 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     usageHelp();
     exit(0);
   } 
-   else if (!strcmp(option, "brain_atlas")) {
-    fprintf(stdout,"Mode:          Use the information of atlas (default parms, --help for details)\n") ;
+  else if (!strcmp(option, "brain_atlas")) {
+    fprintf(stdout,"Mode:          Use the information of atlas "
+            "(default parms, --help for details)\n") ;
     parms->gca = GCAread(argv[2]);
     if(parms->gca == NULL)
       Error("Cannot read the atlas\n");
@@ -768,7 +781,8 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
       nargs=1;
       break ;
     case 'H':
-      fprintf(stdout,"Mode:          Preflooding height manually specified\n") ;
+      fprintf(stdout,
+              "Mode:          Preflooding height manually specified\n") ;
       if (argc < 5)
         Error("\n-h needs preflooding height, input, "
               "and output argument.\n");
@@ -840,10 +854,10 @@ int main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.64 2007/04/26 22:47:37 nicks Exp $", 
-   "$Name:  $",
-   cmdline);
+    (argc, argv,
+     "$Id: mri_watershed.cpp,v 1.65 2007/05/18 20:29:23 nicks Exp $", 
+     "$Name:  $",
+     cmdline);
 
   Progname=argv[0];
 
@@ -853,9 +867,9 @@ int main(int argc, char *argv[])
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.64 2007/04/26 22:47:37 nicks Exp $", 
-           "$Name:  $");
+    (argc, argv,
+     "$Id: mri_watershed.cpp,v 1.65 2007/05/18 20:29:23 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -885,8 +899,14 @@ int main(int argc, char *argv[])
           "\nIf this is incorrect, please exit with CTL-C\n\n",
           in_fname,out_fname);
  
-  if (( parms->Tregion || parms->seedprior ||parms->basinprior || parms->preweight || parms->preweightemp) && !parms->transform)
-    Error("One of the flag you're using need a registration file to be effective\n");
+  if (( parms->Tregion ||
+        parms->seedprior ||
+        parms->basinprior || 
+        parms->preweight || 
+        parms->preweightemp) && 
+      !parms->transform)
+    Error("One of the flag you're using need a registration file "
+          "to be effective\n");
 
 
   /*************** PROG *********************/
@@ -932,13 +952,22 @@ int main(int argc, char *argv[])
   
   
     
-    parms->mri_atlas_brain = MRIalloc((parms->gca)->prior_width, (parms->gca)->prior_height, (parms->gca)->prior_depth, MRI_FLOAT) ;
-    parms->mri_atlas_cerebellum = MRIalloc((parms->gca)->prior_width, (parms->gca)->prior_height, (parms->gca)->prior_depth, MRI_FLOAT) ;
-    parms->mri_atlas_cerebellumgw = MRIalloc((parms->gca)->prior_width, (parms->gca)->prior_height, (parms->gca)->prior_depth, MRI_FLOAT) ;
+    parms->mri_atlas_brain = MRIalloc((parms->gca)->prior_width, 
+                                      (parms->gca)->prior_height, 
+                                      (parms->gca)->prior_depth, 
+                                      MRI_FLOAT) ;
+    parms->mri_atlas_cerebellum = MRIalloc((parms->gca)->prior_width, 
+                                           (parms->gca)->prior_height, 
+                                           (parms->gca)->prior_depth, 
+                                           MRI_FLOAT) ;
+    parms->mri_atlas_cerebellumgw = MRIalloc((parms->gca)->prior_width, 
+                                             (parms->gca)->prior_height, 
+                                             (parms->gca)->prior_depth, 
+                                             MRI_FLOAT) ;
 
     for (z = 0 ; z < (parms->gca)->prior_depth ; z++)  {
       for (y = 0 ; y < (parms->gca)->prior_height ; y++)    {
-	for (x = 0 ; x < (parms->gca)->prior_width ; x++)      {
+        for (x = 0 ; x < (parms->gca)->prior_width ; x++)      {
 
           gcap = &(parms->gca)->priors[x][y][z] ;
           value_brain = 0;
@@ -992,7 +1021,9 @@ int main(int argc, char *argv[])
     free(parms);
     return -1;
   }
-  if ( parms->preweightemp || conformed || type_changed)  /* make output volume the same type as input volume */
+  if ( parms->preweightemp || 
+       conformed || 
+       type_changed)  /* make output volume the same type as input volume */
   {
     mri_with_skull = MRIread(in_fname) ;
     if (!mri_with_skull)
@@ -1363,10 +1394,10 @@ MRI *MRIstripSkull(MRI *mri_with_skull,
             MRIvox(MRI_var->mri_src,i,j,k)=MRIvox(mri_with_skull,i,j,k);
     }
 
-     if (parms->preweightemp){
-       printf("Weighting the input with before template \n");
-       MRI_weight_atlas(MRI_var->mri_src, parms->transform, parms );
-     }
+    if (parms->preweightemp){
+      printf("Weighting the input with before template \n");
+      MRI_weight_atlas(MRI_var->mri_src, parms->transform, parms );
+    }
 
 
     Template_Deformation(parms,MRI_var);
@@ -1382,8 +1413,8 @@ MRI *MRIstripSkull(MRI *mri_with_skull,
     MRI_var->brain_size=MRISpeelBrain(0,MRI_var->mri_src,MRI_var->mris,0);
     // mri_src is modified (0 outside of the surface).
     vol_elt
-    =MRI_var->mri_src->xsize*MRI_var->mri_src->ysize*
-     MRI_var->mri_src->zsize;
+      =MRI_var->mri_src->xsize*MRI_var->mri_src->ysize*
+      MRI_var->mri_src->zsize;
     fprintf(stdout,"\n\nBrain Size = %ld voxels, voxel volume = %2.3f mm3\n"
             ,MRI_var->brain_size,(float)vol_elt);
     fprintf(stdout,"           = %.0f mmm3 = %.3f cm3\n"
@@ -1827,7 +1858,7 @@ static int calBrainRadius(MRI_variables *MRI_var)
         {
           m++;
           MRI_var->rad_Brain+=SQR(i-MRI_var->xCOG)+
-                              SQR(j-MRI_var->yCOG)+SQR(k-MRI_var->zCOG);
+            SQR(j-MRI_var->yCOG)+SQR(k-MRI_var->zCOG);
         }
         pb++;
       }
@@ -2531,16 +2562,16 @@ double DistanceToSeeds(int i,int j,int k,int seeds[100][3], int n)
 
 
 /*-----------------------------------------------------
- FUNCTION AnalyzeCerebellum
+  FUNCTION AnalyzeCerebellum
 
- Parameters:
- STRIP_PARMS *:contains the parameters for the prog
- MRI_variables *: contains the variables
+  Parameters:
+  STRIP_PARMS *:contains the parameters for the prog
+  MRI_variables *: contains the variables
 
- Returns value:C_MIN, C_MAX
+  Returns value:C_MIN, C_MAX
 
- Description:
- ------------------------------------------------------*/
+  Description:
+  ------------------------------------------------------*/
 static void AnalyzeCerebellum(STRIP_PARMS *parms,
                               MRI_variables *MRI_var, 
                               float & mean, 
@@ -2575,90 +2606,109 @@ static void AnalyzeCerebellum(STRIP_PARMS *parms,
 
 
 /*-----------------------------------------------------
- FUNCTION FindSeedPrior
+  FUNCTION FindSeedPrior
 
- Parameters:
- STRIP_PARMS *:contains the parameters for the prog
- MRI_variables *: contains the variables
+  Parameters:
+  STRIP_PARMS *:contains the parameters for the prog
+  MRI_variables *: contains the variables
 
- Returns value:void
+  Returns value:void
 
- Description:
- ------------------------------------------------------*/
+  Description:
+  ------------------------------------------------------*/
 
- static void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
-   int i,j,k,n=0, cbm;
-   int xp, yp, zp, save=0;
-   double vox;
-   MRI *MRI_seedpoint;
-   int seeds[50][3];
-   float mean_cer, var_cer;
-   int number_seed = 20;
+static void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
+  int i,j,k,n=0, cbm;
+  int xp, yp, zp, save=0;
+  double vox;
+  MRI *MRI_seedpoint;
+  int seeds[50][3];
+  float mean_cer, var_cer;
+  int number_seed = 20;
 
-   AnalyzeCerebellum(parms,MRI_var,mean_cer, var_cer);
+  AnalyzeCerebellum(parms,MRI_var,mean_cer, var_cer);
   
-   fprintf(stdout,"\n      Looking for seedpoints ");
+  fprintf(stdout,"\n      Looking for seedpoints ");
 
-   for (k=2;k<MRI_var->depth-2;k++)
-     for (j=2;j<MRI_var->height-2;j++)
-       for (i=2;i<MRI_var->width-2;i++) {
-	 if (n<2){
-	   vox = MRIvox(MRI_var->mri_src,i,j,k);
-	   GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, parms->transform, i, j, k, &xp, &yp, &zp);
-	   if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128    &&  DistanceToSeeds(i,j,k,seeds,n)>10) 
-             if (vox <mean_cer+var_cer/2 && vox >mean_cer-var_cer/2 && MRIgetVoxVal(parms->mri_atlas_cerebellum, xp, yp, zp, 0)>0.9 ){
-	       seeds[n][0] = i;
-	       seeds[n][1] = j;
-	       seeds[n][2] = k;
-	       n++;
-	     } 
-	 }
-       }
-   fprintf(stdout,"\n        %i found in the cerebellum ", n);
-   cbm = n;
+  for (k=2;k<MRI_var->depth-2;k++)
+    for (j=2;j<MRI_var->height-2;j++)
+      for (i=2;i<MRI_var->width-2;i++) {
+        if (n<2){
+          vox = MRIvox(MRI_var->mri_src,i,j,k);
+          GCAsourceVoxelToPrior(parms->gca, 
+                                MRI_var->mri_src, 
+                                parms->transform, 
+                                i, j, k, 
+                                &xp, &yp, &zp);
+          if (xp>0 && yp>0 && zp>0 && 
+              xp<128 && yp<128 && zp<128 &&  
+              DistanceToSeeds(i,j,k,seeds,n)>10) 
+            if (vox <mean_cer+var_cer/2 && 
+                vox >mean_cer-var_cer/2 && 
+                MRIgetVoxVal(parms->mri_atlas_cerebellum, 
+                             xp, yp, zp, 0)>0.9 ){
+              seeds[n][0] = i;
+              seeds[n][1] = j;
+              seeds[n][2] = k;
+              n++;
+            } 
+        }
+      }
+  fprintf(stdout,"\n        %i found in the cerebellum ", n);
+  cbm = n;
 
-   for (k=2;k<MRI_var->depth-2;k++)
-     for (j=2;j<MRI_var->height-2;j++)
-       for (i=2;i<MRI_var->width-2;i++) {
-	 if (n<number_seed){
-	   vox = MRIvox(MRI_var->mri_src,i,j,k);
-	     if (vox>=MRI_var->WM_MIN && vox<=MRI_var->WM_MAX && DistanceToSeeds(i,j,k,seeds,n)>40){
-	     GCAsourceVoxelToPrior(parms->gca, MRI_var->mri_src, parms->transform, i, j, k, &xp, &yp, &zp);
-	     if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128) {
-	       if (MRIgetVoxVal(parms->mri_atlas_brain, xp, yp, zp, 0)>0.995){ 
-		 seeds[n][0] = i;
-		 seeds[n][1] = j;
-		 seeds[n][2] = k;
-		 n++;
-	       }
-	     }
-	   }
-	 }
-       }
-   fprintf(stdout,"\n        %i found in the rest of the brain ", n-cbm);
+  for (k=2;k<MRI_var->depth-2;k++)
+    for (j=2;j<MRI_var->height-2;j++)
+      for (i=2;i<MRI_var->width-2;i++) {
+        if (n<number_seed){
+          vox = MRIvox(MRI_var->mri_src,i,j,k);
+          if (vox>=MRI_var->WM_MIN && 
+              vox<=MRI_var->WM_MAX && 
+              DistanceToSeeds(i,j,k,seeds,n)>40){
+            GCAsourceVoxelToPrior(parms->gca, 
+                                  MRI_var->mri_src, 
+                                  parms->transform, 
+                                  i, j, k, 
+                                  &xp, &yp, &zp);
+            if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128) {
+              if (MRIgetVoxVal(parms->mri_atlas_brain, xp, yp, zp, 0)>0.995){ 
+                seeds[n][0] = i;
+                seeds[n][1] = j;
+                seeds[n][2] = k;
+                n++;
+              }
+            }
+          }
+        }
+      }
+  fprintf(stdout,"\n        %i found in the rest of the brain ", n-cbm);
   
-   if (save){		// an easy way to take a look of the seeds we've found
-     MRI_seedpoint = MRIalloc(MRI_var->width, MRI_var->height, MRI_var->depth, (MRI_var->mri_src)->type) ;
+  if (save){		// an easy way to take a look of the seeds we've found
+    MRI_seedpoint = MRIalloc(MRI_var->width, 
+                             MRI_var->height, 
+                             MRI_var->depth, 
+                             (MRI_var->mri_src)->type) ;
 
-     for (k=2;k<MRI_var->depth-2;k++)
-       for (j=2;j<MRI_var->height-2;j++)
-	 for (i=2;i<MRI_var->width-2;i++) {
-	 vox = DistanceToSeeds(i,j,k,seeds,n);
-	 if (vox<5 && vox>2)
-           MRIsetVoxVal(MRI_seedpoint, i, j, k, 0, 0);
-	 else
-           MRIsetVoxVal(MRI_seedpoint, i, j, k, 0, MRIgetVoxVal(MRI_var->mri_src, i, j, k, 0));
-	 }
+    for (k=2;k<MRI_var->depth-2;k++)
+      for (j=2;j<MRI_var->height-2;j++)
+        for (i=2;i<MRI_var->width-2;i++) {
+          vox = DistanceToSeeds(i,j,k,seeds,n);
+          if (vox<5 && vox>2)
+            MRIsetVoxVal(MRI_seedpoint, i, j, k, 0, 0);
+          else
+            MRIsetVoxVal(MRI_seedpoint, i, j, k, 0, 
+                         MRIgetVoxVal(MRI_var->mri_src, i, j, k, 0));
+        }
 
-     MRIwrite(MRI_seedpoint,"  the path of the seed image  "); 
-   }
-   for (i=0;i<n;i++){
-     parms->seed_coord[parms->nb_seed_points][0] = seeds[i][0];
-     parms->seed_coord[parms->nb_seed_points][1] = seeds[i][1];
-     parms->seed_coord[parms->nb_seed_points][2] = seeds[i][2];
-     parms->nb_seed_points++;
-   } 
- } 
+    MRIwrite(MRI_seedpoint,"  the path of the seed image  "); 
+  }
+  for (i=0;i<n;i++){
+    parms->seed_coord[parms->nb_seed_points][0] = seeds[i][0];
+    parms->seed_coord[parms->nb_seed_points][1] = seeds[i][1];
+    parms->seed_coord[parms->nb_seed_points][2] = seeds[i][2];
+    parms->nb_seed_points++;
+  } 
+} 
 
 /*-----------------------------------------------------
   Parameters:
@@ -2867,13 +2917,13 @@ static int Analyze(STRIP_PARMS *parms,MRI_variables *MRI_var)
          MRI_var->i_global_min,
          MRI_var->j_global_min,
          MRI_var->k_global_min)
-  =MRI_var->int_global_min;
+    =MRI_var->int_global_min;
   for (n=0;n<parms->nb_seed_points;n++)
     MRIvox(MRI_var->mri_src,
            parms->seed_coord[n][0],
            parms->seed_coord[n][1],
            parms->seed_coord[n][2])
-    =parms->seed_coord[n][3];
+      =parms->seed_coord[n][3];
 
   fflush(stdout);
 
@@ -3307,17 +3357,17 @@ static int TRYMERGE(int i,int j, int k,MRI_variables *MRI_var)
 
 
 /*-----------------------------------------------------
- FUNCTION BASIN_PRIOR
+  FUNCTION BASIN_PRIOR
 
- Parameters:
- STRIP_PARMS *:contains the parameters for the prog
- MRI_variables *: contains the variables
+  Parameters:
+  STRIP_PARMS *:contains the parameters for the prog
+  MRI_variables *: contains the variables
 
- Returns value:void
+  Returns value:void
 
- Description: Each basin stores in prior the sum of the prior
- of being in the brain of all the voxels in the basin
- ------------------------------------------------------*/
+  Description: Each basin stores in prior the sum of the prior
+  of being in the brain of all the voxels in the basin
+  ------------------------------------------------------*/
 static void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
 {
   int i=0,j=0,k;
@@ -3378,9 +3428,9 @@ static void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
       {
         cell=&MRI_var->Basin[k][j][i];
         /*  fprintf(stdout,"\n Basin type %i ",  (unsigned long)cell->type );
-        fprintf(stdout,"    size = %ld   ", ((BasinCell*)cell->next)->size  );
-        fprintf(stdout,"    ratio = %f   ", 
-        ((BasinCell*)cell->next)->prior/((BasinCell*)cell->next)->size  */
+            fprintf(stdout,"    size = %ld   ", ((BasinCell*)cell->next)->size  );
+            fprintf(stdout,"    ratio = %f   ", 
+            ((BasinCell*)cell->next)->prior/((BasinCell*)cell->next)->size  */
         if ( cell->type ==2 && 
              ((BasinCell*)cell->next)->prior/
              ((BasinCell*)cell->next)->size > nu)
@@ -4248,12 +4298,12 @@ void MRIScomputeCloserLabel(STRIP_PARMS *parms,MRI_variables *MRI_var)
                         n1,n2,MRI_var->direction);
 
             px=mris->vertices[kv].x-(h+c)*
-               mris->vertices[kv].nx + a*n1[0]+b*n2[0];
+              mris->vertices[kv].nx + a*n1[0]+b*n2[0];
             py=mris->vertices[kv].y-(h+c)*
-               mris->vertices[kv].ny + a*n1[1]+b*n2[1];
+              mris->vertices[kv].ny + a*n1[1]+b*n2[1];
             pz=mris->vertices[kv].z-(h+c)*
-               mris->vertices[kv].nz + a*n1[2]+b*n2[2];
-            myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz); //aaaaaaaaaaaaaaaaa
+              mris->vertices[kv].nz + a*n1[2]+b*n2[2];
+            myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
             i=(int)(tx+0.5);
             j=(int)(ty+0.5);
             k=(int)(tz+0.5);
@@ -4394,11 +4444,11 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
         for (b=-1;b<2;b++)     // orthogonal to normal direction
         {
           px=mris->vertices[kv].x -rp*
-             mris->vertices[kv].nx + a*n1[0]+b*n2[0];
+            mris->vertices[kv].nx + a*n1[0]+b*n2[0];
           py=mris->vertices[kv].y -rp*
-             mris->vertices[kv].ny + a*n1[1]+b*n2[1];
+            mris->vertices[kv].ny + a*n1[1]+b*n2[1];
           pz=mris->vertices[kv].z -rp*
-             mris->vertices[kv].nz + a*n1[2]+b*n2[2];
+            mris->vertices[kv].nz + a*n1[2]+b*n2[2];
 
           myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
           i=(int)(tx+0.5);
@@ -4498,11 +4548,11 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
           for (b=-1;b<2;b++)
           {
             px=mris->vertices[kv].x-(h+c)*
-               mris->vertices[kv].nx + a*n1[0]+b*n2[0];
+              mris->vertices[kv].nx + a*n1[0]+b*n2[0];
             py=mris->vertices[kv].y-(h+c)*
-               mris->vertices[kv].ny + a*n1[1]+b*n2[1];
+              mris->vertices[kv].ny + a*n1[1]+b*n2[1];
             pz=mris->vertices[kv].z-(h+c)*
-               mris->vertices[kv].nz + a*n1[2]+b*n2[2];
+              mris->vertices[kv].nz + a*n1[2]+b*n2[2];
             myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
             i=(int)(tx+0.5);
             j=(int)(ty+0.5);
@@ -4582,14 +4632,14 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
           for (b=-1;b<2;b++)
           {
             px=mris->vertices[kv].x -
-               c*mris->vertices[kv].nx +
-               a*n1[0] + b*n2[0];
+              c*mris->vertices[kv].nx +
+              a*n1[0] + b*n2[0];
             py=mris->vertices[kv].y -
-               c*mris->vertices[kv].ny +
-               a*n1[1] + b*n2[1];
+              c*mris->vertices[kv].ny +
+              a*n1[1] + b*n2[1];
             pz=mris->vertices[kv].z -
-               c*mris->vertices[kv].nz +
-               a*n1[2] + b*n2[2];
+              c*mris->vertices[kv].nz +
+              a*n1[2] + b*n2[2];
             myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
             i=(int)(tx+0.5);
             j=(int)(ty+0.5);
@@ -5321,7 +5371,7 @@ static void shrinkstep(MRI_variables *MRI_var)
   double x,y,z,rx,ry,rz;
   double tx,ty,tz;
   float xmin=MRI_var->width,\
-             xmax=0,ymin=MRI_var->height,ymax=0,zmin=MRI_var->depth,zmax=0;
+    xmax=0,ymin=MRI_var->height,ymax=0,zmin=MRI_var->depth,zmax=0;
   MRIS *mris;
 
   mris=MRI_var->mris;
@@ -5581,7 +5631,7 @@ static void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
       dbuff=0;
       for (n=0;n<4;n++)
         dbuff+=SQR(dist[k][n][0]-d10m[0])+SQR(dist[k][n][1]-d10m[1])+
-               SQR(dist[k][n][2]-d10m[2]);
+          SQR(dist[k][n][2]-d10m[2]);
 
       d10+=dbuff/4;
 
@@ -6047,7 +6097,7 @@ static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src)
       dbuff=0;
       for (n=0;n<4;n++)
         dbuff+=SQR(dist[k][n][0]-d10m[0])+SQR(dist[k][n][1]-d10m[1])+
-               SQR(dist[k][n][2]-d10m[2]);
+          SQR(dist[k][n][2]-d10m[2]);
 
       d10+=dbuff/4;
 
@@ -6705,9 +6755,9 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
                          int nangles)
 {
   double   alpha, beta, gamma, degrees, delta, mina, minb, ming,
-  sse, min_sse ;
+    sse, min_sse ;
   int      curv_old_status = mris_curv->status
-                             ,dist_old_status=mris_dist->status ;
+    ,dist_old_status=mris_dist->status ;
 
   //to stop the compilator warnings !
   min_sse=0;
@@ -6871,11 +6921,11 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,
   {
     sse=SQR(mris_curv->vertices[k].curv -
             MRI_var->mris_curv->vertices[k].curv)
-        /MRI_var->mris_var_curv->vertices[k].curv;
+      /MRI_var->mris_var_curv->vertices[k].curv;
 
     sse += SQR(mris_dCOG->vertices[k].curv -
                MRI_var->mris_dCOG->vertices[k].curv)
-           /MRI_var->mris_var_dCOG->vertices[k].curv; // actually dCOG value
+      /MRI_var->mris_var_dCOG->vertices[k].curv; // actually dCOG value
 
     sse/=2.;
     mean_sse+=sse;
@@ -7071,7 +7121,7 @@ static void MRISscaleFields(MRIS *mris_src,MRIS *mris_fdst,
     for (k=0;k<mris_src->nvertices;k++)
     {
       sse=SQR(mris_src->vertices[k].curv-mris1->vertices[k].curv)
-          /mris2->vertices[k].curv;
+        /mris2->vertices[k].curv;
       if (sse<10.)
       {
         tp=mris_src->vertices[k].curv;
@@ -7374,7 +7424,7 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
       // difference between a cog distance of a particular vertex from a
       // template vs. a cog distance of a current vertex
       force3=(MRI_var->mris_dCOG->vertices[k].curv-dCOG)/
-             sqrt(MRI_var->mris_var_dCOG->vertices[k].curv);
+        sqrt(MRI_var->mris_var_dCOG->vertices[k].curv);
 
       force3=0.5*tanh(2*force3);
 
@@ -7513,7 +7563,7 @@ static void MRISCorrectSurface(MRI_variables *MRI_var)
       dbuff=0;
       for (n=0;n<4;n++)
         dbuff+=SQR(dist[k][n][0]-d10m[0])+SQR(dist[k][n][1]-d10m[1])+
-               SQR(dist[k][n][2]-d10m[2]);
+          SQR(dist[k][n][2]-d10m[2]);
 
       d10+=dbuff/4;
 
@@ -7691,8 +7741,8 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
     nz = zw1 - zw ;
 
     /*
-       find the distance in the directions parallel and anti-parallel to
-       the surface normal in which the gradient is pointing 'inwards'.
+      find the distance in the directions parallel and anti-parallel to
+      the surface normal in which the gradient is pointing 'inwards'.
     */
     /* if atlas Mode on, use atlas information to infer the border position*/
     /*    NOT USED RIGHT NOW...
@@ -7885,7 +7935,7 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
           mrisphere->vertices[v->v[m]].ty;
         w1+=mrisphere->vertices[v->v[m]].ty;
         gm+=mrisphere->vertices[v->v[m]].tz*
-            mrisphere->vertices[v->v[m]].ty;
+          mrisphere->vertices[v->v[m]].ty;
         n++;
       }
       vsphere->x=csf/w1;
@@ -8055,7 +8105,7 @@ static double estimateNRG(MRI_variables *MRI_var ,
     dCOG=sqrt(SQR(mris->vertices[n].x-cx)+SQR(mris->vertices[n].y-cy)
               +SQR(mris->vertices[n].z-cz));
     NRG+=SQR(dCOG-MRI_var->mris_dCOG->vertices[n].curv)/
-         MRI_var->mris_var_dCOG->vertices[n].curv;
+      MRI_var->mris_var_dCOG->vertices[n].curv;
   }
   return NRG;
 }
@@ -8077,16 +8127,16 @@ static void computeGradient(MRI_variables *MRI_var,
     dCOG=sqrt(SQR(mris->vertices[n].x-cx)+SQR(mris->vertices[n].y-cy)
               +SQR(mris->vertices[n].z-cz));
     tx += (1.0-MRI_var->mris_dCOG->vertices[n].curv/dCOG)/
-          MRI_var->mris_var_dCOG->vertices[n].curv
-          *(mris->vertices[n].x-cx);
+      MRI_var->mris_var_dCOG->vertices[n].curv
+      *(mris->vertices[n].x-cx);
 
     ty += (1.0-MRI_var->mris_dCOG->vertices[n].curv/dCOG)/
-          MRI_var->mris_var_dCOG->vertices[n].curv
-          *(mris->vertices[n].y-cy);
+      MRI_var->mris_var_dCOG->vertices[n].curv
+      *(mris->vertices[n].y-cy);
 
     tz += (1.0-MRI_var->mris_dCOG->vertices[n].curv/dCOG)/
-          MRI_var->mris_var_dCOG->vertices[n].curv
-          *(mris->vertices[n].z-cz);
+      MRI_var->mris_var_dCOG->vertices[n].curv
+      *(mris->vertices[n].z-cz);
 
   }
   (*gx)=tx/(double)mris->nvertices;
@@ -8202,7 +8252,7 @@ static MRI* generateFinalMRI(MRI_variables *MRI_var)
   MRIS *mris,*mrisphere;
   int k,u,v,numu,numv,i,j,imnr;
   float x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax,dCOG,val,
-  px0,py0,pz0,px1,py1,pz1,px,py,pz;
+    px0,py0,pz0,px1,py1,pz1,px,py,pz;
   FACE *face;
   double tx,ty,tz,xCOG,yCOG,zCOG;
   int changed,new_val;
@@ -8541,7 +8591,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
 
       // coeff3
       force3=coeff3*0.25*(MRI_var->mris_dCOG->vertices[k].curv-dCOG)/
-             MRI_var->mris_var_dCOG->vertices[k].curv;
+        MRI_var->mris_var_dCOG->vertices[k].curv;
 
       mris->vertices[k].val=force3;
 
@@ -8844,7 +8894,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
       dbuff=0;
       for (n=0;n<4;n++)
         dbuff+=SQR(dist[k][n][0]-d10m[0])+SQR(dist[k][n][1]-d10m[1])+
-               SQR(dist[k][n][2]-d10m[2]);
+          SQR(dist[k][n][2]-d10m[2]);
 
       d10+=dbuff/4;
 
@@ -9510,7 +9560,7 @@ static void FitShape(MRI_variables *MRI_var,  STRIP_PARMS *parms,
                       const double &sd,
                       const double &nx, const double &ny, const double &nz,
                       MRI_variables *mri_var,  STRIP_PARMS *parms, int kv)
-                    )
+  )
 {
   float x,y,z,sx,sy,sz,sd,sxn,syn,szn,sxt,syt,szt,nc;
   double fN,fST,fSN;
