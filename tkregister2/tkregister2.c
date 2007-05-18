@@ -7,9 +7,9 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/17 23:00:36 $
- *    $Revision: 1.81 $
+ *    $Author: greve $
+ *    $Date: 2007/05/18 23:21:22 $
+ *    $Revision: 1.82 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.81 2007/05/17 23:00:36 nicks Exp $";
+"$Id: tkregister2.c,v 1.82 2007/05/18 23:21:22 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1145,6 +1145,7 @@ static int parse_commandline(int argc, char **argv) {
       }
       linxfm = &(lta->xforms[0]);
       // Assume RAS2RAS and uses vox2ras from input volumes:
+      // Note: This ignores the volume geometry in the LTA file.
       XFM = lta->xforms[0].m_L;
       mkheaderreg = 1;
       nargsused = 1;
@@ -3367,8 +3368,18 @@ void write_lta(char *fname) {
 
   getVolGeom(mov_vol,   &srcG);
   getVolGeom(targ_vol0, &dstG);
-  lta->xforms[0].src = dstG;
-  lta->xforms[0].dst = srcG;
+
+  // On 5/18/07 this was the code. It seems so obviously wrong
+  // that I wonder if I originally did it intentionally for some 
+  // reason that I now cannot remember. This only affects the 
+  // volume geometry, so any software that ignores the VG will
+  // be unaffected (eg, when reading the LTA back into tkregister2,
+  // I think scuba probably ignores it too).
+  //lta->xforms[0].src = dstG;
+  //lta->xforms[0].dst = srcG;
+  // Here's the new code
+  lta->xforms[0].src = srcG;
+  lta->xforms[0].dst = dstG;
 
   fp = fopen(fname,"w");
   if(!fp){
@@ -4423,7 +4434,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.81 2007/05/17 23:00:36 nicks Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.82 2007/05/18 23:21:22 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
