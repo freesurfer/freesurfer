@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/11 18:51:05 $
- *    $Revision: 1.45 $
+ *    $Date: 2007/05/18 17:12:05 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-"$Id: mris_anatomical_stats.c,v 1.45 2007/05/11 18:51:05 nicks Exp $";
+"$Id: mris_anatomical_stats.c,v 1.46 2007/05/18 17:12:05 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -114,7 +114,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.45 2007/05/11 18:51:05 nicks Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.46 2007/05/18 17:12:05 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1048,8 +1048,8 @@ print_help(void)
   fprintf
     (stderr,
      "-f <tablefile>               - table output to a file named tablefile\n"
-     "                               (different format than -b)\n"
-     "                               must specify an annotation file with -a");
+     "                               (different format than -b) must specify\n"
+     "                               an annotation file with -a\n");
   fprintf
     (stderr,
      "-log <log>                   - will write the stats into a file\n"
