@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/05/17 03:31:32 $
- *    $Revision: 1.124 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/18 19:59:37 $
+ *    $Revision: 1.125 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -496,7 +496,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.124 2007/05/17 03:31:32 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.125 2007/05/18 19:59:37 nicks Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -844,6 +844,9 @@ int main(int argc, char **argv) {
   if (Xcond > 10000) {
     printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",
            Xcond);
+    printf("Possible problem with experimental design:\n");
+    printf("Check for duplicate entries and/or lack of range of\n"
+           "continuous variables within a class.\n");
     MatrixPrint(stdout,mriglm->Xg);
     exit(1);
   }
@@ -853,8 +856,8 @@ int main(int argc, char **argv) {
       mriglm->pvr[n] = MRIread(pvrFiles[n]);
       if (mriglm->pvr[n] == NULL) exit(1);
       if (mriglm->pvr[n]->nframes != mriglm->Xg->rows) {
-        printf("ERROR: dimension mismatch between pvr and X.\n");
-        printf("  pvr has %d frames, X has %d rows.\n",
+        printf("ERROR: dimension mismatch between pvr and X. ");
+        printf("pvr has %d frames, X has %d rows.\n",
                mriglm->pvr[n]->nframes,mriglm->Xg->rows);
         printf("PVR %d %s\n",n,pvrFiles[n]);
         exit(1);
