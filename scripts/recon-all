@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/18 01:14:06 $
-#    $Revision: 1.100 $
+#    $Date: 2007/05/18 22:09:02 $
+#    $Revision: 1.101 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.100 2007/05/18 01:14:06 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.101 2007/05/18 22:09:02 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -77,6 +77,7 @@ set WSMore    = 0;      # Expands skull surface
 set WSPctPreFlood = (); # Pre-flooding height
 set WSSeedPoint = ();   # C R S
 set WSAtlas     = 0;    # 0=don't use atlas, 1=use atlas (for skull strip)
+set WSGcaAtlas  = 1;    # 1=use GCA atlas and registration to do skull strip
 set NuIterations = 2;   # Number of iterations for nu intensity correction
 set HiRes = ();         # hires option (currently only conformed to min)
 set Norm3dIters = ();   # passed as -n to mri_normalize
@@ -873,6 +874,29 @@ skullstrip:
   set cmd = (mri_watershed)
   set BM  = brainmask.mgz
 
+  if ($WSGcaAtlas || $DoMultiStrip) then
+    # if using the GCA atlas to help with the skull-strip, then run the 
+    # GCA registration (mri_em_register) to align to an atlas with a skull,
+    # unless that file already exists
+    if ( ! -e transforms/talairach_nu_skull.lta || $DoCleanBM ) then
+      set xopts2 = `fsr-getxopts mri_em_register $XOptsFile`;
+      set cmd2 = (mri_em_register)
+      set cmd2 = ($cmd2 -skull)
+      set cmd2 = ($cmd2 $xopts2 nu.mgz $FREESURFER_HOME/average/$GCASkull)
+      set cmd2 = ($cmd2 transforms/talairach_nu_skull.lta)
+      echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd2 |& tee -a $LF
+      if($status) goto error_exit;
+      echo $cmd2 > $touchdir/em_register.touch
+    endif
+
+    if ($WSGcaAtlas) then
+      # if just using -brain_atlas flag, then include necessary options
+      set opts = (-brain_atlas $FREESURFER_HOME/average/$GCASkull \
+                  transforms/talairach_nu_skull.lta $opts)
+    endif
+  endif
+
   if($DoMultiStrip) then
 
     # when DoMultiStrip is enabled, multiple instances of mri_watershed are
@@ -937,17 +961,6 @@ skullstrip:
     endif
     echo $cmd > $touchdir/skull_strip.touch
 
-    # now GCA registration (mri_em_register) is run to align to an atlas
-    # with a skull
-    set cmd = (mri_em_register)
-    set cmd = ($cmd -skull)
-    set cmd = ($cmd $xopts nu.mgz $FREESURFER_HOME/average/$GCASkull)
-    set cmd = ($cmd transforms/talairach_nu_skull.lta)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/em_register.touch
-
     # calculate a measure of skull-strip performance (mri_log_likelihood):
     ll_calc:
     set max_ll = -9999999999;
@@ -1005,7 +1018,8 @@ skullstrip:
 
   else
 
-    # single-job skull-strip
+    # single-job skull-strip (default)
+
     set BMA = brainmask.auto.mgz
     if(-e $BMA && -e $BM && ! $DoCleanBM) set cmd = ($cmd -keep $BMA $BM $BM)
     set INVOL = T1
@@ -2520,6 +2534,10 @@ while( $#argv != 0 )
       set WSSeedPoint = ($argv[1] $argv[2] $argv[3]);
       shift;shift;shift;
       breaksw
+    case "-wsgcaatlas":
+      set WSGcaAtlas = 1; breaksw
+    case "-no-wsgcaatlas":
+      set WSGcaAtlas = 0; breaksw
 
     case "-seg-wlo"
       if( $#argv < 1) goto arg1err;
