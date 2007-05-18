@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/17 19:21:20 $
-#    $Revision: 1.99 $
+#    $Date: 2007/05/18 01:14:06 $
+#    $Revision: 1.100 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.99 2007/05/17 19:21:20 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.100 2007/05/18 01:14:06 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -139,7 +139,7 @@ set regfile = ();        # registration file to align tp1 to current subj
 set REG_METHOD    = fsl_rigid
 set REG_COST      = corratio
 set REG_DOF       = 6
-set REG_FILE_TYPE = orig
+set REG_FILE_TYPE = norm
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -1101,7 +1101,7 @@ if ($longitudinal) then
     set cmd = (fsl_rigid_register -cost $REG_COST \
         -i $tp1dir/mri/${REG_FILE_TYPE}.mgz \
         -r $subjdir/mri/${REG_FILE_TYPE}.mgz \
-        -o $subjdir/mri/orig_${tp1id}_to_${subjid}.mgz \
+        -o $subjdir/mri/${REG_FILE_TYPE}_${tp1id}_to_${subjid}.mgz \
         -dof $REG_DOF \
         -ltamat $tp1dir/mri/transforms/$regfile)
   endif
@@ -4524,7 +4524,7 @@ DOF options are: 6 or 12.  The default is 6.
 -reg-file-type file_type
 
 Optionally specify the Freesurfer file-type to use in the second registration
-step: orig, brainmask, or norm.  The default is orig.
+step: orig, brainmask, or norm.  The default is norm.
 
 -no-orig-pial
 
