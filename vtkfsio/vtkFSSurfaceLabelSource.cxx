@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/16 22:41:24 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/05/18 21:35:55 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,7 @@
 
 #include <map>
 #include <vector>
+#include <sstream>
 #include <stdexcept>
 #include "vtkFSSurfaceLabelSource.h"
 #include "vtkFSSurfaceSource.h"
@@ -40,7 +41,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceLabelSource );
-vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.6 $" );
 
 vtkFSSurfaceLabelSource::vtkFSSurfaceLabelSource() :
   LabelFileName( NULL ), Mris( NULL ), Label( NULL ) {
@@ -80,19 +81,27 @@ vtkFSSurfaceLabelSource::SetOutput ( vtkPolyData* iOutput ) {
 }
 
 void
+vtkFSSurfaceLabelSource::InitializeEmptyLabel () {
+
+  // Delete existing label if present, and create a new one with 0
+  // vertices.
+  if( NULL != Label ) {
+    LabelFree( &Label );
+  }
+
+  Label = LabelAlloc( 0, "", "" );
+}
+
+void
 vtkFSSurfaceLabelSource::AddVerticesToLabel ( int icVertices, 
 					      int* iaVertices ) {
   assert( icVertices > 0 );
   assert( iaVertices );
   assert( Mris );
+  assert( Label );
 
-  // If we don't have a label make one, otherwise resize the one we
-  // have to account for the new points.
-  if( NULL == Label ) {
-    Label = LabelAlloc( icVertices, "", "" );
-  } else {
-    LabelRealloc( Label, Label->n_points + icVertices );
-  }
+  // Reallocate the label with enough points.
+  LabelRealloc( Label, Label->n_points + icVertices );
 
   // For each vertex to add...
   int nPoint = Label->n_points;
@@ -297,3 +306,21 @@ vtkFSSurfaceLabelSource::ReadLabelFile () {
     
 }
 
+void
+vtkFSSurfaceLabelSource::WriteLabelFile () {
+
+  assert( Label );
+  if( NULL == LabelFileName )
+    vtkErrorMacro( << "vtkFSSurfaceLabelSource cannot write without a label file name" );
+
+  // Write the file.
+  char* fn = strdup( LabelFileName );
+  int rLabel = LabelWrite( Label, fn );
+  free( fn );
+
+  if( rLabel != 0 ) {
+    stringstream ssError;
+    ssError << "Couldn't write the label to " << LabelFileName;
+    throw runtime_error( ssError.str().c_str() );
+  }
+}

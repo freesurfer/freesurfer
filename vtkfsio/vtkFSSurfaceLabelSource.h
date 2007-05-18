@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/16 22:12:44 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/05/18 21:35:55 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,10 @@ public:
   vtkGetMacro(Mris,MRIS*);
 
   // Description:
+  // Initialize the label to be empty.
+  void InitializeEmptyLabel ();
+
+  // Description:
   // The file name of the label to read.
   vtkSetStringMacro(LabelFileName);
   vtkGetStringMacro(LabelFileName);
@@ -70,6 +74,10 @@ public:
   // Modify the label in memory.
   void AddVerticesToLabel ( int icVertices, int* iaVertices );
   void RemoveVerticesFromLabel ( int icVertices, int* iaVertices );
+
+  // Description:
+  // Use LabelWrite to write the label with the current LabelFileName.
+  void WriteLabelFile ();
 
 protected:
 
