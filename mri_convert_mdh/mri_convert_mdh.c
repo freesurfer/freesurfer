@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/23 21:49:44 $
- *    $Revision: 1.22 $
+ *    $Date: 2007/05/18 00:01:34 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.22 2007/01/23 21:49:44 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.23 2007/05/18 00:01:34 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -62,6 +62,115 @@ typedef struct tagMDH {
   int IsPCN;
 }
 MDH;
+
+#define MDH_ACQEND            (1 <<  0)
+#define MDH_RTFEEDBACK        (1 <<  1)
+#define MDH_HPFEEDBACK        (1 <<  2)
+#define MDH_ONLINE            (1 <<  3)
+#define MDH_OFFLINE           (1 <<  4)
+#define MDH_SYNCDATA          (1 <<  5)   // readout contains synchronous data
+#define MDH_6                 (1 <<  6)
+#define MDH_7                 (1 <<  7)
+#define MDH_LASTSCANINCONCAT  (1 <<  8)   // Flag for last scan in concatenation
+#define MDH_9                 (1 <<  9)
+#define MDH_RAWDATACORRECTION (1 << 10)  // Correct the rawdata with the rawdata correction factor
+#define MDH_LASTSCANINMEAS    (1 << 11)  // Flag for last scan in measurement
+#define MDH_SCANSCALEFACTOR   (1 << 12)  // Flag for scan specific additional scale factor
+#define MDH_2NDHADAMARPULSE   (1 << 13)  // 2nd RF excitation of HADAMAR
+#define MDH_REFPHASESTABSCAN  (1 << 14)  // reference phase stabilization scan
+#define MDH_PHASESTABSCAN     (1 << 15)  // phase stabilization scan
+#define MDH_D3FFT             (1 << 16)  // execute 3D FFT
+#define MDH_SIGNREV           (1 << 17)  // sign reversal
+#define MDH_PHASEFFT          (1 << 18)  // execute phase fft
+#define MDH_SWAPPED           (1 << 19)  // swapped phase/readout direction
+#define MDH_POSTSHAREDLINE    (1 << 20)  // shared line
+#define MDH_PHASCOR           (1 << 21)  // phase correction data
+#define MDH_PATREFSCAN        (1 << 22)  // additional scan for PAT reference line/partition
+#define MDH_PATREFANDIMASCAN  (1 << 23)  // additional scan for PAT reference line/partition also used as image scan
+#define MDH_REFLECT           (1 << 24)  // reflect line
+#define MDH_NOISEADJSCAN      (1 << 25)  // noise adjust scan --> Not used in NUM4
+#define MDH_SHARENOW          (1 << 26)  // all lines are acquired from the actual and previous e.g. phases
+#define MDH_LASTMEASUREDLINE  (1 << 27)  // current line is the last measured line of all succeeding e.g. phases
+#define MDH_FIRSTSCANINSLICE  (1 << 28)  // indicates first scan in slice (needed for time stamps)
+#define MDH_LASTSCANINSLICE   (1 << 29)  // indicates last scan in slice (needed for time stamps)
+#define MDH_TREFFECTIVEBEGIN  (1 << 30)  // indicates the begin time stamp for TReff (triggered measurement)
+#define MDH_TREFFECTIVEEND    (1 << 31)  // indicates the end time stamp for TReff (triggered measurement)
+
+// Not sure about these 32
+#define MDH_32
+#define MDH_33
+#define MDH_34
+#define MDH_35
+#define MDH_36
+#define MDH_37
+#define MDH_38
+#define MDH_39
+#define MDH_FIRST_SCAN_IN_BLADE       (1 <<  9)  // Marks the first line of a blade
+#define MDH_LAST_SCAN_IN_BLADE        (1 << 10)  // Marks the last line of a blade
+#define MDH_LAST_BLADE_IN_TR          (1 << 11)  // Set for all lines of the last BLADE in each TR interval
+#define MDH_43
+#define MDH_44
+#define MDH_RETRO_LASTPHASE           (1 << 12)  // Marks the last phase in a heartbeat
+#define MDH_RETRO_ENDOFMEAS           (1 << 13)  // Marks an ADC at the end of the measurement
+#define MDH_RETRO_REPEATTHISHEARTBEAT (1 << 14)  // Repeat the current heartbeat when this bit is found
+#define MDH_RETRO_REPEATPREVHEARTBEAT (1 << 15)  // Repeat the previous heartbeat when this bit is found
+#define MDH_RETRO_ABORTSCANNOW        (1 << 16)  // Just abort everything
+#define MDH_RETRO_LASTHEARTBEAT       (1 << 17)  // This adc is from the last heartbeat (a dummy)
+#define MDH_RETRO_DUMMYSCAN           (1 << 18)  // This adc is just a dummy scan, throw it away
+#define MDH_RETRO_ARRDETDISABLED      (1 << 19)  // Disable all arrhythmia detection when this bit is found
+
+
+// This should all add up to 128
+typedef struct tagMDH_VB13 {
+  unsigned long   ulFlagsAndDMALength;
+  long             lMeasUID;
+  unsigned long   ulScanCounter;
+  unsigned long   ulTimeStamp;     // Multiply by 2.5 to get msec
+  unsigned long   ulPMUTimeStamp;  // Multiply by 2.5 to get msec
+  unsigned long  aulEvalInfoMask[2];
+  unsigned short ushSamplesInScan ;
+  unsigned short ushUsedChannels;
+  unsigned short ushLine;
+  unsigned short ushAcquisition; // note: acquisition is same as average (JP)
+  unsigned short ushSlice;
+  unsigned short ushPartition;;
+  unsigned short ushEcho;
+  unsigned short ushPhase;
+  unsigned short ushRepetition;
+  unsigned short ushSet;
+  unsigned short ushSeg;
+  unsigned short ushIda;
+  unsigned short ushIdb;
+  unsigned short ushIdc;
+  unsigned short ushIdd;
+  unsigned short ushIde;
+
+  unsigned short ushPre;
+  unsigned short ushPost;
+  unsigned short ushKSpaceCentreColumn;
+  unsigned short ushDummy;
+
+  float              fReadOutOffcenter;
+  unsigned long    ulTimeSinceLastRF;
+
+  unsigned short  ushKSpaceCentreLineNo;
+  unsigned short  ushKSpaceCentrePartitionNo;
+  unsigned short aushIceProgramPara[4];
+  unsigned short aushFreePara[4];
+
+  float             fSag;
+  float             fCor;
+  float             fTra;
+  float            afQuaternion[4];
+
+  unsigned short  ushChannelId;
+  unsigned short  ushPTABPosNeg;
+}
+MDH_VB13;
+
+int PrintMDH_VB13r(FILE *fp, MDH_VB13 *mdh);
+int DumpMDH_VB13(char *measfile);
+int ConvertMDH_VB13(char *measfile, char *outbase);
 
 int PrintMiniHeader(FILE *fp, MDH *mdh);
 MDH *ReadMiniHeader(FILE *fp, MDH *mdh, int mdhversion);
@@ -141,8 +250,14 @@ int main(int argc, char **argv) {
   MDH *mdh = NULL;
   int nargs;
 
+  ConvertMDH_VB13(argv[1],argv[2]);
+
+  //printf("MDH13 %d\n",sizeof(MDH_VB13));
+  //DumpMDH_VB13(argv[1]);
+  return(0);
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.22 2007/01/23 21:49:44 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.23 2007/05/18 00:01:34 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1891,5 +2006,238 @@ int MDHloadEchoChan(char *measout, int ChanId, int EchoId, int nReps,
   printf("\n");
 
   fclose(fp);
+  return(0);
+}
+int PrintMDH_VB13(FILE *fp, MDH_VB13 *mdh)
+{
+  fprintf(fp,"ulFlagsAndDMALength %ld \n",mdh->ulFlagsAndDMALength);
+  fprintf(fp,"lMeasUID            %ld\n",mdh->lMeasUID);
+  fprintf(fp,"ulScanCounter       %ld\n",mdh->ulScanCounter);
+  fprintf(fp,"ulTimeStamp         %ld\n",mdh->ulTimeStamp);
+  fprintf(fp,"ulPMUTimeStamp      %ld\n",mdh->ulPMUTimeStamp);
+  fprintf(fp,"aulEvalInfoMask1    %lx\n",mdh->aulEvalInfoMask[0]);
+  fprintf(fp,"aulEvalInfoMask2    %lx\n",mdh->aulEvalInfoMask[1]);
+  fprintf(fp,"ushSamplesInScan    %d\n",mdh->ushSamplesInScan);
+  fprintf(fp,"ushUsedChannels     %d\n",mdh->ushUsedChannels);
+  fprintf(fp,"ushLine             %d\n",mdh->ushLine);
+  fprintf(fp,"ushAcquisition      %d\n",mdh->ushAcquisition);
+  fprintf(fp,"ushSlice            %d\n",mdh->ushSlice);
+  fprintf(fp,"ushPartition        %d\n",mdh->ushPartition);
+  fprintf(fp,"ushEcho             %d\n",mdh->ushEcho);
+  fprintf(fp,"ushPhase            %d\n",mdh->ushPhase);
+  fprintf(fp,"ushRepetition       %d\n",mdh->ushRepetition);
+  fprintf(fp,"ushSet              %d\n",mdh->ushSet);
+  fprintf(fp,"ushSeg              %d\n",mdh->ushSeg);
+  fprintf(fp,"ushIda              %d\n",mdh->ushIda);
+  fprintf(fp,"ushIdb              %d\n",mdh->ushIdb);
+  fprintf(fp,"ushIdc              %d\n",mdh->ushIdc);
+  fprintf(fp,"ushIdd              %d\n",mdh->ushIdd);
+  fprintf(fp,"ushIde              %d\n",mdh->ushIde);
+
+  fprintf(fp,"ushPre              %d\n",mdh->ushPre);
+  fprintf(fp,"ushPost             %d\n",mdh->ushPost);
+  fprintf(fp,"ushKSpaceCentreColumn %d\n",mdh->ushKSpaceCentreColumn);
+  fprintf(fp,"ushDummy            %d\n",mdh->ushDummy);
+
+  fprintf(fp,"fReadOutOffcenter   %f\n",mdh->fReadOutOffcenter);
+  fprintf(fp,"ulTimeSinceLastRF   %ld\n",mdh->ulTimeSinceLastRF);
+
+  fprintf(fp,"ushKSpaceCentreLineNo %d\n",mdh->ushKSpaceCentreLineNo);
+  fprintf(fp,"ushKSpaceCentrePartitionNo %d\n",mdh->ushKSpaceCentrePartitionNo);
+  fprintf(fp,"aushIceProgramPara1 %d\n",mdh->aushIceProgramPara[0]);
+  fprintf(fp,"aushIceProgramPara2 %d\n",mdh->aushIceProgramPara[1]);
+  fprintf(fp,"aushIceProgramPara3 %d\n",mdh->aushIceProgramPara[2]);
+  fprintf(fp,"aushIceProgramPara4 %d\n",mdh->aushIceProgramPara[3]);
+  fprintf(fp,"aushFreePara1       %d\n",mdh->aushFreePara[0]);
+  fprintf(fp,"aushFreePara2       %d\n",mdh->aushFreePara[1]);
+  fprintf(fp,"aushFreePara3       %d\n",mdh->aushFreePara[2]);
+  fprintf(fp,"aushFreePara4       %d\n",mdh->aushFreePara[3]);
+
+  fprintf(fp,"fSag                %f\n",mdh->fSag);
+  fprintf(fp,"fCor                %f\n",mdh->fCor);
+  fprintf(fp,"fTra                %f\n",mdh->fTra);
+  fprintf(fp,"afQuaternion1       %f\n",mdh->afQuaternion[0]);
+  fprintf(fp,"afQuaternion2       %f\n",mdh->afQuaternion[1]);
+  fprintf(fp,"afQuaternion3       %f\n",mdh->afQuaternion[2]);
+  fprintf(fp,"afQuaternion4       %f\n",mdh->afQuaternion[3]);
+
+  fprintf(fp,"ushChannelId        %d\n",mdh->ushChannelId);
+  fprintf(fp,"ushPTABPosNeg       %d\n",mdh->ushPTABPosNeg);
+
+  return(0);
+
+}
+
+int DumpMDH_VB13(char *measfile)
+{
+  FILE *fp;
+  long offset;
+  MDH_VB13 mdh;
+  int nread,sz,ADCSizeBytes,n, isPCN;
+  long nth;
+
+  sz = sizeof(MDH_VB13);
+
+  fp = fopen(measfile,"r");
+  if(fp == NULL){
+    printf("ERROR: opening %s\n",measfile);
+    return(1);
+  }
+  fread(&offset,sizeof(long),1, fp);
+  printf("offset = %ld\n",offset);
+  fseek(fp,offset,SEEK_SET);
+
+  nth = 0;
+  while(1){
+    nread = fread(&mdh,sz,1,fp);
+    if(nread != 1) break;
+    printf("%6ld -----------------------\n",nth);
+    PrintMDH_VB13(stdout, &mdh);
+
+    printf("BM  ");
+    for (n = 0; n < 32; n++) printf("%d ",n%10);
+    printf("\n");
+    printf("BM1 ");
+    for (n = 0; n < 32; n++) printf("%ld ",(mdh.aulEvalInfoMask[0] >> n)&1);
+    printf("\n");
+    printf("BM2 ");
+    for (n = 0; n < 32; n++) printf("%ld ",(mdh.aulEvalInfoMask[1] >> n)&1);
+    printf("\n");
+
+    if(mdh.aulEvalInfoMask[0] & MDH_BM_PHASECOR){
+      if(mdh.aulEvalInfoMask[0] & MDH_ONLINE) isPCN = 2;
+      else isPCN = 1;
+    }
+    else isPCN = 0;
+    printf("PCN %d\n",isPCN);
+
+    ADCSizeBytes = mdh.ushSamplesInScan*2*sizeof(float); // 2 = real/imag, 4 = float
+    fseek(fp,ADCSizeBytes,SEEK_CUR);
+    nth = nth + 1;
+  }
+  fclose(fp);
+
+  return(0);
+}
+
+int ConvertMDH_VB13(char *measfile, char *outbase)
+{
+  FILE *fp, *fpkd, *fpki, *fppd, *fppi;
+  long offset;
+  MDH_VB13 mdh;
+  int nread,sz,ADCSizeBytes, isPCN, err;
+  long nth;
+  char *outdir;
+  char tmpstr[1000];
+  float ADC[1000];
+
+  sz = sizeof(MDH_VB13);
+
+  // Open the input meas.dat file
+  fp = fopen(measfile,"r");
+  if(fp == NULL){
+    printf("ERROR: opening %s\n",measfile);
+    return(1);
+  }
+  fread(&offset,sizeof(long),1, fp);
+  printf("offset = %ld\n",offset);
+  fseek(fp,offset,SEEK_SET);
+
+  // Create the output dir
+  outdir = fio_dirname(outbase);
+  err = mkdir(outdir,0777);
+  if(err != 0 && errno != EEXIST) {
+    printf("ERROR: creating directory %s\n",outdir);
+    perror(NULL);
+    return(1);
+  }
+  free(outdir);
+
+  // Need four output files:
+  sprintf(tmpstr,"%s-kdata.dat",outbase);
+  fpkd = fopen(tmpstr,"w");
+  if(fpkd == NULL){
+    printf("ERROR: creating opening %s\n",tmpstr);
+    perror(NULL);
+    return(1);
+  }
+  sprintf(tmpstr,"%s-kdata.info",outbase);
+  fpki = fopen(tmpstr,"w");
+  if(fpki == NULL){
+    printf("ERROR: creating opening %s\n",tmpstr);
+    perror(NULL);
+    return(1);
+  }
+  sprintf(tmpstr,"%s-kpcn.dat",outbase);
+  fppd = fopen(tmpstr,"w");
+  if(fppd == NULL){
+    printf("ERROR: creating opening %s\n",tmpstr);
+    perror(NULL);
+    return(1);
+  }
+  sprintf(tmpstr,"%s-kpcn.info",outbase);
+  fppi = fopen(tmpstr,"w");
+  if(fppi == NULL){
+    printf("ERROR: creating opening %s\n",tmpstr);
+    perror(NULL);
+    return(1);
+  }
+
+  nth = -1;
+  while(1){
+    nth = nth + 1;
+
+    nread = fread(&mdh,sz,1,fp);
+    if(nread != 1) {
+      printf("WARNING: MDH: unexpected end of file, nth = %ld\n",nth);
+      break;
+    }
+    if(mdh.aulEvalInfoMask[0] & MDH_ACQEND) break;
+
+    if(mdh.aulEvalInfoMask[0] & MDH_BM_PHASECOR){
+      if(mdh.aulEvalInfoMask[0] & MDH_ONLINE) isPCN = 2;
+      else isPCN = 1;
+    }
+    else isPCN = 0;
+
+    ADCSizeBytes = mdh.ushSamplesInScan*2*sizeof(float);
+
+    if(isPCN == 0) {
+      // Chan Echo Line Part Slice Rep (Seg?) CELPSR
+      fprintf(fpki,"%3d %3d %3d %3d %3d %3d\n",
+	      mdh.ushChannelId,mdh.ushEcho,mdh.ushLine,mdh.ushPartition,
+	      mdh.ushSlice,mdh.ushRepetition);
+      nread = fread(ADC,ADCSizeBytes,1,fp);
+      if(nread != 1) {
+	printf("WARNING: DATA: unexpected end of file, nth = %ld\n",nth);
+	break;
+      }
+      fwrite(ADC,ADCSizeBytes,1,fpkd);
+    }
+
+    if(isPCN == 1) {
+      // Chan Echo Line Part Slice Rep (Seg?)
+      fprintf(fppi,"%3d %3d %3d %3d %3d %3d\n",
+	      mdh.ushChannelId,mdh.ushEcho,mdh.ushLine,mdh.ushPartition,
+	      mdh.ushSlice,mdh.ushRepetition);
+      nread = fread(ADC,ADCSizeBytes,1,fp);
+      if(nread != 1) {
+	printf("WARNING: PCN1: unexpected end of file, nth = %ld\n",nth);
+	break;
+      }
+      fwrite(ADC,ADCSizeBytes,1,fppd);
+    }
+
+    if(isPCN == 2) fseek(fp,ADCSizeBytes,SEEK_CUR);
+  }
+
+  printf("INFO: found %ld MDHs\n",nth);
+
+  fclose(fp);
+  fclose(fpkd);
+  fclose(fpki);
+  fclose(fppd);
+  fclose(fppi);
+
   return(0);
 }
