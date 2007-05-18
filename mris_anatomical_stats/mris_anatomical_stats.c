@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/18 17:12:05 $
- *    $Revision: 1.46 $
+ *    $Date: 2007/05/18 19:38:50 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-"$Id: mris_anatomical_stats.c,v 1.46 2007/05/18 17:12:05 nicks Exp $";
+"$Id: mris_anatomical_stats.c,v 1.47 2007/05/18 19:38:50 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -91,6 +91,17 @@ static int nsmooth = 0;
 static char *white_name = "white" ;
 static char *pial_name = "pial" ;
 
+// this mini colortable is used when just a label is specified
+static const COLOR_TABLE_ENTRY unknown = 
+{"unknown", 0,0,0,255, 0,0,0,255};
+static COLOR_TABLE_ENTRY userLabel = 
+{ "user label name gets copied here                   ", 
+  220,20,20,255, 0.8,0.08,0.08,1};
+static const CTE *entries[2] = {&unknown, &userLabel};
+static const COLOR_TABLE miniColorTable = 
+{(CTE**)entries, 2, "miniColorTable", 2};
+
+
 int
 main(int argc, char *argv[])
 {
@@ -114,7 +125,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.46 2007/05/18 17:12:05 nicks Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.47 2007/05/18 19:38:50 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -146,10 +157,11 @@ main(int argc, char *argv[])
     usage_exit() ;
   }
 
-  if (tablefile && NULL==annotation_name)
+  if (tablefile && ((NULL==annotation_name) && (NULL==label_name)))
   {
-    fprintf(stderr,
-            "\nMust specify an annotation file when using -f option\n\n");
+    fprintf
+      (stderr,
+       "\nMust specify an annotation or label file when using -f option\n\n");
     usage_exit() ;
   }
 
@@ -264,21 +276,74 @@ main(int argc, char *argv[])
       CTABwriteFileASCII(mris->ct,annotctabfile);
     }
   }
-  printf(" ... done.\n") ;
+  printf(" done.\n") ;
 
   if (label_name)
   {
-    LABEL  *area ;
+    LABEL  *label;
     char   fname[STRLEN] ;
 
     sprintf(fname, "%s/%s/label/%s", sdir, sname, label_name) ;
 
-    area = LabelRead(NULL, fname) ;
-    if (!area)
+    label = LabelRead(NULL, fname) ;
+    if (!label)
       ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", sname) ;
-    LabelRipRestOfSurface(area, mris) ;
-    LabelFree(&area) ;
+    LabelRipRestOfSurface(label, mris) ;
     MRIScomputeMetricProperties(mris) ;
+
+    /*
+     * if working with one label comparison, we need to give the surface 
+     * vertices cooresponding to the labled vertices an annotation; 
+     * also check that the  x,y,z is valid for this surface label
+     */
+
+    // give this surface the special two-item colortable
+    mris->ct = (CT*)&miniColorTable;
+    
+    strcpy(userLabel.name,label_name);
+    
+    int label_index=0;
+    int label_annot=0;
+    CTABfindName(mris->ct, userLabel.name, &label_index);
+    CTABannotationAtIndex(mris->ct,label_index,&label_annot);
+
+    int unknown_index=0;
+    int unknown_annot=0;
+    CTABfindName(mris->ct, "unknown", &unknown_index);
+    CTABannotationAtIndex(mris->ct,unknown_index,&unknown_annot);
+
+    int vno;
+    for (vno=0; vno < mris->nvertices; vno++)
+    {
+      VERTEX *v = &mris->vertices[vno];
+      v->annotation = unknown_annot; // default annotation
+      int n;
+      for (n=0; n < label->n_points; n++)
+      {
+        if (label->lv[n].vno == vno)
+        {
+          // this vertex is a label vertex, so check its coordinates
+          if (label->lv[n].x != v->x)
+          {
+            printf("ERROR: label vno=%d has x=%f, while surface x=%f\n",
+                   vno, label->lv[n].x, v->x);
+          }
+          if (label->lv[n].y != v->y)
+          {
+            printf("ERROR: label vno=%d has y=%f, while surface y=%f\n",
+                   vno, label->lv[n].y, v->y);
+          }
+          if (label->lv[n].z != v->z)
+          {
+            printf("ERROR: label vno=%d has z=%f, while surface z=%f\n",
+                   vno, label->lv[n].z, v->z);
+          }
+          // give it an annotation from our miniColorTable
+          v->annotation = label_annot;
+        }
+      }
+    }
+    LabelFree(&label) ;
   }
 
   if (histo_flag)
@@ -312,7 +377,8 @@ main(int argc, char *argv[])
           wm_volume) ;
 #endif
 
-  if (annotation_name && tabular_output_flag)
+  if ((annotation_name && tabular_output_flag) ||
+      (label_name && tabular_output_flag))
   {
     fprintf(stdout, "\n");
     fprintf(stdout, "table columns are:\n");
@@ -329,9 +395,14 @@ main(int argc, char *argv[])
     fprintf(stdout, "\n");
   }
 
-  if (annotation_name && tablefile != NULL)
+  if ((annotation_name && tablefile != NULL) ||
+      (label_name && tablefile != NULL))
   {
     fp = fopen(tablefile,"w");
+    if (!fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not open table file %s", Progname,
+                tablefile) ;
+
     fprintf(fp,"# Table of FreeSurfer cortical "
             "parcellation anatomical statistics \n");
     fprintf(fp,"# \n");
@@ -349,9 +420,18 @@ main(int argc, char *argv[])
     fprintf(fp,"# anatomy_type surface\n");
     fprintf(fp,"# subjectname %s\n",sname);
     fprintf(fp,"# hemi %s\n",hemi);
-    fprintf(fp,"# AnnotationFile %s\n",annotation_name);
-    fprintf(fp,"# AnnotationFileTimeStamp %s\n",
-            VERfileTimeStamp(annotation_name));
+    if (annotation_name)
+    {
+      fprintf(fp,"# AnnotationFile %s\n",annotation_name);
+      fprintf(fp,"# AnnotationFileTimeStamp %s\n",
+              VERfileTimeStamp(annotation_name));
+    }
+    if (label_name)
+    {
+      fprintf(fp,"# LabelFile %s\n",label_name);
+      fprintf(fp,"# LabelFileTimeStamp %s\n",
+              VERfileTimeStamp(label_name));
+    }
 #if SHOW_WHITE_MATTER_VOLUME
     fprintf(fp,"# TotalWhiteMatterVolume  %2.0f mm^3\n",wm_volume) ;
 #endif
@@ -407,11 +487,13 @@ main(int argc, char *argv[])
 
     fprintf(fp,"# ColHeaders StructName NumVert SurfArea GrayVol "
             "ThickAvg ThickStd MeanCurv GausCurv FoldInd CurvInd\n");
-    fflush(fp);
-    fclose(fp);
+    if (fclose(fp))
+      ErrorExit(ERROR_BADFILE, 
+                "%s: failure closing table file %s, errno=%d", 
+                Progname, tablefile, errno) ;
   }
 
-  if (annotation_name) // new stuff
+  if (annotation_name || label_name) // new stuff
   {
 #define MAX_INDICES 1000
     double  areas[MAX_INDICES],
@@ -438,12 +520,6 @@ main(int argc, char *argv[])
       f = &mris->faces[fno] ;
       if (f->ripflag)
         continue ;
-      v0 = &mris->vertices[f->v[0]] ;
-      CTABfindAnnotation(mris->ct, v0->annotation,&v0_index);
-      v1 = &mris->vertices[f->v[1]] ;
-      CTABfindAnnotation(mris->ct, v1->annotation,&v1_index);
-      v2 = &mris->vertices[f->v[2]] ;
-      CTABfindAnnotation(mris->ct, v2->annotation,&v2_index);
       for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++)
       {
         vno = f->v[m] ;
@@ -452,6 +528,12 @@ main(int argc, char *argv[])
       }
       avg_thick /= VERTICES_PER_FACE ;
       volume = (avg_thick * f->area) ;
+      v0 = &mris->vertices[f->v[0]] ;
+      v1 = &mris->vertices[f->v[1]] ;
+      v2 = &mris->vertices[f->v[2]] ;
+      CTABfindAnnotation(mris->ct, v0->annotation,&v0_index);
+      CTABfindAnnotation(mris->ct, v1->annotation,&v1_index);
+      CTABfindAnnotation(mris->ct, v2->annotation,&v2_index);
       volumes[v0_index] += volume/VERTICES_PER_FACE ;
       volumes[v1_index] += volume/VERTICES_PER_FACE ;
       volumes[v2_index] += volume/VERTICES_PER_FACE ;
@@ -465,12 +547,6 @@ main(int argc, char *argv[])
       f = &mris->faces[fno] ;
       if (f->ripflag)
         continue ;
-      v0 = &mris->vertices[f->v[0]] ;
-      CTABfindAnnotation(mris->ct, v0->annotation,&v0_index);
-      v1 = &mris->vertices[f->v[1]] ;
-      CTABfindAnnotation(mris->ct, v1->annotation,&v1_index);
-      v2 = &mris->vertices[f->v[2]] ;
-      CTABfindAnnotation(mris->ct, v2->annotation,&v2_index);
       for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++)
       {
         vno = f->v[m] ;
@@ -479,6 +555,12 @@ main(int argc, char *argv[])
       }
       avg_thick /= VERTICES_PER_FACE ;
       volume = (avg_thick * f->area) ;
+      v0 = &mris->vertices[f->v[0]] ;
+      v1 = &mris->vertices[f->v[1]] ;
+      v2 = &mris->vertices[f->v[2]] ;
+      CTABfindAnnotation(mris->ct, v0->annotation,&v0_index);
+      CTABfindAnnotation(mris->ct, v1->annotation,&v1_index);
+      CTABfindAnnotation(mris->ct, v2->annotation,&v2_index);
       volumes[v0_index] += volume/VERTICES_PER_FACE ;
       volumes[v1_index] += volume/VERTICES_PER_FACE ;
       volumes[v2_index] += volume/VERTICES_PER_FACE ;
@@ -494,11 +576,11 @@ main(int argc, char *argv[])
       if (f->ripflag)
         continue ;
       v0 = &mris->vertices[f->v[0]] ;
-      CTABfindAnnotation(mris->ct, v0->annotation,&v0_index );
       v1 = &mris->vertices[f->v[1]] ;
-      CTABfindAnnotation(mris->ct, v1->annotation,&v1_index );
       v2 = &mris->vertices[f->v[2]] ;
-      CTABfindAnnotation(mris->ct, v2->annotation,&v2_index );
+      CTABfindAnnotation(mris->ct, v0->annotation,&v0_index);
+      CTABfindAnnotation(mris->ct, v1->annotation,&v1_index);
+      CTABfindAnnotation(mris->ct, v2->annotation,&v2_index);
       areas[v0_index] += f->area/VERTICES_PER_FACE ;
       areas[v1_index] += f->area/VERTICES_PER_FACE ;
       areas[v2_index] += f->area/VERTICES_PER_FACE ;
@@ -508,7 +590,7 @@ main(int argc, char *argv[])
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v0 = &mris->vertices[vno] ;
-      CTABfindAnnotation(mris->ct, v0->annotation,&v0_index );
+      CTABfindAnnotation(mris->ct, v0->annotation,&v0_index);
       thicknesses[v0_index] += v0->imag_val ;
       dofs[v0_index]++ ;
     }
@@ -523,7 +605,7 @@ main(int argc, char *argv[])
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v0 = &mris->vertices[vno] ;
-      CTABfindAnnotation(mris->ct, v0->annotation,&v0_index );
+      CTABfindAnnotation(mris->ct, v0->annotation,&v0_index);
       std = (v0->imag_val-thicknesses[v0_index]);
       thickness_vars[v0_index] += std*std ;
     }
@@ -547,9 +629,14 @@ main(int argc, char *argv[])
       thickness_vars[i] /= dofs[i] ;
       /* output */
 
-      if (annotation_name && tablefile != NULL)
+      if ((annotation_name && tablefile != NULL) ||
+          (label_name && tablefile != NULL))
       {
         fp = fopen(tablefile,"a");
+        if (!fp)
+          ErrorExit(ERROR_NOFILE, "%s: could not open table file %s", Progname,
+                    tablefile) ;
+
         fprintf(fp, "%-40s", mris->ct->entries[i]->name);
         fprintf(fp, "%5d", dofs[i]);
         fprintf(fp, "  %5.0f", areas[i]) ;
@@ -561,8 +648,10 @@ main(int argc, char *argv[])
         fprintf(fp, "  %7.3f", fi);
         fprintf(fp, "  %6.3f",ici);
         fprintf(fp, "\n");
-        fflush(fp);
-        fclose(fp);
+        if (fclose(fp))
+          ErrorExit(ERROR_BADFILE, 
+                    "%s: failure closing table file %s, errno=%d", 
+                    Progname, tablefile, errno) ;
       }
 
       if (tabular_output_flag)
@@ -621,7 +710,7 @@ main(int argc, char *argv[])
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    if (!histo_flag && annotation_name == NULL)
+    if (!histo_flag && ((annotation_name == NULL)||(label_name == NULL)))
       break ;
     v = &mris->vertices[vno] ;
     if (v->ripflag)
@@ -643,7 +732,7 @@ main(int argc, char *argv[])
         HISTOaddSample(histo_gray, val, 0, 255) ;
       }
     }
-    if (annotation_name)
+    if (annotation_name || label_name)
     {
 
       annotation = v->annotation ;
@@ -677,9 +766,14 @@ main(int argc, char *argv[])
 
       /* output */
 
-      if (annotation_name && tablefile != NULL)
+      if ((annotation_name && tablefile != NULL) ||
+          (label_name && tablefile != NULL))
       {
         fp = fopen(tablefile,"a");
+        if (!fp)
+          ErrorExit(ERROR_NOFILE, "%s: could not open table file %s", Progname,
+                    tablefile) ;
+
         CTABfindAnnotation(mris->ct, annotation,&ct_index );
         if (ct_index < 0)
           fprintf(fp, "  ** annotation %08x", annotation);
@@ -694,8 +788,10 @@ main(int argc, char *argv[])
         fprintf(fp, "  %7.3f", fi);
         fprintf(fp, "  %6.3f",ici);
         fprintf(fp, "\n");
-        fflush(fp);
-        fclose(fp);
+        if (fclose(fp))
+          ErrorExit(ERROR_BADFILE, 
+                    "%s: failure closing table file %s, errno=%d", 
+                    Progname, tablefile, errno) ;
       }
 
       if (tabular_output_flag)
@@ -778,7 +874,7 @@ main(int argc, char *argv[])
     }
   }
 
-  if (annotation_name == NULL)
+  if ((annotation_name == NULL) && (label_name == NULL))
   {
     MRIScopyCurvatureFromImagValues(mris) ;  /* restore thickness measures */
     MRIScomputeCurvatureStats(mris, &thickness_mean, &thickness_var,
@@ -863,9 +959,12 @@ main(int argc, char *argv[])
     MRIfree(&mri_orig) ;
     HISTOfree(&histo_gray) ;
   }
+
   exit(0) ;
+
   return(0) ;  /* for ansi */
 }
+
 
 /*----------------------------------------------------------------------
   Parameters:
@@ -1049,7 +1148,8 @@ print_help(void)
     (stderr,
      "-f <tablefile>               - table output to a file named tablefile\n"
      "                               (different format than -b) must specify\n"
-     "                               an annotation file with -a\n");
+     "                               an annotation file with -a or label\n"
+     "                               file with -l\n");
   fprintf
     (stderr,
      "-log <log>                   - will write the stats into a file\n"
@@ -1094,6 +1194,7 @@ MRISmeasureTotalWhiteMatterVolume(MRI *mri)
   return(total_volume) ;
 }
 
+
 int
 MRIScomputeCurvatureStats(MRI_SURFACE *mris, double *pavg, double *pvar,
                           float ignore_below, float ignore_above)
@@ -1129,6 +1230,8 @@ MRIScomputeCurvatureStats(MRI_SURFACE *mris, double *pavg, double *pvar,
   *pvar = var ;
   return(NO_ERROR) ;
 }
+
+
 double
 MRISmeasureCorticalGrayMatterVolume(MRI_SURFACE *mris)
 {
@@ -1205,6 +1308,7 @@ MRIScomputeAbsoluteCurvature(MRI_SURFACE *mris)
 
   return(total/n) ;
 }
+
 
 #if 0
 int
