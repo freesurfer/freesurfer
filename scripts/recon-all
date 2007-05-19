@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/19 00:21:30 $
-#    $Revision: 1.102 $
+#    $Date: 2007/05/19 22:05:02 $
+#    $Revision: 1.103 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.102 2007/05/19 00:21:30 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.103 2007/05/19 22:05:02 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -878,12 +878,12 @@ skullstrip:
     # if using the GCA atlas to help with the skull-strip, then run the 
     # GCA registration (mri_em_register) to align to an atlas with a skull,
     # unless that file already exists
-    if ( ! -e transforms/talairach_nu_skull.lta || $DoCleanBM ) then
+    if ( ! -e transforms/talairach_with_skull.lta || $DoCleanBM ) then
       set xopts2 = `fsr-getxopts mri_em_register $XOptsFile`;
       set cmd2 = (mri_em_register)
       set cmd2 = ($cmd2 -skull)
       set cmd2 = ($cmd2 $xopts2 nu.mgz $FREESURFER_HOME/average/$GCASkull)
-      set cmd2 = ($cmd2 transforms/talairach_nu_skull.lta)
+      set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
       echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd2 |& tee -a $LF
       if($status) goto error_exit;
@@ -893,7 +893,7 @@ skullstrip:
     if ($WSGcaAtlas) then
       # if just using -brain_atlas flag, then include necessary options
       set opts = (-brain_atlas $FREESURFER_HOME/average/$GCASkull \
-                  transforms/talairach_nu_skull.lta $opts)
+                  transforms/talairach_with_skull.lta $opts)
     endif
   endif
 
@@ -970,7 +970,7 @@ skullstrip:
     foreach vol ( $SS_VOLUMES )
       foreach pfh ( $PREFLOOD_HEIGHTS )
         set BMA = brainmask_${vol}_PFH${pfh}.auto.mgz
-        set LTA = transforms/talairach_nu_skull.lta
+        set LTA = transforms/talairach_with_skull.lta
         set cmd = (mri_log_likelihood -orig T1.mgz $BMA)
         set cmd = ($cmd $xopts $FREESURFER_HOME/average/$GCA $LTA)
         echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
