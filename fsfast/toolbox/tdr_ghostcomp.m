@@ -5,10 +5,10 @@ function [gcomp, theta, thetahat, Fsig, beta, Rrow] = tdr_ghostcomp(kpcn,epipar)
 % gcomp is (ncols n1 n2 n3) 
 % revenfixed = reven .* gcomp (careful with transpose)
 %
-% $Id: tdr_ghostcomp.m,v 1.7 2007/05/11 20:51:47 greve Exp $
+% $Id: tdr_ghostcomp.m,v 1.8 2007/05/19 06:11:15 greve Exp $
 
 order = 2;   % poly order
-rthresh = 3; % relative threshold
+rthresh = .2; % keep the top rthresh
 
 gcomp = [];
 if(nargin ~= 2)
@@ -84,10 +84,10 @@ return;
 %--------------------------------------------------------------------------
 function [thetahat, theta, Fsig, beta] = tdr_phdist_est0(Ref,Mov,rthresh,order)
 
-beta  = [];
-rvar  = [];
-nover = [];
 thetahat = [];
+theta = [];
+Fsig = [];
+beta  = [];
 
 if(nargin < 2 | nargin > 4)
   fprintf('[thetahat theta Fsig beta] = tdr_phdist_est(Ref,Mov,rthresh,order)\n');
@@ -110,8 +110,11 @@ MovMn = mean(abs(Mov),2);
 RefMovMn = (RefMn+MovMn)/2;
 
 % Compute the absolute segmentation threshold %
-mn = mean(RefMovMn);
-athresh = rthresh * mn; 
+%mn = mean(RefMovMn);
+%athresh = rthresh * mn; 
+
+s = sort(RefMovMn);
+athresh = s(round((1-rthresh)*nf)); % Keep top rthresh percent
 
 % Segment - all columns get the same segmentation %
 indover = find(RefMovMn > athresh);
@@ -150,5 +153,8 @@ if(min(Fsig) < 200)
   fprintf('WARNING: tdr_phdist_est(): min(Fsig) = %g < 200  ',min(Fsig));
   fprintf('(threshold is %g)\n',rthresh);
 end
+
+%plot(1:nf,theta,1:nf,thetahat)
+%keyboard
 
 return;
