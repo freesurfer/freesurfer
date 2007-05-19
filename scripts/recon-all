@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/18 22:09:02 $
-#    $Revision: 1.101 $
+#    $Date: 2007/05/19 00:21:30 $
+#    $Revision: 1.102 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.101 2007/05/18 22:09:02 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.102 2007/05/19 00:21:30 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1174,19 +1174,15 @@ if($DoCAReg) then
   if($BigVentricles) set cmd = ($cmd -bigventricles)
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   if($DoSecondPassRenorm) set cmd = ($cmd -secondpassrenorm)
-  if (! $longitudinal ) then
-    # default processing stream:
-    set cmd = ($cmd -mask brainmask.mgz \
-                -T transforms/talairach.lta $xopts norm.mgz \
-                $FREESURFER_HOME/average/$GCA transforms/talairach.m3z)
-  else
-    # longitudinal processing:
-    set cmd = ($cmd -mask brainmask.mgz \
-                -levels 2 -A 1 -l $tp1dir/mri/transforms/talairach.m3z \
-                $tp1dir/mri/transforms/$regfile \
-                -T transforms/talairach.lta $xopts norm.mgz \
-                $FREESURFER_HOME/average/$GCA transforms/talairach.m3z)
+  set cmd = ($cmd -mask brainmask.mgz -T transforms/talairach.lta)
+  if ( $longitudinal ) then
+    set cmd = ($cmd -levels 2 -A 1 \
+                -l $tp1dir/mri/transforms/talairach.m3z \
+                $tp1dir/mri/transforms/$regfile)
   endif
+  set cmd = ($cmd $xopts norm.mgz \
+             $FREESURFER_HOME/average/$GCA \
+             transforms/talairach.m3z)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
   if($status) then
