@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/04/27 22:54:31 $
-%    $Revision: 1.24 $
+%    $Date: 2007/05/20 19:46:06 $
+%    $Revision: 1.25 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -142,7 +142,8 @@ for nthev = 1:nev
 	st = fast_par2st(par,condno,trun,flac.TR);
       end
       if(isempty(st) & ~flac.AllowMissingCond)
-	fprintf('ERROR: converting par to st\n');
+	fprintf('\nERROR: converting par to st\n');
+	fprintf('Could not find condition %d in %s\n\n',condno,parpath);
 	flacnew = []; return; 
       end
     end
