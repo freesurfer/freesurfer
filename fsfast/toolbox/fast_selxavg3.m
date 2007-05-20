@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.43 2007/05/10 05:20:50 greve Exp $
+% $Id: fast_selxavg3.m,v 1.44 2007/05/20 20:07:01 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/10 05:20:50 $
-%    $Revision: 1.43 $
+%    $Date: 2007/05/20 20:07:01 $
+%    $Revision: 1.44 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.43 2007/05/10 05:20:50 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.44 2007/05/20 20:07:01 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -196,6 +196,17 @@ for nthouter = outer_runlist
     reg0run = zeros(1,nNuisRun);
     reg0run(1) = 1;
     reg0 = [reg0 reg0run];
+
+    % This is for comparing cross-run FFX analysis vs this analysis 
+    % in which the data and design matrices are concatenated.
+    Xrun = flac0.X;
+    for nthcon = 1:ncontrasts
+      C = flac.con(nthcon).C;
+      M = C*inv(Xrun'*Xrun)*C';
+      if(nthrun == 1) conffx(nthcon).Msum = 0; end
+      conffx(nthcon).Msum = conffx(nthcon).Msum + M;
+    end
+
   end
   % These are the true indices of the mean regressors
   ind0 = find(reg0);
@@ -259,8 +270,13 @@ for nthouter = outer_runlist
     flacC.con(nthcon).M = M;
     flacC.con(nthcon).eff = eff;
     flacC.con(nthcon).vrf = vrf;
-    fprintf('%2d %-10s J=%d  eff = %6.1f   vrf = %6.1f\n',...
-	    nthcon,flac0.con(nthcon).name,J,eff,vrf);
+
+    % For FFX-vs-Concat Comparison (see above)
+    Mffx = conffx(nthcon).Msum/(flac0.nruns.^2);
+    vrfffx = 1/mean(diag(Mffx));
+
+    fprintf('%2d %-10s J=%2d  eff = %6.1f   vrf = %8.4f vrfffx = %8.4f r = %4.2f\n',...
+	    nthcon,flac0.con(nthcon).name,J,eff,vrf,vrfffx,vrf/vrfffx);
   end
 
 if(DoGLMFit)
