@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # rawfunc2surf-sess 
 #
-set VERSION    = '$Id: rawfunc2surf-sess,v 1.3 2007/01/15 02:34:26 greve Exp $';
+set VERSION    = '$Id: rawfunc2surf-sess,v 1.4 2007/05/21 17:26:05 greve Exp $';
 set cmdargs = ($argv);
 
 set instem   = fmc; 
@@ -9,10 +9,12 @@ set outstem  = ();
 set hemilist  = (); 
 set subject  = (fsaverage);
 set projfrac = 0.5;
+set projfracavg = ();
 set fwhm = ();
 set RunListFile = ();
 set fsd = "bold";
 set interp = trilinear
+set PerRunReg = ();
 
 set nolog = 0;
 set infmt = ();
@@ -80,11 +82,6 @@ foreach sess ($SessList)
 
   pushd $sess/$fsd > /dev/null
 
-  if(! -e register.dat) then
-    echo "ERROR: cannot find register.dat" |& tee -a $LF
-    exit 1;
-  endif
-
   set RunList = `getrunlist . $RunListFile`;
   if($status || $#RunList == 0) then
     echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
@@ -94,6 +91,17 @@ foreach sess ($SessList)
 
   foreach run ($RunList)  
     echo "  $sessid Run $run -----------" |& tee -a $LF
+
+    if($#PerRunReg) then
+       set regfile = $run/$PerRunReg
+    else
+      set regfile = register.dat
+    endif
+    if(! -e $regfile) then
+      echo "ERROR: cannot find $regfile in `pwd`" |& tee -a $LF
+      exit 1;
+    endif
+
     date |& tee -a $LF
     set inbase = $run/$instem
     set infmt = `getformat_from_stem $inbase`
@@ -104,6 +112,8 @@ foreach sess ($SessList)
       set cmd = (mri_vol2surf --reg register.dat --mov $invol --out $outsurf)
       set cmd = ($cmd --hemi $hemi --projfrac $projfrac)
       set cmd = ($cmd --interp $interp)
+      if($#projfrac)    set cmd = ($cmd --hemi $hemi --projfrac $projfrac)
+      if($#projfracavg) set cmd = ($cmd --hemi $hemi --projfrac-avg 0 1 .2)
       if($#subject) set cmd = ($cmd --trgsubject $subject)
       if($#fwhm)    set cmd = ($cmd --surf-fwhm $fwhm)
       if($outfmt == "mgh") set cmd = ($cmd --no-reshape)
@@ -123,9 +133,10 @@ foreach sess ($SessList)
         set masksurf = $sess/$fsd/masks/$hemi.brain.$outfmt
         set cmd = (mri_vol2surf --reg register.dat --interp nearest \
                    --mov $mask --out $masksurf)
-        set cmd = ($cmd --hemi $hemi --projfrac $projfrac)
+        if($#projfrac)    set cmd = ($cmd --hemi $hemi --projfrac $projfrac)
         if($#subject)        set cmd = ($cmd --trgsubject $subject)
         if($outfmt == "mgh") set cmd = ($cmd --no-reshape)
+        # Note: don't smooth mask
         echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
         echo "cd `pwd`" |& tee -a $LF
         echo $cmd |& tee -a $LF
@@ -192,9 +203,17 @@ while( $#argv != 0 )
       set subject = $argv[1]; shift;
       breaksw
 
+    case "-native":
+      set subject = ();
+      breaksw
+
     case "-projfrac":
       if ( $#argv == 0) goto arg1err;
       set projfrac = $argv[1]; shift;
+      breaksw
+
+    case "-projfrac-avg":
+      set projfracavg = 1;
       breaksw
 
     case "-interp":
@@ -219,8 +238,8 @@ while( $#argv != 0 )
       breaksw
 
     case "-perrun":
-      set PerRun = 1;
-      set targoffmid = 1;
+      if ( $#argv == 0) goto arg1err;
+      set PerRunReg = $argv[1]; shift;
       breaksw
 
     case "-nolog":
@@ -289,13 +308,16 @@ usage_exit:
   echo "  -i instem  : input volume"
   echo "  -o outstem : out will be hemi.outstem"
   echo ""
-  echo "  -h hemi : default is both lh and rh"
-  echo "  -s subject     : default is fsaverage"
-  echo "  -projfrac frac : default is 0.5"
-  echo "  -interp method : default is trilinear (alt nearest)"
-  echo "  -fwhm fwhm     : surface smoothing"
-  echo "  -rlf runlistfile"
-  echo "  -fsd dir        (optional - default = bold)"
+  echo "  -h hemi          : default is both lh and rh"
+  echo "  -subject subject : default is fsaverage"
+  echo "  -native          : use each subject's native surface space"
+  echo "  -projfrac frac   : default is 0.5"
+  echo "  -projfrac-avg    : average along normal between 0 and 1, step = 0.2"
+  echo "  -interp method   : default is trilinear (alt nearest)"
+  echo "  -fwhm fwhm       : surface smoothing"
+  echo "  -rlf runlistfile : run list file"
+  echo "  -fsd dir         : functional subdir (default = bold)"
+  echo "  -perrun regfile  : use per-run registration"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
@@ -344,14 +366,23 @@ FSF_OUTPUT_FORMAT environment variable. Eg,
 
 Hemisphere (lh or rh). By default, it does both.
 
--s subject
+-subject subject
 
 Sample onto the surface of subject instead of fsaverage.
 
+-native
+
+Sample onto the individual subjects native surface.
+
 -projfrac frac
 
-Sample surface frac way between the white and the white and
-gray. Default is 0.5 (ie, half way).
+Sample surface frac way between the white/gray and the pial.  Default
+is 0.5 (ie, half way).
+
+-projfrac-avg
+
+Average values along the surface normal between 0 and 100%
+of the distance between the white/gray and the pial.
 
 -interp method
 
@@ -370,6 +401,16 @@ Only perform func2surf on the runs in the run list file.
 -fsd functionalsubdir
 
 Specify the functional subdir (default is bold).
+
+-perrun regfile
+
+Use data that has been motion corrected on a run-by-run basis to the
+middle time point of each run (instead of to the first TP of the first
+run). Eg, 
+
+ mc-sess           -perrun -fmcstem fmc.perrun ... # motion corrects to middle TP
+ spmregister-sess  -perrun ...            # registers to middle TP, creates RRR/fs.register.dat
+ rawfunc2surf-sess -perrun fs.register.dat -i fmc.perrun
 
 EXAMPLE:
 
