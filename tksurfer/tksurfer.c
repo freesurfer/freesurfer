@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/15 15:59:55 $
- *    $Revision: 1.273 $
+ *    $Date: 2007/05/21 19:13:30 $
+ *    $Revision: 1.274 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -1722,6 +1722,9 @@ int labl_num_labels_created;
 
 /* style in which to draw the labels. */
 LABL_DRAW_STYLE labl_draw_style = LABL_STYLE_FILLED;
+
+/* the selection outline color */
+int labl_outline_color[3] = {255, 255, 0}; /* yellow default */
 
 /* whether or not to draw labels. */
 int labl_draw_flag = 1;
@@ -19246,7 +19249,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.273 2007/05/15 15:59:55 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.274 2007/05/21 19:13:30 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20195,6 +20198,9 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"fnumconditions",
               (char *)&sclv_num_conditions, TCL_LINK_INT);
   Tcl_LinkVar(interp,"labelstyle",(char *)&labl_draw_style, TCL_LINK_INT);
+  Tcl_LinkVar(interp,"labeloutlinered",(char *)&labl_outline_color[0], TCL_LINK_INT);
+  Tcl_LinkVar(interp,"labeloutlinegreen",(char *)&labl_outline_color[1], TCL_LINK_INT);
+  Tcl_LinkVar(interp,"labeloutlineblue",(char *)&labl_outline_color[2], TCL_LINK_INT);
   Tcl_LinkVar(interp,"func_graph_avg_mode",(char *)&func_graph_avg_mode,
               TCL_LINK_INT);
   Tcl_LinkVar(interp,"colscalebar_font_size",(char *)&colscalebar_font_size,
@@ -25666,12 +25672,12 @@ int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b ) {
       label_index = label_index_array[found_label_index];
 
       /* if this is the selected label and this is a border of width 1
-         or 2, make it yellow. */
+         or 2, make it our outline color. */
       if (labl_selected_label == label_index &&
           labl_vno_is_border(labl_selected_label, vno)) {
-        *r = 255;
-        *g = 255;
-        *b = 0;
+        *r = labl_outline_color[0];
+        *g = labl_outline_color[1];
+        *b = labl_outline_color[2];
       }
       /* else if this label is visible... */
       else if (labl_labels[label_index].visible) {
