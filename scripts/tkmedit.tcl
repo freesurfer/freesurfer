@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/04/27 18:34:42 $
-##    $Revision: 1.123 $
+##    $Date: 2007/05/21 19:31:33 $
+##    $Revision: 1.124 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -192,9 +192,9 @@ set tFunctionalVolume_TimeCourse 1
 
 # mri_tCoordSpace
 set mri_tCoordSpace_VolumeIdx  0
-set mri_tCoordSpace_SurfaceRAS 1
-set mri_tCoordSpace_RAS        2
-set mri_tCoordSpace_Talairach  3
+set mri_tCoordSpace_SurfaceRAS 3
+set mri_tCoordSpace_RAS        1
+set mri_tCoordSpace_Talairach  2
 
 # Volm_tSampleType
 set Volm_tSampleType(nearest)   0
