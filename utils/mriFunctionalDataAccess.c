@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/21 16:38:14 $
- *    $Revision: 1.44 $
+ *    $Date: 2007/05/21 16:46:18 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -641,19 +641,9 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
   case FunD_tRegistration_File:
   case FunD_tRegistration_Find:
 
-    /* If file, try to load a file specified in
-       msRegistrationFileName. If none was specified or we can't load
-       the specified one, return an error. */
-    if ( FunD_tRegistration_File == iType )
+    /* If we need to find a file, look for it now. */
+    if ( FunD_tRegistration_Find == iType )
     {
-
-      DebugNote( ("Copying registration file name") );
-      strcpy( sFileName, this->msRegistrationFileName );
-
-    }
-    else
-    {
-
       /* Construct a registration name based on our data location and
          try to open that. If we didn't find one, return an error.
          Start by finding the last slash in the data file name. */
@@ -675,25 +665,26 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
       xUtil_snprintf( sFileName, sizeof(sFileName),
                       "%s/%s", sBasePath, FunD_ksRegisterFileName );
 
-      /* See if the file exists and is a regular file. */
-      DebugNote( ("Checking if %s exists", sFileName) );
-      eStat = stat( sFileName, &fileInfo );
-      DebugAssertThrowX( (0 == eStat),
-			 eResult, FunD_tErr_CouldntReadRegisterFile );
-      
-      DebugNote( ("Checking S_ISREG") );
-      DebugAssertThrowX( ( S_ISREG(fileInfo.st_mode) ),
-                       eResult, FunD_tErr_CouldntReadRegisterFile );
-
       /* Save the file name we found. */
       strncpy( this->msRegistrationFileName, sFileName,
 	       sizeof(this->msRegistrationFileName) );
 
     }
 
+    /* See if the file exists and is a regular file. */
+    DebugNote( ("Checking if %s exists", this->msRegistrationFileName) );
+    eStat = stat( this->msRegistrationFileName, &fileInfo );
+    DebugAssertThrowX( (0 == eStat),
+		       eResult, FunD_tErr_CouldntReadRegisterFile );
+    
+    DebugNote( ("Checking S_ISREG") );
+    DebugAssertThrowX( ( S_ISREG(fileInfo.st_mode) ),
+                       eResult, FunD_tErr_CouldntReadRegisterFile );
+
     /* Read the registration info. */
-    DebugNote( ("StatReadRegistration on %s\n", sFileName ) );
-    theRegInfo = StatReadRegistration( sFileName );
+    DebugNote( ("StatReadRegistration on %s\n", 
+		this->msRegistrationFileName ) );
+    theRegInfo = StatReadRegistration( this->msRegistrationFileName );
     DebugAssertThrowX( (NULL != theRegInfo ),
                        eResult, FunD_tErr_CouldntReadRegisterFile );
 
@@ -722,8 +713,8 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
        with a registration keyword on it. This will specify our
        conversion method. If nothing is found, tkregister will be
        used. */
-    DebugNote( ("Opening sFileName") );
-    fRegister = fopen( sFileName, "r" );
+    DebugNote( ("Opening this->msRegistrationFileName") );
+    fRegister = fopen( this->msRegistrationFileName, "r" );
     DebugAssertThrowX( (NULL != theRegInfo ),
                        eResult, FunD_tErr_CouldntReadRegisterFile );
 
