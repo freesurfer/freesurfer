@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/05/21 19:14:43 $
-##    $Revision: 1.147 $
+##    $Date: 2007/05/21 19:30:50 $
+##    $Revision: 1.148 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -277,7 +277,7 @@ array set gaLinkedVarGroups {
     all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag colscalebarvertflag colscalebartextflag colscalebartickflag colscalebar_xpos colscalebar_ypos colscalebar_width colscalebar_height colscalebaruselabelsflag colscalebar_font_size colscalebar_label1 colscalebar_label2 colscalebar_label3 colscalebar_label4 verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle labeloutlinered labeloutlinegreen labeloutlineblue timeresolution numprestimpoints colortablename }
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints func_graph_avg_mode }
-    label { colortablename selectlabelflag drawlabelflag labelstyle labeloutlinered labeloutlinegreen labels_before_overlay_flag }
+    label { colortablename selectlabelflag drawlabelflag labelstyle labeloutlinered labeloutlinegreen labeloutlineblue labels_before_overlay_flag }
 }
 
 proc SendLinkedVarGroup { iGroup } {
@@ -1829,9 +1829,15 @@ proc DoConfigLabelsDlog {} {
 
     if { [Dialog_Create $wwDialog "Configure Labels Display" {-borderwidth 10}] } {
 	
+	set cbShow          $wwDialog.cbShow
 	set fwStyle         $wwDialog.fwStyle
 	set fwOutlineColor  $wwDialog.fwOutlineColor
 	set fwButtons       $wwDialog.fwButtons
+	
+	tkm_MakeCheckboxes $cbShow x {
+	    {text "Show Labels" gaLinkedVars(drawlabelflag) {} 
+		"Draw labels"}
+	}
 	
 	tkm_MakeRadioButtons $fwStyle h "" gaLinkedVars(labelstyle) {
 	    { image icon_label_filled 0 "" "Draw Filled Labels" }
@@ -1846,7 +1852,7 @@ proc DoConfigLabelsDlog {} {
 	tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
 	    { SendLinkedVarGroup label; UpdateAndRedraw } {}
 	
-	pack $fwStyle $fwOutlineColor $fwButtons \
+	pack $cbShow $fwStyle $fwOutlineColor $fwButtons \
 	    -side top       \
 	    -expand yes     \
 	    -fill x         \
@@ -3751,6 +3757,14 @@ proc CreateToolBar { ifwToolBar } {
 	}
     }
     bind $fwLabels.cb0 <Control-Button-3> "DoFileDlog LoadLabel"
+
+    bind $fwLabels.cb0 <Control-Button-1> {
+	if { [tkm_IsGroupEnabled mg_LabelLoaded] } {
+	    DoConfigLabelsDlog
+	    set gaLinkedVars(drawlabelflag) \
+		[expr !$gaLinkedVars(drawlabelflag)]
+	}
+    }
 
     tkm_MakeRadioButtons $fwLabelStyle h "" gaLinkedVars(labelstyle) {
 	{ image icon_label_filled 0
