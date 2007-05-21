@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/05/21 06:44:00 $
- *    $Revision: 1.331 $
+ *    $Author: kteich $
+ *    $Date: 2007/05/21 16:38:14 $
+ *    $Revision: 1.332 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -4258,6 +4258,9 @@ static MRI *get_b_info
     fscanf(fp, "%d %d %d %*d", &ny, &nx, &nt);
     mri->nframes = nt;
     fclose(fp);
+
+    strcpy(mri->fname, fname_passed);
+
   }
   else
   {
@@ -4311,7 +4314,6 @@ static MRI *get_b_info
     mri->ras_good_flag = 0;
 
     strcpy(mri->fname, fname_passed);
-
   }
 
   mri->imnr0 = 1;

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.43 $
+ *    $Author: kteich $
+ *    $Date: 2007/05/21 16:38:14 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -675,17 +675,21 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
       xUtil_snprintf( sFileName, sizeof(sFileName),
                       "%s/%s", sBasePath, FunD_ksRegisterFileName );
 
+      /* See if the file exists and is a regular file. */
+      DebugNote( ("Checking if %s exists", sFileName) );
+      eStat = stat( sFileName, &fileInfo );
+      DebugAssertThrowX( (0 == eStat),
+			 eResult, FunD_tErr_CouldntReadRegisterFile );
+      
+      DebugNote( ("Checking S_ISREG") );
+      DebugAssertThrowX( ( S_ISREG(fileInfo.st_mode) ),
+                       eResult, FunD_tErr_CouldntReadRegisterFile );
+
+      /* Save the file name we found. */
+      strncpy( this->msRegistrationFileName, sFileName,
+	       sizeof(this->msRegistrationFileName) );
+
     }
-
-    /* See if the file exists and is a regular file. */
-    DebugNote( ("Checking if %s exists", sFileName) );
-    eStat = stat( sFileName, &fileInfo );
-    DebugAssertThrowX( (0 == eStat),
-                       eResult, FunD_tErr_CouldntReadRegisterFile );
-
-    DebugNote( ("Checking S_ISREG") );
-    DebugAssertThrowX( ( S_ISREG(fileInfo.st_mode) ),
-                       eResult, FunD_tErr_CouldntReadRegisterFile );
 
     /* Read the registration info. */
     DebugNote( ("StatReadRegistration on %s\n", sFileName ) );
