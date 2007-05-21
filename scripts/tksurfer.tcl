@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/05/16 18:38:50 $
-##    $Revision: 1.146 $
+##    $Date: 2007/05/21 19:14:43 $
+##    $Revision: 1.147 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -243,6 +243,9 @@ set gaLinkedVars(redrawlockflag) 0
 set gaLinkedVars(selectlabelflag) 1
 set gaLinkedVars(drawlabelflag) 1
 set gaLinkedVars(labelstyle) 0
+set gaLinkedVars(labeloutlinered) 255
+set gaLinkedVars(labeloutlinegreen) 255
+set gaLinkedVars(labeloutlineblue) 0
 set gaLinkedVars(timeresolution) 0
 set gaLinkedVars(numprestimpoints) 0
 set gaLinkedVars(colortablename) ""
@@ -271,10 +274,10 @@ array set gaLinkedVarGroups {
 	captionformat }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
-    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag colscalebarvertflag colscalebartextflag colscalebartickflag colscalebar_xpos colscalebar_ypos colscalebar_width colscalebar_height colscalebaruselabelsflag colscalebar_font_size colscalebar_label1 colscalebar_label2 colscalebar_label3 colscalebar_label4 verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
+    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag colscalebarvertflag colscalebartextflag colscalebartickflag colscalebar_xpos colscalebar_ypos colscalebar_width colscalebar_height colscalebaruselabelsflag colscalebar_font_size colscalebar_label1 colscalebar_label2 colscalebar_label3 colscalebar_label4 verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle labeloutlinered labeloutlinegreen labeloutlineblue timeresolution numprestimpoints colortablename }
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints func_graph_avg_mode }
-    label { colortablename selectlabelflag drawlabelflag labelstyle labels_before_overlay_flag }
+    label { colortablename selectlabelflag drawlabelflag labelstyle labeloutlinered labeloutlinegreen labels_before_overlay_flag }
 }
 
 proc SendLinkedVarGroup { iGroup } {
@@ -1818,6 +1821,40 @@ proc DoConfigPhaseEncodedDataDisplayDlog {} {
     }
 }
 
+proc DoConfigLabelsDlog {} {
+    global gaLinkedVars
+    UpdateLinkedVarGroup label
+
+    set wwDialog .wwConfigLabelsDlog
+
+    if { [Dialog_Create $wwDialog "Configure Labels Display" {-borderwidth 10}] } {
+	
+	set fwStyle         $wwDialog.fwStyle
+	set fwOutlineColor  $wwDialog.fwOutlineColor
+	set fwButtons       $wwDialog.fwButtons
+	
+	tkm_MakeRadioButtons $fwStyle h "" gaLinkedVars(labelstyle) {
+	    { image icon_label_filled 0 "" "Draw Filled Labels" }
+	    { image icon_label_outline 1 "" "Draw Outlined Labels" }
+	}
+
+	tkm_MakeColorPickers $fwOutlineColor \
+	    [list [list "Outline Color" gaLinkedVars(labeloutlinered) \
+		       gaLinkedVars(labeloutlinegreen) \
+		       gaLinkedVars(labeloutlineblue) ""]]
+
+	tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
+	    { SendLinkedVarGroup label; UpdateAndRedraw } {}
+	
+	pack $fwStyle $fwOutlineColor $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+    }
+}
+
 proc DoLoadOverlayDlog {} {
 
     global gaLinkedVars
@@ -3045,6 +3082,9 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ cascade "Configure..." {
 	    { command "Lighting..."
 		{DoConfigLightingDlog} }
+	    { command "Label Display..."
+		{DoConfigLabelsDlog}
+		mg_LabelLoaded }
 	    { command "Overlay..."
 		{DoConfigOverlayDisplayDlog}
 		mg_OverlayLoaded  }
