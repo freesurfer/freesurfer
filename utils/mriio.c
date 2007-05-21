@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/26 19:36:26 $
- *    $Revision: 1.330 $
+ *    $Author: greve $
+ *    $Date: 2007/05/21 06:44:00 $
+ *    $Revision: 1.331 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -9477,6 +9477,7 @@ static MRI *nifti1Read(char *fname, int read_volume)
   int swapped_flag;
   int n_read, i, j, k, t;
   int bytes_per_voxel, time_units, space_units;
+  int ncols;
 
   strcpy(fname_stem, fname);
   dot = strrchr(fname_stem, '.');
@@ -9488,16 +9489,14 @@ static MRI *nifti1Read(char *fname, int read_volume)
   sprintf(img_fname, "%s.img", fname_stem);
 
   fp = fopen(hdr_fname, "r");
-  if (fp == NULL)
-  {
+  if (fp == NULL)  {
     errno = 0;
     ErrorReturn
     (NULL,
      (ERROR_BADFILE, "nifti1Read(): error opening file %s", hdr_fname));
   }
 
-  if (fread(&hdr, sizeof(hdr), 1, fp) != 1)
-  {
+  if (fread(&hdr, sizeof(hdr), 1, fp) != 1)  {
     fclose(fp);
     errno = 0;
     ErrorReturn
@@ -9660,12 +9659,17 @@ static MRI *nifti1Read(char *fname, int read_volume)
                                               avoid the compiler warning */
   }
 
-  if (read_volume)
+  // Check whether dim[1] is less than 0. This can happen when FreeSurfer
+  // writes a nifti volume where the number of columns is more than shortmax.
+  // In this case, dim[1] is set to -1, and glmin is set to the number of cols.
+  if(hdr.dim[1] > 0) ncols = hdr.dim[1];
+  else ncols = hdr.glmin;
+
+  if(read_volume)
     mri = MRIallocSequence
-          (hdr.dim[1], hdr.dim[2], hdr.dim[3], fs_type, nslices);
-  else
-  {
-    mri = MRIallocHeader(hdr.dim[1], hdr.dim[2], hdr.dim[3], fs_type);
+          (ncols, hdr.dim[2], hdr.dim[3], fs_type, nslices);
+  else{
+    mri = MRIallocHeader(ncols, hdr.dim[2], hdr.dim[3], fs_type);
     mri->nframes = nslices;
   }
 
@@ -9682,7 +9686,7 @@ static MRI *nifti1Read(char *fname, int read_volume)
   {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    fprintf(stderr, "INFO: using NIfTI-1 sform \n");
+    // fprintf(stderr, "INFO: using NIfTI-1 sform \n");
     if (niftiSformToMri(mri, &hdr) != NO_ERROR)
     {
       MRIfree(&mri);
@@ -10063,26 +10067,25 @@ static int nifti1Write(MRI *mri, char *fname)
   int shortmax;
 
   shortmax = (int)(pow(2.0,15.0));
-  if (mri->width > shortmax)
-  {
-    printf("NIFTI FORMAT ERROR: ncols %d in volume exceeds %d\n",
+  if(mri->width > shortmax) {
+    printf("NIFTI FORMAT WARNING: ncols %d in input exceeds %d.\n",
            mri->width,shortmax);
-    exit(1);
+    printf("So I'm going to put the true ncols in glmin and set dim[1]=-1.\n");
+    printf("This should be ok within FreeSurfer, but you will not be\n");
+    printf("able to use this volume with other software.\n");
+    //exit(1);
   }
-  if (mri->height > shortmax)
-  {
+  if (mri->height > shortmax)  {
     printf("NIFTI FORMAT ERROR: nrows %d in volume exceeds %d\n",
            mri->height,shortmax);
     exit(1);
   }
-  if (mri->depth > shortmax)
-  {
+  if (mri->depth > shortmax)  {
     printf("NIFTI FORMAT ERROR: nslices %d in volume exceeds %d\n",
            mri->depth,shortmax);
     exit(1);
   }
-  if (mri->nframes > shortmax)
-  {
+  if (mri->nframes > shortmax)  {
     printf("NIFTI FORMAT ERROR:  nframes %d in volume exceeds %d\n",
            mri->nframes,shortmax);
     exit(1);
@@ -10093,14 +10096,19 @@ static int nifti1Write(MRI *mri, char *fname)
   hdr.sizeof_hdr = 348;
   hdr.dim_info = 0;
 
-  for (t=0; t<8; t++)
-  {
+  for (t=0; t<8; t++){
     hdr.dim[t] = 1;
     hdr.pixdim[t] = 1;
   } // needed for afni
   if (mri->nframes == 1) hdr.dim[0] = 3;
   else                  hdr.dim[0] = 4;
-  hdr.dim[1] = mri->width;
+
+  if(mri->width < shortmax)  hdr.dim[1] = mri->width;
+  else {
+    // number of columns too big, put in glmin
+    hdr.dim[1] = -1;
+    hdr.glmin  = mri->width;
+  }
   hdr.dim[2] = mri->height;
   hdr.dim[3] = mri->depth;
   hdr.dim[4] = mri->nframes;
@@ -10109,45 +10117,37 @@ static int nifti1Write(MRI *mri, char *fname)
   hdr.pixdim[3] = mri->zsize;
   hdr.pixdim[4] = mri->tr/1000.0; // see also xyzt_units
 
-  if (mri->type == MRI_UCHAR)
-  {
+  if (mri->type == MRI_UCHAR)  {
     hdr.datatype = DT_UNSIGNED_CHAR;
     hdr.bitpix = 8;
   }
-  else if (mri->type == MRI_INT)
-  {
+  else if (mri->type == MRI_INT)  {
     hdr.datatype = DT_SIGNED_INT;
     hdr.bitpix = 32;
   }
-  else if (mri->type == MRI_LONG)
-  {
+  else if (mri->type == MRI_LONG)  {
     hdr.datatype = DT_SIGNED_INT;
     hdr.bitpix = 32;
   }
-  else if (mri->type == MRI_FLOAT)
-  {
+  else if (mri->type == MRI_FLOAT)  {
     hdr.datatype = DT_FLOAT;
     hdr.bitpix = 32;
   }
-  else if (mri->type == MRI_SHORT)
-  {
+  else if (mri->type == MRI_SHORT)  {
     hdr.datatype = DT_SIGNED_SHORT;
     hdr.bitpix = 16;
   }
-  else if (mri->type == MRI_BITMAP)
-  {
+  else if (mri->type == MRI_BITMAP)  {
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED,
                  "nifti1Write(): data type MRI_BITMAP unsupported"));
   }
-  else if (mri->type == MRI_TENSOR)
-  {
+  else if (mri->type == MRI_TENSOR)  {
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED,
                  "nifti1Write(): data type MRI_TENSOR unsupported"));
   }
-  else
-  {
+  else  {
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
                  "nifti1Write(): unknown data type %d", mri->type));
@@ -10251,6 +10251,7 @@ static MRI *niiRead(char *fname, int read_volume)
   int n_read, i, j, k, t;
   int bytes_per_voxel,time_units,space_units ;
   int use_compression, fnamelen;
+  int ncols;
 
   use_compression = 0;
   fnamelen = strlen(fname);
@@ -10425,11 +10426,17 @@ static MRI *niiRead(char *fname, int read_volume)
     bytes_per_voxel = 0; /* set below -- avoid the compiler warning */
   }
 
+  // Check whether dim[1] is less than 0. This can happen when FreeSurfer
+  // writes a nifti volume where the number of columns is more than shortmax.
+  // In this case, dim[1] is set to -1, and glmin is set to the number of cols.
+  if(hdr.dim[1] > 0) ncols = hdr.dim[1];
+  else ncols = hdr.glmin;
+
   if (read_volume)
-    mri = MRIallocSequence(hdr.dim[1],hdr.dim[2],hdr.dim[3],fs_type,nslices);
+    mri = MRIallocSequence(ncols,hdr.dim[2],hdr.dim[3],fs_type,nslices);
   else
   {
-    mri = MRIallocHeader(hdr.dim[1], hdr.dim[2], hdr.dim[3], fs_type);
+    mri = MRIallocHeader(ncols, hdr.dim[2], hdr.dim[3], fs_type);
     mri->nframes = nslices;
   }
 
@@ -10445,7 +10452,7 @@ static MRI *niiRead(char *fname, int read_volume)
   {
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
-    fprintf(stderr,"INFO: using NIfTI-1 sform \n");
+    //fprintf(stderr,"INFO: using NIfTI-1 sform \n");
     if (niftiSformToMri(mri, &hdr) != NO_ERROR)
     {
       MRIfree(&mri);
@@ -10825,11 +10832,14 @@ static int niiWrite(MRI *mri, char *fname)
   if (Gdiag_no > 0) printf("niiWrite: use_compression = %d\n",use_compression);
 
   shortmax = (int)(pow(2.0,15.0));
-  if (mri->width > shortmax)
-  {
-    printf("NIFTI FORMAT ERROR: ncols %d in volume exceeds %d\n",
+  if (mri->width > shortmax) {
+    printf("NIFTI FORMAT WARNING: ncols %d in input exceeds %d.\n",
            mri->width,shortmax);
-    exit(1);
+    printf("So I'm going to put the true ncols in glmin and set dim[1]=-1.\n");
+    printf("This should be ok within FreeSurfer, but you will not be\n");
+    printf("able to use this volume with other software.\n");
+    // This usually happens with surfaces.
+    //exit(1);
   }
   if (mri->height > shortmax)
   {
@@ -10861,8 +10871,14 @@ static int niiWrite(MRI *mri, char *fname)
     hdr.pixdim[t] = 1;
   } // for afni
   if (mri->nframes == 1) hdr.dim[0] = 3;
-  else                  hdr.dim[0] = 4;
-  hdr.dim[1] = mri->width;
+  else                   hdr.dim[0] = 4;
+
+  if(mri->width < shortmax)  hdr.dim[1] = mri->width;
+  else {
+    // number of columns too big, put in glmin
+    hdr.dim[1] = -1;
+    hdr.glmin  = mri->width;
+  }
   hdr.dim[2] = mri->height;
   hdr.dim[3] = mri->depth;
   hdr.dim[4] = mri->nframes;
