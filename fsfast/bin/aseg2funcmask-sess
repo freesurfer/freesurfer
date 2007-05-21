@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/14 23:09:46 $
-#    $Revision: 1.10 $
+#    $Date: 2007/05/21 06:06:27 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,11 +23,12 @@
 #
 
 
-set VERSION = '$Id: aseg2funcmask-sess,v 1.10 2007/03/14 23:09:46 greve Exp $';
+set VERSION = '$Id: aseg2funcmask-sess,v 1.11 2007/05/21 06:06:27 greve Exp $';
 
 set cmdargs = ($argv);
 
 set segvol    = aseg;
+set annot     = aparc;
 set osegvol   = ();
 set infmt     = ();
 set fsd       = bold;
@@ -149,12 +150,12 @@ foreach sess ($SessList)
 
     if($DoAParc) then
       foreach hemi (lh rh)
-        set annot = $sd/label/$hemi.aparc.annot
+        set annot = $sd/label/$hemi.$annot.annot
         if(! -e $annot) then
           echo "ERROR: cannot find $annot"
           exit 1;
         endif
-        set outvol = $maskdir/$hemi.aparc.$outfmt
+        set outvol = $maskdir/$hemi.$annot.$outfmt
         set cmd = (mri_label2vol --annot $annot \
            --reg $regfile  --temp $functemplate \
            --o $outvol --proj frac 0 1 .1 \
