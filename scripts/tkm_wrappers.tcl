@@ -2,9 +2,9 @@
 ## tkm_wrappers.tcl
 ##
 ## CVS Revision Info:
-##    $Author: greve $
-##    $Date: 2007/04/17 23:31:41 $
-##    $Revision: 1.45 $
+##    $Author: kteich $
+##    $Date: 2007/05/21 19:31:13 $
+##    $Revision: 1.46 $
 ##
 ## Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA). 
@@ -961,7 +961,9 @@ proc tkm_ColorPickerCallback { iID iRed iGreen iBlue } {
     set green $iGreen
     set blue $iBlue
 
-    $gColorPickerInfo($iID,command)
+    if { $gColorPickerInfo($iID,command) != "" } {
+	$gColorPickerInfo($iID,command)
+    }
 
     $gColorPickerInfo($iID,canvas) delete color
 
