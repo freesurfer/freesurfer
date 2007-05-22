@@ -15,8 +15,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/22 04:51:54 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/05/22 05:41:35 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@
   Author:  Douglas N. Greve
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    1/2/00
-  $Id: mri_vol2roi.c,v 1.25 2007/05/22 04:51:54 greve Exp $
+  $Id: mri_vol2roi.c,v 1.26 2007/05/22 05:41:35 greve Exp $
 */
 
 #include <stdio.h>
@@ -65,6 +65,7 @@
 #include "version.h"
 #include "mri_circulars.h"
 #include "mri_identify.h"
+#include "fmriutils.h"
 
 LABEL   *LabelReadFile(char *labelfile);
 char *Stem2Path(char *stem);
@@ -89,7 +90,7 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.25 2007/05/22 04:51:54 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.26 2007/05/22 05:41:35 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -167,7 +168,7 @@ int main(int argc, char **argv) {
   //int endian,roitype;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.25 2007/05/22 04:51:54 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.26 2007/05/22 05:41:35 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -313,7 +314,12 @@ int main(int argc, char **argv) {
     //mMskVol = mri_load_bvolume_frame(mskvolid, mskframe);
     mMskVol = MRIread(mskvolid);
     if(mMskVol == NULL) exit(1);
-    // Need to keep only mskframe
+    if(mskframe > 0){
+      mritmp = fMRIframe(mMskVol, mskframe, NULL);
+      if(mritmp == NULL) exit(1);
+      MRIfree(&mMskVol);
+      mMskVol = mritmp;
+    }
 
     /* convert from Mask Anatomical to Src FOV */
     if (!msksamesrc) {
