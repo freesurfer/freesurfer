@@ -7,8 +7,8 @@
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/22 03:50:28 $
- *    $Revision: 1.58 $
+ *    $Date: 2007/05/22 03:56:33 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -465,7 +465,8 @@ char *IDstemFromName(char *name)
     return(stem);
   }
 
-  printf("ERROR: cannot determine stem from %s\n",name);
+  //Quietly return
+  //printf("ERROR: cannot determine stem from %s\n",name);
 
   return(NULL);
 }
