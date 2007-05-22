@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/05/04 19:00:55 $
- *    $Revision: 1.1 $
+ *    $Author: nommert $
+ *    $Date: 2007/05/22 14:12:50 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,9 +39,9 @@ void RFFTforward(float* data,int length, float* re, float* im );
 
 void RFFT( float* data, int data_length, int length, int direction );
 void FFTdebugAssert(int b, char *string);
-int FFTisPowerOf2( int x );
+int FFTisPowerOf2( int x ); 
 int FFTpow2( int exponent );
-float FFTdist(int x,int y,int z,int len);
+float FFTdist(int x,int y,int z,float xsize,float ysize,float zsize,int len);
 int FFTlog2( int x );
 void FFTswitch_with_z (float *** vect, int dimension, int is_y);
 void FFTmodarg_to_reim(float *** re_mod, float *** im_arg, int l);

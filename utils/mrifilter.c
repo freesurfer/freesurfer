@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/05/17 23:11:17 $
- *    $Revision: 1.58 $
+ *    $Date: 2007/05/22 14:13:20 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -5151,25 +5151,27 @@ MRIzDerivative(MRI *mri_src, MRI *mri_dz)
 
 
 /*!
- \fn *MRI_Gaussian(int len, float std, int norm)
+ \fn MRI *MRI_Gaussian(int len, float std, int norm, int xsize, int ysize, int zsize)
  \param len - dimension of the MRI image
  \param std - standard deviation of the gaussian filter
  \param norm - 1 for normalization of the gaussian field
  
   \brief creates an MRI image with a 3D gaussian distribution
   */
-MRI *MRI_Gaussian(int len, float std, int norm){
+MRI *MRI_Gaussian(int len, float std, int norm, int xsize, int ysize, int zsize){
   int x, y, z;
   float val;
   float  var = std*std;
   float  f = sqrt(2*M_PI)*std;
+  
+  
   MRI *g;
   g = MRIallocSequence(len, len, len,MRI_FLOAT, 1);
   for (y = 0 ; y <  len ; y++)
     for (x = 0 ; x < len; x++)
       for (z = 0 ; z <  len; z++){
-      val = exp( (2-FFTdist(x,y,z,len))/(2*var) )/f;
-      MRIsetVoxVal(g, x, y, z, 0, val);
+	val = exp( (2-FFTdist(x,y,z,xsize, ysize, zsize,len))/(2*var) )/f;
+	MRIsetVoxVal(g, x, y, z, 0, val);
       }
   return(g);
 }
@@ -5465,8 +5467,11 @@ MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm){
   src_fft = MRI_fft(src, src_fft);
   dimension = src_fft->width;
   
+  printf("\n\nvoxsize : %f %f %f\n\n",src_fft->xsize, src_fft->ysize, src_fft->zsize);
+  
+  
   printf("Gaussian "); 
-  g = MRI_Gaussian(dimension, std, norm);
+  g = MRI_Gaussian(dimension, std, norm, src_fft->xsize, src_fft->ysize, src_fft->zsize);
   g_fft = MRI_fft(g, NULL);
   MRIfree(&g);
   
@@ -5533,7 +5538,7 @@ MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent){
     for (z = 0; z < src_fft->depth ; z++)
       for (y = 0 ; y < src_fft->height ; y++)
 	for (x = 0 ; x < src_fft->width; x++){
-	     if (FFTdist(x, y, z, src_fft->depth)> threshold*threshold)
+	     if (FFTdist(x, y, z,src_fft->xsize, src_fft->ysize, src_fft->zsize, src_fft->depth)> threshold*threshold)
       	       MRIsetVoxVal(src_fft,x,y,z, 2*f, 0);	 
 	}
 	
@@ -5582,7 +5587,7 @@ MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent){
       printf("ERROR: MRI_fft_highpass: frames dimension mismatch\n");
       return(NULL);
     }
-    if (src != dst) MRIcopy(src,dst);
+    if (src != dst) MRIcopy(src,dst);	
   }
     src_fft = MRI_fft(src, NULL);
   float threshold = (float)percent*src_fft->depth/100;
@@ -5591,7 +5596,7 @@ MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent){
     for (z = 0; z < src_fft->depth ; z++)
       for (y = 0 ; y < src_fft->height ; y++)
 	for (x = 0 ; x < src_fft->width; x++){
-	     if (FFTdist(x, y, z, src_fft->depth)< threshold*threshold)
+	     if (FFTdist(x, y, z, src_fft->xsize, src_fft->ysize, src_fft->zsize,src_fft->depth)< threshold*threshold)
       	       MRIsetVoxVal(src_fft,x,y,z, 2*f, 0);	 
 	}
 	
