@@ -7,8 +7,8 @@
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/01/25 19:58:17 $
- *    $Revision: 1.57 $
+ *    $Date: 2007/05/22 03:50:28 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -418,6 +418,56 @@ int IDtypeFromStem(char *stem)
   if (fio_FileExistsReadable(tmpstr)) return(BSHORT_FILE);
 
   return(MRI_VOLUME_TYPE_UNKNOWN);
+}
+
+/*
+  \fn int IDstemFromName(char *stem)
+  \brief Returns the file stem by looking for various extensions.
+*/
+char *IDstemFromName(char *name)
+{
+  char *stem, *ext;
+  int len;
+
+  len = strlen(name);
+  if(len < 5) return(NULL); // cant be right
+  stem = strcpyalloc(name);
+
+  // Try extensions of length 3
+  ext = &(name[len-3]); 
+  if(!strcmp(ext,"nii") || !strcmp(ext,"mgz") || 
+     !strcmp(ext,"mgh") || !strcmp(ext,"img")){
+    memset(&(stem[len-4]),0,len-4);
+    return(stem);
+  }
+
+  // Try extensions of length 4
+  if(len < 6) return(NULL); // cant be right
+  ext = &(name[len-4]); 
+  if(!strcmp(ext,"bhdr")){
+    memset(&(stem[len-5]),0,len-5);
+    return(stem);
+  }
+
+  // Try extensions of length 6
+  if(len < 8) return(NULL); // cant be right
+  ext = &(name[len-6]); 
+  if(!strcmp(ext,"nii.gz")){
+    memset(&(stem[len-7]),0,len-7);
+    return(stem);
+  }
+
+  // Try _000.bfloat and _000.short
+  if(len < 12) return(NULL); // cant be right
+  ext = &(name[len-11]); 
+  if(!strcmp(ext,"_000.bfloat") || !strcmp(ext,"_000.bshort")){
+    memset(&(stem[len-12]),0,len-12);
+    return(stem);
+  }
+
+  printf("ERROR: cannot determine stem from %s\n",name);
+
+  return(NULL);
 }
 
 /*
