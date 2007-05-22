@@ -7,8 +7,8 @@
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/22 04:15:26 $
- *    $Revision: 1.60 $
+ *    $Date: 2007/05/22 04:46:38 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -433,9 +433,9 @@ char *IDstemFromName(char *name)
   if(len < 5) return(NULL); // cant be right
 
   // Try extensions of length 3
-  ext = &(name[len-3]); 
-  if(!strcmp(ext,"nii") || !strcmp(ext,"mgz") || 
-     !strcmp(ext,"mgh") || !strcmp(ext,"img")){
+  ext = &(name[len-4]); 
+  if(!strcmp(ext,".nii") || !strcmp(ext,".mgz") || 
+     !strcmp(ext,".mgh") || !strcmp(ext,".img")){
     stem = (char*)calloc(len-4+1,sizeof(char));
     memcpy(stem,name,len-4);
     return(stem);
@@ -443,8 +443,8 @@ char *IDstemFromName(char *name)
 
   // Try extensions of length 4
   if(len < 6) return(NULL); // cant be right
-  ext = &(name[len-4]); 
-  if(!strcmp(ext,"bhdr")){
+  ext = &(name[len-5]); 
+  if(!strcmp(ext,".bhdr")){
     stem = (char*)calloc(len-5+1,sizeof(char));
     memcpy(stem,name,len-5);
     return(stem);
@@ -452,10 +452,10 @@ char *IDstemFromName(char *name)
 
   // Try extensions of length 6
   if(len < 8) return(NULL); // cant be right
-  ext = &(name[len-6]); 
-  if(!strcmp(ext,"nii.gz")){
-    stem = (char*)calloc(len-6+1,sizeof(char));
-    memcpy(stem,name,len-6);
+  ext = &(name[len-7]); 
+  if(!strcmp(ext,".nii.gz")){
+    stem = (char*)calloc(len-7+1,sizeof(char));
+    memcpy(stem,name,len-7);
     return(stem);
   }
 
@@ -463,8 +463,8 @@ char *IDstemFromName(char *name)
   if(len < 12) return(NULL); // cant be right
   ext = &(name[len-11]); 
   if(!strcmp(ext,"_000.bfloat") || !strcmp(ext,"_000.bshort")){
-    stem = (char*)calloc(len-12+1,sizeof(char));
-    memcpy(stem,name,len-12);
+    stem = (char*)calloc(len-11+1,sizeof(char));
+    memcpy(stem,name,len-11);
     return(stem);
   }
 
