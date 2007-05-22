@@ -11,9 +11,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:06 $
- *    $Revision: 1.1 $
+ *    $Author: dsjen $
+ *    $Date: 2007/05/22 19:18:16 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,6 +80,7 @@ public:
   void SaveVolumeWithConfirm ();
   void LoadDTIFromDlog ();
   void LoadPathFromDlog ();
+  void LoadODFFromDlog ();
 
   // Description:
   // Does all the UI stuff around loading a volume or surface. Creates
@@ -90,6 +91,7 @@ public:
   void LoadSurface ( const char* ifnSurface );
   void LoadDTI ( const char* ifnDTI );
   void LoadPath ( const char* ifnPath );
+  void LoadODF ( const char* ifnODF );
 
   // Description:
   // Zoom the view. Calls the relevant function on the view.
@@ -209,6 +211,7 @@ protected:
   MenuItem mMenuLoadSurface;
   MenuItem mMenuLoadDTI;
   MenuItem mMenuLoadPath;
+  MenuItem mMenuLoadODF;
   MenuItem mMenuSaveVolume;
   MenuItem mMenuZoomOut;
   MenuItem mMenuZoomIn;

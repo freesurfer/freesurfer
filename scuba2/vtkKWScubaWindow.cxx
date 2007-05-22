@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:06 $
- *    $Revision: 1.1 $
+ *    $Author: dsjen $
+ *    $Date: 2007/05/22 19:18:16 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,7 @@
 #include "vtkKWScubaLayerCollectionMRI.h"
 #include "vtkKWScubaLayerCollectionMRIS.h"
 #include "vtkKWScubaLayerCollectionPath.h"
+#include "vtkKWScubaLayerCollectionODF.h"
 #include "vtkKWScubaToolEdit2DMRI.h"
 #include "vtkKWScubaToolNavigate.h"
 #include "vtkKWScubaWindow.h"
@@ -63,7 +64,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaWindow );
-vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.2 $" );
 
 const string vtkKWScubaWindow::DEFAULT_VOLUME_FILE_EXTENSION = ".mgz";
 
@@ -382,6 +383,18 @@ vtkKWScubaWindow::Create () {
   try { IconLoader::SetMenuItemIcon( "LoadPath", GetFileMenu(), nFilePos ); }
   catch( exception& e ) { cerr << "Error loading icon: " << e.what() << endl; }
   nFilePos++;
+  
+  // Load ODF
+  GetFileMenu()->
+  InsertCommand( nFilePos, "Load ODF...", this, "LoadODFFromDlog" );
+  GetFileMenu()->
+  SetItemImageToPredefinedIcon( nFilePos, vtkKWIcon::IconFileOpen );
+  GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
+  mMenuLoadODF.menu = GetFileMenu();
+  mMenuLoadODF.nItem = nFilePos;
+  try { IconLoader::SetMenuItemIcon( "LoadODF", GetFileMenu(), nFilePos ); }
+  catch( exception& e ) { cerr << "Error loading icon: " << e.what() << endl; }
+  nFilePos++;
 
   GetFileMenu()->InsertSeparator( nFilePos++ );
 
@@ -547,6 +560,28 @@ vtkKWScubaWindow::LoadPathFromDlog () {
   
 }
 
+void
+vtkKWScubaWindow::LoadODFFromDlog () {
+
+  // Create a Load dialog and set it up.
+  vtkKWLoadSaveDialog* dialog = vtkKWLoadSaveDialog::New();
+  dialog->SetApplication( this->GetApplication() );
+  dialog->Create();
+  dialog->SetTitle( "Load ODF" );
+  dialog->SetFileTypes( "{MGH {.mgh .mgz}} "
+                        "{Binary {.bshort .bfloat}} {All {*}}" );
+  dialog->RetrieveLastPathFromRegistry( "LoadODF" );
+  dialog->SetDefaultExtension( DEFAULT_VOLUME_FILE_EXTENSION.c_str() );
+
+  // Show the dialog, and when it returns, Invoke() will be true if
+  // they clicked OK and gave us a filename.
+  if ( dialog->Invoke() ) {
+    dialog->SaveLastPathToRegistry( "LoadODF" );
+    string fnPath( dialog->GetFileName() );
+    this->LoadODF( fnPath.c_str() );
+  }
+  
+}
 
 void
 vtkKWScubaWindow::SaveVolumeWithConfirm () {
@@ -708,6 +743,40 @@ vtkKWScubaWindow::LoadPath ( const char* ifnPath ) {
   // Update our menu and buttons.
   this->UpdateCommandStatus();
 }
+
+void
+vtkKWScubaWindow::LoadODF ( const char* ifnODF ) {
+  try {
+
+    // Make an ODF layer collection and set it up.
+    vtkKWScubaLayerCollectionODF* col = vtkKWScubaLayerCollectionODF::New();
+    col->SetApplication( this->GetApplication() );
+
+    // Set the file name in the collection.
+    col->SetODFVolumeFileName( ifnODF );
+    
+    // Select this layer.
+    this->SetCurrentLayerCollection( *col );
+    
+    // Status message.
+    this->SetStatusText( "ODF loaded." );
+
+    this->AddLayerCollectionToViews( col );
+    
+    // Add this file to the Recent menu.
+    this->AddRecentFile( ifnODF, this, "LoadODF" );
+    
+    // Update our layer menu.
+    this->UpdateLayerMenu();
+    
+  } catch ( exception& e ) {
+    this->GetApplication()->ErrorMessage( e.what() );
+  }
+  
+  // Update our menu and buttons.
+  this->UpdateCommandStatus();
+}
+
 
 void
 vtkKWScubaWindow::ZoomBy ( float iFactor ) {

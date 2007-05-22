@@ -31,6 +31,8 @@ scuba2_SOURCES= \
 	vtkKWScubaLayerCollectionDTITcl.cxx\
 	vtkKWScubaLayerCollectionPath.cxx vtkKWScubaLayerCollectionPath.h \
 	vtkKWScubaLayerCollectionPathTcl.cxx\
+	vtkKWScubaLayerCollectionODF.cxx vtkKWScubaLayerCollectionODF.h \
+	vtkKWScubaLayerCollectionODFTcl.cxx\
 	ScubaCollectionProperties.h \
 	ScubaCollectionPropertiesMRI.h \
 	vtkKWScubaLayer2DMRI.cxx vtkKWScubaLayer2DMRI.h \
@@ -49,6 +51,8 @@ scuba2_SOURCES= \
 	vtkKWScubaLayer2DPathTcl.cxx \
 	vtkKWScubaLayer3DPath.cxx vtkKWScubaLayer3DPath.h \
 	vtkKWScubaLayer3DPathTcl.cxx \
+	vtkKWScubaLayer3DODF.cxx vtkKWScubaLayer3DODF.h \
+	vtkKWScubaLayer3DODFTcl.cxx \
 	Broadcaster.cxx Broadcaster.h Listener.cxx Listener.h \
 	IDTracker.cxx IDTracker.h \
 	ScubaLibInit.cxx
@@ -113,6 +117,10 @@ vtkKWScubaLayerCollectionPathTcl.cxx: vtkKWScubaLayerCollectionPath.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayerCollectionPath.h \
 	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayerCollectionPathTcl.cxx
 
+vtkKWScubaLayerCollectionODFTcl.cxx: vtkKWScubaLayerCollectionODF.h
+	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayerCollectionODF.h \
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayerCollectionODFTcl.cxx
+
 vtkKWScubaLayer2DMRITcl.cxx: vtkKWScubaLayer2DMRI.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer2DMRI.h \
 	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer2DMRITcl.cxx
@@ -144,6 +152,10 @@ vtkKWScubaLayer2DPathTcl.cxx: vtkKWScubaLayer2DPath.h
 vtkKWScubaLayer3DPathTcl.cxx: vtkKWScubaLayer3DPath.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer3DPath.h \
 	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer3DPathTcl.cxx
+	
+vtkKWScubaLayer3DODFTcl.cxx: vtkKWScubaLayer3DODF.h
+	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer3DODF.h \
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer3DODFTcl.cxx
 
 vtkScubaInteractorStyleTcl.cxx: vtkScubaInteractorStyle.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkScubaInteractorStyle.h \
@@ -200,10 +212,12 @@ dist-exec-hook:
 	@touch vtkKWScubaLayer3DMRISTcl.cxx
 	@touch vtkKWScubaLayer3DMRITcl.cxx
 	@touch vtkKWScubaLayer3DPathTcl.cxx
+	@touch vtkKWScubaLayer3DODFTcl.cxx
 	@touch vtkKWScubaLayerCollectionDTITcl.cxx
 	@touch vtkKWScubaLayerCollectionMRISTcl.cxx
 	@touch vtkKWScubaLayerCollectionMRITcl.cxx
 	@touch vtkKWScubaLayerCollectionPathTcl.cxx
+	@touch vtkKWScubaLayerCollectionODFTcl.cxx
 	@touch vtkKWScubaLayerCollectionTcl.cxx
 	@touch vtkKWScubaLayerTcl.cxx
 	@touch vtkKWScubaToolEdit2DMRITcl.cxx
@@ -224,6 +238,7 @@ vtkKWScubaLayerCollectionMRITcl.cxx:
 vtkKWScubaLayerCollectionMRISTcl.cxx:
 vtkKWScubaLayerCollectionDTITcl.cxx:
 vtkKWScubaLayerCollectionPathTcl.cxx:
+vtkKWScubaLayerCollectionODFTcl.cxx:
 vtkKWScubaLayer2DMRITcl.cxx:
 vtkKWScubaLayer3DMRITcl.cxx:
 vtkKWScubaLayer2DMRISTcl.cxx:
@@ -232,6 +247,7 @@ vtkKWScubaLayer2DDTITcl.cxx:
 vtkKWScubaLayer3DDTITcl.cxx:
 vtkKWScubaLayer2DPathTcl.cxx:
 vtkKWScubaLayer3DPathTcl.cxx:
+vtkKWScubaLayer3DODFTcl.cxx:
 vtkScubaInteractorStyleTcl.cxx:
 vtkKWScubaToolTcl.cxx:
 vtkKWScubaToolNavigateTcl.cxx:

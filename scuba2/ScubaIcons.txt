@@ -3,6 +3,7 @@ SaveVolume IMAGEDIR/icon_disk.tif IMAGEDIR/icon_disk.gif
 LoadSurface IMAGEDIR/icon_folder.tif IMAGEDIR/icon_folder.gif
 LoadDTI IMAGEDIR/icon_folder.tif IMAGEDIR/icon_folder.gif
 LoadPath IMAGEDIR/icon_folder.tif IMAGEDIR/icon_folder.gif
+LoadODF IMAGEDIR/icon_folder.tif IMAGEDIR/icon_folder.gif
 ZoomIn IMAGEDIR/icon_zoom_in.tif IMAGEDIR/icon_zoom_in.gif
 ZoomOut IMAGEDIR/icon_zoom_out.tif IMAGEDIR/icon_zoom_out.gif
 ViewSingle IMAGEDIR/icon_view_single.tif IMAGEDIR/icon_view_single.gif
