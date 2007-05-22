@@ -2,14 +2,21 @@
  * @file  mri_vol2roi.c
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+
+  Averages the voxels within an ROI. The ROI can be constrained
+  structurally (with a label file) and/or functionally (with a
+  volumetric mask). This file is a bit of a mess as it was
+  originally written around a dedicated bhdr reader, so there
+  are many places where the input can be either a stem or 
+  a volume.
+
  */
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:09 $
- *    $Revision: 1.24 $
+ *    $Author: greve $
+ *    $Date: 2007/05/22 04:51:54 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,10 +38,7 @@
   Author:  Douglas N. Greve
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    1/2/00
-  Purpose: averages the voxels within an ROI. The ROI
-           can be constrained structurally (with a label file)
-           and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.24 2006/12/29 02:09:09 nicks Exp $
+  $Id: mri_vol2roi.c,v 1.25 2007/05/22 04:51:54 greve Exp $
 */
 
 #include <stdio.h>
@@ -60,8 +64,10 @@
 #include "fio.h"
 #include "version.h"
 #include "mri_circulars.h"
+#include "mri_identify.h"
 
 LABEL   *LabelReadFile(char *labelfile);
+char *Stem2Path(char *stem);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -83,7 +89,7 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.24 2006/12/29 02:09:09 nicks Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.25 2007/05/22 04:51:54 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -132,6 +138,7 @@ char *FS_TALAIRACH_SUBJECT = NULL;
 char *srcsubject, *msksubject;
 char *regfile = "register.dat";
 MRI *mSrcVol, *mROI, *mMskVol, *mSrcMskVol, *mFinalMskVol, *mSrcMskVol;
+MRI *mritmp;
 FILE *fp;
 int nmskhits, nlabelhits, nfinalhits;
 
@@ -144,21 +151,23 @@ int labeltal  = 0;
 char *talxfm = "talairach.xfm";
 
 int bfiletype;
+char *outext = NULL;
 
+/*---------------------------------------------------------*/
 int main(int argc, char **argv) {
   int n,err, f, nhits, r,c,s;
-  int nrows_src, ncols_src, nslcs_src, nfrms, endian, srctype;
-  int nrows_msk, ncols_msk, nslcs_msk, msktype;
-  int roitype;
+  int nrows_src, ncols_src, nslcs_src;
+  int nrows_msk, ncols_msk, nslcs_msk;
   float ipr, bpr, intensity;
   float colres_src, rowres_src, slcres_src;
   float colres_msk, rowres_msk, slcres_msk;
   float *framepower=NULL, val;
   LTA *lta;
   int nargs;
+  //int endian,roitype;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.24 2006/12/29 02:09:09 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.25 2007/05/22 04:51:54 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -186,9 +195,15 @@ int main(int argc, char **argv) {
   dump_options(stdout);
 
   /* ------------ get info about the source volume ------------------*/
-  err = bf_getvoldim(srcvolid,&nrows_src,&ncols_src,
-                     &nslcs_src,&nfrms,&endian,&srctype);
-  if (err) exit(1);
+  //err = bf_getvoldim(srcvolid,&nrows_src,&ncols_src,
+  // &nslcs_src,&nfrms,&endian,&srctype);
+  // if (err) exit(1);
+  mritmp = MRIreadHeader(srcvolid,MRI_VOLUME_TYPE_UNKNOWN);
+  if(mritmp == NULL) exit(1);
+  nrows_src = mritmp->height;
+  ncols_src = mritmp->width;
+  nslcs_src = mritmp->depth;
+
   /* Dsrc: read the source registration file */
   if (srcregfile != NULL) {
     err = regio_read_register(srcregfile, &srcsubject, &ipr, &bpr,
@@ -249,9 +264,17 @@ int main(int argc, char **argv) {
   /* -------------- load mask volume stuff -----------------------------*/
   if (mskvolid != NULL) {
     /* get mask volume info */
-    err = bf_getvoldim(mskvolid,&nrows_msk,&ncols_msk,
-                       &nslcs_msk,&nfrms,&endian,&msktype);
-    if (err) exit(1);
+
+    printf("Reading %s\n",mskvolid);
+    mritmp = MRIreadHeader(mskvolid,MRI_VOLUME_TYPE_UNKNOWN);
+    if(mritmp == NULL) exit(1);
+    nrows_msk = mritmp->height;
+    ncols_msk = mritmp->width;
+    nslcs_msk = mritmp->depth;
+
+    //err = bf_getvoldim(mskvolid,&nrows_msk,&ncols_msk,
+    //                 &nslcs_msk,&nfrms,&endian,&msktype);
+    //if (err) exit(1);
 
     /* get the mask registration info */
     /* xyzFOV = Dmsk*xyzAnat (in mask space) */
@@ -287,8 +310,10 @@ int main(int argc, char **argv) {
     } else Mmsk2src = NULL;
 
     /* load the mask volume (single frame) */
-    mMskVol = mri_load_bvolume_frame(mskvolid, mskframe);
-    if (mMskVol == NULL) exit(1);
+    //mMskVol = mri_load_bvolume_frame(mskvolid, mskframe);
+    mMskVol = MRIread(mskvolid);
+    if(mMskVol == NULL) exit(1);
+    // Need to keep only mskframe
 
     /* convert from Mask Anatomical to Src FOV */
     if (!msksamesrc) {
@@ -315,8 +340,9 @@ int main(int argc, char **argv) {
   //mSrcVol->xsize = colres_src;
   //mSrcVol->ysize = rowres_src;
   //mSrcVol->zsize = slcres_src;
-  bfiletype = BTypeFromStem(srcvolid);
-  mSrcVol = MRIreadType(srcvolid,bfiletype);
+  //bfiletype = BTypeFromStem(srcvolid);
+  //mSrcVol = MRIreadType(srcvolid,bfiletype);
+  mSrcVol = MRIread(srcvolid);
 
   if (mSrcVol == NULL) exit(1);
   printf("done\n");
@@ -380,7 +406,9 @@ int main(int argc, char **argv) {
   /* ------- Save the final mask ------------------ */
   if (finalmskvolid != 0) {
     //mri_save_as_bvolume(mFinalMskVol,finalmskvolid,endian,BF_FLOAT);
-    MRIwriteAnyFormat(mFinalMskVol,finalmskvolid,"bfloat",-1,NULL);
+    //MRIwriteAnyFormat(mFinalMskVol,finalmskvolid,"bfloat",-1,NULL);
+    sprintf(tmpstr,"%s.%s",finalmskvolid,outext);
+    MRIwrite(mFinalMskVol,tmpstr);
   }
 
   /* ------- Save CRS of the the final mask ------------------ */
@@ -413,25 +441,13 @@ int main(int argc, char **argv) {
   }
 
   /* save the target volume in an appropriate format */
-  roitype = srctype;
-  if (!strcasecmp(roifmt,"bshort") || !strcasecmp(roifmt,"bfloat") ||
-      !strcasecmp(roifmt,"bfile")  || !strcasecmp(roifmt,"bvolume") ) {
-    /*-------------- bvolume --------------*/
-    if (!strcasecmp(roifmt,"bfile")  || !strcasecmp(roifmt,"bvolume") )
-      roitype = srctype;
-    else if (!strcasecmp(roifmt,"bshort")) roitype = BF_SHORT;
-    else if (!strcasecmp(roifmt,"bfloat")) roitype = BF_FLOAT;
-
-    printf("Saving ROI to %s as bvolume\n",roifile);
-    fflush(stdout);
-    mri_save_as_bvolume(mROI,roifile,endian,roitype);
-
-    /* for a stat volume, save the .dat file */
-    if (is_sxa_volume(srcvolid)) {
-      sxa->nrows = 1;
-      sxa->ncols = 1;
-      sv_sxadat_by_stem(sxa,roifile);
-    }
+  sprintf(tmpstr,"%s.%s",roifile,outext);
+  MRIwrite(mROI,tmpstr);
+  /* for a stat volume, save the .dat file */
+  if (is_sxa_volume(srcvolid)) {
+    sxa->nrows = 1;
+    sxa->ncols = 1;
+    sv_sxadat_by_stem(sxa,roifile);
   }
 
   /* save as text */
@@ -520,7 +536,7 @@ static int parse_commandline(int argc, char **argv) {
     /* -------- source volume inputs ------ */
     else if (!strcmp(option, "--srcvol")) {
       if (nargc < 1) argnerr(option,1);
-      srcvolid = pargv[0];
+      srcvolid = IDnameFromStem(pargv[0]);
       nargsused = 1;
     } else if (!strcmp(option, "--srcfmt")) {
       if (nargc < 1) argnerr(option,1);
@@ -567,7 +583,7 @@ static int parse_commandline(int argc, char **argv) {
     /* -------- mask volume inputs ------ */
     else if (!strcmp(option, "--mskvol")) {
       if (nargc < 1) argnerr(option,1);
-      mskvolid = pargv[0];
+      mskvolid = IDnameFromStem(pargv[0]);
       nargsused = 1;
     } else if (!strcmp(option, "--mskfmt")) {
       if (nargc < 1) argnerr(option,1);
@@ -606,7 +622,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (!strcmp(option, "--srcmskvol")) {
       if (nargc < 1) argnerr(option,1);
-      srcmskvolid = pargv[0];
+      srcmskvolid = IDnameFromStem(pargv[0]);
       nargsused = 1;
     } else if (!strcmp(option, "--finalmskcrs")) {
       if (nargc < 1) argnerr(option,1);
@@ -636,10 +652,7 @@ static void print_usage(void) {
   printf("   --help : documentation and bug information\n");
   printf("\n");
   printf("   --srcvol    input volume path \n");
-  //printf("   --srcfmt    input volume format \n");
   printf("   --srcreg    source registration (SrcXYZ = R*AnatXYZ) \n");
-  //printf("   --srcoldreg interpret srcreg as old-style reg.dat \n");
-  //printf("   --srcwarp   source scanner warp table\n");
   printf("\n");
   printf("   --label     path to label file \n");
   printf("   --labelreg  label registration (LabelXYZ = L*AnatXYZ) \n");
@@ -649,8 +662,6 @@ static void print_usage(void) {
   printf("   --labelfillthresh thresh : fraction of voxel\n");
   printf("\n");
   printf("   --mskvol     mask volume path \n");
-  //printf("   --mskfmt     mask volume format \n");
-  //printf("   --mskreg     mask registration  (MaskXYZ = M*AnatXYZ)\n");
   printf("\n");
   printf("   --mskthresh threshold (0.5) mask threshold\n");
   printf("   --msktail   <abs>, pos, or neg (mask tail) \n");
@@ -658,7 +669,7 @@ static void print_usage(void) {
   printf("   --mskinvert : invert the mask \n");
   printf("\n");
   printf("   --roiavgtxt fname :output text file for ROI average\n");
-  printf("   --roiavg    stem : output bfloat stem for ROI average\n");
+  printf("   --roiavg    stem : output stem or stem.ext for ROI average\n");
   printf("   --finalmskvol path in which to save final mask\n");
   printf("   --finalmskcrs fname: save col,row,slice in text fname\n");
   printf("   --srcmskvol path in which to save masked source\n");
@@ -688,9 +699,13 @@ static void print_help(void) {
     "the same size as the source volume (one frame only). The value of\n"
     "a voxel is 1 if it was in the final ROI or 0 if it was out.\n"
     "\n"
+    "Output volumes will be saved as that indicated by the FSF_OUTPUT_FORMAT\n"
+    "environment variable (eg, mgh, mgz, nii, nii.gz, bhdr). If this is \n"
+    "not set, then bhdr is used.\n"
+    "\n"
     "--srcvol srcvolstem\n"
     "\n"
-    "Specify the bfloat/bshort stem of the volume from which the ROI is to\n"
+    "Specify the stem or stem.ext of the volume from which the ROI is to\n"
     "be extracted.\n"
     "\n"
     "--srcreg regfile\n"
@@ -740,7 +755,7 @@ static void print_help(void) {
     "\n"
     "--mskvol maskstem\n"
     "\n"
-    "Stem of the bshort/bfloat mask volume. This volume should be the\n"
+    "Stem or stem.ext of mask volume. This volume should be the\n"
     "same dimension as the source volume (the number of frames can differ). \n"
     "The mask volume will be thresholded to determine which voxels will\n"
     "be included in the ROI. See --mskthresh, --msktail, --mskframe, and\n"
@@ -776,7 +791,7 @@ static void print_help(void) {
     "\n"
     "--roiavg stem\n"
     "\n"
-    "Save output as a bfloat 'volume'. This flag is actually necessary\n"
+    "Save output as in a 'volume' format. This flag is actually necessary\n"
     "even if you are not going to use this output.\n"
     "\n"
     "--finalmskvol finalmaskstem\n"
@@ -810,9 +825,6 @@ static void print_help(void) {
     "anatomical coordinates in 'tkregister' space. IMPORTANT: passing the\n"
     "talairach.xfm file with this option can result in a MISINTERPRETATION\n"
     "of the transform.\n"
-    "\n"
-    "The source, mask, and finalmask volumes must be in bshort/bfloat\n"
-    "format.\n"
     "\n"
     "A roiavgstem must be specified even if you do not want this format.\n"
     "The roiavgtxt can be specified independently.\n"
@@ -858,6 +870,8 @@ static void check_options(void) {
     exit(1);
   }
 
+  outext = getenv("FSF_OUTPUT_FORMAT");
+  if(outext == NULL) outext = "bhdr";
 
   return;
 }
@@ -926,17 +940,6 @@ static int singledash(char *flag) {
   if (flag[0] == '-' && flag[1] != '-') return(1);
   return(0);
 }
-#if 0
-/*---------------------------------------------------------------*/
-static int isoptionflag(char *flag) {
-  int len;
-  len = strlen(flag);
-  if (len < 3) return(0);
-
-  if (flag[0] != '-' || flag[1] != '-') return(0);
-  return(1);
-}
-#endif
 
 /*---------------------------------------------------------------*/
 /*---------------------------------------------------------------*/
@@ -1042,4 +1045,45 @@ int BTypeFromStem(char *stem) {
   printf("WARNING: cannot find file for bstem %s\n",stem);
 
   return(MRI_VOLUME_TYPE_UNKNOWN);
+}
+
+char *Stem2Path(char *stem)
+{
+  char *path;
+  char tmpstr[2000];
+
+  // If stem exists, it is not a stem but a full path already
+  if(fio_FileExistsReadable(stem)){
+    path = strcpyalloc(stem);
+    return(path);
+  }
+  // Now go thru each type
+  sprintf(tmpstr,"%s.mgz",stem);
+  if(fio_FileExistsReadable(tmpstr)){
+    path = strcpyalloc(tmpstr);
+    return(path);
+  }
+  sprintf(tmpstr,"%s.mgh",stem);
+  if(fio_FileExistsReadable(tmpstr)){
+    path = strcpyalloc(tmpstr);
+    return(path);
+  }
+  sprintf(tmpstr,"%s.nii",stem);
+  if(fio_FileExistsReadable(tmpstr)){
+    path = strcpyalloc(tmpstr);
+    return(path);
+  }
+  sprintf(tmpstr,"%s.nii.gz",stem);
+  if(fio_FileExistsReadable(tmpstr)){
+    path = strcpyalloc(tmpstr);
+    return(path);
+  }
+  sprintf(tmpstr,"%s.bhdr",stem);
+  if(fio_FileExistsReadable(tmpstr)){
+    path = strcpyalloc(tmpstr);
+    return(path);
+  }
+
+  printf("ERROR: could not determine format for %s\n",stem);
+  exit(1);
 }
