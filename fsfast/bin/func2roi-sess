@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:17 $
-#    $Revision: 1.13 $
+#    $Author: greve $
+#    $Date: 2007/05/22 04:52:33 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: func2roi-sess,v 1.13 2007/01/09 22:41:17 nicks Exp $';
+set VERSION = '$Id: func2roi-sess,v 1.14 2007/05/22 04:52:33 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -71,7 +71,6 @@ set NthRunType = ();
 
 set umaskarg = ();
 set nolog = 0;
-set volcheck = 1;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -158,11 +157,6 @@ endif
 
 if($#masksessid != 0) then
   set maskstem = `$PWDCMD`/$masksessid/$maskfsd/$maskanalysis/$maskspacedir/$maskcontrast/$maskmap;
-  if($volcheck) then
-    bfvcheck $maskstem;
-    if($status) exit 1;
-  endif
-
   if($MaskFromGroup) then
     set maskreg = `$PWDCMD`/$masksessid/$maskfsd/$maskanalysis/$maskspacedir/register.dat;
   else
@@ -237,13 +231,6 @@ foreach sess ($SessList)
     # Use a local mask #
     set maskstem = $maskfsd/$maskanalysis$anapend/$maskspacedir/$maskcontrast/$maskmap;
     # Note: anapend will be null if maskanalysis != analysis or masksessid != null
-    if($volcheck) then
-      bfvcheck $maskstem;
-      if($status) then
-        echo "ERROR: reading $maskstem"
-        exit 1;
-      endif
-    endif
 
     if($maskspace == native) set maskreg = ();
     if($maskspace == tal) then
@@ -262,17 +249,6 @@ foreach sess ($SessList)
     set srcreg = $fsd/register.dat
     set outdir = $fsd/$analysis$anapend/$roidef
     set finalmaskstem = $outdir/mask
-
-    # check that the source volume is ok #
-    if($volcheck) then
-      foreach invol ($srcstem $offsetstem)
-        bfvcheck $invol;
-        if($status) then
-          echo "ERROR: reading $invol"
-          exit 1;
-        endif
-      end
-    endif
 
     if(! -e $srcreg) then
       echo "ERROR ($sessid): cannot find source reg $srcreg" |& tee -a $LF
@@ -633,10 +609,6 @@ while( $#argv != 0 )
 
     case "-oldtxtstyle":
       set oldtxtstyle = (--oldtxtstyle);
-      breaksw
-
-    case "-nocheck":
-      set volcheck = 0;
       breaksw
 
     case "-echo":
