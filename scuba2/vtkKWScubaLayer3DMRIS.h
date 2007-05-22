@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/05/22 22:05:15 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,8 +35,9 @@
 //BTX
 class ScubaCollectionPropertiesMRIS;
 //ETX
-class vtkPolyDataMapper;
 class vtkActor;
+class vtkPlane;
+class vtkPolyDataMapper;
 
 class vtkKWScubaLayer3DMRIS : public vtkKWScubaLayer {
 
@@ -87,9 +88,13 @@ protected:
   ScubaCollectionPropertiesMRIS const* mMRISProperties;
 
   // Pipeline -------------------------------------------------------------
-  vtkPolyDataMapper* mNormalMapper;
-  vtkPolyDataMapper* mFastMapper;
-  vtkActor* mActor;
+  vtkPolyDataMapper* m3DNormalMapper;
+  vtkPolyDataMapper* m3DFastMapper;
+  vtkActor* m3DActor;
+	vtkPlane* m2DSlicePlane[3];
+	vtkPolyDataMapper* m2DNormalMapper[3];
+	vtkPolyDataMapper* m2DFastMapper[3];
+	vtkActor* m2DActor[3];
   // ----------------------------------------------------------------------
 
   // Surface info.

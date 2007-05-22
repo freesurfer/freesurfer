@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/05/22 22:05:15 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,8 @@
 #include <string>
 #include <stdexcept>
 #include "vtkKWScubaLayer3DMRIS.h"
+#include "vtkCutter.h"
+#include "vtkPlane.h"
 #include "ScubaCollectionProperties.h"
 #include "ScubaCollectionPropertiesMRIS.h"
 #include "vtkFSSurfaceSource.h"
@@ -46,24 +48,41 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DMRIS );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DMRIS, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DMRIS, "$Revision: 1.2 $" );
 
 vtkKWScubaLayer3DMRIS::vtkKWScubaLayer3DMRIS () :
   mMRISProperties( NULL ),
-  mNormalMapper( NULL ),
-  mFastMapper( NULL ),
-  mActor( NULL ) {
+  m3DNormalMapper( NULL ),
+  m3DFastMapper( NULL ),
+  m3DActor( NULL ) {
   mRASCenter[0] = mRASCenter[1] = mRASCenter[2] = 0;
+	for( int n = 0; n < 3; n++ ) {
+		m2DSlicePlane[n] = NULL;
+		m2DNormalMapper[n] = NULL; 
+		m2DFastMapper[n] = NULL;
+		m2DActor[n] = NULL;
+		
+	}
 }
 
 vtkKWScubaLayer3DMRIS::~vtkKWScubaLayer3DMRIS () {
 
-  if ( mNormalMapper )
-    mNormalMapper->Delete();
-  if ( mFastMapper )
-    mFastMapper->Delete();
-  if ( mActor )
-    mActor->Delete();
+  if ( m3DNormalMapper )
+    m3DNormalMapper->Delete();
+  if ( m2DFastMapper )
+    m3DFastMapper->Delete();
+  if ( m2DActor )
+    m3DActor->Delete();
+	for( int n = 0; n < 3; n++ ) {
+	  if( m2DSlicePlane[n] )
+			m2DSlicePlane[n]->Delete();
+	  if( m2DNormalMapper[n] )
+			m2DNormalMapper[n]->Delete();
+		if( m2DFastMapper[n] )
+			m2DFastMapper[n]->Delete();
+		if( m2DActor[n] ) 
+			m2DActor[n]->Delete();
+	}
 }
 
 void
@@ -90,25 +109,71 @@ vtkKWScubaLayer3DMRIS::Create () {
   mRASCenter[2] = source->GetRASCenterZ();
 
   //
-  // Mappers for the lines.
+  // Mappers for the 3D surface.
   //
-  mNormalMapper = vtkPolyDataMapper::New();
-  mNormalMapper->SetInput( mMRISProperties->GetNormalModeOutput() );
+  m3DNormalMapper = vtkPolyDataMapper::New();
+  m3DNormalMapper->SetInput( mMRISProperties->GetNormalModeOutput() );
 
-  mFastMapper = vtkPolyDataMapper::New();
-  mFastMapper->SetInput( mMRISProperties->GetFastModeOutput() );
+  m3DFastMapper = vtkPolyDataMapper::New();
+  m3DFastMapper->SetInput( mMRISProperties->GetFastModeOutput() );
 
   //
-  // Actors in the scene, drawing the mapped lines.
+  // Actor for the 3D surface.
   //
-  mActor = vtkActor::New();
-  mActor->SetMapper( mNormalMapper );
+  m3DActor = vtkActor::New();
+  m3DActor->SetMapper( m3DNormalMapper );
 
-  this->AddProp( mActor );
+  this->AddProp( m3DActor );
 
-  
   // Update the fastClipper now so we do the decimation up front.
-  mFastMapper->Update();
+  m3DFastMapper->Update();
+
+
+	// Now make three actors for the optional 2D plane intersection mode.
+	for( int n = 0; n < 3; n++ ) {
+
+		//
+		// Cutting planes for the 2D intersections.
+	  //
+	  m2DSlicePlane[n] = vtkPlane::New();
+	  m2DSlicePlane[n]->SetOrigin( mRASCenter[0], mRASCenter[1], mRASCenter[2] );
+		m2DSlicePlane[n]->SetNormal( (n==0), (n==1), (n==2) );
+	 
+	  //
+	  // Cutters that takes the 3D surface and outputs 2D lines.
+	  //
+	  vtkCutter* clipper = vtkCutter::New();
+	  clipper->SetInputConnection( mMRISProperties->GetNormalModeOutputPort() );
+	  clipper->SetCutFunction( m2DSlicePlane[n] );
+
+	  vtkCutter* fastClipper = vtkCutter::New();
+	  fastClipper->SetInputConnection( mMRISProperties->GetFastModeOutputPort() );
+	  fastClipper->SetCutFunction( m2DSlicePlane[n] );
+
+	  //
+	  // Mappers for the lines.
+	  //
+	  m2DNormalMapper[n] = vtkPolyDataMapper::New();
+	  m2DNormalMapper[n]->SetInput( clipper->GetOutput() );
+
+	  m2DFastMapper[n] = vtkPolyDataMapper::New();
+	  m2DFastMapper[n]->SetInput( fastClipper->GetOutput() );
+
+	  //
+	  // Actors in the scene, drawing the mapped lines.
+	  //
+	  m2DActor[n] = vtkActor::New();
+	  m2DActor[n]->SetMapper( m2DNormalMapper[n] );
+	  m2DActor[n]->SetBackfaceProperty( m2DActor[n]->MakeProperty() );
+	  m2DActor[n]->GetBackfaceProperty()->BackfaceCullingOff();
+	  m2DActor[n]->SetProperty( m2DActor[n]->MakeProperty() );
+	  m2DActor[n]->GetProperty()->SetColor( 1, 0, 0 );
+	  m2DActor[n]->GetProperty()->SetEdgeColor( 1, 0, 0 );
+	  m2DActor[n]->GetProperty()->SetInterpolationToFlat();
+
+	  this->AddProp( m2DActor[n] );
+	}
+	
 }
 
 void
@@ -127,22 +192,43 @@ vtkKWScubaLayer3DMRIS::DoListenToMessage ( string const isMessage,
 
   if( isMessage == "OpacityChanged" ) {
 
-    if ( mActor )
-      if ( mActor->GetProperty() ) {
-	mActor->GetProperty()->SetOpacity( mProperties->GetOpacity() );
-	this->PipelineChanged();
+    if ( m3DActor )
+      if ( m3DActor->GetProperty() ) {
+				m3DActor->GetProperty()->SetOpacity( mProperties->GetOpacity() );
+				this->PipelineChanged();
       }
 
   } else if( isMessage == "FastModeChanged" ) {
     
 //     if ( mProperties->GetFastMode() )
-//       mActor->SetMapper( mFastMapper );
+//       m3DActor->SetMapper( m3DFastMapper );
 //     else
-//       mActor->SetMapper( mNormalMapper );
+//       m3DNormalMapper->SetMapper( m3DNormalMapper );
     
 //     this->PipelineChanged();
 
-  }
+  } else if( isMessage == "Layer3DInfoChanged" ) {
+
+    if ( m2DSlicePlane[0] && m2DSlicePlane[1] && m2DSlicePlane[2] ) {
+
+		  float rasX = mViewProperties->Get3DRASX();
+		  float rasY = mViewProperties->Get3DRASY();
+		  float rasZ = mViewProperties->Get3DRASZ();
+     
+      m2DSlicePlane[0]->SetOrigin( rasX - mRASCenter[0], 0, 0 );
+			m2DSlicePlane[0]->SetNormal( 1, 0, 0 );
+      
+     	m2DSlicePlane[1]->SetOrigin( 0, rasY - mRASCenter[1], 0 );
+			m2DSlicePlane[1]->SetNormal( 0, 1, 0 );
+ 
+  		m2DSlicePlane[2]->SetOrigin( 0, 0, rasZ - mRASCenter[2] );
+			m2DSlicePlane[2]->SetNormal( 0, 0, 1 );
+
+     this->PipelineChanged();
+    }
+
+
+	}
 }
 
 void
