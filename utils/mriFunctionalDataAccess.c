@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/21 16:46:18 $
- *    $Revision: 1.45 $
+ *    $Date: 2007/05/22 20:26:38 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -1224,7 +1224,7 @@ FunD_tErr FunD_GetDataForAllTimePoints ( mriFunctionalDataRef this,
   if ( !this->mbScalar )
   {
     DebugNote( ("Converting client to func idx") );
-    FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
+    FunD_ConvertClientToFloatFuncIdx_( this, iClientVox, &funcIdx );
   }
   else
   {
