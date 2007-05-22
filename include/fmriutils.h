@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/17 03:31:31 $
- *    $Revision: 1.26 $
+ *    $Date: 2007/05/22 05:37:46 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -86,6 +86,8 @@ MRI *fMRIsigF(MRI *F, float DOF1, float DOF2, MRI *sig);
 MRI *fMRIsumSquare(MRI *fmri, int Update, MRI *sumsqr);
 MRI *fMRInskip(MRI *inmri, int nskip, MRI *outmri);
 MRI *fMRIndrop(MRI *inmri, int ndrop, MRI *outmri);
+MRI *fMRIframe(MRI *inmri, int frame, MRI *outmri);
+
 MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s,
                     int Mrows, int Mcols, MATRIX *M);
 MATRIX *MRItoSymMatrix(MRI *mri, int c, int r, int s, MATRIX *M);

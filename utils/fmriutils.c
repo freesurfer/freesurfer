@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/17 03:31:31 $
- *    $Revision: 1.45 $
+ *    $Date: 2007/05/22 05:37:44 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.45 2007/05/17 03:31:31 greve Exp $
+  $Id: fmriutils.c,v 1.46 2007/05/22 05:37:44 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.45 2007/05/17 03:31:31 greve Exp $");
+  return("$Id: fmriutils.c,v 1.46 2007/05/22 05:37:44 greve Exp $");
 }
 
 
@@ -741,6 +741,56 @@ MRI *fMRIndrop(MRI *inmri, int ndrop, MRI *outmri)
           val = MRIgetVoxVal(inmri, c, r, s, fin);
           MRIsetVoxVal(outmri,c, r, s, fout, val);
         }
+      }
+    }
+  }
+
+  return(outmri);
+}
+
+/*--------------------------------------------------------
+  fMRIframe() - extract the nth frame. frame is 0-based.
+  --------------------------------------------------------*/
+MRI *fMRIframe(MRI *inmri, int frame, MRI *outmri)
+{
+  int c, r, s, nframesout;
+  float val;
+
+  if(inmri->nframes <= frame){
+    printf("ERROR: fMRIframe: frame >= nframes\n");
+    return(NULL);
+  }
+
+  nframesout = 1;
+  if (outmri==NULL){
+    outmri = MRIallocSequence(inmri->width, inmri->height, inmri->depth,
+                              inmri->type, nframesout);
+    if (outmri==NULL){
+      printf("ERROR: fMRIframe: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(inmri,outmri);
+  }
+  else{
+    if(outmri->width  != inmri->width ||
+       outmri->height != inmri->height ||
+       outmri->depth  != inmri->depth ||
+       outmri->nframes != nframesout)      {
+      printf("ERROR: fMRIframe: output dimension mismatch\n");
+      return(NULL);
+    }
+    if (outmri->type != inmri->type) {
+      printf("ERROR: fMRIframe: structure type mismatch\n");
+      return(NULL);
+    }
+  }
+
+  MRIclear(outmri);
+  for (s=0; s < outmri->depth; s++) {
+    for (r=0; r < outmri->height; r++) {
+      for (c=0; c < outmri->width; c++)  {
+	val = MRIgetVoxVal(inmri, c, r, s, frame);
+	MRIsetVoxVal(outmri,c, r, s, 0, val);
       }
     }
   }

@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/26 05:31:21 $
- *    $Revision: 1.141 $
+ *    $Date: 2007/05/22 05:37:46 $
+ *    $Revision: 1.142 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -175,7 +175,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.141 2007/04/26 05:31:21 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.142 2007/05/22 05:37:46 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -276,7 +276,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.141 2007/04/26 05:31:21 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.142 2007/05/22 05:37:46 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1250,7 +1250,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.141 2007/04/26 05:31:21 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.142 2007/05/22 05:37:46 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2097,11 +2097,13 @@ int main(int argc, char *argv[]) {
   /* ----- catch the out stats flag ----- */
   if (out_stats_flag) MRIprintStats(mri, stdout);
 
-  if (frame_flag == TRUE) {
-    if (mid_frame_flag == TRUE) frame = nint(mri->nframes/2);
+  if(frame_flag == TRUE) {
+    if(mid_frame_flag == TRUE) frame = nint(mri->nframes/2);
     printf("keeping frame %d\n",frame);
-    nskip = frame;
-    ndrop = mri->nframes - (frame+1);
+    mri2 = fMRIframe(mri, frame, NULL);
+    if (mri2 == NULL) exit(1);
+    MRIfree(&mri);
+    mri = mri2;
   }
 
   /* ----- drop the last ndrop frames (drop before skip) ------ */
