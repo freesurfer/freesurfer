@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/05/10 21:49:24 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/05/22 19:20:16 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DPath );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.7 $" );
 
 vtkKWScubaLayer3DPath::vtkKWScubaLayer3DPath () :
   mPathProperties( NULL ),
@@ -577,7 +577,7 @@ vtkKWScubaLayer3DPath::CreateInitialTubes() {
       vtkTubeFilter *tubeFilter = vtkTubeFilter::New();
       tubeFilter->SetNumberOfSides( 5 );
       tubeFilter->SetInput( polyData );
-      tubeFilter->SetRadius( mTubeRadius );
+      tubeFilter->SetRadius( 0.5 );
       tubeFilter->SetVaryRadiusToVaryRadiusOff();
           
       polyData->Delete();
@@ -588,6 +588,12 @@ vtkKWScubaLayer3DPath::CreateInitialTubes() {
     
       vtkActor *tubeActor = vtkActor::New();
       tubeActor->SetMapper( tubeMapper );
+      
+      // pseudo randomizers colors
+      const double r = ( rand() % 100 + 1 ) / 100.0;
+      const double g = ( rand() % 100 + 1 ) / 100.0;
+      const double b = 0.8;
+      tubeActor->GetProperty()->SetColor( r, g, b );
       
       // TODO: add this to the collection too...
       this->AddProp( tubeActor );
