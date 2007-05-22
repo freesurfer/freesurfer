@@ -25,6 +25,7 @@ libvtkutils_a_SOURCES= \
 	vtkFreesurferLookupTable.cxx vtkFreesurferLookupTable.h \
 	vtkRGBATransferFunction.cxx vtkRGBATransferFunction.h \
 	vtkFDTensorGlyph.cxx vtkFDTensorGlyph.h \
+	vtkODFGlyph.cxx vtkODFGlyph.h \
 	vtkInflatePolyData.cxx vtkInflatePolyData.h \
 	IconLoader.cxx IconLoader.h
 
