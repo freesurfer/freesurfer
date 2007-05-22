@@ -11,6 +11,11 @@ function hdr = load_nifti_hdr(niftifile)
 % Endianness is returned as hdr.endian, which is either 'l' or 'b'. 
 % When opening again, use fp = fopen(niftifile,'r',hdr.endian);
 %
+% Handles data structures with more than 32k cols by
+% reading hdr.glmin = ncols when hdr.dim(2) < 0. This
+% is FreeSurfer specific, for handling surfaces.
+%
+% $Id: load_nifti_hdr.m,v 1.8 2007/05/22 05:24:11 greve Exp $
 
 
 %
@@ -19,8 +24,8 @@ function hdr = load_nifti_hdr(niftifile)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/16 21:46:00 $
-%    $Revision: 1.7 $
+%    $Date: 2007/05/22 05:24:11 $
+%    $Revision: 1.8 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -112,6 +117,13 @@ hdr.intent_name     = fscanf(fp,'%c',16);
 hdr.magic           = fscanf(fp,'%c',4);
 
 fclose(fp);
+
+% This is to accomodate structures with more than 32k cols
+% FreeSurfer specific. See also mriio.c.
+if(hdr.dim(2) < 0) 
+  hdr.dim(2) = hdr.glmin; 
+  hdr.glmin = 0; 
+end
 
 % look at xyz units and convert to mm if needed
 xyzunits = bitand(hdr.xyzt_units,7); % 0x7

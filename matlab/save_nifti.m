@@ -1,18 +1,22 @@
 function err = save_nifti(hdr,niftifile)
 % err = save_nifti(hdr,niftifile)
 %
-% Only uncompressed (so far)
-% pixel data should be in hdr.vol
-
+% Pixel data should be in hdr.vol
+%
+% Handles data structures with more than 32k cols by
+% setting hdr.dim(2) = -1 and hdr.glmin = ncols. This
+% is FreeSurfer specific, for handling surfaces.
+%
+% $Id: save_nifti.m,v 1.8 2007/05/22 05:24:11 greve Exp $
 
 %
 % save_nifti.m
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:10 $
-%    $Revision: 1.7 $
+%    $Author: greve $
+%    $Date: 2007/05/22 05:24:11 $
+%    $Revision: 1.8 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,6 +65,13 @@ hdr.dim(2) = size(hdr.vol,1);
 hdr.dim(3) = size(hdr.vol,2);
 hdr.dim(4) = size(hdr.vol,3);
 hdr.dim(5) = size(hdr.vol,4);
+
+% This is to accomodate structures with more than 32k cols
+% FreeSurfer specific. See also mriio.c.
+if(hdr.dim(2) > 2^15)
+  hdr.glmin = hdr.dim(2);
+  hdr.dim(2) = -1;
+end
 
 hdr.pixdim = [hdr.pixdim(:)' repmat(0,[1 8])];
 hdr.pixdim = hdr.pixdim(1:8);
