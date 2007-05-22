@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/18 20:29:23 $
- *    $Revision: 1.65 $
+ *    $Author: nommert $
+ *    $Date: 2007/05/22 14:13:44 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-char *MRI_WATERSHED_VERSION = "$Revision: 1.65 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.66 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -453,7 +453,7 @@ void usageHelp()
           "dont use (template deformation using atlas information)");
 
   fprintf(stdout, "\n \n-atlas               : "
-          "use the atlas information to correct the segmentation");
+          "use basic atlas information to correct the result (no registration)");
   fprintf(stdout, "\n-less                : shrink the surface");
   fprintf(stdout, "\n-more                : expand the surface");
   fprintf(stdout, "\n-wat                 : use only the watershed algorithm");
@@ -855,7 +855,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.65 2007/05/18 20:29:23 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.66 2007/05/22 14:13:44 nommert Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.65 2007/05/18 20:29:23 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.66 2007/05/22 14:13:44 nommert Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -4302,8 +4302,8 @@ void MRIScomputeCloserLabel(STRIP_PARMS *parms,MRI_variables *MRI_var)
             py=mris->vertices[kv].y-(h+c)*
               mris->vertices[kv].ny + a*n1[1]+b*n2[1];
             pz=mris->vertices[kv].z-(h+c)*
-              mris->vertices[kv].nz + a*n1[2]+b*n2[2];
-            myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
+               mris->vertices[kv].nz + a*n1[2]+b*n2[2];
+            myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz); 
             i=(int)(tx+0.5);
             j=(int)(ty+0.5);
             k=(int)(tz+0.5);
@@ -6461,7 +6461,7 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var)
     fprintf(stdout,"\ndone");
   }
   else
-    fprintf(stdout,"\nNo Rigid alignment: Atlas Mode Off");
+    fprintf(stdout,"\nNo Rigid alignment: -atlas Mode Off (basic atlas / no registration)");
 
   //clone the rotated surfaces and the corresponding parameterizations
   MRI_var->mris_curv     =MRISclone(mris_curv);
@@ -6508,15 +6508,11 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var)
 
   if (validation==0)
   {
-    fprintf(stdout,"\n\n      THE SEGMENTATION IS PROBABLY NOT CORRECT\n");
+    fprintf(stdout,"\n\n      The surface validation has detected a possible Error\n");
     if (!MRI_var->atlas)
     {
-      fprintf(stdout, "**********************************************\n");
-      fprintf(stdout, "**********************************************\n");
       fprintf(stdout,"      If the final segmentation is not valid,"
               "\n      try using the option '-atlas'\n");
-      fprintf(stdout, "**********************************************\n");
-      fprintf(stdout, "**********************************************\n");
     }
   }
   else
@@ -6895,7 +6891,7 @@ mrisRigidBodyAlignGlobal(MRIS *mris_curv,
   return(NO_ERROR) ;
 }
 
-#define ERROR_THRESHOLD 16.0f
+#define ERROR_THRESHOLD 25.0f
 
 static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,
                               MRI_variables *MRI_var,MRIS *mrisphere)
@@ -6998,7 +6994,7 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,
           100.*(float)nbWrongVertices1/mrisphere->nvertices,
           validation_percentage);
 
-  if (validation_percentage>1.)
+  if (validation_percentage>20.) //>1.)
     /*(mean_sse>2) || (mean_sse>1 && sqrt(var_sse)>3))*/
   {
     wgnegpercentage=100.*wgnegpercentage/(float)nbWrongVertices2;
