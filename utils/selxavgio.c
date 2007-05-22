@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:39 $
- *    $Revision: 1.5 $
+ *    $Author: greve $
+ *    $Date: 2007/05/22 04:17:28 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /***************************************************************
   Name:    selxavgio.c
-  $Id: selxavgio.c,v 1.5 2006/12/29 01:49:39 nicks Exp $
+  $Id: selxavgio.c,v 1.6 2007/05/22 04:17:28 greve Exp $
   Author:  Douglas Greve
   Purpose: Routines for handling header files for data created by
   selxavg or selavg (selectively averaged).
@@ -40,28 +40,46 @@
 #include <errno.h>
 #include <strings.h>
 
+#include "mri_identify.h"
 #include "selxavgio.h"
+#include <string.h>
 
 extern int errno;
 
-/* ---------------------------------------------------- */
-int sv_sxadat_by_stem(SXADAT *sxadat ,char *volstem)
+/* ---------------------------------------------------- 
+   sv_sxadat_by_stem() - save selxavg.dat structure using
+   volid as base. volid can be either a stem or stem.ext
+   ---------------------------------------------------- */
+int sv_sxadat_by_stem(SXADAT *sxadat ,char *volid)
 {
   char tmpstr[1000];
   int err;
-  sprintf(tmpstr,"%s.dat",volstem);
+  char *stem;
+
+  stem = IDstemFromName(volid);
+  if(stem == NULL) sprintf(tmpstr,"%s.dat",volid);
+  else {
+    sprintf(tmpstr,"%s.dat",stem);
+    free(stem);
+  }
   err = sv_sxadat(sxadat,tmpstr);
   return(err);
 }
 /* ---------------------------------------------------- */
-SXADAT * ld_sxadat_from_stem(char *volstem)
+SXADAT * ld_sxadat_from_stem(char *volid)
 {
   char tmpstr[1000];
+  char *stem;
   SXADAT *sxa;
 
-  if (! is_sxa_volume(volstem) ) return(NULL);
+  if(! is_sxa_volume(volid) ) return(NULL);
 
-  sprintf(tmpstr,"%s.dat",volstem);
+  stem = IDstemFromName(volid);
+  if(stem == NULL) sprintf(tmpstr,"%s.dat",volid);
+  else {
+    sprintf(tmpstr,"%s.dat",stem);
+    free(stem);
+  }
 
   sxa = ld_sxadat(tmpstr);
   return(sxa);
@@ -95,12 +113,21 @@ float *sxa_framepower(SXADAT *sxa, int *nframes)
 }
 
 /* ---------------------------------------------------- */
-int is_sxa_volume(char *volstem)
+int is_sxa_volume(char *volid)
 {
   char tmpstr[1000];
   FILE *fp;
+  char *stem;
 
-  sprintf(tmpstr,"%s.dat",volstem);
+  stem = IDstemFromName(volid);
+  if(stem == NULL) sprintf(tmpstr,"%s.dat",volid);
+  else {
+    printf("%s %d\n",stem,(int)strlen(stem));
+    sprintf(tmpstr,"%s.dat",stem);
+    printf("%s %d\n",stem,(int)strlen(stem));
+    free(stem);
+  }
+
   fp = fopen(tmpstr,"r");
   if (fp==NULL) return(0);
   fclose(fp);
