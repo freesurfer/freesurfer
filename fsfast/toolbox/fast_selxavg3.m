@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.44 2007/05/20 20:07:01 greve Exp $
+% $Id: fast_selxavg3.m,v 1.45 2007/05/22 05:27:02 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/20 20:07:01 $
-%    $Revision: 1.44 $
+%    $Date: 2007/05/22 05:27:02 $
+%    $Revision: 1.45 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.44 2007/05/20 20:07:01 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.45 2007/05/22 05:27:02 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -327,7 +327,7 @@ if(DoGLMFit)
     betamat0 = betamat0 + Brun*yrun;
 
     clear yrun;
-    pack;
+    %pack; % not good with matlab 7.4
   end
   
   % Compute baseline
@@ -403,7 +403,7 @@ if(DoGLMFit)
       MRIwrite(rrunmri,fname);
     end
     clear yrun rrun;
-    pack;
+    %pack;
   end
   % Residual variance
   rvarmat0 = rsse/DOF;
@@ -547,7 +547,7 @@ if(DoGLMFit)
 	betamat(:,indseg) = betamat(:,indseg) + Brun*yrun(:,indseg);
       end
       clear yrun;
-      pack;
+      %pack;
     end
     
     % Second pass thru the data to compute beta
@@ -598,7 +598,7 @@ if(DoGLMFit)
       rsse = rsse + rsserun;
       
       clear yrun;
-      pack;
+      %pack;
 
       fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
       rrunmri = mri;
@@ -606,7 +606,7 @@ if(DoGLMFit)
       MRIwrite(rrunmri,fname);
       
       clear rrun rrunmri;
-      pack;
+      %pack;
     end % run list
     rvarmat = rsse/DOF;
   else
