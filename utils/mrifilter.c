@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nommert $
- *    $Date: 2007/05/22 14:13:20 $
- *    $Revision: 1.59 $
+ *    $Date: 2007/05/22 18:54:30 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -5466,9 +5466,6 @@ MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm){
   
   src_fft = MRI_fft(src, src_fft);
   dimension = src_fft->width;
-  
-  printf("\n\nvoxsize : %f %f %f\n\n",src_fft->xsize, src_fft->ysize, src_fft->zsize);
-  
   
   printf("Gaussian "); 
   g = MRI_Gaussian(dimension, std, norm, src_fft->xsize, src_fft->ysize, src_fft->zsize);
