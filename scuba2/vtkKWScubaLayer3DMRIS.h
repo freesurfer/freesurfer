@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/22 22:05:15 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/05/23 19:05:09 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,7 @@ public:
   // Listens for:
   // OpacityChanged - Changes the mesh's property's opacity.
   // FastModeChanged - Dis/connects the decimated mapper to the actor.
+  // Layer3DInfoChanged - Change the cut planes
   //BTX
   void DoListenToMessage ( std::string const isMessage, 
 			   void* const iData );
@@ -74,6 +75,10 @@ public:
   void GetInfoItems ( float iRAS[3], std::list<ScubaInfoItem>& ilInfo ) const;
   //ETX
 
+  // Description:
+  // Show or hide the 3D surface.
+  void SetShowSurface ( int ibShow );
+
 protected:
 
   vtkKWScubaLayer3DMRIS ();
@@ -91,14 +96,17 @@ protected:
   vtkPolyDataMapper* m3DNormalMapper;
   vtkPolyDataMapper* m3DFastMapper;
   vtkActor* m3DActor;
-	vtkPlane* m2DSlicePlane[3];
-	vtkPolyDataMapper* m2DNormalMapper[3];
-	vtkPolyDataMapper* m2DFastMapper[3];
-	vtkActor* m2DActor[3];
+  vtkPlane* m2DSlicePlane[3];
+  vtkPolyDataMapper* m2DNormalMapper[3];
+  vtkPolyDataMapper* m2DFastMapper[3];
+  vtkActor* m2DActor[3];
   // ----------------------------------------------------------------------
 
   // Surface info.
   float mRASCenter[3];
+
+  // Show the actual 3D surface.
+  bool mbShowSurface;
 
   //ETX
 };
