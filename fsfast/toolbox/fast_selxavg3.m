@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.45 2007/05/22 05:27:02 greve Exp $
+% $Id: fast_selxavg3.m,v 1.46 2007/05/23 06:11:09 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/22 05:27:02 $
-%    $Revision: 1.45 $
+%    $Date: 2007/05/23 06:11:09 $
+%    $Revision: 1.46 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.45 2007/05/22 05:27:02 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.46 2007/05/23 06:11:09 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -223,6 +223,7 @@ for nthouter = outer_runlist
   fp = fopen(doffile,'w');
   fprintf(fp,'%d\n',DOF);
   fclose(fp);
+  fprintf('ntptot = %d, nX = %d, DOF = %d\n',ntptot,nX,DOF);
 
   % Check condition, normalize to distinguish from scaled
   Xsss = sqrt(sum(X.^2));
@@ -242,9 +243,14 @@ for nthouter = outer_runlist
   nn = [1:ntptot]';
   R = eye(ntptot) - X*inv(X'*X)*X';
   
-  fprintf('Computing compensation for resdual AR1 bias\n');
-  [rfm.M rfm.rrho1 rfm.nrho1 rfm.nrho1hat] = fast_rfm2nrho1(R);
-  fprintf('AR1 Correction M: %g %g\n',rfm.M(1),rfm.M(2));
+  if(flac0.acfbins ~= 0)
+    fprintf('Computing compensation for resdual AR1 bias\n');
+    [rfm.M rfm.rrho1 rfm.nrho1 rfm.nrho1hat] = fast_rfm2nrho1(R);
+    fprintf('AR1 Correction M: %g %g\n',rfm.M(1),rfm.M(2));
+  else
+    rfm.M(1) = 0;
+    rfm.M(2) = 1;
+  end
 
   %---------------------------------------------%
   % The contrast matrices were originally computed assuming
