@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/05/23 19:05:42 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,7 +39,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer );
-vtkCxxRevisionMacro( vtkKWScubaLayer, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer, "$Revision: 1.2 $" );
 
 map<vtkProp*,vtkKWScubaLayer*> vtkKWScubaLayer::mPropToLayerMap;
 
@@ -133,6 +133,10 @@ vtkKWScubaLayer::AddProp ( vtkProp* iProp ) {
   // Add it to our list to render. Link it to us in the map.
   mProps->AddItem( iProp );
   mPropToLayerMap[iProp] = this;
+
+  // Notify the view so we can draw it.
+  int ID = this->GetID();
+  this->SendBroadcast( "PropListChanged", (void*)&ID );
 }
 
 void
@@ -141,7 +145,11 @@ vtkKWScubaLayer::RemoveProp ( vtkProp* iProp ) {
   // Remove it from our list to render. Unlink it to us in the map.
   if( mProps->IsItemPresent( iProp ) ) {
     mProps->RemoveItem( iProp );
-    mPropToLayerMap[iProp] = NULL;
+    mPropToLayerMap.erase( iProp );
+
+    // Notify the view so it can remove it.
+    int ID = this->GetID();
+    this->SendBroadcast( "PropListChanged", (void*)&ID );
   }
 }
 
@@ -154,7 +162,7 @@ vtkKWScubaLayer::RemoveAllProps () {
   for ( vtkProp* prop = mProps->GetNextProp();
 	NULL != prop;
 	prop = mProps->GetNextProp() ) {
-    mPropToLayerMap[prop] = NULL;
+    mPropToLayerMap.erase( prop );
   }
 
   mProps->RemoveAllItems();

@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:06 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/05/23 19:05:42 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -252,8 +252,9 @@ public:
   void InfoUpdated ();
 
   // Description:
-  // We listen to the PipelineChanged message and render our view.
-  // We rebroadcast LayerLabelChanged.
+  // PipelineChanged: Render the window
+  // LayerLabelChanged: Pass message to window
+  // PropListChanged: Rebuild the prop listo
   //BTX
   virtual void DoListenToMessage ( std::string const isMessage, 
 				   void* const iData );
@@ -298,6 +299,11 @@ protected:
   // Description:
   // Call this function if info has changed.
   void InfoChanged ();
+
+  // Description:
+  // Populates the view with props. First removes all existing props
+  // and then goes through the layers in order and adds their props.
+  void AddLayerPropsToView ();
 
   //BTX
   // Display mode buttons.

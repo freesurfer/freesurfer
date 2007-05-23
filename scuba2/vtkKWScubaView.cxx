@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/08 04:19:57 $
- *    $Revision: 1.2 $
+ *    $Author: kteich $
+ *    $Date: 2007/05/23 19:05:42 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaView );
-vtkCxxRevisionMacro( vtkKWScubaView, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWScubaView, "$Revision: 1.3 $" );
 
 map<vtkRenderWindow*,vtkKWScubaView*> vtkKWScubaView::mRenderWindowToViewMap;
 
@@ -626,27 +626,8 @@ vtkKWScubaView::SetLayerCollectionAtSlot ( int inSlot,
       iCol->Set2DRASZ( m2DRASZ );
     }
 
-    // Because we can't sort props, and we want to display them with
-    // the highest slots on top, we need to remove all our props and
-    // add them back in the correct order.
-    this->GetRenderer()->RemoveAllViewProps();
-
-    // Add props from the layers to renderer.
-    SlotCollectionMapType::iterator tCol;
-    for ( tCol = maCol.begin(); tCol != maCol.end(); ++tCol ) {
-      if ( NULL != tCol->second ) {
-	vtkKWScubaLayer* layer = tCol->second->GetCurrentLayer();
-	if( layer ) {
-	  vtkPropCollection* props = layer->GetPropCollection();
-	  props->InitTraversal();
-	  for ( vtkProp* prop = props->GetNextProp();
-		NULL != prop;
-		prop = props->GetNextProp() ) {
-	    this->GetRenderer()->AddViewProp( prop );
-	  }
-	}
-      }
-    }
+    // We need to add the props for our new layer setup.
+    this->AddLayerPropsToView();
   }
 
   // If there's no slot defined here, there's no menu for it yet, so
@@ -833,43 +814,9 @@ vtkKWScubaView::DisplayModeChanged () {
   else if( ThreeDee == mDisplayMode )
     this->GetRenderer()->SetActiveCamera( m3DCamera );
 
-  // Because we can't sort props, and we want to display them with
-  // the highest slots on top, we need to remove all our props and
-  // add them back in the correct order.
-  this->GetRenderer()->RemoveAllViewProps();
-  
-  // Get the props from the proper view of each layer collection.
-  SlotCollectionMapType::iterator tCol;
-  for ( tCol = maCol.begin(); tCol != maCol.end(); ++tCol ) {
-    if ( NULL != tCol->second ) {
+  // That changed our layers, so add the props.
+  this->AddLayerPropsToView();
 
-      try {
-
-	vtkKWScubaLayerCollection* col = tCol->second;
-
-	// Set the current display mode in the collection.
-	col->SetDisplayModeAndView( mDisplayMode, this );
-
-	// Get the props from the current layer.
-	vtkKWScubaLayer* layer = col->GetCurrentLayer();
-	if( NULL != layer ) {
-	  vtkPropCollection* props = layer->GetPropCollection();
-	  
-	  // Add all props to our renderer.
-	  props->InitTraversal();
-	  for ( vtkProp* prop = props->GetNextProp();
-		NULL != prop;
-		prop = props->GetNextProp() ) {
-	    this->GetRenderer()->AddViewProp(prop);
-	  }
-	}
-      }
-      catch( exception& e ) {
-	cerr << e.what() << endl;
-      }
-    }
-  }
-  
   // Update our buttons.
   if( TwoDee == mDisplayMode ) {
 
@@ -1706,6 +1653,48 @@ vtkKWScubaView::InfoChanged () {
 }
 
 void
+vtkKWScubaView::AddLayerPropsToView () {
+
+  // Because we can't sort props, and we want to display them with
+  // the highest slots on top, we need to remove all our props and
+  // add them back in the correct order.
+  this->GetRenderer()->RemoveAllViewProps();
+  
+  // Get the props from the proper view of each layer collection.
+  SlotCollectionMapType::iterator tCol;
+  for ( tCol = maCol.begin(); tCol != maCol.end(); ++tCol ) {
+    if ( NULL != tCol->second ) {
+
+      try {
+
+	vtkKWScubaLayerCollection* col = tCol->second;
+
+	// Set the current display mode in the collection.
+	col->SetDisplayModeAndView( mDisplayMode, this );
+
+	// Get the props from the current layer.
+	vtkKWScubaLayer* layer = col->GetCurrentLayer();
+	if( NULL != layer ) {
+	  vtkPropCollection* props = layer->GetPropCollection();
+	  
+	  // Add all props to our renderer.
+	  props->InitTraversal();
+	  for ( vtkProp* prop = props->GetNextProp();
+		NULL != prop;
+		prop = props->GetNextProp() ) {
+	    this->GetRenderer()->AddViewProp(prop);
+	  }
+	}
+      }
+      catch( exception& e ) {
+	cerr << e.what() << endl;
+      }
+    }
+  }
+  
+}
+
+void
 vtkKWScubaView::DoListenToMessage ( string const isMessage, 
 				    void* const iData ) {
 
@@ -1717,6 +1706,12 @@ vtkKWScubaView::DoListenToMessage ( string const isMessage,
   // If the layer label changed, pass the message along to the window.
   if ( isMessage == "LayerLabelChanged" ) {
     this->SendBroadcast( isMessage, iData );
+  }
+
+  // If a prop is added or removed, we need to rebuild the list.
+  if( isMessage == "PropListChanged" ) {
+    this->AddLayerPropsToView();
+    this->GetRenderWindow()->Render();
   }
 }
 
