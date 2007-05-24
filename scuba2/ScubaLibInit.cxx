@@ -14,6 +14,9 @@ extern "C"
 int vtkKWScubaAppCommand(ClientData cd, Tcl_Interp *interp,
              int argc, char *argv[]);
 ClientData vtkKWScubaAppNewCommand();
+int vtkKWScubaApplicationSettingsInterfaceCommand(ClientData cd, Tcl_Interp *interp,
+             int argc, char *argv[]);
+ClientData vtkKWScubaApplicationSettingsInterfaceNewCommand();
 int vtkKWScubaWindowCommand(ClientData cd, Tcl_Interp *interp,
              int argc, char *argv[]);
 ClientData vtkKWScubaWindowNewCommand();
@@ -100,6 +103,8 @@ int VTK_EXPORT Scubalib_Init(Tcl_Interp *interp)
 
   vtkTclCreateNew(interp,(char *) "vtkKWScubaApp", vtkKWScubaAppNewCommand,
                   vtkKWScubaAppCommand);
+  vtkTclCreateNew(interp,(char *) "vtkKWScubaApplicationSettingsInterface", vtkKWScubaApplicationSettingsInterfaceNewCommand,
+                  vtkKWScubaApplicationSettingsInterfaceCommand);
   vtkTclCreateNew(interp,(char *) "vtkKWScubaWindow", vtkKWScubaWindowNewCommand,
                   vtkKWScubaWindowCommand);
   vtkTclCreateNew(interp,(char *) "vtkKWScubaView", vtkKWScubaViewNewCommand,

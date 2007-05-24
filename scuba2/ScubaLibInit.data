@@ -1,5 +1,6 @@
 ScubaLib
 vtkKWScubaApp
+vtkKWScubaApplicationSettingsInterface
 vtkKWScubaWindow
 vtkKWScubaView
 vtkKWScubaLayer

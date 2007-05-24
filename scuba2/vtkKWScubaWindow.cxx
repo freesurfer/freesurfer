@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/24 15:50:03 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/05/24 20:20:59 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,7 @@
 #include "vtkKWRadioButton.h"
 #include "vtkKWRadioButtonSet.h"
 #include "vtkKWScaleWithEntry.h"
+#include "vtkKWScubaApplicationSettingsInterface.h"
 #include "vtkKWScubaLayerCollectionDTI.h"
 #include "vtkKWScubaLayerCollectionMRI.h"
 #include "vtkKWScubaLayerCollectionMRIS.h"
@@ -65,9 +66,11 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaWindow );
-vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.4 $" );
 
-const string vtkKWScubaWindow::DEFAULT_VOLUME_FILE_EXTENSION = ".mgz";
+const string vtkKWScubaWindow::sDefaultVolumeFileExtension = ".mgz";
+const char* vtkKWScubaWindow::sAutoSizeInfoAreaKey = "AutoSizeInfoAreaKey";
+
 
 vtkKWScubaWindow::vtkKWScubaWindow () :
     Listener( "vtkKWScubaWindow" ),
@@ -84,7 +87,8 @@ vtkKWScubaWindow::vtkKWScubaWindow () :
     mCurrentTool( NULL ),
     mCurrentView( NULL ),
     mCurrentLayerCollection( NULL ),
-    mCurrentViewLayout( NoViewLayout ) {
+    mCurrentViewLayout( NoViewLayout ),
+    mbAutoSizeInfoArea( 1 ) {
 
 }
 
@@ -108,6 +112,13 @@ vtkKWScubaWindow::~vtkKWScubaWindow () {
 
 void
 vtkKWScubaWindow::Create () {
+
+  // Restore our preferences.
+  if ( this->GetApplication()->
+         HasRegistryValue( 2, "AutoSizeInfoArea", sAutoSizeInfoAreaKey ) )
+    mbAutoSizeInfoArea = 
+      this->GetApplication()->
+        GetIntRegistryValue( 2, "AutoSizeInfoArea", sAutoSizeInfoAreaKey );
 
   // Our default view layout.
   this->SetPanelLayoutToSecondaryBelowMainAndView();
@@ -477,6 +488,23 @@ vtkKWScubaWindow::Create () {
   this->UpdateCommandStatus();
 }
 
+vtkKWApplicationSettingsInterface*
+vtkKWScubaWindow::GetApplicationSettingsInterface() {
+
+  if( NULL == ApplicationSettingsInterface ) {
+
+    vtkKWScubaApplicationSettingsInterface* settings = 
+      vtkKWScubaApplicationSettingsInterface::New();
+    settings->SetWindow( this );
+    settings->SetScubaWindow( this );
+    settings->SetUserInterfaceManager( this->GetApplicationSettingsUserInterfaceManager() );
+
+    ApplicationSettingsInterface = settings;
+  }
+  
+  return ApplicationSettingsInterface;
+}
+
 void
 vtkKWScubaWindow::LoadVolumeFromDlog () {
 
@@ -488,7 +516,7 @@ vtkKWScubaWindow::LoadVolumeFromDlog () {
   dialog->SetFileTypes( "{MGH {.mgh .mgz}} "
                         "{Binary {.bshort .bfloat}} {All {*}}" );
   dialog->RetrieveLastPathFromRegistry( "LoadVolume" );
-  dialog->SetDefaultExtension( DEFAULT_VOLUME_FILE_EXTENSION.c_str() );
+  dialog->SetDefaultExtension( sDefaultVolumeFileExtension.c_str() );
 
   // Show the dialog, and when it returns, Invoke() will be true if
   // they clicked OK and gave us a filename.
@@ -531,7 +559,7 @@ vtkKWScubaWindow::LoadDTIFromDlog () {
   dialog->SetFileTypes( "{MGH {.mgh .mgz}} "
                         "{Binary {.bshort .bfloat}} {All {*}}" );
   dialog->RetrieveLastPathFromRegistry( "LoadDTI" );
-  dialog->SetDefaultExtension( DEFAULT_VOLUME_FILE_EXTENSION.c_str() );
+  dialog->SetDefaultExtension( sDefaultVolumeFileExtension.c_str() );
 
   // Show the dialog, and when it returns, Invoke() will be true if
   // they clicked OK and gave us a filename.
@@ -553,7 +581,7 @@ vtkKWScubaWindow::LoadPathFromDlog () {
   dialog->SetFileTypes( "{MGH {.mgh .mgz}} "
                         "{Binary {.bshort .bfloat}} {All {*}}" );
   dialog->RetrieveLastPathFromRegistry( "LoadPath" );
-  dialog->SetDefaultExtension( DEFAULT_VOLUME_FILE_EXTENSION.c_str() );
+  dialog->SetDefaultExtension( sDefaultVolumeFileExtension.c_str() );
 
   // Show the dialog, and when it returns, Invoke() will be true if
   // they clicked OK and gave us a filename.
@@ -576,7 +604,7 @@ vtkKWScubaWindow::LoadODFFromDlog () {
   dialog->SetFileTypes( "{MGH {.mgh .mgz}} "
                         "{Binary {.bshort .bfloat}} {All {*}}" );
   dialog->RetrieveLastPathFromRegistry( "LoadODF" );
-  dialog->SetDefaultExtension( DEFAULT_VOLUME_FILE_EXTENSION.c_str() );
+  dialog->SetDefaultExtension( sDefaultVolumeFileExtension.c_str() );
 
   // Show the dialog, and when it returns, Invoke() will be true if
   // they clicked OK and gave us a filename.
@@ -1062,6 +1090,28 @@ vtkKWScubaWindow::UpdateToolMenu () {
   }
 }
 
+int
+vtkKWScubaWindow::GetAutoSizeInfoArea () {
+
+  return mbAutoSizeInfoArea;
+}
+
+void
+vtkKWScubaWindow::SetAutoSizeInfoArea ( int ibSize ) {
+
+  if( ibSize != mbAutoSizeInfoArea ) {
+    mbAutoSizeInfoArea = ibSize;
+
+    // Write our pref.
+    this->GetApplication()->
+      SetRegistryValue( 2, "AutoSizeInfoArea", sAutoSizeInfoAreaKey, 
+			"%d", mbAutoSizeInfoArea );
+
+    this->UpdateInfoArea();
+  }
+}
+
+
 void
 vtkKWScubaWindow::UpdateViewMenu () {
 
@@ -1192,8 +1242,9 @@ vtkKWScubaWindow::UpdateInfoArea () {
       // Set our panel height to something decent. There doesn't seem
       // to be any way to get the actual row height from the table, so
       // this is hopefully a good estimate.
-      this->GetSecondarySplitFrame()->
-	SetFrame1Size( mCursorInfoTable->GetHeight() * 10 );
+      if( mbAutoSizeInfoArea ) 
+	this->GetSecondarySplitFrame()->
+	  SetFrame1Size( mCursorInfoTable->GetHeight() * 10 );
     }
 
     // Tell the view that we have updated our info.

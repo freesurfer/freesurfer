@@ -11,9 +11,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/05/22 19:18:16 $
- *    $Revision: 1.2 $
+ *    $Author: kteich $
+ *    $Date: 2007/05/24 20:20:59 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,18 +44,19 @@
 #include "vtkKWScubaLayerCollection.h"
 #include "Listener.h"
 
+class vtkKWFrame;
 class vtkKWMenu;
-class vtkKWPushButton;
-class vtkKWRadioButtonSet;
-class vtkKWRadioButton;
-class vtkKWScaleWithEntry;
+class vtkKWMenuButton;
 class vtkKWMultiColumnList;
+class vtkKWPushButton;
+class vtkKWRadioButton;
+class vtkKWRadioButtonSet;
+class vtkKWScaleWithEntry;
+class vtkKWScubaApplicationSettingsInterface;
 class vtkKWScubaLayer;
 class vtkKWScubaLayerCollection;
-class vtkKWMenuButton;
 class vtkKWScubaTool;
 class vtkKWToolbar;
-class vtkKWFrame;
 
 class vtkKWScubaWindow : public vtkKWWindow
       //BTX
@@ -71,6 +72,9 @@ public:
   // Description:
   // Creates our UI.
   virtual void Create ();
+
+  // Override to return our custom interface class.
+  virtual vtkKWApplicationSettingsInterface* GetApplicationSettingsInterface();
 
   // Description:
   // Bring up dialog boxes and then pass the results to LoadVolume,
@@ -138,6 +142,11 @@ public:
   virtual void DoListenToMessage ( std::string const isMessage, 
 				   void* const iData );
   //ETX
+
+  // Description:
+  // Get and set the flag for resizing the info area.
+  int GetAutoSizeInfoArea ();
+  void SetAutoSizeInfoArea ( int ibSize );
 
 protected:
 
@@ -230,9 +239,15 @@ protected:
   vtkKWScubaLayerCollection* mCurrentLayerCollection;
 
   ViewLayout mCurrentViewLayout;
+
+  // Whether or not to automatically size the info area.
+  int mbAutoSizeInfoArea;
   
   // default file extension to filter for
-  static const std::string DEFAULT_VOLUME_FILE_EXTENSION;
+  static const std::string sDefaultVolumeFileExtension;
+
+  // Key for saving our auto size pref.
+  static const char* sAutoSizeInfoAreaKey;
 
   //ETX
 

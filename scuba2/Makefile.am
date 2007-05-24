@@ -10,6 +10,7 @@ bin_PROGRAMS = scuba2
 scuba2_SOURCES= \
 	ScubaMain.cxx \
 	vtkKWScubaApp.cxx vtkKWScubaApp.h vtkKWScubaAppTcl.cxx \
+	vtkKWScubaApplicationSettingsInterface.cxx vtkKWScubaApplicationSettingsInterface.h vtkKWScubaApplicationSettingsInterfaceTcl.cxx \
 	vtkKWScubaWindow.cxx vtkKWScubaWindow.h vtkKWScubaWindowTcl.cxx \
 	vtkKWScubaView.cxx vtkKWScubaView.h vtkKWScubaViewTcl.cxx \
 	vtkScubaInteractorStyle.cxx vtkScubaInteractorStyle.h \
@@ -85,6 +86,10 @@ vtkKWScubaAppTcl.cxx: vtkKWScubaApp.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaApp.h \
 	${VTK_LIB_VTK}/hints 1 vtkKWScubaAppTcl.cxx
 
+vtkKWScubaApplicationSettingsInterfaceTcl.cxx: vtkKWScubaApplicationSettingsInterface.h
+	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaApplicationSettingsInterface.h \
+	${VTK_LIB_VTK}/hints 1 vtkKWScubaApplicationSettingsInterfaceTcl.cxx
+
 vtkKWScubaWindowTcl.cxx: vtkKWScubaWindow.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaWindow.h \
 	${VTK_LIB_VTK}/hints 1 vtkKWScubaWindowTcl.cxx
@@ -152,7 +157,7 @@ vtkKWScubaLayer2DPathTcl.cxx: vtkKWScubaLayer2DPath.h
 vtkKWScubaLayer3DPathTcl.cxx: vtkKWScubaLayer3DPath.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer3DPath.h \
 	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer3DPathTcl.cxx
-	
+
 vtkKWScubaLayer3DODFTcl.cxx: vtkKWScubaLayer3DODF.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWScubaLayer3DODF.h \
 	${VTK_LIB_VTK}/hints 1 vtkKWScubaLayer3DODFTcl.cxx
