@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/05/22 19:18:16 $
- *    $Revision: 1.2 $
+ *    $Author: kteich $
+ *    $Date: 2007/05/24 15:50:03 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,19 +30,12 @@
 
 
 #include <string>
+#include "vtkKWScubaWindow.h"
 #include "IconLoader.h"
 #include "vtkKWApplication.h"
 #include "vtkKWFrameWithLabel.h"
 #include "vtkKWIcon.h"
 #include "vtkKWLoadSaveDialog.h"
-#include "vtkKWScubaLayerCollectionDTI.h"
-#include "vtkKWScubaLayerCollectionMRI.h"
-#include "vtkKWScubaLayerCollectionMRIS.h"
-#include "vtkKWScubaLayerCollectionPath.h"
-#include "vtkKWScubaLayerCollectionODF.h"
-#include "vtkKWScubaToolEdit2DMRI.h"
-#include "vtkKWScubaToolNavigate.h"
-#include "vtkKWScubaWindow.h"
 #include "vtkKWMenu.h"
 #include "vtkKWMenuButton.h"
 #include "vtkKWMenuButtonWithSpinButtons.h"
@@ -53,18 +46,26 @@
 #include "vtkKWRadioButton.h"
 #include "vtkKWRadioButtonSet.h"
 #include "vtkKWScaleWithEntry.h"
+#include "vtkKWScubaLayerCollectionDTI.h"
+#include "vtkKWScubaLayerCollectionMRI.h"
+#include "vtkKWScubaLayerCollectionMRIS.h"
+#include "vtkKWScubaLayerCollectionODF.h"
+#include "vtkKWScubaLayerCollectionPath.h"
+#include "vtkKWScubaToolEdit2DMRI.h"
+#include "vtkKWScubaToolNavigate.h"
+#include "vtkKWSplitFrame.h"
 #include "vtkKWToolbar.h"
 #include "vtkKWToolbarSet.h"
 #include "vtkKWUserInterfacePanel.h"
-#include "vtkScubaInteractorStyle.h"
 #include "vtkObjectFactory.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
+#include "vtkScubaInteractorStyle.h"
 
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaWindow );
-vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.3 $" );
 
 const string vtkKWScubaWindow::DEFAULT_VOLUME_FILE_EXTENSION = ".mgz";
 
@@ -109,14 +110,18 @@ void
 vtkKWScubaWindow::Create () {
 
   // Our default view layout.
-  SetPanelLayoutToSecondaryBelowMainAndView();
+  this->SetPanelLayoutToSecondaryBelowMainAndView();
 
   // Create the window. The layout must be set before this.
   this->Superclass::Create();
 
   // Turn on our panels.
-  SecondaryPanelVisibilityOn();
-  MainPanelVisibilityOn();
+  this->SecondaryPanelVisibilityOn();
+  this->MainPanelVisibilityOn();
+
+  // Start out with a small secondary frame. We'll expand it when we
+  // get items to put into it.
+  this->GetSecondarySplitFrame()->SetFrame1Size( 0 );
 
   //
   // Create the secondary panel. This is our 'info area' and contains
@@ -1184,6 +1189,11 @@ vtkKWScubaWindow::UpdateInfoArea () {
       // Remember how many items we had.
       cLastItems = nItem;
 
+      // Set our panel height to something decent. There doesn't seem
+      // to be any way to get the actual row height from the table, so
+      // this is hopefully a good estimate.
+      this->GetSecondarySplitFrame()->
+	SetFrame1Size( mCursorInfoTable->GetHeight() * 10 );
     }
 
     // Tell the view that we have updated our info.
