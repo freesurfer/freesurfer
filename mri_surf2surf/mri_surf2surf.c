@@ -10,9 +10,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/04/26 06:46:37 $
- *    $Revision: 1.50 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/25 23:17:06 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -308,7 +308,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.50 2007/04/26 06:46:37 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.51 2007/05/25 23:17:06 nicks Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -402,7 +402,7 @@ int main(int argc, char **argv) {
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.50 2007/04/26 06:46:37 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.51 2007/05/25 23:17:06 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -478,7 +478,8 @@ int main(int argc, char **argv) {
       memset(fname,0,strlen(srcvalfile)+1);
       memcpy(fname,srcvalfile,strlen(srcvalfile));
     } else
-      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,srcvalfile);
+      sprintf(fname,"%s/%s/surf/%s.%s",
+              SUBJECTS_DIR,srcsubject,srchemi,srcvalfile);
     printf("Reading curvature file %s\n",fname);
     if (MRISreadCurvatureFile(SrcSurfReg, fname) != 0) {
       printf("ERROR: reading curvature file\n");
@@ -489,7 +490,9 @@ int main(int argc, char **argv) {
     MRISreadValues(SrcSurfReg,srcvalfile);
     SrcVals = MRIcopyMRIS(NULL, SrcSurfReg, 0, "val");
   } else if (UseSurfSrc) {
-    sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,SurfSrcName);
+    sprintf(fname,"%s/%s/surf/%s.%s",
+            SUBJECTS_DIR,srcsubject,srchemi,SurfSrcName);
+    printf("Reading surface file %s\n",fname);
     SurfSrc = MRISread(fname);
     if (SurfSrc==NULL) exit(1);
     MRIScomputeMetricProperties(SurfSrc);
