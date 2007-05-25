@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:35:55 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/05/25 18:18:05 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,20 +35,11 @@
 
 using namespace std;
 
-const char* vtkKWScubaApp::sMainWindowXRegKey = "MainWindowX";
-const char* vtkKWScubaApp::sMainWindowYRegKey = "MainWindowY";
-const char* vtkKWScubaApp::sMainWindowWidthRegKey = "MainWindowWidth";
-const char* vtkKWScubaApp::sMainWindowHeightRegKey = "MainWindowHeight";
-
 vtkStandardNewMacro( vtkKWScubaApp );
-vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.3 $" );
 
 vtkKWScubaApp::vtkKWScubaApp () :
-    mWindow( NULL ),
-    mMainWindowX( 0 ),
-    mMainWindowY( 0 ),
-    mMainWindowWidth( 600 ),
-    mMainWindowHeight( 600 ) {
+    mWindow( NULL ) {
 
   this->GetOptionDataBase()->
     AddEntry( "vtkKWWidget", "SetBackgroundColor", "1 1 1" );
@@ -73,19 +64,18 @@ vtkKWScubaApp::vtkKWScubaApp () :
     cerr << "Error loading icons: " << e.what() << endl;
   }
 
+  // Set our app name and load our settings. This needs to be done
+  // before we make our window because the window will try to get
+  // stuff from the registry too.
+  this->SetName( "Scuba" );
+  this->RestoreApplicationSettingsFromRegistry();
+
   // Create the main window.
   mWindow = vtkKWScubaWindow::New();
   mWindow->SetApplication( this );
   this->AddWindow( mWindow );
   mWindow->Create();
 
-  // Set our app name and load our settings.
-  SetName( "Scuba" );
-  this->RestoreApplicationSettingsFromRegistry();
-
-  // Set the initial window position and size.
-  mWindow->SetPosition( mMainWindowX, mMainWindowY );
-  mWindow->SetSize( mMainWindowWidth, mMainWindowHeight );
 }
 
 vtkKWScubaApp::~vtkKWScubaApp () {
@@ -173,51 +163,12 @@ void
 vtkKWScubaApp::RestoreApplicationSettingsFromRegistry () {
 
   vtkKWApplication::RestoreApplicationSettingsFromRegistry();
-
-  // Restore our window size and position.
-  if ( this->HasRegistryValue(2,"MainWindowX",sMainWindowXRegKey) ) {
-    mMainWindowX =
-      this->GetIntRegistryValue(2,"MainWindowX",sMainWindowXRegKey);
-  }
-
-  if ( this->HasRegistryValue(2,"MainWindowY",sMainWindowYRegKey) ) {
-    mMainWindowY =
-      this->GetIntRegistryValue(2,"MainWindowY",sMainWindowYRegKey);
-  }
-
-  if ( this->HasRegistryValue(2,"MainWindowWidth",sMainWindowWidthRegKey) ) {
-    mMainWindowWidth =
-      this->GetIntRegistryValue(2,"MainWindowWidth",sMainWindowWidthRegKey);
-  }
-
-  if ( this->HasRegistryValue(2,"MainWindowHeight",sMainWindowHeightRegKey) ) {
-    mMainWindowHeight =
-      this->GetIntRegistryValue(2,"MainWindowHeight",sMainWindowHeightRegKey);
-  }
 }
 
 void
 vtkKWScubaApp::SaveApplicationSettingsToRegistry () {
 
   vtkKWApplication::SaveApplicationSettingsToRegistry();
-
-  if ( NULL != mWindow ) {
-    this->mWindow->GetPosition( &mMainWindowX, &mMainWindowX );
-    this->mWindow->GetSize( &mMainWindowWidth, &mMainWindowHeight );
-  }
-
-  // Save our window size and position.
-  this->SetRegistryValue( 2, "MainWindowX", sMainWindowXRegKey,
-                          "%d", mMainWindowX );
-
-  this->SetRegistryValue( 2, "MainWindowY", sMainWindowYRegKey,
-                          "%d", mMainWindowY );
-
-  this->SetRegistryValue( 2, "MainWindowWidth", sMainWindowWidthRegKey,
-                          "%d", mMainWindowWidth );
-
-  this->SetRegistryValue( 2, "MainWindowHeight", sMainWindowHeightRegKey,
-                          "%d", mMainWindowHeight );
 }
 
 void

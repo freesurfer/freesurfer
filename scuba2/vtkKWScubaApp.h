@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/05/25 18:18:05 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,13 +55,6 @@ public:
   // Override to save/load our prefs.
   virtual void RestoreApplicationSettingsFromRegistry ();
   virtual void SaveApplicationSettingsToRegistry ();
-
-  // Description:
-  // Registry key constants.
-  static const char* sMainWindowXRegKey;
-  static const char* sMainWindowYRegKey;
-  static const char* sMainWindowWidthRegKey;
-  static const char* sMainWindowHeightRegKey;
 
   // Description:
   // Tells the window to load something.

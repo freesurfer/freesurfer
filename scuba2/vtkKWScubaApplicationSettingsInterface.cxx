@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/24 20:20:59 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/05/25 18:18:05 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -34,7 +34,7 @@
 #include "vtkKWScubaWindow.h"
 
 vtkStandardNewMacro(vtkKWScubaApplicationSettingsInterface);
-vtkCxxRevisionMacro(vtkKWScubaApplicationSettingsInterface, "$Revision: 1.1 $");
+vtkCxxRevisionMacro(vtkKWScubaApplicationSettingsInterface, "$Revision: 1.2 $");
 
 vtkKWScubaApplicationSettingsInterface::vtkKWScubaApplicationSettingsInterface() :
   mChkBtnAutoSizeInfoArea( NULL ) {
@@ -63,8 +63,6 @@ vtkKWScubaApplicationSettingsInterface::Create() {
   mChkBtnAutoSizeInfoArea->
     SetBalloonHelpString( "Resize the info area according to how many rows "
 			  "of information there are" );
-  mChkBtnAutoSizeInfoArea->
-    SetSelectedState( ScubaWindow->GetAutoSizeInfoArea() );
   mChkBtnAutoSizeInfoArea->SetCommand( this, "AutoSizeInfoAreaCallback" );
 
   this->Script( "pack %s -side top -anchor w -expand no -fill none",

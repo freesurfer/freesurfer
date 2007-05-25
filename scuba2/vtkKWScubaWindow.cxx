@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/24 20:20:59 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/05/25 18:18:05 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,10 +66,11 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaWindow );
-vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.5 $" );
 
 const string vtkKWScubaWindow::sDefaultVolumeFileExtension = ".mgz";
-const char* vtkKWScubaWindow::sAutoSizeInfoAreaKey = "AutoSizeInfoAreaKey";
+const char* vtkKWScubaWindow::sRegistryKey = "WindowSettings";
+const char* vtkKWScubaWindow::sAutoSizeInfoAreaKey = "AutoSizeInfoArea";
 
 
 vtkKWScubaWindow::vtkKWScubaWindow () :
@@ -113,18 +114,24 @@ vtkKWScubaWindow::~vtkKWScubaWindow () {
 void
 vtkKWScubaWindow::Create () {
 
-  // Restore our preferences.
-  if ( this->GetApplication()->
-         HasRegistryValue( 2, "AutoSizeInfoArea", sAutoSizeInfoAreaKey ) )
-    mbAutoSizeInfoArea = 
-      this->GetApplication()->
-        GetIntRegistryValue( 2, "AutoSizeInfoArea", sAutoSizeInfoAreaKey );
+  // Restore our preferences. This needs to be done before we call the
+  // superclass Create because that will instantiate our
+  // vtkKWScubaApplicationSettingsInterface, which will ask us for
+  // values.
+  if( this->GetApplication()->
+      HasRegistryValue( 2, sRegistryKey, sAutoSizeInfoAreaKey ) )
+    mbAutoSizeInfoArea = this->GetApplication()->
+      GetIntRegistryValue( 2, sRegistryKey, sAutoSizeInfoAreaKey );
 
   // Our default view layout.
   this->SetPanelLayoutToSecondaryBelowMainAndView();
 
   // Create the window. The layout must be set before this.
   this->Superclass::Create();
+
+  // Get our geometry. This needs to be done after the superclass
+  // Create because we can't set geometry before that.
+  this->RestoreWindowGeometryFromRegistry();
 
   // Turn on our panels.
   this->SecondaryPanelVisibilityOn();
@@ -486,6 +493,13 @@ vtkKWScubaWindow::Create () {
   //
   // Update our menu and buttons.
   this->UpdateCommandStatus();
+}
+
+void
+vtkKWScubaWindow::Delete () {
+
+  // Save our geometry.
+  this->SaveWindowGeometryToRegistry();
 }
 
 vtkKWApplicationSettingsInterface*
@@ -1104,7 +1118,7 @@ vtkKWScubaWindow::SetAutoSizeInfoArea ( int ibSize ) {
 
     // Write our pref.
     this->GetApplication()->
-      SetRegistryValue( 2, "AutoSizeInfoArea", sAutoSizeInfoAreaKey, 
+      SetRegistryValue( 2, sRegistryKey, sAutoSizeInfoAreaKey, 
 			"%d", mbAutoSizeInfoArea );
 
     this->UpdateInfoArea();

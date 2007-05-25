@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/24 20:20:59 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/05/25 18:18:06 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,6 +72,7 @@ public:
   // Description:
   // Creates our UI.
   virtual void Create ();
+  virtual void Delete ();
 
   // Override to return our custom interface class.
   virtual vtkKWApplicationSettingsInterface* GetApplicationSettingsInterface();
@@ -246,7 +247,8 @@ protected:
   // default file extension to filter for
   static const std::string sDefaultVolumeFileExtension;
 
-  // Key for saving our auto size pref.
+  // Registry keys.
+  static const char* sRegistryKey;
   static const char* sAutoSizeInfoAreaKey;
 
   //ETX
