@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/06 02:11:55 $
- *    $Revision: 1.535 $
+ *    $Date: 2007/05/25 23:18:01 $
+ *    $Revision: 1.536 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -612,7 +612,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.535 2007/05/06 02:11:55 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.536 2007/05/25 23:18:01 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -9936,11 +9936,11 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
   /* If we got an array, fill in our annotation values. */
   MRISclearAnnotations(mris) ;
   for (vno = 0; vno < mris->nvertices; vno++)
-    {
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      mris->vertices[vno].annotation = array[vno];
-    }
+  {
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    mris->vertices[vno].annotation = array[vno];
+  }
 
   /* Try to read in a color table. If we read one, it will be
      allocated, otherwise it will stay NULL. */
@@ -10069,8 +10069,13 @@ MRISreadAnnotationIntoArray(const char* fname,
     /* Check the index we read to make sure it's less than the size
        we're expecting. */
     if (vno >= in_array_size || vno < 0)
+    {
       fprintf(stderr,
-       "MRISreadAnnotation: vertex index out of range: %d i=%d\n",vno,i);
+       "MRISreadAnnotationIntoArray: vertex index out of range: "
+              "%d i=%8.8X, in_array_size=%d\n",
+              vno,i,in_array_size);
+      fprintf(stderr,"    annot file: %s\n",fname);
+    }
     else
       array[vno] = i;
   }
