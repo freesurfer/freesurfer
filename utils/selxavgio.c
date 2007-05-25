@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/05/22 04:46:38 $
- *    $Revision: 1.7 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/25 23:37:58 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /***************************************************************
   Name:    selxavgio.c
-  $Id: selxavgio.c,v 1.7 2007/05/22 04:46:38 greve Exp $
+  $Id: selxavgio.c,v 1.8 2007/05/25 23:37:58 nicks Exp $
   Author:  Douglas Greve
   Purpose: Routines for handling header files for data created by
   selxavg or selavg (selectively averaged).
@@ -119,6 +119,7 @@ int is_sxa_volume(char *volid)
   FILE *fp;
   char *stem;
 
+  if(volid == NULL) return(0);
   stem = IDstemFromName(volid);
   if(stem == NULL) sprintf(tmpstr,"%s.dat",volid);
   else {
