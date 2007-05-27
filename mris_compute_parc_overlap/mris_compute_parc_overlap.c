@@ -32,8 +32,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/04 20:20:52 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/05/27 23:06:43 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -102,7 +102,7 @@ static void padWhite(char* str, int maxLen);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.11 2007/04/04 20:20:52 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.12 2007/05/27 23:06:43 nicks Exp $";
 static char *FREESURFER_HOME = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -837,10 +837,13 @@ static void calcMeanMinLabelDistances(void)
             if (surf2BoundaryLabels[cti].vnos[vno2])
             {// found boundary vertex
               VERTEX *v2 = &surface2->vertices[vno2];
+#if 1
+              // note: this is the Euclidian distance! not geodesic
               float dx = v2->x - v1->x;
               float dy = v2->y - v1->y;
               float dz = v2->z - v1->z;
               float dist = sqrt((dx*dx)+(dy*dy)+(dz*dz));
+#endif
               //printf("dist=%f\n",dist);
               if (dist < minDist) minDist=dist;
               //if (dist==0) printf("cti=%d,vno=%d,vno2=%d\n",cti,vno,vno2);
@@ -1090,6 +1093,7 @@ static void usage(int exit_val)
                 "                           with those in label1 file\n");
   fprintf(fout, "  --use-label2-xyz         ditto for label2\n");
   fprintf(fout, "  --use-label-xyz          use label1 and label2 coords\n");
+  fprintf(fout, "  --debug-overlap          generate ?h.overlap.annot\n");
   fprintf(fout, "  --version                version info\n");
   fprintf(fout, "  --help                   this usage info\n");
   fprintf(fout, "\nExample 1:\n");
@@ -1114,17 +1118,17 @@ static void usage(int exit_val)
    "in the label directory of the subject (bert) supplied as the input\n"
    "to the %s utility.  Supply --help to\n"
    "mri_surf2surf for its usage information.\n\n"
-   "There are two measures output by %s: an overall Dice coefficient,\n"
-   "and a table of mean minimum distances between corresponding labels.\n"
-   "A Dice value of 1 indicates perfect overlap.\n"
+   "There are two measures output by %s: an overall\n"
+   "Dice coefficient, and a table of mean minimum distances between \n"
+   "corresponding labels. A Dice value of 1 indicates perfect overlap.\n"
    "A mean minimum distance of 0 (mm) indicates perfect overlap.\n\n"
-   "A file called ?h.overlap.annot is created in the subjects label\n"
-   "directory, and is a copy of the annot2 input, except wherever the\n"
-   "labels are identical with annot1, that label is replaced with the\n"
-   "label 'unknown', thus leaving any mismatches labeled as they were\n"
-   "in the annot2 file.  If the Dice coefficient is less than 1, then this\n"
-   "file is a handy way to visualize the mismatches, which are typically\n"
-   "around the label borders."
+   "If --debug-overlap is specified, a file called ?h.overlap.annot is \n"
+   "created in the subjects label directory, and is a copy of the annot2\n"
+   "input, except wherever the labels are identical with annot1, that label\n"
+   "is replaced with the label 'unknown', thus leaving any mismatches\n"
+   "labeled as they were in the annot2 file.  If the Dice coefficient is \n"
+   "less than 1, then this ile is a way to visualize the mismatches, \n"
+   "which are typically around the label borders."
    "\n",progname,progname);
 
   fprintf(fout, "\nExample 2:\n");
