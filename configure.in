@@ -2193,6 +2193,7 @@ AC_OUTPUT([Makefile
            utils/Makefile
            utils/NrrdIO/Makefile
            utils/test/Makefile
+           utils/test/mrishash/Makefile
            utilscpp/Makefile
            utilscpp/test/Makefile
            vtkfsio/Makefile
