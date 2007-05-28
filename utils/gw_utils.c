@@ -7,8 +7,8 @@
  * Original Author: Graham Wideman
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/28 01:54:53 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/05/28 16:43:51 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -25,6 +25,9 @@
  */
 
 #include <values.h> // MAXSHORT
+#ifndef MAXSHORT
+#define MAXSHORT 32767
+#endif
 #include <time.h>
 
 #include "error.h"
