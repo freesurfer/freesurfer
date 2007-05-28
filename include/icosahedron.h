@@ -1,15 +1,14 @@
 /**
  * @file  icosahedron.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Icosahedron utils
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/05/28 01:53:44 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,7 +63,9 @@ MRI_SURFACE *ic163842_make_surface(int max_vertices, int max_faces) ;
 MRI_SURFACE *ic12_make_surface(int max_vertices, int max_faces) ;
 MRI_SURFACE *ICOread(char *fname) ;
 MRI_SURFACE *ICOreadOverAlloc(char *fname, double pct_over) ;
-int          ICOreadVertexPositions(MRI_SURFACE *mris, char *fname, int which) ;
+int          ICOreadVertexPositions(MRI_SURFACE *mris, 
+                                    char *fname, 
+                                    int which) ;
 MRI_SURFACE *ReadIcoByOrder(int IcoOrder, float RescaleFactor);
 MRI_SURFACE *ReadIcoByNVtxs(int nIcoVtxs, float RescaleFactor);
 int          IcoOrderFromNVtxs(int nIcoVtxs);
@@ -75,6 +76,12 @@ int          IcoNVtxsFromOrder(int IcoOrder);
 
 extern IC_VERTEX ic2562_vertices[] ;
 extern IC_FACE   ic2562_faces[] ;
+
+
+// version of ic2562 used for testing mrishash.c, contributed by G. Wideman
+MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1,
+                                  float x2, float y2, float z2, float r2 );
+
 
 #endif
 

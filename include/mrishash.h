@@ -1,15 +1,17 @@
 /**
  * @file  mrishash.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Implements a hash table mechanism to speed comparing vertices
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * The purpose of MRI hash tables is to vastly accelerate algorithms which 
+ * need to compare vertices with one another or to a point.  See: 
+ * http://wideman-one.com/gw/brain/fs/2007/mrishash/mrishash_100_overview.htm
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/23 19:55:50 $
- *    $Revision: 1.18 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/28 01:53:44 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,30 +26,35 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-#ifndef MRISHASH_H
-#define MRISHASH_H
 
-#include "mrisurf.h" // MRI_SURFACE
+//--------------------------------------------------------
+// Structures, constants, macros. Include these only once
+// In addition, include mrisurf.h
+//--------------------------------------------------------
+#ifndef MRISHASH_ONCE_H
+#define MRISHASH_ONCE_H
 
-#if 0
-/* BF - should be defined in mrisurf.h */
-/* kt - wasn't defined? */
-#ifndef CURRENT_VERTICES
-  #define CURRENT_VERTICES   1
-#endif
-#ifndef ORIGINAL_VERTICES
-  #define ORIGINAL_VERTICES  2
-#endif
-#ifndef CANONICAL_VERTICES
-  #define CANONICAL_VERTICES 3
-#endif
-#endif
+// define the following to get a single inclusion of non-renamed
+// functions
+#define MRISHASH_VANILLA_FUNCS
 
+//-----------------------------------------------------------
+// [GW] REMOVED  #include "mrisurf.h"
+// This is because with respect to mrisurf.h, mrishash.h is included in a
+// very specific location in mrisurf.h, after definitions that mrishash,h
+// needs from mrisurf.h, but before parts of mrisurf.h that needs defs
+// from mrishash.h.
+// So under normal conditions, if some caller wants to include mrishash,
+// they *must* include mrisurf.h, and that should be enough.
+//-----------------------------------------------------------
+
+//--------------------------
 typedef struct
 {
   int     fno ;
 } MRIS_HASH_BIN, MHB ;
 
+//--------------------------
 typedef struct
 {
   MRIS_HASH_BIN  *bins ;
@@ -55,83 +62,148 @@ typedef struct
   int            nused ;
 } MRIS_HASH_BUCKET, MHBT ;
 
+//--------------------------
+//-----------------------------------------------------------
+// In mrishash, "voxel" means box in rectangular grid used
+// to select spatial points into hash buckets. It does NOT refer to voxels
+// in the sense of MRIs.
+//
+// WORLD   : surface space  (x,y,z)
+// VOLUME  : WORLD rescaled and recentered at 200
+// VOXEL   : VOLUME discretized (trunc VOLUME)
+//
+// Since the relationship between mrihash points and voxels is
+// local to this unit, there's no special interpretation
+// of x,y,z to worry about: eg: not necessarily RAS.
+//-----------------------------------------------------------
+
+// FIELD_OF_VIEW: Way more than needed even at 1mm resolution.
 #define FIELD_OF_VIEW  400
+
+// VOXEL_RES: Default value for MHT->vres for when caller doesn't set it.
 #define VOXEL_RES      1.0
+
+// TABLE_SIZE dimensions for array of hash buckets. As defined here
+// TABLE_SIZE = 400.
 #define TABLE_SIZE     ((int)(FIELD_OF_VIEW / VOXEL_RES))
 
 #define WORLD_TO_VOLUME(mht,x)   (((x)+FIELD_OF_VIEW/2)/((mht)->vres))
 #define WORLD_TO_VOXEL(mht,x)    ((int)(WORLD_TO_VOLUME(mht,x)))
 #define VOXEL_TO_WORLD(mht,x)    ((((x)*(mht)->vres)-FIELD_OF_VIEW/2))
 
+typedef enum {
+    MHTFNO_FACE   = 0,
+    MHTFNO_VERTEX = 1
+} MHTFNO_t;
+
+//--------------------------
 typedef struct _mht
 {
-  float            fov ;         /* maximum extent of surface */
-  float            vres ;        /* resolution of discretization */
-  int              nbuckets ;    /* total # of buckets */
+  float              vres ;     /* resolution of discretization */
+  MHTFNO_t           fno_usage; /* 2007-03-20 GW Added: To enforce consistent 
+                                   use of fno:  face number or vertex number */
+  int                nbuckets ; /* total # of buckets */
   MRIS_HASH_BUCKET **buckets[TABLE_SIZE][TABLE_SIZE] ;
-  int              which_vertices ;       /* ORIGINAL, CANONICAL, CURRENT */
-	struct _mht      *mhts[MAX_SURFACES] ;      // for MRI_SURFACE_ARRAYs
-	MRI_SURFACE      *mris[MAX_SURFACES] ;
-	int              ntables ;
+  int                which_vertices ;  /* ORIGINAL, CANONICAL, CURRENT */
+  struct _mht       *mhts[MAX_SURFACES] ; // for MRI_SURFACE_ARRAYs
+  MRI_SURFACE       *mris[MAX_SURFACES] ;
+  int                ntables ;
 } MRIS_HASH_TABLE, MHT ;
 
+//------------------------------------------------
+// GW wew functions post V1.27
+//------------------------------------------------
 
-MRIS_HASH_TABLE *MHTfillTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht) ;
-MRIS_HASH_TABLE *MHTfillTableAtResolution(MRI_SURFACE *mris,
+MHBT * MHTgetBucketAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv);
+
+// Ad hoc test functions
+int MHT_gw_version(void);  // version of that unit
+void MHTfindReportCounts(int * BucketsChecked, int * BucketsPresent);
+int MHTtestIsMRISselfIntersecting(MRI_SURFACE *mris, float res);
+
+#endif // END #ifndef MRISHASH_ONCE_H
+
+
+//------------------------------------------------
+// Surface --> MHT, store Face Numbers
+//------------------------------------------------
+MRIS_HASH_TABLE *MHTfillTable(MRI_SURFACE *mris, MRIS_HASH_TABLE *mht) ;
+
+MRIS_HASH_TABLE *MHTfillTableAtResolution(MRI_SURFACE *mris, 
                                           MRIS_HASH_TABLE *mht,
-                                          int which, float res) ;
+                                          int which, 
+                                          float res) ;
+
+// Add/remove the faces of which vertex V is a part
+int  MHTaddAllFaces(   MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v) ;
+int  MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v) ;
+
+//------------------------------------------------
+// Surface --> MHT, store Vertex Numbers
+//------------------------------------------------
 MRIS_HASH_TABLE *MHTfillVertexTable(MRI_SURFACE *mris,
                                     MRIS_HASH_TABLE *mht,
                                     int which) ;
 MRIS_HASH_TABLE *MHTfillVertexTableRes(MRI_SURFACE *mris,
                                        MRIS_HASH_TABLE *mht,
-                                       int which, 
+                                       int which,
                                        float res) ;
-int             MHTfree(MRIS_HASH_TABLE **pmht) ;
-int             MHTcheckFaces(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht) ;
-int             MHTcheckSurface(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht) ;
-int             MHTisFilled(MRIS_HASH_TABLE *mht, 
-                            MRI_SURFACE *mris, int fno,
-                            float xw, float yw, float zw);
-int             MHTisVoxelFilled(MRIS_HASH_TABLE *mht, 
-                                 MRI_SURFACE *mris, 
-                                 int vno, 
-                                 int xv, int yv, int zv) ;
-int             MHTisVectorFilled(MRIS_HASH_TABLE *mht, 
-                                  MRI_SURFACE *mris, 
-                                  int vno, 
-                                  float dx, float dy, float dz) ;
-int             MHTaddAllFaces(MRIS_HASH_TABLE *mht, 
-                               MRI_SURFACE *mris, 
-                               VERTEX *v) ;
-int             MHTremoveAllFaces(MRIS_HASH_TABLE *mht, 
-                                  MRI_SURFACE *mris,
-                                  VERTEX *v) ;
-MHBT            *MHTgetBucket(MRIS_HASH_TABLE *mht, 
-                              float x, float y, float z) ;
 
-VERTEX          *MHTfindClosestVertex(MRIS_HASH_TABLE *mht, 
-                                     MRI_SURFACE *mris, VERTEX *v) ;
-VERTEX          *MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, 
-                                     MRI_SURFACE *mris, VERTEX *v, int which) ;
-int             *MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht, 
-                                                MRI_SURFACE *mris, 
-                                                int vno, float max_dist, 
-                                                int *pvnum);
-int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, 
-                           MRI_SURFACE *mris, 
-                           VERTEX *v, 
-                           float *min_dist);
-VERTEX *MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, 
-                                    MRI_SURFACE *mris, 
-                                    float x, float y, float z) ;
+//------------------------------------------------
+// Surface self-intersection (Uses MHT initialized with FACES)
+//------------------------------------------------
 int MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,int fno);
-MRIS_HASH_TABLE *MHTaddToTableAtResolution(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, 
-																					 int which, float res);
-MRIS_HASH_TABLE *MHTaddToVertexTableRes(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which,float res) ;
-MHT *msaMHTfillTable(MRI_SURFACE_ARRAY *msa, MHT *mht) ;
-MHT *msaMHTfillVertexTable(MRI_SURFACE_ARRAY *msa, MHT *mht, int which);
 
-MRI *MHThashTest(MRIS *SrcSurfReg, MRIS *TrgSurfReg, float Res, int *count);
 
-#endif
+int MHTisVectorFilled(MRIS_HASH_TABLE *mht,    MRI_SURFACE *mris,
+                         int vno,  float dx, float dy, float dz) ;
+
+//------------------------------------------------
+// Find nearest vertex/vertices (Uses MHT initialized with VERTICES)
+//------------------------------------------------
+//------- new generic find function ------------
+int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht, 
+                                MRI_SURFACE *mris,
+                                double probex, double probey, double probez,
+                                double in_max_distance_mm, 
+                                int in_max_halfmhts,
+                                VERTEX **pvtx, 
+                                int *vtxnum, 
+                                double *vtx_distance);
+
+//------- original mrishash find functions ------------
+VERTEX *MHTfindClosestVertex(MRIS_HASH_TABLE *mht, 
+                             MRI_SURFACE *mris, 
+                             VERTEX *v) ;
+VERTEX *MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, 
+                                MRI_SURFACE *mris, 
+                                VERTEX *v, 
+                                int which) ;
+int    *MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht, 
+                                        MRI_SURFACE *mris,
+                                        int vno, 
+                                        float max_dist, 
+                                        int *pvnum);
+int     MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, 
+                               MRI_SURFACE *mris, 
+                               VERTEX *v, 
+                               float *min_dist);
+VERTEX *MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, 
+                                    MRI_SURFACE *mris,
+                                    float x, float y, float z) ;
+
+//------------------------------------------------
+//  Utility
+//------------------------------------------------
+// See also:
+// MHBT * MHTgetBucketAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv);
+
+MHBT * MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z) ;
+int    MHTfree(MRIS_HASH_TABLE **pmht) ;
+
+//------------------------------------------------
+// Diagnostic
+//------------------------------------------------
+int MHTcheckFaces(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht) ;
+int MHTcheckSurface(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht);
+

@@ -1,18 +1,20 @@
 /**
- * @file  mrishash.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @file  mrishash.h
+ * @brief Implements a hash table mechanism to speed comparing vertices
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * The purpose of MRI hash tables is to vastly accelerate algorithms which
+ * need to compare vertices with one another or to a point.  See:
+ * http://wideman-one.com/gw/brain/fs/2007/mrishash/mrishash_100_overview.htm
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/24 17:29:35 $
- *    $Revision: 1.29 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/28 01:54:53 $
+ *    $Revision: 1.30 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -25,206 +27,188 @@
  *
  */
 
+/*-------------------------------------------------------
+  GW Design Notes
+  ---------------
 
-#include <stdio.h>
+  1. float, double, Real.
+  float and double are official C types.
+  Real is typedef'ed indirectly in MINC's basic.h as double.
+
+  mrishash.c 1.27 is inconsistent as to using double or Real, and I'm guessing
+  the choice of one or the other was not selected deliberately.
+  Since I prefer to get rid of unneeded dependencies, I have replaced Real with
+  double.
+
+  ---------------------------------------------------------*/
 #include <math.h>
+#include <stdlib.h>
+
+//----------------------------------------------------
+// Includes that differ for linux vs GW BC compile
+//----------------------------------------------------
+#ifdef __BORLANDC__
+#include <mem.h>
+#include "mrishash_include/error.h"
+#include "../mrishash_include/mrisurf.h"
+//... above includes vanilla mrihash.h
+#include "mrishash_include/mrishash_gwmisc.h"
+#else
+#include <string.h>
 
 #include "diag.h"
 #include "error.h"
-#include "utils.h"
-#include "macros.h"
-#include "fio.h"
+
 #include "mrisurf.h"
-#include "proto.h"
-#include "timer.h"
-#include "const.h"
-#include "mrishash.h"
 #include "tritri.h"
 
-/*---------------------------- STRUCTURES -----------------------------*/
+#endif
 
+#include "mrishash.h"
+
+//==================================================================
+// Local macros
+//==================================================================
+
+// GW_VERSION reported by MHTmrishash_gw_version()
+#define GW_VERSION 125
+
+// __func__ in gcc appears not to be a predefined macro that can be
+// tested and also glued to string literals. Instead we have to use
+// printf-style
+
+#define __MYFUNCTION__ __func__
+
+#ifdef  __FUNCTION__
+#undef  __MYFUNCTION__
+#define __MYFUNCTION__  __FUNCTION__
+#endif
+
+#ifdef  __FUNC__
+#undef  __MYFUNCTION__
+#define __MYFUNCTION__  __FUNC__
+#endif
+
+//==================================================================
+// Local structure types
+//==================================================================
+#ifndef bool
+typedef enum {
+  false = 0,
+  true  = 1
+} bool;
+#endif
+
+typedef struct
+{
+  int xv;
+  int yv;
+  int zv;
+}
+VOXEL_COORD;
+
+//----------------------------------------------------------------------
+// VOXEL_LISTgw adopted from mrishash.c 1.27
+// 10000 seems way excessive: suggests that a face can span 10000 voxels,
+// which, even with vres=1mm, means a triangle approx 100x200 mm!
+// But better safe than sorry, I guess.
+//----------------------------------------------------------------------
 #define MAX_VOXELS  10000
 typedef struct
 {
   int nused ;
-  int v[MAX_VOXELS][3] ;
+  int voxels[MAX_VOXELS][3] ;
 }
-VOXEL_LIST ;
+VOXEL_LISTgw ;
 
-/*---------------------------- CONSTANTS ------------------------------*/
+// Ad hoc points
+typedef struct
+{
+  double x;
+  double y;
+  double z;
+}
+Ptdbl_t;
 
-/*------------------------ STATIC PROTOTYPES --------------------------*/
+//==================================================================
+// Static forward declarations
+//==================================================================
+// Note: Exposed API functions start with uppercase MHT prefix.
+// Static (private) functions start with lowercase mht prefix.
 
-static int mhtInitVoxelList(VOXEL_LIST *vl) ;
-static int mhtAddVoxels(MRIS_HASH_TABLE *mht, VOXEL_LIST *vl,
-                        float xw, float yw, float zw) ;
-static int mhtAddVoxel(VOXEL_LIST *vl, int xv, int yv, int zv) ;
+static void mhtVertex2xyz_float (VERTEX * vtx,
+                                 int which,
+                                 float  *x, float  *y, float  *z);
+static void mhtVertex2xyz_double(VERTEX * vtx,
+                                 int which,
+                                 double *x, double *y, double *z);
+static void mhtVertex2Ptxyz_double(VERTEX * vtx, int which, Ptdbl_t *pt);
+static void mhtVertex2array3_double(VERTEX * vtx, int which, double *array3);
+
+static int mhtAddFaceOrVertexAtCoords(MRIS_HASH_TABLE *mht,
+                                      float x, float y, float z,
+                                      int forvnum);
+static int   mhtAddFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht,
+                                       int xv, int yv, int zv,
+                                       int forvnum);
+static int   mhtRemoveFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht,
+                                          int xv, int yv, int zv,
+                                          int forvnum);
+
+static int mhtFaceToMHT(MRIS_HASH_TABLE *mht,
+                        MRI_SURFACE *mris,
+                        int fno,
+                        int on);
+static int   mhtVoxelList_Init(VOXEL_LISTgw *voxlist);
+static int   mhtVoxelList_SampleFace(float mhtres,
+                                     Ptdbl_t *vpt0,
+                                     Ptdbl_t *vpt1,
+                                     Ptdbl_t *vpt2,
+                                     int fno,
+                                     VOXEL_LISTgw *voxlist);
+static int     mhtVoxelList_Add(VOXEL_LISTgw *voxlist,
+                                int xv, int yv, int zv,
+                                int fno);
+static int     mhtVoxelList_AddCoord(VOXEL_LISTgw *voxlist,
+                                     VOXEL_COORD vc,
+                                     int fno);
+static int     mhtVoxelList_AddPath(VOXEL_LISTgw *voxlist,
+                                    VOXEL_COORD oldvc,
+                                    VOXEL_COORD newvc,
+                                    int fno );
+
 static int mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht,
-    MRI_SURFACE *mris,
-    VOXEL_LIST *vl, int fno) ;
+                                         MRI_SURFACE *mris,
+                                         VOXEL_LISTgw *voxlist,
+                                         int fno);
 
-static int mhtHatchFace(MRIS_HASH_TABLE *mht,MRI_SURFACE *mris,int fno,int on);
+//--------- test -----------
+static int checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1);
 
-/*static int hash(MRIS_HASH_TABLE *mht, int z) ;*/
-static int mhtAddFacePositions(MRIS_HASH_TABLE *mht, float x, float y,
-                               float z, int fno) ;
-static int mhtRemoveFacePositions(MRIS_HASH_TABLE *mht, float x, float y,
-                                  float z, int fno) ;
-static int mhtAddFacePosition(MRIS_HASH_TABLE *mht, int xv, int yv,
-                              int zv, int fno) ;
-static int mhtRemoveFacePosition(MRIS_HASH_TABLE *mht, int xv, int yv,
-                                 int zv, int fno) ;
-#if 0
-static int mhtDoesFaceIntersect(MRIS_HASH_TABLE *mht,
-                                MRI_SURFACE *mris,int fno);
-#endif
-#if 0
-static int checkAllVertexFaces(MRIS_HASH_TABLE *mht,MRI_SURFACE *mris,int vno);
-#endif
-static int checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1) ;
+//=============================================================================
+// Surface --> MHT, store Face Numbers
+//=============================================================================
 
-
-/*---------------------------- MACROS ---------------------------------*/
-
-
-/*-------------------------- STATIC DATA ------------------------------*/
-
-/*-------------------------- FUNCTIONS --------------------------------*/
-
-
-MRIS_HASH_TABLE *
-MHTfillVertexTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which)
+//------------------------------------
+MRIS_HASH_TABLE *MHTfillTable(MRI_SURFACE *mris, MRIS_HASH_TABLE *mht)
 {
-  return(MHTfillVertexTableRes(mris, mht, which, VOXEL_RES)) ;
-}
-MRIS_HASH_TABLE *
-MHTfillVertexTableRes(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which,
-                      float res)
-{
-  int     vno ;
-  int     xv, yv, zv ;
-  MHBT    *bucket ;
-  VERTEX  *v ;
-  static int ncalls = 0 ;
-
-  if (mht)    /* free old one */
-    MHTfree(&mht) ;
-  mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE)) ;
-  if (!mht)
-    ErrorExit(ERROR_NO_MEMORY,
-              "MHTfillVertexTable: could not allocate hash table.\n") ;
-
-  mht->which_vertices = which ;
-  mht->vres = res ;
-  for (xv = 0 ; xv < TABLE_SIZE ; xv++)
-  {
-    for (yv = 0 ; yv < TABLE_SIZE ; yv++)
-    {
-      mht->buckets[xv][yv] = NULL ;
-    }
-  }
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (vno == Gdiag_no)
-      DiagBreak() ;
-    if (v->ripflag)
-      continue ;
-    switch (which)
-    {
-    case ORIGINAL_VERTICES:
-      mhtAddFacePositions(mht, v->origx, v->origy, v->origz, vno) ;
-      break ;
-    case CANONICAL_VERTICES:
-      mhtAddFacePositions(mht, v->cx, v->cy, v->cz, vno) ;
-      break ;
-    case CURRENT_VERTICES:
-      mhtAddFacePositions(mht, v->x, v->y, v->z, vno) ;
-      break ;
-    case WHITE_VERTICES:
-      mhtAddFacePositions(mht, v->whitex, v->whitey, v->whitez, vno) ;
-      break ;
-    case PIAL_VERTICES:
-      mhtAddFacePositions(mht, v->pialx, v->pialy, v->pialz, vno) ;
-      break ;
-    }
-  }
-
-  if ((Gdiag & DIAG_SHOW) && !ncalls)
-  {
-    double mean, var, v, n ;
-    int    mx ;
-
-    n = mean = 0.0 ;
-    mx = -1 ;
-    for (xv = 0 ; xv < TABLE_SIZE ; xv++)
-    {
-      for (yv = 0 ; yv < TABLE_SIZE ; yv++)
-      {
-        for (zv = 0 ; zv < TABLE_SIZE ; zv++)
-        {
-          if (!mht->buckets[xv][yv] || !mht->buckets[xv][yv][zv])
-            continue ;
-          bucket = mht->buckets[xv][yv][zv] ;
-          if (bucket->nused)
-          {
-            mean += bucket->nused ;
-            n++ ;
-          }
-          if (bucket->nused > mx)
-            mx = bucket->nused ;
-        }
-      }
-    }
-    mean /= n ;
-    var = 0.0 ;
-    for (xv = 0 ; xv < TABLE_SIZE ; xv++)
-    {
-      for (yv = 0 ; yv < TABLE_SIZE ; yv++)
-      {
-        if (!mht->buckets[xv][yv])
-          continue ;
-        for (zv = 0 ; zv < TABLE_SIZE ; zv++)
-        {
-          bucket = mht->buckets[xv][yv][zv] ;
-          if (bucket && bucket->nused)
-          {
-            v = mean - bucket->nused ;
-            var += v*v ;
-          }
-        }
-      }
-    }
-    var /= (n-1) ;
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      fprintf(stderr, "buckets: mean = %2.1f +- %2.2f, max = %d\n",
-              mean, sqrt(var), mx) ;
-  }
-  ncalls++ ;
-  return(mht) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-MRIS_HASH_TABLE *
-MHTfillTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht)
-{
+//------------------------------------
   return(MHTfillTableAtResolution(mris, mht, CURRENT_VERTICES, VOXEL_RES)) ;
 }
-/*-----------------------------------------------------
-        Parameters:
 
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-MRIS_HASH_TABLE *
-MHTfillTableAtResolution(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which,
-                         float res)
+/*------------------------------------------------------
+  MHTfillTableAtResolution
+  Returns new MHT (freeing old mht if it exists), and loads it
+  with FACE NUMBERS of faces in mris.
+  Args:
+  which     Which vertices to use: CURRENT_VERTICES, WHITE_VERTICES etc
+  res       Resolution [mm]
+  -------------------------------------------------------*/
+//------------------------------------
+MRIS_HASH_TABLE * MHTfillTableAtResolution(
+  MRI_SURFACE *mris,MRIS_HASH_TABLE *mht,
+  int which, float res)
+//------------------------------------
 {
   int     fno ;
   FACE    *f ;
@@ -232,66 +216,45 @@ MHTfillTableAtResolution(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which,
   MHBT    *bucket ;
   static int ncalls = 0 ;
 
-#if 0
-  int     n, vno ;
-  VERTEX  *v, *vn ;
-  double  total_dist, nv, dist ;
-#endif
-
+  //-----------------------------
+  // Allocation and initialization
+  //-----------------------------
   if (mht)    /* free old one */
     MHTfree(&mht) ;
   mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE)) ;
   if (!mht)
+  {
     ErrorExit(ERROR_NO_MEMORY,
-              "MHTfillTable: could not allocate hash table.\n") ;
+              "%s: could not allocate hash table.\n",
+              __MYFUNCTION__) ;
+  }
 
-  mht->which_vertices = which ;
-
-  mht->vres = res ;
   for (xv = 0 ; xv < TABLE_SIZE ; xv++)
   {
     for (yv = 0 ; yv < TABLE_SIZE ; yv++)
     {
-#if 0
-      for (zv = 0 ; zv < TABLE_SIZE ; zv++)
-      {
-        bucket = &mht->buckets[xv][yv][zv] ;
-        bucket->nused = bucket->max_bins = 0 ;
-        bucket->bins = NULL ;
-      }
-#else
       mht->buckets[xv][yv] = NULL ;
-#endif
     }
   }
+
+  //--------------------------------------
+  // Capture data from caller and surface
+  //--------------------------------------
+  mht->vres            = res ;
+  mht->which_vertices  = which ;
+  mht->fno_usage       = MHTFNO_FACE ;
+
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
     f = &mris->faces[fno] ;
     if (f->ripflag)
       continue ;
-    mhtHatchFace(mht, mris, fno, 1) ;
+    mhtFaceToMHT(mht, mris, fno, 1) ;
   }
 
-#if 0
-  if ((Gdiag & DIAG_SHOW) && !(ncalls%10))
-  {
-    for (nv = total_dist = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      for (n = 0 ; n < v->vnum ; n++)
-      {
-        vn = &mris->vertices[v->v[n]] ;
-        nv++ ;
-        dist = sqrt(SQR(vn->x - v->x) + SQR(vn->y - v->y) + SQR(vn->z - v->z));
-        total_dist += dist ;
-      }
-    }
-    total_dist /= nv ;
-    fprintf(stderr, "average voxel spacing = %2.2f\n", total_dist) ;
-  }
-#endif
+  //-------------------------------------------
+  // Diagnostics
+  //-------------------------------------------
   if ((Gdiag & DIAG_SHOW) && !ncalls)
   {
     double mean, var, v, n ;
@@ -305,13 +268,9 @@ MHTfillTableAtResolution(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which,
       {
         for (zv = 0 ; zv < TABLE_SIZE ; zv++)
         {
-#if 0
-          bucket = &mht->buckets[xv][yv][zv] ;
-#else
           if (!mht->buckets[xv][yv] || !mht->buckets[xv][yv][zv])
             continue ;
           bucket = mht->buckets[xv][yv][zv] ;
-#endif
           if (bucket->nused)
           {
             mean += bucket->nused ;
@@ -332,13 +291,8 @@ MHTfillTableAtResolution(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which,
           continue ;
         for (zv = 0 ; zv < TABLE_SIZE ; zv++)
         {
-#if 0
-          bucket = &mht->buckets[xv][yv][zv] ;
-          if (bucket->nused)
-#else
           bucket = mht->buckets[xv][yv][zv] ;
           if (bucket && bucket->nused)
-#endif
           {
             v = mean - bucket->nused ;
             var += v*v ;
@@ -348,222 +302,78 @@ MHTfillTableAtResolution(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which,
     }
     var /= (n-1) ;
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      fprintf(stderr, "buckets: mean = %2.1f +- %2.2f, max = %d\n",
-              mean, sqrt(var), mx) ;
+      fprintf(stderr, "%s buckets: mean = %2.1f +- %2.2f, max = %d\n",
+              __MYFUNCTION__, mean, sqrt(var), mx) ;
   }
   ncalls++ ;
   return(mht) ;
 }
-/*-----------------------------------------------------
-        Parameters:
 
-        Returns value:
-
-        Description
-           check whether the position (xw,yw,zw) is filled by
-           a face which shares no vertices with fno.
-------------------------------------------------------*/
-#if 0
-int
-MHTisFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno,
-            float xw, float yw, float zw)
-{
-  int   xv, yv, zv, fno2, i, n1, n2, intersect, nbr ;
-  MHB   *bin ;
-  MHBT  *bucket ;
-  FACE  *f1, *f2 ;
-
-  f1 = &mris->faces[fno] ;
-  xv = WORLD_TO_VOXEL(mht,xw) ;
-  yv = WORLD_TO_VOXEL(mht,yw) ;
-  zv = WORLD_TO_VOXEL(mht,zw) ;
-
-  if (xv < 0)
-    xv = 0 ;
-  if (xv >= TABLE_SIZE)
-    xv = TABLE_SIZE-1 ;
-  if (yv < 0)
-    yv = 0 ;
-  if (yv >= TABLE_SIZE)
-    yv = TABLE_SIZE-1 ;
-  if (zv < 0)
-    zv = 0 ;
-  if (zv >= TABLE_SIZE)
-    zv = TABLE_SIZE-1 ;
-  if (fno == Gdiag_no)
-    DiagBreak() ;
-  if (xv < 0 || yv < 0 || zv < 0 ||
-      xv >= TABLE_SIZE || yv >= TABLE_SIZE || zv >= TABLE_SIZE ||
-      fabs(xw) > FIELD_OF_VIEW ||
-      fabs(yw) > FIELD_OF_VIEW ||
-      fabs(zw) > FIELD_OF_VIEW)
-  {
-    fprintf(stderr,
-            "MHTisFilled: index out of bounds at face %d (%2.1f, %2.1f, %2.1f)\n",
-            fno, xw, yw, zw) ;
-    DiagBreak() ;
-  }
-  /*
-    go through every entry in this bucket and see if any of them
-    occupy the same voxel coordinate as the vertex in question. If so,
-    check the face in the bucket to see if the vertex is part of if. If it
-    is not, then the voxel is already filled and return 1.
-  */
-#if 0
-  bucket = &mht->buckets[xv][yv][zv] ;
-#else
-  bucket = mht->buckets[xv][yv][zv] ;
-#endif
-  bin = bucket->bins ;
-  for (i = 0 ; i < bucket->nused ; i++, bin++)
-  {
-    fno2 = bin->fno ;
-    f2 = &mris->faces[fno2] ;
-    nbr = 0 ;
-    for (n1 = 0 ; !nbr && n1 < VERTICES_PER_FACE ; n1++)
-      for (n2 = 0 ; !nbr && n2 < VERTICES_PER_FACE ; n2++)
-      {
-        if (f1->v[n1] == f2->v[n2])
-          nbr = 1 ;  /* they share a vertex - don't count it as filled */
-      }
-    if (!nbr)   /* use explicit intersection check */
-    {
-      double v0[3], v1[3], v2[3], u0[3], u1[3], u2[3] ;
-
-      /* fill vertices of 1st triangle */
-      v0[0] = (double)mris->vertices[f1->v[0]].x ;
-      v0[1] = (double)mris->vertices[f1->v[0]].y ;
-      v0[2] = (double)mris->vertices[f1->v[0]].z ;
-      v1[0] = (double)mris->vertices[f1->v[1]].x ;
-      v1[1] = (double)mris->vertices[f1->v[1]].y ;
-      v1[2] = (double)mris->vertices[f1->v[1]].z ;
-      v2[0] = (double)mris->vertices[f1->v[2]].x ;
-      v2[1] = (double)mris->vertices[f1->v[2]].y ;
-      v2[2] = (double)mris->vertices[f1->v[2]].z ;
-
-      /* fill vertices of 2nd triangle */
-      u0[0] = (double)mris->vertices[f2->v[0]].x ;
-      u0[1] = (double)mris->vertices[f2->v[0]].y ;
-      u0[2] = (double)mris->vertices[f2->v[0]].z ;
-      u1[0] = (double)mris->vertices[f2->v[1]].x ;
-      u1[1] = (double)mris->vertices[f2->v[1]].y ;
-      u1[2] = (double)mris->vertices[f2->v[1]].z ;
-      u2[0] = (double)mris->vertices[f2->v[2]].x ;
-      u2[1] = (double)mris->vertices[f2->v[2]].y ;
-      u2[2] = (double)mris->vertices[f2->v[2]].z ;
-      intersect = tri_tri_intersect(v0,v1,v2,u0,u1,u2) ;
-      if (intersect)
-        return(1) ;
-    }
-  }
-  return(0) ;
-}
-#endif
-#if 0
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-           check whether
-------------------------------------------------------*/
-int
-MHTisVoxelFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int vno,
-                 int xv, int yv, int zv)
-{
-  int   fno, i, n ;
-  MHB   *bin ;
-  MHBT  *bucket ;
-  FACE  *f ;
-
-
-  /*
-    go through every entry in this bucket and see if any of them
-    occupy the same voxel coordinate as the vertex in question. If so,
-    check the face in the bucket to see if the vertex is part of if. If it
-    is not, then the voxel is already filled and return 1.
-  */
-  bucket = &mht->buckets[xv][yv][zv] ;
-  bin = bucket->bins ;
-  for (i = 0 ; i < bucket->nused ; i++, bin++)
-  {
-    /* check to see if this face has vno in it */
-    fno = bin->fno ;
-    f = &mris->faces[fno] ;
-    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-    {
-      if (f->v[n] == vno)   /* vertex is part of this face - ignore it */
-        break ;
-    }
-    if (n >= VERTICES_PER_FACE)  /* vertex not in face - return filled */
-      return(1) ;
-  }
-
-  return(0) ;   /* position is not filled with a face that v is not part of */
-}
-#endif
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-int
-MHTaddAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v)
+/*------------------------------------------------------
+  MHTaddAllFaces
+  Appends to mht all faces in mris of which VERTEX v is a part.
+  Returns: NO_ERROR unless mht was initialized with vertices rather
+  than faces.
+  -------------------------------------------------------*/
+//------------------------------------
+int MHTaddAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v)
+//------------------------------------
 {
   int     fno ;
 
+  if ( (!mht) || (mht->fno_usage != MHTFNO_FACE) )
+  {
+    ErrorExit(ERROR_BADPARM,
+              "%s: mht not initialized for faces\n",
+              __MYFUNCTION__) ;
+  }
+
   for (fno = 0 ; fno < v->num ; fno++)
-    mhtHatchFace(mht, mris, v->f[fno], 1) ;
+    mhtFaceToMHT(mht, mris, v->f[fno], 1) ;
   return(NO_ERROR) ;
 }
-/*-----------------------------------------------------
-        Parameters:
 
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-int
-MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v)
+/*------------------------------------------------------
+  MHTaddAllFaces
+  Appends to mht all faces in mris of which VERTEX v is a part.
+  Returns: NO_ERROR unless mht was initialized with vertices rather
+  than faces.
+  -------------------------------------------------------*/
+//------------------------------------
+int MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v)
+//------------------------------------
 {
   int     fno ;
 
+  if ( (!mht) || (mht->fno_usage != MHTFNO_FACE) )
+  {
+    ErrorExit(ERROR_BADPARM,
+              "%s: mht not initialized for faces\n",
+              __MYFUNCTION__) ;
+  }
+
   for (fno = 0 ; fno < v->num ; fno++)
-    mhtHatchFace(mht, mris, v->f[fno], 0) ;
+    mhtFaceToMHT(mht, mris, v->f[fno], 0) ;
   return(NO_ERROR) ;
 }
-/*-----------------------------------------------------
-        Parameters:
 
-        Returns value:
-
-        Description
-        Description
-        each face has 2 triangles defined by it:
-
-       V0    b     V2
-        o----------o
-        |        /
-        |      /
-      a |    /
-        |  /
-        |/
-        o
-       V1      b        V2
-------------------------------------------------------*/
-#define SQRT_2        (1.4142136)
-#define SAMPLE_DIST   (mht->vres/(2.0*SQRT_2))
-
-static int
-mhtHatchFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno, int on)
+/*-------------------------------------------------
+  mhtFaceToMHT  (was mhtHatchFace)
+  Adds face fno to mht. Calls mhtVoxelList_SampleFace to get a list
+  of MHT Voxels (buckets) in which to list fno.
+  -------------------------------------------------*/
+static int mhtFaceToMHT(MRIS_HASH_TABLE *mht,
+                        MRI_SURFACE *mris,
+                        int fno, int on)
 {
-  Real   x, y, z, xa, ya, za, xc, yc, zc, t0, t1, adx, ady, adz, dx, dy, dz,
-  cdx, cdy, cdz, alen, clen, delta_t0, delta_t1, len ;
-  VERTEX *v0, *v1, *v2 ;
+//------------------------------------
   FACE   *face ;
+  VERTEX *v0, *v1, *v2 ;
+  Ptdbl_t vpt0, vpt1, vpt2;
+  VOXEL_LISTgw voxlist;
+  int vlix, i, j, k;
+
+  mhtVoxelList_Init(&voxlist);
 
   face = &mris->faces[fno] ;
   if (face->ripflag)
@@ -572,311 +382,340 @@ mhtHatchFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno, int on)
   v0 = &mris->vertices[face->v[0]] ;
   v1 = &mris->vertices[face->v[1]] ;
   v2 = &mris->vertices[face->v[2]] ;
-  switch (mht->which_vertices)
+
+  mhtVertex2Ptxyz_double(v0, mht->which_vertices, &vpt0);
+  mhtVertex2Ptxyz_double(v1, mht->which_vertices, &vpt1);
+  mhtVertex2Ptxyz_double(v2, mht->which_vertices, &vpt2);
+
+  mhtVoxelList_SampleFace(mht->vres, &vpt0, &vpt1, &vpt2, fno, &voxlist);
+
+  for (vlix = 0; vlix < voxlist.nused; vlix++)
   {
-  case ORIGINAL_VERTICES:
-    adx = v1->origx - v0->origx ;
-    ady = v1->origy - v0->origy ;
-    adz = v1->origz - v0->origz ;
-    cdx = v2->origx - v0->origx ;
-    cdy = v2->origy - v0->origy ;
-    cdz = v2->origz - v0->origz ;
-    break ;
-  case CANONICAL_VERTICES:
-    adx = v1->cx - v0->cx ;
-    ady = v1->cy - v0->cy ;
-    adz = v1->cz - v0->cz ;
-    cdx = v2->cx - v0->cx ;
-    cdy = v2->cy - v0->cy ;
-    cdz = v2->cz - v0->cz ;
-    break ;
-  default:
-  case CURRENT_VERTICES:
-    adx = v1->x - v0->x ;
-    ady = v1->y - v0->y ;
-    adz = v1->z - v0->z ;
-    cdx = v2->x - v0->x ;
-    cdy = v2->y - v0->y ;
-    cdz = v2->z - v0->z ;
-    break ;
-  case WHITE_VERTICES:
-    adx = v1->whitex - v0->whitex ;
-    ady = v1->whitey - v0->whitey ;
-    adz = v1->whitez - v0->whitez ;
-    cdx = v2->whitex - v0->whitex ;
-    cdy = v2->whitey - v0->whitey ;
-    cdz = v2->whitez - v0->whitez ;
-    break ;
-  case PIAL_VERTICES:
-    adx = v1->pialx - v0->pialx ;
-    ady = v1->pialy - v0->pialy ;
-    adz = v1->pialz - v0->pialz ;
-    cdx = v2->pialx - v0->pialx ;
-    cdy = v2->pialy - v0->pialy ;
-    cdz = v2->pialz - v0->pialz ;
-    break ;
-  }
-  alen = sqrt(SQR(adx)+SQR(ady)+SQR(adz)) ;
-  clen = sqrt(SQR(cdx)+SQR(cdy)+SQR(cdz)) ;
+    i = voxlist.voxels[vlix][0];
+    j = voxlist.voxels[vlix][1];
+    k = voxlist.voxels[vlix][2];
 
-  /*
-    sample along legs of the triangle making sure the maximum spacing
-    between samples (along the longer leg) is SAMPLE_DIST.
-  */
-
-  /*
-    move along v0->v1 and v3->v2 lines and draw in crossing line to fill face
-    t0 parameterizes lines from v0->v1 and v0->v2
-  */
-  if (FZERO(alen) && FZERO(clen))
-    delta_t0 = 0.99 ;
-  else
-    delta_t0 = (alen > clen) ? (SAMPLE_DIST / alen) : (SAMPLE_DIST / clen ) ;
-  if (FZERO(delta_t0))
-    ErrorReturn(ERROR_BADPARM,
-                (ERROR_BADPARM,
-                 "mrisFillFace: face %d has infinite leg (%d, %d)\n",
-                 fno, alen, clen)) ;
-
-  if (delta_t0 >= 1.0)
-    delta_t0 = 0.99 ;
-
-  /* delta_t0 is % of alen or clen (whichever is bigger) of SAMPLE_DIST */
-  for (t0 = 0 ; t0 <= 1.0f ; t0 += delta_t0)
-  {
-    /* compute points (xa,ya,za) and (xc,yc,zc) on the a and c lines resp. */
-    switch (mht->which_vertices)
-    {
-    default:
-    case CURRENT_VERTICES:
-      xa = v0->x + t0*adx ;
-      ya = v0->y + t0*ady ;
-      za = v0->z + t0*adz ;
-      xc = v0->x + t0*cdx ;
-      yc = v0->y + t0*cdy ;
-      zc = v0->z + t0*cdz ;
-      break ;
-    case ORIGINAL_VERTICES:
-      xa = v0->origx + t0*adx ;
-      ya = v0->origy + t0*ady ;
-      za = v0->origz + t0*adz ;
-      xc = v0->origx + t0*cdx ;
-      yc = v0->origy + t0*cdy ;
-      zc = v0->origz + t0*cdz ;
-      break ;
-    case CANONICAL_VERTICES:
-      xa = v0->cx + t0*adx ;
-      ya = v0->cy + t0*ady ;
-      za = v0->cz + t0*adz ;
-      xc = v0->cx + t0*cdx ;
-      yc = v0->cy + t0*cdy ;
-      zc = v0->cz + t0*cdz ;
-      break ;
-    }
-    dx = xc-xa ;
-    dy = yc-ya ;
-    dz = zc-za ;
-    len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
-    if (FZERO(len))
-      delta_t1 = 0.99 ;
-    else
-    {
-      delta_t1 = SAMPLE_DIST / len ;  /* sample at SAMPLE_DIST intervals */
-      if (delta_t1 >= 1.0f)
-        delta_t1 = 0.99 ;
-    }
-
-    /* now draw a line from (xa,ya,za) to (xc, yc, zc) */
-    for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1)
-    {
-      /* compute a point on the line connecting a and c */
-      x = xa + t1*dx ;
-      y = ya + t1*dy ;
-      z = za + t1*dz ;
-      if (on)
-        mhtAddFacePositions(mht, x, y, z, fno) ;
-      else
-        mhtRemoveFacePositions(mht, x, y, z, fno) ;
-
-    }
-    /* compute last point on line */
-    t1 = 1.0f ;
-    x = xa + t1*dx ;
-    y = ya + t1*dy ;
-    z = za + t1*dz ;
     if (on)
-      mhtAddFacePositions(mht, x, y, z, fno) ;
+      mhtAddFaceOrVertexAtVoxIx(   mht, i, j, k, fno);
     else
-      mhtRemoveFacePositions(mht, x, y, z, fno) ;
+      mhtRemoveFaceOrVertexAtVoxIx(mht, i, j, k, fno);
   }
+  return(NO_ERROR) ;
+}
 
-  /* compute last line on the a and c lines resp. */
-  t0 = 1.0f ;
-  switch (mht->which_vertices)
-  {
-  default:
-  case CURRENT_VERTICES:
-    xa = v0->x + t0*adx ;
-    ya = v0->y + t0*ady ;
-    za = v0->z + t0*adz ;
-    xc = v0->x + t0*cdx ;
-    yc = v0->y + t0*cdy ;
-    zc = v0->z + t0*cdz ;
-    break ;
-  case ORIGINAL_VERTICES:
-    xa = v0->origx + t0*adx ;
-    ya = v0->origy + t0*ady;
-    za = v0->origz + t0*adz;
-    xc = v0->origx + t0*cdx ;
-    yc = v0->origy + t0*cdy;
-    zc = v0->origz + t0*cdz;
-    break ;
-  case CANONICAL_VERTICES:
-    xa = v0->cx + t0*adx ;
-    ya = v0->cy + t0*ady ;
-    za = v0->cz + t0*adz ;
-    xc = v0->cx + t0*cdx ;
-    yc = v0->cy + t0*cdy ;
-    zc = v0->cz + t0*cdz ;
-    break ;
-  case WHITE_VERTICES:
-    xa = v0->whitex + t0*adx ;
-    ya = v0->whitey + t0*ady ;
-    za = v0->whitez + t0*adz ;
-    xc = v0->whitex + t0*cdx ;
-    yc = v0->whitey + t0*cdy ;
-    zc = v0->whitez + t0*cdz ;
-    break ;
-  case PIAL_VERTICES:
-    xa = v0->pialx + t0*adx ;
-    ya = v0->pialy + t0*ady ;
-    za = v0->pialz + t0*adz ;
-    xc = v0->pialx + t0*cdx ;
-    yc = v0->pialy + t0*cdy ;
-    zc = v0->pialz + t0*cdz ;
-    break ;
-  }
-  dx = xc-xa ;
-  dy = yc-ya ;
-  dz = zc-za ;
-  len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
-  if (FZERO(len))
-    delta_t1 = 0.99 ;
-  else
-  {
-    delta_t1 = SAMPLE_DIST / len ;  /* sample at SAMPLE_DIST intervals */
-    if (delta_t1 >= 1.0f)
-      delta_t1 = 0.99 ;
-  }
+/*-------------------------------------------------
+  mhtVoxelList_SampleFace
+  Scans edges and interior of triangle, finding all mht voxels that are
+  impinged upon, listing those in voxlist.
+  -------------------------------------------------*/
+static int mhtVoxelList_SampleFace(float mhtres,
+                                   Ptdbl_t *vptin0,
+                                   Ptdbl_t *vptin1,
+                                   Ptdbl_t *vptin2,
+                                   int fno,
+                                   VOXEL_LISTgw *voxlist)
+{
+//------------------------------------
+  const float SamplesPerMHTRes = 2.0;
+  double mhtres_recip;
+  Ptdbl_t vpta, vptb, vptc; // pts opposite the Long, Medium and Short sides
+  Ptdbl_t       dif_b2a,    dif_c2a,   dif_b2c;
+  Ptdbl_t     delta_b2a,  delta_c2a,  delta_b2c;
+  Ptdbl_t      posn_b2a,   posn_c2a,   posn_b2c;
+  VOXEL_COORD voxco_b2a,    voxco_c2a,    voxco_b2c;
+  VOXEL_COORD oldvoxco_b2a, oldvoxco_c2a, oldvoxco_b2c;
+  double LenSq_b2a, LenSq_c2a;    // Distances along sides
+  double TempLenSq, TempLen, StepsReqdMain_dbl, StepsReqdRung_dbl;
+  int    mainstep, rungstep, mainsteps_reqd, rungsteps_reqd;
+  double MainStepFrac, RungStepFrac;
+  bool changed;
+#define PTLENSQ(a) ( a.x*a.x + a.y*a.y +a.z*a.z )
+#define PTDIF(ans, a, b)  ans.x  = a.x - b.x;   ans.y  = a.y - b.y;   ans.z  = a.z - b.z
+#define PTADD(ans, a, b)  ans.x  = a.x + b.x;   ans.y  = a.y + b.y;   ans.z  = a.z + b.z
+#define PTINC(ans, a)     ans.x += a.x;         ans.y += a.y;         ans.z += a.z
+#define PTMULTK(ans,b,K)  ans.x  = b.x * K;     ans.y  = b.y * K;     ans.z  = b.z * K
+#define PTABS(ans, a)     ans.x  = abs(a);      ans.y  = abs(a.y);    ans.z  = abs(a.z)
+#define W2VOL(ares, x)    ( ((x)+FIELD_OF_VIEW/2)/(ares) )
+#define W2VOX(ares, x)    ( (int)(W2VOL(ares,x)) )
+#define PTWORLD2VOXEL(ans, ares, pt) ans.xv = W2VOX(ares, pt.x); ans.yv = W2VOX(ares, pt.y); ans.zv = W2VOX(ares, pt.z)
+#define SAME_VOXEL(a, b) ( (a.xv == b.xv) && (a.yv == b.yv) && (a.zv == b.zv) )
 
-  /* now draw a line from (xa,ya,za) to (xc, yc, zc) */
-  for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1)
+// Following is slightly less than one to avoid voxel-edge overshoot on rungs
+// (makes example that are on exact coords look better.)
+#define RUNGRECIPFACTOR 0.9995
+
+  mhtres_recip = 1;
+  if (mhtres != 0)
+    mhtres_recip = 1.0/mhtres; // for a little speed gain
+
+  vpta = *vptin0;
+  vptb = *vptin1;
+  vptc = *vptin2;
+
+  PTDIF(dif_b2a, vpta, vptb);
+  PTDIF(dif_c2a, vpta, vptc);
+//  PTDIF(dif_b2c, vptc, vptb);  not needed
+
+  LenSq_b2a = PTLENSQ(dif_b2a);
+  LenSq_c2a = PTLENSQ(dif_c2a);
+//  LenSq_b2c = PTLENSQ(dif_b2c);  not needed
+
+  //--------------------------------------------------
+  // Calcs for "main" walk along edges b-->a and c->a,
+  // (Walk rungs b-->c direction)
+  //--------------------------------------------------
+  TempLenSq         = MAX(LenSq_b2a, LenSq_c2a);
+  TempLen           = sqrt(TempLenSq);
+  StepsReqdMain_dbl = TempLen * SamplesPerMHTRes * mhtres_recip;
+  mainsteps_reqd    = ceil(StepsReqdMain_dbl);
+  if (0 >= mainsteps_reqd)    // can't be less than!
+    mainsteps_reqd = 1;
+  MainStepFrac      = 1.0/mainsteps_reqd;
+
+  PTMULTK(delta_b2a, dif_b2a, MainStepFrac);
+  PTMULTK(delta_c2a, dif_c2a, MainStepFrac);
+
+  // Set starting positions
+  posn_b2a = vptb;
+  posn_c2a = vptc;
+
+  for (mainstep = 0; mainstep <= mainsteps_reqd; mainstep++)
   {
-    /* compute a point on the line connecting a and c */
-    x = xa + t1*dx ;
-    y = ya + t1*dy ;
-    z = za + t1*dz ;
-    if (on)
-      mhtAddFacePositions(mht, x, y, z, fno) ;
+    if (mainstep >= 1)
+    {
+      PTINC(posn_b2a, delta_b2a);
+      PTINC(posn_c2a, delta_c2a);
+    }
+    PTWORLD2VOXEL(voxco_b2a, mhtres, posn_b2a);
+    PTWORLD2VOXEL(voxco_c2a, mhtres, posn_c2a);
+
+    //---------------------------------------------
+    // On zero iteration, add the two starting corners
+    // to voxlist
+    //---------------------------------------------
+    changed = false;
+    if (0 == mainstep)
+    {
+      mhtVoxelList_AddCoord(voxlist, voxco_b2a, fno);
+      mhtVoxelList_AddCoord(voxlist, voxco_c2a, fno);
+      changed = true;
+    }
     else
-      mhtRemoveFacePositions(mht, x, y, z, fno) ;
+    {
+      //---------------------------------------------
+      // If we crossed a boundary, add that "path" to voxlist
+      //---------------------------------------------
+      if (!SAME_VOXEL(oldvoxco_b2a, voxco_b2a) )
+      {
+        mhtVoxelList_AddPath(voxlist, oldvoxco_b2a, voxco_b2a, fno);
+        changed = true;
+      }
+
+      if (!SAME_VOXEL(oldvoxco_c2a, voxco_c2a) )
+      {
+        mhtVoxelList_AddPath(voxlist, oldvoxco_c2a, voxco_c2a, fno);
+        changed = true;
+      }
+    }
+
+    if (changed)
+    {
+      oldvoxco_b2a = voxco_b2a;
+      oldvoxco_c2a = voxco_c2a;
+    }
+
+    //----------------------------------------------------
+    // Rung:
+    // 1. Endpoints are current positions of voxco_b2a, and voxco_c2a.
+    // 2. Proceed in b-->c direction, rung-ing across from point on
+    //    line ba to point on line ca.
+    // 3. Variables suffixed _b2c
+    // 4. First "rung" is actual side bc
+    //----------------------------------------------------
+
+    if (SAME_VOXEL(voxco_c2a, voxco_b2a) )
+      goto rung_done; /* Nothing to be done if both ends
+                         are already in same voxel */
+
+    PTDIF(dif_b2c, posn_c2a, posn_b2a);
+    TempLenSq         = PTLENSQ(dif_b2c);
+    TempLen           = sqrt(TempLenSq);
+    StepsReqdRung_dbl =  TempLen * SamplesPerMHTRes * mhtres_recip;
+    rungsteps_reqd     = ceil(StepsReqdRung_dbl);
+
+    if (rungsteps_reqd < 1)
+      rungsteps_reqd = 1;
+
+
+    RungStepFrac      = RUNGRECIPFACTOR/rungsteps_reqd;
+    PTMULTK(delta_b2c, dif_b2c, RungStepFrac);
+
+    // Starting conditions
+    posn_b2c      = posn_b2a;
+    voxco_b2c     = voxco_b2a;
+    oldvoxco_b2c  = voxco_b2c;
+
+    //----------------------------------------------------
+    // Step along a rung (xxx_b2c)
+    // No action on step 0 (ie: starting position) , as this voxel is
+    // already in the mht as a result of the main stepping.
+    // Constrastingly, we *do* need action on *last* step even though that
+    // voxel is in mht, because we may need to "draw" from some
+    // other voxel *to* that one
+    //------------------------------------------------------------
+    for (rungstep = 1; rungstep <= rungsteps_reqd; rungstep++)
+    {
+      PTINC(posn_b2c, delta_b2c);
+      PTWORLD2VOXEL(voxco_b2c, mhtres, posn_b2c);
+      //---------------------------------------------
+      // If we crossed a boundary, add voxels in that
+      // "path" to voxlist
+      //---------------------------------------------
+      if (!SAME_VOXEL(oldvoxco_b2c, voxco_b2c) )
+      {
+        mhtVoxelList_AddPath(voxlist, oldvoxco_b2c, voxco_b2c, fno);
+        oldvoxco_b2c = voxco_b2c;
+      }
+    } // for rungstep
+  rung_done:
+    ; // semicolon avoids error message
+  } // for mainstep
+  return NO_ERROR;
+}
+
+//=============================================================================
+// Surface --> MHT, store Vertex Numbers
+//=============================================================================
+
+//---------------------------------------------------------
+MRIS_HASH_TABLE *MHTfillVertexTable(
+  MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which)
+//---------------------------------------------------------
+{
+  return(MHTfillVertexTableRes(mris, mht, which, VOXEL_RES)) ;
+}
+
+//---------------------------------------------------------
+MRIS_HASH_TABLE *MHTfillVertexTableRes(
+  MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which, float res)
+//---------------------------------------------------------
+{
+  int     vno ;
+  int     xv, yv, zv ;
+  float   x, y, z;
+  MHBT    *bucket ;
+  VERTEX  *v ;
+  static int ncalls = 0 ;
+
+  //-----------------------------
+  // Allocation and initialization
+  //-----------------------------
+  if (mht)    /* free old one */
+    MHTfree(&mht) ;
+  mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE)) ;
+  if (!mht)
+    ErrorExit(ERROR_NO_MEMORY,
+              "%s: could not allocate hash table.\n", __MYFUNCTION__ ) ;
+
+  for (xv = 0 ; xv < TABLE_SIZE ; xv++)
+  {
+    for (yv = 0 ; yv < TABLE_SIZE ; yv++)
+    {
+      mht->buckets[xv][yv] = NULL ;
+    }
   }
-  /* compute last point on line */
-  t1 = 1.0f ;
-  x = xa + t1*dx ;
-  y = ya + t1*dy ;
-  z = za + t1*dz ;
-  if (on)
-    mhtAddFacePositions(mht, x, y, z, fno) ;
-  else
-    mhtRemoveFacePositions(mht, x, y, z, fno) ;
 
-  return(NO_ERROR) ;
+  //--------------------------------------
+  // Capture data from caller and surface
+  //--------------------------------------
+  mht->vres            = res ;
+  mht->which_vertices  = which ;
+  mht->fno_usage       = MHTFNO_VERTEX ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+
+    mhtVertex2xyz_float(v, mht->which_vertices, &x, &y, &z);
+    mhtAddFaceOrVertexAtCoords(mht, x, y, z, vno);
+  }
+
+  //-------------------------------------------
+  // Diagnostics
+  // Not modified from 1.27
+  //-------------------------------------------
+  if ((Gdiag & DIAG_SHOW) && !ncalls)
+  {
+    double mean, var, v, n ;
+    int    mx ;
+
+    n = mean = 0.0 ;
+    mx = -1 ;
+    for (xv = 0 ; xv < TABLE_SIZE ; xv++)
+    {
+      for (yv = 0 ; yv < TABLE_SIZE ; yv++)
+      {
+        for (zv = 0 ; zv < TABLE_SIZE ; zv++)
+        {
+          if (!mht->buckets[xv][yv] || !mht->buckets[xv][yv][zv])
+            continue ;
+          bucket = mht->buckets[xv][yv][zv] ;
+          if (bucket->nused)
+          {
+            mean += bucket->nused ;
+            n++ ;
+          }
+          if (bucket->nused > mx)
+            mx = bucket->nused ;
+        }
+      }
+    }
+    mean /= n ;
+    var = 0.0 ;
+    for (xv = 0 ; xv < TABLE_SIZE ; xv++)
+    {
+      for (yv = 0 ; yv < TABLE_SIZE ; yv++)
+      {
+        if (!mht->buckets[xv][yv])
+          continue ;
+        for (zv = 0 ; zv < TABLE_SIZE ; zv++)
+        {
+          bucket = mht->buckets[xv][yv][zv] ;
+          if (bucket && bucket->nused)
+          {
+            v = mean - bucket->nused ;
+            var += v*v ;
+          }
+        }
+      }
+    }
+    var /= (n-1) ;
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "%s buckets: mean = %2.1f +- %2.2f, max = %d\n",
+              __MYFUNCTION__, mean, sqrt(var), mx) ;
+  }
+  ncalls++ ;
+  return(mht) ;
 }
-/*-----------------------------------------------------
-        Parameters:
 
-        Returns value:
+//=================================================================
+// AddFaceOrVertexXxxx functions
+//=================================================================
 
-        Description
-------------------------------------------------------*/
-static int
-mhtAddFacePositions(MRIS_HASH_TABLE *mht,float xw, float yw, float zw, int fno)
+/*------------------------------------------------------------
+  mhtAddFaceOrVertexAtVoxIx  Was: mhtAddFacePosition
+  Adds forvnum (Face or Vertex number) to mht, in bucket(xv,yv,zv)
+  Coerces (xv,yv,zv) to be sane.
+  -------------------------------------------------------------*/
+static int mhtAddFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht,
+                                     int xv, int yv, int zv,
+                                     int forvnum)
 {
-  int    xv, yv, zv ;
-  float  x, y, z ;
-
-  x = WORLD_TO_VOLUME(mht, xw) ;
-  y = WORLD_TO_VOLUME(mht, yw) ;
-  z = WORLD_TO_VOLUME(mht, zw) ;
-  xv = (int)x ;
-  yv = (int)y ;
-  zv = (int)z ;
-  mhtAddFacePosition(mht, xv, yv, zv, fno) ;
-
-  if ((ceil(x) - x) < 0.5)
-    mhtAddFacePosition(mht, xv+1, yv, zv, fno) ;
-  else
-    mhtAddFacePosition(mht, xv-1, yv, zv, fno) ;
-
-  if ((ceil(y) - y) < 0.5)
-    mhtAddFacePosition(mht, xv, yv+1, zv, fno) ;
-  else
-    mhtAddFacePosition(mht, xv, yv-1, zv, fno) ;
-
-  if ((ceil(z) - z) < 0.5)
-    mhtAddFacePosition(mht, xv, yv, zv+1, fno) ;
-  else
-    mhtAddFacePosition(mht, xv, yv, zv-1, fno) ;
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-static int
-mhtRemoveFacePositions(MRIS_HASH_TABLE *mht,float xw,float yw,float zw,int fno)
-{
-  int    xv, yv, zv ;
-  float  x, y, z ;
-
-  x = WORLD_TO_VOLUME(mht, xw) ;
-  y = WORLD_TO_VOLUME(mht, yw) ;
-  z = WORLD_TO_VOLUME(mht, zw) ;
-  xv = (int)x ;
-  yv = (int)y ;
-  zv = (int)z ;
-  mhtRemoveFacePosition(mht, xv, yv, zv, fno) ;
-
-  if ((ceil(x) - x) < 0.5)
-    mhtRemoveFacePosition(mht, xv+1, yv, zv, fno) ;
-  if ((x - floor(x)) < 0.5)
-    mhtRemoveFacePosition(mht, xv-1, yv, zv, fno) ;
-
-  if ((ceil(y) - y) < 0.5)
-    mhtRemoveFacePosition(mht, xv, yv+1, zv, fno) ;
-  if ((y - floor(y)) < 0.5)
-    mhtRemoveFacePosition(mht, xv, yv-1, zv, fno) ;
-
-  if ((ceil(z) - z) < 0.5)
-    mhtRemoveFacePosition(mht, xv, yv, zv+1, fno) ;
-  if ((z - floor(z)) < 0.5)
-    mhtRemoveFacePosition(mht, xv, yv, zv-1, fno) ;
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-static int
-mhtAddFacePosition(MRIS_HASH_TABLE *mht, int xv, int yv, int zv, int fno)
-{
+//---------------------------------------
   int    i ;
   MHB   *bin ;
   MHBT  *bucket ;
@@ -884,89 +723,116 @@ mhtAddFacePosition(MRIS_HASH_TABLE *mht, int xv, int yv, int zv, int fno)
   if (xv < 0)
     xv = 0 ;
   if (xv >= TABLE_SIZE)
-    xv = TABLE_SIZE-1 ;
+    xv  = TABLE_SIZE-1 ;
   if (yv < 0)
     yv = 0 ;
   if (yv >= TABLE_SIZE)
-    yv = TABLE_SIZE-1 ;
+    yv  = TABLE_SIZE-1 ;
   if (zv < 0)
     zv = 0 ;
   if (zv >= TABLE_SIZE)
-    zv = TABLE_SIZE-1 ;
-  if (xv < 0 || yv < 0 || zv < 0 ||
-      xv >= TABLE_SIZE || yv >= TABLE_SIZE || zv >= TABLE_SIZE)
-  {
-    fprintf(stderr,
-            "mhtAddFacePosition: index out of bounds at face %d"
-            " (%d, %d, %d)\n",
-            fno, xv, yv, zv) ;
-    DiagBreak() ;
-  }
+    zv  = TABLE_SIZE-1 ;
+
+  // [GW] (removed xv,yv,zv check here, as it's impossible to trigger)
+
+  //-----------------------------------------------
+  // Allocate space if needed
+  //-----------------------------------------------
+  // 1. Allocate a 1-D array at buckets[xv][yv]
   if (!mht->buckets[xv][yv])
   {
     mht->buckets[xv][yv] = (MHBT **)calloc(TABLE_SIZE, sizeof(MHBT *)) ;
     if (!mht->buckets[xv][yv])
       ErrorExit(ERROR_NO_MEMORY,
-                "mhtAddFacePosition: could not allocate slice.") ;
+                "%s: could not allocate slice.",  __MYFUNCTION__) ;
   }
+  // 2. Allocate a bucket at buckets[xv][yv][zv]
   bucket = mht->buckets[xv][yv][zv] ;
   if (!bucket)
   {
     mht->buckets[xv][yv][zv] = bucket = (MHBT *)calloc(1, sizeof(MHBT)) ;
     if (!bucket)
-      ErrorExit(ERROR_NOMEMORY, "couldn't allocate bucket.\n") ;
+      ErrorExit(ERROR_NOMEMORY,
+                "%s couldn't allocate bucket.\n",
+                __MYFUNCTION__) ;
   }
+  // 3. Allocate a bucket at buckets[xv][yv][zv]
   if (!bucket->max_bins)   /* nothing in this bucket yet - allocate bins */
   {
     bucket->max_bins = 4 ;
     bucket->bins = (MHB *)calloc(bucket->max_bins, sizeof(MHB));
     if (!bucket->bins)
       ErrorExit(ERROR_NO_MEMORY,
-                "mhtAddFacePosition: could not allocate %d bins.\n",
-                bucket->max_bins) ;
+                "%s: could not allocate %d bins.\n",
+                __MYFUNCTION__,  bucket->max_bins) ;
   }
 
-  /* see if this face already is listed as occupying this position in this
-     bin. If so, don't add it again, otherwise add it to the list.
-  */
+  //-------------------------------------------------------------
+  // If this forvnum already is listed in this bucket then
+  // nothing to do.
+  //-------------------------------------------------------------
   bin = bucket->bins ;
   for (i = 0 ; i < bucket->nused ; i++, bin++)
   {
-    if (bin->fno == fno)
-      break ;
+    if (bin->fno == forvnum)
+      goto done;
   }
-  if (i >= bucket->nused)   /* face not already listed at this position */
+
+  //-------------------------------------------------------------
+  // Add forvnum to this bucket
+  //-------------------------------------------------------------
+  if (i >= bucket->nused)   /* forvnum not already listed at this bucket */
   {
-    if (bucket->nused >= bucket->max_bins)   /* allocate some more */
+    //------ Increase allocation if needed -------
+    if (bucket->nused >= bucket->max_bins)
     {
       bin = bucket->bins ;
       bucket->max_bins *= 2 ;
       bucket->bins = (MHB *)calloc(bucket->max_bins, sizeof(MHB));
       if (!bucket->bins)
         ErrorExit(ERROR_NO_MEMORY,
-                  "mhtAddFacePosition: could not allocate %d bins.\n",
-                  bucket->max_bins) ;
+                  "%s: could not allocate %d bins.\n",
+                  __MYFUNCTION__,  bucket->max_bins) ;
       memmove(bucket->bins, bin, bucket->nused*sizeof(MHB)) ;
       free(bin) ;
       bin = &bucket->bins[i] ;
     }
-    /* add this face-position to this bucket */
+    //----- add this face-position to this bucket ------
     bucket->nused++ ;
-    bin->fno = fno ;
+    bin->fno = forvnum ;
   }
-
+ done:
   return(NO_ERROR) ;
 }
-/*-----------------------------------------------------
-        Parameters:
 
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-static int
-mhtRemoveFacePosition(MRIS_HASH_TABLE *mht, int xv, int yv, int zv,int fno)
+/*------------------------------------------------------------
+  mhtAddFaceOrVertexAtCoords
+  Converts x, y, z to bucket indexes, calls mhtAddFaceOrVertexAtIndexes
+  Adds forvnum (Face or Vertex number) to mht, in bucket(xv,yv,zv)
+  -------------------------------------------------------------*/
+static int mhtAddFaceOrVertexAtCoords(MRIS_HASH_TABLE *mht,
+                                      float x, float y, float z,
+                                      int forvnum)
 {
+//---------------------------------------
+  int xv, yv, zv;
+
+  xv = WORLD_TO_VOXEL(mht, x) ;
+  yv = WORLD_TO_VOXEL(mht, y) ;
+  zv = WORLD_TO_VOXEL(mht, z) ;
+
+  return mhtAddFaceOrVertexAtVoxIx(mht, xv, yv, zv, forvnum);
+}
+
+/*------------------------------------------------------------
+  mhtRemoveFaceOrVertexAtVoxIx (was mhtRemoveFacePosition)
+  Reverse of mhtAddFaceOrVertexAtIndexes
+  -------------------------------------------------------------*/
+static int mhtRemoveFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht,
+                                        int xv, int yv, int zv,
+                                        int forvnum)
+{
+//---------------------------------------
   int    i ;
   MHBT   *bucket ;
   MHB    *bin ;
@@ -974,38 +840,26 @@ mhtRemoveFacePosition(MRIS_HASH_TABLE *mht, int xv, int yv, int zv,int fno)
   if (xv < 0)
     xv = 0 ;
   if (xv >= TABLE_SIZE)
-    xv = TABLE_SIZE-1 ;
+    xv  = TABLE_SIZE-1 ;
   if (yv < 0)
     yv = 0 ;
   if (yv >= TABLE_SIZE)
-    yv = TABLE_SIZE-1 ;
+    yv  = TABLE_SIZE-1 ;
   if (zv < 0)
     zv = 0 ;
   if (zv >= TABLE_SIZE)
-    zv = TABLE_SIZE-1 ;
-  if (xv < 0 || yv < 0 || zv < 0 ||
-      xv >= TABLE_SIZE || yv >= TABLE_SIZE || zv >= TABLE_SIZE)
-  {
-    fprintf(stderr,
-            "mhtRemoveFacePosition: index out of bounds at face %d"
-            " (%d, %d, %df)\n",
-            fno, xv, yv, zv) ;
-    DiagBreak() ;
-  }
+    zv  = TABLE_SIZE-1 ;
 
-#if 0
-  bucket = &mht->buckets[xv][yv][zv] ;
-#else
   if (!mht->buckets[xv][yv])
-    return(NO_ERROR) ;
+    return(NO_ERROR) ;        // no bucket at such coordinates
   bucket = mht->buckets[xv][yv][zv] ;
   if (!bucket)
-    return(NO_ERROR) ;
-#endif
+    return(NO_ERROR) ;       // no bucket at such coordinates
+
   bin = bucket->bins ;
   for (i = 0 ; i < bucket->nused ; i++, bin++)
   {
-    if (bin->fno == fno)     /* found face */
+    if (bin->fno == forvnum)     /* found face */
       break ;
   }
   if (i < bucket->nused)    /* found face bucket - remove it */
@@ -1020,256 +874,1298 @@ mhtRemoveFacePosition(MRIS_HASH_TABLE *mht, int xv, int yv, int zv,int fno)
       memmove(dst_bin, src_bin, nbytes) ;
     }
   }
-
   return(NO_ERROR) ;
 }
+
+//=============================================================================
+// Surface self-intersection (Uses MHT initialized with FACES)
+//=============================================================================
+
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-int
-MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
-                  int vno, float dx, float dy, float dz)
+  MHTisVectorFilled
+  Obscurely named, but means "If vertex vtxno is moved by (dx,dy,dz), will the
+  adjoining faces then intersect with some other faces in the surface?".
+  .Returns 1=intersect, else 0.
+  Notes:
+  1. MUST be used with mht prepared for CURRENT_VERTICES
+  ------------------------------------------------------*/
+int MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
+                      int vtxno, float dx, float dy, float dz)
 {
-  VERTEX   *v ;
-  float    ox, oy, oz ;
+//--------------------------------------------------------------
+  VERTEX   *vtx ;
+  float    savex, savey, savez ;
   int      intersect, fno ;
 
-  v = &mris->vertices[vno] ;
-  ox = v->x ;
-  oy = v->y ;
-  oz = v->z ;
-  v->x += dx ;
-  v->y += dy ;
-  v->z += dz ;
-  for (intersect = fno = 0 ; !intersect && fno < v->num ; fno++)
+  intersect = 0; // default result
+
+  //----------------------------------------------------
+  // Sanity check
+  //----------------------------------------------------
+  if (!mht ) ErrorExit(ERROR_BADPARM,  "%s: mht is NULL\n", __MYFUNCTION__) ;
+  if (!mris) ErrorExit(ERROR_BADPARM,  "%s: mris is NULL\n", __MYFUNCTION__) ;
+  if (mht->fno_usage != MHTFNO_FACE )
   {
-    intersect = MHTdoesFaceIntersect(mht, mris, v->f[fno]) ;
+    ErrorExit(ERROR_BADPARM,
+              "%s: mht not initialized for vertices\n",
+              __MYFUNCTION__) ;
   }
-  v->x = ox ;
-  v->y = oy ;
-  v->z = oz ;
+  if (mht->which_vertices != CURRENT_VERTICES)
+  {
+    ErrorExit(ERROR_BADPARM,
+              "%s: mht not loaded using CURRENT_VERTICES\n",
+              __MYFUNCTION__) ;
+  }
+
+  //----------------------------------------------------
+  // Temporarily move the CURRENT_VERTICES
+  //----------------------------------------------------
+  vtx = &mris->vertices[vtxno] ;
+  savex = vtx->x ;
+  savey = vtx->y ;
+  savez = vtx->z ;
+  vtx->x += dx ;
+  vtx->y += dy ;
+  vtx->z += dz ;
+
+  //-------------------------------------------
+  // Check whether the faces adjoining current
+  // vertex will now intersect
+  //-------------------------------------------
+  for (fno = 0 ; !intersect && (fno < vtx->num) ; fno++)
+  {
+    intersect = MHTdoesFaceIntersect(mht, mris, vtx->f[fno]) ;
+  }
+
+  //----------------------------------------------------
+  // Restore CURRENT_VERTICES
+  //----------------------------------------------------
+  vtx->x = savex ;
+  vtx->y = savey ;
+  vtx->z = savez ;
   return(intersect) ;
 }
-/*-----------------------------------------------------
-        Parameters:
 
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-int
-MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,int fno)
+/*-------------------------------------------------------------
+  MHTdoesFaceIntersect
+  Does a particular face intersect with any other faces in surface mris,
+  which was previously hashed into mht using MHTfillTableXxx
+  Returns 1 for "yes -- intersection detected", else NO_ERROR.
+  -------------------------------------------------------------*/
+int MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,int fno)
 {
-  Real       x, y, z, xa, ya, za, xc, yc, zc, t0, t1, adx, ady, adz, dx, dy,
-  dz, cdx, cdy, cdz, alen, clen, delta_t0, delta_t1, len ;
+//------------------------------------------------------------
   VERTEX     *v0, *v1, *v2 ;
+  Ptdbl_t vpt0, vpt1, vpt2;
   FACE       *face ;
-  VOXEL_LIST vl ;
+  VOXEL_LISTgw voxlist ;
 
-  mhtInitVoxelList(&vl) ;
+  int retval = 0;
+
+  //----------------------------------------------------
+  // Sanity check
+  //----------------------------------------------------
+  if (!mht ) ErrorExit(ERROR_BADPARM,  "%s: mht is NULL\n", __MYFUNCTION__) ;
+  if (!mris) ErrorExit(ERROR_BADPARM,  "%s: mris is NULL\n", __MYFUNCTION__) ;
+  if (mht->fno_usage != MHTFNO_FACE)
+  {
+    ErrorExit(ERROR_BADPARM,
+              "%s: mht not initialized for vertices\n",
+              __MYFUNCTION__) ;
+  }
+
+  //--------------------------------
+  // Create a voxlist for face fno
+  //--------------------------------
+  mhtVoxelList_Init(&voxlist) ;
   face = &mris->faces[fno] ;
+
   if (face->ripflag)
     return(NO_ERROR) ;
 
   if (fno == Gdiag_no)
     DiagBreak() ;
+
   v0 = &mris->vertices[face->v[0]] ;
   v1 = &mris->vertices[face->v[1]] ;
   v2 = &mris->vertices[face->v[2]] ;
-  adx = v1->x - v0->x ;
-  ady = v1->y - v0->y ;
-  adz = v1->z - v0->z ;
-  alen = sqrt(SQR(adx)+SQR(ady)+SQR(adz)) ;
-  cdx = v2->x - v0->x ;
-  cdy = v2->y - v0->y ;
-  cdz = v2->z - v0->z ;
-  clen = sqrt(SQR(cdx)+SQR(cdy)+SQR(cdz)) ;
 
-  /*
-    sample along legs of the triangle making sure the maximum spacing
-    between samples (along the longer leg) is SAMPLE_DIST.
-  */
+  mhtVertex2Ptxyz_double(v0, mht->which_vertices, &vpt0);
+  mhtVertex2Ptxyz_double(v1, mht->which_vertices, &vpt1);
+  mhtVertex2Ptxyz_double(v2, mht->which_vertices, &vpt2);
 
-  /*
-    move along v0->v1 and v3->v2 lines and draw in crossing line to fill face
-    t0 parameterizes lines from v0->v1 and v0->v2
-  */
-  if (FZERO(alen) && FZERO(clen))
-    delta_t0 = 0.99 ;
-  else
-    delta_t0 = (alen > clen) ? (SAMPLE_DIST / alen) : (SAMPLE_DIST / clen ) ;
-  if (FZERO(delta_t0))
-    ErrorReturn(ERROR_BADPARM,
-                (ERROR_BADPARM,
-                 "mrisFillFace: face %d has infinite leg (%d, %d)\n",
-                 fno, alen, clen)) ;
+  mhtVoxelList_SampleFace(mht->vres, &vpt0, &vpt1, &vpt2, fno, &voxlist);
 
-  if (delta_t0 >= 1.0)
-    delta_t0 = 0.99 ;
+  //--------------------------------
+  // Any intersections?
+  //--------------------------------
+  if (mhtDoesFaceVoxelListIntersect(mht, mris, &voxlist, fno))
+    retval = 1;
 
-  /* delta_t0 is % of alen or clen (whichever is bigger) of SAMPLE_DIST */
-  for (t0 = 0 ; t0 <= 1.0f ; t0 += delta_t0)
+  return(retval) ;
+}
+
+#define MHT_MAX_FACES 10000
+/*-------------------------------------------------------------------
+  mhtDoesFaceVoxelListIntersect
+  Subsidiary function for MHTdoesFaceIntersect, given face fno already
+  analyzed into voxlist.
+  ------------------------------------------------------------------*/
+static int mhtDoesFaceVoxelListIntersect(
+  MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VOXEL_LISTgw *voxlist, int fno)
+//------------------------------------------------------------------
+{
+  int    xv, yv, zv, n3, intersect, voxnum;
+  int    binix, faceix, facetestno;
+  int    facelist[MHT_MAX_FACES], nfaces;
+  MHB    *bin ;
+  MHBT   *bucket ;
+  FACE   *facein, *facetest ;
+  VERTEX * avtx;
+  double v0[3], v1[3], v2[3], u0[3], u1[3], u2[3] ;
+
+  //----------------------------------------------------
+  // Pertaining to cross-checking vertices of fno versus
+  // test face
+  //----------------------------------------------------
+  int facein_vtx_ix ,  facetest_vtx_ix; // indices of vertices in face's list
+  int facein_vtx_vno,  facetest_vtx_vno;   // Fno of vertices in mris
+  VERTEX  *facein_vtx    , *facetest_vtx;       // The vertices themselves
+  VERTEX_INFO *vtxinfos, *vtxinfo;
+
+  //----------------------------------------------------
+  facein = &mris->faces[fno] ;
+
+  if (fno == Gdiag_no)
+    DiagBreak() ;
+
+  //------------------------------------------------------------------------
+  // Iterate through all the voxels pertaining to face fno (ie:
+  // the voxels listed in voxlist), looking at those voxel buckets
+  // in mht to find triangles to add to list in flist for later intersection
+  // check
+  //------------------------------------------------------------------------
+  vtxinfos = (VERTEX_INFO *)mris->user_parms ;
+  nfaces = 0;
+  for (voxnum = 0 ; voxnum < voxlist->nused ; voxnum++)
   {
-    /* compute points (xa,ya,za) and (xc,yc,zc) on the a and c lines resp. */
-    xa = v0->x + t0*adx ;
-    ya = v0->y + t0*ady ;
-    za = v0->z + t0*adz ;
-    xc = v0->x + t0*cdx ;
-    yc = v0->y + t0*cdy ;
-    zc = v0->z + t0*cdz ;
-    dx = xc-xa ;
-    dy = yc-ya ;
-    dz = zc-za ;
-    len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
-    if (FZERO(len))
-      delta_t1 = 0.99 ;
-    else
+    xv = voxlist->voxels[voxnum][0] ;
+    yv = voxlist->voxels[voxnum][1] ;
+    zv = voxlist->voxels[voxnum][2] ;
+
+    //----------------------------------------------------------
+    // Get corresponding bucket from mht. This *should* always
+    // succeed, given that the same info was just used to put xv,yv,zv
+    // into voxlist as was used to put faces into mht buckets.
+    //----------------------------------------------------------
+    if (!mht->buckets[xv][yv])
+      return(0) ;
+    bucket = mht->buckets[xv][yv][zv] ;
+    if (!bucket)
+      continue ;
+
+    bin = bucket->bins ;
+
+    //-------------------------------------------------
+    // Following is one iteration per face
+    // (ie: binix is essentially facetestix)
+    //-------------------------------------------------
+    for (binix = 0 ; binix < bucket->nused ; binix++, bin++)
     {
-      delta_t1 = SAMPLE_DIST / len ;  /* sample at SAMPLE_DIST intervals */
-      if (delta_t1 >= 1.0f)
-        delta_t1 = 0.99 ;
-    }
+      facetestno = bin->fno ;  // get the one face from this bin
 
-    /* now draw a line from (xa,ya,za) to (xc, yc, zc) */
-    for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1)
-    {
-      /* compute a point on the line connecting a and c */
-      x = xa + t1*dx ;
-      y = ya + t1*dy ;
-      z = za + t1*dz ;
-      mhtAddVoxels(mht, &vl, x, y, z) ;
-    }
-    /* compute last point on line */
-    t1 = 1.0f ;
-    x = xa + t1*dx ;
-    y = ya + t1*dy ;
-    z = za + t1*dz ;
-    mhtAddVoxels(mht, &vl, x, y, z) ;
-  }
+      if (facetestno == fno)  // no point comparing to same face!
+        goto skip_this_facetest;
 
-  /* compute last line on the a and c lines resp. */
-  t0 = 1.0f ;
-  xa = v0->x + t0*adx ;
-  ya = v0->y + t0*ady ;
-  za = v0->z + t0*adz ;
-  xc = v0->x + t0*cdx ;
-  yc = v0->y + t0*cdy ;
-  zc = v0->z + t0*cdz ;
-  dx = xc-xa ;
-  dy = yc-ya ;
-  dz = zc-za ;
-  len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
-  if (FZERO(len))
-    delta_t1 = 0.99 ;
-  else
+      facetest   = &mris->faces[facetestno] ;
+
+      //-------------------------------------------------------------
+      // Tests: Several tests to see whether we should skip the
+      // actual intersection check for this face, eg because facetest
+      // adjoins facein or they are linked.
+      //------------------------------------------------------------
+      for (facein_vtx_ix = 0 ;
+           facein_vtx_ix < VERTICES_PER_FACE ;
+           facein_vtx_ix++)
+      {
+        facein_vtx_vno = facein->v[facein_vtx_ix];
+        facein_vtx     = &(mris->vertices[facein_vtx_vno]);
+
+        for (facetest_vtx_ix = 0 ;
+             facetest_vtx_ix < VERTICES_PER_FACE ;
+             facetest_vtx_ix++)
+        {
+          facetest_vtx_vno = facetest->v[facetest_vtx_ix];
+          facetest_vtx     = &(mris->vertices[facetest_vtx_vno]);
+
+          // Do the faces share a vertex?
+          if (facein_vtx_vno == facetest_vtx_vno)
+            goto skip_this_facetest;
+
+          // Are they linked? Check facein's list of linked vertices
+          if (facein_vtx->linked > 0)
+          {
+            vtxinfo  = &(vtxinfos[facein_vtx_vno]);
+            for (n3 = 0 ; n3 < vtxinfo->nlinks ; n3++)
+            {
+              if (vtxinfo->linked_vno[n3] == facetest_vtx_vno)
+                goto skip_this_facetest;
+            }
+          } // if
+
+          // Are they linked? Check facetest's list of linked vertices
+          if (facetest_vtx->linked > 0)
+          {
+            vtxinfo  = &(vtxinfos[facetest_vtx_vno]);
+            for (n3 = 0 ; n3 < vtxinfo->nlinks ; n3++)
+            {
+              if (vtxinfo->linked_vno[n3] == facein_vtx_vno)
+                goto skip_this_facetest;
+            } // for
+          } // if
+        } // for facetest_vtx_ix
+      } // for facein_vtx_ix
+
+      //-----------------------------------------------------
+      // If we get to here, there was no reason to reject facetest,
+      // so append it to faces list
+      //-----------------------------------------------------
+      for (faceix = 0 ; faceix < nfaces ; faceix++)
+      {
+        if (facelist[faceix] == facetestno)
+          goto skip_this_facetest;
+      }
+      if (nfaces >= MHT_MAX_FACES)
+        ErrorPrintf(ERROR_NO_MEMORY,
+                    "%s: MHT_MAX_FACES exceeded!",
+                    __MYFUNCTION__) ;
+      else
+        facelist[nfaces++] = facetestno ;
+
+    skip_this_facetest:
+      ; // semicolon avoids error message
+    } // for binix
+  } // for voxnum
+
+  //-----------------------------------------------------------------------
+  // Now that we have a list of faces in facelist run the actual geometry
+  // intersection test
+  // Notes:
+  // 1. Code up to v1.27 used CURRENT_VERTICES, which meant that using this
+  // code with an mht that was created with MHTfillTableAtResolution and some
+  // other value for "which" would lead to incorrect results.
+  // Code below instead calls mhtVertex2array3_double, and selects vertex
+  // set based on mht->which_vertices
+  //-----------------------------------------------------------------------
+
+  /* set vertices of 1st triangle */
+  avtx = &(mris->vertices[facein->v[0]]);
+  mhtVertex2array3_double(avtx, mht->which_vertices, v0);
+
+  avtx = &(mris->vertices[facein->v[1]]);
+  mhtVertex2array3_double(avtx, mht->which_vertices, v1);
+
+  avtx = &(mris->vertices[facein->v[2]]);
+  mhtVertex2array3_double(avtx, mht->which_vertices, v2);
+
+  for (faceix = 0 ; faceix < nfaces ; faceix++)
   {
-    delta_t1 = SAMPLE_DIST / len ;  /* sample at SAMPLE_DIST intervals */
-    if (delta_t1 >= 1.0f)
-      delta_t1 = 0.99 ;
+    /* set vertices of 2nd triangle */
+    facetest = &mris->faces[facelist[faceix]] ;
+
+    avtx = &(mris->vertices[facetest->v[0]]);
+    mhtVertex2array3_double(avtx, mht->which_vertices, u0);
+
+    avtx = &(mris->vertices[facetest->v[1]]);
+    mhtVertex2array3_double(avtx, mht->which_vertices, u1);
+
+    avtx = &(mris->vertices[facetest->v[2]]);
+    mhtVertex2array3_double(avtx, mht->which_vertices, u2);
+
+    intersect = tri_tri_intersect(v0,v1,v2,  u0,u1,u2) ;
+    if (intersect)
+      return(1) ;
   }
-
-  /* now draw a line from (xa,ya,za) to (xc, yc, zc) */
-  for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1)
-  {
-    /* compute a point on the line connecting a and c */
-    x = xa + t1*dx ;
-    y = ya + t1*dy ;
-    z = za + t1*dz ;
-    mhtAddVoxels(mht, &vl, x, y, z) ;
-  }
-  /* compute last point on line */
-  t1 = 1.0f ;
-  x = xa + t1*dx ;
-  y = ya + t1*dy ;
-  z = za + t1*dz ;
-  mhtAddVoxels(mht, &vl, x, y, z) ;
-
-
-  if (mhtDoesFaceVoxelListIntersect(mht, mris, &vl, fno))
-    return(1) ;
   return(0) ;
 }
-/*-----------------------------------------------------
-        Parameters:
 
-        Returns value:
+//=================================================================
+// Find nearest vertex/vertices (Uses MHT initialized with VERTICES)
+//=================================================================
 
-        Description
-------------------------------------------------------*/
-#if 0
-static int
-checkAllVertexFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int vno)
+//---------------------------------------------
+void mhtFindCommonSanityCheck(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris)
 {
-  double v0[3], v1[3], v2[3], u0[3], u1[3], u2[3] ;
-  int    fno1, fno2, filled, n1, n2, nbr ;
-  FACE   *f1, *f2 ;
-  VERTEX *v ;
-
-  v = &mris->vertices[vno] ;
-  for (fno1 = 0 ; fno1 < v->num ; fno1++)
+//---------------------------------------------
+  if (!mht ) ErrorExit(ERROR_BADPARM,  "%s: mht is NULL\n", __MYFUNCTION__) ;
+  if (!mris) ErrorExit(ERROR_BADPARM,  "%s: mris is NULL\n", __MYFUNCTION__) ;
+  if ( (!mht) || (mht->fno_usage != MHTFNO_VERTEX) )
   {
-    f1 = &mris->faces[v->f[fno1]] ;
+    ErrorExit(ERROR_BADPARM,
+              "%s: mht not initialized for vertices\n",
+              __MYFUNCTION__) ;
+  }
+}
 
-    /* fill vertices of 1st triangle */
-    v0[0] = (double)mris->vertices[f1->v[0]].x ;
-    v0[1] = (double)mris->vertices[f1->v[0]].y ;
-    v0[2] = (double)mris->vertices[f1->v[0]].z ;
-    v1[0] = (double)mris->vertices[f1->v[1]].x ;
-    v1[1] = (double)mris->vertices[f1->v[1]].y ;
-    v1[2] = (double)mris->vertices[f1->v[1]].z ;
-    v2[0] = (double)mris->vertices[f1->v[2]].x ;
-    v2[1] = (double)mris->vertices[f1->v[2]].y ;
-    v2[2] = (double)mris->vertices[f1->v[2]].z ;
+//------------------------------------------
+// Simple instrumentation
+//------------------------------------------
+int FindBucketsChecked_Count;
+int FindBucketsPresent_Count;
 
-    for (fno2 = 0 ; fno2 < mris->nfaces ; fno2++)
+void MHTfindReportCounts(int * BucketsChecked, int * BucketsPresent)
+{
+  *BucketsChecked = FindBucketsChecked_Count;
+  *BucketsPresent = FindBucketsPresent_Count;
+}
+
+/*----------------------------------------------------------------
+  mhtfindClosestVertexGenericInBucket
+
+  -----------------------------------------------------------------*/
+int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht, 
+                                        MRI_SURFACE *mris,
+                                        //---------- inputs --------------
+                                        int xv, int yv, int zv,
+                                        double probex, 
+                                        double probey, 
+                                        double probez,
+                                        //---------- in/outs -------------
+                                        VERTEX **MinDistVtx, 
+                                        int *MinDistVtxNum, 
+                                        double *MinDistSq)
+{
+  int vtxix, rslt;
+  VERTEX *AVtx ;
+  int    AVtxNum;
+  double ADistSq;
+  MHB       *bin ;
+  MHBT      *bucket ;
+  //----------------------------------
+  rslt = NO_ERROR;
+
+  FindBucketsChecked_Count++;
+
+  bucket = MHTgetBucketAtVoxIx(mht, xv, yv, zv);
+  if (!bucket)
+    goto done;
+
+  FindBucketsPresent_Count++;
+
+  //-----------------------------------------
+  // Iterate through vertices in this bucket
+  //-----------------------------------------
+  bin = bucket->bins ;
+  for (vtxix = 0 ; vtxix < bucket->nused ; vtxix++, bin++)
+  {
+    AVtxNum = bin->fno;
+    AVtx = &mris->vertices[AVtxNum];
+
+    if (AVtxNum == Gdiag_no)
+      DiagBreak() ;
+
+    ADistSq = SQR(AVtx->x - probex)
+      + SQR(AVtx->y - probey)
+      + SQR(AVtx->z - probez) ;
+
+    if (ADistSq < *MinDistSq)
     {
-      f2 = &mris->faces[fno2] ;
+      *MinDistSq     = ADistSq ;
+      *MinDistVtxNum = AVtxNum;
+      *MinDistVtx    = AVtx;
+    } // if
+  } // for vtxix
+ done:
+  return rslt;
+}
 
-      nbr = 0 ;
-      for (n1 = 0 ; !nbr && n1 < VERTICES_PER_FACE ; n1++)
-        for (n2 = 0 ; !nbr && n2 < VERTICES_PER_FACE ; n2++)
-        {
-          if (f1->v[n1] == f2->v[n2])
-            nbr = 1 ;  /* they share a vertex - don't count it as filled */
-        }
-      if (nbr)
-        continue ;
-      /* fill vertices of 2nd triangle */
-      u0[0] = (double)mris->vertices[f2->v[0]].x ;
-      u0[1] = (double)mris->vertices[f2->v[0]].y ;
-      u0[2] = (double)mris->vertices[f2->v[0]].z ;
-      u1[0] = (double)mris->vertices[f2->v[1]].x ;
-      u1[1] = (double)mris->vertices[f2->v[1]].y ;
-      u1[2] = (double)mris->vertices[f2->v[1]].z ;
-      u2[0] = (double)mris->vertices[f2->v[2]].x ;
-      u2[1] = (double)mris->vertices[f2->v[2]].y ;
-      u2[2] = (double)mris->vertices[f2->v[2]].z ;
-      filled = tri_tri_intersect(v0,v1,v2,u0,u1,u2) ;
-      if (filled)
+/*
+ ----------------------------------------------------------------
+ MHTfindClosestVertexGeneric
+ Generic find routine satisfying all other finds
+ Inputs:
+ -------
+ probex, probey, probez: The point relative to which to search
+
+ n_max_distance_mm: Furthest vertex distance to accept. Set to a large
+ number to ignore, use only in_max_mhts.
+ in_max_mhts       : Furthest voxels to search
+ 0 : One half mht, so    2 x 2 x 2
+ 1 : One mht, so         3 x 3 x 3
+ 2 : Two mht             5 x 5 x 5
+ -1 : ignore, use only n_max_distance_mm
+ (If both the above are used, the tigher one prevails.)
+ Outputs:
+ --------
+ VERTEX **pvtx,            Closest vertex
+ int *vtxnum,              Closest vertex number
+ double *vtx_distance      Distance to closest vertex
+
+ Design Notes:
+ -------------
+ 1. I've incorporated ability to search near voxels first, and bail early if
+ remaining voxels are further away.
+
+ 2. Elaborateness of calcs for measuring whether other voxels are still useful
+ to search could be increased, but the tradeoffs for that are quite different
+ depending on whether voxel size (mht->vres) is large or small.
+
+ 3. Will not return a vertex that has been found, but which is outside the
+ distance that the inspected voxels cover exhaustively.
+ Eg: If in_max_mhts = 0 that means inspect 2 x 2 x 2, and covers all vertices
+ within 0.5 mhtres. If closest vertex found is at say 0.75 then function
+ returns no result because there could be a closer vertex in the 3 x 3 x 3 box.
+
+ 4. Version to return *list* of voxels within range is not implemented,
+ because I could find no code that used that.
+ -----------------------------------------------------------------
+*/
+
+int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht, 
+                                MRI_SURFACE *mris,
+                                //---------- inputs --------------
+                                double probex, double probey, double probez,
+                                // How far to search: set one or both
+                                double in_max_distance_mm, /* Use large number 
+                                                              to ignore */
+                                int    in_max_mhts,  /* Use -1 to ignore */
+                                //---------- outputs -------------
+                                VERTEX **pvtx, 
+                                int *vtxnum, 
+                                double *vtx_distance)
+{
+  const int max_mhts_MAX = 5;
+  double mhtres, max_distance_mm, tempdbl;
+  int    max_mhts;
+  double probex_vol,
+  probey_vol, probez_vol;// probex etc translated to volume space
+  int    probex_vox,
+  probey_vox, probez_vox;// probex_vol etc to voxel index
+  double probex_mod,
+  probey_mod, probez_mod;// probex_vol remainder (posn of probe within voxel)
+  int    near8offsetx, near8offsety, near8offsetz; // probe?_mod to -1..0
+  int   xv, yv, zv, xvi, yvi, zvi;                         // voxel indices
+  VERTEX *MinDistVtx;
+  int    MinDistVtxNum;
+  double MinDistSq, MinDistTemp;
+  double RemainingVoxelDistance;
+  int    RVox, WallJump;
+  bool   isWall;
+  unsigned char  central27[3][3][3]; // Indexes 0..2 stand for -1..+1
+  //----------------------------------
+
+  mhtFindCommonSanityCheck(mht, mris);
+  mhtres     = mht->vres;
+
+  //--------------------------------------------------
+  // Initialize instrumentation
+  //--------------------------------------------------
+  FindBucketsChecked_Count = 0;
+  FindBucketsPresent_Count = 0;
+
+  //--------------------------------------------------
+  // Figure how far afield to search
+  //--------------------------------------------------
+  if (-1 == in_max_mhts)
+  { // use in_max_distance_mm
+    max_distance_mm = in_max_distance_mm;
+    if ((max_distance_mm * 2) <= mhtres)
+    {
+      max_mhts = 0;
+    }
+    else
+    {
+      max_mhts        = ceil(max_distance_mm/mhtres);
+    }
+  }
+  else
+  {
+    max_mhts        = in_max_mhts;
+    max_distance_mm = in_max_distance_mm;
+
+    // How far does max_mhts cover in mm?
+    if (max_mhts >= 1)
+    {
+      tempdbl         = max_mhts * mhtres;
+    }
+    else
+    {
+      tempdbl         = 0.5 * mhtres;
+    }
+    // Must not include points beyond the exhaustive coverage distance
+    // of the chosen max_mhts....
+    if (max_distance_mm > tempdbl) max_distance_mm = tempdbl;
+  }
+  // Safety limit
+  if (max_mhts > max_mhts_MAX)
+  max_mhts = max_mhts_MAX;
+
+  //--------------------------------------------------
+  // Initialize mins
+  //--------------------------------------------------
+  MinDistSq     = 1e6;
+  MinDistVtx    = NULL;
+  MinDistVtxNum = -1;
+
+  //--------------------------------------------------
+  // Translate probe point to voxel-space coord and indexes
+  //--------------------------------------------------
+  probex_vol = WORLD_TO_VOLUME(mht, probex);
+  probey_vol = WORLD_TO_VOLUME(mht, probey);
+  probez_vol = WORLD_TO_VOLUME(mht, probez);
+
+  // (Note: In following (int) truncs toward zero, but that's OK because
+  // range of probex_vol is all positive, centered at FIELD_OF_VIEW/2)
+  probex_vox = (int) probex_vol;
+  probey_vox = (int) probey_vol;
+  probez_vox = (int) probez_vol;
+
+  probex_mod = probex_vol - (double) probex_vox;
+  probey_mod = probey_vol - (double) probey_vox;
+  probez_mod = probez_vol - (double) probez_vox;
+
+  near8offsetx = (probex_mod <= 0.5) ? -1 : 0;
+  near8offsety = (probey_mod <= 0.5) ? -1 : 0;
+  near8offsetz = (probez_mod <= 0.5) ? -1 : 0;
+
+  //--------------------------------------------------
+  // Initialize checklist for central 27 voxels
+  //--------------------------------------------------
+  memset(central27, 0, sizeof(central27));
+  /*
+    for (    xv = 0; xv <= 2; xv++)
+    for (  yv = 0; yv <= 2; yv++)
+    for (zv = 0; zv <= 2; zv++)
+    central27[xv][yv][zv] = 0;
+  */
+
+  //--------------------------------------------------
+  // Look in home vertex and closest 7 voxels. Without measuring
+  // exact probe?_mod position, these "closest 7" could have vertices as close
+  // as zero mm, and they completely cover the region out to 0.5 mht voxels.
+  // Note: Could possibly recode to abort early based on exact measurements,
+  // which might be worthwhile for large voxel.
+  //--------------------------------------------------
+  for (    xvi = 0; xvi <= 1; xvi++)
+  {
+    xv = xvi + near8offsetx;
+    for (  yvi = 0; yvi <= 1; yvi++)
+    {
+      yv = yvi + near8offsety;
+      for (zvi = 0; zvi <= 1; zvi++)
       {
-        fprintf(stderr, "face %d intersects with face %d!!!!\n",
-                v->f[fno1], fno2) ;
-        DiagBreak() ;
+        zv = zvi + near8offsetz;
+
+        mhtfindClosestVertexGenericInBucket(mht, mris,
+                                            probex_vox + xv,
+                                            probey_vox + yv,
+                                            probez_vox + zv,
+                                            probex, probey, probez,
+                                            &MinDistVtx,
+                                            &MinDistVtxNum,
+                                            &MinDistSq) ;
+
+        central27[xv+1][yv+1][zv+1] = 1;
       }
     }
   }
 
+  //---------------------------------------------------------------------------
+  // We can stop now if found vertex's distance is < 0.5 mhtres, because all
+  // other voxels are at at least that far away
+  //---------------------------------------------------------------------------
+
+  if (max_mhts == 0) goto done;
+
+  RemainingVoxelDistance = 0.5 *  mhtres;
+  if (max_distance_mm <= RemainingVoxelDistance)  goto done;
+
+  if (MinDistVtx)
+  { // not NULL if one has been found)
+    MinDistTemp = sqrt(MinDistSq);
+    if (MinDistTemp <= RemainingVoxelDistance)
+      goto done;
+  }
+
+  //--------------------------------------------------
+  // Continue with rest of central 27
+  //--------------------------------------------------
+  for (    xv = -1; xv <= 1; xv++)
+  {
+    for (  yv = -1; yv <= 1; yv++)
+    {
+      for (zv = -1; zv <= 1; zv++)
+      {
+
+        if (!central27[xv+1][yv+1][zv+1]) // skip ones already done
+        {
+          mhtfindClosestVertexGenericInBucket(mht, mris,
+                                              probex_vox + xv,
+                                              probey_vox + yv,
+                                              probez_vox + zv,
+                                              probex, probey, probez,
+                                              &MinDistVtx,
+                                              &MinDistVtxNum,
+                                              &MinDistSq) ;
+
+          central27[xv+1][yv+1][zv+1] = 1;
+        }
+      }
+    }
+  }
+
+  //--------------------------------------------------
+  // Continue with further-away voxels
+  // "RVox" roughly "radius in voxel units"
+  //  max_mhts     RVox      box dims
+  //      0        prev      2 x 2 x 2
+  //      1        prev      3 x 3 x 3
+  //      2         2        5 x 5 x 5
+  //      3         3        7 x 7 x 7
+  //      4         4        9 x 9 x 9 etc -- obviously getting slow!
+  //--------------------------------------------------
+
+  for (RVox = 2; RVox <= max_mhts; RVox++)
+  {
+    //----------------------------------------------------------------------
+    // We can stop now if found vertex's distance is<(1.0 x (RVox-1) x mhtres),
+    // because all other voxels are at at least that far away
+    //----------------------------------------------------------------------
+    RemainingVoxelDistance = (mhtres * (RVox-1));
+
+    if (MinDistVtx)
+    { // not NULL if one has been found)
+      MinDistTemp = sqrt(MinDistSq);
+      if (MinDistTemp <= RemainingVoxelDistance)
+        goto done;
+    }
+    if (max_distance_mm <= RemainingVoxelDistance)
+    goto done;
+
+    //-------------------------------------------------
+    // Inspect "shell" of voxels
+    //-------------------------------------------------
+    WallJump =
+    RVox + RVox; // jump from one side to the other across the empty middle
+    for     (xv  = -RVox; xv <= RVox; xv++)
+    {
+      for   (yv  = -RVox; yv <= RVox; yv++)
+      {
+        isWall =  ( (xv == -RVox) || (xv == RVox) )
+          || ( (yv == -RVox) || (yv == RVox) );
+        for (zv  = -RVox; zv <= RVox; zv = isWall ? zv+1 : zv + WallJump)
+        {
+
+          mhtfindClosestVertexGenericInBucket(mht, mris,
+                                              probex_vox + xv,
+                                              probey_vox + yv,
+                                              probez_vox + zv,
+                                              probex, probey, probez,
+                                              &MinDistVtx,
+                                              &MinDistVtxNum,
+                                              &MinDistSq) ;
+        } // zv
+      } // yv
+    } // xv
+  } // RVox
+
+  done:
+  MinDistTemp = 1e3;
+
+  //--------------------------------------------
+  // Enforce not returning a vertex if it's outside
+  // max_distance_mm.
+  //--------------------------------------------
+  if (MinDistVtx)
+  {
+    MinDistTemp = sqrt(MinDistSq);
+    if (MinDistTemp > max_distance_mm)
+    {
+      MinDistVtx     = NULL;
+      MinDistVtxNum  = -1;
+      MinDistTemp    = 1e3;
+    }
+  }
+
+  // Copy to output
+  if (pvtx)         *pvtx         = MinDistVtx;
+  if (vtxnum)       *vtxnum       = MinDistVtxNum;
+  if (vtx_distance) *vtx_distance = MinDistTemp;
+
+  return NO_ERROR;
+}
+
+/*----------------------------------------------------------------
+  MHTfindClosestVertex
+  Returns VERTEX *, closest vertex to v in mris & mht (or NULL).
+  -----------------------------------------------------------------*/
+VERTEX * MHTfindClosestVertex(MRIS_HASH_TABLE *mht, 
+                              MRI_SURFACE *mris, 
+                              VERTEX *v)
+{
+//------------------------------------------------------
+  VERTEX * vtx;
+  int rslt;
+  float x, y, z;
+
+  mhtFindCommonSanityCheck(mht, mris);
+
+  //---------------------------------
+  // Generic find
+  //---------------------------------
+  mhtVertex2xyz_float(v, mht->which_vertices, &x, &y, &z);
+
+  rslt = MHTfindClosestVertexGeneric(mht, mris,
+                                     x, y, z,
+                                     1000,
+                                     1,  // max_mhts: search out to 3 x 3 x 3
+                                     &vtx, NULL, NULL);
+
+  return vtx;
+}
+
+/*---------------------------------------------------------------------
+  MHTfindClosestVertexSet.
+  Returns vertex in mht and mris that is closest to v.
+  Ostensibly allows choice of which surface vertex "set", but this is
+  conceptually incorrect, as vertex set is determined at time MHT is created.
+  (So GW revised this behavior to ErrorExit when which doesn't match
+  mht->which_vertices.)
+  -----------------------------------------------------------------------*/
+VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, 
+                                 MRI_SURFACE *mris, 
+                                 VERTEX *v, 
+                                 int which)
+{
+//------------------------------------------------------
+  VERTEX * vtx;
+  int rslt;
+  float x, y, z;
+  //---------------------------------
+  // Sanity checks
+  //---------------------------------
+  mhtFindCommonSanityCheck(mht, mris);
+
+  if (mht->which_vertices != which )
+    ErrorExit(ERROR_BADPARM,
+              "%s called with mismatched 'which' parameter\n",
+              __MYFUNCTION__) ;
+
+  //---------------------------------
+  // Generic find
+  //---------------------------------
+  mhtVertex2xyz_float(v, mht->which_vertices, &x, &y, &z);
+
+  rslt = MHTfindClosestVertexGeneric(mht, mris,
+                                     x, y, z,
+                                     1000,
+                                     1, // max_mhts: search out to 3 x 3 x 3
+                                     &vtx, NULL, NULL);
+  return vtx;
+}
+
+/*--------------------------------------------------------------------
+  MHTfindClosestVertexNo()
+  Returns vertex number and distance from vertex v to closest vertex
+  in mris & mht.
+  --------------------------------------------------------------------*/
+int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, 
+                           MRI_SURFACE *mris, 
+                           VERTEX *v, 
+                           float *min_dist)
+{
+//------------------------------------------------------
+  int vtxnum, rslt;
+  double x, y, z, min_dist_dbl;
+
+  mhtFindCommonSanityCheck(mht, mris);
+
+  //---------------------------------
+  // Generic find
+  //---------------------------------
+  mhtVertex2xyz_double(v, mht->which_vertices, &x, &y, &z);
+
+  rslt = MHTfindClosestVertexGeneric(mht, mris,
+                                     x, y, z,
+                                     1000,
+                                     1,  // max_mhts: search out to 3 x 3 x 3
+                                     NULL, &vtxnum, &min_dist_dbl);
+
+  *min_dist = min_dist_dbl;
+  //----------------------------------------------------------
+  // [GW] Fixup for "no vertex found". V1.27 function returns
+  // zero for no vertex found. I think this is a bug because
+  // there is a legit vertex zero I think.
+  // However, for now just duplicate existing output
+  //----------------------------------------------------------
+  if (-1 == rslt)
+    rslt = 0;
+  return vtxnum;
+}
+
+/*---------------------------------------------------------------
+  MHTfindClosestVertexInTable
+  Returns vertex from mris & mht that's closest to provided coordinates.
+  ---------------------------------------------------------------*/
+VERTEX * MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, 
+                                     MRI_SURFACE *mris, 
+                                     float x, float y, float z)
+{
+//------------------------------------------------------
+  VERTEX * vtx;
+  int rslt;
+
+  mhtFindCommonSanityCheck(mht, mris);
+
+  //---------------------------------
+  // Generic find
+  //---------------------------------
+  rslt = MHTfindClosestVertexGeneric(mht, mris,
+                                     x, y, z,
+                                     1000,
+                                     1, // max_mhts: search out to 3 x 3 x 3
+                                     &vtx, NULL, NULL);
+  return vtx;
+}
+
+#define MAX_VERTICES 50000
+/*------------------------------------------------------------
+  MHTgetAllVerticesWithinDistance
+  Returns a list of vertex numbers from mris & mht that are within
+  max_dist of vertex vno.
+
+  Allocates separate list pvnum which must be freed by caller.
+
+  As of 2007-03-20, there don't appear to be any callers of this function
+  in all the FS source code, so I'm not bothering to implement its
+  functionality in the generic Find function, however it would be easy to do.
+  ------------------------------------------------------------*/
+int * MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht,
+                                      MRI_SURFACE *mris,
+                                      int vno, float max_dist, int *pvnum)
+{
+//------------------------------------------------------
+  ErrorExit(ERROR_UNSUPPORTED,  "%s: not implemented.\n", __MYFUNCTION__);
+
+  return NULL;
+}
+
+//=================================================================
+//  Utility
+//=================================================================
+
+/*---------------------------------------------------
+  MHTfree
+  Frees and nulls an MHT pointer.
+  ----------------------------------------------------*/
+//----------------------------------
+int MHTfree(MRIS_HASH_TABLE **pmht)
+//----------------------------------
+{
+  MRIS_HASH_TABLE  *mht ;
+  int              xv, yv, zv ;
+
+  if (!(*pmht)) // avoid crash if not initialized, or nulled previously
+    return(NO_ERROR) ;
+
+  mht = *pmht ;
+  *pmht = NULL ;  // sets pointer to null to signal free'ed
+
+  for (xv = 0 ; xv < TABLE_SIZE ; xv++)
+  {
+    for (yv = 0 ; yv < TABLE_SIZE ; yv++)
+    {
+      if (!mht->buckets[xv][yv])
+        continue ;
+      for (zv = 0 ; zv < TABLE_SIZE ; zv++)
+      {
+        if (mht->buckets[xv][yv][zv])
+        {
+          if (mht->buckets[xv][yv][zv]->bins)
+            free(mht->buckets[xv][yv][zv]->bins) ;
+          free(mht->buckets[xv][yv][zv]) ;
+        }
+      }
+      free(mht->buckets[xv][yv]) ;
+    }
+  }
+  free(mht) ;
   return(NO_ERROR) ;
 }
-#endif
-/*-----------------------------------------------------
-        Parameters:
 
-        Returns value:
+//---------------------------------------------
+static void mhtVertex2xyz_float(VERTEX * vtx,
+                                int which,
+                                float *x, float *y, float *z)
+{
+//---------------------------------------------
+  if (!vtx) return;
 
-        Description
-------------------------------------------------------*/
-int
-MHTcheckFaces(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht)
+  switch (which)
+  {
+  case ORIGINAL_VERTICES  :
+    *x = vtx->origx;
+    *y = vtx->origy;
+    *z = vtx->origz;
+    break;
+  case GOOD_VERTICES      :
+    break;
+  case TMP_VERTICES       :
+    break;
+  case CANONICAL_VERTICES :
+    *x = vtx->cx;
+    *y = vtx->cy;
+    *z = vtx->cz;
+    break;
+  case CURRENT_VERTICES   :
+    *x = vtx->x;
+    *y = vtx->y;
+    *z = vtx->z;
+    break;
+  case INFLATED_VERTICES  :
+    break;
+  case FLATTENED_VERTICES :
+    break;
+  case PIAL_VERTICES      :
+    *x = vtx->pialx;
+    *y = vtx->pialy;
+    *z = vtx->pialz;
+    break;
+  case TMP2_VERTICES      :
+    break;
+  case WHITE_VERTICES     :
+    *x = vtx->whitex;
+    *y = vtx->whitey;
+    *z = vtx->whitez;
+    break;
+  }
+  return;
+}
+//---------------------------------------------
+static void mhtVertex2xyz_double(VERTEX * vtx,
+                                 int which,
+                                 double *x, double *y, double *z)
+{
+//---------------------------------------------
+  if (!vtx) return;
+
+  switch (which)
+  {
+  case ORIGINAL_VERTICES  :
+    *x = vtx->origx;
+    *y = vtx->origy;
+    *z = vtx->origz;
+    break;
+  case GOOD_VERTICES      :
+    break;
+  case TMP_VERTICES       :
+    break;
+  case CANONICAL_VERTICES :
+    *x = vtx->cx;
+    *y = vtx->cy;
+    *z = vtx->cz;
+    break;
+  case CURRENT_VERTICES   :
+    *x = vtx->x;
+    *y = vtx->y;
+    *z = vtx->z;
+    break;
+  case INFLATED_VERTICES  :
+    break;
+  case FLATTENED_VERTICES :
+    break;
+  case PIAL_VERTICES      :
+    *x = vtx->pialx;
+    *y = vtx->pialy;
+    *z = vtx->pialz;
+    break;
+  case TMP2_VERTICES      :
+    break;
+  case WHITE_VERTICES     :
+    *x = vtx->whitex;
+    *y = vtx->whitey;
+    *z = vtx->whitez;
+    break;
+  }
+  return;
+}
+//---------------------------------------------
+static void mhtVertex2Ptxyz_double(VERTEX * vtx, int which, Ptdbl_t *pt)
+{
+//---------------------------------------------
+  if ((!vtx) || (!pt)) return;
+
+  switch (which)
+  {
+  case ORIGINAL_VERTICES  :
+    pt->x = vtx->origx;
+    pt->y = vtx->origy;
+    pt->z = vtx->origz;
+    break;
+  case GOOD_VERTICES      :
+    break;
+  case TMP_VERTICES       :
+    break;
+  case CANONICAL_VERTICES :
+    pt->x = vtx->cx;
+    pt->y = vtx->cy;
+    pt->z = vtx->cz;
+    break;
+  case CURRENT_VERTICES   :
+    pt->x = vtx->x;
+    pt->y = vtx->y;
+    pt->z = vtx->z;
+    break;
+  case INFLATED_VERTICES  :
+    break;
+  case FLATTENED_VERTICES :
+    break;
+  case PIAL_VERTICES      :
+    pt->x = vtx->pialx;
+    pt->y = vtx->pialy;
+    pt->z = vtx->pialz;
+    break;
+  case TMP2_VERTICES      :
+    break;
+  case WHITE_VERTICES     :
+    pt->x = vtx->whitex;
+    pt->y = vtx->whitey;
+    pt->z = vtx->whitez;
+    break;
+  }
+  return;
+}
+
+//---------------------------------------------
+static void mhtVertex2array3_double(VERTEX * vtx, int which, double *array3)
+{
+//---------------------------------------------
+  if (!vtx) return;
+
+  switch (which)
+  {
+  case ORIGINAL_VERTICES  :
+    array3[0] = vtx->origx;
+    array3[1] = vtx->origy;
+    array3[2] = vtx->origz;
+    break;
+  case GOOD_VERTICES      :
+    break;
+  case TMP_VERTICES       :
+    break;
+  case CANONICAL_VERTICES :
+    array3[0] = vtx->cx;
+    array3[1] = vtx->cy;
+    array3[2] = vtx->cz;
+    break;
+  case CURRENT_VERTICES   :
+    array3[0] = vtx->x;
+    array3[1] = vtx->y;
+    array3[2] = vtx->z;
+    break;
+  case INFLATED_VERTICES  :
+    break;
+  case FLATTENED_VERTICES :
+    break;
+  case PIAL_VERTICES      :
+    array3[0] = vtx->pialx;
+    array3[1] = vtx->pialy;
+    array3[2] = vtx->pialz;
+    break;
+  case TMP2_VERTICES      :
+    break;
+  case WHITE_VERTICES     :
+    array3[0] = vtx->whitex;
+    array3[1] = vtx->whitey;
+    array3[2] = vtx->whitez;
+    break;
+  }
+  return;
+}
+
+/*-----------------------------------------------------------------*/
+MHBT * MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z)
+{
+//-------------------------------------------------------------------
+  int     xv, yv, zv ;
+
+  xv = WORLD_TO_VOXEL(mht, x) ;
+  yv = WORLD_TO_VOXEL(mht, y) ;
+  zv = WORLD_TO_VOXEL(mht, z) ;
+
+  return MHTgetBucketAtVoxIx(mht, xv, yv, zv);
+}
+
+/*-----------------------------------------------------------------*/
+MHBT * MHTgetBucketAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv)
+{
+//-------------------------------------------------------------------
+  MHBT    *bucket ;
+
+  if (  xv >= FIELD_OF_VIEW
+        || yv >= FIELD_OF_VIEW
+        || zv >= FIELD_OF_VIEW
+        || xv <  0
+        || yv <  0
+        || zv <  0)
+    return(NULL);
+
+  if (!mht)
+    return(NULL);
+
+  if (!mht->buckets[xv][yv])
+    return(NULL) ;
+
+  bucket = mht->buckets[xv][yv][zv] ;
+  return(bucket) ;
+}
+
+/*------------------------------------------------
+  MHT_gw_version
+  Confidence check that correct version of code is
+  compiled in;
+  ------------------------------------------------*/
+int MHT_gw_version(void)
+{
+//-------------------------------
+  return GW_VERSION;   // <-- change this as needed
+}
+
+//=================================================================
+// VOXEL_LIST
+//=================================================================
+
+//--------------------------------------------------
+static int mhtVoxelList_Init(VOXEL_LISTgw *voxlist)
+{
+//--------------------------------------------------
+  voxlist->nused = 0 ;
+  return(NO_ERROR) ;
+}
+
+//--------------------------------------------------
+static int mhtVoxelList_Add(VOXEL_LISTgw *voxlist,
+                            int xv, int yv, int zv, int fno)
+{
+//--------------------------------------------------
+  int   i ;
+
+  for (i = 0 ; i < voxlist->nused ; i++)
+    if (voxlist->voxels[i][0] == xv &&
+        voxlist->voxels[i][1] == yv &&
+        voxlist->voxels[i][2] == zv)
+      return(NO_ERROR) ;
+
+  if (voxlist->nused >= MAX_VOXELS)
+  {
+    fprintf(stderr,
+            "%s(%d, %d, %d, %d): complete list too big!\n",
+            __MYFUNCTION__ ,
+            xv,yv,zv, fno) ;
+
+    ErrorPrintf(ERROR_NOMEMORY,
+                "%s(%d, %d, %d, %d): complete list too big!",
+                __MYFUNCTION__,
+                xv,yv,zv, fno);
+    return(ERROR_NOMEMORY);
+  }
+  //-----------------------------
+  // Actually append it
+  //-----------------------------
+  i = voxlist->nused;
+  voxlist->voxels[i][0] = xv ;
+  voxlist->voxels[i][1] = yv ;
+  voxlist->voxels[i][2] = zv ;
+  voxlist->nused++ ;
+  return(NO_ERROR) ;
+}
+
+//--------------------------------------------------
+static int mhtVoxelList_AddCoord(VOXEL_LISTgw *voxlist,
+                                 VOXEL_COORD vc, int fno)
+{
+//--------------------------------------------------
+  return mhtVoxelList_Add(voxlist, vc.xv, vc.yv, vc.zv, fno);
+}
+
+//--------------------------------------------------
+static int mhtVoxelList_AddPath(VOXEL_LISTgw *voxlist,
+                                VOXEL_COORD oldvc, VOXEL_COORD newvc, int fno )
+{
+//--------------------------------------------------
+  int xv, yv, zv, count;
+  int incx = -1, incy = -1, incz = -1;
+
+  if (newvc.xv >= oldvc.xv) incx = 1;
+  if (newvc.yv >= oldvc.yv) incy = 1;
+  if (newvc.zv >= oldvc.zv) incz = 1;
+
+  count = -1;
+  for (xv     = oldvc.xv;
+       incx==1 ? xv <= newvc.xv: xv >= newvc.xv;
+       xv += incx)
+  {
+    for (yv   = oldvc.yv;
+         incy==1 ? yv <= newvc.yv: yv >= newvc.yv;
+         yv += incy)
+    {
+      for (zv = oldvc.zv;
+           incz==1 ? zv <= newvc.zv: zv >= newvc.zv;
+           zv += incz)
+      {
+        count++;
+        // ie: ignore the start voxel, assume that's already added
+        // (which can be done with mhtVoxelList_AddCoord)
+        if (count >= 1)
+        {
+          mhtVoxelList_Add(voxlist, xv, yv, zv, fno);
+        }
+      }
+    }
+  }
+  return NO_ERROR;
+}
+
+//=================================================================
+// Diagnostic
+//=================================================================
+
+/*--------------------------------------------------------
+  MHTtestIsMRISselfIntersecting
+
+  Basically a copy of mrisurf IsMRISselfIntersecting();
+  -------------------------------------------------------*/
+int MHTtestIsMRISselfIntersecting(MRI_SURFACE *mris, float res)
+//--------------------------------------------------------
+{
+  MRIS_HASH_TABLE  *mht ;
+  int fno, rslt ;
+
+  rslt = 0;
+
+//mht = MHTfillTable(mris, NULL) ;
+
+  mht = MHTfillTableAtResolution(mris, NULL, CURRENT_VERTICES, res);
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    if (MHTdoesFaceIntersect(mht, mris, fno))
+    {
+      rslt = 1;
+      goto done;
+    }
+  }
+ done:
+  MHTfree(&mht) ;
+  return rslt ;
+}
+
+
+/*--------------------------------------------------------
+  MHTcheckFaces
+  Unchanged from mrishash.c 1.27
+  -------------------------------------------------------*/
+int MHTcheckFaces(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht)
+//--------------------------------------------------------
 {
   static int ncalls = 0 ;
 
@@ -1291,15 +2187,16 @@ MHTcheckFaces(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht)
   }
   return(NO_ERROR) ;
 }
+
+
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+  MHTcheckSurface
+  Unchanged from mrishash.c 1.27
+  However, subsidiary checkFace is disabled
+  ------------------------------------------------------*/
 int
 MHTcheckSurface(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht)
+//--------------------------------------------------------
 {
   int    fno, alloced = 0 ;
 
@@ -1319,58 +2216,25 @@ MHTcheckSurface(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht)
     MHTfree(&mht) ;
   return(NO_ERROR) ;
 }
+
+
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-int
-MHTfree(MRIS_HASH_TABLE **pmht)
-{
-  MRIS_HASH_TABLE  *mht ;
-  int              xv, yv, zv ;
-
-  mht = *pmht ;
-  *pmht = NULL ;
-
-  for (xv = 0 ; xv < TABLE_SIZE ; xv++)
-  {
-    for (yv = 0 ; yv < TABLE_SIZE ; yv++)
-    {
-      if (!mht->buckets[xv][yv])
-        continue ;
-      for (zv = 0 ; zv < TABLE_SIZE ; zv++)
-      {
-#if 0
-        if (mht->buckets[xv][yv][zv].bins)
-#else
-        if (mht->buckets[xv][yv][zv])
-        {
-          if (mht->buckets[xv][yv][zv]->bins)
-            free(mht->buckets[xv][yv][zv]->bins) ;
-          free(mht->buckets[xv][yv][zv]) ;
-        }
-#endif
-        }
-      free(mht->buckets[xv][yv]) ;
-    }
-  }
-  free(mht) ;
-
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+  checkFace
+  Conducts a brute-force test of self-intersection relative to
+  the one provided face.
+  I think the intent here was to conduct brute-force intersections test,
+  and if diag flags set, compare that to MHT results.
+  However, the only output produced is printed or to file, this
+  func doesn't return result of intersection test.
+  I have disabled this whole routine because it doesn't look useful,
+  and it calls
+  local functions that I've refactored away.
+  ------------------------------------------------------*/
 static int
 checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1)
+//--------------------------------------------------------
 {
+#if 0
   double v0[3], v1[3], v2[3], u0[3], u1[3], u2[3] ;
   int    fno2, filled, n1, n2, nbr ;
   FACE   *f1, *f2 ;
@@ -1446,590 +2310,6 @@ checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1)
       }
     }
   }
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-static int
-mhtInitVoxelList(VOXEL_LIST *vl)
-{
-  vl->nused = 0 ;
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-static int
-mhtAddVoxels(MRIS_HASH_TABLE *mht,VOXEL_LIST *vl, float xw, float yw, float zw)
-{
-  int   xv, yv, zv ;
-  float x, y, z ;
-
-  x = WORLD_TO_VOLUME(mht, xw) ;
-  y = WORLD_TO_VOLUME(mht, yw) ;
-  z = WORLD_TO_VOLUME(mht, zw) ;
-  xv = (int)x ;
-  yv = (int)y ;
-  zv = (int)z ;
-  mhtAddVoxel(vl, xv, yv, zv) ;
-  if ((ceil(x) - x) < 0.5)
-    mhtAddVoxel(vl, xv+1, yv, zv) ;
-  if ((x - floor(x)) < 0.5)
-    mhtAddVoxel(vl, xv-1, yv, zv) ;
-
-  if ((ceil(y) - y) < 0.5)
-    mhtAddVoxel(vl, xv, yv+1, zv) ;
-  if ((y - floor(y)) < 0.5)
-    mhtAddVoxel(vl, xv, yv-1, zv) ;
-
-  if ((ceil(z) - z) < 0.5)
-    mhtAddVoxel(vl, xv, yv, zv+1) ;
-  if ((z - floor(z)) < 0.5)
-    mhtAddVoxel(vl, xv, yv, zv-1) ;
-
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-static int
-mhtAddVoxel(VOXEL_LIST *vl, int xv, int yv, int zv)
-{
-  int   i ;
-
-  for (i = 0 ; i < vl->nused ; i++)
-    if (vl->v[i][0] == xv && vl->v[i][1] == yv && vl->v[i][2] == zv)
-      return(NO_ERROR) ;
-  if (vl->nused >= MAX_VOXELS)
-  {
-    fprintf(stderr, "mhtAddVoxels(%d, %d, %d): complete list too big!\n",xv,yv,zv) ;
-    ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY,
-                                 "mhtAddVoxels(%d, %d, %d): complete list too big!",
-                                 xv,yv,zv)) ;
-  }
-  vl->v[vl->nused][0] = xv ;
-  vl->v[vl->nused][1] = yv ;
-  vl->v[vl->nused][2] = zv ;
-  vl->nused++ ;
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-#define MHT_MAX_FACES 10000
-
-static int
-mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
-                              VOXEL_LIST *vl, int fno)
-{
-  int    xv, yv, zv, fno2, i,j,n1,n2, intersect, nbr, vno,
-  flist[MHT_MAX_FACES], nfaces;
-  MHB    *bin ;
-  MHBT   *bucket ;
-  FACE   *f1, *f2 ;
-  double v0[3], v1[3], v2[3], u0[3], u1[3], u2[3] ;
-
-
-  f1 = &mris->faces[fno] ;
-
-  if (fno == Gdiag_no)
-    DiagBreak() ;
-
-  for (nfaces = 0, vno = 0 ; vno < vl->nused ; vno++)
-  {
-    /*
-      go through every entry in this bucket and see if any of them
-      occupy the same voxel coordinate as the vertex in question. If so,
-      check the face in the bucket to see if the vertex is part of if. If it
-      is not, then the voxel is already filled and return 1.
-    */
-    xv = vl->v[vno][0] ;
-    yv = vl->v[vno][1] ;
-    zv = vl->v[vno][2] ;
-#if 0
-    bucket = &mht->buckets[xv][yv][zv] ;
-#else
-    if (!mht->buckets[xv][yv])
-      return(0) ;
-    bucket = mht->buckets[xv][yv][zv] ;
-    if (!bucket)
-      continue ;
 #endif
-    bin = bucket->bins ;
-    for (i = 0 ; i < bucket->nused ; i++, bin++)
-    {
-      fno2 = bin->fno ;
-      f2 = &mris->faces[fno2] ;
-      nbr = 0 ;
-      for (n1 = 0 ; !nbr && n1 < VERTICES_PER_FACE ; n1++)
-        for (n2 = 0 ; !nbr && n2 < VERTICES_PER_FACE ; n2++)
-        {
-          if (f1->v[n1] == f2->v[n2])
-            nbr = 1 ;  /* they share a vertex - don't count it as filled */
-					if (mris->vertices[f1->v[n1]].linked > 0)
-					{
-						int n3 ;
-						VERTEX_INFO *vi = (VERTEX_INFO *)mris->user_parms ;
-						for (n3 = 0 ; n3 < vi[f1->v[n1]].nlinks ; n3++)
-							if (vi[f1->v[n1]].linked_vno[n3] == f2->v[n2])
-								nbr = 1 ;
-					}
-					if (mris->vertices[f2->v[n2]].linked > 0)
-					{
-						int n3 ;
-						VERTEX_INFO *vi = (VERTEX_INFO *)mris->user_parms ;
-						for (n3 = 0 ; n3 < vi[f2->v[n2]].nlinks ; n3++)
-							if (vi[f2->v[n2]].linked_vno[n3] == f1->v[n1])
-								nbr = 1 ;
-					}
-        }
-      if (!nbr)   /* add it to list, if not already there */
-      {
-        for (j = 0 ; j < nfaces ; j++)
-          if (flist[j] == fno2)
-          {
-            nbr = 1 ;
-            break ;
-          }
-        if (!nbr)
-        {
-          if (nfaces >= MHT_MAX_FACES)
-            ErrorPrintf(ERROR_NO_MEMORY, "mhtDoesFaceVoxelListIntersect: MHT_MAX_FACES exceeded!") ;
-          else
-            flist[nfaces++] = fno2 ;
-        }
-      }
-    }
-  }
-
-  /* fill vertices of 1st triangle */
-  v0[0] = (double)mris->vertices[f1->v[0]].x ;
-  v0[1] = (double)mris->vertices[f1->v[0]].y ;
-  v0[2] = (double)mris->vertices[f1->v[0]].z ;
-  v1[0] = (double)mris->vertices[f1->v[1]].x ;
-  v1[1] = (double)mris->vertices[f1->v[1]].y ;
-  v1[2] = (double)mris->vertices[f1->v[1]].z ;
-  v2[0] = (double)mris->vertices[f1->v[2]].x ;
-  v2[1] = (double)mris->vertices[f1->v[2]].y ;
-  v2[2] = (double)mris->vertices[f1->v[2]].z ;
-
-  for (i = 0 ; i < nfaces ; i++)
-  {
-    /* fill vertices of 2nd triangle */
-    f2 = &mris->faces[flist[i]] ;
-    u0[0] = (double)mris->vertices[f2->v[0]].x ;
-    u0[1] = (double)mris->vertices[f2->v[0]].y ;
-    u0[2] = (double)mris->vertices[f2->v[0]].z ;
-    u1[0] = (double)mris->vertices[f2->v[1]].x ;
-    u1[1] = (double)mris->vertices[f2->v[1]].y ;
-    u1[2] = (double)mris->vertices[f2->v[1]].z ;
-    u2[0] = (double)mris->vertices[f2->v[2]].x ;
-    u2[1] = (double)mris->vertices[f2->v[2]].y ;
-    u2[2] = (double)mris->vertices[f2->v[2]].z ;
-    intersect = tri_tri_intersect(v0,v1,v2,u0,u1,u2) ;
-    if (intersect)
-      return(1) ;
-  }
-  return(0) ;
-}
-/*-----------------------------------------------------------------*/
-MHBT *
-MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z)
-{
-  int     xv, yv, zv ;
-  MHBT    *bucket ;
-
-  xv = WORLD_TO_VOXEL(mht,x) ;
-  yv = WORLD_TO_VOXEL(mht,y) ;
-  zv = WORLD_TO_VOXEL(mht,z) ;
-  if (xv >= FIELD_OF_VIEW || yv >= FIELD_OF_VIEW || zv >= FIELD_OF_VIEW ||
-      xv < 0 || yv < 0 || zv < 0)
-    return(NULL) ;
-  else if (!mht->buckets[xv][yv])
-    return(NULL) ;
-
-  bucket = mht->buckets[xv][yv][zv] ;
-
-  return(bucket) ;
-}
-/*--------------------------------------------------------------------*/
-VERTEX *
-MHTfindClosestVertex(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v)
-{
-  VERTEX    *vmin, *vdst ;
-  int       i, xk, yk, zk ;
-  double    dist, min_dist ;
-  MHB       *bin ;
-  MHBT      *bucket ;
-  float     x, y, z ;
-
-  min_dist = 10000000 ;
-  vmin = NULL ;
-  for (zk = -1 ; zk <= 1 ; zk++)
-  {
-    for (yk = -1 ; yk <= 1 ; yk++)
-    {
-      for (xk = -1 ; xk <= 1 ; xk++)
-      {
-        x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->x)+xk) ;
-        y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->y)+yk) ;
-        z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->z)+zk) ;
-        bucket = MHTgetBucket(mht, x, y, z) ;
-        if (!bucket)
-          continue ;
-        bin = bucket->bins ;
-        for (i = 0 ; i < bucket->nused ; i++, bin++)
-        {
-          vdst = &mris->vertices[bin->fno] ;
-
-          if (bin->fno == Gdiag_no)
-            DiagBreak() ;
-          dist = sqrt(SQR(vdst->x-v->x)+SQR(vdst->y-v->y)+SQR(vdst->z-v->z)) ;
-          if (dist < min_dist)
-          {
-            min_dist = dist ;
-            vmin = vdst ;
-          }
-        }
-      }
-    }
-  }
-
-  return(vmin) ;
-}
-VERTEX *
-MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v, int which)
-{
-  VERTEX    *vmin, *vdst ;
-  int       i, xk, yk, zk ;
-  double    dist, min_dist ;
-  MHB       *bin ;
-  MHBT      *bucket ;
-  float     x, y, z, tx, ty, tz ;
-  tx=0;
-  ty=0;
-  tz=0;
-
-  min_dist = 10000000 ;
-  vmin = NULL ;
-  for (zk = -1 ; zk <= 1 ; zk++)
-  {
-    for (yk = -1 ; yk <= 1 ; yk++)
-    {
-      for (xk = -1 ; xk <= 1 ; xk++)
-      {
-        x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->x)+xk) ;
-        y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->y)+yk) ;
-        z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->z)+zk) ;
-        bucket = MHTgetBucket(mht, x, y, z) ;
-        if (!bucket)
-          continue ;
-        bin = bucket->bins ;
-        for (i = 0 ; i < bucket->nused ; i++, bin++)
-        {
-          vdst = &mris->vertices[bin->fno] ;
-
-          if (bin->fno == Gdiag_no)
-            DiagBreak() ;
-          switch (which)
-          {
-          case CURRENT_VERTICES:
-            tx = vdst->x ;
-            ty = vdst->y  ;
-            tz = vdst->z ;
-            break ;
-          default:
-          case ORIGINAL_VERTICES:
-            tx = vdst->origx ;
-            ty = vdst->origy  ;
-            tz = vdst->origz ;
-            break ;
-          case WHITE_VERTICES:
-            tx = vdst->whitex ;
-            ty = vdst->whitey  ;
-            tz = vdst->whitez ;
-            break ;
-          case PIAL_VERTICES:
-            tx = vdst->pialx ;
-            ty = vdst->pialy  ;
-            tz = vdst->pialz ;
-            break ;
-          }
-          dist = sqrt(SQR(tx-v->x)+SQR(ty-v->y)+SQR(tz-v->z)) ;
-          if (dist < min_dist)
-          {
-            min_dist = dist ;
-            vmin = vdst ;
-          }
-        }
-      }
-    }
-  }
-
-  return(vmin) ;
-}
-/*--------------------------------------------------------------------
-  MHTfindClosestVertexNo() - basically the same as findClosestVertex
-  except it returns the vertex number instead of a pointer to the
-  vertex. Also, passes the minimum distance found
-  --------------------------------------------------------------------*/
-int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
-                           VERTEX *v, float *min_dist)
-{
-  VERTEX    *vmin, *vdst ;
-  int       i, vtxno, vtxno_min ;
-  double    dist;
-  MHB       *bin ;
-  MHBT      *bucket ;
-
-  /* get bucket closest to the vertex */
-  bucket = MHTgetBucket(mht, v->x, v->y, v->z) ;
-  if (!bucket)
-    return(-1) ;
-
-  *min_dist = 10000000 ;
-  vmin = NULL ;
-  vtxno_min = 0;
-
-  /* go through each bin in the bucket */
-  for (i = 0 ; i < bucket->nused ; i++)
-  {
-    bin = &(bucket->bins[i]);
-    vtxno = bin->fno;
-    vdst = &mris->vertices[vtxno] ;
-    if (vdst->ripflag) continue;
-    dist = sqrt(SQR(vdst->x-v->x)+SQR(vdst->y-v->y)+SQR(vdst->z-v->z)) ;
-    if (dist < *min_dist)
-    {
-      vtxno_min = vtxno;
-      *min_dist = dist ;
-      vmin = vdst ;
-    }
-  }
-
-  return(vtxno_min) ;
-}
-#define MAX_VERTICES 50000
-int *
-MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
-                                int vno, float max_dist, int *pvnum)
-{
-  int       vertices[MAX_VERTICES], *returned_vertices ;
-  VERTEX    *vdst, *v ;
-  int       i, xk, yk, zk, vnum ;
-  double    dist ;
-  MHB       *bin ;
-  MHBT      *bucket ;
-  float     x, y, z ;
-
-  v = &mris->vertices[vno] ;
-  for (vnum = 0, zk = -1 ; zk <= 1 ; zk++)
-  {
-    for (yk = -1 ; yk <= 1 ; yk++)
-    {
-      for (xk = -1 ; xk <= 1 ; xk++)
-      {
-        switch (mht->which_vertices)
-        {
-        default:
-        case CURRENT_VERTICES:
-          x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->x)+xk) ;
-          y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->y)+yk) ;
-          z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->z)+zk) ;
-          break ;
-        case CANONICAL_VERTICES:
-          x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->cx)+xk) ;
-          y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->cy)+yk) ;
-          z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->cz)+zk) ;
-          break ;
-        case WHITE_VERTICES:
-          x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->whitex)+xk) ;
-          y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->whitey)+yk) ;
-          z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->whitez)+zk) ;
-          break ;
-        case PIAL_VERTICES:
-          x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->pialx)+xk) ;
-          y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->pialy)+yk) ;
-          z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->pialz)+zk) ;
-          break ;
-        case ORIGINAL_VERTICES:
-          x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->origx)+xk) ;
-          y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->origy)+yk) ;
-          z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->origz)+zk) ;
-          break ;
-        }
-        bucket = MHTgetBucket(mht, x, y, z) ;
-        if (!bucket)
-          continue ;
-        bin = bucket->bins ;
-        for (i = 0 ; i < bucket->nused ; i++, bin++)
-        {
-          vdst = &mris->vertices[bin->fno] ;
-          if (vdst->ripflag)
-            continue ;  /* already processed */
-
-          if (bin->fno == Gdiag_no)
-            DiagBreak() ;
-          switch (mht->which_vertices)
-          {
-          default:
-          case CURRENT_VERTICES:
-            dist = sqrt(SQR(vdst->x-v->x)+SQR(vdst->y-v->y)+SQR(vdst->z-v->z)) ;
-            break ;
-          case WHITE_VERTICES:
-            dist = sqrt(SQR(vdst->whitex-v->whitex)+SQR(vdst->whitey-v->whitey)+SQR(vdst->whitez-v->whitez)) ;
-            break ;
-          case PIAL_VERTICES:
-            dist = sqrt(SQR(vdst->pialx-v->pialx)+SQR(vdst->pialy-v->pialy)+SQR(vdst->pialz-v->pialz)) ;
-            break ;
-          case CANONICAL_VERTICES:
-            dist =
-              sqrt(SQR(vdst->cx-v->cx)+SQR(vdst->cy-v->cy)+SQR(vdst->cz-v->cz));
-            break ;
-          case ORIGINAL_VERTICES:
-            dist =
-              sqrt(SQR(vdst->origx-v->origx)+
-                   SQR(vdst->origy-v->origy)+SQR(vdst->origz-v->origz));
-            break ;
-          }
-          if (dist < max_dist)
-          {
-            if (vnum >= MAX_VERTICES)
-              ErrorExit(ERROR_NOMEMORY,
-                        "MHTgetAllVerticesWithinDistance: couldn't"
-                        "fit vertices!") ;
-            vdst->ripflag = 1 ;
-            vertices[vnum++] = bin->fno ;
-          }
-        }
-      }
-    }
-  }
-
-  returned_vertices = (int *)calloc(vnum, sizeof(int)) ;
-  if (!returned_vertices)
-    ErrorExit(ERROR_NOMEMORY,
-              "MHTgetAllVerticesWithinDistance: couldn't allocate %d int array",
-              vnum) ;
-
-  memmove(returned_vertices, vertices, vnum*sizeof(int)) ;
-  *pvnum = vnum;
-  for (i = 0 ; i < vnum ; i++)
-    mris->vertices[vertices[i]].ripflag = 0 ;
-  return(returned_vertices) ;
-}
-
-
-/*
- find vertex in hash table that is closest to input coordinates */
-VERTEX *
-MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, float x, float y, float z)
-{
-  VERTEX    *vmin, *vdst ;
-  int       i, xk, yk, zk ;
-  double    dist, min_dist ;
-  MHB       *bin ;
-  MHBT      *bucket ;
-
-  min_dist = 10000000 ;
-  vmin = NULL ;
-  for (zk = -1 ; zk <= 1 ; zk++)
-  {
-    for (yk = -1 ; yk <= 1 ; yk++)
-    {
-      for (xk = -1 ; xk <= 1 ; xk++)
-      {
-        bucket = MHTgetBucket(mht, x+xk, y+yk, z+zk) ;
-        if (!bucket)
-          continue ;
-        bin = bucket->bins ;
-        for (i = 0 ; i < bucket->nused ; i++, bin++)
-        {
-          vdst = &mris->vertices[bin->fno] ;
-
-          if (bin->fno == Gdiag_no)
-            DiagBreak() ;
-          dist = sqrt(SQR(vdst->x-x)+SQR(vdst->y-y)+SQR(vdst->z-z)) ;
-          if (dist < min_dist)
-          {
-            min_dist = dist ;
-            vmin = vdst ;
-          }
-        }
-      }
-    }
-  }
-
-  return(vmin) ;
-}
-
-/*!/
-  \fn MRI *MHThashTest(MRIS *SrcSurfReg, MRIS *TrgSurfReg, float Res, int *count)
-  \brief Tests hash by comparing to brute force. Returns mri struct with 3 frames:
-    1. distinace to closest vertex found by brute force
-    2. distinace to closest vertex found by hash
-    3. abs diff
-    count is the number of times the abs diff was > .000001
-*/
-MRI *MHThashTest(MRIS *SrcSurfReg, MRIS *TrgSurfReg, float Res, int *count)
-{
-  MRI *mri;
-  MHT *SrcHash;
-  int tvtx;
-  VERTEX *v;
-  float dmin1=0,dmin2=0;
-  int msecFitTime;
-  struct timeb  mytimer;
-
-  //SrcSurfReg = MRISread("/homes/4/greve/subjects/tl-wm/surf/lh.sphere.reg") ;
-  //TrgSurfReg = MRISread("/homes/4/greve/subjects/sh-wm/surf/lh.sphere.reg") ;
-
-  printf("Creating source hash, Res = %g\n",Res);
-  SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL,CURRENT_VERTICES,Res);
-
-  mri = MRIallocSequence(TrgSurfReg->nvertices,1,1,MRI_FLOAT,3);
-  printf("Starting loop %d\n",TrgSurfReg->nvertices);
-  printf("vtxno   runtime  count       dmin1      dmin2      diff\n");
-  TimerStart(&mytimer) ;
-  *count = 0;
-  for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++){
-    //if(tvtx%500 == 0) {printf("\n"); fflush(stdout);}
-    v = &(TrgSurfReg->vertices[tvtx]);
-    MRISfindClosestVertex(SrcSurfReg,v->x,v->y,v->z,&dmin1);
-    MRIsetVoxVal(mri,tvtx,0,0,0,dmin1);
-    MHTfindClosestVertexNo(SrcHash,SrcSurfReg,v,&dmin2);
-    MRIsetVoxVal(mri,tvtx,0,0,1,dmin2);
-    MRIsetVoxVal(mri,tvtx,0,0,1,fabs(dmin1-dmin2));
-    if(fabs(dmin1-dmin2) > .000001) {
-      (*count)++;
-      msecFitTime = TimerStop(&mytimer) ;
-      printf("%6d  %4.1f  %3d    %f %f     %f \n",
-	     tvtx,msecFitTime/(1000.0*60.0),*count,dmin1,dmin2,fabs(dmin1-dmin2)); 
-    }
-    if(tvtx%100 == 0) {
-      msecFitTime = TimerStop(&mytimer) ;
-      printf("%6d    %4.1f     %3d    %f   %f     %f \n",
-	     tvtx,msecFitTime/(1000.0*60.0),*count,dmin1,dmin2,fabs(dmin1-dmin2)); 
-      fflush(stdout);
-    }
-  }
-  MHTfree(&SrcHash);
-  return(mri);
+  return(NO_ERROR) ;
 }

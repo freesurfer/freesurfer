@@ -1,15 +1,14 @@
 /**
  * @file  utils.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief well....utils!
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.26 $
+ *    $Date: 2007/05/28 01:53:44 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,20 +25,6 @@
  */
 
 
-/*
-   @(#)utils.h  1.9
-   10/16/95
-*/
-/*------------------------------------------------------------------------
-      File Name:  utils.h
-
-         Author:  Bruce Fischl
-
-        Created:  Jan. 1994
-
-    Description:
-
-------------------------------------------------------------------------*/
 #ifndef UTILS_H
 #define UTILS_H
 
@@ -53,7 +38,7 @@
 double randomNumber(double low, double hi) ;
 int    setRandomSeed(long seed) ;
 double normAngle(double angle) ;
-float deltaAngle(float angle1, float angle2) ;
+float  deltaAngle(float angle1, float angle2) ;
 double calcDeltaPhi(double phi1, double phi2) ;
 #if 1
 double latan2(double y, double x) ;
@@ -67,7 +52,7 @@ void   fComplementCode(double *pdIn, double *pdOut, int iLen) ;
 char *fgetl(char *s, int n, FILE *fp) ;
 #endif
 
-int IntSqrt(int n) ;
+int  IntSqrt(int n) ;
 
 char *StrRemoveSpaces(char *str) ;
 char *StrUpper(char *str) ;
@@ -96,9 +81,10 @@ int devIsinf(float value);
 int devIsnan(float value);
 int devFinite(float value);
 
-int getMemoryUsed(); // return total virtual memory used by Progname in Kbytes. works only under Linux /proc system
+int getMemoryUsed(); // return total virtual memory used by Progname in Kbytes
+                     // works only under Linux /proc system
 void printMemoryUsed(); // print function of the above.
 char *strcpyalloc(char *str);
-int ItemsInString(char *str);
+int  ItemsInString(char *str);
 
 #endif
