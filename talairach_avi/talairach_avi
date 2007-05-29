@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/16 22:36:45 $
-#    $Revision: 1.3 $
+#    $Date: 2007/05/29 23:24:27 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 
 #
-set VERSION = '$Id: talairach_avi,v 1.3 2007/05/16 22:36:45 nicks Exp $'
+set VERSION = '$Id: talairach_avi,v 1.4 2007/05/29 23:24:27 nicks Exp $'
 
 set InVol = ();
 set XFM = ();
@@ -107,7 +107,7 @@ echo "--------------------------------------------"
 echo ""
 
 # transform results back to mni305 space
-set cmd = (tkregister2 \
+set cmd = (tkregister2_cmdl \
     --mov $InVol \
     --targ $FREESURFER_HOME/average/mni305.cor.mgz \
     --xfmout ${XFM} \
@@ -119,7 +119,7 @@ $cmd |& tee -a $LF
 set st = $status
 mv -vf talsrcimg_to_711-2C_as_mni_average_305_t4_vox2vox.txt transforms/
 if($st) then
-  echo "ERROR: tkregister2 failed, see $LF"
+  echo "ERROR: tkregister2_cmdl failed, see $LF"
   exit 1;
 endif
 
