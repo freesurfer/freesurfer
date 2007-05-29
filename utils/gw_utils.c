@@ -7,8 +7,8 @@
  * Original Author: Graham Wideman
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/28 16:43:51 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/05/29 17:17:13 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -24,7 +24,10 @@
  *
  */
 
+
+#ifndef Darwin
 #include <values.h> // MAXSHORT
+#endif
 #ifndef MAXSHORT
 #define MAXSHORT 32767
 #endif
