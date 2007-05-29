@@ -2186,6 +2186,7 @@ AC_OUTPUT([Makefile
            tetgen/Makefile
            tkmedit/Makefile
            tkregister2/Makefile
+           tkregister2/cmdl/Makefile
            tksurfer/Makefile
            tridec/Makefile
            unix/Makefile
