@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.35 2007/05/30 16:11:14 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.36 2007/05/30 16:40:59 fischl Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -234,7 +234,7 @@
 405 BA4p                                    231 148 34  0
 406 BA6                                     1   118 14  0
 407 BA2                                     120 118 14  0
-408 BA1_old                                 123 186 220 0
+408 BA1_old                                 123 186 221 0
 409 BAun2                                   238 13  177 0
 410 BA1                                     123 186 220 0
 411 BA2b                                    138 13  206 0
