@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/28 01:54:53 $
- *    $Revision: 1.30 $
+ *    $Date: 2007/05/30 13:57:48 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -602,7 +602,7 @@ MRIS_HASH_TABLE *MHTfillVertexTableRes(
 {
   int     vno ;
   int     xv, yv, zv ;
-  float   x, y, z;
+  float   x=0.0, y=0.0, z=0.0;
   MHBT    *bucket ;
   VERTEX  *v ;
   static int ncalls = 0 ;
