@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/30 13:57:48 $
- *    $Revision: 1.31 $
+ *    $Date: 2007/05/30 15:20:13 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -92,12 +92,13 @@
 //==================================================================
 // Local structure types
 //==================================================================
-#ifndef bool
+#undef bool
+#undef true
+#undef false
 typedef enum {
   false = 0,
   true  = 1
 } bool;
-#endif
 
 typedef struct
 {
@@ -424,6 +425,8 @@ static int mhtVoxelList_SampleFace(float mhtres,
   Ptdbl_t      posn_b2a,   posn_c2a,   posn_b2c;
   VOXEL_COORD voxco_b2a,    voxco_c2a,    voxco_b2c;
   VOXEL_COORD oldvoxco_b2a, oldvoxco_c2a, oldvoxco_b2c;
+  oldvoxco_b2a.xv=0; oldvoxco_b2a.yv=0; oldvoxco_b2a.zv=0;
+  oldvoxco_c2a.xv=0; oldvoxco_c2a.yv=0; oldvoxco_c2a.zv=0;
   double LenSq_b2a, LenSq_c2a;    // Distances along sides
   double TempLenSq, TempLen, StepsReqdMain_dbl, StepsReqdRung_dbl;
   int    mainstep, rungstep, mainsteps_reqd, rungsteps_reqd;
@@ -1676,7 +1679,7 @@ int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht,
 {
 //------------------------------------------------------
   int vtxnum, rslt;
-  double x, y, z, min_dist_dbl;
+  double x=0.0, y=0.0, z=0.0, min_dist_dbl;
 
   mhtFindCommonSanityCheck(mht, mris);
 
