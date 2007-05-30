@@ -5,8 +5,8 @@
 # Fortran flags
 AM_FFLAGS=-ffixed-line-length-132 -fno-second-underscore
 
-# declare LDFLAGS and LIBS as empty, to override unnecessary default settings
-LDFLAGS=
+# declare empty AM_LDFLAGS and LIBS, to override unnecessary default settings
+AM_LDFLAGS=
 LIBS=
 
 foodir=$(prefix)/average
