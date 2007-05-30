@@ -3,13 +3,13 @@
 #
 # fsl_rigid_register
 #
-# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+# Wrapper for FSL's flirt
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/04/26 06:31:05 $
-#    $Revision: 1.23 $
+#    $Author: nicks $
+#    $Date: 2007/05/30 00:02:45 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 #
 
-set VERSION = '$Id: fsl_rigid_register,v 1.23 2007/04/26 06:31:05 greve Exp $';
+set VERSION = '$Id: fsl_rigid_register,v 1.24 2007/05/30 00:02:45 nicks Exp $';
 
 setenv FSLOUTPUTTYPE NIFTI
 
@@ -133,10 +133,10 @@ endif
 # Create an init mat based on geometry in the header #
 if($initgeom) then
   set initxfm = $tmpdir/initxfm.fslmat
-  set cmd = (tkregister2 --targ $refvol --mov $invol)
+  set cmd = (tkregister2_cmdl --targ $refvol --mov $invol)
   set cmd = ($cmd --reg $tmpdir/tkregister.dat)
   set cmd = ($cmd --fslregout $initxfm)
-  set cmd = ($cmd  --regheader --noedit --s doesnotmatter);
+  set cmd = ($cmd --regheader --noedit --s doesnotmatter);
   echo "--------------------------------------"
   pwd
   echo $cmd
@@ -207,7 +207,7 @@ if($#applyxfm == 0) then
   if($#regmatfile || $#xfmmatfile) then
     # Convert to register.dat or xfm #
     set tmpregdat = $tmpdir/reg.dat
-    set cmd = (tkregister2 --targ $refvol --mov $invol)
+    set cmd = (tkregister2_cmdl --targ $refvol --mov $invol)
     set cmd = ($cmd --reg $tmpregdat)
     set cmd = ($cmd --fslreg $fslmatfile)
     set cmd = ($cmd --noedit);
@@ -224,7 +224,7 @@ if($#applyxfm == 0) then
   if($#ltamatfile) then
     rm -f $ltamatfile
     #mri_fslmat_to_lta $invol $refvol $fslmatfile $ltamatfile
-    set cmd = (tkregister2 --noedit --targ $refvol --mov $invol \
+    set cmd = (tkregister2_cmdl --noedit --targ $refvol --mov $invol \
         --reg /tmp/reg.$$ --fsl $fslmatfile --ltaout $ltamatfile);
     echo $cmd
     $cmd

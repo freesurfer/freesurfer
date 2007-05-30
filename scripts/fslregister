@@ -3,13 +3,13 @@
 #
 # fslregister
 #
-# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+# Wrapper for FSL's bet and flirt
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/01/18 22:54:03 $
-#    $Revision: 1.10 $
+#    $Author: nicks $
+#    $Date: 2007/05/30 00:02:45 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.10 2007/01/18 22:54:03 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.11 2007/05/30 00:02:45 nicks Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -153,13 +153,13 @@ set fslmat0 = ();
 if($initxfm) then
   set fslmat0 = $fslmat"0";
   set reg0 = $tmpdir/reg0.$$.dat
-  set cmd = (tkregister2 --mov $movvolimg --reg $reg0 \
+  set cmd = (tkregister2_cmdl --mov $movvolimg --reg $reg0 \
      --regheader --fslregout $fslmat0 --s $subjid --noedit);
   pwd | tee -a $LF
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: tkregister2"
+    echo "ERROR: tkregister2_cmdl"
     exit 1;
   endif
 endif
@@ -203,7 +203,7 @@ if($#outvol) then
 endif
 
 # Now create the freesurfer registration matrix
-set cmd = (tkregister2 --s $subjid --mov $movvol)
+set cmd = (tkregister2_cmdl --s $subjid --mov $movvol)
 set cmd = ($cmd --reg $regfile)
 set cmd = ($cmd --fslreg $fslmat)
 set tkregcheckcmd = ($cmd --surf orig);  # for visual inspection
@@ -211,7 +211,7 @@ set cmd = ($cmd --noedit)
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) then
-  echo "ERROR: tkregister2" | tee -a $LF
+  echo "ERROR: tkregister2_cmdl" | tee -a $LF
   exit 1;
 endif
 
