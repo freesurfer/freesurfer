@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/30 15:20:13 $
- *    $Revision: 1.32 $
+ *    $Date: 2007/05/30 15:35:25 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1609,7 +1609,7 @@ VERTEX * MHTfindClosestVertex(MRIS_HASH_TABLE *mht,
 //------------------------------------------------------
   VERTEX * vtx;
   int rslt;
-  float x, y, z;
+  float x=0.0, y=0.0, z=0.0;
 
   mhtFindCommonSanityCheck(mht, mris);
 
@@ -1643,7 +1643,7 @@ VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht,
 //------------------------------------------------------
   VERTEX * vtx;
   int rslt;
-  float x, y, z;
+  float x=0.0, y=0.0, z=0.0;
   //---------------------------------
   // Sanity checks
   //---------------------------------
