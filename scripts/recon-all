@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/30 00:02:45 $
-#    $Revision: 1.105 $
+#    $Date: 2007/05/31 01:05:35 $
+#    $Revision: 1.106 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.105 2007/05/30 00:02:45 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.106 2007/05/31 01:05:35 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -744,7 +744,7 @@ if($DoTalCheck) then
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts talairach_afd $XOptsFile`;
   set xfm = transforms/talairach.xfm
-  set cmd = (talairach_afd -xfm $xfm $xopts)
+  set cmd = (talairach_afd -T 0.005 -xfm $xfm $xopts)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) then
@@ -2140,17 +2140,31 @@ if ($DoQdecCache) then
   $PWD |& tee -a $LF
   foreach hemi ($hemilist)
     foreach measure ($measurelist)
+
+      set MeasFile=(${hemi}.${measure}.${target})
+      set cmd=(mris_preproc \
+          --s ${subjid} \
+          --hemi ${hemi} \
+          --meas ${measure} \
+          --target ${target} \
+          --out ${MeasFile}.mgh)
+      echo "#--------------------------------------------" \
+          |& tee -a $LF |& tee -a $CF
+      echo "#@# Qdec Cache $hemi $measure $target `date`" \
+          |& tee -a $SF |& tee -a $LF |& tee -a $CF
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      if($RunIt) rm -Rf tmp.mris_preproc.*
+
       foreach fwhm ($fwhmlist)
-        set CacheOutFile=(${measure}.fwhm${fwhm}.${target})
-        set tmpfile=(tmp.${hemi}.${CacheOutFile}.mgh)
-        set cmd=(mris_preproc \
-            --s ${subjid} \
-            --hemi $hemi \
-            --meas $measure \
-            --fwhm $fwhm \
-            --target $target \
-            --cache-out ${CacheOutFile}.mgh \
-            --out $tmpfile)
+        set OutFile=(${hemi}.${measure}.fwhm${fwhm}.${target})
+        set cmd=(mri_surf2surf \
+            --s ${target} \
+            --hemi ${hemi} \
+            --fwhm ${fwhm} \
+            --sval ${MeasFile}.mgh \
+            --tval ${OutFile}.mgh)
         echo "#--------------------------------------------" \
             |& tee -a $LF |& tee -a $CF
         echo "#@# Qdec Cache $hemi $measure fwhm$fwhm $target `date`" \
@@ -2158,8 +2172,7 @@ if ($DoQdecCache) then
         echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
         if($RunIt) $cmd |& tee -a $LF
         if($status) goto error_exit;
-        rm -f mris_preproc.surface.${hemi}.*
-        rm -f $tmpfile
+        if($RunIt) rm -Rf tmp.mris_preproc.*
         echo $cmd > $touchdir/$hemi.$measure.$fwhm.qcache.touch
       end # fwhm
     end # measure
