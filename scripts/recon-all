@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/31 01:05:35 $
-#    $Revision: 1.106 $
+#    $Date: 2007/05/31 19:22:38 $
+#    $Revision: 1.107 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.106 2007/05/31 01:05:35 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.107 2007/05/31 19:22:38 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -120,7 +120,8 @@ set NoNormMGZ = 0; # set to 1 when -nosubcortseg or -noaseg flag is used,
                    # which causes norm.mgz not to used during inorm2 step
 set NoWMSA = 0;      # if 1, then -nowmsa flag is added to mri_ca_label
 set DoQdecCache = 0; # if 1, then create smoothed fsaverage surface files
-set measurelist = ( thickness curv sulc area jacobian_white  ) #see DoQdecCache
+set measurelist = ( thickness area area.pial volume curv sulc jacobian_white  )
+                     # ^ these are the files smoothed by DoQdecCache (-qcache)
 set fwhmlist = ( 0 5 10 15 20 25 ) # see DoQdecCache
 set target = fsaverage # see DoQdecCache 
 
@@ -2140,41 +2141,48 @@ if ($DoQdecCache) then
   $PWD |& tee -a $LF
   foreach hemi ($hemilist)
     foreach measure ($measurelist)
-
-      set MeasFile=(${hemi}.${measure}.${target})
-      set cmd=(mris_preproc \
-          --s ${subjid} \
-          --hemi ${hemi} \
-          --meas ${measure} \
-          --target ${target} \
-          --out ${MeasFile}.mgh)
       echo "#--------------------------------------------" \
           |& tee -a $LF |& tee -a $CF
       echo "#@# Qdec Cache $hemi $measure $target `date`" \
           |& tee -a $SF |& tee -a $LF |& tee -a $CF
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      if($RunIt) rm -Rf tmp.mris_preproc.*
-
-      foreach fwhm ($fwhmlist)
-        set OutFile=(${hemi}.${measure}.fwhm${fwhm}.${target})
-        set cmd=(mri_surf2surf \
-            --s ${target} \
-            --hemi ${hemi} \
-            --fwhm ${fwhm} \
-            --sval ${MeasFile}.mgh \
-            --tval ${OutFile}.mgh)
-        echo "#--------------------------------------------" \
+      # check that the file exists, print only warning if not
+      if ( ! -e ${hemi}.${measure} ) then
+        echo "WARNING: File ${hemi}.${measure} does not exist!" \
             |& tee -a $LF |& tee -a $CF
-        echo "#@# Qdec Cache $hemi $measure fwhm$fwhm $target `date`" \
-            |& tee -a $SF |& tee -a $LF |& tee -a $CF
+        echo "Skipping creation of smoothed data for ${hemi}.${measure}" \
+            |& tee -a $LF |& tee -a $CF
+      else
+        set MeasFile=(${hemi}.${measure}.${target})
+        set cmd=(mris_preproc \
+            --s ${subjid} \
+            --hemi ${hemi} \
+            --meas ${measure} \
+            --target ${target} \
+            --out ${MeasFile}.mgh)
         echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
         if($RunIt) $cmd |& tee -a $LF
         if($status) goto error_exit;
         if($RunIt) rm -Rf tmp.mris_preproc.*
-        echo $cmd > $touchdir/$hemi.$measure.$fwhm.qcache.touch
-      end # fwhm
+
+        foreach fwhm ($fwhmlist)
+          set OutFile=(${hemi}.${measure}.fwhm${fwhm}.${target})
+          set cmd=(mri_surf2surf \
+              --s ${target} \
+              --hemi ${hemi} \
+              --fwhm ${fwhm} \
+              --sval ${MeasFile}.mgh \
+              --tval ${OutFile}.mgh)
+          echo "#--------------------------------------------" \
+              |& tee -a $LF |& tee -a $CF
+          echo "#@# Qdec Cache $hemi $measure fwhm$fwhm $target `date`" \
+              |& tee -a $SF |& tee -a $LF |& tee -a $CF
+          echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+          if($RunIt) $cmd |& tee -a $LF
+          if($status) goto error_exit;
+          if($RunIt) rm -Rf tmp.mris_preproc.*
+          echo $cmd > $touchdir/$hemi.$measure.$fwhm.qcache.touch
+        end # fwhm
+      endif # if ( ! -e ${hemi}.${measure} )
     end # measure
   end # hemi
 endif # DoQdecCache
