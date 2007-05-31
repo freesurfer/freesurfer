@@ -2,15 +2,33 @@
  * @file  mri_vol2surf.c 
  * @brief utility for sampling volumes onto a surface.
  *
- * utility for sampling volumes onto a surface. The includes sampling from one subject
- * to another using spherical registration.
+ * Purpose: Resamples a volume onto a surface. The surface
+ * may be that of a subject other than the source subject.
+ * This replaces paint.c and is also used to convert functional
+ * data onto the icosahedron.
+ * Volume-to-Volume - V2V is a necessary step when converting functional
+ * data to talairach or painting onto the surface. The model as of 2/4/01
+ * assumes that the transformation is completely linear from one space to
+ * another, though there are variables for intermediate transformations
+ * built in. The four variables are: (1) Quantization matrix Q, (2) Field-
+ * of-view matrix F, (3) Warping matrix W, and (4), Registration matrix D.
+ *
+ * D - Registration matrix. Converts from Anatomical Space to Unwarpded
+ *     Scanner Space.
+ * W - Warping matrix. Converts from Unwarpded Scanner Space to Warped
+ *     Scanner Space.
+ * F - FOV matrix. Converts from Warpded Scanner Space to Field-of-View
+ *     Space (the space created by the axes centered in the FOV and
+ *     parallel with the edges of the FOV).
+ * Q - Quantization matrix. Converts from FOV space to ColRowSlice Index
+ *     Space.
  */
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/02/12 13:43:00 $
- *    $Revision: 1.39 $
+ *    $Author: nicks $
+ *    $Date: 2007/05/31 18:05:58 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,32 +45,6 @@
  */
 
 
-/*----------------------------------------------------------
-  Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.39 2007/02/12 13:43:00 fischl Exp $
-  Author: Douglas Greve
-  Purpose: Resamples a volume onto a surface. The surface
-  may be that of a subject other than the source subject.
-  This replaces paint.c and is also used to convert functional
-  data onto the icosahedron.
-
-  Volume-to-Volume - V2V is a necessary step when converting functional
-  data to talairach or painting onto the surface. The model as of 2/4/01
-  assumes that the transformation is completely linear from one space to
-  another, though there are variables for intermediate transformations
-  built in. The four variables are: (1) Quantization matrix Q, (2) Field-
-  of-view matrix F, (3) Warping matrix W, and (4), Registration matrix D.
-
-  D - Registration matrix. Converts from Anatomical Space to Unwarpded
-      Scanner Space.
-  W - Warping matrix. Converts from Unwarpded Scanner Space to Warped
-      Scanner Space.
-  F - FOV matrix. Converts from Warpded Scanner Space to Field-of-View
-      Space (the space created by the axes centered in the FOV and
-      parallel with the edges of the FOV).
-  Q - Quantization matrix. Converts from FOV space to ColRowSlice Index
-      Space.
-  ----------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -60,7 +52,6 @@
 #include <sys/time.h>
 
 #include "icosahedron.h"
-
 #include "MRIio_old.h"
 #include "error.h"
 #include "diag.h"
@@ -71,8 +62,6 @@
 #include "mri2.h"
 #include "prime.h"
 #include "fsenv.h"
-
-//#include "bfileio.h"
 #include "registerio.h"
 #include "resample.h"
 #include "selxavgio.h"
@@ -89,92 +78,94 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.39 2007/02/12 13:43:00 fischl Exp $";
+static char vcid[] = 
+"$Id: mri_vol2surf.c,v 1.40 2007/05/31 18:05:58 nicks Exp $";
+
 char *Progname = NULL;
 
-char *defaulttypestring;
-int  defaulttype = MRI_VOLUME_TYPE_UNKNOWN;
+static char *defaulttypestring;
+static int  defaulttype = MRI_VOLUME_TYPE_UNKNOWN;
 
-char *srcvolid   = NULL;
-char *srctypestring = NULL;
-int   srctype = MRI_VOLUME_TYPE_UNKNOWN;
-char *srcregfile = NULL;
-int  regheader = 0;
-char *srcwarp    = NULL;
-int   srcoldreg  = 0;
-char *srcsubject = NULL;
-char *srcsubjectuse = NULL;
+static char *srcvolid   = NULL;
+static char *srctypestring = NULL;
+static int   srctype = MRI_VOLUME_TYPE_UNKNOWN;
+static char *srcregfile = NULL;
+static int  regheader = 0;
+static char *srcwarp    = NULL;
+static int   srcoldreg  = 0;
+static char *srcsubject = NULL;
+static char *srcsubjectuse = NULL;
 
-char *srchitvolid   = NULL;
-char *srchittypestring = NULL;
-int   srchittype = MRI_VOLUME_TYPE_UNKNOWN;
+static char *srchitvolid   = NULL;
+static char *srchittypestring = NULL;
+static int   srchittype = MRI_VOLUME_TYPE_UNKNOWN;
 
-char *hemi    = NULL;
-char *surfname = "white";
-char *trgsubject = NULL;
-int  IcoOrder = -1;
-float IcoRadius = 100;
-char *surfreg = "sphere.reg";
-char *thicknessname = "thickness";
-float ProjFrac = 0;
-int   ProjDistFlag = 0;
-float ProjFracMin=0.0,ProjFracMax=0.0,ProjFracDelta=1.0;
+static char *hemi    = NULL;
+static char *surfname = "white";
+static char *trgsubject = NULL;
+static int  IcoOrder = -1;
+static float IcoRadius = 100;
+static char *surfreg = "sphere.reg";
+static char *thicknessname = "thickness";
+static float ProjFrac = 0;
+static int   ProjDistFlag = 0;
+static float ProjFracMin=0.0,ProjFracMax=0.0,ProjFracDelta=1.0;
 
-MRI_SURFACE *Surf    = NULL;
-MRI_SURFACE *SurfOut = NULL;
-MRI_SURFACE *SrcSurfReg = NULL;
-MRI_SURFACE *TrgSurfReg = NULL;
-int UseHash = 1;
+static MRI_SURFACE *Surf    = NULL;
+static MRI_SURFACE *SurfOut = NULL;
+static MRI_SURFACE *SrcSurfReg = NULL;
+static MRI_SURFACE *TrgSurfReg = NULL;
+static int UseHash = 1;
 
-char *outfile  = NULL;
-char *outtypestring = NULL;
-int  outtype = MRI_VOLUME_TYPE_UNKNOWN;
+static char *outfile  = NULL;
+static char *outtypestring = NULL;
+static int  outtype = MRI_VOLUME_TYPE_UNKNOWN;
 
-char *srchitfile = NULL;
-char *trghitfile = NULL;
+static char *srchitfile = NULL;
+static char *trghitfile = NULL;
 
-char  *interpmethod_string = "nearest";
-int    interpmethod = -1;
-char *mapmethod = "nnfr";
+static char  *interpmethod_string = "nearest";
+static int  interpmethod = -1;
+static char *mapmethod = "nnfr";
 
-int debug = 0;
-int reshape = 1;
-int reshapefactor = 0;
-int reshapetarget = 20;
+static int debug = 0;
+static int reshape = 1;
+static int reshapefactor = 0;
+static int reshapetarget = 20;
 
-MATRIX *Dsrc, *Dsrctmp, *Wsrc, *Fsrc, *Qsrc, *vox2ras;
-SXADAT *sxa;
+static MATRIX *Dsrc, *Dsrctmp, *Wsrc, *Fsrc, *Qsrc, *vox2ras;
+static SXADAT *sxa;
 
-char *SUBJECTS_DIR = NULL;
-MRI *SrcVol, *SurfVals, *SurfVals2, *SurfValsP;
-MRI *SrcHits, *SrcDist, *TrgHits, *TrgDist;
-MRI *mritmp;
-MRI *SrcHitVol;
-MRI *TargVol;
+static char *SUBJECTS_DIR = NULL;
+static MRI *SrcVol, *SurfVals, *SurfVals2, *SurfValsP;
+static MRI *SrcHits, *SrcDist, *TrgHits, *TrgDist;
+static MRI *mritmp;
+static MRI *SrcHitVol;
+static MRI *TargVol;
 
-FILE *fp;
+static FILE *fp;
 
-char *nvoxfile = NULL;
+static char *nvoxfile = NULL;
 
-char tmpstr[2000];
+static char tmpstr[2000];
 
-int   float2int_src;
-char  *float2int_string = "round";
-int    float2int = -1;
-int   fixtkreg = 0;
-int ReverseMapFlag = 0;
+static int  float2int_src;
+static char *float2int_string = "round";
+static int  float2int = -1;
+static int  fixtkreg = 0;
+static int ReverseMapFlag = 0;
 
-int framesave = 0;
+static int framesave = 0;
 
-float fwhm = 0, gstd = 0;
-float surf_fwhm = 0, surf_gstd = 0;
+static float fwhm = 0, gstd = 0;
+static float surf_fwhm = 0, surf_gstd = 0;
 
-int  srcsynth = 0;
-long seed = -1; /* < 0 for auto */
-char *seedfile = NULL;
+static int  srcsynth = 0;
+static long seed = -1; /* < 0 for auto */
+static char *seedfile = NULL;
 
-double scale = 0;
-int GetProjMax = 0;
+static double scale = 0;
+static int GetProjMax = 0;
 
 /*------------------------------------------------------------------*/
 /*------------------------------------------------------------------*/
@@ -193,7 +184,10 @@ int main(int argc, char **argv) {
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.39 2007/02/12 13:43:00 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mri_vol2surf.c,v 1.40 2007/05/31 18:05:58 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -296,7 +290,8 @@ int main(int argc, char **argv) {
   /* check that the resolution of the SrcVol is the same as in reg file */
   if (!regheader &&
       (fabs(SrcVol->xsize-ipr) > .01 || fabs(SrcVol->zsize-bpr) > .01)) {
-    printf("WARNING: the voxel resolution in the source volume (%g,%g,%g) differs \n",
+    printf("WARNING: the voxel resolution in the source volume"
+           " (%g,%g,%g) differs \n",
            SrcVol->xsize,SrcVol->ysize,SrcVol->zsize);
     printf("         from that listed in the registration file (%g,%g,%g)\n",
            ipr,ipr,bpr);
@@ -382,11 +377,14 @@ int main(int argc, char **argv) {
   printf("Mapping Source Volume onto Source Subject Surface\n");
   fflush(stdout);
   nproj = 0;
-  for (ProjFrac=ProjFracMin; ProjFrac <= ProjFracMax; ProjFrac += ProjFracDelta) {
+  for (ProjFrac=ProjFracMin; 
+       ProjFrac <= ProjFracMax; 
+       ProjFrac += ProjFracDelta) {
     printf("%2d %g %g %g\n",nproj+1,ProjFrac,ProjFracMin,ProjFracMax);
-    SurfValsP = vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc,
-                                Surf, ProjFrac, interpmethod, float2int, SrcHitVol,
-                                ProjDistFlag);
+    SurfValsP = 
+      vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc,
+                      Surf, ProjFrac, interpmethod, float2int, SrcHitVol,
+                      ProjDistFlag);
     fflush(stdout);
     if (SurfValsP == NULL) {
       printf("ERROR: mapping volume to source\n");
@@ -482,7 +480,8 @@ int main(int argc, char **argv) {
     printf("Done mapping surfaces\n");
     fflush(stdout);
 
-    /*Compute some stats on mapping number of trgvtxs mapped from a source vtx*/
+    /*Compute some stats on mapping number 
+      of trgvtxs mapped from a source vtx */
     nSrc121 = 0;
     nSrcLost = 0;
     MnSrcMultiHits = 0.0;
@@ -495,7 +494,8 @@ int main(int argc, char **argv) {
     nSrcMulti = SrcSurfReg->nvertices - nSrc121;
     if (nSrcMulti > 0) MnSrcMultiHits = (MnSrcMultiHits/nSrcMulti);
     else              MnSrcMultiHits = 0;
-    printf("nSrc121 = %5d, nSrcLost = %5d, nSrcMulti = %5d, MnSrcMultiHits = %g\n",
+    printf("nSrc121 = %5d, nSrcLost = %5d, "
+           "nSrcMulti = %5d, MnSrcMultiHits = %g\n",
            nSrc121,nSrcLost,nSrcMulti,MnSrcMultiHits);
     MRISfree(&SrcSurfReg);
 
@@ -569,9 +569,11 @@ int main(int argc, char **argv) {
       if (reshapefactor == 0) {
         if (outtype == MRI_ANALYZE4D_FILE || outtype == MRI_ANALYZE_FILE ||
             outtype == NIFTI1_FILE || outtype == NII_FILE)
-          reshapefactor = GetClosestPrimeFactorLess(SurfVals2->width,32768);
+          reshapefactor = GetClosestPrimeFactorLess(SurfVals2->width,
+                                                    32768);
         else
-          reshapefactor = GetClosestPrimeFactor(SurfVals2->width,reshapetarget);
+          reshapefactor = GetClosestPrimeFactor(SurfVals2->width,
+                                                reshapetarget);
       }
       if (reshapefactor != SurfVals2->width) {
         printf("Reshaping %d (nvertices = %d)\n",
@@ -589,7 +591,8 @@ int main(int argc, char **argv) {
       }
     }
     printf("Writing to %s\n",outfile);
-    printf("Dim: %d %d %d\n",SurfVals2->width,SurfVals2->height,SurfVals2->depth);
+    printf("Dim: %d %d %d\n",
+           SurfVals2->width,SurfVals2->height,SurfVals2->depth);
     MRIwriteType(SurfVals2,outfile,outtype);
   }
 
@@ -922,8 +925,10 @@ static void print_help(void) {
 
   printf(
     "This program will resample a volume onto a surface of a subject or the \n"
-    "sphere. The output can be viewed on the surface (using tksurfer) or can \n"
-    "be using for surface-based intersubject averaging. This program supersedes\n"
+    "sphere. The output can be viewed on the surface "
+    "(using tksurfer) or can \n"
+    "be using for surface-based intersubject averaging. "
+    "This program supersedes\n"
     "paint.\n"
     "\n"
     "OPTIONS\n"
@@ -954,8 +959,10 @@ static void print_help(void) {
     "    (unless --trgsubject is specified). There may or may not be \n"
     "    another line with the method used to convert voxel indices\n"
     "    from floating to integer during registration. If tkregiser was\n"
-    "    used to register the volume, the method should be blank or 'tkregister'\n"
-    "    (no quotes), otherwise it should be 'round'. This can be overridden \n"
+    "    used to register the volume, the method should be "
+    "blank or 'tkregister'\n"
+    "    (no quotes), otherwise it should be 'round'. "
+    "This can be overridden \n"
     "    with --float2int.\n"
     "\n"
     "  --regheader subject \n"
@@ -972,7 +979,8 @@ static void print_help(void) {
     "    Attempt to convert the registration matrix so that it is round \n"
     "    (or nearest neighbor) compatible. Setting this flag will only have \n"
     "    an effect if the float2int method is tkregister. It will 'fix' the \n"
-    "    matrix and change the float2int method to round. Don't use this flag \n"
+    "    matrix and change the float2int method to round. "
+    "Don't use this flag \n"
     "    unless you know what you are doing. \n"
     "\n"
     "  --fwhm FWHM\n"
@@ -980,20 +988,25 @@ static void print_help(void) {
     "    Smooth input volume with a gaussian kernal with FWHM mm.\n"
     "\n"
     "  --trgsubject target subject name : resample volume onto this subject \n"
-    "    instead of the one found in the registration file. The target subject \n"
+    "    instead of the one found in the registration file. "
+    "The target subject \n"
     "    can be either a subject name (as found in $SUBJECTS_DIR) or ico \n"
     "    (to map onto the sphere). If the target subject is not the source \n"
-    "    subject, then the surfaces are mapped using each subject's spherical\n"
-    "    surface registration (?h.sphere.reg or that specified with --surfreg).\n"
+    "    subject, then the surfaces are mapped using each"
+    " subject's spherical\n"
+    "    surface registration (?h.sphere.reg or that "
+    "specified with --surfreg).\n"
     "    If the target subject is ico, then the volume is resampled onto an\n"
-    "    icosahedron, which is used to uniformly sample a sphere. This requires\n"
+    "    icosahedron, which is used to uniformly sample a sphere. "
+    "This requires\n"
     "    specifying the icosahedron order (see --icoorder).\n"
     "\n"
     "\n"
     "  --hemi hemisphere : lh = left hemisphere, rh = right hemisphere\n"
     "\n"
     "  --surf surfacename : the surface on which to resample. The default is\n"
-    "    white. It will look for $SUBJECTS_DIR/subjectname/surf/?h.surfacename\n"
+    "    white. It will look for "
+    "$SUBJECTS_DIR/subjectname/surf/?h.surfacename\n"
     "\n"
     "  --surfreg intersubject registration surface : default (sphere.reg).\n"
     "    This is a representation of a subject's cortical surface after it\n"
@@ -1015,7 +1028,8 @@ static void print_help(void) {
     "  --projfrac fraction : fraction (0,1) of the cortical thickness \n"
     "    at each vertex to project along the surface normal. Default 0. \n"
     "    When set at 0.5 with the white surface, this should sample in the\n"
-    "    middle of the cortical surface. This requires that a ?h.thickness file \n"
+    "    middle of the cortical surface. "
+    "This requires that a ?h.thickness file \n"
     "    exist for the source subject. Note, the faction can be less than\n"
     "    zero, in which case it will project into the white matter. See also\n"
     "    --projdist.\n"
