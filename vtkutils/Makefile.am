@@ -22,6 +22,7 @@ libvtkutils_a_SOURCES= \
 	vtkKWProgressDialog.cxx vtkKWProgressDialog.h \
 	vtkKWRGBATransferFunctionEditor.cxx vtkKWRGBATransferFunctionEditor.h \
 	vtkKWRGBATransferFunctionEditorTcl.cxx \
+	vtkKWBltGraph.cxx vtkKWBltGraph.h vtkKWBltGraphTcl.cxx
 	vtkFreesurferLookupTable.cxx vtkFreesurferLookupTable.h \
 	vtkRGBATransferFunction.cxx vtkRGBATransferFunction.h \
 	vtkFDTensorGlyph.cxx vtkFDTensorGlyph.h \
@@ -36,6 +37,10 @@ vtkKWRGBATransferFunctionEditorTcl.cxx: vtkKWRGBATransferFunctionEditor.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWRGBATransferFunctionEditor.h \
 	${VTK_LIB_VTK}/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
 
+vtkKWBltGraphTcl.cxx: vtkKWBltGraph.h
+	${VTK_DIR}/bin/vtkWrapTcl vtkKWBltGraph.h \
+	${VTK_LIB_VTK}/hints 1 vtkKWBltGraphTcl.cxx
+
 
 if ENABLE_KWWIDGETS_APPS
 check_PROGRAMS=vtkKWRGBATransferFunctionEditorTester
@@ -49,12 +54,15 @@ endif
 vtkKWRGBATransferFunctionEditorTester_SOURCES=vtkKWRGBATransferFunctionEditorTester.cxx \
 	vtkKWRGBATransferFunctionEditorTesterTcl.cxx \
 	RgbatransferfunctioneditortesterLibInit.cxx
+
 vtkKWRGBATransferFunctionEditorTesterTcl.cxx: vtkKWRGBATransferFunctionEditorTester.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWRGBATransferFunctionEditorTester.h \
 	${VTK_LIB_VTK}/hints 1 vtkKWRGBATransferFunctionEditorTesterTcl.cxx
+
 RgbatransferfunctioneditortesterLibInit.cxx: RgbatransferfunctioneditortesterLibInit.data
 	${VTK_DIR}/bin/vtkWrapTclInit RgbatransferfunctioneditortesterLibInit.data \
 	RgbatransferfunctioneditortesterLibInit.cxx
+
 vtkKWRGBATransferFunctionEditorTester_LDADD=\
 	$(top_srcdir)/fsgdf/libfsgdf.a \
 	$(top_srcdir)/vtkfsio/libvtkfsio.a \
