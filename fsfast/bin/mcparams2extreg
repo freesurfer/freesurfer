@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.3 $
+#    $Author: greve $
+#    $Date: 2007/06/01 16:49:37 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: mcparams2extreg,v 1.3 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: mcparams2extreg,v 1.4 2007/06/01 16:49:37 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -133,7 +133,21 @@ tee $MLF > /dev/null <<EOF
 
   x2 = zeros(1,1,nkeep,ntrs);
   x2(1,1,:,:) = x'; %'
-  fmri_svbvolume(x2,extreg);
+  %fmri_svbvolume(x2,extreg);
+
+  mri.vol = permute(x2,[1 3 2 4]);
+  mri.tr = 0;
+  mri.flip_angle = 0;
+  mri.te = 0;
+  mri.ti = 0;
+  mri.vox2ras0 = eye(4);
+  mri.xsize = 1;
+  mri.ysize = 1;
+  mri.zsize = 1;
+  mri.volres = [1 1 1];
+  mri.volsize = [size(mri.vol,1) size(mri.vol,2) size(mri.vol,3)];
+  fname = sprintf('%s.bhdr',extreg);
+  MRIwrite(mri,fname);
 
 EOF
 #------------------------------------------#
