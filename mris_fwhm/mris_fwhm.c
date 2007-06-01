@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/17 18:52:50 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/06/01 18:06:23 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -144,7 +144,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.10 2007/03/17 18:52:50 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.11 2007/06/01 18:06:23 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -230,13 +230,21 @@ int main(int argc, char *argv[]) {
   printf("Number of vertices %d\n",surf->nvertices);
   printf("Number of faces    %d\n",surf->nfaces);
   printf("Total area         %lf\n",surf->total_area);
-  if (surf->group_avg_surface_area > 0) printf("GroupSurface %f\n",surf->group_avg_surface_area);
-  else                                 printf("GroupSurface 0\n");
-  if (getenv("FIX_VERTEX_AREA") != NULL) printf("FIX_VERTEX_AREA 1\n");
+  if (surf->group_avg_surface_area > 0) 
+    printf("GroupSurface %f\n",surf->group_avg_surface_area);
+  else                                 
+    printf("GroupSurface 0\n");
+  if(getenv("FIX_VERTEX_AREA") != NULL) printf("FIX_VERTEX_AREA 1\n");
   else                                  printf("FIX_VERTEX_AREA 0\n");
   printf("AvgVtxArea       %lf\n",avgvtxarea);
   printf("AvgVtxDist       %lf\n",InterVertexDistAvg);
   printf("StdVtxDist       %lf\n",InterVertexDistStdDev);
+
+  if(nitersonly && infwhm > 0) {
+    niters = MRISfwhm2niters(infwhm,surf);
+    printf("niters %d\n",niters);
+    exit(0);
+  }
 
   if (!synth) {
     InVals = MRIread(inpath);
@@ -281,10 +289,6 @@ int main(int argc, char *argv[]) {
 
   if (infwhm > 0) {
     niters = MRISfwhm2niters(infwhm,surf);
-    if (nitersonly) {
-      printf("niters %d\n",niters);
-      exit(0);
-    }
     printf("Smoothing input by fwhm=%lf, gstd=%lf, niters=%d \n",
            infwhm,ingstd,niters);
     MRISsmoothMRI(surf, InVals, niters, mask,InVals);
@@ -359,7 +363,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--synth")) synth = 1;
     else if (!strcasecmp(option, "--nosynth")) synth = 0;
     else if (!strcasecmp(option, "--mask-inv")) maskinv = 1;
-    else if (!strcasecmp(option, "--niters-only")) nitersonly = 1;
+    else if (!strcasecmp(option, "--niters-only")){
+      nitersonly = 1; synth = 1;
+    }
 
     else if (!strcasecmp(option, "--s") || !strcasecmp(option, "--subject")) {
       if (nargc < 1) CMDargNErr(option,1);
