@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.5 $
+#    $Author: greve $
+#    $Date: 2007/06/01 16:49:00 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,8 +23,7 @@
 #
 
 
-set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
-set MKCONTRAST_VER = '$Id: mkcontrast,v 1.5 2007/01/09 22:41:18 nicks Exp $';
+set MKCONTRAST_VER = '$Id: mkcontrast,v 1.6 2007/06/01 16:49:00 greve Exp $';
 
 set CorrIdeal = 0;
 set monly = 0;
@@ -45,6 +44,7 @@ set datfile = ();
 set wpsa = (); # weights for pre-stim avg
 set RmPreStim = 0;
 set sxadat = ();
+set anadir = ();
 set CNorm = 1;
 
 set nircorr = 0;
@@ -65,6 +65,7 @@ if ( $#argv == 0 ) then
   echo "   -showcmtx             : display contrast matrix"
   echo "   -rmprestim            : remove prestim baseline (ER only)"
   echo "   -sxadat file          : dat file from selxavg"
+  echo "   -anadir anadir        : analysis dir created with mkanalysis-sess"
   echo "   -TER TER              : Estimation resolution (sec)"
   echo "   -prestim TPreStim     : Estimation prestimulus period (0) (sec)"
   echo ""
@@ -83,21 +84,11 @@ if ( $#argv == 0 ) then
   echo "   -prestim TPreStim     : Estimation prestimulus period (0) (sec)"
   echo ""
   echo "  $MKCONTRAST_VER"
-  echo "  fMRIA Version $fmrianalver";
-  echo "  Author: Douglas N. Greve"
-  echo "          Massachusetts General Hospital - NMR Center"
-  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
-  echo "  Nov 3, 1999"
   echo ""
   exit 1;
 endif
 
 echo "  $MKCONTRAST_VER"
-echo "  fMRIA Version $fmrianalver";
-echo "  Author: Douglas N. Greve."
-echo "          Massachusetts General Hospital - NMR Center"
-echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu"
-echo ""
 
 set MATLAB = `getmatlab`;
 if($status) exit 1;
@@ -227,6 +218,41 @@ while( $#argv != 0 )
         exit 1
       endif
       set cmtxfile = $argv[1]; shift;
+      breaksw
+
+    case "-anadir":
+      if( $#argv == 0) goto arg1err;
+      set anadir = $argv[1]; shift;
+      if(! -e $anadir) then
+         echo "ERROR: cannot find $anadir"
+         exit 1;
+      endif
+      set cfg = $anadir/analysis.cfg
+      if(! -e $cfg) then
+        echo "ERROR: $cfg does not exist"
+        exit 1;
+      endif
+      set info = $anadir/analysis.info
+      if(! -e $info) then
+        echo "ERROR: $info does not exist"
+        exit 1;
+      endif
+      set TER = `cat $cfg | awk '{if($1 == "-TER") print $2}'`;
+      set TimeWindow = `cat $cfg | awk '{if($1 == "-timewindow") print $2}'`;
+      set gDelta = `cat $cfg | awk '{if($1 == "-gammafit") print $2}'`;
+      set GammaFit = 0;
+      if($#gDelta != 0) set GammaFit = 1;
+      set spmhrf = `cat $cfg | awk '{if($1 == "-spmhrf") print $2}'`;
+      if($#spmhrf == 0) set spmhrf = -1;
+      if($GammaFit) then
+        set ndelays = 1;
+      else if($spmhrf != -1) then
+        @ ndelays = 1 + $spmhrf;
+      else
+        set ndelays = `echo $TimeWindow/$TER | bc `
+      endif
+      set nconds = `cat $info | awk '{if($1 == "nconditions") print $2}'`;
+      set TPreStim = `cat $cfg | awk '{if($1 == "-prestim") print $2}'`;
       breaksw
 
     case "-sxadat":
@@ -419,8 +445,8 @@ check_params:
     endif
   endif
 
-  if($RmPreStim != 0 && $#sxadat == 0) then
-    echo "ERROR: need sxadat wiht -rmprestim"
+  if($RmPreStim != 0 && $#sxadat == 0 && $#anadir == 0) then
+    echo "ERROR: need sxadat or anadir with -rmprestim"
     exit 1;
   endif
 
