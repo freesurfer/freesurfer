@@ -1820,8 +1820,18 @@ AC_SUBST(VTK_VERDICT_LIB)
 
 # libvtkMPEG2Encode disappeared from VTK v5.1.0, so test for it
 VTK_MPEG2ENCODE_LIB=""
-AC_CHECK_LIB([vtkMPEG2Encode], [main], [VTK_MPEG2ENCODE_LIB="-lvtkMPEG2Encode"], [])
+AC_CHECK_LIB([vtkMPEG2Encode], [main], 
+                               [VTK_MPEG2ENCODE_LIB="-lvtkMPEG2Encode"], [])
 AC_SUBST(VTK_MPEG2ENCODE_LIB)
+
+# libvtkmetaio appeared in VTK v5.1.0, so check for it
+# and, ugggg... it requires vtkpng and vtkzlib
+VTK_METAIO_LIB=""
+AC_CHECK_LIB([vtkmetaio], [main], [VTK_METAIO_LIB="-lvtkmetaio"
+  AC_CHECK_LIB([vtkpng], [main], [VTK_PNG_LIB="-lvtkpng"], [])
+  AC_CHECK_LIB([vtkzlib], [main], [VTK_Z_LIB="-lvtkzlib"], [])
+], [])
+AC_SUBST(VTK_METAIO_LIB)
 
 # check for KWWidget libs only if kww app building is enabled
 if test ! "x$kww_apps" = "xNO"; then
