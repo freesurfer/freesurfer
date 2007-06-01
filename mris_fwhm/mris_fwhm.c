@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/01 18:06:23 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/06/01 19:19:34 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -144,7 +144,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.11 2007/06/01 18:06:23 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.12 2007/06/01 19:19:34 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -176,13 +176,14 @@ int nitersonly=0;
 
 char *Xfile=NULL;
 MATRIX *X=NULL;
+int DetrendOrder = -1;
 
 char *ar1fname = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, niters=0;
-  double fwhm = 0, ar1mn, ar1std, ar1max, avgvtxarea;
+  int nargs, niters=0, Ntp, n;
+  double fwhm = 0, ar1mn, ar1std, ar1max, avgvtxarea,ftmp;
   double InterVertexDistAvg, InterVertexDistStdDev;
   MRI *ar1=NULL;
   FILE *fp;
@@ -273,6 +274,18 @@ int main(int argc, char *argv[]) {
   if (mask) {
     if (maskinv) MRImaskInvert(mask,mask);
     printf("Found %d voxels in mask\n",MRInMask(mask));
+  }
+
+  if(DetrendOrder >= 0) {
+    Ntp = InVals->nframes;
+    printf("Polynomial detrending, order = %d\n",DetrendOrder);
+    X = MatrixAlloc(Ntp,DetrendOrder+1,MATRIX_REAL);
+    for (n=0;n<Ntp;n++) X->rptr[n+1][1] = 1.0;
+    ftmp = Ntp/2.0;
+    if (DetrendOrder >= 1)
+      for (n=0;n<Ntp;n++) X->rptr[n+1][2] = (n-ftmp)/ftmp;
+    if (DetrendOrder >= 2)
+      for (n=0;n<Ntp;n++) X->rptr[n+1][3] = pow((n-ftmp),2.0)/(ftmp*ftmp);
   }
 
   if (X) {
@@ -419,6 +432,14 @@ static int parse_commandline(int argc, char **argv) {
       //X = MatrixReadTxt(Xfile, NULL);
       X = MatlabRead(Xfile);
       nargsused = 1;
+    } else if (!strcasecmp(option, "--detrend")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&DetrendOrder);
+      if (DetrendOrder > 2) {
+        printf("ERROR: cannot have detrending order > 2\n");
+        exit(1);
+      }
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -446,6 +467,7 @@ static void print_usage(void) {
   printf("   --label labelfile\n");
   printf("   --mask maskfile\n");
   printf("   --X x.mat : matlab4 detrending matrix\n");
+  printf("   --detrend order : polynomial detrending (default 0)\n");
   printf("   --sum sumfile\n");
   printf("   --ar1 ar1vol : save spatial ar1 as an overlay\n");
   printf("   \n");
@@ -571,6 +593,11 @@ static void check_options(void) {
     printf("ERROR: must specify --fwhm with --niters-only\n");
     exit(1);
   }
+  if(X != NULL && DetrendOrder > 0){
+    printf("ERROR: cannot --X and --detrend\n");
+    exit(1);
+  }
+  if(X == NULL && DetrendOrder < 0) DetrendOrder = 0;
 
   return;
 }
