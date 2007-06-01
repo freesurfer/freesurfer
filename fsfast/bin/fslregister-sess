@@ -1,0 +1,371 @@
+#! /bin/csh -f
+
+#
+# fslregister-sess
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2007/06/01 16:50:41 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: fslregister-sess,v 1.1 2007/06/01 16:50:41 greve Exp $';
+set inputargs = ($argv);
+
+set fsd          = bold;
+set nolog        = 0;
+set Run          = ();
+set PerRun       = 0;
+set RunListFile  = ();
+set fsvol        = brainmask;
+set regfilename  = register.dat
+set funcstem     = f;
+set fmt          = ();
+set frame        = ();
+set midframe     = 0;
+set svtemplate   = 1;
+
+## If there are no options, just print the usage ##
+if($#argv == 0) goto usage_exit;
+
+## Look for version option ##
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+## Look for nolog option ##
+set n = `echo $argv | grep nolog | wc -l` 
+if($n != 0) then
+  set nolog = 1;
+endif
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "WARNING: could not create $logdir"
+    set LF = /dev/null
+  else
+    set LF = $logdir/fslregister-sess.$$.log
+    if(-e $LF) mv $LF $LF.old
+  endif
+else
+  set LF = /dev/null
+endif
+
+echo "--------------------------------------------------------------"
+echo "fslregister-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "fslregister-sess log file" >> $LF
+echo $VERSION   >> $LF
+which fslregister >> $LF
+
+goto parse_args;
+parse_args_return:
+
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  getsesspath $inputargs |& tee -a $LF
+  echo "ERROR: cannot find any sessions" |& tee -a $LF
+  exit 1;
+endif
+
+goto check_params;
+check_params_return:
+
+## Loop through each session ##
+foreach sess ($SessList)
+
+  echo " " |& tee -a $LF
+  echo "Session: $sess ----------------" |& tee -a $LF
+  date  |& tee -a $LF
+  pushd $sess > /dev/null
+
+  ## Anatomical directory is in the database ##
+  if(! -e subjectname) then
+    echo "ERROR: file 'subjectname' does not exist in $sess" |& tee -a $LF
+    exit 1;
+  endif
+  set subject = `cat subjectname`;
+  if($#subject == 0) then
+    echo "ERROR: subjectname file is empty"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: $subject is not in SUBJECTS_DIR" |& tee -a $LF
+    echo "  SUBJECTS_DIR is $SUBJECTS_DIR" |& tee -a $LF
+    exit 1;
+  endif
+
+  ## Make sure the functional subdirectory exists ##
+  if(! -e $fsd) then
+    echo "ERROR: $fsd does not exist" |& tee -a $LF
+    exit 1;
+  endif
+
+
+  if(! $PerRun) then
+    # Do once for all runs
+    if($#Run == 0) then
+      set funcdir = `getfirstrundir-sess $fsd`;
+      if($status) then
+        echo "$funcdir" |& tee -a $LF
+        exit 1;
+      endif
+    else
+      set funcdir = $fsd/$Run
+      if(! -e $funcdir) then
+        echo "ERROR: $Run does not exist in $fsd" |& tee -a $LF
+        exit 1;
+      endif
+    endif
+
+    set fmtuse = `getformat_from_stem $funcdir/$funcstem $fmt`
+    if($status) then
+      echo "$fmtuse" |& tee -a $LF
+      exit 1;
+    endif
+    echo "Detected format at $fmtuse" |& tee -a $LF
+    set movfile = $funcdir/$funcstem.$fmtuse
+
+    set regfile = $fsd/$regfilename
+    set cmd = (fslregister --s $subject --mov $movfile \
+      --reg $regfile --fsvol $fsvol)
+    if($frame)  set cmd = ($cmd --frame $frame)
+    $cmd |& tee -a $LF
+    if($status) then 
+      echo "ERROR: fslregister failed" |& tee -a $LF
+      exit 1;
+    endif
+  else
+    # Do separately for each run
+    set RunList = `getrunlist $fsd $RunListFile`;
+    set st = $status;
+    if($st) then
+      echo "ERROR: getting run list"
+      echo "  $RunList"
+      exit 1;
+    endif
+   
+    foreach Run ($RunList)
+      echo "  Run: $Run ----------------" |& tee -a $LF
+      date  |& tee -a $LF
+      set funcdir = $fsd/$Run
+      set fmtuse = `getformat_from_stem $funcdir/$funcstem $fmt`
+      if($status) then
+        echo "$fmtuse" |& tee -a $LF
+        exit 1;
+      endif
+      echo "Detected format as $fmtuse" |& tee -a $LF
+      set movfile = $funcdir/$funcstem.$fmtuse
+      # Does not do COR anymore
+
+      set regfile = $funcdir/fs.register.dat
+      set cmd = (fslregister --s $subject --mov $movfile \
+        --reg $regfile --fsvol $fsvol)
+      if($midframe) set cmd = ($cmd --mid-frame)
+      if($#frame)   set cmd = ($cmd --frame $frame)
+      if($#svtemplate) then
+        set template = $funcdir/template.$fmtuse
+        set cmd = ($cmd --template-out $template)
+      endif
+      pwd |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) then 
+        echo "ERROR: fslregister failed" |& tee -a $LF
+        exit 1;
+      endif
+    end  # Loop over runs
+
+  endif
+
+
+  popd > /dev/null
+
+end  # foreach sess ($SessList)
+
+date |& tee -a $LF
+echo "fslregister-sess completed " |& tee -a $LF
+
+exit 0;
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-run":
+      if ( $#argv == 0) goto arg1err;
+      set Run = $argv[1]; shift;
+      breaksw
+
+    case "-perrun":
+      set PerRun = 1;
+      set midframe = 1;
+      set svtemplate = 1;
+      breaksw
+
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set RunListFile = $argv[1]; shift;
+      breaksw
+
+    case "-funcstem":
+      if ( $#argv == 0) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-frame":
+      if ( $#argv == 0) goto arg1err;
+      set frame = $argv[1]; shift;
+      breaksw
+
+    case "-mid-frame":
+      set midframe = 1;
+      breaksw
+
+    case "-sv-template":
+    case "-sv-temp":
+      set svtemplate = 1;
+      breaksw
+
+    case "-no-sv-template":
+    case "-no-sv-temp":
+      set svtemplate = 0;
+      breaksw
+
+    case "-fsvol":
+      if ( $#argv < 1) goto arg1err;
+      set fsvol = $argv[1]; shift;
+      breaksw
+
+    case "-fmt":
+      if ( $#argv < 1) goto arg1err;
+      set fmt = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-regfile":
+      if ( $#argv == 0) goto arg1err;
+      set regfilename = $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-g":
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#SessList == 0) then
+    echo "ERROR: no sessions specified" |& tee -a $LF
+    exit 1;
+  endif
+
+  if($#frame && $midframe) then
+    echo "ERROR: cannot -frame and -mid-frame"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: fslregister-sess"
+  echo ""
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo "   -fsd dir     : functional subdirectory ($fsd)"
+  echo "   -run RRR     : register to run RRR"
+  echo "   -perrun      : register each run separately (implies -mid-frame and -sv-template)"
+  echo "   -rlf RLF       : run-list file (with -perrun)"
+  echo "   -funcstem stem : default is f"
+  echo "   -frame frameno : 0-based frame no (default 0)"
+  echo "   -mid-frame     : use middle frame"
+  echo "   -sv-template    : save template used for registration"
+  echo "   -no-sv-template : turn off saving template used for registration"
+  echo "   -fsvol volid   : FreeSurfer vol id (default is $fsvol)"
+  echo "   -regfile file  : Save reg as file instead of register.dat"
+  echo "   -fmt format    : format of functional: <auto>, nii.gz, bhdr, mgh, etc"
+  echo ""
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+exit 1;
