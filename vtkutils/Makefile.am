@@ -22,7 +22,7 @@ libvtkutils_a_SOURCES= \
 	vtkKWProgressDialog.cxx vtkKWProgressDialog.h \
 	vtkKWRGBATransferFunctionEditor.cxx vtkKWRGBATransferFunctionEditor.h \
 	vtkKWRGBATransferFunctionEditorTcl.cxx \
-	vtkKWBltGraph.cxx vtkKWBltGraph.h vtkKWBltGraphTcl.cxx
+	vtkKWBltGraph.cxx vtkKWBltGraph.h vtkKWBltGraphTcl.cxx \
 	vtkFreesurferLookupTable.cxx vtkFreesurferLookupTable.h \
 	vtkRGBATransferFunction.cxx vtkRGBATransferFunction.h \
 	vtkFDTensorGlyph.cxx vtkFDTensorGlyph.h \
