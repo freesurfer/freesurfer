@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/23 21:42:38 $
- *    $Revision: 1.12 $
+ *    $Author: fischl $
+ *    $Date: 2007/06/01 00:37:10 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.12 2007/01/23 21:42:38 greve Exp $
+  $Id: mri_annotation2label.c,v 1.13 2007/06/01 00:37:10 fischl Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -62,7 +62,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.12 2007/01/23 21:42:38 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.13 2007/06/01 00:37:10 fischl Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.12 2007/01/23 21:42:38 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.13 2007/06/01 00:37:10 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -177,7 +177,8 @@ int main(int argc, char **argv) {
   for (ani=0; ani <= animax; ani++) {
 
     if (nperannot[ani] == 0) {
-      printf("%3d  %5d  empty --- skipping \n",ani,nperannot[ani]);
+      if (DIAG_VERBOSE_ON)
+        printf("%3d  %5d  empty --- skipping \n",ani,nperannot[ani]);
       continue;
     }
 
