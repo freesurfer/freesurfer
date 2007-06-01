@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/01 21:53:43 $
- *    $Revision: 1.312 $
+ *    $Author: greve $
+ *    $Date: 2007/06/01 15:05:07 $
+ *    $Revision: 1.313 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.312 $";
+char *VERSION = "$Revision: 1.313 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.312 2007/05/01 21:53:43 nicks Exp $",
+     "$Id: tkmedit.c,v 1.313 2007/06/01 15:05:07 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1254,7 +1254,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-aux-conform  : conform the aux anatomical volume\n");
     printf("\n");
     printf("-overlay <file>            : load functional overlay volume (-ov)\n");
-    printf("-overlay-reg-find          : find overlay registration (-oreg)"
+    printf("-overlay-reg-find          : find overlay registration (-ovreg)"
            "volume in data dir\n");
     printf("-overlay-reg-identity      : generate identity for "
            "overlay registration volume\n");
@@ -1621,7 +1621,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg ++;
         }
 
-      } else if ( MATCH( sArg, "-overlay-reg" ) || MATCH( sArg, "-orf" ) || MATCH( sArg, "-oreg" ) ) {
+      } else if ( MATCH( sArg, "-overlay-reg" ) || MATCH( sArg, "-orf" ) || 
+		  MATCH( sArg, "-oreg" ) || MATCH( sArg, "-ovreg" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
@@ -5886,7 +5887,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.312 2007/05/01 21:53:43 nicks Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.313 2007/06/01 15:05:07 greve Exp $ $Name:  $\n"
     )
   );
 
