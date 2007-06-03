@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/05/30 00:02:45 $
-#    $Revision: 1.24 $
+#    $Author: greve $
+#    $Date: 2007/06/03 18:56:09 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 #
 
-set VERSION = '$Id: fsl_rigid_register,v 1.24 2007/05/30 00:02:45 nicks Exp $';
+set VERSION = '$Id: fsl_rigid_register,v 1.25 2007/06/03 18:56:09 greve Exp $';
 
 setenv FSLOUTPUTTYPE NIFTI
 
@@ -42,6 +42,7 @@ set PrintHelp = 0;
 set applyxfm = ();
 set initxfm = ();
 set initgeom = 1;
+set applyinitxfm = 0;
 set dof = 6;
 set maxangle = 90;
 set bins = 256;
@@ -146,7 +147,12 @@ if($initgeom) then
   echo "Init FSL Mat based on geometry -------------------"
   cat $initxfm
   echo "-------------------------------------------------"
+  if($applyinitxfm) then
+    set applyxfm = $initxfm
+    set initxfm = ();
+  endif
 endif
+
 
 # Check the output format
 isnifti $outvol # exit status == 1 if nifti
@@ -376,6 +382,10 @@ while( $#argv != 0 )
       set initgeom = 0;
       breaksw
 
+    case "-applyinitxfm":
+      set applyinitxfm = 1;
+      breaksw
+
     case "-maxangle":
       if ( $#argv < 1) goto arg1err;
       set maxangle = $argv[1]; shift;
@@ -491,8 +501,9 @@ usage_exit:
   echo "   -xfmmat xfmmatfile :  get reg matrix as MNI xfm file"
   echo "   -ltamat ltamatfile :  get reg matrix as MGH lta file"
   echo "   -noinitgeom : do not initialize matrix based on geometry"
-  echo "   -initxfm  xfmfile : use this as an initial matrix"
   echo "   -applyxfm xfmfile : do not reg, just apply xfm to input"
+  echo "   -applyinitxfm     : do not reg, just apply init xfm to input"
+  echo "   -initxfm  xfmfile : use this as an initial matrix (instead of geom)"
   echo "   -maxangle maxangle : only search over +/- maxangle degrees"
   echo "   -interp method : <trilinear>, nearestneighbour, sinc"
   echo "   -dof dof : use dof instead of 6"
