@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.5 $
+#    $Author: greve $
+#    $Date: 2007/06/04 21:35:32 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: sliceview-sess,v 1.5 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: sliceview-sess,v 1.6 2007/06/04 21:35:32 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -298,6 +298,7 @@ foreach sess ($SessList)
    if(-e $datfile) set cmd = ($cmd -hdat $datfile)
   endif
   set cmd = ($cmd $UseVersion)
+  if($?FSF_OUTPUT_FORMAT) set cmd = ($cmd -mgh)
 
   echo "----------------------------------------------" |& tee -a $LF
   pwd        |& tee -a $LF
