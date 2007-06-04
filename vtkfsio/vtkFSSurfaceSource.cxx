@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/06/04 16:03:27 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/06/04 19:25:16 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,7 +36,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceSource );
-vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.7 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.8 $" );
 
 vtkFSSurfaceSource::vtkFSSurfaceSource() :
     mMRIS( NULL ),
@@ -596,4 +596,45 @@ vtkFSSurfaceSource::FindPath ( int inStartVertex, int inEndVertex,
   }
   iolPath.push_back( inStartVertex );
 
+}
+
+void
+vtkFSSurfaceSource::SmoothValuesOnSurface ( vtkFloatArray& iValues,
+					    int icSteps ) {
+
+  assert( mMRIS );
+
+  if( iValues.GetNumberOfTuples() != mMRIS->nvertices ) 
+    throw runtime_error( "Number of tuples in values must be equal to the number of vertices in the surface." );
+
+  if( icSteps <= 0 )
+    throw runtime_error( "Number of steps must be > 0." );
+
+  float* aTmpValues = new float[iValues.GetNumberOfTuples()];
+
+  // This could probably done in a cleaner way with a VTK object, but
+  // I want to use this code because it's exactly the same as the old
+  // tksurfer method.
+  for( int nStep = 0; nStep < icSteps; nStep++ ) {
+
+    // Copy the current values into our temp array.
+    for( int nValue = 0; nValue < iValues.GetNumberOfTuples(); nValue++ )
+      aTmpValues[nValue] = iValues.GetTuple1( nValue );
+
+    // For each vertex...
+    for( int nVertex = 0; nVertex < mMRIS->nvertices; nVertex++ ) {
+
+      // Sum up the values of this vertex and its neighbors.
+      VERTEX* v = &mMRIS->vertices[nVertex];
+      float sum = aTmpValues[nVertex];
+
+      for( int nNeighbor = 0; nNeighbor < v->vnum; nNeighbor++ )
+	sum += aTmpValues[v->v[nNeighbor]];
+
+      // Set the average in the values array.
+      iValues.SetTuple1( nVertex, sum / (float)(1 + v->vnum) );
+    }
+  }
+
+  delete [] aTmpValues;
 }

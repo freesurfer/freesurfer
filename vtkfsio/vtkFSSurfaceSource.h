@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/14 15:37:31 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/06/04 19:25:16 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,6 +37,8 @@
 extern "C" {
 #include "mrisurf.h"
 }
+
+class vtkFloatArray;
 
 class vtkFSSurfaceSource : public vtkSource {
 public:
@@ -105,6 +107,15 @@ public:
   // from inStartVertex to inEndVertex.
   void FindPath ( int inStartVertex, int inEndVertex, 
 		  std::vector<int>& iolPath );
+
+  // Description:
+  // Given a float array, this will load the values onto the surface,
+  // smooth the values using surface topology using the number of
+  // given steps, and write the values back to the float array,
+  // replacing the original contents (but having the same number of
+  // elements).
+  void SmoothValuesOnSurface ( vtkFloatArray& iValues, int icSteps );
+  
 
   MRIS* GetMRIS() { return mMRIS; }
 
