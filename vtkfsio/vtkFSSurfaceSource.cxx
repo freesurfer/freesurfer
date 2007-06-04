@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/06/01 21:37:59 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/06/04 16:03:27 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,7 +36,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceSource );
-vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.7 $" );
 
 vtkFSSurfaceSource::vtkFSSurfaceSource() :
     mMRIS( NULL ),
@@ -70,7 +70,7 @@ vtkFSSurfaceSource::MRISRead( char const* ifn ) {
 
   // Out with the old and in with the new.
   if( NULL != mMRIS )
-    MRISfree( mMRIS );
+    MRISfree( &mMRIS );
   mMRIS = mris;
 
   // Get some info from the MRIS.
