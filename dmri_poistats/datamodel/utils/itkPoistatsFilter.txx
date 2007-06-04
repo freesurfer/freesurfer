@@ -1044,7 +1044,22 @@ PoistatsFilter<TInputImage, TOutputImage>
         }
       
       }
-  
+      
+      // TODO: remove this if it's not elongating
+      // we want to multiple the tensor by itself a number of times in order
+      // to increase the covariance, enhance the vector field      
+			
+			// make a copy of the tensor for multiplying
+			itk::Matrix< double, nTensorRows, nTensorColumns > originalTensor = tensor;
+			
+			// the power to raise the matrix
+			const int power = 3;
+			
+			// start at 1 because the power is already 1
+			for( int i=1; i<=power; i++ ) {
+				tensor *= originalTensor;
+			}      
+
       // MATLAB: d = R*d*invR;
       if( !isRotationIdentity ) {
         tensor = rotationMatrix * tensor.GetVnlMatrix() * inverseRotationMatrix;
