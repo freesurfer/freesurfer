@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/05 22:22:59 $
-#    $Revision: 1.1 $
+#    $Date: 2007/06/05 23:12:13 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.1 2007/06/05 22:22:59 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.2 2007/06/05 23:12:13 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -40,6 +40,7 @@ set pairedavg  = 0;
 set mean = 0;
 set ToVol = 0;
 set ToSurf = 0;
+set DoLogFile = 0;
 
 # for volume-based only
 set talres = 2;
@@ -80,9 +81,13 @@ goto check_params;
 check_params_return:
 
 ##### Create a log file ######
-set LF = $outvol.log
-if(-e $LF) mv $LF $LF.old
-echo $LF
+if($DoLogFile) then
+  set LF = $outvol.log
+  if(-e $LF) mv $LF $LF.old
+  echo logfile is $LF
+else
+  set LF = /dev/null
+endif
 
 echo "isxconcat0-sess log file" >> $LF
 echo $VERSION >> $LF
