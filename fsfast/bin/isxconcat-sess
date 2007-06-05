@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/26 21:10:58 $
-#    $Revision: 1.7 $
+#    $Date: 2007/06/05 22:23:30 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,16 +23,17 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.7 2007/03/26 21:10:58 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.8 2007/06/05 22:23:30 greve Exp $'
 
 set inputargs = ($argv);
 
-set outvol = ();
+set outdir = ();
 set analysis = ();
 set flac = ();
 set fsd  = ();
-set contrast = ();
-set mapname = ces
+set contrastlist = ();
+set maplist = ();
+
 set interp = trilin
 set fwhm = ();
 set paireddiff = 0;
@@ -40,15 +41,16 @@ set pairedavg  = 0;
 set mean = 0;
 set ToVol = 0;
 set ToSurf = 0;
-set Force = 0;
+set DoPercent = 0;
+set DoAllContrasts = 0;
 
 # for volume-based only
 set talres = 2;
 set DoMorph = 0;
 
 # for surface-based only
-set hemi = ();
-set projfrac = 0
+set hemilist = ();
+set projfrac = 0.5;
 set subject = fsaverage; 
 
 set tmpdir = ();
@@ -81,104 +83,151 @@ goto check_params;
 check_params_return:
 
 ##### Create a log file ######
-set LF = $outvol.log
+mkdir -p $outdir/log
+set LF = $outdir/log/isxconcat.log
 if(-e $LF) mv $LF $LF.old
 echo $LF
 
 echo "isxconcat-sess log file" >> $LF
 echo $VERSION >> $LF
-id            >> $LF
-pwd           >> $LF
-echo $0     >> $LF
-echo $inputargs  >> $LF
-uname -a      >> $LF
 date          >> $LF
+uname -a      >> $LF
+pwd           >> $LF
+echo $0       >> $LF
+echo $inputargs  >> $LF
+id            >> $LF
 
 set StartTime = `date`;
-set maplist = ();
-foreach sess ($SessList)
-  set sessid = `basename $sess`;
-  set sessinfo = $sess/session.info
-  if(-e $sessinfo) then
-    set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
-  else
-    set IsGroup = 0;
-  endif
-  if($IsGroup) then
-    echo "ERROR: session `basename $sess` is a group analysis."|& tee -a $LF
-    echo "This is not allowed with isxconcat-sess."|& tee -a $LF
-    exit 1;
-  endif
 
-  set reg = $sess/$fsd/register.dat
-  if(! -e $reg) then
-    echo "ERROR: cannot find $reg"|& tee -a $LF
-    exit 1;
-  endif
+if($#flac == 0) cp $analysis/analysis.* $outdir
 
-  set condir = $sess/$fsd/$analysis/$contrast
-  if(! -e $condir) then
-    echo "ERROR: cannot find $condir"|& tee -a $LF
-    exit 1;
-  endif
+#-------------------------------------------------
+foreach hemi ($hemilist)
+  foreach contrast ($contrastlist)
+    set outcondir = $outdir/$contrast
+    mkdir -p $outcondir
 
-  set mapstem = $condir/$mapname
-  set ext = `fast_getext $mapstem`
-  if($status) then
-    echo "$ext"|& tee -a $LF
-    exit 1;
-  endif
-  set map = $mapstem.$ext
+    # copy the contrast.mat file for reference
+    if($#flac == 0) cp $analysis/$contrast.mat $outcondir
 
-  if($#hemi != 0) then
-    set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-$hemi.mgh
-    set cmd = (mri_vol2surf --mov $map --reg $reg --trgsubject $subject)
-    set cmd = ($cmd --hemi $hemi --projfrac 0 --interp $interp --noreshape)
-    set cmd = ($cmd --o $mapout)
-  else
-    set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-tal.mgh
-    set cmd = (mri_vol2vol --mov $map --reg $reg)
-    set cmd = ($cmd --o $mapout --no-save-reg --interp $interp)
-    if(! $DoMorph) set cmd = ($cmd --tal --talres $talres)
-    if($DoMorph)   set cmd = ($cmd --morph)
-  endif
-  echo "------------------------------------" |& tee -a $LF
-  pwd |& tee -a $LF
-  echo $cmd |& tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) exit 1;
-  set maplist = ($maplist $mapout);
+    foreach mapname ($maplist)
+      set mapsesslist = ();
+      set sesslistfile = $outdir/sessid.txt
+      rm -f $sesslistfile
+      @ DOF = 0;
 
-end # Loop over sessions
+      foreach sess ($SessList)
+        set sessid = `basename $sess`;
+        set sessinfo = $sess/session.info
+        if(-e $sessinfo) then
+          set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
+        else
+          set IsGroup = 0;
+        endif
+        if($IsGroup) then
+          echo "ERROR: session `basename $sess` is a group analysis."|& tee -a $LF
+          echo "This is not allowed with isxconcat-sess."|& tee -a $LF
+          exit 1;
+        endif
 
-echo "------------------------------------" |& tee -a $LF
-set cmd = (mri_concat $maplist --o $outvol)
-if($paireddiff) set cmd = ($cmd --paired-diff)
-if($pairedavg)  set cmd = ($cmd --paired-avg)
-if($mean)       set cmd = ($cmd --mean)
-pwd |& tee -a $LF
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
+        set reg = $sess/$fsd/register.dat
+        if(! -e $reg) then
+          echo "ERROR: cannot find $reg"|& tee -a $LF
+          exit 1;
+        endif
+
+        set doffile = $sess/$fsd/$analysis/dof
+        if(! -e $doffile) then
+          echo "ERROR: cannot find $doffile"
+          exit 1;
+        endif
+        @ dofsess = `cat $doffile`;
+        @ DOF = $DOF + $dofsess;
+
+        set srcsubject = `cat $reg | head -n 1`
+        echo "$sessid $srcsubject $dofsess" >> $sesslistfile
+
+        set condir = $sess/$fsd/$analysis/$contrast
+        if(! -e $condir) then
+          echo "ERROR: cannot find $condir"|& tee -a $LF
+          exit 1;
+        endif
+
+        set mapstem = $condir/$mapname
+        set ext = `fast_getext $mapstem`
+        if($status) then
+          echo "$ext"|& tee -a $LF
+          exit 1;
+        endif
+        set map = $mapstem.$ext
+    
+        # To help keep track of multivariate contrasts
+        rm -f /tmp/isxconcat.$$.dat
+        mri_info --o /tmp/isxconcat.$$.dat --nframes $map > /dev/null
+        set nframes = `cat /tmp/isxconcat.$$.dat`;
+        echo $nframes > $condir/nframes-in-con
+
+        if($hemi != nothemi) then
+          set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-$hemi.mgh
+          set cmd = (mri_vol2surf --mov $map --reg $reg --trgsubject $subject)
+          set cmd = ($cmd --hemi $hemi --projfrac 0 --interp $interp --noreshape)
+          set cmd = ($cmd --o $mapout)
+        else
+          set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-tal.mgh
+          set cmd = (mri_vol2vol --mov $map --reg $reg)
+          set cmd = ($cmd --o $mapout --no-save-reg --interp $interp)
+          if(! $DoMorph) set cmd = ($cmd --tal --talres $talres)
+          if($DoMorph)   set cmd = ($cmd --morph)
+        endif
+        echo "------------------------------------" |& tee -a $LF
+        pwd |& tee -a $LF
+        echo $cmd |& tee -a $LF
+        $cmd |& tee -a $LF
+        if($status) exit 1;
+        set mapsesslist = ($mapsesslist $mapout);
+      end # Loop over sessions
+
+      # Keep track of full dof
+      echo $DOF > $outdir/dof
+
+      # Now concatenate them
+      echo "------------------------------------" |& tee -a $LF
+      if($hemi == nothemi) then
+        set outvol = $outcondir/tal.$mapname.$FSF_OUTPUT_FORMAT
+      else
+        set outvol = $outcondir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
+      endif
+      set cmd = (mri_concat $mapsesslist --o $outvol)
+      if($paireddiff) set cmd = ($cmd --paired-diff)
+      if($pairedavg)  set cmd = ($cmd --paired-avg)
+      if($mean)       set cmd = ($cmd --mean)
+      pwd |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+
+      # Smooth
+      if($#fwhm) then
+        if($ToVol) then
+          set cmd = (mri_fwhm --i $outvol --o $outvol --fwhm $fwhm --smooth-only)
+        endif
+        if($ToSurf) then
+          set cmd = (mris_fwhm --i $outvol --o $outvol --fwhm $fwhm \
+            --subject $subject --hemi $hemi)
+        endif
+        echo "------------------------------------" |& tee -a $LF
+        pwd |& tee -a $LF
+        echo $cmd |& tee -a $LF
+        $cmd |& tee -a $LF
+        if($status) exit 1;
+      endif
+
+     end # Loop over maps
+   end # Loop over contrasts
+end # Loop over hemi
+
 
 if($cleanup) rm -r $tmpdir
-
-# Smooth
-if($#fwhm) then
-  if($ToVol) then
-    set cmd = (mri_fwhm --i $outvol --o $outvol --fwhm $fwhm --smooth-only)
-  endif
-  if($ToSurf) then
-    set cmd = (mris_fwhm --i $outvol --o $outvol --fwhm $fwhm \
-      --subject $subject --hemi $hemi)
-  endif
-  echo "------------------------------------" |& tee -a $LF
-  pwd |& tee -a $LF
-  echo $cmd |& tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) exit 1;
-endif
-
 
 echo "" | tee -a $LF
 echo "" | tee -a $LF
@@ -202,7 +251,7 @@ while( $#argv != 0 )
 
     case "-o":
       if($#argv == 0) goto arg1err;
-      set outvol = $argv[1]; shift;
+      set outdir = $argv[1]; shift;
       breaksw
 
     case "-a":
@@ -225,13 +274,22 @@ while( $#argv != 0 )
     case "-c":
     case "-contrast":
       if ( $#argv == 0) goto arg1err;
-      set contrast = $argv[1]; shift;
+      set contrastlist = ($contrastlist $argv[1]); shift;
+      breaksw
+
+    case "-all-contrasts":
+      set DoAllContrasts = 1;
+      breaksw
+
+    case "-pct"
+    case "-percent"
+      set DoPercent = 1;
       breaksw
 
     case "-m":
     case "-map":
       if ( $#argv == 0) goto arg1err;
-      set mapname = $argv[1]; shift;
+      set maplist = ($maplist $argv[1]); shift;
       breaksw
 
     case "-interp":
@@ -255,10 +313,15 @@ while( $#argv != 0 )
       set ToVol = 1;
       breaksw
 
+    case "-hemis":
+      set hemilist = (lh rh); 
+      set ToSurf = 1;
+      breaksw
+
     case "-hemi":
     case "-h":
       if ( $#argv == 0) goto arg1err;
-      set hemi = $argv[1]; shift;
+      set hemilist = ($hemilist $argv[1]); shift;
       set ToSurf = 1;
       breaksw
 
@@ -278,10 +341,6 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set tmpdir = $argv[1]; shift;
       set cleanup = 0;
-      breaksw
-
-    case "-force":
-      set Force = 1;
       breaksw
 
     case "-paired-diff"
@@ -348,24 +407,30 @@ check_params:
     set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
   endif
 
-  if(0 & $#contrast == 0) then
+  if($DoAllContrasts) then
+    set matlist = ($analysis/*.mat)
+    if($#matlist == 0) then
+      echo "ERROR: not contrasts found in $analysis"
+      exit 1;
+    endif
+    set contrastlist = ();
+    foreach m ($matlist)
+      set b = `basename $m | sed 's/.mat//'`
+      set contrastlist = ($contrastlist $b);
+    end
+  endif
+
+  if($#contrastlist == 0) then
     echo "ERROR: no contrast specified"
     exit 1;
   endif
 
-  if($#outvol == 0) then
-    echo "ERROR: no output  specified"
-    exit 1;
-  endif
-
-  if($Force) rm -f $outvol
-  if(-e $outvol) then
-    echo "ERROR: output $outvol exists, delete or rename or -force"
+  if($#outdir == 0) then
+    echo "ERROR: no output directory specified"
     exit 1;
   endif
 
   if($ToSurf == 0 && $ToVol == 0) set ToVol = 1;
-
   if($ToSurf && $ToVol) then
     echo "ERROR: cannot convert to surface and volume"
     exit 1;
@@ -381,14 +446,17 @@ check_params:
     exit 1;
   endif
 
-  if($#hemi) then
-    if($hemi != lh && $hemi != rh) then
-      echo "ERROR: hemi = $hemi, must be rh or lh"
-      exit 1;
-    endif
+  if($#hemilist) then
+    foreach hemi ($hemilist)
+      if($hemi != lh && $hemi != rh) then
+        echo "ERROR: hemi = $hemi, must be rh or lh"
+        exit 1;
+      endif
+    end
+  else
+    set hemilist = nothemi;
   endif
 
-  set outdir = `dirname $outvol`;
   mkdir -p $outdir
   if($status) then
     echo "ERROR: making $outdir";
@@ -403,6 +471,15 @@ check_params:
     exit 1;
   endif
 
+  if($#maplist == 0) then
+    if(! $DoPercent ) then
+      set maplist = (ces cesvar)
+    else
+      set maplist = (cespct cesvarpct)
+    endif
+  endif
+
+  if($?FSF_OUTPUT_FORMAT == 0) setenv FSF_OUTPUT_FORMAT mgh
 
 goto check_params_return;
 ############--------------##################
@@ -418,10 +495,13 @@ usage_exit:
   echo " "
   echo "USAGE: isxconcat-sess"
   echo ""
-  echo "   -a analysisname  : session-level functional analysis name"
-  echo "   -c contrast     : contrast (optional)"
-  echo "   -m mapname      : stem (def is ces)"
-  echo "   -o outvol"
+  echo "   -o outdir"
+  echo ""
+  echo "   -a analysisname : session-level functional analysis name"
+  echo "   -c contrast     : contrast "
+  echo "   -all-contrasts  : contrast "
+  echo "   -percent        : use voxel-wise percent signal change"
+  echo "   -m mapname      : stem (def is ces and cesvar)"
   echo ""
   echo "   -interp method  : trilinear (def) or nearest"
   echo "   -fwhm fwhm      : smooth by fwhm"
@@ -433,6 +513,7 @@ usage_exit:
   echo "   -talres res     : 1 or 2 mm (def is 2)"
   echo ""
   echo "  Surface-based options:"
+  echo "   -hemis           : surface-based, both lh and rh";
   echo "   -hemi hemisphere : for surface-based analysis (lh or rh)";
   echo "   -projfrac frac   : sample frac into surface"
   echo "   -subject subject : sample to subject's surface (def fsaverage)"
@@ -444,10 +525,9 @@ usage_exit:
   echo ""
   echo "   -help"
   echo "   -debug"
-  echo "   -force         : overwrite output (if it exists)"
-  echo "   -tmpdir dir    : use this dir for temporary storage (implies -nocleanup)"
-  echo "   -nocleanup     : do not delete tmpdir"
-  echo "   -version       : print version and exit"
+  echo "   -tmpdir dir : use dir for temporary storage (implies -nocleanup)"
+  echo "   -nocleanup  : do not delete tmpdir"
+  echo "   -version    : print version and exit"
   echo " "
 
   if(! $PrintHelp ) exit 1;
