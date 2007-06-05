@@ -117,6 +117,8 @@ public:
   int GetInitialSigma() const;
   void SetInitialSigma( const int initialSigma );
 
+  void SetFieldLineRadius( const double initialSigma );
+
   itkGetMacro( NumberOfSamplePoints, int );
   itkSetMacro( NumberOfSamplePoints, int );
 
@@ -260,6 +262,9 @@ public:
 
   MatrixListType GetBestTrialPaths();
 
+  itkGetMacro( TensorEnhancementFactor, int );
+  itkSetMacro( TensorEnhancementFactor, int );
+
 protected:
   PoistatsFilter();
   virtual ~PoistatsFilter();
@@ -379,6 +384,9 @@ private:
   itkSetMacro( ElapsedTime, double );  
 
   double m_CurrentEnergyDifference;
+
+  itkStaticConstMacro( DEFAULT_TENSOR_ENHANCEMENT_FACTOR, int, 4 );
+  int m_TensorEnhancementFactor;
   
 };
 

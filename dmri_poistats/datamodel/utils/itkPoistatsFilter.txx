@@ -320,6 +320,8 @@ PoistatsFilter<TInputImage, TOutputImage>
 
   this->SetPointsToImageGamma( DEFAULT_POINTS_TO_IMAGE_GAMMA );
   
+  this->SetTensorEnhancementFactor( DEFAULT_TENSOR_ENHANCEMENT_FACTOR );
+  
 }
 
 template <class TInputImage, class TOutputImage>
@@ -650,6 +652,7 @@ PoistatsFilter< TInputImage, TOutputImage >
 
       // get the low resolution path for this replica
       MatrixPointer currentBasePath = this->m_Replicas->GetBasePath( cReplica );
+            
       MatrixType lowTrialPath( 
         currentBasePath->rows(), currentBasePath->cols() );
       m_Replicas->GetPerturbedBasePath( cReplica, &lowTrialPath, sigma, 
@@ -1045,18 +1048,14 @@ PoistatsFilter<TInputImage, TOutputImage>
       
       }
       
-      // TODO: remove this if it's not elongating
       // we want to multiple the tensor by itself a number of times in order
       // to increase the covariance, enhance the vector field      
 			
 			// make a copy of the tensor for multiplying
 			itk::Matrix< double, nTensorRows, nTensorColumns > originalTensor = tensor;
-			
-			// the power to raise the matrix
-			const int power = 3;
-			
+						
 			// start at 1 because the power is already 1
-			for( int i=1; i<=power; i++ ) {
+			for( int i=1; i<m_TensorEnhancementFactor; i++ ) {
 				tensor *= originalTensor;
 			}      
 
@@ -2331,6 +2330,13 @@ void
 PoistatsFilter<TInputImage, TOutputImage>
 ::SetInitialSigma( const int initialSigma ) {
 	m_PoistatsModel->SetInitialSigma( initialSigma );
+}
+
+template <class TInputImage, class TOutputImage>
+void
+PoistatsFilter<TInputImage, TOutputImage>
+::SetFieldLineRadius( const double radius ) {
+  m_PoistatsModel->SetFieldLineRadius( radius );
 }
 
 template <class TInputImage, class TOutputImage>
