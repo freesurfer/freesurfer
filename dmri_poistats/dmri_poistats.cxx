@@ -82,7 +82,7 @@ class Poistats : public FreeSurferExecutable {
     static const std::string FLAG_IS_SYMMETRIC_DATA;
     static const std::string FLAG_IS_OUTPUT_NII;
     static const std::string FLAG_EIGENVECTOR_STEM;
-    static const std::string FLAG_IS_INIT_FIELD_LINE;
+    static const std::string FLAG_FIELD_LINE;
     static const std::string FLAG_SHOULD_WRITE_BEST_PATHS;
 
     Poistats( int inArgs, char ** iaArgs );
@@ -119,7 +119,7 @@ class Poistats : public FreeSurferExecutable {
     
     char *m_EigenVectorStem;
     
-    bool m_IsInitFieldLine;
+    double m_FieldLineRadius;
     
     bool m_ShouldWriteBestPaths;
 
@@ -157,7 +157,7 @@ const std::string Poistats::FLAG_IS_OUTPUT_NII =
   Poistats::FLAG_DELIMITER + "nii";
 const std::string Poistats::FLAG_EIGENVECTOR_STEM = 
   Poistats::FLAG_DELIMITER + "eigvec";
-const std::string Poistats::FLAG_IS_INIT_FIELD_LINE = 
+const std::string Poistats::FLAG_FIELD_LINE = 
   Poistats::FLAG_DELIMITER + "fieldline";
 const std::string Poistats::FLAG_SHOULD_WRITE_BEST_PATHS =
   Poistats::FLAG_DELIMITER + "writepaths";
@@ -215,8 +215,8 @@ Poistats::Poistats( int inArgs, char ** iaArgs ) :
     "Should the output be stored as nifti?  Default: false" );
   SetNextOptionalArgument( FLAG_EIGENVECTOR_STEM, "eigvec", 
     "Should the paths be initialized by following the principle eigenvector?  Specify the eigenvector volume following this flag." );
-  SetNextOptionalArgument( FLAG_IS_INIT_FIELD_LINE, "fieldline", 
-    "Should the paths be initialized by field lines?" );
+  SetNextOptionalArgument( FLAG_FIELD_LINE, "fieldline", 
+    "Should the paths be initialized by field lines?  Specify the maximum amplitude." );
   SetNextOptionalArgument( FLAG_SHOULD_WRITE_BEST_PATHS, "writepaths",
     "TESTING -- Should the best paths from each replicas be written out?  This will save to InitialPaths.txt for the time being" );
 
@@ -289,7 +289,7 @@ Poistats::FillArguments() {
 
     m_EigenVectorStem = m_Parser->GetArgument( FLAG_EIGENVECTOR_STEM.c_str() );
 
-    m_IsInitFieldLine = m_Parser->GetArgumentBoolean( FLAG_IS_INIT_FIELD_LINE.c_str() );
+    m_FieldLineRadius = m_Parser->GetArgumentDouble( FLAG_FIELD_LINE.c_str() );
     
     m_ShouldWriteBestPaths = m_Parser->GetArgumentBoolean( FLAG_SHOULD_WRITE_BEST_PATHS.c_str() );
     
@@ -551,9 +551,10 @@ Poistats::Run() {
   
   // give the field line initialization priority over the eigenvector
   // initialization  
-  if( m_IsInitFieldLine ) {
-    observer->PostMessage( "field line initialization...\n" );
-    poistatsFilter->SetUsingFieldLineInitialization();    
+  if( m_FieldLineRadius > 0 ) {
+    observer->PostMessage( "field line initialization...\n" );    
+    poistatsFilter->SetFieldLineRadius( m_FieldLineRadius );
+    poistatsFilter->SetUsingFieldLineInitialization();
   } else if( m_EigenVectorStem != NULL ) {
     observer->PostMessage( "reading eigenvectors...\n" );
     mghEigenVectors = FreeSurferExecutable::ReadMRI( m_EigenVectorStem );
