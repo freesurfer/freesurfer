@@ -7,7 +7,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.3 $" );
 
 vtkKWBltGraph::vtkKWBltGraph() :
   XAxisTitle( NULL ),
@@ -233,6 +233,15 @@ vtkKWBltGraph::AddElement ( const char* isLabel, vector<double>& iPoints,
 void
 vtkKWBltGraph::DeleteAllElements () {
 
+  GraphElementList::iterator tElement;
+  for( tElement = mElements.begin(); tElement != mElements.end(); ++tElement ){
+    
+    GraphElement& element = *tElement;
+    
+    this->Script( "%s element delete %s", 
+		  this->GetWidgetName(), element.msLabel.c_str() );
+  }
+
   mElements.clear();
 }
 
@@ -289,8 +298,6 @@ vtkKWBltGraph::Draw () {
       ssData << (*tPoint) << " ";
     }
 
-    cerr << ssData.str() << endl;
-    
     this->Script( "%s element create %s "
 		  "-data {%s} " 
 		  //"-color %f %f %f "
