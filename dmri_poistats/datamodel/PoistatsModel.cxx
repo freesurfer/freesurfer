@@ -148,6 +148,8 @@ PoistatsModel::Init() {
   m_CubicSplineFilter->SetGenerateOutputImage( false );
   
   m_PathInitializer = NULL;
+  
+  m_FieldLineRadius = 1.0;
 
 }
 
@@ -421,3 +423,14 @@ int
 PoistatsModel::GetInitializePathMode() const {
   return m_InitializeMode;
 }
+
+void 
+PoistatsModel::SetFieldLineRadius( const double radius ) {
+  m_FieldLineRadius = radius;
+}
+  
+double 
+PoistatsModel::GetFieldLineRadius() const {
+  return m_FieldLineRadius;
+}
+

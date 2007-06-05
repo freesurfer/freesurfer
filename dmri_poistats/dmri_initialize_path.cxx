@@ -175,7 +175,7 @@ InitializePathExe::Run() {
   
   // create the model for the initializations
   PoistatsModel model;
-  model.SetInitialSigma( m_Radius );
+  model.SetFieldLineRadius( m_Radius );
   model.SetNumberOfControlPoints( 2 );
 
   // read seed volume

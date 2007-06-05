@@ -112,6 +112,10 @@ public:
   void SetInitializePathMode( const int mode );
 
   int GetInitializePathMode() const;
+  
+  void SetFieldLineRadius( const double radius );
+  
+  double GetFieldLineRadius() const;
       
 private:
 
@@ -132,6 +136,8 @@ private:
   InitializePath *m_PathInitializer;
   
   int m_InitializeMode;
+  
+  double m_FieldLineRadius;
     
   /**
    * Initializes the class.

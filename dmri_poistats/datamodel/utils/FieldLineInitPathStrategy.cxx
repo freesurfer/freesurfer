@@ -38,6 +38,7 @@ FieldLineInitPathStrategy::CalculateInitialPath() {
   // an up vector--a point on the unit circle
   // some random up angle
   const double upAngle = 2 * PI * m_PoistatsModel->GetRandomNumber();
+  
   double up[3];
   this->GetUpVector( up, lookAt, upAngle );
   
@@ -45,8 +46,9 @@ FieldLineInitPathStrategy::CalculateInitialPath() {
   // TODO: we probably only need the control points actually...
   const int nSamples = 25;
   
-  // let the maximum amplitude be sigma
-  const double maxAmplitude = m_PoistatsModel->GetInitialSigma();
+  // let the maximum amplitude be the radius from the model
+  const double maxAmplitude = m_PoistatsModel->GetFieldLineRadius();
+  
   // amplitude of the sine function
   const double amplitude = maxAmplitude * m_PoistatsModel->GetRandomNumber();
 
