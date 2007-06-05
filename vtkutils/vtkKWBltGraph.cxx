@@ -7,7 +7,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.2 $" );
 
 vtkKWBltGraph::vtkKWBltGraph() :
   XAxisTitle( NULL ),
@@ -126,6 +126,27 @@ vtkKWBltGraph::GetBorderWidth () {
 }
 
 void
+vtkKWBltGraph::SetLegendVisible ( int ibVisible ) {
+
+  if( this->IsCreated() ) {
+    this->Script( "%s legend configure -hide %d",
+		  this->GetWidgetName(), !ibVisible );
+  }
+}
+
+void
+vtkKWBltGraph::SetLegendVisibleToOn () {
+
+  this->SetLegendVisible( 1 );
+}
+
+void
+vtkKWBltGraph::SetLegendVisibleToOff () {
+
+  this->SetLegendVisible( 0 );
+}
+
+void
 vtkKWBltGraph::SetXAxisTitle ( const char* isTitle ) {
 
   if( NULL == XAxisTitle && NULL == isTitle )
@@ -177,7 +198,7 @@ vtkKWBltGraph::SetYAxisTitle ( const char* isTitle ) {
 
 void
 vtkKWBltGraph::AddElement ( const char* isLabel, vector<double>& iPoints,
-			    const char* isSymbol,
+			    const char* isSymbol, int iLineWidth,
 			    double iRed, double iGreen, double iBlue ) {
 
   assert( isLabel );
@@ -199,6 +220,7 @@ vtkKWBltGraph::AddElement ( const char* isLabel, vector<double>& iPoints,
   element.mPoints = iPoints;
   if( isSymbol )
     element.msSymbol = isSymbol;
+  element.mLineWidth = iLineWidth;
   element.mRed = iRed;
   element.mGreen = iGreen;
   element.mBlue = iBlue;
@@ -269,12 +291,16 @@ vtkKWBltGraph::Draw () {
 
     cerr << ssData.str() << endl;
     
-    this->Script( "%s element create %s -data {%s} " //-color %f %f %f "
+    this->Script( "%s element create %s "
+		  "-data {%s} " 
+		  //"-color %f %f %f "
+		  "-linewidth %d "
 		  "-symbol %s",
 		  this->GetWidgetName(),
 		  element.msLabel.c_str(),
 		  ssData.str().c_str(),
 		  // element.mRed, element.mGreen, element.mBlue, 
+		  element.mLineWidth,
 		  element.msSymbol.c_str() );
 
   }

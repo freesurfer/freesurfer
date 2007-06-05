@@ -39,6 +39,12 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   virtual int GetBorderWidth();
 
   // Description:
+  // Show or hide the legend.
+  void SetLegendVisible ( int ibVisible );
+  void SetLegendVisibleToOn ();
+  void SetLegendVisibleToOff ();
+
+  // Description:
   // X axis title
   virtual void SetXAxisTitle ( const char* );
   vtkGetStringMacro(XAxisTitle);
@@ -59,7 +65,7 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   //BTX
   void AddElement ( const char* isLabel, 
 		    std::vector<double>& iPoints,
-		    const char* isSymbol, 
+		    const char* isSymbol, int iLineWidth,
 		    double iRed, double iGreen, double iBlue );
   //ETX
   
@@ -96,6 +102,7 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
     GraphElement ();
     std::string msLabel;
     std::vector<double> mPoints; // x, y, x, y, etc
+    int mLineWidth;
     std::string msSymbol;
     double mRed, mGreen, mBlue;
   };
