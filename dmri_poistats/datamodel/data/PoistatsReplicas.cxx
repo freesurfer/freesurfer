@@ -332,15 +332,17 @@ void PoistatsReplicas::InitializePaths() {
     MatrixPointer base = m_PoistatsModel->RethreadPath( initialPath, nTotalControlPoints );    
     m_Replicas[ cReplica ].SetBasePath( base );
     delete base;
+    base = NULL;
     
     // rethread to the previous path
     MatrixPointer previous = m_PoistatsModel->RethreadPath( initialPath, 
-      GetNumberOfSteps() );
+      this->GetNumberOfSteps() );
     m_Replicas[ cReplica ].SetPreviousTrialPath( previous );    
     delete previous;
+    previous = NULL;
     
     // there's no need to delete initialPath.  InitializePath will do it 
-      
+    
   }
   
   // set all the trial paths to zero
