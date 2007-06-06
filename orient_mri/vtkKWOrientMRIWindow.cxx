@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/19 21:50:40 $
- *    $Revision: 1.10 $
+ *    $Author: nicks $
+ *    $Date: 2007/06/06 15:12:40 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.10 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.11 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
     vtkKWWindow(),
@@ -525,7 +525,7 @@ vtkKWOrientMRIWindow::LoadVolume ( const char* ifnVolume ) {
     // Use grayscale for now.
     this->UseGrayScaleColors();
     
-    this->SetStatusText( "Volumnne loaded." );
+    this->SetStatusText( "Volume loaded." );
     this->AddRecentFile( ifnVolume, this, "LoadVolume" );
     
   } catch ( exception& e ) {
