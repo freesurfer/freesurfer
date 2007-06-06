@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.47 2007/06/05 16:18:01 greve Exp $
+% $Id: fast_selxavg3.m,v 1.48 2007/06/06 00:49:58 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/05 16:18:01 $
-%    $Revision: 1.47 $
+%    $Date: 2007/06/06 00:49:58 $
+%    $Revision: 1.48 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.47 2007/06/05 16:18:01 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.48 2007/06/06 00:49:58 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -684,6 +684,8 @@ if(DoContrasts)
     if(isempty(baseline)) return; end
     indz  = find(baseline.vol==0);
     indnz = find(baseline.vol~=0);
+    baseline.vol(indz) = 1e9;
+    baselinemat = fast_vol2mat(baseline.vol);
 
     fname = sprintf('%s/beta',outanadir);
     beta = MRIread(fname);
@@ -710,7 +712,7 @@ if(DoContrasts)
       [Fmat dof1 dof2 cesmat cesvarmat] = ...
 	  fast_fratiow(betamat,X,rvarmat,C,acfsegmn,acfseg.vol(:));
     else
-      [Fmat dof1 dof2 cesmat ] = ...
+      [Fmat dof1 dof2 cesmat] = ...
 	  fast_fratiow(betamat,X,rvarmat,C,acfsegmn,acfseg.vol(:));
     end
     pmat = FTest(dof1, dof2, Fmat);
@@ -752,9 +754,10 @@ if(DoContrasts)
     fname = sprintf('%s/ces.%s',outcondir,ext);
     MRIwrite(ces,fname);
     
+    tmp = zeros(J,nvox);
+    tmp = cesmat./repmat(baselinemat,[J 1]);
     cespct = mri;
-    cespct.vol = zeros(cespct.volsize);
-    cespct.vol(indnz) = 100*ces.vol(indnz)./baseline.vol(indnz);
+    cespct.vol = fast_mat2vol(tmp,cespct.volsize);
     fname = sprintf('%s/cespct.%s',outcondir,ext);
     MRIwrite(cespct,fname);
     
@@ -778,8 +781,7 @@ if(DoContrasts)
       MRIwrite(cesvar,fname);
 
       cesvarpct = mri;
-      cesvarpct.vol = zeros(cesvarpct.volsize);
-      cesvarpct.vol(indnz) = (100.^2)*cesvar.vol(indnz)./(baseline.vol(indnz).^2);
+      cesvarpct.vol = (100.^2)*cesvar.vol./(baseline.vol.^2);
       fname = sprintf('%s/cesvarpct.%s',outcondir,ext);
       MRIwrite(cesvarpct,fname);
     
@@ -801,13 +803,13 @@ if(DoContrasts)
 	MRIwrite(cesmag,fname);
 	
 	cesmagpct = mri;
-	cesmagpct.vol = zeros(cesmagpct.volsize);
-	cesmagpct.vol(indnz) = 100*cesmag.vol(indnz)./baseline.vol(indnz);
+	cesmagpct.vol = 100*cesmag.vol./baseline.vol;
 	fname = sprintf('%s/cesmagpct.%s',outcondir,ext);
 	MRIwrite(cesmagpct,fname);
       end
     
       tsigmatall = [];
+      cesvarmatall = [];
       for nthj = 1:J
 	Cj = C(nthj,:);
 	[Fmat dof1 dof2 cesmat cesvarmat] = ...
@@ -816,6 +818,7 @@ if(DoContrasts)
 	ind = find(pmat == 0); pmat(ind) = 1;
 	tsigmat = -log10(pmat) .* sign(cesmat);
 	tsigmatall(nthj,:) = tsigmat;
+	cesvarmatall(nthj,:) = cesvarmat;
       end
       tsigall = mri;
       tsigall.vol = fast_mat2vol(tsigmatall,mri.volsize);
@@ -836,6 +839,18 @@ if(DoContrasts)
       fname = sprintf('%s/iminsig.%s',outcondir,ext);
       MRIwrite(rminmri,fname);
       
+      cesvarall = mri;
+      cesvarall.vol = fast_mat2vol(cesvarmatall,mri.volsize);
+      fname = sprintf('%s/cesvar.%s',outcondir,ext);
+      MRIwrite(tsigall,fname);
+
+      tmp = zeros(J,nvox);
+      tmp = (100.^2)*cesvarmatall./repmat(baselinemat.^2,[J 1]);
+      cesvarpct = mri;
+      cesvarpct.vol = fast_mat2vol(tmp,cesvarpct.volsize);
+      fname = sprintf('%s/cesvarpct.%s',outcondir,ext);
+      MRIwrite(cesvarpct,fname);
+    
     end
   
   end
