@@ -7,7 +7,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.4 $" );
 
 vtkKWBltGraph::vtkKWBltGraph() :
   XAxisTitle( NULL ),
@@ -300,13 +300,15 @@ vtkKWBltGraph::Draw () {
 
     this->Script( "%s element create %s "
 		  "-data {%s} " 
-		  //"-color %f %f %f "
+		  "-color #%02x%02x%02x "
 		  "-linewidth %d "
 		  "-symbol %s",
 		  this->GetWidgetName(),
 		  element.msLabel.c_str(),
 		  ssData.str().c_str(),
-		  // element.mRed, element.mGreen, element.mBlue, 
+		  (int)(element.mRed * 255.0),
+		  (int)(element.mGreen * 255.0),
+		  (int)(element.mBlue * 255.0),
 		  element.mLineWidth,
 		  element.msSymbol.c_str() );
 
