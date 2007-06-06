@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/18 19:59:37 $
- *    $Revision: 1.125 $
+ *    $Author: greve $
+ *    $Date: 2007/06/06 03:06:55 $
+ *    $Revision: 1.126 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,9 +49,13 @@ USAGE: ./mri_glmfit
    --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors
    --selfreg col row slice   : self-regressor from index col row slice
 
+   --wls yffxvar : weighted least squares
+   --yffxvar yffxvar dof : for fixed effects analysis
+
    --w weightfile : weight for each input at each voxel
    --w-inv : invert weights
    --w-sqrt : sqrt of (inverted) weights
+
 
    --fwhm fwhm : smooth input by fwhm
    --var-fwhm fwhm : smooth variance by fwhm
@@ -144,9 +148,12 @@ The residual error is computed as
 
     eres = y - yhat
 
-The noise variance estimate (rvar) is computed as the sum of the
-squares of the residual error divided by the DOF.  The DOF equals the
-number of rows of X minus the number of columns.
+For random effects analysis, the noise variance estimate (rvar) is
+computed as the sum of the squares of the residual error divided by
+the DOF.  The DOF equals the number of rows of X minus the number of
+columns. For fixed effects analysis, the noise variance is estimated
+from the lower-level variances passed with --yffxvar, and the DOF
+is the sum of the DOFs from the lower level.
 
 A contrast matrix C has J rows and as many columns as columns of
 X. The contrast is then computed as:
@@ -174,7 +181,7 @@ The outputs will be saved in mgh format as:
   rvar.mgh - residual error variance
   rstd.mgh - residual error stddev (just sqrt of rvar)
   y.fsgd - fsgd file (if one was input)
-  wn.mgh - normalized weights (with --w)
+  wn.mgh - normalized weights (with --w or --wls)
   yhat.mgh - signal estimate (with --save-yhat)
   mask.mgh - final mask (when a mask is used)
   cond.mgh - design matrix condition at each voxel (with --save-cond)
@@ -245,6 +252,24 @@ index col row slice. This waveform is residualized and then added as a
 column to the design matrix. Note: the contrast matrices must include
 columns for this component.
 
+--wls yffxvar : weighted least squares
+
+Perform weighted least squares (WLS) random effects analysis instead
+of ordinary least squares (OLS).  This requires that the lower-level
+variances be available.  This is often the case with fMRI analysis but
+not with an anatomical analysis. Note: this should not be confused
+with fixed effects analysis. The weights will be inverted,
+square-rooted, and normalized to sum to the number of inputs for each
+voxel. Same as --w yffxvar --w-inv --w-sqrt (see --w below).
+
+--yffxvar yffxvar dof : for fixed effects analysis
+
+Perform fixed-effect analysis. This requires that the lower-level variances
+be available.  This is often the case with fMRI analysis but not with
+an anatomical analysis. Note: this should not be confused with weighted
+random effects analysis (wls). The dof is the sum of the DOFs from the 
+lower levels.
+
 --w weightfile
 --w-inv
 --w-sqrt
@@ -255,10 +280,10 @@ file. If --w-inv is flagged, then the inverse of each weight is used
 as the weight.  If --w-sqrt is flagged, then the square root of each
 weight is used as the weight.  If both are flagged, the inverse is
 done first. The final weights are normalized so that the sum at each
-voxel equals 1. The normalized weights are then saved in
-glmdir/wn.mgh.  The --w-inv and --w-sqrt flags are useful when passing
-contrast variances from a lower level analysis to a higher level
-analysis (as is often done in fMRI).
+voxel equals the number of inputs. The normalized weights are then
+saved in glmdir/wn.mgh.  The --w-inv and --w-sqrt flags are useful
+when passing contrast variances from a lower level analysis to a
+higher level analysis (as is often done in fMRI).
 
 --fwhm fwhm
 
@@ -496,7 +521,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.125 2007/05/18 19:59:37 nicks Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.126 2007/06/06 03:06:55 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1797,6 +1822,12 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       wFile = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--wls")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      wFile = pargv[0];
+      weightinv = 1;
+      weightsqrt = 1;
+      nargsused = 1;
     } else if (!strcmp(option, "--X")) {
       if (nargc < 1) CMDargNErr(option,1);
       XFile = pargv[0];
@@ -1881,7 +1912,7 @@ static int parse_commandline(int argc, char **argv) {
 /* --------------------------------------------- */
 static void print_usage(void) {
 printf("\n");
-printf("USAGE: ./mri_glmfit\n");
+printf("USAGE: mri_glmfit\n");
 printf("\n");
 printf("   --glmdir dir : save outputs to dir\n");
 printf("\n");
@@ -1894,12 +1925,17 @@ printf("\n");
 printf("   --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors\n");
 printf("   --selfreg col row slice   : self-regressor from index col row slice\n");
 printf("\n");
+printf("   --wls yffxvar : weighted least squares\n");
+printf("   --yffxvar yffxvar dof : for fixed effects analysis\n");
+printf("\n");
 printf("   --w weightfile : weight for each input at each voxel\n");
 printf("   --w-inv : invert weights\n");
 printf("   --w-sqrt : sqrt of (inverted) weights\n");
 printf("\n");
+printf("\n");
 printf("   --fwhm fwhm : smooth input by fwhm\n");
 printf("   --var-fwhm fwhm : smooth variance by fwhm\n");
+printf("   --no-mask-smooth : do not mask when smoothing\n");
 printf("\n");
 printf("   --mask maskfile : binary mask\n");
 printf("   --label labelfile : use label as mask, surfaces only\n");
@@ -1915,6 +1951,7 @@ printf("   --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc
 printf("   --sim-sign signstring : abs, pos, or neg. Default is abs.\n");
 printf("\n");
 printf("   --pca : perform pca/svd analysis on residual\n");
+printf("   --tar1 : compute and save temporal AR1 of residual \n");
 printf("   --save-yhat : flag to save signal estimate\n");
 printf("   --save-cond  : flag to save design matrix condition at each voxel\n");
 printf("   --voxdump col row slice  : dump voxel GLM and exit\n");
@@ -1988,9 +2025,12 @@ printf("The residual error is computed as\n");
 printf("\n");
 printf("    eres = y - yhat\n");
 printf("\n");
-printf("The noise variance estimate (rvar) is computed as the sum of the\n");
-printf("squares of the residual error divided by the DOF.  The DOF equals the\n");
-printf("number of rows of X minus the number of columns.\n");
+printf("For random effects analysis, the noise variance estimate (rvar) is\n");
+printf("computed as the sum of the squares of the residual error divided by\n");
+printf("the DOF.  The DOF equals the number of rows of X minus the number of\n");
+printf("columns. For fixed effects analysis, the noise variance is estimated\n");
+printf("from the lower-level variances passed with --yffxvar, and the DOF\n");
+printf("is the sum of the DOFs from the lower level.\n");
 printf("\n");
 printf("A contrast matrix C has J rows and as many columns as columns of\n");
 printf("X. The contrast is then computed as:\n");
@@ -2018,7 +2058,7 @@ printf("  eres.mgh - residual error\n");
 printf("  rvar.mgh - residual error variance\n");
 printf("  rstd.mgh - residual error stddev (just sqrt of rvar)\n");
 printf("  y.fsgd - fsgd file (if one was input)\n");
-printf("  wn.mgh - normalized weights (with --w)\n");
+printf("  wn.mgh - normalized weights (with --w or --wls)\n");
 printf("  yhat.mgh - signal estimate (with --save-yhat)\n");
 printf("  mask.mgh - final mask (when a mask is used)\n");
 printf("  cond.mgh - design matrix condition at each voxel (with --save-cond)\n");
@@ -2089,6 +2129,24 @@ printf("index col row slice. This waveform is residualized and then added as a\n
 printf("column to the design matrix. Note: the contrast matrices must include\n");
 printf("columns for this component.\n");
 printf("\n");
+printf("--wls yffxvar : weighted least squares\n");
+printf("\n");
+printf("Perform weighted least squares (WLS) random effects analysis instead\n");
+printf("of ordinary least squares (OLS).  This requires that the lower-level\n");
+printf("variances be available.  This is often the case with fMRI analysis but\n");
+printf("not with an anatomical analysis. Note: this should not be confused\n");
+printf("with fixed effects analysis. The weights will be inverted,\n");
+printf("square-rooted, and normalized to sum to the number of inputs for each\n");
+printf("voxel. Same as --w yffxvar --w-inv --w-sqrt (see --w below).\n");
+printf("\n");
+printf("--yffxvar yffxvar dof : for fixed effects analysis\n");
+printf("\n");
+printf("Perform fixed-effect analysis. This requires that the lower-level variances\n");
+printf("be available.  This is often the case with fMRI analysis but not with\n");
+printf("an anatomical analysis. Note: this should not be confused with weighted\n");
+printf("random effects analysis (wls). The dof is the sum of the DOFs from the \n");
+printf("lower levels.\n");
+printf("\n");
 printf("--w weightfile\n");
 printf("--w-inv\n");
 printf("--w-sqrt\n");
@@ -2099,10 +2157,10 @@ printf("file. If --w-inv is flagged, then the inverse of each weight is used\n")
 printf("as the weight.  If --w-sqrt is flagged, then the square root of each\n");
 printf("weight is used as the weight.  If both are flagged, the inverse is\n");
 printf("done first. The final weights are normalized so that the sum at each\n");
-printf("voxel equals 1. The normalized weights are then saved in\n");
-printf("glmdir/wn.mgh.  The --w-inv and --w-sqrt flags are useful when passing\n");
-printf("contrast variances from a lower level analysis to a higher level\n");
-printf("analysis (as is often done in fMRI).\n");
+printf("voxel equals the number of inputs. The normalized weights are then\n");
+printf("saved in glmdir/wn.mgh.  The --w-inv and --w-sqrt flags are useful\n");
+printf("when passing contrast variances from a lower level analysis to a\n");
+printf("higher level analysis (as is often done in fMRI).\n");
 printf("\n");
 printf("--fwhm fwhm\n");
 printf("\n");
@@ -2261,6 +2319,7 @@ printf("sign is either abs (default), pos, or neg. pos/neg tell mri_glmfit to\n"
 printf("perform a one-tailed test. In this case, the contrast matrix can\n");
 printf("only have one row.\n");
 printf("\n");
+
   exit(1) ;
 }
 /* ------------------------------------------------------ */
