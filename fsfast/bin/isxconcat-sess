@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/05 23:12:13 $
-#    $Revision: 1.9 $
+#    $Date: 2007/06/06 03:09:12 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.9 2007/06/05 23:12:13 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.10 2007/06/06 03:09:12 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -142,6 +142,39 @@ echo $DOF > $outdir/dof
 #-------------------------------------------------
 foreach hemi ($hemilist)
 
+  # Concat the masks
+  set masksvol = $outdir/$hemi.masks.$FSF_OUTPUT_FORMAT
+  set cmd = (isxconcat0-sess -a $analysis -m mask -o $masksvol)
+  set cmd = ($cmd -interp nearest)
+  if($#tmpdir) set cmd = ($cmd -tmp $tmpdir);
+  if($hemi == tal) then
+    if(! $DoMorph) set cmd = ($cmd -talres $talres)
+    if($DoMorph)   set cmd = ($cmd --morph)
+  else
+    set cmd = ($cmd -hemi $hemi -projfrac $projfrac)
+    set cmd = ($cmd -subject $subject)
+  endif
+  set cmd = ($cmd $sessargs);
+  echo "cd `pwd`" |& tee -a $LF
+  echo $cmd       |& tee -a $LF
+  $cmd            |& tee -a $LF
+  if($status) exit 1;
+
+  # Make a single mask = 0 unless all input masks are != 0
+  set maskvol = $outdir/$hemi.mask.$FSF_OUTPUT_FORMAT
+  set cmd = (mri_concat $masksvol --o $maskvol --mean)
+  echo $cmd       |& tee -a $LF
+  $cmd            |& tee -a $LF
+  if($status) exit 1;
+  # Binarize
+  set thresh = `echo \($#SessList-.5\)/$#SessList | bc -l`
+  echo $thresh
+  set cmd = (mri_binarize --i $maskvol --min $thresh --o $maskvol)
+  echo $cmd       |& tee -a $LF
+  $cmd            |& tee -a $LF
+  if($status) exit 1;
+
+
   foreach mapname (h-offset rvar snr)
     # What about paired diff for these?
     set outvol = $outdir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
@@ -163,39 +196,14 @@ foreach hemi ($hemilist)
     if($status) exit 1;
   end
 
-  # Concat the masks
-  set masksvol = $outdir/$hemi.masks.$FSF_OUTPUT_FORMAT
-  set cmd = (isxconcat0-sess -a $analysis -m mask -o $masksvol)
-  set cmd = ($cmd -interp nearest)
-  if($#tmpdir) set cmd = ($cmd -tmp $tmpdir);
-  if($hemi == tal) then
-    if(! $DoMorph) set cmd = ($cmd -talres $talres)
-    if($DoMorph)   set cmd = ($cmd --morph)
-  else
-    set cmd = ($cmd -hemi $hemi -projfrac $projfrac)
-    set cmd = ($cmd -subject $subject)
-  endif
-  set cmd = ($cmd $sessargs);
-  echo "cd `pwd`" |& tee -a $LF
-  echo $cmd       |& tee -a $LF
-  $cmd            |& tee -a $LF
-  if($status) exit 1;
-
-  # Make a single mask 
-  set maskvol = $outdir/$hemi.mask.$FSF_OUTPUT_FORMAT
-  set cmd = (mri_concat $masksvol --o $maskvol --mean)
-  echo $cmd       |& tee -a $LF
-  $cmd            |& tee -a $LF
-  if($status) exit 1;
-  # Binarize mask
-
   # Go thru the maps in the contrasts
   foreach contrast ($contrastlist)
     set outcondir = $outdir/$contrast
     mkdir -p $outcondir
 
     # copy the contrast.mat file for reference
-    if($#flac == 0) cp $analysis/$contrast.mat $outcondir
+    if($#flac == 0) \
+      cp $analysis/$contrast.mat $outcondir/$contrast.lowerlevel.mat
 
     foreach mapname ($maplist)
       set outvol = $outcondir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
