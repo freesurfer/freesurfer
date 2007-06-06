@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.7 $
+ *    $Author: greve $
+ *    $Date: 2007/06/06 22:21:49 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,14 +24,75 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
 /*----------------------------------------------------------
   Name: mri_cor2label.c
-  $Id: mri_cor2label.c,v 1.7 2006/12/29 02:09:06 nicks Exp $
+  $Id: mri_cor2label.c,v 1.8 2007/06/06 22:21:49 greve Exp $
   Author: Douglas Greve
-  Purpose: Converts values in a COR file to a label.
+  Purpose: Converts values in any volume file (not just cor) 
+  to a label.
   -----------------------------------------------------------*/
+
+/*
+BEGINUSAGE --------------------------------------------------------------
+
+mri_cor2label 
+   --i  input     : vol or surface overlay
+   --id labelid   : value to match in the input
+   --l  labelfile : name of output file
+   --v  volfile   : write label volume in file
+   --surf subject hemi <surf> : interpret input as surface overlay
+   --help         :print out help information
+
+ENDUSAGE --------------------------------------------------------------
+*/
+
+/*
+BEGINHELP --------------------------------------------------------------
+
+Converts values in a volume or surface overlay to a label. The program
+searches the input for values equal to labelid. The xyz values for
+each point are then computed based on the tkregister voxel-to-RAS
+matrix (volume) or from the xyz of the specified surface.  The xyz
+values are then stored in labelfile in the label file format. the
+statistic value is set to 0.  While this program can be used with any
+mri volume, it was designed to convert parcellation volumes, which
+happen to be stored in mri format.  See tkmedit for more information
+on parcellations. For volumes, the volume of the labvel in mm^3 can be
+written to the text file designated in by the --v flag. 
+
+Note: the name of this program is a bit misleading as it will operate
+on anything readble by mri_convert (eg, mgz, mgh, nifti, bhdr,
+analyze, etc).
+
+Bugs:
+
+  If the name of the label does not include a forward slash (ie, '/')
+  then the program will attempt to put the label files in
+  $SUBJECTS_DIR/subject/label.  So, if you want the labels to go into
+  the current directory, make sure to put a './' in front of the label.
+
+Example 1: Create a label of the left putamen (12) from the automatic
+segmentation
+
+mri_cor2label --c $SUBJECTS_DIR/subject/mri/aseg.mgz 
+   --id 12 --l ./left-putamen.label
+
+The value 12 is from $FREESURFER_HOME/FreeSurferColorLUT.txt
+
+Example 2: Create a label of the left hemi surface vertices whose
+thickness is greater than 2mm.
+
+# First, create a binarized map of the thickness
+mri_binarize --i $SUBJECTS_DIR/subject/surf/lh.thickness 
+  --min 2 --o lh.thickness.thresh.mgh
+
+mri_cor2label --i lh.thickness.thresh.mgh 
+  --surf subject lh  --id 1 --l ./lh.thickness.thresh.label
+
+
+ENDHELP --------------------------------------------------------------
+*/
+
 #include <stdio.h>
 #include "mri.h"
 #include "macros.h"
@@ -40,6 +101,8 @@
 #include "proto.h"
 #include "label.h"
 #include "version.h"
+#include "mrisurf.h"
+#include "cmdargs.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -49,15 +112,17 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 
-static char vcid[] = "$Id: mri_cor2label.c,v 1.7 2006/12/29 02:09:06 nicks Exp $";
+static char vcid[] = "$Id: mri_cor2label.c,v 1.8 2007/06/06 22:21:49 greve Exp $";
 char *Progname ;
 int main(int argc, char *argv[]) ;
 
-static char *cordir;
-static char *labelfile;
-static char *volfile;
-static int  labelid;
-MRI *COR;
+char *infile;
+char *labelfile;
+char *volfile;
+int  labelid;
+char *hemi, *SUBJECTS_DIR;
+char *surfname = "white";
+MRI *mri;
 LABEL *lb;
 
 int xi,yi,zi, c, nlabel;
@@ -67,15 +132,17 @@ int doit;
 int synthlabel = 0;
 int verbose = 0;
 float xsum, ysum, zsum;
-
+char tmpstr[2000];
+MRIS *surf = NULL;
 
 /*----------------------------------------------------*/
 int main(int argc, char **argv) {
   FILE *fp;
-  int nargs;
+  int nargs,nv,nth;
+  MATRIX *vox2rastkr=NULL, *crs=NULL, *xyz=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_cor2label.c,v 1.7 2006/12/29 02:09:06 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_cor2label.c,v 1.8 2007/06/06 22:21:49 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -88,56 +155,87 @@ int main(int argc, char **argv) {
 
   if (argc == 0) usage_exit();
 
-  cordir    = NULL;
+  infile    = NULL;
   labelfile = NULL;
-  labelid   = 257;
+  labelid   = -1;
 
   parse_commandline(argc, argv);
   check_options();
 
-  /* allocate a label as big as the COR itself */
-  lb = LabelAlloc(256*256*256,subject_name,labelfile);
+  printf("%s\n",vcid);
 
-  fprintf(stderr,"Loading COR %s\n",cordir);
-  COR = MRIread(cordir);
+  fprintf(stderr,"Loading mri %s\n",infile);
+  mri = MRIread(infile);
+  nv = mri->width*mri->height*mri->depth;
+
+  if(hemi == NULL){
+    vox2rastkr = MRIxfmCRS2XYZtkreg(mri);
+    printf("------- Vox2RAS of input volume -----------\n");
+    MatrixPrint(stdout,vox2rastkr);
+    crs = MatrixAlloc(4,1,MATRIX_REAL);
+    crs->rptr[4][1] = 1;
+    xyz = MatrixAlloc(4,1,MATRIX_REAL);
+  }
+
+  if(hemi != NULL){
+    SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject_name,hemi,surfname);
+    printf("Loading %s\n",tmpstr);
+    surf = MRISread(tmpstr);
+    if(surf == NULL) exit(1);
+    if(nv != surf->nvertices){
+      printf("ERROR: dim mismatch between surface (%d) and input (%d)\n",
+	     surf->nvertices,nv);
+      exit(1);
+    }
+  }
+
+  /* allocate a label as big as the mri itself */
+  lb = LabelAlloc(nv,subject_name,labelfile);
 
   fprintf(stderr,"Scanning the volume\n");
   nlabel = 0;
   xsum = 0.0;
   ysum = 0.0;
   zsum = 0.0;
-  for (xi=0; xi < COR->width; xi++) {
-    for (zi=0; zi < COR->height; zi++) {
-      for (yi=0; yi < COR->depth; yi++) {
-        c = (int) MRIvox(COR,xi,zi,yi);
-        /* The call to MRIvox is with arguments (COR,xi,zi,yi) instead
-           of (COR,xi,yi,zi) becase
-           MRIvox(mri,x,y,z) = (((BUFTYPE *)mri->slices[z][y])[x])
-           but from mriio.c, L959ish,      mri->slices[y][z])[x])*/
+  nth = -1;
+  for (zi=0; zi < mri->depth; zi++) {
+    for (yi=0; yi < mri->height; yi++) {
+      for (xi=0; xi < mri->width; xi++) {
+	nth++;
 
-        doit = 0;
-        if (synthlabel &&
-            xi > 120 && xi < 130 &&
-            zi > 128 && zi < 138 &&
-            yi >  40 && yi <  50) doit = 1;
+        c = (int) MRIgetVoxVal(mri,xi,yi,zi,0);
+        if(c != labelid) continue;
 
-        if (c == labelid && !synthlabel) doit = 1;
+	if(surf == NULL){
+	  crs->rptr[1][1] = xi;
+	  crs->rptr[2][1] = yi;
+	  crs->rptr[3][1] = zi;
+	  crs->rptr[4][1] = 1;
+	  xyz = MatrixMultiply(vox2rastkr,crs,xyz);
+	  x = xyz->rptr[1][1];
+	  y = xyz->rptr[2][1];
+	  z = xyz->rptr[3][1];
+	  lb->lv[nlabel].vno = 0;
+	}
+	else {
+	  x = surf->vertices[nth].x;
+	  y = surf->vertices[nth].y;
+	  z = surf->vertices[nth].z;
+	  lb->lv[nlabel].vno = nth;
+	}
+	if (verbose)
+	  printf("%5d   %3d %3d %3d   %6.2f %6.2f %6.2f \n",
+		 nlabel,xi,yi,zi,x,y,z);
 
-        if (doit) {
-          x = -xi + 128.0;
-          y =  yi - 128.0;
-          z = -zi + 128.0;
-          if (verbose)
-            printf("%5d   %3d %3d %3d   %6.2f %6.2f %6.2f \n",
-                   nlabel,xi,yi,zi,x,y,z);
-          lb->lv[nlabel].x = x;
-          lb->lv[nlabel].y = y;
-          lb->lv[nlabel].z = z;
-          nlabel ++;
-          xsum += x;
-          ysum += y;
-          zsum += z;
-        }
+	lb->lv[nlabel].x = x;
+	lb->lv[nlabel].y = y;
+	lb->lv[nlabel].z = z;
+	nlabel ++;
+	xsum += x;
+	ysum += y;
+	zsum += z;
+
       }
     }
   }
@@ -151,7 +249,7 @@ int main(int argc, char **argv) {
       printf("ERROR: could not open  %s\n",volfile);
       exit(1);
     }
-    fprintf(fp,"%d\n",nlabel);
+    fprintf(fp,"%f\n",nlabel*mri->xsize*mri->ysize*mri->zsize);
     fclose(fp);
   }
 
@@ -188,10 +286,10 @@ static int parse_commandline(int argc, char **argv) {
     if (!stricmp(option, "--help")) print_help() ;
     else if (!stricmp(option, "--version")) print_version() ;
 
-    /* ---- COR directory ------------ */
-    else if (!strcmp(option, "--c")) {
+    /* ---- mri directory ------------ */
+    else if (!strcmp(option, "--c") || !strcmp(option, "--i")) {
       if (nargc < 2) argnerr(option,1);
-      cordir = pargv[1];
+      infile = pargv[1];
       nargs = 2;
     }
 
@@ -213,11 +311,19 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--id")) {
       if (nargc < 2) argnerr(option,1);
       sscanf(pargv[1],"%d",&labelid);
-      if (labelid < 0 || labelid > 255) {
-        fprintf(stderr,"ERROR: id=%d, must be 0<id<255\n",labelid);
-        exit(1);
-      }
       nargs = 2;
+    }
+
+    /* ---- label id ---------- */
+    else if (!strcmp(option, "--surf")) {
+      if(nargc < 2) argnerr(option,1);
+      subject_name = pargv[1];
+      hemi = pargv[2];
+      nargs = 3;
+      if(nargc > 2 && !CMDisFlag(pargv[3])){
+	surfname = pargv[3];
+	nargs ++;
+      }
     }
 
     /* ---- synthesize the label ---------- */
@@ -246,52 +352,62 @@ static void usage_exit(void) {
 }
 /* --------------------------------------------- */
 static void print_usage(void) {
-  fprintf(stdout, "\n");
-  fprintf(stdout, "USAGE: %s \n",Progname);
-  fprintf(stdout,"   --c  cordir  directory to find COR volume \n");
-  fprintf(stdout,"   --id labelid 0-255 value in COR volume\n");
-  fprintf(stdout,"   --l  labelfile name of output file\n");
-  fprintf(stdout,"   --v  volfile : write label volume in file\n");
-  fprintf(stdout,"   --help print out help information\n");
+printf("\n");
+printf("mri_cor2label \n");
+printf("   --i  input     : vol or surface overlay\n");
+printf("   --id labelid   : value to match in the input\n");
+printf("   --l  labelfile : name of output file\n");
+printf("   --v  volfile   : write label volume in file\n");
+printf("   --surf subject hemi <surf> : interpret input as surface overlay\n");
+printf("   --help         :print out help information\n");
+printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
-  printf(
-    "\n"
-    "Converts values in a COR volume to a label. The program searches the\n"
-    "COR volume in directory 'cordir' for values equal to 'labelid'. The\n"
-    "xyz values for each point are then computed assuming 1 mm^3 voxels and\n"
-    "that xyz=0 at the center of the volume. The xyz values are then stored\n"
-    "in 'labelfile' in the label file format; the vertex values are set to\n"
-    "zero as is the statistic value.  While this program can be used with\n"
-    "any COR volume, it was designed to convert parcellation volumes, which\n"
-    "happen to be stored in COR format.  See tkmedit for more information\n"
-    "on parcellations. The labelid must be within the range of 0 to 255.\n"
-    "The label volume in mm^3 can be written to the argument of --v.\n"
-    "\n"
-    "Bugs:\n"
-    "\n"
-    "  If the name of the label does not include a forward slash (ie, '/')\n"
-    "  then the program will attempt to put the label files in\n"
-    "  $SUBJECTS_DIR/subject/label.  So, if you want the labels to go into\n"
-    "  the current directory, make sure to put a './' in front of the label.\n"
-    "\n"
-    "Example:\n"
-    "\n"
-    "mri_cor2label --c /space/final/frontier/myparcellation\n"
-    "              --id 57 --l /home/brainmapper/spattemp/57.label\n"
-    "\n"
-    "This will load the COR volume found in the directory\n"
-    "/space/final/frontier/myparcellation and then search the volume for\n"
-    "values equaling 57.  The results are stored in 57.label in the directory \n"
-    "/home/brainmapper/spattemp, which must exist prior to execution.\n"
-    "\n"
-    "Hidden options:\n"
-    "  --synth synthesizes a label (ignores values in COR volume)\n"
-    "\n"
-    "See also: tkmedit, mri_label2label\n\n");
-
+  printf("\n%s\n\n",vcid);
+printf("\n");
+printf("Converts values in a volume or surface overlay to a label. The program\n");
+printf("searches the input for values equal to labelid. The xyz values for\n");
+printf("each point are then computed based on the tkregister voxel-to-RAS\n");
+printf("matrix (volume) or from the xyz of the specified surface.  The xyz\n");
+printf("values are then stored in labelfile in the label file format. the\n");
+printf("statistic value is set to 0.  While this program can be used with any\n");
+printf("mri volume, it was designed to convert parcellation volumes, which\n");
+printf("happen to be stored in mri format.  See tkmedit for more information\n");
+printf("on parcellations. For volumes, the volume of the labvel in mm^3 can be\n");
+printf("written to the text file designated in by the --v flag. \n");
+printf("\n");
+printf("Note: the name of this program is a bit misleading as it will operate\n");
+printf("on anything readble by mri_convert (eg, mgz, mgh, nifti, bhdr,\n");
+printf("analyze, etc).\n");
+printf("\n");
+printf("Bugs:\n");
+printf("\n");
+printf("  If the name of the label does not include a forward slash (ie, '/')\n");
+printf("  then the program will attempt to put the label files in\n");
+printf("  $SUBJECTS_DIR/subject/label.  So, if you want the labels to go into\n");
+printf("  the current directory, make sure to put a './' in front of the label.\n");
+printf("\n");
+printf("Example 1: Create a label of the left putamen (12) from the automatic\n");
+printf("segmentation\n");
+printf("\n");
+printf("mri_cor2label --c $SUBJECTS_DIR/subject/mri/aseg.mgz \n");
+printf("   --id 12 --l ./left-putamen.label\n");
+printf("\n");
+printf("The value 12 is from $FREESURFER_HOME/FreeSurferColorLUT.txt\n");
+printf("\n");
+printf("Example 2: Create a label of the left hemi surface vertices whose\n");
+printf("thickness is greater than 2mm.\n");
+printf("\n");
+printf("# First, create a binarized map of the thickness\n");
+printf("mri_binarize --i $SUBJECTS_DIR/subject/surf/lh.thickness \n");
+printf("  --min 2 --o lh.thickness.thresh.mgh\n");
+printf("\n");
+printf("mri_cor2label --i lh.thickness.thresh.mgh \n");
+printf("  --surf subject lh  --id 1 --l ./lh.thickness.thresh.label\n");
+printf("\n");
+printf("\n");
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -309,15 +425,15 @@ static void argnerr(char *option, int n) {
 }
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (cordir == NULL) {
-    fprintf(stderr,"ERROR: must supply a COR directory\n");
+  if (infile == NULL) {
+    fprintf(stderr,"ERROR: must supply an input\n");
     exit(1);
   }
   if (labelfile == NULL && volfile == NULL) {
     fprintf(stderr,"ERROR: must be supply a label or volume file\n");
     exit(1);
   }
-  if (labelid == 257) {
+  if (labelid == -1) {
     fprintf(stderr,"ERROR: must supply a label id\n");
     exit(1);
   }
