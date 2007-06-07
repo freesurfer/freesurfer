@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/04 00:25:17 $
- *    $Revision: 1.384 $
+ *    $Date: 2007/06/07 15:57:49 $
+ *    $Revision: 1.385 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.384 $";
+char *MRI_C_VERSION = "$Revision: 1.385 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -13379,15 +13379,26 @@ MRIsampleVolumeSlice
   return(NO_ERROR) ;
 }
 
-float
-MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label)
+float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label)
 {
   float   volume, vox_vol ;
-  int     x, y, z, nbr_label_counts[MAX_CMA_LABELS];
-  int     label_counts[MAX_CMA_LABELS], this_label, border;
+  int     x, y, z, nbr_label_counts[5000];
+  int     label_counts[5000], this_label, border;
   int     nbr_label, max_count, vox_label ;
   MRI     *mri_border ;
-  float   label_means[MAX_CMA_LABELS], pv, mean_label, mean_nbr, val ;
+  float   label_means[5000], pv, mean_label, mean_nbr, val ;
+  int     maxlabels = 5000;
+  // DNG 6/7/07 : had to use maxlabels instead of MAX_CMA_LABELS here
+  // so that segmentations with values > MAX_CMA_LABELS can be
+  // accessed. This includes the cortical segmentations as well as
+  // white matter segs. Currently, the max seg no is 4181, but this
+  // could easily change.
+
+  if(label >= maxlabels){
+    printf("ERROR: MRIvoxelsInLabelWithPartialVolumeEffects()\n");
+    printf(" label %d exceeds maximum label number %d\n",label,maxlabels);
+    return(-100000);
+  }
 
   vox_vol = mri->xsize*mri->ysize*mri->zsize ;
 
@@ -13396,12 +13407,9 @@ MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label)
   if (DIAG_VERBOSE_ON && (Gdiag & DIAG_WRITE))
     MRIwrite(mri_border, "b.mgz") ;
   volume = 0 ;
-  for (x = 0 ; x < mri->width ; x++)
-  {
-    for (y = 0 ; y < mri->height ; y++)
-    {
-      for (z = 0 ; z < mri->depth ; z++)
-      {
+  for (x = 0 ; x < mri->width ; x++)  {
+    for (y = 0 ; y < mri->height ; y++)    {
+      for (z = 0 ; z < mri->depth ; z++)      {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         vox_label = MRIgetVoxVal(mri, x, y, z, 0) ;
@@ -13409,18 +13417,13 @@ MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label)
         if ((vox_label != label) && (border == 0))
           continue ;
 
-        if (border == 0)
-          volume += vox_vol ;
-        else /* compute partial volume */
-        {
-          MRIcomputeLabelNbhd
-          (mri, mri_vals, x, y, z,
-           nbr_label_counts, label_means, 1, MAX_CMA_LABELS) ;
-          MRIcomputeLabelNbhd
-          (mri, mri_vals, x, y, z,
-           label_counts, label_means, 7, MAX_CMA_LABELS) ;
-          val =
-            MRIgetVoxVal(mri_vals, x, y, z, 0) ;  /* compute partial
+        if (border == 0)  volume += vox_vol ;
+        else{ /* compute partial volume */
+          MRIcomputeLabelNbhd(mri, mri_vals, x, y, z,
+           nbr_label_counts, label_means, 1, maxlabels) ;
+          MRIcomputeLabelNbhd(mri, mri_vals, x, y, z,
+           label_counts, label_means, 7, maxlabels) ;
+          val = MRIgetVoxVal(mri_vals, x, y, z, 0) ;  /* compute partial
                                                      volume based on
                                                      intensity */
           mean_label = label_means[vox_label] ;
@@ -13428,31 +13431,21 @@ MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label)
           max_count = 0 ;
           /* look for a label that is a nbr and is
              on the other side of val from the label mean */
-          for (this_label = 0 ;
-               this_label < MAX_CMA_LABELS ;
-               this_label++)
-          {
-            if (this_label == vox_label)
-              continue ;
-            if (nbr_label_counts[this_label] == 0)   /* not a nbr */
-              continue ;
+          for (this_label = 0 ; this_label < maxlabels;  this_label++)  {
+            if(this_label == vox_label)  continue ;
+            if(nbr_label_counts[this_label] == 0) continue ; /* not a nbr */
 
             if ((label_counts[this_label] > max_count) &&
                 ((label_means[this_label] - val) *
-                 (mean_label - val) < 0))
-            {
+                 (mean_label - val) < 0))            {
               max_count = label_means[this_label] ;
               nbr_label = this_label ;
             }
           }
-          if (vox_label != label &&
-              nbr_label != label)  /* this struct not in voxel */
-            continue ;
+          if (vox_label != label && nbr_label != label)  continue ;/* this struct not in voxel */
 
-          if (max_count == 0)  /* couldn't find an appropriate label */
-            volume += vox_vol ;
-          else    /* compute partial volume pct */
-          {
+          if (max_count == 0) volume += vox_vol ; /* couldn't find an appropriate label */
+          else{    /* compute partial volume pct */
             mean_nbr = label_means[nbr_label] ;
             pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
             if (vox_label == label)
