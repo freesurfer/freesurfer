@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.49 2007/06/07 16:01:48 greve Exp $
+% $Id: fast_selxavg3.m,v 1.50 2007/06/07 19:26:23 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/07 16:01:48 $
-%    $Revision: 1.49 $
+%    $Date: 2007/06/07 19:26:23 $
+%    $Revision: 1.50 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.49 2007/06/07 16:01:48 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.50 2007/06/07 19:26:23 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -633,7 +633,6 @@ if(DoGLMFit)
   MRIwrite(baseline,fname);
   baselinemat = fast_vol2mat(baseline.vol);
 
-
   indz  = find(baseline.vol==0);
   indnz = find(baseline.vol~=0);
   fprintf('Found %d zero-valued voxels\n',length(indz));
@@ -757,7 +756,7 @@ if(DoContrasts)
     MRIwrite(ces,fname);
     
     tmp = zeros(J,nvox);
-    tmp = cesmat./repmat(baselinemat,[J 1]);
+    tmp = cesmat./repmat(abs(baselinemat),[J 1]);
     cespct = mri;
     cespct.vol = fast_mat2vol(tmp,cespct.volsize);
     fname = sprintf('%s/cespct.%s',outcondir,ext);
@@ -805,7 +804,7 @@ if(DoContrasts)
 	MRIwrite(cesmag,fname);
 	
 	cesmagpct = mri;
-	cesmagpct.vol = 100*cesmag.vol./baseline.vol;
+	cesmagpct.vol = 100*cesmag.vol./abs(baseline.vol);
 	fname = sprintf('%s/cesmagpct.%s',outcondir,ext);
 	MRIwrite(cesmagpct,fname);
       end
@@ -844,7 +843,7 @@ if(DoContrasts)
       cesvarall = mri;
       cesvarall.vol = fast_mat2vol(cesvarmatall,mri.volsize);
       fname = sprintf('%s/cesvar.%s',outcondir,ext);
-      MRIwrite(tsigall,fname);
+      MRIwrite(cesvarall,fname);
 
       tmp = zeros(J,nvox);
       tmp = (100.^2)*cesvarmatall./repmat(baselinemat.^2,[J 1]);
@@ -852,7 +851,7 @@ if(DoContrasts)
       cesvarpct.vol = fast_mat2vol(tmp,cesvarpct.volsize);
       fname = sprintf('%s/cesvarpct.%s',outcondir,ext);
       MRIwrite(cesvarpct,fname);
-    
+
     end
   
   end
@@ -869,9 +868,15 @@ if(~isempty(analysis) & DoGLMFit)
   evtask1 = flac0.ev(evtaskind(1));
   hd = fmri_hdrdatstruct;
   hd.TR = flac0.TR;
-  hd.TER = evtask1.psdwin(3);
-  hd.TimeWindow = evtask1.psdwin(2)-evtask1.psdwin(1);
-  hd.TPreStim   = -evtask1.psdwin(1);
+  if(~isempty(evtask1.psdwin)) 
+    hd.TER = evtask1.psdwin(3);
+    hd.TimeWindow = evtask1.psdwin(2)-evtask1.psdwin(1);
+    hd.TPreStim   = -evtask1.psdwin(1);
+  else
+    hd.TER = flac0.TR;
+    hd.TimeWindow = 0;
+    hd.TPreStim   = 0;
+  end
   hd.Nc = length(evtaskind)+1;
   Nc = hd.Nc;
   hd.Nnnc = hd.Nc - 1;
