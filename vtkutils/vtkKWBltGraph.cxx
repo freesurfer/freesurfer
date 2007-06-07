@@ -8,10 +8,12 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.7 $" );
 
-int const vtkKWBltGraph::MouseoverEnterElementEvent = vtkCommand::UserEvent + 1;
-int const vtkKWBltGraph::MouseoverExitElementEvent = vtkCommand::UserEvent + 2;
+unsigned long const vtkKWBltGraph::MouseoverEnterElementEvent = 
+  vtkCommand::UserEvent + 1;
+unsigned long const vtkKWBltGraph::MouseoverExitElementEvent = 
+  vtkCommand::UserEvent + 2;
 
 vtkKWBltGraph::vtkKWBltGraph() :
   XAxisTitle( NULL ),
