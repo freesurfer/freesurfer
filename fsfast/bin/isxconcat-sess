@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/07 20:27:30 $
-#    $Revision: 1.12 $
+#    $Date: 2007/06/07 20:28:59 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.12 2007/06/07 20:27:30 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.13 2007/06/07 20:28:59 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -457,7 +457,7 @@ check_params:
       exit 1;
     endif
     set contrastlist = ();
-    foreach m ($conmaplist)
+    foreach m ($matlist)
       set b = `basename $m | sed 's/.mat//'`
       set contrastlist = ($contrastlist $b);
     end
