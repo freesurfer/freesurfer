@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.13 $
+#    $Author: greve $
+#    $Date: 2007/06/07 20:19:21 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,10 +23,9 @@
 #
 
 
-set VERSION    = '$Id: mc-sess,v 1.13 2007/01/09 22:41:18 nicks Exp $'
+set VERSION    = '$Id: mc-sess,v 1.14 2007/06/07 20:19:21 greve Exp $'
 set cmdargs = ($argv);
 
-set ScriptOnly = 0;
 set fsd = "bold";
 set mcmethod   = "afni"
 set targoff    = 0;
@@ -37,10 +36,14 @@ set funcmcstem = (); # stem of functional motion-corrected volume
 set PWDCMD = `getpwdcmd`;
 set targnthrun = 1;  # use nth run as target
 set targrun = ();    # use explicit run as target
-set nolog = 0;
 set RunListFile = ();
 set targstem = ();
+set DoInorm = 0;
+set mask = brain;
+
+set nolog = 0;
 set usenew = 1;
+
 set infmt = ();
 set outfmt = bhdr;
 if($?FSF_OUTPUT_FORMAT) then
@@ -83,7 +86,29 @@ check_params_return:
 
 set ProjectDir = `pwd`;
 
-## go through each session ##
+## Check each session ##
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"  
+    exit 1;
+  endif
+  if(! -d $sess/$fsd) then
+    echo "ERROR: $sess/$fsd does not exist"  
+    exit 1;
+  endif
+  if($DoInorm) then
+    set maskpath = $sess/$fsd/masks/$mask
+    set tmp = `getformat_from_stem $maskpath`;
+    if($status) then
+      echo "$tmp"
+      echo "ERROR: cannot find $maskpath, needed for inorm"
+      exit 1;
+    endif
+  endif
+end
+
+## Now analyze each session ##
 foreach sess ($SessList)
   set sessid = `basename $sess`;
 
@@ -146,16 +171,6 @@ foreach sess ($SessList)
   endif
   echo "RunList: $RunList" |& tee -a $LF
 
-  if($ScriptOnly) then
-    if(! -d scripts) mkdir scripts
-    set scriptfile = scripts/run-mc
-    rm -f $scriptfile
-    touch $scriptfile
-    echo "#\!/bin/csh -f" >> $scriptfile 
-    echo "cd .."          >> $scriptfile 
-    chmod a+x $scriptfile
-  endif
-
   if($#targrun == 0) then
     if($#RunList < $targnthrun) then
       echo "ERROR: $sessid target run ($targnthrun) exceeds "
@@ -194,27 +209,35 @@ foreach sess ($SessList)
       set cmd = (mc-afni2 --i $instem.$infmtuse --t $targstem.$infmtuse \
          --frame $targoff --o $outstem.$outfmt  --mcdat $outstem.mcdat)
     endif
-    if(! $ScriptOnly) then
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) exit 1;
-    
-      # Create the external regresssor file #
-      echo "INFO: Making external regressor from mc params" |& tee -a $LF
-      set cmd = (mcparams2extreg -mcfile $outstem.mcdat -northog 6)
-      set cmd = ($cmd -extreg $run/mcextreg)
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) exit 1;
-    else
-      echo $cmd >> $scriptfile
-    endif
-  end
-  echo "\n\n" |& tee -a $LF
 
-  if($ScriptOnly) then
-    echo "\n\n" >> $scriptfile
-  endif
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+
+    # Inorm = compute mean in mask (creates $outstem.meanval)
+    if($DoInorm) then
+      set maskpath = $sess/$fsd/masks/$mask
+      set fmt = `getformat_from_stem $maskpath`;
+      set cmd = (mri_segstats --seg $maskpath.$fmt --id 1 --sum /tmp/blah.$$ \
+                 --in $outstem.$outfmt --sfavg $outstem.meanval )
+      echo "cd `pwd`" |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+    endif
+    
+    # Create the external regresssor file -- this requires matlab
+    echo "INFO: Making external regressor from mc params" |& tee -a $LF
+    set cmd = (mcparams2extreg -mcfile $outstem.mcdat -northog 6)
+    set cmd = ($cmd -extreg $run/mcextreg)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+
+  end # Loop over sessions 
+
+  echo "" |& tee -a $LF
+  echo "" |& tee -a $LF
 
   popd > /dev/null
 end
@@ -319,13 +342,17 @@ while( $#argv != 0 )
       set outfmt = $argv[1]; shift;
       breaksw
 
+    case "-inorm":
+      set DoInorm = 1;
+      breaksw
+
+    case "-no-inorm":
+      set DoInorm = 0;
+      breaksw
+
     case "-debug":
       set verbose = 1;
       set echo = 1;
-      breaksw
-
-    case "-scriptonly":
-      set ScriptOnly = 1;
       breaksw
 
     case "-umask":
@@ -394,6 +421,8 @@ usage_exit:
   echo "   -perrun            : MC each run separately (targ=mid)"
   echo "   -infmt  format     : <auto>, bhdr, mgh, mgz, nii, nii.gz"
   echo "   -outfmt format     : <bhdr>, mgh, mgz, nii, nii.gz"
+  echo "   -inorm             : perform intensity normalization"
+  echo "   -no-inorm          : do not intensity normalize (default)"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
