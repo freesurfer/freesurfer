@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/07 16:51:51 $
-#    $Revision: 1.5 $
+#    $Date: 2007/06/07 21:48:29 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 #
 
 
-set VERSION = '$Id: synth-sess,v 1.5 2007/06/07 16:51:51 greve Exp $'
+set VERSION = '$Id: synth-sess,v 1.6 2007/06/07 21:48:29 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -36,8 +36,10 @@ set runlistfile = ();
 set fsd = bold;
 set funcstem = f;
 set parfiles = ();
+set spiketp = ();
 
 set ntrs = ();
+set seed = ();
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep version | wc -l` 
@@ -98,11 +100,17 @@ else
 
 endif
 
+@ nthrun = 1;
 foreach runid ($RunList)
   mkdir -p $sess/$fsd/$runid
   set func = $sess/$fsd/$runid/$funcstem.nii
   set cmd = (mri_volsynth --vol $func --temp $template --offset)
   if($#ntrs) set cmd = ($cmd --nframes $ntrs);
+  if($#seed) then
+    @ runseed = $seed + $nthrun - 1
+    set cmd = ($cmd --seed $runseed);
+  endif
+  if($#spiketp) set cmd = ($cmd --spike $spiketp);
   echo $cmd
   $cmd |& tee $func.volsynth |& tee -a $LF
   if($status) exit 1;
@@ -114,9 +122,10 @@ foreach runid ($RunList)
     else
       cp $templatesess/$fsd/*.rlf $sess/$fsd/ >& /dev/null
     endif
-    cp $templatesess/$fsd/$runid/*.par $sess/$fsd/$runid/ >& /dev/null
-    cp $templatesess/$fsd/$runid/*.stf $sess/$fsd/$runid/ >& /dev/null
-    cp $templatesess/$fsd/$runid/*.sch $sess/$fsd/$runid/ >& /dev/null
+    cp $templatesess/$fsd/$runid/*.par   $sess/$fsd/$runid/ >& /dev/null
+    cp $templatesess/$fsd/$runid/*.par4  $sess/$fsd/$runid/ >& /dev/null
+    cp $templatesess/$fsd/$runid/*.stf   $sess/$fsd/$runid/ >& /dev/null
+    cp $templatesess/$fsd/$runid/*.sch   $sess/$fsd/$runid/ >& /dev/null
     cp $templatesess/$fsd/$runid/*.tpexc $sess/$fsd/$runid/ >& /dev/null
     cp $templatesess/$fsd/$runid/mcextreg* $sess/$fsd/$runid/ >& /dev/null
     cp $templatesess/$fsd/$runid/$funcstem.meanval $sess/$fsd/$runid/ >& /dev/null
@@ -127,6 +136,7 @@ foreach runid ($RunList)
     cp $p $sess/$fsd/$runid/
   end
 
+  @ nthrun = $nthrun + 1;
 end
 
 echo "synth-sess done"
@@ -190,6 +200,16 @@ while( $#argv != 0 )
     case "-nruns":
       if ( $#argv == 0) goto arg1err;
       set nruns = $1; shift;
+      breaksw
+
+    case "-seed":
+      if ( $#argv == 0) goto arg1err;
+      set seed = $1; shift;
+      breaksw
+
+    case "-spike":
+      if ( $#argv == 0) goto arg1err;
+      set spiketp = $1; shift;
       breaksw
 
     case "-verbose":
@@ -273,8 +293,10 @@ usage_exit:
   echo ""
   echo "Options:";
   echo "   -p parfile <-p parfile2> : copied to each run"
-  echo "   -ntrs n  : override template"
-  echo "   -fsd dir : functional subdirectory ($fsd)"
+  echo "   -ntrs n    : override template"
+  echo "   -fsd dir   : functional subdirectory ($fsd)"
+  echo "   -seed seed : first run gets this seed, next gets seed++, etc"
+  echo "   -spike tp  : add a spike to zero-based tp"
   echo ""
 exit 1;
 
