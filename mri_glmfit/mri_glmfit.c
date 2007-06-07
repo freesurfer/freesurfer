@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/06 03:06:55 $
- *    $Revision: 1.126 $
+ *    $Date: 2007/06/07 19:45:58 $
+ *    $Revision: 1.127 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -521,7 +521,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.126 2007/06/06 03:06:55 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.127 2007/06/07 19:45:58 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1738,7 +1738,7 @@ static int parse_commandline(int argc, char **argv) {
       }
       hemi = pargv[1];
       nargsused = 2;
-      if(!CMDisFlag(pargv[2])){
+      if(nargc > 2 && !CMDisFlag(pargv[2])){
 	surfname = pargv[2];
 	nargsused++;
       }
