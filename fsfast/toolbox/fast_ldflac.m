@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/02 05:31:45 $
-%    $Revision: 1.27 $
+%    $Date: 2007/06/07 22:14:54 $
+%    $Revision: 1.28 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -53,7 +53,8 @@ if(isempty(flac))
   flac.format = '';
   flac.formatext = '';
   flac.tpexcfile = '';
-  flac.parfile = '';
+  flac.parfile  = '';
+  flac.par4file = '';
   flac.schdir = ''; % dir where schedules or pars can be found
   flac.par = [];
   flac.tpexc = [];
@@ -141,6 +142,7 @@ while(1)
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
    case 'tpexclude',   flac.tpexcfile   = sscanf(tline,'%*s %s',1);
    case 'parfile',     flac.parfile     = sscanf(tline,'%*s %s',1);
+   case 'par4file',    flac.par4file    = sscanf(tline,'%*s %s',1);
    case 'schdir',      flac.schdir      = sscanf(tline,'%*s %s',1);
    case 'acfseg',      flac.acfsegstem  = sscanf(tline,'%*s %s',1);
    case 'INHERIT',     
@@ -198,6 +200,12 @@ if(nevs == 0)
   fprintf('ERROR: no EVs specified in %s\n',flacfile);
   flac = [];
 end
+
+if(~isempty(flac.parfile) & ~isempty(flac.par4file))
+  fprintf('ERROR: flacfile %s, cannot spec both parfile and par4file\n',flacfile);
+  flac = [];
+end
+
 
 if(isempty(flac.fsd)) flac.fsd = 'bold'; end 
 if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end 
