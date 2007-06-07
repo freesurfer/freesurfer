@@ -192,6 +192,8 @@ install-exec-hook:scuba2
 		>> $(DESTDIR)$(bindir)/scuba2
 	echo "source \$$FREESURFER_HOME/bin/kww_setup" \
 		>> $(DESTDIR)$(bindir)/scuba2
+	echo "setenv HOME `cd $HOME; /bin/pwd`" \
+		>> $(DESTDIR)$(bindir)/scuba2
 	echo "scuba2.bin \$$argv" >> $(DESTDIR)$(bindir)/scuba2
 	chmod a+x $(DESTDIR)$(bindir)/scuba2
 
