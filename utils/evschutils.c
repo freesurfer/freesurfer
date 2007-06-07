@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:31 $
- *    $Revision: 1.11 $
+ *    $Author: greve $
+ *    $Date: 2007/06/07 21:28:39 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -235,9 +235,7 @@ int EVSwritePar(char *parfile, EVENT_SCHEDULE *EvSch, char **labels,
     NullDur = EvSch->tevent[0] - (-tPreScan);
     if ( fabs(tPreScan) < .0000000001) t = 0.0; /* purely for cosmetic reasons */
     else                                  t = -tPreScan;
-    fprintf(fp,"%8.4f  %3d   %6.3f    %10s ",t,0,NullDur,"NULL");
-    fprintf(fp,"   %5.4f ",1.0);
-    fprintf(fp,"\n");
+    fprintf(fp,"%8.4f  %3d   %6.3f   %5.4f    %10s \n",t,0,NullDur,1.0,"NULL");
   }
 
   for (n=0; n < EvSch->nevents; n++)
@@ -248,11 +246,10 @@ int EVSwritePar(char *parfile, EVENT_SCHEDULE *EvSch, char **labels,
     /* Print the time, id, duration, label of current event */
     if (fabs(EvSch->tevent[n]) < .0000000001) t = 0.0;
     else                                     t = EvSch->tevent[n];
-    fprintf(fp,"%8.4f  %3d   %6.3f    %10s ",t, EvSch->eventid[n],
-            EvSch->EvDur[id-1],labels[id-1]);
-    if (EvSch->weight) fprintf(fp,"   %5.4f ",EvSch->weight[n]);
-    else              fprintf(fp,"   %5.4f ",1.0);
-    fprintf(fp,"\n");
+    fprintf(fp,"%8.4f  %3d   %6.3f   ",t,EvSch->eventid[n],EvSch->EvDur[id-1]);
+    if (EvSch->weight) fprintf(fp,"%5.4f    ",EvSch->weight[n]);
+    else              fprintf(fp,"%5.4f    ",1.0);
+    fprintf(fp,"%10s\n", labels[id-1]);
 
     /* Compute duration of null event following this event (may be zero)*/
     if (n == EvSch->nevents-1)
@@ -261,14 +258,11 @@ int EVSwritePar(char *parfile, EVENT_SCHEDULE *EvSch, char **labels,
       NullDur = EvSch->tevent[n+1] - (EvSch->tevent[n]+EvSch->EvDur[id-1]);
 
     /* If Null time is not zero, print time, id, duration, label for NULL */
-    if (NullDur > .0001)
-    {
+    if (NullDur > .0001) {
       tNull = EvSch->tevent[n] + EvSch->EvDur[id-1];
-      if (fabs(tNull) < .0000000001) t = 0.0;
-      else                              t = tNull;
-      fprintf(fp,"%8.4f  %3d   %6.3f    %10s ",t,0,NullDur,"NULL");
-      fprintf(fp,"   %5.4f ",1.0);
-      fprintf(fp,"\n");
+      if(fabs(tNull) < .0000000001) t = 0.0;
+      else                          t = tNull;
+      fprintf(fp,"%8.4f  %3d   %6.3f   %5.4f    %10s \n",t,0,NullDur,1.0,"NULL");
     }
 
   }
