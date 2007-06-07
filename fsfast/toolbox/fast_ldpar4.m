@@ -22,8 +22,8 @@ function par4 = fast_ldpar4(par4file)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/07 21:02:47 $
-%    $Revision: 1.1 $
+%    $Date: 2007/06/07 22:12:09 $
+%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -50,14 +50,6 @@ end
 if(fp == -1)
   fprintf('ERROR: opening %s\n',par4file);
   fprintf('%s\n',msg);
-  return;
-end
-
-tline = fgetl(fp);
-if(tline == -1)
-  fprintf('ERROR: %s is not correctly formatted, no first line\n', ...
-	  par4file);
-  fclose(fp);
   return;
 end
 
