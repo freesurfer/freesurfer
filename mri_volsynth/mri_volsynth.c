@@ -7,9 +7,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nommert $
- *    $Date: 2007/05/07 23:00:25 $
- *    $Revision: 1.32 $
+ *    $Author: greve $
+ *    $Date: 2007/06/07 20:37:03 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.32 2007/05/07 23:00:25 nommert Exp $
+  $Id: mri_volsynth.c,v 1.33 2007/06/07 20:37:03 greve Exp $
 */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.32 2007/05/07 23:00:25 nommert Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.33 2007/06/07 20:37:03 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -118,6 +118,7 @@ double ValueB = 0;
 double voxradius = -1;
 
 int UseFFT = 0;
+int SpikeTP = -1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) 
@@ -168,6 +169,12 @@ int main(int argc, char **argv)
     dim[2] = mritemp->depth;
     if (nframes > 0) dim[3] = nframes;
     else            dim[3] = mritemp->nframes;
+  }
+
+  if(SpikeTP >= mritemp->nframes){
+    printf("ERROR: SpikeTP = %d >= mritmp->nframes = %d\n",
+	   SpikeTP,mritemp->nframes);
+    exit(1);
   }
 
   printf("Synthesizing\n");
@@ -334,6 +341,18 @@ int main(int argc, char **argv)
     if (offset == NULL) exit(1);
     fMRIaddOffset(mri, offset, NULL, mri);
   }
+
+  if(SpikeTP > 0){
+    printf("Spiking time point %d\n",SpikeTP);
+    for(c=0; c < mri->width; c ++){
+      for(r=0; r < mri->height; r ++){
+	for(s=0; s < mri->depth; s ++){
+	  MRIsetVoxVal(mri,c,r,s,SpikeTP,1e9);
+	}
+      }
+    }
+  }
+
 
   if(!NoOutput){
     printf("Saving\n");
@@ -512,6 +531,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&delta_off_value);
       nargsused = 1;
+    } else if (!strcmp(option, "--spike")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&SpikeTP);
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -565,9 +588,10 @@ static void print_usage(void) {
   printf("   --rescale : rescale z, t, F, or chi2 after smoothing\n");
   printf("   --val-a value : set ValA (default 1)\n");
   printf("   --val-b value : set ValB (default 0)\n");
-  printf("   --radius voxradius : raius (in voxels) for sphere\n");
+  printf("   --radius voxradius : radius (in voxels) for sphere\n");
   printf("\n");
   printf(" Other arguments\n");
+  printf("   --spike tp : set all values at time point tp to 1e9\n");
   printf("   --fwhm fwhm_mm : smooth by FWHM mm\n");
   printf("   --sum2 fname   : save sum vol^2 into fname (implies delta,nf=1,no-output)\n");
   printf("\n");
@@ -649,6 +673,7 @@ static void dump_options(FILE *fp) {
   //fprintf(fp,"precision %s\n",precision);
   fprintf(fp,"seed %ld\n",seed);
   fprintf(fp,"pdf   %s\n",pdfname);
+  fprintf(fp,"SpikeTP %d\n",SpikeTP);
   printf("Diagnostic Level %d\n",Gdiag_no);
 
   return;
