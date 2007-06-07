@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/05/18 21:35:55 $
- *    $Revision: 1.6 $
+ *    $Author: dsjen $
+ *    $Date: 2007/06/07 17:33:47 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceLabelSource );
-vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.7 $" );
 
 vtkFSSurfaceLabelSource::vtkFSSurfaceLabelSource() :
   LabelFileName( NULL ), Mris( NULL ), Label( NULL ) {
@@ -168,7 +168,9 @@ vtkFSSurfaceLabelSource::Execute () {
   
   // We use marks to figure out where the label is on the surface.
   MRISclearMarks( Mris );
-  LabelMarkUndeleted( Label, Mris );
+
+// TODO: this method might have not been checked in
+//  LabelMarkUndeleted( Label, Mris );
   
   // Now we have a marked surface. What we want to do is create a
   // new poly data object without only marked faces in it. To do
