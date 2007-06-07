@@ -17,7 +17,8 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   // Description:
   // The event constants this object will send.
   //BTX
-  static int const MouseoverElementEvent;
+  static int const MouseoverEnterElementEvent;
+  static int const MouseoverExitElementEvent;
   //ETX
 
   // A small class returned by the kEventMouseoverElement event,
@@ -121,6 +122,7 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   double DefaultElementColor[3];
 
   double mMouseoverDistanceToElement;
+  bool mbCurrentlyOverElement;
   
   //BTX
   class GraphElement {

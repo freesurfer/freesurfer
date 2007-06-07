@@ -8,14 +8,16 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.6 $" );
 
-int const vtkKWBltGraph::MouseoverElementEvent = vtkCommand::UserEvent + 1;
+int const vtkKWBltGraph::MouseoverEnterElementEvent = vtkCommand::UserEvent + 1;
+int const vtkKWBltGraph::MouseoverExitElementEvent = vtkCommand::UserEvent + 2;
 
 vtkKWBltGraph::vtkKWBltGraph() :
   XAxisTitle( NULL ),
   YAxisTitle( NULL ),
-  mMouseoverDistanceToElement( 10 ) {
+  mMouseoverDistanceToElement( 10 ),
+  mbCurrentlyOverElement( false ) {
 
   DefaultElementSymbol = new char[10];
   strncpy( DefaultElementSymbol, "plus", 9 );
@@ -355,8 +357,8 @@ vtkKWBltGraph::MotionCallback ( const char* isElement, int iX, int iY ) {
 
       double minDist2 = numeric_limits<double>::max();
       string sMinElement = "";
-      int nMinPoint;
-      double minX, minY;
+      int nMinPoint = 0;
+      double minX = 0, minY = 0;
       
       vector<double>::iterator tPoint;
       bool bX = true;
@@ -385,13 +387,11 @@ vtkKWBltGraph::MotionCallback ( const char* isElement, int iX, int iY ) {
 	}
       }
 
-    cerr << "HERE" << endl;
-
       if( minDist2 < numeric_limits<double>::max() ){
 	// Convert our min x and y back to window coords and compare
 	// the distance to our mouse over distance. We convert to
 	// window coords so we can do the comparison in pixels.
-	sReply = this->Script( "%s transform %d %d",
+	sReply = this->Script( "%s transform %f %f",
 			       this->GetWidgetName(), minX, minY );
 	if( sReply ) {
 	  float minWindowX, minWindowY;
@@ -409,19 +409,25 @@ vtkKWBltGraph::MotionCallback ( const char* isElement, int iX, int iY ) {
 	    foundElement.mWindowX = iX;
 	    foundElement.mWindowY = iY;
 	    foundElement.mDistanceToElement = distance;
-	    this->InvokeEvent( MouseoverElementEvent, &foundElement );
+	    this->InvokeEvent( MouseoverEnterElementEvent, &foundElement );
 	    free( foundElement.msLabel );
+
+	    mbCurrentlyOverElement = true;
+	    return;
 	  }
 	}
-      } else {
-	cerr << "never found anything" << endl;
       }
-      
     }
   }
-  
-}
 
+  // If we got here, we couldn't find an element to mouseover. If we
+  // were previously over one, send an event that we no longer are.
+  if( mbCurrentlyOverElement ) {
+    
+    this->InvokeEvent( MouseoverExitElementEvent, NULL );
+    mbCurrentlyOverElement = false;
+  }
+}
 
 vtkKWBltGraph::GraphElement::GraphElement () :
   msLabel( "" ),
