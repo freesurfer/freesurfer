@@ -1,17 +1,21 @@
 #include <stdexcept>
 #include <sstream>
 
-#include "vtkObjectFactory.h"
 #include "vtkKWBltGraph.h"
+#include "vtkCommand.h"
+#include "vtkObjectFactory.h"
 
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.5 $" );
+
+int const vtkKWBltGraph::MouseoverElementEvent = vtkCommand::UserEvent + 1;
 
 vtkKWBltGraph::vtkKWBltGraph() :
   XAxisTitle( NULL ),
-  YAxisTitle( NULL ) {
+  YAxisTitle( NULL ),
+  mMouseoverDistanceToElement( 10 ) {
 
   DefaultElementSymbol = new char[10];
   strncpy( DefaultElementSymbol, "plus", 9 );
@@ -39,6 +43,20 @@ vtkKWBltGraph::CreateWidget () {
     vtkErrorMacro("Failed creating widget " << this->GetClassName());
     return;
   }
+
+  this->Bind();
+}
+
+void
+vtkKWBltGraph::Bind () {
+
+  this->SetBinding( "<Motion>", this, "MotionCallback %W %x %y" );
+}
+
+void
+vtkKWBltGraph::UnBind () {
+  
+  this->RemoveBinding( "<Motion>" );
 }
 
 void
@@ -300,7 +318,7 @@ vtkKWBltGraph::Draw () {
 
     this->Script( "%s element create %s "
 		  "-data {%s} " 
-		  "-color #%02x%02x%02x "
+		  "-color #%02x%02x%02x " // format to hex
 		  "-linewidth %d "
 		  "-symbol %s",
 		  this->GetWidgetName(),
@@ -315,7 +333,98 @@ vtkKWBltGraph::Draw () {
   }
 }
 
+void
+vtkKWBltGraph::MotionCallback ( const char* isElement, int iX, int iY ) {
+
+  // We're getting window coords, try to convert to graph coords.
+  const char* sReply = 
+    this->Script( "%s invtransform %d %d", this->GetWidgetName(), iX, iY );
+  if( sReply ) {
+
+    // Extract the x and y from the reply.
+    float x, y;
+    stringstream ssReply( sReply );
+    ssReply >> x >> y;
+
+    // Go through our elements and try to find the closest point.
+    GraphElementList::iterator tElement;
+    for( tElement = mElements.begin(); 
+	 tElement != mElements.end(); ++tElement ){
+    
+      GraphElement& element = *tElement;
+
+      double minDist2 = numeric_limits<double>::max();
+      string sMinElement = "";
+      int nMinPoint;
+      double minX, minY;
+      
+      vector<double>::iterator tPoint;
+      bool bX = true;
+      double pointX, pointY;
+      int nPoint = 0;
+      for( tPoint = element.mPoints.begin();
+	   tPoint != element.mPoints.end(); ++tPoint ) {
+	// Get an x one round, then get a y the next one.
+	if( bX ) {
+	  pointX = (*tPoint);
+	  bX = false;
+	} else {
+	  pointY = (*tPoint);
+	  // Calc the distance and compare.
+	  double dist2 = (pointX-x)*(pointX-x) + (pointY-y)*(pointY-y);
+	  if( dist2 < minDist2 ) {
+	    // If this is a new min, save its info.
+	    minDist2 = dist2;
+	    sMinElement = element.msLabel;
+	    nMinPoint = nPoint;
+	    minX = pointX;
+	    minY = pointY;
+	  }
+	  bX = true;
+	  nPoint++;
+	}
+      }
+
+    cerr << "HERE" << endl;
+
+      if( minDist2 < numeric_limits<double>::max() ){
+	// Convert our min x and y back to window coords and compare
+	// the distance to our mouse over distance. We convert to
+	// window coords so we can do the comparison in pixels.
+	sReply = this->Script( "%s transform %d %d",
+			       this->GetWidgetName(), minX, minY );
+	if( sReply ) {
+	  float minWindowX, minWindowY;
+	  stringstream ssReply( sReply );
+	  ssReply >> minWindowX >> minWindowY;
+	  double distance = sqrt( (minWindowX-iX)*(minWindowX-iX) +
+				  (minWindowY-iY)*(minWindowY-iY) );
+	  if( distance < mMouseoverDistanceToElement ) {
+	    // We found a good one. Notify our observers.
+	    SelectedElementAndPoint foundElement;
+	    foundElement.msLabel = strdup( sMinElement.c_str() );
+	    foundElement.mnPointInElement = nMinPoint;
+	    foundElement.mElementX = minX;
+	    foundElement.mElementY = minY;
+	    foundElement.mWindowX = iX;
+	    foundElement.mWindowY = iY;
+	    foundElement.mDistanceToElement = distance;
+	    this->InvokeEvent( MouseoverElementEvent, &foundElement );
+	    free( foundElement.msLabel );
+	  }
+	}
+      } else {
+	cerr << "never found anything" << endl;
+      }
+      
+    }
+  }
+  
+}
+
+
 vtkKWBltGraph::GraphElement::GraphElement () :
   msLabel( "" ),
   msSymbol( "" ), mRed( 0 ), mGreen( 0 ), mBlue( 0 ) {
 }
+

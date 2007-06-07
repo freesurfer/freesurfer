@@ -15,6 +15,25 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   vtkTypeRevisionMacro( vtkKWBltGraph, vtkKWCoreWidget );
 
   // Description:
+  // The event constants this object will send.
+  //BTX
+  static int const MouseoverElementEvent;
+  //ETX
+
+  // A small class returned by the kEventMouseoverElement event,
+  // describing the element that was mouseovered.
+  //BTX
+  class SelectedElementAndPoint {
+  public:
+    char* msLabel;               // Label of the element
+    int mnPointInElement;        // Index of the data point in the element
+    double mElementX, mElementY; // The graph x,y of the element
+    int mWindowX, mWindowY;      // The window x,y of the event
+    double mDistanceToElement;   // Distance from mouse to event in window
+  };
+  //ETX
+
+  // Description:
   // Plot background color
   virtual void GetPlotBackgroundColor(double *r, double *g, double *b);
   virtual double* GetPlotBackgroundColor();
@@ -75,6 +94,8 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
 
   void Draw ();
 
+  void MotionCallback ( const char* isElement, int iX, int iY );
+  
  protected:
 
   vtkKWBltGraph ();
@@ -83,6 +104,9 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   // Description:
   void CreateWidget ();
   
+  void Bind ();
+  void UnBind ();
+
   // Description:
   void UpdateXAxisTitle ();
   void UpdateYAxisTitle ();
@@ -95,6 +119,8 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   // Default element attributes
   char* DefaultElementSymbol;
   double DefaultElementColor[3];
+
+  double mMouseoverDistanceToElement;
   
   //BTX
   class GraphElement {
