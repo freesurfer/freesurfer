@@ -9,9 +9,9 @@ function flac = fast_ldanaflac(anadir)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.15 $
+%    $Author: greve $
+%    $Date: 2007/06/07 18:34:34 $
+%    $Revision: 1.16 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -209,6 +209,59 @@ if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
 		  period,nharmonics,delay);
   flac.ev(nthev) = flac_ev_parse(tline);
   nthev = nthev+1;
+
+  nthcon = 1;
+  flac.con(nthcon).name     = 'omnibus';
+  flac.con(nthcon).varsm    = 0;
+  flac.con(nthcon).sumev    = 0;
+  flac.con(nthcon).sumevreg = 0;
+  flac.con(nthcon).sumevrw  = [];
+  flac.con(nthcon).ev(1).name = 'Fourier';
+  flac.con(nthcon).ev(1).evw  = 1;
+  flac.con(nthcon).ev(1).evrw = [1 1 1 1];
+
+  nthcon = nthcon + 1;
+  flac.con(nthcon).name     = 'fund';
+  flac.con(nthcon).varsm    = 0;
+  flac.con(nthcon).sumev    = 0;
+  flac.con(nthcon).sumevreg = 0;
+  flac.con(nthcon).sumevrw  = [];
+  flac.con(nthcon).ev(1).name = 'Fourier';
+  flac.con(nthcon).ev(1).evw  = 1;
+  flac.con(nthcon).ev(1).evrw = [1 1 0 0];
+
+  nthcon = nthcon + 1;
+  flac.con(nthcon).name     = 'fund-sin';
+  flac.con(nthcon).varsm    = 0;
+  flac.con(nthcon).sumev    = 0;
+  flac.con(nthcon).sumevreg = 0;
+  flac.con(nthcon).sumevrw  = [];
+  flac.con(nthcon).ev(1).name = 'Fourier';
+  flac.con(nthcon).ev(1).evw  = 1;
+  flac.con(nthcon).ev(1).evrw = [1 0 0 0];
+
+  nthcon = nthcon + 1;
+  flac.con(nthcon).name     = 'fund-cos';
+  flac.con(nthcon).varsm    = 0;
+  flac.con(nthcon).sumev    = 0;
+  flac.con(nthcon).sumevreg = 0;
+  flac.con(nthcon).sumevrw  = [];
+  flac.con(nthcon).ev(1).name = 'Fourier';
+  flac.con(nthcon).ev(1).evw  = 1;
+  flac.con(nthcon).ev(1).evrw = [0 1 0 0];
+
+  nthcon = nthcon + 1;
+  flac.con(nthcon).name     = 'harm';
+  flac.con(nthcon).varsm    = 0;
+  flac.con(nthcon).sumev    = 0;
+  flac.con(nthcon).sumevreg = 0;
+  flac.con(nthcon).sumevrw  = [];
+  flac.con(nthcon).ev(1).name = 'Fourier';
+  flac.con(nthcon).ev(1).evw  = 1;
+  flac.con(nthcon).ev(1).evrw = [0 0 1 1];
+
+  
+  ncontrasts = length(flac.con);
 end
 
 if(PolyOrder > 0)
@@ -223,26 +276,28 @@ if(~isempty(extreg))
   nthev = nthev+1;
 end
 
-%-------------- contrasts --------------------------
-tmpstr = sprintf('%s/*.mat',anadir);
-clist = dir(tmpstr);
-ncontrasts = length(clist);
-for nthcon = 1:ncontrasts
-  fprintf('%2d %s\n',nthcon,clist(nthcon).name);
-  tmpstr = sprintf('%s/%s',anadir,clist(nthcon).name);
-  cspec = load(tmpstr);
-  flac.con(nthcon).name     = clist(nthcon).name(1:end-4);
-  flac.con(nthcon).varsm    = 0;
-  flac.con(nthcon).sumev    = cspec.sumconds;
-  flac.con(nthcon).sumevreg = cspec.sumdelays;
-  flac.con(nthcon).sumevrw  = [];
-  con_nthev = 0;
-  for nthcondition = 1:cspec.NCond
-    if(cspec.WCond(nthcondition)==0) continue; end
-    con_nthev = con_nthev + 1;
-    flac.con(nthcon).ev(con_nthev).name = sprintf('Condition%02d',nthcondition);
-    flac.con(nthcon).ev(con_nthev).evw  = cspec.WCond(nthcondition);
-    flac.con(nthcon).ev(con_nthev).evrw = cspec.WDelay;
+if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
+  %-------------- contrasts --------------------------
+  tmpstr = sprintf('%s/*.mat',anadir);
+  clist = dir(tmpstr);
+  ncontrasts = length(clist);
+  for nthcon = 1:ncontrasts
+    fprintf('%2d %s\n',nthcon,clist(nthcon).name);
+    tmpstr = sprintf('%s/%s',anadir,clist(nthcon).name);
+    cspec = load(tmpstr);
+    flac.con(nthcon).name     = clist(nthcon).name(1:end-4);
+    flac.con(nthcon).varsm    = 0;
+    flac.con(nthcon).sumev    = cspec.sumconds;
+    flac.con(nthcon).sumevreg = cspec.sumdelays;
+    flac.con(nthcon).sumevrw  = [];
+    con_nthev = 0;
+    for nthcondition = 1:cspec.NCond
+      if(cspec.WCond(nthcondition)==0) continue; end
+      con_nthev = con_nthev + 1;
+      flac.con(nthcon).ev(con_nthev).name = sprintf('Condition%02d',nthcondition);
+      flac.con(nthcon).ev(con_nthev).evw  = cspec.WCond(nthcondition);
+      flac.con(nthcon).ev(con_nthev).evrw = cspec.WDelay;
+    end
   end
 end
 
