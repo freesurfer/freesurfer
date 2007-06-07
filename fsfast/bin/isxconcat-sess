@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/06 03:09:12 $
-#    $Revision: 1.10 $
+#    $Date: 2007/06/07 18:33:57 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.10 2007/06/06 03:09:12 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.11 2007/06/07 18:33:57 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -43,6 +43,7 @@ set ToVol = 0;
 set ToSurf = 0;
 set DoPercent = 0;
 set DoAllContrasts = 0;
+set DoOSGM = 0;
 
 # for volume-based only
 set talres = 2;
@@ -206,6 +207,7 @@ foreach hemi ($hemilist)
       cp $analysis/$contrast.mat $outcondir/$contrast.lowerlevel.mat
 
     foreach mapname ($maplist)
+
       set outvol = $outcondir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
       set cmd = (isxconcat0-sess -a $analysis -c $contrast )
       set cmd = ($cmd -m $mapname -o $outvol -interp $interp)
@@ -227,6 +229,36 @@ foreach hemi ($hemilist)
       if($status) exit 1;
 
      end # Loop over maps
+
+     if($DoOSGM) then
+       set y       = $outcondir/$hemi.ces.$FSF_OUTPUT_FORMAT
+       set yffxvar = $outcondir/$hemi.cesvar.$FSF_OUTPUT_FORMAT
+
+       set glmdir = $outcondir/glm.rfx.$hemi.ces
+       set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
+       set cmd = ($cmd --mask $maskvol)
+       if($ToSurf) set cmd = ($cmd --surf $subject $hemi)
+       echo $cmd |& tee -a $LF
+       $cmd |& tee -a $LF
+       if($status) exit 1;
+
+       set glmdir = $outcondir/glm.wrfx.$hemi.ces
+       set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
+       set cmd = ($cmd --mask $maskvol --wls $yffxvar)
+       if($ToSurf) set cmd = ($cmd --surf $subject $hemi)
+       echo $cmd |& tee -a $LF
+       $cmd |& tee -a $LF
+       if($status) exit 1;
+
+       set glmdir = $outcondir/glm.ffx.$hemi.ces
+       set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
+       set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar $DOF)
+       if($ToSurf) set cmd = ($cmd --surf $subject $hemi)
+       echo $cmd |& tee -a $LF
+       $cmd |& tee -a $LF
+       if($status) exit 1;
+
+      endif
    end # Loop over contrasts
 end # Loop over hemi
 
@@ -354,6 +386,10 @@ while( $#argv != 0 )
 
     case "-mean"
       set mean = 1;
+      breaksw
+
+    case "-osgm"
+      set DoOSGM = 1;
       breaksw
 
     case "-debug":
