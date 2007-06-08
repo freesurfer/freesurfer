@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.50 2007/06/07 19:26:23 greve Exp $
+% $Id: fast_selxavg3.m,v 1.51 2007/06/08 20:20:38 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/07 19:26:23 $
-%    $Revision: 1.50 $
+%    $Date: 2007/06/08 20:20:38 $
+%    $Revision: 1.51 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.50 2007/06/07 19:26:23 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.51 2007/06/08 20:20:38 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -305,6 +305,12 @@ if(DoGLMFit)
     indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
+      if(yrun.volsize(1) ~= mask.volsize(1) | ...
+	 yrun.volsize(2) ~= mask.volsize(2) | ...
+	 yrun.volsize(3) ~= mask.volsize(3))
+	fprintf('ERROR: dimension mismatch between mask and %dth run\n',nthrun);
+	return;
+      end
       yrun = fast_vol2mat(yrun);
     else
       yrun_randn(:,nthrun) = randn('state'); % save state
