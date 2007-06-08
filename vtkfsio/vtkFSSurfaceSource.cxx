@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/06/04 19:25:16 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/06/08 21:14:08 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,7 +36,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceSource );
-vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.8 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.9 $" );
 
 vtkFSSurfaceSource::vtkFSSurfaceSource() :
     mMRIS( NULL ),
@@ -57,6 +57,8 @@ vtkFSSurfaceSource::~vtkFSSurfaceSource () {
   if ( NULL != mHashTable )
     MHTfree( &mHashTable );
 
+  if( NULL != mMRIS )
+    MRISfree( &mMRIS );
 }
 
 void
