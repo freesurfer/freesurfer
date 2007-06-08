@@ -8,7 +8,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.7 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.8 $" );
 
 unsigned long const vtkKWBltGraph::MouseoverEnterElementEvent = 
   vtkCommand::UserEvent + 1;
@@ -364,7 +364,7 @@ vtkKWBltGraph::MotionCallback ( const char* isElement, int iX, int iY ) {
       
       vector<double>::iterator tPoint;
       bool bX = true;
-      double pointX, pointY;
+      double pointX = 0, pointY = 0;
       int nPoint = 0;
       for( tPoint = element.mPoints.begin();
 	   tPoint != element.mPoints.end(); ++tPoint ) {
