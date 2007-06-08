@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/07 19:27:12 $
-#    $Revision: 1.29 $
+#    $Date: 2007/06/08 19:53:52 $
+#    $Revision: 1.30 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.29 2007/06/07 19:27:12 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.30 2007/06/08 19:53:52 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -186,6 +186,12 @@ foreach sess ($SessList)
       exit 1;
     endif
     if($Skip) then
+      if(! -e $anadir/X.mat) then
+        echo "ERROR: analysis dir $anadir exists, but it does not look like "
+        echo "anything is there. Try reanalyzing just this session ($sessbase)"
+        echo "with the -overwrite flag."
+        exit 1;
+      endif
       echo " ... skipping" | tee -a $LF
       continue;
     endif
