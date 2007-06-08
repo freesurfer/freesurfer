@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/08 22:19:13 $
-%    $Revision: 1.18 $
+%    $Date: 2007/06/08 23:09:43 $
+%    $Revision: 1.19 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@ flac.formatext = sprintf('.%s',flac.format);
 %----------- Read in the analysis.info -------------------
 info = sprintf('%s/analysis.info',anadir);
 designtype = 'event-related';
-nconditions = 0;
+nconditions = [];
 fp = fopen(info,'r');
 if(fp == -1)
   fprintf('ERROR: could not open %s\n',info);
@@ -95,14 +95,16 @@ PolyOrder = 0;
 extreg = [];
 nextreg = 0;
 nskip = 0;
-ncycles = 0;
-delay = 0;
-nspmhrfderiv = -1;
-gamexp = 2;
+ncycles = [];
+delay = [];
 gammafit = 0;
 gamdelay = 0;
 gamtau = 0;
+gamexp = 2;
 spmhrffit = 0;
+nspmhrfderiv = -1;
+timewindow = 0;
+prestim = 0;
 cfg  = sprintf('%s/analysis.cfg',anadir);
 fp = fopen(cfg,'r');
 if(fp == -1)
@@ -178,18 +180,20 @@ if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end
 ana.designtype   = designtype;
 ana.nconditions  = nconditions;
 ana.analysis     = analysis;
+ana.timewindow   = timewindow;
+ana.prestim      = prestim;
 ana.TER          = TER;
 ana.PolyOrder    = PolyOrder;
 ana.extreg       = extreg;
 ana.nextreg      = nextreg;
 ana.ncycles      = ncycles ;
 ana.delay        = delay;
-ana.nspmhrfderiv = nspmhrfderiv;
 ana.gammafit     = gammafit;
 ana.gamdelay     = gamdelay;
 ana.gamtau       = gamtau;
 ana.gamexp       = gamexp;
 ana.spmhrffit    = spmhrffit;
+ana.nspmhrfderiv = nspmhrfderiv;
 ana.inorm        = flac.inorm;
 flac.ana = ana;
 
