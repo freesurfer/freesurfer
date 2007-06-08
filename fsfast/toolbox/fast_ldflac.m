@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/07 22:14:54 $
-%    $Revision: 1.28 $
+%    $Date: 2007/06/08 22:19:13 $
+%    $Revision: 1.29 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -68,6 +68,23 @@ if(isempty(flac))
   flac.inheritlevel = 0;
   flac.acfbins = 0;  
   inherit = 0;
+  ana.analysis     = '';
+  ana.designtype   = '';
+  ana.nconditions  = [];
+  ana.TER          = [];
+  ana.PolyOrder    = [];
+  ana.gamdelay     = [];
+  ana.gamtau       = [];
+  ana.gamexp       = [];
+  ana.extreg       = '';
+  ana.nextreg      = [];
+  ana.ncycles      = [];
+  ana.delay        = [];
+  ana.nspmhrfderiv = [];
+  ana.gammafit     = [];
+  ana.spmhrffit    = [];
+  ana.inorm        = [];
+  flac.ana = ana;
 else
   flac.inheritlevel = flac.inheritlevel + 1;
   if(flac.inheritlevel > 10)

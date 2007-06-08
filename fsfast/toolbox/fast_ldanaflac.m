@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/07 22:14:54 $
-%    $Revision: 1.17 $
+%    $Date: 2007/06/08 22:19:13 $
+%    $Revision: 1.18 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -92,14 +92,16 @@ fclose(fp);
 %----------- Read in the analysis.cfg -------------------
 TER = flac.TR;
 PolyOrder = 0;
-gamexp = 2;
 extreg = [];
 nextreg = 0;
 nskip = 0;
 ncycles = 0;
 delay = 0;
 nspmhrfderiv = -1;
+gamexp = 2;
 gammafit = 0;
+gamdelay = 0;
+gamtau = 0;
 spmhrffit = 0;
 cfg  = sprintf('%s/analysis.cfg',anadir);
 fp = fopen(cfg,'r');
@@ -171,8 +173,25 @@ if(isempty(flac.mask))
   fprintf('INFO: mask is not set, setting to brain\n');
 end
 if(isempty(flac.fsd)) flac.fsd = 'bold'; end 
-
 if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end 
+
+ana.designtype   = designtype;
+ana.nconditions  = nconditions;
+ana.analysis     = analysis;
+ana.TER          = TER;
+ana.PolyOrder    = PolyOrder;
+ana.extreg       = extreg;
+ana.nextreg      = nextreg;
+ana.ncycles      = ncycles ;
+ana.delay        = delay;
+ana.nspmhrfderiv = nspmhrfderiv;
+ana.gammafit     = gammafit;
+ana.gamdelay     = gamdelay;
+ana.gamtau       = gamtau;
+ana.gamexp       = gamexp;
+ana.spmhrffit    = spmhrffit;
+ana.inorm        = flac.inorm;
+flac.ana = ana;
 
 nthev = 1;
 tline = sprintf('EV Baseline baseline nuis');
@@ -286,6 +305,7 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
     fprintf('%2d %s\n',nthcon,clist(nthcon).name);
     tmpstr = sprintf('%s/%s',anadir,clist(nthcon).name);
     cspec = load(tmpstr);
+    flac.ana.con(nthcon).cspec = cspec;
     flac.con(nthcon).name     = clist(nthcon).name(1:end-4);
     flac.con(nthcon).varsm    = 0;
     flac.con(nthcon).sumev    = cspec.sumconds;
