@@ -10,7 +10,9 @@ bin_PROGRAMS = scuba2
 scuba2_SOURCES= \
 	ScubaMain.cxx \
 	vtkKWScubaApp.cxx vtkKWScubaApp.h vtkKWScubaAppTcl.cxx \
-	vtkKWScubaApplicationSettingsInterface.cxx vtkKWScubaApplicationSettingsInterface.h vtkKWScubaApplicationSettingsInterfaceTcl.cxx \
+	vtkKWScubaApplicationSettingsInterface.cxx \
+	vtkKWScubaApplicationSettingsInterface.h \
+	vtkKWScubaApplicationSettingsInterfaceTcl.cxx \
 	vtkKWScubaWindow.cxx vtkKWScubaWindow.h vtkKWScubaWindowTcl.cxx \
 	vtkKWScubaView.cxx vtkKWScubaView.h vtkKWScubaViewTcl.cxx \
 	vtkScubaInteractorStyle.cxx vtkScubaInteractorStyle.h \
@@ -192,7 +194,7 @@ install-exec-hook:scuba2
 		>> $(DESTDIR)$(bindir)/scuba2
 	echo "source \$$FREESURFER_HOME/bin/kww_setup" \
 		>> $(DESTDIR)$(bindir)/scuba2
-	echo "setenv HOME `cd \$$HOME; /bin/pwd`" \
+	echo "if (-e /bin/pwd) setenv HOME \`cd \$$HOME; /bin/pwd\`" \
 		>> $(DESTDIR)$(bindir)/scuba2
 	echo "scuba2.bin \$$argv" >> $(DESTDIR)$(bindir)/scuba2
 	chmod a+x $(DESTDIR)$(bindir)/scuba2

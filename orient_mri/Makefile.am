@@ -61,7 +61,7 @@ install-exec-hook:orient_mri
 		>> $(DESTDIR)$(bindir)/orient_mri
 	echo "source \$$FREESURFER_HOME/bin/kww_setup" \
 		>> $(DESTDIR)$(bindir)/orient_mri
-	echo "setenv HOME `cd \$$HOME; /bin/pwd`" \
+	echo "if (-e /bin/pwd) setenv HOME \`cd \$$HOME; /bin/pwd\`" \
 		>> $(DESTDIR)$(bindir)/orient_mri
 	echo "orient_mri.bin \$$argv" >> $(DESTDIR)$(bindir)/orient_mri
 	chmod a+x $(DESTDIR)$(bindir)/orient_mri
