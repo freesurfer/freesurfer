@@ -22,11 +22,7 @@ freesurfer/bin/recon-all-long
 freesurfer/bin/recon-all-nmr
 freesurfer/bin/recon-all-dev
 freesurfer/bin/dngtester
-freesurfer/bin/scuba2
-freesurfer/bin/qdec
 freesurfer/bin/plotter
-freesurfer/bin/scuba2.app
-freesurfer/bin/qdec.app
 freesurfer/bin/plotter.app
 freesurfer/bin/paint
 freesurfer/bin/tkregister
