@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.14 2007/02/16 19:14:23 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.15 2007/06/09 22:17:47 nicks Exp $'
 
 umask 002
 
@@ -93,6 +93,13 @@ foreach tstfile ($TEST_FILES)
     exit 1
   endif
 end
+
+#
+# remove test data
+#
+cd $WD
+rm -Rf test_data
+rm -Rf tmp
 
 echo "test_optseq2 passed all tests"
 exit 0
