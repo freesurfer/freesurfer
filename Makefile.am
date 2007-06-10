@@ -310,6 +310,14 @@ install-data-hook:
 			fi; \
 		fi; \
 	fi;
+	if test ! "x$(KWWIDGETS_DIR)" = "x" ; then \
+		if test ! "$(KWWIDGETS_DIR)" = "$(DESTDIR)$(prefix)/lib/KWWidgets" ; then \
+			if test -e $(KWWIDGETS_DIR) ; then \
+				rm -Rf $(DESTDIR)$(prefix)/lib/KWWidgets ; \
+				ln -s $(KWWIDGETS_DIR) $(DESTDIR)$(prefix)/lib/KWWidgets ; \
+			fi; \
+		fi; \
+	fi;
 
 EXTRA_DIST=setup_configure Makefile.extra x86cpucaps INSTALL \
 	doxy-file-header Doxyfile
