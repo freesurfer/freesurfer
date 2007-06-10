@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/07 20:28:59 $
-#    $Revision: 1.13 $
+#    $Date: 2007/06/10 21:48:21 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.13 2007/06/07 20:28:59 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.14 2007/06/10 21:48:21 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -147,8 +147,10 @@ foreach hemi ($hemilist)
 
   # Concat the masks
   set masksvol = $outdir/$hemi.masks.$FSF_OUTPUT_FORMAT
-  set cmd = (isxconcat0-sess -a $analysis -m mask -o $masksvol)
-  set cmd = ($cmd -interp nearest)
+  set cmd = (isxconcat0-sess)
+  if($#flac == 0) set cmd = ($cmd -a $analysis)
+  if($#flac)      set cmd = ($cmd -flac $flac)
+  set cmd = ($cmd -m mask -o $masksvol -interp nearest -fsd $fsd)
   if($#tmpdir) set cmd = ($cmd -tmp $tmpdir);
   if($hemi == tal) then
     if(! $DoMorph) set cmd = ($cmd -talres $talres)
@@ -189,8 +191,11 @@ foreach hemi ($hemilist)
     foreach mapname ($conmaplist)
 
       set outvol = $outcondir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
-      set cmd = (isxconcat0-sess -a $analysis -c $contrast )
-      set cmd = ($cmd -m $mapname -o $outvol -interp $interp)
+      set cmd = (isxconcat0-sess)
+      if($#flac == 0) set cmd = ($cmd -a $analysis)
+      if($#flac)      set cmd = ($cmd -flac $flac)
+      set cmd = ($cmd -m $mapname -o $outvol -interp $interp);
+      set cmd = ($cmd -fsd $fsd -c $contrast)
       if($#tmpdir) set cmd = ($cmd -tmp $tmpdir);
       if($#fwhm) set cmd = ($cmd -fwhm $fwhm);
       if($paireddiff) set cmd = ($cmd -paired-diff) # Wrong for var
@@ -245,8 +250,10 @@ foreach hemi ($hemilist)
   foreach mapname ($anamaplist)
     # What about paired diff for these?
     set outvol = $outdir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
-    set cmd = (isxconcat0-sess -a $analysis -m $mapname -o $outvol)
-    set cmd = ($cmd -interp $interp)
+    set cmd = (isxconcat0-sess)
+    if($#flac == 0) set cmd = ($cmd -a $analysis)
+    if($#flac)      set cmd = ($cmd -flac $flac)
+    set cmd = ($cmd -m $mapname -o $outvol -interp $interp -fsd $fsd)
     if($#tmpdir) set cmd = ($cmd -tmp $tmpdir);
     if($#fwhm) set cmd = ($cmd -fwhm $fwhm);
     if($hemi == tal) then
@@ -439,6 +446,8 @@ check_params:
     echo "ERROR: cannot specify flac and analysis"
     exit 1;
   endif
+
+  if($#flac) set analysis = `basename $flac .flac`
 
   ## Get functional subdirectory from the info file ##
   if($#fsd == 0) then

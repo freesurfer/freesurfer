@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/05 23:12:13 $
-#    $Revision: 1.2 $
+#    $Date: 2007/06/10 21:48:21 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.2 2007/06/05 23:12:13 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.3 2007/06/10 21:48:21 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -338,6 +338,8 @@ check_params:
     exit 1;
   endif
 
+  if($#flac) set analysis = `basename $flac .flac`
+
   ## Get functional subdirectory from the info file ##
   if($#fsd == 0) then
     set infofile = $analysis/analysis.info
@@ -389,7 +391,7 @@ check_params:
     exit 1;
   endif
 
-  if($#tmpdir == 0) set tmpdir = $outdir/tmp-isxconcat0-sess
+  if($#tmpdir == 0) set tmpdir = $outdir/tmp-isxconcat0.$$-sess
   mkdir -p $tmpdir
 
   if($paireddiff && $pairedavg) then
