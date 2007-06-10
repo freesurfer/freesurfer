@@ -1,6 +1,6 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -f
 
-set ID='$Id: postprocess_targz.csh,v 1.7 2007/06/10 19:16:02 nicks Exp $'
+set ID='$Id: postprocess_targz.csh,v 1.8 2007/06/10 19:38:40 nicks Exp $'
 
 set echo=1
 
@@ -12,7 +12,7 @@ if ($?USE_SPACE_MINERVA) then
   setenv SPACE_FS /space/minerva/1/users/nicks
 endif
 
-cd $MINERVA_HOME/tmp
+cd /tmp
 if (-e freesurfer) sudo rm -Rf freesurfer
 sudo tar zxvf ${SPACE_FS}/build/pub-releases/$1.tar.gz
 if ($status) exit 1
@@ -39,5 +39,6 @@ md5sum $1.tar.gz >> ${SPACE_FS}/build/pub-releases/md5sum.txt
 sha1sum $1.tar.gz >> ${SPACE_FS}/build/pub-releases/sha1sum.txt
 mv $1.tar.gz ${SPACE_FS}/build/pub-releases/
 if ($status) exit 1
+rm -Rf /tmp/freesurfer
 
 exit 0
