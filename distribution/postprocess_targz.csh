@@ -1,6 +1,6 @@
 #!/bin/tcsh -ef
 
-set ID='$Id: postprocess_targz.csh,v 1.6 2006/07/25 16:42:37 nicks Exp $'
+set ID='$Id: postprocess_targz.csh,v 1.7 2007/06/10 19:16:02 nicks Exp $'
 
 set echo=1
 
@@ -16,6 +16,9 @@ cd $MINERVA_HOME/tmp
 if (-e freesurfer) sudo rm -Rf freesurfer
 sudo tar zxvf ${SPACE_FS}/build/pub-releases/$1.tar.gz
 if ($status) exit 1
+if ("$2" == "strip") then
+    strip freesurfer/bin/*
+endif
 sudo chmod -R a+rw freesurfer
 if ($status) exit 1
 sudo chmod -R a-w freesurfer/subjects/fsaverage
