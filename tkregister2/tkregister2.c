@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/18 23:21:22 $
- *    $Revision: 1.82 $
+ *    $Date: 2007/06/10 21:47:40 $
+ *    $Revision: 1.83 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.82 2007/05/18 23:21:22 greve Exp $";
+"$Id: tkregister2.c,v 1.83 2007/06/10 21:47:40 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -389,6 +389,7 @@ char *surfname = "white", surf_path[2000];
 int lhsurf_only = 0,rhsurf_only = 0;
 int fstal=0, fixxfm=1;
 char talxfmfile[2000],talxfmdir[2000];
+char *talxfmname = "talairach.xfm";
 char tmpstr[2000];
 
 char *mov_ostr = NULL; // orientation string for mov
@@ -459,7 +460,7 @@ int Register(ClientData clientData,
     }
     // Load the talairach.xfm
     sprintf(talxfmdir,"%s/%s/mri/transforms",subjectsdir,subjectid);
-    sprintf(talxfmfile,"%s/talairach.xfm",talxfmdir);
+    sprintf(talxfmfile,"%s/%s",talxfmdir,talxfmname);
     if (!mkheaderreg) {
       if (!fio_DirIsWritable(talxfmdir,0)) {
         printf("\n");
@@ -472,7 +473,7 @@ int Register(ClientData clientData,
         printf("\n");
       }
       if (regio_read_mincxfm(talxfmfile, &RegMat, &xfmfileinfo)) exit(1);
-      printf("talairach.xfm ---------------------\n");
+      printf("%s ---------------------\n",talxfmname);
       MatrixPrint(stdout,RegMat);
       for (i=0;i<4;i++) {
         for (j=0;j<4;j++) {
@@ -1092,6 +1093,14 @@ static int parse_commandline(int argc, char **argv) {
         nargsused ++;
         printf("surfname set to %s\n",surfname);
       }
+    } else if (!strcmp(option, "--talxfmname")) {
+      if (nargc < 1) argnerr(option,1);
+      talxfmname = pargv[0];
+      fstal = 1;
+      LoadSurf = 0;
+      UseSurf = 0;
+      fscale_2 = 1;
+      nargsused = 1;
     } else if (!strcmp(option, "--xfm")) {
       if (nargc < 1) argnerr(option,1);
       xfmfname = pargv[0];
@@ -4434,7 +4443,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.82 2007/05/18 23:21:22 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.83 2007/06/10 21:47:40 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
