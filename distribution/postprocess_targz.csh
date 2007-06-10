@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: postprocess_targz.csh,v 1.9 2007/06/10 19:52:56 nicks Exp $'
+set ID='$Id: postprocess_targz.csh,v 1.10 2007/06/10 21:30:37 nicks Exp $'
 
 set echo=1
 
@@ -42,6 +42,6 @@ md5sum $1.tar.gz >> ${SPACE_FS}/build/pub-releases/md5sum.txt
 sha1sum $1.tar.gz >> ${SPACE_FS}/build/pub-releases/sha1sum.txt
 mv $1.tar.gz ${SPACE_FS}/build/pub-releases/
 if ($status) exit 1
-rm -Rf /tmp/freesurfer
+sudo rm -Rf /tmp/scratch/freesurfer
 
 exit 0
