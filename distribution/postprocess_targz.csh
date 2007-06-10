@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: postprocess_targz.csh,v 1.8 2007/06/10 19:38:40 nicks Exp $'
+set ID='$Id: postprocess_targz.csh,v 1.9 2007/06/10 19:52:56 nicks Exp $'
 
 set echo=1
 
@@ -13,6 +13,9 @@ if ($?USE_SPACE_MINERVA) then
 endif
 
 cd /tmp
+if ( ! -e scratch ) mkdir scratch
+cd scratch
+
 if (-e freesurfer) sudo rm -Rf freesurfer
 sudo tar zxvf ${SPACE_FS}/build/pub-releases/$1.tar.gz
 if ($status) exit 1
