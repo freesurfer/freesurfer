@@ -34,6 +34,7 @@ freesurfer/lib/tcltktixblt/lib/tix8.1/demos
 freesurfer/lib/tcltktixblt/lib/blt2.4/demos
 freesurfer/lib/qt
 freesurfer/lib/vtk/src
+freesurfer/lib/KWWidgets/src
 freesurfer/lib/dev
 freesurfer/include
 freesurfer/fsl/patchL-fsl-3.2-redhat9.tar
