@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/08 23:09:43 $
-%    $Revision: 1.19 $
+%    $Date: 2007/06/11 23:23:35 $
+%    $Revision: 1.20 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -155,11 +155,6 @@ while(1)
 end % while (1)
 fclose(fp);
 
-if(isempty(flac.autostimdur)) 
-  fprintf('ERROR: autostimdur is neither turned ON nor OFF\n');
-  flac = [];
-  return;
-end
 if(isempty(flac.funcstem)) 
   fprintf('ERROR: no funcstem specified in %s\n',flacfile);
   flac = [];
@@ -177,24 +172,32 @@ end
 if(isempty(flac.fsd)) flac.fsd = 'bold'; end 
 if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end 
 
-ana.designtype   = designtype;
-ana.nconditions  = nconditions;
+flac.stimulusdelay = delay;
+
 ana.analysis     = analysis;
-ana.timewindow   = timewindow;
-ana.prestim      = prestim;
-ana.TER          = TER;
+ana.designtype   = designtype;
 ana.PolyOrder    = PolyOrder;
 ana.extreg       = extreg;
 ana.nextreg      = nextreg;
+
 ana.ncycles      = ncycles ;
-ana.delay        = delay;
+ana.nconditions  = nconditions;
+
+if(~spmhrffit & ~gammafit) ana.firfit = 1; 
+else                       ana.firfit = 0; 
+end
+ana.timewindow   = timewindow;
+ana.prestim      = prestim;
+ana.TER          = TER;
+
 ana.gammafit     = gammafit;
 ana.gamdelay     = gamdelay;
 ana.gamtau       = gamtau;
 ana.gamexp       = gamexp;
+
 ana.spmhrffit    = spmhrffit;
 ana.nspmhrfderiv = nspmhrfderiv;
-ana.inorm        = flac.inorm;
+
 flac.ana = ana;
 
 nthev = 1;

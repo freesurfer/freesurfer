@@ -1,6 +1,6 @@
 function [err,msg] = fast_svana(ananame,flac)
 % [err,msg] = fast_svana(ananame,ana)
-% $Id: fast_svana.m,v 1.1 2007/06/08 23:08:53 greve Exp $
+% $Id: fast_svana.m,v 1.2 2007/06/11 23:23:35 greve Exp $
 
 err = 1;
 if(nargin ~= 2)
@@ -22,6 +22,8 @@ if(fp == -1)
   return;
 end
 
+flac.ana.inorm = flac.inorm;
+flac.ana.delay = flac.stimulusdelay;
 ana = flac.ana;
 
 if(ana.gammafit)
