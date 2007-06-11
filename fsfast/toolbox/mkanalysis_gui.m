@@ -22,7 +22,7 @@ function varargout = mkanalysis_gui(varargin)
 
 % Edit the above text to modify the response to help mkanalysis_gui
 
-% Last Modified by GUIDE v2.5 08-Jun-2007 17:18:44
+% Last Modified by GUIDE v2.5 10-Jun-2007 18:10:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -46,25 +46,27 @@ end
 
 % --- Executes just before mkanalysis_gui is made visible.
 function mkanalysis_gui_OpeningFcn(hObject, eventdata, handles, varargin)
-global MkAnalysisName;
-global MkAnalysisClone;
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to mkanalysis_gui (see VARARGIN)
+global MkAnalysisName;
+global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.2 2007/06/08 23:10:13 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.3 2007/06/11 03:08:43 greve Exp $';
 
 %handles = parse_args(handles,varargin);
 if(~isempty(MkAnalysisName))
   set(handles.ebAnalysisName,'string',MkAnalysisName);
   if(exist(MkAnalysisName,'dir'))
     handles.flac = fast_ldanaflac(MkAnalysisName);
+    setstate(handles);
   end
 end
+
 
 % Update handles structure
 guidata(hObject, handles);
@@ -108,18 +110,18 @@ end
 
 
 
-function edit5_Callback(hObject, eventdata, handles)
-% hObject    handle to edit5 (see GCBO)
+function ebFSD_Callback(hObject, eventdata, handles)
+% hObject    handle to ebFSD (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit5 as text
-%        str2double(get(hObject,'String')) returns contents of edit5 as a double
+% Hints: get(hObject,'String') returns contents of ebFSD as text
+%        str2double(get(hObject,'String')) returns contents of ebFSD as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function edit5_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit5 (see GCBO)
+function ebFSD_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ebFSD (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -131,18 +133,18 @@ end
 
 
 
-function edit4_Callback(hObject, eventdata, handles)
-% hObject    handle to edit4 (see GCBO)
+function ebRLF_Callback(hObject, eventdata, handles)
+% hObject    handle to ebRLF (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit4 as text
-%        str2double(get(hObject,'String')) returns contents of edit4 as a double
+% Hints: get(hObject,'String') returns contents of ebRLF as text
+%        str2double(get(hObject,'String')) returns contents of ebRLF as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function edit4_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit4 (see GCBO)
+function ebRLF_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ebRLF (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -227,23 +229,27 @@ function cbERBlock_Callback(hObject, eventdata, handles)
 % hObject    handle to cbERBlock (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
 % Hint: get(hObject,'Value') returns toggle state of cbERBlock
+if(get(handles.cbERBlock,'value') == 1)
+  handles.flac.ana.designtype = 'event-related';
+else
+  handles.flac.ana.designtype = 'abblocked';  
+end
+setstate(handles);
+guidata(hObject, handles);
 
-
-
-function edit9_Callback(hObject, eventdata, handles)
-% hObject    handle to edit9 (see GCBO)
+function ebNConditions_Callback(hObject, eventdata, handles)
+% hObject    handle to ebNConditions (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit9 as text
-%        str2double(get(hObject,'String')) returns contents of edit9 as a double
+% Hints: get(hObject,'String') returns contents of ebNConditions as text
+%        str2double(get(hObject,'String')) returns contents of ebNConditions as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function edit9_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit9 (see GCBO)
+function ebNConditions_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ebNConditions (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -272,13 +278,13 @@ function cbHRFFIR_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of cbHRFFIR
 
 
-% --- Executes on button press in checkbox4.
-function checkbox4_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox4 (see GCBO)
+% --- Executes on button press in cbHRFSPMHRF.
+function cbHRFSPMHRF_Callback(hObject, eventdata, handles)
+% hObject    handle to cbHRFSPMHRF (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of checkbox4
+% Hint: get(hObject,'Value') returns toggle state of cbHRFSPMHRF
 
 
 
@@ -305,18 +311,18 @@ end
 
 
 
-function edit14_Callback(hObject, eventdata, handles)
-% hObject    handle to edit14 (see GCBO)
+function ebSPMHRFNDeriv_Callback(hObject, eventdata, handles)
+% hObject    handle to ebSPMHRFNDeriv (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit14 as text
-%        str2double(get(hObject,'String')) returns contents of edit14 as a double
+% Hints: get(hObject,'String') returns contents of ebSPMHRFNDeriv as text
+%        str2double(get(hObject,'String')) returns contents of ebSPMHRFNDeriv as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function edit14_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit14 (see GCBO)
+function ebSPMHRFNDeriv_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ebSPMHRFNDeriv (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -516,8 +522,13 @@ function cbPeriodicDesign_Callback(hObject, eventdata, handles)
 % hObject    handle to cbPeriodicDesign (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of cbPeriodicDesign
+if(get(handles.cbPeriodicDesign,'value') == 1)
+  handles.flac.ana.designtype = 'abblocked';  
+else
+  handles.flac.ana.designtype = 'event-related';
+end
+setstate(handles);
+guidata(hObject, handles);
 
 
 % --- Executes on button press in pbSave.
@@ -630,4 +641,108 @@ function arg1check(flag,nflag,nmax)
     fprintf(1,'ERROR: Flag %s needs one argument',flag);
     error;
   end
+return;
+
+%--------------------------------------------------%
+function setstate(handles)
+
+flac = handles.flac;
+ana = flac.ana;
+set(handles.ebAnalysisName,'string',ana.analysis);
+set(handles.ebFuncStem,'string',flac.funcstem);
+set(handles.ebFSD,'string',flac.fsd);
+set(handles.ebRLF,'string',flac.runlistfile);
+set(handles.ebTR,'string',flac.TR);
+set(handles.ebTPExcludeFile,'string',flac.tpexcfile);
+if(flac.inorm ~= 0) set(handles.cbINorm,'value',1);
+else                set(handles.cbINorm,'value',0);
+end
+if(strcmp(ana.extreg,'mcext')) set(handles.cbMCExtReg,'value',1);
+else                           set(handles.cbMCExtReg,'value',1);
+end
+
+if(strcmp(ana.designtype,'event-related') | ...
+   strcmp(ana.designtype,'blocked'))
+  % Enable ERBlock ----------------------
+  set(handles.cbERBlock,'value',1);
+  set(handles.txNConditions,'enable','on');
+  set(handles.ebNConditions,'enable','on');
+  set(handles.cbHRFFIR,'enable','on');
+  set(handles.cbHRFGamma,'enable','on');
+  set(handles.cbHRFSPMHRF,'enable','on');
+
+  if(get(handles.cbHRFFIR,'value') == 1)
+    FIRenable   = 'on';
+    GammaEnable = 'off';
+    SPMHRFEnable = 'off';
+  end
+  if(get(handles.cbHRFGamma,'value') == 1)
+    FIRenable   = 'off';
+    GammaEnable = 'on';
+    SPMHRFEnable = 'off';
+  end
+  if(get(handles.cbHRFSPMHRF,'value') == 1)
+    FIRenable    = 'off';
+    GammaEnable  = 'off';
+    SPMHRFEnable = 'on';
+  end
+  
+  % Disable ABBlocked ------------------
+  set(handles.cbPeriodicDesign,'value',0);
+  set(handles.ebNCycles,'enable','off');
+  set(handles.txNCycles,'enable','off');
+else
+  % Enable ABBlocked ------------------
+  set(handles.cbPeriodicDesign,'value',1);
+  set(handles.ebNCycles,'enable','on');
+  set(handles.txNCycles,'enable','on');
+  % Disable ERBlock ----------------------
+  set(handles.cbERBlock,'value',0);
+  set(handles.txNConditions,'enable','off');
+  set(handles.ebNConditions,'enable','off');
+
+  set(handles.cbHRFFIR,'enable','off');
+  set(handles.txFIRTotTimeWin,'enable','off');
+  set(handles.ebFIRTotTimeWin,'enable','off');
+  set(handles.txFIRPreStim,'enable','off');
+  set(handles.ebFIRPreStim,'enable','off');
+  set(handles.txFIRTER,'enable','off');
+  set(handles.ebFIRTER,'enable','off');
+
+  set(handles.cbHRFGamma,'enable','off');
+  set(handles.txGammaDelta,'enable','off');
+  set(handles.ebGammaDelta,'enable','off');
+  set(handles.txGammaTau,'enable','off');
+  set(handles.ebGammaTau,'enable','off');
+  set(handles.txGammaAlpha,'enable','off');
+  set(handles.ebGammaAlpha,'enable','off');
+
+  set(handles.cbHRFSPMHRF,'enable','off');
+  set(handles.txSPMHRFNDeriv,'enable','off');
+  set(handles.ebSPMHRFNDeriv,'enable','off');
+  
+end
+
+set(handles.txFIRTotTimeWin,'enable','on');
+set(handles.ebFIRTotTimeWin,'enable','on');
+set(handles.txFIRPreStim,'enable','on');
+set(handles.ebFIRPreStim,'enable','on');
+set(handles.txFIRTER,'enable','on');
+set(handles.ebFIRTER,'enable','on');
+
+set(handles.txGammaDelta,'enable','on');
+set(handles.ebGammaDelta,'enable','on');
+set(handles.txGammaTau,'enable','on');
+set(handles.ebGammaTau,'enable','on');
+set(handles.txGammaAlpha,'enable','on');
+set(handles.ebGammaAlpha,'enable','on');
+
+set(handles.txSPMHRFNDeriv,'enable','on');
+set(handles.ebSPMHRFNDeriv,'enable','on');
+
+
+
+
+
+
 return;
