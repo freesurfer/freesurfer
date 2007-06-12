@@ -3,6 +3,8 @@ function R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,SumDelays,WDelay
 % R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,
 %                      SumDelays,WDelays,RmPrestim,CNorm)
 %
+% R = fast_contrastmtx(cspec);
+%
 % SumConds = 1, forces Conditions to be weighted by WConds and summed.
 %
 % WConds - condition weighting vector. Ignored if SumConds = 0. If
@@ -26,9 +28,9 @@ function R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,SumDelays,WDelay
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:30 $
-%    $Revision: 1.4 $
+%    $Author: greve $
+%    $Date: 2007/06/12 18:48:51 $
+%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -45,10 +47,26 @@ function R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,SumDelays,WDelay
 
 R = [];
 
-if(nargin ~= 10)
-  fprintf('USAGE: R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,SumDelays,WDelays,RmPrestim,CNorm)');
+if(nargin ~= 10 & nargin ~= 1)
+  fprintf('R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,SumDelays,WDelays,RmPrestim,CNorm)');
+  fprintf('R = fast_contrastmtx(cspec);\n');
   return;
 end
+
+if(nargin == 1)
+  cspec     = TER;
+  TER       = cspec.TER;
+  TW        = cspec.TimeWindow;
+  TPS       = cspec.TPreStim;
+  nConds    = cspec.NCond;
+  SumConds  = cspec.sumconds;
+  WConds    = cspec.WCond;
+  SumDelays = cspec.sumdelays;
+  WDelays   = cspec.WDelay;
+  RmPrestim = cspec.RmPreStim;
+  CNorm     = cspec.CNorm;
+end
+
 
 nDelays = round(TW/TER);
 
