@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/17 16:05:14 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/06/12 15:46:43 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.6 $" );
 
 vtkKWScubaLayer2DDTI::vtkKWScubaLayer2DDTI () :
   mDTIProperties( NULL ),
@@ -103,7 +103,7 @@ vtkKWScubaLayer2DDTI::Create () {
   
   // Get some values from the MRI.
   float RASBounds[6];
-  mDTIProperties->GetFAVolumeSource()->GetRASBounds( RASBounds );
+  this->GetUnscaledRASBounds( RASBounds );
 
   mWorldSize[0] = RASBounds[1] - RASBounds[0];
   mWorldSize[1] = RASBounds[3] - RASBounds[2];
@@ -137,6 +137,8 @@ vtkKWScubaLayer2DDTI::Create () {
   // lies in the output coordinate system) is equivalent to applying
   // the inverse of that transform to the input volume."
   double* rtv = mDTIProperties->GetFAVolumeSource()->GetRASToVoxelMatrix();
+  
+  
   vtkMatrix4x4* matrix = vtkMatrix4x4::New();
   matrix->SetElement( 0, 0, rtv[0] );
   matrix->SetElement( 0, 1, rtv[1] );
@@ -182,20 +184,67 @@ vtkKWScubaLayer2DDTI::Create () {
   // Start out not displaying anything.
   mClip->SetOutputWholeExtent( 0, 0, 0, 0, 0, 0 );
   mClip->SetInputConnection( mReducedVolume->GetOutputPort() );
+      
+  // set up the transform for reorienting the tensors
+  double *vtr = mDTIProperties->GetFAVolumeSource()->GetVoxelToRASMatrix();
+  vtkMatrix4x4* voxelToRAS = vtkMatrix4x4::New();
+  voxelToRAS->SetElement( 0, 0, vtr[0] );
+  voxelToRAS->SetElement( 0, 1, vtr[1] );
+  voxelToRAS->SetElement( 0, 2, vtr[2] );
+  voxelToRAS->SetElement( 0, 3, 0 );
+  voxelToRAS->SetElement( 1, 0, vtr[4] );
+  voxelToRAS->SetElement( 1, 1, vtr[5] );
+  voxelToRAS->SetElement( 1, 2, vtr[6] );
+  voxelToRAS->SetElement( 1, 3, 0 );
+  voxelToRAS->SetElement( 2, 0, vtr[8] );
+  voxelToRAS->SetElement( 2, 1, vtr[9] );
+  voxelToRAS->SetElement( 2, 2, vtr[10] );
+  voxelToRAS->SetElement( 2, 3, 0 );
+  voxelToRAS->SetElement( 3, 0, 0 );
+  voxelToRAS->SetElement( 3, 1, 0 );
+  voxelToRAS->SetElement( 3, 2, 0 );
+  voxelToRAS->SetElement( 3, 3, 1 );
+  
+  vtkTransform *voxelTransform = vtkTransform::New();
+  voxelTransform->PostMultiply();
+  voxelTransform->SetMatrix( voxelToRAS );
+  
+  voxelToRAS->Delete();
   
   //
   // Glyph
   //
   mGlyph = vtkFDTensorGlyph::New();
   mGlyph->SetInputConnection( mClip->GetOutputPort() );
+
+  // this reorients each tensor because when we resample the volume, the vector
+  // data isn't reoriented
+  mGlyph->SetVoxelToMeasurementFrameTransform( voxelTransform );
+  
+  voxelTransform->Delete();
+
+  // scale the plane so that it's the voxel size is correct
+  vtkTransform* sliceTransform = vtkTransform::New();
+  sliceTransform->Scale( 
+    mDTIProperties->GetFAVolumeSource()->GetPixelSizeX(),
+    mDTIProperties->GetFAVolumeSource()->GetPixelSizeY(),
+    mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ() );
+    
+  vtkTransformPolyDataFilter* planePDF = vtkTransformPolyDataFilter::New();
+  planePDF->SetInput( mGlyph->GetOutput() );
+  planePDF->SetTransform( sliceTransform );
+      
+  sliceTransform->Delete();
   
   //
   // Mapper
   //
   mMapper = vtkPolyDataMapper::New();
   mMapper->UseLookupTableScalarRangeOn();
-  mMapper->SetInput( mGlyph->GetOutput() );
+  mMapper->SetInput( planePDF->GetOutput() );
   mMapper->SetLookupTable( (vtkScalarsToColors*)mGlyph->GetColorTable() );
+  
+  planePDF->Delete();
   
   //
   // Main Actor
@@ -217,7 +266,7 @@ vtkKWScubaLayer2DDTI::Create () {
   vtkPolyDataMapper* edgeMapper = vtkPolyDataMapper::New();
   edgeMapper->UseLookupTableScalarRangeOn();
   edgeMapper->SetLookupTable( (vtkScalarsToColors*)mGlyph->GetColorTable() );
-  edgeMapper->SetInput( mGlyph->GetOutput() );
+  edgeMapper->SetInput( planePDF->GetOutput() );
 
   //
   // Edge Actor
@@ -285,6 +334,31 @@ vtkKWScubaLayer2DDTI::GetRASBounds ( float ioBounds[6] ) const {
     mDTIProperties->GetFAVolumeSource()->GetRASBounds( ioBounds );
   else
     vtkKWScubaLayer::GetRASBounds( ioBounds );
+}
+
+void
+vtkKWScubaLayer2DDTI::GetUnscaledRASBounds ( float ioBounds[6] ) const {
+    
+  this->GetRASBounds( ioBounds );
+  
+  const float scales[] = {
+    mDTIProperties->GetFAVolumeSource()->GetPixelSizeX(),
+    mDTIProperties->GetFAVolumeSource()->GetPixelSizeY(),
+    mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ()
+  };
+    
+  // unscale the bounds
+  for( int nDim=0; nDim<3; nDim++ ) {
+    
+    // unscale the bottom
+    int nBound = nDim * 2;    
+    ioBounds[ nBound ] = ioBounds[ nBound ] / scales[ nDim ];    
+    
+    // unscale the top
+    nBound++;
+    ioBounds[ nBound ] = ioBounds[ nBound ] / scales[ nDim ];
+  }
+    
 }
 
 void
@@ -401,7 +475,7 @@ vtkKWScubaLayer2DDTI::UpdateDetail () {
     // figure out the level of detail
     int shrinkage = this->GetCurrentShrinkageValue();
         
-    for( int n = 0; n<3; n++ ) {          
+    for( int n = 0; n<3; n++ ) {
       mReducedVolume->SetShrinkFactors( shrinkage, shrinkage, shrinkage );
     }
     mReducedVolume->AveragingOn();
@@ -438,17 +512,22 @@ vtkKWScubaLayer2DDTI::Update2DInfo () {
     return;
 
   float RASBounds[6];
-  this->GetRASBounds( RASBounds );
+  
+  this->GetUnscaledRASBounds( RASBounds );
 
   int RASBoundsI[6];
   for( int n = 0; n < 6; n++ )
-    RASBoundsI[n] = (int)RASBounds[n];
+    RASBoundsI[n] = static_cast< int >( RASBounds[n] );
 
   // We adjust the position here to take into effect our reduced
   // volume, basically scaling the ras Z position by the shrinkage
-  // factor.
-  float rasZ = mViewProperties->Get2DRASZ();
-  int position = (int)floor( rasZ / this->GetCurrentShrinkageValue() );
+  // factor and remove any pixel scaling.
+//  float rasZ = mViewProperties->Get2DRASZ();
+
+  // TODO: you'll probably want to divide by the pixel size based on the current in plane, rather just the z
+  float rasZ = mViewProperties->Get2DRASZ() / mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ();
+  
+  int position = static_cast< int >( floor( rasZ / this->GetCurrentShrinkageValue() ) );
 
   // Set the bounds of the clipper according to our in plane.
   switch ( mViewProperties->Get2DInPlane() ) {

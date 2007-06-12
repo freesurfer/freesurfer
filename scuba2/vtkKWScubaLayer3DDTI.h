@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/04/13 20:24:51 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/06/12 15:46:43 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -70,11 +70,15 @@ public:
   //ETX
 
   // Description:
-  // Load the surface and set up.
+  // Load the volume and set up.
   void Create ();
 
-  // Returns the bounds of the surface.
+  // Returns the bounds of the volume.
   virtual void GetRASBounds ( float ioBounds[6] ) const;
+
+  // Description:
+  // Returns the bounds without the pixel scaling, only rotations.
+  void GetUnscaledRASBounds ( float ioBounds[6] ) const;  
 
   // Description:
   // Returns the shortest edge distance.
@@ -109,6 +113,10 @@ protected:
   
   void UpdatePlanes();
   void UpdatePlanes( bool hasDetailUpdated );
+  
+  // Description:
+  // Clears out the transform and scales it to the voxel size.
+  void ResetSliceTransform( const int iDim );
   
   //BTX
   ScubaCollectionPropertiesDTI const* mDTIProperties;
