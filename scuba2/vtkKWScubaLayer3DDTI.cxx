@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/06/12 15:46:43 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/06/12 20:25:42 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DDTI, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DDTI, "$Revision: 1.5 $" );
 
 vtkKWScubaLayer3DDTI::vtkKWScubaLayer3DDTI () :
   mDTIProperties( NULL ),
@@ -163,6 +163,12 @@ vtkKWScubaLayer3DDTI::Create () {
 
   // This rotates the volume to the proper orientation.
   double* rtv = mDTIProperties->GetFAVolumeSource()->GetRASToVoxelMatrix();
+
+  // TODO: take out the scale component, so our reslice only rotates -- why isn't this needed?
+//  rtv[0] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeX();
+//  rtv[5] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeY();
+//  rtv[10] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ(); 
+
   vtkMatrix4x4* matrix = vtkMatrix4x4::New();  
   matrix->SetElement( 0, 0, rtv[0] );
   matrix->SetElement( 0, 1, rtv[1] );
@@ -203,19 +209,28 @@ vtkKWScubaLayer3DDTI::Create () {
 
   // set up the transform for reorienting the tensors
   double *vtr = mDTIProperties->GetFAVolumeSource()->GetVoxelToRASMatrix();
+
+  // remove the scale component
+  vtr[0] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeX();
+  vtr[5] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeY();
+  vtr[10] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ(); 
+
   vtkMatrix4x4* voxelToRAS = vtkMatrix4x4::New();
   voxelToRAS->SetElement( 0, 0, vtr[0] );
   voxelToRAS->SetElement( 0, 1, vtr[1] );
   voxelToRAS->SetElement( 0, 2, vtr[2] );
   voxelToRAS->SetElement( 0, 3, 0 );
+
   voxelToRAS->SetElement( 1, 0, vtr[4] );
   voxelToRAS->SetElement( 1, 1, vtr[5] );
   voxelToRAS->SetElement( 1, 2, vtr[6] );
   voxelToRAS->SetElement( 1, 3, 0 );
+
   voxelToRAS->SetElement( 2, 0, vtr[8] );
   voxelToRAS->SetElement( 2, 1, vtr[9] );
   voxelToRAS->SetElement( 2, 2, vtr[10] );
   voxelToRAS->SetElement( 2, 3, 0 );
+
   voxelToRAS->SetElement( 3, 0, 0 );
   voxelToRAS->SetElement( 3, 1, 0 );
   voxelToRAS->SetElement( 3, 2, 0 );
