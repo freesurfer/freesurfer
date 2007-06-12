@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/03 18:56:09 $
-#    $Revision: 1.25 $
+#    $Date: 2007/06/12 15:11:07 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 #
 
-set VERSION = '$Id: fsl_rigid_register,v 1.25 2007/06/03 18:56:09 greve Exp $';
+set VERSION = '$Id: fsl_rigid_register,v 1.26 2007/06/12 15:11:07 greve Exp $';
 
 setenv FSLOUTPUTTYPE NIFTI
 
@@ -64,7 +64,7 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-set n = `echo $argv | egrep help | wc -l`
+set n = `echo $argv | egrep -e -help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;

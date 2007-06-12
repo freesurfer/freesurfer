@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/05/10 04:24:31 $
-#    $Revision: 1.20 $
+#    $Date: 2007/06/12 15:14:27 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.20 2007/05/10 04:24:31 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.21 2007/06/12 15:14:27 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -56,7 +56,7 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-set n = `echo $argv | grep help | wc -l`
+set n = `echo $argv | egrep -e -help | wc -l`
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
