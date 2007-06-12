@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/06/12 15:46:43 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/06/12 19:53:26 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.7 $" );
 
 vtkKWScubaLayer2DDTI::vtkKWScubaLayer2DDTI () :
   mDTIProperties( NULL ),
@@ -138,20 +138,27 @@ vtkKWScubaLayer2DDTI::Create () {
   // the inverse of that transform to the input volume."
   double* rtv = mDTIProperties->GetFAVolumeSource()->GetRASToVoxelMatrix();
   
+  // take out the scale component, so our reslice only rotates
+  rtv[0] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeX();
+  rtv[5] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeY();
+  rtv[10] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ(); 
   
   vtkMatrix4x4* matrix = vtkMatrix4x4::New();
   matrix->SetElement( 0, 0, rtv[0] );
   matrix->SetElement( 0, 1, rtv[1] );
   matrix->SetElement( 0, 2, rtv[2] );
   matrix->SetElement( 0, 3, 0 );
+
   matrix->SetElement( 1, 0, rtv[4] );
   matrix->SetElement( 1, 1, rtv[5] );
   matrix->SetElement( 1, 2, rtv[6] );
   matrix->SetElement( 1, 3, 0 );
+
   matrix->SetElement( 2, 0, rtv[8] );
   matrix->SetElement( 2, 1, rtv[9] );
   matrix->SetElement( 2, 2, rtv[10] );
   matrix->SetElement( 2, 3, 0 );
+
   matrix->SetElement( 3, 0, 0 );
   matrix->SetElement( 3, 1, 0 );
   matrix->SetElement( 3, 2, 0 );
@@ -187,6 +194,12 @@ vtkKWScubaLayer2DDTI::Create () {
       
   // set up the transform for reorienting the tensors
   double *vtr = mDTIProperties->GetFAVolumeSource()->GetVoxelToRASMatrix();
+
+  // remove the scale component
+  vtr[0] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeX();
+  vtr[5] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeY();
+  vtr[10] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ(); 
+  
   vtkMatrix4x4* voxelToRAS = vtkMatrix4x4::New();
   voxelToRAS->SetElement( 0, 0, vtr[0] );
   voxelToRAS->SetElement( 0, 1, vtr[1] );
@@ -522,12 +535,11 @@ vtkKWScubaLayer2DDTI::Update2DInfo () {
   // We adjust the position here to take into effect our reduced
   // volume, basically scaling the ras Z position by the shrinkage
   // factor and remove any pixel scaling.
-//  float rasZ = mViewProperties->Get2DRASZ();
-
-  // TODO: you'll probably want to divide by the pixel size based on the current in plane, rather just the z
-  float rasZ = mViewProperties->Get2DRASZ() / mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ();
+  float rasZ = 
+    mViewProperties->Get2DRASZ() / mDTIProperties->GetFAVolumeSource()->GetPixelSize( mViewProperties->Get2DInPlane() );
   
-  int position = static_cast< int >( floor( rasZ / this->GetCurrentShrinkageValue() ) );
+  const int position = 
+    static_cast< int >( floor( rasZ / static_cast< float >( this->GetCurrentShrinkageValue() ) ) );
 
   // Set the bounds of the clipper according to our in plane.
   switch ( mViewProperties->Get2DInPlane() ) {
@@ -547,14 +559,14 @@ vtkKWScubaLayer2DDTI::Update2DInfo () {
 				 position, position );
     break;
   }
-
+  
   // Now we need to move the actor into the correct and relative RAS
   // positive in the view plane, and also move the clipped volume
   // plane onto the view plane by adjusting it by the ras position,
   // using this reposition value to take into effect the reduced
   // volume size.
-  float reposition = 
-    (float)abs((int)rasZ % (int)this->GetCurrentShrinkageValue()) + 1;
+  const float reposition = 
+    (float)abs( (int)rasZ % this->GetCurrentShrinkageValue() ) + 1;
 
   const int inPlane = mViewProperties->Get2DInPlane();
   mActor->SetPosition( (inPlane==0) ? -(rasZ - mWorldCenter[0]) + reposition :
@@ -569,7 +581,6 @@ vtkKWScubaLayer2DDTI::Update2DInfo () {
            mWorldCenter[1],
            (inPlane==2) ? -(rasZ - mWorldCenter[2]) - reposition :
            mWorldCenter[2] );
-
 
   this->PipelineChanged();
 }
