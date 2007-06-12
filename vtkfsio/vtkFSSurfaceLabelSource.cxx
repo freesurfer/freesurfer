@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/06/08 19:01:30 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/06/12 20:54:14 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceLabelSource );
-vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.8 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.9 $" );
 
 vtkFSSurfaceLabelSource::vtkFSSurfaceLabelSource() :
   LabelFileName( NULL ), Mris( NULL ), Label( NULL ) {
@@ -90,6 +90,8 @@ vtkFSSurfaceLabelSource::InitializeEmptyLabel () {
   }
 
   Label = LabelAlloc( 0, "", "" );
+
+  this->Modified();
 }
 
 void
@@ -169,7 +171,6 @@ vtkFSSurfaceLabelSource::Execute () {
   // We use marks to figure out where the label is on the surface.
   MRISclearMarks( Mris );
 
-  // TODO: this method might have not been checked in
   LabelMarkUndeleted( Label, Mris );
   
   // Now we have a marked surface. What we want to do is create a
