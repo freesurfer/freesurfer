@@ -11,9 +11,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/05/11 18:41:19 $
- *    $Revision: 1.4 $
+ *    $Author: dsjen $
+ *    $Date: 2007/06/12 19:43:09 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -111,6 +111,7 @@ public:
   float GetPixelSizeX ();
   float GetPixelSizeY ();
   float GetPixelSizeZ ();
+  float GetPixelSize ( const int iDimension );
 
   // Description:
   // Returns the number of elements in a dimension. This is in index

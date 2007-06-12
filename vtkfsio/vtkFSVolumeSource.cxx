@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/03/27 19:00:22 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/06/12 19:43:09 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSVolumeSource );
-vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.8 $" );
+vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.9 $" );
 
 vtkFSVolumeSource::vtkFSVolumeSource () :
     mMRI( NULL ),
@@ -448,6 +448,32 @@ vtkFSVolumeSource::GetPixelSizeZ () {
   }
 
   return mMRI->zsize;
+}
+
+float
+vtkFSVolumeSource::GetPixelSize ( const int iDimension ) {
+
+  if ( mMRI == NULL ) {
+    vtkErrorMacro( << "No MRI is present." );
+    return -1;
+  }
+  
+  float size = -1;
+  
+  const int x = 0;
+  const int y = 1;
+  const int z = 2;
+  
+  if( iDimension == x ) {
+    size = this->GetPixelSizeX();
+  } else if( iDimension == y ) {
+    size = this->GetPixelSizeY();
+  } else if( iDimension == z ) {
+    size = this->GetPixelSizeZ();
+  }
+  
+  return size;
+  
 }
 
 float
