@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/08 19:53:52 $
-#    $Revision: 1.30 $
+#    $Date: 2007/06/13 04:18:01 $
+#    $Revision: 1.31 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.30 2007/06/08 19:53:52 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.31 2007/06/13 04:18:01 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -46,6 +46,7 @@ set DoGLMFit = 1;
 set DoContrasts = 1;
 set DoFWHM = 1;
 set SaveRes = 0;
+set UseFloat = 0;
 
 set Skip  = 0;
 set Overwrite = 0;
@@ -212,6 +213,7 @@ foreach sess ($SessList)
   echo "DoGLMFit       = $DoGLMFit;"       >> $MLF
   echo "DoContrasts    = $DoContrasts;"    >> $MLF
   echo "DoSynth        = $DoSynth;"        >> $MLF
+  echo "UseFloat       = $UseFloat;"       >> $MLF
   echo "SynthNoiseAmp  = $SynthNoiseAmp;"  >> $MLF
   echo "SynthSignalAmp = $SynthSignalAmp;" >> $MLF
   echo "SynthSeed      = $SynthSeed;"      >> $MLF
@@ -426,6 +428,14 @@ while( $#argv != 0 )
       set Skip = 1;
       breaksw
 
+    case "-float":
+      set UseFloat = 1;
+      breaksw
+
+    case "-double":
+      set UseFloat = 0;
+      breaksw
+
     case "-overwrite":
       set Overwrite = 1;
       breaksw
@@ -528,6 +538,7 @@ usage_exit:
   echo "   -perrun        : analyze each run separately"
   echo "   -jkrun         : jackknife runs"
   echo "   -no-fwhm       : do not compute FWHM"
+  echo "   -float         : use single-precision float instead of double"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  ..."

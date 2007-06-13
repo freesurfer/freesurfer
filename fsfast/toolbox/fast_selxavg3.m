@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.51 2007/06/08 20:20:38 greve Exp $
+% $Id: fast_selxavg3.m,v 1.52 2007/06/13 04:18:01 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/08 20:20:38 $
-%    $Revision: 1.51 $
+%    $Date: 2007/06/13 04:18:01 $
+%    $Revision: 1.52 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.51 2007/06/08 20:20:38 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.52 2007/06/13 04:18:01 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -79,6 +79,8 @@ fprintf('outtop = %s\n',outtop);
 ext = getenv('FSF_OUTPUT_FORMAT');
 if(isempty(ext)) ext = 'bhdr'; end
 fprintf('Extension format = %s\n',ext);
+
+fprintf('UseFloat = %d\n',UseFloat);
 
 if(~isempty(analysis))
   flac0 = fast_ldanaflac(analysis);
@@ -305,6 +307,7 @@ if(DoGLMFit)
     indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
+      if(UseFloat) yrun.vol = single(yrun.vol); end
       if(yrun.volsize(1) ~= mask.volsize(1) | ...
 	 yrun.volsize(2) ~= mask.volsize(2) | ...
 	 yrun.volsize(3) ~= mask.volsize(3))
@@ -375,6 +378,7 @@ if(DoGLMFit)
     indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
+      if(UseFloat) yrun.vol = single(yrun.vol); end
       yrun = fast_vol2mat(yrun);
     else
       randn('state',yrun_randn(:,nthrun))
@@ -528,6 +532,7 @@ if(DoGLMFit)
       indrun = find(tpindrun == nthrun);
       if(~DoSynth)
 	yrun = MRIread(flac.funcfspec);
+	if(UseFloat) yrun.vol = single(yrun.vol); end
 	yrun = fast_vol2mat(yrun);
       else
 	randn('state',yrun_randn(:,nthrun))
@@ -630,7 +635,7 @@ if(DoGLMFit)
 
   save(xfile,'X','DOF','flac0','runflac','RescaleFactor',...
        'rfm','acfseg','nrho1segmn','acfsegmn',...
-       'DoSynth','SynthSeed','yrun_randn');
+       'DoSynth','SynthSeed','UseFloat','yrun_randn');
   
 
   baseline = mri;
