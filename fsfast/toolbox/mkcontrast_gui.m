@@ -47,11 +47,12 @@ end %--------- while(narg <= nargin) ---------- %
 
 % --------------- Initialize -------------------------------
 if(Init)
-  % Compute nregressors per condition
   hfig = figure;
   ud.hMkConGUI = hfig;
+  set(ud.hMkConGUI,'ResizeFcn',  'mkcontrast_gui(''resize'');');
   set(ud.hMkConGUI,'DeleteFcn',  'mkcontrast_gui(''delete'');');
   set(ud.hMkConGUI,'MenuBar','none');
+  set(ud.hMkConGUI,'WindowStyle','modal');
 
   nregressors = ud.flac.ana.nregressors;
 
@@ -73,7 +74,7 @@ if(Init)
 
   % Done --------------------------
   h = uicontrol('style', 'pushbutton','position', [200 ndy 100 20]);
-  set(h,'string','Done','tag','pbDone');
+  set(h,'string','Done/Save','tag','pbDone');
   set(h,'callback','mkcontrast_gui(''pbDone'');');
   ud.pbDone = h;
   
@@ -83,19 +84,29 @@ if(Init)
   set(h,'callback','mkcontrast_gui(''pbCancel'');');
   ud.pbCancel = h;
   
-  align([ud.txConName ud.ebConName ud.pbDone ud.pbCancel],'Fixed',5,'Bottom');
+  % Delete --------------------------
+  h = uicontrol('style', 'pushbutton','position', [300 ndy 100 20]);
+  set(h,'string','Delete','tag','pbDone');
+  set(h,'callback','mkcontrast_gui(''pbDelete'');');
+  if(ud.newcon) set(h,'visible','off'); end
+  ud.pbDelete = h;
+  
+  align([ud.txConName ud.ebConName ud.pbDone ud.pbCancel ud.pbDelete],'Fixed',5,'Bottom');
   ndy = ndy - 25;
 
   % Conditions -------------------------
   h = uicontrol('style', 'checkbox','position',  [1 ndy 140 20]);
   set(h,'string','Normalize Rows','tag','cbCNorm');
   set(h,'callback','mkcontrast_gui(''cbCNorm'');');
+  set(h,'tooltip','Force each row to sum to 0.');  
   ud.cbCNorm = h;
   ndy = ndy - 20;
   
   h = uicontrol('style', 'checkbox','position',  [1 ndy 140 20]);
   set(h,'string','Sum Conditions','tag','cbSumConditions');
   set(h,'callback','mkcontrast_gui(''cbSumConditions'');');
+  set(h,'tooltip',['Compute weighted sum of conditions. Without this' ...
+		   ' you will have a Multi-variate contrast (F-test).']);    
   ud.cbSumConditions = h;
   ndy = ndy - 25;
   
@@ -104,6 +115,13 @@ if(Init)
 	'tag','cbManConWeights','value',0);
   set(h,'callback','mkcontrast_gui(''cbManConWeights'');');
   ud.cbManConWeights = h;
+  ndy = ndy - 30;
+
+  h = uicontrol('style', 'text','position',  [140 ndy 148 20]);
+  set(h,'string','  A   C   I       Weight','tag','txConName');
+  set(h,'horizontalalignment','left');
+  set(h,'tooltip','Active, Control, Ignore');
+  ud.txACI = h;
   ndy = ndy - 30;
   
   for nth = 1:ud.flac.ana.nconditions
@@ -125,17 +143,20 @@ if(Init)
 
     h = uicontrol(bgh,'style','radiobutton','position',[1 1 20 20]);
     cback = sprintf('mkcontrast_gui(''rbConditionAct'',%d);',nth);
-    set(h,'callback',cback);
+    set(h,'callback',cback,'backgroundcolor','green');
+    set(h,'tooltip','Set this condition to be an Active (weight = +1)');
     ud.rbConditionAct(nth) = h;
 
     h = uicontrol(bgh,'style','radiobutton','position',[20 1 20 20]);
     cback = sprintf('mkcontrast_gui(''rbConditionCtl'',%d);',nth);
-    set(h,'callback',cback);
+    set(h,'callback',cback,'backgroundcolor','red');
+    set(h,'tooltip','Set this condition to be a Control (weight = -1)');
     ud.rbConditionCtl(nth) = h;
     
     h = uicontrol(bgh,'style','radiobutton','position',[40 1 20 20]);
     cback = sprintf('mkcontrast_gui(''rbConditionIgnore'',%d);',nth);
-    set(h,'callback',cback);
+    set(h,'callback',cback,'backgroundcolor','black');
+    set(h,'tooltip','Ignore this condition (weight = 0)');
     ud.rbConditionIgnore(nth) = h;
     
     h = uicontrol(bgh,'style','edit','position',[75 1 60 20]);
@@ -151,14 +172,12 @@ if(Init)
   set(h,'string','Set Delay/Regressor Weights Manually',...
 	'tag','cbManRegWeights','value',1);
   set(h,'callback','mkcontrast_gui(''cbManRegWeights'');');
-  if(0 & nregressors < 2) set(h,'visible','off'); end
   ud.cbManRegWeights = h;
   ndy = ndy - 20;
   
   h = uicontrol('style', 'checkbox','position',  [1 ndy 160 20]);
   set(h,'string','Sum Delays/Regressors','tag','cbSumRegressors','value',0);
   set(h,'callback','mkcontrast_gui(''cbSumRegressors'');');
-  if(0 & nregressors < 2) set(h,'visible','off'); end
   ud.cbSumRegressors = h;
   ndy = ndy - 20;
   
@@ -213,6 +232,13 @@ cspec = flac.ana.con(ud.connumber).cspec;
 switch (cbflag)
  case 'ebConName', 
   tmp = get(ud.ebConName,'string');
+  if(~isempty(find(tmp == ' ')))
+    errordlg('Contrast Name cannot have blanks');  
+    set(ud.ebConName,'string',...
+      ud.flac.ana.con(ud.connumber).cspec.name);
+    return;
+  end
+  
   ud.flac.ana.con(ud.connumber).cspec.name = tmp;
   ud = setstate(ud);
  case 'cbSumConditions', 
@@ -265,6 +291,12 @@ switch (cbflag)
   ud.flac.ana.con(ud.connumber).cspec.WDelay(w) = val;
   ud = setstate(ud);
  case 'pbDone',
+  if(isempty(find(ud.cspec.ContrastMtx_0 ~= 0)))
+    msg = 'Your contrast matrix is currenlty all 0s.';
+    msg = sprintf('%s You cannot save it as is.',msg);
+    errordlg(msg);
+    return;
+  end
   fprintf('Done\n');
   delete(ud.hMkConGUI);
   return;
@@ -275,8 +307,25 @@ switch (cbflag)
   set(ud.hparent,'userdata',pud);
   delete(ud.hMkConGUI);
   return;
+ case 'pbDelete',
+  qstring = 'Are you sure you want to delete this contrast?';
+  button = questdlg(qstring,'','yes','no','no');
+  if(strcmp(button,'no')) return; end
+  fprintf('Deleting Contrast\n');
+  pud = get(ud.hparent,'userdata');
+  pud.cspec.delete = 1;
+  set(ud.hparent,'userdata',pud);
+  delete(ud.hMkConGUI);
+  return;
+ case 'resize',
+  setposition(ud)
+  return;
  case 'delete',
-  fprintf('Deleting\n');
+  fprintf('Cancel\n');
+  pud = get(ud.hparent,'userdata');
+  pud.cspec = [];
+  set(ud.hparent,'userdata',pud);
+  delete(ud.hMkConGUI);
   return;
  
  otherwise,
@@ -343,7 +392,7 @@ cspec.ContrastMtx_0 = fast_contrastmtx(cspec);
 
 return;
 
-%%%------------------------------------------%%%%
+%%% SETSTATE ------------------------------------------%%%%
 function ud = setstate(ud)
 
 ana = ud.flac.ana;
@@ -400,8 +449,57 @@ pud = get(ud.hparent,'userdata');
 pud.cspec = cspec;
 set(ud.hparent,'userdata',pud);
 
+% setposition(ud);
+if(isempty(find(cspec.ContrastMtx_0 ~= 0)))
+  msg = 'Your contrast matrix is currenlty all 0s.';
+  msg = sprintf('%s You will not be able to save it as is.',msg);
+  fprintf('%s\n',msg);
+  warndlg(msg);
+end
+
 ud.cspec = cspec; % For easier debuggin
 cspec.ContrastMtx_0
-  
+
 return
 
+%======================================================
+function setposition(ud)
+  figpos = get(ud.hMkConGUI,'position');
+  dx = figpos(3);
+  dy = figpos(4);
+  ndy = dy - 40;
+  
+  % x does not matter because we use align
+  set(ud.txConName,'position', [  1 ndy 100 20]);
+  set(ud.ebConName,'position', [ 55 ndy 100 20]);
+  set(ud.pbDone,   'position', [200 ndy 100 20]);
+  set(ud.pbCancel, 'position', [300 ndy 100 20]);
+  set(ud.pbDelete, 'position', [400 ndy 100 20]);
+  hlist = [ud.txConName ud.ebConName ud.pbDone ud.pbCancel ud.pbDelete];
+  align(hlist,'Fixed',5,'Bottom');
+  ndy = ndy - 25;
+
+  set(ud.cbCNorm,         'position', [1 ndy 240 20]); ndy = ndy - 25;
+  set(ud.cbSumConditions, 'position', [1 ndy 240 20]); ndy = ndy - 25;
+  set(ud.cbManConWeights, 'position', [1 ndy 240 20]); ndy = ndy - 30;
+  set(ud.txACI,           'position', [140 ndy 148 20]); ndy = ndy - 30;
+  
+  for nth = 1:ud.flac.ana.nconditions
+    set(ud.panCondition(nth), 'position', [1 ndy 300 30]);
+    ndy = ndy - 30;
+  end
+  ndy = ndy - 30;
+
+  set(ud.cbManRegWeights, 'position', [1 ndy 260 20]); ndy = ndy - 20;
+  set(ud.cbSumRegressors, 'position', [1 ndy 260 20]); ndy = ndy - 20;
+  set(ud.cbRmPreStim,     'position', [1 ndy 260 20]);
+  if(ud.flac.ana.firfit) ndy = ndy - 20;  end % Otherwise invisible
+  ndy = ndy - 40;
+  xx = ud.flac.ana.nregressors * 41;
+  set(ud.panRegWeights, 'position', [1 ndy xx 60]);
+  if(ndy < 0)
+    figpos(4) = dy - ndy + 10;
+    set(ud.hMkConGUI,'position',figpos);
+  end
+
+return;

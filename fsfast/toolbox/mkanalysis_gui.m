@@ -18,11 +18,10 @@ function varargout = mkanalysis_gui(varargin)
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
-% See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help mkanalysis_gui
-
-% Last Modified by GUIDE v2.5 12-Jun-2007 17:43:05
+% A. M. Dale and R. L. Buckner. 
+% Selective averaging of rapidly presented individual trials using
+% fMRI. Human Brain Mapping, 5(5):329-340, 1997.
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,7 +55,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.5 2007/06/13 01:01:50 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.6 2007/06/13 22:54:01 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -69,20 +68,20 @@ if(isempty(MkAnalysisName))
 end
 
 set(handles.ebAnalysisName,'string',MkAnalysisName);
-if(exist(MkAnalysisName,'dir'))
-  fprintf('Loading %s\n',MkAnalysisName);
-  handles.flac = fast_ldanaflac(MkAnalysisName);
-  if(isempty(handles.flac))
-    msg = sprintf('Could not load %s\n',MkAnalysisName);
-    errordlg(msg);
-    fprintf('ERROR: %s\n',msg);
-    return;
+if(isempty(MkAnalysisClone))
+  if(exist(MkAnalysisName,'dir'))
+    fprintf('Loading %s\n',MkAnalysisName);
+    handles.flac = fast_ldanaflac(MkAnalysisName);
+    if(isempty(handles.flac))
+      msg = sprintf('Could not load %s\n',MkAnalysisName);
+      errordlg(msg);
+      fprintf('ERROR: %s\n',msg);
+      return;
+    end
+    handles.originalflac = handles.flac;
+    handles = setstate(handles);
   end
-  handles.saveneeded = 0;    
-  setstate(handles);
-end
-
-if(~isempty(MkAnalysisClone))
+else
   if(exist(MkAnalysisClone,'dir'))
     fprintf('Cloning %s\n',MkAnalysisClone);
     handles.flac = fast_ldanaflac(MkAnalysisClone);
@@ -92,10 +91,11 @@ if(~isempty(MkAnalysisClone))
       fprintf('ERROR: %s\n',msg);
       return;
     end
+    handles.originalflac = handles.flac;
     handles.flac.name = MkAnalysisName;
     handles.flac.ana.analysis = MkAnalysisName;
     handles.clone = MkAnalysisClone;
-    setstate(handles);
+    handles = setstate(handles);
   end
 end
 
@@ -104,10 +104,10 @@ if(isempty(handles.flac))
   handles.flac = flacinit;
   handles.flac.name = MkAnalysisName;
   handles.flac.ana.analysis = MkAnalysisName;
-  setstate(handles);
+  handles.originalflac = [];
+  handles = setstate(handles);
 end
   
-handles.originalflac = handles.flac;
 
 % Fill contrast list box
 ncontrasts = length(handles.flac.ana.con);
@@ -139,141 +139,26 @@ varargout{1} = handles.output;
 %=====================================================================
 function ebFuncStem_Callback(hObject, eventdata, handles)
 handles.flac.funcstem = get(hObject,'String');
-setstate(handles);
+handles = setstate(handles);
 guidata(hObject, handles);
 return;
-
-% --- Executes during object creation, after setting all properties.
-function ebFuncStem_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebFuncStem (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function ebFSD_Callback(hObject, eventdata, handles)
-% hObject    handle to ebFSD (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of ebFSD as text
-%        str2double(get(hObject,'String')) returns contents of ebFSD as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function ebFSD_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebFSD (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function ebRLF_Callback(hObject, eventdata, handles)
-% hObject    handle to ebRLF (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of ebRLF as text
-%        str2double(get(hObject,'String')) returns contents of ebRLF as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function ebRLF_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebRLF (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 %=======================================================================
 function ebTR_Callback(hObject, eventdata, handles)
-tmp = get(ebTR,'string');
+tmp = get(handles.ebTR,'string');
 if(isempty(tmp))
   errordlg('You cannot set TR to be empty');  
-  tmp = sprintf('%f',handles.flac.TR);
-  set(ebTR,'string',tmp);  
+  handles = setstate(handles);
+  guidata(hObject, handles);
   return;
 end
 handles.flac.TR = sscanf(tmp,'%f');
-setstate(handles);
+if(handles.flac.ana.TER == -1) 
+  handles.flac.ana.TER = handles.flac.TR; 
+end
+handles = setstate(handles);
 guidata(hObject, handles);
 return;
-
-% --- Executes during object creation, after setting all properties.
-function ebTR_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebTR (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function ebTPExcludeFile_Callback(hObject, eventdata, handles)
-% hObject    handle to ebTPExcludeFile (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of ebTPExcludeFile as text
-%        str2double(get(hObject,'String')) returns contents of ebTPExcludeFile as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function ebTPExcludeFile_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebTPExcludeFile (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function edit8_Callback(hObject, eventdata, handles)
-% hObject    handle to edit8 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit8 as text
-%        str2double(get(hObject,'String')) returns contents of edit8 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit8_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit8 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 % ========================================================================
 function cbERBlock_Callback(hObject, eventdata, handles)
@@ -282,33 +167,18 @@ if(get(handles.cbERBlock,'value') == 1)
 else
   handles.flac.ana.designtype = 'abblocked';  
 end
-setstate(handles);
+handles = setstate(handles);
 guidata(hObject, handles);
-
-% ========================================================================
-function ebNConditions_Callback(hObject, eventdata, handles)
-
-% ========================================================================
-function ebNConditions_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+return;
 
 % ========================================================================
 function ebParFile_Callback(hObject, eventdata, handles)
 handles.flac.par4file = get(handles.ebParFile,'string');
-setstate(handles);
+handles = setstate(handles);
 guidata(hObject, handles);
-
 return;
 
-% ========================================================================
-function ebParFile_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% ----------------------------------------------------------
+% =========================================================
 function cbHRFGamma_Callback(hObject, eventdata, handles)
 newval = get(handles.cbHRFGamma,'value');
 if(handles.flac.ana.gammafit & newval == 0)
@@ -316,14 +186,21 @@ if(handles.flac.ana.gammafit & newval == 0)
   set(handles.cbHRFGamma,'value',1);
   return;
 end
+cont = DeleteContrastsDialog(handles);
+if(~cont)
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
+end
+handles.flac.ana.con = [];
 handles.flac.ana.firfit = 0;
 handles.flac.ana.gammafit = 1;
 handles.flac.ana.spmhrffit = 0;
-setstate(handles);
+handles = setstate(handles);
 guidata(hObject, handles);
 return;
 
-% ----------------------------------------------------------
+% =========================================================
 function cbHRFFIR_Callback(hObject, eventdata, handles)
 newval = get(handles.cbHRFFIR,'value');
 if(handles.flac.ana.firfit & newval == 0)
@@ -331,14 +208,21 @@ if(handles.flac.ana.firfit & newval == 0)
   set(handles.cbHRFFIR,'value',1);
   return;
 end
+cont = DeleteContrastsDialog(handles);
+if(~cont)
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
+end
+handles.flac.ana.con = [];
 handles.flac.ana.firfit = 1;
 handles.flac.ana.gammafit = 0;
 handles.flac.ana.spmhrffit = 0;
-setstate(handles);
+handles = setstate(handles);
 guidata(hObject, handles);
 return;
 
-% ----------------------------------------------------------
+% =========================================================
 function cbHRFSPMHRF_Callback(hObject, eventdata, handles)
 newval = get(handles.cbHRFSPMHRF,'value');
 if(handles.flac.ana.spmhrffit & newval == 0)
@@ -346,205 +230,197 @@ if(handles.flac.ana.spmhrffit & newval == 0)
   set(handles.cbHRFSPMHRF,'value',1);
   return;
 end
+cont = DeleteContrastsDialog(handles);
+if(~cont)
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
+end
+handles.flac.ana.con = [];
 handles.flac.ana.firfit = 0;
 handles.flac.ana.gammafit = 0;
 handles.flac.ana.spmhrffit = 1;
-setstate(handles);
+handles = setstate(handles);
 guidata(hObject, handles);
 return;
 
-% --------------------------------------------------------------
+% ===========================================================
 function ebFIRTotTimeWin_Callback(hObject, eventdata, handles)
 if(checkTR(handles))
-  tmp = sprintf('%d',handles.flac.ana.timewindow);
+  tmp = sprintf('%f',handles.flac.ana.timewindow);
   set(handles.ebFIRTotTimeWin,'string',tmp);
   return;
 end
+
 win = sscanf(get(handles.ebFIRTotTimeWin,'string'),'%f');
+if(win == handles.flac.ana.timewindow) return; end
+
 ter = handles.flac.ana.TER;
 if(rem(win,ter) ~= 0)
   errordlg('Your Time Window must be an integer multiple of the TER');
-  tmp = sprintf('%d',handles.flac.ana.timewindow);
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
+end
+
+cont = DeleteContrastsDialog(handles);
+if(~cont)
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
+end
+handles.flac.ana.con = [];
+
+handles.flac.ana.timewindow = win;
+handles = setstate(handles);
+guidata(hObject, handles);
+
+% ===========================================================
+function ebFIRPreStim_Callback(hObject, eventdata, handles)
+if(checkTR(handles))
+  tmp = sprintf('%f',handles.flac.ana.timewindow);
   set(handles.ebFIRTotTimeWin,'string',tmp);
   return;
 end
-handles.flac.ana.timewindow = win;
-setstate(handles);
+
+prestim = sscanf(get(handles.ebFIRPreStim,'string'),'%f');
+if(prestim == handles.flac.ana.prestim) return; end
+
+ter = handles.flac.ana.TER;
+if(rem(prestim,ter) ~= 0)
+  errordlg('Your PreStim must be an integer multiple of the TER');
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
+end
+
+% Note: this operation does not change the number of regressors
+
+handles.flac.ana.prestim = prestim;
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
+
+% ===========================================================
+function ebFIRTER_Callback(hObject, eventdata, handles)
+if(checkTR(handles))
+  tmp = sprintf('%f',handles.flac.ana.timewindow);
+  set(handles.ebFIRTotTimeWin,'string',tmp);
+  return;
+end
+
+ter = sscanf(get(handles.ebFIRTER,'string'),'%f');
+if(ter == handles.flac.ana.TER) return; end
+
+cont = DeleteContrastsDialog(handles);
+if(~cont)
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
+end
+
+win = sscanf(get(handles.ebFIRTotTimeWin,'string'),'%f');
+prestim = sscanf(get(handles.ebFIRPreStim,'string'),'%f');
+if(rem(win,ter) ~= 0)
+  % This is not quite the right thing to do, should offer to
+  % Change the window to make it consitent
+  errordlg('Your Time Window must be an integer multiple of the TER');
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
+end
+
+handles.flac.ana.con = [];
+handles.flac.ana.TER = ter;
+handles = setstate(handles);
 guidata(hObject, handles);
 
-% --- Executes during object creation, after setting all properties.
-function ebFIRTotTimeWin_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebFIRTotTimeWin (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+return;
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+%=====================================================================
+function ebFSD_Callback(hObject, eventdata, handles)
+tmp = get(handles.ebFSD,'string');
+if(isempty(tmp))
+  errordlg('You cannot set FSD to be empty');  
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
 end
-
-
-
-function ebSPMHRFNDeriv_Callback(hObject, eventdata, handles)
-% hObject    handle to ebSPMHRFNDeriv (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of ebSPMHRFNDeriv as text
-%        str2double(get(hObject,'String')) returns contents of ebSPMHRFNDeriv as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function ebSPMHRFNDeriv_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebSPMHRFNDeriv (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+if(~isempty(find(tmp == ' ')))
+  errordlg('FSD cannot have blanks');  
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
 end
+handles.flac.fsd = tmp;
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
 
-
-
-function ebFIRPreStim_Callback(hObject, eventdata, handles)
-% hObject    handle to ebFIRPreStim (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of ebFIRPreStim as text
-%        str2double(get(hObject,'String')) returns contents of ebFIRPreStim as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function ebFIRPreStim_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebFIRPreStim (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+%=====================================================================
+function ebRLF_Callback(hObject, eventdata, handles)
+tmp = get(handles.ebRLF,'string');
+if(~isempty(find(tmp == ' ')))
+  errordlg('Run List File cannot have blanks');  
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
 end
+handles.flac.runlistfile = tmp;
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
 
-
-
-function ebFIRTER_Callback(hObject, eventdata, handles)
-% hObject    handle to ebFIRTER (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of ebFIRTER as text
-%        str2double(get(hObject,'String')) returns contents of ebFIRTER as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function ebFIRTER_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebFIRTER (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+%=====================================================================
+function ebTPExcludeFile_Callback(hObject, eventdata, handles)
+tmp = get(handles.ebTPExcludeFile,'string');
+if(~isempty(find(tmp == ' ')))
+  errordlg('TP Exclude File cannot have blanks');  
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
 end
+handles.flac.tpexcfile = tmp;
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
 
 
-
+% ==============================================================
 function ebGammaDelta_Callback(hObject, eventdata, handles)
-% hObject    handle to ebGammaDelta (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+tmp = get(handles.ebGammaDelta,'string');
+val = sscanf(tmp,'%f');
+handles.flac.ana.gamdelay = val;
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
 
-% Hints: get(hObject,'String') returns contents of ebGammaDelta as text
-%        str2double(get(hObject,'String')) returns contents of ebGammaDelta as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function ebGammaDelta_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebGammaDelta (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
+% ==============================================================
 function ebGammaTau_Callback(hObject, eventdata, handles)
-% hObject    handle to ebGammaTau (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+tmp = get(handles.ebGammaTau,'string');
+val = sscanf(tmp,'%f');
+handles.flac.ana.gamtau = val;
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
 
-% Hints: get(hObject,'String') returns contents of ebGammaTau as text
-%        str2double(get(hObject,'String')) returns contents of ebGammaTau as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function ebGammaTau_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebGammaTau (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
+% ==============================================================
 function ebGammaAlpha_Callback(hObject, eventdata, handles)
-% hObject    handle to ebGammaAlpha (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+tmp = get(handles.ebGammaAlpha,'string');
+val = sscanf(tmp,'%f');
+handles.flac.ana.gamexp = val;
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
 
-% Hints: get(hObject,'String') returns contents of ebGammaAlpha as text
-%        str2double(get(hObject,'String')) returns contents of ebGammaAlpha as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function ebGammaAlpha_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebGammaAlpha (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
+% ==============================================================
 function ebNCycles_Callback(hObject, eventdata, handles)
-% hObject    handle to ebNCycles (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of ebNCycles as text
-%        str2double(get(hObject,'String')) returns contents of ebNCycles as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function ebNCycles_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebNCycles (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
+tmp = get(handles.ebNCycles,'string');
+val = sscanf(tmp,'%d');
+handles.flac.ana.ncycles = val;
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
 
 % ==============================================================
 function ebAnalysisName_Callback(hObject, eventdata, handles)
@@ -554,51 +430,28 @@ if(isempty(tmp))
   set(handles.ebAnalysisName,'string',handles.flac.name);
   return;
 end
-if(~isempty(find(tmp,' ')))
+if(~isempty(find(tmp == ' ')))
   errordlg('Analysis Name cannot have blanks');  
   set(handles.ebAnalysisName,'string',handles.flac.name);
   return;
 end
+d = dir(tmp);
+if(~isempty(d))
+  qstring = sprintf('Analysis %s already exists. ',tmp);
+  qstring = [qstring 'It will be overwritten if you continue.'];
+  qstring = [qstring 'Do you want to continue with this operation?'];
+  button = questdlg(qstring,'WARNING','yes','no','no');
+  if(strcmp(button,'no'))
+    set(hObject,'Value',handles.flac.ana.nconditions);
+    set(handles.ebAnalysisName,'string',handles.flac.name);
+    return;
+  end
+end
 handles.flac.name = tmp;
-setstate(handles);
+handles.flac.ana.analysis = tmp;
+handles = setstate(handles);
 guidata(hObject, handles);
 return;
-
-% --- Executes during object creation, after setting all properties.
-function ebAnalysisName_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ebAnalysisName (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function edit2_Callback(hObject, eventdata, handles)
-% hObject    handle to edit2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit2 as text
-%        str2double(get(hObject,'String')) returns contents of edit2 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 % ==============================================================
 function cbPeriodicDesign_Callback(hObject, eventdata, handles)
@@ -607,40 +460,60 @@ if(get(handles.cbPeriodicDesign,'value') == 1)
 else
   handles.flac.ana.designtype = 'event-related';
 end
-setstate(handles);
+handles = setstate(handles);
 guidata(hObject, handles);
 return;
 
 % ==============================================================
 function pbSave_Callback(hObject, eventdata, handles)
+ok = OKToSave(handles);
+if(~ok) return; end
+fast_svana(handles.flac.name,handles.flac);
+handles.originalflac = handles.flac;
+handles.clone = '';
+handles = setstate(handles);
+guidata(hObject, handles);
 return;
 
 % =======================================================
 function cbMCExtReg_Callback(hObject, eventdata, handles)
 val = get(handles.cbMCExtReg,'value');
-if(val) handles.flac.extreg = 'mcextreg';
-else    handles.flac.extreg = '';
+if(val) handles.flac.ana.extreg = 'mcextreg';
+else    handles.flac.ana.extreg = '';
 end
-setstate(handles);
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
+
+
+% =======================================================
+function cbWhiten_Callback(hObject, eventdata, handles)
+val = get(handles.cbWhiten,'value');
+if(val) handles.flac.acfbins = 10;
+else    handles.flac.acfbins = 0;
+end
+handles = setstate(handles);
 guidata(hObject, handles);
 return;
 
 % =======================================================
 function cbINorm_Callback(hObject, eventdata, handles)
-val = get(cbINorm,'value');
+val = get(handles.cbINorm,'value');
 if(val) handles.flac.inorm = 100;
 else    handles.flac.inorm = 0;
 end
-setstate(handles);
+handles = setstate(handles);
 guidata(hObject, handles);
 return;
 
-% --- Executes on button press in pbLoad.
-function pbLoad_Callback(hObject, eventdata, handles)
-% hObject    handle to pbLoad (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
+% --- Executes on button press in pbRestore.
+function pbRestore_Callback(hObject, eventdata, handles)
+if(~isempty(handles.clone)) name = handles.flac.name; end
+handles.flac = handles.originalflac;
+if(~isempty(handles.clone)) handles.flac.name = name; end
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
 
 %-----------------------------------------------------
 function handles = parse_args(handles,varargin)
@@ -699,8 +572,8 @@ function arg1check(flag,nflag,nmax)
   end
 return;
 
-%--------------------------------------------------%
-function setstate(handles)
+% SETSTATE --------------------------------------------------%
+function handles = setstate(handles)
 
 flac = handles.flac;
 ana = flac.ana;
@@ -717,6 +590,10 @@ else
   set(handles.ebTR,'backgroundcolor','red')
 end
 
+set(handles.slNConditions,'value',flac.ana.nconditions);
+tmp = sprintf('NConditions %d',flac.ana.nconditions);
+set(handles.txNConditions,'string',tmp);
+
 set(handles.ebFSD,'string',flac.fsd);
 set(handles.ebRLF,'string',flac.runlistfile);
 set(handles.ebTR,'string',flac.TR);
@@ -728,13 +605,17 @@ if(strcmp(ana.extreg,'mcextreg')) set(handles.cbMCExtReg,'value',1);
 else                              set(handles.cbMCExtReg,'value',0);
 end
 
-tmp = sprintf('PolyFit %d',ana.PolyOrder);
+if(flac.acfbins ~= 0) set(handles.cbWhiten,'value',1);
+else                  set(handles.cbWhiten,'value',0);
+end
+
+tmp = sprintf('Polynomial Order %d',ana.PolyOrder);
 set(handles.txPolyFit,'string',tmp);
 set(handles.slPolyFit,'value',ana.PolyOrder);
 
 set(handles.ebFIRTotTimeWin,'string',flac.ana.timewindow);
 set(handles.ebFIRPreStim,'string',flac.ana.prestim);
-if(flac.TR > 0 & flac.ana.TER < 0) flac.ana.TER = flac.ana.TR; end
+if(flac.TR > 0 & flac.ana.TER < 0) flac.ana.TER = flac.TR; end
 set(handles.ebFIRTER,'string',flac.ana.TER);
 
 if(strcmp(ana.designtype,'event-related') | ...
@@ -744,7 +625,7 @@ if(strcmp(ana.designtype,'event-related') | ...
   % Enable ERBlock ----------------------
   set(handles.cbERBlock,'value',1);
   set(handles.txNConditions,'enable','on');
-  set(handles.ebNConditions,'enable','on');
+  set(handles.slNConditions,'enable','on');
   set(handles.txParFile,'enable','on');
   set(handles.ebParFile,'enable','on');
   set(handles.cbHRFFIR,'enable','on');
@@ -760,7 +641,7 @@ else
   % Disable ERBlock ----------------------
   set(handles.cbERBlock,'value',0);
   set(handles.txNConditions,'enable','off');
-  set(handles.ebNConditions,'enable','off');
+  set(handles.slNConditions,'enable','off');
   set(handles.txParFile,'enable','off');
   set(handles.ebParFile,'enable','off');
   set(handles.cbHRFFIR,'enable','off');
@@ -807,11 +688,35 @@ set(handles.txGammaAlpha,'enable',GammaEnable);
 set(handles.ebGammaAlpha,'enable',GammaEnable);
 
 set(handles.txSPMHRFNDeriv,'enable',SPMHRFEnable);
-set(handles.ebSPMHRFNDeriv,'enable',SPMHRFEnable);
+set(handles.txSPMHRFNDeriv,'string',...
+  sprintf('NDerivatives = %d',handles.flac.ana.nspmhrfderiv));
+set(handles.slSPMHRFNDeriv,'enable',SPMHRFEnable);
+
+ncontrasts = length(handles.flac.ana.con);
+clear tmpstr;
+for nthcon = 1:ncontrasts
+  tmpstr{nthcon} = handles.flac.ana.con(nthcon).cspec.name;
+end
+tmpstr{nthcon+1} = 'Add Contrast';
+set(handles.lbContrast,'string',tmpstr);
 
 if(~isempty(handles.clone))
   tmp = sprintf('Cloned from: %s\n',handles.clone);
   set(handles.txClone,'string',tmp);
+end
+
+if(ana.gammafit)  nregressors = 1; end
+if(ana.spmhrffit) nregressors = ana.nspmhrfderiv + 1; end
+if(ana.firfit)    nregressors = round(ana.timewindow/ana.TER); end
+handles.flac.ana.nregressors = nregressors ;
+
+handles.saveneeded = SaveNeeded(handles);
+if(handles.saveneeded)
+  set(handles.pbSave,'enable','on');
+  set(handles.pbRestore,'enable','on');
+else
+  set(handles.pbSave,'enable','off');
+  set(handles.pbRestore,'enable','off');
 end
 
 return;
@@ -868,26 +773,12 @@ function slPolyFit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 handles.flac.ana.PolyOrder = get(hObject,'Value');
-setstate(handles);
+handles = setstate(handles);
 guidata(hObject, handles);
 return;
 
-% --- Executes during object creation, after setting all properties.
-function slPolyFit_CreateFcn(hObject, eventdata, handles)
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-return;
-
-% --- Executes on selection change in lbContrast.
+% ===================================================================
 function lbContrast_Callback(hObject, eventdata, handles)
-% hObject    handle to lbContrast (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = get(hObject,'String') returns lbContrast contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from lbContrast
-
 if(handles.editing_contrast) return; end
 contents = get(hObject,'String');
 connum = get(hObject,'Value');
@@ -902,7 +793,15 @@ guidata(hObject, handles);
 uiwait(hMkCon);
 ud = get(handles.figure1,'userdata');
 if(~isempty(ud.cspec))
-  handles.figure1,handles.flac.ana.con(connum).cspec = ud.cspec;
+  if(~isfield(ud.cspec,'delete'))
+    % Add contrast to the list
+    handles.flac.ana.con(connum).cspec = ud.cspec;
+  else
+    % Delete contrast from the list
+    handles.flac.ana.con(connum:end-1) = ...
+	handles.flac.ana.con(connum+1:end);
+    handles.flac.ana.con(end) = [];
+  end
   ncontrasts = length(handles.flac.ana.con);
   clear tmpstr;
   for nthcon = 1:ncontrasts
@@ -912,16 +811,328 @@ if(~isempty(ud.cspec))
   set(handles.lbContrast,'string',tmpstr);
 end
 handles.editing_contrast = 0;
+setstate(handles);
 guidata(hObject, handles);
+return;
 
+% ========================================================================
+function slNConditions_Callback(hObject, eventdata, handles)
+cont = DeleteContrastsDialog(handles);
+if(~cont)
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
+end
+handles.flac.ana.con = [];
+Nc = round(get(hObject,'Value'));
+handles.flac.ana.nconditions = round(get(hObject,'Value'));
+handles = setstate(handles);
+setstate(handles);
+guidata(hObject, handles);
+return;
+
+% ========================================================================
+function slNConditions_CreateFcn(hObject, eventdata, handles)
+set(hObject,'BackgroundColor',[.9 .9 .9]);
+set(hObject,'Min',1);
+set(hObject,'Max',20);
+step = 1/(20-1);
+set(hObject,'SliderStep',[step step]);
+return;
+
+% ===============================================================
+function slSPMHRFNDeriv_Callback(hObject, eventdata, handles)
+cont = DeleteContrastsDialog(handles);
+if(~cont)
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
+end
+handles.flac.ana.con = [];
+Nderiv = round(get(hObject,'Value'));
+handles.flac.ana.nspmhrfderiv = round(get(hObject,'Value'));
+handles = setstate(handles);
+setstate(handles);
+guidata(hObject, handles);
+return;
+
+% ===============================================================
+function slSPMHRFNDeriv_CreateFcn(hObject, eventdata, handles)
+set(hObject,'BackgroundColor',[.9 .9 .9]);
+set(hObject,'BackgroundColor',[.9 .9 .9]);
+set(hObject,'Min',0);
+set(hObject,'Max',3);
+step = 1/(3-0);
+set(hObject,'SliderStep',[step step]);
+set(hObject,'Value',0);
+return;
+
+% ===============================================================
+function ok = OKToSave(handles,quiet)
+ok = 0;
+if(nargin == 1) quiet = 0; end
+flac = handles.flac;
+ana = flac.ana;
+if(isempty(flac.funcstem))
+  if(quiet) return; end
+  errordlg('You must set the funcstem before you can save analysis.');  
+  return;
+end
+if(isempty(handles.flac.TR))
+  if(quiet) return; end
+  errordlg('You must set the TR before you can save analysis.');  
+  return;
+end
+if(isempty(flac.funcstem))
+  if(quiet) return; end
+  errordlg('You must set the funcstem before you can save analysis.');  
+  return;
+end
+if(strcmp(ana.designtype,'event-related') | ...
+   strcmp(ana.designtype,'blocked'))
+  if(isempty(handles.flac.par4file))
+    if(quiet) return; end
+    errordlg('You must set the paradigm file before you can save analysis.');  
+    return;
+  end
+end
+ok = 1;
+
+return;
+
+% =============================================================
+function needed = SaveNeeded(handles)
+needed = 1; 
+a = handles.originalflac;
+b = handles.flac;
+
+if(isempty(a)) return; end
+
+if(~strcmp(a.name,b.name)) return; end
+if(~strcmp(a.fsd,b.fsd)) return; end
+if(~strcmp(a.runlistfile,b.runlistfile)) return; end
+if(a.inorm ~= b.inorm) return; end
+if(a.TR ~= b.TR) return; end
+if(~strcmp(a.ana.extreg,b.ana.extreg)) return; end
+if(a.ana.PolyOrder ~= b.ana.PolyOrder) return; end
+if(~strcmp(a.ana.designtype,b.ana.designtype)) return; end
+if(a.acfbins ~= b.acfbins) return; end
+if(a.stimulusdelay ~= b.stimulusdelay) return; end
+
+if(~strcmp(a.ana.designtype,'event-related') & ...
+   ~strcmp(a.ana.designtype,'blocked'))
+    if(a.ana.ncycles ~= b.ana.ncycles) return; end  
+    needed = 0;
+    return;
+end
+  
+% Only gets here if event-related or blocked
+
+if(~strcmp(a.par4file,b.par4file)) return; end
+if(a.ana.nconditions ~= b.ana.nconditions) return; end
+if(a.ana.firfit ~= b.ana.firfit) return; end
+if(a.ana.firfit)
+  if(a.ana.timewindow ~= b.ana.timewindow) return; end
+  if(a.ana.prestim ~= b.ana.prestim) return; end
+  if(a.ana.TER ~= b.ana.TER) return; end
+end
+if(a.ana.gammafit ~= b.ana.gammafit) return; end
+if(a.ana.gammafit)
+  if(a.ana.gamdelay ~= b.ana.gamdelay) return; end  
+  if(a.ana.gamtau ~= b.ana.gamtau) return; end  
+  if(a.ana.gamexp ~= b.ana.gamexp) return; end  
+end
+if(a.ana.spmhrffit ~= b.ana.spmhrffit) return; end
+if(a.ana.spmhrffit)
+  if(a.ana.nspmhrfderiv ~= b.ana.nspmhrfderiv) return; end  
+end
+a_ncontrasts = length(a.ana.con);
+b_ncontrasts = length(b.ana.con);
+if(a_ncontrasts ~= b_ncontrasts) return; end
+
+ncontrasts = length(a.ana.con);
+for nth = 1:ncontrasts
+  Ca = a.ana.con(nth).cspec.ContrastMtx_0;
+  Cb = b.ana.con(nth).cspec.ContrastMtx_0;
+  if(size(Ca,1) ~= size(Cb,1)) return; end
+  if(size(Ca,2) ~= size(Cb,2)) return; end
+  if(Ca ~= Cb) return; end
+end
+
+needed = 0;
+
+return;
+
+%=======================================================
+function cont = DeleteContrastsDialog(handles);
+% cont = 1 means to continue op, deleting any contrasts that exist
+cont = 0; 
+
+ncontrasts = length(handles.flac.ana.con);
+if(ncontrasts == 0) cont = 1; return; end
+
+qstring = 'This operation will cause the number of regressors ';
+qstring = [qstring 'to change. This will invalidate your '];
+qstring = [qstring 'contrasts, forcing them to be deleted. '];
+qstring = [qstring 'Do you want to continue with this operation?'];
+button = questdlg(qstring,'WARNING','yes','no','no');
+if(strcmp(button,'no')) return; end
+cont = 1;
+
+return;
+
+
+
+
+
+% ===========================================================
+% ===========================================================
+function ebFIRPreStim_CreateFcn(hObject, eventdata, handles)
+set(hObject,'BackgroundColor','white');
+return;
 % --- Executes during object creation, after setting all properties.
-function lbContrast_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to lbContrast (see GCBO)
+function ebFuncStem_CreateFcn(hObject, eventdata, handles)
+set(hObject,'BackgroundColor','white');
+return;
+% --- Executes during object creation, after setting all properties.
+function ebFSD_CreateFcn(hObject, eventdata, handles)
+set(hObject,'BackgroundColor','white');
+return;
+% --- Executes during object creation, after setting all properties.
+function ebRLF_CreateFcn(hObject, eventdata, handles)
+set(hObject,'BackgroundColor','white');
+return;
+% --- Executes during object creation, after setting all properties.
+function ebTR_CreateFcn(hObject, eventdata, handles)
+set(hObject,'BackgroundColor','white');
+return;
+% --- Executes during object creation, after setting all properties.
+function ebTPExcludeFile_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ebTPExcludeFile (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-set(hObject,'BackgroundColor','white');
 
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% ========================================================================
+function ebParFile_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function lbContrast_CreateFcn(hObject, eventdata, handles)
+set(hObject,'BackgroundColor','white');
+return;
+% ===================================================================
+function slPolyFit_CreateFcn(hObject, eventdata, handles)
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+return;
+% ===================================================================
+function ebAnalysisName_CreateFcn(hObject, eventdata, handles)
+set(hObject,'BackgroundColor','white');
+return;
+
+% --- Executes during object creation, after setting all properties.
+function ebNCycles_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ebNCycles (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function ebGammaAlpha_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ebGammaAlpha (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function ebGammaTau_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ebGammaTau (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function ebGammaDelta_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ebGammaDelta (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+% --- Executes during object creation, after setting all properties.
+function ebFIRTER_CreateFcn(hObject, eventdata, handles)
+set(hObject,'BackgroundColor','white');
+return;
+% --- Executes during object creation, after setting all properties.
+function ebFIRTotTimeWin_CreateFcn(hObject, eventdata, handles)
+set(hObject,'BackgroundColor','white');
+return;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%%%%% May be orphaned %%%%%%%%%%%%%%%%%%%
+function edit8_Callback(hObject, eventdata, handles)
+% hObject    handle to edit8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit8 as text
+%        str2double(get(hObject,'String')) returns contents of edit8 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit8_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
 function FigWBD(hObject, eventdata, handles)
 fprintf('WBD\n');
 return;
+
+
+
+
