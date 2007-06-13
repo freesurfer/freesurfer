@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/10 21:48:21 $
-#    $Revision: 1.14 $
+#    $Date: 2007/06/13 03:54:06 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.14 2007/06/10 21:48:21 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.15 2007/06/13 03:54:06 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -198,8 +198,14 @@ foreach hemi ($hemilist)
       set cmd = ($cmd -fsd $fsd -c $contrast)
       if($#tmpdir) set cmd = ($cmd -tmp $tmpdir);
       if($#fwhm) set cmd = ($cmd -fwhm $fwhm);
-      if($paireddiff) set cmd = ($cmd -paired-diff) # Wrong for var
-      if($pairedavg)  set cmd = ($cmd -paired-avg)
+      if($paireddiff) then
+        if($mapname == cesvar || $mapname == cesvarpct) then
+          set cmd = ($cmd -paired-sum)
+        else
+          set cmd = ($cmd -paired-diff)
+        endif
+      endif
+      if($pairedavg)  set cmd = ($cmd -paired-avg) # Prob not right for var
       if($hemi == tal) then
         if(! $DoMorph) set cmd = ($cmd -talres $talres)
         if($DoMorph)   set cmd = ($cmd --morph)
@@ -248,7 +254,6 @@ foreach hemi ($hemilist)
 
   # Analysis-level maps
   foreach mapname ($anamaplist)
-    # What about paired diff for these?
     set outvol = $outdir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
     set cmd = (isxconcat0-sess)
     if($#flac == 0) set cmd = ($cmd -a $analysis)
@@ -256,6 +261,14 @@ foreach hemi ($hemilist)
     set cmd = ($cmd -m $mapname -o $outvol -interp $interp -fsd $fsd)
     if($#tmpdir) set cmd = ($cmd -tmp $tmpdir);
     if($#fwhm) set cmd = ($cmd -fwhm $fwhm);
+    # What about paired diff for these?
+    if($paireddiff) then
+      if($mapname == rvar)
+        set cmd = ($cmd -paired-sum)
+      else
+        set cmd = ($cmd -paired-diff)
+      endif
+    endif
     if($hemi == tal) then
       if(! $DoMorph) set cmd = ($cmd -talres $talres)
       if($DoMorph)   set cmd = ($cmd --morph)
