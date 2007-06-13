@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: postprocess_targz.csh,v 1.10 2007/06/10 21:30:37 nicks Exp $'
+set ID='$Id: postprocess_targz.csh,v 1.11 2007/06/13 21:46:38 nicks Exp $'
 
 set echo=1
 
@@ -30,9 +30,11 @@ sudo chown -R root freesurfer
 if ($status) exit 1
 sudo chown -R root freesurfer/*.*
 if ($status) exit 1
-sudo chgrp -R root freesurfer
+set ROOTGRP=root
+if ("`uname -s`" == "Darwin") set ROOTGRP=wheel
+sudo chgrp -R $ROOTGRP freesurfer
 if ($status) exit 1
-sudo chgrp -R root freesurfer/*.*
+sudo chgrp -R $ROOTGRP freesurfer/*.*
 if ($status) exit 1
 tar -X ${SPACE_FS}/build/scripts/exclude_from_targz -cvf $1.tar freesurfer
 if ($status) exit 1
