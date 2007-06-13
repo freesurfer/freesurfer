@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/01 16:49:00 $
-#    $Revision: 1.6 $
+#    $Date: 2007/06/13 01:02:48 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set MKCONTRAST_VER = '$Id: mkcontrast,v 1.6 2007/06/01 16:49:00 greve Exp $';
+set MKCONTRAST_VER = '$Id: mkcontrast,v 1.7 2007/06/13 01:02:48 greve Exp $';
 
 set CorrIdeal = 0;
 set monly = 0;
@@ -46,6 +46,8 @@ set RmPreStim = 0;
 set sxadat = ();
 set anadir = ();
 set CNorm = 1;
+set setwcond = 0;
+set setwdelay = 0;
 
 set nircorr = 0;
 set rdelta = ();
@@ -122,10 +124,7 @@ if("$OutDir" != ".") mkdir -p $OutDir
 #---------------------------------------------------------------#
 $TARGET <<EOF
 
-  if( ~ $monly ) QuitOnError = 1; 
-  else           QuitOnError = 0; 
-  end
-
+  monly = $monly;
   NCond  = $nconds;
   WCond  = [$wcond];
   NDelay = $ndelays;
@@ -142,6 +141,12 @@ $TARGET <<EOF
   rtau      = [$rtau];
   ndelays   = [$ndelays];
   CNorm     = [$CNorm];
+  setwdelay = $setwdelay;
+  setwcond  = $setwcond;
+
+  if(~$monly ) QuitOnError = 1; 
+  else          QuitOnError = 0; 
+  end
 
   if(isempty(WCond))
     WCond = ones(1,NCond);
@@ -182,7 +187,7 @@ $TARGET <<EOF
 
   save('$cmtxfile','ContrastMtx_0','NCond','WCond','WDelay','CNorm','TER',...
     'TimeWindow','TPreStim','RmPreStim','sumconds','sumdelays',...
-    'nircorr','rdelta','rtau','-V4');
+    'nircorr','rdelta','rtau','setwdelay','setwcond','-V4');
 
   if($ShowCMtx)
     hcmtx = figure(1);
@@ -292,6 +297,14 @@ while( $#argv != 0 )
         set wcond = ($wcond $argv[1]); shift;
         @ c = $c + 1;
       end
+      breaksw
+
+    # These are just flags to indicate that they were set manually
+    case "-setwcond"
+      set setwcond = 1;
+      breaksw
+    case "-setwdelay"
+      set setwdelay = 1;
       breaksw
 
     case "-rmprestim"

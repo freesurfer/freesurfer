@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/01 16:49:00 $
-#    $Revision: 1.6 $
+#    $Date: 2007/06/13 01:02:48 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.6 2007/06/01 16:49:00 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.7 2007/06/13 01:02:48 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -33,6 +33,7 @@ set fsd        = "bold";
 set umaskarg = ();
 set actcond = ();
 set ctrlcond = ();
+set setwcond = 0;
 set ncond = ();
 set wcond = ();
 set setwdelay = 0;
@@ -45,7 +46,6 @@ set sumconds = (-sumconds);
 set rmprestim = ();
 set CNorm = 1;
 set UseSXADat = 0;
-
 set PrintHelp = 0;
 
 if($#argv == 0) goto usage_exit;
@@ -203,6 +203,10 @@ else
 endif
 if($CNorm == 0) set cmd = ($cmd -nocnorm);
 
+# These are just flags to indicate that they were set manually
+if($setwcond)  set cmd = ($cmd -setwcond);
+if($setwdelay) set cmd = ($cmd -setwdelay);
+
 ## Prepare the script, if need be ##
 if($ScriptOnly) then
   mkdir -p $analname/scripts
@@ -252,6 +256,7 @@ while( $#argv != 0 )
 
     case "-setwdelay":
       set setwdelay = 1;
+      set sumdelays = 1;
       breaksw
 
     case "-ncond":
@@ -273,6 +278,7 @@ while( $#argv != 0 )
         shift;
       end
       set CNorm = 0; # keep condition weights, dont norm
+      set setwcond = 1
       breaksw
 
     case "-nosumconds":
@@ -551,7 +557,7 @@ condtion basis. See also -sumdelays.
 For FIR designs, sum the points inside the FIR window so that each
 condition is represented by a single number (ie, the sum). If delay
 weights have been specified (see -setwdelay), then the weighted sum is
-computed.
+computed. Automatic with -setwdelay.
 
 -rmprestim
 
