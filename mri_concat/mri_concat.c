@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/27 21:28:54 $
- *    $Revision: 1.16 $
+ *    $Date: 2007/06/13 03:43:16 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // mri_concat.c
-// $Id: mri_concat.c,v 1.16 2007/04/27 21:28:54 greve Exp $
+// $Id: mri_concat.c,v 1.17 2007/06/13 03:43:16 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +54,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.16 2007/04/27 21:28:54 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.17 2007/06/13 03:43:16 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -66,6 +66,7 @@ int DoStd=0;
 int DoMax=0;
 int DoPaired=0;
 int DoPairedAvg=0;
+int DoPairedSum=0;
 int DoPairedDiff=0;
 int DoPairedDiffNorm=0;
 int DoPairedDiffNorm1=0;
@@ -168,12 +169,9 @@ int main(int argc, char **argv) {
             v1 = MRIgetVoxVal(mriout,c,r,s,f);
             v2 = MRIgetVoxVal(mriout,c,r,s,f+1);
 	    v = 0;
-            if(DoPairedAvg) {
-              v = (v1+v2)/2.0;
-	    }
-            if(DoPairedDiff) {
-	      v = v1-v2; // difference
-	    }
+            if(DoPairedAvg)  v = (v1+v2)/2.0;
+            if(DoPairedSum)  v = (v1+v2);
+            if(DoPairedDiff) v = v1-v2; // difference
             if(DoPairedDiffNorm) {
 	      v = v1-v2; // difference
               vavg = (v1+v2)/2.0;
@@ -268,6 +266,10 @@ static int parse_commandline(int argc, char **argv) {
       DoPaired = 1;
       DoPairedAvg = 1;
     }
+    else if (!strcasecmp(option, "--paired-sum")){
+      DoPaired = 1;
+      DoPairedSum = 1;
+    }
     else if (!strcasecmp(option, "--paired-diff")){
       DoPaired = 1;
       DoPairedDiff = 1;
@@ -318,6 +320,7 @@ static void print_usage(void) {
   printf("   --i invol <--i invol ...> (don't need --i) \n");
   printf("   --o out \n");
   printf("\n");
+  printf("   --paired-sum  : compute paired sum (1+2, 3d+4, etc) \n");
   printf("   --paired-avg  : compute paired avg (1+2, 3d+4, etc) \n");
   printf("   --paired-diff : compute paired diff (1-2, 3-4, etc) \n");
   printf("   --paired-diff-norm : same as paired-diff but scale by TP1,2 average \n");
