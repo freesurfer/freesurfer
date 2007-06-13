@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/10 21:48:21 $
-#    $Revision: 1.3 $
+#    $Date: 2007/06/13 03:53:41 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.3 2007/06/10 21:48:21 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.4 2007/06/13 03:53:41 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -37,6 +37,7 @@ set interp = trilin
 set fwhm = ();
 set paireddiff = 0;
 set pairedavg  = 0;
+set pairedsum  = 0;
 set mean = 0;
 set ToVol = 0;
 set ToSurf = 0;
@@ -159,6 +160,7 @@ echo "------------------------------------" |& tee -a $LF
 set cmd = (mri_concat $maplist --o $outvol)
 if($paireddiff) set cmd = ($cmd --paired-diff)
 if($pairedavg)  set cmd = ($cmd --paired-avg)
+if($pairedsum)  set cmd = ($cmd --paired-sum)
 if($mean)       set cmd = ($cmd --mean)
 pwd |& tee -a $LF
 echo $cmd |& tee -a $LF
@@ -292,6 +294,10 @@ while( $#argv != 0 )
       set pairedavg = 1;
       breaksw
 
+    case "-paired-sum"
+      set pairedsum = 1;
+      breaksw
+
     case "-mean"
       set mean = 1;
       breaksw
@@ -394,8 +400,9 @@ check_params:
   if($#tmpdir == 0) set tmpdir = $outdir/tmp-isxconcat0.$$-sess
   mkdir -p $tmpdir
 
-  if($paireddiff && $pairedavg) then
-    echo "ERROR: cannot --paired-diff and --paired-avg";
+  @ tmp = $paireddiff + $pairedavg + $pairedsum
+  if($tmp ! = 1) then
+    echo "ERROR: cannot combos of --paired-diff, --paired-avg,  --paired-sum";
     exit 1;
   endif
 
@@ -423,6 +430,7 @@ usage_exit:
   echo "   -fwhm fwhm      : smooth by fwhm"
   echo "   -paired-diff    : compute 1-2, 3-4, etc"
   echo "   -paired-avg     : compute avg 1+2, 3+4, etc"
+  echo "   -paired-sum     : compute avg 1+2, 3+4, etc"
   echo "   -mean           : mean over all frames"
   echo ""
   echo "  Volume-based options:"
