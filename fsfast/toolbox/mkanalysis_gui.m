@@ -22,7 +22,7 @@ function varargout = mkanalysis_gui(varargin)
 
 % Edit the above text to modify the response to help mkanalysis_gui
 
-% Last Modified by GUIDE v2.5 11-Jun-2007 18:52:24
+% Last Modified by GUIDE v2.5 12-Jun-2007 17:43:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,7 +56,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.4 2007/06/11 23:23:35 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.5 2007/06/13 01:01:50 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -108,6 +108,16 @@ if(isempty(handles.flac))
 end
   
 handles.originalflac = handles.flac;
+
+% Fill contrast list box
+ncontrasts = length(handles.flac.ana.con);
+clear tmpstr;
+for nthcon = 1:ncontrasts
+  tmpstr{nthcon} = handles.flac.ana.con(nthcon).cspec.name;
+end
+tmpstr{nthcon+1} = 'Add Contrast';
+set(handles.lbContrast,'string',tmpstr);
+handles.editing_contrast = 0;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -843,6 +853,8 @@ flac.ana.gamexp = 2;
 flac.ana.spmhrffit = 0;
 flac.ana.nspmhrfderiv = 0;
 flac.ana.ncycles = 4;
+flac.ana.con = [];
+flac.ana.nregressors = 1;
 
 return;
 
@@ -867,3 +879,49 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
 end
 return;
 
+% --- Executes on selection change in lbContrast.
+function lbContrast_Callback(hObject, eventdata, handles)
+% hObject    handle to lbContrast (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = get(hObject,'String') returns lbContrast contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from lbContrast
+
+if(handles.editing_contrast) return; end
+contents = get(hObject,'String');
+connum = get(hObject,'Value');
+ncontrasts = length(handles.flac.ana.con);
+if(connum <= ncontrasts)
+  hMkCon = mkcontrast_gui('init',handles.figure1,handles.flac,connum)
+else
+  hMkCon = mkcontrast_gui('init',handles.figure1,handles.flac);
+end
+handles.editing_contrast = 1;
+guidata(hObject, handles);
+uiwait(hMkCon);
+ud = get(handles.figure1,'userdata');
+if(~isempty(ud.cspec))
+  handles.figure1,handles.flac.ana.con(connum).cspec = ud.cspec;
+  ncontrasts = length(handles.flac.ana.con);
+  clear tmpstr;
+  for nthcon = 1:ncontrasts
+    tmpstr{nthcon} = handles.flac.ana.con(nthcon).cspec.name;
+  end
+  tmpstr{nthcon+1} = 'Add Contrast';
+  set(handles.lbContrast,'string',tmpstr);
+end
+handles.editing_contrast = 0;
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function lbContrast_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to lbContrast (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+set(hObject,'BackgroundColor','white');
+
+
+function FigWBD(hObject, eventdata, handles)
+fprintf('WBD\n');
+return;
