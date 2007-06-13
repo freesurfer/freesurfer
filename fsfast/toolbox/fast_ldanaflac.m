@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/11 23:23:35 $
-%    $Revision: 1.20 $
+%    $Date: 2007/06/13 04:17:20 $
+%    $Revision: 1.21 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -96,7 +96,7 @@ extreg = [];
 nextreg = 0;
 nskip = 0;
 ncycles = [];
-delay = [];
+delay = 0;
 gammafit = 0;
 gamdelay = 0;
 gamtau = 0;
