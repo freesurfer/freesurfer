@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/14 02:35:20 $
-%    $Revision: 1.22 $
+%    $Date: 2007/06/14 19:41:05 $
+%    $Revision: 1.23 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -101,7 +101,7 @@ gamdelay = 0;
 gamtau = 0;
 gamexp = 2;
 spmhrffit = 0;
-nspmhrfderiv = -1;
+nspmhrfderiv = 0;
 timewindow = 0;
 prestim = 0;
 cfg  = sprintf('%s/analysis.cfg',anadir);
@@ -197,6 +197,16 @@ ana.gamexp       = gamexp;
 ana.spmhrffit    = spmhrffit;
 ana.nspmhrfderiv = nspmhrfderiv;
 
+if(ana.gammafit) 
+  ana.nregressors = 1; 
+end
+if(ana.spmhrffit) 
+  ana.nregressors = ana.nspmhrfderiv + 1;
+end
+if(ana.firfit)
+  ana.nregressors = round(ana.timewindow/ana.TER);
+end
+
 flac.ana = ana;
 
 nthev = 1;
@@ -285,7 +295,6 @@ if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
   flac.con(nthcon).ev(1).evrw = [0 0 1 1];
-
   
   ncontrasts = length(flac.con);
 end
@@ -311,6 +320,14 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
     fprintf('%2d %s\n',nthcon,clist(nthcon).name);
     tmpstr = sprintf('%s/%s',anadir,clist(nthcon).name);
     cspec = load(tmpstr);
+    if(~isfield(cspec,'setwcond')) cspec.setwcond = 1; end
+    if(~isfield(cspec,'setwdelay')) 
+      if(ana.nregressors > 1) cspec.setwdelay = 1; 
+      else                    cspec.setwdelay = 0; 
+      end
+    end
+    cspec.name = clist(nthcon).name(1:end-4);
+    cspec.CondState = zeros(1,nconditions);
     flac.ana.con(nthcon).cspec = cspec;
     flac.con(nthcon).name     = clist(nthcon).name(1:end-4);
     flac.con(nthcon).varsm    = 0;
