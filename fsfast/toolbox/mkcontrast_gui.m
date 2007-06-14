@@ -91,7 +91,8 @@ if(Init)
   if(ud.newcon) set(h,'visible','off'); end
   ud.pbDelete = h;
   
-  align([ud.txConName ud.ebConName ud.pbDone ud.pbCancel ud.pbDelete],'Fixed',5,'Bottom');
+  hlist = [ud.txConName ud.ebConName ud.pbDone ud.pbCancel ud.pbDelete];
+  align(hlist,'Fixed',5,'Bottom');
   ndy = ndy - 25;
 
   % Conditions -------------------------
@@ -100,6 +101,14 @@ if(Init)
   set(h,'callback','mkcontrast_gui(''cbCNorm'');');
   set(h,'tooltip','Force each row to sum to 0.');  
   ud.cbCNorm = h;
+  
+  % Show Matrix  --------------------------
+  h = uicontrol('style', 'pushbutton','position', [250 ndy 100 20]);
+  set(h,'string','Show','tag','pbShow');
+  set(h,'callback','mkcontrast_gui(''pbShow'');');
+  ud.pbShow = h;
+  ud.hConMatFig = [];
+  
   ndy = ndy - 20;
   
   h = uicontrol('style', 'checkbox','position',  [1 ndy 140 20]);
@@ -137,7 +146,8 @@ if(Init)
     set(h,'string',hstring,'tag',htag);
     ud.txCondition(nth) = h;
   
-    bgh = uibuttongroup('parent',hpan,'units','pixels','position',[140 1 68 25]);
+    bgh = uibuttongroup('parent',hpan,'units','pixels',...
+			'position',[140 1 68 25]);
     align([ud.txCondition(nth) bgh],'Fixed',5,'None');
     ud.bgCondition(nth) = bgh;
 
@@ -290,6 +300,12 @@ switch (cbflag)
   val = sscanf(get(ud.ebRegWeight(w),'string'),'%f')
   ud.flac.ana.con(ud.connumber).cspec.WDelay(w) = val;
   ud = setstate(ud);
+ case 'pbShow',
+  if(isempty(ud.hConMatFig)) ud.hConMatFig = figure; end
+  figure(ud.hConMatFig);
+  imagesc(ud.cspec.ContrastMtx_0); colorbar;
+  figure(ud.hMkConGUI);
+  ud = setstate(ud);
  case 'pbDone',
   if(isempty(find(ud.cspec.ContrastMtx_0 ~= 0)))
     msg = 'Your contrast matrix is currenlty all 0s.';
@@ -297,8 +313,8 @@ switch (cbflag)
     errordlg(msg);
     return;
   end
-  fprintf('Done\n');
-  delete(ud.hMkConGUI);
+  fprintf('Done/Save\n');
+  close(ud.hMkConGUI);
   return;
  case 'pbCancel',
   fprintf('Cancel\n');
@@ -321,11 +337,8 @@ switch (cbflag)
   setposition(ud)
   return;
  case 'delete',
-  fprintf('Cancel\n');
-  pud = get(ud.hparent,'userdata');
-  pud.cspec = [];
-  set(ud.hparent,'userdata',pud);
-  delete(ud.hMkConGUI);
+  if(~isempty(ud.hConMatFig)) close(ud.hConMatFig); end
+  fprintf('Done/Save\n');
   return;
  
  otherwise,
@@ -404,6 +417,13 @@ else
   set(ud.ebConName,'backgroundcolor','white');
 end
 
+if(~cspec.sumdelays)
+  set(ud.cbManRegWeights,'enable','off');
+  set(ud.cbManRegWeights,'value',0);
+  cspec.WDelay = ones(1,ana.nregressors);
+  cspec.setwdelay = 0;
+end
+
 set(ud.cbManConWeights,'value',cspec.setwcond);
 set(ud.cbManRegWeights,'value',cspec.setwdelay);
 set(ud.cbSumConditions,'value',cspec.sumconds);
@@ -444,6 +464,7 @@ for w = 1:ana.nregressors
 end
 cspec.ContrastMtx_0 = fast_contrastmtx(cspec);
 ud.flac.ana.con(ud.connumber).cspec = cspec;
+J = size(cspec.ContrastMtx_0,1);
 
 pud = get(ud.hparent,'userdata');
 pud.cspec = cspec;
@@ -457,7 +478,41 @@ if(isempty(find(cspec.ContrastMtx_0 ~= 0)))
   warndlg(msg);
 end
 
+nregtot = ana.nregressors * ana.nconditions;
+
 ud.cspec = cspec; % For easier debuggin
+if(~isempty(ud.hConMatFig))
+  figure(ud.hConMatFig);
+  imagesc(ud.cspec.ContrastMtx_0); colorbar;
+  tit = sprintf('%s Contrast Matrix',cspec.name); 
+  title(tit); xlabel('Regressor'); ylabel('Variate'); 
+  set(gca,'xtick',[1:size(ud.cspec.ContrastMtx_0,2)]);
+  set(gca,'ytick',[1:size(ud.cspec.ContrastMtx_0,1)]);
+  axis image; 
+  hold on
+  x = 0.5; nth = 1;
+  for nthcond = 1:ana.nconditions
+    for nthreg = 1:ana.nregressors
+      xticklabel{nth} = sprintf('%d(%d,%d)',nth,nthcond,nthreg);
+      h = plot([x x],[0 J+.5],'g');
+      if(nthreg == 1) set(h,'linewidth',4); end
+      for j=1:J
+	txt = sprintf('%4.2f',ud.cspec.ContrastMtx_0(j,nth));
+	htxt = text(nth-.1,j+.1,txt); %,'backgroundcolor','white');
+      end
+      x = x + 1;
+      nth = nth + 1;
+    end
+  end
+  x = x + 1;
+  h = plot([x x],[0 J+.5],'g');  set(h,'linewidth',4);
+  set(gca,'xticklabel',xticklabel);
+  for j = .5:1:J+.5
+    plot([.5 nregtot+.5],[j j],'g');
+  end
+  hold off
+  figure(ud.hMkConGUI);
+end
 cspec.ContrastMtx_0
 
 return
@@ -479,7 +534,9 @@ function setposition(ud)
   align(hlist,'Fixed',5,'Bottom');
   ndy = ndy - 25;
 
-  set(ud.cbCNorm,         'position', [1 ndy 240 20]); ndy = ndy - 25;
+  set(ud.cbCNorm,         'position', [1 ndy 240 20]); 
+  set(ud.pbShow,          'position', [250 ndy 100 20]); 
+  ndy = ndy - 25;
   set(ud.cbSumConditions, 'position', [1 ndy 240 20]); ndy = ndy - 25;
   set(ud.cbManConWeights, 'position', [1 ndy 240 20]); ndy = ndy - 30;
   set(ud.txACI,           'position', [140 ndy 148 20]); ndy = ndy - 30;
