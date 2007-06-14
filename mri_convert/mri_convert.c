@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/22 05:37:46 $
- *    $Revision: 1.142 $
+ *    $Date: 2007/06/14 03:14:14 $
+ *    $Revision: 1.143 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,7 @@
 #include "version.h"
 #include "utils.h"
 #include "macros.h"
+#include "fmriutils.h"
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
 #define CLOSE_ENOUGH  (5e-3)
@@ -124,6 +125,7 @@ int main(int argc, char *argv[]) {
   int reslice_like_flag;
   int frame_flag, mid_frame_flag;
   int frame;
+  int subsample_flag, SubSampStart, SubSampDelta;
   char in_name_only[STRLEN];
   char transform_fname[STRLEN];
   int transform_flag, invert_transform_flag;
@@ -175,7 +177,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.142 2007/05/22 05:37:46 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.143 2007/06/14 03:14:14 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -252,6 +254,7 @@ int main(int argc, char *argv[]) {
   reslice_like_flag = FALSE;
   frame_flag = FALSE;
   mid_frame_flag = FALSE;
+  subsample_flag = FALSE;
   transform_flag = FALSE;
   smooth_parcellation_flag = FALSE;
   in_like_flag = FALSE;
@@ -276,7 +279,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.142 2007/05/22 05:37:46 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.143 2007/06/14 03:14:14 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -803,6 +806,12 @@ int main(int argc, char *argv[]) {
       frame_flag = TRUE;
       mid_frame_flag = TRUE;
     }
+    else if(strcmp(argv[i], "--fsubsample") == 0) {
+      get_ints(argc, argv, &i, &SubSampStart, 1);
+      get_ints(argc, argv, &i, &SubSampDelta, 1);
+      subsample_flag = TRUE;
+    }
+
     else if(strcmp(argv[i], "-il") == 0 || strcmp(argv[i], "--in_like") == 0) {
       get_string(argc, argv, &i, in_like_name);
       in_like_flag = TRUE;
@@ -1250,7 +1259,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.142 2007/05/22 05:37:46 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.143 2007/06/14 03:14:14 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2133,6 +2142,13 @@ int main(int argc, char *argv[]) {
     MRIfree(&mri);
     mri = mri2;
   }
+  if(subsample_flag){
+    printf("SubSample: Start = %d  Delta = %d\n",SubSampStart, SubSampDelta);
+    mri2 = fMRIsubSample(mri, SubSampStart, SubSampDelta, -1, NULL);
+    if(mri2 == NULL) exit(1);
+    MRIfree(&mri);
+    mri = mri2;
+  }
 
   /* ----- crops ---------*/
   if (crop_flag == TRUE) {
@@ -2526,6 +2542,7 @@ void usage(FILE *stream) {
   printf("  --mid-frame : keep only the middle frame\n");
   printf("  --nskip n : skip the first n frames\n");
   printf("  --ndrop n : drop the last n frames\n");
+  printf("  --fsubsample start delta : frame start:delta:end (0-based)\n");
   printf("  -sc, --scale factor : input intensity scale factor\n") ;
   printf("  -osc, --out-scale factor : output intensity scale factor\n") ;
   printf("  -il, --in_like\n");
