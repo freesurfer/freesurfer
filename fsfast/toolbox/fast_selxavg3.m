@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.52 2007/06/13 04:18:01 greve Exp $
+% $Id: fast_selxavg3.m,v 1.53 2007/06/14 02:35:46 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/13 04:18:01 $
-%    $Revision: 1.52 $
+%    $Date: 2007/06/14 02:35:46 $
+%    $Revision: 1.53 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.52 2007/06/13 04:18:01 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.53 2007/06/14 02:35:46 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -103,6 +103,7 @@ end
 nruns = size(flac0.runlist,1);
 fprintf('nruns = %d\n',nruns);
 ncontrasts = length(flac0.con);
+fprintf('autostimdur = %d\n',flac0.autostimdur);
 
 outanadir0 = sprintf('%s/%s/%s/%s',outtop,sessname,flac0.fsd,flac0.name);
 
@@ -233,7 +234,7 @@ for nthouter = outer_runlist
   XtX = Xn'*Xn;
   XCond = cond(XtX);
   fprintf('XCond = %g (normalized)\n',XCond);
-  if(XCond > 1e3)
+  if(XCond > 1e4)
     fprintf('ERROR: design is ill-conditioned\n');
     tmpxfile = sprintf('%s/Xtmp.mat',outanadir);
     save(tmpxfile,'X','flac');
