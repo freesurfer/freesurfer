@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/14 02:35:20 $
-#    $Revision: 1.9 $
+#    $Date: 2007/06/14 20:10:48 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,12 +25,13 @@
 
 
 
-set VERSION = '$Id: mkanalysis-sess,v 1.9 2007/06/14 02:35:20 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.10 2007/06/14 20:10:48 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
 set parname    = ();
 set analysis   = ();
+set cloneanalysis = ();
 set funcstem   = f;
 set designtype = ();
 set eventrelated = 0;
@@ -75,12 +76,10 @@ set maskstem = ();
 set autostimdur = ();
 set stimdur = ();
 set PrintHelp = 0;
+set UseGUI = 0;
 
 #### If no arguments, print usage and exit ####
-if($#argv == 0) then
-  goto usage_exit;
-  exit 1;
-endif
+if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
 if($n != 0) then
   set PrintHelp = 1;
@@ -113,7 +112,25 @@ if(! $?MRI_UMASK ) set MRI_UMASK = `umask`;
 umask $MRI_UMASK;
 set umaskarg = "-umask $MRI_UMASK"
 
+#-----------------------------------------
+if($UseGUI) then
+#unalias matlab
+matlab <<EOF
+global MkAnalysisName;
+global MkAnalysisClone;
+MkAnalysisName = '$analysis';
+MkAnalysisClone = '$cloneanalysis';
+h = mkanalysis_gui;
+uiwait(h);
+quit;
+
+EOF
+exit 0;
+endif
+#-----------------------------------------
+
 mkdir -p $analysis
+
 
 ##---- Create the analysis config file ------#
 set sxacfg = $analysis/$sxacfg
@@ -784,6 +801,10 @@ while( $#argv != 0 )
     case "-newmka": #ignore
       breaksw
 
+    case "-gui": 
+      set UseGUI = 1;
+      breaksw
+
     case "-debug":
       set verbose = 1;
       set echo = 1;
@@ -803,6 +824,24 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
+  if($#analysis == 0) then
+    echo "ERROR: must specify an analysis name"
+    exit 1;
+  endif
+  if(-e $analysis && ! $force) then
+    echo "ERROR: analysis $analysis already exists. You have three options"
+    echo "  1. Give this analysis a different name"
+    echo "  2. Give delete analysis $analysis and re-run mkanalysis-sess"
+    echo "  3. Re-run mkanalysis-sess with a -force option to overwrite"
+    exit 1;
+  endif
+
+  if(-e $analysis && $force) then
+    echo "INFO:  analysis $analysis exists, but overwrite forced by user."
+  endif
+
+
+  if(! $UseGUI) then
   if($#TR == 0) then
     echo "ERROR: must specify TR"
     exit 1;
@@ -828,11 +867,6 @@ check_params:
   if("$designtype" == "abblocked")     set abblocked    = 1;
   if("$designtype" == "retinotopy")    set retinotopy   = 1;
 
-  if($#analysis == 0) then
-    echo "ERROR: must specify an analysis name"
-    exit 1;
-  endif
-
   if($#parname == 0 && $abblocked) then
     set parname = NONE;
   endif
@@ -840,18 +874,6 @@ check_params:
   if($#parname == 0) then
     echo "ERROR: must specify a paradigm file name"
     exit 1;
-  endif
-
-  if(-e $analysis && ! $force) then
-    echo "ERROR: analysis $analysis already exists. You have three options"
-    echo "  1. Give this analysis a different name"
-    echo "  2. Give delete analysis $analysis and re-run mkanalysis-sess"
-    echo "  3. Re-run mkanalysis-sess with a -force option to overwrite"
-    exit 1;
-  endif
-
-  if(-e $analysis && $force) then
-    echo "INFO:  analysis $analysis exists, but overwrite forced by user."
   endif
 
   if($abblocked && $retinotopy) then
@@ -908,6 +930,7 @@ check_params:
     echo $TauMax
     exit 1;
   endif
+ endif # Dont use GUI
 
 
 goto check_params_return;
