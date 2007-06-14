@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/13 03:53:41 $
-#    $Revision: 1.4 $
+#    $Date: 2007/06/14 04:13:03 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.4 2007/06/13 03:53:41 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.5 2007/06/14 04:13:03 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -42,6 +42,7 @@ set mean = 0;
 set ToVol = 0;
 set ToSurf = 0;
 set DoLogFile = 0;
+set DoSplit = 0;
 
 # for volume-based only
 set talres = 2;
@@ -74,6 +75,7 @@ if($status || $#SessList == 0) then
   echo "       $SessList" 
   exit 1;
 endif
+set nSessions = $#SessList;
 
 goto parse_args;
 parse_args_return:
@@ -99,8 +101,10 @@ echo $0     >> $LF
 echo $inputargs  >> $LF
 id            >> $LF
 
+# ------------------------------------------------------------
 set StartTime = `date`;
 set maplist = ();
+set nframes0 = -1;
 foreach sess ($SessList)
   set sessid = `basename $sess`;
   set sessinfo = $sess/session.info
@@ -134,6 +138,17 @@ foreach sess ($SessList)
     exit 1;
   endif
   set map = $mapstem.$ext
+
+  # Get nframes
+  set tmpfile = /tmp/isxconcat0-sess.$$.nframes
+  mri_info --o $tmpfile --nframes $map
+  set nframes = (`cat $tmpfile`);
+  rm $tmpfile
+  if($nframes0 == -1) set nframes0 = $nframes;
+  if($nframes != $nframes0) then
+    echo "ERROR: session $sess has $nframes, expecting $nframes0"
+    exit 1;
+  endif
 
   if($#hemi != 0) then
     set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-$hemi.mgh
@@ -185,6 +200,29 @@ if($#fwhm) then
   if($status) exit 1;
 endif
 
+if($nframes > 1 && $DoSplit) then
+  echo "Splitting multivariate input." | tee -a $LF
+  echo "nframes   = $nframes" | tee -a $LF
+  echo "nSessions = $nSessions" | tee -a $LF
+  set outstem = (`fname2stem $outvol`);
+  set ext = `fast_getext $outstem`
+  @ nthframe = 0
+  while($nthframe < $nframes)
+    set frmid = `printf %03d $nthframe`;
+    set frmoutvol = $outstem.$frmid.$ext
+    set cmd = (mri_convert $outvol $frmoutvol \
+      --fsubsample $nthframe $nSessions -1)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) then
+      echo "Making $outvol unreadable/unwritable" | tee -a $LF
+      chmod a-rw $outvol
+      exit 1; 
+    endif
+    @ nthframe = $nthframe + 1;
+  end
+  rm $outvol
+endif
 
 echo "" | tee -a $LF
 echo "" | tee -a $LF
@@ -302,6 +340,10 @@ while( $#argv != 0 )
       set mean = 1;
       breaksw
 
+    case "-split"
+      set DoSplit = 1;
+      breaksw
+
     case "-debug":
       set verbose = 1;
       set echo = 1;
@@ -365,6 +407,12 @@ check_params:
     echo "ERROR: no output  specified"
     exit 1;
   endif
+  if(-e $outvol) then
+    if(! -w $outvol) then
+      echo "ERROR: $outvol is not writable"
+      exit 1;
+    endif
+  endif
 
   if($ToSurf == 0 && $ToVol == 0) set ToVol = 1;
 
@@ -401,7 +449,7 @@ check_params:
   mkdir -p $tmpdir
 
   @ tmp = $paireddiff + $pairedavg + $pairedsum
-  if($tmp ! = 1) then
+  if($tmp > 1) then
     echo "ERROR: cannot combos of --paired-diff, --paired-avg,  --paired-sum";
     exit 1;
   endif
@@ -432,6 +480,7 @@ usage_exit:
   echo "   -paired-avg     : compute avg 1+2, 3+4, etc"
   echo "   -paired-sum     : compute avg 1+2, 3+4, etc"
   echo "   -mean           : mean over all frames"
+  echo "   -split          : split multivariate inputs"
   echo ""
   echo "  Volume-based options:"
   echo "   -talres res     : 1 or 2 mm (def is 2)"
