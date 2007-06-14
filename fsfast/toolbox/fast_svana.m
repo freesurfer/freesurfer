@@ -1,6 +1,6 @@
 function [err,msg] = fast_svana(ananame,flac)
 % [err,msg] = fast_svana(ananame,ana)
-% $Id: fast_svana.m,v 1.3 2007/06/13 22:54:01 greve Exp $
+% $Id: fast_svana.m,v 1.4 2007/06/14 02:35:20 greve Exp $
 
 err = 1;
 if(nargin ~= 2)
@@ -79,9 +79,6 @@ fprintf(fp,'runlistfile %s\n',flac.runlistfile);
 fprintf(fp,'tpexclude %s\n',flac.tpexcfile);
 if(~isempty(flac.parfile))
   fprintf(fp,'parname %s\n',flac.parfile);
-end
-if(~isempty(flac.par4file))
-  fprintf(fp,'par4name %s\n',flac.par4file);
 end
 fprintf(fp,'designtype %s\n',ana.designtype);
 if(~isempty(ana.nconditions))

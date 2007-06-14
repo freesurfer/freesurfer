@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/13 04:22:38 $
-%    $Revision: 1.28 $
+%    $Date: 2007/06/14 02:35:20 $
+%    $Revision: 1.29 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -96,7 +96,32 @@ if(~isempty(flac.tpexcfile))
     flacnew.tpexc = [];
   end
 end
-    
+
+% Parfile
+if(~isempty(flac.parfile))
+  if(isempty(flac.schdir)) % Local
+    parpath = sprintf('%s/%s',runpath,flac.parfile);
+  else % Global
+    parpath = sprintf('%s/r%03d/%s',flac.schdir,flac.nthrun,flac.parfile);
+  end
+  par = fast_ldpar4(parpath);
+  if(isempty(par))
+    fprintf('ERROR: loading %s \n',flac.parfile);
+    flacnew = []; return; 
+  end
+  % This is an error check
+  if(size(par,2) == 2 & flac.autostimdur)
+    % Old-style Two-column par file with autostimdur, check for 0s
+    indz = find(par(:,2) == 0);
+    if(isempty(indz))
+      fprintf('WARNING: %s is a two-column par file. You have specified\n');
+      fprintf('that the duration of each stimulus of each presentation\n');
+      fprintf('be determined from the par file itself. However, \n');
+      fprintf('there are no 0s in this file, so this might not work. \n');
+      fprintf('To suppress this msg, consider using a 3 or 4-col par.\n');
+    end
+  end
+end
 
 nev = length(flac.ev);
 for nthev = 1:nev
@@ -108,7 +133,7 @@ for nthev = 1:nev
     % It is possible that this is empty if the condition is not
     % reprsented for this run. This will cause a bailout unless
     % flac.AllowMissingCond is set.
-    if(isempty(flac.parfile) & isempty(flac.par4file))
+    if(isempty(flac.parfile))
       % No par file, must be stim timing file
       if(isempty(flac.schdir)) % Local
 	stfpath = sprintf('%s/%s',runpath,ev.stf);
@@ -121,42 +146,22 @@ for nthev = 1:nev
 	flacnew = []; return; 
       end
     else
+      % Parfile has been specified
       condno = sscanf(ev.stf,'%d'); % stf is interpreted as cond no
       if(isempty(condno))
 	fprintf('ERROR: condition number %s wrong\n',ev.stf);
 	flacnew = []; return; 
       end
-      % No parfile has been specified
-      if(~isempty(flac.parfile))
-	% Old-style 2 column par file
-	if(isempty(flac.schdir)) % Local
-	  parpath = sprintf('%s/%s',runpath,flac.parfile);
-	else % Global
-	  parpath = sprintf('%s/r%03d/%s',flac.schdir,flac.nthrun,flac.parfile);
-	end
-	par = fmri_ldpar(parpath);
-	if(isempty(par))
-	  fprintf('ERROR: loading %s \n',flac.parfile);
-	  flacnew = []; return; 
-	end
+      if(size(par,2) == 2)
+	% Two-column par file
 	trun = flacnew.ntp * flacnew.TR;
 	if(flac.autostimdur) st = fast_par2st(par,condno,trun);
 	else                 st = fast_par2st(par,condno,trun,flac.TR);
 	end
       else
-	% New-style 4 column par file
-	if(isempty(flac.schdir)) % Local
-	  parpath = sprintf('%s/%s',runpath,flac.par4file);
-	else % Global
-	  parpath = sprintf('%s/r%03d/%s',flac.schdir,flac.nthrun,flac.par4file);
-	end
-	par4 = fast_ldpar4(parpath);
-	if(isempty(par4))
-	  fprintf('ERROR: loading %s \n',flac.par4file);
-	  flacnew = []; return; 
-	end
-	ind = find(par4(:,2) == condno);
-	st = par4(ind,[1 3 4]);
+	% Three or Four-column par file
+	ind = find(par(:,2) == condno);
+	st = par(ind,[1 3:end]);
       end
       if(isempty(st) & ~flac.AllowMissingCond)
 	fprintf('\nERROR: converting par to st\n');

@@ -55,7 +55,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.6 2007/06/13 22:54:01 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.7 2007/06/14 02:35:20 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -173,7 +173,7 @@ return;
 
 % ========================================================================
 function ebParFile_Callback(hObject, eventdata, handles)
-handles.flac.par4file = get(handles.ebParFile,'string');
+handles.flac.parfile = get(handles.ebParFile,'string');
 handles = setstate(handles);
 guidata(hObject, handles);
 return;
@@ -667,7 +667,7 @@ if(EnableERBlock && ana.spmhrffit) SPMHRFEnable   = 'on';
 else                               SPMHRFEnable   = 'off';
 end
 
-if(EnableERBlock && isempty(handles.flac.par4file))
+if(EnableERBlock && isempty(handles.flac.parfile))
   set(handles.ebParFile,'backgroundcolor','red')
 else
   set(handles.ebParFile,'backgroundcolor','white')
@@ -739,7 +739,7 @@ flac.fsd = 'bold';
 flac.runlistfile = '';
 flac.inorm = 100;
 flac.TR = '';
-flac.par4file = '';
+flac.parfile = '';
 flac.acfbins = 10; % set to 0 to turn off whitening
 flac.stimulusdelay = 0;
 flac.ana.designtype = 'event-related';
@@ -890,7 +890,7 @@ if(isempty(flac.funcstem))
 end
 if(strcmp(ana.designtype,'event-related') | ...
    strcmp(ana.designtype,'blocked'))
-  if(isempty(handles.flac.par4file))
+  if(isempty(handles.flac.parfile))
     if(quiet) return; end
     errordlg('You must set the paradigm file before you can save analysis.');  
     return;
@@ -928,7 +928,7 @@ end
   
 % Only gets here if event-related or blocked
 
-if(~strcmp(a.par4file,b.par4file)) return; end
+if(~strcmp(a.parfile,b.parfile)) return; end
 if(a.ana.nconditions ~= b.ana.nconditions) return; end
 if(a.ana.firfit ~= b.ana.firfit) return; end
 if(a.ana.firfit)

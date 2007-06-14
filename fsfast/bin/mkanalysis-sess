@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/08 00:02:28 $
-#    $Revision: 1.8 $
+#    $Date: 2007/06/14 02:35:20 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,12 +25,11 @@
 
 
 
-set VERSION = '$Id: mkanalysis-sess,v 1.8 2007/06/08 00:02:28 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.9 2007/06/14 02:35:20 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
 set parname    = ();
-set par4name   = ();
 set analysis   = ();
 set funcstem   = f;
 set designtype = ();
@@ -192,7 +191,6 @@ if($eventrelated || $blocked) then
   echo "nconditions $nconditions"  >> $infofile 
 endif
 if($#parname)  echo "parname    $parname"    >> $infofile
-if($#par4name) echo "par4name   $par4name"   >> $infofile
 echo "fsd        $fsd"        >> $infofile
 echo "funcstem   $funcstem"   >> $infofile
 if($#runlistfile != 0) echo "runlistfile $runlistfile" >> $infofile
@@ -429,7 +427,6 @@ while( $#argv != 0 )
   set fsd       = `cat $cainfo | awk '{if($1 == "fsd") print $2}'`;
   set funcstem  = `cat $cainfo | awk '{if($1 == "funcstem") print $2}'`;
   set parname   = `cat $cainfo | awk '{if($1 == "parname") print $2}'`;
-  set par4name  = `cat $cainfo | awk '{if($1 == "par4name") print $2}'`;
   set tpexclude = `cat $cainfo | awk '{if($1 == "tpexclude") print $2}'`;
   set runlistfile = `cat $cainfo | awk '{if($1 == "runlistfile") print $2}'`;
   set nconditions = `cat $cainfo | awk '{if($1 == "nconditions") print $2}'`;
@@ -492,13 +489,6 @@ while( $#argv != 0 )
     case "-paradigm":
       if ( $#argv == 0) goto arg1err;
       set parname = $1; shift;
-      breaksw
-
-    case "-p4":
-    case "-par4":
-    case "-paradigm4":
-      if ( $#argv == 0) goto arg1err;
-      set par4name = $1; shift;
       breaksw
 
     case "-ssd":
@@ -843,21 +833,11 @@ check_params:
     exit 1;
   endif
 
-  if($#parname && $#par4name) then
-    echo "ERROR: cannot specify both -paradigm and -par4"
-    exit 1
-  endif
-
-  if(($abblocked || $retinotopy) && $#par4name) then
-    echo "ERROR: cannot have par4 with abblocked or retinotopy"
-    exit 1;
-  endif
-
   if($#parname == 0 && $abblocked) then
     set parname = NONE;
   endif
 
-  if($#parname == 0 && $#par4name == 0) then
+  if($#parname == 0) then
     echo "ERROR: must specify a paradigm file name"
     exit 1;
   endif
@@ -909,12 +889,8 @@ check_params:
   endif
 
   if($eventrelated || $blocked) then
-    if($#autostimdur == 0 && ! $#par4name) then
+    if($#autostimdur == 0) then
       echo "ERROR: autostimdur flag not set. See -help for -autostimdur"
-      exit 1;
-    endif
-    if($#autostimdur != 0 && $#par4name) then
-      echo "ERROR: do not use autostimdur with par4 files"
       exit 1;
     endif
     if($gammafit == 0 && $#IdealTW == 0) then
@@ -957,8 +933,7 @@ usage_exit:
   echo "Required Arguments"
   echo "  -analysis  analysisname : name of session-level functional analysis";
   echo "  -TR   TR                : TR value in seconds"
-  echo "  -paradigm  parname      : name of paradigm file"
-  echo "  -par4      par4name     : use four-column paradigm file (not with -paradigm)"
+  echo "  -paradigm  parname      : name of paradigm file 2, 3, or 4 col"
   echo "  -designtype  type       : type of design. Legal values are: event-related,"
   echo "                            blocked, abblocked, retinotopy"
   echo ""
@@ -1035,8 +1010,6 @@ by mkcontrast-sess) will also be stored in this directory. When the
 session data are analyzed with selxavg-sess or sfa-sess data, a folder 
 called analysisname will be created in the functional subdirectory 
 (FSD), and the results of the analysis will be placed there.  
-
- 
 
 -TR TR 
  
