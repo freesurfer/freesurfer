@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.53 2007/06/14 02:35:46 greve Exp $
+% $Id: fast_selxavg3.m,v 1.54 2007/06/14 21:17:37 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/14 02:35:46 $
-%    $Revision: 1.53 $
+%    $Date: 2007/06/14 21:17:37 $
+%    $Revision: 1.54 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.53 2007/06/14 02:35:46 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.54 2007/06/14 21:17:37 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -237,6 +237,7 @@ for nthouter = outer_runlist
   if(XCond > 1e4)
     fprintf('ERROR: design is ill-conditioned\n');
     tmpxfile = sprintf('%s/Xtmp.mat',outanadir);
+    fprintf('Saving X matrix to %s\n',tmpxfile);
     save(tmpxfile,'X','flac');
     return;
   end
@@ -308,6 +309,11 @@ if(DoGLMFit)
     indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
+      if(abs(yrun.tr/1000 - flac.TR) > .001)
+	fprintf('ERROR: TR mismatch between analysis and data\n');
+	fprintf('analysis TR = %g, data TR = %g\n',flac.TR,yrun.tr/1000);
+	return;
+      end
       if(UseFloat) yrun.vol = single(yrun.vol); end
       if(yrun.volsize(1) ~= mask.volsize(1) | ...
 	 yrun.volsize(2) ~= mask.volsize(2) | ...
