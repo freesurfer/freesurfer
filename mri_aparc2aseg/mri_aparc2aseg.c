@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/03 13:38:46 $
- *    $Revision: 1.19 $
+ *    $Author: greve $
+ *    $Date: 2007/06/14 15:39:08 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -62,11 +62,19 @@ static void print_version(void) ;
 static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 static int  singledash(char *flag);
+int FindClosestLRWPVertexNo(int c, int r, int s,
+			    int *lhwvtx, int *lhpvtx, 
+			    int *rhwvtx, int *rhpvtx, 
+			    MATRIX *Vox2RAS,
+			    MRIS *lhwite,  MRIS *lhpial, 
+			    MRIS *rhwhite, MRIS *rhpial,
+			    MHT *lhwhite_hash, MHT *lhpial_hash, 
+			    MHT *rhwhite_hash, MHT *rhpial_hash);
 
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.19 2007/05/03 13:38:46 nicks Exp $";
+"$Id: mri_aparc2aseg.c,v 1.20 2007/06/14 15:39:08 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -98,6 +106,8 @@ static char annotfile[1000];
 static char *annotname = "aparc";
 static int baseoffset = 0;
 static float hashres = 16;
+
+int crsTest = 0, ctest=0, rtest=0, stest=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -327,6 +337,17 @@ int main(int argc, char **argv) {
   CRS->rptr[4][1] = 1;
   RAS = MatrixAlloc(4,1,MATRIX_REAL);
   RAS->rptr[4][1] = 1;
+
+  if(crsTest){
+    printf("Testing point %d %d %d\n",ctest,rtest,stest);
+    err = FindClosestLRWPVertexNo(ctest,rtest,stest,
+	  &lhwvtx, &lhpvtx,  &rhwvtx, &rhpvtx,   Vox2RAS,
+          lhwhite,  lhpial,   rhwhite, rhpial,
+	  lhwhite_hash, lhpial_hash, rhwhite_hash, rhpial_hash);
+
+    printf("Result: err = %d\n",err);
+    exit(err);
+  }
 
   printf("\nLabeling Slice\n");
   nctx = 0;
@@ -633,6 +654,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&dminctx);
       nargsused = 1;
+    } else if (!strcmp(option, "--crs-test")) {
+      if(nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%d",&ctest);
+      sscanf(pargv[1],"%d",&rtest);
+      sscanf(pargv[2],"%d",&stest);
+      crsTest = 1;
+      nargsused = 3;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -663,6 +691,7 @@ static void print_usage(void) {
   printf("   --annot annotname : use annotname instead of aparc\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
+  printf("   --crs-test c r s : test mapping of col row slice\n");
   printf("\n");
   printf("%s\n", vcid) ;
   printf("\n");
@@ -786,3 +815,46 @@ static int singledash(char *flag) {
   return(0);
 }
 
+/*---------------------------------------------------------------*/
+int FindClosestLRWPVertexNo(int c, int r, int s,
+			    int *lhwvtx, int *lhpvtx, 
+			    int *rhwvtx, int *rhpvtx, 
+			    MATRIX *Vox2RAS,
+			    MRIS *lhwite,  MRIS *lhpial, 
+			    MRIS *rhwhite, MRIS *rhpial,
+			    MHT *lhwhite_hash, MHT *lhpial_hash, 
+			    MHT *rhwhite_hash, MHT *rhpial_hash)
+{
+  static MATRIX *CRS = NULL;
+  static MATRIX *RAS = NULL;
+  static VERTEX vtx;
+  static float dlhw, dlhp, drhw, drhp;
+
+  if(CRS == NULL){
+    CRS = MatrixAlloc(4,1,MATRIX_REAL);
+    CRS->rptr[4][1] = 1;
+    RAS = MatrixAlloc(4,1,MATRIX_REAL);
+    RAS->rptr[4][1] = 1;
+  }
+
+  CRS->rptr[1][1] = c;
+  CRS->rptr[2][1] = r;
+  CRS->rptr[3][1] = s;
+  RAS = MatrixMultiply(Vox2RAS,CRS,RAS);
+  vtx.x = RAS->rptr[1][1];
+  vtx.y = RAS->rptr[2][1];
+  vtx.z = RAS->rptr[3][1];
+
+  *lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,&vtx,&dlhw);
+  *lhpvtx = MHTfindClosestVertexNo(lhpial_hash, lhpial, &vtx,&dlhp);
+  *rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
+  *rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
+  
+  if(*lhwvtx < 0 && *lhpvtx < 0 && *rhwvtx < 0 && *rhpvtx < 0) {
+    printf("ERROR: could not map to any surface.\n");
+    printf("crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
+	   c,r,s,vtx.x,vtx.y,vtx.z);
+    return(1);
+  }
+  return(0);
+}
