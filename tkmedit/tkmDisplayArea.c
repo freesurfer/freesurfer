@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/26 16:38:51 $
- *    $Revision: 1.138 $
+ *    $Date: 2007/06/14 21:28:39 $
+ *    $Revision: 1.139 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -3815,6 +3815,10 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
     case 'c':
       eResult =
         DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_Cursor );
+      break;
+    case 'd':
+      eResult =
+        DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_DTIOverlay );
       break;
     case 'f':
       eResult =

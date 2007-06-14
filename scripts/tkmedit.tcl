@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/05/21 19:31:33 $
-##    $Revision: 1.124 $
+##    $Date: 2007/06/14 21:28:54 $
+##    $Revision: 1.125 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -3595,6 +3595,8 @@ proc MakeKeyBindings { iwTop } {
 	{ToggleAndSendDisplayFlag flag_SegmentationVolumeOverlay}
     bind $iwTop <Alt-Key-g> \
 	{ToggleAndSendDisplayFlag flag_AuxSegmentationVolumeOverlay}
+    bind $iwTop <Alt-Key-d> \
+	{ToggleAndSendDisplayFlag flag_DTIOverlay}
     bind $iwTop <Control-Key-s> \
 	{ToggleAndSendDisplayFlag flag_Selection}
     bind $iwTop <Control-Key-t> \
@@ -4164,7 +4166,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	    gbDisplayFlag(flag_SegLabelVolumeCount) 
 	    tMenuGroup_SegmentationOptions }
 	{ check
-	    "DTI Overlay"
+	    "DTI Overlay:Alt D"
 	    "SendDisplayFlagValue flag_DTIOverlay"
 	    gbDisplayFlag(flag_DTIOverlay) 
 	    tMenuGroup_DTIOptions }
