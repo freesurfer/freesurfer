@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/23 19:09:58 $
- *    $Revision: 1.29 $
+ *    $Date: 2007/06/14 23:12:41 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -95,7 +95,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.29 2007/03/23 19:09:58 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.30 2007/06/14 23:12:41 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.29 2007/03/23 19:09:58 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.30 2007/06/14 23:12:41 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -891,6 +891,8 @@ static void print_usage(void) {
   printf("   --csdpdf csdpdffile : PDF/CDF of cluster and max sig\n");
   printf("   --csdpdf-only : write csd pdf file and exit.\n");
   printf("\n");
+  printf("   --fwhm fwhm : fwhm in mm3 for GRF\n");
+  printf("\n");
   printf("   --minsize    minimum volume (mm^3)\n");
   printf("   --minsizevox minimum volume (voxels)\n");
   printf("   --mindist distance threshold <0>\n");
@@ -1170,11 +1172,11 @@ static void check_options(void) {
     CSDwritePDF(csdpdffile,csd);
     if (csdpdfonly) exit(0);
   }
-  if (voxwisesigfile != NULL && csd == NULL) {
+  if(voxwisesigfile != NULL && csd == NULL) {
     printf("ERROR: need csd with --vwsig\n");
     exit(1);
   }
-  if (clustwisesigfile != NULL && csd == NULL) {
+  if (clustwisesigfile != NULL && csd == NULL && fwhm < 0) {
     printf("ERROR: need csd with --cwsig\n");
     exit(1);
   }
@@ -1546,6 +1548,7 @@ static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
       printf("ERROR: MRIbinarize01(): could not alloc\n");
       return(NULL);
     }
+    MRIcopyHeader(vol,binvol);
   } else {
     if ( (binvol->width != ncols) || (binvol->height != nrows) ||
          (binvol->depth != nslices) || (binvol->nframes != nframes) ) {
@@ -1598,7 +1601,7 @@ static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
           if (r) MRIIseq_vox(binvol,col,row,slice,frame) = (short)highval;
           else  MRIIseq_vox(binvol,col,row,slice,frame) = (short)lowval;
 
-          if (r) (void)*nhits ++;
+          if(r) (*((int*)nhits))++;
         }
       }
     }
