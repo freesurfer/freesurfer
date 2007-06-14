@@ -28,8 +28,8 @@ function par4 = fast_ldpar4(par4file)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/14 01:45:18 $
-%    $Revision: 1.3 $
+%    $Date: 2007/06/14 01:54:58 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -107,15 +107,6 @@ while(1)
   if(isempty(duration)) continue; end % 3rd col is a string
   par4(nthrow,3) = duration;
   
-  % optseq used to make the last duration a large negative number
-  if(duration < 0)
-    fprintf('ERROR: %s, row %d has a negative duration.\n',...
-	    par4file,nthrow);
-    fclose(fp);
-    par4 = [];
-    return;
-  end
-
   if(count < 4) continue; end % Only three cols
   
   % Fourth column
@@ -129,12 +120,30 @@ end % while (1)
 
 fclose(fp);
 
+% optseq used to make the last duration a large negative number
+if(size(par4,2) > 2 )
+  duration = par4(:,3);
+  indneg = find(duration < 0);
+  if(length(indneg) > 0)
+    if(length(indneg) > 1 | indneg(1) ~= size(par4,1))
+      fprintf('ERROR: parfile %s has multiple rows with negative duration.\n',...
+	      par4file);
+      par4 = [];
+      return;
+    end
+    fprintf('WARNING: the duration in the last row in\n');
+    fprintf('parfile %s has a negative duration.\n',par4file);
+    fprintf('I am going to interpret this as a two col par\n');
+    par4 = par4(:,1:2);
+  end
+end
+
 if(size(par4,2) == 2 )
-  fprintf('Loaded %s as a par2 file\n',par4file);
+  fprintf('Loaded %s as a par2 file.\n',par4file);
 elseif(size(par4,2) == 3 )
-  fprintf('Loaded %s as a par3 file\n',par4file);
+  fprintf('Loaded %s as a par3 file.\n',par4file);
 else  
-  fprintf('Loaded %s as a par4 file\n',par4file);
+  fprintf('Loaded %s as a par4 file.\n',par4file);
 end
 
 return;
