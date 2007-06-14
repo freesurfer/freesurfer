@@ -1,0 +1,58 @@
+#! /bin/csh -f
+#
+# fname2stem
+#
+# Converts an input volume file name to a stem,
+#   Eg, f.mgh f.nii f.nii.gz would return f
+#   Eg, here/f.mgh would return here/f
+#   This works only on the string passed to it,
+#   the file need not exist.
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2007/06/14 03:47:03 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: fname2stem,v 1.1 2007/06/14 03:47:03 greve Exp $';
+
+if($#argv != 1) then
+  echo "fname2stem filename"
+  echo "  $VERSION"
+  exit 1;
+endif
+
+set fname = $argv[1];
+set dname = `dirname $fname`;
+set fname = `basename $fname`;
+
+foreach ext (mgh nii nii.gz img bhdr)
+  set tmp = `basename $fname .$ext`;
+  if($fname != $tmp) then
+    if($dname == ".") then
+      echo $tmp
+    else
+      echo $dname/$tmp;
+    endif
+    exit 0;
+  endif
+end
+
+echo "ERROR: cannot determine stem"
+exit 1;
+
+
