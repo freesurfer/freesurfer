@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/07 19:45:58 $
- *    $Revision: 1.127 $
+ *    $Date: 2007/06/14 03:08:20 $
+ *    $Revision: 1.128 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -494,8 +494,6 @@ double round(double x);
 #include "randomfields.h"
 #include "dti.h"
 
-MRI *fMRIsubSample(MRI *f, int Start, int Delta, int Stop, MRI *fsub);
-
 typedef struct {
   char *measure;
   int nrows, ncols;
@@ -521,7 +519,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.127 2007/06/07 19:45:58 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.128 2007/06/14 03:08:20 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -2585,49 +2583,6 @@ STAT_TABLE *LoadStatTable(char *statfile) {
   return(st);
 }
 
-/*------------------------------------------*/
-MRI *fMRIsubSample(MRI *f, int Start, int Delta, int Stop, MRI *fsub)
-{
-  int nframessub;
-  int frame, subframe;
-  int r,c,s;
-  double v;
-
-  if(Stop < 0) Stop = f->nframes;
-
-  if(Start > Stop){
-    printf("ERROR: fMRIsubSample(): Start > Stop\n");
-    return(NULL);
-  }
-  if(Delta == 0){
-    printf("ERROR: fMRIsubSample(): Delta == 0\n");
-    return(NULL);
-  }
-
-  nframessub = ceil(((double)Stop-Start)/Delta);
-
-  if(!fsub) fsub = MRIcloneBySpace(f, MRI_FLOAT, nframessub);
-  if(nframessub != fsub->nframes){
-    printf("ERROR: fMRIsubSample(): frame mismatch (%d, %d)\n",
-	   nframessub,fsub->nframes);
-    return(NULL);
-  }
-
-  for(c=0; c < f->width; c++){
-    for(r=0; r < f->height; r++){
-      for(s=0; s < f->depth; s++){
-	subframe = 0;
-	for(frame = Start; frame < Stop; frame += Delta){
-	  v = MRIgetVoxVal(f,c,r,s,frame);
-	  MRIsetVoxVal(fsub,c,r,s,subframe,v);
-	  subframe ++;
-	}
-      }
-    }
-  }
-
-  return(fsub);
-}
 
 
 // Treats each frame triple as an xyz to compute distance

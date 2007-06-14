@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/22 05:37:44 $
- *    $Revision: 1.46 $
+ *    $Date: 2007/06/14 03:08:20 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.46 2007/05/22 05:37:44 greve Exp $
+  $Id: fmriutils.c,v 1.47 2007/06/14 03:08:20 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.46 2007/05/22 05:37:44 greve Exp $");
+  return("$Id: fmriutils.c,v 1.47 2007/06/14 03:08:20 greve Exp $");
 }
 
 
@@ -2124,4 +2124,47 @@ MRI *fMRIaddOffset(MRI *in, MRI *offset, MRI *mask, MRI *out)
     }
   }
   return(out);
+}
+/*-----------------------------------------------------------------*/
+MRI *fMRIsubSample(MRI *f, int Start, int Delta, int Stop, MRI *fsub)
+{
+  int nframessub;
+  int frame, subframe;
+  int r,c,s;
+  double v;
+
+  if(Stop < 0) Stop = f->nframes;
+
+  if(Start > Stop){
+    printf("ERROR: fMRIsubSample(): Start > Stop\n");
+    return(NULL);
+  }
+  if(Delta == 0){
+    printf("ERROR: fMRIsubSample(): Delta == 0\n");
+    return(NULL);
+  }
+
+  nframessub = ceil(((double)Stop-Start)/Delta);
+
+  if(!fsub) fsub = MRIcloneBySpace(f, MRI_FLOAT, nframessub);
+  if(nframessub != fsub->nframes){
+    printf("ERROR: fMRIsubSample(): frame mismatch (%d, %d)\n",
+	   nframessub,fsub->nframes);
+    return(NULL);
+  }
+
+  for(c=0; c < f->width; c++){
+    for(r=0; r < f->height; r++){
+      for(s=0; s < f->depth; s++){
+	subframe = 0;
+	for(frame = Start; frame < Stop; frame += Delta){
+	  v = MRIgetVoxVal(f,c,r,s,frame);
+	  MRIsetVoxVal(fsub,c,r,s,subframe,v);
+	  subframe ++;
+	}
+      }
+    }
+  }
+
+  return(fsub);
 }
