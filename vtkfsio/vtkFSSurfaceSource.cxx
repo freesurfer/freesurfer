@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/06/08 21:14:08 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2007/06/15 15:36:32 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,6 +27,7 @@
 
 #include <vector>
 #include <stdexcept>
+#include <assert.h>
 #include "vtkFSSurfaceSource.h"
 #include "vtkObjectFactory.h"
 #include "vtkFloatArray.h"
@@ -36,7 +37,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceSource );
-vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.9 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.10 $" );
 
 vtkFSSurfaceSource::vtkFSSurfaceSource() :
     mMRIS( NULL ),

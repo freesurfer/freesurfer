@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/06/12 20:54:14 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2007/06/15 15:36:32 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,7 @@
 #include <vector>
 #include <sstream>
 #include <stdexcept>
+#include <assert.h>
 #include "vtkFSSurfaceLabelSource.h"
 #include "vtkFSSurfaceSource.h"
 #include "vtkObjectFactory.h"
@@ -41,7 +42,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceLabelSource );
-vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.9 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.10 $" );
 
 vtkFSSurfaceLabelSource::vtkFSSurfaceLabelSource() :
   LabelFileName( NULL ), Mris( NULL ), Label( NULL ) {
@@ -247,7 +248,7 @@ vtkFSSurfaceLabelSource::Execute () {
   
   // Now for each poly, add it to the polys array using the new 0
   // based point indices.
-  map<vtkIdType,map<int,int> >::iterator tPoly;
+  map<vtkIdType,map<int,vtkIdType> >::iterator tPoly;
   for( tPoly = aPolys.begin(); tPoly != aPolys.end(); ++tPoly ) {
     
     // Make a poly using the new IDs.
