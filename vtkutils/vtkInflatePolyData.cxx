@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/24 19:54:54 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/06/15 19:16:21 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,7 @@
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkTriangle.h"
 
-vtkCxxRevisionMacro(vtkInflatePolyData, "$Revision: 1.1 $");
+vtkCxxRevisionMacro(vtkInflatePolyData, "$Revision: 1.2 $");
 vtkStandardNewMacro(vtkInflatePolyData);
 
 vtkInflatePolyData::vtkInflatePolyData() :
@@ -164,11 +164,11 @@ vtkInflatePolyData::RequestData ( vtkInformation *vtkNotUsed(iRequest),
   }
 
   // For each point...
+  vtkIdList* lCells = vtkIdList::New();
+  lCells->Allocate( 3 );
   for( int pointID = 0; pointID < points->GetNumberOfPoints(); pointID++ ) {
 
     // Find the polygons that use this point.
-    vtkIdList* lCells = vtkIdList::New();
-    lCells->Allocate( 3 );
     inputPolyData->GetPointCells( pointID, lCells );
 
     // Get an average normal for those polygons. For each cell, get
@@ -200,7 +200,9 @@ vtkInflatePolyData::RequestData ( vtkInformation *vtkNotUsed(iRequest),
 
     // Set the translated point in the output points.
     inflatedPoints->SetPoint( pointID, point );
+
   }
+  lCells->Delete();
 
   // Set the inflated points in the output.
   outputPolyData->SetPoints( inflatedPoints );
