@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.10 $
+#    $Author: greve $
+#    $Date: 2007/06/15 05:27:00 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask-sess,v 1.10 2007/01/09 22:41:18 nicks Exp $'
+set VERSION = '$Id: mkbrainmask-sess,v 1.11 2007/06/15 05:27:00 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -40,6 +40,8 @@ set perrun = 0;
 set debug = 0;
 set scratchdir = ();
 set PrintHelp = 0;
+set UpdateOnly = 0;
+
 set infmt  = ();
 set outfmt = bhdr
 if($?FSF_OUTPUT_FORMAT) then
@@ -90,7 +92,7 @@ else
 endif
 
 echo "mkbrainmask-sess" >> $LF
-echo '$Id: mkbrainmask-sess,v 1.10 2007/01/09 22:41:18 nicks Exp $' >> $LF
+echo '$Id: mkbrainmask-sess,v 1.11 2007/06/15 05:27:00 greve Exp $' >> $LF
 uname -a          >> $LF
 date              >> $LF
 $PWDCMD           >> $LF
@@ -169,6 +171,16 @@ foreach sess ($SessList)
       set outfile = $run/$maskdir/$maskstem.$outfmt;
     else
       set outfile = $maskdir/$maskstem.$outfmt;
+    endif
+
+    if($UpdateOnly) then
+      test $instem.$infmtuse -nt $outfile
+      if($status) then
+        pwd | tee -a $LF
+        ls -lt $instem.$infmtuse $outfile | tee -a $LF
+        echo "Update not needed" | tee -a $LF
+        continue
+      endif
     endif
 
     set cmd = (mkbrainmask);
@@ -280,6 +292,10 @@ while( $#argv != 0 )
       set outfmt = $argv[1]; shift;
       breaksw
 
+    case "-update":
+      set UpdateOnly = 1;
+      breaksw
+
     case "-nolog":
       set nolog = 1;
       breaksw
@@ -369,6 +385,7 @@ usage_exit:
   echo "   -d  srchdir     "
   echo ""
   echo "Other Options"
+  echo "   -update            : only run if input is newer than output"
   echo "   -help              : print help and exit"
   echo "   -version           : print version and exit"
   echo ""

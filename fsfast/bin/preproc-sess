@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/22 19:09:25 $
-#    $Revision: 1.10 $
+#    $Date: 2007/06/15 05:31:34 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.10 2007/02/22 19:09:25 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.11 2007/06/15 05:31:34 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -48,6 +48,7 @@ set DoMask   = 1;
 set nskip = 0; # for inorm
 set nolog = 0;
 set targgrp = ();
+set UpdateOnly = 0;
 
 set PrintHelp = 0;
 if($#argv == 0) goto usage_exit;
@@ -135,11 +136,12 @@ foreach sess ($SessList)
   if($DoMC) then
     set cmd = (mc-sess -fstem $mcinstem -fmcstem $mcoutstem)
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd -new)
-    if($MCPerRun) set cmd = ($cmd -perrun)
-    if($#mcnthrun) set cmd = ($cmd -targnthrun $mcnthrun)
-    if($#mcrun)    set cmd = ($cmd -targrun    $mcrun)
-    if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
-    if($nolog)     set cmd = ($cmd -nolog);
+    if($MCPerRun)   set cmd = ($cmd -perrun)
+    if($#mcnthrun)  set cmd = ($cmd -targnthrun $mcnthrun)
+    if($#mcrun)     set cmd = ($cmd -targrun    $mcrun)
+    if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
+    if($nolog)      set cmd = ($cmd -nolog);
+    if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid MC -----------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
@@ -158,6 +160,7 @@ foreach sess ($SessList)
     set cmd = ($cmd -s $sessid -d $sessparent)
     if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
     if($nolog)     set cmd = ($cmd -nolog);
+    if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid Smooth ------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
@@ -194,6 +197,7 @@ foreach sess ($SessList)
     set cmd = ($cmd -fsd $fsd)
     set cmd = ($cmd -s $sessid -d $sessparent)
     if($nolog) set cmd = ($cmd -nolog);
+    if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid Inorm ------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
@@ -201,7 +205,7 @@ foreach sess ($SessList)
     echo "----------------------------------------" |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) then
-      echo "ERROR: inorm-sess failed" |& tee -a $LF
+      echo "ERROR: mkbrainmask-sess failed" |& tee -a $LF
       exit 1;
     endif
   endif
@@ -311,6 +315,10 @@ while( $#argv != 0 )
 
     case "-nomask":
       set DoMask = 0;
+      breaksw
+
+    case "-update":
+      set UpdateOnly = 1;
       breaksw
 
     case "-nolog":
@@ -459,6 +467,7 @@ usage_exit:
   echo "  -noinorm  : don't do inorm"
   echo "  -nomask   : don't make brain mask"
   echo ""
+  echo "  -update   : only run a stage if input is newer than output"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  ..."
