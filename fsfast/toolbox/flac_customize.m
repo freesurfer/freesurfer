@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/15 22:57:40 $
-%    $Revision: 1.30 $
+%    $Date: 2007/06/15 23:01:36 $
+%    $Revision: 1.31 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -173,7 +173,7 @@ for nthev = 1:nev
       st(:,1) = st(:,1) + flacnew.stimulusdelay;
       if(strcmp(flac.ev(nthev).model,'fir') & size(st,2) > 2)
 	fprintf('Ignoring duration for FIR model\n');
-	st(:,3) = zeros(flac.ntp,1);
+	st(:,3) = zeros(flacnew.ntp,1);
       end
     end
     flacnew.ev(nthev).st = st;
