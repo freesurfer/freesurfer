@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/10 21:47:40 $
- *    $Revision: 1.83 $
+ *    $Date: 2007/06/15 19:05:16 $
+ *    $Revision: 1.84 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.83 2007/06/10 21:47:40 greve Exp $";
+"$Id: tkregister2.c,v 1.84 2007/06/15 19:05:16 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -118,6 +118,7 @@ static char vcid[] =
 #include "fio.h"
 #include "pdf.h"
 #include "resample.h"
+#include "pdf.h"
 
 /* Prototypes */
 
@@ -406,6 +407,8 @@ LTA *lta = NULL;
 LT  *linxfm = NULL;
 char *ltafname;
 char *ltaoutfname=NULL;
+
+int checkreg = 0;
 
 #ifndef HAVE_TCL_TK_GL
 #define ClientData void*
@@ -1002,6 +1005,11 @@ static int parse_commandline(int argc, char **argv) {
       targ_vol_id = strcpyalloc(tmpstr);
     } else if (!strcasecmp(option, "--lh-only")) lhsurf_only=1 ;
     else if (!strcasecmp(option, "--rh-only")) rhsurf_only=1 ;
+    else if (!strcasecmp(option, "--check-reg")){
+      sprintf(tmpstr,"/tmp/reg.tmp.%ld.dat",PDFtodSeed());
+      regfname = strcpyalloc(tmpstr);
+      checkreg = 1;
+    }
     else if (stringmatch(option, "--targ")) {
       if (nargc < 1) argnerr(option,1);
       targ_vol_id = pargv[0];
@@ -1248,6 +1256,7 @@ static void print_usage(void) {
   printf("   --targ target volume <fmt>\n");
   printf("   --fstarg : target is relative to subjectid/mri\n");
   printf("   --reg  register.dat : input/output registration file\n");
+  printf("   --check-reg : only check, no --reg needed\n");
   printf("   --regheader : compute regstration from headers\n");
   printf("   --fsl-targ : use FSLDIR/etc/standard/avg152T1.img\n");
   printf("   --fsl-targ-lr : use FSLDIR/etc/standard/avg152T1_LR-marked.img\n");
@@ -4443,7 +4452,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.83 2007/06/10 21:47:40 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.84 2007/06/15 19:05:16 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
