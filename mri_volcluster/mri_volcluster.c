@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/14 23:12:41 $
- *    $Revision: 1.30 $
+ *    $Date: 2007/06/15 21:41:05 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -95,7 +95,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.30 2007/06/14 23:12:41 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.31 2007/06/15 21:41:05 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -188,17 +188,18 @@ MATRIX *Tin, *invTin, *Ttemp, *vox2vox;
 /*--------------------- MAIN -----------------------------------*/
 /*--------------------------------------------------------------*/
 int main(int argc, char **argv) {
-  int nhits, *hitcol, *hitrow, *hitslc;
+  int nhits, *hitcol, *hitrow, *hitslc,nargs;
   int col, row, slc;
   int nthhit, n, m, nclusters, nprunedclusters;
-  float x,y,z,val;
-  int nargs;
+  float x,y,z,val,pval;
+  char *stem;
+  COLOR_TABLE *ct;
 
   /* rkt: check for and handle version tag */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.30 2007/06/14 23:12:41 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.31 2007/06/15 21:41:05 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -548,30 +549,41 @@ int main(int argc, char **argv) {
     MRIfree(&outvol);
   }
 
-  /* Write clusters numbers to a volume */
-  if (outcnid != 0) {
-    outvol = clustClusterList2Vol(ClusterList, nclusters, vol,frame, 0);
-    printf("INFO: writing OCN to %s as type %d\n",outcnid,outcntype);
-    MRIwriteType(outvol,outcnid,outcntype);
-    MRIfree(&outvol);
-  }
-
   /* --- Save the cluster pval --- */
   if (clustwisesigfile != NULL) {
     printf("Saving cluster pval %s\n",clustwisesigfile);
     clustwisesig = MRIclone(vol,NULL);
     for (n = 0; n < nclusters; n++) {
+      pval = ClusterList[n]->pval_clusterwise;
+      if( pval < 10e-30) pval = 1e-30;
+      val = -log10(pval)*SIGN(ClusterList[n]->maxval);
+      /*printf("%3d %5d %8.7lf %7.3lf  \n", n,ClusterList[n]->nmembers,
+      ClusterList[n]->pval_clusterwise,val);*/
       for (m = 0; m < ClusterList[n]->nmembers; m++) {
         col = ClusterList[n]->col[m];
         row = ClusterList[n]->row[m];
         slc = ClusterList[n]->slc[m];
-        val =
-          -log10(ClusterList[n]->pval_clusterwise)*
-          SIGN(ClusterList[n]->maxval);
         MRIsetVoxVal(clustwisesig,col,row,slc,0,val);
       }
     }
     MRIwrite(clustwisesig,clustwisesigfile);
+  }
+
+  /* Write clusters numbers to a volume, include color LUT */
+  if (outcnid != 0) {
+    outvol = clustClusterList2Vol(ClusterList, nclusters, vol,frame, 0);
+    printf("INFO: writing OCN to %s as type %d\n",outcnid,outcntype);
+    MRIwriteType(outvol,outcnid,outcntype);
+    MRIfree(&outvol);
+    ct = CTABalloc(nclusters+1);
+    strcpy(ct->entries[0]->name,"Unknown");
+    for (n = 0; n < nclusters; n++)
+      sprintf(ct->entries[n+1]->name,"Cluster-%03d",n+1);
+    stem = IDstemFromName(outcnid);
+    sprintf(tmpstr,"%s.lut",stem);
+    CTABwriteFileASCII(ct, tmpstr);
+    CTABfree(&ct);
+    free(stem);
   }
 
   /* Write the given cluster to a label file */
@@ -1048,7 +1060,9 @@ static void print_help(void) {
     "  --ocn ocn-volid: path/name of the output volume after clustering\n"
     "    where the value at each voxel is the cluster number (as found in the\n"
     "    summary file). Voxels that did not belong to a cluster have their\n"
-    "    values set to zero.\n"
+    "    values set to zero. Also creates ocn-volid.lut. This is a color\n"
+    "    lookup table so that the OCN can be loaded as a segmentation in\n"
+    "    tkmedit with -segmentation ocn-volid.fmt ocn-volid.lut.\n"
     "\n"
     "  --ocn_type typename : name of the file format type of the output \n"
     "    cluster number volume. See FILE TYPES below.\n"
