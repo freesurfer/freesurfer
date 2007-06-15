@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/30 16:00:07 $
-#    $Revision: 1.7 $
+#    $Date: 2007/06/15 05:02:12 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: stc-sess,v 1.7 2007/03/30 16:00:07 greve Exp $';
+set VERSION = '$Id: stc-sess,v 1.8 2007/06/15 05:02:12 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -34,6 +34,7 @@ set outfmt = bhdr;
 set RunListFile = ();
 set fsd = bold;
 set SliceOrder = siemens
+set UpdateOnly = 0;
 set nolog     = 0;
 set PrintHelp = 0;
 
@@ -72,8 +73,10 @@ echo $cmdargs | tee -a $LF
 echo $VERSION | tee -a $LF
 hostname  | tee -a $LF
 
-set infmtext  = ".$infmt"
-set outfmtext = ".$outfmt"
+set outfmtext = bhdr;
+if($?FSF_OUTPUT_FORMAT) then
+  set outfmtext = $FSF_OUTPUT_FORMAT;
+endif
 
 #------------------------------------------------------------------#
 set StartTime = `date`;
@@ -91,25 +94,29 @@ foreach sess ($SessList)
 
   foreach Run ($RunList)
 
-    set infunc = $RunPath/$Run/$instem$infmtext
-    if(! -e $infunc) then
-      echo "ERROR: cannot find $infunc" | tee -a $LF
+    set infuncstem = $RunPath/$Run/$instem
+    set infmtext = `getformat_from_stem $infuncstem`
+    if($status) then
+      echo "ERROR: cannot find $infuncstem"
       exit 1;
     endif
+    set infunc = $infuncstem.$infmtext
+    set outfunc = $RunPath/$Run/$outstem.$outfmtext
 
-    set outfunc = $RunPath/$Run/$outstem$outfmtext
-    
-    set cmd = (stc.fsl --i $infunc --o $outfunc --$SliceOrder)
-    echo "---------------------------------------------"| tee -a $LF
-    pwd | tee -a $LF
-    echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
+    test $outfunc -nt $infunc
+    if($status || ! $UpdateOnly) then
+      set cmd = (stc.fsl --i $infunc --o $outfunc --$SliceOrder)
+      echo "---------------------------------------------"| tee -a $LF
+      pwd | tee -a $LF
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+    else
+      ls -lt $outfunc $infunc | tee -a $LF
+      echo "Update not needed" | tee -a $LF
+    endif
 
-  endif
-
-
-
+  end # Loop over Runs #
 end # Loop over sessions #
 
 echo "Started at $StartTime" | tee -a $LF
@@ -162,6 +169,10 @@ while( $#argv != 0 )
     case "-rlf":
       if ( $#argv == 0) goto arg1err;
       set RunListFile = $argv[1]; shift;
+      breaksw
+
+    case "-update":
+      set UpdateOnly = 1;
       breaksw
 
     case "-nolog":
@@ -219,6 +230,7 @@ usage_exit:
   echo "   -so sliceorder : <siemens>, up, down, odd, even"
   echo "   -infmt  fmt : input  format ($infmt)"
   echo "   -outfmt fmt : output format ($outfmt)"
+  echo "   -update     : only stc if input is newer than output"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
