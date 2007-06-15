@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/11 18:11:50 $
- *    $Revision: 1.18 $
+ *    $Date: 2007/06/15 21:52:15 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -159,6 +159,10 @@ debugging. Results also saved in summary file.
 Prints summary to ascii sumfile. Send this file when requesting
 help or more information.
 
+--dat datfile
+
+Prints only the final fwhm estimate into this file.
+
 --synth
 
 Synthesize input with white gaussian noise. Ten frames are used by default,
@@ -249,7 +253,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.18 2007/05/11 18:11:50 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.19 2007/06/15 21:52:15 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -259,6 +263,7 @@ struct utsname uts;
 char *inpath=NULL;
 char *outpath=NULL;
 char *sumfile=NULL;
+char *datfile=NULL;
 MRI *InVals=NULL;
 MRI *InValsCopy=NULL;
 int InValsType = MRI_VOLUME_TYPE_UNKNOWN;
@@ -293,6 +298,7 @@ int automask = 0;
 double automaskthresh = .1;
 int nerode = 0;
 int SmoothOnly = 0;
+int nframesmin = 10;
 
 char *sum2file = NULL;
 
@@ -333,8 +339,9 @@ int main(int argc, char *argv[]) {
   // ------------- load or synthesize input ---------------------
   InVals = MRIreadType(inpath,InValsType);
   if (InVals == NULL) exit(1);
-  if (InVals->nframes < 10 && !SmoothOnly && !sum2file) {
-    printf("ERROR: nframes = %d, need at least 10\n",InVals->nframes);
+  if (InVals->nframes < nframesmin && !SmoothOnly && !sum2file) {
+    printf("ERROR: nframes = %d, need at least %d\n",
+	   InVals->nframes,nframesmin);
     exit(1);
   }
   if (InVals->type != MRI_FLOAT) {
@@ -533,7 +540,7 @@ int main(int argc, char *argv[]) {
   fflush(stdout);
 
   // ---------- Save summary file ---------------------
-  if (sumfile) {
+  if(sumfile) {
     fp = fopen(sumfile,"w");
     if (fp == NULL) {
       printf("ERROR: opening %s\n",sumfile);
@@ -553,6 +560,16 @@ int main(int argc, char *argv[]) {
     fprintf(fp,"reselvolume_mm3 %lf\n",reselvolume);
     fprintf(fp,"nresels         %lf\n",nresels);
     fprintf(fp,"nvox_per_resel  %lf\n",nvoxperresel);
+    fclose(fp);
+  }
+
+  if(datfile) {
+    fp = fopen(datfile,"w");
+    if(fp == NULL) {
+      printf("ERROR: opening %s\n",datfile);
+      exit(1);
+    }
+    fprintf(fp,"%lf\n",fwhm);
     fclose(fp);
   }
 
@@ -621,6 +638,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sumfile = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--dat")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      datfile = pargv[0];
+      nargsused = 1;
     } else if (!strcasecmp(option, "--fwhm")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&infwhm);
@@ -645,6 +666,10 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--nerode")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nerode);
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--nframesmin")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nframesmin);
       nargsused = 1;
     } else if (!strcasecmp(option, "--synth-frames")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -729,11 +754,13 @@ static void print_usage(void) {
   printf("   --to-fwhm-nmax nitersmax : maximum number of iterations (def 20)\n");
   printf("   --to-fwhm-file file : save to-fwhm params in file\n");
   printf("\n");
-  printf("   --sum sumfile\n");
+  printf("   --sum sumfile : summary/log\n");
+  printf("   --dat datfile : only the final fwhm estimate\n");
   printf("\n");
   printf("   --synth \n");
   printf("   --synth-frames nframes : default is 10 \n");
   printf("\n");
+  printf("   --nframesmin n : require at least this many frames\n");
   printf("   --ispm : input is spm-analyze. Set --i to stem.\n");
   printf("   --in_nspmzeropad nz : zero-padding for spm-analyze\n");
   printf("   --debug     turn on debugging\n");
@@ -877,6 +904,10 @@ printf("--sum sumfile\n");
 printf("\n");
 printf("Prints summary to ascii sumfile. Send this file when requesting\n");
 printf("help or more information.\n");
+printf("\n");
+printf("--dat datfile\n");
+printf("\n");
+printf("Prints only the final fwhm estimate into this file.\n");
 printf("\n");
 printf("--synth\n");
 printf("\n");
