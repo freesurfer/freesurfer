@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/04/25 22:02:55 $
-#    $Revision: 1.13 $
+#    $Date: 2007/06/15 05:20:42 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.13 2007/04/25 22:02:55 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.14 2007/06/15 05:20:42 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -36,6 +36,7 @@ set PrintHelp = 0;
 set HPF = ();
 set inorm = 1;
 set use_new_inorm = 1;
+set UpdateOnly = 0;
 
 set infmt   = ();
 set outfmt  = bhdr;
@@ -146,6 +147,23 @@ foreach sess ($SessList)
 
   ## Go through each run ##
   foreach run ($RunList)
+
+    if($UpdateOnly) then
+      set infmt = `getformat_from_stem $run/$instem`
+      if($status) then
+        echo "ERROR: cannot find $run/$instem"
+        exit 1;
+      endif
+      set infunc  = $run/$instem.$infmt
+      set outfunc = $run/$outstem.$outfmt
+      test $infunc -nt $outfunc
+      if($status) then
+        pwd
+        ls -lt $outfunc $infunc | tee -a $LF
+        echo "Update not needed" | tee -a $LF
+        continue
+      endif
+    endif
 
     # Construct and run the command for this run #
     set cmd = (ipfsl -i $run/$instem -o $run/$outstem -pct .1)
@@ -290,6 +308,10 @@ while( $#argv != 0 )
       set cleanup = 0;
       breaksw
 
+    case "-update":
+      set UpdateOnly = 1;
+      breaksw
+
     case "-nolog":
       set nolog = 1;
       breaksw
@@ -387,6 +409,7 @@ usage_exit:
   echo "   -fsd fsdir      (optional)"
   echo ""
   echo "Other Arguments"
+  echo "   -update         : only run if input is newer than output"
   echo "   -noinorm        : do not intensity norm smoothed volume"
   echo "   -inorm-old      : use old inorm"
   echo "   -infmt format   : <autodetect>, bhdr, mgh, nii.gz, etc"
