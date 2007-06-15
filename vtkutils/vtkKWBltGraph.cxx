@@ -1,6 +1,6 @@
 #include <stdexcept>
 #include <sstream>
-
+#include <assert.h>
 #include "vtkKWBltGraph.h"
 #include "vtkCommand.h"
 #include "vtkObjectFactory.h"
@@ -8,7 +8,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.8 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.9 $" );
 
 unsigned long const vtkKWBltGraph::MouseoverEnterElementEvent = 
   vtkCommand::UserEvent + 1;
