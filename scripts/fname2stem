@@ -2,17 +2,17 @@
 #
 # fname2stem
 #
-# Converts an input volume file name to a stem,
+# Converts the name of a file to a stem,
 #   Eg, f.mgh f.nii f.nii.gz would return f
 #   Eg, here/f.mgh would return here/f
 #   This works only on the string passed to it,
-#   the file need not exist.
+#   The file does not need to exist.
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/14 03:47:03 $
-#    $Revision: 1.1 $
+#    $Date: 2007/06/16 20:56:22 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -28,11 +28,13 @@
 #
 
 
-set VERSION = '$Id: fname2stem,v 1.1 2007/06/14 03:47:03 greve Exp $';
+set VERSION = '$Id: fname2stem,v 1.2 2007/06/16 20:56:22 greve Exp $';
 
 if($#argv != 1) then
   echo "fname2stem filename"
-  echo "  $VERSION"
+  echo "  Converts the name of a file to a stem"
+  echo "  Eg, f.mgh f.nii f.nii.gz would return f"
+  echo "  The file does not need to exist. See also stem2fname"
   exit 1;
 endif
 
