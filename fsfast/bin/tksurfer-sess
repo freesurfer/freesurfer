@@ -1,0 +1,333 @@
+#! /bin/csh -f
+
+#
+# tkmedit-sess
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2007/06/16 21:47:12 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: tksurfer-sess,v 1.1 2007/06/16 21:47:12 greve Exp $'
+set inputargs = ($argv);
+set analysis      = ();
+set contrastlist   = ();
+set mapanalysis   = ();
+set map = sig;
+set annot = ();
+set hemi = ();
+set surf = inflated
+set ShowHDR = 1;
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set SessList = (`getsesspath $argv`);
+if($status || $#SessList == 0) then
+  echo $SessList
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+if($#designtype == 0) then
+  set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
+endif
+if("$designtype" != "event-related") set ShowHDR = 0;
+
+set cfgfile = $analysis/analysis.cfg
+set gammafit  = (`cat $cfgfile | awk '{if($1 == "-gammafit") print 1}'`);
+set spmhrffit = (`cat $cfgfile | awk '{if($1 == "-spmhrf")   print 1}'`);
+if($#gammafit || $#spmhrffit) set ShowHDR = 0;
+
+## Get map functional subdirectory from the info file ##
+if($#mapanalysis != 0) then
+  if(! -e $mapanalysis ) then
+    echo "ERROR: $mapanalysis does not exist. Try running mkanalysis-sess" 
+    exit 1;
+  endif
+  set mapfsd = `cat $mapanalysis/analysis.info | awk '{if($1 == "fsd") print $2}'`;
+else
+  set mapfsd = $fsd
+endif
+
+echo $VERSION
+uname -a      
+date          
+which tksurfer
+
+# ---------------------------------------------
+foreach sess ($SessList)
+  echo ""
+  echo ""
+
+  set reg = $sess/$fsd/register.dat
+  if(! -e $reg) then
+    echo "ERROR: cannot find $reg"
+    exit 1
+  endif
+  set subject = `head -n 1 $reg`;
+  echo "subject is $subject"
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $SUBJECTS_DIR/$subject"
+    exit 1;
+  endif
+
+  set anapath = $sess/$fsd/$analysis
+  if(! -e $anapath) then
+    echo "ERROR: cannot find $anapath"
+    exit 1;
+  endif
+
+  if($ShowHDR) then
+    set hstem = $anapath/h
+    set hpath = `stem2fname $hstem`;
+    if($status) then
+      echo "$hpath"
+      exit 1;
+    endif
+    set hoffsetstem = $anapath/h-offset
+    set hoffsetpath = `stem2fname $hoffsetstem`;
+    if($status) then
+      echo "$hoffsetpath"
+      exit 1;
+    endif
+  endif
+
+  set mapanapath = $sess/$fsd/$mapanalysis
+  set conpath = $mapanapath/$contrast
+  if(! -e $conpath) then
+    echo "ERROR: cannot find $conpath"
+    exit 1;
+  endif
+
+  set mapstem = $conpath/$map
+  set mappath = `stem2fname $mapstem`;
+  if($status) then
+    echo "$mappath"
+    exit 1;
+  endif
+
+  # tksurfer subject hemi surf 
+  #   -annot aparc.annot
+  #   -overlay overlay       -overlay-reg   reg
+  #   -timecourse tc         -timecourse-reg reg
+  #   -timecourse-offset tco -timecourse-offset-reg
+
+  set cmd = (tksurfer $subject $hemi $surf)
+  set cmd = ($cmd -overlay $mappath -overlay-reg $reg)
+  if($ShowHDR) then
+    set cmd = ($cmd -timecourse $hpath -timecourse-reg $reg)
+    set cmd = ($cmd -timecourse-offset $hoffsetpath \
+                 -timecourse-offset-reg-file $reg)
+  endif
+  if($#annot) set cmd = ($cmd -annot $annot)
+
+  echo " cd `pwd`"
+  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"
+  echo $cmd
+  echo ""
+  echo ""
+  $cmd
+
+end # Loop over sessions
+
+exit 0;
+###--------------------------------------------###
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-hemi":
+    case "-h":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-mapanalysis":
+    case "-ma":
+      if ( $#argv == 0) goto arg1err;
+      set mapanalysis = $argv[1]; shift;
+      breaksw
+
+    case "-c":
+    case "-contrast":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-map":
+      if($#argv == 0) goto arg1err;
+      set map = $argv[1]; shift;
+      breaksw
+
+    case "-fthresh":
+      if ( $#argv == 0) goto arg1err;
+      set fthresh = $argv[1]; shift;
+      breaksw
+
+    case "-fmax":
+    case "-fsat":
+      if ( $#argv == 0) goto arg1err;
+      set fmax = $argv[1]; shift;
+      breaksw
+
+    case "-aparc":
+      set annot = aparc
+      breaksw
+
+    case "-annot":
+      if($#argv < 1) goto arg1err;
+      set annot = $argv[1]; shift
+      breaksw
+
+    case "-nohdr":
+      set ShowHDR = 0;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      setenv XDEBUG 1
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#hemi == 0) then
+    echo "ERROR: no hemisphere specified" 
+    exit 1;
+  endif
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified" 
+    exit 1;
+  endif
+  if(! -e $analysis) then
+    echo "ERROR: analysis $analysis does not exist" 
+    exit 1;
+  endif
+  if($#mapanalysis == 0) set mapanalysis = $analysis
+  if(! -e $mapanalysis) then
+    echo "ERROR: analysis $mapanalysis does not exist" 
+    exit 1;
+  endif
+  if($#contrast == 0) then
+    echo "ERROR: no contrast specified" 
+    exit 1;
+  endif
+  set cmat = $mapanalysis/$contrast.mat
+  if(! -e $cmat) then
+    echo "ERROR: cannot find $cmat"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "tksurfer-sess"
+  echo ""
+  echo "   -s sessid  : session "
+  echo "   -hemi hemi : lh or rh";
+  echo "   -analysis  analysisname : name of session-level functional analysis";
+  echo "   -contrast  contrastname : contrast name"
+  echo "   -map       mapname      : <sig>, fsig, minsig, iminsig, t"
+  echo "   -mapanalysis analysisname : name of session-level functional analysis";
+  echo "   -surf surface : default is inflated"
+  echo ""
+  echo "   -aparc : show automatic parcellation (must alreay exist)"
+  echo "   -fthresh fthresh : threshold for color overlay"
+  echo "   -fmax    fmax    : saturation threshold for color overlay"
+  echo ""
+  echo "   -d  sessdir  ..."
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+  echo "------------------------------------------------------------"
+
+exit 1;
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+
