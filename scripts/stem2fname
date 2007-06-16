@@ -1,0 +1,52 @@
+#! /bin/csh -f
+
+#
+# stem2fname
+#
+# Finds the format/extension given the stem.
+#
+# Looks for a disk file called stem.fmt, where fmt is:
+# mgh mgz nii nii.gz bhdr img (in that order), and returns 
+# stem.fmt
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2007/06/16 20:56:10 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+if($#argv != 1) then
+  echo "stem2fname stem"
+  echo "  Looks for stem.fmt where fmt is mgh mgz nii nii.gz bhdr img,"
+  echo "  then returns stem.fmt. See also stem2fmt, fname2stem"
+  echo "  The file needs to exist on disk."
+  exit 1;
+endif
+
+set stem = $argv[1];
+
+foreach fmt (mgh mgz nii nii.gz bhdr img)
+  set testfile = $stem.$fmt
+  if(-e $testfile) then
+    echo $testfile
+    exit 0;
+  endif
+end
+
+echo "ERROR: could not determine file for $stem"
+exit 1;
+##########################################
