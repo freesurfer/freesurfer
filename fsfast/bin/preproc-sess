@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/15 05:31:34 $
-#    $Revision: 1.11 $
+#    $Date: 2007/06/16 18:41:13 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,28 +23,35 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.11 2007/06/15 05:31:34 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.12 2007/06/16 18:41:13 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
 
-set mcinstem   = f;
+set instem   = ();
+set mcinstem   = ();
 set mcoutstem  = ();
+set stcinstem   = ();
+set stcoutstem  = ();
 set sminstem   = ();
 set smoutstem  = ();
 set inormstem  = ();
 set maskdir    = masks
 set maskstem   = brain;
 set fwhm    = ();
+set SliceOrder = ();
 set fsd     = bold;
 set rlf     = ();
 set mcnthrun = ();
 set mcrun    = ();
 set MCPerRun = 0;
-set DoMC     = 1;
-set DoSmooth = 1;
-set DoInorm  = 1;
+
 set DoMask   = 1;
+set DoMC     = 1;
+set DoSTC    = 0;
+set DoSmooth = 1;
+
+set DoInorm  = 1;
 set nskip = 0; # for inorm
 set nolog = 0;
 set targgrp = ();
@@ -107,6 +114,12 @@ echo $inputargs  >> $LF
 uname -a      >> $LF
 date          >> $LF
 
+echo "instem   $instem " | tee -a $LF
+echo "mc   $DoMC     $mcinstem $mcoutstem " | tee -a $LF
+echo "stc  $DoSTC    $stcinstem $stcoutstem"  | tee -a $LF
+echo "sm   $DoSmooth $sminstem $smoutstem "| tee -a $LF
+echo "mask $DoMask   $maskstem"| tee -a $LF
+
 set ProjectDir = `pwd`;
 
 set StartTime = `date`;
@@ -142,7 +155,28 @@ foreach sess ($SessList)
     if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
+    if($DoInorm)    set cmd = ($cmd -inorm);
+    if(! $DoInorm)  set cmd = ($cmd -noinorm);
     echo "$sessid MC -----------------------------" |& tee -a $LF
+    date      |& tee -a $LF
+    pwd       |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "----------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: mc-sess failed" |& tee -a $LF
+      exit 1;
+    endif
+  endif
+
+  if($DoSTC) then
+    set cmd = (stc-sess -i $stcinstem -o $stcoutstem)
+    if($#SliceOrder) set cmd = ($cmd -so $SliceOrder)
+    set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
+    if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
+    if($nolog)      set cmd = ($cmd -nolog);
+    if($UpdateOnly) set cmd = ($cmd -update);
+    echo "$sessid STC -----------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
     echo $cmd |& tee -a $LF
@@ -156,11 +190,12 @@ foreach sess ($SessList)
 
   if($DoSmooth) then
     set cmd = (spatialsmooth-sess -i $sminstem -o $smoutstem -fwhm $fwhm)
-    set cmd = ($cmd  -fsd $fsd)
-    set cmd = ($cmd -s $sessid -d $sessparent)
-    if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
-    if($nolog)     set cmd = ($cmd -nolog);
+    set cmd = ($cmd -fsd $fsd -s $sessid -d $sessparent)
+    if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
+    if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
+    if($DoInorm)    set cmd = ($cmd -inorm);
+    if(! $DoInorm)  set cmd = ($cmd -noinorm);
     echo "$sessid Smooth ------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
@@ -232,6 +267,11 @@ while( $#argv != 0 )
   
   switch($flag)
 
+    case "-in":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      breaksw
+
     case "-mcin":
       if ( $#argv == 0) goto arg1err;
       set mcinstem = $argv[1]; shift;
@@ -250,6 +290,16 @@ while( $#argv != 0 )
     case "-mcrun":
       if ( $#argv == 0) goto arg1err;
       set mcrun = $argv[1]; shift;
+      breaksw
+
+    case "-stcin":
+      if ( $#argv == 0) goto arg1err;
+      set stcinstem = $argv[1]; shift;
+      breaksw
+
+    case "-stcout":
+      if ( $#argv == 0) goto arg1err;
+      set stcoutstem = $argv[1]; shift;
       breaksw
 
     case "-smin":
@@ -280,6 +330,7 @@ while( $#argv != 0 )
     case "-fwhm":
       if ( $#argv == 0) goto arg1err;
       set fwhm = $argv[1]; shift;
+      set DoSmooth = 1;
       breaksw
 
     case "-nskip":
@@ -305,20 +356,45 @@ while( $#argv != 0 )
       set MCPerRun = 1;
       breaksw
 
+    case "-stc":
+      set DoSTC = 1;
+      breaksw
+
+    case "-no-stc":
+    case "-nostc":
+      set DoSTC = 0;
+      breaksw
+
+    case "-sliceorder":
+    case "-so":
+      if ( $#argv == 0) goto arg1err;
+      set SliceOrder = $argv[1]; shift;
+      set DoSTC = 1;
+      breaksw
+
+    case "-no-smooth":
     case "-nosmooth":
       set DoSmooth = 0;
       breaksw
 
+    case "-no-inorm":
     case "-noinorm":
       set DoInorm = 0;
       breaksw
 
+    case "-no-mask":
     case "-nomask":
       set DoMask = 0;
       breaksw
 
     case "-update":
       set UpdateOnly = 1;
+      breaksw
+
+    case "-force":
+    case "-noupdate":
+    case "-no-update":
+      set UpdateOnly = 0;
       breaksw
 
     case "-nolog":
@@ -389,24 +465,30 @@ check_params:
     endif
   endif
 
+  if($#instem == 0) set instem = "f";
+
   if($DoMC) then
-    if($#mcinstem == 0)  set mcinstem = f;
+    if($#mcinstem  == 0) set mcinstem  = $instem
     if($#mcoutstem == 0) set mcoutstem = $mcinstem"mc"
+  else
+    set mcoutstem = $instem;
+  endif
+
+  if($DoSTC) then
+    if($#stcinstem  == 0) set stcinstem  = $mcoutstem
+    if($#stcoutstem == 0) set stcoutstem = $stcinstem"stc"
+  else
+    set stcoutstem = $mcoutstem
   endif
 
   if($DoSmooth) then
     if($#fwhm == 0) then
       echo "ERROR: must specify FWHM when doing smoothing"
+      echo "If not smoothing, use -nosmooth"
       exit 1;
     endif
-    if($#sminstem == 0) then
-      if(! $DoMC) then
-        echo "ERROR: must specify smin stem if not doing mc"
-        exit 1;
-      endif
-      set sminstem = $mcoutstem;
-    endif
-    if($#smoutstem == 0) set smoutstem = $sminstem"sm"
+    if($#sminstem  == 0) set sminstem  = $stcoutstem
+    if($#smoutstem == 0) set smoutstem = $sminstem"sm"$fwhm
   endif
 
   if($DoInorm && $#inormstem == 0) then
@@ -434,6 +516,12 @@ check_params:
     exit 1;
   endif
 
+  if(! $DoMC && ! $DoSTC  && ! $DoSmooth && ! $DoMask) then
+    echo "ERROR: nothing to do"
+    exit 1;
+  endif
+
+
 goto check_params_return;
 ############--------------##################
 
@@ -448,32 +536,41 @@ usage_exit:
   echo ""
   echo "USAGE: preproc-sess"
   echo ""
-  echo "  -mcin   mcinstem    : <f> stem to used as input to MC"
-  echo "  -mcout  mcoutstem   : <instemmc> stem to use as output of MC"
-  echo "  -smin   sminstem    : <mcoutstem>"
-  echo "  -smout  smoutstem   : <sminstemsm>"
-  echo "  -inorm  inormstem   : <smoutstem | mcoutstem | mcinstem>"
+  echo "  -i    instem   : stem to use as overal input <f>"
+  echo "  -fwhm fwhm     : 3D fwhm (mm)"
+  echo "  -sliceorder so : <siemens>, up, down, odd, even"
+  echo "  -update        : only run a stage if input is newer than output"
+  echo "  -force         : force reprocessing of all stages"
+  echo "  -no-update     : same as -force"
+  echo ""
+  echo "  -nomc     : don't do motion correction"
+  echo "  -stc      : do slice-timing correction"
+  echo "  -nostc    : don't do slice-timing correction"
+  echo "  -nosmooth : don't do smoothing"
+  echo "  -nomask   : don't make brain mask"
+  echo "  -noinorm  : don't do inorm"
+  echo ""
+  echo "  -mcin   mcinstem    : stem to use as input  to MC"
+  echo "  -mcout  mcoutstem   : stem to use as output of MC"
+  echo "  -stcin  stcinstem   : stem to use as input  to STC "
+  echo "  -stcout stcoutstem  : stem to use as output of STC "
+  echo "  -smin   sminstem    : stem to use as input  to smoothing "
+  echo "  -smout  sminstem    : stem to use as output of smoothing "
   echo "  -mask   maskstem    : <brain>"
-  echo "  -fwhm   fwhm (mm)"
+  echo ""
   echo "  -nskip N            : do not use first N TRs when inorming"
-  echo "  -fsd    fsd <bold>"
-  echo "  -rlf    rlf  : run list file (default all runs)"
+  echo "  -inorm  inormstem   : <smoutstem | mcoutstem | mcinstem>"
   echo "  -mcperrun : perform motion correction on all runs separately"
   echo "  -mcnthrun nthrun : use nthrun as reference"
   echo "  -mcrun    RRR    : use run RRR as reference"
   echo ""
-  echo "  -nomc     : don't do motion correction"
-  echo "  -nosmooth : don't do smoothing"
-  echo "  -noinorm  : don't do inorm"
-  echo "  -nomask   : don't make brain mask"
-  echo ""
-  echo "  -update   : only run a stage if input is newer than output"
-  echo ""
   echo "Session Arguments (Required)"
-  echo "   -sf sessidfile  ..."
-  echo "   -df srchdirfile ..."
-  echo "   -s  sessid      ..."
-  echo "   -d  srchdir     ..."
+  echo "  -sf sessidfile  ..."
+  echo "  -df srchdirfile ..."
+  echo "  -s  sessid      ..."
+  echo "  -d  srchdir     ..."
+  echo "  -fsd    fsd <bold>"
+  echo "  -rlf    rlf  : run list file (default all runs)"
   echo ""
   echo "Other options"
   echo "  -gperm : use group-writable unix permissions"
@@ -493,16 +590,89 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-This will run preprocessing steps: motion correction, smoothing,
-intensity normalization, and brain-mask creation.
+This will run preprocessing steps: motion correction (MC),
+slice-timing correction (STC), smoothing, intensity normalization
+(INorm), and brain mask creation. By default, it will perform MC,
+smoothing, INorm, and masking, but not STC. All stages producde
+a new volume that can be used as input to mkanalysis-sess. Note:
+MC, INorm,  does require matlab but none of the other stages does.
+By default, motion correction uses the first volume of the first
+run as the reference for all runs.
 
-Basic Usage:
+-i instem 
+
+Explicitly specify input stem. Default is f.
+
+-fwhm fwhm
+
+Specify the fwhm for 3D spatial smoothing. There is not default.
+The output will have "smFWHM" appened to it. Eg, for -fwhm 5, then
+the output will have "sm5" appened. If you do not want to perform
+smoothing, use -nosmooth. See also spatialsmooth-sess.
+
+-sliceorder so
+
+Perform slice-timing correction with the given slice order. You
+can also use -stc if using the default (siemens) slice order.
+Siemens slice order is interleaved starting on the first slice
+for an odd number of slices or the second slice for an even 
+number. See also stc-sess.
+
+-update
+
+Only perform a stage if the output is newer than the input or if 
+the output does not exist. This can be very convient as you
+do not have to keep track of what has been done. Just specify
+all the sessions and and it will figure out what needs to be 
+done. At some point this will become the default behavior. See 
+also -force.
+
+-force
+-noupdate
+
+Force processing of all stages regardless of what has been done
+before. This turns off -update
+
+
+INPUTS AND OUTPUTS
+
+Unless otherwise specified, the input stem is f, and the input stems
+and output stems of the other stages are automatically determined as
+follows:
+
+Input  to MC is instem (default is f)
+Output of MC is mcinstem"mc"  (ie, the MC input stem with "mc" 
+appended to the end)
+
+Input  to STC is outstem of MC  
+Output of STC is stcinstem"stc" (ie, the STC input stem with "stc" 
+appended to the end)
+
+Input  to smoothing is outstem of STC (or MC if no STC)
+Output of smoothing is sminstem"smFWHM" (ie, the smoothing 
+input stem with "sm" appended to the end and then the specified
+FWHM appended to that).
+
+When -mcperrun is used, the target volume is the middle frame.
+
+
+EXAMPLE 1 
+To perform MC, smoothing by fwhm of 5mm, and brain mask, run
 
   preproc-sess -sf sessidlist -df sessdirlist -fwhm 5
 
-This will perform the preprocessing steps. The final output will be a 
-volume called fmcsm which will be motion corrected and spatially
-smoothed at 5 mm FWHM. Use this name (i,e fmcsm) as the -funcstem
-argument in mkanalysis-sess.new
+For MC the input will be f and the output will be fmc
+For Smoothiing the input will be fmc and the output will be fmcsm5
 
-When -mcperrun is used, the target volume is the middle frame.
+
+EXAMPLE 2
+To perform MC, STC, smoothing by fwhm of 7.1 mm, and brain mask, run
+
+  preproc-sess -sf sessidlist -df sessdirlist -fwhm 7.1 -stc
+
+For MC  the input will be f and the output will be fmc
+For STC the input will be fmc and the output will be fmcstc
+For Smoothiing the input will be fmcstc and the output will be fmcstcsm7.1
+
+
+
