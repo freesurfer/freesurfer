@@ -12,8 +12,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/05/04 21:36:42 $
-#    $Revision: 1.12 $
+#    $Date: 2007/06/16 23:56:43 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat,v 1.12 2007/05/04 21:36:42 greve Exp $';
+set VERSION = '$Id: fsfeat,v 1.13 2007/06/16 23:56:43 greve Exp $';
 set inputargs = ($argv);
 
 set fsf     = ();
@@ -89,7 +89,7 @@ set nframes = `avwinfo $invol |& awk '{if($1 == "dim4") print $2}'`
 # Create initial example_func to std matrix
 set stdvol = $FSLDIR/etc/standard/avg152T1.img
 set initmtx = /tmp/fsfeat.design.$$.initfsl.mtx
-set cmd = (tkregister2 --targ $stdvol --mov $invol \
+set cmd = (tkregister2_cmdl --targ $stdvol --mov $invol \
    --reg /tmp/$$.reg --fslregout $initmtx --regheader --noedit);
 echo $cmd 
 $cmd
