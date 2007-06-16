@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: create_targz.csh,v 1.17 2006/11/13 18:13:50 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.18 2007/06/16 12:31:24 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -39,6 +39,11 @@ else if ("$PLATFORM" == "centos4") then
 else if ("$PLATFORM" == "centos4_x86_64") then
     if ("${HOSTNAME}" != "minerva" ) then
         echo "must run on machine minerva"
+        exit 1
+    endif
+else if ("$PLATFORM" == "debian_x86_64") then
+    if ("${HOSTNAME}" != "martini" ) then
+        echo "must run on machine martini.csail.mit.edu"
         exit 1
     endif
 else if ("$PLATFORM" == "tiger") then
