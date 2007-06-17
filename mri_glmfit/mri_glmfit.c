@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/15 19:41:54 $
- *    $Revision: 1.129 $
+ *    $Date: 2007/06/17 19:38:18 $
+ *    $Revision: 1.130 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -493,6 +493,7 @@ double round(double x);
 #include "surfcluster.h"
 #include "randomfields.h"
 #include "dti.h"
+#include "image.h"
 
 typedef struct {
   char *measure;
@@ -519,7 +520,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.129 2007/06/15 19:41:54 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.130 2007/06/17 19:38:18 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -637,6 +638,7 @@ int DoDistance = 0;
 
 int DoTemporalAR1 = 0;
 int DoFFx = 0;
+IMAGE *I;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1568,6 +1570,17 @@ int main(int argc, char **argv) {
 
   }
 
+  sprintf(tmpstr,"%s/X.mat",GLMDir);
+  MatlabWrite(mriglm->Xg,tmpstr,"X");
+  if(0){
+    // Does not work properly. Image values are not right. Rescale?
+    I = ImageFromMatrix(mriglm->Xg, NULL);
+    sprintf(tmpstr,"%s/X.rgb",GLMDir);
+    printf("Writing rgb of design matrix to %s\n",tmpstr);
+    ImageWrite(I, tmpstr);
+    ImageFree(&I);
+  }
+
   // --------- Save FSGDF stuff --------------------------------
   if (fsgd != NULL) {
     strcpy(fsgd->measname,"external");
@@ -1575,8 +1588,6 @@ int main(int argc, char **argv) {
     if (surf)  strcpy(fsgd->tessellation,"surface");
     else      strcpy(fsgd->tessellation,"volume");
 
-    sprintf(tmpstr,"%s/fsgd.X.mat",GLMDir);
-    MatlabWrite(mriglm->Xg,tmpstr,"X");
     sprintf(fsgd->DesignMatFile,"fsgd.X.mat");
     sprintf(tmpstr,"%s/y.fsgd",GLMDir);
     fsgd->ResFWHM = eresfwhm;
