@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/08 21:20:04 $
- *    $Revision: 1.36 $
+ *    $Date: 2007/06/17 20:11:03 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,6 +65,7 @@
 #include "mri2.h"
 #include "annotation.h"
 #include "mrisutils.h"
+#include "image.h"
 
 // setenv SUBJECTS_DIR /space/greve/1/users/greve/subjects
 // /autofs/space/greve_001/users/greve/dev/trunk/dngtester
@@ -109,7 +110,7 @@ MRI *GetMyMask2(MRIS *surf);
 MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters, int newid);
 COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name);
 int MRISmercator(MRIS *surf);
-
+IMAGE *I;
 
 /*----------------------------------------*/
 int main(int argc, char **argv) {
@@ -120,6 +121,14 @@ int main(int argc, char **argv) {
   char *parcnames[10];
   COLOR_TABLE *ct ;
   LABEL *lcortex;
+
+  //R = MatrixDRand48(20,20,NULL);
+  R = MatrixIdentity(100,NULL);
+  MatrixPrint(stdout,R);
+  I = ImageFromMatrix(R, NULL);
+  ImageWrite(I, "./myimage.jpg") ;
+  return(1);
+
 
   subject = argv[1];
   hemi = argv[2];
