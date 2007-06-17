@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/17 19:55:29 $
-#    $Revision: 1.14 $
+#    $Date: 2007/06/17 20:07:41 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.14 2007/06/17 19:55:29 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.15 2007/06/17 20:07:41 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -356,10 +356,6 @@ while( $#argv != 0 )
       set MCPerRun = 1;
       breaksw
 
-    case "-stc":
-      set DoSTC = 1;
-      breaksw
-
     case "-no-stc":
     case "-nostc":
       set DoSTC = 0;
@@ -542,13 +538,12 @@ usage_exit:
   echo ""
   echo "  -i    instem   : stem to use as overal input <f>"
   echo "  -fwhm fwhm     : 3D fwhm (mm)"
-  echo "  -sliceorder so : <siemens>, up, down, odd, even"
+  echo "  -sliceorder so : turn on slice timing correction with the given slice order"
   echo "  -update        : only run a stage if input is newer than output (default)"
   echo "  -force         : force reprocessing of all stages (turns off -update)"
   echo "  -no-update     : same as -force"
   echo ""
   echo "  -nomc     : don't do motion correction"
-  echo "  -stc      : do slice-timing correction"
   echo "  -nostc    : don't do slice-timing correction"
   echo "  -nosmooth : don't do smoothing"
   echo "  -nomask   : don't make brain mask"
@@ -617,11 +612,13 @@ smoothing, use -nosmooth. See also spatialsmooth-sess.
 
 -sliceorder so
 
-Perform slice-timing correction with the given slice order. You
-can also use -stc if using the default (siemens) slice order.
-Siemens slice order is interleaved starting on the first slice
-for an odd number of slices or the second slice for an even 
-number. See also stc-sess.
+Perform slice-timing correction with the given slice order. Legal
+values are siemens, up, down, odd, and even. Siemens slice order is
+interleaved starting on the first slice for an odd number of slices or
+the second slice for an even number. "up" is 1st, 2nd, 3rd,
+etc. "down" is last, next to last, etc. odd is 1st, 3rd, 5th, , etc,
+then 2nd, 4th, 6th, etc. "even" is 2nd, 4th, 6th, etc, then 1st, 3rd,
+5th, etc.  See also stc-sess.
 
 -force
 -noupdate
