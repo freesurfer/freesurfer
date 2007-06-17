@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/16 18:41:13 $
-#    $Revision: 1.12 $
+#    $Date: 2007/06/17 00:09:47 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.12 2007/06/16 18:41:13 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.13 2007/06/17 00:09:47 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -156,7 +156,7 @@ foreach sess ($SessList)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($DoInorm)    set cmd = ($cmd -inorm);
-    if(! $DoInorm)  set cmd = ($cmd -noinorm);
+    if(! $DoInorm)  set cmd = ($cmd -no-inorm);
     echo "$sessid MC -----------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
