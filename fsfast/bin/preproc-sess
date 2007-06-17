@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/17 00:09:47 $
-#    $Revision: 1.13 $
+#    $Date: 2007/06/17 19:55:29 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.13 2007/06/17 00:09:47 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.14 2007/06/17 19:55:29 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -46,16 +46,16 @@ set mcnthrun = ();
 set mcrun    = ();
 set MCPerRun = 0;
 
+set UpdateOnly = 1;
 set DoMask   = 1;
 set DoMC     = 1;
 set DoSTC    = 0;
 set DoSmooth = 1;
+set DoInorm  = 0;
 
-set DoInorm  = 1;
 set nskip = 0; # for inorm
 set nolog = 0;
 set targgrp = ();
-set UpdateOnly = 0;
 
 set PrintHelp = 0;
 if($#argv == 0) goto usage_exit;
@@ -382,6 +382,10 @@ while( $#argv != 0 )
       set DoInorm = 0;
       breaksw
 
+    case "-inorm":
+      set DoInorm = 1;
+      breaksw
+
     case "-no-mask":
     case "-nomask":
       set DoMask = 0;
@@ -539,8 +543,8 @@ usage_exit:
   echo "  -i    instem   : stem to use as overal input <f>"
   echo "  -fwhm fwhm     : 3D fwhm (mm)"
   echo "  -sliceorder so : <siemens>, up, down, odd, even"
-  echo "  -update        : only run a stage if input is newer than output"
-  echo "  -force         : force reprocessing of all stages"
+  echo "  -update        : only run a stage if input is newer than output (default)"
+  echo "  -force         : force reprocessing of all stages (turns off -update)"
   echo "  -no-update     : same as -force"
   echo ""
   echo "  -nomc     : don't do motion correction"
@@ -558,8 +562,9 @@ usage_exit:
   echo "  -smout  sminstem    : stem to use as output of smoothing "
   echo "  -mask   maskstem    : <brain>"
   echo ""
-  echo "  -nskip N            : do not use first N TRs when inorming"
-  echo "  -inorm  inormstem   : <smoutstem | mcoutstem | mcinstem>"
+  echo "  -inorm        : perform intensity normalization (off by default)"
+  echo "  -nskip N      : do not use first N TRs when inorming"
+  echo ""
   echo "  -mcperrun : perform motion correction on all runs separately"
   echo "  -mcnthrun nthrun : use nthrun as reference"
   echo "  -mcrun    RRR    : use run RRR as reference"
@@ -593,11 +598,11 @@ BEGINHELP
 This will run preprocessing steps: motion correction (MC),
 slice-timing correction (STC), smoothing, intensity normalization
 (INorm), and brain mask creation. By default, it will perform MC,
-smoothing, INorm, and masking, but not STC. All stages producde
-a new volume that can be used as input to mkanalysis-sess. Note:
-MC, INorm,  does require matlab but none of the other stages does.
-By default, motion correction uses the first volume of the first
-run as the reference for all runs.
+smoothing, and masking, but not STC or INorm. All stages producde a
+new volume that can be used as input to mkanalysis-sess. Note: MC and
+INorm require matlab but none of the other stages does.  By default,
+motion correction uses the first volume of the first run as the
+reference for all runs.
 
 -i instem 
 
@@ -618,20 +623,24 @@ Siemens slice order is interleaved starting on the first slice
 for an odd number of slices or the second slice for an even 
 number. See also stc-sess.
 
+-force
+-noupdate
+
+Force processing of all stages regardless of what has been done
+before. This turns off -update
+
 -update
 
 Only perform a stage if the output is newer than the input or if 
 the output does not exist. This can be very convient as you
 do not have to keep track of what has been done. Just specify
 all the sessions and and it will figure out what needs to be 
-done. At some point this will become the default behavior. See 
-also -force.
+done. This is the default behavior. See also -force.
 
--force
--noupdate
+-inorm
 
-Force processing of all stages regardless of what has been done
-before. This turns off -update
+Turn on computing of intensity normalization factor (creates 
+stem.meanval). This was necssary for the old selxavg.
 
 
 INPUTS AND OUTPUTS
