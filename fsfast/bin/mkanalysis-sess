@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/14 20:10:48 $
-#    $Revision: 1.10 $
+#    $Date: 2007/06/17 20:37:57 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 
 
 
-set VERSION = '$Id: mkanalysis-sess,v 1.10 2007/06/14 20:10:48 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.11 2007/06/17 20:37:57 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -803,6 +803,7 @@ while( $#argv != 0 )
 
     case "-gui": 
       set UseGUI = 1;
+      set force = 1;
       breaksw
 
     case "-debug":
