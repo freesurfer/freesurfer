@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/18 02:16:57 $
- *    $Revision: 1.33 $
+ *    $Date: 2007/06/18 05:22:31 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -96,7 +96,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.33 2007/06/18 02:16:57 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.34 2007/06/18 05:22:31 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.33 2007/06/18 02:16:57 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.34 2007/06/18 05:22:31 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -649,6 +649,7 @@ int main(int argc, char **argv) {
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
+  FILE *fp;
 
   if (argc < 1) usage_exit();
 
@@ -891,6 +892,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fwhm);
       nargsused = 1;
+    } else if (!strcmp(option, "--fwhmdat")) {
+      if(nargc < 1) argnerr(option,1);
+      fp = fopen(pargv[0],"r");
+      if(fp == NULL){
+	printf("ERROR: opening %s\n",pargv[0]);
+	exit(1);
+      }
+      fscanf(fp,"%lf",&fwhm);
+      fclose(fp);
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -937,6 +948,7 @@ static void print_usage(void) {
   printf("   --csdpdf-only : write csd pdf file and exit.\n");
   printf("\n");
   printf("   --fwhm fwhm : fwhm in mm3 for GRF\n");
+  printf("   --fwhmdat fwhm.dat : text file with fwhm in mm3 for GRF\n");
   printf("\n");
   printf("   --minsize    minimum volume (mm^3)\n");
   printf("   --minsizevox minimum volume (voxels)\n");
