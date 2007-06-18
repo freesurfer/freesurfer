@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:19 $
-#    $Revision: 1.19 $
+#    $Author: greve $
+#    $Date: 2007/06/18 02:24:11 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.19 2007/01/09 22:41:19 nicks Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.20 2007/06/18 02:24:11 greve Exp $';
 set inputargs = ($argv);
 
 set PWDCMD = pwd
@@ -37,13 +37,12 @@ set mapanalysis   = ();
 set mapsessid     = ();
 set mapisxavgmethod  = ();
 
-set contrast   = ();
+set contrastlist = ();
 set space      = ();
 set subject    = ();
 set mrivolid   = orig;
 set auxvolid   = ();
 
-set mapdir = ();
 set hdrdir = ();
 set sessdir = ();
 
@@ -63,9 +62,7 @@ set motioncor = 0;
 set mc = "";
 set fsd = ();
 set fthresh = 2;
-set fmid    = 5;
-set fslope  = 1;
-set fsat    = ();
+set fmax    = 4;
 set group = ();
 set SessIsGroup = 0;
 set spacedir = ();
@@ -222,6 +219,7 @@ if(! $nohdr) then
 endif
 
 #----------------------------------------------------#
+set mapconcatfile = ();
 if(! $nosig) then
 
   if($#mapisxavgmethod == 0) then
@@ -239,12 +237,27 @@ if(! $nosig) then
   endif
 
   set maphdrdir = $mapsess/$mapfsd/$mapanalysis$anapend/$spacesubdir
-  set mapdir = $maphdrdir/$contrast
-  if(! -e $mapdir) then
-    echo "ERROR: cannot find $mapdir"
-    exit 1;
-  endif
-  set mapstem = $mapdir/$map
+
+  set maplist = ()
+  foreach contrast ($contrastlist)
+    set condir = $maphdrdir/$contrast
+    if(! -e $condir) then
+      echo "ERROR: cannot find $condir"
+      exit 1;
+    endif
+    set mapstem = $condir/$map
+    set mapfile = `stem2fname $mapstem`
+    if($status) then
+      echo "$mapfile"
+      exit 1;
+    endif
+    set maplist = ($maplist $mapfile)
+  end
+  set mapconcatfile = $mapsess/$mapfsd/$mapanalysis$anapend/tkmconcat.nii
+  set cmd = (mri_concat $maplist --o $mapconcatfile);
+  echo $cmd
+  $cmd
+  if($status) exit 1;
 
   if($space == native) then
     if(! $talreg) then
@@ -269,6 +282,10 @@ if(! $nosig) then
   set regfile = $d/`basename $regfile`;
 
   set mapregfile = $regfile
+
+  set mapoption = (-overlay $mapconcatfile)
+  set mapoption = ($mapoption -overlay-reg $mapregfile)
+  
 endif
 
 if($#subject == 0) set subject = `cat $regfile | head -n 1`;
@@ -316,17 +333,6 @@ if(! $nohdr ) then
     set hdroption  = ($hdroption -timecourse-reg $hdrregfile)
     set offsetoption = (-timecourse-offset $hdrdir/h-offset.$ext)
   endif
-endif
-
-## Get the full path to the map dir, set tkmedit option ##
-if($#mapdir != 0) then
-  pushd $mapdir > /dev/null
-  set mapdir = `$PWDCMD`;
-  popd  > /dev/null
-  set mapoption = (-overlay $mapdir/$map.$ext )
-  set mapoption = ($mapoption -overlay-reg $mapregfile)
-else
-  set mapoption = ""
 endif
 
 ## Get the directory for the anatomicals ##
@@ -393,7 +399,7 @@ endif
 set TKMEDIT = tkmedit
 if($usestatic) set TKMEDIT = $TKMEDIT.static
 set cmd = ($TKMEDIT $anatoption$MGZ $mapoption $hdroption $offsetoption)
-set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope )
+set cmd = ($cmd -fthresh $fthresh -fmax $fmax)
 set cmd = ($cmd $segoption);
 if($#auxvolid) set cmd = ($cmd -aux $auxvolid);
 if($subject == talairach || $subject == fsaverage) then
@@ -410,6 +416,8 @@ if($status) then
   exit 1;
 endif
 
+if($#mapconcatfile) rm -f $mapconcatfile
+
 exit 0;
 ###--------------------------------------------###
 
@@ -425,7 +433,7 @@ while( $#argv != 0 )
     case "-c":
     case "-contrast":
       if ( $#argv == 0) goto arg1err;
-      set contrast = $argv[1]; shift;
+      set contrastlist = ($contrastlist $argv[1]); shift;
       breaksw
 
     case "-space":
@@ -571,12 +579,12 @@ while( $#argv != 0 )
 
     case "-thmin":
       if ( $#argv == 0) goto arg1err;
-      set thmin = $argv[1]; shift;
+      set fthresh = $argv[1]; shift;
       breaksw
 
     case "-thmax":
       if ( $#argv == 0) goto arg1err;
-      set thmax = $argv[1]; shift;
+      set fthresh = $argv[1]; shift;
       breaksw
 
     case "-fthresh":
@@ -584,30 +592,15 @@ while( $#argv != 0 )
       set fthresh = $argv[1]; shift;
       breaksw
 
-    case "-fmid":
-      if ( $#argv == 0) goto arg1err;
-      set fmid = $argv[1]; shift;
-      breaksw
-
-    case "-fslope":
-      if ( $#argv == 0) goto arg1err;
-      set fslope = $argv[1]; shift;
-      breaksw
-
+    case "-fmax":
     case "-fsat":
       if ( $#argv == 0) goto arg1err;
-      set fsat = $argv[1]; shift;
-      breaksw
-
-    case "-fslope":
-      if ( $#argv == 0) goto arg1err;
-      set fslope = $argv[1]; shift;
+      set fmax = $argv[1]; shift;
       breaksw
 
     case "-thmask":
-      set fthresh = .1;
-      set fmid    = .2;
-      set fslope  = 1;
+      set fthresh = .5;
+      set fmax    =  1;
       breaksw
 
     case "-raw":
@@ -737,13 +730,13 @@ check_params:
     echo "ERROR: no analysis specified" 
     exit 1;
   endif
-  if($#contrast == 0) then
+  if($#contrastlist == 0) then
     echo "ERROR: no contrast specified" 
     exit 1;
   endif
-  if($#contrast == 0)  set nosig = 1;
+  if($#contrastlist == 0)  set nosig = 1;
   if($#analysis == 0)  set nohdr = 1;
-  if($#contrast != 0 && $#analysis == 0 ) then
+  if($#contrastlist != 0 && $#analysis == 0 ) then
      echo "ERROR: must specify an analysis with contrast" 
      exit 1
   endif
@@ -753,7 +746,7 @@ check_params:
     exit 1;
   endif
 
-  if($mapmeanimg == 1 && $#contrast != 0) then
+  if($mapmeanimg == 1 && $#contrastlist != 0) then
     echo "ERROR: cannot map mean image and contrast" 
     exit 1;
   endif
@@ -763,7 +756,9 @@ check_params:
   if($#asd == 0)   set asd   = 3danat;
   if($#map == 0) then
     set map = sig;
-    if($contrast == omnibus) set map = fsig;
+    if($#contrastlist == 1) then
+      if($contrastlist == omnibus) set map = fsig;
+    endif
   endif
 
   if($#mapsessid == 0)   set mapsessid   = $sessid;
@@ -864,13 +859,6 @@ check_params:
 
   if($#spacedir == 0) set spacedir = $space;
 
-  if($#fsat != 0) then
-    set fmid   = `echo "($fthresh+$fsat)/2.0" | bc -l`;
-    set fslope = `echo "(1.0/($fmid-$fthresh))" | bc -l`;
-    echo "INFO: thresholds: fthresh = $fthresh, fmid = $fmid"
-    echo "                  fsat = $fsat, fslope = $fslope"
-  endif
-
   if($talreg && $space != native) then
     echo "ERROR: space must be native with -talreg. Rerun without -space."
     exit 1
@@ -911,6 +899,8 @@ usage_exit:
   echo "   -aseg : show automatic segmentation (must alreay exist)"
   echo "   -aparc+aseg : show aparc+aseg segmentation (must alreay exist)"
   echo "   -segopacity opacity : between 0 and 1 (def .3)"
+  echo "   -fthresh fthresh : threshold for color overlay"
+  echo "   -fmax    fmax    : saturation threshold for color overlay"
   echo ""
   echo "   -scriptonly    : don't run, just generate a script"
   echo "   -umask umask   : set unix file permission mask"
