@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/15 21:41:05 $
- *    $Revision: 1.31 $
+ *    $Date: 2007/06/18 01:53:41 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,11 +91,12 @@ static void print_version(void) ;
 static void argnerr(char *option, int n);
 static int  singledash(char *flag);
 static void dump_options(FILE *fp);
+double round(double); // why is this never defined?!?
 
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.31 2007/06/15 21:41:05 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.32 2007/06/18 01:53:41 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -183,6 +184,7 @@ int nmask;
 double searchspace;
 int FixMNI = 1;
 MATRIX *Tin, *invTin, *Ttemp, *vox2vox;
+int UseFSAverage = 1;
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -199,7 +201,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.31 2007/06/15 21:41:05 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.32 2007/06/18 01:53:41 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -225,6 +227,17 @@ int main(int argc, char **argv) {
   if (vol == NULL) {
     fprintf(stderr,"ERROR: reading %s\n",volid);
     exit(1);
+  }
+
+  if(UseFSAverage){
+    if(vol->xsize != 1 && vol->xsize != 2){
+      printf("ERROR: voxel size is %g, must be 1 or 2 with --fsaverage\n",vol->xsize);
+      exit(1);
+    }
+    sprintf(tmpstr,"%s/average/mni305.cor.subfov%d.reg",
+	    getenv("FREESURFER_HOME"),(int)round(vol->xsize));
+    regfile = strcpyalloc(tmpstr);
+    printf("Using %s as regfile\n",regfile);
   }
 
   /* Check that the specified frame is within range */
@@ -651,6 +664,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--csdpdf-only")) csdpdfonly = 1;
     else if (!strcasecmp(option, "--no-fixmni"))  FixMNI = 0;
     else if (!strcasecmp(option, "--fixmni"))     FixMNI = 1;
+    else if (!strcasecmp(option, "--fsaverage"))  UseFSAverage = 1;
 
     else if (!strcasecmp(option, "--diag")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -895,6 +909,7 @@ static void print_usage(void) {
   printf("   --no-adjust  : do not adjust thresh for one-tailed tests\n");
   printf("\n");
   printf("   --reg     register.dat : for reporting talairach coords\n");
+  printf("   --fsaverage : assume input is in fsaverage space\n");
   printf("   --frame   frameno <0>\n");
   printf("\n");
   printf("   --csd csdfile <--csd csdfile ...>\n");
@@ -1321,6 +1336,11 @@ static void check_options(void) {
     }
     ctab = CTABreadASCII(ctabfile);
     if(ctab == NULL) exit(1);
+  }
+
+  if(UseFSAverage && regfile != NULL){
+    printf("ERROR: cannot --reg and --fsaverage\n");
+    exit(1);
   }
 
   if (err) exit(1);
