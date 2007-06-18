@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/18 19:05:56 $
-#    $Revision: 1.20 $
+#    $Date: 2007/06/18 19:17:32 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,11 +23,11 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.20 2007/06/18 19:05:56 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.21 2007/06/18 19:17:32 greve Exp $'
 
 set inputargs = ($argv);
 
-set outdir = ();
+set outtop = ();
 set analysis = ();
 set flac = ();
 set fsd  = ();
@@ -87,8 +87,10 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-##### Create a log file ######
+set outdir = $outtop/$analysis
 mkdir -p $outdir/log
+
+##### Create a log file ######
 set LF = $outdir/log/isxconcat.log
 if(-e $LF) mv $LF $LF.old
 echo $LF
@@ -228,7 +230,7 @@ foreach hemi ($hemilist)
        set y       = $outcondir/$hemi.ces.$FSF_OUTPUT_FORMAT
        set yffxvar = $outcondir/$hemi.cesvar.$FSF_OUTPUT_FORMAT
 
-       set glmdir = $outcondir/glm.rfx.$hemi.ces
+       set glmdir = $outcondir/osgm.rfx.$hemi.ces
        set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
        set cmd = ($cmd --mask $maskvol)
        if($ToSurf) set cmd = ($cmd --surf $subject $hemi)
@@ -236,7 +238,7 @@ foreach hemi ($hemilist)
        $cmd |& tee -a $LF
        if($status) exit 1;
 
-       set glmdir = $outcondir/glm.wrfx.$hemi.ces
+       set glmdir = $outcondir/osgm.wrfx.$hemi.ces
        set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
        set cmd = ($cmd --mask $maskvol --wls $yffxvar)
        if($ToSurf) set cmd = ($cmd --surf $subject $hemi)
@@ -244,7 +246,7 @@ foreach hemi ($hemilist)
        $cmd |& tee -a $LF
        if($status) exit 1;
 
-       set glmdir = $outcondir/glm.ffx.$hemi.ces
+       set glmdir = $outcondir/osgm.ffx.$hemi.ces
        set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
        set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar)
        set cmd = ($cmd --ffxdofdat $ffxdofdat)
@@ -311,7 +313,7 @@ while( $#argv != 0 )
 
     case "-o":
       if($#argv == 0) goto arg1err;
-      set outdir = $argv[1]; shift;
+      set outtop = $argv[1]; shift;
       breaksw
 
     case "-a":
@@ -498,7 +500,7 @@ check_params:
     exit 1;
   endif
 
-  if($#outdir == 0) then
+  if($#outtop == 0) then
     echo "ERROR: no output directory specified"
     exit 1;
   endif
@@ -530,9 +532,9 @@ check_params:
     set hemilist = tal;
   endif
 
-  mkdir -p $outdir
+  mkdir -p $outtop
   if($status) then
-    echo "ERROR: making $outdir";
+    echo "ERROR: making $outtop";
     exit 1;
   endif
 
@@ -565,7 +567,7 @@ usage_exit:
   echo " "
   echo "USAGE: isxconcat-sess"
   echo ""
-  echo "   -o outdir"
+  echo "   -o outdir       : top group output directory"
   echo ""
   echo "   -a analysisname : session-level functional analysis name"
   echo "   -c contrast     : contrast "
