@@ -319,6 +319,14 @@ install-data-hook:
 			fi; \
 		fi; \
 	fi;
+	if test ! "x$(PETSC_DIR)" = "x" ; then \
+		if test ! "$(PETSC_DIR)" = "$(DESTDIR)$(prefix)/lib/petsc" ; then \
+			if test -e $(PETSC_DIR) ; then \
+				rm -Rf $(DESTDIR)$(prefix)/lib/petsc ; \
+				ln -s $(PETSC_DIR) $(DESTDIR)$(prefix)/lib/petsc ; \
+			fi; \
+		fi; \
+	fi;
 
 EXTRA_DIST=setup_configure Makefile.extra x86cpucaps INSTALL \
 	doxy-file-header Doxyfile
