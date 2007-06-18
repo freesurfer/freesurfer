@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/17 19:38:18 $
- *    $Revision: 1.130 $
+ *    $Date: 2007/06/18 05:32:07 $
+ *    $Revision: 1.131 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,9 @@ USAGE: ./mri_glmfit
    --selfreg col row slice   : self-regressor from index col row slice
 
    --wls yffxvar : weighted least squares
-   --yffxvar yffxvar dof : for fixed effects analysis
+   --yffxvar yffxvar : for fixed effects analysis
+   --ffxdof DOF : dof for fixed effects analysis
+   --ffxdofdat ffxdof.dat : text file with dof for fixed effects analysis
 
    --w weightfile : weight for each input at each voxel
    --w-inv : invert weights
@@ -262,7 +264,9 @@ with fixed effects analysis. The weights will be inverted,
 square-rooted, and normalized to sum to the number of inputs for each
 voxel. Same as --w yffxvar --w-inv --w-sqrt (see --w below).
 
---yffxvar yffxvar dof : for fixed effects analysis
+--yffxvar yffxvar      : for fixed effects analysis
+--ffxdof DOF           : DOF for fixed effects analysis
+--ffxdofdat ffxdof.dat : text file with DOF for fixed effects analysis
 
 Perform fixed-effect analysis. This requires that the lower-level variances
 be available.  This is often the case with fMRI analysis but not with
@@ -520,7 +524,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.130 2007/06/17 19:38:18 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.131 2007/06/18 05:32:07 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -668,6 +672,7 @@ int main(int argc, char **argv) {
   DiagInit(NULL, NULL, NULL) ;
   mriglm = (MRIGLM *) calloc(sizeof(MRIGLM),1);
   mriglm->glm = GLMalloc();
+  mriglm->ffxdof = 0;
 
   if (argc == 0) usage_exit();
 
@@ -1642,6 +1647,7 @@ static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused, msec, niters;
   char **pargv, *option ;
   double rvartmp;
+  FILE *fp;
 
   if (argc < 1) usage_exit();
 
@@ -1818,11 +1824,26 @@ static int parse_commandline(int argc, char **argv) {
       yFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     } else if (!strcmp(option, "--yffxvar")) {
-      if (nargc < 2) CMDargNErr(option,2);
+      if(nargc < 1) CMDargNErr(option,1);
       yffxvarFile = fio_fullpath(pargv[0]);
-      sscanf(pargv[1],"%d",&mriglm->ffxdof);
       DoFFx = 1;
-      nargsused = 2;
+      nargsused = 1;
+    } else if (!strcmp(option, "--ffxdof")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&mriglm->ffxdof);
+      DoFFx = 1;
+      nargsused = 1;
+    } else if (!strcmp(option, "--ffxdofdat")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      fp = fopen(pargv[0],"r");
+      if(fp == NULL){
+	printf("ERROR: opening %s\n",pargv[0]);
+	exit(1);
+      }
+      fscanf(fp,"%d",&mriglm->ffxdof);
+      fclose(fp);
+      DoFFx = 1;
+      nargsused = 1;
     } else if (!strcmp(option, "--mask")) {
       if (nargc < 1) CMDargNErr(option,1);
       maskFile = pargv[0];
@@ -1925,7 +1946,7 @@ static int parse_commandline(int argc, char **argv) {
 /* --------------------------------------------- */
 static void print_usage(void) {
 printf("\n");
-printf("USAGE: mri_glmfit\n");
+printf("USAGE: ./mri_glmfit\n");
 printf("\n");
 printf("   --glmdir dir : save outputs to dir\n");
 printf("\n");
@@ -1939,7 +1960,9 @@ printf("   --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors\n");
 printf("   --selfreg col row slice   : self-regressor from index col row slice\n");
 printf("\n");
 printf("   --wls yffxvar : weighted least squares\n");
-printf("   --yffxvar yffxvar dof : for fixed effects analysis\n");
+printf("   --yffxvar yffxvar : for fixed effects analysis\n");
+printf("   --ffxdof DOF : dof for fixed effects analysis\n");
+printf("   --ffxdofdat ffxdof.dat : text file with dof for fixed effects analysis\n");
 printf("\n");
 printf("   --w weightfile : weight for each input at each voxel\n");
 printf("   --w-inv : invert weights\n");
@@ -2152,7 +2175,9 @@ printf("with fixed effects analysis. The weights will be inverted,\n");
 printf("square-rooted, and normalized to sum to the number of inputs for each\n");
 printf("voxel. Same as --w yffxvar --w-inv --w-sqrt (see --w below).\n");
 printf("\n");
-printf("--yffxvar yffxvar dof : for fixed effects analysis\n");
+printf("--yffxvar yffxvar      : for fixed effects analysis\n");
+printf("--ffxdof DOF           : DOF for fixed effects analysis\n");
+printf("--ffxdofdat ffxdof.dat : text file with DOF for fixed effects analysis\n");
 printf("\n");
 printf("Perform fixed-effect analysis. This requires that the lower-level variances\n");
 printf("be available.  This is often the case with fMRI analysis but not with\n");
@@ -2332,7 +2357,6 @@ printf("sign is either abs (default), pos, or neg. pos/neg tell mri_glmfit to\n"
 printf("perform a one-tailed test. In this case, the contrast matrix can\n");
 printf("only have one row.\n");
 printf("\n");
-
   exit(1) ;
 }
 /* ------------------------------------------------------ */
@@ -2467,6 +2491,16 @@ static void dump_options(FILE *fp) {
   }
   if(DoDistance)  fprintf(fp,"DoDistance %d\n",DoDistance);
   fprintf(fp,"DoFFx %d\n",DoFFx);
+  if(DoFFx){
+    if(mriglm->ffxdof == 0){
+      printf("ERROR: you need to specify the dof with FFx\n");
+      exit(1);
+    }
+    if(yffxvarFile == NULL){
+      printf("ERROR: you need to specify the yffxvar file with FFx\n");
+      exit(1);
+    }
+  }
 
   return;
 }
