@@ -95,6 +95,7 @@ mris_preproc \
 mris_volsmooth \
 ms_refine_subject \
 parc_atlas_jackknife_test \
+petsc_setup \
 plot_structure_stats.tcl \
 printdat \
 progressbar.tcl \
