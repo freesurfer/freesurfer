@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/06/18 05:40:26 $
- *    $Revision: 1.132 $
+ *    $Author: nicks $
+ *    $Date: 2007/06/18 19:07:27 $
+ *    $Revision: 1.133 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -524,7 +524,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.132 2007/06/18 05:40:26 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.133 2007/06/18 19:07:27 nicks Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1593,7 +1593,7 @@ int main(int argc, char **argv) {
     if (surf)  strcpy(fsgd->tessellation,"surface");
     else      strcpy(fsgd->tessellation,"volume");
 
-    sprintf(fsgd->DesignMatFile,"fsgd.X.mat");
+    sprintf(fsgd->DesignMatFile,"X.mat");
     sprintf(tmpstr,"%s/y.fsgd",GLMDir);
     fsgd->ResFWHM = eresfwhm;
     fsgd->LogY = logflag;
