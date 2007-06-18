@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.38 2007/05/05 22:56:33 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.39 2007/06/18 17:34:51 greve Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.38 2007/05/05 22:56:33 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.39 2007/06/18 17:34:51 greve Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -189,10 +189,15 @@ for d in "$FSFAST_HOME" "$SUBJECTS_DIR"; do
     fi
 done
 
+if [[ -z "$FSF_OUTPUT_FORMAT" || $FS_OVERRIDE != 0 ]]; then
+  export FSF_OUTPUT_FORMAT=nii
+fi
+
 if [ $output == 1 ]; then
-    echo "FREESURFER_HOME $FREESURFER_HOME"
-    echo "FSFAST_HOME     $FSFAST_HOME"
-    echo "SUBJECTS_DIR    $SUBJECTS_DIR"
+    echo "FREESURFER_HOME   $FREESURFER_HOME"
+    echo "FSFAST_HOME       $FSFAST_HOME"
+    echo "SUBJECTS_DIR      $SUBJECTS_DIR"
+    echo "FSF_OUTPUT_FORMAT $FSF_OUTPUT_FORMAT"
 fi
 
 

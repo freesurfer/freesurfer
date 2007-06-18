@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.71 2007/05/05 22:56:33 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.72 2007/06/18 17:34:51 greve Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.71 2007/05/05 22:56:33 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.72 2007/06/18 17:34:51 greve Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -184,12 +184,13 @@ foreach d ($FSFAST_HOME $SUBJECTS_DIR)
     endif
 end
 
+if( ! $?FSF_OUTPUT_FORMAT) setenv FSF_OUTPUT_FORMAT nii
 if( $output ) then
-    echo "FREESURFER_HOME $FREESURFER_HOME"
-    echo "FSFAST_HOME     $FSFAST_HOME"
-    echo "SUBJECTS_DIR    $SUBJECTS_DIR"
+    echo "FREESURFER_HOME   $FREESURFER_HOME"
+    echo "FSFAST_HOME       $FSFAST_HOME"
+    echo "SUBJECTS_DIR      $SUBJECTS_DIR"
+    echo "FSF_OUTPUT_FORMAT $FSF_OUTPUT_FORMAT"
 endif
-
 
 ######## --------- Functional Analysis Stuff ----------- #######
 if( ! $?NO_FSFAST) then
@@ -400,7 +401,7 @@ if ( $?FSL_BIN ) then
     set path = ( $FSL_BIN $path )
 endif
 if( $output && $?FSL_DIR ) then
-    echo "FSL_DIR         $FSL_DIR"
+    echo "FSL_DIR           $FSL_DIR"
 endif
 
 
