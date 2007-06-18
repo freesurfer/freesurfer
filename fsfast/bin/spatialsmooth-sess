@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/15 05:20:42 $
-#    $Revision: 1.14 $
+#    $Date: 2007/06/18 02:23:49 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.14 2007/06/15 05:20:42 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.15 2007/06/18 02:23:49 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -267,6 +267,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-noinorm":
+    case "-no-inorm":
       set inorm = 0;
       breaksw
 
@@ -410,7 +411,7 @@ usage_exit:
   echo ""
   echo "Other Arguments"
   echo "   -update         : only run if input is newer than output"
-  echo "   -noinorm        : do not intensity norm smoothed volume"
+  echo "   -no-inorm       : do not intensity norm smoothed volume"
   echo "   -inorm-old      : use old inorm"
   echo "   -infmt format   : <autodetect>, bhdr, mgh, nii.gz, etc"
   echo "   -outfmt format  : <bhdr>, mgh, nii.gz, etc"
