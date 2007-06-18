@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/18 05:32:07 $
- *    $Revision: 1.131 $
+ *    $Date: 2007/06/18 05:40:26 $
+ *    $Revision: 1.132 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -524,7 +524,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.131 2007/06/18 05:32:07 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.132 2007/06/18 05:40:26 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -2440,6 +2440,17 @@ static void check_options(void) {
     printf("ERROR: cannot use variance smoothing with mc-z or mc-t simulation\n");
     exit(1);
   }
+  if(DoFFx){
+    if(mriglm->ffxdof == 0){
+      printf("ERROR: you need to specify the dof with FFx\n");
+      exit(1);
+    }
+    if(yffxvarFile == NULL){
+      printf("ERROR: you need to specify the yffxvar file with FFx\n");
+      exit(1);
+    }
+  }
+
   return;
 }
 
@@ -2492,16 +2503,14 @@ static void dump_options(FILE *fp) {
   if(DoDistance)  fprintf(fp,"DoDistance %d\n",DoDistance);
   fprintf(fp,"DoFFx %d\n",DoFFx);
   if(DoFFx){
-    if(mriglm->ffxdof == 0){
-      printf("ERROR: you need to specify the dof with FFx\n");
-      exit(1);
-    }
-    if(yffxvarFile == NULL){
-      printf("ERROR: you need to specify the yffxvar file with FFx\n");
-      exit(1);
-    }
+    fprintf(fp,"FFxDOF %d\n",mriglm->ffxdof);
+    fprintf(fp,"yFFxVar %s\n",yffxvarFile);
   }
-
+  if(wFile){
+    fprintf(fp,"wFile %s\n",wFile);
+    fprintf(fp,"weightinv  %d\n",weightinv);
+    fprintf(fp,"weightsqrt %d\n",weightsqrt);
+  }
   return;
 }
 
