@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/02 22:43:09 $
- *    $Revision: 1.37 $
+ *    $Date: 2007/06/18 02:13:15 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -621,6 +621,33 @@ VOLCLUSTER **clustPruneByDistance(VOLCLUSTER **vclist, int nlist,
   return(vcprune);
 }
 
+/*------------------------------------------------------------------------
+  Note: Prunes by pvalue so must be LESS than cwpvalthresh  NOT -log10(p)
+------------------------------------------------------------------------*/
+VOLCLUSTER **clustPruneByCWPval(VOLCLUSTER **vclist, int nlist,
+				double cwpvalthresh, int *nkeep)
+{
+  VOLCLUSTER **vcprune;
+  int n;
+
+  /* count the number to keep -- Note: pvalue, NOT -log10(p)*/
+  *nkeep = 0;
+  for (n=0; n < nlist ; n++)
+    if(vclist[n]->pval_clusterwise <= cwpvalthresh) (*nkeep) ++;
+  vcprune = (VOLCLUSTER **) calloc( *nkeep , sizeof(VOLCLUSTER *));
+
+  *nkeep = 0;
+  for (n=0; n < nlist ; n++){
+    if(vclist[n]->pval_clusterwise <= cwpvalthresh){
+      vcprune[(*nkeep)] = clustCopyCluster(vclist[n]);
+      (*nkeep) ++;
+    }
+  }
+
+  return(vcprune);
+}
+
+
 
 /*----------------------------------------------------------------*/
 VOLCLUSTER *clustCopyCluster(VOLCLUSTER *vc)
@@ -643,6 +670,10 @@ VOLCLUSTER *clustCopyCluster(VOLCLUSTER *vc)
   vc2->maxmember = vc->maxmember;
   vc2->maxval = vc->maxval;
   vc2->voxsize = vc->voxsize;
+
+  vc2->pval_clusterwise     = vc->pval_clusterwise;
+  vc2->pval_clusterwise_low = vc->pval_clusterwise_low;
+  vc2->pval_clusterwise_hi  = vc->pval_clusterwise_hi;
 
   return(vc2);
 }

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/02 22:43:08 $
- *    $Revision: 1.19 $
+ *    $Date: 2007/06/18 02:13:15 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -92,6 +92,9 @@ VOLCLUSTER **clustPruneBySize(VOLCLUSTER **vclist, int nlist,
 
 VOLCLUSTER **clustPruneByDistance(VOLCLUSTER **vclist, int nlist,
                                   float distthresh, int *nkeep);
+
+VOLCLUSTER **clustPruneByCWPval(VOLCLUSTER **vclist, int nlist,
+				double cwpvalthresh, int *nkeep);
 
 int clustCompareCluster(const void *a, const void *b);
 VOLCLUSTER **clustSortClusterList(VOLCLUSTER **vclist, int nlist,
