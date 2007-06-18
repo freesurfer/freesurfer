@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.54 2007/06/14 21:17:37 greve Exp $
+% $Id: fast_selxavg3.m,v 1.55 2007/06/18 19:05:29 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/14 21:17:37 $
-%    $Revision: 1.54 $
+%    $Date: 2007/06/18 19:05:29 $
+%    $Revision: 1.55 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.54 2007/06/14 21:17:37 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.55 2007/06/18 19:05:29 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -644,10 +644,12 @@ if(DoGLMFit)
        'rfm','acfseg','nrho1segmn','acfsegmn',...
        'DoSynth','SynthSeed','UseFloat','yrun_randn');
   
-
+  % Save baseline as both h-offset and meanfunc
   baseline = mri;
   baseline.vol = fast_mat2vol(mean(betamat(ind0,:),1),mri.volsize);
   fname = sprintf('%s/h-offset.%s',outanadir,ext);
+  MRIwrite(baseline,fname);
+  fname = sprintf('%s/meanfunc.%s',outanadir,ext);
   MRIwrite(baseline,fname);
   baselinemat = fast_vol2mat(baseline.vol);
 
@@ -670,16 +672,16 @@ if(DoGLMFit)
   fname = sprintf('%s/rstd.%s',outanadir,ext);
   MRIwrite(rstd,fname);
   
-  snr = mri;
-  snr.vol = zeros(snr.volsize);
-  snr.vol(indnz) = baseline.vol(indnz)./rstd.vol(indnz);
-  fname = sprintf('%s/snr.%s',outanadir,ext);
-  MRIwrite(snr,fname);
+  fsnr = mri;
+  fsnr.vol = zeros(fsnr.volsize);
+  fsnr.vol(indnz) = baseline.vol(indnz)./rstd.vol(indnz);
+  fname = sprintf('%s/fsnr.%s',outanadir,ext);
+  MRIwrite(fsnr,fname);
   
-  snr2 = snr;
-  snr2.vol = snr.vol.^2;
-  fname = sprintf('%s/snr2.%s',outanadir,ext);
-  MRIwrite(snr2,fname);
+  fsnr2 = fsnr;
+  fsnr2.vol = fsnr.vol.^2;
+  fname = sprintf('%s/fsnr2.%s',outanadir,ext);
+  MRIwrite(fsnr2,fname);
   
   if(DoSynth)
     bmn  = mean(betamat(1:nTask,indmask),2);
