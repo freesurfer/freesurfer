@@ -34,6 +34,8 @@ freesurfer/lib/tcltktixblt/lib/tix8.1/demos
 freesurfer/lib/tcltktixblt/lib/blt2.4/demos
 freesurfer/lib/qt
 freesurfer/lib/vtk/src
+freesurfer/lib/itk/src
+freesurfer/lib/petsc/src
 freesurfer/lib/KWWidgets/src
 freesurfer/lib/dev
 freesurfer/include
