@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.84 2007/04/15 01:05:37 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.85 2007/06/18 23:16:24 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -599,7 +599,7 @@ endif
 # create tarball
 ######################################################################
 # If building stable-pub, then create a tarball
-if ("$RELEASE_TYPE" == "stable-pub") then
+if ("$RELEASE_TYPE" == "stable-pub" || -e ${BUILD_DIR}/TARBALL ) then
   set cmd=($SCRIPT_DIR/create_targz.csh $PLATFORM $RELEASE_TYPE)
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
@@ -688,5 +688,5 @@ endif
 # on minerva, need to clean-up some space, since /home is small
 if ("$HOSTNAME" == "minerva") then
   cd ${DEV_DIR}
-  make clean
+  make clean >>& $OUTPUTF
 endif
