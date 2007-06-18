@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/13 04:18:01 $
-#    $Revision: 1.31 $
+#    $Date: 2007/06/18 02:22:28 $
+#    $Revision: 1.32 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.31 2007/06/13 04:18:01 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.32 2007/06/18 02:22:28 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -301,10 +301,12 @@ if($DoFWHM && ! $monly) then
       if($status) exit 1;
 
       # Compute FWHM
-      set sumfile = $anadir/fwhm.dat
+      set sumfile = $anadir/fwhm.sum
+      set datfile = $anadir/fwhm.dat
       if($geometry == volume) then
         # Volume-based cmd line
-        set cmd = (mri_fwhm --mask $anadir/mask.nii --i $all --sum $sumfile)
+        set cmd = (mri_fwhm --mask $anadir/mask.nii --i $all)
+        set cmd = ($cmd --sum $sumfile --dat $datfile)
       else
         # Surface-based cmd line
         set reg = $sess/$fsd/register.dat
