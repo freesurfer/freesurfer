@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.39 2007/06/18 17:34:51 greve Exp $
+# $Id: FreeSurferEnv.sh,v 1.40 2007/06/18 21:19:26 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.39 2007/06/18 17:34:51 greve Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.40 2007/06/18 21:19:26 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -196,8 +196,8 @@ fi
 if [ $output == 1 ]; then
     echo "FREESURFER_HOME   $FREESURFER_HOME"
     echo "FSFAST_HOME       $FSFAST_HOME"
-    echo "SUBJECTS_DIR      $SUBJECTS_DIR"
     echo "FSF_OUTPUT_FORMAT $FSF_OUTPUT_FORMAT"
+    echo "SUBJECTS_DIR      $SUBJECTS_DIR"
 fi
 
 
@@ -261,7 +261,7 @@ fi
 
 ### ----------- MINC Stuff -------------- ####
 if [[ $output == 1 && -n "$MNI_DIR" ]]; then
-    echo "MNI_DIR         $MNI_DIR"
+    echo "MNI_DIR           $MNI_DIR"
 fi
 #if [[ $output == 1 && -n "$MINC_BIN_DIR" ]]; then
 #    echo "MINC_BIN_DIR    $MINC_BIN_DIR"
@@ -405,7 +405,7 @@ if [ -n "$FSL_BIN" ]; then
     PATH=$FSL_BIN:$PATH
 fi
 if [[ $output == 1 && -n "$FSL_DIR" ]]; then
-    echo "FSL_DIR         $FSL_DIR"
+    echo "FSL_DIR           $FSL_DIR"
 fi
 
 

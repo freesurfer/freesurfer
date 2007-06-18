@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.72 2007/06/18 17:34:51 greve Exp $
+# $Id: FreeSurferEnv.csh,v 1.73 2007/06/18 21:19:26 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.72 2007/06/18 17:34:51 greve Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.73 2007/06/18 21:19:26 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -188,8 +188,8 @@ if( ! $?FSF_OUTPUT_FORMAT) setenv FSF_OUTPUT_FORMAT nii
 if( $output ) then
     echo "FREESURFER_HOME   $FREESURFER_HOME"
     echo "FSFAST_HOME       $FSFAST_HOME"
-    echo "SUBJECTS_DIR      $SUBJECTS_DIR"
     echo "FSF_OUTPUT_FORMAT $FSF_OUTPUT_FORMAT"
+    echo "SUBJECTS_DIR      $SUBJECTS_DIR"
 endif
 
 ######## --------- Functional Analysis Stuff ----------- #######
@@ -252,7 +252,7 @@ endif
 
 ### ----------- MINC Stuff -------------- ####
 if( $output && $?MNI_DIR ) then
-    echo "MNI_DIR         $MNI_DIR"
+    echo "MNI_DIR           $MNI_DIR"
 endif
 #if( $output && $?MINC_BIN_DIR ) then
 #    echo "MINC_BIN_DIR    $MINC_BIN_DIR"
