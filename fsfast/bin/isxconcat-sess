@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/18 07:06:36 $
-#    $Revision: 1.18 $
+#    $Date: 2007/06/18 19:04:56 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.18 2007/06/18 07:06:36 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.19 2007/06/18 19:04:56 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -34,7 +34,7 @@ set fsd  = ();
 set contrastlist = ();
 
 set conmaplist = ();
-set anamaplist = (h-offset snr)
+set anamaplist = (meanfunc snr)
 
 set interp = trilin
 set fwhm = ();
@@ -246,7 +246,8 @@ foreach hemi ($hemilist)
 
        set glmdir = $outcondir/glm.ffx.$hemi.ces
        set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
-       set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar $DOF)
+       set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar)
+       set cmd = ($cmd --ffxdofdat $ffxdofdat)
        if($ToSurf) set cmd = ($cmd --surf $subject $hemi)
        echo $cmd |& tee -a $LF
        $cmd |& tee -a $LF
