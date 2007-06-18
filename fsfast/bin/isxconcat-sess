@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/18 02:21:00 $
-#    $Revision: 1.16 $
+#    $Date: 2007/06/18 05:41:01 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.16 2007/06/18 02:21:00 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.17 2007/06/18 05:41:01 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -140,7 +140,8 @@ foreach sess ($SessList)
   set srcsubject = `cat $reg | head -n 1`
   echo "$sessid $srcsubject $dofsess" >> $sesslistfile
 end
-echo $DOF > $outdir/ffxdof
+set ffxdofdat = $outdir/ffxdof.dat
+echo $DOF > $ffxdofdat
 
 #-------------------------------------------------
 foreach hemi ($hemilist)
