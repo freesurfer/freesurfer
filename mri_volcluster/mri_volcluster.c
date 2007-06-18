@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/18 01:53:41 $
- *    $Revision: 1.32 $
+ *    $Date: 2007/06/18 02:16:57 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -96,7 +96,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.32 2007/06/18 01:53:41 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.33 2007/06/18 02:16:57 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -159,6 +159,8 @@ int fixtkreg = 1;
 double threshminadj, threshmaxadj;
 int AdjustThreshWhenOneTail=1;
 
+double cwpvalthresh = -1; // pvalue, NOT log10(p)!
+
 CSD *csd=NULL;
 char *csdfile;
 double pvalLow, pvalHi, ciPct=90, pval, ClusterSize;
@@ -201,7 +203,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.32 2007/06/18 01:53:41 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.33 2007/06/18 02:16:57 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -430,7 +432,7 @@ int main(int argc, char **argv) {
   if (debug)
     clustDumpClusterList(stdout,ClusterList, nclusters, vol, frame);
 
-  if (csd != NULL) {
+  if(csd != NULL) {
     for (n=0; n < nclusters; n++) {
       ClusterSize = ClusterList[n]->nmembers * voxsize;
       pval = CSDpvalClustSize(csd, ClusterSize, ciPct, &pvalLow, &pvalHi);
@@ -445,9 +447,15 @@ int main(int argc, char **argv) {
       pval = RFprobZClusterSigThresh
              (ClusterSize, threshmin, fwhm, searchspace, 3);
       ClusterList[n]->pval_clusterwise     = pval;
-      ClusterList[n]->pval_clusterwise_low = pvalLow;
-      ClusterList[n]->pval_clusterwise_hi  = pvalHi;
     }
+  }
+  /* Remove clusters that do not meet the minimum clusterwise pvalue */
+  if(cwpvalthresh > 0 && (fwhm >0 || csd != NULL) ){
+    printf("Pruning by CW P-Value %g\n",cwpvalthresh);
+    ClusterList2 = clustPruneByCWPval(ClusterList,nclusters,
+                                        cwpvalthresh, &nprunedclusters);
+    nclusters = nprunedclusters;
+    ClusterList = ClusterList2;
   }
 
   /* Open the Summary File (or set its pointer to stdout) */
@@ -474,6 +482,9 @@ int main(int argc, char **argv) {
 
   if (distthresh > 0)
     fprintf(fpsum,"Distance Threshold: %g (mm)\n",distthresh);
+
+  if(cwpvalthresh > 0)
+    fprintf(fpsum,"CW PValue Threshold: %g \n",cwpvalthresh);
 
   fprintf(fpsum,"Size Threshold:    %g mm^3\n",sizethresh);
   fprintf(fpsum,"Size Threshold:    %g voxels\n",sizethresh/voxsize);
@@ -762,6 +773,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       clustwisesigfile = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--cwpvalthresh") ) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&cwpvalthresh);
+      nargsused = 1;
     } else if (!strcmp(option, "--ocn")) {
       if (nargc < 1) argnerr(option,1);
       outcnid = pargv[0];
@@ -907,6 +922,9 @@ static void print_usage(void) {
   printf("   --thmax   maxthresh : maximum intensity threshold\n");
   printf("   --sign    sign      : <abs> or pos/neg for one-sided tests\n");
   printf("   --no-adjust  : do not adjust thresh for one-tailed tests\n");
+  printf("\n");
+  printf("   --cwpvalthresh pval : require clusters to have cwp < thresh\n");
+  printf("      with --fwhm or --csd\n");
   printf("\n");
   printf("   --reg     register.dat : for reporting talairach coords\n");
   printf("   --fsaverage : assume input is in fsaverage space\n");
