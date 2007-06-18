@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/18 19:04:56 $
-#    $Revision: 1.19 $
+#    $Date: 2007/06/18 19:05:56 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.19 2007/06/18 19:04:56 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.20 2007/06/18 19:05:56 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -34,7 +34,7 @@ set fsd  = ();
 set contrastlist = ();
 
 set conmaplist = ();
-set anamaplist = (meanfunc snr)
+set anamaplist = (meanfunc fsnr)
 
 set interp = trilin
 set fwhm = ();
