@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/18 05:41:01 $
-#    $Revision: 1.17 $
+#    $Date: 2007/06/18 07:06:36 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.17 2007/06/18 05:41:01 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.18 2007/06/18 07:06:36 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -46,6 +46,7 @@ set ToSurf = 0;
 set DoPercent = 0;
 set DoAllContrasts = 0;
 set DoOSGM = 0;
+set SplitMVC = 1; # Split multivariate contrasts
 
 # for volume-based only
 set talres = 2;
@@ -197,8 +198,9 @@ foreach hemi ($hemilist)
       if($#flac)      set cmd = ($cmd -flac $flac)
       set cmd = ($cmd -m $mapname -o $outvol -interp $interp);
       set cmd = ($cmd -fsd $fsd -c $contrast)
-      if($#tmpdir) set cmd = ($cmd -tmp $tmpdir);
-      if($#fwhm) set cmd = ($cmd -fwhm $fwhm);
+      if($SplitMVC) set cmd = ($cmd -split $tmpdir);
+      if($#tmpdir)  set cmd = ($cmd -tmp $tmpdir);
+      if($#fwhm)    set cmd = ($cmd -fwhm $fwhm);
       if($paireddiff) then
         if($mapname == cesvar || $mapname == cesvarpct) then
           set cmd = ($cmd -paired-sum)
@@ -420,6 +422,10 @@ while( $#argv != 0 )
       set DoOSGM = 1;
       breaksw
 
+    case "-split-mvc"
+      set SplitMVC = 1;
+      breaksw
+
     case "-debug":
       set verbose = 1;
       set echo = 1;
@@ -572,6 +578,7 @@ usage_exit:
   echo "   -paired-avg     : compute avg 1+2, 3+4, etc"
   echo "   -mean           : mean over all frames"
   echo "   -no-anamaps     : do not compute analysis level maps"
+  echo "   -split-mvc      : split multi-variate contrasts"
   echo ""
   echo "  Volume-based options:"
   echo "   -talres res     : 1 or 2 mm (def is 2)"
