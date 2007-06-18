@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/15 04:24:45 $
-#    $Revision: 1.15 $
+#    $Date: 2007/06/18 02:22:02 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION    = '$Id: mc-sess,v 1.15 2007/06/15 04:24:45 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.16 2007/06/18 02:22:02 greve Exp $'
 set cmdargs = ($argv);
 
 set fsd = "bold";
@@ -185,11 +185,6 @@ foreach sess ($SessList)
   if($#targstem) echo "Targ Stem is $targstem"
 
   foreach run ($RunList)  
-    echo "  ------- ************************** -----------" |& tee -a $LF
-    echo "  ------- Motion Correcting Run $run -----------" |& tee -a $LF
-    echo "  ------- ************************** -----------" |& tee -a $LF
-    echo "sess = $sessid" |& tee -a $LF
-    date |& tee -a $LF
     set instem  = $run/$funcstem
     set infmtuse = `getformat_from_stem $instem $infmt`
     if($status) then
@@ -220,6 +215,11 @@ foreach sess ($SessList)
       echo "Update not needed " | tee -a $LF
       ls -lt $instem.$infmtuse $outstem.$outfmt | tee -a $LF
     else
+      echo "  ------- ************************** -----------" |& tee -a $LF
+      echo "  ------- Motion Correcting Run $run -----------" |& tee -a $LF
+      echo "  ------- ************************** -----------" |& tee -a $LF
+      echo "sess = $sessid" |& tee -a $LF
+      date |& tee -a $LF
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
       if($status) exit 1;
