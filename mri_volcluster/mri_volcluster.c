@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/18 05:22:31 $
- *    $Revision: 1.34 $
+ *    $Date: 2007/06/18 19:40:32 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -96,7 +96,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.34 2007/06/18 05:22:31 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.35 2007/06/18 19:40:32 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.34 2007/06/18 05:22:31 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.35 2007/06/18 19:40:32 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -274,7 +274,8 @@ int main(int argc, char **argv) {
                             maskinvert, 0, 1, &nmask, NULL);
     if (binmask == NULL) exit(1);
 
-    if (outmaskid != NULL) MRIwriteType(binmask,outmaskid,outmasktype);
+    //if (outmaskid != NULL) MRIwriteType(binmask,outmaskid,outmasktype);
+    if(outmaskid != NULL) MRIwrite(binmask,outmaskid);
     MRIfree(&maskvol);
     printf("Found %d voxels in mask\n",nmask);
   } else {
@@ -569,7 +570,8 @@ int main(int argc, char **argv) {
   /* Write clusters values to a volume */
   if (outid != 0) {
     outvol = clustClusterList2Vol(ClusterList, nclusters, vol,frame, 1);
-    MRIwriteType(outvol,outid,outtype);
+    //MRIwriteType(outvol,outid,outtype);
+    MRIwrite(outvol,outid);
     MRIfree(&outvol);
   }
 
@@ -596,8 +598,9 @@ int main(int argc, char **argv) {
   /* Write clusters numbers to a volume, include color LUT */
   if (outcnid != 0) {
     outvol = clustClusterList2Vol(ClusterList, nclusters, vol,frame, 0);
-    printf("INFO: writing OCN to %s as type %d\n",outcnid,outcntype);
-    MRIwriteType(outvol,outcnid,outcntype);
+    printf("INFO: writing OCN to %s\n",outcnid);
+    MRIwrite(outvol,outcnid);
+    //MRIwriteType(outvol,outcnid,outcntype);
     MRIfree(&outvol);
     ct = CTABalloc(nclusters+1);
     strcpy(ct->entries[0]->name,"Unknown");
