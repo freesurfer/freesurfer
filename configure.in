@@ -2120,6 +2120,7 @@ AC_OUTPUT([Makefile
            mris_compute_overlap/Makefile
            mris_compute_parc_overlap/Makefile
            mris_convert/Makefile
+           mris_distance_map/Makefile
            mris_curvature/Makefile
            mris_curvature_stats/Makefile
            mris_diff/Makefile
