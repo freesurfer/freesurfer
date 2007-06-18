@@ -55,10 +55,11 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.8 2007/06/14 02:38:55 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.9 2007/06/18 02:19:38 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
+handles.hrfplot = [];
 
 %handles = parse_args(handles,varargin);
 if(isempty(MkAnalysisName))
@@ -156,6 +157,8 @@ handles.flac.TR = sscanf(tmp,'%f');
 if(handles.flac.ana.TER == -1) 
   handles.flac.ana.TER = handles.flac.TR; 
 end
+handles.flac.ana.timewindow = handles.flac.TR * round(24/handles.flac.TR);
+handles.flac.ana.prestim = handles.flac.TR * round(4/handles.flac.TR);
 handles = setstate(handles);
 guidata(hObject, handles);
 return;
@@ -475,6 +478,32 @@ handles = setstate(handles);
 guidata(hObject, handles);
 return;
 
+% ==============================================================
+function pbQuit_Callback(hObject, eventdata, handles)
+if(handles.saveneeded)
+  qs = 'You have edited this analysis without saving .';
+  qs = sprintf('%sContinuing this operation will lose those edits.',qs);
+  qs = sprintf('%sDo you want to continue?.',qs);
+  button = questdlg(qs,'WARNING','yes','no','no');
+  if(strcmp(button,'no')) return; end
+end
+delete(handles.figure1);
+return;
+
+% =======================================================
+function pbPlot_Callback(hObject, eventdata, handles)
+fprintf('here\n');
+handles.hrfplot  
+if(isempty(handles.hrfplot) | ~ishandle(handles.hrfplot))  
+  fprintf('here2\n');
+  handles.hrfplot = figure; 
+  figure(handles.figure1);
+  handles = setstate(handles);
+  guidata(hObject, handles);
+end
+return;
+
+
 % =======================================================
 function cbMCExtReg_Callback(hObject, eventdata, handles)
 val = get(handles.cbMCExtReg,'value');
@@ -672,6 +701,7 @@ if(EnableERBlock && isempty(handles.flac.parfile))
 else
   set(handles.ebParFile,'backgroundcolor','white')
 end
+set(handles.ebParFile,'string',flac.parfile);
 
 set(handles.txFIRTotTimeWin,'enable',FIREnable);
 set(handles.ebFIRTotTimeWin,'enable',FIREnable);
@@ -709,6 +739,20 @@ if(ana.gammafit)  nregressors = 1; end
 if(ana.spmhrffit) nregressors = ana.nspmhrfderiv + 1; end
 if(ana.firfit)    nregressors = round(ana.timewindow/ana.TER); end
 handles.flac.ana.nregressors = nregressors ;
+
+if(ishandle(handles.hrfplot))
+  t = [0:.1:32];
+  hgamma = fmri_hemodyn(t, ana.gamdelay, ana.gamtau, ana.gamexp);
+  hgamma = hgamma/max(hgamma);
+  hspmhrf = fast_spmhrf(t);
+  hspmhrf = hspmhrf/max(hspmhrf);
+  figure(handles.hrfplot);
+  plot(t,hgamma,t,hspmhrf);
+  legend('Gamma','SPM HRF');
+  xlabel('Time (sec)');
+  title('Hemodynamic Response Function');
+  figure(handles.figure1);  
+end
 
 handles.saveneeded = SaveNeeded(handles);
 if(handles.saveneeded)
@@ -826,9 +870,8 @@ if(~cont)
 end
 handles.flac.ana.con = [];
 Nc = round(get(hObject,'Value'));
-handles.flac.ana.nconditions = round(get(hObject,'Value'));
+handles.flac.ana.nconditions = Nc;
 handles = setstate(handles);
-setstate(handles);
 guidata(hObject, handles);
 return;
 

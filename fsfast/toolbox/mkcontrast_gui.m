@@ -337,7 +337,7 @@ switch (cbflag)
   setposition(ud)
   return;
  case 'delete',
-  if(~isempty(ud.hConMatFig)) close(ud.hConMatFig); end
+  if(ishandle(ud.hConMatFig))  close(ud.hConMatFig);  end
   fprintf('Done/Save\n');
   return;
  
