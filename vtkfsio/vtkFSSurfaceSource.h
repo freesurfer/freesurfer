@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/06/04 19:25:16 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/06/19 21:38:44 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,13 +32,14 @@
 #include <vector>
 
 #include "vtkSource.h"
-#include "vtkPolyData.h"
-#include "vtkTransform.h"
+#include "vtkSmartPointer.h"
 extern "C" {
 #include "mrisurf.h"
 }
 
 class vtkFloatArray;
+class vtkPolyData;
+class vtkTransform;
 
 class vtkFSSurfaceSource : public vtkSource {
 public:
@@ -134,7 +135,7 @@ protected:
   //   [  8  9 10 11 ]
   //   [ 12 13 14 15 ]
   double mSurfaceToRASMatrix[16];
-  vtkTransform* mSurfaceToRASTransform;
+  vtkSmartPointer<vtkTransform> mSurfaceToRASTransform;
   
   // RAS bounds.
   bool mbBoundsCacheDirty;

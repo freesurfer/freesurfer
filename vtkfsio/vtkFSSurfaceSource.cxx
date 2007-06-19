@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/06/15 15:36:32 $
- *    $Revision: 1.10 $
+ *    $Author: kteich $
+ *    $Date: 2007/06/19 21:38:44 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,33 +33,31 @@
 #include "vtkFloatArray.h"
 #include "vtkCellArray.h"
 #include "vtkPointData.h"
+#include "vtkPolyData.h"
+#include "vtkTransform.h"
 
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceSource );
-vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.10 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.11 $" );
 
 vtkFSSurfaceSource::vtkFSSurfaceSource() :
     mMRIS( NULL ),
-    mSurfaceToRASTransform( NULL ),
     mbBoundsCacheDirty( true ),
     mHashTable( NULL ) {
 
-  this->vtkSource::SetNthOutput(0, vtkPolyData::New());
-
-  // Releasing data for pipeline parallism.
-  // Filters will know it is empty.
-  this->Outputs[0]->ReleaseData();
-  this->Outputs[0]->Delete();
+   this->vtkSource::SetNthOutput(0, vtkPolyData::New());
+   
+   // Releasing data for pipeline parallism.
+   // Filters will know it is empty.
+   this->Outputs[0]->ReleaseData();
+   this->Outputs[0]->Delete();
 }
 
 vtkFSSurfaceSource::~vtkFSSurfaceSource () {
 
-  if ( NULL != mHashTable )
-    MHTfree( &mHashTable );
-
-  if( NULL != mMRIS )
-    MRISfree( &mMRIS );
+  if( NULL != mHashTable ) MHTfree( &mHashTable );
+  if( NULL != mMRIS ) MRISfree( &mMRIS );
 }
 
 void
@@ -67,13 +65,15 @@ vtkFSSurfaceSource::MRISRead( char const* ifn ) {
 
   char* fn = strdup( ifn );
   MRIS* mris = ::MRISread( fn );
+  free( fn );
   if ( mris == NULL ) {
     throw runtime_error( "MRISread failed" );
   }
 
   // Out with the old and in with the new.
-  if( NULL != mMRIS )
+  if( NULL != mMRIS ) {
     MRISfree( &mMRIS );
+  }    
   mMRIS = mris;
 
   // Get some info from the MRIS.
@@ -126,7 +126,7 @@ vtkFSSurfaceSource::MRISRead( char const* ifn ) {
   }
 
   // Make our transform object and set the matrix.
-  mSurfaceToRASTransform = vtkTransform::New();
+  mSurfaceToRASTransform = vtkSmartPointer<vtkTransform>::New();
   mSurfaceToRASTransform->SetMatrix( mSurfaceToRASMatrix );
   
   // Make the hash table. This makes it with v->x,y,z.
@@ -454,11 +454,17 @@ vtkFSSurfaceSource::Execute () {
   // Allocate all our arrays.
   int cVertices = mMRIS->nvertices;
   int cFaces = mMRIS->nfaces;
-  vtkPoints* newPoints = vtkPoints::New();
+
+  vtkSmartPointer<vtkPoints> newPoints = 
+    vtkSmartPointer<vtkPoints>::New();
   newPoints->Allocate( cVertices );
-  vtkCellArray* newPolys = vtkCellArray::New();
+
+  vtkSmartPointer<vtkCellArray> newPolys = 
+    vtkSmartPointer<vtkCellArray>::New();
   newPolys->Allocate( newPolys->EstimateSize(cFaces,VERTICES_PER_FACE) );
-  vtkFloatArray* newNormals = vtkFloatArray::New();
+
+  vtkSmartPointer<vtkFloatArray> newNormals =
+    vtkSmartPointer<vtkFloatArray>::New();
   newNormals->Allocate( cVertices );
   newNormals->SetNumberOfComponents( 3 );
   newNormals->SetName( "Normals" );
@@ -490,15 +496,9 @@ vtkFSSurfaceSource::Execute () {
   }
 
   output->SetPoints( newPoints );
-  newPoints->Delete();
-
   output->GetPointData()->SetNormals( newNormals );
-  newNormals->Delete();
-
   newPolys->Squeeze(); // since we've estimated size; reclaim some space
   output->SetPolys( newPolys );
-  newPolys->Delete();
-
 }
 
 void
