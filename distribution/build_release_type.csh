@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.87 2007/06/19 15:01:23 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.88 2007/06/19 15:09:12 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -357,7 +357,9 @@ set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 if ($?VTKDIR) then
     set cnfgr=($cnfgr --with-vtk-dir=${VTKDIR})
 endif
-set cnfgr=($cnfgr --with-tiffjpegglut-dir=${TJGDIR})
+set cnfgr=($cnfgr --with-tiff-dir=${TJGDIR})
+set cnfgr=($cnfgr --with-jpeg-dir=${TJGDIR})
+set cnfgr=($cnfgr --with-glut-dir=${TJGDIR})
 set cnfgr=($cnfgr --with-tcl-dir=${TCLDIR})
 set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
 if ($?CPPUNITDIR) then
