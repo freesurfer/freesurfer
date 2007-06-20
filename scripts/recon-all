@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/31 19:22:38 $
-#    $Revision: 1.107 $
+#    $Date: 2007/06/20 21:50:19 $
+#    $Revision: 1.108 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.107 2007/05/31 19:22:38 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.108 2007/06/20 21:50:19 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -158,7 +158,8 @@ set AvgCurvTif = average.curvature.filled.buckner40.tif
 
 # For cortical parcellation atlas, as found in:
 # $FREESURFER_HOME/average/$hemi.$GCS
-set GCS = curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
+set OLD_GCS = curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
+set GCS = curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs
 
 # Set this to 0 to do everything but run the command.
 # This is good for debugging.
