@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/04/19 22:27:17 $
-#    $Revision: 1.241 $
+#    $Date: 2007/06/20 21:34:19 $
+#    $Revision: 1.242 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.241 2007/04/19 22:27:17 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.242 2007/06/20 21:34:19 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -5656,6 +5656,7 @@ proc ShuffleLayersInView { iViewID } {
     set nHighestLevel 0
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	set curLayer($nLevel) [GetLayerInViewAtLevel $iViewID $nLevel]
+	set curReportInfo($nLevel) $gaView(current,reportInfo$nLevel)
 	if { $curLayer($nLevel) != -1 } {
 	    set nHighestLevel $nLevel
 	}
@@ -5679,6 +5680,8 @@ proc ShuffleLayersInView { iViewID } {
 	}
 	
 	SetLayerInViewAtLevel $iViewID $curLayer($nNextLevel) $nLevel
+	set gaView(current,reportInfo$nLevel) $curReportInfo($nNextLevel)
+	SetLevelReportInfoInView $iViewID $nLevel $curReportInfo($nNextLevel)
     }
     
     SelectViewInViewProperties $iViewID
@@ -6732,7 +6735,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.241 2007/04/19 22:27:17 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.242 2007/06/20 21:34:19 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
