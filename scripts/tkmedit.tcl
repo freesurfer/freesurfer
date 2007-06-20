@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/06/14 21:28:54 $
-##    $Revision: 1.125 $
+##    $Date: 2007/06/20 19:55:15 $
+##    $Revision: 1.126 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -1880,9 +1880,9 @@ proc DoEditBrushInfoDlog {} {
 	    tkm_MakeRadioButtons $fwMode y "Mode" gEditBrush($tool,mode) \
 		[list \
 		     [list text "New Value" $DspA_tBrushMode(set) \
-			  "SetBrushInfoModeParamsState set $fwCloneSrc $fwNewValue"] \
+			  "SetBrushInfoModeParamsState set $fwCloneSrc $fwNewValue; SetEditBrushConfiguration"] \
 		     [list text "Clone" $DspA_tBrushMode(clone) \
-			  "SetBrushInfoModeParamsState clone $fwCloneSrc $fwNewValue"]]
+			  "SetBrushInfoModeParamsState clone $fwCloneSrc $fwNewValue; SetEditBrushConfiguration"]]
 	    
 	    tkm_MakeEntry $fwNewValue "New Value" gEditBrush($tool,new) \
 		6 "SetEditBrushConfiguration"
