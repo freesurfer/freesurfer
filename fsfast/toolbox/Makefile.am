@@ -3,7 +3,7 @@
 #
 
 foodir=$(prefix)/fsfast/toolbox
-foo_DATA= $(wildcard *.m)
+foo_DATA= $(wildcard *.m *.fig)
 
 EXTRA_DIST=$(foo_DATA)
 
