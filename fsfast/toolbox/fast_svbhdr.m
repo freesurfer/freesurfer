@@ -19,9 +19,9 @@ function err = fast_svbhdr(m, bhdrfile, isstem)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.6 $
+%    $Author: greve $
+%    $Date: 2007/06/21 06:25:30 $
+%    $Revision: 1.7 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -96,7 +96,7 @@ fprintf(fid,'      normal_r: %f\n',SliceNorm(1));
 fprintf(fid,'      normal_a: %f\n',SliceNorm(2));
 fprintf(fid,'      normal_s: %f\n',SliceNorm(3));
 fprintf(fid,'      image_te: %f\n',m.te);
-fprintf(fid,'      image_tr: %f\n',m.tr);
+fprintf(fid,'      image_tr: %f\n',m.tr/1000); %msec->sec
 fprintf(fid,'      image_ti: %f\n',m.ti);
 fprintf(fid,'    flip_angle: %f\n',m.flip_angle);
 
