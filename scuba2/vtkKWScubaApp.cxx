@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/25 18:18:05 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/06/21 22:12:55 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,14 +32,15 @@
 #include "vtkObjectFactory.h"
 #include "vtkKWOptionDataBase.h"
 #include "IconLoader.h"
+#include "vtksys/CommandLineArguments.hxx"
+#include "vtksys/SystemTools.hxx"
 
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaApp );
-vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.4 $" );
 
-vtkKWScubaApp::vtkKWScubaApp () :
-    mWindow( NULL ) {
+vtkKWScubaApp::vtkKWScubaApp () {
 
   this->GetOptionDataBase()->
     AddEntry( "vtkKWWidget", "SetBackgroundColor", "1 1 1" );
@@ -71,7 +72,7 @@ vtkKWScubaApp::vtkKWScubaApp () :
   this->RestoreApplicationSettingsFromRegistry();
 
   // Create the main window.
-  mWindow = vtkKWScubaWindow::New();
+  mWindow = vtkSmartPointer<vtkKWScubaWindow>::New();
   mWindow->SetApplication( this );
   this->AddWindow( mWindow );
   mWindow->Create();
@@ -80,81 +81,56 @@ vtkKWScubaApp::vtkKWScubaApp () :
 
 vtkKWScubaApp::~vtkKWScubaApp () {
 
-  mWindow->Delete();
-
   this->SaveApplicationSettingsToRegistry();
 }
 
 void
 vtkKWScubaApp::Start ( int argc, char* argv[] ) {
 
+  assert( mWindow.GetPointer() );
+
   mWindow->Display();
 
-  // Command line arguments.
-  for ( int i = 1; i < argc; i++ ) {
+  vtksys::CommandLineArguments args;
+  args.Initialize( argc, argv );
 
-    // If this isn't a dash-option, continue.
-    if ( argv[i] && *argv[i] != '-' ) {
-      cerr << "Unrecognized option: " << argv[i] << endl;
-    }
+  args.AddArgument( "--subject", args.SPACE_ARGUMENT, &msSubjectName,
+		    "A subject name whose directory (prepended with the value of SUBJECTS_DIR and appened with the relative subdirectory) will be used as a prefix for data file names." );
 
-    // Now that we're sure it's a dash-option, remove the dashes.
-    string arg( argv[i] );
-    if ( arg[0] == '-' ) arg = arg.replace( 0, 1, "" );
-    if ( arg[0] == '-' ) arg = arg.replace( 0, 1, "" );
+  vector<string> lfnVolumes;
+  args.AddArgument( "--volume", args.MULTI_ARGUMENT, &lfnVolumes,
+		    "A volume file or list of files to load" );
 
-    // Check the possibilites.
-    if ( arg == "v" || arg == "volume") {
+  vector<string> lfnSurfaces;
+  args.AddArgument( "--surface", args.MULTI_ARGUMENT, &lfnSurfaces,
+		    "A surface file or list of files to load" );
 
-      // Volume. All following arguments are volume names until the
-      // next dash. Keep loading volumes until we see another -. For
-      // each one, try to load it. If failed, put up an error
-      // message and try the next one.
-      do {
-        string s( argv[++i] );
-        try {
-          LoadVolume( s.c_str() );
-        } catch ( exception& e ) {
-          cerr << "Error loading volume \"" << s << "\": " << e.what();
-        }
-      } while ( i+1 < argc && argv[i+1][0] != '-' );
+  vector<string> lfnDTIs;
+  args.AddArgument( "--dti", args.MULTI_ARGUMENT, &lfnDTIs,
+		    "A DTI file or list of files to load" );
 
-    }
+  vector<string> lfnPaths;
+  args.AddArgument( "--path", args.MULTI_ARGUMENT, &lfnPaths,
+		    "A path file or list of files to load" );
 
-    if ( arg == "s" || arg == "surface") {
-
-      // Surface. All following arguments are surface names until the
-      // next dash. Keep loading surfaces until we see another -. For
-      // each one, try to load it. If failed, put up an error
-      // message and try the next one.
-      do {
-        string s( argv[++i] );
-        try {
-          LoadSurface( s.c_str() );
-        } catch ( exception& e ) {
-          cerr << "Error loading surface \"" << s << "\": " << e.what();
-        }
-      } while ( i+1 < argc && argv[i+1][0] != '-' );
-
-    }
-
-    if ( arg == "d" || arg == "dti") {
-
-      // DTI. All following arguments are DTIs names until the
-      // next dash. Keep loading DTIs until we see another -. For
-      // each one, try to load it. If failed, put up an error
-      // message and try the next one.
-      do {
-        string s( argv[++i] );
-        try {
-          LoadDTI( s.c_str() );
-        } catch ( exception& e ) {
-          cerr << "Error loading DTI \"" << s << "\": " << e.what();
-        }
-      } while ( i+1 < argc && argv[i+1][0] != '-' );
-
-    }
+  if( !args.Parse() ) {
+    cerr << "Error parsing arguments." << endl;
+    cerr << args.GetHelp() << endl;
+    exit( 1 );
   }
+
+  vector<string>::iterator tfn;
+  for( tfn = lfnVolumes.begin(); tfn != lfnVolumes.end(); ++tfn )
+    this->LoadVolume( tfn->c_str() );
+
+  for( tfn = lfnSurfaces.begin(); tfn != lfnSurfaces.end(); ++tfn )
+    this->LoadSurface( tfn->c_str() );
+
+  for( tfn = lfnDTIs.begin(); tfn != lfnDTIs.end(); ++tfn )
+    this->LoadDTI( tfn->c_str() );
+
+  for( tfn = lfnPaths.begin(); tfn != lfnPaths.end(); ++tfn )
+    this->LoadPath( tfn->c_str() );
 
   this->Superclass::Start( argc, argv );
 }
@@ -173,32 +149,61 @@ vtkKWScubaApp::SaveApplicationSettingsToRegistry () {
 
 void
 vtkKWScubaApp::LoadVolume ( const char* ifnVolume ) {
+  
+  assert( mWindow.GetPointer() );
 
-  // Just pass to the window.
-  if ( mWindow )
-    mWindow->LoadVolume( ifnVolume );
+  mWindow->LoadVolume( this->FormatFileNameUsingSubjectName(ifnVolume, "mri").c_str() );
 }
 
 void
 vtkKWScubaApp::LoadSurface ( const char* ifnSurface ) {
 
-  // Just pass to the window.
-  if ( mWindow )
-    mWindow->LoadSurface( ifnSurface );
+  assert( mWindow.GetPointer() );
+
+  mWindow->LoadSurface( this->FormatFileNameUsingSubjectName(ifnSurface, "surf").c_str() );
 }
 
 void
 vtkKWScubaApp::LoadDTI ( const char* ifnDTI ) {
 
-  // Just pass to the window.
-  if ( mWindow )
-    mWindow->LoadDTI( ifnDTI );
+  assert( mWindow.GetPointer() );
+
+  mWindow->LoadDTI( this->FormatFileNameUsingSubjectName(ifnDTI, "").c_str() );
 }
 
 void
 vtkKWScubaApp::LoadPath ( const char* ifnPath ) {
 
-  // Just pass to the window.
-  if ( mWindow )
-    mWindow->LoadPath( ifnPath );
+  assert( mWindow.GetPointer() );
+
+  mWindow->LoadPath( this->FormatFileNameUsingSubjectName(ifnPath, "").c_str() );
+}
+
+string
+vtkKWScubaApp::FormatFileNameUsingSubjectName ( const char* ifnMain, 
+						const char* ifnSubDir ) {
+
+  // If this is a full path, don't touch it.
+  if( vtksys::SystemTools::FileIsFullPath( ifnMain ) )
+    return string(ifnMain);
+
+  // Try to load the file relatively first, like if it's ./file.dat
+  if( vtksys::SystemTools::FileExists( ifnMain ) )
+    return string(ifnMain);
+
+  // Try to make a file name from SUBJECTS_DIR.
+  string sSubjectsDir;
+  if( vtksys::SystemTools::GetEnv( "SUBJECTS_DIR", sSubjectsDir )) {
+    
+    // SUBJECTS_DIR/subjetname/ifnSubDir/ifnMain
+    string fnFormatted = sSubjectsDir + "/" + msSubjectName + "/" +
+      string(ifnSubDir) + "/" + string(ifnMain);
+
+    if( vtksys::SystemTools::FileExists( fnFormatted.c_str() ) )
+      return fnFormatted;
+  }
+
+  // That didn't work, we can't find the file. Just return the file
+  // name we got.
+  return string(ifnMain);
 }

@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/25 18:18:05 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/06/21 22:12:55 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,6 +37,7 @@
 
 #include <string>
 #include "vtkKWApplication.h"
+#include "vtkSmartPointer.h"
 
 class vtkKWScubaWindow;
 
@@ -68,12 +69,21 @@ protected:
   vtkKWScubaApp ();
   ~vtkKWScubaApp ();
 
-  vtkKWScubaWindow* mWindow;
+  //BTX
 
-  int mMainWindowX;
-  int mMainWindowY;
-  int mMainWindowWidth;
-  int mMainWindowHeight;
+  // Description:
+  // If we have a subjects dir and subject name, and this is not a
+  // full path file name, create a full path using the subjects dir
+  // and the given subdir.
+  std::string FormatFileNameUsingSubjectName ( const char* ifnMain, 
+					       const char* ifnSubDir );
+
+  // Pointer to our main window.
+  vtkSmartPointer<vtkKWScubaWindow> mWindow;
+
+  // Our subject name, if set.
+  std::string msSubjectName;
+  //ETX
 };
 
 #endif
