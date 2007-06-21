@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/04 21:07:37 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/06/21 04:53:30 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,7 +76,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_z2p.c,v 1.8 2007/05/04 21:07:37 greve Exp $";
+static char vcid[] = "$Id: mri_z2p.c,v 1.9 2007/06/21 04:53:30 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -87,7 +87,7 @@ char *ZVolFile=NULL;
 char *PVolFile=NULL;
 char *Log10PVolFile=NULL;
 char *MaskVolFile=NULL;
-int TwoSided = 0;
+int TwoSided = 1;
 
 MRI *z,*p,*sig,*mask=NULL;
 
@@ -219,7 +219,7 @@ static void print_usage(void) {
   printf("   --log10p sigvolfile : sig volume \n");
   printf("\n");
   printf("   --mask maskfile : mask volume \n");
-  printf("   --two-sided : assume a two-sided, unsigned test (keeps sign of input)\n");
+  printf("   --two-sided : (default) assume a two-sided, unsigned test (keeps sign of input)\n");
   printf("   --one-sided : assume a one-sided, signed test\n");
   printf("   --signed : two-sided/signed pvalue (p = 2*(1-p))\n");
   printf("\n");
