@@ -24,9 +24,9 @@ function m = fast_ldbhdr(bhdrfile);
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.7 $
+%    $Author: greve $
+%    $Date: 2007/06/21 00:13:22 $
+%    $Revision: 1.8 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -93,7 +93,7 @@ while(1)
    case {'normal_a:'},      na = val;
    case {'normal_s:'},      ns = val;
    case {'image_te:'},      m.te = val;
-   case {'image_tr:'},      m.tr = val;
+   case {'image_tr:'},      m.tr = 1000*val; % msec
    case {'image_ti:'},      m.ti = val;
    case {'flip_angle:'},    m.flip_angle = val;
   end
