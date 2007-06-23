@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/14 19:41:05 $
-%    $Revision: 1.23 $
+%    $Date: 2007/06/23 22:09:39 $
+%    $Revision: 1.24 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -327,7 +327,9 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
       end
     end
     cspec.name = clist(nthcon).name(1:end-4);
-    cspec.CondState = zeros(1,nconditions);
+    if(~isfield(cspec,'CondState'))
+      cspec.CondState = zeros(1,nconditions);
+    end
     flac.ana.con(nthcon).cspec = cspec;
     flac.con(nthcon).name     = clist(nthcon).name(1:end-4);
     flac.con(nthcon).varsm    = 0;
