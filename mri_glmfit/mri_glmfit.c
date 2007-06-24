@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/06/18 19:07:27 $
- *    $Revision: 1.133 $
+ *    $Author: greve $
+ *    $Date: 2007/06/24 21:05:52 $
+ *    $Revision: 1.134 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,7 +58,6 @@ USAGE: ./mri_glmfit
    --w-inv : invert weights
    --w-sqrt : sqrt of (inverted) weights
 
-
    --fwhm fwhm : smooth input by fwhm
    --var-fwhm fwhm : smooth variance by fwhm
    --no-mask-smooth : do not mask when smoothing
@@ -70,6 +69,8 @@ USAGE: ./mri_glmfit
    --no-prune : do not prune
    --logy : compute natural log of y prior to analysis
    --no-logy : compute natural log of y prior to analysis
+   --yhat-save : save signal estimate (yhat)
+   --eres-save : save residual error (eres)
 
    --surf subject hemi <surfname> : needed for some flags (uses white by default)
 
@@ -524,7 +525,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.133 2007/06/18 19:07:27 nicks Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.134 2007/06/24 21:05:52 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -536,6 +537,7 @@ char *yffxvarFile = NULL;
 char *GLMDir=NULL;
 char *pvrFiles[50];
 int yhatSave=0;
+int eresSave=0;
 int condSave=0;
 
 char *labelFile=NULL;
@@ -1668,6 +1670,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--save-yhat")) yhatSave = 1;
+    else if (!strcasecmp(option, "--save-eres")) eresSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
@@ -1968,7 +1971,6 @@ printf("   --w weightfile : weight for each input at each voxel\n");
 printf("   --w-inv : invert weights\n");
 printf("   --w-sqrt : sqrt of (inverted) weights\n");
 printf("\n");
-printf("\n");
 printf("   --fwhm fwhm : smooth input by fwhm\n");
 printf("   --var-fwhm fwhm : smooth variance by fwhm\n");
 printf("   --no-mask-smooth : do not mask when smoothing\n");
@@ -1980,6 +1982,8 @@ printf("   --prune : remove voxels that do not have a non-zero value at each fra
 printf("   --no-prune : do not prune\n");
 printf("   --logy : compute natural log of y prior to analysis\n");
 printf("   --no-logy : compute natural log of y prior to analysis\n");
+printf("   --yhat-save : save signal estimate (yhat)\n");
+printf("   --eres-save : save residual error (eres)\n");
 printf("\n");
 printf("   --surf subject hemi <surfname> : needed for some flags (uses white by default)\n");
 printf("\n");
@@ -2405,7 +2409,7 @@ static void check_options(void) {
     sprintf(tmpstr,"%s/rvar.%s",GLMDir,format);
     rvarFile = strcpyalloc(tmpstr);
     sprintf(tmpstr,"%s/eres.%s",GLMDir,format);
-    eresFile = strcpyalloc(tmpstr);
+    if(eresSave) eresFile = strcpyalloc(tmpstr);
     if (yhatSave) {
       sprintf(tmpstr,"%s/yhat.%s",GLMDir,format);
       yhatFile = strcpyalloc(tmpstr);
