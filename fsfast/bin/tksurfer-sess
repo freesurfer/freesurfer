@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/18 02:24:17 $
-#    $Revision: 1.3 $
+#    $Date: 2007/06/24 22:13:14 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.3 2007/06/18 02:24:17 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.4 2007/06/24 22:13:14 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -305,13 +305,13 @@ check_params:
     echo "ERROR: no contrast specified" 
     exit 1;
   endif
-  foreach contrast ($contrastlist)
-    set cmat = $mapanalysis/$contrast.mat
-    if(! -e $cmat) then
-      echo "ERROR: cannot find $cmat"
-      exit 1;
-    endif
-  end
+#  foreach contrast ($contrastlist)
+#    set cmat = $mapanalysis/$contrast.mat
+#    if(! -e $cmat) then
+#      echo "ERROR: cannot find $cmat"
+#      exit 1;
+#    endif
+#  end
 
 goto check_params_return;
 ############--------------##################
