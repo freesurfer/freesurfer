@@ -55,7 +55,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.9 2007/06/18 02:19:38 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.10 2007/06/24 21:14:06 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -189,13 +189,15 @@ if(handles.flac.ana.gammafit & newval == 0)
   set(handles.cbHRFGamma,'value',1);
   return;
 end
-cont = DeleteContrastsDialog(handles);
-if(~cont)
-  handles = setstate(handles);
-  guidata(hObject, handles);
+if(0)
+  cont = DeleteContrastsDialog(handles);
+  if(~cont)
+    handles = setstate(handles);
+    guidata(hObject, handles);
   return;
+  end
+  handles.flac.ana.con = [];
 end
-handles.flac.ana.con = [];
 handles.flac.ana.firfit = 0;
 handles.flac.ana.gammafit = 1;
 handles.flac.ana.spmhrffit = 0;
@@ -211,13 +213,16 @@ if(handles.flac.ana.firfit & newval == 0)
   set(handles.cbHRFFIR,'value',1);
   return;
 end
-cont = DeleteContrastsDialog(handles);
-if(~cont)
-  handles = setstate(handles);
-  guidata(hObject, handles);
-  return;
+if(0)
+  cont = DeleteContrastsDialog(handles);
+  if(~cont)
+    handles = setstate(handles);
+    guidata(hObject, handles);
+    return;
+  end
+  handles.flac.ana.con = [];
 end
-handles.flac.ana.con = [];
+
 handles.flac.ana.firfit = 1;
 handles.flac.ana.gammafit = 0;
 handles.flac.ana.spmhrffit = 0;
@@ -233,13 +238,15 @@ if(handles.flac.ana.spmhrffit & newval == 0)
   set(handles.cbHRFSPMHRF,'value',1);
   return;
 end
-cont = DeleteContrastsDialog(handles);
-if(~cont)
-  handles = setstate(handles);
-  guidata(hObject, handles);
-  return;
+if(0)
+  cont = DeleteContrastsDialog(handles);
+  if(~cont)
+    handles = setstate(handles);
+    guidata(hObject, handles);
+    return;
+  end
+  handles.flac.ana.con = [];
 end
-handles.flac.ana.con = [];
 handles.flac.ana.firfit = 0;
 handles.flac.ana.gammafit = 0;
 handles.flac.ana.spmhrffit = 1;
@@ -266,13 +273,15 @@ if(rem(win,ter) ~= 0)
   return;
 end
 
-cont = DeleteContrastsDialog(handles);
-if(~cont)
-  handles = setstate(handles);
-  guidata(hObject, handles);
-  return;
+if(0)
+  cont = DeleteContrastsDialog(handles);
+  if(~cont)
+    handles = setstate(handles);
+    guidata(hObject, handles);
+    return;
+  end
+  handles.flac.ana.con = [];
 end
-handles.flac.ana.con = [];
 
 handles.flac.ana.timewindow = win;
 handles = setstate(handles);
@@ -735,10 +744,44 @@ if(~isempty(handles.clone))
   set(handles.txClone,'string',tmp);
 end
 
+% nregressors per factor
 if(ana.gammafit)  nregressors = 1; end
 if(ana.spmhrffit) nregressors = ana.nspmhrfderiv + 1; end
 if(ana.firfit)    nregressors = round(ana.timewindow/ana.TER); end
-handles.flac.ana.nregressors = nregressors ;
+
+% Check whether the number of regessors per factor has changed.
+if(handles.flac.ana.nregressors ~= nregressors)
+  for nthcon = 1:ncontrasts
+    cspec = handles.flac.ana.con(nthcon).cspec;
+
+    if(handles.flac.ana.nregressors < nregressors)
+      % Number of regessors per factor has increased
+      % If manually set reg weights, fill new ones in with 0
+      % Otherwise fill with 1s
+      if(cspec.setwdelay) cspec.WDelay(end:nregressors) = 0;
+      else cspec.WDelay(1:nregressors) = 1;
+      end
+    else
+      % Number of regessors per factor has decreased
+      % Just throw away to now unused ones
+      cspec.WDelay = cspec.WDelay(1:nregressors);
+    end
+
+    % This part is pretty hideous
+    if(ana.firfit)
+      cspec.TPreStim   = ana.prestim;
+      cspec.TimeWindow = ana.timewindow;
+    else
+      cspec.TPreStim = 0;
+      cspec.TimeWindow = nregressors * ana.TER;
+    end
+    
+    cspec.ContrastMtx_0 = fast_contrastmtx(cspec);
+    handles.flac.ana.con(nthcon).cspec = cspec;
+  end
+  handles.flac.ana.nregressors = nregressors;
+end
+
 
 if(ishandle(handles.hrfplot))
   t = [0:.1:32];
@@ -886,13 +929,15 @@ return;
 
 % ===============================================================
 function slSPMHRFNDeriv_Callback(hObject, eventdata, handles)
-cont = DeleteContrastsDialog(handles);
-if(~cont)
-  handles = setstate(handles);
-  guidata(hObject, handles);
-  return;
+if(0)
+  cont = DeleteContrastsDialog(handles);
+  if(~cont)
+    handles = setstate(handles);
+    guidata(hObject, handles);
+    return;
+  end
+  handles.flac.ana.con = [];
 end
-handles.flac.ana.con = [];
 Nderiv = round(get(hObject,'Value'));
 handles.flac.ana.nspmhrfderiv = round(get(hObject,'Value'));
 handles = setstate(handles);
