@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/18 19:17:32 $
-#    $Revision: 1.21 $
+#    $Date: 2007/06/24 14:49:32 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.21 2007/06/18 19:17:32 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.22 2007/06/24 14:49:32 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -234,6 +234,7 @@ foreach hemi ($hemilist)
        set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
        set cmd = ($cmd --mask $maskvol)
        if($ToSurf) set cmd = ($cmd --surf $subject $hemi)
+       if($ToVol)  set cmd = ($cmd --nii);
        echo $cmd |& tee -a $LF
        $cmd |& tee -a $LF
        if($status) exit 1;
@@ -242,6 +243,7 @@ foreach hemi ($hemilist)
        set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
        set cmd = ($cmd --mask $maskvol --wls $yffxvar)
        if($ToSurf) set cmd = ($cmd --surf $subject $hemi)
+       if($ToVol)  set cmd = ($cmd --nii);
        echo $cmd |& tee -a $LF
        $cmd |& tee -a $LF
        if($status) exit 1;
@@ -251,6 +253,7 @@ foreach hemi ($hemilist)
        set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar)
        set cmd = ($cmd --ffxdofdat $ffxdofdat)
        if($ToSurf) set cmd = ($cmd --surf $subject $hemi)
+       if($ToVol)  set cmd = ($cmd --nii);
        echo $cmd |& tee -a $LF
        $cmd |& tee -a $LF
        if($status) exit 1;
