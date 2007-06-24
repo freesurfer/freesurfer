@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/18 02:24:11 $
-#    $Revision: 1.20 $
+#    $Date: 2007/06/24 21:16:31 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.20 2007/06/18 02:24:11 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.21 2007/06/24 21:16:31 greve Exp $';
 set inputargs = ($argv);
 
 set PWDCMD = pwd
@@ -322,6 +322,7 @@ if(! $nohdr ) then
   set hdrdat = $analysis$anapend/h.dat
   if(! -e $hdrdat ) then
     echo "ERROR: could not find $hdrdat" |& tee -a $LF
+    pwd
     exit 1;
   endif
 
