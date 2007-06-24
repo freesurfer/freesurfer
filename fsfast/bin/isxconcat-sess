@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/24 14:49:32 $
-#    $Revision: 1.22 $
+#    $Date: 2007/06/24 21:33:31 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.22 2007/06/24 14:49:32 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.23 2007/06/24 21:33:31 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -189,8 +189,11 @@ foreach hemi ($hemilist)
     mkdir -p $outcondir
 
     # copy the contrast.mat file for reference
-    if($#flac == 0) \
-      cp $analysis/$contrast.mat $outcondir/$contrast.lowerlevel.mat
+    if($#flac == 0) then
+      # Might not exist for some reason
+      set cmat = $analysis/$contrast.mat
+      if(-e $cmat)  cp $cmat $outcondir/$contrast.lowerlevel.mat
+    endif
 
     foreach mapname ($conmaplist)
 
@@ -486,6 +489,7 @@ check_params:
   endif
 
   if($DoAllContrasts) then
+    # Wont include merged (ie, conjunction) contrasts
     set matlist = ($analysis/*.mat)
     if($#matlist == 0) then
       echo "ERROR: not contrasts found in $analysis"
