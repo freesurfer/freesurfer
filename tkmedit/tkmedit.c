@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/01 15:05:07 $
- *    $Revision: 1.313 $
+ *    $Date: 2007/06/24 21:12:54 $
+ *    $Revision: 1.314 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.313 $";
+char *VERSION = "$Revision: 1.314 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.313 2007/06/01 15:05:07 greve Exp $",
+     "$Id: tkmedit.c,v 1.314 2007/06/24 21:12:54 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1967,6 +1967,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
              home dir, really */
           gEnableFileNameGuessing = FALSE;
 
+	  // Automatically set brightness/contrast for fsaverage
+	  if(!strcmp(sSubject,"fsaverage")){
+	    fBrightnessMain = .58;
+	    fContrastMain = 14;
+	    bBrightContrastMain = TRUE;
+	  }
         } else {
 
           /* misuse of that switch */
@@ -5887,7 +5893,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.313 2007/06/01 15:05:07 greve Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.314 2007/06/24 21:12:54 greve Exp $ $Name:  $\n"
     )
   );
 
