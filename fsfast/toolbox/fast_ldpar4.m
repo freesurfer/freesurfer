@@ -28,8 +28,8 @@ function par4 = fast_ldpar4(par4file)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/14 01:54:58 $
-%    $Revision: 1.4 $
+%    $Date: 2007/06/24 19:07:04 $
+%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -79,7 +79,10 @@ while(1)
     return;
   end
   if(nthrow == 0) prevcount = count; end
-  if(count ~= prevcount)
+  if(count ~= prevcount & (count < 5 & prevcount < 5))
+    % It is ok for different lines have different numbers of cols
+    % as long as they have atleast 4 columns. This should prevent
+    % the situation where you have 3 cols in one row and 4 in another
     fprintf('ERROR: %s is not correctly formatted. ',par4file);
     fprintf('Line %d has %d items, 1st line had %d\n',...
 	    nthrow+1,count,prevcount);
