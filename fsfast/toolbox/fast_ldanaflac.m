@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/23 22:09:39 $
-%    $Revision: 1.24 $
+%    $Date: 2007/06/25 04:16:17 $
+%    $Revision: 1.25 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -51,6 +51,7 @@ flac.formatext = sprintf('.%s',flac.format);
 info = sprintf('%s/analysis.info',anadir);
 designtype = 'event-related';
 nconditions = [];
+ConditionNames = '';
 fp = fopen(info,'r');
 if(fp == -1)
   fprintf('ERROR: could not open %s\n',info);
@@ -81,6 +82,10 @@ while(1)
    case 'parname',     flac.parfile     = sscanf(tline,'%*s %s',1);
    case 'designtype',  designtype       = sscanf(tline,'%*s %s',1);
    case 'nconditions', nconditions      = sscanf(tline,'%*s %d',1);
+   case 'Condition', 
+    conditionid   = sscanf(tline,'%*s %d',1);
+    ConditionName = sscanfitem(tline,3);
+    ConditionNames = strvcat(ConditionNames,ConditionName);
    otherwise
     fprintf('INFO: key %s unrecognized, line %d, skipping\n',key,nthline);
   end
@@ -181,6 +186,16 @@ ana.nextreg      = nextreg;
 
 ana.ncycles      = ncycles ;
 ana.nconditions  = nconditions;
+if(~isempty(ConditionNames))
+  ana.ConditionNames = ConditionNames;
+else
+  ana.ConditionNames = '';
+  for n = 1:ana.nconditions
+    tmp = sprintf('Condition%02d',n);
+    ana.ConditionNames = strvcat(ana.ConditionNames,tmp);
+  end
+end
+
 
 if(~spmhrffit & ~gammafit) ana.firfit = 1; 
 else                       ana.firfit = 0; 
@@ -397,7 +412,6 @@ for nthcon = 1:ncontrasts
   if(isempty(flactmp))
     fprintf('ERROR: with contrast %s in anadir %s\n',...
 	    flac.con(nthcon).name,anadir);
-    keyboard
     flac = [];
     return;
   end

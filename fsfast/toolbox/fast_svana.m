@@ -1,6 +1,6 @@
 function [err,msg] = fast_svana(ananame,flac)
 % [err,msg] = fast_svana(ananame,ana)
-% $Id: fast_svana.m,v 1.4 2007/06/14 02:35:20 greve Exp $
+% $Id: fast_svana.m,v 1.5 2007/06/25 04:16:17 greve Exp $
 
 err = 1;
 if(nargin ~= 2)
@@ -84,8 +84,21 @@ fprintf(fp,'designtype %s\n',ana.designtype);
 if(~isempty(ana.nconditions))
   fprintf(fp,'nconditions %d\n',ana.nconditions);
 end
+
+% Write out the condition names
+if(~isfield(ana,'ConditionNames'))ana.ConditionNames = '';end
+if(isempty(ana.ConditionNames))
+  for n = 1:ana.nconditions
+    tmp = sprintf('Condition%02d',n);
+    ana.ConditionNames = strvcat(ana.ConditionNames,tmp);
+  end
+end
+for n = 1:ana.nconditions
+  fprintf(fp,'Condition %d %s\n',n,deblank(ana.ConditionNames(n,:)));
+end
 fclose(fp);
 
+%---------------------------------------------------------
 delete_old_contrasts = 1;
 if(delete_old_contrasts)
   tmp = sprintf('%s/*.mat',ananame);
@@ -101,6 +114,7 @@ end
 
 if(~IsERBlock) return; end
 
+%---------------------------------------------------------
 ncon = length(ana.con);
 for nthcon = 1:ncon
   cmtxfile = sprintf('%s/%s.mat',ananame,flac.ana.con(nthcon).cspec.name);
