@@ -3,6 +3,7 @@ function hfig = mkcontrast_gui(varargin)
 % mkcontrast_gui(cbstring);
 % Creates a cspec field in the hparent UserData struct
 %  If Cancel is hit, this field is there but empty
+% $Id: mkcontrast_gui.m,v 1.7 2007/06/25 05:08:20 greve Exp $
 
 msg = [];
 ud = [];
@@ -180,13 +181,6 @@ if(Init)
   ndy = ndy - 80;
   
   % ---------- Handle Regressor Weights -----------------------
-  h = uicontrol('style', 'checkbox','position',  [1 ndy 260 20]);
-  set(h,'string','Set Delay/Regressor Weights Manually',...
-	'tag','cbManRegWeights','value',1);
-  set(h,'callback','mkcontrast_gui(''cbManRegWeights'');');
-  ud.cbManRegWeights = h;
-  ndy = ndy - 20;
-  
   h = uicontrol('style', 'checkbox','position',  [1 ndy 160 20]);
   set(h,'string','Sum Delays/Regressors','tag','cbSumRegressors','value',0);
   set(h,'callback','mkcontrast_gui(''cbSumRegressors'');');
@@ -203,6 +197,13 @@ if(Init)
     ndy = ndy - 20;
   end
   ud.cbRmPreStim = h;
+  
+  h = uicontrol('style', 'checkbox','position',  [1 ndy 260 20]);
+  set(h,'string','Set Delay/Regressor Weights Manually',...
+	'tag','cbManRegWeights','value',1);
+  set(h,'callback','mkcontrast_gui(''cbManRegWeights'');');
+  ud.cbManRegWeights = h;
+  ndy = ndy - 20;
   
   ndy = ndy - 40;
   hpan = uipanel('units','pixels','position',[1 ndy 400 60]);
@@ -315,6 +316,11 @@ switch (cbflag)
     errordlg(msg);
     return;
   end
+  if(isempty(ud.cspec.name))
+    msg = 'You must give a name to your contrast before saving.';
+    errordlg(msg);
+    return;
+  end
   fprintf('Done/Save\n');
   close(ud.hMkConGUI);
   return;
@@ -373,16 +379,16 @@ flac = ud.flac;
 ana = flac.ana;
 Nc = ana.nconditions;
 
-cspec.name = sprintf('contrast%02d',ud.connumber);
-%cspec.name = '';
+%cspec.name = sprintf('contrast%02d',ud.connumber);
+cspec.name = '';
 cspec.CNorm = 1;
 cspec.sumconds = 1;
 cspec.setwcond = 0;
 cspec.CondState = zeros(1,Nc);
-cspec.CondState(1) = 1;
+%cspec.CondState(1) = 1;
 
 cspec.WCond = zeros(1,ana.nconditions);
-cspec.WCond(1) = 1;
+%cspec.WCond(1) = 1;
 
 cspec.setwdelay = 0;
 cspec.sumdelays = 0;
@@ -424,6 +430,8 @@ if(~cspec.sumdelays)
   set(ud.cbManRegWeights,'value',0);
   cspec.WDelay = ones(1,ana.nregressors);
   cspec.setwdelay = 0;
+else
+  set(ud.cbManRegWeights,'enable','on');
 end
 
 set(ud.cbManConWeights,'value',cspec.setwcond);
@@ -434,25 +442,30 @@ set(ud.cbRmPreStim,'value',cspec.RmPreStim);
 set(ud.cbCNorm,'value',cspec.CNorm);
 
 for c = 1:ana.nconditions
-  set(ud.ebConditionW(c),'string',sprintf('%6.4f',cspec.WCond(c)));
   if(cspec.setwcond)
-    set(ud.rbConditionAct(c),'enable','off');
-    set(ud.rbConditionCtl(c),'enable','off');
-    set(ud.rbConditionIgnore(c),'enable','off');
+    % Set condition weights manually
+    set(ud.rbConditionAct(c),   'visible','off');
+    set(ud.rbConditionCtl(c),   'visible','off');
+    set(ud.rbConditionIgnore(c),'visible','off');
     set(ud.ebConditionW(c),'enable','on');
   else
-    set(ud.rbConditionAct(c),'enable','on');
-    set(ud.rbConditionCtl(c),'enable','on');
-    set(ud.rbConditionIgnore(c),'enable','on');    
+    % Set condition weights using radio buttons
+    set(ud.rbConditionAct(c),   'visible','on');
+    set(ud.rbConditionCtl(c),   'visible','on');
+    set(ud.rbConditionIgnore(c),'visible','on');    
     set(ud.ebConditionW(c),'enable','off');
     if(cspec.CondState(c) == 0)
       set(ud.rbConditionIgnore(c),'value',1);
+      cspec.WCond(c) = 0;
     elseif(cspec.CondState(c) == 1)
       set(ud.rbConditionAct(c),'value',1);
+      cspec.WCond(c) = 1;
     else
       set(ud.rbConditionCtl(c),'value',1);
+      cspec.WCond(c) = -1;
     end
   end
+  set(ud.ebConditionW(c),'string',sprintf('%6.4f',cspec.WCond(c)));
 end
 
 for w = 1:ana.nregressors
@@ -473,7 +486,7 @@ pud.cspec = cspec;
 set(ud.hparent,'userdata',pud);
 
 % setposition(ud);
-if(isempty(find(cspec.ContrastMtx_0 ~= 0)))
+if(0 & isempty(find(cspec.ContrastMtx_0 ~= 0)))
   msg = 'Your contrast matrix is currenlty all 0s.';
   msg = sprintf('%s You will not be able to save it as is.',msg);
   fprintf('%s\n',msg);
@@ -549,9 +562,9 @@ function setposition(ud)
   end
   ndy = ndy - 30;
 
-  set(ud.cbManRegWeights, 'position', [1 ndy 260 20]); ndy = ndy - 20;
   set(ud.cbSumRegressors, 'position', [1 ndy 260 20]); ndy = ndy - 20;
-  set(ud.cbRmPreStim,     'position', [1 ndy 260 20]);
+  set(ud.cbRmPreStim,     'position', [1 ndy 260 20]); ndy = ndy - 20;
+  set(ud.cbManRegWeights, 'position', [1 ndy 260 20]); 
   if(ud.flac.ana.firfit) ndy = ndy - 20;  end % Otherwise invisible
   ndy = ndy - 40;
   xx = ud.flac.ana.nregressors * 41;
