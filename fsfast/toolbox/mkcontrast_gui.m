@@ -141,9 +141,11 @@ if(Init)
 
     h = uicontrol('parent',hpan,'style','text',...
 		  'position',[1 1 100 20]);
-    hstring = sprintf('Condition %d',nth);
+    hstring = sprintf('%2d %s',nth,ud.flac.ana.ConditionNames(nth,:));
+    %hstring = sprintf('Condition %d',nth);
     htag = sprintf('txCondition%02d',nth);
     set(h,'string',hstring,'tag',htag);
+    set(h,'HorizontalAlignment','left');
     ud.txCondition(nth) = h;
   
     bgh = uibuttongroup('parent',hpan,'units','pixels',...
