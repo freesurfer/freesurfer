@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/25 18:18:06 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/06/26 20:58:02 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,6 +43,7 @@
 #include "vtkKWScubaView.h"
 #include "vtkKWScubaLayerCollection.h"
 #include "Listener.h"
+#include "vtkSmartPointer.h"
 
 class vtkKWFrame;
 class vtkKWMenu;
@@ -183,61 +184,91 @@ protected:
 
   //BTX
   // The views in the view area.
-  std::map<int,vtkKWScubaView*> maView;
+  std::map<int,vtkSmartPointer<vtkKWScubaView> > maView;
 
-  // Struct for associating a menu and an entry item.
+   // Inserts a 5 pixel wide spacer into the toolbar.
+  static int const kToolbarSpacerWidth;
+  void AddSpacerToToolbar ( vtkKWToolbar* iToolbar, 
+			    int iWidth = kToolbarSpacerWidth );
+
+  // Mini class for creating a menu item and enabling/disabling
+  // it. Parameters are self explanatory.
   class MenuItem {
   public:
-    vtkKWMenu* menu;
-    int nItem;
-    MenuItem () { menu = NULL; nItem = 0; }
+    MenuItem ();
+
+    // Creates a simple menu command.
+    void MakeCommand ( vtkKWMenu* iMenu, int inItem, const char* isText,
+		       vtkObject* iCommandObject, const char* isCommand, 
+		       const char* isAccelerator, const char* isIconKey );
+
+    // Create a check box item.
+    void MakeCheckButton ( vtkKWMenu* iMenu, int inItem, const char* isText,
+			   vtkObject* iCommandObject, const char* isCommand, 
+			   const char* isAccelerator, const char* isIconKey );
+    
+    // Disable or enable the menu item.
+    void SetStateToDisabled ();
+    void SetStateToNormal ();
+
+    // Set/get the check value if it's a check button.
+    void SetSelectedState ( int ibOn );
+    int GetSelectedState ();
+    
+    // Get the index of the menu item.
+    int GetIndex () const;
+
+  protected:
+    vtkSmartPointer<vtkKWMenu> mMenu;
+    int mnItem ;
   };
 
   // Panels.
-  vtkKWFrame* mToolUIFrame;
-  vtkKWFrame* mViewUIFrame;
-  vtkKWFrame* mLayerUIFrame;
+  vtkSmartPointer<vtkKWFrame> mToolUIFrame;
+  vtkSmartPointer<vtkKWFrame> mViewUIFrame;
+  vtkSmartPointer<vtkKWFrame> mLayerUIFrame;
 
   // Menus in panels.
-  vtkKWMenuButton* mMenuTool;
-  vtkKWMenuButton* mMenuView;
-  vtkKWMenuButton* mMenuLayer;
+  vtkSmartPointer<vtkKWMenuButton> mMenuTool;
+  vtkSmartPointer<vtkKWMenuButton> mMenuView;
+  vtkSmartPointer<vtkKWMenuButton> mMenuLayer;
 
   // Toolbar areas.
-  vtkKWToolbar* mToolbarTools;
-  vtkKWToolbar* mToolbarWindow;
-  vtkKWToolbar* mToolbarView;
+  vtkSmartPointer<vtkKWToolbar> mToolbarTools;
+  vtkSmartPointer<vtkKWToolbar> mToolbarWindow;
+  vtkSmartPointer<vtkKWToolbar> mToolbarView;
 
-  // Radio button set for toolbar tools.
-  vtkKWRadioButtonSet* mRadBtnSetTool;
+  // Radio button sets for toolbars.
+  vtkSmartPointer<vtkKWRadioButtonSet> mRadBtnSetViewLayout;
+  vtkSmartPointer<vtkKWRadioButtonSet> mRadBtnSetTool;
 
   // Lookups for menu items to pointers.
-  std::map<int,vtkKWScubaTool*> mToolMenuIndexToPointerMap;
-  std::map<int,vtkKWScubaView*> mViewMenuIndexToPointerMap;
-  std::map<int,vtkKWScubaLayerCollection*> mLayerMenuIndexToPointerMap;
+  std::map<int,vtkSmartPointer<vtkKWScubaTool> > mToolMenuIndexToPointerMap;
+  std::map<int,vtkSmartPointer<vtkKWScubaView> > mViewMenuIndexToPointerMap;
+  std::map<int,vtkSmartPointer<vtkKWScubaLayerCollection> > mLayerMenuIndexToPointerMap;
 
   // Our menu items.
-  MenuItem mMenuLoadVolume;
-  MenuItem mMenuLoadSurface;
-  MenuItem mMenuLoadDTI;
-  MenuItem mMenuLoadPath;
-  MenuItem mMenuLoadODF;
-  MenuItem mMenuSaveVolume;
-  MenuItem mMenuZoomOut;
-  MenuItem mMenuZoomIn;
+  MenuItem* mMenuLoadVolume;
+  MenuItem* mMenuLoadSurface;
+  MenuItem* mMenuLoadDTI;
+  MenuItem* mMenuLoadPath;
+  MenuItem* mMenuLoadODF;
+  MenuItem* mMenuSaveVolume;
+  MenuItem* mMenuZoomOut;
+  MenuItem* mMenuZoomIn;
 
   // Our control buttons.
-  vtkKWPushButton* mBtnLoadVolume;
-  vtkKWPushButton* mBtnSaveVolume;
+  vtkSmartPointer<vtkKWPushButton> mBtnLoadVolume;
+  vtkSmartPointer<vtkKWPushButton> mBtnSaveVolume;
 
   // Our info tables.
-  vtkKWMultiColumnList* mCursorInfoTable;
-  vtkKWMultiColumnList* mMouseOverInfoTable;
+  vtkSmartPointer<vtkKWMultiColumnList> mCursorInfoTable;
+  vtkSmartPointer<vtkKWMultiColumnList> mMouseOverInfoTable;
 
   // The tool associated with this window.
-  vtkKWScubaTool* mCurrentTool;
-  vtkKWScubaView* mCurrentView;
-  vtkKWScubaLayerCollection* mCurrentLayerCollection;
+  vtkSmartPointer<vtkKWScubaTool> mCurrentTool;
+  vtkSmartPointer<vtkKWScubaView> mCurrentView;
+  vtkSmartPointer<vtkKWScubaLayerCollection> mCurrentLayerCollection;
 
   ViewLayout mCurrentViewLayout;
 

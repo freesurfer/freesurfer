@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/25 18:18:05 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/06/26 20:58:02 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,8 +66,9 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaWindow );
-vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.6 $" );
 
+int const vtkKWScubaWindow::kToolbarSpacerWidth = 5;
 const string vtkKWScubaWindow::sDefaultVolumeFileExtension = ".mgz";
 const char* vtkKWScubaWindow::sRegistryKey = "WindowSettings";
 const char* vtkKWScubaWindow::sAutoSizeInfoAreaKey = "AutoSizeInfoArea";
@@ -75,40 +76,20 @@ const char* vtkKWScubaWindow::sAutoSizeInfoAreaKey = "AutoSizeInfoArea";
 
 vtkKWScubaWindow::vtkKWScubaWindow () :
     Listener( "vtkKWScubaWindow" ),
-    mToolUIFrame( NULL ),
-    mViewUIFrame( NULL ),
-    mLayerUIFrame( NULL ),
-    mMenuTool( NULL ),
-    mMenuView( NULL ),
-    mMenuLayer( NULL ),
-    mBtnLoadVolume( NULL ),
-    mBtnSaveVolume( NULL ),
-    mCursorInfoTable( NULL ),
-    mMouseOverInfoTable( NULL ),
-    mCurrentTool( NULL ),
-    mCurrentView( NULL ),
-    mCurrentLayerCollection( NULL ),
+    mMenuLoadVolume( NULL ),
+    mMenuLoadSurface( NULL ),
+    mMenuLoadDTI( NULL ),
+    mMenuLoadPath( NULL ),
+    mMenuLoadODF( NULL ),
+    mMenuSaveVolume( NULL ),
+    mMenuZoomOut( NULL ),
+    mMenuZoomIn( NULL ),
     mCurrentViewLayout( NoViewLayout ),
     mbAutoSizeInfoArea( 1 ) {
 
 }
 
 vtkKWScubaWindow::~vtkKWScubaWindow () {
-
-  if ( mCursorInfoTable ) mCursorInfoTable->Delete();
-  if ( mMouseOverInfoTable ) mMouseOverInfoTable->Delete();
-  if ( mToolUIFrame ) mToolUIFrame->Delete();
-  if ( mViewUIFrame ) mLayerUIFrame->Delete();
-  if ( mLayerUIFrame ) mLayerUIFrame->Delete();
-  if ( mBtnLoadVolume ) mBtnLoadVolume->Delete();
-  if ( mBtnSaveVolume ) mBtnSaveVolume->Delete();
-
-  map<int,vtkKWScubaView*>::iterator tView;
-  for( tView = maView.begin(); tView != maView.end(); ++tView ) {
-    vtkKWScubaView* view = tView->second;
-    if( view )
-      view->Delete();
-  }
 }
 
 void
@@ -147,7 +128,7 @@ vtkKWScubaWindow::Create () {
   // layers. Note that we don't use the secondary UserInterface
   // Manager, we just pack these things right into the frame. This is
   // because we don't need any kind of paged interface here.
-  mCursorInfoTable = vtkKWMultiColumnList::New();
+  mCursorInfoTable = vtkSmartPointer<vtkKWMultiColumnList>::New();
   mCursorInfoTable->SetParent( this->GetSecondaryPanelFrame() );
   mCursorInfoTable->Create();
   mCursorInfoTable->ColumnLabelsVisibilityOff();
@@ -157,7 +138,7 @@ vtkKWScubaWindow::Create () {
   mCursorInfoTable->AddColumn( "" );
   mCursorInfoTable->ColumnStretchableOn( 1 );
 
-  mMouseOverInfoTable = vtkKWMultiColumnList::New();
+  mMouseOverInfoTable = vtkSmartPointer<vtkKWMultiColumnList>::New();
   mMouseOverInfoTable->SetParent( this->GetSecondaryPanelFrame() );
   mMouseOverInfoTable->Create();
   mMouseOverInfoTable->ColumnLabelsVisibilityOff();
@@ -191,7 +172,8 @@ vtkKWScubaWindow::Create () {
 
   //
   // The tool frame.
-  vtkKWFrameWithLabel* toolFrame = vtkKWFrameWithLabel::New();
+  vtkSmartPointer<vtkKWFrameWithLabel> toolFrame = 
+    vtkSmartPointer<vtkKWFrameWithLabel>::New();
   toolFrame->SetParent( panelFrame );
   toolFrame->Create();
   toolFrame->SetLabelText( "Tool" );
@@ -199,8 +181,8 @@ vtkKWScubaWindow::Create () {
 		toolFrame->GetWidgetName() );
 
   // Menu for tools.
-  vtkKWMenuButtonWithSpinButtonsWithLabel* labeledMenu =
-    vtkKWMenuButtonWithSpinButtonsWithLabel::New();
+  vtkSmartPointer<vtkKWMenuButtonWithSpinButtonsWithLabel> labeledMenu =
+    vtkSmartPointer<vtkKWMenuButtonWithSpinButtonsWithLabel>::New();
   labeledMenu->SetParent( toolFrame->GetFrame() );
   labeledMenu->Create();
   labeledMenu->SetLabelText( "Tool: " );
@@ -208,7 +190,7 @@ vtkKWScubaWindow::Create () {
   mMenuTool = labeledMenu->GetWidget()->GetWidget();
 
   // A subframe for the tool.
-  mToolUIFrame = vtkKWFrame::New();
+  mToolUIFrame = vtkSmartPointer<vtkKWFrame>::New();
   mToolUIFrame->SetParent( toolFrame->GetFrame() );
   mToolUIFrame->Create();
 
@@ -224,21 +206,23 @@ vtkKWScubaWindow::Create () {
   // Create the View frame. Make our view-selecting menu for it,
   // and then another frame underneath that. The views will populate
   // that second frame. Leave it blank for now.
-  vtkKWFrameWithLabel* viewFrame = vtkKWFrameWithLabel::New();
+  vtkSmartPointer<vtkKWFrameWithLabel> viewFrame =
+    vtkSmartPointer<vtkKWFrameWithLabel>::New();
   viewFrame->SetParent( panelFrame );
   viewFrame->Create();
   viewFrame->SetLabelText( "View" );
   this->Script( "pack %s -side top -fill x -anchor nw",
 		viewFrame->GetWidgetName() );
 
-  labeledMenu = vtkKWMenuButtonWithSpinButtonsWithLabel::New();
+  labeledMenu = 
+    vtkSmartPointer<vtkKWMenuButtonWithSpinButtonsWithLabel>::New();
   labeledMenu->SetParent( viewFrame->GetFrame() );
   labeledMenu->Create();
   labeledMenu->SetLabelText( "View: " );
 
   mMenuView = labeledMenu->GetWidget()->GetWidget();
 
-  mViewUIFrame = vtkKWFrame::New();
+  mViewUIFrame = vtkSmartPointer<vtkKWFrame>::New();
   mViewUIFrame->SetParent( viewFrame->GetFrame() );
   mViewUIFrame->Create();
 
@@ -251,21 +235,23 @@ vtkKWScubaWindow::Create () {
   // Create the Layer frame. Make our layer-selecting menu for it,
   // and then another frame underneath that. The layers will populate
   // that second frame. Leave it blank for now.
-  vtkKWFrameWithLabel* layerFrame = vtkKWFrameWithLabel::New();
+  vtkSmartPointer<vtkKWFrameWithLabel> layerFrame =
+    vtkSmartPointer<vtkKWFrameWithLabel>::New();
   layerFrame->SetParent( panelFrame );
   layerFrame->Create();
   layerFrame->SetLabelText( "Layer" );
   this->Script( "pack %s -side top -fill x -anchor nw",
 		layerFrame->GetWidgetName() );
 
-  labeledMenu = vtkKWMenuButtonWithSpinButtonsWithLabel::New();
+  labeledMenu = 
+    vtkSmartPointer<vtkKWMenuButtonWithSpinButtonsWithLabel>::New();
   labeledMenu->SetParent( layerFrame->GetFrame() );
   labeledMenu->Create();
   labeledMenu->SetLabelText( "Layer: " );
 
   mMenuLayer = labeledMenu->GetWidget()->GetWidget();
 
-  mLayerUIFrame = vtkKWFrame::New();
+  mLayerUIFrame = vtkSmartPointer<vtkKWFrame>::New();
   mLayerUIFrame->SetParent( layerFrame->GetFrame() );
   mLayerUIFrame->Create();
 
@@ -277,7 +263,7 @@ vtkKWScubaWindow::Create () {
 
   //
   // Make our tool toolbar.
-  mToolbarTools = vtkKWToolbar::New();
+  mToolbarTools = vtkSmartPointer<vtkKWToolbar>::New();
   mToolbarTools->SetName( "Tools" );
   mToolbarTools->SetParent( this->GetMainToolbarSet()->GetToolbarsFrame() );
   mToolbarTools->Create();
@@ -285,7 +271,7 @@ vtkKWScubaWindow::Create () {
   
   //
   // Make our window command toolbar.
-  mToolbarWindow = vtkKWToolbar::New();
+  mToolbarWindow = vtkSmartPointer<vtkKWToolbar>::New();
   mToolbarWindow->SetName( "Main" );
   mToolbarWindow->SetParent( this->GetMainToolbarSet()->GetToolbarsFrame() );
   mToolbarWindow->Create();
@@ -293,7 +279,7 @@ vtkKWScubaWindow::Create () {
   
   //
   // Make the view toolbar, we'll fill it in later.
-  mToolbarView = vtkKWToolbar::New();
+  mToolbarView = vtkSmartPointer<vtkKWToolbar>::New();
   mToolbarView->SetName( "View" );
   mToolbarView->SetParent( this->GetMainToolbarSet()->GetToolbarsFrame() );
   mToolbarView->Create();
@@ -305,7 +291,7 @@ vtkKWScubaWindow::Create () {
   // it for us.
 
   // Load Volume
-  mBtnLoadVolume = vtkKWPushButton::New();
+  mBtnLoadVolume = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnLoadVolume->SetParent( mToolbarWindow->GetFrame() );
   mBtnLoadVolume->Create();
   mBtnLoadVolume->SetText( "Load Volume" );
@@ -317,7 +303,7 @@ vtkKWScubaWindow::Create () {
   mToolbarWindow->AddWidget( mBtnLoadVolume );
     
   // Save Volume
-  mBtnSaveVolume = vtkKWPushButton::New();
+  mBtnSaveVolume = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnSaveVolume->SetParent( mToolbarWindow->GetFrame() );
   mBtnSaveVolume->Create();
   mBtnSaveVolume->SetText( "Save Volume" );
@@ -329,153 +315,119 @@ vtkKWScubaWindow::Create () {
   mToolbarWindow->AddWidget( mBtnSaveVolume );
 
   // View Layout radio button set.
-  vtkKWRadioButtonSet* mRadBtnSetViewLayout = vtkKWRadioButtonSet::New();
+  mRadBtnSetViewLayout = vtkSmartPointer<vtkKWRadioButtonSet>::New();
   mRadBtnSetViewLayout->SetParent( mToolbarWindow->GetFrame() );
   mRadBtnSetViewLayout->Create();
   mRadBtnSetViewLayout->PackHorizontallyOn();
   mToolbarWindow->AddWidget( mRadBtnSetViewLayout );
 
-  vtkKWRadioButton* mRadBtnViewLayoutSingle = 
-    mRadBtnSetViewLayout->AddWidget( (int)Single );
-  mRadBtnViewLayoutSingle->SetCommand( this, "SetViewLayoutToSingle" );
-  mRadBtnViewLayoutSingle->IndicatorVisibilityOff();
-  try { IconLoader::SetCheckButtonIcon("ViewSingle",mRadBtnViewLayoutSingle); }
+  vtkSmartPointer<vtkKWRadioButton> radBtnViewLayoutSingle;
+  radBtnViewLayoutSingle.
+    TakeReference( mRadBtnSetViewLayout->AddWidget( (int)Single ) );
+  radBtnViewLayoutSingle->SetCommand( this, "SetViewLayoutToSingle" );
+  radBtnViewLayoutSingle->IndicatorVisibilityOff();
+  try { IconLoader::SetCheckButtonIcon("ViewSingle",radBtnViewLayoutSingle); }
   catch( exception& e ) { cerr << "Error loading icon: " << e.what() << endl; }
   if( Single == mCurrentViewLayout )
-    mRadBtnViewLayoutSingle->SelectedStateOn();
+    radBtnViewLayoutSingle->SelectedStateOn();
   
-  vtkKWRadioButton* mRadBtnViewLayoutTwoByTwo = 
-    mRadBtnSetViewLayout->AddWidget( (int)TwoByTwo );
-  mRadBtnViewLayoutTwoByTwo->SetCommand( this, "SetViewLayoutToTwoByTwo" );
-  mRadBtnViewLayoutTwoByTwo->IndicatorVisibilityOff();
-  try { IconLoader::SetCheckButtonIcon("ViewTwoByTwo",mRadBtnViewLayoutTwoByTwo); }
+  vtkSmartPointer<vtkKWRadioButton> radBtnViewLayoutTwoByTwo;
+  radBtnViewLayoutTwoByTwo.
+    TakeReference( mRadBtnSetViewLayout->AddWidget( (int)TwoByTwo ) );
+  radBtnViewLayoutTwoByTwo->SetCommand( this, "SetViewLayoutToTwoByTwo" );
+  radBtnViewLayoutTwoByTwo->IndicatorVisibilityOff();
+  try { IconLoader::SetCheckButtonIcon("ViewTwoByTwo",radBtnViewLayoutTwoByTwo); }
   catch( exception& e ) { cerr << "Error loading icon: " << e.what() << endl; }
   if( TwoByTwo == mCurrentViewLayout )
-    mRadBtnViewLayoutTwoByTwo->SelectedStateOn();
+    radBtnViewLayoutTwoByTwo->SelectedStateOn();
 
   //
   // Build the menus. File menu.
 
-  int nFilePos = GetFileMenuInsertPosition();
+  int nItem = this->GetFileMenuInsertPosition();
 
   // Load Volume.
-  GetFileMenu()->
-  InsertCommand( nFilePos, "L&oad Volume...", this, "LoadVolumeFromDlog" );
-  GetFileMenu()->
-  SetItemImageToPredefinedIcon( nFilePos, vtkKWIcon::IconFileOpen );
-  GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
-  GetFileMenu()->SetItemAccelerator( nFilePos, "Ctrl+O" );
-  mMenuLoadVolume.menu = GetFileMenu();
-  mMenuLoadVolume.nItem = nFilePos;
-  try { IconLoader::SetMenuItemIcon( "LoadVolume", GetFileMenu(), nFilePos ); }
-  catch( exception& e ) { cerr << "Error loading icon: " << e.what() << endl; }
-  nFilePos++;
+  mMenuLoadVolume = new MenuItem();
+  mMenuLoadVolume->
+    MakeCommand( this->GetFileMenu(), nItem++,
+		 "L&oad Volume...", this, "LoadVolumeFromDlog",
+		 "Ctrl+O", "LoadVolume" );
 
   // Load Surface.
-  GetFileMenu()->
-  InsertCommand( nFilePos, "Load Surface...", this, "LoadSurfaceFromDlog" );
-  GetFileMenu()->
-  SetItemImageToPredefinedIcon( nFilePos, vtkKWIcon::IconFileOpen );
-  GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
-  mMenuLoadSurface.menu = GetFileMenu();
-  mMenuLoadSurface.nItem = nFilePos;
-  try { IconLoader::SetMenuItemIcon("LoadSurface", GetFileMenu(), nFilePos ); }
-  catch( exception& e ) { cerr << "Error loading icon: " << e.what() << endl; }
-  nFilePos++;
+  mMenuLoadSurface = new MenuItem();
+  mMenuLoadSurface->
+    MakeCommand( this->GetFileMenu(), nItem++,
+		 "Load Surface...", this, "LoadSurfaceFromDlog",
+		 "", "LoadSurface" );
 
   // Load DTI.
-  GetFileMenu()->
-  InsertCommand( nFilePos, "Load DTI...", this, "LoadDTIFromDlog" );
-  GetFileMenu()->
-  SetItemImageToPredefinedIcon( nFilePos, vtkKWIcon::IconFileOpen );
-  GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
-  mMenuLoadDTI.menu = GetFileMenu();
-  mMenuLoadDTI.nItem = nFilePos;
-  try { IconLoader::SetMenuItemIcon( "LoadDTI", GetFileMenu(), nFilePos ); }
-  catch( exception& e ) { cerr << "Error loading icon: " << e.what() << endl; }
-  nFilePos++;
+  mMenuLoadDTI = new MenuItem();
+  mMenuLoadDTI->
+    MakeCommand( this->GetFileMenu(), nItem++,
+		 "Load DTI...", this, "LoadDTIFromDlog",
+		 "", "LoadDTI" );
   
   // Load Path
-  GetFileMenu()->
-  InsertCommand( nFilePos, "Load Path...", this, "LoadPathFromDlog" );
-  GetFileMenu()->
-  SetItemImageToPredefinedIcon( nFilePos, vtkKWIcon::IconFileOpen );
-  GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
-  mMenuLoadPath.menu = GetFileMenu();
-  mMenuLoadPath.nItem = nFilePos;
-  try { IconLoader::SetMenuItemIcon( "LoadPath", GetFileMenu(), nFilePos ); }
-  catch( exception& e ) { cerr << "Error loading icon: " << e.what() << endl; }
-  nFilePos++;
+  mMenuLoadPath = new MenuItem();
+  mMenuLoadPath->
+    MakeCommand( this->GetFileMenu(), nItem++,
+		 "Load Path...", this, "LoadPathFromDlog",
+		 "", "LoadPath" );
   
   // Load ODF
-  GetFileMenu()->
-  InsertCommand( nFilePos, "Load ODF...", this, "LoadODFFromDlog" );
-  GetFileMenu()->
-  SetItemImageToPredefinedIcon( nFilePos, vtkKWIcon::IconFileOpen );
-  GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
-  mMenuLoadODF.menu = GetFileMenu();
-  mMenuLoadODF.nItem = nFilePos;
-  try { IconLoader::SetMenuItemIcon( "LoadODF", GetFileMenu(), nFilePos ); }
-  catch( exception& e ) { cerr << "Error loading icon: " << e.what() << endl; }
-  nFilePos++;
+  mMenuLoadODF = new MenuItem();
+  mMenuLoadODF->
+    MakeCommand( this->GetFileMenu(), nItem++,
+		 "Load ODF...", this, "LoadODFFromDlog",
+		 "", "LoadODF" );
 
-  GetFileMenu()->InsertSeparator( nFilePos++ );
+  this->GetFileMenu()->InsertSeparator( nItem++ );
 
   // Save Volume.
-  GetFileMenu()->
-  InsertCommand( nFilePos, "&Save Volume", this, "SaveVolumeWithConfirm" );
-  GetFileMenu()->
-  SetItemImageToPredefinedIcon( nFilePos, vtkKWIcon::IconFloppy );
-  GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
-  GetFileMenu()->SetItemAccelerator( nFilePos, "Ctrl+S" );
-  mMenuSaveVolume.menu = GetFileMenu();
-  mMenuSaveVolume.nItem = nFilePos;
-  try { IconLoader::SetMenuItemIcon( "SaveVolume", GetFileMenu(), nFilePos ); }
-  catch( exception& e ) { cerr << "Error loading icon: " << e.what() << endl; }
-  nFilePos++;
+  mMenuSaveVolume = new MenuItem();
+  mMenuSaveVolume->
+    MakeCommand( this->GetFileMenu(), nItem++,
+		 "&Save Volume...", this, "SaveVolumeWithConfirm",
+		 "Ctrl+S", "SaveVolume" );
 
-  GetFileMenu()->InsertSeparator( nFilePos++ );
+  this->GetFileMenu()->InsertSeparator( nItem++ );
 
-  InsertRecentFilesMenu( nFilePos++, this );
+  this->InsertRecentFilesMenu( nItem++, this );
 
-  GetFileMenu()->InsertSeparator( nFilePos++ );
+  this->GetFileMenu()->InsertSeparator( nItem++ );
 
   // View menu.
-  int nViewPos = GetViewMenuInsertPosition();
+  nItem = this->GetViewMenuInsertPosition();
 
   // Zoom Out.
-  GetViewMenu()->InsertCommand( nViewPos, "Zoom Out", this, "ZoomOut");
-  GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
-  //  GetViewMenu()->SetItemAccelerator( nViewPos, "Ctrl+Minus" );
-  mMenuZoomOut.menu = GetViewMenu();
-  mMenuZoomOut.nItem = nViewPos;
-  try { IconLoader::SetMenuItemIcon( "ZoomOut", GetViewMenu(), nViewPos ); }
-  catch( exception& e ) { cerr << "Error loading icon: " << e.what() << endl; }
-  nViewPos++;
+  mMenuZoomOut = new MenuItem();
+  mMenuZoomOut->
+    MakeCommand( this->GetViewMenu(), nItem++,
+		 "Zoom Out", this, "ZoomOut",
+		 "", "ZoomOut" );
 
   // Zoom In.
-  GetViewMenu()->InsertCommand( nViewPos, "Zoom In", this, "ZoomIn");
-  GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
-  //  GetViewMenu()->SetItemAccelerator( nViewPos, "Ctrl+Plus" );
-  mMenuZoomIn.menu = GetViewMenu();
-  mMenuZoomIn.nItem = nViewPos;
-  try { IconLoader::SetMenuItemIcon( "ZoomIn", GetViewMenu(), nViewPos ); }
-  catch( exception& e ) { cerr << "Error loading icon: " << e.what() << endl; }
-  nViewPos++;
+  mMenuZoomIn = new MenuItem();
+  mMenuZoomIn->
+    MakeCommand( this->GetViewMenu(), nItem++,
+		 "Zoom In", this, "ZoomIn",
+		 "", "ZoomIn" );
 
   //
   // Load initial tools. This will just create them and then we will
   // get them later with the IDTracker methods when we build our
   // menu. Don't Delete them tho, as there are no other references to
   // them.
-  vtkKWScubaTool* navigateTool = vtkKWScubaToolNavigate::New();
+  vtkSmartPointer<vtkKWScubaTool> navigateTool = 
+    vtkSmartPointer<vtkKWScubaToolNavigate>::New();
   navigateTool->SetApplication( this->GetApplication() );
 
-  vtkKWScubaTool* tool = vtkKWScubaToolEdit2DMRI::New();
+  vtkSmartPointer<vtkKWScubaTool> tool = 
+    vtkSmartPointer<vtkKWScubaToolEdit2DMRI>::New();
   tool->SetApplication( this->GetApplication() );
 
   // Make a radio button set for our toolbar.
-  mRadBtnSetTool = vtkKWRadioButtonSet::New();
+  mRadBtnSetTool = vtkSmartPointer<vtkKWRadioButtonSet>::New();
   mRadBtnSetTool->SetParent( mToolbarWindow->GetFrame() );
   mRadBtnSetTool->Create();
   
@@ -507,8 +459,8 @@ vtkKWScubaWindow::GetApplicationSettingsInterface() {
 
   if( NULL == ApplicationSettingsInterface ) {
 
-    vtkKWScubaApplicationSettingsInterface* settings = 
-      vtkKWScubaApplicationSettingsInterface::New();
+    vtkSmartPointer<vtkKWScubaApplicationSettingsInterface> settings = 
+      vtkSmartPointer<vtkKWScubaApplicationSettingsInterface>::New();
     settings->SetWindow( this );
     settings->SetScubaWindow( this );
     settings->SetUserInterfaceManager( this->GetApplicationSettingsUserInterfaceManager() );
@@ -523,6 +475,10 @@ void
 vtkKWScubaWindow::LoadVolumeFromDlog () {
 
   // Create a Load dialog and set it up.
+  // The smart pointer version is commented out because of a bug that
+  // occurs when the dialog is deleted.
+  //  vtkSmartPointer<vtkKWLoadSaveDialog> dialog = 
+  //    vtkSmartPointer<vtkKWLoadSaveDialog>::New();
   vtkKWLoadSaveDialog* dialog = vtkKWLoadSaveDialog::New();
   dialog->SetApplication( this->GetApplication() );
   dialog->Create();
@@ -545,6 +501,10 @@ void
 vtkKWScubaWindow::LoadSurfaceFromDlog () {
 
   // Create a Load dialog and set it up.
+  // The smart pointer version is commented out because of a bug that
+  // occurs when the dialog is deleted.
+  //  vtkSmartPointer<vtkKWLoadSaveDialog> dialog = 
+  //    vtkSmartPointer<vtkKWLoadSaveDialog>::New();
   vtkKWLoadSaveDialog* dialog = vtkKWLoadSaveDialog::New();
   dialog->SetApplication( this->GetApplication() );
   dialog->Create();
@@ -566,6 +526,10 @@ void
 vtkKWScubaWindow::LoadDTIFromDlog () {
 
   // Create a Load dialog and set it up.
+  // The smart pointer version is commented out because of a bug that
+  // occurs when the dialog is deleted.
+  //  vtkSmartPointer<vtkKWLoadSaveDialog> dialog = 
+  //    vtkSmartPointer<vtkKWLoadSaveDialog>::New();
   vtkKWLoadSaveDialog* dialog = vtkKWLoadSaveDialog::New();
   dialog->SetApplication( this->GetApplication() );
   dialog->Create();
@@ -588,6 +552,10 @@ void
 vtkKWScubaWindow::LoadPathFromDlog () {
 
   // Create a Load dialog and set it up.
+  // The smart pointer version is commented out because of a bug that
+  // occurs when the dialog is deleted.
+  //  vtkSmartPointer<vtkKWLoadSaveDialog> dialog = 
+  //    vtkSmartPointer<vtkKWLoadSaveDialog>::New();
   vtkKWLoadSaveDialog* dialog = vtkKWLoadSaveDialog::New();
   dialog->SetApplication( this->GetApplication() );
   dialog->Create();
@@ -611,6 +579,10 @@ void
 vtkKWScubaWindow::LoadODFFromDlog () {
 
   // Create a Load dialog and set it up.
+  // The smart pointer version is commented out because of a bug that
+  // occurs when the dialog is deleted.
+  //  vtkSmartPointer<vtkKWLoadSaveDialog> dialog = 
+  //    vtkSmartPointer<vtkKWLoadSaveDialog>::New();
   vtkKWLoadSaveDialog* dialog = vtkKWLoadSaveDialog::New();
   dialog->SetApplication( this->GetApplication() );
   dialog->Create();
@@ -634,7 +606,7 @@ void
 vtkKWScubaWindow::SaveVolumeWithConfirm () {
 
   // If the view has dirty data...
-  if ( mCurrentView && mCurrentView->IsDataDirty() ) {
+  if ( mCurrentView.GetPointer() && mCurrentView->IsDataDirty() ) {
 
     // Bring up a yes/no dialog, and if they click Yes...
     if ( vtkKWMessageDialog::PopupYesNo
@@ -662,7 +634,8 @@ vtkKWScubaWindow::LoadVolume ( const char* ifnVolume ) {
   try {
 
     // Make a MRI layer collection and set it up.
-    vtkKWScubaLayerCollectionMRI* col = vtkKWScubaLayerCollectionMRI::New();
+    vtkSmartPointer<vtkKWScubaLayerCollectionMRI> col = 
+      vtkSmartPointer<vtkKWScubaLayerCollectionMRI>::New();
     col->SetApplication( this->GetApplication() );
 
     // Set the file name in the collectoin.
@@ -696,7 +669,8 @@ vtkKWScubaWindow::LoadSurface ( const char* ifnSurface ) {
   try {
     
     // Make a MRIS layer collectio and set it up.
-    vtkKWScubaLayerCollectionMRIS* col =vtkKWScubaLayerCollectionMRIS::New();
+    vtkSmartPointer<vtkKWScubaLayerCollectionMRIS> col =
+      vtkSmartPointer<vtkKWScubaLayerCollectionMRIS>::New();
     col->SetApplication( this->GetApplication() );
     
     // Set the file name in the collection.
@@ -730,7 +704,8 @@ vtkKWScubaWindow::LoadDTI ( const char* ifnDTI ) {
   try {
 
     // Make a DTI layer collection and set it up.
-    vtkKWScubaLayerCollectionDTI* col = vtkKWScubaLayerCollectionDTI::New();
+    vtkSmartPointer<vtkKWScubaLayerCollectionDTI> col =
+      vtkSmartPointer<vtkKWScubaLayerCollectionDTI>::New();
     col->SetApplication( this->GetApplication() );
 
     // Set the file name in the collectoin.
@@ -763,7 +738,8 @@ vtkKWScubaWindow::LoadPath ( const char* ifnPath ) {
   try {
 
     // Make a path layer collection and set it up.
-    vtkKWScubaLayerCollectionPath* col = vtkKWScubaLayerCollectionPath::New();
+    vtkSmartPointer<vtkKWScubaLayerCollectionPath> col =
+      vtkSmartPointer<vtkKWScubaLayerCollectionPath>::New();
     col->SetApplication( this->GetApplication() );
 
     // Set the file name in the collection.
@@ -796,7 +772,8 @@ vtkKWScubaWindow::LoadODF ( const char* ifnODF ) {
   try {
 
     // Make an ODF layer collection and set it up.
-    vtkKWScubaLayerCollectionODF* col = vtkKWScubaLayerCollectionODF::New();
+    vtkSmartPointer<vtkKWScubaLayerCollectionODF> col =
+      vtkSmartPointer<vtkKWScubaLayerCollectionODF>::New();
     col->SetApplication( this->GetApplication() );
 
     // Set the file name in the collection.
@@ -829,7 +806,7 @@ void
 vtkKWScubaWindow::ZoomBy ( float iFactor ) {
 
   // Go through all our views.
-  map<int,vtkKWScubaView*>::iterator tView;
+  map<int,vtkSmartPointer<vtkKWScubaView> >::iterator tView;
   for( tView = maView.begin(); tView != maView.end(); ++tView ) {
     vtkKWScubaView* view = tView->second;
     view->Set2DZoomLevel( view->Get2DZoomLevel() * iFactor );
@@ -867,8 +844,6 @@ vtkKWScubaWindow::SetViewLayout ( ViewLayout iLayout ) {
 
       this->SetCurrentView( *view );
 
-      //      view->Delete();
-
     } else if( TwoByTwo == mCurrentViewLayout ) {
 
       vtkKWScubaView* topLeft = this->GetNthView( 0 );
@@ -885,28 +860,22 @@ vtkKWScubaWindow::SetViewLayout ( ViewLayout iLayout ) {
       this->Script( "grid %s -column 1 -row 1 -sticky news",
 		    bottomRight->GetWidgetName() );
 
-       vtkKWWidget* parent = topLeft->GetParent();
-       this->Script( "grid rowconfigure %s 0 -weight 1", 
+      vtkKWWidget* parent = topLeft->GetParent();
+      this->Script( "grid rowconfigure %s 0 -weight 1", 
  		    parent->GetWidgetName() );
-       this->Script( "grid rowconfigure %s 1 -weight 1", 
+      this->Script( "grid rowconfigure %s 1 -weight 1", 
  		    parent->GetWidgetName() );
-       this->Script( "grid columnconfigure %s 0 -weight 1", 
+      this->Script( "grid columnconfigure %s 0 -weight 1", 
  		    parent->GetWidgetName() );
-       this->Script( "grid columnconfigure %s 1 -weight 1", 
+      this->Script( "grid columnconfigure %s 1 -weight 1", 
  		    parent->GetWidgetName() );
-
+      
       topLeft->SetLabel( "Top Left" );
       topRight->SetLabel( "Top Right" );
       bottomLeft->SetLabel( "Bottom Left" );
       bottomRight->SetLabel( "Bottom Right" );
 
       this->SetCurrentView( *topLeft );
-
-//       topLeft->Delete();
-//       topRight->Delete();
-//       bottomLeft->Delete();
-//       bottomRight->Delete();
-
     }
 
     this->InitializeViewSettingsForLayout();
@@ -941,11 +910,11 @@ vtkKWScubaWindow::GetCurrentTool () {
 void
 vtkKWScubaWindow::SetCurrentTool ( vtkKWScubaTool& iTool ) {
 
-  if( mCurrentTool == &iTool )
+  if( mCurrentTool.GetPointer() == &iTool )
     return;
   
-  // If we have a current view, tell it to unpopulate the UI frame.
-  if ( mCurrentTool ) {
+  // If we have a current tool, tell it to unpopulate the UI frame.
+  if ( mCurrentTool.GetPointer() ) {
     mCurrentTool->DepopulateControlPage();
   }
 
@@ -964,6 +933,8 @@ vtkKWScubaWindow::SetCurrentTool ( vtkKWScubaTool& iTool ) {
 void
 vtkKWScubaWindow::SetCurrentToolFromMenu () {
 
+  assert( mMenuTool.GetPointer() );
+
   // Try to get an entry. If it's in our map...
   int nEntry = mMenuTool->GetMenu()->GetIndexOfItem( mMenuTool->GetValue() );
   if ( mToolMenuIndexToPointerMap.end() !=
@@ -976,16 +947,14 @@ vtkKWScubaWindow::SetCurrentToolFromMenu () {
   }
 }
 
-#include "vtkRenderer.h"
-
 void
 vtkKWScubaWindow::SetCurrentView ( vtkKWScubaView& iView ) {
 
-  if( mCurrentView == &iView )
+  if( mCurrentView.GetPointer() == &iView )
     return;
 
   // If we have a current view, tell it to unpopulate the UI frame.
-  if ( mCurrentView ) {
+  if ( mCurrentView.GetPointer() ) {
     mCurrentView->DepopulateControlPage();
     mCurrentView->DepopulateToolbar();
   }
@@ -1008,7 +977,9 @@ vtkKWScubaWindow::SetCurrentView ( vtkKWScubaView& iView ) {
 
 void
 vtkKWScubaWindow::SetCurrentViewFromMenu () {
-  
+ 
+  assert( mMenuView.GetPointer() );
+ 
   // Try to get an entry. If it's in our map...
   int nEntry = mMenuView->GetMenu()->GetIndexOfItem( mMenuView->GetValue() );
   if ( mViewMenuIndexToPointerMap.end() !=
@@ -1026,7 +997,7 @@ void
 vtkKWScubaWindow::SetCurrentLayerCollection ( vtkKWScubaLayerCollection& iCol ) {
 
   // If we have a current layer collection, tell it to unpopulate the UI frame.
-  if ( mCurrentLayerCollection )
+  if ( mCurrentLayerCollection.GetPointer() )
     mCurrentLayerCollection->DepopulateControlPage();
 
   // Unpack the layer UI frame and tell the new layer to populate it.
@@ -1043,6 +1014,8 @@ vtkKWScubaWindow::SetCurrentLayerCollection ( vtkKWScubaLayerCollection& iCol ) 
 
 void
 vtkKWScubaWindow::SetCurrentLayerCollectionFromMenu () {
+
+  assert( mMenuLayer.GetPointer() );
 
   // Try to get an entry. If it's in our map...
   int nEntry = mMenuLayer->GetMenu()->GetIndexOfItem( mMenuLayer->GetValue() );
@@ -1062,7 +1035,7 @@ vtkKWScubaWindow::EventDone () {
   // This is called every time an event is done. If we have a view, if
   // it's info has changed, update our info area. This makes sure we
   // always update when the mosue moves or any other event happens.
-  if ( mCurrentView ) {
+  if ( mCurrentView.GetPointer() ) {
     if ( mCurrentView->IsInfoChanged() ) {
       this->UpdateInfoArea();
     }
@@ -1075,7 +1048,7 @@ vtkKWScubaWindow::DoListenToMessage ( string const isMessage,
 
   // If the layer label changed, update our layer menu.
   if ( isMessage == "LayerLabelChanged" ) {
-    UpdateLayerMenu();
+    this->UpdateLayerMenu();
   }
 }
 
@@ -1129,6 +1102,8 @@ vtkKWScubaWindow::SetAutoSizeInfoArea ( int ibSize ) {
 void
 vtkKWScubaWindow::UpdateViewMenu () {
 
+  assert( mMenuView.GetPointer() );
+
   // Clear out the menu and the map.
   mMenuView->GetMenu()->DeleteAllItems();
   mViewMenuIndexToPointerMap.clear();
@@ -1158,6 +1133,8 @@ vtkKWScubaWindow::UpdateViewMenu () {
 void
 vtkKWScubaWindow::UpdateLayerMenu () {
 
+  assert( mMenuLayer.GetPointer() );
+
   // Clear out the menu and the map.
   mMenuLayer->GetMenu()->DeleteAllItems();
   mLayerMenuIndexToPointerMap.clear();
@@ -1184,17 +1161,24 @@ vtkKWScubaWindow::UpdateLayerMenu () {
 void
 vtkKWScubaWindow::UpdateCommandStatus () {
 
+  assert( mMenuLoadVolume );
+  assert( mBtnLoadVolume.GetPointer() );
+  assert( mMenuZoomOut );
+  assert( mMenuZoomIn );
+  assert( mMenuSaveVolume );
+  assert( mBtnSaveVolume.GetPointer() );
+
   // Enable/disable our menus and toolbar buttons accordingly.
-  mMenuLoadVolume.menu->SetItemStateToNormal( mMenuLoadVolume.nItem );
+  mMenuLoadVolume->SetStateToNormal();
   mBtnLoadVolume->SetStateToNormal();
-  mMenuZoomOut.menu->SetItemStateToNormal( mMenuZoomOut.nItem );
-  mMenuZoomIn.menu->SetItemStateToNormal( mMenuZoomIn.nItem );
+  mMenuZoomOut->SetStateToNormal();
+  mMenuZoomIn->SetStateToNormal();
 
   if ( mCurrentView && mCurrentView->IsDataDirty() ) {
-    mMenuSaveVolume.menu->SetItemStateToNormal( mMenuSaveVolume.nItem );
+    mMenuSaveVolume->SetStateToNormal();
     mBtnSaveVolume->SetStateToNormal();
   } else {
-    mMenuSaveVolume.menu->SetItemStateToDisabled( mMenuSaveVolume.nItem );
+    mMenuSaveVolume->SetStateToDisabled();
     mBtnSaveVolume->SetStateToDisabled();
   }
 
@@ -1203,80 +1187,79 @@ vtkKWScubaWindow::UpdateCommandStatus () {
 void
 vtkKWScubaWindow::UpdateInfoArea () {
 
+  assert( mMouseOverInfoTable.GetPointer() );
+  assert( mCursorInfoTable.GetPointer() );
+
   if ( mCurrentView ) {
 
-    // Make sure we have the tables...
-    if ( mMouseOverInfoTable && mCursorInfoTable ) {
-
-      // Cursor items. Get the list of cursor items from the view,
-      // then for each one, make an entry in our table.
-      mCursorInfoTable->InsertCellText( 0, 0, "Cursor" );
-      list<ScubaInfoItem> lCursorItems;
-      mCurrentView->GetCursorInfoItems( lCursorItems );
-      int nItem = 1;
-      list<ScubaInfoItem>::iterator tItem;
-      for ( tItem = lCursorItems.begin();
-            tItem != lCursorItems.end(); ++tItem ) {
-        ScubaInfoItem& item = *tItem;
-        mCursorInfoTable->InsertCellText( nItem, 0, item.GetLabel() );
-        mCursorInfoTable->InsertCellText( nItem, 1, item.GetValue() );
-        nItem++;
-      }
-
-      // Mouseover items. Get the list of mouseover items from the
-      // view, then for each one, make an entry in our table.
-      list<ScubaInfoItem> lMouseOverItems;
-      mCurrentView->GetMouseOverInfoItems( lMouseOverItems );
-      mMouseOverInfoTable->InsertCellText( 0, 0, "Mouse Over" );
-      nItem = 1;
-      for ( tItem = lMouseOverItems.begin();
-            tItem != lMouseOverItems.end(); ++tItem ) {
-        ScubaInfoItem& item = *tItem;
-        mMouseOverInfoTable->InsertCellText( nItem, 0, item.GetLabel() );
-        mMouseOverInfoTable->InsertCellText( nItem, 1, item.GetValue() );
-        nItem++;
-      }
-
-      // Keep track of how many items we had last time. If we have fewer...
-      static int cLastItems = 0;
-      if ( nItem < cLastItems ) {
-
-        // Clear the rows we no longer need. Note that we count from
-        // nItem to nLastDeepestRow, but keep clearing nItem, since
-        // our number of rows change when we delete one. So we delete
-        // the next row as many times as we need to.
-        for ( int nRow = nItem; nRow <= cLastItems; nRow++ ) {
-          mMouseOverInfoTable->DeleteRow( nItem );
-          mCursorInfoTable->DeleteRow( nItem );
-        }
-      }
-      // Remember how many items we had.
-      cLastItems = nItem;
-
-      // Set our panel height to something decent. There doesn't seem
-      // to be any way to get the actual row height from the table, so
-      // this is hopefully a good estimate.
-      if( mbAutoSizeInfoArea ) 
-	this->GetSecondarySplitFrame()->
-	  SetFrame1Size( mCursorInfoTable->GetHeight() * 10 );
+    // Cursor items. Get the list of cursor items from the view,
+    // then for each one, make an entry in our table.
+    mCursorInfoTable->InsertCellText( 0, 0, "Cursor" );
+    list<ScubaInfoItem> lCursorItems;
+    mCurrentView->GetCursorInfoItems( lCursorItems );
+    int nItem = 1;
+    list<ScubaInfoItem>::iterator tItem;
+    for ( tItem = lCursorItems.begin();
+	  tItem != lCursorItems.end(); ++tItem ) {
+      ScubaInfoItem& item = *tItem;
+      mCursorInfoTable->InsertCellText( nItem, 0, item.GetLabel() );
+      mCursorInfoTable->InsertCellText( nItem, 1, item.GetValue() );
+      nItem++;
     }
-
-    // Tell the view that we have updated our info.
-    mCurrentView->InfoUpdated();
+    
+    // Mouseover items. Get the list of mouseover items from the
+    // view, then for each one, make an entry in our table.
+    list<ScubaInfoItem> lMouseOverItems;
+    mCurrentView->GetMouseOverInfoItems( lMouseOverItems );
+    mMouseOverInfoTable->InsertCellText( 0, 0, "Mouse Over" );
+    nItem = 1;
+    for ( tItem = lMouseOverItems.begin();
+	  tItem != lMouseOverItems.end(); ++tItem ) {
+      ScubaInfoItem& item = *tItem;
+      mMouseOverInfoTable->InsertCellText( nItem, 0, item.GetLabel() );
+      mMouseOverInfoTable->InsertCellText( nItem, 1, item.GetValue() );
+      nItem++;
+    }
+    
+    // Keep track of how many items we had last time. If we have fewer...
+    static int cLastItems = 0;
+    if ( nItem < cLastItems ) {
+      
+      // Clear the rows we no longer need. Note that we count from
+      // nItem to nLastDeepestRow, but keep clearing nItem, since
+      // our number of rows change when we delete one. So we delete
+      // the next row as many times as we need to.
+      for ( int nRow = nItem; nRow <= cLastItems; nRow++ ) {
+	mMouseOverInfoTable->DeleteRow( nItem );
+	mCursorInfoTable->DeleteRow( nItem );
+      }
+    }
+    // Remember how many items we had.
+    cLastItems = nItem;
+    
+    // Set our panel height to something decent. There doesn't seem
+    // to be any way to get the actual row height from the table, so
+    // this is hopefully a good estimate.
+    if( mbAutoSizeInfoArea ) 
+      this->GetSecondarySplitFrame()->
+	SetFrame1Size( mCursorInfoTable->GetHeight() * 10 );
   }
-
+  
+  // Tell the view that we have updated our info.
+  mCurrentView->InfoUpdated();
 }
 
 vtkKWScubaView* 
 vtkKWScubaWindow::GetNthView ( int inView ) {
-
-  map<int,vtkKWScubaView*>::iterator tView;
+  
+  map<int,vtkSmartPointer<vtkKWScubaView> >::iterator tView;
   tView = maView.find( inView );
   if( tView != maView.end() )
     if( tView->second )
       return tView->second;
 
-  vtkKWScubaView* view = vtkKWScubaView::New();
+  vtkSmartPointer<vtkKWScubaView> view = 
+    vtkSmartPointer<vtkKWScubaView>::New();
   view->SetParent( this->GetViewPanelFrame() );
   view->Create();
 
@@ -1289,18 +1272,19 @@ vtkKWScubaWindow::GetNthView ( int inView ) {
   // Create our custom interactor style (listener) for this
   // view. Associate it with the view and our tool. Tell the view's
   // window to use this style.
-  vtkScubaInteractorStyle* style = vtkScubaInteractorStyle::New();
+  vtkSmartPointer<vtkScubaInteractorStyle> style = 
+    vtkSmartPointer<vtkScubaInteractorStyle>::New();
   style->SetWindow( this );
   view->GetRenderWindow()->GetInteractor()->SetInteractorStyle( style );
 
   // We'll get the layers from the current view and set them in this
   // view.
-  if( NULL != mCurrentView ) {
+  if( NULL != mCurrentView.GetPointer() ) {
     int cSlots = mCurrentView->GetHighestFilledLayerSlot();
     for( int nSlot = 0; nSlot <= cSlots; nSlot++ ) {
       // Try to get a collection at this slot.
       vtkKWScubaLayerCollection* col = 
-      mCurrentView->GetCollectionAtSlot( nSlot );
+	mCurrentView->GetCollectionAtSlot( nSlot );
       // Set the collection if we got one.
       if( col )
         view->SetLayerCollectionAtSlot( nSlot, col );
@@ -1358,7 +1342,7 @@ void
 vtkKWScubaWindow::AddLayerCollectionToViews ( vtkKWScubaLayerCollection* col ) {
   
   // Go through all our views.
-  map<int,vtkKWScubaView*>::iterator tView;
+  map<int,vtkSmartPointer<vtkKWScubaView> >::iterator tView;
   for( tView = maView.begin(); tView != maView.end(); ++tView ) {
     vtkKWScubaView* view = tView->second;
 
@@ -1377,3 +1361,166 @@ vtkKWScubaWindow::AddLayerCollectionToViews ( vtkKWScubaLayerCollection* col ) {
   }
   
 }
+
+void
+vtkKWScubaWindow::AddSpacerToToolbar ( vtkKWToolbar* iToolbar, int iWidth ) {
+  
+  // Create a frame of the specified width inside the toolbar.
+  vtkSmartPointer<vtkKWFrame> spacer = 
+    vtkSmartPointer<vtkKWFrame>::New();
+  spacer->SetParent( iToolbar );
+  spacer->Create();
+  spacer->SetWidth( iWidth );
+  iToolbar->AddWidget( spacer );
+
+}
+
+vtkKWScubaWindow::MenuItem::MenuItem ()  :
+    mMenu( NULL ),
+    mnItem( -1 ) {}
+
+
+void
+vtkKWScubaWindow::MenuItem::MakeCommand ( vtkKWMenu* iMenu,
+					 int inItem,
+					 const char* isText,
+					 vtkObject* iCommandObject,
+					 const char* isCommand,
+					 const char* isAccelerator,
+					 const char* isIconKey ) {
+  
+  if( NULL == iMenu )
+    throw( "MakeCommand: iMenu was NULL" );
+  if( NULL == isText )
+    throw( "MakeCommand: isText was NULL" );
+  if( NULL == isCommand )
+    throw( "MakeCommand: isCommand was NULL" );
+
+  // Try inserting the command. If it returns -1 it failed.
+  int nIndex =
+    iMenu->InsertCommand( inItem, isText, iCommandObject, isCommand );
+
+  if( -1 == nIndex )
+    throw runtime_error( "Couldn't create menu item" );
+
+  // It's in. Save the info.
+  mMenu = iMenu;
+  mnItem = nIndex;
+
+  // Set the accelerator if available.
+  if( isAccelerator )
+    mMenu->SetItemAccelerator( mnItem, isAccelerator );
+
+  // Try to load the icon. If it fails, use the KW built-in question
+  // mark icon.
+  if( isIconKey ) {
+    try {
+      mMenu->SetItemCompoundModeToLeft( mnItem );
+      IconLoader::SetMenuItemIcon( isIconKey, mMenu, mnItem );
+    } catch (exception& e) {
+      stringstream ssError;
+      ssError << "Error loading icon: " << e.what();
+      mMenu->GetApplication()->ErrorMessage( ssError.str().c_str() );
+      mMenu->SetItemImageToPredefinedIcon( mnItem, vtkKWIcon::IconQuestion );
+    }
+  }
+
+}
+
+void
+vtkKWScubaWindow::MenuItem::MakeCheckButton ( vtkKWMenu* iMenu,
+					     int inItem,
+					     const char* isText,
+					     vtkObject* iCommandObject,
+					     const char* isCommand,
+					     const char* isAccelerator,
+					     const char* isIconKey ) {
+  
+  if( NULL == iMenu )
+    throw( "MakeCheckButton: iMenu was NULL" );
+  if( NULL == isText )
+    throw( "MakeCheckButton: isText was NULL" );
+  if( NULL == isCommand )
+    throw( "MakeCheckButton: isCommand was NULL" );
+
+  // Try inserting the check button. If it returns -1 it failed.
+  int nIndex =
+    iMenu->InsertCheckButton( inItem, isText, iCommandObject, isCommand );
+
+  if( -1 == nIndex )
+    throw runtime_error( "Couldn't create menu item" );
+
+  // It's in. Save the info.
+  mMenu = iMenu;
+  mnItem = nIndex;
+
+  // Set the accelerator if available.
+  if( isAccelerator )
+    mMenu->SetItemAccelerator( mnItem, isAccelerator );
+
+  // Try to load the icon. If it fails, use the KW built-in question
+  // mark icon.
+  if( isIconKey ) {
+    try {
+      mMenu->SetItemCompoundModeToLeft( mnItem );
+      IconLoader::SetMenuItemIcon( isIconKey, mMenu, mnItem );
+    } catch (exception& e) {
+      stringstream ssError;
+      ssError << "Error loading icon: " << e.what();
+      mMenu->GetApplication()->ErrorMessage( ssError.str().c_str() );
+      mMenu->SetItemImageToPredefinedIcon( mnItem, vtkKWIcon::IconQuestion );
+    }
+  }
+
+}
+
+void
+vtkKWScubaWindow::MenuItem::SetStateToDisabled () {
+
+  if( NULL == mMenu.GetPointer() )
+    throw runtime_error( "MenuItem::SetStateToDisabled: mMenu was NULL" );
+  if( -1 == mnItem )
+    throw runtime_error( "MenuItem::SetStateToDisabled: mnItem was -1" );
+
+  mMenu->SetItemStateToDisabled( mnItem );
+}
+
+void
+vtkKWScubaWindow::MenuItem::SetStateToNormal () {
+
+  if( NULL == mMenu.GetPointer() )
+    throw runtime_error( "MenuItem::SetStateToNormal: mMenu was NULL" );
+  if( -1 == mnItem )
+    throw runtime_error( "MenuItem::SetStateToNormal: mnItem was -1" );
+
+  mMenu->SetItemStateToNormal( mnItem );
+}
+
+void
+vtkKWScubaWindow::MenuItem::SetSelectedState ( int ibOn ) {
+
+  if( NULL == mMenu.GetPointer() )
+    throw runtime_error( "MenuItem::SetSelectedState: mMenu was NULL" );
+  if( -1 == mnItem )
+    throw runtime_error( "MenuItem::SetSelectedState: mnItem was -1" );
+
+  mMenu->SetItemSelectedState( mnItem, ibOn );
+}
+
+int
+vtkKWScubaWindow::MenuItem::GetSelectedState () {
+
+  if( NULL == mMenu.GetPointer() )
+    throw runtime_error( "MenuItem::GetSelectedState: mMenu was NULL" );
+  if( -1 == mnItem )
+    throw runtime_error( "MenuItem::GetSelectedState: mnItem was -1" );
+
+  return mMenu->GetItemSelectedState( mnItem );
+}
+
+int
+vtkKWScubaWindow::MenuItem::GetIndex () const {
+
+  return mnItem;
+}
+
