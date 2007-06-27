@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/27 03:33:14 $
-#    $Revision: 1.1 $
+#    $Date: 2007/06/27 04:29:05 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,34 +23,48 @@
 #
 
 
-set VERSION = '$Id: mktemplate-sess,v 1.1 2007/06/27 03:33:14 greve Exp $';
+set VERSION = '$Id: mktemplate-sess,v 1.2 2007/06/27 04:29:05 greve Exp $';
 set inputargs = ($argv);
 
 set fsd          = bold;
 set nolog        = 0;
 set NthRun       = ();
 set NthFrame     = ();
+set DoMidFrame     = 0;
 set PerRun       = 0;
 set RunListFile  = ();
 set funcstem     = f;
-set tempstem     = f;
-set midframe     = 0;
+set tempstem     = template;
+set UpdateOnly = 1;
+set DoView = 0;
+set DoConcat = 0;
+set PrintHelp = 0;
 
 ## If there are no options, just print the usage ##
 if($#argv == 0) goto usage_exit;
-
-## Look for version option ##
-set n = `echo $argv | grep version | wc -l` 
+set n = `echo $argv | grep -e  -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-
-## Look for nolog option ##
-set n = `echo $argv | grep nolog | wc -l` 
+set n = `echo $argv | grep -e -help | wc -l` 
 if($n != 0) then
-  set nolog = 1;
+  set PrintHelp = 1;  
+  goto usage_exit;
 endif
+
+goto parse_args;
+parse_args_return:
+
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  getsesspath $inputargs |& tee -a $LF
+  echo "ERROR: cannot find any sessions" |& tee -a $LF
+  exit 1;
+endif
+
+goto check_params;
+check_params_return:
 
 ##### Create a log file ######
 if(! $nolog) then
@@ -72,71 +86,82 @@ echo "mktemplate-sess logfile is $LF"
 echo "--------------------------------------------------------------"
 
 echo "mktemplate-sess log file" >> $LF
-echo $VERSION   >> $LF
-
-goto parse_args;
-parse_args_return:
-
-set SessList = `getsesspath $inputargs`;
-if($status || $#SessList == 0) then
-  getsesspath $inputargs |& tee -a $LF
-  echo "ERROR: cannot find any sessions" |& tee -a $LF
-  exit 1;
-endif
-
-goto check_params;
-check_params_return:
+echo $VERSION >> $LF
+uname -a >> $LF
+date >> $LF
+pwd >> $LF
+echo UpdateOnly $UpdateOnly >> $LF 
+echo $inputargs       >> $LF 
+which mktemplate-sess >> $LF 
 
 ## Loop through each session ##
+set concatlist = ();
 foreach sess ($SessList)
 
   echo " " |& tee -a $LF
   echo "Session: $sess ----------------" |& tee -a $LF
   date  |& tee -a $LF
-  pushd $sess > /dev/null
 
   ## Make sure the functional subdirectory exists ##
-  if(! -e $fsd) then
-    echo "ERROR: $fsd does not exist" |& tee -a $LF
+  if(! -e $sess/$fsd) then
+    echo "ERROR: $sess/$fsd does not exist" |& tee -a $LF
     exit 1;
   endif
 
-  if(! $PerRun) then
-    # Do once for all runs
+  if(! $PerRun) then  #----------------------------------------------
+    # Make one template for all runs
     if($#NthRun == 0) then
-      set funcdir = `getfirstrundir-sess $fsd`;
+      set funcdir = `getfirstrundir-sess $sess/$fsd`;
       if($status) then
         echo "$funcdir" |& tee -a $LF
         exit 1;
       endif
     else
-      set funcdir = $fsd/$Run
+      set funcdir = $sess/$fsd/$Run
       if(! -e $funcdir) then
-        echo "ERROR: $Run does not exist in $fsd" |& tee -a $LF
+        echo "ERROR: $Run does not exist in $sess/$fsd" |& tee -a $LF
         exit 1;
       endif
     endif
 
-    set fmtuse = `getformat_from_stem $funcdir/$funcstem $fmt`
+    set ext = `stem2fmt $funcdir/$funcstem`
     if($status) then
-      echo "$fmtuse" |& tee -a $LF
+      echo "$ext" |& tee -a $LF
       exit 1;
     endif
-    echo "Detected format at $fmtuse" |& tee -a $LF
-    set movfile = $funcdir/$funcstem.$fmtuse
+    echo "Detected input format at $ext" |& tee -a $LF
+    set srcvol = $funcdir/$funcstem.$ext
+   
+    set templatevol = $sess/$fsd/template.$FSF_OUTPUT_FORMAT;
 
-    set regfile = $fsd/$regfilename
-    set cmd = (fslregister --s $subject --mov $movfile \
-      --reg $regfile --fsvol $fsvol)
-    if($frame)  set cmd = ($cmd --frame $frame)
-    $cmd |& tee -a $LF
-    if($status) then 
-      echo "ERROR: fslregister failed" |& tee -a $LF
-      exit 1;
+    set UpdateNeeded = 1;
+    if($UpdateOnly) then
+      test $srcvol -nt $templatevol
+      if($status) then
+        pwd | tee -a $LF
+        ls -lt $srcvol $templatevol | tee -a $LF
+        echo "Update not needed" | tee -a $LF
+        set UpdateNeeded = 0;
+      endif
     endif
-  else
+
+    if($UpdateNeeded) then
+      set cmd = (mri_convert $srcvol $templatevol)
+      if($DoMidFrame) set cmd = ($cmd --mid-frame);
+      if($#NthFrame) set cmd = ($cmd --frame $NthFrame);
+      pwd  |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      $cmd  |& tee -a $LF
+      if($status) exit 1;
+    endif
+
+    if($DoView)  tkmedit -f $templatevol
+
+    if($DoConcat) set concatlist = ($concatlist $templatevol);
+
+  else #-------------------------------------------------------
     # Do separately for each run
-    set RunList = `getrunlist $fsd $RunListFile`;
+    set RunList = `getrunlist $sess/$fsd $RunListFile`;
     set st = $status;
     if($st) then
       echo "ERROR: getting run list"
@@ -147,43 +172,56 @@ foreach sess ($SessList)
     foreach Run ($RunList)
       echo "  Run: $Run ----------------" |& tee -a $LF
       date  |& tee -a $LF
-      set funcdir = $fsd/$Run
-      set fmtuse = `getformat_from_stem $funcdir/$funcstem $fmt`
-      if($status) then
-        echo "$fmtuse" |& tee -a $LF
-        exit 1;
-      endif
-      echo "Detected format as $fmtuse" |& tee -a $LF
-      set movfile = $funcdir/$funcstem.$fmtuse
-      # Does not do COR anymore
+      set funcdir = $sess/$fsd/$Run
 
-      set regfile = $funcdir/fs.register.dat
-      set cmd = (fslregister --s $subject --mov $movfile \
-        --reg $regfile --fsvol $fsvol)
-      if($midframe) set cmd = ($cmd --mid-frame)
-      if($#frame)   set cmd = ($cmd --frame $frame)
-      if($#svtemplate) then
-        set template = $funcdir/template.$fmtuse
-        set cmd = ($cmd --template-out $template)
-      endif
-      pwd |& tee -a $LF
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) then 
-        echo "ERROR: fslregister failed" |& tee -a $LF
+      set ext = `stem2fmt $funcdir/$funcstem`
+      if($status) then
+        echo "$ext" |& tee -a $LF
         exit 1;
       endif
+      echo "Detected input format at $ext" |& tee -a $LF
+      set srcvol = $funcdir/$funcstem.$ext
+      set templatevol = $funcdir/template.$FSF_OUTPUT_FORMAT;
+
+      set UpdateNeeded = 1;
+      if($UpdateOnly) then
+        test $srcvol -nt $templatevol
+        if($status) then
+          pwd | tee -a $LF
+          ls -lt $srcvol $templatevol | tee -a $LF
+          echo "Update not needed" | tee -a $LF
+          set UpdateNeeded = 0;
+        endif
+      endif
+
+      if($UpdateNeeded) then
+        set cmd = (mri_convert $srcvol $templatevol)
+        if($DoMidFrame) set cmd = ($cmd --mid-frame);
+        if($#NthFrame) set cmd = ($cmd --frame $NthFrame);
+        pwd  |& tee -a $LF
+        echo $cmd |& tee -a $LF
+        $cmd  |& tee -a $LF
+        if($status) exit 1;
+      endif
+
+      if($DoView)  tkmedit -f $templatevol
+      if($DoConcat) set concatlist = ($concatlist $templatevol);
     end  # Loop over runs
 
   endif
 
-
-  popd > /dev/null
-
 end  # foreach sess ($SessList)
 
+if($DoConcat) then
+  set cmd = (mri_concat $concatlist --o $ConcatFile)
+  pwd |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
+
 date |& tee -a $LF
-echo "fslregister-sess completed " |& tee -a $LF
+echo "mktemplate-sess completed " |& tee -a $LF
 
 exit 0;
 
@@ -201,15 +239,15 @@ while( $#argv != 0 )
       set fsd = $argv[1]; shift;
       breaksw
 
-    case "-run":
+    case "-nthrun":
+      # for cross-run template
       if ( $#argv == 0) goto arg1err;
-      set Run = $argv[1]; shift;
+      set NthRun = $argv[1]; shift;
       breaksw
 
     case "-perrun":
       set PerRun = 1;
-      set midframe = 1;
-      set svtemplate = 1;
+      set DoMidFrame = 1;
       breaksw
 
     case "-rlf":
@@ -223,32 +261,26 @@ while( $#argv != 0 )
       breaksw
 
     case "-frame":
-      if ( $#argv == 0) goto arg1err;
-      set frame = $argv[1]; shift;
+      if ( $#argv < 1) goto arg1err;
+      set NthFrame = $argv[1]; shift;
       breaksw
 
     case "-mid-frame":
-      set midframe = 1;
+      set DoMidFrame = 1;
       breaksw
 
-    case "-sv-template":
-    case "-sv-temp":
-      set svtemplate = 1;
+    case "-view":
+      set DoView = 1;
       breaksw
 
-    case "-no-sv-template":
-    case "-no-sv-temp":
-      set svtemplate = 0;
-      breaksw
-
-    case "-fsvol":
+    case "-concat":
       if ( $#argv < 1) goto arg1err;
-      set fsvol = $argv[1]; shift;
+      set ConcatFile = $argv[1]; shift
+      set DoConcat = 1;
       breaksw
 
-    case "-fmt":
-      if ( $#argv < 1) goto arg1err;
-      set fmt = $argv[1]; shift;
+    case "-force":
+      set UpdateOnly = 0;
       breaksw
 
     case "-umask":
@@ -256,21 +288,8 @@ while( $#argv != 0 )
       umask $argv[1]; shift;
       breaksw
 
-    case "-regfile":
-      if ( $#argv == 0) goto arg1err;
-      set regfilename = $argv[1]; shift;
-      breaksw
-
     case "-nolog":
       set nolog = 1;
-      breaksw
-
-    case "-verbose":
-      set verbose = 1;
-      breaksw
-
-    case "-echo":
-      set echo = 1;
       breaksw
 
     case "-debug":
@@ -309,10 +328,11 @@ check_params:
     exit 1;
   endif
 
-  if($#frame && $midframe) then
+  if($#NthFrame && $DoMidFrame) then
     echo "ERROR: cannot -frame and -mid-frame"
     exit 1;
   endif
+  if(! $#NthFrame && ! $DoMidFrame) set NthFrame = 0;
 
 goto check_params_return;
 ############--------------##################
@@ -335,10 +355,26 @@ usage_exit:
   echo "  -rlf RLF       : run-list file (with -perrun)"
   echo "  -funcstem stem : default is f"
   echo ""
+  echo "  -veiw : dont create template, just view it"
+  echo "  -concat concatfile : concatenate all templates into one file"
+  echo "  -force : force an update"
+  echo ""
   echo "  -sf sessidfile  ..."
   echo "  -df srchdirfile ..."
   echo "  -s  sessid      ..."
   echo "  -d  srchdir     ..."
   echo "  -version       : print version and exit"
   echo ""
+  if(! $PrintHelp ) exit 1;
+
+  echo " "
+  echo "$VERSION "
+  echo " "
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Make a template.
