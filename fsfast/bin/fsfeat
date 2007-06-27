@@ -12,8 +12,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/16 23:56:43 $
-#    $Revision: 1.13 $
+#    $Date: 2007/06/27 06:13:53 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat,v 1.13 2007/06/16 23:56:43 greve Exp $';
+set VERSION = '$Id: fsfeat,v 1.14 2007/06/27 06:13:53 greve Exp $';
 set inputargs = ($argv);
 
 set fsf     = ();
@@ -38,6 +38,7 @@ set schdir  = ();
 set outdir  = ();
 set subject = ();
 set keep_residuals = 0;
+set UsePatch = 0;
 
 set PrintHelp = 0;
 
@@ -133,7 +134,8 @@ end
 echo "set fmri(outputdir)" '"'$outdirpath'"'  >> $tmpfsf
 echo "set fmri(featwatcher_yn) 0"             >> $tmpfsf
 
-feat $tmpfsf
+if(! $UsePatch) feat $tmpfsf
+if($UsePatch)   feat.fsfast-patch $tmpfsf
 if($status) exit 1;
 
 set exf = $outdirpath/example_func.$outext
@@ -321,6 +323,10 @@ while( $#argv != 0 )
       set keep_residuals = 1;
       breaksw
 
+    case "--patch":
+      set UsePatch = 1;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1;
@@ -414,6 +420,8 @@ usage_exit:
   echo ""
   echo "  --subject subject (optional)"
   echo "  --svres   : save resduals"
+  echo ""
+  echo "  --patch : use FSFAST_HOME/bin/feat.patch"
   echo ""
 
 

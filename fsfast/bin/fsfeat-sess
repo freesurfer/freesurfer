@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/04/24 21:47:34 $
-#    $Revision: 1.5 $
+#    $Date: 2007/06/27 06:13:53 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 #
 
 
-set VERSION = '$Id: fsfeat-sess,v 1.5 2007/04/24 21:47:34 greve Exp $';
+set VERSION = '$Id: fsfeat-sess,v 1.6 2007/06/27 06:13:53 greve Exp $';
 set inputargs = ($argv);
 
 set analysis   = ();
@@ -33,6 +33,7 @@ set sveres     = 0;
 set PrintHelp  = 0;
 set CreateLog  = 1;
 set keep_residuals = 0;
+set UsePatch = 0;
 
 #### If no arguments, print usage and exit ####
 if($#argv == 0) goto usage_exit;
@@ -76,6 +77,7 @@ pwd                >> $LF
 echo $0            >> $LF
 echo $inputargs    >> $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" >> $LF
+echo "UsePatch = $UsePatch" >> $LF
 
 #---------------------------------------#
 foreach sess ($SessList)
@@ -149,6 +151,7 @@ foreach sess ($SessList)
     set outdir = $funcdir/$analysis/$run
     set cmd = (fsfeat --fsf $fsf --i $invol --schdir $schdir)
     set cmd = ($cmd --outdir $outdir)
+    if($UsePatch) set cmd = ($cmd --patch)
     if($#subject) set cmd = ($cmd --subject $subject);
     if($keep_residuals) set cmd = ($cmd --svres);
     pwd | tee -a $LF
@@ -218,6 +221,10 @@ while( $#argv != 0 )
       set keep_residuals = 1;
       breaksw
 
+    case "-patch":
+      set UsePatch = 1;
+      breaksw
+
     case "-debug":
       set verbose = 1;
       set echo = 1;
@@ -285,6 +292,8 @@ usage_exit:
   echo "  -s, -sf, -d, -df"
   echo ""
   echo "  -svres   : save resduals"
+  echo "  -patch : use FSFAST feat patch"
+  echo ""
   echo "  -help"
   echo "  -debug"
   echo ""
