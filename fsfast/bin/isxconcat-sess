@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/24 21:33:31 $
-#    $Revision: 1.23 $
+#    $Date: 2007/06/27 04:00:21 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.23 2007/06/24 21:33:31 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.24 2007/06/27 04:00:21 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -63,7 +63,7 @@ set cleanup = 1;
 set PrintHelp = 0;
 
 if($#argv == 0)  goto usage_exit;
-set n = `echo $argv | grep version | wc -l` 
+set n = `echo $argv | grep -e version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
