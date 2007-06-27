@@ -7,9 +7,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/11 00:51:18 $
-#    $Revision: 1.4 $
+#    $Author: greve $
+#    $Date: 2007/06/27 15:10:06 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_glmfit,v 1.4 2007/01/11 00:51:18 nicks Exp $'
+set VERSION='$Id: test_mri_glmfit,v 1.5 2007/06/27 15:10:06 greve Exp $'
 
 umask 002
 
@@ -72,7 +72,8 @@ foreach tstfile ($TEST_FILES)
   endif
 end
 
-set TEST_FILES=( ar1.mgh beta.mgh eres.mgh mask.mgh rstd.mgh rvar.mgh )
+# eres.mgh 
+set TEST_FILES=( ar1.mgh beta.mgh mask.mgh rstd.mgh rvar.mgh )
 foreach tstvol ($TEST_FILES)
   # now compare expected with observed data
   set REF_VOL  = $EXPECTED/$tstvol
