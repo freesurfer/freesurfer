@@ -38,9 +38,16 @@ class vtkFDTensorGlyph : public vtkStructuredPointsToPolyDataFilter {
   // Get/Set vtkLookupTable which holds color values for current output
   //vtkSetObjectMacro(ColorTable,vtkLookupTable);
   vtkGetObjectMacro(ColorTable,vtkLookupTable);
-
+  
+  // Description:
+  // reorients the tensors to be in the right orientation
   vtkSetObjectMacro(VoxelToMeasurementFrameTransform, vtkTransform);
   vtkGetObjectMacro(VoxelToMeasurementFrameTransform, vtkTransform);
+  
+  // Description:
+  // reorients the tensors to be in the right orientation for a particular slice
+  vtkSetObjectMacro(VoxelToSliceTransform, vtkTransform);
+  vtkGetObjectMacro(VoxelToSliceTransform, vtkTransform);
 
 protected:
   vtkFDTensorGlyph();
@@ -49,6 +56,8 @@ protected:
   void Execute();
 
   vtkTransform *VoxelToMeasurementFrameTransform;
+
+  vtkTransform *VoxelToSliceTransform;
 
   int UniformScaling; // Determine whether eigenvalues are used as scaling
                       // factors in corresponding eigenvector directions

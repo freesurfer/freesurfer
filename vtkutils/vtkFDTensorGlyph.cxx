@@ -17,16 +17,22 @@ vtkStandardNewMacro(vtkFDTensorGlyph);
 
 // Construct object with scaling 
 vtkFDTensorGlyph::vtkFDTensorGlyph() {
+
   this->UniformScaling = 0;
   this->FAScaling = 0;
   this->ScaleFactor = 2;
   this->ColorTable = vtkLookupTable::New();
   this->VoxelToMeasurementFrameTransform = vtkTransform::New();
+
+  this->VoxelToSliceTransform = vtkTransform::New();
+  VoxelToSliceTransform->Identity();
+  
 }
 
 vtkFDTensorGlyph::~vtkFDTensorGlyph() {
   this->ColorTable->Delete();
   this->VoxelToMeasurementFrameTransform->Delete();
+  this->VoxelToSliceTransform->Delete();
 }
 
 void vtkFDTensorGlyph::Execute() {
@@ -43,7 +49,7 @@ void vtkFDTensorGlyph::Execute() {
   double translate[3];
   double eigvec1[3], eigvec2[3], eigvec3[3];
   
-  float cubePoints[8][3] = { 
+  const float cubePoints[8][3] = { 
     {0.5, -0.5, 0.5},
     {0.5, 0.5, 0.5},
     {-0.5, 0.5, 0.5},
@@ -54,7 +60,7 @@ void vtkFDTensorGlyph::Execute() {
     {-0.5, -0.5, -0.5}
   };
   
-  int cubePolys[6][4] = {
+  const int cubePolys[6][4] = {
     {0, 1, 2, 3},
     {0, 1, 5, 4},
     {4, 5, 6, 7},
@@ -129,10 +135,17 @@ void vtkFDTensorGlyph::Execute() {
 	  eigvec3[i] = tensorComponents[EV3 + i];
 	}
 
-	
-	measurementToVTKRotation->TransformPoint(eigvec1, eigvec1);
-	measurementToVTKRotation->TransformPoint(eigvec2, eigvec2);
-	measurementToVTKRotation->TransformPoint(eigvec3, eigvec3);
+	// this gets the tensors in the right 
+  double eigvec1Aligned[3], eigvec2Aligned[3], eigvec3Aligned[3] ; 
+	measurementToVTKRotation->TransformPoint(eigvec1, eigvec1Aligned);
+	measurementToVTKRotation->TransformPoint(eigvec2, eigvec2Aligned);
+	measurementToVTKRotation->TransformPoint(eigvec3, eigvec3Aligned);
+  
+  double eigvec1Rotated[3], eigvec2Rotated[3], eigvec3Rotated[3];
+  VoxelToSliceTransform->TransformPoint( eigvec1Aligned, eigvec1Rotated );
+  VoxelToSliceTransform->TransformPoint( eigvec2Aligned, eigvec2Rotated );
+  VoxelToSliceTransform->TransformPoint( eigvec3Aligned, eigvec3Rotated );
+
 
 // 	vtkMath::Normalize(eigvec1);
 // 	vtkMath::Normalize(eigvec2);
@@ -151,24 +164,23 @@ void vtkFDTensorGlyph::Execute() {
 // 	translate[2] *= -1;
 
 	for (int matrixRow = 0; matrixRow < 3; matrixRow++) {
-	  matrix->SetElement(matrixRow, 0, eigvec1[matrixRow] * (this->UniformScaling ? uniformScaleFactors[0] : normalizedEigenValues[0]) * (this->FAScaling ? normalizedFA : 1) * inputSpacing[matrixRow] * this->ScaleFactor);
-	  matrix->SetElement(matrixRow, 1, eigvec2[matrixRow] * (this->UniformScaling ? uniformScaleFactors[1] : normalizedEigenValues[1]) * (this->FAScaling ? normalizedFA : 1) * inputSpacing[matrixRow] * this->ScaleFactor);
-	  matrix->SetElement(matrixRow, 2, eigvec3[matrixRow] * (this->UniformScaling ? uniformScaleFactors[2] : normalizedEigenValues[2]) * (this->FAScaling ? normalizedFA : 1) * inputSpacing[matrixRow] * this->ScaleFactor);
+	  matrix->SetElement(matrixRow, 0, eigvec1Rotated[matrixRow] * (this->UniformScaling ? uniformScaleFactors[0] : normalizedEigenValues[0]) * (this->FAScaling ? normalizedFA : 1) * inputSpacing[matrixRow] * this->ScaleFactor);
+	  matrix->SetElement(matrixRow, 1, eigvec2Rotated[matrixRow] * (this->UniformScaling ? uniformScaleFactors[1] : normalizedEigenValues[1]) * (this->FAScaling ? normalizedFA : 1) * inputSpacing[matrixRow] * this->ScaleFactor);
+	  matrix->SetElement(matrixRow, 2, eigvec3Rotated[matrixRow] * (this->UniformScaling ? uniformScaleFactors[2] : normalizedEigenValues[2]) * (this->FAScaling ? normalizedFA : 1) * inputSpacing[matrixRow] * this->ScaleFactor);
 	  matrix->SetElement(matrixRow, 3, translate[matrixRow]);
 	}
 
 	transform->SetMatrix(matrix);
-	
+  
 	for (int i = 0; i < 8; i++) {
 	  transform->TransformPoint(cubePoints[i], pt);
 	  pointsArray->SetTuple(count + i, pt);
 	  colorScalars->SetValue(count + i, colorCount);
 	}
 
-	colors->SetTuple4(colorCount, sqrt(faval) * fabs(eigvec1[0]) * 255.0, sqrt(faval) * fabs(eigvec1[1]) * 255.0, sqrt(faval) * fabs(eigvec1[2]) * 255.0 + .5, 255);
+	colors->SetTuple4(colorCount, sqrt(faval) * fabs(eigvec1Aligned[0]) * 255.0, sqrt(faval) * fabs(eigvec1Aligned[1]) * 255.0, sqrt(faval) * fabs(eigvec1Aligned[2]) * 255.0 + .5, 255);
 	colorCount++;
-	
-	
+		
 	for (int i = 0; i < 6; i++) {
 	  polys->InsertNextCell(4);
 	  for (int j = 0; j < 4; j++) {
