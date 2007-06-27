@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# feat.fsfast-patch
+#
+# This is a modified version of FSL's FEAT program. 
+# All restrictions of the FSL LICENSE apply. 
+# www.fmrib.ox.ac.uk/fsl
+#
+# The purpose of this program is to run the FSFAST patch of feat.tcl
+# (feat.fsfast-patch.tcl) #
+#
+# $Id: feat.fsfast-patch,v 1.1 2007/06/27 06:12:37 greve Exp $
+
+# the next line restarts using wish \
+exec $FSLTCLSH "$0" "$@"
+
+if { [ lindex $argv 0 ] == "" } {
+    puts "Usage: feat.fsfast-patch <featsetupfile.fsf>"
+    exit
+}
+
+set INGUI 0
+set FSLDIR $env(FSLDIR)
+set FSFAST_HOME $env(FSFAST_HOME)
+
+source ${FSFAST_HOME}/bin/feat.fsfast-patch.tcl
+
+feat5:proc [ file rootname [ lindex $argv 0 ] ]
+
+exit
