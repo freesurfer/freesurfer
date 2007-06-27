@@ -9,8 +9,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/07 17:16:51 $
-#    $Revision: 1.8 $
+#    $Date: 2007/06/27 06:13:08 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 #
 
 
-set VERSION = '$Id: mkfeat-sess,v 1.8 2007/06/07 17:16:51 greve Exp $';
+set VERSION = '$Id: mkfeat-sess,v 1.9 2007/06/27 06:13:08 greve Exp $';
 set inputargs = ($argv);
 
 set analysis  = ();
@@ -152,6 +152,7 @@ echo "# ------------------------------ "   >> $fsf
 echo ""   >> $fsf
 
 cat $tmpdir/design.fsf >> $fsf
+echo "set fmri(alternative_mask) \"\" " >> $fsf
 
 set infofile = $analysis/analysis.info
 rm -f $infofile
