@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/06 02:11:55 $
- *    $Revision: 1.288 $
+ *    $Author: fischl $
+ *    $Date: 2007/06/28 00:31:28 $
+ *    $Revision: 1.289 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -135,8 +135,8 @@ typedef struct vertex_type_
   uchar vnum;            /* number neighboring vertices */
   int   *v;              /* array neighboring vertex numbers, vnum long */
   int   *e;              /* edge state for neighboring vertices */
-  uchar  v2num ;         /* number of 2-connected neighbors */
-  uchar  v3num ;         /* number of 3-connected neighbors */
+  int    v2num ;         /* number of 2-connected neighbors */
+  int    v3num ;         /* number of 3-connected neighbors */
   short  vtotal ;        /* total # of neighbors,
                                     will be same as one of above*/
   float d ;              /* for distance calculations */
@@ -1460,6 +1460,7 @@ int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri) ;
 MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask);
 int MRISremoveIntersections(MRI_SURFACE *mris) ;
 int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) ;
+int MRIScopyMarked2ToMarked(MRI_SURFACE *mris) ;
 int MRISexpandMarked(MRI_SURFACE *mris) ;
 double MRISsmoothingArea(MRIS *mris, int vtxno, int niters);
 
