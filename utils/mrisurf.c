@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/25 23:18:01 $
- *    $Revision: 1.536 $
+ *    $Author: fischl $
+ *    $Date: 2007/06/28 00:30:57 $
+ *    $Revision: 1.537 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -350,6 +350,7 @@ static int    mrisMarkSulcalVertices(MRI_SURFACE *mris,
 static int    mrisUpdateSulcalGradients(MRI_SURFACE *mris,
                                         INTEGRATION_PARMS *parms) ;
 #endif
+static int mrisCheckSurfaceNbrs(MRI_SURFACE *mris) ;
 static double mrisComputeIntensityGradientError(MRI_SURFACE *mris,
     INTEGRATION_PARMS *parms);
 static double mrisComputeSphereError(MRI_SURFACE *mris,
@@ -612,7 +613,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.536 2007/05/25 23:18:01 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.537 2007/06/28 00:30:57 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -913,6 +914,8 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
   xlo=ylo=zlo= 10000;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     mris->vertices[vno].curv = 0;
     mris->vertices[vno].origarea = -1;
     mris->vertices[vno].border = 0;
@@ -1671,7 +1674,7 @@ MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 #define MAX_3_NEIGHBORS     70
 #define MAX_2_NEIGHBORS     20
 #define MAX_1_NEIGHBORS     8
-#define MAX_NEIGHBORS       (1000)
+#define MAX_NEIGHBORS       (10000)
 static int
 mrisFindNeighbors(MRI_SURFACE *mris)
 {
@@ -1806,7 +1809,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 {
   int          i,n, vno, vnum, old_vnum, total_nbrs, max_possible,max_v,vtotal;
   VERTEX       *v, *vn, *vn2 ;
-  int          *vnbrs, *vall, found, n2, vnbrs_num, vall_num, nbhd_size,done ;
+  int          *vnbrs, *vall, *vnb,found, n2, vnbrs_num, vall_num, nbhd_size,done, checks = 0 ;
   float        xd, yd, zd, min_dist, dist, dist_scale, old_dist[MAX_V];
   float        old_v[MAX_V], min_angle, angle ;
   VECTOR       *v1, *v2 ;
@@ -1839,6 +1842,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 
   vnbrs = (int *)calloc(MAX_VERTICES, sizeof(int)) ;
   vall = (int *)calloc(MAX_VERTICES, sizeof(int)) ;
+  vnb = (int *)calloc(MAX_VERTICES, sizeof(int)) ;
   vtotal = total_nbrs = 0 ;
   for (vtotal = max_possible = 0, n = 1 ; n <= max_nbhd ; n++)
   {
@@ -1859,6 +1863,16 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     if ((Gdiag & DIAG_HEARTBEAT) && (!(vno % (mris->nvertices/10))))
       fprintf(stdout, "%%%1.0f done\n",
               100.0f*(float)vno / (float)mris->nvertices) ;
+    if (vno > 139000 || (!(vno % 100)))
+    {
+      if (checks++ == 0)
+        printf("checking surface at vno %d\n", vno) ;
+      if (mrisCheckSurfaceNbrs(mris) != 1)
+      {
+        printf("surface bad at vertex %d!\n", vno) ;
+        DiagBreak() ;
+      }
+    }
     v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
       DiagBreak()  ;
@@ -1910,6 +1924,16 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       memmove(v->dist_orig, old_dist, v->vtotal*sizeof(v->dist_orig[0])) ;
     }
 
+    if (vno > 139000 || !(vno % 100))
+    {
+      if (checks++ == 0)
+        printf("checking surface at vno %d\n", vno) ;
+      if (mrisCheckSurfaceNbrs(mris) != 1)
+      {
+        printf("surface bad at vertex %d!\n", vno) ;
+        DiagBreak() ;
+      }
+    }
     /*
      find all the neighbors at each extent (i.e. 1-neighbors, then
      2-neighbors, etc..., marking their corrected edge-length distances
@@ -1943,6 +1967,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
           /* found one, mark it and put it in the vall list */
           found++ ;
           vn2->marked = nbhd_size ;
+          vnb[vnum] = vall[n];
           vall[vnum++] = vn->v[n2] ;
           if (nbrs[nbhd_size] > 0)  /* want to store this distance */
           {
@@ -1996,9 +2021,11 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
         }
         if (vn->d >= UNFOUND_DIST/2)
         {
-          printf("***** WARNING - surface distance not found at vno %d ******",
-                 vall[n]) ;
+          printf("***** WARNING - surface distance not found at vno %d, vall[%d] = %d (vnb[%d] = %d ******",
+                 vno, n, vall[n], n, vnb[n]) ;
+    mrisCheckSurfaceNbrs(mris) ;
           DiagBreak() ;
+          exit(1) ;
         }
         if ((vall[n] == diag_vno1 && vno == diag_vno2) ||
             (vall[n] == diag_vno2 && vno == diag_vno1))
@@ -2123,6 +2150,16 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       }
     }
 
+    if (vno > 9.0*mris->nvertices/10.0)
+    {
+      if (checks++ == 0)
+        printf("checking surface at vno %d\n", vno) ;
+      if (mrisCheckSurfaceNbrs(mris) != 1)
+      {
+        printf("surface bad at vertex %d!\n", vno) ;
+        DiagBreak() ;
+      }
+    }
 
     if ((Gdiag_no == vno) && DIAG_VERBOSE_ON)
     {
@@ -2207,6 +2244,8 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     for (n = 0 ; n < v->vtotal ; n++)
     {
       vn = &mris->vertices[v->v[n]] ;
+      if (vn->ripflag)
+        continue ;
       for (i = 0 ; i < vn->vtotal ; i++)
       {
         if (vn->v[i] == vno) // distance in both lists - make it the average
@@ -2273,7 +2312,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   }
 #endif
   free(vnbrs) ;
-  free(vall) ;
+  free(vall) ; free(vnb) ;
   VectorFree(&v1) ;
   VectorFree(&v2) ;
   if (Gdiag & DIAG_HEARTBEAT)
@@ -6151,7 +6190,8 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
         MRISstoreAnalyticDistances(mris, MRIS_PLANE) ;
     }
 
-    if (!passno && ((parms->flags & IPFLAG_QUICK) == 0))
+    //    if (!passno && ((parms->flags & IPFLAG_QUICK) == 0))
+    if (((parms->flags & IPFLAG_QUICK) == 0))
     {
       double tol = parms->tol ;
       parms->tol = 0.5 ;
@@ -59097,6 +59137,20 @@ MRIScopyMarkedToMarked2(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
+int
+MRIScopyMarked2ToMarked(MRI_SURFACE *mris)
+{
+  int      vno ;
+  VERTEX   *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    v->marked = v->marked2 ;
+  }
+  return(NO_ERROR) ;
+}
+
 
 /* assume that the mark is 1 */
 int
@@ -59820,3 +59874,34 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolutio
   MRIfree(&mri_filled) ;
   return(total_volume) ;
 }
+static int
+mrisCheckSurfaceNbrs(MRI_SURFACE *mris)
+{
+  int    vno, n, n2, found ;
+  VERTEX *v, *vn ;
+
+  return(1) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+
+    for (n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      found = 0 ;
+      for (n2 = 0 ; n2 < vn->vnum; n2++)
+        if (vn->v[n2] == vno)
+        {
+          found = 1 ;
+          break ;
+        }
+      if (found == 0)
+      {
+        DiagBreak() ;
+        return(0) ;
+      }
+    }
+  }
+  return(1) ;
+}
+
