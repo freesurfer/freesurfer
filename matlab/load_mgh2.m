@@ -1,4 +1,7 @@
 function [vol, M, mr_parms] = load_mgh2(fname)
+fprintf('This program, load_mgh2, is obsolete. Use MRIread instead\n');
+return;
+
 % [vol, M, mr_parms] = load_mgh2(fname)
 %
 % M is the 4x4 vox2ras transform such that
@@ -17,9 +20,9 @@ function [vol, M, mr_parms] = load_mgh2(fname)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:09 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2007/06/29 18:02:47 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
