@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/06/12 20:25:42 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/06/29 16:16:57 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,6 @@
 #include "vtkLODActor.h"
 #include "vtkFDTensorGlyph.h"
 #include "vtkImageAppendComponents.h"
-#include "vtkImageClip.h"
 #include "vtkMatrix4x4.h"
 #include "vtkObjectFactory.h"
 #include "vtkPolyDataMapper.h"
@@ -55,12 +54,10 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DDTI, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DDTI, "$Revision: 1.6 $" );
 
 vtkKWScubaLayer3DDTI::vtkKWScubaLayer3DDTI () :
   mDTIProperties( NULL ),
-  mVolumeToRAS( NULL ),
-  mReducedVolume( NULL ),
   mIsPlaneXVisbleButton( NULL ),
   mIsPlaneYVisbleButton( NULL ),
   mIsPlaneZVisbleButton( NULL ),
@@ -71,7 +68,8 @@ vtkKWScubaLayer3DDTI::vtkKWScubaLayer3DDTI () :
   mIsShowingAll( false ) {
     
   for( int n = 0; n < 3; n++ ) {
-    mClips[ n ] = NULL;
+    mVolumeToRAS[ n ] = NULL;
+    mReducedVolume[ n ] = NULL;
     mGlyphs[ n ] = NULL;
     mVolumeToRASSlice[ n ] = NULL;
     mSliceTransform[ n ] = NULL;
@@ -84,16 +82,13 @@ vtkKWScubaLayer3DDTI::vtkKWScubaLayer3DDTI () :
 
 vtkKWScubaLayer3DDTI::~vtkKWScubaLayer3DDTI () {
   
-  mVolumeToRAS->Delete();
-  mVolumeToRAS = NULL;
-
-  mReducedVolume->Delete();
-  mReducedVolume = NULL;
-
   for( int n=0; n<3; n++ ) {
 
-    if ( mClips[ n ] )
-      mClips[ n ]->Delete();
+    if ( mVolumeToRAS[ n ] )
+      mVolumeToRAS[ n ]->Delete();
+  
+    if ( mReducedVolume[ n ] )
+      mReducedVolume[ n ]->Delete();
 
     if ( mGlyphs[ n ] )
       mGlyphs[ n ]->Delete();
@@ -132,7 +127,7 @@ vtkKWScubaLayer3DDTI::Create () {
 
   // Get some values from the MRI.
   float RASBounds[6];
-  this->GetUnscaledRASBounds( RASBounds );
+  this->GetRASBounds( RASBounds );
 
   mWorldSize[0] = RASBounds[1] - RASBounds[0];
   mWorldSize[1] = RASBounds[3] - RASBounds[2];
@@ -146,89 +141,25 @@ vtkKWScubaLayer3DDTI::Create () {
   // Merged source
   //
   vtkImageAppendComponents* source = mDTIProperties->GetMergedSource();
-  
-  //
-  // This transforms the voxel space source into RAS space.
-  //
-  mVolumeToRAS = vtkImageReslice::New();
-  mVolumeToRAS->InterpolateOn();
-  
-  // the default interpolation (nearest neighbor) copies the vectors, so only
-  // linear or cubic interoplations are allowed
-  mVolumeToRAS->SetInterpolationMode( 
-    mDTIProperties->GetTensorInterpolationType() );
-
-  mVolumeToRAS->SetInputConnection( source->GetOutputPort() );
-  mVolumeToRAS->SetOutputDimensionality( 3 );
-
-  // This rotates the volume to the proper orientation.
-  double* rtv = mDTIProperties->GetFAVolumeSource()->GetRASToVoxelMatrix();
-
-  // TODO: take out the scale component, so our reslice only rotates -- why isn't this needed?
-//  rtv[0] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeX();
-//  rtv[5] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeY();
-//  rtv[10] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ(); 
-
-  vtkMatrix4x4* matrix = vtkMatrix4x4::New();  
-  matrix->SetElement( 0, 0, rtv[0] );
-  matrix->SetElement( 0, 1, rtv[1] );
-  matrix->SetElement( 0, 2, rtv[2] );
-  matrix->SetElement( 0, 3, 0 );
-
-  matrix->SetElement( 1, 0, rtv[4] );
-  matrix->SetElement( 1, 1, rtv[5] );
-  matrix->SetElement( 1, 2, rtv[6] );
-  matrix->SetElement( 1, 3, 0 );
-
-  matrix->SetElement( 2, 0, rtv[8] );
-  matrix->SetElement( 2, 1, rtv[9] );
-  matrix->SetElement( 2, 2, rtv[10] );
-  matrix->SetElement( 2, 3, 0 );
-
-  matrix->SetElement( 3, 0, 0 );
-  matrix->SetElement( 3, 1, 0 );
-  matrix->SetElement( 3, 2, 0 );
-  matrix->SetElement( 3, 3, 1 );
-
-  vtkTransform* transform = vtkTransform::New();
-  transform->SetMatrix( matrix );
-  matrix->Delete();
-
-  mVolumeToRAS->SetResliceTransform( transform );
-  mVolumeToRAS->BorderOff();
-  transform->Delete();
-
-  // This sets our output extent.
-  mVolumeToRAS->SetOutputExtent( (int)RASBounds[0], (int)RASBounds[1],
-                                 (int)RASBounds[2], (int)RASBounds[3],
-                                 (int)RASBounds[4], (int)RASBounds[5] );
-  
-  // this is used for our fast rendering
-  mReducedVolume = vtkImageShrink3D::New();
-  mReducedVolume->SetInputConnection( mVolumeToRAS->GetOutputPort() );
 
   // set up the transform for reorienting the tensors
   double *vtr = mDTIProperties->GetFAVolumeSource()->GetVoxelToRASMatrix();
 
   // remove the scale component
-  vtr[0] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeX();
-  vtr[5] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeY();
-  vtr[10] *= mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ(); 
-
   vtkMatrix4x4* voxelToRAS = vtkMatrix4x4::New();
-  voxelToRAS->SetElement( 0, 0, vtr[0] );
+  voxelToRAS->SetElement( 0, 0, vtr[0] * mDTIProperties->GetFAVolumeSource()->GetPixelSizeX() );
   voxelToRAS->SetElement( 0, 1, vtr[1] );
   voxelToRAS->SetElement( 0, 2, vtr[2] );
   voxelToRAS->SetElement( 0, 3, 0 );
 
   voxelToRAS->SetElement( 1, 0, vtr[4] );
-  voxelToRAS->SetElement( 1, 1, vtr[5] );
+  voxelToRAS->SetElement( 1, 1, vtr[5] * mDTIProperties->GetFAVolumeSource()->GetPixelSizeY() );
   voxelToRAS->SetElement( 1, 2, vtr[6] );
   voxelToRAS->SetElement( 1, 3, 0 );
 
   voxelToRAS->SetElement( 2, 0, vtr[8] );
   voxelToRAS->SetElement( 2, 1, vtr[9] );
-  voxelToRAS->SetElement( 2, 2, vtr[10] );
+  voxelToRAS->SetElement( 2, 2, vtr[10] * mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ() );
   voxelToRAS->SetElement( 2, 3, 0 );
 
   voxelToRAS->SetElement( 3, 0, 0 );
@@ -241,23 +172,117 @@ vtkKWScubaLayer3DDTI::Create () {
   voxelTransform->SetMatrix( voxelToRAS );
   
   voxelToRAS->Delete();
-
+  
   // three times for three cut planes
   for( int n = 0; n<3; n++ ) {  
 
-    mClips[ n ] = vtkImageClip::New();
+    //
+    // This transforms the voxel space source into RAS space.
+    //
+    mVolumeToRAS[ n ] = vtkImageReslice::New();
+    mVolumeToRAS[ n ]->InterpolateOn();
+    
+    // the default interpolation (nearest neighbor) copies the vectors, so only
+    // linear or cubic interoplations are allowed
+    mVolumeToRAS[ n ]->SetInterpolationMode( 
+      mDTIProperties->GetTensorInterpolationType() );
+  
+    mVolumeToRAS[ n ]->SetInputConnection( source->GetOutputPort() );
+    mVolumeToRAS[ n ]->SetOutputDimensionality( 3 );
 
-    // we don't want to display everything, so let's not displaying anything at 
-    // the moment, and leave it to UpdatePlanes() to set the plane to display
-    mClips[ n ]->SetOutputWholeExtent( 0, 0, 0, 0, 0, 0 );
-    mClips[ n ]->SetInputConnection( mReducedVolume->GetOutputPort() );
+    // TODO: uncomment this and remove the other matrix to view the not subdivided voxels    
+//    vtkMatrix4x4* matrix = this->GetRasToVoxelMatrix( n );
+
+    double* rtv = mDTIProperties->GetFAVolumeSource()->GetRASToVoxelMatrix();
+    vtkMatrix4x4* matrix = vtkMatrix4x4::New();
+    matrix->SetElement( 0, 0, rtv[0] );
+    matrix->SetElement( 0, 1, rtv[1] );
+    matrix->SetElement( 0, 2, rtv[2] );
+    matrix->SetElement( 0, 3, 0 );
+    matrix->SetElement( 1, 0, rtv[4] );
+    matrix->SetElement( 1, 1, rtv[5] );
+    matrix->SetElement( 1, 2, rtv[6] );
+    matrix->SetElement( 1, 3, 0 );
+    matrix->SetElement( 2, 0, rtv[8] );
+    matrix->SetElement( 2, 1, rtv[9] );
+    matrix->SetElement( 2, 2, rtv[10] );
+    matrix->SetElement( 2, 3, 0 );
+    matrix->SetElement( 3, 0, 0 );
+    matrix->SetElement( 3, 1, 0 );
+    matrix->SetElement( 3, 2, 0 );
+    matrix->SetElement( 3, 3, 1 );
+    
+    vtkTransform* transform = vtkTransform::New();
+    transform->SetMatrix( matrix );
+    matrix->Delete();
+  
+    mVolumeToRAS[ n ]->SetResliceTransform( transform );
+    mVolumeToRAS[ n ]->BorderOff();
+    transform->Delete();
+  
+    // This sets our output extent.
+    mVolumeToRAS[ n ]->SetOutputExtent( (int)RASBounds[0], (int)RASBounds[1],
+                                   (int)RASBounds[2], (int)RASBounds[3],
+                                   (int)RASBounds[4], (int)RASBounds[5] );
+    
+    // this is used for our fast rendering
+    mReducedVolume[ n ] = vtkImageShrink3D::New();
+    mReducedVolume[ n ]->SetInputConnection( mVolumeToRAS[ n ]->GetOutputPort() );
+
+    //
+    // The reslice object just takes a slice out of the volume.
+    //
+    if ( !mVolumeToRASSlice[n] )
+      mVolumeToRASSlice[n] = vtkImageReslice::New();
+    mVolumeToRASSlice[n]->SetInputConnection( mReducedVolume[ n ]->GetOutputPort() );
+    mVolumeToRASSlice[n]->BorderOff();
+    
+    // This sets us to extract slices.
+    mVolumeToRASSlice[n]->SetOutputDimensionality( 2 );
+    
+    // This will change depending what orienation we're in.
+    mVolumeToRASSlice[n]->SetResliceAxesDirectionCosines( 1, 0, 0,
+             0, 1, 0,
+             0, 0, 1 );
+    
+    // This will change to select a different slice.
+    mVolumeToRASSlice[n]->SetResliceAxesOrigin( 0, 0, 0 );
+  
+    //
+    // Flip over the x axis (left/right). This get us into neurological
+    // view.
+    //
+    vtkImageFlip* imageFlip = vtkImageFlip::New();
+    imageFlip->SetInputConnection( mVolumeToRASSlice[n]->GetOutputPort() );
+    imageFlip->SetFilteredAxis( 0 ); // x axis
 
     mGlyphs[ n ] = vtkFDTensorGlyph::New();
-    mGlyphs[ n ]->SetInputConnection( mClips[ n ]->GetOutputPort() );
-
+    mGlyphs[ n ]->SetInputConnection( imageFlip->GetOutputPort() );
+    
     // this reorients each tensor because when we resample the volume, the vector
     // data isn't reoriented
     mGlyphs[ n ]->SetVoxelToMeasurementFrameTransform( voxelTransform );
+
+    imageFlip->Delete();
+    
+    // our slices will be rotated, so we need to reorient the tensors again
+    vtkTransform *sliceTransform = vtkTransform::New();
+    sliceTransform->Identity();
+    
+    // new orientations for each plane
+    if( n == 0 ) {
+      sliceTransform->RotateY( 90 );
+      sliceTransform->RotateX( 90 );
+      sliceTransform->RotateZ( 180 );
+    } else if( n == 1 ) {
+      sliceTransform->RotateY( 180 );
+      sliceTransform->RotateX( 90 );
+    } else if( n == 2 ) {
+      sliceTransform->RotateY( 180 );
+      sliceTransform->RotateX( 180 );
+    }
+    mGlyphs[ n ]->SetVoxelToSliceTransform( sliceTransform );
+    sliceTransform->Delete();    
 
     // Plane mapper transform for moving the slice plane
     if ( !mSliceTransform[n] )
@@ -360,6 +385,9 @@ vtkKWScubaLayer3DDTI::AddControls ( vtkKWWidget* iPanel ) {
   mIsShowingAllButton->SetSelectedState( mIsShowingAll );  
   // set the callback
   mIsShowingAllButton->SetCommand( this, "SetIsShowingAll" );
+  
+  // TODO: disabling the show all button because nothing is implemented for it now
+  mIsShowingAllButton->SetEnabled( false );  
     
   this->Script( "pack %s %s %s %s -side top -fill x -anchor nw",
                 mIsPlaneXVisbleButton->GetWidgetName(), 
@@ -422,14 +450,17 @@ vtkKWScubaLayer3DDTI::DoListenToMessage ( string isMessage, void* iData ) {
     
   } else if( isMessage == "TensorInterpolationChanged" ) {
 
-    if( NULL != mDTIProperties && NULL != mVolumeToRAS ) {
+    for( int n=0; n<3; n++ ) {
+  
+      if( NULL != mDTIProperties && NULL != mVolumeToRAS[ n ] ) {
+        mVolumeToRAS[ n ]->SetInterpolationMode( 
+          mDTIProperties->GetTensorInterpolationType() );
+      }
       
-      mVolumeToRAS->SetInterpolationMode( 
-        mDTIProperties->GetTensorInterpolationType() );
-
-      this->PipelineChanged();
     }
 
+    this->PipelineChanged();
+    
   } else if( isMessage == "TensorScalingChanged" ) {
 
     this->UpdateGlyphScaling();
@@ -451,31 +482,6 @@ vtkKWScubaLayer3DDTI::GetRASBounds ( float ioBounds[6] ) const {
     for ( int nBound = 0; nBound < 6; nBound++ )
       ioBounds[nBound] = 0;
   }
-}
-
-void
-vtkKWScubaLayer3DDTI::GetUnscaledRASBounds ( float ioBounds[6] ) const {
-    
-  this->GetRASBounds( ioBounds );
-  
-  const float scales[] = {
-    mDTIProperties->GetFAVolumeSource()->GetPixelSizeX(),
-    mDTIProperties->GetFAVolumeSource()->GetPixelSizeY(),
-    mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ()
-  };
-    
-  // unscale the bounds
-  for( int nDim=0; nDim<3; nDim++ ) {
-    
-    // unscale the bottom
-    int nBound = nDim * 2;    
-    ioBounds[ nBound ] = ioBounds[ nBound ] / scales[ nDim ];    
-    
-    // unscale the top
-    nBound++;
-    ioBounds[ nBound ] = ioBounds[ nBound ] / scales[ nDim ];
-  }
-    
 }
 
 void
@@ -604,101 +610,80 @@ vtkKWScubaLayer3DDTI::UpdatePlanes () {
 
 void 
 vtkKWScubaLayer3DDTI::UpdatePlanes ( bool hasDetailChanged ) {
-  
-  const int ras[ 3 ] = {
-    static_cast< int >( mViewProperties->Get3DRASX() / mDTIProperties->GetFAVolumeSource()->GetPixelSizeX() ),
-    static_cast< int >( mViewProperties->Get3DRASY() / mDTIProperties->GetFAVolumeSource()->GetPixelSizeY() ),
-    static_cast< int >( mViewProperties->Get3DRASZ() / mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ() )
-  };
-
-  float floatBounds[ 6 ];
-  this->GetUnscaledRASBounds ( floatBounds );
-  
-  // cast them as ints so that we don't get warnings
-  int bounds[ 6 ];
-  for( int cBound=0; cBound<6; cBound++ ) {
-    bounds[ cBound ] = static_cast< int >( floatBounds[ cBound ] );
-  }
-
+    
   if( mIsShowingAll ) {
-
-    mClips[ 0 ]->SetOutputWholeExtent( 
-      bounds[ 0 ], bounds[ 1 ], 
-      bounds[ 2 ], bounds[ 3 ], 
-      bounds[ 4 ], bounds[ 5 ] );
+    
+    // TODO: implement something here?
 
   } else {
-  
-    const int currentShrinkage = this->GetCurrentShrinkage();
-      
-    // only update the slice that changed
-    if( bounds[ 0 ] != ras[ 0 ] || bounds[ 1 ] != ras[ 0 ] || hasDetailChanged ) {
-      
-      // the current plane that we're modifying
-      const int dim = 0;
-      
-      // moves the tensor plane up a little, so that it's cut in half by the 3D
-      // mri and well as moving it up a little whenever the RAS moves up, but
-      // the tensor slice volume isn't necessarily at a new slice yet
-      const float reposition = ( static_cast< int >( ras[ dim ] ) % static_cast< int >( currentShrinkage ) ) + 1;
-      this->ResetSliceTransform( dim );        
-      mSliceTransform[dim]->Translate( reposition, 0, 0 );
+    
+    const int ras[ 3 ] = {
+      static_cast< int >( mViewProperties->Get3DRASX() ),
+      static_cast< int >( mViewProperties->Get3DRASY() ),
+      static_cast< int >( mViewProperties->Get3DRASZ() )
+    };
+    
+    // go through each plane
+    for( int n=0; n<3; n++ ) {
 
-      // current slice position to extract from the tensor volume
-      const int position = static_cast< int >( floor( (float)(ras[ dim ] / currentShrinkage) ) );
-      mClips[ dim ]->SetOutputWholeExtent( 
-        position, position, 
-        bounds[ 2 ], bounds[ 3 ], 
-        bounds[ 4 ], bounds[ 5 ] );
-    }
-  
-    if( bounds[ 2 ] != ras[ 1 ] || bounds[ 3 ] != ras[ 1 ] || hasDetailChanged ) {
-
-      const int dim = 1;
+      //
+      // Now we'll set up our three planes with the right transforms.
+      //
+      double translation[ 3 ] = { 0, 0, 0 };
+      translation[ n ] = ras[ n ] - mWorldCenter[ n ];
       
-      const float reposition = ( static_cast< int >( ras[ dim ] ) % static_cast< int >( currentShrinkage ) ) + 1;
-      this->ResetSliceTransform( dim );
-      mSliceTransform[dim]->Translate( 0, reposition, 0 );
-
-      const int position = static_cast< int >( floor( (float)(ras[ dim ] / currentShrinkage) ) );
-      mClips[ dim ]->SetOutputWholeExtent( 
-        bounds[ 0 ], bounds[ 1 ], 
-        position, position, 
-        bounds[ 4 ], bounds[ 5 ] );
-    }
-  
-    if( bounds[ 4 ] != ras[ 2 ] || bounds[ 5 ] != ras[ 2 ] || hasDetailChanged ) {
+      mSliceTransform[ n ]->Identity();
+      mSliceTransform[ n ]->Translate( translation );
+     
+      // the direction of our reslice.  We'll want to change them for each
+      // plane.  The cosine direction is the vector perpendicular to the plane
+      double directionCosines[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
       
-      const int dim = 2;
-      
-      const float reposition = ( static_cast< int >( ras[ dim ] ) % static_cast< int >( currentShrinkage ) ) + 1;
-      this->ResetSliceTransform( dim );
-      mSliceTransform[dim]->Translate( 0, 0, reposition );
-
-      const int position = static_cast< int >( floor( (float)(ras[ dim ] / currentShrinkage) ) );
-      mClips[ dim ]->SetOutputWholeExtent( 
-        bounds[ 0 ], bounds[ 1 ],
-        bounds[ 2 ], bounds[ 3 ],
-        position, position );
+      // rotate our slices to get them in the right orientation
+      if( n == 0 ) {
         
-    }
+        mSliceTransform[n]->RotateX( 90 );
+        mSliceTransform[n]->RotateY( 90 );
+        
+        // Putting negatives in the reslice axes cosines will flip the
+        // image on that axis.
+        directionCosines[ 1 ] = -1;
+        directionCosines[ 5 ] = 1;
+        directionCosines[ 6 ] = 1;
+        
+        
+      } else if( n == 1 ) {
 
+        mSliceTransform[n]->RotateX( 90 );
+        mSliceTransform[n]->RotateY( 180 );
+        
+        directionCosines[ 0 ] = 1;
+        directionCosines[ 5 ] = 1;
+        directionCosines[ 7 ] = 1;
+        
+      } else if( n == 2 ) {
+
+        mSliceTransform[n]->RotateY( 180 );
+
+        directionCosines[ 0 ] = 1;
+        directionCosines[ 4 ] = 1;
+        directionCosines[ 8 ] = 1;
+        
+      }
+
+      mVolumeToRASSlice[n]->SetResliceAxesDirectionCosines( directionCosines );
+      
+      // set the origin for each plane
+      double axesOrigin[3] = { 0, 0, 0 };      
+      axesOrigin[ n ] = static_cast< int >( ras[n] - mWorldCenter[n] );
+      mVolumeToRASSlice[n]->SetResliceAxesOrigin( axesOrigin );
+      
+    }
+                  
   }
   
   this->PipelineChanged();
   
-}
-
-void 
-vtkKWScubaLayer3DDTI::ResetSliceTransform( const int iDim ) {
- 
-  mSliceTransform[ iDim ]->Identity();
-  
-  mSliceTransform[ iDim ]->Scale( 
-    mDTIProperties->GetFAVolumeSource()->GetPixelSizeX(),
-    mDTIProperties->GetFAVolumeSource()->GetPixelSizeY(),
-    mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ() );  
-
 }
 
 void
@@ -726,19 +711,20 @@ vtkKWScubaLayer3DDTI::UpdateGlyphScaling () {
 void
 vtkKWScubaLayer3DDTI::UpdateDetail () {
   
-  if( mReducedVolume ) {
-    
-    // figure out the level of detail
-    int shrinkage = this->GetCurrentShrinkage();
-        
-    for( int n = 0; n<3; n++ ) {          
-      mReducedVolume->SetShrinkFactors( shrinkage, shrinkage, shrinkage );
-    }
-    mReducedVolume->AveragingOn();
+  for( int n = 0; n<3; n++ ) {          
 
-    // if we update the detail, we also need to update the planes to be at the
-    // positioned correctly
-    this->UpdatePlanes( true );
+    if( mReducedVolume[ n ] ) {
+      
+      // figure out the level of detail
+      int shrinkage = this->GetCurrentShrinkage();
+      mReducedVolume[ n ]->SetShrinkFactors( shrinkage, shrinkage, shrinkage );
+      mReducedVolume[ n ]->AveragingOn();
+  
+      // if we update the detail, we also need to update the planes to be at the
+      // positioned correctly
+      this->UpdatePlanes( true );
+      
+    }
     
   }
 
@@ -781,4 +767,52 @@ vtkKWScubaLayer3DDTI::UpdateEdges() {
   }
 
   this->PipelineChanged();
+}
+
+vtkMatrix4x4* 
+vtkKWScubaLayer3DDTI::GetRasToVoxelMatrix( const int iDim ) {
+  // This rotates the volume to the proper orientation.
+  // for some reason the ras to voxel matrix doesn't operate properly.  To me,
+  // the voxel-to-ras matrix has been the pixel size taken out of not only the
+  // scale component of the matrix, but also out of the all other components of
+  // the matrix, which changes the rotation
+  double* rtv = mDTIProperties->GetFAVolumeSource()->GetRASToVoxelMatrix();
+
+  // remove the scale component too
+  vtkMatrix4x4* matrix = vtkMatrix4x4::New();
+
+  if( iDim == 0 ) {
+    matrix->SetElement( 0, 0, rtv[0] );  
+  } else {
+    matrix->SetElement( 0, 0, rtv[0] * mDTIProperties->GetFAVolumeSource()->GetPixelSizeX() );  
+  }
+  matrix->SetElement( 0, 1, rtv[1] );
+  matrix->SetElement( 0, 2, rtv[2] );
+  matrix->SetElement( 0, 3, 0 );
+
+  matrix->SetElement( 1, 0, rtv[4] );
+  if( iDim == 1 ) {
+    matrix->SetElement( 1, 1, rtv[5] );
+  } else {
+    matrix->SetElement( 1, 1, rtv[5]  * mDTIProperties->GetFAVolumeSource()->GetPixelSizeY() );
+  }
+  matrix->SetElement( 1, 2, rtv[6] );
+  matrix->SetElement( 1, 3, 0 );
+
+  matrix->SetElement( 2, 0, rtv[8] );
+  matrix->SetElement( 2, 1, rtv[9] );
+  if( iDim == 2 ) {
+    matrix->SetElement( 2, 2, rtv[10] );
+  } else {
+    matrix->SetElement( 2, 2, rtv[10] * mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ() );
+  }
+  matrix->SetElement( 2, 3, 0 );
+
+
+  matrix->SetElement( 3, 0, 0 );
+  matrix->SetElement( 3, 1, 0 );
+  matrix->SetElement( 3, 2, 0 );
+  matrix->SetElement( 3, 3, 1 );
+
+  return matrix;
 }

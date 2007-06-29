@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/06/12 15:46:43 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/06/29 16:16:57 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,11 +37,11 @@ class ScubaCollectionPropertiesDTI;
 class vtkActor;
 class vtkLODActor;
 class vtkFDTensorGlyph;
-class vtkImageClip;
 class vtkImageReslice;
 class vtkImageShrink3D;
 class vtkKWCheckButton;
 class vtkPolyDataMapper;
+class vtkTransform;
 
 class vtkKWScubaLayer2DDTI : public vtkKWScubaLayer {
 
@@ -75,10 +75,6 @@ public:
   // Returns the bounds of the volume.
   virtual void GetRASBounds ( float ioBounds[6] ) const;
   
-  // Description:
-  // Returns the bounds without the pixel scaling, only rotations.
-  void GetUnscaledRASBounds ( float ioBounds[6] ) const;  
-
   // Description:
   // Returns the shortest edge distance.
   virtual void Get2DRASZIncrementHint ( float ioHint[3]) const;
@@ -119,12 +115,13 @@ protected:
 
   // Pipeline -------------------------------------------------------------
   vtkImageReslice* mVolumeToRAS;
+  vtkImageReslice* mVolumeToRASSlice;
   vtkImageShrink3D* mReducedVolume;
-  vtkImageClip* mClip;
   vtkFDTensorGlyph* mGlyph;
   vtkPolyDataMapper* mMapper;
   vtkLODActor* mActor;
   vtkLODActor* mEdgeActor;
+  vtkTransform* mPlaneTransform;
   // ----------------------------------------------------------------------
 
   float mWorldCenter[3];
