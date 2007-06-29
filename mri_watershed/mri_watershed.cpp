@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: nommert $
- *    $Date: 2007/05/22 14:13:44 $
- *    $Revision: 1.66 $
+ *    $Author: fischl $
+ *    $Date: 2007/06/29 13:40:47 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-char *MRI_WATERSHED_VERSION = "$Revision: 1.66 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.67 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -147,7 +147,7 @@ typedef struct STRIP_PARMS
   int brainsurf;
   /*to write out all the BEM surfaces : brain, outer and inner skull, scalp*/
   int surf;
-  /*to labelize the volume into scalp, skull, csf, white and gray*/
+  /*to segment the volume into scalp, skull, csf, white and gray*/
   int label;
   /*to use the atlas validation and correction*/
   int atlas;
@@ -484,7 +484,7 @@ void usageHelp()
   fprintf(stdout, "\n-n                   : "
           "not use the watershed analyze process");
   fprintf(stdout, "\n-LABEL               : "
-          "labelize the output volume into scalp, skull, csf, gray and white");
+          "segment the output volume into scalp, skull, csf, gray and white");
   fprintf(stdout, "\n-man int_csf int_trn int_gray: "
           "to change the different parameters csf_max,\n"
           "                               "
@@ -615,7 +615,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     fprintf(stdout,"Mode:          Writing out tissue label "
             "into output volume\n") ;
     fprintf(stdout,"                       Assumption : "
-            "no biais field and FGM\n");
+            "no bias field and FGM\n");
     fprintf(stdout,"                       0 -> exterior\n") ;
     fprintf(stdout,"                       1 -> scalp\n") ;
     fprintf(stdout,"                       2 -> skull\n") ;
@@ -855,7 +855,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.66 2007/05/22 14:13:44 nommert Exp $", 
+     "$Id: mri_watershed.cpp,v 1.67 2007/06/29 13:40:47 fischl Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.66 2007/05/22 14:13:44 nommert Exp $", 
+     "$Id: mri_watershed.cpp,v 1.67 2007/06/29 13:40:47 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
