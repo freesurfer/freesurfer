@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/06/25 03:27:43 $
- *    $Revision: 1.315 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/01 21:43:31 $
+ *    $Revision: 1.316 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.315 $";
+char *VERSION = "$Revision: 1.316 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.315 2007/06/25 03:27:43 greve Exp $",
+     "$Id: tkmedit.c,v 1.316 2007/07/01 21:43:31 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5893,14 +5893,14 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.315 2007/06/25 03:27:43 greve Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.316 2007/07/01 21:43:31 nicks Exp $ $Name:  $\n"
     )
   );
 
   /* init glut */
   DebugNote( ("Initializing glut") );
   glutInit( &argc, argv );
-  glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE );
+  glutInitDisplayMode( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH );
 
   /* init main window */
   DebugNote( ("Creating main window") );
