@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/06/20 21:50:19 $
-#    $Revision: 1.108 $
+#    $Date: 2007/07/01 20:40:28 $
+#    $Revision: 1.109 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.108 2007/06/20 21:50:19 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.109 2007/07/01 20:40:28 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4083,16 +4083,17 @@ Skip the automatic failure detection of Talairach alignment.
 
 -qcache
 
-Produce the pre-cached files required by the Qdec utility.  These files
-are created by running mris_preproc, which creates smoothed surface data
-files sampled to the 'fsaverage' common-space surface. By default, the surface
-data for thickness, curv, sulc, area and jacobian_white are smoothed at 
-0, 5, 10, 15, 20, and 25 mm FWHM.  
+Produce the pre-cached files required by the Qdec utility, allowing rapid 
+analysis of group data.  These files are created by running mris_preproc, 
+which creates smoothed surface data files sampled to the 'fsaverage' 
+common-space surface. By default, the surface data for thickness, curv, sulc, 
+area and jacobian_white are smoothed at 0, 5, 10, 15, 20, and 25 mm FWHM.  
 If just one set of surface data needs to be processed, then the option 
 -measure <surfmeas> can follow -qcache, where <surfmeas> is one of: thickness, 
 curv, sulc, area, jacobian_white or any surface measure. Another option is 
 -fwhm <num> where <num> is a value in mm.  Also, -target <name> allows
 specifying a common-space target other than fsaverage (the default).
+See also: http://surfer.nmr.mgh.harvard.edu/fswiki/Qdec
 
 -make target
 
