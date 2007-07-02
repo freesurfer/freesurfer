@@ -1,0 +1,95 @@
+#!/bin/tcsh -f
+
+#
+# test_mris_anatomical_stats
+#
+# execute mris_anatomical_stats and check results against expected results
+#
+# Original Author: Nick Schmansky
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/07/02 17:34:44 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION='$Id: test_mris_anatomical_stats,v 1.1 2007/07/02 17:34:44 nicks Exp $'
+
+umask 002
+
+setenv SUBJECTS_DIR $PWD
+
+if ( -e testdata2) then
+  echo "rm -Rf testdata2"
+  rm -Rf testdata2
+endif
+
+# use the testdata found in the mri_aparc2aseg directory
+
+echo "gunzip -c ../mri_aparc2aseg/testdata2.tar.gz | tar xvf -"
+gunzip -c ../mri_aparc2aseg/testdata2.tar.gz | tar xvf -
+
+
+#
+# test1: basic call sequence using rh
+#
+set cmd=( ./mris_anatomical_stats testdata2 rh )
+echo ""
+echo $cmd
+$cmd >& test1.out
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+
+# compare against prior known-good results
+grep "=" test1.out > test1.observed
+set cmd=(diff test1.expected test1.observed)
+echo $cmd
+$cmd
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+
+
+#
+# test2: repeat basic call sequence for lh
+#
+set cmd=( ./mris_anatomical_stats testdata2 lh )
+echo ""
+echo $cmd
+$cmd >& test2.out
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+grep "=" test2.out > test2.observed
+set cmd=(diff test2.expected test2.observed)
+echo $cmd
+$cmd
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+
+
+#
+# cleanup
+#
+rm -Rf testdata2 *.observed *.out
+
+echo ""
+echo "test_mris_anatomical_stats passed all tests"
+exit 0
