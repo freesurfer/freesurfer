@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/14 15:39:08 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/07/02 14:46:01 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.20 2007/06/14 15:39:08 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.21 2007/07/02 14:46:01 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -92,7 +92,7 @@ static MRIS *lhwhite, *rhwhite;
 static MRIS *lhpial, *rhpial;
 static MHT *lhwhite_hash, *rhwhite_hash;
 static MHT *lhpial_hash, *rhpial_hash;
-static VERTEX vtx, *pvtx;
+static VERTEX vtx;
 static int  lhwvtx, lhpvtx, rhwvtx, rhpvtx;
 static MATRIX *Vox2RAS, *CRS, *RAS;
 static float dlhw, dlhp, drhw, drhp;
@@ -108,6 +108,7 @@ static int baseoffset = 0;
 static float hashres = 16;
 
 int crsTest = 0, ctest=0, rtest=0, stest=0;
+int UseHash = 1;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -287,12 +288,6 @@ int main(int argc, char **argv) {
     printf("Ripped %d vertices from right hemi\n",nripped);
   }
 
-  pvtx = &rhpial->vertices[83583];
-  pvtx->ripflag = 1;
-  rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, pvtx,&drhp);
-  printf("vtx %d %d\n",83583,rhpvtx);
-  //exit(10);
-
   /* ------ Load ASeg ------ */
   sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
   if (!fio_FileExistsReadable(tmpstr)) {
@@ -452,22 +447,30 @@ int main(int argc, char **argv) {
 
         // Get the index of the closest vertex in the
         // lh.white, lh.pial, rh.white, rh.pial
-        lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,&vtx,&dlhw);
-        lhpvtx = MHTfindClosestVertexNo(lhpial_hash, lhpial, &vtx,&dlhp);
-        rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
-        rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
+	if (UseHash) {
+	  lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,&vtx,&dlhw);
+	  lhpvtx = MHTfindClosestVertexNo(lhpial_hash, lhpial, &vtx,&dlhp);
+	  rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
+	  rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
+	  if (lhwvtx < 0 && lhpvtx < 0 && rhwvtx < 0 && rhpvtx < 0) {
+	    printf("ERROR: could not map to any surface.\n");
+	    printf("crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
+		   c,r,s,vtx.x,vtx.y,vtx.z);
+	    exit(1);
+	  }
+	}
+	else {
+	  lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
+	  lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
+	  rhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&drhw);
+	  rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
+	}
 
-        if (lhwvtx < 0 && lhpvtx < 0 && rhwvtx < 0 && rhpvtx < 0) {
-          printf("ERROR: could not map to any surface.\n");
-          printf("crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
-                 c,r,s,vtx.x,vtx.y,vtx.z);
-          exit(1);
-        }
 
-        if (lhwvtx < 0) dlhw = 1000000000000000.0;
-        if (lhpvtx < 0) dlhp = 1000000000000000.0;
-        if (rhwvtx < 0) drhw = 1000000000000000.0;
-        if (rhpvtx < 0) drhp = 1000000000000000.0;
+        if(lhwvtx < 0) dlhw = 1000000000000000.0;
+        if(lhpvtx < 0) dlhp = 1000000000000000.0;
+        if(rhwvtx < 0) drhw = 1000000000000000.0;
+        if(rhpvtx < 0) drhp = 1000000000000000.0;
 
         if (dlhw < dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0) {
           annot = lhwhite->vertices[lhwvtx].annotation;
@@ -618,6 +621,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--labelwm"))  LabelWM = 1;
     else if (!strcasecmp(option, "--hypo-as-wm"))  LabelHypoAsWM = 1;
     else if (!strcasecmp(option, "--rip-unknown"))  RipUnknown = 1;
+    else if (!strcasecmp(option, "--no-hash"))  UseHash = 0;
     else if (!strcmp(option, "--sd")) {
       if (nargc < 1) argnerr(option,1);
       SUBJECTS_DIR = pargv[0];
