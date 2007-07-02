@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.36 2007/05/30 16:40:59 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.37 2007/07/02 21:27:38 greve Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -420,8 +420,8 @@
 4033    wm-rh-temporalpole                  185 185 185 0
 4034    wm-rh-transversetemporal            105 105 55  0
 
-5001    wm-lh-centrum-semiovale             20  30  40  0
-5002    wm-rh-centrum-semiovale             20  30  40  0
+5001    Left-UnsegmentedWhiteMatter          20  30  40  0
+5002    Right-UnsegmentedWhiteMatter         20  30  40  0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2005 flag) in which the aseg
