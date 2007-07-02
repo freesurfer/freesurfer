@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/02 14:46:01 $
- *    $Revision: 1.21 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/02 17:40:24 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.21 2007/07/02 14:46:01 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.22 2007/07/02 17:40:24 nicks Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -353,6 +353,7 @@ int main(int argc, char **argv) {
   for (c=0; c < ASeg->width; c++) {
     printf("%3d ",c);
     if (c%20 ==19) printf("\n");
+    fflush(stdout);
     for (r=0; r < ASeg->height; r++) {
       for (s=0; s < ASeg->depth; s++) {
 
@@ -855,7 +856,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
   *rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
   
   if(*lhwvtx < 0 && *lhpvtx < 0 && *rhwvtx < 0 && *rhpvtx < 0) {
-    printf("ERROR: could not map to any surface.\n");
+    printf("ERROR2: could not map to any surface.\n");
     printf("crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
 	   c,r,s,vtx.x,vtx.y,vtx.z);
     return(1);
