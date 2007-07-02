@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/02 17:40:24 $
- *    $Revision: 1.22 $
+ *    $Author: greve $
+ *    $Date: 2007/07/02 20:06:20 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.22 2007/07/02 17:40:24 nicks Exp $";
+"$Id: mri_aparc2aseg.c,v 1.23 2007/07/02 20:06:20 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -473,7 +473,7 @@ int main(int argc, char **argv) {
         if(rhwvtx < 0) drhw = 1000000000000000.0;
         if(rhpvtx < 0) drhp = 1000000000000000.0;
 
-        if (dlhw < dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0) {
+        if(dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0) {
           annot = lhwhite->vertices[lhwvtx].annotation;
           hemi = 1;
           if (lhwhite->ct)
@@ -482,7 +482,7 @@ int main(int argc, char **argv) {
             annotid = annotation_to_index(annot);
           dmin = dlhw;
         }
-        if (dlhp < dlhw && dlhp < drhw && dlhp < drhp && lhpvtx >= 0) {
+        if(dlhp < dlhw && dlhp < drhw && dlhp < drhp && lhpvtx >= 0) {
           annot = lhwhite->vertices[lhpvtx].annotation;
           hemi = 1;
           if (lhwhite->ct)
@@ -492,7 +492,7 @@ int main(int argc, char **argv) {
           dmin = dlhp;
         }
 
-        if (drhw < dlhp && drhw < dlhw && drhw < drhp && rhwvtx >= 0) {
+        if(drhw < dlhp && drhw < dlhw && drhw <= drhp && rhwvtx >= 0) {
           annot = rhwhite->vertices[rhwvtx].annotation;
           hemi = 2;
           if (rhwhite->ct)
@@ -833,7 +833,8 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
   static MATRIX *CRS = NULL;
   static MATRIX *RAS = NULL;
   static VERTEX vtx;
-  static float dlhw, dlhp, drhw, drhp;
+  static float dlhw, dlhp, drhw, drhp,dmin;
+  int annot, hemi, annotid;
 
   if(CRS == NULL){
     CRS = MatrixAlloc(4,1,MATRIX_REAL);
@@ -854,12 +855,61 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
   *lhpvtx = MHTfindClosestVertexNo(lhpial_hash, lhpial, &vtx,&dlhp);
   *rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
   *rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
-  
+
+  printf("lh white: %d %g\n",*lhwvtx,dlhw);
+  printf("lh pial:  %d %g\n",*lhpvtx,dlhp);
+  printf("rh white: %d %g\n",*rhwvtx,drhw);
+  printf("rh pial:  %d %g\n",*rhpvtx,drhp);
+
+  hemi = 0;
+  dmin = -1;
   if(*lhwvtx < 0 && *lhpvtx < 0 && *rhwvtx < 0 && *rhpvtx < 0) {
     printf("ERROR2: could not map to any surface.\n");
     printf("crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
 	   c,r,s,vtx.x,vtx.y,vtx.z);
     return(1);
   }
+  if(dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0) {
+    annot = lhwhite->vertices[*lhwvtx].annotation;
+    hemi = 1;
+    if (lhwhite->ct)
+      CTABfindAnnotation(lhwhite->ct, annot, &annotid);
+    else
+      annotid = annotation_to_index(annot);
+    dmin = dlhw;
+  }
+  if(dlhp < dlhw && dlhp < drhw && dlhp < drhp && lhpvtx >= 0) {
+    annot = lhwhite->vertices[*lhpvtx].annotation;
+    hemi = 1;
+    if (lhwhite->ct)
+      CTABfindAnnotation(lhwhite->ct, annot, &annotid);
+    else
+      annotid = annotation_to_index(annot);
+    dmin = dlhp;
+  }
+  
+  if(drhw < dlhp && drhw < dlhw && drhw <= drhp && rhwvtx >= 0) {
+    annot = rhwhite->vertices[*rhwvtx].annotation;
+    hemi = 2;
+    if (rhwhite->ct)
+      CTABfindAnnotation(lhwhite->ct, annot, &annotid);
+    else
+      annotid = annotation_to_index(annot);
+    dmin = drhw;
+  }
+  if (drhp < dlhp && drhp < drhw && drhp < dlhw && rhpvtx >= 0) {
+    annot = rhwhite->vertices[*rhpvtx].annotation;
+    hemi = 2;
+    if (rhwhite->ct)
+      CTABfindAnnotation(lhwhite->ct, annot, &annotid);
+    else
+      annotid = annotation_to_index(annot);
+    dmin = drhp;
+  }
+
+  printf("hemi = %d, annotid = %d, dist = %g\n",hemi,annotid,dmin);
+
+
+  
   return(0);
 }
