@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/05 15:13:26 $
- *    $Revision: 1.39 $
+ *    $Date: 2007/07/03 19:06:15 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -154,12 +154,11 @@ typedef struct
 
 
   Volm_tSampleType mSampleType;  /* How to sample the volume */
-
   mriTransformRef    mMRIIdxToAnaIdxTransform; /* MRI -> ana (via scnr RAS) */
-  mriTransformRef    mDisplayTransform;            /* buf -> index */
   mriTransformRef    mMNITalLtzToRealTalTransform; /* tal (z<0) -> real tal */
   mriTransformRef    mMNITalGtzToRealTalTransform; /* tal (z>0) -> real tal */
   mriTransformRef    mScannerTransform;            /* idx -> scnaner */
+  TRANSFORM* mDisplayTransform;
 
   char msSubjectName[mri_knSubjectNameLen];
   char msVolumeName[mri_knSubjectNameLen];
@@ -485,9 +484,6 @@ void Volm_SetValueAtIdxFrame_    ( mriVolumeRef      this,
                                    xVoxelRef         iIdx,
                                    int               iFrame,
                                    float             iValue );
-void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
-                                   xVoxelRef        iIdx,
-                                   xVoxelRef        oIdx );
 
 #else /* VOLM_USE_MACROS */
 
@@ -804,9 +800,6 @@ floor((oScreenIdx)->mfZ+0.5) >= 256) ) { \
          (this->mTmpVoxel).mfY, \
          (this->mTmpVoxel).mfZ, \
          2, irValue);
-
-#define Volm_ApplyDisplayTransform_(this,iIdx,oIdx) \
-    Trns_ConvertBtoA( this->mDisplayTransform, iIdx, oIdx )
 
 #endif /* VOLM_USE_MACROS */
 

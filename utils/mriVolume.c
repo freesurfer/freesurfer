@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/05 15:13:18 $
- *    $Revision: 1.87 $
+ *    $Date: 2007/07/03 19:06:09 $
+ *    $Revision: 1.88 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -194,7 +194,7 @@ Volm_tErr Volm_Delete ( mriVolumeRef* iopVolume )
   }
   if ( NULL != this->mDisplayTransform )
   {
-    Trns_Delete( &(this->mDisplayTransform) );
+    TransformFree( &(this->mDisplayTransform) );
   }
   if ( NULL != this->mMNITalLtzToRealTalTransform )
   {
@@ -286,12 +286,10 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   if ( NULL != this->mDisplayTransform )
   {
     DebugNote( ("Copying display transform") );
-    eTransform = Trns_DeepClone( this->mDisplayTransform,
-                                 &(clone->mDisplayTransform) );
+    clone->mDisplayTransform = 
+      TransformCopy( this->mDisplayTransform, NULL );
     DebugAssertThrowX( (NULL != clone->mDisplayTransform),
                        eResult, Volm_tErr_CouldntCopyTransform );
-    memcpy( clone->mDisplayTransform, this->mDisplayTransform,
-            sizeof(this->mDisplayTransform) );
   }
   if ( NULL != this->mMNITalLtzToRealTalTransform )
   {
@@ -827,24 +825,12 @@ Volm_tErr Volm_Save ( mriVolumeRef this,
   return eResult;
 }
 
-
-
-///////////////////////////////////////////////////////////////////////
 Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
                                       char*        isFileName )
 {
-  Volm_tErr eResult   = Volm_tErr_NoErr;
-  Trns_tErr eTransform = Trns_tErr_NoErr;
-  MATRIX *srcToRAS = 0;  // must deallocate
-  MATRIX *rasToDst = 0;  // must deallocate
-  MATRIX *srcToDst = 0;  // must deallocate
-  MATRIX *tmpMat = 0;    // must deallocate
-  LTA *lta = 0;          // must deallocate
-  MRI *tmpMRI = 0;       // must deallocate
-  MATRIX *identity = 0;  // must deallocate
-
-  MRI *pmri = 0;         // use as convenience
-  LT *tran = 0;          // use as convenience
+  Volm_tErr  eResult   = Volm_tErr_NoErr;
+  TRANSFORM* transform = NULL;
+  int        eTransform = ERROR_NONE;
 
   DebugEnterFunction( ("Volm_LoadDisplayTransform( this=%p, isFileName=%s )",
                        this, isFileName) );
@@ -858,121 +844,23 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
                      eResult, Volm_tErr_InvalidParamater );
 
   /* try to read a transform and make sure we got it */
-  DebugNote( ("Creating transform from lta transform file %s", isFileName) );
-  //
-  // I cannot use Trns_NewFromLTA, since lta contains more info
-  // in particular dst info
-  lta = LTAreadEx(isFileName);
-  DebugAssertThrowX( (NULL != lta),
+  DebugNote( ("Reading transform from %s", isFileName) );
+  transform = TransformRead( isFileName );
+  DebugAssertThrowX( (NULL != transform),
                      eResult, Trns_tErr_LTAImportFailed );
-  tran = &lta->xforms[0];
 
-  //E/ Trns_NewFromLTA copies the matrix right out of
-  //LTATransform->xforms[0].m_L and notes type
-  DebugAssertThrowX( (Trns_tErr_NoErr == eTransform),
-                     eResult, Volm_tErr_CouldntReadTransform );
+  /* This doesn't invert the transform (as you might think), but
+     calculates the inverses that we'll use later. */
+  eTransform = TransformInvert( transform, this->mpMriValues ); 
+  if( 0 != eTransform ) { 
+    fprintf( stderr, "TransformInvert returned %d\n", eTransform ); 
+  } 
 
-  /* convert (VOX->VOX xform to) RAS->RAS transform to screen->voxel coords */
-  switch (lta->type)
-  {
-  case LINEAR_VOX_TO_VOX:
-  {
-    // use ARStoBRAS as the src volume to the dst volume
-    srcToDst = MatrixCopy(tran->m_L, NULL);
-  }
-  break;
-  case LINEAR_RAS_TO_RAS:
-  {
-    // convert into vox-to-vox transform
-    //      srcToRas
-    //    src ---> RAS
-    //     |        |
-    //     |this    | this is given as eTransform
-    //     V        V
-    //    dst <--- RAS
-    //      rasToDst
-    //////////////////////////////////////////
-    fprintf(stderr, "INFO: rasToRas transform read:\n");
-    MatrixPrint(stderr, tran->m_L);
-    pmri = this->mpMriValues;
-    srcToRAS = extract_i_to_r(pmri);
-    // we need only header to calculate the transform
-    tmpMRI=MRIallocHeader(pmri->width, pmri->height, pmri->depth, MRI_UCHAR);
-    MRIcopyHeader(pmri, tmpMRI);
-    if (tran->dst.valid == 1)
-    {
-      fprintf(stderr, "INFO: Transform has the target information.\n");
-      tmpMRI->c_r = tran->dst.c_r;
-      tmpMRI->c_a = tran->dst.c_a;
-      tmpMRI->c_s = tran->dst.c_s;
-      tmpMRI->ras_good_flag = 1;
-    }
-    else if (getenv("USE_AVERAGE305"))
-    {
-      fprintf(stderr, 
-              "INFO: Environmental variable USE_AVERAGE305 set\n");
-      fprintf(stderr, 
-              "INFO: Modifying dst c_(r,a,s), using average_305 values\n");
-      tmpMRI->c_r = -0.0950;
-      tmpMRI->c_a = -16.5100;
-      tmpMRI->c_s = 9.7500;
-      tmpMRI->ras_good_flag = 1;
-    }
-    else
-    {
-      fprintf(stderr, 
-              "INFO: Destination c_(ras) is assumed to be "
-              "the same as that of src\n");
-      fprintf(stderr, 
-              "INFO: If not correct, edit transform to "
-              "give destination info.\n");
-    }
-    rasToDst = extract_r_to_i(tmpMRI);
-    tmpMat = MatrixMultiply(tran->m_L, srcToRAS, NULL);//tran->m_L is rasToRAS
-    srcToDst = MatrixMultiply(rasToDst, tmpMat, NULL);
-    fprintf(stderr, "INFO: srcToDst voxel-to-voxel transform\n");
-    MatrixPrint(stderr, srcToDst);
-  }
-  break;
-  default:   /* don't know what to do yet */
-    fprintf(stderr, "LTA type (%d) isn't LINEAR_VOX_TO_VOX, "
-            "LINEAR_RAS_TO_RAS - don't know what to do.\n", tran->type);
-    LTAfree(&lta);
-    return Volm_tErr_InvalidParamater;
-    break ;
-  }
-  // cleanup memory
-  if (tmpMat)
-    MatrixFree(&tmpMat);
-  if (srcToRAS)
-    MatrixFree(&srcToRAS);
-  if (rasToDst)
-    MatrixFree(&rasToDst);
-  if (tmpMRI)
-    MRIfree(&tmpMRI);
-  LTAfree(&lta);
+  /* Success! Out with the old and in with the new. */
+  if( NULL != this->mDisplayTransform )
+    TransformFree( &this->mDisplayTransform );
+  this->mDisplayTransform = transform;
 
-  ////////////////////////////////////////////////////////////////////////////
-  // set up this->mDisplayTransform
-  //
-  // assuming that mDisplayTransform is the src vox to dst vox transform
-  //
-  // Kevin, please verify!
-  //
-  ////////////////////////////////////////////////////////////////////////////
-
-  // Make the transform. Set dispTran to ARAStoBRAS.
-  if (this->mDisplayTransform)
-    free(this->mDisplayTransform);
-  Trns_New( &this->mDisplayTransform );
-  Trns_CopyARAStoBRAS( this->mDisplayTransform, srcToDst );
-  identity = MatrixIdentity( 4, NULL );
-  Trns_CopyAtoRAS( this->mDisplayTransform, identity );
-  Trns_CopyBtoRAS( this->mDisplayTransform, identity );
-  MatrixFree(&identity);
-
-
-  ////////////////////////////////////////////////////////////////////////
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
@@ -981,95 +869,6 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 
   return eResult;
 }
-
-
-/*E*
-MATRIX *Volm_VoxelXformToCoronalRasXform
-(MRI *mri_src, MATRIX *m_vox_c2vox_s, MATRIX *m_ras_c2ras_s)
-{
-  MATRIX   *V, *W, *m_tmp ;
-
-  //E/ need m_ras_c2ras_s = vox_c2ras_c * m_vox_c2vox_s * ras_s2vox_s
-  //E/ = W_s * m_vox_c2vox_s * V_c
-  V = MatrixAlloc(4, 4, MATRIX_REAL) ;  // world to voxel transform
-  W = MatrixAlloc(4, 4, MATRIX_REAL) ;  // voxel to world transform
-
-  //E/ 1mmIsotropicCoronalRas to vox
-  *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
-  *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
-  *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
-  *MATRIX_RELT(V, 4, 4) = 1 ;
-
-  //E/ vox to appropriate Ras
-  W = extract_i_to_r(mri_src);
-
-  m_tmp = MatrixMultiply(m_vox_c2vox_s, V, NULL) ;
-  m_ras_c2ras_s = MatrixMultiply(W, m_tmp, NULL) ;
-
-  //#define _VVXTCRXDEBUG
-#ifdef _VVXTCRXDEBUG
-  fprintf(stderr, "Volm_VoxelXformToCoronalRasXform: m_vox_c2vox_s=\n");
-  MatrixPrint(stderr, m_vox_c2vox_s);
-  fprintf(stderr, "Volm_VoxelXformToCoronalRasXform: V=\n");
-  MatrixPrint(stderr, V);
-  fprintf(stderr, "Volm_VoxelXformToCoronalRasXform: W=\n");
-  MatrixPrint(stderr, W);
-  fprintf(stderr, "Volm_VoxelXformToCoronalRasXform: m_ras_c2ras_s=\n");
-  MatrixPrint(stderr, m_ras_c2ras_s);
-#endif
-
-  MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
-  return(m_ras_c2ras_s) ;
-}
-*/
-
-#if 0
-//E/ this case was worthless
-MATRIX *Volm_V2CVXtoR2CRX(MRI *mri_src, 
-                          MATRIX *m_vox_s2vox_c, 
-                          MATRIX *m_ras_s2ras_c)
-{
-  MATRIX   *V, *W, *m_tmp ;
-
-  //E/ need m_ras_s2ras_c = vox_c2ras_c * m_vox_s2vox_c * ras_s2vox_s
-  //E/ = W_c * m_vox_t2vox_s * V_s
-  V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
-  W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
-
-  //E/ vox to 1mmIsotropicCoronalRas
-  *MATRIX_RELT(W, 1, 1) = -1 ;
-  *MATRIX_RELT(W, 1, 4) = 128 ;
-  *MATRIX_RELT(W, 2, 3) = 1 ;
-  *MATRIX_RELT(W, 2, 4) = -128 ;
-  *MATRIX_RELT(W, 3, 2) = -1 ;
-  *MATRIX_RELT(W, 3, 4) = 128 ;
-  *MATRIX_RELT(W, 4, 4) = 1 ;
-
-  //E/ ras to appropriate vox
-  V = extract_r_to_i(mri_src);
-
-  m_tmp = MatrixMultiply(m_vox_s2vox_c, V, NULL) ;
-  m_ras_s2ras_c = MatrixMultiply(W, m_tmp, NULL) ;
-
-  //#define _VVXTCRXDEBUG
-#ifdef _VVXTCRXDEBUG
-  fprintf(stderr, "Volm_V2CVXtoR2CRX: m_vox_s2vox_c=\n");
-  MatrixPrint(stderr, m_vox_s2vox_c);
-  fprintf(stderr, "Volm_V2CVXtoR2CRX: V_s=\n");
-  MatrixPrint(stderr, V);
-  fprintf(stderr, "Volm_V2CVXtoR2CRX: W_c=\n");
-  MatrixPrint(stderr, W);
-  fprintf(stderr, "Volm_V2CVXtoR2CRX: m_ras_s2ras_c=\n");
-  MatrixPrint(stderr, m_ras_s2ras_c);
-#endif
-
-  MatrixFree(&V) ;
-  MatrixFree(&W) ;
-  MatrixFree(&m_tmp) ;
-  return(m_ras_s2ras_c) ;
-}
-#endif
-
 
 Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this )
 {
@@ -1083,8 +882,10 @@ Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this )
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
 
   /* if we already have a transform, delete it */
-  if ( NULL != this->mDisplayTransform )
-    Trns_Delete( &(this->mDisplayTransform) );
+  if ( NULL != this->mDisplayTransform ) {
+    TransformFree( &(this->mDisplayTransform) );
+    this->mDisplayTransform = NULL;
+  }
 
   MatrixCopy(this->m_resample_orig, this->m_resample) ;
   DebugNote( ("Calculating inverse of resample matrix") );
@@ -1134,23 +935,24 @@ void Volm_GetIntColorAtIdx ( mriVolumeRef this,
                              xColor3nRef  oColor )
 {
 
+  float  x, y, z;
   float  value = 0;
   int    colorIdx = 0;
   xVoxel disp;
 
   /* transform idx to display transform */
-  if ( NULL != this->mDisplayTransform )
-  {
+  if ( NULL != this->mDisplayTransform ) {
 
-    Volm_ApplyDisplayTransform_( this, iIdx, &disp );
-    if ( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr )
-    {
+    /* Transform using the inverse of the display transform. */
+    TransformSampleInverse( this->mDisplayTransform,
+			    xVoxl_ExpandFloat( iIdx ), &x, &y, &z );
+    xVoxl_SetFloat( &disp, x, y, z );
+    
+    if ( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) {
       Volm_GetSampledValueAtIdx_( this, &disp, &value );
     }
 
-  }
-  else
-  {
+  } else {
 
     /* Get the sampled value. Cap it to the color min and max. If in
        between that, calculate the color index between 0 and 255. */
@@ -4053,17 +3855,6 @@ void Volm_SetValueAtIdxFrame_ ( mriVolumeRef     this,
     break ;
   }
 }
-
-
-void Volm_ApplyDisplayTransform_ ( mriVolumeRef     this,
-                                   xVoxelRef        iIdx,
-                                   xVoxelRef        oIdx )
-{
-
-  Trns_ConvertAtoB( this->mDisplayTransform, iIdx, oIdx );
-}
-
-
 #endif /* VOLM_USE_MACROS */
 /* ======================================== END OF FUNCTION VERION OF MACROS */
 
