@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/02 20:06:20 $
- *    $Revision: 1.23 $
+ *    $Date: 2007/07/03 17:15:59 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.23 2007/07/02 20:06:20 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.24 2007/07/03 17:15:59 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -114,7 +114,7 @@ int UseHash = 1;
 int main(int argc, char **argv) {
   int nargs, err, asegid, c, r, s, nctx, annot,vtxno,nripped;
   int annotid, IsCortex=0, IsWM=0, IsHypo=0, hemi=0, segval=0;
-  int isRibbonWM=0, isRibbonGM=0, RibbonVal=0;
+  int isRibbonWM=0, isRibbonGM=0, RibbonVal=0,nbrute=0;
   float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0;
 
   /* rkt: check for and handle version tag */
@@ -148,11 +148,6 @@ int main(int argc, char **argv) {
     fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
     exit(1);
   }
-
-  printf("\n");
-  printf("Building hash of lh white\n");
-  lhwhite_hash = MHTfillVertexTableRes(lhwhite, NULL,CURRENT_VERTICES,hashres);
-
   /* ------ Load subject's lh pial surface ------ */
   sprintf(tmpstr,"%s/%s/surf/lh.pial",SUBJECTS_DIR,subject);
   printf("\nReading lh pial surface \n %s\n",tmpstr);
@@ -161,10 +156,6 @@ int main(int argc, char **argv) {
     fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
     exit(1);
   }
-  printf("\n");
-  printf("Building hash of lh pial\n");
-  lhpial_hash = MHTfillVertexTableRes(lhpial, NULL,CURRENT_VERTICES,hashres);
-
   if (lhwhite->nvertices != lhpial->nvertices) {
     printf("ERROR: lh white and pial have a different number of "
            "vertices (%d,%d)\n",
@@ -181,7 +172,7 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  /* ------ Load subject's rh surface ------ */
+  /* ------ Load subject's rh white surface ------ */
   sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
   printf("\nReading rh white surface \n %s\n",tmpstr);
   rhwhite = MRISread(tmpstr);
@@ -189,11 +180,7 @@ int main(int argc, char **argv) {
     fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
     exit(1);
   }
-  printf("\n");
-  printf("Building hash of rh white\n");
-  rhwhite_hash = MHTfillVertexTableRes(rhwhite, NULL,CURRENT_VERTICES,hashres);
-
-  /* ------ Load subject's rh surface ------ */
+  /* ------ Load subject's rh pial surface ------ */
   sprintf(tmpstr,"%s/%s/surf/rh.pial",SUBJECTS_DIR,subject);
   printf("\nReading rh pial surface \n %s\n",tmpstr);
   rhpial = MRISread(tmpstr);
@@ -201,10 +188,6 @@ int main(int argc, char **argv) {
     fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
     exit(1);
   }
-  printf("\n");
-  printf("Building hash of rh pial\n");
-  rhpial_hash = MHTfillVertexTableRes(rhpial, NULL,CURRENT_VERTICES,hashres);
-
   if (rhwhite->nvertices != rhpial->nvertices) {
     printf("ERROR: rh white and pial have a different "
            "number of vertices (%d,%d)\n",
@@ -262,6 +245,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  // ------------ Rip -----------------------
   if (RipUnknown) {
     printf("Ripping vertices labeled as unkown\n");
     nripped = 0;
@@ -287,6 +271,20 @@ int main(int argc, char **argv) {
     }
     printf("Ripped %d vertices from right hemi\n",nripped);
   }
+
+
+  printf("\n");
+  printf("Building hash of lh white\n");
+  lhwhite_hash = MHTfillVertexTableRes(lhwhite, NULL,CURRENT_VERTICES,hashres);
+  printf("\n");
+  printf("Building hash of lh pial\n");
+  lhpial_hash = MHTfillVertexTableRes(lhpial, NULL,CURRENT_VERTICES,hashres);
+  printf("\n");
+  printf("Building hash of rh white\n");
+  rhwhite_hash = MHTfillVertexTableRes(rhwhite, NULL,CURRENT_VERTICES,hashres);
+  printf("\n");
+  printf("Building hash of rh pial\n");
+  rhpial_hash = MHTfillVertexTableRes(rhpial, NULL,CURRENT_VERTICES,hashres);
 
   /* ------ Load ASeg ------ */
   sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
@@ -348,6 +346,7 @@ int main(int argc, char **argv) {
   nctx = 0;
   annot = 0;
   annotid = 0;
+  nbrute = 0;
 
   // Go through each voxel in the aseg
   for (c=0; c < ASeg->width; c++) {
@@ -359,11 +358,11 @@ int main(int argc, char **argv) {
 
         asegid = MRIgetVoxVal(ASeg,c,r,s,0);
         if (asegid == 3 || asegid == 42)  IsCortex = 1;
-        else                             IsCortex = 0;
+        else                              IsCortex = 0;
         if (asegid >= 77 && asegid <= 82) IsHypo = 1;
-        else                             IsHypo = 0;
+        else                              IsHypo = 0;
         if (asegid == 2 || asegid == 41)  IsWM = 1;
-        else                             IsWM = 0;
+        else                              IsWM = 0;
         if (IsHypo && LabelHypoAsWM && MRIgetVoxVal(filled,c,r,s,0))
           IsWM = 1;
 
@@ -376,45 +375,33 @@ int main(int argc, char **argv) {
 	//  ribbon=GM => GM
 	//  aseg=GM AND ribbon=WM => WM
 	//  ribbon=UNKNOWN => UNKNOWN
-        if (UseNewRibbon && ( IsCortex || IsWM || (!asegid) ) )
-	    {
-	      RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
-	      isRibbonGM = (RibbonVal%100==10);
-	      isRibbonWM = (RibbonVal%100==20);
-	      if ( isRibbonGM && !IsCortex )
-		{
-	      // set it according to the hemi as GM
-		  if ( RibbonVal/100 == 0 )
-		    {
-		      MRIsetVoxVal(ASeg,c,r,s,0, 42);
-		    }
-		  else
-		    {
-		      MRIsetVoxVal(ASeg,c,r,s,0, 3);
-		    }
-		  IsCortex = 1;
-		  IsWM = 0;
-		}
-	      else if ( isRibbonWM && !IsWM )
-		{
-		  // set it according to the hemi as WM
-		  if ( RibbonVal/100 == 0 ) // integer division - 0 = LH for ribbon
-		    {
-		      MRIsetVoxVal(ASeg,c,r,s,0, 2);
-		    }
-		  else // RH
-		    {
-		      MRIsetVoxVal(ASeg,c,r,s,0, 41);
-		    }
-		  IsCortex = 0;
-		  IsWM = 1;
-		} // 
-	      else if ( !RibbonVal && asegid )
-		{
-		  MRIsetVoxVal(ASeg,c,r,s,0,0);
-		  continue;
-		}
-	    }
+        if (UseNewRibbon && ( IsCortex || IsWM || (!asegid) ) )	    {
+	  RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
+	  isRibbonGM = (RibbonVal%100==10);
+	  isRibbonWM = (RibbonVal%100==20);
+	  if ( isRibbonGM && !IsCortex )		{
+	    // set it according to the hemi as GM
+	    if ( RibbonVal/100 == 0 )
+	      MRIsetVoxVal(ASeg,c,r,s,0, 42);
+	    else
+	      MRIsetVoxVal(ASeg,c,r,s,0, 3);
+	    IsCortex = 1;
+	    IsWM = 0;
+	  }
+	  else if ( isRibbonWM && !IsWM )		{
+	    // set it according to the hemi as WM
+	    if ( RibbonVal/100 == 0 ) // integer division - 0 = LH for ribbon
+	      MRIsetVoxVal(ASeg,c,r,s,0, 2);
+	    else // RH
+	      MRIsetVoxVal(ASeg,c,r,s,0, 41);
+	    IsCortex = 0;
+	    IsWM = 1;
+	  } // 
+	  else if ( !RibbonVal && asegid )	{
+	    MRIsetVoxVal(ASeg,c,r,s,0,0);
+	    continue;
+	  }
+	}
 	
         // If it's not labeled as cortex or wm in the aseg, skip
         if (!IsCortex && !IsWM) continue;
@@ -454,10 +441,17 @@ int main(int argc, char **argv) {
 	  rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
 	  rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
 	  if (lhwvtx < 0 && lhpvtx < 0 && rhwvtx < 0 && rhpvtx < 0) {
-	    printf("ERROR: could not map to any surface.\n");
-	    printf("crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
+	    printf("  Could not map to any surface with hash table:\n");
+	    printf("  crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
 		   c,r,s,vtx.x,vtx.y,vtx.z);
-	    exit(1);
+	    printf("  Using brute force search %d ... \n",nbrute);
+	    fflush(stdout);
+	    lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
+	    lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
+	    rhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&drhw);
+	    rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
+	    nbrute ++;
+	    //exit(1);
 	  }
 	}
 	else {
@@ -575,6 +569,7 @@ int main(int argc, char **argv) {
     }
   }
   printf("nctx = %d\n",nctx);
+  printf("Used brute-force search on %d voxels\n",nbrute);
 
   printf("Writing output aseg to %s\n",OutASegFile);
   MRIwrite(ASeg,OutASegFile);
