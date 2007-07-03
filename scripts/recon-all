@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/01 20:40:28 $
-#    $Revision: 1.109 $
+#    $Date: 2007/07/03 19:25:49 $
+#    $Revision: 1.110 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.109 2007/07/01 20:40:28 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.110 2007/07/03 19:25:49 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2487,6 +2487,11 @@ while( $#argv != 0 )
       set GCASkull = $argv[1]; shift;
       breaksw
 
+    case "-gcs":
+      if ( $#argv < 1) goto arg1err;
+      set GCS = $argv[1]; shift;
+      breaksw
+
     case "-fill":
       set DoFill = 1;
       breaksw
@@ -4030,17 +4035,26 @@ tkmedit and record the Volume Index values (NOT the XYZ coordinates).
 
 -gca gcafile
 
-Specify the full path to the gaussian classifier array (GCA) file
+Specify the name of the gaussian classifier array (GCA) file
 to be used with GCA registration and automatic subcortical
-segmentation. Default is RB_all_2006-02-15.gca located in
+segmentation. It must be found in the FREESURFER_HOME/average directory.
+The Default is RB_all_2006-02-15.gca located in
 FREESURFER_HOME/average. This has no effect unless the GCA registration
 or subcortical segmentation stages are to be performed.
 
 -gca-skull gcafile
 
-Specify the full path to the gaussian classifier array (GCA) file
-to be used with registration with skull. Default is
-RB_all_withskull_2006-02-15.gca located in
+Specify the name of the gaussian classifier array (GCA) file to be used with 
+registration with skull.  It must be found in the FREESURFER_HOME/average 
+directory. The default is RB_all_withskull_2006-02-15.gca located in
+FREESURFER_HOME/average.
+
+-gcs gcsfile
+
+Specify the name of the gaussian classifier surface atlas (GCS) file
+to be used for the cortical parcellation stage. It must be found in the 
+FREESURFER_HOME/average directory. The default is named 
+curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs and is located in
 FREESURFER_HOME/average.
 
 -nuiterations
