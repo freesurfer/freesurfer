@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/02 17:34:44 $
-#    $Revision: 1.1 $
+#    $Date: 2007/07/03 16:41:11 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_anatomical_stats,v 1.1 2007/07/02 17:34:44 nicks Exp $'
+set VERSION='$Id: test_mris_anatomical_stats,v 1.2 2007/07/03 16:41:11 nicks Exp $'
 
 umask 002
 
@@ -86,9 +86,71 @@ endif
 
 
 #
+# test3: exercise the -a aparc.annot and -f table options
+#
+set cmd=( ./mris_anatomical_stats -a aparc.annot -f test3.table \
+            testdata2 rh )
+echo ""
+echo $cmd
+$cmd >& test3.out
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+grep -v "#" test3.table > test3.observed
+set cmd=(diff test3.expected test3.observed)
+echo $cmd
+$cmd
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+
+
+#
+# test 4: exercise the -l .label and -f table options
+#
+set cmd=( ./mris_anatomical_stats -l rh.precentral.label -f test4.table \
+            testdata2 rh )
+echo ""
+echo $cmd
+$cmd >& test4.out
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+grep -v "#" test4.table | grep precentral > test4.observed
+set cmd=(diff test4.expected test4.observed)
+echo $cmd
+$cmd
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+
+
+#
+# test 5: compare the data for the precentral region produced by the 
+# -a option (test3) against the -l option (test4).  a bug found by Mike 
+# Harms of Wash. U. found these to be different (fixed 3 July 2007).
+#
+grep precentral test3.observed > test5.a.observed
+sed 's/rh.precentral.label/precentral/g' test4.observed > test5.l.observed
+echo ""
+set cmd=(diff -b test5.a.observed test5.l.observed)
+echo $cmd
+$cmd
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+
+
+
+#
 # cleanup
 #
-rm -Rf testdata2 *.observed *.out
+rm -Rf testdata2 *.observed *.out *.table
 
 echo ""
 echo "test_mris_anatomical_stats passed all tests"
