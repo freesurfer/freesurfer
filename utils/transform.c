@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/17 21:02:19 $
- *    $Revision: 1.108 $
+ *    $Author: kteich $
+ *    $Date: 2007/07/03 18:50:59 $
+ *    $Revision: 1.109 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1874,12 +1874,6 @@ TransformSample(TRANSFORM *transform,
     if (xt < 0) xt = 0;
     if (yt < 0) yt = 0;
     if (zt < 0) zt = 0;
-
-    if (!v_canon)
-    {
-      VectorFree(&v_input);
-      VectorFree(&v_canon);
-    }
   }
   *px = xt ;
   *py = yt ;
