@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/13 01:02:48 $
-#    $Revision: 1.7 $
+#    $Date: 2007/07/03 18:03:10 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.7 2007/06/13 01:02:48 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.8 2007/07/03 18:03:10 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -256,7 +256,7 @@ while( $#argv != 0 )
 
     case "-setwdelay":
       set setwdelay = 1;
-      set sumdelays = 1;
+      set sumdelays = "-sumdelays";
       breaksw
 
     case "-ncond":
