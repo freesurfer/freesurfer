@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/03 16:41:10 $
- *    $Revision: 1.49 $
+ *    $Date: 2007/07/03 17:30:24 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.49 2007/07/03 16:41:10 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.50 2007/07/03 17:30:24 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -117,7 +117,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(
     argc, argv,
-    "$Id: mris_anatomical_stats.c,v 1.49 2007/07/03 16:41:10 nicks Exp $",
+    "$Id: mris_anatomical_stats.c,v 1.50 2007/07/03 17:30:24 nicks Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -675,9 +675,9 @@ main(int argc, char *argv[])
                 "%2.3f\n",
                 mean_abs_gaussian_curvature) ;
         fprintf(stdout,
-                "folding index                           = %2.3f\n", fi);
+                "folding index                           = %2.1f\n", fi);
         fprintf(stdout,
-                "intrinsic curvature index               = %2.3f\n",ici);
+                "intrinsic curvature index               = %2.1f\n",ici);
       }
     }
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
