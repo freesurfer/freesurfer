@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/30 15:35:25 $
- *    $Revision: 1.33 $
+ *    $Date: 2007/07/03 23:38:22 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1403,6 +1403,8 @@ int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
   if (max_mhts > max_mhts_MAX)
   max_mhts = max_mhts_MAX;
 
+  //printf("\nmax_distance_mm=%f\n",max_distance_mm);
+
   //--------------------------------------------------
   // Initialize mins
   //--------------------------------------------------
@@ -1621,7 +1623,7 @@ VERTEX * MHTfindClosestVertex(MRIS_HASH_TABLE *mht,
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
                                      1000,
-                                     1,  // max_mhts: search out to 3 x 3 x 3
+                                     2,  // max_mhts: search out to 5 x 5 x 5
                                      &vtx, NULL, NULL);
 
   return vtx;
@@ -1662,7 +1664,7 @@ VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht,
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
                                      1000,
-                                     1, // max_mhts: search out to 3 x 3 x 3
+                                     2, // max_mhts: search out to 5 x 5 x 5
                                      &vtx, NULL, NULL);
   return vtx;
 }
@@ -1691,7 +1693,7 @@ int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht,
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
                                      1000,
-                                     1,  // max_mhts: search out to 3 x 3 x 3
+                                     2,  // max_mhts: search out to 5 x 5 x 5
                                      NULL, &vtxnum, &min_dist_dbl);
 
   *min_dist = min_dist_dbl;
@@ -1726,7 +1728,7 @@ VERTEX * MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht,
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
                                      1000,
-                                     1, // max_mhts: search out to 3 x 3 x 3
+                                     2, // max_mhts: search out to 5 x 5 x 5
                                      &vtx, NULL, NULL);
   return vtx;
 }
