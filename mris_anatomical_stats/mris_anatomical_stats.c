@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/03 17:30:24 $
- *    $Revision: 1.50 $
+ *    $Date: 2007/07/03 17:56:24 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.50 2007/07/03 17:30:24 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.51 2007/07/03 17:56:24 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -103,7 +103,8 @@ main(int argc, char *argv[])
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_orig ;
   double        gray_volume, wm_volume, thickness_mean=0.,thickness_var=0.;
-  double        mean_abs_mean_curvature, mean_abs_gaussian_curvature, ici, fi ;
+  double        mean_abs_mean_curvature, mean_abs_gaussian_curvature;
+  double        intrinsic_curvature_index, folding_index ;
   int           annotation = 0 ;
   FILE          *log_fp = NULL ;
   VERTEX        *v ;
@@ -117,7 +118,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(
     argc, argv,
-    "$Id: mris_anatomical_stats.c,v 1.50 2007/07/03 17:30:24 nicks Exp $",
+    "$Id: mris_anatomical_stats.c,v 1.51 2007/07/03 17:56:24 nicks Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -607,7 +608,7 @@ main(int argc, char *argv[])
 
       MRISuseGaussianCurvature(mris) ;
       mean_abs_gaussian_curvature = MRIScomputeAbsoluteCurvatureMarked(mris,i);
-      MRIScomputeCurvatureIndicesMarked(mris, &ici, &fi,i) ;
+      MRIScomputeCurvatureIndicesMarked(mris, &intrinsic_curvature_index, &folding_index,i) ;
 
       volumes[i] /= 2 ;
       thickness_vars[i] /= dofs[i] ;
@@ -624,8 +625,8 @@ main(int argc, char *argv[])
                 thicknesses[i], sqrt(thickness_vars[i])) ;
         fprintf(fp, "  %8.3f", mean_abs_mean_curvature) ;
         fprintf(fp, "  %8.3f", mean_abs_gaussian_curvature) ;
-        fprintf(fp, "  %7.3f", fi);
-        fprintf(fp, "  %6.3f",ici);
+        fprintf(fp, "  %7.0f", folding_index);
+        fprintf(fp, "  %6.1f",intrinsic_curvature_index);
         fprintf(fp, "\n");
         fclose(fp);
       }
@@ -639,8 +640,8 @@ main(int argc, char *argv[])
                 thicknesses[i], sqrt(thickness_vars[i])) ;
         fprintf(stdout, "  %8.3f", mean_abs_mean_curvature) ;
         fprintf(stdout, "  %8.3f", mean_abs_gaussian_curvature) ;
-        fprintf(stdout, "  %7.3f", fi);
-        fprintf(stdout, "  %6.3f",ici);
+        fprintf(stdout, "  %7.0f", folding_index);
+        fprintf(stdout, "  %6.1f",intrinsic_curvature_index);
         fprintf(stdout, "  %s", names[i]) ;
         fprintf(stdout, "\n");
       }
@@ -675,9 +676,11 @@ main(int argc, char *argv[])
                 "%2.3f\n",
                 mean_abs_gaussian_curvature) ;
         fprintf(stdout,
-                "folding index                           = %2.1f\n", fi);
+                "folding index                           = %2.0f\n", 
+                folding_index);
         fprintf(stdout,
-                "intrinsic curvature index               = %2.1f\n",ici);
+                "intrinsic curvature index               = %2.1f\n",
+                intrinsic_curvature_index);
       }
     }
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
@@ -737,7 +740,9 @@ main(int argc, char *argv[])
       MRISuseGaussianCurvature(mris) ;
       mean_abs_gaussian_curvature = MRIScomputeAbsoluteCurvature(mris) ;
 
-      MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
+      MRIScomputeCurvatureIndices(mris, 
+                                  &intrinsic_curvature_index, 
+                                  &folding_index) ;
 
       /* output */
 
@@ -755,8 +760,8 @@ main(int argc, char *argv[])
         fprintf(fp, "  %5.3f %5.3f", thickness_mean, sqrt(thickness_var)) ;
         fprintf(fp, "  %8.3f", mean_abs_mean_curvature) ;
         fprintf(fp, "  %8.3f", mean_abs_gaussian_curvature) ;
-        fprintf(fp, "  %7.3f", fi);
-        fprintf(fp, "  %6.3f",ici);
+        fprintf(fp, "  %7.0f", folding_index);
+        fprintf(fp, "  %6.1f",intrinsic_curvature_index);
         fprintf(fp, "\n");
         fclose(fp);
       }
@@ -771,8 +776,8 @@ main(int argc, char *argv[])
                 thickness_mean, sqrt(thickness_var)) ;
         fprintf(stdout, "  %8.3f", mean_abs_mean_curvature) ;
         fprintf(stdout, "  %8.3f", mean_abs_gaussian_curvature) ;
-        fprintf(stdout, "  %7.3f", fi);
-        fprintf(stdout, "  %6.3f",ici);
+        fprintf(stdout, "  %7.0f", folding_index);
+        fprintf(stdout, "  %6.1f",intrinsic_curvature_index);
 
         CTABfindAnnotation(mris->ct, annotation,&ct_index );
         if (ct_index < 0)
@@ -829,9 +834,11 @@ main(int argc, char *argv[])
                 "%2.3f\n",
                 mean_abs_gaussian_curvature) ;
         fprintf(stdout,
-                "folding index                           = %2.3f\n", fi);
+                "folding index                           = %2.0f\n", 
+                folding_index);
         fprintf(stdout,
-                "intrinsic curvature index               = %2.3f\n",ici);
+                "intrinsic curvature index               = %2.1f\n",
+                intrinsic_curvature_index);
       }
 
       MRISrestoreSurface(mris) ;
@@ -873,10 +880,12 @@ main(int argc, char *argv[])
     (stdout,
      "average integrated rectified Gaussian curvature = %2.3f\n",
      mean_abs_gaussian_curvature) ;
-    MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
-    fprintf(stdout, "folding index                           = %2.3f\n", fi);
+    MRIScomputeCurvatureIndices(mris, &intrinsic_curvature_index, &folding_index) ;
+    fprintf(stdout, "folding index                           = %2.0f\n", 
+            folding_index);
     fprintf
-    (stdout, "intrinsic curvature index               = %2.3f\n", ici);
+    (stdout, "intrinsic curvature index               = %2.1f\n", 
+     intrinsic_curvature_index);
   }
 
   if (log_fp)
@@ -889,7 +898,7 @@ main(int argc, char *argv[])
               sname) ;
     fprintf
     (log_fp,
-     "%2.0f\t%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n",
+     "%2.0f\t%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.0f\t%2.1f\n",
      wm_volume,
      mris->total_area,
      gray_volume,
@@ -897,8 +906,8 @@ main(int argc, char *argv[])
      sqrt(thickness_var),
      mean_abs_mean_curvature,
      mean_abs_gaussian_curvature,
-     fi,
-     ici) ;
+     folding_index,
+     intrinsic_curvature_index) ;
 #else
     if (!noheader)
       fprintf(log_fp, "%% %s: <surf area> <gray vol> "
@@ -907,15 +916,15 @@ main(int argc, char *argv[])
               sname) ;
     fprintf
     (log_fp,
-     "%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n",
+     "%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.0f\t%2.1f\n",
      mris->total_area,
      gray_volume,
      thickness_mean,
      sqrt(thickness_var),
      mean_abs_mean_curvature,
      mean_abs_gaussian_curvature,
-     fi,
-     ici) ;
+     folding_index,
+     intrinsic_curvature_index) ;
 #endif
     fclose(log_fp) ;
   }
