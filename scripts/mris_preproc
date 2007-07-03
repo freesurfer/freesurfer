@@ -10,9 +10,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/03/15 21:08:31 $
-#    $Revision: 1.36 $
+#    $Author: greve $
+#    $Date: 2007/07/03 18:45:46 $
+#    $Revision: 1.37 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.36 2007/03/15 21:08:31 nicks Exp $';
+set VERSION = '$Id: mris_preproc,v 1.37 2007/07/03 18:45:46 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -616,7 +616,7 @@ if($#SessFile) then
   set irplist = ();
   foreach sess ($SessList)
     set anadir = $sess/$fsd/$FSFAnalysis
-    set map = $anadir/$FSFContrast/$FSFMap.bhdr
+    set map = `stem2fname $anadir/$FSFContrast/$FSFMap`
     if(! -e $map) then
       echo "ERROR: cannot find $map"
       exit 1;
@@ -1040,12 +1040,12 @@ surface (this will be done by this script).  As with the other FS-FAST
 commands, you specify the sessions with --sf and --df (note the two
 dashes). Specify the analysis with --analysis (or just --a) and the
 contrast with --contrast (or just --c). By default, the volume
-resampled onto the surface will be analysis/contrast/ces.bhdr (ie, the
+resampled onto the surface will be analysis/contrast/ces (ie, the
 contrast effect size).  This can be changed in several ways. First,
-with --cvar, in which case it will use cesvar.bhdr instead. Second,
+with --cvar, in which case it will use cesvar instead. Second,
 with --offset, then a contrast is not used; rather it samples
-analysis/h-offset.bhdr onto the surface. Third, with --map mapname, in
-which case it uses analysis/contrast/mapname.bhdr.
+analysis/h-offset onto the surface. Third, with --map mapname, in
+which case it uses analysis/contrast/mapname.
 
 
 EXAMPLES
