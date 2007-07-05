@@ -10,7 +10,7 @@ check_PROGRAMS = mrishash_demo_100_find_coverage \
 	mrishash_test_100_find_tests \
 	mrishash_test_200_intersect
 
-TESTS=mrishash_test_200_intersect
+TESTS=mrishash_test_100_find_tests mrishash_test_200_intersect
 #mrishash_test_100_find_tests
 
 #------------- exercise ----------------

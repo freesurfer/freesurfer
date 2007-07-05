@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/03 23:38:22 $
- *    $Revision: 1.34 $
+ *    $Date: 2007/07/05 22:17:57 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1623,7 +1623,7 @@ VERTEX * MHTfindClosestVertex(MRIS_HASH_TABLE *mht,
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
                                      1000,
-                                     2,  // max_mhts: search out to 5 x 5 x 5
+                                     1,  // max_mhts: search out to 3 x 3 x 3
                                      &vtx, NULL, NULL);
 
   return vtx;
@@ -1664,7 +1664,7 @@ VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht,
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
                                      1000,
-                                     2, // max_mhts: search out to 5 x 5 x 5
+                                     1, // max_mhts: search out to 3 x 3 x 3
                                      &vtx, NULL, NULL);
   return vtx;
 }
@@ -1693,7 +1693,7 @@ int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht,
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
                                      1000,
-                                     2,  // max_mhts: search out to 5 x 5 x 5
+                                     1,  // max_mhts: search out to 3 x 3 x 3
                                      NULL, &vtxnum, &min_dist_dbl);
 
   *min_dist = min_dist_dbl;
@@ -1728,7 +1728,7 @@ VERTEX * MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht,
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
                                      1000,
-                                     2, // max_mhts: search out to 5 x 5 x 5
+                                     1, // max_mhts: search out to 3 x 3 x 3
                                      &vtx, NULL, NULL);
   return vtx;
 }

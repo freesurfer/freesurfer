@@ -1,6 +1,13 @@
 /*--------------------------------------------
   mrishash_test_100_find_tests.c
 
+  The test code has to test:
+
+  1. That a vertex is returned when it should be.
+  2. That the vertex that is returned is the closest.
+  3. That no vertex is returned if the MHT code can't tell if it's 
+  the closests.
+
   Version History
   ----------------
   2007-04-05  GW Revs to make compatible with MGH test procedure
@@ -161,6 +168,7 @@ int TestNearestVtxInConcentricIcos(int surfacenum,
     // Test all functions
     //------------------------------------
     fcv_vtx    = MHTfindClosestVertex(mht, mris, &probe_vtx) ;
+
     fcvit_vtx  = MHTfindClosestVertexInTable(mht,
                                              mris,
                                              probex, probey, probez) ;
@@ -197,7 +205,9 @@ int TestNearestVtxInConcentricIcos(int surfacenum,
       if (fcvn_vno  != brute_vno) { errnum = 3; goto error_found; }
       if (abs(fcvn_dist - brute_dist) > 0.01) {
         errnum = 4; goto error_found; }
-    } else {
+    } else {  /* ... did legacy functions return a vertex, because they 
+                 should NOT, since code hasn't looked at all vertices 
+                 within that distance. */
       if (fcv_vtx)          { errnum = 11; goto error_found; }
       if (fcvit_vtx)        { errnum = 12; goto error_found; }
       if (fcvn_vno > 0)     { errnum = 13; goto error_found; }
