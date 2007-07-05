@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.48 $
+ *    $Author: kteich $
+ *    $Date: 2007/07/05 22:19:28 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -210,13 +210,22 @@ public:
                                   float& oMinBinValue, float& oBinIncrement,
                                   std::map<int,int>& oBinCounts );
 
-  void BeginValueRangeFill ( VolumeCollection& iSourceVol,
-                             ScubaROIVolume* iROI,
-                             VolumeCollection& iDestVol );
-  void DoOneValueRangeFill ( float iBeginValueRange,
-                             float iEndValueRange,
-                             float iFillValue );
-  void EndValueRangeFill   ();
+  class ValueRangeFillElement {
+  public:
+    ValueRangeFillElement ( float iBegin, float iEnd, float iValue ) :
+        mBegin(iBegin), mEnd(iEnd), mValue(iValue) {}
+    float mBegin, mEnd, mValue;
+  };
+
+  // For each voxel of the dest vol that's on the screen, look at the
+  // corresponding voxel in the source vol, see if it falls in one of
+  // the ranges in the list, and is in an ROI if passed in, and set
+  // the value to the one specified for that range.
+  void DoVolumeValueRangeFill ( VolumeCollection& iSourceVol,
+				ScubaROIVolume* iROI,
+				VolumeCollection& iDestVol,
+				std::vector<ValueRangeFillElement>& lElements);
+
 
   // Markers are shared between views so these are static functions.
   // Sets/gets the cursor, a single special marker.
@@ -367,24 +376,6 @@ protected:
   static std::map<int,bool> mMarkerVisible;
 
   static ScubaViewStaticTclListener mStaticListener;
-
-  class ValueRangeFillElement {
-  public:
-    ValueRangeFillElement ( float iBegin, float iEnd, float iValue ) :
-        mBegin(iBegin), mEnd(iEnd), mValue(iValue) {}
-    float mBegin, mEnd, mValue;
-  };
-
-  class ValueRangeFillParams {
-  public:
-    ValueRangeFillParams ( VolumeCollection& iSrc, ScubaROIVolume* iROI, VolumeCollection& iDest ) : mSourceVol(iSrc), mROI(iROI), mDestVol(iDest) {}
-    VolumeCollection& mSourceVol;
-    ScubaROIVolume* mROI;
-    VolumeCollection& mDestVol;
-    std::list<ValueRangeFillElement> mFillElements;
-  };
-
-  ValueRangeFillParams* mValueRangeFillParams;
 };
 
 class ScubaViewFactory : public ViewFactory {

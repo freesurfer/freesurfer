@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/30 16:47:49 $
- *    $Revision: 1.67 $
+ *    $Date: 2007/07/05 22:19:28 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -75,8 +75,9 @@ public:
   float  IndexF     ( int in ) const {
     return mIdxf[in];
   }
-  void   SetFromRAS ( float const iRAS[3] );
-  void   SetFrame   ( int in );
+  void   SetFromRAS   ( float const iRAS[3] );
+  void   SetFromIndex ( int const iIndex[3] );
+  void   SetFrame     ( int in );
   VolumeCollection* GetVolume () const {
     return mVolume;
   }
@@ -282,12 +283,15 @@ public:
 
 
   // Return a histogram from the RAS voxels passed in.
-  void MakeHistogram ( std::list<Point3<float> >& iRASPoints, int icBins,
+  void MakeHistogram ( std::list<Point3<float> >& iRASPoints, 
+		       ScubaROIVolume* iROI,
+		       int icBins,
                        float& oMinBinValue, float& oBinIncrement,
                        std::map<int,int>& oBinCounts );
 
   // Return a histogram for the entire volume.
-  void MakeHistogram ( int icBins,
+  void MakeHistogram ( ScubaROIVolume* iROI, 
+		       int icBins,
                        float iMinThresh, float iMaxThresh,
                        float& oMinBinValue, float& oBinIncrement,
                        std::map<int,int>& oBinCounts );
@@ -356,6 +360,20 @@ public:
   void PrintVoxelCornerCoords ( std::ostream& iStream,
                                 Point3<int>& iMRIIdx );
 
+  class ValueRangeFillElement {
+  public:
+    ValueRangeFillElement ( float iBegin, float iEnd, float iValue ) :
+        mBegin(iBegin), mEnd(iEnd), mValue(iValue) {}
+    float mBegin, mEnd, mValue;
+  };
+
+  // For each voxel, look at the corresponding voxel in the source
+  // vol, see if it falls in one of the ranges in the list, and is in
+  // an ROI if passed in, and set the value to the one specified for
+  // that range.
+  void DoValueRangeFill ( VolumeCollection& iSourceVol,
+			  ScubaROIVolume* iROI,
+			  std::vector<ValueRangeFillElement>& lElements);
 protected:
 
   // Gets information from the MRI structure.

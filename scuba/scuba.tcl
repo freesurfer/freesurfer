@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/06/20 21:34:19 $
-#    $Revision: 1.242 $
+#    $Date: 2007/07/05 22:19:29 $
+#    $Revision: 1.243 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.242 2007/06/20 21:34:19 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.243 2007/07/05 22:19:29 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -6735,7 +6735,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.242 2007/06/20 21:34:19 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.243 2007/07/05 22:19:29 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -7156,26 +7156,32 @@ proc MakeHistogramFillWindow {} {
     }
 
     tkuDoFileDlog -title "Histogram Fill" \
-	-type1 menu \
-	-prompt1 "Source layer (anatomical): " \
-	-menu1 $lSourceLayers \
+	-type1 checkbox \
+	-prompt1 "Over entire volume" \
+	-defaultvalue1 0 \
 	\
-	-type2 checkbox \
-	-prompt2 "Use ROI" \
-	-defaultvalue2 0 \
+	-type2 menu \
+	-prompt2 "Source layer (anatomical): " \
+	-defaultitem2 1 \
+	-menu2 $lSourceLayers \
 	\
-	-type3 menu \
-	-prompt3 "ROI: " \
-	-menu3 $lROIs \
+	-type3 checkbox \
+	-prompt3 "Use ROI" \
+	-defaultvalue3 0 \
 	\
 	-type4 menu \
-	-prompt4 "Fill layer (segmentation): " \
-	-menu4 $lDestLayers \
+	-prompt4 "ROI: " \
+	-menu4 $lROIs \
 	\
-	-okCmd "MakeHistogramFillWindow2 %s1 %s2 %s3 %s4"
+	-type5 menu \
+	-prompt5 "Fill layer (segmentation): " \
+	-defaultitem5 1 \
+	-menu5 $lDestLayers \
+	\
+	-okCmd "MakeHistogramFillWindow2 %s1 %s2 %s3 %s4 %s5"
 }
 
-proc MakeHistogramFillWindow2 { iSourceLayer ibUseROI iROI iDestLayer } {
+proc MakeHistogramFillWindow2 { ibEntireVolume iSourceLayer ibUseROI iROI iDestLayer } {
     global gaView
 
     set viewID $gaView(current,id)
@@ -7186,16 +7192,34 @@ proc MakeHistogramFillWindow2 { iSourceLayer ibUseROI iROI iDestLayer } {
     set numBins 250
     set lutID [Get2DMRILayerColorLUT $iDestLayer]
 
-    # Get the histogram data from the source volume.
-    set err [catch {
-	set lResult [GetVolumeHistogramInView $viewID $sourceVol $roiID $numBins]
-	set minBinValue [lindex $lResult 0]
-	set binIncrement [lindex $lResult 1]
-	set lCounts [lindex $lResult 2]
-    } sResult]
-    if { $err != 0 } {
-	tkuErrorDlog "$sResult"
+    # Get the histogram data from the source volume. If the entire
+    # volume flag is set, get the histogram from the volume itself,
+    # otherwise we ask the view.
+    if { $ibEntireVolume } {
+
+	set err [catch {
+	    set lResult [GetVolumeHistogram $sourceVol $roiID $numBins]
+	    set minBinValue [lindex $lResult 0]
+	    set binIncrement [lindex $lResult 1]
+	    set lCounts [lindex $lResult 2]
+	} sResult]
+	if { $err != 0 } {
+	    tkuErrorDlog "$sResult"
 	return
+	}
+
+    } else {
+
+	set err [catch {
+	    set lResult [GetVolumeHistogramInView $viewID $sourceVol $roiID $numBins]
+	    set minBinValue [lindex $lResult 0]
+	    set binIncrement [lindex $lResult 1]
+	    set lCounts [lindex $lResult 2]
+	} sResult]
+	if { $err != 0 } {
+	    tkuErrorDlog "$sResult"
+	return
+	}
     }
 
     set min $minBinValue
@@ -7232,27 +7256,28 @@ proc MakeHistogramFillWindow2 { iSourceLayer ibUseROI iROI iDestLayer } {
 	-min $min -max $max \
 	-increment $inc -numBars [expr $max - $min] \
 	-values $lCounts -clut $lCLUT \
-	-okCmd "DoHistogramLabel $sourceVol $roiID $destVol"
+	-okCmd "DoHistogramLabel $ibEntireVolume $sourceVol $roiID $destVol"
     pack .wwHisto.fwTop -fill both -expand yes
 }
 
-proc DoHistogramLabel { iSourceVol iROIID iDestVol iValueRanges } {
+proc DoHistogramLabel { ibEntireVolume iSourceVol iROIID iDestVol iValueRanges } {
     global gaView
 
-    # This starts the fill.
-    BeginValueRangeFillInView $gaView(current,id) \
-	$iSourceVol $iROIID $iDestVol
-
-    # Do one fill for each of our ranges.
+    # Make a list of things we're going to fill.
+    set lRanges {}
     foreach valueRange $iValueRanges {
-	set begin [lindex $valueRange 0]
-	set end [lindex $valueRange 1]
-	set value [lindex $valueRange 2]
-	DoOneValueRangeFillInView $gaView(current,id) $begin $end $value
+	lappend lRanges [lindex $valueRange 0]
+	lappend lRanges [lindex $valueRange 1]
+	lappend lRanges [lindex $valueRange 2]
     }
     
-    # Finish it up. (This actually performs the fill in c code.)
-    EndValueRangeFillInView $gaView(current,id)
+    # Do the fills.
+    if { $ibEntireVolume }  {
+	DoVolumeValueRangeFill $iDestVol $iSourceVol $iROIID $lRanges
+    } else {
+	DoVolumeValueRangeFillInView $gaView(current,id) \
+	    $iSourceVol $iROIID $iDestVol $lRanges
+    }
 }
 
 proc DoDataInfoWindow {} {

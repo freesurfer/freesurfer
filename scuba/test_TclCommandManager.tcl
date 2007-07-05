@@ -2,9 +2,9 @@
 ## test_TclCommandManager.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2007/01/05 00:21:49 $
-##    $Revision: 1.5 $
+##    $Author: kteich $
+##    $Date: 2007/07/05 22:19:29 $
+##    $Revision: 1.6 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -151,3 +151,9 @@ if { [lindex $argv 0] != "param 1" ||
     puts "Error on GetArgv:"
     puts "Return value was incorrect: $argv"
 }
+
+set err [catch { ParseList [list word1 word2 1 2.0] } sResult]
+if { $err != 0 } {
+    puts "ParseList returned an error: $sResult"
+}
+

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.114 $
+ *    $Author: kteich $
+ *    $Date: 2007/07/05 22:19:28 $
+ *    $Revision: 1.115 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -205,20 +205,13 @@ ScubaView::ScubaView() {
                          "a view. Returns the format: minBinValue "
                          "binIncrement{binCount0 binCount1 .. binCountN} "
                          "where binCountN is numBins-1." );
-  commandMgr.AddCommand( *this, "BeginValueRangeFillInView", 4,
-                         "viewID sourceVolID roiID destVolID",
-                         "Begins a series of value range fills using the "
+  commandMgr.AddCommand( *this, "DoVolumeValueRangeFillInView", 5,
+                         "viewID sourceVolID roiID destVolID valueRanges",
+                         "Performs a series of value range fills using the "
                          "value ranges in sourceVolID to set values in "
-                         "destVolID." );
-  commandMgr.AddCommand( *this, "DoOneValueRangeFillInView", 4,
-                         "viewID, beginValueRange, endValueRange, fillValue",
-                         "Adds a single range to a series of value range "
-                         "fills. Must be between a call to "
-                         "BeginValueRangeFillInView and "
-                         "EndValueRangeFillInView." );
-  commandMgr.AddCommand( *this, "EndValueRangeFillInView", 1, "viewID",
-                         "Performs the series of value range fills "
-                         "specified by DoOneValueRangeFill." );
+                         "destVolID. valueRanges should be a list of triples: "
+			 "the begining of the range, the end of the range, "
+			 "and the new value." );
   commandMgr.AddCommand( *this, "ConvertWindowToViewRAS", 3,
                          "viewID windowX windowY",
                          "Returns the RAS coordinates of the input window "
@@ -1538,9 +1531,8 @@ ScubaView::DoListenToTclCommand( char* isCommand,
 
   }
 
-
-  // BeginValueRangeFillInView <viewID> <sourceVolID> <roiID> <destVolID>
-  if ( 0 == strcmp( isCommand, "BeginValueRangeFillInView" ) ) {
+  // DoVolumeValueRangeFillInView <viewID> <sourceVolID> <roiID> <destVolID> <valueRanges>
+  if ( 0 == strcmp( isCommand, "DoVolumeValueRangeFillInView" ) ) {
 
     int viewID;
     try {
@@ -1564,11 +1556,10 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       VolumeCollection* sourceVol = NULL;
       try {
         DataCollection* col = &DataCollection::FindByID( sourceVolID );
-        //    VolumeCollection* vol = dynamic_cast<VolumeCollection*>(col);
-        sourceVol = (VolumeCollection*)col;
+        sourceVol = dynamic_cast<VolumeCollection*>(col);
       } catch (...) {
         throw runtime_error( "Couldn't find source volume or data collection "
-                             "wasn't a volume.." );
+                             "wasn't a volume." );
       }
 
       // Find an ROI if they want.
@@ -1587,7 +1578,7 @@ ScubaView::DoListenToTclCommand( char* isCommand,
           volROI = (ScubaROIVolume*)roi;
         } catch (...) {
           throw runtime_error( "Couldn't find ROI or ROI "
-                               "wasn't a volume ROI.." );
+			       "wasn't a volume ROI." );
         }
       }
 
@@ -1607,72 +1598,28 @@ ScubaView::DoListenToTclCommand( char* isCommand,
         destVol = (VolumeCollection*)col;
       } catch (...) {
         throw runtime_error( "Couldn't find dest volume or data collection "
-                             "wasn't a volume.." );
+                             "wasn't a volume." );
       }
 
-      BeginValueRangeFill( *sourceVol, volROI, *destVol );
+      // Parse out the range elements.
+      vector<ValueRangeFillElement> lElements;
+      try {
+	stringstream ssElements( iasArgv[5] );
+	while( !ssElements.eof() ) {
+	  float beginValue, endValue, newValue;
+	  ssElements >> beginValue;
+	  ssElements >> endValue;
+	  ssElements >> newValue;
+	  ValueRangeFillElement element( beginValue, endValue, newValue );
+	  lElements.push_back( element );
+	}
+      } catch (...) {
+        throw runtime_error( "Invalid value range list." );
+      }
+
+      DoVolumeValueRangeFill( *sourceVol, volROI, *destVol, lElements );
     }
   }
-
-
-  // DoOneValueRangeFillInView <viewID> <begin> <end> <value>
-  if ( 0 == strcmp( isCommand, "DoOneValueRangeFillInView" ) ) {
-
-    int viewID;
-    try {
-      viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-    } catch ( runtime_error& e ) {
-      sResult = string("bad viewID: ") + e.what();
-      return error;
-    }
-
-    if ( mID == viewID ) {
-
-      float begin;
-      try {
-        begin = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
-      } catch ( runtime_error& e ) {
-        sResult = string("bad beginValueRange: ") + e.what();
-        return error;
-      }
-
-      float end;
-      try {
-        end = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
-      } catch ( runtime_error& e ) {
-        sResult = string("bad endValueRange: ") + e.what();
-        return error;
-      }
-
-      float value;
-      try {
-        value = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
-      } catch ( runtime_error& e ) {
-        sResult = string("bad valueValueRange: ") + e.what();
-        return error;
-      }
-
-      DoOneValueRangeFill( begin, end, value );
-    }
-  }
-
-  // EndValueRangeFillInView <viewID>
-  if ( 0 == strcmp( isCommand, "EndValueRangeFillInView" ) ) {
-
-    int viewID;
-    try {
-      viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
-    } catch ( runtime_error& e ) {
-      sResult = string("bad viewID: ") + e.what();
-      return error;
-    }
-
-    if ( mID == viewID ) {
-
-      EndValueRangeFill();
-    }
-  }
-
 
   // ConvertWindowToViewRAS <viewID> <X> <Y>
   if ( 0 == strcmp( isCommand, "ConvertWindowToViewRAS" ) ) {
@@ -2970,14 +2917,6 @@ ScubaView::GetVolumeHistogramInView ( VolumeCollection& iSourceVol,
       if ( iSourceVol.IsInBounds( loc ) ) {
         iSourceVol.RASToMRIIndex( RAS.xyz(), index.xyz() );
 
-        // If they gave us an ROI to use, make sure this is in the
-        // ROI.
-        if ( NULL != iROI ) {
-          if ( !iROI->IsVoxelSelected( index.xyz() ) ) {
-            continue;
-          }
-        }
-
         // If not already added, add it.
         if ( !bAdded.Get( index[0], index[1], index[2] ) ) {
           bAdded.Set( index[0], index[1], index[2], true );
@@ -2993,51 +2932,20 @@ ScubaView::GetVolumeHistogramInView ( VolumeCollection& iSourceVol,
   }
 
   // Now just get a histogram for those points.
-  iSourceVol.MakeHistogram ( RASPoints, icBins,
+  iSourceVol.MakeHistogram ( RASPoints, iROI, icBins,
                              oMinBinValue, oBinIncrement, oBinCounts );
 }
 
 
 void
-ScubaView::BeginValueRangeFill ( VolumeCollection& iSourceVol,
-                                 ScubaROIVolume* iROI,
-                                 VolumeCollection& iDestVol ) {
-
-  if ( NULL != mValueRangeFillParams ) {
-    throw runtime_error( "Already performing a value range fill." );
-  }
-
-  // Start a value range fill struct.
-  mValueRangeFillParams =
-    new ValueRangeFillParams ( iSourceVol, iROI, iDestVol );
-
-}
-
-void
-ScubaView::DoOneValueRangeFill ( float iBeginValueRange,
-                                 float iEndValueRange,
-                                 float iFillValue ) {
-
-  if ( NULL == mValueRangeFillParams ) {
-    throw runtime_error( "Not performing a value range fill." );
-  }
-
-  // Add this range/value to our list.
-  ValueRangeFillElement
-  element( iBeginValueRange, iEndValueRange, iFillValue );
-  mValueRangeFillParams->mFillElements.push_back( element );
-}
-
-void
-ScubaView::EndValueRangeFill () {
-
-  VolumeCollection& sourceVol = mValueRangeFillParams->mSourceVol;
-  VolumeCollection& destVol   = mValueRangeFillParams->mDestVol;
+ScubaView::DoVolumeValueRangeFill ( VolumeCollection& iSourceVol,
+				    ScubaROIVolume* iROI,
+				    VolumeCollection& iDestVol,
+				    vector<ValueRangeFillElement>& lElements ){
 
   // Do the same walk through of voxels that we do in the get histogram.
   int range[3];
-  sourceVol.GetMRIIndexRange( range );
-  Volume3<bool> bAdded( range[0], range[1], range[2], false );
+  iSourceVol.GetMRIIndexRange( range );
 
   int window[2];
   Point3<float> RAS;
@@ -3047,38 +2955,31 @@ ScubaView::EndValueRangeFill () {
     for ( window[0] = 0; window[0] < mWidth; window[0]++ ) {
       TranslateWindowToRAS( window, RAS.xyz() );
       VolumeLocation& loc =
-        (VolumeLocation&) sourceVol.MakeLocationFromRAS( RAS.xyz() );
-      if ( sourceVol.IsInBounds( loc ) ) {
-        sourceVol.RASToMRIIndex( RAS.xyz(), index.xyz() );
+        (VolumeLocation&) iSourceVol.MakeLocationFromRAS( RAS.xyz() );
+      if ( iSourceVol.IsInBounds( loc ) ) {
+        iSourceVol.RASToMRIIndex( RAS.xyz(), index.xyz() );
 
         // If they gave us an ROI to use, make sure this is in the
         // ROI.
-        if ( NULL != mValueRangeFillParams->mROI ) {
-          if ( !mValueRangeFillParams->mROI->IsVoxelSelected( index.xyz() ) ) {
-            continue;
-          }
-        }
-
+        if ( NULL != iROI &&
+	     !iROI->IsVoxelSelected( index.xyz() ) )
+	  continue;
+	
         // We need to see if we should fill this voxel. Go through our
         // list and see if it falls into a range. If so, edit the
         // value in the dest.
-        float value = sourceVol.GetMRINearestValue( loc );
-        list<ValueRangeFillElement>::iterator tRange;
-        for ( tRange = mValueRangeFillParams->mFillElements.begin();
-              tRange != mValueRangeFillParams->mFillElements.end();
-              ++tRange ) {
-          ValueRangeFillElement& element = *tRange;
-          if ( value > element.mBegin && value < element.mEnd ) {
-            destVol.SetMRIValue( loc, element.mValue );
+        float value = iSourceVol.GetMRINearestValue( loc );
+        vector<ValueRangeFillElement>::iterator tElement;
+        for ( tElement = lElements.begin();
+	      tElement != lElements.end(); ++tElement ) {
+          if ( value > tElement->mBegin && value < tElement->mEnd ) {
+            iDestVol.SetMRIValue( loc, tElement->mValue );
             break;
           }
         }
       }
     }
   }
-
-  delete mValueRangeFillParams;
-  mValueRangeFillParams = NULL;
 }
 
 

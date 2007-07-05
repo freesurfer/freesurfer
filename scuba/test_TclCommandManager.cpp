@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.15 $
+ *    $Author: kteich $
+ *    $Date: 2007/07/05 22:19:29 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -139,6 +139,32 @@ public:
       return error;
     } else if ( 0 == strcmp( isCommand, "TestThrow" ) ) {
       throw runtime_error( "throw" );
+    } else if ( 0 == strcmp( isCommand, "ParseList" ) ) {
+
+      stringstream ssList( iArgv[1] );
+      string s1;
+      string s2;
+      int i1;
+      float f1;
+      ssList >> s1;
+      ssList >> s2;
+      ssList >> i1;
+      ssList >> f1;
+
+      if( s1 != "word1" ) 
+	throw runtime_error( string("ParseList arg 1: expected word1, got ") + s1 );
+      if( s2 != "word2" ) 
+	throw runtime_error( string("ParseList arg 2: expected word2, got ") + s2 );
+      if( i1 != 1 ) {
+	stringstream ssError;
+	ssError << "ParseList arg 3: expected 1, got " << i1;
+	throw runtime_error( ssError.str() );
+      }
+      if( f1 != 2.0 ) {
+	stringstream ssError;
+	ssError << "ParseList arg 4: expected 2.0, got " << f1;
+	throw runtime_error( ssError.str() );
+      }
     }
     return ok;
   }
@@ -290,6 +316,7 @@ public:
     commandMgr.AddCommand( *listener, "ReturnMessage", 0, "", "" );
     commandMgr.AddCommand( *listener, "ReturnError", 0, "", "" );
     commandMgr.AddCommand( *listener, "TestThrow", 0, "", "" );
+    commandMgr.AddCommand( *listener, "ParseList", 1, "", "" );
 
     // Run the script that will test tcl return stuff.
     rTcl = Tcl_EvalFile( iInterp, "test_TclCommandManager.tcl" );

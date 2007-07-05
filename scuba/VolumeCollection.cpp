@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/30 16:47:49 $
- *    $Revision: 1.105 $
+ *    $Date: 2007/07/05 22:19:28 $
+ *    $Revision: 1.106 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -114,6 +114,10 @@ VolumeCollection::VolumeCollection () :
                          "collectionID", "Returns whether or not a volume "
                          "is using its Data to Index transform "
                          "(usually RAS transform) in displaying data." );
+  commandMgr.AddCommand( *this, "GetVolumeHistogram", 3, "volID roiID numBins",
+			 "Returns a histogram of the volume. Returns the "
+			 "format: minBinValue binIncrement{binCount0 "
+			 "binCount1 .. binCountN}" );
   commandMgr.AddCommand( *this, "SetVolumeAutosaveOn", 2, "collectionID on",
                          "Set whether or not autosave is on for this "
                          "volume." );
@@ -152,7 +156,14 @@ VolumeCollection::VolumeCollection () :
   commandMgr.AddCommand( *this, "GetVolumeNumberOfPreStimTimePoints", 1,
                          "collectionID", "Returns the number of time points "
                          "before the stimulus, if available." );
-
+  commandMgr.AddCommand( *this, "DoVolumeValueRangeFill", 4,
+                         "volID sourceVolID roiID valueRanges",
+                         "Performs a series of value range fills using the "
+                         "value ranges in sourceVolID to set values in "
+                         "this volume. valueRanges should be a list of "
+			 "triples: the begining of the range, the end of "
+			 "the range, and the new value." );
+  
 }
 
 VolumeCollection::~VolumeCollection() {
@@ -1272,6 +1283,76 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     }
   }
 
+  // GetVolumeHistogram <volID> <roiID> <numBins>
+  if( 0 == strcmp( isCommand, "GetVolumeHistogram" ) ) {
+
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collectionID: ") + e.what();
+      return error;
+    }
+
+    if ( mID == collectionID ) {
+
+      // Find an ROI if they want.
+      int roiID;
+      try {
+        roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      } catch ( runtime_error& e ) {
+        sResult = string("bad roiID: ") + e.what();
+        return error;
+      }
+
+      ScubaROIVolume* volROI = NULL;
+      if ( roiID != -1 ) {
+        try {
+          ScubaROI* roi = &ScubaROI::FindByID( roiID );
+          volROI = dynamic_cast<ScubaROIVolume*>(roi);
+        } catch (...) {
+          throw runtime_error( "Couldn't find ROI or ROI "
+                               "wasn't a volume ROI." );
+        }
+      }
+
+      int cBins;
+      try {
+        cBins = TclCommandManager::ConvertArgumentToInt( iasArgv[3] );
+      } catch ( runtime_error& e ) {
+        sResult = string("bad numBins: ") + e.what();
+        return error;
+      }
+
+      float minBinValue, binIncrement;
+      map<int,int> binCounts;
+      try {
+	MakeHistogram( volROI, cBins, mMRIMinValue, mMRIMaxValue,
+		       minBinValue, binIncrement, binCounts );
+      } catch ( exception& e ) {
+	throw runtime_error( string("Error making the histogram: ") + e.what() );
+      }
+
+      // Build the output.
+      stringstream ssValues;
+      stringstream ssFormat;
+
+      ssFormat << "Lff";
+      ssValues << minBinValue << " " << binIncrement << " ";
+
+      ssFormat << "L";
+      for ( int nBin = 0; nBin < (int)binCounts.size(); nBin++ ) {
+        ssFormat << "i";
+        ssValues << binCounts[nBin] << " ";
+      }
+      ssFormat << "ll";
+
+      sReturnFormat = ssFormat.str();
+      sReturnValues = ssValues.str();
+
+    }
+  }
+
   // SetVolumeAutosaveOn <collectionID> <on>
   if ( 0 == strcmp( isCommand, "SetVolumeAutosaveOn" ) ) {
     int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
@@ -1530,6 +1611,77 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
       ssReturnValues << mcPreStimTimePoints;
       sReturnValues = ssReturnValues.str();
       sReturnFormat = "i";
+    }
+  }
+
+  // DoVolumeValueRangeFill <volID> <sourceVolID> <roiID> <valueRanges>
+  if ( 0 == strcmp( isCommand, "DoVolumeValueRangeFill" ) ) {
+
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collectionID: ") + e.what();
+      return error;
+    }
+
+    if ( mID == collectionID ) {
+
+      int sourceVolID;
+      try {
+        sourceVolID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      } catch ( runtime_error& e ) {
+        sResult = string("bad sourceVolID: ") + e.what();
+        return error;
+      }
+
+      // Find a volume collection.
+      VolumeCollection* sourceVol = NULL;
+      try {
+        DataCollection* col = &DataCollection::FindByID( sourceVolID );
+        sourceVol = dynamic_cast<VolumeCollection*>(col);
+      } catch (...) {
+        throw runtime_error( "Couldn't find source volume or data collection "
+                             "wasn't a volume." );
+      }
+
+      // Find an ROI if they want.
+      int roiID;
+      try {
+        roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[3] );
+      } catch ( runtime_error& e ) {
+        sResult = string("bad roiID: ") + e.what();
+        return error;
+      }
+
+      ScubaROIVolume* volROI = NULL;
+      if ( roiID != -1 ) {
+        try {
+          ScubaROI* roi = &ScubaROI::FindByID( roiID );
+          volROI = (ScubaROIVolume*)roi;
+        } catch (...) {
+          throw runtime_error( "Couldn't find ROI or ROI "
+			       "wasn't a volume ROI." );
+        }
+      }
+
+      // Parse out the range elements.
+      vector<ValueRangeFillElement> lElements;
+      try {
+	stringstream ssElements( iasArgv[4] );
+	while( !ssElements.eof() ) {
+	  float beginValue, endValue, newValue;
+	  ssElements >> beginValue;
+	  ssElements >> endValue;
+	  ssElements >> newValue;
+	  ValueRangeFillElement element( beginValue, endValue, newValue );
+	  lElements.push_back( element );
+	}
+      } catch (...) {
+        throw runtime_error( "Invalid value range list." );
+      }
+
+      DoValueRangeFill( *sourceVol, volROI, lElements );
     }
   }
 
@@ -2262,6 +2414,7 @@ VolumeCollection::ExportControlPoints ( string ifnControlPoints,
 
 void
 VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
+				  ScubaROIVolume* iROI, 
                                   int icBins,
                                   float& oMinBinValue, float& oBinIncrement,
                                   map<int,int>& oBinCounts ) {
@@ -2277,13 +2430,15 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
   }
 
   // Find values for all the RAS points. Save the highs and lows.
-  float low = 999999;
-  float high = -999999;
+  float low = numeric_limits<float>::max();
+  float high = numeric_limits<float>::min();
   list<Point3<float> >::iterator tPoint;
   list<float> values;
   for ( tPoint = iRASPoints.begin(); tPoint != iRASPoints.end(); ++tPoint ) {
     Point3<float> point = *tPoint;
     VolumeLocation& loc = (VolumeLocation&) MakeLocationFromRAS( point.xyz());
+    if( iROI && !iROI->IsVoxelSelected( loc.Index() ) )
+	continue;
     float value = GetMRINearestValue( loc );
     if ( value < low ) {
       low = value;
@@ -2314,7 +2469,8 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
 }
 
 void
-VolumeCollection::MakeHistogram ( int icBins,
+VolumeCollection::MakeHistogram ( ScubaROIVolume* iROI, 
+				  int icBins,
                                   float iMinThresh, float iMaxThresh,
                                   float& oMinBinValue, float& oBinIncrement,
                                   map<int,int>& oBinCounts ) {
@@ -2332,17 +2488,48 @@ VolumeCollection::MakeHistogram ( int icBins,
     throw runtime_error( "Number of bins is less than zero." );
   }
 
-  float binIncrement = (mMRIMaxValue - mMRIMinValue) / (float)icBins;
+  if( iROI && iROI->NumSelectedVoxels() == 0 ) {
+    throw runtime_error( "Empty ROI." );
+  }
+
+  // If we have an ROI, we have to find the min/max in it. Otherwise
+  // we can just use our whole range min/max.
+  float low = numeric_limits<float>::max();
+  float high = numeric_limits<float>::min();
+  if( iROI ) {
+
+    int index[3] = { 0,0,0 };
+    for ( index[2] = 0; index[2] < mMRI->depth; index[2]++ )
+      for ( index[1] = 0; index[1] < mMRI->height; index[1]++ )
+	for ( index[0] = 0; index[0] < mMRI->width; index[0]++ ) {
+	  if( iROI && !iROI->IsVoxelSelected( index ) )
+	    continue;
+	  float value = GetMRINearestValueAtIndexUnsafe( index, 0 );
+	  if ( value < low )
+	    low = value;
+	  if ( value > high )
+	    high = value;
+	}
+    
+  } else {
+    low = mMRIMinValue;
+    high = mMRIMaxValue;
+  }
+
+  float binIncrement = (high - low) / (float)icBins;
 
   // Set all bins to zero.
   for ( int nBin = 0; nBin < icBins; nBin++ ) {
     oBinCounts[nBin] = 0;
   }
 
-  int index[3];
+  int index[3] = { 0,0,0 };
   for ( index[2] = 0; index[2] < mMRI->depth; index[2]++ ) {
     for ( index[1] = 0; index[1] < mMRI->height; index[1]++ ) {
       for ( index[0] = 0; index[0] < mMRI->width; index[0]++ ) {
+
+	if( iROI && !iROI->IsVoxelSelected( index ) )
+	    continue;
 
         float value = GetMRINearestValueAtIndexUnsafe( index, 0 );
         if ( value < iMinThresh || value > iMaxThresh )
@@ -2432,6 +2619,56 @@ VolumeCollection::PrintVoxelCornerCoords ( ostream& iStream,
     MRIIndexToRAS( voxelIdx[nCorner].xyz(), voxelRAS[nCorner].xyz() );
     iStream << nCorner << ": " << voxelRAS[nCorner] << endl;
   }
+}
+
+void
+VolumeCollection::DoValueRangeFill ( VolumeCollection& iSourceVol,
+				     ScubaROIVolume* iROI,
+				     std::vector<ValueRangeFillElement>& lElements) {
+
+  // Do the same walk through of voxels that we do in the get histogram.
+  int range[3];
+  GetMRIIndexRange( range );
+
+  Point3<int> index( 0, 0, 0 );
+  VolumeLocation& destLoc =
+    (VolumeLocation&) MakeLocationFromIndex( index.xyz() );
+  VolumeLocation& srcLoc =
+    (VolumeLocation&) iSourceVol.MakeLocationFromIndex( index.xyz() );
+  Point3<float> RAS;
+
+  for( index[2] = 0; index[2] < range[2]; index[2]++ )
+    for( index[1] = 0; index[1] < range[1]; index[1]++ )
+      for( index[0] = 0; index[0] < range[0]; index[0]++ ) {
+	
+	destLoc.SetFromIndex( index.xyz() );
+
+	// If they gave us an ROI to use, make sure this is in the
+        // ROI.
+        if ( NULL != iROI &&
+	     !iROI->IsVoxelSelected( index.xyz() ) )
+	  continue;
+
+	if( !iSourceVol.IsInBounds( destLoc ) )
+	    continue;
+
+	// Get the corresponding value from the source vol.
+	srcLoc.SetFromRAS( destLoc.RAS() );
+        float value = iSourceVol.GetMRINearestValue( srcLoc );
+	
+        // We need to see if we should fill this voxel. Go through our
+        // list and see if it falls into a range. If so, edit the
+        // value in the dest.
+        vector<ValueRangeFillElement>::iterator tElement;
+        for ( tElement = lElements.begin();
+	      tElement != lElements.end(); ++tElement ) {
+          if ( value > tElement->mBegin && value < tElement->mEnd ) {
+            SetMRIValue( destLoc, tElement->mValue );
+            break;
+          }
+        }
+      }
+
 }
 
 void
@@ -3281,6 +3518,19 @@ VolumeLocation::SetFromRAS ( float const iRAS[3] ) {
   mIdxi[1] = (int) mIdxf[1];
   mIdxi[2] = (int) mIdxf[2];
 #endif
+}
+
+void
+VolumeLocation::SetFromIndex ( int const iIdx[3] ) {
+
+  mIdxi[0] = iIdx[0];
+  mIdxi[1] = iIdx[1];
+  mIdxi[2] = iIdx[2];
+  mIdxf[0] = (float) iIdx[0];
+  mIdxf[1] = (float) iIdx[1];
+  mIdxf[2] = (float) iIdx[2];
+
+  mVolume->MRIIndexToRAS( iIdx, mRAS );
 }
 
 void
