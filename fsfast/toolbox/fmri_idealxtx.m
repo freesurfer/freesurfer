@@ -1,12 +1,13 @@
-function XtX = fmri_idealXtX(nTypesPerSeq, Nh, FixationId)
+function XtX = fmri_idealxtx(nTypesPerSeq, Nh, FixationId)
 %
-% XtX = fmri_idealXtX(nTypesPerSeq, Nh, FixationId)
+% XtX = fmri_idealxtx(nTypesPerSeq, Nh, FixationId)
 %
-% Computes the ideal (X'*X) where X is the stimulus     %'
-% convolution matrix.
-% Note that the ideal normalized matrix is independent of the actual
-% number of stimuli in the sequence.  Rather, it is dependent upon
-% the probability of the stimuli.
+% nTypesPerSeq - list of the number of stimuli per event type
+%
+% Computes the ideal (X'*X) where X is the stimulus convolution
+% matrix.  Note that the ideal normalized matrix is independent of the
+% actual number of stimuli in the sequence.  Rather, it is dependent
+% upon the probability of the stimuli.
 %
 %
 
@@ -16,9 +17,9 @@ function XtX = fmri_idealXtX(nTypesPerSeq, Nh, FixationId)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:33 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2007/07/05 16:42:37 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
