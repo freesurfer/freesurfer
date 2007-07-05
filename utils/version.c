@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/14 16:50:27 $
- *    $Revision: 1.30 $
+ *    $Date: 2007/07/05 17:48:19 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -480,7 +480,8 @@ char *VERfileTimeStamp(char *fname)
   }
   lt = localtime(&buf.st_mtime);
   sprintf(tmpstr,"%04d/%02d/%02d %02d:%02d:%02d",
-          lt->tm_year+1900,lt->tm_mday,lt->tm_mon,
+          lt->tm_year+1900,lt->tm_mon+1, /* +1 here because tm_mon is 0-11 */
+          lt->tm_mday,
           lt->tm_hour,lt->tm_min,lt->tm_sec);
   //free(lt); // Dies here
   timestamp = strcpyalloc(tmpstr);
