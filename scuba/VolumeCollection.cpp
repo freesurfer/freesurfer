@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/05 22:19:28 $
- *    $Revision: 1.106 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/06 05:23:47 $
+ *    $Revision: 1.107 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2635,7 +2635,7 @@ VolumeCollection::DoValueRangeFill ( VolumeCollection& iSourceVol,
     (VolumeLocation&) MakeLocationFromIndex( index.xyz() );
   VolumeLocation& srcLoc =
     (VolumeLocation&) iSourceVol.MakeLocationFromIndex( index.xyz() );
-  Point3<float> RAS;
+  //Point3<float> RAS;
 
   for( index[2] = 0; index[2] < range[2]; index[2]++ )
     for( index[1] = 0; index[1] < range[1]; index[1]++ )
