@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/06/14 21:28:39 $
- *    $Revision: 1.139 $
+ *    $Date: 2007/07/06 19:39:57 $
+ *    $Revision: 1.140 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -223,6 +223,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   }
   for ( nSegVolume = 0; nSegVolume < tkm_knNumSegTypes; nSegVolume++ ) {
     this->mSegmentationVolume[nSegVolume] = NULL;
+    this->mSegmentationColorTable[nSegVolume] = NULL;
   }
   for ( nSurface = 0; nSurface < tkm_knNumSurfaceTypes; nSurface++ ) {
     this->mpSurface[nSurface]       = NULL;
@@ -7871,7 +7872,8 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 
 
   /* and the seg label if we have one */
-  if ( NULL != this->mSegmentationVolume[tkm_tSegType_Main] ) {
+  if ( NULL != this->mSegmentationVolume[tkm_tSegType_Main] &&
+       NULL != this->mSegmentationColorTable[tkm_tSegType_Main] ) {
 
     /* Get the value in ana idx space (this was messing up for some
        volumes with weird CRAS transforms) and get the corresponding
