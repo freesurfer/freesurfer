@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/06/12 19:43:09 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/07/06 18:41:21 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSVolumeSource );
-vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.9 $" );
+vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.10 $" );
 
 vtkFSVolumeSource::vtkFSVolumeSource () :
     mMRI( NULL ),
@@ -545,7 +545,12 @@ vtkFSVolumeSource::CopyMRIToImage () {
 
   // This object's output space is in voxel coordinates.
   mImageData->SetDimensions( zX, zY, zZ );
+  
+  // TODO: this is where the pixel spacing should go, but it messes up this
+  // visualization in scuba2 right now -- fix later
   mImageData->SetSpacing( 1, 1, 1 );
+//  mImageData->SetSpacing( mMRI->xsize, mMRI->ysize, mMRI->zsize );  
+  
   mImageData->SetOrigin( -zX/2, -zY/2, -zZ/2 );
   mImageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
   mImageData->SetNumberOfScalarComponents( zFrames );
@@ -736,6 +741,55 @@ vtkFSVolumeSource::GetRASBounds ( float oRASBounds[6] ) {
   oRASBounds[3] = mRASBounds[3];
   oRASBounds[4] = mRASBounds[4];
   oRASBounds[5] = mRASBounds[5];
+}
+
+void
+vtkFSVolumeSource::GetUnscaledRASBounds ( float oUnscaledRASBounds[6] ) {
+  
+  // get the scaled bounds
+  this->GetRASBounds( oUnscaledRASBounds );
+  
+  // divide out the scale factor
+  for( int n=0; n<3; n++ ) {
+    
+    const int nLow = n * 2;
+    const int nHigh = n * 2 + 1;
+    
+    oUnscaledRASBounds[ nLow ] /= this->GetPixelSize( n );
+    oUnscaledRASBounds[ nHigh ] /= this->GetPixelSize( n );
+    
+  }
+  
+}
+
+void 
+vtkFSVolumeSource::GetUnscaledVoxelToRASMatrix ( double oMatrix[16] ) {
+  
+  // copy all the components
+  for( int n=0; n<16; n++ ) {
+    oMatrix[ n ] = mVoxelToRASMatrix[ n ];
+  }
+  
+  // divide out the scale factor
+  oMatrix[ 0 ] *= this->GetPixelSizeX();
+  oMatrix[ 5 ] *= this->GetPixelSizeY();
+  oMatrix[ 10 ] *= this->GetPixelSizeZ();
+  
+}
+
+void 
+vtkFSVolumeSource::GetUnscaledRASToVoxelMatrix ( double* oMatrix ) {
+  
+  // copy all the components
+  for( int n=0; n<16; n++ ) {
+    oMatrix[ n ] = mRASToVoxelMatrix[ n ];
+  }
+  
+  // divide out the scale factor
+  oMatrix[ 0 ] *= this->GetPixelSizeX();
+  oMatrix[ 5 ] *= this->GetPixelSizeY();
+  oMatrix[ 10 ] *= this->GetPixelSizeZ();
+  
 }
 
 void

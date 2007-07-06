@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/06/12 19:43:09 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/07/06 18:41:21 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,12 +80,23 @@ public:
 
   void GetRASBounds ( float oRASBounds[6] );
 
+  void GetUnscaledRASBounds ( float oUnscaledRASBounds[6] );
+
   double* GetVoxelToRASMatrix () {
     return mVoxelToRASMatrix;
   }
+ 
+  // Description:
+  // Returns the RAS matrix, but without pixel scaling
+  void GetUnscaledVoxelToRASMatrix ( double oMatrix[16] );
+  
   double* GetRASToVoxelMatrix () {
     return mRASToVoxelMatrix;
   }
+
+  // Description:
+  // Returns the RAS matrix, but without pixel scaling
+  void GetUnscaledRASToVoxelMatrix ( double* oMatrix );
 
   void SetVoxelToRASMatrix ( vtkMatrix4x4& iMatrix );
 
