@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/27 02:23:44 $
- *    $Revision: 1.108 $
+ *    $Author: greve $
+ *    $Date: 2007/07/06 17:20:15 $
+ *    $Revision: 1.109 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1580,6 +1580,7 @@ MATRIX *MatrixSVD(MATRIX *mA, VECTOR *v_z, MATRIX *mV)
   //mV = MatrixIdentity(mA->rows, mV) ;
   //svd(mA->rptr, mV->rptr, v_z->data, mA->rows, mA->cols) ;
 
+  if(mV == NULL) mV = MatrixAlloc(mA->rows,mA->rows,MATRIX_REAL);
   OpenSvdcmp ( mA, v_z, mV ) ;
 
   return ( mV ) ;
