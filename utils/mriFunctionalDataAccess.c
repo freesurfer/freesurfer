@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/22 20:26:38 $
- *    $Revision: 1.46 $
+ *    $Date: 2007/07/06 20:02:41 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -1641,7 +1641,7 @@ FunD_tErr FunD_GetNumTimePoints ( mriFunctionalDataRef this,
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
-  DebugEnterFunction( ("FunD_GetNumTimePoints( this=%p, oNumTimePoints=%d)",
+  DebugEnterFunction( ("FunD_GetNumTimePoints( this=%p, oNumTimePoints=%p)",
                        this, oNumTimePoints) );
 
   DebugNote( ("Checking parameters") );
@@ -1671,7 +1671,7 @@ FunD_tErr FunD_GetNumConditions ( mriFunctionalDataRef this,
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
-  DebugEnterFunction( ("FunD_GetNumConditions( this=%p, oNumConditions=%d)",
+  DebugEnterFunction( ("FunD_GetNumConditions( this=%p, oNumConditions=%p)",
                        this, oNumConditions) );
 
   DebugNote( ("Checking parameters") );
@@ -1702,7 +1702,7 @@ FunD_tErr FunD_GetTimeResolution ( mriFunctionalDataRef this,
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
-  DebugEnterFunction( ("FunD_Get( this=%p, oTimeResolution=%f)",
+  DebugEnterFunction( ("FunD_Get( this=%p, oTimeResolution=%p)",
                        this, oTimeResolution) );
 
   DebugNote( ("Checking parameters") );
@@ -1733,7 +1733,7 @@ FunD_tErr FunD_GetNumPreStimTimePoints ( mriFunctionalDataRef this,
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
-  DebugEnterFunction( ("FunD_GetNumPreStimTimePoints( this=%p, oNumPoints=%d)",
+  DebugEnterFunction( ("FunD_GetNumPreStimTimePoints( this=%p, oNumPoints=%p)",
                        this, oNumPoints) );
 
   DebugNote( ("Checking parameters") );
@@ -1764,7 +1764,7 @@ FunD_tErr FunD_GetValueRange ( mriFunctionalDataRef this,
 
   FunD_tErr eResult = FunD_tErr_NoError;
 
-  DebugEnterFunction( ("FunD_GetValueRange( this=%p, oMin=%f, oMax=%f)",
+  DebugEnterFunction( ("FunD_GetValueRange( this=%p, oMin=%p, oMax=%p)",
                        this, oMin, oMax) );
 
   DebugNote( ("Checking parameters") );
@@ -2776,7 +2776,7 @@ void FunD_ConvertClientToFloatFuncIdx_ ( mriFunctionalDataRef this,
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
-  DebugEnterFunction( ("FunD_ConvertClientToFuncIdx_( this=%p, iClientVox=%p, "
+  DebugEnterFunction( ("FunD_ConvertClientToFloatFuncIdx_( this=%p, iClientVox=%p, "
                        "oFuncIdx=%p", this, iClientVox, oFuncIdx) );
 
   DebugNote( ("Checking parameters") );
@@ -2807,7 +2807,7 @@ void FunD_ConvertClientToFuncRAS_ ( mriFunctionalDataRef this,
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
-  DebugEnterFunction( ("FunD_ConvertClientToFuncIdx_( this=%p, iClientVox=%p, "
+  DebugEnterFunction( ("FunD_ConvertClientToFuncRAS_( this=%p, iClientVox=%p, "
                        "oFuncRAS=%p", this, iClientVox, oFuncRAS) );
 
   DebugNote( ("Checking parameters") );
