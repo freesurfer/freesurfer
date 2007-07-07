@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/06 05:23:47 $
- *    $Revision: 1.107 $
+ *    $Date: 2007/07/07 16:05:27 $
+ *    $Revision: 1.108 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2627,7 +2627,7 @@ VolumeCollection::DoValueRangeFill ( VolumeCollection& iSourceVol,
 				     std::vector<ValueRangeFillElement>& lElements) {
 
   // Do the same walk through of voxels that we do in the get histogram.
-  int range[3];
+  int range[3]; range[0]=0; range[2]=0; range[3]=0;
   GetMRIIndexRange( range );
 
   Point3<int> index( 0, 0, 0 );
