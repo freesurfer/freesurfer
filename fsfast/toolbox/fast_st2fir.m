@@ -18,8 +18,9 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 %  4. If st does not have weights, weights=1
 %  5. Does not force dpsd to be an integer divisor of TR,
 %     but it is a good idea.
-%
-%
+%  6. If two stimuli fall within the sam TR bin, the Xfir
+%     matrix will have a 2 instead of a 1.
+% $Id: fast_st2fir.m,v 1.15 2007/07/08 20:58:28 greve Exp $
 
 
 %
@@ -28,8 +29,8 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/01 19:15:26 $
-%    $Revision: 1.14 $
+%    $Date: 2007/07/08 20:58:28 $
+%    $Revision: 1.15 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -123,6 +124,13 @@ b(1) = a(1);
 Xfirss = toeplitz(a,b);
 
 % Subsample 
-Xfir = Xfirss(1:ssr:end,:);
+%Xfir = Xfirss(1:ssr:end,:);
+if(ssr > 1)
+  tmp = reshape(Xfirss,[ssr ntp npsdwin]);
+  Xfir = squeeze(sum(tmp));
+else
+  Xfir = Xfirss;
+end
+
 
 return;
