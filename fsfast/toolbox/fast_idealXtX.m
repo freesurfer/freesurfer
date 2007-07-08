@@ -1,14 +1,12 @@
-function [XtX C vrf] = fast_idealXtX(EventProb,Nh)
-% [XtX C vrf] = fast_idealXtX(EventProb,Nh)
+function [XtX C vrf] = fast_idealXtX(NrepsPer,TR,Ntrs,psdwin)
+% [XtX C vrf] = fast_idealXtX(NrepsPer,TR,Ntrs,psdwin)
 %
 % Computes "ideal" FIR XtX, where "ideal" is the asymptotic XtX for an
-% infinite length run. Assumes each event type lasts 1
-% TER. Multiply by Ntp to get the ideal for a certain number of
-% time points.
+% infinite length run with the given stimulus density (ie, NrepsPer/Ntrs).
+% 
 %
-% EventProb - list of probabilities of a non-null event types. The
-%   sum of EventProb < 1.
-% Nh - number of FIR taps per event type
+% NrepsPer - list of the number of repetitions of a non-null event types.
+% psdwin = [psdmin psdmax dpsd];
 %
 % C = ones(1,Nstim*Nh)/(Nstim*Nh);
 % vrf = 1/(C*inv(XtX)*C');
@@ -16,7 +14,7 @@ function [XtX C vrf] = fast_idealXtX(EventProb,Nh)
 % There is a simulation at the end of this file (after return) to
 % check the accuracy.
 %
-% $Id: fast_idealXtX.m,v 1.1 2007/07/05 16:42:08 greve Exp $
+% $Id: fast_idealXtX.m,v 1.2 2007/07/08 21:00:18 greve Exp $
 
 %
 % fast_idealXtX
@@ -24,8 +22,8 @@ function [XtX C vrf] = fast_idealXtX(EventProb,Nh)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/07/05 16:42:08 $
-%    $Revision: 1.1 $
+%    $Date: 2007/07/08 21:00:18 $
+%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -41,10 +39,17 @@ function [XtX C vrf] = fast_idealXtX(EventProb,Nh)
 %
 
 XtX = [];
-if(nargin ~= 2)
-  fprintf('[XtX C vrf] = fast_idealXtX(EventProb,Nh)\n');
+if(nargin ~= 4)
+  fprintf('[XtX C vrf] = fast_idealXtX(NrepsPer,TR,Ntrs,psdwin)\n');
   return;
 end
+
+psdmin  = psdwin(1);  % start of PSD window
+psdmax  = psdwin(2);  % end of PSD window
+dpsd    = psdwin(3);  % increment of PSD window
+Nh      = round((psdmax-psdmin)/dpsd);
+Rss     = round(TR/dpsd);
+EventProb = NrepsPer/(Rss*Ntrs);
 
 ptot = sum(EventProb);
 if(ptot >= 1)
@@ -80,20 +85,21 @@ for ithEventType = 1:NeventTypes
   i1 = i2 + 1;
 end
 
-C = ones(1,NeventTypes*Nh)/(NeventTypes);
+XtX = Ntrs*XtX;
+
+C = dpsd*ones(1,NeventTypes*Nh)/(NeventTypes);
 vrf = 1/(C*inv(XtX)*C');
+
 
 return;
 %-----------------------------------------------
 
 % Simulation to check %
-TR = 1;
-Ntrs = 100;
+fprintf('Simulating\n');
+
 Trun = TR*Ntrs;
-Nper = round(EventProb*Ntrs);
 Tper = TR*ones(size(EventProb));
-par = fmri_synthpar3(Nper,Tper,1,Trun,TR,0);
-psdwin = [0 Nh*TR TR];
+par = fmri_synthpar3(NrepsPer,Tper,1,Trun,dpsd,0);
 
 X = [];
 for nthEventType = 1:NeventTypes
@@ -103,9 +109,9 @@ for nthEventType = 1:NeventTypes
   X = [X Xfir];
 end
 XtX0 = (X'*X);
-aXtX = XtX0/Ntrs;
-rms = sqrt(mean((XtX(:)-aXtX(:)).^2));
+aXtX = XtX0;
 
+rms = sqrt(mean((XtX(:)-aXtX(:)).^2));
 avrf  = 1/(C*inv(aXtX)*C');
 avrf0 = 1/(C*inv(XtX0)*C');
 fprintf('N=%d, vrf = %g, avrf = %g, avrf0 = %g, rms = %g\n',...
@@ -115,16 +121,19 @@ figure(1);
 imagesc(XtX);
 colorbar;
 showfigxy;
+title('Ideal');
 
 figure(2);
 imagesc(aXtX);
 colorbar;
 showfigxy;
+title('Actual');
 
 figure(3);
 imagesc(abs(XtX-aXtX));
 colorbar;
 showfigxy;
+title('Diff');
 
 
 
