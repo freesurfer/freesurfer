@@ -18,7 +18,7 @@ function [hrf,params] = fast_hrf_halfcos(t,params)
 % Constrained linear basis sets for HRF modelling using Variational
 % Bayes NeuroImage 21 (2004) 1748 1761.
 %
-% $Id: fast_hrf_halfcos.m,v 1.1 2007/06/29 20:08:33 greve Exp $
+% $Id: fast_hrf_halfcos.m,v 1.2 2007/07/08 20:59:51 greve Exp $
 
 hrf = [];
 if(nargin < 1 & nargin > 2)
@@ -36,14 +36,24 @@ if(nargin == 2)
   f2 = params(6);
 else
   % Generate params randomly
-  h1 = 2*rand;     % uniform(0,2), avg = 1
-  h2 = 2 + 4*rand; % uniform(2,6), avg = 4
-  h3 = 2 + 4*rand; % uniform(2,6), avg = 4 (too fast, 8 better)
-  h4 = 2 + 6*rand; % uniform(2,8), avg = 6
-  sc = 1.5; % Scale to make it look like the paper
-  h1=sc*h1; h2=sc*h2; h3=sc*h3; h4=sc*h4;
-  f1 = 0;
-  f2 = .5*rand;    % uniform(0,.5), avg = .25, SPM=.89
+  if(0)
+    h1 = 2*rand;     % uniform(0,2), avg = 1
+    h2 = 2 + 4*rand; % uniform(2,6), avg = 4
+    h3 = 2 + 4*rand; % uniform(2,6), avg = 4 (too fast, 8 better)
+    h4 = 2 + 6*rand; % uniform(2,8), avg = 6
+    sc = 1.5; % Scale to make it look like the paper
+    h1=sc*h1; h2=sc*h2; h3=sc*h3; h4=sc*h4;
+    f1 = 0;
+    f2 = .5*rand;    % uniform(0,.5), avg = .25, SPM=.89
+  else
+    h1 = 2*rand;         % uniform(0,2)
+    h2 = 3 + (8-3)*rand; % uniform(3,8)
+    h3 = 3 + (8-3)*rand; % uniform(3,6)
+    h4 = 3 + (8-3)*rand; % uniform(3,8)
+    f1 = 0;
+    f2 = .3*rand;    % uniform(0,.3), avg = .3, SPM=.89
+  end
+
   params = [h1 h2 h3 h4 f1 f2];
 end
 
