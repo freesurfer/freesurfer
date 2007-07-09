@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/23 19:05:42 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/07/09 22:44:40 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,40 +65,18 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaView );
-vtkCxxRevisionMacro( vtkKWScubaView, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWScubaView, "$Revision: 1.4 $" );
 
-map<vtkRenderWindow*,vtkKWScubaView*> vtkKWScubaView::mRenderWindowToViewMap;
+map<vtkRenderWindow*,vtkSmartPointer<vtkKWScubaView> > vtkKWScubaView::mRenderWindowToViewMap;
 
 vtkKWScubaView::vtkKWScubaView () :
     vtkKWRenderWidget(),
     Listener( "vtkKWScubaView" ),
     Broadcaster( "vtkKWScubaView" ),
-    mRadBtnDisplayMode2D( NULL ),
-    mRadBtnDisplayMode3D( NULL ),
-    mFrameDisplayModeControls( NULL ),
-    mRadBtnSet2DInPlane( NULL ),
-    mRadBtn2DInPlaneX( NULL ),
-    mRadBtn2DInPlaneY( NULL ),
-    mRadBtn2DInPlaneZ( NULL ),
-    mScale2DRASZ( NULL ),
-    mScale3DRASX( NULL ),
-    mScale3DRASY( NULL ),
-    mScale3DRASZ( NULL ),
-    mFrameSlotMenus( NULL ),
-    mBtnZoomOut( NULL ),
-    mBtnZoomIn( NULL ),
-    mBtnRotateXPos( NULL ),
-    mBtnRotateXNeg( NULL ),
-    mBtnRotateYPos( NULL ),
-    mBtnRotateYNeg( NULL ),
-    mBtnRotateZPos( NULL ),
-    mBtnRotateZNeg( NULL ),
     msLabel( "" ),
     mbDirty( false ),
     mbInfoChanged( false ),
     mDisplayMode( TwoDee ),
-    m2DCamera( NULL ),
-    m3DCamera( NULL ),
     mbFastMode( false ),
     m2DRASZ( 0 ),
     m2DInPlane( -1 ),
@@ -119,15 +97,8 @@ vtkKWScubaView::vtkKWScubaView () :
 vtkKWScubaView::~vtkKWScubaView () {
 
   // Clear our entry in the static map.
-  if ( NULL != this->GetRenderWindow() ) {
-    mRenderWindowToViewMap[this->GetRenderWindow()] = NULL;
-  }
-
-  if ( mRadBtnSet2DInPlane ) mRadBtnSet2DInPlane->Delete();
-  if ( mScale2DRASZ ) mScale2DRASZ->Delete();
-  if ( mScale3DRASX ) mScale3DRASX->Delete();
-  if ( mScale3DRASY ) mScale3DRASY->Delete();
-  if ( mScale3DRASZ ) mScale3DRASZ->Delete();
+  if ( NULL != this->GetRenderWindow() )
+    mRenderWindowToViewMap.erase( this->GetRenderWindow() );
 }
 
 void
@@ -138,8 +109,8 @@ vtkKWScubaView::Create () {
   this->Superclass::Create();
 
   // Make our cameras.
-  m2DCamera = vtkCamera::New();
-  m3DCamera = vtkCamera::New();
+  m2DCamera = vtkSmartPointer<vtkCamera>::New();
+  m3DCamera = vtkSmartPointer<vtkCamera>::New();
 
   this->GetRenderer()->SetActiveCamera( m2DCamera );
   
@@ -147,58 +118,59 @@ vtkKWScubaView::Create () {
   this->GetRenderer()->SetBackground( 0.7, 0.7, 0.9 );
   
   // Sanity check.
-  if ( NULL == this->GetRenderWindow() ) {
-    cerr << "Render window was NULL" << endl;
-  }
-  if ( NULL == this->GetRenderer() ) {
-    cerr << "Renderer was NULL" << endl;
-  }
-  
-  double color[] = { 0.1, 0.1, 0.1 };
+  assert( this->GetRenderWindow() );
+  assert( this->GetRenderer() );
   
   // Make some head lights. This still needs tweaking.
-  vtkLight* light = vtkLight::New();
+  double color[] = { 0.1, 0.1, 0.1 };
+  vtkSmartPointer<vtkLight> light = 
+    vtkSmartPointer<vtkLight>::New();
   light->SetPosition( 1, 0, 0 );
   light->SetLightTypeToHeadlight();  
   light->SetAmbientColor( color );
   light->SetDiffuseColor( color );
   light->SetSpecularColor( color );
   this->GetRenderer()->AddLight( light );
-  light->Delete();
 
   // Set the picker.
-  this->GetRenderWindowInteractor()->SetPicker( vtkCellPicker::New() );
+  vtkSmartPointer<vtkCellPicker> picker = 
+    vtkSmartPointer<vtkCellPicker>::New();
+  this->GetRenderWindowInteractor()->SetPicker( picker );
 
   // Associate us with the window.
   mRenderWindowToViewMap[this->GetRenderWindow()] = this;
 
 #if 0
   // Axes pipeline.
-  vtkAxes *axes = vtkAxes::New();
+  vtkSmartPointer<vtkAxes> axes = 
+    vtkSmartPointer<vtkAxes>::New();
   axes->SetOrigin( 0, 0, 0 );
   axes->SetScaleFactor( 20 );
 
-  vtkTubeFilter *axesTubes = vtkTubeFilter::New();
+  vtkSmartPointer<vtkTubeFilter> axesTubes = 
+    vtkSmartPointer<vtkTubeFilter>::New();
   axesTubes->SetInputConnection( axes->GetOutputPort() );
   axesTubes->SetRadius( 1 );
   axesTubes->SetNumberOfSides( 6 );
 
-  vtkPolyDataMapper *axesMapper = vtkPolyDataMapper::New();
+  vtkSmartPointer<vtkPolyDataMapper> axesMapper = 
+    vtkSmartPointer<vtkPolyDataMapper>::New();
   axesMapper->SetInputConnection( axesTubes->GetOutputPort() );
 
-  axesActor = vtkActor::New();
+  vtkSmartPointer<vtkActor> axesActor = 
+    vtkSmartPointer<vtkActor>::New();
   axesActor->SetMapper( axesMapper );
   axesActor->SetPickable( false );
   axesActor->GetProperty()->SetOpacity( 0.5 );
 
-  this->GetRenderer()->AddActor( (vtkActor*)axesActor );
+  this->GetRenderer()->AddActor( axesActor );
 #endif
 
   // Reset the camera to show all the actors.
   this->GetRenderer()->ResetCamera();
 
   // Set up our initial view.
-  Set2DInPlane( 0 );
+  this->Set2DInPlane( 0 );
 }
 
 void
@@ -215,7 +187,7 @@ void
 vtkKWScubaView::PopulateToolbar ( vtkKWToolbar* iToolbar ) {
 
   // Zoom Out
-  mBtnZoomOut = vtkKWPushButton::New();
+  mBtnZoomOut = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnZoomOut->SetParent( iToolbar->GetFrame() );
   mBtnZoomOut->Create();
   mBtnZoomOut->SetText( "Zoom Out" );
@@ -227,7 +199,7 @@ vtkKWScubaView::PopulateToolbar ( vtkKWToolbar* iToolbar ) {
   iToolbar->AddWidget( mBtnZoomOut );
 
   // Zoom In
-  mBtnZoomIn = vtkKWPushButton::New();
+  mBtnZoomIn = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnZoomIn->SetParent( iToolbar->GetFrame() );
   mBtnZoomIn->Create();
   mBtnZoomIn->SetText( "Zoom In" );
@@ -239,7 +211,7 @@ vtkKWScubaView::PopulateToolbar ( vtkKWToolbar* iToolbar ) {
   iToolbar->AddWidget( mBtnZoomIn );
 
   // Rotate X Pos
-  mBtnRotateXPos = vtkKWPushButton::New();
+  mBtnRotateXPos = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRotateXPos->SetParent( iToolbar->GetFrame() );
   mBtnRotateXPos->Create();
   iToolbar->AddWidget( mBtnRotateXPos );
@@ -250,7 +222,7 @@ vtkKWScubaView::PopulateToolbar ( vtkKWToolbar* iToolbar ) {
   catch (...) {}
 
   // Rotate X Neg
-  mBtnRotateXNeg = vtkKWPushButton::New();
+  mBtnRotateXNeg = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRotateXNeg->SetParent( iToolbar->GetFrame() );
   mBtnRotateXNeg->Create();
   iToolbar->AddWidget( mBtnRotateXNeg );
@@ -261,7 +233,7 @@ vtkKWScubaView::PopulateToolbar ( vtkKWToolbar* iToolbar ) {
   catch (...) {}
 
   // Rotate Y Pos
-  mBtnRotateYPos = vtkKWPushButton::New();
+  mBtnRotateYPos = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRotateYPos->SetParent( iToolbar->GetFrame() );
   mBtnRotateYPos->Create();
   iToolbar->AddWidget( mBtnRotateYPos );
@@ -272,7 +244,7 @@ vtkKWScubaView::PopulateToolbar ( vtkKWToolbar* iToolbar ) {
   catch (...) {}
 
   // Rotate Y Neg
-  mBtnRotateYNeg = vtkKWPushButton::New();
+  mBtnRotateYNeg = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRotateYNeg->SetParent( iToolbar->GetFrame() );
   mBtnRotateYNeg->Create();
   iToolbar->AddWidget( mBtnRotateYNeg );
@@ -283,7 +255,7 @@ vtkKWScubaView::PopulateToolbar ( vtkKWToolbar* iToolbar ) {
   catch (...) {}
 
   // Rotate Z Pos
-  mBtnRotateZPos = vtkKWPushButton::New();
+  mBtnRotateZPos = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRotateZPos->SetParent( iToolbar->GetFrame() );
   mBtnRotateZPos->Create();
   iToolbar->AddWidget( mBtnRotateZPos );
@@ -294,7 +266,7 @@ vtkKWScubaView::PopulateToolbar ( vtkKWToolbar* iToolbar ) {
   catch (...) {}
 
   // Rotate Z Neg
-  mBtnRotateZNeg = vtkKWPushButton::New();
+  mBtnRotateZNeg = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRotateZNeg->SetParent( iToolbar->GetFrame() );
   mBtnRotateZNeg->Create();
   iToolbar->AddWidget( mBtnRotateZNeg );
@@ -309,38 +281,14 @@ vtkKWScubaView::PopulateToolbar ( vtkKWToolbar* iToolbar ) {
 void
 vtkKWScubaView::DepopulateToolbar () {
 
-  if ( mBtnZoomOut ) {
-    mBtnZoomOut->Delete();
-    mBtnZoomOut = NULL;
-  }
-  if ( mBtnZoomIn ) {
-    mBtnZoomIn->Delete();
-    mBtnZoomIn = NULL;
-  }
-  if ( mBtnRotateXPos ) {
-    mBtnRotateXPos->Delete();
-    mBtnRotateXPos = NULL;
-  }
-  if ( mBtnRotateXNeg ) {
-    mBtnRotateXNeg->Delete();
-    mBtnRotateXNeg = NULL;
-  }
-  if ( mBtnRotateYPos ) {
-    mBtnRotateYPos->Delete();
-    mBtnRotateYPos = NULL;
-  }
-  if ( mBtnRotateYNeg ) {
-    mBtnRotateYNeg->Delete();
-    mBtnRotateYNeg = NULL;
-  }
-  if ( mBtnRotateZPos ) {
-    mBtnRotateZPos->Delete();
-    mBtnRotateZPos = NULL;
-  }
-  if ( mBtnRotateZNeg ) {
-    mBtnRotateZNeg->Delete();
-    mBtnRotateZNeg = NULL;
-  }
+  mBtnZoomOut = NULL;
+  mBtnZoomIn = NULL;
+  mBtnRotateXPos = NULL;
+  mBtnRotateXNeg = NULL;
+  mBtnRotateYPos = NULL;
+  mBtnRotateYNeg = NULL;
+  mBtnRotateZPos = NULL;
+  mBtnRotateZNeg = NULL;
 }
 
 
@@ -348,18 +296,21 @@ void
 vtkKWScubaView::PopulateControlPage ( vtkKWWidget* iPanel ) {
 
   // Display mode radio buttons ------------------------------------------
-  vtkKWRadioButtonSet* radBtnSetDisplayMode = vtkKWRadioButtonSet::New();
+  vtkSmartPointer<vtkKWRadioButtonSet> radBtnSetDisplayMode =
+    vtkSmartPointer<vtkKWRadioButtonSet>::New();
   radBtnSetDisplayMode->SetParent( iPanel );
   radBtnSetDisplayMode->Create();
   radBtnSetDisplayMode->PackHorizontallyOn();
 
-  mRadBtnDisplayMode2D = radBtnSetDisplayMode->AddWidget( (int)TwoDee );
+  mRadBtnDisplayMode2D.
+    TakeReference( radBtnSetDisplayMode->AddWidget( (int)TwoDee ) );
   mRadBtnDisplayMode2D->SetText( "2D" );
   mRadBtnDisplayMode2D->SetCommand( this, "SetDisplayModeTo2D" );
   if( TwoDee == mDisplayMode )
     mRadBtnDisplayMode2D->SelectedStateOn();
 
-  mRadBtnDisplayMode3D = radBtnSetDisplayMode->AddWidget( (int)ThreeDee );
+  mRadBtnDisplayMode3D.
+    TakeReference( radBtnSetDisplayMode->AddWidget( (int)ThreeDee ) );
   mRadBtnDisplayMode3D->SetText( "3D" );
   mRadBtnDisplayMode3D->SetCommand( this, "SetDisplayModeTo3D" );
   if( ThreeDee == mDisplayMode )
@@ -368,12 +319,11 @@ vtkKWScubaView::PopulateControlPage ( vtkKWWidget* iPanel ) {
   this->Script( "pack %s -side top -fill x -anchor nw",
 		radBtnSetDisplayMode->GetWidgetName() );
 
-  radBtnSetDisplayMode->Delete();
-		
   // Frame for the menus ------------------------------------------------
   // We'll pack the individual controls in the PackDisplayModeControls()
   // function.
-  vtkKWFrameWithLabel* labeledFrame = vtkKWFrameWithLabel::New();
+  vtkSmartPointer<vtkKWFrameWithLabel> labeledFrame = 
+    vtkSmartPointer<vtkKWFrameWithLabel>::New();
   labeledFrame->SetParent( iPanel );
   labeledFrame->Create();
   labeledFrame->SetLabelText( "Display Mode controls" );
@@ -384,35 +334,38 @@ vtkKWScubaView::PopulateControlPage ( vtkKWWidget* iPanel ) {
 		labeledFrame->GetWidgetName() );
 
   // 2D in plane radio buttons -------------------------------------------
-  mRadBtnSet2DInPlane = vtkKWRadioButtonSet::New();
+  mRadBtnSet2DInPlane = vtkSmartPointer<vtkKWRadioButtonSet>::New();
   mRadBtnSet2DInPlane->SetParent( mFrameDisplayModeControls );
   mRadBtnSet2DInPlane->Create();
   mRadBtnSet2DInPlane->PackHorizontallyOn();
 
-  mRadBtn2DInPlaneX = mRadBtnSet2DInPlane->AddWidget( 0 );
+  mRadBtn2DInPlaneX.
+    TakeReference( mRadBtnSet2DInPlane->AddWidget( 0 ) );
   mRadBtn2DInPlaneX->SetText( "X" );
   mRadBtn2DInPlaneX->SetCommand( this, "Set2DInPlane 0" );
   mRadBtn2DInPlaneX->SetBalloonHelpString( "X In Plane" );
   mRadBtn2DInPlaneX->SelectedStateOn();
 
-  mRadBtn2DInPlaneY = mRadBtnSet2DInPlane->AddWidget( 1 );
+  mRadBtn2DInPlaneY.
+    TakeReference( mRadBtnSet2DInPlane->AddWidget( 1 ) );
   mRadBtn2DInPlaneY->SetText( "Y" );
   mRadBtn2DInPlaneY->SetCommand( this, "Set2DInPlane 1" );
   mRadBtn2DInPlaneY->SetBalloonHelpString( "Y In Plane" );
 
-  mRadBtn2DInPlaneZ = mRadBtnSet2DInPlane->AddWidget( 2 );
+  mRadBtn2DInPlaneZ.
+    TakeReference( mRadBtnSet2DInPlane->AddWidget( 2 ) );
   mRadBtn2DInPlaneZ->SetText( "Z" );
   mRadBtn2DInPlaneZ->SetCommand( this, "Set2DInPlane 2" );
   mRadBtn2DInPlaneZ->SetBalloonHelpString( "Z In Plane" );
 
-  vtkKWRadioButton* btn =
+  vtkSmartPointer<vtkKWRadioButton> btn =
     mRadBtnSet2DInPlane->GetWidget( this->Get2DInPlane() );
-  if ( btn ) {
+  if ( btn.GetPointer() ) {
     btn->SelectedStateOn();
   }
   
   // 2dRASZ scale -------------------------------------------------------
-  mScale2DRASZ = vtkKWScaleWithEntry::New();
+  mScale2DRASZ = vtkSmartPointer<vtkKWScaleWithEntry>::New();
   mScale2DRASZ->SetParent( mFrameDisplayModeControls );
   mScale2DRASZ->SetLabelText( "X RAS" );
   mScale2DRASZ->SetOrientationToHorizontal();
@@ -426,7 +379,7 @@ vtkKWScubaView::PopulateControlPage ( vtkKWWidget* iPanel ) {
   mScale2DRASZ->SetValue( this->Get2DRASZ() );
 
   // 3DRAS scales -------------------------------------------------------
-  mScale3DRASX = vtkKWScaleWithEntry::New();
+  mScale3DRASX = vtkSmartPointer<vtkKWScaleWithEntry>::New();
   mScale3DRASX->SetParent( mFrameDisplayModeControls );
   mScale3DRASX->SetLabelText( "X RAS" );
   mScale3DRASX->SetOrientationToHorizontal();
@@ -436,7 +389,7 @@ vtkKWScubaView::PopulateControlPage ( vtkKWWidget* iPanel ) {
   mScale3DRASX->SetResolution( this->Get2DRASZIncrementHint() );
   mScale3DRASX->SetValue( this->Get3DRASX() );
 
-  mScale3DRASY = vtkKWScaleWithEntry::New();
+  mScale3DRASY = vtkSmartPointer<vtkKWScaleWithEntry>::New();
   mScale3DRASY->SetParent( mFrameDisplayModeControls );
   mScale3DRASY->SetLabelText( "Y RAS" );
   mScale3DRASY->SetOrientationToHorizontal();
@@ -446,7 +399,7 @@ vtkKWScubaView::PopulateControlPage ( vtkKWWidget* iPanel ) {
   mScale3DRASY->SetResolution( this->Get2DRASZIncrementHint() );
   mScale3DRASY->SetValue( this->Get3DRASY() );
 
-  mScale3DRASZ = vtkKWScaleWithEntry::New();
+  mScale3DRASZ = vtkSmartPointer<vtkKWScaleWithEntry>::New();
   mScale3DRASZ->SetParent( mFrameDisplayModeControls );
   mScale3DRASZ->SetLabelText( "Z RAS" );
   mScale3DRASZ->SetOrientationToHorizontal();
@@ -462,7 +415,7 @@ vtkKWScubaView::PopulateControlPage ( vtkKWWidget* iPanel ) {
   // Layer combo boxes --------------------------------------------------
 
   // Make the frame for the menus.
-  mFrameSlotMenus = vtkKWFrame::New();
+  mFrameSlotMenus = vtkSmartPointer<vtkKWFrame>::New();
   mFrameSlotMenus->SetParent( iPanel );
   mFrameSlotMenus->Create();
 
@@ -483,65 +436,23 @@ vtkKWScubaView::PopulateControlPage ( vtkKWWidget* iPanel ) {
 void
 vtkKWScubaView::DepopulateControlPage () {
 
-  if( mRadBtnDisplayMode2D ) {
-    mRadBtnDisplayMode2D->Delete();
-    mRadBtnDisplayMode2D = NULL;
-  }
-
-  if( mRadBtnDisplayMode3D ) {
-    mRadBtnDisplayMode3D->Delete();
-    mRadBtnDisplayMode3D = NULL;
-  }
+  mRadBtnDisplayMode2D = NULL;
+  mRadBtnDisplayMode3D = NULL;
 
   // Delete all menus and clear the map.
-  SlotMenuMapType::iterator tMenu;
-  for( tMenu = maSlotMenu.begin(); tMenu != maSlotMenu.end(); ++tMenu )
-    if ( NULL != tMenu->second )
-      tMenu->second->Delete();
   maSlotMenu.clear();
 
-  if( mFrameSlotMenus ) {
-    mFrameSlotMenus->Delete();
-    mFrameSlotMenus = NULL;
-  }
-
-  if( mRadBtnSet2DInPlane ) {
-    mRadBtnSet2DInPlane->Delete();
-    mRadBtnSet2DInPlane = NULL;
-  }
-  if( mRadBtn2DInPlaneX ) {
-    mRadBtn2DInPlaneX->Delete();
-    mRadBtn2DInPlaneX = NULL;
-  }
-  if( mRadBtn2DInPlaneY ) {
-    mRadBtn2DInPlaneY->Delete();
-    mRadBtn2DInPlaneY = NULL;
-  }
-  if( mRadBtn2DInPlaneZ ) {
-    mRadBtn2DInPlaneZ->Delete();
-    mRadBtn2DInPlaneZ = NULL;
-  }
-  if( mScale2DRASZ ) {
-    mScale2DRASZ->Delete();
-    mScale2DRASZ = NULL;
-  }
-  if( mScale3DRASX ) {
-    mScale3DRASX->Delete();
-    mScale3DRASX = NULL;
-  }
-  if( mScale3DRASY ) {
-    mScale3DRASY->Delete();
-    mScale3DRASY = NULL;
-  }
-  if( mScale3DRASZ ) {
-    mScale3DRASZ->Delete();
-    mScale3DRASZ = NULL;
-  }
-
-  if( mFrameDisplayModeControls ) {
-    mFrameDisplayModeControls->Delete();
-    mFrameDisplayModeControls = NULL;
-  }
+  mFrameSlotMenus = NULL;
+  mRadBtnSet2DInPlane = NULL;
+  mRadBtn2DInPlaneX = NULL;
+  mRadBtn2DInPlaneY = NULL;
+  mRadBtn2DInPlaneZ = NULL;
+  mScale2DRASZ = NULL;
+  mScale3DRASX = NULL;
+  mScale3DRASY = NULL;
+  mScale3DRASZ = NULL;
+  
+  mFrameDisplayModeControls = NULL;
 }
 
 vtkKWScubaLayerCollection*
@@ -590,7 +501,7 @@ vtkKWScubaView::GetHighestFilledLayerSlot () const {
   int nHighestSlot = -1;
   SlotCollectionMapType::const_iterator tCol;
   for( tCol = maCol.begin(); tCol != maCol.end(); ++tCol )
-    if( NULL != tCol->second && // Slot is filled
+    if( NULL != tCol->second.GetPointer() && // Slot is filled
 	tCol->first > nHighestSlot ) // Slot number is higher
       nHighestSlot = tCol->first;
   
@@ -613,7 +524,7 @@ vtkKWScubaView::SetLayerCollectionAtSlot ( int inSlot,
     maCol[inSlot] = iCol;
 
     // If we're not just setting it to NULL...
-    if ( NULL != maCol[inSlot] ) {
+    if ( NULL != maCol[inSlot].GetPointer() ) {
 
       // Listen to this layer.
       maCol[inSlot]->AddListener( this );
@@ -622,8 +533,8 @@ vtkKWScubaView::SetLayerCollectionAtSlot ( int inSlot,
       maCol[inSlot]->SetDisplayModeAndView( mDisplayMode, this );
 
       // Set the 2D info in the layer collection from our info.
-      iCol->Set2DInPlane( m2DInPlane );
-      iCol->Set2DRASZ( m2DRASZ );
+      maCol[inSlot]->Set2DInPlane( m2DInPlane );
+      maCol[inSlot]->Set2DRASZ( m2DRASZ );
     }
 
     // We need to add the props for our new layer setup.
@@ -632,14 +543,14 @@ vtkKWScubaView::SetLayerCollectionAtSlot ( int inSlot,
 
   // If there's no slot defined here, there's no menu for it yet, so
   // we have to make one.
-  if( NULL != mFrameSlotMenus ) {
+  if( NULL != mFrameSlotMenus.GetPointer() ) {
 
     if( maSlotMenu.end() == maSlotMenu.find( inSlot ) )
       this->MakeMenuForSlot( inSlot );
     
     // Set the proper name in our menu.
-    if( NULL != maSlotMenu[inSlot] ) {
-      if ( NULL != maCol[inSlot] )
+    if( NULL != maSlotMenu[inSlot].GetPointer() ) {
+      if ( NULL != maCol[inSlot].GetPointer() )
 	maSlotMenu[inSlot]->SetValue( maCol[inSlot]->GetLabel() );
       else
 	maSlotMenu[inSlot]->SetValue( "None" );
@@ -675,7 +586,7 @@ void
 vtkKWScubaView::SetLayerCollectionAtSlotByComboBoxValue ( int inSlot,
 						  const char* isValue ) {
 
-  if ( maSlotMenu[inSlot] ) {
+  if ( maSlotMenu[inSlot].GetPointer() ) {
 
     // If we can find this string in the combo box...
     if ( maSlotMenu[inSlot]->HasValue( isValue ) ) {
@@ -702,7 +613,7 @@ vtkKWScubaView::GetSlotOfLayerCollection ( const vtkKWScubaLayerCollection* iCol
   // Go through our collection map and look for this collection.
   SlotCollectionMapType::const_iterator tCol;
   for( tCol = maCol.begin(); tCol != maCol.end(); ++tCol )
-    if ( tCol->second == iCol )
+    if ( tCol->second.GetPointer() == iCol )
       return tCol->first;
       
   return -1;
@@ -715,7 +626,7 @@ vtkKWScubaView::GetSlotOfLayer ( const vtkKWScubaLayer* iLayer ) const {
   // one, and compare the current layer.
   SlotCollectionMapType::const_iterator tCol;
   for( tCol = maCol.begin(); tCol != maCol.end(); ++tCol )
-    if ( NULL != tCol->second )
+    if ( NULL != tCol->second.GetPointer() )
       if ( tCol->second->GetCurrentLayer() == iLayer )
 	return tCol->first;
 
@@ -732,15 +643,12 @@ vtkKWScubaView::MakeMenuForSlot ( int inSlot ) {
   char sCmd[1024];
 
   // Make a menu.
-  vtkKWComboBoxWithLabel* labeledComboBox = vtkKWComboBoxWithLabel::New();
+  vtkSmartPointer<vtkKWComboBoxWithLabel> labeledComboBox = 
+    vtkSmartPointer<vtkKWComboBoxWithLabel>::New();
   labeledComboBox->SetParent( mFrameSlotMenus );
   labeledComboBox->Create();
   sprintf( sLabel, "Slot %d:", inSlot );
   labeledComboBox->SetLabelText( sLabel );
-  
-  // If we already have a menu for this slot, delete it.
-  if ( maSlotMenu[inSlot] )
-    maSlotMenu[inSlot]->Delete();
   
   // Assign the menu to this slot.
   maSlotMenu[inSlot] = labeledComboBox->GetWidget();
@@ -749,8 +657,6 @@ vtkKWScubaView::MakeMenuForSlot ( int inSlot ) {
   
   this->Script( "pack %s -side top -fill x -anchor nw",
 		labeledComboBox->GetWidgetName() );
-  
-  labeledComboBox->Delete();
 }
 
 void
@@ -761,7 +667,8 @@ vtkKWScubaView::LayerListChanged () {
 void
 vtkKWScubaView::ResetAllCameras () {
 
-  vtkCamera* savedCamera = this->GetRenderer()->GetActiveCamera();
+  vtkSmartPointer<vtkCamera> savedCamera = 
+    this->GetRenderer()->GetActiveCamera();
 
   // Set each of our cameras in the render and let the renderer reset
   // the camera, sizing it to fit the new data.
@@ -820,29 +727,29 @@ vtkKWScubaView::DisplayModeChanged () {
   // Update our buttons.
   if( TwoDee == mDisplayMode ) {
 
-    if( mRadBtnDisplayMode2D && 
+    if( mRadBtnDisplayMode2D.GetPointer() && 
 	!mRadBtnDisplayMode2D->GetSelectedState() ) 
       mRadBtnDisplayMode2D->SelectedStateOn();
 
-    if( mBtnRotateXPos ) mBtnRotateXPos->SetStateToDisabled();
-    if( mBtnRotateXNeg ) mBtnRotateXNeg->SetStateToDisabled();
-    if( mBtnRotateYPos ) mBtnRotateYPos->SetStateToDisabled();
-    if( mBtnRotateYNeg ) mBtnRotateYNeg->SetStateToDisabled();
-    if( mBtnRotateZPos ) mBtnRotateZPos->SetStateToDisabled();
-    if( mBtnRotateZNeg ) mBtnRotateZNeg->SetStateToDisabled();
+    if( mBtnRotateXPos.GetPointer() ) mBtnRotateXPos->SetStateToDisabled();
+    if( mBtnRotateXNeg.GetPointer() ) mBtnRotateXNeg->SetStateToDisabled();
+    if( mBtnRotateYPos.GetPointer() ) mBtnRotateYPos->SetStateToDisabled();
+    if( mBtnRotateYNeg.GetPointer() ) mBtnRotateYNeg->SetStateToDisabled();
+    if( mBtnRotateZPos.GetPointer() ) mBtnRotateZPos->SetStateToDisabled();
+    if( mBtnRotateZNeg.GetPointer() ) mBtnRotateZNeg->SetStateToDisabled();
 
   } else if( ThreeDee == mDisplayMode ) {
 
-    if( mRadBtnDisplayMode3D && 
+    if( mRadBtnDisplayMode3D.GetPointer() && 
 	!mRadBtnDisplayMode3D->GetSelectedState() ) 
       mRadBtnDisplayMode3D->SelectedStateOn();
 
-    if( mBtnRotateXPos ) mBtnRotateXPos->SetStateToNormal();
-    if( mBtnRotateXNeg ) mBtnRotateXNeg->SetStateToNormal();
-    if( mBtnRotateYPos ) mBtnRotateYPos->SetStateToNormal();
-    if( mBtnRotateYNeg ) mBtnRotateYNeg->SetStateToNormal();
-    if( mBtnRotateZPos ) mBtnRotateZPos->SetStateToNormal();
-    if( mBtnRotateZNeg ) mBtnRotateZNeg->SetStateToNormal();
+    if( mBtnRotateXPos.GetPointer() ) mBtnRotateXPos->SetStateToNormal();
+    if( mBtnRotateXNeg.GetPointer() ) mBtnRotateXNeg->SetStateToNormal();
+    if( mBtnRotateYPos.GetPointer() ) mBtnRotateYPos->SetStateToNormal();
+    if( mBtnRotateYNeg.GetPointer() ) mBtnRotateYNeg->SetStateToNormal();
+    if( mBtnRotateZPos.GetPointer() ) mBtnRotateZPos->SetStateToNormal();
+    if( mBtnRotateZNeg.GetPointer() ) mBtnRotateZNeg->SetStateToNormal();
 
   } 
 
@@ -858,7 +765,7 @@ vtkKWScubaView::StartFastMode () {
   // Turn on fast mode on all layers.
   SlotCollectionMapType::const_iterator tCol;
   for ( tCol = maCol.begin(); tCol != maCol.end(); ++tCol )
-    if ( NULL != tCol->second ) {
+    if ( NULL != tCol->second.GetPointer() ) {
       try { 
 	tCol->second->SetFastMode( true );
       }
@@ -879,7 +786,7 @@ vtkKWScubaView::StopFastMode () {
   // Turn off fast mode on all layers.
   SlotCollectionMapType::const_iterator tCol;
   for ( tCol = maCol.begin(); tCol != maCol.end(); ++tCol )
-    if ( NULL != tCol->second ) {
+    if ( NULL != tCol->second.GetPointer() ) {
       try { 
 	tCol->second->SetFastMode( false );
       }
@@ -915,7 +822,8 @@ vtkKWScubaView::Set2DInPlane ( int iPlane ) {
   // position, distance, and focal point. So get those now relative to
   // the current orientation.
   double oldFocalPoint[3], oldDistance, oldPosition[3];
-  vtkCamera* camera = this->GetRenderer()->GetActiveCamera();
+  vtkSmartPointer<vtkCamera> camera = 
+    this->GetRenderer()->GetActiveCamera();
   camera->GetFocalPoint( oldFocalPoint );
   oldDistance = camera->GetDistance();
   camera->GetPosition( oldPosition );
@@ -993,9 +901,9 @@ vtkKWScubaView::Set2DInPlane ( int iPlane ) {
     mScale2DRASZ->SetValue( this->Get2DRASZ() );
 
     // The x/y/z inplane radio buttons.
-    vtkKWRadioButton* btn =
+    vtkSmartPointer<vtkKWRadioButton> btn =
       mRadBtnSet2DInPlane->GetWidget( this->Get2DInPlane() );
-    if ( btn ) {
+    if ( btn.GetPointer() ) {
       btn->SelectedStateOn();
     }
 
@@ -1012,23 +920,24 @@ vtkKWScubaView::Set2DInPlane ( int iPlane ) {
       break;
     }
   }
-  if ( mScale3DRASX ) {
+  if ( mScale3DRASX.GetPointer() ) {
     mScale3DRASX->SetRange( min, max );
     mScale3DRASX->SetResolution( this->Get2DRASZIncrementHint() );
   }
-  if ( mScale3DRASY ) {
+  if ( mScale3DRASY.GetPointer() ) {
     mScale3DRASY->SetRange( min, max );
     mScale3DRASY->SetResolution( this->Get2DRASZIncrementHint() );
   }
-  if ( mScale3DRASZ ) {
+  if ( mScale3DRASZ.GetPointer() ) {
     mScale3DRASZ->SetRange( min, max );
     mScale3DRASZ->SetResolution( this->Get2DRASZIncrementHint() );
   }
 
   // Update the plane radio buttons.
-  if ( mRadBtnSet2DInPlane ) {
-    vtkKWRadioButton* btn = mRadBtnSet2DInPlane->GetWidget( iPlane );
-    if ( btn ) {
+  if ( mRadBtnSet2DInPlane.GetPointer() ) {
+    vtkSmartPointer<vtkKWRadioButton> btn = 
+      mRadBtnSet2DInPlane->GetWidget( iPlane );
+    if ( btn.GetPointer() ) {
       btn->SelectedStateOn();
     }
   }
@@ -1273,7 +1182,7 @@ vtkKWScubaView::Set3DRASX ( float i3DRASX ) {
   // Tell all the layers to set 3DRASX.
   SlotCollectionMapType::iterator tCol;
   for ( tCol = maCol.begin(); tCol != maCol.end(); ++tCol )
-    if ( NULL != tCol->second ) {
+    if ( NULL != tCol->second.GetPointer() ) {
       try {
 	tCol->second->Set3DRASX( m3DRASX );
       }
@@ -1287,7 +1196,7 @@ vtkKWScubaView::Set3DRASX ( float i3DRASX ) {
     this->GetRenderWindow()->Render();
 
   // Update our scale.
-  if ( mScale3DRASX )
+  if ( mScale3DRASX.GetPointer() )
     mScale3DRASX->SetValue( this->Get3DRASX() );
 }
 
@@ -1303,7 +1212,7 @@ vtkKWScubaView::Set3DRASY ( float i3DRASY ) {
   // Tell all the layers to set 3DRASY.
   SlotCollectionMapType::iterator tCol;
   for ( tCol = maCol.begin(); tCol != maCol.end(); ++tCol )
-    if ( NULL != tCol->second ) {
+    if ( NULL != tCol->second.GetPointer() ) {
       try {
 	tCol->second->Set3DRASY( m3DRASY );
       }
@@ -1317,7 +1226,7 @@ vtkKWScubaView::Set3DRASY ( float i3DRASY ) {
     this->GetRenderWindow()->Render();
 
   // Update our scale.
-  if ( mScale3DRASY )
+  if ( mScale3DRASY.GetPointer() )
     mScale3DRASY->SetValue( this->Get3DRASY() );
 }
 
@@ -1333,7 +1242,7 @@ vtkKWScubaView::Set3DRASZ ( float i3DRASZ ) {
   // Tell all the layers to set 3DRASZ.
   SlotCollectionMapType::iterator tCol;
   for ( tCol = maCol.begin(); tCol != maCol.end(); ++tCol )
-    if ( NULL != tCol->second ) {
+    if ( NULL != tCol->second.GetPointer() ) {
       try {
 	tCol->second->Set3DRASZ( m3DRASZ );
       }
@@ -1347,7 +1256,7 @@ vtkKWScubaView::Set3DRASZ ( float i3DRASZ ) {
     this->GetRenderWindow()->Render();
 
   // Update our scale.
-  if ( mScale3DRASZ )
+  if ( mScale3DRASZ.GetPointer() )
     mScale3DRASZ->SetValue( this->Get3DRASZ() );
 }
 
@@ -1607,7 +1516,7 @@ vtkKWScubaView::GetInfoItemsAtRAS ( float iRAS[3],
   // Ask all of the layers for their info items at this point.
   SlotCollectionMapType::iterator tCol;
   for ( tCol = maCol.begin(); tCol != maCol.end(); ++tCol ) {
-    if ( NULL != tCol->second ) {
+    if ( NULL != tCol->second.GetPointer() ) {
       try {
 	vtkKWScubaLayer* layer = tCol->second->GetCurrentLayer();	
 	if( NULL != layer )
@@ -1634,7 +1543,7 @@ vtkKWScubaView::InfoUpdated () {
   // Clear all the layers' flags.
   SlotCollectionMapType::iterator tCol;
   for ( tCol = maCol.begin(); tCol != maCol.end(); ++tCol ) {
-    if ( NULL != tCol->second ) {
+    if ( NULL != tCol->second.GetPointer() ) {
       try {
 	vtkKWScubaLayer* layer = tCol->second->GetCurrentLayer();
 	if( NULL != layer )
@@ -1663,7 +1572,7 @@ vtkKWScubaView::AddLayerPropsToView () {
   // Get the props from the proper view of each layer collection.
   SlotCollectionMapType::iterator tCol;
   for ( tCol = maCol.begin(); tCol != maCol.end(); ++tCol ) {
-    if ( NULL != tCol->second ) {
+    if ( NULL != tCol->second.GetPointer() ) {
 
       try {
 
@@ -1738,13 +1647,13 @@ vtkKWScubaView::PanBetweenWindowCoords ( int iDelta[2] ) {
 
   // Start at a 0,0,0 point in world coords.
   vtkInteractorObserver::
-  ComputeDisplayToWorld( this->GetRenderer(), 0, 0, 0, start );
+    ComputeDisplayToWorld( this->GetRenderer(), 0, 0, 0, start );
 
   // Get a deltax,deltay,0 point in world coords.
   vtkInteractorObserver::
-  ComputeDisplayToWorld( this->GetRenderer(),
-                         (double)iDelta[0], (double)iDelta[1], 0, end );
-
+    ComputeDisplayToWorld( this->GetRenderer(),
+			   (double)iDelta[0], (double)iDelta[1], 0, end );
+  
   // Get the vector between the two points.
   motionVector[0] = start[0] - end[0];
   motionVector[1] = start[1] - end[1];
@@ -1865,16 +1774,11 @@ vtkKWScubaView::UpdateLayerComboBoxes () {
   if( 0 == maSlotMenu.size() )
     return;
 
-  // Clear the menus.
-  SlotMenuMapType::iterator tMenu;
-  for( tMenu = maSlotMenu.begin(); tMenu != maSlotMenu.end(); ++tMenu ) {
-    tMenu->second->DeleteAllValues();
-  }
-
   // Clear the map of menu items to collections
   maMenuIndexCollection.clear();
 
   // Add "None" entry with a null layer pointer to all menus.
+  SlotMenuMapType::iterator tMenu;
   for( tMenu = maSlotMenu.begin(); tMenu != maSlotMenu.end(); ++tMenu )
     tMenu->second->AddValue( "None" );
 

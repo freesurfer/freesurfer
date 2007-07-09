@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/09 22:05:11 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/07/09 22:44:40 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -308,38 +308,38 @@ protected:
 
   //BTX
   // Display mode buttons.
-  vtkKWRadioButton* mRadBtnDisplayMode2D;
-  vtkKWRadioButton* mRadBtnDisplayMode3D;
+  vtkSmartPointer<vtkKWRadioButton> mRadBtnDisplayMode2D;
+  vtkSmartPointer<vtkKWRadioButton> mRadBtnDisplayMode3D;
   
   // Frame for display mode controls.
-  vtkKWFrame* mFrameDisplayModeControls;
+  vtkSmartPointer<vtkKWFrame> mFrameDisplayModeControls;
 
   // 2D: In plane radio buttons.
-  vtkKWRadioButtonSet* mRadBtnSet2DInPlane;
-  vtkKWRadioButton* mRadBtn2DInPlaneX;
-  vtkKWRadioButton* mRadBtn2DInPlaneY;
-  vtkKWRadioButton* mRadBtn2DInPlaneZ;
+  vtkSmartPointer<vtkKWRadioButtonSet> mRadBtnSet2DInPlane;
+  vtkSmartPointer<vtkKWRadioButton> mRadBtn2DInPlaneX;
+  vtkSmartPointer<vtkKWRadioButton> mRadBtn2DInPlaneY;
+  vtkSmartPointer<vtkKWRadioButton> mRadBtn2DInPlaneZ;
 
   // 2D: Z scale.
-  vtkKWScaleWithEntry* mScale2DRASZ;
+  vtkSmartPointer<vtkKWScaleWithEntry> mScale2DRASZ;
 
   // 3D: scales for RAS slices.
-  vtkKWScaleWithEntry* mScale3DRASX;
-  vtkKWScaleWithEntry* mScale3DRASY;
-  vtkKWScaleWithEntry* mScale3DRASZ;
+  vtkSmartPointer<vtkKWScaleWithEntry> mScale3DRASX;
+  vtkSmartPointer<vtkKWScaleWithEntry> mScale3DRASY;
+  vtkSmartPointer<vtkKWScaleWithEntry> mScale3DRASZ;
   
   // Frame for packing slot menus.
-  vtkKWFrame* mFrameSlotMenus;
+  vtkSmartPointer<vtkKWFrame> mFrameSlotMenus;
 
   // Zoom and rotate buttons for toolbar.
-  vtkKWPushButton* mBtnZoomOut;
-  vtkKWPushButton* mBtnZoomIn;
-  vtkKWPushButton* mBtnRotateXPos;
-  vtkKWPushButton* mBtnRotateXNeg;
-  vtkKWPushButton* mBtnRotateYPos;
-  vtkKWPushButton* mBtnRotateYNeg;
-  vtkKWPushButton* mBtnRotateZPos;
-  vtkKWPushButton* mBtnRotateZNeg;
+  vtkSmartPointer<vtkKWPushButton> mBtnZoomOut;
+  vtkSmartPointer<vtkKWPushButton> mBtnZoomIn;
+  vtkSmartPointer<vtkKWPushButton> mBtnRotateXPos;
+  vtkSmartPointer<vtkKWPushButton> mBtnRotateXNeg;
+  vtkSmartPointer<vtkKWPushButton> mBtnRotateYPos;
+  vtkSmartPointer<vtkKWPushButton> mBtnRotateYNeg;
+  vtkSmartPointer<vtkKWPushButton> mBtnRotateZPos;
+  vtkSmartPointer<vtkKWPushButton> mBtnRotateZNeg;
 
   std::string msLabel;
 
@@ -353,8 +353,8 @@ protected:
 
   DisplayMode mDisplayMode;
 
-  vtkCamera* m2DCamera;
-  vtkCamera* m3DCamera;
+  vtkSmartPointer<vtkCamera> m2DCamera;
+  vtkSmartPointer<vtkCamera> m3DCamera;
 
   bool mbFastMode;
 
@@ -369,18 +369,20 @@ protected:
   float mMouseOverRASCoords[3];
   float mCursorRASCoords[3];
 
-  static std::map<vtkRenderWindow*,vtkKWScubaView*> mRenderWindowToViewMap;
+  static std::map<vtkRenderWindow*,vtkSmartPointer<vtkKWScubaView> > 
+    mRenderWindowToViewMap;
 
   // A pointer to a menu for each slot. The menu contains the labels
   // for all the layer collections that are currently loaded, and
   // currently displays the collection loaded at that slot.
-  typedef std::map<int,vtkKWComboBox*> SlotMenuMapType;
+  typedef std::map<int,vtkSmartPointer<vtkKWComboBox> > SlotMenuMapType;
   SlotMenuMapType maSlotMenu;
 
   // A pointer to a collection for a menu index. The menus in
   // maSlotMenus use this map to go from an entry index to an actual
   // collection.
-  typedef std::map<int,vtkKWScubaLayerCollection*> MenuIndexCollectionMapType;
+  typedef std::map<int,vtkSmartPointer<vtkKWScubaLayerCollection> >
+    MenuIndexCollectionMapType;
   MenuIndexCollectionMapType maMenuIndexCollection;
   //ETX
 };
