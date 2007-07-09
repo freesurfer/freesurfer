@@ -7,9 +7,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Author: dsjen $
+ *    $Date: 2007/07/09 16:42:41 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DMRI );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DMRI, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DMRI, "$Revision: 1.2 $" );
 
 vtkKWScubaLayer3DMRI::vtkKWScubaLayer3DMRI () :
   mMRIProperties( NULL )
@@ -93,7 +93,8 @@ vtkKWScubaLayer3DMRI::Create () {
   mWorldCenter[2] = source->GetRASCenterZ();
 
   float RASBounds[6];
-  source->GetRASBounds( RASBounds );
+  this->GetRASBounds( RASBounds );
+//TODO:  source->GetRASBounds( RASBounds );
 
   mWorldSize[0] = RASBounds[1] - RASBounds[0];
   mWorldSize[1] = RASBounds[3] - RASBounds[2];
@@ -110,7 +111,8 @@ vtkKWScubaLayer3DMRI::Create () {
   // ImageReslice: "applying a transform to the resampling grid (which
   // lies in the output coordinate system) is equivalent to applying
   // the inverse of that transform to the input volume."
-  double* rtv = source->GetRASToVoxelMatrix();
+  double rtv[ 16 ];
+  source->GetUnscaledRASToVoxelMatrix( rtv );
 
   vtkMatrix4x4* matrix = vtkMatrix4x4::New();
   matrix->SetElement( 0, 0, rtv[0] );
@@ -133,7 +135,7 @@ vtkKWScubaLayer3DMRI::Create () {
   vtkTransform* transform = vtkTransform::New();
   transform->SetMatrix( matrix );
   matrix->Delete();
-
+  
   volumeToRAS->SetResliceTransform( transform );
   volumeToRAS->BorderOff();
   transform->Delete();
@@ -274,7 +276,8 @@ void
 vtkKWScubaLayer3DMRI::GetRASBounds ( float ioBounds[6] ) const {
 
   if ( mMRIProperties )
-    mMRIProperties->GetSource()->GetRASBounds( ioBounds );
+// TODO:    mMRIProperties->GetSource()->GetRASBounds( ioBounds );
+    mMRIProperties->GetSource()->GetUnscaledRASBounds( ioBounds );
   else {
     for ( int nBound = 0; nBound < 6; nBound++ )
       ioBounds[nBound] = 0;
@@ -316,7 +319,7 @@ vtkKWScubaLayer3DMRI::GetInfoItems ( float iRAS[3],
        idx[1] >= 0 && idx[1] < source->GetYDimension() &&
        idx[2] >= 0 && idx[2] < source->GetZDimension() ) {
     if( ScubaCollectionPropertiesMRI::LUT == mMRIProperties->GetColorMap() && 
-	NULL != mMRIProperties->GetLUTCTAB() ) {
+    NULL != mMRIProperties->GetLUTCTAB() ) {
       int nEntry = (int)source->GetValueAtIndex( idx[0], idx[1], idx[2] );
       strncpy( sValue, "None", sizeof(sValue) );
       CTABcopyName( mMRIProperties->GetLUTCTAB(), 
@@ -449,7 +452,7 @@ vtkKWScubaLayer3DMRI::UpdatePlanes () {
 					       0, 0, 1,
 					       1, 0, 0 );
   mReslice[0]->
-    SetResliceAxesOrigin( (int)(rasX - mWorldCenter[0]), 0, 0 );
+    SetResliceAxesOrigin( static_cast< int >( floor( rasX - mWorldCenter[0] ) ), 0, 0 );
   
   
   mPlaneTransform[1]->Identity();
@@ -464,7 +467,7 @@ vtkKWScubaLayer3DMRI::UpdatePlanes () {
 					       0, 0, 1,
 					       0, 1, 0 );
   mReslice[1]->
-    SetResliceAxesOrigin( 0, (int)(rasY - mWorldCenter[1]), 0 );
+    SetResliceAxesOrigin( 0, static_cast< int >( floor( rasY - mWorldCenter[1] ) ), 0 );
   
   
   mPlaneTransform[2]->Identity();
@@ -476,7 +479,7 @@ vtkKWScubaLayer3DMRI::UpdatePlanes () {
 					       0, 1, 0,
 					       0, 0, 1 );
   mReslice[2]->
-    SetResliceAxesOrigin( 0, 0, (int)(rasZ - mWorldCenter[2]) );
+    SetResliceAxesOrigin( 0, 0, static_cast< int >( floor( rasZ - mWorldCenter[2] ) ) );
 
   this->PipelineChanged();
 }

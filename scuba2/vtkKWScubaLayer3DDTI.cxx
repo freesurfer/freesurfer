@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/06/29 16:16:57 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/07/09 16:42:41 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DDTI, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DDTI, "$Revision: 1.7 $" );
 
 vtkKWScubaLayer3DDTI::vtkKWScubaLayer3DDTI () :
   mDTIProperties( NULL ),
@@ -143,23 +143,23 @@ vtkKWScubaLayer3DDTI::Create () {
   vtkImageAppendComponents* source = mDTIProperties->GetMergedSource();
 
   // set up the transform for reorienting the tensors
-  double *vtr = mDTIProperties->GetFAVolumeSource()->GetVoxelToRASMatrix();
+  double vtr[ 16 ];
+  mDTIProperties->GetFAVolumeSource()->GetUnscaledVoxelToRASMatrix( vtr );
 
-  // remove the scale component
   vtkMatrix4x4* voxelToRAS = vtkMatrix4x4::New();
-  voxelToRAS->SetElement( 0, 0, vtr[0] * mDTIProperties->GetFAVolumeSource()->GetPixelSizeX() );
+  voxelToRAS->SetElement( 0, 0, vtr[0] );
   voxelToRAS->SetElement( 0, 1, vtr[1] );
   voxelToRAS->SetElement( 0, 2, vtr[2] );
   voxelToRAS->SetElement( 0, 3, 0 );
 
   voxelToRAS->SetElement( 1, 0, vtr[4] );
-  voxelToRAS->SetElement( 1, 1, vtr[5] * mDTIProperties->GetFAVolumeSource()->GetPixelSizeY() );
+  voxelToRAS->SetElement( 1, 1, vtr[5] );
   voxelToRAS->SetElement( 1, 2, vtr[6] );
   voxelToRAS->SetElement( 1, 3, 0 );
 
   voxelToRAS->SetElement( 2, 0, vtr[8] );
   voxelToRAS->SetElement( 2, 1, vtr[9] );
-  voxelToRAS->SetElement( 2, 2, vtr[10] * mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ() );
+  voxelToRAS->SetElement( 2, 2, vtr[10] );
   voxelToRAS->SetElement( 2, 3, 0 );
 
   voxelToRAS->SetElement( 3, 0, 0 );
@@ -176,6 +176,9 @@ vtkKWScubaLayer3DDTI::Create () {
   // three times for three cut planes
   for( int n = 0; n<3; n++ ) {  
 
+    // TODO: if it turns out that the ras-to-voxel matrix should be the same
+    // for all slices, then we should move this out of the loop
+    
     //
     // This transforms the voxel space source into RAS space.
     //
@@ -189,11 +192,15 @@ vtkKWScubaLayer3DDTI::Create () {
   
     mVolumeToRAS[ n ]->SetInputConnection( source->GetOutputPort() );
     mVolumeToRAS[ n ]->SetOutputDimensionality( 3 );
+    
+    mVolumeToRAS[ n ]->SetOutputSpacing( 2, 2, 2 );
 
     // TODO: uncomment this and remove the other matrix to view the not subdivided voxels    
 //    vtkMatrix4x4* matrix = this->GetRasToVoxelMatrix( n );
 
-    double* rtv = mDTIProperties->GetFAVolumeSource()->GetRASToVoxelMatrix();
+    double rtv[ 16 ];
+    mDTIProperties->GetFAVolumeSource()->GetUnscaledRASToVoxelMatrix( rtv );
+    
     vtkMatrix4x4* matrix = vtkMatrix4x4::New();
     matrix->SetElement( 0, 0, rtv[0] );
     matrix->SetElement( 0, 1, rtv[1] );
@@ -477,7 +484,9 @@ vtkKWScubaLayer3DDTI::DoListenToMessage ( string isMessage, void* iData ) {
 void
 vtkKWScubaLayer3DDTI::GetRASBounds ( float ioBounds[6] ) const {
   if ( mDTIProperties ) {
-    mDTIProperties->GetFAVolumeSource()->GetRASBounds( ioBounds );
+//    mDTIProperties->GetFAVolumeSource()->GetRASBounds( ioBounds );
+// TODO:
+    mDTIProperties->GetFAVolumeSource()->GetUnscaledRASBounds( ioBounds );
   } else {
     for ( int nBound = 0; nBound < 6; nBound++ )
       ioBounds[nBound] = 0;
@@ -675,11 +684,13 @@ vtkKWScubaLayer3DDTI::UpdatePlanes ( bool hasDetailChanged ) {
       
       // set the origin for each plane
       double axesOrigin[3] = { 0, 0, 0 };      
-      axesOrigin[ n ] = static_cast< int >( ras[n] - mWorldCenter[n] );
-      mVolumeToRASSlice[n]->SetResliceAxesOrigin( axesOrigin );
       
+      // we should take the floor here, not round, truncate, or take the ceiling 
+      axesOrigin[ n ] = static_cast< int >( floor( ras[n] - mWorldCenter[n] ) );
+      mVolumeToRASSlice[n]->SetResliceAxesOrigin( axesOrigin );
+            
     }
-                  
+                      
   }
   
   this->PipelineChanged();

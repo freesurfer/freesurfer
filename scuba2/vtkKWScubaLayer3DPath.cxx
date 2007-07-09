@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/05/22 19:20:16 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/07/09 16:42:41 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,6 +51,7 @@
 #include "vtkTubeFilter.h"
 #include "vtkFloatArray.h"
 #include "vtkPointData.h"
+#include "vtkTransform.h"
 
 #include "vtkKWRadioButtonSet.h"
 #include "vtkKWRadioButtonSetWithLabel.h"
@@ -61,7 +62,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DPath );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.7 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.8 $" );
 
 vtkKWScubaLayer3DPath::vtkKWScubaLayer3DPath () :
   mPathProperties( NULL ),
@@ -449,12 +450,53 @@ vtkKWScubaLayer3DPath::CreateTube() {
     source->ConvertIndexToRAS( point[ 0 ], point[ 1 ], point[ 2 ], 
       RASX, RASY, RASZ );
 
+//    double* rtv = source->GetRASToVoxelMatrix();
+//
+//    vtkMatrix4x4* matrix = vtkMatrix4x4::New();
+//    matrix->SetElement( 0, 0, rtv[0] * source->GetPixelSizeX() );
+//    matrix->SetElement( 0, 1, rtv[1] );
+//    matrix->SetElement( 0, 2, rtv[2] );
+//    matrix->SetElement( 0, 3, 0 );
+//    matrix->SetElement( 1, 0, rtv[4] );
+//    matrix->SetElement( 1, 1, rtv[5] * source->GetPixelSizeY() );
+//    matrix->SetElement( 1, 2, rtv[6] );
+//    matrix->SetElement( 1, 3, 0 );
+//    matrix->SetElement( 2, 0, rtv[8] );
+//    matrix->SetElement( 2, 1, rtv[9] );
+//    matrix->SetElement( 2, 2, rtv[10] * source->GetPixelSizeZ() );
+//    matrix->SetElement( 2, 3, 0 );
+//    matrix->SetElement( 3, 0, 0 );
+//    matrix->SetElement( 3, 1, 0 );
+//    matrix->SetElement( 3, 2, 0 );
+//    matrix->SetElement( 3, 3, 1 );
+//      
+//    vtkTransform* transform = vtkTransform::New();
+//    transform->SetMatrix( matrix );
+//    
+//    RASX = point[ 0 ];
+//    RASY = point[ 1 ];
+//    RASZ = point[ 2 ];
+//    
+//    cerr << "-- ras: " << RASX << ", " << RASY << ", " << RASZ << endl;
+//    
+//    transform->TransformPoint( RASX, RASY, RASZ );    
+//    matrix->Delete();
+//    transform->Delete();
+//  
+//    cerr << "   ras: " << RASX << ", " << RASY << ", " << RASZ << endl;
+
+
     // the center of the bounding volume is actually in the lower corner, so we
     // need to move our transformed points diagonally lower by the amount of the
     // world's center
     RASX -= worldCenter[0];
     RASY -= worldCenter[1];
     RASZ -= worldCenter[2];
+
+    // unscale
+    RASX /= 2.0;
+    RASY /= 2.0;
+    RASZ /= 2.0;
     
     inputPoints->InsertPoint( i, RASX, RASY, RASZ );
     lines->InsertCellPoint( i );    
