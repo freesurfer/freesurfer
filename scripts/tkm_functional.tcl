@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/05/10 15:57:13 $
-##    $Revision: 1.38 $
+##    $Date: 2007/07/09 21:42:59 $
+##    $Revision: 1.39 $
 ##
 ## Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA). 
@@ -371,11 +371,7 @@ proc Graph_HandleClick { iwGraph inX inY } {
     # get the x coord of the graph and send it to the c code.
     set nSecond [$iwGraph axis invtransform x $inX]
     set nTimePoint [expr [expr $nSecond / $gnTimeResolution] + $gnPreStimPoints]
-
-    puts "sec = $nSecond timeres = $gnTimeResolution prestim $gnPreStimPoints tp = $nTimePoint"
-
     Overlay_SetTimePoint $nTimePoint
-
 }
 
 # ============================================================== UPDATING VARS
