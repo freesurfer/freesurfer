@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/23 19:05:42 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/07/09 22:05:11 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,12 +32,13 @@
 
 #include <map>
 #include <list>
-#include "vtkKWRenderWidget.h"
-#include "Listener.h"
 #include "Broadcaster.h"
+#include "IDTracker.h"
+#include "Listener.h"
 #include "ScubaInfoItem.h"
 #include "ScubaViewProperties.h"
-#include "IDTracker.h"
+#include "vtkKWRenderWidget.h"
+#include "vtkSmartPointer.h"
 
 class vtkKWScubaWindow;
 class vtkKWScubaLayer;
@@ -346,7 +347,8 @@ protected:
   bool mbInfoChanged;
 
   // The collection currently loaded into each slot.
-  typedef std::map<int,vtkKWScubaLayerCollection*> SlotCollectionMapType;
+  typedef std::map<int,vtkSmartPointer<vtkKWScubaLayerCollection> >
+    SlotCollectionMapType;
   SlotCollectionMapType maCol;
 
   DisplayMode mDisplayMode;
