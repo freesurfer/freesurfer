@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/05/10 21:49:24 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/07/09 16:51:04 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@ using namespace std;
 const double vtkKWScubaLayerCollectionPath::DEFAULT_COLOR[] = { 0.4, 0.5, 1.0 };
 
 vtkStandardNewMacro( vtkKWScubaLayerCollectionPath );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollectionPath, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollectionPath, "$Revision: 1.6 $" );
 
 vtkKWScubaLayerCollectionPath::vtkKWScubaLayerCollectionPath ():
   mPathVolumeSource( NULL ),
@@ -357,20 +357,21 @@ vtkKWScubaLayerCollectionPath::MakeMesh () {
   float RASBounds[6];
   source->GetRASBounds( RASBounds );
   
-  // This rotates the volume to the proper orientation.
+  // This rotates the volume to the proper orientation and remove the scale
+  // component
   double* rtv = source->GetRASToVoxelMatrix();
   vtkMatrix4x4* matrix = vtkMatrix4x4::New();
-  matrix->SetElement( 0, 0, rtv[0] );
+  matrix->SetElement( 0, 0, rtv[0] * source->GetPixelSizeX() );
   matrix->SetElement( 0, 1, rtv[1] );
   matrix->SetElement( 0, 2, rtv[2] );
   matrix->SetElement( 0, 3, 0 );
   matrix->SetElement( 1, 0, rtv[4] );
-  matrix->SetElement( 1, 1, rtv[5] );
+  matrix->SetElement( 1, 1, rtv[5] * source->GetPixelSizeY() );
   matrix->SetElement( 1, 2, rtv[6] );
   matrix->SetElement( 1, 3, 0 );
   matrix->SetElement( 2, 0, rtv[8] );
   matrix->SetElement( 2, 1, rtv[9] );
-  matrix->SetElement( 2, 2, rtv[10] );
+  matrix->SetElement( 2, 2, rtv[10] * source->GetPixelSizeZ() );
   matrix->SetElement( 2, 3, 0 );
   matrix->SetElement( 3, 0, 0 );
   matrix->SetElement( 3, 1, 0 );
