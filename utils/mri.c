@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/07 15:57:49 $
- *    $Revision: 1.385 $
+ *    $Date: 2007/07/09 18:05:15 $
+ *    $Revision: 1.386 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.385 $";
+char *MRI_C_VERSION = "$Revision: 1.386 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -13382,12 +13382,12 @@ MRIsampleVolumeSlice
 float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label)
 {
   float   volume, vox_vol ;
-  int     x, y, z, nbr_label_counts[5000];
-  int     label_counts[5000], this_label, border;
+  int     x, y, z, nbr_label_counts[10000];
+  int     label_counts[10000], this_label, border;
   int     nbr_label, max_count, vox_label ;
   MRI     *mri_border ;
-  float   label_means[5000], pv, mean_label, mean_nbr, val ;
-  int     maxlabels = 5000;
+  float   label_means[10000], pv, mean_label, mean_nbr, val ;
+  int     maxlabels = 10000;
   // DNG 6/7/07 : had to use maxlabels instead of MAX_CMA_LABELS here
   // so that segmentations with values > MAX_CMA_LABELS can be
   // accessed. This includes the cortical segmentations as well as
