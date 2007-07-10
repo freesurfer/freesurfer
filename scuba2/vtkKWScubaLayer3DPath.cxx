@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/07/09 16:42:41 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/07/10 15:47:56 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -62,7 +62,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DPath );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.8 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.9 $" );
 
 vtkKWScubaLayer3DPath::vtkKWScubaLayer3DPath () :
   mPathProperties( NULL ),
@@ -492,11 +492,6 @@ vtkKWScubaLayer3DPath::CreateTube() {
     RASX -= worldCenter[0];
     RASY -= worldCenter[1];
     RASZ -= worldCenter[2];
-
-    // unscale
-    RASX /= 2.0;
-    RASY /= 2.0;
-    RASZ /= 2.0;
     
     inputPoints->InsertPoint( i, RASX, RASY, RASZ );
     lines->InsertCellPoint( i );    
