@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/13 01:02:48 $
-#    $Revision: 1.7 $
+#    $Date: 2007/07/10 17:19:25 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set MKCONTRAST_VER = '$Id: mkcontrast,v 1.7 2007/06/13 01:02:48 greve Exp $';
+set MKCONTRAST_VER = '$Id: mkcontrast,v 1.8 2007/07/10 17:19:25 greve Exp $';
 
 set CorrIdeal = 0;
 set monly = 0;
@@ -404,6 +404,7 @@ while( $#argv != 0 )
     case "-debug":
     case "-verbose":
       set verbose = 1;
+      set echo = 1;
       breaksw
 
     default:
