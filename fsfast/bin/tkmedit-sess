@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/24 21:16:31 $
-#    $Revision: 1.21 $
+#    $Date: 2007/07/10 17:21:15 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.21 2007/06/24 21:16:31 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.22 2007/07/10 17:21:15 greve Exp $';
 set inputargs = ($argv);
 
 set PWDCMD = pwd
@@ -76,6 +76,10 @@ set talreg = 0; # show on tal using register.tal
 set MGZ = .mgz;
 
 set nolog = 0;
+set tmpdir = ();
+if($?FREESURFER_TMP_DIR) then
+  if(-e $FREESURFER_TMP_DIR) set tmpdir = $FREESURFER_TMP_DIR;
+endif
 
 set n = `echo $argv | grep version | wc -l` 
 if($n != 0) then
@@ -253,7 +257,7 @@ if(! $nosig) then
     endif
     set maplist = ($maplist $mapfile)
   end
-  set mapconcatfile = $mapsess/$mapfsd/$mapanalysis$anapend/tkmconcat.nii
+  set mapconcatfile = $mapsess/$mapfsd/$mapanalysis$anapend/tkmconcat.mgh
   set cmd = (mri_concat $maplist --o $mapconcatfile);
   echo $cmd
   $cmd
@@ -330,7 +334,18 @@ if(! $nohdr ) then
   set tmp = `grep Nh $hdrdat`;
   @ Nh = $tmp[2];
   if($Nh != 1 && ! $nohdr) then
-    set hdroption  = (-timecourse $hdrdir/h.$ext )
+    if($ext != nii) then
+      set hdroption  = (-timecourse $hdrdir/h.$ext )
+      set hdrtmpdir = ()
+    else
+      # This is a hack because tkmedit has probs on x64 with nifti
+      if($#tmpdir == 0) set hdrtmpdir = $hdrdir/hdrtmpdir
+      if($#tmpdir != 0) set hdrtmpdir = $tmpdir/hdrtmpdir.$$
+      mkdir -p $hdrtmpdir
+      mri_convert $hdrdir/h.$ext $hdrtmpdir/h.bhdr
+      cp $hdrdir/h.dat $hdrtmpdir
+      set hdroption  = (-timecourse $hdrtmpdir/h.bhdr)
+    endif
     set hdroption  = ($hdroption -timecourse-reg $hdrregfile)
     set offsetoption = (-timecourse-offset $hdrdir/h-offset.$ext)
   endif
@@ -418,6 +433,7 @@ if($status) then
 endif
 
 if($#mapconcatfile) rm -f $mapconcatfile
+if($#hdrtmpdir) rm -f $hdrtmpdir/*
 
 exit 0;
 ###--------------------------------------------###
@@ -801,18 +817,20 @@ check_params:
   endif
 
   set sessinfo = $sess/session.info
-  set SessIsGroup = `grep GroupAverage $sessinfo | wc -l`;
-  if($SessIsGroup) then
-    echo "INFO: $sessid is a group average"  
-    if($space != tal) then
-      echo "ERROR: no support for tkmedit of $space space for group" 
-      exit 1;
+  if(-e $sessinfo) then
+    set SessIsGroup = `grep GroupAverage $sessinfo | wc -l`;
+    if($SessIsGroup) then
+      echo "INFO: $sessid is a group average"  
+      if($space != tal) then
+        echo "ERROR: no support for tkmedit of $space space for group" 
+        exit 1;
+      endif
+      if($#isxavgmethod == 0) then
+        echo "ERROR: must specify -isxavg with group" 
+        exit 1;
+      endif
+      if($isxavgmethod == random) set nohdr = 1;
     endif
-    if($#isxavgmethod == 0) then
-      echo "ERROR: must specify -isxavg with group" 
-      exit 1;
-    endif
-    if($isxavgmethod == random) set nohdr = 1;
   endif
 
   #--------------------------------------------------------------------#
