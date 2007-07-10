@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/06/29 16:16:57 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/07/10 15:43:49 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,7 +39,6 @@
 #include "vtkImageAppendComponents.h"
 #include "vtkImageClip.h"
 #include "vtkImageReslice.h"
-#include "vtkImageShrink3D.h"
 #include "vtkLODActor.h"
 #include "vtkMatrix4x4.h"
 #include "vtkObjectFactory.h"
@@ -53,13 +52,12 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.8 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DDTI, "$Revision: 1.9 $" );
 
 vtkKWScubaLayer2DDTI::vtkKWScubaLayer2DDTI () :
   mDTIProperties( NULL ),
   mVolumeToRAS( NULL ),
   mVolumeToRASSlice( NULL ),
-  mReducedVolume( NULL ),
   mGlyph( NULL ),
   mMapper( NULL ),
   mActor( NULL ),
@@ -79,9 +77,6 @@ vtkKWScubaLayer2DDTI::~vtkKWScubaLayer2DDTI () {
     
   if( mVolumeToRASSlice )
     mVolumeToRASSlice->Delete();  
-
-  if( mReducedVolume )
-    mReducedVolume->Delete();
 
   if( mGlyph )
     mGlyph->Delete();
@@ -183,12 +178,6 @@ vtkKWScubaLayer2DDTI::Create () {
   mVolumeToRAS->SetOutputExtent( (int)RASBounds[0], (int)RASBounds[1],
                                 (int)RASBounds[2], (int)RASBounds[3],
                                 (int)RASBounds[4], (int)RASBounds[5] );
-
-  //
-  // Used for fast rendering.
-  //
-  mReducedVolume = vtkImageShrink3D::New();
-  mReducedVolume->SetInputConnection( mVolumeToRAS->GetOutputPort() );
       
   // set up the transform for reorienting the tensors
   double *vtr = mDTIProperties->GetFAVolumeSource()->GetVoxelToRASMatrix();
@@ -221,7 +210,7 @@ vtkKWScubaLayer2DDTI::Create () {
   //
   if ( !mVolumeToRASSlice )
     mVolumeToRASSlice = vtkImageReslice::New();
-  mVolumeToRASSlice->SetInputConnection( mReducedVolume->GetOutputPort() );
+  mVolumeToRASSlice->SetInputConnection( mVolumeToRAS->GetOutputPort() );
   mVolumeToRASSlice->BorderOff();
   
   // This sets us to extract slices.
@@ -377,8 +366,7 @@ vtkKWScubaLayer2DDTI::Get2DRASZIncrementHint ( float ioHint[3]) const {
 void
 vtkKWScubaLayer2DDTI::GetInfoItems ( float iRAS[3],
                                       list<ScubaInfoItem>& ilInfo ) const {
-
-  
+                                        
   if( mDTIProperties ) {
 
     // get the index of the RAS our FA volume
@@ -475,16 +463,16 @@ vtkKWScubaLayer2DDTI::UpdateOpacity () {
 void
 vtkKWScubaLayer2DDTI::UpdateDetail () {
 
-  if( mReducedVolume ) {
+  if( mVolumeToRAS ) {
     
-    // figure out the level of detail
-    int shrinkage = this->GetCurrentShrinkageValue();
+    const int shrinkage = this->GetCurrentShrinkageValue();
+    
+    // this changes the pixel/tensor sampling
+    mVolumeToRAS->SetOutputSpacing(
+      mDTIProperties->GetFAVolumeSource()->GetPixelSizeX() * shrinkage,
+      mDTIProperties->GetFAVolumeSource()->GetPixelSizeY() * shrinkage,
+      mDTIProperties->GetFAVolumeSource()->GetPixelSizeZ() * shrinkage );
         
-    for( int n = 0; n<3; n++ ) {
-      mReducedVolume->SetShrinkFactors( shrinkage, shrinkage, shrinkage );
-    }
-    mReducedVolume->AveragingOn();
-
     this->Update2DInfo();
   }
 }
@@ -604,10 +592,10 @@ vtkKWScubaLayer2DDTI::GetCurrentShrinkageValue () {
 
   switch( mDTIProperties->GetTensorDetail() ) {
   case ScubaCollectionPropertiesDTI::Least:
-    shrinkage = 6;
+    shrinkage = 4;
     break;
   case ScubaCollectionPropertiesDTI::Less:
-    shrinkage = 3;
+    shrinkage = 2;
     break;
   case ScubaCollectionPropertiesDTI::Normal:
     shrinkage = 1;

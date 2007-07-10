@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/06/29 16:16:57 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/07/10 15:43:49 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,6 @@ class vtkImageReslice;
 class vtkImageResample;
 class vtkLODActor;
 class vtkActor;
-class vtkImageShrink3D;
 class vtkKWCheckButton;
 class vtkMatrix4x4;
 
@@ -109,19 +108,13 @@ protected:
   
   void UpdatePlanes();
   void UpdatePlanes( bool hasDetailUpdated );
-    
-  // Description:
-  // Returns the transform with the correct scale component for the specified
-  // dimension
-  vtkMatrix4x4* GetRasToVoxelMatrix( const int iDim );
-  
+      
   //BTX
   ScubaCollectionPropertiesDTI const* mDTIProperties;
 
   // Pipeline -------------------------------------------------------------
-  vtkImageReslice* mVolumeToRAS[ 3 ];
+  vtkImageReslice* mVolumeToRAS;
   vtkImageReslice* mVolumeToRASSlice[ 3 ];
-  vtkImageShrink3D* mReducedVolume[ 3 ];
   vtkTransform* mSliceTransform[3];
   vtkFDTensorGlyph* mGlyphs[ 3 ];
   vtkPolyDataMapper* mPlaneMappers[ 3 ];

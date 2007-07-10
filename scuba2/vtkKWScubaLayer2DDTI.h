@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/06/29 16:16:57 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/07/10 15:43:49 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,6 @@ class vtkActor;
 class vtkLODActor;
 class vtkFDTensorGlyph;
 class vtkImageReslice;
-class vtkImageShrink3D;
 class vtkKWCheckButton;
 class vtkPolyDataMapper;
 class vtkTransform;
@@ -116,7 +115,6 @@ protected:
   // Pipeline -------------------------------------------------------------
   vtkImageReslice* mVolumeToRAS;
   vtkImageReslice* mVolumeToRASSlice;
-  vtkImageShrink3D* mReducedVolume;
   vtkFDTensorGlyph* mGlyph;
   vtkPolyDataMapper* mMapper;
   vtkLODActor* mActor;
