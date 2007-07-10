@@ -1,18 +1,45 @@
 function varargout = read_meas_dat(filename, options)
-%READ_MEAS_DAT  read in VB13A-style "meas.dat"
+%READ_MEAS_DAT  read in Siemens format raw data, VB13A-style "meas.dat"
 %
-% data = read_meas_dat(filename,<options>)
+% data = read_meas_dat(filename, <options>)
 %
 % [data, phascor1d, phascor2d, noise] = read_meas_dat(filename)
 %
 % [data, phascor1d, phascor2d, noise, patrefscan, patrefscan_phascor] = read_meas_dat(filename)
 %
-% options is a structure which allows changing of some of the defaults:
-%   options.ReverseLines - set to 0 or 1 (default is 1)
-%   options.ApplyFFTScaleFactors - set to 0 or 1 (default is 0)
-%   options.CanonicalReorderCoilChannels - set to 0 or 1 (default 1)
+% "options" is a structure which allows changing of some of the defaults:
+%
+%    options.ReverseLines                 -- set to 0 or 1 (default is 1)
+%    options.ApplyFFTScaleFactors         -- set to 0 or 1 (default is 0)
+%    options.CanonicalReorderCoilChannels -- set to 0 or 1 (default is 1)
+%
 % If a field does not exist, then the default is used.
-% options is optional :).
+% "options" is optional :).
+%
+%
+% the raw k-space data is returned in a 16-dimensional array, following
+% the convention used in ICE. the mapping between the array dimensions
+% and the loopcounters used in ICE is as follows:
+%
+%    #01:  ColMeas
+%    #02:  LinMeas
+%    #03:  ChaMeas
+%    #04:  SetMeas
+%    #05:  EcoMeas
+%
+%    #06:  PhsMeas
+%    #07:  RepMeas
+%    #08:  SegMeas
+%    #09:  ParMeas
+%    #10:  SlcMeas
+%
+%    #11:  IdaMeas
+%    #12:  IdbMeas
+%    #13:  IdcMeas
+%    #14:  IddMeas
+%    #15:  IdeMeas
+%
+%    #16:  AveMeas
 
 
 % (based on the FAMOUS "read_mdh_adc.m" by anders, then mukund, then andre.)
@@ -36,16 +63,20 @@ function varargout = read_meas_dat(filename, options)
 %                - (REFPHASESTABSCAN)
 %                - (PHASESTABSCAN)
 
+% 2007/jul/08: added fix for non-contiguous coil channels found in 7T data
+
+% 2007/jul/09: improved support for "meas.out" files lacking headers
+
 % jonathan polimeni <jonnyreb@padkeemao.nmr.mgh.harvard.edu>, 10/04/2006
-% $Id: read_meas_dat.m,v 1.3 2007/05/09 17:44:33 jonnyreb Exp $
+% $Id: read_meas_dat.m,v 1.4 2007/07/10 17:00:39 jonnyreb Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.3 $';
+  VERSION = '$Revision: 1.4 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
 
   %------------------------------------------------------------------------%
-  % error checking
+  % basic error checking
 
   if ( ~exist(filename, 'file') ),
     error('file [%s] does not exist', filename);
@@ -61,33 +92,34 @@ function varargout = read_meas_dat(filename, options)
 
   DO__MDH_SAVE = 0;
 
-  DO__REVERSE_LINES = 1;
-  DO__CANONICAL_REORDER_COIL_CHANNELS = 0;
+  DO__FLIP_REFLECTED_LINES = 1;
+  DO__CANONICAL_REORDER_COIL_CHANNELS = 1;
   DO__APPLY_FFT_SCALEFACTORS = 0;
+  DO__READ_MULTIPLE_REPETITIONS = 0;
 
-  % If the options variable is passsed, then override
-  if ( exist('options','var') ) 
-    if(isfield(options,'ReverseLines'))
-      DO__REVERSE_LINES = options.ReverseLines;
-      fprintf('DO__REVERSE_LINES %d\n',DO__REVERSE_LINES);
-    end
-    if(isfield(options,'CanonicalReorderCoilChannels'))
+
+  % if the "options" struct is provided by caller, then override default
+  % flags
+
+  if ( exist('options', 'var') ),
+    if ( isfield(options, 'ReverseLines') ),
+      DO__FLIP_REFLECTED_LINES = options.ReverseLines;
+      disp(sprintf('  FLIP_REFLECTED_LINES = %d', DO__FLIP_REFLECTED_LINES));
+    end;
+    if ( isfield(options, 'CanonicalReorderCoilChannels') ),
       DO__CANONICAL_REORDER_COIL_CHANNELS = options.CanonicalReorderCoilChannels;
-      fprintf('DO__CANONICAL_REORDER_COIL_CHANNELS %d\n',DO__CANONICAL_REORDER_COIL_CHANNELS);
-    end
-    if(isfield(options,'ApplyFFTScaleFactors'))
+      disp(sprintf('  CANONICAL_REORDER_COIL_CHANNELS = %d', DO__CANONICAL_REORDER_COIL_CHANNELS));
+    end;
+    if ( isfield(options, 'ApplyFFTScaleFactors') ),
       DO__APPLY_FFT_SCALEFACTORS = options.ApplyFFTScaleFactors;
-      fprintf('DO__APPLY_FFT_SCALEFACTORS %d\n',DO__APPLY_FFT_SCALEFACTORS);
-    end
+      disp(sprintf('  APPLY_FFT_SCALEFACTORS = %d', DO__APPLY_FFT_SCALEFACTORS));
+    end;
+    if ( isfield(options, 'ReadMultipleRepetitions') ),
+      DO__READ_MULTIPLE_REPETITIONS = options.ReadMultipleRepetitions;
+      disp(sprintf('  READ_MULTIPLE_REPETITIONS = %d', DO__READ_MULTIPLE_REPETITIONS));
+    end;
   end
-  
-  
-  t0 = clock;
 
-  [fp, errstr] = fopen(filename, 'r', 'l');
-  if ( fp == -1 ),
-    error(errstr);
-  end;
 
 
   % constants defined in <n4/pkg/MrServers/MrMeasSrv/SeqIF/MDH/mdh.h>
@@ -100,6 +132,16 @@ function varargout = read_meas_dat(filename, options)
   ICE_RAWDATA_SCALE       = 131072.0;  % 64 ^ 3 / 2
   K_ICE_AMPL_SCALE_FACTOR = 80 * 20 * ICE_RAWDATA_SCALE / 65536;
 
+  
+  %------------------------------------------------------------------------%
+
+  t0 = clock;
+
+  [fp, errstr] = fopen(filename, 'r', 'l');
+  if ( fp == -1 ),
+    error(errstr);
+  end;
+
 
   % determine size (in bytes) of ascii header files stored in the 'meas.dat'
   % format (i.e., "Config_.evp", "Dicom_.evp", etc) to skip over them all.
@@ -107,126 +149,131 @@ function varargout = read_meas_dat(filename, options)
   % the number of bytes to skip at the beginning!]
   data_start = fread(fp, 1, 'uint32');
 
-  % read header into one string for parsing
-  header = fscanf(fp, '%c', data_start-4);
+  % if file has no header (e.g., if its in "meas.out" format),
+  % "data_start" should be 32.
+  if ( data_start == 32 ),
+    disp('no header detected! assuming "meas.out" format...');
+    header = '';
 
-  param_list = {'NColMeas', 'NLinMeas', 'NChaMeas', 'NSetMeas', 'NEcoMeas', ...
-                'NPhsMeas', 'NRepMeas', 'NSegMeas', 'NParMeas', 'NSlcMeas', ...
-                'NIdaMeas', 'NIdbMeas', 'NIdcMeas', 'NIddMeas', 'NIdeMeas', ...
-                'NAveMeas'};
-
-  dimensions = cell2struct(cell(length(param_list),1), param_list, 1);
-  dim = [];
-
-  % scan through header for each of the ICE dimension values
-  for ind = 1:length(param_list),
-    param = param_list{ind};
-
-    %%% SPECIAL CASE: "NSegMeas"
-
-    % the number of segments is listed in two places in the header with the
-    % field names "NSegMeas" and "NSeg", and for some reason only the "NSeg"
-    % field gives the correct number of segments; SO for this field we break
-    % with the convention [TODO: fix the bug in the martinos EPI sequence
-    % that causes this hack]
-    % UPDATE: it appears that "NSegMeas" corresponds to the cumulative
-    % number of distinct segments appearing in the loop counters, whereas
-    % "NSeg" is the true number of segments that is the same as the
-    % number of shots, i.e., they should differ by a factor of 2 when the
-    % "OnlineTSE" functor is in use.
-    if ( strcmp(param, 'NSegMeas') ),
-      param = 'NSeg';
-    end;
-
-    % exploit MATLAB regexp machinery to pull out parameter/value pairs
-    match = regexp(header, ['(?<param>' param, ').{0,5}\{\s*(?<value>\d*)\s*\}'], 'names');
-
-    % check if no match is found
-    if ( isempty(match) ),
-      if ( IS__VB13A_RELEASE_VERSION ),
-        IS__VB13A_RELEASE_VERSION = 0;
-        warning('SIEMENS:IO:versioning', 'missing header data---check ICE version');
-      end;
-      continue;
-    end;
-
-    % consider only last match (there can be as many as three in Config_.evp)
-    match = match(end);
-
-    % empty means number of elements in this dimension = 1
-    if ( isempty(match.value) ),
-      match.value = '1';
-    end;
-
-    % save out struct and numerical array
-    dim(ind) = str2double(match.value);
-    dimensions.(param_list{ind}) = dim(ind);
-
-  end;
-
-  % VB11A workaround hack
-  if ( ~IS__VB13A_RELEASE_VERSION ),
-    dimensions.NColMeas = 0;
-    dimensions.NAveMeas = 1;
-    dimensions.NSegMeas = 2;
-  end;
-
-
-  %------------------------------------------------------------------------%
-  % extract FFT scalefactors (if utility file is in path)
-
-  if ( DO__APPLY_FFT_SCALEFACTORS && ...
-       exist('read_meas_dat__fft_scalefactors', 'file') ),
-    fft_scale = read_meas_dat__fft_scalefactors(header);
-    disp('applying FFT scale factors.');
+    % jump to beginning of binary data, let's get to work!
+    fseek(fp, data_start, 'bof');
+    
+    % can't sort channels without header information  :(
+    DO__CANONICAL_REORDER_COIL_CHANNELS = 0;
   else,
-    fft_scale = ones(dimensions.NChaMeas, 1);
-    disp('ignoring FFT scale factors.');
-  end;
+
+    % read header into one string for parsing
+    header = fscanf(fp, '%c', data_start-4);
 
 
-  %------------------------------------------------------------------------%
-  % compute canonical coil ordering from coil element strings--- the channel
-  % number assigned to each coil is determined by the order in which the
-  % channels are selected in SYNGO, and NOT by the preamp channel numbers,
-  % so to enforce a consistent ordering across scans that is independent of
-  % the operator's coil selections we can sort by the fixed preamp channel
-  % strings.
 
-  if ( DO__CANONICAL_REORDER_COIL_CHANNELS ),
+    param_list = {'NColMeas', 'NLinMeas', 'NChaMeas', 'NSetMeas', 'NEcoMeas', ...
+                  'NPhsMeas', 'NRepMeas', 'NSegMeas', 'NParMeas', 'NSlcMeas', ...
+                  'NIdaMeas', 'NIdbMeas', 'NIdcMeas', 'NIddMeas', 'NIdeMeas', ...
+                  'NAveMeas'};
 
-    % prepend "asCoilSelectMeas" to avoid confusion with "sCoilSelectUI" list.
+    dimensions = cell2struct(cell(length(param_list),1), param_list, 1);
+    dim = [];
 
-    match = regexp(header, ['asCoilSelectMeas\S*\.sCoilElementID\.tCoilID\s*=\s*"(?<string>\w*)"'], 'names', 'once');
-    coil_id = match.string;
+    % scan through header for each of the ICE dimension values
+    for ind = 1:length(param_list),
+      param = param_list{ind};
 
-    match = regexp(header, ['asCoilSelectMeas\S*\.sCoilElementID\.tElement\s*=\s*"(?<string>\w*)"'], 'names');
-    coil_element_string = {match(1:end/2).string};
+      %%% SPECIAL CASE: "NSegMeas"
 
-    match = regexp(header, ['asCoilSelectMeas\S*\.lRxChannelConnected\s*=\s*(?<value>\w*)'], 'names');
-    coil_selected = str2num(str2mat({match(1:end/2).value}.'));
+      % the number of segments is listed in two places in the header with the
+      % field names "NSegMeas" and "NSeg", and for some reason only the "NSeg"
+      % field gives the correct number of segments; SO for this field we break
+      % with the convention [TODO: fix the bug in the martinos EPI sequence
+      % that causes this hack]
+      % UPDATE: it appears that "NSegMeas" corresponds to the cumulative
+      % number of distinct segments appearing in the loop counters, whereas
+      % "NSeg" is the true number of segments that is the same as the
+      % number of shots, i.e., they should differ by a factor of 2 when the
+      % "OnlineTSE" functor is in use.
+      if ( strcmp(param, 'NSegMeas') ),
+        param = 'NSeg';
+      end;
 
-    [sorted, coil_index] = sort(coil_element_string);
-    [sorted, coil_order] = sort(coil_index);
+      % exploit MATLAB regexp machinery to pull out parameter/value pairs
+      match = regexp(header, ['(?<param>' param, ').{0,5}\{\s*(?<value>\d*)\s*\}'], 'names');
 
-    % to map using index:
-    %   dataval(coil_index);
-    % to map using order:
-    %   coil_order(dataind);
+      % check if no match is found
+      if ( isempty(match) ),
+        if ( IS__VB13A_RELEASE_VERSION ),
+          IS__VB13A_RELEASE_VERSION = 0;
+          warning('SIEMENS:IO:versioning', 'missing header data---check ICE version');
+        end;
+        continue;
+      end;
 
-    disp('reordering coil channels to canonical preamp-based ordering.');
+      % consider only last match (there can be as many as three in Config_.evp)
+      match = match(end);
 
-    % don't forget to reorder FFT scalefactors!
-    fft_scale = fft_scale(coil_index);
+      % empty means number of elements in this dimension = 1
+      if ( isempty(match.value) ),
+        match.value = '1';
+      end;
 
-  end;
+      % save out struct and numerical array
+      dim(ind) = str2double(match.value);
+      dimensions.(param_list{ind}) = dim(ind);
+
+    end;
+
+    % VB11A workaround hack (for EPI only)
+    if ( ~IS__VB13A_RELEASE_VERSION ),
+      dimensions.NColMeas = 0;
+      dimensions.NAveMeas = 1;
+      dimensions.NSegMeas = 2;
+    end;
 
 
-  %------------------------------------------------------------------------%
+    %------------------------------------------------------------------------%
+    % extract FFT scalefactors (if utility file is in path)
 
-  % jump past header to beginning of binary data
-  fseek(fp, data_start, 'bof');
+    if ( DO__APPLY_FFT_SCALEFACTORS && ...
+         exist('read_meas_dat__fft_scalefactors', 'file') ),
+      fft_scale = read_meas_dat__fft_scalefactors(header);
+      disp('applying FFT scale factors.');
+    else,
+      fft_scale = ones(dimensions.NChaMeas, 1);
+      disp('ignoring FFT scale factors.');
+    end;
 
+
+    %------------------------------------------------------------------------%
+    % compute canonical coil ordering from coil element strings---the channel
+    % number assigned to each coil is determined by the order in which the
+    % channels are selected in SYNGO, and NOT by the preamp channel numbers,
+    % so to enforce a consistent ordering across scans that is independent of
+    % the operator's coil selections we can sort by the fixed preamp channel
+    % strings.
+
+    if ( DO__CANONICAL_REORDER_COIL_CHANNELS && ...
+         exist('read_meas_dat__reorder_coil_channels', 'file') ),
+      disp('reordering coil channels to canonical preamp-based ordering.');
+
+      [coil_index, coil_order] = read_meas_dat__reorder_coil_channels(header);
+
+      % to map using index:
+      %   dataval(coil_index);
+      % to map using order:
+      %   coil_order(dataind);
+
+      % don't forget to reorder FFT scalefactors!
+      fft_scale = fft_scale(coil_index);
+
+    else,
+      coil_order = 1:dimensions.NChaMeas;
+    end;
+
+    %------------------------------------------------------------------------%
+
+    % jump past header to beginning of binary data
+    fseek(fp, data_start, 'bof');
+
+  end;  % end of header parsing when present, if..else..end
 
   % save current file position, then jump to end to calculate remaining data size
   fpos = ftell(fp);
@@ -255,34 +302,32 @@ function varargout = read_meas_dat(filename, options)
   % 'Config_.evp' file contained within "meas.dat" header; allocate memory
   % for a single measurement data, and grow data matrix with each line (this
   % method is, surprisingly, faster than pre-allocation!)
-%  data                    = single(complex(zeros(dimensions.NColMeas, 1)));
+  %  data                    = single(complex(zeros(dimensions.NColMeas, 1)));
   data                    = single([]);
 
-  FLAG_data_reflect       = 0;
+  FLAG__data_reflect       = 0;
 
-  FLAG_phascor1d          = 0;  % indicating presence of any type of phascor line
+  FLAG__phascor1d          = 0;  % indicating presence of any type of phascor line
 
   data_phascor1d          = single([]);
-  FLAG_data_phascor1d     = 0;
+  FLAG__data_phascor1d     = 0;
   data_phascor2d          = single([]);
-  FLAG_data_phascor2d     = 0;
+  FLAG__data_phascor2d     = 0;
   data_fieldmap           = single([]);
-  FLAG_data_fieldmap      = 0;
+  FLAG__data_fieldmap      = 0;
   noiseadjscan            = single([]);
-  FLAG_noiseadjscan       = 0;
+  FLAG__noiseadjscan       = 0;
   patrefscan              = single([]);
-  FLAG_patrefscan         = 0;
+  FLAG__patrefscan         = 0;
   patrefscan_phascor      = single([]);
-  FLAG_patrefscan_phascor = 0;
-  FLAG_patrefandimascan   = 0;
+  FLAG__patrefscan_phascor = 0;
+  FLAG__patrefandimascan   = 0;
   phasestabscan           = single([]);
   refphasestabscan        = single([]);
-  FLAG_phasestabscan      = 0;
+  FLAG__phasestabscan      = 0;
 
-  FLAG_multiple_repetitions = 0;
 
-  FLAG_data_phascor1d_orderswap = 0;
-
+  FLAG__data_phascor1d_orderswap = 0;
 
   % convert binary mask into strings
   EvalInfoMask = read_meas__evaluation_info_mask_definition;
@@ -292,528 +337,598 @@ function varargout = read_meas_dat(filename, options)
   % channel index offset (needed only if IS__VB13_PRE_RELEASE_VERSION)
   channel_offset = NaN;
 
+  % store all channel indices in case non-contiguous (e.g., 7T host)
+  FLAG__stored_channel_indices = 0;
+  channel_indices = [];
+
+  FLAG__channel_remap = 0;
+  channel_index_map = [];
+
   ACQEND = 0;
 
   try,
-  %------------------------------------------------------------------------%
-  % loop through file, peeling off one MDH and ADC line at a time
-  while ( ~ACQEND ),
+    %------------------------------------------------------------------------%
+    % loop through file, peeling off one MDH and ADC line at a time
+    while ( ~ACQEND ),
 
-    meas_num = meas_num + 1;
+      meas_num = meas_num + 1;
 
-    if ( DO__MDH_SAVE ),
-      idx = meas_num;
-    else,
-      % overwrite mdh(1) with every measurement line
-      idx = 1;
-    end;
+      if ( DO__MDH_SAVE ),
+        idx = meas_num;
+      else,
+        % overwrite mdh(1) with every measurement line
+        idx = 1;
+      end;
 
-    mdh(idx).ulFlagsAndDMALength        = uint32(fread(fp, 1, 'uint32'));
-    mdh(idx).lMeasUID                   = int32(fread(fp, 1, 'int32'));
-    mdh(idx).ulScanCounter              = uint32(fread(fp, 1, 'uint32'));
-    if ( ~isempty(mdh(idx).ulScanCounter) ), scan_num = mdh(idx).ulScanCounter; end;
-    mdh(idx).ulTimeStamp                = uint32(fread(fp, 1, 'uint32')*2.5); % milliseconds
-    mdh(idx).ulPMUTimeStamp             = uint32(fread(fp, 1, 'uint32')*2.5); % milliseconds
-    mdh(idx).aulEvalInfoMask(1:MDH_NUMBEROFEVALINFOMASK) = uint32(fread(fp, MDH_NUMBEROFEVALINFOMASK, 'uint32'));
+      mdh(idx).ulFlagsAndDMALength        = uint32(fread(fp, 1, 'uint32'));
+      mdh(idx).lMeasUID                   = int32(fread(fp, 1, 'int32'));
+      mdh(idx).ulScanCounter              = uint32(fread(fp, 1, 'uint32'));
+      if ( ~isempty(mdh(idx).ulScanCounter) ), scan_num = mdh(idx).ulScanCounter; end;
+      mdh(idx).ulTimeStamp                = uint32(fread(fp, 1, 'uint32')*2.5); % milliseconds
+      mdh(idx).ulPMUTimeStamp             = uint32(fread(fp, 1, 'uint32')*2.5); % milliseconds
+      mdh(idx).aulEvalInfoMask(1:MDH_NUMBEROFEVALINFOMASK) = uint32(fread(fp, MDH_NUMBEROFEVALINFOMASK, 'uint32'));
 
-    % build 64-bit mask from two 32-bit integers
-    mask = uint64(double(...
-        bitshift(uint64(mdh(idx).aulEvalInfoMask(2)), 32)) ...
-                  + double(mdh(idx).aulEvalInfoMask(1)));
+      % build 64-bit mask from two 32-bit integers
+      mask = uint64(double(...
+          bitshift(uint64(mdh(idx).aulEvalInfoMask(2)), 32)) ...
+                    + double(mdh(idx).aulEvalInfoMask(1)));
 
-    mdh(idx).sEvalInfoMask = EvalInfoNames(bitget(mask, 1:length(EvalInfoNames))==1);
+      mdh(idx).sEvalInfoMask = EvalInfoNames(bitget(mask, 1:length(EvalInfoNames))==1);
 
-    mdh(idx).ushSamplesInScan           = uint16(fread(fp, 1, 'uint16'));
-    mdh(idx).ushUsedChannels            = uint16(fread(fp, 1, 'uint16'));
+      mdh(idx).ushSamplesInScan           = uint16(fread(fp, 1, 'uint16'));
+      mdh(idx).ushUsedChannels            = uint16(fread(fp, 1, 'uint16'));
 
-    if (1),
-      %  sLoopCounter
-      mdh(idx).ushLine                    = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushAcquisition             = uint16(fread(fp, 1, 'uint16'));  % note: acquisition is same as average
-      mdh(idx).ushSlice                   = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushPartition               = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushEcho                    = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushPhase                   = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushRepetition              = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushSet                     = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushSeg                     = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushIda                     = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushIdb                     = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushIdc                     = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushIdd                     = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushIde                     = uint16(fread(fp, 1, 'uint16'));
-    end;
-
-    if (1),
-      % sCutOffData
-      mdh(idx).ushPre                     = uint16(fread(fp, 1, 'uint16'));
-      mdh(idx).ushPost                    = uint16(fread(fp, 1, 'uint16'));
-    end;
-
-    mdh(idx).ushKSpaceCentreColumn      = uint16(fread(fp, 1, 'uint16'));
-    mdh(idx).ushDummy                   = uint16(fread(fp, 1, 'uint16'));
-    mdh(idx).fReadOutOffcentre          = single(fread(fp, 1, 'float32'));
-    mdh(idx).ulTimeSinceLastRF          = uint32(fread(fp, 1, 'uint32'));
-    mdh(idx).ushKSpaceCentreLineNo      = uint16(fread(fp, 1, 'uint16'));
-    mdh(idx).ushKSpaceCentrePartitionNo = uint16(fread(fp, 1, 'uint16'));
-
-    mdh(idx).aushIceProgramPara(1:MDH_NUMBEROFICEPROGRAMPARA) = uint16(fread(fp, MDH_NUMBEROFICEPROGRAMPARA, 'uint16'));
-    mdh(idx).aushFreePara(1:MDH_FREEHDRPARA)                  = uint16(fread(fp, MDH_FREEHDRPARA, 'uint16'));
-
-    if (1),
-      % sSliceData
       if (1),
-        % sVector
-        mdh(idx).flSag            = single(fread(fp, 1, 'float32'));
-        mdh(idx).flCor            = single(fread(fp, 1, 'float32'));
-        mdh(idx).flTra            = single(fread(fp, 1, 'float32'));
+        %  sLoopCounter
+        mdh(idx).ushLine                    = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushAcquisition             = uint16(fread(fp, 1, 'uint16'));  % note: acquisition is same as average
+        mdh(idx).ushSlice                   = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushPartition               = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushEcho                    = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushPhase                   = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushRepetition              = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushSet                     = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushSeg                     = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushIda                     = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushIdb                     = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushIdc                     = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushIdd                     = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushIde                     = uint16(fread(fp, 1, 'uint16'));
       end;
-      mdh(idx).aflQuaternion(1:4) = single(fread(fp, 4, 'float32'));
-    end;
 
-    mdh(idx).ushChannelId  = uint16(fread(fp, 1, 'uint16'));
-    mdh(idx).ushPTABPosNeg = uint16(fread(fp, 1, 'uint16'));
+      if (1),
+        % sCutOffData
+        mdh(idx).ushPre                     = uint16(fread(fp, 1, 'uint16'));
+        mdh(idx).ushPost                    = uint16(fread(fp, 1, 'uint16'));
+      end;
 
-    if ( IS__VB13_PRE_RELEASE_VERSION ),
+      mdh(idx).ushKSpaceCentreColumn      = uint16(fread(fp, 1, 'uint16'));
+      mdh(idx).ushDummy                   = uint16(fread(fp, 1, 'uint16'));
+      mdh(idx).fReadOutOffcentre          = single(fread(fp, 1, 'float32'));
+      mdh(idx).ulTimeSinceLastRF          = uint32(fread(fp, 1, 'uint32'));
+      mdh(idx).ushKSpaceCentreLineNo      = uint16(fread(fp, 1, 'uint16'));
+      mdh(idx).ushKSpaceCentrePartitionNo = uint16(fread(fp, 1, 'uint16'));
 
-      % prior to the full release, a "known bug" in the channel ID numbering
-      % conspired to index the channels sequentially BUT began the indexing with
-      % a seemingly *random* integer. (twitzel implemented a similar workaround in
-      % his code.)
+      mdh(idx).aushIceProgramPara(1:MDH_NUMBEROFICEPROGRAMPARA) = uint16(fread(fp, MDH_NUMBEROFICEPROGRAMPARA, 'uint16'));
+      mdh(idx).aushFreePara(1:MDH_FREEHDRPARA)                  = uint16(fread(fp, MDH_FREEHDRPARA, 'uint16'));
 
-      FIRSTSCANINSLICE = read_meas__extract_flag(mdh(idx).aulEvalInfoMask(1), 'FIRSTSCANINSLICE');
-      if ( FIRSTSCANINSLICE && (mdh(idx).ulScanCounter == 1) ),
+      if (1),
+        % sSliceData
+        if (1),
+          % sVector
+          mdh(idx).flSag            = single(fread(fp, 1, 'float32'));
+          mdh(idx).flCor            = single(fread(fp, 1, 'float32'));
+          mdh(idx).flTra            = single(fread(fp, 1, 'float32'));
+        end;
+        mdh(idx).aflQuaternion(1:4) = single(fread(fp, 4, 'float32'));
+      end;
 
-        if ( isnan(channel_offset) ),
-          channel_offset = mdh(idx).ushChannelId;
+      mdh(idx).ushChannelId  = uint16(fread(fp, 1, 'uint16'));
+      mdh(idx).ushPTABPosNeg = uint16(fread(fp, 1, 'uint16'));
+
+      if ( IS__VB13_PRE_RELEASE_VERSION ),
+
+        % prior to the full release, a "known bug" in the channel ID numbering
+        % conspired to index the channels sequentially BUT began the indexing with
+        % a seemingly *random* integer. (twitzel implemented a similar workaround in
+        % his code.)
+
+        FIRSTSCANINSLICE = read_meas__extract_flag(mdh(idx).aulEvalInfoMask(1), 'FIRSTSCANINSLICE');
+        if ( FIRSTSCANINSLICE && (mdh(idx).ulScanCounter == 1) ),
+
+          if ( isnan(channel_offset) ),
+            channel_offset = mdh(idx).ushChannelId;
+          end;
+
+          mdh(idx).ushChannelId = mdh(idx).ushChannelId - channel_offset;
+
         end;
 
-        mdh(idx).ushChannelId = mdh(idx).ushChannelId - channel_offset;
+      end;  % IF "IS__VB13_PRE_RELEASE_VERSION"
 
+      % finally, after MDH, read in the data
+      adc = single(fread(fp, double(mdh(idx).ushSamplesInScan)*2, 'float32'));
+      adc_real = adc(1:2:end);
+      adc_imag = adc(2:2:end);
+      adc_cplx = K_ICE_AMPL_SCALE_FACTOR * complex(adc_real,adc_imag);
+
+
+      if ( DO__APPLY_FFT_SCALEFACTORS ),
+        % scale whatever data comes in (QUESTION: should the noise data be scaled?)
+        adc_cplx = adc_cplx * fft_scale( pos(03) );
       end;
 
-    end;  % IF "IS__VB13_PRE_RELEASE_VERSION"
+      if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFLECT) ),
+        if ( ~FLAG__data_reflect ),
+          if ( DO__FLIP_REFLECTED_LINES ),
+            disp('REFLECT detected, reversing lines.');
+          else,
+            disp('REFLECT detected.');
+          end;
+          FLAG__data_reflect = 1;
+        end;
+        if ( DO__FLIP_REFLECTED_LINES ),
+          adc_cplx = flipud(adc_cplx);
+        end;
+      end;
 
-    % finally, after MDH, read in the data
-    adc = single(fread(fp, double(mdh(idx).ushSamplesInScan)*2, 'float32'));
-    adc_real = adc(1:2:end);
-    adc_imag = adc(2:2:end);
-    adc_cplx = K_ICE_AMPL_SCALE_FACTOR * complex(adc_real,adc_imag);
+      % for testing, abort after first repetition
+      if ( ~DO__READ_MULTIPLE_REPETITIONS & mdh(idx).ushRepetition > 0 ),
+
+        % PHASCOR2D HACK: early versions of "epi_seg_3d" collect a dummy scan
+        % for the 2D phascor after the phase correction reference lines and
+        % increments the "repetition" loop counter for the 2D phascor lines
+        if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
+                                    EvalInfoMask.MDH_PHASCOR) ),
+          continue;
+        elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
+                                        EvalInfoMask.MDH_ONLINE) ),
+          disp('aborting after first repetition...');
+          break;
+        end;
+      end;
+
+      ACQEND = read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_ACQEND);
+      if ( ACQEND ),
 
 
-    if ( DO__APPLY_FFT_SCALEFACTORS ),
-      % scale whatever data comes in (QUESTION: should the noise data be scaled?)
-      adc_cplx = adc_cplx * fft_scale( pos(03) );
-    end;
+        % the last MDH and ADC line contains a 16-sample measurement of
+        % unknown utility, so its stored in 'adc_cplx' without being
+        % overwritten, but is not returned.
+        break;
 
-    if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFLECT) ),
-      if ( ~FLAG_data_reflect ),
-        if ( DO__REVERSE_LINES ),
-          disp('REFLECT detected, reversing lines.');
+      end;  % IF "ACQEND"
+
+
+      %------------------------------------------------------------------------%
+      % store measurement lines
+
+      pos = [
+          1, ...                           % pos(01), columns
+          1 + mdh(idx).ushLine, ...        % pos(02)
+          1 + mdh(idx).ushChannelId, ...   % pos(03)
+          1 + mdh(idx).ushSet, ...         % pos(04)
+          1 + mdh(idx).ushEcho, ...        % pos(05)
+          1 + mdh(idx).ushPhase, ...       % pos(06)
+          1 + mdh(idx).ushRepetition, ...  % pos(07)
+          1 + mdh(idx).ushSeg, ...         % pos(08)
+          1 + mdh(idx).ushPartition, ...   % pos(09)
+          1 + mdh(idx).ushSlice, ...       % pos(10)
+          1 + mdh(idx).ushIda, ...         % pos(11)
+          1 + mdh(idx).ushIdb, ...         % pos(12)
+          1 + mdh(idx).ushIdc, ...         % pos(13)
+          1 + mdh(idx).ushIdd, ...         % pos(14)
+          1 + mdh(idx).ushIde, ...         % pos(15)
+          1 + mdh(idx).ushAcquisition ...  % pos(16)  % note: acquisition is same as average
+            ];
+
+
+      % (all this is to cater to the 7T host's peculiarities. sigh...)
+      if ( ~FLAG__stored_channel_indices ),
+        if ( ~ismember(pos(03), channel_indices) ),
+	  % accumulate list of channel indices
+          channel_indices(end+1) = pos(03);
+	  
+	  % record / update first and last channel numbers          
+	  channel_1 = channel_indices(1) - 1;
+          channel_N = channel_indices(end) - 1;
         else,
-          disp('REFLECT detected.');
+          % all channels have been stored
+          FLAG__stored_channel_indices = 1;
+
+	  % weirdness found
+          if ( (channel_indices(1) ~= 1) || ...
+               (channel_indices(end) ~= length(channel_indices)) ),
+            FLAG__channel_remap = 1;
+
+            % the coils should at LEAST be in order even if they are not contiguous
+            [channel_sort, channel_pos] = sort(channel_indices);
+            channel_index_map = zeros(1,max(channel_indices));
+            channel_index_map(channel_sort) = channel_pos;
+
+            % after all the coil channels have been recorded, we need to go
+            % back and resort the data that's been stored out-of-order.
+            % since we don't know which data has been seen so far, test
+            % everything.
+            if ( ~isempty(data) ), data = data(:,:,channel_sort); end;
+
+            if ( FLAG__data_phascor1d ),     data_phascor1d     = data_phascor1d(:,:,channel_sort);     end;
+            if ( FLAG__data_phascor2d ),     data_phascor2d     = data_phascor2d(:,:,channel_sort);     end;
+            if ( FLAG__data_fieldmap ),      data_fieldmap      = data_fieldmap(:,:,channel_sort);      end;
+            if ( FLAG__noiseadjscan ),       noiseadjscan       = noiseadjscan(:,:,channel_sort);       end;
+            if ( FLAG__patrefscan ),         patrefscan         = patrefscan(:,:,channel_sort);         end;
+            if ( FLAG__patrefscan_phascor ), patrefscan_phascor = patrefscan_phascor(:,:,channel_sort); end;
+            if ( FLAG__phasestabscan ),      refphasestabscan   = refphasestabscan(:,:,channel_sort);   end;
+
+          end;
         end;
-        FLAG_data_reflect = 1;
-      end;
-      if ( DO__REVERSE_LINES ),
-        adc_cplx = flipud(adc_cplx);
-      end;
-    end;
-
-    % for testing, abort after first repetition
-    if ( mdh(idx).ushRepetition > 0 ),
-      if ( ~FLAG_multiple_repetitions ),
-        FLAG_multiple_repetitions = 1;
-        disp('aborting after first repetition');
       end;
 
-      % PHASCOR2D HACK: early versions of "epi_seg_3d" collect a dummy scan
-      % for the 2D phascor after the phase correction reference lines and
-      % increments the "repetition" loop counter for the 2D phascor lines
+      % apply map
+      if ( FLAG__channel_remap ),
+        pos(03) = channel_index_map( pos(03) );
+      end;
+
+      if ( DO__CANONICAL_REORDER_COIL_CHANNELS ),
+        if ( channel_1 ~= 0 ),
+          disp('non-contiguous channels found---aborting canonical reordering.');
+          DO__CANONICAL_REORDER_COIL_CHANNELS = 0;
+        end;
+        pos(03)  = coil_order(pos(03));
+      end;
+
+
+      % correct for idiosyncratic, noncontiguous indexing schemes employed by
+      % Siemens [found in both VB11A and VB13A so far]
+
+      % Segment: all lines acquired in the negative readout direction (labeled
+      % with the MDH_REFLECT flag) are assigned to their own segment via the
+      % loopcounter to be compatible with the "OnlineTSE" phase correction
+      % functor. as a result, a multishot segmented acquisition with
+      % 'NSegMeas' legitimate segments will have 2*NSegMeas segments in the
+      % loop counter---the even segments will be normal lines and the odd
+      % segments will be reflected lines (0-based indexing). we must then
+      % collapse the even and odd lines from each shot into a single segment.
+      % [TODO: fix this hack...not all sequences use this scheme]
+
+      % first, check if this line is a PHASCOR line (in case we're at the first line)
+      if ( ~FLAG__phascor1d && read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASCOR) ),
+        FLAG__phascor1d = 1;
+      end;
+
+      % ASSUME that if any phascor lines have been collected that all lines
+      % (e.g., data and "patrefscan" lines) follow the same convention with
+      % the segment loop counter---but this may not be true!
+      if ( FLAG__phascor1d && FLAG__data_reflect ),
+        pos(08) = floor(pos(08)/2);
+      end;
+
+      % Acquisition: the last of reference scan batch [three are collected for
+      % each slice (2D) or partition (3D)] is assigned an acquisition index
+      % of 1
+      % [TODO: fix this hack]
       if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
                                   EvalInfoMask.MDH_PHASCOR) ),
+        pos(16) = 1;
+      end;
+
+
+      %%% begin logic to determine category of each ADC line
+
+      %%% CATEGORY #1: noise adjustment scan lines
+      if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_NOISEADJSCAN) ),
+
+        if ( ~FLAG__noiseadjscan ),
+          disp('NOISEADJSCAN detected.');
+          FLAG__noiseadjscan = 1;
+          noise_line = 0;
+        end;
+
+        % increment noise adjust scan line counter after all channels' data is in
+        if ( mdh(idx).ushChannelId == channel_1 ),
+          noise_line = noise_line + 1;
+        end;
+
+        % TODO: establish line counter for noise scans
+        noiseadjscan(:, noise_line, pos(03)) = adc_cplx;
         continue;
-      elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
-                                      EvalInfoMask.MDH_ONLINE) ),
-        break;
-      end;
 
+        %%% CATEGORY #2: iPAT ACS lines reference scan
+      elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PATREFSCAN) ),
 
-    end;
-
-    ACQEND = read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_ACQEND);
-    if ( ACQEND ),
-
-
-      % the last MDH and ADC line contains a 16-sample measurement of
-      % unknown utility, so its stored in 'adc_cplx' without being
-      % overwritten, but is not returned.
-      break;
-
-    end;  % IF "ACQEND"
-
-
-    %------------------------------------------------------------------------%
-    % store measurement lines
-
-    pos = [
-        1, ...                           % pos(01), columns
-        1 + mdh(idx).ushLine, ...        % pos(02)
-        1 + mdh(idx).ushChannelId, ...   % pos(03)
-        1 + mdh(idx).ushSet, ...         % pos(04)
-        1 + mdh(idx).ushEcho, ...        % pos(05)
-        1 + mdh(idx).ushPhase, ...       % pos(06)
-        1 + mdh(idx).ushRepetition, ...  % pos(07)
-        1 + mdh(idx).ushSeg, ...         % pos(08)
-        1 + mdh(idx).ushPartition, ...   % pos(09)
-        1 + mdh(idx).ushSlice, ...       % pos(10)
-        1 + mdh(idx).ushIda, ...         % pos(11)
-        1 + mdh(idx).ushIdb, ...         % pos(12)
-        1 + mdh(idx).ushIdc, ...         % pos(13)
-        1 + mdh(idx).ushIdd, ...         % pos(14)
-        1 + mdh(idx).ushIde, ...         % pos(15)
-        1 + mdh(idx).ushAcquisition ...  % pos(16)  % note: acquisition is same as average
-          ];
-
-    if ( DO__CANONICAL_REORDER_COIL_CHANNELS ),
-      pos(03)  = coil_order(pos(03));
-    end;
-
-
-    % correct for idiosyncratic, noncontiguous indexing schemes employed by
-    % Siemens [found in both VB11A and VB13A so far]
-
-    % Acquisition: the last of reference scan batch [three are collected for
-    % each slice (2D) or partition (3D)] is assigned an acquisition index
-    % of 1
-    % [TODO: fix this hack]
-    if ( (dimensions.NAveMeas == 1) && (mdh(idx).ushAcquisition > 0) ),
-      pos(16) = 1;
-    end;
-
-    % Segment: all lines acquired in the negative readout direction (labeled
-    % with the MDH_REFLECT flag) are assigned to their own segment via the
-    % loopcounter to be compatible with the "OnlineTSE" phase correction
-    % functor. as a result, a multishot segmented acquisition with
-    % 'NSegMeas' legitimate segments will have 2*NSegMeas segments in the
-    % loop counter---the even segments will be normal lines and the odd
-    % segments will be reflected lines (0-based indexing). we must then
-    % collapse the even and odd lines from each shot into a single segment.
-    % [TODO: fix this hack...not all sequences use this scheme]
-
-    % first, check if this line is a PHASCOR line (in case we're at the first line)
-    if ( ~FLAG_phascor1d && read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASCOR) ),
-      FLAG_phascor1d = 1;
-    end;
-
-    % ASSUME that if any phascor lines have been collected that all lines
-    % (e.g., data and "patrefscan" lines) follow the same convention with
-    % the segment loop counter---but this may not be true!
-    if ( FLAG_phascor1d && FLAG_data_reflect ),
-      pos(08) = floor(pos(08)/2);
-    end;
-
-
-    %%% begin logic to determine category of each ADC line
-
-    %%% CATEGORY #1: noise adjustment scan lines
-    if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_NOISEADJSCAN) ),
-
-      if ( ~FLAG_noiseadjscan ),
-        disp('NOISEADJSCAN detected.');
-        FLAG_noiseadjscan = 1;
-        noise_line = 0;
-      end;
-
-      % increment noise adjust scan line counter after all channels' data is in
-      if ( mdh(idx).ushChannelId == 0 ),
-        noise_line = noise_line + 1;
-      end;
-
-      % TODO: establish line counter for noise scans
-      noiseadjscan(:, noise_line, pos(03)) = adc_cplx;
-      continue;
-
-    %%% CATEGORY #2: iPAT ACS lines reference scan
-    elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PATREFSCAN) ),
-
-      if ( ~FLAG_patrefscan ),
-        disp('PATREFSCAN detected.');
-        FLAG_patrefscan = 1;
-      end;
-
-      %%% CATEGORY #2A: phase correction reference line for iPAT ACS lines reference scan
-      if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASCOR) ),
-
-        if ( ~FLAG_patrefscan_phascor ),
-          disp('PATREFSCAN_PHASCOR detected.');
-          FLAG_patrefscan_phascor = 1;
-          ref_line = 0;
+        if ( ~FLAG__patrefscan ),
+          disp('PATREFSCAN detected.');
+          FLAG__patrefscan = 1;
         end;
 
-        % reset reference scan line counter at the beginning of each slice
-        if ( (mdh(idx).ushChannelId == 0) && ...
-             read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_FIRSTSCANINSLICE) ),
-          ref_line = 0;
-        end;
+        %%% CATEGORY #2A: phase correction reference line for iPAT ACS lines reference scan
+        if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASCOR) ),
 
-
-        % increment reference scan line counter after all channels' data is in
-        if ( mdh(idx).ushChannelId == 0 ),
-          ref_line = ref_line + 1;
-        end;
-	
-	patrefscan_phascor(...
-            :,   ref_line, ...     % only center line and center partition collected
-            pos(03), pos(04), pos(05), pos(06), pos(07), pos(08),       1, ...
-            pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
-
-      %%% CATEGORY #2B: lines used for both iPAT ACS and data
-      elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PATREFANDIMASCAN) ),
-        % there are three PAT reconstruction modes: Integrated, Separate,
-        % and Averaging. in 'Integrated' mode, the ACS lines are acquired
-        % in-line with the data, so some serve both as data and ACS, whereas
-        % in 'Separate' mode the ACS lines are acquired separately (e.g., as
-        % in accelerated EPI). ('Averaging' mode is not supported
-        % here....yet.)
-
-        % for 'Integrated' mode, the ACS and data lines share the same
-        % loopcounter numbering scheme, so the direct approach to storing
-        % the k-space data would yield an inefficient storage where omitted
-        % lines of k-space from the acceleration are stored as zeros! for
-        % now, let's be lazy and waste some memory since this mode is
-        % probably just for single-acquisition structural (e.g., 3D-MPRAGE)
-        % images, so we don't have to be clever in storing the normal data
-        % lines.
-
-        % NOTE: in this case, the last skipped k-space lines will not be
-        % present, so the iPAT data will contain R-1 fewer lines than the
-        % corresponding non-accelerated data. we could just append those R-1
-        % lines of zeros to the end, but that would require knowing the
-        % value of R. hmmm... nah, skip it.
-
-        if ( ~FLAG_patrefandimascan ),
-          disp('PATREFANDIMASCAN detected.');
-          FLAG_patrefandimascan = 1;
-        end;
-
-        patrefscan(...
-            :, pos(02), ...
-            pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
-            pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
-
-        % hack, hack, hack
-        if ( isempty(data) ),
-          data = single(complex(zeros(size(adc_cplx))));
-        end;
-
-        % store ADC line in listed position within data volume (using 1-based indices)
-        data(...
-            :, pos(02), ...
-            pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
-            pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) ...
-            = adc_cplx;
-
-      %%% CATEGORY #2C: just an ordinary ACS line
-      else,
-        patrefscan(...
-            :, pos(02), ...
-            pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
-            pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
-
-      end;
-      continue;
-
-    %%% CATEGORY #3: phase stabilization scans
-    elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFPHASESTABSCAN) | ...
-             read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASESTABSCAN) ),
-
-      if ( ~FLAG_phasestabscan ),
-        disp('PHASESTABSCAN detected.');
-        FLAG_phasestabscan = 1;
-      end;
-
-      if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFPHASESTABSCAN) ),
-	% count up dem echos!
-        echo_num = echo_num + 1;
-
-	% HACK: since the phase stability scan is always set as echo 0 in
-        % the loopcounters, to avoid clobbering the true first echo for the
-        % reference scans here we save the phase stability as echo N+1 where
-        % N is the number of echos.
-	
-        refphasestabscan(...
-            :, pos(02), ...
-            pos(03), pos(04), echo_num, pos(06), pos(07), pos(08), pos(09), ...
-            pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) ...
-            = adc_cplx;
-      end;
-
-      if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASESTABSCAN) ),
-        phasestabscan(...
-            :, pos(02), ...
-            pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
-            pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) ...
-            = adc_cplx;
-      end;
-      continue;
-
-    %%% CATEGORY #4: data
-    else,
-
-      %%% CATEGORY #4A: phase correction reference line for data
-      if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASCOR) ),
-
-        if ( ~FLAG_data_phascor1d ),
-          disp('PHASCOR (1D) detected.');
-          FLAG_data_phascor1d = 1;
-
-          % check if first phase correction reference line is reflected
-          if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFLECT) ),
-            % "ge_functionals" reflects the first reference line, so the
-            % EVEN indexed reference lines will correspond to the ODD
-            % indexed data lines. yuck!
-            FLAG_data_phascor1d_orderswap = 1;
+          if ( ~FLAG__patrefscan_phascor ),
+            disp('PATREFSCAN_PHASCOR detected.');
+            FLAG__patrefscan_phascor = 1;
+            ref_line = 0;
           end;
 
-          ref_line = 0;
-          ref_part = 1;
-        end;
-
-        % reset reference scan line counter at the beginning of each slice
-        if ( (mdh(idx).ushChannelId == 0) && ...
-             read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_FIRSTSCANINSLICE) ),
-          ref_line = 0;
-        end;
+          % reset reference scan line counter at the beginning of each slice
+          if ( (mdh(idx).ushChannelId == channel_1) && ...
+               read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_FIRSTSCANINSLICE) ),
+            ref_line = 0;
+          end;
 
 
-        % increment reference scan line counter after all channels' data is in
-        if ( mdh(idx).ushChannelId == 0 ),
-          ref_line = ref_line + 1;
-        end;
-
-        if ( FLAG_data_phascor1d_orderswap ),
-          if ( ref_line == 2 ),
-            data_phascor1d(...
-                :, 2, ...
-                pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
-                pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = ...
-                data_phascor1d(...
-                    :, 1, ...
-                    pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
-                    pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16));
-
-            data_phascor1d(...
-                :, 1, ...
-                pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
-                pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
+          % increment reference scan line counter after all channels' data is in
+          if ( mdh(idx).ushChannelId == channel_1 ),
             ref_line = ref_line + 1;
           end;
+
+          patrefscan_phascor(...
+              :,   ref_line, ...     % only center line and center partition collected
+              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08),       1, ...
+              pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
+
+          %%% CATEGORY #2B: lines used for both iPAT ACS and data
+        elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PATREFANDIMASCAN) ),
+          % there are three PAT reconstruction modes: Integrated, Separate,
+          % and Averaging. in 'Integrated' mode, the ACS lines are acquired
+          % in-line with the data, so some serve both as data and ACS, whereas
+          % in 'Separate' mode the ACS lines are acquired separately (e.g., as
+          % in accelerated EPI). ('Averaging' mode is not supported
+          % here....yet.)
+
+          % for 'Integrated' mode, the ACS and data lines share the same
+          % loopcounter numbering scheme, so the direct approach to storing
+          % the k-space data would yield an inefficient storage where omitted
+          % lines of k-space are stored as zeros! for now, let's be lazy and
+          % waste some memory since this mode is probably just for
+          % single-acquisition structural (e.g., 3D-MPRAGE) images, so we
+          % don't have to be clever in storing the normal data lines.
+
+          % NOTE: in this case, the last skipped k-space lines will not be
+          % present, so the iPAT data will contain R-1 fewer lines than the
+          % corresponding non-accelerated data. we could just append those R-1
+          % lines of zeros to the end, but that would require knowing the
+          % value of R. hmmm... nah, skip it.
+
+          % so if a line is both ACS and an image line, store it *twice*: once
+          % as data and once as reference.
+
+          % (for 1-dimensional acceleration, R could be estimated from the
+          % data sparsity calculated at the end, but this would not work for
+          % 2-dimensional imaging!)
+
+          if ( ~FLAG__patrefandimascan ),
+            disp('PATREFANDIMASCAN detected.');
+            FLAG__patrefandimascan = 1;
+          end;
+
+          patrefscan(...
+              :, pos(02), ...
+              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
+              pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
+
+          % hack, hack, hack
+          if ( isempty(data) ),
+            data = single(complex(zeros(size(adc_cplx))));
+          end;
+
+          % store ADC line in listed position within data volume (using 1-based indices)
+          data(...
+              :, pos(02), ...
+              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
+              pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) ...
+              = adc_cplx;
+
+          %%% CATEGORY #2C: just an ordinary ACS line
+        else,
+          patrefscan(...
+              :, pos(02), ...
+              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
+              pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
+
+        end;
+        continue;
+
+        %%% CATEGORY #3: phase stabilization scans
+      elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFPHASESTABSCAN) | ...
+               read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASESTABSCAN) ),
+
+        if ( ~FLAG__phasestabscan ),
+          disp('PHASESTABSCAN detected.');
+          FLAG__phasestabscan = 1;
         end;
 
-        data_phascor1d(...
-            :, ref_line, ...     % only center line and center partition collected
-            pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
-            pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
+        if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFPHASESTABSCAN) ),
+          % count up dem echos!
+          echo_num = echo_num + 1;
 
+          % HACK: since the phase stability scan is always set as echo 0 in
+          % the loopcounters, to avoid clobbering the true first echo for the
+          % reference scans here we save the phase stability as echo N+1 where
+          % N is the number of echos.
 
-        % reference scan partition counter should NEVER be reset
-
-
-        % PE line and PE partition incrementing depends on whether
-        % acquisition is 2D or 3D. so can check whether line and partition
-        % loop counter values on first line are equal to the center
-        % line/partition of k-space.
-
-        % increment reference scan partition counter at the end of each partition
-        if ( ( (mdh(idx).ushChannelId + 1) == mdh(idx).ushUsedChannels ) && ...
-             read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_LASTSCANINSLICE) ...
-             && ( mdh(idx).ushPartition == mdh(idx).ushKSpaceCentrePartitionNo ) ...
-             && ( mdh(idx).ushKSpaceCentrePartitionNo > 0 ) ...    % since always == 0 for 2D imaging
-             ),
-          ref_part = ref_part + 1;
+          refphasestabscan(...
+              :, pos(02), ...
+              pos(03), pos(04), echo_num, pos(06), pos(07), pos(08), pos(09), ...
+              pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) ...
+              = adc_cplx;
         end;
 
-        % QUESTION: for two partitions, is the center == 0 or == 1?
-
-
-%%%/        if (  ( (mdh(idx).ushChannelId + 1) == mdh(idx).ushUsedChannels ) && ...
-%%%/              ( (mdh(idx).ushAcquisition + 1) > 1 )  ),
-%%%/
-%%%/          % for some multi-shot scans (e.g., ge_functionals), get reference
-%%%/          % lines with each shot
-%%%/          ref_ = ref_ + 1;
-%%%/        end;
-
-      %%% CATEGORY #4B: field map lines for data
-      % (PHASCOR2D HACK: currently the only signifier for 2D phascor data is
-      % the absence of the MDH_ONLINE and MDH_PHASCOR flags)
-      elseif ( ~read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_ONLINE) ),
-
-        if ( ~FLAG_data_phascor2d ),
-          disp('PHASCOR (2D) detected.');
-          FLAG_data_phascor2d = 1;
-          ref_line = 0;
-          ref_part = 1;
+        if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASESTABSCAN) ),
+          phasestabscan(...
+              :, pos(02), ...
+              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
+              pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) ...
+              = adc_cplx;
         end;
+        continue;
 
-        % TODO: when sequence code is fixed, this will be deleted!
-        % reset reference scan line counter at the beginning of each slice
-        if ( (mdh(idx).ushChannelId == 0) && ...
-             read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_FIRSTSCANINSLICE) ),
-          ref_line = 0;
-        end;
-
-        % TODO: when sequence code is fixed, this will be deleted!
-        % increment reference scan line counter after all channels' data is in
-        if ( mdh(idx).ushChannelId == 0 ),
-          ref_line = ref_line + 1;
-        end;
-
-
-        % TODO: when sequence code is fixed, ref_line will be replaced by pos(02)!
-        data_phascor2d(...
-            :, ref_line, ...     % only center line and center partition collected
-            pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
-            pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
-
-        % reference scan partition counter should NEVER be reset
-
-        % increment reference scan partition counter at the end of each partition
-        % (ASSUME here that these reference lines ONLY appear in 3D sequences)
-        if ( ( (mdh(idx).ushChannelId + 1) == mdh(idx).ushUsedChannels ) ...
-             && read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
-                                       EvalInfoMask.MDH_LASTSCANINSLICE) ),
-          ref_part = ref_part + 1;
-        end;
-
-
-      %%% CATEGORY #4B: data lines
+        %%% CATEGORY #4: data
       else,
 
-        % hack, hack, hack
-        if ( isempty(data) ),
-          data = single(complex(zeros(size(adc_cplx))));
-        end;
+        %%% CATEGORY #4A: phase correction reference line for data
+        if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASCOR) ),
 
-        % store ADC line in listed position within data volume (using 1-based indices)
-        data(...
-            :, pos(02), ...
-            pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
-            pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) ...
-            = adc_cplx;
-      end;
-    end; % IF (to determine category assignment)
-  end;  % WHILE
+          if ( ~FLAG__data_phascor1d ),
+            disp('PHASCOR (1D) detected.');
+            FLAG__data_phascor1d = 1;
+
+            % check if first phase correction reference line is reflected
+            if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFLECT) ),
+              % "ge_functionals" reflects the first reference line, so the
+              % EVEN indexed reference lines will correspond to the ODD
+              % indexed data lines. yuck!
+
+              % TODO: store the reflected and non-reflected lines in
+              % separate matrices, instead of adhering to the "odd--even"
+              % organization, since siemens appears to like to collect more
+              % of one than the other!
+
+              FLAG__data_phascor1d_orderswap = 1;
+            end;
+
+            ref_line = 0;
+            ref_part = 1;
+          end;
+
+          % reset reference scan line counter at the beginning of each slice
+          if ( mdh(idx).ushChannelId == channel_1 && read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_FIRSTSCANINSLICE) ),
+            ref_line = 0;
+          end;
+
+
+          % increment reference scan line counter after all channels' data is in
+          if ( mdh(idx).ushChannelId == channel_1 ),
+            ref_line = ref_line + 1;
+          end;
+
+          if ( FLAG__data_phascor1d_orderswap ),
+            if ( ref_line == 2 ),
+              data_phascor1d(...
+                  :, 2, ...
+                  pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
+                  pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = ...
+                  data_phascor1d(...
+                      :, 1, ...
+                      pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
+                      pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16));
+
+              data_phascor1d(...
+                  :, 1, ...
+                  pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
+                  pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
+              ref_line = ref_line + 1;
+            end;
+          end;
+
+          data_phascor1d(...
+              :, ref_line, ...     % only center line and center partition collected
+              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
+              pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
+
+
+          % reference scan partition counter should NEVER be reset
+
+
+          % PE line and PE partition incrementing depends on whether
+          % acquisition is 2D or 3D. so can check whether line and partition
+          % loop counter values on first line are equal to the center
+          % line/partition of k-space.
+
+          % increment reference scan partition counter at the end of each partition
+          if ( FLAG__stored_channel_indices && ...
+               ( mdh(idx).ushChannelId == channel_N ) && ...
+               read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_LASTSCANINSLICE) ...
+               && ( mdh(idx).ushPartition == mdh(idx).ushKSpaceCentrePartitionNo ) ...
+               && ( mdh(idx).ushKSpaceCentrePartitionNo > 0 ) ...    % since always == 0 for 2D imaging
+               ),
+            ref_part = ref_part + 1;
+          end;
+
+          % QUESTION: for two partitions, is the center == 0 or == 1?
+
+
+          %%%/        if (  ( (mdh(idx).ushChannelId + 1) == mdh(idx).ushUsedChannels ) && ...
+          %%%/              ( (mdh(idx).ushAcquisition + 1) > 1 )  ),
+          %%%/
+          %%%/          % for some multi-shot scans (e.g., ge_functionals), get reference
+          %%%/          % lines with each shot
+          %%%/          ref_ = ref_ + 1;
+          %%%/        end;
+
+          %%% CATEGORY #4B: field map lines for data
+          % (PHASCOR2D HACK: currently the only signifier for 2D phascor data is
+          % the absence of the MDH_ONLINE and MDH_PHASCOR flags)
+        elseif ( ~read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_ONLINE) ),
+
+          if ( ~FLAG__data_phascor2d ),
+            disp('PHASCOR (2D) detected.');
+            FLAG__data_phascor2d = 1;
+            ref_line = 0;
+            ref_part = 1;
+          end;
+
+          % TODO: when sequence code is fixed, this will be deleted!
+          % reset reference scan line counter at the beginning of each slice
+          if ( (mdh(idx).ushChannelId == channel_1) && ...
+               read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_FIRSTSCANINSLICE) ),
+            ref_line = 0;
+          end;
+
+          % TODO: when sequence code is fixed, this will be deleted!
+          % increment reference scan line counter after all channels' data is in
+          if ( mdh(idx).ushChannelId == channel_1 ),
+            ref_line = ref_line + 1;
+          end;
+
+
+          % TODO: when sequence code is fixed, ref_line will be replaced by pos(02)!
+          data_phascor2d(...
+              :, ref_line, ...     % only center line and center partition collected
+              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
+              pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
+
+          % reference scan partition counter should NEVER be reset
+
+          % increment reference scan partition counter at the end of each partition
+          % (ASSUME here that these reference lines ONLY appear in 3D sequences)
+          if ( FLAG__stored_channel_indices && ...
+               ( mdh(idx).ushChannelId == channel_N ) ...
+               && read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
+                                         EvalInfoMask.MDH_LASTSCANINSLICE) ),
+            ref_part = ref_part + 1;
+          end;
+
+
+          %%% CATEGORY #4B: data lines
+        else,
+
+          % hack, hack, hack
+          if ( isempty(data) ),
+            data = single(complex(zeros(size(adc_cplx))));
+          end;
+
+          % store ADC line in listed position within data volume (using 1-based indices)
+          data(...
+              :, pos(02), ...
+              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
+              pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) ...
+              = adc_cplx;
+        end;
+      end; % IF (to determine category assignment)
+    end;  % WHILE
 
   catch,
 
     caught = lasterror;
     status = dbstatus;
 
+    disp(sprintf('<!> [%s]:  trouble at line %d...', mfilename, caught.stack.line));
+
     if ( feof(fp) ),
-      caught.message = sprintf('end of file encountered at scan number %d before ACQEND!  (debug: line %d)', ...
-                               scan_num, caught.stack.line);
+
+      caught.message = sprintf('EOF encountered, scan number %d before ACQEND!', ...
+                               scan_num);
       error(caught);
     end;
 
@@ -838,7 +953,7 @@ function varargout = read_meas_dat(filename, options)
 
   if ( nnz(data) == 0 ),
     if ( nargout > 0 ),
-      error('no data found!!!');
+      warning('no data found!!!');
     else,
       disp('no data found!!!');
       return;
@@ -853,7 +968,7 @@ function varargout = read_meas_dat(filename, options)
   redundancy = 1 / density;
 
   if ( redundancy > 1 && density < 0.99 ),
-    disp(sprintf('data sparsity detected---potential redundancy factor = [[ %5.1fX ]]', ...
+    disp(sprintf('data sparsity detected---potential redundancy factor = [[ %5.1f X ]]', ...
                  redundancy));
   end;
 
@@ -861,23 +976,23 @@ function varargout = read_meas_dat(filename, options)
   % if auxiliary data is not present, set arrays to empty arrays in case
   % user requested arrays as output arguments
 
-  if ( ~FLAG_data_phascor1d ),
+  if ( ~FLAG__data_phascor1d ),
     data_phascor1d            = [];
   end;
 
-  if ( ~FLAG_data_phascor2d ),
+  if ( ~FLAG__data_phascor2d ),
     data_phascor2d           = [];
   end;
 
-  if ( ~FLAG_noiseadjscan ),
+  if ( ~FLAG__noiseadjscan ),
     noiseadjscan            = [];
   end;
 
-  if ( ~FLAG_patrefscan ),
+  if ( ~FLAG__patrefscan ),
     patrefscan              = [];
   end;
 
-  if ( ~FLAG_patrefscan_phascor ),
+  if ( ~FLAG__patrefscan_phascor ),
     patrefscan_phascor      = [];
   end;
 
@@ -896,9 +1011,9 @@ function varargout = read_meas_dat(filename, options)
 
 
 %**************************************************************************%
-function bit = read_meas__extract_bit(mdh_eval_info, FLAG_EvalInfoMask)
+function bit = read_meas__extract_bit(mdh_eval_info, FLAG__EvalInfoMask)
 
-  bit = bitget(mdh_eval_info, FLAG_EvalInfoMask+1);
+  bit = bitget(mdh_eval_info, FLAG__EvalInfoMask+1);
 
   return;
 
@@ -925,45 +1040,45 @@ function mdh_struct = read_meas__mdh_struct(varargin)
 % snarfed from <n4/pkg/MrServers/MrMeasSrv/SeqIF/MDH/mdh.h>
 
   mdh_struct = struct(...
-           'ulFlagsAndDMALength', [], ...
-                      'lMeasUID', [], ...
-                 'ulScanCounter', [], ...
-                   'ulTimeStamp', [], ...
-                'ulPMUTimeStamp', [], ...
-               'aulEvalInfoMask', [], ...
-                 'sEvalInfoMask', [], ...
-              'ushSamplesInScan', [], ...
-               'ushUsedChannels', [], ...
-                       'ushLine', [], ...
-                'ushAcquisition', [], ...   % note: acquisition is same as average
-                      'ushSlice', [], ...
-                  'ushPartition', [], ...
-                       'ushEcho', [], ...
-                      'ushPhase', [], ...
-                 'ushRepetition', [], ...
-                        'ushSet', [], ...
-                        'ushSeg', [], ...
-                        'ushIda', [], ...
-                        'ushIdb', [], ...
-                        'ushIdc', [], ...
-                        'ushIdd', [], ...
-                        'ushIde', [], ...
-                        'ushPre', [], ...
-                       'ushPost', [], ...
-         'ushKSpaceCentreColumn', [], ...
-                      'ushDummy', [], ...
-             'fReadOutOffcentre', [], ...
-             'ulTimeSinceLastRF', [], ...
-         'ushKSpaceCentreLineNo', [], ...
-    'ushKSpaceCentrePartitionNo', [], ...
-            'aushIceProgramPara', [], ...
-                  'aushFreePara', [], ...
-                         'flSag', [], ...
-                         'flCor', [], ...
-                         'flTra', [], ...
-                 'aflQuaternion', [], ...
-                  'ushChannelId', [], ...
-                 'ushPTABPosNeg', []);
+      'ulFlagsAndDMALength', [], ...
+      'lMeasUID', [], ...
+      'ulScanCounter', [], ...
+      'ulTimeStamp', [], ...
+      'ulPMUTimeStamp', [], ...
+      'aulEvalInfoMask', [], ...
+      'sEvalInfoMask', [], ...
+      'ushSamplesInScan', [], ...
+      'ushUsedChannels', [], ...
+      'ushLine', [], ...
+      'ushAcquisition', [], ...   % note: acquisition is same as average
+      'ushSlice', [], ...
+      'ushPartition', [], ...
+      'ushEcho', [], ...
+      'ushPhase', [], ...
+      'ushRepetition', [], ...
+      'ushSet', [], ...
+      'ushSeg', [], ...
+      'ushIda', [], ...
+      'ushIdb', [], ...
+      'ushIdc', [], ...
+      'ushIdd', [], ...
+      'ushIde', [], ...
+      'ushPre', [], ...
+      'ushPost', [], ...
+      'ushKSpaceCentreColumn', [], ...
+      'ushDummy', [], ...
+      'fReadOutOffcentre', [], ...
+      'ulTimeSinceLastRF', [], ...
+      'ushKSpaceCentreLineNo', [], ...
+      'ushKSpaceCentrePartitionNo', [], ...
+      'aushIceProgramPara', [], ...
+      'aushFreePara', [], ...
+      'flSag', [], ...
+      'flCor', [], ...
+      'flTra', [], ...
+      'aflQuaternion', [], ...
+      'ushChannelId', [], ...
+      'ushPTABPosNeg', []);
 
   return;
 
@@ -1034,30 +1149,30 @@ function EvalInfoMask = read_meas__evaluation_info_mask_definition(varargin)
   return;
 
 
-% VB13A ICE manual
+  % VB13A ICE manual
 
-%% There are 16 ICE Dimensions listed in the table below:
-%% Dimension   Description
-%% COL         Column related to pixel property ICE_PP_FIX
-%% LIN         Line related to pixel property ICE_PP_FIX
-%% CHA         Element related to pixel property ICE_PP_FIX
-%% SET         Set related to pixel property ICE_PP_FIX
-%% ECO         Contrast (echo) related to pixel property ICE_PP_VAR
-%% PHS         Phase related to pixel property ICE_PP_FIX
-%% REP         Measurement Repeat (Repetition) related to pixel property ICE_PP_VAR
-%% SEG         Segment related to pixel property ICE_PP_FIX
-%% PAR         Partition related to pixel property ICE_PP_VAR
-%% SLC         Slice related to pixel property ICE_PP_VAR
-%% IDA         1st free dispose of an ICE Dimension related to pixel property ICE_PP_VAR
-%% IDB         2nd free dispose of an ICE Dimension related to pixel property ICE_PP_VAR
-%% IDC         3rd free dispose of an ICE Dimension related to pixel property ICE_PP_VAR
-%% IDD         4th free dispose of an ICE Dimension related to pixel property ICE_PP_FIX
-%% IDE         5th free dispose of an ICE Dimension related to pixel property ICE_PP_FIX
-%% AVE         Average related to pixel property ICE_PP_VAR
-%%
-%% Table 14: 16 ICE Dimensions in the order of generation in the IceProF.
-%% There are 11 IceDimension with an intended use (e.g. SLC for slices)
-%% and further 5 IceDimensions which can be used freely.
+  %% There are 16 ICE Dimensions listed in the table below:
+  %% Dimension   Description
+  %% COL         Column related to pixel property ICE_PP_FIX
+  %% LIN         Line related to pixel property ICE_PP_FIX
+  %% CHA         Element related to pixel property ICE_PP_FIX
+  %% SET         Set related to pixel property ICE_PP_FIX
+  %% ECO         Contrast (echo) related to pixel property ICE_PP_VAR
+  %% PHS         Phase related to pixel property ICE_PP_FIX
+  %% REP         Measurement Repeat (Repetition) related to pixel property ICE_PP_VAR
+  %% SEG         Segment related to pixel property ICE_PP_FIX
+  %% PAR         Partition related to pixel property ICE_PP_VAR
+  %% SLC         Slice related to pixel property ICE_PP_VAR
+  %% IDA         1st free dispose of an ICE Dimension related to pixel property ICE_PP_VAR
+  %% IDB         2nd free dispose of an ICE Dimension related to pixel property ICE_PP_VAR
+  %% IDC         3rd free dispose of an ICE Dimension related to pixel property ICE_PP_VAR
+  %% IDD         4th free dispose of an ICE Dimension related to pixel property ICE_PP_FIX
+  %% IDE         5th free dispose of an ICE Dimension related to pixel property ICE_PP_FIX
+  %% AVE         Average related to pixel property ICE_PP_VAR
+  %%
+  %% Table 14: 16 ICE Dimensions in the order of generation in the IceProF.
+  %% There are 11 IceDimension with an intended use (e.g. SLC for slices)
+  %% and further 5 IceDimensions which can be used freely.
 
 
   %************************************************************************%
