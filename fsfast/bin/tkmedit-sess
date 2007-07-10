@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/10 17:21:15 $
-#    $Revision: 1.22 $
+#    $Date: 2007/07/10 17:21:51 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.22 2007/07/10 17:21:15 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.23 2007/07/10 17:21:51 greve Exp $';
 set inputargs = ($argv);
 
 set PWDCMD = pwd
@@ -257,7 +257,7 @@ if(! $nosig) then
     endif
     set maplist = ($maplist $mapfile)
   end
-  set mapconcatfile = $mapsess/$mapfsd/$mapanalysis$anapend/tkmconcat.mgh
+  set mapconcatfile = $mapsess/$mapfsd/$mapanalysis$anapend/tkmconcat.nii
   set cmd = (mri_concat $maplist --o $mapconcatfile);
   echo $cmd
   $cmd
@@ -334,18 +334,8 @@ if(! $nohdr ) then
   set tmp = `grep Nh $hdrdat`;
   @ Nh = $tmp[2];
   if($Nh != 1 && ! $nohdr) then
-    if($ext != nii) then
-      set hdroption  = (-timecourse $hdrdir/h.$ext )
-      set hdrtmpdir = ()
-    else
-      # This is a hack because tkmedit has probs on x64 with nifti
-      if($#tmpdir == 0) set hdrtmpdir = $hdrdir/hdrtmpdir
-      if($#tmpdir != 0) set hdrtmpdir = $tmpdir/hdrtmpdir.$$
-      mkdir -p $hdrtmpdir
-      mri_convert $hdrdir/h.$ext $hdrtmpdir/h.bhdr
-      cp $hdrdir/h.dat $hdrtmpdir
-      set hdroption  = (-timecourse $hdrtmpdir/h.bhdr)
-    endif
+    set hdroption  = (-timecourse $hdrdir/h.$ext )
+    set hdrtmpdir = ()
     set hdroption  = ($hdroption -timecourse-reg $hdrregfile)
     set offsetoption = (-timecourse-offset $hdrdir/h-offset.$ext)
   endif
