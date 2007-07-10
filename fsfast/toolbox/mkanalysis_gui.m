@@ -55,7 +55,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.10 2007/06/24 21:14:06 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.11 2007/07/10 17:18:54 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -849,6 +849,13 @@ flac.ana.ncycles = 4;
 flac.ana.con = [];
 flac.ana.nregressors = 1;
 
+flac.ana.ConditionNames = '';
+for n = 1:flac.ana.nconditions
+  tmp = sprintf('Condition%02d',n);
+  flac.ana.ConditionNames = strvcat(flac.ana.ConditionNames,tmp);
+end
+
+
 return;
 
 
@@ -913,6 +920,10 @@ if(~cont)
 end
 handles.flac.ana.con = [];
 Nc = round(get(hObject,'Value'));
+if(Nc > handles.flac.ana.nconditions)
+  tmp = sprintf('Condition%02d',Nc);
+  handles.flac.ana.ConditionNames = strvcat(handles.flac.ana.ConditionNames,tmp);
+end
 handles.flac.ana.nconditions = Nc;
 handles = setstate(handles);
 guidata(hObject, handles);
