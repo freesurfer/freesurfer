@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/10 22:03:14 $
- *    $Revision: 1.52 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/11 04:15:56 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.52 2007/07/10 22:03:14 greve Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.53 2007/07/11 04:15:56 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -118,7 +118,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(
     argc, argv,
-    "$Id: mris_anatomical_stats.c,v 1.52 2007/07/10 22:03:14 greve Exp $",
+    "$Id: mris_anatomical_stats.c,v 1.53 2007/07/11 04:15:56 nicks Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -625,8 +625,8 @@ main(int argc, char *argv[])
                 thicknesses[i], sqrt(thickness_vars[i])) ;
         fprintf(fp, "  %8.3f", mean_abs_mean_curvature) ;
         fprintf(fp, "  %8.3f", mean_abs_gaussian_curvature) ;
-        fprintf(fp, "  %7.3f", folding_index);
-        fprintf(fp, "  %6.3f",intrinsic_curvature_index);
+        fprintf(fp, "  %7.0f", folding_index); // deliberate precision of .0f
+        fprintf(fp, "  %6.1f",intrinsic_curvature_index); // precision of .1f
         fprintf(fp, "\n");
         fclose(fp);
       }
