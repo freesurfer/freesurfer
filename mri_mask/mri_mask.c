@@ -1,15 +1,22 @@
 /**
  * @file  mri_mask.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief applies a mask volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Usage: mri_mask [options] <in vol> <mask vol> <out vol>
+ * This program applies a mask volume (typically skull stripped).
+ * Options:
+ *    -xform %s    apply LTA transform to align mask to input volume
+ *    -invert      reversely apply -xform
+ *    -lta_src %s  source volume for -xform
+ *    -lta_dst %s  target volume for -xform
+ *    -T #         threshold mask volume at #
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:07 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/07/11 04:00:21 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +50,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.9 2006/12/29 02:09:07 nicks Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.10 2007/07/11 04:00:21 nicks Exp $";
 
 void usage(int exit_val);
 
@@ -60,8 +67,8 @@ MRI          *lta_dst = 0;
 
 static int invert = 0 ;
 static char *xform_fname = NULL;
-
 static float threshold = -1e10;
+static int keep_mask_edits = 0;
 
 int main(int argc, char *argv[]) {
   char **av;
@@ -77,7 +84,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.9 2006/12/29 02:09:07 nicks Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.10 2007/07/11 04:00:21 nicks Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -100,7 +107,6 @@ int main(int argc, char *argv[]) {
     printf("Incorrect number of arguments, argc = %d\n", argc);
     usage(1);
   }
-
 
   mri_src = MRIread(argv[1]) ;
   if (!mri_src)
@@ -139,7 +145,6 @@ int main(int argc, char *argv[]) {
                   "ERROR: you must give options '-lta_src' "
                   "and '-lta_dst' to specify the src and dst volume infos\n");
         }
-
 
         LTAmodifySrcDstGeom(lta, lta_src, lta_dst);
         // add src and dst information
@@ -252,8 +257,16 @@ int main(int argc, char *argv[]) {
   if (!mri_dst)
     ErrorExit(Gerror, "%s: stripping failed", Progname) ;
 
-  printf("writing masked volume to %s...\n", argv[3]) ;
+  if (keep_mask_edits)
+  {
+    mri_dst = MRImask(mri_dst, mri_mask, NULL, 1, 1) ;
+    if (!mri_dst)
+      ErrorExit(Gerror, "%s: stripping failed on keep_mask_edits", Progname) ;
+  }
+
+  printf("Writing masked volume to %s...", argv[3]) ;
   MRIwrite(mri_dst, argv[3]);
+  printf("done.\n") ;
 
   MRIfree(&mri_src);
   MRIfree(&mri_mask);
@@ -290,6 +303,8 @@ void usage(int exit_val) {
   fprintf(fout,
           "   -T #         threshold mask volume at # "
           "(i.e., all values <= T is considered as zero) \n");
+  fprintf(fout,
+          "   -keep_mask_edits   transfer mask edits to out vol \n");
 
   fprintf(fout, "\n");
 
@@ -349,6 +364,9 @@ get_option(int argc, char *argv[]) {
       ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
     }
     nargs = 1;
+  } else if (!stricmp(option, "keep_mask_edits")) {
+    keep_mask_edits = 1;
+    fprintf(stderr, "Transferring mask edits ('1' voxels) to dst vol\n");
   } else {
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
     usage(1) ;
