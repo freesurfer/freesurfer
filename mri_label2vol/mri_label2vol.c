@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/16 22:17:18 $
- *    $Revision: 1.23 $
+ *    $Date: 2007/07/11 03:29:31 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.23 2007/03/16 22:17:18 greve Exp $
+  $Id: mri_label2vol.c,v 1.24 2007/07/11 03:29:31 greve Exp $
 */
 
 
@@ -84,7 +84,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.23 2007/03/16 22:17:18 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.24 2007/07/11 03:29:31 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -109,6 +109,9 @@ char *SurfId  = "white";
 MRI_SURFACE *Surf=NULL;
 MRI *OutVol=NULL, *TempVol=NULL, *HitVol=NULL;
 MRI *ASeg=NULL;
+MRI *LabelStatVol=NULL;
+char *LabelStatVolFSpec=NULL;
+int DoLabelStatVol=0;
 
 int debug;
 
@@ -142,11 +145,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.23 2007/03/16 22:17:18 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.24 2007/07/11 03:29:31 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.23 2007/03/16 22:17:18 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.24 2007/07/11 03:29:31 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -272,6 +275,17 @@ int main(int argc, char **argv) {
   MRIcopyHeader(TempVol,HitVol);
   HitVol->nframes = nlabels;
 
+  if(DoLabelStatVol){
+    LabelStatVol = MRIallocSequence(TempVol->width, TempVol->height,
+				    TempVol->depth, MRI_FLOAT, 1);
+    if(LabelStatVol == NULL) {
+      printf("ERROR: could not alloc stat volume\n");
+      exit(1);
+    }
+    MRIcopyHeader(TempVol,LabelStatVol);
+    LabelStatVol->nframes = 1;
+  }
+
   // Go through each label
   printf("nlabels = %d\n",nlabels);
   for (nthlabel = 0; nthlabel < nlabels; nthlabel++) {
@@ -344,12 +358,16 @@ int main(int argc, char **argv) {
         if (debug) printf("   %g %g %g   %d %d %d   %d\n",x,y,z,c,r,s,oob);
         if (oob) continue; // Out of the volume
         MRISseq_vox(HitVol,c,r,s,nthlabel) ++;
+	if(DoLabelStatVol) 
+	  MRIFseq_vox(LabelStatVol,c,r,s,0) = srclabel->lv[nthpoint].stat;
       }
     } // end loop over label points
 
     LabelFree(&srclabel) ;
   } // End loop over labels
   printf("\n");
+
+  if(DoLabelStatVol) MRIwrite(LabelStatVol,LabelStatVolFSpec);
 
   if (HitVolId != NULL) MRIwrite(HitVol,HitVolId);
 
@@ -385,8 +403,9 @@ int main(int argc, char **argv) {
           LabelCode = ASegLabelList[nhitsmax_label];
         else if (AnnotFile != NULL)
           LabelCode = nhitsmax_label;//dont +1, keeps consist with ctab
-        else
+        else{
           LabelCode = nhitsmax_label + 1;
+	}
         MRIIseq_vox(OutVol,c,r,s,0) = LabelCode;
 
       }
@@ -433,6 +452,12 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       LabelList[nlabels] = pargv[0];
       nlabels++;
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--label-stat")) {
+      if (nargc < 1) argnerr(option,1);
+      DoLabelStatVol = 1;
+      LabelStatVolFSpec = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--annot")) {
       if (nargc < 1) argnerr(option,1);
@@ -682,6 +707,12 @@ static void print_help(void) {
     "The 'native' vox2ras is what is stored with the volume (usually scanner)\n"
     "This may be needed depending upon how the label was created (eg, with scuba).\n"
     "\n"
+    "--label-stat labelstatvol\n"
+    "\n"
+    "Create a volume in which the value at a voxel is the label stat for that voxel.\n"
+    "Note: uses the value from last label point hit. Not recommended for multiple\n"
+    "labels.\n"
+    "\n"
     "RESOLVING MULTI-LABEL AMBIGUITIES\n"
     "\n"
     "When there are multiple labels, it is possible that more than one\n"
@@ -845,6 +876,11 @@ static void check_options(void) {
   if(hemi != NULL && !DoProj && AnnotFile==NULL)
     printf("INFO: hemi not needed, igorning.\n");
 
+  if(DoLabelStatVol && nlabels == 0){
+    printf("ERROR: %s: must specify a --label with --label-stat\n",Progname);
+    exit(1);
+  }
+
   return;
 }
 /* --------------------------------------------- */
@@ -869,6 +905,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"Subject:  %s\n",subject);
   fprintf(fp,"Hemi:     %s\n",hemi);
   fprintf(fp,"UseNewASeg2Vol:  %d\n",UseNewASeg2Vol);
+  fprintf(fp,"DoLabelStatVol  %d\n",DoLabelStatVol);
 
   return;
 }
