@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/03 19:25:49 $
-#    $Revision: 1.110 $
+#    $Date: 2007/07/11 04:06:17 $
+#    $Revision: 1.111 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.110 2007/07/03 19:25:49 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.111 2007/07/11 04:06:17 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -844,7 +844,7 @@ skullstrip:
     # longitudinal processing stream:
     set BM  = brainmask.mgz
     set BMA = brainmask.auto.mgz
-    set cmd = (mri_mask \
+    set cmd = (mri_mask -keep_mask_edits \
       -xform $tp1dir/mri/transforms/$regfile \
       T1.mgz \
       $tp1dir/mri/$BM $BMA)
