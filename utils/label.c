@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/05/16 16:06:58 $
- *    $Revision: 1.70 $
+ *    $Author: greve $
+ *    $Date: 2007/07/11 05:37:14 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1095,19 +1095,17 @@ LabelRemoveDuplicates(LABEL *area)
   int    n1, n2, deleted = 0 ;
   LV     *lv1, *lv2 ;
 
-  for (n1 = 0 ; n1 < area->n_points ; n1++)
-  {
+  // loop thru each label point
+  for (n1 = 0 ; n1 < area->n_points ; n1++)  {
     lv1 = &area->lv[n1] ;
-    if (lv1->deleted)
-      continue ;
-    for (n2 = n1+1 ; n2 < area->n_points ; n2++)
-    {
+    if(lv1->deleted) continue ;
+    // loop thru the remaining looking for duplicates
+    for (n2 = n1+1 ; n2 < area->n_points ; n2++)    {
       lv2 = &area->lv[n2] ;
-      if (lv1->vno >= 0 && lv2->vno >= 0 && lv1->vno == lv2->vno)
-      {
+      if(lv1->vno >= 0 && lv2->vno >= 0 && lv1->vno == lv2->vno) {
         deleted++ ;
         lv2->deleted = 1 ;
-        lv1->stat++ ;
+        //lv1->stat++ ; // DNG: dont know why this was here
       }
     }
   }
