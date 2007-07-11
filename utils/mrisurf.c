@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/11 02:26:42 $
- *    $Revision: 1.538 $
+ *    $Author: greve $
+ *    $Date: 2007/07/11 23:44:08 $
+ *    $Revision: 1.539 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -613,7 +613,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.538 2007/07/11 02:26:42 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.539 2007/07/11 23:44:08 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -58015,11 +58015,13 @@ int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
   vcur  = &SphSurf->vertices[CurVtxNo] ;
 
   // Return if this vertex has been hit
-  if ((int)vcur->val2bak == TargVtxNo) return(0);
+  if( (int)vcur->val2bak == TargVtxNo ) return(0);
+
+  // Return if this vertex is ripped
+  if(vcur->ripflag) return(0);
 
   // Keep track of the number of recursive calls
-  if (CurVtxNo == TargVtxNo)
-  {
+  if (CurVtxNo == TargVtxNo){
     *nXNbrs = 0;
     ncalls = 0;
   }
@@ -58031,29 +58033,27 @@ int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
   // Compute the dot product between the two
   DotProd = (vtarg->x*vcur->x) + (vtarg->y*vcur->y) + (vtarg->z*vcur->z);
   DotProd = fabs(DotProd);
-
   //printf("c %d %d %d %g %d\n",ncalls,TargVtxNo,CurVtxNo,DotProd,*nXNbrs);
 
   // Compare to threshold
-  if (DotProd <= DotProdThresh) return(0);
+  if(DotProd <= DotProdThresh) return(0);
 
   // Check whether another neigbor can be added
-  if (*nXNbrs >= nXNbrsMax-1) return(1);
+  if(*nXNbrs >= nXNbrsMax-1) return(1);
 
   // OK, add this vertex as an extended neighbor
-  XNbrVtxNo[*nXNbrs] = CurVtxNo;
+  XNbrVtxNo[*nXNbrs]    = CurVtxNo;
   XNbrDotProd[*nXNbrs]  = DotProd;
   (*nXNbrs)++;
   vcur->val2bak = TargVtxNo; // record a hit
 
   // Now, loop over the current nearest neighbors
   nNNbrs = SphSurf->vertices[CurVtxNo].vnum;
-  for (n = 0; n < nNNbrs; n++)
-  {
+  for (n = 0; n < nNNbrs; n++) {
     NbrVtxNo = SphSurf->vertices[CurVtxNo].v[n];
     err = MRISextendedNeighbors(SphSurf, TargVtxNo, NbrVtxNo, DotProdThresh,
                                 XNbrVtxNo, XNbrDotProd, nXNbrs, nXNbrsMax);
-    if (err) return(err);
+    if(err) return(err);
   }
 
   return(0);
