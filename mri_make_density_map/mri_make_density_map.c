@@ -1,15 +1,17 @@
 /**
  * @file  mri_make_density_map.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief make a tissue density map from a segmentation
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * apply a transform (optionally jacobian correcting it) to
+ * a segmentation with partial volume estimates to build a
+ * density map.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:07 $
- *    $Revision: 1.4 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/11 02:01:18 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,7 +47,7 @@
 
 #define UNIT_VOLUME 128
 
-static char vcid[] = "$Id: mri_make_density_map.c,v 1.4 2006/12/29 02:09:07 nicks Exp $";
+static char vcid[] = "$Id: mri_make_density_map.c,v 1.5 2007/07/11 02:01:18 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -66,14 +68,15 @@ static float sigma = 0 ;
 
 int
 main(int argc, char *argv[]) {
-  char        **av, *seg_fname, *intensity_fname, *out_fname, *gcam_fname ;
+  TRANSFORM   *transform ;
+  char        **av, *seg_fname, *intensity_fname, *out_fname, *xform_fname ;
   int         ac, nargs, i, label ;
   MRI         *mri_seg, *mri_intensity, *mri_out = NULL, *mri_kernel, *mri_smoothed ;
   GCA_MORPH   *gcam ;
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_density_map.c,v 1.4 2006/12/29 02:09:07 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_density_map.c,v 1.5 2007/07/11 02:01:18 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -95,7 +98,7 @@ main(int argc, char *argv[]) {
 
   seg_fname = argv[1] ;
   intensity_fname = argv[2] ;
-  gcam_fname = argv[3] ;
+  xform_fname = argv[3] ;
   out_fname = argv[argc-1] ;
 
   printf("reading segmentation volume from %s\n", seg_fname) ;
@@ -110,14 +113,37 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read intensity volume %s", Progname,
               intensity_fname) ;
 
-  gcam = GCAMread(gcam_fname) ;
-  if (gcam == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not read gcam from %s", Progname, gcam_fname) ;
+  transform = TransformRead(xform_fname) ;
+  if (transform == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname, xform_fname) ;
 
+  if (transform->type == MORPH_3D_TYPE)
+    gcam = (GCA_MORPH *)transform->xform ;
+  else
+    gcam = NULL ;
   for (i = 4 ; i < argc-1 ; i++) {
     label = atoi(argv[i]) ;
     printf("extracting label %d (%s)\n", label, cma_label_to_name(label)) ;
-    mri_out = GCAMextract_density_map(mri_seg, mri_intensity, gcam, label, mri_out) ;
+    if (gcam)
+      mri_out = GCAMextract_density_map(mri_seg, mri_intensity, gcam, label, mri_out) ;
+    else
+    {
+      MRI *mri_tmp, *mri_cor ;
+      MATRIX *m_L ;
+      LTA    *lta ;
+      
+      lta = ((LTA *)(transform->xform));
+      if (lta->type == LINEAR_VOX_TO_VOX)
+        LTAvoxelToRasXform(lta, NULL, NULL) ;
+      mri_cor = MRIalloc(mri_seg->width, mri_seg->height, mri_seg->depth,
+                         MRI_FLOAT) ;
+      LTArasToVoxelXform(lta, mri_seg, mri_cor) ;
+      m_L = lta->xforms[0].m_L ;
+      mri_tmp = MRImakeDensityMap(mri_seg, mri_intensity, label, NULL) ;
+      mri_out = MRIclone(mri_cor, NULL) ;
+      MRIlinearTransformInterp(mri_tmp, mri_out, m_L, SAMPLE_TRILINEAR);
+      MRIfree(&mri_tmp) ; MRIfree(&mri_cor) ;
+    }
     /*    extract_labeled_image(mri_in, transform, label, mri_out) ;*/
   }
   if (!FZERO(sigma)) {
