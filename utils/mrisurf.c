@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/06/28 00:30:57 $
- *    $Revision: 1.537 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/11 02:26:42 $
+ *    $Revision: 1.538 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -613,7 +613,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.537 2007/06/28 00:30:57 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.538 2007/07/11 02:26:42 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -2691,19 +2691,7 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
         if (vnb->ripflag)
           continue ;
 
-        switch (v->nsize)
-        {
-        case 1:
-          nb_vnum = vnb->vnum ;
-          break ;
-        case 2:
-          nb_vnum = vnb->v2num ;
-          break ;
-        default:
-        case 3:
-          nb_vnum = vnb->v3num ;
-          break ;
-        }
+        nb_vnum = vnb->vnum ;
 
         for (j = 0 ; j < nb_vnum ; j++)
         {
