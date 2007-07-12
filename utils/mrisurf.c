@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/11 23:44:08 $
- *    $Revision: 1.539 $
+ *    $Date: 2007/07/12 00:42:11 $
+ *    $Revision: 1.540 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -613,7 +613,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.539 2007/07/11 23:44:08 greve Exp $");
+  return("$Id: mrisurf.c,v 1.540 2007/07/12 00:42:11 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -57864,7 +57864,7 @@ MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
     // val2bak to 0
     printf("Starting Search\n");
     err = MRISextendedNeighbors(Surf,0,0,DotProdThresh, XNbrVtxNo,
-                                XNbrDotProd, &nXNbrs, Surf->nvertices);
+                                XNbrDotProd, &nXNbrs, Surf->nvertices, 1);
     printf("Found %d (err=%d)\n",nXNbrs,err);
     for (n = 0; n < nXNbrs; n++)
     {
@@ -57878,7 +57878,7 @@ MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
 
     nXNbrs = 0;
     err = MRISextendedNeighbors(Surf,vtxno1,vtxno1,DotProdThresh, XNbrVtxNo,
-                                XNbrDotProd, &nXNbrs, Surf->nvertices);
+                                XNbrDotProd, &nXNbrs, Surf->nvertices,1);
     MRIFseq_vox(nXNbrsMRI,vtxno1,0,0,0) = nXNbrs;
     if (vtxno1%10000==0 && Gdiag_no > 0)
     {
@@ -58004,7 +58004,7 @@ MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
 int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
                           double DotProdThresh, int *XNbrVtxNo,
                           double *XNbrDotProd, int *nXNbrs,
-                          int nXNbrsMax)
+                          int nXNbrsMax, int DistType)
 {
   static int ncalls = 0;
   VERTEX *vtarg,*vcur;
@@ -58030,13 +58030,21 @@ int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
   // Get the target vertex
   vtarg = &SphSurf->vertices[TargVtxNo] ;
 
-  // Compute the dot product between the two
-  DotProd = (vtarg->x*vcur->x) + (vtarg->y*vcur->y) + (vtarg->z*vcur->z);
-  DotProd = fabs(DotProd);
-  //printf("c %d %d %d %g %d\n",ncalls,TargVtxNo,CurVtxNo,DotProd,*nXNbrs);
-
-  // Compare to threshold
-  if(DotProd <= DotProdThresh) return(0);
+  if(DistType == 1){
+    // DotProduct - dist along sphere
+    // Compute the dot product between the two
+    DotProd = (vtarg->x*vcur->x) + (vtarg->y*vcur->y) + (vtarg->z*vcur->z);
+    DotProd = fabs(DotProd);
+    //printf("c %d %d %d %g %d\n",ncalls,TargVtxNo,CurVtxNo,DotProd,*nXNbrs);
+    if(DotProd <= DotProdThresh) return(0);
+  }
+  else {
+    // Cartesian - dist squared along sphere (so thresh should be squared)
+    DotProd = pow(vtarg->x-vcur->x,2.0) + pow(vtarg->y-vcur->y,2.0) + pow(vtarg->z-vcur->z,2.0);
+    DotProd = fabs(DotProd);
+    //printf("c %d %d %d %g %d\n",ncalls,TargVtxNo,CurVtxNo,DotProd,*nXNbrs);
+    if(DotProd >= DotProdThresh) return(0);
+  }
 
   // Check whether another neigbor can be added
   if(*nXNbrs >= nXNbrsMax-1) return(1);
@@ -58052,7 +58060,7 @@ int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
   for (n = 0; n < nNNbrs; n++) {
     NbrVtxNo = SphSurf->vertices[CurVtxNo].v[n];
     err = MRISextendedNeighbors(SphSurf, TargVtxNo, NbrVtxNo, DotProdThresh,
-                                XNbrVtxNo, XNbrDotProd, nXNbrs, nXNbrsMax);
+                                XNbrVtxNo, XNbrDotProd, nXNbrs, nXNbrsMax, DistType);
     if(err) return(err);
   }
 
@@ -58193,7 +58201,7 @@ MRI *MRISdistSphere(MRIS *surf, double dmax)
     nXNbrs[vtxno] = 0;
     err =
       MRISextendedNeighbors(surf,vtxno,vtxno,DotProdThresh, XNbrVtxNoTmp,
-                            XNbrDotProd, &(nXNbrs[vtxno]), surf->nvertices);
+                            XNbrDotProd, &(nXNbrs[vtxno]), surf->nvertices, 1);
 
     if (vtxno%1000==0)
     {

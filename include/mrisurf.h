@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/06/28 00:31:28 $
- *    $Revision: 1.289 $
+ *    $Author: greve $
+ *    $Date: 2007/07/12 00:42:11 $
+ *    $Revision: 1.290 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1430,7 +1430,7 @@ unsigned long MRISeraseOutsideOfSurface(float h,
 int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
                           double DotProdThresh, int *XNbrVtxNo,
                           double *XNbrDotProd, int *nXNbrs,
-                          int nXNbrsMax);
+                          int nXNbrsMax, int DistType);
 MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
                         double TruncFactor);
 MRI *MRISdistSphere(MRIS *surf, double dmax);

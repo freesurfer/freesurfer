@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/27 21:28:54 $
- *    $Revision: 1.12 $
+ *    $Date: 2007/07/12 00:42:13 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_niters2fwhm.c,v 1.12 2007/04/27 21:28:54 greve Exp $";
+static char vcid[] = "$Id: mris_niters2fwhm.c,v 1.13 2007/07/12 00:42:13 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -426,7 +426,7 @@ MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
     // val2bak to 0
     printf("Starting Search\n");
     err = MRISextendedNeighbors(Surf,0,0,DotProdThresh, XNbrVtxNo,
-                                XNbrDotProd, &nXNbrs, Surf->nvertices);
+                                XNbrDotProd, &nXNbrs, Surf->nvertices,1);
     printf("Found %d (err=%d)\n",nXNbrs,err);
     for (n = 0; n < nXNbrs; n++) {
       printf("%d %d %g\n",n,XNbrVtxNo[n],XNbrDotProd[n]);
@@ -437,7 +437,7 @@ MRI *MRISgaussianSmooth2(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
   for (vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++) {
     nXNbrs = 0;
     err = MRISextendedNeighbors(Surf,vtxno1,vtxno1,DotProdThresh, XNbrVtxNo,
-                                XNbrDotProd, &nXNbrs, Surf->nvertices);
+                                XNbrDotProd, &nXNbrs, Surf->nvertices,1);
     MRIFseq_vox(nXNbrsMRI,vtxno1,0,0,0) = nXNbrs;
     if (vtxno1%10000==0 && Gdiag_no > 0) {
       printf("vtxno1 = %d, nXNbrs = %d\n",vtxno1,nXNbrs);
