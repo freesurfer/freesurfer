@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/17 20:11:03 $
- *    $Revision: 1.37 $
+ *    $Date: 2007/07/12 00:44:00 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -111,16 +111,98 @@ MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters, int newi
 COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name);
 int MRISmercator(MRIS *surf);
 IMAGE *I;
+MHT *lhwhite_hash;
+MRIS *lhwhite;
+int *XNbrVtxNo, nXNbrs;
+double *XNbrDotProd;
 
 /*----------------------------------------*/
 int main(int argc, char **argv) {
   int err,area32p,area32v,superiorfrontal,medialorbitofrontal;
   int rostralanteriorcingulate, rostralmiddlefrontal;
-  int index;
+  int index,k;
   int *nunits;
   char *parcnames[10];
   COLOR_TABLE *ct ;
   LABEL *lcortex;
+  VERTEX *vtx;
+  float dlhw,DotProdThresh;
+  int  lhwvtx;
+
+  subject = argv[1];
+  hemi = argv[2];
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  sprintf(tmpstr,"%s/%s/surf/%s.sphere",SUBJECTS_DIR,subject,hemi);
+  printf("\nReading lh white surface \n %s\n",tmpstr);
+  surf = MRISread(tmpstr);
+  if(!surf) exit(1);
+  printf("nvertices %d\n",surf->nvertices);
+  printf("patch %d\n",surf->patch);
+  vtx = &(surf->vertices[12282]);
+  dlhw = sqrt((vtx->x * vtx->x) + (vtx->y * vtx->y) + (vtx->z * vtx->z));
+  printf("radius %g\n",dlhw);
+  DotProdThresh = (dlhw*dlhw)*cos(10/dlhw)*(1.0001);
+
+  XNbrVtxNo   = (int *) calloc(surf->nvertices,sizeof(int));
+  XNbrDotProd = (double *) calloc(surf->nvertices,sizeof(double));
+
+  nXNbrs = 0;
+  MRISextendedNeighbors(surf, 12282, 12282, DotProdThresh,
+			XNbrVtxNo, XNbrDotProd, 
+			&nXNbrs,surf->nvertices,1);
+  printf("Found %d neighbors\n",nXNbrs);
+
+  mri = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, 1);
+  for(k = 0; k < nXNbrs; k++){
+    MRIsetVoxVal(mri,XNbrVtxNo[k],0,0,0,1);
+  }
+  MRIwrite(mri,"xnbr.mgh");
+
+  //-----------------------------------------------
+  err = MRISreadPatch(surf, argv[3]);
+  printf("patch %d\n",surf->patch);
+  printf("rip %d\n",vtx->ripflag);
+  for(k = 0; k < surf->nvertices; k++) surf->vertices[k].val2bak = -1;
+  nXNbrs = 0;
+  MRISextendedNeighbors(surf, 12282, 12282, 100,
+			XNbrVtxNo, XNbrDotProd, 
+			&nXNbrs,surf->nvertices,2);
+  printf("Found %d neighbors\n",nXNbrs);
+
+  mri = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, 1);
+  for(k = 0; k < nXNbrs; k++){
+    MRIsetVoxVal(mri,XNbrVtxNo[k],0,0,0,1);
+  }
+  MRIwrite(mri,"xnbr2.mgh");
+
+
+  exit (1);
+
+
+  printf("Building hash of lh white\n");
+  lhwhite_hash = MHTfillVertexTableRes(lhwhite, NULL,CURRENT_VERTICES,16);
+
+  vtx = &(lhwhite->vertices[1000]);
+
+  // Find closest when not ripped
+  vtx->ripflag = 0;
+  lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,vtx,&dlhw);
+  printf("%d\n",lhwvtx);
+
+  // Find closest when ripped
+  vtx->ripflag = 1;
+  lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,vtx,&dlhw);
+  printf("%d\n",lhwvtx);
+
+  // Brute-force find closest when ripped
+  lhwvtx = MRISfindClosestVertex(lhwhite,vtx->x,vtx->y,vtx->z,&dlhw);
+  printf("%d\n",lhwvtx);
+
+
+
+  return(1);
+
+
 
   //R = MatrixDRand48(20,20,NULL);
   R = MatrixIdentity(100,NULL);
