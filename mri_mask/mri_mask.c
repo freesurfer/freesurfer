@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/11 04:00:21 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/07/12 21:56:00 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.10 2007/07/11 04:00:21 nicks Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.11 2007/07/12 21:56:00 nicks Exp $";
 
 void usage(int exit_val);
 
@@ -68,7 +68,9 @@ MRI          *lta_dst = 0;
 static int invert = 0 ;
 static char *xform_fname = NULL;
 static float threshold = -1e10;
-static int keep_mask_edits = 0;
+static int do_transfer=0;
+static float transfer_val;
+static int keep_mask_deletion_edits = 0; // if 1, keep mask voxels with value=1
 
 int main(int argc, char *argv[]) {
   char **av;
@@ -84,7 +86,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.10 2007/07/11 04:00:21 nicks Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.11 2007/07/12 21:56:00 nicks Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -253,15 +255,23 @@ int main(int argc, char *argv[]) {
 
       }
 
-  mri_dst = MRImask(mri_src, mri_mask, NULL, 0, 0) ;
+  int mask=0;
+  float out_val=0;
+  if (do_transfer)
+  {
+    mask = (int)transfer_val;
+    out_val = transfer_val;
+  }
+  mri_dst = MRImask(mri_src, mri_mask, NULL, mask, out_val) ;
   if (!mri_dst)
     ErrorExit(Gerror, "%s: stripping failed", Progname) ;
 
-  if (keep_mask_edits)
+  if (keep_mask_deletion_edits)
   {
-    mri_dst = MRImask(mri_dst, mri_mask, NULL, 1, 1) ;
+    mri_dst = MRImask(mri_dst, mri_mask, NULL, 1, 1) ; // keep voxels = 1
     if (!mri_dst)
-      ErrorExit(Gerror, "%s: stripping failed on keep_mask_edits", Progname) ;
+      ErrorExit(Gerror, "%s: stripping failed on keep_mask_deletion_edits", 
+                Progname) ;
   }
 
   printf("Writing masked volume to %s...", argv[3]) ;
@@ -302,9 +312,12 @@ void usage(int exit_val) {
           "(if not available from the xform file) \n");
   fprintf(fout,
           "   -T #         threshold mask volume at # "
-          "(i.e., all values <= T is considered as zero) \n");
+          "(i.e., all values <= T considered as zero) \n");
+  fprintf(fout, 
+          "   -transfer #  transfer only voxel value # from mask to out\n");
   fprintf(fout,
-          "   -keep_mask_edits   transfer mask edits to out vol \n");
+          "   -keep_mask_deletion_edits   transfer voxel-deletion edits\n"
+          "                               (voxels=1) from mask to out vol\n");
 
   fprintf(fout, "\n");
 
@@ -339,6 +352,11 @@ get_option(int argc, char *argv[]) {
     threshold = (float)atof(argv[2]);
     nargs = 1;
     fprintf(stderr, "threshold mask volume at %g\n", threshold);
+  } else if (!stricmp(option, "transfer")) {
+    do_transfer = 1;
+    transfer_val = (float)atof(argv[2]);
+    nargs = 1;
+    fprintf(stderr, "transfer mask voxels=%g to dst vol\n", transfer_val);
   } else if (!stricmp(option, "invert")) {
     invert = 1;
     fprintf(stderr, "Inversely apply the given LTA transform\n");
@@ -364,8 +382,8 @@ get_option(int argc, char *argv[]) {
       ErrorExit(ERROR_BADPARM, "Could not read file %s\n", argv[2]);
     }
     nargs = 1;
-  } else if (!stricmp(option, "keep_mask_edits")) {
-    keep_mask_edits = 1;
+  } else if (!stricmp(option, "keep_mask_deletion_edits")) {
+    keep_mask_deletion_edits = 1;
     fprintf(stderr, "Transferring mask edits ('1' voxels) to dst vol\n");
   } else {
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
