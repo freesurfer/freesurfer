@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/24 21:05:52 $
- *    $Revision: 1.134 $
+ *    $Date: 2007/07/12 07:51:21 $
+ *    $Revision: 1.135 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -525,7 +525,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.134 2007/06/24 21:05:52 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.135 2007/07/12 07:51:21 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -800,11 +800,13 @@ int main(int argc, char **argv) {
     } else {
       printf("Using DTI\n");
       dti = DTIstructFromSiemensAscii(XFile);
-      sprintf(tmpstr,"%s/bvals.dat",GLMDir);
-      DTIfslBValFile(dti,tmpstr);
-      sprintf(tmpstr,"%s/bvecs.dat",GLMDir);
-      DTIfslBVecFile(dti,tmpstr);
       if (dti==NULL) exit(1);
+      sprintf(tmpstr,"%s/bvals.dat",GLMDir);
+      DTIwriteBValues(dti->bValue, tmpstr);
+      //DTIfslBValFile(dti,tmpstr);
+      sprintf(tmpstr,"%s/bvecs.dat",GLMDir);
+      DTIwriteBVectors(dti->GradDir,tmpstr);
+      //DTIfslBVecFile(dti,tmpstr);
       mriglm->Xg = MatrixCopy(dti->B,NULL);
     }
   }
@@ -1549,16 +1551,15 @@ int main(int argc, char **argv) {
 
     printf("Computing dwisynth\n");
     dwisynth = DTIsynthDWI(dti->B, mriglm->beta, mriglm->mask, NULL);
-    sprintf(tmpstr,"%s/dwisynth.%s",GLMDir,format);
-    MRIwrite(dwisynth,tmpstr);
-
+    //sprintf(tmpstr,"%s/dwisynth.%s",GLMDir,format);
+    //MRIwrite(dwisynth,tmpstr);
+      
     printf("Computing dwires\n");
     dwires = MRIsum(dwi, dwisynth, 1, -1, mriglm->mask, NULL);
-    sprintf(tmpstr,"%s/dwires.%s",GLMDir,format);
-    MRIwrite(dwires,tmpstr);
-
+    //sprintf(tmpstr,"%s/dwires.%s",GLMDir,format);
+    //MRIwrite(dwires,tmpstr);
+      
     printf("Computing dwi rvar\n");
-    //dwirvar = fMRIvariance(dwires, mriglm->glm->dof, 0, NULL);
     dwirvar = fMRIcovariance(dwires, 0, mriglm->beta->nframes, 0, NULL);
     sprintf(tmpstr,"%s/dwirvar.%s",GLMDir,format);
     MRIwrite(dwirvar,tmpstr);
@@ -2689,3 +2690,4 @@ MRI *fMRIdistance(MRI *mri, MRI *mask)
   //MRIwrite(d,"dist.mgh");
   return(d);
 }
+
