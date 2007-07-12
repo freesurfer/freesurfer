@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/12 05:58:00 $
- *    $Revision: 1.19 $
+ *    $Date: 2007/07/12 07:39:28 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.c,v 1.19 2007/07/12 05:58:00 greve Exp $
+// $Id: dti.c,v 1.20 2007/07/12 07:39:28 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.19 2007/07/12 05:58:00 greve Exp $");
+  return("$Id: dti.c,v 1.20 2007/07/12 07:39:28 greve Exp $");
 }
 
 
@@ -902,6 +902,11 @@ MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc)
 
   return(ivc);
 }
+/*!/
+  \fn MRI *DTIloadBValues(char *bvalfile)
+  \brief Loads in bvalues from text file. It does not matter
+    whether they are all on the same line or not.
+*/
 MATRIX *DTIloadBValues(char *bvalfile)
 {
   FILE *fp;
@@ -909,8 +914,6 @@ MATRIX *DTIloadBValues(char *bvalfile)
   int nbvalues;
   MATRIX *bvals;
 
-  // Could add something here to autodetect FSL format
-  // which puts all gx on one line, then gy on the next, etc
   printf("Loading BValues from %s\n",bvalfile);
   fp = fopen(bvalfile,"r");
   if(fp == NULL){
@@ -946,17 +949,40 @@ MATRIX *DTIloadBValues(char *bvalfile)
   }
   fclose(fp);
 
-  MatrixPrint(stdout,bvals);
+  //MatrixPrint(stdout,bvals);
 
   return(bvals);
 }
+/*---------------------------------------------------------------------*/
+int DTIwriteBValues(MATRIX *bvals, char *bvalfile)
+{
+  FILE *fp;
+  int n;
 
+  fp = fopen(bvalfile,"w");
+  if(fp == NULL){
+    printf("ERROR: DTIwriteBValues(): could not open %s for writing\n",bvalfile);
+    return(1);
+  }
+  for(n=1; n < bvals->rows+1; n++) fprintf(fp,"%f\n",bvals->rptr[n][1]);
+  fclose(fp);
+  return(0);
+}
+
+/*!/
+  \fn MRI *DTIloadBVectors(char *bvecfile)
+  \brief Loads in gradient directions from text file. Each line
+    has a different 3-component vector (not the same as FSL).
+*/
 MATRIX *DTIloadBVectors(char *bvecfile)
 {
   FILE *fp;
   double gx, gy, gz;
   int nbvecs;
   MATRIX *bvecs;
+
+  // Could add something to autodetect FSL format
+  // which puts all gx on one line, then gy on the next, etc
 
   printf("Loading BVectors from %s\n",bvecfile);
   fp = fopen(bvecfile,"r");
@@ -995,7 +1021,57 @@ MATRIX *DTIloadBVectors(char *bvecfile)
   }
   fclose(fp);
 
-  MatrixPrint(stdout,bvecs);
+  //MatrixPrint(stdout,bvecs);
 
   return(bvecs);
 }
+/*---------------------------------------------------------------------*/
+int DTIwriteBVectors(MATRIX *bvecs,char *bvecfile)
+{
+  FILE *fp;
+  int n;
+
+  fp = fopen(bvecfile,"w");
+  if(fp == NULL){
+    printf("ERROR: DTIwriteBVectors(): could not open %s for writing\n",bvecfile);
+    return(1);
+  }
+  for(n=1; n < bvecs->rows+1; n++) 
+    fprintf(fp,"%f %f %f\n",bvecs->rptr[n][1],bvecs->rptr[n][2],bvecs->rptr[n][3]);
+  fclose(fp);
+  return(0);
+}
+
+/*--------------------------------------------------------*/
+DTI *DTIstructFromBFiles(char *bvalfile, char *bvecfile)
+{
+  MATRIX *bvals, *bvecs;
+  DTI *dti;
+
+  bvals = DTIloadBValues(bvalfile);
+  if(bvals == NULL) return(NULL);
+
+  bvecs = DTIloadBVectors(bvecfile);
+  if(bvecs == NULL) return(NULL);
+
+  if(bvals->rows != bvecs->rows){
+    printf("ERROR: DTIstructFromBFiles(): dimension mismatch\n");
+    printf(" %s has %d rows, %s has %d rows\n",bvalfile,bvals->rows,
+	   bvecfile,bvecs->rows);
+    return(NULL);
+  }
+
+  dti = (DTI *) calloc(sizeof(DTI),1);
+  dti->nAcq    = 1;
+  dti->bValue  = bvals;
+  dti->GradDir = bvecs;
+
+  DTInormGradDir(dti);
+  DTIdesignMatrix(dti);
+
+  //printf("B --------------\n");
+  //MatrixPrint(stdout,dti->B);
+
+  return(dti);
+}
+
