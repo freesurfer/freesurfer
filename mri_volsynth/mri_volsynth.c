@@ -1,18 +1,17 @@
 /**
  * @file  mri_volsynth.c
- * @brief Synthsizes data with various statistical properties.
+ * @brief Synthesizes data with various statistical properties.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/06/07 20:37:03 $
- *    $Revision: 1.33 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/12 22:42:39 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -24,16 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
-  Name:    mri_volsynth
-  Author:  Douglas N. Greve
-  email:   analysis-bugs@nmr.mgh.harvard.edu
-  Date:    2/27/02
-  Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.33 2007/06/07 20:37:03 greve Exp $
-*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,7 +63,9 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.33 2007/06/07 20:37:03 greve Exp $";
+static char vcid[] =
+"$Id: mri_volsynth.c,v 1.34 2007/07/12 22:42:39 nicks Exp $";
+
 char *Progname = NULL;
 
 int debug = 0;
@@ -121,7 +112,7 @@ int UseFFT = 0;
 int SpikeTP = -1;
 
 /*---------------------------------------------------------------*/
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
   int c,r,s;
   double val;
@@ -171,10 +162,12 @@ int main(int argc, char **argv)
     else            dim[3] = mritemp->nframes;
   }
 
-  if(SpikeTP >= mritemp->nframes){
-    printf("ERROR: SpikeTP = %d >= mritmp->nframes = %d\n",
-	   SpikeTP,mritemp->nframes);
-    exit(1);
+  if(mritemp) {
+    if(SpikeTP >= mritemp->nframes){
+      printf("ERROR: SpikeTP = %d >= mritmp->nframes = %d\n",
+             SpikeTP,mritemp->nframes);
+      exit(1);
+    }
   }
 
   printf("Synthesizing\n");
@@ -187,7 +180,8 @@ int main(int argc, char **argv)
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], ValueA, NULL);
   else if (strcmp(pdfname,"sphere")==0) {
     if(voxradius < 0)
-      voxradius = sqrt( pow(dim[0]/2.0,2)+pow(dim[1]/2.0,2)+pow(dim[2]/2.0,2) )/2.0;
+      voxradius =
+        sqrt( pow(dim[0]/2.0,2)+pow(dim[1]/2.0,2)+pow(dim[2]/2.0,2) )/2.0;
     printf("voxradius = %lf\n",voxradius);
     mri = MRIsphereMask(dim[0], dim[1], dim[2], dim[3],
                         dim[0]/2.0, dim[1]/2.0, dim[2]/2.0,
@@ -202,7 +196,11 @@ int main(int argc, char **argv)
     }
     printf("delta set to %g at %d %d %d %d\n",delta_value,delta_crsf[0],
            delta_crsf[1],delta_crsf[2],delta_crsf[3]);
-    MRIFseq_vox(mri,delta_crsf[0],delta_crsf[1],delta_crsf[2],delta_crsf[3]) = delta_value;
+    MRIFseq_vox(mri,
+                delta_crsf[0],
+                delta_crsf[1],
+                delta_crsf[2],
+                delta_crsf[3]) = delta_value;
   } else if (strcmp(pdfname,"chi2")==0) {
     rfs = RFspecInit(seed,NULL);
     rfs->name = strcpyalloc("chi2");
@@ -252,7 +250,8 @@ int main(int argc, char **argv)
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
     RFsynth(mri,rfs,NULL);
   } else if (strcmp(pdfname,"Fr")==0) {
-    printf("Synthesizing F with num=%d den=%d as ratio of two chi2\n",numdof,dendof);
+    printf("Synthesizing F with num=%d den=%d as ratio of two chi2\n",
+           numdof,dendof);
     rfs = RFspecInit(seed,NULL);
     rfs->name = strcpyalloc("chi2");
     // numerator
@@ -272,11 +271,11 @@ int main(int argc, char **argv)
     mri = MRIconst(dim[0], dim[1], dim[2], 3, 0, NULL);
     for(c=0; c < mri->width; c ++){
       for(r=0; r < mri->height; r ++){
-	for(s=0; s < mri->depth; s ++){
-	  MRIsetVoxVal(mri,c,r,s,0,c);
-	  MRIsetVoxVal(mri,c,r,s,1,r);
-	  MRIsetVoxVal(mri,c,r,s,2,s);
-	}
+        for(s=0; s < mri->depth; s ++){
+          MRIsetVoxVal(mri,c,r,s,0,c);
+          MRIsetVoxVal(mri,c,r,s,1,r);
+          MRIsetVoxVal(mri,c,r,s,2,s);
+        }
       }
     }
   } else if (strcmp(pdfname,"boundingbox")==0) {
@@ -286,7 +285,8 @@ int main(int argc, char **argv)
     mri = MRIsetBoundingBox(mritemp,&boundingbox,ValueA,ValueB);
     if(!mri) exit(1);
   } else {
-    printf("ERROR: pdf %s unrecognized, must be gaussian, uniform, const, or delta\n",
+    printf("ERROR: pdf %s unrecognized, must be gaussian, uniform, "
+           "const, or delta\n",
            pdfname);
     exit(1);
   }
@@ -296,6 +296,9 @@ int main(int argc, char **argv)
     mri->type = MRI_FLOAT;
     if (nframes > 0) mri->nframes = nframes;
   } else {
+    if(mri == NULL) {
+      usage_exit();
+    }
     mri->xsize = res[0];
     mri->ysize = res[1];
     mri->zsize = res[2];
@@ -322,7 +325,8 @@ int main(int argc, char **argv)
     else {
       printf("Smoothing with FFT \n");
       mri2 = MRIcopy(mri,NULL);
-      mri = MRI_fft_gaussian(mri2, mri, gstd, gmnnorm); /* gmnnorm = 1 = normalize */
+      mri = MRI_fft_gaussian(mri2, mri,
+                             gstd, gmnnorm); /* gmnnorm = 1 = normalize */
     }
     if (rescale) {
       printf("Rescaling\n");
@@ -346,9 +350,9 @@ int main(int argc, char **argv)
     printf("Spiking time point %d\n",SpikeTP);
     for(c=0; c < mri->width; c ++){
       for(r=0; r < mri->height; r ++){
-	for(s=0; s < mri->depth; s ++){
-	  MRIsetVoxVal(mri,c,r,s,SpikeTP,1e9);
-	}
+        for(s=0; s < mri->depth; s ++){
+          MRIsetVoxVal(mri,c,r,s,SpikeTP,1e9);
+        }
       }
     }
   }
@@ -408,7 +412,7 @@ static int parse_commandline(int argc, char **argv) {
       //NoOutput = 1;
       nframes  = 1;
       nargsused = 1;
-    } 
+    }
     else if (!strcmp(option, "--vol")) {
       if (nargc < 1) argnerr(option,1);
       volid = pargv[0];
@@ -418,7 +422,7 @@ static int parse_commandline(int argc, char **argv) {
         nargsused ++;
         volfmtid = checkfmt(volfmt);
       } else volfmtid = getfmtid(volid);
-    } 
+    }
     else if (!strcmp(option, "--temp")) {
       if (nargc < 1) argnerr(option,1);
       tempid = pargv[0];
@@ -581,7 +585,8 @@ static void print_usage(void) {
   printf("   --gstd  std  : use std for gaussian standard dev (def is 1)\n");
   printf("   --delta-crsf col row slice frame : 0-based\n");
   printf("   --delta-val val : set delta value to val. Default is 1.\n");
-  printf("   --delta-val-off offval : set delta background value to offval. Default is 0.\n");
+  printf("   --delta-val-off offval : set delta background value to offval. "
+         "Default is 0.\n");
   printf("   --dof dof : dof for t and chi2 \n");
   printf("   --dof-num numdof : numerator dof for F\n");
   printf("   --dof-den dendof : denomenator dof for F\n");
@@ -593,19 +598,27 @@ static void print_usage(void) {
   printf(" Other arguments\n");
   printf("   --spike tp : set all values at time point tp to 1e9\n");
   printf("   --fwhm fwhm_mm : smooth by FWHM mm\n");
-  printf("   --sum2 fname   : save sum vol^2 into fname (implies delta,nf=1,no-output)\n");
+  printf("   --sum2 fname   : save sum vol^2 into fname (implies "
+         "delta,nf=1,no-output)\n");
   printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
-  printf("Synthesizes a volume with the given geometry and pdf. Default pdf \n");
+  printf("Synthesizes a volume with the given geometry and pdf. "
+         "Default pdf \n");
   printf("is gaussian (mean 0, std 1). If uniform is chosen, then the min\n");
-  printf("is 0 and the max is 1. If const is chosen, then all voxels are set\n");
-  printf("to ValA. If delta, the middle voxel is set to 1, the rest to 0 unless\n");
+  printf("is 0 and the max is 1. If const is chosen, then all "
+         "voxels are set\n");
+  printf("to ValA. If delta, the middle voxel is set to 1, "
+         "the rest to 0 unless\n");
   printf("the actual location is chosen with --delta-crsf. If sphere, then\n");
   printf("a spherical binary mask centered in the volume with radius half\n");
   printf("the field of view.\n");
+  printf("Example: to create an empty volume (all voxels=0), named "
+         "myvol.mgz,\nbased on parameters from an existing volume:\n");
+  printf("  mri_volsynth --gstd 0 --vol myvol.mgz "
+         "--temp some_existing_vol.mgz\n");
   printf("\n");
 
   exit(1) ;
@@ -653,11 +666,11 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"volid    %s\n",volid);
   fprintf(fp,"volfmt   %s\n",volfmt);
   if (tempid == 0) {
-    fprintf(fp,"dim      %3d %3d %3d %3d\n",
+    fprintf(fp,"dim    %3d %3d %3d %3d\n",
             dim[0],dim[1],dim[2],dim[3]);
     fprintf(fp,"res      %6.4f %6.4f %6.4f %6.4f\n",
             res[0],res[1],res[2],res[3]);
-    fprintf(fp,"c_ras  %6.4f %6.4f %6.4f\n",
+    fprintf(fp,"c_ras    %6.4f %6.4f %6.4f\n",
             cras[0], cras[1], cras[2]);
     fprintf(fp,"col   dircos  %6.4f %6.4f %6.4f\n",
             cdircos[0],cdircos[1],cdircos[2]);
@@ -730,7 +743,7 @@ static int isflag(char *flag) {
 }
 
 /*---------------------------------------------------------------*/
- MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt) {
+MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt) {
   int c,r,s,f;
   double val;
 
