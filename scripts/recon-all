@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/11 04:06:17 $
-#    $Revision: 1.111 $
+#    $Date: 2007/07/12 22:50:43 $
+#    $Revision: 1.112 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.111 2007/07/11 04:06:17 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.112 2007/07/12 22:50:43 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -136,7 +136,7 @@ set longitudinal = 0;    # if 1, will run the longitudinal scheme
 set tp1id = ();
 set UseTP1CtrlVol = 0;   # if 1, use ctrl volume of tp1 in normalization step
 set no_orig_pial = 0;    # if 1, mris_make_surfaces won't use orig pial
-set regfile = ();        # registration file to align tp1 to current subj
+set tp1totp2_regfile = ();   # registration file to align tp1 to current subj
                   # default settings for second registration method:
 set REG_METHOD    = fsl_rigid
 set REG_COST      = corratio
@@ -649,15 +649,15 @@ if ($longitudinal) then
         -r $subjdir/mri/orig.mgz \
         -o $subjdir/mri/orig_${tp1id}_to_${subjid}.mgz \
         -dof 6 \
-        -ltamat $tp1dir/mri/transforms/$regfile)
+        -ltamat $tp1dir/mri/transforms/$tp1totp2_regfile)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) then
-    if( -e $tp1dir/mri/transforms/$regfile) then
-      rm -f $tp1dir/mri/transforms/$regfile
+    if( -e $tp1dir/mri/transforms/$tp1totp2_regfile) then
+      rm -f $tp1dir/mri/transforms/$tp1totp2_regfile
     endif
     $cmd |& tee -a $LF
     if($status) goto error_exit;
-    if( ! -e $tp1dir/mri/transforms/$regfile) then
+    if( ! -e $tp1dir/mri/transforms/$tp1totp2_regfile) then
       echo "ERROR: FLIRT registration failed " |& tee -a $LF
       goto error_exit;
     endif
@@ -704,7 +704,7 @@ if($DoTalairach) then
     endif
     set cmd = (mri_concatenate_lta -invert1 -tal \
       $tp1dir/mri/orig.mgz $tal_targ \
-      $tp1dir/mri/transforms/$regfile \
+      $tp1dir/mri/transforms/$tp1totp2_regfile \
       $tp1dir/mri/$tal_xfm \
       $subjdir/mri/$xfma)
   else
@@ -821,7 +821,7 @@ if($DoNormalization) then
       -T1 $tp1dir/mri/nu.mgz \
       -ctrl $tp1dir/mri/ctrl_vol.mgz \
       -mask1 $tp1dir/mri/brain.mgz \
-      -xform $tp1dir/mri/transforms/$regfile \
+      -xform $tp1dir/mri/transforms/$tp1totp2_regfile \
       $subjdir/mri/nu.mgz \
       $subjdir/mri/T1.mgz)
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
@@ -845,7 +845,7 @@ skullstrip:
     set BM  = brainmask.mgz
     set BMA = brainmask.auto.mgz
     set cmd = (mri_mask -keep_mask_edits \
-      -xform $tp1dir/mri/transforms/$regfile \
+      -xform $tp1dir/mri/transforms/$tp1totp2_regfile \
       T1.mgz \
       $tp1dir/mri/$BM $BMA)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -1048,6 +1048,17 @@ skullstrip:
   goto handle_legacy_brain_mask;
   handle_legacy_brain_mask_return:
 
+  if( -e $BM && ! $DoCleanBM) then
+    echo "\nINFO: brainmask.mgz already exists!" \
+        |& tee -a $LF |& tee -a $CF
+    echo "The new brainmask.auto.mgz will not be copied to brainmask.mgz." \
+        |& tee -a $LF |& tee -a $CF
+    echo "This is done to retain any edits made to brainmask.mgz." \
+        |& tee -a $LF |& tee -a $CF
+    echo "Add the -cleanbm flag to recon-all to overwrite brainmask.mgz.\n" \
+        |& tee -a $LF |& tee -a $CF
+  endif
+
   if(! -e $BM || $DoCleanBM) then
     set cmd = (cp $BMA $BM)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -1074,7 +1085,8 @@ if($DoGCAReg) then
                 transforms/talairach.lta)
   else
     # longitudinal processing:
-    set cmd = (mri_concatenate_lta -invert1 $tp1dir/mri/transforms/$regfile \
+    set cmd = (mri_concatenate_lta \
+                -invert1 $tp1dir/mri/transforms/$tp1totp2_regfile \
                 $tp1dir/mri/transforms/talairach.lta \
                 transforms/talairach.lta)
   endif
@@ -1120,14 +1132,14 @@ if ($longitudinal) then
         -r $subjdir/mri/${REG_FILE_TYPE}.mgz \
         -o $subjdir/mri/${REG_FILE_TYPE}_${tp1id}_to_${subjid}.mgz \
         -dof $REG_DOF \
-        -ltamat $tp1dir/mri/transforms/$regfile)
+        -ltamat $tp1dir/mri/transforms/$tp1totp2_regfile)
   endif
 
   if ( $REG_METHOD == linear_align ) then
     set cmd = (mri_linear_align -r -skip 8 \
         $tp1dir/mri/${REG_FILE_TYPE}.mgz \
         $subjdir/mri/${REG_FILE_TYPE}.mgz \
-        $tp1dir/mri/transforms/$regfile)
+        $tp1dir/mri/transforms/$tp1totp2_regfile)
   endif
 
   if ( $REG_METHOD == nonlinear_align ) then
@@ -1138,7 +1150,7 @@ if ($longitudinal) then
         -tol 0.2 \
         -levels 2 \
         -intensity 0.01 \
-        -T $tp1dir/mri/transforms/$regfile \
+        -T $tp1dir/mri/transforms/$tp1totp2_regfile \
         $tp1dir/mri/${REG_FILE_TYPE}.mgz \
         $subjdir/mri/${REG_FILE_TYPE}.mgz \
         $subjdir/mri/transforms/${subjid}_nl.m3z)
@@ -1146,12 +1158,12 @@ if ($longitudinal) then
 
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) then
-    if( -e $tp1dir/mri/transforms/$regfile) then
-      rm -f $tp1dir/mri/transforms/$regfile
+    if( -e $tp1dir/mri/transforms/$tp1totp2_regfile) then
+      rm -f $tp1dir/mri/transforms/$tp1totp2_regfile
     endif
     $cmd |& tee -a $LF
     if($status) goto error_exit;
-    if( ! -e $tp1dir/mri/transforms/$regfile ) then
+    if( ! -e $tp1dir/mri/transforms/$tp1totp2_regfile ) then
       echo "ERROR: SECOND registration: $REG_METHOD failed " |& tee -a $LF
       goto error_exit;
     endif
@@ -1181,7 +1193,7 @@ if($DoCAReg) then
   if ( $longitudinal ) then
     set cmd = ($cmd -levels 2 -A 1 \
                 -l $tp1dir/mri/transforms/talairach.m3z \
-                $tp1dir/mri/transforms/$regfile)
+                $tp1dir/mri/transforms/$tp1totp2_regfile)
   endif
   set cmd = ($cmd $xopts norm.mgz \
              $FREESURFER_HOME/average/$GCA \
@@ -1277,7 +1289,7 @@ if($DoCALabel) then
   else
     # longitudinal processing:
     set cmd = ($cmd $xopts -l $tp1dir/mri/aseg.mgz \
-        $tp1dir/mri/transforms/$regfile norm.mgz \
+        $tp1dir/mri/transforms/$tp1totp2_regfile norm.mgz \
         transforms/talairach.m3z $FREESURFER_HOME/average/$GCA \
         aseg.auto.mgz);
   endif
@@ -1391,6 +1403,16 @@ if($DoSegmentation) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
+
+  if($longitudinal) then
+    # transfer wm matter edits (voxels=255) from tp1 wm.mgz to tp2 wm.mgz
+    set cmd = (mri_mask -transfer 255)
+    set cmd = ($cmd -xform $tp1dir/mri/transforms/$tp1totp2_regfile)
+    set cmd = ($cmd wm.mgz $tp1dir/mri/wm.mgz wm.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
 
   echo $cmd > $touchdir/wmsegment.touch
 endif
@@ -1633,7 +1655,7 @@ foreach hemi ($hemilist)
     if( $longitudinal ) then
       set cmd = (mris_transform --dst $subjdir/mri/orig.mgz \
         $tp1dir/surf/${hemi}.white \
-        $tp1dir/mri/transforms/$regfile \
+        $tp1dir/mri/transforms/$tp1totp2_regfile \
         $subjdir/surf/${hemi}.orig)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd
@@ -1641,7 +1663,7 @@ foreach hemi ($hemilist)
 
       set cmd = (mris_transform --dst $subjdir/mri/orig.mgz \
         $tp1dir/surf/${hemi}.white \
-        $tp1dir/mri/transforms/$regfile \
+        $tp1dir/mri/transforms/$tp1totp2_regfile \
         $subjdir/surf/${hemi}.orig_white)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd
@@ -1649,7 +1671,7 @@ foreach hemi ($hemilist)
 
       set cmd = (mris_transform --dst $subjdir/mri/orig.mgz \
         $tp1dir/surf/${hemi}.pial \
-        $tp1dir/mri/transforms/$regfile \
+        $tp1dir/mri/transforms/$tp1totp2_regfile \
         $subjdir/surf/${hemi}.orig_pial)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd
@@ -3203,7 +3225,7 @@ while( $#argv != 0 )
     case "-reg":
     case "-regfile":
       if ( $#argv < 1) goto arg1err;
-      set regfile = $argv[1]; shift;
+      set tp1totp2_regfile = $argv[1]; shift;
       breaksw
 
     case "-reg-method":
@@ -3353,8 +3375,8 @@ check_params:
         exit 1;
       endif
 
-      if($#regfile != 1) then
-        set regfile = ${tp1id}_to_${subjid}.lta
+      if($#tp1totp2_regfile != 1) then
+        set tp1totp2_regfile = ${tp1id}_to_${subjid}.lta
       endif
 
       set tp1dir = $SUBJECTS_DIR/$tp1id
