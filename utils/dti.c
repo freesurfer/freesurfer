@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/02/20 11:04:38 $
- *    $Revision: 1.18 $
+ *    $Date: 2007/07/12 05:58:00 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.c,v 1.18 2007/02/20 11:04:38 greve Exp $
+// $Id: dti.c,v 1.19 2007/07/12 05:58:00 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.18 2007/02/20 11:04:38 greve Exp $");
+  return("$Id: dti.c,v 1.19 2007/07/12 05:58:00 greve Exp $");
 }
 
 
@@ -901,4 +901,101 @@ MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc)
   }
 
   return(ivc);
+}
+MATRIX *DTIloadBValues(char *bvalfile)
+{
+  FILE *fp;
+  double b;
+  int nbvalues;
+  MATRIX *bvals;
+
+  // Could add something here to autodetect FSL format
+  // which puts all gx on one line, then gy on the next, etc
+  printf("Loading BValues from %s\n",bvalfile);
+  fp = fopen(bvalfile,"r");
+  if(fp == NULL){
+    printf("ERROR: DTIloadBValues: could not load %s\n",bvalfile);
+    return(NULL);
+  }
+
+  // First just go through and count them
+  nbvalues = 0;
+  fscanf(fp,"%lf",&b);
+  while(!feof(fp)){
+    fscanf(fp,"%lf",&b);
+    nbvalues ++;
+  }
+  fclose(fp);
+  printf("Found %d bvalues\n",nbvalues);
+  if(nbvalues == 0){
+    printf("ERROR: DTIloadBValues: no bvalues found in %s\n",bvalfile);
+    return(NULL);
+  }
+
+  // Alloc the matrix
+  bvals = MatrixAlloc(nbvalues,1,MATRIX_REAL);
+
+  // Now read them in
+  fp = fopen(bvalfile,"r");
+  nbvalues = 0;
+  fscanf(fp,"%lf",&b);
+  while(!feof(fp)){
+    bvals->rptr[nbvalues+1][1] = b;
+    fscanf(fp,"%lf",&b);
+    nbvalues ++;
+  }
+  fclose(fp);
+
+  MatrixPrint(stdout,bvals);
+
+  return(bvals);
+}
+
+MATRIX *DTIloadBVectors(char *bvecfile)
+{
+  FILE *fp;
+  double gx, gy, gz;
+  int nbvecs;
+  MATRIX *bvecs;
+
+  printf("Loading BVectors from %s\n",bvecfile);
+  fp = fopen(bvecfile,"r");
+  if(fp == NULL){
+    printf("ERROR: DTIloadBValues: could not load %s\n",bvecfile);
+    return(NULL);
+  }
+
+  // First just go through and count them
+  nbvecs = 0;
+  fscanf(fp,"%lf %lf %lf",&gx,&gy,&gz);
+  while(!feof(fp)){
+    fscanf(fp,"%lf %lf %lf",&gx,&gy,&gz);
+    nbvecs ++;
+  }
+  fclose(fp);
+  printf("Found %d bvectorss\n",nbvecs);
+  if(nbvecs == 0){
+    printf("ERROR: DTIloadBValues: no bvectors found in %s\n",bvecfile);
+    return(NULL);
+  }
+
+  // Alloc the matrix
+  bvecs = MatrixAlloc(nbvecs,3,MATRIX_REAL);
+
+  // Now read them in
+  fp = fopen(bvecfile,"r");
+  nbvecs = 0;
+  fscanf(fp,"%lf %lf %lf",&gx,&gy,&gz);
+  while(!feof(fp)){
+    bvecs->rptr[nbvecs+1][1] = gx;
+    bvecs->rptr[nbvecs+1][2] = gy;
+    bvecs->rptr[nbvecs+1][3] = gz;
+    fscanf(fp,"%lf %lf %lf",&gx,&gy,&gz);
+    nbvecs ++;
+  }
+  fclose(fp);
+
+  MatrixPrint(stdout,bvecs);
+
+  return(bvecs);
 }

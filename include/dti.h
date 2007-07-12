@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/02/20 11:04:37 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/07/12 05:58:01 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.h,v 1.10 2007/02/20 11:04:37 greve Exp $
+// $Id: dti.h,v 1.11 2007/07/12 05:58:01 greve Exp $
 
 #ifndef DTI_INC
 #define DTI_INC
@@ -67,5 +67,9 @@ int DTIsortEV(float *EigVals, MATRIX *EigVecs);
 int DTIfslBValFile(DTI *dti, char *bvalfname);
 int DTIfslBVecFile(DTI *dti, char *bvecfname);
 MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc);
+MATRIX *DTIloadBValues(char *bvalfile);
+MATRIX *DTIloadBVectors(char *bvecfile);
+
+
 
 #endif //#ifndef FSENV_INC
