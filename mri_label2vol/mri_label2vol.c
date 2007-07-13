@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/11 03:29:31 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/07/13 16:48:31 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.24 2007/07/11 03:29:31 greve Exp $
+  $Id: mri_label2vol.c,v 1.25 2007/07/13 16:48:31 greve Exp $
 */
 
 
@@ -84,7 +84,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.24 2007/07/11 03:29:31 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.25 2007/07/13 16:48:31 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -145,11 +145,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.24 2007/07/11 03:29:31 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.25 2007/07/13 16:48:31 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.24 2007/07/11 03:29:31 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.25 2007/07/13 16:48:31 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -342,7 +342,11 @@ int main(int argc, char **argv) {
                               ProjDepth,x,y,z,Surf->vertices[vtxno].curv,c,r,s,oob);
 
           // Accumulate hit volume
-          if (!oob) MRISseq_vox(HitVol,c,r,s,nthlabel) ++;
+          if(!oob){
+	    MRISseq_vox(HitVol,c,r,s,nthlabel) ++;
+	    if(DoLabelStatVol) 
+	      MRIFseq_vox(LabelStatVol,c,r,s,0) = srclabel->lv[nthpoint].stat;
+	  }
 
           ProjDepth += ProjDelta;
           if (ProjDelta == 0) break; // only do once
@@ -560,6 +564,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --o volid : output volume\n");
   printf("   --hits hitvolid : each frame is nhits for a label\n");
+  printf("   --label-stat statvol : map the label stats field into the vol\n");
   printf("\n");
   printf("   --native-vox2ras : use native vox2ras xform instead of tkregister-style\n");
   printf("   --version : print version and exit\n");
