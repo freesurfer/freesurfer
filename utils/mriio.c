@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/05/21 16:38:14 $
- *    $Revision: 1.332 $
+ *    $Author: greve $
+ *    $Date: 2007/07/13 03:50:39 $
+ *    $Revision: 1.333 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -79,6 +79,7 @@
 #include "nifti1_io.h"
 #include "znzlib.h"
 #include "mri_circulars.h"
+#include "dti.h"
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
@@ -1207,6 +1208,16 @@ int MRIwriteType(MRI *mri, char *fname, int type)
                  "MRIwriteType(): code inconsistency "
                  "(file type recognized but not caught)"));
   }
+  if(error || mri->bvals == NULL) return(error);
+
+  fstem = IDstemFromName(fname);
+  if(fstem == NULL) return(error);
+  printf("Saving bvals and bvecs\n");
+  sprintf(tmpstr,"%s.bvals",fstem);
+  DTIwriteBValues(mri->bvals, tmpstr);
+  sprintf(tmpstr,"%s.bvecs",fstem);
+  DTIwriteBVectors(mri->bvecs, tmpstr);
+  free(fstem);
 
   return(error);
 
@@ -1239,7 +1250,6 @@ int MRIwrite(MRI *mri, char *fname)
   }
 
   error = MRIwriteType(mri, fname, int_type);
-
   return(error);
 
 } /* end MRIwrite() */

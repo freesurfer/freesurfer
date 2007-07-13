@@ -6,9 +6,9 @@
 /*
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:14 $
- *    $Revision: 1.24 $
+ *    $Author: greve $
+ *    $Date: 2007/07/13 03:50:38 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
@@ -205,6 +205,8 @@ typedef struct
   float VolRes[3];   /* Resolution of col, row, slice in mm */
   float VolCenter[3]; /* Exact RAS center of the volume */
   int   NFrames;     /* Equals lRepetitions + 1 */
+  double bValue;        /* for DWI */
+  int    nthDirection;  /* also for DWI */
 
   int   ErrorFlag;   /* Set for error, eg, aborted run */
 

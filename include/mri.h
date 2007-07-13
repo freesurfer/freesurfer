@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/04 00:25:16 $
- *    $Revision: 1.339 $
+ *    $Date: 2007/07/13 03:50:38 $
+ *    $Revision: 1.340 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -141,6 +141,7 @@ typedef struct
   double outside_val ; // 0 by default, but could be something else
 
   MATRIX *AutoAlign; // For Andre
+  MATRIX *bvals, *bvecs; 
 
   // "Chunking" memory management. "Chunking" is where the entire 4D
   // volume is allocated one big buffer.

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/12 07:39:28 $
- *    $Revision: 1.12 $
+ *    $Date: 2007/07/13 03:50:38 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,28 +26,29 @@
  */
 
 
-// $Id: dti.h,v 1.12 2007/07/12 07:39:28 greve Exp $
+// $Id: dti.h,v 1.13 2007/07/13 03:50:38 greve Exp $
 
 #ifndef DTI_INC
 #define DTI_INC
 
+#include "mri.h"
+
 typedef struct
 {
-  //float bValue;
-  int nAcq;
-  int nB0;
-  int nDir;
-  char *GradFile;
   MATRIX *bValue;
   MATRIX *GradDir;
   MATRIX *GradDirNorm;
   MATRIX *B;
+  // These strictly relate to Siemens/MGH DTI
+  int nB0;
+  int nDir;
+  char *GradFile;
 }
 DTI;
 
 const char *DTIsrcVersion(void);
-int DTIparamsFromSiemensAscii(char *fname, float *bValue,
-                              int *nAcq, int *nDir, int *nB0);
+int DTIfree(DTI **pdti);
+int DTIparamsFromSiemensAscii(char *fname, float *bValue,int *nDir, int *nB0);
 int DTIloadGradients(DTI *dti, char *GradFile);
 DTI *DTIstructFromSiemensAscii(char *fname);
 int DTInormGradDir(DTI *dti);
@@ -72,5 +73,6 @@ MATRIX *DTIloadBVectors(char *bvecfile);
 int DTIwriteBVectors(MATRIX *bvecs,char *bvecfile);
 int DTIwriteBValues(MATRIX *bvals, char *bvalfile);
 DTI *DTIstructFromBFiles(char *bvalfile, char *bvecfile);
+int DTIparsePulseSeqName(char *pulseseq, double *bValue, int *nthDirection);
 
 #endif //#ifndef FSENV_INC

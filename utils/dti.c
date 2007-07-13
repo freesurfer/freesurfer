@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/12 07:39:28 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/07/13 03:50:39 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.c,v 1.20 2007/07/12 07:39:28 greve Exp $
+// $Id: dti.c,v 1.21 2007/07/13 03:50:39 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,8 +51,24 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.20 2007/07/12 07:39:28 greve Exp $");
+  return("$Id: dti.c,v 1.21 2007/07/13 03:50:39 greve Exp $");
 }
+/* --------------------------------------------- */
+int DTIfree(DTI **pdti)
+{
+  DTI *dti;
+  dti = *pdti;
+  if(dti->GradFile)    free(dti->GradFile);
+  if(dti->bValue)      MatrixFree(&dti->bValue);
+  if(dti->GradDir)     MatrixFree(&dti->GradDir);
+  if(dti->GradDirNorm) MatrixFree(&dti->GradDirNorm);
+  if(dti->B)           MatrixFree(&dti->B);
+  free(*pdti);
+  *pdti = NULL;
+  return(0);
+}
+
+
 
 
 /*-----------------------------------------------------------------
@@ -61,21 +77,19 @@ const char *DTIsrcVersion(void)
   file or an infodump file as produced by mri_probedicom run on a
   siemens dicom file.
   -----------------------------------------------------------------*/
-int DTIparamsFromSiemensAscii(char *fname, float *bValue,
-                              int *nAcq, int *nDir, int *nB0)
+int DTIparamsFromSiemensAscii(char *fname, float *bValue,int *nDir, int *nB0)
+                              
 {
   char *tag, *pc;
 
-  if (!fio_FileExistsReadable(fname))
-  {
+  if (!fio_FileExistsReadable(fname)) {
     printf("ERROR: cannot read %s\n",fname);
     return(1);
   }
 
   tag = "sDiffusion.alBValue[1]";
   pc = SiemensAsciiTag(fname,tag);
-  if (pc == NULL)
-  {
+  if (pc == NULL) {
     printf("ERROR: cannot extract %s from %s\n",tag,fname);
     return(1);
   }
@@ -104,9 +118,6 @@ int DTIparamsFromSiemensAscii(char *fname, float *bValue,
   sscanf(pc, "%d", nDir);
   printf("nDir = %d\n",*nDir);
   free(pc);
-
-  *nAcq = 1;
-  printf("nAcq = %d (HARDWIRED)\n",*nAcq);
 
   return(0);
 }
@@ -178,8 +189,7 @@ DTI *DTIstructFromSiemensAscii(char *fname)
 
   dti = (DTI *) calloc(sizeof(DTI),1);
 
-  err = DTIparamsFromSiemensAscii(fname, &bval, &dti->nAcq,
-                                  &dti->nDir, &dti->nB0);
+  err = DTIparamsFromSiemensAscii(fname, &bval, &dti->nDir, &dti->nB0);
   if (err)  {
     free(dti);
     dti = NULL;
@@ -240,32 +250,27 @@ int DTInormGradDir(DTI *dti)
 /*--------------------------------------------------------*/
 int DTIdesignMatrix(DTI *dti)
 {
-  int r,xr,nthacq;
+  int r,xr;
   double bval;
   MATRIX *g;
 
   g = dti->GradDirNorm;
-  dti->B = MatrixAlloc((g->rows)*dti->nAcq,7,MATRIX_REAL);
+  dti->B = MatrixAlloc(g->rows,7,MATRIX_REAL);
 
   xr = 1;
-  for (nthacq=0; nthacq < dti->nAcq; nthacq++)
-  {
-    for (r=1; r <= g->rows; r ++)
-    {
-      bval = dti->bValue->rptr[r][1];
-      dti->B->rptr[xr][1] = bval * pow(g->rptr[r][1],2.0);
-      dti->B->rptr[xr][2] = 2 * bval * g->rptr[r][1]*g->rptr[r][2];
-      dti->B->rptr[xr][3] = 2 * bval * g->rptr[r][1]*g->rptr[r][3];
-
-      dti->B->rptr[xr][4] = bval * pow(g->rptr[r][2],2.0);
-      dti->B->rptr[xr][5] = 2 * bval * g->rptr[r][2]*g->rptr[r][3];
-
-      dti->B->rptr[xr][6] = bval * pow(g->rptr[r][3],2.0);
-
-      dti->B->rptr[xr][7] = 1;
-      xr++;
-    }
-
+  for (r=1; r <= g->rows; r ++)    {
+    bval = dti->bValue->rptr[r][1];
+    dti->B->rptr[xr][1] = bval * pow(g->rptr[r][1],2.0);
+    dti->B->rptr[xr][2] = 2 * bval * g->rptr[r][1]*g->rptr[r][2];
+    dti->B->rptr[xr][3] = 2 * bval * g->rptr[r][1]*g->rptr[r][3];
+    
+    dti->B->rptr[xr][4] = bval * pow(g->rptr[r][2],2.0);
+    dti->B->rptr[xr][5] = 2 * bval * g->rptr[r][2]*g->rptr[r][3];
+    
+    dti->B->rptr[xr][6] = bval * pow(g->rptr[r][3],2.0);
+    
+    dti->B->rptr[xr][7] = 1;
+    xr++;
   }
   //MatrixWriteTxt("G.dat",dti->GradDirNorm);
   //MatrixWriteTxt("B.dat",dti->B);
@@ -1062,7 +1067,6 @@ DTI *DTIstructFromBFiles(char *bvalfile, char *bvecfile)
   }
 
   dti = (DTI *) calloc(sizeof(DTI),1);
-  dti->nAcq    = 1;
   dti->bValue  = bvals;
   dti->GradDir = bvecs;
 
@@ -1073,5 +1077,42 @@ DTI *DTIstructFromBFiles(char *bvalfile, char *bvecfile)
   //MatrixPrint(stdout,dti->B);
 
   return(dti);
+}
+
+/*-------------------------------------------------------------------------*/
+//  ep_bX#N    X = bvalue     N = nth acq for that bvalue
+int DTIparsePulseSeqName(char *pulseseq, double *bValue, int *nthDirection)
+{
+  int n;
+  char *pc;
+  char tmpstr[100];
+
+  if(strlen(pulseseq) < 7) return(1);
+
+  pc = &(pulseseq[4]);
+  n = 0;
+  while(*pc != '#') {
+    if(*pc == '\0') return(1); 
+    tmpstr[n] = *pc;
+    n++;
+    pc++;
+  }
+  tmpstr[n] = '\0';
+  //printf("bvstring %s\n",tmpstr);
+  sscanf(tmpstr,"%lf",bValue);
+
+  pc++;
+  n = 0;
+  while(*pc != '\0') {
+    tmpstr[n] = *pc;
+    n++;
+    pc++;
+  }
+  tmpstr[n] = '\0';
+  //printf("ndstring %s\n",tmpstr);
+  sscanf(tmpstr,"%d",nthDirection);
+
+  //printf("bValue = %g, nthDir = %d\n",*bValue,*nthDirection);
+  return(0);
 }
 

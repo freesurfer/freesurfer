@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/09 18:05:15 $
- *    $Revision: 1.386 $
+ *    $Date: 2007/07/13 03:50:39 $
+ *    $Revision: 1.387 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.386 $";
+char *MRI_C_VERSION = "$Revision: 1.387 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -5519,6 +5519,9 @@ MRI *MRIallocHeader(int width, int height, int depth, int type)
   mri->bytes_per_vol   = 0;
   mri->bytes_total     = 0;
 
+  mri->bvals = NULL; // For DWI
+  mri->bvecs = NULL;
+
   return(mri) ;
 }
 /*-----------------------------------------------------
@@ -5595,6 +5598,9 @@ MRIfree(MRI **pmri)
   if (mri->AutoAlign)   MatrixFree(&mri->AutoAlign);
 
   for (i = 0 ; i < mri->ncmds ; i++) free(mri->cmdlines[i]) ;
+
+  if(mri->bvals) MatrixFree(&mri->bvals);
+  if(mri->bvecs) MatrixFree(&mri->bvecs);
 
   free(mri) ;
   *pmri = NULL ;
