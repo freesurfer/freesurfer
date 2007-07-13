@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/12 07:51:21 $
- *    $Revision: 1.135 $
+ *    $Date: 2007/07/13 01:54:22 $
+ *    $Revision: 1.136 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -525,7 +525,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.135 2007/07/12 07:51:21 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.136 2007/07/13 01:54:22 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -627,6 +627,7 @@ int usedti = 0;
 MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3;
 MRI  *fa, *ra, *vr, *adc, *dwi, *dwisynth,*dwires,*dwirvar;
 MRI  *ivc;
+char *bvalfile=NULL, *bvecfile=NULL;
 
 int useasl = 0;
 double asl1val = 1, asl2val = 0;
@@ -788,8 +789,8 @@ int main(int argc, char **argv) {
 
   // X ---------------------------------------------------------
   //Load global X------------------------------------------------
-  if (XFile != NULL) {
-    if (usedti == 0) {
+  if((XFile != NULL) | usedti) {
+    if(usedti == 0) {
       mriglm->Xg = MatrixReadTxt(XFile, NULL);
       if (mriglm->Xg==NULL) mriglm->Xg = MatlabRead(XFile);
       if (mriglm->Xg==NULL) {
@@ -799,7 +800,8 @@ int main(int argc, char **argv) {
       }
     } else {
       printf("Using DTI\n");
-      dti = DTIstructFromSiemensAscii(XFile);
+      if(XFile != NULL)	dti = DTIstructFromSiemensAscii(XFile);
+      else dti = DTIstructFromBFiles(bvalfile,bvecfile);
       if (dti==NULL) exit(1);
       sprintf(tmpstr,"%s/bvals.dat",GLMDir);
       DTIwriteBValues(dti->bValue, tmpstr);
@@ -1871,12 +1873,19 @@ static int parse_commandline(int argc, char **argv) {
       XFile = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--dti")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      XFile = pargv[0];
+      if(nargc < 1) CMDargNErr(option,1);
+      if(!CMDnthIsArg(nargc, argv, 2)){
+	XFile = pargv[0];
+	nargsused = 1;
+      }
+      else{
+	bvalfile = pargv[0];
+	bvecfile = pargv[1];
+	nargsused = 2;
+      }
       usedti=1;
       logflag = 1;
       format = "nii";
-      nargsused = 1;
     } else if (!strcmp(option, "--pvr")) {
       if (nargc < 1) CMDargNErr(option,1);
       pvrFiles[npvr] = pargv[0];
@@ -2380,7 +2389,8 @@ static void check_options(void) {
     printf("ERROR: must specify input y file\n");
     exit(1);
   }
-  if (XFile == NULL && fsgdfile == NULL && ! OneSampleGroupMean && ! useasl && !useqa) {
+  if(XFile == NULL && bvalfile == NULL && fsgdfile == NULL && 
+     ! OneSampleGroupMean && ! useasl && !useqa) {
     printf("ERROR: must specify an input X file or fsgd file or --osgm\n");
     exit(1);
   }
