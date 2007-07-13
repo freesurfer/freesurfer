@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/07/05 22:19:29 $
-#    $Revision: 1.243 $
+#    $Date: 2007/07/13 18:57:57 $
+#    $Revision: 1.244 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.243 2007/07/05 22:19:29 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.244 2007/07/13 18:57:57 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1403,6 +1403,12 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 
     frame $fwData -relief ridge -border 2
 
+    button $fwData.bwScanSubjectsDir \
+	-text "Scan Subjects Directory" \
+	-command {UpdateSubjectList}
+    
+    grid $fwData.bwScanSubjectsDir -column 0 -row 0 -columnspan 2 -sticky new
+
     # We use a tixOptionMenu but we'll actually manually pack the
     # items with tkuPopulateOptionMenu which sets its own command
     # callback per item. This is so it will make submenus properly.
@@ -1410,7 +1416,7 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 	-label "Subject:"
     set gaWidget(subjectsLoader,subjectsMenu) $fwData.fwMenu
 
-    grid $fwData.fwMenu  -column 0 -row 0 -columnspan 2 -sticky new
+    grid $fwData.fwMenu  -column 0 -row 1 -columnspan 2 -sticky new
 
     tixOptionMenu $fwData.volumesMenu \
 	-label "Volumes:"
@@ -1420,8 +1426,8 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 	-text "Load" \
 	-command {LoadVolumeFromSubjectsLoader [$gaWidget(subjectsLoader,volumeMenu) cget -value]}
 
-    grid $fwData.volumesMenu   -column 0 -row 1 -sticky new
-    grid $fwData.volumesButton -column 1 -row 1 -sticky ne
+    grid $fwData.volumesMenu   -column 0 -row 2 -sticky new
+    grid $fwData.volumesButton -column 1 -row 2 -sticky ne
 
 
     tixOptionMenu $fwData.surfacesMenu \
@@ -1432,8 +1438,8 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 	-text "Load" \
 	-command {LoadSurfaceFromSubjectsLoader [$gaWidget(subjectsLoader,surfaceMenu) cget -value]}
     
-    grid $fwData.surfacesMenu   -column 0 -row 2 -sticky new
-    grid $fwData.surfacesButton -column 1 -row 2 -sticky ne
+    grid $fwData.surfacesMenu   -column 0 -row 3 -sticky new
+    grid $fwData.surfacesButton -column 1 -row 3 -sticky ne
 
 
     tixOptionMenu $fwData.transformsMenu \
@@ -1444,8 +1450,8 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 	-text "Load" \
 	-command {LoadTransform [$gaWidget(subjectsLoader,transformMenu) cget -value]}
     
-    grid $fwData.transformsMenu     -column 0 -row 3 -sticky new
-    grid $fwData.transformsButton   -column 1 -row 3 -sticky ne
+    grid $fwData.transformsMenu     -column 0 -row 4 -sticky new
+    grid $fwData.transformsButton   -column 1 -row 4 -sticky ne
 
 
     grid columnconfigure $fwData 0 -weight 1
@@ -4421,10 +4427,6 @@ proc UpdateSubjectList {} {
     }
 }
 
-proc noOp { int } {
-
-}
-
 # TRANSFORM PROPERTIES FUNCTIONS =========================================
 
 proc TransformPropertiesMenuCallback { iTransformID } {
@@ -6735,7 +6737,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.243 2007/07/05 22:19:29 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.244 2007/07/13 18:57:57 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -8862,7 +8864,6 @@ SetFrameViewConfiguration [GetMainFrameID] c1
 UpdateCollectionList
 UpdateLayerList
 UpdateViewList
-UpdateSubjectList
 UpdateTransformList
 UpdateLUTList
 SelectViewInViewProperties 0
