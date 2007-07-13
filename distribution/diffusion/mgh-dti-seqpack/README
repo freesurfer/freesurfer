@@ -1,5 +1,5 @@
 
-$Id: README,v 1.3 2007/01/04 00:41:11 greve Exp $
+$Id: README,v 1.4 2007/07/13 03:26:56 greve Exp $
 
 These are diffusion gradient direction files that describe some of the
 protocols distributed by Siemens though the MGH DTI Sequence Package.
@@ -55,6 +55,20 @@ have the following format:
   ep_bX#N
     X = bvalue
     N = nth acq for that bvalue
+
+So, if you have 5 acqs at bvalue=0 followed by 6 with bvalue = 700:
+
+  ep_b0#0
+  ep_b0#1
+  ep_b0#2
+  ep_b0#3
+  ep_b0#4
+  ep_b700#0 --> N restarts at 0
+  ep_b700#1
+  ep_b700#2
+  ep_b700#3
+  ep_b700#4
+  ep_b700#6
 
 Note that all the dicom files in the series need to be queried in
 order to obtain all the relevant information.
