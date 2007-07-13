@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/03/01 16:53:44 $
-##    $Revision: 1.23 $
+##    $Date: 2007/07/13 18:24:17 $
+##    $Revision: 1.24 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -595,6 +595,9 @@ proc tkuSetOptionMenuText { ifwTop {isText "Choose:"} } {
 }
 
 proc tkuPopulateOptionMenu { iMenu iMenuButton ilEntries iCommand } {
+    
+    # Start fresh.
+    $iMenu delete 0 end
 
     # If we have more than 30 entries...
     if { [llength $ilEntries] > 30 } {
@@ -614,7 +617,9 @@ proc tkuPopulateOptionMenu { iMenu iMenuButton ilEntries iCommand } {
 	    # Create a submenu. Add the submenu to the main menu,
 	    # giving it a label consisting of the entry and the entry
 	    # 29 items down.
-	    menu $iMenu.mw$nSubMenu
+	    # If it already exists, that's cool.
+	    catch { menu $iMenu.mw$nSubMenu }
+	    $iMenu.mw$nSubMenu delete 0 end
 	    $iMenu add cascade -menu $iMenu.mw$nSubMenu \
 		-label "[lindex $ilEntries $nEntry] -> [lindex $ilEntries $nTopEntry]"
 
