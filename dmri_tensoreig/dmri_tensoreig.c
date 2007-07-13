@@ -566,7 +566,7 @@ static int parse_commandline(int argc, char **argv) {
       // Pass it a siemens dicom or an info dump file from which parameters
       // should be extracted.
       if (nargc < 1) CMDargNErr(option,1);
-      err = DTIparamsFromSiemensAscii(pargv[0], &bValue, &nAcq, &nDir, &DiffMode);
+      err = DTIparamsFromSiemensAscii(pargv[0], &bValue, &nDir, &DiffMode);
       if (err) exit(1);
       switch (DiffMode) {
       case 3:
