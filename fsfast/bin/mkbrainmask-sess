@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/15 05:27:00 $
-#    $Revision: 1.11 $
+#    $Date: 2007/07/13 18:48:19 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask-sess,v 1.11 2007/06/15 05:27:00 greve Exp $'
+set VERSION = '$Id: mkbrainmask-sess,v 1.12 2007/07/13 18:48:19 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -92,7 +92,7 @@ else
 endif
 
 echo "mkbrainmask-sess" >> $LF
-echo '$Id: mkbrainmask-sess,v 1.11 2007/06/15 05:27:00 greve Exp $' >> $LF
+echo '$Id: mkbrainmask-sess,v 1.12 2007/07/13 18:48:19 greve Exp $' >> $LF
 uname -a          >> $LF
 date              >> $LF
 $PWDCMD           >> $LF
@@ -377,6 +377,7 @@ usage_exit:
   echo "                        default is brain"
   echo "   -head : flag to set parameters to cover the whole head instead"
   echo "           of just the brain. thresh=0.05, ndil=3, stem=head"
+  echo "   -perrun : perform on a run-by-run basis"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
