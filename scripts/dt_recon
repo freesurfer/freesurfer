@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.5 2007/03/09 18:46:08 greve Exp $';
+set VERSION = '$Id: dt_recon,v 1.6 2007/07/13 04:52:09 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -10,6 +10,8 @@ set inputargs = ($argv);
 set InputVol = ();
 set DoEddyCorrect = 1;
 set subject = ();
+set bvals = ();
+set bvecs = ();
 
 set PrintHelp = 0;
 set LF = ();
@@ -70,15 +72,17 @@ if($status) exit 1;
 echo "" | tee -a $LF
 echo "" | tee -a $LF
 
-# Get info dump from dicom
-set infodump = $OutDir/dwi-infodump.dat
-set cmd = (mri_probedicom --i $InputVol);
-echo "cd `pwd`" |  tee -a $LF
-echo $cmd       |  tee -a $LF 
-$cmd            |& tee -a $LF > $infodump
-if($status) exit 1;
-echo "" | tee -a $LF
-echo "" | tee -a $LF
+if($#bvals == 0) then
+  # Get info dump from dicom
+  set infodump = $OutDir/dwi-infodump.dat
+  set cmd = (mri_probedicom --i $InputVol);
+  echo "cd `pwd`" |  tee -a $LF
+  echo $cmd       |  tee -a $LF 
+  $cmd            |& tee -a $LF > $infodump
+  if($status) exit 1;
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+endif
 
 # Eddy/Motion Correct (needs its own tmp dir)
 set fec = $OutDir/dwi-ec.nii
@@ -113,7 +117,14 @@ endif
 echo "#@#-------------------------------" |  tee -a $LF
 echo "Fitting Tensors" |  tee -a $LF
 date |  tee -a $LF
-set cmd = (mri_glmfit --y $fec --glmdir $OutDir --dti $infodump)
+
+set cmd = (mri_glmfit --y $fec --glmdir $OutDir);
+if($#bvals == 0) then 
+  set cmd = ($cmd --dti $infodump)
+else
+  set cmd = ($cmd --dti $bvals $bvecs)
+endif
+
 echo "cd `pwd`" |  tee -a $LF
 echo $cmd       |  tee -a $LF 
 $cmd            |& tee -a $LF
@@ -190,6 +201,20 @@ while( $#argv != 0 )
       setenv  SUBJECTS_DIR $argv[1]; shift;
       breaksw
 
+    case "--b":
+      if ($#argv < 2) goto arg2err;
+      set bvals = $argv[1]; shift;
+      set bvecs = $argv[1]; shift;
+      if(! -e $bvals) then
+        echo "ERROR: cannot find $bvals"
+        exit 1;
+      endif
+      if(! -e $bvecs) then
+        echo "ERROR: cannot find $bvecs"
+        exit 1;
+      endif
+      breaksw
+
     case "--i"
       if( $#argv < 1) goto arg1err;
       set InputVol = "$argv[1]"; shift;
@@ -245,6 +270,11 @@ goto parse_args_return;
 ############--------------##################
 arg1err:
   echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
   exit 1
 ############--------------##################
 ############--------------##################
@@ -314,7 +344,8 @@ usage_exit:
   echo "USAGE: $ProgName"
   echo ""
   echo " Required Aruments:";
-  echo "   --i dicomfile"
+  echo "   --i invol"
+  echo "   --b bvals bvecs"
   echo "   --s subjectid"
   echo "   --o outputdir"
   echo ""
@@ -340,13 +371,21 @@ BEGINHELP
 
 DEFNIITELY NOT TESTED YET!
 
-Performs DTI reconstruction from the DWI in the input dicom file.
-Gets gradient directions and bvalues from based on values 
-found in the dicom file see
-$FREESURFER_HOME/diffusion/mgh-dti-seqpack/README.
+Performs DTI reconstruction from the raw DWI in the input file. If
+bvalues and bvectors are not specified with --b, it is assumed that
+the input is a Siemens dicom file, and gets gradient directions and
+bvalues from based on values found in the dicom file. See
+$FREESURFER_HOME/diffusion/mgh-dti-seqpack/README. If the bvalues 
+and bvectors are specified, then the input volume can be anything.
+
+The bvalues are in a simple text file, one for each direction
+(including b=0). The bvectors (gradient directions) are also in a
+simple text file with three components on each row. These also include
+the b=0 values. There must be as many rows in the bvals/bvecs
+as there are frames in the input.
 
 Stages:
-1. Convert dicom to nifti (creates dwi.nii)
+1. Convert input to nifti (creates dwi.nii)
 2. Eddy current and motion correction using FSLs eddy_correct,
    creates dwi-ec.nii. Can take 1-2 hours.
 3. DTI GLM Fit and tensor construction. Includes creation of:
@@ -375,6 +414,7 @@ Stages:
 Example usage:
 
 dt_recon --i 6-1025.dcm --s M87102113 --o dti
+dt_recon --i f.nii --b f.bvals f.bvecs --s M87102113 --o dti
 
 # Check registration
 tkregister2 --mov dti/lowb.nii --reg dti/register.dat \
