@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/13 03:50:39 $
- *    $Revision: 1.387 $
+ *    $Date: 2007/07/14 20:23:52 $
+ *    $Revision: 1.388 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.387 $";
+char *MRI_C_VERSION = "$Revision: 1.388 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -4961,8 +4961,10 @@ MRIcopy(MRI *mri_src, MRI *mri_dst)
     if (mri_src->slices)
       mri_dst = MRIallocSequence(width, height, depth, mri_src->type,
                                  mri_src->nframes) ;
-    else
+    else{
       mri_dst = MRIallocHeader(width, height, depth, mri_src->type);
+      mri_dst->nframes = mri_src->nframes ;
+    }
   }
   dest_ptype = mri_dst->ptype;
   MRIcopyHeader(mri_src, mri_dst) ;
