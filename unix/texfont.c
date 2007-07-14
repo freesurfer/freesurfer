@@ -1,37 +1,24 @@
 /**
  * @file  texfont.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief OpenGL stuff
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Mark J. Kilgard, 1997
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:19 $
- *    $Revision: 1.5 $
- *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
- *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
- *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *    $Date: 2007/07/14 22:56:20 $
+ *    $Revision: 1.6 $
  *
  */
 
-
-
-/* Copyright (c) Mark J. Kilgard, 1997. */
+/* Copyright (c) . Mark J. Kilgard, 1997 */
 
 /* This program is freely distributable without licensing fees  and is
    provided without guarantee or warrantee expressed or  implied. This
    program is -not- in the public domain. */
+
+#ifdef HAVE_OPENGL
 
 #include <assert.h>
 #include <ctype.h>
@@ -743,3 +730,5 @@ txfInFont(TexFont * txf, int c)
   }
   return 0;
 }
+
+#endif // ifdef HAVE_OPENGL

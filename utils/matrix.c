@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/06 17:20:15 $
- *    $Revision: 1.109 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/14 22:56:21 $
+ *    $Revision: 1.110 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -107,6 +107,10 @@ MatrixInverse(MATRIX *mIn, MATRIX *mOut)
   float  **a, **y;
   int    isError, i, j, rows, cols, alloced = 0 ;
   MATRIX *mTmp ;
+
+  if (!mIn)
+    ErrorExit(ERROR_BADPARM,
+                 "MatrixInverse: NULL input matrix!\n") ;
 
   if (mIn->rows != mIn->cols)
     ErrorReturn(NULL,

@@ -16,7 +16,7 @@ am_libunix_a_OBJECTS = $(libunix_a_SOURCES:%.c=%.o)
 	source='$<' object='$@' libtool=no \
 	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
 	$(CCDEPMODE) $(depcomp) \
-	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
+	$(COMPILE) $(HAVE_OPENGL) -c `test -f '$<' || echo '$(srcdir)/'`$<
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

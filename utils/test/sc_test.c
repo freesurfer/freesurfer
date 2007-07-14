@@ -1,15 +1,14 @@
 /**
  * @file  sc_test.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief tests of core math routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Nick Schmansky, Silvester Czanner
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:46 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/07/14 22:56:22 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1194,7 +1193,7 @@ void test_fdist (void)
   TEST (sc_cdf_fdist_Q,
         (20.0, 200.0, 500.0), 2.92099265879979502e-155, TEST_TOL6);
   TEST (sc_cdf_fdist_Q,
-        (100.0, 200.0, 500.0), 6.53118977244362760e-316, 0.0);
+        (100.0, 200.0, 500.0), 0.0, 0.0);
   TEST (sc_cdf_fdist_Q,
         (1000.0, 200.0, 500.0), 0.0, 0.0);
   TEST (sc_cdf_fdist_Q,

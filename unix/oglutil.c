@@ -1,15 +1,14 @@
 /**
  * @file  oglutil.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief OpenGL utils
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:18 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/07/14 22:56:20 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +24,7 @@
  *
  */
 
+#ifdef HAVE_OPENGL
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +48,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.27 2006/12/29 02:09:18 nicks Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.28 2007/07/14 22:56:20 nicks Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -1202,6 +1202,7 @@ draw_colscalebar_time(int flags)
   glPopMatrix();
 }
 
+#endif // HAVE_OPENGL
 
 
 
