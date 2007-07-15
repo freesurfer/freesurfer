@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/12 22:51:50 $
-#    $Revision: 1.113 $
+#    $Date: 2007/07/15 01:43:08 $
+#    $Revision: 1.114 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.113 2007/07/12 22:51:50 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.114 2007/07/15 01:43:08 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1055,7 +1055,7 @@ skullstrip:
         |& tee -a $LF |& tee -a $CF
     echo "This is done to retain any edits made to brainmask.mgz." \
         |& tee -a $LF |& tee -a $CF
-    echo "Add the -cleanbm flag to recon-all to overwrite brainmask.mgz.\n" \
+    echo "Add the -clean-bm flag to recon-all to overwrite brainmask.mgz.\n" \
         |& tee -a $LF |& tee -a $CF
   endif
 
