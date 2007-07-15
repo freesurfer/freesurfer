@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/05 17:24:11 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/07/15 02:31:10 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,6 +63,7 @@ static void usage_exit(int code) ;
 static int label = -1 ;
 
 
+static MRI *mri_mask = NULL ;
 int
 main(int argc, char *argv[]) {
   char   *out_fname, **av ;
@@ -72,7 +73,7 @@ main(int argc, char *argv[]) {
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.7 2007/01/05 17:24:11 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.8 2007/07/15 02:31:10 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -188,6 +189,8 @@ main(int argc, char *argv[]) {
     MRIfree(&mri_saved_src) ;
   }
 
+  if (mri_mask)
+    MRImask(mri_dst, mri_mask, mri_dst, 0, 0) ;
   fprintf(stderr, "writing to %s...\n", out_fname) ;
   MRIwrite(mri_dst, out_fname) ;
   MRIfree(&mri_dst) ;
@@ -211,7 +214,13 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "dt")) {}
+  if (!stricmp(option, "mask")) 
+  {
+    mri_mask = MRIread(argv[2]) ;
+    if (mri_mask == NULL)
+      exit(Gerror) ;
+    nargs = 1 ;
+  }
   else switch (toupper(*option)) {
   case 'L':
     label = atoi(argv[2]) ;
