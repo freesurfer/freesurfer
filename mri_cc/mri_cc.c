@@ -4,14 +4,14 @@
  *
  * segments the callosum into 5 parts divided along the primary
  * eigendirection (mostly anterior/posterior)
- * and writes the results into aseg.mgz
+ * and writes the results into aseg_with_cc.mgz
  */
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/27 19:43:25 $
- *    $Revision: 1.17 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/15 02:30:34 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -60,15 +60,17 @@ int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
 static char     *wmvolume = "mri/wm" ;
 char            *Progname ;
-static int      dxi=2;
+static int      dxi=2;  // thickness on either side of midline
 static int      x_edge=0, y_edge=0;
-
+static int      write_cc = 0 ;
 static Real cc_tal_x = 0.0 ;
 static Real cc_tal_y = 0.0 ;
 static Real cc_tal_z = 27.0 ;
 static int fornix = 0 ;
 static int skip = 0 ;
 static LTA *lta = 0;
+static char output_fname[STRLEN] = "aseg_with_cc.mgz";
+static char aseg_fname[STRLEN] = "aseg.mgz" ;
 static MRI *remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited) ;
 static int cc_cutting_plane_correct(MRI *mri_aseg,
                                     double x0, double y0, double z0,
@@ -201,11 +203,14 @@ main(int argc, char *argv[])
   {
     MRI *mri_norm ;
 
-    sprintf(ifname,"%s/%s/mri/aseg.mgz",data_dir,argv[1]) ;
+    sprintf(ifname,"%s/%s/mri/%s",data_dir,argv[1], aseg_fname) ;
     print("reading aseg from %s\n", ifname);
     mri_aseg = MRIread(ifname) ;
     if (mri_aseg == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read aseg volume from %s",
+                Progname, ifname) ;
+    if (MRIvoxelsInLabel(mri_aseg, CC_Central) > 0)
+      ErrorExit(ERROR_BADFILE, "%s: volume %s already has CC in it",
                 Progname, ifname) ;
 
     sprintf(ifname,"%s/%s/mri/norm.mgz",data_dir,argv[1]) ;
@@ -549,7 +554,7 @@ main(int argc, char *argv[])
       }
     }
 
-    sprintf(ofname,"%s/%s/mri/aseg.mgz",data_dir,argv[1]) ;
+    sprintf(ofname,"%s/%s/mri/%s",data_dir,argv[1], output_fname) ;
     fprintf(stdout, "writing aseg with callosum to to %s...\n", ofname) ;
     MRIwrite(mri_aseg, ofname) ;
   }
@@ -572,9 +577,12 @@ main(int argc, char *argv[])
             nint(volume[0]));
   }
 
-  sprintf(ofname,"%s/%s/mri/cc.mgz",data_dir,argv[1]) ;
-  fprintf(stdout, "writing corpus callosum output to %s...\n", ofname) ;
-  MRIwrite(mri_cc, ofname) ;
+  if (write_cc)
+  {
+    sprintf(ofname,"%s/%s/mri/cc_new.mgz",data_dir,argv[1]) ;
+    fprintf(stdout, "writing corpus callosum output to %s...\n", ofname) ;
+    MRIwrite(mri_cc, ofname) ;
+  }
 
   if (mri_fornix && fornix)
   {
@@ -1203,6 +1211,13 @@ get_option(int argc, char *argv[])
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
     nargs = 3 ;
   }
+  else if (!stricmp(option, "ASEG"))
+  {
+    strcpy(aseg_fname, argv[2]) ;
+    printf("reading input aseg from %s\n", aseg_fname);
+    use_aseg = 1 ;
+    nargs = 1 ;
+  }
   else if ((!stricmp(option, "help")) ||
            (!stricmp(option, "-help")))
   {
@@ -1242,6 +1257,11 @@ get_option(int argc, char *argv[])
       use_aseg = atoi(argv[2]) ;
       printf("%susing aseg as input instead of wm volume\n",
              use_aseg ? "" : "not ") ;
+      nargs = 1 ;
+      break ;
+    case 'O':
+      strcpy(output_fname, argv[2]) ;
+      printf("writing aseg with cc labels to %s\n", output_fname) ;
       nargs = 1 ;
       break ;
     case 'T':
@@ -1954,6 +1974,93 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
         MRIsetVoxVal(mri_slice_edited, x, y, 0, 0, LABEL_IN_CC) ;
     }
   }
+  /* compute the mean sup/inf thickness of the cc in the slices
+     where fornix was removed, and use it to shave off remaining
+     fornix posterior to what was found.
+  */
+  {
+    double mean_thickness = 0.0, std_thickness = 0.0 ;
+    int    num = 0, thickness = 256, first_on, last_on, min_x_fornix = 256,
+           max_thickness, first_off, ystart ;
+
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      MRIwrite(mri_slice, "s.mgz") ;
+      MRIwrite(mri_slice_edited, "ed.mgz") ;
+    }
+    for (x = xmin ; x <= xmax ; x++)
+    {
+      int val2, y1 ;
+      
+      for (y = 0 ; y < mri_slice->height ; y++)
+      {
+        if (x == Gx && y == Gy)
+          DiagBreak() ;
+        val = (int)MRIgetVoxVal(mri_slice, x, y, 0, 0) ;
+        val2 = (int)MRIgetVoxVal(mri_slice_edited, x, y, 0, 0) ;
+        if (val == LABEL_IN_CC && val2 == LABEL_ERASE)  // in fornix
+        { 
+          thickness = 0 ;
+          min_x_fornix = MIN(min_x_fornix, x) ;
+          first_on = last_on = -1 ;
+          for (y1 = y ; y1 >= 0 ; y1--)
+          {
+            val = (int)MRIgetVoxVal(mri_slice_edited, x, y1, 0, 0) ;
+            if (val == LABEL_IN_CC)
+            {
+              if (first_on < 0)
+                first_on = y1 ;
+              else
+                last_on = y1 ;
+            }
+          }
+          thickness = first_on - last_on + 1 ;
+          mean_thickness += thickness ;
+          std_thickness += (thickness*thickness) ;
+          num++ ;
+          break ;   // don't bother with this x column any more
+        }
+      }
+    }
+    mean_thickness /= num ;
+    std_thickness = sqrt(std_thickness/num - mean_thickness*mean_thickness);
+    max_thickness = (int)ceil(mean_thickness+3*std_thickness); ;
+    for (x = min_x_fornix - 3 ; x <= min_x_fornix ; x++)
+    {
+      first_on = last_on = first_off = -1 ;
+      for (y = mri_slice->height-1 ; y >= 0 ; y--)
+      {
+        val = (int)MRIgetVoxVal(mri_slice_edited, x, y, 0, 0) ;
+        if (val == LABEL_IN_CC)
+        {
+          if (first_on < 0)
+            first_on = y ;
+          else
+            last_on = y ;
+        }
+        else if (first_on >= 0 && first_off < 0)
+          first_off = y ;
+      }
+      thickness = first_on - last_on + 1 ;
+      if (thickness >= max_thickness)  // erase inferior stuff
+      {
+        int y1 ;
+
+        DiagBreak() ;
+        if (first_off > last_on)  // two vertical runs of white - leftover fornix
+          ystart = first_off ;
+        else 
+          ystart = last_on+max_thickness-1 ;
+        for (y1 = ystart ; y1 < mri_slice->height ; y1++)
+        {
+          val = MRIgetVoxVal(mri_slice_edited, x, y1, 0, 0) ;
+          if (val == LABEL_IN_CC)
+            MRIsetVoxVal(mri_slice_edited, x, y1, 0, 0, LABEL_ERASE) ;
+        }
+      }
+    }
+  }
+
   MRIreplaceValues(mri_slice_edited, mri_slice_edited, LABEL_ERASE, 0) ;
 
   MRIfree(&mri_tmp) ;
@@ -1964,6 +2071,8 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
   MRIclear(mri_slice_edited) ;
   MRIsegmentToImage(mri_slice, mri_slice_edited, mseg, i) ;
   MRIsegmentFree(&mseg) ;
+
+
 
   return(mri_slice_edited) ;
 }
