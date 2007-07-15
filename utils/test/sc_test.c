@@ -7,8 +7,8 @@
  * Original Author: Nick Schmansky, Silvester Czanner
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/14 22:56:22 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/07/15 06:18:03 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1193,7 +1193,7 @@ void test_fdist (void)
   TEST (sc_cdf_fdist_Q,
         (20.0, 200.0, 500.0), 2.92099265879979502e-155, TEST_TOL6);
   TEST (sc_cdf_fdist_Q,
-        (100.0, 200.0, 500.0), 0.0, 0.0);
+        (100.0, 200.0, 500.0), 0.0, TEST_TOL6);
   TEST (sc_cdf_fdist_Q,
         (1000.0, 200.0, 500.0), 0.0, 0.0);
   TEST (sc_cdf_fdist_Q,
