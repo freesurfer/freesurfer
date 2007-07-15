@@ -16,6 +16,56 @@ AC_CONFIG_AUX_DIR([config])
 AC_MSG_NOTICE(Setting System...)
 # set target, build, host etc.
 AC_CANONICAL_SYSTEM
+
+# perform our own vendor string customizations...
+if test -e /etc/redhat-release ; then
+  # Centos4
+  cat /etc/redhat-release | grep CentOS | grep 4 >& /dev/null
+  if test "$?" = "0"; then
+    build_vendor="centos4"
+    host_vendor="centos4"
+    if test "x$host" = "xi686-redhat-linux-gnu"; then
+      host="Linux-centos4"
+    fi
+    if test "x$host" = "xx86_64-redhat-linux-gnu"; then
+      host="Linux-centos4_x86_64"
+    fi
+  fi
+  # RedHat9
+  cat /etc/redhat-release | grep "Red Hat Linux" | grep 9 >& /dev/null
+  if test "$?" = "0"; then
+    build_vendor="rh9"
+    host_vendor="rh9"
+    if test "x$host" = "xi686-pc-linux-gnu"; then
+      host="Linux-rh9"
+    fi
+  fi
+fi
+if test -e /etc/debian_version ; then
+  # Debian3
+  cat /etc/debian_version | grep 3 >& /dev/null
+  if test "$?" = "0"; then
+    build_vendor="debian3"
+    host_vendor="debian3"
+    if test "x$host" = "xi686-unknown-linux-gnu"; then
+      host="Linux-debian3"
+    fi
+    if test "x$host" = "xx86_64-unknown-linux-gnu"; then
+      host="Linux-debian3_x86_64"
+    fi
+  fi
+fi
+if test -e /etc/suseservers ; then
+  # SuSE
+  build_vendor="suse"
+  host_vendor="suse"
+  if test "x$host" = "xia64-unknown-linux-gnu"; then
+    host="Linux-suse-ia64"
+  fi
+fi
+AC_SUBST(build_vendor)
+AC_SUBST(host_vendor)
+AC_SUBST(host)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([config.h.in])
 AM_CONFIG_HEADER([config.h])
