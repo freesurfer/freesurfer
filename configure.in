@@ -55,7 +55,7 @@ if test -e /etc/debian_version ; then
     fi
   fi
 fi
-if test -e /etc/suseservers ; then
+if test -d /etc/susehelp.d ; then
   # SuSE
   build_vendor="suse"
   host_vendor="suse"
