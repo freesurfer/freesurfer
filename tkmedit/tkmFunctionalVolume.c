@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/04/24 06:44:01 $
- *    $Revision: 1.56 $
+ *    $Author: kteich $
+ *    $Date: 2007/07/16 16:50:03 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -95,6 +95,8 @@ char *FunV_ksaTclCommand [FunV_knNumTclCommands] = {
   "TimeCourse_DrawGraph",
   "TimeCourse_ClearData",
   "TimeCourse_UpdateNumConditions",
+  "TimeCourse_UpdateNumTimePoints",
+  "TimeCourse_UpdateTimePoint",
   "TimeCourse_UpdateNumPreStimPoints",
   "TimeCourse_UpdateTimeResolution",
   "TimeCourse_UpdateDisplayFlag",
@@ -1254,14 +1256,22 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
   }
 
 
-  /* convert to a second in the time course volume */
-  eVolume = FunD_ConvertTimePointToSecond( this->mpOverlayVolume,
-            this->mnTimePoint, &fSecond );
-
-  /* send the new value to tcl */
-  sprintf( sTclArguments, "%d %f", this->mnTimePoint, fSecond );
+  /* Send time point update to the Overlay. */
+  sprintf( sTclArguments, "%d", this->mnTimePoint );
   FunV_SendTclCommand_( this, FunV_tTclCommand_Ol_UpdateTimePoint,
                         sTclArguments );
+
+  /* If we have a time course, send time point update to the time
+     course (we also convert the TP to a second and send that along
+     too). */
+  if( NULL != this->mpTimeCourseVolume ) {
+    
+    eVolume = FunD_ConvertTimePointToSecond( this->mpTimeCourseVolume,
+					     this->mnTimePoint, &fSecond );
+    sprintf( sTclArguments, "%d %f", this->mnTimePoint, fSecond );
+    FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateTimePoint,
+			  sTclArguments );
+  }
 
   /* reinit the cache */
   eResult = FunV_InitOverlayCache_( this );
@@ -4416,9 +4426,6 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
 
     /* send the current time point */
     sprintf( sTclArguments, "%d", this->mnTimePoint );
-    FunD_ConvertTimePointToSecond( this->mpOverlayVolume,
-                                   this->mnTimePoint, &fValue );
-    sprintf( sTclArguments, "%s %f", sTclArguments, fValue );
     FunV_SendTclCommand_( this, FunV_tTclCommand_Ol_UpdateTimePoint,
                           sTclArguments );
 
@@ -4445,6 +4452,12 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
   /* if we have time course data... */
   if ( NULL != this->mpTimeCourseVolume ) {
 
+    /* Send the number of time points. */
+    FunD_GetNumTimePoints( this->mpTimeCourseVolume, &nValue );
+    sprintf( sTclArguments, "%d", nValue );
+    FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateNumTimePoints,
+			  sTclArguments );
+
     /* send the number of conditions */
     FunD_GetNumConditions( this->mpTimeCourseVolume, &nValue );
     sprintf( sTclArguments, "%d", nValue );
@@ -4462,6 +4475,14 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
     sprintf( sTclArguments, "%f", fValue );
     FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateTimeResolution,
                           sTclArguments );
+
+    /* Send time point update to the time course (we also convert the
+       TP to a second and send that along too). */
+    FunD_ConvertTimePointToSecond( this->mpTimeCourseVolume,
+				   this->mnTimePoint, &fValue );
+    sprintf( sTclArguments, "%d %f", this->mnTimePoint, fValue );
+    FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateTimePoint,
+			  sTclArguments );
 
     /* send all the display flags */
     for ( nFlag = FunV_knFirstTimeCourseDisplayFlag;

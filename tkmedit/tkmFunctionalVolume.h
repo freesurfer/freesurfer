@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/15 16:29:14 $
- *    $Revision: 1.25 $
+ *    $Author: kteich $
+ *    $Date: 2007/07/16 16:50:03 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -106,6 +106,8 @@ typedef enum {
   FunV_tTclCommand_TC_DrawGraph,
   FunV_tTclCommand_TC_ClearGraph,
   FunV_tTclCommand_TC_UpdateNumConditions,
+  FunV_tTclCommand_TC_UpdateNumTimePoints,
+  FunV_tTclCommand_TC_UpdateTimePoint,
   FunV_tTclCommand_TC_UpdateNumPreStimPoints,
   FunV_tTclCommand_TC_UpdateTimeResolution,
   FunV_tTclCommand_TC_UpdateDisplayFlag,

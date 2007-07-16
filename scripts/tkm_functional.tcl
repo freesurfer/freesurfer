@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/07/09 21:42:59 $
-##    $Revision: 1.39 $
+##    $Date: 2007/07/16 16:50:09 $
+##    $Revision: 1.40 $
 ##
 ## Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA). 
@@ -44,8 +44,8 @@ set FunD_tSampleType(nearest)   0
 set FunD_tSampleType(trilinear) 1
 
 # our global vars
-set gnTimePoint      0
-set gnTimeSecond     0
+set gnOverlayTimePoint 0
+set gnTimeCourseTimePoint 0
 set gnCondition      0
 set gbTruncateNegative 0
 set gbTruncatePositive 0
@@ -65,6 +65,7 @@ set gfOverlayRange(max) 0
 set gfOverlayRange(min) 0
 set gnOverlayNumTimePoints 0
 set gnOverlayNumConditions 0
+set gnTimeCourseNumTimePoints 0
 set gsOverlayDataName ""
 set gfOverlayAlpha 1.0
 set gOverlaySampleType $FunD_tSampleType(nearest)
@@ -291,14 +292,14 @@ proc TimeCourse_DrawGraph {} {
 
 proc TimeCourse_DrawCurrentTimePoint {} {
     
-    global gwGraph gnTimeSecond
-    
+    global gwGraph gnTimeCourseSecond
+
     # delete the old one
     catch {$gwGraph marker delete currentTimePoint}
 
     # draw a dashed line at current time point
     $gwGraph marker create line \
-      -coords [list $gnTimeSecond -Inf $gnTimeSecond Inf] \
+      -coords [list $gnTimeCourseSecond -Inf $gnTimeCourseSecond Inf] \
       -name currentTimePoint \
       -dashes {5 5}
 }
@@ -367,11 +368,19 @@ proc Graph_RegionEnd { iwGraph inX inY } {
 proc Graph_HandleClick { iwGraph inX inY } {
 
     global gnTimeResolution gnPreStimPoints
+    global gnOverlayNumTimePoints gnTimeCourseNumTimePoints
 
-    # get the x coord of the graph and send it to the c code.
-    set nSecond [$iwGraph axis invtransform x $inX]
-    set nTimePoint [expr [expr $nSecond / $gnTimeResolution] + $gnPreStimPoints]
-    Overlay_SetTimePoint $nTimePoint
+    # If we have the same number of time points in the overlay and
+    # time course, set the overlay time course based on our time
+    # point.
+    if { $gnOverlayNumTimePoints == $gnTimeCourseNumTimePoints }  {
+
+	# get the x coord of the graph and send it to the c code.
+	set nSecond [$iwGraph axis invtransform x $inX]
+	set nTimePoint [expr [expr $nSecond / $gnTimeResolution] + $gnPreStimPoints]
+
+	Overlay_SetTimePoint $nTimePoint
+    }
 }
 
 # ============================================================== UPDATING VARS
@@ -398,7 +407,8 @@ proc Overlay_DoConfigDlog {} {
     global FunV_tDisplayFlag_Ol_ReversePhase
     global FunV_tDisplayFlag_Ol_Grayscale
     global gnOverlayNumTimePoints gnOverlayNumConditions
-    global gnTimePoint gnCondition gbOverlayOffset gbShowOverlayOffsetOptions
+    global gnOverlayTimePoint gnCondition gbOverlayOffset 
+    global gbShowOverlayOffsetOptions
     global gbTruncateNegative gbReverse gbIgnoreThreshold 
     global gbGrayscale gbOpaque gbTruncatePositive
     global gfThreshold gfOverlayRange
@@ -437,7 +447,7 @@ proc Overlay_DoConfigDlog {} {
 
 	tkm_MakeEntryWithIncDecButtons \
 	    $fwTimePoint "Time Point (0-$nMaxTimePoint)" \
-	    gnTimePoint \
+	    gnOverlayTimePoint \
 	    {} 1
 
 	# Play and stop buttons for animating the overlay.
@@ -870,7 +880,7 @@ proc TimeCourse_SetGraphSetting { iColor iType iValue } {
 
 proc Overlay_SaveConfiguration {} {
 
-    global gnTimePoint gnCondition gbTruncateNegative gbReverse
+    global gnOverlayTimePoint gnCondition gbTruncateNegative gbReverse
     global gbIgnoreThreshold gfThreshold gbGrayscale gbOpaque
     global gbOverlayOffset gbTruncatePositive gfOverlayAlpha
     global gOverlaySampleType
@@ -879,7 +889,7 @@ proc Overlay_SaveConfiguration {} {
     global gbSavedReverse gfSavedThreshold gbSavedOverlayOffset gbSavedOpaque
     global gfSavedOverlayAlpha gSavedOverlaySampleType
 
-    set gnSavedTimePoint $gnTimePoint
+    set gnSavedTimePoint $gnOverlayTimePoint
     set gnSavedCondition $gnCondition
     set gbSavedTruncateNegative $gbTruncateNegative
     set gbSavedTruncatePositive $gbTruncatePositive
@@ -898,7 +908,7 @@ proc Overlay_SaveConfiguration {} {
 
 proc Overlay_RestoreConfiguration {} {
 
-    global gnTimePoint gnCondition gbTruncateNegative gbReverse
+    global gnOverlayTimePoint gnCondition gbTruncateNegative gbReverse
     global gbIgnoreThreshold gfThreshold gbGrayscale gbOpaque
     global gbOverlayOffset gbTruncatePositive gfOverlayAlpha
     global gOverlaySampleType
@@ -907,7 +917,7 @@ proc Overlay_RestoreConfiguration {} {
     global gbSavedReverse gfSavedThreshold gbSavedOverlayOffset gbSavedOpaque
     global gfSavedOverlayAlpha gSavedOverlaySampleType
 
-    set gnTimePoint $gnSavedTimePoint
+    set gnOverlayTimePoint $gnSavedTimePoint
     set gnCondition $gnSavedCondition
     set gbTruncateNegative $gbSavedTruncateNegative
     set gbTruncatePositive $gbSavedTruncatePositive
@@ -927,7 +937,8 @@ proc Overlay_RestoreConfiguration {} {
 
 proc Overlay_SetConfiguration {} {
 
-    global gnTimePoint gnCondition gbTruncateNegative gbReverse gfThreshold
+    global gnOverlayTimePoint gnCondition gbTruncateNegative gbReverse
+    global gfThreshold
     global gbOverlayOffset gbTruncatePositive gbIgnoreThreshold gbGrayscale
     global gbOpaque gfOverlayAlpha gOverlaySampleType
     global FunV_tDisplayFlag_Ol_TruncateNegative
@@ -938,7 +949,7 @@ proc Overlay_SetConfiguration {} {
     global FunV_tDisplayFlag_Ol_Grayscale
     global FunV_tDisplayFlag_Ol_Opaque
 
-    Overlay_SetTimePoint $gnTimePoint
+    Overlay_SetTimePoint $gnOverlayTimePoint
     Overlay_SetCondition $gnCondition
     Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_TruncateNegative $gbTruncateNegative
     Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_ReversePhase $gbReverse
@@ -1018,13 +1029,13 @@ proc PlayTimePoint {} {
 
 proc LoopTimePoint {} {
     global gTimePointPlaying
-    global gnTimePoint gnOverlayNumTimePoints
+    global gnOverlayTimePoint gnOverlayNumTimePoints
 
     if { $gTimePointPlaying } {
 
-	incr gnTimePoint
-	if { $gnTimePoint >= $gnOverlayNumTimePoints } {
-	    set gnTimePoint 0
+	incr gnOverlayTimePoint
+	if { $gnOverlayTimePoint >= $gnOverlayNumTimePoints } {
+	    set gnOverlayTimePoint 0
 	}
 	Overlay_SetConfiguration
 	
@@ -1089,15 +1100,10 @@ proc Overlay_UpdateDataName { isName } {
     set gsOverlayDataName $isName
 } 
 
-proc Overlay_UpdateTimePoint { inTimePoint inTimeSecond } {
+proc Overlay_UpdateTimePoint { inTimePoint } {
 
-    global gnTimePoint gnTimeSecond gbFunctionalWindowOpen
-    set gnTimePoint  $inTimePoint
-    set gnTimeSecond $inTimeSecond
-
-    if { $gbFunctionalWindowOpen == 1 } {
-  TimeCourse_DrawCurrentTimePoint
-    }
+    global gnOverlayTimePoint
+    set gnOverlayTimePoint  $inTimePoint
 }
 
 proc Overlay_UpdateCondition { inCondition } {
@@ -1151,6 +1157,21 @@ proc TimeCourse_UpdateNumConditions { inNumConditions } {
 	set gGraphSetting($dataSet,visible) 1
     } else {
 	set gGraphSetting($dataSet,visible) 0
+    }
+}
+
+proc TimeCourse_UpdateNumTimePoints { inNumPts } { 
+    global gnTimeCourseNumTimePoints
+    set gnTimeCourseNumTimePoints $inNumPts
+}
+
+proc TimeCourse_UpdateTimePoint { inTimePoint inSecond } {
+    global gnTimeCourseTimePoint gnTimeCourseSecond gbFunctionalWindowOpen
+    set gnTimeCourseTimePoint $inTimePoint
+    set gnTimeCourseSecond $inSecond
+
+    if { $gbFunctionalWindowOpen } {
+	TimeCourse_DrawCurrentTimePoint
     }
 }
 
