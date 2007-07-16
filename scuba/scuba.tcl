@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/07/13 18:57:57 $
-#    $Revision: 1.244 $
+#    $Date: 2007/07/16 17:37:15 $
+#    $Revision: 1.245 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.244 2007/07/13 18:57:57 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.245 2007/07/16 17:37:15 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4285,6 +4285,10 @@ proc SubjectsLoaderSubjectMenuCallback { inSubject } {
 
     global gaSubject
 
+    if { ![info exists gaSubject(nameList)] } {
+	return
+    }
+
     # Get the name at this index in the nameList, then select that
     # subject.
     set gaSubject(current) [lindex $gaSubject(nameList) $inSubject]
@@ -4297,6 +4301,10 @@ proc SelectSubjectInSubjectsLoader { isSubject } {
     global gaWidget
     global gaSubject
     global env
+
+    if { ![info exists gaSubject(nameList)] } {
+	return
+    }
 
     # Make sure we know this subject.
     set nSubject [lsearch $gaSubject(nameList) $isSubject]
@@ -6737,7 +6745,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.244 2007/07/13 18:57:57 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.245 2007/07/16 17:37:15 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
