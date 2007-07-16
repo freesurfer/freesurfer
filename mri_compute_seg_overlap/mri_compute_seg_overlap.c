@@ -1,17 +1,19 @@
 /**
  * @file  mri_compute_seg_overlap.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Compute Dice coefficent comparing two segmentation volumes.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This program compares two segmentation volumes and
+ * computes the Dice and Jaccard Coefficients.
+ * It considers only 9 major structures.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Authors: Xiao Han, Nick Schmansky 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/07/16 19:46:26 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -26,9 +28,6 @@
  */
 
 
-/* This is a simple program to compare two segmentation volumes to compute
- * the Dice and Jaccard coefficients. It only considers 10 major structures.
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -126,10 +125,11 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
 
-  nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_compute_seg_overlap.c,v 1.6 2006/12/29 02:09:06 nicks Exp $",
-           "$Name:  $");
+  nargs = 
+    handle_version_option
+    (argc, argv,
+     "$Id: mri_compute_seg_overlap.c,v 1.7 2007/07/16 19:46:26 nicks Exp $",
+     "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -315,7 +315,7 @@ static void usage(int exit_val) {
   fprintf(fout, "usage: %s <seg vol1> <seg vol2>\n", Progname);
   fprintf(fout, "This program compares two segmentation volumes and \n"
           "computes the Dice and Jaccard Coefficients. \n"
-          "It considers only 10 major structures. \n") ;
+          "It considers only 9 major structures. \n") ;
   fprintf(fout, "Options:\n");
   fprintf(fout, "   -log %%s   log_file for individual Dice \n");
   fprintf(fout, "   -mlog %%s  log_file for mean Dice \n");
