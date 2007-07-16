@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/12 00:42:11 $
- *    $Revision: 1.540 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/16 18:49:48 $
+ *    $Revision: 1.541 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -613,7 +613,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.540 2007/07/12 00:42:11 greve Exp $");
+  return("$Id: mrisurf.c,v 1.541 2007/07/16 18:49:48 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1863,7 +1863,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     if ((Gdiag & DIAG_HEARTBEAT) && (!(vno % (mris->nvertices/10))))
       fprintf(stdout, "%%%1.0f done\n",
               100.0f*(float)vno / (float)mris->nvertices) ;
-    if (vno > 139000 || (!(vno % 100)))
+    if ((vno > 139000 || (!(vno % 100))) && 0)
     {
       if (checks++ == 0)
         printf("checking surface at vno %d\n", vno) ;
@@ -1924,7 +1924,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       memmove(v->dist_orig, old_dist, v->vtotal*sizeof(v->dist_orig[0])) ;
     }
 
-    if (vno > 139000 || !(vno % 100))
+    if ((vno > 139000 || !(vno % 100)) && 0)
     {
       if (checks++ == 0)
         printf("checking surface at vno %d\n", vno) ;
@@ -2150,7 +2150,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       }
     }
 
-    if (vno > 9.0*mris->nvertices/10.0)
+    if ((vno > 9.0*mris->nvertices/10.0) && 0)
     {
       if (checks++ == 0)
         printf("checking surface at vno %d\n", vno) ;
