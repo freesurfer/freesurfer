@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/05/08 04:54:27 $
- *    $Revision: 1.96 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/16 18:50:18 $
+ *    $Revision: 1.97 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.96 2007/05/08 04:54:27 greve Exp $";
+  "$Id: mris_make_surfaces.c,v 1.97 2007/07/16 18:50:18 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -75,7 +75,7 @@ static double  compute_brain_thresh(MRI_SURFACE *mris,
 static int fix_midline(MRI_SURFACE *mris,
                        MRI *mri_aseg,
                        MRI *mri_brain,
-                       char *hemi, int which) ;
+                       char *hemi, int which, int fix_mtl) ;
 static MRI *smooth_contra_hemi(MRI *mri_filled,
                                MRI *mri_src,
                                MRI *mri_dst,
@@ -98,6 +98,7 @@ MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
 int MRISerodeRipped(MRI_SURFACE *mris, int niter) ;
 int MRISdilateRipped(MRI_SURFACE *mris, int niter) ;
 
+static int fix_mtl = 0 ;
 static LABEL *highres_label = NULL ;
 static char T1_name[STRLEN] = "brain" ;
 
@@ -202,6 +203,14 @@ static int MGZ = 0; // for use with MGZ format
 
 static int longitudinal = 0;
 
+static int pial_num = 0 ; 
+static int white_num = 0 ;
+#define MAX_VERTICES 1000
+static float pial_vals[MAX_VERTICES] ;
+static int pial_vnos[MAX_VERTICES] ;
+static float white_vals[MAX_VERTICES] ;
+static int white_vnos[MAX_VERTICES] ;
+
 static float check_contrast_direction(MRI_SURFACE *mris,MRI *mri_T1) ;
 int
 main(int argc, char *argv[]) {
@@ -221,13 +230,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.96 2007/05/08 04:54:27 greve Exp $",
+   "$Id: mris_make_surfaces.c,v 1.97 2007/07/16 18:50:18 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.96 2007/05/08 04:54:27 greve Exp $",
+           "$Id: mris_make_surfaces.c,v 1.97 2007/07/16 18:50:18 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -645,13 +654,22 @@ main(int argc, char *argv[]) {
       parms.sigma = current_sigma ;
       thresh = mark_dura(mris, mri_ratio, mri_T1, current_sigma) ;
       if (mri_aseg)
-        fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE) ;
+        fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE, 0) ;
       MRIScomputeBorderValues
       (mris, mri_T1, mri_smooth, max_gray,
        max_gray_at_csf_border, min_gray_at_csf_border,
        min_csf,(max_csf+max_gray_at_csf_border)/2,
        current_sigma, 2*max_thickness, parms.fp,
        GRAY_CSF, mri_ratio, thresh) ;
+      {
+        int i, vno ;
+        for (i = 0; i < pial_num ; i++)
+        {
+          vno = pial_vnos[i] ;
+          mris->vertices[vno].val = pial_vals[i] ;
+          mris->vertices[vno].marked = 1 ;
+        }
+      }
       if (vavgs) {
         fprintf
         (stderr,
@@ -740,7 +758,7 @@ main(int argc, char *argv[]) {
     parms.n_averages = n_averages ;
     MRISprintTessellationStats(mris, stderr) ;
     if (mri_aseg)
-      fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE) ;
+      fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE, 0) ;
     MRIScomputeBorderValues(mris, mri_T1, mri_smooth,
                             MAX_WHITE, max_border_white, min_border_white,
                             min_gray_at_white_border,
@@ -798,7 +816,7 @@ main(int argc, char *argv[]) {
 
   MRISunrip(mris) ;
   if (mri_aseg)
-    fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF) ;
+    fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
   if (!nowhite) {
     sprintf(fname,
             "%s/%s/surf/%s.%s%s%s",
@@ -1047,6 +1065,15 @@ main(int argc, char *argv[]) {
        min_csf,(max_csf+max_gray_at_csf_border)/2,
        current_sigma, 2*max_thickness, parms.fp,
        GRAY_CSF, mri_mask, thresh) ;
+      {
+        int i, vno ;
+        for (i = 0; i < pial_num ; i++)
+        {
+          vno = pial_vnos[i] ;
+          mris->vertices[vno].val = pial_vals[i] ;
+          mris->vertices[vno].marked = 1 ;
+        }
+      }
       MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
       if (vavgs) {
         fprintf
@@ -1244,6 +1271,9 @@ get_option(int argc, char *argv[]) {
     printf("%sgenerating cortex label to subject's "
            "label/?h.cortex.label file\n", label_cortex ? "" : "not ") ;
     nargs = 1 ;
+  } else if (!stricmp(option, "fix_mtl")) {
+    fix_mtl = 1 ;
+    printf("not allowing deformations in hippocampus when estimating pial surface\n") ;
   } else if (!stricmp(option, "mode")) {
     use_mode = atoi(argv[2]) ;
     printf("%susing class modes instead of means...\n",
@@ -1259,6 +1289,22 @@ get_option(int argc, char *argv[]) {
     printf("not using aseg volume to prevent surfaces "
            "crossing the midline\n");
     nargs = 0 ;
+  } else if (!stricmp(option, "wval")) {
+    if (white_num >= MAX_VERTICES)
+      ErrorExit(ERROR_NOMEMORY, "%s: too many white vertex vals specified", Progname) ;
+    white_vnos[white_num] = atoi(argv[2]) ;
+    white_vals[white_num] = atof(argv[3]) ;
+    printf("constraining white surface val for vno %d to be %2.0f\n", white_vnos[white_num], white_vals[white_num]) ;
+    white_num++ ;
+    nargs = 2 ;
+  } else if (!stricmp(option, "pval")) {
+    if (pial_num >= MAX_VERTICES)
+      ErrorExit(ERROR_NOMEMORY, "%s: too many pial vertex vals specified", Progname) ;
+    pial_vnos[pial_num] = atoi(argv[2]) ;
+    pial_vals[pial_num] = atof(argv[3]) ;
+    printf("constraining pial surface val for vno %d to be %2.0f\n", pial_vnos[pial_num], pial_vals[pial_num]) ;
+    pial_num++ ;
+    nargs = 2 ;
   } else if (!stricmp(option, "T1") || !stricmp(option, "gvol")) {
     strcpy(T1_name, argv[2]) ;
     printf("using %s as T1 volume...\n", T1_name) ;
@@ -1973,7 +2019,7 @@ smooth_contra_hemi(MRI *mri_filled,
 
 static int
 fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
-            int which)
+            int which, int fix_mtl)
 {
   int      vno, label, contra_wm_label, nvox=0, total_vox=0, adjacent=0,
            wm_label ;
@@ -2019,6 +2065,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
           label == Left_Caudate ||
           label == Right_Caudate ||
           label == Left_Pallidum ||
+          ((IS_HIPPO(label)  || IS_AMYGDALA(label)) && fix_mtl) ||
           label == Right_Pallidum ||
           label == Third_Ventricle ||
           label == Right_Thalamus_Proper ||
@@ -2075,6 +2122,9 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       {
         if (label == Left_Putamen || label == Right_Putamen)
           DiagBreak() ;
+        if ((label == Left_Lateral_Ventricle || label == Right_Lateral_Ventricle) &&
+            d > 1)  // in calcarine ventricle can be pretty close to wm surface
+          break ;
         MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
         MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
         v->val = val ;
