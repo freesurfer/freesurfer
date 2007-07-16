@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/08 04:54:27 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/07/16 22:08:23 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1535,6 +1535,29 @@ int MRISfwhm2niters(double fwhm, MRIS *surf)
   //1.14 is a fudge factor based on empirical fit of nearest neighbor
   niters = floor(1.14*(4*PI*(gstd*gstd))/(7*avgvtxarea) + 0.5);
   return(niters);
+}
+/*----------------------------------------------------------------------*/
+double MRISniters2fwhm(int niters, MRIS *surf)
+{
+  double avgvtxarea, gstd, fwhm;
+
+  MRIScomputeMetricProperties(surf);
+  avgvtxarea = surf->total_area/surf->nvertices;
+
+  if (surf->group_avg_surface_area > 0)
+  {
+    // This should be ok even if metric properties have been scaled ??
+    if (getenv("FIX_VERTEX_AREA") != NULL)
+    {
+      printf("INFO: fwhm2niters: Fixing group surface area\n");
+      avgvtxarea *= (surf->group_avg_surface_area/surf->total_area);
+    }
+    else printf("INFO: fwhm2niters: NOT fixing group surface area\n");
+  }
+
+  gstd = sqrt(7*avgvtxarea*niters/(1.14*4*PI));
+  fwhm = gstd*sqrt(log(256.0));
+  return(fwhm);
 }
 /*---------------------------------------------------------------*/
 int MRISfwhm2nitersSubj(double fwhm, char *subject, char *hemi, char *surfname)

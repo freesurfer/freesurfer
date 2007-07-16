@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/08 04:54:26 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/07/16 22:08:22 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,8 @@ MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
 int MRISfdr2vwth(MRIS *surf, double fdr, int signid,
                  int log10flag, int maskflag, double *vwth);
 
-int MRISfwhm2niters(double fwhm, MRIS *surf);
+int    MRISfwhm2niters(double fwhm, MRIS *surf);
+double MRISniters2fwhm(int niters, MRIS *surf);
 int MRISfwhm2nitersSubj(double fwhm,char *subject,char *hemi,char *surfname);
 double MRISfwhmFromAR1(MRIS *surf, double ar1);
 int MRISscale(MRIS *mris, double scale);
