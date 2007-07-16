@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/16 22:08:23 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/07/16 22:21:53 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1520,11 +1520,9 @@ int MRISfwhm2niters(double fwhm, MRIS *surf)
   MRIScomputeMetricProperties(surf);
   avgvtxarea = surf->total_area/surf->nvertices;
 
-  if (surf->group_avg_surface_area > 0)
-  {
+  if (surf->group_avg_surface_area > 0)  {
     // This should be ok even if metric properties have been scaled ??
-    if (getenv("FIX_VERTEX_AREA") != NULL)
-    {
+    if (getenv("FIX_VERTEX_AREA") != NULL)    {
       printf("INFO: fwhm2niters: Fixing group surface area\n");
       avgvtxarea *= (surf->group_avg_surface_area/surf->total_area);
     }
@@ -1544,12 +1542,10 @@ double MRISniters2fwhm(int niters, MRIS *surf)
   MRIScomputeMetricProperties(surf);
   avgvtxarea = surf->total_area/surf->nvertices;
 
-  if (surf->group_avg_surface_area > 0)
-  {
+  if (surf->group_avg_surface_area > 0)  {
     // This should be ok even if metric properties have been scaled ??
-    if (getenv("FIX_VERTEX_AREA") != NULL)
-    {
-      printf("INFO: fwhm2niters: Fixing group surface area\n");
+    if (getenv("FIX_VERTEX_AREA") != NULL)    {
+      printf("INFO: niters2fwhm: Fixing group surface area\n");
       avgvtxarea *= (surf->group_avg_surface_area/surf->total_area);
     }
     else printf("INFO: fwhm2niters: NOT fixing group surface area\n");
@@ -1567,16 +1563,14 @@ int MRISfwhm2nitersSubj(double fwhm, char *subject, char *hemi, char *surfname)
   int niters;
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if (SUBJECTS_DIR == NULL)
-  {
+  if (SUBJECTS_DIR == NULL)  {
     printf("ERROR: SUBJECTS_DIR not defined in environment\n");
     return(-1);
   }
   sprintf(surfpath,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
 
   surf = MRISread(surfpath);
-  if (surf == NULL)
-  {
+  if (surf == NULL)  {
     printf("ERROR: could not read %s\n",surfpath);
     return(-1);
   }
@@ -1596,19 +1590,16 @@ double MRISfwhmFromAR1(MRIS *surf, double ar1)
 
   MRIScomputeMetricProperties(surf);
   InterVertexDistAvg = surf->avg_vertex_dist;
-  if (surf->group_avg_surface_area > 0)
-  {
+  if (surf->group_avg_surface_area > 0)  {
     // This should be ok even if metric properties have been scaled ??
-    if (getenv("FIX_VERTEX_AREA") != NULL)
-    {
+    if (getenv("FIX_VERTEX_AREA") != NULL)    {
       printf("INFO: fwhmFromAR1: Fixing group surface area\n");
       InterVertexDistAvg *= sqrt(surf->group_avg_surface_area/surf->total_area);
     }
     else printf("INFO: fwhmFromAR1: NOT fixing group surface area\n");
   }
 
-  if (ar1 > 0.0)
-  {
+  if (ar1 > 0.0)  {
     gstd = InterVertexDistAvg/sqrt(-4*log(ar1));
     fwhm = gstd*sqrt(log(256.0));
   }
