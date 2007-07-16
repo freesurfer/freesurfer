@@ -4,9 +4,9 @@
 ## histolabel.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2007/01/05 00:21:44 $
-##    $Revision: 1.6 $
+##    $Author: kteich $
+##    $Date: 2007/07/16 21:38:58 $
+##    $Revision: 1.7 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -97,7 +97,7 @@ proc MakeHistogram { ifwTop iwwTop args } {
 	-side top
 
     set gaHisto(widget,histo) $bwHisto
-    
+
     hl_DrawHistogram
 
     return $bwHisto

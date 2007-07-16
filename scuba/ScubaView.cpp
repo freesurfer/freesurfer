@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/05 22:19:28 $
- *    $Revision: 1.115 $
+ *    $Date: 2007/07/16 21:38:57 $
+ *    $Revision: 1.116 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -88,6 +88,7 @@ ScubaView::ScubaView() {
   mCurrentMovingViewIntersection = -1;
   mThroughPlaneIncrements[0] =
     mThroughPlaneIncrements[1] = mThroughPlaneIncrements[2] = 1.0;
+  mLastMouseOver.Set( 0, 0, 0 );
 
   ScubaGlobalPreferences& globalPrefs =
     ScubaGlobalPreferences::GetPreferences();
@@ -2926,9 +2927,12 @@ ScubaView::GetVolumeHistogramInView ( VolumeCollection& iSourceVol,
     }
   }
 
-  if ( oBinCounts.size() == 0 ) {
+  // Make sure we had some points in the view.
+  if ( RASPoints.size() == 0 ) {
     oMinBinValue = 0;
     oBinIncrement = 0;
+    oBinCounts.clear();
+    return;
   }
 
   // Now just get a histogram for those points.

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/07 16:05:27 $
- *    $Revision: 1.108 $
+ *    $Author: kteich $
+ *    $Date: 2007/07/16 21:38:58 $
+ *    $Revision: 1.109 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2424,11 +2424,6 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
     return;
   }
 
-  // Set all bins to zero.
-  for ( int nBin = 0; nBin < icBins; nBin++ ) {
-    oBinCounts[nBin] = 0;
-  }
-
   // Find values for all the RAS points. Save the highs and lows.
   float low = numeric_limits<float>::max();
   float high = numeric_limits<float>::min();
@@ -2437,8 +2432,9 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
   for ( tPoint = iRASPoints.begin(); tPoint != iRASPoints.end(); ++tPoint ) {
     Point3<float> point = *tPoint;
     VolumeLocation& loc = (VolumeLocation&) MakeLocationFromRAS( point.xyz());
-    if( iROI && !iROI->IsVoxelSelected( loc.Index() ) )
-	continue;
+    if( iROI && !iROI->IsVoxelSelected( loc.Index() ) ) {
+      continue;
+    }
     float value = GetMRINearestValue( loc );
     if ( value < low ) {
       low = value;
@@ -2450,17 +2446,32 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
     delete &loc;
   }
 
-  float binIncrement = (high - low) / (float)icBins;
+  // No points in the ROI.
+  if( values.size() == 0 ) {
+    oMinBinValue = 0;
+    oBinIncrement = 0;
+    return;
+  }
 
+  // Set all bins to zero.
+  for ( int nBin = 0; nBin < icBins; nBin++ ) {
+    oBinCounts[nBin] = 0;
+  }
+
+  // Increment our high a little so that we can fit the high value
+  // into the last bin nicely. Use our increment for this.
+  high += GetPreferredValueIncrement();
+
+  float binIncrement = (high - low) / (float)icBins;
+  
   // Now go through the values and calculate a bin for them. Increment
   // the count in the proper bin.
   list<float>::iterator tValue;
   for ( tValue = values.begin(); tValue != values.end(); ++tValue ) {
     float value = *tValue;
     int nBin = (int)floor( (value - low) / (float)binIncrement );
-    if ( nBin == icBins && value == high ) { // if value == high, bin will be
-      nBin = icBins-1;              // icBins, should be icBins-1
-    }
+    assert( nBin >= 0 );
+    assert( nBin < icBins );
     oBinCounts[nBin]++;
   }
 
