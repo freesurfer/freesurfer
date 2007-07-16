@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/22 06:32:26 $
- *    $Revision: 1.13 $
+ *    $Date: 2007/07/16 22:38:29 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -144,7 +144,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.13 2007/06/22 06:32:26 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.14 2007/07/16 22:38:29 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -180,6 +180,9 @@ int DetrendOrder = -1;
 int DoDetrend = 1;
 
 char *ar1fname = NULL;
+
+int FixGroupAreaTest(MRIS *surf, char *outfile);
+char *GroupAreaTestFile = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -241,6 +244,11 @@ int main(int argc, char *argv[]) {
   printf("AvgVtxArea       %lf\n",avgvtxarea);
   printf("AvgVtxDist       %lf\n",InterVertexDistAvg);
   printf("StdVtxDist       %lf\n",InterVertexDistStdDev);
+
+  if(GroupAreaTestFile != NULL){
+    FixGroupAreaTest(surf,GroupAreaTestFile);
+    exit(0);
+  }
 
   if(nitersonly && infwhm > 0) {
     niters = MRISfwhm2niters(infwhm,surf);
@@ -427,6 +435,11 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
       outpath = pargv[0];
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--group-area-test")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      GroupAreaTestFile = pargv[0];
+      synth = 1;
       nargsused = 1;
     } else if (!strcasecmp(option, "--X")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -639,3 +652,39 @@ static void dump_options(FILE *fp) {
 
   return;
 }
+
+/*-------------------------------------------------------------
+  FixGroupAreaTest() - the purpose of this function is to see
+  how the fwhm changes when accounting for differences in area
+  of group subjects (such as fsaverage). The output file will
+  have 3 columns: (1) niterations, (2) corresponding fwhm 
+  when not fixing, (3) corresponding fwhm  when fixing.
+  -------------------------------------------------------------*/
+int FixGroupAreaTest(MRIS *surf, char *outfile)
+{
+  double fwhm, fwhmfix;
+  int niters;
+  FILE *fp;
+
+  fp = fopen(outfile,"w");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s\n",outfile);
+    return(1);
+  }
+
+  // fwhm is for unfixed
+  for(fwhm = 1; fwhm < 50; fwhm ++){
+    unsetenv("FIX_VERTEX_AREA");
+    niters = MRISfwhm2niters(fwhm,surf);
+    setenv("FIX_VERTEX_AREA","1",1);
+    fwhmfix = MRISniters2fwhm(niters, surf);
+    printf("%3d %g %g\n",niters,fwhm,fwhmfix);
+    fprintf(fp,"%4d %6.2lf %6.2lf\n",niters,fwhm,fwhmfix);
+    fflush(fp);
+  }
+  unsetenv("FIX_VERTEX_AREA");
+  fclose(fp);
+
+  return(0);
+}
+
