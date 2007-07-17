@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/07/16 17:37:15 $
-#    $Revision: 1.245 $
+#    $Date: 2007/07/17 19:43:39 $
+#    $Revision: 1.246 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.245 2007/07/16 17:37:15 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.246 2007/07/17 19:43:39 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1743,7 +1743,7 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
 
     frame $fwCommands
     button $fwCommands.bwMakeROI -text "Make New ROI" \
-	-command { set roiID [NewCollectionROI $gaCollection(current,id)]; SetROILabel $roiID "New ROI"; UpdateROIList; SelectROIInROIProperties $roiID }
+	-command { set roiID [NewCollectionROI $gaCollection(current,id)]; SetROILabel $roiID [MakeUniqueLabelForROI $roiID $gaCollection(current,id)]; UpdateROIList; SelectROIInROIProperties $roiID }
     pack $fwCommands.bwMakeROI -expand yes -fill x
 
 
@@ -5902,6 +5902,10 @@ proc Make2DMRISLayer { isLabel } {
     return $layerID
 }
 
+proc MakeUniqueLabelForROI { iROIID iCollectionID } {
+    return "[GetCollectionLabel $iCollectionID] - New ROI $iROIID"
+}
+
 proc NewVolume { iTemplateID iType ibCreateLayer iFrameIDToAdd } {
     dputs "NewVolume  $iTemplateID $ibCreateLayer $iFrameIDToAdd  "
 
@@ -5934,7 +5938,7 @@ proc NewVolume { iTemplateID iType ibCreateLayer iFrameIDToAdd } {
 
     # Create a new ROI for this collection.
     set roiID [NewCollectionROI $colID]
-    SetROILabel $roiID "New ROI"
+    SetROILabel $roiID [MakeUniqueLabelForROI $roiID $colID]
     SetROIType $roiID free
     SetROIColor $roiID 0 0 255
     UpdateROIList
@@ -5984,7 +5988,7 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 
     # Create a new ROI for this collection.
     set roiID [NewCollectionROI $colID]
-    SetROILabel $roiID "New ROI"
+    SetROILabel $roiID [MakeUniqueLabelForROI $roiID $colID]
     SetROIType $roiID free
     SetROIColor $roiID 0 0 255
     UpdateROIList
@@ -6479,7 +6483,7 @@ proc DoDeleteROIDlog {} {
 			if { [llength $lROIs] == 0 } {
 			    set roiID \
 				[NewCollectionROI $gaCollection(current,id)]
-			    SetROILabel $roiID "New ROI"
+			    SetROILabel $roiID [MakeUniqueLabelForROI $roiID $gaCollection(current,id)]
 			    UpdateROIList
 			    SelectROIInROIProperties $roiID
 			}
@@ -6745,7 +6749,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.245 2007/07/16 17:37:15 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.246 2007/07/17 19:43:39 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
