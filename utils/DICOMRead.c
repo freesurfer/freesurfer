@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/13 03:50:39 $
- *    $Revision: 1.110 $
+ *    $Date: 2007/07/17 21:17:24 $
+ *    $Revision: 1.111 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -103,7 +103,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   unsigned short *pixeldata;
   MRI *vol, *voltmp;
   char **SeriesList;
-  char *tmpstring,*pc;
+  char *tmpstring,*pc,*pc2;
   int Maj, Min, MinMin;
   double xs,ys,zs,xe,ye,ze,d,bval;
   int nnlist, nthdir;
@@ -287,9 +287,9 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   vol->AutoAlign = sdcmAutoAlignMatrix(dcmfile);
 
   // Load DTI, if you can
-  pc = SiemensAsciiTag(dcmfile,"sDiffusion.alBValue[1]");
-  if(pc != NULL){
-    free(pc);
+  pc  = SiemensAsciiTag(dcmfile,"sDiffusion.lDiffDirections");
+  pc2 = SiemensAsciiTag(dcmfile,"sWiPMemBlock.alFree[8]");
+  if(pc != NULL && pc2 != NULL){
     printf("MGH DTI SeqPack Info\n");
     // Get b Values from header, based on sequence name
     vol->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
@@ -307,6 +307,8 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
     vol->bvecs = MatrixCopy(dti->GradDir,NULL);
     DTIfree(&dti);
   }
+  if(pc)  free(pc);
+  if(pc2) free(pc2);
 
 
   /* Return now if we're not loading pixel data */
@@ -1528,7 +1530,7 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   int l;
   unsigned short ustmp=0;
   double dtmp=0;
-  char *strtmp;
+  char *strtmp, *strtmp2;
   int retval, nDiffDirections, nB0;
   double xr,xa,xs,yr,ya,ys, zr,za,zs;
 
@@ -1634,23 +1636,22 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
     free(strtmp);
   }
   else{
-    strtmp = SiemensAsciiTag(dcmfile,"sDiffusion.lDiffDirections");
-    if(strtmp != NULL){
+    strtmp  = SiemensAsciiTag(dcmfile,"sDiffusion.lDiffDirections");
+    strtmp2 = SiemensAsciiTag(dcmfile,"sWiPMemBlock.alFree[8]");
+    if(strtmp != NULL && strtmp2 != NULL){
       sscanf(strtmp, "%d", &nDiffDirections);
-      free(strtmp);
-      strtmp = SiemensAsciiTag(dcmfile,"sWiPMemBlock.alFree[8]");
       sscanf(strtmp, "%d", &nB0);
-      free(strtmp);
-      //printf("nDiffDirections = %d, nB0 = %d\n",nDiffDirections,nB0);
       sdcmfi->lRepetitions = nB0 + nDiffDirections - 1;
-
       DTIparsePulseSeqName(sdcmfi->PulseSequence, 
 			   &sdcmfi->bValue, &sdcmfi->nthDirection);
+      //printf("nDiffDirections = %d, nB0 = %d\n",nDiffDirections,nB0);
       //printf("%s %g %d\n",sdcmfi->PulseSequence, 
       //     sdcmfi->bValue, sdcmfi->nthDirection);
 
     }
     else sdcmfi->lRepetitions = 0;
+    if(strtmp)  free(strtmp);
+    if(strtmp2) free(strtmp2);
   }
   sdcmfi->NFrames = sdcmfi->lRepetitions + 1;
   /* This is not the last word on NFrames. See sdfiAssignRunNo().*/
