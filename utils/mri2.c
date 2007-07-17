@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/03 02:16:03 $
- *    $Revision: 1.33 $
+ *    $Date: 2007/07/17 03:32:26 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.33 2007/04/03 02:16:03 greve Exp $
+  $Id: mri2.c,v 1.34 2007/07/17 03:32:26 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -1977,7 +1977,7 @@ cleanup:
 }
 /*!
   \fn double MRIsum2All(MRI *mri)
-  \breif squares and then sums all the voxels.
+  \brief squares and then sums all the voxels.
 */
 double MRIsum2All(MRI *mri)
 {
@@ -1996,4 +1996,46 @@ double MRIsum2All(MRI *mri)
     }
   }
   return(sum2all);
+}
+/*---------------------------------------------------------------*/
+/*!
+  \fn MRI *MRIchecker(MRI *mri, MRI *checker)
+  \brief Creates a checkerboard pattern. Adjacent columns differ
+  by 1. Adjacent rows differ by 2. Adjacent slices differ by a 
+  sign. Adjacent frames differ by a factor of 10. This is for
+  visualizing the voxel sampling. Set fthresh = .1, fmax=3.5,
+  and use linear blending.
+*/
+MRI *MRIchecker(MRI *mri, MRI *checker) {
+  int c,r,s,f;
+  double cval=0, rval=0, sval=0, fval=0;
+
+  if(checker == NULL) {
+    checker = MRIallocSequence(mri->width,mri->height,mri->depth,
+			       MRI_FLOAT,mri->nframes);
+    if(checker == NULL) return(NULL);
+    MRIcopyHeader(mri,checker);
+    checker->type = MRI_FLOAT;
+  }
+
+  // Fill even cols with 
+  for (c=0; c < mri->width; c++) {
+    if(c%2 == 0) cval = 1;
+    else         cval = 2;
+    for (r=0; r < mri->height; r++) {
+      if(r%2 == 0) rval = cval;
+      else         rval = cval+2;
+      for (s=0; s < mri->depth; s++) {
+	if(s%2 == 0) sval = +rval;
+	else         sval = -rval;
+        for (f=0; f < mri->nframes; f++) {
+	  if(f%2 == 0) fval = sval;
+	  else         fval = 10*sval;
+	  //printf("%d %d %d %d  %g\n",c,r,s,f,fval);
+          MRIsetVoxVal(checker,c,r,s,f,fval);
+        }
+      }
+    }
+  }
+  return(checker);
 }

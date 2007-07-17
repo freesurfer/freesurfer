@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/12 22:42:39 $
- *    $Revision: 1.34 $
+ *    $Author: greve $
+ *    $Date: 2007/07/17 03:32:26 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -64,7 +64,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.34 2007/07/12 22:42:39 nicks Exp $";
+"$Id: mri_volsynth.c,v 1.35 2007/07/17 03:32:26 greve Exp $";
 
 char *Progname = NULL;
 
@@ -159,7 +159,8 @@ int main(int argc, char **argv)
     dim[1] = mritemp->height;
     dim[2] = mritemp->depth;
     if (nframes > 0) dim[3] = nframes;
-    else            dim[3] = mritemp->nframes;
+    else             dim[3] = mritemp->nframes;
+    mritemp->nframes = dim[3];
   }
 
   if(mritemp) {
@@ -284,13 +285,15 @@ int main(int argc, char **argv)
       mritemp = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
     mri = MRIsetBoundingBox(mritemp,&boundingbox,ValueA,ValueB);
     if(!mri) exit(1);
+  } else if (strcmp(pdfname,"checker")==0) {
+    printf("Checker \n");
+    mri=MRIchecker(mritemp,NULL);
+    if(!mri) exit(1);
   } else {
-    printf("ERROR: pdf %s unrecognized, must be gaussian, uniform, "
-           "const, or delta\n",
-           pdfname);
+    printf("ERROR: pdf %s unrecognized, must be gaussian, uniform,\n"
+	   "const, delta, checker\n", pdfname);
     exit(1);
   }
-
   if (tempid != NULL) {
     MRIcopyHeader(mritemp,mri);
     mri->type = MRI_FLOAT;
@@ -491,7 +494,10 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[5],"%d",&boundingbox.dz);
       pdfname = "boundingbox";
       nargsused = 6;
-    } else if (!strcmp(option, "--dof-num")) {
+    }
+    else if (!strcasecmp(option, "--checker"))
+      pdfname = "checker";
+    else if (!strcmp(option, "--dof-num")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&numdof);
       nargsused = 1;
@@ -579,7 +585,7 @@ static void print_usage(void) {
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
   printf("   --pdf pdfname : <gaussian>, uniform, const, delta, \n");
-  printf("      sphere, z, t, F, chi2, voxcrs\n");
+  printf("      sphere, z, t, F, chi2, voxcrs, checker\n");
   printf("   --bb c r s dc dr ds : bounding box (In=ValA, Out=ValB)\n");
   printf("   --gmean mean : use mean for gaussian (def is 0)\n");
   printf("   --gstd  std  : use std for gaussian standard dev (def is 1)\n");
@@ -764,3 +770,4 @@ MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt) {
   }
   return(mrisqrt);
 }
+
