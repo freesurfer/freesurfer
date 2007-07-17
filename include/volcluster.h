@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/18 02:13:15 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/07/17 00:26:45 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -144,6 +144,7 @@ typedef struct
   HISTOGRAM *mcs_pdf, *mcs_cdf; // max cluster size
   HISTOGRAM *ms_pdf, *ms_cdf;   // max sig
   double *grf_cdf; // for Gauss Rand Fields
+  int FixGroupSubjectArea; // flag for keeping track
 }
 CLUSTER_SIM_DATA, CSD;
 

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/18 02:13:15 $
- *    $Revision: 1.38 $
+ *    $Date: 2007/07/17 00:26:46 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1415,6 +1415,9 @@ CLUSTER_SIM_DATA *CSDalloc(void)
   csd->varfwhm = -1;
   csd->searchspace = -1;
   csd->nreps = -1;
+  if(getenv("FIX_VERTEX_AREA") == NULL) csd->FixGroupSubjectArea = 0; 
+  else                                  csd->FixGroupSubjectArea = 1; 
+
   return(csd);
 }
 
@@ -1469,11 +1472,11 @@ CLUSTER_SIM_DATA *CSDread(char *csdfile)
       else if (!strcmp(tag,"nullfwhm")) fscanf(fp,"%lf",&csd->nullfwhm);
       else if (!strcmp(tag,"varfwhm"))  fscanf(fp,"%lf",&csd->varfwhm);
       else if (!strcmp(tag,"searchspace")) fscanf(fp,"%lf",&csd->searchspace);
-      else if (!strcmp(tag,"nreps"))
-      {
+      else if (!strcmp(tag,"nreps")) {
         fscanf(fp,"%d",&(csd->nreps));
         CSDallocData(csd);
       }
+      else if(!strcmp(tag,"FixGroupSubjectArea")) fscanf(fp,"%d",&(csd->FixGroupSubjectArea));
       else fgets(tmpstr,1000,fp); // not an interesting line, so get past it
     }
     else
@@ -1608,6 +1611,7 @@ CSD *CSDcopy(CSD *csd, CSD *csdcopy)
   csdcopy->searchspace = csd->searchspace;
   csdcopy->nullfwhm = csd->nullfwhm;
   csdcopy->varfwhm  = csd->varfwhm;
+  csdcopy->FixGroupSubjectArea = csd->FixGroupSubjectArea;
 
   csdcopy->nreps = csd->nreps;
   CSDallocData(csdcopy);
@@ -1634,6 +1638,7 @@ CSD *CSDcopy(CSD *csd, CSD *csdcopy)
   (7) varfwhm be the same
   (8) searchspace be the same
   (9) seeds be different
+  (10) FixGroupSubjectArea be the same (for surfaces)
   The seed from the first is copied into the merge, and the
   mergeflag is set to 1.
   --------------------------------------------------------------*/
@@ -1651,6 +1656,12 @@ CSD *CSDmerge(CSD *csd1, CSD *csd2)
   {
     printf("ERROR: CSDmerge: CSDs have different anat types\n");
     return(NULL);
+  }
+  if(!strcmp(csd1->anattype,"surface")){
+    if(csd1->FixGroupSubjectArea != csd2->FixGroupSubjectArea){
+      printf("ERROR: CSDmerge: CSDs have different FixGroupSubjectArea flags\n");
+      return(NULL);
+    }
   }
   if (strcmp(csd1->contrast,csd2->contrast))
   {
@@ -1703,13 +1714,13 @@ CSD *CSDmerge(CSD *csd1, CSD *csd2)
   csd->varfwhm  = csd1->varfwhm;
   csd->seed     = csd1->seed;
   csd->mergedflag = 1;
+  csd->FixGroupSubjectArea = csd1->FixGroupSubjectArea;
 
   csd->nreps = csd1->nreps + csd2->nreps;
   CSDallocData(csd);
 
   nthrep = 0;
-  for (nthrep1 = 0; nthrep1 < csd1->nreps; nthrep1++)
-  {
+  for (nthrep1 = 0; nthrep1 < csd1->nreps; nthrep1++)  {
     csd->nClusters[nthrep]      = csd1->nClusters[nthrep1];
     csd->MaxClusterSize[nthrep] = csd1->MaxClusterSize[nthrep1];
     csd->MaxSig[nthrep]         = csd1->MaxSig[nthrep1];
@@ -1735,10 +1746,11 @@ CSD *CSDmerge(CSD *csd1, CSD *csd2)
 int CSDprintHeader(FILE *fp, CLUSTER_SIM_DATA *csd)
 {
   fprintf(fp,"# simtype %s\n",csd->simtype);
-  if (!strcmp(csd->anattype,"surface"))
+  if (!strcmp(csd->anattype,"surface")){
     fprintf(fp,"# anattype %s  %s %s\n",csd->anattype,csd->subject,csd->hemi);
-  else
-    fprintf(fp,"# anattype %s \n",csd->anattype);
+    fprintf(fp,"# FixGroupSubjectArea %d\n",csd->FixGroupSubjectArea);
+  }
+  else fprintf(fp,"# anattype %s \n",csd->anattype);
   fprintf(fp,"# merged      %d\n",csd->mergedflag);
   fprintf(fp,"# contrast    %s\n",csd->contrast);
   fprintf(fp,"# seed        %ld\n",csd->seed);
