@@ -6,7 +6,9 @@ AM_CFLAGS=-I$(top_srcdir)/include $(PETSC_CFLAGS) \
 	-I$(top_srcdir)/tetgen/include
 AM_LDFLAGS=$(PETSC_LIBS)
 
-if HAVE_PETSC_LIBS
+# note: _XXX added to HAVE_PETSC_LIBS to disable it
+
+if HAVE_PETSC_LIBS_XXX
 LIBS_PETSC=-lpetsc -lmpiuni
 else
 LIBS_PETSC=
@@ -19,7 +21,7 @@ mris_register_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
 mris_register_LDFLAGS=$(OS_LDFLAGS)
 
 
-if HAVE_PETSC_LIBS
+if HAVE_PETSC_LIBS_XXX
 install-exec-hook:
 # put a wrapper around the bin, used to setup Petsc enviro vars
 	cp $(srcdir)/mris_register $(DESTDIR)$(bindir)/mris_register.bin
