@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/23 18:57:25 $
- *    $Revision: 1.31 $
+ *    $Date: 2007/07/18 20:10:33 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.31 2007/04/23 18:57:25 greve Exp $
+  $Id: mri_vol2vol.c,v 1.32 2007/07/18 20:10:33 greve Exp $
 
 */
 
@@ -56,6 +56,7 @@ mri_vol2vol
 
   --tal               : map to a sub FOV of MNI305 (with --reg only)
   --talres resolution : set voxel size 1mm or 2mm (def is 1)
+  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)
 
   --fstarg            : use orig.mgz from subject in --reg as target
   --interp interptype : interpolation trilinear or nearest (def is trilin)
@@ -420,7 +421,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.31 2007/04/23 18:57:25 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.32 2007/07/18 20:10:33 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -486,12 +487,12 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.31 2007/04/23 18:57:25 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.32 2007/07/18 20:10:33 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.31 2007/04/23 18:57:25 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.32 2007/07/18 20:10:33 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -518,7 +519,7 @@ int main(int argc, char **argv) {
     // Recompute R for converting to/from talairach space
     // and set the target volume file
     printf("Compute R for talairach space\n");
-    Xtal = DevolveXFM(subject, NULL, NULL);
+    Xtal = DevolveXFM(subject, NULL, talxfmfile);
     invXtal = MatrixInverse(Xtal,NULL);
     if (Xtal == NULL) exit(1);
     if (fstalres > 0) {
@@ -777,6 +778,11 @@ static int parse_commandline(int argc, char **argv) {
       if (err) exit(1);
       regheader = 1;
       nargsused = 1;
+    } else if (istringnmatch(option, "--talxfm",0)) {
+      if (nargc < 1) argnerr(option,1);
+      talxfmfile = pargv[0];
+      fstal = 1;
+      nargsused = 1;
     } else if (istringnmatch(option, "--out",0) ||
                istringnmatch(option, "--o",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -854,6 +860,7 @@ static void print_usage(void) {
   printf("\n");
   printf("  --tal               : map to a sub FOV of MNI305 (with --reg only)\n");
   printf("  --talres resolution : set voxel size 1mm or 2mm (def is 1)\n");
+  printf("  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)\n");  
   printf("\n");
   printf("  --fstarg            : use orig.mgz from subject in --reg as target\n");
   printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
