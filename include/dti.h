@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/13 03:50:38 $
- *    $Revision: 1.13 $
+ *    $Date: 2007/07/18 03:40:00 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.h,v 1.13 2007/07/13 03:50:38 greve Exp $
+// $Id: dti.h,v 1.14 2007/07/18 03:40:00 greve Exp $
 
 #ifndef DTI_INC
 #define DTI_INC
@@ -74,5 +74,6 @@ int DTIwriteBVectors(MATRIX *bvecs,char *bvecfile);
 int DTIwriteBValues(MATRIX *bvals, char *bvalfile);
 DTI *DTIstructFromBFiles(char *bvalfile, char *bvecfile);
 int DTIparsePulseSeqName(char *pulseseq, double *bValue, int *nthDirection);
+int DTIisFSLBVec(char *fname);
 
 #endif //#ifndef FSENV_INC

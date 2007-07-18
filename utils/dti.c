@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/13 03:50:39 $
- *    $Revision: 1.21 $
+ *    $Date: 2007/07/18 03:40:02 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.c,v 1.21 2007/07/13 03:50:39 greve Exp $
+// $Id: dti.c,v 1.22 2007/07/18 03:40:02 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.21 2007/07/13 03:50:39 greve Exp $");
+  return("$Id: dti.c,v 1.22 2007/07/18 03:40:02 greve Exp $");
 }
 /* --------------------------------------------- */
 int DTIfree(DTI **pdti)
@@ -983,7 +983,7 @@ MATRIX *DTIloadBVectors(char *bvecfile)
 {
   FILE *fp;
   double gx, gy, gz;
-  int nbvecs;
+  int nbvecs, isFSL;
   MATRIX *bvecs;
 
   // Could add something to autodetect FSL format
@@ -1013,16 +1013,29 @@ MATRIX *DTIloadBVectors(char *bvecfile)
   // Alloc the matrix
   bvecs = MatrixAlloc(nbvecs,3,MATRIX_REAL);
 
+  isFSL = DTIisFSLBVec(bvecfile);
+
   // Now read them in
   fp = fopen(bvecfile,"r");
-  nbvecs = 0;
-  fscanf(fp,"%lf %lf %lf",&gx,&gy,&gz);
-  while(!feof(fp)){
-    bvecs->rptr[nbvecs+1][1] = gx;
-    bvecs->rptr[nbvecs+1][2] = gy;
-    bvecs->rptr[nbvecs+1][3] = gz;
+  if(!isFSL){
+    printf("Detected BVec file as MGH formatted\n");
+    nbvecs = 0;
     fscanf(fp,"%lf %lf %lf",&gx,&gy,&gz);
-    nbvecs ++;
+    while(!feof(fp)){
+      bvecs->rptr[nbvecs+1][1] = gx;
+      bvecs->rptr[nbvecs+1][2] = gy;
+      bvecs->rptr[nbvecs+1][3] = gz;
+      fscanf(fp,"%lf %lf %lf",&gx,&gy,&gz);
+      nbvecs ++;
+    }
+  } else {
+    printf("Detected BVec file as FSL formatted\n");
+    for(nbvecs = 0; nbvecs < bvecs->rows; nbvecs++)
+      fscanf(fp,"%f",&(bvecs->rptr[nbvecs+1][1]));
+    for(nbvecs = 0; nbvecs < bvecs->rows; nbvecs++)
+      fscanf(fp,"%f",&(bvecs->rptr[nbvecs+1][2]));
+    for(nbvecs = 0; nbvecs < bvecs->rows; nbvecs++)
+      fscanf(fp,"%f",&(bvecs->rptr[nbvecs+1][3]));
   }
   fclose(fp);
 
@@ -1116,3 +1129,32 @@ int DTIparsePulseSeqName(char *pulseseq, double *bValue, int *nthDirection)
   return(0);
 }
 
+/*-----------------------------------------------------------*/
+/*!/
+  \fn int DTIisFSLBVec(char *fname)
+  \brief Detects whether a bvec file is FSL format. The FSL 
+  format is to have three rows, and each col is a different
+  direction. Works by determining whether the first line
+  has more than 3 elements. Returns -1 if error, 1 if FSL, 
+  0 if not FSL.
+*/
+int DTIisFSLBVec(char *fname)
+{
+  FILE *fp;
+  char tmpstr[10000], *s;
+  float f;
+  int nread;
+
+  fp = fopen(fname,"r");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s\n",fname);
+    return(-1);
+  }
+  
+  s = fgets(tmpstr,9999,fp);
+  fclose(fp);
+
+  nread = sscanf(s,"%f %f %f %f",&f,&f,&f,&f);
+  if(nread == 3) return(0);
+  return(1);
+}
