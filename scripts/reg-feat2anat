@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/01/29 16:32:17 $
-#    $Revision: 1.24 $
+#    $Date: 2007/07/18 21:33:01 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: reg-feat2anat,v 1.24 2007/01/29 16:32:17 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.25 2007/07/18 21:33:01 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brainmask;
@@ -40,6 +40,7 @@ set manual = 0;
 set manual_use_surf = 1;
 set manxfm = func2anat;
 set fslext = img; # Can be changed with --fslext-auto
+set DoBETFunc = 1;
 
 set PrintHelp = 0;
 
@@ -252,12 +253,14 @@ else
 endif
 
 # Brain extraction on the example func
-set cmd = (betfunc $FeatDir/example_func $FeatDir/reg/freesurfer/tmp/exfbet)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
 set tempvol0 = $tempvol
-set tempvol = $FeatDir/reg/freesurfer/tmp/exfbet.$fslext;
+if($DoBETFunc) then
+  set cmd = (betfunc $FeatDir/example_func $FeatDir/reg/freesurfer/tmp/exfbet)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  set tempvol = $FeatDir/reg/freesurfer/tmp/exfbet.$fslext;
+endif
 
 # Now run flirt
 set outvol = $FeatDir/reg/freesurfer/tmp/exf-in-anat
@@ -426,6 +429,10 @@ while( $#argv != 0 )
       set fsreg = $argv[1]; shift;
       breaksw
 
+    case "--no-bet":
+      set DoBETFunc = 0;
+      breaksw
+
     case "--fslext-auto":
       set fslext = ();
       breaksw
@@ -537,6 +544,7 @@ usage_exit:
   echo " --bins bins      : FLIRT bins (default is $bins)"
   echo " --cost cost      : FLIRT cost (default is $cost)"
   echo " --maxangle angle : FLIRT max search angle (default is $maxangle)"
+  echo " --no-bet         : do not run betfunc on example_func"
   echo " "
   echo " --version            : print version and exit"
   echo " --help               : print help and exit"
