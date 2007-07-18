@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/21 04:53:30 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/07/18 20:48:16 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,6 +66,7 @@
 #include "version.h"
 #include "cmdargs.h"
 #include "randomfields.h"
+#include "mri_identify.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -76,7 +77,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_z2p.c,v 1.9 2007/06/21 04:53:30 greve Exp $";
+static char vcid[] = "$Id: mri_z2p.c,v 1.10 2007/07/18 20:48:16 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -90,10 +91,13 @@ char *MaskVolFile=NULL;
 int TwoSided = 1;
 
 MRI *z,*p,*sig,*mask=NULL;
+char *featdir = NULL;
+char *fmt;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs;
+  int nargs, nthzstat;
+  char tmpstr[1000];
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -110,28 +114,102 @@ int main(int argc, char *argv[]) {
   if (argc == 0) usage_exit();
   parse_commandline(argc, argv);
   check_options();
-  if (checkoptsonly) return(0);
+  if (checkoptsonly) exit(0);
   dump_options(stdout);
 
-  z = MRIread(ZVolFile);
-  if (z==NULL) exit(1);
+  //---------------------------------------------------------
+  if(featdir == NULL){
+    z = MRIread(ZVolFile);
+    if (z==NULL) exit(1);
 
-  if (MaskVolFile) {
-    printf("Reading mask %s\n",MaskVolFile);
-    mask = MRIread(MaskVolFile);
-    if (mask==NULL) exit(1);
+    if (MaskVolFile) {
+      printf("Reading mask %s\n",MaskVolFile);
+      mask = MRIread(MaskVolFile);
+      if (mask==NULL) exit(1);
+    }
+
+    p = RFz2p(z, mask, TwoSided, NULL);
+    if(PVolFile) MRIwrite(p,PVolFile);
+    if(Log10PVolFile == NULL) exit(0);
+    sig  = MRIlog10(p,mask,sig,1);
+    MRIwrite(sig,Log10PVolFile);
+    printf("mri_z2p: done\n");
+    exit(0);
   }
 
-  p = RFz2p(z, mask, TwoSided, NULL);
+  //---------------------------------------------------------
+  // feat dir -------------------
+  printf("Processing data in feat dir %s\n",featdir);
+  if(fmt == NULL){
+    if (strcmp(getenv("FSLOUTPUTTYPE"),"NIFTI")==0)    fmt = "nii";
+    if (strcmp(getenv("FSLOUTPUTTYPE"),"NIFTI_GZ")==0) fmt = "nii.gz";
+    if (strcmp(getenv("FSLOUTPUTTYPE"),"ANALYZE")==0)  fmt = "img";
+    if(fmt == NULL){
+      printf("ERROR: cannot determine FSLOUTPUTTYPE \n");
+      exit(1);
+    }
+  }
+  printf("Using %s as FSL/FEAT format extension",fmt);
 
-  if (PVolFile) MRIwrite(p,PVolFile);
+  sprintf(tmpstr,"%s/mask",featdir);
+  printf("Mask from %s\n",tmpstr);
+  MaskVolFile = IDnameFromStem(tmpstr);
+  if(MaskVolFile == NULL) exit(1);
+  mask = MRIread(MaskVolFile);
+  if (mask==NULL) exit(1);
 
-  if (Log10PVolFile == NULL) return(0);
+  printf("Processing z stats\n");
+  nthzstat = 1;
+  while(1){
+    sprintf(tmpstr,"%s/stats/zstat%d",featdir,nthzstat);
+    ZVolFile = IDnameFromStem(tmpstr);
+    if(ZVolFile == NULL) break;
 
-  sig  = MRIlog10(p,mask,sig,1);
-  MRIwrite(sig,Log10PVolFile);
+    printf("%2d Reading z from %s\n",nthzstat,ZVolFile);
+    z = MRIread(ZVolFile);
+    if (z==NULL) exit(1);
 
-  return(0);
+    TwoSided = 1; // Use 2-sided for t
+    p   = RFz2p(z, mask, TwoSided, NULL);
+    sig = MRIlog10(p,mask,sig,1);
+    sprintf(tmpstr,"%s/stats/zsig%d.%s",featdir,nthzstat,fmt);
+    printf("Writing sig to %s\n",tmpstr);
+    MRIwrite(sig,tmpstr);
+
+    MRIfree(&z);
+    MRIfree(&p);
+    MRIfree(&sig);
+    free(ZVolFile);
+    nthzstat ++;
+  }
+
+  printf("Processing zf stats\n");
+  nthzstat = 1;
+  while(1){
+    sprintf(tmpstr,"%s/stats/zfstat%d",featdir,nthzstat);
+    ZVolFile = IDnameFromStem(tmpstr);
+    if(ZVolFile == NULL) break;
+
+    printf("%2d Reading z from %s\n",nthzstat,ZVolFile);
+    z = MRIread(ZVolFile);
+    if (z==NULL) exit(1);
+
+    TwoSided = 0; // Use 1-sided for F
+    p   = RFz2p(z, mask, TwoSided, NULL);
+    sig = MRIlog10(p,mask,sig,1);
+    sprintf(tmpstr,"%s/stats/zfsig%d.%s",featdir,nthzstat,fmt);
+    printf("Writing sig to %s\n",tmpstr);
+    MRIwrite(sig,tmpstr);
+
+    MRIfree(&z);
+    MRIfree(&p);
+    MRIfree(&sig);
+    free(ZVolFile);
+    nthzstat ++;
+  }
+
+  printf("mri_z2p: done\n");
+  exit(0);
 }
 /* ------ Doxygen markup starts on the line below ---- */
 /*!
@@ -184,6 +262,14 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       MaskVolFile = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--feat")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      featdir = pargv[0];
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--featfmt")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      fmt = pargv[0];
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -223,6 +309,7 @@ static void print_usage(void) {
   printf("   --one-sided : assume a one-sided, signed test\n");
   printf("   --signed : two-sided/signed pvalue (p = 2*(1-p))\n");
   printf("\n");
+  printf("   --feat featdir : convert all zstats and zfstats to sigs\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -240,7 +327,7 @@ static void print_usage(void) {
 /* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
 static void print_help(void) {
   print_usage() ;
-  printf("WARNING: this program is not yet tested!\n");
+  printf("Have not gotten to this yet:)\n");
   exit(1) ;
 }
 /* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
@@ -260,13 +347,15 @@ static void print_version(void) {
 */
 /* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
 static void check_options(void) {
-  if (ZVolFile == NULL) {
-    printf("ERROR: need zvol\n");
-    exit(1);
-  }
-  if (PVolFile == NULL && Log10PVolFile == NULL) {
-    printf("ERROR: need output vol (either --p or --log10p\n");
-    exit(1);
+  if(featdir == NULL){
+    if (ZVolFile == NULL) {
+      printf("ERROR: need zvol\n");
+      exit(1);
+    }
+    if (PVolFile == NULL && Log10PVolFile == NULL) {
+      printf("ERROR: need output vol (either --p or --log10p\n");
+      exit(1);
+    }
   }
 
   return;
