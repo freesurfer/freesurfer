@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/07/17 19:43:39 $
-#    $Revision: 1.246 $
+#    $Date: 2007/07/18 21:55:11 $
+#    $Revision: 1.247 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.246 2007/07/17 19:43:39 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.247 2007/07/18 21:55:11 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -6749,7 +6749,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.246 2007/07/17 19:43:39 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.247 2007/07/18 21:55:11 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -7690,7 +7690,7 @@ proc SetCursorFromEditDatFile {} {
     if { !$gEditDatInfo(useRealRAS) } {
 
 	set lConvertedRAS \
-	    [GetRASCoordsFromVolumeSurfaceRAS $gEditDatInfo(volumeID) \
+	    [GetRASCoordsFromVolumeTkRegRAS $gEditDatInfo(volumeID) \
 		 [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]]
 
 	set lRAS $lConvertedRAS
@@ -7721,7 +7721,7 @@ proc WriteCursorToEditDatFile {} {
     if { !$gEditDatInfo(useRealRAS) } {
 
 	set lConvertedRAS \
-	    [GetVolumeSurfaceRASCoordsFromRAS $gEditDatInfo(volumeID) \
+	    [GetVolumeTkRegRASCoordsFromRAS $gEditDatInfo(volumeID) \
 		 [lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]]
 
 	set lRAS $lConvertedRAS
