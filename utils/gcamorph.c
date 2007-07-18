@@ -1,15 +1,18 @@
 /**
  * @file  gcamorph.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Utilities to morph the Gaussian Classifier Atlas (gca) data
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Reference:
+  * "Whole Brain Segmentation: Automated Labeling of Neuroanatomical
+  * Structures in the Human Brain", Fischl et al.
+  * (2002) Neuron, 33:341-355.
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/05/01 16:59:11 $
- *    $Revision: 1.127 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/18 22:29:19 $
+ *    $Revision: 1.128 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3932,6 +3935,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
              100.0*Galigned/((gcam->width*gcam->height*gcam->depth)-Ginvalid));
     else
       printf("\n") ;
+    fflush(stdout);
   }
 
   orig_j = parms->l_jacobian ;
@@ -4137,6 +4141,7 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
            100.0*Galigned/((gcam->width*gcam->height*gcam->depth)-Ginvalid));
       else
         printf("\n") ;
+      fflush(stdout);
     }
 
     if ((pct_change < tol) && !increasing)
