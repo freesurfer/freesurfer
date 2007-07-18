@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/12 15:14:27 $
-#    $Revision: 1.12 $
+#    $Date: 2007/07/18 21:29:11 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,11 +25,11 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.12 2007/06/12 15:14:27 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.13 2007/07/18 21:29:11 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
-set fsvol  = brain;
+set fsvol  = brainmask;
 set refvol = ();
 set movvol = ();
 set outvol = ();
