@@ -6,13 +6,13 @@ AM_CFLAGS=-I$(top_srcdir)/include $(PETSC_CFLAGS) \
 	-I$(top_srcdir)/tetgen/include
 AM_LDFLAGS=$(PETSC_LIBS)
 
-# note: _XXX added to HAVE_PETSC_LIBS to disable it
+# if there is a need to activate petsc support, deleted the #PETSC text
 
-if HAVE_PETSC_LIBS_XXX
-LIBS_PETSC=-lpetsc -lmpiuni
-else
+#PETSC if HAVE_PETSC_LIBS
+#PETSC LIBS_PETSC=-lpetsc -lmpiuni
+#PETSC else
 LIBS_PETSC=
-endif
+#PETSC endif
 
 bin_PROGRAMS = mris_register
 mris_register_SOURCES=mris_register.c
@@ -21,18 +21,18 @@ mris_register_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
 mris_register_LDFLAGS=$(OS_LDFLAGS)
 
 
-if HAVE_PETSC_LIBS_XXX
-install-exec-hook:
-# put a wrapper around the bin, used to setup Petsc enviro vars
-	cp $(srcdir)/mris_register $(DESTDIR)$(bindir)/mris_register.bin
-	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/mris_register
-	echo "source \$$FREESURFER_HOME/bin/petsc_setup" \
-		>> $(DESTDIR)$(bindir)/mris_register
-	echo "mris_register.bin \$$argv" >> $(DESTDIR)$(bindir)/mris_register
-	chmod a+x $(DESTDIR)$(bindir)/mris_register
-else
-install-exec-hook:
-endif
+#PETSC if HAVE_PETSC_LIBS
+#PETSC install-exec-hook:
+#PETSC # put a wrapper around the bin, used to setup Petsc enviro vars
+#PETSC 	cp $(srcdir)/mris_register $(DESTDIR)$(bindir)/mris_register.bin
+#PETSC 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/mris_register
+#PETSC 	echo "source \$$FREESURFER_HOME/bin/petsc_setup" \
+#PETSC 		>> $(DESTDIR)$(bindir)/mris_register
+#PETSC 	echo "mris_register.bin \$$argv" >> $(DESTDIR)$(bindir)/mris_register
+#PETSC 	chmod a+x $(DESTDIR)$(bindir)/mris_register
+#PETSC else
+#PETSC install-exec-hook:
+#PETSC endif
 
 EXTRA_DIST=make_mris_register_movie.tcl
 
