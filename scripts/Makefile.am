@@ -142,6 +142,7 @@ talairach \
 talairach2 \
 talairach_mgh \
 tal_compare \
+talsegprob \
 tcl_setup \
 test_recon-all.csh \
 unpack_ima1.tcl \
