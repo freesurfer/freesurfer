@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/18 21:38:42 $
- *    $Revision: 1.110 $
+ *    $Date: 2007/07/18 21:50:00 $
+ *    $Revision: 1.111 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,8 @@ extern "C" {
 
 using namespace std;
 
+// Used in RASToTal to convert MNI Talairach coords to "real" Tal
+// coords.
 Matrix44 VolumeCollection::mMatrixMNITalToTalGtz( 0.99,       0,      0, 0,
 						  0.00,  0.9688,  0.046, 0,
 						  0.00, -0.0485, 0.9189, 0,
@@ -846,13 +848,16 @@ VolumeCollection::RASToTal ( float const iRAS[3], float oTal[3] ) {
 
   // Only do this if we have a transform.
   if( mMRI && mMRI->linear_transform ) {
-    
-    Real mniX, mniY, mniZ;
 
+    // First calculate the MNI Tal coords using the transform in the
+    // volume.
+    Real mniX, mniY, mniZ;
     transform_point( mMRI->linear_transform,
 		     iRAS[0], iRAS[1], iRAS[2],
 		     &mniX, &mniY, &mniZ );
 
+    // Now convert to "real" Tal coords. We have two matrices to use:
+    // one if the MNI Tal Z coord is <= 0, and one if it's > 0.
     float mni[3];
     mni[0] = mniX;
     mni[1] = mniY;
