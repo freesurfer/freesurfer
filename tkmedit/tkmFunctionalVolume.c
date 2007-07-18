@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/16 16:50:03 $
- *    $Revision: 1.57 $
+ *    $Date: 2007/07/18 16:18:30 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -1052,7 +1052,6 @@ FunV_tErr FunV_SetTimeResolution ( tkmFunctionalVolumeRef this,
   /* get the new time res. */
   eVolume = FunD_GetTimeResolution( this->mpTimeCourseVolume,
                                     &nTimeRes );
-  printf("nTimeRes = %g\n",nTimeRes);
   if ( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
