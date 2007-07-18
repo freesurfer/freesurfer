@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/06/19 22:24:55 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/07/18 18:39:06 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,12 +38,13 @@
 #include "vtkObjectFactory.h"
 #include "vtkCellArray.h"
 #include "vtkPointData.h"
+#include "vtkPoints.h"
 #include "vtkPolyData.h"
 
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceLabelSource );
-vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.11 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.12 $" );
 
 vtkFSSurfaceLabelSource::vtkFSSurfaceLabelSource() :
   LabelFileName( NULL ), Mris( NULL ), Label( NULL ) {
@@ -328,4 +329,44 @@ vtkFSSurfaceLabelSource::WriteLabelFile () {
     ssError << "Couldn't write the label to " << LabelFileName;
     throw runtime_error( ssError.str().c_str() );
   }
+}
+
+void
+vtkFSSurfaceLabelSource::GetLabeledPoints ( vtkPoints& ioPoints ) {
+
+  assert( Label );
+
+  // Reset the point list and set the type to point.
+  ioPoints.Reset();
+  ioPoints.SetDataTypeToFloat();
+
+  // Go through our Label, and for each not-deleted point, add it to
+  // our points.
+  for( int nPoint = 0; nPoint < Label->n_points; nPoint++ ) {
+    
+    if( !Label->lv[nPoint].deleted ) {
+      
+      float x = Label->lv[nPoint].x;
+      float y = Label->lv[nPoint].y;
+      float z = Label->lv[nPoint].z;
+    
+      ioPoints.InsertNextPoint( x, y, z );
+    }
+  }
+}
+
+void
+vtkFSSurfaceLabelSource::GetLabeledVertices ( vector<int>& iolVertices ) {
+
+  assert( Label );
+
+  // Reset the list.
+  iolVertices.clear();
+
+  // Go through our Label, and for each not-deleted point, add the
+  // vertex number to the list.
+  for( int nPoint = 0; nPoint < Label->n_points; nPoint++ )
+    if( !Label->lv[nPoint].deleted )
+      iolVertices.push_back( Label->lv[nPoint].vno );
+
 }

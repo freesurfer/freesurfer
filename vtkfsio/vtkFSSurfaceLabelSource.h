@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/18 21:35:55 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/07/18 18:39:06 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,7 @@
 
 #include <vector>
 
+class vtkPoints;
 class vtkPolyData;
 class vtkFSSurfaceSource;
 
@@ -78,6 +79,13 @@ public:
   // Description:
   // Use LabelWrite to write the label with the current LabelFileName.
   void WriteLabelFile ();
+
+  // Description:
+  // Fill out the input vtkPoints with the labeled points, using the
+  // surface coordinates. GetLabeledVertices does the same thing but
+  // with vertex numbers.
+  void GetLabeledPoints ( vtkPoints& ioPoints );
+  void GetLabeledVertices ( std::vector<int>& iolVertices );
 
 protected:
 
