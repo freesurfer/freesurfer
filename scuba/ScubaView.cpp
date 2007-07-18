@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/16 21:38:57 $
- *    $Revision: 1.116 $
+ *    $Date: 2007/07/18 21:38:42 $
+ *    $Revision: 1.117 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3416,19 +3416,10 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
   // Clear existing list.
   mInfoAtRASMap[isLabel].clear();
 
-  stringstream sID;
-  //  sID << GetLabel() << " (" << GetID() << ")";
-  //  labelValueMap["View"] = sID.str();
-
   // Get the RAS coords into a string and set that label/value.
   stringstream ssRASCoords;
-  char sDigit[10];
-  sprintf( sDigit, "%.2f", iRAS[0] );
-  ssRASCoords << sDigit << " ";
-  sprintf( sDigit, "%.2f", iRAS[1] );
-  ssRASCoords << sDigit << " ";
-  sprintf( sDigit, "%.2f", iRAS[2] );
-  ssRASCoords << sDigit;
+  ssRASCoords << setprecision(2) << iRAS[0] 
+	      << " " << iRAS[1] << " " << iRAS[2];
 
   Layer::InfoAtRAS info;
   info.SetLabel( "RAS" );

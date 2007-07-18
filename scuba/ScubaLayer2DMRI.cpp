@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/30 16:39:22 $
- *    $Revision: 1.153 $
+ *    $Date: 2007/07/18 21:38:42 $
+ *    $Revision: 1.154 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,6 +27,7 @@
 
 
 #include <fstream>
+#include <iomanip>
 #include "ScubaLayer2DMRI.h"
 #include "ViewState.h"
 #include "ProgressDisplayManager.h"
@@ -1058,6 +1059,21 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
     info.SetValue( ssIndex.str() );
     ioInfo.push_back( info );
     info.Clear();
+
+    if( mVolume->IsTalTransformPresent() ) {
+
+      float tal[3];
+      mVolume->RASToTal( iRAS, tal );
+      
+      stringstream ssTal;
+      ssTal << setprecision(2) << tal[0] << " " << tal[1] << " " << tal[2];
+      
+      info.SetLabel( mVolume->GetLabel() + ",Talairach" );
+      info.SetInputFilter( "3f" );
+      info.SetValue( ssTal.str() );
+      ioInfo.push_back( info );
+      info.Clear();
+    }
 
   } else {
 

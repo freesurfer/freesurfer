@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/16 21:38:58 $
- *    $Revision: 1.109 $
+ *    $Date: 2007/07/18 21:38:42 $
+ *    $Revision: 1.110 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,14 @@ extern "C" {
 
 using namespace std;
 
+Matrix44 VolumeCollection::mMatrixMNITalToTalGtz( 0.99,       0,      0, 0,
+						  0.00,  0.9688,  0.046, 0,
+						  0.00, -0.0485, 0.9189, 0,
+						  0.00,       0,      0, 1 );
+Matrix44 VolumeCollection::mMatrixMNITalToTalLtz( 0.99,       0,      0, 0,
+						  0.00,  0.9688,  0.042, 0,
+						  0.00, -0.0485,  0.839, 0,
+						  0.00,       0,      0, 1 );
 
 VolumeCollection::VolumeCollection () :
     DataCollection() {
@@ -822,6 +830,39 @@ void
 VolumeCollection::DataRASToRAS ( float const iDataRAS[3], float oRAS[3] ) {
 
   mDataToWorldTransform->MultiplyVector3( iDataRAS, oRAS );
+}
+
+bool
+VolumeCollection::IsTalTransformPresent() {
+
+  if( mMRI )
+    return (mMRI->linear_transform != NULL);
+  else
+    return false;
+}
+
+void
+VolumeCollection::RASToTal ( float const iRAS[3], float oTal[3] ) {
+
+  // Only do this if we have a transform.
+  if( mMRI && mMRI->linear_transform ) {
+    
+    Real mniX, mniY, mniZ;
+
+    transform_point( mMRI->linear_transform,
+		     iRAS[0], iRAS[1], iRAS[2],
+		     &mniX, &mniY, &mniZ );
+
+    float mni[3];
+    mni[0] = mniX;
+    mni[1] = mniY;
+    mni[2] = mniZ;
+
+    if( mniZ <= 0 )
+      mMatrixMNITalToTalLtz.MultiplyVector3( mni, oTal );
+    else
+      mMatrixMNITalToTalGtz.MultiplyVector3( mni, oTal );
+  }
 }
 
 void

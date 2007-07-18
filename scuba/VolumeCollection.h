@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/05 22:19:28 $
- *    $Revision: 1.68 $
+ *    $Date: 2007/07/18 21:38:42 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -187,6 +187,13 @@ public:
   void MRIIndexToRAS ( float const iIndex[3], float oRAS[3] );
   void RASToDataRAS  ( float const iRAS[3], float oDataRAS[3] );
   void DataRASToRAS  ( float const iDataRAS[3], float oRAS[3] );
+
+  // This is based on the internal MRI's linear_transform. We check to
+  // see if it's present and convert if so. IsTalTransformPresent()
+  // can be used to see if there is a transform present. If there is
+  // none, RASToTal will have no effect.
+  bool IsTalTransformPresent();
+  void RASToTal      ( float const iRAS[3], float oTal[3] );
 
   // Special conversion for compatibility with old edit.dat formats.
   // Calls MRIRASToTkRegRAS and MRITkRegRASToRAS
@@ -465,6 +472,11 @@ protected:
   // Bounds cache.
   bool mbBoundsCacheDirty;
   float mRASBounds[6];
+
+  // Static transforms for doing MNI tal -> Real Tal conversion, used
+  // in RASToTal.
+  static Matrix44 mMatrixMNITalToTalGtz; // use when z > 0
+  static Matrix44 mMatrixMNITalToTalLtz; // use when z <= 0
 };
 
 class VolumeCollectionFlooder {
