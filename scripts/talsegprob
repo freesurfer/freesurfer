@@ -1,0 +1,502 @@
+#! /bin/tcsh -f
+
+#
+# talsegprob
+#
+# Creates a map of the probability that a voxel falls into
+# a given segment
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2007/07/18 20:15:30 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION = '$Id: talsegprob,v 1.1 2007/07/18 20:15:30 greve Exp $';
+
+set outfile = ();
+set outcatfile = ();
+set transform_fname = talairach.xfm
+set SegNos = ();
+set segmentation = aseg;
+
+set PrintHelp = 0;
+set tmpdir = ();
+set cleanup = 1;
+
+set cmdargs = ($argv);
+if($#argv == 0) goto usage_exit;
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# Regenerate SUBJECTS as a simple list (in case it was an env var)
+set stmp = ()
+foreach subject ($SUBJECTS)
+  set stmp = ($stmp $subject)
+end
+unsetenv SUBJECTS
+set SUBJECTS = ($stmp)
+
+# Create output directory
+set outdir = `dirname $outfile`;
+mkdir -p $outdir
+if($status) then
+  echo "ERROR: could not make $outdir"
+  exit 1;
+endif
+
+# Create the log file
+set outstem = `fname2stem $outfile`;
+if($status) then
+  echo "$outstem"
+  echo "fname2stem $outfile"
+  exit 1;
+endif
+set LF = $outstem.log
+if(-e $LF) mv $LF $LF.bak
+
+echo Log file is $LF
+date | tee -a $LF
+pwd  | tee -a $LF
+echo $VERSION | tee -a $LF
+echo $0  | tee -a $LF
+echo $cmdargs  | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"  | tee -a $LF
+echo "Found $#SUBJECTS subjects "| tee -a $LF
+echo $SUBJECTS >> $LF
+
+if($#tmpdir == 0) set tmpdir = $outdir/tmp/talsegprob
+mkdir -p $tmpdir
+
+set invollist = ()
+@ nth = 0;
+foreach subject ($SUBJECTS)
+  @ nth = $nth + 1;
+  echo "--------------------------------------" | tee -a $LF
+  echo "$nth/$#SUBJECTS $subject `date`" | tee -a $LF
+
+  # Transform file
+  set xfm = $SUBJECTS_DIR/$subject/mri/transforms/$transform_fname
+  if(! -e $xfm) then
+    echo "ERROR: cannot find $xfm" | tee -a $LF
+    exit 1;
+  endif
+
+  # ASeg
+  set invol = $SUBJECTS_DIR/$subject/mri/$segmentation.mgz
+  if(! -e $invol) then
+    echo "ERROR: cannot find $volid for $subject" | tee -a $LF
+    exit 1;
+  endif
+
+  # Create identity reg (needed for --tal below)
+  set regfile = $tmpdir/tmp.reg
+  rm -f $regfile
+  echo $subject >> $regfile
+  echo "1" >> $regfile
+  echo "1" >> $regfile
+  echo "1" >> $regfile
+  echo "1 0 0 0" >> $regfile
+  echo "0 1 0 0" >> $regfile
+  echo "0 0 1 0" >> $regfile
+  echo "0 0 0 1" >> $regfile
+
+  # Reslice, use nearest neighbor
+  set xfmvol = $tmpdir/aseg-$subject.mgz
+  set cmd = (mri_vol2vol --mov $invol  --o $xfmvol --talxfm $transform_fname \
+             --interp nearest --tal --talres 1 --reg $regfile)
+  echo $cmd | tee -a $LF
+  $cmd  |& tee -a $LF
+  if($status) then
+    pwd |& tee -a $LF
+    echo "ERROR: mri_convert failed." |& tee -a $LF
+    exit 1;
+  endif
+#    --targ $SUBJECTS_DIR/fsaverage/mri/orig.mgz --xfm $xfm \
+
+  # Binarize to select only the voxels in the seg
+  set cmd = (mri_binarize --i $xfmvol --o $xfmvol)
+  foreach SegNo ($SegNos)
+    set cmd = ($cmd --match $SegNo)
+  end
+  echo $cmd | tee -a $LF
+  $cmd  |& tee -a $LF
+  if($status) then
+    pwd |& tee -a $LF
+    echo "ERROR: mri_convert failed." |& tee -a $LF
+    exit 1;
+  endif
+
+  set invollist = ($invollist $xfmvol);
+end
+echo "--------------------------------------" | tee -a $LF
+
+# Final stages
+if($#outcatfile == 0) then
+  # No concat file, just compute mean
+  set cmd = (mri_concat $invollist --o $outfile --mean)
+  echo $cmd | tee -a $LF
+  $cmd  | tee -a $LF
+  if($status) exit 1;
+else
+  # Concat file wanted ...
+  set cmd = (mri_concat $invollist --o $outcatfile)
+  echo $cmd | tee -a $LF
+  $cmd  | tee -a $LF
+  if($status) exit 1;
+  set cmd = (mri_concat $outcatfile --o $outfile --mean)
+  echo $cmd | tee -a $LF
+  $cmd  | tee -a $LF
+  if($status) exit 1;
+endif
+
+if($cleanup) rm -r $tmpdir
+
+date | tee -a $LF
+echo "talsegprob done" | tee -a $LF
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+set getting_subjects = 0;
+while( $#argv != 0 )
+
+  set flag = $argv[1];
+  if (! $getting_subjects) then
+    shift;
+  endif
+
+  switch($flag)
+
+    case "--help":
+      set PrintHelp = 1;
+      goto usage_exit;
+      exit 0;
+
+    case "--version":
+      echo $VERSION
+      exit 0;
+
+    case "--subjects":
+      if ( $#argv == 0) goto arg1moreerr;
+      set SUBJECTS = $argv[1]; shift;
+      # loop on getting variable number of subject names
+      set getting_subjects = 1; # see 'default:' case
+      breaksw
+
+    case "--fsgd":
+      if ( $#argv == 0) goto arg1err;
+      set fsgdf = $argv[1]; shift;
+      if(! -e $fsgdf) then
+        echo "ERROR: cannot find $fsgdf";
+        exit 1;
+      endif
+      set sl = `cat $fsgdf | awk '{if($1 == "Input") print $2}'`;
+      set SUBJECTS = ($sl);
+      breaksw
+
+    case "--p":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set outfile = $argv[1]; shift;
+      breaksw
+
+    case "--c":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set outcatfile = $argv[1]; shift;
+      breaksw
+
+    case "--seg":
+    case "--segmentation":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set segmentation = $argv[1]; shift;
+      breaksw
+
+    case "--xform":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set transform_fname = $argv[1]; shift;
+      breaksw
+
+    case "--seg":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set SegNos = ($SegNos $argv[1]); shift;
+      breaksw
+
+    case "--sd":
+    case "--sdir":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set SUBJECTS_DIR = $argv[1]; shift;
+      setenv SUBJECTS_DIR $SUBJECTS_DIR
+      breaksw
+
+    case "--left-hippo":
+      set cleanup = 0;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      set SegNos = ($SegNos 17);
+      breaksw
+
+    case "--right-hippo":
+      set cleanup = 0;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      set SegNos = ($SegNos 53);
+      breaksw
+
+    case "--hippo":
+      set cleanup = 0;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      set SegNos = ($SegNos 17 53);
+      breaksw
+
+    case "--tmpdir":
+      set cleanup = 0;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
+    case "--debug":
+    case "--echo":
+      set echo = 1;
+      set verbose = 1
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
+    default:
+      if ( $getting_subjects ) then
+        # loop on getting variable number of subjects,
+        # until a new flag is found, or no more args
+        set SUBJECTS = ( $SUBJECTS $argv[1] ); shift;
+        set getting_subjects = 1;
+      else
+        echo ERROR: Flag $flag unrecognized.
+        echo $cmdline
+        exit 1
+      endif
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if (! $?SUBJECTS) then
+    echo "ERROR: no subjects declared!"
+    echo "Either declare subjects in SUBJECTS variable,"
+    echo "or declare using --subjects argument."
+    exit 1
+  endif
+  if (! $?SUBJECTS_DIR) then
+    echo "ERROR: SUBJECTS_DIR is not declared!"
+    echo "Either set the SUBJECTS_DIR environment variable,"
+    echo "or declare using --sdir argument, the root directory"
+    echo "for subject data files."
+    exit 1
+  endif
+  if(! -e $SUBJECTS_DIR ) then
+    echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
+    exit 1;
+  endif
+  if($#outfile == 0) then
+    echo "ERROR: need to specify an output file"
+    exit 1;
+  endif
+  if($#SegNos == 0) then
+    echo "ERROR: need to specify at least one segmentation"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg1moreerr:
+  echo "ERROR: flag $flag requires one or more arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: talsegprob"
+  echo ""
+  echo "Specifying subject list:"
+  echo "   --subjects <subj1> <subj2> ... <subjN>"
+  echo "   --fsgd fsgdfile : get subject list from fsgd"
+  echo "   or declare subjects in SUBJECTS env var"
+  echo ""
+  echo "Segmentations"
+  echo "   --seg segno : segmentation number"
+  echo "   <--seg segno : 2nd segmentation number>"
+  echo "   --hippo       : use 17 and 53"
+  echo "   --left-hippo  : use 17"
+  echo "   --right-hippo : use 53"
+  echo "   --segmentation segfile : use subject/mri/segfile.mgz instead of aseg"
+  echo ""
+  echo "Outputs"
+  echo "   --p  probfname   : output file name"
+  echo "   --c  concatfname : output file name"
+  echo ""
+  echo "Optional Arguments"
+  echo "   --xform xformname : use mri/transforms/xformname (def is talairach.xfm)"
+  echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
+  echo "   --sd      : same as --sdir"
+  echo ""
+  echo "   --tmpdir dir : temporary dir (implies --nocleanup)"
+  echo "   --nocleanup  : do not delete temp dir"
+  echo "   --help       : short descriptive help"
+  echo "   --version : script version info"
+  echo "   --echo    : enable command echo, for debug"
+  echo "   --debug   : same as --echo"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo Version: $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+For each subject, creates a binary volume from the aseg.mgz based on
+the segmentation number(s) passed with --seg. This binary volume is
+then resliced to talirach/MNI305/fsaverage space using the 12 DOF
+talaiach.xfm. The volumes for all the subjects are concatenated
+together and the mean computed.  The value at each voxel is then the
+fraction of subjects that had that segmentation at that voxel. It can
+also be thought of as a probability that the talairach voxel is part
+of the segmentation.
+
+The list of subjects to include in the analysis can be specified 
+in one of three ways:
+
+1. Explicitly on the command-line with --subjects subj1 subj2 ...
+2. With an FSGD file
+3. By setting an environment variable called 'SUBJECTS' with the list
+
+By default, subject/mri/aseg.mgz is used, but this can be changed
+with --segmentation. 
+
+For aseg.mgz, the segmentation is specified with the segmentation
+number as found in $FREESURFER_HOME/FreeSurferColorLUT.txt. Eg, left
+putamen would be specified with --seg 12. The left and right putamen
+would be specified with --seg 12 --seg 51. There is a shortcut for
+hippocampus, use --hippo, --left-hippo, --right-hippo.
+
+There are two possible outputs:
+
+--p probfname
+
+The values in each voxel are the fraction of subjects that had
+that segmentation at that voxel as described above.
+
+--c concatfname
+
+This is an optional output. This is just the segmentations for all
+subjects concatenated together. This can be viewed as a movie in
+tkmedit.
+
+Both of the outputs are 1mm3, but the FOV has been reduced to
+151 x 151 x 186 to save space and time.
+
+EXAMPLES:
+
+Map the left and right hippocampi for subjects tl-wm and sh-wm:
+
+talsegprob --subjects tl-wm sh-wm \
+  --hippo  --p hip.mgz --c hip.cat.mgz
+
+To view the probability map:
+
+tkmedit fsaverage orig.mgz -overlay hip.mgz -fthresh .01 -fmax 1
+
+To view each subject:
+
+tkmedit fsaverage orig.mgz -overlay hip.cat.mgz -fthresh .01 -fmax 1
+  Then Configure->Overlay and hit the "|>" button to see the movie.
+
