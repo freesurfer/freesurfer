@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/21 19:13:30 $
- *    $Revision: 1.274 $
+ *    $Date: 2007/07/18 16:09:48 $
+ *    $Revision: 1.275 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2571,25 +2571,31 @@ int  mai(int argc,char *argv[])
 
   /* begin rkt */
   if (load_timecourse) {
-    func_load_timecourse (timecourse_fname,
-                          timecourse_reg_type, timecourse_reg);
+    err = func_load_timecourse (timecourse_fname,
+				timecourse_reg_type, timecourse_reg);
 
-    /* send the number of conditions */
-    sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
-    send_tcl_command (tcl_cmd);
-
-    /* show the graph window */
-    send_tcl_command ("Graph_ShowWindow");
+    if ( ERROR_NONE == err ) 
+      {
+	/* send the number of conditions */
+	sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
+	send_tcl_command (tcl_cmd);
+	
+	/* show the graph window */
+	send_tcl_command ("Graph_ShowWindow");
+      }
   }
 
   if (load_timecourse_offset) {
 
-    func_load_timecourse_offset (timecourse_offset_fname,
-                                 timecourse_offset_reg_type,
-                                 timecourse_offset_reg);
+    err = func_load_timecourse_offset (timecourse_offset_fname,
+				       timecourse_offset_reg_type,
+				       timecourse_offset_reg);
 
-    /* turn on the offset options */
-    send_tcl_command ("Graph_ShowOffsetOptions 1");
+    if ( ERROR_NONE == err ) 
+      {
+	/* turn on the offset options */
+	send_tcl_command ("Graph_ShowOffsetOptions 1");
+      }
   }
 
   if (load_colortable) {
@@ -19249,7 +19255,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.274 2007/05/21 19:13:30 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.275 2007/07/18 16:09:48 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
