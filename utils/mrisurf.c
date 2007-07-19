@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/19 03:54:15 $
- *    $Revision: 1.542 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/19 15:57:51 $
+ *    $Revision: 1.543 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -613,7 +613,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.542 2007/07/19 03:54:15 greve Exp $");
+  return("$Id: mrisurf.c,v 1.543 2007/07/19 15:57:51 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5249,7 +5249,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
                   "MRISregister", fname) ;
-      MRISnormalizeCurvature(mris, NORM_MEAN) ;
+      MRISnormalizeCurvature(mris, parms->which_norm) ;
     }
     else                       /* compute curvature of surface */
     {
@@ -5263,7 +5263,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       MRIScomputeMetricProperties(mris) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISuseMeanCurvature(mris) ;
-      MRISnormalizeCurvature(mris, NORM_MEAN) ;
+      MRISnormalizeCurvature(mris, parms->which_norm) ;
       MRISresetNeighborhoodSize(mris,1);/*only use nearest neighbor distances*/
 
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
@@ -5328,17 +5328,25 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       if (Gdiag & DIAG_WRITE)
         fprintf(parms->fp,"\ncorrelating surfaces with with sigma=%2.2f\n",
                 sigma) ;
-      if (Gdiag & DIAG_WRITE && !i && (!parms->start_t || sno <= 1))
+      if ((Gdiag & DIAG_WRITE) && !i && (!parms->start_t || sno <= 1))
       {
+        fprintf(parms->fp, 
+                "writing target curvature, i=%d, start_t=%d, sno=%d, v0=(%2.1f, %2.1f, %2.1f)\n",
+                i, parms->start_t, sno, 
+                mris->vertices[0].cx,
+                mris->vertices[0].cy,
+                mris->vertices[0].cz) ;
+        fflush(parms->fp) ;
         MRISsaveVertexPositions(mris, TMP_VERTICES) ;
         MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
         MRIScomputeMetricProperties(mris) ;
         MRISfromParameterization(mrisp_template, mris, ino);
-        MRISnormalizeCurvature(mris, NORM_MEAN) ;
+        MRISnormalizeCurvature(mris, parms->which_norm) ;
         sprintf
         (fname,
-         "%s/%s.target%d",
-         path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh", sno) ;
+         "%s/%s.%s.target%d",
+         path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh", 
+         parms->base_name, sno) ;
         MRISwriteCurvature(mris, fname) ;
         MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
         MRIScomputeMetricProperties(mris) ;
@@ -5373,26 +5381,37 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         fprintf(stdout, "done.\n") ;
       /* normalize curvature intensities for both source and target */
       MRISfromParameterization(parms->mrisp_template, mris, ino);
-      MRISnormalizeCurvature(mris, NORM_MEAN) ;
+      MRISnormalizeCurvature(mris, parms->which_norm) ;
       MRIStoParameterization(mris, parms->mrisp_template, 1, ino) ;
 
 #if 0
       /* normalize variances for both source and target */
       MRISfromParameterization(parms->mrisp_template, mris, ino+1);
-      MRISnormalizeCurvature(mris, NORM_MEAN) ;
+      MRISnormalizeCurvature(mris, parms->which_norm) ;
       MRIStoParameterization(mris, parms->mrisp_template, 1, ino+1) ;
 #endif
 
       if (Gdiag & DIAG_WRITE)
       {
-        sprintf(fname, "%s/%s.sno%d_target_blur%2.2f",
-                path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
-                sno, sigma) ;
+#if 1
+        MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+        MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+        MRIScomputeMetricProperties(mris) ;
+#endif
+        MRISfromParameterization(mrisp_template, mris, ino);
+        sprintf(fname, "%s/%s.%s.sno%d_target_blur%2.2f",
+                path,
+                mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
+                parms->base_name, sno, sigma) ;
         MRISwriteCurvature(mris, fname) ;
+#if 1
+        MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+        MRIScomputeMetricProperties(mris) ;
+#endif
       }
 
       MRISfromParameterization(parms->mrisp, mris, 0);
-      MRISnormalizeCurvature(mris, NORM_MEAN) ;
+      MRISnormalizeCurvature(mris, parms->which_norm) ;
       MRIStoParameterization(mris, parms->mrisp, 1, 0) ;
       MRISPfree(&mrisp) ;
       if (Gdiag & DIAG_WRITE && sno == 0)
@@ -5412,17 +5431,17 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 
       if (Gdiag & DIAG_WRITE)
       {
-        sprintf(fname, "%s/%s.sno%d_blur%2.2f",
+        sprintf(fname, "%s/%s.%s.sno%d_blur%2.2f",
                 path, 
                 mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh", 
-                sno, sigma) ;
+                parms->base_name, sno, sigma) ;
         MRISwriteCurvature(mris, fname) ;
       }
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
-        sprintf(fname, "%s/%s.%4.4dblur%2.2f",
+        sprintf(fname, "%s/%s.%s.%4.4dblur%2.2f",
                 path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
-                parms->start_t, sigma) ;
+                parms->base_name, parms->start_t, sigma) ;
         if (Gdiag & DIAG_SHOW)
           fprintf(stdout, "writing curvature file %s...", fname) ;
         MRISwriteCurvature(mris, fname) ;
@@ -5450,7 +5469,16 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
                                    min_degrees, max_degrees, nangles) ;
           /* MRISrigidBodyAlignGlobal(mris, parms, 0.5f, 32.0f, 8) ;*/
           if (Gdiag & DIAG_WRITE && parms->write_iterations != 0)
-            MRISwrite(mris, "rotated") ;
+          {
+            char fname[STRLEN], path[STRLEN] ;
+            FileNamePath(mris->fname, path) ;
+            sprintf(fname, "%s/%s.%s.rotated",
+                    path,
+                    mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
+                    parms->base_name) ;
+            printf("writing rigid aligned surface to %s\n",fname);
+            MRISwrite(mris, fname) ;
+          }
           MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
         }
       }
@@ -5477,14 +5505,14 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
   if (Gdiag & DIAG_WRITE)
     fprintf(parms->fp, "removing remaining folds...\n") ;
 #if 1
-  parms->l_nlarea *= 100  ; 
+  parms->l_nlarea *= 100  ; parms->n_averages = 64 ;  // don't let averaging effect too much of surface
   parms->l_parea /= 100 ;
   parms->l_spring /= 100 ; parms->l_corr /= 100 ; parms->l_dist /= 100;
   mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
 #else
   parms->l_nlarea = 1 ;
   parms->l_corr /= 10.0 ;
-  parms->l_area = parms->l_parea = 0 ;
+  parms->l_area = parms->l_parea = parms->l_spring = 0.0 ;
   mrisRemoveNegativeArea(mris,parms,parms->n_averages,MAX_NEG_AREA_PCT,3);
 #endif
 #if 0
@@ -5792,8 +5820,8 @@ int MRISvectorRegister(MRI_SURFACE *mris,
       //      MRISnormalizeCurvature(mris, parms->fields[0].which_norm) ;
       sprintf
       (fname,
-       "%s/%s.target",
-       path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh") ;
+       "%s/%s.%s.target",
+       path,mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
       if (Gdiag & DIAG_SHOW)
         fprintf(stdout, "writing curvature file %s...\n", fname) ;
       MRISwriteCurvature(mris, fname) ;
@@ -5813,9 +5841,9 @@ int MRISvectorRegister(MRI_SURFACE *mris,
 
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      sprintf(fname, "%s/%s.%4.4dtarget%2.2f",
+      sprintf(fname, "%s/%s.%s.%4.4dtarget%2.2f",
               path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
-              parms->start_t, sigma) ;
+              parms->base_name, parms->start_t, sigma) ;
       if (Gdiag & DIAG_SHOW)
         fprintf(stdout, "writing curvature file %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
@@ -6822,7 +6850,12 @@ mrisIntegrationEpoch(MRI_SURFACE *mris,
     pdenom = &parms->l_dist  ;
   }
 
-  if (!FZERO(parms->l_area))
+  if (!FZERO(parms->l_nlarea))
+  {
+    snum = "nlarea" ;
+    pnum = &parms->l_nlarea  ;
+  }
+  else if (!FZERO(parms->l_area))
   {
     snum = "area" ;
     pnum = &parms->l_area ;
@@ -6831,11 +6864,6 @@ mrisIntegrationEpoch(MRI_SURFACE *mris,
   {
     snum = "parea" ;
     pnum = &parms->l_parea  ;
-  }
-  else if (!FZERO(parms->l_nlarea))
-  {
-    snum = "nlarea" ;
-    pnum = &parms->l_nlarea  ;
   }
   else
   {
@@ -12548,7 +12576,7 @@ mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2)
 
   Description
   ------------------------------------------------------*/
-#define ILL_CONDITIONED   500000.0
+#define ILL_CONDITIONED   5000.0 //500000.0
 int
 MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
 {
@@ -12557,7 +12585,13 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
   MATRIX *m_U, *m_Ut, *m_tmp1, *m_tmp2, *m_inverse, *m_eigen, *m_Q ;
   VECTOR *v_c, *v_z, *v_n, *v_e1, *v_e2, *v_yi ;
   float  k1, k2, evalues[3], a11, a12, a21, a22, cond_no, kmax, kmin, rsq, k ;
-  double ui, vi, total_area = 0.0, max_error ;
+  double ui, vi, total_area = 0.0, max_error, vmean, vsigma, rsq_thresh ;
+  FILE   *fp = NULL ;
+  HISTOGRAM *h_k1, *h_k2 ;
+
+  vmean = MRIScomputeTotalVertexSpacingStats(mris,&vsigma,NULL,NULL,NULL,NULL);
+  rsq_thresh = MIN(vmean*.25, 1.0) ;
+  rsq_thresh *= rsq_thresh ;
 
   if (mris->status == MRIS_PLANE)
     return(NO_ERROR) ;
@@ -12577,6 +12611,8 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
   mris->Ktotal = 0.0f ;
   vmax = -1 ;
   max_error = -1.0 ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    fp = fopen("curv.dat", "w") ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     vertex = &mris->vertices[vno] ;
@@ -12619,15 +12655,15 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
       *MATRIX_RELT(m_U, n+1, 3) = vi*vi ;
       VECTOR_ELT(v_z, n+1) = V3_DOT(v_n, v_yi) ;  /* height above TpS */
       rsq = ui*ui + vi*vi ;
-      if (!FZERO(rsq))
+      if (!FZERO(rsq) && rsq > rsq_thresh)
       {
         k = VECTOR_ELT(v_z, n+1) / rsq ;
         if (k > kmax)
           kmax = k ;
         if (k < kmin)
           kmin = k ;
+        n++ ;
       }
-      n++ ;
     }
 
     m_Ut = MatrixTranspose(m_U, NULL) ;          /* Ut */
@@ -12642,6 +12678,7 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
     {
       nbad++ ;
       evalues[0] = evalues[1] = 0.0 ;
+      MatrixIdentity(m_eigen->rows, m_eigen) ;
     }
     else
     {
@@ -12720,6 +12757,9 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
     vertex->k2 = k2 ;
     vertex->K = k1 * k2 ;
     vertex->H = (k1 + k2) / 2 ;
+    if (fp)
+      fprintf(fp, "%d %f %f %f %f\n",
+              vno, k1, k2, vertex->K, vertex->H) ;
     if (vno == Gdiag_no && (Gdiag & DIAG_SHOW))
       fprintf(stdout, "v %d: k1=%2.3f, k2=%2.3f, K=%2.3f, H=%2.3f\n",
               vno, vertex->k1, vertex->k2, vertex->K, vertex->H) ;
@@ -12757,6 +12797,8 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
 
   }
 
+  if (fp)
+    fclose(fp) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "max H error=%2.3f at %d\n", max_error, vmax) ;
 
@@ -12772,6 +12814,161 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
   VectorFree(&v_n) ;
   VectorFree(&v_yi) ;
   MatrixFree(&m_Q) ;
+
+  // remove outliers
+  {
+    double min_k1, min_k2, max_k1, max_k2, k1_scale, k2_scale, total, thresh ;
+    int    bin, zbin1, zbin2, nthresh = 0 ;
+
+    h_k1 = HISTOalloc(1000) ;
+    h_k2 = HISTOalloc(1000) ;
+
+    min_k1 = min_k2 = 1000 ;
+    max_k1 = max_k2 = -1000 ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      vertex = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (vertex->ripflag)
+        continue ;
+      if (vertex->k1 > max_k1)
+        max_k1 = vertex->k1 ;
+      if (vertex->k2 > max_k2)
+        max_k2 = vertex->k2 ;
+      if (vertex->k1 < min_k1)
+        min_k1 = vertex->k1 ;
+      if (vertex->k2 < min_k2)
+        min_k2 = vertex->k2 ;
+    }
+
+    k1_scale = (h_k1->nbins-1)/(max_k1 - min_k1);
+    k2_scale = (h_k2->nbins-1)/(max_k2 - min_k2);
+    h_k1->bin_size = 1.0/k1_scale ;
+    h_k2->bin_size = 1.0/k2_scale ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      vertex = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (vertex->ripflag)
+        continue ;
+      bin = nint(k1_scale * (vertex->k1 - min_k1)) ;
+      h_k1->counts[bin]++ ;
+      bin = nint(k2_scale * (vertex->k2 - min_k2)) ;
+      h_k2->counts[bin]++ ;
+    }
+    for (bin = 0 ; bin < h_k1->nbins ; bin++)
+      h_k1->bins[bin] = (bin / k1_scale) + min_k1 ;
+    for (bin = 0 ; bin < h_k2->nbins ; bin++)
+      h_k2->bins[bin] = (bin / k2_scale) + min_k2 ;
+    zbin1 = nint(k1_scale * (0.0-min_k1)) ;
+    zbin2 = nint(k2_scale * (0.0-min_k2)) ;
+    HISTOmakePDF(h_k1, h_k1) ;
+    HISTOmakePDF(h_k2, h_k2) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      HISTOplot(h_k1, "k1.plt") ;
+      HISTOplot(h_k2, "k2.plt") ;
+    }
+
+#define THRESH 0.9999
+
+    zbin1 = HISTOfindHighestPeakInRegion(h_k1, 0, h_k1->nbins) ;
+    zbin2 = HISTOfindHighestPeakInRegion(h_k2, 0, h_k2->nbins) ;
+
+    for (total = 0, bin = zbin1 ; bin < h_k1->nbins ; bin++)
+      total += h_k1->counts[bin] ;
+    thresh = THRESH*total ;
+    for (total = 0, bin = zbin1 ; bin < h_k1->nbins-1 ; bin++)
+    {
+      total += h_k1->counts[bin] ;
+      if (total > thresh)
+        break ;
+    }
+    max_k1 = h_k1->bins[bin] ;
+
+    for (total = 0, bin = zbin1 ; bin > 0 ; bin--)
+      total += h_k1->counts[bin] ;
+    thresh = THRESH*total ;
+    for (total = 0, bin = zbin1 ; bin > 0 ; bin--)
+    {
+      total += h_k1->counts[bin] ;
+      if (total > thresh)
+        break ;
+    }
+    min_k1 = h_k1->bins[bin] ;
+
+
+    for (total = 0, bin = zbin2 ; bin < h_k2->nbins ; bin++)
+      total += h_k2->counts[bin] ;
+    thresh = THRESH*total ;
+    for (total = 0, bin = zbin2 ; bin < h_k2->nbins-1 ; bin++)
+    {
+      total += h_k2->counts[bin] ;
+      if (total > thresh)
+        break ;
+    }
+    max_k2 = h_k2->bins[bin] ;
+
+    for (total = 0, bin = zbin2 ; bin > 0 ; bin--)
+      total += h_k2->counts[bin] ;
+    thresh = THRESH*total ;
+    for (total = 0, bin = zbin2 ; bin > 0 ; bin--)
+    {
+      total += h_k2->counts[bin] ;
+      if (total > thresh)
+        break ;
+    }
+    min_k2 = h_k2->bins[bin] ;
+
+    mris->Kmin = mris->Hmin = 10000.0f ;
+    mris->Kmax = mris->Hmax = -10000.0f ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      vertex = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (vertex->ripflag)
+        continue ;
+      if (vertex->k1 > max_k1)
+      {
+        vertex->k1 = max_k1 ;
+        nthresh++ ;
+      }
+      if (vertex->k2 > max_k2)
+      {
+        vertex->k2 = max_k2 ;
+        nthresh++ ;
+      }
+      if (vertex->k1 < min_k1)
+      {
+        vertex->k1 = min_k1 ;
+        nthresh++ ;
+      }
+      if (vertex->k2 < min_k2)
+      {
+        vertex->k2 = min_k2 ;
+        nthresh++ ;
+      }
+      vertex->K = vertex->k1 * vertex->k2 ;
+      vertex->H = (vertex->k1 + vertex->k2) / 2.0 ;
+      if (vertex->K < mris->Kmin)
+        mris->Kmin = vertex->K ;
+      if (vertex->H < mris->Hmin)
+        mris->Hmin = vertex->H ;
+      if (vertex->K > mris->Kmax)
+        mris->Kmax = vertex->K ;
+      if (vertex->H > mris->Hmax)
+        mris->Hmax = vertex->H ;
+    }
+
+    HISTOfree(&h_k1) ;
+    HISTOfree(&h_k2) ;
+    if (nthresh > 0)
+      fprintf(stderr, "%d vertices thresholded to be in k1 ~ [%2.2f %2.2f], k2 ~ [%2.2f %2.2f]\n",
+              nthresh, min_k1, max_k1, min_k2, max_k2) ;
+  }
   return(NO_ERROR) ;
 }
 int
@@ -20302,16 +20499,19 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 {
   double   src, target, sse, delta, std ;
   VERTEX   *v ;
-  int      vno ;
-  float    x, y, z, l_corr ;
+  int      vno, max_vno ;
+  float    x, y, z, l_corr, max_delta ;
 
   l_corr = parms->l_corr + parms->l_pcorr ;  /* only one will be nonzero */
   if (FZERO(l_corr))
     return(0.0) ;
 
+  max_delta = 0.0 ; max_vno = -1 ;
   for (sse = 0.0f, vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     if (v->ripflag)
       continue ;
 
@@ -20338,9 +20538,16 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       std = 1.0f ;
 #endif
     delta = (src - target) / std ;
+    if (fabs(delta) > max_delta)
+    {
+      max_delta = fabs(delta) ; max_vno = vno ;
+    }
     if (!finite(target) || !finite(delta))
       DiagBreak() ;
-    sse += delta * delta ;
+    if (parms->abs_norm)
+      sse += fabs(delta) ;
+    else
+      sse += delta * delta ;
   }
   return(sse) ;
 }
@@ -22411,8 +22618,10 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 {
   double   alpha, beta, gamma, degrees, delta, mina, minb, ming,
   sse, min_sse, ext_sse ;
-  int      old_status = mris->status ;
+  int      old_status = mris->status, old_norm ;
 
+  old_norm = parms->abs_norm ;
+  parms->abs_norm = 1 ;
   min_degrees = RADIANS(min_degrees) ;
   max_degrees = RADIANS(max_degrees) ;
   mrisOrientSurface(mris) ;
@@ -22509,6 +22718,7 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   }
 
   mris->status = old_status ;
+  parms->abs_norm = old_norm ;
   return(NO_ERROR) ;
 }
 
@@ -30815,6 +31025,67 @@ MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
     if (vno == Gdiag_no)
       DiagBreak() ;
     for (n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      nv++ ;
+      dist = sqrt(SQR(vn->x - v->x) + SQR(vn->y - v->y) + SQR(vn->z - v->z));
+      dist *= dist_scale ;
+      if (dist > max_dist)
+      {
+        if (pvno)
+          *pvno = vno ;
+        if (pvno2)
+          *pvno2 = v->v[n] ;
+        max_dist = dist ;
+      }
+      if (dist < min_dist)
+        min_dist = dist ;
+      total_dist += dist ;
+      var += dist*dist ;
+    }
+  }
+  mean = total_dist / nv ;
+  if (psigma)
+    *psigma = sigma = sqrt(var / nv - mean*mean) ;
+  if (pmin)
+    *pmin = min_dist ;
+  if (pmax)
+    *pmax = max_dist ;
+  return(mean) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+double
+MRIScomputeTotalVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
+                                   double *pmin, double *pmax, int *pvno,
+                                   int *pvno2)
+{
+  double   total_dist, mean, var, nv, dist, sigma, min_dist, max_dist,
+  dist_scale ;
+  int      vno, n ;
+  VERTEX   *v, *vn ;
+
+  MRIScomputeMetricProperties(mris) ;
+  if (mris->patch)
+    dist_scale = 1.0 ;
+  else
+    dist_scale = sqrt(mris->orig_area / mris->total_area) ;
+  dist_scale = 1.0f ;
+  min_dist = 1000 ;
+  max_dist = -1 ;
+  for (var = nv = total_dist = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    for (n = 0 ; n < v->vtotal ; n++)
     {
       vn = &mris->vertices[v->v[n]] ;
       nv++ ;
@@ -58697,11 +58968,30 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   min_neg_iter = 0 ;
   last_expand = 0 ;
   parms->t = parms->start_t ;
+  if (Gdiag & DIAG_WRITE)
+  {
+    char fname[STRLEN] ;
+
+    if (!parms->fp)
+    {
+      sprintf
+        (fname, "%s.%s.out",
+         mris->hemisphere==RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
+      parms->fp = fopen(fname, "a") ;
+      if (!parms->fp)
+        ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+                  Progname, fname) ;
+    }
+  }
   while (negative > 0)
   {
     old_neg = negative ;
     printf("%03d: dt=%2.4f, %d negative triangles\n", parms->t++, parms->dt,
            negative) ;
+    if (parms->fp)
+      fprintf(parms->fp, "%03d: dt=%2.4f, %d negative triangles\n", parms->t++, parms->dt,
+              negative) ;
+
     mrisSmoothingTimeStep(mris, parms) ;
     mrisProjectSurface(mris) ;
     MRIScomputeMetricProperties(mris) ;
@@ -58779,6 +59069,11 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       break ;
   }
 
+  if (parms->fp)
+  {
+    fclose(parms->fp) ;
+    parms->fp = NULL ;
+  }
   parms->t += parms->start_t ;
   parms->start_t = parms->t ;
   return(NO_ERROR) ;
@@ -59902,5 +60197,107 @@ mrisCheckSurfaceNbrs(MRI_SURFACE *mris)
     }
   }
   return(1) ;
+}
+
+// remove outliers in the v->curv field
+int
+MRIShistoThresholdCurvature(MRI_SURFACE *mris, float thresh_pct)
+{
+  double    min_curv, max_curv, curv_scale, total, thresh ;
+  int       bin, zbin, nthresh = 0, vno ;
+  HISTOGRAM *h_curv ;
+  VERTEX    *vertex ;
+
+  h_curv = HISTOalloc(1000) ;
+
+  min_curv = 1000 ;
+  max_curv = -1000 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (vertex->ripflag)
+      continue ;
+    if (vertex->curv > max_curv)
+      max_curv = vertex->curv ;
+    if (vertex->curv < min_curv)
+      min_curv = vertex->curv ;
+  }
+
+  curv_scale = (h_curv->nbins-1)/(max_curv - min_curv);
+  h_curv->bin_size = 1.0/curv_scale ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (vertex->ripflag)
+      continue ;
+    bin = nint(curv_scale * (vertex->curv - min_curv)) ;
+    h_curv->counts[bin]++ ;
+  }
+  for (bin = 0 ; bin < h_curv->nbins ; bin++)
+    h_curv->bins[bin] = (bin / curv_scale) + min_curv ;
+  zbin = nint(curv_scale * (0.0-min_curv)) ;
+  HISTOmakePDF(h_curv, h_curv) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    HISTOplot(h_curv, "curv.plt") ;
+
+  zbin = HISTOfindHighestPeakInRegion(h_curv, 0, h_curv->nbins) ;
+
+  for (total = 0, bin = zbin ; bin < h_curv->nbins ; bin++)
+    total += h_curv->counts[bin] ;
+  thresh = thresh_pct*total ;
+  for (total = 0, bin = zbin ; bin < h_curv->nbins-1 ; bin++)
+  {
+    total += h_curv->counts[bin] ;
+    if (total > thresh)
+      break ;
+  }
+  max_curv = h_curv->bins[bin] ;
+
+  for (total = 0, bin = zbin ; bin > 0 ; bin--)
+    total += h_curv->counts[bin] ;
+  thresh = thresh_pct*total ;
+  for (total = 0, bin = zbin ; bin > 0 ; bin--)
+  {
+    total += h_curv->counts[bin] ;
+    if (total > thresh)
+      break ;
+  }
+  min_curv = h_curv->bins[bin] ;
+
+
+  mris->min_curv = 10000.0f ;
+  mris->max_curv = -10000.0f ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (vertex->ripflag)
+      continue ;
+    if (vertex->curv > max_curv)
+    {
+      vertex->curv = max_curv ;
+      nthresh++ ;
+    }
+    if (vertex->curv < min_curv)
+    {
+      vertex->curv = min_curv ;
+      nthresh++ ;
+    }
+    if (vertex->curv < mris->min_curv)
+      mris->min_curv = vertex->curv ;
+    if (vertex->curv > mris->max_curv)
+      mris->max_curv = vertex->curv ;
+  }
+  
+  HISTOfree(&h_curv) ;
+  if (nthresh > 0)
+    fprintf(stderr, "%d vertices thresholded to be in [%2.2f %2.2f]\n",
+            nthresh, min_curv, max_curv) ;
+  return(NO_ERROR) ;
 }
 
