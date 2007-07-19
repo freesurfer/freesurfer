@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/16 18:49:48 $
- *    $Revision: 1.541 $
+ *    $Author: greve $
+ *    $Date: 2007/07/19 03:54:15 $
+ *    $Revision: 1.542 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -613,7 +613,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.541 2007/07/16 18:49:48 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.542 2007/07/19 03:54:15 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -58009,7 +58009,7 @@ int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
   static int ncalls = 0;
   VERTEX *vtarg,*vcur;
   int nNNbrs, n, NbrVtxNo, err;
-  double DotProd;
+  double DotProd, dx,dy,dz;
 
   // Get the current vertex
   vcur  = &SphSurf->vertices[CurVtxNo] ;
@@ -58040,7 +58040,10 @@ int MRISextendedNeighbors(MRIS *SphSurf,int TargVtxNo, int CurVtxNo,
   }
   else {
     // Cartesian - dist squared along sphere (so thresh should be squared)
-    DotProd = pow(vtarg->x-vcur->x,2.0) + pow(vtarg->y-vcur->y,2.0) + pow(vtarg->z-vcur->z,2.0);
+    dx = vtarg->x-vcur->x;
+    dy = vtarg->y-vcur->y;
+    dz = vtarg->z-vcur->z;
+    DotProd = dx*dx + dy*dy + dz*dz;
     DotProd = fabs(DotProd);
     //printf("c %d %d %d %g %d\n",ncalls,TargVtxNo,CurVtxNo,DotProd,*nXNbrs);
     if(DotProd >= DotProdThresh) return(0);
