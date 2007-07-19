@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/12 00:44:00 $
- *    $Revision: 1.38 $
+ *    $Date: 2007/07/19 03:54:37 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -136,47 +136,54 @@ int main(int argc, char **argv) {
   printf("\nReading lh white surface \n %s\n",tmpstr);
   surf = MRISread(tmpstr);
   if(!surf) exit(1);
-  printf("nvertices %d\n",surf->nvertices);
-  printf("patch %d\n",surf->patch);
+
   vtx = &(surf->vertices[12282]);
   dlhw = sqrt((vtx->x * vtx->x) + (vtx->y * vtx->y) + (vtx->z * vtx->z));
-  printf("radius %g\n",dlhw);
-  DotProdThresh = (dlhw*dlhw)*cos(10/dlhw)*(1.0001);
+  DotProdThresh = (100*100)*cos(10/dlhw)*(1.0001);
 
   XNbrVtxNo   = (int *) calloc(surf->nvertices,sizeof(int));
   XNbrDotProd = (double *) calloc(surf->nvertices,sizeof(double));
+  mri = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, 1);
 
+  //-----------------------------------------------
   nXNbrs = 0;
   MRISextendedNeighbors(surf, 12282, 12282, DotProdThresh,
 			XNbrVtxNo, XNbrDotProd, 
 			&nXNbrs,surf->nvertices,1);
   printf("Found %d neighbors\n",nXNbrs);
 
-  mri = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, 1);
-  for(k = 0; k < nXNbrs; k++){
+  for(k = 0; k < nXNbrs; k++)
     MRIsetVoxVal(mri,XNbrVtxNo[k],0,0,0,1);
-  }
   MRIwrite(mri,"xnbr.mgh");
 
   //-----------------------------------------------
   err = MRISreadPatch(surf, argv[3]);
-  printf("patch %d\n",surf->patch);
-  printf("rip %d\n",vtx->ripflag);
-  for(k = 0; k < surf->nvertices; k++) surf->vertices[k].val2bak = -1;
-  nXNbrs = 0;
-  MRISextendedNeighbors(surf, 12282, 12282, 100,
-			XNbrVtxNo, XNbrDotProd, 
-			&nXNbrs,surf->nvertices,2);
-  printf("Found %d neighbors\n",nXNbrs);
 
-  mri = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, 1);
-  for(k = 0; k < nXNbrs; k++){
-    MRIsetVoxVal(mri,XNbrVtxNo[k],0,0,0,1);
+  for(lhwvtx = 0; lhwvtx < surf->nvertices; lhwvtx++){
+    if(surf->vertices[lhwvtx].ripflag) continue;
+    for(k = 0; k < surf->nvertices; k++) surf->vertices[k].val2bak = -1;
+    nXNbrs = 0;
+    MRISextendedNeighbors(surf, lhwvtx, lhwvtx, 5*5,
+			  XNbrVtxNo, XNbrDotProd, 
+			  &nXNbrs,surf->nvertices,2);
+    if(lhwvtx%1000 == 1) printf("%5d %5d neighbors\n",lhwvtx,nXNbrs);
   }
+
+  for(k = 0; k < nXNbrs; k++)
+    MRIsetVoxVal(mri,XNbrVtxNo[k],0,0,0,1);
+
   MRIwrite(mri,"xnbr2.mgh");
 
-
   exit (1);
+  //---------------------------------------------------------
+#if 0
+  printf("nvertices %d\n",surf->nvertices);
+  printf("patch %d\n",surf->patch);
+  printf("radius %g\n",dlhw);
+  printf("patch %d\n",surf->patch);
+  printf("rip %d\n",vtx->ripflag);
+#endif
+
 
 
   printf("Building hash of lh white\n");
