@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/12 00:42:11 $
- *    $Revision: 1.290 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/19 15:56:05 $
+ *    $Revision: 1.291 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -507,6 +507,10 @@ typedef struct
   MRI     *mri_ll ;           // log-likelihood image
   double  rmin ;
   double  rmax ;              // for nonlinear spring term
+  int     var_smoothness ;    // for space/time varying weights on metric distortion/likelihood
+  float   *vsmoothness ;      // variable smoothness coefficients (one per vertex)
+  int     which_norm ;        // mean or median normalization
+  int     abs_norm ;
 }
 INTEGRATION_PARMS ;
 
@@ -1066,6 +1070,10 @@ int  MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz) ;
 double MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
                                      double *pmin, double *pmax, int *pvno,
                                      int *pvno2);
+double MRIScomputeTotalVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
+                                          double *pmin, double *pmax, 
+                                          int *pvno,
+                                          int *pvno2);
 double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
                                 double *pmin, double *pmax);
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
@@ -1541,5 +1549,6 @@ MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius, int diag
 double MRIScomputeWhiteVolume(MRI_SURFACE *mris, 
                               MRI *mri_aseg, 
                               double resolution);
+int MRIShistoThresholdCurvature(MRI_SURFACE *mris, float thresh_pct);
 
 #endif
