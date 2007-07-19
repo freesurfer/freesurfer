@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/18 20:46:25 $
- *    $Revision: 1.47 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/19 15:58:50 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "gcsa.h"
 
 static char vcid[] = 
-"$Id: mris_register.c,v 1.47 2007/04/18 20:46:25 nicks Exp $";
+"$Id: mris_register.c,v 1.48 2007/07/19 15:58:50 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -75,6 +75,7 @@ static char *curvature_names[] =
 #define SURFACES         sizeof(curvature_names) / sizeof(curvature_names[0])
 #define PARAM_IMAGES         (IMAGES_PER_SURFACE*SURFACES)
 
+static char *starting_reg_fname = NULL ;
 static int multi_scale = 0 ;
 static int which_norm = NORM_MEAN ;
 static int navgs = 0 ;
@@ -136,14 +137,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.47 2007/04/18 20:46:25 nicks Exp $", 
+     "$Id: mris_register.c,v 1.48 2007/07/19 15:58:50 fischl Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.47 2007/04/18 20:46:25 nicks Exp $", 
+     "$Id: mris_register.c,v 1.48 2007/07/19 15:58:50 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -194,6 +195,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
+  parms.which_norm = which_norm ;
   if (argc < 4) usage_exit() ;
 
   printf("%s\n", vcid) ;
@@ -219,6 +221,16 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
+
+  if (parms.var_smoothness)
+  {
+    int vno ;
+    parms.vsmoothness = (float *)calloc(mris->nvertices, sizeof(float)) ;
+    if (parms.vsmoothness == NULL)
+      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate vsmoothness array", Progname) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      parms.vsmoothness[vno] = 1.0 ;
+  }
 
   MRISresetNeighborhoodSize(mris, 1) ;
   if (annot_name)
@@ -309,7 +321,7 @@ main(int argc, char *argv[])
                       Progname, fname) ;
 
           if (tnbrs > 1)
-            MRISsetNeighborhoodSize(mris_template, tnbrs) ;
+            MRISresetNeighborhoodSize(mris_template, tnbrs) ;
           MRIScomputeMetricProperties(mris_template) ;
           MRIScomputeSecondFundamentalForm(mris_template) ;
           MRISuseMeanCurvature(mris_template) ;
@@ -351,7 +363,7 @@ main(int argc, char *argv[])
   }
 
   if (nbrs > 1)
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISresetNeighborhoodSize(mris, nbrs) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   if (reverse_flag) MRISreverse(mris, REVERSE_X) ;
   mris->status = MRIS_PARAMETERIZED_SPHERE ;
@@ -382,6 +394,10 @@ main(int argc, char *argv[])
   MRISsaveVertexPositions
     (mris, CANONICAL_VERTICES) ;  // uniform spherical positions
 #endif
+  if (starting_reg_fname)
+    if (MRISreadVertexPositions(mris, starting_reg_fname) != NO_ERROR)
+      exit(Gerror) ;
+
   if (multiframes)
   {
     if (use_initial_registration)
@@ -522,6 +538,11 @@ get_option(int argc, char *argv[])
   {
     which_norm = NORM_NONE ;
     printf("disabling normalization\n") ;
+  }
+  else if (!stricmp(option, "vsmooth"))
+  {
+    parms.var_smoothness = 1 ;
+    printf("using space/time varying smoothness weighting\n") ;
   }
   else if (!stricmp(option, "vector"))
   {
@@ -775,6 +796,12 @@ get_option(int argc, char *argv[])
   {
     parms.flags &= ~IP_USE_CURVATURE ;
     fprintf(stderr, "NOT using smoothwm curvature for final alignment\n") ;
+  }
+  else if (!stricmp(option, "sreg"))
+  {
+    starting_reg_fname = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "starting registration with coordinates in  %s\n", starting_reg_fname) ;
   }
   else if (!stricmp(option, "adaptive"))
   {
