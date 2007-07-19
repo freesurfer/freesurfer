@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/07/19 22:05:18 $
-#    $Revision: 1.115 $
+#    $Author: greve $
+#    $Date: 2007/07/19 23:18:50 $
+#    $Revision: 1.116 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.115 2007/07/19 22:05:18 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.116 2007/07/19 23:18:50 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -214,7 +214,7 @@ set DoParcStats      = 0;
 set DoParcStats2     = 0;
 set DoCortRibbonVolMask = 0;
 set DoVnoMatchCheck  = 0;
-
+set DoIsRunning  = 1;
 
 setenv LANG C # Required by MNI tool
 setenv FIX_VERTEX_AREA; # see -<no>fixvertexarea flag
@@ -370,6 +370,45 @@ echo "GCS $GCS" >> $LF
 echo "#######################################" >> $LF
 
 if($DoVersionsOnly) exit 0;
+
+# ------------ Create the IsRunning File --------- #
+if($DoIsRunning) then
+  set IsRunningLH   = $subjdir/scripts/IsRunning.lh
+  set IsRunningRH   = $subjdir/scripts/IsRunning.rh
+  set IsRunningLHRH = $subjdir/scripts/IsRunning.lh+rh
+  set bailfile = (); 
+  if($#hemilist == 1) then
+    set hemi = $hemilist;
+    set IsRunningFile = $subjdir/scripts/IsRunning.$hemi
+    if(-e $IsRunningLHRH) set bailfile = $IsRunningLHRH
+  else
+    set IsRunningFile = $subjdir/scripts/IsRunning.lh+rh
+    if(-e $IsRunningLH)   set bailfile = $IsRunningLH
+    if(-e $IsRunningRH)   set bailfile = $IsRunningRH
+  endif
+  if(-e $IsRunningFile) set bailfile = $IsRunningFile
+  if($#bailfile) then
+    echo ""
+    echo "ERROR: it appears that recon-all is already running"
+    echo "for $subjid based on the presence of $bailfile. It could"
+    echo "also be that recon-all was running at one point but"
+    echo "died in an unexpected way. If it is the case that there"
+    echo "is a process running, you can kill it and start over or"
+    echo "just let it run. If the process has died, you should"
+    echo "delete $bailfile and re-run. Or you can add -no-isrunning"
+    echo "to the recon-all command-line. The contents of this file are:"
+    echo "----------------------------------------------------------"
+    cat  $bailfile
+    echo "----------------------------------------------------------"
+    exit 1;
+  endif
+  echo "date      `date`" >> $IsRunningFile 
+  echo "processid $$ "   >> $IsRunningFile 
+  echo "hemi      $hemilist"  >> $IsRunningFile 
+  echo "host      `hostname` "   >> $IsRunningFile 
+  echo "user      $user"   >> $IsRunningFile 
+  uname -a            >> $IsRunningFile 
+endif
 
 # ------- Check FREESURFER HOME consistency ---------------------#
 set CSDF = $subjdir/scripts/csurfdir
@@ -2224,6 +2263,8 @@ if($#NotifyFile != 0) then
   touch $NotifyFile
 endif
 
+if($DoIsRunning) rm -f $IsRunningFile
+
 echo "recon-all finished without error at `date`" |& tee -a $LF |& tee -a $SF
 
 
@@ -2245,6 +2286,7 @@ error_exit:
   echo "" |& tee -a $LF |& tee -a $SF
   echo "recon-all exited with ERRORS at `date`" |& tee -a $LF |& tee -a $SF
   echo "" |& tee -a $LF |& tee -a $SF
+  if($DoIsRunning) rm -f $IsRunningFile
   if($#mailuser != 0) then
     echo "recon-all $subjid finished with errors at `date`" | \
       mail -s "$subjid ERROR `date`" $mailuser
@@ -3146,6 +3188,10 @@ while( $#argv != 0 )
       limit coredumpsize unlimited
       breaksw
 
+    case "-no-isrunning":
+      set DoIsRunning = 0;
+      breaksw
+
     case "-force":
       set Force = 1;
       breaksw
@@ -3825,6 +3871,7 @@ usage_exit:
   echo "  -log     file : default is scripts/recon-all.log"
   echo "  -status  file : default is scripts/recon-all-status.log"
   echo "  -noappend     : start new log and status files instead of appending"
+  echo "  -no-isrunning : do not check whether this subject is currently being processed"
   echo ""
   echo " Other Arguments (Optional)"
   echo "  -force          : with -i, allows pre-existing subjdir. Deletes source."
