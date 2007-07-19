@@ -57,7 +57,9 @@ IO_SRCS = \
 	io/itkMGHImageIO.cxx \
 	io/itkMGHImageIO.h \
 	io/itkMGHImageIOFactory.cxx \
-	io/itkMGHImageIOFactory.h
+	io/itkMGHImageIOFactory.h \
+	io/itkOrientedVectorImage.txx \
+	io/itkOrientedVectorImage.h
 
 AM_CPPFLAGS =	$(X_CFLAGS) $(VXL_CFLAGS) \
   -I$(top_srcdir)/include \
@@ -65,7 +67,8 @@ AM_CPPFLAGS =	$(X_CFLAGS) $(VXL_CFLAGS) \
 
 bin_PROGRAMS = \
   dmri_poistats \
-  dmri_initialize_path
+  dmri_initialize_path \
+  dmri_mask
 
 # poistats
 dmri_poistats_SOURCES = \
@@ -101,6 +104,14 @@ dmri_initialize_path_LDADD = $(LIBS_ITK) \
 	$(addprefix $(top_srcdir)/, $(LIBS_MGH) )
 dmri_initialize_path_LDFLAGS = $(OS_LDFLAGS)
 dmri_initialize_path_CXXFLAGS = 
+
+# initialize poistats path stuff
+dmri_mask_SOURCES = \
+  $(UI_SRCS) \
+  dmri_mask.cxx 
+dmri_mask_LDADD = $(addprefix $(top_srcdir)/, $(LIBS_MGH) )
+dmri_mask_LDFLAGS = $(OS_LDFLAGS)
+dmri_mask_CXXFLAGS = 
 
 endif
 #end itk
