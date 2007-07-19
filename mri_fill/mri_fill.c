@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/26 20:37:03 $
- *    $Revision: 1.110 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/19 20:16:38 $
+ *    $Revision: 1.111 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@
 #include "mrisegment.h"
 
 static char vcid[] =
-  "$Id: mri_fill.c,v 1.110 2007/01/26 20:37:03 nicks Exp $";
+  "$Id: mri_fill.c,v 1.111 2007/07/19 20:16:38 fischl Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -1553,7 +1553,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_fill.c,v 1.110 2007/01/26 20:37:03 nicks Exp $", "$Name:  $",
+   "$Id: mri_fill.c,v 1.111 2007/07/19 20:16:38 fischl Exp $", "$Name:  $",
    cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -1561,7 +1561,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_fill.c,v 1.110 2007/01/26 20:37:03 nicks Exp $", 
+           "$Id: mri_fill.c,v 1.111 2007/07/19 20:16:38 fischl Exp $", 
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2256,6 +2256,11 @@ main(int argc, char *argv[]) {
     wm_rh_x = nint(xr) ;
     wm_rh_y = nint(yr) ;
     wm_rh_z = nint(zr) ;
+    if (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
+        wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
+        wm_rh_z < 0 || wm_rh_z >= mri_im->depth)
+      ErrorExit(ERROR_BADPARM, "rh white matter seed point out of bounds (%d, %d, %d)\n",
+                wm_rh_x, wm_rh_y, wm_rh_z) ;
 
     if ((MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <= WM_MIN_VAL) ||  // dark
         (neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <
@@ -2340,6 +2345,11 @@ main(int argc, char *argv[]) {
     wm_lh_x = nint(xr) ;
     wm_lh_y = nint(yr) ;
     wm_lh_z = nint(zr) ;
+    if (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
+        wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
+        wm_lh_z < 0 || wm_lh_z >= mri_im->depth)
+      ErrorExit(ERROR_BADPARM, "lh white matter seed point out of bounds (%d, %d, %d)\n",
+                wm_lh_x, wm_lh_y, wm_lh_z) ;
     if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
         (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS)) {
       found = xnew = ynew = znew = 0 ;
@@ -2422,6 +2432,16 @@ main(int argc, char *argv[]) {
   }
 #endif
 
+  if (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
+      wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
+      wm_rh_z < 0 || wm_rh_z >= mri_im->depth)
+    ErrorExit(ERROR_BADPARM, "rh white matter seed point out of bounds (%d, %d, %d)\n",
+              wm_rh_x, wm_rh_y, wm_rh_z) ;
+  if (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
+      wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
+      wm_lh_z < 0 || wm_lh_z >= mri_im->depth)
+    ErrorExit(ERROR_BADPARM, "lh white matter seed point out of bounds (%d, %d, %d)\n",
+              wm_lh_x, wm_lh_y, wm_lh_z) ;
   MRIfree(&mri_cc) ;
 
   if (segmentation_fname && (mri_seg != NULL)) {
@@ -2600,14 +2620,57 @@ main(int argc, char *argv[]) {
     MRIturnOffBG(mri_fill, mri_bg) ;
   }
 
-  if (topofix) {
+  if (topofix) 
+  {
+    MRI              *mri_lh, *mri_rh ;
+    //    MRI_SEGMENTATION *mriseg ;
+
+    mri_lh = MRIclone(mri_fill, NULL) ;
+    mri_rh = MRIclone(mri_fill, NULL) ;
+    MRIcopyLabel(mri_fill, mri_lh, lh_fill_val) ;
+    MRIcopyLabel(mri_fill, mri_rh, rh_fill_val) ;
     mri_norm = MRIread(norm_fname);
     if (mri_norm == NULL) {
       fprintf(stderr,"could not read volume %s\n",norm_fname);
     } else {
-      mri_topofix
-        (mri_fill,mri_norm); //making sure to remove corner/edge configurations
+      mri_topofix(mri_rh,mri_norm); //making sure to remove corner/edge configurations
+      mri_topofix(mri_lh,mri_norm); //making sure to remove corner/edge configurations
       MRIfree(&mri_norm);
+      MRIfree(&mri_fill) ;
+
+#if 0
+      mriseg = MRIsegment(mri_lh, 0, 0) ;
+      if (mriseg->nsegments > 1)
+      {
+        int sno, s ;
+        sno = MRIfindMaxSegmentNumber(mriseg) ;
+        for (s = 0 ; s < mriseg->nsegments ; s++)
+        {
+          if (s == sno)
+            continue ;
+          MRIsegmentFill(mriseg, s, mri_lh, lh_fill_val) ;
+        }
+      }
+      MRIsegmentFree(&mriseg) ;
+
+      mriseg = MRIsegment(mri_rh, 0, 0) ;
+      if (mriseg->nsegments > 1)
+      {
+        int sno, s ;
+        sno = MRIfindMaxSegmentNumber(mriseg) ;
+        for (s = 0 ; s < mriseg->nsegments ; s++)
+        {
+          if (s == sno)
+            continue ;
+          MRIsegmentFill(mriseg, s, mri_rh, rh_fill_val) ;
+        }
+      }
+      MRIsegmentFree(&mriseg) ;
+#endif
+
+      mri_fill = mri_lh ;
+      MRIcopyLabel(mri_rh, mri_fill, rh_fill_val) ;
+      MRIfree(&mri_rh) ;
     }
   }
 
