@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/12 00:03:03 $
-#    $Revision: 1.10 $
+#    $Date: 2007/07/19 21:13:02 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.10 2007/05/12 00:03:03 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.11 2007/07/19 21:13:02 nicks Exp $';
 
 # defaults:
 # setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas
@@ -211,7 +211,7 @@ echo "FREESURFER_HOME $FREESURFER_HOME"
 #
 echo "Register: `which mris_register`"
 if ($status) then
-    echo "mris_ca_train not found (use -fshome or -binhome)"
+    echo "mris_register not found (use -fshome or -binhome)"
     exit 1
 endif
 echo "Train:    `which mris_ca_train`"
