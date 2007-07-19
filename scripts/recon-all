@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/15 01:43:08 $
-#    $Revision: 1.114 $
+#    $Date: 2007/07/19 22:05:18 $
+#    $Revision: 1.115 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.114 2007/07/15 01:43:08 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.115 2007/07/19 22:05:18 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -123,11 +123,11 @@ set DoQdecCache = 0; # if 1, then create smoothed fsaverage surface files
 set measurelist = ( thickness area area.pial volume curv sulc jacobian_white  )
                      # ^ these are the files smoothed by DoQdecCache (-qcache)
 set fwhmlist = ( 0 5 10 15 20 25 ) # see DoQdecCache
-set target = fsaverage # see DoQdecCache 
+set target = fsaverage # see DoQdecCache
 
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
 set DoMakefile = 0; # if 1, run make -f recon-all.makefile $(MakefileTarget)
-set MakefileTarget = () # argument to recon-all -make 
+set MakefileTarget = () # argument to recon-all -make
 set DoAsegStatsDiff = 0; # if 1, then run asegstatsdiff
 set DoAparcStatsDiff = 0; # if 1, then run aparcstatsdiff
 
@@ -636,34 +636,35 @@ if($DoMotionCor) then
     if($status) goto error_exit;
   endif
 
-endif # Motion Correction
-
-#--- Longitudinal: compute linear registration from tp1 to current subj ---#
-if ($longitudinal) then
-  echo "---------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# Longitudinal: 1st Registration (linear) `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  set cmd = (fsl_rigid_register -cost corratio \
-        -i $tp1dir/mri/orig.mgz \
-        -r $subjdir/mri/orig.mgz \
-        -o $subjdir/mri/orig_${tp1id}_to_${subjid}.mgz \
-        -dof 6 \
-        -ltamat $tp1dir/mri/transforms/$tp1totp2_regfile)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) then
-    if( -e $tp1dir/mri/transforms/$tp1totp2_regfile) then
-      rm -f $tp1dir/mri/transforms/$tp1totp2_regfile
+  #--- Longitudinal: compute linear registration from tp1 to current subj ---#
+  # uses orig.mgz as input
+  if ($longitudinal) then
+    echo "---------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Longitudinal: 1st Registration (linear) `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    set cmd = (fsl_rigid_register -cost corratio \
+          -i $tp1dir/mri/orig.mgz \
+          -r $subjdir/mri/orig.mgz \
+          -o $subjdir/mri/orig_${tp1id}_to_${subjid}.mgz \
+          -dof 6 \
+          -ltamat $tp1dir/mri/transforms/$tp1totp2_regfile)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      if( -e $tp1dir/mri/transforms/$tp1totp2_regfile) then
+        rm -f $tp1dir/mri/transforms/$tp1totp2_regfile
+      endif
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      if( ! -e $tp1dir/mri/transforms/$tp1totp2_regfile) then
+        echo "ERROR: FLIRT registration failed " |& tee -a $LF
+        goto error_exit;
+      endif
+      rm -f $subjdir/mri/*.fslmat
     endif
-    $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    if( ! -e $tp1dir/mri/transforms/$tp1totp2_regfile) then
-      echo "ERROR: FLIRT registration failed " |& tee -a $LF
-      goto error_exit;
-    endif
-    rm -f $subjdir/mri/*.fslmat
   endif
-endif
+
+endif # Motion Correction
 
 #----------- Nu Intensity Correction ------------------#
 if($DoNuIntensityCor) then
@@ -878,7 +879,7 @@ skullstrip:
   set BM  = brainmask.mgz
 
   if ($WSGcaAtlas || $DoMultiStrip) then
-    # if using the GCA atlas to help with the skull-strip, then run the 
+    # if using the GCA atlas to help with the skull-strip, then run the
     # GCA registration (mri_em_register) to align to an atlas with a skull,
     # unless that file already exists
     if ( ! -e transforms/talairach_with_skull.lta || $DoCleanBM ) then
@@ -1112,68 +1113,71 @@ if($DoCANormalize) then
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
   echo $cmd > $touchdir/ca_normalize.touch
-endif
 
-#--- Longitudinal: Second registration from tp1 to current subj ---#
-if ($longitudinal) then
-  echo "---------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# Longitudinal: 2nd  Registration  `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  #--- Longitudinal: Second registration from tp1 to current subj ---#
+  # default REG_FILE_TYPE is norm (output of mri_ca_normalize)
+  if ($longitudinal) then
+    echo "---------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Longitudinal: 2nd  Registration  `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
 
-  echo "REG_METHOD    = $REG_METHOD" |& tee -a $LF
-  echo "REG_COST      = $REG_COST" |& tee -a $LF
-  echo "REG_DOF       = $REG_DOF" |& tee -a $LF
-  echo "REG_FILE_TYPE = $REG_FILE_TYPE" |& tee -a $LF
+    echo "REG_METHOD    = $REG_METHOD" |& tee -a $LF
+    echo "REG_COST      = $REG_COST" |& tee -a $LF
+    echo "REG_DOF       = $REG_DOF" |& tee -a $LF
+    echo "REG_FILE_TYPE = $REG_FILE_TYPE" |& tee -a $LF
 
-  if ( $REG_METHOD == fsl_rigid ) then
-    set cmd = (fsl_rigid_register -cost $REG_COST \
-        -i $tp1dir/mri/${REG_FILE_TYPE}.mgz \
-        -r $subjdir/mri/${REG_FILE_TYPE}.mgz \
-        -o $subjdir/mri/${REG_FILE_TYPE}_${tp1id}_to_${subjid}.mgz \
-        -dof $REG_DOF \
-        -ltamat $tp1dir/mri/transforms/$tp1totp2_regfile)
-  endif
-
-  if ( $REG_METHOD == linear_align ) then
-    set cmd = (mri_linear_align -r -skip 8 \
-        $tp1dir/mri/${REG_FILE_TYPE}.mgz \
-        $subjdir/mri/${REG_FILE_TYPE}.mgz \
-        $tp1dir/mri/transforms/$tp1totp2_regfile)
-  endif
-
-  if ( $REG_METHOD == nonlinear_align ) then
-    set cmd = (mri_nl_align \
-        -apply 0 \
-        -z 1 \
-        -passes 2 \
-        -tol 0.2 \
-        -levels 2 \
-        -intensity 0.01 \
-        -T $tp1dir/mri/transforms/$tp1totp2_regfile \
-        $tp1dir/mri/${REG_FILE_TYPE}.mgz \
-        $subjdir/mri/${REG_FILE_TYPE}.mgz \
-        $subjdir/mri/transforms/${subjid}_nl.m3z)
-  endif
-
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) then
-    if( -e $tp1dir/mri/transforms/$tp1totp2_regfile) then
-      rm -f $tp1dir/mri/transforms/$tp1totp2_regfile
-    endif
-    $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    if( ! -e $tp1dir/mri/transforms/$tp1totp2_regfile ) then
-      echo "ERROR: SECOND registration: $REG_METHOD failed " |& tee -a $LF
-      goto error_exit;
-    endif
     if ( $REG_METHOD == fsl_rigid ) then
-      set cmd = (rm -f $subjdir/mri/*.fslmat)
-      $cmd |& tee -a $LF
+      set cmd = (fsl_rigid_register -cost $REG_COST \
+          -i $tp1dir/mri/${REG_FILE_TYPE}.mgz \
+          -r $subjdir/mri/${REG_FILE_TYPE}.mgz \
+          -o $subjdir/mri/${REG_FILE_TYPE}_${tp1id}_to_${subjid}.mgz \
+          -dof $REG_DOF \
+          -ltamat $tp1dir/mri/transforms/$tp1totp2_regfile)
     endif
-  endif
 
-endif
+    if ( $REG_METHOD == linear_align ) then
+      set cmd = (mri_linear_align -r -skip 8 \
+          $tp1dir/mri/${REG_FILE_TYPE}.mgz \
+          $subjdir/mri/${REG_FILE_TYPE}.mgz \
+          $tp1dir/mri/transforms/$tp1totp2_regfile)
+    endif
+
+    if ( $REG_METHOD == nonlinear_align ) then
+      set cmd = (mri_nl_align \
+          -apply 0 \
+          -z 1 \
+          -passes 2 \
+          -tol 0.2 \
+          -levels 2 \
+          -intensity 0.01 \
+          -T $tp1dir/mri/transforms/$tp1totp2_regfile \
+          $tp1dir/mri/${REG_FILE_TYPE}.mgz \
+          $subjdir/mri/${REG_FILE_TYPE}.mgz \
+          $subjdir/mri/transforms/${subjid}_nl.m3z)
+    endif
+
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      if( -e $tp1dir/mri/transforms/$tp1totp2_regfile) then
+        rm -f $tp1dir/mri/transforms/$tp1totp2_regfile
+      endif
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      if( ! -e $tp1dir/mri/transforms/$tp1totp2_regfile ) then
+        echo "ERROR: SECOND registration: $REG_METHOD failed " |& tee -a $LF
+        goto error_exit;
+      endif
+      if ( $REG_METHOD == fsl_rigid ) then
+        set cmd = (rm -f $subjdir/mri/*.fslmat)
+        $cmd |& tee -a $LF
+      endif
+    endif
+
+  endif # longitudinal
+
+endif # DoCANormalize
+
 
 #------------ Canonical Registration --------------#
 if($DoCAReg) then
@@ -1583,7 +1587,7 @@ foreach hemi ($hemilist)
       # check if total defect index != 0, meaning, euler # != 2 (surface bad)
       set cmd = (mris_euler_number ../surf/$hemi.orig)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) then 
+      if($RunIt) then
         $cmd >& mris_euler_number.log
         if($status) goto error_exit;
         set defect_idx=`grep "total defect index" mris_euler_number.log | awk '{print $5}'`
@@ -1592,7 +1596,7 @@ foreach hemi ($hemilist)
           echo "Trying mris_topo_fixer..." |& tee -a $LF
           set UseNewTopoFix = 1
           set UseOldTopoFix = 0
-          # cannot use the failed ?h.orig surface, must revert to ?.orig.nofix 
+          # cannot use the failed ?h.orig surface, must revert to ?.orig.nofix
           set cmd = (cp ../surf/$hemi.orig.nofix ../surf/$hemi.orig)
           echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
           if($RunIt) $cmd |& tee -a $LF
@@ -2098,7 +2102,7 @@ if($DoAParc2ASeg) then
 endif
 
 # -----------------------------------------------------------
-# Do Contra Surface Registration here so don't have 
+# Do Contra Surface Registration here so don't have
 # to wait for other results
 foreach hemi ($hemilist)
 
@@ -4066,16 +4070,16 @@ or subcortical segmentation stages are to be performed.
 
 -gca-skull gcafile
 
-Specify the name of the gaussian classifier array (GCA) file to be used with 
-registration with skull.  It must be found in the FREESURFER_HOME/average 
+Specify the name of the gaussian classifier array (GCA) file to be used with
+registration with skull.  It must be found in the FREESURFER_HOME/average
 directory. The default is RB_all_withskull_2006-02-15.gca located in
 FREESURFER_HOME/average.
 
 -gcs gcsfile
 
 Specify the name of the gaussian classifier surface atlas (GCS) file
-to be used for the cortical parcellation stage. It must be found in the 
-FREESURFER_HOME/average directory. The default is named 
+to be used for the cortical parcellation stage. It must be found in the
+FREESURFER_HOME/average directory. The default is named
 curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs and is located in
 FREESURFER_HOME/average.
 
@@ -4119,14 +4123,14 @@ Skip the automatic failure detection of Talairach alignment.
 
 -qcache
 
-Produce the pre-cached files required by the Qdec utility, allowing rapid 
-analysis of group data.  These files are created by running mris_preproc, 
-which creates smoothed surface data files sampled to the 'fsaverage' 
-common-space surface. By default, the surface data for thickness, curv, sulc, 
-area and jacobian_white are smoothed at 0, 5, 10, 15, 20, and 25 mm FWHM.  
-If just one set of surface data needs to be processed, then the option 
--measure <surfmeas> can follow -qcache, where <surfmeas> is one of: thickness, 
-curv, sulc, area, jacobian_white or any surface measure. Another option is 
+Produce the pre-cached files required by the Qdec utility, allowing rapid
+analysis of group data.  These files are created by running mris_preproc,
+which creates smoothed surface data files sampled to the 'fsaverage'
+common-space surface. By default, the surface data for thickness, curv, sulc,
+area and jacobian_white are smoothed at 0, 5, 10, 15, 20, and 25 mm FWHM.
+If just one set of surface data needs to be processed, then the option
+-measure <surfmeas> can follow -qcache, where <surfmeas> is one of: thickness,
+curv, sulc, area, jacobian_white or any surface measure. Another option is
 -fwhm <num> where <num> is a value in mm.  Also, -target <name> allows
 specifying a common-space target other than fsaverage (the default).
 See also: http://surfer.nmr.mgh.harvard.edu/fswiki/Qdec
@@ -4135,7 +4139,7 @@ See also: http://surfer.nmr.mgh.harvard.edu/fswiki/Qdec
 
 Runs recon-all through 'make', the standard utility used to create a file
 only if its dependencies are out-of-date.  This -make option makes use of the
-file recon-all.makefile, where the dependency chain is specified.  
+file recon-all.makefile, where the dependency chain is specified.
 A 'target' argument must be specified.  The valid targets are:
 
   all
@@ -4146,7 +4150,7 @@ A 'target' argument must be specified.  The valid targets are:
   autorecon3
   qcache
 
-These targets correspond to their flag equivalents in recon-all.  The 
+These targets correspond to their flag equivalents in recon-all.  The
 difference in behaviour is that files are created only if the file does not
 exist or if an input file used to create it has a newer date than the file
 in need of creation.  It is also possible to supply the full pathname to a
@@ -4290,7 +4294,7 @@ be *not* be overwritten unless you run recon-all specifying -clean-tal.
 Run "tkregister2 --help" for more information.
 Creates the files mri/transform/talairach.auto.xfm and talairach.xfm.
 The flag -tal-check will check the registration against known-good transforms.
-Adding the flag -use-mritotal after -talairach will use the MINC program 
+Adding the flag -use-mritotal after -talairach will use the MINC program
 mritotal (see Collins, et al., 1994) to perform the transform.
 
 Normalization (-<no>normalization)
@@ -4473,18 +4477,18 @@ Calls mris_register. Creates surf/?h.sphere.reg.
 Jacobian (-<no>jacobian_white)
 
 Computes how much the white surface was distorted in order to register
-to the spherical atlas during the -surfreg step. Creates ?h.jacobian_white 
+to the spherical atlas during the -surfreg step. Creates ?h.jacobian_white
 (a curv formatted file). This step follows the surface registration step.
 
 Surface Registation, maximal distortion, with Jacobian (-<no>jacobian_dist0)
 
-Run spherical registration with no metric distortion penalty. This will 
-cause surface geometry to align regardless of the amount of distortion 
-induced (ie, distance contraints are turned off). The distortion will then 
+Run spherical registration with no metric distortion penalty. This will
+cause surface geometry to align regardless of the amount of distortion
+induced (ie, distance contraints are turned off). The distortion will then
 be quantified by the Jacobian of the transform. Creates ?h.jacobian_dist0 (a
-curv formatted file) and ?h.sphere.dist0.jacobian.reg (a surface file). This 
-step is not run automatically because it can add about an hour per hemi.  
-Note: the file ?h.jacobian_white (see prior help text) is the Jacobian of 
+curv formatted file) and ?h.sphere.dist0.jacobian.reg (a surface file). This
+step is not run automatically because it can add about an hour per hemi.
+Note: the file ?h.jacobian_white (see prior help text) is the Jacobian of
 the white surface to spherical atlas alignment from -surfreg.
 
 Contralateral Surface Registation (Spherical Morph) (-<no>contrasurfreg)
