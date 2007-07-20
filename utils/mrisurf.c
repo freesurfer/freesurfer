@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/20 01:25:00 $
- *    $Revision: 1.544 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/20 16:42:08 $
+ *    $Revision: 1.545 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -355,7 +355,7 @@ static double mrisComputeIntensityGradientError(MRI_SURFACE *mris,
     INTEGRATION_PARMS *parms);
 static double mrisComputeSphereError(MRI_SURFACE *mris,
                                      double l_sphere,double a);
-static double mrisComputeDistanceError(MRI_SURFACE *mris) ;
+static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 static double mrisComputeCorrelationError(MRI_SURFACE *mris,
     INTEGRATION_PARMS *parms,
     int use_stds) ;
@@ -487,6 +487,7 @@ static int  mrisComputeTangentialSpringTerm(MRI_SURFACE *mris,double l_spring);
 static int   mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring) ;
 static int   mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno) ;
 static int   mrisRemoveNormalGradientComponent(MRI_SURFACE *mris, int vno) ;
+static int   mrisComputeVariableSmoothnessCoefficients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 
 #if 0
 static int   mrisSmoothNormalOutliers(MRI_SURFACE *mris, double nlen) ;
@@ -615,7 +616,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.544 2007/07/20 01:25:00 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.545 2007/07/20 16:42:08 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5416,12 +5417,6 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       MRISnormalizeCurvature(mris, parms->which_norm) ;
       MRIStoParameterization(mris, parms->mrisp, 1, 0) ;
       MRISPfree(&mrisp) ;
-      if (Gdiag & DIAG_WRITE && sno == 0)
-      {
-        sprintf(fname, "%s/%s.inflated_curv",
-                path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh") ;
-        MRISwriteCurvature(mris, fname) ;
-      }
 
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
@@ -5474,10 +5469,10 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
           {
             char fname[STRLEN], path[STRLEN] ;
             FileNamePath(mris->fname, path) ;
-            sprintf(fname, "%s/%s.%s.rotated",
+            sprintf(fname, "%s/%s.%s.sno%d.rotated",
                     path,
                     mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
-                    parms->base_name) ;
+                    parms->base_name, sno) ;
             printf("writing rigid aligned surface to %s\n",fname);
             MRISwrite(mris, fname) ;
           }
@@ -6760,6 +6755,11 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     snum = "area" ;
     pnum = &parms->l_area ;
   }
+  else if (!FZERO(l_nlarea))
+  {
+    snum = "nlarea" ;
+    pnum = &parms->l_nlarea  ;
+  }
   else if (!FZERO(l_parea))
 #if 0
   { snum = "parea" ;
@@ -6770,11 +6770,6 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     pnum = &parms->l_area  ;
   }
 #endif
-  else if (!FZERO(l_nlarea))
-  {
-    snum = "nlarea" ;
-    pnum = &parms->l_nlarea  ;
-  }
   else
   {
     snum = "spring" ;
@@ -7048,6 +7043,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
       MRIScomputeSecondFundamentalForm(mris) ;
 
     MRISclearGradient(mris) ;      /* clear old deltas */
+    mrisComputeVariableSmoothnessCoefficients(mris, parms) ;
     mrisComputeDistanceTerm(mris, parms) ;
     if (Gdiag & DIAG_WRITE && parms->write_iterations > 0 && DIAG_VERBOSE_ON)
     {
@@ -7251,7 +7247,7 @@ mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 
   sse_corr = mrisComputeCorrelationError(mris, parms, 1) ;
   if (!DZERO(parms->l_dist))
-    sse_dist = mrisComputeDistanceError(mris) ;
+    sse_dist = mrisComputeDistanceError(mris, parms) ;
   else
     sse_dist = 0 ;
 
@@ -7384,7 +7380,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (!FZERO(parms->l_nldist))
     sse_nl_dist = mrisComputeNonlinearDistanceSSE(mris) ;
   if (!FZERO(parms->l_dist))
-    sse_dist = mrisComputeDistanceError(mris) ;
+    sse_dist = mrisComputeDistanceError(mris, parms) ;
   if (!FZERO(parms->l_spring))
     sse_spring = mrisComputeSpringEnergy(mris) ;
   if (!FZERO(parms->l_lap))
@@ -12589,6 +12585,14 @@ mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2)
 int
 MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
 {
+  return(MRIScomputeSecondFundamentalFormThresholded(mris, -1)) ;
+}
+
+int
+MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_thresh)
+{
+  double min_k1, min_k2, max_k1, max_k2, k1_scale, k2_scale, total, thresh ;
+  int    bin, zbin1, zbin2, nthresh = 0 ;
   int    vno, i, n, vmax, nbad = 0 ;
   VERTEX *vertex, *vnb ;
   MATRIX *m_U, *m_Ut, *m_tmp1, *m_tmp2, *m_inverse, *m_eigen, *m_Q ;
@@ -12598,9 +12602,14 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
   FILE   *fp = NULL ;
   HISTOGRAM *h_k1, *h_k2 ;
 
-  vmean = MRIScomputeTotalVertexSpacingStats(mris,&vsigma,NULL,NULL,NULL,NULL);
-  rsq_thresh = MIN(vmean*.25, 1.0) ;
-  rsq_thresh *= rsq_thresh ;
+  if (thresh >= 0)
+  {
+    vmean = MRIScomputeTotalVertexSpacingStats(mris,&vsigma,NULL,NULL,NULL,NULL);
+    rsq_thresh = MIN(vmean*.25, 1.0) ;
+    rsq_thresh *= rsq_thresh ;
+  }
+  else
+    rsq_thresh = 0.0 ;
 
   if (mris->status == MRIS_PLANE)
     return(NO_ERROR) ;
@@ -12824,160 +12833,156 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
   VectorFree(&v_yi) ;
   MatrixFree(&m_Q) ;
 
-  // remove outliers
+
+  if (thresh < 0)
+    return(NO_ERROR) ;
+  // now remove outliers
+  h_k1 = HISTOalloc(1000) ;
+  h_k2 = HISTOalloc(1000) ;
+  
+  min_k1 = min_k2 = 1000 ;
+  max_k1 = max_k2 = -1000 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    double min_k1, min_k2, max_k1, max_k2, k1_scale, k2_scale, total, thresh ;
-    int    bin, zbin1, zbin2, nthresh = 0 ;
-
-    h_k1 = HISTOalloc(1000) ;
-    h_k2 = HISTOalloc(1000) ;
-
-    min_k1 = min_k2 = 1000 ;
-    max_k1 = max_k2 = -1000 ;
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      vertex = &mris->vertices[vno] ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      if (vertex->ripflag)
-        continue ;
-      if (vertex->k1 > max_k1)
-        max_k1 = vertex->k1 ;
-      if (vertex->k2 > max_k2)
-        max_k2 = vertex->k2 ;
-      if (vertex->k1 < min_k1)
-        min_k1 = vertex->k1 ;
-      if (vertex->k2 < min_k2)
-        min_k2 = vertex->k2 ;
-    }
-
-    k1_scale = (h_k1->nbins-1)/(max_k1 - min_k1);
-    k2_scale = (h_k2->nbins-1)/(max_k2 - min_k2);
-    h_k1->bin_size = 1.0/k1_scale ;
-    h_k2->bin_size = 1.0/k2_scale ;
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      vertex = &mris->vertices[vno] ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      if (vertex->ripflag)
-        continue ;
-      bin = nint(k1_scale * (vertex->k1 - min_k1)) ;
-      h_k1->counts[bin]++ ;
-      bin = nint(k2_scale * (vertex->k2 - min_k2)) ;
-      h_k2->counts[bin]++ ;
-    }
-    for (bin = 0 ; bin < h_k1->nbins ; bin++)
-      h_k1->bins[bin] = (bin / k1_scale) + min_k1 ;
-    for (bin = 0 ; bin < h_k2->nbins ; bin++)
-      h_k2->bins[bin] = (bin / k2_scale) + min_k2 ;
-    zbin1 = nint(k1_scale * (0.0-min_k1)) ;
-    zbin2 = nint(k2_scale * (0.0-min_k2)) ;
-    HISTOmakePDF(h_k1, h_k1) ;
-    HISTOmakePDF(h_k2, h_k2) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
-      HISTOplot(h_k1, "k1.plt") ;
-      HISTOplot(h_k2, "k2.plt") ;
-    }
-
-#define THRESH 0.9999
-
-    zbin1 = HISTOfindHighestPeakInRegion(h_k1, 0, h_k1->nbins) ;
-    zbin2 = HISTOfindHighestPeakInRegion(h_k2, 0, h_k2->nbins) ;
-
-    for (total = 0, bin = zbin1 ; bin < h_k1->nbins ; bin++)
-      total += h_k1->counts[bin] ;
-    thresh = THRESH*total ;
-    for (total = 0, bin = zbin1 ; bin < h_k1->nbins-1 ; bin++)
-    {
-      total += h_k1->counts[bin] ;
-      if (total > thresh)
-        break ;
-    }
-    max_k1 = h_k1->bins[bin] ;
-
-    for (total = 0, bin = zbin1 ; bin > 0 ; bin--)
-      total += h_k1->counts[bin] ;
-    thresh = THRESH*total ;
-    for (total = 0, bin = zbin1 ; bin > 0 ; bin--)
-    {
-      total += h_k1->counts[bin] ;
-      if (total > thresh)
-        break ;
-    }
-    min_k1 = h_k1->bins[bin] ;
-
-
-    for (total = 0, bin = zbin2 ; bin < h_k2->nbins ; bin++)
-      total += h_k2->counts[bin] ;
-    thresh = THRESH*total ;
-    for (total = 0, bin = zbin2 ; bin < h_k2->nbins-1 ; bin++)
-    {
-      total += h_k2->counts[bin] ;
-      if (total > thresh)
-        break ;
-    }
-    max_k2 = h_k2->bins[bin] ;
-
-    for (total = 0, bin = zbin2 ; bin > 0 ; bin--)
-      total += h_k2->counts[bin] ;
-    thresh = THRESH*total ;
-    for (total = 0, bin = zbin2 ; bin > 0 ; bin--)
-    {
-      total += h_k2->counts[bin] ;
-      if (total > thresh)
-        break ;
-    }
-    min_k2 = h_k2->bins[bin] ;
-
-    mris->Kmin = mris->Hmin = 10000.0f ;
-    mris->Kmax = mris->Hmax = -10000.0f ;
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      vertex = &mris->vertices[vno] ;
-      if (vno == Gdiag_no)
-        DiagBreak() ;
-      if (vertex->ripflag)
-        continue ;
-      if (vertex->k1 > max_k1)
-      {
-        vertex->k1 = max_k1 ;
-        nthresh++ ;
-      }
-      if (vertex->k2 > max_k2)
-      {
-        vertex->k2 = max_k2 ;
-        nthresh++ ;
-      }
-      if (vertex->k1 < min_k1)
-      {
-        vertex->k1 = min_k1 ;
-        nthresh++ ;
-      }
-      if (vertex->k2 < min_k2)
-      {
-        vertex->k2 = min_k2 ;
-        nthresh++ ;
-      }
-      vertex->K = vertex->k1 * vertex->k2 ;
-      vertex->H = (vertex->k1 + vertex->k2) / 2.0 ;
-      if (vertex->K < mris->Kmin)
-        mris->Kmin = vertex->K ;
-      if (vertex->H < mris->Hmin)
-        mris->Hmin = vertex->H ;
-      if (vertex->K > mris->Kmax)
-        mris->Kmax = vertex->K ;
-      if (vertex->H > mris->Hmax)
-        mris->Hmax = vertex->H ;
-    }
-
-    HISTOfree(&h_k1) ;
-    HISTOfree(&h_k2) ;
-    if (nthresh > 0)
-      fprintf(stderr, "%d vertices thresholded to be in k1 ~ [%2.2f %2.2f], k2 ~ [%2.2f %2.2f]\n",
-              nthresh, min_k1, max_k1, min_k2, max_k2) ;
+    vertex = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (vertex->ripflag)
+      continue ;
+    if (vertex->k1 > max_k1)
+      max_k1 = vertex->k1 ;
+    if (vertex->k2 > max_k2)
+      max_k2 = vertex->k2 ;
+    if (vertex->k1 < min_k1)
+      min_k1 = vertex->k1 ;
+    if (vertex->k2 < min_k2)
+      min_k2 = vertex->k2 ;
   }
+
+  k1_scale = (h_k1->nbins-1)/(max_k1 - min_k1);
+  k2_scale = (h_k2->nbins-1)/(max_k2 - min_k2);
+  h_k1->bin_size = 1.0/k1_scale ;
+  h_k2->bin_size = 1.0/k2_scale ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (vertex->ripflag)
+      continue ;
+    bin = nint(k1_scale * (vertex->k1 - min_k1)) ;
+    h_k1->counts[bin]++ ;
+    bin = nint(k2_scale * (vertex->k2 - min_k2)) ;
+    h_k2->counts[bin]++ ;
+  }
+  for (bin = 0 ; bin < h_k1->nbins ; bin++)
+    h_k1->bins[bin] = (bin / k1_scale) + min_k1 ;
+  for (bin = 0 ; bin < h_k2->nbins ; bin++)
+    h_k2->bins[bin] = (bin / k2_scale) + min_k2 ;
+  zbin1 = nint(k1_scale * (0.0-min_k1)) ;
+  zbin2 = nint(k2_scale * (0.0-min_k2)) ;
+  HISTOmakePDF(h_k1, h_k1) ;
+  HISTOmakePDF(h_k2, h_k2) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    HISTOplot(h_k1, "k1.plt") ;
+    HISTOplot(h_k2, "k2.plt") ;
+  }
+
+  zbin1 = HISTOfindHighestPeakInRegion(h_k1, 0, h_k1->nbins) ;
+  zbin2 = HISTOfindHighestPeakInRegion(h_k2, 0, h_k2->nbins) ;
+
+  for (total = 0, bin = zbin1 ; bin < h_k1->nbins ; bin++)
+    total += h_k1->counts[bin] ;
+  thresh = pct_thresh*total ;
+  for (total = 0, bin = zbin1 ; bin < h_k1->nbins-1 ; bin++)
+  {
+    total += h_k1->counts[bin] ;
+    if (total > thresh)
+      break ;
+  }
+  max_k1 = h_k1->bins[bin] ;
+
+  for (total = 0, bin = zbin1 ; bin > 0 ; bin--)
+    total += h_k1->counts[bin] ;
+  thresh = pct_thresh*total ;
+  for (total = 0, bin = zbin1 ; bin > 0 ; bin--)
+  {
+    total += h_k1->counts[bin] ;
+    if (total > thresh)
+      break ;
+  }
+  min_k1 = h_k1->bins[bin] ;
+
+
+  for (total = 0, bin = zbin2 ; bin < h_k2->nbins ; bin++)
+    total += h_k2->counts[bin] ;
+  thresh = pct_thresh*total ;
+  for (total = 0, bin = zbin2 ; bin < h_k2->nbins-1 ; bin++)
+  {
+    total += h_k2->counts[bin] ;
+    if (total > thresh)
+      break ;
+  }
+  max_k2 = h_k2->bins[bin] ;
+
+  for (total = 0, bin = zbin2 ; bin > 0 ; bin--)
+    total += h_k2->counts[bin] ;
+  thresh = pct_thresh*total ;
+  for (total = 0, bin = zbin2 ; bin > 0 ; bin--)
+  {
+    total += h_k2->counts[bin] ;
+    if (total > thresh)
+      break ;
+  }
+  min_k2 = h_k2->bins[bin] ;
+
+  mris->Kmin = mris->Hmin = 10000.0f ;
+  mris->Kmax = mris->Hmax = -10000.0f ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (vertex->ripflag)
+      continue ;
+    if (vertex->k1 > max_k1)
+    {
+      vertex->k1 = max_k1 ;
+      nthresh++ ;
+    }
+    if (vertex->k2 > max_k2)
+    {
+      vertex->k2 = max_k2 ;
+      nthresh++ ;
+    }
+    if (vertex->k1 < min_k1)
+    {
+      vertex->k1 = min_k1 ;
+      nthresh++ ;
+    }
+    if (vertex->k2 < min_k2)
+    {
+      vertex->k2 = min_k2 ;
+      nthresh++ ;
+    }
+    vertex->K = vertex->k1 * vertex->k2 ;
+    vertex->H = (vertex->k1 + vertex->k2) / 2.0 ;
+    if (vertex->K < mris->Kmin)
+      mris->Kmin = vertex->K ;
+    if (vertex->H < mris->Hmin)
+      mris->Hmin = vertex->H ;
+    if (vertex->K > mris->Kmax)
+      mris->Kmax = vertex->K ;
+    if (vertex->H > mris->Hmax)
+      mris->Hmax = vertex->H ;
+  }
+
+  HISTOfree(&h_k1) ;
+  HISTOfree(&h_k2) ;
+  if (nthresh > 0)
+    fprintf(stderr, "%d vertices thresholded to be in k1 ~ [%2.2f %2.2f], k2 ~ [%2.2f %2.2f]\n",
+            nthresh, min_k1, max_k1, min_k2, max_k2) ;
   return(NO_ERROR) ;
 }
 int
@@ -16700,7 +16705,7 @@ static int
 mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   VECTOR  *v_y, *v_delta, *v_n ;
-  float   l_dist, d0, dt, delta, nc, scale, norm, max_del ;
+  float   l_dist, d0, dt, delta, nc, scale, norm, max_del, vsmooth = 1.0 ;
   VERTEX  *v, *vn ;
   int     vno, n, vnum, max_v, max_n ;
   int     diag_vno1, diag_vno2 ;
@@ -16807,6 +16812,9 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     nc = V3_DOT(v_n, v_delta) ;
     V3_SCALAR_MUL(v_n, -nc, v_n) ;
     V3_ADD(v_delta, v_n, v_delta) ;
+
+    if (parms->vsmoothness)
+      vsmooth = (1.0 - parms->vsmoothness[vno]) ;
 
     v->dx += l_dist * V3_X(v_delta) ;
     v->dy += l_dist * V3_Y(v_delta) ;
@@ -17175,7 +17183,7 @@ mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
   Description
   ------------------------------------------------------*/
 static double
-mrisComputeDistanceError(MRI_SURFACE *mris)
+mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   VERTEX  *v ;
   int     vno, n, nvertices, max_v, max_n, err_cnt, max_errs ;
@@ -17245,12 +17253,17 @@ mrisComputeDistanceError(MRI_SURFACE *mris)
         max_v = vno ;
         max_n = n ;
       }
-      v_sse += delta*delta ;
+      if (parms->vsmoothness)
+        v_sse += (1.0-parms->vsmoothness[vno])*(delta*delta) ;
+      else
+        v_sse += delta*delta ;
       if (!finite(delta) || !finite(v_sse))
         DiagBreak() ;
     }
     if (v_sse > 10000)
       DiagBreak() ;
+    if (parms->dist_error)
+      parms->dist_error[vno] = v_sse ;
     sse_dist += v_sse ;
     if (!finite(sse_dist) || !finite(v_sse))
       DiagBreak() ;
@@ -18168,6 +18181,7 @@ mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     delta = 0.0 ;
     if (!FZERO(l_parea))
       delta += l_parea * (area - orig_area) ;
+      
     if (!FZERO(l_area))
     {
       if (area <= 0.0f)
@@ -20553,6 +20567,8 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     }
     if (!finite(target) || !finite(delta))
       DiagBreak() ;
+    if (parms->geometry_error)
+      parms->geometry_error[vno] = (delta*delta) ;
     if (parms->abs_norm)
       sse += fabs(delta) ;
     else
@@ -20724,7 +20740,7 @@ mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   VERTEX   *v ;
   int      vno, fno ;
   float    x, y, z, e1x, e1y, e1z, e2x, e2y, e2z, ux, uy, uz, vx, vy, vz,
-  std, coef;
+          std, coef, vsmooth = 1.0 ;
 
   l_corr = parms->l_corr ;
   if (FZERO(l_corr))
@@ -20767,7 +20783,9 @@ mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     std = 1.0f ;
 #endif
     delta = (target-src) ;
-    coef = delta * l_corr / std ;
+    if (parms->vsmoothness)
+      vsmooth = 1.0 + parms->vsmoothness[vno] ;
+    coef = vsmooth * delta * l_corr / std ;
 
     /* now compute gradient of template w.r.t. a change in vertex position */
 
@@ -20816,6 +20834,9 @@ mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
                 "mrisComputeCorrelationTerm: delta is not finite at vno %d",
                 vno) ;
     }
+    if (vno == Gdiag_no)
+      printf("l_corr(%d): dx = (%2.2f, %2.2f, %2.2f), vsmooth = %2.3f\n",
+             vno, coef * (du*e1x + dv*e2x),  coef * (du*e1y + dv*e2y), coef * (du*e1z + dv*e2z), vsmooth);
   }
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -60310,3 +60331,43 @@ MRIShistoThresholdCurvature(MRI_SURFACE *mris, float thresh_pct)
   return(NO_ERROR) ;
 }
 
+static int
+mrisComputeVariableSmoothnessCoefficients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  VERTEX   *v ;
+  int      vno ;
+  float    vsmooth ;
+
+  if (parms->vsmoothness == NULL)
+    return(NO_ERROR) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    v->val = parms->l_dist * parms->dist_error[vno] - parms->l_corr * parms->geometry_error[vno] ;
+  }
+
+#define VDELTA 0.001
+  MRISaverageVals(mris, 64) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    vsmooth = parms->vsmoothness[vno] ;
+    if (v->val > 0)
+      vsmooth += VDELTA ;
+    else
+      vsmooth -= VDELTA ;
+    vsmooth = MAX(0, vsmooth) ; vsmooth = MIN(1, vsmooth) ; // make it in [0 1]
+    parms->vsmoothness[vno] = vsmooth ;
+  }
+  
+  return(NO_ERROR) ;
+}
