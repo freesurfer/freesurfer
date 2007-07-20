@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/06/26 20:58:02 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/20 22:19:36 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
  *
  */
 
-
+#include <assert.h>
 #include <string>
 #include "vtkKWScubaWindow.h"
 #include "IconLoader.h"
@@ -66,7 +66,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaWindow );
-vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.7 $" );
 
 int const vtkKWScubaWindow::kToolbarSpacerWidth = 5;
 const string vtkKWScubaWindow::sDefaultVolumeFileExtension = ".mgz";

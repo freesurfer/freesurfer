@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/06/21 22:12:55 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/20 22:19:36 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  *
  */
 
-
+#include <assert.h>
 #include "vtkKWScubaApp.h"
 #include "vtkKWScubaWindow.h"
 #include "vtkObjectFactory.h"
@@ -38,7 +38,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaApp );
-vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.5 $" );
 
 vtkKWScubaApp::vtkKWScubaApp () {
 
