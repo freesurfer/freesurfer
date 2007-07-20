@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/13 04:33:17 $
- *    $Revision: 1.137 $
+ *    $Date: 2007/07/20 18:53:56 $
+ *    $Revision: 1.138 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -525,7 +525,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.137 2007/07/13 04:33:17 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.138 2007/07/20 18:53:56 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1125,9 +1125,12 @@ int main(int argc, char **argv) {
   // Check DOF
   GLMdof(mriglm->glm);
   printf("DOF = %g\n",mriglm->glm->dof);
-  if (mriglm->glm->dof < 1) {
-    printf("ERROR: DOF = %g\n",mriglm->glm->dof);
-    exit(1);
+  if(mriglm->glm->dof < 1) {
+    if(!usedti || mriglm->glm->dof < 0){
+      printf("ERROR: DOF = %g\n",mriglm->glm->dof);
+      exit(1);
+    } else 
+      printf("WARNING: DOF = %g\n",mriglm->glm->dof);
   }
 
   // Compute Contrast-related matrices
@@ -1551,20 +1554,24 @@ int main(int argc, char **argv) {
     sprintf(tmpstr,"%s/ivc.%s",GLMDir,format);
     MRIwrite(ivc,tmpstr);
 
-    printf("Computing dwisynth\n");
-    dwisynth = DTIsynthDWI(dti->B, mriglm->beta, mriglm->mask, NULL);
-    //sprintf(tmpstr,"%s/dwisynth.%s",GLMDir,format);
-    //MRIwrite(dwisynth,tmpstr);
+    if(mriglm->glm->dof > 0){
+      printf("Computing dwisynth\n");
+      dwisynth = DTIsynthDWI(dti->B, mriglm->beta, mriglm->mask, NULL);
+      //sprintf(tmpstr,"%s/dwisynth.%s",GLMDir,format);
+      //MRIwrite(dwisynth,tmpstr);
       
-    printf("Computing dwires\n");
-    dwires = MRIsum(dwi, dwisynth, 1, -1, mriglm->mask, NULL);
-    //sprintf(tmpstr,"%s/dwires.%s",GLMDir,format);
-    //MRIwrite(dwires,tmpstr);
+      printf("Computing dwires\n");
+      dwires = MRIsum(dwi, dwisynth, 1, -1, mriglm->mask, NULL);
+      //sprintf(tmpstr,"%s/dwires.%s",GLMDir,format);
+      //MRIwrite(dwires,tmpstr);
       
-    printf("Computing dwi rvar\n");
-    dwirvar = fMRIcovariance(dwires, 0, mriglm->beta->nframes, 0, NULL);
-    sprintf(tmpstr,"%s/dwirvar.%s",GLMDir,format);
-    MRIwrite(dwirvar,tmpstr);
+      printf("Computing dwi rvar\n");
+      dwirvar = fMRIcovariance(dwires, 0, mriglm->beta->nframes, 0, NULL);
+      sprintf(tmpstr,"%s/dwirvar.%s",GLMDir,format);
+      MRIwrite(dwirvar,tmpstr);
+
+      MRIfree(&dwisynth);
+    }
 
     MRIfree(&lowb);
     MRIfree(&tensor);
@@ -1576,7 +1583,6 @@ int main(int argc, char **argv) {
     MRIfree(&ra);
     MRIfree(&vr);
     MRIfree(&adc);
-    MRIfree(&dwisynth);
 
   }
 
