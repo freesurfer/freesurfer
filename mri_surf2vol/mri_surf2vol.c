@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/20 20:45:22 $
- *    $Revision: 1.21 $
+ *    $Date: 2007/07/20 03:40:39 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.21 2007/04/20 20:45:22 greve Exp $
+  $Id: mri_surf2vol.c,v 1.22 2007/07/20 03:40:39 greve Exp $
 */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_surf2vol.c,v 1.21 2007/04/20 20:45:22 greve Exp $";
+  "$Id: mri_surf2vol.c,v 1.22 2007/07/20 03:40:39 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -85,6 +85,7 @@ int   surfvalfmtid = 0;
 char *hemi = NULL;
 char *surfname = "white";
 char *srcsubject = NULL;
+char *subject = NULL; // for overriding
 char *targsubject = NULL;
 float projfrac = 0;
 static int fillribbon = 0 ;
@@ -137,7 +138,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_surf2vol.c,v 1.21 2007/04/20 20:45:22 greve Exp $",
+           "$Id: mri_surf2vol.c,v 1.22 2007/07/20 03:40:39 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -167,6 +168,10 @@ int main(int argc, char **argv) {
     err = regio_read_register(volregfile, &srcsubject, &ipr, &bpr,
                               &intensity, &Ma2vTKR, &float2int);
     if (err) exit(1);
+  }
+  if(subject != NULL){
+    printf("Overriding reg subject %s with %s\n",srcsubject,subject);
+    srcsubject = subject;
   }
 
   /* Read in the template volume header */
@@ -428,14 +433,20 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%f",&ProjFracDelta);
       fillribbon = 1 ;
       nargsused = 3;
-    } else if (istringnmatch(option, "--volregidentity",16)) {
+    } else if (istringnmatch(option, "--volregidentity",16) ||
+	       istringnmatch(option, "--identity",16)) {
       if (nargc < 1) argnerr(option,1);
       srcsubject = pargv[0];
       nargsused = 1;
       UseVolRegIdentity = 1;
-    } else if (istringnmatch(option, "--volreg",8)) {
+    } else if (istringnmatch(option, "--volreg",8) ||
+	       istringnmatch(option, "--reg",8)) {
       if (nargc < 1) argnerr(option,1);
       volregfile = pargv[0];
+      nargsused = 1;
+    } else if (istringnmatch(option, "--subject",0)){
+      if(nargc < 1) argnerr(option,1);
+      subject = pargv[0];
       nargsused = 1;
     } else if (istringnmatch(option, "--fstal",7)) {
       if (nargc < 1) argnerr(option,1);
@@ -446,9 +457,9 @@ static int parse_commandline(int argc, char **argv) {
       sprintf(tmpstr,"%s/average/mni305.cor.subfov%d.mgz",
               fsenv->FREESURFER_HOME,fstalres);
       tempvolpath = strcpyalloc(tmpstr);
-
       nargsused = 1;
-    } else if (istringnmatch(option, "--outvol",0)) {
+    } else if (istringnmatch(option, "--outvol",0) ||
+	       istringnmatch(option, "--o",0)) {
       if (nargc < 1) argnerr(option,1);
       outvolpath = pargv[0];
       nargsused = 1;
@@ -534,17 +545,17 @@ static void print_usage(void) {
   printf("  --projfrac thickness fraction \n");
   printf("  --fillribbon\n");
   printf("  --fill-projfrac start stop delta : implies --fillribbon\n");
-  printf("  --volreg volume registration file\n");
-  printf("  --volregidentity subjid : use identity "
-         "(must supply subject name)\n");
+  printf("  --reg volume registration file\n");
+  printf("  --identity subjid : use identity (must supply subject name)\n");
+  printf("  --subject subject : override subject in reg \n");
   printf("  --template vol : output like this volume\n");
   printf("  \n");
   printf("  --fstal res : use fs talairach registration\n");
   printf("  \n");
   printf("  --merge vol : merge with this vol (becomes template)\n");
   printf("  \n");
-  printf("  --outvol <fmt>  output volume path id\n");
-  printf("  --vtxvol <fmt>  vertex map volume path id\n");
+  printf("  --o outfile      : output volume path id\n");
+  printf("  --vtxvol vtxfile : vertex map volume path id\n");
   printf("  \n");
   printf("  --sd subjectsdir : FreeSurfer subjects' directory\n");
   printf("  --help    : hidden secrets of success\n");
@@ -607,7 +618,7 @@ static void print_help(void) {
     "Note that the volume can be filled 'into' the surface by setting stop < 0,\n"
     "eg, --fill-projfrac -1 0 0.05\n"
     "\n"
-    "--volreg volume registration file\n"
+    "--reg volume registration file\n"
     "\n"
     "Contains the matrix that maps XYZ in the reference anatomical to XYZ\n"
     "in the functional volume. The format of this file is that as output by\n"
@@ -615,7 +626,7 @@ static void print_help(void) {
     "that the input surface values are sampled on the surface of this\n"
     "subject. Cannot be used with --volregidentity.\n"
     "\n"
-    "--volregidentity subjid\n"
+    "--identity subjid\n"
     "\n"
     "Use identity matrix for the registration between the surface and the\n"
     "template volume (ie, template volume is the anatomical ref). "
@@ -644,12 +655,12 @@ static void print_help(void) {
     "volume. The merge volume becomes the template volume (ie, --template\n"
     "not needed or used).\n"
     "\n"
-    "--outvol output volume <fmt>\n"
+    "--o output volume \n"
     "\n"
     "Path name of the output volume. If the format is not included, the\n"
     "format will be inferred from the path name. See FORMATS below.\n"
     "\n"
-    "--vtxvol vertex output volume <fmt>\n"
+    "--vtxvol vertex output volume \n"
     "\n"
     "Path name of the vertex output volume. The vertex volume is the the\n"
     "same as the output volume except that the voxel value is the number of\n"
