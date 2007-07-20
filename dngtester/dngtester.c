@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/19 03:54:37 $
- *    $Revision: 1.39 $
+ *    $Date: 2007/07/20 05:16:22 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,8 +113,11 @@ int MRISmercator(MRIS *surf);
 IMAGE *I;
 MHT *lhwhite_hash;
 MRIS *lhwhite;
+MRIS *surfs[100];
 int *XNbrVtxNo, nXNbrs;
 double *XNbrDotProd;
+
+MRIS *MRISaverageSurfaces(int nsurfaces, MRIS **surfs);
 
 /*----------------------------------------*/
 int main(int argc, char **argv) {
@@ -128,6 +131,18 @@ int main(int argc, char **argv) {
   VERTEX *vtx;
   float dlhw,DotProdThresh;
   int  lhwvtx;
+
+  printf("nsurfs %d\n",argc-1);
+  for(k=1; k<argc; k++){
+    printf("Loading %s\n",argv[k]);
+    surf = MRISread(argv[k]);
+    if(surf == NULL) exit(1);
+    surfs[k-1] = surf;
+  }
+  surf = MRISaverageSurfaces(argc-1, surfs);
+  MRISwrite(surf,"lh.avgsurf");
+
+  exit(1);
 
   subject = argv[1];
   hemi = argv[2];
@@ -765,4 +780,68 @@ int MRISmercator(MRIS *surf)
   }
 
   return(0);
+}
+
+MRIS *MRISaverageSurfaces(int nsurfaces, MRIS **surfs)
+{
+  MRIS *surf, *avgsurf;
+  int n,k;
+  float average_surface_area;
+
+  surf = surfs[0];
+  avgsurf = MRISalloc(surf->nvertices, surf->nfaces) ;
+
+  // Make sure xyz is 0, copy faces and vertices
+  for(k=0; k < surf->nvertices; k++){
+    avgsurf->vertices[k].x = 0.0;
+    avgsurf->vertices[k].y = 0.0;
+    avgsurf->vertices[k].z = 0.0;
+    avgsurf->vertices[k].num = surf->vertices[k].num;
+    avgsurf->vertices[k].f = (int*) calloc(surf->vertices[k].num,sizeof(int));
+    avgsurf->vertices[k].n = (uchar*) calloc(surf->vertices[k].num,sizeof(uchar));
+    for(n=0; n < surf->vertices[k].num; n++){
+      avgsurf->vertices[k].f[n] = surf->vertices[k].f[n];
+      avgsurf->vertices[k].n[n] = surf->vertices[k].n[n];
+    }
+    avgsurf->vertices[k].vnum = surf->vertices[k].vnum;
+    avgsurf->vertices[k].v = (int*) calloc(surf->vertices[k].vnum,sizeof(int));
+    avgsurf->vertices[k].dist = (float*) calloc(surf->vertices[k].vnum,sizeof(float));
+    for(n=0; n < surf->vertices[k].vnum; n++)
+      avgsurf->vertices[k].v[n] = surf->vertices[k].v[n];
+  }
+  for(k=0; k < surf->nfaces; k++) {
+    for(n=0; n < VERTICES_PER_FACE; n++)
+      avgsurf->faces[k].v[n] = surf->faces[k].v[n];
+  }
+
+  // Loop thru all surfaces, sume xyz 
+  for(n=0; n < nsurfaces; n++){
+    printf("%2d  surface area %g\n",n,surf->total_area);
+    surf = surfs[0];
+    if(surf->nvertices != surfs[0]->nvertices){
+      printf("ERROR: MRISaverageSurfaces(): dimension mismatch surface %d\n",n);
+      printf(" number of vertices %d vs %d\n",surf->nvertices,surfs[0]->nvertices);
+      return(NULL);
+    }
+    for(k=0; k < surf->nvertices; k++){
+      avgsurf->vertices[k].x += surf->vertices[k].x;
+      avgsurf->vertices[k].y += surf->vertices[k].y;
+      avgsurf->vertices[k].z += surf->vertices[k].z;
+    }
+    average_surface_area += surf->total_area ;
+  }
+
+  average_surface_area /= nsurfaces;
+  printf("average surface area %g\n",surf->total_area);
+
+  // Now divide by number of surfaces
+  for(k=0; k < surf->nvertices; k++){
+    avgsurf->vertices[k].x /= nsurfaces;
+    avgsurf->vertices[k].y /= nsurfaces;
+    avgsurf->vertices[k].z /= nsurfaces;
+  }
+
+  MRIScomputeMetricProperties(avgsurf);
+  printf("avg  surface area %g\n",avgsurf->total_area);
+  return(avgsurf);
 }
