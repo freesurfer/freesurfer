@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/05/15 17:14:26 $
-#    $Revision: 1.17 $
+#    $Author: greve $
+#    $Date: 2007/07/20 05:15:31 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,11 +29,12 @@
 # increase number of allowable open files to maximum:
 limit descriptors unlimited
 
-set VERSION = '$Id: make_average_volume,v 1.17 2007/05/15 17:14:26 nicks Exp $';
+set VERSION = '$Id: make_average_volume,v 1.18 2007/07/20 05:15:31 greve Exp $';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm
 set average_subject = average
+set KeepAllOrig = 0;
 set sdout = ();
 set cleanup = 1;
 
@@ -113,6 +114,7 @@ foreach volid (orig T1 brain)
     set invollist = ($invollist $xfmvol);
   end
 
+  # Average the volumes together
   set outvol = $outdir/mri/$volid.mgz
   set cmd = (mri_average $invollist $outvol)
   echo $cmd | tee -a $LF
@@ -125,7 +127,18 @@ foreach volid (orig T1 brain)
   $cmd  | tee -a $LF
   if($status) exit 1;
 
+  # When keeping all orig, concat
+  if($KeepAllOrig && $volid == orig) then
+    echo "Concatenating all subjects' orig volumes"
+    set cmd = (mri_concat $invollist --o $outdir/mri/orig.all.mgz)
+    echo $cmd | tee -a $LF
+    $cmd  | tee -a $LF
+    if($status) exit 1;
+  endif
+
 end
+
+cp $outdir/mri/brain.mgz $outdir/mri/brainmask.mgz
 
 set outtalxfm = $outdir/mri/transforms/talairach.xfm
 rm -f $outtalxfm
@@ -259,6 +272,14 @@ while( $#argv != 0 )
       set SurfReg = $argv[1]; shift;
       breaksw
 
+    case "--keep-all-orig":
+      set KeepAllOrig = 1;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
     case "--debug":
     case "--echo":
       set echo = 1;
@@ -348,11 +369,13 @@ usage_exit:
   echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
   echo "   --sd      : same as --sdir"
   echo "   --force   : overwrite existing average subject data"
+  echo "   --keep-all-orig : concatenate all orig vols into mri/orig.all.mgz"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"
   echo "   --echo    : enable command echo, for debug"
   echo "   --debug   : same as --echo"
+  echo "   --nocleanup : do not delete temporary files"
   echo ""
   echo "See also: recon-all, make_final_surfaces, morph_subject"
   echo ""
