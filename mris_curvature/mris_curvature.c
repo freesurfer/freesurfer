@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/17 19:18:50 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/07/20 16:42:32 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.24 2007/07/17 19:18:50 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.25 2007/07/20 16:42:32 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -56,6 +56,7 @@ char *Progname ;
 static char *suffix = "" ;
 static int write_flag = 0 ;
 static int nbrs = 2 ;
+static double cthresh = -1.0;
 static int navgs = 0 ;
 static char *param_file = NULL ;
 static int normalize = 0 ;
@@ -85,7 +86,7 @@ main(int argc, char *argv[]) {
   double       ici, fi, var ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.24 2007/07/17 19:18:50 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.25 2007/07/20 16:42:32 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -157,7 +158,7 @@ main(int argc, char *argv[]) {
     MRISwriteCurvature(mris, fname) ;
     fprintf(stderr, "done.\n") ;
   } else {
-    MRIScomputeSecondFundamentalForm(mris) ;
+    MRIScomputeSecondFundamentalFormThresholded(mris, cthresh) ;
     nhandles = nint(1.0 - mris->Ktotal / (4.0*M_PI)) ;
     fprintf(stderr, "total integrated curvature = %2.3f*4pi (%2.3f) --> "
             "%d handles\n", (float)(mris->Ktotal/(4.0f*M_PI)),
@@ -272,6 +273,8 @@ main(int argc, char *argv[]) {
 
     if (write_flag) {
       MRISuseGaussianCurvature(mris) ;
+      if (cthresh > 0)
+        MRIShistoThresholdCurvature(mris, cthresh) ;
       MRISaverageCurvatures(mris, navgs) ;
       sprintf(fname, "%s/%s%s.K", path,name, suffix) ;
       fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
@@ -279,6 +282,8 @@ main(int argc, char *argv[]) {
         MRISnormalizeCurvature(mris,which_norm) ;
       MRISwriteCurvature(mris, fname) ;
       MRISuseMeanCurvature(mris) ;
+      if (cthresh > 0)
+        MRIShistoThresholdCurvature(mris, cthresh) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
         MRISnormalizeCurvature(mris,which_norm) ;
@@ -335,6 +340,12 @@ get_option(int argc, char *argv[]) {
   {
     which_norm = NORM_MEDIAN ;
     printf("using median normalization for curvature\n") ;
+  }
+  else if (!stricmp(option, "thresh"))
+  {
+    cthresh = atof(argv[2]) ; nargs = 1 ;
+    printf("thresholding curvature at %2.2f%% level\n",
+           cthresh*100) ;
   }
   else if (!stricmp(option, "param")) {
     param_file = argv[2] ;
