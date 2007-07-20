@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/19 15:56:05 $
- *    $Revision: 1.291 $
+ *    $Date: 2007/07/20 16:40:50 $
+ *    $Revision: 1.292 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -509,6 +509,9 @@ typedef struct
   double  rmax ;              // for nonlinear spring term
   int     var_smoothness ;    // for space/time varying weights on metric distortion/likelihood
   float   *vsmoothness ;      // variable smoothness coefficients (one per vertex)
+  float   *dist_error ;       // the values for each vertex of the various error type
+  float   *area_error ;       //             needed for the variable smoothness gradient calculation
+  float   *geometry_error ;
   int     which_norm ;        // mean or median normalization
   int     abs_norm ;
 }
@@ -764,6 +767,7 @@ int          MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris,
     int vno,
     int *vertices,
     int vnum) ;
+int          MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double thresh) ;
 int          MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureDifference(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureStretch(MRI_SURFACE *mris) ;
