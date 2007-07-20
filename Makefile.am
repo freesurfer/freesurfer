@@ -274,7 +274,9 @@ SUBDIRS=include \
 	fsfast \
 	matlab \
 	scuba \
-	scuba2
+	scuba2 \
+	itkio
+	
 
 # build stamp and symlinks to necessary 3rd-party packages
 install-data-hook:

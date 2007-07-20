@@ -38,7 +38,7 @@
 #include <itkNiftiImageIO.h>
 #include <itkOrientedImage.h>
 
-#include "io/itkMGHImageIOFactory.h"
+#include "itkio/itkMGHImageIOFactory.h"
 #include "io/SymmetricTensorReaderStrategy.h"
 #include "io/AsymmetricTensorReaderStrategy.h"
 #include "io/AsymmetricTensorVectorReaderStrategy.h"

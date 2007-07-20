@@ -54,15 +54,12 @@ IO_SRCS = \
 	io/SymmetricTensorReaderStrategy.h \
 	io/TensorReaderStrategy.cxx \
 	io/TensorReaderStrategy.h \
-	io/itkMGHImageIO.cxx \
-	io/itkMGHImageIO.h \
-	io/itkMGHImageIOFactory.cxx \
-	io/itkMGHImageIOFactory.h \
 	io/itkOrientedVectorImage.txx \
 	io/itkOrientedVectorImage.h
 
 AM_CPPFLAGS =	$(X_CFLAGS) $(VXL_CFLAGS) \
   -I$(top_srcdir)/include \
+	-I$(top_srcdir)/itkio \
   $(ITK_THINGS) -DHAVE_ZLIB
 
 bin_PROGRAMS = \
@@ -81,6 +78,7 @@ dmri_poistats_SOURCES = \
   $(IO_SRCS) \
   dmri_poistats.cxx 
 dmri_poistats_LDADD = $(LIBS_ITK) \
+	$(top_srcdir)/itkio/libitkio.a \
 	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
 	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
 	-litkvnl -litkvcl \
