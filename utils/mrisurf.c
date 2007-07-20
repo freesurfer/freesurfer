@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/20 16:51:17 $
- *    $Revision: 1.546 $
+ *    $Author: greve $
+ *    $Date: 2007/07/20 19:42:55 $
+ *    $Revision: 1.547 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -616,7 +616,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.546 2007/07/20 16:51:17 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.547 2007/07/20 19:42:55 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -12833,9 +12833,8 @@ MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_thresh
   VectorFree(&v_yi) ;
   MatrixFree(&m_Q) ;
 
-
-  if (thresh < 0)
-    return(NO_ERROR) ;
+  // DNG: changed thresh to pct_thresh
+  if (pct_thresh < 0)    return(NO_ERROR) ;
   // now remove outliers
   h_k1 = HISTOalloc(1000) ;
   h_k2 = HISTOalloc(1000) ;
