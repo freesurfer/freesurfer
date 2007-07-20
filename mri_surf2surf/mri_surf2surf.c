@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/14 23:26:20 $
- *    $Revision: 1.52 $
+ *    $Date: 2007/07/20 21:07:11 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -317,7 +317,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.52 2007/07/14 23:26:20 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.53 2007/07/20 21:07:11 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -414,7 +414,7 @@ int main(int argc, char **argv) {
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.52 2007/07/14 23:26:20 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.53 2007/07/20 21:07:11 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -740,10 +740,7 @@ int main(int argc, char **argv) {
     /* save the Target Hits into a .w file */
     if (TrgDistFile != NULL) {
       printf("INFO: saving target distance to %s\n",TrgDistFile);
-      MRIScopyMRI(TrgSurfReg, TrgDist, 0, "val");
-      MRISwriteValues(TrgSurfReg, TrgDistFile) ;
-      //for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++)
-      //TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgDist,vtx,0,0,0) ;
+      MRIwrite(TrgDist,TrgDistFile);
     }
   } else {
     /* --- Source and Target Subjects are the same --- */
@@ -1127,6 +1124,7 @@ static void print_usage(void) {
   printf("   --tval path of file in which to store output values\n");
   printf("   --tval-xyz : save as surface with source xyz \n");
   printf("   --tfmt target format\n");
+  printf("   --trgdist distfile : save distance from source to target vtx\n");
   printf("   --s subject : use subject as src and target\n");
   printf("   --hemi       hemisphere (lh or rh) \n");
   printf("   --surfreg    surface registration (sphere.reg)  \n");
