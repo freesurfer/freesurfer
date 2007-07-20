@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/19 15:57:51 $
- *    $Revision: 1.543 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/20 01:25:00 $
+ *    $Revision: 1.544 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -593,6 +593,8 @@ v1->cy-v0->cy, v1->cz-v0->cz)
 
 int topology_fixing_exit_after_diag = 0 ;
 
+static int vertexIndexOutOfRangeCounter = 0;
+
 /*-------------------------- FUNCTIONS -------------------------------*/
 double (*gMRISexternalGradient)(MRI_SURFACE *mris,
                                 INTEGRATION_PARMS *parms) = NULL ;
@@ -613,7 +615,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.543 2007/07/19 15:57:51 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.544 2007/07/20 01:25:00 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -10131,6 +10133,13 @@ MRISreadAnnotationIntoArray(const char* fname,
               "%d i=%8.8X, in_array_size=%d\n",
               vno,i,in_array_size);
       fprintf(stderr,"    annot file: %s\n",fname);
+      if (++vertexIndexOutOfRangeCounter > 200000)
+      {
+        // do this check to prevent creating 100GB error files
+        ErrorExit(ERROR_BADFILE,
+                  "ERROR: Too many out-of-range vertex indices in "
+                  "MRISreadAnnotationIntoArray!\n");
+      }
     }
     else
       array[vno] = i;
