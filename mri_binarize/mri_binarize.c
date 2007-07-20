@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/29 19:08:18 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/07/20 21:20:05 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.11 2007/03/29 19:08:18 greve Exp $
+// $Id: mri_binarize.c,v 1.12 2007/07/20 21:20:05 greve Exp $
 
 /*
   BEGINHELP
@@ -145,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.11 2007/03/29 19:08:18 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.12 2007/07/20 21:20:05 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -176,6 +176,7 @@ double MaskThresh = 0.5;
 
 int nErode2d = 0;
 int nErode3d = 0;
+int DoBinCol = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -325,6 +326,11 @@ int main(int argc, char *argv[]) {
     for(n=0; n<nErode2d; n++) MRIerode2D(OutVol,OutVol);
   }
 
+  if(DoBinCol){
+    printf("Filling mask with column number\n");
+    MRIbinMaskToCol(OutVol, OutVol);
+  }
+
   // Save output
   MRIwrite(OutVol,OutVolFile);
 
@@ -355,6 +361,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--abs")) DoAbs = 1;
+    else if (!strcasecmp(option, "--bincol")) DoBinCol = 1;
     else if (!strcasecmp(option, "--zero-edges")){
       ZeroColEdges = 1;
       ZeroRowEdges = 1;
@@ -472,6 +479,7 @@ static void print_usage(void) {
   printf("   --mask maskvol       : must be within mask \n");
   printf("   --mask-thresh thresh : set thresh for mask (def is 0.5) \n");
   printf("   --abs : take abs of invol first (ie, make unsigned)\n");
+  printf("   --bincol : set binarized voxel value to its column number\n");
   printf("   --zero-edges : zero the edge voxels\n");
   printf("   --zero-slice-edges : zero the edge slice voxels\n");
   printf("   --erode nerode: erode binarization in 3D\n");
@@ -631,3 +639,4 @@ static void dump_options(FILE *fp) {
   }
   return;
 }
+
