@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/20 21:47:24 $
- *    $Revision: 1.54 $
+ *    $Date: 2007/07/20 22:26:08 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -176,16 +176,18 @@ OPTIONS
     When using paint/w output format, this specifies which frame to output. This
     format can store only one frame. The frame number is zero-based (default is 0).
 
-  --noreshape
+  --reshape
 
-    By default, mri_surf2surf will save the output as multiple
-    'slices'; has no effect for paint/w output format. For ico, the output
-    will appear to be a 'volume' with Nv/R colums, 1 row, R slices and Nf
-    frames, where Nv is the number of vertices on the surface. For icosahedrons,
-    R=6. For others, R will be the prime factor of Nv closest to 6. Reshaping
-    is for logistical purposes (eg, in the analyze format the size of a dimension
-    cannot exceed 2^15). Use this flag to prevent this behavior. This has no
-    effect when the output type is paint.
+    Force mri_surf2surf to save the output as multiple 'slices'; has
+    no effect for paint/w output format. For ico, the output will
+    appear to be a 'volume' with Nv/R colums, 1 row, R slices and Nf
+    frames, where Nv is the number of vertices on the surface. For
+    icosahedrons, R=6. For others, R will be the prime factor of Nv
+    closest to 6. Reshaping is for logistical purposes (eg, in the
+    analyze/nifti format the size of a dimension cannot exceed
+    2^15). Use this flag to prevent this behavior. This has no effect
+    when the output type is paint. At one point, it was the default
+    to reshape.
 
   --sd SUBJECTS_DIR
 
@@ -317,7 +319,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.54 2007/07/20 21:47:24 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.55 2007/07/20 22:26:08 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -360,7 +362,7 @@ char *TrgDistFile = NULL;
 int TrgIcoOrder;
 
 MRI  *mritmp;
-int  reshape = 1;
+int  reshape = 0;
 int  reshapefactor;
 
 char *mapmethod = "nnfr";
@@ -414,7 +416,7 @@ int main(int argc, char **argv) {
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.54 2007/07/20 21:47:24 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.55 2007/07/20 22:26:08 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1146,7 +1148,7 @@ static void print_usage(void) {
   printf("   --nsmooth-in N  : smooth the input\n");
   printf("   --nsmooth-out N : smooth the output\n");
 
-  printf("   --noreshape  do not reshape output to multiple 'slices'\n");
+  printf("   --reshape  reshape output to multiple 'slices'\n");
   printf("   --synth : replace input with WGN\n");
   printf("   --seed seed : seed for synth (default is auto)\n");
 
@@ -1303,16 +1305,18 @@ printf("\n");
 printf("    When using paint/w output format, this specifies which frame to output. This\n");
 printf("    format can store only one frame. The frame number is zero-based (default is 0).\n");
 printf("\n");
-printf("  --noreshape\n");
+printf("  --reshape\n");
 printf("\n");
-printf("    By default, mri_surf2surf will save the output as multiple\n");
-printf("    'slices'; has no effect for paint/w output format. For ico, the output\n");
-printf("    will appear to be a 'volume' with Nv/R colums, 1 row, R slices and Nf\n");
-printf("    frames, where Nv is the number of vertices on the surface. For icosahedrons,\n");
-printf("    R=6. For others, R will be the prime factor of Nv closest to 6. Reshaping\n");
-printf("    is for logistical purposes (eg, in the analyze format the size of a dimension\n");
-printf("    cannot exceed 2^15). Use this flag to prevent this behavior. This has no\n");
-printf("    effect when the output type is paint.\n");
+printf("    Force mri_surf2surf to save the output as multiple 'slices'; has\n");
+printf("    no effect for paint/w output format. For ico, the output will\n");
+printf("    appear to be a 'volume' with Nv/R colums, 1 row, R slices and Nf\n");
+printf("    frames, where Nv is the number of vertices on the surface. For\n");
+printf("    icosahedrons, R=6. For others, R will be the prime factor of Nv\n");
+printf("    closest to 6. Reshaping is for logistical purposes (eg, in the\n");
+printf("    analyze/nifti format the size of a dimension cannot exceed\n");
+printf("    2^15). Use this flag to prevent this behavior. This has no effect\n");
+printf("    when the output type is paint. At one point, it was the default\n");
+printf("    to reshape.\n");
 printf("\n");
 printf("  --sd SUBJECTS_DIR\n");
 printf("\n");
