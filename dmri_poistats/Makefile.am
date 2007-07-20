@@ -41,7 +41,9 @@ IO_SRCS = \
 	io/SymmetricTensorReaderStrategy.cxx \
 	io/SymmetricTensorReaderStrategy.h \
 	io/TensorReaderStrategy.cxx \
-	io/TensorReaderStrategy.h
+	io/TensorReaderStrategy.h \
+	io/itkOrientedVectorImage.txx \
+	io/itkOrientedVectorImage.h
 
 AM_CPPFLAGS =	$(X_CFLAGS) $(VXL_CFLAGS) \
   -I$(top_srcdir)/include \
