@@ -275,7 +275,8 @@ SUBDIRS=include \
 	matlab \
 	scuba \
 	scuba2 \
-	itkio
+	itkio \
+	itkutils
 	
 
 # build stamp and symlinks to necessary 3rd-party packages

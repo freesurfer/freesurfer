@@ -2038,6 +2038,7 @@ AC_OUTPUT([Makefile
            include/topology/Makefile
            include/fs_vnl/Makefile
            itkio/Makefile
+           itkutils/Makefile
            label_area/Makefile
            label2patch/Makefile
            label2flat/Makefile

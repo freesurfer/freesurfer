@@ -47,8 +47,8 @@
 
 #include "datamodel/events/CommandUpdate.h"
 
-#include "ui/CommandParser.h"
-#include "ui/FreeSurferExecutable.h"
+#include "itkutils/ui/CommandParser.h"
+#include "itkutils/ui/FreeSurferExecutable.h"
 
 /** This is needed by the freesurfer utils library */
 char *Progname;

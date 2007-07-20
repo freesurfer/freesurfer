@@ -1,7 +1,7 @@
 #ifndef __PoistatsModel_h
 #define __PoistatsModel_h
 
-#include "dmri_poistats/datamodel/utils/bspline/itkBSplineDataPointSetToImageFilter.h"
+#include "itkutils/bspline/itkBSplineDataPointSetToImageFilter.h"
 
 #include <vnl/vnl_random.h>
 #include <vector>

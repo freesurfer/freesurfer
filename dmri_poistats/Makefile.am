@@ -8,10 +8,6 @@ if HAVE_ITK_LIBS
 
 ITK_THINGS=$(ITK_CFLAGS) -DHAVE_ITK_LIBS
 
-UI_SRCS = \
-  ui/CommandParser.cxx \
-  ui/FreeSurferExecutable.cxx
-
 DATAMODEL_SRCS = \
 	datamodel/PoistatsModel.cxx \
 	datamodel/PoistatsModel.h
@@ -37,14 +33,6 @@ UTILS_SRCS = \
 	datamodel/utils/FieldLineInitPathStrategy.cxx \
 	datamodel/utils/FieldLineInitPathStrategy.h	
 
-BSPLINES_SRCS = \
-	datamodel/utils/bspline/itkBSplineKernelFunction.txx \
-	datamodel/utils/bspline/itkBSplineKernelFunction.h \
-	datamodel/utils/bspline/itkBSplineDataPointSetToImageFilter.txx \
-  datamodel/utils/bspline/itkBSplineDataPointSetToImageFilter.h \
-	datamodel/utils/bspline/itkPointSetToImageFilter.txx \
-	datamodel/utils/bspline/itkPointSetToImageFilter.h
-
 IO_SRCS = \
 	io/AsymmetricTensorReaderStrategy.cxx \
 	io/AsymmetricTensorReaderStrategy.h \
@@ -53,13 +41,12 @@ IO_SRCS = \
 	io/SymmetricTensorReaderStrategy.cxx \
 	io/SymmetricTensorReaderStrategy.h \
 	io/TensorReaderStrategy.cxx \
-	io/TensorReaderStrategy.h \
-	io/itkOrientedVectorImage.txx \
-	io/itkOrientedVectorImage.h
+	io/TensorReaderStrategy.h
 
 AM_CPPFLAGS =	$(X_CFLAGS) $(VXL_CFLAGS) \
   -I$(top_srcdir)/include \
 	-I$(top_srcdir)/itkio \
+	-I$(top_srcdir)/itkutils \
   $(ITK_THINGS) -DHAVE_ZLIB
 
 bin_PROGRAMS = \
@@ -69,8 +56,6 @@ bin_PROGRAMS = \
 
 # poistats
 dmri_poistats_SOURCES = \
-  $(UI_SRCS) \
-  $(BSPLINES_SRCS) \
   $(DATAMODEL_SRCS) \
   $(DATA_SRCS) \
   $(EVENTS_SRCS) \
@@ -79,6 +64,7 @@ dmri_poistats_SOURCES = \
   dmri_poistats.cxx 
 dmri_poistats_LDADD = $(LIBS_ITK) \
 	$(top_srcdir)/itkio/libitkio.a \
+	$(top_srcdir)/itkutils/libitkutils.a \
 	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
 	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
 	-litkvnl -litkvcl \
@@ -89,12 +75,11 @@ dmri_poistats_CXXFLAGS =
 
 # initialize poistats path stuff
 dmri_initialize_path_SOURCES = \
-  $(UI_SRCS) \
-  $(BSPLINES_SRCS) \
   $(DATAMODEL_SRCS) \
   $(UTILS_SRCS) \
   dmri_initialize_path.cxx 
 dmri_initialize_path_LDADD = $(LIBS_ITK) \
+	$(top_srcdir)/itkutils/libitkutils.a \
 	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
 	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
 	-litkvnl -litkvcl \
@@ -103,11 +88,11 @@ dmri_initialize_path_LDADD = $(LIBS_ITK) \
 dmri_initialize_path_LDFLAGS = $(OS_LDFLAGS)
 dmri_initialize_path_CXXFLAGS = 
 
-# initialize poistats path stuff
+# mask path
 dmri_mask_SOURCES = \
-  $(UI_SRCS) \
   dmri_mask.cxx 
-dmri_mask_LDADD = $(addprefix $(top_srcdir)/, $(LIBS_MGH) )
+dmri_mask_LDADD = $(addprefix $(top_srcdir)/, $(LIBS_MGH) ) \
+	$(top_srcdir)/itkutils/libitkutils.a
 dmri_mask_LDFLAGS = $(OS_LDFLAGS)
 dmri_mask_CXXFLAGS = 
 
