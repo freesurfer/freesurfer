@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/19 21:13:02 $
-#    $Revision: 1.11 $
+#    $Date: 2007/07/20 00:27:02 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.11 2007/07/19 21:13:02 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.12 2007/07/20 00:27:02 nicks Exp $';
 
 # defaults:
 # setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas
@@ -482,15 +482,24 @@ foreach test_subj ($ALL_SUBJECTS)
             end
             sleep 1
             set dice=`grep Dice ${outFile} | awk '{ print $4 }'`
-            if ($status) exit 1
+            if ($status) then
+                echo "Failed: grep Dice ${outFile} | awk '{ print $4 }"
+                exit 1
+            endif
             set sum=`echo "${sum} + ${dice}" | bc`
-            if ($status) exit 1
+            if ($status) then
+                echo "Failed: echo ${sum} + ${dice} | bc"
+                exit 1
+            endif
             @ count++
         endif
     end
 end
 set avg=`echo "scale=4; ${sum} / ${count}" | bc`
-if ($status) exit 1
+if ($status) then
+    echo "Failed: echo scale=4; ${sum} / ${count} | bc"
+    exit 1
+endif
 echo "${avg}" >& ${avgfile}
 endif
 
@@ -508,15 +517,24 @@ foreach test_subj ($ALL_SUBJECTS)
             end
             sleep 1
             set meanmin=`grep mean ${outFile} | awk '{ print $7 }'`
-            if ($status) exit 1
+            if ($status) then
+                echo "Failed: grep mean ${outFile} | awk '{ print $7 }'"
+                exit 1
+            endif
             set sum=`echo "scale=4; ${sum} + ${meanmin}" | bc`
-            if ($status) exit 1
+            if ($status) then
+                echo "Failed: echo scale=4; ${sum} + ${meanmin} | bc"
+                exit 1
+            endif
             @ count++
         endif
     end
 end
 set avg=`echo "scale=4; ${sum} / ${count}" | bc`
-if ($status) exit 1
+if ($status) then
+    echo "Failed: echo scale=4; ${sum} / ${count} | bc"
+    exit 1
+endif
 echo "${avg}" >& ${avgfile}
 endif
 
