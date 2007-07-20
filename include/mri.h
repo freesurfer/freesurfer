@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/13 03:50:38 $
- *    $Revision: 1.340 $
+ *    $Date: 2007/07/20 21:19:40 $
+ *    $Revision: 1.341 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1152,6 +1152,8 @@ int MRIlabelInVolume(MRI *mri_src, int label) ;
 #define MRI_MEAN_MIN_DISTANCE 0
 double MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref, int which, FILE *fp) ;
 double MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label) ;
+
+MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol);
 
 // types of MRI sequences
 #define MRI_UNKNOWN          0

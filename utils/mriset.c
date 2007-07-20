@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/05/02 13:28:47 $
- *    $Revision: 1.54 $
+ *    $Author: greve $
+ *    $Date: 2007/07/20 21:19:40 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,6 +38,7 @@
 #include "error.h"
 #include "proto.h"
 #include "mri.h"
+#include "mri2.h"
 #include "macros.h"
 #include "diag.h"
 #include "volume_io.h"
@@ -2920,3 +2921,36 @@ MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label)
   return(mean_min_dist) ;
 }
 
+/*-----------------------------------------------------------------*/
+/*!
+  \fn MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol)
+  \brief Sets the value of a voxel in the mask to its column number.
+*/
+MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol)
+{
+  int c,r,s,v;
+  float m;
+
+  if (bincol == NULL) {
+    bincol = MRIcloneBySpace(binmask,MRI_INT,-1);
+    if(bincol == NULL) return(NULL);
+  }
+  else{
+    if (MRIdimMismatch(binmask, bincol, 1)){
+      printf("ERROR: MRIbinMaskToCol: input/output dim mismatch\n");
+      return(NULL);
+    }
+  }
+
+  for (c=0; c < binmask->width; c++) {
+    for (r=0; r < binmask->height; r++) {
+      for (s=0; s < binmask->depth; s++) {
+	m = MRIgetVoxVal(binmask,c,r,s,0);
+	if(m < 0.5) v = 0;
+	else        v = c;
+	MRIsetVoxVal(bincol,c,r,s,0,v);
+      }
+    }
+  }
+  return(bincol);
+}
