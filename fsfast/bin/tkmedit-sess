@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/10 17:21:51 $
-#    $Revision: 1.23 $
+#    $Date: 2007/07/20 03:41:44 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.23 2007/07/10 17:21:51 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.24 2007/07/20 03:41:44 greve Exp $';
 set inputargs = ($argv);
 
 set PWDCMD = pwd
@@ -32,6 +32,7 @@ set analysis      = ();
 set anapend       = ();
 set sessid        = ();
 set isxavgmethod  = ();
+set hsurf = ();
 
 set mapanalysis   = ();
 set mapsessid     = ();
@@ -41,7 +42,7 @@ set contrastlist = ();
 set space      = ();
 set subject    = ();
 set mrivolid   = orig;
-set auxvolid   = ();
+set auxvolid   = brainmask.mgz;
 
 set hdrdir = ();
 set sessdir = ();
@@ -404,7 +405,7 @@ endif
 #------- Create and run the cmd line -----------------------#
 set TKMEDIT = tkmedit
 if($usestatic) set TKMEDIT = $TKMEDIT.static
-set cmd = ($TKMEDIT $anatoption$MGZ $mapoption $hdroption $offsetoption)
+set cmd = ($TKMEDIT $anatoption$MGZ $hsurf $mapoption $hdroption $offsetoption)
 set cmd = ($cmd -fthresh $fthresh -fmax $fmax)
 set cmd = ($cmd $segoption);
 if($#auxvolid) set cmd = ($cmd -aux $auxvolid);
@@ -467,6 +468,10 @@ while( $#argv != 0 )
     case "-aux":
       if ( $#argv == 0) goto arg1err;
       set auxvolid = $argv[1]; shift;
+      breaksw
+
+    case "-no-aux":
+      set auxvolid = ();
       breaksw
 
     case "-mapmeanimg":
@@ -648,6 +653,11 @@ while( $#argv != 0 )
     case "-aparc+aseg":
       set segmentation = aparc+aseg;
       set segcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
+      breaksw
+
+    case "-hsurf":
+      if($#argv < 1) goto arg1err;
+      set hsurf = $argv[1]; shift;
       breaksw
 
     case "-sessanat":
@@ -908,6 +918,7 @@ usage_exit:
   echo "   -aseg : show automatic segmentation (must alreay exist)"
   echo "   -aparc+aseg : show aparc+aseg segmentation (must alreay exist)"
   echo "   -segopacity opacity : between 0 and 1 (def .3)"
+  echo "   -hsurf hemi.surf : load hemi.surf with volume"
   echo "   -fthresh fthresh : threshold for color overlay"
   echo "   -fmax    fmax    : saturation threshold for color overlay"
   echo ""
