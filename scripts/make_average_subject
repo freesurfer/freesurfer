@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/05/15 17:00:35 $
-#    $Revision: 1.13 $
+#    $Author: greve $
+#    $Date: 2007/07/20 20:09:25 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # do this to increase number of allowable open files:
 limit descriptors unlimited
 
-set VERSION = '$Id: make_average_subject,v 1.13 2007/05/15 17:00:35 nicks Exp $'
+set VERSION = '$Id: make_average_subject,v 1.14 2007/07/20 20:09:25 greve Exp $'
 set PrintHelp = 0;
 set sdout = ();
 set average_subject = average;
@@ -37,6 +37,7 @@ set DoLink = 0;
 set DoSurfaces = 1;
 set DoVolumes  = 1;
 set Force = 0;
+set KeepAllOrig = 0;
 
 set cmdargs = ($argv);
 
@@ -65,6 +66,7 @@ endif
 
 if($DoVolumes) then
   set cmd = (make_average_volume $cmdargs)
+  if($KeepAllOrig) set cmd = ($cmd --keep-all-orig)
   echo $cmd
   $cmd
   if($status) then
@@ -153,6 +155,10 @@ while( $#argv != 0 )
       set DoLink = 0;
       breaksw
 
+    case "--keep-all-orig":
+      set KeepAllOrig = 1;
+      breaksw
+
    case "--debug":
    case "--echo":
       set echo = 1;
@@ -237,6 +243,7 @@ usage_exit:
   echo "   --no-surf : do not make average surfaces"
   echo "   --no-vol  : do not make average volumes"
   echo "   --force   : overwrite existing average subject data"
+  echo "   --keep-all-orig : concatenate all orig vols into mri/orig.all.mgz"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"
