@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/20 21:07:11 $
- *    $Revision: 1.53 $
+ *    $Date: 2007/07/20 21:47:24 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -317,7 +317,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.53 2007/07/20 21:07:11 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.54 2007/07/20 21:47:24 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -414,7 +414,7 @@ int main(int argc, char **argv) {
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.53 2007/07/20 21:07:11 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.54 2007/07/20 21:47:24 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -594,6 +594,17 @@ int main(int argc, char **argv) {
       fprintf(stderr,"       Number of value vertices = %d\n",SrcVals->width);
       exit(1);
     }
+    if(SrcVals->type != MRI_FLOAT){
+      printf("Converting source to float\n");
+      mritmp = MRISeqchangeType(SrcVals,MRI_FLOAT,0,0,0);
+      if (mritmp == NULL) {
+	printf("ERROR: could change type\n");
+	exit(1);
+      }
+      MRIfree(&SrcVals);
+      SrcVals = mritmp;
+    }
+
     if (is_sxa_volume(srcvalfile)) {
       printf("INFO: Source volume detected as selxavg format\n");
       sxa = ld_sxadat_from_stem(srcvalfile);
