@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/27 04:00:21 $
-#    $Revision: 1.7 $
+#    $Date: 2007/07/20 03:42:36 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.7 2007/06/27 04:00:21 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.8 2007/07/20 03:42:36 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -50,7 +50,8 @@ set DoMorph = 0;
 
 # for surface-based only
 set hemi = ();
-set projfrac = 0
+set projfrac = ()
+set DoProjFracAvg = 0
 set subject = fsaverage; 
 
 set tmpdir = ();
@@ -153,7 +154,9 @@ foreach sess ($SessList)
   if($#hemi != 0) then
     set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-$hemi.mgh
     set cmd = (mri_vol2surf --mov $map --reg $reg --trgsubject $subject)
-    set cmd = ($cmd --hemi $hemi --projfrac 0 --interp $interp --noreshape)
+    set cmd = ($cmd --hemi $hemi --interp $interp --noreshape)
+    if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
+    if($#DoProjFracAvg) set cmd = ($cmd --projfrac-avg 0 1 .2)
     set cmd = ($cmd --o $mapout)
   else
     set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-tal.mgh
@@ -322,6 +325,11 @@ while( $#argv != 0 )
       set ToSurf = 1;
       breaksw
 
+    case "-projfrac-avg":
+      set DoProjFracAvg = 1;
+      set ToSurf = 1;
+      breaksw
+
     case "-subject":
       if( $#argv == 0) goto arg1err;
       set subject = $argv[1]; shift;
@@ -464,6 +472,12 @@ check_params:
     exit 1;
   endif
 
+  if($#projfrac && $DoProjFracAvg) then
+    echo "ERROR: cannot --projfrac and --projfrac-avg"
+    exit 1
+  endif
+  if($#projfrac == 0 && $DoProjFracAvg == 0) set projfrac = 0.5;
+
 
 goto check_params_return;
 ############--------------##################
@@ -498,6 +512,7 @@ usage_exit:
   echo "  Surface-based options:"
   echo "   -hemi hemisphere : for surface-based analysis (lh or rh)";
   echo "   -projfrac frac   : sample frac into surface"
+  echo "   -projfrac-avg    : average over cortex"
   echo "   -subject subject : sample to subject's surface (def fsaverage)"
   echo ""
   echo "   -space spacename : tal, lh. rh"

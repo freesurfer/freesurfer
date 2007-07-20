@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/27 04:00:21 $
-#    $Revision: 1.24 $
+#    $Date: 2007/07/20 03:42:36 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.24 2007/06/27 04:00:21 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.25 2007/07/20 03:42:36 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -54,7 +54,8 @@ set DoMorph = 0;
 
 # for surface-based only
 set hemilist = ();
-set projfrac = 0.5;
+set projfrac = ();
+set DoProjFracAvg = 0;
 set subject = fsaverage; 
 
 set sessargs = ();
@@ -160,8 +161,10 @@ foreach hemi ($hemilist)
     if(! $DoMorph) set cmd = ($cmd -talres $talres)
     if($DoMorph)   set cmd = ($cmd --morph)
   else
-    set cmd = ($cmd -hemi $hemi -projfrac $projfrac)
     set cmd = ($cmd -subject $subject)
+    set cmd = ($cmd -hemi $hemi)
+    if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
+    if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg $projfrac)
   endif
   set cmd = ($cmd $sessargs);
   echo "cd `pwd`" |& tee -a $LF
@@ -218,8 +221,10 @@ foreach hemi ($hemilist)
         if(! $DoMorph) set cmd = ($cmd -talres $talres)
         if($DoMorph)   set cmd = ($cmd --morph)
       else
-        set cmd = ($cmd -hemi $hemi -projfrac $projfrac)
+        set cmd = ($cmd -hemi $hemi)
         set cmd = ($cmd -subject $subject)
+        if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
+        if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg $projfrac)
       endif
       set cmd = ($cmd $sessargs);
       echo "cd `pwd`" |& tee -a $LF
@@ -285,8 +290,10 @@ foreach hemi ($hemilist)
       if(! $DoMorph) set cmd = ($cmd -talres $talres)
       if($DoMorph)   set cmd = ($cmd --morph)
     else
-      set cmd = ($cmd -hemi $hemi -projfrac $projfrac)
+      set cmd = ($cmd -hemi $hemi)
       set cmd = ($cmd -subject $subject)
+      if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
+      if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg $projfrac)
     endif
     set cmd = ($cmd $sessargs);
     echo "cd `pwd`" |& tee -a $LF
@@ -396,6 +403,11 @@ while( $#argv != 0 )
     case "-projfrac":
       if ( $#argv == 0) goto arg1err;
       set projfrac = $argv[1]; shift;
+      set ToSurf = 1;
+      breaksw
+
+    case "-projfrac-avg":
+      set DoProjFracAvg = 1;
       set ToSurf = 1;
       breaksw
 
@@ -559,6 +571,11 @@ check_params:
   endif
 
   if($?FSF_OUTPUT_FORMAT == 0) setenv FSF_OUTPUT_FORMAT mgh
+
+  if($#projfrac && $DoProjFracAvg) then
+    echo "ERROR: cannot --projfrac and --projfrac-avg"
+    exit 1
+  endif
 
 goto check_params_return;
 ############--------------##################
