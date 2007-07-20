@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/20 00:27:02 $
-#    $Revision: 1.12 $
+#    $Date: 2007/07/20 00:32:09 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.12 2007/07/20 00:27:02 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.13 2007/07/20 00:32:09 nicks Exp $';
 
 # defaults:
 # setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas
@@ -280,6 +280,7 @@ foreach test_subj ($ALL_SUBJECTS)
             ${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere \
             ${SUBJECTS_DIR}/average/${hemi}.${tif} \
             ${sphere_reg})
+        echo "$cmd"
         set LF="${SUBJECTS_DIR}/${test_subj}/surf"
         set LF="${LF}/${hemi}.mris_register${reg_append}.log"
         if ($RunIt) then
