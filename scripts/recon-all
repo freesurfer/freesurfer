@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/07/19 23:18:50 $
-#    $Revision: 1.116 $
+#    $Author: fischl $
+#    $Date: 2007/07/21 13:47:37 $
+#    $Revision: 1.117 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.116 2007/07/19 23:18:50 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.117 2007/07/21 13:47:37 fischl Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1786,7 +1786,7 @@ foreach hemi ($hemilist)
     if($status) goto error_exit;
     # create curvature files ?h.inflated.H and ?h.inflated.K
     set xopts = `fsr-getxopts mris_curvature $XOptsFile`;
-    set cmd = (mris_curvature -n -a 5 -w -distances 10 10)
+    set cmd = (mris_curvature -thresh .999 -n -a 5 -w -distances 10 10)
     set cmd = ($cmd $xopts ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
