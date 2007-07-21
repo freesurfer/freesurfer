@@ -262,6 +262,8 @@ SUBDIRS=include \
 	utilscpp \
 	vtkfsio \
 	vtkutils \
+	itkio \
+	itkutils \
 	tetgen \
 	$(FSGDF) \
 	$(MRISUBDIRS) \
@@ -274,10 +276,7 @@ SUBDIRS=include \
 	fsfast \
 	matlab \
 	scuba \
-	scuba2 \
-	itkio \
-	itkutils
-	
+	scuba2
 
 # build stamp and symlinks to necessary 3rd-party packages
 install-data-hook:
