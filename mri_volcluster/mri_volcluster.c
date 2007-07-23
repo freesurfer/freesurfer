@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/24 21:49:55 $
- *    $Revision: 1.36 $
+ *    $Date: 2007/07/23 20:09:19 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,6 +48,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/utsname.h>
 
 #include "error.h"
 #include "diag.h"
@@ -96,7 +98,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.36 2007/06/24 21:49:55 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.37 2007/07/23 20:09:19 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -187,6 +189,8 @@ double searchspace;
 int FixMNI = 1;
 MATRIX *Tin, *invTin, *Ttemp, *vox2vox;
 int UseFSAverage = 0;
+struct utsname uts;
+char *cmdline, cwd[2000];
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -203,11 +207,15 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.36 2007/06/24 21:49:55 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.37 2007/07/23 20:09:19 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
+
+  cmdline = argv2cmdline(argc,argv);
+  uname(&uts);
+  getcwd(cwd,2000);
 
   Progname = argv[0] ;
   argc --;
@@ -471,6 +479,15 @@ int main(int argc, char **argv) {
 
   /* Dump summary to file or stdout */
   fprintf(fpsum,"Cluster Growing Summary (mri_volcluster)\n");
+  fprintf(fpsum,"%s\n",vcid);
+  fprintf(fpsum,"cwd %s\n",cwd);
+  fprintf(fpsum,"cmdline %s\n",cmdline);
+  if(SUBJECTS_DIR) fprintf(fpsum,"SUBJECTS_DIR  %s\n",SUBJECTS_DIR);
+  fprintf(fpsum,"sysname  %s\n",uts.sysname);
+  fprintf(fpsum,"hostname %s\n",uts.nodename);
+  fprintf(fpsum,"machine  %s\n",uts.machine);
+  fprintf(fpsum,"user     %s\n",VERuser());
+
   fprintf(fpsum,"Input Volume:      %s\n",volid);
   fprintf(fpsum,"Frame Number:      %d\n",frame);
   fprintf(fpsum,"Minimum Threshold: %g\n",threshmin);
