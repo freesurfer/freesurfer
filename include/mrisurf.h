@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/20 16:40:50 $
- *    $Revision: 1.292 $
+ *    $Date: 2007/07/23 19:44:59 $
+ *    $Revision: 1.293 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -578,6 +578,8 @@ int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y,
                                    float z) ;
 int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y,
                                   float z) ;
+int MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y,
+                               float z) ;
 int MRISfindClosestVertex(MRI_SURFACE *mris,
                           float x, float y, float z,
                           float *dmin);
