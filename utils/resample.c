@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/03/01 18:06:35 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/07/23 18:19:55 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.25 2007/03/01 18:06:35 greve Exp $
+  $Id: resample.c,v 1.26 2007/07/23 18:19:55 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another,
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -654,6 +654,27 @@ int ProjNormFracThick(float *x, float *y, float *z,
   return(0);
 }
 /*----------------------------------------------------------------
+  ProjNormFracThickNbr() - projects along the direction of the average of
+  the surface normals of a vertex and its neighbor.  The distance
+  along this direction is a fraction of the thickness at that point.
+  ----------------------------------------------------------------*/
+int ProjNormFracThickNbr(float *x, float *y, float *z, MRI_SURFACE *surf, 
+			 int vtxno, float frac, int nthNbr)
+{
+  float r, nx, ny, nz;
+  int nbrvtxno;
+
+  nbrvtxno = surf->vertices[vtxno].v[nthNbr];
+  nx = (surf->vertices[vtxno].nx + surf->vertices[nbrvtxno].nx)/2.0;
+  ny = (surf->vertices[vtxno].ny + surf->vertices[nbrvtxno].ny)/2.0;
+  nz = (surf->vertices[vtxno].nz + surf->vertices[nbrvtxno].nz)/2.0;
+  r = frac * surf->vertices[vtxno].curv;
+  *x = surf->vertices[vtxno].x + r*nx;
+  *y = surf->vertices[vtxno].y + r*ny;
+  *z = surf->vertices[vtxno].z + r*nz;
+  return(0);
+}
+/*----------------------------------------------------------------
   ProjNormDist() - projects along the surface normal a given
   distance.
   ----------------------------------------------------------------*/
@@ -663,6 +684,26 @@ int ProjNormDist(float *x, float *y, float *z,
   *x = surf->vertices[vtx].x + dist*surf->vertices[vtx].nx;
   *y = surf->vertices[vtx].y + dist*surf->vertices[vtx].ny;
   *z = surf->vertices[vtx].z + dist*surf->vertices[vtx].nz;
+  return(0);
+}
+/*----------------------------------------------------------------
+  ProjNormDistNbr() - projects along the direction of the average of
+  the surface normals of a vertex and its neighbor.  The distance
+  along this direction is dist.
+  ----------------------------------------------------------------*/
+int ProjNormDistNbr(float *x, float *y, float *z, MRI_SURFACE *surf, 
+		    int vtxno, float dist, int nthNbr)
+{
+  float nx, ny, nz;
+  int nbrvtxno;
+
+  nbrvtxno = surf->vertices[vtxno].v[nthNbr];
+  nx = (surf->vertices[vtxno].nx + surf->vertices[nbrvtxno].nx)/2.0;
+  ny = (surf->vertices[vtxno].ny + surf->vertices[nbrvtxno].ny)/2.0;
+  nz = (surf->vertices[vtxno].nz + surf->vertices[nbrvtxno].nz)/2.0;
+  *x = surf->vertices[vtxno].x + dist*nx;
+  *y = surf->vertices[vtxno].y + dist*ny;
+  *z = surf->vertices[vtxno].z + dist*nz;
   return(0);
 }
 /*------------------------------------------------------------
