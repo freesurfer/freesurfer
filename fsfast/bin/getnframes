@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:17 $
-#    $Revision: 1.2 $
+#    $Author: greve $
+#    $Date: 2007/07/23 17:41:28 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,11 +25,32 @@
 
 if($#argv != 1) then
   echo "USAGE: getnframes stem "
-  echo '$Id'
+  echo '$Id: getnframes,v 1.3 2007/07/23 17:41:28 greve Exp $'
   exit 1;
 endif
 
 set stem = $argv[1];
+set fname = `stem2fname $stem`;
+if($status) then
+  echo "$fname"
+  exit 1;
+endif
+
+set cmd = (mri_info --o /tmp/$$.tmp --nframes $fname);
+$cmd >& /dev/null
+if($status) then
+  echo "ERROR: with $cmd"
+  exit 1;
+endif
+
+set nframes = `cat /tmp/$$.tmp`
+echo $nframes
+
+rm /tmp/$$.tmp
+
+exit 0;
+#-----------------------------------------------------
+
 set firstslice = `getfirstsliceno $stem`
 set st = $status;
 if($st) then
