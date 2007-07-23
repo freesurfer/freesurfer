@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/08 20:17:27 $
-#    $Revision: 1.16 $
+#    $Date: 2007/07/23 17:43:15 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: paint-sess,v 1.16 2007/03/08 20:17:27 greve Exp $';
+set VERSION = '$Id: paint-sess,v 1.17 2007/07/23 17:43:15 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -315,9 +315,9 @@ foreach hs ($hemi)
         echo "Using Float2Int = $Float2Int"|& tee -a $LF
 
 	#set v2s = /space/greve/1/users/greve/build/mri_vol2surf/mri_vol2surf
+	set inmapfile = `stem2fname $inmapstem`
         set v2s = mri_vol2surf
-        set cmd = ($v2s --srcvol $inmapstem --src_type bfloat )
-        set cmd = ($cmd --srcreg $regfile)
+        set cmd = ($v2s --srcvol $inmapfile --srcreg $regfile)
         set cmd = ($cmd --surf $Surface --hemi $hs);
         if($#ProjFrac)    set cmd = ($cmd  --projfrac $ProjFrac)
         if($#ProjFracAvg) set cmd = ($cmd  --projfrac-avg $ProjFracAvg)
