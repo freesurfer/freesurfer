@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/21 00:40:54 $
- *    $Revision: 1.548 $
+ *    $Date: 2007/07/23 19:44:44 $
+ *    $Revision: 1.549 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -616,7 +616,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.548 2007/07/21 00:40:54 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.549 2007/07/23 19:44:44 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -23060,6 +23060,39 @@ MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y, float z)
   Description
   ------------------------------------------------------*/
 int
+MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y, float z)
+{
+  int    vno, min_v = -1 ;
+  VERTEX *v ;
+  float  d, min_d, dx, dy, dz ;
+
+  min_d = 10000.0f ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    dx = v->whitex - x ;
+    dy = v->whitey - y ;
+    dz = v->whitez - z ;
+    d = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (d < min_d)
+    {
+      min_d = d ;
+      min_v = vno ;
+    }
+  }
+
+  return(min_v) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
 MRISuseCurvatureDifference(MRI_SURFACE *mris)
 {
   int    vno ;
@@ -31358,8 +31391,8 @@ MRISexpandSurface(MRI_SURFACE *mris,
             d = dwhite+dpial ;
             d = ((v->curv*distance-dwhite) + (dpial-(1-distance)*v->curv))/2 ;
             if (vno == Gdiag_no)
-              printf("v %d: dwhite = %2.2f, dpial = %2.2f, target=%2.2f\n",
-                     vno, dwhite, dpial, d) ;
+              printf("v %d: dwhite = %2.2f, dpial = %2.2f, target=%2.2f (v=%d, %d)\n",
+                     vno, dwhite, dpial, d, (int)(v_white-mris->vertices), (int)(v_pial-mris->vertices)) ;
             if (fabs(d) > 1)
               d /= fabs(d) ;  // move at constant speed when far away
             dx = d*v->nx ;
@@ -60352,7 +60385,7 @@ mrisComputeVariableSmoothnessCoefficients(MRI_SURFACE *mris, INTEGRATION_PARMS *
     v->val = parms->l_dist * parms->dist_error[vno] - parms->l_corr * parms->geometry_error[vno] ;
   }
 
-#define VDELTA 0.001
+#define VDELTA 0.005
   MRISaverageVals(mris, 64) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {

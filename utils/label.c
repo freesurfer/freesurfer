@@ -1,15 +1,15 @@
 /**
  * @file  label.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for manipulating ROIs.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * utilities (surface and volume) for manipulating arbitrary lists of vertices/voxels.
  */
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/11 05:37:14 $
- *    $Revision: 1.71 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/23 19:44:44 $
+ *    $Revision: 1.72 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1213,6 +1213,31 @@ LabelMark(LABEL *area, MRI_SURFACE *mris)
   for (n = 0 ; n < area->n_points ; n++)
   {
     vno = area->lv[n].vno ;
+    if (vno < 0 || vno >= mris->nvertices)
+      DiagBreak() ;
+    v = &mris->vertices[vno] ;
+    v->marked = 1 ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelMarkWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh)
+{
+  int    n, vno ;
+  VERTEX *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    if (area->lv[n].stat < thresh)
+      continue ;
+    vno = area->lv[n].vno ;
     v = &mris->vertices[vno] ;
     v->marked = 1 ;
   }
@@ -1513,6 +1538,15 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
       {
       case ORIG_VERTICES:
         min_vno = MRISfindClosestOriginalVertex(mris, lv->x, lv->y, lv->z) ;
+        break ;
+      case WHITE_VERTICES:
+        min_vno = MRISfindClosestWhiteVertex(mris, lv->x, lv->y, lv->z) ;
+        break ;
+      case CURRENT_VERTICES:
+        min_vno = MRISfindClosestVertex(mris, lv->x, lv->y, lv->z, NULL) ;
+        break ;
+      case CANONICAL_VERTICES:
+        min_vno = MRISfindClosestCanonicalVertex(mris, lv->x, lv->y, lv->z) ;
         break ;
       default:
         break ;
