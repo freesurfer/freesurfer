@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/17 00:26:46 $
- *    $Revision: 1.39 $
+ *    $Date: 2007/07/23 20:03:08 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -497,8 +497,7 @@ int clustMaxMember(VOLCLUSTER *vc, MRI *vol, int frame, int thsign)
     if (thsign ==  1) val = val0;
     if (thsign ==  0) val = fabs(val0);
     if (thsign == -1) val = -val0;
-    if (vc->maxval < val)
-    {
+    if (fabs(vc->maxval) < val) {
       vc->maxval    = val0; /* keep orginal signed value */
       vc->maxmember = n;
     }
