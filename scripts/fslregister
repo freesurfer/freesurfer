@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/24 20:56:24 $
-#    $Revision: 1.14 $
+#    $Date: 2007/07/24 22:10:21 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.14 2007/07/24 20:56:24 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.15 2007/07/24 22:10:21 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -174,7 +174,6 @@ if($#InitFSLMat)  set fslmat0 = $InitFSLMat;
 
 # Set up and run the Flirt command-line
 set cmd = (flirt -ref $refvolimg -in $movvolimg)
-#set cmd = ($cmd  -out $outvol -interp trilinear)
 set cmd = ($cmd  -omat $fslmat -cost $cost -dof $dof)
 set cmd = ($cmd  -searchrx -$maxangle $maxangle);
 set cmd = ($cmd  -searchry -$maxangle $maxangle);
@@ -196,7 +195,6 @@ endif
 
 # Convert the output to volume to output format
 if($#outvol) then
-  cp $refvolbase.mat $outvolbase.mat
   set cmd = (mri_convert $outvolimg $outvol)
   date | tee -a $LF
   pwd | tee -a $LF
@@ -222,13 +220,11 @@ if($status) then
 endif
 
 # Check for possible LR flip
-set tmp = (`cat $fslmat`);
+set tmp = (`cat $regfile`);
 set isflipped = `echo $tmp[1] \< 0 | bc -l`;
 if($isflipped) then
   echo ""
-  echo ""
   echo "WARNING: possible left-right reversal" | tee -a $LF
-  echo ""
   echo ""
 endif
 
@@ -441,6 +437,7 @@ usage_exit:
   echo "   --frame frameno : reg to frameno (default 0=1st)"
   echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
   echo " "
+  echo "   --out outvol : have flirt reslice mov to targ"
   echo "   --tmp tmpdir : use tmpdir (implies --nocleanup)"
   echo "   --nocleanup  : do not delete temporary files"
   echo "   --version    : print version and exit"
