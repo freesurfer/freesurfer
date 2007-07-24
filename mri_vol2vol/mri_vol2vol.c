@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/18 20:10:33 $
- *    $Revision: 1.32 $
+ *    $Date: 2007/07/24 21:12:29 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.32 2007/07/18 20:10:33 greve Exp $
+  $Id: mri_vol2vol.c,v 1.33 2007/07/24 21:12:29 greve Exp $
 
 */
 
@@ -421,7 +421,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.32 2007/07/18 20:10:33 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.33 2007/07/24 21:12:29 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -470,7 +470,9 @@ float minrescale = 0.0, maxrescale = 255.0;
 float ipr, bpr, intensity;
 int float2int,err, nargs;
 int SaveReg=1;
-int DoKernel=0;
+
+int DoKernel = 0;
+int DoDelta  = 0;
 
 char tmpstr[2000];
 
@@ -487,12 +489,12 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.32 2007/07/18 20:10:33 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.33 2007/07/24 21:12:29 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.32 2007/07/18 20:10:33 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.33 2007/07/24 21:12:29 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -632,14 +634,17 @@ int main(int argc, char **argv) {
   // Allocate the output
   template->type = precisioncode;
   if (!DoMorph) {
-    if (!DoKernel) {
-      out = MRIcloneBySpace(template,-1,in->nframes);
-      printf("Resampling\n");
-      MRIvol2Vol(in,out,vox2vox,interpcode,sinchw);
-    } else {
+    if(DoKernel) {
       out = MRIcloneBySpace(template,MRI_FLOAT,8);
       printf("Computing Trilinear Kernel\n");
       MRIvol2VolTLKernel(in,out,vox2vox);
+    } else if(DoDelta) {
+      printf("Computing Delta\n");
+      out = MRIvol2VolDelta(in,template,R);
+    } else {
+      out = MRIcloneBySpace(template,-1,in->nframes);
+      printf("Resampling\n");
+      MRIvol2Vol(in,out,vox2vox,interpcode,sinchw);
     }
   }
   else {
@@ -736,6 +741,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-resample")) noresample = 1;
     else if (!strcasecmp(option, "--regheader")) regheader = 1;
     else if (!strcasecmp(option, "--kernel"))    DoKernel = 1;
+    else if (!strcasecmp(option, "--delta"))     DoDelta = 1;
     else if (!strcasecmp(option, "--no-save-reg"))  SaveReg = 0;
     else if (!strcasecmp(option, "--morph")) {
       DoMorph = 1;
@@ -1342,5 +1348,4 @@ MATRIX *LoadRfsl(char *fname) {
   }
   return(FSLRegMat);
 }
-
 
