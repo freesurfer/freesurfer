@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/18 21:29:11 $
-#    $Revision: 1.13 $
+#    $Date: 2007/07/24 20:56:24 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.13 2007/07/18 21:29:11 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.14 2007/07/24 20:56:24 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -39,6 +39,8 @@ set maxangle = 70;
 set cost = corratio;
 set fslmat = ();
 set betmov = 1;
+set betfvalue = 0.1
+set UseBETFunc = 0;
 set betref = 0;
 set initxfm = 1;
 set InitFSLMat = ();
@@ -119,7 +121,11 @@ if($status) exit 2;
 
 # Perform brain extration on the movable
 if($betmov) then
-  set cmd = (bet $movvolimg $movvolimg -f .1);
+  if($UseBETFunc) then
+    set cmd = (betfunc $movvolimg $movvolimg)
+  else
+    set cmd = (bet $movvolimg $movvolimg -f $betfvalue);
+  endif
   date | tee -a $LF
   pwd | tee -a $LF
   echo $cmd | tee -a $LF
@@ -302,8 +308,17 @@ while( $#argv != 0 )
       set maxangle = $argv[1]; shift;
       breaksw
 
+    case "--betfunc":
+      set UseBETFunc = 1;
+      breaksw
+
     case "--nobetmov":
       set betmov = 0;
+      breaksw
+
+    case "--betfvalue":
+      if ( $#argv == 0) goto arg1err;
+      set betfvalue = $argv[1]; shift;
       breaksw
 
     case "--betref":
@@ -402,9 +417,6 @@ arg2err:
 usage_exit:
   echo "USAGE: fslregister"
   echo ""
-echo "DONT USE THIS YET! NOT TESTED!"
-  echo ""
-  echo ""
   echo "Required Arguments:";
   echo "   --s subjid"
   echo "   --mov volid  : input/movable volume"
@@ -420,8 +432,11 @@ echo "DONT USE THIS YET! NOT TESTED!"
   echo "   --cost cost      : FLIRT cost (default is $cost)"
   echo "   --maxangle angle : FLIRT max search angle (default is $maxangle)"
   echo " "
-  echo "   --nobetmov       : do not perform brain extration on mov"
-  echo "   --betref         : brain extration on ref (usually not needed)"
+  echo "   --nobetmov    : do not perform brain extration on mov"
+  echo "   --betfvalue f : f value for bet, 0.1 default (passed with -f to bet)"
+  echo "   --betfunc     : betfunc on mov instead of simply bet"
+  echo " "
+  echo "   --betref      : brain extration on ref (usually not needed)"
   echo " "
   echo "   --frame frameno : reg to frameno (default 0=1st)"
   echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
@@ -505,6 +520,14 @@ These are just inputs for FLIRT.
 
 By default, the FSL Brain Extaction Tool (BET) is applied to the movable
 prior to registration. This turns it off.
+
+--betfvalue
+
+Change the value of the -f arg to bet (ie, bet -f f). Default is 0.1.
+
+--betfunc
+
+Run betfunc instead of just bet.
 
 --betref
 
