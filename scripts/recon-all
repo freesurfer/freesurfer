@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: fischl $
-#    $Date: 2007/07/21 13:47:37 $
-#    $Revision: 1.117 $
+#    $Date: 2007/07/24 14:20:33 $
+#    $Revision: 1.118 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.117 2007/07/21 13:47:37 fischl Exp $';
+set VERSION = '$Id: recon-all,v 1.118 2007/07/24 14:20:33 fischl Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1934,7 +1934,7 @@ foreach hemi ($hemilist)
     set CPAtlas = $FREESURFER_HOME/average/$hemi.$GCS
     set annot = ../label/$hemi.aparc.annot
     set cmd = (mris_ca_label)
-    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    if($NoRandomness) set cmd = ($cmd -aseg ../mri/aseg.mgz -seed $RngSeed)
     if( ! $longitudinal) then
       # default stream:
       set cmd = ($cmd $xopts $subjid $hemi \
@@ -1984,7 +1984,7 @@ foreach hemi ($hemilist)
     set CPAtlas = $FREESURFER_HOME/average/$hemi.atlas2005_simple.gcs
     set annot = ../label/$hemi.aparc.a2005s.annot
     set cmd = (mris_ca_label)
-    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    if($NoRandomness) set cmd = ($cmd -aseg ../mri/aseg.mgz -seed $RngSeed)
     if( ! $longitudinal) then
       # default stream:
       set cmd = ($cmd $xopts $subjid $hemi \
