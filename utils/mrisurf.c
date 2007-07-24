@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/23 19:44:44 $
- *    $Revision: 1.549 $
+ *    $Date: 2007/07/24 15:27:49 $
+ *    $Revision: 1.550 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -616,7 +616,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.549 2007/07/23 19:44:44 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.550 2007/07/24 15:27:49 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -60185,6 +60185,11 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolutio
   Real   val ;
 
   mri_filled = MRISfillInterior(mris, resolution, NULL) ;
+  mri_filled->c_r += mri_aseg->c_r ;
+  mri_filled->c_a += mri_aseg->c_a ;
+  mri_filled->c_s += mri_aseg->c_s ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_filled, "f.mgz") ;
   m_vox2vox = MRIgetVoxelToVoxelXform(mri_filled, mri_aseg) ;
   v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
   VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
