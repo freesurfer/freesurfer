@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/26 19:40:11 $
- *    $Revision: 1.54 $
+ *    $Date: 2007/07/24 18:27:13 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -190,6 +190,7 @@ typedef enum {
   tkm_tTclCommand_ShowSegmentationOptions,
   tkm_tTclCommand_ShowAuxSegmentationOptions,
   tkm_tTclCommand_ShowGDFOptions,
+  tkm_tTclCommand_ShowControlPointsOptions,
   tkm_tTclCommand_ClearSegColorTable,
   tkm_tTclCommand_AddSegColorTableEntry,
 

@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/24 17:46:43 $
- *    $Revision: 1.317 $
+ *    $Date: 2007/07/24 18:27:13 $
+ *    $Revision: 1.318 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.317 $";
+char *VERSION = "$Revision: 1.318 $";
 
 #define TCL
 #define TKMEDIT
@@ -203,6 +203,7 @@ static float fsf;
 static int editflag = TRUE;
 static int surflinewidth = 1;
 static int gbScaleUpVolume = FALSE ;
+static int gbForceEnableControlPoints = FALSE;
 // int editedimage = FALSE;
 
 
@@ -1191,7 +1192,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.317 2007/07/24 17:46:43 kteich Exp $",
+     "$Id: tkmedit.c,v 1.318 2007/07/24 18:27:13 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1392,11 +1393,19 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
         fContrastMain = 14;
         bBrightContrastMain = TRUE;
         nCurrentArg ++ ;
+
       } else if (MATCH(sArg, "-scaleup"  ) ) {
 
         /* set our flag */
         DebugNote( ("Enabling scaleup.") );
         gbScaleUpVolume = bScaleUpVolume = TRUE;
+        nCurrentArg ++;
+
+      } else if (MATCH(sArg, "-enablecontrolpoints"  ) ) {
+
+        /* set our flag */
+        DebugNote( ("Enabling control points..") );
+        gbForceEnableControlPoints = TRUE;
         nCurrentArg ++;
 
       } else if (MATCH(sArg, "-conform"  ) ) {
@@ -5893,7 +5902,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.317 2007/07/24 17:46:43 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.318 2007/07/24 18:27:13 kteich Exp $ $Name:  $\n"
     )
   );
 
@@ -8578,12 +8587,15 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
                   (int)iType, (int)sampleType );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeSampleType, sTclArguments );
 
+  /* Enable control points only if volume is conformed. If the user
+     overrided this, enable them. */
   xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d",
                   mriConformed( gAnatomicalVolume[iType]->mpMriValues ) );
+  if( gbForceEnableControlPoints ) {
+    xUtil_strncpy( sTclArguments, "1", sizeof(sTclArguments) );
+  }
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeIsConformed,
                       sTclArguments );
-
-  /* Enable control points only if volume is conformed. */
   tkm_SendTclCommand( tkm_tTclCommand_ShowControlPointsOptions,
                       sTclArguments );
 
