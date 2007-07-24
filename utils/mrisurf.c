@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/24 15:27:49 $
- *    $Revision: 1.550 $
+ *    $Author: kteich $
+ *    $Date: 2007/07/24 19:34:25 $
+ *    $Revision: 1.551 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -616,7 +616,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.550 2007/07/24 15:27:49 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.551 2007/07/24 19:34:25 kteich Exp $");
 }
 
 /*-----------------------------------------------------
@@ -10220,6 +10220,71 @@ int MRISreadCTABFromAnnotationIfPresent(const char *fname,
   /* Return the table if we got one. */
   if( NULL != ctab )
     *out_table = ctab;
+
+  return ERROR_NONE;
+}
+
+/*----------------------------------------------------- 
+
+  Parameters: fname is the file name of the annotation. On successful
+    return, *present will be set to 1 if the CTAB has an annotation,
+    and 0 if not.
+
+  Returns value: Standard error code.
+
+  Description: Opens an annotation file and skips to the tag section
+    of the file, after the values. Looks for the TAG_OLD_COLORTABLE
+    value, and if present, sets *present to 1, or 0 if not present. 
+    
+*/
+int MRISisCTABPresentInAnnotation(const char *fname, int* present) {
+
+  int   skip,j,num;
+  FILE  *fp;
+  int tag;
+
+  if (fname == NULL || present == NULL)
+    ErrorReturn( ERROR_BADPARM,
+		 (ERROR_BADPARM, "Parameter was NULL.") );
+
+  /* Open the file. */
+  fp = fopen(fname,"r");
+  if (fp==NULL)
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "could not read annot file %s",
+                               fname)) ;
+
+  /* First int is the number of elements. */
+  num = freadInt(fp) ;
+
+  /* Skip two ints per num, to the end of the values section, where
+     the tags are. */
+  for (j = 0; j < num; j++)
+    {
+      skip = freadInt (fp);
+      skip = freadInt (fp);
+    }
+
+  /* No tag found yet. */
+  *present = 0;
+
+  /* Check for tags. Right now we only have one possibility for tags,
+     but if we add in more tags, we'll have to skip past other tags
+     and their data sections here. Of course, we don't have an easy
+     way to determine the length of the data section for the tag. If
+     we hit EOF here, there is no tag. */
+  tag = freadInt (fp);
+  if (feof(fp))
+    {
+      fclose (fp);
+      return ERROR_NONE;
+    }
+
+  if (TAG_OLD_COLORTABLE == tag) 
+    {
+      *present = 1;
+    }
+
+  fclose (fp);
 
   return ERROR_NONE;
 }

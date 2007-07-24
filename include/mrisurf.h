@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/23 19:44:59 $
- *    $Revision: 1.293 $
+ *    $Author: kteich $
+ *    $Date: 2007/07/24 19:34:29 $
+ *    $Revision: 1.294 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -620,6 +620,7 @@ int          MRISreadAnnotation(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAnnotation(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadAnnotationIntoArray(const char *fname, int in_array_size, int** out_array);
 int          MRISreadCTABFromAnnotationIfPresent(const char *fname, COLOR_TABLE** out_table);
+int          MRISisCTABPresentInAnnotation(const char *fname, int* present);
 int          MRISreadValuesBak(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadImagValues(MRI_SURFACE *mris, char *fname) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
