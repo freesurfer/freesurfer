@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: fischl $
-#    $Date: 2007/07/24 14:20:33 $
-#    $Revision: 1.118 $
+#    $Date: 2007/07/24 14:26:10 $
+#    $Revision: 1.119 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.118 2007/07/24 14:20:33 fischl Exp $';
+set VERSION = '$Id: recon-all,v 1.119 2007/07/24 14:26:10 fischl Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4363,7 +4363,7 @@ The -autorecon1 stage ends here.
 
 Automatic Subcortical Segmentation (-<no>subcortseg)
 
-This is done in six stages. (1) CGA linear registration
+This is done in six stages. (1) GCA linear registration
 (-gcareg). This is an initial registration to a template. (2)
 Canonical Normalization (-canorm), (3) Canonical Registration
 (-careg). (4) Neck removal (-rmneck), (5) Registration, w/skull
