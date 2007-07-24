@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/24 15:44:29 $
-#    $Revision: 1.120 $
+#    $Date: 2007/07/24 20:05:32 $
+#    $Revision: 1.121 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.120 2007/07/24 15:44:29 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.121 2007/07/24 20:05:32 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1795,24 +1795,6 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.inflate2.touch
   endif
 
-  #---------------- Cortical Ribbon -------------------------#
-  if($DoCortRibbonVolMask) then
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Cortical ribbon mask $hemi `date`" \
-      |& tee -a $SF|& tee -a $LF|& tee -a $CF
-    cd $subjdir/mri > /dev/null
-    set xopts = `fsr-getxopts mris_surf2vol $XOptsFile`;
-    set cmd = (mri_surf2vol --mkmask --hemi $hemi --fillribbon \
-      --template orig.mgz --volregidentity $subjid \
-      --outvol $hemi.ribbon.mgz $xopts);
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.cortical_ribbon.touch
-  endif
-
   #---------------Begin Morph --------------------------------#
   #---------------- Sphere --------------------------#
   if($DoSphere) then
@@ -2117,6 +2099,24 @@ if ($DoAsegStatsDiff) then
   echo $cmd > $touchdir/asegstatsdiff.touch
 endif
 
+
+#---------------- Cortical Ribbon -------------------------#
+if($DoCortRibbonVolMask) then
+echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+echo "#@# Cortical ribbon mask $hemi `date`" \
+    |& tee -a $SF|& tee -a $LF|& tee -a $CF
+cd $subjdir/mri > /dev/null
+set xopts = `fsr-getxopts mris_volmask $XOptsFile`;
+set cmd = (mris_volmask \
+  --label_left_white   2 --label_left_ribbon   3 \
+  --label_right_white 41 --label_right_ribbon 42 \
+  --save_ribbon --save_distance $subjid)
+$PWD |& tee -a $LF
+echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+if($RunIt) $cmd |& tee -a $LF
+if($status) goto error_exit;
+echo $cmd > $touchdir/$hemi.cortical_ribbon.touch
 
 # ----------------- AParc2ASeg ---------------------------------------- #
 if($DoAParc2ASeg) then
