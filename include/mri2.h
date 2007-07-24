@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/17 03:32:25 $
- *    $Revision: 1.19 $
+ *    $Date: 2007/07/24 21:11:59 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,6 +58,7 @@ double MRImaxAbsDiff(MRI *vol1, MRI *vol2,
 MRI *MRImax(MRI *mri1, MRI *mri2, MRI *out);
 MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst);
 MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s);
+MRI *MRIvol2VolDelta(MRI *mov, MRI *targ, MATRIX *Rt2s);
 MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out);
 MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out);
 MRI *MRIvote(MRI *in, MRI *mask, MRI *vote);

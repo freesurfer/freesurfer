@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/17 03:32:26 $
- *    $Revision: 1.34 $
+ *    $Date: 2007/07/24 21:11:59 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.34 2007/07/17 03:32:26 greve Exp $
+  $Id: mri2.c,v 1.35 2007/07/24 21:11:59 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -2038,4 +2038,67 @@ MRI *MRIchecker(MRI *mri, MRI *checker) {
     }
   }
   return(checker);
+}
+
+/*-----------------------------------------------------------*/
+/*!
+  \fn MRI *MRIvol2VolDelta(MRI *mov, MRI *targ, MATRIX *Rt2s)
+  \brief Computes the amount by which each voxel moves
+  \param mov - source volume
+  \param targ - target volume
+  \param Rt2s - ras2ras transform from target to source (can be NULL, but why?)
+ */
+MRI *MRIvol2VolDelta(MRI *mov, MRI *targ, MATRIX *Rt2s)
+{
+  int   ct,  rt,  st;
+  double dx, dy, dz;
+  MATRIX *targCRS,*targRAS=NULL, *movRAS=NULL, *targVox2RAS, *targVox2movRAS;
+  int FreeMats=0;
+  MRI *delta;
+
+  delta = MRIallocSequence(targ->width, targ->height, targ->depth,MRI_FLOAT, 3);
+  if (delta == NULL) return(NULL);
+  MRIcopyHeader(targ,delta);
+
+  // Compute ras2ras matrix based on vox2ras of mov and target.
+  // Assumes that mov and targ have same RAS space.
+  if(Rt2s == NULL) {
+    Rt2s = MRItkRegMtx(targ,mov,NULL);
+    FreeMats = 1;
+  }
+  targVox2RAS = MRIxfmCRS2XYZtkreg(targ);
+  targVox2movRAS = MatrixMultiply(Rt2s,targVox2RAS,NULL);
+
+  targCRS = MatrixAlloc(4,1,MATRIX_REAL);
+  targCRS->rptr[4][1] = 1;
+
+  for (ct=0; ct < targ->width; ct++) {
+    for (rt=0; rt < targ->height; rt++) {
+      for (st=0; st < targ->depth; st++) {
+	targCRS->rptr[1][1] = ct;
+	targCRS->rptr[2][1] = rt;
+	targCRS->rptr[3][1] = st;
+	targRAS = MatrixMultiply(targVox2RAS,   targCRS,targRAS);
+	movRAS  = MatrixMultiply(targVox2movRAS,targCRS,movRAS);
+
+	dx = targRAS->rptr[1][1] - movRAS->rptr[1][1];
+	dy = targRAS->rptr[2][1] - movRAS->rptr[2][1];
+	dz = targRAS->rptr[3][1] - movRAS->rptr[3][1];
+
+	MRIsetVoxVal(delta,ct,rt,st,0,dx);
+	MRIsetVoxVal(delta,ct,rt,st,1,dy);
+	MRIsetVoxVal(delta,ct,rt,st,2,dz);
+
+      } /* target col */
+    } /* target row */
+  } /* target slice */
+
+  if(FreeMats) MatrixFree(&Rt2s);
+  MatrixFree(&targCRS);
+  MatrixFree(&targRAS);
+  MatrixFree(&movRAS);
+  MatrixFree(&targVox2RAS);
+  MatrixFree(&targVox2movRAS);
+
+  return(delta);
 }
