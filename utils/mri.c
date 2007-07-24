@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/14 20:23:52 $
- *    $Revision: 1.388 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/24 15:39:39 $
+ *    $Revision: 1.389 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.388 $";
+char *MRI_C_VERSION = "$Revision: 1.389 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -7704,6 +7704,7 @@ MRIsetResolution(MRI *mri, float xres, float yres, float zres)
   mri->z_a = mri->z_a * zres ;
   mri->z_s = mri->z_s * zres ;
 #endif
+  MRIreInitCache(mri) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -13568,6 +13569,8 @@ MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst)
   return(mri_dst) ;
 }
 
+
+
 MRI *
 MRImarkLabelBorderVoxels
 (MRI *mri_src, MRI *mri_dst, int label, int mark, int six_connected)
@@ -14396,6 +14399,7 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
 
   mri_dist = MRIextractDistanceMap( mri_src, mri_dist, label, max_dist, mode);
   
+  MRIscalarMul(mri_dist, mri_dist, mri_src->xsize) ;
   return mri_dist;  
 }
 
@@ -14948,3 +14952,24 @@ MRIaddScalar(MRI *mri_src, MRI *mri_dst, float scalar)
         }
   return(mri_dst) ;
 }
+int
+MRIgeometryMatched(MRI *mri1, MRI *mri2)
+{
+  if (mri1->width != mri2->width ||
+      mri1->height != mri2->height ||
+      mri1->depth != mri2->depth)
+    return(0) ;
+  
+  if (!FEQUAL(mri1->xsize, mri2->xsize) || 
+      !FEQUAL(mri1->ysize, mri2->ysize) || 
+      !FEQUAL(mri1->zsize, mri2->zsize))
+    return(0) ;
+
+  if (!FEQUAL(mri1->c_r, mri2->c_r) || 
+      !FEQUAL(mri1->c_a, mri2->c_a) || 
+      !FEQUAL(mri1->c_s, mri2->c_s))
+    return(0) ;
+  return(1) ;
+}
+
+      
