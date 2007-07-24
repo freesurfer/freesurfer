@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/15 18:39:53 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/07/24 14:58:21 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2430,7 +2430,9 @@ GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
     if (IS_CC(label))
     {
       CTABfindName(mris->ct, "corpuscallosum", &index) ;
-      if (index != old_index)
+      if (index < 0)
+        CTABfindName(mris->ct, "Medial_wall", &index) ;
+      if (index != old_index && index >= 0)
       {
         CTABannotationAtIndex(mris->ct, index, &v->annotation) ;
         changed++ ;
@@ -2439,8 +2441,10 @@ GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
     else if (IS_LAT_VENT(label) || IS_THALAMUS(label) ||
              IS_CAUDATE(label))
     {
-      CTABfindName(mris->ct, "unknown", &index) ;
-      if (index != old_index)
+      CTABfindName(mris->ct, "Medial_wall", &index) ;
+      if (index < 0)
+        CTABfindName(mris->ct, "unknown", &index) ;
+      if (index != old_index && index >= 0)
       {
         CTABannotationAtIndex(mris->ct, index, &v->annotation) ;
         changed++ ;
