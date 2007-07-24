@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/06/20 19:55:15 $
-##    $Revision: 1.126 $
+##    $Date: 2007/07/24 17:46:55 $
+##    $Revision: 1.127 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -745,10 +745,12 @@ proc UpdateVolumeIsConformed { ibIsConformed } {
 	[$gfwaToolBar(main).fwTools.tbw subwidget 4] configure -state normal
 	$gControlPointsMenuCommand(menu) entryconfigure \
 	    $gControlPointsMenuCommand(entry) -state normal
+	tkm_SetEnableGroupStatus tMenuGroup_ControlPoints 1
     } else {
 	[$gfwaToolBar(main).fwTools.tbw subwidget 4] configure -state disabled
 	$gControlPointsMenuCommand(menu) entryconfigure \
 	    $gControlPointsMenuCommand(entry) -state disabled
+	tkm_SetEnableGroupStatus tMenuGroup_ControlPoints 0
     }
 }
 
@@ -3854,7 +3856,8 @@ proc CreateMenuBar { ifwMenuBar } {
 	}}
 	{ command
 	    "Save Control Points"
-	    WriteControlPointFile }
+	    WriteControlPointFile
+	    tMenuGroup_ControlPoints }
 	{ separator }
 	{ command
 	    "Quit:Ctrl Q"
