@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/20 21:19:40 $
- *    $Revision: 1.341 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/24 15:40:00 $
+ *    $Revision: 1.342 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1152,6 +1152,10 @@ int MRIlabelInVolume(MRI *mri_src, int label) ;
 #define MRI_MEAN_MIN_DISTANCE 0
 double MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref, int which, FILE *fp) ;
 double MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label) ;
+int MRIcomputeLabelCentroid(MRI *mri_aseg, int label, 
+														double *pxc, double *pyc, double *pzc) ;
+MRI *MRIdivideAseg(MRI *mri_src, MRI *mri_dst, int label, int nunits);
+int MRIgeometryMatched(MRI *mri1, MRI *mri2) ;
 
 MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol);
 
