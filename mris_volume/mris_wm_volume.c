@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/02/06 18:20:21 $
- *    $Revision: 1.3 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/24 15:27:20 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -75,7 +75,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_wm_volume.c,v 1.3 2007/02/06 18:20:21 greve Exp $", 
+     "$Id: mris_wm_volume.c,v 1.4 2007/07/24 15:27:20 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -153,13 +153,13 @@ get_option(int argc, char *argv[]) {
   if (!stricmp(option, "white"))
   {
     white_name = argv[2] ;
-    fprintf(stderr, "using %s as white surface name", white_name) ;
+    fprintf(stderr, "using %s as white surface name\n", white_name) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "aseg"))
   {
     aseg_name = argv[2] ;
-    fprintf(stderr, "using %s as aseg volume name", aseg_name) ;
+    fprintf(stderr, "using %s as aseg volume name\n", aseg_name) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "sdir"))
