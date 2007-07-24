@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2007/07/24 14:26:10 $
-#    $Revision: 1.119 $
+#    $Author: greve $
+#    $Date: 2007/07/24 15:44:29 $
+#    $Revision: 1.120 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.119 2007/07/24 14:26:10 fischl Exp $';
+set VERSION = '$Id: recon-all,v 1.120 2007/07/24 15:44:29 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -215,6 +215,7 @@ set DoParcStats2     = 0;
 set DoCortRibbonVolMask = 0;
 set DoVnoMatchCheck  = 0;
 set DoIsRunning  = 1;
+set IsRunningFile  = ();
 
 setenv LANG C # Required by MNI tool
 setenv FIX_VERTEX_AREA; # see -<no>fixvertexarea flag
@@ -2263,7 +2264,7 @@ if($#NotifyFile != 0) then
   touch $NotifyFile
 endif
 
-if($DoIsRunning) rm -f $IsRunningFile
+if($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
 
 echo "recon-all finished without error at `date`" |& tee -a $LF |& tee -a $SF
 
@@ -2286,7 +2287,7 @@ error_exit:
   echo "" |& tee -a $LF |& tee -a $SF
   echo "recon-all exited with ERRORS at `date`" |& tee -a $LF |& tee -a $SF
   echo "" |& tee -a $LF |& tee -a $SF
-  if($DoIsRunning) rm -f $IsRunningFile
+  if($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
   if($#mailuser != 0) then
     echo "recon-all $subjid finished with errors at `date`" | \
       mail -s "$subjid ERROR `date`" $mailuser
