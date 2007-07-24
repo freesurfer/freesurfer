@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/01 21:43:31 $
- *    $Revision: 1.316 $
+ *    $Author: kteich $
+ *    $Date: 2007/07/24 17:46:43 $
+ *    $Revision: 1.317 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.316 $";
+char *VERSION = "$Revision: 1.317 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.316 2007/07/01 21:43:31 nicks Exp $",
+     "$Id: tkmedit.c,v 1.317 2007/07/24 17:46:43 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5893,7 +5893,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.316 2007/07/01 21:43:31 nicks Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.317 2007/07/24 17:46:43 kteich Exp $ $Name:  $\n"
     )
   );
 
@@ -7219,6 +7219,11 @@ void WriteControlPointFile () {
 
   /* Only do control points for conformed volumes. */
   if ( !mriConformed( gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues ) ) {
+    tkm_DisplayError( "Can't Write Control Points",
+		      "Volume is not conformed",
+		      "You are editing a non-conformed volume, and tkmedit "
+		      "can't use control points unless the volume is "
+		      "conformed." );
     DebugGotoCleanup;
   }
 
@@ -8577,6 +8582,11 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
                   mriConformed( gAnatomicalVolume[iType]->mpMriValues ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeIsConformed,
                       sTclArguments );
+
+  /* Enable control points only if volume is conformed. */
+  tkm_SendTclCommand( tkm_tTclCommand_ShowControlPointsOptions,
+                      sTclArguments );
+
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -13326,7 +13336,8 @@ char *kTclCommands [tkm_knNumTclCommands] = {
       "tkm_SetEnableGroupStatus tMenuGroup_Registration",
       "tkm_SetEnableGroupStatus tMenuGroup_SegmentationOptions",
       "tkm_SetEnableGroupStatus tMenuGroup_AuxSegmentationOptions",
-      "tkm_SetEnableGroupStatus tMenuGroup_GDFLoaded",
+      "tkm_SetEnableGroupStatus tMenuGroup_GDFLoaded",      
+      "tkm_SetEnableGroupStatus tMenuGroup_ControlPoints",
       "ClearSegColorTable",
       "AddSegColorTableEntry",
 
