@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/20 22:26:08 $
- *    $Revision: 1.55 $
+ *    $Date: 2007/07/25 19:28:24 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -183,11 +183,16 @@ OPTIONS
     appear to be a 'volume' with Nv/R colums, 1 row, R slices and Nf
     frames, where Nv is the number of vertices on the surface. For
     icosahedrons, R=6. For others, R will be the prime factor of Nv
-    closest to 6. Reshaping is for logistical purposes (eg, in the
-    analyze/nifti format the size of a dimension cannot exceed
-    2^15). Use this flag to prevent this behavior. This has no effect
-    when the output type is paint. At one point, it was the default
-    to reshape.
+    closest to 6 (can be changed with --reshape-factor). Reshaping is
+    for logistical purposes (eg, in the analyze/nifti format the size
+    of a dimension cannot exceed 2^15). Use this flag to prevent this
+    behavior. This has no effect when the output type is paint. At one
+    point, it was the default to reshape.
+
+  --reshape-factor Nfactor
+
+    Attempt to reshape to Nfactor 'slices' (will choose closest prime
+    factor) Default is 6.
 
   --sd SUBJECTS_DIR
 
@@ -319,7 +324,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.55 2007/07/20 22:26:08 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.56 2007/07/25 19:28:24 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -400,6 +405,7 @@ int SynthSeed = -1;
 double ProjDepth;
 int    DoProj = 0;
 int    ProjType;
+int reshapefactortarget = 6;
 
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -416,7 +422,7 @@ int main(int argc, char **argv) {
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.55 2007/07/20 22:26:08 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.56 2007/07/25 19:28:24 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -812,7 +818,7 @@ int main(int argc, char **argv) {
   } else {
     if (reshape) {
       if (reshapefactor == 0)
-        reshapefactor = GetClosestPrimeFactor(TrgVals->width,6);
+        reshapefactor = GetClosestPrimeFactor(TrgVals->width,reshapefactortarget);
 
       printf("Reshaping %d (nvertices = %d)\n",reshapefactor,TrgVals->width);
       mritmp = mri_reshape(TrgVals, TrgVals->width / reshapefactor,
@@ -913,6 +919,10 @@ static int parse_commandline(int argc, char **argv) {
       UseSurfTarg = 1;
       DoProj = 1;
       nargsused = 2;
+    } else if (!strcmp(option, "--reshape-factor")) {
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[1],"%d",&reshapefactortarget);
+      nargsused = 1;
     } else if (!strcasecmp(option, "--sval-nxyz")) {
       if (nargc < 1) argnerr(option,1);
       SurfSrcName = pargv[0];
@@ -1149,6 +1159,7 @@ static void print_usage(void) {
   printf("   --nsmooth-out N : smooth the output\n");
 
   printf("   --reshape  reshape output to multiple 'slices'\n");
+  printf("   --reshape-factor Nfactor : reshape to Nfactor 'slices'\n");
   printf("   --synth : replace input with WGN\n");
   printf("   --seed seed : seed for synth (default is auto)\n");
 
@@ -1312,11 +1323,16 @@ printf("    no effect for paint/w output format. For ico, the output will\n");
 printf("    appear to be a 'volume' with Nv/R colums, 1 row, R slices and Nf\n");
 printf("    frames, where Nv is the number of vertices on the surface. For\n");
 printf("    icosahedrons, R=6. For others, R will be the prime factor of Nv\n");
-printf("    closest to 6. Reshaping is for logistical purposes (eg, in the\n");
-printf("    analyze/nifti format the size of a dimension cannot exceed\n");
-printf("    2^15). Use this flag to prevent this behavior. This has no effect\n");
-printf("    when the output type is paint. At one point, it was the default\n");
-printf("    to reshape.\n");
+printf("    closest to 6 (can be changed with --reshape-factor). Reshaping is\n");
+printf("    for logistical purposes (eg, in the analyze/nifti format the size\n");
+printf("    of a dimension cannot exceed 2^15). Use this flag to prevent this\n");
+printf("    behavior. This has no effect when the output type is paint. At one\n");
+printf("    point, it was the default to reshape.\n");
+printf("\n");
+printf("  --reshape-factor Nfactor\n");
+printf("\n");
+printf("    Attempt to reshape to Nfactor 'slices' (will choose closest prime\n");
+printf("    factor) Default is 6.\n");
 printf("\n");
 printf("  --sd SUBJECTS_DIR\n");
 printf("\n");
