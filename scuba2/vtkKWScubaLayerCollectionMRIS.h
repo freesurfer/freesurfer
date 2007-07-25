@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/07/25 19:53:47 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,11 +31,15 @@
 
 #include "vtkKWScubaLayerCollection.h"
 #include "ScubaCollectionPropertiesMRIS.h"
-#include "vtkFSSurfaceSource.h"
+#include "vtkSmartPointer.h"
 
-class vtkTransformPolyDataFilter;
 class vtkAlgorithmOutput;
 class vtkDecimatePro;
+class vtkFloatArray;
+class vtkFreesurferLookupTable;
+class vtkFSSurfaceSource;
+class vtkKWLabel;
+class vtkTransformPolyDataFilter;
 
 class vtkKWScubaLayerCollectionMRIS : public vtkKWScubaLayerCollection
                     //BTX
@@ -53,6 +57,22 @@ class vtkKWScubaLayerCollectionMRIS : public vtkKWScubaLayerCollection
   // Set the surface file name.
   void SetSurfaceFileName ( const char* ifnVolume );
 
+  // Description:
+  // Set the name of the annotation scalar file and the color table
+  // file, if needed. If the color table file name is NULL, it will
+  // try to find the color table from the scalar file.
+  void SetAnnotationAndColorTableFileNames ( const char* ifnAnnotation,
+					     const char* ifnColorTable );
+
+  // Description:
+  // Populate a UI page with common controls for this layer type.
+  virtual void AddControls ( vtkKWWidget* iPanel );
+  virtual void RemoveControls ();
+
+  // Description:
+  // Show a dialog to choose the annotation file to open.
+  void LoadAnnotationFromDlog ();
+
   // Layers will get the source objects with these calls. These
   // impelement ScubaCollectionPropertiesMRIS.
   vtkFSSurfaceSource* GetSource () const;
@@ -60,6 +80,8 @@ class vtkKWScubaLayerCollectionMRIS : public vtkKWScubaLayerCollection
   vtkAlgorithmOutput* GetFastModeOutputPort () const;
   vtkPolyData* GetNormalModeOutput () const;
   vtkPolyData* GetFastModeOutput () const;
+  vtkFloatArray* GetScalarsValues () const;
+  vtkScalarsToColors* GetScalarsColors () const;
 
  protected:
 
@@ -73,12 +95,20 @@ class vtkKWScubaLayerCollectionMRIS : public vtkKWScubaLayerCollection
 
   void LoadSurfaceFromFileName ();
 
+  void LoadAnnotationAndColorTableFromFileNames ();
+
  private:
 
   //BTX
-  vtkFSSurfaceSource* mSource;
-  vtkDecimatePro* mDecimator;
+  vtkSmartPointer<vtkFSSurfaceSource> mSource;
+  vtkSmartPointer<vtkDecimatePro> mDecimator;
   std::string mfnSurface;
+  vtkSmartPointer<vtkFloatArray> mAnnotationScalars;
+  vtkSmartPointer<vtkFreesurferLookupTable> mAnnotationTable;
+  std::string mfnAnnotationScalars;
+  std::string mfnAnnotationTable;
+
+  vtkSmartPointer<vtkKWLabel> mLabelAnnotationFileName;
   //ETX
 
 };

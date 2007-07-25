@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/23 19:05:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/07/25 19:53:47 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,7 @@
 
 #include <list>
 #include "vtkKWScubaLayer.h"
+#include "vtkSmartPointer.h"
 #include "ScubaInfoItem.h"
 
 //BTX
@@ -66,6 +67,10 @@ public:
   // Load the surface and set up.
   void Create ();
 
+  // Description
+  // Make and set up our pipeline.
+  void LoadDataFromProperties ();
+
   // Returns the bounds of the surface.
   virtual void GetRASBounds ( float ioBounds[6] ) const;
 
@@ -93,13 +98,13 @@ protected:
   ScubaCollectionPropertiesMRIS const* mMRISProperties;
 
   // Pipeline -------------------------------------------------------------
-  vtkPolyDataMapper* m3DNormalMapper;
-  vtkPolyDataMapper* m3DFastMapper;
-  vtkActor* m3DActor;
-  vtkPlane* m2DSlicePlane[3];
-  vtkPolyDataMapper* m2DNormalMapper[3];
-  vtkPolyDataMapper* m2DFastMapper[3];
-  vtkActor* m2DActor[3];
+  vtkSmartPointer<vtkPolyDataMapper> m3DNormalMapper;
+  vtkSmartPointer<vtkPolyDataMapper> m3DFastMapper;
+  vtkSmartPointer<vtkActor> m3DActor;
+  vtkSmartPointer<vtkPlane> m2DSlicePlane[3];
+  vtkSmartPointer<vtkPolyDataMapper> m2DNormalMapper[3];
+  vtkSmartPointer<vtkPolyDataMapper> m2DFastMapper[3];
+  vtkSmartPointer<vtkActor> m2DActor[3];
   // ----------------------------------------------------------------------
 
   // Surface info.

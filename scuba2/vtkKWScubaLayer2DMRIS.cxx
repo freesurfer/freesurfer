@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/07/25 19:53:47 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,7 @@
 #include "vtkProperty.h"
 #include "vtkTransformPolyDataFilter.h"
 #include "vtkMatrix4x4.h"
+#include "vtkPointData.h"
 #include "vtkTransform.h"
 #include "vtkKWRadioButtonSet.h"
 #include "vtkKWRadioButton.h"
@@ -50,27 +51,14 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DMRIS );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DMRIS, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DMRIS, "$Revision: 1.2 $" );
 
 vtkKWScubaLayer2DMRIS::vtkKWScubaLayer2DMRIS () :
-  mMRISProperties( NULL ),
-  mSlicePlane( NULL ),
-  mNormalMapper( NULL ),
-  mFastMapper( NULL ),
-  mActor( NULL ) {
+  mMRISProperties( NULL ) {
   mRASCenter[0] = mRASCenter[1] = mRASCenter[2] = 0;
 }
 
 vtkKWScubaLayer2DMRIS::~vtkKWScubaLayer2DMRIS () {
-
-  if ( mNormalMapper )
-    mNormalMapper->Delete();
-  if ( mFastMapper )
-    mFastMapper->Delete();
-  if ( mSlicePlane )
-    mSlicePlane->Delete();
-  if ( mActor )
-    mActor->Delete();
 }
 
 void
@@ -82,14 +70,21 @@ vtkKWScubaLayer2DMRIS::SetMRISProperties ( ScubaCollectionPropertiesMRIS* const 
 void
 vtkKWScubaLayer2DMRIS::Create () {
 
-  // Bail if we don't have our source yet.
-  if( NULL == mMRISProperties )
-    throw runtime_error( "vtkKWScubaLayer2DMRIS::Create: No source" );
-  
+}
+
+void
+vtkKWScubaLayer2DMRIS::LoadDataFromProperties () {
+
+  assert( mMRISProperties );
+  assert( mViewProperties );
+
   //
-  // Source object reads the surface and outputs poly data.
+  // Source object reads the surface and outputs poly data. If we
+  // don't have one, we don't have anything to load.
   //
   vtkFSSurfaceSource* source = mMRISProperties->GetSource();
+  if( NULL == source )
+    return;
 
   // Get some info from the MRIS.
   mRASCenter[0] = source->GetRASCenterX();
@@ -101,47 +96,73 @@ vtkKWScubaLayer2DMRIS::Create () {
   //
   float rasZ = mViewProperties->Get2DRASZ();
   int inPlane = mViewProperties->Get2DInPlane();
-  mSlicePlane = vtkPlane::New();
+  mSlicePlane = vtkSmartPointer<vtkPlane>::New();
   mSlicePlane->SetOrigin( rasZ, rasZ, rasZ );
   mSlicePlane->SetNormal( (inPlane==0), (inPlane==1), (inPlane==2) );
 
   //
   // Cutters that takes the 3D surface and outputs 2D lines.
   //
-  vtkCutter* clipper = vtkCutter::New();
+  vtkSmartPointer<vtkCutter> clipper = 
+    vtkSmartPointer<vtkCutter>::New();
   clipper->SetInputConnection( mMRISProperties->GetNormalModeOutputPort() );
   clipper->SetCutFunction( mSlicePlane );
 
-  vtkCutter* fastClipper = vtkCutter::New();
+  vtkSmartPointer<vtkCutter> fastClipper = 
+    vtkSmartPointer<vtkCutter>::New();
   fastClipper->SetInputConnection( mMRISProperties->GetFastModeOutputPort() );
   fastClipper->SetCutFunction( mSlicePlane );
 
   //
   // Mappers for the lines.
   //
-  mNormalMapper = vtkPolyDataMapper::New();
+  mNormalMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   mNormalMapper->SetInput( clipper->GetOutput() );
 
-  mFastMapper = vtkPolyDataMapper::New();
+  mFastMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   mFastMapper->SetInput( fastClipper->GetOutput() );
 
   //
   // Actors in the scene, drawing the mapped lines.
   //
-  mActor = vtkActor::New();
+  mActor = vtkSmartPointer<vtkActor>::New();
   mActor->SetMapper( mNormalMapper );
-  mActor->SetBackfaceProperty( mActor->MakeProperty() );
-  mActor->GetBackfaceProperty()->BackfaceCullingOff();
-  mActor->SetProperty( mActor->MakeProperty() );
-  mActor->GetProperty()->SetColor( 1, 0, 0 );
-  mActor->GetProperty()->SetEdgeColor( 1, 0, 0 );
-  mActor->GetProperty()->SetInterpolationToFlat();
+  vtkSmartPointer<vtkProperty> property;
+  property.TakeReference( mActor->MakeProperty() );
+  mActor->SetBackfaceProperty( property );
+  property->BackfaceCullingOff();
+  property.TakeReference( mActor->MakeProperty() );
+  mActor->SetProperty( property );
+  property->SetColor( 1, 0, 0 );
+  property->SetEdgeColor( 1, 0, 0 );
+  property->SetInterpolationToFlat();
 
   this->AddProp( mActor );
 
   
   // Update the fastClipper now so we do the decimation up front.
   mFastMapper->Update();
+
+  // If we have scalars, display thouse.
+  if( mMRISProperties->GetScalarsValues() ) {
+
+    vtkFloatArray* scalars = mMRISProperties->GetScalarsValues();
+    mNormalMapper->SetColorModeToMapScalars();
+    mFastMapper->SetColorModeToMapScalars();
+
+    source->GetOutput()->GetPointData()->
+      SetScalars( reinterpret_cast<vtkDataArray*>(scalars) );
+
+    if( mMRISProperties->GetScalarsColors() ) {
+      
+      vtkScalarsToColors* colors = mMRISProperties->GetScalarsColors();
+      mNormalMapper->UseLookupTableScalarRangeOn();
+      mNormalMapper->SetLookupTable( colors );
+      mFastMapper->UseLookupTableScalarRangeOn();
+      mFastMapper->SetLookupTable( colors );
+    }
+
+  }
 }
 
 void

@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/07/25 19:53:47 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -82,15 +82,22 @@ public:
   virtual void Create () {}
 
   // Description:
-  // Implements Listener. This base class doesn't listen for any
-  // messages, but this is provided to be overwritten.  
+  // Load data according to what's available from the Properties
+  // object. This should make calls to the properties to see what's
+  // available. This can be called multiple times during the layer's
+  // lifetime to load new data (or unload data that no longer exists).
+  virtual void LoadDataFromProperties () {}
+
+  // Description:
+  // Listens for:
+  // DataAvailabilityChanged - calls LoadDataFromProperties
   //BTX
   virtual void DoListenToMessage ( std::string const isMessage,
-				   void* const iData ) {}
+				   void* const iData );
   //ETX
 
   // Description:
-  // Just calls GetLayer() from the properties.
+  // Just calls GetLabel() from the properties.
   const char* GetLabel () const;
 
   // Description:

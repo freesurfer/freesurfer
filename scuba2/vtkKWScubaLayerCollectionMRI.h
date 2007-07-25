@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/07/25 19:53:47 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,7 @@
 
 #include "vtkKWScubaLayerCollection.h"
 #include "ScubaCollectionPropertiesMRI.h"
+#include "vtkSmartPointer.h"
 extern "C" {
 #include "colortab.h"
 }
@@ -171,18 +172,18 @@ class vtkKWScubaLayerCollectionMRI : public vtkKWScubaLayerCollection
   //BTX
 
   // Color tables --------------------------------------------------------
-  vtkFreesurferLookupTable* mLUTTable;
-  vtkRGBATransferFunction* mGrayScaleTable;
-  vtkRGBATransferFunction* mHeatScaleTable;
+  vtkSmartPointer<vtkFreesurferLookupTable> mLUTTable;
+  vtkSmartPointer<vtkRGBATransferFunction> mGrayScaleTable;
+  vtkSmartPointer<vtkRGBATransferFunction> mHeatScaleTable;
   // ---------------------------------------------------------------------
 
   // Controls ------------------------------------------------------------
-  vtkKWRadioButton* maRadBtnColorMap[cColorMapTypes];
-  vtkKWRange* mRangeVisibleValue;
-  vtkKWRange* mRangeWindowLevel;
-  vtkKWFrame* maFrameColorMapSettings[cColorMapTypes];
-  vtkKWRGBATransferFunctionEditor* mRGBAEditorHeatScale;
-  vtkKWLabel* mLabelLUTFileName;
+  vtkSmartPointer<vtkKWRadioButton> maRadBtnColorMap[cColorMapTypes];
+  vtkSmartPointer<vtkKWRange> mRangeVisibleValue;
+  vtkSmartPointer<vtkKWRange> mRangeWindowLevel;
+  vtkSmartPointer<vtkKWFrame> maFrameColorMapSettings[cColorMapTypes];
+  vtkSmartPointer<vtkKWRGBATransferFunctionEditor> mRGBAEditorHeatScale;
+  vtkSmartPointer<vtkKWLabel> mLabelLUTFileName;
   // ---------------------------------------------------------------------
 
   // Color map variables -------------------------------------------------
@@ -210,7 +211,7 @@ class vtkKWScubaLayerCollectionMRI : public vtkKWScubaLayerCollection
 
   // ---------------------------------------------------------------------
 
-  vtkFSVolumeSource* mSource;
+  vtkSmartPointer<vtkFSVolumeSource> mSource;
   std::string mfnVolume;
   //ETX
 

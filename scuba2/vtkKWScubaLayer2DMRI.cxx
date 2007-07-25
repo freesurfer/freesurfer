@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/07/25 19:53:47 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,16 +49,10 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DMRI );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DMRI, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DMRI, "$Revision: 1.2 $" );
 
 vtkKWScubaLayer2DMRI::vtkKWScubaLayer2DMRI () :
-  mMRIProperties( NULL ),
-  mReslice( NULL ),
-  mColorMap( NULL ),
-  mPlaneTransform( NULL ),
-  mTexture( NULL ),
-  mPlaneMapper( NULL ),
-  mPlaneActor( NULL )
+  mMRIProperties( NULL )
 {
   mWorldCenter[0] = mWorldCenter[1] = mWorldCenter[2] = 0;
   mWorldSize[0] = mWorldSize[1] = mWorldSize[2] = 0;
@@ -75,14 +69,20 @@ vtkKWScubaLayer2DMRI::SetMRIProperties ( ScubaCollectionPropertiesMRI* const iPr
 void
 vtkKWScubaLayer2DMRI::Create () {
 
-  // Bail if we don't have our source and tables yet.
-  if( NULL == mMRIProperties )
-    throw runtime_error( "vtkKWScubaLayer2DMRI::Create: No source" );
-  
+}
+
+void
+vtkKWScubaLayer2DMRI::LoadDataFromProperties () {
+
+  assert( mMRIProperties );
+
   //
-  // Source object reads the volume and outputs structured points.
+  // Source object reads the volume and outputs structured points. If
+  // we don't have one, we don't have anything to load.
   //
   vtkFSVolumeSource* source = mMRIProperties->GetSource();
+  if( NULL == source )
+    return;
 
   // Get some values from the MRI.
   mWorldCenter[0] = source->GetRASCenterX();
@@ -99,7 +99,8 @@ vtkKWScubaLayer2DMRI::Create () {
   //
   // This transforms the voxel space source into RAS space.
   //
-  vtkImageReslice* volumeToRAS = vtkImageReslice::New();
+  vtkSmartPointer<vtkImageReslice> volumeToRAS = 
+    vtkSmartPointer<vtkImageReslice>::New();
   volumeToRAS->SetInputConnection( source->GetOutputPort() );
   volumeToRAS->SetOutputDimensionality( 3 );
 
@@ -113,7 +114,8 @@ vtkKWScubaLayer2DMRI::Create () {
   // 1,0 1,1 1,2 1,3  =>  rtv[4]  rtv[5]  rtv[6]  0
   // 2,0 2,1 2,2 2,3      rtv[8]  rtv[9]  rtv[10] 0
   // 3,0 3,1 3,2 3,3        0       0       0     1
-  vtkMatrix4x4* matrix = vtkMatrix4x4::New();
+  vtkSmartPointer<vtkMatrix4x4> matrix = 
+    vtkSmartPointer<vtkMatrix4x4>::New();
   matrix->SetElement( 0, 0, rtv[0] );
   matrix->SetElement( 0, 1, rtv[1] );
   matrix->SetElement( 0, 2, rtv[2] );
@@ -131,13 +133,12 @@ vtkKWScubaLayer2DMRI::Create () {
   matrix->SetElement( 3, 2, 0 );
   matrix->SetElement( 3, 3, 1 );
 
-  vtkTransform* transform = vtkTransform::New();
+  vtkSmartPointer<vtkTransform> transform = 
+    vtkSmartPointer<vtkTransform>::New();
   transform->SetMatrix( matrix );
-  matrix->Delete();
 
   volumeToRAS->SetResliceTransform( transform );
   volumeToRAS->BorderOff();
-  transform->Delete();
 
   // This sets our output extent.
   volumeToRAS->SetOutputExtent( (int)RASBounds[0], (int)RASBounds[1],
@@ -148,19 +149,17 @@ vtkKWScubaLayer2DMRI::Create () {
   //
   // The reslice object just takes a slice out of the volume.
   //
-  if ( !mReslice )
-    mReslice = vtkImageReslice::New();
+  mReslice = vtkSmartPointer<vtkImageReslice>::New();
   mReslice->SetInputConnection( volumeToRAS->GetOutputPort() );
   mReslice->BorderOff();
-  volumeToRAS->Delete();
 
   // This sets us to extract slices.
   mReslice->SetOutputDimensionality( 2 );
 
   // This will change depending what orienation we're in.
   mReslice->SetResliceAxesDirectionCosines( 1, 0, 0,
-      0, 1, 0,
-      0, 0, 1 );
+					    0, 1, 0,
+					    0, 0, 1 );
 
   // This will change to select a different slice.
   mReslice->SetResliceAxesOrigin( 0, 0, 0 );
@@ -169,7 +168,8 @@ vtkKWScubaLayer2DMRI::Create () {
   // Flip over the x axis (left/right). This get us into neurological
   // view.
   //
-  vtkImageFlip* imageFlip = vtkImageFlip::New();
+  vtkSmartPointer<vtkImageFlip> imageFlip = 
+    vtkSmartPointer<vtkImageFlip>::New();
   imageFlip->SetInputConnection( mReslice->GetOutputPort() );
   imageFlip->SetFilteredAxis( 0 ); // x axis
 
@@ -177,18 +177,16 @@ vtkKWScubaLayer2DMRI::Create () {
   //
   // Image to colors using color table.
   //
-  mColorMap = vtkImageMapToColors::New();
+  mColorMap = vtkSmartPointer<vtkImageMapToColors>::New();
   mColorMap->SetInputConnection( imageFlip->GetOutputPort() );
   mColorMap->SetOutputFormatToRGBA();
   mColorMap->PassAlphaToOutputOn();
   mColorMap->SetLookupTable( mMRIProperties->GetGrayScaleTable() );
-  imageFlip->Delete();
 
   //
   // Colors to texture.
   //
-  if ( !mTexture )
-    mTexture = vtkTexture::New();
+  mTexture = vtkSmartPointer<vtkTexture>::New();
   mTexture->SetInputConnection( mColorMap->GetOutputPort() );
   mTexture->RepeatOff();
   mTexture->InterpolateOff();
@@ -196,36 +194,34 @@ vtkKWScubaLayer2DMRI::Create () {
   //
   // Plane mesh object.
   //
-  vtkPlaneSource* plane = vtkPlaneSource::New();
+  vtkSmartPointer<vtkPlaneSource> plane = 
+    vtkSmartPointer<vtkPlaneSource>::New();
 
   //
   // Plane mapper transform.
   //
-  if ( !mPlaneTransform )
-    mPlaneTransform = vtkTransform::New();
+  mPlaneTransform = vtkSmartPointer<vtkTransform>::New();
 
   //
   // Poly data from plane and plane transform.
   //
-  vtkTransformPolyDataFilter* planePDF = vtkTransformPolyDataFilter::New();
+  vtkSmartPointer<vtkTransformPolyDataFilter> planePDF = 
+    vtkSmartPointer<vtkTransformPolyDataFilter>::New();
   planePDF->SetInput( plane->GetOutput() );
   planePDF->SetTransform( mPlaneTransform );
-  plane->Delete();
 
   //
   // Mapper for plane.
   //
-  mPlaneMapper = vtkPolyDataMapper::New();
+  mPlaneMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   mPlaneMapper->ImmediateModeRenderingOn();
   mPlaneMapper->SetInputConnection( planePDF->GetOutputPort() );
-  planePDF->Delete();
 
 
   //
   // Prop in scene with plane mesh and texture.
   //
-  if ( !mPlaneActor )
-    mPlaneActor = vtkActor::New();
+  mPlaneActor = vtkSmartPointer<vtkActor>::New();
   mPlaneActor->SetMapper( mPlaneMapper );
   mPlaneActor->SetTexture( mTexture );
 
@@ -273,7 +269,9 @@ vtkKWScubaLayer2DMRI::DoListenToMessage ( string const isMessage,
 void
 vtkKWScubaLayer2DMRI::GetRASBounds ( float ioBounds[6] ) const {
 
-  if ( mMRIProperties && mMRIProperties->GetSource() )
+  assert( mMRIProperties );
+
+  if ( mMRIProperties->GetSource() )
     mMRIProperties->GetSource()->GetRASBounds( ioBounds );
   else {
     for ( int nBound = 0; nBound < 6; nBound++ )
@@ -357,10 +355,9 @@ vtkKWScubaLayer2DMRI::GetSource () const {
 void
 vtkKWScubaLayer2DMRI::UpdateOpacity () {
 
-  if( NULL == mMRIProperties ) 
-    return;
+  assert( mMRIProperties );
 
-  if ( mPlaneActor )
+  if ( mPlaneActor.GetPointer() )
     if ( mPlaneActor->GetProperty() ) {
       mPlaneActor->GetProperty()->SetOpacity( mProperties->GetOpacity() );
       this->PipelineChanged();
@@ -370,8 +367,7 @@ vtkKWScubaLayer2DMRI::UpdateOpacity () {
 void
 vtkKWScubaLayer2DMRI::UpdateColorMap () {
 
-  if( NULL == mMRIProperties ) 
-    return;
+  assert( mMRIProperties );
 
   switch ( mMRIProperties->GetColorMap() ) {
   case ScubaCollectionPropertiesMRI::NoColorMap:
@@ -402,10 +398,9 @@ vtkKWScubaLayer2DMRI::UpdateColorMap () {
 void
 vtkKWScubaLayer2DMRI::UpdateResliceInterpolation () {
 
-  if( NULL == mMRIProperties ) 
-    return;
+  assert( mMRIProperties );
 
-  if( mReslice ) {
+  if( mReslice.GetPointer() ) {
     mReslice->
       SetInterpolationMode( mMRIProperties->GetResliceInterpolation() );
     this->PipelineChanged();
@@ -415,10 +410,9 @@ vtkKWScubaLayer2DMRI::UpdateResliceInterpolation () {
 void
 vtkKWScubaLayer2DMRI::UpdateTextureSmoothing () {
 
-  if( NULL == mMRIProperties ) 
-    return;
+  assert( mMRIProperties );
 
-  if( mTexture ) {
+  if( mTexture.GetPointer() ) {
     mTexture->SetInterpolate( mMRIProperties->GetTextureSmoothing() );
     this->PipelineChanged();
   }
@@ -427,8 +421,8 @@ vtkKWScubaLayer2DMRI::UpdateTextureSmoothing () {
 void
 vtkKWScubaLayer2DMRI::Update2DInfo () {
   
-  if( NULL == mProperties )
-    return;
+  assert( mProperties );
+  assert( mViewProperties );
 
   float rasZ = mViewProperties->Get2DRASZ();
 

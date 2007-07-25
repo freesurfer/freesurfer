@@ -16,8 +16,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/07/25 19:53:47 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayerCollection );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollection, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollection, "$Revision: 1.2 $" );
 
 vtkKWScubaLayerCollection::vtkKWScubaLayerCollection () :
   Broadcaster( "vtkKWScubaLayerCollection" ),
@@ -138,7 +138,8 @@ vtkKWScubaLayerCollection::SetDisplayModeAndView ( vtkKWScubaView::DisplayMode i
       layer->SetViewProperties( iView );
       layer->SetApplication( this->GetApplication() );
       layer->Create();
-      
+      layer->LoadDataFromProperties();
+ 
       // Link us as listeners.
       AddListener( layer );
       layer->AddListener( this );

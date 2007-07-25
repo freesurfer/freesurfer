@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/05/23 19:05:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/07/25 19:53:47 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,7 @@
 #include "vtkMatrix4x4.h"
 #include "vtkObjectFactory.h"
 #include "vtkPlane.h"
+#include "vtkPointData.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkProperty.h"
 #include "vtkTransform.h"
@@ -49,7 +50,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DMRIS );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DMRIS, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DMRIS, "$Revision: 1.4 $" );
 
 vtkKWScubaLayer3DMRIS::vtkKWScubaLayer3DMRIS () :
   mMRISProperties( NULL ),
@@ -96,6 +97,11 @@ vtkKWScubaLayer3DMRIS::SetMRISProperties ( ScubaCollectionPropertiesMRIS* const 
 void
 vtkKWScubaLayer3DMRIS::Create () {
 
+}
+
+void
+vtkKWScubaLayer3DMRIS::LoadDataFromProperties () {
+
   // Bail if we don't have our source yet.
   if( NULL == mMRISProperties )
     throw runtime_error( "vtkKWScubaLayer3DMRIS::Create: No source" );
@@ -113,16 +119,28 @@ vtkKWScubaLayer3DMRIS::Create () {
   //
   // Mappers for the 3D surface.
   //
-  m3DNormalMapper = vtkPolyDataMapper::New();
+  m3DNormalMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   m3DNormalMapper->SetInput( mMRISProperties->GetNormalModeOutput() );
 
-  m3DFastMapper = vtkPolyDataMapper::New();
+  m3DFastMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   m3DFastMapper->SetInput( mMRISProperties->GetFastModeOutput() );
+
+  if( mMRISProperties->GetScalarsValues() &&
+      mMRISProperties->GetScalarsColors() ) {
+    mMRISProperties->GetNormalModeOutput()->GetPointData()->
+      SetScalars( reinterpret_cast<vtkDataArray*>(mMRISProperties->GetScalarsValues()) );
+    m3DNormalMapper->SetLookupTable( mMRISProperties->GetScalarsColors() );
+    m3DNormalMapper->UseLookupTableScalarRangeOn();
+    mMRISProperties->GetFastModeOutput()->GetPointData()->
+      SetScalars( reinterpret_cast<vtkDataArray*>(mMRISProperties->GetScalarsValues()) );
+    m3DFastMapper->SetLookupTable( mMRISProperties->GetScalarsColors() );
+    m3DFastMapper->UseLookupTableScalarRangeOn();
+  }
 
   //
   // Actor for the 3D surface.
   //
-  m3DActor = vtkActor::New();
+  m3DActor = vtkSmartPointer<vtkActor>::New();
   m3DActor->SetMapper( m3DNormalMapper );
   m3DActor->SetProperty( m3DActor->MakeProperty() );
   m3DActor->GetProperty()->SetColor( 0.6, 0.5, 0.5 );
@@ -146,7 +164,7 @@ vtkKWScubaLayer3DMRIS::Create () {
     //
     // Cutting planes for the 2D intersections.
     //
-    m2DSlicePlane[n] = vtkPlane::New();
+    m2DSlicePlane[n] = vtkSmartPointer<vtkPlane>::New();
     m2DSlicePlane[n]->SetOrigin( (n==0) ? ras3DView[n] - mRASCenter[0] : 0,
 				 (n==1) ? ras3DView[n] - mRASCenter[1] : 0,
 				 (n==2) ? ras3DView[n] - mRASCenter[2] : 0 );
@@ -155,27 +173,29 @@ vtkKWScubaLayer3DMRIS::Create () {
     //
     // Cutters that takes the 3D surface and outputs 2D lines.
     //
-    vtkCutter* clipper = vtkCutter::New();
+    vtkSmartPointer<vtkCutter> clipper = 
+      vtkSmartPointer<vtkCutter>::New();
     clipper->SetInputConnection( mMRISProperties->GetNormalModeOutputPort() );
     clipper->SetCutFunction( m2DSlicePlane[n] );
     
-    vtkCutter* fastClipper = vtkCutter::New();
+    vtkSmartPointer<vtkCutter> fastClipper =
+      vtkSmartPointer<vtkCutter>::New();
     fastClipper->SetInputConnection( mMRISProperties->GetFastModeOutputPort() );
     fastClipper->SetCutFunction( m2DSlicePlane[n] );
     
     //
     // Mappers for the lines.
     //
-    m2DNormalMapper[n] = vtkPolyDataMapper::New();
+    m2DNormalMapper[n] = vtkSmartPointer<vtkPolyDataMapper>::New();
     m2DNormalMapper[n]->SetInput( clipper->GetOutput() );
     
-    m2DFastMapper[n] = vtkPolyDataMapper::New();
+    m2DFastMapper[n] = vtkSmartPointer<vtkPolyDataMapper>::New();
     m2DFastMapper[n]->SetInput( fastClipper->GetOutput() );
     
     //
     // Actors in the scene, drawing the mapped lines.
     //
-    m2DActor[n] = vtkActor::New();
+    m2DActor[n] = vtkSmartPointer<vtkActor>::New();
     m2DActor[n]->SetMapper( m2DNormalMapper[n] );
     m2DActor[n]->SetBackfaceProperty( m2DActor[n]->MakeProperty() );
     m2DActor[n]->GetBackfaceProperty()->BackfaceCullingOff();
@@ -192,7 +212,8 @@ void
 vtkKWScubaLayer3DMRIS::AddControls ( vtkKWWidget* iPanel ) {
 
   // Smooth check button ------------------------------------------------
-  vtkKWCheckButton* chkBtnSurface = vtkKWCheckButton::New();
+  vtkSmartPointer<vtkKWCheckButton> chkBtnSurface = 
+    vtkSmartPointer<vtkKWCheckButton>::New();
   chkBtnSurface->SetParent( iPanel );
   chkBtnSurface->Create();
   chkBtnSurface->SetAnchorToWest();
@@ -204,8 +225,6 @@ vtkKWScubaLayer3DMRIS::AddControls ( vtkKWWidget* iPanel ) {
 
   this->Script( "pack %s -side top -fill x -anchor nw",
 		chkBtnSurface->GetWidgetName() );
-
-  chkBtnSurface->Delete();
 }
 
 void

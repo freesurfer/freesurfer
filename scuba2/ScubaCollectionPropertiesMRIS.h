@@ -9,9 +9,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/09 22:38:09 $
- *    $Revision: 1.2 $
+ *    $Author: kteich $
+ *    $Date: 2007/07/25 19:53:47 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,9 +30,11 @@
 #ifndef ScubaCollectionPropertiesMRIS_h
 #define ScubaCollectionPropertiesMRIS_h
 
-class vtkFSSurfaceSource;
 class vtkAlgorithmOutput;
+class vtkFloatArray;
+class vtkFSSurfaceSource;
 class vtkPolyData;
+class vtkScalarsToColors;
 
 class ScubaCollectionPropertiesMRIS {
 
@@ -49,6 +51,14 @@ class ScubaCollectionPropertiesMRIS {
   virtual vtkAlgorithmOutput* GetFastModeOutputPort () const = 0;
   virtual vtkPolyData* GetNormalModeOutput () const = 0;
   virtual vtkPolyData* GetFastModeOutput () const = 0;
+
+  // Description:
+  // Get any scalars that should be displayed.
+  virtual vtkFloatArray* GetScalarsValues () const = 0;
+
+  // Description:
+  // Get the color map for scalars.
+  virtual vtkScalarsToColors* GetScalarsColors () const = 0;
   
  protected:
 

@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/11 18:51:55 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/07/25 19:53:47 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,16 +50,9 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayerCollectionMRI );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollectionMRI, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollectionMRI, "$Revision: 1.4 $" );
 
 vtkKWScubaLayerCollectionMRI::vtkKWScubaLayerCollectionMRI () :
-  mLUTTable( NULL ),
-  mGrayScaleTable( NULL ),
-  mHeatScaleTable( NULL ),
-  mRangeVisibleValue( NULL ),
-  mRangeWindowLevel( NULL ),
-  mRGBAEditorHeatScale( NULL ),
-  mLabelLUTFileName( NULL ),
   mColorMapType( ScubaCollectionPropertiesMRI::GrayScale ),
   mResliceInterpolation( 0 ),
   mTextureSmoothing( 0 ),
@@ -76,13 +69,7 @@ vtkKWScubaLayerCollectionMRI::vtkKWScubaLayerCollectionMRI () :
   mbShowPositiveHeatScaleValues( true ),
   mbShowNegativeHeatScaleValues( true ),
   mFreeSurferCTAB( NULL ),
-  mSource( NULL ),
   mfnVolume("") {
-  
-  for( int nType = 0; nType < ScubaCollectionPropertiesMRI::cColorMapTypes; nType++ ) {
-    maRadBtnColorMap[nType] = NULL;
-    maFrameColorMapSettings[nType] = NULL;
-  }
 }
 
 vtkKWScubaLayerCollectionMRI::~vtkKWScubaLayerCollectionMRI () {
@@ -108,41 +95,41 @@ void
 vtkKWScubaLayerCollectionMRI::AddControls ( vtkKWWidget* iPanel ) {
 
   // Interpolate radio buttons ------------------------------------------
-  vtkKWRadioButtonSet* radBtnSetInterpolation = vtkKWRadioButtonSet::New();
+  vtkSmartPointer<vtkKWRadioButtonSet> radBtnSetInterpolation = 
+    vtkSmartPointer<vtkKWRadioButtonSet>::New();
   radBtnSetInterpolation->SetParent( iPanel );
   radBtnSetInterpolation->Create();
   radBtnSetInterpolation->PackHorizontallyOff();
 
   char sTclCmd[1024];
-  vtkKWRadioButton* radBtnNearestNeighbor =
-    radBtnSetInterpolation->AddWidget( 0 );
+  vtkSmartPointer<vtkKWRadioButton> radBtnNearestNeighbor;
+  radBtnNearestNeighbor.TakeReference(radBtnSetInterpolation->AddWidget( 0 ) );
   radBtnNearestNeighbor->SetText( "Nearest" );
   sprintf( sTclCmd, "SetResliceInterpolation %d", VTK_RESLICE_NEAREST );
   radBtnNearestNeighbor->SetCommand( this, sTclCmd );
   if ( mResliceInterpolation == VTK_RESLICE_NEAREST )
     radBtnNearestNeighbor->SelectedStateOn();
 
-  vtkKWRadioButton* radBtnLinear = radBtnSetInterpolation->AddWidget( 1 );
+  vtkSmartPointer<vtkKWRadioButton> radBtnLinear;
+  radBtnLinear.TakeReference( radBtnSetInterpolation->AddWidget( 1 ) );
   radBtnLinear->SetText( "Linear" );
   sprintf( sTclCmd, "SetResliceInterpolation %d", VTK_RESLICE_LINEAR );
   radBtnLinear->SetCommand( this, sTclCmd );
   if ( mResliceInterpolation == VTK_RESLICE_LINEAR )
     radBtnLinear->SelectedStateOn();
 
-  vtkKWRadioButton* radBtnCubic = radBtnSetInterpolation->AddWidget( 2 );
+  vtkSmartPointer<vtkKWRadioButton> radBtnCubic;
+  radBtnCubic.TakeReference( radBtnSetInterpolation->AddWidget( 2 ) );
   radBtnCubic->SetText( "Cubic" );
   sprintf( sTclCmd, "SetResliceInterpolation %d", VTK_RESLICE_CUBIC );
   radBtnCubic->SetCommand( this, sTclCmd );
   if ( mResliceInterpolation == VTK_RESLICE_CUBIC )
     radBtnCubic->SelectedStateOn();
-
-  radBtnNearestNeighbor->Delete();
-  radBtnLinear->Delete();
-  radBtnCubic->Delete();
   // --------------------------------------------------------------------
 
   // Smooth check button ------------------------------------------------
-  vtkKWCheckButton* chkBtnSmooth = vtkKWCheckButton::New();
+  vtkSmartPointer<vtkKWCheckButton> chkBtnSmooth = 
+    vtkSmartPointer<vtkKWCheckButton>::New();
   chkBtnSmooth->SetParent( iPanel );
   chkBtnSmooth->Create();
   chkBtnSmooth->SetAnchorToWest();
@@ -153,14 +140,16 @@ vtkKWScubaLayerCollectionMRI::AddControls ( vtkKWWidget* iPanel ) {
   // --------------------------------------------------------------------
 
   // Color map radio buttons --------------------------------------------
-  vtkKWRadioButtonSet* radBtnSetColorMap = vtkKWRadioButtonSet::New();
+  vtkSmartPointer<vtkKWRadioButtonSet> radBtnSetColorMap = 
+    vtkSmartPointer<vtkKWRadioButtonSet>::New();
   radBtnSetColorMap->SetParent( iPanel );
   radBtnSetColorMap->Create();
   radBtnSetColorMap->PackHorizontallyOn();
 
   for ( int nType = (int)GrayScale; nType < (int)cColorMapTypes;  nType++ ) {
 
-    maRadBtnColorMap[nType] = radBtnSetColorMap->AddWidget( nType );
+    maRadBtnColorMap[nType].
+      TakeReference( radBtnSetColorMap->AddWidget( nType ) );
 
     switch ( nType ) {
     case GrayScale:
@@ -185,7 +174,8 @@ vtkKWScubaLayerCollectionMRI::AddControls ( vtkKWWidget* iPanel ) {
   // Color map specfic settings page -----------------------------------
   for ( int nType = (int)GrayScale; nType < (int)cColorMapTypes;  nType++ ) {
 
-    maFrameColorMapSettings[nType] = vtkKWFrame::New();
+    maFrameColorMapSettings[nType] = 
+      vtkSmartPointer<vtkKWFrame>::New();
     maFrameColorMapSettings[nType]->SetParent( iPanel );
     maFrameColorMapSettings[nType]->Create();
     vtkKWFrame* frame = maFrameColorMapSettings[nType];
@@ -193,7 +183,7 @@ vtkKWScubaLayerCollectionMRI::AddControls ( vtkKWWidget* iPanel ) {
     switch ( nType ) {
     case GrayScale:
 
-      mRangeVisibleValue = vtkKWRange::New();
+      mRangeVisibleValue = vtkSmartPointer<vtkKWRange>::New();
       mRangeVisibleValue->SetParent( frame );
       mRangeVisibleValue->Create();
       mRangeVisibleValue->SetLabelText( "Visible" );
@@ -208,7 +198,7 @@ vtkKWScubaLayerCollectionMRI::AddControls ( vtkKWWidget* iPanel ) {
       mRangeVisibleValue->SetCommand( this, "SetMinMaxVisibleValue" );
 
 
-      mRangeWindowLevel = vtkKWRange::New();
+      mRangeWindowLevel = vtkSmartPointer<vtkKWRange>::New();
       mRangeWindowLevel->SetParent( frame );
       mRangeWindowLevel->Create();
       mRangeWindowLevel->SetLabelText( "Grayscale Window" );
@@ -230,11 +220,13 @@ vtkKWScubaLayerCollectionMRI::AddControls ( vtkKWWidget* iPanel ) {
       break;
     case HeatScale: {
 
-      vtkKWHistogram* histogram = vtkKWHistogram::New();
+      vtkSmartPointer<vtkKWHistogram> histogram = 
+	vtkSmartPointer<vtkKWHistogram>::New();
       histogram->
       BuildHistogram( mSource->GetOutput()->GetPointData()->GetScalars(), 0);
 
-      mRGBAEditorHeatScale = vtkKWRGBATransferFunctionEditor::New();
+      mRGBAEditorHeatScale = 
+	vtkSmartPointer<vtkKWRGBATransferFunctionEditor>::New();
       mRGBAEditorHeatScale->SetParent( frame );
       mRGBAEditorHeatScale->Create();
 
@@ -280,8 +272,6 @@ vtkKWScubaLayerCollectionMRI::AddControls ( vtkKWWidget* iPanel ) {
       mRGBAEditorHeatScale->ComputeValueTicksFromHistogramOn();
       mRGBAEditorHeatScale->SetParameterTicksFormat("%-#6.0f");
 
-      histogram->UnRegister( this );
-
       this->Script( "pack %s -side top -fill x -expand y",
                     mRGBAEditorHeatScale->GetWidgetName() );
 
@@ -295,26 +285,24 @@ vtkKWScubaLayerCollectionMRI::AddControls ( vtkKWWidget* iPanel ) {
       } break;
     case LUT: {
 
-      mLabelLUTFileName = vtkKWLabel::New();
+      mLabelLUTFileName = vtkSmartPointer<vtkKWLabel>::New();
       mLabelLUTFileName->SetParent( frame );
       mLabelLUTFileName->Create();
 
-      mLabelLUTFileName->SetText( "Choose an LUT file" );
+      mLabelLUTFileName->SetText( "No LUT loaded" );
 
-      vtkKWPushButton* loadButton = vtkKWPushButton::New();
+      vtkSmartPointer<vtkKWPushButton> loadButton = 
+	vtkSmartPointer<vtkKWPushButton>::New();
       loadButton->SetParent( frame );
       loadButton->Create();
 
-      loadButton->SetText( "Browse" );
+      loadButton->SetText( "Load LUT" );
       loadButton->SetCommand( this, "LoadLUTFromDlog" );
 
       this->Script( "pack %s -side left -fill x -expand y",
 		    mLabelLUTFileName->GetWidgetName() );
       this->Script( "pack %s -side left",
 		    loadButton->GetWidgetName() );
-
-      loadButton->Delete();
-
       } break;
     }
   }
@@ -328,10 +316,6 @@ vtkKWScubaLayerCollectionMRI::AddControls ( vtkKWWidget* iPanel ) {
                 radBtnSetColorMap->GetWidgetName(),
                 maFrameColorMapSettings[GrayScale]->GetWidgetName() );
 
-  radBtnSetInterpolation->Delete();
-  chkBtnSmooth->Delete();
-  radBtnSetColorMap->Delete();
-
   this->ColorMapChanged();
 }
 
@@ -339,35 +323,14 @@ void
 vtkKWScubaLayerCollectionMRI::RemoveControls () {
 
   for ( int nType = (int)GrayScale; nType < (int)cColorMapTypes;  nType++ ) {
-    if ( maFrameColorMapSettings[nType] ) {
-      maFrameColorMapSettings[nType]->Delete();
-      maFrameColorMapSettings[nType] = NULL;
-    }
-    if ( maRadBtnColorMap[nType] ) {
-      maRadBtnColorMap[nType]->Delete();
-      maRadBtnColorMap[nType] = NULL;
-    }
+    maFrameColorMapSettings[nType] = NULL;
+    maRadBtnColorMap[nType] = NULL;
   }
 
-  if ( mRangeWindowLevel ) {
-    mRangeWindowLevel->Delete();
-    mRangeWindowLevel = NULL;
-  }
-
-  if ( mRangeVisibleValue ) {
-    mRangeVisibleValue->Delete();
-    mRangeVisibleValue = NULL;
-  }
-
-  if ( mRGBAEditorHeatScale ) {
-    mRGBAEditorHeatScale->Delete();
-    mRGBAEditorHeatScale = NULL;
-  }
-
-  if ( mLabelLUTFileName ) {
-    mLabelLUTFileName->Delete();
-    mLabelLUTFileName = NULL;
-  }
+  mRangeWindowLevel = NULL;
+  mRangeVisibleValue = NULL;
+  mRGBAEditorHeatScale = NULL;
+  mLabelLUTFileName = NULL;
 }
 
 vtkFSVolumeSource* 
@@ -412,6 +375,7 @@ vtkKWScubaLayerCollectionMRI::ColorMapChanged () {
       mMaxVisibleValue = mMaxGrayscaleWindow;
 
     // Build our lookup table.
+    assert( mGrayScaleTable.GetPointer() );
     mGrayScaleTable->RemoveAllPoints();
     mGrayScaleTable->AddRGBAPoint( mMinVisibleValue-0.001, 0, 0, 0, 0 );
     mGrayScaleTable->AddRGBAPoint( mMinVisibleValue,       0, 0, 0, 1 );
@@ -433,7 +397,7 @@ vtkKWScubaLayerCollectionMRI::ColorMapChanged () {
   }
 
   // Update the packed settings panel.
-  if ( maFrameColorMapSettings[mColorMapType] ) {
+  if ( maFrameColorMapSettings[mColorMapType].GetPointer() ) {
     for ( int nType = (int)GrayScale; nType < (int)cColorMapTypes; nType++ ) {
       if ( nType == (int)mColorMapType ) {
         this->Script( "pack %s -side top -fill x",
@@ -446,21 +410,21 @@ vtkKWScubaLayerCollectionMRI::ColorMapChanged () {
   }
 
   // Update the controls.
-  if ( mRangeVisibleValue ) {
+  if ( mRangeVisibleValue.GetPointer() ) {
     mRangeVisibleValue->DisableCommandsOn();
     mRangeVisibleValue->SetRange( mMinVisibleValue, mMaxVisibleValue );
     mRangeVisibleValue->DisableCommandsOff();
   }
-  if ( mRangeWindowLevel ) {
+  if ( mRangeWindowLevel.GetPointer() ) {
     mRangeWindowLevel->DisableCommandsOn();
     mRangeWindowLevel->SetRange( mMinGrayscaleWindow, mMaxGrayscaleWindow );
     mRangeWindowLevel->DisableCommandsOff();
   }
-  if ( mRGBAEditorHeatScale ) {
+  if ( mRGBAEditorHeatScale.GetPointer() ) {
     mRGBAEditorHeatScale->Update();
   }
 
-  if ( mLabelLUTFileName ) {
+  if ( mLabelLUTFileName .GetPointer()) {
     if ( mFreeSurferCTAB ) {
       char fnLUT[1024];
       CTABcopyFileName( mFreeSurferCTAB, fnLUT, sizeof(fnLUT) );
@@ -740,8 +704,7 @@ vtkKWScubaLayerCollectionMRI::LoadFreesurferLUT ( const char* ifn ) {
   strncpy( fnLUT, ifn, sizeof(fnLUT) );
   COLOR_TABLE* ctab = CTABreadASCII( fnLUT );
   if ( NULL == ctab ) {
-    throw new runtime_error( string("Couldn't open color table file ") +
-                             ifn );
+    throw runtime_error( string("Couldn't open color table file ") + ifn );
   }
 
   // If we got it, delete the existing table.
@@ -784,7 +747,7 @@ void
 vtkKWScubaLayerCollectionMRI::LoadVolumeFromFileName () {
 
   // Source object reads the volume and outputs a volume.
-  mSource = vtkFSVolumeSource::New();
+  mSource = vtkSmartPointer<vtkFSVolumeSource>::New();
   mSource->MRIRead( mfnVolume.c_str() );
   mSource->Update();
 
@@ -805,12 +768,9 @@ vtkKWScubaLayerCollectionMRI::LoadVolumeFromFileName () {
   //
   // Color tables.
   //
-  if ( !mGrayScaleTable )
-    mGrayScaleTable = vtkRGBATransferFunction::New();
-  if ( !mHeatScaleTable )
-    mHeatScaleTable = vtkRGBATransferFunction::New();
-  if ( !mLUTTable )
-    mLUTTable = vtkFreesurferLookupTable::New();
+  mGrayScaleTable = vtkSmartPointer<vtkRGBATransferFunction>::New();
+  mHeatScaleTable = vtkSmartPointer<vtkRGBATransferFunction>::New();
+  mLUTTable = vtkSmartPointer<vtkFreesurferLookupTable>::New();
   mGrayScaleTable->ClampingOff();
   mHeatScaleTable->ClampingOn();
 

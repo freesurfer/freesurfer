@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/20 22:19:36 $
- *    $Revision: 1.5 $
+ *    $Author: kteich $
+ *    $Date: 2007/07/25 19:53:47 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaApp );
-vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.6 $" );
 
 vtkKWScubaApp::vtkKWScubaApp () {
 
@@ -91,9 +91,11 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
 
   mWindow->Display();
 
+  // Create our command line argument parser.
   vtksys::CommandLineArguments args;
   args.Initialize( argc, argv );
 
+  // Add the arguments we'll look for.
   args.AddArgument( "--subject", args.SPACE_ARGUMENT, &msSubjectName,
 		    "A subject name whose directory (prepended with the value of SUBJECTS_DIR and appened with the relative subdirectory) will be used as a prefix for data file names." );
 
@@ -113,12 +115,15 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
   args.AddArgument( "--path", args.MULTI_ARGUMENT, &lfnPaths,
 		    "A path file or list of files to load" );
 
+  // Try and parse the arguments. If there was an error, print our
+  // help message and quit.
   if( !args.Parse() ) {
     cerr << "Error parsing arguments." << endl;
     cerr << args.GetHelp() << endl;
     exit( 1 );
   }
 
+  // Load up the data we got.
   vector<string>::iterator tfn;
   for( tfn = lfnVolumes.begin(); tfn != lfnVolumes.end(); ++tfn )
     this->LoadVolume( tfn->c_str() );
@@ -132,6 +137,7 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
   for( tfn = lfnPaths.begin(); tfn != lfnPaths.end(); ++tfn )
     this->LoadPath( tfn->c_str() );
 
+  // Tell the super to start.
   this->Superclass::Start( argc, argv );
 }
 
