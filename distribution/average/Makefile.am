@@ -41,5 +41,10 @@ install: install-fooDATA
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES="HPMarch022005_ras.mgz"
+EXCLUDE_FILES="HPMarch022005_ras.mgz \
+RB_all_2006-02-15.gca \
+RB_all_withskull_2006-02-15.gca \
+lh.curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs \
+rh.curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs"
+
 include $(top_srcdir)/Makefile.extra
