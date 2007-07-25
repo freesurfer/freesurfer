@@ -337,5 +337,5 @@ EXTRA_DIST=setup_configure Makefile.extra x86cpucaps INSTALL \
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=read_meas_dat.m
+EXCLUDE_FILES=read_meas_dat.m x86cpucaps/CVS
 include $(top_srcdir)/Makefile.extra

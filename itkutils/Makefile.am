@@ -42,12 +42,10 @@ libitkutils_a_SOURCES= \
 endif
 #end itk
 
-EXTRA_DIST=$(wildcard *.h)
+EXTRA_DIST=$(wildcard *.h) ui
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=
+EXCLUDE_FILES=ui/CVS
 include $(top_srcdir)/Makefile.extra
-
-	
