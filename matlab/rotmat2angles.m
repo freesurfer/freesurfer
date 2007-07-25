@@ -1,16 +1,20 @@
-function angles = rotmat2angles(R)
-% angles = rotmat2angles(R)
+function [angles ambflag]= rotmat2angles(R)
+% [angles ambflag]= rotmat2angles(R)
 %
-% WARNING: this will fail when cos(angle(1)) = pi/2
+% Converts rotation matrix to euler angles (in radians)
+% angles is a 3x1 vector in radians
+% angles(1) - pitch - rotation about x or LR (gamma)
+% angles(2) - yaw   - rotation about y or AP (beta)
+% angles(3) - roll  - rotation about z or SI (alpha)
 %
-% Converts rotation matrix to angles (in radians)
-% angles(1) - pitch - rotation about x or LR
-% angles(2) - yaw   - rotation about y or AP
-% angles(3) - roll  - rotation about z or SI
+% ambflag=1 indicates some ambiguity (eb, cos(beta)=1)
+% There may also be amibuity if the rotation matrix
+% was created with angles > pi/2.
 %
 % See also: angles2rotmat
+% Ref: Craig, Intro to Robotics
 %
-% $Id: rotmat2angles.m,v 1.1 2007/07/25 06:23:26 greve Exp $
+% $Id: rotmat2angles.m,v 1.2 2007/07/25 19:30:01 greve Exp $
 
 %
 % rotmat2angles.m
@@ -18,8 +22,8 @@ function angles = rotmat2angles(R)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/07/25 06:23:26 $
-%    $Revision: 1.1 $
+%    $Date: 2007/07/25 19:30:01 $
+%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -35,22 +39,29 @@ function angles = rotmat2angles(R)
 %
 
 angles = [];
+ambflag = [];
 if(nargin ~= 1)
   fprintf('angles = rotmat2angles(R)\n');
   return;
 end
 
-r32 = R(3,2);
-alpha = -asin(r32);
-
 r31 = R(3,1);
-beta = asin(r31/cos(alpha));
+beta = asin(-r31);
 
-r22 = R(2,2);
-gamma = acos(r22/cos(alpha));
+% This threshold is surprisingly large
+if(abs(1-abs(r31)) > 1e-4)
+  alpha = atan2(R(2,1),R(1,1));
+  gamma = atan2(R(3,2),R(3,3));
+  ambflag = 0;
+else
+  % beta = +/-pi/2 = +/-90deg -- ambiguous?
+  alpha = 0;
+  gamma = atan2(-R(1,2),R(2,2));
+  ambflag = 1;
+  %printf('here\n');
+end
 
-
-angles = [alpha beta gamma];
+angles = [gamma beta alpha ]';
 
 return;
 
