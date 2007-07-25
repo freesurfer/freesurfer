@@ -1,15 +1,14 @@
 /**
  * @file  mri_convert.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief performs all kinds of conversion and reformatting of MRI volume files
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/06/14 03:18:56 $
- *    $Revision: 1.144 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/25 23:59:58 $
+ *    $Revision: 1.145 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -177,7 +176,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.144 2007/06/14 03:18:56 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.145 2007/07/25 23:59:58 nicks Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -279,7 +278,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.144 2007/06/14 03:18:56 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.145 2007/07/25 23:59:58 nicks Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1264,7 +1263,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.144 2007/06/14 03:18:56 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.145 2007/07/25 23:59:58 nicks Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
