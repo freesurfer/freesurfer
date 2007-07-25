@@ -101,12 +101,13 @@ dmri_mask_CXXFLAGS =
 endif
 #end itk
 
-EXTRA_DIST=datamodel io $(wildcard *.h) $(wildcard *.txx)
+EXTRA_DIST=datamodel io test $(wildcard *.h) $(wildcard *.txx)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
 EXCLUDE_FILES=io/CVS datamodel/CVS datamodel/utils/CVS datamodel/events/CVS \
-datamodel/data/CVS
+datamodel/data/CVS test/CVS test/data/CVS
+
 include $(top_srcdir)/Makefile.extra
 
