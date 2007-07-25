@@ -1,0 +1,81 @@
+#!/bin/tcsh -f
+
+#
+# test_mris_expand
+#
+# execute mris_expand and check results against expected results
+#
+# Original Author: Nick Schmansky
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/07/25 20:22:55 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION='$Id: test_mris_expand,v 1.1 2007/07/25 20:22:55 nicks Exp $'
+
+umask 002
+
+#
+# extract testing data
+#
+gunzip -c testdata.tar.gz | tar xvf -
+
+#
+# run mris_expand
+#
+
+set cmd=(./mris_expand -v 49576 -thickness lh.white 0.5 lh.midgray)
+echo ""
+echo $cmd >& test_mris_expand.log
+echo ""
+$cmd
+if ($status != 0) then
+  echo "mris_expand FAILED"
+  exit 1
+endif
+
+#
+# compare expected results with actual (produced) results
+#
+
+# TODO !
+
+goto end
+
+
+set cmd=(../mri_diff/mri_diff --debug \
+          --thresh 0.0 \
+          --log $MRIDIFFF \
+          $REF_VOL $TST_VOL --diff $DIFF_VOL);
+echo ""
+echo $cmd
+$cmd
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+#
+# cleanup
+#
+end:
+cd ..
+rm -f lh.*
+
+echo ""
+echo "test_mris_expand passed all tests"
+exit 0
