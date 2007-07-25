@@ -2,6 +2,8 @@
 # Makefile.am for poistats
 #
 
+SUBDIRS=test
+
 #itk is required for building poistats
 # add ITK
 if HAVE_ITK_LIBS
@@ -41,9 +43,7 @@ IO_SRCS = \
 	io/SymmetricTensorReaderStrategy.cxx \
 	io/SymmetricTensorReaderStrategy.h \
 	io/TensorReaderStrategy.cxx \
-	io/TensorReaderStrategy.h \
-	io/itkOrientedVectorImage.txx \
-	io/itkOrientedVectorImage.h
+	io/TensorReaderStrategy.h
 
 AM_CPPFLAGS =	$(X_CFLAGS) $(VXL_CFLAGS) \
   -I$(top_srcdir)/include \
@@ -101,13 +101,11 @@ dmri_mask_CXXFLAGS =
 endif
 #end itk
 
-EXTRA_DIST=datamodel io ui $(wildcard *.h) $(wildcard *.txx)
+EXTRA_DIST=datamodel io $(wildcard *.h) $(wildcard *.txx)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=io/CVS ui/CVS datamodel/CVS datamodel/utils/CVS \
-	datamodel/utils/bspline/CVS datamodel/events/CVS datamodel/data/CVS
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-SUBDIRS=test
