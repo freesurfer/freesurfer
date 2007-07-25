@@ -12,7 +12,8 @@ mris_anatomical_stats_LDFLAGS=$(OS_LDFLAGS)
 
 TESTS=test_mris_anatomical_stats
 
-EXTRA_DIST=test_mris_anatomical_stats
+EXTRA_DIST=test_mris_anatomical_stats test1.expected test2.expected \
+test3.expected test4.expected
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
