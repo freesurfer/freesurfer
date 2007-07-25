@@ -4,12 +4,12 @@ function [R Rx Ry Rz] = angles2rotmat(angles)
 % Convert 3 angles into a rotation matrix
 %
 % angles is 3x1 in radians
-% angles(1) - rotation about x
-% angles(2) - rotation about y
-% angles(3) - rotation about z
-% R = Rz*Ry*Rx; All 3x3 matrices
+% angles(1) - pitch - rotation about x or LR
+% angles(2) - yaw   - rotation about y or AP
+% angles(3) - roll  - rotation about z or SI
+% R = Rz*Rx*Ry;
 %
-% $Id: angles2rotmat.m,v 1.1 2007/07/25 05:56:13 greve Exp $
+% $Id: angles2rotmat.m,v 1.2 2007/07/25 06:20:21 greve Exp $
 
 %
 % angles2rotmat.m
@@ -17,8 +17,8 @@ function [R Rx Ry Rz] = angles2rotmat(angles)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/07/25 05:56:13 $
-%    $Revision: 1.1 $
+%    $Date: 2007/07/25 06:20:21 $
+%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -67,7 +67,7 @@ Rz(2,1) = -sin(gamma);
 Rz(2,2) = +cos(gamma);
 Rz(3,3) = +1;
 
-R = Rz*Ry*Rx;
+R = Rz*Rx*Ry;
 
 return;
 
