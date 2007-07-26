@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/25 23:59:58 $
- *    $Revision: 1.145 $
+ *    $Author: greve $
+ *    $Date: 2007/07/26 19:26:26 $
+ *    $Revision: 1.146 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.145 2007/07/25 23:59:58 nicks Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.146 2007/07/26 19:26:26 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -278,7 +278,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.145 2007/07/25 23:59:58 nicks Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.146 2007/07/26 19:26:26 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -368,6 +368,7 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[i], "--like")==0) {
       get_string(argc, argv, &i, out_like_name);
       out_like_flag = TRUE;
+      printf("WARNING: --like does not work on multi-frame data\n");
     }
     else if (strcmp(argv[i], "--crop")==0) {
       crop_flag = TRUE ;
@@ -1263,7 +1264,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.145 2007/07/25 23:59:58 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.146 2007/07/26 19:26:26 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2403,8 +2404,6 @@ void usage(FILE *stream) {
           "center (x,y,z) \n");
   fprintf(stream, "  --cropsize <dx> <dy> <dz> crop to size "
           "<dx, dy, dz> \n");
-  fprintf(stream, "  --like vol: output is embedded in "
-          "a volume like vol\n");
   fprintf(stream, "  --fwhm fwhm : smooth input volume by fwhm mm\n ");
   fprintf(stream, "\n");
 
@@ -2570,6 +2569,12 @@ void usage(FILE *stream) {
   printf("\n");
   printf(
     "SPECIFYING THE ORIENTATION\n"
+    "\n"
+    "NOTE: DO NOT USE THIS TO TRY TO CHANGE THE ORIENTATION FOR FSL.\n"
+    "THIS IS ONLY TO BE USED WHEN THE ORIENTATION INFORMATION IN\n"
+    "THE INPUT FILE IS *WRONG*. IF IT IS CORRECT, THIS WILL MAKE\n"
+    "IT WRONG! IF YOU ARE HAVING PROBLEMS WITH FSLVIEW DISPLAYING\n"
+    "YOUR DATA, CONSULT THE FSL WEBSITE FOR METHODS TO REORIENT.\n"
     "\n"
     "Ideally, the orientation information is derived from a "
     "DICOM file so that\n"
