@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/18 21:33:01 $
-#    $Revision: 1.25 $
+#    $Date: 2007/07/26 16:53:16 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: reg-feat2anat,v 1.25 2007/07/18 21:33:01 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.26 2007/07/26 16:53:16 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brainmask;
@@ -39,8 +39,8 @@ set usedev = 0;
 set manual = 0;
 set manual_use_surf = 1;
 set manxfm = func2anat;
-set fslext = img; # Can be changed with --fslext-auto
 set DoBETFunc = 1;
+set title = ();
 
 set PrintHelp = 0;
 
@@ -70,6 +70,7 @@ if($?DEV == 0) set DEV = "";
 
 set TKR = tkregister2
 if($usedev) set TKR = $DEV/$TKR/$TKR
+if(! $manual) set TKR = $TKR"_cmdl"
 
 set MM = mri_matrix_multiply
 if($usedev) set MM = $DEV/$MM/$MM
@@ -120,15 +121,16 @@ if(! -e $refvolcor) then
   endif
 endif
 
-# Check functional-to-anatomical registration
+# Manually check functional-to-anatomical registration
 if($manual && $manxfm == func2anat) then
   if(! -e $anat2exf_regdat) then
     echo "ERROR: you must run without --manual or --manxfm to create registration first"
     exit 1;
   endif
-  set cmd = ($TKR --s $subject --mov $tempvol \
+  set cmd = ($TKR --s $subject --mov $tempvol --volview mov\
               --reg $anat2exf_regdat --tag --inorm)
   if($manual_use_surf) set cmd = ($cmd --surf orig);
+  if($#title) set cmd = ($cmd --title $title);
   if(! -e $SUBJECTS_DIR/$subject/mri/orig/COR-001) set cmd = ($cmd --mgz)
   echo $cmd
   $cmd
@@ -136,32 +138,34 @@ if($manual && $manxfm == func2anat) then
   exit 0;
 endif
 
-# Check standard-to-anatomical registration
+# Manually check standard-to-anatomical registration
 if($manual && $manxfm == std2anat) then
   if(! -e $anat2std_regdat) then
     echo "ERROR: you must run without --manual or --manxfm to create registration first"
     exit 1;
   endif
-  set cmd = ($TKR   --tag --s $subject  --inorm\
-            --targ $refvolcor \
+  set cmd = ($TKR  --tag --s $subject  --inorm\
+            --targ $refvolcor --volview mov\
             --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
             --reg $anat2std_regdat --fslreg $std2anat_fslmat)
   if($manual_use_surf) set cmd = ($cmd --surf orig);
+  if($#title) set cmd = ($cmd --title $title);
   echo $cmd
   $cmd
   if($status) exit 1;
   exit 0;
 endif
 
-# Check function-tostandard registration
+# Manually check function-to-standard registration
 if($manual && $manxfm == func2std) then
   if(! -e $std2exf_regdat) then
     echo "ERROR: you must run without --manual or --manxfm to create registration first"
     exit 1;
   endif
   set cmd = ($TKR --targ $FSLDIR/etc/standard/avg152T1_brain.img \
-            --mov $FeatDir/example_func.$fslext \
+            --mov $FeatDir/example_func.$fslext --volview mov\
             --reg $std2exf_regdat --s $subject --tag  --inorm);
+  if($#title) set cmd = ($cmd --title $title);
   echo $cmd
   $cmd
   if($status) exit 1;
@@ -178,6 +182,7 @@ echo $0 | tee -a $LF
 echo $cmdargs | tee -a $LF
 uname -a | tee -a $LF
 
+# Make sure the anatomical is there
 set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol.mgz
 if(! -e $refvolcor) then
   set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol
@@ -186,16 +191,6 @@ if(! -e $refvolcor) then
     exit 1;
   endif
 endif
-# Convert the reference volume to analyze
-set refvol =  $FeatDir/reg/freesurfer/tmp/anat.$fslext
-set cmd = (mri_convert $refvolcor $refvol)
-echo $cmd | tee -a $LF
-$cmd |& tee -a $LF
-if($status) then
-  echo "ERROR: mri_convert" | tee -a $LF
-  exit 1;
-endif
-
 # Create the init exf2anat matrix -- this is not accurate, Just
 # gets things lined up. We'll compute a better one below. If
 # the input has a valid vox2ras, then use that, otherwise,
@@ -251,72 +246,19 @@ else
   $cmd | tee -a $LF
   if($status) exit 1;
 endif
-
-# Brain extraction on the example func
-set tempvol0 = $tempvol
-if($DoBETFunc) then
-  set cmd = (betfunc $FeatDir/example_func $FeatDir/reg/freesurfer/tmp/exfbet)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-  set tempvol = $FeatDir/reg/freesurfer/tmp/exfbet.$fslext;
-endif
-
-# Now run flirt
 set outvol = $FeatDir/reg/freesurfer/tmp/exf-in-anat
 
-set cmd = (flirt -ref $refvol -in $tempvol)
-set cmd = ($cmd  -init $exf2anat_init_fslmat)
-set cmd = ($cmd  -out $outvol -interp trilinear)
-set cmd = ($cmd  -omat $exf2anat_fslmat -cost $cost -dof $dof)
-set cmd = ($cmd  -searchrx -$maxangle $maxangle);
-set cmd = ($cmd  -searchry -$maxangle $maxangle);
-set cmd = ($cmd  -searchrz -$maxangle $maxangle);
-date | tee -a $LF
+# Now run the fslregister cmd
+set cmd = (fslregister --s $subject --reg $anat2exf_regdat \
+  --mov $tempvol --dof $dof --bins $bins --cost $cost \
+  --fslmat $exf2anat_fslmat --fsvol $anatvol \
+  --maxangle $maxangle  --initfslmat $exf2anat_init_fslmat \
+  --tmp $FeatDir/reg/freesurfer/tmp --out $outvol.$fslext)
+if($DoBETFunc) set cmd = ($cmd --betfunc)
 echo $cmd | tee -a $LF
-$cmd |& tee -a $LF
-if($status) then
-  echo "ERROR: flirt" | tee -a $LF
-  exit 1;
-endif
-
-# Check for possible LR flip
-if(fslext == img) then
-  set tmp = (`cat $exf2anat_fslmat`);
-  set isflipped = `echo "$tmp[1] < 0" | bc -l`;
-  if($isflipped) then
-    echo "ERROR: appears to be a left-right reversal" | tee -a $LF
-    exit 1;
-  endif
-endif
-
-# Now create the freesurfer registration matrix
-set cmd = ($TKR --s $subject --mov $tempvol0)
-set cmd = ($cmd --reg $anat2exf_regdat)
-set cmd = ($cmd --fslreg $exf2anat_fslmat)
-set tkregcheckcmd = ($cmd --surf orig);  # for visual inspection
-if(! $debug) set cmd = ($cmd --noedit)
-if(! -e $SUBJECTS_DIR/$subject/mri/orig/COR-001) set cmd = ($cmd --mgz)
-
-echo "-------------------------------------------------------" | tee -a $LF
-echo $cmd | tee -a $LF
-$cmd |& tee -a $LF
-if($status) then
-  echo "ERROR: tkregister2" | tee -a $LF
-  exit 1;
-endif
-
-# Create an identity matrix for the output
-set outvolreg = $outvol.fsreg.dat
-rm -f $outvolreg
-echo $subject >> $outvolreg
-echo 0  >> $outvolreg
-echo 0  >> $outvolreg
-echo .1 >> $outvolreg
-echo "1 0 0 0" >> $outvolreg
-echo "0 1 0 0" >> $outvolreg
-echo "0 0 1 0" >> $outvolreg
-echo "0 0 0 1" >> $outvolreg
+$cmd | tee -a $LF
+if($status) exit 1;
+cp $anat2exf_regdat $FeatDir/reg/freesurfer/register.dat
 
 # Just for fun, create a matrix to map exf to talairach:
 set cmd = ($TKR --targ $FSLDIR/etc/standard/avg152T1_brain.img \
@@ -356,20 +298,35 @@ $cmd | tee -a $LF
 if($status) exit 1;
 
 
+set cmd = ($TKR --s $subject --mov $tempvol)
+set cmd = ($cmd --reg $anat2exf_regdat)
+set cmd = ($cmd --fslreg $exf2anat_fslmat)
+set cmd = ($cmd --surf orig);  # for visual inspection
 echo ""
 echo "To visually check your results, run:" | tee -a $LF
-echo $tkregcheckcmd --tag | tee -a $LF
+echo $cmd --tag | tee -a $LF
 echo ""
 echo ""
 
 if($cleanup == 0) then
+  # Create an identity matrix for the output
+  set outvolreg = $outvol.fsreg.dat
+  rm -f $outvolreg
+  echo $subject >> $outvolreg
+  echo 0  >> $outvolreg
+  echo 0  >> $outvolreg
+  echo .1 >> $outvolreg
+  echo "1 0 0 0" >> $outvolreg
+  echo "0 1 0 0" >> $outvolreg
+  echo "0 0 1 0" >> $outvolreg
+  echo "0 0 0 1" >> $outvolreg
   echo "Or you can run:" | tee -a $LF
   set tkregcheckcmd2 = (tkregister2 --s $subject --mov $outvol)
   set tkregcheckcmd2 = ($tkregcheckcmd2 --reg $outvolreg --surf orig);
   echo $tkregcheckcmd2 | tee -a $LF
   echo ""
 else
-  rm -r $FeatDir/reg/freesurfer/tmp
+  rm -fr $FeatDir/reg/freesurfer/tmp
 endif
 
 date | tee -a $LF
@@ -429,12 +386,13 @@ while( $#argv != 0 )
       set fsreg = $argv[1]; shift;
       breaksw
 
-    case "--no-bet":
-      set DoBETFunc = 0;
+    case "--title":
+      if( $#argv < 1) goto arg1err;
+      set title = $argv[1]; shift;
       breaksw
 
-    case "--fslext-auto":
-      set fslext = ();
+    case "--no-bet":
+      set DoBETFunc = 0;
       breaksw
 
     case "--debug":
@@ -546,9 +504,10 @@ usage_exit:
   echo " --maxangle angle : FLIRT max search angle (default is $maxangle)"
   echo " --no-bet         : do not run betfunc on example_func"
   echo " "
-  echo " --version            : print version and exit"
-  echo " --help               : print help and exit"
-  echo " --debug              : turn on debugging"
+  echo " --title        : title for tkregister window"
+  echo " --version      : print version and exit"
+  echo " --help         : print help and exit"
+  echo " --debug        : turn on debugging"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -585,9 +544,14 @@ Creates featdir/reg/freesurfer with the following files:
   exf2anat.init.fsl.mat - init  FSL reg from example_func to anat.
   exf2anat.fsl.mat      - final FSL reg from example_func to anat.
   anat2exf.register.dat - final FS  reg from example_func to anat.
+  register.dat          - same as anat2exf.register.dat
 
 anat2exf.register.dat is the final product of this script and is what is
 used by other FreeSurfer programs.
+
+After subject data has been resampled to standard space, you can still
+interface with freesurfer using std2anat.fsl.mat instead of 
+anat2exf.register.dat.
 
 Creates log file: reg/freesurfer/reg-feat2anat.log
 
@@ -664,6 +628,5 @@ feat2surf --feat fbert.feat
 SEE ALSO
 
 feat2surf, aseg2feat, aparc2feat, tkmedit, tksurfer, mris_preproc,
-mri_glmfit, tkregister2.
-
+mri_glmfit, tkregister2, fslregister
 
