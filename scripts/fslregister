@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/24 22:10:21 $
-#    $Revision: 1.15 $
+#    $Date: 2007/07/26 16:52:54 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.15 2007/07/24 22:10:21 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.16 2007/07/26 16:52:54 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -321,6 +321,10 @@ while( $#argv != 0 )
       set betref = 1;
       breaksw
 
+    case "--noinitxfm":
+      set initxfm = 0;
+      breaksw
+
     case "--initxfm":
       set initxfm = 1;
       breaksw
@@ -332,6 +336,12 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $InitFSLMat"
         exit 1;
       endif
+      set initxfm = 0;
+      breaksw
+
+    case "--fslmat":
+      if ( $#argv < 1) goto arg1err;
+      set fslmat = $argv[1]; shift;
       breaksw
 
     case "--frame":
@@ -352,6 +362,10 @@ while( $#argv != 0 )
 
     case "--nocleanup":
       set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
       breaksw
 
     case "--debug":
@@ -416,12 +430,13 @@ usage_exit:
   echo "Required Arguments:";
   echo "   --s subjid"
   echo "   --mov volid  : input/movable volume"
-  echo "   --reg register.dat"
+  echo "   --reg    register.dat"
   echo ""
   echo "Optional Arguments"
   echo ""
-  echo "   --initfslmat matfile : supply initial fsl matrix file (not with --initxfm)"
-  echo "   --initxfm        : initialize based on header goemetry (not with --initfslmat)"
+  echo "   --fslmat fsl.mat : output registration matrix in fsl format"
+  echo "   --initfslmat matfile : supply initial fsl matrix file (implies --noinitxfm)"
+  echo "   --noinitxfm  : do not initialize based on header goemetry"
   echo " "
   echo "   --dof  dof       : FLIRT DOF (default is $dof)"
   echo "   --bins bins      : FLIRT bins (default is $bins)"
