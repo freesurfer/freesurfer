@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/05 22:17:57 $
- *    $Revision: 1.35 $
+ *    $Date: 2007/07/27 19:15:11 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1631,11 +1631,22 @@ VERTEX * MHTfindClosestVertex(MRIS_HASH_TABLE *mht,
 
 /*---------------------------------------------------------------------
   MHTfindClosestVertexSet.
-  Returns vertex in mht and mris that is closest to v.
-  Ostensibly allows choice of which surface vertex "set", but this is
-  conceptually incorrect, as vertex set is determined at time MHT is created.
-  (So GW revised this behavior to ErrorExit when which doesn't match
-  mht->which_vertices.)
+  Comment revised 2007-07-25:
+  Returns vertex in mht and mris that is closest to v->x, v->y, v->z.
+  The which parameter is actually ignored. However, it suggests that 
+  MHTfindClosestVertexSet allows some choice of either the v coordinate 
+  to use as reference point, or of the surface to be searched. 
+  However, neither is true: The choice of surface coords is established 
+  when the surface is hashed into the mht, and in MHTfindClosestVertexSet 
+  the which parameter is not used to select the coordinates within v.  
+  Because this all might be misleading, GW's version of this code
+  calls ErrorExit when which doesn't match mht->which_vertices, as that 
+  implies a misunderstanding.
+
+  Code revision 2007-07-25 GW: I had misunderstood the v1.27 code regarding
+  which coords of v to use as the reference point. See updated lines below 
+  marked [GW 2007-07-25]
+
   -----------------------------------------------------------------------*/
 VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, 
                                  MRI_SURFACE *mris, 
@@ -1659,7 +1670,13 @@ VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht,
   //---------------------------------
   // Generic find
   //---------------------------------
-  mhtVertex2xyz_float(v, mht->which_vertices, &x, &y, &z);
+  // mhtVertex2xyz_float(v, mht->which_vertices, &x, &y, &z);   
+  // [GW 2007-07-25]: doesn't match v1.27 semantics
+  // [GW 2007-07-25]: v1.27 uses v->x, v->y, v->z
+  x = v->x;
+  y = v->y;
+  z = v->z;
+  // End [GW 2007-07-25]
 
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
@@ -1668,6 +1685,7 @@ VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht,
                                      &vtx, NULL, NULL);
   return vtx;
 }
+
 
 /*--------------------------------------------------------------------
   MHTfindClosestVertexNo()
