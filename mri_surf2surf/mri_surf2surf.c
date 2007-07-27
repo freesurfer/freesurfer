@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/25 19:28:24 $
- *    $Revision: 1.56 $
+ *    $Date: 2007/07/27 17:24:42 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -324,7 +324,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.56 2007/07/25 19:28:24 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.57 2007/07/27 17:24:42 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -422,7 +422,7 @@ int main(int argc, char **argv) {
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.56 2007/07/25 19:28:24 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.57 2007/07/27 17:24:42 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -922,6 +922,7 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--reshape-factor")) {
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[1],"%d",&reshapefactortarget);
+      reshape = 1;
       nargsused = 1;
     } else if (!strcasecmp(option, "--sval-nxyz")) {
       if (nargc < 1) argnerr(option,1);
