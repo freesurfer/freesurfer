@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/03 18:50:32 $
-#    $Revision: 1.5 $
+#    $Date: 2007/07/27 20:53:36 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_aparc2aseg,v 1.5 2007/07/03 18:50:32 nicks Exp $'
+set VERSION='$Id: test_mri_aparc2aseg,v 1.6 2007/07/27 20:53:36 nicks Exp $'
 
 umask 002
 
@@ -41,8 +41,8 @@ gunzip -c testdata.tar.gz | tar xvf -
 set cmd=(./mri_aparc2aseg --s testdata --ribbon)
 echo ""
 echo $cmd
-echo "Output is directed to file 'test_mri_aparc2aseg.out.txt'..."
-$cmd >& test_mri_aparc2aseg.out.txt
+echo "Output is directed to file 'test_mri_aparc2aseg.log'..."
+$cmd >& test_mri_aparc2aseg.log
 if ($status != 0) then
   echo "test_mri_aparc2aseg FAILED"
   exit 1
@@ -89,8 +89,8 @@ set cmd=( ./mri_aparc2aseg --s testdata2 \
             --o $SUBJECTS_DIR/testdata2/mri/wmparc.mgz )
 echo ""
 echo $cmd
-echo "Output is directed to file 'test_mri_aparc2aseg.out.txt'..."
-$cmd >>& test_mri_aparc2aseg.out.txt
+echo "Output is directed to file 'test_mri_aparc2aseg.log'..."
+$cmd >>& test_mri_aparc2aseg.log
 if ($status != 0) then
   echo "test_mri_aparc2aseg FAILED"
   exit 1
@@ -118,7 +118,7 @@ endif
 #
 # cleanup
 #
-cd ..
+cd $SUBJECTS_DIR
 rm -Rf testdata testdata2 
 
 echo ""
