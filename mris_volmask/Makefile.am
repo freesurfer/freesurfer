@@ -22,6 +22,8 @@ $(VTK_Z_LIB) $(VTK_EXPAT_LIB) $(VTK_METAIO_LIB) \
 -lvtksys \
 $(VTK_MPEG2ENCODE_LIB) -lvtkexoIIc -lvtkNetCDF
 
+TESTS=test_mris_volmask
+
 # put a wrapper around the bin, used to setup VTK enviro vars
 install-exec-hook:
 	cp $(srcdir)/mris_volmask $(DESTDIR)$(bindir)/mris_volmask.bin
@@ -31,7 +33,7 @@ install-exec-hook:
 	echo "mris_volmask.bin \$$argv" >> $(DESTDIR)$(bindir)/mris_volmask
 	chmod a+x $(DESTDIR)$(bindir)/mris_volmask
 
-EXTRA_DIST=cmd_line_interface.h
+EXTRA_DIST=cmd_line_interface.h test_mris_volmask
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
