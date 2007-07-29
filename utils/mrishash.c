@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/27 19:15:11 $
- *    $Revision: 1.36 $
+ *    $Date: 2007/07/29 03:03:08 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1222,8 +1222,13 @@ void MHTfindReportCounts(int * BucketsChecked, int * BucketsPresent)
   *BucketsPresent = FindBucketsPresent_Count;
 }
 
+
 /*----------------------------------------------------------------
   mhtfindClosestVertexGenericInBucket
+
+  2007-07-27 GW: Prior to this, ADistSq was based on CURRENT_VERTICES, 
+  when it should have been based on the vertices specified by 
+  mht->which_vertices. Search for [2007-07-27 GW]
 
   -----------------------------------------------------------------*/
 int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht, 
@@ -1244,6 +1249,8 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
   double ADistSq;
   MHB       *bin ;
   MHBT      *bucket ;
+  float tryx, tryy, tryz; // Added [2007-07-27 GW]
+  
   //----------------------------------
   rslt = NO_ERROR;
 
@@ -1262,14 +1269,25 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
   for (vtxix = 0 ; vtxix < bucket->nused ; vtxix++, bin++)
   {
     AVtxNum = bin->fno;
+
     AVtx = &mris->vertices[AVtxNum];
 
     if (AVtxNum == Gdiag_no)
       DiagBreak() ;
 
-    ADistSq = SQR(AVtx->x - probex)
-      + SQR(AVtx->y - probey)
-      + SQR(AVtx->z - probez) ;
+//    Replaced below [2007-07-27 GW]
+//    ADistSq = SQR(AVtx->x - probex)    
+//      + SQR(AVtx->y - probey)
+//      + SQR(AVtx->z - probez) ;
+
+    //----- New [2007-07-27 GW] -----
+    mhtVertex2xyz_float(AVtx, mht->which_vertices, 
+                        &tryx, &tryy, &tryz);  // Added [2007-07-27 GW]
+
+    ADistSq = SQR(tryx - probex) 
+            + SQR(tryy - probey)
+            + SQR(tryz - probez) ;
+    //----- end new -----
 
     if (ADistSq < *MinDistSq)
     {
@@ -1281,6 +1299,7 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
  done:
   return rslt;
 }
+
 
 /*
  ----------------------------------------------------------------
