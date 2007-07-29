@@ -1,15 +1,15 @@
 /**
  * @file  mris_volume.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief compute the enclosed volume of a surface
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Use Strokes theorem to compute the volume enclosed by a surface.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl and Xiao Han
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/15 23:37:58 $
- *    $Revision: 1.4 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/29 16:44:06 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,9 +32,9 @@
 // original author: Xiao Han
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2007/01/15 23:37:58 $
-// Revision       : $Revision: 1.4 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2007/07/29 16:44:06 $
+// Revision       : $Revision: 1.5 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -71,12 +71,12 @@ int main(int argc, char *argv[]) {
   char   **av, *in_fname;
   int    ac, nargs;
   MRIS    *mris;
-  int    msec, minutes, seconds;
+  int    msec, minutes, seconds, nv, nf, ne, eno ;
   struct timeb start ;
   double total_volume;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_volume.c,v 1.4 2007/01/15 23:37:58 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_volume.c,v 1.5 2007/07/29 16:44:06 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -108,6 +108,10 @@ int main(int argc, char *argv[]) {
   if(mris == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface %s",
               Progname, in_fname) ;
+  eno = MRIScomputeEulerNumber(mris, &nv, &nf, &ne) ;
+  if (eno != 2)
+    ErrorExit(ERROR_BADPARM, "%s: surface %s has an incorrect topology (eno=%d)",
+              Progname, in_fname, eno) ;
 
   if(verbose) printf("surface file read in.\n");
 
