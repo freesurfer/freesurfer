@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.88 2007/06/19 15:09:12 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.89 2007/07/29 17:52:35 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -178,6 +178,7 @@ echo "##########################################################" >>& $OUTPUTF
 echo "Settings" >>& $OUTPUTF
 echo "PLATFORM $PLATFORM" >>& $OUTPUTF
 echo "HOSTNAME $HOSTNAME" >>& $OUTPUTF
+echo "gcc      `gcc --version | grep gcc`" >>& $OUTPUTF
 echo "BUILD_DIR $BUILD_DIR" >>& $OUTPUTF
 echo "SCRIPT_DIR $SCRIPT_DIR" >>& $OUTPUTF
 echo "LOG_DIR $LOG_DIR" >>& $OUTPUTF
