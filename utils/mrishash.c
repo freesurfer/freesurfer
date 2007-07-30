@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/30 00:07:50 $
- *    $Revision: 1.38 $
+ *    $Date: 2007/07/30 03:41:53 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1673,7 +1673,7 @@ VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht,
                                  int which)
 {
 //------------------------------------------------------
-  VERTEX * vtx;
+  VERTEX * vtx = NULL;
   int rslt;
   float x=0.0, y=0.0, z=0.0;
   //---------------------------------
@@ -1702,6 +1702,18 @@ VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht,
                                      1000,
                                      1, // max_mhts: search out to 3 x 3 x 3
                                      &vtx, NULL, NULL);
+
+  // [NJS: 2007-07-29]: added this code to run brute-force search if 
+  // no vtx is found by MHTfindClosestVertexGeneric
+  if (vtx == NULL) // did not find a vertex, so use brute-force
+  {
+    //printf("MHTfindClosestVertexGeneric did not find a vertex, "
+    //"using brute force search (MRISfindClosestVertex)...\n");
+    //fflush(stdout);
+    int vnum = MRISfindClosestVertex(mris, x, y, z, NULL);    
+    vtx = &mris->vertices[vnum];
+  }
+
   return vtx;
 }
 
