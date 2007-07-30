@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/18 22:29:19 $
- *    $Revision: 1.128 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/30 12:36:55 $
+ *    $Revision: 1.129 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -8047,7 +8047,8 @@ GCAMextract_density_map(MRI *mri_seg, MRI *mri_intensity, GCA_MORPH *gcam, int t
   */
 
 
-  mri_density = MRImakeDensityMap(mri_seg, mri_intensity, target_label, NULL) ;
+  mri_density = MRImakeDensityMap(mri_seg, mri_intensity, target_label, NULL,
+                                  mri_seg->xsize) ;
   if (Gx >= 0)
     printf("density at (%d, %d, %d) = %2.3f\n", Gx, Gy, Gz, MRIgetVoxVal(mri_density, Gx, Gy, Gz, 0)) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
