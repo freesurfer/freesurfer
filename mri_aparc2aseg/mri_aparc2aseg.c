@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/03 17:15:59 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/07/30 16:37:40 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.24 2007/07/03 17:15:59 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.25 2007/07/30 16:37:40 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -96,7 +96,7 @@ static VERTEX vtx;
 static int  lhwvtx, lhpvtx, rhwvtx, rhpvtx;
 static MATRIX *Vox2RAS, *CRS, *RAS;
 static float dlhw, dlhp, drhw, drhp;
-static float dminctx = 5.0;
+static float dmaxctx = 5.0;
 static int LabelWM=0;
 static int LabelHypoAsWM=0;
 static int RipUnknown = 0;
@@ -523,8 +523,8 @@ int main(int argc, char **argv) {
         if (!IsCortex && hemi == 1) segval = annotid+3000 + baseoffset;
         if (!IsCortex && hemi == 2) segval = annotid+4000 + baseoffset;
 
-        if (!IsCortex && dmin > dminctx && hemi == 1) segval = 5001;
-        if (!IsCortex && dmin > dminctx && hemi == 2) segval = 5002;
+        if (!IsCortex && dmin > dmaxctx && hemi == 1) segval = 5001;
+        if (!IsCortex && dmin > dmaxctx && hemi == 2) segval = 5002;
 
         MRIsetVoxVal(ASeg,c,r,s,0,segval);
         MRIsetVoxVal(AParc,c,r,s,0,annot);
@@ -650,9 +650,9 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&hashres);
       nargsused = 1;
-    } else if (!strcmp(option, "--wmparc-dmin")) {
+    } else if (!strcmp(option, "--wmparc-dmax")) {
       if (nargc < 1) argnerr(option,1);
-      sscanf(pargv[0],"%f",&dminctx);
+      sscanf(pargv[0],"%f",&dmaxctx);
       nargsused = 1;
     } else if (!strcmp(option, "--crs-test")) {
       if(nargc < 3) argnerr(option,3);
@@ -685,10 +685,16 @@ static void print_usage(void) {
   printf("   --o volfile : output aparc+aseg volume file\n");
   //printf("   --oaparc file : output aparc-only volume file\n");
   printf("   --ribbon : use mri/hemi.ribbon.mgz as a mask for ctx.\n");
-  printf("   --volmask: use mri/ribbon.mgz as a mask of  GM/WM as obtained from the surface - created with mris_volmask. \n");
   printf("\n");
   printf("   --a2005s : use aparc.a2005s instead of aparc\n");
   printf("   --annot annotname : use annotname instead of aparc\n");
+  printf("\n");
+  printf("   --labelwm : gyral white matter parcellation \n");
+  printf("   --wmparc-dmax : max dist (mm) from cortex to be labeld as gyral WM\n");
+  printf("   --rip-unknown : do not label WM based on 'unknown' corical label\n");
+  printf("   --hypo-as-wm : label hypointensities as WM\n");
+  printf("\n");
+  printf("\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("   --crs-test c r s : test mapping of col row slice\n");
@@ -740,6 +746,15 @@ static void print_help(void) {
     "The output file will be set to annotname+aseg.mgz, but this can be \n"
     "changed with --o. Note: running --annot aparc.a2005s is NOT the\n"
     "same as running --a2005s. The index numbers will be different.\n"
+    "\n"
+    "--labelwm\n"
+    "\n"
+    "For each voxel labeled as white matter in the aseg, re-assign its \n"
+    "label to be that of the closest cortical point if its distance is\n"
+    "less than dmaxctx. The default value of dmaxctx is 5mm, but this can\n"
+    "be changed with --wmparc-dmax. If it is beyond this distance, then\n"
+    "it is labeld as 'Unsegmented White Matter'.\n"
+    "\n"
     "\n"
     "EXAMPLE:\n"
     "\n"
@@ -800,7 +815,7 @@ static void dump_options(FILE *fp) {
   if (LabelWM) {
     printf("labeling wm\n");
     if (LabelHypoAsWM) printf("labeling hypo-intensities as wm\n");
-    printf("dminctx %f\n",dminctx);
+    printf("dmaxctx %f\n",dmaxctx);
   }
   fprintf(fp,"RipUnknown %d\n",RipUnknown);
   return;
