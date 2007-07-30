@@ -1,18 +1,17 @@
 /**
  * @file  mri_extract_label.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Create a volume containing just the specified labels
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/07/30 03:35:24 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -24,7 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +42,8 @@
 
 #define UNIT_VOLUME 128
 
-static char vcid[] = "$Id: mri_extract_label.c,v 1.9 2006/12/29 02:09:06 nicks Exp $";
+static char vcid[] =
+  "$Id: mri_extract_label.c,v 1.10 2007/07/30 03:35:24 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,24 +52,33 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-static int  extract_labeled_image(MRI *mri_in, TRANSFORM *transform, int label, MRI *mri_out) ;
+static int  extract_labeled_image(MRI *mri_in,
+                                  TRANSFORM *transform,
+                                  int label,
+                                  MRI *mri_out) ;
 
 char *Progname ;
-static char *out_like_fname = NULL ;
 
+static char *out_like_fname = NULL ;
 static char *xform_fname = NULL ;
 static LTA  *lta = NULL;
 static TRANSFORM *transform = NULL ;
 static float sigma = 0 ;
+static int exit_none_found = 0;
+static int nvoxels = 0; // track the number of label voxels found
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char        **av, *in_fname, *out_fname ;
   int         ac, nargs, i, label ;
   MRI         *mri_in, *mri_out, *mri_kernel, *mri_smoothed ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_label.c,v 1.9 2006/12/29 02:09:06 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option
+          (argc, argv,
+           "$Id: mri_extract_label.c,v 1.10 2007/07/30 03:35:24 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -81,7 +89,8 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -98,23 +107,32 @@ main(int argc, char *argv[]) {
   if (!mri_in)
     ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume %s", Progname,
               in_fname) ;
-  if (out_like_fname) {
+  if (out_like_fname)
+  {
     MRI *mri_tmp = MRIread(out_like_fname) ;
     if (!mri_tmp)
-      ErrorExit(ERROR_NOFILE, "%s: could not read template volume from %s",out_like_fname) ;
-    mri_out = MRIalloc(mri_tmp->width, mri_tmp->height, mri_tmp->depth, mri_tmp->type) ;
+      ErrorExit
+      (ERROR_NOFILE,
+       "%s: could not read template volume from %s",
+       out_like_fname) ;
+    mri_out = MRIalloc(mri_tmp->width,
+                       mri_tmp->height,
+                       mri_tmp->depth,
+                       mri_tmp->type) ;
     /*    MRIcopyHeader(mri_tmp, mri_out) ;*/
     MRIfree(&mri_tmp) ;
-  } else
+  }
+  else
     mri_out = MRIclone(mri_in, NULL) ;
 
-
-  for (i = 2 ; i < argc-1 ; i++) {
+  for (i = 2 ; i < argc-1 ; i++)
+  {
     label = atoi(argv[i]) ;
     printf("extracting label %d (%s)\n", label, cma_label_to_name(label)) ;
     extract_labeled_image(mri_in, transform, label, mri_out) ;
   }
-  if (!FZERO(sigma)) {
+  if (!FZERO(sigma))
+  {
     printf("smoothing extracted volume...\n") ;
     mri_kernel = MRIgaussian1d(sigma, 10*sigma) ;
     mri_smoothed = MRIconvolveGaussian(mri_out, NULL, mri_kernel) ;
@@ -127,6 +145,11 @@ main(int argc, char *argv[]) {
   printf("writing output to %s.\n", out_fname) ;
   MRIwrite(mri_out, out_fname) ;
 
+  if (exit_none_found && (nvoxels == 0))
+  {
+    printf("No voxels with specified label were found!\n");
+    exit(1);
+  }
 
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -138,7 +161,8 @@ main(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
@@ -147,20 +171,31 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "DEBUG_VOXEL")) {
+  else if (!stricmp(option, "DEBUG_VOXEL"))
+  {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx,Gy,Gz) ;
-  } else if (!stricmp(option, "out_like") || !stricmp(option, "ol")) {
+  }
+  else if (!stricmp(option, "out_like") || !stricmp(option, "ol"))
+  {
     out_like_fname = argv[2] ;
     nargs = 1 ;
     printf("shaping output to be like %s...\n", out_like_fname) ;
-  } else switch (toupper(*option)) {
+  }
+  else if (!stricmp(option, "exit_none_found"))
+  {
+    exit_none_found = 1;
+    printf("will exit status 1 if no labels found\n");
+  }
+  else switch (toupper(*option))
+    {
     case 'S':
       sigma = atof(argv[2]) ;
-      printf("applying sigma=%2.1f smoothing kernel after extraction...\n",sigma) ;
+      printf("applying sigma=%2.1f smoothing kernel after extraction...\n",
+             sigma) ;
       nargs = 1 ;
       break ;
     case 'T':
@@ -194,42 +229,55 @@ get_option(int argc, char *argv[]) {
 }
 
 static void
-usage_exit(void) {
+usage_exit(void)
+{
   print_usage() ;
   print_help() ;
   exit(1) ;
 }
 
 static void
-print_usage(void) {
-  fprintf(stderr,
-          "usage: %s [options] <input volume> <label 1> <label 2> ... <output name>\n",
-          Progname) ;
+print_usage(void)
+{
+  fprintf
+  (stderr,
+   "usage: %s [options] <input volume> <label 1> <label 2> ... "
+   "<output name>\n",
+   Progname) ;
   fprintf(stderr, "where options are:\n") ;
-  fprintf(stderr,
-          "\t-s <sigma>\tapply a Gaussian smoothing kernel\n"
-          "\t-t <xform file>\tapply the transform in <xform file> to extracted volume\n");
+  fprintf
+  (stderr,
+   "\t-s <sigma>\tapply a Gaussian smoothing kernel\n"
+   "\t-t <xform file>\tapply the transform in <xform file> to "
+   "extracted volume\n");
 }
 
 static void
-print_help(void) {
-  fprintf(stderr,
-          "\nThis program will extract a set of labeled voxels from an image\n") ;
+print_help(void)
+{
+  fprintf
+  (stderr,
+   "\nThis program will extract a set of labeled voxels from an image\n") ;
   exit(1) ;
 }
 
 static void
-print_version(void) {
+print_version(void)
+{
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
 
 static int
-extract_labeled_image(MRI *mri_src, TRANSFORM *transform, int label, MRI *mri_dst) {
+extract_labeled_image(MRI *mri_src,
+                      TRANSFORM *transform,
+                      int label,
+                      MRI *mri_dst)
+{
   MRI  *mri_binarized, *mri_tmp ;
 
   mri_binarized = MRIclone(mri_src, NULL) ;
-  MRIcopyLabel(mri_src, mri_binarized, label) ;
+  nvoxels += MRIcopyLabel(mri_src, mri_binarized, label) ;
   MRIbinarize(mri_binarized, mri_binarized, 1, 0, UNIT_VOLUME) ;
   if (transform)
     mri_tmp = TransformCreateDensityMap(transform, mri_binarized, NULL) ;
