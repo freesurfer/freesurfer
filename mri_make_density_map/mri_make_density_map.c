@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/11 02:01:18 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/30 23:51:06 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 
 #define UNIT_VOLUME 128
 
-static char vcid[] = "$Id: mri_make_density_map.c,v 1.5 2007/07/11 02:01:18 fischl Exp $";
+static char vcid[] = "$Id: mri_make_density_map.c,v 1.6 2007/07/30 23:51:06 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -76,7 +76,7 @@ main(int argc, char *argv[]) {
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_density_map.c,v 1.5 2007/07/11 02:01:18 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_density_map.c,v 1.6 2007/07/30 23:51:06 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -139,7 +139,11 @@ main(int argc, char *argv[]) {
                          MRI_FLOAT) ;
       LTArasToVoxelXform(lta, mri_seg, mri_cor) ;
       m_L = lta->xforms[0].m_L ;
-      mri_tmp = MRImakeDensityMap(mri_seg, mri_intensity, label, NULL) ;
+      mri_tmp = MRImakeDensityMap(mri_seg, 
+                                  mri_intensity, 
+                                  label, 
+                                  NULL,
+                                  mri_seg->xsize) ;
       mri_out = MRIclone(mri_cor, NULL) ;
       MRIlinearTransformInterp(mri_tmp, mri_out, m_L, SAMPLE_TRILINEAR);
       MRIfree(&mri_tmp) ; MRIfree(&mri_cor) ;
