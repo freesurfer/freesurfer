@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/17 00:23:24 $
- *    $Revision: 1.17 $
+ *    $Date: 2007/07/30 23:10:29 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   surfcluster.c - routines for growing clusters on the surface
   based on intensity thresholds and area threshold. Note: this
   makes use of the undefval in the MRI_SURFACE structure.
-  $Id: surfcluster.c,v 1.17 2007/07/17 00:23:24 greve Exp $
+  $Id: surfcluster.c,v 1.18 2007/07/30 23:10:29 greve Exp $
   ----------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -466,3 +466,27 @@ double sclustMaxClusterArea(SURFCLUSTERSUM *scs, int nClusters)
     if (maxarea < scs[n].area) maxarea = scs[n].area;
   return(maxarea);
 }
+
+/*---------------------------------------------------------------*/
+SCS *sclustPruneByCWPval(SCS *ClusterList, int nclusters, 
+			 double cwpvalthresh, int *nPruned){
+
+  int n,nth;
+  SCS *scs;
+
+  nth = 0;
+  for(n=0; n < nclusters; n++)
+    if(ClusterList[n].pval_clusterwise < cwpvalthresh) nth++;
+  *nPruned = nth;
+
+  scs = (SCS *) calloc(*nPruned, sizeof(SCS));
+  nth = 0;
+  for(n=0; n < nclusters; n++){
+    if(ClusterList[n].pval_clusterwise < cwpvalthresh){
+      memcpy(&scs[nth],&ClusterList[n],sizeof(SCS));
+      nth++;
+    }
+  }
+  return(scs);
+}
+

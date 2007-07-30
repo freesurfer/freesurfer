@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/04/20 20:46:05 $
- *    $Revision: 1.37 $
+ *    $Date: 2007/07/30 23:10:29 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.37 2007/04/20 20:46:05 greve Exp $
+  $Id: mri_surfcluster.c,v 1.38 2007/07/30 23:10:29 greve Exp $
 */
 
 #include <stdio.h>
@@ -80,7 +80,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.37 2007/04/20 20:46:05 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.38 2007/07/30 23:10:29 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -136,6 +136,8 @@ int  nthlab = 0;
 LABEL *outlabel;
 VERTEX *v;
 
+char *outannot = NULL;
+
 char *synthfunc  = NULL;
 char *subjectsdir = NULL;
 int debug = 0;
@@ -150,7 +152,7 @@ char xfmpath[2000];
 MATRIX *XFM;
 int FixMNI = 1;
 
-SURFCLUSTERSUM *scs;
+SURFCLUSTERSUM *scs,*scs2;
 
 int overallmaxvtx,overallminvtx;
 float overallmax,overallmin;
@@ -173,10 +175,13 @@ int ReallyUseAverage7 = 0;
 double fwhm = -1;
 double fdr = -1;
 
+double cwpvalthresh = -1; // pvalue, NOT log10(p)!
+
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char fname[2000];
-  int  n,NClusters,vtx, rt;
+  int  n,NClusters,NPrunedClusters,vtx, rt;
   FILE *fp;
   float totarea;
   int nargs,err;
@@ -185,7 +190,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.37 2007/04/20 20:46:05 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.38 2007/07/30 23:10:29 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -462,6 +467,14 @@ int main(int argc, char **argv) {
       scs[n].pval_clusterwise_hi  = 0;
     }
   }
+  /* Remove clusters that do not meet the minimum clusterwise pvalue */
+  if(cwpvalthresh > 0 && (fwhm >0 || csd != NULL) ){
+    printf("Pruning by CW P-Value %g\n",cwpvalthresh);
+    scs2 = sclustPruneByCWPval(scs, NClusters, cwpvalthresh, &NPrunedClusters);
+    NClusters = NPrunedClusters;
+    scs = scs2;
+  }
+
 
   if (debug) {
     printf("-------------------------------------\n");
@@ -503,6 +516,8 @@ int main(int argc, char **argv) {
       fprintf(fp,"# Maximum Threshold %g\n",thmax);
     fprintf(fp,"# Threshold Sign    %s\n",thsign);
     fprintf(fp,"# AdjustThreshWhenOneTail %d\n",AdjustThreshWhenOneTail);
+    if(cwpvalthresh > 0)
+      fprintf(fp,"# CW PValue Threshold: %g \n",cwpvalthresh);
 
     fprintf(fp,"# Area Threshold    %g mm^2\n",minarea);
     if (synthfunc != NULL)
@@ -528,10 +543,13 @@ int main(int argc, char **argv) {
     fprintf(fp,"# FixMNI = %d\n",FixMNI);
     fprintf(fp,"# \n");
     fprintf(fp,"# ClusterNo  Max   VtxMax   Size(mm^2)  TalX   TalY   TalZ ");
-    if (csd != NULL)  fprintf(fp,"   CWP    CWPLow    CWPHi");
+
+    if(csd != NULL)  fprintf(fp,"   CWP    CWPLow    CWPHi");
+    else if(fwhm > 0) fprintf(fp,"  GRFCWP");
     fprintf(fp,"   NVtxs");
     if (annotname != NULL)  fprintf(fp,"   Annot");
     fprintf(fp,"\n");
+
     for (n=0; n < NClusters; n++) {
       fprintf(fp,"%4d     %8.3f  %6d  %8.2f   %6.1f %6.1f %6.1f",
               n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
@@ -539,6 +557,8 @@ int main(int argc, char **argv) {
       if (csd != NULL)
         fprintf(fp,"  %7.5lf  %7.5lf  %7.5lf", scs[n].pval_clusterwise,
                 scs[n].pval_clusterwise_low,scs[n].pval_clusterwise_hi);
+      else if (fwhm > 0)
+	fprintf(fp,"  %7.5lf",scs[n].pval_clusterwise);
       fprintf(fp,"  %4d",scs[n].nmembers);
       if (annotname != NULL)
         fprintf(fp,"  %s",
@@ -598,7 +618,7 @@ int main(int argc, char **argv) {
   }
 
   /* -- Save output clusters as labels -- */
-  if (outlabelbase != NULL) {
+  if(outlabelbase != NULL) {
     for (n=1; n <= NClusters; n++) {
       sprintf(outlabelfile,"%s-%04d.label",outlabelbase,n);
       outlabel = LabelAlloc(scs[n-1].nmembers,srcsubjid,outlabelfile);
@@ -620,6 +640,11 @@ int main(int argc, char **argv) {
     } // End loop over clusters
   }
 
+  if(outannot != NULL){
+    printf("No output annot yet\n");
+  }
+
+
   return(0);
 }
 /* ------------------------------------------------------------------ */
@@ -629,6 +654,7 @@ int main(int argc, char **argv) {
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
+  FILE *fp;
 
   if (argc < 1) usage_exit();
 
@@ -837,6 +863,10 @@ static int parse_commandline(int argc, char **argv) {
         ocpvalfmt = pargv[1];
         nargsused ++;
       }
+    } else if (!strcmp(option, "--cwpvalthresh") ) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&cwpvalthresh);
+      nargsused = 1;
     } else if (!strcmp(option, "--vwsig")) {
       if (nargc < 1) argnerr(option,1);
       voxwisesigfile = pargv[0];
@@ -844,6 +874,12 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--olab")) {
       if (nargc < 1) argnerr(option,1);
       outlabelbase = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--oannot")) {
+      if (nargc < 1) argnerr(option,1);
+      outannot= pargv[0];
+      printf("ERROR: --oannot not working yet\n");
+      exit(1);
       nargsused = 1;
     } else if (!strcmp(option, "--synth")) {
       if (nargc < 1) argnerr(option,1);
@@ -857,6 +893,16 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--fwhm")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fwhm);
+      nargsused = 1;
+    } else if (!strcmp(option, "--fwhmdat")) {
+      if(nargc < 1) argnerr(option,1);
+      fp = fopen(pargv[0],"r");
+      if(fp == NULL){
+	printf("ERROR: opening %s\n",pargv[0]);
+	exit(1);
+      }
+      fscanf(fp,"%lf",&fwhm);
+      fclose(fp);
       nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
@@ -899,6 +945,9 @@ static void print_usage(void) {
   printf("   --csdpdf csdpdffile\n");
   printf("   --csdpdf-only : write csd pdf file and exit.\n");
   printf("   --csd-out out.csd : write out merged csd files as one.\n");
+  printf("\n");
+  printf("   --fwhm    fwhm     :  fwhm in mm2 for GRF\n");
+  printf("   --fwhmdat fwhm.dat :  text file with fwhm in mm2 for GRF\n");
   printf("\n");
   printf("   --clabel labelfile : constrain to be within clabel\n");
   printf("   --cortex : set clabel to be subject/label/hemi.cortex.label\n");
@@ -1120,7 +1169,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.37 2007/04/20 20:46:05 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.38 2007/07/30 23:10:29 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
@@ -1299,7 +1348,10 @@ static void check_options(void) {
     exit(1);
   }
 
-
+  if(fwhm > 0 && !strcmp(thsign,"abs")){
+    printf("ERROR: you must specify a pos or neg sign with --fwhm\n");
+    exit(1);
+  }
 
   return;
 }
