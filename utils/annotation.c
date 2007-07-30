@@ -1,15 +1,16 @@
 /**
  * @file  annotation.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * utilities for surface-based parcellations (see Fischl et al., 
+ * Cerebral Cortex)
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/05/08 03:47:42 $
- *    $Revision: 1.18 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/30 14:40:10 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -402,7 +403,7 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) {
       continue ;
 #endif
     num = MRISdivideAnnotationUnit(mris, v->annotation, nunits[index]) ;
-    nadded += num ;
+    nadded += (num+1) ;
     done[index] = 1+num ;
   }
 
@@ -413,7 +414,7 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) {
     if (i == Gdiag_no)
       DiagBreak() ;
     *(ct->entries[i]) = *(mris->ct->entries[i]) ;
-    for (j = 1 ; j < done[i] ; j++) {
+    for (j = 0 ; done[i] > 1 && j < done[i] ; j++) {
       int offset, new_index, ri, gi, bi, found ;
 
       *(ct->entries[index]) = *(mris->ct->entries[i]) ;
