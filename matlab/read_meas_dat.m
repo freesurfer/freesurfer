@@ -68,15 +68,21 @@ function varargout = read_meas_dat(filename, options)
 % 2007/jul/09: improved support for "meas.out" files lacking headers
 
 % jonathan polimeni <jonnyreb@padkeemao.nmr.mgh.harvard.edu>, 10/04/2006
-% $Id: read_meas_dat.m,v 1.4 2007/07/10 17:00:39 jonnyreb Exp $
+% $Id: read_meas_dat.m,v 1.5 2007/07/30 20:58:56 jonnyreb Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.4 $';
+  VERSION = '$Revision: 1.5 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
 
   %------------------------------------------------------------------------%
   % basic error checking
+
+  matlab = version;
+  if ( str2num(matlab(1)) < 7 )
+    disp(sprintf('"%s" only supported for MATLAB 7.0 and higher', mfilename));
+    return;
+  end;
 
   if ( ~exist(filename, 'file') ),
     error('file [%s] does not exist', filename);
@@ -95,7 +101,7 @@ function varargout = read_meas_dat(filename, options)
   DO__FLIP_REFLECTED_LINES = 1;
   DO__CANONICAL_REORDER_COIL_CHANNELS = 1;
   DO__APPLY_FFT_SCALEFACTORS = 0;
-  DO__READ_MULTIPLE_REPETITIONS = 0;
+  DO__READ_MULTIPLE_REPETITIONS = 1;
 
 
   % if the "options" struct is provided by caller, then override default
@@ -104,22 +110,21 @@ function varargout = read_meas_dat(filename, options)
   if ( exist('options', 'var') ),
     if ( isfield(options, 'ReverseLines') ),
       DO__FLIP_REFLECTED_LINES = options.ReverseLines;
-      disp(sprintf('  FLIP_REFLECTED_LINES = %d', DO__FLIP_REFLECTED_LINES));
+      disp(sprintf(' :FLIP_REFLECTED_LINES = %d', DO__FLIP_REFLECTED_LINES));
     end;
     if ( isfield(options, 'CanonicalReorderCoilChannels') ),
       DO__CANONICAL_REORDER_COIL_CHANNELS = options.CanonicalReorderCoilChannels;
-      disp(sprintf('  CANONICAL_REORDER_COIL_CHANNELS = %d', DO__CANONICAL_REORDER_COIL_CHANNELS));
+      disp(sprintf(' :CANONICAL_REORDER_COIL_CHANNELS = %d', DO__CANONICAL_REORDER_COIL_CHANNELS));
     end;
     if ( isfield(options, 'ApplyFFTScaleFactors') ),
       DO__APPLY_FFT_SCALEFACTORS = options.ApplyFFTScaleFactors;
-      disp(sprintf('  APPLY_FFT_SCALEFACTORS = %d', DO__APPLY_FFT_SCALEFACTORS));
+      disp(sprintf(' :APPLY_FFT_SCALEFACTORS = %d', DO__APPLY_FFT_SCALEFACTORS));
     end;
     if ( isfield(options, 'ReadMultipleRepetitions') ),
       DO__READ_MULTIPLE_REPETITIONS = options.ReadMultipleRepetitions;
-      disp(sprintf('  READ_MULTIPLE_REPETITIONS = %d', DO__READ_MULTIPLE_REPETITIONS));
+      disp(sprintf(' :READ_MULTIPLE_REPETITIONS = %d', DO__READ_MULTIPLE_REPETITIONS));
     end;
-  end
-
+  end;
 
 
   % constants defined in <n4/pkg/MrServers/MrMeasSrv/SeqIF/MDH/mdh.h>
@@ -132,7 +137,7 @@ function varargout = read_meas_dat(filename, options)
   ICE_RAWDATA_SCALE       = 131072.0;  % 64 ^ 3 / 2
   K_ICE_AMPL_SCALE_FACTOR = 80 * 20 * ICE_RAWDATA_SCALE / 65536;
 
-  
+
   %------------------------------------------------------------------------%
 
   t0 = clock;
@@ -157,7 +162,7 @@ function varargout = read_meas_dat(filename, options)
 
     % jump to beginning of binary data, let's get to work!
     fseek(fp, data_start, 'bof');
-    
+
     % can't sort channels without header information  :(
     DO__CANONICAL_REORDER_COIL_CHANNELS = 0;
   else,
@@ -455,7 +460,7 @@ function varargout = read_meas_dat(filename, options)
 
       if ( DO__APPLY_FFT_SCALEFACTORS ),
         % scale whatever data comes in (QUESTION: should the noise data be scaled?)
-        adc_cplx = adc_cplx * fft_scale( pos(03) );
+        adc_cplx = adc_cplx * fft_scale( double(mdh(idx).ushChannelId+1) );
       end;
 
       if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFLECT) ),
@@ -526,17 +531,17 @@ function varargout = read_meas_dat(filename, options)
       % (all this is to cater to the 7T host's peculiarities. sigh...)
       if ( ~FLAG__stored_channel_indices ),
         if ( ~ismember(pos(03), channel_indices) ),
-	  % accumulate list of channel indices
+          % accumulate list of channel indices
           channel_indices(end+1) = pos(03);
-	  
-	  % record / update first and last channel numbers          
-	  channel_1 = channel_indices(1) - 1;
+
+          % record / update first and last channel numbers
+          channel_1 = channel_indices(1) - 1;
           channel_N = channel_indices(end) - 1;
         else,
           % all channels have been stored
           FLAG__stored_channel_indices = 1;
 
-	  % weirdness found
+          % weirdness found
           if ( (channel_indices(1) ~= 1) || ...
                (channel_indices(end) ~= length(channel_indices)) ),
             FLAG__channel_remap = 1;
@@ -630,7 +635,13 @@ function varargout = read_meas_dat(filename, options)
         end;
 
         % TODO: establish line counter for noise scans
+
+        % remove fft scaling of noise
+        if ( DO__APPLY_FFT_SCALEFACTORS ),
+          adc_cplx = adc_cplx / fft_scale( double(mdh(idx).ushChannelId+1) );
+        end;
         noiseadjscan(:, noise_line, pos(03)) = adc_cplx;
+
         continue;
 
         %%% CATEGORY #2: iPAT ACS lines reference scan
