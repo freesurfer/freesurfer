@@ -13,18 +13,39 @@ AM_LDFLAGS=
 
 noinst_LIBRARIES= libvtkfsio.a
 
-libvtkfsio_a_SOURCES=$(wildcard *.cxx)
+libvtkfsio_a_SOURCES=\
+	vtkFSSurfaceLabelSource.cxx \
+	vtkFSSurfaceWriter.cxx \
+	vtkFSSurfaceScalarsReader.cxx \
+	vtkFSSurfaceSource.cxx \
+	vtkFSVolumeSource.cxx
 
 am_libvtkfsio_a_OBJECTS=$(libvtkfsio_a_SOURCES:%.cxx=%.o)
 
-.cxx.o:
-	@echo "compiler: $(COMPILE) end_compiler"
-	source='$<' object='$@' libtool=no \
-	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
-	$(CCDEPMODE) $(depcomp) \
-	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
-
 EXTRA_DIST=$(wildcard *.h)
+
+check_PROGRAMS = vtkFSSurfaceWriterTester
+
+vtkFSSurfaceWriterTester_SOURCES=vtkFSSurfaceWriterTester.cxx
+
+vtkFSSurfaceWriterTester_LDADD=\
+	$(top_srcdir)/fsgdf/libfsgdf.a \
+	$(top_srcdir)/vtkfsio/libvtkfsio.a \
+	$(top_srcdir)/vtkutils/libvtkutils.a \
+	$(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
+	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
+	-lvtkImaging -lvtkFiltering \
+	-lvtkCommon -lvtksys \
+	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
+	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
+	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
+	-lvtkFilteringTCL -lvtkWidgetsTCL \
+	-lvtkHybridTCL -lvtkGraphicsTCL -lvtkImagingTCL -lvtkIOTCL \
+	-lvtkCommonTCL
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
