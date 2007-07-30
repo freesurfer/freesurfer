@@ -1,5 +1,5 @@
 /**
- * @file  mrishash.h
+ * @file  mrishash.c
  * @brief Implements a hash table mechanism to speed comparing vertices
  *
  * The purpose of MRI hash tables is to vastly accelerate algorithms which
@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/30 03:41:53 $
- *    $Revision: 1.39 $
+ *    $Date: 2007/07/30 23:13:11 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -27,20 +27,6 @@
  *
  */
 
-/*-------------------------------------------------------
-  GW Design Notes
-  ---------------
-
-  1. float, double, Real.
-  float and double are official C types.
-  Real is typedef'ed indirectly in MINC's basic.h as double.
-
-  mrishash.c 1.27 is inconsistent as to using double or Real, and I'm guessing
-  the choice of one or the other was not selected deliberately.
-  Since I prefer to get rid of unneeded dependencies, I have replaced Real with
-  double.
-
-  ---------------------------------------------------------*/
 #include <math.h>
 #include <stdlib.h>
 
@@ -71,7 +57,8 @@
 //==================================================================
 
 // GW_VERSION reported by MHTmrishash_gw_version()
-#define GW_VERSION 125
+// (This is basically a reality check for compile and link)
+#define GW_VERSION 126
 
 // __func__ in gcc appears not to be a predefined macro that can be
 // tested and also glued to string literals. Instead we have to use
@@ -182,6 +169,12 @@ static int mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht,
                                          MRI_SURFACE *mris,
                                          VOXEL_LISTgw *voxlist,
                                          int fno);
+
+// 2007-07-30 GW added
+int mhtBruteForceClosestVertex(MRI_SURFACE *mris, 
+                      float x, float y, float z, 
+                      int which,                  
+                      float *dmin);
 
 //--------- test -----------
 static int checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1);
@@ -1215,11 +1208,16 @@ void mhtFindCommonSanityCheck(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris)
 //------------------------------------------
 int FindBucketsChecked_Count;
 int FindBucketsPresent_Count;
+int VertexNumFoundByMHT;  /* 2007-07-30 GW: Added to allow diagnostics even 
+                             with fallback-to-brute-force */
 
-void MHTfindReportCounts(int * BucketsChecked, int * BucketsPresent)
+void MHTfindReportCounts(int * BucketsChecked, 
+                         int * BucketsPresent, 
+                         int * VtxNumByMHT)
 {
   *BucketsChecked = FindBucketsChecked_Count;
   *BucketsPresent = FindBucketsPresent_Count;
+  *VtxNumByMHT    = VertexNumFoundByMHT;       // 2007-07-30 GW
 }
 
 
@@ -1382,8 +1380,9 @@ int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
   //--------------------------------------------------
   // Initialize instrumentation
   //--------------------------------------------------
-  FindBucketsChecked_Count = 0;
-  FindBucketsPresent_Count = 0;
+  FindBucketsChecked_Count =  0;
+  FindBucketsPresent_Count =  0;
+  VertexNumFoundByMHT      = -1;  // -1 = "none found"  2007-07-30 GW
 
   //--------------------------------------------------
   // Figure how far afield to search
@@ -1494,20 +1493,20 @@ int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
     }
   }
 
+  if (max_mhts == 0) goto done; // stop if caller restricts us to "nearest 8", regardless of whether vertex found
+
+  RemainingVoxelDistance = 0.5 *  mhtres;        // all other voxels contain space at least this far away
+  if (max_distance_mm <= RemainingVoxelDistance)  goto done;  // Stop if caller restricts us to less than this
+
   //---------------------------------------------------------------------------
   // We can stop now if found vertex's distance is < 0.5 mhtres, because all
   // other voxels are at at least that far away
   //---------------------------------------------------------------------------
 
-  if (max_mhts == 0) goto done;
-
-  RemainingVoxelDistance = 0.5 *  mhtres;
-  if (max_distance_mm <= RemainingVoxelDistance)  goto done;
-
-  if (MinDistVtx)
-  { // not NULL if one has been found)
-    MinDistTemp = sqrt(MinDistSq);
-    if (MinDistTemp <= RemainingVoxelDistance)
+  if (MinDistVtx)                                 // if a vertex was found...
+  { // not NULL if one has been found)           
+    MinDistTemp = sqrt(MinDistSq);                // take sqrt
+    if (MinDistTemp <= RemainingVoxelDistance)    // if less than all remaining space, we can stop 
       goto done;
   }
 
@@ -1604,7 +1603,7 @@ int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
   {
     MinDistTemp = sqrt(MinDistSq);
     if (MinDistTemp > max_distance_mm)
-    {
+    { // Legit vertex not found, so set "not-found" values
       MinDistVtx     = NULL;
       MinDistVtxNum  = -1;
       MinDistTemp    = 1e3;
@@ -1615,6 +1614,8 @@ int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
   if (pvtx)         *pvtx         = MinDistVtx;
   if (vtxnum)       *vtxnum       = MinDistVtxNum;
   if (vtx_distance) *vtx_distance = MinDistTemp;
+
+  // 2007-07-30 GW added additional "instrumentation"  
 
   return NO_ERROR;
 }
@@ -1670,18 +1671,20 @@ VERTEX * MHTfindClosestVertex(MRIS_HASH_TABLE *mht,
 VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht, 
                                  MRI_SURFACE *mris, 
                                  VERTEX *v, 
-                                 int which)
+                                 int which_ignored)
 {
 //------------------------------------------------------
   VERTEX * vtx = NULL;
   int rslt;
   float x=0.0, y=0.0, z=0.0;
+  
+
   //---------------------------------
   // Sanity checks
   //---------------------------------
   mhtFindCommonSanityCheck(mht, mris);
 
-  if (mht->which_vertices != which )
+  if (mht->which_vertices != which_ignored )
     ErrorExit(ERROR_BADPARM,
               "%s called with mismatched 'which' parameter\n",
               __MYFUNCTION__) ;
@@ -1700,17 +1703,15 @@ VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht,
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
                                      1000,
-                                     1, // max_mhts: search out to 3 x 3 x 3
+                                     2,  // max_mhts: search out to 5 x 5 x 5
                                      &vtx, NULL, NULL);
 
-  // [NJS: 2007-07-29]: added this code to run brute-force search if 
-  // no vtx is found by MHTfindClosestVertexGeneric
-  if (vtx == NULL) // did not find a vertex, so use brute-force
+  // [2007-07-30 GW] GW's edition of the brute-force fall-back.
+
+  if (!vtx) // did not find a vertex, so use brute-force
   {
-    //printf("MHTfindClosestVertexGeneric did not find a vertex, "
-    //"using brute force search (MRISfindClosestVertex)...\n");
-    //fflush(stdout);
-    int vnum = MRISfindClosestVertex(mris, x, y, z, NULL);    
+    int vnum = mhtBruteForceClosestVertex(mris, x, y, z, 
+                                          mht->which_vertices, NULL);    
     vtx = &mris->vertices[vnum];
   }
 
@@ -1803,6 +1804,93 @@ int * MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht,
 
   return NULL;
 }
+
+/*------------------------------------------------------------
+  mhtBruteForceClosestVertex
+  Finds closest vertex by exhaustive search of surface. This is
+  useful as a fallback for other functions. (As of 2007-07-30,
+  it's being introduced only to MHTfindClosestVertexSet so far.)  
+  ------------------------------------------------------------*/
+int mhtBruteForceClosestVertex(MRI_SURFACE *mris, 
+                      float x, float y, float z, 
+                      int which,                  // which surface within mris to search
+                      float *dmin)
+{
+  int    vno, min_v = -1 ;
+  VERTEX *vtx ;
+  float  dsq, min_dsq;   //  Work with squares, avoid square root operation
+  float tryx=0.0, tryy=0.0, tryz=0.0, dx, dy, dz ;
+
+  min_dsq = 1e8;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vtx = &mris->vertices[vno] ;
+    if (vtx->ripflag)
+      continue ;
+
+    //-----------------------------------
+    // For maintainability probably better to call mhtVertex2xyz_float,
+    // and probably would get inlined anyway, 
+    // but due to frequency of call, implemented locally.
+    //-----------------------------------
+
+    switch (which)
+    {
+      case ORIGINAL_VERTICES  :
+        tryx = vtx->origx;
+        tryy = vtx->origy;
+        tryz = vtx->origz;
+      break;
+      case GOOD_VERTICES      :
+        break;
+      case TMP_VERTICES       :
+        break;
+      case CANONICAL_VERTICES :
+        tryx = vtx->cx;
+        tryy = vtx->cy;
+        tryz = vtx->cz;
+        break;
+      case CURRENT_VERTICES   :
+        tryx = vtx->x;
+        tryy = vtx->y;
+        tryz = vtx->z;
+        break;
+      case INFLATED_VERTICES  :
+        break;
+      case FLATTENED_VERTICES :
+        break;
+      case PIAL_VERTICES      :
+        tryx = vtx->pialx;
+        tryy = vtx->pialy;
+        tryz = vtx->pialz;
+        break;
+      case TMP2_VERTICES      :
+        break;
+      case WHITE_VERTICES     :
+        tryx = vtx->whitex;
+        tryy = vtx->whitey;
+        tryz = vtx->whitez;
+        break;
+    }
+
+    dx = tryx - x ;
+    dy = tryy - y ;
+    dz = tryz - z ;
+    
+    dsq = dx*dx + dy*dy + dz*dz ;  // squared distance is fine for detecting min
+    if (dsq < min_dsq)
+    {
+      min_dsq = dsq ;
+      min_v = vno ;
+    }
+  }
+  if (dmin != NULL)
+    *dmin = sqrt(min_dsq);
+
+  return(min_v) ;
+}
+
 
 //=================================================================
 //  Utility
