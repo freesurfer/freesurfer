@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/18 16:09:48 $
- *    $Revision: 1.275 $
+ *    $Date: 2007/07/30 17:12:24 $
+ *    $Revision: 1.276 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -842,13 +842,7 @@ static int surface_compiled = -1 ;
 static int use_display_lists = 0 ;
 static int FS_Brain_List = 1;
 static int vertex_array_dirty = 0;
-#ifndef IRIX
 static int use_vertex_arrays = 1;
-#define USE_VERTEX_ARRAYS 1
-#else
-static int use_vertex_arrays = 0;
-#undef USE_VERTEX_ARRAYS
-#endif
 
 static int color_scale_changed = TRUE;
 
@@ -12665,7 +12659,6 @@ int outside(float x,float y, float z) {
           ||-z<zmin||-z>zmax);
 }
 
-#ifdef USE_VERTEX_ARRAYS
 static GLfloat *vertices = NULL ;
 static GLfloat *normals = NULL ;
 
@@ -12800,341 +12793,67 @@ fill_vertex_arrays(MRI_SURFACE *mris) {
   return(NO_ERROR) ;
 }
 
-static int
-compile_brain_list(MRI_SURFACE *mris) {
-  int n,k;
-  FACE *f;
-  VERTEX* v;
-  float curv;
-
-  glDeleteLists(FS_Brain_List,1);
-  glNewList(FS_Brain_List, GL_COMPILE);
-
-  for (k=0;k<mris->nfaces;k++)
-    if (!mris->faces[k].ripflag) {
-
-      f = &mris->faces[k];
-      bgnpolygon();
-      for (n=0;n<VERTICES_PER_FACE;n++) {
-        v = &mris->vertices[f->v[n]];
-        if (flag2d && v->nz < 0)
-          v->nz *= -1 ;
-        /**** msurfer: single val data on gray curvature */
-        if (overlayflag && !complexvalflag) {
-          if (v->annotation) {
-            RGBcolor(v->annotation,v->annotation,v->annotation);
-          } else if (fieldsignflag) {
-            if (v->fieldsign>0.0) {
-              if (revphaseflag)
-                set_color(v->fsmask*v->fieldsign,v->curv,FIELDSIGN_NEG);
-              else
-                set_color(v->fsmask*v->fieldsign,v->curv,FIELDSIGN_POS);
-            } else {
-              if (revphaseflag)
-                set_color(-v->fsmask*v->fieldsign,v->curv,FIELDSIGN_POS);
-              else
-                set_color(-v->fsmask*v->fieldsign,v->curv,FIELDSIGN_NEG);
-            }
-          } else if (surfcolor)
-            set_color(v->val,v->curv,REAL_VAL);
-          else
-            set_color(v->val,0.0,REAL_VAL);
-
-          /**** msurfer: complex val data on gray curvature */
-        } else if (overlayflag && complexvalflag) {
-          if (surfcolor)
-            set_complexval_color(v->val,v->val2,v->stat,v->curv);
-          else
-            set_complexval_color(v->val,v->val2,v->stat,0.0);
-
-          /**** nsurfer: curvature, etc. red/green curv, 2d */
-        } else {
-          if (v->annotation) {
-            int  r, g, b ;
-            r = v->annotation & 0xff ;
-            g = (v->annotation >> 8) & 0xff ;
-            b = (v->annotation >> 16) & 0xff ;
-            RGBcolor(r,g,b);
-          } else {
-            if (surfcolor==CURVATURE_OR_SULCUS)
-              curv = (avgflag)?v->curv-dipavg:v->curv;
-#if 0
-            else if (surfcolor==AREAL_DISTORTION)
-              curv = (avgflag)?v->logarat-logaratavg:v->logarat;
-#endif
-#if 0
-            else if (surfcolor==SHEAR_DISTORTION)
-              curv = (avgflag)?v->logshear-logshearavg:v->logshear;
-            /* 2d only */
-#endif
-            else
-              curv = 0.0;
-
-            if (surfcolor)
-              set_color(0.0,curv,GREEN_RED_CURV);
-            else
-              set_color(0.0,0.0,GREEN_RED_CURV);
-
-            if (v->border)
-              set_color(0.0,0.0,BORDER);
-          }
-        }
-
-        if (v->marked)
-          set_color(0.0,0.0,MARKED+v->marked-1);
-
-        load_brain_coords(v->nx,v->ny,v->nz,v1);
-        n3f(v1);
-        load_brain_coords(v->x,v->y,v->z,v1);
-        v3f(v1);
-      }
-      endpolygon();
-    }
-  glEndList();
-  surface_compiled = 1;
-  return(NO_ERROR) ;
-}
-
 void
 draw_surface(void)  /* marty: combined three versions */
 {
-  int k,n,m;
-  FACE *f;
-  VERTEX *v,*vnei;
-  float curv;
 
-  //Note: use_vertex_arrays = 0 only when IRIX
-  //Note: use_display_lists apparently is always 0
-
-  if(use_vertex_arrays) {
-    // Looks like it always goes here
-    glCullFace(GL_BACK);
-    glEnable(GL_CULL_FACE);
-    glDeleteLists(FS_Brain_List,1);
-    if (!colors) init_vertex_arrays(mris) ;
-    if (vertex_array_dirty==1) {
-      fill_vertex_arrays(mris);
-      glEnableClientState ( GL_VERTEX_ARRAY );
-      glEnableClientState ( GL_COLOR_ARRAY );
-      glEnableClientState ( GL_NORMAL_ARRAY );
-      glVertexPointer(3, GL_FLOAT, 0, vertices) ;
-      glNormalPointer(GL_FLOAT, 0, normals) ;
-      glColorPointer(3, GL_FLOAT, 0, colors);
-      vertex_array_dirty = 0;
-    }
-    if (color_scale_changed) {
-      fill_color_array(mris, colors) ; // draws the overlay
-      color_scale_changed = TRUE;
-      glColorPointer  ( 3, GL_FLOAT, 0, colors );
-    }
-    glPolygonOffset(1.0,1.0);
-#ifndef IRIX
-    glEnable(GL_POLYGON_OFFSET_FILL);
-#endif
-    /* Draw the object*/
-    if (surfaceflag) {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-      if (VERTICES_PER_FACE==3) {
-        glDrawElements ( GL_TRIANGLES, 3*mris->nfaces, GL_UNSIGNED_INT,faces );
-      } else {
-        glDrawElements ( GL_QUADS, 4*mris->nfaces, GL_UNSIGNED_INT, faces );
-      }
-    }
-    glDisable(GL_POLYGON_OFFSET_FILL);
-    if (pointsflag) {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-      if (!mesh_colors)
-        init_mesh_colors(mris);
-      fill_mesh_colors();
-      glColorPointer( 3, GL_FLOAT, 0, mesh_colors);
-      if (VERTICES_PER_FACE==3) {
-        glDrawElements ( GL_TRIANGLES, 3*mris->nfaces, GL_UNSIGNED_INT,faces );
-      } else {
-        glDrawElements ( GL_QUADS, 4*mris->nfaces, GL_UNSIGNED_INT, faces );
-      }
-    }
-    if (verticesflag) {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-      if (!mesh_colors)
-        init_mesh_colors(mris);
-      fill_mesh_colors();
-      glColorPointer( 3, GL_FLOAT, 0, mesh_colors);
-      if (VERTICES_PER_FACE==3) {
-        glDrawElements( GL_TRIANGLES, 3*mris->nfaces, GL_UNSIGNED_INT, faces );
-      } else {
-        glDrawElements ( GL_QUADS, 4*mris->nfaces, GL_UNSIGNED_INT, faces );
-      }
-    }
-    /* not use vertex arrays */
-  } 
-  else if (use_display_lists == 1 && use_vertex_arrays == 0) {
-    printf(" using display lists !\n");
-    glCullFace(GL_BACK);
-    glEnable(GL_CULL_FACE);
-    vertex_array_dirty = 1;/* vertex arrays might be destroyed at this point */
-    if (!surface_compiled)
-      compile_brain_list(mris);
-
-    if (color_scale_changed) {
-      compile_brain_list(mris);
-      color_scale_changed = TRUE;
-    }
-    glPolygonOffset(1.0,1.0);
-    glEnable(GL_POLYGON_OFFSET_FILL);
-    /* Draw the object*/
-    if (surfaceflag) {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-      glCallList(FS_Brain_List);
-    }
-    glDisable(GL_POLYGON_OFFSET_FILL);
-    if (pointsflag) {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-      glCallList(FS_Brain_List);
-    }
-    if (verticesflag) {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-      glCallList(FS_Brain_List);
-    }
-  } 
-  else {
-    if (surfaceflag) {
-      for (k=0;k<mris->nfaces;k++)
-        if (!mris->faces[k].ripflag) {
-          f = &mris->faces[k];
-          bgnpolygon();
-          for (n=0;n<VERTICES_PER_FACE;n++) {
-            v = &mris->vertices[f->v[n]];
-            if (flag2d && v->nz < 0)
-              v->nz *= -1 ;
-            /**** msurfer: single val data on gray curvature */
-            if (overlayflag && !complexvalflag) {
-              if (v->annotation) {
-                RGBcolor(v->annotation,v->annotation,v->annotation);
-              } else if (fieldsignflag) {
-                if (v->fieldsign>0.0) {
-                  if (revphaseflag)
-                    set_color(v->fsmask*v->fieldsign,
-                              v->curv,FIELDSIGN_NEG);
-                  else
-                    set_color(v->fsmask*v->fieldsign,
-                              v->curv,FIELDSIGN_POS);
-                } else {
-                  if (revphaseflag)
-                    set_color(-v->fsmask*v->fieldsign,
-                              v->curv,FIELDSIGN_POS);
-                  else
-                    set_color(-v->fsmask*v->fieldsign,
-                              v->curv,FIELDSIGN_NEG);
-                }
-              } else if (surfcolor)
-                set_color(v->val,v->curv,REAL_VAL);
-              else
-                set_color(v->val,0.0,REAL_VAL);
-            }
-
-            /**** msurfer: complex val data on gray curvature */
-            else if (overlayflag && complexvalflag) {
-              if (surfcolor)
-                set_complexval_color(v->val,v->val2,v->stat,v->curv);
-              else
-                set_complexval_color(v->val,v->val2,v->stat,0.0);
-            }
-
-            /**** nsurfer: curvature, etc. red/green curv, 2d */
-            else {
-              if (v->annotation) {
-                int  r, g, b ;
-                r = v->annotation & 0xff ;
-                g = (v->annotation >> 8) & 0xff ;
-                b = (v->annotation >> 16) & 0xff ;
-                RGBcolor(r,g,b);
-              } else {
-                if (surfcolor==CURVATURE_OR_SULCUS)
-                  curv = (avgflag)?v->curv-dipavg:v->curv;
-#if 0
-                else if (surfcolor==AREAL_DISTORTION)
-                  curv = (avgflag)?v->logarat-logaratavg:v->logarat;
-#endif
-#if 0
-                else if (surfcolor==SHEAR_DISTORTION)
-                  curv =
-                    (avgflag)?v->logshear-logshearavg:v->logshear;
-                /* 2d only */
-#endif
-                else
-                  curv = 0.0;
-
-                if (surfcolor)
-                  set_color(0.0,curv,GREEN_RED_CURV);
-                else
-                  set_color(0.0,0.0,GREEN_RED_CURV);
-
-                if (v->border)
-                  set_color(0.0,0.0,BORDER);
-              }
-            }
-
-            if (v->marked)
-              set_color(0.0,0.0,MARKED+v->marked-1);
-
-            load_brain_coords(v->nx,v->ny,v->nz,v1);
-            n3f(v1);
-            load_brain_coords(v->x,v->y,v->z,v1);
-            v3f(v1);
-          }
-          endpolygon();
-        }
-    }
-
-    if (pointsflag) {   /* with surface too, only points with z<0 drawn??! */
-      // Never gets here?
-      RGBcolor(meshr,meshg,meshb);
-      bgnpoint();
-      for (k=0;k<mris->nvertices;k++)
-        if (!mris->vertices[k].ripflag) {
-          v = &mris->vertices[k];
-          load_brain_coords(v->nx,v->ny,v->nz,v1);
-          n3f(v1);
-          load_brain_coords(v->x+pup*v->nx,
-                            v->y+pup*v->ny,
-                            v->z+pup*v->nz,v1);
-          v3f(v1);
-        }
-      endpoint();
-    }
-
-    if (verticesflag)  /* marty */
-    {
-      // Never gets here?
-      RGBcolor(meshr,meshg,meshb);
-      for (k=0;k<mris->nvertices;k++)
-        if (!mris->vertices[k].ripflag) {
-          v = &mris->vertices[k];
-          for (m=0;m<v->vnum;m++) {
-            if (v->v[m]<k)      /* draw each edge once */
-              if (!mris->vertices[v->v[m]].ripflag) {
-                vnei = &mris->vertices[v->v[m]];
-                linewidth(mesh_linewidth);
-                bgnline();
-                load_brain_coords(vnei->nx,vnei->ny,vnei->nz,v1);
-                n3f(v1);
-                load_brain_coords(vnei->x+mup*vnei->nx,
-                                  vnei->y+mup*vnei->ny,
-                                  vnei->z+mup*vnei->nz,v1);
-                v3f(v1);
-                load_brain_coords(v->nx,v->ny,v->nz,v1);
-                n3f(v1);
-                load_brain_coords(v->x+mup*v->nx,
-                                  v->y+mup*v->ny,
-                                  v->z+mup*v->nz,v1);
-                v3f(v1);
-                endline();
-              }
-          }
-        }
-    }
-
+  glCullFace(GL_BACK);
+  glEnable(GL_CULL_FACE);
+  glDeleteLists(FS_Brain_List,1);
+  if (!colors) init_vertex_arrays(mris) ;
+  if (vertex_array_dirty==1) {
+    fill_vertex_arrays(mris);
+    glEnableClientState ( GL_VERTEX_ARRAY );
+    glEnableClientState ( GL_COLOR_ARRAY );
+    glEnableClientState ( GL_NORMAL_ARRAY );
+    glVertexPointer(3, GL_FLOAT, 0, vertices) ;
+    glNormalPointer(GL_FLOAT, 0, normals) ;
+    glColorPointer(3, GL_FLOAT, 0, colors);
+    vertex_array_dirty = 0;
   }
+  if (color_scale_changed) {
+    fill_color_array(mris, colors) ; // draws the overlay
+    color_scale_changed = TRUE;
+    glColorPointer  ( 3, GL_FLOAT, 0, colors );
+  }
+  glPolygonOffset(1.0,1.0);
+  glEnable(GL_POLYGON_OFFSET_FILL);
+  
+  /* Draw the object*/
+  if (surfaceflag) {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    if (VERTICES_PER_FACE==3) {
+      glDrawElements ( GL_TRIANGLES, 3*mris->nfaces, GL_UNSIGNED_INT,faces );
+    } else {
+      glDrawElements ( GL_QUADS, 4*mris->nfaces, GL_UNSIGNED_INT, faces );
+    }
+  }
+  glDisable(GL_POLYGON_OFFSET_FILL);
+  if (pointsflag) {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+    if (!mesh_colors)
+      init_mesh_colors(mris);
+    fill_mesh_colors();
+    glColorPointer( 3, GL_FLOAT, 0, mesh_colors);
+    if (VERTICES_PER_FACE==3) {
+      glDrawElements ( GL_TRIANGLES, 3*mris->nfaces, GL_UNSIGNED_INT,faces );
+    } else {
+      glDrawElements ( GL_QUADS, 4*mris->nfaces, GL_UNSIGNED_INT, faces );
+    }
+  }
+  if (verticesflag) {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    if (!mesh_colors)
+      init_mesh_colors(mris);
+    fill_mesh_colors();
+    glColorPointer( 3, GL_FLOAT, 0, mesh_colors);
+    if (VERTICES_PER_FACE==3) {
+      glDrawElements( GL_TRIANGLES, 3*mris->nfaces, GL_UNSIGNED_INT, faces );
+    } else {
+      glDrawElements ( GL_QUADS, 4*mris->nfaces, GL_UNSIGNED_INT, faces );
+    }
+  }
+  
   glFlush() ;
   if (scalebarflag)    draw_scalebar();
   if (colscalebarflag) draw_colscalebar();
@@ -13754,420 +13473,6 @@ get_complexval_color_vals(float x, float y, float stat, float curv,
   *pg = sg ;
   *pb = sb ;
 }
-#else
-void
-draw_surface(void)  /* marty: combined three versions */
-{
-  int k,n,m;
-  FACE *f;
-  VERTEX *v,*vnei;
-  float curv;
-#if VERTICES_PER_FACE == 4
-  float intdiv0,intdiv1,intdiv2,intdiv3,frac0,frac1,frac2,frac3,nx,ny,nz;
-  float cross_x[4],cross_y[4],cross_z[4];
-  int crossnum;
-#endif
-
-  if (use_display_lists) {
-    if (surface_compiled > 0) {
-      glCallList(1) ;
-      return ;
-    }
-
-    if (surface_compiled > -1)  /* needs recompilation - free old one */
-      glDeleteLists(1, 1) ;
-    glNewList(1, GL_COMPILE) ;
-  }
-
-#if 0
-  glCullFace(GL_BACK);
-  glEnable(GL_CULL_FACE);
-#endif
-
-  if (surfaceflag) {
-    for (k=0;k<mris->nfaces;k++)
-      if (!mris->faces[k].ripflag) {
-        f = &mris->faces[k];
-        bgnpolygon();
-        for (n=0;n<VERTICES_PER_FACE;n++)
-#if 0
-          if (!flag2d || mris->vertices[f->v[n]].nz>0)
-#endif
-          {
-            v = &mris->vertices[f->v[n]];
-            if (flag2d && v->nz < 0)
-              v->nz *= -1 ;
-
-            /**** msurfer: single val data on gray curvature */
-            if (overlayflag && !complexvalflag) {
-              if (v->annotation) {
-                RGBcolor(v->annotation,v->annotation,v->annotation);
-              } else if (fieldsignflag) {
-                if (v->fieldsign>0.0) {
-                  if (revphaseflag)
-                    set_color(v->fsmask*v->fieldsign,
-                              v->curv,FIELDSIGN_NEG);
-                  else
-                    set_color(v->fsmask*v->fieldsign,
-                              v->curv,FIELDSIGN_POS);
-                } else {
-                  if (revphaseflag)
-                    set_color(-v->fsmask*v->fieldsign,
-                              v->curv,FIELDSIGN_POS);
-                  else
-                    set_color(-v->fsmask*v->fieldsign,
-                              v->curv,FIELDSIGN_NEG);
-                }
-              } else if (surfcolor)
-                set_color(v->val,v->curv,REAL_VAL);
-              else
-                set_color(v->val,0.0,REAL_VAL);
-            }
-
-            /**** msurfer: complex val data on gray curvature */
-            else if (overlayflag && complexvalflag) {
-              if (surfcolor)
-                set_complexval_color(v->val,v->val2,v->stat,v->curv);
-              else
-                set_complexval_color(v->val,v->val2,v->stat,0.0);
-            }
-
-            /**** nsurfer: curvature, etc. red/green curv, 2d */
-            else {
-              if (v->annotation) {
-                int  r, g, b ;
-                r = v->annotation & 0xff ;
-                g = (v->annotation >> 8) & 0xff ;
-                b = (v->annotation >> 16) & 0xff ;
-                RGBcolor(r,g,b);
-              } else {
-                if (surfcolor==CURVATURE_OR_SULCUS)
-                  curv = (avgflag)?v->curv-dipavg:v->curv;
-#if 0
-                else if (surfcolor==AREAL_DISTORTION)
-                  curv = (avgflag)?v->logarat-logaratavg:v->logarat;
-#endif
-#if 0
-                else if (surfcolor==SHEAR_DISTORTION)
-                  curv =
-                    (avgflag)?v->logshear-logshearavg:v->logshear;
-                /* 2d only */
-#endif
-                else
-                  curv = 0.0;
-
-                if (surfcolor)
-                  set_color(0.0,curv,GREEN_RED_CURV);
-                else
-                  set_color(0.0,0.0,GREEN_RED_CURV);
-
-                if (v->border)
-                  set_color(0.0,0.0,BORDER);
-              }
-            }
-
-            if (v->marked)
-              set_color(0.0,0.0,MARKED+v->marked-1);
-
-            load_brain_coords(v->nx,v->ny,v->nz,v1);
-            n3f(v1);
-            load_brain_coords(v->x,v->y,v->z,v1);
-            v3f(v1);
-          }
-        endpolygon();
-      }
-  }
-
-  if (pointsflag) {   /* with surface too, only points with z<0 drawn??! */
-    RGBcolor(meshr,meshg,meshb);
-    bgnpoint();
-    for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].ripflag) {
-        v = &mris->vertices[k];
-        load_brain_coords(v->nx,v->ny,v->nz,v1);
-        n3f(v1);
-        load_brain_coords(v->x+pup*v->nx,v->y+pup*v->ny,v->z+pup*v->nz,v1);
-        v3f(v1);
-      }
-    endpoint();
-  }
-
-  if (verticesflag)  /* marty */
-  {
-    RGBcolor(meshr,meshg,meshb);
-    for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].ripflag) {
-        v = &mris->vertices[k];
-        for (m=0;m<v->vnum;m++) {
-          if (v->v[m]<k)      /* draw each edge once */
-            if (!mris->vertices[v->v[m]].ripflag) {
-              vnei = &mris->vertices[v->v[m]];
-              linewidth(mesh_linewidth);
-              bgnline();
-              load_brain_coords(vnei->nx,vnei->ny,vnei->nz,v1);
-              n3f(v1);
-              load_brain_coords(vnei->x+mup*vnei->nx,
-                                vnei->y+mup*vnei->ny,
-                                vnei->z+mup*vnei->nz,v1);
-              v3f(v1);
-              load_brain_coords(v->nx,v->ny,v->nz,v1);
-              n3f(v1);
-              load_brain_coords(v->x+mup*v->nx,
-                                v->y+mup*v->ny,
-                                v->z+mup*v->nz,v1);
-              v3f(v1);
-              endline();
-            }
-        }
-      }
-  }
-
-#if VERTICES_PER_FACE == 4
-  /* don't know what to do here if VERTICES_PER_FACE is 3 */
-  if (isocontourflag) {
-    RGBcolor(meshr,meshg,meshb);
-    for (k=0;k<mris->nfaces;k++)
-      if (!mris->faces[k].ripflag) {
-        f = &mris->faces[k];
-        for (m=0;m<3;m++) {
-          if (m==0) {
-            RGBcolor(255,230,0);
-            linewidth(4);
-          } else if (m==1) {
-            /*RGBcolor(190,145,255);*/
-            RGBcolor(180,135,255);
-            linewidth(3);
-          } else if (m==2)
-            RGBcolor(0,0,255);
-          crossnum = 0;
-          intdiv0 =
-            floor(mris->vertices[f->v[0]].coords[m]/contour_spacing[m]);
-          intdiv1 =
-            floor(mris->vertices[f->v[1]].coords[m]/contour_spacing[m]);
-          intdiv2 =
-            floor(mris->vertices[f->v[2]].coords[m]/contour_spacing[m]);
-          intdiv3 =
-            floor(mris->vertices[f->v[3]].coords[m]/contour_spacing[m]);
-          frac0   =
-            mris->vertices[f->v[0]].coords[m]/contour_spacing[m]-intdiv0;
-          frac1   =
-            mris->vertices[f->v[1]].coords[m]/contour_spacing[m]-intdiv1;
-          frac2   =
-            mris->vertices[f->v[2]].coords[m]/contour_spacing[m]-intdiv2;
-          frac3   =
-            mris->vertices[f->v[3]].coords[m]/contour_spacing[m]-intdiv3;
-          if (intdiv0!=intdiv1) {
-            cross_x[crossnum] = 
-              mris->vertices[f->v[0]].x+
-              (mris->vertices[f->v[1]].x-mris->vertices[f->v[0]].x)*
-              (1-frac0)/(1+frac1-frac0);
-            cross_y[crossnum] = 
-              mris->vertices[f->v[0]].y+
-              (mris->vertices[f->v[1]].y-mris->vertices[f->v[0]].y)*
-              (1-frac0)/(1+frac1-frac0);
-            cross_z[crossnum] = 
-              mris->vertices[f->v[0]].z+
-              (mris->vertices[f->v[1]].z-mris->vertices[f->v[0]].z)*
-              (1-frac0)/(1+frac1-frac0);
-            crossnum++;
-          }
-          if (intdiv1!=intdiv2) {
-            cross_x[crossnum] = 
-              mris->vertices[f->v[1]].x+
-              (mris->vertices[f->v[2]].x-mris->vertices[f->v[1]].x)*
-              (1-frac1)/(1+frac2-frac1);
-            cross_y[crossnum] = 
-              mris->vertices[f->v[1]].y+
-              (mris->vertices[f->v[2]].y-mris->vertices[f->v[1]].y)*
-              (1-frac1)/(1+frac2-frac1);
-            cross_z[crossnum] = 
-              mris->vertices[f->v[1]].z+
-              (mris->vertices[f->v[2]].z-mris->vertices[f->v[1]].z)*
-              (1-frac1)/(1+frac2-frac1);
-            crossnum++;
-          }
-          if (intdiv0!=intdiv2) {
-            cross_x[crossnum] = 
-              mris->vertices[f->v[0]].x+
-              (mris->vertices[f->v[2]].x-mris->vertices[f->v[0]].x)*
-              (1-frac0)/(1+frac2-frac0);
-            cross_y[crossnum] = 
-              mris->vertices[f->v[0]].y+
-              (mris->vertices[f->v[2]].y-mris->vertices[f->v[0]].y)*
-              (1-frac0)/(1+frac2-frac0);
-            cross_z[crossnum] = 
-              mris->vertices[f->v[0]].z+
-              (mris->vertices[f->v[2]].z-mris->vertices[f->v[0]].z)*
-              (1-frac0)/(1+frac2-frac0);
-            crossnum++;
-          }
-          if (intdiv0!=intdiv2) {
-            cross_x[crossnum] = 
-              mris->vertices[f->v[0]].x+
-              (mris->vertices[f->v[2]].x-mris->vertices[f->v[0]].x)*
-              (1-frac0)/(1+frac2-frac0);
-            cross_y[crossnum] = 
-              mris->vertices[f->v[0]].y+
-              (mris->vertices[f->v[2]].y-mris->vertices[f->v[0]].y)*
-              (1-frac0)/(1+frac2-frac0);
-            cross_z[crossnum] = 
-              mris->vertices[f->v[0]].z+
-              (mris->vertices[f->v[2]].z-mris->vertices[f->v[0]].z)*
-              (1-frac0)/(1+frac2-frac0);
-            crossnum++;
-          }
-          if (intdiv0!=intdiv3) {
-            cross_x[crossnum] = 
-              mris->vertices[f->v[0]].x+
-              (mris->vertices[f->v[3]].x-mris->vertices[f->v[0]].x)*
-              (1-frac0)/(1+frac3-frac0);
-            cross_y[crossnum] = 
-              mris->vertices[f->v[0]].y+
-              (mris->vertices[f->v[3]].y-mris->vertices[f->v[0]].y)*
-              (1-frac0)/(1+frac3-frac0);
-            cross_z[crossnum] = 
-              mris->vertices[f->v[0]].z+
-              (mris->vertices[f->v[3]].z-mris->vertices[f->v[0]].z)*
-              (1-frac0)/(1+frac3-frac0);
-            crossnum++;
-          }
-          if (intdiv3!=intdiv2) {
-            cross_x[crossnum] = 
-              mris->vertices[f->v[3]].x+
-              (mris->vertices[f->v[2]].x-mris->vertices[f->v[3]].x)*
-              (1-frac3)/(1+frac2-frac3);
-            cross_y[crossnum] = 
-              mris->vertices[f->v[3]].y+
-              (mris->vertices[f->v[2]].y-mris->vertices[f->v[3]].y)*
-              (1-frac3)/(1+frac2-frac3);
-            cross_z[crossnum] = 
-              mris->vertices[f->v[3]].z+
-              (mris->vertices[f->v[2]].z-mris->vertices[f->v[3]].z)*
-              (1-frac3)/(1+frac2-frac3);
-            crossnum++;
-          }
-          if (crossnum>0 && fabs(intdiv0-intdiv1)<=1
-              && fabs(intdiv1-intdiv2)<=1
-              && fabs(intdiv0-intdiv2)<=1
-              && fabs(intdiv0-intdiv3)<=1
-              && fabs(intdiv3-intdiv2)<=1) {
-            nx = (mris->vertices[f->v[0]].\
-                  nx+mris->vertices[f->v[1]].nx+
-                  mris->vertices[f->v[2]].nx)/VERTICES_PER_FACE;
-            ny = (mris->vertices[f->v[0]].\
-                  ny+mris->vertices[f->v[1]].ny+
-                  mris->vertices[f->v[2]].ny)/VERTICES_PER_FACE;
-            nz = (mris->vertices[f->v[0]].\
-                  nz+mris->vertices[f->v[1]].nz+
-                  mris->vertices[f->v[2]].nz)/VERTICES_PER_FACE;
-            if (crossnum!=2 && crossnum!=4) {
-              printf("surfer: error - crossnum=%d\n",crossnum);
-            } else {
-              bgnline();
-              load_brain_coords(nx,ny,nz,v1);
-              n3f(v1);
-              load_brain_coords(cross_x[0]+mup*nx,cross_y[0]+mup*ny,
-                                cross_z[0]+mup*nz,v1);
-              v3f(v1);
-              load_brain_coords(cross_x[1]+mup*nx,cross_y[1]+mup*ny,
-                                cross_z[1]+mup*nz,v1);
-              v3f(v1);
-              endline();
-              if (crossnum>2) {
-                bgnline();
-                load_brain_coords(nx,ny,nz,v1);
-                n3f(v1);
-                load_brain_coords(cross_x[2]+mup*nx,
-                                  cross_y[2]+mup*ny,
-                                  cross_z[2]+mup*nz,v1);
-                v3f(v1);
-                load_brain_coords(cross_x[3]+mup*nx,
-                                  cross_y[3]+mup*ny,
-                                  cross_z[3]+mup*nz,v1);
-                v3f(v1);
-                endline();
-              }
-            }
-          }
-        }
-      }
-  }
-#endif
-
-  if (flag2d)  /* additional line annotations (2d only) */
-  {
-#if 0
-    if (shearvecflag)
-      for (k=0;k<mris->nvertices;k++)
-        if ((k%10)==0)
-          if (!mris->vertices[k].ripflag) {
-            v = &mris->vertices[k];
-            linewidth(1);
-            bgnline();
-            RGBcolor(255,255,255);
-            load_brain_coords(v->nx,v->ny,v->nz,v1);
-            n3f(v1);
-            load_brain_coords(v->x-2.00*v->shearx,
-                              v->y-2.00*v->sheary,
-                              v->z,v2);
-            load_brain_coords(v->x+2.00*v->shearx,
-                              v->y+2.00*v->sheary,
-                              v->z,v3);
-            v3f(v2);
-            v3f(v3);
-            endline();
-          }
-#endif
-#if 0
-    if (normvecflag)
-      for (k=0;k<mris->nvertices;k++)
-        if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border) {
-          v = &mris->vertices[k];
-          linewidth(1);
-          bgnline();
-          RGBcolor(0,255,0);
-          load_brain_coords(v->nx,v->ny,v->nz,v1);
-          n3f(v1);
-          load_brain_coords(v->x,v->y,v->z,v2);
-          load_brain_coords(v->x+2.00*v->bnx,v->y+2.00*v->bny,v->z,v3);
-          v3f(v2);
-          v3f(v3);
-          endline();
-        }
-#endif
-#if 0
-    if (movevecflag)
-      for (k=0;k<mris->nvertices;k++)
-        if ((!mris->vertices[k].ripflag)&&
-            (mris->vertices[k].border||((k%10)==0))) {
-          v = &mris->vertices[k];
-          linewidth(1);
-          bgnline();
-          if (mris->vertices[k].border)
-            RGBcolor(255,0,255);
-          else
-            RGBcolor(0,255,255);
-          load_brain_coords(v->nx,v->ny,v->nz,v1);
-          n3f(v1);
-          load_brain_coords(v->x,v->y,v->z,v2);
-          load_brain_coords(v->x+5.00*v->odx,v->y+5.00*v->ody,v->z,v3);
-          v3f(v2);
-          v3f(v3);
-          endline();
-        }
-#endif
-  }
-  if (scalebarflag)
-    draw_scalebar();
-  if (colscalebarflag)
-    draw_colscalebar();
-  if (use_display_lists) {
-    glEndList() ;
-    surface_compiled = 1 ;
-    glCallList(1) ;
-  }
-}
-#endif
 
 const float DEG2RAD = 3.14159/180;
  
@@ -19255,7 +18560,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.275 2007/07/18 16:09:48 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.276 2007/07/30 17:12:24 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
