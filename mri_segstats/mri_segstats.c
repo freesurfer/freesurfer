@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/04/23 06:49:22 $
- *    $Revision: 1.32 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/30 19:50:34 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.32 2007/04/23 06:49:22 greve Exp $";
+"$Id: mri_segstats.c,v 1.33 2007/07/30 19:50:34 nicks Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1211,7 +1211,7 @@ static void print_help(void) {
       "--ctab-gca gcafile\n"
       "\n"
       "Get color table from the given GCA file. Eg,\n"
-      "   $FREESURFER_HOME/average/RB_all_2006-02-15.gca\n"
+      "   $FREESURFER_HOME/average/RB_all_YYYY-MM-DD.gca\n"
       "This can be convenient when the seg file is that produced by\n"
       "mri_ca_label (ie, aseg.mgz) as it will only report on those \n"
       "segmentations that were actually considered during mri_ca_label.\n"

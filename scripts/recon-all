@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/07/30 17:26:38 $
-#    $Revision: 1.123 $
+#    $Author: nicks $
+#    $Date: 2007/07/30 19:50:34 $
+#    $Revision: 1.124 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.123 2007/07/30 17:26:38 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.124 2007/07/30 19:50:34 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4115,7 +4115,7 @@ tkmedit and record the Volume Index values (NOT the XYZ coordinates).
 Specify the name of the gaussian classifier array (GCA) file
 to be used with GCA registration and automatic subcortical
 segmentation. It must be found in the FREESURFER_HOME/average directory.
-The Default is RB_all_2006-02-15.gca located in
+The Default is RB_all_YYYY-MM-DD.gca located in
 FREESURFER_HOME/average. This has no effect unless the GCA registration
 or subcortical segmentation stages are to be performed.
 
@@ -4123,7 +4123,7 @@ or subcortical segmentation stages are to be performed.
 
 Specify the name of the gaussian classifier array (GCA) file to be used with
 registration with skull.  It must be found in the FREESURFER_HOME/average
-directory. The default is RB_all_withskull_2006-02-15.gca located in
+directory. The default is RB_all_withskull_YYYY-MM-DD.gca located in
 FREESURFER_HOME/average.
 
 -gcs gcsfile
