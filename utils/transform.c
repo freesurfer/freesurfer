@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/03 18:50:59 $
- *    $Revision: 1.109 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/30 00:12:55 $
+ *    $Revision: 1.110 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1515,6 +1515,8 @@ LTArasToVoxelXform(LTA *lta, MRI *mri_src, MRI *mri_dst)
   MATRIX *m_L ;
   int    i ;
 
+  if (lta->type == LINEAR_VOX_TO_VOX)
+    return(NO_ERROR) ;
   for (i = 0 ; i < lta->num_xforms ; i++)
   {
     m_L = MRIrasXformToVoxelXform(mri_src, mri_dst, lta->xforms[i].m_L, NULL) ;
@@ -3672,4 +3674,20 @@ MATRIX *TransformLTA2RegDat(LTA *lta)
   MatrixFree(&vox2vox);
 
   return(R);
+}
+int
+TransformRas2Vox(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
+{
+  if (transform->type == MORPH_3D_TYPE)
+    return(GCAMrasToVox((GCA_MORPH *)(transform->xform), mri_dst)) ;
+  else
+    return(LTArasToVoxelXform((LTA *)(transform->xform), mri_src, mri_dst)) ;
+}
+int
+TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
+{
+  if (transform->type == MORPH_3D_TYPE)
+    return(GCAMvoxToRas((GCA_MORPH *)(transform->xform))) ;
+  else
+    return(LTAvoxelToRasXform((LTA *)(transform->xform), mri_src, mri_dst)) ;
 }

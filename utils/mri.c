@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/24 15:39:39 $
- *    $Revision: 1.389 $
+ *    $Date: 2007/07/30 00:12:54 $
+ *    $Revision: 1.390 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.389 $";
+char *MRI_C_VERSION = "$Revision: 1.390 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -13474,10 +13474,10 @@ float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int labe
 }
 
 MRI *
-MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst)
+MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst, float orig_res)
 {
-  float   vox_vol, volume ;
-  int     x, y, z, nbr_label_counts[MAX_CMA_LABELS];
+  float   vox_vol, volume, current_res ;
+  int     x, y, z, nbr_label_counts[MAX_CMA_LABELS], ndilates;
   int     label_counts[MAX_CMA_LABELS], this_label, border;
   int     nbr_label, max_count, vox_label ;
   MRI     *mri_border ;
@@ -13491,6 +13491,16 @@ MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst)
 
   /* first find border voxels */
   mri_border = MRImarkLabelBorderVoxels(mri, NULL, label, 1, 1) ;
+  current_res = mri->xsize ;
+  ndilates = 0 ;
+  while (current_res < orig_res)
+  {
+    //    MRIdilateLabel(mri_border, mri_border, 1, 1) ;
+    MRIdilate(mri_border, mri_border) ;
+    //    MRImask(mri_border, mri, mri_border, 0, 0) ; // turn off exterior
+    current_res += mri->xsize ;
+    ndilates++ ;
+  }
   if (DIAG_VERBOSE_ON && (Gdiag & DIAG_WRITE))
     MRIwrite(mri_border, "b.mgz") ;
   vox_vol = mri->xsize*mri->ysize*mri->zsize ;
@@ -13512,12 +13522,14 @@ MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst)
           volume = vox_vol ;
         else  /* compute partial volume */
         {
+#if 0
           MRIcomputeLabelNbhd
           (mri, mri_vals, x, y, z,
            nbr_label_counts, label_means, 1, MAX_CMA_LABELS) ;
+#endif
           MRIcomputeLabelNbhd
           (mri, mri_vals, x, y, z,
-           label_counts, label_means, 7, MAX_CMA_LABELS) ;
+           label_counts, label_means, 7+(ndilates), MAX_CMA_LABELS) ;
           val =
             MRIgetVoxVal(mri_vals, x, y, z, 0) ;  /* compute partial
                                                      volume based on
