@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/27 22:50:57 $
-#    $Revision: 1.2 $
+#    $Date: 2007/07/30 04:03:50 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,9 +24,12 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_volmask,v 1.2 2007/07/27 22:50:57 nicks Exp $'
+set VERSION='$Id: test_mris_volmask,v 1.3 2007/07/30 04:03:50 nicks Exp $'
 
 umask 002
+
+# dont run on machine kani, it takes way too long
+if ("`uname -n`" == "kani") exit 0
 
 #
 # extract testing data, use existing test data from another test setup
