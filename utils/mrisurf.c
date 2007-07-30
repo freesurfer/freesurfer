@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/30 00:13:41 $
- *    $Revision: 1.552 $
+ *    $Author: postelni $
+ *    $Date: 2007/07/30 22:11:23 $
+ *    $Revision: 1.553 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -616,7 +616,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.552 2007/07/30 00:13:41 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.553 2007/07/30 22:11:23 postelni Exp $");
 }
 
 /*-----------------------------------------------------
@@ -60478,4 +60478,15 @@ mrisComputeVariableSmoothnessCoefficients(MRI_SURFACE *mris, INTEGRATION_PARMS *
   }
   
   return(NO_ERROR) ;
+}
+
+// sets the RAS for a surface
+// FUNDAMENTAL ASSUMPTION - all the vertices are created in voxel coordinates associated with srcMri
+void
+MRISsetVolumeForSurface(MRI_SURFACE* mris, MRI* srcMri)
+{
+  MRIScopyVolGeomFromMRI(mris, srcMri);
+  MATRIX* matrix = surfaceRASFromVoxel_(srcMri);
+  MRISmatrixMultiply( mris, matrix);
+  MatrixFree(&matrix);
 }
