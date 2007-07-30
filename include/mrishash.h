@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/28 01:53:44 $
- *    $Revision: 1.19 $
+ *    $Date: 2007/07/30 23:14:16 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -118,7 +118,9 @@ MHBT * MHTgetBucketAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv);
 
 // Ad hoc test functions
 int MHT_gw_version(void);  // version of that unit
-void MHTfindReportCounts(int * BucketsChecked, int * BucketsPresent);
+void MHTfindReportCounts(int * BucketsChecked, 
+                         int * BucketsPresent, 
+                         int * VtxNumByMHT);
 int MHTtestIsMRISselfIntersecting(MRI_SURFACE *mris, float res);
 
 #endif // END #ifndef MRISHASH_ONCE_H

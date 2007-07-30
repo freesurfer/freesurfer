@@ -2,18 +2,18 @@
  * @file  mrisurf.h
  * @brief MRI_SURFACE utilities.
  *
- * Utilities, constants and structure definitions for manipulation 
+ * Utilities, constants and structure definitions for manipulation
  * and i/o of surfaces derived from MRI volumes.
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: postelni $
- *    $Date: 2007/07/30 22:12:13 $
- *    $Revision: 1.295 $
+ *    $Author: nicks $
+ *    $Date: 2007/07/30 23:14:16 $
+ *    $Revision: 1.296 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -507,10 +507,14 @@ typedef struct
   MRI     *mri_ll ;           // log-likelihood image
   double  rmin ;
   double  rmax ;              // for nonlinear spring term
-  int     var_smoothness ;    // for space/time varying weights on metric distortion/likelihood
-  float   *vsmoothness ;      // variable smoothness coefficients (one per vertex)
-  float   *dist_error ;       // the values for each vertex of the various error type
-  float   *area_error ;       //             needed for the variable smoothness gradient calculation
+  int     var_smoothness ;    // for space/time varying weights on
+                              // metric distortion/likelihood
+  float   *vsmoothness ;      // variable smoothness coefficients
+                              // (one per vertex)
+  float   *dist_error ;       // the values for each vertex of the
+                              // various error type
+  float   *area_error ;       // needed for the variable smoothness
+                              // gradient calculation
   float   *geometry_error ;
   int     which_norm ;        // mean or median normalization
   int     abs_norm ;
@@ -606,20 +610,29 @@ int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 float        *MRISreadNewCurvatureVector(MRI_SURFACE *mris, char *sname) ;
-int          MRISreadNewCurvatureIntoArray(const char *fname, int in_array_size, float** out_array) ;
+int          MRISreadNewCurvatureIntoArray(const char *fname,
+                                           int in_array_size,
+                                           float** out_array) ;
 float        *MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname) ;
-int          MRISreadCurvatureIntoArray(const char *fname, int in_array_size, float** out_array) ;
+int          MRISreadCurvatureIntoArray(const char *fname,
+                                        int in_array_size,
+                                        float** out_array) ;
 int          MRISreadFloatFile(MRI_SURFACE *mris, char *fname) ;
 #define MRISreadCurvature MRISreadCurvatureFile
 
 MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf,
                       char *subject, char *hemi, char *subjectsdir);
 int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
-int          MRISreadValuesIntoArray(const char *fname, int in_array_size, float** out_array) ;
+int          MRISreadValuesIntoArray(const char *fname,
+                                     int in_array_size,
+                                     float** out_array) ;
 int          MRISreadAnnotation(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAnnotation(MRI_SURFACE *mris, char *fname) ;
-int          MRISreadAnnotationIntoArray(const char *fname, int in_array_size, int** out_array);
-int          MRISreadCTABFromAnnotationIfPresent(const char *fname, COLOR_TABLE** out_table);
+int          MRISreadAnnotationIntoArray(const char *fname,
+                                         int in_array_size,
+                                         int** out_array);
+int          MRISreadCTABFromAnnotationIfPresent(const char *fname,
+                                                 COLOR_TABLE** out_table);
 int          MRISisCTABPresentInAnnotation(const char *fname, int* present);
 int          MRISreadValuesBak(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadImagValues(MRI_SURFACE *mris, char *fname) ;
@@ -764,13 +777,14 @@ int          MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices,
                                     int *pnfaces, int *pnedges) ;
 int          MRIStopologicalDefectIndex(MRI_SURFACE *mris) ;
 int          MRISremoveTopologicalDefects(MRI_SURFACE *mris,
-    float curv_thresh);
+                                          float curv_thresh);
 
 int          MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris,
-    int vno,
-    int *vertices,
-    int vnum) ;
-int          MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double thresh) ;
+                                                      int vno,
+                                                      int *vertices,
+                                                      int vnum) ;
+int          MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris,
+                                                         double thresh) ;
 int          MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureDifference(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureStretch(MRI_SURFACE *mris) ;
@@ -784,7 +798,7 @@ int          MRISclearDistances(MRI_SURFACE *mris) ;
 int          MRISusePrincipalCurvature(MRI_SURFACE *mris) ;
 int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
 int          MRIScomputeCurvatureIndices(MRI_SURFACE *mris,
-    double *pici, double *pfi) ;
+                                         double *pici, double *pfi) ;
 int          MRISuseCurvatureRatio(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureContrast(MRI_SURFACE *mris) ;
 
@@ -813,8 +827,8 @@ int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISreadTetherFile(MRI_SURFACE *mris, char *fname, float radius) ;
 int          MRISreadVertexPositions(MRI_SURFACE *mris, char *fname) ;
 int          MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris,
-    double gaussian_norm,
-    double l_spring) ;
+                                                 double gaussian_norm,
+                                                 double l_spring) ;
 int          MRISmarkedSpringTerm(MRI_SURFACE *mris, double l_spring) ;
 double       MRISmomentumTimeStep(MRI_SURFACE *mris,
                                   float momentum,
@@ -845,13 +859,13 @@ MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
 MRI_SURFACE  *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris,
                                        int fno) ;
 MRI_SURFACE  *MRISnormalizeFromParameterization(MRI_SP *mrisp,
-    MRI_SURFACE *mris, int fno) ;
+                                                MRI_SURFACE *mris, int fno) ;
 MRI_SP       *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
-    float scale) ;
+                                             float scale) ;
 MRI_SURFACE  *MRISgradientFromParameterization(MRI_SP*mrisp,MRI_SURFACE *mris);
 
 MRI_SP       *MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
-    float scale) ;
+                                           float scale) ;
 MRI_SURFACE  *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris);
 
 
@@ -1017,16 +1031,16 @@ int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris,
 #define GRAY_WHITE     1
 #define GRAY_CSF       2
 int MRIScomputeInvertedGrayWhiteBorderValues(MRI_SURFACE *mris,
-    MRI *mri_brain,
-    MRI *mri_smooth,
-    Real inside_hi,
-    Real border_hi,
-    Real border_low,
-    Real outside_low,
-    Real outside_hi,
-    double sigma,
-    float max_thickness,
-    FILE *log_fp);
+                                             MRI *mri_brain,
+                                             MRI *mri_smooth,
+                                             Real inside_hi,
+                                             Real border_hi,
+                                             Real border_low,
+                                             Real outside_low,
+                                             Real outside_hi,
+                                             double sigma,
+                                             float max_thickness,
+                                             FILE *log_fp);
 int MRIScomputeInvertedPialBorderValues(MRI_SURFACE *mris,
                                         MRI *mri_brain,
                                         MRI *mri_smooth,
@@ -1078,7 +1092,7 @@ double MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
                                      double *pmin, double *pmax, int *pvno,
                                      int *pvno2);
 double MRIScomputeTotalVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
-                                          double *pmin, double *pmax, 
+                                          double *pmin, double *pmax,
                                           int *pvno,
                                           int *pvno2);
 double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
@@ -1208,7 +1222,10 @@ TOPOLOGY_PARMS ;
 
 int MRIScenterSphere(MRI_SURFACE *mris);
 int MRISmarkOrientationChanges(MRI_SURFACE *mris);
-MRIS* MRISextractMainComponent(MRI_SURFACE *mris,int do_not_extract, int verbose, int *ncpts);
+MRIS* MRISextractMainComponent(MRI_SURFACE *mris,
+                               int do_not_extract,
+                               int verbose,
+                               int *ncpts);
 MRIS* MRISextractMarkedVertices(MRIS *mris);
 MRIS* MRISremoveRippedSurfaceElements(MRIS *mris);
 
@@ -1289,8 +1306,8 @@ MRI   *MRISaccentuate(MRI *mri_src,
                       MRI *mri_dst,
                       int lo_thresh,
                       int hi_thresh);
-MRI *MRISfillInterior(MRI_SURFACE *mris, 
-                      double resolution, 
+MRI *MRISfillInterior(MRI_SURFACE *mris,
+                      double resolution,
                       MRI *mri_interior) ;
 MRI   *MRISshell(MRI *mri_src,
                  MRI_SURFACE *mris,
@@ -1554,13 +1571,16 @@ int MRISsegmentAnnotated(MRI_SURFACE *mris,
                          float min_label_area) ;
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs) ;
 int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris,double l_lambda) ;
-int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris, 
-                                              double gaussian_norm, 
+int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris,
+                                              double gaussian_norm,
                                               double l_spring) ;
-int
-MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius, int diag_no, MRI **pmri);
-double MRIScomputeWhiteVolume(MRI_SURFACE *mris, 
-                              MRI *mri_aseg, 
+int MRISmakeDensityMap(MRI_SURFACE *mris,
+                       double resolution,
+                       double radius,
+                       int diag_no,
+                       MRI **pmri);
+double MRIScomputeWhiteVolume(MRI_SURFACE *mris,
+                              MRI *mri_aseg,
                               double resolution);
 int MRIShistoThresholdCurvature(MRI_SURFACE *mris, float thresh_pct);
 
