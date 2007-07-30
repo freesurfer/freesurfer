@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/29 03:03:08 $
- *    $Revision: 1.37 $
+ *    $Date: 2007/07/30 00:07:50 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1249,7 +1249,7 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
   double ADistSq;
   MHB       *bin ;
   MHBT      *bucket ;
-  float tryx, tryy, tryz; // Added [2007-07-27 GW]
+  float tryx=0.0, tryy=0.0, tryz=0.0; // Added [2007-07-27 GW]
   
   //----------------------------------
   rslt = NO_ERROR;
