@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/04/06 06:11:52 $
- *    $Revision: 1.8 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/30 14:39:49 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -105,7 +105,7 @@ ENDHELP ----------------------------------------------------------------
 
 */
 
-// $Id: mris_divide_parcellation.c,v 1.8 2007/04/06 06:11:52 greve Exp $
+// $Id: mris_divide_parcellation.c,v 1.9 2007/07/30 14:39:49 fischl Exp $
 
 
 
@@ -135,7 +135,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.8 2007/04/06 06:11:52 greve Exp $";
+static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.9 2007/07/30 14:39:49 fischl Exp $";
 char *Progname = NULL;
 
 static char sdir[STRLEN] = "" ;
@@ -222,7 +222,7 @@ int main(int argc, char *argv[]) {
     FILE  *fp ;
     int   num ;
 
-    printf("interpreting 4th command line arg as split file name") ;
+    printf("interpreting 4th command line arg as split file name\n") ;
     fp = fopen(argv[4], "r") ;
     if (fp == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not open parcellation division file %s", Progname,argv[4]) ;
