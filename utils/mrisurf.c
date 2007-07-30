@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/24 19:34:25 $
- *    $Revision: 1.551 $
+ *    $Author: fischl $
+ *    $Date: 2007/07/30 00:13:41 $
+ *    $Revision: 1.552 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -616,7 +616,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.551 2007/07/24 19:34:25 kteich Exp $");
+  return("$Id: mrisurf.c,v 1.552 2007/07/30 00:13:41 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -60279,7 +60279,11 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolutio
         if (xa < 0 || xa >= mri_aseg->width ||
             ya < 0 || ya >= mri_aseg->height ||
             za < 0 || za >= mri_aseg->depth)
+        {
+          ErrorPrintf(ERROR_BADPARM, "MRIScomputeWhiteVolume: src (%d, %d, %d) maps to (%d, %d, %d) - OOB",
+                      x, y, z, xa, ya, za) ;
           continue ;
+        }
         label = (int)MRIgetVoxVal(mri_aseg, xa, ya, za, 0) ;
         if (xa == Gx && ya == Gy && za == Gz)
           DiagBreak() ;
