@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/24 19:34:29 $
- *    $Revision: 1.294 $
+ *    $Author: postelni $
+ *    $Date: 2007/07/30 22:12:13 $
+ *    $Revision: 1.295 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1472,6 +1472,12 @@ int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris,
                                    INTEGRATION_PARMS *parms) ;
 int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new) ;
 int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri) ;
+
+// the next function assumes the surface vertex positions are 
+//    set in the voxel coordinates of srcMri
+// and it constructs a valid RAS for the surface
+void MRISsetVolumeForSurface(MRI_SURFACE *mris, MRI *srcMri);
+
 MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask);
 int MRISremoveIntersections(MRI_SURFACE *mris) ;
 int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) ;
