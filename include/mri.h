@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/24 15:40:00 $
- *    $Revision: 1.342 $
+ *    $Date: 2007/07/30 00:14:26 $
+ *    $Revision: 1.343 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1086,7 +1086,8 @@ int MRIcomputeLabelNbhd(MRI *mri_labels, MRI *mri_vals,
                         int whalf, int max_labels) ;
 float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals,
     int label) ;
-MRI   *MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst) ;
+MRI   *MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst,
+                         float orig_res) ;
 int MRIcropBoundingBox(MRI *mri, MRI_REGION *box) ;
 MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out) ;
 MRI *MRIapplyBiasCorrectionSameGeometry(MRI *mri_in, MRI *mri_bias,
