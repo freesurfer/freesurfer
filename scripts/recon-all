@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/07/25 21:07:34 $
-#    $Revision: 1.122 $
+#    $Author: greve $
+#    $Date: 2007/07/30 17:26:38 $
+#    $Revision: 1.123 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.122 2007/07/25 21:07:34 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.123 2007/07/30 17:26:38 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2104,21 +2104,22 @@ endif
 
 #---------------- Cortical Ribbon -------------------------#
 if($DoCortRibbonVolMask) then
-echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-echo "#@# Cortical ribbon mask $hemi `date`" \
-    |& tee -a $SF|& tee -a $LF|& tee -a $CF
-cd $subjdir/mri > /dev/null
-set xopts = `fsr-getxopts mris_volmask $XOptsFile`;
-set cmd = (mris_volmask \
-  --label_left_white   2 --label_left_ribbon   3 \
-  --label_right_white 41 --label_right_ribbon 42 \
-  --save_ribbon --save_distance $subjid)
-$PWD |& tee -a $LF
-echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-if($RunIt) $cmd |& tee -a $LF
-if($status) goto error_exit;
-echo $cmd > $touchdir/$hemi.cortical_ribbon.touch
+  echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+  echo "#@# Cortical ribbon mask $hemi `date`" \
+      |& tee -a $SF|& tee -a $LF|& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  set xopts = `fsr-getxopts mris_volmask $XOptsFile`;
+  set cmd = (mris_volmask \
+    --label_left_white   2 --label_left_ribbon   3 \
+    --label_right_white 41 --label_right_ribbon 42 \
+    --save_ribbon --save_distance $subjid)
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/$hemi.cortical_ribbon.touch
+endif
 
 # ----------------- AParc2ASeg ---------------------------------------- #
 if($DoAParc2ASeg) then
