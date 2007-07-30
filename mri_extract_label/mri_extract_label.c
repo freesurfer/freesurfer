@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/30 03:35:24 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/07/30 21:57:39 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #define UNIT_VOLUME 128
 
 static char vcid[] =
-  "$Id: mri_extract_label.c,v 1.10 2007/07/30 03:35:24 nicks Exp $";
+  "$Id: mri_extract_label.c,v 1.11 2007/07/30 21:57:39 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -77,7 +77,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_extract_label.c,v 1.10 2007/07/30 03:35:24 nicks Exp $",
+           "$Id: mri_extract_label.c,v 1.11 2007/07/30 21:57:39 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -241,15 +241,16 @@ print_usage(void)
 {
   fprintf
   (stderr,
-   "usage: %s [options] <input volume> <label 1> <label 2> ... "
+   "Usage: %s [options] <input volume> <label 1> <label 2> ... "
    "<output name>\n",
    Progname) ;
-  fprintf(stderr, "where options are:\n") ;
+  fprintf(stderr, "Options:\n") ;
   fprintf
   (stderr,
    "\t-s <sigma>\tapply a Gaussian smoothing kernel\n"
    "\t-t <xform file>\tapply the transform in <xform file> to "
-   "extracted volume\n");
+   "extracted volume\n"
+   "\t-exit_none_found\texit 1 if label(s) not found\n");
 }
 
 static void
@@ -257,7 +258,7 @@ print_help(void)
 {
   fprintf
   (stderr,
-   "\nThis program will extract a set of labeled voxels from an image\n") ;
+   "\nThis program will extract a set of labeled voxels from an image.\n") ;
   exit(1) ;
 }
 
