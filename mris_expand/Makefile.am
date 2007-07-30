@@ -9,7 +9,7 @@ mris_expand_SOURCES=mris_expand.c
 mris_expand_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
 mris_expand_LDFLAGS=$(OS_LDFLAGS)
 
-#TESTS=test_mris_expand
+TESTS=test_mris_expand
 
 EXTRA_DIST=testdata.tar.gz test_mris_expand
 

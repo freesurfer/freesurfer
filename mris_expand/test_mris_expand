@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/25 20:22:55 $
-#    $Revision: 1.1 $
+#    $Date: 2007/07/30 23:40:40 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_expand,v 1.1 2007/07/25 20:22:55 nicks Exp $'
+set VERSION='$Id: test_mris_expand,v 1.2 2007/07/30 23:40:40 nicks Exp $'
 
 umask 002
 
@@ -37,11 +37,12 @@ gunzip -c testdata.tar.gz | tar xvf -
 # run mris_expand
 #
 
-set cmd=(./mris_expand -v 49576 -thickness lh.white 0.5 lh.midgray)
+set cmd=(./mris_expand -v 111706 -thickness lh.white 0.5 lh.midgray)
 echo ""
+echo $cmd
 echo $cmd >& test_mris_expand.log
 echo ""
-$cmd
+$cmd >>& test_mris_expand.log
 if ($status != 0) then
   echo "mris_expand FAILED"
   exit 1
@@ -51,18 +52,15 @@ endif
 # compare expected results with actual (produced) results
 #
 
-# TODO !
-
-goto end
-
-
-set cmd=(../mri_diff/mri_diff --debug \
+set REF_SURF=(lh.expected-midgray)
+set TST_SURF=(lh.midgray)
+set cmd=(../mris_diff/mris_diff --debug \
           --thresh 0.0 \
-          --log $MRIDIFFF \
-          $REF_VOL $TST_VOL --diff $DIFF_VOL);
+          $REF_SURF $TST_SURF);
 echo ""
 echo $cmd
-$cmd
+echo $cmd >>& test_mris_expand.log
+$cmd >>& test_mris_expand.log
 set diff_status=$status
 if ($diff_status != 0) then
   echo "$cmd FAILED (exit status=$diff_status)"
@@ -73,7 +71,6 @@ endif
 # cleanup
 #
 end:
-cd ..
 rm -f lh.*
 
 echo ""
