@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/23 20:09:19 $
- *    $Revision: 1.37 $
+ *    $Date: 2007/07/30 23:10:56 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -98,7 +98,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.37 2007/07/23 20:09:19 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.38 2007/07/30 23:10:56 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.37 2007/07/23 20:09:19 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.38 2007/07/30 23:10:56 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -546,7 +546,7 @@ int main(int argc, char **argv) {
   }
 
   if (csd != NULL)  fprintf(fpsum,"   CWP    CWPLow    CWPHi\n");
-  else if (fwhm > 0) fprintf(fpsum,"   CWP\n");
+  else if (fwhm > 0) fprintf(fpsum,"  GRFCWP\n");
   else fprintf(fpsum,"\n");
 
   for (n = 0; n < nclusters; n++) {
@@ -1392,6 +1392,12 @@ static void check_options(void) {
     printf("ERROR: cannot --reg and --fsaverage\n");
     exit(1);
   }
+
+  if(fwhm > 0 && !strcmp(signstring,"abs")){
+    printf("ERROR: you must specify a pos or neg sign with --fwhm\n");
+    exit(1);
+  }
+
 
   if (err) exit(1);
   return;
