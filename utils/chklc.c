@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/31 07:52:10 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/07/31 16:28:22 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,6 +52,7 @@ static const char* licmsg =
 "  make sure to source the standard environment.\n"
 "--------------------------------------------------------------------------\n";
 
+#ifndef Darwin
 static const char* licmsg2 =
 "--------------------------------------------------------------------------\n"
 "ERROR: Invalid FreeSurfer license key found in license file %s\n"
@@ -61,6 +62,8 @@ static const char* licmsg2 =
 "  If you are inside the NMR-Martinos Center,\n"
 "  make sure to source the standard environment.\n"
 "--------------------------------------------------------------------------\n";
+#endif
+
 
 void chklc(void)
 {
