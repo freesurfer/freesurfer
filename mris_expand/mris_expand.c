@@ -1,18 +1,17 @@
 /**
  * @file  mris_expand.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Expand a surface by specified number of mm.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/07/31 00:29:34 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -51,9 +50,9 @@ static INTEGRATION_PARMS parms ;
 static int navgs = 0 ;
 static int use_thickness = 0 ;
 
-
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char         **av ;
   int          ac, nargs ;
   char         *in_fname, *out_fname ;
@@ -62,7 +61,6 @@ main(int argc, char *argv[]) {
   float        mm_out ;
   MRI_SURFACE  *mris ;
 
-
   parms.l_spring = .1;
   // parms.l_curv = 1.0 ;
   parms.n_averages = 4 ;
@@ -70,7 +68,10 @@ main(int argc, char *argv[]) {
   parms.dt = 0.5 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_expand.c,v 1.6 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option
+    (argc, argv,
+     "$Id: mris_expand.c,v 1.7 2007/07/31 00:29:34 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -83,7 +84,8 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -98,7 +100,8 @@ main(int argc, char *argv[]) {
   FileNameExtension(out_fname,parms.base_name) ;  // remove hemi (e.g. lh.)
 
   if (use_thickness)
-    printf("expanding surface %s by %2.2f%% of thickness and writing it to %s\n",
+    printf("expanding surface %s by %2.2f%% of thickness and "
+           "writing it to %s\n",
            in_fname, mm_out, out_fname) ;
   else
     printf("expanding surface %s by %2.1f mm and writing it to %s\n",
@@ -106,13 +109,16 @@ main(int argc, char *argv[]) {
   mris = MRISread(in_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: MRISread(%s) failed", Progname, in_fname);
-  if (use_thickness) {
+  if (use_thickness)
+  {
     printf("reading thickness...\n") ;
     if (MRISreadCurvatureFile(mris, "thickness") != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not load thickness file", Progname) ;
     MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
     if (MRISreadVertexPositions(mris, "pial") != NO_ERROR)
-      ErrorExit(ERROR_NOFILE, "%s: could not read pial vertex positions\n", Progname) ;
+      ErrorExit(ERROR_NOFILE,
+                "%s: could not read pial vertex positions\n",
+                Progname) ;
     MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
     MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
   }
@@ -127,26 +133,33 @@ main(int argc, char *argv[]) {
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  fprintf(stderr, "surface expansion took %d minutes"
+  fprintf(stdout, "surface expansion took %d minutes"
           " and %d seconds.\n", minutes, seconds) ;
+
   exit(0) ;
   return(0) ;
 }
+
+
 /*----------------------------------------------------------------------
             Parameters:
 
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "thickness")) {
+  if (!stricmp(option, "thickness"))
+  {
     use_thickness = 1 ;
     printf("using distance as a %% of thickness\n") ;
-  } else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case '?':
     case 'U':
       usage_exit(0) ;
@@ -169,7 +182,8 @@ get_option(int argc, char *argv[]) {
     case 'W':
       parms.write_iterations = atoi(argv[2]) ;
       nargs = 1 ;
-      printf("writing snapshots of expansion every %d iterations\n", parms.write_iterations) ;
+      printf("writing snapshots of expansion every %d iterations\n",
+             parms.write_iterations) ;
       Gdiag |= DIAG_WRITE ;
       break ;
     case 'A':
@@ -185,14 +199,17 @@ get_option(int argc, char *argv[]) {
 
   return(nargs) ;
 }
+
+
 /*----------------------------------------------------------------------
             Parameters:
 
            Description:
 ----------------------------------------------------------------------*/
 static void
-usage_exit(int code) {
-  printf("usage: %s [options] <input surface> <mm> <output surface>\n",
+usage_exit(int code)
+{
+  printf("Usage: %s [options] <input surface> <mm> <output surface>\n",
          Progname) ;
   exit(code) ;
 }
