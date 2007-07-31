@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/27 20:51:25 $
- *    $Revision: 1.58 $
+ *    $Date: 2007/07/31 22:28:20 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -324,7 +324,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.58 2007/07/27 20:51:25 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.59 2007/07/31 22:28:20 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -407,6 +407,9 @@ int    DoProj = 0;
 int    ProjType;
 int reshapefactortarget = 6;
 
+int DoNormVar=0;
+int NormVar(MRI *mri, MRI *mask);
+
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
   int f,tvtx,svtx,n,err;
@@ -422,7 +425,7 @@ int main(int argc, char **argv) {
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.58 2007/07/27 20:51:25 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.59 2007/07/31 22:28:20 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -830,6 +833,7 @@ int main(int argc, char **argv) {
       MRIfree(&TrgVals);
       TrgVals = mritmp;
     }
+    if(DoNormVar) NormVar(TrgVals, NULL);
     MRIwriteType(TrgVals,trgvalfile,trgtype);
     if (is_sxa_volume(srcvalfile)) sv_sxadat_by_stem(sxa,trgvalfile);
   }
@@ -874,6 +878,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nousediff")) usediff = 0;
     else if (!strcasecmp(option, "--synth"))     SynthPDF = 1;
     else if (!strcasecmp(option, "--jac"))       jac = 1;
+    else if (!strcasecmp(option, "--norm-var"))  DoNormVar = 1;
 
     else if (!strcmp(option, "--seed")) {
       if (nargc < 1) argnerr(option,1);
@@ -1162,6 +1167,7 @@ static void print_usage(void) {
   printf("   --reshape  reshape output to multiple 'slices'\n");
   printf("   --reshape-factor Nfactor : reshape to Nfactor 'slices'\n");
   printf("   --synth : replace input with WGN\n");
+  printf("   --normvar : rescale so that stddev=1 (good with --synth)\n");
   printf("   --seed seed : seed for synth (default is auto)\n");
 
   printf("\n");
@@ -1496,6 +1502,10 @@ static void check_options(void) {
   if (fwhm_Input != 0 && nSmoothSteps_Input != 0) {
     printf("ERROR: cannot specify --fwhm-in and --nsmooth-in\n");
     exit(1);
+  }
+
+  if(DoNormVar && !SynthPDF){
+    printf("WARNING: variance normalization turned on but not synthesizing\n");
   }
 
   return;
@@ -2091,4 +2101,54 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri)
   MatrixFree(&invK);
 
   return(M);
+}
+
+/*-------------------------------------------------------
+  Rescale so that stddev=var=1. Good for simulations.
+  -------------------------------------------------------*/
+int NormVar(MRI *mri, MRI *mask)
+{
+  int c,r,s,f;
+  long N;
+  double v,sum, mean, sum2, var, stddev, m;
+
+  printf("Normalizing variance\n");
+
+  N = 0;
+  sum  = 0;
+  sum2 = 0;
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue; 
+	}
+	for(f=0; f < mri->nframes; f++){
+	  v = MRIgetVoxVal(mri,c,r,s,f);
+	  sum  += v;
+	  sum2 += (v*v);
+	  N ++;
+	}
+      }
+    }
+  }
+  mean = sum/N;
+  var = (N*mean*mean - 2*mean*sum + sum2)/(N-1);
+  stddev = sqrt(var);
+  printf("sum = %lf, sum2 = %lf\n",sum,sum2);
+  printf("n = %ld, mean = %lf, var = %lf, stddev = %lf\n",
+	 N,mean,var,stddev);
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	for(f=0; f < mri->nframes; f++){
+	  v = MRIgetVoxVal(mri,c,r,s,f);
+	  v /= stddev;
+	  MRIsetVoxVal(mri,c,r,s,f,v);
+	}
+      }
+    }
+  }
+  return(0);
 }
