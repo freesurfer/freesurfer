@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/17 03:32:26 $
- *    $Revision: 1.35 $
+ *    $Date: 2007/07/31 17:20:29 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -64,7 +64,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.35 2007/07/17 03:32:26 greve Exp $";
+"$Id: mri_volsynth.c,v 1.36 2007/07/31 17:20:29 greve Exp $";
 
 char *Progname = NULL;
 
@@ -110,6 +110,9 @@ double voxradius = -1;
 
 int UseFFT = 0;
 int SpikeTP = -1;
+int DoCurv = 0;
+char *subject=NULL, *hemi=NULL;
+MRIS *surf;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -148,9 +151,10 @@ int main(int argc, char **argv)
   check_options();
   dump_options(stdout);
 
-  if (tempid != NULL) {
+  if(tempid != NULL) {
     printf("INFO: reading template header\n");
-    mritemp = MRIreadHeader(tempid,tempfmtid);
+    if(! DoCurv) mritemp = MRIreadHeader(tempid,tempfmtid);
+    else         mritemp = MRIread(tempid);
     if (mritemp == NULL) {
       printf("ERROR: reading %s header\n",tempid);
       exit(1);
@@ -360,10 +364,14 @@ int main(int argc, char **argv)
     }
   }
 
-
   if(!NoOutput){
     printf("Saving\n");
-    MRIwriteAnyFormat(mri,volid,volfmt,-1,NULL);
+    if(!DoCurv)  MRIwriteAnyFormat(mri,volid,volfmt,-1,NULL);
+    else {
+      printf("Saving in curv format\n");
+      MRIScopyMRI(surf, mri, 0, "curv");
+      MRISwriteCurvature(surf,volid);
+    }
   }
 
   if(sum2file){
@@ -384,6 +392,7 @@ int main(int argc, char **argv)
 static int parse_commandline(int argc, char **argv) {
   int  i, nargc , nargsused;
   char **pargv, *option ;
+  char tmpstr[1000];
 
   if (argc < 1) usage_exit();
 
@@ -424,10 +433,14 @@ static int parse_commandline(int argc, char **argv) {
         volfmt = pargv[1];
         nargsused ++;
         volfmtid = checkfmt(volfmt);
-      } else volfmtid = getfmtid(volid);
+      } 
     }
     else if (!strcmp(option, "--temp")) {
-      if (nargc < 1) argnerr(option,1);
+      if(DoCurv){
+	printf("ERROR: cannot use --temp and --curv\n");
+	exit(1);
+      }
+      if(nargc < 1) argnerr(option,1);
       tempid = pargv[0];
       nargsused = 1;
       if (nth_is_arg(nargc, pargv, 1)) {
@@ -435,6 +448,18 @@ static int parse_commandline(int argc, char **argv) {
         nargsused ++;
         tempfmtid = checkfmt(tempfmt);
       } else tempfmtid = getfmtid(tempid);
+    } else if (!strcmp(option, "--curv")) {
+      if(tempid != NULL){
+	printf("ERROR: cannot use --temp and --curv\n");
+	exit(1);
+      }
+      if(nargc < 2) argnerr(option,2);
+      subject = pargv[0];
+      hemi = pargv[1];
+      DoCurv = 1;
+      nargsused = 2;
+      sprintf(tmpstr,"%s/%s/surf/%s.thickness",getenv("SUBJECTS_DIR"),subject,hemi);
+      tempid = strcpyalloc(tmpstr);
     } else if ( !strcmp(option, "--dim") ) {
       if (nargc < 4) argnerr(option,4);
       for (i=0;i<4;i++) sscanf(pargv[i],"%d",&dim[i]);
@@ -568,9 +593,10 @@ static void print_usage(void) {
   printf("   --vol volid <fmt> : output volume path id and format\n");
   printf("\n");
   printf(" Get geometry from template\n");
-  printf("   --temp templateid <fmt>\n");
+  printf("   --temp templateid : see also --curv\n");
   printf("   --nframes nframes : override template\n");
   printf("   --offset : use template as intensity offset\n");
+  printf("   --curv subject hemi : save output as curv (uses lh.thickness as template)\n");
   printf("\n");
   printf(" Specify geometry explicitly\n");
   printf("   --dim nc nr ns nf  (required)\n");
@@ -646,6 +672,7 @@ static void argnerr(char *option, int n) {
 static void check_options(void) {
   struct timeval tv;
   FILE *fp;
+  char tmpstr[1000];
 
   if(volid == NULL && !NoOutput) {
     printf("A volume path must be supplied unless --no-output\n");
@@ -664,6 +691,17 @@ static void check_options(void) {
     fprintf(fp,"%ld\n",seed);
     fclose(fp);
   }
+  if(DoCurv && nframes > 1){
+    printf("ERROR: cannot have more than 1 frame with curv output\n");
+    exit(1);
+  }
+  if(DoCurv){
+    sprintf(tmpstr,"%s/%s/surf/%s.orig",getenv("SUBJECTS_DIR"),subject,hemi);
+    printf("Loading %s\n",tmpstr);
+    surf = MRISread(tmpstr);
+    if(!surf) exit(1);
+  }
+  if(!DoCurv) getfmtid(volid);
 
   return;
 }
@@ -693,6 +731,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"seed %ld\n",seed);
   fprintf(fp,"pdf   %s\n",pdfname);
   fprintf(fp,"SpikeTP %d\n",SpikeTP);
+  fprintf(fp,"DoCurv %d\n",DoCurv);
   printf("Diagnostic Level %d\n",Gdiag_no);
 
   return;
