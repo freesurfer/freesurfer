@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/30 23:13:11 $
- *    $Revision: 1.40 $
+ *    $Date: 2007/07/31 00:04:05 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1215,9 +1215,9 @@ void MHTfindReportCounts(int * BucketsChecked,
                          int * BucketsPresent, 
                          int * VtxNumByMHT)
 {
-  *BucketsChecked = FindBucketsChecked_Count;
-  *BucketsPresent = FindBucketsPresent_Count;
-  *VtxNumByMHT    = VertexNumFoundByMHT;       // 2007-07-30 GW
+  if (BucketsChecked) *BucketsChecked = FindBucketsChecked_Count;
+  if (BucketsPresent) *BucketsPresent = FindBucketsPresent_Count;
+  if (VtxNumByMHT)    *VtxNumByMHT    = VertexNumFoundByMHT; // 2007-07-30 GW
 }
 
 
