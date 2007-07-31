@@ -8,9 +8,9 @@
 /*
  * Original Author: Gheorghe Postelnicu
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/06/15 16:14:49 $
- *    $Revision: 1.9 $
+ *    $Author: greve $
+ *    $Date: 2007/07/31 21:06:47 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -190,9 +190,8 @@ main(int ac, char* av[]) {
     Process LEFT hemisphere
   */
 
-
   //---------------------
-  // proces white surface
+  // proces white surface - convert to voxel-space
   ConvertSurfaceVertexCoordinates(surfLeftWhite, mriTemplate);
   // allocate distance
   MRI* dLeftWhite = MRIalloc( mriTemplate->width,
@@ -200,6 +199,10 @@ main(int ac, char* av[]) {
                               mriTemplate->depth,
                               MRI_FLOAT );
   MRIcopyHeader(mriTemplate, dLeftWhite);
+
+  // Computes the signed distance to given surface. Sign indicates
+  // whether it is on the inside or outside. params.capValue - 
+  // saturation/clip value for distance.
   ComputeSurfaceDistanceFunction(surfLeftWhite,
                                  params.capValue,
                                  dLeftWhite);
@@ -229,7 +232,8 @@ main(int ac, char* av[]) {
                          .c_str() )
     );
 
-  // combine them and create a mask for the left hemi
+  // combine them and create a mask for the left hemi. Must be 
+  // outside of white and inside pial. Creates labels for WM and Ribbon.
   MRI* maskLeftHemi = CreateHemiMask(dLeftPial,dLeftWhite,
                                      params.labelLeftWhite,
                                      params.labelLeftRibbon,
@@ -290,7 +294,7 @@ main(int ac, char* av[]) {
 
   /*
 
-  finally combine the two created masks
+  finally combine the two created masks -- need to resolve overlap
 
   */
   MRI* finalMask = CombineMasks(maskLeftHemi, maskRightHemi,
@@ -537,7 +541,7 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
                   vol->height,
                   vol->depth };
   sp->SetDimensions(dims);
-
+ 
   // compute the unsigned distance
   vtkImplicitModeller* implicit = vtkImplicitModeller::New();
   implicit->SetInput(mesh);
@@ -575,12 +579,13 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
   vtkIdType incx,incy,incz;
   sp->GetIncrements(incx,incy,incz);
 
+  // iterate thru each volume point, apply sign to tab
   for (vtkIdType i=0; i<npoints; ++i) {
-    if (inout[i]) continue;
+    if (inout[i]) continue; // skip if already visited
 
     double pt[3];
     sp->GetPoint(i,pt);
-    const int _inout = obb->InsideOrOutside(pt);
+    const int _inout = obb->InsideOrOutside(pt); // sign
     if ( _inout == 0 ) std::cerr << "Warning: voxel could not be classified\n";
 
     filo.push(i);
@@ -590,14 +595,15 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
       if (inout[j]) continue;
 
       inout[j] = _inout;
-      const float dist = tab[j];
-      tab[j] *= _inout;
+      const float dist = tab[j]; // unsigned distance
+      tab[j] *= _inout; // make it signed
 
       // mark its neighbors if distance > 1 (triangle inequality)
       if ( dist>1 ) {
-        const int x = j%incy;
-        const int y = (j%incz) / incy;
-        const int z = j/incz;
+        const int x = j%incy;          //col
+        const int y = (j%incz) / incy; //row
+        const int z = j/incz;          //slice
+	// If not on boundary of volume and have not visited neighbor, then push
         if (x>0 && !inout[j-incx]) filo.push(j-incx);
         if (y>0 && !inout[j-incy]) filo.push(j-incy);
         if (z>0 && !inout[j-incz]) filo.push(j-incz);
