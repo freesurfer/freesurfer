@@ -191,7 +191,7 @@ void CoverageTest() {
           NULL, &closest_vertnum, &ddist
           );
         if (closest_vertnum >= 0) {
-          MHTfindReportCounts(&BucketsChecked, &BucketsPresent);
+          MHTfindReportCounts(&BucketsChecked, &BucketsPresent, NULL);
           intens = int_base + (BucketsChecked >> 1);
         }
         MRIvox(amri, xvi, yvi, zvi) = intens;
