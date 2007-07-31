@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/07/30 19:50:34 $
-#    $Revision: 1.124 $
+#    $Author: greve $
+#    $Date: 2007/07/31 00:45:03 $
+#    $Revision: 1.125 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.124 2007/07/30 19:50:34 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.125 2007/07/31 00:45:03 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -224,7 +224,9 @@ setenv FIX_VERTEX_AREA; # see -<no>fixvertexarea flag
 
 # ----------- Surface and Volume ------------------#
 set DoAParc2ASeg = 0;
+set DoWMParc = 0;
 
+# -------------------------------------------------- #
 set PWD = pwd;
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e -help | wc -l`
@@ -2144,6 +2146,32 @@ if($DoAParc2ASeg) then
   echo $cmd > $touchdir/aparc.a2005s2aseg.touch
 endif
 
+# ----------------- WMParc ---------------------------------------- #
+if($DoWMParc) then
+  echo "#-----------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "#@# WMParc `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir > /dev/null
+  set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
+  set cmd = (mri_aparc2aseg --s $subjid --labelwm --hypo-as-wm --rip-unknown \
+             --ribbon --o mri/wmparc.mgz $xopts )
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/wmaparc.touch
+  # Do segstats while we're here
+  set cmd = (mri_segstats --seg mri/wmparc.mgz --sum stats/wmparc.stats \
+    --pv mri/norm.mgz --excludeid 0 --brain-vol-from-seg \
+    --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
+    --in-intensity-units MR --etiv --subject $subjid --surf-wm-vol \
+    --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt )
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/wmaparc.stats.touch
+endif
+
 # -----------------------------------------------------------
 # Do Contra Surface Registration here so don't have
 # to wait for other results
@@ -2543,6 +2571,7 @@ while( $#argv != 0 )
       set DoSegStats       = 0;
       set NoNormMGZ        = 1;
       set DoAParc2ASeg     = 0;
+      set DoWMParc         = 0;
       breaksw
 
     case "-noaseg-inorm2":
@@ -2860,6 +2889,13 @@ while( $#argv != 0 )
       set DoAParc2ASeg = 0;
       breaksw
 
+    case "-wmparc":
+      set DoWMParc = 1;
+      breaksw
+    case "-nowmparc":
+      set DoWMParc = 0;
+      breaksw
+
     case "-expert":
       if( $#argv < 1) goto arg1err;
       set XOptsFile = $argv[1]; shift;
@@ -2970,6 +3006,7 @@ while( $#argv != 0 )
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
       set DoAParc2ASeg     = 1;
+      set DoWMParc         = 1;
       breaksw
 
     case "-autorecon1":
@@ -3099,6 +3136,7 @@ while( $#argv != 0 )
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
       set DoAParc2ASeg     = 1;
+      set DoWMParc         = 1;
       breaksw
 
     case "-autorecon-hemi":
@@ -3129,7 +3167,8 @@ while( $#argv != 0 )
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
-      set DoAParc2ASeg     = 1;
+      set DoAParc2ASeg     = 0;
+      set DoWMParc         = 0;
       breaksw
 
     case "-waitfor":
@@ -3684,7 +3723,7 @@ check_params:
      ! $DoNormalization2  && ! $DoParcStats && ! $DoParcStats2 && \
      ! $DoVersionsOnly && ! $DoDeface &&  ! $DoCleanPFH && \
      ! $DoSkullStrip && ! $DoSegmentation && ! $DoNuIntensityCor &&\
-     ! $DoFill && ! $DoTessellate && ! $DoAParc2ASeg && \
+     ! $DoFill && ! $DoTessellate && ! $DoAParc2ASeg && ! $DoWMParc && \
      ! $DoSmooth1  && ! $DoInflate1 && ! $DoQSphere && ! $DoRemoveNeck &&\
      ! $DoFix  && ! $DoSmooth2 && ! $DoInflate2  && ! $DoSphere &&\
      ! $DoSkullLTA && ! $DoQdecCache  && ! $DoVnoMatchCheck &&\
@@ -4033,7 +4072,6 @@ Run times are approximate for an AMD Opteron 64bit 2.5GHz processor:
   -<no>smooth2          < 1 min     per hemisphere
   -<no>inflate2           2 min     per hemisphere
   -<no>finalsurfs       1-2 hours   per hemisphere
-  -<no>cortribbon       < 1 min     per hemisphere
   -<no>sphere           1-2 hours   per hemisphere
   -<no>surfreg            1 hour    per hemisphere
   -<no>jacobian_white   < 1 min     per hemisphere
@@ -4044,6 +4082,8 @@ Run times are approximate for an AMD Opteron 64bit 2.5GHz processor:
   -<no>cortparc2          1 min     per hemisphere
   -<no>parcstats2       < 1 min     per hemisphere
   -<no>aparc2aseg         1 min
+  -<no>cortribbon        20 min     
+  -<no>wmparc            20 min
 
   -all                20-40 hours   both hemipheres
 
