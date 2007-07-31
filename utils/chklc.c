@@ -1,15 +1,14 @@
 /**
  * @file  chklc.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Routine to check .license file
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:30 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/07/31 07:52:10 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,20 +24,46 @@
  *
  */
 
-
-
-
 #include <unistd.h>
 #include <const.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-extern char     *crypt(const char *, const char *);
+extern char *crypt(const char *, const char *);
+
+static const char* errmsg =
+"--------------------------------------------------------------------------\n"
+"ERROR: FreeSurfer environment FREESURFER_HOME is not defined.\n"
+"  If you are outside the NMR-Martinos Center, please set this\n"
+"  variable to the location where you installed FreeSurfer.\n"
+"  If you are inside the NMR-Martinos Center, please source\n"
+"  the standard environment. If you need to install FreeSurfer,\n"
+"  go to: http://surfer.nmr.mgh.harvard.edu\n"
+"--------------------------------------------------------------------------\n";
+
+static const char* licmsg =
+"--------------------------------------------------------------------------\n"
+"ERROR: FreeSurfer license file %s not found.\n"
+"  If you are outside the NMR-Martinos Center,\n"
+"  go to http://surfer.nmr.mgh.harvard.edu to \n"
+"  get a valid license file (it's free).\n"
+"  If you are inside the NMR-Martinos Center,\n"
+"  make sure to source the standard environment.\n"
+"--------------------------------------------------------------------------\n";
+
+static const char* licmsg2 =
+"--------------------------------------------------------------------------\n"
+"ERROR: Invalid FreeSurfer license key found in license file %s\n"
+"  If you are outside the NMR-Martinos Center,\n"
+"  go to http://surfer.nmr.mgh.harvard.edu to \n"
+"  get a valid license file (it's free).\n"
+"  If you are inside the NMR-Martinos Center,\n"
+"  make sure to source the standard environment.\n"
+"--------------------------------------------------------------------------\n";
 
 void chklc(void)
 {
-  /*#ifndef Darwin*/
   char  dirname[STRLEN], *cp ;
   FILE* lfile;
   char* email;
@@ -54,23 +79,8 @@ void chklc(void)
   cp = getenv("FREESURFER_HOME");
   if (cp == NULL)
   {
-    printf("-----------------------------------------------------\n");
-    printf("FreeSurfer Error: environment FREESURFER_HOME is not defined.\n"
-           "  If you are outside the NMR-Martinos Center, please set this\n"
-           "  variable to the location where you installed FreeSurfer.\n"
-           "  If you are inside the NMR-Martinos Center, please source\n"
-           "  the standard environment.\n");
-    printf(
-      "  If you need to install FreeSurfer, go to surfer.nmr.mgh.harvard.edu\n");
-    fprintf(stderr,"-----------------------------------------------------\n");
-    fprintf(stderr,
-            "FreeSurfer Error: environment FREESURFER_HOME is not defined.\n"
-            "  If you are outside the NMR-Martinos Center, please set this\n"
-            "  variable to the location where you installed FreeSurfer.\n"
-            "  If you are inside the NMR-Martinos Center, please source\n"
-            "  the standard environment.\n");
-    fprintf(stderr,
-            "  If you need to install FreeSurfer, go to surfer.nmr.mgh.harvard.edu\n");
+    //fprintf(stdout,errmsg);
+    fprintf(stderr,errmsg);
     exit(-1);
   }
 
@@ -87,22 +97,8 @@ void chklc(void)
   lfile = fopen(lfilename,"r");
   if (lfile == NULL)
   {
-    printf("-----------------------------------------------------\n");
-    printf("FreeSurfer license file %s not found.\n",lfilename);
-    printf("  If you are outside the NMR-Martinos center,\n"
-           "    go to http://surfer.nmr.mgh.harvard.edu to \n"
-           "    get a valid license file (it's free).\n");
-    printf("  If you are inside the NMR-Martinos center,\n"
-           "    make sure to source the standard environment.\n");
-    fprintf(stderr,"-----------------------------------------------------\n");
-    fprintf(stderr,"FreeSurfer license file %s not found.\n",lfilename);
-    fprintf(stderr,
-            "  If you are outside the NMR-Martinos center,\n"
-            "    go to http://surfer.nmr.mgh.harvard.edu to \n"
-            "    get a valid license file (it's free).\n");
-    fprintf(stderr,
-            "  If you are inside the NMR-Martinos center,\n"
-            "    make sure to source the standard environment.\n");
+    //fprintf(stdout,licmsg,lfilename);
+    fprintf(stderr,licmsg,lfilename);
     exit(-1);
   }
 
@@ -115,29 +111,11 @@ void chklc(void)
 #ifndef Darwin
   if (strcmp(key,crypt(gkey,"*C*O*R*T*E*C*H*S*0*1*2*3*"))!=0)
   {
-    printf("-----------------------------------------------------\n");
-    printf("FreeSurfer: Invalid license key found in license file %s \n",
-           lfilename);
-    printf("  If you are outside the NMR-Martinos center,\n"
-           "  go to http://surfer.nmr.mgh.harvard.edu to \n"
-           "  to get a valid license file (it's free).\n");
-    printf("  If you are inside the NMR-Martinos center,\n"
-           "  make sure to source the standard environment.\n");
-    fprintf(stderr,"-----------------------------------------------------\n");
-    fprintf(stderr,
-            "FreeSurfer: Invalid license key found in license file %s \n",
-            lfilename);
-    fprintf(stderr,
-            "  If you are outside the NMR-Martinos center,\n"
-            "  go to http://surfer.nmr.mgh.harvard.edu to \n"
-            "  to get a valid license file (it's free).\n");
-    fprintf(stderr,
-            "  If you are inside the NMR-Martinos center,\n"
-            "  make sure to source the standard environment.\n");
+    //fprintf(stdout,licmsg2,lfilename);
+    fprintf(stderr,licmsg2,lfilename);
     exit(-1);
   }
 #endif
-
 
   free(email);
   free(magic);
@@ -145,7 +123,7 @@ void chklc(void)
   free(gkey);
   free(lfilename);
   fclose(lfile) ;
+
   return;
-  /*#endif*/
 }
 
