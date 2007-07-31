@@ -1,15 +1,14 @@
 /**
  * @file  mris_diff.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Compare two surfaces.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/07/31 07:52:39 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -114,7 +113,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.14 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.15 2007/07/31 07:52:39 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
@@ -170,8 +169,8 @@ int main(int argc, char *argv[]) {
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if (SUBJECTS_DIR == NULL) {
-    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-    exit(1);
+    printf("INFO: SUBJECTS_DIR not defined in environment\n");
+    //exit(1);
   }
   if (SUBJECTS_DIR1 == NULL) SUBJECTS_DIR1 = SUBJECTS_DIR;
   if (SUBJECTS_DIR2 == NULL) SUBJECTS_DIR2 = SUBJECTS_DIR;
