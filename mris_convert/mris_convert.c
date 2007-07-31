@@ -1,15 +1,14 @@
 /**
  * @file  mris_convert.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Format conversions of surface files and scalar overlay files
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/06 02:11:56 $
- *    $Revision: 1.22 $
+ *    $Date: 2007/07/31 16:51:08 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +47,7 @@ int MRISmatrixMultiply(MRIS *mris, MATRIX *M);
 
 //------------------------------------------------------------------------
 static char vcid[] =
-  "$Id: mris_convert.c,v 1.22 2007/05/06 02:11:56 nicks Exp $";
+  "$Id: mris_convert.c,v 1.23 2007/07/31 16:51:08 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -95,7 +94,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_convert.c,v 1.22 2007/05/06 02:11:56 nicks Exp $",
+           "$Id: mris_convert.c,v 1.23 2007/07/31 16:51:08 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -293,7 +292,7 @@ usage_exit(void) {
 static void
 print_usage(void) {
   fprintf(stderr,
-          "usage: %s [options] <input surface file> <output surface file>\n",
+          "Usage: %s [options] <input surface file> <output surface file>\n",
           Progname) ;
 }
 
@@ -303,9 +302,9 @@ print_help(void) {
   printf(
     "\nThis program will convert an MRI surface to ascii, and "
     "vice-versa.\n") ;
-  printf( "\nvalid options are:\n") ;
+  printf( "\nValid options are:\n") ;
   printf( "  -p                input is a patch, not a full surface\n") ;
-  printf( "  -c <curv file>    input is curvature file (must still\n"
+  printf( "  -c <scalar file>  input is scalar overlay file (must still\n"
           "                    specify surface)\n") ;
   printf( "  -o origname       read orig positions\n") ;
   printf( "  -s scale          scale vertex xyz by scale\n") ;
@@ -316,7 +315,7 @@ print_help(void) {
   printf( "  -n                output is an ascii file where vertex data\n") ;
   printf( "                    is the surface normal vector\n") ;
   printf( "\n") ;
-  printf( "Surface and curvature files can be ascii or binary.\n") ;
+  printf( "Surface and scalar files can be ascii or binary.\n") ;
   printf( "Ascii file is assumed if filename ends with .asc\n") ;
   printf( "\n") ;
   printf( "EXAMPLES:\n") ;
@@ -330,7 +329,7 @@ print_help(void) {
   printf( "Apply talairach xfm to white surface, save as binary:\n");
   printf( "  mris_convert -t bert lh.white lh.white.tal\n") ;
   printf( "\n");
-  printf( "Convert a curv file to ascii:\n");
+  printf( "Convert a scalar overlay file to ascii:\n");
   printf( "  mris_convert -c lh.thickness lh.white lh.thickness.asc\n") ;
   printf( "\n") ;
   printf( "See also mri_surf2surf\n") ;
