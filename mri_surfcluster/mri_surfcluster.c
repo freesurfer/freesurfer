@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/30 23:10:29 $
- *    $Revision: 1.38 $
+ *    $Date: 2007/07/31 00:34:19 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.38 2007/07/30 23:10:29 greve Exp $
+  $Id: mri_surfcluster.c,v 1.39 2007/07/31 00:34:19 greve Exp $
 */
 
 #include <stdio.h>
@@ -80,7 +80,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.38 2007/07/30 23:10:29 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.39 2007/07/31 00:34:19 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -177,7 +177,6 @@ double fdr = -1;
 
 double cwpvalthresh = -1; // pvalue, NOT log10(p)!
 
-
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char fname[2000];
@@ -190,7 +189,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.38 2007/07/30 23:10:29 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.39 2007/07/31 00:34:19 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -470,7 +469,7 @@ int main(int argc, char **argv) {
   /* Remove clusters that do not meet the minimum clusterwise pvalue */
   if(cwpvalthresh > 0 && (fwhm >0 || csd != NULL) ){
     printf("Pruning by CW P-Value %g\n",cwpvalthresh);
-    scs2 = sclustPruneByCWPval(scs, NClusters, cwpvalthresh, &NPrunedClusters);
+    scs2 = sclustPruneByCWPval(scs, NClusters, cwpvalthresh, &NPrunedClusters, srcsurf);
     NClusters = NPrunedClusters;
     scs = scs2;
   }
@@ -641,7 +640,10 @@ int main(int argc, char **argv) {
   }
 
   if(outannot != NULL){
-    printf("No output annot yet\n");
+    printf("Constructing output annotation\n");
+    sclustAnnot(srcsurf, NClusters);
+    printf("Writing annotation %s\n",outannot);
+    MRISwriteAnnotation(srcsurf, outannot);
   }
 
 
@@ -878,8 +880,6 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--oannot")) {
       if (nargc < 1) argnerr(option,1);
       outannot= pargv[0];
-      printf("ERROR: --oannot not working yet\n");
-      exit(1);
       nargsused = 1;
     } else if (!strcmp(option, "--synth")) {
       if (nargc < 1) argnerr(option,1);
@@ -954,9 +954,9 @@ static void print_usage(void) {
   printf("   --mask maskfile : constrain to be within mask\n");
   printf("   --mask-inv : constrain to be OUTSIDE mask or clabel\n");
   printf("   --sum sumfile     : text summary file\n");
-  printf("   --o outid <fmt>   : input with non-clusters set to 0\n");
-  printf("   --ocn ocnid <fmt>    : value is cluster number \n");
-  printf("   --olab labelbase     : output clusters as labels \n");
+  printf("   --o outid        : input with non-clusters set to 0\n");
+  printf("   --ocn ocnid      : value is cluster number \n");
+  printf("   --olab labelbase : output clusters as labels \n");
   printf("\n");
   printf("   --minarea  area      : area threshold for a cluster (mm^2)\n");
   printf("   --xfm xfmfile     : talairach transform (def is talairach.xfm) \n");
@@ -1099,7 +1099,7 @@ static void print_help(void) {
     "Text file in which to store the cluster summary. See SUMMARY FILE\n"
     "OUTPUT below.\n"
     "\n"
-    "--o outputid <fmt>\n"
+    "--o outputid \n"
     "\n"
     "File in which to store the surface values after setting the\n"
     "non-cluster vertices to zero. Fmt is the format (currently, only\n"
@@ -1107,7 +1107,7 @@ static void print_help(void) {
     "of outputid or else it will attempt to write the output to the\n"
     "subject's surf directory.\n"
     "\n"
-    "--ocn ocnid <fmt>\n"
+    "--ocn ocnid \n"
     "\n"
     "File in which to store the cluster number of each vertex. This can be\n"
     "useful for determining to which cluster a particular vertex\n"
@@ -1169,7 +1169,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.38 2007/07/30 23:10:29 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.39 2007/07/31 00:34:19 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
@@ -1496,4 +1496,3 @@ LABEL *MaskToSurfaceLabel(MRI *mask, double thresh, int sign) {
   printf("Found %d vertices in mask\n",nhits);
   return(label);
 }
-

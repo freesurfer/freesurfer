@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/30 23:10:29 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/07/31 00:34:19 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,6 +71,7 @@ SCS *SortSurfClusterSum(SCS *scs, int nClusters);
 int sclustReMap(MRI_SURFACE *Surf, int nClusters, SCS *scs_sorted);
 double sclustMaxClusterArea(SURFCLUSTERSUM *scs, int nClusters);
 SCS *sclustPruneByCWPval(SCS *ClusterList, int nclusters, 
-			 double cwpvalthresh, int *nPruned);
-
+			 double cwpvalthresh,int *nPruned, 
+			 MRIS *surf);
+int sclustAnnot(MRIS *surf, int NClusters);
 #endif

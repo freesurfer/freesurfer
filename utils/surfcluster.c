@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/30 23:10:29 $
- *    $Revision: 1.18 $
+ *    $Date: 2007/07/31 00:34:19 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   surfcluster.c - routines for growing clusters on the surface
   based on intensity thresholds and area threshold. Note: this
   makes use of the undefval in the MRI_SURFACE structure.
-  $Id: surfcluster.c,v 1.18 2007/07/30 23:10:29 greve Exp $
+  $Id: surfcluster.c,v 1.19 2007/07/31 00:34:19 greve Exp $
   ----------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -293,8 +293,12 @@ float sclustSetSurfaceValToCWP(MRI_SURFACE *Surf, SCS *scs)
     vtx_clusterno = Surf->vertices[vtx].undefval;
 
     if (vtx_clusterno==0) val = 0;
-    else val = -log10(scs[vtx_clusterno-1].pval_clusterwise) *
-                 SIGN(scs[vtx_clusterno-1].maxval);
+    else {
+      val = scs[vtx_clusterno-1].pval_clusterwise;
+      if(val == 0.0) val = 50;
+      else           val = -log10(val);
+      val = val * SIGN(scs[vtx_clusterno-1].maxval);
+    }
     Surf->vertices[vtx].val = val;
   }
 
@@ -469,11 +473,13 @@ double sclustMaxClusterArea(SURFCLUSTERSUM *scs, int nClusters)
 
 /*---------------------------------------------------------------*/
 SCS *sclustPruneByCWPval(SCS *ClusterList, int nclusters, 
-			 double cwpvalthresh, int *nPruned){
-
-  int n,nth;
+			 double cwpvalthresh,int *nPruned, 
+			 MRIS *surf)
+{
+  int n,nth,vtxno,map[10000];
   SCS *scs;
 
+  // Construct a new SCS with pruned clusters
   nth = 0;
   for(n=0; n < nclusters; n++)
     if(ClusterList[n].pval_clusterwise < cwpvalthresh) nth++;
@@ -482,11 +488,50 @@ SCS *sclustPruneByCWPval(SCS *ClusterList, int nclusters,
   scs = (SCS *) calloc(*nPruned, sizeof(SCS));
   nth = 0;
   for(n=0; n < nclusters; n++){
-    if(ClusterList[n].pval_clusterwise < cwpvalthresh){
+    if(ClusterList[n].pval_clusterwise <= cwpvalthresh){
       memcpy(&scs[nth],&ClusterList[n],sizeof(SCS));
+      map[n] = nth;
       nth++;
     }
   }
+
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
+    n = surf->vertices[vtxno].undefval; //1-based
+    if(n == 0) continue;
+    if(ClusterList[n-1].pval_clusterwise > cwpvalthresh){
+      // Remove clusters/values from surface 
+      surf->vertices[vtxno].undefval = 0;
+      surf->vertices[vtxno].val = 0;
+    } else {
+      // Re-number
+      surf->vertices[vtxno].undefval = map[n-1] + 1;
+    }
+  }
+
   return(scs);
+}
+
+/* ------------------------------------------------------------
+   int sclustAnnot(MRIS *surf, int NClusters)
+   Convert clusters into annotation
+   ------------------------------------------------------------*/
+int sclustAnnot(MRIS *surf, int NClusters)
+{
+  COLOR_TABLE *ct ;
+  int vtxno, vtx_clusterno, annot, n;
+
+  ct = CTABalloc(NClusters+1);
+  surf->ct = ct;
+
+  for(n=0; n < NClusters; n++)
+    sprintf(surf->ct->entries[n]->name, "%s-%03d","cluster",n);
+
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++)  {
+    vtx_clusterno = surf->vertices[vtxno].undefval;
+    if(vtx_clusterno == 0 || vtx_clusterno > NClusters) continue;
+    CTABannotationAtIndex(surf->ct, vtx_clusterno, &annot);
+    surf->vertices[vtxno].annotation = annot;
+  }
+  return(0);
 }
 
