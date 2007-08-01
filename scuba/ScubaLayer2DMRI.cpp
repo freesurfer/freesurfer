@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/18 21:38:42 $
- *    $Revision: 1.154 $
+ *    $Date: 2007/08/01 16:50:54 $
+ *    $Revision: 1.155 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -902,7 +902,8 @@ ScubaLayer2DMRI::GetHeatscaleColorForValue ( float iValue,GLubyte* const iBase,
   iValue -= mHeatScaleOffset;
 
   if ( (!mbClearZero || (mbClearZero && iValue != 0)) &&
-       (iValue >= mMinVisibleValue && iValue <= mMaxVisibleValue) &&
+       (iValue >= (mMinVisibleValue-mHeatScaleOffset) && 
+	iValue <= (mMaxVisibleValue-mHeatScaleOffset)) &&
        (fabs(mMinVisibleValue - mMaxVisibleValue) > 0.0001) &&
        (iValue >= mHeatScaleMinThreshold || iValue <= -mHeatScaleMinThreshold)&&
        ((iValue > 0 && mbShowPositiveHeatScaleValues) ||
