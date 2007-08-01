@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/07/24 17:46:55 $
-##    $Revision: 1.127 $
+##    $Date: 2007/08/01 19:47:29 $
+##    $Revision: 1.128 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -4593,7 +4593,7 @@ proc CreateToolBar { ifwToolBar } {
 	  { image 1 icon_edit_label "Select Voxels Tool (s)" }
 	  { image 2 icon_edit_volume "Edit Voxels Tool (a)" }
 	  { image 3 icon_edit_parc "Edit Segmentation Tool (g)" }
-	  { image 4 icon_edit_ctrlpts "Edit Ctrl Pts Tool (c)" }
+	  { image 4 icon_edit_ctrlpts "Edit Ctrl Pts Tool (t)" }
 	  { image 5 icon_line_tool "Line Tool (l)" } 
       }
 
