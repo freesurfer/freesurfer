@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/15 19:05:16 $
- *    $Revision: 1.84 $
+ *    $Date: 2007/08/01 17:55:59 $
+ *    $Revision: 1.85 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.84 2007/06/15 19:05:16 greve Exp $";
+"$Id: tkregister2.c,v 1.85 2007/08/01 17:55:59 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -300,7 +300,7 @@ int npts = 0;
 int prad = 0;
 float TM[4][4];
 float tm[4][4];
-MATRIX *RegMat, *XFM=NULL;
+MATRIX *RegMat=NULL, *XFM=NULL;
 double ps_2,st_2,fscale_2=0.0; /* was float */
 int float2int = 0;
 int float2int_use = FLT2INT_ROUND;
@@ -415,8 +415,10 @@ int checkreg = 0;
 #define Tcl_Interp void*
 #endif // HAVE_TCL_TK_GL
 
+int ZeroCRAS = 0;
+double TargCRAS[3];
 
-/**** ------------------ main ------------------------------- ****/
+/**** ------------------ main() ------------------------------- ****/
 int Register(ClientData clientData,
              Tcl_Interp *interp,
              int argc, char *argv[]) {
@@ -455,7 +457,7 @@ int Register(ClientData clientData,
   // Just use identity
   if (identityreg) RegMat = MatrixIdentity(4,NULL);
 
-  if (fstal) {
+  if(fstal) {
     if (subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
     if (subjectsdir==NULL) {
       printf("ERROR: SUBJECTS_DIR undefined. Use setenv or --sd\n");
@@ -551,13 +553,29 @@ int Register(ClientData clientData,
 
   /*------------------------------------------------------*/
   printf("INFO: loading target %s\n",targ_vol_path);
-  if (LoadVol)  targ_vol = MRIreadType(targ_vol_path,targ_vol_fmt);
+  if(LoadVol)  targ_vol = MRIreadType(targ_vol_path,targ_vol_fmt);
   else         targ_vol = MRIreadHeader(targ_vol_path,targ_vol_fmt);
-  if (targ_vol == NULL) {
+  if(targ_vol == NULL) {
     printf("ERROR: could not read %s\n",targ_vol_path);
     exit(1);
   }
-  if (targ_ostr) {
+  if(fstal && ZeroCRAS){
+    printf("Zeroing CRAS of target\n");
+    TargCRAS[0] = targ_vol->c_r;
+    TargCRAS[1] = targ_vol->c_a;
+    TargCRAS[2] = targ_vol->c_s;
+    targ_vol->c_r = 0;
+    targ_vol->c_a = 0;
+    targ_vol->c_s = 0;
+    // At this point, RegMat holds tal.xfm
+    RegMat->rptr[1][4] += TargCRAS[0];
+    RegMat->rptr[2][4] += TargCRAS[1];
+    RegMat->rptr[3][4] += TargCRAS[2];
+    printf("new xfm -----------------\n");
+    MatrixPrint(stdout,RegMat);
+    printf("---------------------\n");
+  }
+  if(targ_ostr) {
     printf("Setting targ orientation to %s\n",targ_ostr);
     MRIorientationStringToDircos(targ_vol, targ_ostr);
   }
@@ -631,7 +649,7 @@ int Register(ClientData clientData,
   }
   invMtc = MatrixInverse(Mtc,NULL);
 
-  if (!fstal || !fixxfm) Ttarg = MRIxfmCRS2XYZtkreg(targ_vol);
+  if(!fstal || !fixxfm) Ttarg = MRIxfmCRS2XYZtkreg(targ_vol);
   else                  Ttarg = MRIxfmCRS2XYZ(targ_vol,0);
   invTtarg = MatrixInverse(Ttarg,NULL);
   printf("Ttarg: --------------------\n");
@@ -659,7 +677,7 @@ int Register(ClientData clientData,
     MRIfree(&mov_vol);
     mov_vol = mritmp;
   }
-  if (!fstal || !fixxfm) Tmov = MRIxfmCRS2XYZtkreg(mov_vol);
+  if(!fstal || !fixxfm) Tmov = MRIxfmCRS2XYZtkreg(mov_vol);
   else                  Tmov = MRIxfmCRS2XYZ(mov_vol,0);
   invTmov = MatrixInverse(Tmov,NULL);
   printf("Tmov: --------------------\n");
@@ -668,7 +686,7 @@ int Register(ClientData clientData,
 
   /*------------------------------------------------------*/
   printf("mkheaderreg = %d, float2int = %d\n",mkheaderreg,float2int);
-  if (mkheaderreg) {
+  if(mkheaderreg) {
     /* Compute Reg from Header Info */
     printf("Computing reg from header (and possibly input matrix)\n");
     if(!Vox2Vox) RegMat = MRItkRegMtx(targ_vol,mov_vol,XFM);
@@ -986,11 +1004,14 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--regheader")) mkheaderreg = 1;
     else if (!strcasecmp(option, "--identity"))  identityreg = 1;
     else if (!strcasecmp(option, "--noedit"))    noedit = 1;
+    else if (!strcasecmp(option, "--zero-cras"))     ZeroCRAS = 1;
+    else if (!strcasecmp(option, "--no-zero-cras"))  ZeroCRAS = 0;
     else if (!strcasecmp(option, "--fstal")) {
       fstal = 1;
       LoadSurf = 0;
       UseSurf = 0;
       fscale_2 = 1;
+      ZeroCRAS = 1;
     } else if (!strcasecmp(option, "--fixxfm"))    fixxfm = 1;
     else if (!strcasecmp(option, "--nofixxfm"))  fixxfm = 0;
     else if (!strcasecmp(option, "--tag"))    tagmov = 1;
@@ -1261,6 +1282,7 @@ static void print_usage(void) {
   printf("   --fsl-targ : use FSLDIR/etc/standard/avg152T1.img\n");
   printf("   --fsl-targ-lr : use FSLDIR/etc/standard/avg152T1_LR-marked.img\n");
   printf("   --fstal : set mov to be tal and reg to be tal xfm  \n");
+  printf("   --no-zero-cras : do not zero target cras (done with --fstal)\n");
   printf("   --movbright  f : brightness of movable volume\n");
   printf("   --no-inorm  : turn off intensity normalization\n");
   printf("   --plane  orient  : startup view plane <cor>, sag, ax\n");
@@ -1364,7 +1386,10 @@ static void print_help(void) {
     "  $SUBJECTS_DIR/subjectid/transforms/talairach.xfm. User must have\n"
     "  write permission to this file. Do not specify --reg with this\n"
     "  flag. It is ok to specify --regheader with this flag. The format\n"
-    "  of the anatomical is automatically detected as mgz or COR.\n"
+    "  of the anatomical is automatically detected as mgz or COR. By default,\n"
+    "  the target c_ras is temporarily set to 0 to assure that the target\n"
+    "  is properly centered. This is taken into account when computing \n"
+    "  and writing the output xfm. To turn this off, add --no-zero-cras.\n"
     "\n"
     "  --plane <orientation>\n"
     "\n"
@@ -1854,6 +1879,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"movable volume %s\n",mov_vol_id);
   fprintf(fp,"reg file       %s\n",regfname);
   fprintf(fp,"LoadVol        %d\n",LoadVol);
+  fprintf(fp,"ZeroCRAS       %d\n",ZeroCRAS);
 
   return;
 }
@@ -3258,7 +3284,13 @@ void write_reg(char *fname) {
   printf("RegMat ---------------------------\n");
   MatrixPrint(stdout,RegMatTmp);
 
-  if (fstal) {
+  if(fstal) {
+    if(ZeroCRAS){
+      printf("UnZeroing CRAS for output xfm\n");
+      RegMatTmp->rptr[1][4] -= TargCRAS[0];
+      RegMatTmp->rptr[2][4] -= TargCRAS[1];
+      RegMatTmp->rptr[3][4] -= TargCRAS[2];
+    }
     make_backup(talxfmfile);
     regio_write_mincxfm(talxfmfile,RegMatTmp,xfmfileinfo);
     sprintf(touchfile,"%s/%s/touch",subjectsdir,pname);
@@ -4452,7 +4484,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.84 2007/06/15 19:05:16 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.85 2007/08/01 17:55:59 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
