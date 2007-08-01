@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/01 21:24:52 $
- *    $Revision: 1.36 $
+ *    $Date: 2007/08/01 22:48:49 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.36 2007/08/01 21:24:52 greve Exp $
+  $Id: mri2.c,v 1.37 2007/08/01 22:48:49 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -1672,10 +1672,9 @@ MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out)
   \fn MRI *MRIvote(MRI *in, MRI *mask, MRI *vote)
   \brief Select the most frequently occuring value measured
      across frames in each voxel. 
-  \param vote - has 3 frames:
+  \param vote - has 2 frames:
      (1) Most freqently occuring value
-     (2) Number of occurances
-     (3) Fraction of occurances (ie #2/nframes)
+     (2) Fraction of occurances (ie noccurances/nframes)
  */
 MRI *MRIvote(MRI *in, MRI *mask, MRI *vote) {
   int c, r, s, f, f0, ncols, nrows, nslices,nframes;
@@ -1693,20 +1692,20 @@ MRI *MRIvote(MRI *in, MRI *mask, MRI *vote) {
   nframes = in->nframes;
 
   if(vote==NULL) {
-    vote = MRIallocSequence(ncols, nrows, nslices, in->type, 3);
+    vote = MRIallocSequence(ncols, nrows, nslices, in->type, 2);
     if(vote==NULL) {
       printf("ERROR: MRIvote: could not alloc\n");
       return(NULL);
     }
     MRIcopyHeader(in,vote);
-    vote->nframes = 3;
+    vote->nframes = 2;
   }
   if(in->type != vote->type) {
     printf("ERROR: MRIvote: type mismatch\n");
     return(NULL);
   }
   if(vote->width != ncols   || vote->height  != nrows ||
-     vote->depth != nslices || vote->nframes != 3) {
+     vote->depth != nslices || vote->nframes != 2) {
     printf("ERROR: MRIvote: dimension mismatch\n");
     return(NULL);
   }
@@ -1747,8 +1746,7 @@ MRI *MRIvote(MRI *in, MRI *mask, MRI *vote) {
           f0 = f;
         }
         MRIsetVoxVal(vote,c,r,s,0,vmax);
-        MRIsetVoxVal(vote,c,r,s,1,runlenmax);
-        MRIsetVoxVal(vote,c,r,s,2,(double)runlenmax/nframes);
+        MRIsetVoxVal(vote,c,r,s,1,(double)runlenmax/nframes);
 
       } // slices
     } // rows
