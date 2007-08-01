@@ -9,8 +9,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/18 20:15:30 $
-#    $Revision: 1.1 $
+#    $Date: 2007/08/01 22:46:36 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,13 +25,14 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: talsegprob,v 1.1 2007/07/18 20:15:30 greve Exp $';
+set VERSION = '$Id: talsegprob,v 1.2 2007/08/01 22:46:36 greve Exp $';
 
 set outfile = ();
 set outcatfile = ();
 set transform_fname = talairach.xfm
 set SegNos = ();
 set segmentation = aseg;
+set DoVote = 0;
 
 set PrintHelp = 0;
 set tmpdir = ();
@@ -106,42 +107,49 @@ foreach subject ($SUBJECTS)
     exit 1;
   endif
 
-  # Create identity reg (needed for --tal below)
-  set regfile = $tmpdir/tmp.reg
-  rm -f $regfile
-  echo $subject >> $regfile
-  echo "1" >> $regfile
-  echo "1" >> $regfile
-  echo "1" >> $regfile
-  echo "1 0 0 0" >> $regfile
-  echo "0 1 0 0" >> $regfile
-  echo "0 0 1 0" >> $regfile
-  echo "0 0 0 1" >> $regfile
-
   # Reslice, use nearest neighbor
   set xfmvol = $tmpdir/aseg-$subject.mgz
-  set cmd = (mri_vol2vol --mov $invol  --o $xfmvol --talxfm $transform_fname \
+  if(0) then
+    # Create identity reg (needed for --tal below)
+    set regfile = $tmpdir/tmp.reg
+    rm -f $regfile
+    echo $subject >> $regfile
+    echo "1" >> $regfile
+    echo "1" >> $regfile
+    echo "1" >> $regfile
+    echo "1 0 0 0" >> $regfile
+    echo "0 1 0 0" >> $regfile
+    echo "0 0 1 0" >> $regfile
+    echo "0 0 0 1" >> $regfile
+    set cmd = (mri_vol2vol --mov $invol  --o $xfmvol \
+             --talxfm $transform_fname \
              --interp nearest --tal --talres 1 --reg $regfile)
+  else
+    set cmd = (mri_vol2vol --mov $invol \
+       --targ $FREESURFER_HOME/average/mni305.cor.mgz \
+       --xfm $xfm  --o $xfmvol --interp nearest)
+  endif
   echo $cmd | tee -a $LF
   $cmd  |& tee -a $LF
   if($status) then
     pwd |& tee -a $LF
-    echo "ERROR: mri_convert failed." |& tee -a $LF
+    echo "ERROR: mri_vol2vol failed." |& tee -a $LF
     exit 1;
   endif
-#    --targ $SUBJECTS_DIR/fsaverage/mri/orig.mgz --xfm $xfm \
 
-  # Binarize to select only the voxels in the seg
-  set cmd = (mri_binarize --i $xfmvol --o $xfmvol)
-  foreach SegNo ($SegNos)
-    set cmd = ($cmd --match $SegNo)
-  end
-  echo $cmd | tee -a $LF
-  $cmd  |& tee -a $LF
-  if($status) then
-    pwd |& tee -a $LF
-    echo "ERROR: mri_convert failed." |& tee -a $LF
-    exit 1;
+  if(! $DoVote) then
+    # Binarize to select only the voxels in the seg
+    set cmd = (mri_binarize --i $xfmvol --o $xfmvol)
+    foreach SegNo ($SegNos)
+      set cmd = ($cmd --match $SegNo)
+    end
+    echo $cmd | tee -a $LF
+    $cmd  |& tee -a $LF
+    if($status) then
+      pwd |& tee -a $LF
+      echo "ERROR: mri_binarize failed." |& tee -a $LF
+      exit 1;
+    endif
   endif
 
   set invollist = ($invollist $xfmvol);
@@ -150,8 +158,12 @@ echo "--------------------------------------" | tee -a $LF
 
 # Final stages
 if($#outcatfile == 0) then
-  # No concat file, just compute mean
-  set cmd = (mri_concat $invollist --o $outfile --mean)
+  # No concat file, just compute mean or vote
+  if(! $DoVote) then
+    set cmd = (mri_concat $invollist --o $outfile --mean)
+  else
+    set cmd = (mri_concat $invollist --o $outfile --vote)
+  endif
   echo $cmd | tee -a $LF
   $cmd  | tee -a $LF
   if($status) exit 1;
@@ -161,7 +173,11 @@ else
   echo $cmd | tee -a $LF
   $cmd  | tee -a $LF
   if($status) exit 1;
-  set cmd = (mri_concat $outcatfile --o $outfile --mean)
+  if(! $DoVote) then
+    set cmd = (mri_concat $outcatfile --o $outfile --mean)
+  else
+    set cmd = (mri_concat $outcatfile --o $outfile --vote)
+  endif
   echo $cmd | tee -a $LF
   $cmd  | tee -a $LF
   if($status) exit 1;
@@ -224,6 +240,18 @@ while( $#argv != 0 )
       endif
       if ( $#argv == 0) goto arg1err;
       set outfile = $argv[1]; shift;
+      set DoVote = 0;
+      breaksw
+
+    case "--vote":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set outfile = $argv[1]; shift;
+      set DoVote = 1;
       breaksw
 
     case "--c":
@@ -324,6 +352,14 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--no-vote":
+      set DoVote = 0;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
     case "--debug":
     case "--echo":
       set echo = 1;
@@ -376,8 +412,12 @@ check_params:
     echo "ERROR: need to specify an output file"
     exit 1;
   endif
-  if($#SegNos == 0) then
-    echo "ERROR: need to specify at least one segmentation"
+  if($#SegNos == 0 && ! $DoVote) then
+    echo "ERROR: need to specify a segmentation or --vote"
+    exit 1;
+  endif
+  if($#SegNos != 0 && $DoVote) then
+    echo "ERROR: cannot spec a segmentation AND --vote"
     exit 1;
   endif
 
@@ -415,7 +455,8 @@ usage_exit:
   echo "   --segmentation segfile : use subject/mri/segfile.mgz instead of aseg"
   echo ""
   echo "Outputs"
-  echo "   --p  probfname   : output file name"
+  echo "   --p    probfname   : output file name (not with --vote)"
+  echo "   --vote votefname   : output file name (not with --p)"
   echo "   --c  concatfname : output file name"
   echo ""
   echo "Optional Arguments"
@@ -450,7 +491,8 @@ talaiach.xfm. The volumes for all the subjects are concatenated
 together and the mean computed.  The value at each voxel is then the
 fraction of subjects that had that segmentation at that voxel. It can
 also be thought of as a probability that the talairach voxel is part
-of the segmentation.
+of the segmentation. --vote works in the same way but produces 
+an volume that can be used like an aseg.
 
 The list of subjects to include in the analysis can be specified 
 in one of three ways:
