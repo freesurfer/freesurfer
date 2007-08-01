@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/13 03:43:16 $
- *    $Revision: 1.17 $
+ *    $Date: 2007/08/01 21:28:50 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // mri_concat.c
-// $Id: mri_concat.c,v 1.17 2007/06/13 03:43:16 greve Exp $
+// $Id: mri_concat.c,v 1.18 2007/08/01 21:28:50 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +54,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.17 2007/06/13 03:43:16 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.18 2007/08/01 21:28:50 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -71,6 +71,7 @@ int DoPairedDiff=0;
 int DoPairedDiffNorm=0;
 int DoPairedDiffNorm1=0;
 int DoPairedDiffNorm2=0;
+int DoVote=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -225,6 +226,13 @@ int main(int argc, char **argv) {
     mriout = mritmp;
   }
 
+  if(DoVote) {
+    printf("Voting \n");
+    mritmp = MRIvote(mriout,NULL,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
+
   printf("Writing to %s\n",out);
   MRIwrite(mriout,out);
 
@@ -258,6 +266,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mean"))   DoMean = 1;
     else if (!strcasecmp(option, "--std"))    DoStd = 1;
     else if (!strcasecmp(option, "--max"))    DoMax = 1;
+    else if (!strcasecmp(option, "--vote"))   DoVote = 1;
     else if (!strcasecmp(option, "--asl")){
       DoPairedDiff = 1;
       DoMean = 1;
@@ -330,6 +339,7 @@ static void print_usage(void) {
   printf("   --mean : compute mean of concatenated volumes\n");
   printf("   --std  : compute std  of concatenated volumes\n");
   printf("   --max  : compute max  of concatenated volumes\n");
+  printf("   --vote : most frequent value at each voxel, noccurs, poccurs\n");
   printf("\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
