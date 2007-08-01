@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/24 21:11:59 $
- *    $Revision: 1.35 $
+ *    $Date: 2007/08/01 21:24:52 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.35 2007/07/24 21:11:59 greve Exp $
+  $Id: mri2.c,v 1.36 2007/08/01 21:24:52 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -1670,8 +1670,12 @@ MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out)
 }
 /*!
   \fn MRI *MRIvote(MRI *in, MRI *mask, MRI *vote)
-  \brief select the most frequently occuring value measured
-     across frames in each voxel. NOT TESTED YET!
+  \brief Select the most frequently occuring value measured
+     across frames in each voxel. 
+  \param vote - has 3 frames:
+     (1) Most freqently occuring value
+     (2) Number of occurances
+     (3) Fraction of occurances (ie #2/nframes)
  */
 MRI *MRIvote(MRI *in, MRI *mask, MRI *vote) {
   int c, r, s, f, f0, ncols, nrows, nslices,nframes;
@@ -1680,79 +1684,75 @@ MRI *MRIvote(MRI *in, MRI *mask, MRI *vote) {
   int runlen, runlenmax;
   MRI *sorted;
 
-  if (0 && in->type != MRI_INT && in->type != MRI_SHORT &&
-      in->type != MRI_LONG && in->type != MRI_UCHAR) {
-    printf("ERROR: MRIvote(): input is not of integer class\n");
-    return(NULL);
-  }
-
   sorted = MRIsort(in,mask,NULL);
-  if (sorted == NULL) return(NULL);
+  if(sorted == NULL) return(NULL);
 
   ncols   = in->width;
   nrows   = in->height;
   nslices = in->depth;
   nframes = in->nframes;
 
-  if (vote==NULL) {
-    vote = MRIallocSequence(ncols, nrows, nslices, in->type, 1);
-    if (vote==NULL) {
+  if(vote==NULL) {
+    vote = MRIallocSequence(ncols, nrows, nslices, in->type, 3);
+    if(vote==NULL) {
       printf("ERROR: MRIvote: could not alloc\n");
       return(NULL);
     }
     MRIcopyHeader(in,vote);
-    vote->nframes = 1;
+    vote->nframes = 3;
   }
-  if (in->type != vote->type) {
+  if(in->type != vote->type) {
     printf("ERROR: MRIvote: type mismatch\n");
     return(NULL);
   }
-  if (vote->width != ncols   || vote->height  != nrows ||
-      vote->depth != nslices || vote->nframes != 1) {
+  if(vote->width != ncols   || vote->height  != nrows ||
+     vote->depth != nslices || vote->nframes != 3) {
     printf("ERROR: MRIvote: dimension mismatch\n");
     return(NULL);
   }
 
-  vmax = 0;
-  runlenmax = 0;
-  for (s=0; s<nslices; s++) {
-    for (r=0; r<nrows; r++) {
-      for (c=0; c<ncols; c++) {
-        if (mask) {
+  for(c=0; c<ncols; c++) {
+    for(r=0; r<nrows; r++) {
+      for(s=0; s<nslices; s++) {
+        if(mask) {
           m = MRIgetVoxVal(mask,c,r,s,0);
-          if (m < 0.5) continue;
+          if(m < 0.5) continue;
         }
+	vmax = 0;
+	runlenmax = 0;
         v0 = MRIgetVoxVal(sorted,c,r,s,0); // value at start of run
         f0 = 0;                            // frame at start of run
         f = 1;
-        while (f < nframes) {
+        while(f < nframes) {
           v = MRIgetVoxVal(sorted,c,r,s,f);
-          if (v0 != v) {
+          if(v0 != v) {
             // new value is different than that of run start
             runlen = f - f0; // runlength for v0
-            if (runlenmax < runlen) {
+            if(runlenmax < runlen) {
               runlenmax = runlen;
               vmax = v0;
-              v0 = v;
-              f0 = f;
             }
+	    v0 = v;
+	    f0 = f;
           }
           f++;
         }
         // Need to do this one more time in case last value
         // has the longest run
         runlen = f - f0;
-        if (runlenmax < runlen) {
+        if(runlenmax < runlen) {
           runlenmax = runlen;
           vmax = v0;
           v0 = v;
           f0 = f;
         }
         MRIsetVoxVal(vote,c,r,s,0,vmax);
-        // Should probably keep track of max run length
-      } // cols
+        MRIsetVoxVal(vote,c,r,s,1,runlenmax);
+        MRIsetVoxVal(vote,c,r,s,2,(double)runlenmax/nframes);
+
+      } // slices
     } // rows
-  } // slices
+  } // cols
 
   MRIfree(&sorted);
   return(vote);
