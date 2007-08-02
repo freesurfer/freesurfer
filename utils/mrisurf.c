@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: postelni $
- *    $Date: 2007/07/30 22:11:23 $
- *    $Revision: 1.553 $
+ *    $Author: kteich $
+ *    $Date: 2007/08/02 21:07:27 $
+ *    $Revision: 1.554 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -62,6 +62,8 @@
 #include "annotation.h"
 #include "topology/topo_parms.h"
 #include "cma.h"
+#include "gifti.h"
+#include "gifti_local.h"
 
 #define DMALLOC 0
 
@@ -311,6 +313,7 @@ static int   mrisReadTransform(MRIS *mris, char *mris_fname) ;
 static MRI_SURFACE *mrisReadAsciiFile(char *fname) ;
 static MRI_SURFACE *mrisReadGeoFile(char *fname) ;
 static MRI_SURFACE *mrisReadSTLfile(char *fname) ;
+static MRI_SURFACE *mrisReadGIFTIfile(char *fname) ;
 static int         mrisReadGeoFilePositions(MRI_SURFACE *mris,char *fname) ;
 static MRI_SURFACE *mrisReadTriangleFile(char *fname, double pct_over) ;
 static int         mrisReadTriangleFilePositions(MRI_SURFACE*mris,
@@ -616,7 +619,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.553 2007/07/30 22:11:23 postelni Exp $");
+  return("$Id: mrisurf.c,v 1.554 2007/08/02 21:07:27 kteich Exp $");
 }
 
 /*-----------------------------------------------------
@@ -664,6 +667,13 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
     if (!mris)
       return(NULL) ;
     version = -3 ;
+  }
+  else if (type == MRIS_GIFTI_FILE)  /* .gii */
+  {
+    mris = mrisReadGIFTIfile(fname) ;
+    if (!mris)
+      return(NULL) ;
+    version = -3 ; /* Not really sure what is appropriate here */
   }
   else // default type MRIS_BINARY_QUADRANGLE_FILE ... use magic number
   {
@@ -1359,6 +1369,8 @@ MRISwrite(MRI_SURFACE *mris, char *name)
     return MRISwriteICO(mris, fname);
   else if (type == MRIS_STL_FILE)
     return MRISwriteSTL(mris, fname);
+  else if (type == MRIS_GIFTI_FILE)
+    return MRISwriteGIFTI(mris, fname);
 
   if (mris->type == MRIS_TRIANGULAR_SURFACE)
     return(MRISwriteTriangularSurface(mris, fname)) ;
@@ -19605,6 +19617,8 @@ MRISfileNameType(char *fname)
     type = MRIS_VTK_FILE ;
   else if (!strcmp(ext, "STL"))
     type = MRIS_STL_FILE ;
+  else if (!strcmp(ext, "GII"))
+    type = MRIS_GIFTI_FILE ;
   else
     type = MRIS_BINARY_QUADRANGLE_FILE ;
 
@@ -20558,6 +20572,326 @@ static MRI_SURFACE * mrisReadSTLfile(char *fname)
 }
 
 
+/*-----------------------------------------------------
+  Parameters:    input file name of GIFTI file
+
+  Returns value: freesurfer surface structure
+
+  Description:   reads a GIFTI file, putting vertices, faces,
+                 and face normals into an MRIS_SURFACE
+                 structure.
+  ------------------------------------------------------*/
+static MRI_SURFACE * mrisReadGIFTIfile(char *fname)
+{
+  gifti_image* image;
+  DataArray* coords, *faces, *normals;
+  int num_vertices, num_faces, num_normals;
+  int num_cols;
+  MRIS* mris;
+  int face_index, face_vertex_index, vertex_index;
+
+  /* Attempt to read the file. */
+  image = NULL;
+  image = gifti_read_image (fname, 0);
+  if (NULL == image) 
+    {
+      fprintf (stderr,"mrisReadGIFTIfile: gifti_read_image() returned NULL\n");
+      return NULL;
+    }
+  
+  /* Make sure we got at least coords and faces. */
+  coords = faces = NULL;
+  coords = gifti_find_DA (image, GIFTI_CAT_COORDINATES, 0);
+  faces = gifti_find_DA (image, GIFTI_CAT_TOPO_TRI, 0);
+  if (NULL == coords)
+    {
+      fprintf (stderr,"mrisReadGIFTIfile: no coordinates in file %s\n", fname);
+      gifti_free_image (image);
+      return NULL;
+    }
+  if (NULL == faces)
+    {
+      fprintf (stderr,"mrisReadGIFTIfile: no topology in file %s\n", fname);
+      gifti_free_image (image);
+      return NULL;
+    }
+
+  /* Get normals if we can. */
+  normals = NULL;
+  normals = gifti_find_DA (image, GIFTI_CAT_NORMALS, 0);
+
+  /* Check the number of vertices and faces. */
+  num_vertices = num_cols = 0;
+  gifti_DA_rows_cols (coords, &num_vertices, &num_cols);
+  if (num_vertices <= 0 || num_cols != 3)
+    {
+      fprintf (stderr,"mrisReadGIFTIfile: malformed coords data array in file "
+	       "%s: num_vertices=%d num_cols=%d\n",
+	       fname, num_vertices, num_cols);
+      gifti_free_image (image);
+      return NULL;
+    }
+  num_faces = num_cols = 0;
+  gifti_DA_rows_cols (faces, &num_faces, &num_cols);
+  if (num_faces <= 0 || num_cols != 3)
+    {
+      fprintf (stderr,"mrisReadGIFTIfile: malformed faces data array in file "
+	       "%s: num_faces=%d num_cols=%d\n", fname, num_faces, num_cols);
+      gifti_free_image (image);
+      return NULL;
+    }
+
+  /* If we got normals, check they match the number of verts. If they
+     don't match, just don't use them.*/
+  if (NULL != normals)
+    {
+      num_normals = num_cols = 0;
+      gifti_DA_rows_cols (normals, &num_normals, &num_cols);
+      if (num_normals != num_vertices || num_cols != 3)
+	{
+	  fprintf (stderr,"mrisReadGIFTIfile: malformed normals data array in "
+		   "file %s: num_normals=%d (num_vertices=%d) num_cols=%d\n",
+		   fname, num_normals, num_vertices, num_cols);
+	  normals = NULL;
+	}
+    }
+
+  /* Try to allocate a surface. */
+  mris = NULL;
+  mris = MRISalloc (num_vertices, num_faces);
+  if (NULL == mris)
+    {
+      fprintf (stderr,"mrisReadGIFTIfile: failed to allocate an MRIS with "
+	       "%d vertices and %d faces\n", num_vertices, num_faces);
+      gifti_free_image (image);
+      return NULL;
+    }
+
+  /* Set some meta data in the mris. */
+  mris->type = MRIS_TRIANGULAR_SURFACE;
+
+  /* Copy in the vertices. */
+  for (vertex_index = 0; vertex_index < num_vertices; vertex_index++)
+    {
+      mris->vertices[vertex_index].x = 
+	(float) gifti_get_DA_value_2D (coords, vertex_index, 0);
+      mris->vertices[vertex_index].y = 
+	(float) gifti_get_DA_value_2D (coords, vertex_index, 1);
+      mris->vertices[vertex_index].z = 
+	(float) gifti_get_DA_value_2D (coords, vertex_index, 2);
+      mris->vertices[vertex_index].num = 0;
+
+      /* If we have normals, set normals values. */
+      if (NULL != normals)
+	{
+	  mris->vertices[vertex_index].nx = 
+	    (float) gifti_get_DA_value_2D (normals, vertex_index, 0);
+	  mris->vertices[vertex_index].ny = 
+	    (float) gifti_get_DA_value_2D (normals, vertex_index, 1);
+	  mris->vertices[vertex_index].nz = 
+	    (float) gifti_get_DA_value_2D (normals, vertex_index, 2);
+	}
+    }
+  
+  /* Copy in the faces. */
+  for (face_index = 0; face_index < num_faces; face_index++)
+    {
+      for (face_vertex_index = 0; 
+	   face_vertex_index < VERTICES_PER_FACE; face_vertex_index++)
+	{
+	  vertex_index = 
+	    (int) gifti_get_DA_value_2D (faces, face_index, face_vertex_index);
+	  mris->faces[face_index].v[face_vertex_index] = vertex_index;
+	  mris->vertices[vertex_index].num++;
+	}
+    }
+
+  /* And we're done. */
+  gifti_free_image (image);
+
+  return mris;
+}
+
+
+int MRISwriteGIFTI(MRIS* mris, char *fname)
+{
+
+#if 0
+  fprintf (stderr, "MRISwriteGIFTI: NOT SUPPORTED YET\n");
+  return ERROR_NONE;
+
+#else
+
+  DataArray* coords, *faces, *normals;
+  int vertex_index, face_index, normal_index;
+
+  gifti_image* image;
+
+  if (NULL == mris || NULL == fname)
+    {
+      fprintf (stderr,"MRISwriteGIFTI: invalid parameter\n");
+      return ERROR_BADPARM;
+    }
+
+  image = NULL;
+  image = (gifti_image *)calloc(1,sizeof(gifti_image));
+  if (NULL == image)
+    {
+      fprintf (stderr,"MRISwriteGIFTI: couldn't allocate image\n");
+      return ERROR_NOMEMORY;
+    }
+
+  /* Make coords array. */
+  coords = NULL;
+  coords = gifti_alloc_and_add_darray (image);
+  if (NULL == coords)
+    {
+      fprintf (stderr,"MRISwriteGIFTI: couldn't allocate DataArray\n");
+      gifti_free_image (image);
+      return ERROR_NOMEMORY;
+    }
+
+  /* Set its attributes. */
+  coords->category = GIFTI_CAT_COORDINATES;
+  coords->datatype = 16; /* NIFTI_TYPE_FLOAT32 */
+  coords->location = 1; /* There's no constant for this */
+  coords->ind_ord = GIFTI_IND_ORD_HIGH2LOW;
+  coords->num_dim = 2;
+  coords->dims[0] = mris->nvertices; /* In highest first, dim0 = rows */
+  coords->dims[1] = 3;               /* In highest first, dim1 = cols */
+  coords->encoding = GIFTI_ENCODING_ASCII;
+  coords->endian = GIFTI_ENDIAN_BIG;
+  coords->coordsys = NULL;
+  coords->nvals = gifti_darray_nvals (coords);
+  gifti_datatype_sizes (coords->datatype, &coords->nbyper, NULL); 
+
+  /* Allocate the data array. */
+  coords->data = NULL;
+  coords->data = (void*) calloc (coords->nvals, coords->nbyper);
+  if (NULL == coords->data)
+    {
+      fprintf (stderr,"MRISwriteGIFTI: couldn't allocate coords data of "
+	       "length %d, element size %d\n", coords->nvals, coords->nbyper);
+      gifti_free_image (image);
+      return ERROR_NOMEMORY;
+    }
+
+  /* Copy in all our data. */
+  for (vertex_index = 0; vertex_index < mris->nvertices; vertex_index++)
+    {
+      gifti_set_DA_value_2D (coords, vertex_index, 0, 
+			     mris->vertices[vertex_index].x);
+      gifti_set_DA_value_2D (coords, vertex_index, 1, 
+			     mris->vertices[vertex_index].y);
+      gifti_set_DA_value_2D (coords, vertex_index, 2, 
+			     mris->vertices[vertex_index].z);
+    }
+
+  /* Faces array. */
+  faces = NULL;
+  faces = gifti_alloc_and_add_darray (image);
+  if (NULL == faces)
+    {
+      fprintf (stderr,"MRISwriteGIFTI: couldn't allocate DataArray\n");
+      gifti_free_image (image);
+      return ERROR_NOMEMORY;
+    }
+
+  /* Set its attributes. */
+  faces->category = GIFTI_CAT_TOPO_TRI;
+  faces->datatype = 8;              /* NIFTI_TYPE_INT32 */
+  faces->location = 1;              /* Internal */
+  faces->ind_ord = GIFTI_IND_ORD_HIGH2LOW;
+  faces->num_dim = 2;
+  faces->dims[0] = mris->nfaces;    /* In highest first, dim0 = rows */
+  faces->dims[1] = 3;               /* In highest first, dim1 = cols */
+  faces->encoding = GIFTI_ENCODING_ASCII;
+  faces->endian = GIFTI_ENDIAN_BIG;
+  faces->coordsys = NULL;
+  faces->nvals = gifti_darray_nvals (faces);
+  gifti_datatype_sizes (faces->datatype, &faces->nbyper, NULL); 
+
+  /* Allocate the data array. */
+  faces->data = NULL;
+  faces->data = (void*) calloc (faces->nvals, faces->nbyper);
+  if (NULL == faces->data)
+    {
+      fprintf (stderr,"MRISwriteGIFTI: couldn't allocate faces data of "
+	       "length %d, element size %d\n", faces->nvals, faces->nbyper);
+      gifti_free_image (image);
+      return ERROR_NOMEMORY;
+    }
+
+  /* Copy in all our data. */
+  for (face_index = 0; face_index < mris->nfaces; face_index++)
+    {
+      gifti_set_DA_value_2D (faces, face_index, 0, 
+			     mris->faces[face_index].v[0]);
+      gifti_set_DA_value_2D (faces, face_index, 1, 
+			     mris->faces[face_index].v[1]);
+      gifti_set_DA_value_2D (faces, face_index, 2, 
+			     mris->faces[face_index].v[2]);
+    }
+
+  /* Normals array. */
+  normals = NULL;
+  normals = gifti_alloc_and_add_darray (image);
+  if (NULL == normals)
+    {
+      fprintf (stderr,"MRISwriteGIFTI: couldn't allocate DataArray\n");
+      gifti_free_image (image);
+      return ERROR_NOMEMORY;
+    }
+
+  /* Set its attributes. */
+  normals->category = GIFTI_CAT_NORMALS;
+  normals->datatype = 16;             /* NIFTI_TYPE_FLOAT32 */
+  normals->location = 1;              /* Internal */
+  normals->ind_ord = GIFTI_IND_ORD_HIGH2LOW;
+  normals->num_dim = 2;
+  normals->dims[0] = mris->nvertices; /* In highest first, dim0 = rows */
+  normals->dims[1] = 3;               /* In highest first, dim1 = cols */
+  normals->encoding = GIFTI_ENCODING_ASCII;
+  normals->endian = GIFTI_ENDIAN_BIG;
+  normals->coordsys = NULL;
+  normals->nvals = gifti_darray_nvals (normals);
+  gifti_datatype_sizes (normals->datatype, &normals->nbyper, NULL); 
+
+  /* Allocate the data array. */
+  normals->data = NULL;
+  normals->data = (void*) calloc (normals->nvals, normals->nbyper);
+  if (NULL == normals->data)
+    {
+      fprintf (stderr,"MRISwriteGIFTI: couldn't allocate normals data of "
+	       "length %d, element size %d\n", normals->nvals,normals->nbyper);
+      gifti_free_image (image);
+      return ERROR_NOMEMORY;
+    }
+
+  /* Copy in all our data. */
+  for (normal_index = 0; normal_index < mris->nvertices; normal_index++)
+    {
+      gifti_set_DA_value_2D (normals, normal_index, 0, 
+			     mris->vertices[normal_index].nx);
+      gifti_set_DA_value_2D (normals, normal_index, 1, 
+			     mris->vertices[normal_index].ny);
+      gifti_set_DA_value_2D (normals, normal_index, 2, 
+			     mris->vertices[normal_index].nz);
+    }
+
+  /* Write the file. */
+  if (gifti_write_image (image, fname, 1))
+    {
+      fprintf (stderr,"MRISwriteGIFTI: couldn't write image\n");
+      gifti_free_image (image);
+      return ERROR_BADFILE;
+    }
+
+  gifti_free_image (image);
+
+  return ERROR_NONE;
+#endif
+}
 
 double
 MRIScomputeCorrelationError(MRI_SURFACE *mris,MRI_SP *mrisp_template,int fno)
