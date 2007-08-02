@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/30 23:14:16 $
- *    $Revision: 1.296 $
+ *    $Author: kteich $
+ *    $Date: 2007/08/02 21:14:07 $
+ *    $Revision: 1.297 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -651,6 +651,7 @@ int          MRISwriteVTK(MRI_SURFACE *mris, char *fname);
 int          MRISwriteGeo(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteICO(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteSTL(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteGIFTI(MRI_SURFACE *mris, char* fname) ;
 int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteDists(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
@@ -1345,6 +1346,7 @@ MRI   *MRISpartialfloodoutside(MRI *mri_src,
 #define MRIS_ICO_FILE                  4
 #define MRIS_VTK_FILE                  5
 #define MRIS_STL_FILE                  6
+#define MRIS_GIFTI_FILE                7
 
 
 #define IS_QUADRANGULAR(mris)                   \
