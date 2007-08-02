@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/11 04:15:56 $
- *    $Revision: 1.53 $
+ *    $Date: 2007/08/02 17:37:13 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.53 2007/07/11 04:15:56 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.54 2007/08/02 17:37:13 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -118,7 +118,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(
     argc, argv,
-    "$Id: mris_anatomical_stats.c,v 1.53 2007/07/11 04:15:56 nicks Exp $",
+    "$Id: mris_anatomical_stats.c,v 1.54 2007/08/02 17:37:13 nicks Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1135,6 +1135,10 @@ print_help(void)
     (stderr,
      "-nsmooth <#>                 - will smooth the thicknessmap # of\n"
      "                               iterations before using it\n");
+  fprintf
+    (stderr,
+     "-c <.ctab file>              - output the colortable for this annotation\n") ;
+
   exit(1) ;
 }
 
