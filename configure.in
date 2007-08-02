@@ -1944,7 +1944,7 @@ LDFLAGS="$LDFLAGS $JPEG_LIBS $TIFF_LIBS $MNI_LIBS $VXL_LIBS $NIFTI_LIBS $ITK_LIB
 # The order is important here. When adding or removing a lib, be sure
 # to test the link line to make sure you don't need to adjust the
 # order.
-LIBS="-ljpeg -ltiff -lz -lm $LIB_CRYPT -ldl -lpthread $LIBS"
+LIBS="$VTK_EXPAT_LIB -ljpeg -ltiff -lz -lm $LIB_CRYPT -ldl -lpthread $LIBS"
 LIBS="$LIBS $LIBS_MNI"
 LIBS="$LIBS $LIBS_VXL"
 LIBS="$LIBS $LIBS_NIFTI"
