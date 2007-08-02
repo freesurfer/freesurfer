@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/07/31 00:45:03 $
-#    $Revision: 1.125 $
+#    $Author: nicks $
+#    $Date: 2007/08/02 02:51:34 $
+#    $Revision: 1.126 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.125 2007/07/31 00:45:03 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.126 2007/08/02 02:51:34 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -190,6 +190,7 @@ set DoCAReg          = 0;
 set DoRemoveNeck     = 0;
 set DoSkullLTA       = 0;
 set DoCALabel        = 0;
+set DoCCSeg          = 0;
 set DoSegStats       = 0;
 set DoFill           = 0;
 #----- Surface -----------#
@@ -1355,6 +1356,25 @@ if($DoCALabel) then
     endif
   endif
   echo $cmd > $touchdir/ca_label.touch
+endif
+
+#-------------- Corpus Callosum Segmentation --------------#
+if($DoCCSeg) then
+  echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "#@# CC Seg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+
+  set cmd = (cp aseg.mgz aseg_noCC.mgz)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  set xopts = `fsr-getxopts mri_cc $XOptsFile`;
+  set cmd = (mri_cc $xopts $subjid);
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) goto error_exit;
+
+  echo $cmd > $touchdir/cc_seg.touch
 endif
 
 # ----------- Intensity Normalization2 ------------------------#
@@ -2536,6 +2556,13 @@ while( $#argv != 0 )
       set DoCALabel = 0;
       breaksw
 
+    case "-ccseg":
+      set DoCCSeg = 1;
+      breaksw
+    case "-noccseg":
+      set DoCCSeg = 0;
+      breaksw
+
     case "-subcortseg":
       set DoGCAReg         = 1;
       set DoCARegInv       = 1;
@@ -2544,6 +2571,7 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
+      set DoCCSeg          = 1;
       set DoSegStats       = 1;
       breaksw
 
@@ -2555,6 +2583,7 @@ while( $#argv != 0 )
       set DoCANormalize    = 0;
       set DoCAReg          = 0;
       set DoCALabel        = 0;
+      set DoCCSeg          = 0;
       set DoSegStats       = 0;
       set NoNormMGZ        = 1;
       breaksw
@@ -2568,6 +2597,7 @@ while( $#argv != 0 )
       set DoCANormalize    = 0;
       set DoCAReg          = 0;
       set DoCALabel        = 0;
+      set DoCCSeg          = 0;
       set DoSegStats       = 0;
       set NoNormMGZ        = 1;
       set DoAParc2ASeg     = 0;
@@ -2982,6 +3012,7 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
+      set DoCCSeg          = 1;
       set DoSegStats       = 1;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
@@ -3026,6 +3057,7 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
+      set DoCCSeg          = 1;
       set DoSegStats       = 1;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
@@ -3050,6 +3082,7 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
+      set DoCCSeg          = 1;
       set DoSegStats       = 1;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
@@ -3077,6 +3110,7 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
+      set DoCCSeg          = 1;
       set DoSegStats       = 1;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
@@ -3730,7 +3764,8 @@ check_params:
      ! $DoSurfReg  && ! $DoContraSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
      ! $DoMorphRGB && ! $DoFinalSurfs && ! $DoContraSurfRegWithinSubject &&\
      ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
-     ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoMaskBFS && \
+     ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoCCSeg && \
+     ! $DoMaskBFS && \
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff ) then
      echo "ERROR: nothing to do"
      exit 1;
