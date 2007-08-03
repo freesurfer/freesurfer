@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/08/02 21:07:27 $
- *    $Revision: 1.554 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/03 13:27:36 $
+ *    $Revision: 1.555 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -619,7 +619,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.554 2007/08/02 21:07:27 kteich Exp $");
+  return("$Id: mrisurf.c,v 1.555 2007/08/03 13:27:36 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -18115,7 +18115,7 @@ static double
 mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   int     vno, n ;
-  double  area_scale, sse_spring, E, F, f, rmin, rmax ;
+  double  area_scale, sse_spring, E, F, f, rmin, rmax, ftotal ;
   VERTEX  *v, *vn ;
   float   dx, dy, dz, nc, r, lsq, mean_vdist ;
 
@@ -18144,20 +18144,20 @@ mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     if (v->ripflag)
       continue ;
 
-    for (r = 0.0, n = 0 ; n < v->vnum ; n++)
+    for (ftotal = r = 0.0, n = 0 ; n < v->vnum ; n++)
     {
       vn = &mris->vertices[v->v[n]] ;
       dx = vn->x - v->x ; dy = vn->y - v->y ; dz = vn->z - v->z ;
       //      lsq = dx*dx + dy*dy + dz*dz ;
       nc = dx * v->nx + dy*v->ny + dz*v->nz ;
       dx = nc * v->nx ; dy = nc*v->ny ; dz = nc*v->nz ; // sn
-      r += lsq / fabs(2.0*nc) ;
+      r = lsq / fabs(2.0*nc) ;
+      f = (1 + tanh(F*(1.0/r - E))); 
+      ftotal += f*f ;
     }
-    r /= v->vnum ;
-    f = (1 + tanh(F*(1.0/r - E))); f *= f;
     if (vno == Gdiag_no)
-      printf("E_nlspring: f = %2.3f (r = %2.2f)\n", f, r) ;
-    sse_spring += area_scale * f ;
+      printf("E_nlspring: f = %2.3f\n", ftotal/v->vnum) ;
+    sse_spring += area_scale * ftotal/v->vnum ;
   }
   return(sse_spring) ;
 }
@@ -20771,7 +20771,7 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
   if (NULL == coords->data)
     {
       fprintf (stderr,"MRISwriteGIFTI: couldn't allocate coords data of "
-	       "length %d, element size %d\n", coords->nvals, coords->nbyper);
+	       "length %d, element size %d\n", (int)coords->nvals, coords->nbyper);
       gifti_free_image (image);
       return ERROR_NOMEMORY;
     }
@@ -20817,7 +20817,7 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
   if (NULL == faces->data)
     {
       fprintf (stderr,"MRISwriteGIFTI: couldn't allocate faces data of "
-	       "length %d, element size %d\n", faces->nvals, faces->nbyper);
+	       "length %d, element size %d\n", (int)faces->nvals, faces->nbyper);
       gifti_free_image (image);
       return ERROR_NOMEMORY;
     }
@@ -20863,7 +20863,7 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
   if (NULL == normals->data)
     {
       fprintf (stderr,"MRISwriteGIFTI: couldn't allocate normals data of "
-	       "length %d, element size %d\n", normals->nvals,normals->nbyper);
+	       "length %d, element size %d\n", (int)normals->nvals,normals->nbyper);
       gifti_free_image (image);
       return ERROR_NOMEMORY;
     }
@@ -60823,4 +60823,37 @@ MRISsetVolumeForSurface(MRI_SURFACE* mris, MRI* srcMri)
   MATRIX* matrix = surfaceRASFromVoxel_(srcMri);
   MRISmatrixMultiply( mris, matrix);
   MatrixFree(&matrix);
+}
+int
+MRISsetVal2(MRI_SURFACE *mris, float val)
+{
+  VERTEX *v ;
+  int     vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->val2 = val ;
+  }
+  return(NO_ERROR) ;
+}
+
+  
+
+MRI *
+MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri_dist, float resolution)
+{
+  MRI    *mri_tmp, *mri_mask ;
+
+  mri_tmp = MRISfillInterior(mris, resolution, NULL) ;
+
+#define PAD 10
+  mri_mask = MRIextractRegionAndPad(mri_tmp, NULL, NULL, PAD) ;
+  mri_dist = MRIdistanceTransform(mri_mask, mri_dist, 1, nint(PAD/mri_mask->xsize), 
+                                  DTRANS_MODE_SIGNED) ;
+
+  MRIfree(&mri_tmp) ; MRIfree(&mri_mask) ;
+  return(mri_dist) ;
 }
