@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/31 00:04:05 $
- *    $Revision: 1.41 $
+ *    $Date: 2007/08/03 20:41:05 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1703,7 +1703,7 @@ VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht,
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
                                      1000,
-                                     2,  // max_mhts: search out to 5 x 5 x 5
+                                     3,  // max_mhts: search out to 7 x 7 x 7
                                      &vtx, NULL, NULL);
 
   // [2007-07-30 GW] GW's edition of the brute-force fall-back.
