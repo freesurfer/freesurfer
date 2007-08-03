@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/08/02 02:51:34 $
-#    $Revision: 1.126 $
+#    $Date: 2007/08/03 23:22:58 $
+#    $Revision: 1.127 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.126 2007/08/02 02:51:34 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.127 2007/08/03 23:22:58 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1309,7 +1309,7 @@ if($DoCALabel) then
   echo "#@# SubCort Seg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
 
-  # Check whether there is a difference bet aseg.auto.mgz
+  # Check whether there is a difference between aseg.auto.mgz
   # and aseg.mgz, which indicates an edit. Must do this
   # prior to doing labeling.
   if(-e aseg.auto.mgz && -e aseg.mgz) then
@@ -1364,15 +1364,36 @@ if($DoCCSeg) then
   echo "#@# CC Seg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
 
-  set cmd = (cp aseg.mgz aseg_noCC.mgz)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  # Check whether there is a difference between aseg.auto_CCseg.mgz
+  # and aseg.mgz, which indicates an edit. Must do this
+  # prior to doing labeling.
+  if(-e aseg.auto_CCseg.mgz && -e aseg.mgz) then
+    set cmd = (mri_diff aseg.auto_CCseg.mgz aseg.mgz);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    set ASegDiff = $status;
+    if($ASegDiff == 1) goto error_exit;
+    # ASegDiff will = 0 if no diff or !0 for diff
+  else
+    set ASegDiff = 0;
+  endif
+  echo $ASegDiff
+
   set xopts = `fsr-getxopts mri_cc $XOptsFile`;
-  set cmd = (mri_cc $xopts $subjid);
+  set cmd = (mri_cc -aseg aseg.auto.mgz -o aseg.auto_CCseg.mgz $subjid $xopts);
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
   if($status) goto error_exit;
+
+  if($DoCleanASeg || ! $ASegDiff) then
+    set cmd = (cp aseg.auto_CCseg.mgz aseg.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      sleep 1; # Sleep here to assure that they have diff time stamps
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
 
   echo $cmd > $touchdir/cc_seg.touch
 endif
