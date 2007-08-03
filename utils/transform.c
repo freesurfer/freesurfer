@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/30 00:12:55 $
- *    $Revision: 1.110 $
+ *    $Date: 2007/08/03 13:25:26 $
+ *    $Revision: 1.111 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3681,7 +3681,10 @@ TransformRas2Vox(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
   if (transform->type == MORPH_3D_TYPE)
     return(GCAMrasToVox((GCA_MORPH *)(transform->xform), mri_dst)) ;
   else
+  {
+    transform->type = LINEAR_VOX_TO_VOX ;
     return(LTArasToVoxelXform((LTA *)(transform->xform), mri_src, mri_dst)) ;
+  }
 }
 int
 TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
@@ -3689,5 +3692,8 @@ TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
   if (transform->type == MORPH_3D_TYPE)
     return(GCAMvoxToRas((GCA_MORPH *)(transform->xform))) ;
   else
+  {
+    transform->type = LINEAR_RAS_TO_RAS ;
     return(LTAvoxelToRasXform((LTA *)(transform->xform), mri_src, mri_dst)) ;
+  }
 }
