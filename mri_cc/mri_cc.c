@@ -9,9 +9,9 @@
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/15 02:30:34 $
- *    $Revision: 1.18 $
+ *    $Author: nicks $
+ *    $Date: 2007/08/03 23:24:50 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -158,6 +158,21 @@ main(int argc, char *argv[])
   ez_x, ez_y, ez_z, zf, zf_low=256, zf_high=0;
   MATRIX      *m_evectors ;
 
+  char cmdline[CMD_LINE_LEN] ;
+  make_cmd_version_string
+  (argc, argv,
+   "$Id: mri_cc.c,v 1.19 2007/08/03 23:24:50 nicks Exp $",
+   "$Name:  $", cmdline);
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option
+          (argc, argv,
+           "$Id: mri_cc.c,v 1.19 2007/08/03 23:24:50 nicks Exp $",
+           "$Name:  $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
+
   Progname = argv[0] ;
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -168,8 +183,10 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
+  fflush(stdout);
+  fflush(stderr);
 
-  if (argc < 2)
+  if ((argc < 2) || (argc > 2))
     ErrorExit(ERROR_BADPARM,
               "usage: %s <subject>", Progname);
 
@@ -2047,7 +2064,8 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
         int y1 ;
 
         DiagBreak() ;
-        if (first_off > last_on)  // two vertical runs of white - leftover fornix
+        if (first_off > 
+            last_on)  // two vertical runs of white - leftover fornix
           ystart = first_off ;
         else 
           ystart = last_on+max_thickness-1 ;
@@ -2071,8 +2089,6 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
   MRIclear(mri_slice_edited) ;
   MRIsegmentToImage(mri_slice, mri_slice_edited, mseg, i) ;
   MRIsegmentFree(&mseg) ;
-
-
 
   return(mri_slice_edited) ;
 }
