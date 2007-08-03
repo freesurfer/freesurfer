@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/24 18:27:13 $
- *    $Revision: 1.318 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/03 13:28:01 $
+ *    $Revision: 1.319 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.318 $";
+char *VERSION = "$Revision: 1.319 $";
 
 #define TCL
 #define TKMEDIT
@@ -861,6 +861,7 @@ void AlignSelectedHeadPointToMRIIdx ( xVoxelRef iMRIIdx );
 #include "gca.h"
 
 GCA* gGCAVolume     = NULL;
+MRI *gMRI = NULL ;
 TRANSFORM* gGCATransform = NULL;
 int gDisplayIntermediateResults = True ;
 
@@ -1192,7 +1193,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.318 2007/07/24 18:27:13 kteich Exp $",
+     "$Id: tkmedit.c,v 1.319 2007/08/03 13:28:01 fischl Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5902,7 +5903,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
   (
     (
-      "$Id: tkmedit.c,v 1.318 2007/07/24 18:27:13 kteich Exp $ $Name:  $\n"
+      "$Id: tkmedit.c,v 1.319 2007/08/03 13:28:01 fischl Exp $ $Name:  $\n"
     )
   );
 
@@ -12511,6 +12512,15 @@ tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName ) {
   DebugNote( ("Loading TRANSFORM with TransformRead") );
   trans = TransformRead( sTransformFileName );
   DebugAssertThrowX( (NULL != trans), eResult, tkm_tErr_CouldntLoadTransform );
+  if (trans->type == LINEAR_RAS_TO_RAS)
+  {
+		MRI *mri_tmp = GCAbuildMostLikelyVolume(gca, NULL) ;
+		TransformRas2Vox(trans, 
+                     gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues, 
+                     mri_tmp) ;
+		MRIfree(&mri_tmp) ;
+  }
+
   TransformInvert
   (trans, gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues) ;
 
