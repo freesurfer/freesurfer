@@ -6,6 +6,10 @@
 #define GXML_MAX_DEPTH 10    /* maximum stack depth */
 #define GXML_MAX_ELEN  128   /* maximum element length */
 
+#ifndef XMLCALL
+#define XMLCALL
+#endif
+
 /* ----------------------------------------------------------------------
    element      depths  parent(s)       children
    -------      ------  --------------  -----------------------
