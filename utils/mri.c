@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/30 00:12:54 $
- *    $Revision: 1.390 $
+ *    $Date: 2007/08/03 13:24:34 $
+ *    $Revision: 1.391 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.390 $";
+char *MRI_C_VERSION = "$Revision: 1.391 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -14985,3 +14985,49 @@ MRIgeometryMatched(MRI *mri1, MRI *mri2)
 }
 
       
+MRI *
+MRIfillHoles(MRI *mri_src, MRI *mri_fill, int thresh) 
+{
+  int  nfilled, ntotal = 0, cnt, cntmax= thresh ;
+  int im0,x0,i0,z,i,x;
+  int v,vmax, ylim0, ylim1, xlim0, xlim1;
+
+  mri_fill = MRIcopy(mri_src, mri_fill) ;
+
+  ylim0 = 0 ; ylim1 = mri_src->height-1 ;
+  xlim0 = 0 ; xlim1 = mri_src->width-1 ;
+  do 
+  {
+    nfilled = 0;
+    for (z=1;z!=mri_fill->depth-1;z++)
+      for (i=1;i!=mri_fill->height-1;i++)
+        for (x=1;x!=mri_fill->width-1;x++)
+          if (MRIgetVoxVal(mri_fill, x, i, z, 0) == 0 &&
+              i>ylim0-10 && i<ylim1+10 && x>xlim0-10 && x<xlim1+10) 
+          {
+            cnt = 0;
+            vmax = 0;
+            for (im0= -1;im0<=1;im0++)
+              for (i0= -1;i0<=1;i0++)
+                for (x0= -1;x0<=1;x0++) {
+                  v = MRIgetVoxVal(mri_fill, x+x0, i+i0, z+im0, 0) ;
+                  if (v>vmax) vmax = v;
+                  if (v == 0) cnt++;/* count # of nbrs which are off */
+                  if (cnt>cntmax) im0=i0=x0=1;  /* break out
+                                                   of all 3 loops */
+                }
+            if (cnt<=cntmax)   /* toggle pixel (off to on, or on to off) */
+            {
+              MRIsetVoxVal(mri_fill, x, i, z, 0, vmax);
+              nfilled++;
+              ntotal++;
+            }
+          }
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "%d holes filled\n",nfilled);
+  } while (nfilled > 0) ;
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "total of %d holes filled\n",ntotal);
+  return(mri_fill) ;
+}

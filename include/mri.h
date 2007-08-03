@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/30 00:14:26 $
- *    $Revision: 1.343 $
+ *    $Date: 2007/08/03 13:24:42 $
+ *    $Revision: 1.344 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1159,6 +1159,7 @@ MRI *MRIdivideAseg(MRI *mri_src, MRI *mri_dst, int label, int nunits);
 int MRIgeometryMatched(MRI *mri1, MRI *mri2) ;
 
 MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol);
+MRI *MRIfillHoles(MRI *mri_src, MRI *mri_fill, int thresh)  ;
 
 // types of MRI sequences
 #define MRI_UNKNOWN          0
