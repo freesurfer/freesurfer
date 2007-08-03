@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/09 21:27:22 $
- *    $Revision: 1.55 $
+ *    $Date: 2007/08/03 21:20:59 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -226,5 +226,8 @@ MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base) ;
 MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base) ;
 LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R);
 MATRIX *TransformLTA2RegDat(LTA *lta);
+
+int TransformRas2Vox(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
+int TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
 
 #endif
