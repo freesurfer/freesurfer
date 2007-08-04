@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/04 00:16:45 $
- *    $Revision: 1.83 $
+ *    $Date: 2007/08/04 00:43:48 $
+ *    $Revision: 1.84 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #include "mri.h"
 #include "transform.h"
 #define MIN_PRIOR  0.5
-#define MAX_GCA_INPUTS 200
+#define MAX_GCA_INPUTS 1000
 /* GCA types *************/
 #define GCA_NORMAL     0  // standard way to create GCA
 #define GCA_FLASH      1  // used flash data to create GCA
@@ -49,7 +49,7 @@
 
 /* the volume that the classifiers are distributed within */
 #define DEFAULT_VOLUME_SIZE   256
-#define MAX_GCA_LABELS        200
+#define MAX_GCA_LABELS        1000
 
 /* for flags field */
 #define GCA_NO_FLAGS          0x0000
