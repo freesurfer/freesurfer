@@ -1,18 +1,21 @@
 /**
  * @file  mri_ca_train.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Creates the Gaussian Classifier Array (GCA) atlas from training set
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * See:
+ * "Whole Brain Segmentation: Automated Labeling of Neuroanatomical
+ * Structures in the Human Brain", Fischl et al.
+ * (2002) Neuron, 33:341-355.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:05 $
- *    $Revision: 1.46 $
+ *    $Date: 2007/08/04 01:51:45 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -24,17 +27,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/***********************************************************************/
-/* mri_ca_train.c                                                      */
-/* by Bruce Fischl                                                     */
-/*                                                                     */
-/* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: nicks $                                  */
-/* Revision Date  : $Date: 2006/12/29 02:09:05 $                       */
-/* Revision       : $Revision: 1.46 $                                  */
-/***********************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,12 +88,14 @@ static int navgs = 0 ;
 static char subjects_dir[STRLEN] ;
 static char *heq_fname = NULL ;
 
-static char *input_names[MAX_GCA_INPUTS] = {
-      T1_name
-    } ;
+static char *input_names[MAX_GCA_INPUTS] =
+  {
+    T1_name
+  } ;
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char         **av, fname[STRLEN], *out_fname, *subject_name, *cp ;
   int          ac, nargs, i, n, noint = 0, options ;
   int          msec, minutes, seconds, nsubjects, input,
@@ -128,7 +122,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.46 2006/12/29 02:09:05 nicks Exp $",
+           "$Id: mri_ca_train.c,v 1.47 2007/08/04 01:51:45 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -137,7 +131,8 @@ main(int argc, char *argv[]) {
   // parse command line args
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -154,7 +149,8 @@ main(int argc, char *argv[]) {
       usage_exit(1) ;
   }
 
-  if (heq_fname) {
+  if (heq_fname)
+  {
     mri_eq = MRIread(heq_fname) ;
     if (!mri_eq)
       ErrorExit(ERROR_NOFILE,
@@ -164,8 +160,10 @@ main(int argc, char *argv[]) {
   // options parsed.   subjects and gca name remaining
   out_fname = argv[argc-1] ;
   nsubjects = argc-2 ;
-  for (options = i = 0 ; i < nsubjects ; i++) {
-    if (argv[i+1][0] == '-') {
+  for (options = i = 0 ; i < nsubjects ; i++)
+  {
+    if (argv[i+1][0] == '-')
+    {
       nsubjects-- ;
       options++ ;
     }
@@ -180,7 +178,8 @@ main(int argc, char *argv[]) {
   /* gca reads same # of inputs as we read
      from command line - not the case if we are mapping to flash */
   n = 0 ;
-  if (gca_flags & GCA_GRAD) {
+  if (gca_flags & GCA_GRAD)
+  {
     int extra = 0 ;
     if (gca_flags & GCA_XGRAD)
       extra += gca_inputs ;
@@ -192,7 +191,8 @@ main(int argc, char *argv[]) {
   }
 
   //////////////////////////////////////////////////////////////////
-  do {
+  do
+  {
     // set up gca direction cosines, width, height, depth defaults
     gca = GCAalloc(gca_inputs, parms.prior_spacing,
                    parms.node_spacing, DEFAULT_VOLUME_SIZE,
@@ -205,7 +205,8 @@ main(int argc, char *argv[]) {
     // first calculate mean
     ////////////////////////////////////////////////////////
     // going through the subject one at a time
-    for (nargs = i = 0 ; i < nsubjects+options ; i++) {
+    for (nargs = i = 0 ; i < nsubjects+options ; i++)
+    {
       subject_name = argv[i+1] ;
       //////////////////////////////////////////////////////////////
       printf("***************************************"
@@ -213,12 +214,15 @@ main(int argc, char *argv[]) {
       printf("processing subject %s, %d of %d...\n", subject_name,i+1-nargs,
              nsubjects);
 
-      if (stricmp(subject_name, "-NOINT") == 0) {
+      if (stricmp(subject_name, "-NOINT") == 0)
+      {
         printf("not using intensity information for subsequent subjects...\n");
         noint = 1 ;
         nargs++ ;
         continue ;
-      } else if (stricmp(subject_name, "-INT") == 0) {
+      }
+      else if (stricmp(subject_name, "-INT") == 0)
+      {
         printf("using intensity information for subsequent subjects...\n");
         noint = 0 ;
         nargs++ ;
@@ -232,14 +236,16 @@ main(int argc, char *argv[]) {
       if (!mri_seg)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s",
                   Progname, fname) ;
-      if ((mri_seg->type != MRI_UCHAR) && (mri_seg->type != MRI_FLOAT)) {
+      if ((mri_seg->type != MRI_UCHAR) && (mri_seg->type != MRI_FLOAT))
+      {
         ErrorExit
         (ERROR_NOFILE,
          "%s: segmentation file %s is not type UCHAR or FLOAT",
          Progname, fname) ;
       }
 
-      if (wmsa_fname) {
+      if (wmsa_fname)
+      {
         MRI *mri_wmsa ;
         sprintf(fname, "%s/%s/mri/%s",
                 subjects_dir, subject_name, wmsa_fname) ;
@@ -250,23 +256,27 @@ main(int argc, char *argv[]) {
         MRIbinarize(mri_wmsa, mri_wmsa,  1, 0, WM_hypointensities) ;
         MRIcopyLabel(mri_wmsa, mri_seg, WM_hypointensities) ;
         lateralize_hypointensities(mri_seg) ;
-        if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON ) {
+        if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON )
+        {
           char s[STRLEN] ;
           sprintf(s, "%s/%s/mri/seg_%s",
                   subjects_dir, subject_name, wmsa_fname) ;
           MRIwrite(mri_seg, s) ;
         }
       }
-      if (binarize) {
+      if (binarize)
+      {
         int j ;
-        for (j = 0 ; j < 256 ; j++) {
+        for (j = 0 ; j < 256 ; j++)
+        {
           if (j == binarize_in)
             MRIreplaceValues(mri_seg, mri_seg, j, binarize_out) ;
           else
             MRIreplaceValues(mri_seg, mri_seg, j, 0) ;
         }
       }
-      if (insert_fname) {
+      if (insert_fname)
+      {
         MRI *mri_insert ;
 
         sprintf(fname, "%s/%s/mri/%s",
@@ -287,13 +297,14 @@ main(int argc, char *argv[]) {
 
       // subjects loop index i
       if (i != 0)  /* not the first image read -
-                                                      reorder it to be in the same order as 1st */
+                      reorder it to be in the same order as 1st */
       {
         // initialize the flag array
         for (input =0; input < ninputs; input++)
           used[input] = 0;
 
-        for (input = 0 ; input < ninputs ; input++) {
+        for (input = 0 ; input < ninputs ; input++)
+        {
           sprintf(fname, "%s/%s/mri/%s",
                   subjects_dir, subject_name,input_names[input]);
           mri_tmp = MRIreadInfo(fname) ;
@@ -304,9 +315,11 @@ main(int argc, char *argv[]) {
           for (o = 0 ; o < ninputs ; o++)
             if (FEQUAL(TRs[o],mri_tmp->tr) &&
                 FEQUAL(FAs[o],mri_tmp->flip_angle) &&
-                FEQUAL(TEs[o],mri_tmp->te)) {
+                FEQUAL(TEs[o],mri_tmp->te))
+            {
               // if this o is not used, then use it
-              if (used[o] == 0) {
+              if (used[o] == 0)
+              {
                 ordering[input] = o ;
                 used[o] = 1;
                 break;
@@ -326,7 +339,8 @@ main(int argc, char *argv[]) {
           ordering[o] = o ;
 
 
-      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      {
         printf("ordering images: ") ;
         for (o = 0 ; o < ninputs ; o++)
           printf("%d ", ordering[o]) ;
@@ -335,13 +349,15 @@ main(int argc, char *argv[]) {
 
       if (flash)
         gca->type = GCA_FLASH ;
-      else {
+      else
+      {
         if (ninputs==2) // T1 and PD?
         {
           if ((strstr(input_names[ordering[0]], "T1") &&
                strstr(input_names[ordering[1]], "PD")) ||
               (strstr(input_names[ordering[1]], "T1") &&
-               strstr(input_names[ordering[0]], "PD"))) {
+               strstr(input_names[ordering[0]], "PD")))
+          {
             gca->type=GCA_PARAM;
           }
         }
@@ -360,7 +376,8 @@ main(int argc, char *argv[]) {
                 subject_name);
       // inputs must be coregistered
       // note that inputs are T1, PD, ... per subject (same TE, TR, FA)
-      for (input = 0 ; input < ninputs ; input++) {
+      for (input = 0 ; input < ninputs ; input++)
+      {
         //////////// set the gca type //////////////////////////////
         // is this T1/PD training?
         // how can we allow flash data training ???????
@@ -379,14 +396,16 @@ main(int argc, char *argv[]) {
           (ERROR_NOFILE,
            "%s: could not read image from file %s", Progname, fname) ;
         // input check 1
-        if (getSliceDirection(mri_tmp) != MRI_CORONAL) {
+        if (getSliceDirection(mri_tmp) != MRI_CORONAL)
+        {
           ErrorExit
           (ERROR_BADPARM,
            "%s: must be in coronal direction, but it is not\n",
            fname);
         }
         // input check 2
-        if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1) {
+        if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
+        {
           ErrorExit
           (ERROR_BADPARM,
            "%s: must have 1mm voxel size, but have (%f, %f, %f)\n",
@@ -394,13 +413,15 @@ main(int argc, char *argv[]) {
         }
         // input check 3 is removed.  now we can handle c_(ras) != 0 case
         // input check 4
-        if (i == 0) {
+        if (i == 0)
+        {
           TRs[input] = mri_tmp->tr ;
           FAs[input] = mri_tmp->flip_angle ;
           TEs[input] = mri_tmp->te ;
-        } else if (!FEQUAL(TRs[input],mri_tmp->tr) ||
-                   !FEQUAL(FAs[input],mri_tmp->flip_angle) ||
-                   !FEQUAL(TEs[input], mri_tmp->te))
+        }
+        else if (!FEQUAL(TRs[input],mri_tmp->tr) ||
+                 !FEQUAL(FAs[input],mri_tmp->flip_angle) ||
+                 !FEQUAL(TEs[input], mri_tmp->te))
           ErrorExit
           (ERROR_BADPARM,
            "%s: subject %s input volume %s: sequence parameters "
@@ -410,7 +431,8 @@ main(int argc, char *argv[]) {
            mri_tmp->tr, DEGREES(mri_tmp->flip_angle), mri_tmp->te,
            TRs[input], DEGREES(FAs[input]), TEs[input]) ;
         // first time do the following
-        if (input == 0) {
+        if (input == 0)
+        {
           int nframes = ninputs ;
 
           if (gca_flags & GCA_XGRAD)
@@ -431,7 +453,8 @@ main(int argc, char *argv[]) {
           MRIcopyHeader(mri_tmp, mri_inputs) ;
         }
         // -mask option ////////////////////////////////////////////
-        if (mask_fname) {
+        if (mask_fname)
+        {
           MRI *mri_mask ;
 
           sprintf(fname, "%s/%s/mri/%s",
@@ -445,7 +468,8 @@ main(int argc, char *argv[]) {
           MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
           MRIfree(&mri_mask) ;
         }
-        if (mri_eq && !noint) {
+        if (mri_eq && !noint)
+        {
           printf("histogram equalizing input image...\n") ;
           MRIhistoEqualize(mri_tmp, mri_eq, mri_tmp, 30, 170) ;
         }
@@ -460,13 +484,15 @@ main(int argc, char *argv[]) {
       /////////////////////////////////////////////////////////
       // xform_name is given, then we can use the consistent c_(r,a,s) for gca
       /////////////////////////////////////////////////////////
-      if (xform_name) {
+      if (xform_name)
+      {
         // we read talairach.xfm which is a RAS-to-RAS
         sprintf(fname, "%s/%s/mri/transforms/%s",
                 subjects_dir, subject_name, xform_name) ;
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
           printf("INFO: reading transform file %s...\n", fname);
-        if (!FileExists(fname)) {
+        if (!FileExists(fname))
+        {
           fprintf(stderr,"ERROR: cannot find transform file %s\n",fname);
           exit(1);
         }
@@ -486,14 +512,17 @@ main(int argc, char *argv[]) {
         TransformInvert(transform, mri_inputs) ;
         // verify inverse
         lta = (LTA *) transform->xform;
-      } else {
+      }
+      else
+      {
         GCAreinit(mri_inputs, gca);
         // just use the input value, since dst = src volume
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
       }
 
       /////////////////////////////////////////////////////////
-      if (map_to_flash) {
+      if (map_to_flash)
+      {
         MRI *mri_tmp ;
 
         mri_tmp = MRIparameterMapsToFlash
@@ -503,38 +532,46 @@ main(int argc, char *argv[]) {
       }
 
       /////////////////////////////////////////////////////////
-      if (gca_flags & GCA_GRAD) {
+      if (gca_flags & GCA_GRAD)
+      {
         MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
         int i, start ;
 
         mri_kernel = MRIgaussian1d(1.0, 30) ;
         mri_smooth = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
 
-        if (mri_inputs->type != MRI_FLOAT) {
+        if (mri_inputs->type != MRI_FLOAT)
+        {
           mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
           MRIfree(&mri_inputs) ;
           mri_inputs = mri_tmp ;
         }
 
         start = ninputs ;
-        if (gca_flags & GCA_XGRAD) {
-          for (i = 0 ; i < ninputs ; i++) {
+        if (gca_flags & GCA_XGRAD)
+        {
+          for (i = 0 ; i < ninputs ; i++)
+          {
             mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
             MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
             MRIfree(&mri_grad) ;
           }
           start += ninputs ;
         }
-        if (gca_flags & GCA_YGRAD) {
-          for (i = 0 ; i < ninputs ; i++) {
+        if (gca_flags & GCA_YGRAD)
+        {
+          for (i = 0 ; i < ninputs ; i++)
+          {
             mri_grad = MRIySobel(mri_smooth, NULL, i) ;
             MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
             MRIfree(&mri_grad) ;
           }
           start += ninputs ;
         }
-        if (gca_flags & GCA_ZGRAD) {
-          for (i = 0 ; i < ninputs ; i++) {
+        if (gca_flags & GCA_ZGRAD)
+        {
+          for (i = 0 ; i < ninputs ; i++)
+          {
             mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
             MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
             MRIfree(&mri_grad) ;
@@ -569,20 +606,25 @@ main(int argc, char *argv[]) {
     ///////////////////////////////////////////////////////////////
     /* now compute covariances */
     ///////////////////////////////////////////////////////////////
-    for (nargs = i = 0 ; i < nsubjects+options ; i++) {
+    for (nargs = i = 0 ; i < nsubjects+options ; i++)
+    {
       subject_name = argv[i+1] ;
-      if (stricmp(subject_name, "-NOINT") == 0) {
+      if (stricmp(subject_name, "-NOINT") == 0)
+      {
         printf("not using intensity information for subsequent subjects...\n");
         noint = 1 ;
         nargs++ ;
         continue ;
-      } else if (stricmp(subject_name, "-INT") == 0) {
+      }
+      else if (stricmp(subject_name, "-INT") == 0)
+      {
         printf("using intensity information for subsequent subjects...\n");
         noint = 0 ;
         nargs++ ;
         continue ;
       }
-      if (noint) {
+      if (noint)
+      {
         printf("skipping covariance calculation for subject %s...\n",
                subject_name) ;
         continue ;
@@ -599,7 +641,8 @@ main(int argc, char *argv[]) {
       if (!mri_seg)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s",
                   Progname, fname) ;
-      if (wmsa_fname) {
+      if (wmsa_fname)
+      {
         MRI *mri_wmsa ;
         sprintf(fname, "%s/%s/mri/%s",
                 subjects_dir, subject_name, wmsa_fname) ;
@@ -610,14 +653,16 @@ main(int argc, char *argv[]) {
         MRIbinarize(mri_wmsa, mri_wmsa,  1, 0, WM_hypointensities) ;
         MRIcopyLabel(mri_wmsa, mri_seg, WM_hypointensities) ;
         lateralize_hypointensities(mri_seg) ;
-        if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON ) {
+        if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON )
+        {
           char s[STRLEN] ;
           sprintf(s, "%s/%s/mri/seg_%s",
                   subjects_dir, subject_name, wmsa_fname) ;
           MRIwrite(mri_seg, s) ;
         }
       }
-      if (insert_fname) {
+      if (insert_fname)
+      {
         MRI *mri_insert ;
 
         sprintf(fname, "%s/%s/mri/%s",
@@ -640,7 +685,8 @@ main(int argc, char *argv[]) {
       // input volume
       /////////////////////////////////
       // inputs are T1, PD, .... per subject
-      for (input = 0 ; input < ninputs ; input++) {
+      for (input = 0 ; input < ninputs ; input++)
+      {
         sprintf(fname, "%s/%s/mri/%s",
                 subjects_dir, subject_name,input_names[ordering[input]]);
         if (DIAG_VERBOSE_ON)
@@ -651,21 +697,24 @@ main(int argc, char *argv[]) {
                     Progname, fname) ;
 
         // input check 1
-        if (getSliceDirection(mri_tmp) != MRI_CORONAL) {
+        if (getSliceDirection(mri_tmp) != MRI_CORONAL)
+        {
           ErrorExit
           (ERROR_BADPARM,
            "%s: must be in coronal direction, but it is not\n",
            fname);
         }
         // input check 2
-        if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1) {
+        if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
+        {
           ErrorExit
           (ERROR_BADPARM,
            "%s: must have 1mm voxel size, but have (%f, %f, %f)\n",
            fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
         }
         // input check 3 is removed c_(ras) != 0 can be handled
-        if (input == 0) {
+        if (input == 0)
+        {
           int nframes = ninputs ;
 
           if (gca_flags & GCA_XGRAD)
@@ -685,7 +734,8 @@ main(int argc, char *argv[]) {
           MRIcopyHeader(mri_tmp, mri_inputs) ;
         }
 
-        if (mask_fname) {
+        if (mask_fname)
+        {
           MRI *mri_mask ;
 
           sprintf(fname, "%s/%s/mri/%s",
@@ -699,7 +749,8 @@ main(int argc, char *argv[]) {
           MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
           MRIfree(&mri_mask) ;
         }
-        if (mri_eq && !noint) {
+        if (mri_eq && !noint)
+        {
           printf("histogram equalizing input image...\n") ;
           MRIhistoEqualize(mri_tmp, mri_eq, mri_tmp, 30, 170) ;
         }
@@ -707,7 +758,8 @@ main(int argc, char *argv[]) {
         MRIfree(&mri_tmp) ;
       } // end of building inputs
       ///////////////////////////////////////////////////////////
-      if (xform_name) {
+      if (xform_name)
+      {
         sprintf(fname, "%s/%s/mri/transforms/%s",
                 subjects_dir, subject_name, xform_name) ;
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -717,7 +769,8 @@ main(int argc, char *argv[]) {
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
                     Progname, fname) ;
         // change the transform to vox-to-vox
-        if (transform->type == LINEAR_RAS_TO_RAS) {
+        if (transform->type == LINEAR_RAS_TO_RAS)
+        {
           // takes care of average_305 or transform dst c_(ras) value.
           modify_transform(transform, mri_inputs, gca);
           // we modified GCA global mri_node_ and mri_prior_ c_(ras) values
@@ -725,7 +778,8 @@ main(int argc, char *argv[]) {
         }
         TransformInvert(transform, mri_inputs) ;
         if ((transform->type != MORPH_3D_TYPE) &&
-            ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)) {
+            ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON))
+        {
           // verify inverse
           lta = (LTA *) transform->xform;
           {
@@ -738,11 +792,13 @@ main(int argc, char *argv[]) {
             MatrixFree(&seki);
           }
         }
-      } else
+      }
+      else
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
 
       ////////////////////////////////////////////////////////
-      if (map_to_flash) {
+      if (map_to_flash)
+      {
         MRI *mri_tmp ;
 
         mri_tmp = MRIparameterMapsToFlash
@@ -751,38 +807,46 @@ main(int argc, char *argv[]) {
         mri_inputs = mri_tmp ;
       }
       /////////////////////////////////////////////////////////
-      if (gca_flags & GCA_GRAD) {
+      if (gca_flags & GCA_GRAD)
+      {
         MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
         int i, start ;
 
         mri_kernel = MRIgaussian1d(1.0, 30) ;
         mri_smooth = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
 
-        if (mri_inputs->type != MRI_FLOAT) {
+        if (mri_inputs->type != MRI_FLOAT)
+        {
           mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
           MRIfree(&mri_inputs) ;
           mri_inputs = mri_tmp ;
         }
 
         start = ninputs ;
-        if (gca_flags & GCA_XGRAD) {
-          for (i = 0 ; i < ninputs ; i++) {
+        if (gca_flags & GCA_XGRAD)
+        {
+          for (i = 0 ; i < ninputs ; i++)
+          {
             mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
             MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
             MRIfree(&mri_grad) ;
           }
           start += ninputs ;
         }
-        if (gca_flags & GCA_YGRAD) {
-          for (i = 0 ; i < ninputs ; i++) {
+        if (gca_flags & GCA_YGRAD)
+        {
+          for (i = 0 ; i < ninputs ; i++)
+          {
             mri_grad = MRIySobel(mri_smooth, NULL, i) ;
             MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
             MRIfree(&mri_grad) ;
           }
           start += ninputs ;
         }
-        if (gca_flags & GCA_ZGRAD) {
-          for (i = 0 ; i < ninputs ; i++) {
+        if (gca_flags & GCA_ZGRAD)
+        {
+          for (i = 0 ; i < ninputs ; i++)
+          {
             mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
             MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
             MRIfree(&mri_grad) ;
@@ -812,14 +876,17 @@ main(int argc, char *argv[]) {
       GCAfree(&gca_prune) ;
     gca_prune = gca ;  // gca_prune is non-zero now
 
-  } while (n++ < prune) ;
+  }
+  while (n++ < prune) ;
   ////////////////  end of do ////////////////////////////////////////////
 
-  if (smooth > 0) {
+  if (smooth > 0)
+  {
     printf("regularizing conditional densities with smooth=%2.2f\n", smooth) ;
     GCAregularizeConditionalDensities(gca, smooth) ;
   }
-  if (navgs) {
+  if (navgs)
+  {
     printf("applying mean filter %d times to conditional densities\n", navgs) ;
     GCAmeanFilterConditionalDensities(gca, navgs) ;
   }
@@ -837,7 +904,8 @@ main(int argc, char *argv[]) {
     MRIfree(&mri) ;
   }
 
-  if (histo_fname) {
+  if (histo_fname)
+  {
     FILE *fp ;
     int   histo_counts[10000], xn, yn, zn, max_count ;
     GCA_NODE  *gcan ;
@@ -849,9 +917,12 @@ main(int argc, char *argv[]) {
                 Progname, histo_fname) ;
 
     max_count = 0 ;
-    for (xn = 0 ; xn < gca->node_width;  xn++) {
-      for (yn = 0 ; yn < gca->node_height ; yn++) {
-        for (zn = 0 ; zn < gca->node_depth ; zn++) {
+    for (xn = 0 ; xn < gca->node_width;  xn++)
+    {
+      for (yn = 0 ; yn < gca->node_height ; yn++)
+      {
+        for (zn = 0 ; zn < gca->node_depth ; zn++)
+        {
           gcan = &gca->nodes[xn][yn][zn] ;
           if (gcan->nlabels < 1)
             continue ;
@@ -885,33 +956,47 @@ main(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   static int first_input = 1 ;
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "GRADIENT")) {
+  if (!stricmp(option, "GRADIENT"))
+  {
     parms.use_gradient = 1 ;
     ninputs += 3 ;  /* components of the gradient */
-  } else if (!stricmp(option, "PRIOR_SPACING")) {
+  }
+  else if (!stricmp(option, "PRIOR_SPACING"))
+  {
     parms.prior_spacing = atof(argv[2]) ;
     nargs = 1 ;
     printf("spacing priors every %2.1f mm\n", parms.prior_spacing) ;
-  } else if (!stricmp(option, "XGRAD")) {
+  }
+  else if (!stricmp(option, "XGRAD"))
+  {
     gca_flags |= GCA_XGRAD ;
     printf("using x gradient information in training...\n") ;
-  } else if (!stricmp(option, "WMSA")) {
+  }
+  else if (!stricmp(option, "WMSA"))
+  {
     wmsa_fname = argv[2] ;
     nargs = 1 ;
     printf("reading white matter signal abnormalities from %s\n", wmsa_fname) ;
-  } else if (!stricmp(option, "YGRAD")) {
+  }
+  else if (!stricmp(option, "YGRAD"))
+  {
     gca_flags |= GCA_YGRAD ;
     printf("using y gradient information in training...\n") ;
-  } else if (!stricmp(option, "ZGRAD")) {
+  }
+  else if (!stricmp(option, "ZGRAD"))
+  {
     gca_flags |= GCA_ZGRAD ;
     printf("using z gradient information in training...\n") ;
-  } else if (!stricmp(option, "FLASH")) {
+  }
+  else if (!stricmp(option, "FLASH"))
+  {
 #if 1
     flash = 1 ;
     printf("setting gca->type to FLASH\n") ;
@@ -922,7 +1007,8 @@ get_option(int argc, char *argv[]) {
     gca_inputs = atoi(argv[2]) ;
     nargs = 1+3*gca_inputs ;
     printf("mapping T1/PD inputs to flash volumes:\n") ;
-    for (i = 0 ; i < gca_inputs ; i++) {
+    for (i = 0 ; i < gca_inputs ; i++)
+    {
       TRs[i] = atof(argv[3+3*i]) ;
       FAs[i] = RADIANS(atof(argv[4+3*i])) ;
       TEs[i] = atof(argv[5+3*i]) ;
@@ -930,8 +1016,11 @@ get_option(int argc, char *argv[]) {
              i, TRs[i], DEGREES(FAs[i]), TEs[i]) ;
     }
 #endif
-  } else if (!stricmp(option, "INPUT")) {
-    if (first_input) {
+  }
+  else if (!stricmp(option, "INPUT"))
+  {
+    if (first_input)
+    {
       ninputs-- ;
       first_input = 0 ;
     }
@@ -939,84 +1028,118 @@ get_option(int argc, char *argv[]) {
     input_names[ninputs++] = argv[2] ;
     nargs = 1 ;
     printf("input[%d] = %s\n", ninputs-1, input_names[ninputs-1]) ;
-  } else if (!stricmp(option, "NODE_SPACING")) {
+  }
+  else if (!stricmp(option, "NODE_SPACING"))
+  {
     parms.node_spacing = atof(argv[2]) ;
     nargs = 1 ;
     printf("spacing nodes every %2.1f mm\n", parms.node_spacing) ;
-  } else if (!stricmp(option, "BINARIZE")) {
+  }
+  else if (!stricmp(option, "BINARIZE"))
+  {
     binarize = 1 ;
     binarize_in = atoi(argv[2]) ;
     binarize_out = atoi(argv[3]) ;
     nargs = 2 ;
     printf("binarizing segmentation values, setting input %d to output %d\n",
            binarize_in, binarize_out) ;
-  } else if (!stricmp(option, "NOMRF")) {
+  }
+  else if (!stricmp(option, "NOMRF"))
+  {
     gca_flags |= GCA_NO_MRF ;
     printf("not computing MRF statistics...\n") ;
-  } else if (!stricmp(option, "MASK")) {
+  }
+  else if (!stricmp(option, "MASK"))
+  {
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
-  } else if (!stricmp(option, "DEBUG_NODE")) {
+  }
+  else if (!stricmp(option, "DEBUG_NODE"))
+  {
     Ggca_x = atoi(argv[2]) ;
     Ggca_y = atoi(argv[3]) ;
     Ggca_z = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging node (%d, %d, %d)\n", Ggca_x,Ggca_y,Ggca_z) ;
-  } else if (!stricmp(option, "DEBUG_VOXEL")) {
+  }
+  else if (!stricmp(option, "DEBUG_VOXEL"))
+  {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx,Gy,Gz) ;
-  } else if (!stricmp(option, "DEBUG_LABEL")) {
+  }
+  else if (!stricmp(option, "DEBUG_LABEL"))
+  {
     Ggca_label = atoi(argv[2]) ;
     nargs = 1 ;
     printf("debugging label %s (%d)\n", cma_label_to_name(Ggca_label),
            Ggca_label) ;
-  } else if (!stricmp(option, "DEBUG_NBR")) {
+  }
+  else if (!stricmp(option, "DEBUG_NBR"))
+  {
     Ggca_nbr_label = atoi(argv[2]) ;
     nargs = 1 ;
     printf("debugging nbr label %s (%d)\n",
            cma_label_to_name(Ggca_nbr_label), Ggca_nbr_label) ;
-  } else if (!stricmp(option, "INSERT")) {
+  }
+  else if (!stricmp(option, "INSERT"))
+  {
     insert_fname = argv[2] ;
     insert_label = atoi(argv[3]) ;
     nargs = 2 ;
     printf("inserting non-zero vals from %s as label %d...\n",
            insert_fname,insert_label);
-  } else if (!stricmp(option, "PRUNE")) {
+  }
+  else if (!stricmp(option, "PRUNE"))
+  {
     prune = atoi(argv[2]) ;
     nargs = 1 ;
     printf("pruning classifier %d times after initial training\n", prune) ;
-  } else if (!stricmp(option, "HEQ")) {
+  }
+  else if (!stricmp(option, "HEQ"))
+  {
     heq_fname = argv[2] ;
     nargs = 1 ;
     printf("reading template for histogram equalization from %s...\n",
            heq_fname) ;
-  } else if (!stricmp(option, "T1")) {
+  }
+  else if (!stricmp(option, "T1"))
+  {
     strcpy(T1_name, argv[2]) ;
     nargs = 1 ;
     printf("reading T1 data from subject's mri/%s directory\n",
            T1_name) ;
-  } else if (!stricmp(option, "PARC_DIR") || !stricmp(option, "SEG_DIR") ||
-             !stricmp(option, "SEG") || !stricmp(option, "SEGMENTATION")) {
+  }
+  else if (!stricmp(option, "PARC_DIR") || !stricmp(option, "SEG_DIR") ||
+           !stricmp(option, "SEG") || !stricmp(option, "SEGMENTATION"))
+  {
     seg_dir = argv[2] ;
     nargs = 1 ;
     printf("reading segmentation from subject's mri/%s directory\n",
            seg_dir) ;
-  } else if (!stricmp(option, "XFORM")) {
+  }
+  else if (!stricmp(option, "XFORM"))
+  {
     xform_name = argv[2] ;
     nargs = 1 ;
     printf("reading xform from %s\n", xform_name) ;
-  } else if (!stricmp(option, "NOXFORM")) {
+  }
+  else if (!stricmp(option, "NOXFORM"))
+  {
     xform_name = NULL ;
     printf("disabling application of xform...\n") ;
-  } else if (!stricmp(option, "SDIR")) {
+  }
+  else if (!stricmp(option, "SDIR"))
+  {
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
     printf("using %s as subjects directory\n", subjects_dir) ;
-  } else if (!stricmp(option, "SMOOTH")) {
+  }
+  else if (!stricmp(option, "SMOOTH"))
+  {
     smooth = atof(argv[2]) ;
     if (smooth <= 0 || smooth > 1)
       ErrorExit(ERROR_BADPARM,
@@ -1024,7 +1147,9 @@ get_option(int argc, char *argv[]) {
                 Progname, smooth) ;
     nargs = 1 ;
     printf("imposing %2.1f smoothing on conditional statistics\n", smooth) ;
-  } else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case 'S':
       scale = atof(argv[2]) ;
       printf("scaling all volumes by %2.3f after reading...\n", scale) ;
@@ -1058,7 +1183,8 @@ get_option(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static void
-usage_exit(int code) {
+usage_exit(int code)
+{
   printf("Purpose: %s trains GCA data with (multiple) subject(s)\n", Progname);
   printf("Usage  : %s [options] <subject1> <subject2> ... "
          "<output gca fname>\n",
@@ -1082,22 +1208,25 @@ usage_exit(int code) {
   exit(code) ;
 }
 
-static int input_labels[] = {
-                              Left_Cerebral_Exterior,
-                              Right_Cerebral_Exterior,
-                              Left_Cerebellum_Exterior,
-                              Right_Cerebellum_Exterior
-                            } ;
+static int input_labels[] =
+  {
+    Left_Cerebral_Exterior,
+    Right_Cerebral_Exterior,
+    Left_Cerebellum_Exterior,
+    Right_Cerebellum_Exterior
+  } ;
 // replace the values above with the following
-static int output_labels[] = {
-                               Left_Cerebral_Cortex,
-                               Right_Cerebral_Cortex,
-                               Left_Cerebellum_Cortex,
-                               Right_Cerebellum_Cortex
-                             } ;
+static int output_labels[] =
+  {
+    Left_Cerebral_Cortex,
+    Right_Cerebral_Cortex,
+    Left_Cerebellum_Cortex,
+    Right_Cerebellum_Cortex
+  } ;
 
 static int
-replaceLabels(MRI *mri_seg) {
+replaceLabels(MRI *mri_seg)
+{
   int    i ;
 
   for (i = 0 ; i < sizeof(output_labels)/sizeof(output_labels[0]) ; i++)
@@ -1106,7 +1235,8 @@ replaceLabels(MRI *mri_seg) {
 }
 
 // modify transform to vox-to-vox
-static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca) {
+static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca)
+{
   LTA *lta=0;
   MATRIX *i_to_r=0, *r_to_i=0, *tmpmat=0, *vox2vox;
   MRI *mri_buf = 0;
@@ -1123,14 +1253,16 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca) {
   //////////////////////////////////////////////////////////////////////////
   // non-linear transform case
   //////////////////////////////////////////////////////////////////////////
-  if (transform->type == MORPH_3D_TYPE) {
+  if (transform->type == MORPH_3D_TYPE)
+  {
     gcam = (GCA_MORPH *) transform->xform;
     if (gcam->atlas.valid) // means it contains the dst volume information
     {
       mri_buf->c_r = gcam->atlas.c_r;
       mri_buf->c_a = gcam->atlas.c_a;
       mri_buf->c_s = gcam->atlas.c_s;
-      if (warned == 0) {
+      if (warned == 0)
+      {
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
           fprintf
           (stderr,
@@ -1144,7 +1276,8 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca) {
       mri_buf->c_r = 0;
       mri_buf->c_a = 0;
       mri_buf->c_s = 0;
-      if (warned == 0) {
+      if (warned == 0)
+      {
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
           fprintf(stderr, "INFO: modified c_(r,a,s) = 0.\n");
         warned = 1;
@@ -1154,37 +1287,46 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca) {
   ////////////////////////////////////////////////////////////////////////////
   /// linear transform case
   ////////////////////////////////////////////////////////////////////////////
-  else if (transform->type == LINEAR_VOX_TO_VOX) {
+  else if (transform->type == LINEAR_VOX_TO_VOX)
+  {
     lta = (LTA *) (transform->xform);
     // modify using the xform dst
-    if (lta->xforms[0].dst.valid) {
+    if (lta->xforms[0].dst.valid)
+    {
       mri_buf->c_r = lta->xforms[0].dst.c_r;
       mri_buf->c_a = lta->xforms[0].dst.c_a;
       mri_buf->c_s = lta->xforms[0].dst.c_s;
-      if (warned == 0) {
+      if (warned == 0)
+      {
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
           fprintf(stderr, "INFO: modified c_(r,a,s) using the xform dst.\n");
         warned = 1;
       }
-    } else // keep the old behavior
+    }
+    else // keep the old behavior
     {
       mri_buf->c_r = 0;
       mri_buf->c_a = 0;
       mri_buf->c_s = 0;
-      if (warned == 0) {
+      if (warned == 0)
+      {
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
           fprintf(stderr, "INFO: modified c_(r,a,s) = 0.\n");
         warned = 1;
       }
     }
-  } else if (transform->type == LINEAR_RAS_TO_RAS) {
+  }
+  else if (transform->type == LINEAR_RAS_TO_RAS)
+  {
     lta = (LTA *) (transform->xform);
     // modify using the xform dst
-    if (lta->xforms[0].dst.valid) {
+    if (lta->xforms[0].dst.valid)
+    {
       mri_buf->c_r = lta->xforms[0].dst.c_r;
       mri_buf->c_a = lta->xforms[0].dst.c_a;
       mri_buf->c_s = lta->xforms[0].dst.c_s;
-      if (warned == 0) {
+      if (warned == 0)
+      {
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
           fprintf(stderr, "INFO: modified c_(r,a,s) using the xform dst\n");
         warned = 1;
@@ -1197,8 +1339,10 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca) {
       mri_buf->c_r = -0.095;
       mri_buf->c_a = -16.51;
       mri_buf->c_s =   9.75;
-      if (warned == 0) {
-        if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+      if (warned == 0)
+      {
+        if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+        {
           fprintf
           (stderr,
            "INFO: modified c_(r,a,s) using average_305 value\n");
@@ -1215,7 +1359,8 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca) {
       mri_buf->c_r = 0;
       mri_buf->c_a = 0;
       mri_buf->c_s = 0;
-      if (warned == 0) {
+      if (warned == 0)
+      {
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
           fprintf
           (stderr, "INFO: xform.dst invalid thus modified c_(r,a,s) = 0.\n");
@@ -1253,12 +1398,16 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca) {
 #define WSIZE 9
 #define WHALF ((WSIZE-1)/2)
 static int
-lateralize_hypointensities(MRI *mri_seg) {
+lateralize_hypointensities(MRI *mri_seg)
+{
   int left, right, n, x, y, z, label_counts[MAX_CMA_LABELS], label ;
 
-  for (x = 0 ; x < mri_seg->width ; x++) {
-    for (y = 0 ; y < mri_seg->height ; y++) {
-      for (z = 0 ; z < mri_seg->depth ; z++) {
+  for (x = 0 ; x < mri_seg->width ; x++)
+  {
+    for (y = 0 ; y < mri_seg->height ; y++)
+    {
+      for (z = 0 ; z < mri_seg->depth ; z++)
+      {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
@@ -1267,8 +1416,10 @@ lateralize_hypointensities(MRI *mri_seg) {
         MRIcomputeLabelNbhd
         (mri_seg, NULL, x, y, z,
          label_counts,  NULL, WHALF, MAX_CMA_LABELS) ;
-        for (left = right = n = 0 ; n < MAX_CMA_LABELS ; n++) {
-          switch (n) {
+        for (left = right = n = 0 ; n < MAX_CMA_LABELS ; n++)
+        {
+          switch (n)
+          {
           case Left_Lateral_Ventricle:
           case Left_Cerebral_White_Matter:
           case Left_Caudate:
