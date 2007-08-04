@@ -7,8 +7,8 @@
  * 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/05 00:00:06 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/08/04 04:15:50 $
+ *    $Revision: 1.3 $
  *
  * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
  * Washington University, Mallinckrodt Institute of Radiology.
@@ -33,7 +33,7 @@
 
 #define MAXL		256
 
-static char rcsid[] = "$Id: endianio.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
+static char rcsid[] = "$Id: endianio.c,v 1.3 2007/08/04 04:15:50 nicks Exp $";
 void endianio_rcs (void) {printf ("%s\n", rcsid);}
 
 void swab2 (char *a) {
@@ -222,7 +222,7 @@ int get_4dfp_dimoe (char *fileroot, int *imgdim, float *voxsiz, int *orient, int
 	}
 
 	status = 0;
-	sprintf (filespc, "%s.4dfp.img", filespc);
+	strcat (filespc, ".4dfp.img");
 	if (Getifh (filespc, &ifh)) errr (subr, filespc);
 	for (k = 0; k < 3; k++) voxsiz[k] = ifh.scaling_factor[k];
 	for (k = 0; k < 4; k++) imgdim[k] = ifh.matrix_size[k];
@@ -254,7 +254,7 @@ int get_4dfp_dimoe_quiet (char *fileroot, int *imgdim, float *voxsiz, int *orien
 	}
 
 	status = 0;
-	sprintf (filespc, "%s.4dfp.img", filespc);
+	strcat (filespc, ".4dfp.img");
 	if (Getifh (filespc, &ifh)) errr (subr, filespc);
 	for (k = 0; k < 3; k++) voxsiz[k] = ifh.scaling_factor[k];
 	for (k = 0; k < 4; k++) imgdim[k] = ifh.matrix_size[k];
