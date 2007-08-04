@@ -7,8 +7,8 @@
  * 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/05 00:00:06 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/08/04 02:23:35 $
+ *    $Revision: 1.3 $
  *
  * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
  * Washington University, Mallinckrodt Institute of Radiology.
@@ -32,7 +32,7 @@
 
 #define MAXL	256
 
-static char	rcsid[] = "$Id: Getifh.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
+static char	rcsid[] = "$Id: Getifh.c,v 1.3 2007/08/04 02:23:35 nicks Exp $";
 void Getifh_rcs (void) {printf ("%s\n", rcsid);}
 
 int Getifh (char *imgfile, IFH *ifhdr) {
@@ -45,7 +45,8 @@ int Getifh (char *imgfile, IFH *ifhdr) {
 	getroot (imgfile, ifhfile);
 	strcat (ifhfile, ".4dfp.ifh");
 	if (!(fp = fopen (ifhfile, "r"))) {
-		fprintf (stderr, "Getifh: %s read error\n", ifhfile);
+		fprintf (stderr, "Getifh: %s read error, imgfile='%s'\n", 
+             ifhfile, imgfile);
 		return -1;
 	}
 	if (0) printf ("Reading: %s\n", ifhfile);	/* stdout messages can be a problem */ 
