@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/04/30 13:09:37 $
- *    $Revision: 1.42 $
+ *    $Author: nicks $
+ *    $Date: 2007/08/04 20:35:56 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -187,7 +187,7 @@
 #define Right_fimbria             200
 #endif
 
-#define Fornix                    250
+#define Fornix            250
 #define CC_Posterior      251
 #define CC_Mid_Posterior  252
 #define CC_Central        253
@@ -228,8 +228,8 @@
 #define Neg_Lymph                359
 
 // Brodmann Areas
-#define BA17 400  //                                      206 62  78  0
-#define BA18 401  //                                      121 18  134 0
+#define BA17 400  //                                    206 62  78  0
+#define BA18 401  //                                    121 18  134 0
 #define BA44 402  //                                    199 58  250 0
 #define BA45 403  //                                    1   148 0   0
 #define BA4a 404  //                                    221 248 164 0
@@ -260,11 +260,11 @@
 #define left_subiculum 557  //                          0   119 86  0
 #define left_fornix 558  //                             20  100 201 0
 
-#define MAX_LABEL left_subiculum
+// be sure to update MAX_LABEL if additional labels are added!
+
+#define MAX_LABEL left_fornix
 #define MAX_CMA_LABEL (MAX_LABEL)
 #define MAX_CMA_LABELS (MAX_CMA_LABEL+1)
-
-#define Not_Set         255
 
 
 #define IS_UNKNOWN(label)  (((label) == Unknown) || (label == 255) || (label == Bright_Unknown) || (label == Dark_Unknown))
