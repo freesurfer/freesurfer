@@ -8,8 +8,8 @@
  * 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/05 00:00:06 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/08/04 04:19:24 $
+ *    $Revision: 1.3 $
  *
  * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
  * Washington University, Mallinckrodt Institute of Radiology.
@@ -42,9 +42,9 @@ extern void	f_init (void), f_exit (void);	/* FORTRAN i/o */
 extern void	tparam2warp_  (int *mode, float *params, float *t4);	/* t4_sub.f */
 extern void	t4file2param_ (int *mode, char *t4file, float *params);	/* t4_sub.f */
 extern void	ffind_   (float *img1, short *msk1, int *nx1, int *ny1, int *nz1, float *mmppix1, float *center1,
-			  float *img2, short *msk2, int *nx2, int *ny2, int *nz2, float *mmppix2, float *center2, float *params, int *mode);
+                      float *img2, short *msk2, int *nx2, int *ny2, int *nz2, float *mmppix2, float *center2, float *params, int *mode);
 extern void	fimgreg_ (float *img1, short *msk1, int *nx1, int *ny1, int *nz1, float *mmppix1, float *center1,
-			  float *img2, short *msk2, int *nx2, int *ny2, int *nz2, float *mmppix2, float *center2, float *params, int *mode);
+                      float *img2, short *msk2, int *nx2, int *ny2, int *nz2, float *mmppix2, float *center2, float *params, int *mode);
 extern void	flipx (float *imag, int *nx, int *ny, int *nz);		/* cflip.c */
 extern void	flipz (float *imag, int *nx, int *ny, int *nz);		/* cflip.c */
 extern int 	x4dfp2ecat (float *imag, int *dim, int orientation);	/* below */	
@@ -61,11 +61,11 @@ void read_file_float (char *filename, float *stack, int dimension, char *program
 	FILE *fp;
  
 	if (!(fp = fopen (filename, "rb"))
-	||  eread (stack, dimension, isbig, fp)
-	||  fclose (fp)) errr (program, filename);
+      ||  eread (stack, dimension, isbig, fp)
+      ||  fclose (fp)) errr (program, filename);
 }
 
-static char rcsid[] = "$Id: imgreg_4dfp.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
+static char rcsid[] = "$Id: imgreg_4dfp.c,v 1.3 2007/08/04 04:19:24 nicks Exp $";
 int main (int argc, char **argv) {
 /************/
 /* imag I/O */
@@ -94,6 +94,7 @@ int main (int argc, char **argv) {
  
 	f_init ();			/* initialize FORTRAN I/O */
 	fprintf (stdout, "%s\n", rcsid);
+  fflush (stdout);
 	setprog (program, argv);
 
 /************************/
@@ -101,13 +102,13 @@ int main (int argc, char **argv) {
 /************************/
 	for (k = 0, i = 1; i < argc; i++) {
 		if (*argv[i] == '-') strcpy (command, argv[i]);
-		 else switch (k) {
-			case 0: getroot (argv[i], imgroot[0]);		k++; break;
-			case 1: getroot (argv[i], mskroot[0]); 		k++; break;
-			case 2: getroot (argv[i], imgroot[1]); 		k++; break;
-			case 3: getroot (argv[i], mskroot[1]); 		k++; break;
-			case 4: strcpy (t4file,      argv[i]); 		k++; break;
-			case 5: mode = atoi (argv[i]);			k++; break;
+    else switch (k) {
+    case 0: getroot (argv[i], imgroot[0]);		k++; break;
+    case 1: getroot (argv[i], mskroot[0]); 		k++; break;
+    case 2: getroot (argv[i], imgroot[1]); 		k++; break;
+    case 3: getroot (argv[i], mskroot[1]); 		k++; break;
+    case 4: strcpy (t4file,      argv[i]); 		k++; break;
+    case 5: mode = atoi (argv[i]);			k++; break;
 		}
 	}
 	if (k < 6) {
@@ -121,12 +122,16 @@ int main (int argc, char **argv) {
 /* start */
 /*********/
 	for (j = 0; j < 2; j++) {
+    if (strlen(imgroot[j])==0) {
+      fprintf (stderr, "imgreg_4dfp: imgroot[%d] is empty!\n", j);
+      exit (-1);
+    }
 		sprintf (filespc, "%s.4dfp.img", imgroot[j]);
 		if (get_4dfp_dimoe (filespc, imgdim, voxdim, &orientation, &isbig) < 0) errr (program, filespc);
 		nx[j] = imgdim[0];
 		ny[j] = imgdim[1];
 		nz[j] = imgdim[2];
-        	Getifh (filespc, ifh + j);
+    Getifh (filespc, ifh + j);
 		printf ("Reading image: %s\n", filespc);
 		printf ("dimensions:%9d%10d%10d\n", nx[j], ny[j], nz[j]);
 		printf ("mmppix:   %10.4f%10.4f%10.4f\n", ifh[j].mmppix[0], ifh[j].mmppix[1], ifh[j].mmppix[2]);
@@ -140,7 +145,7 @@ int main (int argc, char **argv) {
 		if (strcmp (mskroot[j], "none")) {
 			sprintf (filespc, "%s.4dfp.img", mskroot[j]);
 			get_4dfp_dimoe (filespc, mskdim, voxdim, &orientm, &isbigm);
-        		Getifh (filespc, &ifhm);
+      Getifh (filespc, &ifhm);
 			k = orientation - ifhm.orientation;
 			for (i = 0; i < 3; i++) k |= (mskdim[i] != imgdim[i]);
 			for (i = 0; i < 3; i++) k |= (fabs (ifhm.mmppix[i] - ifh[j].mmppix[i]) > 0.0001);
@@ -184,10 +189,10 @@ int main (int argc, char **argv) {
 /***********/
 	if (mode & FIND) {
 		ffind_   (imag[0], mask[0], &nx[0], &ny[0], &nz[0], ifh[0].mmppix, ifh[0].center,
-	  		  imag[1], mask[1], &nx[1], &ny[1], &nz[1], ifh[1].mmppix, ifh[1].center, param, &mode);
+              imag[1], mask[1], &nx[1], &ny[1], &nz[1], ifh[1].mmppix, ifh[1].center, param, &mode);
  	} else {
 		fimgreg_ (imag[0], mask[0], nx + 0, ny + 0, nz + 0, ifh[0].mmppix, ifh[0].center,
-                          imag[1], mask[1], nx + 1, ny + 1, nz + 1, ifh[1].mmppix, ifh[1].center, param, &mode); 
+              imag[1], mask[1], nx + 1, ny + 1, nz + 1, ifh[1].mmppix, ifh[1].center, param, &mode); 
  	}
 
 /****************/
@@ -208,13 +213,13 @@ int main (int argc, char **argv) {
 
 int x4dfp2ecat (float *imag, int *dim, int orientation) {
 	switch (orientation) {
-		case 2:	flipx (imag, dim+0, dim+1, dim+2);	/* transverse */
-			flipz (imag, dim+0, dim+1, dim+2);
-			break;
-		case 3:	flipx (imag, dim+0, dim+1, dim+2);	/* coronal */
-			break;
-		case 4: break;					/* sagittal */
-		default: return -1;				/* none of the above */
+  case 2:	flipx (imag, dim+0, dim+1, dim+2);	/* transverse */
+    flipz (imag, dim+0, dim+1, dim+2);
+    break;
+  case 3:	flipx (imag, dim+0, dim+1, dim+2);	/* coronal */
+    break;
+  case 4: break;					/* sagittal */
+  default: return -1;				/* none of the above */
 	}
 	return 0;
 }
