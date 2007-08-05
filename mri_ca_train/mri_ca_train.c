@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/05 16:09:21 $
- *    $Revision: 1.49 $
+ *    $Date: 2007/08/05 18:21:53 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -126,7 +126,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.49 2007/08/05 16:09:21 nicks Exp $",
+           "$Id: mri_ca_train.c,v 1.50 2007/08/05 18:21:53 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -622,6 +622,14 @@ main(int argc, char *argv[])
     }
     GCAcompleteMeanTraining(gca) ;
 
+    // if -check was used, and bad subjects were found, then exit
+    if (do_sanity_check && sanity_check_error_count)
+    {
+      fflush(stdout);fflush(stderr);
+      ErrorExit(-9,"\nERROR: bad labels found in %d subjects during -check!\n",
+                sanity_check_error_count);
+    }
+
     ///////////////////////////////////////////////////////////////
     /* now compute covariances */
     ///////////////////////////////////////////////////////////////
@@ -898,12 +906,6 @@ main(int argc, char *argv[])
   }
   while (n++ < prune) ;
   ////////////////  end of do ////////////////////////////////////////////
-
-  if (do_sanity_check && sanity_check_error_count)
-  {
-    ErrorExit(-9,"ERROR: bad labels found in %d subject during -check!\n",
-              sanity_check_error_count);
-  }
 
   if (smooth > 0)
   {
