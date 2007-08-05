@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/04 01:51:45 $
- *    $Revision: 1.47 $
+ *    $Date: 2007/08/05 01:02:56 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -50,8 +50,9 @@
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static int replaceLabels(MRI *mri_seg) ;
-static void modify_transform(TRANSFORM *transform, MRI *mri, GCA *gca);
+static void modify_transform(TRANSFORM *transform, MRI *mri, GCA *gca) ;
 static int lateralize_hypointensities(MRI *mri_seg) ;
+static int check(MRI *mri_seg) ;
 
 static int flash = 0 ;
 static int binarize = 0 ;
@@ -71,7 +72,7 @@ static char *histo_fname = NULL ;
 static float scale = 0 ;
 
 static GCA_PARMS parms ;
-static char *seg_dir = "seg" ;
+static char *seg_dir = "seg_edited.mgz" ; // default name of manual edit file
 static char T1_name[STRLEN] = "orig" ;
 static char *xform_name = NULL;
 static int prune = 0 ;
@@ -93,6 +94,8 @@ static char *input_names[MAX_GCA_INPUTS] =
     T1_name
   } ;
 
+static int do_sanity_check = 0;
+
 int
 main(int argc, char *argv[])
 {
@@ -104,7 +107,7 @@ main(int argc, char *argv[])
   GCA          *gca, *gca_prune = NULL ;
   MRI          *mri_seg, *mri_tmp, *mri_eq = NULL, *mri_inputs ;
   TRANSFORM    *transform ;
-  LTA *lta;
+  LTA          *lta;
   int          used[MAX_GCA_INPUTS];
   int          counts;
 
@@ -122,7 +125,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.47 2007/08/04 01:51:45 nicks Exp $",
+           "$Id: mri_ca_train.c,v 1.48 2007/08/05 01:02:56 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -306,7 +309,7 @@ main(int argc, char *argv[])
         for (input = 0 ; input < ninputs ; input++)
         {
           sprintf(fname, "%s/%s/mri/%s",
-                  subjects_dir, subject_name,input_names[input]);
+                  subjects_dir, subject_name, input_names[input]);
           mri_tmp = MRIreadInfo(fname) ;
           if (!mri_tmp)
             ErrorExit
@@ -512,6 +515,20 @@ main(int argc, char *argv[])
         TransformInvert(transform, mri_inputs) ;
         // verify inverse
         lta = (LTA *) transform->xform;
+
+        if (do_sanity_check)
+        {
+          // conduct a sanity check of particular labels, most importantly
+          // hippocampus, that such labels do not exist in talairach coords
+          // where they are known not to belong (indicating a bad manual edit)
+          if (check(mri_seg)) 
+          {
+            //ErrorExit(ERROR_BADFILE,
+            printf(
+              "ERROR: mri_ca_train: possible bad training data! subject:\n"
+              "%s/%s\n\n", subjects_dir, subject_name);
+          }
+        }
       }
       else
       {
@@ -1132,6 +1149,11 @@ get_option(int argc, char *argv[])
     xform_name = NULL ;
     printf("disabling application of xform...\n") ;
   }
+  else if (!stricmp(option, "check"))
+  {
+    do_sanity_check = 1;
+    printf("will conduct sanity-check of labels...\n") ;
+  }
   else if (!stricmp(option, "SDIR"))
   {
     strcpy(subjects_dir, argv[2]) ;
@@ -1192,9 +1214,9 @@ usage_exit(int code)
   printf
   ("where SUBJECTS_DIR env variable must be set.\n"
    "Options are:\n"
-   "\t-seg dir   - (Required) segmentation volume "
+   "\t-seg dir        - (required) segmentation volume "
    "(path relative to $subject/mri).\n"
-   "\t-xform xform  -  atlas transform (path relative "
+   "\t-xform xform    -  atlas transform (path relative "
    "to $subject/mri/transforms).\n"
    "\t-mask volname   - use volname as a mask "
    "(path relative to $subject/mri.\n"
@@ -1202,8 +1224,10 @@ usage_exit(int code)
    "\t-prior_spacing  - spacing of class priors in canonical space\n"
    "\t-input name     - specifying training data "
    "(path relative to $subject/mri).\n"
-   "                    can specify multiple inputs.  "
-   "If not specified, \"orig\" is ued\n"
+   "                          can specify multiple inputs.  "
+   "If not specified, \"orig\" is used\n"
+   "\t-check          - conduct sanity-check of labels for obvious edit errors"
+   "\n"
   );
   exit(code) ;
 }
@@ -1457,5 +1481,97 @@ lateralize_hypointensities(MRI *mri_seg)
   }
 
   return(NO_ERROR) ;
+}
+
+
+/*
+ * check
+ *
+ * conduct a sanity check of particular labels, most importantly
+ * hippocampus, that such labels do not exist in talairach coords
+ * where they are known not to belong (indicating a bad manual edit)
+ */
+static int check(MRI *mri_seg)
+{
+  int x, y, z, label, errors=0;
+  Real xw=0.0, yw=0.0, zw=0.0;
+  Real xt=0.0, yt=0.0, zt=0.0;
+
+  if (NULL == mri_seg->linear_transform)
+  {
+    ErrorExit(ERROR_BADFILE,
+              "ERROR: mri_ca_train: talairach.xfm not loaded!\n");
+  }
+
+  // now conduct checks for voxels in locations where they shouldnt be
+  for (x = 0 ; x < mri_seg->width ; x++)
+  {
+    for (y = 0 ; y < mri_seg->height ; y++)
+    {
+      for (z = 0 ; z < mri_seg->depth ; z++)
+      {
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
+        // labels to check...
+        if ((label == Left_Hippocampus) || 
+            (label == Right_Hippocampus))
+        {
+          // get mni tal coords
+          MRIvoxelToWorld(mri_seg, x, y, z, &xw, &yw, &zw) ;
+          transform_point(mri_seg->linear_transform, 
+                          xw, yw, zw, &xt, &yt, &zt);
+
+          /*
+           * rules:
+           * - no left or right hippo labels with z tal coord > 5
+           * - no left hippo labels with x tal coord > 12 
+           * - no right hippo labels with x tal coord < -12
+           */
+          switch (label)
+          {
+          case Left_Hippocampus:
+            if (zt > 5)
+            {
+              printf
+                ("ERROR: left hippo: "
+                 "%d %d %d, tal x=%f, y=%f, * z=%f > 5 *\n", 
+                 x,y,z,xt,yt,zt);
+              errors++;
+            }
+            if (xt > 12)
+            {
+              printf
+                ("ERROR: left hippo: "
+                 "%d %d %d, tal * x=%f > 12 *, y=%f, z=%f\n", 
+                 x,y,z,xt,yt,zt);
+              errors++;
+            }
+            break;
+          case Right_Hippocampus:
+            if (zt > 5)
+            {
+              printf
+                ("ERROR: right hippo: "
+                 "%d %d %d, tal x=%f, y=%f, * z=%f > 5 *\n", 
+                 x,y,z,xt,yt,zt);
+              errors++;
+            }
+            if (xt < -12)
+            {
+              printf
+                ("ERROR: right hippo: "
+                 "%d %d %d, tal * x=%f < -12 *, y=%f, z=%f\n", 
+                 x,y,z,xt,yt,zt);
+              errors++;
+            }
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  fflush(stdout);
+
+  return(errors) ;
 }
 
