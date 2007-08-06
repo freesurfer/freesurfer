@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/08/03 23:22:58 $
-#    $Revision: 1.127 $
+#    $Date: 2007/08/06 16:37:34 $
+#    $Revision: 1.128 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.127 2007/08/03 23:22:58 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.128 2007/08/06 16:37:34 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1990,7 +1990,7 @@ foreach hemi ($hemilist)
     cd $subjdir/scripts > /dev/null
     set annot = ../label/$hemi.aparc.annot
     set stats = ../stats/$hemi.aparc.stats
-    set ctab  = ../stats/aparc.annot.ctab
+    set ctab  = ../label/aparc.annot.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
     set cmd = (mris_anatomical_stats -mgz -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi);
@@ -2040,7 +2040,7 @@ foreach hemi ($hemilist)
     cd $subjdir/scripts > /dev/null
     set annot = ../label/$hemi.aparc.a2005s.annot
     set stats = ../stats/$hemi.aparc.a2005s.stats
-    set ctab  = ../stats/aparc.annot.a2005s.ctab
+    set ctab  = ../label/aparc.annot.a2005s.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
     set cmd = (mris_anatomical_stats -mgz -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi);
