@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.30 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/06 16:53:41 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,6 +50,7 @@ HISTOGRAM, HISTO ;
 int       HISTOfree(HISTOGRAM **phisto) ;
 int       HISTOdump(HISTOGRAM *histo, FILE *fp) ;
 int       HISTOwrite(HISTOGRAM *histo, char *fname) ;
+HISTOGRAM *HISTOinit(HISTOGRAM *h, int nbins, double mn, double mx) ;
 HISTOGRAM *HISTOalloc(int nbins) ;
 HISTOGRAM *HISTOrealloc(HISTOGRAM *histo, int nbins) ;
 HISTOGRAM *HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) ;
@@ -117,5 +118,7 @@ int HISTOvalToBin(HISTO *h, double val);
 HISTO *HISTObins(int nbins, double min, double max);
 int HISTOvalToBinDirect(HISTOGRAM *histo, float val) ;
 float HISTOvalToCount(HISTOGRAM *histo, float val) ;
+int  HISTOwriteInto(HISTOGRAM *h, FILE *fp) ;
+HISTOGRAM* HISTOreadFrom(FILE *fp) ;
 
 #endif
