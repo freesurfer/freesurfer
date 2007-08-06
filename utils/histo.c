@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/06 16:51:56 $
- *    $Revision: 1.53 $
+ *    $Date: 2007/08/06 16:53:16 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1773,7 +1773,7 @@ HISTOwriteInto(HISTOGRAM *h, FILE *fp)
   return(NO_ERROR) ;
 }
 
-int
+HISTOGRAM *
 HISTOreadFrom(FILE *fp)
 {
   int       b, nbins ;
@@ -1789,5 +1789,5 @@ HISTOreadFrom(FILE *fp)
 
   for (b = 0 ; b < h->nbins ; b++)
     h->counts[b] = freadFloat(fp) ;
-  return(NO_ERROR) ;
+  return(h) ;
 }
