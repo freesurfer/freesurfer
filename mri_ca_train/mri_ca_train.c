@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/05 18:21:53 $
- *    $Revision: 1.50 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/06 18:38:16 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -95,7 +95,6 @@ static char *input_names[MAX_GCA_INPUTS] =
   } ;
 
 static int do_sanity_check = 0;
-static int sanity_check_error_count = 0;
 
 int
 main(int argc, char *argv[])
@@ -126,7 +125,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.50 2007/08/05 18:21:53 nicks Exp $",
+           "$Id: mri_ca_train.c,v 1.51 2007/08/06 18:38:16 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -516,27 +515,27 @@ main(int argc, char *argv[])
         TransformInvert(transform, mri_inputs) ;
         // verify inverse
         lta = (LTA *) transform->xform;
+
+        if (do_sanity_check)
+        {
+          // conduct a sanity check of particular labels, most importantly
+          // hippocampus, that such labels do not exist in talairach coords
+          // where they are known not to belong (indicating a bad manual edit)
+          if (check(mri_seg)) 
+          {
+            //ErrorExit(ERROR_BADFILE,
+            printf(
+              "ERROR: mri_ca_train: possible bad training data! subject:\n"
+              "%s/%s\n\n", subjects_dir, subject_name);
+            fflush(stdout) ;
+          }
+        }
       }
       else
       {
         GCAreinit(mri_inputs, gca);
         // just use the input value, since dst = src volume
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
-      }
-
-      /////////////////////////////////////////////////////////
-      if (do_sanity_check)
-      {
-        // conduct a sanity check of particular labels, most importantly
-        // hippocampus, that such labels do not exist in talairach coords
-        // where they are known not to belong (indicating a bad manual edit)
-        if (check(mri_seg)) 
-        {
-          printf(
-            "ERROR: mri_ca_train: possible bad training data! subject:\n"
-            "%s/%s\n\n", subjects_dir, subject_name);
-          sanity_check_error_count++;
-        }
       }
 
       /////////////////////////////////////////////////////////
@@ -621,14 +620,6 @@ main(int argc, char *argv[])
         gca_prune = GCAcompactify(gca_prune);
     }
     GCAcompleteMeanTraining(gca) ;
-
-    // if -check was used, and bad subjects were found, then exit
-    if (do_sanity_check && sanity_check_error_count)
-    {
-      fflush(stdout);fflush(stderr);
-      ErrorExit(-9,"\nERROR: bad labels found in %d subjects during -check!\n",
-                sanity_check_error_count);
-    }
 
     ///////////////////////////////////////////////////////////////
     /* now compute covariances */
@@ -1505,8 +1496,7 @@ static int check(MRI *mri_seg)
 {
   int x, y, z, label, errors=0;
   Real xw=0.0, yw=0.0, zw=0.0;
-  Real xm=0.0, ym=0.0, zm=0.0;
-  float xt=0.0, yt=0.0, zt=0.0;
+  Real xt=0.0, yt=0.0, zt=0.0;
 
   if (NULL == mri_seg->linear_transform)
   {
@@ -1523,19 +1513,21 @@ static int check(MRI *mri_seg)
       {
         label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         // labels to check...
+#if 0
         if ((label == Left_Hippocampus) || 
-            (label == Right_Hippocampus))
+            (label == Right_Hippocampus) ||
+            (label == Left_Amygdala) || 
+            (label == Right_Amygdala))
+#endif
         {
           // get mni tal coords
           MRIvoxelToWorld(mri_seg, x, y, z, &xw, &yw, &zw) ;
           transform_point(mri_seg->linear_transform, 
-                          xw, yw, zw, &xm, &ym, &zm);
-          // convert to 'real' tal
-          FixMNITal(xm,ym,zm, &xt,&yt,&zt);
+                          xw, yw, zw, &xt, &yt, &zt);
 
           /*
            * rules:
-           * - no left or right hippo labels with z tal coord > 12
+           * - no left or right hippo labels with z tal coord > 5
            * - no left hippo labels with x tal coord > 12 
            * - no right hippo labels with x tal coord < -12
            */
@@ -1545,19 +1537,24 @@ static int check(MRI *mri_seg)
             if (zt > 12)
             {
               printf
-                ("ERROR: left hippo: "
-                 "%d %d %d, tal x=%f, y=%f, * z=%f > 12 *\n", 
-                 x,y,z,xt,yt,zt);
-              fflush(stdout);
+                ("ERROR: %s: "
+                 "%d %d %d, tal x=%f, y=%f, * z=%f > 5 *\n", 
+                 cma_label_to_name(label),x,y,z,xt,yt,zt);
+              fflush(stdout) ;
               errors++;
             }
+            // no break
+          case Left_Caudate:
+          case Left_Amygdala:
+          case Left_Putamen:
+          case Left_Pallidum:
             if (xt > 12)
             {
               printf
-                ("ERROR: left hippo: "
+                ("ERROR: %s: "
                  "%d %d %d, tal * x=%f > 12 *, y=%f, z=%f\n", 
-                 x,y,z,xt,yt,zt);
-              fflush(stdout);
+                 cma_label_to_name(label), x,y,z,xt,yt,zt);
+              fflush(stdout) ;
               errors++;
             }
             break;
@@ -1565,22 +1562,28 @@ static int check(MRI *mri_seg)
             if (zt > 12)
             {
               printf
-                ("ERROR: right hippo: "
-                 "%d %d %d, tal x=%f, y=%f, * z=%f > 12 *\n", 
-                 x,y,z,xt,yt,zt);
-              fflush(stdout);
+                ("ERROR: %s: "
+                 "%d %d %d, tal x=%f, y=%f, * z=%f > 5 *\n", 
+                 cma_label_to_name(label),x,y,z,xt,yt,zt);
+              fflush(stdout) ;
               errors++;
             }
+          case Right_Caudate:
+          case Right_Amygdala:
+          case Right_Pallidum:
+          case Right_Putamen:
             if (xt < -12)
             {
               printf
-                ("ERROR: right hippo: "
+                ("ERROR: %s: "
                  "%d %d %d, tal * x=%f < -12 *, y=%f, z=%f\n", 
-                 x,y,z,xt,yt,zt);
-              fflush(stdout);
+                 cma_label_to_name(label), x,y,z,xt,yt,zt);
+              fflush(stdout) ;
               errors++;
             }
             break;
+          default:
+            break ;
           }
         }
       }
