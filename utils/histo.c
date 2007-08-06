@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/10 05:07:05 $
- *    $Revision: 1.52 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/06 16:51:56 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,7 @@
 #include "histo.h"
 #include "diag.h"
 #include "macros.h"
+#include "fio.h"
 
 /*-----------------------------------------------------
   Parameters:
@@ -61,14 +62,20 @@ HISTOfree(HISTOGRAM **phisto)
       free(histo->bins) ;
       histo->bins = NULL;
     }
+    else
+      DiagBreak() ;
     if (histo->counts)
     {
       free(histo->counts) ;
       histo->counts = NULL;
     }
+    else
+      DiagBreak() ;
     free(histo) ;
   }
-
+  else
+    DiagBreak() ;
+  
   return(NO_ERROR) ;
 }
 
@@ -1157,7 +1164,7 @@ HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax)
   int    bin_no ;
   float  bin_size ;
 
-  bin_size = (bmax - bmin + 1) / (float)histo->nbins ;
+  bin_size = (bmax - bmin) / ((float)histo->nbins-1) ;
   bin_no = nint((val - bmin) / bin_size) ;
   histo->counts[bin_no]++ ;
 
@@ -1731,4 +1738,56 @@ HISTOvalToCount(HISTOGRAM *histo, float val)
     return(0.0) ;
 
   return(histo->counts[bin_no]) ;
+}
+HISTOGRAM *
+HISTOinit(HISTOGRAM *h, int nbins, double mn, double mx)
+{
+  int b ;
+
+  if (h == NULL)
+    h = HISTOalloc(nbins) ;
+  else
+    HISTOclear(h, h);
+
+  h->min = mn ; h->max = mx ;
+  h->bin_size = (mx - mn) / (nbins-1) ;
+  for (b = 0 ; b < nbins ; b++)
+    h->bins[b] = mn + h->bin_size*(float)b ;
+  return(h) ;
+}
+
+int
+HISTOwriteInto(HISTOGRAM *h, FILE *fp)
+{
+  int b ;
+
+  fwriteInt(h->nbins, fp) ;
+  fwriteFloat(h->bin_size, fp) ;
+  fwriteFloat(h->min, fp) ;
+  fwriteFloat(h->max, fp) ;
+  for (b = 0 ; b < h->nbins ; b++)
+    fwriteFloat(h->bins[b], fp) ;
+
+  for (b = 0 ; b < h->nbins ; b++)
+    fwriteFloat(h->counts[b], fp) ;
+  return(NO_ERROR) ;
+}
+
+int
+HISTOreadFrom(FILE *fp)
+{
+  int       b, nbins ;
+  HISTOGRAM *h ;
+
+  nbins = freadInt(fp) ;
+  h = HISTOalloc(nbins) ;
+  h->bin_size = freadFloat(fp) ;
+  h->min = freadFloat(fp) ;
+  h->max = freadFloat(fp) ;
+  for (b = 0 ; b < h->nbins ; b++)
+    h->bins[b] = freadFloat(fp) ;
+
+  for (b = 0 ; b < h->nbins ; b++)
+    h->counts[b] = freadFloat(fp) ;
+  return(NO_ERROR) ;
 }
