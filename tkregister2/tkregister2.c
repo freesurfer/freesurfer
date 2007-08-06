@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/01 17:55:59 $
- *    $Revision: 1.85 $
+ *    $Date: 2007/08/06 19:38:01 $
+ *    $Revision: 1.86 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.85 2007/08/01 17:55:59 greve Exp $";
+"$Id: tkregister2.c,v 1.86 2007/08/06 19:38:01 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -416,7 +416,7 @@ int checkreg = 0;
 #endif // HAVE_TCL_TK_GL
 
 int ZeroCRAS = 0;
-double TargCRAS[3];
+MATRIX *Ctarg, *invCtarg, *Starg, *Mcras0, *invMcras0;
 
 /**** ------------------ main() ------------------------------- ****/
 int Register(ClientData clientData,
@@ -561,19 +561,22 @@ int Register(ClientData clientData,
   }
   if(fstal && ZeroCRAS){
     printf("Zeroing CRAS of target\n");
-    TargCRAS[0] = targ_vol->c_r;
-    TargCRAS[1] = targ_vol->c_a;
-    TargCRAS[2] = targ_vol->c_s;
+    Starg = MRIxfmCRS2XYZ(targ_vol,0);
     targ_vol->c_r = 0;
     targ_vol->c_a = 0;
     targ_vol->c_s = 0;
+    Ctarg = MRIxfmCRS2XYZ(targ_vol,0);
+    invCtarg = MatrixInverse(Ctarg,NULL);
+    Mcras0    = MatrixMultiply(Starg,invCtarg,NULL);
+    invMcras0 = MatrixInverse(Mcras0,NULL);
     // At this point, RegMat holds tal.xfm
-    RegMat->rptr[1][4] += TargCRAS[0];
-    RegMat->rptr[2][4] += TargCRAS[1];
-    RegMat->rptr[3][4] += TargCRAS[2];
+    RegMat = MatrixMultiply(RegMat,Mcras0,RegMat);
     printf("new xfm -----------------\n");
     MatrixPrint(stdout,RegMat);
     printf("---------------------\n");
+    MatrixFree(&Ctarg);
+    MatrixFree(&invCtarg);
+    MatrixFree(&Starg);
   }
   if(targ_ostr) {
     printf("Setting targ orientation to %s\n",targ_ostr);
@@ -3287,9 +3290,7 @@ void write_reg(char *fname) {
   if(fstal) {
     if(ZeroCRAS){
       printf("UnZeroing CRAS for output xfm\n");
-      RegMatTmp->rptr[1][4] -= TargCRAS[0];
-      RegMatTmp->rptr[2][4] -= TargCRAS[1];
-      RegMatTmp->rptr[3][4] -= TargCRAS[2];
+      RegMatTmp = MatrixMultiply(RegMatTmp,invMcras0,RegMatTmp);
     }
     make_backup(talxfmfile);
     regio_write_mincxfm(talxfmfile,RegMatTmp,xfmfileinfo);
@@ -4484,7 +4485,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.85 2007/08/01 17:55:59 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.86 2007/08/06 19:38:01 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
