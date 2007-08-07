@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/03 13:24:34 $
- *    $Revision: 1.391 $
+ *    $Author: greve $
+ *    $Date: 2007/08/07 20:57:38 $
+ *    $Revision: 1.392 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.391 $";
+char *MRI_C_VERSION = "$Revision: 1.392 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -291,6 +291,21 @@ MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
   MRIfree(&tmp);
 
   return(K);
+}
+/*-------------------------------------------------------------
+  MRIxfmCRS2XYZfsl() - computes the FSL vox2ras, ie, linear
+  transform between the column, row, and slice of a voxel and the x,
+  y, z of that voxel as expected by FSL/FLIRT.
+  -------------------------------------------------------------*/
+MATRIX *MRIxfmCRS2XYZfsl(MRI *mri)
+{
+  MATRIX *vox2ras;
+  vox2ras = MatrixAlloc(4,4,MATRIX_REAL);
+  vox2ras->rptr[1][1] = mri->xsize;
+  vox2ras->rptr[2][2] = mri->ysize;
+  vox2ras->rptr[3][3] = mri->zsize;
+  vox2ras->rptr[4][4] = 1.0;
+  return(vox2ras);
 }
 /*-------------------------------------------------------------------
   MRItkReg2Native() - converts a tkregister-compatible registration
