@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/05/15 17:10:03 $
- *    $Revision: 1.61 $
+ *    $Author: greve $
+ *    $Date: 2007/08/07 20:58:34 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.61 $";
+char *MRI_INFO_VERSION = "$Revision: 1.62 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.61 2007/05/15 17:10:03 fischl Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.62 2007/08/07 20:58:34 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -85,6 +85,7 @@ static int PrintVox2RAS = 0;
 static int PrintRAS2Vox = 0;
 static int PrintRASGood = 0;
 static int PrintVox2RAStkr = 0;
+static int PrintVox2RASfsl = 0;
 static int PrintDet = 0;
 static int PrintOrientation = 0;
 static int PrintSliceDirection = 0;
@@ -188,6 +189,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--vox2ras"))   PrintVox2RAS = 1;
     else if (!strcasecmp(option, "--ras2vox"))   PrintRAS2Vox = 1;
     else if (!strcasecmp(option, "--vox2ras-tkr")) PrintVox2RAStkr = 1;
+    else if (!strcasecmp(option, "--vox2ras-fsl")) PrintVox2RASfsl = 1;
     else if (!strcasecmp(option, "--ras_good"))   PrintRASGood = 1;
     else if (!strcasecmp(option, "--cras"))      PrintCRAS = 1;
 
@@ -254,6 +256,7 @@ static void print_usage(void) {
   printf("   --vox2ras : print the the native/qform vox2ras matrix\n");
   printf("   --ras2vox : print the the native/qform ras2vox matrix\n");
   printf("   --vox2ras-tkr : print the the tkregister vox2ras matrix\n");
+  printf("   --vox2ras-fsl : print the the FSL/FLIRT vox2ras matrix\n");
   printf("   --ras_good : print the the ras_good_flag\n");
   printf("   --cras : print the the RAS at the 'center' of the volume\n");
   printf("   --det : print the determinant of the vox2ras matrix\n");
@@ -491,6 +494,17 @@ static void do_file(char *fname) {
   }
   if (PrintVox2RAStkr) {
     m = MRIxfmCRS2XYZtkreg(mri);
+    for (r=1; r<=4; r++) {
+      for (c=1; c<=4; c++) {
+        fprintf(fpout,"%10.5f ",m->rptr[r][c]);
+      }
+      fprintf(fpout,"\n");
+    }
+    MatrixFree(&m) ;
+    return;
+  }
+  if (PrintVox2RASfsl) {
+    m = MRIxfmCRS2XYZfsl(mri);
     for (r=1; r<=4; r++) {
       for (c=1; c<=4; c++) {
         fprintf(fpout,"%10.5f ",m->rptr[r][c]);
