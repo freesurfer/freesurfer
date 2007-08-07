@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/03 21:29:35 $
- *    $Revision: 1.17 $
+ *    $Author: greve $
+ *    $Date: 2007/08/07 19:41:51 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -134,5 +134,8 @@ int CTABprintASCII(COLOR_TABLE *ct, FILE *fp);
 
 /* Print the color table to a file. */
 int CTABwriteFileASCII(COLOR_TABLE *ct, char *fname);
+
+// Creates a new color table with name added
+COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name);
 
 #endif

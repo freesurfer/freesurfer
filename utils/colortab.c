@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/04 14:19:04 $
- *    $Revision: 1.25 $
+ *    $Author: greve $
+ *    $Date: 2007/08/07 19:41:51 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1254,4 +1254,37 @@ int CTABwriteFileASCII(COLOR_TABLE *ct, char *fname)
   fclose (fp);
 
   return (result);
+}
+
+/*-------------------------------------------------------
+  COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name)
+  Creates a new color table by adding name to input table.
+  Colors are assigned randomly.
+  -------------------------------------------------------*/
+COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name)
+{
+  COLOR_TABLE *ct ;
+  COLOR_TABLE_ENTRY *cte;
+  int nentries,i;
+
+  nentries = ctold->nentries ;
+  ct = CTABalloc(nentries+1);
+
+  for (i = 0 ; i < nentries ; i++) 
+    memcpy(ct->entries[i],ctold->entries[i],sizeof(COLOR_TABLE_ENTRY)) ;
+
+  //    *(ct->entries[i]) = *(ctold->entries[i]) ;
+
+  cte = ct->entries[nentries];
+  sprintf(cte->name, "%s",name);
+  cte->ri = floor(drand48()*256);
+  cte->gi = floor(drand48()*256);
+  cte->bi = floor(drand48()*256);
+  cte->rf = (float)cte->ri/255.0f;
+  cte->gf = (float)cte->gi/255.0f;
+  cte->bf = (float)cte->bi/255.0f;
+  printf("RGB %d %d %d\n",cte->ri,cte->gi,cte->bi);
+
+  return(ct);
+
 }
