@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/04/06 22:27:01 $
-#    $Revision: 1.25 $
+#    $Date: 2007/08/07 15:40:21 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.25 2007/04/06 22:27:01 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.26 2007/08/07 15:40:21 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -57,6 +57,7 @@ set exfdw = ();
 set exf = ();
 set DoMagExfReg = 1;
 set UseComplex = 0;
+set PERev = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -250,6 +251,11 @@ else
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+endif
+
+if($PERev) then
+  echo "Reversing Phase Encode Direction" |& tee -a $LF
+  set esp = `echo "-1\*$esp" | bc -l`; # mult esp by -1
 endif
 
 # Create the voxel shift map (VSM) in the mag/phase space. Use mag as
@@ -519,6 +525,10 @@ while( $#argv != 0 )
       set sigmamm = $argv[1]; shift;
       breaksw
 
+    case "--perev":
+      set PERev = 1;
+      breaksw
+
     case "--tmpdir":
       if ( $#argv == 0) goto arg1err;
       set tmpdir = $argv[1]; shift;
@@ -663,6 +673,8 @@ usage_exit:
   echo ""
   echo "  --tediff tediff : difference in B0 field map TEs"
   echo "  --esp esp       : EPI echo spacing"
+  echo "  --perev         : assume reversed phase encode direction"
+  echo "  "
   echo "  --sigma sigmamm : 2D spatial gaussing smoothing stddev (def 2mm)"
   echo "  "
   echo "Outputs"
@@ -799,6 +811,11 @@ usec. Note that the echo spacing is not the same as the time to read
 out a line of k-space and it cannot be computed from the bandwidth
 because neither of these methods takes into account the dead time
 between lines when no data are being read out.
+
+--perev
+
+Assume reversed phase encode direction. Same as giving esp or tediff a
+negative sign. Implemented by multiplying esp by -1.
 
 --sigma sigmamm
 
