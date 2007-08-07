@@ -1,15 +1,14 @@
 /**
  * @file  mri_add_xform_to_header.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Just adds specified xform to the volume header
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:04 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/08/07 21:03:01 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,11 +53,14 @@ int
 main(int argc, char *argv[]) {
   char   **av ;
   int    ac, nargs ;
-  MRI    *mri ;
-  char   *xform_fname, *in_fname, *out_fname ;
+  MRI    *mri=NULL ;
+  char   *xform_fname=NULL, *in_fname=NULL, *out_fname=NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_add_xform_to_header.c,v 1.7 2006/12/29 02:09:04 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mri_add_xform_to_header.c,v 1.8 2007/08/07 21:03:01 nicks Exp $", 
+     "$Name:  $");
 
   argc -= nargs;
 
@@ -91,7 +92,8 @@ main(int argc, char *argv[]) {
   if (verbose)  fprintf(stderr, "reading from %s...", in_fname) ;
 
   // we have two cases, in_fname is just a directory name or .mgz
-  if (fio_IsDirectory(in_fname))mri = MRIreadInfo(in_fname) ; // must be old COR volume
+  if (fio_IsDirectory(in_fname))
+    mri = MRIreadInfo(in_fname) ; // must be old COR volume
   else if (fio_FileExistsReadable(in_fname)) {
     char *ext = fio_extension(in_fname);
     if (ext==0)
@@ -101,19 +103,21 @@ main(int argc, char *argv[]) {
       mri = MRIread(in_fname);      // mgh or mgz
     else {
       ErrorExit(ERROR_BADPARM,
-                "%s: currently only .mgz or .mgh saves transform name", Progname) ;
+                "%s: currently only .mgz or .mgh saves transform name", 
+                Progname) ;
     }
   }
   if (!mri)
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s",
-              Progname, xform_fname) ;
+              Progname, in_fname) ;
 
   if (! CopyNameOnly) {
     // why do we need to load the transform at this time
     // mri is removed anyway???? -- good point, added -s for noload
     if (input_transform_file(xform_fname, &mri->transform) != OK)
       ErrorPrintf(ERROR_NO_MEMORY,
-                  "%s: could not read xform file '%s'\n", Progname, xform_fname);
+                  "%s: could not read xform file '%s'\n", 
+                  Progname, xform_fname);
     // my guess is just to verify the validity of the transform?
     mri->linear_transform = get_linear_transform_ptr(&mri->transform) ;
     mri->inverse_linear_transform =
@@ -125,8 +129,10 @@ main(int argc, char *argv[]) {
   if (verbose)
     fprintf(stderr, "done.\nwriting to %s...", out_fname) ;
   // this writes COR-.info only
-  if (fio_IsDirectory(out_fname))  MRIwriteInfo(mri, out_fname) ;
-  else     MRIwrite(mri, out_fname);  // currently only mgh format write xform info
+  if (fio_IsDirectory(out_fname))  
+    MRIwriteInfo(mri, out_fname) ;
+  else     
+    MRIwrite(mri, out_fname);  // currently only mgh format write xform info
 
   if (verbose)  fprintf(stderr, "done.\n") ;
 
@@ -136,9 +142,9 @@ main(int argc, char *argv[]) {
 }
 
 /*----------------------------------------------------------------------
-            Parameters:
-
-           Description:
+  Parameters:
+  
+  Description:
 ----------------------------------------------------------------------*/
 static int
 get_option(int argc, char *argv[]) {
@@ -158,8 +164,9 @@ get_option(int argc, char *argv[]) {
     break ;
   case '?':
   case 'U':
-    printf("usage: %s [xform file name] [input directory] [output directory]\n",
-           argv[0]) ;
+    printf
+      ("usage: %s [xform file name] [input directory] [output directory]\n",
+       argv[0]) ;
     exit(1) ;
     break ;
   default:
@@ -170,11 +177,13 @@ get_option(int argc, char *argv[]) {
 
   return(nargs) ;
 }
+
 /* ------------------------------------------------------ */
 static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
+
 /* --------------------------------------------- */
 static void print_usage(void) {
   printf("USAGE: %s <options> xfmfile invol outvol \n",Progname) ;
