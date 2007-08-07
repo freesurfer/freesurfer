@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/07 18:33:52 $
- *    $Revision: 1.52 $
+ *    $Date: 2007/08/07 21:03:52 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -128,7 +128,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.52 2007/08/07 18:33:52 nicks Exp $",
+           "$Id: mri_ca_train.c,v 1.53 2007/08/07 21:03:52 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1542,7 +1542,9 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
   if (NULL == mri_seg->linear_transform)
   {
     ErrorExit(ERROR_BADFILE,
-              "ERROR: mri_ca_train: talairach.xfm not loaded!\n");
+              "ERROR: mri_ca_train: talairach.xfm not found in %s!\n"
+              "Run mri_add_xform_to_header to add to volume.\n",
+              seg_dir);
   }
 
   // now conduct checks for voxels in locations where they shouldnt be
@@ -1578,11 +1580,11 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
           switch (label)
           {
           case Left_Hippocampus:
-            if (zt > 12)
+            if (zt > 13)
             {
               printf
                 ("ERROR: %s: "
-                 "%d %d %d, tal x=%f, y=%f, *** z=%f > 12 ***\n", 
+                 "%d %d %d, tal x=%f, y=%f, *** z=%f > 13 ***\n", 
                  cma_label_to_name(label),x,y,z,xt,yt,zt);
               fflush(stdout) ;
               errors++;
@@ -1611,11 +1613,11 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
             break;
 
           case Right_Hippocampus:
-            if (zt > 12)
+            if (zt > 13)
             {
               printf
                 ("ERROR: %s: "
-                 "%d %d %d, tal x=%f, y=%f, *** z=%f > 12 ***\n", 
+                 "%d %d %d, tal x=%f, y=%f, *** z=%f > 13 ***\n", 
                  cma_label_to_name(label),x,y,z,xt,yt,zt);
               fflush(stdout) ;
               errors++;
