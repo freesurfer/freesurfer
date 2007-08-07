@@ -3,7 +3,7 @@
 # This is a modified version of FSL's FEAT TCL program. 
 # All restrictions of the FSL LICENSE below apply.
 #
-# $Id: feat.fsfast-patch.tcl,v 1.1 2007/06/27 06:12:37 greve Exp $
+# $Id: feat.fsfast-patch.tcl,v 1.2 2007/08/07 03:08:05 greve Exp $
 
 #{{{ copyright and setup 
 
@@ -2377,6 +2377,8 @@ set FD $feat_files($session)
 set thedate [ exec date ]
 
 if { $fmri(analysis) == 0 || $fmri(analysis) == 4 } {
+    # 0 = No first-level analysis (registration and/or group stats only)
+    # 4 = Contrasts, Thresholding, Rendering
     #{{{ copy old featdir if required, and backup old files inside
 
 if { $fmri(newdir_yn) } {
@@ -2402,7 +2404,12 @@ if { $fmri(analysis) == 4 } {
 
 #}}}
 } else {
-    #{{{ setup new featdir name
+  # 7 : Full first-level analysis
+  # 1 : Pre-Stats
+  # 3 : Pre-Stats + Stats
+  # 2 :             Stats
+  # 6 :             Stats + Contrasts, Thresholding, Rendering
+  #{{{ setup new featdir name
 
 if { $fmri(level) == 1 && $fmri(outputdir) != "" } {
     if { $fmri(multiple) == 1 } {
@@ -2413,7 +2420,8 @@ if { $fmri(level) == 1 && $fmri(outputdir) != "" } {
 } else {
     set featname [ feat5:strip [ remove_ext $feat_files($session) ] ].feat
 }
-set FD [ new_filename $featname ]
+#set FD [ new_filename $featname ]; ; # This adds the +'s to the feat dir if it exists
+set FD $featname; # This does not create new file name
 if { ! [ file writable [ file dirname $FD ] ] } {
     set FD [ new_filename ${HOME}/[ file tail $featname ] ]
 }
