@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/04 20:35:56 $
- *    $Revision: 1.43 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/07 18:40:18 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -260,9 +260,11 @@
 #define left_subiculum 557  //                          0   119 86  0
 #define left_fornix 558  //                             20  100 201 0
 
+#define SUSPICIOUS 999 //                               255 100 100 0
+
 // be sure to update MAX_LABEL if additional labels are added!
 
-#define MAX_LABEL left_fornix
+#define MAX_LABEL SUSPICIOUS
 #define MAX_CMA_LABEL (MAX_LABEL)
 #define MAX_CMA_LABELS (MAX_CMA_LABEL+1)
 
@@ -362,7 +364,7 @@ int CMAaddWeightedTotals(CMAoutlineClaim *claim,
 int CMAzeroOutlines(CMAoutlineField *field);
 char *cma_label_to_name(int label) ;
 
-#define IS_FIMBRIA(l) ((l) == Left_fimbria || (l) == Right_fimbria || (l) == fimbria)
+#define IS_FIMBRIA(l) ((l) == left_fimbria || (l) == right_fimbria || (l) == fimbria)
 #define CSF_CLASS        0
 #define GM_CLASS         1
 #define WM_CLASS         2
