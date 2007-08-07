@@ -24,8 +24,8 @@
 # Original author: Xiao Han
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/30 20:46:54 $
-#    $Revision: 1.13 $
+#    $Date: 2007/08/07 21:08:37 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -41,7 +41,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.13 2007/07/30 20:46:54 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.14 2007/08/07 21:08:37 nicks Exp $';
 
 #set echo=1
 
@@ -204,7 +204,7 @@ else
 endif
 echo "$train using one subject: $ONE_SUBJECT, producing ${GCA_ONE}..."
 set cmd=($train -prior_spacing 2 -node_spacing 8 -mask ${MASK_VOL})
-set cmd=($cmd -parc_dir ${SEG_VOL} ${MAN_TAL} -T1 ${T1_VOL})
+set cmd=($cmd -parc_dir ${SEG_VOL} ${MAN_TAL} -T1 ${T1_VOL} -check)
 set cmd=($cmd $ONE_SUBJECT ${GCA_ONE})
 echo $cmd >>& $LF
 if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
@@ -338,7 +338,7 @@ if (-e ${GCA} ) rm -f ${GCA}
 
 echo "$train using all subjects, using ${M3D_ONE}, producing ${GCA}..."
 set cmd=($train -prior_spacing 2 -node_spacing 4 -mask ${MASK_VOL})
-set cmd=($cmd -parc_dir ${SEG_VOL} -xform ${M3D_ONE} -T1 ${T1_VOL})
+set cmd=($cmd -parc_dir ${SEG_VOL} -xform ${M3D_ONE} -T1 ${T1_VOL} -check)
 set cmd=($cmd ${SUBJECTS} ${GCA})
 echo $cmd >>& $LF
 if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
