@@ -1,15 +1,14 @@
 /**
  * @file  dngtester.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief dougs super special test code
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/20 05:16:22 $
- *    $Revision: 1.40 $
+ *    $Author: nicks $
+ *    $Date: 2007/08/07 23:27:04 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -704,34 +703,7 @@ MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters, int newi
 
   return(mri1);
 }
-/*-------------------------------------------------------*/
-COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name)
-{
-  COLOR_TABLE *ct ;
-  COLOR_TABLE_ENTRY *cte;
-  int nentries,i;
 
-  nentries = ctold->nentries ;
-  ct = CTABalloc(nentries+1);
-
-  for (i = 0 ; i < nentries ; i++) 
-    memcpy(ct->entries[i],ctold->entries[i],sizeof(COLOR_TABLE_ENTRY)) ;
-
-  //    *(ct->entries[i]) = *(ctold->entries[i]) ;
-
-  cte = ct->entries[nentries];
-  sprintf(cte->name, "%s",name);
-  cte->ri = floor(drand48()*256);
-  cte->gi = floor(drand48()*256);
-  cte->bi = floor(drand48()*256);
-  cte->rf = (float)cte->ri/255.0f;
-  cte->gf = (float)cte->gi/255.0f;
-  cte->bf = (float)cte->bi/255.0f;
-  printf("RGB %d %d %d\n",cte->ri,cte->gi,cte->bi);
-
-  return(ct);
-
-}
 /*-------------------------------------------------------*/
 int MRISmercator(MRIS *surf)
 {
