@@ -20,8 +20,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 17:40:39 $
- *    $Revision: 1.17 $
+ *    $Date: 2007/08/07 19:33:09 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -162,6 +162,7 @@ double round(double x);
 #include "matfile.h"
 #include "volcluster.h"
 #include "surfcluster.h"
+#include "cma.h"
 
 
 static int  parse_commandline(int argc, char **argv);
@@ -173,7 +174,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.17 2007/01/11 17:40:39 nicks Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.18 2007/08/07 19:33:09 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -187,8 +188,9 @@ double pixthresh=0, resthresh=0, geothresh=0;
 char *DiffFile=NULL;
 int DiffAbs=0;
 
-MRI *InVol1=NULL, *InVol2=NULL, *DiffVol=NULL;
+MRI *InVol1=NULL, *InVol2=NULL, *DiffVol=NULL, *DiffLabelVol=NULL;
 char *DiffVolFile=NULL;
+char *DiffLabelVolFile=NULL;
 
 int CheckResolution=1;
 int CheckAcqParams=1;
@@ -229,11 +231,13 @@ int main(int argc, char *argv[]) {
 
   if (debug) dump_options(stdout);
 
+  // njs: commente-out so that mri_diff is useful w/o SUBJECTS_DIR declared
   //  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   //  if(SUBJECTS_DIR == NULL){
   //    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
   //    exit(1);
   //  }
+
   if (DiffFile) {
     if (fio_FileExistsReadable(DiffFile)) unlink(DiffFile);
     if (fio_FileExistsReadable(DiffFile)) {
@@ -404,6 +408,11 @@ int main(int argc, char *argv[]) {
                                  InVol1->depth,MRI_FLOAT,InVol1->nframes);
       MRIcopyHeader(InVol1,DiffVol);
     }
+    if (DiffLabelVolFile) {
+      DiffLabelVol = MRIallocSequence(InVol1->width,InVol1->height,
+                                      InVol1->depth,MRI_FLOAT,InVol1->nframes);
+      MRIcopyHeader(InVol1,DiffLabelVol);
+    }
     c=r=s=f=0;
     val1 = MRIgetVoxVal(InVol1,c,r,s,f);
     val2 = MRIgetVoxVal(InVol2,c,r,s,f);
@@ -418,6 +427,10 @@ int main(int argc, char *argv[]) {
             if (! DiffAbs) diff = fabs(val1-val2);
             else diff = fabs(fabs(val1)-fabs(val2));
             if (DiffVolFile) MRIsetVoxVal(DiffVol,c,r,s,f,val1-val2);
+            if (DiffLabelVolFile) {
+              if (diff==0) MRIsetVoxVal(DiffLabelVol,c,r,s,f,val1);
+              else         MRIsetVoxVal(DiffLabelVol,c,r,s,f,SUSPICIOUS);
+            }
             if (maxdiff < diff) {
               maxdiff = diff;
               cmax = c;
@@ -432,6 +445,7 @@ int main(int argc, char *argv[]) {
     if (debug) printf("maxdiff %f at %d %d %d %d\n",
                         maxdiff,cmax,rmax,smax,fmax);
     if (DiffVolFile) MRIwrite(DiffVol,DiffVolFile);
+    if (DiffLabelVolFile) MRIwrite(DiffLabelVol,DiffLabelVolFile);
 
     if (maxdiff > pixthresh) {
       printf("Volumes differ in pixel data\n");
@@ -553,6 +567,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       DiffVolFile = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--diff_label_suspicious")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      DiffLabelVolFile = pargv[0];
+      nargsused = 1;
     } else {
       if (InVol1File == NULL)      InVol1File = option;
       else if (InVol2File == NULL) InVol2File = option;
@@ -640,6 +658,9 @@ static void print_usage(void) {
   printf("   --thresh thresh : pix diffs must be greater than this \n");
   printf("   --log DiffFile : store diff info in this file. \n");
   printf("   --diff DiffVol : save difference image. \n");
+  printf("   --diff_label_suspicious DiffVol : differing voxels replaced\n");
+  printf("                                     with label SUSPICIOUS\n");
+  printf("                                     (for comparing aseg.mgz's)\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
