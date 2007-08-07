@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/06 18:38:16 $
- *    $Revision: 1.51 $
+ *    $Author: nicks $
+ *    $Date: 2007/08/07 18:33:52 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -52,7 +52,7 @@ static int get_option(int argc, char *argv[]) ;
 static int replaceLabels(MRI *mri_seg) ;
 static void modify_transform(TRANSFORM *transform, MRI *mri, GCA *gca) ;
 static int lateralize_hypointensities(MRI *mri_seg) ;
-static int check(MRI *mri_seg) ;
+static int check(MRI *mri_seg, char *subjects_dir, char *subject_name) ;
 
 static int flash = 0 ;
 static int binarize = 0 ;
@@ -95,6 +95,9 @@ static char *input_names[MAX_GCA_INPUTS] =
   } ;
 
 static int do_sanity_check = 0;
+static int do_fix_badsubjs = 0;
+static int sanity_check_badsubj_count = 0;
+
 
 int
 main(int argc, char *argv[])
@@ -125,7 +128,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.51 2007/08/06 18:38:16 fischl Exp $",
+           "$Id: mri_ca_train.c,v 1.52 2007/08/07 18:33:52 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -515,27 +518,29 @@ main(int argc, char *argv[])
         TransformInvert(transform, mri_inputs) ;
         // verify inverse
         lta = (LTA *) transform->xform;
-
-        if (do_sanity_check)
-        {
-          // conduct a sanity check of particular labels, most importantly
-          // hippocampus, that such labels do not exist in talairach coords
-          // where they are known not to belong (indicating a bad manual edit)
-          if (check(mri_seg)) 
-          {
-            //ErrorExit(ERROR_BADFILE,
-            printf(
-              "ERROR: mri_ca_train: possible bad training data! subject:\n"
-              "%s/%s\n\n", subjects_dir, subject_name);
-            fflush(stdout) ;
-          }
-        }
       }
       else
       {
         GCAreinit(mri_inputs, gca);
         // just use the input value, since dst = src volume
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
+      }
+
+      /////////////////////////////////////////////////////////
+      if (do_sanity_check)
+      {
+        // conduct a sanity check of particular labels, most importantly
+        // hippocampus, that such labels do not exist in talairach coords
+        // where they are known not to belong (indicating a bad manual edit)
+        int errs = check(mri_seg, subjects_dir, subject_name);
+        if (errs) 
+        {
+          printf(
+            "ERROR: mri_ca_train: possible bad training data! subject:\n"
+            "\t%s/%s\n\n", subjects_dir, subject_name);
+          fflush(stdout) ;
+          sanity_check_badsubj_count++;
+        }
       }
 
       /////////////////////////////////////////////////////////
@@ -620,6 +625,15 @@ main(int argc, char *argv[])
         gca_prune = GCAcompactify(gca_prune);
     }
     GCAcompleteMeanTraining(gca) ;
+
+    ///////////////////////////////////////////////////////////////
+    if (do_sanity_check && sanity_check_badsubj_count)
+    {
+      ErrorExit(-9,
+                "\nERROR: mri_ca_train check found %d subjects "
+                "with bad labels!\n",
+                sanity_check_badsubj_count);     
+    }
 
     ///////////////////////////////////////////////////////////////
     /* now compute covariances */
@@ -1155,6 +1169,13 @@ get_option(int argc, char *argv[])
     do_sanity_check = 1;
     printf("will conduct sanity-check of labels...\n") ;
   }
+  else if (!stricmp(option, "check_and_fix"))
+  {
+    do_sanity_check = 1;
+    do_fix_badsubjs = 1;
+    printf("will conduct sanity-check of labels and write corrected "
+           "volume to seg_fixed.mgz...\n") ;
+  }
   else if (!stricmp(option, "SDIR"))
   {
     strcpy(subjects_dir, argv[2]) ;
@@ -1492,11 +1513,31 @@ lateralize_hypointensities(MRI *mri_seg)
  * hippocampus, that such labels do not exist in talairach coords
  * where they are known not to belong (indicating a bad manual edit)
  */
-static int check(MRI *mri_seg)
+static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
 {
   int x, y, z, label, errors=0;
-  Real xw=0.0, yw=0.0, zw=0.0;
-  Real xt=0.0, yt=0.0, zt=0.0;
+  Real xw=0.0, yw=0.0, zw=0.0; // RAS coords
+  Real xmt=0.0, ymt=0.0, zmt=0.0; // MNI tal coords
+  float xt=0.0, yt=0.0, zt=0.0; // 'real' tal coords
+  MRI *mri_fixed = NULL;
+
+  float max_xtal_l_hippo    = -1000;
+  float max_xtal_l_caudate  = -1000;
+  float max_xtal_l_amygdala = -1000;
+  float max_xtal_l_putamen  = -1000;
+  float max_xtal_l_pallidum = -1000;
+  float min_xtal_r_hippo    =  1000;
+  float min_xtal_r_caudate  =  1000;
+  float min_xtal_r_amygdala =  1000;
+  float min_xtal_r_putamen  =  1000;
+  float min_xtal_r_pallidum =  1000;
+
+  printf("checking labels in subject %s...\n",subject_name);
+
+  if (do_fix_badsubjs)
+  {
+    mri_fixed = MRIcopy(mri_seg,NULL);
+  }
 
   if (NULL == mri_seg->linear_transform)
   {
@@ -1512,24 +1553,27 @@ static int check(MRI *mri_seg)
       for (z = 0 ; z < mri_seg->depth ; z++)
       {
         label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
-        // labels to check...
-#if 0
-        if ((label == Left_Hippocampus) || 
-            (label == Right_Hippocampus) ||
-            (label == Left_Amygdala) || 
-            (label == Right_Amygdala))
-#endif
+
+        if ((label == Left_Hippocampus) || (label == Right_Hippocampus) ||
+            (label == Left_Caudate)     || (label == Right_Caudate) ||
+            (label == Left_Amygdala)    || (label == Right_Amygdala) ||
+            (label == Left_Putamen)     || (label == Right_Putamen) ||
+            (label == Left_Pallidum)    || (label == Right_Pallidum))
         {
-          // get mni tal coords
+          // the 'if' statement above spares some cpu cycles in having to
+          // calculate the coord transform for every voxel, ie these 3 lines:
           MRIvoxelToWorld(mri_seg, x, y, z, &xw, &yw, &zw) ;
           transform_point(mri_seg->linear_transform, 
-                          xw, yw, zw, &xt, &yt, &zt);
+                          xw, yw, zw, &xmt, &ymt, &zmt);// get mni tal coords
+          FixMNITal(xmt,ymt,zmt, &xt,&yt,&zt); // get 'real' tal coords
+
+          int proper_label = label;
 
           /*
            * rules:
-           * - no left or right hippo labels with z tal coord > 5
-           * - no left hippo labels with x tal coord > 12 
-           * - no right hippo labels with x tal coord < -12
+           * - no left or right hippo labels with z tal coord > 12
+           * - no left hippo, caudate, amydala, putamen or pallidum 
+           *   labels with x tal coord > 12 (or right, with x tal coord < -12)
            */
           switch (label)
           {
@@ -1538,56 +1582,145 @@ static int check(MRI *mri_seg)
             {
               printf
                 ("ERROR: %s: "
-                 "%d %d %d, tal x=%f, y=%f, * z=%f > 5 *\n", 
+                 "%d %d %d, tal x=%f, y=%f, *** z=%f > 12 ***\n", 
                  cma_label_to_name(label),x,y,z,xt,yt,zt);
               fflush(stdout) ;
               errors++;
             }
-            // no break
+            // no break (check xt)
+
           case Left_Caudate:
           case Left_Amygdala:
           case Left_Putamen:
           case Left_Pallidum:
-            if (xt > 12)
+            if (xt > 5)
             {
               printf
                 ("ERROR: %s: "
-                 "%d %d %d, tal * x=%f > 12 *, y=%f, z=%f\n", 
+                 "%d %d %d, tal *** x=%f > 5 ***, y=%f, z=%f\n", 
                  cma_label_to_name(label), x,y,z,xt,yt,zt);
               fflush(stdout) ;
               errors++;
+
+              if  (label == Left_Hippocampus) proper_label = Right_Hippocampus;
+              else if (label == Left_Caudate)  proper_label = Right_Caudate;
+              else if (label == Left_Amygdala) proper_label = Right_Amygdala;
+              else if (label == Left_Putamen)  proper_label = Right_Putamen;
+              else if (label == Left_Pallidum) proper_label = Right_Pallidum;
             }
             break;
+
           case Right_Hippocampus:
             if (zt > 12)
             {
               printf
                 ("ERROR: %s: "
-                 "%d %d %d, tal x=%f, y=%f, * z=%f > 5 *\n", 
+                 "%d %d %d, tal x=%f, y=%f, *** z=%f > 12 ***\n", 
                  cma_label_to_name(label),x,y,z,xt,yt,zt);
               fflush(stdout) ;
               errors++;
             }
+            // no break (check xt)
+
           case Right_Caudate:
           case Right_Amygdala:
-          case Right_Pallidum:
           case Right_Putamen:
-            if (xt < -12)
+          case Right_Pallidum:
+            if (xt < -5)
             {
               printf
                 ("ERROR: %s: "
-                 "%d %d %d, tal * x=%f < -12 *, y=%f, z=%f\n", 
+                 "%d %d %d, tal *** x=%f < -5 ***, y=%f, z=%f\n", 
                  cma_label_to_name(label), x,y,z,xt,yt,zt);
               fflush(stdout) ;
               errors++;
+
+              if  (label == Right_Hippocampus) proper_label = Left_Hippocampus;
+              else if (label == Right_Caudate)  proper_label = Left_Caudate;
+              else if (label == Right_Amygdala) proper_label = Left_Amygdala;
+              else if (label == Right_Putamen)  proper_label = Left_Putamen;
+              else if (label == Right_Pallidum) proper_label = Left_Pallidum;
             }
             break;
+
+          default:
+            break ;
+          }
+
+          /* 
+           * if -check_and_fix is being used, then mod our fixed volume
+           */
+          if (do_fix_badsubjs && (label != proper_label))
+          {
+            MRIsetVoxVal(mri_fixed, x, y, z, 0, proper_label) ;
+          }
+
+          /*
+           * collect stats on positioning of structures.
+           * used to determine reasonable boundaries.
+           */
+          switch (label)
+          {
+          case Left_Hippocampus:
+            if (xt > max_xtal_l_hippo)    max_xtal_l_hippo = xt;
+            break;
+          case Left_Caudate:
+            if (xt > max_xtal_l_caudate)  max_xtal_l_caudate = xt;
+            break;
+          case Left_Amygdala:
+            if (xt > max_xtal_l_amygdala) max_xtal_l_amygdala = xt;
+            break;
+          case Left_Putamen:
+            if (xt > max_xtal_l_putamen)  max_xtal_l_putamen = xt;
+            break;
+          case Left_Pallidum:
+            if (xt > max_xtal_l_pallidum) max_xtal_l_pallidum = xt;
+            break;
+
+          case Right_Hippocampus:
+            if (xt < min_xtal_r_hippo)    min_xtal_r_hippo = xt;
+            break;
+          case Right_Caudate:
+            if (xt < min_xtal_r_caudate)  min_xtal_r_caudate = xt;
+            break;
+          case Right_Amygdala:
+            if (xt < min_xtal_r_amygdala) min_xtal_r_amygdala = xt;
+            break;
+          case Right_Putamen:
+            if (xt < min_xtal_r_putamen)  min_xtal_r_putamen = xt;
+            break;
+          case Right_Pallidum:
+            if (xt < min_xtal_r_pallidum) min_xtal_r_pallidum = xt;
+            break;
+
           default:
             break ;
           }
         }
       }
     }
+  }
+
+  // stats used to determine optimal boundaries
+  printf("max_xtal_l_hippo    = %4.1f\n",max_xtal_l_hippo);
+  printf("max_xtal_l_caudate  = %4.1f\n",max_xtal_l_caudate);
+  printf("max_xtal_l_amygdala = %4.1f\n",max_xtal_l_amygdala);
+  printf("max_xtal_l_putamen  = %4.1f\n",max_xtal_l_putamen);
+  printf("max_xtal_l_pallidum = %4.1f\n",max_xtal_l_pallidum);
+  
+  printf("min_xtal_r_hippo    = %4.1f\n",min_xtal_r_hippo);
+  printf("min_xtal_r_caudate  = %4.1f\n",min_xtal_r_caudate);
+  printf("min_xtal_r_amygdala = %4.1f\n",min_xtal_r_amygdala);
+  printf("min_xtal_r_putamen  = %4.1f\n",min_xtal_r_putamen);
+  printf("min_xtal_r_pallidum = %4.1f\n",min_xtal_r_pallidum);
+  
+  if (do_fix_badsubjs && errors)
+  {
+    char fname[STRLEN];
+    sprintf(fname, "%s/%s/mri/seg_fixed.mgz", subjects_dir, subject_name);
+    printf("Writing corrected volume to %s\n",fname);
+    MRIwrite(mri_fixed,fname);
+    MRIfree(&mri_fixed);
   }
 
   fflush(stdout);
