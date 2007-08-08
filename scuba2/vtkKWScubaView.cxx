@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/09 22:44:40 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/08/08 20:12:13 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaView );
-vtkCxxRevisionMacro( vtkKWScubaView, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWScubaView, "$Revision: 1.5 $" );
 
 map<vtkRenderWindow*,vtkSmartPointer<vtkKWScubaView> > vtkKWScubaView::mRenderWindowToViewMap;
 
@@ -562,24 +562,7 @@ vtkKWScubaView::SetLayerCollectionAtSlot ( int inSlot,
 
   // If we have a z slider, adjust the range now, since our top layer
   // could have changed.
-  float min = 0, max = 0;
-  this->Get2DRASZRange( min, max );
-  if ( mScale2DRASZ ) {
-    mScale2DRASZ->SetRange( min, max );
-    mScale2DRASZ->SetResolution( this->Get2DRASZIncrementHint() );
-  }
-  if ( mScale3DRASX ) {
-    mScale3DRASX->SetRange( min, max );
-    mScale3DRASX->SetResolution( this->Get2DRASZIncrementHint() );
-  }
-  if ( mScale3DRASY ) {
-    mScale3DRASY->SetRange( min, max );
-    mScale3DRASY->SetResolution( this->Get2DRASZIncrementHint() );
-  }
-  if ( mScale3DRASZ ) {
-    mScale3DRASZ->SetRange( min, max );
-    mScale3DRASZ->SetResolution( this->Get2DRASZIncrementHint() );
-  }
+  this->AdjustViewPlaneSliders();
 }
 
 void
@@ -685,6 +668,44 @@ vtkKWScubaView::ResetAllCameras () {
   this->GetRenderer()->Render();
 
 
+}
+
+void
+vtkKWScubaView::AdjustViewPlaneSliders () {
+
+  // Adjust our 2D slider if we have it.
+  if ( mScale2DRASZ.GetPointer() ) {
+
+    float min = 0, max = 0;
+    this->Get2DRASZRange( min, max );
+
+    mScale2DRASZ->SetRange( min, max );
+    mScale2DRASZ->SetResolution( this->Get2DRASZIncrementHint() );
+  }
+
+  // Adjust our 3D sliders if we have them.
+  if ( mScale3DRASX.GetPointer() ||
+       mScale3DRASY.GetPointer() ||
+       mScale3DRASZ.GetPointer() ) {
+
+    float min[3], max[3];
+    float hint[3];
+    this->Get3DRASRange( min, max );
+    this->Get3DRASIncrementHint( hint );
+
+    if ( mScale3DRASX.GetPointer() ) {
+      mScale3DRASX->SetRange( min[0], max[0] );
+      mScale3DRASX->SetResolution( hint[0] );
+    }
+    if ( mScale3DRASY.GetPointer() ) {
+      mScale3DRASY->SetRange( min[1], max[1] );
+      mScale3DRASY->SetResolution( hint[1] );
+    }
+    if ( mScale3DRASZ.GetPointer() ) {
+      mScale3DRASZ->SetRange( min[2], max[2] );
+      mScale3DRASZ->SetResolution( hint[2] );
+    }
+  }
 }
 
 void
@@ -889,25 +910,20 @@ vtkKWScubaView::Set2DInPlane ( int iPlane ) {
   if ( this->GetRenderWindow() )
     this->GetRenderWindow()->Render();
 
-  // If we have a z slider...
-  float min = 0, max = 0;
-  this->Get2DRASZRange( min, max );
-  if ( mScale2DRASZ ) {
+  // Adjust the sliders
+  this->AdjustViewPlaneSliders();
 
-    // RAS Z slider. We get the range and find a good increment from
-    // that.
-    mScale2DRASZ->SetRange( min, max );
-    mScale2DRASZ->SetResolution( this->Get2DRASZIncrementHint() );
-    mScale2DRASZ->SetValue( this->Get2DRASZ() );
-
-    // The x/y/z inplane radio buttons.
+  // The x/y/z inplane radio buttons.
+  if( mRadBtnSet2DInPlane.GetPointer() ) {
     vtkSmartPointer<vtkKWRadioButton> btn =
       mRadBtnSet2DInPlane->GetWidget( this->Get2DInPlane() );
     if ( btn.GetPointer() ) {
       btn->SelectedStateOn();
     }
+  }
 
-    // Update our scale text.
+  // Update our scale text.
+  if( mScale2DRASZ.GetPointer() ) {
     switch ( iPlane ) {
     case 0:
       mScale2DRASZ->SetLabelText( "X RAS" );
@@ -919,18 +935,6 @@ vtkKWScubaView::Set2DInPlane ( int iPlane ) {
       mScale2DRASZ->SetLabelText( "Z RAS" );
       break;
     }
-  }
-  if ( mScale3DRASX.GetPointer() ) {
-    mScale3DRASX->SetRange( min, max );
-    mScale3DRASX->SetResolution( this->Get2DRASZIncrementHint() );
-  }
-  if ( mScale3DRASY.GetPointer() ) {
-    mScale3DRASY->SetRange( min, max );
-    mScale3DRASY->SetResolution( this->Get2DRASZIncrementHint() );
-  }
-  if ( mScale3DRASZ.GetPointer() ) {
-    mScale3DRASZ->SetRange( min, max );
-    mScale3DRASZ->SetResolution( this->Get2DRASZIncrementHint() );
   }
 
   // Update the plane radio buttons.
@@ -1056,6 +1060,85 @@ vtkKWScubaView::Get2DRASZIncrementHint () const {
   }
 
   return hint;
+}
+
+void
+vtkKWScubaView::Get3DRASRange ( float oMin[3], float oMax[3] ) const {
+
+  // Get the range from all layers. Find the least widest range of
+  // all.
+  float min[3] = { numeric_limits<float>::max(), 
+		   numeric_limits<float>::max(),
+		   numeric_limits<float>::max() };
+  float max[3] = { numeric_limits<float>::min(),
+		   numeric_limits<float>::min(),
+		   numeric_limits<float>::min() };
+  SlotCollectionMapType::const_iterator tCol;
+  for( tCol = maCol.begin(); tCol != maCol.end(); ++tCol )
+    if( NULL != tCol->second ) {
+      try {
+	float bounds[6] = { 0,0,0,0,0,0 };
+	vtkKWScubaLayer* layer = tCol->second->GetCurrentLayer();
+	if( NULL != layer ) {
+	  layer->GetRASBounds( bounds );
+	  if ( bounds[0] < min[0] ) min[0] = bounds[0];
+	  if ( bounds[1] > max[0] ) max[0] = bounds[1];
+	  if ( bounds[2] < min[1] ) min[1] = bounds[2];
+	  if ( bounds[3] > max[1] ) max[1] = bounds[3];
+	  if ( bounds[4] < min[2] ) min[2] = bounds[4];
+	  if ( bounds[5] > max[2] ) max[2] = bounds[5];
+	}
+      }
+      catch( exception& e ) {
+	cerr << e.what() << endl;
+      }
+    }
+
+  // Set the min and max if we got them, or else return 0-1.
+  for( int nOrientation = 0; nOrientation < 3; nOrientation++ ) {
+    if ( min[nOrientation] != numeric_limits<float>::max() )
+      oMin[nOrientation] = min[nOrientation];
+    else
+      oMin[nOrientation] = 0;
+    if ( max[nOrientation] != numeric_limits<float>::min() )
+      oMax[nOrientation] = max[nOrientation];
+    else
+      max[nOrientation] = 1;
+  }
+}
+
+void
+vtkKWScubaView::Get3DRASIncrementHint ( float oInc[3] ) const {
+
+  // Try to get the increment for the highest layer, the one that's
+  // being drawn on top.
+  float bestHints[3] = { 1.0, 1.0, 1.0 };
+  try {
+    int nSlot = GetHighestFilledLayerSlot();
+    SlotCollectionMapType::const_iterator tCol;
+    if ( (tCol = maCol.find(nSlot)) != maCol.end() &&
+	 NULL != tCol->second ) {
+
+      vtkKWScubaLayer* layer = tCol->second->GetCurrentLayer();
+      if( NULL != layer ) {
+
+	float hints[3] = {0,0,0};
+	layer->Get2DRASZIncrementHint( hints );
+	
+	for( int nOrientation = 0; nOrientation < 3; nOrientation++ )
+	  if ( hints[nOrientation] > 0 && 
+	       hints[nOrientation] < bestHints[nOrientation] )
+	    bestHints[nOrientation] = hints[nOrientation];
+      }
+    }
+  } 
+  catch( exception& e ) {
+    // No filled slots, so just use 1.0.
+  }
+
+  for( int nOrientation = 0; nOrientation < 3; nOrientation++ )
+    oInc[nOrientation] = bestHints[nOrientation];
+      
 }
 
 void
@@ -1749,7 +1832,8 @@ vtkKWScubaView::PackDisplayModeControls () {
 
   if( TwoDee == mDisplayMode ) {
     
-    if( mScale2DRASZ && mRadBtnSet2DInPlane ) {
+    if( mScale2DRASZ.GetPointer() && 
+	mRadBtnSet2DInPlane.GetPointer() ) {
       this->Script( "pack %s %s -side top -fill x",
 		    mScale2DRASZ->GetWidgetName(),
 		    mRadBtnSet2DInPlane->GetWidgetName() );
@@ -1757,7 +1841,9 @@ vtkKWScubaView::PackDisplayModeControls () {
 
   } else if( ThreeDee == mDisplayMode ) {
 
-    if( mScale3DRASX && mScale3DRASY && mScale3DRASZ ) {
+    if( mScale3DRASX.GetPointer() && 
+	mScale3DRASY.GetPointer() && 
+	mScale3DRASZ.GetPointer() ) {
       this->Script( "pack %s %s %s -side top -fill x",
 		    mScale3DRASX->GetWidgetName(),
 		    mScale3DRASY->GetWidgetName(),

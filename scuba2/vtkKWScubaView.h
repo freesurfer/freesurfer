@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/09 22:44:40 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/08/08 20:12:13 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -124,6 +124,10 @@ public:
   void ResetAllCameras ();
 
   // Description:
+  // Adjust the currently displayed 2DRASZ or 3DRAS{X,Y,Z} slider ranges.
+  void AdjustViewPlaneSliders ();
+
+  // Description:
   // Set the display mode for this view. This will get the right layer
   // from the layer collection in each slot and display it.
   //BTX
@@ -190,13 +194,23 @@ public:
 
   // Description:
   // This returns the range of z values with content. This is union of
-  // the RAS bounds of all layers.
+  // the RAS bounds of all layers for the current in plane.
   void Get2DRASZRange ( float& oMin, float& oMax ) const;
 
   // Description:
   // A hint as to what Z increment to use, for example, when clicking
-  // a "next slice" button.
+  // a "next slice" button, for the current in plane.
   float Get2DRASZIncrementHint () const;
+ 
+  // Description:
+  // This returns the range of z values with content for all
+  // orientations.
+  void Get3DRASRange ( float oMin[3], float oMax[3] ) const;
+
+  // Description:
+  // A hint as to what Z increments to use, for example, when clicking
+  // a "next slice" button, for all orientations.
+  void Get3DRASIncrementHint ( float oInc[3] ) const;
  
   // Description:
   // Get and set properties for the 3D view mode. These are used only
