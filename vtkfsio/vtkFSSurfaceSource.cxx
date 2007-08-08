@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/06/19 21:38:44 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/08/08 20:10:55 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,7 +39,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceSource );
-vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.11 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceSource, "$Revision: 1.12 $" );
 
 vtkFSSurfaceSource::vtkFSSurfaceSource() :
     mMRIS( NULL ),
@@ -76,24 +76,24 @@ vtkFSSurfaceSource::MRISRead( char const* ifn ) {
   }    
   mMRIS = mris;
 
-  // Get some info from the MRIS.
+  // Get some info from the MRIS. This can either come from the volume
+  // geometry data embedded in the surface; this is done for newer
+  // surfaces. Or it can come from the source information in the
+  // transform. We use it to get the RAS center offset for the
+  // surface->RAS transform.
   if ( mMRIS->vg.valid ) {
 
-    mRASCenter[0] = mMRIS->vg.c_r;
-    mRASCenter[1] = mMRIS->vg.c_a;
-    mRASCenter[2] = mMRIS->vg.c_s;
-
-    mSurfaceToRASMatrix[0] = mMRIS->vg.x_r;
-    mSurfaceToRASMatrix[1] = mMRIS->vg.y_r;
-    mSurfaceToRASMatrix[2] = mMRIS->vg.z_r;
+    mSurfaceToRASMatrix[0] = 1;
+    mSurfaceToRASMatrix[1] = 0;
+    mSurfaceToRASMatrix[2] = 0;
     mSurfaceToRASMatrix[3] = mMRIS->vg.c_r;
-    mSurfaceToRASMatrix[4] = mMRIS->vg.x_a;
-    mSurfaceToRASMatrix[5] = mMRIS->vg.y_a;
-    mSurfaceToRASMatrix[6] = mMRIS->vg.z_a;
+    mSurfaceToRASMatrix[4] = 0;
+    mSurfaceToRASMatrix[5] = 1;
+    mSurfaceToRASMatrix[6] = 0;
     mSurfaceToRASMatrix[7] = mMRIS->vg.c_a;
-    mSurfaceToRASMatrix[8] = mMRIS->vg.x_s;
-    mSurfaceToRASMatrix[9] = mMRIS->vg.y_s;
-    mSurfaceToRASMatrix[10] = mMRIS->vg.z_s;
+    mSurfaceToRASMatrix[8] = 0;
+    mSurfaceToRASMatrix[9] = 0;
+    mSurfaceToRASMatrix[10] = 1;
     mSurfaceToRASMatrix[11] = mMRIS->vg.c_s;
     mSurfaceToRASMatrix[12] = 0;
     mSurfaceToRASMatrix[13] = 0;
@@ -102,22 +102,18 @@ vtkFSSurfaceSource::MRISRead( char const* ifn ) {
     
   } else if ( mMRIS->lta ) {
 
-    mRASCenter[0] = mMRIS->lta->xforms[0].src.c_r;
-    mRASCenter[1] = mMRIS->lta->xforms[0].src.c_a;
-    mRASCenter[2] = mMRIS->lta->xforms[0].src.c_s;
-
     mSurfaceToRASMatrix[0] = 1;
     mSurfaceToRASMatrix[1] = 0;
     mSurfaceToRASMatrix[2] = 0;
-    mSurfaceToRASMatrix[3] = -mRASCenter[0];
+    mSurfaceToRASMatrix[3] = -mMRIS->lta->xforms[0].src.c_r;
     mSurfaceToRASMatrix[4] = 0;
     mSurfaceToRASMatrix[5] = 1;
     mSurfaceToRASMatrix[6] = 0;
-    mSurfaceToRASMatrix[7] = -mRASCenter[1];
+    mSurfaceToRASMatrix[7] = -mMRIS->lta->xforms[0].src.c_a;
     mSurfaceToRASMatrix[8] = 0;
     mSurfaceToRASMatrix[9] = 0;
     mSurfaceToRASMatrix[10] = 1;
-    mSurfaceToRASMatrix[11] = -mRASCenter[2];
+    mSurfaceToRASMatrix[11] = -mMRIS->lta->xforms[0].src.c_s;
     mSurfaceToRASMatrix[12] = 0;
     mSurfaceToRASMatrix[13] = 0;
     mSurfaceToRASMatrix[14] = 0;
@@ -305,24 +301,6 @@ vtkFSSurfaceSource::GetSurfaceToRASTransform () const {
   return mSurfaceToRASTransform;
 }
 
-float
-vtkFSSurfaceSource::GetRASCenterX () const {
-
-  return mRASCenter[0];
-}
-
-float
-vtkFSSurfaceSource::GetRASCenterY () const {
-
-  return mRASCenter[1];
-}
-
-float
-vtkFSSurfaceSource::GetRASCenterZ () const {
-
-  return mRASCenter[2];
-}
-
 int
 vtkFSSurfaceSource::GetNumberOfVertices () const {
 
@@ -470,13 +448,15 @@ vtkFSSurfaceSource::Execute () {
   newNormals->SetName( "Normals" );
 
   // Go through the surface and copy the vertex and normal for each
-  // vertex.
-  float point[3], normal[3];
+  // vertex. We have to transform them from surface RAS into normal
+  // RAS.
+  float point[3], normal[3], surfaceRAS[3];
   for ( int vno = 0; vno < cVertices; vno++ ) {
 
-    point[0] = mMRIS->vertices[vno].x;
-    point[1] = mMRIS->vertices[vno].y;
-    point[2] = mMRIS->vertices[vno].z;
+    surfaceRAS[0] = mMRIS->vertices[vno].x;
+    surfaceRAS[1] = mMRIS->vertices[vno].y;
+    surfaceRAS[2] = mMRIS->vertices[vno].z;
+    this->ConvertSurfaceToRAS( surfaceRAS, point );
     newPoints->InsertNextPoint( point );
 
     normal[0] = mMRIS->vertices[vno].nx;

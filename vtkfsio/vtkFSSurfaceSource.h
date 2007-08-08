@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/06/19 21:38:44 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/08/08 20:10:55 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -77,10 +77,6 @@ public:
   void GetRASBounds ( float ioBounds[6] );
 
   vtkTransform const* GetSurfaceToRASTransform () const;
-
-  float GetRASCenterX () const;
-  float GetRASCenterY () const;
-  float GetRASCenterZ () const;
 
   // Description:
   // Returns the number of vertices in the surface.
