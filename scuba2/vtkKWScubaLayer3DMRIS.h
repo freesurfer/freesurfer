@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/25 19:53:47 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/08/08 20:12:46 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -106,9 +106,6 @@ protected:
   vtkSmartPointer<vtkPolyDataMapper> m2DFastMapper[3];
   vtkSmartPointer<vtkActor> m2DActor[3];
   // ----------------------------------------------------------------------
-
-  // Surface info.
-  float mRASCenter[3];
 
   // Show the actual 3D surface.
   bool mbShowSurface;

@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/25 19:53:47 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/08/08 20:12:46 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -103,9 +103,6 @@ protected:
   vtkSmartPointer<vtkPolyDataMapper> mFastMapper;
   vtkSmartPointer<vtkActor> mActor;
   // ----------------------------------------------------------------------
-
-  // Surface info.
-  float mRASCenter[3];
 
   //ETX
 };

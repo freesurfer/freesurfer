@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/25 19:53:47 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/08/08 20:12:46 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,11 +51,10 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DMRIS );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DMRIS, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DMRIS, "$Revision: 1.3 $" );
 
 vtkKWScubaLayer2DMRIS::vtkKWScubaLayer2DMRIS () :
   mMRISProperties( NULL ) {
-  mRASCenter[0] = mRASCenter[1] = mRASCenter[2] = 0;
 }
 
 vtkKWScubaLayer2DMRIS::~vtkKWScubaLayer2DMRIS () {
@@ -85,11 +84,6 @@ vtkKWScubaLayer2DMRIS::LoadDataFromProperties () {
   vtkFSSurfaceSource* source = mMRISProperties->GetSource();
   if( NULL == source )
     return;
-
-  // Get some info from the MRIS.
-  mRASCenter[0] = source->GetRASCenterX();
-  mRASCenter[1] = source->GetRASCenterY();
-  mRASCenter[2] = source->GetRASCenterZ();
 
   //
   // Cutting plane.
@@ -202,26 +196,25 @@ vtkKWScubaLayer2DMRIS::DoListenToMessage ( string isMessage, void* iData ) {
       float rasZ = mViewProperties->Get2DRASZ();
       int inPlane = mViewProperties->Get2DInPlane();
     
-      // Update the location of the slice plane. We also transform the
-      // RAS by the world center here.
-      mSlicePlane->SetOrigin( (inPlane==0) ? rasZ - mRASCenter[0] : 0,
-			      (inPlane==1) ? rasZ - mRASCenter[1] : 0,
-			      (inPlane==2) ? rasZ - mRASCenter[2] : 0);
+      // Update the location of the slice place to extract the proper
+      // slice.
+      mSlicePlane->SetOrigin( (inPlane==0) ? rasZ : 0,
+			      (inPlane==1) ? rasZ : 0,
+			      (inPlane==2) ? rasZ : 0);
+
+      // Set the plane's orientation.
       mSlicePlane->SetNormal( (inPlane==0), (inPlane==1), (inPlane==2) );
-      
+
       // When we slice the polydata, the physical location of the lines
       // in 3D space is that of the RAS plane on which we sliced, so we
       // need to transform the resulting data onto the 0 plane. However,
       // for some weird reason, the surface will disappear under the
       // texture planes in some slices, so move it just a little in
-      // front as well. Also adjust by the world center.
-      mActor->SetPosition( (inPlane==0) ? -(rasZ - mRASCenter[0]) + 0.1 :
-			   mRASCenter[0],
-			   (inPlane==1) ? -(rasZ - mRASCenter[1]) + 0.1 :
-			   mRASCenter[1],
-			   (inPlane==2) ? -(rasZ - mRASCenter[2]) - 0.1 :
-			   mRASCenter[2] );
-      
+      // front as well.
+      mActor->SetPosition( (inPlane==0) ? -rasZ + 0.1 : 0,
+			   (inPlane==1) ? -rasZ + 0.1 : 0,
+			   (inPlane==2) ? -rasZ - 0.1 : 0);
+ 
       this->PipelineChanged();
     }
   }
@@ -257,10 +250,13 @@ vtkKWScubaLayer2DMRIS::GetInfoItems ( float iRAS[3],
 
     float distance;
     int nVertex =
-      mMRISProperties->GetSource()->FindVertexAtSurfaceRAS( iRAS, &distance );
+      mMRISProperties->GetSource()->FindVertexAtRAS( iRAS, &distance );
 
     sprintf( sLabel, "%s vno", mProperties->GetLabel() );
-    sprintf( sValue, "%d (%.2f)", nVertex, distance );
+    double foundPointRAS[3];
+    mMRISProperties->GetSource()->GetSurfaceRASAtVertex(nVertex,foundPointRAS);
+    sprintf( sValue, "%d (%.2f) %.2f %.2f %.2f", nVertex, distance,
+	     (float)foundPointRAS[0], (float)foundPointRAS[1], (float)foundPointRAS[2]);
     info.Clear();
     info.SetLabel( sLabel );
     info.SetValue( sValue );
