@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/07 21:03:52 $
- *    $Revision: 1.53 $
+ *    $Date: 2007/08/08 20:01:23 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -128,7 +128,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.53 2007/08/07 21:03:52 nicks Exp $",
+           "$Id: mri_ca_train.c,v 1.54 2007/08/08 20:01:23 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1556,11 +1556,12 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
       {
         label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
 
-        if ((label == Left_Hippocampus) || (label == Right_Hippocampus) ||
-            (label == Left_Caudate)     || (label == Right_Caudate) ||
-            (label == Left_Amygdala)    || (label == Right_Amygdala) ||
-            (label == Left_Putamen)     || (label == Right_Putamen) ||
-            (label == Left_Pallidum)    || (label == Right_Pallidum))
+        if ((label == Left_Hippocampus)  || (label == Right_Hippocampus) ||
+            (label == Left_Caudate)      || (label == Right_Caudate) ||
+            (label == Left_Amygdala)     || (label == Right_Amygdala) ||
+            (label == Left_Putamen)      || (label == Right_Putamen) ||
+            (label == Left_Pallidum)     || (label == Right_Pallidum) ||
+            (label == Left_Inf_Lat_Vent) || (label == Right_Inf_Lat_Vent))
         {
           // the 'if' statement above spares some cpu cycles in having to
           // calculate the coord transform for every voxel, ie these 3 lines:
@@ -1573,9 +1574,9 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
 
           /*
            * rules:
-           * - no left or right hippo labels with z tal coord > 12
+           * - no left or right hippo labels with z tal coord > 13
            * - no left hippo, caudate, amydala, putamen or pallidum 
-           *   labels with x tal coord > 12 (or right, with x tal coord < -12)
+           *   labels with x tal coord > 5 (or right, with x tal coord < -5)
            */
           switch (label)
           {
@@ -1595,6 +1596,7 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
           case Left_Amygdala:
           case Left_Putamen:
           case Left_Pallidum:
+          case Left_Inf_Lat_Vent:
             if (xt > 5)
             {
               printf
@@ -1609,6 +1611,8 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
               else if (label == Left_Amygdala) proper_label = Right_Amygdala;
               else if (label == Left_Putamen)  proper_label = Right_Putamen;
               else if (label == Left_Pallidum) proper_label = Right_Pallidum;
+              else if (label == Left_Inf_Lat_Vent) 
+                proper_label = Right_Inf_Lat_Vent;
             }
             break;
 
@@ -1628,6 +1632,7 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
           case Right_Amygdala:
           case Right_Putamen:
           case Right_Pallidum:
+          case Right_Inf_Lat_Vent:
             if (xt < -5)
             {
               printf
@@ -1642,6 +1647,8 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
               else if (label == Right_Amygdala) proper_label = Left_Amygdala;
               else if (label == Right_Putamen)  proper_label = Left_Putamen;
               else if (label == Right_Pallidum) proper_label = Left_Pallidum;
+              else if (label == Right_Inf_Lat_Vent) 
+                proper_label = Left_Inf_Lat_Vent;
             }
             break;
 
