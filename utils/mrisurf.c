@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/03 13:27:36 $
- *    $Revision: 1.555 $
+ *    $Date: 2007/08/08 00:50:02 $
+ *    $Revision: 1.556 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -619,7 +619,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.555 2007/08/03 13:27:36 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.556 2007/08/08 00:50:02 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -12669,9 +12669,10 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
 int
 MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_thresh)
 {
-  double min_k1, min_k2, max_k1, max_k2, k1_scale, k2_scale, total, thresh ;
+  double min_k1, min_k2, max_k1, max_k2, k1_scale, k2_scale, total, thresh,
+         orig_rsq_thresh ;
   int    bin, zbin1, zbin2, nthresh = 0 ;
-  int    vno, i, n, vmax, nbad = 0 ;
+  int    vno, i, n, vmax, nbad = 0, niter ;
   VERTEX *vertex, *vnb ;
   MATRIX *m_U, *m_Ut, *m_tmp1, *m_tmp2, *m_inverse, *m_eigen, *m_Q ;
   VECTOR *v_c, *v_z, *v_n, *v_e1, *v_e2, *v_yi ;
@@ -12679,6 +12680,9 @@ MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_thresh
   double ui, vi, total_area = 0.0, max_error, vmean, vsigma, rsq_thresh ;
   FILE   *fp = NULL ;
   HISTOGRAM *h_k1, *h_k2 ;
+
+  if (mris->status == MRIS_PLANE)
+    return(NO_ERROR) ;
 
   if (pct_thresh >= 0)
   {
@@ -12689,8 +12693,7 @@ MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_thresh
   else
     rsq_thresh = 0.0 ;
 
-  if (mris->status == MRIS_PLANE)
-    return(NO_ERROR) ;
+  orig_rsq_thresh = rsq_thresh ;
 
   mrisComputeTangentPlanes(mris) ;
 
@@ -12729,38 +12732,47 @@ MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_thresh
       DiagBreak() ;
 
     /* fit a quadratic form to the surface at this vertex */
-    kmin = 10000.0f ;
-    kmax = -kmin ;
-    for (n = i = 0 ; i < vertex->vtotal ; i++)
+    rsq_thresh = orig_rsq_thresh ; niter = 0 ;
+    do
     {
-      vnb = &mris->vertices[vertex->v[i]] ;
-      if (vnb->ripflag)
-        continue ;
-      /*
-        calculate the projection of this vertex
-        onto the local tangent plane
-      */
-      VECTOR_LOAD(v_yi,
-                  vnb->x-vertex->x,
-                  vnb->y-vertex->y,
-                  vnb->z-vertex->z);
-      ui = V3_DOT(v_yi, v_e1) ;
-      vi = V3_DOT(v_yi, v_e2) ;
-      *MATRIX_RELT(m_U, n+1, 1) = ui*ui ;
-      *MATRIX_RELT(m_U, n+1, 2) = 2*ui*vi ;
-      *MATRIX_RELT(m_U, n+1, 3) = vi*vi ;
-      VECTOR_ELT(v_z, n+1) = V3_DOT(v_n, v_yi) ;  /* height above TpS */
-      rsq = ui*ui + vi*vi ;
-      if (!FZERO(rsq) && rsq > rsq_thresh)
+      kmin = 10000.0f ;
+      kmax = -kmin ;
+      for (n = i = 0 ; i < vertex->vtotal ; i++)
       {
-        k = VECTOR_ELT(v_z, n+1) / rsq ;
-        if (k > kmax)
-          kmax = k ;
-        if (k < kmin)
-          kmin = k ;
-        n++ ;
+        vnb = &mris->vertices[vertex->v[i]] ;
+        if (vnb->ripflag)
+          continue ;
+        /*
+          calculate the projection of this vertex
+          onto the local tangent plane
+        */
+        VECTOR_LOAD(v_yi,
+                    vnb->x-vertex->x,
+                  vnb->y-vertex->y,
+                    vnb->z-vertex->z);
+        ui = V3_DOT(v_yi, v_e1) ;
+        vi = V3_DOT(v_yi, v_e2) ;
+        *MATRIX_RELT(m_U, n+1, 1) = ui*ui ;
+        *MATRIX_RELT(m_U, n+1, 2) = 2*ui*vi ;
+        *MATRIX_RELT(m_U, n+1, 3) = vi*vi ;
+        VECTOR_ELT(v_z, n+1) = V3_DOT(v_n, v_yi) ;  /* height above TpS */
+        rsq = ui*ui + vi*vi ;
+        if (!FZERO(rsq) && rsq > rsq_thresh)
+        {
+          k = VECTOR_ELT(v_z, n+1) / rsq ;
+          if (k > kmax)
+            kmax = k ;
+          if (k < kmin)
+            kmin = k ;
+          n++ ;
+        }
       }
-    }
+      rsq_thresh *= 0.25 ;
+      if (n < 4)
+        DiagBreak() ;
+      if (niter++ > 100)
+        break ;
+    } while (n < 4) ;
 
     m_Ut = MatrixTranspose(m_U, NULL) ;          /* Ut */
     m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL) ;   /* Ut U */
