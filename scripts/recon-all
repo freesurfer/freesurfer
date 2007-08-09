@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/08/06 16:37:34 $
-#    $Revision: 1.128 $
+#    $Author: greve $
+#    $Date: 2007/08/09 15:12:35 $
+#    $Revision: 1.129 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.128 2007/08/06 16:37:34 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.129 2007/08/09 15:12:35 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -221,7 +221,6 @@ set DoIsRunning  = 1;
 set IsRunningFile  = ();
 
 setenv LANG C # Required by MNI tool
-setenv FIX_VERTEX_AREA; # see -<no>fixvertexarea flag
 
 # ----------- Surface and Volume ------------------#
 set DoAParc2ASeg = 0;
