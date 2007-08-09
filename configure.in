@@ -1916,6 +1916,24 @@ AC_SUBST(VTK_JPEG_LIB)
 AC_SUBST(VTK_PNG_LIB)
 AC_SUBST(VTK_Z_LIB)
 
+# libexpat is now used by libutils, but the shared libexpat is not found in
+# the default search path on the Mac platform (it is found in /usr/X11R6/lib),
+# so in the interest of full compatibility, the static libexpat is used
+# if it can be found, otherwise, whatever VTK_EXPAT_LIB was set to is used.
+# (but dont do this if --with-expat-dir=DIR was used)
+if test "$ac_expat_libraries" = "NO"; then
+  if test -e /usr/X11R6/lib/libexpat.a ; then
+    VTK_EXPAT_LIB="/usr/X11R6/lib/libexpat.a"
+  fi
+  if test -e /usr/lib/libexpat.a ; then
+    VTK_EXPAT_LIB="/usr/lib/libexpat.a"
+  fi
+  if test -e /usr/lib64/libexpat.a ; then
+    VTK_EXPAT_LIB="/usr/lib64/libexpat.a"
+  fi
+  AC_SUBST(VTK_EXPAT_LIB)
+fi
+
 # libverdict appeared in VTK v5.1.0, and is required by libvtkHybrid,
 # but doesnt exist in earlier versions of VTK
 VTK_VERDICT_LIB=""
