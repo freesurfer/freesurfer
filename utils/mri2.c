@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/01 22:48:49 $
- *    $Revision: 1.37 $
+ *    $Date: 2007/08/09 19:37:20 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.37 2007/08/01 22:48:49 greve Exp $
+  $Id: mri2.c,v 1.38 2007/08/09 19:37:20 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -1675,6 +1675,7 @@ MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out)
   \param vote - has 2 frames:
      (1) Most freqently occuring value
      (2) Fraction of occurances (ie noccurances/nframes)
+  Note: input will be sorted in asc order
  */
 MRI *MRIvote(MRI *in, MRI *mask, MRI *vote) {
   int c, r, s, f, f0, ncols, nrows, nslices,nframes;
@@ -1683,8 +1684,10 @@ MRI *MRIvote(MRI *in, MRI *mask, MRI *vote) {
   int runlen, runlenmax;
   MRI *sorted;
 
-  sorted = MRIsort(in,mask,NULL);
+  printf("MRIvote: sorting\n");
+  sorted = MRIsort(in,mask,in); // this sorts the input
   if(sorted == NULL) return(NULL);
+  printf("MRIvote: done sorting\n");
 
   ncols   = in->width;
   nrows   = in->height;
@@ -1752,7 +1755,6 @@ MRI *MRIvote(MRI *in, MRI *mask, MRI *vote) {
     } // rows
   } // cols
 
-  MRIfree(&sorted);
   return(vote);
 }
 
