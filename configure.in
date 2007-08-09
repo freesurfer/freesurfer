@@ -205,6 +205,22 @@ AC_CHECK_FUNCS([\
   strtol \
   uname])
 
+# many systems dont have libg2c.so, the shared lib supporting g77, so build
+# using the static lib if available, so that distro is more widely compatible.
+# the talairach_avi/Makefile.am file uses LIB_G2C_A
+LIB_G2C_A=""
+if test -e /usr/local/lib/libg2c.a ; then
+   LIB_G2C_A="/usr/local/lib/libg2c.a"
+fi
+if test -e /usr/lib/libg2c.a ; then
+   LIB_G2C_A="/usr/lib/libg2c.a"
+fi
+if test -e /usr/lib64/libg2c.a ; then
+   LIB_G2C_A="/usr/lib64/libg2c.a"
+fi
+AC_SUBST(LIB_G2C_A)
+
+
 ################################################################
 # Most of our scripts use /bin/tcsh, so make sure it exists
 ################################################################

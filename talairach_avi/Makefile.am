@@ -5,8 +5,8 @@
 # Fortran flags
 AM_FFLAGS=-ffixed-line-length-132 -fno-second-underscore
 
-# declare empty AM_LDFLAGS and LIBS, to override unnecessary default settings
-AM_LDFLAGS=
+# LIB_G2C_A is defined to libg2c.a (static lib) if configure find it
+AM_LDFLAGS=$(LIB_G2C_A)
 LIBS=
 
 foodir=$(prefix)/average
