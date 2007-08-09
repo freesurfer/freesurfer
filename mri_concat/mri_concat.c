@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/01 22:58:37 $
- *    $Revision: 1.19 $
+ *    $Date: 2007/08/09 19:38:28 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // mri_concat.c
-// $Id: mri_concat.c,v 1.19 2007/08/01 22:58:37 greve Exp $
+// $Id: mri_concat.c,v 1.20 2007/08/09 19:38:28 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,13 +54,14 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.19 2007/08/01 22:58:37 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.20 2007/08/09 19:38:28 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
 int ninputs = 0;
 char *out = NULL;
-MRI *mritmp, *mritmp0, *mriout;
+MRI *mritmp, *mritmp0, *mriout, *mask=NULL;
+char *maskfile = NULL;
 int DoMean=0;
 int DoStd=0;
 int DoMax=0;
@@ -97,9 +98,19 @@ int main(int argc, char **argv) {
   check_options();
   dump_options(stdout);
 
+  if(maskfile){
+    printf("Loading mask %s\n",maskfile);
+    mask = MRIread(maskfile);
+    if(mask == NULL) exit(1);
+  }
+
   printf("ninputs = %d\n",ninputs);
-  for (nthin = 0; nthin < ninputs; nthin++) {
-    if (Gdiag_no > 0) printf("%2d %s\n",nthin,inlist[nthin]);
+  printf("Checking inputs\n");
+  for(nthin = 0; nthin < ninputs; nthin++) {
+    if(Gdiag_no > 0 || debug) {
+      printf("Checking %2d %s\n",nthin,inlist[nthin]);
+      fflush(stdout);
+    }
     mritmp = MRIreadHeader(inlist[nthin],MRI_VOLUME_TYPE_UNKNOWN);
     if (mritmp == NULL) {
       printf("ERROR: reading %s\n",inlist[nthin]);
@@ -111,9 +122,9 @@ int main(int argc, char **argv) {
       ns = mritmp->depth;
     }
     if (mritmp->width != nc || mritmp->height != nr ||
-        mritmp->depth != ns) {
+	mritmp->depth != ns) {
       printf("ERROR: dimension mismatch between %s and %s\n",
-             inlist[0],inlist[nthin]);
+	     inlist[0],inlist[nthin]);
       exit(1);
     }
 
@@ -130,25 +141,26 @@ int main(int argc, char **argv) {
     }
   }
 
+  printf("Allocing output\n");
+  fflush(stdout);
   mriout = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nframestot);
   if (mriout == NULL) exit(1);
 
   fout = 0;
   for (nthin = 0; nthin < ninputs; nthin++) {
-    if (Gdiag_no > 0) {
-      printf("---=====------=========----=======-----========---------\n");
-      printf("#@# %d th input \n",nthin);
+    if(Gdiag_no > 0 || debug) {
+      printf("Loading %dth input \n",nthin);
+      fflush(stdout);
     }
-    fflush(stdout);
     mritmp = MRIread(inlist[nthin]);
-    if (nthin == 0) {
+    if(nthin == 0) {
       MRIcopyHeader(mritmp, mriout);
       //mriout->nframes = nframestot;
     }
-    for (f=0; f < mritmp->nframes; f++) {
-      for (c=0; c < nc; c++) {
-        for (r=0; r < nr; r++) {
-          for (s=0; s < ns; s++) {
+    for(f=0; f < mritmp->nframes; f++) {
+      for(c=0; c < nc; c++) {
+        for(r=0; r < nr; r++) {
+          for(s=0; s < ns; s++) {
             v = MRIgetVoxVal(mritmp,c,r,s,f);
             MRIsetVoxVal(mriout,c,r,s,fout,v);
           }
@@ -160,7 +172,7 @@ int main(int argc, char **argv) {
   }
 
 
-  if (DoPaired) {
+  if(DoPaired) {
     printf("Combining pairs\n");
     mritmp = MRIcloneBySpace(mriout,-1,mriout->nframes/2);
     for (c=0; c < nc; c++) {
@@ -199,14 +211,14 @@ int main(int argc, char **argv) {
     mriout = mritmp;
   }
 
-  if (DoMean) {
+  if(DoMean) {
     printf("Computing mean across frames\n");
     mritmp = MRIframeMean(mriout,NULL);
     MRIfree(&mriout);
     mriout = mritmp;
   }
 
-  if (DoStd) {
+  if(DoStd) {
     printf("Computing std across frames\n");
     if(mriout->nframes < 2){
       printf("ERROR: cannot compute std from one frame\n");
@@ -220,7 +232,7 @@ int main(int argc, char **argv) {
     mriout = mritmp;
   }
 
-  if (DoMax) {
+  if(DoMax) {
     printf("Computing max across all frames \n");
     mritmp = MRIvolMax(mriout,NULL);
     MRIfree(&mriout);
@@ -229,14 +241,14 @@ int main(int argc, char **argv) {
 
   if(DoSort) {
     printf("Sorting \n");
-    mritmp = MRIsort(mriout,NULL,NULL);
+    mritmp = MRIsort(mriout,mask,NULL);
     MRIfree(&mriout);
     mriout = mritmp;
   }
 
   if(DoVote) {
     printf("Voting \n");
-    mritmp = MRIvote(mriout,NULL,NULL);
+    mritmp = MRIvote(mriout,mask,NULL);
     MRIfree(&mriout);
     mriout = mritmp;
   }
@@ -313,6 +325,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       out = pargv[0];
       nargsused = 1;
+    } else if ( !strcmp(option, "--mask") ) {
+      if (nargc < 1) argnerr(option,1);
+      maskfile = pargv[0];
+      nargsused = 1;
     } else {
       inlist[ninputs] = option;
       ninputs ++;
@@ -351,6 +367,7 @@ static void print_usage(void) {
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
   printf("\n");
+  printf("   --mask maskfile : mask used with --vote or --sort\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
@@ -416,6 +433,11 @@ static void check_options(void) {
     printf("ERROR: cannot --mean and --std\n");
     exit(1);
   }
+  if(mask && !DoVote && !DoSort){
+    printf("ERROR: --mask only valid with --vote or --sort\n");
+    exit(1);
+  }
+
   return;
 }
 
