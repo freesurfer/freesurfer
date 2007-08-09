@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/05/11 20:20:05 $
- *    $Revision: 1.230 $
+ *    $Date: 2007/08/09 22:42:57 $
+ *    $Revision: 1.231 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -10335,6 +10335,8 @@ cma_label_to_name(int label)
     return("Left_Cerebral_White_Matter") ;
   if (label == Left_Cerebral_Cortex)
     return("Left_Cerebral_Cortex") ;
+  if (label == SUSPICIOUS)
+    return("SUSPICIOUS") ;
   if (label == Left_Lateral_Ventricle)
     return("Left_Lateral_Ventricle") ;
   if (label == Left_Inf_Lat_Vent)
@@ -11775,6 +11777,7 @@ GCArenormalizeLabels(MRI *mri_in,
   return(NO_ERROR) ;
 }
 
+#if 0
 int
 GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num)
 {
@@ -11883,7 +11886,82 @@ GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num)
   free(means) ;
   return(NO_ERROR) ;
 }
+#else
 
+/*
+  labels and intensities have pairs of modes to update
+  the gca with.
+*/
+int
+GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num)
+{
+  float     *scales, mode ;
+  int       xn, yn, zn, n, i, label ;
+  GCA_NODE  *gcan ;
+  GC1D      *gc ;
+
+  if (gca->ninputs > 1)
+    ErrorExit(ERROR_UNSUPPORTED,
+              "GCArenormalizeIntensities: can only renormalize scalars") ;
+
+  scales = (float *)calloc(num, sizeof(float)) ;
+  if (scales == NULL)
+    ErrorExit(ERROR_NOMEMORY, 
+              "GCArenormalizeIntensities: could not alloc %d elt array") ;
+
+
+  for (i = 0 ; i < num ; i++)
+  {
+    if (intensities[i] <= 0)
+    {
+      scales[i] = 1 ;
+      continue ;
+    }
+    GCAlabelMode(gca, labels[i], &mode) ;
+    if (mode <= 0)
+      scales[i] = 1.0 ;
+    else
+    {
+      scales[i] = intensities[i] / mode ;
+      printf("rescaling %s from %2.0f --> %2.0f\n", 
+             cma_label_to_name(labels[i]), mode, mode*scales[i]) ;
+    }
+  }
+
+  /* now go through each label and scale it by these ratios */
+  for (zn = 0 ; zn < gca->node_depth ; zn++)
+  {
+    for (yn = 0 ; yn < gca->node_height ; yn++)
+    {
+      for (xn = 0 ; xn < gca->node_width ; xn++)
+      {
+        gcan = &gca->nodes[xn][yn][zn] ;
+        if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+          DiagBreak() ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          label = gcan->labels[n] ;
+          if (label == Gdiag_no)
+            DiagBreak() ;
+
+          /* find index in lookup table for this label */
+          for (i = 0 ; i < num ; i++)
+            if (label == labels[i])
+              break ;
+          if (i >= num)
+            continue ;
+
+          gc = &gcan->gcs[n] ;
+          gc->means[0] = scales[i]*gc->means[0] ;
+        }
+      }
+    }
+  }
+
+  free(scales) ;
+  return(NO_ERROR) ;
+}
+#endif
 int
 GCAunifyVariance(GCA *gca)
 {
@@ -11964,7 +12042,7 @@ GCAlabelMode(GCA *gca, int label, float *modes)
       }
     }
   }
-  if (Gdiag & DIAG_WRITE)
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     char  fname[STRLEN] ;
     sprintf(fname, "gca_label%d.plt", label) ;
@@ -12040,7 +12118,7 @@ GCAclassMode(GCA *gca, int class, float *modes)
       }
     }
   }
-  if (Gdiag & DIAG_WRITE)
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     char  fname[STRLEN] ;
     sprintf(fname, "gca_label%d.plt", class) ;
@@ -12696,11 +12774,24 @@ GCArenormalizeToExample(GCA *gca, MRI *mri_seg, MRI *mri_T1)
     }
   }
 
-  for (label = 0 ; label <= MAX_CMA_LABEL ; label++)
+  intensities[0] = 0 ;  // don't estimate unknowns
+  for (label = 1 ; label <= MAX_CMA_LABEL ; label++)
   {
-    if (counts[label] <= 0)
+    HISTOGRAM *h ;
+
+    if (counts[label] <= 10)
       continue ;
-    intensities[label] /= (float)counts[label] ;
+    if (counts[label] > 20)
+    {
+      int peak ;
+      h = MRIhistogramLabel(mri_T1, mri_seg, label, 256) ;
+      peak = HISTOfindHighestPeakInRegion(h, 0, h->nbins) ;
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+        HISTOplot(h, "h.plt") ;
+      intensities[label] = h->bins[peak] ;
+    }
+    else
+      intensities[label] /= (float)counts[label] ;
   }
   GCArenormalizeIntensities(gca, labels, intensities, MAX_CMA_LABEL) ;
 
@@ -12756,7 +12847,7 @@ findClosestValidGC(GCA *gca, int x0, int y0, int z0, int label, int check_var)
   int        x, y, z, n, wsize ;
   double     dist, min_dist, det ;
   GCA_NODE   *gcan ;
-  MATRIX     *m_cov_inv ;
+  static MATRIX     *m_cov_inv = NULL ;
 
   min_dist = gca->node_width+gca->node_height+gca->node_depth ;
   wsize = 1 ;
@@ -12787,11 +12878,11 @@ findClosestValidGC(GCA *gca, int x0, int y0, int z0, int label, int check_var)
             gc = &gcan->gcs[n] ;
             det = covariance_determinant(gc, gca->ninputs) ;
             m_cov_inv =
-              load_inverse_covariance_matrix(gc, NULL, gca->ninputs) ;
+              load_inverse_covariance_matrix(gc, m_cov_inv, gca->ninputs) ;
             if (m_cov_inv == NULL)
               det = -1 ;
             else
-              MatrixFree(&m_cov_inv) ;
+              det *= 1 ; //MatrixFree(&m_cov_inv) ;
             if ((check_var && det <= MIN_DET) || gc->ntraining == 0)
               continue ;
             if (dist < min_dist)
@@ -12839,6 +12930,8 @@ findClosestValidGC(GCA *gca, int x0, int y0, int z0, int label, int check_var)
       }
     }
   }
+  if (gc_min == NULL)
+    DiagBreak() ;
   return(gc_min) ;
 }
 
@@ -18984,7 +19077,13 @@ GCAbuildMostLikelyVolumeForStructure(GCA *gca, MRI *mri, int label, int border,
   GC1D             *gc_max ;
   MRI              *mri_tmp ;
   MRI_SEGMENTATION *mriseg ;
+  int              free_transform = 0 ;
 
+  if (transform == NULL)
+  {
+    transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
+    free_transform = 1 ;
+  }
   if (!mri)
   {
     mri = MRIallocSequence(gca->prior_width, gca->prior_height,
@@ -19186,6 +19285,8 @@ GCAbuildMostLikelyVolumeForStructure(GCA *gca, MRI *mri, int label, int border,
     MRIcopy(mri_tmp, mri) ;
     MRIfree(&mri_tmp) ;
   }
+  if (free_transform)
+    TransformFree(&transform) ;
   return(mri) ;
 }
 
@@ -20956,6 +21057,8 @@ GCAcomputeLabelLikelihood(GCA *gca, TRANSFORM *transform, MRI *mri, float x, flo
   for (ptotal = 0.0, n = 0 ; n < gcap->nlabels ; n++)
   {
     olabel = gcap->labels[n] ;
+    if (olabel == 9)   // debugging!!! Should be removed
+      continue ;
     p =  GCAlabelProbability(mri, gca, transform, x, y, z, olabel);
     if (olabel == label)
     {
@@ -20990,3 +21093,42 @@ GCAcomputeLabelLikelihood(GCA *gca, TRANSFORM *transform, MRI *mri, float x, flo
   return(plabel) ;
 }
 
+int
+GCAstructureBoundingBox(GCA *gca, int label, MRI_REGION *box)
+{
+  int       x, y, z, xmin, ymin, zmin, xmax, ymax, zmax, n ;
+  GCA_PRIOR *gcap ;
+
+  xmin = gca->prior_width; ymin = gca->prior_height; zmin = gca->prior_depth ;
+  xmax = ymax = zmax = -1 ;
+
+  for (x = 0 ; x < gca->prior_width; x++)
+    for (y = 0 ; y < gca->prior_height ; y++)
+      for (z = 0 ; z < gca->prior_depth; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        gcap = &gca->priors[x][y][z] ;
+        for (n = 0 ; n < gcap->nlabels ;n++)
+          if (gcap->labels[n] == label && gcap->priors[n] > 0.05)
+            break ;
+        if (n < gcap->nlabels) // label exists at this location
+        {
+          if (y < 60)
+            DiagBreak() ;
+          if (z < 42)
+            DiagBreak() ;
+          xmin = MIN(xmin, x) ; ymin = MIN(ymin, y) ; zmin = MIN(zmin, z) ;
+          xmax = MAX(xmax, x) ; ymax = MAX(ymax, y) ; zmax = MAX(zmax, z) ;
+        }
+      }
+  xmin *= gca->prior_spacing ;
+  ymin *= gca->prior_spacing ;
+  zmin *= gca->prior_spacing ;
+  xmax *= gca->prior_spacing ;
+  ymax *= gca->prior_spacing ;
+  zmax *= gca->prior_spacing ;
+  box->x = xmin ; box->y = ymin ; box->z = zmin ;
+  box->dx = xmax-xmin+1 ;  box->dy = ymax-ymin+1 ;  box->dz = zmax-zmin+1 ; 
+  return(NO_ERROR) ;
+}

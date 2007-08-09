@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/07 20:57:38 $
- *    $Revision: 1.392 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/09 22:42:57 $
+ *    $Revision: 1.393 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.392 $";
+char *MRI_C_VERSION = "$Revision: 1.393 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -9801,7 +9801,7 @@ MRIsampleVolumeDerivativeScale(MRI *mri, Real x, Real y, Real z, Real dx,
   if (z < 0.0)
     z = 0.0 ;
 
-  step_size = MAX(.5,sigma/2) ;
+  step_size = MAX(.25,sigma/5.0) ;
   for (ktotal = 0.0,n = 0, len = vp1 = vm1 = 0.0, dist = step_size ;
        dist <= MAX(2*sigma,step_size);
        dist += step_size, n++)
@@ -14425,7 +14425,7 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
   }
 
   mri_dist = MRIextractDistanceMap( mri_src, mri_dist, label, max_dist, mode);
-  
+  mri_dist->outside_val = max_dist ;  
   MRIscalarMul(mri_dist, mri_dist, mri_src->xsize) ;
   return mri_dist;  
 }
