@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:07 $
- *    $Revision: 1.30 $
+ *    $Author: greve $
+ *    $Date: 2007/08/09 20:52:16 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.30 2006/12/29 02:09:07 nicks Exp $
+  $Id: mri_label2label.c,v 1.31 2007/08/09 20:52:16 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -98,7 +98,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.30 2006/12/29 02:09:07 nicks Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.31 2007/08/09 20:52:16 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -154,6 +154,9 @@ char *XFMFile = NULL;
 int InvertXFM=0;
 LTA *lta_transform;
 
+char *OutMaskFile = NULL;
+MRI *outmask;
+
 /*-------------------------------------------------*/
 int main(int argc, char **argv) {
   int err;
@@ -171,7 +174,7 @@ int main(int argc, char **argv) {
   PATH* path;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.30 2006/12/29 02:09:07 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.31 2007/08/09 20:52:16 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -570,13 +573,23 @@ int main(int argc, char **argv) {
       printf("---------------------------------------------\n");
     }
 
+    printf("Checking for and removing duplicates\n");
+    LabelRemoveDuplicates(trglabel);
+
+    if(OutMaskFile){
+      printf("Creating output mask %s\n",OutMaskFile);
+      outmask = MRIalloc(TrgSurf->nvertices,1,1,MRI_INT);
+      for (n = 0; n < trglabel->n_points; n++) {
+	MRIsetVoxVal(outmask,trglabel->lv[n].vno,0,0,0,1);
+      }
+      MRIwrite(outmask,OutMaskFile);
+      MRIfree(&outmask);
+    }
+
     MRISfree(&SrcSurfReg);
     MRISfree(&TrgSurfReg);
     if (usehash) MHTfree(&TrgHash);
     if (strcmp(trgsubject,"ico")) MRISfree(&TrgSurf);
-
-    printf("Checking for and removing duplicates\n");
-    LabelRemoveDuplicates(trglabel);
 
   }/*---------- done with surface-based mapping -------------*/
 
@@ -748,6 +761,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       XFMFile = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--outmask")) {
+      if (nargc < 1) argnerr(option,1);
+      OutMaskFile = pargv[0];
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -766,39 +783,42 @@ static void usage_exit(void) {
 }
 /* --------------------------------------------- */
 static void print_usage(void) {
-  fprintf(stdout, "USAGE: %s \n",Progname) ;
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --srclabel     input label file \n");
-  fprintf(stdout, "   --srcsubject   source subject\n");
-  fprintf(stdout, "   --trgsubject   target subject\n");
-  fprintf(stdout, "   --trglabel     output label file \n");
-  fprintf(stdout, "   --regmethod    registration method (surface, volume) \n");
-  fprintf(stdout, "   --usepathfiles read from and write to a path file\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --hemi        hemisphere (lh or rh) (with surface)\n");
-  fprintf(stdout, "   --srchemi     hemisphere (lh or rh) (with surface)\n");
-  fprintf(stdout, "   --trghemi     hemisphere (lh or rh) (with surface)\n");
-  fprintf(stdout, "   --srcicoorder when srcsubject=ico\n");
-  fprintf(stdout, "   --trgicoorder when trgsubject=ico\n");
-  fprintf(stdout, "   --trgsurf     get xyz from this surface (white)\n");
-  fprintf(stdout, "   --surfreg     surface registration (sphere.reg)  \n");
-  fprintf(stdout, "   --srcsurfreg  source surface registration (sphere.reg)\n");
-  fprintf(stdout, "   --trgsurfreg  target surface registration (sphere.reg)\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --srcmask     surfvalfile thresh <format>\n");
-  fprintf(stdout, "   --srcmasksign sign (<abs>,pos,neg)\n");
-  fprintf(stdout, "   --srcmaskframe 0-based frame number <0>\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --xfm xfmfile : use xfm instead of computing tal xfm\n");
-  fprintf(stdout, "   --xfm-invert : invert xfm \n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "   --projabs  dist project dist mm along surf normal\n");
-  fprintf(stdout, "   --projfrac frac project frac of thickness along surf normal\n");
-  fprintf(stdout, "\n");
+  printf("USAGE: %s \n",Progname) ;
+  printf("\n");
+  printf("   --srclabel     input label file \n");
+  printf("   --srcsubject   source subject\n");
+  printf("\n");
+  printf("   --trgsubject   target subject\n");
+  printf("   --trglabel     output label file \n");
+  printf("   --outmask      maskfile : save output label as a binary mask (surf only)\n");
+  printf("\n");
+  printf("   --regmethod    registration method (surface, volume) \n");
+  printf("   --usepathfiles read from and write to a path file\n");
+  printf("\n");
+  printf("   --hemi        hemisphere (lh or rh) (with surface)\n");
+  printf("   --srchemi     hemisphere (lh or rh) (with surface)\n");
+  printf("   --trghemi     hemisphere (lh or rh) (with surface)\n");
+  printf("   --srcicoorder when srcsubject=ico\n");
+  printf("   --trgicoorder when trgsubject=ico\n");
+  printf("   --trgsurf     get xyz from this surface (white)\n");
+  printf("   --surfreg     surface registration (sphere.reg)  \n");
+  printf("   --srcsurfreg  source surface registration (sphere.reg)\n");
+  printf("   --trgsurfreg  target surface registration (sphere.reg)\n");
+  printf("\n");
+  printf("   --srcmask     surfvalfile thresh <format>\n");
+  printf("   --srcmasksign sign (<abs>,pos,neg)\n");
+  printf("   --srcmaskframe 0-based frame number <0>\n");
+  printf("\n");
+  printf("   --xfm xfmfile : use xfm instead of computing tal xfm\n");
+  printf("   --xfm-invert : invert xfm \n");
+  printf("\n");
+  printf("   --projabs  dist project dist mm along surf normal\n");
+  printf("   --projfrac frac project frac of thickness along surf normal\n");
+  printf("\n");
   printf("   --sd subjectsdir : default is to use env SUBJECTS_DIR\n");
   printf("   --nohash : don't use hash table when regmethod is surface\n");
   printf("   --norevmap : don't use reverse mapping regmethod is surface\n");
-  fprintf(stdout, "\n");
+  printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void) {
@@ -991,6 +1011,10 @@ static void check_options(void) {
     }
     if (hemi != NULL) {
       fprintf(stderr,"ERROR: cannot specify hemisphere with vol reg method\n");
+      exit(1);
+    }
+    if(OutMaskFile){
+      printf("ERROR: cannot specify outmask with vol reg method\n");
       exit(1);
     }
   }
