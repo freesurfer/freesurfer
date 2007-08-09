@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/13 04:03:10 $
- *    $Revision: 1.334 $
+ *    $Date: 2007/08/09 20:54:58 $
+ *    $Revision: 1.335 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -14594,31 +14594,28 @@ readGCA(char *fname, int start_frame, int end_frame)
   return(mri) ;
 }
 
-MRI *
-MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
+MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
 {
-  int x, y, z, nans=0 ;
+  int x, y, z, f, nans=0 ;
   float val ;
 
-  if (mri_dst != mri_src)
+  if(mri_dst != mri_src)
     mri_dst = MRIcopy(mri_src, mri_dst) ;
 
-  for (x = 0 ; x < mri_dst->width ; x++)
-  {
-    for (y = 0 ; y < mri_dst->height ; y++)
-    {
-      for (z = 0 ; z < mri_dst->depth ; z++)
-      {
-        val = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
-        if (!finite(val))
-        {
-          nans++ ;
-          MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
-        }
+  for (x = 0 ; x < mri_dst->width ; x++)  {
+    for (y = 0 ; y < mri_dst->height ; y++) {
+      for (z = 0 ; z < mri_dst->depth ; z++)  {
+	for (f = 0 ; f < mri_dst->nframes ; f++)  {
+	  val = MRIgetVoxVal(mri_dst, x, y, z, f) ;
+	  if(!finite(val)){
+	    nans++ ;
+	    MRIsetVoxVal(mri_dst, x, y, z, f, 0) ;
+	  }
+	}
       }
     }
   }
-  if (nans > 0)
+  if(nans > 0)
     ErrorPrintf
     (ERROR_BADPARM,
      "WARNING: %d NaNs found in volume %s...\n", nans, mri_src->fname) ;
