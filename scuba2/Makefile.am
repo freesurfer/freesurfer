@@ -184,6 +184,19 @@ ScubaLibInit.cxx: ScubaLibInit.data
 	${VTK_DIR}/bin/vtkWrapTclInit ScubaLibInit.data ScubaLibInit.cxx
 
 
+
+# HACK - njs: as of 8 Aug 2007, this fails compilation with:
+#   vtkKWScubaView.cxx:261: internal compiler error: in extract_insn
+# source of error unknown, but disappears if compiled with -O1 instead of -O2
+vtkKWScubaView.o: vtkKWScubaView.cxx
+	@echo "compiling vtkKWScubaView.cxx to vtkKWScubaView.o (with -O1)"
+	source='$<' object='$@' libtool=no \
+	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
+	$(CCDEPMODE) $(depcomp) \
+	$(CXXCOMPILE) -O1 -c `test -f '$<' || echo '$(srcdir)/'`$<
+
+
+
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 install-exec-hook:scuba2
 	cp $(srcdir)/scuba2 $(DESTDIR)$(bindir)/scuba2.bin
