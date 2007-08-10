@@ -192,9 +192,8 @@ vtkKWScubaView.o: vtkKWScubaView.cxx
 	@echo "compiling vtkKWScubaView.cxx to vtkKWScubaView.o (with -O1)"
 	source='$<' object='$@' libtool=no \
 	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
-	$(CCDEPMODE) $(depcomp) \
+	$(CXXDEPMODE) $(depcomp) \
 	$(CXXCOMPILE) -O1 -c `test -f '$<' || echo '$(srcdir)/'`$<
-
 
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
