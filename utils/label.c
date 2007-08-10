@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/10 16:36:04 $
- *    $Revision: 1.73 $
+ *    $Date: 2007/08/10 18:11:52 $
+ *    $Revision: 1.74 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1083,14 +1083,11 @@ LabelCopy(LABEL *asrc, LABEL *adst)
   return(adst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-int
-LabelRemoveDuplicates(LABEL *area)
+  int LabelRemoveDuplicates(LABEL *area)
+  Sets the 'deleted' flag of a label point if it is 
+  a duplicate. Does not actually remove duplicats!
+  ------------------------------------------------------*/
+int LabelRemoveDuplicates(LABEL *area)
 {
   int    n1, n2, deleted = 0 ;
   LV     *lv1, *lv2 ;
@@ -1105,7 +1102,6 @@ LabelRemoveDuplicates(LABEL *area)
       if(lv1->vno >= 0 && lv2->vno >= 0 && lv1->vno == lv2->vno) {
         deleted++ ;
         lv2->deleted = 1 ;
-        //lv1->stat++ ; // DNG: dont know why this was here
       }
     }
   }
@@ -1114,15 +1110,8 @@ LabelRemoveDuplicates(LABEL *area)
             deleted, area->name) ;
   return(NO_ERROR) ;
 }
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-double
-LabelArea(LABEL *area, MRI_SURFACE *mris)
+/*-----------------------------------------------------*/
+double LabelArea(LABEL *area, MRI_SURFACE *mris)
 {
   int      i ;
   double   total_area ;
@@ -2416,22 +2405,25 @@ LABEL *MRISlabelInvert(MRIS *surf, LABEL *label)
 {
   MRI *tmpmri;
   LABEL *invlabel;
-  int n,vtxno;
+  int n,vtxno,ninv,nlabel;
 
   // Create binary mask of label
-  tmpmri = MRIalloc(surf->nvertices,1,1,1);
-  for(n = 0; n < label->n_points; n++)
-    MRIsetVoxVal(tmpmri,label->lv[n].vno,0,0,0,1);
+  tmpmri = MRISlabel2Mask(surf,label,NULL);
+
+  // Count number of points. Need to do this in case duplicates
+  nlabel = 0;
+  for(vtxno=0; vtxno < surf->nvertices; vtxno++)
+    if(MRIgetVoxVal(tmpmri,vtxno,0,0,0) > 0.5) nlabel++;
 
   // Alloc inverse label
-  invlabel = LabelAlloc(surf->nvertices-label->n_points, 
-			label->subject_name, NULL);
-  invlabel->n_points = surf->nvertices-label->n_points;
+  ninv = surf->nvertices-nlabel;
+  invlabel = LabelAlloc(ninv,label->subject_name, NULL);
+  invlabel->n_points = ninv;
 
-  // Assign label points to vtxs not in mask
+  // Assign label points to vtxs NOT in the mask
   n = 0;
   for(vtxno=0; vtxno < surf->nvertices; vtxno++){
-    if(!MRIgetVoxVal(tmpmri,vtxno,0,0,0)){
+    if(MRIgetVoxVal(tmpmri,vtxno,0,0,0) < 0.5){
       invlabel->lv[n].vno = vtxno;
       invlabel->lv[n].x = surf->vertices[vtxno].x;
       invlabel->lv[n].y = surf->vertices[vtxno].y;
