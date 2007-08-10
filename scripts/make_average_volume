@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/20 20:09:25 $
-#    $Revision: 1.19 $
+#    $Date: 2007/08/10 20:26:35 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,13 +29,14 @@
 # increase number of allowable open files to maximum:
 limit descriptors unlimited
 
-set VERSION = '$Id: make_average_volume,v 1.19 2007/07/20 20:09:25 greve Exp $';
+set VERSION = '$Id: make_average_volume,v 1.20 2007/08/10 20:26:35 greve Exp $';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm
 set average_subject = average
 set KeepAllOrig = 0;
 set sdout = ();
+set DoASeg = 1;
 set cleanup = 1;
 
 set cmdargs = ($argv);
@@ -78,6 +79,7 @@ echo $SUBJECTS >> $LF
 set tmpdir = $outdir/tmp/make_average_vol-tmp
 mkdir -p $tmpdir
 
+#----------------------------------------------------------
 foreach volid (orig T1 brain)
   set invollist = ();
 
@@ -98,7 +100,8 @@ foreach volid (orig T1 brain)
       endif
     endif
 
-    set xfmvol = $tmpdir/$volid-$subject.mgz
+    # Use mgh to keep from having to compress and decompress
+    set xfmvol = $tmpdir/$volid-$subject.mgh
 
     set cmd = (mri_convert $invol $xfmvol  --apply_transform $xfm)
     set cmd = ($cmd -oc 0 0 0 ); # sets output c_ras=0
@@ -149,6 +152,72 @@ echo "Linear_Transform =" >> $outtalxfm
 echo "1.0 0.0 0.0 0.0 " >> $outtalxfm
 echo "0.0 1.0 0.0 0.0 " >> $outtalxfm
 echo "0.0 0.0 1.0 0.0;" >> $outtalxfm
+
+#----------------------------------------------------------
+if($DoASeg) then
+  foreach seg (aparc+aseg wmparc aseg)
+    set invollist = ()
+    @ nth = 0;
+    foreach subject ($SUBJECTS)
+      @ nth = $nth + 1;
+      echo "--------------------------------------" | tee -a $LF
+      echo "$nth/$#SUBJECTS $subject $seg `date`" | tee -a $LF
+
+      # Transform file
+      set xfm = $SUBJECTS_DIR/$subject/mri/transforms/$transform_fname
+      if(! -e $xfm) then
+        echo "ERROR: cannot find $xfm" | tee -a $LF
+        exit 1;
+      endif
+
+      # ASeg
+      set invol = $SUBJECTS_DIR/$subject/mri/$seg.mgz
+      if(! -e $invol) then
+        echo "ERROR: cannot find $volid for $subject" | tee -a $LF
+        exit 1;
+      endif
+
+      # Reslice, use nearest neighbor, use mgh format
+      set xfmvol = $tmpdir/seg-$subject.mgh
+      set cmd = (mri_vol2vol --mov $invol \
+           --targ $FREESURFER_HOME/average/mni305.cor.mgz \
+           --xfm $xfm  --o $xfmvol --interp nearest)
+      echo $cmd | tee -a $LF
+      $cmd  |& tee -a $LF
+      if($status) then
+        pwd |& tee -a $LF
+        echo "ERROR: mri_vol2vol failed." |& tee -a $LF
+        exit 1;
+      endif
+
+      set invollist = ($invollist $xfmvol);
+    end
+    echo "--------------------------------------" | tee -a $LF
+
+    # Concat and vote. 
+    set cmd = (mri_concat $invollist --o $tmpdir/vote.mgz --vote \
+      --mask $outdir/mri/brainmask.mgz --debug)
+    echo $cmd | tee -a $LF
+    $cmd  | tee -a $LF
+    if($status) exit 1;
+    # Extract Seg
+    set aseg = $outdir/mri/$seg.mgz
+    set cmd = (mri_convert $tmpdir/vote.mgz $aseg --frame 0)
+    echo $cmd | tee -a $LF
+    $cmd  | tee -a $LF
+    if($status) exit 1;
+    # Extract Probability of ASeg
+    set pseg = $outdir/mri/p.$seg.mgz
+    set cmd = (mri_convert $tmpdir/vote.mgz $pseg --frame 1)
+    echo $cmd | tee -a $LF
+    $cmd  | tee -a $LF
+    if($status) exit 1;
+
+ end # Loop over segs
+
+endif #DoASeg
+
+#----------------------------------------------------------
 
 if($cleanup) rm -r $tmpdir
 
@@ -281,6 +350,22 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--aseg":
+      set DoASeg = 1;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
+    case "--no-aseg":
+      set DoASeg = 0;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
     case "--debug":
     case "--echo":
       set echo = 1;
@@ -371,6 +456,7 @@ usage_exit:
   echo "   --sd      : same as --sdir"
   echo "   --force   : overwrite existing average subject data"
   echo "   --keep-all-orig : concatenate all orig vols into mri/orig.all.mgz"
+  echo "   --no-aseg : do not create 'average' aseg"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"
