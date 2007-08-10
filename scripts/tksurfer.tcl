@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/08/10 16:33:35 $
-##    $Revision: 1.149 $
+##    $Date: 2007/08/10 21:04:33 $
+##    $Revision: 1.150 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -150,10 +150,13 @@ set FunD_tRegistration(noneNeeded) 3
 
 # set some default histogram data
 set gaHistogramData(zoomed) 0
+set gaHistogramData(zoomedmin) -Inf
+set gaHistogramData(zoomedmax) Inf
 set gaHistogramData(threshMode) linear-opaque
 set gaHistogramData(autoRange) 1
 set gaHistogramData(minXRange) -1
 set gaHistogramData(maxXRange) -1
+set gaHistoWidget(currentfield) 0
 
 # used in overlay config dialog
 set gbOverlayApplyToAll 0
@@ -1570,11 +1573,56 @@ proc SetOverlayTimepointAndCondition {} {
     UpdateAndRedraw 
 }
 
-proc SetOverlayField {} {
+proc SetOverlayField { inField } {
     global gaLinkedVars
     global gaHistoWidget
-    sclv_set_current_field $gaLinkedVars(currentvaluefield)
-    catch { Histo_Unzoom $gaHistoWidget(graph) }
+    global gaHistogramData
+
+    # We want to save the zoom settings when switching fields. First
+    # save the current setting. gaLinkedVars(currentvaluefield) is
+    # still set to the 'old' current field; we havne't changed it yet.
+    if { [info exists gaLinkedVars(currentvaluefield)] } {
+
+	# Save the settings in gaHistogramData.
+	set gaHistogramData(savedzoom,$gaLinkedVars(currentvaluefield),zoomed) \
+	    $gaHistogramData(zoomed)
+	set gaHistogramData(savedzoom,$gaLinkedVars(currentvaluefield),zoomedmin) \
+	    $gaHistogramData(zoomedmin)
+	set gaHistogramData(savedzoom,$gaLinkedVars(currentvaluefield),zoomedmax) \
+	    $gaHistogramData(zoomedmax)
+    }
+
+    # We have this as a separate variable here so that our overlay
+    # layer menu radio items can link to it and set/get their values
+    # without affecting the linked variable.
+    set gaHistoWidget(currentfield) $inField
+
+    # This will set the changes in the C code.
+    set gaLinkedVars(currentvaluefield) $inField
+    sclv_set_current_field $gaHistoWidget(currentfield)
+
+    # If we have saved zoom data for this new layer....
+    if { [info exists gaHistogramData(savedzoom,$gaHistoWidget(currentfield),zoomed)] } {
+	# Restore the zoom settings.
+	set gaHistogramData(zoomed) \
+	    $gaHistogramData(savedzoom,$gaHistoWidget(currentfield),zoomed)
+	set gaHistogramData(zoomedmin) \
+	    $gaHistogramData(savedzoom,$gaHistoWidget(currentfield),zoomedmin)
+	set gaHistogramData(zoomedmax) \
+	    $gaHistogramData(savedzoom,$gaHistoWidget(currentfield),zoomedmax)
+
+	# If we were zoomed in, do it now, otherwise zoom out.
+	if { $gaHistogramData(zoomed) } {
+	    Histo_Zoom $gaHistoWidget(graph) \
+		$gaHistogramData(zoomedmin) $gaHistogramData(zoomedmax)
+	} else {
+	    Histo_Unzoom $gaHistoWidget(graph)
+	}
+    } else {
+	# No saved zoom settings, just zoom out.
+	catch { Histo_Unzoom $gaHistoWidget(graph) }
+    }
+
     SendLinkedVarGroup view
     UpdateAndRedraw 
 }
@@ -3147,48 +3195,48 @@ proc CreateMenuBar { ifwMenuBar } {
 	}}
 	{cascade "Overlay Layer" {
 	    { radio "Overlay Layer 1"
-		{ SetOverlayField; send_current_labels }
-		gaLinkedVars(currentvaluefield)
+		{ SetOverlayField 0; send_current_labels }
+		gaHistoWidget(currentfield)
 		0
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 2"
-		{ SetOverlayField; send_current_labels }
-		gaLinkedVars(currentvaluefield)
+		{ SetOverlayField 1; send_current_labels }
+		gaHistoWidget(currentfield)
 		1
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 3"
-		{ SetOverlayField; send_current_labels }
-		gaLinkedVars(currentvaluefield)
+		{ SetOverlayField 2; send_current_labels }
+		gaHistoWidget(currentfield)
 		2
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 4"
-		{ SetOverlayField; send_current_labels }
-		gaLinkedVars(currentvaluefield)
+		{ SetOverlayField 3; send_current_labels }
+		gaHistoWidget(currentfield)
 		3
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 5"
-		{ SetOverlayField; send_current_labels }
-		gaLinkedVars(currentvaluefield)
+		{ SetOverlayField 4; send_current_labels }
+		gaHistoWidget(currentfield)
 		4
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 6"
-		{ SetOverlayField; send_current_labels }
-		gaLinkedVars(currentvaluefield)
+		{ SetOverlayField 5; send_current_labels }
+		gaHistoWidget(currentfield)
 		5
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 7"
-		{ SetOverlayField; send_current_labels }
-		gaLinkedVars(currentvaluefield)
+		{ SetOverlayField 6; send_current_labels }
+		gaHistoWidget(currentfield)
 		6
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 8"
-		{ SetOverlayField; send_current_labels }
-		gaLinkedVars(currentvaluefield)
+		{ SetOverlayField 7; send_current_labels }
+		gaHistoWidget(currentfield)
 		7
 		mg_OverlayLoaded }
 	    { radio "Overlay Layer 9"
-		{ SetOverlayField; send_current_labels }
-		gaLinkedVars(currentvaluefield)
+		{ SetOverlayField 8; send_current_labels }
+		gaHistoWidget(currentfield)
 		8
 		mg_OverlayLoaded }
 	}}
@@ -3544,9 +3592,7 @@ proc CreateLabelFrame { ifwTop iSet } {
 
 	    # The button command will set the current overlay.
 	    button $fwOverlay -text "*" -width 1 -padx 2 \
-		-command "set gaLinkedVars(currentvaluefield) $nOverlay ;
-			       SetOverlayField ; 
-			       send_current_labels"
+		-command "SetOverlayField $nOverlay; send_current_labels"
 	    bind $fwOverlay <Control-Button> "DoConfigOverlayDisplayDlog"
 
 	    # The entry will set the overlay name.
@@ -3973,13 +4019,20 @@ proc SelectVertex { ivno } {
     global gState
     set gState(lSelectedVnos) [list $ivno]
     GDF_SendCurrentPoints
-
-    # Update our Edit Vertex dialog.
-    
 }
 
 proc OverlayLayerChanged {} {
+    global gaLinkedVars
+    global gaHistoWidget
+
+    # Set the current field, so our menus can update.
+    UpdateLinkedVarGroup view
+    set gaHistoWidget(currentfield) $gaLinkedVars(currentvaluefield)
+
+    # Update the contents of the info dlog, if it's open.
     catch { UpdateOverlayDlogInfo }
+
+    # Update our GDF plot with the current points.
     GDF_HideAllWindows
     GDF_ShowCurrentWindow
     GDF_SendCurrentPoints
