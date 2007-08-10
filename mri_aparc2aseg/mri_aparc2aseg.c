@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/30 16:37:40 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/08/10 04:56:06 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.25 2007/07/30 16:37:40 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.26 2007/08/10 04:56:06 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -109,6 +109,9 @@ static float hashres = 16;
 
 int crsTest = 0, ctest=0, rtest=0, stest=0;
 int UseHash = 1;
+
+char *CtxSegFile = NULL;
+MRI *CtxSeg = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -309,6 +312,12 @@ int main(int argc, char **argv) {
   mritmp = MRIchangeType(ASeg,MRI_INT,0,0,0);
   MRIfree(&ASeg);
   ASeg = mritmp;
+
+  if(CtxSegFile){
+    printf("Loading Ctx Seg File %s\n",CtxSegFile);
+    CtxSeg = MRIread(CtxSegFile);
+    if(CtxSeg == NULL) exit(1);
+  }
 
   AParc = MRIclone(ASeg,NULL);
   if (OutDistFile != NULL) {
@@ -526,6 +535,10 @@ int main(int argc, char **argv) {
         if (!IsCortex && dmin > dmaxctx && hemi == 1) segval = 5001;
         if (!IsCortex && dmin > dmaxctx && hemi == 2) segval = 5002;
 
+	// This is a hack for getting the right cortical seg with --rip-unknown
+	// The aparc+aseg should be passed as CtxSeg.
+	if(IsCortex && CtxSeg) segval = MRIgetVoxVal(CtxSeg,c,r,s,0);
+
         MRIsetVoxVal(ASeg,c,r,s,0,segval);
         MRIsetVoxVal(AParc,c,r,s,0,annot);
         if (OutDistFile != NULL) MRIsetVoxVal(Dist,c,r,s,0,dmin);
@@ -641,6 +654,10 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--oaparc")) {
       if (nargc < 1) argnerr(option,1);
       OutAParcFile = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--ctxseg")) {
+      if (nargc < 1) argnerr(option,1);
+      CtxSegFile = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--dist")) {
       if (nargc < 1) argnerr(option,1);
@@ -801,7 +818,20 @@ static void check_options(void) {
     printf("ERROR: cannot --ribbon and --new-ribbon\n");
     exit(1);
   }
-
+  if(CtxSegFile && ! RipUnknown){
+    printf("ERROR: can only use --ctxseg with --rip-unknown\n");
+    exit(1);
+  }
+  if(CtxSegFile) {
+    if(!fio_FileExistsReadable(CtxSegFile)){
+      sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,CtxSegFile);
+      if(! fio_FileExistsReadable(tmpstr)){
+	printf("ERROR: cannot find %s or %s\n",CtxSegFile,tmpstr);
+	exit(1);
+      }
+      CtxSegFile = strcpyalloc(tmpstr);
+    }
+  }
   return;
 }
 
@@ -812,12 +842,13 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"outvol %s\n",OutASegFile);
   fprintf(fp,"useribbon %d\n",UseRibbon);
   fprintf(fp,"baseoffset %d\n",baseoffset);
-  if (LabelWM) {
+  if(LabelWM) {
     printf("labeling wm\n");
     if (LabelHypoAsWM) printf("labeling hypo-intensities as wm\n");
     printf("dmaxctx %f\n",dmaxctx);
   }
   fprintf(fp,"RipUnknown %d\n",RipUnknown);
+  if(CtxSegFile) fprintf(fp,"CtxSeg %s\n",CtxSegFile);
   return;
 }
 /*---------------------------------------------------------------*/
