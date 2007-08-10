@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/09 20:52:16 $
- *    $Revision: 1.31 $
+ *    $Date: 2007/08/10 16:37:49 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.31 2007/08/09 20:52:16 greve Exp $
+  $Id: mri_label2label.c,v 1.32 2007/08/10 16:37:49 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -98,7 +98,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.31 2007/08/09 20:52:16 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.32 2007/08/10 16:37:49 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -157,6 +157,9 @@ LTA *lta_transform;
 char *OutMaskFile = NULL;
 MRI *outmask;
 
+int SrcInv = 0, TrgInv = 0;
+MRI *tmpmri;
+
 /*-------------------------------------------------*/
 int main(int argc, char **argv) {
   int err;
@@ -174,7 +177,7 @@ int main(int argc, char **argv) {
   PATH* path;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.31 2007/08/09 20:52:16 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.32 2007/08/10 16:37:49 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -244,10 +247,6 @@ int main(int argc, char **argv) {
   fflush(stdout);
   fflush(stderr);
 
-  /* -- Allocate the Target Label ---*/
-  trglabel = LabelAlloc(srclabel->n_points,trgsubject,trglabelfile);
-  trglabel->n_points = srclabel->n_points;
-
   /* Set up vectors */
   xyzSrc = MatrixAlloc(4,1,MATRIX_REAL);
   xyzSrc->rptr[3+1][0+1] = 1.0;
@@ -255,6 +254,10 @@ int main(int argc, char **argv) {
 
   /*--------------------- VOLUMETRIC MAPPING --------------------------*/
   if (!strcmp(regmethod,"volume")) {
+
+    /* -- Allocate the Target Label ---*/
+    trglabel = LabelAlloc(srclabel->n_points,trgsubject,trglabelfile);
+    trglabel->n_points = srclabel->n_points;
 
     printf("Starting volumetric mapping\n");
 
@@ -398,7 +401,7 @@ int main(int argc, char **argv) {
     if (useprojfrac) {
       sprintf(fname,"%s/%s/surf/%s.thickness",SUBJECTS_DIR,srcsubject,srchemi);
       printf("Reading thickness %s\n",fname);
-      MRISreadCurvatureFile(TrgSurf, fname);
+      MRISreadCurvatureFile(TrgSurf, fname); // is this right?
       printf("Done\n");
     }
 
@@ -422,8 +425,19 @@ int main(int argc, char **argv) {
         printf("ERROR: no overlap between mask and label\n");
         exit(1);
       }
-      trglabel->n_points = srclabel->n_points;
     }
+
+    /* Invert Source Label */
+    if(SrcInv){
+      printf("Inverting source label\n");
+      tmplabel = MRISlabelInvert(SrcSurfReg,srclabel);
+      LabelFree(&srclabel);
+      srclabel = tmplabel;
+    }
+
+    /* -- Allocate the Target Label ---*/
+    trglabel = LabelAlloc(srclabel->n_points,trgsubject,trglabelfile);
+    trglabel->n_points = srclabel->n_points;
 
     /* Loop through each source label and map its xyz to target */
     allzero = 1;
@@ -442,7 +456,7 @@ int main(int argc, char **argv) {
         exit(1);
       }
 
-      if (srcvtxno != 0) allzero = 0;
+      if(srcvtxno != 0) allzero = 0;
 
       /* source vertex */
       srcvtx = &(SrcSurfReg->vertices[srcvtxno]);
@@ -576,6 +590,15 @@ int main(int argc, char **argv) {
     printf("Checking for and removing duplicates\n");
     LabelRemoveDuplicates(trglabel);
 
+    /* Invert Targ Label */
+    if(TrgInv){
+      printf("Inverting target label\n");
+      tmplabel = MRISlabelInvert(TrgSurfReg,trglabel);
+      LabelFree(&trglabel);
+      trglabel = tmplabel;
+    }
+
+
     if(OutMaskFile){
       printf("Creating output mask %s\n",OutMaskFile);
       outmask = MRIalloc(TrgSurf->nvertices,1,1,MRI_INT);
@@ -647,7 +670,15 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--revmap")) reversemap = 1;
     else if (!strcasecmp(option, "--usepathfiles")) usepathfiles = 1;
     else if (!strcmp(option, "--xfm-invert")) InvertXFM = 1;
+    else if (!strcmp(option, "--src-invert")) SrcInv = 1;
+    else if (!strcmp(option, "--trg-invert")) TrgInv = 1;
 
+    else if (!strcmp(option, "--s")) {
+      if (nargc < 1) argnerr(option,1);
+      srcsubject = pargv[0];
+      trgsubject = pargv[0];
+      nargsused = 1;
+    } 
     /* -------- source inputs ------ */
     else if (!strcmp(option, "--sd")) {
       if (nargc < 1) argnerr(option,1);
@@ -786,9 +817,11 @@ static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --srclabel     input label file \n");
-  printf("   --srcsubject   source subject\n");
   printf("\n");
+  printf("   --srcsubject   source subject\n");
   printf("   --trgsubject   target subject\n");
+  printf("   --s subject : use for both target and source\n");
+  printf("\n");
   printf("   --trglabel     output label file \n");
   printf("   --outmask      maskfile : save output label as a binary mask (surf only)\n");
   printf("\n");
@@ -1017,6 +1050,14 @@ static void check_options(void) {
       printf("ERROR: cannot specify outmask with vol reg method\n");
       exit(1);
     }
+    if(SrcInv){
+      printf("ERROR: cannot specify src-invert with vol reg method\n");
+      exit(1);
+    }
+    if(TrgInv){
+      printf("ERROR: cannot specify trg-invert with vol reg method\n");
+      exit(1);
+    }
   }
 
   if (!strcmp(srcsubject,"ico") && srcicoorder < 0) {
@@ -1062,4 +1103,3 @@ static int singledash(char *flag) {
   if (flag[0] == '-' && flag[1] != '-') return(1);
   return(0);
 }
-
