@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/10 16:37:49 $
- *    $Revision: 1.32 $
+ *    $Date: 2007/08/10 18:23:46 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.32 2007/08/10 16:37:49 greve Exp $
+  $Id: mri_label2label.c,v 1.33 2007/08/10 18:23:46 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -98,7 +98,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.32 2007/08/10 16:37:49 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.33 2007/08/10 18:23:46 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -158,7 +158,6 @@ char *OutMaskFile = NULL;
 MRI *outmask;
 
 int SrcInv = 0, TrgInv = 0;
-MRI *tmpmri;
 
 /*-------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -177,7 +176,7 @@ int main(int argc, char **argv) {
   PATH* path;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.32 2007/08/10 16:37:49 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.33 2007/08/10 18:23:46 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -588,6 +587,7 @@ int main(int argc, char **argv) {
     }
 
     printf("Checking for and removing duplicates\n");
+    // Does not actually remove them, just flags them
     LabelRemoveDuplicates(trglabel);
 
     /* Invert Targ Label */
@@ -598,13 +598,9 @@ int main(int argc, char **argv) {
       trglabel = tmplabel;
     }
 
-
     if(OutMaskFile){
       printf("Creating output mask %s\n",OutMaskFile);
-      outmask = MRIalloc(TrgSurf->nvertices,1,1,MRI_INT);
-      for (n = 0; n < trglabel->n_points; n++) {
-	MRIsetVoxVal(outmask,trglabel->lv[n].vno,0,0,0,1);
-      }
+      outmask = MRISlabel2Mask(TrgSurfReg,trglabel,NULL);
       MRIwrite(outmask,OutMaskFile);
       MRIfree(&outmask);
     }
