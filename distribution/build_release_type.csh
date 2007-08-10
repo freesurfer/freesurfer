@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.90 2007/08/10 17:01:46 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.91 2007/08/10 23:38:28 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -106,6 +106,7 @@ else
   set TJGDIR=/usr/pubsw/packages/tiffjpegglut/current
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
+  set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
@@ -357,6 +358,9 @@ endif
 set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 if ($?VTKDIR) then
     set cnfgr=($cnfgr --with-vtk-dir=${VTKDIR})
+endif
+if ($?KWWDIR) then
+    set cnfgr=($cnfgr --with-kwwidgets-dir=${KWWDIR})
 endif
 set cnfgr=($cnfgr --with-tiff-dir=${TJGDIR})
 set cnfgr=($cnfgr --with-jpeg-dir=${TJGDIR})
