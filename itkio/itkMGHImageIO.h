@@ -225,7 +225,7 @@ namespace itk
 
       itk::MetaDataDictionary &thisDic=this->GetMetaDataDictionary();
     
-      float fScanBuffer;
+      float fScanBuffer=0.0;
 
       if ( ExposeMetaData<float>(thisDic, "TR", fScanBuffer) )
 	{
