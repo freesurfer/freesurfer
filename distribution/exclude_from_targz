@@ -60,3 +60,5 @@ freesurfer/average/rh.curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
 freesurfer/subjects/talairach
 freesurfer/subjects/mri
 freesurfer/matlab/read_meas_dat.m
+freesurfer/dmri_poistats/dmri_initialize_path
+freesurfer/dmri_poistats/dmri_mask
