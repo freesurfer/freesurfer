@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.89 2007/07/29 17:52:35 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.90 2007/08/10 17:01:46 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,8 +13,8 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v3.0.5"
-set STABLE_PUB_VER_NUM="v3.0.5"
+set STABLE_VER_NUM="v4.0.0"
+set STABLE_PUB_VER_NUM="v4.0.0"
 
 set SUCCESS_MAIL_LIST=(nicks kteich)
 set FAILURE_MAIL_LIST=(nicks kteich fischl greve dsjen)
@@ -65,10 +65,10 @@ if ("$RELEASE_TYPE" == "dev") then
   set DEST_DIR=${LOCAL_FS}/dev
 else if ("$RELEASE_TYPE" == "stable") then
   set DEV_DIR=${BUILD_DIR}/stable/dev
-  set DEST_DIR=${LOCAL_FS}/stable
+  set DEST_DIR=${LOCAL_FS}/stable4
 else if ("$RELEASE_TYPE" == "stable-pub") then
   set DEV_DIR=${BUILD_DIR}/stable/dev
-  set DEST_DIR=${LOCAL_FS}/stable-pub
+  set DEST_DIR=${LOCAL_FS}/stable4-pub
 else
   echo "ERROR: release_type must be either dev, stable or stable-pub"
   echo ""
