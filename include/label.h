@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/05/16 16:07:11 $
- *    $Revision: 1.38 $
+ *    $Author: greve $
+ *    $Date: 2007/08/10 16:36:04 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -126,6 +126,7 @@ LABEL *LabelBoundary(LABEL *label, MRIS *surf);
 int VertexIsInLabel(int vtxno, LABEL *label);
 LABEL *LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad) ;
 int   LabelUnassign(LABEL *area) ;
+LABEL *MRISlabelInvert(MRIS *surf, LABEL *label);
 
 #include "mrishash.h"
 LABEL   *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *area,

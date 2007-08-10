@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/23 19:44:44 $
- *    $Revision: 1.72 $
+ *    $Author: greve $
+ *    $Date: 2007/08/10 16:36:04 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2406,4 +2406,40 @@ LabelUnassign(LABEL *area)
   for (i = 0 ; i < area->n_points ; i++)
     area->lv[i].vno = -1 ;
   return(NO_ERROR) ;
+}
+
+/*---------------------------------------------------------------
+  MRISlabelInvert(MRIS *surf, LABEL *label)
+  Creates a label with all the vertices NOT in the input label.
+  ---------------------------------------------------------------*/
+LABEL *MRISlabelInvert(MRIS *surf, LABEL *label)
+{
+  MRI *tmpmri;
+  LABEL *invlabel;
+  int n,vtxno;
+
+  // Create binary mask of label
+  tmpmri = MRIalloc(surf->nvertices,1,1,1);
+  for(n = 0; n < label->n_points; n++)
+    MRIsetVoxVal(tmpmri,label->lv[n].vno,0,0,0,1);
+
+  // Alloc inverse label
+  invlabel = LabelAlloc(surf->nvertices-label->n_points, 
+			label->subject_name, NULL);
+  invlabel->n_points = surf->nvertices-label->n_points;
+
+  // Assign label points to vtxs not in mask
+  n = 0;
+  for(vtxno=0; vtxno < surf->nvertices; vtxno++){
+    if(!MRIgetVoxVal(tmpmri,vtxno,0,0,0)){
+      invlabel->lv[n].vno = vtxno;
+      invlabel->lv[n].x = surf->vertices[vtxno].x;
+      invlabel->lv[n].y = surf->vertices[vtxno].y;
+      invlabel->lv[n].z = surf->vertices[vtxno].z;
+      invlabel->lv[n].stat = 0.0;
+      n++;
+    }
+  }
+  MRIfree(&tmpmri);
+  return(invlabel);
 }
