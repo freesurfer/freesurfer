@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/09 19:37:20 $
- *    $Revision: 1.38 $
+ *    $Date: 2007/08/10 22:58:11 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.38 2007/08/09 19:37:20 greve Exp $
+  $Id: mri2.c,v 1.39 2007/08/10 22:58:11 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -2101,4 +2101,113 @@ MRI *MRIvol2VolDelta(MRI *mov, MRI *targ, MATRIX *Rt2s)
   MatrixFree(&targVox2movRAS);
 
   return(delta);
+}
+
+/*-----------------------------------------------------------*/
+/*!
+  \fn MRI *MRIcrop(MRI *mri, int c1, int r1, int s1, int c2, int r2, int s2)
+  \brief Crop volume, keep correct goemetry.
+  \param mri - volume to be cropped
+  \param crs1 - col, row, slice to start cropping (inclusive)
+  \param crs2 - col, row, slice to end cropping (inclusive)
+ */
+MRI *MRIcrop(MRI *mri, int c1, int r1, int s1, int c2, int r2, int s2)
+{
+  int c, r, s, f, Nc, Nr, Ns;
+  MRI *crop;
+  MATRIX *Vox2RAS, *crs, *P0;
+  double v;
+
+  if(c1 < 0 || c1 >= mri->width || r1 < 0 || r1 >= mri->height ||
+     s1 < 0 || s1 >= mri->depth){
+    printf("MRIcrop(): start point %d %d %d out of range\n",c1,r1,s1);
+    return(NULL);
+  }
+
+  if(c2 < 0 || c2 >= mri->width || r2 < 0 || r2 >= mri->height ||
+     s2 < 0 || r2 >= mri->depth){
+    printf("MRIcrop(): end point %d %d %d out of range\n",c2,r2,s2);
+    return(NULL);
+  }
+
+  // Size of cropped volume. +1 to make inclusive.
+  Nc = c2-c1+1;
+  Nr = r2-r1+1;
+  Ns = s2-s1+1;
+
+  crop = MRIallocSequence(Nc,Nr,Ns,mri->type,mri->nframes);
+  MRIcopyHeader(mri, crop);
+  
+  // Compute location of 1st vox in cropped volume
+  Vox2RAS = MRIxfmCRS2XYZ(mri,0);
+  crs = MatrixAlloc(4,1,MATRIX_REAL);
+  crs->rptr[1][1] = c1;
+  crs->rptr[2][1] = r1;
+  crs->rptr[3][1] = s1;
+  crs->rptr[4][1] =  1;
+  P0 = MatrixMultiply(Vox2RAS,crs,NULL);
+
+  // Update header geometry for cropped
+  MRIp0ToCRAS(crop, P0->rptr[1][1], P0->rptr[2][1], P0->rptr[3][1]);
+
+  // Fill the value
+  for(c=0; c < crop->width; c++){
+    for(r=0; r < crop->height; r++){
+      for(s=0; s < crop->depth; s++){
+	for(f=0; f < crop->nframes; f++){
+	  v = MRIgetVoxVal(mri,c+c1,r+r1,s+s1,f);
+	  MRIsetVoxVal(crop,c,r,s,f,v);
+	}
+      }
+    }
+  }
+
+  MatrixFree(&Vox2RAS);
+  MatrixFree(&crs);
+  MatrixFree(&P0);
+
+  return(crop);
+}
+
+/*-----------------------------------------------------------*/
+/*!
+  \fn MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int s2)
+  \brief Uncrops volume, keeps correct goemetry.
+  \param mri - template for full, uncropped volume
+  \param crs1 - col, row, slice in template at which cropping started (inclusive)
+  \param crs2 - col, row, slice in template at which cropping ended   (inclusive)
+ */
+MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int s2)
+{
+  int c, r, s, f;
+  MRI *uncrop;
+  double v;
+
+  if(c1 < 0 || c1 >= mri->width || r1 < 0 || r1 >= mri->height ||
+     s1 < 0 || s1 >= mri->depth){
+    printf("MRIuncrop(): start point %d %d %d out of range\n",c1,r1,s1);
+    return(NULL);
+  }
+
+  if(c2 < 0 || c2 >= mri->width || r2 < 0 || r2 >= mri->height ||
+     s2 < 0 || r2 >= mri->depth){
+    printf("MRIuncrop(): end point %d %d %d out of range\n",c2,r2,s2);
+    return(NULL);
+  }
+
+  uncrop = MRIcloneBySpace(mri, crop->type, crop->nframes);
+
+  // Fill the values
+  for(c=0; c < crop->width; c++){
+    for(r=0; r < crop->height; r++){
+      for(s=0; s < crop->depth; s++){
+	for(f=0; f < crop->nframes; f++){
+	  v = MRIgetVoxVal(crop,c,r,s,f);
+	  MRIsetVoxVal(uncrop,c+c1,r+r1,s+s1,f,v);
+	}
+      }
+    }
+  }
+
+  return(uncrop);
 }

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/24 21:11:59 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/08/10 22:58:09 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,5 +71,8 @@ int MRImakeVox2VoxReg(MRI* targ, MRI* mov,
                       mriTransformRef* transform);
 double MRIsum2All(MRI *mri);
 MRI *MRIchecker(MRI *mri, MRI *checker);
+MRI *MRIcrop(MRI *mri,int c1, int r1, int s1, int c2, int r2, int s2);
+MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int s2);
+
 
 #endif
