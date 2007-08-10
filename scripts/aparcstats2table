@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: aparcstats2table,v 1.5 2006/11/15 18:50:19 greve Exp $
+# $Id: aparcstats2table,v 1.6 2007/08/10 23:58:35 nicks Exp $
 import sys;
 import os;
 import string;
@@ -196,7 +196,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: aparcstats2table,v 1.5 2006/11/15 18:50:19 greve Exp $';
+Version = '$Id: aparcstats2table,v 1.6 2007/08/10 23:58:35 nicks Exp $';
 tablefile = ();
 parc = 'aparc';
 hemi = [];
@@ -250,7 +250,7 @@ for subject in SUBJECTS:
       else:
         tmp = string.split(line);
         parcid = tmp[0];
-        fptbl.write('%s ' % (parcid) );
+        fptbl.write('%s_%s_%s ' % (hemi,parcid,meas) );
       #endif
     #end # line
     fp.close();
