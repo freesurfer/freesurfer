@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/08/10 00:07:58 $
-#    $Revision: 1.131 $
+#    $Author: greve $
+#    $Date: 2007/08/10 16:40:26 $
+#    $Revision: 1.132 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.131 2007/08/10 00:07:58 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.132 2007/08/10 16:40:26 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2192,7 +2192,7 @@ if($DoWMParc) then
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
   set cmd = (mri_aparc2aseg --s $subjid --labelwm --hypo-as-wm --rip-unknown \
-             --ribbon --o mri/wmparc.mgz $xopts )
+             --ribbon --o mri/wmparc.mgz --ctxseg aparc+aseg.mgz $xopts )
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd |& tee -a $LF
