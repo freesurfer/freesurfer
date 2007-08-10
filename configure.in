@@ -294,7 +294,9 @@ AC_ARG_ENABLE(Werror,
  [ WERROR="-Werror" ])
 
 # to strip unused code when using Linux gcc:
-DEADCODE_STRIP="-ffunction-sections -Wl,--gc-sections"
+#DEADCODE_STRIP="-ffunction-sections -Wl,--gc-sections"
+# does not work in scuba2! so leave empty:
+DEADCODE_STRIP=""
 # and on the Mac:
 DEADCODE_STRIP_MAC="-dead_strip"
 
@@ -302,7 +304,7 @@ AC_MSG_NOTICE(Setting OS from target...)
 case "${target}" in
  i*86-*-linux-gnu*)
  OS=Linux
- OS_CPPFLAGS=
+ OS_CPPFLAGS="$DEADCODE_STRIP"
  OS_LDFLAGS="$DEADCODE_STRIP"
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
@@ -311,7 +313,7 @@ case "${target}" in
  ;;
  x86_64-*)
  OS=Linux
- OS_CPPFLAGS=
+ OS_CPPFLAGS="$DEADCODE_STRIP"
  OS_LDFLAGS="$DEADCODE_STRIP"
  LDFLAGS="-L/usr/X11R6/lib64 -L/usr/lib64 $LDFLAGS"
  DYNAMIC_LIB_EXT=".so"
