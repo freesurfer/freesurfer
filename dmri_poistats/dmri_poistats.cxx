@@ -172,7 +172,7 @@ const std::string Poistats::FLAG_POINTS_TO_IMAGE_GAMMA =
 
 Poistats::Poistats( int inArgs, char ** iaArgs ) : 
   FreeSurferExecutable( inArgs, iaArgs ) {
-  SetName( "dmri_poistats", "find optimal path in tensor volume" );  
+  SetName( "dmri_poistats", "find optimal path in tensor volume (**beta version with limited support)" );  
 
   SetNextRequiredArgument( FLAG_INPUT_STEM, "dtensorinstem", 
     "Diffusion tensor input", 
@@ -231,8 +231,8 @@ Poistats::Poistats( int inArgs, char ** iaArgs ) :
 
   SetOutput( output );
   
-  SetVersion( "0.1" );
-  SetBugEmail( "martinos-tech@yahoogroups.com" );
+  SetVersion( "1.0 beta" );
+  SetBugEmail( "freesurfer@nmr.mgh.harvard.edu" );
 }
 
 Poistats::~Poistats() {  
@@ -408,7 +408,7 @@ Poistats::Run() {
   
   delete tensorReader;
       
-  typedef itk::Image< float, 3 > OutputImageType;
+  typedef itk::OrientedImage< float, 3 > OutputImageType;
   typedef itk::PoistatsFilter< TensorImageType, OutputImageType > 
     PoistatsFilterType;
   PoistatsFilterType::Pointer poistatsFilter = PoistatsFilterType::New();
