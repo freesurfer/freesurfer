@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/10 04:56:06 $
- *    $Revision: 1.26 $
+ *    $Author: nicks $
+ *    $Date: 2007/08/10 16:21:06 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.26 2007/08/10 04:56:06 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.27 2007/08/10 16:21:06 nicks Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -450,11 +450,13 @@ int main(int argc, char **argv) {
 	  rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
 	  rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
 	  if (lhwvtx < 0 && lhpvtx < 0 && rhwvtx < 0 && rhpvtx < 0) {
+      /*
 	    printf("  Could not map to any surface with hash table:\n");
 	    printf("  crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
 		   c,r,s,vtx.x,vtx.y,vtx.z);
 	    printf("  Using brute force search %d ... \n",nbrute);
 	    fflush(stdout);
+      */
 	    lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
 	    lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
 	    rhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&drhw);
