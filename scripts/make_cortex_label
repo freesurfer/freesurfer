@@ -1,0 +1,154 @@
+#! /bin/tcsh -f
+
+#
+# make_cortex_label
+#
+# Creates a label for cortex from Christophe's parcellation (eveything but 
+# Medial_wall). The name is currently ?h.cortex2.label. Also copies
+# ?h.Medial_wall.label to label dir.
+#
+# Original Author: Douglas Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2007/08/10 20:03:32 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION = '$Id: make_cortex_label,v 1.1 2007/08/10 20:03:32 greve Exp $';
+set inputargs = ($argv);
+
+set subject   = ();
+set hemilist  = (lh rh)
+
+set n = `echo $argv | grep -e -version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+if($#argv == 0) goto usage_exit;
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set sdir = $SUBJECTS_DIR/$subject
+if(! -e $sdir) then
+  echo "ERROR: cannto find $sdir"
+  exit 1;
+endif
+
+# Loop thru the hemis
+foreach hemi ($hemilist)
+  set annot = $sdir/label/$hemi.aparc.a2005s.annot
+  if(! -e $annot) then
+    echo "ERROR: cannto find $annot"
+    exit 1;
+  endif
+
+  # Create tmpdir
+  set tmpdir = $sdir/make_cortex_label.tmp.$$
+  rm -rf $tmpdir
+  mkdir -p $tmpdir
+
+  # Unload all of Christophe's labels into tmpdir
+  set cmd = (mri_annotation2label --subject $subject --hemi $hemi \
+    --outdir $tmpdir --annotation aparc.a2005s)
+  pwd
+  echo $cmd 
+  $cmd
+  if($status) exit 1;
+
+  # Move medial wall to label dir
+  mv $tmpdir/$hemi.Medial_wall.label $sdir/label
+
+  # Create the cortex label with all the remaining labels
+  set ctxlabel = $sdir/label/$hemi.cortex2.label
+  set cmd = (mri_mergelabels -o $ctxlabel -d $tmpdir)
+  echo $cmd 
+  $cmd
+  if($status) exit 1;
+
+  # Cleanup
+  rm -rf $tmpdir
+
+end
+
+date
+echo "make_cortex_label done"
+
+exit 0;
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--s"
+      if($#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--h"
+      if($#argv == 0) goto arg1err;
+      set hemilist = $argv[1]; shift;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo "ERROR: $flag not regocnized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#subject == 0) then
+    echo "ERROR: need subject"
+    exit 1;
+  endif
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: make_cortex_label"
+  echo ""
+  echo "   --s subject"
+  echo "   --h hemi (default is both)"
+  echo ""
+exit 1;
