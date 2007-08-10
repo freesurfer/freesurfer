@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: kteich $
-##    $Date: 2007/05/21 19:30:50 $
-##    $Revision: 1.148 $
+##    $Date: 2007/08/10 16:33:35 $
+##    $Revision: 1.149 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -5404,11 +5404,10 @@ proc UpdateAndRedraw {} {
 
 proc RestoreView {} {
     global flag2d
-    ResetTransform
     make_lateral_view
     if {$flag2d} {
-  restore_zero_position
-  rotate_brain_x -90
+	restore_zero_position
+	rotate_brain_x -90
     }
     UpdateAndRedraw
 }
@@ -5423,7 +5422,7 @@ proc DoTransform { } {
     scale_brain [expr $gNextTransform(scale)/100.0]
 }
 
-proc ResetTransform { } {
+proc ResetTransformParameters { } {
     global gNextTransform kanDefaultTransform
     set gNextTransform(rotate,degrees) $kanDefaultTransform(rotate)
     set gNextTransform(translate,dist) $kanDefaultTransform(translate)
@@ -6068,7 +6067,7 @@ ShowLabel kLabel_Coords_Tal 1
 MoveToolWindow 0 0
 
 # Init the display transform
-ResetTransform
+ResetTransformParameters
 
 # Init the fsgdf code.
 set gbGDFLoaded 0
