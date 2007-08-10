@@ -329,7 +329,7 @@ case "${target}" in
  # Mac OS X
  OS=Darwin
  OS_CPPFLAGS=
- OS_LDFLAGS=
+ OS_LDFLAGS="-dead_strip"
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
