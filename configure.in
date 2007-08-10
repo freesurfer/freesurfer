@@ -338,7 +338,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
- CPPFLAGS="-g -O2 $NSALIASING $WALL $WERROR -Wno-long-double $LFS_CFLAGS"
+ CPPFLAGS="-gfull -O2 $NSALIASING $WALL $WERROR -Wno-long-double $LFS_CFLAGS"
  ;;
  i*86-*-solaris*)
  OS=SunOS
