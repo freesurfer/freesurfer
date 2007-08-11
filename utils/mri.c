@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/09 22:42:57 $
- *    $Revision: 1.393 $
+ *    $Date: 2007/08/11 01:48:45 $
+ *    $Revision: 1.394 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.393 $";
+char *MRI_C_VERSION = "$Revision: 1.394 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -15046,3 +15046,24 @@ MRIfillHoles(MRI *mri_src, MRI *mri_fill, int thresh)
     fprintf(stderr, "total of %d holes filled\n",ntotal);
   return(mri_fill) ;
 }
+int *
+MRIhistogramLabels(MRI *mri, int *counts, int max_label)
+{
+  int   x, y, z, label ;
+
+  if (counts == NULL)
+    counts = (int *)calloc(max_label+1, sizeof(*counts)) ;
+  if (counts == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRIhistogramLabels: could not allocate %d counts",
+              max_label+1) ;
+  for (x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+        label = (int)MRIgetVoxVal(mri, x, y, z, 0) ;
+        if (label <= max_label)
+          counts[label]++ ;
+      }
+  return(counts) ;
+}
+
