@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/07 20:57:38 $
- *    $Revision: 1.345 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/11 01:49:29 $
+ *    $Revision: 1.346 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -727,6 +727,7 @@ int        MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame) ;
 MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
 
 #include "histo.h" // HISTOGRAM
+int        *MRIhistogramLabels(MRI *mri, int *counts, int max_label);
 HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
 HISTOGRAM  *MRIhistogramLabel(MRI *mri, MRI *mri_labeled,
                               int label, int nbins);
