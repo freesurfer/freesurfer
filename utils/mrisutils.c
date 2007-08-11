@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/16 22:21:53 $
- *    $Revision: 1.26 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/11 16:01:07 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,6 +58,7 @@
 #include "gca.h"
 #include "sig.h"
 #include "annotation.h"
+#include "mrisegment.h"
 
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
@@ -1786,6 +1787,7 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg) {
   double   xv, yv, zv, val, xs, ys, zs, d ;
 
   printf("generating cortex label...\n") ;
+
   MRISsetMarks(mris, 1) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
@@ -1829,6 +1831,8 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg) {
       {
         if (label == Left_Putamen || label == Right_Putamen)
           DiagBreak() ;
+        if (vno == Gdiag_no)
+          DiagBreak() ;
         v->marked = 0 ;
       }
     }
@@ -1858,5 +1862,6 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg) {
       v->marked = 0 ;
   }
   lcortex = LabelFromMarkedSurface(mris) ;
+
   return(lcortex) ;
 }
