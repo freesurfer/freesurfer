@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/16 18:50:18 $
- *    $Revision: 1.97 $
+ *    $Date: 2007/08/11 16:01:48 $
+ *    $Revision: 1.98 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,13 +55,14 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.97 2007/07/16 18:50:18 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.98 2007/08/11 16:01:48 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
 #define BRIGHT_LABEL         130
 #define BRIGHT_BORDER_LABEL  100
 
+static int edit_aseg_with_surfaces(MRI_SURFACE *mris, MRI *mri_aseg) ;
 #if 0
 static double mark_dura(MRI_SURFACE *mris,
                         MRI *mri_ratio,
@@ -102,6 +103,7 @@ static int fix_mtl = 0 ;
 static LABEL *highres_label = NULL ;
 static char T1_name[STRLEN] = "brain" ;
 
+static char *write_aseg_fname = NULL ;
 static char *white_fname = NULL ;
 static int use_mode = 1 ;
 
@@ -230,13 +232,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.97 2007/07/16 18:50:18 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.98 2007/08/11 16:01:48 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.97 2007/07/16 18:50:18 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.98 2007/08/11 16:01:48 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -816,7 +818,12 @@ main(int argc, char *argv[]) {
 
   MRISunrip(mris) ;
   if (mri_aseg)
+  {
     fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
+    edit_aseg_with_surfaces(mris, mri_aseg) ;
+    if (write_aseg_fname)
+      MRIwrite(mri_aseg, write_aseg_fname) ;
+  }
   if (!nowhite) {
     sprintf(fname,
             "%s/%s/surf/%s.%s%s%s",
@@ -1283,6 +1290,10 @@ get_option(int argc, char *argv[]) {
     aseg_name = argv[2] ;
     printf("using aseg volume %s to prevent surfaces crossing the midline\n",
            aseg_name) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "write_aseg")) {
+    write_aseg_fname = argv[2] ;
+    printf("writing corrected  aseg volume to %s\n", write_aseg_fname) ;
     nargs = 1 ;
   } else if (!stricmp(option, "noaseg")) {
     aseg_name = NULL ;
@@ -2017,12 +2028,13 @@ smooth_contra_hemi(MRI *mri_filled,
   return(mri_dst) ;
 }
 
+
 static int
 fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
             int which, int fix_mtl)
 {
   int      vno, label, contra_wm_label, nvox=0, total_vox=0, adjacent=0,
-           wm_label ;
+           wm_label, gm_label ;
   VERTEX   *v ;
   double   xv, yv, zv, val, xs, ys, zs, d ;
 
@@ -2031,11 +2043,13 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
   {
     contra_wm_label = Right_Cerebral_White_Matter ;
     wm_label = Left_Cerebral_White_Matter ;
+    gm_label = Left_Cerebral_Cortex ;
   }
   else
   {
     contra_wm_label = Left_Cerebral_White_Matter ;
     wm_label = Right_Cerebral_White_Matter ;
+    gm_label = Right_Cerebral_Cortex ;
   }
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
@@ -2076,6 +2090,8 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       {
         if (label == Left_Putamen || label == Right_Putamen)
           DiagBreak() ;
+        if (vno == Gdiag_no)
+          DiagBreak() ;
         MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
         MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
         v->val = val ;
@@ -2095,7 +2111,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
         MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
-      if (d < 1.1 && label == wm_label)
+      if (d < 1.1 && (label == wm_label || label == gm_label))
         break ;   // found real white matter next to surface
       if ((label == contra_wm_label ||
            label == Left_Lateral_Ventricle ||
@@ -2125,6 +2141,8 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
         if ((label == Left_Lateral_Ventricle || label == Right_Lateral_Ventricle) &&
             d > 1)  // in calcarine ventricle can be pretty close to wm surface
           break ;
+        if (vno == Gdiag_no)
+          DiagBreak() ;
         MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
         MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
         v->val = val ;
@@ -2494,5 +2512,81 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, int nstd) {
   std = sqrt(std/num - mean*mean) ;
   thresh = mean+nstd*std ;
   return(thresh) ;
+}
+
+#include "mrisegment.h"
+static int
+edit_aseg_with_surfaces(MRI_SURFACE *mris, MRI *mri_aseg)
+{
+  MRI              *mri_filled, *mri_hires_aseg ;
+  MRI_SEGMENTATION *mseg1, *mseg2 ;
+  MRI_SEGMENT      *mseg ;
+  int              label, *counts, x, y, z, max_seg_no, sno,vno, alabel ;
+  MATRIX           *m_vox2vox ;
+  VECTOR           *v1, *v2 ;
+
+  printf("correcting aseg with surfaces...\n");
+  mri_filled = MRISfillInterior(mris, mri_aseg->xsize/4, NULL) ;
+  mri_filled->c_r += mri_aseg->c_r ;
+  mri_filled->c_a += mri_aseg->c_a ;
+  mri_filled->c_s += mri_aseg->c_s ;
+  mri_hires_aseg = MRIresample(mri_aseg, mri_filled, SAMPLE_NEAREST);
+  /*  MRIdilate(mri_filled, mri_filled) ; */// fill small breaks
+  MRIcopyLabel(mri_filled, mri_hires_aseg, 1) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    MRIwrite(mri_hires_aseg, "ha.mgz") ;
+    MRIwrite(mri_filled, "hs.mgz") ;
+  }
+
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri_hires_aseg, mri_aseg) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1, 4) = VECTOR_ELT(v2, 4) = 1.0 ;
+  counts = MRIhistogramLabels(mri_aseg,  NULL, MAX_CMA_LABEL+1) ;
+  for (label = 17  ; label <= 17 ; label++)
+  {
+    if (counts[label] == 0)
+      continue ;
+    mseg1 = MRIsegment(mri_aseg, label, label) ;
+    if (mseg1->nsegments != 1) // wasn't topologically correct
+    {
+      MRIsegmentFree(&mseg1) ;
+      continue ;
+    }
+    mseg2 = MRIsegment(mri_hires_aseg, label, label) ;
+    if (mseg2->nsegments == 1)  // topology already correct
+    {
+      MRIsegmentFree(&mseg2) ;
+      continue ;
+    }
+
+    // turn off the other pieces of the label
+    max_seg_no = MRIfindMaxSegmentNumber(mseg2) ;
+    for (sno = 0 ; sno < mseg2->nsegments ; sno++)
+    {
+      if (sno == max_seg_no)
+        continue ;
+      mseg = &mseg2->segments[sno] ;
+      printf("label %s: removing %d voxels in segment %d\n",
+             cma_label_to_name(label), mseg->nvoxels, sno) ;
+      for (vno = 0 ; vno < mseg->nvoxels ; vno++)
+      {
+        V3_X(v1) = mseg->voxels[vno].x ; 
+        V3_Y(v1) = mseg->voxels[vno].y ; 
+        V3_Z(v1) = mseg->voxels[vno].z ;
+        MatrixMultiply(m_vox2vox, v1, v2) ; // to lowres coords
+        x = nint(V3_X(v2)) ;  y = nint(V3_Y(v2)) ; z = nint(V3_Z(v2)) ; 
+        alabel = (int)MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
+        if (alabel == label)
+          MRIsetVoxVal(mri_aseg, x, y, z, 0, Left_undetermined) ;
+      }
+    }
+
+    MRIsegmentFree(&mseg1) ; MRIsegmentFree(&mseg2) ;
+  }
+  free(counts) ;
+  MRIfree(&mri_hires_aseg) ; MRIfree(&mri_filled) ;
+
+  return(NO_ERROR) ;
 }
 
