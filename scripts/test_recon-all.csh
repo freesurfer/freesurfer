@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/04/20 22:59:50 $
-#    $Revision: 1.14 $
+#    $Date: 2007/08/13 03:12:44 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.14 2007/04/20 22:59:50 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.15 2007/08/13 03:12:44 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -252,7 +252,7 @@ else if ("`uname -n`" == "mist") then
   set cmd=(nice +19 recon-all)
 endif
 set cmd=($cmd -s $TEST_SUBJ $INVOL)
-set cmd=($cmd -all -debug -clean -norandomness);
+set cmd=($cmd -all -debug -clean -norandomness -time);
 echo $cmd
 if ($RunIt) then
   cd $SUBJECTS_DIR
