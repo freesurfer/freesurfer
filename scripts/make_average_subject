@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/20 20:09:25 $
-#    $Revision: 1.14 $
+#    $Date: 2007/08/13 20:57:14 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # do this to increase number of allowable open files:
 limit descriptors unlimited
 
-set VERSION = '$Id: make_average_subject,v 1.14 2007/07/20 20:09:25 greve Exp $'
+set VERSION = '$Id: make_average_subject,v 1.15 2007/08/13 20:57:14 greve Exp $'
 set PrintHelp = 0;
 set sdout = ();
 set average_subject = average;
@@ -244,6 +244,7 @@ usage_exit:
   echo "   --no-vol  : do not make average volumes"
   echo "   --force   : overwrite existing average subject data"
   echo "   --keep-all-orig : concatenate all orig vols into mri/orig.all.mgz"
+  echo "   --no-symlink : do not use symbolic links with surfs (just copy files)"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"
