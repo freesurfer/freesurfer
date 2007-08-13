@@ -1,0 +1,3 @@
+#! /bin/tcsh -f
+exec /usr/bin/time -f "\ntime:: %E   mem:: %M   cmd:: $1\n" $argv
+
