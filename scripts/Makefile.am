@@ -36,7 +36,7 @@ fix_subject_on_seychelles \
 fix_subject-rh \
 fname2stem \
 stem2fname \
-freesurfer.csh \
+freesurfer \
 fs_lib_check \
 fs_time \
 fsl_rigid_register \
