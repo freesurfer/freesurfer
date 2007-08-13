@@ -48,6 +48,11 @@ freesurfer/fsl/src
 freesurfer/fsl/include
 freesurfer/fsl/extras
 freesurfer/fsl/config
+freesurfer/fsl/lib
+freesurfer/fsl/data
+freesurfer/fsl/doc
+freesurfer/fsl/refdoc
+freesurfer/fsl/tcl
 freesurfer/grad_unwarp_tables
 freesurfer/average/HPMarch022005_ras.mgz
 freesurfer/average/RB40_talairach_2005_12_30.gca
