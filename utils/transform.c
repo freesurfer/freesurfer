@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/03 13:25:26 $
- *    $Revision: 1.111 $
+ *    $Date: 2007/08/13 14:31:56 $
+ *    $Revision: 1.112 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1524,6 +1524,7 @@ LTArasToVoxelXform(LTA *lta, MRI *mri_src, MRI *mri_dst)
     lta->xforms[0].m_L = m_L ;
   }
 
+  LTAsetVolGeom(lta, mri_src, mri_dst) ;
   lta->type = LINEAR_VOX_TO_VOX ;
   return(NO_ERROR) ;
 }
@@ -3697,3 +3698,23 @@ TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
     return(LTAvoxelToRasXform((LTA *)(transform->xform), mri_src, mri_dst)) ;
   }
 }
+int
+TransformSampleDirection(TRANSFORM *transform, float x0, float y0, float z0, float nx, float ny, float nz,
+                         float *pnx, float *pny, float *pnz)
+{
+  float xa0, ya0, za0, xa1, ya1, za1, mag ;
+
+  TransformSampleReal(transform, x0, y0, z0, &xa0, &ya0, &za0) ;
+  TransformSampleReal(transform, x0+2*nx, y0+2*ny, z0+2*nz, &xa1, &ya1, &za1) ;
+  nx = xa1-xa0 ;
+  ny = ya1-ya0 ;
+  nz = za1-za0 ;
+  mag = sqrt(nx*nx + ny*ny + nz*nz) ;
+  nx /= mag ;
+  ny /= mag ;
+  nz /= mag ;
+
+  *pnx = nx ; *pny = ny ; *pnz = nz ;
+  return(NO_ERROR) ;
+}
+
