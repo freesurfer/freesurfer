@@ -4,7 +4,7 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source /usr/local/freesurfer/nmr-std-env
 #
-# $Id: nmr-std-env,v 1.19 2006/03/09 00:15:27 nicks Exp $
+# $Id: nmr-std-env,v 1.20 2007/08/13 22:17:34 nicks Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
@@ -18,10 +18,14 @@ if( -e /etc/NOFREESURFER ) then
 endif
 
 # track usage
-set USER_LIST_PATH=/space/freesurfer
+if ("`uname -s`" == "Darwin") then
+  set USER_LIST_PATH=/autofs/space/freesurfer
+else
+  set USER_LIST_PATH=/space/freesurfer
+endif
 echo "`date`|`whoami`|`hostname -s`|nmr-std-env" >> $USER_LIST_PATH/nmr-std-env_user_list.txt
 
-set VERSION = '$Id: nmr-std-env,v 1.19 2006/03/09 00:15:27 nicks Exp $';
+set VERSION = '$Id: nmr-std-env,v 1.20 2007/08/13 22:17:34 nicks Exp $';
 set NSE_VERSION = '${VERSION}';
 
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
@@ -34,10 +38,8 @@ if($?NMR_STD_VERBOSE) then
   set verbose
 endif
 
+# Point to stable freesurfer
 setenv FREESURFER_HOME /usr/local/freesurfer/stable
-#if(! $?SUBJECTS_DIR) then
-#  if (-e /space/sake/3/users/inverse/subjects) setenv SUBJECTS_DIR /space/sake/3/users/inverse/subjects
-#endif
 unsetenv NO_FSFAST
 setenv FSFAST_HOME     $FREESURFER_HOME/fsfast
 unsetenv NO_MINC
@@ -48,6 +50,7 @@ if(! -e $FS_ENV_FILE) then
   echo "ERROR: cannot find $FS_ENV_FILE"
   exit 1;
 endif
+setenv SET_TCL_VARS 1
 source $FS_ENV_FILE
 
 # TCLLIBPATH is defined in FreeSurferEnv.csh to ensure compatibility
