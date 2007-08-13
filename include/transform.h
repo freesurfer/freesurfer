@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/03 21:20:59 $
- *    $Revision: 1.56 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/13 14:32:28 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -148,6 +148,7 @@ int      LTAprint(FILE *fp, const LTA *lta);
 #define REGISTER_DAT            14
 #define FSLREG_TYPE             15
 
+
 int      TransformFileNameType(char *fname) ;
 int      LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
 int      LTArasToVoxelXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
@@ -161,6 +162,8 @@ MATRIX *DevolveXFMWithSubjectsDir(char *subjid,
                                   char *xfmname,
                                   char *sdir);
 
+int       TransformRas2Vox(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
+int       TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 TRANSFORM *TransformRead(char *fname) ;
 int       TransformWrite(TRANSFORM *transform, char *fname) ;
 TRANSFORM *TransformIdentity(void) ;
@@ -226,6 +229,8 @@ MATRIX *VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base) ;
 MATRIX *VGgetRasToVoxelXform(VOL_GEOM *vg, MATRIX *m, int base) ;
 LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R);
 MATRIX *TransformLTA2RegDat(LTA *lta);
+int TransformSampleDirection(TRANSFORM *transform, float x0, float y0, float z0, float nx, float ny, float nz,
+                             float *pnx, float *pny, float *pnz);
 
 int TransformRas2Vox(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
 int TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
