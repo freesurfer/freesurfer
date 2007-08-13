@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/20 20:09:25 $
-#    $Revision: 1.37 $
+#    $Date: 2007/08/13 17:31:47 $
+#    $Revision: 1.38 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # increase number of allowable open files to maximum:
 limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.37 2007/07/20 20:09:25 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.38 2007/08/13 17:31:47 greve Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -205,14 +205,12 @@ foreach hemi (lh rh)
     echo "" | tee -a $LF
     echo "" | tee -a $LF
 
-    if($c != curv) then
-      if($UseSymLink) then
-        ln -s -f $sdout/$average_subject/surf/$hemi.avg_$c \
-           $sdout/$average_subject/surf/$hemi.$c
-      else
-        cp $sdout/$average_subject/surf/$hemi.avg_$c \
-           $sdout/$average_subject/surf/$hemi.$c
-      endif
+    if($UseSymLink) then
+      ln -s -f $sdout/$average_subject/surf/$hemi.avg_$c \
+         $sdout/$average_subject/surf/$hemi.$c
+    else
+      cp $sdout/$average_subject/surf/$hemi.avg_$c \
+         $sdout/$average_subject/surf/$hemi.$c
     endif
 
   end
@@ -235,7 +233,6 @@ foreach hemi (lh rh)
   echo "mris_curvature" | tee -a $LF
   mris_curvature -a 10 -w ./${hemi}.white_avg |& tee -a $LF
   echo "" | tee -a $LF
-  cp ${hemi}.white_avg.H  ${hemi}.curv
   if($UseSymLink) then
     ln -s -f ${hemi}.${sphere_reg} ${hemi}.sphere
     ln -s -f ${hemi}.orig_avg ${hemi}.orig
@@ -247,7 +244,6 @@ foreach hemi (lh rh)
     cp -f ${hemi}.white_avg ${hemi}.white
     cp -f ${hemi}.pial_avg ${hemi}.pial
   endif
-  set echo=1
 
 end
 
