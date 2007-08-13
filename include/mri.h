@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/11 01:49:29 $
- *    $Revision: 1.346 $
+ *    $Date: 2007/08/13 01:18:17 $
+ *    $Revision: 1.347 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -273,6 +273,7 @@ int   MRIcopyPulseParameters(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcopy(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction) ;
 int   MRIboundingBox(MRI *mri, int thresh, MRI_REGION *region) ;
+int   MRIlabelBoundingBox(MRI *mri, int label, MRI_REGION *region) ;
 int   MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,
     MRI_REGION *region) ;
 int   MRIboundingBoxNbhd(MRI *mri, int thresh, int wsize,MRI_REGION *region) ;

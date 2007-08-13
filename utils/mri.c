@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/11 01:48:45 $
- *    $Revision: 1.394 $
+ *    $Date: 2007/08/13 01:17:56 $
+ *    $Revision: 1.395 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.394 $";
+char *MRI_C_VERSION = "$Revision: 1.395 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -15065,5 +15065,34 @@ MRIhistogramLabels(MRI *mri, int *counts, int max_label)
           counts[label]++ ;
       }
   return(counts) ;
+}
+
+int
+MRIlabelBoundingBox(MRI *mri, int label, MRI_REGION *region)
+{
+  int    x, y, z, l, x1, y1, z1 ;
+
+  region->x = mri->width ;
+  region->y = mri->height ;
+  region->z = mri->depth ;
+  x1 = y1 = z1 = -1 ;
+  for (x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+        l = (int)MRIgetVoxVal(mri, x, y, z, 0) ;
+        if (l == label)
+        {
+          region->x = MIN(x, region->x) ;
+          region->y = MIN(y, region->y) ;
+          region->z = MIN(z, region->z) ;
+          x1 = MAX(x, x1) ; y1 = MAX(y, y1) ; z1 = MAX(z, z1) ;
+        }
+      }
+
+  region->dx = x1-region->x+1 ;
+  region->dy = y1-region->y+1 ;
+  region->dz = z1-region->z+1 ;
+  return(NO_ERROR) ;
 }
 
