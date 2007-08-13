@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.40 2007/06/18 21:19:26 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.41 2007/08/13 21:08:55 greve Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.40 2007/06/18 21:19:26 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.41 2007/08/13 21:08:55 greve Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -411,6 +411,16 @@ fi
 
 ### ----------- Freesurfer Bin and Lib Paths  ------------ ####
 export PATH=$FREESURFER_HOME/bin:$FSFAST_HOME/bin:$PATH
+
+# This turns on "fixing" of group surface area. A group subject made
+# with make_average_subject will have a surface area smaller than
+# the average of the subjects. This makes it appear to have a surface
+# area the same as that of the average of the input subjects. This
+# affects surface smoothing (fwhm->niterations), computation of cluster 
+# sizes, and cluster-wise correction for multiple comparisons. 
+# FIX_VERTEX_AREA does not need to be set to anything in particular.
+# To turn off, the env variable should not exist at all.
+export FIX_VERTEX_AREA=
 
 # cause OS to build new bin path cache:
 #rehash;  # not needed for bash!
