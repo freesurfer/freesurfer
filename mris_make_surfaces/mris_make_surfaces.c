@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/11 16:01:48 $
- *    $Revision: 1.98 $
+ *    $Date: 2007/08/14 01:56:01 $
+ *    $Revision: 1.99 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,10 +55,11 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.98 2007/08/11 16:01:48 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.99 2007/08/14 01:56:01 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
+#define MIN_NONCORTEX_VERTICES 10
 #define BRIGHT_LABEL         130
 #define BRIGHT_BORDER_LABEL  100
 
@@ -135,6 +136,7 @@ static INTEGRATION_PARMS  parms ;
 static float base_dt_scale = BASE_DT_SCALE ;
 
 static char *aseg_name = "aseg.mgz" ;
+static char *aparc_name = "aparc" ;  // for midline and cortex label
 static MRI *mri_aseg = NULL;
 static int add = 0 ;
 
@@ -232,13 +234,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.98 2007/08/11 16:01:48 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.99 2007/08/14 01:56:01 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.98 2007/08/11 16:01:48 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.99 2007/08/14 01:56:01 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -272,7 +274,7 @@ main(int argc, char *argv[]) {
   parms.error_ratio = 50.0 /*ERROR_RATIO */;
   /*  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;*/
   parms.l_surf_repulse = 0.0 ;
-  parms.l_repulse = 1 ;
+  parms.l_repulse = 5 ;
 
   ac = argc ;
   av = argv ;
@@ -551,6 +553,12 @@ main(int argc, char *argv[]) {
   l_intensity = parms.l_intensity ;
   MRISsetVals(mris, -1) ;  /* clear white matter intensities */
 
+  if (aparc_name)
+  {
+    if (MRISreadAnnotation(mris, aparc_name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read annotation",
+                aparc_name) ;
+  }
 #if 0
   if (dura_echo_name) {
 #define MAX_VOLUMES 100
@@ -822,7 +830,10 @@ main(int argc, char *argv[]) {
     fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
     edit_aseg_with_surfaces(mris, mri_aseg) ;
     if (write_aseg_fname)
+    {
+      printf("writing corrected aseg to %s\n", write_aseg_fname) ;
       MRIwrite(mri_aseg, write_aseg_fname) ;
+    }
   }
   if (!nowhite) {
     sprintf(fname,
@@ -837,7 +848,7 @@ main(int argc, char *argv[]) {
       LABEL *lcortex, **labels ;
       int   n, max_l, max_n, nlabels ;
 
-      lcortex = MRIScortexLabel(mris, mri_aseg) ;
+      lcortex = MRIScortexLabel(mris, mri_aseg, MIN_NONCORTEX_VERTICES) ;
       if (Gdiag & DIAG_VERBOSE_ON)
       {
         sprintf(fname,
@@ -1298,6 +1309,11 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "noaseg")) {
     aseg_name = NULL ;
     printf("not using aseg volume to prevent surfaces "
+           "crossing the midline\n");
+    nargs = 0 ;
+  } else if (!stricmp(option, "noaparc")) {
+    aparc_name = NULL ;
+    printf("not using aparc to prevent surfaces "
            "crossing the midline\n");
     nargs = 0 ;
   } else if (!stricmp(option, "wval")) {
@@ -2034,9 +2050,10 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
             int which, int fix_mtl)
 {
   int      vno, label, contra_wm_label, nvox=0, total_vox=0, adjacent=0,
-           wm_label, gm_label ;
+           wm_label, gm_label, nlabels, n, index, annotation ;
   VERTEX   *v ;
   double   xv, yv, zv, val, xs, ys, zs, d ;
+  LABEL    **labels ;
 
   printf("inhibiting deformation at non-cortical midline structures...\n") ;
   if (stricmp(hemi, "lh") == 0)
@@ -2051,9 +2068,28 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     wm_label = Right_Cerebral_White_Matter ;
     gm_label = Right_Cerebral_Cortex ;
   }
+  MRISclearMarks(mris) ;
+
+  if (CTABfindName(mris->ct, "unknown", &index) == NO_ERROR)
+  {
+    CTABannotationAtIndex(mris->ct, index, &annotation) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++) {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      if (vno == Gdiag_no )
+        DiagBreak() ;
+      if (v->annotation == annotation)
+        v->marked = 1 ;
+    }
+    MRISdilateMarked(mris, 3) ;
+    MRISinvertMarks(mris) ;  // 1 -- means can't be unknown
+    MRIScopyMarkedToMarked2(mris) ;
+    MRISclearMarks(mris) ;
+  }
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
-    if (v->ripflag)
+    if (v->ripflag || v->marked2 > 0)
       continue ;
     if (vno == Gdiag_no )
       DiagBreak() ;
@@ -2096,7 +2132,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
         MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
         v->val = val ;
         v->d = 0 ;
-        v->ripflag = 1 ;
+        v->marked = 1 ;
       }
     }
 
@@ -2147,7 +2183,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
         MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
         v->val = val ;
         v->d = 0 ;
-        v->ripflag = 1 ;
+        v->marked = 1 ;
       }
     }
 
@@ -2180,19 +2216,38 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
             fabs(v->nz) > fabs(v->nx) &&
             fabs(v->nz) > fabs(v->ny))  // inferior pointing normal
         {
+          if (vno == Gdiag_no)
+            DiagBreak() ;
           MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
           MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
           v->val = val ;
           v->d = 0 ;
-          v->ripflag = 1 ;
+          v->marked = 1 ;
         }
       }
     }
   }
 
+
+  MRISdilateMarked(mris, 3) ;
+  MRISerodeMarked(mris, 3) ;
+  MRISsegmentMarked(mris, &labels, &nlabels, 1) ;
+  for (n = 0 ; n < nlabels ; n++)
+  {
+    if (labels[n]->n_points < 5)
+    {
+      int i ;
+      printf("removing %d vertex label from ripped group\n",
+             labels[n]->n_points) ;
+      for (i = 0 ; i < labels[n]->n_points ; i++)
+        mris->vertices[labels[n]->lv[i].vno].marked = 0 ;
+    }
+    LabelFree(&labels[n]) ;
+  }
+  free(labels) ;
+
+  MRISripMarked(mris) ;
   MRISsetAllMarks(mris, 0) ;
-  MRISdilateRipped(mris, 3) ;
-  MRISerodeRipped(mris, 3) ;
   return(NO_ERROR) ;
 }
 
@@ -2515,13 +2570,17 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, int nstd) {
 }
 
 #include "mrisegment.h"
+
+static int labels_to_correct[] = { Left_Hippocampus, Right_Hippocampus, Left_Amygdala, Right_Amygdala} ;
+#define NLABELS (sizeof(labels_to_correct)/sizeof(labels_to_correct[0]))
+
 static int
 edit_aseg_with_surfaces(MRI_SURFACE *mris, MRI *mri_aseg)
 {
   MRI              *mri_filled, *mri_hires_aseg ;
   MRI_SEGMENTATION *mseg1, *mseg2 ;
   MRI_SEGMENT      *mseg ;
-  int              label, *counts, x, y, z, max_seg_no, sno,vno, alabel ;
+  int              label, *counts, x, y, z, max_seg_no, sno,vno, alabel, l ;
   MATRIX           *m_vox2vox ;
   VECTOR           *v1, *v2 ;
 
@@ -2543,8 +2602,10 @@ edit_aseg_with_surfaces(MRI_SURFACE *mris, MRI *mri_aseg)
   v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
   VECTOR_ELT(v1, 4) = VECTOR_ELT(v2, 4) = 1.0 ;
   counts = MRIhistogramLabels(mri_aseg,  NULL, MAX_CMA_LABEL+1) ;
-  for (label = 17  ; label <= 17 ; label++)
+
+  for (l = 0 ; l < NLABELS ; l++)
   {
+    label = labels_to_correct[l] ;
     if (counts[label] == 0)
       continue ;
     mseg1 = MRIsegment(mri_aseg, label, label) ;
