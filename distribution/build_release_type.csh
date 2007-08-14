@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.95 2007/08/14 03:09:10 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.96 2007/08/14 16:08:21 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -417,26 +417,28 @@ endif
 # make check (run available unit tests)
 ######################################################################
 #
-echo "########################################################" >>& $OUTPUTF
-echo "Make check $DEV_DIR" >>& $OUTPUTF
-echo "" >>& $OUTPUTF
-echo "CMD: make check" >>& $OUTPUTF
-make check >>& $OUTPUTF
-if ($status != 0) then
-  # note: /usr/local/freesurfer/dev/bin/ dirs have not 
-  # been modified (bin/ gets written after make install)
-  set msg="$HOSTNAME $RELEASE_TYPE build (make check) FAILED unit tests"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
-  rm -f ${FAILED_FILE}
-  touch ${FAILED_FILE}
-  # set group write bit on files changed by make tools:
-  echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
-  chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
-  echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
-  chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
-  chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
-  chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
-  exit 1  
+if ("$RELEASE_TYPE" != "stable-pub") then
+  echo "########################################################" >>& $OUTPUTF
+  echo "Make check $DEV_DIR" >>& $OUTPUTF
+  echo "" >>& $OUTPUTF
+  echo "CMD: make check" >>& $OUTPUTF
+  make check >>& $OUTPUTF
+  if ($status != 0) then
+    # note: /usr/local/freesurfer/dev/bin/ dirs have not 
+    # been modified (bin/ gets written after make install)
+    set msg="$HOSTNAME $RELEASE_TYPE build (make check) FAILED unit tests"
+    mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+    rm -f ${FAILED_FILE}
+    touch ${FAILED_FILE}
+    # set group write bit on files changed by make tools:
+    echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
+    chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
+    echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
+    chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
+    chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
+    chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+    exit 1  
+  endif
 endif
 
 
