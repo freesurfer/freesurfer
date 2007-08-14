@@ -10,7 +10,7 @@
 #
 ########################################################################
 AC_PREREQ(2.57)
-AC_INIT(Freesurfer, dev3, freesurfer@nmr.mgh.harvard.edu)
+AC_INIT(Freesurfer, stable4, freesurfer@nmr.mgh.harvard.edu)
 AC_CONFIG_AUX_DIR([config])
 # create special dir for intermediate files
 AC_MSG_NOTICE(Setting System...)
