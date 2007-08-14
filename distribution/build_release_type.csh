@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.92 2007/08/14 00:09:34 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.93 2007/08/14 00:11:39 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -673,11 +673,10 @@ rm $LOG_DIR/message-$HOSTNAME.txt
 #
 # Now for a cheap way to build stable-pub, which is normally only run
 # when a public distribution is needed.  Just create an empty file
-# called build_stable-pub_flag in the BUILD_DIR, and stable-pub will
-# be built.
+# called PUB in the BUILD_DIR, and stable-pub will be built.
 if ("$RELEASE_TYPE" == "stable") then
-  if (-e ${BUILD_DIR}/build_stable-pub_flag) then
-    rm -f ${BUILD_DIR}/build_stable-pub_flag
+  if (-e ${BUILD_DIR}/PUB) then
+    rm -f ${BUILD_DIR}/PUB
     # force stable build to run again by removing a CVS'd file:
     rm -f ${DEV_DIR}/setup_configure
     ${SCRIPT_DIR}/build_stable-pub.csh
