@@ -1,15 +1,14 @@
 /**
  * @file  mrisutils.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief surface utilities
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/14 01:27:11 $
- *    $Revision: 1.13 $
+ *    $Author: nicks $
+ *    $Date: 2007/08/14 03:38:14 $
+ *    $Revision: 1.13.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
