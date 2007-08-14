@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/08/13 00:27:06 $
-#    $Revision: 1.133 $
+#    $Date: 2007/08/14 20:46:21 $
+#    $Revision: 1.134 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133 2007/08/13 00:27:06 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.134 2007/08/14 20:46:21 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -96,6 +96,7 @@ set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz
                      # is not used during the 2nd mri_normalize step
 set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
 set NoThicken = 0 # if 1, add '-thicken 0' to mri_segment
+set NoAparcMakeSurf = 1   # if 1, add '-noaparc' to mris_make_surfaces
 set NoCortexLabel = 0 # if 1, add '-cortex 0' to mris_make_surfaces
 set UnCompress = 0    # if 1, add '-uncompress' to mri_ca_reg
 set BigVentricles = 0 # if 1, add '-bigventricles' to mri_ca_label and reg.
@@ -1777,6 +1778,7 @@ foreach hemi ($hemilist)
       # default stream:
       set cmd = (mris_make_surfaces)
       if ( ! $UseAseg) set cmd = ($cmd -noaseg)
+      if ($NoAparcMakeSurf) set cmd = ($cmd -noaparc)
       if ($NoCortexLabel) set cmd = ($cmd -cortex 0)
       set cmd = ($cmd -mgz -T1 brain.finalsurfs $xopts $subjid $hemi);
     else
@@ -1791,6 +1793,9 @@ foreach hemi ($hemilist)
             -orig_pial orig_pial \
             -orig orig_white)
       endif
+      if ( ! $UseAseg) set cmd = ($cmd -noaseg)
+      if ($NoAparcMakeSurf) set cmd = ($cmd -noaparc)
+      if ($NoCortexLabel) set cmd = ($cmd -cortex 0)
       set cmd = ($cmd -long -max 3.5 \
         -mgz -T1 brain.finalsurfs $xopts $subjid $hemi)
     endif
@@ -3342,6 +3347,10 @@ while( $#argv != 0 )
 
     case "-nocortexlabel":
       set NoCortexLabel = 1;
+      breaksw
+
+    case "-noaparc-makesurf":
+      set NoAparcMakeSurf = 1;
       breaksw
 
     case "-uncompress":
