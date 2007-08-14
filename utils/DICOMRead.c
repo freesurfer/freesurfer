@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/17 21:17:24 $
- *    $Revision: 1.111 $
+ *    $Date: 2007/08/14 17:46:18 $
+ *    $Revision: 1.112 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -295,6 +295,8 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
     vol->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
     for (nthfile = 0; nthfile < nlist; nthfile ++){
       sdfi = sdfi_list[nthfile];
+      DTIparsePulseSeqName(sdfi->PulseSequence, 
+			   &sdfi->bValue, &sdfi->nthDirection);
       bval   = sdfi->bValue;
       nthdir = sdfi->nthDirection;
       vol->bvals->rptr[nthfile+1][1] = bval;
@@ -1632,6 +1634,7 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   strtmp = SiemensAsciiTagEx(dcmfile, "lRepetitions", 0);
   if(strtmp != NULL){
+    // This can cause problems with DTI scans if lRepetitions is actually set
     sscanf(strtmp,"%d",&(sdcmfi->lRepetitions));
     free(strtmp);
   }
