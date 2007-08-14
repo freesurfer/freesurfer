@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.94 2007/08/14 02:39:25 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.95 2007/08/14 03:09:10 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -85,31 +85,32 @@ set LOG_DIR=${SPACE_FS}/build/logs
 # stable build use explicit package versions (for stability)
 if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set MNIDIR=/usr/pubsw/packages/mni/1.4
+  set VXLDIR=/usr/pubsw/packages/vxl/1.8.0
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
-  set VXLDIR=/usr/pubsw/packages/vxl/1.8.0
+  set VTKDIR=/usr/pubsw/packages/vtk/current
+  set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   set TJGDIR=/usr/pubsw/packages/tiffjpegglut/1.1
   setenv FSLDIR /usr/pubsw/packages/fsl/4.0.0
-  unset CPPUNITDIR
-  # GSL and Qt are no longer used, so they're not defined
-  unsetenv QTDIR
-  unsetenv GSLDIR
+  set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
+  if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
 else
   # dev build uses most current
   set MNIDIR=/usr/pubsw/packages/mni/current
   set VXLDIR=/usr/pubsw/packages/vxl/current
-  set VTKDIR=/usr/pubsw/packages/vtk/current
-  set TJGDIR=/usr/pubsw/packages/tiffjpegglut/current
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
+  set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
+  set TJGDIR=/usr/pubsw/packages/tiffjpegglut/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
-  # GSL and Qt are no longer used, so they're not defined
-  unsetenv QTDIR
-  unsetenv GSLDIR
 endif
+
+# GSL and Qt are no longer used, so they're not defined
+unsetenv QTDIR
+unsetenv GSLDIR
 
 # on Mac OS X Tiger, need /sw/bin (Fink) to get latex and dvips.
 if ("$OSTYPE" == "Darwin") then
