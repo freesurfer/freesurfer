@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.91 2007/08/10 23:38:28 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.92 2007/08/14 00:09:34 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -85,19 +85,15 @@ set LOG_DIR=${SPACE_FS}/build/logs
 # stable build use explicit package versions (for stability)
 if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set MNIDIR=/usr/pubsw/packages/mni/1.4
-  set GSLDIR=/usr/pubsw/packages/gsl/1.6
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
-  set VXLDIR=/usr/pubsw/packages/vxl/1.6.0
+  set VXLDIR=/usr/pubsw/packages/vxl/1.8.0
   set TJGDIR=/usr/pubsw/packages/tiffjpegglut/1.1
-  unsetenv QTDIR
-  unsetenv FSLDIR
-  if (-e /usr/pubsw/packages/fsl/3.2b) then
-    setenv FSLDIR /usr/pubsw/packages/fsl/3.2b
-  else if (-e /usr/pubsw/packages/fsl/3.2) then
-    setenv FSLDIR /usr/pubsw/packages/fsl/3.2
-  endif
+  setenv FSLDIR /usr/pubsw/packages/fsl/4.0.0
   unset CPPUNITDIR
+  # GSL and Qt are no longer used, so they're not defined
+  unsetenv QTDIR
+  unsetenv GSLDIR
 else
   # dev build uses most current
   set MNIDIR=/usr/pubsw/packages/mni/current
@@ -352,9 +348,6 @@ set cnfgr=($cnfgr --bindir=${DEST_DIR}/bin-new)
 set cnfgr=($cnfgr $ENAB_NMR)
 set cnfgr=($cnfgr `cat ${BUILD_DIR}/configure_options.txt`)
 set cnfgr=($cnfgr --with-mni-dir=${MNIDIR})
-if ($?GSLDIR) then
-    set cnfgr=($cnfgr --with-gsl-dir=${GSLDIR})
-endif
 set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 if ($?VTKDIR) then
     set cnfgr=($cnfgr --with-vtk-dir=${VTKDIR})
@@ -545,11 +538,7 @@ symlinks:
   set cmd1=(ln -s ${MNIDIR} ${DEST_DIR}/mni)
   set cmd2=(ln -s ${FSLDIR} ${DEST_DIR}/fsl)
   set cmd3=(ln -s ${TCLDIR} ${DEST_DIR}/lib/tcltktixblt)
-  if ($?GSLDIR) then
-    set cmd4=(ln -s ${GSLDIR} ${DEST_DIR}/lib/gsl)
-  else
-    set cmd4=
-  endif
+  set cmd4=
   if ($?VTKDIR) then
     set cmd5=(ln -s ${VTKDIR} ${DEST_DIR}/lib/vtk)
   else
