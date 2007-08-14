@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/11 16:01:07 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/08/14 01:27:57 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1780,18 +1780,46 @@ double MRISvolumeInSurf(MRIS *mris)
   return(total_volume);
 }
 
-LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg) {
-  LABEL    *lcortex ;
-  int      vno, label, nvox, total_vox, adjacent ;
-  VERTEX   *v ;
-  double   xv, yv, zv, val, xs, ys, zs, d ;
+/*
+  note that if the v->marked2 fields are set in vertices (e.g. from
+  a .annot file), then these vertices will not be considered in
+  the search for non-cortical vertices (that is, they will be labeled
+  cortex).
+*/
+LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices) {
+  LABEL      *lcortex ;
+  int        vno, label, nvox, total_vox, adjacent, x, y, z, target_label,l ;
+  VERTEX     *v ;
+  double     xv, yv, zv, val, xs, ys, zs, d ;
+  MRI_REGION box ;
 
   printf("generating cortex label...\n") ;
 
+  mri_aseg = MRIcopy(mri_aseg, NULL) ; // so we can mess with it
+
+  // remove the posterior few mm of the ventricles to prevent
+  // them poking into the calcarine
+#define ERASE_MM 3
+  for (l = 0 ; l < 2 ; l++)
+  {
+    if (l == 0)
+      target_label = Left_Lateral_Ventricle ;
+    else
+      target_label = Right_Lateral_Ventricle ; 
+    MRIlabelBoundingBox(mri_aseg, target_label, &box) ;
+    for (z = box.z+box.dz-(ERASE_MM+1) ; z < box.z+box.dz ; z++)
+      for (y = 0 ; y < mri_aseg->height ; y++)
+        for (x = 0 ; x < mri_aseg->width ; x++)
+        {
+          label = (int)MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
+          if (label == target_label)
+            MRIsetVoxVal(mri_aseg, x, y, z, 0, 0) ; // erase it
+        }
+  }
   MRISsetMarks(mris, 1) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
-    if (v->ripflag)
+    if (v->ripflag || v->marked2 > 0)  // already must be cortex
       continue ;
     if (vno == Gdiag_no )
       DiagBreak() ;
@@ -1861,7 +1889,31 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg) {
         (double)nvox/(double)total_vox > 0.5) // more than 50% putamen
       v->marked = 0 ;
   }
+
+  // remove small holes that shouldn't be non-cortex
+  {
+    LABEL **label_array ;
+    int   nlabels, n, i ;
+
+    MRISinvertMarks(mris) ; // marked->not cortex now
+    MRISsegmentMarked(mris, &label_array, &nlabels, 0) ;
+    printf("%d non-cortical segments detected\n", nlabels) ;
+    for (n = 0 ; n < nlabels ; n++)
+    {
+      if (label_array[n]->n_points < min_vertices)
+      {
+        printf("erasing segment %d (vno[0] = %d)\n", i, label_array[n]->lv[0].vno) ;
+        for (i = 0 ; i < label_array[n]->n_points ; i++)
+          mris->vertices[label_array[n]->lv[i].vno].marked = 0 ; // mark it as cortex
+      }
+      LabelFree(&label_array[n]) ;
+    }
+    free(label_array) ;
+  }
+  
+  MRISinvertMarks(mris) ;  // marked --> is cortex again
   lcortex = LabelFromMarkedSurface(mris) ;
 
+  MRIfree(&mri_aseg) ;  // a locally edited copy, not the original
   return(lcortex) ;
 }
