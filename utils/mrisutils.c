@@ -1,14 +1,15 @@
 /**
  * @file  mrisutils.c
- * @brief surface utilities
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: Bruce Fischl
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/14 02:31:29 $
- *    $Revision: 1.29 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/14 12:48:47 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +41,7 @@
 #include "proto.h"
 #include "macros.h"
 #include "error.h"
+//#include "MRIio.h"
 #include "mri.h"
 #include "mrisurf.h"
 #include "matrix.h"
@@ -61,7 +63,7 @@
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
-////                    USEFUL ROUTINES                ////////////
+////                    USEFUL ROUTINES               ////////////
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
@@ -1891,7 +1893,7 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices) {
   // remove small holes that shouldn't be non-cortex
   {
     LABEL **label_array ;
-    int   nlabels, n, i=0;
+    int   nlabels, n, i ;
 
     MRISinvertMarks(mris) ; // marked->not cortex now
     MRISsegmentMarked(mris, &label_array, &nlabels, 0) ;
@@ -1900,11 +1902,9 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices) {
     {
       if (label_array[n]->n_points < min_vertices)
       {
-        printf("erasing segment %d (vno[0] = %d)\n", 
-               i, label_array[n]->lv[0].vno) ;
+        printf("erasing segment %d (vno[0] = %d)\n", n, label_array[n]->lv[0].vno) ;
         for (i = 0 ; i < label_array[n]->n_points ; i++)
-          mris->vertices[label_array[n]->lv[i].vno].marked = 0 ; /* mark it as 
-                                                                    cortex */
+          mris->vertices[label_array[n]->lv[i].vno].marked = 0 ; // mark it as cortex
       }
       LabelFree(&label_array[n]) ;
     }
