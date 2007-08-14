@@ -22,7 +22,7 @@ $(VTK_Z_LIB) $(VTK_EXPAT_LIB) $(VTK_METAIO_LIB) \
 -lvtksys \
 $(VTK_MPEG2ENCODE_LIB) -lvtkexoIIc -lvtkNetCDF
 
-TESTS=test_mris_volmask
+#TESTS=test_mris_volmask
 
 # put a wrapper around the bin, used to setup VTK enviro vars
 install-exec-hook:
