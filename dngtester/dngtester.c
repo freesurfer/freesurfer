@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/07 23:27:04 $
- *    $Revision: 1.41 $
+ *    $Date: 2007/08/14 03:40:05 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -245,7 +245,9 @@ int main(int argc, char **argv) {
   mri = MRIread(tmpstr);
   if(!mri) exit(1);
 
-  lcortex = MRIScortexLabel(surf, mri) ;
+#define MIN_NONCORTEX_VERTICES 10
+
+  lcortex = MRIScortexLabel(surf, mri, MIN_NONCORTEX_VERTICES) ;
   sprintf(tmpstr,"%s/%s/label/%s.%s.label",SUBJECTS_DIR, subject,hemi,"cortex");
   printf("writing cortex label to %s...\n", tmpstr) ;
   LabelWrite(lcortex, tmpstr) ;
