@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/03 19:06:09 $
- *    $Revision: 1.88 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/14 01:29:33 $
+ *    $Revision: 1.89 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -860,7 +860,8 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
   if( NULL != this->mDisplayTransform )
     TransformFree( &this->mDisplayTransform );
   this->mDisplayTransform = transform;
-
+  
+  TransformRas2Vox(transform, this->mpMriValues, this->mpMriValues) ;
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
