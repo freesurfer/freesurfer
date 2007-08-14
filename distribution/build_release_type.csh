@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.93 2007/08/14 00:11:39 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.94 2007/08/14 02:39:25 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -416,30 +416,26 @@ endif
 # make check (run available unit tests)
 ######################################################################
 #
-if ("${RELEASE_TYPE}" == "dev") then
-  echo "########################################################" >>& $OUTPUTF
-  echo "Make check $DEV_DIR" >>& $OUTPUTF
-  echo "" >>& $OUTPUTF
-#  echo "CMD: source $FREESURFER_HOME/SetUpFreeSurfer.csh" >>& $OUTPUTF
-#  source $FREESURFER_HOME/SetUpFreeSurfer.csh >>& $OUTPUTF
-  echo "CMD: make check" >>& $OUTPUTF
-  make check >>& $OUTPUTF
-  if ($status != 0) then
-    # note: /usr/local/freesurfer/dev/bin/ dirs have not 
-    # been modified (bin/ gets written after make install)
-    set msg="$HOSTNAME $RELEASE_TYPE build (make check) FAILED unit tests"
-    mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
-    rm -f ${FAILED_FILE}
-    touch ${FAILED_FILE}
-    # set group write bit on files changed by make tools:
-    echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
-    chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
-    echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
-    chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
-    chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
-    chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
-    exit 1  
-  endif
+echo "########################################################" >>& $OUTPUTF
+echo "Make check $DEV_DIR" >>& $OUTPUTF
+echo "" >>& $OUTPUTF
+echo "CMD: make check" >>& $OUTPUTF
+make check >>& $OUTPUTF
+if ($status != 0) then
+  # note: /usr/local/freesurfer/dev/bin/ dirs have not 
+  # been modified (bin/ gets written after make install)
+  set msg="$HOSTNAME $RELEASE_TYPE build (make check) FAILED unit tests"
+  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  rm -f ${FAILED_FILE}
+  touch ${FAILED_FILE}
+  # set group write bit on files changed by make tools:
+  echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
+  echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
+  chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
+  chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+  exit 1  
 endif
 
 
@@ -473,7 +469,8 @@ if ($status != 0) then
   chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
   chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
   # and the fsaverage in the subjects dir...
-  echo "CMD: chmod ${change_flags} g+rw ${DEST_DIR}/subjects/fsaverage" >>& $OUTPUTF
+  echo "CMD: chmod ${change_flags} g+rw ${DEST_DIR}/subjects/fsaverage" \
+    >>& $OUTPUTF
   chmod ${change_flags} g+rw ${DEST_DIR}/subjects/fsaverage >>& $OUTPUTF
   chgrp ${change_flags} fsdev ${DEST_DIR}/subjects/fsaverage >>& $OUTPUTF
   exit 1  
@@ -493,7 +490,8 @@ endif
 echo "CMD: rm -rf ${DEST_DIR}/bin-old-old" >>& $OUTPUTF
 if (-e ${DEST_DIR}/bin-old-old) rm -rf ${DEST_DIR}/bin-old-old >>& $OUTPUTF
 echo "CMD: mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old" >>& $OUTPUTF
-if (-e ${DEST_DIR}/bin-old) mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old >>& $OUTPUTF
+if (-e ${DEST_DIR}/bin-old) mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old \
+    >>& $OUTPUTF
 echo "CMD: mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old" >>& $OUTPUTF
 mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
 echo "CMD: mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin" >>& $OUTPUTF
@@ -529,8 +527,6 @@ symlinks:
   rm -f ${DEST_DIR}/mni
   rm -f ${DEST_DIR}/fsl
   rm -f ${DEST_DIR}/lib/tcltktixblt
-  rm -f ${DEST_DIR}/lib/gsl
-  rm -f ${DEST_DIR}/lib/qt
   rm -f ${DEST_DIR}/lib/vtk
   rm -f ${DEST_DIR}/lib/vxl
   rm -f ${DEST_DIR}/lib/misc
@@ -681,11 +677,4 @@ if ("$RELEASE_TYPE" == "stable") then
     rm -f ${DEV_DIR}/setup_configure
     ${SCRIPT_DIR}/build_stable-pub.csh
   endif
-endif
-
-
-# on minerva, need to clean-up some space, since /home is small
-if ("$HOSTNAME" == "minerva") then
-  cd ${DEV_DIR}
-  make clean >>& $OUTPUTF
 endif
