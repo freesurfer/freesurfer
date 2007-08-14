@@ -7,11 +7,15 @@ function varargout = read_meas_dat(filename, options)
 %
 % [data, phascor1d, phascor2d, noise, patrefscan, patrefscan_phascor] = read_meas_dat(filename)
 %
+% [data, phascor1d, phascor2d, noise, patrefscan, patrefscan_phascor, phasestabscan, refphasestabscan] = read_meas_dat(filename)
+%
 % "options" is a structure which allows changing of some of the defaults:
 %
-%    options.ReverseLines                 -- set to 0 or 1 (default is 1)
-%    options.ApplyFFTScaleFactors         -- set to 0 or 1 (default is 0)
-%    options.CanonicalReorderCoilChannels -- set to 0 or 1 (default is 1)
+%    options.ReverseLines                 -- set to 0 or 1  (default is 1)
+%    options.CanonicalReorderCoilChannels -- set to 0 or 1  (default is 1)
+%    options.ApplyFFTScaleFactors         -- set to 0 or 1  (default is 0)
+%    options.ReadMultipleRepetitions      -- set to 0 or 1  (default is 1)
+%    options.ReturnStruct                 -- set to 0 or 1  (default is 0)
 %
 % If a field does not exist, then the default is used.
 % "options" is optional :).
@@ -67,11 +71,16 @@ function varargout = read_meas_dat(filename, options)
 
 % 2007/jul/09: improved support for "meas.out" files lacking headers
 
+% 2007/aug/07: added ability to return all data as fields of a struct
+  
+% 2007/aug/14: fixed phase stabilization support for multiecho acquisitions
+  
+  
 % jonathan polimeni <jonnyreb@padkeemao.nmr.mgh.harvard.edu>, 10/04/2006
-% $Id: read_meas_dat.m,v 1.5 2007/07/30 20:58:56 jonnyreb Exp $
+% $Id: read_meas_dat.m,v 1.6 2007/08/14 20:04:01 jonnyreb Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.5 $';
+  VERSION = '$Revision: 1.6 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
 
@@ -90,9 +99,9 @@ function varargout = read_meas_dat(filename, options)
 
 
   %------------------------------------------------------------------------%
-  % the pre-release version installed on Bay4 in 2005 differs slightly from
-  % the full-release version, and files must be read in differently
-  % depending on the version. yuck!
+  % the pre-release version installed on the Bay4 128-channel host in 2005
+  % differs slightly from the full-release version, and files must be read
+  % in differently depending on the version. yuck!
   IS__VB13_PRE_RELEASE_VERSION = 0;
   IS__VB13A_RELEASE_VERSION = 1;
 
@@ -103,27 +112,40 @@ function varargout = read_meas_dat(filename, options)
   DO__APPLY_FFT_SCALEFACTORS = 0;
   DO__READ_MULTIPLE_REPETITIONS = 1;
 
+  % by default, return individual arrays (for backward compatibility)
+  DO__RETURN_STRUCT = 0;
+  
 
   % if the "options" struct is provided by caller, then override default
   % flags
 
   if ( exist('options', 'var') ),
+
     if ( isfield(options, 'ReverseLines') ),
       DO__FLIP_REFLECTED_LINES = options.ReverseLines;
       disp(sprintf(' :FLIP_REFLECTED_LINES = %d', DO__FLIP_REFLECTED_LINES));
     end;
+
     if ( isfield(options, 'CanonicalReorderCoilChannels') ),
       DO__CANONICAL_REORDER_COIL_CHANNELS = options.CanonicalReorderCoilChannels;
       disp(sprintf(' :CANONICAL_REORDER_COIL_CHANNELS = %d', DO__CANONICAL_REORDER_COIL_CHANNELS));
     end;
+
     if ( isfield(options, 'ApplyFFTScaleFactors') ),
       DO__APPLY_FFT_SCALEFACTORS = options.ApplyFFTScaleFactors;
       disp(sprintf(' :APPLY_FFT_SCALEFACTORS = %d', DO__APPLY_FFT_SCALEFACTORS));
     end;
+
     if ( isfield(options, 'ReadMultipleRepetitions') ),
       DO__READ_MULTIPLE_REPETITIONS = options.ReadMultipleRepetitions;
       disp(sprintf(' :READ_MULTIPLE_REPETITIONS = %d', DO__READ_MULTIPLE_REPETITIONS));
     end;
+  
+    if ( isfield(options, 'ReturnStruct') ),
+      DO__RETURN_STRUCT = options.ReturnStruct;
+      disp(sprintf(' :RETURN_STRUCT = %d', DO__RETURN_STRUCT));
+    end;
+  
   end;
 
 
@@ -741,37 +763,50 @@ function varargout = read_meas_dat(filename, options)
         continue;
 
         %%% CATEGORY #3: phase stabilization scans
-      elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFPHASESTABSCAN) | ...
-               read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASESTABSCAN) ),
+      elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASESTABSCAN) ),
 
         if ( ~FLAG__phasestabscan ),
           disp('PHASESTABSCAN detected.');
           FLAG__phasestabscan = 1;
         end;
 
-        if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFPHASESTABSCAN) ),
-          % count up dem echos!
-          echo_num = echo_num + 1;
+	  % NOTE: both the phase stabilization measurements and the phase
+          % stabilization reference measurements are stored as echo 0
+          % regardless of how many echoes are acquired for the imaging data.
 
-          % HACK: since the phase stability scan is always set as echo 0 in
-          % the loopcounters, to avoid clobbering the true first echo for the
-          % reference scans here we save the phase stability as echo N+1 where
-          % N is the number of echos.
+	  %%% VB13A ICE manual, V0.7, p. 274:
+	  %  "Phase stabilization is restricted to the sharing of phase
+	  %   stabilization scans between different contrasts (echoes), i.e.
+          %   the imaging scans, which belong to the same phase stabilization
+          %   echo, may only differ in the ECO ICE Dimension."
 
-          refphasestabscan(...
+	  if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFPHASESTABSCAN) ),
+	    
+	    % the phase stabilization works by collecting a full set
+	    % (potentially multiple echoes) of lines at the beginning of each
+	    % slice that are tagged as MDH_REFPHASESTABSCAN, followed by a
+	    % *single* measurement that is tagged as both MDH_REFPHASESTABSCAN
+	    % and MDH_PHASESTABSCAN. it is this last scan that serves as the
+	    % reference, and it will exhibit the same timing as the subsequent
+	    % phase stabilization scans that follow each group of image
+	    % echoes. therefore the group of MDH_REFPHASESTABSCAN lines
+	    % preceding each *single* reference echo are not used by the
+	    % correction and are discarded.
+  
+	  refphasestabscan(...
               :, pos(02), ...
-              pos(03), pos(04), echo_num, pos(06), pos(07), pos(08), pos(09), ...
+              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
               pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) ...
               = adc_cplx;
-        end;
+	else,
 
-        if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASESTABSCAN) ),
           phasestabscan(...
               :, pos(02), ...
               pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
               pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) ...
               = adc_cplx;
-        end;
+        
+	end;
         continue;
 
         %%% CATEGORY #4: data
@@ -983,41 +1018,85 @@ function varargout = read_meas_dat(filename, options)
                  redundancy));
   end;
 
+  
+  if ( DO__RETURN_STRUCT ),
 
-  % if auxiliary data is not present, set arrays to empty arrays in case
-  % user requested arrays as output arguments
+    meas = struct;
+    meas.data = data;
+    
+    if ( FLAG__data_phascor1d ),
+      meas.data_phascor1d = data_phascor1d;
+    end;
 
-  if ( ~FLAG__data_phascor1d ),
-    data_phascor1d            = [];
+    if ( FLAG__data_phascor2d ),
+      meas.data_phascor2d = data_phascor2d;
+    end;
+
+    if ( FLAG__noiseadjscan ),
+      meas.noiseadjscan = noiseadjscan;
+    end;
+
+    if ( FLAG__patrefscan ),
+      meas.patrefscan = patrefscan;
+    end;
+
+    if ( FLAG__patrefscan_phascor ),
+      meas.patrefscan_phascor = patrefscan_phascor;
+    end;
+
+    if ( FLAG__phasestabscan ),
+      meas.phasestabscan = phasestabscan;
+      meas.refphasestabscan = refphasestabscan;
+    end;
+    
+    if ( nargout > 0 ),
+      varargout{1} = meas;
+    end;        
+  
+  else,  
+    
+    % if auxiliary data is not present, set arrays to empty arrays in case
+    % user requested arrays as output arguments
+
+    if ( ~FLAG__data_phascor1d ),
+      data_phascor1d            = [];
+    end;
+
+    if ( ~FLAG__data_phascor2d ),
+      data_phascor2d           = [];
+    end;
+
+    if ( ~FLAG__noiseadjscan ),
+      noiseadjscan            = [];
+    end;
+
+    if ( ~FLAG__patrefscan ),
+      patrefscan              = [];
+    end;
+
+    if ( ~FLAG__patrefscan_phascor ),
+      patrefscan_phascor      = [];
+    end;
+
+    if ( ~FLAG__phasestabscan ),
+      phasestabscan          = [];
+      refphasestabscan       = [];
+    end;
+
+
+    if ( nargout > 0 ),
+      varargout{1} = data;
+      varargout{2} = data_phascor1d;
+      varargout{3} = data_phascor2d;
+      varargout{4} = noiseadjscan;
+      varargout{5} = patrefscan;
+      varargout{6} = patrefscan_phascor;
+      varargout{7} = phasestabscan;
+      varargout{8} = refphasestabscan;
+    end;
+
   end;
-
-  if ( ~FLAG__data_phascor2d ),
-    data_phascor2d           = [];
-  end;
-
-  if ( ~FLAG__noiseadjscan ),
-    noiseadjscan            = [];
-  end;
-
-  if ( ~FLAG__patrefscan ),
-    patrefscan              = [];
-  end;
-
-  if ( ~FLAG__patrefscan_phascor ),
-    patrefscan_phascor      = [];
-  end;
-
-
-  if ( nargout > 0 ),
-    varargout{1} = data;
-    varargout{2} = data_phascor1d;
-    varargout{3} = data_phascor2d;
-    varargout{4} = noiseadjscan;
-    varargout{5} = patrefscan;
-    varargout{6} = patrefscan_phascor;
-  end;
-
-
+  
   return;
 
 
