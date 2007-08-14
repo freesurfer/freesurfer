@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/08/02 21:14:07 $
- *    $Revision: 1.297 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/14 01:27:10 $
+ *    $Revision: 1.298 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -998,6 +998,7 @@ int   MRISmarkNegativeVertices(MRI_SURFACE *mris, int mark) ;
 int   MRISripNegativeVertices(MRI_SURFACE *mris) ;
 int   MRISclearGradient(MRI_SURFACE *mris) ;
 int   MRISclearMarks(MRI_SURFACE *mris) ;
+int   MRISclearMark2s(MRI_SURFACE *mris) ;
 int   MRISclearFaceMarks(MRI_SURFACE *mris) ;
 int   MRISclearFixedValFlags(MRI_SURFACE *mris) ;
 int   MRIScopyFixedValFlagsToMarks(MRI_SURFACE *mris) ;
@@ -1585,5 +1586,9 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris,
                               MRI *mri_aseg,
                               double resolution);
 int MRIShistoThresholdCurvature(MRI_SURFACE *mris, float thresh_pct);
+int MRISsetVal2(MRI_SURFACE *mris, float val);
+MRI *MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri, float resolution) ;
+int MRISinvertMarks(MRI_SURFACE *mris) ;
+
 
 #endif
