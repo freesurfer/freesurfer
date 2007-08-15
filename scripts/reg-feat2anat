@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/07/26 16:53:16 $
-#    $Revision: 1.26 $
+#    $Author: nicks $
+#    $Date: 2007/08/15 15:39:41 $
+#    $Revision: 1.26.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: reg-feat2anat,v 1.26 2007/07/26 16:53:16 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.26.2.1 2007/08/15 15:39:41 nicks Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brainmask;
@@ -39,7 +39,7 @@ set usedev = 0;
 set manual = 0;
 set manual_use_surf = 1;
 set manxfm = func2anat;
-set DoBETFunc = 1;
+set DoBETFunc = 0; # Not with FSL 4.0
 set title = ();
 
 set PrintHelp = 0;
@@ -111,6 +111,7 @@ set std2anat_fslmat = $FeatDir/reg/freesurfer/std2anat.fsl.mat
 set exf2anat_init_fslmat = $FeatDir/reg/freesurfer/exf2anat.init.fsl.mat
 set exf2anat_fslmat = $FeatDir/reg/freesurfer/exf2anat.fsl.mat
 set std2exf_regdat  = $FeatDir/reg/freesurfer/std2exf.register.dat
+set stdbrain = `stem2fname $FSLDIR/etc/standard/avg152T1_brain`; # For FSL 4.0
 
 set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol.mgz
 if(! -e $refvolcor) then
@@ -145,8 +146,7 @@ if($manual && $manxfm == std2anat) then
     exit 1;
   endif
   set cmd = ($TKR  --tag --s $subject  --inorm\
-            --targ $refvolcor --volview mov\
-            --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
+            --targ $refvolcor --mov $stdbrain --volview mov\
             --reg $anat2std_regdat --fslreg $std2anat_fslmat)
   if($manual_use_surf) set cmd = ($cmd --surf orig);
   if($#title) set cmd = ($cmd --title $title);
@@ -162,7 +162,7 @@ if($manual && $manxfm == func2std) then
     echo "ERROR: you must run without --manual or --manxfm to create registration first"
     exit 1;
   endif
-  set cmd = ($TKR --targ $FSLDIR/etc/standard/avg152T1_brain.img \
+  set cmd = ($TKR --targ $stdbrain \
             --mov $FeatDir/example_func.$fslext --volview mov\
             --reg $std2exf_regdat --s $subject --tag  --inorm);
   if($#title) set cmd = ($cmd --title $title);
@@ -227,7 +227,7 @@ else
   # vox2ras is not valid in exf, so init from crude std2anat
   set cmd = ($TKR \
               --targ $refvolcor \
-              --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
+              --mov  $stdbrain \
               --reg $anat2std_regdat \
               --fslregout $std2anat_fslmat \
               --regheader)
@@ -254,14 +254,14 @@ set cmd = (fslregister --s $subject --reg $anat2exf_regdat \
   --fslmat $exf2anat_fslmat --fsvol $anatvol \
   --maxangle $maxangle  --initfslmat $exf2anat_init_fslmat \
   --tmp $FeatDir/reg/freesurfer/tmp --out $outvol.$fslext)
-if($DoBETFunc) set cmd = ($cmd --betfunc)
+if($DoBETFunc) set cmd = ($cmd --betfunc) # Not with FSL 4.0
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
 cp $anat2exf_regdat $FeatDir/reg/freesurfer/register.dat
 
 # Just for fun, create a matrix to map exf to talairach:
-set cmd = ($TKR --targ $FSLDIR/etc/standard/avg152T1_brain.img \
+set cmd = ($TKR --targ $stdbrain \
             --mov $FeatDir/example_func.$fslext \
             --fslreg $FeatDir/reg/example_func2standard.mat \
             --reg $std2exf_regdat --noedit)
@@ -288,7 +288,7 @@ endif
 set cmd = ($TKR \
             --s $subject \
             --targ $refvolcor \
-            --mov  $FSLDIR/etc/standard/avg152T1_brain.img \
+            --mov  $stdbrain \
             --reg $anat2std_regdat \
             --fslreg $std2anat_fslmat)
 if(! $debug)  set cmd = ($cmd --noedit)
@@ -393,6 +393,10 @@ while( $#argv != 0 )
 
     case "--no-bet":
       set DoBETFunc = 0;
+      breaksw
+
+    case "--bet":
+      set DoBETFunc = 1;
       breaksw
 
     case "--debug":
@@ -502,7 +506,7 @@ usage_exit:
   echo " --bins bins      : FLIRT bins (default is $bins)"
   echo " --cost cost      : FLIRT cost (default is $cost)"
   echo " --maxangle angle : FLIRT max search angle (default is $maxangle)"
-  echo " --no-bet         : do not run betfunc on example_func"
+  echo " --bet            : run betfunc on example_func (not with FSL 4.0)"
   echo " "
   echo " --title        : title for tkregister window"
   echo " --version      : print version and exit"
@@ -616,7 +620,7 @@ tkmedit bert orig -overlay ./fbert.feat/stats/zstat1.$fslext \
      -fthresh 1.3 -fmid 2.3 -fslope 1
 
 # Overlay zmap onto the standard volume. Set the threshold at z=1.3
-tkmedit -f $FSLDIR/etc/standard/avg152T1_brain.img \
+tkmedit -f $FSLDIR/etc/standard/avg152T1_brain.$ext \
      -overlay ./fbert.feat/stats/zstat1.$fslext \
      -overlay-reg ./fbert.feat/reg/freesurfer/std2exf.register.dat \
      -fthresh 1.3 -fmid 2.3 -fslope 1

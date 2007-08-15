@@ -7,9 +7,9 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/06 19:38:01 $
- *    $Revision: 1.86 $
+ *    $Author: nicks $
+ *    $Date: 2007/08/15 15:39:42 $
+ *    $Revision: 1.86.2.1 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.86 2007/08/06 19:38:01 greve Exp $";
+"$Id: tkregister2.c,v 1.86.2.1 2007/08/15 15:39:42 nicks Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1021,12 +1021,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--notag"))  tagmov = 0;
     else if (!strcasecmp(option, "--mgz"))  ; // for backwards compat
     else if (stringmatch(option, "--fsl-targ")) {
-      sprintf(tmpstr,"%s/etc/standard/avg152T1.img",getenv("FSLDIR"));
-      targ_vol_id = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/etc/standard/avg152T1",getenv("FSLDIR"));
+      targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
     } else if (stringmatch(option, "--fsl-targ-lr")) {
-      sprintf(tmpstr,"%s/etc/standard/avg152T1_LR-marked.img",
-              getenv("FSLDIR"));
-      targ_vol_id = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/etc/standard/avg152T1_LR-marked",getenv("FSLDIR"));
+      targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
     } else if (!strcasecmp(option, "--lh-only")) lhsurf_only=1 ;
     else if (!strcasecmp(option, "--rh-only")) rhsurf_only=1 ;
     else if (!strcasecmp(option, "--check-reg")){
@@ -1148,15 +1147,10 @@ static int parse_commandline(int argc, char **argv) {
     } else if (stringmatch(option, "--feat")) {
       if (nargc < 1) argnerr(option,1);
       //pargv[0] is featdir
-      sprintf(tmpstr,"%s/etc/standard/avg152T1.img",getenv("FSLDIR"));
-      targ_vol_id = strcpyalloc(tmpstr);
-      fmt = "";
-      if (strcmp(getenv("FSLOUTPUTTYPE"),"NIFTI")==0)    fmt = "nii";
-      if (strcmp(getenv("FSLOUTPUTTYPE"),"NIFTI_GZ")==0) fmt = "nii.gz";
-      if (strcmp(getenv("FSLOUTPUTTYPE"),"ANALYZE")==0)  fmt = "img";
-      printf("Assuming %s as FSL format extension",fmt);
-      sprintf(tmpstr,"%s/example_func.%s",pargv[0],fmt);
-      mov_vol_id = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/etc/standard/avg152T1",getenv("FSLDIR"));
+      targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
+      sprintf(tmpstr,"%s/example_func",pargv[0]);
+      mov_vol_id = IDnameFromStem(tmpstr);
       sprintf(tmpstr,"%s/reg/example_func2standard.mat",pargv[0]);
       fslregfname = strcpyalloc(tmpstr);
       read_fslreg(fslregfname);
@@ -4485,7 +4479,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.86 2007/08/06 19:38:01 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.86.2.1 2007/08/15 15:39:42 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
