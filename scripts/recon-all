@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/08/14 20:46:21 $
-#    $Revision: 1.134 $
+#    $Date: 2007/08/15 01:43:56 $
+#    $Revision: 1.135 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.134 2007/08/14 20:46:21 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.135 2007/08/15 01:43:56 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -123,7 +123,7 @@ set NoNormMGZ = 0; # set to 1 when -nosubcortseg or -noaseg flag is used,
                    # which causes norm.mgz not to used during inorm2 step
 set NoWMSA = 0;      # if 1, then -nowmsa flag is added to mri_ca_label
 set DoQdecCache = 0; # if 1, then create smoothed fsaverage surface files
-set measurelist = ( thickness area area.pial volume curv sulc jacobian_white  )
+set measurelist = ( thickness area area.pial volume curv sulc white.K white.H jacobian_white  )
                      # ^ these are the files smoothed by DoQdecCache (-qcache)
 set fwhmlist = ( 0 5 10 15 20 25 ) # see DoQdecCache
 set target = fsaverage # see DoQdecCache
