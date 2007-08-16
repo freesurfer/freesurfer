@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/26 16:52:54 $
-#    $Revision: 1.16 $
+#    $Date: 2007/08/16 16:51:14 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.16 2007/07/26 16:52:54 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.17 2007/08/16 16:51:14 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -92,13 +92,22 @@ set DateString = "`date '+%y%m%d%H%M'`"
 # Convert reference to analyze
 set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol.mgz
 if(! -e $refvol) then
-  # Might be COR,
-  set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol
-  if(! -e $refvol/COR-.info) then
-    echo "ERROR: $refvol not found"
-    exit 1;
+  if($fsvol == brainmask) then
+    # Try using brain instead
+    set refvol = $SUBJECTS_DIR/$subjid/mri/brain.mgz
+    if(-e $refvol) set fsvol = brain;
+  endif
+  if(! -e $refvol) then
+    # OK, Might be COR,
+    set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol
+    if(! -e $refvol/COR-.info) then
+      # Give up
+      echo "ERROR: $refvol not found"
+      exit 1;
+    endif
   endif
 endif
+
 set refvolbase = $tmpdir/refvol.fslregister
 set refvolimg  = $refvolbase.nii
 set cmd = (mri_convert $refvol $refvolimg)
@@ -272,6 +281,8 @@ while( $#argv != 0 )
     case "--fsvol":
       if ( $#argv < 1) goto arg1err;
       set fsvol = $argv[1]; shift;
+      set tmp = `fname2stem $fsvol`;
+      if(! $status)  set fsvol = $tmp;
       breaksw
 
     case "--mov":
