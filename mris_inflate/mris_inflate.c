@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/16 00:49:14 $
- *    $Revision: 1.35 $
+ *    $Author: nicks $
+ *    $Date: 2007/08/16 01:39:27 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_inflate.c,v 1.35 2007/08/16 00:49:14 fischl Exp $";
+  "$Id: mris_inflate.c,v 1.36 2007/08/16 01:39:27 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -83,13 +83,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_inflate.c,v 1.35 2007/08/16 00:49:14 fischl Exp $",
+   "$Id: mris_inflate.c,v 1.36 2007/08/16 01:39:27 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_inflate.c,v 1.35 2007/08/16 00:49:14 fischl Exp $",
+           "$Id: mris_inflate.c,v 1.36 2007/08/16 01:39:27 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -440,7 +440,7 @@ get_option(int argc, char *argv[])
       if (argc < 2)
         print_usage() ;
       parms.desired_rms_height = atof(argv[2]) ;
-      fprintf(stderr, "desired rms height=%2.2f\n",
+      fprintf(stderr, "desired rms height = %2.9f\n",
               parms.desired_rms_height) ;
       nargs = 1 ;
       break ;
