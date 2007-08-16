@@ -1,18 +1,19 @@
 /**
  * @file  mris_inflate.c
- * @brief inflate a surface
+ * @brief binary for inflating a surface.
  *
  * "Cortical Surface-Based Analysis II: Inflation, Flattening, and a
  * Surface-Based Coordinate System", Fischl, B., Sereno, M.I., Dale, A.M.
  * (1999) NeuroImage, 9(2):195-207.
- *
+ * Program for "inflating" a surface by modeling it as a mesh of springs
+ * and applying an area correction post-hoc to ensure area preservation.
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/15 22:29:11 $
- *    $Revision: 1.33.2.1 $
+ *    $Date: 2007/08/16 01:40:10 $
+ *    $Revision: 1.33.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +47,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_inflate.c,v 1.33.2.1 2007/08/15 22:29:11 nicks Exp $";
+  "$Id: mris_inflate.c,v 1.33.2.2 2007/08/16 01:40:10 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -82,13 +83,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_inflate.c,v 1.33.2.1 2007/08/15 22:29:11 nicks Exp $",
+   "$Id: mris_inflate.c,v 1.33.2.2 2007/08/16 01:40:10 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_inflate.c,v 1.33.2.1 2007/08/15 22:29:11 nicks Exp $",
+           "$Id: mris_inflate.c,v 1.33.2.2 2007/08/16 01:40:10 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -439,7 +440,7 @@ get_option(int argc, char *argv[])
       if (argc < 2)
         print_usage() ;
       parms.desired_rms_height = atof(argv[2]) ;
-      fprintf(stderr, "desired rmso height = %3.4f\n",
+      fprintf(stderr, "desired rms height = %2.9f\n",
               parms.desired_rms_height) ;
       nargs = 1 ;
       break ;
