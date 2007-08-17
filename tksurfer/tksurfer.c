@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/30 17:12:24 $
- *    $Revision: 1.276 $
+ *    $Author: nicks $
+ *    $Date: 2007/08/17 22:58:01 $
+ *    $Revision: 1.276.2.1 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2122,7 +2122,6 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 int  mai(int argc,char *argv[])
 #endif
 {
-  int tclscriptflag;
   int i;
   int j;
   long last_frame_xdim;
@@ -2399,7 +2398,6 @@ int  mai(int argc,char *argv[])
   }
   sprintf(lstem,"%s",argv[2]);
   sprintf(lext,"%s",argv[3]);
-  tclscriptflag = FALSE;
 
   /* rkt: commented this part out. i'm not sure how it was accepting
      any other command line options with it active. */
@@ -2407,7 +2405,7 @@ int  mai(int argc,char *argv[])
   if (argc>=5) {
     strcpy(str,argv[4]);
     if (MATCH_STR("-tcl"))
-      tclscriptflag = TRUE;
+      scriptok = TRUE;
     else {
       option = atoi(argv[4]);
       if (option==5) {
@@ -2615,7 +2613,7 @@ int  mai(int argc,char *argv[])
 
   /* end rkt */
 
-  if (tclscriptflag) {
+  if (scriptok) {
     /* tksurfer tcl script */
     /* called from tksurfer.c; do nothing (don't even open gl window) */
     /* wait for tcl interp to start; tksurfer calls tcl script */
@@ -18560,7 +18558,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.276 2007/07/30 17:12:24 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.276.2.1 2007/08/17 22:58:01 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
