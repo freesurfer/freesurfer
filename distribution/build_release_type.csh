@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.96 2007/08/14 16:08:21 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.97 2007/08/17 19:17:45 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -347,7 +347,12 @@ set cnfgr=(./configure)
 set cnfgr=($cnfgr --prefix=${FREESURFER_HOME})
 set cnfgr=($cnfgr --bindir=${DEST_DIR}/bin-new)
 set cnfgr=($cnfgr $ENAB_NMR)
-set cnfgr=($cnfgr `cat ${BUILD_DIR}/configure_options.txt`)
+if (("${RELEASE_TYPE}" == "stable") || \
+    ("${RELEASE_TYPE}" == "stable-pub")) then
+  set cnfgr=($cnfgr `cat ${BUILD_DIR}/stable-configure_options.txt`)
+else
+  set cnfgr=($cnfgr `cat ${BUILD_DIR}/dev-configure_options.txt`)
+endif
 set cnfgr=($cnfgr --with-mni-dir=${MNIDIR})
 set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 if ($?VTKDIR) then
@@ -484,17 +489,12 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   strip ${DEST_DIR}/bin-new/* >& /dev/null
 endif
 #
-# Shift bin/ to bin-old/, and bin-old/ to bin-old-old/ to keep old versions.
+# Shift bin/ to bin-old/ to keep old versions.
 # Move bin/ to bin-old/ instead of copy, to avoid core dumps if some script
 # is using a binary in bin/.
 # Move newly created bin-new/ to bin/.
 # This series of mv's minimizes the time window where the /bin directory
 # would appear empty to a machine trying to reference its contents in recon-all
-echo "CMD: rm -rf ${DEST_DIR}/bin-old-old" >>& $OUTPUTF
-if (-e ${DEST_DIR}/bin-old-old) rm -rf ${DEST_DIR}/bin-old-old >>& $OUTPUTF
-echo "CMD: mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old" >>& $OUTPUTF
-if (-e ${DEST_DIR}/bin-old) mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old \
-    >>& $OUTPUTF
 echo "CMD: mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old" >>& $OUTPUTF
 mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
 echo "CMD: mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin" >>& $OUTPUTF
