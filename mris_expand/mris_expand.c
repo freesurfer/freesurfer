@@ -1,14 +1,16 @@
 /**
  * @file  mris_expand.c
- * @brief Expand a surface by specified number of mm.
- *
+ * @brief expand a surface outwards by a specified amount
+=======
+ * Expands a surface (typically ?h.white) outwards while maintaining smoothness
+ * and self-intersection constraints.
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/31 00:29:34 $
- *    $Revision: 1.7 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/17 17:07:43 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -70,7 +72,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_expand.c,v 1.7 2007/07/31 00:29:34 nicks Exp $",
+     "$Id: mris_expand.c,v 1.8 2007/08/17 17:07:43 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -100,9 +102,8 @@ main(int argc, char *argv[])
   FileNameExtension(out_fname,parms.base_name) ;  // remove hemi (e.g. lh.)
 
   if (use_thickness)
-    printf("expanding surface %s by %2.2f%% of thickness and "
-           "writing it to %s\n",
-           in_fname, mm_out, out_fname) ;
+    printf("expanding surface %s by %2.1f%% of thickness and writing it to %s\n",
+           in_fname, 100.0*mm_out, out_fname) ;
   else
     printf("expanding surface %s by %2.1f mm and writing it to %s\n",
            in_fname, mm_out, out_fname) ;
