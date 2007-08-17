@@ -6,9 +6,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/14 03:40:05 $
- *    $Revision: 1.42 $
+ *    $Author: greve $
+ *    $Date: 2007/08/17 21:37:54 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -117,6 +117,7 @@ int *XNbrVtxNo, nXNbrs;
 double *XNbrDotProd;
 
 MRIS *MRISaverageSurfaces(int nsurfaces, MRIS **surfs);
+MATRIX *MatrixLoadFSL(char *fname);
 
 /*----------------------------------------*/
 int main(int argc, char **argv) {
@@ -130,6 +131,9 @@ int main(int argc, char **argv) {
   VERTEX *vtx;
   float dlhw,DotProdThresh;
   int  lhwvtx;
+
+  MatrixLoadFSL(argv[1]);
+  exit(1);
 
   printf("nsurfs %d\n",argc-1);
   for(k=1; k<argc; k++){
@@ -819,3 +823,111 @@ MRIS *MRISaverageSurfaces(int nsurfaces, MRIS **surfs)
   printf("avg  surface area %g\n",avgsurf->total_area);
   return(avgsurf);
 }
+/*!
+  \fn MATRIX *MatrixLoadFSL(char *fname)
+  \brief Loads in an FSL matrix. Not a registration matrix but one
+  stored in their design.con or design.mat files used in the GLM 
+  estimation. The format is pretty simple, it just has a /Matrix 
+  keyword followed by the data.
+*/
+MATRIX *MatrixLoadFSL(char *fname)
+{
+  FILE *fp;
+  MATRIX *M0,*M;
+  char line[2000], *s, tag[2000];
+  int hit,Nc,Nc0,c,nrows,r;
+
+  fp = fopen(fname,"r");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s\n",fname);
+    return(NULL);
+  }
+
+  // Get past the "/Matrix" string
+  hit = 0;
+  while(1){
+    s = fgets(line, 1999, fp);
+    if(s == NULL){
+      printf("ERROR: %s is not formatted correctly\n",fname);
+      fclose(fp);
+      return(NULL);
+    }
+    sscanf(line,"%s",tag);
+    if(! strcmp(tag,"/Matrix")){
+      hit = 1;
+      break;
+    }
+  }
+  if(!hit){
+    printf("ERROR: %s is not formatted correctly\n",fname);
+    fclose(fp);
+    return(NULL);
+  }
+
+  // Now read in each line
+  M = NULL;
+  Nc0 = 0; Nc=0;
+  nrows = 0;
+  while(1){
+    if(nrows > 5000){
+      printf("ERROR: %s, nrows exceeds 5000\n",fname);
+      fclose(fp);
+      MatrixFree(&M0);
+      return(NULL);
+    }
+    // read in line
+    s = fgets(line, 1999, fp);
+    if(s == NULL) break;
+    // Count number of columns
+    Nc = gdfCountItemsInString(line);
+    if(Nc == 0){
+      printf("ERROR: %s is not formatted correctly\n",fname);
+      fclose(fp);
+      return(NULL);
+    }
+    // If first pass, alloc matrix, etc
+    if(nrows == 0){
+      Nc0 = Nc;
+      //printf("%d cols\n",Nc);
+      M0 = MatrixAlloc(5000,Nc,MATRIX_REAL);
+      if(M0==NULL){
+	printf("ERROR: could not alloc %d cols\n",Nc);
+	fclose(fp);
+	return(NULL);
+      }
+    }
+    // Make sure this row is conistent with previous rows
+    if(Nc0 != Nc){
+      printf("ERROR: %s is not formatted correctly\n",fname);
+      fclose(fp);
+      MatrixFree(&M0);
+      return(NULL);
+    }
+    // Read in each colum for this row
+    for(c=0; c < Nc0; c++){
+      s = gdfGetNthItemFromString(line, c);
+      sscanf(s,"%f",&M0->rptr[nrows+1][c+1]);
+      free(s);
+    }
+    nrows ++;
+  }
+  fclose(fp);
+  //printf("%d rows\n",nrows);
+
+  if(nrows == 0){
+    printf("ERROR: %s is not formatted correctly\n",fname);
+    return(NULL);
+  }
+
+  // Pack data into a matrix of the correct size
+  M = MatrixAlloc(nrows,Nc,MATRIX_REAL);
+  for(r=0; r < nrows; r++)
+    for(c=0; c < Nc0; c++)
+      M->rptr[r+1][c+1] = M0->rptr[r+1][c+1];
+  MatrixFree(&M0);
+
+  MatrixPrint(stdout,M);
+  
+  return(M);
+}
+
