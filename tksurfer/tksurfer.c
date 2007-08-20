@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/17 22:58:46 $
- *    $Revision: 1.277 $
+ *    $Date: 2007/08/20 03:43:51 $
+ *    $Revision: 1.278 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2122,6 +2122,7 @@ int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 int  mai(int argc,char *argv[])
 #endif
 {
+  int tclscriptflag;
   int i;
   int j;
   long last_frame_xdim;
@@ -2398,6 +2399,7 @@ int  mai(int argc,char *argv[])
   }
   sprintf(lstem,"%s",argv[2]);
   sprintf(lext,"%s",argv[3]);
+  tclscriptflag = FALSE;
 
   /* rkt: commented this part out. i'm not sure how it was accepting
      any other command line options with it active. */
@@ -2405,7 +2407,7 @@ int  mai(int argc,char *argv[])
   if (argc>=5) {
     strcpy(str,argv[4]);
     if (MATCH_STR("-tcl"))
-      scriptok = TRUE;
+      tclscriptflag = TRUE;
     else {
       option = atoi(argv[4]);
       if (option==5) {
@@ -2613,14 +2615,14 @@ int  mai(int argc,char *argv[])
 
   /* end rkt */
 
-  if (scriptok) {
+  if (tclscriptflag) {
     /* tksurfer tcl script */
     /* called from tksurfer.c; do nothing (don't even open gl window) */
     /* wait for tcl interp to start; tksurfer calls tcl script */
   } else {
 
     /* open window for surfer or non-script tksurfer (a few envs) */
-#ifndef Linux
+//#ifndef Linux
     if ((envptr=getenv("doublebufferflag"))!=NULL) { /*tmp:TODO OGL toggle*/
       if (MATCH("1",envptr))     doublebufferflag = TRUE;
       if (MATCH("TRUE",envptr))  doublebufferflag = TRUE;
@@ -2629,7 +2631,7 @@ int  mai(int argc,char *argv[])
       if (MATCH("1",envptr))     renderoffscreen = TRUE;
       if (MATCH("TRUE",envptr))  renderoffscreen = TRUE;
     }
-#endif
+//#endif
     open_window(pname);
     if (stem[0]=='r'&&stem[1]=='h')
       rotate_brain(-90.0,'y');
@@ -18558,7 +18560,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.277 2007/08/17 22:58:46 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.278 2007/08/20 03:43:51 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
