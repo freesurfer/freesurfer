@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.97 2007/08/17 19:17:45 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.98 2007/08/20 13:55:25 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -495,6 +495,8 @@ endif
 # Move newly created bin-new/ to bin/.
 # This series of mv's minimizes the time window where the /bin directory
 # would appear empty to a machine trying to reference its contents in recon-all
+echo "CMD: rm -Rf ${DEST_DIR}/bin-old" >>& $OUTPUTF
+rm -Rf ${DEST_DIR}/bin-old >>& $OUTPUTF
 echo "CMD: mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old" >>& $OUTPUTF
 mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
 echo "CMD: mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin" >>& $OUTPUTF
