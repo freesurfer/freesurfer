@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.6 2007/07/13 04:52:09 greve Exp $';
+set VERSION = '$Id: dt_recon,v 1.7 2007/08/20 18:08:53 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -368,8 +368,6 @@ exit 1;
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
-
-DEFNIITELY NOT TESTED YET!
 
 Performs DTI reconstruction from the raw DWI in the input file. If
 bvalues and bvectors are not specified with --b, it is assumed that
