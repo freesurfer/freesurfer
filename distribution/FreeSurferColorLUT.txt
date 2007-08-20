@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.38 2007/08/07 18:40:54 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.38.2.1 2007/08/20 01:52:07 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -238,34 +238,34 @@
 409 BAun2                                   238 13  177 0
 410 BA1                                     123 186 220 0
 411 BA2b                                    138 13  206 0
-412 BA3a                                    238 130  176 0
-413 BA3b                                    218 230  76 0
-414 MT                                      38  213  176 0
-415 AIPS_AIP_l                              1   225 176 0  
+412 BA3a                                    238 130 176 0
+413 BA3b                                    218 230 76  0
+414 MT                                      38  213 176 0
+415 AIPS_AIP_l                              1   225 176 0
 416 AIPS_AIP_r                              1   225 176 0
-417 AIPS_VIP_l                              200 2   100 0 
-418 AIPS_VIP_r                              200 2   100 0  
-419 IPL_PFcm_l                              5   200 90  0    
-420 IPL_PFcm_r                              5   200 90  0 
-421 IPL_PF_l                                100 5   200 0  
-422 IPL_PFm_l                               25  255 100 0  
+417 AIPS_VIP_l                              200 2   100 0
+418 AIPS_VIP_r                              200 2   100 0
+419 IPL_PFcm_l                              5   200 90  0
+420 IPL_PFcm_r                              5   200 90  0
+421 IPL_PF_l                                100 5   200 0
+422 IPL_PFm_l                               25  255 100 0
 423 IPL_PFm_r                               25  255 100 0
-424 IPL_PFop_l                              230 7   100	0    
-425 IPL_PFop_r                              230 7   100	0
-426 IPL_PF_r				    100 5   200 0
-427 IPL_PFt_l				    150	10  200	0		
-428 IPL_PFt_r				    150	10  200	0
-429 IPL_PGa_l				    175	10  176	0
-430 IPL_PGa_r				    175	10  176	0
-431 IPL_PGp_l				    10	100 255	0
-432 IPL_PGp_r				    10	100 255	0  
-433 Visual_V3d_l			    150	45  70	0
-434 Visual_V3d_r			    150	45  70	0
-435 Visual_V4_l				    45	200 15	0
-436 Visual_V4_r				    45	200 15	0
-437 Visual_V5_b				    227	45  100	0
-438 Visual_VP_l				    227	45  100	0
-439 Visual_VP_r				    227	45  100	0
+424 IPL_PFop_l                              230 7   100 0
+425 IPL_PFop_r                              230 7   100 0
+426 IPL_PF_r                                100 5   200 0
+427 IPL_PFt_l                               150 10  200 0
+428 IPL_PFt_r                               150 10  200 0
+429 IPL_PGa_l                               175 10  176 0
+430 IPL_PGa_r                               175 10  176 0
+431 IPL_PGp_l                               10  100 255 0
+432 IPL_PGp_r                               10  100 255 0
+433 Visual_V3d_l                            150 45  70  0
+434 Visual_V3d_r                            150 45  70  0
+435 Visual_V4_l                             45  200 15  0
+436 Visual_V4_r                             45  200 15  0
+437 Visual_V5_b                             227 45  100 0
+438 Visual_VP_l                             227 45  100 0
+439 Visual_VP_r                             227 45  100 0
 
 # HiRes Hippocampus labeling
 500 right_CA2/3                             17  85  136 0
@@ -288,7 +288,7 @@
 557 left_subiculum                          0   119 86  0
 558 left_fornix                             20  100 201 0
 
-999 SUSPICOUS                               255  100 100 0
+999 SUSPICIOUS                              255  100 100 0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg in which the aseg cortex label is replaced
@@ -447,8 +447,8 @@
 4033    wm-rh-temporalpole                  185 185 185 0
 4034    wm-rh-transversetemporal            105 105 55  0
 
-5001    Left-UnsegmentedWhiteMatter          20  30  40  0
-5002    Right-UnsegmentedWhiteMatter         20  30  40  0
+5001    Left-UnsegmentedWhiteMatter         20  30  40  0
+5002    Right-UnsegmentedWhiteMatter        20  30  40  0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2005 flag) in which the aseg
