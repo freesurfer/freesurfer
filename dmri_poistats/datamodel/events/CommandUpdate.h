@@ -3,6 +3,7 @@
 
 #include <itkCommand.h>
 #include <itkDiffusionTensor3D.h>
+#include <itkOrientedImage.h>
 
 #include "dmri_poistats/datamodel/utils/itkPoistatsFilter.h"
 
@@ -17,7 +18,7 @@ public:
   
   typedef itk::DiffusionTensor3D< float > TensorPixelType;
   typedef itk::Image< TensorPixelType, 3 > TensorImageType;
-  typedef itk::Image< float, 3 > OutputImageType;
+  typedef itk::OrientedImage< float, 3 > OutputImageType;
   typedef itk::PoistatsFilter< TensorImageType, OutputImageType > 
     PoistatsFilterType;
   typedef const PoistatsFilterType* PoistatsFilterPointer;
