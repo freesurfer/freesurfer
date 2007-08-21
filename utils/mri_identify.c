@@ -6,9 +6,9 @@
 /*
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/05/22 04:46:38 $
- *    $Revision: 1.61 $
+ *    $Author: nicks $
+ *    $Date: 2007/08/21 19:00:51 $
+ *    $Revision: 1.61.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -491,6 +491,15 @@ char *IDnameFromStem(char *stem)
   if (fio_FileExistsReadable(tmpstr)) return(strcpyalloc(tmpstr));
 
   sprintf(tmpstr,"%s.mgh",stem);
+  if (fio_FileExistsReadable(tmpstr)) return(strcpyalloc(tmpstr));
+
+  sprintf(tmpstr,"%s.mgz",stem);
+  if (fio_FileExistsReadable(tmpstr)) return(strcpyalloc(tmpstr));
+
+  sprintf(tmpstr,"%s.img",stem);
+  if (fio_FileExistsReadable(tmpstr)) return(strcpyalloc(tmpstr));
+
+  sprintf(tmpstr,"%s.bhdr",stem);
   if (fio_FileExistsReadable(tmpstr)) return(strcpyalloc(tmpstr));
 
   sprintf(tmpstr,"%s_000.bfloat",stem);
