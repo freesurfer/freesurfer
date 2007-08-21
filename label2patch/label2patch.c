@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/30 18:02:38 $
- *    $Revision: 1.1 $
+ *    $Author: ayendiki $
+ *    $Date: 2007/08/21 15:26:34 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@ main(int argc, char *argv[]) {
   LABEL        *label ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label2patch.c,v 1.1 2007/01/30 18:02:38 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label2patch.c,v 1.2 2007/08/21 15:26:34 ayendiki Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -181,6 +181,6 @@ get_option(int argc, char *argv[]) {
 }
 static void
 print_usage(void) {
-  printf("usage: %s <hemi> <subject name> <label file name> <output patch file>...\n",Progname);
+  printf("usage: %s <subject name> <hemi> <label file name> <output patch file>...\n",Progname);
   exit(1) ;
 }
