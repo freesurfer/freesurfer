@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/04 20:56:52 $
- *    $Revision: 1.320 $
+ *    $Date: 2007/08/21 18:05:06 $
+ *    $Revision: 1.321 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.320 $";
+char *VERSION = "$Revision: 1.321 $";
 
 #define TCL
 #define TKMEDIT
@@ -1193,7 +1193,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.320 2007/08/04 20:56:52 nicks Exp $",
+     "$Id: tkmedit.c,v 1.321 2007/08/21 18:05:06 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5904,7 +5904,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.320 2007/08/04 20:56:52 nicks Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.321 2007/08/21 18:05:06 nicks Exp $ $Name:  $\n"
         )
       );
 
@@ -12514,6 +12514,12 @@ tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName ) {
   DebugNote( ("Loading TRANSFORM with TransformRead") );
   trans = TransformRead( sTransformFileName );
   DebugAssertThrowX( (NULL != trans), eResult, tkm_tErr_CouldntLoadTransform );
+/*
+  nick: removed this for now, as it seems to cause this loading error message:
+ % Converting to LTA type LINEAR_VOXEL_TO_VOXEL...
+ % LTAchangeType: src and dst geometry must be valid
+
+
   if (trans->type == LINEAR_RAS_TO_RAS)
   {
     MRI *mri_tmp = GCAbuildMostLikelyVolume(gca, NULL) ;
@@ -12522,7 +12528,7 @@ tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName ) {
                      mri_tmp) ;
     MRIfree(&mri_tmp) ;
   }
-
+*/
   TransformInvert
     (trans, gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues) ;
 
