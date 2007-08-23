@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/03 18:45:46 $
-#    $Revision: 1.37 $
+#    $Date: 2007/08/23 19:16:26 $
+#    $Revision: 1.37.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.37 2007/07/03 18:45:46 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.37.2.1 2007/08/23 19:16:26 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -447,6 +447,12 @@ while( $#argv != 0 )
     case "--out":
       if ( $#argv == 0) goto arg1err;
       set outpath = $argv[1]; shift;
+      # Make sure format is recognized
+      fname2stem $outpath > /dev/null
+      if($status) then
+        echo "ERROR: format for $outpath not recognized"
+        exit 1
+      endif
       breaksw
 
     case "--sf":
