@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.7 2007/08/20 18:08:53 greve Exp $';
+set VERSION = '$Id: dt_recon,v 1.8 2007/08/23 19:17:13 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -434,5 +434,5 @@ mri_concat */mask-tal.nii --o group-masksum-tal.nii --mean
 mri_binarize --i group-masksum-tal.nii --min .999 --o group-mask-tal.nii
 # GLM Fit
 mri_glmfit --y group-fa-tal.nii --mask group-mask-tal.nii\
-    --fsgd your.fsgd --C contrast --glm groupanadir
+    --fsgd your.fsgd --C contrast --glmdir groupanadir
 
