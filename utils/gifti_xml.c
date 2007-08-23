@@ -7,6 +7,10 @@
 #include "gifti.h"
 #include "gifti_xml.h"
 
+#ifndef XML_STATUS_ERROR
+#define XML_STATUS_ERROR 0
+#endif
+
 #define GXML_BSIZE 2048
 
 /* local prototypes */
