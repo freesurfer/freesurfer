@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/31 16:51:08 $
- *    $Revision: 1.23 $
+ *    $Author: greve $
+ *    $Date: 2007/08/23 17:44:16 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@ int MRISmatrixMultiply(MRIS *mris, MATRIX *M);
 
 //------------------------------------------------------------------------
 static char vcid[] =
-  "$Id: mris_convert.c,v 1.23 2007/07/31 16:51:08 nicks Exp $";
+  "$Id: mris_convert.c,v 1.24 2007/08/23 17:44:16 greve Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -81,6 +81,8 @@ static double scale=0;
 static int rescale=0;  // for rescaling group average surfaces
 static int output_normals=0;
 static MATRIX *XFM=NULL;
+static int write_vertex_neighbors = 0;
+int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -94,7 +96,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_convert.c,v 1.23 2007/07/31 16:51:08 nicks Exp $",
+           "$Id: mris_convert.c,v 1.24 2007/08/23 17:44:16 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -213,6 +215,8 @@ main(int argc, char *argv[]) {
     MRISwritePatch(mris, out_fname) ;
   else if (output_normals)
     MRISwriteNormalsAscii(mris, out_fname) ;
+  else if (write_vertex_neighbors)
+    MRISwriteVertexNeighborsAscii(mris, out_fname) ;
   else
     MRISwrite(mris, out_fname) ;
 
@@ -268,6 +272,10 @@ get_option(int argc, char *argv[]) {
       talxfmsubject = argv[2] ;
       nargs = 1 ;
       break ;
+    case 'V':
+      write_vertex_neighbors = 1;
+      nargs = 0 ;
+      break ;
     case '?':
     case 'U':
     case 'H':
@@ -314,6 +322,10 @@ print_help(void) {
           "                    vertex xyz\n");
   printf( "  -n                output is an ascii file where vertex data\n") ;
   printf( "                    is the surface normal vector\n") ;
+  printf( "  -v Writes out neighbors of a vertex in each row. The first\n");
+  printf( "     column is the vertex number, the 2nd col is the number of neighbors,\n");
+  printf( "     the remaining cols are the vertex numbers of the neighbors.  \n");
+  printf( "     Note: there can be a different number of neighbors for each vertex.\n") ;
   printf( "\n") ;
   printf( "Surface and scalar files can be ascii or binary.\n") ;
   printf( "Ascii file is assumed if filename ends with .asc\n") ;
@@ -322,6 +334,9 @@ print_help(void) {
   printf( "\n");
   printf( "Convert a surface file to ascii:\n");
   printf( "  mris_convert lh.white lh.white.asc\n") ;
+  printf( "\n");
+  printf( "Write vertex neighbors  to ascii:\n");
+  printf( "  mris_convert -v lh.white lh.white.neighbors.asc\n") ;
   printf( "\n");
   printf( "Convert a surface file to ascii (vertices are surface normals):\n");
   printf( "  mris_convert -n lh.white lh.white.normals.asc\n") ;
@@ -436,5 +451,35 @@ writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) {
 
   fclose(fp) ;
   return(NO_ERROR) ;
+}
+
+/*
+  \fn int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)
+  \brief Writes out neighbors of a vertex in each row. The first
+  column is the vertex number, the 2nd col is the number of neighbors,
+  the remaining cols are the vertex numbers of the neighbors.
+*/
+
+int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)
+{
+  int vno, nnbrs, nbrvno;
+  FILE *fp;
+
+  fp = fopen(out_fname,"w");
+  if(fp == NULL){
+    printf("ERROR: opening %s\n",out_fname);
+    exit(1);
+  }
+
+  for(vno=0; vno < mris->nvertices; vno++){
+    nnbrs = mris->vertices[vno].vnum;
+    fprintf(fp,"%6d %2d   ",vno,nnbrs);
+    for (nbrvno = 0; nbrvno < nnbrs; nbrvno++)
+      fprintf(fp,"%6d ",mris->vertices[vno].v[nbrvno]);
+    fprintf(fp,"\n");
+  }
+  fclose(fp);
+
+  return(0);
 }
 
