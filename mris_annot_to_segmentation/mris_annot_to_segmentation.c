@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/08/24 02:24:42 $
+ *    $Revision: 1.6.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,7 +71,7 @@ main(int argc, char *argv[]) {
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_annot_to_segmentation.c,v 1.6 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_annot_to_segmentation.c,v 1.6.2.1 2007/08/24 02:24:42 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -166,6 +166,8 @@ main(int argc, char *argv[]) {
         dz = v->cz - v->z;
 
         len = sqrt(dx*dx + dy*dy + dz*dz) ;
+        if (FZERO(len))
+          len = 1.0 ;
         dx /= len;
         dy /= len;
         dz /= len;
