@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/06 16:53:41 $
- *    $Revision: 1.31 $
+ *    $Date: 2007/08/24 20:29:01 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -120,5 +120,6 @@ int HISTOvalToBinDirect(HISTOGRAM *histo, float val) ;
 float HISTOvalToCount(HISTOGRAM *histo, float val) ;
 int  HISTOwriteInto(HISTOGRAM *h, FILE *fp) ;
 HISTOGRAM* HISTOreadFrom(FILE *fp) ;
+double HISTOfindMedian(HISTOGRAM *h) ;
 
 #endif
