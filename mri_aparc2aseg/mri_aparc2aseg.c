@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/10 16:21:06 $
- *    $Revision: 1.27 $
+ *    $Author: greve $
+ *    $Date: 2007/08/24 22:12:01 $
+ *    $Revision: 1.27.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.27 2007/08/10 16:21:06 nicks Exp $";
+"$Id: mri_aparc2aseg.c,v 1.27.2.1 2007/08/24 22:12:01 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -255,7 +255,9 @@ int main(int argc, char **argv) {
     for (vtxno = 0; vtxno < lhwhite->nvertices; vtxno++) {
       annot = lhwhite->vertices[vtxno].annotation;
       CTABfindAnnotation(lhwhite->ct, annot, &annotid);
-      if (annotid == 0) {
+      // Sometimes the annotation will be "none" indicated by 
+      // annotid = -1. We interpret this as "unknown".
+      if(annotid == 0 || annotid == -1) {
         lhwhite->vertices[vtxno].ripflag = 1;
         lhpial->vertices[vtxno].ripflag = 1;
         nripped++;
@@ -266,7 +268,7 @@ int main(int argc, char **argv) {
     for (vtxno = 0; vtxno < rhwhite->nvertices; vtxno++) {
       annot = rhwhite->vertices[vtxno].annotation;
       CTABfindAnnotation(rhwhite->ct, annot, &annotid);
-      if (annotid == 0) {
+      if(annotid == 0 || annotid == -1) {
         rhwhite->vertices[vtxno].ripflag = 1;
         rhpial->vertices[vtxno].ripflag = 1;
         nripped++;
@@ -515,6 +517,11 @@ int main(int argc, char **argv) {
             annotid = annotation_to_index(annot);
           dmin = drhp;
         }
+
+	// Sometimes the annotation will be "none" indicated by 
+	// annotid = -1. We interpret this as "unknown".
+	if(annotid == -1) annotid = 0;
+
 	// why was this here in the first place?
 	/*
         if (annotid == 0 && 
