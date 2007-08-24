@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/13 14:31:56 $
- *    $Revision: 1.112 $
+ *    $Author: kteich $
+ *    $Date: 2007/08/24 17:44:32 $
+ *    $Revision: 1.113 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2517,7 +2517,7 @@ void mincGetVolInfo(char *infoline,
     {
       // average_305 value
       fprintf(stderr, "INFO: using average_305 info, since \n");
-      fprintf(stderr, "INFO: environment var USE_AVERAGE_305 set\n");
+      fprintf(stderr, "INFO: environment var USE_AVERAGE305 set\n");
       vgDst->width = 172;
       vgDst->height = 220;
       vgDst->depth = 156;
@@ -3038,9 +3038,10 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
   for (i=0; i < lta->num_xforms; ++i)
   {
     lt = &lta->xforms[i];
-    if (lt->src.valid == 0 || lt->dst.valid == 0)
-      ErrorExit(ERROR_BADPARM, "LTAchangeType: src and "
-                "dst geometry must be valid\n");
+    if (lt->src.valid == 0)
+      ErrorExit(ERROR_BADPARM, "LTAchangeType: src geometry must be valid\n");
+    if (lt->dst.valid == 0)
+      ErrorExit(ERROR_BADPARM, "LTAchangeType: dst geometry must be valid\n");
   }
 
   // ras-to-ras
