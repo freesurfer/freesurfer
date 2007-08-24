@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/14 01:29:33 $
- *    $Revision: 1.89 $
+ *    $Author: nicks $
+ *    $Date: 2007/08/24 20:55:55 $
+ *    $Revision: 1.89.2.1 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -27,6 +27,8 @@
 
 
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "mriVolume.h"
 #include "error.h"
@@ -36,6 +38,8 @@
 #include "xList.h"
 #include "macros.h" // FEQUAL
 #include "proto.h" // nint
+#include "fsenv.h"
+
 
 // should be in transform.h if they aren't already
 
@@ -54,7 +58,10 @@ char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] = {
       "MRI volume not present.",
       "Scanner transform not present.",
       "Index to RAS transform not present.",
-      "Flood user function can only return Continue or Stop"
+      "Flood user function can only return Continue or Stop",
+      "While trying to find a suitable destination volume for the display transform, couldn't find FREESURFER_HOME environment variable.",
+      "While trying to find a suitable destination volume for the display transform, couldn't find FREESURFER_HOME/average/mni305.cor.mgz.",
+      "Error reading FREESURFER_HOME/average/mni305.cor.mgz while trying to population destination information in the display transform."
     };
 
 Volm_tErr Volm_New ( mriVolumeRef* opVolume )
@@ -828,9 +835,15 @@ Volm_tErr Volm_Save ( mriVolumeRef this,
 Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
                                       char*        isFileName )
 {
-  Volm_tErr  eResult   = Volm_tErr_NoErr;
-  TRANSFORM* transform = NULL;
+  Volm_tErr  eResult    = Volm_tErr_NoErr;
+  TRANSFORM* transform  = NULL;
   int        eTransform = ERROR_NONE;
+  LTA*       lta        = NULL;
+  FSENV*     fsenv      = NULL;
+  char       sMNI305FileName[1000] = "";
+  int        eStat;
+  struct stat statMNI305;
+  MRI*       MNI305volume = NULL;
 
   DebugEnterFunction( ("Volm_LoadDisplayTransform( this=%p, isFileName=%s )",
                        this, isFileName) );
@@ -849,6 +862,56 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
   DebugAssertThrowX( (NULL != transform),
                      eResult, Trns_tErr_LTAImportFailed );
 
+  /* If this is an RAS_TO_RAS, take a look at the valid flags for
+     source and dest. If they aren't valid, we have to provide some
+     data. */
+  if( transform->type == LINEAR_RAS_TO_RAS ) {
+
+    lta = (LTA *)transform->xform ;
+
+    /* If the source is invalid, we can provide the data from this MRI
+       volume. */
+    if( !lta->xforms[0].src.valid ) {
+
+      fprintf( stderr, "INFO: Setting transform source geometry data to MRI volume's geometry\n" );
+
+      getVolGeom( this->mpMriValues, &(lta->xforms[0].src) );
+    }
+
+    /* If the dest is invalid, and the file name is talairach.xfm, we
+       can provide the volume from
+       $FREESURFER_HOME/average/mni305.cor.mgz if it's available. */
+    if( !lta->xforms[0].dst.valid &&
+	NULL != strstr( isFileName, "talairach.xfm" ) ) {
+      
+      fprintf( stderr, "INFO: Setting transform dest geometry data to mni305's geometry\n" );
+
+      /* Get FREESURFER_HOME. */
+      fsenv = FSENVgetenv();
+      DebugAssertThrowX( (NULL != fsenv),
+	  eResult, Volm_tErr_FsenvNotFoundWhileSearchingForTransformDest );
+      DebugAssertThrowX( (NULL != fsenv->FREESURFER_HOME),
+	  eResult, Volm_tErr_FsenvNotFoundWhileSearchingForTransformDest );
+
+      /* Build the file name. */
+      snprintf( sMNI305FileName, sizeof(sMNI305FileName), 
+		"%s/average/mni305.cor.mgz", fsenv->FREESURFER_HOME );
+      
+      /* Make sure the file exists. */
+      eStat = stat( sMNI305FileName, &statMNI305 );
+      DebugAssertThrowX( (0 == eStat),
+	  eResult, Volm_tErr_MNI305NotFoundWhilePopulatingTramsformDest );
+
+      /* Load it and read the header. */
+      MNI305volume = MRIreadHeader( sMNI305FileName, MRI_VOLUME_TYPE_UNKNOWN );
+      DebugAssertThrowX( (NULL != MNI305volume),
+	  eResult, Volm_tErr_ErrorReadingMNI305WhilePopulatingTramsformDest );
+    
+      /* Copy the geometry data. */
+      getVolGeom( MNI305volume, &(lta->xforms[0].dst) );
+    }
+  }
+
   /* This doesn't invert the transform (as you might think), but
      calculates the inverses that we'll use later. */
   eTransform = TransformInvert( transform, this->mpMriValues ); 
@@ -861,10 +924,15 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
     TransformFree( &this->mDisplayTransform );
   this->mDisplayTransform = transform;
   
-  TransformRas2Vox(transform, this->mpMriValues, this->mpMriValues) ;
+  //  TransformRas2Vox(transform, this->mpMriValues, this->mpMriValues) ;
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
+
+  if( NULL != fsenv ) 
+    FSENVfree( &fsenv );
+  if( NULL != MNI305volume )
+    MRIfree( &MNI305volume );
 
   DebugExitFunction;
 

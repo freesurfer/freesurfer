@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/03 19:06:15 $
- *    $Revision: 1.40 $
+ *    $Author: nicks $
+ *    $Date: 2007/08/24 20:55:54 $
+ *    $Revision: 1.40.2.1 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -56,7 +56,9 @@ typedef enum {
   Volm_tErr_ScannerTransformNotPresent,
   Volm_tErr_IdxToRASTransformNotPresent,
   Volm_tErr_FloodVisitCommandNotSupported,
-
+  Volm_tErr_FsenvNotFoundWhileSearchingForTransformDest,
+  Volm_tErr_MNI305NotFoundWhilePopulatingTramsformDest,
+  Volm_tErr_ErrorReadingMNI305WhilePopulatingTramsformDest,
   Volm_knNumErrorCodes
 } Volm_tErr;
 
