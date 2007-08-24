@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/06 16:53:16 $
- *    $Revision: 1.54 $
+ *    $Date: 2007/08/24 20:29:24 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1791,3 +1791,30 @@ HISTOreadFrom(FILE *fp)
     h->counts[b] = freadFloat(fp) ;
   return(h) ;
 }
+double
+HISTOfindMedian(HISTOGRAM *h)
+{
+  double median, total, total2 ;
+  int    b ;
+
+  for (total = 0.0, b = 0 ; b < h->nbins ; b++)
+    total += h->counts[b] ;
+  median = 0.0 ;
+  for (total2 = 0.0, b = 0 ; b < h->nbins ; b++)
+  {
+    if (total2 < total/2 && total2+h->counts[b] > total/2)
+    {
+      double d1, d2 ;
+      d1 = total/2 - total2 ;
+      d2 = total2+h->counts[b]-total/2 ;
+      if (d1 > d2 || b == 0)
+        median = h->bins[b] ;
+      else
+        median = h->bins[b-1] ;
+      break ;
+    }
+    total2 += h->counts[b] ;
+  }
+  return(median) ;
+}
+

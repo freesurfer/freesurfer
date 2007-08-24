@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nommert $
- *    $Date: 2007/05/22 18:54:30 $
- *    $Revision: 1.60 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/24 20:29:24 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -4751,6 +4751,10 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
   white_mode = h_white->bins[peak] ;
   peak = HISTOfindHighestPeakInRegion(h_gray, 0, h_gray->nbins) ;
   gray_mode = h_gray->bins[peak] ;
+
+  // use median instead of mode. More robust
+  white_mode = HISTOfindMedian(h_white) ;
+  gray_mode = HISTOfindMedian(h_gray) ;
   gray_mean /= (double)ngray ;
   white_mean /= (double)nwhite ;
   white_std = sqrt(white_std / (double)nwhite - white_mean*white_mean) ;
@@ -4762,6 +4766,9 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
   MRIfree(&mri_border) ;
   *pmean_wm = white_mode ;
   *pmean_gm = gray_mode ;
+
+  *pmean_wm = white_mean ; // use means for now - works better on tutorial data
+  *pmean_gm = gray_mean ;
   *psigma_wm = white_std ;
   *psigma_gm = gray_std ;
   return(NO_ERROR) ;
