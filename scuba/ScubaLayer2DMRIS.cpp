@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.35 $
+ *    $Author: kteich $
+ *    $Date: 2007/08/27 19:48:17 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,9 @@
 #include "Utilities.h"
 
 using namespace std;
+
+char* const ScubaLayer2DMRIS::kaReportableInfo[ScubaLayer2DMRIS::kcReportableInfo] = 
+  { "Vertex", "Distance" };
 
 ScubaLayer2DMRIS::ScubaLayer2DMRIS () :
     mSurface( NULL ),
@@ -86,6 +89,10 @@ ScubaLayer2DMRIS::ScubaLayer2DMRIS () :
                          "layerID x y z", "Returns the index of the vertex "
                          "closest to the input RAS coords and the distance "
                          "to that vertex." );
+
+  // Add the items we can report. 
+  for( int nInfo = 0; nInfo < kcReportableInfo; nInfo++ )
+    AddReportableInfo( kaReportableInfo[nInfo] );
 
 }
 
@@ -262,41 +269,55 @@ ScubaLayer2DMRIS::GetInfoAtRAS ( float iRAS[3],
       float distance;
       int nVertex = mSurface->FindVertexAtRAS( iRAS, &distance );
 
-      stringstream ssVertex;
-      ssVertex << nVertex;
+      if( GetReportInfo( kaReportableInfo[Vertex] ) ) {
 
-      stringstream ssCallback;
-      ssCallback << "SetCursorFromSurfaceVertexIndex " << mSurface->GetID();
+	stringstream ssVertex;
+	ssVertex << nVertex;
+	
+	stringstream ssCallback;
+	ssCallback << "SetCursorFromSurfaceVertexIndex " << mSurface->GetID();
+	
+	info.SetLabel( mSurface->GetLabel() + ",vertex" );
+	info.SetValue( ssVertex.str() );
+	info.SetInputFilter( "ui" );
+	info.SetTclCallback( ssCallback.str() );
+	ioInfo.push_back( info );
+	info.Clear();
+      }
+	  
+      if( GetReportInfo( kaReportableInfo[Distance] ) ) {
+	
+	stringstream ssDistance;
+	ssDistance << distance;
+	
+	info.SetLabel( mSurface->GetLabel() + ",distance" );
+	info.SetValue( ssDistance.str() );
+	ioInfo.push_back( info );
+	info.Clear();
+      }
 
-      info.SetLabel( mSurface->GetLabel() + ",vertex" );
-      info.SetValue( ssVertex.str() );
-      info.SetInputFilter( "ui" );
-      info.SetTclCallback( ssCallback.str() );
-      ioInfo.push_back( info );
-      info.Clear();
-
-      stringstream ssDistance;
-      ssDistance << distance;
-
-      info.SetLabel( mSurface->GetLabel() + ",distance" );
-      info.SetValue( ssDistance.str() );
-      ioInfo.push_back( info );
-      info.Clear();
     } catch (...) {
-      stringstream ssCallback;
-      ssCallback << "SetCursorFromSurfaceVertexIndex " << mSurface->GetID();
 
-      info.SetLabel( mSurface->GetLabel() + ",vertex" );
-      info.SetValue( "None" );
-      info.SetInputFilter( "ui" );
-      info.SetTclCallback( ssCallback.str() );
-      ioInfo.push_back( info );
-      info.Clear();
+      if( GetReportInfo( kaReportableInfo[Vertex] ) ) {
+	
+	stringstream ssCallback;
+	ssCallback << "SetCursorFromSurfaceVertexIndex " << mSurface->GetID();
+	
+	info.SetLabel( mSurface->GetLabel() + ",vertex" );
+	info.SetValue( "None" );
+	info.SetInputFilter( "ui" );
+	info.SetTclCallback( ssCallback.str() );
+	ioInfo.push_back( info );
+	info.Clear();
+      }
 
-      info.SetLabel( mSurface->GetLabel() + ",distance" );
-      info.SetValue( "None" );
-      ioInfo.push_back( info );
-      info.Clear();
+      if( GetReportInfo( kaReportableInfo[Distance] ) ) {
+	
+	info.SetLabel( mSurface->GetLabel() + ",distance" );
+	info.SetValue( "None" );
+	ioInfo.push_back( info );
+	info.Clear();
+      }
     }
   }
 }

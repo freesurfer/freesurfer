@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/30 16:39:22 $
- *    $Revision: 1.60 $
+ *    $Date: 2007/08/27 19:48:16 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,6 +91,10 @@ public:
   // structs.
   virtual void GetInfoAtRAS ( float iRAS[3],
                               std::list<InfoAtRAS>& ioInfo );
+
+  // These are the names of the reportable info values we provide.
+  enum ReportableInfo { Value = 0, Index, Talairach, kcReportableInfo };
+  static char* const kaReportableInfo[kcReportableInfo];
 
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription () {

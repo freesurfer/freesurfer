@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/08/01 16:50:54 $
- *    $Revision: 1.155 $
+ *    $Date: 2007/08/27 19:48:16 $
+ *    $Revision: 1.156 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,6 +54,9 @@ int const ScubaLayer2DMRI::cGrayscaleLUTEntries = 256;
 int const ScubaLayer2DMRI::kMaxPixelComponentValue = 255;
 float const ScubaLayer2DMRI::kMaxPixelComponentValueFloat = 255.0;
 int const ScubaLayer2DMRI::kcTimersBetweenAutosaves = 60000;
+char* const ScubaLayer2DMRI::kaReportableInfo[ScubaLayer2DMRI::kcReportableInfo] = 
+  { "Value", "Index", "Talairach" };
+
 
 /* When setting the initial window/level, use a histogram and cut this
    much off either end to find the initial range. */
@@ -269,6 +272,10 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
                          "for settings. Floods are of the following types: "
                          "voxelEditingNew, voxelEditingErase, "
                          "roiEditingSelect, roiEditingUnselect." );
+
+  // Add the items we can report. 
+  for( int nInfo = 0; nInfo < kcReportableInfo; nInfo++ )
+    AddReportableInfo( kaReportableInfo[nInfo] );
 
   // Init our color opacity cache for our initial value.
   InitColorOpacityCache();
@@ -1027,42 +1034,49 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
     (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, mCurrentFrame );
   if ( mVolume->IsInBounds( loc ) ) {
 
-    float value;
-    value = mVolume->GetMRINearestValue( loc );
+    if( GetReportInfo( kaReportableInfo[Value] ) ) {
+      
+      float value;
+      value = mVolume->GetMRINearestValue( loc );
+      
+      // If this is a LUT volume, use the label from the lookup file and
+      // set the shorten hint, otherwise just display the value.
+      stringstream ssValue;
+      if ( mColorMapMethod == LUT && NULL != mColorLUT ) {
+	ssValue << mColorLUT->GetLabelAtIndex((int)value);
+	info.SetShortenHint( true );
+      } else {
+	ssValue << value;
+      }
 
-    // If this is a LUT volume, use the label from the lookup file and
-    // set the shorten hint, otherwise just display the value.
-    stringstream ssValue;
-    if ( mColorMapMethod == LUT && NULL != mColorLUT ) {
-      ssValue << mColorLUT->GetLabelAtIndex((int)value);
-      info.SetShortenHint( true );
-    } else {
-      ssValue << value;
+      info.SetLabel( mVolume->GetLabel() + ",value" );
+      info.SetValue( ssValue.str() );
+      ioInfo.push_back( info );
+      info.Clear();
     }
 
-    info.SetLabel( mVolume->GetLabel() + ",value" );
-    info.SetValue( ssValue.str() );
-    ioInfo.push_back( info );
-    info.Clear();
-
-    int index[3];
-    mVolume->RASToMRIIndex( iRAS, index );
-
-    stringstream ssIndex;
-    ssIndex << index[0] << " " << index[1] << " " << index[2];
-
-    stringstream ssCallback;
-    ssCallback << "SetCursorFromVolumeIndexCoords " << mVolume->GetID();
-
-    info.SetLabel( mVolume->GetLabel() + ",index" );
-    info.SetInputFilter( "3ui" );
-    info.SetTclCallback( ssCallback.str() );
-    info.SetValue( ssIndex.str() );
-    ioInfo.push_back( info );
-    info.Clear();
-
-    if( mVolume->IsTalTransformPresent() ) {
-
+    if( GetReportInfo( kaReportableInfo[Index] ) ) {
+      
+      int index[3];
+      mVolume->RASToMRIIndex( iRAS, index );
+      
+      stringstream ssIndex;
+      ssIndex << index[0] << " " << index[1] << " " << index[2];
+      
+      stringstream ssCallback;
+      ssCallback << "SetCursorFromVolumeIndexCoords " << mVolume->GetID();
+      
+      info.SetLabel( mVolume->GetLabel() + ",index" );
+      info.SetInputFilter( "3ui" );
+      info.SetTclCallback( ssCallback.str() );
+      info.SetValue( ssIndex.str() );
+      ioInfo.push_back( info );
+      info.Clear();
+    }
+	
+    if( GetReportInfo( kaReportableInfo[Talairach] ) &&
+	mVolume->IsTalTransformPresent() ) {
+      
       float tal[3];
       mVolume->RASToTal( iRAS, tal );
       
@@ -1079,20 +1093,23 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
   } else {
 
     // Even if we're out of bounds, report it.
-    info.SetLabel( mVolume->GetLabel() + ",value" );
-    info.SetValue( "OOB" );
-    ioInfo.push_back( info );
-    info.Clear();
-
-    stringstream ssCallback;
-    ssCallback << "SetCursorFromVolumeIndexCoords " << mVolume->GetID();
-
-    info.SetLabel( mVolume->GetLabel() + ",index" );
-    info.SetValue( "OOB" );
-    info.SetInputFilter( "3ui" );
-    info.SetTclCallback( ssCallback.str() );
-    ioInfo.push_back( info );
-    info.Clear();
+    if( GetReportInfo( "Value" ) ) {
+      info.SetLabel( mVolume->GetLabel() + ",value" );
+      info.SetValue( "OOB" );
+      ioInfo.push_back( info );
+      info.Clear();
+    }
+    if( GetReportInfo( "Index" ) ) {
+      stringstream ssCallback;
+      ssCallback << "SetCursorFromVolumeIndexCoords " << mVolume->GetID();
+      
+      info.SetLabel( mVolume->GetLabel() + ",index" );
+      info.SetValue( "OOB" );
+      info.SetInputFilter( "3ui" );
+      info.SetTclCallback( ssCallback.str() );
+      ioInfo.push_back( info );
+      info.Clear();
+    }
   }
 
   delete &loc;

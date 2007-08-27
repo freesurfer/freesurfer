@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:13 $
- *    $Revision: 1.41 $
+ *    $Author: kteich $
+ *    $Date: 2007/08/27 19:48:16 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,6 +78,17 @@ Layer::Layer() :
                          "Return whether or not a layer is reporting info." );
   commandMgr.AddCommand( *this, "SetLayerReportInfo", 2, "layerID report",
                          "Set whether or not a layer should report info." );
+  commandMgr.AddCommand( *this, "GetLayerReportItemInfo", 2, 
+			 "layerID itemLabel",
+			 "Return whether or not a layer is reporting info "
+			 "for the item with the given label" );
+  commandMgr.AddCommand( *this, "SetLayerReportItemInfo", 3, 
+			 "layerID itemLabel report",
+			 "Set whether or not a layer should report info "
+			 "for the item with the given label" );
+  commandMgr.AddCommand( *this, "GetLayerReportableInfo", 1, "layerID",
+			 "Returns a list of reportable info labels as a list "
+			 "of strings." );
   commandMgr.AddCommand( *this, "GetLayerMainDataCollection", 1, "layerID",
                          "Returns the collection ID of the main collection "
                          "for this layer." );
@@ -120,6 +131,57 @@ Layer::GetInfoAtRAS ( float[3], list<InfoAtRAS>& ioInfo ) {
   info.SetLabel( sLabel );
   info.SetValue( "Hello world" );
   ioInfo.push_back( info );
+}
+
+void
+Layer::SetReportInfo ( bool ibReport ) {
+
+  mbReportInfoAtRAS = ibReport;
+  SendBroadcast( "layerInfoSettingsChanged", NULL );
+}
+
+void
+Layer::SetReportInfo ( string isInfoLabel, bool ibReport ) {
+
+  if( maReportableInfo.find( isInfoLabel ) == maReportableInfo.end() )
+    throw runtime_error( string("Info item with label ") + 
+			 isInfoLabel + " not found." );
+
+  maReportableInfo[isInfoLabel] = ibReport;
+  SendBroadcast( "layerInfoSettingsChanged", NULL );
+}
+
+bool
+Layer::GetReportInfo ( string isInfoLabel ) {
+
+  if( maReportableInfo.find( isInfoLabel ) == maReportableInfo.end() )
+    throw runtime_error( string("Info item with label ") + 
+			 isInfoLabel + " not found." );
+
+  return maReportableInfo[isInfoLabel];
+}
+
+void
+Layer::AddReportableInfo ( string isInfoLabel, bool ibReport ) {
+
+  if( maReportableInfo.find( isInfoLabel ) != maReportableInfo.end() )
+    throw runtime_error( string("Info item with label ") + 
+			 isInfoLabel + " already in map." );
+
+  // Add it to the map.
+  maReportableInfo[isInfoLabel] = ibReport;
+}
+
+void
+Layer::GetReportableInfo ( vector<string>& iolItems ) {
+
+  // Go through the map and push all items into the list.
+  for( map<string,bool>::iterator tReportableInfo = maReportableInfo.begin();
+       tReportableInfo != maReportableInfo.end();
+       ++tReportableInfo ) {
+    
+    iolItems.push_back( tReportableInfo->first );
+  }
 }
 
 TclCommandListener::TclCommandResult
@@ -300,6 +362,80 @@ Layer::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
     }
   }
 
+  // GetLayerReportItemInfo <layerID> <itemLabel>
+  if ( 0 == strcmp( isCommand, "GetLayerReportItemInfo" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+
+    if ( mID == layerID ) {
+
+      bool bReport = GetReportInfo( iasArgv[2] );
+      sReturnValues =
+	TclCommandManager::ConvertBooleanToReturnValue( bReport );
+      sReturnFormat = "i";
+    }
+  }
+
+  // SetLayerReportItemInfo <layerID> <itemLabel> <report>
+  if ( 0 == strcmp( isCommand, "SetLayerReportItemInfo" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+
+    if ( mID == layerID ) {
+
+      try {
+        bool bReport =
+          TclCommandManager::ConvertArgumentToBoolean( iasArgv[3] );
+        SetReportInfo( iasArgv[2], bReport );
+      } catch ( runtime_error& e ) {
+        sResult = "bad report \"" + string(iasArgv[3]) + "\"," + e.what();
+        return error;
+      }
+    }
+  }
+
+  // GetLayerReportableInfo <layerID>
+  if ( 0 == strcmp( isCommand, "GetLayerReportableInfo" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+
+    if ( mID == layerID ) {
+
+      stringstream ssFormat;
+      stringstream ssResult;
+      ssFormat << "L";
+     
+      for( map<string,bool>::iterator tReportableInfo = 
+	     maReportableInfo.begin();
+	   tReportableInfo != maReportableInfo.end();
+	   ++tReportableInfo ) {
+	
+	ssFormat << "s";
+	ssResult << "\"" << tReportableInfo->first << "\" ";
+      }
+
+      ssFormat << "l"; 
+
+      sReturnFormat = ssFormat.str();
+      sReturnValues = ssResult.str();
+    }
+  }
+
   // GetLayerMainDataCollection <layerID>
   if ( 0 == strcmp( isCommand, "GetLayerMainDataCollection" ) ) {
     int layerID;
@@ -465,14 +601,6 @@ void
 Layer::SetHeight( int iHeight ) {
   mHeight = iHeight;
 }
-
-void
-Layer::SetReportInfo( bool ibReport ) {
-  mbReportInfoAtRAS = ibReport;
-  SendBroadcast( "layerInfoSettingsChanged", NULL );
-
-}
-
 
 void
 Layer::HandleTool ( float[3], ViewState&,
@@ -664,7 +792,6 @@ Layer::GetPreferredValueIncrement () {
 
 void
 Layer::DoTimer () {}
-
 
 LayerStaticTclListener::LayerStaticTclListener () {
 

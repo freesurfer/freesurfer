@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/07/18 21:55:11 $
-#    $Revision: 1.247 $
+#    $Date: 2007/08/27 19:48:17 $
+#    $Revision: 1.248 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.247 2007/07/18 21:55:11 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.248 2007/08/27 19:48:17 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -994,7 +994,7 @@ proc MakeScubaFrameBindings { iFrameID } {
     # title bar, our Quit command gets called. This only goes on the
     # window object, because otherwise closing any window would make
     # us quit.
-    bind  $gaWidget(window) <Destroy> "Quit"
+    wm protocol $gaWidget(window) WM_DELETE_WINDOW "Quit"
 }
 
 proc ScubaMouseMotionCallback { inX inY iState iButton } {
@@ -1294,7 +1294,7 @@ proc Quit {} {
     dputs "Quit  "
     global gaView
     global gaWidget
-    
+
     # Set our prefs values and save our prefs.
     SetPreferencesValue ViewFlipLeftRight $gaView(flipLeftRight)
     SetPreferencesValue ShowConsole $gaView(tkcon,visible)
@@ -2075,6 +2075,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     frame $fwProps -relief ridge -border 2
     set fwMenu        $fwProps.fwMenu
     set fwPropsCommon $fwProps.fwPropsCommon
+    set fwPropsInfo   $fwProps.fwPropsInfo
     set fwProps2DMRI  $fwProps.fwProps2DMRI
     set fwProps2DMRIS $fwProps.fwProps2DMRIS
 
@@ -2115,6 +2116,9 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwPropsCommon.swOpacity -column 0 -row 2 -columnspan 2 -sticky we
     grid $fwPropsCommon.cbwReportInfo -column 0 -row 3 -columnspan 2 -sticky we
 
+    # Common panel for reportable info ----------------------------------
+    frame $fwPropsInfo
+    set gaWidget(layerProperties,reportableInfoFrame) $fwPropsInfo
 
     # 2DMRI layer settings ----------------------------------------------
     frame $fwProps2DMRI
@@ -2424,6 +2428,8 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 
     grid $fwMenu        -column 0 -row 0 -sticky news
     grid $fwPropsCommon -column 0 -row 1 -sticky news
+    # The layer-specific frame will go in row 2
+    grid $fwPropsInfo   -column 0 -row 3 -sticky news -pady 5
 
     grid $fwProps -column 0 -row 0 -sticky news
     grid $fwCommands -column 0 -row 1 -sticky news
@@ -3447,6 +3453,28 @@ proc SelectLayerInLayerProperties { iLayerID } {
 
 	}
     }
+
+    # Clear out the info frame.
+    catch {
+	pack forget $gaWidget(layerProperties,reportableInfoFrame).cbwInfo
+	destroy $gaWidget(layerProperties,reportableInfoFrame).cbwInfo
+    }
+
+    # Get the list of reportable info from the layer.
+    set lInfo [GetLayerReportableInfo $iLayerID]
+    set lCheckboxes {}
+    foreach info $lInfo {
+	lappend lCheckboxes \
+	    "-type text -label \"Report $info\" -variable gaLayer(current,reportableInfo,\"$info\") -command {SetLayerReportItemInfo $iLayerID $info \$gaLayer(current,reportableInfo,\"$info\"); UpdateCursorLabelArea; UpdateMouseLabelArea}"
+	set gaLayer(current,reportableInfo,"$info") \
+	    [GetLayerReportItemInfo $iLayerID $info]
+    }
+    tkuMakeCheckboxes $gaWidget(layerProperties,reportableInfoFrame).cbwInfo \
+	    -font [tkuNormalFont] \
+	-checkboxes $lCheckboxes
+    pack $gaWidget(layerProperties,reportableInfoFrame).cbwInfo \
+	-expand yes -fill both
+
 
     # Set up the proper initially enabled widgets
     AdjustLayerPropertiesEnabledWidgets
@@ -6749,7 +6777,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.247 2007/07/18 21:55:11 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.248 2007/08/27 19:48:17 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

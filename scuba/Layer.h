@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.35 $
+ *    $Author: kteich $
+ *    $Date: 2007/08/27 19:48:16 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -127,7 +127,7 @@ public:
   protected:
     std::string msLabel, msValue;  // label/value to display
     std::string msTclCallback;     // Function to call on input ("" if none)
-    // The callback call will be $msTclCallback $mID $input
+    // The callback call will be called with the value appended
     std::string msInputFilter;     // Filter to use when calling callback
     bool mbShortenHint;     // Whether client should shorten value
   };
@@ -136,6 +136,22 @@ public:
   // structs.
   virtual void GetInfoAtRAS ( float iRAS[3],
                               std::list<InfoAtRAS>& ioInfo );
+
+  // Whether or not to provide any InfoAtRAS items at all. Overrides
+  // the individual settings below.
+  void SetReportInfo ( bool ibReport );
+  bool GetReportInfo () {
+    return mbReportInfoAtRAS;
+  }
+
+  // Whether or not to provide a particular piece of InfoAtRAS. The
+  // input string should exist in maReportableInfo map.
+  void SetReportInfo ( std::string isInfoLabel, bool ibReport );
+  bool GetReportInfo ( std::string isInfoLabel );
+
+  // Populate the passed-in list with all the item labels in our map
+  // of reportable info.
+  void GetReportableInfo ( std::vector<std::string>& ioList );
 
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription() {
@@ -181,11 +197,6 @@ public:
 
   void SetWidth( int iWidth );
   void SetHeight( int iHeight );
-
-  void SetReportInfo( bool ibReport );
-  bool GetReportInfo() {
-    return mbReportInfoAtRAS;
-  }
 
   virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
                             ScubaWindowToRASTranslator& iTranslator,
@@ -244,6 +255,10 @@ protected:
   // Overridable timer behavior.
   virtual void DoTimer ();
 
+  // Add a reportable item to the internal map. This lets it be polled
+  // by Get/SetReportInfo.
+  void AddReportableInfo ( std::string isInfoLabel, bool ibReport = true );
+  
   int mWidth;
   int mHeight;
 
@@ -258,10 +273,16 @@ protected:
   // Redisplay requested flag.
   bool mbPostRedisplay;
 
-  // Whether to return info in GetInfoAtRAS.
+  // Map of InfoAtRAS items this layer can report, and whether or not
+  // they should be reported.
+  std::map<std::string,bool> maReportableInfo;
+
+  // Whether to return any InfoAtRAS items. This overrides the
+  // individual mapped values.
   bool mbReportInfoAtRAS;
 
   int mBytesPerPixel;
+
 };
 
 
