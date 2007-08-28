@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/14 01:28:23 $
- *    $Revision: 1.557 $
+ *    $Date: 2007/08/28 20:34:28 $
+ *    $Revision: 1.558 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -622,7 +622,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.557 2007/08/14 01:28:23 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.558 2007/08/28 20:34:28 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -24755,7 +24755,7 @@ MRISpositionSurface_mef(MRI_SURFACE *mris,
   /*  char   *cp ;*/
   int    avgs, niterations, n, write_iterations, nreductions = 0, done ;
   double delta_t = 0.0, rms, dt, l_intensity, base_dt, last_rms, max_mm;
-  MHT    *mht = NULL, *mht_v_orig = NULL, *mht_v_current = NULL,*mht_f_current;
+  MHT    *mht = NULL, *mht_v_orig = NULL, *mht_v_current = NULL,*mht_f_current = NULL;
   struct timeb  then ;
   int msec ;
 
