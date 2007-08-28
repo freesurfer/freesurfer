@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/08/27 19:48:17 $
-#    $Revision: 1.248 $
+#    $Date: 2007/08/28 20:19:11 $
+#    $Revision: 1.249 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.248 2007/08/27 19:48:17 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.249 2007/08/28 20:19:11 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2462,7 +2462,6 @@ proc MakeViewPropertiesPanel { ifwTop } {
     set fw6 $fwProps.fw6
     set fw7 $fwProps.fw7
     
-
     # Row 1: view menu
     frame $fw1
     tixOptionMenu $fw1.fwMenu \
@@ -2514,50 +2513,17 @@ proc MakeViewPropertiesPanel { ifwTop } {
     tkuMakeNormalLabel $fw4.lwReportInfo -label "Inf"
     tkuMakeNormalLabel $fw4.lwLayer -label "Layer"
 
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+    grid $fw4.lwLevel      -column 0 -row 0 -sticky w
+    grid $fw4.lwVisible    -column 1 -row 0 -sticky w
+    grid $fw4.lwLocked     -column 2 -row 0 -sticky w
+    grid $fw4.lwReportInfo -column 3 -row 0 -sticky w
+    grid $fw4.lwLayer      -column 4 -row 0 -sticky we
 
-	tkuMakeNormalLabel $fw4.lw$nLevel \
-	    -label "$nLevel"
+    set gaWidget(viewProperties,drawLevels) $fw4
+    set gaWidget(viewProperties,drawLevelsPacked) {}
 
-	checkbutton $fw4.cbwVisible$nLevel \
-	    -variable gaView(current,visible$nLevel) \
-	    -command "ViewPropertiesLevelVisibleCallback $nLevel"
-
-	checkbutton $fw4.cbwLocked$nLevel \
-	    -variable gaView(current,lockedShuffle$nLevel)
-
-	checkbutton $fw4.cbwReportInfo$nLevel \
-	    -variable gaView(current,reportInfo$nLevel) \
-	    -command "ViewPropertiesLevelReportInfoCallback $nLevel"
-
-	tixOptionMenu $fw4.mwDraw$nLevel \
-	    -label "" \
-	    -variable gaView(current,draw$nLevel) \
-	    -command "ViewPropertiesDrawLevelMenuCallback $nLevel"
-	set gaWidget(viewProperties,drawLevelMenu$nLevel) \
-	    $fw4.mwDraw$nLevel
-    }
     lappend gaCallbacks(layerListChanged) \
 	BuildViewPropertiesDrawLevelMenus
-
-    grid $fw4.lwLevel       -column 0 -row 0
-    grid $fw4.lwVisible     -column 1 -row 0
-    grid $fw4.lwLocked      -column 2 -row 0
-    grid $fw4.lwReportInfo  -column 3 -row 0
-    grid $fw4.lwLayer       -column 4 -row 0
-
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
-	grid $fw4.lw$nLevel \
-	    -column 0 -row [expr $nLevel + 1] -sticky w
-	grid $fw4.cbwVisible$nLevel \
-	    -column 1 -row [expr $nLevel + 1] -sticky w
-	grid $fw4.cbwLocked$nLevel  \
-	    -column 2 -row [expr $nLevel + 1] -sticky w
-	grid $fw4.cbwReportInfo$nLevel  \
-	    -column 3 -row [expr $nLevel + 1] -sticky w
-	grid $fw4.mwDraw$nLevel \
-	    -column 4 -row [expr $nLevel + 1] -sticky ew
-    }
 
     grid columnconfigure $fw4 0 -weight 0
     grid columnconfigure $fw4 1 -weight 0
@@ -2578,12 +2544,15 @@ proc MakeViewPropertiesPanel { ifwTop } {
     
     pack $fw5.mwTransform -fill x
 
-    # Row 6: The copy button.    
+    # Row 6: The copy and new level button.    
     frame $fw6
     button $fw6.bwCopyLayers -text "Copy Layers to Other Views" \
 	-command { CopyViewLayersToAllViewsInFrame [GetMainFrameID] $gaView(current,id) }
 
-    pack $fw6.bwCopyLayers -fill x
+    button $fw6.bwNewLevel -text "New Draw Level" \
+	-command { set nHighest 0; foreach nLevel $gaWidget(viewProperties,drawLevelsPacked) { if { $nLevel > $nHighest } { set nHighest $nLevel } } ; MakeViewPropertiesLevelRow [expr $nHighest + 1] ; BuildViewPropertiesDrawLevelMenus }
+
+    pack $fw6.bwCopyLayers $fw6.bwNewLevel -side top -fill x
 
     # Row 7: The in plane inc field.
     frame $fw7
@@ -2611,6 +2580,78 @@ proc MakeViewPropertiesPanel { ifwTop } {
     grid rowconfigure $fwTop 0 -weight 1
 
     return $fwTop
+}
+
+proc MakeViewPropertiesLevelRow { inLevel } {
+    global gaWidget
+    global gaView
+
+    tkuMakeNormalLabel $gaWidget(viewProperties,drawLevels).lw$inLevel \
+	-label "$inLevel"
+    
+    checkbutton $gaWidget(viewProperties,drawLevels).cbwVisible$inLevel \
+	-variable gaView(current,visible$inLevel) \
+	-command "ViewPropertiesLevelVisibleCallback $inLevel"
+    
+    checkbutton $gaWidget(viewProperties,drawLevels).cbwLocked$inLevel \
+	-variable gaView(current,lockedShuffle$inLevel)
+    
+    checkbutton $gaWidget(viewProperties,drawLevels).cbwReportInfo$inLevel \
+	-variable gaView(current,reportInfo$inLevel) \
+	-command "ViewPropertiesLevelReportInfoCallback $inLevel"
+
+    tixOptionMenu $gaWidget(viewProperties,drawLevels).mwDraw$inLevel \
+	-label "" \
+	-variable gaView(current,draw$inLevel) \
+	-command "ViewPropertiesDrawLevelMenuCallback $inLevel"
+    set gaWidget(viewProperties,drawLevelMenu$inLevel) \
+	$gaWidget(viewProperties,drawLevels).mwDraw$inLevel
+    
+    grid $gaWidget(viewProperties,drawLevels).lw$inLevel \
+	-column 0 -row [expr $inLevel + 1] -sticky w
+    grid $gaWidget(viewProperties,drawLevels).cbwVisible$inLevel \
+	-column 1 -row [expr $inLevel + 1] -sticky w
+    grid $gaWidget(viewProperties,drawLevels).cbwLocked$inLevel  \
+	-column 2 -row [expr $inLevel + 1] -sticky w
+    grid $gaWidget(viewProperties,drawLevels).cbwReportInfo$inLevel  \
+	-column 3 -row [expr $inLevel + 1] -sticky w
+    grid $gaWidget(viewProperties,drawLevels).mwDraw$inLevel \
+	-column 4 -row [expr $inLevel + 1] -sticky ew
+
+    lappend gaWidget(viewProperties,drawLevelsPacked) $inLevel
+}
+
+proc DestroyViewPropertiesLevelRow { inLevel } {
+    global gaWidget
+
+    # Make sure this widget exsists already.
+    if { [winfo exists $gaWidget(viewProperties,drawLevels).lw$inLevel] } {
+	
+	# Delete the widgets we made.
+	destroy $gaWidget(viewProperties,drawLevels).lw$inLevel
+	destroy $gaWidget(viewProperties,drawLevels).cbwVisible$inLevel
+	destroy $gaWidget(viewProperties,drawLevels).cbwLocked$inLevel
+	destroy $gaWidget(viewProperties,drawLevels).cbwReportInfo$inLevel
+	destroy $gaWidget(viewProperties,drawLevels).mwDraw$inLevel 
+
+	# Delete it from our list.
+	set nList [lsearch $gaWidget(viewProperties,drawLevelsPacked) $inLevel]
+	set gaWidget(viewProperties,drawLevelsPacked) \
+	    [lreplace $gaWidget(viewProperties,drawLevelsPacked) \
+		 $nList [expr $nList + 1]]
+
+    } else {
+	::tkcon_tcl_puts "DestroyViewPropertiesLevelRow $inLevel, row doesn't exist"
+    }
+}
+
+proc DestroyAllViewPropertiesLevelRows {} {
+    global gaWidget
+    
+    set lPacked $gaWidget(viewProperties,drawLevelsPacked)
+    foreach nLevel $lPacked {
+	DestroyViewPropertiesLevelRow $nLevel
+    }
 }
 
 proc MakeTransformsPanel { ifwTop } {
@@ -3604,7 +3645,8 @@ proc CopyLayerSettingsToSimilarLayers { iViewID iLayerID } {
     set thisType [GetLayerType $iLayerID]
 
     # Go through the layers in the current view. For each one...
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+    set lLevels [GetListOfLevelsInView $iViewID]
+    foreach nLevel $lLevels {
 	set layerID [GetLayerInViewAtLevel $iViewID $nLevel]
 	if { $layerID != -1 && $layerID != $iLayerID } {
 
@@ -3710,9 +3752,10 @@ proc BuildToolPropertiesTargetLayerMenu {} {
 
 proc BuildViewPropertiesDrawLevelMenus {} {
     global gaLayer
+    global gaView
     global gaWidget
     
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+    foreach nLevel $gaWidget(viewProperties,drawLevelsPacked) {
 	FillMenuFromList $gaWidget(viewProperties,drawLevelMenu$nLevel) \
 	    $gaLayer(idList) "GetLayerLabel %s" {} true
     }
@@ -3794,7 +3837,24 @@ proc SelectViewInViewProperties { iViewID } {
     set gaView(numMarkers) [GetNumberOfViewMarkers]
     tkuRefreshEntryNotify $gaWidget(toolProperties,numMarkersEntry)
 
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+
+    # Delete our existing level rows.
+    DestroyAllViewPropertiesLevelRows
+
+    # Get the list of levels in this view.
+    set lLevels [GetListOfLevelsInView $iViewID]
+    foreach nLevel $lLevels {
+
+	# Make widgets for this row. This also defines the variables
+	# to which we're about to assign values.
+	MakeViewPropertiesLevelRow $nLevel
+    }
+
+    BuildViewPropertiesDrawLevelMenus
+
+    foreach nLevel $lLevels {
+
+	# Set the values.
 	set gaView(current,visible$nLevel) \
 	    [GetLevelVisibilityInView $iViewID $nLevel]
 	set gaView(current,reportInfo$nLevel) \
@@ -3835,7 +3895,7 @@ proc UpdateCurrentViewProperties {} {
     global gaLayer
 
     set sHighestLabel "None"
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+    foreach nLevel $gaWidget(viewProperties,drawLevelsPacked) {
 
 	# Get the current value of this layer.
 	set layerID [GetLayerInViewAtLevel $gaView(current,id) $nLevel]
@@ -5610,7 +5670,8 @@ proc AutoReportInfoChanged {} {
 
     set lViews [GetListOfViews [GetMainFrameID]]
     foreach viewID $lViews {
-	for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	set lLevels [GetListOfLevelsInView $viewID]
+	foreach nLevel $lLevels {
 	    
 	    if { $gaView(autoReportInfoForLUT) } {
 		
@@ -5641,7 +5702,8 @@ proc AdjustReportInfoForAuto {} {
 	set lViews [GetListOfViews [GetMainFrameID]]
 	foreach viewID $lViews {
 	    
-	    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	    set lLevels [GetListOfLevelsInView $viewID]
+	    foreach nLevel $lLevels {
 		
 		set layerID [GetLayerInViewAtLevel $viewID $nLevel]
 		if { $layerID >= 0 } {
@@ -5692,7 +5754,8 @@ proc ShuffleLayersInView { iViewID } {
 
     # Find the highest level.
     set nHighestLevel 0
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+    set lLevels [GetListOfLevelsInView $iViewID]
+    foreach nLevel $lLevels {
 	set curLayer($nLevel) [GetLayerInViewAtLevel $iViewID $nLevel]
 	set curReportInfo($nLevel) $gaView(current,reportInfo$nLevel)
 	if { $curLayer($nLevel) != -1 } {
@@ -5737,7 +5800,8 @@ proc TurnOffVisibilityInTopmostVisibleLayer { iViewID } {
 
     # Find the highest visible level.
     set nHighestLevel -1
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+    set lLevels [GetListOfLevelsInView $iViewID]
+    foreach nLevel $lLevels {
 	set curLayer($nLevel) [GetLayerInViewAtLevel $iViewID $nLevel]
 	if { $curLayer($nLevel) != -1 &&
 	     [GetLevelVisibilityInView $iViewID $nLevel] } {
@@ -5760,7 +5824,8 @@ proc TurnOnVisibilityInTopmostInvisibleLayer { iViewID } {
 
     # Find the highest invisible level.
     set nHighestLevel -1
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+    set lLevels [GetListOfLevelsInView $iViewID]
+    foreach nLevel $lLevels {
 	set curLayer($nLevel) [GetLayerInViewAtLevel $iViewID $nLevel]
 	if { $curLayer($nLevel) != -1 &&
 	     [GetLevelVisibilityInView $iViewID $nLevel] == 0 } {
@@ -5784,7 +5849,8 @@ proc ToggleVisibilityInTopmostLayer { iViewID } {
 
     # Find the highest level.
     set nHighestLevel -1
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+    set lLevels [GetListOfLevelsInView $iViewID]
+    foreach nLevel $lLevels {
 	set curLayer($nLevel) [GetLayerInViewAtLevel $iViewID $nLevel]
 	if { $curLayer($nLevel) != -1 } {
 	    set nHighestLevel $nLevel
@@ -5811,7 +5877,8 @@ proc ToggleVisibilityInTopmostUnlockedLayer { iViewID } {
 
     # Find the highest unlocked level.
     set nHighestLevel -1
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+    set lLevels [GetListOfLevelsInView $iViewID]
+    foreach nLevel $lLevels {
 	set curLayer($nLevel) [GetLayerInViewAtLevel $iViewID $nLevel]
 	if { $curLayer($nLevel) != -1 &&
 	     $gaView(current,lockedShuffle$nLevel) == 0 } {
@@ -6777,7 +6844,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.248 2007/08/27 19:48:17 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.249 2007/08/28 20:19:11 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -6915,7 +6982,8 @@ proc SaveSceneScript { ifnScene } {
 	puts $f "SetViewInPlane $viewID $inPlane"
 	puts $f "SetViewRASCenter $viewID $rasCenter"
 	puts $f "SetViewZoomLevel $viewID $zoomLevel"
-	for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	set lLevels [GetListOfLevelsInView $viewID]
+	foreach nLevel $lLevels {
 	    set layerID [GetLayerInViewAtLevel $viewID $nLevel]
 	    puts $f "SetLayerInViewAtLevel $viewID $layerID $nLevel"
 	}

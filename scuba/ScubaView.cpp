@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/18 21:38:42 $
- *    $Revision: 1.117 $
+ *    $Date: 2007/08/28 20:19:10 $
+ *    $Revision: 1.118 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -150,6 +150,9 @@ ScubaView::ScubaView() {
   commandMgr.AddCommand( *this, "RemoveLayerFromViewAtLevel", 2,
                          "viewID level",
                          "Remove a layer from a view." );
+  commandMgr.AddCommand( *this, "GetListOfLevelsInView", 1, "viewID",
+			 "Return a list of level indicies that are empty "
+			 "but have been defined, or have layers in them." );
   commandMgr.AddCommand( *this, "SetLevelVisibilityInView", 3,
                          "viewID level visibility",
                          "Sets the visibility for a level in a view." );
@@ -1008,6 +1011,34 @@ ScubaView::DoListenToTclCommand( char* isCommand,
       }
 
       RemoveLayerAtLevel( level );
+    }
+  }
+
+  // GetListOfLevelsInView <viewID>
+  if ( 0 == strcmp( isCommand, "GetListOfLevelsInView" ) ) {
+    int viewID;
+    try {
+      viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad viewID: ") + e.what();
+      return error;
+    }
+
+    if ( mID == viewID ) {
+      stringstream ssFormat;
+      stringstream ssResult;
+      ssFormat << "L";
+     
+      for( map<int,int>::iterator tLayerID = mLevelLayerIDMap.begin();
+	   tLayerID != mLevelLayerIDMap.end(); ++tLayerID ) {
+	ssFormat << "i";
+	ssResult << tLayerID->first << " ";
+      }
+
+      ssFormat << "l"; 
+
+      sReturnFormat = ssFormat.str();
+      sReturnValues = ssResult.str();
     }
   }
 
