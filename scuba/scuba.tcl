@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/08/28 20:19:11 $
-#    $Revision: 1.249 $
+#    $Date: 2007/08/28 23:08:33 $
+#    $Revision: 1.250 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.249 2007/08/28 20:19:11 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.250 2007/08/28 23:08:33 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1456,6 +1456,7 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 
     grid columnconfigure $fwData 0 -weight 1
     grid columnconfigure $fwData 1 -weight 0
+    grid rowconfigure $fwData 99 -weight 1
     
     grid $fwData -column 0 -row 0 -sticky news
 
@@ -1612,6 +1613,7 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     grid $fwPropsCommon.ewLabel    -column 0 -row 1 -columnspan 2 -sticky we
     grid $fwPropsCommon.mwTransform -column 0 -row 2 -columnspan 2 -sticky we
 
+    grid columnconfigure $fwPropsCommon 0 -weight 1
 
     frame $fwPropsVolume
     tkuMakeFileSelector $fwPropsVolume.fwVolume \
@@ -1636,6 +1638,8 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
 
     grid $fwPropsVolume.cb -column 0 -row 1 -sticky ew
 
+    grid columnconfigure $fwPropsVolume 0 -weight 1
+    
     frame $fwPropsSurface
     tkuMakeFileSelector $fwPropsSurface.fwSurface \
 	-variable gaCollection(current,fileName) \
@@ -1667,6 +1671,8 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     
 
     grid $fwPropsSurface.owTransformVolume -column 0 -row 2 -sticky ew
+
+    grid columnconfigure $fwPropsSurface 0 -weight 1
 
 
     frame $fwROIs -relief ridge -border 2
@@ -1754,8 +1760,12 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     grid $fwROIs     -column 0 -row 3 -sticky news
     grid $fwCommands -column 0 -row 4 -sticky news
 
+    grid columnconfigure $fwProps 0 -weight 1
+
     # To make sure the structure list resizes with the window.
     grid rowconfigure $fwTop 3 -weight 1
+
+    grid columnconfigure $fwTop 0 -weight 1
 
     return $fwTop
 }
@@ -1848,6 +1858,8 @@ proc MakeToolsPanel { ifwTop } {
     grid $fwPropsBrushSub.swRadius      -column 0 -row 1 -sticky ew
     grid $fwPropsBrushSub.cb          -column 0 -row 2 -sticky ew
 
+    grid columnconfigure $fwPropsBrushSub 0 -weight 1
+
     set gaWidget(toolProperties,brush) $fwPropsBrush
 
 
@@ -1920,6 +1932,8 @@ proc MakeToolsPanel { ifwTop } {
     grid $fwPropsFillSub.cb3D               -column 0 -row 4 -sticky ew
     grid $fwPropsFillSub.cbOnlyFloodZero    -column 0 -row 5 -sticky ew
 
+    grid columnconfigure $fwPropsFillSub 0 -weight 1
+
     set gaWidget(toolProperties,fill) $fwPropsFill
 
 
@@ -1940,6 +1954,8 @@ proc MakeToolsPanel { ifwTop } {
     set gaWidget(toolProperties,numMarkersEntry) $fwPropsMarkerSub.ewNumMarkers
 
     grid $fwPropsMarkerSub.ewNumMarkers          -column 0 -row 0 -sticky ew
+
+    grid columnconfigure $fwPropsMarkerSub 0 -weight 1
 
     set gaWidget(toolProperties,marker) $fwPropsMarker
 
@@ -2015,6 +2031,8 @@ proc MakeToolsPanel { ifwTop } {
     grid $fwPropsVoxelEditingSub.bwClear       -column 0 -row 4 -sticky ew
     grid $fwPropsVoxelEditingSub.ewEraseValue  -column 0 -row 5 -sticky ew
 
+    grid columnconfigure $fwPropsVoxelEditingSub 0 -weight 1
+
     # These are to make sure the structure list resizes with the
     # window.
     grid rowconfigure $fwPropsVoxelEditingSub 3 -weight 1
@@ -2049,6 +2067,8 @@ proc MakeToolsPanel { ifwTop } {
     grid $fwPropsCommon -column 0 -row 1 -sticky news
 
     grid $fwProps    -column 0 -row 0 -sticky news
+
+    grid columnconfigure $fwProps 0 -weight 1
 
     grid columnconfigure $fwTop 0 -weight 1
     grid rowconfigure $fwTop 0 -weight 1
@@ -2115,6 +2135,9 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwPropsCommon.ewLabel   -column 0 -row 1 -columnspan 2 -sticky we
     grid $fwPropsCommon.swOpacity -column 0 -row 2 -columnspan 2 -sticky we
     grid $fwPropsCommon.cbwReportInfo -column 0 -row 3 -columnspan 2 -sticky we
+
+    grid columnconfigure $fwPropsCommon 0 -weight 1
+    grid columnconfigure $fwPropsCommon 1 -weight 1
 
     # Common panel for reportable info ----------------------------------
     frame $fwPropsInfo
@@ -2214,6 +2237,8 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwGrayscale.swWindow          -column 0 -row 4 -sticky ew
     grid $fwGrayscale.swMinMax          -column 0 -row 5 -sticky ew
 
+    grid columnconfigure $fwGrayscale 0 -weight 1
+
     # Heatscale setting -------------------------------------------------
     tkuMakeToolbar $fwHeatscale.tbwSampleMethod \
 	-allowzero 0 -radio 1 \
@@ -2283,11 +2308,11 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	}
     set gbFDRUseBrainMask false
 
-    pack $fwHeatscale.fwFDR.bwFDR $fwHeatscale.fwFDR.ewRate \
-	$fwHeatscale.fwFDR.cbBrainMask \
-	-side left \
-	-fill x \
-	-expand yes
+    grid $fwHeatscale.fwFDR.bwFDR        -column 0 -row 0 -rowspan 2 -sticky we
+    grid $fwHeatscale.fwFDR.ewRate       -column 1 -row 0 -sticky we
+    grid $fwHeatscale.fwFDR.cbBrainMask  -column 1 -row 1 -sticky we
+
+    grid columnconfigure $fwHeatscale.fwFDR 1 -weight 1
 
     tkuMakeSliders $fwHeatscale.swCondition -sliders { 
 	{ -label "Condition" -variable gaLayer(current,condition)
@@ -2311,6 +2336,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     set gaWidget(layerProperties,heatscaleConditionSliderRow) 6
     set gaWidget(layerProperties,heatscaleTimePointSliderRow) 7
     
+    grid columnconfigure $fwHeatscale 0 -weight 1
 
     # LUT setting -----------------------------------------------------
     tixOptionMenu $fwLUT.mwLUT \
@@ -2329,6 +2355,8 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 
     grid $fwLUT.mwLUT             -column 0 -row 0 -sticky ew
     grid $fwLUT.cbwClearZero      -column 0 -row 1 -sticky ew
+
+    grid columnconfigure $fwLUT 0 -weight 1
 
     # Remaining 2dMRI settings -----------------------------------------
     tkuMakeSliders $fwProps2DMRI.swFrame -sliders { 
@@ -2367,6 +2395,8 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwProps2DMRI.swROIOpacity       -column 0 -row 4 -sticky ew
     grid $fwProps2DMRI.mwMask             -column 0 -row 5 -sticky ew
     set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
+
+    grid columnconfigure $fwProps2DMRI 0 -weight 1
 
     # 2DMRIS layer settings -----------------------------------------------
     frame $fwProps2DMRIS
@@ -2419,6 +2449,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwProps2DMRIS.swLineWidth      -column 0 -row 3 -sticky ew
     set gaWidget(layerProperties,2DMRIS) $fwProps2DMRIS
 
+    grid columnconfigure $fwProps2DMRIS 0 -weight 1
 
     frame $fwCommands
     button $fwCommands.bwCopySettings -text "Copy Settings to Similar Layers" \
@@ -2434,6 +2465,9 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     grid $fwProps -column 0 -row 0 -sticky news
     grid $fwCommands -column 0 -row 1 -sticky news
     
+    grid columnconfigure $fwProps 0 -weight 1
+    grid rowconfigure $fwProps 99 -weight 1
+
     grid columnconfigure $fwTop 0 -weight 1
     grid rowconfigure $fwTop 0 -weight 1
     
@@ -2507,13 +2541,11 @@ proc MakeViewPropertiesPanel { ifwTop } {
 
     # Row 4: The table for draw layers.
     frame $fw4 -relief raised -border 2
-    tkuMakeNormalLabel $fw4.lwLevel -label "Lvl"
     tkuMakeNormalLabel $fw4.lwVisible -label "Vis"
     tkuMakeNormalLabel $fw4.lwLocked -label "Lckd"
     tkuMakeNormalLabel $fw4.lwReportInfo -label "Inf"
     tkuMakeNormalLabel $fw4.lwLayer -label "Layer"
 
-    grid $fw4.lwLevel      -column 0 -row 0 -sticky w
     grid $fw4.lwVisible    -column 1 -row 0 -sticky w
     grid $fw4.lwLocked     -column 2 -row 0 -sticky w
     grid $fw4.lwReportInfo -column 3 -row 0 -sticky w
@@ -2530,6 +2562,9 @@ proc MakeViewPropertiesPanel { ifwTop } {
     grid columnconfigure $fw4 2 -weight 0
     grid columnconfigure $fw4 3 -weight 0
     grid columnconfigure $fw4 4 -weight 1
+
+    grid rowconfigure $fw4 0 -weight 0
+    grid rowconfigure $fw4 99 -weight 1
 
     # Row 5: The transform menu.
     frame $fw5
@@ -2579,6 +2614,15 @@ proc MakeViewPropertiesPanel { ifwTop } {
     grid columnconfigure $fwTop 0 -weight 1
     grid rowconfigure $fwTop 0 -weight 1
 
+    grid columnconfigure $fwProps 0 -weight 1
+    grid rowconfigure $fwProps 0 -weight 0
+    grid rowconfigure $fwProps 1 -weight 0
+    grid rowconfigure $fwProps 2 -weight 0
+    grid rowconfigure $fwProps 3 -weight 1
+    grid rowconfigure $fwProps 4 -weight 0
+    grid rowconfigure $fwProps 5 -weight 0
+    grid rowconfigure $fwProps 6 -weight 0
+
     return $fwTop
 }
 
@@ -2586,9 +2630,6 @@ proc MakeViewPropertiesLevelRow { inLevel } {
     global gaWidget
     global gaView
 
-    tkuMakeNormalLabel $gaWidget(viewProperties,drawLevels).lw$inLevel \
-	-label "$inLevel"
-    
     checkbutton $gaWidget(viewProperties,drawLevels).cbwVisible$inLevel \
 	-variable gaView(current,visible$inLevel) \
 	-command "ViewPropertiesLevelVisibleCallback $inLevel"
@@ -2607,8 +2648,6 @@ proc MakeViewPropertiesLevelRow { inLevel } {
     set gaWidget(viewProperties,drawLevelMenu$inLevel) \
 	$gaWidget(viewProperties,drawLevels).mwDraw$inLevel
     
-    grid $gaWidget(viewProperties,drawLevels).lw$inLevel \
-	-column 0 -row [expr $inLevel + 1] -sticky w
     grid $gaWidget(viewProperties,drawLevels).cbwVisible$inLevel \
 	-column 1 -row [expr $inLevel + 1] -sticky w
     grid $gaWidget(viewProperties,drawLevels).cbwLocked$inLevel  \
@@ -2618,6 +2657,8 @@ proc MakeViewPropertiesLevelRow { inLevel } {
     grid $gaWidget(viewProperties,drawLevels).mwDraw$inLevel \
 	-column 4 -row [expr $inLevel + 1] -sticky ew
 
+    grid rowconfigure $gaWidget(viewProperties,drawLevels) 0 -weight 0
+
     lappend gaWidget(viewProperties,drawLevelsPacked) $inLevel
 }
 
@@ -2625,10 +2666,9 @@ proc DestroyViewPropertiesLevelRow { inLevel } {
     global gaWidget
 
     # Make sure this widget exsists already.
-    if { [winfo exists $gaWidget(viewProperties,drawLevels).lw$inLevel] } {
+    if { [winfo exists $gaWidget(viewProperties,drawLevels).cbwVisible$inLevel] } {
 	
 	# Delete the widgets we made.
-	destroy $gaWidget(viewProperties,drawLevels).lw$inLevel
 	destroy $gaWidget(viewProperties,drawLevels).cbwVisible$inLevel
 	destroy $gaWidget(viewProperties,drawLevels).cbwLocked$inLevel
 	destroy $gaWidget(viewProperties,drawLevels).cbwReportInfo$inLevel
@@ -2757,6 +2797,12 @@ proc MakeTransformsPanel { ifwTop } {
     grid $fwProps    -column 0 -row 0 -sticky news
     grid $fwCommands -column 0 -row 1 -sticky news
 
+    grid columnconfigure $fwProps 0 -weight 1
+    grid columnconfigure $fwProps 1 -weight 1
+    grid columnconfigure $fwProps 2 -weight 1
+    grid columnconfigure $fwProps 3 -weight 1
+    grid rowconfigure $fwProps 99 -weight 1
+
     grid columnconfigure $fwTop 0 -weight 1
     grid rowconfigure $fwTop 0 -weight 1
 
@@ -2808,6 +2854,9 @@ proc MakeLUTsPanel { ifwTop } {
 
     grid $fwProps    -column 0 -row 0 -sticky news
     grid $fwCommands -column 0 -row 1 -sticky news
+
+    grid columnconfigure $fwProps 0 -weight 1
+    grid rowconfigure $fwProps 99 -weight 1
 
     grid columnconfigure $fwTop 0 -weight 1
     grid rowconfigure $fwTop 0 -weight 1
@@ -6844,7 +6893,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.249 2007/08/28 20:19:11 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.250 2007/08/28 23:08:33 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
