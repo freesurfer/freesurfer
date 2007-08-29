@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/29 20:21:06 $
- *    $Revision: 1.111.2.1 $
+ *    $Date: 2007/08/29 22:44:11 $
+ *    $Revision: 1.111.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -304,12 +304,13 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
     // Get b Values from header, based on sequence name
     vol->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
     for (nthfile = 0; nthfile < nlist; nthfile ++){
+      // Go thru all the files in order to get all the directions
       sdfi = sdfi_list[nthfile];
       DTIparsePulseSeqName(sdfi->PulseSequence, 
 			   &sdfi->bValue, &sdfi->nthDirection);
       bval   = sdfi->bValue;
       nthdir = sdfi->nthDirection;
-      vol->bvals->rptr[nthfile+1][1] = bval;
+      vol->bvals->rptr[nthdir+1][1] = bval;
       printf("%d %s %lf %d\n",nthfile,sdfi->PulseSequence,
 	     sdfi->bValue, sdfi->nthDirection);
     }
