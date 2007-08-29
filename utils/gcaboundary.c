@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/29 13:45:45 $
- *    $Revision: 1.1 $
+ *    $Author: kteich $
+ *    $Date: 2007/08/29 16:21:43 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1749,6 +1749,7 @@ gcabSamplePDF(GCAB *gcab, GCABS *gcabs, int which, int vno, double val)
   int       index_b, index_u ;
   HISTOGRAM *h ;
 
+  h = NULL;
   switch (which)
   {
   case GCAB_IIN:
