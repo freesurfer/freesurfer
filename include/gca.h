@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/04 00:43:48 $
- *    $Revision: 1.84 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/29 16:17:06 $
+ *    $Revision: 1.85 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -312,7 +312,7 @@ int   GCArenormalizeWithEntropyMinimization(GCA *gca_affine, MRI *mri, TRANSFORM
 double GCAcomputeMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 int  GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
 int  GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform) ;
-int  GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, char *base_name, LTA **plta, int handle_expanded_ventricles) ;
+int  GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, char *base_name, LTA **plta, int handle_expanded_ventricles);
 int  GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
                             int wsize, float pthresh) ;
 int  GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
@@ -417,6 +417,7 @@ int copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs) ;
 
 #include "colortab.h"
 COLOR_TABLE *GCAcolorTableCMA(GCA *gca);
+int GCAstructureBoundingBox(GCA *gca, int label, MRI_REGION *box) ;
 
 
 #endif
