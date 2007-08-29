@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:33 $
- *    $Revision: 1.13 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/29 16:16:37 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,6 @@
 #include "diag.h"
 #include "utils.h" //fgetl
 
-static ICOSOHEDRON *read_icosahedron(char *fname) ;
 
 IC_VERTEX ic4_vertices[2562] =
   {
@@ -7736,7 +7735,7 @@ IC_FACE ic4_faces[5120] =
 MRI_SURFACE *
 ICOreadOverAlloc(char *fname, double pct_over)
 {
-  ICOSOHEDRON *ico ;
+  ICOSAHEDRON *ico ;
   int         fno, vno, n1, n2, n, vn ;
   MRI_SURFACE *mris ;
   VERTEX      *v ;
@@ -7899,7 +7898,7 @@ ICOreadOverAlloc(char *fname, double pct_over)
 MRI_SURFACE *
 ICOread(char *fname)
 {
-  ICOSOHEDRON *ico ;
+  ICOSAHEDRON *ico ;
   int         fno, vno, n1, n2, n, vn ;
   MRI_SURFACE *mris ;
   VERTEX      *v ;
@@ -8059,14 +8058,35 @@ ICOread(char *fname)
   free(ico) ;
   return(mris) ;
 }
-static ICOSOHEDRON *
+/*------------------------------------------------------------------
+  ICOSAHEDRON *read_icosahedron_by_order() -- loads an icosaheron given it's
+  "order".  Reads the FREESURFER_HOME environment variable, then loads the
+  file "FREESURFER_HOME/lib/bem/ic%d.tri" where %d is the "order".  As read in,
+  the vertices of the icosahedron are on the unit sphere.
+  -------------------------------------------------------------------*/
+ICOSAHEDRON *
+read_icosahedron_by_order(int order)
+{
+  char fname[STRLEN], *FREESURFER_HOME ;
+  
+  FREESURFER_HOME = getenv("FREESURFER_HOME") ;
+  if (FREESURFER_HOME == NULL)
+    ErrorExit(ERROR_BADPARM, "FREESURFER_HOME must be defined") ;
+  sprintf(fname,"%s/lib/bem/ic%d.tri",FREESURFER_HOME, order);
+  printf("   Reading icosahedron %s\n", fname) ;
+  
+  return(read_icosahedron(fname)) ;
+}
+
+
+ICOSAHEDRON *
 read_icosahedron(char *fname)
 {
   FILE        *fp ;
   char        line[200], *cp ;
   int         vno, fno, vno1, vno2, vno3, n, nvertices, nfaces ;
   float       x, y, z ;
-  ICOSOHEDRON *ico ;
+  ICOSAHEDRON *ico ;
   int         count;
   float       nx, ny, nz;
 
@@ -8075,7 +8095,7 @@ read_icosahedron(char *fname)
     ErrorReturn(NULL,
                 (ERROR_NOFILE, "read_icosahedron: could not open %s", fname));
 
-  ico = (ICOSOHEDRON *)calloc(1, sizeof(ICOSOHEDRON)) ;
+  ico = (ICOSAHEDRON *)calloc(1, sizeof(ICOSAHEDRON)) ;
 
   fgetl(line, 150, fp) ;   /* discard # of vertices */
   sscanf(line, "%d", &nvertices) ;
@@ -8148,7 +8168,7 @@ read_icosahedron(char *fname)
 int
 ICOreadVertexPositions(MRI_SURFACE *mris, char *fname, int which)
 {
-  ICOSOHEDRON *ico ;
+  ICOSAHEDRON *ico ;
   int         vno ;
   VERTEX      *v ;
 
@@ -8207,6 +8227,8 @@ MRI_SURFACE *ReadIcoByOrder(int IcoOrder, float RescaleFactor)
   int vtx;
 
   FREESURFER_HOME = getenv("FREESURFER_HOME") ;
+  if (FREESURFER_HOME == NULL)
+    ErrorExit(ERROR_BADPARM, "FREESURFER_HOME must be defined") ;
   sprintf(trifile,"%s/lib/bem/ic%d.tri",FREESURFER_HOME,IcoOrder);
   printf("   Reading icosahedron %s\n", trifile) ;
   surf = ICOread(trifile);

@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/28 01:53:44 $
- *    $Revision: 1.7 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/29 16:16:11 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,8 +25,8 @@
  */
 
 
-#ifndef ICOSOHEDRON_H
-#define ICOSOHEDRON_H
+#ifndef ICOSAHEDRON_H
+#define ICOSAHEDRON_H
 
 #include "mrisurf.h"
 
@@ -51,7 +51,7 @@ typedef struct
   IC_VERTEX *vertices ;
   IC_FACE   *faces ;
 }
-ICOSOHEDRON ;
+ICOSAHEDRON ;
 
 MRI_SURFACE *ic642_make_surface(int max_vertices, int max_faces) ;
 MRI_SURFACE *ic42_make_surface(int max_vertices, int max_faces) ;
@@ -81,6 +81,9 @@ extern IC_FACE   ic2562_faces[] ;
 // version of ic2562 used for testing mrishash.c, contributed by G. Wideman
 MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1,
                                   float x2, float y2, float z2, float r2 );
+
+ICOSAHEDRON *read_icosahedron(char *fname) ;
+ICOSAHEDRON *read_icosahedron_by_order(int order) ;
 
 
 #endif
