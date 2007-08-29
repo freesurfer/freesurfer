@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/08/28 23:08:33 $
-#    $Revision: 1.250 $
+#    $Date: 2007/08/29 17:52:31 $
+#    $Revision: 1.251 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.250 2007/08/28 23:08:33 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.251 2007/08/29 17:52:31 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -520,6 +520,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "Save As..." { DoSaveAsDlog } }
 	{command "Save Copy As..." { DoSaveCopyAsDlog } }
 	{command "Delete Data Collection..." { DoDeleteDataCollectionDlog } }
+	{command "Delete Multiple Data Collections..." { DoDeleteMultipleDataCollectionsDlog } }
 	{separator}
 	{command "Load Label..." { DoLoadLabelDlog } }
 	{command "Save Label..." { DoSaveLabelDlog } }
@@ -6478,6 +6479,72 @@ proc DoDeleteDataCollectionDlog {} {
      }
 }
 
+proc DoDeleteMultipleDataCollectionsDlog {} {
+
+    dputs "DoDeleteMultipleDataCollectionsDlog"
+    
+    global gaCollection
+    global gaDeleteMultipleCollectionsSettings
+
+    if { [llength $gaCollection(idList)] > 0 } {
+	
+	set wwDialog .wwDeleteMultipleDataCollectionsDlog
+	if { [tkuCreateDialog $wwDialog "Delete Collections" {-borderwidth 10}] } {
+	    
+	    set fwNote        $wwDialog.fwNote
+	    set fwCollections $wwDialog.fwCollections
+	    set fwButtons     $wwDialog.fwButtons
+
+	    tkuMakeNormalLabel $fwNote \
+		-font [tkuLabelFont] \
+		-label "Select which colletions to delete:"
+
+
+	    set lCheckboxes {}
+	    foreach colID $gaCollection(idList) { 
+		lappend lCheckboxes \
+		    "-type text -label \"[GetCollectionLabel $colID]\" -variable gaDeleteMultipleCollectionsSettings(col,$colID)"
+		set gaDeleteMultipleCollectionsSettings(col,$colID) 0
+	    }
+		
+	    tkuMakeCheckboxes $fwCollections \
+		-font [tkuNormalFont] \
+		-checkboxes $lCheckboxes
+
+	    # OK button will look at all collections, and if their
+	    # checkboxes are checked, will delete them.
+	    tkuMakeCancelOKButtons $fwButtons $wwDialog \
+		-okCmd { 
+		    foreach colID $gaCollection(idList) { 
+			if { $gaDeleteMultipleCollectionsSettings(col,$colID) } {
+			    set err [catch {
+				foreach layerID $gaLayer(idList) {
+				    if { [GetLayerMainDataCollection $layerID] ==
+					 $colID } {
+					DeleteLayer $layerID
+				    }
+				}
+				DeleteDataCollection $colID
+			    } sResult]
+			    if { 0 != $err } { tkuErrorDlog $sResult }
+			}
+		    }
+		    UpdateCollectionList
+		    UpdateLayerList
+		    UpdateROIList
+		    RedrawFrame [GetMainFrameID]
+		}
+
+	    pack $fwNote $fwCollections $fwButtons \
+		-side top -expand y -fill x -pady 10
+	    
+	}
+	
+    } else {
+	tkuErrorDlog "There are no data collections to delete."
+    }
+}
+
 proc DoSaveLabelDlog {} {
     dputs "DoSaveLabelDlog  "
 
@@ -6893,7 +6960,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.250 2007/08/28 23:08:33 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.251 2007/08/29 17:52:31 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
