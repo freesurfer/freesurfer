@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/03/08 20:07:47 $
- *    $Revision: 1.16 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/29 16:16:26 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,7 @@ int     ErrorPrintf(int ecode, char *fmt, ...) ;
 #define ERROR_BAD_FILE        ERROR_BADFILE
 #define ERROR_SIZE            -6
 #define ERROR_BADLOOP         -7
+#define ERROR_OUT_OF_BOUNDS   -8
 
 extern int Gerror ;    /* global error value */
 
