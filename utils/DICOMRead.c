@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/17 21:17:24 $
- *    $Revision: 1.111 $
+ *    $Date: 2007/08/29 20:21:06 $
+ *    $Revision: 1.111.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -103,11 +103,12 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   unsigned short *pixeldata;
   MRI *vol, *voltmp;
   char **SeriesList;
-  char *tmpstring,*pc,*pc2;
+  char *tmpstring,*pc=NULL,*pc2=NULL;
   int Maj, Min, MinMin;
   double xs,ys,zs,xe,ye,ze,d,bval;
   int nnlist, nthdir;
   DTI *dti;
+  int TryDTI = 1, DoDTI = 1;
   extern int sliceDirCosPresent; // set when no ascii header
 
   xs=ys=zs=xe=ye=ze=d=0.; /* to avoid compiler warnings */
@@ -286,15 +287,26 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   // Load the AutoAlign Matrix, if one is there
   vol->AutoAlign = sdcmAutoAlignMatrix(dcmfile);
 
-  // Load DTI, if you can
+  // Load DTI bvecs/bvals, if you can. If the procedure fails for some reason
+  // you can setenv UNPACK_MGH_DTI 0.
   pc  = SiemensAsciiTag(dcmfile,"sDiffusion.lDiffDirections");
   pc2 = SiemensAsciiTag(dcmfile,"sWiPMemBlock.alFree[8]");
   if(pc != NULL && pc2 != NULL){
+    printf("This looks like an MGH DTI volume\n");
+    if(getenv("UNPACK_MGH_DTI") != NULL) sscanf(getenv("UNPACK_MGH_DTI"),"%d",&TryDTI);
+    else TryDTI = 1;
+    if(TryDTI) DoDTI = 1;
+    else DoDTI = 0;
+    if(! DoDTI) printf("  but not getting bvec info because UNPACK_MGH_DTI is 0\n");
+  }
+  if(DoDTI){
     printf("MGH DTI SeqPack Info\n");
     // Get b Values from header, based on sequence name
     vol->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
     for (nthfile = 0; nthfile < nlist; nthfile ++){
       sdfi = sdfi_list[nthfile];
+      DTIparsePulseSeqName(sdfi->PulseSequence, 
+			   &sdfi->bValue, &sdfi->nthDirection);
       bval   = sdfi->bValue;
       nthdir = sdfi->nthDirection;
       vol->bvals->rptr[nthfile+1][1] = bval;
@@ -1632,6 +1644,7 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   strtmp = SiemensAsciiTagEx(dcmfile, "lRepetitions", 0);
   if(strtmp != NULL){
+    // This can cause problems with DTI scans if lRepetitions is actually set
     sscanf(strtmp,"%d",&(sdcmfi->lRepetitions));
     free(strtmp);
   }
