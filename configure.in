@@ -2137,6 +2137,7 @@ AC_OUTPUT([Makefile
            mri_ca_register/Makefile
            mri_ca_tissue_parms/Makefile
            mri_ca_train/Makefile
+           mri_gcab_train/Makefile
            mri_cc/Makefile
            mri_cht2p/Makefile
            mri_cnr/Makefile
@@ -2171,6 +2172,7 @@ AC_OUTPUT([Makefile
            mri_hires_register/Makefile
            mri_histo_eq/Makefile
            mri_info/Makefile
+           mri_hausdorff_dist/Makefile
            mri_joint_density/Makefile
            mri_label2label/Makefile
            mri_label2vol/Makefile

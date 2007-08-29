@@ -42,6 +42,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_ca_tissue_parms \
 	mri_ca_register \
 	mri_ca_train \
+	mri_gcab_train \
 	mri_cc mri_cht2p \
 	mri_cnr \
 	mri_compute_overlap \
@@ -67,6 +68,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_head \
 	mri_histo_eq \
 	mri_info \
+	mri_hausdorff_dist \
 	mri_joint_density \
 	mri_label_histo \
 	mri_label_vals \
