@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:33 $
- *    $Revision: 1.3 $
+ *    $Author: fischl $
+ *    $Date: 2007/08/30 12:39:49 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,7 +37,7 @@
 #define ICO_NFACES  327680
 
 
-static int read_icosahedron(void) ;
+static int static_read_icosahedron(void) ;
 IC_VERTEX *ic163842_vertices = NULL ;
 IC_FACE  *ic163842_faces = NULL ;
 
@@ -52,7 +52,7 @@ ic163842_make_surface(int max_vertices, int max_faces)
 
   if (first_time)
   {
-    read_icosahedron() ;
+    static_read_icosahedron() ;
     first_time = 0 ;
     for (fno = 0 ; fno < ICO_NFACES ; fno++)
     {
@@ -176,7 +176,7 @@ ic163842_make_surface(int max_vertices, int max_faces)
   return(mris) ;
 }
 static int
-read_icosahedron(void)
+static_read_icosahedron(void)
 {
   FILE      *fp ;
   char      line[200], *cp ;
@@ -187,17 +187,17 @@ read_icosahedron(void)
 
   fp = fopen("ic163842.tri", "r") ;
   if (!fp)
-    ErrorExit(ERROR_NOFILE, "read_icosahedron: could not open %s",
+    ErrorExit(ERROR_NOFILE, "static_read_icosahedron: could not open %s",
               "ic163842.tri") ;
 
   ic_vertices = ic163842_vertices =
                   (IC_VERTEX *)calloc(ICO_NVERTICES, sizeof(IC_VERTEX)) ;
   if (!ic163842_vertices)
-    ErrorExit(ERROR_NOMEMORY, "read_ico: could not allocate vertex list") ;
+    ErrorExit(ERROR_NOMEMORY, "static_read_ico: could not allocate vertex list") ;
   ic_faces = ic163842_faces =
                (IC_FACE *)calloc(ICO_NFACES, sizeof(IC_FACE)) ;
   if (!ic163842_faces)
-    ErrorExit(ERROR_NOMEMORY, "read_ico: could not allocate vertex list") ;
+    ErrorExit(ERROR_NOMEMORY, "static_read_ico: could not allocate vertex list") ;
 
 
   fgetl(line, 150, fp) ;   /* discard # of vertices */
