@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/15 21:52:15 $
- *    $Revision: 1.19 $
+ *    $Date: 2007/08/30 19:18:26 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -253,7 +253,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.19 2007/06/15 21:52:15 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.20 2007/08/30 19:18:26 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1058,7 +1058,9 @@ MRI * MRIbinarize2(MRI *mri_src, MRI *mri_dst,
 double EvalFWHM(MRI *vol, MRI *mask) {
   double car1mn, rar1mn, sar1mn;
   double cfwhm,rfwhm,sfwhm,fwhm;
-  fMRIspatialAR1Mean(vol, mask, &car1mn, &rar1mn, &sar1mn);
+  static MRI *ar1 = NULL;
+  ar1 = fMRIspatialAR1(vol, mask, ar1);
+  fMRIspatialAR1Mean(ar1, mask, &car1mn, &rar1mn, &sar1mn);
   cfwhm = RFar1ToFWHM(car1mn, vol->xsize);
   rfwhm = RFar1ToFWHM(rar1mn, vol->ysize);
   sfwhm = RFar1ToFWHM(sar1mn, vol->zsize);
