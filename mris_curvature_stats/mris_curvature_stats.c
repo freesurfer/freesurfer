@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: rpienaar $
- *    $Date: 2007/08/28 20:13:00 $
- *    $Revision: 1.29 $
+ *    $Author: rudolph $
+ *    $Date: 2007/08/31 22:03:57 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.29 2007/08/28 20:13:00 rpienaar Exp $";
+  "$Id: mris_curvature_stats.c,v 1.30 2007/08/31 22:03:57 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -643,7 +643,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-	"$Id: mris_curvature_stats.c,v 1.29 2007/08/28 20:13:00 rpienaar Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.30 2007/08/31 22:03:57 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1161,6 +1161,7 @@ VERTEX_faceAngles_determine(
     float		f_lenApexNormal	= 0.;
     float		f_lenFaceNormal	= 0.;
     float		f_lenNormals	= 0.;
+    float		f_acosArg	= 0.;
     float		f_dot		= 0.;
 
     int			face		= 0;
@@ -1192,7 +1193,13 @@ VERTEX_faceAngles_determine(
  	f_dot				= V3_DOT(pv_apexNormal, pv_faceNormal);
 	errno				= 0;
 // 	feclearexcept(FE_ALL_EXCEPT);
-    	f_angle				= acos(f_dot / f_lenNormals);
+	f_acosArg			= f_dot / f_lenNormals;
+        // Check on the bounds of the acos argument. Without this bounds check, 
+        // it is quite possible to have 'nan' acos results, especially on 64-bit
+        // builds.
+        if(f_acosArg > 1.)  f_acosArg 	= 1.0;
+        if(f_acosArg < -1.) f_acosArg 	= -1.0;
+    	f_angle				= acos(f_acosArg);
 	if(errno) {
 	    f_angle			= 0.;
 	    printf("%s: acos error - angle set to zero for vertex = %d, face = %d.\n", 
@@ -1518,6 +1525,7 @@ FACES_angleNormal_find(
     float	    f_faceNormalJlen	= 0.;	// Length of face normal J
     float	    f_faceNormalIJlen	= 0.;	// Face normal length product
     float	    f_angleNormalIJ	= 0.;	// Angle between face normals
+    float	    f_acosArg		= 0.;	// Dot product arguments
     float	    f_dot		= 0.;	// Dot product
     short	    sign		= 1; 	// Angle "sign"
     char*	    pch_function	= "FACES_angleNormal_find";
@@ -1546,7 +1554,13 @@ FACES_angleNormal_find(
     f_faceNormalIJlen	= f_faceNormalIlen * f_faceNormalJlen;
     f_dot		= V3_DOT(pv_faceNormalI, pv_faceNormalJ);
     sign		= FACES_Hcurvature_determineSign(apmris, apFACE_I, apFACE_J);
-    f_angleNormalIJ	= acos(f_dot / f_faceNormalIJlen) * sign;
+    f_acosArg		= f_dot / f_faceNormalIJlen;
+    // Check on the bounds of the acos argument. Without this bounds check, 
+    //	it is quite possible to have 'nan' acos results, especially on 64-bit
+    //	builds.
+    if(f_acosArg > 1.)	f_acosArg = 1.0;
+    if(f_acosArg < -1.) f_acosArg = -1.0;
+    f_angleNormalIJ	= acosf(f_acosArg) * sign;
     calls++;
     xDbg_PopStack();
     return f_angleNormalIJ;
