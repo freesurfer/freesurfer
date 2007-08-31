@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/30 19:18:26 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/08/31 20:45:12 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -253,7 +253,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.20 2007/08/30 19:18:26 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.21 2007/08/31 20:45:12 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -281,7 +281,7 @@ MRI *ar1;
 char *ar1path=NULL;
 
 double infwhm = 0, ingstd = 0;
-double byfwhm, tofwhm, tofwhmact, tofwhmtol=0.5;
+double byfwhm, tofwhm, togstd, tofwhmact, tofwhmtol=0.5;
 double bygstd;
 char *tofwhmfile = NULL;
 int tofwhmnitersmax = 20;
@@ -647,9 +647,19 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&infwhm);
       ingstd = infwhm/sqrt(log(256.0));
       nargsused = 1;
+    } else if (!strcasecmp(option, "--gstd")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&ingstd);
+      infwhm = ingstd*sqrt(log(256.0));
+      nargsused = 1;
     } else if (!strcasecmp(option, "--to-fwhm")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&tofwhm);
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--to-gstd")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&togstd);
+      tofwhm = togstd*sqrt(log(256.0));
       nargsused = 1;
     } else if (!strcasecmp(option, "--to-fwhm-tol")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -748,6 +758,7 @@ static void print_usage(void) {
   printf("   --detrend order : polynomial detrending (default 0)\n");
   printf("\n");
   printf("   --fwhm fwhm : smooth BY fwhm before measuring\n");
+  printf("   --gstd gstd : same as --fwhm but specified as the stddev\n");
   printf("\n");
   printf("   --to-fwhm tofwhm : smooth TO fwhm\n");
   printf("   --to-fwhm-tol tolerance : smooth to fwhm +/- tol (def .5mm)\n");
