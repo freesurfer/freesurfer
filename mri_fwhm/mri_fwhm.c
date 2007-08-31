@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/31 20:45:30 $
- *    $Revision: 1.19.2.2 $
+ *    $Date: 2007/08/31 21:17:01 $
+ *    $Revision: 1.19.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -253,7 +253,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.19.2.2 2007/08/31 20:45:30 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.19.2.3 2007/08/31 21:17:01 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -408,7 +408,7 @@ int main(int argc, char *argv[]) {
     printf("Saving to %s\n",outpath);
     MRIwrite(InVals,outpath);
     printf("SmoothOnly requested, so exiting now\n");
-    exit(1);
+    exit(0);
   }
 
   // Make a copy, if needed, prior to doing anything to data
