@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2007/09/05 14:49:16 $
- *    $Revision: 1.31 $
+ *    $Date: 2007/09/05 14:58:27 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.31 2007/09/05 14:49:16 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.32 2007/09/05 14:58:27 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -643,7 +643,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-	"$Id: mris_curvature_stats.c,v 1.31 2007/09/05 14:49:16 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.32 2007/09/05 14:58:27 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3200,7 +3200,7 @@ get_option(int argc, char *argv[]) {
   case '-':
     break;
   default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    fprintf(stderr, "Unknown option '%s'. Looking for help? Try with '-u'.\n", argv[1]) ;
     exit(1) ;
     break ;
   }
