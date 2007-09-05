@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2007/08/31 22:03:57 $
- *    $Revision: 1.30 $
+ *    $Date: 2007/09/05 14:49:16 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.30 2007/08/31 22:03:57 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.31 2007/09/05 14:49:16 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -643,7 +643,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-	"$Id: mris_curvature_stats.c,v 1.30 2007/08/31 22:03:57 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.31 2007/09/05 14:49:16 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -702,10 +702,10 @@ main(int argc, char *argv[]) {
   if (label_name)
     fprintf(stdout,"%s: ", label_name) ;
 
-    outputFiles_close();
-    outputFileNames_create();
-    outputFiles_open();
-    MRIScomputeMetricProperties(mris);
+  outputFiles_close();
+  outputFileNames_create();
+  outputFiles_open();
+  MRIScomputeMetricProperties(mris);
 
   // Process all the command-line spec'd curvature files
   if(argc>=4)
@@ -2762,7 +2762,8 @@ OFSP_create(
 
   switch (ae_OFSP) {
   case e_None:
-    sprintf(apch_prefix, output_fname);
+    if(output_fname != NULL)
+        sprintf(apch_prefix, output_fname);
     break;
   case e_Partial:
     sprintf(apch_prefix, "%s.%s.%s",
