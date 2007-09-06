@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/28 20:34:28 $
- *    $Revision: 1.558 $
+ *    $Author: rudolph $
+ *    $Date: 2007/09/06 19:41:22 $
+ *    $Revision: 1.559 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -622,7 +622,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.558 2007/08/28 20:34:28 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.559 2007/09/06 19:41:22 rudolph Exp $");
 }
 
 /*-----------------------------------------------------
@@ -61076,3 +61076,1067 @@ MRISclearMark2s(MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+
+// Discrete Principle Curvature and Related vvvvvvvvvvvvvvvvvv
+
+
+void
+cprints(
+	char*		apch_left,
+	char*		apch_right
+) {
+    //
+    // PRECONDITIONS
+    //	o The length of each text string should be such that
+    //	  the string will "fit" into its column.
+    //
+    // POSTCONDITIONS
+    //	o Column prints the left (action) and right (status)
+    //	  text strings in a formatted manner.
+    //
+
+    static char	pch_right[16384];
+
+    sprintf(pch_right, " [ %s ]\n", apch_right);
+    if(strlen(apch_left))
+        fprintf(stderr, "%*s", 	G_LC, 	apch_left);
+    if(strlen(apch_right))
+        fprintf(stderr, "%*s",	G_RC, 	pch_right);
+    fflush(stderr);
+}
+
+void
+cprintd(
+	char*		apch_left,
+	int		a_right
+) {
+    //
+    // PRECONDITIONS
+    //	o The length of each text string should be such that
+    //	  the string will "fit" into its column.
+    //
+    // POSTCONDITIONS
+    //	o Column prints the left (action) and right (status)
+    //	  text strings in a formatted manner.
+    //
+
+    static char	pch_right[16384];
+
+    sprintf(pch_right, " [ %d ]\n", a_right);
+    if(strlen(apch_left))
+        fprintf(stderr, "%*s", 	G_LC, 	apch_left);
+    else
+	fprintf(stderr, "%*s", 	G_LC,	" ");
+    fprintf(stderr, "%*s",	G_RC, 	pch_right);
+    fflush(stderr);
+}
+
+void
+cprintf(
+	char*		apch_left,
+	float		af_right
+) {
+    //
+    // PRECONDITIONS
+    //	o The length of each text string should be such that
+    //	  the string will "fit" into its column.
+    //
+    // POSTCONDITIONS
+    //	o Column prints the left (action) and right (status)
+    //	  text strings in a formatted manner.
+    //
+
+    static char	pch_right[16384];
+
+    sprintf(pch_right, " [ %f ]\n", af_right);
+    if(strlen(apch_left))
+        fprintf(stderr, "%*s", 	G_LC, 	apch_left);
+    else
+	fprintf(stderr, "%*s", 	G_LC,	" ");
+    fprintf(stderr, "%*s",	G_RC, 	pch_right);
+    fflush(stderr);
+}
+
+
+short
+FACE_vertexIndex_find(
+    FACE*	pFace,
+    int 	avertex 
+) {
+    //
+    // PRECONDITIONS
+    // o <avertex> denotes a vertex number to lookup in the <pFace>.
+    //
+    // POSTCONDITIONS
+    // o The vertex index (0, 1, 2) containing the <avertex> is returned
+    //	 or -1 if not found.
+    //
+    int 	vertex			= 0;
+    int		ret			= -1;
+    for(vertex=0; vertex<VERTICES_PER_FACE; vertex++)
+	if(pFace->v[vertex] == avertex) ret = vertex;
+    return ret;
+}
+
+short
+VECTOR_elementIndex_findNotEqual(
+	VECTOR*	apV,
+	float	af_searchTerm
+) {
+    //
+    // PRECONDITIONS
+    //  o The <apV> is a column vector.
+    //
+    // POSTCONDITIONS
+    // 	o The index of the first element in <apV> that is not equal to
+    //	  the <af_searchTerm> is returned in the function name. If no
+    //	  hits are found, a '0' is returned.
+    //  o NOTE that the first element index in the vector is '1', not
+    //	  zero (i.e. MatLAB convention).
+    //
+  	
+    int		i	= 0;
+    short	b_ret	= 0;
+    for(i=0; i<apV->rows; i++)
+	if(VECTOR_ELT(apV, i+1) != af_searchTerm) {
+	    b_ret		= i;
+	    break;
+	}
+    return b_ret;
+}
+
+short
+VECTOR_elementIndex_find(
+	VECTOR*	apV,
+	float	af_searchTerm
+) {
+    //
+    // PRECONDITIONS
+    //  o The <apV> is a column vector.
+    //
+    // POSTCONDITIONS
+    // 	o The index of the first element in <apV> that is equal to
+    //	  the <af_searchTerm> is returned in the function name. If no
+    //	  hits are found, a '0' is returned.
+    //  o NOTE that the first element index in the vector is '1', not
+    //	  zero (i.e. MatLAB convention).
+    //
+  	
+    int		i	= 0;
+    short	b_ret	= 0;
+    for(i=1; i<=apV->rows; i++)
+	if(VECTOR_ELT(apV, i) == af_searchTerm) {
+	    b_ret		= i;
+	    break;
+	}
+    return b_ret;
+}
+
+short
+MRIS_vertexProgress_print(
+    MRIS*	apmris,
+    int		avertex,
+    char*	apch_message
+) {
+    //
+    // PRECONDITIONS
+    //  o <avertex> is the current vertex being processed in a stream.
+    //	o If <apch_message> is non-NULL, then prefix the progress bar
+    //	  with <apch_message> (and terminate progress bar with [ ok ]).
+    //
+    // POSTCONDITIONS
+    //	o For every 5% of processed vertices a "#" is written to stderr
+    //
+
+    static int 		totalVertices	= 0;
+    static int		fivePerc	= 0;	
+   
+    totalVertices		= apmris->nvertices;
+    fivePerc			= 0.05 * totalVertices;
+
+    if(!avertex) {
+        if(apch_message != NULL)
+    	    fprintf(stderr, "%*s", G_LC, apch_message);
+	fprintf(stderr, " [");
+    }
+    if(avertex%fivePerc == fivePerc-1)	fprintf(stderr, "#");
+    if(avertex == apmris->nvertices-1) {
+	fprintf(stderr, "] ");
+        if(apch_message != NULL)
+    	    fprintf(stderr, "%*s\n", 1, "[ ok ]");
+    }
+    return 1;
+}
+
+int
+FACE_vertexIndexAtMask_find(
+	FACE*	apFACE_I,
+	VECTOR*	apv_verticesCommon
+) {
+    //
+    // PRECONDITIONS
+    //  o Called after <apv_verticesCommon> has been processed by
+    //	  VERTICES_commonInFaces_find().
+    //
+    // POSTCONDITIONS
+    //	o The vertex index in <apFACE_I> corresponding to the '-1'
+    //	  in <apv_verticesCommon> is returned. For two bordering faces
+    //	  that share an edge defined by <apv_verticesCommon>, this function
+    //	  determines the index of the vertex that is *not* on this shared
+    //	  edge.
+    //
+    // HISTORY
+    // 03 July 2007
+    //	o Initial design and coding.
+    //
+
+    int 	face		= 0;
+    int 	vertex		= 0;
+    short	b_inCommon	= 0;
+    int		ret		= -1;
+
+    for(face=0; face<3; face++) {
+	vertex 		= apFACE_I->v[face];
+	b_inCommon	= VECTOR_elementIndex_find(apv_verticesCommon, 
+				(float) vertex);
+	if(!b_inCommon) {
+	    ret	= vertex;
+	    break;
+	}
+    }
+
+    return ret;
+}
+
+short
+VERTICES_commonInFaces_find(
+	FACE*	apFACE_I,
+	FACE*	apFACE_J,
+	VECTOR*	apv_verticesCommon
+) {
+    //
+    // PRECONDITIONS
+    //  o The <apFACE>s must be triangles with 3 vertices each.
+    //	o It is assumed (but not mandatory) that the FACES share 
+    //	  at least one common vertex - or more often a common 
+    //	  edge, i.e. two common vertices.
+    // 	o The <apv_uncommon> VECTOR's memory must be managed by the
+    //	  caller, i.e. created and freed, and should be a 3x1 VECTOR.
+    //
+    // POSTCONDITIONS
+    //	o The number of vertices that are in common between the two
+    //	  faces are returned in the function name. This can be either 
+    //	  (0, 1, 2, 3).
+    //	o The indices of the common vertices are returned in 
+    //	  apv_verticesCommon. This is a three element vector, with each
+    //	  element corresponding to a common vertex. Vertex indices that
+    //	  are not common between the two faces have a -1.
+    //
+
+    int		i		= 0;
+    int		j 		= 0;
+    int		k		= 0;
+    char*	pch_function	= "VERTICES_commonInFaces_find";
+    short	b_hit		= 0;
+    float	f_val		= -1.;
+
+    if(apv_verticesCommon->rows != 3 || apv_verticesCommon->cols !=1)
+	ErrorExit(-1, "%s: Return VECTOR must be 3x1.\n", pch_function);
+    V3_LOAD(apv_verticesCommon, -1, -1, -1);
+
+    for(i=0; i<3; i++) {
+	b_hit 	= 0;
+	f_val	= -1.;
+	for(j=0; j<3; j++) {
+	    if(apFACE_J->v[j] == apFACE_I->v[i]) b_hit = 1; }
+	if(b_hit) {
+	    f_val	= apFACE_I->v[i];
+	    VECTOR_ELT(apv_verticesCommon, ++k) = f_val;
+	} 
+    }
+    return k;
+}
+
+short
+FACES_Hcurvature_determineSign(
+    MRIS*	apmris,
+    FACE*	apFACE_O,
+    FACE*	apFACE_I
+) {
+    //
+    // PRECONDITIONS
+    //	o Typically called from MRIS_Hcurvature_determineSign()
+    //	o apFACE_I and apFACE_J are geometric neighbouring faces
+    //	  about a given vertex.
+    //
+    // POSTCONDITIONS
+    //	o If the faces "diverge", i.e. have face normals that point "away"
+    //	  from each other, then the curvature sign return is -1.
+    //	o If the faces "converge", i.e. have face normals that point "toward"
+    //	  each other, then the curvature sign return is +1
+    //
+    // HISTORY
+    // 	02 July 2007
+    //	o Initial design and coding.
+    //
+
+    static int	calls			= 0;
+    char*	pch_function		= "FACES_Hcurvature_determineSign";
+    int		ret			= 0;
+    int		vertexO			= -1;
+    int		vertexI			= -1;
+    VERTEX*	pVERTEX_O		= NULL;
+    VERTEX*	pVERTEX_I		= NULL;
+    VECTOR*	pv_O			= NULL;	// Coords of 1st common vertex
+    VECTOR*	pv_normalO		= NULL; // Normal for face O
+    VECTOR*	pv_OnO			= NULL; // pv_O + normal
+    VECTOR*	pv_I			= NULL;	// Coords of 2nd common vertex
+    VECTOR*	pv_normalI		= NULL; // Normal for face I
+    VECTOR*	pv_InI			= NULL; // pv_I + normal
+    VECTOR*	pv_connectOI		= NULL; // vector connecting normals
+    VECTOR*	pv_commonVertices	= NULL; // Vector housing vertices that
+						// are common between two
+						// neighbouring faces.
+    int		commonVertices		= 0;	// number of vertices in common
+						// between two faces
+    float	f_distNormal		= 0;
+    float	f_distAntiNormal	= 0;
+    int		sign			= -1;
+
+    pv_commonVertices	= VectorAlloc(3, MATRIX_REAL);
+    pv_I		= VectorAlloc(3, MATRIX_REAL);
+    pv_O		= VectorAlloc(3, MATRIX_REAL);
+    pv_normalI		= VectorAlloc(3, MATRIX_REAL);
+    pv_normalO		= VectorAlloc(3, MATRIX_REAL);
+    pv_InI		= VectorAlloc(3, MATRIX_REAL);
+    pv_OnO		= VectorAlloc(3, MATRIX_REAL);
+    pv_connectOI	= VectorAlloc(3, MATRIX_REAL);
+
+    commonVertices	= VERTICES_commonInFaces_find(apFACE_O, apFACE_I,
+					pv_commonVertices
+					);
+    if(commonVertices!=2) 
+	ErrorExit(-4, 
+	"%s: During call %d, the passed faces do not share an edge",
+	pch_function, calls);
+
+    vertexO		= FACE_vertexIndexAtMask_find(apFACE_O, pv_commonVertices);
+    vertexI		= FACE_vertexIndexAtMask_find(apFACE_I, pv_commonVertices);
+    pVERTEX_O		= &apmris->vertices[vertexO];
+    pVERTEX_I		= &apmris->vertices[vertexI];     
+    V3_LOAD(pv_O, pVERTEX_O->x, pVERTEX_O->y, pVERTEX_O->z);
+    V3_LOAD(pv_I, pVERTEX_I->x, pVERTEX_I->y, pVERTEX_I->z);
+    V3_LOAD(pv_normalO, apFACE_O->nx, apFACE_O->ny, apFACE_O->nz);
+    V3_LOAD(pv_normalI, apFACE_I->nx, apFACE_I->ny, apFACE_I->nz);
+
+    for(sign = 1; sign >= -1; sign-=2) {
+	V3_SCALAR_MUL(pv_normalO, sign, pv_normalO);
+	V3_SCALAR_MUL(pv_normalI, sign, pv_normalI);
+        V3_ADD(pv_O, pv_normalO, pv_OnO);
+        V3_ADD(pv_I, pv_normalI, pv_InI);
+        V3_SUBTRACT(pv_OnO, pv_InI, pv_connectOI);
+
+        if(sign == 1) 	f_distNormal	= V3_LEN(pv_connectOI);
+	else		f_distAntiNormal = V3_LEN(pv_connectOI);
+    }
+	
+    ret = (f_distNormal < f_distAntiNormal) ? +1 : -1;
+
+    VectorFree(&pv_O);
+    VectorFree(&pv_normalO);
+    VectorFree(&pv_OnO);
+    VectorFree(&pv_I);
+    VectorFree(&pv_normalI);
+    VectorFree(&pv_InI);
+    VectorFree(&pv_connectOI);
+    VectorFree(&pv_commonVertices);
+    calls++;
+    return ret;
+}
+
+int
+VERTEX_faceAngles_determine(
+    MRIS*	apmris,
+    int		avertex,
+    VECTOR*	apv_angle
+) {
+    //
+    // PRECONDITIONS
+    //  o <apmris> is a valid surface.
+    //	o <apVERTEX> is a vertex to analyze.
+    //
+    // POSTCONDITIONS
+    //	o The angle between each face in the <apex> normal
+    //	  is determined and returned in <apv_angle>.
+    //	o The caller is responsible for clearing the memory allocated to
+    //	  <apv_angle>!
+    //	o The number of faces processed (i.e. size of the <apv_angle
+    //	  vector) is returned in the function name.
+    //
+    // HISTORY
+    // 	30 July 2007
+    //	o Initial design and coding.
+    //
+
+    char*		pch_function	= "VERTEX_faceAngles_determine";
+    int			nfaces		= -1;
+    float		f_angle		= 0.;
+    float		f_lenApexNormal	= 0.;
+    float		f_lenFaceNormal	= 0.;
+    float		f_lenNormals	= 0.;
+    float		f_acosArg	= 0.;
+    float		f_dot		= 0.;
+
+    int			face		= 0;
+    static int		calls		= 0;
+    static VECTOR*	pv_faceNormal	= NULL;
+    static VECTOR*	pv_apexNormal	= NULL;
+
+    VERTEX*		pVERTEX_apex	= NULL;
+    FACE*		pFACE_side	= NULL;
+
+    if(!calls) {
+	pv_faceNormal	= VectorAlloc(3, MATRIX_REAL);
+	pv_apexNormal	= VectorAlloc(3, MATRIX_REAL);
+    }
+    pVERTEX_apex	= &apmris->vertices[avertex];
+    nfaces		= pVERTEX_apex->num;
+    VECTOR_ELT(pv_apexNormal, 1)	= pVERTEX_apex->nx;
+    VECTOR_ELT(pv_apexNormal, 2)	= pVERTEX_apex->ny;
+    VECTOR_ELT(pv_apexNormal, 3)	= pVERTEX_apex->nz;
+    f_lenApexNormal			= V3_LEN(pv_apexNormal);
+
+    for(face=0; face<nfaces; face++) {
+	pFACE_side		= &apmris->faces[pVERTEX_apex->f[face]];
+    	VECTOR_ELT(pv_faceNormal, 1)	= pFACE_side->nx;
+    	VECTOR_ELT(pv_faceNormal, 2)	= pFACE_side->ny;
+    	VECTOR_ELT(pv_faceNormal, 3)	= pFACE_side->nz;
+	f_lenFaceNormal			= V3_LEN(pv_faceNormal);
+	f_lenNormals			= f_lenApexNormal * f_lenFaceNormal;
+ 	f_dot				= V3_DOT(pv_apexNormal, pv_faceNormal);
+	errno				= 0;
+// 	feclearexcept(FE_ALL_EXCEPT);
+	f_acosArg			= f_dot / f_lenNormals;
+        // Check on the bounds of the acos argument. Without this bounds check, 
+        // it is quite possible to have 'nan' acos results, especially on 64-bit
+        // builds.
+        if(f_acosArg > 1.)  f_acosArg 	= 1.0;
+        if(f_acosArg < -1.) f_acosArg 	= -1.0;
+    	f_angle				= acos(f_acosArg);
+	if(errno) {
+	    f_angle			= 0.;
+	    printf("%s: acos error - angle set to zero for vertex = %d, face = %d.\n", 
+			pch_function, avertex, face);
+	}
+	VECTOR_ELT(apv_angle, face+1)	= f_angle;
+    }
+    calls++;
+    return face;
+}
+
+int
+VERTEX_faceMinMaxAngles_determine(
+    MRIS*	apmris,
+    int		avertex,
+    int*	ap_minIndex,
+    float*	apf_minAngle,
+    int*	ap_maxIndex,
+    float*	apf_maxAngle
+) {
+    //
+    // PRECONDITIONS
+    //  o <apmris> is a valid surface.
+    //	o <apVERTEX> is a vertex to analyze.
+    //
+    // POSTCONDITIONS
+    //	o For the given <avertex>, the minimum and maximum
+    //	  face angles and their indices are returned in the
+    //	  argument pointers.
+    //	o The number of faces is returned in the function name.
+    //
+    // HISTORY
+    // 	31 July 2007
+    //	o Initial design and coding.
+    //
+
+    char*	pch_function		= "VERTEX_faceMinMaxAngles_determine";
+    int		face			= 0;	// Face index counte
+    int		nfaces			= 0;	// Number of faces at <avertex>
+    float	f_faceAngle		= 0.;	// Actual face angle
+    VECTOR* 	pv_faceAngles		= NULL; // vector containing angles
+						// between each face normal
+						// and apex normal
+    VERTEX*	pVERTEX			= NULL;
+
+    // Determine the angles between each face and the vertex normal;
+    //	find the min/max angles and indices
+    pVERTEX		= &apmris->vertices[avertex];
+    nfaces		= pVERTEX->num;
+    pv_faceAngles	= VectorAlloc(nfaces, MATRIX_REAL);
+    nfaces		= VERTEX_faceAngles_determine(apmris, avertex, 
+							pv_faceAngles);
+    if(!nfaces)
+	ErrorExit(-4, "%s: error with determining face angles.", pch_function);
+    f_faceAngle		= VECTOR_ELT(pv_faceAngles, 1);
+    *apf_minAngle	= f_faceAngle;
+    *apf_maxAngle	= f_faceAngle;
+    for(face=1; face<nfaces; face++) {
+	f_faceAngle	= VECTOR_ELT(pv_faceAngles, face+1);	// base 1 index
+	if(f_faceAngle < *apf_minAngle) {
+	    *apf_minAngle	= f_faceAngle;
+	    *ap_minIndex	= face;
+	}
+	if(f_faceAngle > *apf_maxAngle) {
+	    *apf_maxAngle	= f_faceAngle;
+	    *ap_maxIndex	= face;
+	}
+    }
+    VectorFree(&pv_faceAngles);
+    return face;
+}
+
+int
+signum_eval(
+    float	af
+) {
+    //
+    // PRECONDITIONS
+    //  o <af> is an input float.
+    //
+    // POSTCONDITIONS
+    // 	o if <af> < 0, a -1 is returned, else +1 is returned
+    //
+   
+    return af<0 ? -1 : 1;
+}
+
+int
+MRIS_Hcurvature_determineSign(
+    MRIS*	apmris
+) {
+    //
+    // NOTE
+    //	This function is obsolete and should not be used! Mean curvature (H)
+    //	determination is now done directly when processing faces and normal
+    //	angles.
+    //
+    // PRECONDITIONS
+    //  o <apmris> is a valid surface.
+    //	o MRIS_facesAtVertices_reorder()
+    //
+    // POSTCONDITIONS
+    //	o The face geometry at each vertex is examined, and the orientation
+    //	  of each face relative to its neighbor is determined as either
+    //	  converging (-) or diverging (+).
+    //	o If the sum of each convergence/divergence is determined to be
+    //	  negative, the vertex is marked as diverging; otherwise it is
+    //	  marked as converging.
+    //	o Convergence is indicated with pVERTEX->undefval=-1; divergence
+    //	  is marked with pVERTEX->undefval=1
+    //
+    // HISTORY
+    // 	02 July 2007
+    //	o Initial design and coding.
+    //
+
+    int 	vertex			= 0;
+    int		face			= 0;
+    int		nfaces			= 0;
+    VERTEX*	pVERTEX			= NULL;
+    int		ret			= 1;
+    int		signSum			= 0;
+    FACE*	pFACE_I;
+    FACE*	pFACE_J;
+
+    for(vertex=0; vertex<apmris->nvertices; vertex++) {
+	MRIS_vertexProgress_print(apmris, vertex, 
+		"Determining H sign for vertex faces...");
+	pVERTEX			= &apmris->vertices[vertex];
+	nfaces			= pVERTEX->num;
+	signSum			= 0;
+	for(face=0; face<nfaces; face++) {
+	    pFACE_I		= &apmris->faces[pVERTEX->f[face]];
+	    pFACE_J		= &apmris->faces[pVERTEX->f[(face+1)%nfaces]];
+	    signSum 	+= FACES_Hcurvature_determineSign(apmris, pFACE_I, pFACE_J);
+	}
+	pVERTEX->undefval	= (signSum >= 0) ? 1 : -1;
+    }
+    return ret;
+}
+
+int
+MRIS_facesAtVertices_reorder(
+    MRIS*	apmris
+) {
+    //
+    // PRECONDITIONS
+    //  o <apmris> is a valid surface.
+    //
+    // POSTCONDITIONS
+    //	o The 'f' FACE array at each vertex has its indices reordered
+    //	  so that bordering face indices index (i) and index (i+1)
+    //	  correspond to the actual geometric order of the faces about
+    //	  each vertex.
+    //	o Note that the 'f' FACE array is changed at each vertex by 
+    //	  this function.
+    //
+    // HISTORY
+    // 	02 July 2007
+    //	o Initial design and coding.
+    //
+
+    int 	vertex			= 0;
+    int		face			= 0;
+    int		nfaces			= 0;
+    int		orderedIndex		= -1;
+    int		orderedFace		= -1;
+    VECTOR*	pv_geometricOrderIndx	= NULL;
+    VECTOR*	pv_logicalOrderFace	= NULL;
+    VERTEX*	pVERTEX			= NULL;
+    int		ret			= 1;
+    char*	pch_function		= "MRIS_facesAtVertices_reorder";
+
+    DebugEnterFunction(( pch_function ));
+    fprintf(stderr, "\n");
+    for(vertex=0; vertex<apmris->nvertices; vertex++) {
+	MRIS_vertexProgress_print(apmris, vertex,
+				"Determining geometric order for vertex faces...");
+	pVERTEX			= &apmris->vertices[vertex];
+	nfaces			= pVERTEX->num;
+	pv_geometricOrderIndx	= VectorAlloc(nfaces, MATRIX_REAL);
+	pv_logicalOrderFace	= VectorAlloc(nfaces, MATRIX_REAL);
+	FACES_aroundVertex_reorder(apmris, vertex, pv_geometricOrderIndx);
+	for(face=0; face<nfaces; face++) {
+	    VECTOR_ELT(pv_logicalOrderFace, face+1) = pVERTEX->f[face];
+	}
+	for(face=0; face<nfaces; face++) {
+	    orderedIndex	= VECTOR_ELT(pv_geometricOrderIndx, face+1);
+	    orderedFace		= VECTOR_ELT(pv_logicalOrderFace, orderedIndex+1);
+	    pVERTEX->f[face]	= orderedFace;
+	}
+	VectorFree(&pv_geometricOrderIndx);	
+	VectorFree(&pv_logicalOrderFace);	
+    }
+    xDbg_PopStack();
+    return ret;
+}
+
+int
+MRIScomputeGeometricProperties(
+    MRIS*	apmris
+) {
+    //
+    // PRECONDITIONS
+    //  o Needs to be called before computing discrete curvatures.
+    //
+    // POSTCONDITIONS
+    // 	o The face array at each vertex is re-ordered in a geometric sense.
+    //	o Each pair of bordering faces at each vertex are processed to
+    //	  to determine overall convexity/concavity of "node".
+    //
+    // HISTORY
+    // 03 July 2007
+    //	o Initial design and coding.
+    //
+
+    int	ret	= 0;
+    ret  	= MRIS_facesAtVertices_reorder(apmris);
+    return ret;
+}
+
+short
+FACES_aroundVertex_reorder(
+    MRIS*	apmris,
+    int		avertex,
+    VECTOR*	pv_geometricOrder
+) {
+    //
+    // PRECONDITIONS
+    //  o <avertex> is a valid vertex on the surface.
+    //	o <pll_faces> should not be allocated.
+    //
+    // POSTCONDITIONS
+    // 	o The face indices about vertex <avertex>, starting with face 0
+    //	  are returned in geometric order in the <pv_geometricOrder> vector.
+    //	  By geometric order is implied that the "next" index denotes 
+    //	  the next face that directly borders the current face.
+    //	o The number of connected faces is returned in the function name, or
+    //	  0 is there is some error.
+    //
+    // HISTORY
+    // 	25 June 2007
+    //	o Initial design and coding.
+    //
+
+    char*	pch_function	= "FACES_aroundVertex_reorder";
+    VERTEX*	pVERTEX;
+    int		nfaces		= 0;
+    int*	pFaceIndex	= NULL;
+    int		packedCount	= 1;
+    int		i		= 0;
+    int		I		= 0;
+    int		j		= 0;
+    int		k 		= 0;
+    FACE*	pFACE_I;
+    FACE*	pFACE_J;
+    VECTOR*	pv_commonVertices	= NULL; // Vector housing vertices that
+						// are common between two
+						// neighbouring faces.
+    int		commonVertices		= 0;	// number of vertices in common
+						// between two faces
+    short	b_borderFound		= 0;		
+
+    pv_commonVertices	= VectorAlloc(3, MATRIX_REAL);
+    pVERTEX		= &apmris->vertices[avertex];
+    nfaces		= pVERTEX->num;
+    pFaceIndex		= pVERTEX->f;
+
+    for(i=1; i<=nfaces; i++) {
+	VECTOR_ELT(pv_geometricOrder, i)= -1;
+	pFACE_I	= &apmris->faces[pFaceIndex[i-1]];
+    } 
+    VECTOR_ELT(pv_geometricOrder, 1)	= 0;
+    for(i=0; i<nfaces; i++) {
+	if(packedCount == nfaces) break;
+	I	= VECTOR_ELT(pv_geometricOrder, i+1);
+	pFACE_I	= &apmris->faces[pFaceIndex[I]];
+	for(j=0; j<nfaces; j++) {
+	    k 			= (i+j) % nfaces;
+	    pFACE_J		= &apmris->faces[pFaceIndex[k]];
+	    commonVertices	= VERTICES_commonInFaces_find(pFACE_I, pFACE_J,
+					pv_commonVertices
+					);
+	    if(commonVertices==2) {
+		if(!VECTOR_elementIndex_find(pv_geometricOrder, k)) {
+		    VECTOR_ELT(pv_geometricOrder, i+2) = k;
+		    b_borderFound		= 1;
+		    packedCount++;
+		    break;
+		}
+	    }
+	}
+    }
+    if(packedCount != nfaces)
+	ErrorExit(-4, "%s: packed / faces mismatch; vertex = %d, faces = %d, packed = %d",
+ 			pch_function, avertex, nfaces, packedCount);
+    VectorFree(&pv_commonVertices);
+    return 1;	
+}
+
+float
+FACES_angleNormal_find(
+    MRIS*	apmris,
+    FACE*	apFACE_I,
+    FACE*	apFACE_J
+) {
+    //
+    // PRECONDITIONS
+    //  o The <apFACE>s should be triangles with 3 vertices each.
+    //	o It is assumed (but not mandatory) that the FACES share 
+    //	  at least one common vertex - or more often a common 
+    //	  edge, i.e. two common vertices.
+    //
+    // POSTCONDITIONS
+    // 	o The angle between the normals on each FACE is returned.
+    //
+
+    static int 	    calls		= 0;	// Used for vector allocation
+    static VECTOR*  pv_faceNormalI	= NULL;	// Normal vector for face I
+    static VECTOR*  pv_faceNormalJ	= NULL; // Normal vector for face J
+    static VECTOR*  pv_crossIJ		= NULL; // Cross product of input vectors
+    float	    f_faceNormalIlen	= 0.;	// Length of face normal I
+    float	    f_faceNormalJlen	= 0.;	// Length of face normal J
+    float	    f_faceNormalIJlen	= 0.;	// Face normal length product
+    float	    f_angleNormalIJ	= 0.;	// Angle between face normals
+    float	    f_acosArg		= 0.;	// Dot product arguments
+    float	    f_dot		= 0.;	// Dot product
+    short	    sign		= 1; 	// Angle "sign"
+    char*	    pch_function	= "FACES_angleNormal_find";
+
+    DebugEnterFunction(( "%s", pch_function));
+    if(!calls) {
+        pv_faceNormalI	= VectorAlloc(3, MATRIX_REAL);
+        pv_faceNormalJ	= VectorAlloc(3, MATRIX_REAL);
+        pv_crossIJ	= VectorAlloc(3, MATRIX_REAL);
+    }
+    V3_LOAD(pv_faceNormalI, apFACE_I->nx, apFACE_I->ny, apFACE_I->nz);
+    V3_LOAD(pv_faceNormalJ, apFACE_J->nx, apFACE_J->ny, apFACE_J->nz);
+    f_faceNormalIlen	= V3_LEN(pv_faceNormalI);
+    f_faceNormalJlen	= V3_LEN(pv_faceNormalJ);
+    if(f_faceNormalIlen > 1.0001 || f_faceNormalJlen > 1.0001 )
+	ErrorExit(-4, "%s: face normal not unit length -- Ni: %f, Nj: %f\n", 
+			pch_function, f_faceNormalIlen, f_faceNormalJlen);
+    f_faceNormalIJlen	= f_faceNormalIlen * f_faceNormalJlen;
+    f_dot		= V3_DOT(pv_faceNormalI, pv_faceNormalJ);
+    sign		= FACES_Hcurvature_determineSign(apmris, apFACE_I, apFACE_J);
+    f_acosArg		= f_dot / f_faceNormalIJlen;
+    // Check on the bounds of the acos argument. Without this bounds check, 
+    //	it is quite possible to have 'nan' acos results, especially on 64-bit
+    //	builds.
+    if(f_acosArg > 1.)	f_acosArg = 1.0;
+    if(f_acosArg < -1.) f_acosArg = -1.0;
+    f_angleNormalIJ	= acosf(f_acosArg) * sign;
+    calls++;
+    xDbg_PopStack();
+    return f_angleNormalIJ;
+}
+
+float
+FACES_commonEdgeLength_find(
+    MRIS*	apmris,
+    FACE*	apFACE_I,
+    FACE*	apFACE_J
+) {
+    //
+    // PRECONDITIONS
+    //  o The <apFACE>s should be triangles with 3 vertices each.
+    //	o The FACES share a common edge.
+    //	o The FACES are not the same.
+    //
+    // POSTCONDITIONS
+    //  o Length of common edge is returned.
+    //  o If common vertices != 2, then function ErrorExits.
+    //
+
+    static int	      calls		= 0;
+    char*	      pch_function	= "FACES_commonEdgeLength_find";
+    VERTEX*	      pVERTEX_O		= NULL;	// Common vertex O
+    VERTEX*	      pVERTEX_I		= NULL;	// Common vertex I
+    static VECTOR*    pVECTOR_O		= NULL; // Common vertex O cart. coords 
+    static VECTOR*    pVECTOR_I		= NULL; // Common vertex I cart. coords 
+    static VECTOR*    pVECTOR_edgeVoVi	= NULL; // Edge Vo->Vi 
+    static VECTOR*    pv_commonVertices	= NULL; // Vector housing vertices that
+						// are common between two
+						// neighbouring faces.
+    int		      commonVertices	= 0;	// number of vertices in common
+						// between two faces
+    float	      f_edgeLength	= 0.;	// Length of edge v->vI
+
+    DebugEnterFunction(( "%s", pch_function));
+    if(!calls) {
+        pv_commonVertices	= VectorAlloc(3, MATRIX_REAL);
+        pVECTOR_O		= VectorAlloc(3, MATRIX_REAL);
+        pVECTOR_I		= VectorAlloc(3, MATRIX_REAL);
+        pVECTOR_edgeVoVi	= VectorAlloc(3, MATRIX_REAL);
+    }
+    commonVertices	= VERTICES_commonInFaces_find(
+					apFACE_I,
+					apFACE_J,
+					pv_commonVertices
+				  );
+    if(commonVertices != 2)
+	ErrorExit(-4, 
+			"%s: No common edge found! <commonVertices> = %d\n",
+			pch_function, commonVertices);	
+
+    pVERTEX_O		= &apmris->vertices[(int)VECTOR_ELT(pv_commonVertices, 1)];
+    pVERTEX_I		= &apmris->vertices[(int)VECTOR_ELT(pv_commonVertices, 2)];
+
+    V3_LOAD(pVECTOR_O, pVERTEX_O->x, pVERTEX_O->y, pVERTEX_O->z);
+    V3_LOAD(pVECTOR_I, pVERTEX_I->x, pVERTEX_I->y, pVERTEX_I->z);
+    V3_SUBTRACT(pVECTOR_I, pVECTOR_O, pVECTOR_edgeVoVi);
+    f_edgeLength 	= V3_LEN(pVECTOR_edgeVoVi);
+    calls++;
+    xDbg_PopStack();
+    return(f_edgeLength);
+}
+
+short
+MRIS_discreteKH_compute(
+	MRIS*			apmris
+) {
+    //
+    // PRECONDITIONS
+    //  o A valid SURFACE with computed triangle properties.
+    //
+    // POSTCONDITIONS
+    //	o The discrete K and H curvatures at each vertex are
+    //	  computed.
+    //
+
+    char*	pch_function		= "MRIS_discreteKH_compute";
+
+    VECTOR*	pv_geometricOrder	= NULL; // Geometrically ordered faces
+    VERTEX*	pVertex			= NULL;	// Each vertex in surface
+    int       	vertex			= 0;	// Vertex index number
+    FACE*	pFACE_I			= NULL;	// Face I with vertex apex
+    FACE*	pFACE_J			= NULL; // Face I+1 with vertex apex
+    int		face			= 0;	// face counter
+    int 	faceI			= 0;	// face I index
+    int		faceJ			= 0;	// face J index
+    int		nfaces			= 0;	// total number of faces
+    int*	pFaceIndex		= NULL;	// face index array at vertex
+    int		angleIndex		= -1;	// angle index
+    float	f_faceAreaSum		= 0.;	// area about vertex
+    float	f_angleDeficitSum	= 0.;	// angle deficit about vertex
+    float	f_angleNormalIJ		= 0.;	// angle between normals
+    float	f_angleNormalIJSum	= 0.;	// sum angle between normals
+    float	f_edgeLength		= 0.;	// Length of edge v->vI
+    double	f_K			= 0.;	// Gaussian curvature at vertex
+    double	f_H			= 0.;	// Mean curvature at vertex
+    float	f_Kmin			= 0.;
+    float	f_Kmax			= 0.;
+    float	f_Hmin			= 0.;
+    float	f_Hmax			= 0.;
+    float	f_Ktotal		= 0.;
+
+    DebugEnterFunction(( "%s", pch_function));
+    for (vertex = 0 ; vertex < apmris->nvertices ; vertex++) {
+	MRIS_vertexProgress_print(apmris, vertex, 
+				"Determining KH curvatures...");
+	f_faceAreaSum		= 0.;
+	f_angleDeficitSum	= 0.;
+	f_angleNormalIJSum	= 0.;
+	pVertex			= &apmris->vertices[vertex];
+	nfaces			= pVertex->num;
+	pFaceIndex		= pVertex->f;
+	pv_geometricOrder	= VectorAlloc(nfaces, MATRIX_REAL);
+	for(face=0; face<nfaces; face++) {
+	    faceI		= face;
+	    faceJ		= (face+1)%nfaces;
+
+	    pFACE_I		=  &apmris->faces[pFaceIndex[faceI]];
+	    pFACE_J		=  &apmris->faces[pFaceIndex[faceJ]];
+
+	    f_angleNormalIJ	= FACES_angleNormal_find(apmris, pFACE_I, pFACE_J); 	
+	    f_edgeLength	= FACES_commonEdgeLength_find(
+					apmris,
+					pFACE_I,
+				  	pFACE_J
+					);
+	    f_faceAreaSum 	+= pFACE_I->area;
+	    angleIndex		=  FACE_vertexIndex_find(pFACE_I, vertex);
+	    if(angleIndex == -1)
+		ErrorExit(-4, 
+		"%s:\n\tangleIndex lookup failure for vertex %d, face %d", 
+		pch_function, vertex, face);
+	    f_angleDeficitSum	+= pFACE_I->angle[angleIndex];
+	    f_angleNormalIJSum	+= f_angleNormalIJ*f_edgeLength;
+	}
+	VectorFree(&pv_geometricOrder);
+	pv_geometricOrder	= NULL;
+	f_K = 3/f_faceAreaSum   * (2*M_PI - f_angleDeficitSum);
+	f_H = 0.75/f_faceAreaSum * f_angleNormalIJSum;
+	apmris->vertices[vertex].K 	= f_K;
+	apmris->vertices[vertex].H	= f_H;	
+	if(!vertex) {
+	    f_Kmin = f_Kmax = f_K;
+	    f_Hmin = f_Hmax = f_H;
+	}
+	if(f_K > f_Kmax) f_Kmax = f_K;
+	if(f_K < f_Kmin) f_Kmin = f_K;
+	if(f_H > f_Hmax) f_Hmax = f_H;
+	if(f_H < f_Hmin) f_Hmin = f_H;
+	f_Ktotal += f_K * pVertex->area;
+    }
+    apmris->Kmax	= f_Kmax;	apmris->Kmin	= f_Kmin;
+    apmris->Hmax	= f_Hmax;	apmris->Hmin	= f_Hmin;
+    apmris->Ktotal	= f_Ktotal;
+    xDbg_PopStack();
+    return(NO_ERROR);
+}
+
+short
+MRIS_discretek1k2_compute(
+	MRIS*			apmris
+) {
+    //
+    // PRECONDITIONS
+    //  o A valid SURFACE with computed triangle properties.
+    //	o A valid K and H at each vertex.
+    //
+    // POSTCONDITIONS
+    //	o The discrete K and H curvatures at each vertex are
+    //	  computed.
+    //
+
+    char*	pch_function	= "MRIS_discretek1k2_compute";
+    VERTEX*	pVERTEX		= NULL;
+    float	f_k1		= 0.;
+    float	f_k2		= 0.;
+    float	f_A		= 0.;
+    float	f_B		= 0.;
+    float	f_delta		= 0.;
+    float	f_K		= 0.;
+    float	f_H		= 0.;
+    int		vertex		= 0;
+    int		deltaViolations = 0;
+    
+    for (vertex = 0 ; vertex < apmris->nvertices ; vertex++) {
+	MRIS_vertexProgress_print(apmris, vertex, 
+				"Determining k1k2 curvatures...");
+	pVERTEX			= &apmris->vertices[vertex];
+	f_K	= pVERTEX->K;
+	f_H	= pVERTEX->H;
+	f_delta	= f_H*f_H - f_K;
+	if(f_delta<0) {deltaViolations++; f_delta = 0.;}
+	if(f_delta < 0)
+	    ErrorExit(-4, "%s: f_delta = %f, vertex = %d, f_K = %f, f_H = %f\n",
+			pch_function, f_delta, vertex, f_K, f_H
+			);
+	f_A	= f_H + sqrt(f_delta);
+	f_B	= f_H - sqrt(f_delta);
+	f_k1	= fabs(f_A) >= fabs(f_B) ? f_A : f_B;
+	f_k2	= fabs(f_A) <= fabs(f_B) ? f_A : f_B;
+	pVERTEX->k1	= f_k1;
+	pVERTEX->k2	= f_k2;
+    }
+    if(deltaViolations)
+	cprintd("deltaViolations", deltaViolations);
+    return(NO_ERROR);
+}
+
+short
+MRIScomputeSecondFundamentalFormDiscrete(
+	MRIS*			apmris
+) {
+    int 	retKH, retk1k2;
+	
+    retKH	= 1;
+    retk1k2	= 1;
+    MRIScomputeTriangleProperties(apmris);
+    MRIScomputeGeometricProperties(apmris);
+    retKH	= MRIS_discreteKH_compute(apmris);
+    retk1k2	= MRIS_discretek1k2_compute(apmris);
+    return(retKH | retk1k2);
+}
+
+int
+MRISscaleCurvature(
+	MRI_SURFACE* 	apmris,
+  	float   	af_scale) 
+{
+    //
+    // POSTCONDITIONS
+    // o Each curvature value in apmris is scaled by:
+    //
+    //		(curv-f_mean)*<af_scale> + f_mean
+    //
+    //   where f_mean is the mean of all the surface curvatures
+    //
+
+    VERTEX* 	pvertex;
+    int  	vno;
+    int  	vtotal;
+    double 	f_mean;
+
+    for (f_mean = 0.0, vtotal = vno = 0 ; vno < apmris->nvertices ; vno++) {
+      pvertex = &apmris->vertices[vno] ;
+      if (pvertex->ripflag)
+        continue ;
+      vtotal++ ;
+      f_mean += pvertex->curv ;
+    }
+    f_mean /= (double)vtotal ;
+
+    for (vno = 0 ; vno < apmris->nvertices ; vno++) {
+      pvertex = &apmris->vertices[vno] ;
+      if (pvertex->ripflag)
+        continue;
+      pvertex->curv = (pvertex->curv - f_mean) * af_scale + f_mean ;
+    }
+    return(NO_ERROR);
+}
+
+// Discrete Principle Curvature and Related ^^^^^^^^^^^^^^^^^^
+
