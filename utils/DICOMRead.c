@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/29 22:43:40 $
- *    $Revision: 1.114 $
+ *    $Date: 2007/09/07 05:30:18 $
+ *    $Revision: 1.115 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -298,7 +298,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
     if(TryDTI) DoDTI = 1;
     else DoDTI = 0;
     if(! DoDTI) printf("  but not getting bvec info because UNPACK_MGH_DTI is 0\n");
-  }
+  } else DoDTI = 0;
   if(DoDTI){
     printf("MGH DTI SeqPack Info\n");
     // Get b Values from header, based on sequence name
