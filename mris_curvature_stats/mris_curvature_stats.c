@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2007/09/06 19:40:17 $
- *    $Revision: 1.34 $
+ *    $Date: 2007/09/07 17:06:42 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.34 2007/09/06 19:40:17 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.35 2007/09/07 17:06:42 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -400,7 +400,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-	"$Id: mris_curvature_stats.c,v 1.34 2007/09/06 19:40:17 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.35 2007/09/07 17:06:42 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1841,7 +1841,6 @@ get_option(int argc, char *argv[]) {
     pch_text = argv[2];
     strcpy(surf_name, pch_text);
     nargs = 1 ;
-    cprints("Setting surface to '%s'", surf_name);
     break;
   case 'L':
     label_name = argv[2] ;
