@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2007/09/07 17:06:42 $
- *    $Revision: 1.35 $
+ *    $Date: 2007/09/10 22:25:26 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.35 2007/09/07 17:06:42 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.36 2007/09/10 22:25:26 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -285,9 +285,6 @@ static	short	Gb_writeCurvatureFiles		= 0;
 static 	char 	Gpch_log[STRBUF];
 static 	char 	Gpch_logS[]  			= "log";
 static 	FILE* 	GpFILE_log  			= NULL;
-static 	char 	Gpch_allLog[STRBUF];
-static 	char 	Gpch_allLogS[]  		= "log";
-static 	FILE* 	GpFILE_allLog  = NULL;
 static 	char 	Gpch_rawHist[STRBUF];
 static 	char 	Gpch_rawHistS[]  		= "raw.hist";
 static 	FILE* 	GpFILE_rawHist  		= NULL;
@@ -400,7 +397,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-	"$Id: mris_curvature_stats.c,v 1.35 2007/09/07 17:06:42 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.36 2007/09/10 22:25:26 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -573,18 +570,12 @@ main(int argc, char *argv[]) {
     Gf_sigma 	= sqrt(Gf_total_sq/Gf_n- Gf_mean*Gf_mean) ;
     fprintf(stdout, "\nMean across %d curvatures: %8.4e +- %8.4e\n",
             (int) Gf_n, Gf_mean, Gf_sigma) ;
+    if(GpFILE_log) 
+    fprintf(GpFILE_log, "\nMean across %d curvatures: %8.4e +- %8.4e\n",
+            (int) Gf_n, Gf_mean, Gf_sigma) ;
   }
 
   MRISfree(&mris) ;
-  if (output_fname) {
-    // This code dumps only the *final* mean/sigma values to the summary
-    // log file. For cases where only 1 curvature file has been processed,
-    // the mean/sigma of this file is written. For multiple files, the
-    // mean/sigma over *all* of the files is written.
-    if (label_name)
-      fprintf(GpFILE_log, "%s: ", label_name) ;
-    fprintf(GpFILE_log, "%8.4e +- %8.4e\n", Gf_mean, Gf_sigma) ;
-  }
   outputFiles_close();
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -854,9 +845,7 @@ MRIS_minMaxCurve_report(
 					G_rightCols, 	" Max:");
     sprintf(apch_report, "%s%12.5f at vertex %-8d\n", 	apch_report, 
 		s_minMax.f_max, s_minMax.vertexMax);
-    if (GpFILE_allLog)
-      fprintf(GpFILE_allLog, "min = %f\nmax = %f\n",
-              s_minMax.f_min, s_minMax.f_max);
+
     xDbg_PopStack();
     return 1;
 }
@@ -1073,9 +1062,10 @@ MRIS_curvatureStats_analyze(
           Gppch[aesot], hemi, surf_name);
     fprintf(stdout, "%-50s", pch_text);
     fprintf(stdout, " %12.5f +- %2.4f mm\n", Gf_mean, Gf_sigma);
-    if (GpFILE_allLog)
-        fprintf(GpFILE_allLog, "mean/sigma = %20.4f +- %2.4f\n", 
-				Gf_mean, Gf_sigma);
+    if(GpFILE_log) {
+        fprintf(GpFILE_log, "%-50s", pch_text);
+        fprintf(GpFILE_log, " %12.5f +- %2.4f mm", Gf_mean, Gf_sigma);
+    }
 
     // Now the min/max report
     if(Gb_minMaxShow) fprintf(stdout, "%s", pch_minMaxReport);
@@ -1962,7 +1952,6 @@ outputFileNames_create(void) {
   // o All necessary (depending on user flags) file names are created.
   //
   OFSP_create(Gpch_log,  	Gpch_logS, 		e_None);
-  OFSP_create(Gpch_allLog, 	Gpch_allLogS, 		e_Full);
   OFSP_create(Gpch_rawHist, 	Gpch_rawHistS, 		e_Full);
   OFSP_create(Gpch_normHist, 	Gpch_normHistS, 	e_Full);
   OFSP_create(Gpch_normCurv, 	Gpch_normCurvS, 	e_Partial);
@@ -1994,96 +1983,74 @@ outputFiles_open(void) {
   //
 
   if (Gb_output2File) {
-    fprintf(stdout,"\n\tFiles processed for this curvature:\n");
-    printf("%*s\n", G_leftCols*2, Gpch_log);
     if ((GpFILE_log=fopen(Gpch_log, "a"))==NULL)
-      ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for apending.\n",
+      ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for appending.\n",
                 Progname, Gpch_log);
-    printf("%*s\n", G_leftCols*2, Gpch_allLog);
-    if ((GpFILE_allLog=fopen(Gpch_allLog, "w"))==NULL)
-      ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for writing.\n",
-                Progname, Gpch_allLog);
-    if (Gb_histogram) {
-      printf("%*s\n", G_leftCols*2, Gpch_rawHist);
+    if (Gb_histogram && curv_fname) {
       if ((GpFILE_rawHist=fopen(Gpch_rawHist, "w"))==NULL)
         ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for writing.\n",
                   Progname, Gpch_rawHist);
     }
     if (normalize_flag) {
       if (Gb_histogram) {
-        printf("%*s\n", G_leftCols*2, Gpch_normHist);
         if ((GpFILE_normHist=fopen(Gpch_normHist, "w"))==NULL)
           ErrorExit(ERROR_NOFILE,
                     "%s: Could not open file '%s' for writing.\n",
                     Progname, Gpch_normHist);
       }
-      printf("%*s\n", G_leftCols*2, Gpch_normCurv);
     }
     if (Gb_gaussianAndMean) {
       if (Gb_histogram) {
         if ((GpFILE_KHist=fopen(Gpch_KHist, "w"))==NULL) {
-          printf("%*s\n", G_leftCols*2, Gpch_KHist);
           ErrorExit(ERROR_NOFILE,
                     "%s: Could not open file '%s' for writing.\n",
                     Progname, Gpch_KHist);
         }
         if ((GpFILE_HHist=fopen(Gpch_HHist, "w"))==NULL) {
-          printf("%*s\n", G_leftCols*2,Gpch_HHist);
           ErrorExit(ERROR_NOFILE,
                     "%s: Could not open file '%s' for writing.\n",
                     Progname, Gpch_HHist);
         }
         if ((GpFILE_K1Hist=fopen(Gpch_K1Hist, "w"))==NULL) {
-          printf("%*s\n", G_leftCols*2, Gpch_K1Hist);
           ErrorExit(ERROR_NOFILE,
                     "%s: Could not open file '%s' for writing.\n",
                     Progname, Gpch_K1Hist);
         }
         if ((GpFILE_K2Hist=fopen(Gpch_K2Hist, "w"))==NULL) {
-          printf("%*s\n", G_leftCols*2, Gpch_K2Hist);
           ErrorExit(ERROR_NOFILE,
                     "%s: Could not open file '%s' for writing.\n",
                     Progname, Gpch_K2Hist);
         }
         if ((GpFILE_SHist=fopen(Gpch_SHist, "w"))==NULL) {
-          printf("%*s\n", G_leftCols*2, Gpch_SHist);
           ErrorExit(ERROR_NOFILE,
                     "%s: Could not open file '%s' for writing.\n",
                     Progname, Gpch_SHist);
         }
         if ((GpFILE_CHist=fopen(Gpch_CHist, "w"))==NULL) {
-          printf("%*s\n", G_leftCols*2, Gpch_CHist);
           ErrorExit(ERROR_NOFILE,
                     "%s: Could not open file '%s' for writing.\n",
                     Progname, Gpch_CHist);
         }
         if ((GpFILE_BEHist=fopen(Gpch_BEHist, "w"))==NULL) {
-          printf("%*s\n", G_leftCols*2, Gpch_BEHist);
           ErrorExit(ERROR_NOFILE,
                     "%s: Could not open file '%s' for writing.\n",
                     Progname, Gpch_BEHist);
         }
-        if ((GpFILE_SIHist=fopen(Gpch_SIHist, "w"))==NULL) {
-          printf("%*s\n", G_leftCols*2, Gpch_SIHist);
+        if ((GpFILE_SIHist=fopen(Gpch_SIHist, "w"))==NULL && Gb_shapeIndex) {
           ErrorExit(ERROR_NOFILE,
                     "%s: Could not open file '%s' for writing.\n",
                     Progname, Gpch_SIHist);
         }
       }
-      printf("%*s\n", G_leftCols*2, Gpch_KCurv);
-      printf("%*s\n", G_leftCols*2, Gpch_HCurv);
     }
     if (Gb_scale || (Gb_scaleMin && Gb_scaleMax)) {
       if (Gb_histogram) {
-        printf("%*s\n", G_leftCols*2, Gpch_scaledHist);
         if ((GpFILE_scaledHist=fopen(Gpch_scaledHist, "w"))==NULL)
           ErrorExit(ERROR_NOFILE,
                     "%s: Could not open file '%s' for writing.\n",
                     Progname, Gpch_scaledHist);
       }
-      printf("%*s\n", G_leftCols*2, Gpch_scaledCurv);
     }
-    printf("\n");
   }
 }
 
@@ -2095,7 +2062,6 @@ outputFiles_close(void) {
   //
 
   if (GpFILE_log) 	 fclose(GpFILE_log);	   GpFILE_log  		= NULL;
-  if (GpFILE_allLog) 	 fclose(GpFILE_allLog);    GpFILE_allLog  	= NULL;
   if (GpFILE_rawHist) 	 fclose(GpFILE_rawHist);   GpFILE_rawHist 	= NULL;
   if (GpFILE_normHist) 	 fclose(GpFILE_normHist);  GpFILE_normHist 	= NULL;
   if (GpFILE_KHist) 	 fclose(GpFILE_KHist);	   GpFILE_KHist 	= NULL;
