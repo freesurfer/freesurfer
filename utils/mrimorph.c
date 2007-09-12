@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/23 15:26:41 $
- *    $Revision: 1.67 $
+ *    $Date: 2007/09/12 13:46:17 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,8 +39,8 @@
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/04/23 15:26:41 $
-// Revision       : $Revision: 1.67 $
+// Revision Date  : $Date: 2007/09/12 13:46:17 $
+// Revision       : $Revision: 1.68 $
 */
 
 /*-----------------------------------------------------
@@ -126,6 +126,7 @@ static int    m3dAlignPyramidLevel(MRI *mri_in, MRI *mri_ref,
 static int    mriOrthonormalizeTransform(MATRIX *m_L) ;
 static double mriIntensityRMS(MRI *mri_in, MRI *mri_ref, LTA *lta,
                               double l_intensity, NECK_PARMS *np) ;
+static double mriIntensitySSE(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) ;
 static int    mriWriteImageView(MRI *mri, char *base_name, int target_size,
                                 int view, int slice) ;
 static int    writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n) ;
@@ -1207,7 +1208,6 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
 #endif
   double rms ;
   char   base_name[STRLEN] ;
-  MRI    *mri_tmp, *mri_in_erased, *mri_ref_erased ;
   double tmul ;
 
   parms->rigid = 0 ;
@@ -1233,6 +1233,8 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
     mri_ref->mean = 1.0f ;
   if (parms->lta->num_xforms == 1)  /* one (global) transformation */
   {
+#if 0
+    MRI    *mri_tmp, *mri_in_erased, *mri_ref_erased ;
     mri_in_erased = MRIcopy(mri_in, NULL) ;
     MRIeraseNeck(mri_in_erased, &parms->in_np) ;
     if (Gdiag & DIAG_SHOW /*&& DIAG_VERBOSE_ON*/)
@@ -1261,6 +1263,7 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
     MRIfree(&mri_tmp) ;
     MRIfree(&mri_in_erased) ;
     MRIfree(&mri_ref_erased) ;
+#endif
 
     if (Gdiag & DIAG_SHOW /*&& DIAG_VERBOSE_ON*/)
     {
@@ -1313,9 +1316,8 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
   {
     if (mri_in_pyramid[nlevels-1]->width <= MIN_PYR_WIDTH)
       break ;
-    mri_in_pyramid[nlevels] = MRIreduceByte(mri_in_pyramid[nlevels-1], NULL) ;
-    mri_ref_pyramid[nlevels] =
-      MRIreduceMeanAndStdByte(mri_ref_pyramid[nlevels-1],NULL);
+    mri_in_pyramid[nlevels] = MRIreduce(mri_in_pyramid[nlevels-1], NULL) ;
+    mri_ref_pyramid[nlevels] = MRIreduceMeanAndStd(mri_ref_pyramid[nlevels-1],NULL);
   }
 
   for (i = nlevels-1 ; i >= 1 ; i--)
@@ -1474,6 +1476,11 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   static int ncalls = 0 ;
   char       fname[STRLEN], base_name[STRLEN] ;
 
+  if (parms->mri_in == NULL)
+    parms->mri_in = mri_in ;
+  if (parms->mri_ref == NULL)
+    parms->mri_ref = mri_ref ;
+
   /*  MRIeraseBorders(mri_in, 1) ; MRIeraseBorders(mri_ref, 1) ;*/
   if (mri_ref->nframes > 1)
     mri_ref->mean = MRImeanFrame(mri_ref, 1) ;
@@ -1587,6 +1594,7 @@ mriIntensityRMS(MRI *mri_in, MRI *mri_ref, LTA *lta, double l_intensity,
   VECTOR *v_X, *v_Y ;  /* original and transformed coordinate systems */
   Real   val, y1, y2, y3, thick ;
   double sse = 0.0f, delta = 0.0, std, mean_std, dot, nx, ny, nz, ndx,ndy,ndz;
+  float  in_val ;
 
   mean_std = mri_ref->mean ;
   width = mri_in->width ;
@@ -1626,6 +1634,7 @@ mriIntensityRMS(MRI *mri_in, MRI *mri_ref, LTA *lta, double l_intensity,
         y2 = (Real)v_Y->rptr[2][1] ;
         y3 = (Real)v_Y->rptr[3][1] ;
 
+        in_val = MRIgetVoxVal(mri_in, x1, x2, x3, 0) ;
         if (y1 > -1 && y1 < width &&
             y2 > -1 && y2 < height &&
             y3 > -1 && y3 < depth)
@@ -1638,10 +1647,10 @@ mriIntensityRMS(MRI *mri_in, MRI *mri_ref, LTA *lta, double l_intensity,
           std /= mean_std ;
           if (DZERO(std))
             std = 1.0 ;
-          delta = (val - (double)MRIvox(mri_in,x1,x2,x3)) / std ;
+          delta = (val - (double)in_val) / std ;
         }
         else   /* out of bounds, assume in val is 0 */
-          delta = (0.0 - (double)MRIvox(mri_in,x1,x2,x3)) / mean_std ;
+          delta = (0.0 - in_val) / mean_std ;
         if (fabs(delta) > 20)
           DiagBreak() ;
         delta *= dot ;
@@ -1730,7 +1739,7 @@ ltaGradientStep(MRI *mri_in, MRI *mri_ref, LTA *lta, double dt,
   VECTOR *v_X, *v_Y, *v_Yk ; /* original and transformed coordinate systems */
   MATRIX *m_tmp, *m_L, *m_dT_X_T ;
   VECTOR *v_dT, *v_X_T ;      /* gradient of mri_ref */
-  Real   val, x1, x2, x3, y1, y2, y3, thick /*, len*/ ;
+  Real   val, x1, x2, x3, y1, y2, y3, thick /*, len*/, in_val ;
   double delta = 0.0, n, std, sigma, dx, dy, dz, wtotal, dsq, w_k_p, mean_std,
                  dot, nx, ny, nz, ndx,ndy,ndz;
   int    only_translation, k ;
@@ -1808,7 +1817,8 @@ ltaGradientStep(MRI *mri_in, MRI *mri_ref, LTA *lta, double dt,
         std /= mean_std ;
         if (DZERO(std))
           std = 1.0 ;
-        delta = (val-(double)MRIvox(mri_in,nint(x1),nint(x2),nint(x3)))/std;
+        in_val = MRIgetVoxVal(mri_in,nint(x1),nint(x2),nint(x3), 0);
+        delta = (val-(double)in_val)/std;
         delta *= dot ;
 
         if (only_translation)
@@ -2165,7 +2175,7 @@ m3dCorrelationSSE(MRI *mri_in, MRI *mri_ref,MORPH_3D *m3d, NECK_PARMS *np)
           DiagBreak() ;
         if (DZERO(ref_std))
           ref_std = 1.0 ;   /* don't let morph be driven by background */
-        in_val = (double)MRIvox(mri_in,xsi,ysi,zsi) ;
+        in_val = (double)MRIgetVoxVal(mri_in,xsi,ysi,zsi,0) ;
         pdx = (x*thick-nx) ;
         pdy = (y*thick-ny) ;
         pdz = (z*thick-nz) ;
@@ -3053,7 +3063,7 @@ MRIapply3DMorph(MRI *mri_in, MORPH_3D *m3d, MRI *mri_morphed)
 #if 0
         MRIsampleVolume(mri_in, xd, yd, zd, &orig_val);
 #else
-        orig_val = MRIvox(mri_in, x, y, z) ;
+        orig_val = MRIgetVoxVal(mri_in, x, y, z, 0) ;
 #endif
         if (orig_val > 40)
           DiagBreak() ;
@@ -7525,12 +7535,12 @@ static int
 mriQuasiNewtonLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref,
                                       MP *parms)
 {
-  float p[5*5], fold, fnew ;
+  float p[5*4], fold, fnew ;
   int   row, col, i, iter, steps ;
   MATRIX *m_L ;
 
   /*  user_call_func = integration_step ;*/
-  for (i = row = 1 ; row <= 4 ; row++)
+  for (i = row = 1 ; row <= 3 ; row++)
   {
     for (col = 1 ; col <= 4 ; col++)
     {
@@ -7605,6 +7615,8 @@ void computeRigidAlignmentGradient(float *p, float *g)
   parms = g_parms ;
   mri_in = g_mri_in ;
   mean_std = mri_ref->mean ;
+  if (FZERO(mean_std))
+    mean_std = 1.0 ;
 
   /* copy current matrix out of p into matrix format */
   m_L = MatrixAlloc(4,4, MATRIX_REAL) ;
@@ -7659,7 +7671,7 @@ void computeRigidAlignmentGradient(float *p, float *g)
       V3_Y(v_Y) = (double)y2 ;
       for (y1 = 0 ; y1 < width ; y1++)
       {
-        ref_val = (double)MRIvox(mri_ref,y1,y2,y3) ;
+        ref_val = (double)MRIgetVoxVal(mri_ref,y1,y2,y3,0) ;
         ref_wt = MRIsampleReferenceWeighting(mri_ref,y1,y2,y3) ;
         if (FZERO(ref_wt))  /* "don't care" weighting */
           continue ;  /* gradient will be 0 */
@@ -7668,9 +7680,7 @@ void computeRigidAlignmentGradient(float *p, float *g)
         MatrixMultiply(m_L_inv, v_Y, v_X) ;
         MatrixTranspose(v_X, v_X_T) ;
 
-        x1 = V3_X(v_X) ;
-        x2 = V3_Y(v_X) ;
-        x3 = V3_Z(v_X) ;
+        x1 = V3_X(v_X) ; x2 = V3_Y(v_X) ; x3 = V3_Z(v_X) ;
         if (parms->scout_flag &&
             ((nint(x1) != width/2) &&
              (nint(x2) != height/2) &&
@@ -7678,7 +7688,7 @@ void computeRigidAlignmentGradient(float *p, float *g)
           continue ;
 
         if (mri_ref->nframes > 1)
-          std = MRIseq_vox(mri_ref, y1, y2, y3, 1) ;
+          std = MRIgetVoxVal(mri_ref, y1, y2, y3, 1) ;
         else
           std = mean_std ;
         std /= mean_std ;
@@ -7707,9 +7717,7 @@ void computeRigidAlignmentGradient(float *p, float *g)
           in_val = 0.0 ;
         delta = ref_wt*(ref_val-in_val)/std;
 
-        V3_X(v_dT) = dx ;
-        V3_Y(v_dT) = dy ;
-        V3_Z(v_dT) = dz ;
+        V3_X(v_dT) = dx ; V3_Y(v_dT) = dy ; V3_Z(v_dT) = dz ;
         MatrixMultiply(v_dT, v_X_T, m_dT_X_T) ;
 
         MatrixScalarMul(m_dT_X_T, ref_wt*delta, m_tmp) ;
@@ -7720,9 +7728,7 @@ void computeRigidAlignmentGradient(float *p, float *g)
         MRIsampleReferenceWeightingGradient(mri_ref, y1, y2, y3, &dx, &dy,&dz);
         if (!FZERO(dx) || !FZERO(dy) || !FZERO(dx))
           DiagBreak() ;
-        V3_X(v_dw) = dx ;
-        V3_Y(v_dw) = dy ;
-        V3_Z(v_dw) = dz ;
+        V3_X(v_dw) = dx ; V3_Y(v_dw) = dy ; V3_Z(v_dw) = dz ;
         MatrixMultiply(v_dw, v_X_T, m_dw_X_T) ;
         MatrixScalarMul(m_dw_X_T, delta*delta, m_tmp) ;
         MatrixAdd(m_tmp, m_dL, m_dL) ;
@@ -7837,6 +7843,8 @@ computeRigidAlignmentErrorFunctional(float *p)
     v_crop = m_crop = NULL ;
 
   mean_std = mri_ref->mean ;
+  if (FZERO(mean_std))
+    mean_std = 1.0 ;
   width = mri_in->width ;
   height = mri_in->height ;
   depth = mri_in->depth ;
@@ -7868,7 +7876,7 @@ computeRigidAlignmentErrorFunctional(float *p)
              (nint(x2) != height/2) &&
              (nint(x3) != depth/2)))
           continue ;
-        ref_val = (double)MRIvox(mri_ref,y1,y2,y3) ;
+        ref_val = (double)MRIgetVoxVal(mri_ref,y1,y2,y3,0) ;
         if (mri_ref->nframes > 1)
           std = MRIseq_vox(mri_ref, y1, y2, y3, 1) ;
         else
@@ -8231,6 +8239,8 @@ computeRigidAlignmentErrorFunctionalAndGradient(int index, float *p,
     v_X_T = RVectorAlloc(4, MATRIX_REAL) ;
   }
 
+  if (FZERO(mean_std))
+    mean_std = 1.0 ;
   for (i = row = 1 ; row <= 3 ; row++)
   {
     for (col = 1 ; col <= 4 ; col++)
@@ -8275,11 +8285,11 @@ computeRigidAlignmentErrorFunctionalAndGradient(int index, float *p,
     std /= mean_std ;
     if (DZERO(std))
       std = 1.0 ;
-    delta = (val - (double)MRIvox(g_mri_in,x1,x2,x3)) / std ;
+    delta = (val - (double)MRIgetVoxVal(g_mri_in,x1,x2,x3,0)) / std ;
   }
   else   /* out of bounds, assume in val is 0 */
   {
-    delta = (0.0 - (double)MRIvox(g_mri_in,x1,x2,x3)) / mean_std ;
+    delta = (0.0 - (double)MRIgetVoxVal(g_mri_in,x1,x2,x3,0)) / mean_std ;
     dx = dy = dz = 0.0 ;
   }
   if (fabs(delta) > 20)
@@ -8424,6 +8434,97 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
     pcurrent =
       -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
                                       parms->transform,parms->nsamples);
+    i++ ;
+    printf("outof QuasiNewtonEMA: %03d: -log(p) = %6.1f  tol %f\n",parms->start_t+i, pcurrent, parms->tol) ;
+  }
+  while (((pcurrent - pold) / (pold)) > parms->tol) ;
+
+  strcpy(parms->base_name, base_name) ;
+  if (parms->log_fp)
+  {
+    fclose(parms->log_fp) ;
+    parms->log_fp = NULL ;
+  }
+
+  /*  mriOrthonormalizeTransform(parms->lta->xforms[0].m_L) ;*/
+  return(NO_ERROR) ;
+}
+int
+MRIquasiNewtonAlignVolumes(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX *m_L)
+{
+  int    i ;
+  char   base_name[STRLEN] ;
+  float  pcurrent, pold ;
+
+  if (parms->mri_in == NULL)
+    parms->mri_in = mri_in ;
+  if (parms->mri_ref == NULL)
+    parms->mri_ref = mri_ref ;
+  parms->l_intensity = 1.0 ;
+
+  // if no transform
+  if (!parms->transform)
+  {
+    parms->transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
+    parms->lta = (LTA *)parms->transform->xform ;
+  }
+
+  // if matrix is given
+  if (m_L)
+  {
+    // copy to lta matrix                  m_L copied to parms->lta->xforms[0].m_L
+    // this process is redundant, since mri_em_align calls as
+    //             ...                            &parms, parms.lta->xforms[0].m_L)
+    parms->lta->xforms[0].m_L = MatrixCopy(m_L, parms->lta->xforms[0].m_L);
+    // assign transform->xform to the same one
+    /* make sure transform and lta are the same (sorry - retrofitting!).... mri_em_register comment */
+    parms->transform->xform = (void *)parms->lta ;
+  }
+  // check transform
+  if (parms->transform->type != LINEAR_VOX_TO_VOX)
+  {
+    fprintf(stdout, "parms->transform->type is %d\n", parms->transform->type);
+    ErrorExit(-1, "MRIemAlign: transform type must be LINEAR_VOX_TO_VOX");
+  }
+
+  if (DZERO(parms->dt))
+    parms->dt = 1e-6 ;
+
+
+  strcpy(base_name, parms->base_name) ;
+  openLogFile(parms) ;
+
+  /* disable all the neck "don't care" stuff */
+  parms->ref_np.neck_x0 = parms->ref_np.neck_y0 = parms->ref_np.neck_z0 = 1000;
+  parms->ref_np.neck_dx = parms->ref_np.neck_dy = parms->ref_np.neck_dz = 1 ;
+  parms->in_np.neck_x0 = parms->in_np.neck_y0 = parms->in_np.neck_z0 = 1000;
+  parms->in_np.neck_dx = parms->in_np.neck_dy = parms->in_np.neck_dz = 1 ;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+  {
+    printf("initial voxel transform:\n") ;
+    MatrixPrintHires(stdout, parms->lta->xforms[0].m_L) ;
+  }
+
+  fprintf(stdout, "Aligning input volume to reference...\n") ;
+  if ((Gdiag & DIAG_WRITE) && parms->log_fp)
+    fprintf(parms->log_fp, "aligning input volume to reference.\n") ;
+
+  fprintf(stdout, "Transform matrix\n");
+  MatrixPrintHires(stdout, parms->lta->xforms[0].m_L);
+
+  /* E step */
+  pcurrent = mriIntensitySSE(mri_in, mri_ref, parms->lta->xforms[0].m_L) ;
+
+  i = 0 ;
+  do
+  {
+    pold = pcurrent ;
+    /* M step */
+    mriQuasiNewtonLinearAlignPyramidLevel(mri_in, mri_ref, parms);
+
+    pcurrent = mriIntensitySSE(mri_in, mri_ref, parms->lta->xforms[0].m_L) ;
+
     i++ ;
     printf("outof QuasiNewtonEMA: %03d: -log(p) = %6.1f  tol %f\n",parms->start_t+i, pcurrent, parms->tol) ;
   }
@@ -9705,5 +9806,68 @@ MRIcomputeOptimalLinearXform
   MatrixFree(&m_tmp3) ;
 
   return(max_log_p) ;
+}
+
+static double
+mriIntensitySSE(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
+{
+  int     x, y, z ;
+  VECTOR  *v1, *v2 ;
+  double  xd, yd, zd, sse, width, height, depth ;
+  MATRIX  *m_L_inv ;
+  Real    d1, d2, error ;
+  
+  m_L_inv = MatrixInverse(m_L, NULL) ;
+  if (m_L_inv == NULL)
+  {
+    int mx ;
+    mx = MAX(MAX(mri_in->width, mri_in->height), mri_in->depth);
+    mx = MAX(mx, MAX(MAX(mri_ref->width,mri_ref->height),mri_ref->depth));
+    return(mx*mx*mx*10) ;
+  }
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1, 4) =  VECTOR_ELT(v2, 4) = 1.0 ;
+
+  width = mri_ref->width ;
+  height = mri_ref->height ;
+  depth = mri_ref->depth ;
+  for (sse = 0.0, x = 0 ; x < mri_in->width; x++)
+  {
+    V3_X(v1) = x ;
+    for (y = 0; y < mri_in->height; y++)
+    {
+      V3_Y(v1) = y ;
+      for (z = 0 ; z < mri_in->depth ; z++)
+      {
+        V3_Z(v1) = z ;
+        d1 = MRIgetVoxVal(mri_in, x, y, z, 0) ;
+        MatrixMultiply(m_L, v1, v2) ;
+        xd = V3_X(v2) ;
+        yd = V3_Y(v2) ;
+        zd = V3_Z(v2) ;
+        if (xd < 0)
+          xd = 0 ;
+        else if (xd >= width-1)
+          xd = width-1 ;
+        if (yd < 0)
+          yd = 0 ;
+        else if (yd >= height-1)
+          yd = height-1 ;
+        if (zd < 0)
+          zd = 0 ;
+        else if (zd >= depth-1)
+          zd = depth-1 ;
+        MRIsampleVolume(mri_ref, xd, yd, zd, &d2) ;
+        error = d1-d2 ;
+        sse += error*error ;
+      }
+    }
+  }
+
+  VectorFree(&v1) ;
+  VectorFree(&v2) ;
+  MatrixFree(&m_L_inv) ;
+  return(sse) ;
 }
 

@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/13 01:17:56 $
- *    $Revision: 1.395 $
+ *    $Date: 2007/09/12 13:46:16 $
+ *    $Revision: 1.396 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.395 $";
+char *MRI_C_VERSION = "$Revision: 1.396 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -9936,14 +9936,33 @@ MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z,
   if (z < 0.0)
     z = 0.0 ;
 #endif
-  MRIsampleVolume(mri, x+1.0, y, z, &xp1) ;
-  MRIsampleVolume(mri, x-1.0, y, z, &xm1) ;
+  if (MRIindexNotInVolume(mri, x+1, y, z))
+    MRIsampleVolume(mri, x, y, z, &xp1) ;
+  else
+    MRIsampleVolume(mri, x+1.0, y, z, &xp1) ;
+  if (MRIindexNotInVolume(mri, x-1, y, z))
+    MRIsampleVolume(mri, x, y, z, &xm1) ;
+  else
+    MRIsampleVolume(mri, x-1.0, y, z, &xm1) ;
 
-  MRIsampleVolume(mri, x, y+1.0, z, &yp1) ;
-  MRIsampleVolume(mri, x, y-1.0, z, &ym1) ;
+  if (MRIindexNotInVolume(mri, x, y+1, z))
+    MRIsampleVolume(mri, x, y, z, &yp1) ;
+  else
+    MRIsampleVolume(mri, x, y+1.0, z, &yp1) ;
+  if (MRIindexNotInVolume(mri, x, y-1.0, z))
+    MRIsampleVolume(mri, x, y, z, &ym1) ;
+  else
+    MRIsampleVolume(mri, x, y-1.0, z, &ym1) ;
 
-  MRIsampleVolume(mri, x, y, z+1.0, &zp1) ;
-  MRIsampleVolume(mri, x, y, z-1.0, &zm1) ;
+  if (MRIindexNotInVolume(mri, x, y, z+1.0))
+    MRIsampleVolume(mri, x, y, z, &zp1) ;
+  else
+    MRIsampleVolume(mri, x, y, z+1.0, &zp1) ;
+  if (MRIindexNotInVolume(mri, x, y, z-1.0))
+    MRIsampleVolume(mri, x, y, z, &zm1) ;
+  else
+    MRIsampleVolume(mri, x, y, z-1.0, &zm1) ;
+
 
   *pdx = (xp1-xm1)/(2.0*mri->xsize) ;
   *pdy = (yp1-ym1)/(2.0*mri->ysize) ;
@@ -13705,6 +13724,7 @@ void MRIcalcCRASforSampledVolume
   int dx, dy, dz;
   int samplex, sampley, samplez;
 
+#if 0
   // error check first
   if ((src->width)%(dst->width) != 0)
     ErrorExit
@@ -13715,6 +13735,7 @@ void MRIcalcCRASforSampledVolume
   if ((src->depth)%(dst->depth) != 0)
     ErrorExit
     (ERROR_BADPARM, "src depth must be integer multiple of dst depth");
+#endif
 
   samplex = src->width/dst->width;
   sampley = src->height/dst->height;
