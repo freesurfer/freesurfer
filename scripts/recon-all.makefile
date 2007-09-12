@@ -82,6 +82,7 @@ $(CP):
 
 $(BRAIN): $(BRAINMASK) $(NORM)
 	recon-all -s $(subj) -normalization2
+	recon-all -s $(subj) -maskbfs
 
 $(WM): $(BRAIN) $(ASEG) $(NORM)
 	recon-all -s $(subj) -segmentation
