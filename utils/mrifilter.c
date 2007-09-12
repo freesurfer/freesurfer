@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/24 20:29:24 $
- *    $Revision: 1.61 $
+ *    $Date: 2007/09/12 15:47:28 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2654,6 +2654,59 @@ MRIreduceMeanAndStdByte(MRI *mri_src, MRI *mri_dst)
         Returns value:
 
         Description
+          reduce a special type of MR image which contains
+          two frames. The first is a frame of means and
+          can be reduced normally. The second is a frame
+          of standard deviations, and must be turned into
+          variances, reduced, then back to stds and appended
+          to the mean image.
+------------------------------------------------------*/
+MRI *
+MRIreduceMeanAndStd(MRI *mri_src, MRI *mri_dst)
+{
+  MRI   *mri_var, *mri_var_reduced, *mri_means_reduced, *mri_std_reduced ;
+  int   nframes ;
+
+  if (mri_src->nframes < 2)  /* just reduce it normally */
+    return(MRIreduce(mri_src, mri_dst)) ;
+
+  /* this is a hack, but only want to reduce the first frame of mri_src,
+     as the 2nd is stds which need to be convolved as variances. Not
+     doing this would work but would take twice as much time and memory.
+  */
+  nframes = mri_src->nframes ;
+  mri_src->nframes = 1 ;
+  mri_means_reduced = MRIreduce(mri_src, NULL) ;
+  mri_src->nframes = nframes ;
+  mri_var = MRIstdsToVariances(mri_src, NULL, 1) ;
+  mri_var_reduced = MRIreduce(mri_var, NULL) ;
+  mri_std_reduced = MRIvariancesToStds(mri_var_reduced, NULL, 0) ;
+  mri_dst = MRIconcatenateFrames(mri_means_reduced, mri_std_reduced, mri_dst);
+
+  MRIfree(&mri_var) ;
+  MRIfree(&mri_means_reduced) ;
+  MRIfree(&mri_var_reduced) ;
+  MRIfree(&mri_std_reduced) ;
+
+  MRImodifySampledHeader(mri_src, mri_dst);
+
+  mri_dst->mean = MRImeanFrame(mri_dst, 1) ;
+#if 0
+  {
+    char fname[100] ;
+    sprintf(fname, "means_and_stds%d.mnc", (int)mri_dst->thick) ;
+    fprintf(stderr, "writing means and stds to %s\n", fname) ;
+    MRIwrite(mri_dst, fname) ;
+  }
+#endif
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
 
 ------------------------------------------------------*/
 #define KERNEL_SIZE 5
@@ -3311,7 +3364,7 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
 {
   int    x, y, z, i, dheight, dwidth, ddepth, xi,yi, zi, halflen  ;
   int    sheight, swidth, sdepth ;
-  float  total ;
+  float  total, val ;
 
   swidth = mri_src->width ;
   sheight = mri_src->height ;
@@ -3329,11 +3382,13 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
                      mri_src->xsize*2, mri_src->ysize*2, mri_src->zsize*2) ;
   }
 
+#if 0
   if (((mri_dst->type != MRI_UCHAR) && (mri_dst->type != MRI_FLOAT)) || (mri_src->type != MRI_FLOAT))
     ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED,
                  "MRIreduce1d: src %d or dst %d format unsupported",
                  mri_src->type, mri_dst->type)) ;
+#endif
 
   dwidth = mri_dst->width ;
   dheight = mri_dst->height ;
@@ -3362,8 +3417,9 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
               xi = 0 ;
             else if (xi >= swidth)
               xi = swidth - 1 ;
-
-            total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
+            
+            val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+            total = total + k[i] * val ;
           }
           MRIsetVoxVal(mri_dst, x, y, z, 0, total);
         }
@@ -3390,7 +3446,8 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             else if (yi >= sheight)
               yi = sheight - 1 ;
 
-            total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
+            val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+            total = total + k[i] * val ;
           }
           MRIsetVoxVal(mri_dst, x, y, z, 0, total);
         }
@@ -3418,7 +3475,8 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             else if (zi >= sdepth)
               zi = sdepth - 1 ;
 
-            total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
+            val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+            total = total + k[i] * val ;
           }
           MRIsetVoxVal(mri_dst, x, y, z, 0, total);
         }
@@ -3444,7 +3502,7 @@ MRIreduceSlice(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
 {
   int    x, y, z, i, dheight, dwidth, ddepth, xi,yi, zi, halflen  ;
   int    sheight, swidth, sdepth ;
-  float  total ;
+  float  total, val ;
 
   swidth = mri_src->width ;
   sheight = mri_src->height ;
@@ -3457,11 +3515,13 @@ MRIreduceSlice(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
     MRIsetResolution(mri_dst, mri_src->xsize*2, mri_src->ysize*2, mri_src->zsize) ;
   }
 
+#if 0
   if (((mri_dst->type != MRI_UCHAR) && (mri_dst->type != MRI_FLOAT)) || (mri_src->type != MRI_FLOAT))
     ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED,
                  "MRIreduce1d: src %d or dst %d format unsupported",
                  mri_src->type, mri_dst->type)) ;
+#endif
 
   dwidth = mri_dst->width ;
   dheight = mri_dst->height ;
@@ -3491,7 +3551,8 @@ MRIreduceSlice(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             else if (xi >= swidth)
               xi = swidth - 1 ;
 
-            total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
+            val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+            total = total + k[i] * val ;
           }
           MRIsetVoxVal(mri_dst, x, y, z, 0, total);
         }
@@ -3518,7 +3579,8 @@ MRIreduceSlice(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             else if (yi >= sheight)
               yi = sheight - 1 ;
 
-            total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
+            val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+            total = total + k[i] * val ;
           }
           MRIsetVoxVal(mri_dst, x, y, z, 0, total);
         }
