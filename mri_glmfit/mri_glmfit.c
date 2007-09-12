@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/20 18:53:56 $
- *    $Revision: 1.138 $
+ *    $Author: nicks $
+ *    $Date: 2007/09/12 15:37:43 $
+ *    $Revision: 1.139 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -525,7 +525,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.138 2007/07/20 18:53:56 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.139 2007/09/12 15:37:43 nicks Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1599,9 +1599,12 @@ int main(int argc, char **argv) {
 
   // --------- Save FSGDF stuff --------------------------------
   if (fsgd != NULL) {
-    strcpy(fsgd->measname,"external");
+    if ((NULL == fsgd->measname) || (strlen(fsgd->measname) == 0))
+    {
+      strcpy(fsgd->measname,"external");
+    }
     sprintf(fsgd->datafile,"%s",yFile);
-    if (surf)  strcpy(fsgd->tessellation,"surface");
+    if (surf) strcpy(fsgd->tessellation,"surface");
     else      strcpy(fsgd->tessellation,"volume");
 
     sprintf(fsgd->DesignMatFile,"X.mat");
