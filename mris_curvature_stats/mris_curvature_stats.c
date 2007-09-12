@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2007/09/10 22:25:26 $
- *    $Revision: 1.36 $
+ *    $Author: rpienaar $
+ *    $Date: 2007/09/12 17:38:00 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.36 2007/09/10 22:25:26 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.37 2007/09/12 17:38:00 rpienaar Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -397,7 +397,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-	"$Id: mris_curvature_stats.c,v 1.36 2007/09/10 22:25:26 rudolph Exp $", "$Name:  $");
+	"$Id: mris_curvature_stats.c,v 1.37 2007/09/12 17:38:00 rpienaar Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -684,20 +684,20 @@ MRIS_minMaxCurvature_analyze(
     aps_minMax->vertexMin	= vmin;
     aps_minMax->vertexMax	= vmax;
     if (aps_minMax->b_minTest && aps_minMax->f_min != f_minExplicit) {
-     	fprintf(stderr, "\n\nWARNING\n%10s%-40s%f\n", Gppch[aesot], 
+     	fprintf(stderr, "\nWARN:%5s%-40s%f\n", Gppch[aesot], 
 			" lookup   min:", aps_minMax->f_min);
-      	fprintf(stderr, "%10s%-40s%f\tvertex = %d\n", Gppch[aesot],
+      	fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d", Gppch[aesot],
 			" explicit min:", f_minExplicit, vmin);
 	aps_minMax->b_minViolation	= 1;
 	aps_minMax->f_min 		= f_minExplicit;
     }
     if (aps_minMax->b_maxTest && aps_minMax->f_max != f_maxExplicit) {
-     	fprintf(stderr, "%10s%-40s%f\n", Gppch[aesot], 
+     	fprintf(stderr, "\nWARN:%5s%-40s%f\n", Gppch[aesot], 
 			" lookup   max:", aps_minMax->f_max);
-      	fprintf(stderr, "%10s%-40s%f\tvertex = %d\n", Gppch[aesot],
+      	fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d", Gppch[aesot],
 			" explicit max:", f_maxExplicit, vmax);
 	aps_minMax->b_maxViolation	= 1;
-	aps_minMax->f_max 		= f_minExplicit;
+	aps_minMax->f_max 		= f_maxExplicit;
     }
     xDbg_PopStack();
     return 1;
