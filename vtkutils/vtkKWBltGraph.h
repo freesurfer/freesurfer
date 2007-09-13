@@ -7,6 +7,8 @@
 #include "vtkKWCoreWidget.h"
 #include "vtkKWOptions.h"
 
+class vtkKWMenu;
+
 class vtkKWBltGraph : public vtkKWCoreWidget {
 
  public:
@@ -19,18 +21,27 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   //BTX
   static unsigned long const MouseoverEnterElementEvent;
   static unsigned long const MouseoverExitElementEvent;
+  static unsigned long const ContextualMenuOpening;
   //ETX
 
-  // A small class returned by the kEventMouseoverElement event,
+  // A small struct returned by the EventMouseoverEnterElement event,
   // describing the element that was mouseovered.
   //BTX
-  class SelectedElementAndPoint {
-  public:
-    char* msLabel;               // Label of the element
+  struct SelectedElementAndPoint {
+    char const* msLabel;         // Label of the element
     int mnPointInElement;        // Index of the data point in the element
     double mElementX, mElementY; // The graph x,y of the element
     int mWindowX, mWindowY;      // The window x,y of the event
     double mDistanceToElement;   // Distance from mouse to event in window
+  };
+  //ETX
+
+  // A small struct returned by the ContextualMenuOpening event,
+  // describing the element of which the menu is in the context.
+  //BTX
+  struct ContextualMenuElement {
+    vtkKWMenu* mMenu; 		 // The menu to populate
+    char const* msElement;       // The element
   };
   //ETX
 
@@ -90,21 +101,28 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   //ETX
   
   // Description:
+  // Draws all the elements that have been set.
+  void Draw ();
+
+  // Description:
   // Delete all elements
   void DeleteAllElements ();
 
-  void Draw ();
+  // Description:
+  // These callbacks are for Tk events in the widget.
+  void MotionCallback ( const char* isWidget, int iX, int iY );
+  void Button3DownCallback ( const char* isWidget, int iX, int iY );
 
-  void MotionCallback ( const char* isElement, int iX, int iY );
-  
  protected:
 
   vtkKWBltGraph ();
   virtual ~vtkKWBltGraph ();
 
   // Description:
+  // Make our BLT graph widget.
   void CreateWidget ();
-  
+
+  // Create and delete or Tk bindings so we can respond to Tk events.
   void Bind ();
   void UnBind ();
 
@@ -112,7 +130,9 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   void UpdateXAxisTitle ();
   void UpdateYAxisTitle ();
 
+  //BTX
   // Description:
+  // String titles for our axes.
   char* XAxisTitle;
   char* YAxisTitle;
 
@@ -121,10 +141,16 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   char* DefaultElementSymbol;
   double DefaultElementColor[3];
 
+  // Description:
+  // Information about the currently moused-over element. This is set
+  // when an element is moused over.
   double mMouseoverDistanceToElement;
   bool mbCurrentlyOverElement;
-  
-  //BTX
+  std::string msCurrentMouseoverElement; // only valid if 
+                                         // mbCurrentlyOverElement is true
+
+  // Description:
+  // Internal representation of an element.
   class GraphElement {
   public:
     GraphElement ();
@@ -136,6 +162,7 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   };
   
   // Description:
+  // Our elements.
   typedef std::vector<vtkKWBltGraph::GraphElement> GraphElementList;
   GraphElementList mElements;
   //ETX
