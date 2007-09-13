@@ -8,9 +8,9 @@
 #
 # Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/06 00:01:14 $
-#    $Revision: 1.13 $
+#    $Author: greve $
+#    $Date: 2007/09/13 19:43:52 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 
 
-set VERSION = '$Id: mri_motion_correct2,v 1.13 2007/01/06 00:01:14 nicks Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.14 2007/09/13 19:43:52 greve Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -35,6 +35,7 @@ set PrintHelp   = 0;
 set LF          = ();
 set CleanUp     = 1;
 set CleanUpList = ();
+set SaveXFM     = 1;
 set PWD = pwd;
 set HiRes = '';
 set outfmt = ();
@@ -91,6 +92,7 @@ pwd               >> $LF
 uname -a           >> $LF
 date               >> $LF
 which mri_convert  >> $LF
+echo SaveXFM $SaveXFM
 
 set StartTime = `date`;
 
@@ -178,17 +180,22 @@ foreach mncinput ($mncinputlist)
 
   if($mncinput == $mnctarget) continue;
 
-  set xfm = $tmpdir/run$run.xfm
-  set CleanUpList = ($CleanUpList $xfm);
+  if($SaveXFM) then
+    set xfm = $outstem-mc$run.xfm
+  else
+    set xfm = $tmpdir/run$run.xfm
+    set CleanUpList = ($CleanUpList $xfm);
+  endif
   rm -f $xfm
 
   echo "-----------------------------------------" |& tee -a $LF
   echo "Motion Correcting $mncinput" |& tee -a $LF
   date |& tee -a $LF
+  echo "xfm is $xfm" |& tee -a $LF
   # minctracc is MNI software without version option, but cvs'ed.
   set cmd = (minctracc -lsq6 $mncinput $mnctarget $xfm)
-  pwd >> $LF
-  echo $cmd >> $LF
+  pwd | tee -a $LF
+  echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) then
     echo "ERROR: mritoself failed" |& tee -a $LF
@@ -358,8 +365,14 @@ check_params:
 
   if("$outfmt" == "COR") then
     set outdir = $outspec
+    set outstem = $outspec/COR
   else
     set outdir = `dirname $outspec`;
+    set outstem = `fname2stem $outspec`
+    if($status) then
+      echo "$outstem"
+      exit 1;
+    endif
   endif
   mkdir -p $outdir
   if($status) then
