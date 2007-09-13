@@ -1,4 +1,5 @@
 OrientMRILib
 vtkKWOrientMRIApp
 vtkKWOrientMRIWindow
-vtkKWOrientMRIView
+vtkKWOrientMRIView2D
+vtkKWOrientMRIView3D

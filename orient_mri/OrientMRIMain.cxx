@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/27 21:24:36 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/09/13 20:58:21 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,7 @@
 #include <vtksys/CommandLineArguments.hxx>
 
 #include "vtkKWOrientMRIApp.h"
+#include "vtkSmartPointer.h"
 
 extern "C" {
 
@@ -55,14 +56,12 @@ int main ( int argc, char** argv ) {
   Orientmrilib_SafeInit( interp );
 
   // Create the app.
-  vtkKWOrientMRIApp* app = vtkKWOrientMRIApp::New();
+  vtkSmartPointer<vtkKWOrientMRIApp> app =
+    vtkSmartPointer<vtkKWOrientMRIApp>::New();
 
   // Run the app.
   app->Start( argc, argv );
   int rApp = app->GetExitStatus();
-
-  // Delete.
-  app->Delete();
 
   return rApp;
 }

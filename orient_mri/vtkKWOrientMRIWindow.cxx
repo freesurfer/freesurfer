@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/06/06 15:12:40 $
- *    $Revision: 1.11 $
+ *    $Author: kteich $
+ *    $Date: 2007/09/13 20:58:21 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,9 +30,13 @@
 
 
 #include <stdexcept>
+#include <sstream>
 #include "vtkKWOrientMRIWindow.h"
 
+#include "OrientMRIEvents.h"
 #include "IconLoader.h"
+#include "vtkAbstractTransform.h"
+#include "vtkCallbackCommand.h"
 #include "vtkCamera.h"
 #include "vtkFreesurferLookupTable.h"
 #include "vtkFSVolumeSource.h"
@@ -41,49 +45,43 @@
 #include "vtkKWLoadSaveDialog.h"
 #include "vtkKWMenu.h"
 #include "vtkKWMessageDialog.h"
+#include "vtkKWOrientMRIView2D.h"
+#include "vtkKWOrientMRIView3D.h"
 #include "vtkKWPushButton.h"
 #include "vtkKWRadioButton.h"
 #include "vtkKWRadioButtonSet.h"
+#include "vtkKWScale.h"
 #include "vtkKWToolbar.h"
 #include "vtkKWToolbarSet.h"
 #include "vtkLookupTable.h"
 #include "vtkMatrix4x4.h"
 #include "vtkObjectFactory.h"
 #include "vtkRenderer.h"
+#include "vtkTransform.h"
 
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.11 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.12 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
-    vtkKWWindow(),
-    mView( NULL ),
-    mbDirty( false ),
-    mVolume( NULL ),
-    mGrayScaleColors( NULL ),
-    mLUTColors( NULL ),
-    mOriginalVoxelToRASMatrix( NULL ),
-    mOriginalView( NULL ),
-    mOriginalViewI( NULL ) {
+  mbDirty( false ),
+  mMenuLoadVolume( NULL ),
+  mMenuSaveVolume( NULL ),
+  mMenuSaveVolumeAs( NULL ),
+  mMenuLoadLUT( NULL ),
+  mMenuTransformVolume( NULL ),
+  mMenuRevertVolume( NULL ),
+  mMenuRestoreView( NULL ),
+  mMenuZoomOut( NULL ),
+  mMenuZoomIn( NULL ),
+  mMenuUseGrayScaleColors( NULL ),
+  mMenuUseLUTColors( NULL ) {
+
 }
 
 vtkKWOrientMRIWindow::~vtkKWOrientMRIWindow () {
 
-  if( mView )
-    mView->Delete();
-  if( mVolume )
-    mVolume->Delete();
-  if( mGrayScaleColors )
-    mGrayScaleColors->Delete();
-  if( mLUTColors )
-    mLUTColors->Delete();
-  if( mOriginalVoxelToRASMatrix )
-    mOriginalVoxelToRASMatrix->Delete();
-  if( mOriginalView )
-    mOriginalView->Delete();
-  if( mOriginalViewI )
-    mOriginalViewI->Delete();
 }
 
 void
@@ -97,25 +95,80 @@ vtkKWOrientMRIWindow::Create () {
   this->SecondaryPanelVisibilityOff();
   this->MainPanelVisibilityOff();
 
-  // Create our interior view.
-  mView = vtkKWOrientMRIView::New();
-  mView->SetParent( GetViewFrame() );
-  mView->Create();
-  this->Script( "pack %s -expand yes -fill both -anchor c",
-                mView->GetWidgetName() );
+  // Create our interior views (3 2ds and a 3d).
+  for( int nView = 0; nView < 3; nView++ ) {
 
+    // Create the veiw.
+    mView2D[nView] = vtkSmartPointer<vtkKWOrientMRIView2D>::New();
+    mView2D[nView]->SetParent( this->GetViewFrame() );
+    mView2D[nView]->Create();
+    mView2D[nView]->SetOrientation( nView );
+
+    // Create scales to control the through plane of the 2D
+    // views. Connect it to the view to set the through plane.
+    mScaleThroughPlane[nView] = vtkSmartPointer<vtkKWScale>::New();
+    mScaleThroughPlane[nView]->SetParent( this->GetViewFrame() );
+    mScaleThroughPlane[nView]->Create();
+    mScaleThroughPlane[nView]->SetCommand( mView2D[nView], "SetThroughPlane" );
+    mScaleThroughPlane[nView]->ValueVisibilityOff();
+  }
+
+  // 3D view.
+  mView3D = vtkSmartPointer<vtkKWOrientMRIView3D>::New();
+  mView3D->SetParent( this->GetViewFrame() );
+  mView3D->Create();
+
+  // Set them up in a grid, with the scales underneath the 2D views.
+  this->Script( "grid %s -column 0 -row 0 -sticky news -padx 2",
+		mView2D[X]->GetWidgetName() );
+  this->Script( "grid %s -column 0 -row 1 -sticky news -padx 2",
+		mScaleThroughPlane[X]->GetWidgetName() );
+  this->Script( "grid %s -column 1 -row 0 -sticky news -padx 2",
+		mView2D[Y]->GetWidgetName() );
+  this->Script( "grid %s -column 1 -row 1 -sticky news -padx 2",
+		mScaleThroughPlane[Y]->GetWidgetName() );
+  this->Script( "grid %s -column 0 -row 2 -sticky news -padx 2 -pady 2",
+		mView2D[Z]->GetWidgetName() );
+  this->Script( "grid %s -column 0 -row 3 -sticky news -padx 2",
+		mScaleThroughPlane[Z]->GetWidgetName() );
+  this->Script( "grid %s -column 1 -row 2 -rowspan 2 -sticky news -padx 2 -pady 2",
+		mView3D->GetWidgetName() );
+  this->Script( "grid columnconfigure %s 0 -weight 1", 
+		this->GetViewFrame()->GetWidgetName() );
+  this->Script( "grid columnconfigure %s 1 -weight 1", 
+		this->GetViewFrame()->GetWidgetName() );
+  this->Script( "grid rowconfigure %s 0 -weight 1",
+		this->GetViewFrame()->GetWidgetName() );
+  this->Script( "grid rowconfigure %s 2 -weight 1",
+		this->GetViewFrame()->GetWidgetName() );
+
+  // Make a callback and observe our view for UserTransformChanged events.
+  vtkSmartPointer<vtkCallbackCommand> callback =
+    vtkSmartPointer<vtkCallbackCommand>::New();
+  callback->SetCallback( UserTransformChanged );
+  callback->SetClientData( this );
+  mView3D->AddObserver( OrientMRIEvents::UserTransformChanged, callback );
+
+  // Let the view3D observe us for VolumeToRASTransformChanged
+  // events. This is kind of an awkward way to do this.
+  callback = vtkSmartPointer<vtkCallbackCommand>::New();
+  callback->
+    SetCallback( vtkKWOrientMRIView3D::VolumeToRASTransformChangedCallback );
+  callback->SetClientData( mView3D );
+  this->AddObserver( OrientMRIEvents::VolumeToRASTransformChanged, callback );
 
   // Make a toolbar.
-  vtkKWToolbar* toolbar = vtkKWToolbar::New();
+  vtkSmartPointer<vtkKWToolbar> toolbar = 
+    vtkSmartPointer<vtkKWToolbar>::New();
   toolbar->SetName( "Main" );
-  toolbar->SetParent( GetMainToolbarSet()->GetToolbarsFrame() );
+  toolbar->SetParent( this->GetMainToolbarSet()->GetToolbarsFrame() );
   toolbar->Create();
   this->GetMainToolbarSet()->AddToolbar( toolbar );
 
   // Populate the toolbar.
 
   // Load Volume
-  mBtnLoadVolume = vtkKWPushButton::New();
+  mBtnLoadVolume = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnLoadVolume->SetParent( toolbar->GetFrame() );
   mBtnLoadVolume->Create();
   toolbar->AddWidget( mBtnLoadVolume );
@@ -126,7 +179,7 @@ vtkKWOrientMRIWindow::Create () {
   catch (...) {}
 
   // Save Volume
-  mBtnSaveVolume = vtkKWPushButton::New();
+  mBtnSaveVolume = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnSaveVolume->SetParent( toolbar->GetFrame() );
   mBtnSaveVolume->Create();
   toolbar->AddWidget( mBtnSaveVolume );
@@ -136,15 +189,10 @@ vtkKWOrientMRIWindow::Create () {
   try { IconLoader::SetPushButtonIcon( "SaveVolume", mBtnSaveVolume ); }
   catch (...) {}
 
-  vtkKWFrame* spacer = vtkKWFrame::New();
-  spacer->SetParent( toolbar->GetFrame() );
-  spacer->Create();
-  spacer->SetWidth( 5 );
-  toolbar->AddWidget( spacer );
-  spacer->Delete();
+  this->AddSpacerToToolbar( *toolbar );
 
   // Transform Volume
-  mBtnTransformVolume = vtkKWPushButton::New();
+  mBtnTransformVolume = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnTransformVolume->SetParent( toolbar->GetFrame() );
   mBtnTransformVolume->Create();
   toolbar->AddWidget( mBtnTransformVolume );
@@ -155,7 +203,7 @@ vtkKWOrientMRIWindow::Create () {
   catch (...) {}
 
   // Revert.
-  mBtnRevertVolume = vtkKWPushButton::New();
+  mBtnRevertVolume = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRevertVolume->SetParent( toolbar->GetFrame() );
   mBtnRevertVolume->Create();
   toolbar->AddWidget( mBtnRevertVolume );
@@ -165,42 +213,33 @@ vtkKWOrientMRIWindow::Create () {
   try { IconLoader::SetPushButtonIcon( "RevertVolume", mBtnRevertVolume ); }
   catch (...) {}
 
-  spacer = vtkKWFrame::New();
-  spacer->SetParent( toolbar->GetFrame() );
-  spacer->Create();
-  spacer->SetWidth( 5 );
-  toolbar->AddWidget( spacer );
-  spacer->Delete();
+  this->AddSpacerToToolbar( *toolbar );
 
   // Color table radio button set.
-  vtkKWRadioButtonSet* radBtnSetColors = vtkKWRadioButtonSet::New();
+  vtkSmartPointer<vtkKWRadioButtonSet> radBtnSetColors =
+    vtkSmartPointer<vtkKWRadioButtonSet>::New();
   radBtnSetColors->SetParent( toolbar->GetFrame() );
   radBtnSetColors->Create();
   toolbar->AddWidget( radBtnSetColors );
   radBtnSetColors->PackHorizontallyOn();
 
-  mRadBtnUseGrayScaleColors = radBtnSetColors->AddWidget( 1 );
+  mRadBtnUseGrayScaleColors.TakeReference( radBtnSetColors->AddWidget( 1 ) );
   mRadBtnUseGrayScaleColors->IndicatorVisibilityOff();
   try { IconLoader::SetCheckButtonIcon( "UseGrayScaleColors", mRadBtnUseGrayScaleColors ); }
   catch (...) {}
   mRadBtnUseGrayScaleColors->SelectedStateOn();
   mRadBtnUseGrayScaleColors->SetCommand( this, "UseGrayScaleColors" );
 
-  mRadBtnUseLUTColors = radBtnSetColors->AddWidget( 0 );
+  mRadBtnUseLUTColors.TakeReference( radBtnSetColors->AddWidget( 0 ) );
   mRadBtnUseLUTColors->SetCommand( this, "UseLUTColors" );
   mRadBtnUseLUTColors->IndicatorVisibilityOff();
   try { IconLoader::SetCheckButtonIcon( "UseLUTColors", mRadBtnUseLUTColors ); }
   catch (...) {}
 
-  spacer = vtkKWFrame::New();
-  spacer->SetParent( toolbar->GetFrame() );
-  spacer->Create();
-  spacer->SetWidth( 5 );
-  toolbar->AddWidget( spacer );
-  spacer->Delete();
+  this->AddSpacerToToolbar( *toolbar );
 
   // Restore View
-  mBtnRestoreView = vtkKWPushButton::New();
+  mBtnRestoreView = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRestoreView->SetParent( toolbar->GetFrame() );
   mBtnRestoreView->Create();
   toolbar->AddWidget( mBtnRestoreView );
@@ -210,15 +249,10 @@ vtkKWOrientMRIWindow::Create () {
   try { IconLoader::SetPushButtonIcon( "RestoreView", mBtnRestoreView ); }
   catch (...) {}
 
-  spacer = vtkKWFrame::New();
-  spacer->SetParent( toolbar->GetFrame() );
-  spacer->Create();
-  spacer->SetWidth( 5 );
-  toolbar->AddWidget( spacer );
-  spacer->Delete();
+  this->AddSpacerToToolbar( *toolbar );
 
   // Zoom Out
-  mBtnZoomOut = vtkKWPushButton::New();
+  mBtnZoomOut = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnZoomOut->SetParent( toolbar->GetFrame() );
   mBtnZoomOut->Create();
   toolbar->AddWidget( mBtnZoomOut );
@@ -229,7 +263,7 @@ vtkKWOrientMRIWindow::Create () {
   catch (...) {}
 
   // Zoom In
-  mBtnZoomIn = vtkKWPushButton::New();
+  mBtnZoomIn = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnZoomIn->SetParent( toolbar->GetFrame() );
   mBtnZoomIn->Create();
   toolbar->AddWidget( mBtnZoomIn );
@@ -239,214 +273,173 @@ vtkKWOrientMRIWindow::Create () {
   try { IconLoader::SetPushButtonIcon( "ZoomIn", mBtnZoomIn ); }
   catch (...) {}
 
-  spacer = vtkKWFrame::New();
-  spacer->SetParent( toolbar->GetFrame() );
-  spacer->Create();
-  spacer->SetWidth( 5 );
-  toolbar->AddWidget( spacer );
-  spacer->Delete();
+  this->AddSpacerToToolbar( *toolbar );
 
   // Rotate X Pos
-  mBtnRotateXPos = vtkKWPushButton::New();
+  mBtnRotateXPos = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRotateXPos->SetParent( toolbar->GetFrame() );
   mBtnRotateXPos->Create();
   toolbar->AddWidget( mBtnRotateXPos );
   mBtnRotateXPos->SetText( "Rotate" );
   mBtnRotateXPos->SetBalloonHelpString( "Rotate" );
-  mBtnRotateXPos->SetCommand( mView, "AnimateCameraElevatePositive" );
+  mBtnRotateXPos->SetCommand( mView3D, "RotateUserTransform 0 -90" );
   try { IconLoader::SetPushButtonIcon( "RotateXPos", mBtnRotateXPos); }
   catch (...) {}
 
   // Rotate X Neg
-  mBtnRotateXNeg = vtkKWPushButton::New();
+  mBtnRotateXNeg = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRotateXNeg->SetParent( toolbar->GetFrame() );
   mBtnRotateXNeg->Create();
   toolbar->AddWidget( mBtnRotateXNeg );
   mBtnRotateXNeg->SetText( "Rotate" );
   mBtnRotateXNeg->SetBalloonHelpString( "Rotate" );
-  mBtnRotateXNeg->SetCommand( mView, "AnimateCameraElevateNegative" );
+  mBtnRotateXNeg->SetCommand( mView3D, "RotateUserTransform 0 90" );
   try { IconLoader::SetPushButtonIcon( "RotateXNeg", mBtnRotateXNeg); }
   catch (...) {}
 
   // Rotate Y Pos
-  mBtnRotateYPos = vtkKWPushButton::New();
+  mBtnRotateYPos = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRotateYPos->SetParent( toolbar->GetFrame() );
   mBtnRotateYPos->Create();
   toolbar->AddWidget( mBtnRotateYPos );
   mBtnRotateYPos->SetText( "Rotate" );
   mBtnRotateYPos->SetBalloonHelpString( "Rotate" );
-  mBtnRotateYPos->SetCommand( mView, "AnimateCameraAzimuthNegative" );
+  mBtnRotateYPos->SetCommand( mView3D, "RotateUserTransform 2 90" );
   try { IconLoader::SetPushButtonIcon( "RotateYPos", mBtnRotateYPos); }
   catch (...) {}
 
   // Rotate Y Neg
-  mBtnRotateYNeg = vtkKWPushButton::New();
+  mBtnRotateYNeg = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRotateYNeg->SetParent( toolbar->GetFrame() );
   mBtnRotateYNeg->Create();
   toolbar->AddWidget( mBtnRotateYNeg );
   mBtnRotateYNeg->SetText( "Rotate" );
   mBtnRotateYNeg->SetBalloonHelpString( "Rotate" );
-  mBtnRotateYNeg->SetCommand( mView, "AnimateCameraAzimuthPositive" );
+  mBtnRotateYNeg->SetCommand( mView3D, "RotateUserTransform 2 -90" );
   try { IconLoader::SetPushButtonIcon( "RotateYNeg", mBtnRotateYNeg); }
   catch (...) {}
 
   // Rotate Z Pos
-  mBtnRotateZPos = vtkKWPushButton::New();
+  mBtnRotateZPos = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRotateZPos->SetParent( toolbar->GetFrame() );
   mBtnRotateZPos->Create();
   toolbar->AddWidget( mBtnRotateZPos );
   mBtnRotateZPos->SetText( "Rotate" );
   mBtnRotateZPos->SetBalloonHelpString( "Rotate" );
-  mBtnRotateZPos->SetCommand( mView, "AnimateCameraRollNegative" );
+  mBtnRotateZPos->SetCommand( mView3D, "RotateUserTransform 1 -90" );
   try { IconLoader::SetPushButtonIcon( "RotateZPos", mBtnRotateZPos); }
   catch (...) {}
 
   // Rotate Z Neg
-  mBtnRotateZNeg = vtkKWPushButton::New();
+  mBtnRotateZNeg = vtkSmartPointer<vtkKWPushButton>::New();
   mBtnRotateZNeg->SetParent( toolbar->GetFrame() );
   mBtnRotateZNeg->Create();
   toolbar->AddWidget( mBtnRotateZNeg );
   mBtnRotateZNeg->SetText( "Rotate" );
   mBtnRotateZNeg->SetBalloonHelpString( "Rotate" );
-  mBtnRotateZNeg->SetCommand( mView, "AnimateCameraRollPositive" );
+  mBtnRotateZNeg->SetCommand( mView3D, "RotateUserTransform 1 90" );
   try { IconLoader::SetPushButtonIcon( "RotateZNeg", mBtnRotateZNeg); }
   catch (...) {}
 
   // Start making our menu bars.
-  int nFilePos = GetFileMenuInsertPosition();
-  int nEditPos = 0;
-  int nViewPos = GetViewMenuInsertPosition();
+  int nItem = this->GetFileMenuInsertPosition();
 
   // File menu.
   // Load Volume.
-  this->GetFileMenu()->
-    InsertCommand( nFilePos, "L&oad Volume...", this, "LoadVolumeFromDlog" );
-  this->GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
-  this->GetFileMenu()->SetItemAccelerator( nFilePos, "Ctrl+O" );
-  try { IconLoader::SetMenuItemIcon( "LoadVolume", GetFileMenu(), nFilePos ); }
-  catch (...) {}
-  mMenuLoadVolume.menu = GetFileMenu();
-  mMenuLoadVolume.nItem = nFilePos;
-  nFilePos++;
+  mMenuLoadVolume = new MenuItem();
+  mMenuLoadVolume->
+    MakeCommand( this->GetFileMenu(), nItem++,
+		 "L&oad Volume...", this, "LoadVolumeFromDlog",
+		 "Ctrl+O", "LoadVolume" );
 
   // Load LUT.
-  this->GetFileMenu()->
-    InsertCommand( nFilePos, "Load LUT...", this, "LoadLUTFromDlog" );
-  this->GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
-  try { IconLoader::SetMenuItemIcon( "LoadLUT", GetFileMenu(), nFilePos ); }
-  catch (...) {}
-  mMenuLoadLUT.menu = GetFileMenu();
-  mMenuLoadLUT.nItem = nFilePos;
-  nFilePos++;
+  mMenuLoadLUT = new MenuItem();
+  mMenuLoadLUT->
+    MakeCommand( this->GetFileMenu(), nItem++,
+		 "Load LUT...", this, "LoadLUTFromDlog",
+		 "", "LoadVolume" );
 
-  this->GetFileMenu()->InsertSeparator( nFilePos++ );
+  this->GetFileMenu()->InsertSeparator( nItem++ );
 
   // Save Volume.
-  this->GetFileMenu()->
-    InsertCommand( nFilePos, "&Save Volume", this, "SaveVolumeWithConfirm" );
-  this->GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
-  this->GetFileMenu()->SetItemAccelerator( nFilePos, "Ctrl+S" );
-  try {IconLoader::SetMenuItemIcon( "SaveVolume", GetFileMenu(), nFilePos );}
-  catch (...) {}
-  mMenuSaveVolume.menu = GetFileMenu();
-  mMenuSaveVolume.nItem = nFilePos;
-  nFilePos++;
+  mMenuSaveVolume = new MenuItem();
+  mMenuSaveVolume->
+    MakeCommand( this->GetFileMenu(), nItem++,
+		 "&Save Volume...", this, "SaveVolumeWithConfirm",
+		 "Ctrl+S", "SaveVolume" );
 
   // Save Volume As.
-  this->GetFileMenu()->
-    InsertCommand( nFilePos, "Save Volume As...", this,"SaveVolumeAsFromDlog");
-  this->GetFileMenu()->SetItemCompoundModeToLeft( nFilePos );
-  try {IconLoader::SetMenuItemIcon( "SaveVolume", GetFileMenu(), nFilePos );}
-  catch (...) {}
-  mMenuSaveVolumeAs.menu = GetFileMenu();
-  mMenuSaveVolumeAs.nItem = nFilePos;
-  nFilePos++;
+  mMenuSaveVolumeAs = new MenuItem();
+  mMenuSaveVolumeAs->
+    MakeCommand( this->GetFileMenu(), nItem++,
+		 "Save Volume As...", this, "SaveVolumeAsFromDlog",
+		 "", "SaveVolume" );
 
-  this->GetFileMenu()->InsertSeparator( nFilePos++ );
+  this->GetFileMenu()->InsertSeparator( nItem++ );
 
-  this->InsertRecentFilesMenu( nFilePos++, this );
+  this->InsertRecentFilesMenu( nItem++, this );
 
-  this->GetFileMenu()->InsertSeparator( nFilePos++ );
+  this->GetFileMenu()->InsertSeparator( nItem++ );
 
   // Edit menu.
-  // Transform Volume.
-  this->GetEditMenu()->
-    InsertCommand( nEditPos, "Trans&form Volume", this, "TransformVolume" );
-  this->GetEditMenu()->SetItemCompoundModeToLeft( nEditPos );
-  this->GetEditMenu()->SetItemAccelerator( nEditPos, "Ctrl+F" );
-  try {IconLoader::SetMenuItemIcon("TransformVolume",GetEditMenu(),nEditPos);}
-  catch (...) {}
-  mMenuTransformVolume.menu = GetEditMenu();
-  mMenuTransformVolume.nItem = nEditPos;
-  nEditPos++;
+  nItem = 0;
 
-  this->GetEditMenu()->InsertSeparator( nEditPos++ );
+  // Transform Volume.
+  mMenuTransformVolume = new MenuItem();
+  mMenuTransformVolume->
+    MakeCommand( this->GetEditMenu(), nItem++,
+		 "Trans&form Volume", this, "TransformVolume",
+		 "Ctrl+F", "TransformVolume" );
+
+  this->GetEditMenu()->InsertSeparator( nItem++ );
 
   // Revert.
-  this->GetEditMenu()->
-    InsertCommand( nEditPos, "&Revert Volume", this, "RevertToSavedTransform");
-  this->GetEditMenu()->SetItemCompoundModeToLeft( nEditPos );
-  this->GetEditMenu()->SetItemAccelerator( nEditPos, "Ctrl+R" );
-  try {IconLoader::SetMenuItemIcon( "RevertVolume", GetEditMenu(), nEditPos );}
-  catch (...) {}
-  mMenuRevertVolume.menu = GetEditMenu();
-  mMenuRevertVolume.nItem = nEditPos;
-  nEditPos++;
+  mMenuRevertVolume = new MenuItem();
+  mMenuRevertVolume->
+    MakeCommand( this->GetEditMenu(), nItem++,
+		 "&Revert Volume", this, "RevertToSavedTransform",
+		 "Ctrl+R", "RevertVolume" );
 
   // View menu.
-  // Restore view.
-  this->GetViewMenu()->
-    InsertCommand( nViewPos, "Restore &View", this, "RestoreView");
-  this->GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
-  this->GetViewMenu()->SetItemAccelerator( nViewPos, "Ctrl+V" );
-  try {IconLoader::SetMenuItemIcon( "RestoreView", GetViewMenu(), nViewPos );}
-  catch (...) {}
-  mMenuRestoreView.menu = GetViewMenu();
-  mMenuRestoreView.nItem = nViewPos;
-  nViewPos++;
+  nItem = this->GetViewMenuInsertPosition();
 
-  this->GetViewMenu()->InsertSeparator( nViewPos++ );
+  // Restore view.
+  mMenuRestoreView = new MenuItem();
+  mMenuRestoreView->
+    MakeCommand( this->GetViewMenu(), nItem++,
+		 "Restore &View", this, "RestoreView",
+		 "Ctrl+V", "RestoreView" );
+
+  this->GetViewMenu()->InsertSeparator( nItem++ );
 
   // Color scale items.
-  this->GetViewMenu()->
-    InsertCommand( nViewPos, "Use GrayScale Colors", this, "UseGrayScaleColors");
-  this->GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
-  try {IconLoader::SetMenuItemIcon( "UseGrayScaleColors", GetViewMenu(), nViewPos );}
-  catch (...) {}
-  mMenuUseGrayScaleColors.menu = GetViewMenu();
-  mMenuUseGrayScaleColors.nItem = nViewPos;
-  nViewPos++;
+  mMenuUseGrayScaleColors = new MenuItem();
+  mMenuUseGrayScaleColors->
+    MakeCommand( this->GetViewMenu(), nItem++,
+		 "Use Grayscale Colors", this, "UseGrayScaleColors",
+		 "", "UseGrayScaleColors" );
 
-  this->GetViewMenu()->
-    InsertCommand( nViewPos, "Use LUT Colors", this, "UseLUTColors");
-  this->GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
-  try {IconLoader::SetMenuItemIcon( "UseLUTColors", GetViewMenu(), nViewPos );}
-  catch (...) {}
-  mMenuUseLUTColors.menu = GetViewMenu();
-  mMenuUseLUTColors.nItem = nViewPos;
-  nViewPos++;
+  mMenuUseLUTColors = new MenuItem();
+  mMenuUseLUTColors->
+    MakeCommand( this->GetViewMenu(), nItem++,
+		 "Use LUT Colors", this, "UseLUTColors",
+		 "", "UseLUTColors" );
 
-  this->GetViewMenu()->InsertSeparator( nViewPos++ );
+  this->GetViewMenu()->InsertSeparator( nItem++ );
 
   // Zoom Out.
-  this->GetViewMenu()->
-    InsertCommand( nViewPos, "Zoom Out", this, "ZoomOut");
-  this->GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
-  try { IconLoader::SetMenuItemIcon( "ZoomOut", GetViewMenu(), nViewPos ); }
-  catch (...) {}
-  mMenuZoomOut.menu = GetViewMenu();
-  mMenuZoomOut.nItem = nViewPos;
-  nViewPos++;
+  mMenuZoomOut = new MenuItem();
+  mMenuZoomOut->
+    MakeCommand( this->GetViewMenu(), nItem++,
+		 "Zoom Out", this, "ZoomOut",
+		 "", "ZoomOut" );
 
   // Zoom In.
-  this->GetViewMenu()->
-    InsertCommand( nViewPos, "Zoom In", this, "ZoomIn");
-  this->GetViewMenu()->SetItemCompoundModeToLeft( nViewPos );
-  try { IconLoader::SetMenuItemIcon( "ZoomIn", GetViewMenu(), nViewPos ); }
-  catch (...) {}
-  mMenuZoomIn.menu = GetViewMenu();
-  mMenuZoomIn.nItem = nViewPos;
-  nViewPos++;
+  mMenuZoomIn = new MenuItem();
+  mMenuZoomIn->
+    MakeCommand( this->GetViewMenu(), nItem++,
+		 "Zoom In", this, "ZoomIn",
+		 "", "ZoomIn" );
 
   // Update our menu and buttons.
   this->UpdateCommandStatus();
@@ -455,6 +448,10 @@ vtkKWOrientMRIWindow::Create () {
 void
 vtkKWOrientMRIWindow::LoadVolumeFromDlog () {
 
+  // The smart pointer version is commented out because of a bug that
+  // occurs when the dialog is deleted.
+  //  vtkSmartPointer<vtkKWLoadSaveDialog> dialog = 
+  //    vtkSmartPointer<vtkKWLoadSaveDialog>::New();
   vtkKWLoadSaveDialog* dialog = vtkKWLoadSaveDialog::New();
   dialog->SetApplication( GetApplication() );
   dialog->Create();
@@ -471,26 +468,71 @@ vtkKWOrientMRIWindow::LoadVolumeFromDlog () {
 void
 vtkKWOrientMRIWindow::LoadVolume ( const char* ifnVolume ) {
 
-  if( !mView ) throw runtime_error( "mView was NULL" );
+  assert( mView2D[X].GetPointer() );
+  assert( mView2D[Y].GetPointer() );
+  assert( mView2D[Z].GetPointer() );
+  assert( mView3D.GetPointer() );
 
   try {
     
     // Try to load the volume.
-    vtkFSVolumeSource* volume = vtkFSVolumeSource::New();
+    vtkSmartPointer<vtkFSVolumeSource> volume = 
+      vtkSmartPointer<vtkFSVolumeSource>::New();
+    //    volume->ActualSpacingOn();
     volume->MRIRead( ifnVolume );
     volume->Update();
       
-    // Delete existing one and save a reference.
-    if ( NULL != mVolume )
-      mVolume->Delete();
+    // Save the new volume.
     mVolume = volume;
-    
-    // Set it in the view.
-    mView->SetCurrentVolume( mVolume );
-    
-    // Create a basic LUT if we don't have one yet.
-    if( !mGrayScaleColors ) 
-      mGrayScaleColors = vtkLookupTable::New();
+
+    // Initialize our transforms.
+    mVolumeToRASTransform = vtkSmartPointer<vtkImageReslice>::New();
+#if 0    
+    vtkSmartPointer<vtkImageReslice> pixelSizer =
+      vtkSmartPointer<vtkImageReslice>::New();
+    pixelSizer->SetInputConnection( mVolume->GetOutputPort() );
+    pixelSizer->SetOutputDimensionality( 3 );
+
+    vtkSmartPointer<vtkTransform> pixelSizerTransform =
+      vtkSmartPointer<vtkTransform>::New();
+    pixelSizerTransform->Scale( volume->GetPixelSizeX(),
+				volume->GetPixelSizeY(),
+				volume->GetPixelSizeZ() );
+    pixelSizer->SetResliceTransform( pixelSizerTransform );
+
+
+
+    mVolumeToRASTransform->SetInputConnection( pixelSizer->GetOutputPort() );
+#else
+    mVolumeToRASTransform->SetInputConnection( mVolume->GetOutputPort() );
+#endif
+
+    mVolumeToRASTransform->SetOutputDimensionality( 3 );
+    mVolumeToRASTransform->AutoCropOutputOff();
+
+    mUserTransform = vtkSmartPointer<vtkImageReslice>::New();
+    mUserTransform->
+      SetInputConnection( mVolumeToRASTransform->GetOutputPort() );
+    mUserTransform->SetOutputDimensionality( 3 );
+    mUserTransform->AutoCropOutputOff();
+
+    // Update these objects before passing them into our view.
+    mVolumeToRASTransform->Update();
+    mUserTransform->Update();
+
+    // Set the resliced (transformed to RAS) data in the view. THe 2D
+    // views get the output of the user transform, so they are always
+    // updated with the combination of the RAS and the user
+    // transform. The 3D view only gets the RAS transform, as it
+    // defines the user transform.
+    mView2D[X]->SetFSVolumeAndImage( *mVolume, *mUserTransform->GetOutput() );
+    mView2D[Y]->SetFSVolumeAndImage( *mVolume, *mUserTransform->GetOutput() );
+    mView2D[Z]->SetFSVolumeAndImage( *mVolume, *mUserTransform->GetOutput() );
+    mView3D->SetFSVolumeAndImage( *mVolume, 
+				  *mVolumeToRASTransform->GetOutput() );
+
+    // Create a basic LUT.
+    mGrayScaleColors = vtkSmartPointer<vtkLookupTable>::New();
     mGrayScaleColors->SetTableRange( mVolume->GetMinValue(), mVolume->GetMaxValue() );
     mGrayScaleColors->SetSaturationRange( 0, 0 );
     mGrayScaleColors->SetHueRange( 0, 0 );
@@ -499,31 +541,22 @@ vtkKWOrientMRIWindow::LoadVolume ( const char* ifnVolume ) {
     for ( int nEntry = 0; nEntry < mGrayScaleColors->GetIndex(10); nEntry++ )
       mGrayScaleColors->SetTableValue( nEntry, 0, 0, 0, 0 );
 
-    // Calculate the inverse of our starting viewing transform here so
-    // can use it later.
-    if ( NULL == mOriginalView )
-      mOriginalView = vtkMatrix4x4::New();
-    mOriginalView->
-      DeepCopy( mView->GetRenderer()->GetActiveCamera()->GetViewTransformMatrix() );
-    (*mOriginalView)[0][3] = 0;
-    (*mOriginalView)[1][3] = 0;
-    (*mOriginalView)[2][3] = 0;
-    
-    if ( NULL == mOriginalViewI )
-      mOriginalViewI = vtkMatrix4x4::New();
-    mOriginalViewI->DeepCopy( mOriginalViewI );
-    mOriginalViewI->Invert();
-    (*mOriginalViewI)[0][3] = 0;
-    (*mOriginalViewI)[1][3] = 0;
-    (*mOriginalViewI)[2][3] = 0;
-    
     // Get and save the original VoxelToRAS.
-    if ( NULL == mOriginalVoxelToRASMatrix )
-      mOriginalVoxelToRASMatrix = vtkMatrix4x4::New();
+    mOriginalVoxelToRASMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
     mOriginalVoxelToRASMatrix->DeepCopy( mVolume->GetVoxelToRASMatrix() );
 
     // Use grayscale for now.
     this->UseGrayScaleColors();
+
+    // Build the initial volume transform.
+    this->RebuildVolumeToRASTransform();
+    this->UpdateUserTransform();
+
+    // Render everything.
+    mView2D[X]->Render();
+    mView2D[Y]->Render();
+    mView2D[Z]->Render();
+    mView3D->Render();
     
     this->SetStatusText( "Volume loaded." );
     this->AddRecentFile( ifnVolume, this, "LoadVolume" );
@@ -560,6 +593,10 @@ vtkKWOrientMRIWindow::SaveVolumeWithConfirm () {
 void
 vtkKWOrientMRIWindow::SaveVolumeAsFromDlog () {
 
+  // The smart pointer version is commented out because of a bug that
+  // occurs when the dialog is deleted.
+  //  vtkSmartPointer<vtkKWLoadSaveDialog> dialog = 
+  //    vtkSmartPointer<vtkKWLoadSaveDialog>::New();
   vtkKWLoadSaveDialog* dialog = vtkKWLoadSaveDialog::New();
   dialog->SaveDialogOn();
   dialog->SetApplication( GetApplication() );
@@ -578,14 +615,13 @@ vtkKWOrientMRIWindow::SaveVolumeAsFromDlog () {
 void
 vtkKWOrientMRIWindow::SaveVolume () {
 
-  if( !mVolume ) throw runtime_error( "mVolume was NULL" );
+  assert( mVolume.GetPointer() );
 
   // Tell the volume to write itself.
   mVolume->MRIWrite();
 
   // Get the new VoxelToRAS as our original.
-  if ( NULL == mOriginalVoxelToRASMatrix )
-    mOriginalVoxelToRASMatrix = vtkMatrix4x4::New();
+  mOriginalVoxelToRASMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
   mOriginalVoxelToRASMatrix->DeepCopy( mVolume->GetVoxelToRASMatrix() );
 
   // No longer dirty.
@@ -595,14 +631,13 @@ vtkKWOrientMRIWindow::SaveVolume () {
 void
 vtkKWOrientMRIWindow::SaveVolume ( const char* ifnVolume ) {
 
-  if( !mVolume ) throw runtime_error( "mVolume was NULL" );
+  assert( mVolume.GetPointer() );
 
   // Set the volume filename.
   mVolume->MRIWrite( ifnVolume );
 
   // Get the new VoxelToRAS as our original.
-  if ( NULL == mOriginalVoxelToRASMatrix )
-    mOriginalVoxelToRASMatrix = vtkMatrix4x4::New();
+  mOriginalVoxelToRASMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
   mOriginalVoxelToRASMatrix->DeepCopy( mVolume->GetVoxelToRASMatrix() );
 
   // No longer dirty.
@@ -612,6 +647,10 @@ vtkKWOrientMRIWindow::SaveVolume ( const char* ifnVolume ) {
 void
 vtkKWOrientMRIWindow::LoadLUTFromDlog () {
 
+  // The smart pointer version is commented out because of a bug that
+  // occurs when the dialog is deleted.
+  //  vtkSmartPointer<vtkKWLoadSaveDialog> dialog = 
+  //    vtkSmartPointer<vtkKWLoadSaveDialog>::New();
   vtkKWLoadSaveDialog* dialog = vtkKWLoadSaveDialog::New();
   dialog->SetApplication( GetApplication() );
   dialog->Create();
@@ -628,7 +667,10 @@ vtkKWOrientMRIWindow::LoadLUTFromDlog () {
 void
 vtkKWOrientMRIWindow::LoadLUT ( const char* ifnLUT ) {
 
-  if( !mView ) throw runtime_error( "mView was NULL" );
+  assert( mView2D[X].GetPointer() );
+  assert( mView2D[Y].GetPointer() );
+  assert( mView2D[Z].GetPointer() );
+  assert( mView3D.GetPointer() );
 
   try {
     
@@ -642,8 +684,7 @@ vtkKWOrientMRIWindow::LoadLUT ( const char* ifnLUT ) {
     }
       
     // Create a table if not already.
-    if ( NULL == mLUTColors )
-      mLUTColors = vtkFreesurferLookupTable::New();
+    mLUTColors = vtkSmartPointer<vtkFreesurferLookupTable>::New();
     mLUTColors->BuildFromCTAB( ctab );
     
     // Free the ctab.
@@ -666,21 +707,19 @@ vtkKWOrientMRIWindow::LoadLUT ( const char* ifnLUT ) {
 void
 vtkKWOrientMRIWindow::RevertToSavedTransform () {
 
-  if( !mView ) throw runtime_error( "mView was NULL" );
-  if( !mVolume ) throw runtime_error( "mVolume was NULL" );
-  if( !mOriginalVoxelToRASMatrix ) 
-    throw runtime_error( "mOriginalVoxelToRASMatrix was NULL" );
+  assert( mVolume.GetPointer() );
+  assert( mOriginalVoxelToRASMatrix.GetPointer() );
 
   try {
-    
+
     // Set our save original matrix.
     mVolume->SetVoxelToRASMatrix( *mOriginalVoxelToRASMatrix );
       
-    // Notify the view that the matrix has changed.
-    mView->VolumeToRASTransformChanged();
+    // Rebuild our transform.
+    this->RebuildVolumeToRASTransform();
 
     // Restore the view.
-    mView->RestoreView();
+    this->RestoreView();
 
     // No longer dirty.
     mbDirty = false;
@@ -697,55 +736,83 @@ vtkKWOrientMRIWindow::RevertToSavedTransform () {
 void
 vtkKWOrientMRIWindow::TransformVolume () {
 
-  if( !mVolume ) throw runtime_error( "mVolume was NULL" );
-  if( !mView ) throw runtime_error( "mView was NULL" );
-  if( !mOriginalVoxelToRASMatrix )
-    throw runtime_error( "mOriginalVoxelToRASMatrix was NULL" );
-  if( !mOriginalView ) throw runtime_error( "mOriginalView was NULL" );
-  if( !mOriginalViewI ) throw runtime_error( "mOriginalViewI was NULL" );
+  assert( mVolume.GetPointer() );
+  assert( mOriginalVoxelToRASMatrix.GetPointer() );
+
+  // orient_mri only seeks to change the rotation of a volume, not its
+  // location in space. We want to keep the same CRAS. So what we do
+  // is take the existing volume in RAS space, translate to the
+  // center, perform the rotation, and then translate it back, so that
+  // the volume was rotated around the existing center.
 
   // Get the current VoxelToRAS matrix
-  vtkMatrix4x4* currentVoxelToRAS = vtkMatrix4x4::New();
-  currentVoxelToRAS->DeepCopy( mVolume->GetVoxelToRASMatrix() );
+  vtkSmartPointer<vtkMatrix4x4> currentVoxelToRASM = 
+    vtkSmartPointer<vtkMatrix4x4>::New();
+  currentVoxelToRASM->DeepCopy( mVolume->GetVoxelToRASMatrix() );
 
-  // This is the current view transform without the translation
-  // component.
-  vtkMatrix4x4* viewTransform = vtkMatrix4x4::New();
-  viewTransform->
-    DeepCopy( mView->GetRenderer()->GetActiveCamera()->GetViewTransformMatrix() );
-  (*viewTransform)[0][3] = 0;
-  (*viewTransform)[1][3] = 0;
-  (*viewTransform)[2][3] = 0;
+  // We need to transform this volume so that the center is at the RAS
+  // origin. Get the RAS bounds. and calculate the amount we need to
+  // translate to do this.
+  float RASBounds[6];
+  mVolume->GetRASBounds( RASBounds );
+  double trans[3];
+  trans[0] = (RASBounds[1]-RASBounds[0])/2.0 + RASBounds[0];
+  trans[1] = (RASBounds[3]-RASBounds[2])/2.0 + RASBounds[2];
+  trans[2] = (RASBounds[5]-RASBounds[4])/2.0 + RASBounds[4];
 
-  // Currently it includes the original camera transform. Since we
-  // point the cmaera at the front of the face in RAS space, it
-  // introduces a non-identity view transform as a basis, so we undo
-  // that here to get the view transforms in relative terms.
-  // viewTransform = mOriginalViewI * viewTransform
-  vtkMatrix4x4::Multiply4x4( viewTransform, mOriginalViewI, viewTransform );
+  // Get the user transform. Get it as a vtkTransform as well because
+  // we want to extract the orientation.
+  vtkSmartPointer<vtkMatrix4x4> userTransformM =
+    vtkSmartPointer<vtkMatrix4x4>::New();
+  vtkSmartPointer<vtkTransform> userTransform =
+    vtkSmartPointer<vtkTransform>::New();
+  userTransformM->DeepCopy( &this->GetUserTransform() );
+  userTransformM->Invert();
+  userTransform->SetMatrix( userTransformM );
 
+  // Extract the orientation from thse user transform.
+  double orientation[3];
+  userTransform->GetOrientation( orientation );
 
-  // To get voxelToRAS we need the view transform in RAS space, which
-  // we get by transforming our view transform to abosulte RAS space,
-  // and applying it to the voxelToRAS transform.
-  // newVoxelToRAS = currentVoxelToRAS * original-1 * viewTransform * original
-  vtkMatrix4x4* newVoxelToRAS = vtkMatrix4x4::New();
-  vtkMatrix4x4::Multiply4x4( mOriginalView, viewTransform, newVoxelToRAS );
-  vtkMatrix4x4::Multiply4x4( newVoxelToRAS, mOriginalViewI, newVoxelToRAS );
-  vtkMatrix4x4::Multiply4x4( newVoxelToRAS, currentVoxelToRAS, newVoxelToRAS );
+  // Make a new transform. Set it to post multiply because we're going
+  // to start with an initial transform and then stack stuff on after
+  // that.
+  vtkSmartPointer<vtkTransform> transform = 
+    vtkSmartPointer<vtkTransform>::New();
+  transform->PostMultiply();
 
+  // Initialize it with the current VoxelToRAS. 
+  transform->SetMatrix( currentVoxelToRASM );
+
+  // First, undo the translation to get it to the center.
+  transform->Translate( -trans[0],-trans[1], -trans[2] );
+   
+  // Now rotate it with the orientation from the user transform.
+  transform->RotateX( orientation[0] );
+  transform->RotateY( orientation[1] );
+  transform->RotateZ( orientation[2] );
+
+  // Now translate it back to where it was before.
+  transform->Translate( trans[0], trans[1], trans[2] );
+  
   // Set the matrix in the volume.
-  mVolume->SetVoxelToRASMatrix( *newVoxelToRAS );
+  mVolume->SetVoxelToRASMatrix( *transform->GetMatrix() );
+  mVolume->Update();
 
-  viewTransform->Delete();
-  currentVoxelToRAS->Delete();
-  newVoxelToRAS->Delete();
-
+#if 0
+  cerr << "current " << endl << *currentVoxelToRASM << endl
+       << "user " << endl << *userTransformM << endl
+       << "composed " << endl << *transform->GetMatrix() << endl;
+#endif
+  
   // Recalc our reslice transform.
-  mView->VolumeToRASTransformChanged();
+  this->RebuildVolumeToRASTransform();
+
+   // Broadcast our event.
+  this->InvokeEvent( OrientMRIEvents::VolumeToRASTransformChanged );
 
   // Restore the view.
-  mView->RestoreView();
+  this->RestoreView();
 
   // Now dirty.
   mbDirty = true;
@@ -758,10 +825,14 @@ vtkKWOrientMRIWindow::TransformVolume () {
 void
 vtkKWOrientMRIWindow::RestoreView () {
 
-  if( !mView ) throw runtime_error( "mView was NULL" );
+  assert( mView3D.GetPointer() );
 
-  // Tell the view to restore.
-  mView->RestoreView();
+  // Tell the views to restore.
+  mView3D->RestoreView();
+
+  mView2D[X]->Render();
+  mView2D[Y]->Render();
+  mView2D[Z]->Render();
 
   // Update our menu and buttons.
   this->UpdateCommandStatus();
@@ -771,10 +842,10 @@ vtkKWOrientMRIWindow::RestoreView () {
 void
 vtkKWOrientMRIWindow::ZoomBy ( float iFactor ) {
 
-  if( !mView ) throw runtime_error( "mView was NULL" );
+  assert( mView3D.GetPointer() );
 
   // Tell the view to zoom.
-  mView->ZoomBy( iFactor );
+  mView3D->ZoomBy( iFactor );
 
   // Update our menu and buttons.
   UpdateCommandStatus();
@@ -795,13 +866,13 @@ vtkKWOrientMRIWindow::ZoomOut () {
 void 
 vtkKWOrientMRIWindow::UseGrayScaleColors () {
 
-  if( !mView ) throw runtime_error( "mView was NULL" );
-  if( !mGrayScaleColors ) throw runtime_error( "mGrayScaleColors was NULL" );
-  if( !mRadBtnUseGrayScaleColors ) throw runtime_error( "mRadBtnUseGrayScaleColors was NULL" );
+  assert( mView3D.GetPointer() );
+  assert( mGrayScaleColors.GetPointer() );
+  assert( mRadBtnUseGrayScaleColors.GetPointer() );
 
   // Change the colors.
-  mView->SetCurrentVolumeColors( mGrayScaleColors );
-  mView->Render();
+  mView3D->SetImageColors( *mGrayScaleColors );
+  mView3D->Render();
   
   // Turn on our radio buttion.
   mRadBtnUseGrayScaleColors->SelectedStateOn();
@@ -810,59 +881,372 @@ vtkKWOrientMRIWindow::UseGrayScaleColors () {
 void
 vtkKWOrientMRIWindow::UseLUTColors () {
 
-  if( !mView ) throw runtime_error( "mView was NULL" );
-  if( !mLUTColors ) throw runtime_error( "mLUTColors was NULL" );
-  if( !mRadBtnUseLUTColors ) throw runtime_error( "mRadBtnUseLUTColors was NULL" );
+  assert( mView3D.GetPointer() );
+  assert( mLUTColors.GetPointer() );
+  assert( mRadBtnUseLUTColors.GetPointer() );
 
   // Change the colors.
-  mView->SetCurrentVolumeColors( mLUTColors );
-  mView->Render();
+  mView3D->SetImageColors( *mLUTColors );
+  mView3D->Render();
 
   // Turn on our radio buttion.
   mRadBtnUseLUTColors->SelectedStateOn();
 }
 
 void
+vtkKWOrientMRIWindow::UpdateUserTransform () {
+
+  assert( mUserTransform.GetPointer() );
+  assert( mView2D[X].GetPointer() );
+  assert( mView2D[Y].GetPointer() );
+  assert( mView2D[Z].GetPointer() );
+
+  // Get the user transform and copy it into mUserTransform.
+  vtkSmartPointer<vtkTransform> userTransform = 
+    vtkSmartPointer<vtkTransform>::New();
+  userTransform->SetMatrix( &this->GetUserTransform() );
+  mUserTransform->SetResliceTransform( userTransform );
+  mUserTransform->Update();
+  
+  // Redraw our 2D views.
+  for( int nView = 0; nView < 3; nView++ )
+    mView2D[nView]->Render();
+}
+
+void
 vtkKWOrientMRIWindow::UpdateCommandStatus () {
 
-  if( !mView ) throw runtime_error( "mView was NULL" );
+  assert( mView3D.GetPointer() );
 
   // Determine the enabled state of our commands.
-  if( mVolume ) {
+  if( mVolume.GetPointer() ) {
     mBtnTransformVolume->SetStateToNormal();
-    mMenuTransformVolume.menu->SetItemStateToNormal( mMenuTransformVolume.nItem );
+    mMenuTransformVolume->SetStateToNormal();
   } else {
     mBtnTransformVolume->SetStateToDisabled();
-    mMenuTransformVolume.menu->SetItemStateToDisabled( mMenuTransformVolume.nItem );
+    mMenuTransformVolume->SetStateToDisabled();
   }
 
-  if( mVolume && mbDirty ) {
+  if( mVolume.GetPointer() && mbDirty ) {
     mBtnSaveVolume->SetStateToNormal();
-    mMenuSaveVolume.menu->SetItemStateToNormal( mMenuSaveVolume.nItem );
-    mMenuSaveVolumeAs.menu->SetItemStateToNormal( mMenuSaveVolumeAs.nItem );
+    mMenuSaveVolume->SetStateToNormal();
+    mMenuSaveVolumeAs->SetStateToNormal();
     mBtnRevertVolume->SetStateToNormal();
-    mMenuRevertVolume.menu->SetItemStateToNormal( mMenuRevertVolume.nItem );
+    mMenuRevertVolume->SetStateToNormal();
   } else {
     mBtnSaveVolume->SetStateToDisabled();
-    mMenuSaveVolume.menu->SetItemStateToDisabled( mMenuSaveVolume.nItem );
-    mMenuSaveVolumeAs.menu->SetItemStateToDisabled( mMenuSaveVolumeAs.nItem );
+    mMenuSaveVolume->SetStateToDisabled();
+    mMenuSaveVolumeAs->SetStateToDisabled();
     mBtnRevertVolume->SetStateToDisabled();
-    mMenuRevertVolume.menu->SetItemStateToDisabled( mMenuRevertVolume.nItem );
+    mMenuRevertVolume->SetStateToDisabled();
   }
 
-  if( mVolume && mGrayScaleColors ) {
+  if( mVolume.GetPointer() && mGrayScaleColors.GetPointer() ) {
     mRadBtnUseGrayScaleColors->SetStateToNormal();
-    mMenuUseGrayScaleColors.menu->SetItemStateToNormal( mMenuUseGrayScaleColors.nItem );
+    mMenuUseGrayScaleColors->SetStateToNormal();
   } else {
     mRadBtnUseGrayScaleColors->SetStateToDisabled();
-    mMenuUseGrayScaleColors.menu->SetItemStateToDisabled( mMenuUseGrayScaleColors.nItem );
+    mMenuUseGrayScaleColors->SetStateToDisabled();
   }
 
-  if( mVolume && mLUTColors ) {
+  if( mVolume.GetPointer() && mLUTColors.GetPointer() ) {
     mRadBtnUseLUTColors->SetStateToNormal();
-    mMenuUseLUTColors.menu->SetItemStateToNormal( mMenuUseLUTColors.nItem );
+    mMenuUseLUTColors->SetStateToNormal();
   } else {
     mRadBtnUseLUTColors->SetStateToDisabled();
-    mMenuUseLUTColors.menu->SetItemStateToDisabled( mMenuUseLUTColors.nItem );
+    mMenuUseLUTColors->SetStateToDisabled();
   }
+}
+
+void
+vtkKWOrientMRIWindow::RebuildVolumeToRASTransform () {
+
+  assert( mVolume.GetPointer() );
+  assert( mVolumeToRASTransform.GetPointer() );
+  assert( mScaleThroughPlane[X].GetPointer() );
+  assert( mScaleThroughPlane[Y].GetPointer() );
+  assert( mScaleThroughPlane[Z].GetPointer() );
+  
+  // This rotates the volume to the proper orientation. From
+  // ImageReslice: "applying a transform to the resampling grid (which
+  // lies in the output coordinate system) is equivalent to applying
+  // the inverse of that transform to the input volume."
+  double* rtv = mVolume->GetRASToVoxelMatrix();
+
+  // 0,0 0,1 0,2 0,3      rtv[0]  rtv[1]  rtv[2]  0
+  // 1,0 1,1 1,2 1,3  =>  rtv[4]  rtv[5]  rtv[6]  0
+  // 2,0 2,1 2,2 2,3      rtv[8]  rtv[9]  rtv[10] 0
+  // 3,0 3,1 3,2 3,3        0       0       0     1
+  vtkSmartPointer<vtkMatrix4x4> matrix = 
+    vtkSmartPointer<vtkMatrix4x4>::New();
+  matrix->SetElement( 0, 0, rtv[0] );
+  matrix->SetElement( 0, 1, rtv[1] );
+  matrix->SetElement( 0, 2, rtv[2] );
+  matrix->SetElement( 0, 3, 0 );
+  matrix->SetElement( 1, 0, rtv[4] );
+  matrix->SetElement( 1, 1, rtv[5] );
+  matrix->SetElement( 1, 2, rtv[6] );
+  matrix->SetElement( 1, 3, 0 );
+  matrix->SetElement( 2, 0, rtv[8] );
+  matrix->SetElement( 2, 1, rtv[9] );
+  matrix->SetElement( 2, 2, rtv[10] );
+  matrix->SetElement( 2, 3, 0 );
+  matrix->SetElement( 3, 0, 0 );
+  matrix->SetElement( 3, 1, 0 );
+  matrix->SetElement( 3, 2, 0 );
+  matrix->SetElement( 3, 3, 1 );
+
+  vtkSmartPointer<vtkTransform> transform = 
+    vtkSmartPointer<vtkTransform>::New();
+  transform->SetMatrix( matrix );
+
+  // Set the transform in our reslicer.
+  mVolumeToRASTransform->SetResliceTransform( transform );
+  mVolumeToRASTransform->Update();
+  
+  // Get the RAS bounds from the volume and set the ranges of the
+  // scales.
+  float RASBounds[6];
+  mVolume->GetRASBounds( RASBounds );
+  mScaleThroughPlane[X]->SetRange( RASBounds[0], RASBounds[1] );
+  mScaleThroughPlane[X]->SetValue( RASBounds[0] +
+				   (RASBounds[1]-RASBounds[0])/2.0 );
+  mScaleThroughPlane[Y]->SetRange( RASBounds[2], RASBounds[3] );
+  mScaleThroughPlane[Y]->SetValue( RASBounds[2] +
+				   (RASBounds[3]-RASBounds[2])/2.0 );
+  mScaleThroughPlane[Z]->SetRange( RASBounds[4], RASBounds[5] );
+  mScaleThroughPlane[Z]->SetValue( RASBounds[4] + 
+				   (RASBounds[5]-RASBounds[4])/2.0 );
+  
+
+#if 0
+  int* extent;
+  double* bounds;
+  cerr << "RAS bounds " << RASBounds[0] << " " << RASBounds[1] << " "
+       << RASBounds[2] << " " << RASBounds[3] << " "
+       << RASBounds[4] << " " << RASBounds[5] << " " << endl;
+  extent = mVolumeToRASTransform->GetOutput()->GetWholeExtent();
+  cerr << "in window, vtr output whole extent "
+       << extent[0] << " " << extent[1] << " "
+       << extent[2] << " " << extent[3] << " "
+       << extent[4] << " " << extent[5] << " " << endl;
+  extent = mVolumeToRASTransform->GetOutput()->GetExtent();
+  cerr << "in window, vtr output extent "
+       << extent[0] << " " << extent[1] << " "
+       << extent[2] << " " << extent[3] << " "
+       << extent[4] << " " << extent[5] << " " << endl;
+  extent = mVolumeToRASTransform->GetOutputExtent();
+  cerr << "in window, vtr OutputExtent "
+       << extent[0] << " " << extent[1] << " "
+       << extent[2] << " " << extent[3] << " "
+       << extent[4] << " " << extent[5] << " " << endl;
+  bounds = mVolumeToRASTransform->GetOutput()->GetBounds();
+  cerr << "in window, vtr output bounds "
+       << bounds[0] << " " << bounds[1] << " "
+       << bounds[2] << " " << bounds[3] << " "
+       << bounds[4] << " " << bounds[5] << " " << endl;
+ extent = mUserTransform->GetOutput()->GetExtent();
+ cerr << "in window, user extent " << extent[0] << " " << extent[1] << " "
+      << extent[2] << " " << extent[3] << " "
+      << extent[4] << " " << extent[5] << " " << endl;
+
+ bounds = mUserTransform->GetOutput()->GetBounds();
+ cerr << "in window, user bounds " << bounds[0] << " " << bounds[1] << " "
+      << bounds[2] << " " << bounds[3] << " "
+      << bounds[4] << " " << bounds[5] << " " << endl;
+#endif
+
+
+}
+
+vtkMatrix4x4&
+vtkKWOrientMRIWindow::GetUserTransform () {
+
+  assert( mView3D.GetPointer() );
+
+  // Just get it from the 3D view.
+  return mView3D->GetUserTransform();
+}
+
+
+void
+vtkKWOrientMRIWindow::AddSpacerToToolbar ( vtkKWToolbar& iToolbar, int iWidth ) {
+  
+  // Create a frame of the specified width inside the toolbar.
+  vtkSmartPointer<vtkKWFrame> spacer = 
+    vtkSmartPointer<vtkKWFrame>::New();
+  spacer->SetParent( &iToolbar );
+  spacer->Create();
+  spacer->SetWidth( iWidth );
+  iToolbar.AddWidget( spacer );
+
+}
+
+void
+vtkKWOrientMRIWindow::UserTransformChanged ( vtkObject* iCaller, 
+					     unsigned long iEventId,
+					     void* iClientData,
+					     void* iCallData ) {
+
+  // We're listening for UserTransformChanged events. When we get one,
+  // call the window's UpdateUserTransform function.
+  if( OrientMRIEvents::UserTransformChanged == iEventId ) {
+
+    // Get our window pointer from the client data.
+    assert( iClientData );
+    vtkKWOrientMRIWindow* window = 
+      static_cast<vtkKWOrientMRIWindow*>( iClientData );
+
+    if( window ) window->UpdateUserTransform();
+  }
+
+}
+
+vtkKWOrientMRIWindow::MenuItem::MenuItem ()  :
+    mMenu( NULL ),
+    mnItem( -1 ) {}
+
+
+void
+vtkKWOrientMRIWindow::MenuItem::MakeCommand ( vtkKWMenu* iMenu,
+					 int inItem,
+					 const char* isText,
+					 vtkObject* iCommandObject,
+					 const char* isCommand,
+					 const char* isAccelerator,
+					 const char* isIconKey ) {
+  
+  if( NULL == iMenu )
+    throw( "MakeCommand: iMenu was NULL" );
+  if( NULL == isText )
+    throw( "MakeCommand: isText was NULL" );
+  if( NULL == isCommand )
+    throw( "MakeCommand: isCommand was NULL" );
+
+  // Try inserting the command. If it returns -1 it failed.
+  int nIndex =
+    iMenu->InsertCommand( inItem, isText, iCommandObject, isCommand );
+
+  if( -1 == nIndex )
+    throw runtime_error( "Couldn't create menu item" );
+
+  // It's in. Save the info.
+  mMenu = iMenu;
+  mnItem = nIndex;
+
+  // Set the accelerator if available.
+  if( isAccelerator )
+    mMenu->SetItemAccelerator( mnItem, isAccelerator );
+
+  // Try to load the icon. If it fails, use the KW built-in question
+  // mark icon.
+  if( isIconKey ) {
+    try {
+      mMenu->SetItemCompoundModeToLeft( mnItem );
+      IconLoader::SetMenuItemIcon( isIconKey, mMenu, mnItem );
+    } catch (exception& e) {
+      stringstream ssError;
+      ssError << "Error loading icon: " << e.what();
+      mMenu->GetApplication()->ErrorMessage( ssError.str().c_str() );
+      mMenu->SetItemImageToPredefinedIcon( mnItem, vtkKWIcon::IconQuestion );
+    }
+  }
+
+}
+
+void
+vtkKWOrientMRIWindow::MenuItem::MakeCheckButton ( vtkKWMenu* iMenu,
+					     int inItem,
+					     const char* isText,
+					     vtkObject* iCommandObject,
+					     const char* isCommand,
+					     const char* isAccelerator,
+					     const char* isIconKey ) {
+  
+  if( NULL == iMenu )
+    throw( "MakeCheckButton: iMenu was NULL" );
+  if( NULL == isText )
+    throw( "MakeCheckButton: isText was NULL" );
+  if( NULL == isCommand )
+    throw( "MakeCheckButton: isCommand was NULL" );
+
+  // Try inserting the check button. If it returns -1 it failed.
+  int nIndex =
+    iMenu->InsertCheckButton( inItem, isText, iCommandObject, isCommand );
+
+  if( -1 == nIndex )
+    throw runtime_error( "Couldn't create menu item" );
+
+  // It's in. Save the info.
+  mMenu = iMenu;
+  mnItem = nIndex;
+
+  // Set the accelerator if available.
+  if( isAccelerator )
+    mMenu->SetItemAccelerator( mnItem, isAccelerator );
+
+  // Try to load the icon. If it fails, use the KW built-in question
+  // mark icon.
+  if( isIconKey ) {
+    try {
+      mMenu->SetItemCompoundModeToLeft( mnItem );
+      IconLoader::SetMenuItemIcon( isIconKey, mMenu, mnItem );
+    } catch (exception& e) {
+      stringstream ssError;
+      ssError << "Error loading icon: " << e.what();
+      mMenu->GetApplication()->ErrorMessage( ssError.str().c_str() );
+      mMenu->SetItemImageToPredefinedIcon( mnItem, vtkKWIcon::IconQuestion );
+    }
+  }
+
+}
+
+void
+vtkKWOrientMRIWindow::MenuItem::SetStateToDisabled () {
+
+  if( NULL == mMenu.GetPointer() )
+    throw runtime_error( "MenuItem::SetStateToDisabled: mMenu was NULL" );
+  if( -1 == mnItem )
+    throw runtime_error( "MenuItem::SetStateToDisabled: mnItem was -1" );
+
+  mMenu->SetItemStateToDisabled( mnItem );
+}
+
+void
+vtkKWOrientMRIWindow::MenuItem::SetStateToNormal () {
+
+  if( NULL == mMenu.GetPointer() )
+    throw runtime_error( "MenuItem::SetStateToNormal: mMenu was NULL" );
+  if( -1 == mnItem )
+    throw runtime_error( "MenuItem::SetStateToNormal: mnItem was -1" );
+
+  mMenu->SetItemStateToNormal( mnItem );
+}
+
+void
+vtkKWOrientMRIWindow::MenuItem::SetSelectedState ( int ibOn ) {
+
+  if( NULL == mMenu.GetPointer() )
+    throw runtime_error( "MenuItem::SetSelectedState: mMenu was NULL" );
+  if( -1 == mnItem )
+    throw runtime_error( "MenuItem::SetSelectedState: mnItem was -1" );
+
+  mMenu->SetItemSelectedState( mnItem, ibOn );
+}
+
+int
+vtkKWOrientMRIWindow::MenuItem::GetSelectedState () {
+
+  if( NULL == mMenu.GetPointer() )
+    throw runtime_error( "MenuItem::GetSelectedState: mMenu was NULL" );
+  if( -1 == mnItem )
+    throw runtime_error( "MenuItem::GetSelectedState: mnItem was -1" );
+
+  return mMenu->GetItemSelectedState( mnItem );
+}
+
+int
+vtkKWOrientMRIWindow::MenuItem::GetIndex () const {
+
+  return mnItem;
 }

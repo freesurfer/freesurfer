@@ -10,8 +10,16 @@ bin_PROGRAMS = orient_mri
 orient_mri_SOURCES= \
 	OrientMRIMain.cxx \
 	vtkKWOrientMRIApp.cxx vtkKWOrientMRIApp.h vtkKWOrientMRIAppTcl.cxx \
-	vtkKWOrientMRIWindow.cxx vtkKWOrientMRIWindow.h vtkKWOrientMRIWindowTcl.cxx \
-	vtkKWOrientMRIView.cxx vtkKWOrientMRIView.h vtkKWOrientMRIViewTcl.cxx \
+	vtkKWOrientMRIWindow.cxx vtkKWOrientMRIWindow.h \
+	vtkKWOrientMRIWindowTcl.cxx \
+	vtkKWOrientMRIView2D.cxx vtkKWOrientMRIView2D.h \
+	vtkKWOrientMRIView2DTcl.cxx \
+	vtkKWOrientMRIView3D.cxx vtkKWOrientMRIView3D.h \
+	vtkKWOrientMRIView3DTcl.cxx \
+	vtkOrientMRIInteractorStyleView3D.cxx \
+	vtkOrientMRIInteractorStyleView3D.h \
+	vtkOrientMRIInteractorStyleView2D.cxx \
+	vtkOrientMRIInteractorStyleView2D.h \
 	OrientMRILibInit.cxx
 orient_mri_LDADD= \
 	$(top_srcdir)/vtkfsio/libvtkfsio.a \
@@ -44,9 +52,13 @@ vtkKWOrientMRIWindowTcl.cxx: vtkKWOrientMRIWindow.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWOrientMRIWindow.h \
 	${VTK_DIR}/src/VTK/Wrapping/hints 1 vtkKWOrientMRIWindowTcl.cxx
 
-vtkKWOrientMRIViewTcl.cxx: vtkKWOrientMRIView.h
-	${VTK_DIR}/bin/vtkWrapTcl vtkKWOrientMRIView.h \
-	${VTK_DIR}/src/VTK/Wrapping/hints 1 vtkKWOrientMRIViewTcl.cxx
+vtkKWOrientMRIView2DTcl.cxx: vtkKWOrientMRIView2D.h
+	${VTK_DIR}/bin/vtkWrapTcl vtkKWOrientMRIView2D.h \
+	${VTK_DIR}/src/VTK/Wrapping/hints 1 vtkKWOrientMRIView2DTcl.cxx
+
+vtkKWOrientMRIView3DTcl.cxx: vtkKWOrientMRIView3D.h
+	${VTK_DIR}/bin/vtkWrapTcl vtkKWOrientMRIView3D.h \
+	${VTK_DIR}/src/VTK/Wrapping/hints 1 vtkKWOrientMRIView3DTcl.cxx
 
 OrientMRILibInit.cxx: OrientMRILibInit.data
 	${VTK_DIR}/bin/vtkWrapTclInit OrientMRILibInit.data OrientMRILibInit.cxx
@@ -80,17 +92,20 @@ install-exec-hook:
 dist-exec-hook:
 	@touch vtkKWOrientMRIAppTcl.cxx
 	@touch vtkKWOrientMRIWindowTcl.cxx
-	@touch vtkKWOrientMRIViewTcl.cxx
+	@touch vtkKWOrientMRIView2DTcl.cxx
+	@touch vtkKWOrientMRIView3DTcl.cxx
 	@touch OrientMRILibInit.cxx
 	@sleep 2
 	@touch vtkKWOrientMRIApp.h
 	@touch vtkKWOrientMRIWindow.h
-	@touch vtkKWOrientMRIView.h
+	@touch vtkKWOrientMRIView2D.h
+	@touch vtkKWOrientMRIView3D.h
 	@touch OrientMRILibInit.data
 
 vtkKWOrientMRIAppTcl.cxx:
 vtkKWOrientMRIWindowTcl.cxx:
-vtkKWOrientMRIViewTcl.cxx:
+vtkKWOrientMRIView2DTcl.cxx:
+vtkKWOrientMRIView3DTcl.cxx:
 OrientMRILibInit.cxx:
 endif
 

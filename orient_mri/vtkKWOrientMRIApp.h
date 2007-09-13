@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/27 21:24:36 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/09/13 20:58:21 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,7 +31,9 @@
 #define __vtkKWOrientMRIApp_h
 
 #include <string>
+
 #include "vtkKWApplication.h"
+#include "vtkSmartPointer.h"
 
 class vtkKWOrientMRIWindow;
 
@@ -42,28 +44,27 @@ public:
   static vtkKWOrientMRIApp* New ();
   vtkTypeRevisionMacro ( vtkKWOrientMRIApp, vtkKWApplication );
 
+  // Description:
   // Override to show our window.
   virtual void Start ( int argc, char* argv[] );
 
-  // Override to save/load our prefs.
-  virtual void RestoreApplicationSettingsFromRegistry ();
-  virtual void SaveApplicationSettingsToRegistry ();
-
-  // Registry key constants.
-  static const char* sMainWindowWidthRegKey;
-  static const char* sMainWindowHeightRegKey;
-
+  // Description:
+  // Load a volume and display it.
   void LoadVolume ( const char* ifnVolume );
+
+  // Description:
+  // Override error message routine to display a dialog box as well.
+  virtual void ErrorMessage ( const char* isMessage );
 
 protected:
 
   vtkKWOrientMRIApp ();
   ~vtkKWOrientMRIApp ();
 
-  vtkKWOrientMRIWindow* mWindow;
-
-  int mMainWindowWidth;
-  int mMainWindowHeight;
+  //BTX
+  // Our window object.
+  vtkSmartPointer<vtkKWOrientMRIWindow> mWindow;
+  //ETX
 };
 
 #endif
