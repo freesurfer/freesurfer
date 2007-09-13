@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/20 21:20:05 $
- *    $Revision: 1.12 $
+ *    $Date: 2007/09/13 21:58:23 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.12 2007/07/20 21:20:05 greve Exp $
+// $Id: mri_binarize.c,v 1.13 2007/09/13 21:58:23 greve Exp $
 
 /*
   BEGINHELP
@@ -145,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.12 2007/07/20 21:20:05 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.13 2007/09/13 21:58:23 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -176,6 +176,7 @@ double MaskThresh = 0.5;
 
 int nErode2d = 0;
 int nErode3d = 0;
+int nDilate3d = 0;
 int DoBinCol = 0;
 
 /*---------------------------------------------------------------*/
@@ -317,6 +318,10 @@ int main(int argc, char *argv[]) {
 
   printf("Found %d values in range\n",nhits);
 
+  if(nDilate3d > 0){
+    printf("Dilating %d voxels in 3d\n",nDilate3d);
+    for(n=0; n<nDilate3d; n++) MRIdilate(OutVol,OutVol);
+  }
   if(nErode3d > 0){
     printf("Eroding %d voxels in 3d\n",nErode3d);
     for(n=0; n<nErode3d; n++) MRIerode(OutVol,OutVol);
@@ -434,6 +439,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&frame);
       nargsused = 1;
+    } else if (!strcasecmp(option, "--dilate")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nDilate3d);
+      nargsused = 1;
     } else if (!strcasecmp(option, "--erode")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nErode3d);
@@ -482,8 +491,9 @@ static void print_usage(void) {
   printf("   --bincol : set binarized voxel value to its column number\n");
   printf("   --zero-edges : zero the edge voxels\n");
   printf("   --zero-slice-edges : zero the edge slice voxels\n");
-  printf("   --erode nerode: erode binarization in 3D\n");
-  printf("   --erode2d nerode2d: erode binarization in 2D (after any 3D)\n");
+  printf("   --dilate ndilate: dilate binarization in 3D\n");
+  printf("   --erode  nerode: erode binarization in 3D (after any dilation)\n");
+  printf("   --erode2d nerode2d: erode binarization in 2D (after any 3D erosion)\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
