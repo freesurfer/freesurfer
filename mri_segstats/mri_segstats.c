@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/30 19:50:34 $
- *    $Revision: 1.33 $
+ *    $Author: greve $
+ *    $Date: 2007/09/13 20:26:56 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -110,7 +110,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.33 2007/07/30 19:50:34 nicks Exp $";
+"$Id: mri_segstats.c,v 1.34 2007/09/13 20:26:56 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -167,6 +167,7 @@ char *subject = NULL;
 char *hemi    = NULL;
 char *annot   = NULL;
 
+int Vox[3], DoVox = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -250,6 +251,20 @@ int main(int argc, char **argv) {
     if (seg == NULL) {
       printf("ERROR: loading %s\n",SegVolFile);
       exit(1);
+    }
+    if(DoVox){
+      printf("Replacing seg with a single voxel at %d %d %d\n",
+	     Vox[0],Vox[1],Vox[2]);
+      for(c=0; c < seg->width; c++){
+	for(r=0; r < seg->height; r++){
+	  for(s=0; s < seg->depth; s++){
+	    if(c == Vox[0] && r == Vox[1] && s == Vox[2])
+	      MRIsetVoxVal(seg,c,r,s,0, 1);
+	    else
+	      MRIsetVoxVal(seg,c,r,s,0, 0);
+	  }
+	}
+      }
     }
   } else {
     printf("Constructing seg from annotation\n");
@@ -965,6 +980,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       SegVolFile = pargv[0];
       nargsused = 1;
+    } else if ( !strcmp(option, "--vox") ) {
+      if (nargc < 1) argnerr(option,3);
+      sscanf(pargv[0],"%d",&Vox[0]);
+      sscanf(pargv[1],"%d",&Vox[1]);
+      sscanf(pargv[2],"%d",&Vox[2]);
+      DoVox = 1;
+      nargsused = 3;
     } else if ( !strcmp(option, "--in") ) {
       if (nargc < 1) argnerr(option,1);
       InVolFile = pargv[0];
@@ -1129,6 +1151,7 @@ static void print_usage(void) {
   printf("   --avgwfvol mrivol : save as a binary mri 'volume'\n");
   printf("   --sfavg textfile  : save mean across space and frame\n");
   printf("\n");
+  printf("   --vox C R S : replace seg with all 0s except at CRS\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
