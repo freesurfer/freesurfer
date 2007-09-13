@@ -11,9 +11,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/07/06 18:41:21 $
- *    $Revision: 1.10 $
+ *    $Author: kteich $
+ *    $Date: 2007/09/13 20:56:36 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,10 +55,11 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSVolumeSource );
-vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.10 $" );
+vtkCxxRevisionMacro( vtkFSVolumeSource, "$Revision: 1.11 $" );
 
 vtkFSVolumeSource::vtkFSVolumeSource () :
     mMRI( NULL ),
+    mbUseActualPixelSpacing( false ),
     mbBoundsCacheDirty( true ) {
   mImageData = vtkImageData::New();
 }
@@ -96,6 +97,24 @@ vtkFSVolumeSource::MRIWrite () {
   int err = ::MRIwrite( mMRI, mMRI->fname );
   if ( err != 0 ) {
     throw runtime_error( "MRIwrite failed" );
+  }
+}
+
+void
+vtkFSVolumeSource::ActualSpacingOn () {
+
+  if( !mbUseActualPixelSpacing ) {
+    mbUseActualPixelSpacing = true;
+    this->Modified();
+  }
+}
+
+void
+vtkFSVolumeSource::ActualSpacingOff () {
+
+  if( mbUseActualPixelSpacing ) {
+    mbUseActualPixelSpacing = false;
+    this->Modified();
   }
 }
 
@@ -138,7 +157,6 @@ vtkFSVolumeSource::SetVoxelToRASMatrix ( vtkMatrix4x4& iMatrix ) {
 
   MatrixFree( &m );
 
-  this->CopyMRIToImage();
   this->CopyMatricesFromMRI();
 }
 
@@ -222,6 +240,10 @@ vtkFSVolumeSource::Execute () {
   }
 
   // Set relevant information from the ImageData in the output.
+  if( mbUseActualPixelSpacing )
+    mImageData->SetSpacing( mMRI->xsize, mMRI->ysize, mMRI->zsize );
+  else
+    mImageData->SetSpacing( 1, 1, 1 );
   output->SetSpacing( mImageData->GetSpacing() );
   output->SetOrigin( mImageData->GetOrigin() );
   output->SetDimensions( mImageData->GetDimensions() );
@@ -246,6 +268,10 @@ vtkFSVolumeSource::ExecuteInformation () {
   output->SetScalarType( mImageData->GetScalarType() );
   output->SetNumberOfScalarComponents
   ( mImageData->GetNumberOfScalarComponents() );
+  if( mbUseActualPixelSpacing )
+    mImageData->SetSpacing( mMRI->xsize, mMRI->ysize, mMRI->zsize );
+  else
+    mImageData->SetSpacing( 1, 1, 1 );
   output->SetSpacing( mImageData->GetSpacing() );
   output->SetOrigin( mImageData->GetOrigin() );
 }
@@ -548,8 +574,10 @@ vtkFSVolumeSource::CopyMRIToImage () {
   
   // TODO: this is where the pixel spacing should go, but it messes up this
   // visualization in scuba2 right now -- fix later
-  mImageData->SetSpacing( 1, 1, 1 );
-//  mImageData->SetSpacing( mMRI->xsize, mMRI->ysize, mMRI->zsize );  
+  if( mbUseActualPixelSpacing )
+    mImageData->SetSpacing( mMRI->xsize, mMRI->ysize, mMRI->zsize );
+  else
+    mImageData->SetSpacing( 1, 1, 1 );
   
   mImageData->SetOrigin( -zX/2, -zY/2, -zZ/2 );
   mImageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
@@ -809,6 +837,8 @@ vtkFSVolumeSource::CopyMatricesFromMRI () {
     mRASToVoxelMatrix[i] = (double) *MATRIX_RELT((m),(i/4)+1,(i%4)+1);
   }
   MatrixFree( &m );
+
+  mbBoundsCacheDirty = true;
 }
 
 float

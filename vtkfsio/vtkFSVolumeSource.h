@@ -11,9 +11,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/07/06 18:41:21 $
- *    $Revision: 1.6 $
+ *    $Author: kteich $
+ *    $Date: 2007/09/13 20:56:36 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,6 +66,13 @@ public:
   // use the orignal filename, overwriting the original volume.
   void MRIWrite ( char const* ifnVolume );
   void MRIWrite ();
+
+  // Description:
+  // If set to true, the output image will have the proper spacing
+  // from the MRI {x,y,z}size values. If false, spacing will just be
+  // 1,1,1.
+  void ActualSpacingOn ();
+  void ActualSpacingOff ();
 
   // Description:
   // Coordinate conversion. RAS space is defined by various header
@@ -151,6 +158,9 @@ protected:
 
   // Pointer to the MRI.
   MRI* mMRI;
+
+  // Whether or not to use actual pixel spacing in the output image.
+  bool mbUseActualPixelSpacing;
 
   // The local copy of the SP data.
   vtkImageData* mImageData;
