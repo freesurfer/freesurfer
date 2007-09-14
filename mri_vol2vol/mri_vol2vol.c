@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/14 00:04:02 $
- *    $Revision: 1.35 $
+ *    $Date: 2007/09/14 20:03:18 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.35 2007/09/14 00:04:02 greve Exp $
+  $Id: mri_vol2vol.c,v 1.36 2007/09/14 20:03:18 greve Exp $
 
 */
 
@@ -424,7 +424,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.35 2007/09/14 00:04:02 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.36 2007/09/14 20:03:18 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -487,23 +487,33 @@ MRI_REGION region;
 char *m3zfile = "talairach.m3z";
 
 MATRIX *MRIangles2RotMat(double *angles);
-double angles[3];
+double angles[3] = {0,0,0};
 MATRIX *Mrot = NULL;
-double xyztrans[3];
+double xyztrans[3] = {0,0,0};
 MATRIX *Mtrans = NULL;
+
+double *SegRegCost(MRI *regseg, MRI *f, double *costs);
+char *SegRegCostFile = NULL;
+char  *fspec;
+MRI *regseg;
+int CostOnly = 0;
+
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char regfile[1000];
   char cmdline[CMD_LINE_LEN] ;
+  double costs[8];
+  FILE *fp;
+  int n;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.35 2007/09/14 00:04:02 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.36 2007/09/14 20:03:18 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.35 2007/09/14 00:04:02 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.36 2007/09/14 20:03:18 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -708,6 +718,24 @@ int main(int argc, char **argv) {
     out = tmpmri;
   }
 
+  if(SegRegCostFile){
+    sprintf(tmpstr,"%s/%s/mri/regseg",SUBJECTS_DIR,subject);
+    fspec = IDnameFromStem(tmpstr);
+    regseg = MRIread(fspec);
+    if(regseg == NULL) exit(1);
+    free(fspec);
+    SegRegCost(regseg,out,costs);
+    fp = fopen(SegRegCostFile,"a");
+    for(n=0; n<3; n++) fprintf(fp,"%7.3lf ",xyztrans[n]);
+    for(n=0; n<3; n++) fprintf(fp,"%5.1lf ",angles[n]*180/M_PI);
+    fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
+    fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
+    fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
+    fprintf(fp,"\n");
+    fclose(fp);
+    if(CostOnly) exit(0);
+  }
+
   MRIwrite(out,outvolfile);
 
   sprintf(regfile,"%s.reg",outvolfile);
@@ -776,6 +804,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--kernel"))    DoKernel = 1;
     else if (!strcasecmp(option, "--delta"))     DoDelta = 1;
     else if (!strcasecmp(option, "--no-save-reg"))  SaveReg = 0;
+    else if (!strcasecmp(option, "--cost-only"))  CostOnly = 1;
     else if (!strcasecmp(option, "--morph")) {
       DoMorph = 1;
       fstarg = 1;
@@ -886,6 +915,10 @@ static int parse_commandline(int argc, char **argv) {
     } else if (istringnmatch(option, "--subject",0)) {
       if (nargc < 1) argnerr(option,1);
       subject = pargv[0];
+      nargsused = 1;
+    } else if (istringnmatch(option, "--cost",0)) {
+      if (nargc < 1) argnerr(option,1);
+      SegRegCostFile = pargv[0];
       nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
@@ -1416,7 +1449,15 @@ MATRIX *LoadRfsl(char *fname) {
   return(FSLRegMat);
 }
 
-/*--------------------------------------------------------------*/
+/*!
+  \fn MATRIX *MRIangles2RotMat(double *angles)
+  \brief Convert 3 euler angles into a 4x4 rotation matrix
+  \param angles is a 3x1 vector in radians. 
+    angles[0] - pitch - rotation about x or LR axis (gamma)
+    angles[1] - yaw   - rotation about y or AP axis (beta)
+    angles[2] - roll  - rotation about z or SI axis (alpha)
+  Ref: Craig, Intro to Robotics
+*/
 MATRIX *MRIangles2RotMat(double *angles)
 {
   double gamma, beta, alpha;
@@ -1478,4 +1519,65 @@ MATRIX *MRIangles2RotMat(double *angles)
   //MatrixPrint(stdout,R);
 
   return(R);
+}
+/*---------------------------------------------------------------*/
+double *SegRegCost(MRI *regseg, MRI *f, double *costs)
+{
+  double wmsum, wmsum2, wmmean, wmstd;
+  double ctxsum, ctxsum2, ctxmean, ctxstd;
+  double vseg, vf, t, cost;
+  int r,c,s,nwmhits,nctxhits;
+
+  if(costs == NULL) costs = (double *) calloc(sizeof(double),8);
+
+  nwmhits = 0;
+  nctxhits = 0;
+  wmsum = 0;
+  wmsum2 = 0;
+  ctxsum = 0;
+  ctxsum2 = 0;
+  for(c=0; c < f->width; c++){
+    for(r=0; r < f->height; r++){
+      for(s=0; s < f->depth; s++){
+	vf = MRIgetVoxVal(f,c,r,s,0);
+	if(vf == 0) continue;
+	vseg = MRIgetVoxVal(regseg,c,r,s,0);
+	if(vseg == 41){
+	  wmsum  += vf;
+	  wmsum2 += (vf*vf);
+	  nwmhits ++;
+	}
+	if(vseg == 3){
+	  ctxsum  += vf;
+	  ctxsum2 += (vf*vf);
+	  nctxhits ++;
+	}
+      }
+    }
+  }
+
+  //printf("wmsum2 = %lf ctxsum2 = %lf\n",wmsum2,ctxsum2);
+
+  wmmean = wmsum/nwmhits;
+  wmstd = sqrt( (wmsum2 - 2*wmmean*wmsum + nwmhits*wmmean*wmmean)/nwmhits );
+
+  ctxmean = ctxsum/nctxhits;
+  ctxstd = sqrt( (ctxsum2 - 2*ctxmean*ctxsum + nctxhits*ctxmean*ctxmean)/nctxhits );
+
+  t = (ctxmean-wmmean)/sqrt(ctxstd*ctxstd + wmstd*wmstd);
+  cost = 1/t;
+
+  printf("WM: %6d %6.1f %6.1f   CTX: %6d %6.1f %6.1f  Cost: %g\n",
+	 nwmhits,wmmean,wmstd, nctxhits,ctxmean,ctxstd, cost);
+
+  costs[0] = nwmhits;
+  costs[1] = wmmean;
+  costs[2] = wmstd;
+  costs[3] = nctxhits;
+  costs[4] = ctxmean;
+  costs[5] = ctxstd;
+  costs[6] = t;
+  costs[7] = cost;
+
+  return(0);
 }
