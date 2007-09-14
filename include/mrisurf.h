@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/14 01:27:10 $
- *    $Revision: 1.298 $
+ *    $Author: nicks $
+ *    $Date: 2007/09/14 13:56:41 $
+ *    $Revision: 1.298.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -721,6 +721,9 @@ int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
                                        Real xw, Real yw, Real zw,
                                        Real *pxv, Real *pyv, Real *pzv) ;
 #endif
+int          MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, Real r, 
+                                   Real a, Real s, 
+                                   Real *px, Real *py, Real *pz) ;
 int          MRISsurfaceRASToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
     Real xw, Real yw, Real zw,
     Real *pxv, Real *pyv, Real *pzv) ;
@@ -1592,3 +1595,177 @@ int MRISinvertMarks(MRI_SURFACE *mris) ;
 
 
 #endif
+
+// Discrete Principle Curvature and Related  vvvvvvvvvvvvvvvvvv
+// Column / width for formatted output
+#define		G_LC				50
+#define		G_RC				30
+
+void	cprintf(
+	char*		apch_left,
+	float		af_right
+);
+
+void	cprints(
+	char*		apch_left,
+	char*		apch_right
+);
+
+void	cprintd(
+	char*		apch_left,
+	int		a_right
+);
+
+short	FACES_aroundVertex_reorder(
+	MRIS*			apmris,
+    	int			avertex,
+    	VECTOR*			pv_geometricOrder
+);
+
+short	FACE_vertexIndex_find(
+    	FACE*			pFace,
+    	int 			avertex 
+);
+
+short	VECTOR_elementIndex_findNotEqual(
+	VECTOR*			apV,
+	float			af_searchTerm
+);
+
+short	VECTOR_elementIndex_find(
+	VECTOR*			apV,
+	float			af_searchTerm
+);
+
+short	MRIS_vertexProgress_print(
+    	MRIS*			apmris,
+    	int			avertex,
+    	char*			apch_message
+);
+
+int	FACE_vertexIndexAtMask_find(
+	FACE*			apFACE_I,
+	VECTOR*			apv_verticesCommon
+);
+
+short	VERTICES_commonInFaces_find(
+	FACE*			apFACE_I,
+	FACE*			apFACE_J,
+	VECTOR*			apv_verticesCommon
+);
+
+short	FACES_Hcurvature_determineSign(
+    	MRIS*			apmris,
+    	FACE*			apFACE_O,
+    	FACE*			apFACE_I
+);
+
+int	VERTEX_faceAngles_determine(
+    	MRIS*			apmris,
+    	int			avertex,
+    	VECTOR*			apv_angle
+);
+
+int	VERTEX_faceMinMaxAngles_determine(
+    	MRIS*			apmris,
+    	int			avertex,
+    	int*			ap_minIndex,
+    	float*			apf_minAngle,
+    	int*			ap_maxIndex,
+    	float*			apf_maxAngle
+);
+
+int	MRIS_facesAtVertices_reorder(
+    	MRIS*			apmris
+);
+
+int	MRIScomputeGeometricProperties(
+    	MRIS*			apmris
+);
+
+short	FACES_aroundVertex_reorder(
+    	MRIS*			apmris,
+    	int			avertex,
+    	VECTOR*			pv_geometricOrder
+);
+
+float	FACES_angleNormal_find(
+    	MRIS*			apmris,
+    	FACE*			apFACE_I,
+    	FACE*			apFACE_J
+);
+
+float	FACES_commonEdgeLength_find(
+    	MRIS*			apmris,
+    	FACE*			apFACE_I,
+    	FACE*			apFACE_J
+);
+
+short	MRIS_discreteKH_compute(
+	MRIS*			apmris
+);
+
+short	MRIS_discretek1k2_compute(
+	MRIS*			apmris
+);
+
+// The discrete curvature calculations are based on the Gauss-Bonnet Scheme.
+// 
+// For 'K' and 'H', see
+// 
+// @article{1280456,
+//  author = {Evgeni Magid and Octavian Soldea and Ehud Rivlin},
+//  title = {A comparison of Gaussian and mean curvature estimation 
+// 	  methods on triangular meshes of range image data},
+//  journal = {Comput. Vis. Image Underst.},
+//  volume = {107},
+//  number = {3},
+//  year = {2007},
+//  issn = {1077-3142},
+//  pages = {139--159},
+//  doi = {http://dx.doi.org/10.1016/j.cviu.2006.09.007},
+//  publisher = {Elsevier Science Inc.},
+//  address = {New York, NY, USA},
+//  }
+// 
+// and for k1 and k2 see:
+// 
+// @misc{ meyer02discrete,
+//   author = "M. MEYER and M. DESBRUN and P. SCHR and A. BARR",
+//   title = "Discrete DifferentialGeometry Operators for Triangulated 2-Manifolds",
+//   text = "MEYER, M., DESBRUN, M., SCHR ODER, P., AND BARR, 
+// 	  A. H. Discrete DifferentialGeometry
+//     	  Operators for Triangulated 2-Manifolds, 2002. VisMath.",
+//   year = "2002",
+//   url = "citeseer.ist.psu.edu/meyer02discrete.html" }
+// 
+
+short	MRIScomputeSecondFundamentalFormDiscrete(
+	MRIS*			apmris
+);
+
+int  	MRISminMaxCurvatureIndicesLookup(
+  	MRI_SURFACE*  		apmris,
+  	int*   			ap_vertexMin,
+  	int*   			ap_vertexMax
+);
+
+int  	MRISvertexCurvature_set(
+  	MRI_SURFACE*  		apmris,
+  	int   			aindex,
+  	float   		af_val
+);
+
+int	MRISzeroCurvature(
+  	MRI_SURFACE*  		apmris
+);
+
+int	MRISuseK1Curvature(
+  	MRI_SURFACE*  		mris
+);
+
+int	MRISuseK2Curvature(
+  	MRI_SURFACE*  		mris
+);
+
+// Discrete Principle Curvature and Related ^^^^^^^^^^^^^^^^^^
