@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/31 13:25:47 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/09/14 12:57:50 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -494,7 +494,7 @@ GCABgetPin(GCAB *gcab, MRI *mri_int, MRI *mri_dist,
   xi0 = xi ; yi0 = yi ; zi0 = zi ;
   pI_in = GCAcomputeLabelLikelihood(gcab->gca, transform, mri_int, xi, yi, zi, gcab->target_label);
   //  pI_in = gcabSamplePDF(gcab, gcabs, GCAB_IIN, vno, val1) ;  // p(Iin)
-  for (d = 0.0, num = 0 ; d > -10 ; d -= 0.5)  // start 1/2mm inside border
+  for (d = 0.0, num = 0 ; d > -10 ; d -= 0.1)  // start 1/2mm inside border
   {
     xi = xi0+d*dx ; yi = yi0+d*dy ; zi = zi0+d*dz ;
     MRIsampleVolumeDerivativeScale(mri_dist, xi, yi, zi, dx, dy, dz, &mag,0) ;
@@ -507,7 +507,7 @@ GCABgetPin(GCAB *gcab, MRI *mri_int, MRI *mri_dist,
     if (val1 < gcab->min_intensity)
       val1 = gcab->min_intensity ;
     p = GCAcomputeLabelLikelihood(gcab->gca, transform, mri_int, xi, yi, zi, gcab->target_label);
-    //    p = gcabSamplePDF(gcab, gcabs, GCAB_IIN, vno, val1) ;  // p(Iin)
+    p = gcabSamplePDF(gcab, gcabs, GCAB_IIN, vno, val1) ;  // p(Iin)
     pI_in = MIN(pI_in, p) ;
   }
 
