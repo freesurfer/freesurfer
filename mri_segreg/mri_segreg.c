@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/14 22:31:48 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/09/14 22:57:38 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,8 @@ mri_segreg
   --ax-mmd axmin axmax axdelta
   --ay-mmd aymin aymax aydelta
   --az-mmd azmin azmax azdelta
+
+  --out-reg outreg
 
 ENDUSAGE ---------------------------------------------------------------
 */
@@ -117,13 +119,14 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segreg.c,v 1.3 2007/09/14 22:31:48 greve Exp $";
+static char vcid[] = "$Id: mri_segreg.c,v 1.4 2007/09/14 22:57:38 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
 
 char *movvolfile=NULL;
 char *regfile=NULL;
+char *outregfile=NULL;
 char *interpmethod = "trilinear";
 int   interpcode = 0;
 int   sinchw;
@@ -147,6 +150,8 @@ char *SegRegCostFile = NULL;
 char  *fspec;
 MRI *regseg;
 
+int UseASeg = 0;
+
 #define NMAX 100
 int ntx=0, nty=0, ntz=0, nax=0, nay=0, naz=0;
 double txlist[NMAX],tylist[NMAX],tzlist[NMAX];
@@ -155,21 +160,22 @@ double axlist[NMAX],aylist[NMAX],azlist[NMAX];
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
-  double costs[8], angles[3];
+  double costs[8], angles[3], mincost;
   double tx, ty, tz, ax, ay, az; 
   int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz; 
   FILE *fp;
   MATRIX *Tin, *invTin, *Sin, *invSin;
   MATRIX *Ttemp, *invTtemp, *Stemp, *invStemp;
   MATRIX *R=NULL, *invR=NULL, *vox2vox=NULL;
+  MATRIX *Rmin=NULL;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_segreg.c,v 1.3 2007/09/14 22:31:48 greve Exp $",
+                          "$Id: mri_segreg.c,v 1.4 2007/09/14 22:57:38 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_segreg.c,v 1.3 2007/09/14 22:31:48 greve Exp $",
+                                "$Id: mri_segreg.c,v 1.4 2007/09/14 22:57:38 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -186,12 +192,21 @@ int main(int argc, char **argv) {
   check_options();
   dump_options(stdout);
 
-  printf("Loading regseg\n");
-  sprintf(tmpstr,"%s/%s/mri/regseg",SUBJECTS_DIR,subject);
-  fspec = IDnameFromStem(tmpstr);
-  regseg = MRIread(fspec);
-  if(regseg == NULL) exit(1);
-  free(fspec);
+  if(!UseASeg){
+    printf("Loading regseg\n");
+    sprintf(tmpstr,"%s/%s/mri/regseg",SUBJECTS_DIR,subject);
+    fspec = IDnameFromStem(tmpstr);
+    regseg = MRIread(fspec);
+    if(regseg == NULL) exit(1);
+    free(fspec);
+  } else {
+    printf("Loading aseg\n");
+    sprintf(tmpstr,"%s/%s/mri/aseg",SUBJECTS_DIR,subject);
+    fspec = IDnameFromStem(tmpstr);
+    regseg = MRIread(fspec);
+    if(regseg == NULL) exit(1);
+    free(fspec);
+  }
 
   printf("Loading mov\n");
   mov = MRIread(movvolfile);
@@ -216,6 +231,7 @@ int main(int argc, char **argv) {
 
   printf("Staring loop\n");
   nth = 0;
+  mincost = 10e10;
   for(nthtx = 0; nthtx < ntx; nthtx++){
     tx = txlist[nthtx];
     for(nthty = 0; nthty < nty; nthty++){
@@ -275,6 +291,11 @@ int main(int argc, char **argv) {
 	      fprintf(fp,"\n");
 	      fflush(stdout);
 
+	      if(mincost > costs[7]){
+		mincost = costs[7];
+		Rmin = MatrixCopy(R,Rmin);
+	      }
+
 	      // clean up
 	      MatrixFree(&Mrot);
 	      MatrixFree(&Mtrans);
@@ -283,6 +304,17 @@ int main(int argc, char **argv) {
 	}
       }
     }
+  }
+
+  printf("min cost was %lf\n",mincost);
+  printf("Reg at min cost was \n");
+  MatrixPrint(stdout,Rmin);
+  printf("\n");
+  
+  if(outregfile){
+    printf("Writing optimal reg to %s \n",outregfile);
+    regio_write_register(outregfile,subject,mov->xsize,
+                         mov->zsize,1,Rmin,FLT2INT_ROUND);
   }
 
   printf("\n");
@@ -318,6 +350,7 @@ static int parse_commandline(int argc, char **argv) {
     if (!strcasecmp(option,      "--help"))     print_help() ;
     else if (!strcasecmp(option, "--version"))  print_version() ;
     else if (!strcasecmp(option, "--debug"))    debug = 1;
+    else if (!strcasecmp(option, "--aseg"))     UseASeg = 1;
     else if (istringnmatch(option, "--mov",0)) {
       if (nargc < 1) argnerr(option,1);
       movvolfile = pargv[0];
@@ -328,6 +361,10 @@ static int parse_commandline(int argc, char **argv) {
       err = regio_read_register(regfile, &subject, &ipr, &bpr,
                                 &intensity, &R0, &float2int);
       if (err) exit(1);
+      nargsused = 1;
+    } else if (istringnmatch(option, "--out-reg",0)) {
+      if (nargc < 1) argnerr(option,1);
+      outregfile = pargv[0];
       nargsused = 1;
     } else if (istringnmatch(option, "--tx-mmd",0)) {
       if(nargc < 3) argnerr(option,3);
@@ -496,6 +533,7 @@ static void dump_options(FILE *fp)
   int n;
   fprintf(fp,"movvol %s\n",movvolfile);
   fprintf(fp,"regfile %s\n",regfile);
+  if(outregfile) fprintf(fp,"outregfile %s\n",outregfile);
   fprintf(fp,"interp  %s (%d)\n",interpmethod,interpcode);
   if(interpcode == SAMPLE_SINC) fprintf(fp,"sinc hw  %d\n",sinchw);
   fprintf(fp,"Gdiag_no  %d\n",Gdiag_no);
