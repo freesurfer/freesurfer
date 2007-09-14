@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/14 22:01:05 $
- *    $Revision: 1.115 $
+ *    $Date: 2007/09/14 22:57:02 $
+ *    $Revision: 1.116 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3819,12 +3819,12 @@ double *SegRegCost(MRI *regseg, MRI *f, double *costs)
 	vf = MRIgetVoxVal(f,c,r,s,0);
 	if(vf == 0) continue;
 	vseg = MRIgetVoxVal(regseg,c,r,s,0);
-	if(vseg == 41){
+	if(vseg == 2 || vseg == 41){
 	  wmsum  += vf;
 	  wmsum2 += (vf*vf);
 	  nwmhits ++;
 	}
-	if(vseg == 3){
+	if(vseg == 3 || vseg == 42){
 	  ctxsum  += vf;
 	  ctxsum2 += (vf*vf);
 	  nctxhits ++;
