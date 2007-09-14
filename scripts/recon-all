@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/08/17 17:24:49 $
-#    $Revision: 1.133.2.2 $
+#    $Date: 2007/09/14 14:04:50 $
+#    $Revision: 1.133.2.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.2 2007/08/17 17:24:49 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.3 2007/09/14 14:04:50 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2298,7 +2298,7 @@ if ($DoQdecCache) then
           |& tee -a $SF |& tee -a $LF |& tee -a $CF
       # check that the file exists, print only warning if not
       if ( ! -e ${hemi}.${measure} ) then
-        echo "WARNING: File ${hemi}.${measure} does not exist!" \
+        echo "INFO: File ${hemi}.${measure} does not exist!" \
             |& tee -a $LF |& tee -a $CF
         echo "Skipping creation of smoothed data for ${hemi}.${measure}" \
             |& tee -a $LF |& tee -a $CF
