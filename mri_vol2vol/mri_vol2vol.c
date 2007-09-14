@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/01 22:32:43 $
- *    $Revision: 1.34 $
+ *    $Date: 2007/09/14 00:04:02 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.34 2007/08/01 22:32:43 greve Exp $
+  $Id: mri_vol2vol.c,v 1.35 2007/09/14 00:04:02 greve Exp $
 
 */
 
@@ -64,6 +64,9 @@ mri_vol2vol
   --kernel            : save the trilinear interpolation kernel instead
 
   --no-resample : do not resample, just change vox2ras matrix
+
+  --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix
+  --trans Tx Ty Tz : translation (mm) to apply to reg matrix
 
   --help : go ahead, make my day
   --debug
@@ -421,7 +424,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.34 2007/08/01 22:32:43 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.35 2007/09/14 00:04:02 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -483,18 +486,24 @@ char gcamfile[1000];
 MRI_REGION region;
 char *m3zfile = "talairach.m3z";
 
+MATRIX *MRIangles2RotMat(double *angles);
+double angles[3];
+MATRIX *Mrot = NULL;
+double xyztrans[3];
+MATRIX *Mtrans = NULL;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char regfile[1000];
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.34 2007/08/01 22:32:43 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.35 2007/09/14 00:04:02 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.34 2007/08/01 22:32:43 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.35 2007/09/14 00:04:02 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -585,6 +594,28 @@ int main(int argc, char **argv) {
     printf("Inverting registration\n");
     R = MatrixInverse(R,NULL);
   }
+
+  if(Mrot){
+    printf("Applying rotation matrix (R=M*R)\n");
+    printf("Current Reg Matrix is:\n");
+    MatrixPrint(stdout,R);
+    printf("  Angles (deg): %lf %lf %lf\n",angles[0]*180/M_PI,angles[1]*180/M_PI,angles[2]*180/M_PI);
+    printf("  Angles (rad): %lf %lf %lf\n",angles[0],angles[1],angles[2]);
+    printf("  Rotation matrix:\n");
+    MatrixPrint(stdout,Mrot);
+    R = MatrixMultiply(Mrot,R,R);
+  }
+
+  if(Mtrans){
+    printf("Applying translation matrix (R=M*R)\n");
+    printf("Current Reg Matrix is:\n");
+    MatrixPrint(stdout,R);
+    printf("  Trans (mm): %lf %lf %lf\n",xyztrans[0],xyztrans[1],xyztrans[2]);
+    printf("  Translation matrix:\n");
+    MatrixPrint(stdout,Mtrans);
+    R = MatrixMultiply(Mtrans,R,R);
+  }
+
   invR = MatrixInverse(R,NULL);
 
   printf("\n");
@@ -826,6 +857,28 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       setenv("SUBJECTS_DIR",pargv[0],1);
       nargsused = 1;
+    } else if (istringnmatch(option, "--rot",0)) {
+      if (nargc < 3) argnerr(option,3);
+      // Angles are in degrees
+      sscanf(pargv[0],"%lf",&angles[0]);
+      sscanf(pargv[1],"%lf",&angles[1]);
+      sscanf(pargv[2],"%lf",&angles[2]);
+      angles[0] *= (M_PI/180);
+      angles[1] *= (M_PI/180);
+      angles[2] *= (M_PI/180);
+      Mrot = MRIangles2RotMat(angles);
+      nargsused = 3;
+    } else if (istringnmatch(option, "--trans",0)) {
+      if (nargc < 3) argnerr(option,3);
+      // Translation in mm
+      sscanf(pargv[0],"%lf",&xyztrans[0]);
+      sscanf(pargv[1],"%lf",&xyztrans[1]);
+      sscanf(pargv[2],"%lf",&xyztrans[2]);
+      Mtrans = MatrixIdentity(4,NULL);
+      Mtrans->rptr[1][4] = xyztrans[0];
+      Mtrans->rptr[2][4] = xyztrans[1];
+      Mtrans->rptr[3][4] = xyztrans[2];
+      nargsused = 3;
     } else if ( !strcmp(option, "--gdiagno") ) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&gdiagno);
@@ -852,34 +905,39 @@ static void usage_exit(void) {
 }
 /* --------------------------------------------- */
 static void print_usage(void) {
-  printf("\n");
-  printf("mri_vol2vol\n");
-  printf("\n");
-  printf("  --mov  movvol       : input (or output template with --inv)\n");
-  printf("  --targ targvol      : output template (or input with --inv)\n");
-  printf("  --o    outvol       : output volume\n");
-  printf("\n");
-  printf("  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)\n");
-  printf("  --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)\n");
-  printf("  --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)\n");
-  printf("  --regheader         : ScannerRAS-to-ScannerRAS matrix = identity\n");
-  printf("\n");
-  printf("  --inv               : sample from targ to mov\n");
-  printf("\n");
-  printf("  --tal               : map to a sub FOV of MNI305 (with --reg only)\n");
-  printf("  --talres resolution : set voxel size 1mm or 2mm (def is 1)\n");
-  printf("  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)\n");  
-  printf("\n");
-  printf("  --fstarg            : use orig.mgz from subject in --reg as target\n");
-  printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
-  printf("  --precision precisionid : output precision (def is float)\n");
-  printf("\n");
-  printf("  --no-resample : do not resample, just change vox2ras matrix\n");
-  printf("\n");
-  printf("  --help : go ahead, make my day\n");
-  printf("  --debug\n");
-  printf("  --version \n");
-  printf("\n");
+printf("\n");
+printf("mri_vol2vol\n");
+printf("\n");
+printf("  --mov  movvol       : input (or output template with --inv)\n");
+printf("  --targ targvol      : output template (or input with --inv)\n");
+printf("  --o    outvol       : output volume\n");
+printf("\n");
+printf("  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)\n");
+printf("  --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)\n");
+printf("  --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)\n");
+printf("  --regheader         : ScannerRAS-to-ScannerRAS matrix = identity\n");
+printf("  --s subject         : set matrix = identity and use subject for any templates\n");
+printf("\n");
+printf("  --inv               : sample from targ to mov\n");
+printf("\n");
+printf("  --tal               : map to a sub FOV of MNI305 (with --reg only)\n");
+printf("  --talres resolution : set voxel size 1mm or 2mm (def is 1)\n");
+printf("  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)\n");
+printf("\n");
+printf("  --fstarg            : use orig.mgz from subject in --reg as target\n");
+printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
+printf("  --precision precisionid : output precision (def is float)\n");
+printf("  --kernel            : save the trilinear interpolation kernel instead\n");
+printf("\n");
+printf("  --no-resample : do not resample, just change vox2ras matrix\n");
+printf("\n");
+printf("  --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
+printf("  --trans Tx Ty Tz : translation (mm) to apply to reg matrix\n");
+printf("\n");
+printf("  --help : go ahead, make my day\n");
+printf("  --debug\n");
+printf("  --version\n");
+printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void) {
@@ -1358,3 +1416,66 @@ MATRIX *LoadRfsl(char *fname) {
   return(FSLRegMat);
 }
 
+/*--------------------------------------------------------------*/
+MATRIX *MRIangles2RotMat(double *angles)
+{
+  double gamma, beta, alpha;
+  int r,c;
+  MATRIX *R, *R3, *Rx, *Ry, *Rz;
+
+  gamma = angles[0];
+  beta  = angles[1];
+  alpha = angles[2];
+
+  //printf("angles %g %g %g\n",angles[0],angles[1],angles[2]);
+
+  Rx = MatrixZero(3,3,NULL);
+  Rx->rptr[1][1] = +1;
+  Rx->rptr[2][2] = +cos(gamma);
+  Rx->rptr[2][3] = -sin(gamma);
+  Rx->rptr[3][2] = +sin(gamma);
+  Rx->rptr[3][3] = +cos(gamma);
+  //printf("Rx ----------------\n");
+  //MatrixPrint(stdout,Rx);
+
+  Ry = MatrixZero(3,3,NULL);
+  Ry->rptr[1][1] = +cos(beta);
+  Ry->rptr[1][3] = +sin(beta);
+  Ry->rptr[2][2] = 1;
+  Ry->rptr[3][1] = -sin(beta);
+  Ry->rptr[3][3] = +cos(beta);
+  //printf("Ry ----------------\n");
+  //MatrixPrint(stdout,Ry);
+
+  Rz = MatrixZero(3,3,NULL);
+  Rz->rptr[1][1] = +cos(alpha);
+  Rz->rptr[1][2] = -sin(alpha);
+  Rz->rptr[2][1] = +sin(alpha);
+  Rz->rptr[2][2] = +cos(alpha);
+  Rz->rptr[3][3] = +1;
+  //printf("Rz ----------------\n");
+  //MatrixPrint(stdout,Rz);
+
+  // This will be a 3x3 matrix
+  R3 = MatrixMultiply(Rz,Ry,NULL);
+  R3 = MatrixMultiply(R3,Rx,R3);
+
+  // Stuff 3x3 into a 4x4 matrix, with (4,4) = 1
+  R = MatrixZero(4,4,NULL);
+  for(c=1; c <= 3; c++){
+    for(r=1; r <= 3; r++){
+      R->rptr[r][c] = R3->rptr[r][c];
+    }
+  }
+  R->rptr[4][4] = 1;
+
+  MatrixFree(&Rx);
+  MatrixFree(&Ry);
+  MatrixFree(&Rz);
+  MatrixFree(&R3);
+
+  //printf("R ----------------\n");
+  //MatrixPrint(stdout,R);
+
+  return(R);
+}
