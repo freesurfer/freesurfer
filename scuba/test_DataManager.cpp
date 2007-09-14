@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.13 $
+ *    $Author: kteich $
+ *    $Date: 2007/09/14 17:57:42 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,22 +55,17 @@ char* Progname = "test_DataManager";
 template <typename LoaderType, typename DataType>
 void TestLoaderStackLoad ( string const& ifnData,
                            DataLoader<DataType>& loader,
-                           DataType& iData ) {
+                           DataType** ioData ) {
 
-  iData = loader.GetData( ifnData );
-  Assert( 1 == loader.CountLoaded(), "CountLoaded didn't return 1" );
-  Assert( 1 == loader.CountReferences(iData), "CountReferences didn't return 1" );
-
+  *ioData = loader.GetData( ifnData );
 }
 
 template <typename LoaderType, typename DataType>
 void TestLoaderStackRelease ( string const& ifnData,
                               DataLoader<DataType>& loader,
-                              DataType& iData ) {
+                              DataType** ioData ) {
 
-  loader.ReleaseData( &iData );
-  Assert( 0 == loader.CountLoaded(), "CountLoaded didn't return 0" );
-  Assert( 0 == loader.CountReferences(iData), "CountReferences didn't return 0" );
+  loader.ReleaseData( ioData );
 }
 
 
@@ -78,26 +73,28 @@ template <typename LoaderType, typename DataType>
 void TestLoader ( string const& ifnData,
                   DataLoader<DataType>& loader ) {
 
+  // Tell the DebugReporter to generate output to cerr.
   loader.SetOutputStreamToCerr();
 
-  DataType data = loader.GetData( ifnData );
+  // Load in some data and check the counts.
+  DataType* data = loader.GetData( ifnData );
   Assert( 1 == loader.CountLoaded(), "CountLoaded didn't return 1" );
   Assert( 1 == loader.CountReferences(data), "CountReferences didn't return 1" );
 
   // Release the Data and check the count.
   loader.ReleaseData( &data );
   Assert( 0 == loader.CountLoaded(), "CountLoaded didn't return 0" );
-  Assert( 0 == loader.CountReferences(data), "CountReferences didn't return 0" );
+
 
   // Load the data with multiple references. Make sure we still only
   // loaded it once. Make sure all the Datas are ones we want.
-  DataType data1 = loader.GetData( ifnData );
+  DataType* data1 = loader.GetData( ifnData );
   Assert( 1 == loader.CountReferences(data1), "CountReferences didn't return 1" );
   Assert( 1 == loader.CountLoaded(),  "CountLoaded didn't return 1" );
-  DataType data2 = loader.GetData( ifnData );
+  DataType* data2 = loader.GetData( ifnData );
   Assert( 2 == loader.CountReferences(data2), "CountReferences didn't return 2" );
   Assert( 1 == loader.CountLoaded(),  "CountLoaded didn't return 1" );
-  DataType data3 = loader.GetData( ifnData );
+  DataType* data3 = loader.GetData( ifnData );
   Assert( 3 == loader.CountReferences(data3), "CountReferences didn't return 3" );
   Assert( 1 == loader.CountLoaded(),  "CountLoaded didn't return 1" );
   Assert( data1 == data2, "Datas don't match" );
@@ -118,12 +115,13 @@ void TestLoader ( string const& ifnData,
 
   // Load the data in a function, then check the counts, release the
   // data in a function, and check the counts again.
-  TestLoaderStackLoad<LoaderType,DataType>( ifnData, loader, data );
+  DataType* data4 = NULL;
+  TestLoaderStackLoad<LoaderType,DataType>( ifnData, loader, &data4 );
   Assert( 1 == loader.CountLoaded(), "CountLoaded didn't return 1" );
-  Assert( 1 == loader.CountReferences(data), "CountReferences didn't return 1" );
-  TestLoaderStackRelease<LoaderType,DataType>( ifnData, loader, data );
-  Assert( 0 == loader.CountLoaded(), "CountLoaded didn't return 1" );
-  Assert( 0 == loader.CountReferences(data), "CountReferences didn't return 1" );
+  Assert( 1 == loader.CountReferences(data4), "CountReferences didn't return 1" );
+
+  TestLoaderStackRelease<LoaderType,DataType>( ifnData, loader, &data4 );
+  Assert( 0 == loader.CountLoaded(), "CountLoaded didn't return 0" );
 }
 
 
@@ -137,10 +135,10 @@ int main ( int argc, char** argv ) {
     dataMgr.SetOutputStreamToCerr();
 
     string fnMRI = "test_data/bertT1.mgz";
-    TestLoader<MRILoader,MRI*>( fnMRI, dataMgr.GetMRILoader() );
+    TestLoader<MRILoader,MRI>( fnMRI, dataMgr.GetMRILoader() );
 
     string fnMRIS = "test_data/lh.white";
-    TestLoader<MRISLoader,MRIS*>( fnMRIS, dataMgr.GetMRISLoader() );
+    TestLoader<MRISLoader,MRIS>( fnMRIS, dataMgr.GetMRISLoader() );
 
   } catch ( exception& e ) {
     cerr << "failed with exception: " << e.what() << endl;

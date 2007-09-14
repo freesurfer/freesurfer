@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:13 $
- *    $Revision: 1.12 $
+ *    $Author: kteich $
+ *    $Date: 2007/09/14 17:57:42 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,79 +38,159 @@ template <typename T>
 DataLoader<T>::DataLoader() : DebugReporter() {}
 
 template <typename T>
-T DataLoader<T>::GetData( string const& ifnData ) {
+T* DataLoader<T>::GetData( string const& ifnData ) {
 
-  typename list<T>::iterator tData;
-  string fnData( ifnData );
-
+  // Iterate over our list of data. For each one, if the file name
+  // we're given matches the data, increment the refernce count for
+  // that data return a pointer to it.
+  typename list<T*>::iterator tData;
   for ( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
-    T data = *tData;
-    string fnCurData( ifnData );
-    if ( this->DoesFileNameMatchObject( data, fnCurData ) ) {
-      mRefs[data]++;
+    T* data = *tData;
+    if ( this->DoesFileNameMatchObject( data, ifnData ) ) {
+      maRefs[data]++;
       return data;
     }
   }
 
-  T data = this->LoadData( fnData );
+  // If we made it here we haven't loaded the data yet, so do so now.
+  T* data = this->LoadData( ifnData );
 
-  mRefs[data] = 1;
+  // Start the ref count at one.
+  maRefs[data] = 1;
 
+  // Insert a reference to this data into our list.
   mlData.push_back( data );
 
+  // Return the data.
   return data;
 }
 
 template <typename T>
 void
-DataLoader<T>::ReleaseData( T* ioData ) {
+DataLoader<T>::ReleaseData( T** ioData ) {
 
-  typename list<T>::iterator tData;
-
+  // Look for this data in our list of data.
+  typename list<T*>::iterator tData;
   for ( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
-    T data = *tData;
+    T* data = *tData;
 
+    // If we found it...
     if ( data == *ioData ) {
 
-      mRefs[data]--;
+      // Decrement our reference count.
+      maRefs[data]--;
 
-      if ( 0 == mRefs[data] ) {
+      // If that was our last reference, remove the data from our list
+      // and call our FreeData function.
+      if ( 0 == maRefs[data] ) {
         mlData.remove( data );
         this->FreeData( &data );
       }
 
+      // Set the io pointer to NULL.
       *ioData = NULL;
       return;
     }
   }
-
-  // If we got here, we didn't provide this data to the client;
-  // probably, they didn't load anything, but generated it
-  // themselves. But don't throw an error because that's OK.
-
-  //  throw logic_error("Couldn't find data");
 }
 
 
 template <typename T>
 int
-DataLoader<T>::CountReferences( T iData ) {
+DataLoader<T>::CountReferences( T const* iData ) const {
 
-  typename list<T>::iterator tData;
+  // Try to find the reference count for this data and return it.
+  typename map<T*,int>::const_iterator tRefs;
+  tRefs = maRefs.find( const_cast<T*>(iData) );
+  if( tRefs != maRefs.end() )
+    return tRefs->second;
 
-  for ( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
-    T data = *tData;
-    if ( data == iData ) {
-      return mRefs[data];
-    }
+  // Not in our list, so return 0.
+  return 0;
+}
+
+
+
+// Generate this instance of the template code.
+template class DataLoader<MRI>;
+
+MRI*
+MRILoader::LoadData( std::string const& ifnData ) {
+
+  // Use MRIread to load the MRI object. Need to make a non-const,
+  // c-string copy of the file name.
+  char* fnMRI = strdup( ifnData.c_str() );
+  MRI* mri = MRIread( fnMRI );
+  free( fnMRI );
+
+  // If the load failed, return an error.
+  if ( NULL == mri ) {
+    DebugOutput( << "MRIread() failed for " << fnMRI );
+    throw runtime_error("Couldn't load MRI.");
   }
 
-  return 0;
+  return mri;
+}
+
+void
+MRILoader::FreeData( MRI** ioMRI ) {
+
+  // Call MRIfree. This will set *ioMRI to NULL if successful.
+  MRIfree( ioMRI );
+}
+
+bool
+MRILoader::DoesFileNameMatchObject( const MRI* iData, 
+				    std::string const& ifnData ) const {
+
+  // Look at the fname member in the MRI structure and compare it
+  // to the file name we're getting.
+  std::string const fnCur( iData->fname );
+  return (fnCur == ifnData);
+}
+
+// Generate this instance of the template code.
+template class DataLoader<MRIS>;
+
+MRIS*
+MRISLoader::LoadData( std::string const& ifnData ) {
+
+  // Use MRISread to load the MRIS object. Need to make a non-const,
+  // c-string copy of the file name.
+  char* fnMRIS = strdup( ifnData.c_str() );
+  MRIS* mris = MRISread( fnMRIS );
+  free( fnMRIS );
+
+  // If the load failed, return an error.
+  if ( NULL == mris ) {
+    DebugOutput( << "MRISread() failed for " << fnMRIS );
+    throw runtime_error("Couldn't load MRIS.");
+  }
+
+  return mris;
+}
+
+void
+MRISLoader::FreeData( MRIS** ioMRIS ) {
+
+  // Call MRISfree. This will set *ioMRIS to NULL if successful.
+  MRISfree( ioMRIS );
+}
+
+bool
+MRISLoader::DoesFileNameMatchObject( const MRIS* iData, 
+				     std::string const& ifnData ) const {
+
+  // Look at the fname member in the MRI structure and compare it
+  // to the file name we're getting.
+  std::string const fnCur( iData->fname );
+  return (fnCur == ifnData);
 }
 
 
 DataManager::DataManager() : DebugReporter() {}
 
+// Each of these maintains and returns a static manager.
 DataManager&
 DataManager::GetManager() {
   static DataManager sManager;
@@ -129,69 +209,3 @@ DataManager::GetMRISLoader() {
   return sLoader;
 }
 
-template class DataLoader<MRI*>;
-
-MRI*
-MRILoader::LoadData( std::string& ifnData ) {
-
-  // Use MRIread to load the MRI object. Need to make a non-const,
-  // c-string copy of the file name.
-  char* fnMRI = strdup( ifnData.c_str() );
-  MRI* mri = MRIread( fnMRI );
-  free( fnMRI );
-  if ( NULL == mri ) {
-    DebugOutput( << "MRIread() failed for " << fnMRI );
-    throw logic_error("Couldn't load MRI.");
-  }
-  return mri;
-}
-
-void
-MRILoader::FreeData( MRI** ioMRI ) {
-
-  // Call MRIfree. This will set *ioMRI to NULL if successful.
-  MRIfree( ioMRI );
-}
-
-bool
-MRILoader::DoesFileNameMatchObject( MRI* iData, std::string& ifnData ) {
-
-  // Look at the fname member in the MRI structure and compare it
-  // to the file name we're getting.
-  std::string fnCur( iData->fname );
-  return (fnCur == ifnData);
-}
-
-
-template class DataLoader<MRIS*>;
-
-MRIS*
-MRISLoader::LoadData( std::string& ifnData ) {
-
-  // Use MRISread to load the MRIS object. Need to make a non-const,
-  // c-string copy of the file name.
-  char* fnMRIS = strdup( ifnData.c_str() );
-  MRIS* mris = MRISread( fnMRIS );
-  free( fnMRIS );
-  if ( NULL == mris ) {
-    DebugOutput( << "MRISread() failed for " << fnMRIS );
-    throw logic_error("Couldn't load MRIS.");
-  }
-  return mris;
-}
-
-void
-MRISLoader::FreeData( MRIS** ioMRIS ) {
-
-  // Call MRISfree. This will set *ioMRIS to NULL if successful.
-  MRISfree( ioMRIS );
-}
-
-bool
-MRISLoader::DoesFileNameMatchObject( MRIS* iData, std::string& ifnData ) {
-
-  // Look at the fname member in the MRI structure and compare it
-  // to the file name we're getting.
-  std::string fnCur( iData->fname );
-  return (fnCur == ifnData);
-}

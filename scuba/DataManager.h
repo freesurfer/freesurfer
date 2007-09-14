@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:13 $
- *    $Revision: 1.10 $
+ *    $Author: kteich $
+ *    $Date: 2007/09/14 17:57:42 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,9 +30,9 @@
 // DataManager.h
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:13 $
-// Revision       : $Revision: 1.10 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2007/09/14 17:57:42 $
+// Revision       : $Revision: 1.11 $
 
 #ifndef DataManager_h
 #define DataManager_h
@@ -68,11 +68,12 @@ public:
 
   // Returns an instance to the data for the given file name, or
   // throws an error if it can't be loaded.
-  T GetData( std::string const& ifnData );
+  T* GetData( std::string const& ifnData );
 
   // An object should call this function when it is done with the
-  // data. It may be freed, or not if it's in use by other objects.
-  void ReleaseData( T* ioData );
+  // data. It may be freed, or not if it's in use by other objects. If
+  // the data i not in our list, don't do anything.
+  void ReleaseData( T** ioData );
 
   // Returns the number of data of this type actually loaded. (Not
   // references to a specific instance of data.
@@ -81,7 +82,7 @@ public:
   }
 
   // Returns the number of references to this data.
-  int CountReferences( T iData );
+  int CountReferences( T const* iData ) const;
 
   virtual ~DataLoader() {};
 protected:
@@ -89,42 +90,54 @@ protected:
 
   // Override this function to load a specfic type of data given a
   // file name. Should throw an error if it's not loadable.
-  virtual T LoadData( std::string& ifnData ) = 0;
+  virtual T* LoadData( std::string const& ifnData ) = 0;
 
   // Override this function to free a specific type of data. Should
   // set the ioData parameter to NULL if freed.
-  virtual void FreeData( T* ioData ) = 0;
+  virtual void FreeData( T** ioData ) = 0;
 
   // Comparison function for determining if a specific data instance
   // matches what would be loaded for this filename.
-  virtual bool DoesFileNameMatchObject( T iData, std::string& ifnData )  = 0;
+  virtual bool DoesFileNameMatchObject( T const* iData,
+					std::string const& ifnData ) const = 0;
 
   // List of data and number of references for each data.
-  static std::list<T> mlData;
-  static std::map<T,int> mRefs;
+  static std::list<T*> mlData;
+  static std::map<T*,int> maRefs;
 };
 
 
-class MRILoader : public DataLoader<MRI*> {
+// An implementation of the generic data loader using the MRI struct.
+class MRILoader : public DataLoader<MRI> {
 public:
   virtual ~MRILoader() {};
 protected:
-  MRI* LoadData( std::string& ifnData );
-  void FreeData( MRI** ioMRI ) ;
-  bool DoesFileNameMatchObject( MRI* iData, std::string& ifnData );
+
+  // Load in an MRI structure with MRIread() from libutils.
+  MRI* LoadData( std::string const& ifnData );
+
+  // Free an MRI structure with MRIfree() from libutils.
+  void FreeData( MRI** ioMRI );
+
+  // Compare the internal file name of the MRI with ifnData.
+  bool DoesFileNameMatchObject( MRI const* iData, 
+				std::string const& ifnData ) const;
 };
 
-class MRISLoader : public DataLoader<MRIS*> {
+
+// An implementation of the generic data loader using the MRIS struct.
+class MRISLoader : public DataLoader<MRIS> {
 public:
   virtual ~MRISLoader() {}
 protected:
-  MRIS* LoadData( std::string& ifnData );
+  MRIS* LoadData( std::string const& ifnData );
   void FreeData( MRIS** ioMRI ) ;
-  bool DoesFileNameMatchObject( MRIS* iData, std::string& ifnData );
+  bool DoesFileNameMatchObject( MRIS const* iData,
+				std::string const& ifnData ) const;
 };
 
 
-
+// A class specific for scuba to access our data loaders.
 class DataManager : public DebugReporter {
 
 public:
@@ -136,14 +149,11 @@ public:
 
 protected:
   DataManager();
-
-  //  static MRILoader mMRILoader;
-  //  static MRISLoader mMRISLoader;
 };
 
-
-template <typename T> std::list<T> DataLoader<T>::mlData;
-template <typename T> std::map<T,int> DataLoader<T>::mRefs;
+// Generate code for our structures.
+template <typename T> std::list<T*> DataLoader<T>::mlData;
+template <typename T> std::map<T*,int> DataLoader<T>::maRefs;
 
 
 #endif
