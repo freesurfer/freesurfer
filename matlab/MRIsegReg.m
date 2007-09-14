@@ -1,6 +1,6 @@
 function err = MRIsegReg(subject)
 % err = MRIsegReg(subject)
-% $Id: MRIsegReg.m,v 1.1 2007/09/13 23:26:12 greve Exp $
+% $Id: MRIsegReg.m,v 1.2 2007/09/14 20:16:19 greve Exp $
 
 err = 1;
 if(nargin ~= 1)
@@ -49,7 +49,7 @@ printf('nmask0 = %d, nmask = %d',nmask0,nmask);
 m = apas;
 m.vol = mask;
 fprintf('Writing regmask\n');
-fspec = sprintf('%s/mri/regmask.mgz',sd);
+fspec = sprintf('%s/mri/regmask.mgh',sd);
 MRIwrite(m,fspec);
 
 % Get WM by eroding WM by 3 voxels (3mm)
@@ -75,7 +75,7 @@ ctx(indctx) = 1;
 regseg = apas;
 regseg.vol = 41*wm + 3*ctx; % 41=green
 
-fspec = sprintf('%s/mri/regseg.mgz',sd);
+fspec = sprintf('%s/mri/regseg.mgh',sd);
 MRIwrite(regseg,fspec);
 
 err = 0;
