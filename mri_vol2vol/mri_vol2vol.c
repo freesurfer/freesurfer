@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/14 20:03:18 $
- *    $Revision: 1.36 $
+ *    $Date: 2007/09/14 20:30:05 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.36 2007/09/14 20:03:18 greve Exp $
+  $Id: mri_vol2vol.c,v 1.37 2007/09/14 20:30:05 greve Exp $
 
 */
 
@@ -424,7 +424,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.36 2007/09/14 20:03:18 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.37 2007/09/14 20:30:05 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -486,13 +486,11 @@ char gcamfile[1000];
 MRI_REGION region;
 char *m3zfile = "talairach.m3z";
 
-MATRIX *MRIangles2RotMat(double *angles);
 double angles[3] = {0,0,0};
 MATRIX *Mrot = NULL;
 double xyztrans[3] = {0,0,0};
 MATRIX *Mtrans = NULL;
 
-double *SegRegCost(MRI *regseg, MRI *f, double *costs);
 char *SegRegCostFile = NULL;
 char  *fspec;
 MRI *regseg;
@@ -508,12 +506,12 @@ int main(int argc, char **argv) {
   int n;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.36 2007/09/14 20:03:18 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.37 2007/09/14 20:30:05 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.36 2007/09/14 20:03:18 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.37 2007/09/14 20:30:05 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1449,135 +1447,3 @@ MATRIX *LoadRfsl(char *fname) {
   return(FSLRegMat);
 }
 
-/*!
-  \fn MATRIX *MRIangles2RotMat(double *angles)
-  \brief Convert 3 euler angles into a 4x4 rotation matrix
-  \param angles is a 3x1 vector in radians. 
-    angles[0] - pitch - rotation about x or LR axis (gamma)
-    angles[1] - yaw   - rotation about y or AP axis (beta)
-    angles[2] - roll  - rotation about z or SI axis (alpha)
-  Ref: Craig, Intro to Robotics
-*/
-MATRIX *MRIangles2RotMat(double *angles)
-{
-  double gamma, beta, alpha;
-  int r,c;
-  MATRIX *R, *R3, *Rx, *Ry, *Rz;
-
-  gamma = angles[0];
-  beta  = angles[1];
-  alpha = angles[2];
-
-  //printf("angles %g %g %g\n",angles[0],angles[1],angles[2]);
-
-  Rx = MatrixZero(3,3,NULL);
-  Rx->rptr[1][1] = +1;
-  Rx->rptr[2][2] = +cos(gamma);
-  Rx->rptr[2][3] = -sin(gamma);
-  Rx->rptr[3][2] = +sin(gamma);
-  Rx->rptr[3][3] = +cos(gamma);
-  //printf("Rx ----------------\n");
-  //MatrixPrint(stdout,Rx);
-
-  Ry = MatrixZero(3,3,NULL);
-  Ry->rptr[1][1] = +cos(beta);
-  Ry->rptr[1][3] = +sin(beta);
-  Ry->rptr[2][2] = 1;
-  Ry->rptr[3][1] = -sin(beta);
-  Ry->rptr[3][3] = +cos(beta);
-  //printf("Ry ----------------\n");
-  //MatrixPrint(stdout,Ry);
-
-  Rz = MatrixZero(3,3,NULL);
-  Rz->rptr[1][1] = +cos(alpha);
-  Rz->rptr[1][2] = -sin(alpha);
-  Rz->rptr[2][1] = +sin(alpha);
-  Rz->rptr[2][2] = +cos(alpha);
-  Rz->rptr[3][3] = +1;
-  //printf("Rz ----------------\n");
-  //MatrixPrint(stdout,Rz);
-
-  // This will be a 3x3 matrix
-  R3 = MatrixMultiply(Rz,Ry,NULL);
-  R3 = MatrixMultiply(R3,Rx,R3);
-
-  // Stuff 3x3 into a 4x4 matrix, with (4,4) = 1
-  R = MatrixZero(4,4,NULL);
-  for(c=1; c <= 3; c++){
-    for(r=1; r <= 3; r++){
-      R->rptr[r][c] = R3->rptr[r][c];
-    }
-  }
-  R->rptr[4][4] = 1;
-
-  MatrixFree(&Rx);
-  MatrixFree(&Ry);
-  MatrixFree(&Rz);
-  MatrixFree(&R3);
-
-  //printf("R ----------------\n");
-  //MatrixPrint(stdout,R);
-
-  return(R);
-}
-/*---------------------------------------------------------------*/
-double *SegRegCost(MRI *regseg, MRI *f, double *costs)
-{
-  double wmsum, wmsum2, wmmean, wmstd;
-  double ctxsum, ctxsum2, ctxmean, ctxstd;
-  double vseg, vf, t, cost;
-  int r,c,s,nwmhits,nctxhits;
-
-  if(costs == NULL) costs = (double *) calloc(sizeof(double),8);
-
-  nwmhits = 0;
-  nctxhits = 0;
-  wmsum = 0;
-  wmsum2 = 0;
-  ctxsum = 0;
-  ctxsum2 = 0;
-  for(c=0; c < f->width; c++){
-    for(r=0; r < f->height; r++){
-      for(s=0; s < f->depth; s++){
-	vf = MRIgetVoxVal(f,c,r,s,0);
-	if(vf == 0) continue;
-	vseg = MRIgetVoxVal(regseg,c,r,s,0);
-	if(vseg == 41){
-	  wmsum  += vf;
-	  wmsum2 += (vf*vf);
-	  nwmhits ++;
-	}
-	if(vseg == 3){
-	  ctxsum  += vf;
-	  ctxsum2 += (vf*vf);
-	  nctxhits ++;
-	}
-      }
-    }
-  }
-
-  //printf("wmsum2 = %lf ctxsum2 = %lf\n",wmsum2,ctxsum2);
-
-  wmmean = wmsum/nwmhits;
-  wmstd = sqrt( (wmsum2 - 2*wmmean*wmsum + nwmhits*wmmean*wmmean)/nwmhits );
-
-  ctxmean = ctxsum/nctxhits;
-  ctxstd = sqrt( (ctxsum2 - 2*ctxmean*ctxsum + nctxhits*ctxmean*ctxmean)/nctxhits );
-
-  t = (ctxmean-wmmean)/sqrt(ctxstd*ctxstd + wmstd*wmstd);
-  cost = 1/t;
-
-  printf("WM: %6d %6.1f %6.1f   CTX: %6d %6.1f %6.1f  Cost: %g\n",
-	 nwmhits,wmmean,wmstd, nctxhits,ctxmean,ctxstd, cost);
-
-  costs[0] = nwmhits;
-  costs[1] = wmmean;
-  costs[2] = wmstd;
-  costs[3] = nctxhits;
-  costs[4] = ctxmean;
-  costs[5] = ctxstd;
-  costs[6] = t;
-  costs[7] = cost;
-
-  return(0);
-}
