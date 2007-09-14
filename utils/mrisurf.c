@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2007/09/06 19:41:22 $
- *    $Revision: 1.559 $
+ *    $Author: fischl $
+ *    $Date: 2007/09/14 12:49:39 $
+ *    $Revision: 1.560 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -622,7 +622,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.559 2007/09/06 19:41:22 rudolph Exp $");
+  return("$Id: mrisurf.c,v 1.560 2007/09/14 12:49:39 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -2086,6 +2086,8 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 #endif
         }
         vn->d = min_dist ;
+        if ((min_dist > 5*nbhd_size) || min_dist > 60)
+          DiagBreak() ;
         {
           xd = vn->x - v->x ;
           yd = vn->y - v->y ;
@@ -2115,7 +2117,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
         {
           v->v[v->vtotal] = vnbrs[n] ;
           v->dist_orig[v->vtotal] = mris->vertices[vnbrs[n]].d ;
-          if (v->dist_orig[v->vtotal] > 10000)
+          if (v->dist_orig[v->vtotal] > 60)
             DiagBreak() ;
         }
       }
@@ -2159,7 +2161,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
           vn = &mris->vertices[vnbrs[i]] ;
           v->v[v->vtotal] = vnbrs[i] ;
           v->dist_orig[v->vtotal] = vn->d ;
-          if (v->dist_orig[v->vtotal] > 10000)
+          if (v->dist_orig[v->vtotal] > 60)
             DiagBreak() ;
           if (FZERO(vn->d))
             DiagBreak() ;
@@ -6378,7 +6380,7 @@ MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   if (IS_QUADRANGULAR(mris))
     MRISremoveTriangleLinks(mris) ;
 
-  use_dists = (!FZERO(parms->l_dist) || !FZERO(parms->l_nldist)) &&
+  use_dists = (!DZERO(parms->l_dist) || !DZERO(parms->l_nldist)) &&
               (parms->nbhd_size > mris->nsize) ;
 
   memset(nbrs, 0, MAX_NBHD_SIZE*sizeof(nbrs[0])) ;
@@ -6690,9 +6692,7 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   ------------------------------------------------------*/
 static float neg_area_ratios[] =
   {
-    1e-8, 0.001f, 0.0001f,
-    0.00001, 0.000001, 0.00001,
-    0.0001, 1e-8
+    1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-3, 1e-1
   } ;
 #define MAX_PASSES (sizeof(neg_area_ratios) / sizeof(neg_area_ratios[0]))
 static int
@@ -6804,6 +6804,8 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       fprintf(stdout, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
     if (Gdiag & DIAG_WRITE)
       fprintf(parms->fp, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
+    if (ratio > 10000)
+      DiagBreak() ;
     for (done=0, n_averages = base_averages; !done ; n_averages /= 4)
     {
       parms->n_averages = n_averages ;
@@ -7397,35 +7399,35 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   sse_tsmooth = mrisComputeThicknessSmoothnessEnergy(mris, parms->l_tsmooth) ;
   if (!FZERO(parms->l_nlarea))
     sse_nl_area = mrisComputeNonlinearAreaSSE(mris) ;
-  if (!FZERO(parms->l_nldist))
+  if (!DZERO(parms->l_nldist))
     sse_nl_dist = mrisComputeNonlinearDistanceSSE(mris) ;
-  if (!FZERO(parms->l_dist))
+  if (!DZERO(parms->l_dist))
     sse_dist = mrisComputeDistanceError(mris, parms) ;
-  if (!FZERO(parms->l_spring))
+  if (!DZERO(parms->l_spring))
     sse_spring = mrisComputeSpringEnergy(mris) ;
-  if (!FZERO(parms->l_lap))
+  if (!DZERO(parms->l_lap))
     sse_lap = mrisComputeLaplacianEnergy(mris) ;
-  if (!FZERO(parms->l_tspring))
+  if (!DZERO(parms->l_tspring))
     sse_tspring = mrisComputeTangentialSpringEnergy(mris) ;
-  if (!FZERO(parms->l_nlspring))
+  if (!DZERO(parms->l_nlspring))
     sse_nlspring = mrisComputeNonlinearSpringEnergy(mris, parms) ;
-  if (!FZERO(parms->l_curv))
+  if (!DZERO(parms->l_curv))
     sse_curv = mrisComputeQuadraticCurvatureSSE(mris, parms->l_curv) ;
   l_corr = (double)(parms->l_corr + parms->l_pcorr) ;
-  if (!FZERO(l_corr))
+  if (!DZERO(l_corr))
     sse_corr = mrisComputeCorrelationError(mris, parms, 1) ;
-  if (!FZERO(parms->l_intensity))
+  if (!DZERO(parms->l_intensity))
     sse_val = mrisComputeIntensityError(mris, parms) ;
-  if (!FZERO(parms->l_dura))
+  if (!DZERO(parms->l_dura))
     sse_dura = mrisComputeDuraError(mris, parms) ;
-  if (!FZERO(parms->l_grad))
+  if (!DZERO(parms->l_grad))
     sse_grad = mrisComputeIntensityGradientError(mris, parms) ;
-  if (!FZERO(parms->l_sphere))
+  if (!DZERO(parms->l_sphere))
     sse_sphere = mrisComputeSphereError(mris, parms->l_sphere, parms->a) ;
-  if (!FZERO(parms->l_shrinkwrap))
+  if (!DZERO(parms->l_shrinkwrap))
     sse_shrinkwrap =
       mrisComputeShrinkwrapError(mris, parms->mri_brain, parms->l_shrinkwrap) ;
-  if (!FZERO(parms->l_expandwrap))
+  if (!DZERO(parms->l_expandwrap))
     sse_expandwrap =
       mrisComputeExpandwrapError(mris, parms->mri_brain, parms->l_expandwrap,
                                  parms->target_radius) ;
@@ -16824,7 +16826,7 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisComputeNonlinearDistanceTerm(mris, parms) ;
 
   l_dist = parms->l_dist ;
-  if (FZERO(l_dist))
+  if (DZERO(l_dist))
     return(NO_ERROR) ;
 
   v_n = VectorAlloc(3, MATRIX_REAL) ;
@@ -17285,8 +17287,8 @@ mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
 static double
 mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  VERTEX  *v ;
-  int     vno, n, nvertices, max_v, max_n, err_cnt, max_errs ;
+  VERTEX  *v, *vn ;
+  int     vno, n, nvertices, max_v, max_n, err_cnt, max_errs, vn_vno ;
   double  dist_scale, sse_dist, delta, v_sse, max_del ;
   static int first = 1 ;
 
@@ -17325,6 +17327,10 @@ mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     nvertices++ ;
     for (v_sse = 0.0, n = 0 ; n < v->vtotal ; n++)
     {
+      vn_vno = v->v[n] ;
+      vn = &mris->vertices[vn_vno] ;
+      if (vn->ripflag)
+        continue ;
 #if NO_NEG_DISTANCE_TERM
       if (mris->vertices[v->v[n]].neg)
         continue ;
@@ -19038,12 +19044,16 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt)
   if (FZERO(parms->l_corr) &&
       FZERO(parms->l_pcorr) &&
       ((parms->flags & IP_USE_MULTIFRAMES) == 0 ))
+  {
     fprintf(fp, "%3.3d: dt: %2.2f, sse: %2.1f (%2.3f, %2.1f, %2.3f), "
             "neg: %d (%%%2.3f:%%%2.2f), avgs: %d\n",
             parms->t, dt, sse, area_rms, (float)DEGREES(angle_rms), dist_rms,
             negative, 100.0*mris->neg_area/(mris->neg_area+mris->total_area),
             100.0*mris->neg_orig_area/(mris->orig_area),
             parms->n_averages);
+    if (dist_rms > 20)
+      DiagBreak() ;
+  }
   else
   {
     if (parms->flags & IP_USE_MULTIFRAMES)
@@ -60292,6 +60302,8 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
     y = v->y-WM_SAMPLE_DIST*v->ny ;
     z = v->z-WM_SAMPLE_DIST*v->nz ;
     MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xw, &yw, &zw) ;
+    
     MRIsampleVolume(mri, xw, yw, zw, &val) ;
     bin = nint(val - min_val) ;
     if (bin < 0 || bin >= h_white->nbins)
@@ -60382,6 +60394,8 @@ MRISrasToVoxel(MRI_SURFACE *mris,
                Real xs, Real ys, Real zs,
                Real *pxv, Real *pyv, Real *pzv)
 {
+  double x, y, z ;
+
   if (mris->useRealRAS)
     return(MRIworldToVoxel(mri, xs, ys, zs, pxv, pyv, pzv));
   else
@@ -62140,3 +62154,23 @@ MRISscaleCurvature(
 
 // Discrete Principle Curvature and Related ^^^^^^^^^^^^^^^^^^
 
+
+int
+MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, Real r, Real a, Real s, 
+                      Real *px, Real *py, Real *pz)
+{
+  MATRIX *m ;
+  VECTOR *v1, *v2 ;
+
+  m = MRIgetRasToVoxelXform(mri) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ;   VECTOR_ELT(v1, 4) = 1.0 ;
+
+  // first convert to scanner ras
+  V3_X(v1) = r + mris->lta->xforms[0].src.c_r ;
+  V3_Y(v1) = a + mris->lta->xforms[0].src.c_a ;
+  V3_Z(v1) = s + mris->lta->xforms[0].src.c_s ;  
+  v2 = MatrixMultiply(m, v1, NULL) ; // now to voxel coords
+  *px = V3_X(v2) ; *py = V3_Y(v2) ; *pz = V3_Z(v2) ;
+  MatrixFree(&m) ; VectorFree(&v1) ; VectorFree(&v2) ;
+  return(NO_ERROR) ;
+}
