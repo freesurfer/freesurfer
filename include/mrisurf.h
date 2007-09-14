@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2007/09/06 19:45:55 $
- *    $Revision: 1.299 $
+ *    $Author: fischl $
+ *    $Date: 2007/09/14 12:47:46 $
+ *    $Revision: 1.300 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -721,6 +721,9 @@ int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
                                        Real xw, Real yw, Real zw,
                                        Real *pxv, Real *pyv, Real *pzv) ;
 #endif
+int          MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, Real r, 
+                                   Real a, Real s, 
+                                   Real *px, Real *py, Real *pz) ;
 int          MRISsurfaceRASToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
     Real xw, Real yw, Real zw,
     Real *pxv, Real *pyv, Real *pzv) ;
