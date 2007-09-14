@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/20 03:43:51 $
- *    $Revision: 1.278 $
+ *    $Author: kteich $
+ *    $Date: 2007/09/14 19:21:27 $
+ *    $Revision: 1.279 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -12958,7 +12958,8 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
       /* This gets the RGB of the background only.  The RGB may be
 	 overwritten or blended later.  Note: val is NOT ignored, so
 	 we need to pass in the current overlay value. */
-      sclv_get_value(v, sclv_current_field, &val);
+      if (overlayflag)
+	sclv_get_value(v, sclv_current_field, &val);
       get_color_vals(val, val2, mode, &r_base, &g_base, &b_base);
 
       /* save the base color for later comparison, but set our
@@ -18560,7 +18561,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.278 2007/08/20 03:43:51 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.279 2007/09/14 19:21:27 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
