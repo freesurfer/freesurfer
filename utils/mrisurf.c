@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/14 12:49:39 $
- *    $Revision: 1.560 $
+ *    $Date: 2007/09/14 12:50:09 $
+ *    $Revision: 1.561 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -622,7 +622,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.560 2007/09/14 12:49:39 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.561 2007/09/14 12:50:09 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -60394,8 +60394,6 @@ MRISrasToVoxel(MRI_SURFACE *mris,
                Real xs, Real ys, Real zs,
                Real *pxv, Real *pyv, Real *pzv)
 {
-  double x, y, z ;
-
   if (mris->useRealRAS)
     return(MRIworldToVoxel(mri, xs, ys, zs, pxv, pyv, pzv));
   else
