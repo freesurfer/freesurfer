@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/09/14 14:04:50 $
-#    $Revision: 1.133.2.3 $
+#    $Date: 2007/09/14 20:48:06 $
+#    $Revision: 1.133.2.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.3 2007/09/14 14:04:50 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.4 2007/09/14 20:48:06 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -54,6 +54,7 @@ set fs_time = "";
 
 set Force = 0;
 set DoCleanTal   = 0;
+set DoCleanLta   = 0;
 set DoCleanCP    = 0;
 set DoCleanSeed  = 0;
 set DoCleanPFH   = 0;
@@ -487,6 +488,11 @@ if($DoCleanSeed) then
 endif
 if($DoCleanTal) then
    set cmd = (mv -f $subjdir/mri/transforms/talairach.xfm $subjdir/trash)
+   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+   if($RunIt) $cmd  |& tee -a $LF
+endif
+if($DoCleanLta) then
+   set cmd = (mv -f $subjdir/mri/transforms/*.lta $subjdir/trash)
    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
    if($RunIt) $cmd  |& tee -a $LF
 endif
@@ -933,7 +939,7 @@ skullstrip:
     # if using the GCA atlas to help with the skull-strip, then run the
     # GCA registration (mri_em_register) to align to an atlas with a skull,
     # unless that file already exists
-    if ( ! -e transforms/talairach_with_skull.lta || $DoCleanBM ) then
+    if ( ! -e transforms/talairach_with_skull.lta || $DoCleanLta ) then
       set xopts2 = `fsr-getxopts mri_em_register $XOptsFile`;
       set cmd2 = (mri_em_register)
       set cmd2 = ($cmd2 -skull)
@@ -2988,6 +2994,7 @@ while( $#argv != 0 )
 
     case "-clean":
       set DoCleanTal   = 1;
+      set DoCleanLta   = 1;
       set DoCleanCP    = 1;
       set DoCleanSeed  = 1;
       set DoCleanPFH   = 1;
@@ -3016,6 +3023,10 @@ while( $#argv != 0 )
 
     case "-clean-tal":
       set DoCleanTal   = 1;
+      breaksw
+
+    case "-clean-lta":
+      set DoCleanLta   = 1;
       breaksw
 
     case "-clean-pfh":
