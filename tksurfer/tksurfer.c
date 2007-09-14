@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/14 19:20:55 $
- *    $Revision: 1.276.2.3 $
+ *    $Author: nicks $
+ *    $Date: 2007/09/14 23:10:25 $
+ *    $Revision: 1.276.2.4 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -8266,7 +8266,7 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   sclv_unload_field (field);
 
   if (FunD_tRegistration_None == reg_type) {
-    printf ("surfer: ERROR: Must specify registration type for overlay. "
+    printf ("surfer: ERROR: Must specify registration type for overlay.\n"
             "Use -overlay-reg <file>, -overlay-reg-find, "
             "or -overlay-reg-identity.\n");
     return ERROR_BADPARM;
@@ -8291,9 +8291,9 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
     if (!good) {
       if (NULL != volm)
         Volm_Delete (&volm);
-      printf ("surfer: ERROR: You specified registration type identity, "
-              "but tksurfer cannot find an anatomical volume with which "
-              "to calculate the identity transform. Please try another "
+      printf ("surfer: ERROR: You specified registration type identity,\n"
+              "but tksurfer cannot find an anatomical volume with which\n"
+              "to calculate the identity transform. Please try another\n"
               "registration method.\n");
       return ERROR_BADPARM;
     }
@@ -8309,7 +8309,14 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   if (volume_error!=FunD_tErr_NoError) {
     if (NULL != volm)
       Volm_Delete (&volm);
-    printf("surfer: couldn't load %s\n",fname);
+    printf("surfer: couldn't load %s.\n "
+	   "If you were trying to load a functional volume, make sure\n"
+	   "you selected the right registration method, and if necessary,\n"
+	   "that the registration file exists. \n"
+	   "If you were trying to load a volume-encoded value file,\n"
+	   "make sure it has the same number of values as this surface\n"
+	   "does vertices (%d).\n", fname, mris->nvertices);
+
     ErrorReturn(func_convert_error(volume_error),
                 (func_convert_error(volume_error),
                  "sclv_read_from_volume: error in FunD_New\n"));
@@ -18561,7 +18568,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.276.2.3 2007/09/14 19:20:55 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.276.2.4 2007/09/14 23:10:25 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
