@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/14 22:57:38 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/09/15 15:10:48 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,7 @@ mri_segreg
   --ax-mmd axmin axmax axdelta
   --ay-mmd aymin aymax aydelta
   --az-mmd azmin azmax azdelta
+  --interp interptype : interpolation trilinear or nearest (def is trilin)
 
   --out-reg outreg
 
@@ -97,6 +98,7 @@ ENDHELP --------------------------------------------------------------
 #include "gca.h"
 #include "gcamorph.h"
 #include "fio.h"
+#include "cmdargs.h"
 
 #ifdef X
 #undef X
@@ -119,7 +121,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segreg.c,v 1.4 2007/09/14 22:57:38 greve Exp $";
+static char vcid[] = "$Id: mri_segreg.c,v 1.5 2007/09/15 15:10:48 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -170,12 +172,12 @@ int main(int argc, char **argv) {
   MATRIX *Rmin=NULL;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_segreg.c,v 1.4 2007/09/14 22:57:38 greve Exp $",
+                          "$Id: mri_segreg.c,v 1.5 2007/09/15 15:10:48 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_segreg.c,v 1.4 2007/09/14 22:57:38 greve Exp $",
+                                "$Id: mri_segreg.c,v 1.5 2007/09/15 15:10:48 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -294,6 +296,10 @@ int main(int argc, char **argv) {
 	      if(mincost > costs[7]){
 		mincost = costs[7];
 		Rmin = MatrixCopy(R,Rmin);
+		if(outregfile){
+		  regio_write_register(outregfile,subject,mov->xsize,
+				       mov->zsize,1,Rmin,FLT2INT_ROUND);
+		}
 	      }
 
 	      // clean up
@@ -452,6 +458,14 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       SegRegCostFile = pargv[0];
       nargsused = 1;
+    } else if (istringnmatch(option, "--interp",8)) {
+      if (nargc < 1) argnerr(option,1);
+      interpmethod = pargv[0];
+      nargsused = 1;
+      if (!strcmp(interpmethod,"sinc") && CMDnthIsArg(nargc, pargv, 1)) {
+        sscanf(pargv[1],"%d",&sinchw);
+        nargsused ++;
+      }
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -471,7 +485,6 @@ static void usage_exit(void) {
 /* --------------------------------------------- */
 static void print_usage(void) {
 printf("\n");
-printf("\n");
 printf("mri_segreg\n");
 printf("  --reg regfile\n");
 printf("  --mov fvol\n");
@@ -482,8 +495,10 @@ printf("  --tz-mmd tzmin tzmax tzdelta\n");
 printf("  --ax-mmd axmin axmax axdelta\n");
 printf("  --ay-mmd aymin aymax aydelta\n");
 printf("  --az-mmd azmin azmax azdelta\n");
+printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
 printf("\n");
-
+printf("  --out-reg outreg\n");
+printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void) {
