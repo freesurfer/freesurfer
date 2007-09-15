@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/15 21:07:05 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/09/15 22:24:54 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,6 +44,8 @@ mri_segreg
   --cost costfile
 
   --interp interptype : interpolation trilinear or nearest (def is trilin)
+  --no-crop: do not crop anat (crops by default)
+  --profile : print out info about exec time
 
   --noise stddev : add noise with stddev to input for testing sensitivity
   --seed randseed : for use with --noise
@@ -106,6 +108,7 @@ ENDHELP --------------------------------------------------------------
 #include "fio.h"
 #include "cmdargs.h"
 #include "pdf.h"
+#include "timer.h"
 
 #ifdef X
 #undef X
@@ -128,7 +131,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segreg.c,v 1.6 2007/09/15 21:07:05 greve Exp $";
+static char vcid[] = "$Id: mri_segreg.c,v 1.7 2007/09/15 22:24:54 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -159,12 +162,15 @@ char *SegRegCostFile = NULL;
 char  *fspec;
 MRI *regseg;
 MRI *noise=NULL;
+MRI *mritmp;
 
 int SynthSeed = -1;
 int AddNoise = 0;
 double NoiseStd;
 
 int UseASeg = 0;
+int DoCrop = 1;
+int DoProfile = 0;
 
 #define NMAX 100
 int ntx=0, nty=0, ntz=0, nax=0, nay=0, naz=0;
@@ -181,15 +187,18 @@ int main(int argc, char **argv) {
   MATRIX *Tin, *invTin, *Sin, *invSin;
   MATRIX *Ttemp, *invTtemp, *Stemp, *invStemp;
   MATRIX *R=NULL, *invR=NULL, *vox2vox=NULL;
-  MATRIX *Rmin=NULL;
+  MATRIX *Rmin=NULL, *Scrop, *invTcrop, *Tcrop;
+  struct timeb  mytimer;
+  double secResampTime, secCostTime;
+  MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_segreg.c,v 1.6 2007/09/15 21:07:05 greve Exp $",
+                          "$Id: mri_segreg.c,v 1.7 2007/09/15 22:24:54 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_segreg.c,v 1.6 2007/09/15 21:07:05 greve Exp $",
+                                "$Id: mri_segreg.c,v 1.7 2007/09/15 22:24:54 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -206,8 +215,14 @@ int main(int argc, char **argv) {
   check_options();
   dump_options(stdout);
 
+  printf("Loading mov\n");
+  mov = MRIread(movvolfile);
+  if (mov == NULL) exit(1);
+
+
   if(!UseASeg){
     printf("Loading regseg\n");
+    //sprintf(tmpstr,"%s/%s/mri/brain",SUBJECTS_DIR,subject);
     sprintf(tmpstr,"%s/%s/mri/regseg",SUBJECTS_DIR,subject);
     fspec = IDnameFromStem(tmpstr);
     regseg = MRIread(fspec);
@@ -222,9 +237,48 @@ int main(int argc, char **argv) {
     free(fspec);
   }
 
-  printf("Loading mov\n");
-  mov = MRIread(movvolfile);
-  if (mov == NULL) exit(1);
+  // Cropping reduces the size of the target volume down to the 
+  // voxels that really matter. This can greatly increase the speed
+  // (factor of 2-3). Requires that the registration matrix be
+  // recomputed for the smaller volume.
+  if(DoCrop){
+    printf("Cropping\n");
+
+    // Prepare to adjust the input reg matrix
+    Ttemp    = MRIxfmCRS2XYZtkreg(regseg); // Vox-to-tkRAS Matrices
+    Stemp    = MRIxfmCRS2XYZ(regseg,0); // Vox-to-ScannerRAS Matrices
+    invStemp = MatrixInverse(Stemp,NULL);
+
+    MRIboundingBox(regseg, 0.5, &box);
+    printf("BBbox start: %d %d %d, delta = %d %d %d\n",
+	   box.x,box.y,box.z,box.dx,box.dy,box.dz);
+    mritmp = MRIcrop(regseg, box.x, box.y, box.z, box.x+box.dx, box.y+box.dy, box.z+box.dz);
+    MRIfree(&regseg);
+    regseg = mritmp;
+
+    Tcrop  = MRIxfmCRS2XYZtkreg(regseg); // Vox-to-tkRAS Matrices
+    invTcrop = MatrixInverse(Tcrop,NULL);
+    Scrop  = MRIxfmCRS2XYZ(regseg,0); // Vox-to-ScannerRAS Matrices
+
+    // Now adjust input reg
+    // Rc = R*T*inv(S)*Sc*inv(Tc)
+    R0 = MatrixMultiply(R0,Ttemp,R0);
+    R0 = MatrixMultiply(R0,invStemp,R0);
+    R0 = MatrixMultiply(R0,Scrop,R0);
+    R0 = MatrixMultiply(R0,invTcrop,R0);
+    
+    MatrixFree(&Ttemp);
+    MatrixFree(&Stemp);
+    MatrixFree(&invStemp);
+    MatrixFree(&Tcrop);
+    MatrixFree(&invTcrop);
+    MatrixFree(&Scrop);
+
+    //MRIwrite(regseg,"regsegcrop.mgz");
+    //regio_write_register("crop.reg",subject,mov->xsize,
+    //		 mov->zsize,1,R0,FLT2INT_ROUND);
+    //exit(1);
+  }
 
   if(AddNoise){
     // Seed the random number generator just in case
@@ -292,10 +346,14 @@ int main(int argc, char **argv) {
 	      MatrixMultiply(vox2vox,Ttemp,vox2vox);
 	      
 	      // resample
+	      TimerStart(&mytimer) ;
 	      MRIvol2Vol(mov,out,vox2vox,interpcode,sinchw);
-	      
+	      secResampTime = TimerStop(&mytimer)/1000.0 ;
+
 	      // compute costs
+	      TimerStart(&mytimer) ;
 	      SegRegCost(regseg,out,costs);
+	      secCostTime = TimerStop(&mytimer)/1000.0 ;
 
 	      // write costs to file
 	      fp = fopen(SegRegCostFile,"a");
@@ -314,7 +372,8 @@ int main(int argc, char **argv) {
 	      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
 	      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
 	      fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
-	      fprintf(fp,"\n");
+	      if(DoProfile) fprintf(fp,"%4.2lf %4.2lf ",secResampTime,secCostTime);
+	      printf("\n");
 	      fflush(stdout);
 
 	      if(mincost > costs[7]){
@@ -381,6 +440,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--version"))  print_version() ;
     else if (!strcasecmp(option, "--debug"))    debug = 1;
     else if (!strcasecmp(option, "--aseg"))     UseASeg = 1;
+    else if (!strcasecmp(option, "--no-crop"))  DoCrop = 0;
+    else if (!strcasecmp(option, "--crop"))     DoCrop = 1;
+    else if (!strcasecmp(option, "--profile"))  DoProfile = 1;
     else if (istringnmatch(option, "--mov",0)) {
       if (nargc < 1) argnerr(option,1);
       movvolfile = pargv[0];
@@ -591,6 +653,8 @@ static void dump_options(FILE *fp)
   if(outregfile) fprintf(fp,"outregfile %s\n",outregfile);
   fprintf(fp,"interp  %s (%d)\n",interpmethod,interpcode);
   if(interpcode == SAMPLE_SINC) fprintf(fp,"sinc hw  %d\n",sinchw);
+  fprintf(fp,"Crop      %d\n",DoCrop);
+  fprintf(fp,"Profile   %d\n",DoProfile);
   fprintf(fp,"Gdiag_no  %d\n",Gdiag_no);
   fprintf(fp,"ntx %d\n",ntx);
   if(ntx > 0){
