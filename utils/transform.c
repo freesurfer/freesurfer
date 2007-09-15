@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/14 22:57:02 $
- *    $Revision: 1.116 $
+ *    $Date: 2007/09/15 02:46:58 $
+ *    $Revision: 1.117 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3841,7 +3841,7 @@ double *SegRegCost(MRI *regseg, MRI *f, double *costs)
   ctxmean = ctxsum/nctxhits;
   ctxstd = sqrt( (ctxsum2 - 2*ctxmean*ctxsum + nctxhits*ctxmean*ctxmean)/nctxhits );
 
-  t = (ctxmean-wmmean)/sqrt(ctxstd*ctxstd + wmstd*wmstd);
+  t = fabs(ctxmean-wmmean)/sqrt(ctxstd*ctxstd + wmstd*wmstd);
   cost = 1/t;
 
   //printf("WM: %6d %6.1f %6.1f   CTX: %6d %6.1f %6.1f  Cost: %g\n",
