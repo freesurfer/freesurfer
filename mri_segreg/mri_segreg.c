@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/15 15:10:48 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/09/15 21:07:05 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,16 +33,22 @@ BEGINUSAGE --------------------------------------------------------------
 mri_segreg
   --reg regfile
   --mov fvol
+
+  --tx-mmd txmin txmax txdelta : translation (mm) in x
+  --ty-mmd tymin tymax tydelta : translation (mm) in y
+  --tz-mmd tzmin tzmax tzdelta : translation (mm) in z
+  --ax-mmd axmin axmax axdelta : rotation (deg) about x
+  --ay-mmd aymin aymax aydelta : rotation (deg) about y
+  --az-mmd azmin azmax azdelta : rotation (deg) about z
+
   --cost costfile
-  --tx-mmd txmin txmax txdelta
-  --ty-mmd tymin tymax tydelta
-  --tz-mmd tzmin tzmax tzdelta
-  --ax-mmd axmin axmax axdelta
-  --ay-mmd aymin aymax aydelta
-  --az-mmd azmin azmax azdelta
+
   --interp interptype : interpolation trilinear or nearest (def is trilin)
 
-  --out-reg outreg
+  --noise stddev : add noise with stddev to input for testing sensitivity
+  --seed randseed : for use with --noise
+
+  --out-reg outreg : reg at lowest cost (updated continuously)
 
 ENDUSAGE ---------------------------------------------------------------
 */
@@ -99,6 +105,7 @@ ENDHELP --------------------------------------------------------------
 #include "gcamorph.h"
 #include "fio.h"
 #include "cmdargs.h"
+#include "pdf.h"
 
 #ifdef X
 #undef X
@@ -121,7 +128,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segreg.c,v 1.5 2007/09/15 15:10:48 greve Exp $";
+static char vcid[] = "$Id: mri_segreg.c,v 1.6 2007/09/15 21:07:05 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -151,6 +158,11 @@ MATRIX *Mtrans = NULL;
 char *SegRegCostFile = NULL;
 char  *fspec;
 MRI *regseg;
+MRI *noise=NULL;
+
+int SynthSeed = -1;
+int AddNoise = 0;
+double NoiseStd;
 
 int UseASeg = 0;
 
@@ -164,7 +176,7 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
   double costs[8], angles[3], mincost;
   double tx, ty, tz, ax, ay, az; 
-  int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz; 
+  int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz, ntot; 
   FILE *fp;
   MATRIX *Tin, *invTin, *Sin, *invSin;
   MATRIX *Ttemp, *invTtemp, *Stemp, *invStemp;
@@ -172,12 +184,12 @@ int main(int argc, char **argv) {
   MATRIX *Rmin=NULL;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_segreg.c,v 1.5 2007/09/15 15:10:48 greve Exp $",
+                          "$Id: mri_segreg.c,v 1.6 2007/09/15 21:07:05 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_segreg.c,v 1.5 2007/09/15 15:10:48 greve Exp $",
+                                "$Id: mri_segreg.c,v 1.6 2007/09/15 21:07:05 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -214,6 +226,16 @@ int main(int argc, char **argv) {
   mov = MRIread(movvolfile);
   if (mov == NULL) exit(1);
 
+  if(AddNoise){
+    // Seed the random number generator just in case
+    if (SynthSeed < 0) SynthSeed = PDFtodSeed();
+    srand48(SynthSeed);
+    printf("Adding noise, Seed = %d, stddev = %lf\n",SynthSeed,NoiseStd);
+    noise = MRIrandn(mov->width,mov->height,mov->depth,mov->nframes,
+		     0,NoiseStd,NULL);
+    mov = MRIadd(mov, noise, mov);
+  }
+
   // Vox-to-tkRAS Matrices
   Tin      = MRIxfmCRS2XYZtkreg(mov);
   invTin   = MatrixInverse(Tin,NULL);
@@ -231,7 +253,9 @@ int main(int argc, char **argv) {
   out = MRIallocSequence(regseg->width, regseg->height, regseg->depth, MRI_FLOAT, 1);
   MRIcopyHeader(regseg,out);
 
-  printf("Staring loop\n");
+  ntot = ntx*nty*ntz*nax*nay*naz;
+
+  printf("Staring loop over %d\n",ntot);
   nth = 0;
   mincost = 10e10;
   for(nthtx = 0; nthtx < ntx; nthtx++){
@@ -276,7 +300,7 @@ int main(int argc, char **argv) {
 	      // write costs to file
 	      fp = fopen(SegRegCostFile,"a");
 	      fprintf(fp,"%7.3lf %7.3lf %7.3lf ",tx,ty,tz);
-	      fprintf(fp,"%5.1lf %5.1lf %5.1lf ",ax,ay,az);
+	      fprintf(fp,"%6.3lf %6.3lf %6.3lf ",ax,ay,az);
 	      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
 	      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
 	      fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
@@ -286,7 +310,7 @@ int main(int argc, char **argv) {
 	      fp = stdout;
 	      fprintf(fp,"%5d ",nth);
 	      fprintf(fp,"%7.3lf %7.3lf %7.3lf ",tx,ty,tz);
-	      fprintf(fp,"%5.1lf %5.1lf %5.1lf ",ax,ay,az);
+	      fprintf(fp,"%6.3lf %6.3lf %6.3lf ",ax,ay,az);
 	      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
 	      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
 	      fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
@@ -371,6 +395,15 @@ static int parse_commandline(int argc, char **argv) {
     } else if (istringnmatch(option, "--out-reg",0)) {
       if (nargc < 1) argnerr(option,1);
       outregfile = pargv[0];
+      nargsused = 1;
+    } else if (istringnmatch(option, "--noise",0)) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&NoiseStd);
+      AddNoise = 1;
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--seed")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&SynthSeed);
       nargsused = 1;
     } else if (istringnmatch(option, "--tx-mmd",0)) {
       if(nargc < 3) argnerr(option,3);
@@ -488,17 +521,24 @@ printf("\n");
 printf("mri_segreg\n");
 printf("  --reg regfile\n");
 printf("  --mov fvol\n");
+printf("\n");
+printf("  --tx-mmd txmin txmax txdelta : translation (mm) in x\n");
+printf("  --ty-mmd tymin tymax tydelta : translation (mm) in y\n");
+printf("  --tz-mmd tzmin tzmax tzdelta : translation (mm) in z\n");
+printf("  --ax-mmd axmin axmax axdelta : rotation (deg) about x\n");
+printf("  --ay-mmd aymin aymax aydelta : rotation (deg) about y\n");
+printf("  --az-mmd azmin azmax azdelta : rotation (deg) about z\n");
+printf("\n");
 printf("  --cost costfile\n");
-printf("  --tx-mmd txmin txmax txdelta\n");
-printf("  --ty-mmd tymin tymax tydelta\n");
-printf("  --tz-mmd tzmin tzmax tzdelta\n");
-printf("  --ax-mmd axmin axmax axdelta\n");
-printf("  --ay-mmd aymin aymax aydelta\n");
-printf("  --az-mmd azmin azmax azdelta\n");
+printf("\n");
 printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
 printf("\n");
-printf("  --out-reg outreg\n");
+printf("  --noise stddev : add noise with stddev to input for testing sensitivity\n");
+printf("  --seed randseed : for use with --noise\n");
 printf("\n");
+printf("  --out-reg outreg : reg at lowest cost (updated continuously)\n");
+printf("\n");
+
 }
 /* --------------------------------------------- */
 static void print_help(void) {
