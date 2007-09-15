@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/15 20:21:03 $
- *    $Revision: 1.38 $
+ *    $Date: 2007/09/15 20:37:23 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.38 2007/09/15 20:21:03 greve Exp $
+  $Id: mri_vol2vol.c,v 1.39 2007/09/15 20:37:23 greve Exp $
 
 */
 
@@ -67,8 +67,8 @@ mri_vol2vol
 
   --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix
   --trans Tx Ty Tz : translation (mm) to apply to reg matrix
+  --reg-final regfinal.dat : final reg after rot and trans (but not inv)
 
-  --reg-final regfinal.dat : final reg after rot, trans, inv, etc.
   --no-save-reg : do not write out output volume registration matrix
 
   --help : go ahead, make my day
@@ -427,7 +427,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.38 2007/09/15 20:21:03 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.39 2007/09/15 20:37:23 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -507,16 +507,14 @@ int main(int argc, char **argv) {
   double costs[8];
   FILE *fp;
   int n;
-  MATRIX *Mtmp = NULL;
-
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.38 2007/09/15 20:21:03 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.39 2007/09/15 20:37:23 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.38 2007/09/15 20:21:03 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.39 2007/09/15 20:37:23 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -603,11 +601,6 @@ int main(int argc, char **argv) {
   if (R == NULL)
     ErrorExit(ERROR_BADPARM, "ERROR: no registration specified\n") ;
 
-  if(invert) {
-    printf("Inverting registration\n");
-    R = MatrixInverse(R,NULL);
-  }
-
   if(Mrot){
     printf("Applying rotation matrix (R=M*R)\n");
     printf("Current Reg Matrix is:\n");
@@ -629,24 +622,23 @@ int main(int argc, char **argv) {
     R = MatrixMultiply(Mtrans,R,R);
   }
 
+  if(RegFileFinal){
+    printf("Writing final tkRAS-to-tkRAS Matrix to %s\n",RegFileFinal);
+    regio_write_register(RegFileFinal,subject,in->xsize,
+			 in->zsize,1,R,FLT2INT_ROUND);
+  }
+
+  if(invert) {
+    printf("Inverting registration\n");
+    R = MatrixInverse(R,NULL);
+  }
+
   invR = MatrixInverse(R,NULL);
 
   printf("\n");
   printf("Final tkRAS-to-tkRAS Matrix is:\n");
   MatrixPrint(stdout,R);
   printf("\n");
-  if(RegFileFinal){
-    printf("Writing final tkRAS-to-tkRAS Matrix to %s\n",RegFileFinal);
-    if(! invert)
-      regio_write_register(RegFileFinal,subject,in->xsize,
-			   in->zsize,1,R,FLT2INT_ROUND);
-    else{
-      Mtmp = MatrixInverse(R,NULL);
-      regio_write_register(RegFileFinal,subject,in->xsize,
-			   in->zsize,1,Mtmp,FLT2INT_ROUND);
-      MatrixFree(&Mtmp);
-    }
-  }
 
   // Vox-to-tkRAS Matrices
   Tin      = MRIxfmCRS2XYZtkreg(in);
@@ -985,8 +977,8 @@ printf("  --no-resample : do not resample, just change vox2ras matrix\n");
 printf("\n");
 printf("  --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
 printf("  --trans Tx Ty Tz : translation (mm) to apply to reg matrix\n");
+printf("  --reg-final regfinal.dat : final reg after rot and trans (but not inv)\n");
 printf("\n");
-printf("  --reg-final regfinal.dat : final reg after rot, trans, inv, etc.\n");
 printf("  --no-save-reg : do not write out output volume registration matrix\n");
 printf("\n");
 printf("  --help : go ahead, make my day\n");
