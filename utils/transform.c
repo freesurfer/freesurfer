@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/15 02:46:58 $
- *    $Revision: 1.117 $
+ *    $Date: 2007/09/15 18:44:19 $
+ *    $Revision: 1.118 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3795,9 +3795,108 @@ MATRIX *MRIangles2RotMat(double *angles)
   \fn double *SegRegCost(MRI *regseg, MRI *f, double *costs)
   \brief Compute cost function for segmentation-based registration.
   \param regseg - segmentation used to identify WM and Ctx voxels.
-  \param f - volume of intensities used to compute the cost function
-  \param costs - 8 element array with cost measures.
+    Must be uchar, int, or float
+  \param f - volume of intensities used to compute the cost function.
+    Must be float (usually is because of resampling).
+  \param costs - 8 element array with cost measures. If NULL, it will 
+    be allocated.
 */
+double *SegRegCost(MRI *regseg, MRI *f, double *costs)
+{
+  double wmsum, wmsum2, wmmean, wmstd;
+  double ctxsum, ctxsum2, ctxmean, ctxstd;
+  double vseg=0, vf, t, cost;
+  int r,c,s,nwmhits,nctxhits;
+  float *pf;
+  void *pseg;
+  int psegincr=0;
+
+  if(regseg->type == MRI_INT)        psegincr = sizeof(int);
+  else if(regseg->type == MRI_UCHAR) psegincr = sizeof(unsigned char);
+  else if(regseg->type == MRI_FLOAT) psegincr = sizeof(float);
+  else {
+    printf("ERROR: SegRegCost(): regseg type must be int, uchar, or float\n");
+    return(NULL);
+  }
+  if(f->type != MRI_FLOAT) {
+    printf("ERROR: SegRegCost(): f type must be int, uchar, or float\n");
+    return(NULL);
+  }
+
+  // Should check that f and regseg have consistent dims
+
+  if(costs == NULL) costs = (double *) calloc(sizeof(double),8);
+
+  nwmhits = 0;
+  nctxhits = 0;
+  wmsum = 0;
+  wmsum2 = 0;
+  ctxsum = 0;
+  ctxsum2 = 0;
+  for(s=0; s < f->depth; s++){
+    for(r=0; r < f->height; r++){
+      pf = (float*)f->slices[s][r];
+      pseg = regseg->slices[s][r];
+      // Start loop over column
+      for(c=0; c < f->width; c++){
+  	vf = (*pf);
+	// If the f vol is zero, then skip this vox
+	if(vf == 0) {
+	  pf++;
+	  pseg += psegincr;
+	  continue;
+	}
+	// Determine tissue class
+	if(regseg->type == MRI_UCHAR) vseg = (*(unsigned char*)pseg);
+	if(regseg->type == MRI_INT)   vseg = (*(int*)pseg);
+	if(regseg->type == MRI_FLOAT) vseg = (*(float*)pseg);
+	if(vseg == 2 || vseg == 41){
+	  // white matter
+	  wmsum  += vf;
+	  wmsum2 += (vf*vf);
+	  nwmhits ++;
+	}
+	if(vseg == 3 || vseg == 42){
+	  // cortex
+	  ctxsum  += vf;
+	  ctxsum2 += (vf*vf);
+	  nctxhits ++;
+	}
+	pf++;
+	pseg += psegincr;
+      }
+    }
+  }
+
+  //printf("wmsum2 = %lf ctxsum2 = %lf\n",wmsum2,ctxsum2);
+
+  wmmean = wmsum/nwmhits;
+  wmstd = sqrt( (wmsum2 - 2*wmmean*wmsum + nwmhits*wmmean*wmmean)/nwmhits );
+
+  ctxmean = ctxsum/nctxhits;
+  ctxstd = sqrt( (ctxsum2 - 2*ctxmean*ctxsum + nctxhits*ctxmean*ctxmean)/nctxhits );
+
+  t = fabs(ctxmean-wmmean)/sqrt(ctxstd*ctxstd + wmstd*wmstd);
+  cost = 1/t;
+
+  //printf("WM: %6d %6.1f %6.1f   CTX: %6d %6.1f %6.1f  Cost: %g\n",
+  // nwmhits,wmmean,wmstd, nctxhits,ctxmean,ctxstd, cost);
+
+  costs[0] = nwmhits;
+  costs[1] = wmmean;
+  costs[2] = wmstd;
+  costs[3] = nctxhits;
+  costs[4] = ctxmean;
+  costs[5] = ctxstd;
+  costs[6] = t;
+  costs[7] = cost;
+
+  return(0);
+}
+
+#if 0
+// This is the old version that uses MRIgetVoxVal(), which is somewhat
+// slower.
 double *SegRegCost(MRI *regseg, MRI *f, double *costs)
 {
   double wmsum, wmsum2, wmmean, wmstd;
@@ -3858,3 +3957,4 @@ double *SegRegCost(MRI *regseg, MRI *f, double *costs)
 
   return(0);
 }
+#endif
