@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/18 02:23:49 $
-#    $Revision: 1.15 $
+#    $Date: 2007/09/16 21:10:59 $
+#    $Revision: 1.15.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.15 2007/06/18 02:23:49 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.15.2.1 2007/09/16 21:10:59 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -37,6 +37,7 @@ set HPF = ();
 set inorm = 1;
 set use_new_inorm = 1;
 set UpdateOnly = 0;
+set UseFSL = 0;
 
 set infmt   = ();
 set outfmt  = bhdr;
@@ -147,15 +148,15 @@ foreach sess ($SessList)
 
   ## Go through each run ##
   foreach run ($RunList)
+    set infmt = `getformat_from_stem $run/$instem`
+    if($status) then
+      echo "ERROR: cannot find $run/$instem"
+      exit 1;
+    endif
+    set infunc  = $run/$instem.$infmt
+    set outfunc = $run/$outstem.$outfmt
 
     if($UpdateOnly) then
-      set infmt = `getformat_from_stem $run/$instem`
-      if($status) then
-        echo "ERROR: cannot find $run/$instem"
-        exit 1;
-      endif
-      set infunc  = $run/$instem.$infmt
-      set outfunc = $run/$outstem.$outfmt
       test $infunc -nt $outfunc
       if($status) then
         pwd
@@ -165,27 +166,40 @@ foreach sess ($SessList)
       endif
     endif
 
-    # Construct and run the command for this run #
-    set cmd = (ipfsl -i $run/$instem -o $run/$outstem -pct .1)
-    set cmd = ($cmd -fwhm $fwhm -outfmt $outfmt)
-    if($#infmt != 0)  set cmd = ($cmd -infmt $infmt)
-    if($#tmpdir == 0) set cmd = ($cmd -scratch tmp.ipfsl)
-    if($#tmpdir != 0) set cmd = ($cmd -scratch $tmpdir)
-    if($#HPF != 0)  set cmd = ($cmd -t $HPF -1)
-    echo ---------------------------------------------- |& tee -a $LF
-    $PWDCMD   |& tee -a $LF
-    echo $cmd |& tee -a $LF
-    echo ---------------------------------------------- |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) then
-      echo "ERROR: ipfsl failed"
-      exit 1
+    if($UseFSL) then
+      # Construct and run the command for this run #
+      set cmd = (ipfsl -i $run/$instem -o $run/$outstem -pct .1)
+      set cmd = ($cmd -fwhm $fwhm -outfmt $outfmt)
+      if($#infmt != 0)  set cmd = ($cmd -infmt $infmt)
+      if($#tmpdir == 0) set cmd = ($cmd -scratch tmp.ipfsl)
+      if($#tmpdir != 0) set cmd = ($cmd -scratch $tmpdir)
+      if($#HPF != 0)  set cmd = ($cmd -t $HPF -1)
+      echo ---------------------------------------------- |& tee -a $LF
+      $PWDCMD   |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      echo ---------------------------------------------- |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) then
+        echo "ERROR: ipfsl failed"
+        exit 1
+      endif
+      if(! -e $run/$outstem.$outfmt) then
+        echo "ERROR: ipfsl failed to create output"
+        exit 1
+      endif
+      if($#tmpdir == 0) rm -r tmp.ipfsl
+    else
+      set cmd = (mri_fwhm --i $infunc --o $outfunc --fwhm $fwhm --smooth-only) 
+      echo ---------------------------------------------- |& tee -a $LF
+      $PWDCMD   |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      echo ---------------------------------------------- |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) then
+        echo "ERROR: mri_fwhm failed"
+        exit 1
+      endif
     endif
-    if(! -e $run/$outstem.$outfmt) then
-      echo "ERROR: ipfsl failed to create output"
-      exit 1
-    endif
-    if($#tmpdir == 0) rm -r tmp.ipfsl
 
     if($inorm) then
       echo "INFO: intensity normalizing smoothed volume"
@@ -317,6 +331,10 @@ while( $#argv != 0 )
       set nolog = 1;
       breaksw
 
+    case "-fsl":
+      set UseFSL = 1;
+      breaksw
+
     case "-verbose":
       set verbose = 1;
       breaksw
@@ -383,6 +401,14 @@ check_params:
     exit 1
   endif
 
+  if($UseFSL) then
+    set ip = $FSLDIR/bin/ip
+    if(! -e $ip) then
+      echo "ERROR: cannot find $ip"
+      exit 1;
+    endif
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -415,6 +441,8 @@ usage_exit:
   echo "   -inorm-old      : use old inorm"
   echo "   -infmt format   : <autodetect>, bhdr, mgh, nii.gz, etc"
   echo "   -outfmt format  : <bhdr>, mgh, nii.gz, etc"
+  echo ""
+  echo "   -fsl : use FSL version 3.3 ip command"
   echo "   -version        : print version and exit"
   echo "   -nolog          : do create a log file"
   echo "   -help           : print help and exit"
