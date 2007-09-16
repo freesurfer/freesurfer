@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/17 20:07:41 $
-#    $Revision: 1.15 $
+#    $Date: 2007/09/16 23:16:23 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.15 2007/06/17 20:07:41 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.16 2007/09/16 23:16:23 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -45,6 +45,7 @@ set rlf     = ();
 set mcnthrun = ();
 set mcrun    = ();
 set MCPerRun = 0;
+set MaskPerRun = 0;
 
 set UpdateOnly = 1;
 set DoMask   = 1;
@@ -233,6 +234,7 @@ foreach sess ($SessList)
     set cmd = ($cmd -s $sessid -d $sessparent)
     if($nolog) set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
+    if($MaskPerRun) set cmd = ($cmd -perrun);
     echo "$sessid Inorm ------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
@@ -354,6 +356,15 @@ while( $#argv != 0 )
 
     case "-mcperrun":
       set MCPerRun = 1;
+      breaksw
+
+    case "-maskperrun":
+      set MaskPerRun = 1;
+      breaksw
+
+    case "-perrun":
+      set MCPerRun = 1;
+      set MaskPerRun = 1;
       breaksw
 
     case "-no-stc":
@@ -563,6 +574,9 @@ usage_exit:
   echo "  -mcperrun : perform motion correction on all runs separately"
   echo "  -mcnthrun nthrun : use nthrun as reference"
   echo "  -mcrun    RRR    : use run RRR as reference"
+  echo "  -maskperrun : perform masking on all runs separately"
+  echo ""
+  echo "  -perrun : perform masking and MC on all runs separately"
   echo ""
   echo "Session Arguments (Required)"
   echo "  -sf sessidfile  ..."
