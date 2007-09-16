@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:17 $
-#    $Revision: 1.7 $
+#    $Author: greve $
+#    $Date: 2007/09/16 21:33:59 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: ghostdet,v 1.7 2007/01/09 22:41:17 nicks Exp $';
+set VERSION = '$Id: ghostdet,v 1.8 2007/09/16 21:33:59 greve Exp $';
 set inputargs = ($argv);
 
 setenv FSLOUTPUTTYPE NIFTI
@@ -148,7 +148,8 @@ cat $MLF | matlab -display iconic |& tee -a $LF
 # Erode the air mask
 echo "Eroding the air mask $nairerode" | tee -a $LF
 date | tee -a $LF
-set cmd = (avwmaths $airstem -ero $airstem)
+#set cmd = (avwmaths $airstem -ero $airstem)
+set cmd = (mri_binarize --i $airstem --erode 1 --o $airstem --min 0.5);
 pwd | tee -a $LF
 echo $cmd | tee -a $LF
 @ n = 1;
