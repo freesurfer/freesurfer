@@ -3,7 +3,7 @@
 # This is a modified version of FSL's FEAT TCL program. 
 # All restrictions of the FSL LICENSE below apply.
 #
-# $Id: feat.fsfast-patch.tcl,v 1.2 2007/08/07 03:08:05 greve Exp $
+# $Id: feat.fsfast-patch.tcl,v 1.3 2007/09/16 23:17:42 greve Exp $
 
 #{{{ copyright and setup 
 
@@ -2915,7 +2915,7 @@ if { $fmri(st) > 0 } {
 
 if { $fmri(bet_yn) } {
 
-    if { [ imtest $fmri(alternative_mask) ] } {
+    if { [ info exists fmri(alternative_mask) ] && [ imtest $fmri(alternative_mask) ] } {
         puts "-------Using alternative mask---------"
 	# Mask with external mask
         # First, copy over
@@ -3060,7 +3060,7 @@ if { ! [ imtest mask ] } {
 }
 
 # Overwrite mask with external mask
-if { [ imtest $fmri(alternative_mask) ] } {
+if { [ info exists fmri(alternative_mask) ] && [ imtest $fmri(alternative_mask) ] } {
     puts "-------Using alternative mask---------"
     fsl:exec "${FSLDIR}/bin/avwmaths $fmri(alternative_mask) mask"
 }
