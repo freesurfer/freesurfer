@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/14 22:19:49 $
- *    $Revision: 1.280 $
+ *    $Author: greve $
+ *    $Date: 2007/09/16 23:14:11 $
+ *    $Revision: 1.281 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -9138,11 +9138,12 @@ read_fieldsign(char *fname) {
   send_tcl_command ("ShowLabel kLabel_Fieldsign 1");
 }
 
-void
-write_fieldsign(char *fname) {
+void write_fieldsign(char *fname) {
   int k,vnum;
   float f;
   FILE *fp;
+  MRI *mri;
+  char tmpstr[2000];
 
   vnum = mris->nvertices;
   fp = fopen(fname,"w");
@@ -9158,11 +9159,17 @@ write_fieldsign(char *fname) {
   }
   fclose(fp);
   printf("surfer: file %s written\n",fname);
+
+  // This writes it out as an mgz file 
+  sprintf(tmpstr,"%s.mgz",fname);
+  mri = MRIcopyMRIS(NULL, mris, 0, "fieldsign");
+  MRIwrite(mri,tmpstr);
+  MRIfree(&mri);
+
   PR
 }
 
-void
-read_fsmask(char *fname) {
+void read_fsmask(char *fname) {
   int k,vnum;
   float f;
   FILE *fp;
@@ -9186,11 +9193,13 @@ read_fsmask(char *fname) {
   enable_menu_set (MENUSET_FIELDMASK_LOADED, 1);
 }
 
-void
-write_fsmask(char *fname) {
+void write_fsmask(char *fname) {
   int k,vnum;
   float f;
   FILE *fp;
+  MRI *mri;
+  char tmpstr[2000];
+
 
   vnum = mris->nvertices;
   fp = fopen(fname,"w");
@@ -9205,6 +9214,13 @@ write_fsmask(char *fname) {
   }
   fclose(fp);
   printf("surfer: file %s written\n",fname);
+
+  // This writes it out as an mgz file 
+  sprintf(tmpstr,"%s.mgz",fname);
+  mri = MRIcopyMRIS(NULL, mris, 0, "fsmask");
+  MRIwrite(mri,tmpstr);
+  MRIfree(&mri);
+
   PR
 }
 
@@ -18568,7 +18584,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.280 2007/09/14 22:19:49 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.281 2007/09/16 23:14:11 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
