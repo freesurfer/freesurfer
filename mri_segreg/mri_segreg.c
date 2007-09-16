@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/15 22:24:54 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/09/16 04:45:49 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -114,6 +114,9 @@ ENDHELP --------------------------------------------------------------
 #undef X
 #endif
 
+double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R, double *p, double *costs);
+int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p, char *costfile, double *costs);
+
 // For some reason, this does not seemed to be defined in math.h
 double round(double x);
 
@@ -131,7 +134,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segreg.c,v 1.7 2007/09/15 22:24:54 greve Exp $";
+static char vcid[] = "$Id: mri_segreg.c,v 1.8 2007/09/16 04:45:49 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -155,9 +158,6 @@ int float2int,err, nargs;
 
 char tmpstr[2000];
 
-MATRIX *Mrot = NULL;
-MATRIX *Mtrans = NULL;
-
 char *SegRegCostFile = NULL;
 char  *fspec;
 MRI *regseg;
@@ -180,25 +180,25 @@ double axlist[NMAX],aylist[NMAX],azlist[NMAX];
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
-  double costs[8], angles[3], mincost;
+  double costs[8], mincost, p[6];
   double tx, ty, tz, ax, ay, az; 
-  int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz, ntot; 
+  int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz, ntot, n; 
   FILE *fp;
-  MATRIX *Tin, *invTin, *Sin, *invSin;
+  MATRIX *Tin, *invTin;
   MATRIX *Ttemp, *invTtemp, *Stemp, *invStemp;
-  MATRIX *R=NULL, *invR=NULL, *vox2vox=NULL;
+  MATRIX *R=NULL;
   MATRIX *Rmin=NULL, *Scrop, *invTcrop, *Tcrop;
   struct timeb  mytimer;
-  double secResampTime, secCostTime;
+  double secCostTime;
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_segreg.c,v 1.7 2007/09/15 22:24:54 greve Exp $",
+                          "$Id: mri_segreg.c,v 1.8 2007/09/16 04:45:49 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_segreg.c,v 1.7 2007/09/15 22:24:54 greve Exp $",
+                                "$Id: mri_segreg.c,v 1.8 2007/09/16 04:45:49 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -295,20 +295,48 @@ int main(int argc, char **argv) {
   invTin   = MatrixInverse(Tin,NULL);
   Ttemp    = MRIxfmCRS2XYZtkreg(regseg);
   invTtemp = MatrixInverse(Ttemp,NULL);
-  
-  // Vox-to-ScannerRAS Matrices
-  Sin      = MRIxfmCRS2XYZ(mov,0);
-  invSin   = MatrixInverse(Sin,NULL);
-  Stemp    = MRIxfmCRS2XYZ(regseg,0);
-  invStemp = MatrixInverse(Stemp,NULL);
+  R = MatrixCopy(R0,NULL);
   
   // Allocate the output
-  out = MRIcloneBySpace(regseg,-1,mov->nframes);
   out = MRIallocSequence(regseg->width, regseg->height, regseg->depth, MRI_FLOAT, 1);
   MRIcopyHeader(regseg,out);
 
-  ntot = ntx*nty*ntz*nax*nay*naz;
+  if(1){
+    // 1D minimization
+    TimerStart(&mytimer) ;
+    nth = 0;
+    for(n=0; n < 3; n++){
+      printf("n = %d --------------------------------------\n",n);
+      R = MatrixCopy(R0,NULL);
+      nth += Min1D(mov, regseg, R, p, SegRegCostFile, costs);
+      printf("\n");
+    }
+    secCostTime = TimerStop(&mytimer)/1000.0 ;
+    
+    printf("Min cost was %lf\n",costs[7]);
+    printf("Number of iterations %5d in %lf sec\n",nth,secCostTime);
+    printf("Parameters at optimum\n");
+    printf("%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
+	   p[0],p[1],p[2],p[3],p[4],p[5]);
+    printf("Costs at optimum\n");
+    printf("%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
+    printf("%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
+    printf("%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
+    printf("\n");
+    
+    printf("Reg at min cost was \n");
+    MatrixPrint(stdout,R);
+    printf("\n");
+    
+    if(outregfile){
+      printf("Writing optimal reg to %s \n",outregfile);
+      regio_write_register(outregfile,subject,mov->xsize,
+			   mov->zsize,1,R,FLT2INT_ROUND);
+    }
+    exit(0);
+  }
 
+  ntot = ntx*nty*ntz*nax*nay*naz;
   printf("Staring loop over %d\n",ntot);
   nth = 0;
   mincost = 10e10;
@@ -326,33 +354,14 @@ int main(int argc, char **argv) {
 	      az = azlist[nthaz];
 	      nth ++;
 
-	      angles[0] = ax*(M_PI/180);
-	      angles[1] = ay*(M_PI/180);
-	      angles[2] = az*(M_PI/180);
-	      Mrot = MRIangles2RotMat(angles);
-
-	      Mtrans = MatrixIdentity(4,NULL);
-	      Mtrans->rptr[1][4] = tx;
-	      Mtrans->rptr[2][4] = ty;
-	      Mtrans->rptr[3][4] = tz;
-
-	      // R = Mtrans*Mrot*R0
-	      R = MatrixMultiply(Mrot,R0,R);
-	      R = MatrixMultiply(Mtrans,R,R);
-	      invR = MatrixInverse(R,invR);
-
-	      // vox2vox = invTin*R*Ttemp
-	      vox2vox = MatrixMultiply(invTin,R,vox2vox);
-	      MatrixMultiply(vox2vox,Ttemp,vox2vox);
-	      
-	      // resample
+	      p[0] = tx;
+	      p[1] = ty;
+	      p[2] = tz;
+	      p[3] = ax;
+	      p[4] = ay;
+	      p[5] = az;
 	      TimerStart(&mytimer) ;
-	      MRIvol2Vol(mov,out,vox2vox,interpcode,sinchw);
-	      secResampTime = TimerStop(&mytimer)/1000.0 ;
-
-	      // compute costs
-	      TimerStart(&mytimer) ;
-	      SegRegCost(regseg,out,costs);
+	      GetCosts(mov, regseg, R0, R, p, costs);
 	      secCostTime = TimerStop(&mytimer)/1000.0 ;
 
 	      // write costs to file
@@ -372,7 +381,7 @@ int main(int argc, char **argv) {
 	      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
 	      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
 	      fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
-	      if(DoProfile) fprintf(fp,"%4.2lf %4.2lf ",secResampTime,secCostTime);
+	      if(DoProfile) fprintf(fp,"%4.2lf ",secCostTime);
 	      printf("\n");
 	      fflush(stdout);
 
@@ -386,8 +395,6 @@ int main(int argc, char **argv) {
 	      }
 
 	      // clean up
-	      MatrixFree(&Mrot);
-	      MatrixFree(&Mtrans);
 	    }
 	  }
 	}
@@ -720,3 +727,132 @@ static int istringnmatch(char *str1, char *str2, int n) {
   if (n <= 0 && ! strcasecmp(str1,str2)) return(1);
   return(0);
 }
+
+/*-------------------------------------------------------*/
+double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R, 
+		 double *p, double *costs)
+{
+  double angles[0];
+  MATRIX *Mrot=NULL, *Mtrans=NULL, *invR=NULL,*vox2vox = NULL;
+  MATRIX *Tin, *invTin, *Ttemp;
+  extern MRI *out;
+
+  if(R==NULL){
+    printf("ERROR: GetCosts(): R cannot be NULL\n");
+    return(NULL);
+  }
+
+  Tin      = MRIxfmCRS2XYZtkreg(mov);
+  invTin   = MatrixInverse(Tin,NULL);
+  Ttemp    = MRIxfmCRS2XYZtkreg(seg);
+
+  Mtrans = MatrixIdentity(4,NULL);
+  Mtrans->rptr[1][4] = p[0];
+  Mtrans->rptr[2][4] = p[1];
+  Mtrans->rptr[3][4] = p[2];
+
+  angles[0] = p[3]*(M_PI/180);
+  angles[1] = p[4]*(M_PI/180);
+  angles[2] = p[5]*(M_PI/180);
+  Mrot = MRIangles2RotMat(angles);
+
+  // R = Mtrans*Mrot*R0
+  R = MatrixMultiply(Mrot,R0,R);
+  R = MatrixMultiply(Mtrans,R,R);
+  invR = MatrixInverse(R,invR);
+
+  // vox2vox = invTin*R*Ttemp
+  vox2vox = MatrixMultiply(invTin,R,vox2vox);
+  MatrixMultiply(vox2vox,Ttemp,vox2vox);
+  
+  // resample
+  MRIvol2Vol(mov,out,vox2vox,interpcode,sinchw);
+  
+  // compute costs
+  costs = SegRegCost(regseg,out,costs);
+  
+  MatrixFree(&Mrot);
+  MatrixFree(&Mtrans);
+  MatrixFree(&vox2vox);
+  MatrixFree(&Tin);
+  MatrixFree(&invTin);
+  MatrixFree(&Ttemp);
+  MatrixFree(&invR);
+
+  return(costs);
+}
+
+/*---------------------------------------------------------------------*/
+int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p, 
+	  char *costfile, double *costs)
+{
+  double q, q0, pp[6], c, copt=0, qopt=0, costsopt[8];
+  int nthp, nth, n, hit;
+  MATRIX *R0, *Rtmp;
+  FILE *fp;
+
+  if(R==NULL) exit(1);
+  if(p==NULL) exit(1);
+  if(costs==NULL) exit(1);
+
+  for(nthp = 0; nthp < 6; nthp++) pp[nthp] = p[nthp];
+  R0 = MatrixCopy(R,NULL);
+  Rtmp = MatrixAlloc(4,4,MATRIX_REAL);
+
+  GetCosts(mov, seg, R0, Rtmp, pp, costs);
+  copt = costs[7];
+
+  nth = 0;
+  for(nthp = 0; nthp < 6; nthp++){
+    qopt = 0;
+    hit = 0;
+    q0 = pp[nthp];
+
+    for(q = -2; q <= 2; q += .2){
+      nth ++;
+      pp[nthp] = q;
+
+      GetCosts(mov, seg, R0, Rtmp, pp, costs);
+
+      if(costfile != NULL){
+	// write costs to file
+	fp = fopen(costfile,"a");
+	fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
+	fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+	fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
+	fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
+	fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
+	fprintf(fp,"\n");
+	fclose(fp);
+      }
+      
+      fp = stdout;
+      fprintf(fp,"%5d ",nth);
+      fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
+      fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
+      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
+      fprintf(fp,"%8.4lf %8.4lf   %8.4lf ",costs[6],costs[7],copt); // t, cost=1/t
+      printf("\n");
+      fflush(stdout);
+
+      c = costs[7];
+      if(c < copt){
+	copt = c;
+	qopt = q;
+	MatrixCopy(Rtmp,R);
+	for(n=0; n<8; n++) costsopt[n] = costs[n];
+	hit = 1;
+      }
+
+    }
+    if(hit) pp[nthp] = qopt;
+    else    pp[nthp] = q0;
+  } // loop over params
+
+  for(nthp = 0; nthp < 6; nthp++) p[nthp] = pp[nthp];
+  for(n=0; n<8; n++) costs[n] = costsopt[n];
+
+  return(nth);
+}
+
