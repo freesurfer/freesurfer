@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/02/13 18:55:32 $
-#    $Revision: 1.12 $
+#    $Date: 2007/09/16 21:24:47 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask,v 1.12 2007/02/13 18:55:32 greve Exp $';
+set VERSION = '$Id: mkbrainmask,v 1.13 2007/09/16 21:24:47 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -59,6 +59,18 @@ goto check_params;
 check_params_return:
 
 setenv FSLOUTPUTTYPE NIFTI
+
+set FSLMATHS = fslmaths
+which $FSLMATHS > /dev/null
+if($status) then
+  set FSLMATHS = avwmaths
+  which $FSLMATHS > /dev/null
+  if($status) then
+    echo "ERROR: cannot find either fslmaths for avwmaths"
+    exit 1;
+  endif
+endif
+echo FSLMATHS $FSLMATHS
 
 #---------------------------------------------------#
 set outdir = `dirname $outstem`;
@@ -103,40 +115,34 @@ echo $cmd
 $cmd 
 if($status) exit 1;
 
+set srcmask = $scratchdir/brain_mask.nii
+
 #------------------------------------------------------------------
 if($ndilates > 0) then
   echo Diliating $ndilates
-  set srcmask = $scratchdir/brain_mask.nii
-  @ n = 1
-  while( $n <= $ndilates) 
-    set cmd = (avwmaths $srcmask -dil$dilerodedim $srcmask)
-    pwd
-    echo $cmd
-    $cmd
-    if($status) then
-      echo "ERROR: dilation failed"
-      exit 1;
-    endif
-    @ n = $n + 1
-  end
+  set cmd = (mri_binarize --i $srcmask --min 0.5 \
+     --dilate $ndilates --o $srcmask);
+  pwd
+  echo $cmd
+  $cmd
+  if($status) then
+    echo "ERROR: dilation failed"
+    exit 1;
+  endif
 endif
 
 #------------------------------------------------------------------
 if($nerodes > 0) then
-  echo Eroding $nerodes
-  set srcmask = $scratchdir/brain_mask.nii
-  @ n = 1
-  while( $n <= $nerodes) 
-    set cmd = (avwmaths $srcmask -ero$dilerodedim $srcmask)
-    pwd
-    echo $cmd
-    $cmd
-    if($status) then
-      echo "ERROR: erosion failed"
-      exit 1;
-    endif
-    @ n = $n + 1
-  end
+  echo Diliating $ndilates
+  set cmd = (mri_binarize --i $srcmask --min 0.5 \
+     --erode $ndilates --o $srcmask);
+  pwd
+  echo $cmd
+  $cmd
+  if($status) then
+    echo "ERROR: erosion failed"
+    exit 1;
+  endif
 endif
 
 # Convert the binary mask to output
@@ -200,9 +206,9 @@ while( $#argv != 0 )
       set nerodes = $argv[1]; shift;
       breaksw
 
-    case "-2d":
-      set dilerodedim = 2;
-      breaksw
+    #case "-2d":
+    #  set dilerodedim = 2;
+    #  breaksw
 
     case "-zero-edges":
       set zeroedges = 1; 
