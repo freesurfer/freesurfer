@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/09/14 23:10:25 $
- *    $Revision: 1.276.2.4 $
+ *    $Author: greve $
+ *    $Date: 2007/09/16 23:37:27 $
+ *    $Revision: 1.276.2.5 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -9138,11 +9138,12 @@ read_fieldsign(char *fname) {
   send_tcl_command ("ShowLabel kLabel_Fieldsign 1");
 }
 
-void
-write_fieldsign(char *fname) {
+void write_fieldsign(char *fname) {
   int k,vnum;
   float f;
   FILE *fp;
+  MRI *mri;
+  char tmpstr[2000];
 
   vnum = mris->nvertices;
   fp = fopen(fname,"w");
@@ -9158,6 +9159,13 @@ write_fieldsign(char *fname) {
   }
   fclose(fp);
   printf("surfer: file %s written\n",fname);
+
+  // This writes it out as an mgz file 
+  sprintf(tmpstr,"%s.mgz",fname);
+  mri = MRIcopyMRIS(NULL, mris, 0, "fieldsign");
+  MRIwrite(mri,tmpstr);
+  MRIfree(&mri);
+
   PR
 }
 
@@ -9186,11 +9194,13 @@ read_fsmask(char *fname) {
   enable_menu_set (MENUSET_FIELDMASK_LOADED, 1);
 }
 
-void
-write_fsmask(char *fname) {
+void write_fsmask(char *fname) {
   int k,vnum;
   float f;
   FILE *fp;
+  MRI *mri;
+  char tmpstr[2000];
+
 
   vnum = mris->nvertices;
   fp = fopen(fname,"w");
@@ -9205,6 +9215,13 @@ write_fsmask(char *fname) {
   }
   fclose(fp);
   printf("surfer: file %s written\n",fname);
+
+  // This writes it out as an mgz file 
+  sprintf(tmpstr,"%s.mgz",fname);
+  mri = MRIcopyMRIS(NULL, mris, 0, "fsmask");
+  MRIwrite(mri,tmpstr);
+  MRIfree(&mri);
+
   PR
 }
 
@@ -18568,7 +18585,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.276.2.4 2007/09/14 23:10:25 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.276.2.5 2007/09/16 23:37:27 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
