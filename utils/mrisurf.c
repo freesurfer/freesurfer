@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/09/14 13:56:42 $
- *    $Revision: 1.557.2.1 $
+ *    $Author: greve $
+ *    $Date: 2007/09/16 23:33:06 $
+ *    $Revision: 1.557.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -622,7 +622,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.557.2.1 2007/09/14 13:56:42 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.557.2.2 2007/09/16 23:33:06 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -57184,6 +57184,7 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field)
         else if (!strcmp(Field,"imag_val")) val = surf->vertices[vtx].imag_val;
         else if (!strcmp(Field,"curvbak"))  val = surf->vertices[vtx].curvbak;
         else if (!strcmp(Field,"fsmask"))   val = surf->vertices[vtx].fsmask;
+        else if (!strcmp(Field,"fieldsign")) val = surf->vertices[vtx].fieldsign;
         else if (!strcmp(Field,"nc"))       val = surf->vertices[vtx].nc;
         else if (!strcmp(Field,"undefval")) val = surf->vertices[vtx].undefval;
         else if (!strcmp(Field,"x")) val = surf->vertices[vtx].x;
