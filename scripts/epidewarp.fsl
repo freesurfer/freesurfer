@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/08/07 20:56:11 $
-#    $Revision: 1.27 $
+#    $Date: 2007/09/16 21:44:50 $
+#    $Revision: 1.28 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.27 2007/08/07 20:56:11 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.28 2007/09/16 21:44:50 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -640,6 +640,13 @@ check_params:
       echo "ERROR: cannot create $exfdwdir"
       exit 1;
     endif
+  endif
+
+  which avwmaths >& /dev/null
+  if($status) then
+    echo "ERROR: cannot find avwmaths"
+    echo "NOTE: this program does not work with FSL 4.0"
+    exit 1;
   endif
 
 goto check_params_return;
