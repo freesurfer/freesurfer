@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.6 $
+#    $Author: greve $
+#    $Date: 2007/09/16 23:22:58 $
+#    $Revision: 1.6.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: sfa-sess,v 1.6 2007/01/09 22:41:18 nicks Exp $'
+set VERSION = '$Id: sfa-sess,v 1.6.2.1 2007/09/16 23:22:58 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -33,6 +33,7 @@ set debugopt  = ();
 set nolog     = 0;
 set SynthSeed = 0;
 set outdir    = ();
+set ext = $FSF_OUTPUT_FORMAT;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -149,14 +150,7 @@ foreach sess ($SessList)
 
   echo "INFO ($sessbase): RunList = $RunList"
 
-  set seqinfo = seq.info
-  if(! -e $seqinfo) then
-    echo "ERROR: cannot find `pwd`/$seqinfo"
-    exit 1;
-  endif
-  set inplaneres  = `cat $seqinfo | awk '{if($1 == "rowpixelsize") print $2}'`;
-  set TR = `cat seq.info | awk '{if($1 == "TR") print $2}'`;
-
+  set TR = $TRAnalysis;
   if($TR != $TRAnalysis) then
     echo "ERROR: TR for $sessbase = $TR, Analysis TR = $TRAnalysis"
     exit 1;
@@ -174,7 +168,7 @@ foreach sess ($SessList)
 
     # Build command line (need to do same for rtopy below)
     set cmd = (selfreqavg)
-    set cmd = ($cmd -TR $TR -o $sfastem -ipr $inplaneres)
+    set cmd = ($cmd -TR $TR -o $sfastem)
     set cmd = ($cmd $instems -cfg $cfgfile)
     if($parname != NONE) set cmd = ($cmd -parname $parname);
     if($SynthSeed != 0)  set cmd = ($cmd -synth $SynthSeed);
@@ -190,23 +184,23 @@ foreach sess ($SessList)
     mkdir -p $analysis/avb
     # Create the sig map #
     #bfileconvert -i $sfastem -o $analysis/avb/sig -fp 0 -np 1 |& tee -a $LF
-    set cmd = (mri_convert $sfastem.bhdr -o $outdir$analysis/avb/sig.bhdr --frame 0)
+    set cmd = (mri_convert $sfastem.$ext -o $outdir$analysis/avb/sig.$ext --frame 0)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
     # Create the mean T2 image in the analysis directory #
     # bfileconvert -i $sfastem -o $analysis/h-offset -fp 10 -np 1 |& tee -a $LF
-    set cmd = (mri_convert $sfastem.bhdr -o $outdir$analysis/h-offset.bhdr --frame 10)
+    set cmd = (mri_convert $sfastem.$ext -o $outdir$analysis/h-offset.$ext --frame 10)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
     # Create the mag map #
-    set cmd = (mri_convert $sfastem.bhdr -o $outdir$analysis/avb/mag.bhdr --frame 12)
+    set cmd = (mri_convert $sfastem.$ext -o $outdir$analysis/avb/mag.$ext --frame 12)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
     # Create the phase map #
-    set cmd = (mri_convert $sfastem.bhdr -o $outdir$analysis/avb/phase.bhdr --frame  9)
+    set cmd = (mri_convert $sfastem.$ext -o $outdir$analysis/avb/phase.$ext --frame  9)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -242,7 +236,7 @@ foreach sess ($SessList)
       exit 1;
     endif
 
-    foreach type (eccen polar)
+    foreach type (polar eccen)
       if($type == eccen) then
         if($#eccenstems == 0) continue;
         set instems = ($eccenstems);
@@ -255,7 +249,7 @@ foreach sess ($SessList)
       # Build command line (need to do same for abblocked above)
       set cmd = (selfreqavg)
       set cmd = ($cmd -TR $TR -o $sfastem $instems -cfg $cfgfile)
-      set cmd = ($cmd -parname $parname -ipr $inplaneres);
+      set cmd = ($cmd -parname $parname);
       if($SynthSeed != 0)  set cmd = ($cmd -synth $SynthSeed);
       echo "--------------------------------------------------" |& tee -a $LF
       pwd |& tee -a $LF
@@ -268,19 +262,20 @@ foreach sess ($SessList)
       endif
 
       # Create the mean T2 images in the eccen/polar directory #
-      set cmd = (mri_convert $sfastem.bhdr -o $sfastem-offset.bhdr --frame 10)
+      set cmd = (mri_convert $sfastem.$ext -o $sfastem-offset.$ext --frame 10)
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
       if($status) exit 1;
     end
 
-    # Create mean T2 in analysis directory #
-    set cmd = (meanimg -i $outdir$analysis/eccen/h-offset \
-                       -i $outdir$analysis/polar/h-offset \
-                       -o $outdir$analysis/h-offset)
+    # Create mean t2*-weighted vol in analysis directory #
+    set cmd = (mri_concat --mean \
+       $outdir$analysis/eccen/h-offset.$ext \
+       $outdir$analysis/polar/h-offset.$ext \
+       --o $outdir$analysis/h-offset.$ext)
     $cmd |& tee -a $LF
     if($status) then
-      echo "ERROR: meanimg for mean image failed" |& tee -a $LF
+      echo "ERROR: mri_concat for mean image failed" |& tee -a $LF
       echo $cmd |& tee -a $LF
       pwd |& tee -a $LF
       exit 1;

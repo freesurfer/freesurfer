@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.10 $
+#    $Author: greve $
+#    $Date: 2007/09/16 23:22:58 $
+#    $Revision: 1.10.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: selfreqavg,v 1.10 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: selfreqavg,v 1.10.2.1 2007/09/16 23:22:58 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -59,7 +59,6 @@ set nskip = 0;
 set parname = ();
 set hanrad = 0;
 set fwhm = 0;
-set inplaneres = 0;
 set cfgfile = ();
 
 set usecfg = `echo $argv | egrep -e "-cfg" | wc -l`;
@@ -73,22 +72,6 @@ parse_args_return:
 
 goto check_params;
 check_params_return:
-
-if($#firstslice == 0) then
-  set firstslice = `getfirstsliceno $instems[1]`;
-  if($status) then
-    echo "ERROR: could not find any slices for $instems[1]";
-    exit 1;
-  endif
-endif
-
-if($#nslices == 0) then
-  set nslices = `getnslices $instems[1]`;
-  if($status) then
-    echo "ERROR: could not find any slices for $instems[1]";
-    exit 1;
-  endif
-endif
 
 set MATLAB = `getmatlab`;
 if($status) exit 1;
@@ -119,13 +102,15 @@ $TARGET <<EOF
   outstem    = '$outstem';
   foutstem   = '$foutstem';
   fsigstem   = '$fsigstem';
-  firstslice = [$firstslice];
-  nslices    = [$nslices];
   slice_delay_file = deblank('$slice_delay_file');
   hanrad     = $hanrad;
   fwhm       = $fwhm;
-  inplaneres = $inplaneres;
   SynthSeed  = [$SynthSeed];
+  inplaneres = 0;
+
+  ext = getenv('FSF_OUTPUT_FORMAT');
+  if(isempty(ext)) ext = 'bhdr'; end
+  fprintf('Extension format = %s\n',ext);
 
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
   if(SynthSeed > 0)
@@ -150,15 +135,21 @@ $TARGET <<EOF
   sfa.delay      = $delay;
   sfa.nskip      = $nskip;
   sfa.rescale_target = $rescale_target;
-
-  %% Get the dimensions from the bfile %%
-  [sfa.nrows sfa.ncols sfa.ntp fs ns endian] = fmri_bfiledim(instems(1,:));
-  if(isempty(firstslice)) firstslice = fs; end
-  if(isempty(nslices))    nslices    = ns; end
-  lastslice = firstslice + nslices - 1;
-  sfa.firstslice = firstslice;
-  sfa.nslices    = nslices;
   sfa.infiles = instems;
+
+  mri0 = MRIread(deblank(instems(1,:)),1);
+  sfa.nrows = mri0.volsize(1);
+  sfa.ncols = mri0.volsize(2);
+  sfa.ntp   = mri0.nframes;
+  firstslice = 0;
+  lastslice = mri0.volsize(3)-1;
+  sfa.firstslice = firstslice;
+  sfa.lastslice = lastslice;
+  mri0.vol = zeros([mri0.volsize 14]);
+
+  mriF = mri0;
+  mriF.vol = zeros([mri0.volsize 1]);
+  mriFsig = mriF;
 
   %% Load the slice delay file %%
   if( ~isempty(slice_delay_file) )
@@ -221,14 +212,12 @@ $TARGET <<EOF
       instem = deblank(instems(n,:));
       %fprintf('Input Volume %s\n',instem);
 
-      %%% Load the raw data %%
-      [nslices nrows ncols ntrs endian bext] = fmri_bvoldim(instem);
-      if(nslices == 0)
+      mri = MRIread(instem);
+      if(isempty(mri))
          msg = sprintf('Could not load %s',instem);
          qoe(msg); error(msg);
       end
-      fname = sprintf('%s_%03d.%s',instem,slice,bext);
-      f = fmri_ldbfile(fname);
+      f = squeeze(mri.vol(:,:,slice+1,:));
       if(SynthSeed > 0) f = randn(size(f)); end
 
       %%% Global Rescaling %%%
@@ -347,20 +336,34 @@ $TARGET <<EOF
     tmp(14,:) = phz .* (log10sigf > 2); % phase masked by sig .01
 
     ntmp  = size(tmp,1);
-    tmp   = reshape(tmp', [sfa.nrows sfa.ncols ntmp]); %'
-    fname = sprintf('%s_%03d.bfloat',outstem,slice);
-    fmri_svbfile(tmp,fname);
+    tmp   = reshape(tmp', [sfa.nrows sfa.ncols 1 ntmp]); %'
+    mri0.vol(:,:,slice+1,:) = tmp;
 
     tmp = reshape(F,[sfa.nrows sfa.ncols]);
-    fname = sprintf('%s_%03d.bfloat',foutstem,slice);
-    fmri_svbfile(tmp,fname);
+    mriF.vol(:,:,slice+1) = tmp;
 
     tmp = reshape(log10sigf,[sfa.nrows sfa.ncols]);
-    fname = sprintf('%s_%03d.bfloat',fsigstem,slice);
-    fmri_svbfile(tmp,fname);
+    mriFsig.vol(:,:,slice+1) = tmp;
+
+    %fname = sprintf('%s_%03d.bfloat',outstem,slice);
+    %fmri_svbfile(tmp,fname);
+    %fname = sprintf('%s_%03d.bfloat',foutstem,slice);
+    %fmri_svbfile(tmp,fname);
+    %fname = sprintf('%s_%03d.bfloat',fsigstem,slice);
+    %fmri_svbfile(tmp,fname);
 
   end %% loop over slices %%
   fprintf('\n');
+
+  fname = sprintf('%s.%s',outstem,ext);
+  MRIwrite(mri0,fname);
+
+  fname = sprintf('%s.%s',foutstem,ext);
+  MRIwrite(mriF,fname);
+
+  fname = sprintf('%s.%s',fsigstem,ext);
+  MRIwrite(mriFsig,fname);
+
 
   %% Save the data file %%
   fprintf('Saving header to %s\n',outstem);
@@ -369,12 +372,6 @@ $TARGET <<EOF
   if(QuitOnError)  quit; end
   
 EOF
-
-set bhdr = $instems[1].bhdr
-if(-e $bhdr) then
-  cp $bhdr $outstem.bhdr
-endif
-
 
 echo "selfreqavg COMPLETED"
 
@@ -488,11 +485,6 @@ while( $#argv != 0 )
     case "-fwhm":
       if ( $#argv == 0) goto arg1err;
       set fwhm = $argv[1]; shift;
-      breaksw
-
-    case "-ipr":
-      if ( $#argv == 0) goto arg1err;
-      set inplaneres = $argv[1]; shift;
       breaksw
 
     case "-monly":
@@ -636,11 +628,6 @@ check_params:
     
   if($hanrad != "0" && $fwhm != "0") then
     echo "ERROR: cannot specify hanrad and fwhm"
-    exit 1;
-  endif
-
-  if($fwhm != "0" && $#inplaneres == 0) then
-    echo "ERROR: must specify -ipr with -fwhm"
     exit 1;
   endif
 
