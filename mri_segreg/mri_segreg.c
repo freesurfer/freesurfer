@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/17 22:26:46 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/09/17 22:28:59 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -134,7 +134,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segreg.c,v 1.11 2007/09/17 22:26:46 greve Exp $";
+static char vcid[] = "$Id: mri_segreg.c,v 1.12 2007/09/17 22:28:59 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -163,6 +163,8 @@ char  *fspec;
 MRI *regseg;
 MRI *noise=NULL;
 MRI *mritmp;
+MRI *inorm=NULL;
+char *inormfile=NULL;
 
 int SynthSeed = -1;
 int AddNoise = 0;
@@ -193,12 +195,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_segreg.c,v 1.11 2007/09/17 22:26:46 greve Exp $",
+                          "$Id: mri_segreg.c,v 1.12 2007/09/17 22:28:59 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_segreg.c,v 1.11 2007/09/17 22:26:46 greve Exp $",
+                                "$Id: mri_segreg.c,v 1.12 2007/09/17 22:28:59 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -219,6 +221,11 @@ int main(int argc, char **argv) {
   mov = MRIread(movvolfile);
   if (mov == NULL) exit(1);
 
+  if(inormfile){
+    printf("Loading inorm\n");
+    inorm = MRIread(inormfile);
+    if(inorm == NULL) exit(1);
+  }
 
   if(!UseASeg){
     printf("Loading regseg\n");
@@ -256,9 +263,17 @@ int main(int argc, char **argv) {
     MRIboundingBox(regseg, 0.5, &box);
     printf("BBbox start: %d %d %d, delta = %d %d %d\n",
 	   box.x,box.y,box.z,box.dx,box.dy,box.dz);
+    // Now crop
     mritmp = MRIcrop(regseg, box.x, box.y, box.z, box.x+box.dx, box.y+box.dy, box.z+box.dz);
     MRIfree(&regseg);
     regseg = mritmp;
+
+    if(inorm){
+      // Crop inorm too
+      mritmp = MRIcrop(inorm, box.x, box.y, box.z, box.x+box.dx, box.y+box.dy, box.z+box.dz);
+      MRIfree(&inorm);
+      inorm = mritmp;
+    }
 
     Tcrop  = MRIxfmCRS2XYZtkreg(regseg); // Vox-to-tkRAS Matrices
     invTcrop = MatrixInverse(Tcrop,NULL);
@@ -457,6 +472,10 @@ static int parse_commandline(int argc, char **argv) {
     else if (istringnmatch(option, "--mov",0)) {
       if (nargc < 1) argnerr(option,1);
       movvolfile = pargv[0];
+      nargsused = 1;
+    } else if (istringnmatch(option, "--inorm",0)) {
+      if (nargc < 1) argnerr(option,1);
+      inormfile = pargv[0];
       nargsused = 1;
     } else if (istringnmatch(option, "--reg",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -661,6 +680,7 @@ static void dump_options(FILE *fp)
   int n;
   fprintf(fp,"movvol %s\n",movvolfile);
   fprintf(fp,"regfile %s\n",regfile);
+  if(inormfile) fprintf(fp,"inorm %s\n",inormfile);
   if(outregfile) fprintf(fp,"outregfile %s\n",outregfile);
   fprintf(fp,"interp  %s (%d)\n",interpmethod,interpcode);
   if(interpcode == SAMPLE_SINC) fprintf(fp,"sinc hw  %d\n",sinchw);
@@ -739,7 +759,7 @@ double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
   double angles[3];
   MATRIX *Mrot=NULL, *Mtrans=NULL, *invR=NULL,*vox2vox = NULL;
   MATRIX *Tin, *invTin, *Ttemp;
-  extern MRI *out;
+  extern MRI *out, *inorm;
 
   if(R==NULL){
     printf("ERROR: GetCosts(): R cannot be NULL\n");
@@ -774,6 +794,8 @@ double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
 
   // resample
   MRIvol2Vol(mov,out,vox2vox,interpcode,sinchw);
+
+  if(inorm)  MRImultiply(out,inorm,out);
   
   // compute costs
   costs = SegRegCost(regseg,out,costs);
