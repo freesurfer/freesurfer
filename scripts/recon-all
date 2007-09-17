@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/09/14 20:47:43 $
-#    $Revision: 1.138 $
+#    $Date: 2007/09/17 16:39:55 $
+#    $Revision: 1.139 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.138 2007/09/14 20:47:43 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.139 2007/09/17 16:39:55 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -492,7 +492,7 @@ if($DoCleanTal) then
    if($RunIt) $cmd  |& tee -a $LF
 endif
 if($DoCleanLta) then
-   set cmd = (mv -f $subjdir/mri/transforms/*.lta $subjdir/trash)
+   set cmd = ("mv -f $subjdir/mri/transforms/*.lta $subjdir/trash")
    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
    if($RunIt) $cmd  |& tee -a $LF
 endif
