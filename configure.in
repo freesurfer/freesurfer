@@ -1498,6 +1498,7 @@ else
   # GL_CLFLAGS and GL_LIBS:
   gl_cflags=""
   gl_libs=""
+  glut_fixup="no"
   AC_MSG_CHECKING(GL directory)
 
   AC_ARG_WITH(gl-dir,
@@ -1515,6 +1516,11 @@ else
   fi
   if test ! "$ac_gl_libraries" = "NO"; then
     gl_libs=-L$ac_gl_libraries
+    # use static libglut if available:
+    if test -e "$ac_glut_libraries"/libglut.a ; then
+      glut_libs="$ac_glut_libraries"/libglut.a
+      glut_fixup="yes"
+    fi
   fi
 
   AC_SUBST(gl_cflags)
@@ -1619,7 +1625,6 @@ if test "X$no_glut" = "Xyes"; then
     AC_MSG_RESULT([GLut not found])
   fi
 else
-  glut_fixup=no
   if test "$OS" = "Darwin"; then
     glut_fixup=yes
   fi
