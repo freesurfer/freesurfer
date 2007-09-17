@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.98 2007/08/20 13:55:25 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.99 2007/09/17 09:35:40 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,8 +13,8 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v4.0.0"
-set STABLE_PUB_VER_NUM="v4.0.0"
+set STABLE_VER_NUM="v4.0.1"
+set STABLE_PUB_VER_NUM="v4.0.1"
 
 set SUCCESS_MAIL_LIST=(nicks kteich)
 set FAILURE_MAIL_LIST=(nicks kteich fischl greve dsjen)
@@ -422,6 +422,7 @@ endif
 # make check (run available unit tests)
 ######################################################################
 #
+goto make_check_done
 if ("$RELEASE_TYPE" != "stable-pub") then
   echo "########################################################" >>& $OUTPUTF
   echo "Make check $DEV_DIR" >>& $OUTPUTF
@@ -445,6 +446,7 @@ if ("$RELEASE_TYPE" != "stable-pub") then
     exit 1  
   endif
 endif
+make_check_done:
 
 
 #
@@ -484,7 +486,8 @@ if ($status != 0) then
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
-if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
+if (("${RELEASE_TYPE}" == "stable") || \
+    ("${RELEASE_TYPE}" == "stable-pub")) then
   echo "CMD: strip ${DEST_DIR}/bin-new/*" >>& $OUTPUTF
   strip ${DEST_DIR}/bin-new/* >& /dev/null
 endif
@@ -519,6 +522,19 @@ chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
 chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
 echo "CMD: chmod ${change_flags} g+rw ${LOG_DIR}" >>& $OUTPUTF
 chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
+
+
+#
+# HACK
+#
+# dmri_poistats only builds in dev on the centos platforms because currently
+# only those have working ITK libs, so copy dmri_poistats from there, for now..
+#
+if (("${RELEASE_TYPE}" == "stable") || \
+    ("${RELEASE_TYPE}" == "stable-pub")) then
+  cp /usr/local/freesurfer/dev/bin/dmri_poistats ${DEST_DIR}/bin/ >& /dev/null
+endif
+
 
 
 #
