@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/17 19:51:13 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/09/17 22:26:46 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -134,7 +134,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segreg.c,v 1.10 2007/09/17 19:51:13 greve Exp $";
+static char vcid[] = "$Id: mri_segreg.c,v 1.11 2007/09/17 22:26:46 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -193,12 +193,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_segreg.c,v 1.10 2007/09/17 19:51:13 greve Exp $",
+                          "$Id: mri_segreg.c,v 1.11 2007/09/17 22:26:46 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_segreg.c,v 1.10 2007/09/17 19:51:13 greve Exp $",
+                                "$Id: mri_segreg.c,v 1.11 2007/09/17 22:26:46 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -769,6 +769,9 @@ double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
   vox2vox = MatrixMultiply(invTin,R,vox2vox);
   MatrixMultiply(vox2vox,Ttemp,vox2vox);
   
+  // Zero output
+  MRIsetValues(out,0.0);
+
   // resample
   MRIvol2Vol(mov,out,vox2vox,interpcode,sinchw);
   
@@ -791,7 +794,7 @@ int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
 	  char *costfile, double *costs)
 {
   double q, q0, pp[6], c, copt=0, qopt=0, costsopt[8];
-  int nthp, nth, n, hit;
+  int nthp, nth, n, hit, nthq;
   MATRIX *R0, *Rtmp;
   FILE *fp;
 
@@ -806,14 +809,27 @@ int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
   GetCosts(mov, seg, R0, Rtmp, pp, costs);
   copt = costs[7];
 
+  fp = stdout;
+  fprintf(fp,"init1d ");
+  fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
+  fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+  fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
+  fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
+  fprintf(fp,"%8.4lf %8.4lf   %8.4lf ",costs[6],costs[7],copt); // t, cost=1/t
+  printf("\n");
+  printf("\n");
+  fflush(stdout);
+
   nth = 0;
   for(nthp = 0; nthp < 6; nthp++){
     qopt = 0;
     hit = 0;
     q0 = pp[nthp];
 
+    nthq = 0;
     for(q = -2; q <= 2; q += .2){
       nth ++;
+      nthq ++;
       pp[nthp] = q;
 
       GetCosts(mov, seg, R0, Rtmp, pp, costs);
@@ -831,14 +847,12 @@ int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
       }
       
       fp = stdout;
-      fprintf(fp,"%5d ",nth);
+      fprintf(fp,"%4d %2d ",nth,nthq);
       fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
       fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
       fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
       fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
       fprintf(fp,"%8.4lf %8.4lf   %8.4lf ",costs[6],costs[7],copt); // t, cost=1/t
-      printf("\n");
-      fflush(stdout);
 
       c = costs[7];
       if(c < copt){
@@ -848,14 +862,30 @@ int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
 	for(n=0; n<8; n++) costsopt[n] = costs[n];
 	hit = 1;
       }
+      printf("%d\n",hit);
+      fflush(stdout);
 
     }
     if(hit) pp[nthp] = qopt;
     else    pp[nthp] = q0;
+    printf("\n");
   } // loop over params
 
   for(nthp = 0; nthp < 6; nthp++) p[nthp] = pp[nthp];
   for(n=0; n<8; n++) costs[n] = costsopt[n];
+
+  fp = stdout;
+  printf("\n");
+  fprintf(fp,"final1d ");
+  fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
+  fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+  fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
+  fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
+  fprintf(fp,"%8.4lf %8.4lf   %8.4lf ",costs[6],costs[7],copt); // t, cost=1/t
+  printf("\n");
+  printf("\n");
+  fflush(stdout);
+
 
   return(nth);
 }
