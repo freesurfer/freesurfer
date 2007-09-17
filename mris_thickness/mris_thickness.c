@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.13 $
+ *    $Author: fischl $
+ *    $Date: 2007/09/17 00:44:24 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,7 +42,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.13 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.14 2007/09/17 00:44:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -71,7 +71,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE   *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.13 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.14 2007/09/17 00:44:24 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -162,7 +162,7 @@ get_option(int argc, char *argv[]) {
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
-    print_help() ;
+    print_usage() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
   else if (!stricmp(option, "pial")) {
@@ -228,17 +228,17 @@ print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <subject name> <hemi> <thickness file>\n",
           Progname) ;
+  print_help() ;
 }
 
 static void
 print_help(void) {
-  print_usage() ;
   fprintf(stderr,
-          "\nThis program measures the thickness of the cortical surface\n"
-          "and writes the resulting measurement into a 'curvature' file\n"
-          "<output file>.\n") ;
+          "\nThis program measures the thickness of the cortical surface and\n"
+          "writes the resulting scalar field into a 'curvature' file "
+          "<thickness file>.\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
-  /*  fprintf(stderr, "-n    normalize output curvatures.\n") ;*/
+  fprintf(stderr, "-max <max>\t use <max> to threshold thickness (default=5mm)\n") ;
   exit(1) ;
 }
 

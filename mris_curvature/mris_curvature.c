@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/20 16:42:32 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/09/17 00:40:30 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.25 2007/07/20 16:42:32 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.26 2007/09/17 00:40:30 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -86,7 +86,7 @@ main(int argc, char *argv[]) {
   double       ici, fi, var ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.25 2007/07/20 16:42:32 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.26 2007/09/17 00:40:30 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -309,7 +309,7 @@ get_option(int argc, char *argv[]) {
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
-    print_help() ;
+    print_usage() ;
   else if (!stricmp(option, "distances") || !stricmp(option, "vnum")) {
     nbhd_size = atoi(argv[2]) ;
     nbrs_per_distance = atoi(argv[3]) ;
@@ -410,16 +410,20 @@ usage_exit(void) {
 static void
 print_usage(void) {
   fprintf(stderr, "usage: %s [options] <input surface file>\n", Progname) ;
+  print_help() ;
 }
 
 static void
 print_help(void) {
-  print_usage() ;
   fprintf(stderr,
-          "\nThis program will the second fundamental form of a cortical surface."
-          "\nIt will create two new files <hemi>.H and <hemi>.K with the\n"
+          "\nThis program will compute the second fundamental form of a cortical surface."
+          "\nIt will create two new files <hemi>.<surface>.H and <hemi>.<surface>.K with the\n"
           "mean and Gaussian curvature respectively.");
   fprintf(stderr, "\nvalid options are:\n\n") ;
+  fprintf(stderr, "\t-w\t\t save curvature files (will only generate screen output without this option)\n") ;
+  fprintf(stderr, "\t-max\t\t save  1st (max) principal curvature in ?h.<surface>.max file\n") ;
+  fprintf(stderr, "\t-min\t\t save  2nd (min) principal curvature in ?h.<surface>.min file\n") ;
+  fprintf(stderr, "\t-a <avgs>\t perform <avgs> iterative averages of curvature measure before saving\n") ;
   exit(1) ;
 }
 
