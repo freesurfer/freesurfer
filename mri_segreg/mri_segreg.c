@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/17 22:28:59 $
- *    $Revision: 1.12 $
+ *    $Date: 2007/09/18 00:21:13 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,8 @@ BEGINUSAGE --------------------------------------------------------------
 mri_segreg
   --reg regfile
   --mov fvol
+  --inorm inorm : intensity profile in reg with anat
+  --o out : save final output
 
   --tx-mmd txmin txmax txdelta : translation (mm) in x
   --ty-mmd tymin tymax tydelta : translation (mm) in y
@@ -134,7 +136,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segreg.c,v 1.12 2007/09/17 22:28:59 greve Exp $";
+static char vcid[] = "$Id: mri_segreg.c,v 1.13 2007/09/18 00:21:13 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -165,6 +167,7 @@ MRI *noise=NULL;
 MRI *mritmp;
 MRI *inorm=NULL;
 char *inormfile=NULL;
+char *outfile=NULL;
 
 int SynthSeed = -1;
 int AddNoise = 0;
@@ -195,12 +198,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_segreg.c,v 1.12 2007/09/17 22:28:59 greve Exp $",
+                          "$Id: mri_segreg.c,v 1.13 2007/09/18 00:21:13 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_segreg.c,v 1.12 2007/09/17 22:28:59 greve Exp $",
+                                "$Id: mri_segreg.c,v 1.13 2007/09/18 00:21:13 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -309,6 +312,10 @@ int main(int argc, char **argv) {
     mov = MRIadd(mov, noise, mov);
   }
 
+  printf("Innput reg\n");
+  MatrixPrint(stdout,R0);
+  printf("\n");
+
   // Vox-to-tkRAS Matrices
   Tin      = MRIxfmCRS2XYZtkreg(mov);
   invTin   = MatrixInverse(Tin,NULL);
@@ -319,6 +326,18 @@ int main(int argc, char **argv) {
   // Allocate the output
   out = MRIallocSequence(regseg->width, regseg->height, regseg->depth, MRI_FLOAT, 1);
   MRIcopyHeader(regseg,out);
+
+  // Compute cost at initial
+  for(nth=0; nth < 6; nth++) p[nth] = 0.0;
+  GetCosts(mov, regseg, R0, R, p, costs);
+  
+  printf("Initial cost is %lf\n",costs[7]);
+  printf("Initial Costs\n");
+  printf("%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
+  printf("%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
+  printf("%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
+  printf("\n");
+    
 
   if(1){
     // 1D minimization
@@ -332,6 +351,9 @@ int main(int argc, char **argv) {
     }
     secCostTime = TimerStop(&mytimer)/1000.0 ;
     
+    // Recompute at optimal. This forces MRI *out to be the output at best reg
+    GetCosts(mov, regseg, R0, R, p, costs);
+
     printf("Min cost was %lf\n",costs[7]);
     printf("Number of iterations %5d in %lf sec\n",nth,secCostTime);
     printf("Parameters at optimum\n");
@@ -352,6 +374,9 @@ int main(int argc, char **argv) {
       regio_write_register(outregfile,subject,mov->xsize,
 			   mov->zsize,1,R,FLT2INT_ROUND);
     }
+
+    if(outfile) MRIwrite(out,outfile);
+
     exit(0);
   }
 
@@ -476,6 +501,10 @@ static int parse_commandline(int argc, char **argv) {
     } else if (istringnmatch(option, "--inorm",0)) {
       if (nargc < 1) argnerr(option,1);
       inormfile = pargv[0];
+      nargsused = 1;
+    } else if (istringnmatch(option, "--o",0)) {
+      if (nargc < 1) argnerr(option,1);
+      outfile = pargv[0];
       nargsused = 1;
     } else if (istringnmatch(option, "--reg",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -613,6 +642,8 @@ printf("\n");
 printf("mri_segreg\n");
 printf("  --reg regfile\n");
 printf("  --mov fvol\n");
+printf("  --inorm inorm : intensity profile in reg with anat\n");
+printf("  --o out : save final output\n");
 printf("\n");
 printf("  --tx-mmd txmin txmax txdelta : translation (mm) in x\n");
 printf("  --ty-mmd tymin tymax tydelta : translation (mm) in y\n");
@@ -624,6 +655,8 @@ printf("\n");
 printf("  --cost costfile\n");
 printf("\n");
 printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
+printf("  --no-crop: do not crop anat (crops by default)\n");
+printf("  --profile : print out info about exec time\n");
 printf("\n");
 printf("  --noise stddev : add noise with stddev to input for testing sensitivity\n");
 printf("  --seed randseed : for use with --noise\n");
@@ -760,6 +793,7 @@ double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
   MATRIX *Mrot=NULL, *Mtrans=NULL, *invR=NULL,*vox2vox = NULL;
   MATRIX *Tin, *invTin, *Ttemp;
   extern MRI *out, *inorm;
+  extern int interpcode, sinchw;
 
   if(R==NULL){
     printf("ERROR: GetCosts(): R cannot be NULL\n");
