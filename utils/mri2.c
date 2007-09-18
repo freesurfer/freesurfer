@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/10 22:58:11 $
- *    $Revision: 1.39 $
+ *    $Date: 2007/09/18 22:43:49 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.39 2007/08/10 22:58:11 greve Exp $
+  $Id: mri2.c,v 1.40 2007/09/18 22:43:49 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -797,6 +797,50 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
 
   return(0);
 }
+/*-------------------------------------------------------*/
+/*!
+  \fn int MRIvol2VolTkReg(MRI *mov, MRI *targ, MATRIX *Rtkreg,
+		    int InterpCode, float param)
+  \brief Applies a tkregister matrix to a volume. Computes 
+    the vox2vox matrix then calls MRIvol2Vol().
+  \param mov - source volume
+  \param targ - target volume. Must be fully alloced.
+  \param Rtkreg - tkreg ras2ras transform from target to source 
+    (assumes identity if NULL)
+  \param InterCode - SAMPLE_NEAREST, SAMPLE_TRILINEAR, SAMPLE_SINC.
+    Sinc probably does not work.
+ */
+int MRIvol2VolTkReg(MRI *mov, MRI *targ, MATRIX *Rtkreg,
+		    int InterpCode, float param)
+{
+  MATRIX *vox2vox = NULL;
+  MATRIX *Tmov, *invTmov, *Ttarg;
+  int err;
+
+  if(Rtkreg != NULL){
+    // TkReg Vox2RAS matrices
+    Tmov      = MRIxfmCRS2XYZtkreg(mov);
+    invTmov   = MatrixInverse(Tmov,NULL);
+    Ttarg    = MRIxfmCRS2XYZtkreg(targ);
+    // vox2vox = invTmov*R*Ttarg
+    vox2vox = MatrixMultiply(invTmov,Rtkreg,vox2vox);
+    MatrixMultiply(vox2vox,Ttarg,vox2vox);
+  } 
+  else vox2vox = NULL;
+
+  // resample
+  err = MRIvol2Vol(mov,targ,vox2vox,InterpCode,param);
+
+  if(vox2vox) {
+    MatrixFree(&vox2vox);
+    MatrixFree(&Tmov);
+    MatrixFree(&invTmov);
+    MatrixFree(&Ttarg);
+  }
+
+  return(err);
+}
+
 /*-----------------------------------------------------------*/
 /*!
   \fn MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s)
