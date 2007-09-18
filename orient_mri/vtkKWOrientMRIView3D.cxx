@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/13 20:58:21 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/09/18 17:10:22 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIView3D );
-vtkCxxRevisionMacro( vtkKWOrientMRIView3D, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIView3D, "$Revision: 1.2 $" );
 
 
 vtkKWOrientMRIView3D::vtkKWOrientMRIView3D () {
@@ -346,10 +346,15 @@ vtkKWOrientMRIView3D::ActorModifiedCallback ( vtkObject* iCaller,
 
     // Get our view pointer from the client data.
     assert( iClientData );
-    vtkKWOrientMRIView3D* view = 
-      static_cast<vtkKWOrientMRIView3D*>( iClientData );
+    try {
+      vtkKWOrientMRIView3D* view = 
+	static_cast<vtkKWOrientMRIView3D*>( iClientData );
 
-    if( view ) view->ActorPositionChanged();
+      if( view ) view->ActorPositionChanged();
+    }
+    catch(...) {
+      cerr << "Invalid client data in ActorModified callback" << endl;
+    }
   }
 
 }
@@ -367,10 +372,16 @@ vtkKWOrientMRIView3D::VolumeToRASTransformChangedCallback ( vtkObject* iCaller,
 
     // Get our view pointer from the client data.
     assert( iClientData );
-    vtkKWOrientMRIView3D* view = 
-      static_cast<vtkKWOrientMRIView3D*>( iClientData );
-
-    if( view ) view->VolumeToRASTransformChanged();
+    try {
+      vtkKWOrientMRIView3D* view = 
+	static_cast<vtkKWOrientMRIView3D*>( iClientData );
+      
+      if( view ) view->VolumeToRASTransformChanged();
+    } 
+    catch(...) {
+      cerr << "Invalid client data in VolumeToRASTransformChanged callback" 
+	   << endl;
+    }
   }
 
 }

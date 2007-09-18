@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/13 20:58:21 $
- *    $Revision: 1.12 $
+ *    $Date: 2007/09/18 17:10:22 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -62,7 +62,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.12 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.13 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
   mbDirty( false ),
@@ -1094,10 +1094,15 @@ vtkKWOrientMRIWindow::UserTransformChanged ( vtkObject* iCaller,
 
     // Get our window pointer from the client data.
     assert( iClientData );
-    vtkKWOrientMRIWindow* window = 
-      static_cast<vtkKWOrientMRIWindow*>( iClientData );
-
-    if( window ) window->UpdateUserTransform();
+    try {
+      vtkKWOrientMRIWindow* window = 
+	static_cast<vtkKWOrientMRIWindow*>( iClientData );
+      
+      if( window ) window->UpdateUserTransform();
+    }
+    catch(...) {
+      cerr << "Invalid client data in UserTransformChanged callback" << endl;
+    }
   }
 
 }
