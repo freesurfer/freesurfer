@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/09/12 15:37:43 $
- *    $Revision: 1.139 $
+ *    $Author: greve $
+ *    $Date: 2007/09/18 04:52:03 $
+ *    $Revision: 1.140 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -525,7 +525,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.139 2007/09/12 15:37:43 nicks Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.140 2007/09/18 04:52:03 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -813,23 +813,26 @@ int main(int argc, char **argv) {
     }
   }
   if (useasl) {
-    mriglm->Xg = MatrixConstVal(1.0, mriglm->y->nframes, 2, NULL);
+    mriglm->Xg = MatrixConstVal(1.0, mriglm->y->nframes, 3, NULL);
     for (n=0; n < mriglm->y->nframes; n += 2) {
       mriglm->Xg->rptr[n+1][2] = asl1val;
+      if(n+2 >= mriglm->y->nframes) break;
       mriglm->Xg->rptr[n+2][2] = asl2val;
     }
+    for(n=0; n < mriglm->y->nframes; n ++)
+      mriglm->Xg->rptr[n+1][3] = n - mriglm->y->nframes/2.0;
     nContrasts = 3;
     mriglm->glm->ncontrasts = nContrasts;
     mriglm->glm->Cname[0] = "perfusion";
-    mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 3, NULL);
     mriglm->glm->C[0]->rptr[1][1] = 0;
     mriglm->glm->C[0]->rptr[1][2] = 1;
     mriglm->glm->Cname[1] = "control";
-    mriglm->glm->C[1] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[1] = MatrixConstVal(0.0, 1, 3, NULL);
     mriglm->glm->C[1]->rptr[1][1] = 1;
     mriglm->glm->C[1]->rptr[1][2] = 0;
     mriglm->glm->Cname[2] = "label";
-    mriglm->glm->C[2] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[2] = MatrixConstVal(0.0, 1, 3, NULL);
     mriglm->glm->C[2]->rptr[1][1] = 1;
     mriglm->glm->C[2]->rptr[1][2] = 1;
   }
