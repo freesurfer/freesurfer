@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/18 20:28:45 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/09/18 22:44:18 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -140,7 +140,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segreg.c,v 1.14 2007/09/18 20:28:45 greve Exp $";
+static char vcid[] = "$Id: mri_segreg.c,v 1.15 2007/09/18 22:44:18 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -166,7 +166,7 @@ char tmpstr[2000];
 
 char *SegRegCostFile = NULL;
 char  *fspec;
-MRI *regseg;
+MRI *regseg, *regseg0;
 MRI *noise=NULL;
 MRI *mritmp;
 MRI *inorm=NULL;
@@ -204,12 +204,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_segreg.c,v 1.14 2007/09/18 20:28:45 greve Exp $",
+                          "$Id: mri_segreg.c,v 1.15 2007/09/18 22:44:18 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_segreg.c,v 1.14 2007/09/18 20:28:45 greve Exp $",
+                                "$Id: mri_segreg.c,v 1.15 2007/09/18 22:44:18 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -266,6 +266,7 @@ int main(int argc, char **argv) {
     if(regseg == NULL) exit(1);
     free(fspec);
   }
+  regseg0 = regseg;
 
   // Cropping reduces the size of the target volume down to the 
   // voxels that really matter. This can greatly increase the speed
@@ -284,9 +285,7 @@ int main(int argc, char **argv) {
     printf("BBbox start: %d %d %d, delta = %d %d %d\n",
 	   box.x,box.y,box.z,box.dx,box.dy,box.dz);
     // Now crop
-    mritmp = MRIcrop(regseg, box.x, box.y, box.z, box.x+box.dx, box.y+box.dy, box.z+box.dz);
-    MRIfree(&regseg);
-    regseg = mritmp;
+    regseg  = MRIcrop(regseg0, box.x, box.y, box.z, box.x+box.dx, box.y+box.dy, box.z+box.dz);
 
     if(inorm){
       // Crop inorm too
@@ -398,22 +397,33 @@ int main(int argc, char **argv) {
       printf("\n");
     }
     
+    if(outfile) {
+      // This changes values in regseg0
+      printf("Writing output volume to %s \n",outfile);
+      fflush(stdout);
+      MRIsetValues(regseg0,0.0);
+      MRIvol2VolTkReg(mov, regseg0, R, interpcode, sinchw);
+      MRIwrite(regseg0,outfile);
+    }
+
     if(outregfile){
       printf("Writing optimal reg to %s \n",outregfile);
+      fflush(stdout);
       regio_write_register(outregfile,subject,mov->xsize,
 			   mov->zsize,1,R,FLT2INT_ROUND);
     }
 
-    if(outfile) MRIwrite(out,outfile);
-
     printf("Original Reg \n");
+    fflush(stdout);
     MatrixPrint(stdout,R00);
     printf("\n");
     
-    Rdiff = MatrixSubtract(R00,Rmin,NULL);
+    Rdiff = MatrixSubtract(R00,R,NULL);
     printf("Original Reg - Optimal Reg\n");
     MatrixPrint(stdout,Rdiff);
     printf("\n");
+
+    printf("mri_segreg done\n");
 
     exit(0);
   }
@@ -842,7 +852,7 @@ double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
 		 double *p, double *costs)
 {
   double angles[3];
-  MATRIX *Mrot=NULL, *Mtrans=NULL, *invR=NULL,*vox2vox = NULL;
+  MATRIX *Mrot=NULL, *Mtrans=NULL, *vox2vox = NULL;
   MATRIX *Tin, *invTin, *Ttemp;
   extern MRI *out, *inorm;
   extern int interpcode, sinchw;
@@ -869,7 +879,6 @@ double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
   // R = Mtrans*Mrot*R0
   R = MatrixMultiply(Mrot,R0,R);
   R = MatrixMultiply(Mtrans,R,R);
-  invR = MatrixInverse(R,invR);
 
   // vox2vox = invTin*R*Ttemp
   vox2vox = MatrixMultiply(invTin,R,vox2vox);
@@ -892,7 +901,6 @@ double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
   MatrixFree(&Tin);
   MatrixFree(&invTin);
   MatrixFree(&Ttemp);
-  MatrixFree(&invR);
 
   return(costs);
 }
@@ -999,4 +1007,3 @@ int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
 
   return(nth);
 }
-
