@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/02 13:37:33 $
- *    $Revision: 1.38 $
+ *    $Date: 2007/09/19 12:49:08 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,8 +32,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/01/02 13:37:33 $
-// Revision       : $Revision: 1.38 $
+// Revision Date  : $Date: 2007/09/19 12:49:08 $
+// Revision       : $Revision: 1.39 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -150,13 +150,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.38 2007/01/02 13:37:33 fischl Exp $",
+     "$Id: mri_ca_normalize.c,v 1.39 2007/09/19 12:49:08 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.38 2007/01/02 13:37:33 fischl Exp $",
+     "$Id: mri_ca_normalize.c,v 1.39 2007/09/19 12:49:08 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -370,7 +370,7 @@ main(int argc, char *argv[])
 				ErrorExit(ERROR_NOFILE,"%s: could not read example T1 from %s",
 									Progname, example_T1) ;
 			printf("scaling atlas intensities using specified examples...\n") ;
-			MRIeraseBorderPlanes(mri_seg) ;
+			MRIeraseBorderPlanes(mri_seg, 1) ;
 			GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
 			MRIfree(&mri_seg) ; MRIfree(&mri_T1) ;
 		}
