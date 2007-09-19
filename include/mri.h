@@ -5,11 +5,11 @@
  *  prototypes and structures for working with MRI volumes.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/12 15:47:09 $
- *    $Revision: 1.348 $
+ *    $Date: 2007/09/19 12:49:53 $
+ *    $Revision: 1.349 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1055,7 +1055,7 @@ int MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval);
 int MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval); /*E*/
 MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
-int MRIeraseBorderPlanes(MRI *mri) ;
+int MRIeraseBorderPlanes(MRI *mri, int mask_size) ;
 
 MRI *MRIzeroMean(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIlog10(MRI *inmri, MRI *mask, MRI *outmri, int negflag);
