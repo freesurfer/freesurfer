@@ -275,7 +275,7 @@ AUTHOR
 Douglas N. Greve, Ph.D., MGH-NMR Center"
 
 puts ""
-puts {$Id: unpackimadir2,v 1.4 2002/03/01 22:43:29 greve Exp $}
+puts {$Id: unpackimadir2,v 1.5 2007/09/19 14:37:39 greve Exp $}
 puts ""
 
 exit 1;
@@ -565,6 +565,7 @@ proc CheckUnpackCfgFormat { unpackcfg } {
          [string compare $Fmt minc]    != 0 && \
          [string compare $Fmt ima]    != 0 && \
          [string compare $Fmt mgh]     != 0 } {
+         [string compare $Fmt nii]     != 0 } {
       puts "ERROR: Run $RunNo has an invalid format ($Fmt0)"
       puts $LF "ERROR: Run $RunNo has an invalid format ($Fmt0)"
       exit 1;
@@ -827,6 +828,22 @@ if { $argc == 0 } { PrintUsage; exit 1;}
 ParseCommandLine $argc $argv;
 CheckArgs;
 
+# Dump some info to the screen
+puts "";
+puts {$Id: unpackimadir2,v 1.5 2007/09/19 14:37:39 greve Exp $};
+puts "";
+puts [pwd];
+puts "$argv"
+puts "";
+puts [exec date];
+puts "";
+puts [exec mri_convert -all-info];
+puts "";
+puts [exec hostname];
+puts [exec uname -a];
+puts "";
+
+
 # Check that the input directory is there #
 if {! [file exists $imadir]} {
   puts stdout "ERROR: directory $imadir does not exist"
@@ -905,7 +922,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpackimadir2"
-puts $LF {$Id: unpackimadir2,v 1.4 2002/03/01 22:43:29 greve Exp $}
+puts $LF {$Id: unpackimadir2,v 1.5 2007/09/19 14:37:39 greve Exp $}
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -1030,6 +1047,8 @@ foreach runcfg $unpackcfg {
      set OutFile [format "%s/%s.mnc" $OutDir $Name];
   } elseif { ! [string compare $Fmt mgh ] } {
      set OutFile [format "%s/%s.mgh" $OutDir $Name];
+  } elseif { ! [string compare $Fmt nii ] } {
+     set OutFile [format "%s/%s.nii" $OutDir $Name];
   } else {
      set OutFile $OutDir;
   }
