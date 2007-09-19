@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.57 $
+ *    $Author: fischl $
+ *    $Date: 2007/09/19 12:49:38 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,9 +33,9 @@
 // Nov. 9th ,2000
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:06 $
-// Revision       : $Revision: 1.57 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2007/09/19 12:49:38 $
+// Revision       : $Revision: 1.58 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -189,7 +189,7 @@ main(int argc, char *argv[]) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.57 2006/12/29 02:09:06 nicks Exp $",
+     "$Id: mri_em_register.c,v 1.58 2007/09/19 12:49:38 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -427,7 +427,7 @@ main(int argc, char *argv[]) {
        Progname, example_T1) ;
     printf("scaling atlas intensities using specified examples...\n") ;
     fflush(stdout);
-    MRIeraseBorderPlanes(mri_seg) ;
+    MRIeraseBorderPlanes(mri_seg, 1) ;
     GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
     MRIfree(&mri_seg) ;
     MRIfree(&mri_T1) ;
