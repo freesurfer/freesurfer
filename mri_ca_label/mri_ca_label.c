@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/13 13:22:32 $
- *    $Revision: 1.80 $
+ *    $Date: 2007/09/19 12:49:02 $
+ *    $Revision: 1.81 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,13 +171,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.80 2007/04/13 13:22:32 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.81 2007/09/19 12:49:02 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.80 2007/04/13 13:22:32 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.81 2007/09/19 12:49:02 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -346,7 +346,7 @@ main(int argc, char *argv[]) {
        "%s: could not read example T1 from %s",
        Progname, example_T1) ;
     printf("scaling atlas intensities using specified examples...\n") ;
-    MRIeraseBorderPlanes(mri_seg) ;
+    MRIeraseBorderPlanes(mri_seg, 1) ;
     GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
     MRIfree(&mri_seg) ;
     MRIfree(&mri_T1) ;

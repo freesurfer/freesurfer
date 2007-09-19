@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/12 13:46:16 $
- *    $Revision: 1.396 $
+ *    $Date: 2007/09/19 12:49:48 $
+ *    $Revision: 1.397 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.396 $";
+char *MRI_C_VERSION = "$Revision: 1.397 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12359,26 +12359,29 @@ MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count)
 } /* end MRIsmoothParcellation() */
 
 int
-MRIeraseBorderPlanes(MRI *mri)
+MRIeraseBorderPlanes(MRI *mri, int border_size)
 {
-  int  x, y, z ;
+  int  x, y, z, i ;
 
   for (x = 0 ; x < mri->width ; x++)
     for (y = 0 ; y < mri->height ; y++)
     {
-      MRIvox(mri, x, y, 0) = MRIvox(mri, x, y, mri->depth-1) = 0 ;
+      for (i = 0 ; i < border_size ; i++)
+        MRIvox(mri, x, y, i) = MRIvox(mri, x, y, mri->depth-i-1) = 0 ;
     }
 
   for (y = 0 ; y < mri->height ; y++)
     for (z = 0 ; z < mri->depth ; z++)
     {
-      MRIvox(mri, 0, y, z) = MRIvox(mri, mri->width-1, y, z) = 0 ;
+      for (i = 0 ; i < border_size ; i++)
+        MRIvox(mri, i, y, z) = MRIvox(mri, mri->width-i-1, y, z) = 0 ;
     }
 
   for (x = 0 ; x < mri->width ; x++)
     for (z = 0 ; z < mri->depth ; z++)
     {
-      MRIvox(mri, x, 0, z) = MRIvox(mri, x, mri->height-1, z) = 0 ;
+      for (i = 0 ; i < border_size ; i++)
+        MRIvox(mri, x, i, z) = MRIvox(mri, x, mri->height-i-1, z) = 0 ;
     }
 
   return(NO_ERROR) ;
