@@ -1531,6 +1531,7 @@ else
   glut_cflags=""
   glut_libs=""
   glut_fixup="no"
+  glut_static="no"
   AC_MSG_CHECKING(GLUT directory)
 
   AC_ARG_WITH(glut-dir,
@@ -1552,6 +1553,7 @@ else
     if test -e "$ac_glut_libraries"/libglut.a ; then
       glut_libs="$ac_glut_libraries"/libglut.a
       glut_fixup="yes"
+      glut_static="yes"
     fi
   fi
 
@@ -1609,6 +1611,9 @@ ac_save_ldflags=$LDFLAGS
 CFLAGS="$glut_cflags $GL_CFLAGS $GLU_CFLAGS $CFLAGS"
 LDFLAGS="$glut_libs $GL_LIBS $GLU_LIBS $LDFLAGS"
 AX_CHECK_GLUT
+if test "X$glut_static" = "Xyes"; then
+  no_glut=no
+fi
 if test "X$no_glut" = "Xyes"; then
   # AX_CHECK_GLUT wants GL/glut.h, but Debian doesnt have that,
   # so try a simpler test
