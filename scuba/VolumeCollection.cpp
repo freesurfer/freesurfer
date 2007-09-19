@@ -1,15 +1,14 @@
 /**
  * @file  VolumeCollection.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief MRI volume utilities
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/18 21:50:00 $
- *    $Revision: 1.111 $
+ *    $Author: nicks $
+ *    $Date: 2007/09/19 15:26:04 $
+ *    $Revision: 1.112 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,6 +26,7 @@
 
 
 #include "string_fixed.h"
+#include <cassert>
 #include <errno.h>
 #include <stdexcept>
 #include <vector>
