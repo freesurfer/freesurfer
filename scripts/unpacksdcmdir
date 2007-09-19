@@ -353,7 +353,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.19 2006/11/10 19:44:16 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.19.2.1 2007/09/19 14:34:42 greve Exp $}
 
 exit 1;
 
@@ -805,11 +805,21 @@ ParseCommandLine $argc $argv;
 CheckArgs;
 
 set mriconvert mri_convert
-#set mriconvert /space/greve/1/users/greve/build/mri_convert/mri_convert
-#if { ! [file exists $mriconvert] } {
-#  puts "ERROR: could not find $mriconvert"
-#  exit 1;
-#}
+
+# Dump some info to the screen
+puts "";
+puts {$Id: unpacksdcmdir,v 1.19.2.1 2007/09/19 14:34:42 greve Exp $};
+puts "";
+puts [pwd];
+puts "$argv"
+puts "";
+puts [exec date];
+puts "";
+puts [exec mri_convert -all-info];
+puts "";
+puts [exec hostname];
+puts [exec uname -a];
+puts "";
 
 # Check that the input directory is there #
 if {! [file exists $dicomdir]} {
@@ -847,15 +857,17 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.19 2006/11/10 19:44:16 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.19.2.1 2007/09/19 14:34:42 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
 puts $LF "$argv"
+puts $LF [exec mri_convert -all-info];
+puts $LF [exec hostname];
+puts $LF [exec uname -a];
 puts $LF "SkipMoCo $SkipMoCo";
 puts "SkipMoCo $SkipMoCo";
-
-puts [pwd];
+flush $LF
 
 puts $LF "dicomdir $dicomdir"
 
@@ -877,9 +889,11 @@ puts     "INFO: status file is $statfile"
 puts "Scanning directory [exec date]"
 puts     "mri_parse_sdcmdir --sortbyrun --d $dicomdir --o $sumfile --status $statfile"
 puts $LF "mri_parse_sdcmdir --sortbyrun --d $dicomdir --o $sumfile --status $statfile"
+flush $LF
 set ParsePipeId [open \
 "|mri_parse_sdcmdir --sortbyrun --d $dicomdir --o $sumfile --status $statfile 2>@ stdout" r];
 fconfigure $ParsePipeId -blocking 0
+flush $LF
 
 # Wait until the statfile is created (or timeout after 20)
 set ProbeStart [clock seconds];
@@ -927,6 +941,7 @@ file delete -force $statfile
 puts $LF "Done scanning [exec date]"
 puts "Done scanning [exec date]"
 flush stdout
+flush $LF
 #------------------------------------------------------------------#
 
 if { $scanonly } {
@@ -1039,6 +1054,8 @@ if { [info exists SeqCfgList] } {
   puts $LF "Automatically configuring unpack ..."
   puts "------------------------------------------"
   puts "Automatically configuring unpack ..."
+  flush stdout
+  flush $LF
   foreach Series $SeriesLeaders {
     set ErrFlag  [lindex $Series  3];
     if { $ErrFlag && ! $unpackerr} { continue; }
@@ -1088,6 +1105,9 @@ puts "unpacking config ------------------"
 puts $unpackcfg;
 puts "-----------------------------------"
 
+flush stdout
+flush $LF
+
 # Check that each run listed in the configuration
 # actually exists in the session.
 CheckUnpackCfgExist  $unpackcfg $SeriesLeaders;
@@ -1109,6 +1129,8 @@ foreach runcfg $unpackcfg {
   puts "Run $RunNo -----------------------------------------"
   puts [exec date];
   puts $runcfg
+  flush stdout
+  flush $LF
 
   if { ! [string compare $sortmethod fsfast ] } {
     set OutDir [format "%s/%s/%03d" $targdir $SubDir $RunNo];
@@ -1183,6 +1205,8 @@ foreach runcfg $unpackcfg {
   puts $LF "Files In Run: ---------------"
   puts $LF $FilesInRun;
   puts $LF "-----------------------------"
+  flush stdout
+  flush $LF
 
   set VolRes [GetVolRes $DCMSource];
 
@@ -1275,6 +1299,8 @@ foreach runcfg $unpackcfg {
       }
     }
   }
+  flush stdout
+  flush $LF
 
 }; # end loop over the unpacking of each run #
 
