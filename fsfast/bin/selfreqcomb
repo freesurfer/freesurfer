@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.6 $
+#    $Author: greve $
+#    $Date: 2007/09/19 00:50:34 $
+#    $Revision: 1.6.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: selfreqcomb,v 1.6 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: selfreqcomb,v 1.6.2.1 2007/09/19 00:50:34 greve Exp $';
 set cmdargv = ($argv);
 
 set instems = ();
@@ -184,6 +184,10 @@ $TARGET <<EOF
     tmp(12,:) = trendimg;
     tmp(13,:) = sqrt( tmp(8,:).^2 + tmp(9,:).^2 ); % magnitude
     tmp(14,:) = phz .* (log10sigf > 2); % phase masked by sig .01
+
+    indinf = find(isinf(tmp));
+    fprintf('Found %d infinite values\n',length(indinf));
+    tmp(indinf) = 0;
 
     ntmp  = size(tmp,1);
     tmp   = reshape(tmp', [sfa.nrows sfa.ncols ntmp]); %'
