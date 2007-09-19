@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.20 $
+ *    $Author: fischl $
+ *    $Date: 2007/09/19 12:49:35 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -281,7 +281,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_deface.c,v 1.20 2006/12/29 02:09:06 nicks Exp $", "$Name:  $");
+           "$Id: mri_deface.c,v 1.21 2007/09/19 12:49:35 fischl Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     ErrorExit
@@ -431,7 +431,7 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE,"%s: could not read example T1 from %s",
                 Progname, example_T1) ;
     printf("scaling atlas intensities using specified examples...\n") ;
-    MRIeraseBorderPlanes(mri_seg) ;
+    MRIeraseBorderPlanes(mri_seg, 1) ;
     GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
     MRIfree(&mri_seg) ;
     MRIfree(&mri_T1) ;
