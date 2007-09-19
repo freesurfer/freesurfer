@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/13 21:58:23 $
- *    $Revision: 1.13 $
+ *    $Date: 2007/09/19 04:02:33 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.13 2007/09/13 21:58:23 greve Exp $
+// $Id: mri_binarize.c,v 1.14 2007/09/19 04:02:33 greve Exp $
 
 /*
   BEGINHELP
@@ -41,12 +41,16 @@ Input volume to be binarized.
 
 --min min
 --max max
+--rmin rmin
+--rmax rmax
 
 Minimum and maximum thresholds. If the value at a voxel is >= min and
-<= max, then its value in the output will be 1 (or --binval), otherwise
-it is 0 (or --binvalnot) or the value of the merge volume at that voxel.
-By default, min = -infinity and max = +infinity, but you must set one
-of the thresholds. Cannot be used with --match.
+<= max, then its value in the output will be 1 (or --binval),
+otherwise it is 0 (or --binvalnot) or the value of the merge volume at
+that voxel.  By default, min = -infinity and max = +infinity, but you
+must set one of the thresholds. Cannot be used with --match. If --rmin
+or --rmax are specified, then min (or max) is computed as rmin (or
+rmax) times the global mean of the input.
 
 --match matchvalue <--match matchvalue>
 
@@ -134,6 +138,7 @@ double round(double x);
 #include "matfile.h"
 #include "volcluster.h"
 #include "surfcluster.h"
+#include "randomfields.h"
 
 
 static int  parse_commandline(int argc, char **argv);
@@ -145,7 +150,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.13 2007/09/13 21:58:23 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.14 2007/09/19 04:02:33 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -158,6 +163,9 @@ char *MergeVolFile=NULL;
 char *MaskVolFile=NULL;
 double MinThresh, MaxThresh;
 int MinThreshSet=0, MaxThreshSet=0;
+double RMinThresh, RMaxThresh;
+int RMinThreshSet=0, RMaxThreshSet=0;
+
 int BinVal=1;
 int BinValNot=0;
 int frame=0;
@@ -182,7 +190,7 @@ int DoBinCol = 0;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, c, r, s, nhits, InMask, n;
-  double val,maskval,mergeval;
+  double val,maskval,mergeval,gmean,gstd,gmax;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -211,10 +219,27 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  if (DoAbs) {
+  if(DoAbs) {
     printf("Removing sign from input\n");
     MRIabs(InVol,InVol);
   }
+
+  if(RMinThreshSet || RMaxThreshSet){
+    printf("Computing global statistics \n");
+    RFglobalStats(InVol, NULL, &gmean, &gstd, &gmax);
+    printf("mean = %g, std = %g, max = %g\n",gmean, gstd, gmax);
+    if(RMinThreshSet)  {
+      MinThresh = gmean * RMinThresh;
+      MinThreshSet = 1;
+      printf("Setting min thresh to %g\n",MinThresh);
+    }
+    if(RMaxThreshSet) {
+      MaxThresh = gmean * RMaxThresh;
+      MaxThreshSet = 1;
+      printf("Setting max thresh to %g\n",MinThresh);
+    }
+  }
+
 
   // Load the merge volume (if needed)
   if (MergeVolFile) {
@@ -421,6 +446,16 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&MaxThresh);
       MaxThreshSet = 1;
       nargsused = 1;
+    } else if (!strcasecmp(option, "--rmin")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&RMinThresh);
+      RMinThreshSet = 1;
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--max")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&RMaxThresh);
+      RMaxThreshSet = 1;
+      nargsused = 1;
     } else if (!strcasecmp(option, "--binval")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&BinVal);
@@ -475,6 +510,8 @@ static void print_usage(void) {
   printf("   \n");
   printf("   --min min  : min thresh (def is -inf)\n");
   printf("   --max max  : max thresh (def is +inf)\n");
+  printf("   --rmin rmin  : compute min based on rmin*globalmean\n");
+  printf("   --rmax rmax  : compute max based on rmax*globalmean\n");
   printf("   --match matchval <--match matchval>  : match instead of threshold\n");
   printf("   --wm : set match vals to 2 and 41 (aseg for cerebral WM)\n");
   printf("   --ventricles : set match vals those for aseg ventricles (not 4th)\n");
@@ -517,12 +554,16 @@ printf("Input volume to be binarized.\n");
 printf("\n");
 printf("--min min\n");
 printf("--max max\n");
+printf("--rmin rmin\n");
+printf("--rmax rmax\n");
 printf("\n");
 printf("Minimum and maximum thresholds. If the value at a voxel is >= min and\n");
-printf("<= max, then its value in the output will be 1 (or --binval), otherwise\n");
-printf("it is 0 (or --binvalnot) or the value of the merge volume at that voxel.\n");
-printf("By default, min = -infinity and max = +infinity, but you must set one\n");
-printf("of the thresholds. Cannot be used with --match.\n");
+printf("<= max, then its value in the output will be 1 (or --binval),\n");
+printf("otherwise it is 0 (or --binvalnot) or the value of the merge volume at\n");
+printf("that voxel.  By default, min = -infinity and max = +infinity, but you\n");
+printf("must set one of the thresholds. Cannot be used with --match. If --rmin\n");
+printf("or --rmax are specified, then min (or max) is computed as rmin (or\n");
+printf("rmax) times the global mean of the input.\n");
 printf("\n");
 printf("--match matchvalue <--match matchvalue>\n");
 printf("\n");
@@ -585,12 +626,22 @@ static void check_options(void) {
     printf("ERROR: must specify output volume\n");
     exit(1);
   }
-  if(MinThreshSet == 0 && MaxThreshSet == 0 && !DoMatch ) {
+  if(MinThreshSet == 0  && MaxThreshSet == 0 &&
+     RMinThreshSet == 0 && RMaxThreshSet == 0 &&
+     !DoMatch ) {
     printf("ERROR: must specify minimum and/or maximum threshold or match values\n");
     exit(1);
   }
-  if((MinThreshSet != 0 || MaxThreshSet != 0) && DoMatch ) {
+  if((MinThreshSet || MaxThreshSet || RMinThreshSet || RMaxThreshSet) && DoMatch ) {
     printf("ERROR: cannot specify threshold and match values\n");
+    exit(1);
+  }
+  if(MinThreshSet && RMinThreshSet){
+    printf("ERROR: cannot --rmin and --min \n");
+    exit(1);
+  }
+  if(MaxThreshSet && RMaxThreshSet){
+    printf("ERROR: cannot --rmax and --max \n");
     exit(1);
   }
   if(!DoMatch){
@@ -624,14 +675,12 @@ static void dump_options(FILE *fp) {
 
   if(!DoMatch){
     fprintf(fp,"Binarizing based on threshold\n");
-    if (MinThreshSet)
-      fprintf(fp,"min        %g\n",MinThresh);
-    else
-      fprintf(fp,"min        -infinity\n");
-    if (MaxThreshSet)
-      fprintf(fp,"max        %g\n",MaxThresh);
-    else
-      fprintf(fp,"max        +infinity\n");
+    if(MinThreshSet)        fprintf(fp,"min        %g\n",MinThresh);
+    else if(RMinThreshSet)  fprintf(fp,"rmin       %g\n",RMinThresh);
+    else                    fprintf(fp,"min        -infinity\n");
+    if(MaxThreshSet)        fprintf(fp,"max        %g\n",MaxThresh);
+    else if(RMaxThreshSet)  fprintf(fp,"rmax       %g\n",RMaxThresh);
+    else                    fprintf(fp,"max        +infinity\n");
   }
   else {
     fprintf(fp,"Binarizing based on matching values\n");
