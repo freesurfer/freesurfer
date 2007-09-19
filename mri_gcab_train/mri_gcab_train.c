@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/29 13:48:09 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/09/19 12:49:45 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,8 +33,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                  */
-/* Revision Date  : $Date: 2007/08/29 13:48:09 $                       */
-/* Revision       : $Revision: 1.1 $                                  */
+/* Revision Date  : $Date: 2007/09/19 12:49:45 $                       */
+/* Revision       : $Revision: 1.2 $                                  */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -120,7 +120,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_gcab_train.c,v 1.1 2007/08/29 13:48:09 fischl Exp $",
+     "$Id: mri_gcab_train.c,v 1.2 2007/09/19 12:49:45 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -229,7 +229,7 @@ main(int argc, char *argv[]) {
     }
 
     replaceLabels(mri_seg) ;
-    MRIeraseBorderPlanes(mri_seg) ;
+    MRIeraseBorderPlanes(mri_seg, 1) ;
 
     for (input = 0 ; input < gca->ninputs ; input++) {
       //////////// set the gca type //////////////////////////////
