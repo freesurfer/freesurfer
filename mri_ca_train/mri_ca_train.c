@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/08 20:01:23 $
- *    $Revision: 1.54 $
+ *    $Author: fischl $
+ *    $Date: 2007/09/19 12:49:33 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -128,7 +128,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.54 2007/08/08 20:01:23 nicks Exp $",
+           "$Id: mri_ca_train.c,v 1.55 2007/09/19 12:49:33 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -299,7 +299,7 @@ main(int argc, char *argv[])
       }
 
       replaceLabels(mri_seg) ;
-      MRIeraseBorderPlanes(mri_seg) ;
+      MRIeraseBorderPlanes(mri_seg, 1) ;
 
       // subjects loop index i
       if (i != 0)  /* not the first image read -
@@ -712,7 +712,7 @@ main(int argc, char *argv[])
       }
 
       replaceLabels(mri_seg) ;
-      MRIeraseBorderPlanes(mri_seg) ;
+      MRIeraseBorderPlanes(mri_seg, 1) ;
 
       // input volume
       /////////////////////////////////
