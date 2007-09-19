@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/19 04:02:33 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/09/19 05:42:44 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.14 2007/09/19 04:02:33 greve Exp $
+// $Id: mri_binarize.c,v 1.15 2007/09/19 05:42:44 greve Exp $
 
 /*
   BEGINHELP
@@ -150,7 +150,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.14 2007/09/19 04:02:33 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.15 2007/09/19 05:42:44 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -464,6 +464,9 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&BinValNot);
       nargsused = 1;
+    } else if (!strcasecmp(option, "--inv")) {
+      BinVal = 0;
+      BinValNot = 1;
     } else if (!strcasecmp(option, "--match")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&MatchValues[nMatch]);
@@ -520,6 +523,7 @@ static void print_usage(void) {
   printf("   \n");
   printf("   --binval    val    : set vox within thresh to val (default is 1) \n");
   printf("   --binvalnot notval : set vox outside range to notval (default is 0) \n");
+  printf("   --inv              : set binval=0, binvalnot=1\n");
   printf("   --frame frameno    : use 0-based frame of input (default is 0) \n");
   printf("   --merge mergevol   : merge with mergevolume \n");
   printf("   --mask maskvol       : must be within mask \n");
