@@ -2,9 +2,9 @@
 ## fsgdfPlot.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2007/04/09 05:17:22 $
-##    $Revision: 1.24 $
+##    $Author: kteich $
+##    $Date: 2007/09/20 16:02:10 $
+##    $Revision: 1.25 $
 ##
 ## Original Author: Kevin Teich
 ##
@@ -1139,6 +1139,17 @@ proc FsgdfPlot_HideWindow { iID } {
   }
 }
 
+# Returns whether a plot window is built and visible.
+proc FsgdfPlot_IsWindowShowing { iID } {
+  global gGDF gWidgets gbLibLoaded
+  if { !$gbLibLoaded } { return 0 }
+  if { [lsearch $gGDF(lID) $iID] == -1 } { puts "ID not found"; return 0 }
+  if { ![info exists gWidgets($iID,bWindowBuilt)] ||
+       !$gWidgets($iID,bWindowBuilt) } {
+      return 0
+  }
+    return 1
+}
 
 # Set the current variable.
 proc FsgdfPlot_SetVariable { iID inVariable } {
