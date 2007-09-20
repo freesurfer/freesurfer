@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/09/20 23:04:22 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -85,11 +85,21 @@ QdecGlmDesign::QdecGlmDesign ( QdecDataTable* iDataTable )
 
 QdecGlmDesign::~QdecGlmDesign ( )
 {
+  while (mDiscreteFactors.size() != 0)
+    {
+      delete mDiscreteFactors.back();
+      mDiscreteFactors.pop_back();
+    }
+  while (mContinuousFactors.size() != 0)
+    {
+      delete mContinuousFactors.back();
+      mContinuousFactors.pop_back();
+    }
   while (mContrasts.size() != 0)
-  {
-    delete mContrasts.back();
-    mContrasts.pop_back();
-  }
+    {
+      delete mContrasts.back();
+      mContrasts.pop_back();
+    }
 }
 
 //
@@ -109,12 +119,7 @@ bool QdecGlmDesign::IsValid ( )
 
 
 /**
- * From the given design parameters, this creates the input data required by
- * mri_glmfit:
- *  - the 'y' data (concatenated subject volumes)
- *  - the FSGD file
- *  - the contrast vectors, as .mat files
- * and writes this data to the default working directory.
+ * Initializes the design with the given design parameters.
  * @return int
  * @param  iDataTable
  * @param  isName
@@ -149,19 +154,14 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
   }
 
   // delete any prior runs
-  while (mDiscreteFactors.size() != 0)
-  {
-    mDiscreteFactors.pop_back();
-  }
-  while (mContinuousFactors.size() != 0)
-  {
-    mContinuousFactors.pop_back();
-  }
+  mDiscreteFactors.clear();    // We don't own the data in these
+  mContinuousFactors.clear();  // containers; QdecDataTable does
+
   while (mContrasts.size() != 0)
-  {
-    delete mContrasts.back();
-    mContrasts.pop_back();
-  }
+    {
+      delete mContrasts.back();
+      mContrasts.pop_back();
+    }
 
   // begin absorbing input parameters
 
@@ -192,6 +192,7 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
     if( NULL == qf )
     {
       fprintf( stderr,"ERROR: QdecGlmDesign::Create: bad factor!\n" );
+      mDataTable->Dump( stderr );
       return -1;
     }
     assert( qf->IsDiscrete() );
@@ -256,31 +257,13 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
     return(-2);
   }
 
-  if( this->WriteFsgdFile() )
-  {
-    fprintf( stderr,
-             "ERROR: QdecGlmDesign::Create: could not create fsgd file\n");
-    return(-3);
-  }
-
-  if( this->GenerateContrasts() )
-  {
-    fprintf( stderr,
-             "ERROR: QdecGlmDesign::Create: could not generate contrasts\n");
-    return(-4);
-  }
-
-  if( this->WriteYdataFile() )
-  {
-    fprintf( stderr,
-             "ERROR: QdecGlmDesign::Create: could not create y.mgh file\n");
-    return(-4);
-  }
-
   if( this->mProgressUpdateGUI )
   {
     this->mProgressUpdateGUI->EndActionWithProgress();
   }
+
+  // Make all our contrasts.
+  this->GenerateContrasts();
 
   this->mbValid = true; // success
   return 0;
@@ -587,6 +570,11 @@ string QdecGlmDesign::GetLevels2ClassName ( unsigned int* nthlevels )
  */
 int QdecGlmDesign::WriteFsgdFile ( )
 {
+  if( !this->IsValid() ) {
+    fprintf( stderr, "ERROR: QdecGlmDesign::WriteFsgdFile: Design parameters not valid.\n" );
+    return(-1);
+  }
+  
   string fsgdFile = this->GetFsgdFileName();
 
   FILE *fp = fopen(fsgdFile.c_str(),"w");
@@ -691,10 +679,10 @@ int QdecGlmDesign::GenerateContrasts ( )
   char tmpstr[2000];
 
   while (mContrasts.size() != 0)
-  {
-    delete mContrasts.back();
-    mContrasts.pop_back();
-  }
+    {
+      delete mContrasts.back();
+      mContrasts.pop_back();
+    }
 
   /*----------------------------------------------------------*/
   unsigned int ndf = this->GetNumberOfDiscreteFactors();
@@ -726,7 +714,7 @@ int QdecGlmDesign::GenerateContrasts ( )
         sprintf(tmpstr,
                 "Does the average %s differ from zero?",
                 this->msMeasure.c_str());
-        question = strdup(tmpstr);
+        question = tmpstr;
       }
       else
       {
@@ -736,12 +724,12 @@ int QdecGlmDesign::GenerateContrasts ( )
                 "Avg-%s-%s-Cor",
                 this->msMeasure.c_str(),
                 otherFactorName.c_str());
-        name = strdup(tmpstr);
+        name = tmpstr;
         sprintf(tmpstr,
                 "Does the correlation between %s and %s differ from zero?",
                 this->msMeasure.c_str(),
                 otherFactorName.c_str());
-        question = strdup(tmpstr);
+        question = tmpstr;
       }
       QdecContrast* newContrast = new QdecContrast ( contrast,
                                                      name,
@@ -1032,7 +1020,17 @@ int QdecGlmDesign::GenerateContrasts ( )
     }
   }
 
-  // print all the contrasts we just created, and write-out each .mat file
+  return 0;
+}
+
+int QdecGlmDesign::WriteContrastMatrices () 
+{
+  if( !this->IsValid() ) {
+    fprintf( stderr, "ERROR: QdecGlmDesign::WriteContrastMatrices: Design parameters not valid.\n" );
+    return(-1);
+  }
+  
+  // print all the contrasts we created, and write-out each .mat file
   for( unsigned int i=0; i < this->mContrasts.size(); i++)
   {
     QdecContrast* contrast = this->mContrasts[i];
@@ -1056,6 +1054,11 @@ int QdecGlmDesign::GenerateContrasts ( )
  */
 int QdecGlmDesign::WriteYdataFile ( )
 {
+  if( !this->IsValid() ) {
+    fprintf( stderr, "ERROR: QdecGlmDesign::WriteYdataFile: Design parameters not valid.\n" );
+    return(-1);
+  }
+
   vector<string> lSubjectIDs = this->mDataTable->GetSubjectIDs();
 
   // Now we have a list of subject names. We want to concatenate the

@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/09/20 23:04:22 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -62,12 +62,7 @@ public:
 
 
   /**
-   * From the given design parameters, this creates the input data required by
-   * mri_glmfit:
-   *  - the 'y' data (concatenated subject volumes)
-   *  - the FSGD file
-   *  - the contrast vectors, as .mat files
-   * and writes this data to the specified working directory.
+   * Initializes the design with the given design parameters.
    * @return int
    * @param  iDataTable
    * @param  isName
@@ -90,6 +85,28 @@ public:
                const char* isHemi,
                int iSmoothnessLevel,
                ProgressUpdateGUI* iProgressUpdateGUI );
+
+  /**
+  * Using the design parameters, writes FSGF file to the working directory.
+   * @return int
+   */
+  int WriteFsgdFile ( );
+
+
+  /**
+   * Using the design parameters, writes .mat files for all our contrasts.
+   * @return int
+   */
+  int WriteContrastMatrices ( );
+
+
+  /**
+   * Using the design parameters, creates the 'y' input data to
+   * mri_glmfit, by concatenating the subject volumes, and writes it
+   * to the specified filename.
+   * @return int
+   */
+  int WriteYdataFile ( );
 
   /**
    * @return string
@@ -280,25 +297,11 @@ private:
 
 
   /**
-   * @return int
-   */
-  int WriteFsgdFile ( );
-
-
-  /**
    * Creates Contrast objects based on the selected factors.
    * Stores them in our 'mContrasts' QdecContrast container.
    * @return int
    */
   int GenerateContrasts ( );
-
-
-  /**
-   * Creates the 'y' input data to mri_glmfit, by concatenating the subject
-   * volumes, and writes it to the specified filename.
-   * @return int
-   */
-  int WriteYdataFile ( );
 
 };
 

@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/09/20 23:04:22 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -53,13 +53,16 @@ public:
   virtual ~QdecProject ( );
 
   /**
-   * Load a project file (containing all necessary info to begin working
-   * either on a new project, or to continue working using results from a
-   * prior saved work session).
+   * Load a .qdec project file (containing all necessary info to begin
+   * working either on a new project, or to continue working using
+   * results from a prior saved work session). isDataDir should be a
+   * directory where we can expand the .qdec file (like /tmp).
    * @return int
    * @param  isFileName
+   * @param  isDataDir
    */
-  int LoadProjectFile ( const char* isFileName );
+  int LoadProjectFile ( const char* isFileName, 
+			const char* isDataDir = "/tmp" );
 
 
   /**

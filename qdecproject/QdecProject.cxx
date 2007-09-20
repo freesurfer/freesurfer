@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/09/20 23:04:22 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -56,14 +56,39 @@ QdecProject::~QdecProject ( )
 //
 
 /**
- * Load a project file (containing all necessary info to begin working
- * either on a new project, or to continue working using results from a
- * prior saved work session).
+ * Load a .qdec project file (containing all necessary info to begin
+ * working either on a new project, or to continue working using
+ * results from a prior saved work session). isDataDir should be a
+ * directory where we can expand the .qdec file (like /tmp).
  * @return int
  * @param  isFileName
+ * @param  isDataDir
  */
-int QdecProject::LoadProjectFile ( const char* isFileName )
+int QdecProject::LoadProjectFile ( const char* isFileName, 
+				   const char* isDataDir )
 {
+  // Check the file.
+
+  // Expand the .qdec file into the destination directory.
+  
+  // Parse the meta data file.
+  string sSubject = "fsaverage";
+  string sHemisphere = "lh";
+  string sAnalysisName = "MyAnalysis";
+  string fnDataTable = "qdec.table.dat";
+
+  // Set the subjects dir to the data dir, so that we can find the
+  // subject.
+
+  // Set the working dir to isDataDir/sAnalysisName.
+
+  // Set the rest of our members.
+
+  // Load our data table.
+
+  // Create fit results data. This will use our data table.
+
+
   return 0;
 }
 
@@ -250,16 +275,54 @@ int QdecProject::CreateGlmDesign ( const char* isName,
                                    int iSmoothnessLevel,
                                    ProgressUpdateGUI* iProgressUpdateGUI )
 {
-  return this->mGlmDesign->Create ( this->mDataTable,
-                                    isName,
-                                    isFirstDiscreteFactor,
-                                    isSecondDiscreteFactor,
-                                    isFirstContinuousFactor,
-                                    isSecondContinuousFactor,
-                                    isMeasure,
-                                    isHemi,
-                                    iSmoothnessLevel,
-                                    iProgressUpdateGUI );
+
+  int e;
+  e = this->mGlmDesign->Create ( this->mDataTable,
+				 isName,
+				 isFirstDiscreteFactor,
+				 isSecondDiscreteFactor,
+				 isFirstContinuousFactor,
+				 isSecondContinuousFactor,
+				 isMeasure,
+				 isHemi,
+				 iSmoothnessLevel,
+				 iProgressUpdateGUI );
+  if( e )
+    return 0;
+
+  if( iProgressUpdateGUI )
+  {
+    iProgressUpdateGUI->BeginActionWithProgress("Writing input files..." );
+  }
+
+
+  if( mGlmDesign->WriteFsgdFile() )
+  {
+    fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: "
+	     "could not create fsgd file\n");
+    return(-3);
+  }
+
+  if( mGlmDesign->WriteContrastMatrices() )
+  {
+    fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: could not "
+	     "generate contrasts\n");
+    return(-4);
+  }
+
+  if( mGlmDesign->WriteYdataFile() )
+  {
+    fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: could not "
+	     "create y.mgh file\n");
+    return(-4);
+  }
+
+  if( iProgressUpdateGUI )
+  {
+    iProgressUpdateGUI->EndActionWithProgress();
+  }
+
+  return 0;
 }
 
 
