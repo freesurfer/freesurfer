@@ -2369,6 +2369,7 @@ AC_OUTPUT([Makefile
            utils/test/mrishash/Makefile
            utilscpp/Makefile
            utilscpp/test/Makefile
+	   qdecproject/Makefile
            vtkfsio/Makefile
            vtkutils/Makefile])
 
