@@ -7,8 +7,8 @@
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/21 02:34:36 $
- *    $Revision: 1.62 $
+ *    $Date: 2007/09/21 22:53:36 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -430,9 +430,18 @@ char *IDstemFromName(char *name)
   int len;
 
   len = strlen(name);
-  if(len < 5) return(NULL); // cant be right
+  if(len < 3) return(NULL); // cant be right
+
+  // Try extensions of length 1
+  ext = &(name[len-2]); 
+  if(!strcmp(ext,".w")){
+    stem = (char*)calloc(len-2+1,sizeof(char));
+    memcpy(stem,name,len-2);
+    return(stem);
+  }
 
   // Try extensions of length 3
+  if(len < 5) return(NULL); // cant be right
   ext = &(name[len-4]); 
   if(!strcmp(ext,".nii") || !strcmp(ext,".mgz") || 
      !strcmp(ext,".mgh") || !strcmp(ext,".img")){
