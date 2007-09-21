@@ -9,9 +9,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2007/09/21 20:37:23 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -62,6 +62,10 @@ public:
    */
   bool IsDiscrete ( );
 
+  /**
+   * 
+   */
+  void SetDiscrete ( ) { mType = qdecDiscreteFactorType; } ;
 
   /**
    * @return bool
@@ -88,6 +92,16 @@ public:
    */
   void AddLevelName ( string isLevelName );
 
+  /**
+   *
+   */
+  bool HaveDotLevelsFile ( ) { return mHaveDotLevelsFile; };
+
+  /**
+   *
+   */
+  void SetHaveDotLevelsFile ( ) { mHaveDotLevelsFile = true; };
+  
 
   /**
    * @return vector< string >
@@ -132,6 +146,9 @@ private:
   // Names of possible levels (for instance, if this factor is 'gender',
   // then the two possible names are 'Female' and 'Male').
   vector< string > mLevelNames;
+
+  // true if user create a factor.levels file containing the valid level names
+  bool mHaveDotLevelsFile;
 
   string msDiscreteValue;
 

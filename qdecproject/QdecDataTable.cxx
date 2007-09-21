@@ -8,9 +8,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2007/09/21 20:37:23 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -269,6 +269,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
           qf->AddLevelName( tmpstr2 );
         }
       }
+      qf->SetHaveDotLevelsFile();
       ifsLevelFile.close();
       printf(" done.\n");
       this->mFactors.push_back ( qf );
@@ -345,19 +346,25 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
       }
       else // get factor data
       {
-        // if discrete, then check that its valid (a known level name)
-        if ( this->mFactors[nthfactor]->IsDiscrete() )
+        // start by assuming its continuous by trying to convert to a double
+        double dtmp=0.0;
+        int retCode = sscanf(token,"%lf",&dtmp);
+        if (retCode == 1) // yes!  its a continuous factor
         {
-          if ( this->mFactors[nthfactor]->ValidLevelName( token ) )
-          {
-            QdecFactor* qf =
-              new QdecFactor
-              ( this->mFactors[nthfactor]->GetFactorName().c_str(),
-                QdecFactor::qdecDiscreteFactorType,
-                (const char*)strdup(token) /* value */);
-            theFactors.push_back( qf ); // save this factor data
-          }
-          else
+          //printf("%d %lf\n",nthInput,dtmp);
+          QdecFactor* qf =
+            new QdecFactor( this->mFactors[nthfactor]->GetFactorName().c_str(),
+                            QdecFactor::qdecContinuousFactorType,
+                            dtmp /* value */);
+          theFactors.push_back( qf ); // save this factor data
+        }
+        else // it must be a discrete factor
+        {
+          // if discrete, then check that its valid (a known level name, as
+          // read from a factor.levels file that user optionally created)
+          if ( this->mFactors[nthfactor]->IsDiscrete() &&
+               this->mFactors[nthfactor]->HaveDotLevelsFile() && 
+               ! this->mFactors[nthfactor]->ValidLevelName( token ) )
           {
             printf("\nERROR: Subject %s has an invalid level '%s' "
                    "in the %s column.\n",
@@ -372,31 +379,17 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
             ifsDatFile.close();
             return(-1);
           }
-        }
-        else // assume its a continuous factor
-        {
-          double dtmp=0.0;
-          int retCode = sscanf(token,"%lf",&dtmp);
-          if (retCode != 1)
+          else // we dont know about this discrete factor, so update mFactors
           {
-            printf("\nERROR: Subject %s has an invalid value '%s' "
-                   "in the %s column.\n",
-                   subj_id.c_str(),
-                   strdup(token),
-                   this->mFactors[nthfactor]->GetFactorName().c_str());
-            printf("\nINFO: If '%s' is a discrete factor, then create a file "
-                   "named '%s.levels'\ncontaining the valid factor level "
-                   "names, one per line.\n\n",
-                   this->mFactors[nthfactor]->GetFactorName().c_str(),
-                   this->mFactors[nthfactor]->GetFactorName().c_str());
-            ifsDatFile.close();
-            return(-1);
+            this->mFactors[nthfactor]->SetDiscrete();
+            this->mFactors[nthfactor]->AddLevelName( token );
           }
-          //printf("%d %lf\n",nthInput,dtmp);
+          // and save-away this subjects discrete data
           QdecFactor* qf =
-            new QdecFactor( this->mFactors[nthfactor]->GetFactorName().c_str(),
-                            QdecFactor::qdecContinuousFactorType,
-                            dtmp /* value */);
+            new QdecFactor
+            ( this->mFactors[nthfactor]->GetFactorName().c_str(),
+              QdecFactor::qdecDiscreteFactorType,
+              (const char*)strdup(token) /* value */);
           theFactors.push_back( qf ); // save this factor data
         }
         nthfactor++;

@@ -9,9 +9,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2007/09/21 20:37:23 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -42,6 +42,8 @@ QdecFactor::QdecFactor ( const char* isName,
   // if ==2, discrete
   mType = iType;
   assert( (mType == 1) || (mType == 2) );
+
+  mHaveDotLevelsFile = false;
 }
 
 QdecFactor::QdecFactor ( const char* isName,
@@ -56,6 +58,8 @@ QdecFactor::QdecFactor ( const char* isName,
   assert( mType == 1 );
 
   msDiscreteValue = iValue;
+
+  mHaveDotLevelsFile = false;
 }
 
 
@@ -71,6 +75,8 @@ QdecFactor::QdecFactor ( const char* isName,
   assert( mType == 2 );
 
   mContinuousValue = iValue;
+
+  mHaveDotLevelsFile = false;
 }
 
 
@@ -129,6 +135,10 @@ string QdecFactor::GetFactorTypeName ( )
 void QdecFactor::AddLevelName ( string isLevelName )
 {
   assert( mType == 1 );
+  
+  // check if already in our list:
+  if (this->ValidLevelName( isLevelName.c_str() )) return; 
+
   mLevelNames.push_back( isLevelName );
 }
 
