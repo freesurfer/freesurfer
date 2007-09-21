@@ -268,6 +268,7 @@ SUBDIRS=include \
 	itkio \
 	itkutils \
 	tetgen \
+	qdecproject \
 	$(FSGDF) \
 	$(MRISUBDIRS) \
 	$(MRISSUBDIRS) \
@@ -279,8 +280,7 @@ SUBDIRS=include \
 	fsfast \
 	matlab \
 	scuba \
-	scuba2 \
-	qdecproject
+	scuba2
 
 # build stamp and symlinks to necessary 3rd-party packages
 install-data-hook:
