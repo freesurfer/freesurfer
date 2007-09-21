@@ -7,8 +7,8 @@
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/21 22:54:20 $
- *    $Revision: 1.61.2.2 $
+ *    $Date: 2007/09/21 23:00:48 $
+ *    $Revision: 1.61.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -515,6 +515,9 @@ char *IDnameFromStem(char *stem)
   if(fio_FileExistsReadable(tmpstr))  return(strcpyalloc(tmpstr));
 
   sprintf(tmpstr,"%s_000.bshort",stem);
+  if (fio_FileExistsReadable(tmpstr)) return(strcpyalloc(tmpstr));
+
+  sprintf(tmpstr,"%s.w",stem);
   if (fio_FileExistsReadable(tmpstr)) return(strcpyalloc(tmpstr));
 
   return(NULL);
