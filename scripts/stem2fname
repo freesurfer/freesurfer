@@ -12,8 +12,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/16 20:56:10 $
-#    $Revision: 1.1 $
+#    $Date: 2007/09/21 23:29:20 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -31,7 +31,7 @@
 
 if($#argv != 1) then
   echo "stem2fname stem"
-  echo "  Looks for stem.fmt where fmt is mgh mgz nii nii.gz bhdr img,"
+  echo "  Looks for stem.fmt where fmt is mgh mgz nii nii.gz bhdr img w,"
   echo "  then returns stem.fmt. See also stem2fmt, fname2stem"
   echo "  The file needs to exist on disk."
   exit 1;
@@ -39,7 +39,7 @@ endif
 
 set stem = $argv[1];
 
-foreach fmt (mgh mgz nii nii.gz bhdr img)
+foreach fmt (mgh mgz nii nii.gz bhdr img w)
   set testfile = $stem.$fmt
   if(-e $testfile) then
     echo $testfile
