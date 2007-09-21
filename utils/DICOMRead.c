@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/16 20:34:57 $
- *    $Revision: 1.111.2.3 $
+ *    $Date: 2007/09/21 17:43:12 $
+ *    $Revision: 1.111.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -258,18 +258,15 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   vol->te    = sdfi->EchoTime;
   vol->ti    = sdfi->InversionTime;
   vol->flip_angle  = sdfi->FlipAngle;
-  if (! sdfi->IsMosaic )
-    vol->tr    = sdfi->RepetitionTime;
-  else
-  {
+  if (! sdfi->IsMosaic )    vol->tr    = sdfi->RepetitionTime;
+  else  {
     /* The TR definition will depend upon the software version */
     tmpstring = sdcmExtractNumarisVer(sdfi->NumarisVer, &Maj, &Min, &MinMin);
-    printf("Numaris Version: %s Maj = %d, Min=%d, MinMin = %d \n",
-           sdfi->NumarisVer, Maj, Min, MinMin);
-    if (tmpstring == NULL) return(NULL);
-    free(tmpstring);
-    if ((Min == 1 && MinMin <= 6) && Maj < 4)
-    {
+    if(tmpstring != NULL){
+      printf("Numaris Version: %s Maj = %d, Min=%d, MinMin = %d \n",
+	     sdfi->NumarisVer, Maj, Min, MinMin);
+    }
+    if(tmpstring != NULL && (Min == 1 && MinMin <= 6) && Maj < 4){
       // This should only be run for pretty old data. I've lost
       // track as to which versions should do this. With Maj<4,
       // I'm pretty sure that this section of code will never
@@ -282,6 +279,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
     /* Need to add any gap (eg, as in a hammer sequence */
     printf("Repetition Time = %g, TR = %g ms\n",
            sdfi->RepetitionTime,vol->tr);
+    if(tmpstring != NULL) free(tmpstring);
   }
 
   // Load the AutoAlign Matrix, if one is there
@@ -1879,7 +1877,7 @@ char *sdcmExtractNumarisVer(char *e_18_1020, int *Maj, int *Min, int *MinMin)
   l = strlen(e_18_1020);
   if (l < 6)
   {
-    printf("ERROR: incorreclty formatted version string %s\n"
+    printf("Cannot parse NUMARIS version string %s\n"
            "found in dicom tag 18,1020 (string len < 6)\n",e_18_1020);
     return(NULL);
   }
@@ -1887,9 +1885,8 @@ char *sdcmExtractNumarisVer(char *e_18_1020, int *Maj, int *Min, int *MinMin)
   /* dont copy blanks at the end */
   n=l-1;
   while (n >= 0 && e_18_1020[n] == ' ') n--;
-  if (n < 0)
-  {
-    printf("ERROR: incorreclty formatted version string %s\n"
+  if (n < 0){
+    printf("Could not parse NUMARIS version string %s\n"
            "found in dicom tag 18,1020 (all blanks)\n",e_18_1020);
     return(NULL);
   }
@@ -1903,9 +1900,8 @@ char *sdcmExtractNumarisVer(char *e_18_1020, int *Maj, int *Min, int *MinMin)
   }
   n++;
 
-  if (m != 6)
-  {
-    printf("ERROR: incorreclty formatted version string %s\n"
+  if (m != 6) {
+    printf("Could not parse NUMARIS version string %s\n"
            "found in dicom tag 18,1020 (len = %d != 6)\n",e_18_1020,m);
     return(NULL);
   }
@@ -1916,7 +1912,7 @@ char *sdcmExtractNumarisVer(char *e_18_1020, int *Maj, int *Min, int *MinMin)
   /* Now determine major and minor release numbers */
   if (ver[1] != 'V' || !(ver[2] == 'A' || ver[2] == 'B'))
   {
-    printf("ERROR: incorreclty formatted version string %s\n"
+    printf("Could not parse NUMARIS version string %s\n"
            "found in dicom tag 18,1020 (VA or VB not in 2nd and 3rd)\n",
            e_18_1020);
     return(NULL);
