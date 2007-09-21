@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.6 $
+#    $Author: greve $
+#    $Date: 2007/09/21 06:16:45 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkfieldsign,v 1.6 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: mkfieldsign,v 1.7 2007/09/21 06:16:45 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -37,15 +37,18 @@ set fieldsignpath = ();
 set fieldsignmaskpath = ();
 set hemilist = ();
 set angleoffset = 0;
+set PrintHelp = 0;
 
 # Print usage and exit if no args #
-if($#argv == 0) then
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
   goto usage_exit;
   exit 1;
 endif
-
-# look for version flag #
-set n = `echo $argv | grep version | wc -l` 
+##### Print out version info, if needed ####
+set n = `echo $argv | grep -e -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
@@ -281,9 +284,49 @@ usage_exit:
   echo "   -real      infix"
   echo "   -imag      infix"
   echo "   -subject   name"
+  echo "   -hemi      hemisphere (rh or lh, def is both)"
   echo "   -angleoffset offset (0 to 1)"
   echo "   -fieldsign  path"
   echo "   -fieldsignmask  path"
   echo "   -umask umask   : set unix file permission mask"
   echo "   -version       : print version and exit"
+  if( ! $PrintHelp) exit 1;
+ 
+  echo ""
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
 exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program constructs paths to the real and imaginary parts of the
+eccentricity and polar according to the following rules:
+
+$eccendir/$epbase$realinfix-$hemi.w
+$eccendir/$epbase$imaginfix-$hemi.w
+$polardir/$epbase$realinfix-$hemi.w
+$polardir/$epbase$imaginfix-$hemi.w
+
+This is a little oblique, but it is required because the old software
+that handles this each of these components (ie, eccendir, epbase,
+realinfix, imaginfix, and hemi). Note that this structure requires
+that the eccen and polar be in different directories otherwise there
+would be a name collision.
+
+Eg, epbase = map, realinfix = real-, imaginfix = imag-, hemi = lh, 
+resolves to map-real-lh.w and map-imag-lh.w.
+
+The output will go in $fieldsign-lh.mgz and $fieldsignmask-lh.mgz
+(note, there will also be files called simply $fieldsign and
+$fieldsignmask). $fieldsign will be an overlay with values +1, -1, or
+0. $fieldsignmask is magnitude of the HRF amplitude = 
+sqrt(eccen^2 + polar^2).
+
+Requires a patch called occip.patch.flat be in the subjects surf dir.
+There is an angle offset parameter that is not clear.
+
+This program calls tksurfer with the mk-fieldsign.tcl script. This
+appears to use 50 iterations of surface smoothing.
