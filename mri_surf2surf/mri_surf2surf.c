@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/31 22:28:20 $
- *    $Revision: 1.59 $
+ *    $Date: 2007/09/21 22:38:24 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -324,7 +324,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.59 2007/07/31 22:28:20 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.60 2007/09/21 22:38:24 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -425,7 +425,7 @@ int main(int argc, char **argv) {
   COLOR_TABLE *ctab=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.59 2007/07/31 22:28:20 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.60 2007/09/21 22:38:24 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -801,10 +801,10 @@ int main(int argc, char **argv) {
   /* ------------ save the target data -----------------------------*/
   printf("Saving target data\n");
   if (!strcmp(trgtypestring,"paint") || !strcmp(trgtypestring,"w")) {
+    printf("Saving as paint format\n");
     MRIScopyMRI(TrgSurfReg, TrgVals, framesave, "val");
     MRISwriteValues(TrgSurfReg,trgvalfile);
-  }
-  if (!strcmp(trgtypestring,"curv")) {
+  } else if (!strcmp(trgtypestring,"curv")) {
     MRIScopyMRI(TrgSurfReg, TrgVals, framesave, "curv");
     MRISwriteCurvature(TrgSurfReg,trgvalfile);
   } else if (UseSurfTarg) {
