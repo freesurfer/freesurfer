@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/09/21 06:16:45 $
-#    $Revision: 1.7 $
+#    $Date: 2007/09/21 23:31:28 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkfieldsign,v 1.7 2007/09/21 06:16:45 greve Exp $';
+set VERSION = '$Id: mkfieldsign,v 1.8 2007/09/21 23:31:28 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -82,12 +82,13 @@ foreach hemisphere ($hemilist)
   setenv patchname occip.patch.flat
 
   # make sure that all the relevant w files are there #
-  set wfile1 = `pwd`/$eccendir/$floatstem$realinfix-$hemi.w
-  set wfile2 = `pwd`/$eccendir/$floatstem$imaginfix-$hemi.w
-  set wfile3 = `pwd`/$polardir/$floatstem$realinfix-$hemi.w
-  set wfile4 = `pwd`/$polardir/$floatstem$imaginfix-$hemi.w
+  set wfile1 = `pwd`/$eccendir/$floatstem$realinfix-$hemi
+  set wfile2 = `pwd`/$eccendir/$floatstem$imaginfix-$hemi
+  set wfile3 = `pwd`/$polardir/$floatstem$realinfix-$hemi
+  set wfile4 = `pwd`/$polardir/$floatstem$imaginfix-$hemi
   foreach wfile ($wfile1 $wfile2 $wfile3 $wfile4)
-    if(! -e $wfile) then
+    set fname = `stem2fname $wfile`
+    if($status) then
       echo "ERROR: cannot find $wfile"
       exit 1;
     endif
