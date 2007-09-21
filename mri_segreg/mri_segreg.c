@@ -1,19 +1,17 @@
 /**
  * @file  mri_segreg.c
- * @brief program for computing/optimizing cost function of segmentation-based registration
- *        
+ * @brief compute/optimize cost function of segmentation-based registration
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/09/18 22:44:18 $
- *    $Revision: 1.15 $
+ *    $Author: nicks $
+ *    $Date: 2007/09/21 13:22:55 $
+ *    $Revision: 1.16 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -28,9 +26,9 @@
 
 
 /*
-BEGINUSAGE --------------------------------------------------------------
+  BEGINUSAGE --------------------------------------------------------------
 
-mri_segreg
+  mri_segreg
   --reg regfile
   --mov fvol
   --inorm inorm : intensity profile in reg with anat
@@ -57,35 +55,35 @@ mri_segreg
   --ay-mmd aymin aymax aydelta : rotation (deg) about y
   --az-mmd azmin azmax azdelta : rotation (deg) about z
 
-ENDUSAGE ---------------------------------------------------------------
+  ENDUSAGE ---------------------------------------------------------------
 */
 
 /*
-BEGINHELP --------------------------------------------------------------
+  BEGINHELP --------------------------------------------------------------
 
-FORMATS
+  FORMATS
 
-Data file format can be specified implicitly (through the path name)
-or explicitly. All formats accepted by mri_convert can be used.
+  Data file format can be specified implicitly (through the path name)
+  or explicitly. All formats accepted by mri_convert can be used.
 
-BUGS
+  BUGS
 
-sinc interpolation is broken except for maybe COR to COR.
-
-
-BUG REPORTING
-
-Report bugs to analysis-bugs@nmr.mgh.harvard.edu. Include the following
-formatted as a list as follows: (1) command-line, (2) directory where
-the program was run (for those in the MGH-NMR Center), (3) version,
-(4) text output, (5) description of the problem.
-
-SEE ALSO
-
-mri_vol2vol mri_convert, tkregister2
+  sinc interpolation is broken except for maybe COR to COR.
 
 
-ENDHELP --------------------------------------------------------------
+  BUG REPORTING
+
+  Report bugs to analysis-bugs@nmr.mgh.harvard.edu. Include the following
+  formatted as a list as follows: (1) command-line, (2) directory where
+  the program was run (for those in the MGH-NMR Center), (3) version,
+  (4) text output, (5) description of the problem.
+
+  SEE ALSO
+
+  mri_vol2vol mri_convert, tkregister2
+
+
+  ENDHELP --------------------------------------------------------------
 
 */
 
@@ -120,8 +118,11 @@ ENDHELP --------------------------------------------------------------
 #undef X
 #endif
 
-double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R, double *p, double *costs);
-int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p, char *costfile, double *costs);
+double *GetCosts(MRI *mov, MRI *seg,
+                 MATRIX *R0, MATRIX *R,
+                 double *p, double *costs);
+int Min1D(MRI *mov, MRI *seg,
+          MATRIX *R, double *p, char *costfile, double *costs);
 
 // For some reason, this does not seemed to be defined in math.h
 double round(double x);
@@ -140,7 +141,8 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_segreg.c,v 1.15 2007/09/18 22:44:18 greve Exp $";
+static char vcid[] =
+"$Id: mri_segreg.c,v 1.16 2007/09/21 13:22:55 nicks Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -193,24 +195,26 @@ double axlist[NMAX],aylist[NMAX],azlist[NMAX];
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
   double costs[8], mincost, p[6];
-  double tx, ty, tz, ax, ay, az; 
-  int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz, ntot, n; 
+  double tx, ty, tz, ax, ay, az;
+  int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz, ntot, n;
   FILE *fp;
-  MATRIX *Ttemp, *invTtemp=NULL, *Stemp, *invStemp;
-  MATRIX *R=NULL, *Rcrop, *R00, *Rdiff;
-  MATRIX *Rmin=NULL, *Scrop, *invScrop=NULL, *invTcrop, *Tcrop;
+  MATRIX *Ttemp=NULL, *invTtemp=NULL, *Stemp=NULL, *invStemp=NULL;
+  MATRIX *R=NULL, *Rcrop=NULL, *R00=NULL, *Rdiff=NULL;
+  MATRIX *Rmin=NULL, *Scrop=NULL, *invScrop=NULL, *invTcrop=NULL, *Tcrop=NULL;
   struct timeb  mytimer;
   double secCostTime;
   MRI_REGION box;
 
-  make_cmd_version_string(argc, argv,
-                          "$Id: mri_segreg.c,v 1.15 2007/09/18 22:44:18 greve Exp $",
-                          "$Name:  $", cmdline);
+  make_cmd_version_string
+    (argc, argv,
+     "$Id: mri_segreg.c,v 1.16 2007/09/21 13:22:55 nicks Exp $",
+     "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option(argc, argv,
-                                "$Id: mri_segreg.c,v 1.15 2007/09/18 22:44:18 greve Exp $",
-                                "$Name:  $");
+  nargs = handle_version_option
+    (argc, argv,
+     "$Id: mri_segreg.c,v 1.16 2007/09/21 13:22:55 nicks Exp $",
+     "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
   Progname = argv[0] ;
@@ -252,7 +256,7 @@ int main(int argc, char **argv) {
     sprintf(tmpstr,"%s/%s/mri/regseg",SUBJECTS_DIR,subject);
     fspec = IDnameFromStem(tmpstr);
     if(fspec==NULL){
-      printf("ERROR: could not determine file for stem %s\n",tmpstr); 
+      printf("ERROR: could not determine file for stem %s\n",tmpstr);
       exit(1);
     }
     regseg = MRIread(fspec);
@@ -268,7 +272,7 @@ int main(int argc, char **argv) {
   }
   regseg0 = regseg;
 
-  // Cropping reduces the size of the target volume down to the 
+  // Cropping reduces the size of the target volume down to the
   // voxels that really matter. This can greatly increase the speed
   // (factor of 2-3). Requires that the registration matrix be
   // recomputed for the smaller volume.
@@ -283,13 +287,17 @@ int main(int argc, char **argv) {
 
     MRIboundingBox(regseg, 0.5, &box);
     printf("BBbox start: %d %d %d, delta = %d %d %d\n",
-	   box.x,box.y,box.z,box.dx,box.dy,box.dz);
+           box.x,box.y,box.z,box.dx,box.dy,box.dz);
     // Now crop
-    regseg  = MRIcrop(regseg0, box.x, box.y, box.z, box.x+box.dx, box.y+box.dy, box.z+box.dz);
+    regseg  = MRIcrop(regseg0,
+                      box.x, box.y, box.z,
+                      box.x+box.dx, box.y+box.dy, box.z+box.dz);
 
     if(inorm){
       // Crop inorm too
-      mritmp = MRIcrop(inorm, box.x, box.y, box.z, box.x+box.dx, box.y+box.dy, box.z+box.dz);
+      mritmp = MRIcrop(inorm,
+                       box.x, box.y, box.z,
+                       box.x+box.dx, box.y+box.dy, box.z+box.dz);
       MRIfree(&inorm);
       inorm = mritmp;
     }
@@ -305,23 +313,23 @@ int main(int argc, char **argv) {
     R0 = MatrixMultiply(R0,invStemp,R0);
     R0 = MatrixMultiply(R0,Scrop,R0);
     R0 = MatrixMultiply(R0,invTcrop,R0);
-    
+
     printf("Input reg after cropping\n");
     MatrixPrint(stdout,R0);
     printf("\n");
 
     if(0){
-    MatrixFree(&Ttemp);
-    MatrixFree(&Stemp);
-    MatrixFree(&invStemp);
-    MatrixFree(&Tcrop);
-    MatrixFree(&invTcrop);
-    MatrixFree(&Scrop);
+      MatrixFree(&Ttemp);
+      MatrixFree(&Stemp);
+      MatrixFree(&invStemp);
+      MatrixFree(&Tcrop);
+      MatrixFree(&invTcrop);
+      MatrixFree(&Scrop);
     }
 
     //MRIwrite(regseg,"regsegcrop.mgz");
     //regio_write_register("crop.reg",subject,mov->xsize,
-    //		 mov->zsize,1,R0,FLT2INT_ROUND);
+    //     mov->zsize,1,R0,FLT2INT_ROUND);
     //exit(1);
   }
 
@@ -331,28 +339,33 @@ int main(int argc, char **argv) {
     srand48(SynthSeed);
     printf("Adding noise, Seed = %d, stddev = %lf\n",SynthSeed,NoiseStd);
     noise = MRIrandn(mov->width,mov->height,mov->depth,mov->nframes,
-		     0,NoiseStd,NULL);
+                     0,NoiseStd,NULL);
     mov = MRIadd(mov, noise, mov);
   }
 
   R   = MatrixCopy(R0,NULL);
   R00 = MatrixCopy(R0,NULL);
-  
+
   // Allocate the output
-  out = MRIallocSequence(regseg->width, regseg->height, regseg->depth, MRI_FLOAT, 1);
+  out = MRIallocSequence(regseg->width,
+                         regseg->height,
+                         regseg->depth,
+                         MRI_FLOAT, 1);
   MRIcopyHeader(regseg,out);
 
   // Compute cost at initial
   for(nth=0; nth < 6; nth++) p[nth] = 0.0;
   GetCosts(mov, regseg, R0, R, p, costs);
-  
+
   printf("Initial cost is %lf\n",costs[7]);
   printf("Initial Costs\n");
-  printf("%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
-  printf("%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
+  printf("%7d %10.4lf %8.4lf ",
+         (int)costs[0],costs[1],costs[2]); // WM  n mean std
+  printf("%7d %10.4lf %8.4lf ",
+         (int)costs[3],costs[4],costs[5]); // CTX n mean std
   printf("%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
   printf("\n");
-    
+
 
   if(1){
     // 1D minimization
@@ -365,7 +378,7 @@ int main(int argc, char **argv) {
       printf("\n");
     }
     secCostTime = TimerStop(&mytimer)/1000.0 ;
-    
+
     // Recompute at optimal. This forces MRI *out to be the output at best reg
     GetCosts(mov, regseg, R0, R, p, costs);
 
@@ -373,13 +386,15 @@ int main(int argc, char **argv) {
     printf("Number of iterations %5d in %lf sec\n",nth,secCostTime);
     printf("Parameters at optimum\n");
     printf("%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
-	   p[0],p[1],p[2],p[3],p[4],p[5]);
+           p[0],p[1],p[2],p[3],p[4],p[5]);
     printf("Costs at optimum\n");
-    printf("%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
-    printf("%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
+    printf("%7d %10.4lf %8.4lf ",
+           (int)costs[0],costs[1],costs[2]); // WM  n mean std
+    printf("%7d %10.4lf %8.4lf ",
+           (int)costs[3],costs[4],costs[5]); // CTX n mean std
     printf("%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
     printf("\n");
-    
+
     printf("Reg at min cost was \n");
     MatrixPrint(stdout,R);
     printf("\n");
@@ -396,7 +411,7 @@ int main(int argc, char **argv) {
       MatrixPrint(stdout,R);
       printf("\n");
     }
-    
+
     if(outfile) {
       // This changes values in regseg0
       printf("Writing output volume to %s \n",outfile);
@@ -410,14 +425,14 @@ int main(int argc, char **argv) {
       printf("Writing optimal reg to %s \n",outregfile);
       fflush(stdout);
       regio_write_register(outregfile,subject,mov->xsize,
-			   mov->zsize,1,R,FLT2INT_ROUND);
+                           mov->zsize,1,R,FLT2INT_ROUND);
     }
 
     printf("Original Reg \n");
     fflush(stdout);
     MatrixPrint(stdout,R00);
     printf("\n");
-    
+
     Rdiff = MatrixSubtract(R00,R,NULL);
     printf("Original Reg - Optimal Reg\n");
     MatrixPrint(stdout,Rdiff);
@@ -437,59 +452,63 @@ int main(int argc, char **argv) {
     for(nthty = 0; nthty < nty; nthty++){
       ty = tylist[nthty];
       for(nthtz = 0; nthtz < ntz; nthtz++){
-	tz = tzlist[nthtz];
-	for(nthax = 0; nthax < nax; nthax++){
-	  ax = axlist[nthax];
-	  for(nthay = 0; nthay < nay; nthay++){
-	    ay = aylist[nthay];
-	    for(nthaz = 0; nthaz < naz; nthaz++){
-	      az = azlist[nthaz];
-	      nth ++;
+        tz = tzlist[nthtz];
+        for(nthax = 0; nthax < nax; nthax++){
+          ax = axlist[nthax];
+          for(nthay = 0; nthay < nay; nthay++){
+            ay = aylist[nthay];
+            for(nthaz = 0; nthaz < naz; nthaz++){
+              az = azlist[nthaz];
+              nth ++;
 
-	      p[0] = tx;
-	      p[1] = ty;
-	      p[2] = tz;
-	      p[3] = ax;
-	      p[4] = ay;
-	      p[5] = az;
-	      TimerStart(&mytimer) ;
-	      GetCosts(mov, regseg, R0, R, p, costs);
-	      secCostTime = TimerStop(&mytimer)/1000.0 ;
+              p[0] = tx;
+              p[1] = ty;
+              p[2] = tz;
+              p[3] = ax;
+              p[4] = ay;
+              p[5] = az;
+              TimerStart(&mytimer) ;
+              GetCosts(mov, regseg, R0, R, p, costs);
+              secCostTime = TimerStop(&mytimer)/1000.0 ;
 
-	      // write costs to file
-	      fp = fopen(SegRegCostFile,"a");
-	      fprintf(fp,"%7.3lf %7.3lf %7.3lf ",tx,ty,tz);
-	      fprintf(fp,"%6.3lf %6.3lf %6.3lf ",ax,ay,az);
-	      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
-	      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
-	      fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
-	      fprintf(fp,"\n");
-	      fclose(fp);
+              // write costs to file
+              fp = fopen(SegRegCostFile,"a");
+              fprintf(fp,"%7.3lf %7.3lf %7.3lf ",tx,ty,tz);
+              fprintf(fp,"%6.3lf %6.3lf %6.3lf ",ax,ay,az);
+              fprintf(fp,"%7d %10.4lf %8.4lf ",
+                      (int)costs[0],costs[1],costs[2]); // WM  n mean std
+              fprintf(fp,"%7d %10.4lf %8.4lf ",
+                      (int)costs[3],costs[4],costs[5]); // CTX n mean std
+              fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
+              fprintf(fp,"\n");
+              fclose(fp);
 
-	      fp = stdout;
-	      fprintf(fp,"%5d ",nth);
-	      fprintf(fp,"%7.3lf %7.3lf %7.3lf ",tx,ty,tz);
-	      fprintf(fp,"%6.3lf %6.3lf %6.3lf ",ax,ay,az);
-	      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
-	      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
-	      fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
-	      if(DoProfile) fprintf(fp,"%4.2lf ",secCostTime);
-	      printf("\n");
-	      fflush(stdout);
+              fp = stdout;
+              fprintf(fp,"%5d ",nth);
+              fprintf(fp,"%7.3lf %7.3lf %7.3lf ",tx,ty,tz);
+              fprintf(fp,"%6.3lf %6.3lf %6.3lf ",ax,ay,az);
+              fprintf(fp,"%7d %10.4lf %8.4lf ",
+                      (int)costs[0],costs[1],costs[2]); // WM  n mean std
+              fprintf(fp,"%7d %10.4lf %8.4lf ",
+                      (int)costs[3],costs[4],costs[5]); // CTX n mean std
+              fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
+              if(DoProfile) fprintf(fp,"%4.2lf ",secCostTime);
+              printf("\n");
+              fflush(stdout);
 
-	      if(mincost > costs[7]){
-		mincost = costs[7];
-		Rmin = MatrixCopy(R,Rmin);
-		if(outregfile){
-		  regio_write_register(outregfile,subject,mov->xsize,
-				       mov->zsize,1,Rmin,FLT2INT_ROUND);
-		}
-	      }
+              if(mincost > costs[7]){
+                mincost = costs[7];
+                Rmin = MatrixCopy(R,Rmin);
+                if(outregfile){
+                  regio_write_register(outregfile,subject,mov->xsize,
+                                       mov->zsize,1,Rmin,FLT2INT_ROUND);
+                }
+              }
 
-	      // clean up
-	    }
-	  }
-	}
+              // clean up
+            }
+          }
+        }
       }
     }
   }
@@ -498,7 +517,7 @@ int main(int argc, char **argv) {
   printf("Reg at min cost was \n");
   MatrixPrint(stdout,Rmin);
   printf("\n");
-  
+
   if(outregfile){
     printf("Writing optimal reg to %s \n",outregfile);
     regio_write_register(outregfile,subject,mov->xsize,
@@ -520,7 +539,6 @@ static int parse_commandline(int argc, char **argv) {
   char **pargv, *option ;
   int err,nv,n;
   double vmin, vmax, vdelta;
-  
 
   if (argc < 1) usage_exit();
 
@@ -591,8 +609,8 @@ static int parse_commandline(int argc, char **argv) {
       printf("ntx = %d  %lf %lf %lf\n",nv,vmin,vmax,vdelta);
       if(nv <= 0) exit(1);
       for(n=0; n < nv; n++){
-	txlist[ntx] = vmin + vdelta*n;
-	ntx++;
+        txlist[ntx] = vmin + vdelta*n;
+        ntx++;
       }
       nargsused = 3;
     } else if (istringnmatch(option, "--ty-mmd",0)) {
@@ -604,8 +622,8 @@ static int parse_commandline(int argc, char **argv) {
       printf("nty = %d\n",nv);
       if(nv <= 0) exit(1);
       for(n=0; n < nv; n++){
-	tylist[nty] = vmin + vdelta*n;
-	nty++;
+        tylist[nty] = vmin + vdelta*n;
+        nty++;
       }
       nargsused = 3;
     } else if (istringnmatch(option, "--tz-mmd",0)) {
@@ -617,8 +635,8 @@ static int parse_commandline(int argc, char **argv) {
       printf("ntz = %d\n",nv);
       if(nv <= 0) exit(1);
       for(n=0; n < nv; n++){
-	tzlist[ntz] = vmin + vdelta*n;
-	ntz++;
+        tzlist[ntz] = vmin + vdelta*n;
+        ntz++;
       }
       nargsused = 3;
     } else if (istringnmatch(option, "--ax-mmd",0)) {
@@ -630,8 +648,8 @@ static int parse_commandline(int argc, char **argv) {
       printf("nax = %d\n",nv);
       if(nv <= 0) exit(1);
       for(n=0; n < nv; n++){
-	axlist[nax] = vmin + vdelta*n;
-	nax++;
+        axlist[nax] = vmin + vdelta*n;
+        nax++;
       }
       nargsused = 3;
     } else if (istringnmatch(option, "--ay-mmd",0)) {
@@ -643,8 +661,8 @@ static int parse_commandline(int argc, char **argv) {
       printf("nay = %d\n",nv);
       if(nv <= 0) exit(1);
       for(n=0; n < nv; n++){
-	aylist[nay] = vmin + vdelta*n;
-	nay++;
+        aylist[nay] = vmin + vdelta*n;
+        nay++;
       }
       nargsused = 3;
     } else if (istringnmatch(option, "--az-mmd",0)) {
@@ -656,8 +674,8 @@ static int parse_commandline(int argc, char **argv) {
       printf("naz = %d\n",nv);
       if(nv <= 0) exit(1);
       for(n=0; n < nv; n++){
-	azlist[naz] = vmin + vdelta*n;
-	naz++;
+        azlist[naz] = vmin + vdelta*n;
+        naz++;
       }
       nargsused = 3;
     } else if ( !strcmp(option, "--gdiagno") ) {
@@ -694,34 +712,34 @@ static void usage_exit(void) {
 }
 /* --------------------------------------------- */
 static void print_usage(void) {
-printf("\n");
-printf("mri_segreg\n");
-printf("  --reg regfile\n");
-printf("  --mov fvol\n");
-printf("  --inorm inorm : intensity profile in reg with anat\n");
-printf("\n");
-printf("  --o out : save final output\n");
-printf("  --out-reg outreg : reg at lowest cost\n");
-printf("  --cost costfile\n");
-printf("\n");
-printf("  --frame nthframe : use given frame in input (default = 0)\n");
-printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
-printf("\n");
-printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
-printf("  --no-crop: do not crop anat (crops by default)\n");
-printf("  --profile : print out info about exec time\n");
-printf("\n");
-printf("  --noise stddev : add noise with stddev to input for testing sensitivity\n");
-printf("  --seed randseed : for use with --noise\n");
-printf("\n");
-printf("\n");
-printf("  --tx-mmd txmin txmax txdelta : translation (mm) in x\n");
-printf("  --ty-mmd tymin tymax tydelta : translation (mm) in y\n");
-printf("  --tz-mmd tzmin tzmax tzdelta : translation (mm) in z\n");
-printf("  --ax-mmd axmin axmax axdelta : rotation (deg) about x\n");
-printf("  --ay-mmd aymin aymax aydelta : rotation (deg) about y\n");
-printf("  --az-mmd azmin azmax azdelta : rotation (deg) about z\n");
-printf("\n");
+  printf("\n");
+  printf("mri_segreg\n");
+  printf("  --reg regfile\n");
+  printf("  --mov fvol\n");
+  printf("  --inorm inorm : intensity profile in reg with anat\n");
+  printf("\n");
+  printf("  --o out : save final output\n");
+  printf("  --out-reg outreg : reg at lowest cost\n");
+  printf("  --cost costfile\n");
+  printf("\n");
+  printf("  --frame nthframe : use given frame in input (default = 0)\n");
+  printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
+  printf("\n");
+  printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
+  printf("  --no-crop: do not crop anat (crops by default)\n");
+  printf("  --profile : print out info about exec time\n");
+  printf("\n");
+  printf("  --noise stddev : add noise with stddev to input for testing sensitivity\n");
+  printf("  --seed randseed : for use with --noise\n");
+  printf("\n");
+  printf("\n");
+  printf("  --tx-mmd txmin txmax txdelta : translation (mm) in x\n");
+  printf("  --ty-mmd tymin tymax tydelta : translation (mm) in y\n");
+  printf("  --tz-mmd tzmin tzmax tzdelta : translation (mm) in z\n");
+  printf("  --ax-mmd axmin axmax axdelta : rotation (deg) about x\n");
+  printf("  --ay-mmd aymin aymax aydelta : rotation (deg) about y\n");
+  printf("  --az-mmd azmin azmax azdelta : rotation (deg) about z\n");
+  printf("\n");
 
 }
 /* --------------------------------------------- */
@@ -767,7 +785,7 @@ static void check_options(void) {
   return;
 }
 /* --------------------------------------------- */
-static void dump_options(FILE *fp) 
+static void dump_options(FILE *fp)
 {
   int n;
   fprintf(fp,"movvol %s\n",movvolfile);
@@ -782,36 +800,36 @@ static void dump_options(FILE *fp)
   fprintf(fp,"Profile   %d\n",DoProfile);
   fprintf(fp,"Gdiag_no  %d\n",Gdiag_no);
   if(0){
-  fprintf(fp,"ntx %d\n",ntx);
-  if(ntx > 0){
-    fprintf(fp," tx values\n");
-    for(n=0; n < ntx; n++) printf("    %2d %g\n",n+1,txlist[n]);
-  }
-  fprintf(fp,"nty %d\n",nty);
-  if(nty > 0){
-    fprintf(fp," ty values\n");
-    for(n=0; n < nty; n++) printf("    %2d %g\n",n+1,tylist[n]);
-  }
-  fprintf(fp,"ntz %d\n",ntz);
-  if(ntz > 0){
-    fprintf(fp," tz values\n");
-    for(n=0; n < ntz; n++) printf("    %2d %g\n",n+1,tzlist[n]);
-  }
-  fprintf(fp,"nax %d\n",nax);
-  if(nax > 0){
-    fprintf(fp," ax values\n");
-    for(n=0; n < nax; n++) printf("    %2d %g\n",n+1,axlist[n]);
-  }
-  fprintf(fp,"nay %d\n",nay);
-  if(nay > 0){
-    fprintf(fp," ay values\n");
-    for(n=0; n < nay; n++) printf("    %2d %g\n",n+1,aylist[n]);
-  }
-  fprintf(fp,"naz %d\n",naz);
-  if(naz > 0){
-    fprintf(fp," az values\n");
-    for(n=0; n < naz; n++) printf("    %2d %g\n",n+1,azlist[n]);
-  }
+    fprintf(fp,"ntx %d\n",ntx);
+    if(ntx > 0){
+      fprintf(fp," tx values\n");
+      for(n=0; n < ntx; n++) printf("    %2d %g\n",n+1,txlist[n]);
+    }
+    fprintf(fp,"nty %d\n",nty);
+    if(nty > 0){
+      fprintf(fp," ty values\n");
+      for(n=0; n < nty; n++) printf("    %2d %g\n",n+1,tylist[n]);
+    }
+    fprintf(fp,"ntz %d\n",ntz);
+    if(ntz > 0){
+      fprintf(fp," tz values\n");
+      for(n=0; n < ntz; n++) printf("    %2d %g\n",n+1,tzlist[n]);
+    }
+    fprintf(fp,"nax %d\n",nax);
+    if(nax > 0){
+      fprintf(fp," ax values\n");
+      for(n=0; n < nax; n++) printf("    %2d %g\n",n+1,axlist[n]);
+    }
+    fprintf(fp,"nay %d\n",nay);
+    if(nay > 0){
+      fprintf(fp," ay values\n");
+      for(n=0; n < nay; n++) printf("    %2d %g\n",n+1,aylist[n]);
+    }
+    fprintf(fp,"naz %d\n",naz);
+    if(naz > 0){
+      fprintf(fp," az values\n");
+      for(n=0; n < naz; n++) printf("    %2d %g\n",n+1,azlist[n]);
+    }
   }
   return;
 }
@@ -848,8 +866,8 @@ static int istringnmatch(char *str1, char *str2, int n) {
 }
 
 /*-------------------------------------------------------*/
-double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R, 
-		 double *p, double *costs)
+double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
+                 double *p, double *costs)
 {
   double angles[3];
   MATRIX *Mrot=NULL, *Mtrans=NULL, *vox2vox = NULL;
@@ -883,7 +901,7 @@ double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
   // vox2vox = invTin*R*Ttemp
   vox2vox = MatrixMultiply(invTin,R,vox2vox);
   MatrixMultiply(vox2vox,Ttemp,vox2vox);
-  
+
   // Zero output
   MRIsetValues(out,0.0);
 
@@ -891,10 +909,10 @@ double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
   MRIvol2Vol(mov,out,vox2vox,interpcode,sinchw);
 
   if(inorm)  MRImultiply(out,inorm,out);
-  
+
   // compute costs
   costs = SegRegCost(regseg,out,costs);
-  
+
   MatrixFree(&Mrot);
   MatrixFree(&Mtrans);
   MatrixFree(&vox2vox);
@@ -906,8 +924,8 @@ double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
 }
 
 /*---------------------------------------------------------------------*/
-int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p, 
-	  char *costfile, double *costs)
+int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
+          char *costfile, double *costs)
 {
   double q, q0, pp[6], c, copt=0, qopt=0, costsopt[8], qdelta;
   int nthp, nth, n, hit, nthq;
@@ -931,8 +949,10 @@ int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
   fprintf(fp,"init1d ");
   fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
   fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
-  fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
-  fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
+  fprintf(fp,"%7d %10.4lf %8.4lf ",
+          (int)costs[0],costs[1],costs[2]); // WM  n mean std
+  fprintf(fp,"%7d %10.4lf %8.4lf ",
+          (int)costs[3],costs[4],costs[5]); // CTX n mean std
   fprintf(fp,"%8.4lf %8.4lf   %8.4lf ",costs[6],costs[7],copt); // t, cost=1/t
   printf("\n");
   printf("\n");
@@ -953,32 +973,37 @@ int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
       GetCosts(mov, seg, R0, Rtmp, pp, costs);
 
       if(costfile != NULL){
-	// write costs to file
-	fp = fopen(costfile,"a");
-	fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
-	fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
-	fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
-	fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
-	fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
-	fprintf(fp,"\n");
-	fclose(fp);
+        // write costs to file
+        fp = fopen(costfile,"a");
+        fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
+        fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+        fprintf(fp,"%7d %10.4lf %8.4lf ",
+                (int)costs[0],costs[1],costs[2]); // WM  n mean std
+        fprintf(fp,"%7d %10.4lf %8.4lf ",
+                (int)costs[3],costs[4],costs[5]); // CTX n mean std
+        fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
+        fprintf(fp,"\n");
+        fclose(fp);
       }
-      
+
       fp = stdout;
       fprintf(fp,"%4d %2d ",nth,nthq);
       fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
       fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
-      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
-      fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
-      fprintf(fp,"%8.4lf %8.4lf   %8.4lf ",costs[6],costs[7],copt); // t, cost=1/t
+      fprintf(fp,"%7d %10.4lf %8.4lf ",
+              (int)costs[0],costs[1],costs[2]); // WM  n mean std
+      fprintf(fp,"%7d %10.4lf %8.4lf ",
+              (int)costs[3],costs[4],costs[5]); // CTX n mean std
+      fprintf(fp,"%8.4lf %8.4lf   %8.4lf ",
+              costs[6],costs[7],copt); // t, cost=1/t
 
       c = costs[7];
       if(c < copt){
-	copt = c;
-	qopt = q;
-	MatrixCopy(Rtmp,R);
-	for(n=0; n<8; n++) costsopt[n] = costs[n];
-	hit = 1;
+        copt = c;
+        qopt = q;
+        MatrixCopy(Rtmp,R);
+        for(n=0; n<8; n++) costsopt[n] = costs[n];
+        hit = 1;
       }
       printf("%d\n",hit);
       fflush(stdout);
@@ -997,13 +1022,14 @@ int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
   fprintf(fp,"final1d ");
   fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
   fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
-  fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
-  fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
+  fprintf(fp,"%7d %10.4lf %8.4lf ",
+          (int)costs[0],costs[1],costs[2]); // WM  n mean std
+  fprintf(fp,"%7d %10.4lf %8.4lf ",
+          (int)costs[3],costs[4],costs[5]); // CTX n mean std
   fprintf(fp,"%8.4lf %8.4lf   %8.4lf ",costs[6],costs[7],copt); // t, cost=1/t
   printf("\n");
   printf("\n");
   fflush(stdout);
-
 
   return(nth);
 }
