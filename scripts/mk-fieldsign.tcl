@@ -6,9 +6,9 @@
 ## This is a slight modification of fs-make.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2007/01/05 00:21:11 $
-##    $Revision: 1.4 $
+##    $Author: greve $
+##    $Date: 2007/09/21 23:24:24 $
+##    $Revision: 1.5 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -72,14 +72,31 @@ if ![file exists $patchfile] {
 #### ECCENTRICITY ####
 #### read and smooth complex component MRI Fourier transform of *eccen* data
 puts "tksurfer: [file tail $script]: read, smooth complex Fourier comp: eccen"
-setfile val */$eccendir/${floatstem}${complexname}-$hemi.w
+set valfile $eccendir/${floatstem}${complexname}-$hemi.mgh
+if ![file exists $valfile] {
+    set valfile $eccendir/${floatstem}${complexname}-$hemi.mgz
+    if ![file exists $valfile] {
+	set valfile $eccendir/${floatstem}${complexname}-$hemi.w
+    }
+}
+puts "valfile is $valfile"
+setfile val */$valfile
 read_binary_values
 smooth_val $smoothsteps
 shift_values            ;# shift complex component out of way
 
 #### read and smooth real component MRI Fourier transform of *eccen* data
 puts "tksurfer: [file tail $script]: read, smooth real Fourier comp: eccen"
-setfile val */$eccendir/${floatstem}${realname}-$hemi.w
+set valfile $eccendir/${floatstem}${realname}-$hemi.mgh
+if ![file exists $valfile] {
+    set valfile $eccendir/${floatstem}${realname}-$hemi.mgz
+    if ![file exists $valfile] {
+	set valfile $eccendir/${floatstem}${realname}-$hemi.w
+    }
+}
+puts "valfile is $valfile"
+setfile val */$valfile
+#setfile val */$eccendir/${floatstem}${realname}-$hemi.w
 read_binary_values
 smooth_val $smoothsteps
 swap_values             ;# swap both components eccentricity out of way
@@ -87,14 +104,32 @@ swap_values             ;# swap both components eccentricity out of way
 #### POLAR ANGLE ####
 #### read and smooth complex component MRI Fourier transform of *theta* data
 puts "tksurfer: [file tail $script]: read, smooth complex Fourier comp: polar"
-setfile val */$polardir/${floatstem}${complexname}-$hemi.w
+set valfile $polardir/${floatstem}${complexname}-$hemi.mgh
+if ![file exists $valfile] {
+    set valfile $polardir/${floatstem}${complexname}-$hemi.mgz
+    if ![file exists $valfile] {
+	set valfile $polardir/${floatstem}${complexname}-$hemi.w
+    }
+}
+puts "valfile is $valfile"
+setfile val */$valfile
+#setfile val */$polardir/${floatstem}${complexname}-$hemi.w
 read_binary_values
 smooth_val $smoothsteps
 shift_values            ;# shift complex component out of way
 
 #### read and smooth real component MRI Fourier transform of *theta* data
 puts "tksurfer: [file tail $script]: read, smooth real Fourier comp: polar"
-setfile val */$polardir/${floatstem}${realname}-$hemi.w
+set valfile $polardir/${floatstem}${realname}-$hemi.mgh
+if ![file exists $valfile] {
+    set valfile $polardir/${floatstem}${realname}-$hemi.mgz
+    if ![file exists $valfile] {
+	set valfile $polardir/${floatstem}${realname}-$hemi.w
+    }
+}
+puts "valfile is $valfile"
+setfile val */$valfile
+#setfile val */$polardir/${floatstem}${realname}-$hemi.w
 read_binary_values
 smooth_val $smoothsteps
 swap_values             ;# swap again (r,th)
