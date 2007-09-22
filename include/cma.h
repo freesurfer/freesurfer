@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/07 18:40:18 $
- *    $Revision: 1.44 $
+ *    $Date: 2007/09/22 21:34:50 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -303,6 +303,8 @@
    ((l) == Left_non_WM_hypointensities) || \
    ((l) == Left_WM_hypointensities) || \
    ((l) == Right_WM_hypointensities) || \
+   ((l) == Left_choroid_plexus) || \
+   ((l) == Right_choroid_plexus) || \
    ((l) == WM_hypointensities) || \
    ((l) == Dura) || \
    ((l) == Bone) || \
