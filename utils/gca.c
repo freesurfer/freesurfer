@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/09 22:42:57 $
- *    $Revision: 1.231 $
+ *    $Date: 2007/09/22 21:35:19 $
+ *    $Revision: 1.232 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -7992,7 +7992,7 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
     /*    printf("\t%d segments:\n", mriseg->nsegments) ;*/
     for (j = 0 ; j < mriseg->nsegments ; j++)
     {
-      if (IS_LAT_VENT(i) && mriseg->segments[j].nvoxels > 500)
+      if (IS_LAT_VENT(i) && mriseg->segments[j].nvoxels > 50)
         continue ;
       /* printf("\t\t%02d: %d voxels", j, mriseg->segments[j].nvoxels) ;*/
       if ((float)mriseg->segments[j].nvoxels / (float)nvox < MIN_SEG_PCT)
@@ -8276,7 +8276,7 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
               }
               // change it to ventricle
               nchanged++ ;
-              MRIsetVoxVal(mri_dst, x, y, z, target_label, 0) ;
+              MRIsetVoxVal(mri_dst, x, y, z, 0, target_label) ;
               if (x <= xmin)
                 xmin = mri_dst->xi[x-1] ;
               if (y <= ymin)
