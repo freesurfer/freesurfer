@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/19 12:49:48 $
- *    $Revision: 1.397 $
+ *    $Date: 2007/09/22 22:15:19 $
+ *    $Revision: 1.398 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.397 $";
+char *MRI_C_VERSION = "$Revision: 1.398 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12367,21 +12367,30 @@ MRIeraseBorderPlanes(MRI *mri, int border_size)
     for (y = 0 ; y < mri->height ; y++)
     {
       for (i = 0 ; i < border_size ; i++)
-        MRIvox(mri, x, y, i) = MRIvox(mri, x, y, mri->depth-i-1) = 0 ;
+      {
+        MRIsetVoxVal(mri, x, y, i, 0, 0)  ;
+        MRIsetVoxVal(mri, x, y, mri->depth-i-1, 0, 0) ;
+      }
     }
 
   for (y = 0 ; y < mri->height ; y++)
     for (z = 0 ; z < mri->depth ; z++)
     {
       for (i = 0 ; i < border_size ; i++)
-        MRIvox(mri, i, y, z) = MRIvox(mri, mri->width-i-1, y, z) = 0 ;
+      {
+        MRIsetVoxVal(mri, i, y, z, 0, 0) ;
+        MRIsetVoxVal(mri, mri->width-i-1, y, z, 0,0) ;
+      }
     }
 
   for (x = 0 ; x < mri->width ; x++)
     for (z = 0 ; z < mri->depth ; z++)
     {
       for (i = 0 ; i < border_size ; i++)
-        MRIvox(mri, x, i, z) = MRIvox(mri, x, mri->height-i-1, z) = 0 ;
+      {
+        MRIsetVoxVal(mri, x, i, z, 0, 0) ;
+        MRIsetVoxVal(mri, x, mri->height-i-1, z, 0, 0) ;
+      }
     }
 
   return(NO_ERROR) ;
