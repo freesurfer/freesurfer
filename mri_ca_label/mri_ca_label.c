@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/19 12:49:02 $
- *    $Revision: 1.81 $
+ *    $Date: 2007/09/22 21:35:36 $
+ *    $Revision: 1.82 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,13 +171,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.81 2007/09/19 12:49:02 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.82 2007/09/22 21:35:36 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.81 2007/09/19 12:49:02 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.82 2007/09/22 21:35:36 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -501,7 +501,7 @@ main(int argc, char *argv[]) {
 
     if (TransformFileNameType(xform_fname) == MORPH_3D_TYPE) {
       gcam = (GCA_MORPH *)(transform->xform);
-      printf("Atlas used< for the 3D morph was %s\n", gcam->atlas.fname);
+      printf("Atlas used for the 3D morph was %s\n", gcam->atlas.fname);
     }
 
     TransformInvert(transform, mri_inputs) ;
