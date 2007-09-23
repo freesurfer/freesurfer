@@ -26,9 +26,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/31 18:05:58 $
- *    $Revision: 1.40 $
+ *    $Author: greve $
+ *    $Date: 2007/09/23 19:58:19 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -79,7 +79,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.40 2007/05/31 18:05:58 nicks Exp $";
+"$Id: mri_vol2surf.c,v 1.41 2007/09/23 19:58:19 greve Exp $";
 
 char *Progname = NULL;
 
@@ -167,6 +167,11 @@ static char *seedfile = NULL;
 static double scale = 0;
 static int GetProjMax = 0;
 
+double angles[3] = {0,0,0};
+MATRIX *Mrot = NULL;
+double xyztrans[3] = {0,0,0};
+MATRIX *Mtrans = NULL;
+
 /*------------------------------------------------------------------*/
 /*------------------------------------------------------------------*/
 /*------------------------------------------------------------------*/
@@ -186,7 +191,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.40 2007/05/31 18:05:58 nicks Exp $", 
+     "$Id: mri_vol2surf.c,v 1.41 2007/09/23 19:58:19 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -272,6 +277,28 @@ int main(int argc, char **argv) {
     Dsrc = MRItkRegMtx(TargVol,SrcVol,NULL);
     MRIfree(&TargVol);
   }
+
+  if(Mrot){
+    printf("Applying rotation matrix (R=M*R)\n");
+    printf("Current Reg Matrix is:\n");
+    MatrixPrint(stdout,Dsrc);
+    printf("  Angles (deg): %lf %lf %lf\n",angles[0]*180/M_PI,angles[1]*180/M_PI,angles[2]*180/M_PI);
+    printf("  Angles (rad): %lf %lf %lf\n",angles[0],angles[1],angles[2]);
+    printf("  Rotation matrix:\n");
+    MatrixPrint(stdout,Mrot);
+    Dsrc = MatrixMultiply(Mrot,Dsrc,Dsrc);
+  }
+
+  if(Mtrans){
+    printf("Applying translation matrix (R=M*R)\n");
+    printf("Current Reg Matrix is:\n");
+    MatrixPrint(stdout,Dsrc);
+    printf("  Trans (mm): %lf %lf %lf\n",xyztrans[0],xyztrans[1],xyztrans[2]);
+    printf("  Translation matrix:\n");
+    MatrixPrint(stdout,Mtrans);
+    Dsrc = MatrixMultiply(Mtrans,Dsrc,Dsrc);
+  }
+
   if(trgsubject == NULL) trgsubject = srcsubject;
 
   ncols_src = SrcVol->width;
@@ -675,6 +702,28 @@ static int parse_commandline(int argc, char **argv) {
       regheader = 1;
       srcsubject = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--rot")) {
+      if (nargc < 3) argnerr(option,3);
+      // Angles are in degrees
+      sscanf(pargv[0],"%lf",&angles[0]);
+      sscanf(pargv[1],"%lf",&angles[1]);
+      sscanf(pargv[2],"%lf",&angles[2]);
+      angles[0] *= (M_PI/180);
+      angles[1] *= (M_PI/180);
+      angles[2] *= (M_PI/180);
+      Mrot = MRIangles2RotMat(angles);
+      nargsused = 3;
+    } else if (!strcmp(option, "--trans")) {
+      if (nargc < 3) argnerr(option,3);
+      // Translation in mm
+      sscanf(pargv[0],"%lf",&xyztrans[0]);
+      sscanf(pargv[1],"%lf",&xyztrans[1]);
+      sscanf(pargv[2],"%lf",&xyztrans[2]);
+      Mtrans = MatrixIdentity(4,NULL);
+      Mtrans->rptr[1][4] = xyztrans[0];
+      Mtrans->rptr[2][4] = xyztrans[1];
+      Mtrans->rptr[3][4] = xyztrans[2];
+      nargsused = 3;
     } else if (!strcmp(option, "--srcoldreg")) {
       srcoldreg = 1;
     } else if (!strcmp(option, "--srcwarp")) {
@@ -871,6 +920,8 @@ static void print_usage(void) {
   printf("   --mov input volume path (or --src)\n");
   printf("   --reg source registration  \n");
   printf("   --regheader subject\n");
+  printf("   --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
+  printf("   --trans Tx Ty Tz : translation (mm) to apply to reg matrix\n");
   printf("   --float2int float-to-int conversion method "
          "(<round>, tkregister )\n");
   printf("   --fixtkreg : make make registration matrix round-compatible\n");
