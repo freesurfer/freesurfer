@@ -19,9 +19,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/07 19:33:09 $
- *    $Revision: 1.18 $
+ *    $Author: greve $
+ *    $Date: 2007/09/24 03:00:50 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -174,7 +174,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.18 2007/08/07 19:33:09 nicks Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.19 2007/09/24 03:00:50 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -203,13 +203,14 @@ char Orient1[4], Orient2[4];
 
 int ExitOnDiff = 1;
 int ExitStatus = 0;
+int DoRSS = 0; // Compute sqrt of sum squares
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, r, c, s, f;
   int rmax, cmax, smax, fmax;
   double diff,maxdiff;
-  double val1, val2;
+  double val1, val2, SumSqErr;
   FILE *fp=NULL;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -403,9 +404,11 @@ int main(int argc, char *argv[]) {
   //------------------------------------------------------
   // Compare pixel values
   if (CheckPixVals) {
-    if (DiffVolFile) {
+    if(DiffVolFile) {
+      if(!DoRSS) f = InVol1->nframes;
+      else       f = 1;
       DiffVol = MRIallocSequence(InVol1->width,InVol1->height,
-                                 InVol1->depth,MRI_FLOAT,InVol1->nframes);
+                                 InVol1->depth,MRI_FLOAT,f);
       MRIcopyHeader(InVol1,DiffVol);
     }
     if (DiffLabelVolFile) {
@@ -421,13 +424,15 @@ int main(int argc, char *argv[]) {
     for (c=0; c < InVol1->width; c++) {
       for (r=0; r < InVol1->height; r++) {
         for (s=0; s < InVol1->depth; s++) {
+	  SumSqErr = 0.0;
           for (f=0; f < InVol1->nframes; f++) {
             val1 = MRIgetVoxVal(InVol1,c,r,s,f);
             val2 = MRIgetVoxVal(InVol2,c,r,s,f);
-            if (! DiffAbs) diff = fabs(val1-val2);
+	    SumSqErr += (val1-val2)*(val1-val2);
+            if(! DiffAbs) diff = fabs(val1-val2);
             else diff = fabs(fabs(val1)-fabs(val2));
-            if (DiffVolFile) MRIsetVoxVal(DiffVol,c,r,s,f,val1-val2);
-            if (DiffLabelVolFile) {
+            if(DiffVolFile && !DoRSS) MRIsetVoxVal(DiffVol,c,r,s,f,val1-val2);
+            if(DiffLabelVolFile) {
               if (diff==0) MRIsetVoxVal(DiffLabelVol,c,r,s,f,val1);
               else         MRIsetVoxVal(DiffLabelVol,c,r,s,f,SUSPICIOUS);
             }
@@ -439,12 +444,14 @@ int main(int argc, char *argv[]) {
               fmax = f;
             }
           }
+	  if(DiffVolFile && DoRSS) MRIsetVoxVal(DiffVol,c,r,s,0,sqrt(SumSqErr));
         }
       }
     }
     if (debug) printf("maxdiff %f at %d %d %d %d\n",
                         maxdiff,cmax,rmax,smax,fmax);
-    if (DiffVolFile) MRIwrite(DiffVol,DiffVolFile);
+
+    if(DiffVolFile) MRIwrite(DiffVol,DiffVolFile);      
     if (DiffLabelVolFile) MRIwrite(DiffLabelVol,DiffLabelVolFile);
 
     if (maxdiff > pixthresh) {
@@ -526,6 +533,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--notallow-pix"))  CheckPixVals = 0;
     else if (!strcasecmp(option, "--notallow-ori"))  CheckOrientation = 0;
     else if (!strcasecmp(option, "--diffabs"))  DiffAbs = 1;
+    else if (!strcasecmp(option, "--rss"))  DoRSS = 1;
     else if (!strcasecmp(option, "--qa")) {
       CheckPixVals = 0;
       CheckGeo     = 0;
@@ -631,6 +639,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"checkori  %d\n",CheckOrientation);
   fprintf(fp,"checkprec %d\n",CheckPrecision);
   fprintf(fp,"diffabs   %d\n",DiffAbs);
+  fprintf(fp,"rss       %d\n",DoRSS);
   fprintf(fp,"logfile   %s\n",DiffFile);
   return;
 }
@@ -654,6 +663,7 @@ static void print_usage(void) {
          "and orientation only\n");
   printf("   --pix-only   : only check pixel data\n");
   printf("   --diffabs    : take abs before computing diff\n");
+  printf("   --rss        : save sqrt sum squares with --diff\n");
   printf("\n");
   printf("   --thresh thresh : pix diffs must be greater than this \n");
   printf("   --log DiffFile : store diff info in this file. \n");
