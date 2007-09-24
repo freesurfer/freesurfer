@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/09/24 21:23:34 $
-#    $Revision: 1.18 $
+#    $Date: 2007/09/24 22:00:27 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: paint-sess,v 1.18 2007/09/24 21:23:34 greve Exp $';
+set VERSION = '$Id: paint-sess,v 1.19 2007/09/24 22:00:27 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -38,7 +38,6 @@ set designtype    = ();
 set grpname    = ();
 set space      = native;
 set spacedir   = ();
-set ScriptOnly = 0;
 set umaskarg   = ();
 set hemi       = ();
 set subject    = ();
@@ -157,26 +156,6 @@ endif
 #---------------------------------------------------------------#
 
 if($#outmap == 0) set outmap = $map;
-
-## Prepare the script, if need be ##
-if($ScriptOnly) then
-  mkdir -p scripts
-  if(! -d scripts) then
-    echo "ERROR ($sess): cannot create `pwd`/scripts"
-    exit 1;
-  endif
-
-  if($IsSess) then
-    set scriptfile = scripts/run-paint-$analysis-$contrast-sess
-  else
-    set scriptfile = scripts/run-paint-$analysis-$contrast-$grpname
-  endif
-  rm -f $scriptfile
-  touch $scriptfile
-  echo "#\!/bin/csh -f" >> $scriptfile
-  echo "cd .." >> $scriptfile
-  chmod a+x $scriptfile
-endif
 
 if($#srcsubject == 0) then
   if($space == tal) set srcsubject = talairach;
@@ -330,7 +309,7 @@ foreach hs ($hemi)
         if($fmt == paint) then
           set cmd = ($cmd --o $outstem-$hs.w --out_type paint)
         else
-          set cmd = ($cmd --o $outstem-$hs.$fmt);
+          set cmd = ($cmd --o $outstem-$hs.$fmt --noreshape);
         set cmd = ($cmd --nvox $mapdir/$Surface-$hs.nvox )
       else if($space == sph) then
         set cmd = (mri_surf2surf)
@@ -341,20 +320,14 @@ foreach hs ($hemi)
       endif
       rm -f $outstem-$hs.w # Delete the output
 
-      if($ScriptOnly) then
-        echo $cmd >> $scriptfile
-        echo " " >> $scriptfile
-        echo " " >> $scriptfile
-      else
-        echo "----------------------------------------" |& tee -a $LF
-        pwd       |& tee -a $LF
-        echo $cmd |& tee -a $LF
-        echo "----------------------------------------" |& tee -a $LF
-        $cmd |& tee -a $LF
-        if($status) then
-          echo "ERROR: paint failed"
-          exit 1;
-        endif
+      echo "----------------------------------------" |& tee -a $LF
+      pwd       |& tee -a $LF
+      echo $cmd |& tee -a $LF
+      echo "----------------------------------------" |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) then
+        echo "ERROR: paint failed"
+        exit 1;
       endif
 
     end # loop over offset list
@@ -409,6 +382,10 @@ while( $#argv != 0 )
     case "-map":
       if ( $#argv == 0) goto arg1err;
       set map = $argv[1]; shift;
+      breaksw
+
+    case "-paint":
+      set fmt = paint;
       breaksw
 
     case "-mgh":
@@ -534,10 +511,6 @@ while( $#argv != 0 )
     case "-debug":
       set verbose = 1;
       set echo = 1;
-      breaksw
-
-    case "-scriptonly":
-      set ScriptOnly = 1;
       breaksw
 
     case "-nolog": # this is handled before here
@@ -728,6 +701,5 @@ usage_exit:
   echo "   -s  sessid      ..."
   echo "   -d  srchdir     ..."
   echo "   -umask umask   : set unix file permission mask"
-  echo "   -scriptonly    : don't run, just generate a script"
   echo "   -version       : print version and exit"
 exit 1;
