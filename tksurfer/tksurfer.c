@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/16 23:37:27 $
- *    $Revision: 1.276.2.5 $
+ *    $Date: 2007/09/24 21:59:32 $
+ *    $Revision: 1.276.2.6 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -9169,8 +9169,7 @@ void write_fieldsign(char *fname) {
   PR
 }
 
-void
-read_fsmask(char *fname) {
+void read_fsmask(char *fname) {
   int k,vnum;
   float f;
   FILE *fp;
@@ -12982,8 +12981,8 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
       /* This gets the RGB of the background only.  The RGB may be
 	 overwritten or blended later.  Note: val is NOT ignored, so
 	 we need to pass in the current overlay value. */
-      if (overlayflag)
-	sclv_get_value(v, sclv_current_field, &val);
+      if(overlayflag)	sclv_get_value(v, sclv_current_field, &val);
+      if(maskout) val = 0;
       get_color_vals(val, val2, mode, &r_base, &g_base, &b_base);
 
       /* save the base color for later comparison, but set our
@@ -13026,10 +13025,10 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
           /* get a color based on the currently selected field
              if it is above fthresh. */
           sclv_get_value(v, sclv_current_field, &val);
-          if ( !maskout) {
-            /* This will blend the functional color into the
+	  if(!maskout){
+	    /* This will blend the functional color into the
 	       input color. rgb are currently the background color*/
-            sclv_apply_color_for_value(val, sclv_overlay_alpha,&r, &g, &b);
+	    sclv_apply_color_for_value(val, sclv_overlay_alpha,&r, &g, &b);
 	  }
         }
       }
@@ -13125,6 +13124,8 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
 
     if (v->marked)
       get_color_vals(0.0,0.0,MARKED+v->marked-1, &r, &g, &b);
+
+
 
     colors[3*n]   = ((float)r)/255.0;
     colors[3*n+1] = ((float)g)/255.0;
@@ -18585,7 +18586,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.276.2.5 2007/09/16 23:37:27 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.276.2.6 2007/09/24 21:59:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -27104,7 +27105,10 @@ void LoadMRISMask(void)
   extern MRI *mrismask;
   extern double mrismaskthresh;
   extern char *mrismaskfile;
+  extern MRIS *mris;
+  int reshapefactor;
   char *threshstring;
+  MRI *mritmp;
 
   // check whether already loaded
   if(mrismask != NULL) return;
@@ -27117,6 +27121,20 @@ void LoadMRISMask(void)
   printf("Reading mris mask %s\n",mrismaskfile);
   mrismask = MRIread(mrismaskfile);
   if(mrismask == NULL) exit(1);
+
+  if(mrismask->height != 1 || mrismask->depth != 1) {
+    reshapefactor = mrismask->height * mrismask->depth;
+    printf("Reshaping %d\n",reshapefactor);
+    mritmp = mri_reshape(mrismask, reshapefactor*mrismask->width,
+			 1, 1, mrismask->nframes);
+    MRIfree(&mrismask);
+    mrismask = mritmp;
+    reshapefactor = 0; /* reset for output */
+  }
+  if(mrismask->width != mris->nvertices){
+    printf("ERROR: dimension mismatch between mask and surf\n");
+    exit(1);
+  }
 
   if(mrismaskthresh < 0){
     threshstring = getenv("TKS_MRIS_MASK_THRESH");
