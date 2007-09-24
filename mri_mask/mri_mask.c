@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/12 21:56:00 $
- *    $Revision: 1.11 $
+ *    $Author: greve $
+ *    $Date: 2007/09/24 20:34:11 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.11 2007/07/12 21:56:00 nicks Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.12 2007/09/24 20:34:11 greve Exp $";
 
 void usage(int exit_val);
 
@@ -71,11 +71,12 @@ static float threshold = -1e10;
 static int do_transfer=0;
 static float transfer_val;
 static int keep_mask_deletion_edits = 0; // if 1, keep mask voxels with value=1
+int DoAbs = 0;
 
 int main(int argc, char *argv[]) {
   char **av;
   MRI *mri_src, *mri_mask, *mri_dst ;
-  int nargs, ac;
+  int nargs, ac, nmask;
   int x, y, z;
   float value;
 
@@ -86,14 +87,12 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.11 2007/07/12 21:56:00 nicks Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.12 2007/09/24 20:34:11 greve Exp $", "$Name:  $"
     );
-  if (nargs && argc - nargs == 1)
-    exit (0);
+  if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs ;
 
   Progname = argv[0];
-
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
@@ -118,6 +117,13 @@ int main(int argc, char *argv[]) {
   if (!mri_mask)
     ErrorExit(ERROR_BADPARM, "%s: could not read mask volume %s",
               Progname, argv[1]) ;
+
+  if(mri_src->width != mri_mask->width){
+    printf("ERROR: dimension mismatch between source and mask\n");
+    exit(1);
+  }
+
+  printf("DoAbs = %d\n",DoAbs);
 
   /* Read LTA transform and apply it to mri_mask */
   if (xform_fname != NULL) {
@@ -234,31 +240,28 @@ int main(int argc, char *argv[]) {
 
     mri_mask = mri_tmp;
 
-    if (lta_src)
-      MRIfree(&lta_src);
-    if (lta_dst)
-      MRIfree(&lta_dst);
-
-    if (lta)
-      LTAfree(&lta);
+    if (lta_src)  MRIfree(&lta_src);
+    if (lta_dst)  MRIfree(&lta_dst);
+    if (lta)      LTAfree(&lta);
   }   /* if (xform_fname != NULL) */
 
-  for (z = 0 ; z <mri_mask->depth ; z++)
-
-    for (y = 0 ; y < mri_mask->height ; y++)
-
+  // Threshold mask
+  nmask = 0;
+  for (z = 0 ; z <mri_mask->depth ; z++){
+    for (y = 0 ; y < mri_mask->height ; y++){
       for (x = 0 ; x < mri_mask->width ; x++) {
         value = MRIgetVoxVal(mri_mask, x, y, z, 0);
-
-        if (value <= threshold)
-          MRIsetVoxVal(mri_mask,x,y,z,0,0);
-
+	if(DoAbs) value = fabs(value);
+        if(value <= threshold)  MRIsetVoxVal(mri_mask,x,y,z,0,0);
+	else nmask ++;
       }
+    }
+  }
+  printf("Found %d voxels in mask\n",nmask);
 
   int mask=0;
   float out_val=0;
-  if (do_transfer)
-  {
+  if (do_transfer)  {
     mask = (int)transfer_val;
     out_val = transfer_val;
   }
@@ -266,8 +269,7 @@ int main(int argc, char *argv[]) {
   if (!mri_dst)
     ErrorExit(Gerror, "%s: stripping failed", Progname) ;
 
-  if (keep_mask_deletion_edits)
-  {
+  if (keep_mask_deletion_edits) {
     mri_dst = MRImask(mri_dst, mri_mask, NULL, 1, 1) ; // keep voxels = 1
     if (!mri_dst)
       ErrorExit(Gerror, "%s: stripping failed on keep_mask_deletion_edits", 
@@ -313,6 +315,8 @@ void usage(int exit_val) {
   fprintf(fout,
           "   -T #         threshold mask volume at # "
           "(i.e., all values <= T considered as zero) \n");
+  fprintf(fout,
+          "   -abs : take abs() before applying threshold");
   fprintf(fout, 
           "   -transfer #  transfer only voxel value # from mask to out\n");
   fprintf(fout,
@@ -342,6 +346,8 @@ get_option(int argc, char *argv[]) {
     usage(1) ;
   else if (!stricmp(option, "version"))
     print_version() ;
+  else if (!stricmp(option, "abs"))
+    DoAbs = 1;
   else if (!stricmp(option, "xform")) {
     xform_fname = argv[2];
     nargs = 1;
