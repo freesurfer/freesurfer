@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/23 19:58:19 $
- *    $Revision: 1.41 $
+ *    $Date: 2007/09/24 21:57:04 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,6 +66,7 @@
 #include "resample.h"
 #include "selxavgio.h"
 #include "version.h"
+#include "fmriutils.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -79,7 +80,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.41 2007/09/23 19:58:19 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.42 2007/09/24 21:57:04 greve Exp $";
 
 char *Progname = NULL;
 
@@ -155,7 +156,7 @@ static int  float2int = -1;
 static int  fixtkreg = 0;
 static int ReverseMapFlag = 0;
 
-static int framesave = 0;
+static int framesave = -1;
 
 static float fwhm = 0, gstd = 0;
 static float surf_fwhm = 0, surf_gstd = 0;
@@ -191,7 +192,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.41 2007/09/23 19:58:19 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.42 2007/09/24 21:57:04 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -585,11 +586,18 @@ int main(int argc, char **argv) {
     sv_sxadat_by_stem(sxa,outfile);
   }
 
+  if(framesave > 0){
+    mritmp = fMRIframe(SurfVals2, framesave, NULL);
+    if(mritmp == NULL) exit(1);
+    MRIfree(&SurfVals2);
+    SurfVals2 = mritmp;
+  }
+
   if (outtypestring != NULL &&
       (!strcasecmp(outtypestring,"w") || !strcasecmp(outtypestring,"paint"))) {
     /*-------------- paint or .w --------------*/
     for (vtx = 0; vtx < SurfVals2->width; vtx++)
-      SurfOut->vertices[vtx].val = MRIFseq_vox(SurfVals2,vtx,0,0,framesave) ;
+      SurfOut->vertices[vtx].val = MRIFseq_vox(SurfVals2,vtx,0,0,0) ;
     MRISwriteValues(SurfOut, outfile) ;
   } else {
     if (reshape) {
@@ -652,8 +660,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--hash")) UseHash = 1;
     else if (!strcasecmp(option, "--dontusehash")) UseHash = 0;
     else if (!strcasecmp(option, "--nohash")) UseHash = 0;
-    else if (!strcasecmp(option, "--reshape"))   reshape = 1;
-    else if (!strcasecmp(option, "--noreshape")) reshape = 0;
+    else if (!strcasecmp(option, "--reshape"))    reshape = 1;
+    else if (!strcasecmp(option, "--noreshape"))  reshape = 0;
+    else if (!strcasecmp(option, "--no-reshape")) reshape = 0;
     else if (!strcasecmp(option, "--fixtkreg")) fixtkreg = 1;
     else if (!strcasecmp(option, "--nofixtkreg")) fixtkreg = 0;
 
@@ -950,7 +959,7 @@ static void print_usage(void) {
   printf(" Options for output\n");
   printf("   --out       output path\n");
   printf("   --out_type  output format\n");
-  printf("   --frame     save only nth frame (with paint format)\n");
+  printf("   --frame   nth :  save only 0-based nth frame \n");
   printf("   --noreshape do not save output as multiple 'slices'\n");
   printf("   --rf R  integer reshaping factor, save as R 'slices'\n");
   printf("   --srchit   volume to store the number of hits at each vox \n");
@@ -1316,6 +1325,11 @@ static void check_options(void) {
     fprintf(fp,"%ld\n",seed);
     fclose(fp);
   }
+
+  // paint format but framesave has not been set
+  if(framesave < 0 && outtypestring != NULL &&
+      (!strcasecmp(outtypestring,"w") || !strcasecmp(outtypestring,"paint"))) 
+    framesave = 0;
 
   return;
 }
