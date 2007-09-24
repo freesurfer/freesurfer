@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.4 $
+#    $Author: greve $
+#    $Date: 2007/09/24 21:23:35 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: paint-fieldsign-sess,v 1.4 2007/01/09 22:41:18 nicks Exp $'
+set VERSION = '$Id: paint-fieldsign-sess,v 1.5 2007/09/24 21:23:35 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -262,6 +262,12 @@ while( $#argv != 0 )
     case "-group":
       set IsSess = 1;  # otherwise, ignore getsesspath arguments 
       shift;
+      breaksw
+
+    # Ignore
+    case "-mgh":
+    case "-mgz":
+    case "-nii":
       breaksw
 
     # Ignore

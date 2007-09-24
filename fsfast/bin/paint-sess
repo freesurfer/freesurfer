@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/23 17:43:15 $
-#    $Revision: 1.17 $
+#    $Date: 2007/09/24 21:23:34 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: paint-sess,v 1.17 2007/07/23 17:43:15 greve Exp $';
+set VERSION = '$Id: paint-sess,v 1.18 2007/09/24 21:23:34 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -56,6 +56,7 @@ set noretinotopy = 0;
 set anapend = ();
 set DoAllContrasts = 0; 
 set regbase = register.dat
+set fmt = paint;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -321,12 +322,15 @@ foreach hs ($hemi)
         set cmd = ($cmd --surf $Surface --hemi $hs);
         if($#ProjFrac)    set cmd = ($cmd  --projfrac $ProjFrac)
         if($#ProjFracAvg) set cmd = ($cmd  --projfrac-avg $ProjFracAvg)
-        set cmd = ($cmd --frame $offset --out_type paint)
+        set cmd = ($cmd --frame $offset);
         set cmd = ($cmd --float2int $Float2Int --mapmethod nnf)
         if($subject != $srcsubject) then
           set cmd = ($cmd --trgsubject $subject)
         endif
-        set cmd = ($cmd --o $outstem-$hs.w )
+        if($fmt == paint) then
+          set cmd = ($cmd --o $outstem-$hs.w --out_type paint)
+        else
+          set cmd = ($cmd --o $outstem-$hs.$fmt);
         set cmd = ($cmd --nvox $mapdir/$Surface-$hs.nvox )
       else if($space == sph) then
         set cmd = (mri_surf2surf)
@@ -405,6 +409,18 @@ while( $#argv != 0 )
     case "-map":
       if ( $#argv == 0) goto arg1err;
       set map = $argv[1]; shift;
+      breaksw
+
+    case "-mgh":
+      set fmt = mgh;
+      breaksw
+
+    case "-mgz":
+      set fmt = mgz;
+      breaksw
+
+    case "-nii":
+      set fmt = nii;
       breaksw
 
     case "-outmap":
@@ -671,6 +687,8 @@ check_params:
 
   if($#subject == 0) set getsubjfromreg = 1;
 
+  # I'm special
+  if($user == greve) set fmt = mgz;
 
 goto check_params_return;
 ############--------------##################
