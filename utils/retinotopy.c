@@ -8,8 +8,8 @@
  * Original Author: Doug Greve (and Marty and Anders, for now)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/25 20:37:48 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/09/25 20:39:59 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,7 +34,7 @@ double round(double x);
 #include "mrisurf.h"
 
 /*------------------------------------------------------------
-  \fn void compute_angles(MRIS *mris)
+  \fn void RETcompute_angles(MRIS *mris)
   Upon input:
     val  = real * log10(p) for eccen
     val2 = imag * log10(p) for eccen
@@ -46,7 +46,7 @@ double round(double x);
     valbak  = angle for polar
     val2bak = log10(p) for polar
   ------------------------------------------------------------*/
-void compute_angles(MRIS *mris)
+void RETcompute_angles(MRIS *mris)
 {
   int k;
   float val,valbak,val2,val2bak;
@@ -66,7 +66,7 @@ void compute_angles(MRIS *mris)
   }
 }
 /*------------------------------------------------------------*/
-float circsubtract(float a,float b) 
+float RETcircsubtract(float a,float b) 
 {
   float h = a-b;
   if (h<-M_PI) h = h+2*M_PI;
@@ -74,7 +74,7 @@ float circsubtract(float a,float b)
   return h;
 }
 /*------------------------------------------------------------*/
-void compute_fieldsign(MRIS *mris)
+void RETcompute_fieldsign(MRIS *mris)
 {
   int k,m,n;
   VERTEX *v;
@@ -91,8 +91,8 @@ void compute_fieldsign(MRIS *mris)
       n = 0;
       for (m=0;m<v->vnum;m++)
         if (!mris->vertices[v->v[m]].ripflag) {
-          dv1 = circsubtract(v->val,mris->vertices[v->v[m]].val);
-          dv2 = circsubtract(v->valbak,mris->vertices[v->v[m]].valbak);
+          dv1 = RETcircsubtract(v->val,mris->vertices[v->v[m]].val);
+          dv2 = RETcircsubtract(v->valbak,mris->vertices[v->v[m]].valbak);
           dx = v->x-mris->vertices[v->v[m]].x;
           dy = v->y-mris->vertices[v->v[m]].y;
           m11 += dx*dx;
@@ -129,7 +129,7 @@ void compute_fieldsign(MRIS *mris)
 }
 
 /*--------------------------------------------------------------------------*/
-int MRISlogMap(MRIS *surf, double k, double a, double xc0, double yc0)
+int RETlogMap(MRIS *surf, double k, double a, double xc0, double yc0)
 {
   double n,r,theta,xw,yw,r2,theta2,xc2,yc2,xc,yc;
   float dmin;
