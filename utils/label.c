@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/10 18:11:52 $
- *    $Revision: 1.74 $
+ *    $Date: 2007/09/25 21:33:13 $
+ *    $Revision: 1.75 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -458,22 +458,14 @@ int
 LabelWrite(LABEL *area, char *label_name)
 {
   FILE   *fp ;
-  int    n, num ;
+  int    n, num, nbytes ;
   char   fname[STRLEN], *cp, subjects_dir[STRLEN], lname[STRLEN] ;
 
   strcpy(lname, label_name) ;
   cp = strstr(lname, ".label") ;
   if (cp)
     *cp = 0 ;
-#if 0
-  cp = strrchr(lname, '/') ;
-  if (cp)
-    label_name = cp+1 ;
-  else
-    label_name = lname ;
-#else
   label_name = lname ;
-#endif
   cp = strrchr(lname, '/') ;
   if ((cp == NULL) && strlen(area->subject_name) > 0)
   {
@@ -500,22 +492,38 @@ LabelWrite(LABEL *area, char *label_name)
       num++ ;
 
   printf("LabelWrite: saving to %s\n",fname);
+
   fp = fopen(fname, "w") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE, (ERROR_NO_FILE,
                                "%s: could not open label file %s",
                                Progname, fname)) ;
 
-#if 1
-  fprintf(fp, "#!ascii label %s , from subject %s vox2ras=TkReg %s\n",
-          area->name, area->subject_name, area->space);
-#endif
-  fprintf(fp, "%d\n", num) ;
+  nbytes = fprintf(fp, "#!ascii label %s , from subject %s vox2ras=TkReg %s\n",
+		   area->name, area->subject_name, area->space);
+  if(nbytes < 0){
+    printf("ERROR: writing to %s\n",fname);
+    fclose(fp);
+    return(1);
+  }
+
+  nbytes =   fprintf(fp, "%d\n", num) ;
+  if(nbytes < 0){
+    printf("ERROR: writing to %s\n",fname);
+    fclose(fp);
+    return(1);
+  }
   for (n = 0 ; n < area->n_points ; n++)
-    if (!area->lv[n].deleted)
-      fprintf(fp, "%d  %2.3f  %2.3f  %2.3f %f\n",
-              area->lv[n].vno, area->lv[n].x,
-              area->lv[n].y, area->lv[n].z, area->lv[n].stat) ;
+    if (!area->lv[n].deleted){
+      nbytes = fprintf(fp, "%d  %2.3f  %2.3f  %2.3f %f\n",
+		       area->lv[n].vno, area->lv[n].x,
+		       area->lv[n].y, area->lv[n].z, area->lv[n].stat) ;
+      if(nbytes < 0){
+	printf("ERROR: writing to %s\n",fname);
+	fclose(fp);
+	return(1);
+      }
+    }
   fclose(fp) ;
   return(NO_ERROR) ;
 }
