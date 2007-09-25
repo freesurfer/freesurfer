@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/24 20:58:55 $
- *    $Revision: 1.282 $
+ *    $Date: 2007/09/25 21:00:01 $
+ *    $Revision: 1.283 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2191,12 +2191,20 @@ int  mai(int argc,char *argv[])
         !stricmp(argv[i], "-overlay")) {
       nargs = 2 ;
       functional_fname = argv[i+1] ;
+      if(!fio_FileExistsReadable(functional_fname)){
+	printf("ERROR: cannot find %s\n",functional_fname);
+	exit(1);
+      }
       load_curv = TRUE;
     } else if (!stricmp(argv[i], "-overlay-reg") ||
                !stricmp(argv[i], "-orf") || !stricmp(argv[i], "-ovreg")) {
       nargs = 2 ;
       strncpy (overlay_reg, argv[i+1], sizeof(overlay_reg) );
       overlay_reg_type = FunD_tRegistration_File;
+      if(!fio_FileExistsReadable(overlay_reg)){
+	printf("ERROR: cannot find %s\n",overlay_reg);
+	exit(1);
+      }
     } else if (!stricmp(argv[i], "-overlay-reg-find")) {
       nargs = 1 ;
       overlay_reg_type = FunD_tRegistration_Find;
@@ -2247,6 +2255,10 @@ int  mai(int argc,char *argv[])
       nargs = 2 ;
       mrismaskfile = argv[i+1] ;
       fprintf(stderr, "mrismaskfile %s...\n", mrismaskfile) ;
+      if(!fio_FileExistsReadable(mrismaskfile)){
+	printf("ERROR: cannot find %s\n",mrismaskfile);
+	exit(1);
+      }
     } else if (!stricmp(argv[i], "-mask-thresh")) {
       nargs = 2 ;
       mrismaskthresh = atof(argv[i+1]) ;
@@ -2290,10 +2302,18 @@ int  mai(int argc,char *argv[])
       nargs = 2;
       strncpy (timecourse_fname, argv[i+1], sizeof(timecourse_fname));
       load_timecourse = TRUE;
+      if(!fio_FileExistsReadable(timecourse_fname)){
+	printf("ERROR: cannot find %s\n",timecourse_fname);
+	exit(1);
+      }
     } else if (!stricmp(argv[i], "-timecourse-reg") || !stricmp(argv[i], "-treg")) {
       nargs = 2;
       strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
       timecourse_reg_type = FunD_tRegistration_File;
+      if(!fio_FileExistsReadable(timecourse_reg)){
+	printf("ERROR: cannot find %s\n",timecourse_reg);
+	exit(1);
+      }
     } else if (!stricmp(argv[i], "-timecourse-reg-find")) {
       nargs = 1 ;
       timecourse_reg_type = FunD_tRegistration_Find;
@@ -18586,7 +18606,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.282 2007/09/24 20:58:55 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.283 2007/09/25 21:00:01 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
