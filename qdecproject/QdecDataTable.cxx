@@ -8,9 +8,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/09/21 20:37:23 $
- *    $Revision: 1.2 $
+ *    $Author: kteich $
+ *    $Date: 2007/09/25 19:19:37 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -232,8 +232,9 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
       } //else printf("token: %s\n",token);
     }
 
-    char* factor=strdup(token);
-    //printf("factor: %s\n",factor);
+    char factor[1024];
+    strncpy( factor, token, sizeof(factor) );
+    //    printf("factor: %s\n",factor);
 
     // if there exists a file called 'factor'.levels, where 'factor' is the
     // token read from the line, then it is a discrete factor, in which

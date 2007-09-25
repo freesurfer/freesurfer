@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/20 23:04:22 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/09/25 19:19:37 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -71,7 +71,8 @@ public:
    * @return int
    * @param  isFileName
    */
-  int SaveProjectFile ( const char* isFileName );
+  int SaveProjectFile ( const char* isFileName, 
+			const char* isDataDir = "/tmp" );
 
 
   /**
@@ -222,6 +223,12 @@ public:
    * @return QdecGlmDesign
    */
   QdecGlmDesign* GetGlmDesign ( );
+
+  /**
+   * The file name of our metadata file, for the project file archive.
+   * @return const char*
+   */
+  const char* GetMetadataFileName () const;
 
 private:
 

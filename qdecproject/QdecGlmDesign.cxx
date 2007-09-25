@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/20 23:04:22 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/09/25 19:19:37 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1140,4 +1140,15 @@ int QdecGlmDesign::WriteYdataFile ( )
   free( sCommand );
 
   return 0;
+}
+
+vector<QdecFactor*> const&
+QdecGlmDesign::GetDiscreteFactors () const {
+  return mDiscreteFactors;
+}
+
+
+vector<QdecFactor*> const& 
+QdecGlmDesign::GetContinuousFactors () const {
+  return mContinuousFactors;
 }

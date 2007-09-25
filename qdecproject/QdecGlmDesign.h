@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/20 23:04:22 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/09/25 19:19:37 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -227,6 +227,13 @@ public:
    * param const char* isSubjectID
    */
   bool GetExcludeSubjectID ( const char* isSubjectID );
+
+  /** 
+   * Access the discrete and continuous factor names.
+   * Returns a const vector of QdecFactors pointers. 
+   */
+  vector<QdecFactor*> const& GetDiscreteFactors () const;
+  vector<QdecFactor*> const& GetContinuousFactors () const;
 
 private:
 

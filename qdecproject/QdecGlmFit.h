@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/09/25 19:19:37 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,6 +58,14 @@ public:
    */
   int Run (QdecGlmDesign* iGlmDesign );
 
+  /**
+   * Creates the contrast, stddef, coefficients, and fsgdf file names
+   * using the working directory from the design. Creates the results
+   * object with these values. Does not generate any new data.
+   * @return int
+   * @param iGlmDesign
+   */
+  int CreateResultsFromCachedData ( QdecGlmDesign* iGlmDesign );
 
   /**
    * @return QdecGlmFitResults

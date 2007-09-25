@@ -9,8 +9,8 @@
  * Original Authors: Nick Schmansky and Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/09/25 19:19:37 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -190,6 +190,60 @@ int QdecGlmFit::Run ( QdecGlmDesign* iGlmDesign )
   {
     iGlmDesign->GetProgressUpdateGUI()->EndActionWithProgress();
   }
+
+  return 0;
+}
+
+
+int QdecGlmFit::CreateResultsFromCachedData ( QdecGlmDesign* iGlmDesign ) {
+
+  // Build contrast filenames from our contrast names.
+  vector<string> lContrastNames = iGlmDesign->GetContrastNames();
+  vector<string> lfnSigFiles;
+  vector<string>::iterator tContrastName;
+  for( tContrastName = lContrastNames.begin(); 
+       tContrastName != lContrastNames.end(); ++tContrastName ) {
+
+    // Build the name.
+    string fnSigFile = iGlmDesign->GetWorkingDir();
+    fnSigFile += "/";
+    fnSigFile += *tContrastName;
+    fnSigFile += "/sig.mgh";
+
+    // Check if it exists and is readable.
+    ifstream fInput( fnSigFile.c_str(), std::ios::in );
+    if( !fInput || fInput.bad() )
+      throw runtime_error( string("Couldn't open file " ) + fnSigFile );
+
+    lfnSigFiles.push_back( fnSigFile );
+  }
+
+  // Make our other filenames.
+  string fnContrastsOutput;
+  fnContrastsOutput = iGlmDesign->GetWorkingDir();
+  fnContrastsOutput += "/contrasts.sig.mgh";
+
+  string fnResidualErrorStdDevFile = iGlmDesign->GetWorkingDir();
+  fnResidualErrorStdDevFile += "/rstd.mgh";
+
+  string fnRegressionCoefficientsFile = iGlmDesign->GetWorkingDir();
+  fnRegressionCoefficientsFile += "/beta.mgh";
+
+  string fnFsgdFile = iGlmDesign->GetWorkingDir();
+  fnFsgdFile += "/y.fsgd";
+
+  // Now write the result information to a GlmFitResults object
+  QdecGlmFitResults* glmFitResults = 
+    new QdecGlmFitResults( iGlmDesign, 
+                           lfnSigFiles, 
+                           fnContrastsOutput,
+                           fnResidualErrorStdDevFile,
+                           fnRegressionCoefficientsFile,
+                           fnFsgdFile );
+  assert( glmFitResults );
+
+  delete this->mGlmFitResults;
+  this->mGlmFitResults = glmFitResults;
 
   return 0;
 }
