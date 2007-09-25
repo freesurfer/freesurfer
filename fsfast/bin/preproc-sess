@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/09/16 23:16:44 $
-#    $Revision: 1.15.2.1 $
+#    $Date: 2007/09/25 23:57:04 $
+#    $Revision: 1.15.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.15.2.1 2007/09/16 23:16:44 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.15.2.2 2007/09/25 23:57:04 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -269,6 +269,7 @@ while( $#argv != 0 )
   
   switch($flag)
 
+    case "-i":
     case "-in":
       if ( $#argv == 0) goto arg1err;
       set instem = $argv[1]; shift;
