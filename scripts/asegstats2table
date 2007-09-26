@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.8 2007/01/26 21:22:54 greve Exp $
+# $Id: asegstats2table,v 1.9 2007/09/26 15:51:36 greve Exp $
 import sys;
 import os;
 import string;
@@ -51,6 +51,8 @@ def print_usage():
   print "  --s subject1 <--s subject2 ...>";
   print "  --meas measure : default is vol (alt: mean)";
   print "  --maxsegno maxno : maximum segmentation no to report"  
+  print "  --statsfile fname : use fname instead of aseg.stats"  
+  print "  --subdir subdir : use subdir instead of stats"  
   print ""  
   print "  --t tablefile";
   print ""
@@ -187,7 +189,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.8 2007/01/26 21:22:54 greve Exp $';
+Version = '$Id: asegstats2table,v 1.9 2007/09/26 15:51:36 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
