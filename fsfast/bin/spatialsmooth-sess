@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/09/16 21:10:59 $
-#    $Revision: 1.15.2.1 $
+#    $Date: 2007/09/26 18:02:37 $
+#    $Revision: 1.15.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.15.2.1 2007/09/16 21:10:59 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.15.2.2 2007/09/26 18:02:37 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -450,9 +450,8 @@ usage_exit:
 
   if(! $PrintHelp ) exit 1;
 
-  echo "This program uses the FSL IP program to do 3D gaussian"
-  echo "spatial smoothing (www.fmrib.ox.ac.uk/fsl). It will operate "
-  echo "on the input volume in each run. The output volume will be "
+  echo "This program performs 3D gaussian spatial smoothing. It will"
+  echo "operate on the input volume in each run. The output volume will be "
   echo "placed in the same directory. FWHM is the full-width, half-"
   echo "maximum of the spatial filter."
   echo ""
