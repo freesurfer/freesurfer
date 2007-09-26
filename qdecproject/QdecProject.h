@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/25 19:19:37 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/09/26 17:42:02 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@ public:
    * @param  isFileName
    * @param  isDataDir
    */
-  int LoadProjectFile ( const char* isFileName, 
+  int LoadProjectFile ( const char* isFileName,
 			const char* isDataDir = "/tmp" );
 
 
@@ -71,7 +71,7 @@ public:
    * @return int
    * @param  isFileName
    */
-  int SaveProjectFile ( const char* isFileName, 
+  int SaveProjectFile ( const char* isFileName,
 			const char* isDataDir = "/tmp" );
 
 

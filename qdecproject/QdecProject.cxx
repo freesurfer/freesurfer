@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/25 19:19:37 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/09/26 17:42:02 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -66,7 +66,7 @@ QdecProject::~QdecProject ( )
  * @param  isFileName
  * @param  isDataDir
  */
-int QdecProject::LoadProjectFile ( const char* ifnProject, 
+int QdecProject::LoadProjectFile ( const char* ifnProject,
 				   const char* ifnDataDir )
 {
 
@@ -256,7 +256,7 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
  * @return int
  * @param  isFileName
  */
-int QdecProject::SaveProjectFile ( const char* ifnProject, 
+int QdecProject::SaveProjectFile ( const char* ifnProject,
 				   const char* ifnDataDir )
 {
 
@@ -359,11 +359,15 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Data table.
   string fnDataTable = this->GetDataTable()->GetFileName();
+  string fnDataTablePath( fnDataTablePath );
   string fnDataTableBase( fnDataTable );
   nPreLastSlash = fnDataTable.rfind( '/' );
-  if( string::npos != nPreLastSlash )
+  if( string::npos != nPreLastSlash ) {
     fnDataTableBase = fnDataTable.substr( nPreLastSlash+1, fnDataTable.size());
-  sCommand = "ln -s " + fnDataTable + " " + fnExpandedProjectDir;
+    fnDataTablePath = fnDataTable.substr( 0, nPreLastSlash+1);
+  }
+  sCommand = "ln -s " + fnDataTable + " " +
+    fnDataTablePath + "/*.levels " + fnExpandedProjectDir;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
