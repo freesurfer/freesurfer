@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/26 15:55:29 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/09/26 18:08:45 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.1 2007/09/26 15:55:29 greve Exp $
+// $Id: mri_fieldsign.c,v 1.2 2007/09/26 18:08:45 greve Exp $
 
 /*
   BEGINHELP
@@ -80,11 +80,11 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
-MRI *SFA2MRI(MRI *eccen, MRI *polar);
+MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.1 2007/09/26 15:55:29 greve Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.2 2007/09/26 18:08:45 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -92,19 +92,28 @@ int checkoptsonly=0;
 struct utsname uts;
 
 char *FieldSignFile = NULL;
-char *EccenSFAFile=NULL,*PolarSFAFile=NULL;
+
 int DoSFA = 0;
+char *EccenSFAFile=NULL,*PolarSFAFile=NULL;
+
+int DoComplex = 0;
+char *EccenRealFile=NULL, *EccenImagFile=NULL;
+char *PolarRealFile=NULL, *PolarImagFile=NULL;
+
 char *subject, *hemi, *SUBJECTS_DIR;
 char *PatchFile = NULL;
 double fwhm = -1;
 int nsmooth = -1;
 char tmpstr[2000];
+int ReverseSign = 0;
+int SFATrue = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, err;
   MRIS *surf;
-  MRI *eccensfa, *polarsfa, *mri, *mri2;
+  MRI *eccensfa, *polarsfa, *mri, *mritmp, *mritmp2;
+  MRI *eccenreal,*eccenimag,*polarreal,*polarimag;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -149,9 +158,31 @@ int main(int argc, char *argv[]) {
     if(eccensfa == NULL) exit(1);
     polarsfa = MRIread(PolarSFAFile);
     if(polarsfa == NULL) exit(1);
-    mri = SFA2MRI(eccensfa, polarsfa);
+    mri = SFA2MRI(eccensfa, polarsfa, SFATrue);
     MRIfree(&eccensfa);
     MRIfree(&polarsfa);
+  }
+
+  if(DoComplex){
+    eccenreal = MRIread(EccenRealFile);
+    if(eccenreal == NULL) exit(1);
+    eccenimag = MRIread(EccenImagFile);
+    if(eccenimag == NULL) exit(1);
+    polarreal = MRIread(PolarRealFile);
+    if(polarreal == NULL) exit(1);
+    polarimag = MRIread(PolarImagFile);
+    if(polarimag == NULL) exit(1);
+
+    mritmp  = MRIconcatenateFrames(eccenreal, eccenimag, NULL);
+    mritmp2 = MRIconcatenateFrames(polarreal, polarimag, NULL);
+    mri = MRIconcatenateFrames(mritmp,mritmp2,NULL);
+
+    MRIfree(&eccenreal);
+    MRIfree(&eccenimag);
+    MRIfree(&polarreal);
+    MRIfree(&polarimag);
+    MRIfree(&mritmp);
+    MRIfree(&mritmp2);
   }
 
   if(fwhm > 0) {
@@ -164,9 +195,9 @@ int main(int argc, char *argv[]) {
 
   if(nsmooth > 0){
     printf("Smoothing %d steps\n",nsmooth);
-    mri2 = MRISsmoothMRI(surf, mri, nsmooth, NULL, NULL);
+    mritmp = MRISsmoothMRI(surf, mri, nsmooth, NULL, NULL);
     MRIfree(&mri);
-    mri = mri2;
+    mri = mritmp;
   }
 
   MRIScopyMRI(surf, mri, 0, "val");    // eccen real
@@ -177,8 +208,13 @@ int main(int argc, char *argv[]) {
   RETcompute_angles(surf);
   RETcompute_fieldsign(surf);
 
-  mri2 = MRIcopyMRIS(NULL, surf, 0, "fieldsign");
-  MRIwrite(mri2,FieldSignFile);
+  mritmp = MRIcopyMRIS(NULL, surf, 0, "fieldsign");
+  if(ReverseSign){
+    printf("Reversing sign\n");
+    MRIscalarMul(mritmp, mritmp, -1.0);
+  }
+
+  MRIwrite(mritmp,FieldSignFile);
 
   return 0;
 }
@@ -206,6 +242,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--occip")) PatchFile = "occip.patch.flat";
+    else if (!strcasecmp(option, "--rev")) ReverseSign = 1;
+    else if (!strcasecmp(option, "--sfa-true")) SFATrue = 1;
 
     else if (!strcasecmp(option, "--eccen-sfa")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -225,6 +263,26 @@ static int parse_commandline(int argc, char **argv) {
       }
       DoSFA = 1;
       nargsused = 1;
+    } else if (!strcasecmp(option, "--eccen")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      EccenRealFile = pargv[0];
+      EccenImagFile = pargv[1];
+      if(!fio_FileExistsReadable(EccenRealFile)){
+	printf("ERROR: cannot find %s\n",EccenRealFile);
+	exit(1);
+      }
+      DoComplex = 1;
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--polar")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      PolarRealFile = pargv[0];
+      PolarImagFile = pargv[1];
+      if(!fio_FileExistsReadable(PolarRealFile)){
+	printf("ERROR: cannot find %s\n",PolarRealFile);
+	exit(1);
+      }
+      DoComplex = 1;
+      nargsused = 1;
     } else if (!strcasecmp(option, "--s")) {
       if (nargc < 1) CMDargNErr(option,1);
       subject = pargv[0];
@@ -239,11 +297,11 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (!strcasecmp(option, "--fwhm")) {
       if (nargc < 1) CMDargNErr(option,1);
-      scanf(pargv[0],"%lf",&fwhm);
+      sscanf(pargv[0],"%lf",&fwhm);
       nargsused = 1;
     } else if (!strcasecmp(option, "--nsmooth")) {
       if (nargc < 1) CMDargNErr(option,1);
-      scanf(pargv[0],"%d",&nsmooth);
+      sscanf(pargv[0],"%d",&nsmooth);
       nargsused = 1;
     } else if (!strcmp(option, "--sd")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -276,13 +334,15 @@ static void print_usage(void) {
   printf("\n");
   printf("   --eccen-sfa sfafile : eccen selfreqavg file \n");
   printf("   --polar-sfa sfafile : polar selfreqavg file \n");
+  printf("   --sfa-true          : use true real and imag\n");
+  printf("\n");
   printf("   --s subject \n");
   printf("   --hemi hemi \n");
   printf("   --patch patchfile : without hemi \n");
   printf("   --occip : patchfile = occip.patch.flat\n");
   printf("   --fwhm fwhm_mm\n");
   printf("   --nsmooth nsmoothsteps\n");
-  printf("   --\n");
+  printf("   --rev : reverse sign\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -338,8 +398,17 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
-  fprintf(fp,"eccen-sfa  %s\n",EccenSFAFile);
-  fprintf(fp,"polar-sfa  %s\n",PolarSFAFile);
+  if(DoSFA){
+    fprintf(fp,"eccen-sfa  %s\n",EccenSFAFile);
+    fprintf(fp,"polar-sfa  %s\n",PolarSFAFile);
+    fprintf(fp,"sfa-true   %d\n",SFATrue);
+  }
+  if(DoComplex){
+    fprintf(fp,"eccen real  %s\n",EccenRealFile);
+    fprintf(fp,"eccen imag  %s\n",EccenImagFile);
+    fprintf(fp,"polar real  %s\n",PolarRealFile);
+    fprintf(fp,"polar imag  %s\n",PolarImagFile);
+  }
   fprintf(fp,"patch     %s\n",PatchFile);
   fprintf(fp,"subject     %s\n",subject);
   fprintf(fp,"hemi        %s\n",hemi);
@@ -352,7 +421,7 @@ static void dump_options(FILE *fp) {
   SFA2MRI(MRI *eccen, MRI *polar) - pack two SFAs int a single MRI. An
   SFA is the output of selfreqavg. Must be sampled to the surface. 
   ----------------------------------------------------------------*/
-MRI *SFA2MRI(MRI *eccen, MRI *polar)
+MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue)
 {
   MRI *mri;
   int c,r,s;
@@ -366,17 +435,28 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar)
     for(r=0; r < eccen->height; r++){
       for(s=0; s < eccen->depth; s++){
 
-	v = MRIgetVoxVal(eccen,c,r,s,1); // eccen-real
-	MRIsetVoxVal(mri,c,r,s,0, v);
-
-	v = MRIgetVoxVal(eccen,c,r,s,2); // eccen-imag
-	MRIsetVoxVal(mri,c,r,s,1, v);
-
-	v = MRIgetVoxVal(polar,c,r,s,1); // polar-real
-	MRIsetVoxVal(mri,c,r,s,2, v);
-
-	v = MRIgetVoxVal(polar,c,r,s,2); // polar-imag
-	MRIsetVoxVal(mri,c,r,s,3, v);
+	if(SFATrue){
+	  // Use pure real and imag
+	  v = MRIgetVoxVal(eccen,c,r,s,7); // eccen-real
+	  MRIsetVoxVal(mri,c,r,s,0, v);
+	  v = MRIgetVoxVal(eccen,c,r,s,8); // eccen-imag
+	  MRIsetVoxVal(mri,c,r,s,1, v);
+	  v = MRIgetVoxVal(polar,c,r,s,7); // polar-real
+	  MRIsetVoxVal(mri,c,r,s,2, v);
+	  v = MRIgetVoxVal(polar,c,r,s,8); // polar-imag
+	  MRIsetVoxVal(mri,c,r,s,3, v);
+	} else {
+	  // Use real and imag weighted by log10(p)
+	  // This corresponds to Marty's original code
+	  v = MRIgetVoxVal(eccen,c,r,s,1); // eccen-real
+	  MRIsetVoxVal(mri,c,r,s,0, v);
+	  v = MRIgetVoxVal(eccen,c,r,s,2); // eccen-imag
+	  MRIsetVoxVal(mri,c,r,s,1, v);
+	  v = MRIgetVoxVal(polar,c,r,s,1); // polar-real
+	  MRIsetVoxVal(mri,c,r,s,2, v);
+	  v = MRIgetVoxVal(polar,c,r,s,2); // polar-imag
+	  MRIsetVoxVal(mri,c,r,s,3, v);
+	}
 
       }
     }
