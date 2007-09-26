@@ -62,6 +62,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_extract \
 	mri_extract_conditions \
 	mri_extract_label \
+	mri_fieldsign \
 	mri_fill \
 	mri_fwhm \
 	mri_gca_ambiguous \
