@@ -94,11 +94,22 @@ public:
  * This minimizer is modified from the original vnl version to take an initial
  * direction.
  *
+ * ftol is set by minimizer.set_f_tolerance(ftol)
+ * linmin_xtol_ is set by minimizer.set_linmin_xtol(linmin_xtol_)
+ * xtol is set by minimizer.set_x_tolerance(xtol)
+ * verbose_ is set by minimizer.set_verbose(1);
+ * maxfev is set by  minimizer.set_max_function_evals(MaxIterations);
+ *
+ * Note: each iteration is a loop through a 1D minimization for each
+ * parameter.
+ *
  * @param p Parameters to be minimized.  The minimized parameters will be
  * returned in p as well.
  * @param xi Initial direction.  If left out, then it will be set to the
  * identity initially.  The direction will be returned--so be sure
  * to deallocate it.
+ * 
+
  */
 vnl_nonlinear_minimizer::ReturnCodes
 fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
@@ -120,14 +131,23 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
   double fret = functor_->f(p);
   report_eval(fret);
   vnl_vector<double> pt = p;
+  if(verbose_){
+    printf("maxfev %ld\n",maxfev);
+    printf("ftol   %lf\n",(double)ftol);
+    printf("linmin_xtol_   %lf\n",(double)linmin_xtol_);
+  }
+
   while (num_iterations_ < unsigned(maxfev))
   {
     double fp = fret;
     int ibig=0;
     double del=0.0;
+    printf("  niters %d\n",(int)num_iterations_);
 
     for (int i=0;i<n;i++)
     {
+      if(verbose_) printf("    i %d  niters %d\n",(int)i, (int)num_iterations_);
+
       // xit = ith column of xi
       for (int j = 0; j < n; ++j)
         xit[j] = (*xi)[j][i];
@@ -149,6 +169,11 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
         del = vcl_fabs(fptt-fret);
         ibig = i;
       }
+      if(verbose_)  printf("  i = %d  fp=%f fret=%f\n",(int)i,fp,fret);
+    }
+    if(verbose_){
+      printf("  niters %d  fp=%f fret=%f\n",(int)num_iterations_,fp,fret);
+      printf("  check: %lf <= %lf\n",2.0*vcl_fabs(fp-fret),ftol*(vcl_fabs(fp)+vcl_fabs(fret)));
     }
 
     if (2.0*vcl_fabs(fp-fret) <= ftol*(vcl_fabs(fp)+vcl_fabs(fret)))
@@ -156,6 +181,7 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
 #ifdef DEBUG
       vnl_matlab_print(vcl_cerr, xi, "xi");
 #endif
+      if(verbose_) printf("  converged\n");
       return CONVERGED_FTOL;
     }
 
@@ -199,5 +225,6 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
     }
     report_iter();
   }
+  if(verbose_) printf("  niters %d\n",(int)num_iterations_);
   return FAILED_TOO_MANY_ITERATIONS;
 }
