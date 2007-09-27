@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/24 21:57:04 $
- *    $Revision: 1.42 $
+ *    $Date: 2007/09/27 16:35:56 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,7 +80,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.42 2007/09/24 21:57:04 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.43 2007/09/27 16:35:56 greve Exp $";
 
 char *Progname = NULL;
 
@@ -130,7 +130,7 @@ static int  interpmethod = -1;
 static char *mapmethod = "nnfr";
 
 static int debug = 0;
-static int reshape = 1;
+static int reshape = 0;
 static int reshapefactor = 0;
 static int reshapetarget = 20;
 
@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.42 2007/09/24 21:57:04 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.43 2007/09/27 16:35:56 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -874,10 +874,12 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--rf")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&reshapefactor);
+      reshape = 1;
       nargsused = 1;
     } else if (!strcmp(option, "--rft")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&reshapetarget);
+      reshape = 1;
       nargsused = 1;
     } else if (!strcmp(option, "--srchits")) {
       if (nargc < 1) argnerr(option,1);
@@ -967,6 +969,8 @@ static void print_usage(void) {
   printf("   --nvox nvoxfile : write number of voxels intersecting surface\n");
   printf("\n");
   printf(" Other Options\n");
+  printf("   --reshape : so dims fit in nifti or analyze\n");
+  printf("   --noreshape : do not reshape (default)\n");
   printf("   --scale scale : multiply all intensities by scale.\n");
   printf("   --srcsynth seed : synthesize source volume\n");
   printf("   --seedfile fname : save synth seed to fname\n");
@@ -1112,10 +1116,11 @@ static void print_help(void) {
     "  --frame 0-based frame number : sample and save only the given frame \n"
     "    from the source volume (needed when out_type = paint). Default 0.\n"
     "\n"
-    "  --noreshape : by default, mri_vol2surf will save the output as multiple\n"
-    "    'slices'. This is for logistical purposes (eg, in the analyze format\n"
-    "    the size of a dimension cannot exceed 2^15). Use this flag to prevent\n"
-    "    this behavior. This has no effect when the output type is paint.\n"
+    "  --reshape : save the output as multiple 'slices'. This is \n"
+    "    for logistical purposes (eg, in analyze and nifti formats\n"
+    "    the size of a dimension cannot exceed 2^15). This used to be\n"
+    "    the default behavior. This has no effect when the output type\n"
+    "    is paint.\n"
     "\n"
     "  --rf R\n"
     "\n"
@@ -1365,6 +1370,7 @@ static void dump_options(FILE *fp) {
     }
   }
 
+  fprintf(fp,"reshape = %d\n",reshape);
   fprintf(fp,"interp = %s\n",interpmethod_string);
   fprintf(fp,"float2int = %s\n",float2int_string);
   fprintf(fp,"GetProjMax = %d\n",GetProjMax);
