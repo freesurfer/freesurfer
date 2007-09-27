@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/26 17:42:02 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/09/27 21:39:26 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -70,10 +70,21 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
 				   const char* ifnDataDir )
 {
 
+  // If the project file name doesn't have a path, give it one.
   string fnProject( ifnProject );
+  if( fnProject.find( '/' ) == string::npos ) {
+    char sCWD[1024];
+    if( getcwd( sCWD, sizeof(sCWD) ) ) {
+      string fnProjectFull = string(sCWD) + "/" + fnProject;
+      fnProject = fnProjectFull;
+    } else {
+      fprintf(stderr, "WARNING: QdecProject::LoadProjectFile: Can't add "
+	      "full path  to project file name; please specify full path." );
+    }
+  }
 
   // Find the base name of the project file.
-  string fnProjectBase( ifnProject );
+  string fnProjectBase( fnProject );
   string::size_type nPreLastSlash = fnProject.rfind( '/' );
   if( string::npos != nPreLastSlash )
     fnProjectBase = fnProject.substr( nPreLastSlash+1, fnProject.size() );
@@ -92,11 +103,11 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
   string sContinuousFactor2 = "none";
   string sMeasure;
   int smoothness = -1;
-
+  
   // Check the file.
-  ifstream fInput( ifnProject, std::ios::in );
+  ifstream fInput( fnProject.c_str(), std::ios::in );
   if( !fInput || fInput.bad() )
-    throw runtime_error( string("Couldn't open file " ) + ifnProject );
+    throw runtime_error( string("Couldn't open file " ) + fnProject );
   fInput.close();
 
   // Erase old working directory if present.
@@ -109,7 +120,7 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
   }
   // Expand the .qdec file into the destination directory.
   sCommand = string("cd ") + ifnDataDir + "; "
-    "tar zxvf " + ifnProject + " > /dev/null";
+    "tar zxvf " + fnProject + " > /dev/null";
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Couldn't "
@@ -260,6 +271,19 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 				   const char* ifnDataDir )
 {
 
+  // If the project file name doesn't have a path, give it one.
+  string fnProject( ifnProject );
+  if( fnProject.find( '/' ) == string::npos ) {
+    char sCWD[1024];
+    if( getcwd( sCWD, sizeof(sCWD) ) ) {
+      string fnProjectFull = string(sCWD) + "/" + fnProject;
+      fnProject = fnProjectFull;
+    } else {
+      fprintf(stderr, "WARNING: QdecProject::LoadProjectFile: Can't add "
+	      "full path  to project file name; please specify full path." );
+    }
+  }
+  
   /* To make our file, we create a temp directory, link in our files,
      and then tar it up into the destination .qdec file. This is the
      structure we want. We'll create symlinks and then tar it up into
@@ -276,10 +300,9 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   string fnSubjectsDir = this->GetSubjectsDir();
   string sSubjectName = this->GetAverageSubject();
   string fnWorkingDir = this->GetWorkingDir();
-  string fnProject( ifnProject );
 
   // Find the base name of the project file.
-  string fnProjectBase( ifnProject );
+  string fnProjectBase( fnProject );
   string::size_type nPreLastSlash = fnProject.rfind( '/' );
   if( string::npos != nPreLastSlash )
     fnProjectBase = fnProject.substr( nPreLastSlash+1, fnProject.size() );
@@ -359,7 +382,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Data table.
   string fnDataTable = this->GetDataTable()->GetFileName();
-  string fnDataTablePath( fnDataTablePath );
+  string fnDataTablePath( fnDataTable );
   string fnDataTableBase( fnDataTable );
   nPreLastSlash = fnDataTable.rfind( '/' );
   if( string::npos != nPreLastSlash ) {
@@ -417,7 +440,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Tar them up to the destination location with the .qdec filename.
   sCommand = string("cd ") + ifnDataDir + "; " +
-    "tar hcfzv " + ifnProject + " " + fnProjectBase + ".working > /dev/null";
+    "tar hcfzv " + fnProject + " " + fnProjectBase + ".working > /dev/null";
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
