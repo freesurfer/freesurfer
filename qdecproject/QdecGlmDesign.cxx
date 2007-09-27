@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/25 19:19:37 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/09/27 21:38:52 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -85,16 +85,6 @@ QdecGlmDesign::QdecGlmDesign ( QdecDataTable* iDataTable )
 
 QdecGlmDesign::~QdecGlmDesign ( )
 {
-  while (mDiscreteFactors.size() != 0)
-    {
-      delete mDiscreteFactors.back();
-      mDiscreteFactors.pop_back();
-    }
-  while (mContinuousFactors.size() != 0)
-    {
-      delete mContinuousFactors.back();
-      mContinuousFactors.pop_back();
-    }
   while (mContrasts.size() != 0)
     {
       delete mContrasts.back();
