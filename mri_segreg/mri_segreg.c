@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/09/21 13:22:55 $
- *    $Revision: 1.16 $
+ *    $Author: greve $
+ *    $Date: 2007/09/27 22:17:46 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,6 +29,7 @@
   BEGINUSAGE --------------------------------------------------------------
 
   mri_segreg
+
   --reg regfile
   --mov fvol
   --inorm inorm : intensity profile in reg with anat
@@ -38,7 +39,6 @@
   --cost costfile
 
   --frame nthframe : use given frame in input (default = 0)
-  --n1dmin n1dmin : number of 1d minimization (default = 3)
 
   --interp interptype : interpolation trilinear or nearest (def is trilin)
   --no-crop: do not crop anat (crops by default)
@@ -47,13 +47,14 @@
   --noise stddev : add noise with stddev to input for testing sensitivity
   --seed randseed : for use with --noise
 
+  --aseg : use aseg instead of regseg.mgz
 
-  --tx-mmd txmin txmax txdelta : translation (mm) in x
-  --ty-mmd tymin tymax tydelta : translation (mm) in y
-  --tz-mmd tzmin tzmax tzdelta : translation (mm) in z
-  --ax-mmd axmin axmax axdelta : rotation (deg) about x
-  --ay-mmd aymin aymax aydelta : rotation (deg) about y
-  --az-mmd azmin azmax azdelta : rotation (deg) about z
+  --nmax nmax   : max number of powell iterations (def 36)
+  --tol   tol   : powell inter-iteration tolerance on cost
+  --tol1d tol1d : tolerance on powell 1d minimizations
+
+  --1dmin : use brute force 1D minimizations instead of powell
+  --n1dmin n1dmin : number of 1d minimization (default = 3)
 
   ENDUSAGE ---------------------------------------------------------------
 */
@@ -113,6 +114,7 @@
 #include "pdf.h"
 #include "timer.h"
 #include "fmriutils.h"
+#include "numerics.h"
 
 #ifdef X
 #undef X
@@ -123,6 +125,14 @@ double *GetCosts(MRI *mov, MRI *seg,
                  double *p, double *costs);
 int Min1D(MRI *mov, MRI *seg,
           MATRIX *R, double *p, char *costfile, double *costs);
+float compute_powell_cost(float *p) ;
+int MinPowell(MRI *mov, MRI *seg, MATRIX *R, double *params,
+	      double ftol, double linmintol, int nmaxiters,
+	      char *costfile, double *costs, int *niters);
+MRI *mov_powell = NULL;
+MRI *seg_powell = NULL;
+MATRIX *R0_powell = NULL;
+char *costfile_powell = NULL;
 
 // For some reason, this does not seemed to be defined in math.h
 double round(double x);
@@ -139,10 +149,11 @@ static int  singledash(char *flag);
 #include "tags.h"
 static int istringnmatch(char *str1, char *str2, int n);
 
+
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.16 2007/09/21 13:22:55 nicks Exp $";
+"$Id: mri_segreg.c,v 1.17 2007/09/27 22:17:46 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -186,6 +197,11 @@ int DoCrop = 1;
 int DoProfile = 0;
 int n1dmin = 3;
 
+int DoPowell = 1;
+int nMaxItersPowell = 36;
+double TolPowell = .0001;
+double LinMinTolPowell = .1;
+
 #define NMAX 100
 int ntx=0, nty=0, ntz=0, nax=0, nay=0, naz=0;
 double txlist[NMAX],tylist[NMAX],tzlist[NMAX];
@@ -207,13 +223,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.16 2007/09/21 13:22:55 nicks Exp $",
+     "$Id: mri_segreg.c,v 1.17 2007/09/27 22:17:46 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.16 2007/09/21 13:22:55 nicks Exp $",
+     "$Id: mri_segreg.c,v 1.17 2007/09/27 22:17:46 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -233,6 +249,7 @@ int main(int argc, char **argv) {
   printf("Input reg\n");
   MatrixPrint(stdout,R0);
   printf("\n");
+  R00 = MatrixCopy(R0,NULL);
 
   printf("Loading mov\n");
   mov = MRIread(movvolfile);
@@ -344,7 +361,6 @@ int main(int argc, char **argv) {
   }
 
   R   = MatrixCopy(R0,NULL);
-  R00 = MatrixCopy(R0,NULL);
 
   // Allocate the output
   out = MRIallocSequence(regseg->width,
@@ -367,9 +383,15 @@ int main(int argc, char **argv) {
   printf("\n");
 
 
-  if(1){
+  TimerStart(&mytimer) ;
+  if(DoPowell) {
+    printf("Staring Powell Minimization\n");
+    MinPowell(mov, regseg, R, p, TolPowell, LinMinTolPowell,
+	      nMaxItersPowell,SegRegCostFile, costs, &nth);
+  }
+  else{
+    printf("Staring 1D Minimization\n");
     // 1D minimization
-    TimerStart(&mytimer) ;
     nth = 0;
     for(n=0; n < n1dmin; n++){
       printf("n = %d --------------------------------------\n",n);
@@ -377,71 +399,72 @@ int main(int argc, char **argv) {
       nth += Min1D(mov, regseg, R, p, SegRegCostFile, costs);
       printf("\n");
     }
-    secCostTime = TimerStop(&mytimer)/1000.0 ;
+  }
+  secCostTime = TimerStop(&mytimer)/1000.0 ;
 
-    // Recompute at optimal. This forces MRI *out to be the output at best reg
-    GetCosts(mov, regseg, R0, R, p, costs);
+  // Recompute at optimal. This forces MRI *out to be the output at best reg
+  GetCosts(mov, regseg, R0, R, p, costs);
 
-    printf("Min cost was %lf\n",costs[7]);
-    printf("Number of iterations %5d in %lf sec\n",nth,secCostTime);
-    printf("Parameters at optimum\n");
-    printf("%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
-           p[0],p[1],p[2],p[3],p[4],p[5]);
-    printf("Costs at optimum\n");
-    printf("%7d %10.4lf %8.4lf ",
-           (int)costs[0],costs[1],costs[2]); // WM  n mean std
-    printf("%7d %10.4lf %8.4lf ",
-           (int)costs[3],costs[4],costs[5]); // CTX n mean std
-    printf("%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
-    printf("\n");
-
-    printf("Reg at min cost was \n");
+  printf("Min cost was %lf\n",costs[7]);
+  printf("Number of iterations %5d in %lf sec\n",nth,secCostTime);
+  printf("Parameters at optimum\n");
+  printf("%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
+	 p[0],p[1],p[2],p[3],p[4],p[5]);
+  printf("Costs at optimum\n");
+  printf("%7d %10.4lf %8.4lf ",
+	 (int)costs[0],costs[1],costs[2]); // WM  n mean std
+  printf("%7d %10.4lf %8.4lf ",
+	 (int)costs[3],costs[4],costs[5]); // CTX n mean std
+  printf("%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
+  printf("\n");
+  
+  printf("Reg at min cost was \n");
+  MatrixPrint(stdout,R);
+  printf("\n");
+  
+  if(DoCrop){
+    printf("Uncropping reg\n");
+    // R = Rc*Tc*inv(Sc)*S*inv(T)
+    Rcrop = MatrixCopy(R,NULL);
+    R = MatrixMultiply(Rcrop,Tcrop,R);
+    R = MatrixMultiply(R,invScrop,R);
+    R = MatrixMultiply(R,Stemp,R);
+    R = MatrixMultiply(R,invTtemp,R);
+    printf("Uncropped reg at min cost was \n");
     MatrixPrint(stdout,R);
     printf("\n");
-
-    if(DoCrop){
-      printf("Uncropping reg\n");
-      // R = Rc*Tc*inv(Sc)*S*inv(T)
-      Rcrop = MatrixCopy(R,NULL);
-      R = MatrixMultiply(Rcrop,Tcrop,R);
-      R = MatrixMultiply(R,invScrop,R);
-      R = MatrixMultiply(R,Stemp,R);
-      R = MatrixMultiply(R,invTtemp,R);
-      printf("Uncropped reg at min cost was \n");
-      MatrixPrint(stdout,R);
-      printf("\n");
-    }
-
-    if(outfile) {
-      // This changes values in regseg0
-      printf("Writing output volume to %s \n",outfile);
-      fflush(stdout);
-      MRIsetValues(regseg0,0.0);
-      MRIvol2VolTkReg(mov, regseg0, R, interpcode, sinchw);
-      MRIwrite(regseg0,outfile);
-    }
-
-    if(outregfile){
-      printf("Writing optimal reg to %s \n",outregfile);
-      fflush(stdout);
-      regio_write_register(outregfile,subject,mov->xsize,
-                           mov->zsize,1,R,FLT2INT_ROUND);
-    }
-
-    printf("Original Reg \n");
-    fflush(stdout);
-    MatrixPrint(stdout,R00);
-    printf("\n");
-
-    Rdiff = MatrixSubtract(R00,R,NULL);
-    printf("Original Reg - Optimal Reg\n");
-    MatrixPrint(stdout,Rdiff);
-    printf("\n");
-
-    printf("mri_segreg done\n");
-
-    exit(0);
   }
+  
+  if(outfile) {
+    // This changes values in regseg0
+    printf("Writing output volume to %s \n",outfile);
+    fflush(stdout);
+    MRIsetValues(regseg0,0.0);
+    MRIvol2VolTkReg(mov, regseg0, R, interpcode, sinchw);
+    MRIwrite(regseg0,outfile);
+  }
+
+  if(outregfile){
+    printf("Writing optimal reg to %s \n",outregfile);
+    fflush(stdout);
+    regio_write_register(outregfile,subject,mov->xsize,
+			 mov->zsize,1,R,FLT2INT_ROUND);
+  }
+  
+  printf("Original Reg \n");
+  fflush(stdout);
+  MatrixPrint(stdout,R00);
+  printf("\n");
+  
+  Rdiff = MatrixSubtract(R00,R,NULL);
+  printf("Original Reg - Optimal Reg\n");
+  MatrixPrint(stdout,Rdiff);
+  printf("\n");
+  
+  printf("mri_segreg done\n");
+
+  exit(0);
+  /*-----------------------------------------------------*/
 
   ntot = ntx*nty*ntz*nax*nay*naz;
   printf("Staring loop over %d\n",ntot);
@@ -560,6 +583,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-crop"))  DoCrop = 0;
     else if (!strcasecmp(option, "--crop"))     DoCrop = 1;
     else if (!strcasecmp(option, "--profile"))  DoProfile = 1;
+    else if (!strcasecmp(option, "--powell"))   DoPowell = 1;
+    else if (!strcasecmp(option, "--no-powell")) DoPowell = 0;
+    else if (!strcasecmp(option, "--1dmin"))     DoPowell = 0;
     else if (istringnmatch(option, "--mov",0)) {
       if (nargc < 1) argnerr(option,1);
       movvolfile = pargv[0];
@@ -571,6 +597,18 @@ static int parse_commandline(int argc, char **argv) {
     } else if (istringnmatch(option, "--n1dmin",0)) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&n1dmin);
+      nargsused = 1;
+    } else if (istringnmatch(option, "--nmax",0)) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&nMaxItersPowell);
+      nargsused = 1;
+    } else if (istringnmatch(option, "--tol",0)) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&TolPowell);
+      nargsused = 1;
+    } else if (istringnmatch(option, "--tol1d",0)) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&LinMinTolPowell);
       nargsused = 1;
     } else if (istringnmatch(option, "--inorm",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -712,35 +750,35 @@ static void usage_exit(void) {
 }
 /* --------------------------------------------- */
 static void print_usage(void) {
-  printf("\n");
-  printf("mri_segreg\n");
-  printf("  --reg regfile\n");
-  printf("  --mov fvol\n");
-  printf("  --inorm inorm : intensity profile in reg with anat\n");
-  printf("\n");
-  printf("  --o out : save final output\n");
-  printf("  --out-reg outreg : reg at lowest cost\n");
-  printf("  --cost costfile\n");
-  printf("\n");
-  printf("  --frame nthframe : use given frame in input (default = 0)\n");
-  printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
-  printf("\n");
-  printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
-  printf("  --no-crop: do not crop anat (crops by default)\n");
-  printf("  --profile : print out info about exec time\n");
-  printf("\n");
-  printf("  --noise stddev : add noise with stddev to input for testing sensitivity\n");
-  printf("  --seed randseed : for use with --noise\n");
-  printf("\n");
-  printf("\n");
-  printf("  --tx-mmd txmin txmax txdelta : translation (mm) in x\n");
-  printf("  --ty-mmd tymin tymax tydelta : translation (mm) in y\n");
-  printf("  --tz-mmd tzmin tzmax tzdelta : translation (mm) in z\n");
-  printf("  --ax-mmd axmin axmax axdelta : rotation (deg) about x\n");
-  printf("  --ay-mmd aymin aymax aydelta : rotation (deg) about y\n");
-  printf("  --az-mmd azmin azmax azdelta : rotation (deg) about z\n");
-  printf("\n");
-
+printf("\n");
+printf("  mri_segreg\n");
+printf("\n");
+printf("  --reg regfile\n");
+printf("  --mov fvol\n");
+printf("  --inorm inorm : intensity profile in reg with anat\n");
+printf("\n");
+printf("  --o out : save final output\n");
+printf("  --out-reg outreg : reg at lowest cost\n");
+printf("  --cost costfile\n");
+printf("\n");
+printf("  --frame nthframe : use given frame in input (default = 0)\n");
+printf("\n");
+printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
+printf("  --no-crop: do not crop anat (crops by default)\n");
+printf("  --profile : print out info about exec time\n");
+printf("\n");
+printf("  --noise stddev : add noise with stddev to input for testing sensitivity\n");
+printf("  --seed randseed : for use with --noise\n");
+printf("\n");
+printf("  --aseg : use aseg instead of regseg.mgz\n");
+printf("\n");
+printf("  --nmax nmax   : max number of powell iterations (def 36)\n");
+printf("  --tol   tol   : powell inter-iteration tolerance on cost\n");
+printf("  --tol1d tol1d : tolerance on powell 1d minimizations\n");
+printf("\n");
+printf("  --1dmin : use brute force 1D minimizations instead of powell\n");
+printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
+printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void) {
@@ -794,6 +832,9 @@ static void dump_options(FILE *fp)
   if(outregfile) fprintf(fp,"outregfile %s\n",outregfile);
   fprintf(fp,"interp  %s (%d)\n",interpmethod,interpcode);
   fprintf(fp,"frame  %d\n",frame);
+  fprintf(fp,"DoPowell  %d\n",DoPowell);
+  fprintf(fp,"TolPowell %lf\n",TolPowell);
+  fprintf(fp," nMaxItersPowell %d\n",nMaxItersPowell);
   fprintf(fp,"n1dmin  %d\n",n1dmin);
   if(interpcode == SAMPLE_SINC) fprintf(fp,"sinc hw  %d\n",sinchw);
   fprintf(fp,"Crop      %d\n",DoCrop);
@@ -1032,4 +1073,102 @@ int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
   fflush(stdout);
 
   return(nth);
+}
+/*---------------------------------------------------------*/
+int MinPowell(MRI *mov, MRI *seg, MATRIX *R, double *params,
+	      double ftol, double linmintol, int nmaxiters,
+	      char *costfile, double *costs, int *niters)
+{
+  extern MRI *mov_powell;
+  extern MRI *seg_powell;
+  extern MATRIX *R0_powell;
+  extern char *costfile_powell;
+  MATRIX *R0;
+  float *p, **xi, fret;
+  int    r, c, n,  nparams;
+
+  nparams = 6;
+
+  p = vector(1, nparams) ;
+  for(n=0; n < nparams; n++) p[n+1] = params[n];
+
+  xi = matrix(1, nparams, 1, nparams) ;
+  for (r = 1 ; r <= nparams ; r++) {
+    for (c = 1 ; c <= nparams ; c++) {
+      xi[r][c] = r == c ? 1 : 0 ;
+    }
+  }
+
+  mov_powell = mov;
+  seg_powell = seg;
+  R0 = MatrixCopy(R,NULL);
+  R0_powell = R0;
+  costfile_powell = costfile;
+
+  OpenPowell2(p, xi, nparams, ftol, linmintol, nmaxiters, 
+	      niters, &fret, compute_powell_cost);
+  printf("Powell done niters = %d\n",*niters);
+
+  for(n=0; n < nparams; n++) params[n] = p[n+1];
+  GetCosts(mov_powell, seg_powell, R0_powell, R, params, costs);
+
+  free_matrix(xi, 1, nparams, 1, nparams);
+  free_vector(p, 1, nparams);
+  return(NO_ERROR) ;
+}
+/*---------------------------------------------------------*/
+float compute_powell_cost(float *p) 
+{
+  extern MRI *mov_powell;
+  extern MRI *seg_powell;
+  extern MATRIX *R0_powell;
+  extern char *costfile_powell;
+  static MATRIX *R = NULL;
+  static int nth=0;
+  static double copt = -1;
+  double costs[8], pp[6];
+  int n;
+  FILE *fp;
+
+  if(R==NULL) R = MatrixAlloc(4,4,MATRIX_REAL);
+  for(n=0; n < 6; n++) pp[n] = p[n+1];
+
+  GetCosts(mov_powell, seg_powell, R0_powell, R, pp, costs);
+
+  // This is for a fast check on convergence
+  //costs[7] = 0;
+  //for(n=0; n < 6; n++) costs[7] += ((pp[n]-n)*(pp[n]-n)+1);
+
+  if(copt == -1) copt = costs[7];
+  if(copt > costs[7]) copt = costs[7];
+
+  if(costfile_powell != NULL){
+    // write costs to file
+    fp = fopen(costfile_powell,"a");
+    fprintf(fp,"%4d ",nth);
+    fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
+    fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+    fprintf(fp,"%7d %10.4lf %8.4lf ",
+	    (int)costs[0],costs[1],costs[2]); // WM  n mean std
+    fprintf(fp,"%7d %10.4lf %8.4lf ",
+	    (int)costs[3],costs[4],costs[5]); // CTX n mean std
+    fprintf(fp,"%8.4lf %8.5lf   %8.5lf ",costs[6],costs[7],copt); // t, cost=1/t
+    fprintf(fp,"\n");
+    fclose(fp);
+  }
+
+  fp = stdout;
+  fprintf(fp,"%4d ",nth);
+  fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
+  fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+  fprintf(fp,"%7d %10.4lf %8.4lf ",
+	  (int)costs[0],costs[1],costs[2]); // WM  n mean std
+  fprintf(fp,"%7d %10.4lf %8.4lf ",
+	  (int)costs[3],costs[4],costs[5]); // CTX n mean std
+  fprintf(fp,"%8.4lf %8.5lf   %8.5lf ",costs[6],costs[7],copt); // t, cost=1/t
+  fprintf(fp,"\n");
+  fflush(stdout);
+
+  nth++;
+  return((float)costs[7]);
 }
