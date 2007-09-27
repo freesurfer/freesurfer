@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.4 $
+ *    $Author: greve $
+ *    $Date: 2007/09/27 21:28:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,9 @@ extern "C"
   void OpenPowell( float p[], float **ioInitialDirection, int n, float ftol,
                    int *iter, float *fret,
                    float (*func)(float []) );
+  int OpenPowell2( float p[], float **ioInitialDirection, int n, float ftol,
+		    int maxiters, int *iter, float *fret,
+		    float (*func)(float []) );
 
   int OpenEigenSystem( float *iaData, int icData, float *oEigenValues,
                        float *oEigenVectors );
