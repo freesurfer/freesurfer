@@ -44,9 +44,9 @@ DefaultVariable Age
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/02 19:57:35 $
- *    $Revision: 1.42 $
+ *    $Author: kteich $
+ *    $Date: 2007/09/27 21:36:24 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -244,7 +244,7 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
   int version=0;
   int nv;
   MRI *mritmp;
-  char *dirname;
+  char *dirname, *basename;
   char datafilename[1000];
   MATRIX *Xt,*XtX,*iXtX;
 
@@ -292,6 +292,15 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
     if (!fio_FileExistsReadable(datafilename)) {
       sprintf(datafilename,"%s/%s",dirname,gd->DesignMatFile);
       if (!fio_FileExistsReadable(datafilename)) {
+
+	/* If that doesn't work, try the path from the GDF file and the
+	   base of the file name. */
+	basename = fio_basename(gd->DesignMatFile,NULL);
+	sprintf(datafilename,"%s/%s",dirname,basename);	
+	free(basename);
+      }
+      
+      if (!fio_FileExistsReadable(datafilename)) {
         printf("ERROR: gdfRead: could not find file %s\n",gd->DesignMatFile);
         return(NULL);
       }
@@ -328,6 +337,14 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
       path from the GDF file and the data file name */
       if (NULL != dirname)
         sprintf(datafilename,"%s/%s",dirname,gd->datafile);
+      
+      /* If that doesn't work, try the path from the GDF file and the
+	 base of the file name. */
+      if (!fio_FileExistsReadable(datafilename)) {
+	basename = fio_basename(gd->datafile,NULL);
+        sprintf(datafilename,"%s/%s",dirname,basename);	
+	free(basename);
+      }
     }
 
     gd->data = MRIread(datafilename);
