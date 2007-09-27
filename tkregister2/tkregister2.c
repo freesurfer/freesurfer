@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/15 15:26:45 $
- *    $Revision: 1.87 $
+ *    $Date: 2007/09/27 22:32:30 $
+ *    $Revision: 1.88 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.87 2007/08/15 15:26:45 greve Exp $";
+"$Id: tkregister2.c,v 1.88 2007/09/27 22:32:30 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -417,6 +417,8 @@ int checkreg = 0;
 
 int ZeroCRAS = 0;
 MATRIX *Ctarg, *invCtarg, *Starg, *Mcras0, *invMcras0;
+
+int DoFMovTarg = 0;
 
 /**** ------------------ main() ------------------------------- ****/
 int Register(ClientData clientData,
@@ -1009,6 +1011,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--noedit"))    noedit = 1;
     else if (!strcasecmp(option, "--zero-cras"))     ZeroCRAS = 1;
     else if (!strcasecmp(option, "--no-zero-cras"))  ZeroCRAS = 0;
+    else if (!strcasecmp(option, "--fmov-targ"))  DoFMovTarg = 1;
     else if (!strcasecmp(option, "--fstal")) {
       fstal = 1;
       LoadSurf = 0;
@@ -1282,6 +1285,7 @@ static void print_usage(void) {
   printf("   --no-zero-cras : do not zero target cras (done with --fstal)\n");
   printf("   --movbright  f : brightness of movable volume\n");
   printf("   --no-inorm  : turn off intensity normalization\n");
+  printf("   --fmov-targ : apply fmov brightness to the target\n");
   printf("   --plane  orient  : startup view plane <cor>, sag, ax\n");
   printf("   --slice  sliceno : startup slice number\n");
   printf("   --volview volid  : startup with targ or mov\n");
@@ -2189,7 +2193,11 @@ void draw_image2(int imc,int ic,int jc) {
           if (targimg[r][c] < 0) targimg[r][c] = 0;
           movimg[r][c]  = 255*(movimg[r][c]  - movimgmin)/movimgrange;
           if (movimg[r][c] < 0) movimg[r][c] = 0;
-        } else movimg[r][c] *= fscale_2;
+        } 
+	else {
+	  movimg[r][c] *= fscale_2;
+	  if(DoFMovTarg) targimg[r][c] *= fscale_2;
+	}
       }
     }
 
@@ -4479,7 +4487,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.87 2007/08/15 15:26:45 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.88 2007/09/27 22:32:30 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
