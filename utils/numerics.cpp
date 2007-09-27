@@ -6,8 +6,8 @@
  * Original Author: Dennis Jen and Silvester Czanner
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/27 21:27:59 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/09/27 22:10:52 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1149,12 +1149,13 @@ extern "C" void OpenPowell( float iaParams[], float **ioInitialDirection,
     3. If Gdiag > 0, then prints out info as it optimizes (setenv DIAG_NO 1)
     4. Returns 0 if no error, or 1 if error. The other version just exited.
     5. Sets all params even if an error is returned.
+    6. Allows user to set the tolerance on the 1D Min
   I made a new function because BF uses OpenPowell() in a lot of places.
   It would be better to have more options on this function.
   Note: each "iteration" is a loop thru a 1D min for each parameter.
   ------------------------------------------------------------------------*/
 extern "C" int OpenPowell2( float iaParams[], float **ioInitialDirection,
-			    int icParams, float iTolerance, 
+			    int icParams, float iTolerance, float iLinMinTol,
 			    int MaxIterations, int *oIterations,
 			    float *oFinalFunctionReturn,
 			    float (*iFunction)(float []) )
@@ -1177,8 +1178,8 @@ extern "C" int OpenPowell2( float iaParams[], float **ioInitialDirection,
     minimizer.set_trace(1);
     minimizer.set_verbose(1);
   }
-  //minimizer.set_linmin_xtol(.1);
-  //minimizer.set_x_tolerance(iTolerance);
+  minimizer.set_linmin_xtol(iLinMinTol);
+  //minimizer.set_x_tolerance(iLinMinTol);
 
   minimizer.set_f_tolerance(iTolerance);
   minimizer.set_max_function_evals(MaxIterations);
