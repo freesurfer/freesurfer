@@ -142,7 +142,7 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
     double fp = fret;
     int ibig=0;
     double del=0.0;
-    printf("  niters %d\n",(int)num_iterations_);
+    if(verbose_) printf("  niters %d\n",(int)num_iterations_);
 
     for (int i=0;i<n;i++)
     {
