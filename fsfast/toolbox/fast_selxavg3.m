@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.55 2007/06/18 19:05:29 greve Exp $
+% $Id: fast_selxavg3.m,v 1.55.2.1 2007/09/27 15:25:58 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/18 19:05:29 $
-%    $Revision: 1.55 $
+%    $Date: 2007/09/27 15:25:58 $
+%    $Revision: 1.55.2.1 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.55 2007/06/18 19:05:29 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.55.2.1 2007/09/27 15:25:58 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -415,7 +415,7 @@ if(DoGLMFit)
     rsserun(indz) = max(rsserun);
     rsse = rsse + rsserun;
     rho1run = sum(rrun(1:end-1,:).*rrun(2:end,:))./rsserun;
-    rho1.vol(:,:,:,end+1) = fast_mat2vol(rho1run,rho1.volsize);
+    rho1.vol(:,:,:,nthrun) = fast_mat2vol(rho1run,rho1.volsize); %bug was here
     %rho2run = sum(rrun(1:end-2,:).*rrun(3:end,:))./rsserun;
     %rho2.vol(:,:,:,end+1) = fast_mat2vol(rho2run,rho2.volsize);
     if(flac0.acfbins == 0)
