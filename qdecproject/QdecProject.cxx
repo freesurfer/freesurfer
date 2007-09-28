@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/28 16:23:31 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/09/28 20:46:30 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -93,7 +93,8 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
   
   // Make a target dir for the expanded file in the data dir, with a
   // directory name of the project file.
-  string fnExpandedProjectDir = string(ifnDataDir) + "/" + fnProjectBase + ".working";
+  string fnExpandedProjectDir = string(ifnDataDir) +
+    "/" + fnProjectBase + ".working";
 
   string sSubject;
   string sHemisphere;
@@ -121,12 +122,12 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
     return -1;
   }
   // Expand the .qdec file into the destination directory.
-  sCommand = string("cd ") + ifnDataDir + "; "
-    "tar zxvf " + fnProject + " > /dev/null";
+  sCommand = string("unzip -d ") + ifnDataDir + " " + 
+    fnProject + " > /dev/null";
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Couldn't "
-	     "untar project file (cmd=%s)\n", sCommand.c_str() );
+	     "expand project file (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
@@ -285,11 +286,15 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 	      "full path  to project file name; please specify full path." );
     }
   }
+
+  // If the file name doesn't end in qdec, append it now.
+  if( fnProject.find( ".qdec" ) != fnProject.size() - 5 ) {
+    fnProject += ".qdec";
+  }
   
   /* To make our file, we create a temp directory, link in our files,
-     and then tar it up into the destination .qdec file. This is the
-     structure we want. We'll create symlinks and then tar it up into
-     the destination file.
+     and then compress into the destination .qdec file. This is the
+     structure we want.
 
     $ifnWorkingDir/$project.qdec.working/
                                $Subject/surf/{r,l}h.{curv,inflatd,pial,white}
@@ -297,6 +302,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
                                $AnalysisName/ *
                                qdec.table.dat
                                QdecProjectMetadata.txt
+			       Version.txt
   */
 
   string fnSubjectsDir = this->GetSubjectsDir();
@@ -311,7 +317,8 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Make a target dir for the expanded file in the data dir, with a
   // directory name of the project file.
-  string fnExpandedProjectDir = string(ifnDataDir) + "/" + fnProjectBase + ".working";
+  string fnExpandedProjectDir = string(ifnDataDir) +
+    "/" + fnProjectBase + ".working";
 
   // Erase old working directory if present.
   string sCommand = "rm -rf " + fnExpandedProjectDir;
@@ -449,13 +456,13 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   fMetadata.close();
 
 
-  // Tar them up to the destination location with the .qdec filename.
+  // Compress them to the destination location with the .qdec filename.
   sCommand = string("cd ") + ifnDataDir + "; " +
-    "tar hcfzv " + fnProject + " " + fnProjectBase + ".working > /dev/null";
+    "zip -r " + fnProject + " " + fnProjectBase + ".working > /dev/null";
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "tar project table (cmd=%s)\n", sCommand.c_str() );
+	     "compress project table (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
