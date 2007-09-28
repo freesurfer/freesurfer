@@ -1,6 +1,6 @@
 function err = MRIsegReg(subject)
 % err = MRIsegReg(subject)
-% $Id: MRIsegReg.m,v 1.2 2007/09/14 20:16:19 greve Exp $
+% $Id: MRIsegReg.m,v 1.3 2007/09/28 00:41:52 greve Exp $
 
 err = 1;
 if(nargin ~= 1)
@@ -16,8 +16,10 @@ if(exist(sd) ~= 7)
   return;
 end
 
-fprintf('Reading aparc+aseg\n');
+fprintf('Reading seg\n');
 fspec = sprintf('%s/mri/aparc+aseg.mgz',sd);
+%fspec = sprintf('%s/mri/ribbon.mgz',sd);
+fprintf('%s\n',fspec);
 apas = MRIread(fspec);
 if(isempty(apas)) return; end
 aparcaseg = apas.vol;
@@ -65,18 +67,21 @@ nwm2 = length(indwm2);
 printf('nwm = %d, nwm2 = %d',nwm,nwm2);
 
 % Now get Cortex
-indctx = find( ((aparcaseg >= 1000 & aparcaseg <= 1034 ) | ...
-		(aparcaseg >= 2000 & aparcaseg <= 2034 ) ) & ...
-		mask);
+indctx = find( ...
+    (aparcaseg == 3 | aparcaseg == 42 | ...
+     (aparcaseg >= 1000 & aparcaseg <= 1034 ) | ...
+     (aparcaseg >= 2000 & aparcaseg <= 2034 ) ) & ...
+    mask);
 nctx = length(indctx);
 ctx = zeros(size(aparcaseg));
 ctx(indctx) = 1;
+printf('nctx = %d\n',nctx);
 
-regseg = apas;
-regseg.vol = 41*wm + 3*ctx; % 41=green
+segreg = apas;
+segreg.vol = 41*wm + 3*ctx; % 41=green
 
-fspec = sprintf('%s/mri/regseg.mgh',sd);
-MRIwrite(regseg,fspec);
+fspec = sprintf('%s/mri/segreg.mgz',sd);
+MRIwrite(segreg,fspec);
 
 err = 0;
 
