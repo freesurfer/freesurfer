@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/28 15:52:49 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/09/28 16:11:33 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -391,6 +391,14 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
     fnDataTableBase = fnDataTable.substr( nPreLastSlash+1, fnDataTable.size());
     fnDataTablePath = fnDataTable.substr( 0, nPreLastSlash+1);
   }
+
+  // Link in any levels files.
+#if 0
+  // NOTE: Older versions of ln don't handle this properly. For
+  // example, on kani, with ln version 4.5.3, this will create a link
+  // file called "*.levels", which is a dead link. So we can test for
+  // the right version of ln. But levels files aren't strictly needed,
+  // so just don't do this for now.
   sCommand = "ln -s " + fnDataTable + " " +
     fnDataTablePath + "/*.levels " + fnExpandedProjectDir;
   rSystem = system( sCommand.c_str() );
@@ -399,6 +407,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 	     "link data table (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
+#endif
 
   // Generate the meta data file.
   string fnMetadata = fnExpandedProjectDir + "/" + this->GetMetadataFileName();
