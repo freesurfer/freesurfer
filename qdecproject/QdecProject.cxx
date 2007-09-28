@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/28 20:46:30 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/09/28 21:50:57 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -40,12 +40,13 @@
 // Constructors/Destructors
 //
 
-QdecProject::QdecProject ( )
+QdecProject::QdecProject ( ) :
+  mDataTable( new QdecDataTable() ),
+  mGlmDesign( new QdecGlmDesign( this->mDataTable ) ),
+  mGlmFitter( new QdecGlmFit() ), 
+  msZipCommandFormat( "cd %3; zip -r %1 %2 > /dev/null" ),
+  msUnzipCommandFormat( "unzip -d %3 %1 > /dev/null" )
 {
-  this->mfnProjectFile = "qdec.xml";
-  this->mDataTable = new QdecDataTable();
-  this->mGlmDesign = new QdecGlmDesign( this->mDataTable );
-  this->mGlmFitter = new QdecGlmFit();
 }
 
 QdecProject::~QdecProject ( )
@@ -93,8 +94,9 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
   
   // Make a target dir for the expanded file in the data dir, with a
   // directory name of the project file.
-  string fnExpandedProjectDir = string(ifnDataDir) +
-    "/" + fnProjectBase + ".working";
+  string fnExpandedProjectBase = fnProjectBase + ".working";
+  string fnExpandedProjectDir = string(ifnDataDir) + "/" + 
+    fnExpandedProjectBase;
 
   string sSubject;
   string sHemisphere;
@@ -121,9 +123,14 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
 	     "remove existing temp directory (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
-  // Expand the .qdec file into the destination directory.
-  sCommand = string("unzip -d ") + ifnDataDir + " " + 
-    fnProject + " > /dev/null";
+
+  // Get out command string and expand the .qdec file into the
+  // destination directory.
+  this->FormatCommandString( fnProject.c_str(),
+			     fnExpandedProjectBase.c_str(),
+			     ifnDataDir,
+			     msUnzipCommandFormat.c_str(),
+			     sCommand );
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Couldn't "
@@ -317,8 +324,9 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Make a target dir for the expanded file in the data dir, with a
   // directory name of the project file.
-  string fnExpandedProjectDir = string(ifnDataDir) +
-    "/" + fnProjectBase + ".working";
+  string fnExpandedProjectBase = fnProjectBase + ".working";
+  string fnExpandedProjectDir = string(ifnDataDir) + "/" + 
+    fnExpandedProjectBase;
 
   // Erase old working directory if present.
   string sCommand = "rm -rf " + fnExpandedProjectDir;
@@ -456,9 +464,13 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   fMetadata.close();
 
 
-  // Compress them to the destination location with the .qdec filename.
-  sCommand = string("cd ") + ifnDataDir + "; " +
-    "zip -r " + fnProject + " " + fnProjectBase + ".working > /dev/null";
+  // Get our command string and compress the directory to the
+  // destination location with the .qdec filename.
+  this->FormatCommandString( fnProject.c_str(),
+			     fnExpandedProjectBase.c_str(),
+			     ifnDataDir,
+			     msZipCommandFormat.c_str(),
+			     sCommand );
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -474,6 +486,26 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 	     "remove temp directory (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
+
+  return 0;
+}
+
+int QdecProject::SetZipCommandFormat ( const char* isFormat ) {
+
+  if( NULL == isFormat ) 
+    return -1;
+  
+  msZipCommandFormat = isFormat;
+
+  return 0;
+}
+
+int QdecProject::SetUnzipCommandFormat ( const char* isFormat ) {
+
+  if( NULL == isFormat ) 
+    return -1;
+  
+  msUnzipCommandFormat = isFormat;
 
   return 0;
 }
@@ -802,4 +834,28 @@ QdecProject::GetMetadataFileName () const {
 
   static char fnMetadata[] = "QdecProjectMetadata.txt";
   return fnMetadata;
+}
+
+void
+QdecProject::FormatCommandString ( const char* ifnProject,
+				   const char* isExpandedProjectBaseName,
+				   const char* isWorkingDir,
+				   const char* isFormat,
+				   string& iosCommand ) const {
+  assert( ifnProject );
+  assert( isExpandedProjectBaseName );
+  assert( isWorkingDir );
+  assert( isFormat );
+
+  // Start by copying the format string.
+  iosCommand = isFormat;
+
+  // Make our substitutions.
+  string::size_type n;
+  while( string::npos != (n = iosCommand.find( "%1" )) )
+    iosCommand.replace( n, 2, ifnProject );
+  while( string::npos != (n = iosCommand.find( "%2" )) )
+    iosCommand.replace( n, 2, isExpandedProjectBaseName );
+  while( string::npos != (n = iosCommand.find( "%3" )) )
+    iosCommand.replace( n, 2, isWorkingDir );
 }
