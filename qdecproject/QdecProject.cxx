@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/28 21:50:57 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/09/28 22:12:18 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -45,7 +45,7 @@ QdecProject::QdecProject ( ) :
   mGlmDesign( new QdecGlmDesign( this->mDataTable ) ),
   mGlmFitter( new QdecGlmFit() ), 
   msZipCommandFormat( "cd %3; zip -r %1 %2 > /dev/null" ),
-  msUnzipCommandFormat( "unzip -d %3 %1 > /dev/null" )
+  msUnzipCommandFormat( "unzip -o -d %3 %1 > /dev/null" )
 {
 }
 
@@ -143,7 +143,7 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
   ifstream fVersion( fnVersion.c_str(), ios::out );
   if( !fVersion || fVersion.bad() ) {
     fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Couldn't "
-	     "find Version file\n" );
+	     "find Version file %s\n", fnVersion.c_str() );
     return -1;
   }
   int version;

@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/28 21:50:57 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/09/28 22:12:18 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -89,10 +89,10 @@ public:
    * Default zip format string is:
    * cd %3; zip -r %1 %2 > /dev/null
    * Default unzip format string is:
-   * unzip -d %3 %1 > /dev/null
+   * unzip -o -d %3 %1 > /dev/null
    *
-   * @return void
-   * @param isFormatString
+   * @return int
+   * @param isFormat
    */
   int SetZipCommandFormat ( const char* isFormat );
   int SetUnzipCommandFormat ( const char* isFormat );
