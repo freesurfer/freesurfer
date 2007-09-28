@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/27 22:17:46 $
- *    $Revision: 1.17 $
+ *    $Date: 2007/09/28 00:40:32 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
   --noise stddev : add noise with stddev to input for testing sensitivity
   --seed randseed : for use with --noise
 
-  --aseg : use aseg instead of regseg.mgz
+  --aseg : use aseg instead of segreg.mgz
 
   --nmax nmax   : max number of powell iterations (def 36)
   --tol   tol   : powell inter-iteration tolerance on cost
@@ -55,6 +55,8 @@
 
   --1dmin : use brute force 1D minimizations instead of powell
   --n1dmin n1dmin : number of 1d minimization (default = 3)
+
+  --mksegreg subject : create segreg.mgz and exit
 
   ENDUSAGE ---------------------------------------------------------------
 */
@@ -120,6 +122,7 @@
 #undef X
 #endif
 
+int MRIsegReg(char *subject);
 double *GetCosts(MRI *mov, MRI *seg,
                  MATRIX *R0, MATRIX *R,
                  double *p, double *costs);
@@ -153,7 +156,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.17 2007/09/27 22:17:46 greve Exp $";
+"$Id: mri_segreg.c,v 1.18 2007/09/28 00:40:32 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -179,7 +182,7 @@ char tmpstr[2000];
 
 char *SegRegCostFile = NULL;
 char  *fspec;
-MRI *regseg, *regseg0;
+MRI *segreg, *segreg0;
 MRI *noise=NULL;
 MRI *mritmp;
 MRI *inorm=NULL;
@@ -202,6 +205,8 @@ int nMaxItersPowell = 36;
 double TolPowell = .0001;
 double LinMinTolPowell = .1;
 
+int MkSegReg = 0;
+
 #define NMAX 100
 int ntx=0, nty=0, ntz=0, nax=0, nay=0, naz=0;
 double txlist[NMAX],tylist[NMAX],tzlist[NMAX];
@@ -212,7 +217,7 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
   double costs[8], mincost, p[6];
   double tx, ty, tz, ax, ay, az;
-  int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz, ntot, n;
+  int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz, ntot, n, err;
   FILE *fp;
   MATRIX *Ttemp=NULL, *invTtemp=NULL, *Stemp=NULL, *invStemp=NULL;
   MATRIX *R=NULL, *Rcrop=NULL, *R00=NULL, *Rdiff=NULL;
@@ -223,13 +228,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.17 2007/09/27 22:17:46 greve Exp $",
+     "$Id: mri_segreg.c,v 1.18 2007/09/28 00:40:32 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.17 2007/09/27 22:17:46 greve Exp $",
+     "$Id: mri_segreg.c,v 1.18 2007/09/28 00:40:32 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -268,26 +273,29 @@ int main(int argc, char **argv) {
   }
 
   if(!UseASeg){
-    printf("Loading regseg\n");
-    //sprintf(tmpstr,"%s/%s/mri/brain",SUBJECTS_DIR,subject);
-    sprintf(tmpstr,"%s/%s/mri/regseg",SUBJECTS_DIR,subject);
-    fspec = IDnameFromStem(tmpstr);
-    if(fspec==NULL){
-      printf("ERROR: could not determine file for stem %s\n",tmpstr);
+    printf("Loading segreg\n");
+    sprintf(tmpstr,"%s/%s/mri/segreg.mgz",SUBJECTS_DIR,subject);
+    if(!fio_FileExistsReadable(tmpstr)){
+      printf("\n");
+      printf("ERROR: cannot find %s\n",tmpstr);
+      printf("To create this file run:\n");
+      printf("\n");
+      printf("   mri_segreg --mksegreg %s\n",subject);
+      printf("\n");
       exit(1);
     }
-    regseg = MRIread(fspec);
-    if(regseg == NULL) exit(1);
+    segreg = MRIread(tmpstr);
+    if(segreg == NULL) exit(1);
     free(fspec);
   } else {
     printf("Loading aseg\n");
     sprintf(tmpstr,"%s/%s/mri/aseg",SUBJECTS_DIR,subject);
     fspec = IDnameFromStem(tmpstr);
-    regseg = MRIread(fspec);
-    if(regseg == NULL) exit(1);
+    segreg = MRIread(fspec);
+    if(segreg == NULL) exit(1);
     free(fspec);
   }
-  regseg0 = regseg;
+  segreg0 = segreg;
 
   // Cropping reduces the size of the target volume down to the
   // voxels that really matter. This can greatly increase the speed
@@ -297,31 +305,33 @@ int main(int argc, char **argv) {
     printf("Cropping\n");
 
     // Prepare to adjust the input reg matrix
-    Ttemp    = MRIxfmCRS2XYZtkreg(regseg); // Vox-to-tkRAS Matrices
+    Ttemp    = MRIxfmCRS2XYZtkreg(segreg); // Vox-to-tkRAS Matrices
     invTtemp = MatrixInverse(Ttemp,NULL);
-    Stemp    = MRIxfmCRS2XYZ(regseg,0); // Vox-to-ScannerRAS Matrices
+    Stemp    = MRIxfmCRS2XYZ(segreg,0); // Vox-to-ScannerRAS Matrices
     invStemp = MatrixInverse(Stemp,NULL);
 
-    MRIboundingBox(regseg, 0.5, &box);
+    err = MRIboundingBox(segreg, 0.5, &box);
+    if(err) exit(1);
     printf("BBbox start: %d %d %d, delta = %d %d %d\n",
            box.x,box.y,box.z,box.dx,box.dy,box.dz);
     // Now crop
-    regseg  = MRIcrop(regseg0,
+    segreg  = MRIcrop(segreg0,
                       box.x, box.y, box.z,
                       box.x+box.dx, box.y+box.dy, box.z+box.dz);
-
+    if(segreg == NULL) exit(1);
     if(inorm){
       // Crop inorm too
       mritmp = MRIcrop(inorm,
                        box.x, box.y, box.z,
                        box.x+box.dx, box.y+box.dy, box.z+box.dz);
+      if(mritmp == NULL) exit(1);
       MRIfree(&inorm);
       inorm = mritmp;
     }
 
-    Tcrop  = MRIxfmCRS2XYZtkreg(regseg); // Vox-to-tkRAS Matrices
+    Tcrop  = MRIxfmCRS2XYZtkreg(segreg); // Vox-to-tkRAS Matrices
     invTcrop = MatrixInverse(Tcrop,NULL);
-    Scrop  = MRIxfmCRS2XYZ(regseg,0); // Vox-to-ScannerRAS Matrices
+    Scrop  = MRIxfmCRS2XYZ(segreg,0); // Vox-to-ScannerRAS Matrices
     invScrop = MatrixInverse(Scrop,NULL);
 
     // Now adjust input reg
@@ -344,7 +354,7 @@ int main(int argc, char **argv) {
       MatrixFree(&Scrop);
     }
 
-    //MRIwrite(regseg,"regsegcrop.mgz");
+    //MRIwrite(segreg,"segregcrop.mgz");
     //regio_write_register("crop.reg",subject,mov->xsize,
     //     mov->zsize,1,R0,FLT2INT_ROUND);
     //exit(1);
@@ -363,15 +373,15 @@ int main(int argc, char **argv) {
   R   = MatrixCopy(R0,NULL);
 
   // Allocate the output
-  out = MRIallocSequence(regseg->width,
-                         regseg->height,
-                         regseg->depth,
+  out = MRIallocSequence(segreg->width,
+                         segreg->height,
+                         segreg->depth,
                          MRI_FLOAT, 1);
-  MRIcopyHeader(regseg,out);
+  MRIcopyHeader(segreg,out);
 
   // Compute cost at initial
   for(nth=0; nth < 6; nth++) p[nth] = 0.0;
-  GetCosts(mov, regseg, R0, R, p, costs);
+  GetCosts(mov, segreg, R0, R, p, costs);
 
   printf("Initial cost is %lf\n",costs[7]);
   printf("Initial Costs\n");
@@ -386,7 +396,7 @@ int main(int argc, char **argv) {
   TimerStart(&mytimer) ;
   if(DoPowell) {
     printf("Staring Powell Minimization\n");
-    MinPowell(mov, regseg, R, p, TolPowell, LinMinTolPowell,
+    MinPowell(mov, segreg, R, p, TolPowell, LinMinTolPowell,
 	      nMaxItersPowell,SegRegCostFile, costs, &nth);
   }
   else{
@@ -396,14 +406,14 @@ int main(int argc, char **argv) {
     for(n=0; n < n1dmin; n++){
       printf("n = %d --------------------------------------\n",n);
       R = MatrixCopy(R0,NULL);
-      nth += Min1D(mov, regseg, R, p, SegRegCostFile, costs);
+      nth += Min1D(mov, segreg, R, p, SegRegCostFile, costs);
       printf("\n");
     }
   }
   secCostTime = TimerStop(&mytimer)/1000.0 ;
 
   // Recompute at optimal. This forces MRI *out to be the output at best reg
-  GetCosts(mov, regseg, R0, R, p, costs);
+  GetCosts(mov, segreg, R0, R, p, costs);
 
   printf("Min cost was %lf\n",costs[7]);
   printf("Number of iterations %5d in %lf sec\n",nth,secCostTime);
@@ -436,12 +446,12 @@ int main(int argc, char **argv) {
   }
   
   if(outfile) {
-    // This changes values in regseg0
+    // This changes values in segreg0
     printf("Writing output volume to %s \n",outfile);
     fflush(stdout);
-    MRIsetValues(regseg0,0.0);
-    MRIvol2VolTkReg(mov, regseg0, R, interpcode, sinchw);
-    MRIwrite(regseg0,outfile);
+    MRIsetValues(segreg0,0.0);
+    MRIvol2VolTkReg(mov, segreg0, R, interpcode, sinchw);
+    MRIwrite(segreg0,outfile);
   }
 
   if(outregfile){
@@ -491,7 +501,7 @@ int main(int argc, char **argv) {
               p[4] = ay;
               p[5] = az;
               TimerStart(&mytimer) ;
-              GetCosts(mov, regseg, R0, R, p, costs);
+              GetCosts(mov, segreg, R0, R, p, costs);
               secCostTime = TimerStop(&mytimer)/1000.0 ;
 
               // write costs to file
@@ -638,6 +648,11 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
       nargsused = 1;
+    } else if (istringnmatch(option, "--mksegreg",0)) {
+      if (nargc < 1) argnerr(option,1);
+      subject = pargv[0];
+      MkSegReg = 1;
+      nargsused = 1;
     } else if (istringnmatch(option, "--tx-mmd",0)) {
       if(nargc < 3) argnerr(option,3);
       sscanf(pargv[0],"%lf",&vmin);
@@ -770,7 +785,7 @@ printf("\n");
 printf("  --noise stddev : add noise with stddev to input for testing sensitivity\n");
 printf("  --seed randseed : for use with --noise\n");
 printf("\n");
-printf("  --aseg : use aseg instead of regseg.mgz\n");
+printf("  --aseg : use aseg instead of segreg.mgz\n");
 printf("\n");
 printf("  --nmax nmax   : max number of powell iterations (def 36)\n");
 printf("  --tol   tol   : powell inter-iteration tolerance on cost\n");
@@ -779,6 +794,9 @@ printf("\n");
 printf("  --1dmin : use brute force 1D minimizations instead of powell\n");
 printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
 printf("\n");
+printf("  --mksegreg subject : create segreg.mgz and exit\n");
+printf("\n");
+  
 }
 /* --------------------------------------------- */
 static void print_help(void) {
@@ -787,12 +805,20 @@ static void print_help(void) {
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void check_options(void) {
+static void check_options(void) 
+{
+  int err;
+
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if (SUBJECTS_DIR==NULL) {
     printf("ERROR: SUBJECTS_DIR undefined.\n");
     exit(1);
   }
+  if(MkSegReg){
+    err = MRIsegReg(subject);
+    exit(err);
+  }
+
   if (movvolfile == NULL) {
     printf("ERROR: No mov volume supplied.\n");
     exit(1);
@@ -952,7 +978,7 @@ double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
   if(inorm)  MRImultiply(out,inorm,out);
 
   // compute costs
-  costs = SegRegCost(regseg,out,costs);
+  costs = SegRegCost(segreg,out,costs);
 
   MatrixFree(&Mrot);
   MatrixFree(&Mtrans);
@@ -1171,4 +1197,110 @@ float compute_powell_cost(float *p)
 
   nth++;
   return((float)costs[7]);
+}
+
+/*---------------------------------------------------------------*/
+int MRIsegReg(char *subject)
+{
+  char *SUBJECTS_DIR;
+  char tmpstr[2000];
+  int c,r,s,n,nwm,nctx,segid,v,z=0,nErode3d;
+  MRI *apas, *brain, *wm, *ctx, *segreg;
+
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+
+  printf("Reading aparc+aseg\n");
+  sprintf(tmpstr,"%s/%s/mri/aparc+aseg.mgz",SUBJECTS_DIR,subject);
+  apas = MRIread(tmpstr);
+  if(apas==NULL) exit(1);
+
+  printf("Reading brainmask\n");
+  sprintf(tmpstr,"%s/%s/mri/brainmask.mgz",SUBJECTS_DIR,subject);
+  brain = MRIread(tmpstr);
+  if(brain==NULL) exit(1);
+
+  printf("Zeroing B0 regions\n");
+  for(c=0; c < brain->width; c++){
+    for(r=0; r < brain->height; r++){
+      for(s=0; s < brain->depth; s++){
+	v = MRIgetVoxVal(apas,c,r,s,0);
+	z = 0;
+	if(v == 1006 || v == 2006) z = 1; // entorhinal
+	if(v == 1009 || v == 2009) z = 1; // inferiortemp
+	if(v == 1012 || v == 2012) z = 1; // lat orb front
+	if(v == 1014 || v == 2014) z = 1; // med orb front
+	if(v == 1016 || v == 2016) z = 1; // parahipp
+	if(v == 1032 || v == 2032) z = 1; // frontal pole
+	if(v == 1033 || v == 2033) z = 1; // temporal pole
+	if(z) MRIsetVoxVal(brain,c,r,s,0, 0);
+      }
+    }
+  }
+
+  nErode3d = 5;
+  printf("Eroding brain mask %d\n",nErode3d);
+  for(n=0; n<nErode3d; n++) MRIerode(brain,brain);
+
+  printf("Creating WM mask\n");
+  wm = MRIclone(apas,NULL);
+  nwm = 0;
+  for(c=0; c < brain->width; c++){
+    for(r=0; r < brain->height; r++){
+      for(s=0; s < brain->depth; s++){
+	v = MRIgetVoxVal(brain,c,r,s,0);
+	z = 0;
+	if(v != 0) {
+	  segid = MRIgetVoxVal(apas,c,r,s,0);
+	  if(segid == 2 || segid == 41) {
+	    z = 41;
+	    nwm ++;
+	  }
+	}
+	MRIsetVoxVal(wm,c,r,s,0, z);
+      }
+    }
+  }
+  printf("Found %d WM voxels\n",nwm);
+
+  nErode3d = 2;
+  printf("Eroding WM mask %d\n",nErode3d);
+  for(n=0; n<nErode3d; n++) MRIerode(wm,wm);
+
+  printf("Creating Cortex mask\n");
+  ctx = MRIclone(apas,NULL);
+  nctx = 0;
+  for(c=0; c < brain->width; c++){
+    for(r=0; r < brain->height; r++){
+      for(s=0; s < brain->depth; s++){
+	v = MRIgetVoxVal(brain,c,r,s,0);
+	z = 0;
+	if(v != 0){
+	  segid = MRIgetVoxVal(apas,c,r,s,0);
+	  if(segid == 3 || segid == 42 ||
+	     (segid >= 1000 && segid <= 1034 ) ||
+	     (segid >= 2000 && segid <= 2034 ) ){
+	    z = 3;
+	    nctx++;
+	  }
+	}
+	MRIsetVoxVal(ctx,c,r,s,0, z);
+      }
+    }
+  }
+  printf("Found %d Ctx voxels\n",nctx);
+
+  segreg = MRIadd(wm,ctx,NULL);
+
+  printf("Writing segreg.mgz\n");
+  sprintf(tmpstr,"%s/%s/mri/segreg.mgz",SUBJECTS_DIR,subject);
+  MRIwrite(segreg,tmpstr);
+
+  MRIfree(&brain);
+  MRIfree(&apas);
+  MRIfree(&wm);
+  MRIfree(&ctx);
+  MRIfree(&segreg);
+
+  return(0);
 }
