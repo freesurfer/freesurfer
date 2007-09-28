@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/09/22 22:15:19 $
- *    $Revision: 1.398 $
+ *    $Author: greve $
+ *    $Date: 2007/09/28 00:34:26 $
+ *    $Revision: 1.399 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.398 $";
+char *MRI_C_VERSION = "$Revision: 1.399 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2327,6 +2327,7 @@ MRIboundingBox(MRI *mri, int thresh, MRI_REGION *box)
   BUFTYPE  *psrc ;
   float    *pfsrc ;
   short    *pssrc ;
+  int      *pisrc ;
 
   box->dx = width = mri->width ;
   box->dy = height = mri->height ;
@@ -2416,6 +2417,25 @@ MRIboundingBox(MRI *mri, int thresh, MRI_REGION *box)
               z1 = z ;
           }
         }
+      }
+    }
+    break ;
+  case MRI_INT:
+    for (z = 0 ; z < depth ; z++){
+      for (y = 0 ; y < height ; y++){
+
+        pisrc = &MRIIvox(mri, 0, y, z);
+        for (x = 0 ; x < width ; x++)  {
+          if(*pisrc++ > thresh) {
+            if (x < box->x)          box->x = x ;
+            if (y < box->y)          box->y = y ;
+            if (z < box->z)          box->z = z ;
+            if (x > x1)              x1 = x ;
+            if (y > y1)              y1 = y ;
+            if (z > z1)              z1 = z ;
+          }
+        }
+
       }
     }
     break ;
