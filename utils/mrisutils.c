@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/14 12:48:47 $
- *    $Revision: 1.30 $
+ *    $Author: greve $
+ *    $Date: 2007/09/28 22:07:43 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1916,4 +1916,60 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices) {
 
   MRIfree(&mri_aseg) ;  // a locally edited copy, not the original
   return(lcortex) ;
+}
+
+/*-------------------------------------------------------*/
+/*!
+  \fn int MRISsphericalCoords(MRIS *surf)
+  \brief Replaces x,y,z with theta,phi,radius. Assumes
+    that the surface xyz are already on the sphere.
+    Note: this is not realated to the surface-based
+    spherical coords.
+ */
+int MRISsphericalCoords(MRIS *surf)
+{
+  int k;
+  double x,y,z,d2,d,r,theta,phi;
+
+  for(k=0; k < surf->nvertices; k++){
+    x = surf->vertices[k].x;
+    y = surf->vertices[k].y;
+    z = surf->vertices[k].z;
+    d2 = x*x + y*y;
+    d = sqrt(d2);
+    r = sqrt(d2 + z*z);
+    theta = atan2(y,x);
+    phi = atan2(z,d);
+    surf->vertices[k].x = theta;
+    surf->vertices[k].y = phi;
+    surf->vertices[k].z = r;
+  }
+  return(0);
+}
+/*-------------------------------------------------------*/
+/*!
+  \fn int MRISripZeros(MRIS *surf, MRI *mri)
+  \brief Sets ripflag=1 for vertices where the mri value is 0 
+    (actually less than 1e-5). If mri is null, then uses the
+    val field. No change to a vertex if ripflag already = 1.
+*/
+int MRISripZeros(MRIS *surf, MRI *mri)
+{
+  int k;
+  double v;
+
+  if(mri){
+    if(mri->width != surf->nvertices){
+      printf("ERROR: MRISripZeros(): dimension mismatch\n");
+      return(1);
+    }
+  }
+
+  for(k=0; k < surf->nvertices; k++){
+    if(surf->vertices[k].ripflag) continue;
+    if(mri) v = MRIgetVoxVal(mri,k,0,0,0);
+    else    v = surf->vertices[k].val;
+    if(fabs(v) < 1e-5) surf->vertices[k].ripflag = 1;
+  }
+  return(0);
 }
