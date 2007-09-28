@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/27 21:39:26 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/09/28 15:52:49 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -26,6 +26,8 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
+
+#include <unistd.h>
 
 #include <stdexcept>
 #include <sstream>
