@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/27 21:41:04 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/09/28 16:02:08 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -196,74 +196,82 @@ int main ( int argc, char** argv ) {
   // name of the analysis.
   sWorkingDir += "/" + sAnalysisName;
 
-  // Load the data table.
-  QdecProject project;
-  if( project.LoadDataTable( fnDataTable.c_str() ) ) {
-    cerr << "Error: Couldn't load data table " << fnDataTable << endl;
-    exit( 1 );
+  try {
+    
+    // Load the data table.
+    QdecProject project;
+    if( project.LoadDataTable( fnDataTable.c_str() ) ) {
+      cerr << "Error: Couldn't load data table " << fnDataTable << endl;
+      exit( 1 );
+    }
+    
+    // Set some values.
+    project.SetSubjectsDir( sSubjectsDir.c_str() );
+    project.SetAverageSubject( sSubjectName.c_str() );
+    project.SetWorkingDir( sWorkingDir.c_str() );
+    
+    // Create the design based on our input params.
+    if( project.CreateGlmDesign( sAnalysisName.c_str(),
+				 sDiscreteFactor1.c_str(),
+				 sDiscreteFactor2.c_str(),
+				 sContinuousFactor1.c_str(),
+				 sContinuousFactor2.c_str(),
+				 sMeasurement.c_str(), sHemisphere.c_str(),
+				 smoothness, NULL ) ) {
+      cerr << "Error: Couldn't create design. Make sure your parameters are "
+	   << "valid, including that your factors exist in the data table and "
+	   << "are of the right type, and that the subject exists in the "
+	   << "given subjects directory." << endl;
+      
+      cerr << "Input:" << endl;
+      cerr << " Data table: " << fnDataTable << endl;
+      cerr << " Working dir: " << sWorkingDir << endl;
+      cerr << " Subjects dir: " << sSubjectsDir << endl;
+      cerr << " Subject name: " << sSubjectName << endl;
+      cerr << " Analysis name: " << sAnalysisName << endl;
+      cerr << " Discrete factor 1: " << sDiscreteFactor1 << endl;
+      cerr << " Discrete factor 2: " << sDiscreteFactor2 << endl;
+      cerr << " Continuous factor 1: " << sContinuousFactor1 << endl;
+      cerr << " Continuous factor 2: " << sContinuousFactor2 << endl;
+      cerr << " Measurement: " << sMeasurement << endl;
+      cerr << " Hemisphere: " << sHemisphere << endl;
+      cerr << " Smoothness: " << smoothness << endl;
+      cerr << " Output: " << fnProject << endl;
+      exit( 1 );
+    }
+    
+    // Run the GLM fit.
+    if( project.RunGlmFit() ) {
+      cerr << "Error: mri_glmfit did not return successfully. Check the output "
+	   << "for details." << endl;
+      exit( 1 );
+    }
+    
+    // Save the results.
+    if( project.SaveProjectFile( fnProject.c_str() ) ) {
+      cerr << "Error: Couldn't save the results to the project file "
+	   << fnProject << endl;
+      exit( 1 );
+    }
+    
+    // Delete our working directory.
+    string sCommand = "rm -rf " + sWorkingDir;
+    int rSystem = system( sCommand.c_str() );
+    if( 0 != rSystem )
+      cerr << "Warning: Couldn't remove temp working directory " 
+	   << sWorkingDir << endl;
   }
+  catch( exception& e ) {
 
-  // Set some values.
-  project.SetSubjectsDir( sSubjectsDir.c_str() );
-  project.SetAverageSubject( sSubjectName.c_str() );
-  project.SetWorkingDir( sWorkingDir.c_str() );
-
-  // Create the design based on our input params.
-  if( project.CreateGlmDesign( sAnalysisName.c_str(),
-			       sDiscreteFactor1.c_str(),
-			       sDiscreteFactor2.c_str(),
-			       sContinuousFactor1.c_str(),
-			       sContinuousFactor2.c_str(),
-			       sMeasurement.c_str(), sHemisphere.c_str(),
-			       smoothness, NULL ) ) {
-    cerr << "Error: Couldn't create design. Make sure your parameters are "
-	 << "valid, including that your factors exist in the data table and "
-	 << "are of the right type, and that the subject exists in the "
-	 << "given subjects directory." << endl;
-
-    cerr << "Input:" << endl;
-    cerr << " Data table: " << fnDataTable << endl;
-    cerr << " Working dir: " << sWorkingDir << endl;
-    cerr << " Subjects dir: " << sSubjectsDir << endl;
-    cerr << " Subject name: " << sSubjectName << endl;
-    cerr << " Analysis name: " << sAnalysisName << endl;
-    cerr << " Discrete factor 1: " << sDiscreteFactor1 << endl;
-    cerr << " Discrete factor 2: " << sDiscreteFactor2 << endl;
-    cerr << " Continuous factor 1: " << sContinuousFactor1 << endl;
-    cerr << " Continuous factor 2: " << sContinuousFactor2 << endl;
-    cerr << " Measurement: " << sMeasurement << endl;
-    cerr << " Hemisphere: " << sHemisphere << endl;
-    cerr << " Smoothness: " << smoothness << endl;
-    cerr << " Output: " << fnProject << endl;
+    cerr << "Error: " << e.what() << endl;
     exit( 1 );
   }
   
-  // Run the GLM fit.
-  if( project.RunGlmFit() ) {
-    cerr << "Error: mri_glmfit did not return successfully. Check the output "
-	 << "for details." << endl;
-    exit( 1 );
-  }
-
-  // Save the results.
-  if( project.SaveProjectFile( fnProject.c_str() ) ) {
-    cerr << "Error: Couldn't save the results to the project file "
-	 << fnProject << endl;
-    exit( 1 );
-  }
-
-  // Delete our working directory.
-  string sCommand = "rm -rf " + sWorkingDir;
-  int rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem )
-    cerr << "Warning: Couldn't remove temp working directory " 
-	 << sWorkingDir << endl;
-
   return 0;
 }
 
 void PrintUsage () {
-
+  
   cout << "USAGE: qdec_glmfit [options...]" << endl;
   cout << endl;
   cout << "Options:" << endl;
@@ -296,5 +304,5 @@ void PrintUsage () {
        << endl << endl;
   cout << "  --output, -o <filename>          Output .qdec filename (reqd)"
        << endl << endl;
-
+  
 }
