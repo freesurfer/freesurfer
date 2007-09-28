@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/28 16:02:08 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/09/28 16:06:33 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,7 +63,7 @@ int main ( int argc, char** argv ) {
 
   // Try to get SUBJECTS_DIR.
   if( getenv("SUBJECTS_DIR") ) {
-    sSubjectName = getenv("SUBJECTS_DIR");
+    sSubjectsDir = getenv("SUBJECTS_DIR");
   }
 
   // Our arguments to getopt_long.
@@ -154,7 +154,7 @@ int main ( int argc, char** argv ) {
     PrintUsage();
     exit( 1 );
   }
-  if( sSubjectName == "" ) {
+  if( sSubjectsDir == "" ) {
     cerr << "Error: no subjects directory specified. Use --subjects-dir "
 	 << "<directory> or set the SUBJECTS_DIR environment variable."
 	 << endl;
