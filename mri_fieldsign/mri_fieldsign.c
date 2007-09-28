@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/26 18:08:45 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/09/28 22:08:17 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.2 2007/09/26 18:08:45 greve Exp $
+// $Id: mri_fieldsign.c,v 1.3 2007/09/28 22:08:17 greve Exp $
 
 /*
   BEGINHELP
@@ -84,7 +84,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.2 2007/09/26 18:08:45 greve Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.3 2007/09/28 22:08:17 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -107,10 +107,11 @@ int nsmooth = -1;
 char tmpstr[2000];
 int ReverseSign = 0;
 int SFATrue = 0;
+int UseSphere = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, err;
+  int nargs, err, reshapefactor;
   MRIS *surf;
   MRI *eccensfa, *polarsfa, *mri, *mritmp, *mritmp2;
   MRI *eccenreal,*eccenimag,*polarreal,*polarimag;
@@ -151,6 +152,9 @@ int main(int argc, char *argv[]) {
     printf("Reading %s\n",tmpstr);
     err = MRISreadPatchNoRemove(surf, tmpstr) ;
     if(err) exit(1);
+  } else {
+    printf("Using spherical coordinates\n");
+    MRISsphericalCoords(surf);
   }
 
   if(DoSFA){
@@ -184,6 +188,19 @@ int main(int argc, char *argv[]) {
     MRIfree(&mritmp);
     MRIfree(&mritmp2);
   }
+
+  if (mri->height != 1 || mri->depth != 1) {
+    reshapefactor = mri->height * mri->depth;
+    printf("Reshaping %d\n",reshapefactor);
+    mritmp = mri_reshape(mri, reshapefactor*mri->width,
+                           1, 1, mri->nframes);
+    MRIfree(&mri);
+    mri = mritmp;
+    reshapefactor = 0; /* reset for output */
+  }
+
+  printf("Ripping Zeros\n");
+  MRISripZeros(surf,mri);
 
   if(fwhm > 0) {
     nsmooth = MRISfwhm2nitersSubj(fwhm,subject,hemi,"white");
@@ -244,6 +261,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--occip")) PatchFile = "occip.patch.flat";
     else if (!strcasecmp(option, "--rev")) ReverseSign = 1;
     else if (!strcasecmp(option, "--sfa-true")) SFATrue = 1;
+    else if (!strcasecmp(option, "--sphere")) UseSphere = 1;
 
     else if (!strcasecmp(option, "--eccen-sfa")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -340,8 +358,11 @@ static void print_usage(void) {
   printf("   --hemi hemi \n");
   printf("   --patch patchfile : without hemi \n");
   printf("   --occip : patchfile = occip.patch.flat\n");
+  printf("   --sphere : use spherical surface instead of patch\n");
+  printf("\n");
   printf("   --fwhm fwhm_mm\n");
   printf("   --nsmooth nsmoothsteps\n");
+  printf("\n");
   printf("   --rev : reverse sign\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
@@ -386,6 +407,11 @@ static void check_options(void)
     printf("Cannot --fwhm and --nsmooth\n");
     exit(1);
   }
+  if(PatchFile == NULL && ! UseSphere) {
+    printf("ERROR: must spec --patch or --sphere\n");
+    exit(1);
+  }
+
   return;
 }
 /*--------------------------------------------------*/
