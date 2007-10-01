@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/09/25 21:00:01 $
- *    $Revision: 1.283 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/01 15:41:00 $
+ *    $Revision: 1.284 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -8348,6 +8348,9 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   if (volume_error!=FunD_tErr_NoError) {
     if (NULL != volm)
       Volm_Delete (&volm);
+    if (NULL != volume)
+      FunD_Delete (&volume);
+    sclv_unload_field (field);
     printf("surfer: couldn't load %s\n",fname);
     ErrorReturn(func_convert_error(volume_error),
                 (func_convert_error(volume_error),
@@ -8371,13 +8374,46 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   sclv_field_info[field].func_volume = volume;
 
   /* get the range information */
-  FunD_GetValueRange    (sclv_field_info[field].func_volume,
-                         &sclv_field_info[field].min_value,
-                         &sclv_field_info[field].max_value);
-  FunD_GetNumConditions (sclv_field_info[field].func_volume,
-                         &sclv_field_info[field].num_conditions);
-  FunD_GetNumTimePoints (sclv_field_info[field].func_volume,
-                         &sclv_field_info[field].num_timepoints);
+  volume_error = 
+    FunD_GetValueRange (sclv_field_info[field].func_volume,
+			&sclv_field_info[field].min_value,
+			&sclv_field_info[field].max_value);
+  if (volume_error!=FunD_tErr_NoError) {
+    if (NULL != volm)
+      Volm_Delete (&volm);
+    if (NULL != volume)
+      FunD_Delete (&volume);
+    sclv_unload_field (field);
+    ErrorReturn(func_convert_error(volume_error),
+                (func_convert_error(volume_error),
+                 "sclv_read_from_volume: error in FunD_GetValueRange\n"));
+  }
+  volume_error = 
+    FunD_GetNumConditions (sclv_field_info[field].func_volume,
+			   &sclv_field_info[field].num_conditions);
+  if (volume_error!=FunD_tErr_NoError) {
+    if (NULL != volm)
+      Volm_Delete (&volm);
+    if (NULL != volume)
+      FunD_Delete (&volume);
+    sclv_unload_field (field);
+    ErrorReturn(func_convert_error(volume_error),
+                (func_convert_error(volume_error),
+                 "sclv_read_from_volume: error in FunD_GetNumConditions\n"));
+  }
+  volume_error = 
+    FunD_GetNumTimePoints (sclv_field_info[field].func_volume,
+			   &sclv_field_info[field].num_timepoints);
+  if (volume_error!=FunD_tErr_NoError) {
+    if (NULL != volm)
+      Volm_Delete (&volm);
+    if (NULL != volume)
+      FunD_Delete (&volume);
+    sclv_unload_field (field);
+    ErrorReturn(func_convert_error(volume_error),
+                (func_convert_error(volume_error),
+                 "sclv_read_from_volume: error in FunD_GetNumTimePoints\n"));
+  }
 
   /* paint the first condition/timepoint in this field */
   sclv_set_timepoint_of_field (field, 0, 0);
@@ -18606,7 +18642,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.283 2007/09/25 21:00:01 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.284 2007/10/01 15:41:00 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22930,7 +22966,8 @@ int sclv_set_timepoint_of_field (int field,
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
                  "sclv_set_timepoint_of_field: "
-                 "timepoint was out of bounds: %d",timepoint));
+                 "timepoint was out of bounds: %d (max %d)",
+		 timepoint, sclv_field_info[field].num_timepoints));
   if (condition < 0 || condition > sclv_field_info[field].num_conditions)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
