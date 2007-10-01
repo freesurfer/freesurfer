@@ -12,8 +12,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/05/10 21:49:24 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/10/01 20:18:34 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,6 +63,10 @@ class ScubaCollectionPropertiesPath {
   virtual double GetPointSampleValue( const int iPointIndex ) const = 0;
   
   virtual int GetNumberOfSamples() const = 0;
+
+  virtual double GetPointProbabilityValue( const int iPointIndex ) const = 0;
+  
+  virtual int GetNumberOfProbabilities() const = 0;
 
  protected:
 

@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/07/10 15:47:56 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/10/01 20:18:34 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -62,7 +62,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DPath );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.9 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DPath, "$Revision: 1.10 $" );
 
 vtkKWScubaLayer3DPath::vtkKWScubaLayer3DPath () :
   mPathProperties( NULL ),
@@ -71,6 +71,9 @@ vtkKWScubaLayer3DPath::vtkKWScubaLayer3DPath () :
   mEndPointActor( NULL ),
   mPathPointsCollection( NULL ),
   mInitialPathsActorCollection( NULL ),
+  mTubePolyData( NULL ),
+  mSampleData( NULL ),
+  mProbabilityData( NULL ),
   mTubeFilter( NULL ),
   mTubeMapper( NULL ),
   mTubeActor( NULL ),
@@ -78,7 +81,7 @@ vtkKWScubaLayer3DPath::vtkKWScubaLayer3DPath () :
   mTriangleStripper( NULL ),
   mNormals( NULL ),
   mMapper( NULL ),
-  mPathMode( TUBE_MODE ),
+  mPathMode( PROBABILITY_TUBE_MODE ),
   mTubeRadius( 1.0 ),
   mbIsTubeRadiusScaled( true ),
   mbIsTubeRadiusColored( true ) {
@@ -116,6 +119,18 @@ vtkKWScubaLayer3DPath::~vtkKWScubaLayer3DPath () {
   
   if( mMapper ) {
     mMapper->Delete();
+  }
+
+  if( mTubePolyData ) {
+    mTubePolyData->Delete();
+  }
+  
+  if( mSampleData ) {
+    mSampleData->Delete();
+  }
+  
+  if( mProbabilityData ) {
+    mProbabilityData->Delete();
   }
   
   if( mTubeFilter ) {
@@ -299,26 +314,36 @@ vtkKWScubaLayer3DPath::AddControls ( vtkKWWidget* iPanel ) {
   vtkKWRadioButtonSetWithLabel* radBtnSetPathMode = vtkKWRadioButtonSetWithLabel::New();
   radBtnSetPathMode->SetParent( iPanel );
   radBtnSetPathMode->Create();
-  radBtnSetPathMode->GetWidget()->PackHorizontallyOn();
+  
+  // in other words, pack it vertically
+  radBtnSetPathMode->GetWidget()->PackHorizontallyOff();
   radBtnSetPathMode->SetLabelText( "Mode: " );
   
   char sTclCmd[1024];
 
-  vtkKWRadioButton* radBtnTubeMode = radBtnSetPathMode->GetWidget()->AddWidget( 0 );
-  radBtnTubeMode->SetText( "Tube" );
-  sprintf( sTclCmd, "SetPathMode %d", TUBE_MODE );
-  radBtnTubeMode->SetCommand( this, sTclCmd );
-  if ( mPathMode == TUBE_MODE )
-    radBtnTubeMode->SelectedStateOn();
+  vtkKWRadioButton* radBtnProbabilityTubeMode = radBtnSetPathMode->GetWidget()->AddWidget( 0 );
+  radBtnProbabilityTubeMode->SetText( "Probability Tube" );
+  sprintf( sTclCmd, "SetPathMode %d", PROBABILITY_TUBE_MODE );
+  radBtnProbabilityTubeMode->SetCommand( this, sTclCmd );
+  if ( mPathMode == PROBABILITY_TUBE_MODE )
+    radBtnProbabilityTubeMode->SelectedStateOn();
 
-  vtkKWRadioButton* radBtnThresholdMode = radBtnSetPathMode->GetWidget()->AddWidget( 1 );
+  vtkKWRadioButton* radBtnSampledTubeMode = radBtnSetPathMode->GetWidget()->AddWidget( 1 );
+  radBtnSampledTubeMode->SetText( "Sampled Tube" );
+  sprintf( sTclCmd, "SetPathMode %d", SAMPLED_TUBE_MODE );
+  radBtnSampledTubeMode->SetCommand( this, sTclCmd );
+  if ( mPathMode == SAMPLED_TUBE_MODE )
+    radBtnSampledTubeMode->SelectedStateOn();
+
+  vtkKWRadioButton* radBtnThresholdMode = radBtnSetPathMode->GetWidget()->AddWidget( 2 );
   radBtnThresholdMode->SetText( "Threshold" );
   sprintf( sTclCmd, "SetPathMode %d", THRESHOLD_MODE );
   radBtnThresholdMode->SetCommand( this, sTclCmd );
   if ( mPathMode == THRESHOLD_MODE )
     radBtnThresholdMode->SelectedStateOn();
-
-  radBtnTubeMode->Delete();
+    
+  radBtnProbabilityTubeMode->Delete();
+  radBtnSampledTubeMode->Delete();
   radBtnThresholdMode->Delete();
   
   // create a widget for adjusting the radius of the tube
@@ -450,42 +475,6 @@ vtkKWScubaLayer3DPath::CreateTube() {
     source->ConvertIndexToRAS( point[ 0 ], point[ 1 ], point[ 2 ], 
       RASX, RASY, RASZ );
 
-//    double* rtv = source->GetRASToVoxelMatrix();
-//
-//    vtkMatrix4x4* matrix = vtkMatrix4x4::New();
-//    matrix->SetElement( 0, 0, rtv[0] * source->GetPixelSizeX() );
-//    matrix->SetElement( 0, 1, rtv[1] );
-//    matrix->SetElement( 0, 2, rtv[2] );
-//    matrix->SetElement( 0, 3, 0 );
-//    matrix->SetElement( 1, 0, rtv[4] );
-//    matrix->SetElement( 1, 1, rtv[5] * source->GetPixelSizeY() );
-//    matrix->SetElement( 1, 2, rtv[6] );
-//    matrix->SetElement( 1, 3, 0 );
-//    matrix->SetElement( 2, 0, rtv[8] );
-//    matrix->SetElement( 2, 1, rtv[9] );
-//    matrix->SetElement( 2, 2, rtv[10] * source->GetPixelSizeZ() );
-//    matrix->SetElement( 2, 3, 0 );
-//    matrix->SetElement( 3, 0, 0 );
-//    matrix->SetElement( 3, 1, 0 );
-//    matrix->SetElement( 3, 2, 0 );
-//    matrix->SetElement( 3, 3, 1 );
-//      
-//    vtkTransform* transform = vtkTransform::New();
-//    transform->SetMatrix( matrix );
-//    
-//    RASX = point[ 0 ];
-//    RASY = point[ 1 ];
-//    RASZ = point[ 2 ];
-//    
-//    cerr << "-- ras: " << RASX << ", " << RASY << ", " << RASZ << endl;
-//    
-//    transform->TransformPoint( RASX, RASY, RASZ );    
-//    matrix->Delete();
-//    transform->Delete();
-//  
-//    cerr << "   ras: " << RASX << ", " << RASY << ", " << RASZ << endl;
-
-
     // the center of the bounding volume is actually in the lower corner, so we
     // need to move our transformed points diagonally lower by the amount of the
     // world's center
@@ -498,13 +487,27 @@ vtkKWScubaLayer3DPath::CreateTube() {
   }
   
   // add the points, lines, and sample data    
-  vtkPolyData *polyData = vtkPolyData::New();
-  polyData->SetPoints( inputPoints );
-  polyData->SetLines( lines );
+  mTubePolyData = vtkPolyData::New();
+  mTubePolyData->SetPoints( inputPoints );
+  mTubePolyData->SetLines( lines );
+
+  // set up the probablity data
+  mProbabilityData = vtkFloatArray::New();
+  mProbabilityData->SetName( "ProbablityData" );
+  
+  // error check to make sure that number of samples is the same as the number
+  // of points
+  if( nPoints == mPathProperties->GetNumberOfProbabilities() ) {
+    // get the scalar data
+    for( int i=0; i<mPathProperties->GetNumberOfProbabilities(); i++ ) {
+      const double value = mPathProperties->GetPointProbabilityValue( i );
+      mProbabilityData->InsertNextValue( value );
+    }
+  }
 
   // set up the scalar data that was sampled by the pathway
-  vtkFloatArray *sampleData = vtkFloatArray::New();
-  sampleData->SetName( "SampleData" );
+  mSampleData = vtkFloatArray::New();
+  mSampleData->SetName( "SampleData" );
   
   // error check to make sure that number of samples is the same as the number
   // of points
@@ -512,19 +515,25 @@ vtkKWScubaLayer3DPath::CreateTube() {
     // get the scalar data
     for( int i=0; i<mPathProperties->GetNumberOfSamples(); i++ ) {
       const double value = mPathProperties->GetPointSampleValue( i );
-      sampleData->InsertNextValue( value );
+      mSampleData->InsertNextValue( value );
     }
-    polyData->GetPointData()->SetScalars( sampleData );
   }
+  
+  // set the right data as the scalars initially
+  if( mPathMode == PROBABILITY_TUBE_MODE ) {
+     mTubePolyData->GetPointData()->SetScalars( mProbabilityData );        
+  } else if( mPathMode == SAMPLED_TUBE_MODE ) {
+     mTubePolyData->GetPointData()->SetScalars( mSampleData );        
+  }
+  
   
   inputPoints->Delete();
   lines->Delete();
-  sampleData->Delete();
   
   // Add thickness to the resulting line.
   mTubeFilter = vtkTubeFilter::New();
   mTubeFilter->SetNumberOfSides( 5 );
-  mTubeFilter->SetInput( polyData );
+  mTubeFilter->SetInput( mTubePolyData );
   mTubeFilter->SetRadius( mTubeRadius );
   
   if( mbIsTubeRadiusScaled ) {
@@ -532,9 +541,7 @@ vtkKWScubaLayer3DPath::CreateTube() {
   } else {
     mTubeFilter->SetVaryRadiusToVaryRadiusOff();
   }
-      
-  polyData->Delete();
-  
+    
   mTubeMapper = vtkPolyDataMapper::New();
   mTubeMapper->SetInputConnection( mTubeFilter->GetOutputPort() );
   
@@ -685,15 +692,21 @@ vtkKWScubaLayer3DPath::UpdatePathMode() {
 
   if( NULL != mPathProperties ) {
     
-    if( mPathMode == TUBE_MODE ) {
+    if( mPathMode == PROBABILITY_TUBE_MODE || mPathMode == SAMPLED_TUBE_MODE ) {
       
       // turn the threshold visualization off and the tube on      
       if( mPathActor ) {
         mPathActor->SetVisibility( false );
       }
       
-      if( mTubeActor ) {
+      if( mTubeActor ) {        
         mTubeActor->SetVisibility( true );
+      }
+      
+      if( mPathMode == PROBABILITY_TUBE_MODE ) {
+         mTubePolyData->GetPointData()->SetScalars( mProbabilityData );        
+      } else if( mPathMode == SAMPLED_TUBE_MODE ) {
+         mTubePolyData->GetPointData()->SetScalars( mSampleData );        
       }
       
     } else if (  mPathMode == THRESHOLD_MODE ) {

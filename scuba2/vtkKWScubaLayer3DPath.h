@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/05/10 21:49:24 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/10/01 20:18:34 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,6 +43,8 @@ class vtkStripper;
 class vtkTubeFilter;
 class vtkKWScaleWithEntry;
 class vtkKWCheckButton;
+class vtkFloatArray;
+class vtkPolyData;
 
 class vtkKWScubaLayer3DPath : public vtkKWScubaLayer {
 
@@ -130,6 +132,14 @@ class vtkKWScubaLayer3DPath : public vtkKWScubaLayer {
 
     vtkActorCollection* mInitialPathsActorCollection;
     
+    vtkPolyData *mTubePolyData;
+
+    // scalar data that was sampled by the pathway
+    vtkFloatArray *mSampleData;
+
+    // probably the path went through the voxel
+    vtkFloatArray *mProbabilityData;
+
     vtkTubeFilter *mTubeFilter;
     vtkPolyDataMapper* mTubeMapper;
     vtkActor* mTubeActor;
@@ -147,12 +157,13 @@ class vtkKWScubaLayer3DPath : public vtkKWScubaLayer {
     //BTX
     // Tube representation type
     enum {
-      TUBE_MODE = 0,
-      THRESHOLD_MODE = 1
+      PROBABILITY_TUBE_MODE = 0,
+      SAMPLED_TUBE_MODE = 1,
+      THRESHOLD_MODE = 2
     };
     //ETX
     
-    // can be tube or threshold
+    // can be probability tube, sampled tube, or threshold
     int mPathMode;
     
     double mTubeRadius;
