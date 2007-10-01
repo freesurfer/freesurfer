@@ -8,9 +8,9 @@
 /*
  * Original Authors: Nick Schmansky and Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/25 19:19:37 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/01 22:39:14 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -79,7 +79,10 @@ int QdecGlmFit::Run ( QdecGlmDesign* iGlmDesign )
             << " --fsgd " << iGlmDesign-> GetFsgdFileName()
             << " --glmdir " << iGlmDesign->GetWorkingDir()
             << " --surf " << iGlmDesign->GetAverageSubject()
-            << " " << iGlmDesign->GetHemi();
+            << " " << iGlmDesign->GetHemi()
+            << " --label " << iGlmDesign->GetSubjectsDir()
+            << "/" << iGlmDesign->GetAverageSubject() << "/label/"
+            << iGlmDesign->GetHemi() << ".cortex.label";
 
   // Append the contrast option to the command for each contrast we
   // have.
