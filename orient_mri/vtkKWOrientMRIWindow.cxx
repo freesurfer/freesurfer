@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/18 17:10:22 $
- *    $Revision: 1.13 $
+ *    $Date: 2007/10/01 17:41:03 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,8 @@
 #include "vtkFreesurferLookupTable.h"
 #include "vtkFSVolumeSource.h"
 #include "vtkKWApplication.h"
+#include "vtkKWEntry.h"
+#include "vtkKWEntryWithLabel.h"
 #include "vtkKWIcon.h"
 #include "vtkKWLoadSaveDialog.h"
 #include "vtkKWMenu.h"
@@ -51,6 +53,7 @@
 #include "vtkKWRadioButton.h"
 #include "vtkKWRadioButtonSet.h"
 #include "vtkKWScale.h"
+#include "vtkKWSimpleEntryDialog.h"
 #include "vtkKWToolbar.h"
 #include "vtkKWToolbarSet.h"
 #include "vtkLookupTable.h"
@@ -62,7 +65,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.13 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.14 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
   mbDirty( false ),
@@ -283,6 +286,11 @@ vtkKWOrientMRIWindow::Create () {
   mBtnRotateXPos->SetText( "Rotate" );
   mBtnRotateXPos->SetBalloonHelpString( "Rotate" );
   mBtnRotateXPos->SetCommand( mView3D, "RotateUserTransform 0 -90" );
+  stringstream ssCommand;
+  ssCommand << "DoRotateUserTransformDialog 0 -1; "
+	    << mBtnRotateXPos->GetTclName() << " SetReliefToRaised";
+  mBtnRotateXPos->AddBinding( "<Control-ButtonRelease-1>", this, 
+			      ssCommand.str().c_str() );
   try { IconLoader::SetPushButtonIcon( "RotateXPos", mBtnRotateXPos); }
   catch (...) {}
 
@@ -294,6 +302,8 @@ vtkKWOrientMRIWindow::Create () {
   mBtnRotateXNeg->SetText( "Rotate" );
   mBtnRotateXNeg->SetBalloonHelpString( "Rotate" );
   mBtnRotateXNeg->SetCommand( mView3D, "RotateUserTransform 0 90" );
+  mBtnRotateXNeg->AddBinding( "<Control-ButtonRelease-1>", this,
+			      "DoRotateUserTransformDialog 0 1" );
   try { IconLoader::SetPushButtonIcon( "RotateXNeg", mBtnRotateXNeg); }
   catch (...) {}
 
@@ -305,6 +315,8 @@ vtkKWOrientMRIWindow::Create () {
   mBtnRotateYPos->SetText( "Rotate" );
   mBtnRotateYPos->SetBalloonHelpString( "Rotate" );
   mBtnRotateYPos->SetCommand( mView3D, "RotateUserTransform 2 90" );
+  mBtnRotateYPos->AddBinding( "<Control-ButtonRelease-1>", this,
+				   "DoRotateUserTransformDialog 2 1" );
   try { IconLoader::SetPushButtonIcon( "RotateYPos", mBtnRotateYPos); }
   catch (...) {}
 
@@ -316,6 +328,8 @@ vtkKWOrientMRIWindow::Create () {
   mBtnRotateYNeg->SetText( "Rotate" );
   mBtnRotateYNeg->SetBalloonHelpString( "Rotate" );
   mBtnRotateYNeg->SetCommand( mView3D, "RotateUserTransform 2 -90" );
+  mBtnRotateYNeg->AddBinding( "<Control-ButtonRelease-1>", this,
+			      "DoRotateUserTransformDialog 2 -1" );
   try { IconLoader::SetPushButtonIcon( "RotateYNeg", mBtnRotateYNeg); }
   catch (...) {}
 
@@ -327,6 +341,8 @@ vtkKWOrientMRIWindow::Create () {
   mBtnRotateZPos->SetText( "Rotate" );
   mBtnRotateZPos->SetBalloonHelpString( "Rotate" );
   mBtnRotateZPos->SetCommand( mView3D, "RotateUserTransform 1 -90" );
+  mBtnRotateZPos->AddBinding( "<Control-ButtonRelease-1>", this,
+			      "DoRotateUserTransformDialog 1 -1" );
   try { IconLoader::SetPushButtonIcon( "RotateZPos", mBtnRotateZPos); }
   catch (...) {}
 
@@ -338,6 +354,8 @@ vtkKWOrientMRIWindow::Create () {
   mBtnRotateZNeg->SetText( "Rotate" );
   mBtnRotateZNeg->SetBalloonHelpString( "Rotate" );
   mBtnRotateZNeg->SetCommand( mView3D, "RotateUserTransform 1 90" );
+  mBtnRotateZNeg->AddBinding( "<Control-ButtonRelease-1>", this,
+			      "DoRotateUserTransformDialog 1 1" );
   try { IconLoader::SetPushButtonIcon( "RotateZNeg", mBtnRotateZNeg); }
   catch (...) {}
 
@@ -1105,6 +1123,40 @@ vtkKWOrientMRIWindow::UserTransformChanged ( vtkObject* iCaller,
     }
   }
 
+}
+
+void
+vtkKWOrientMRIWindow::DoRotateUserTransformDialog ( int iAxis, 
+						    int iMultiplier ) {
+  
+  assert( mView3D );
+
+  // Default amount to rotate by.
+  static double degrees = 90;
+
+  // Make our dialog.
+  vtkSmartPointer<vtkKWSimpleEntryDialog> dialog =
+    vtkSmartPointer<vtkKWSimpleEntryDialog>::New();
+  dialog->SetApplication( this->GetApplication() );
+  dialog->Create();
+  dialog->SetOptions( vtkKWMessageDialog::OkDefault );
+  dialog->SetTitle( "Rotate" );
+
+  // Configure the entry so that it only accepts doubles. Fill it in
+  // with the amount of degrees.
+  vtkSmartPointer<vtkKWEntryWithLabel> labeledEntry = dialog->GetEntry();
+  labeledEntry->SetLabelText( "Degrees to rotate: " );
+  labeledEntry->GetWidget()->SetRestrictValueToDouble();
+  labeledEntry->GetWidget()->SetValueAsDouble( degrees );
+  labeledEntry->GetWidget()->SetWidth( 5 );
+  labeledEntry->GetWidget()->Focus();
+
+  if( dialog->Invoke() ) {
+    // Get the new value and rotate the transform.
+    degrees = labeledEntry->GetWidget()->GetValueAsDouble();
+    mView3D->RotateUserTransform( iAxis, degrees * (double)iMultiplier );
+  }
+  
 }
 
 vtkKWOrientMRIWindow::MenuItem::MenuItem ()  :

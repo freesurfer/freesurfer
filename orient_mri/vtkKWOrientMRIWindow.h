@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/13 20:58:21 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/10/01 17:41:03 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,6 +113,14 @@ public:
   static void UserTransformChanged ( vtkObject* iCaller, 
 				     unsigned long iEventId,
 				     void* iClientData, void* iCallData );
+  
+  // Description:
+  // Show a dialog from which the user can enter a number of degrees
+  // to rotate the user transform. The first argument is the axis and
+  // will be passed to RotateUserTransform. The second transform
+  // should be -1 or 1, which will be multiplied to the value the user
+  // enter.
+  void DoRotateUserTransformDialog ( int iAxis, int iMultiplier );
 
 protected:
 
