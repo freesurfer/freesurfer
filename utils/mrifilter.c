@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/12 15:47:28 $
- *    $Revision: 1.62 $
+ *    $Date: 2007/10/02 14:34:54 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1962,12 +1962,12 @@ MRIinvert(MRI *mri_src, MRI *mri_dst)
            perform a median filter on the input MRI
 ------------------------------------------------------*/
 MRI *
-MRImedian(MRI *mri_src, MRI *mri_dst, int wsize)
+MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box)
 {
   static float *sort_array = NULL ;
   static int   sort_size = 0 ;
   int     width, height, depth, x, y, z, whalf, x0, y0, z0,
-  median_index, wcubed, yi, zi ;
+          median_index, wcubed, yi, zi, xmin, xmax, ymin, ymax, zmin, zmax ;
   float   *sptr ;
 
   width = mri_src->width ;
@@ -1994,11 +1994,25 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize)
     sort_array = (float *)calloc(wcubed, sizeof(float)) ;
     sort_size = wcubed ;
   }
-  for (z = 0 ; z < depth ; z++)
+
+  if (box)
   {
-    for (y = 0 ; y < height ; y++)
+    xmin = box->x ; ymin = box->y ; zmin = box->z ;
+    xmax = box->x+box->dx-1 ;
+    ymax = box->y+box->dy-1 ;
+    zmax = box->z+box->dz-1 ;
+  }
+  else
+  {
+    xmin = ymin = zmin = 0 ;
+    xmax = width-1 ; ymax = height-1 ; zmax = depth-1 ;
+  }
+    
+  for (z = zmin ; z <= zmax ; z++)
+  {
+    for (y = ymin ; y <= ymax ; y++)
     {
-      for (x = 0 ; x < width ; x++)
+      for (x = xmin ; x <= xmax  ; x++)
       {
         for (sptr = sort_array, z0 = -whalf ; z0 <= whalf ; z0++)
         {
@@ -4197,6 +4211,8 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
         pdst = &MRIvox(mri_dst, 0, y, z) ;
         for (x = 0 ; x < width ; x++)
         {
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
           slabel = *psrc++ ;
           
           dlabel = MRI_AMBIGUOUS ;
@@ -4266,6 +4282,8 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
       {
         for (x = 0 ; x < width ; x++)
         {
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
           slabel = nint(MRIgetVoxVal(mri_src, x, y, z, 0)) ;
           
           dlabel = MRI_AMBIGUOUS ;

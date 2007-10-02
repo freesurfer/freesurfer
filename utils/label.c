@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/09/25 21:33:13 $
- *    $Revision: 1.75 $
+ *    $Author: fischl $
+ *    $Date: 2007/10/02 14:34:53 $
+ *    $Revision: 1.76 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2337,10 +2337,14 @@ LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
+#if 0
     if (mris->useRealRAS)
       MRIworldToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
     else
       MRIsurfaceRASToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
+#else
+    MRISsurfaceRASToVoxel(mris, mri, v->x, v->y, v->z, &xv, &yv, &zv) ;
+#endif
     if (xv < nvox || yv < nvox || zv < nvox ||
         xv > (mri->width-1)-nvox ||
         yv > (mri->height-1)-nvox ||
@@ -2357,10 +2361,14 @@ LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
+#if 0
     if (mris->useRealRAS)
       MRIworldToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
     else
       MRIsurfaceRASToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv);
+#else
+    MRISsurfaceRASToVoxel(mris, mri, v->x, v->y, v->z, &xv, &yv, &zv) ;
+#endif
     if (xv < nvox || yv < nvox || zv < nvox ||
         xv > (mri->width-1)-nvox ||
         yv > (mri->height-1)-nvox ||

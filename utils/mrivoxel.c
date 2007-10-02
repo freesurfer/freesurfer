@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:39 $
- *    $Revision: 1.6 $
+ *    $Author: fischl $
+ *    $Date: 2007/10/02 14:34:55 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,13 +72,11 @@
 float
 MRIvoxelDx(MRI *mri, int x, int y, int z)
 {
-  float   dx ;
-  int     width, height, xm1, xp1, total, left, right, ym1, yp1 ;
+  float   left, right, dx ;
+  int     width, height, xm1, xp1, ym1, yp1 ;
 
   width = mri->width ;
   height = mri->height ;
-
-  total = 0 ;
 
   x = mri->xi[x] ;
   xm1 = mri->xi[x-1] ;
@@ -88,13 +86,13 @@ MRIvoxelDx(MRI *mri, int x, int y, int z)
   yp1 = mri->yi[y+1] ;
   z = mri->zi[z] ;
 
-  left = 2 * MRIvox(mri, xm1, y, z) ;
-  left += MRIvox(mri, xm1, ym1, z) ;
-  left += MRIvox(mri, xm1, yp1, z) ;
+  left = 2 * MRIgetVoxVal(mri, xm1, y, z, 0) ;
+  left += MRIgetVoxVal(mri, xm1, ym1, z, 0) ;
+  left += MRIgetVoxVal(mri, xm1, yp1, z, 0) ;
 
-  right = 2 * MRIvox(mri, xp1, y, z) ;
-  right += MRIvox(mri, xp1, ym1, z) ;
-  right += MRIvox(mri, xp1, yp1, z) ;
+  right = 2 * MRIgetVoxVal(mri, xp1, y, z, 0) ;
+  right += MRIgetVoxVal(mri, xp1, ym1, z, 0) ;
+  right += MRIgetVoxVal(mri, xp1, yp1, z, 0) ;
 
   dx = ((float)right - (float)left) / 8.0f ;
   return(dx) ;
@@ -109,13 +107,11 @@ MRIvoxelDx(MRI *mri, int x, int y, int z)
 float
 MRIvoxelDy(MRI *mri, int x, int y, int z)
 {
-  float   dy ;
-  int     width, height, xm1, xp1, total, top, bottom, ym1, yp1 ;
+  float   top, bottom, dy ;
+  int     width, height, xm1, xp1, ym1, yp1 ;
 
   width = mri->width ;
   height = mri->height ;
-
-  total = 0 ;
 
   x = mri->xi[x] ;
   xm1 = mri->xi[x-1] ;
@@ -125,13 +121,13 @@ MRIvoxelDy(MRI *mri, int x, int y, int z)
   yp1 = mri->yi[y+1] ;
   z = mri->zi[z] ;
 
-  top = 2 * MRIvox(mri, xm1, ym1, z) ;
-  top += MRIvox(mri, x, ym1, z) ;
-  top += MRIvox(mri, xp1, ym1, z) ;
+  top = 2 * MRIgetVoxVal(mri, xm1, ym1, z, 0) ;
+  top += MRIgetVoxVal(mri, x, ym1, z, 0) ;
+  top += MRIgetVoxVal(mri, xp1, ym1, z, 0) ;
 
-  bottom = 2 * MRIvox(mri, xm1, yp1, z) ;
-  bottom += MRIvox(mri, x, yp1, z) ;
-  bottom += MRIvox(mri, xp1, yp1, z) ;
+  bottom = 2 * MRIgetVoxVal(mri, xm1, yp1, z, 0) ;
+  bottom += MRIgetVoxVal(mri, x, yp1, z, 0) ;
+  bottom += MRIgetVoxVal(mri, xp1, yp1, z, 0) ;
 
   dy = ((float)bottom - (float)top) / 8.0f ;
   return(dy) ;
@@ -146,13 +142,11 @@ MRIvoxelDy(MRI *mri, int x, int y, int z)
 float
 MRIvoxelDz(MRI *mri, int x, int y, int z)
 {
-  float   dz ;
-  int     width, depth, xm1, xp1, total, top, bottom, zm1, zp1 ;
+  float   dz, top, bottom ;
+  int     width, depth, xm1, xp1, zm1, zp1 ;
 
   width = mri->width ;
   depth = mri->depth ;
-
-  total = 0 ;
 
   x = mri->xi[x] ;
   xm1 = mri->xi[x-1] ;
@@ -162,13 +156,13 @@ MRIvoxelDz(MRI *mri, int x, int y, int z)
   zp1 = mri->zi[z+1] ;
   y = mri->yi[y] ;
 
-  top = 2 * MRIvox(mri, xm1, y, zm1) ;
-  top += MRIvox(mri, x, y, zm1) ;
-  top += MRIvox(mri, xp1, y, zm1) ;
+  top = 2 * MRIgetVoxVal(mri, xm1, y, zm1, 0) ;
+  top += MRIgetVoxVal(mri, x, y, zm1, 0) ;
+  top += MRIgetVoxVal(mri, xp1, y, zm1, 0) ;
 
-  bottom = 2 * MRIvox(mri, xm1, y, zp1) ;
-  bottom += MRIvox(mri, x, y, zp1) ;
-  bottom += MRIvox(mri, xp1, y, zp1) ;
+  bottom = 2 * MRIgetVoxVal(mri, xm1, y, zp1, 0) ;
+  bottom += MRIgetVoxVal(mri, x, y, zp1, 0) ;
+  bottom += MRIgetVoxVal(mri, xp1, y, zp1, 0) ;
 
   dz = ((float)bottom - (float)top) / 8.0f ;
   return(dz) ;
@@ -436,3 +430,61 @@ MRIvoxelZscore(MRI *mri, int x, int y, int z, int wsize)
   return(zscore) ;
 }
 
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int compare_sort_array(const void *pc1, const void *pc2) ;
+static int
+compare_sort_array(const void *pc1, const void *pc2)
+{
+  register float c1, c2 ;
+
+  c1 = *(float *)pc1 ;
+  c2 = *(float *)pc2 ;
+
+  /*  return(c1 > c2 ? 1 : c1 == c2 ? 0 : -1) ;*/
+  if (c1 > c2)
+    return(1) ;
+  else if (c1 < c2)
+    return(-1) ;
+
+  return(0) ;
+}
+float
+MRIvoxelMedian(MRI *mri, int x0, int y0, int z0, int wsize)
+{
+  float   median, val ;
+  int     whalf, width, height, depth, x, y, z, npix, xmin, xmax, median_index,
+          ymin, ymax, zmin, zmax, wcubed ;
+  static float *sort_array = NULL ;
+  float   *sptr ;
+
+  whalf = wsize/2 ;
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+
+  zmin = MAX(0, z0-whalf) ; zmax = MIN(depth-1, z0+whalf) ;
+  ymin = MAX(0, y0-whalf) ; ymax = MIN(height-1, y0+whalf) ;
+  xmin = MAX(0, x0-whalf) ; xmax = MIN(width-1, x0+whalf) ;
+  npix = (zmax - zmin + 1) * (ymax - ymin + 1) * (xmax - xmin + 1) ;
+
+  for (sptr = sort_array, z = zmin ; z <= zmax ; z++)
+  {
+    for (y = ymin ; y <= ymax ; y++)
+    {
+      for (x = xmin ; x <= xmax ; x++)
+      {
+        val = MRIgetVoxVal(mri, x, y, z, 0) ;
+        *sptr++ = val ;
+      }
+    }
+  }
+  wcubed = (wsize*wsize*wsize) ;
+  median_index = wcubed / 2 ;
+  qsort(sort_array, wcubed, sizeof(float), compare_sort_array) ;
+  median = sort_array[median_index] ;
+  return(median) ;
+}
