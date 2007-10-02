@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/14 12:47:46 $
- *    $Revision: 1.300 $
+ *    $Date: 2007/10/02 14:36:49 $
+ *    $Revision: 1.301 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -636,6 +636,7 @@ int          MRISreadCTABFromAnnotationIfPresent(const char *fname,
 int          MRISisCTABPresentInAnnotation(const char *fname, int* present);
 int          MRISreadValuesBak(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadImagValues(MRI_SURFACE *mris, char *fname) ;
+int          MRIScopyImagValuesToValues(MRI_SURFACE *mris) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
 
 int          MRIScopyValToVal2(MRI_SURFACE *mris) ;
@@ -678,6 +679,7 @@ int          MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter) ;
 int          MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs) ;
 double       MRIScomputeAverageCurvature(MRI_SURFACE *mris, double *psigma) ;
 int          MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
+int          MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, double *pnz) ;
 
 MRI_SURFACE  *MRISoverAlloc(int max_vertices, int max_faces,
                             int nvertices, int nfaces) ;
@@ -724,6 +726,9 @@ int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
 int          MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, Real r, 
                                    Real a, Real s, 
                                    Real *px, Real *py, Real *pz) ;
+int          MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri, Real r, 
+                                         Real a, Real s, 
+                                         Real *px, Real *py, Real *pz) ;
 int          MRISsurfaceRASToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
     Real xw, Real yw, Real zw,
     Real *pxv, Real *pyv, Real *pzv) ;
@@ -1035,6 +1040,10 @@ int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris,
     int total_dof,int new_dof);
 #define GRAY_WHITE     1
 #define GRAY_CSF       2
+int
+MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
+                               MRI *mri_smooth, double sigma,
+                               float max_thickness, float dir, FILE *log_fp) ;
 int MRIScomputeInvertedGrayWhiteBorderValues(MRI_SURFACE *mris,
                                              MRI *mri_brain,
                                              MRI *mri_smooth,
@@ -1512,6 +1521,9 @@ int MRISopenMarked(MRI_SURFACE *mris, int order) ;
 int MRIScloseMarked(MRI_SURFACE *mris, int order) ;
 int MRISerodeMarked(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateMarked(MRI_SURFACE *mris, int ndil) ;
+int MRISerodeRipped(MRI_SURFACE *mris, int ndil) ;
+int MRISdilateRipped(MRI_SURFACE *mris, int ndil) ;
+int   MRISvalidVertices(MRI_SURFACE *mris) ;
 
 int MRIScomputeClassStatistics(MRI_SURFACE *mris,
                                MRI *mri,
