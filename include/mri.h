@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/19 12:49:53 $
- *    $Revision: 1.349 $
+ *    $Date: 2007/10/02 14:36:07 $
+ *    $Revision: 1.350 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -206,6 +206,7 @@ float  MRIfindNearestNonzeroLocation(MRI *mri, int wsize,
                                      Real xr, Real yr, Real zr,
                                      int *pxv, int *pyv, int *pzv) ;
 /* single pixel filtering */
+float MRIvoxelMedian(MRI *mri, int x0, int y0, int z0, int wsize) ;
 float MRIvoxelMean(MRI *mri, int x, int y, int z, int wsize) ;
 float MRIvoxelStd(MRI *mri, int x, int y, int z, float mean, int wsize) ;
 float MRIvoxelZscore(MRI *mri, int x, int y, int z, int wsize) ;
@@ -511,7 +512,7 @@ MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent);
 MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent);
 
 MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
-MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize) ;
+MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box) ;
 MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
 double MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label) ;
 double MRImeanInLabelInRegion(MRI *mri_src, MRI *mri_labeled,
