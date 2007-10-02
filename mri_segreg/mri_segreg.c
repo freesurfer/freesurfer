@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/28 00:40:32 $
- *    $Revision: 1.18 $
+ *    $Date: 2007/10/02 00:00:42 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -156,7 +156,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.18 2007/09/28 00:40:32 greve Exp $";
+"$Id: mri_segreg.c,v 1.19 2007/10/02 00:00:42 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -228,13 +228,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.18 2007/09/28 00:40:32 greve Exp $",
+     "$Id: mri_segreg.c,v 1.19 2007/10/02 00:00:42 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.18 2007/09/28 00:40:32 greve Exp $",
+     "$Id: mri_segreg.c,v 1.19 2007/10/02 00:00:42 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -273,16 +273,20 @@ int main(int argc, char **argv) {
   }
 
   if(!UseASeg){
-    printf("Loading segreg\n");
-    sprintf(tmpstr,"%s/%s/mri/segreg.mgz",SUBJECTS_DIR,subject);
-    if(!fio_FileExistsReadable(tmpstr)){
-      printf("\n");
-      printf("ERROR: cannot find %s\n",tmpstr);
-      printf("To create this file run:\n");
-      printf("\n");
-      printf("   mri_segreg --mksegreg %s\n",subject);
-      printf("\n");
-      exit(1);
+    if(!MkSegReg){
+      printf("Loading segreg\n");
+      sprintf(tmpstr,"%s/%s/mri/segreg.mgz",SUBJECTS_DIR,subject);
+      if(!fio_FileExistsReadable(tmpstr)){
+	printf("\n");
+	printf("WARNING: cannot find %s\n",tmpstr);
+	printf("So, I'm going to create it on-the-fly.\n");
+	MkSegReg = 1;
+      }
+    }
+    if(MkSegReg){
+      printf("Creating segreg\n");
+      err = MRIsegReg(subject);
+      if(err) exit(err);
     }
     segreg = MRIread(tmpstr);
     if(segreg == NULL) exit(1);
@@ -807,16 +811,10 @@ static void print_help(void) {
 /* --------------------------------------------- */
 static void check_options(void) 
 {
-  int err;
-
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   if (SUBJECTS_DIR==NULL) {
     printf("ERROR: SUBJECTS_DIR undefined.\n");
     exit(1);
-  }
-  if(MkSegReg){
-    err = MRIsegReg(subject);
-    exit(err);
   }
 
   if (movvolfile == NULL) {
