@@ -2229,6 +2229,7 @@ AC_OUTPUT([Makefile
            mri_segment/Makefile
            mri_segment_wm_damage/Makefile
            mri_segreg/Makefile
+           mris_register_to_volume/Makefile
            mri_segstats/Makefile
            mri_stats2seg/Makefile
            mri_strip_nonwhite/Makefile

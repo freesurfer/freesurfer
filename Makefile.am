@@ -122,6 +122,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_vol2roi \
 	mri_vol2vol \
 	mri_segreg \
+	mris_register_to_volume \
 	mri_segstats \
 	mri_stats2seg \
 	mri_vol2surf \
