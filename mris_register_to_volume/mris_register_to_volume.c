@@ -10,8 +10,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 14:34:01 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/10/02 18:42:27 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,6 +54,7 @@ BEGINUSAGE --------------------------------------------------------------
   --noise stddev : add noise with stddev to input for testing sensitivity
   --seed randseed : for use with --noise
   --skip min max  : # of vertices to skip in similarity function (for speed)
+  --sigma min max  : size of blurrin kernels to use
   --CNR           : use CNR-based similarity function
   --border border : size of border region to ignore
 
@@ -153,7 +154,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_register_to_volume.c,v 1.1 2007/10/02 14:34:01 fischl Exp $";
+static char vcid[] = "$Id: mris_register_to_volume.c,v 1.2 2007/10/02 18:42:27 fischl Exp $";
 char *Progname = NULL;
 
 static int debug = 0, gdiagno = -1;
@@ -171,6 +172,9 @@ static double   max_trans = 200 ;
 static double   max_rot = 20 ;  // degrees
 static int max_skip = 32 ;
 static int min_skip = 8 ;
+
+static double max_sigma = 2 ;
+static double min_sigma = .5 ;
 
 
 static MRI *mri_reg, *mri_grad = NULL ;
@@ -242,12 +246,12 @@ main(int argc, char **argv)
 #endif
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mris_register_to_volume.c,v 1.1 2007/10/02 14:34:01 fischl Exp $",
+                          "$Id: mris_register_to_volume.c,v 1.2 2007/10/02 18:42:27 fischl Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mris_register_to_volume.c,v 1.1 2007/10/02 14:34:01 fischl Exp $",
+                                "$Id: mris_register_to_volume.c,v 1.2 2007/10/02 18:42:27 fischl Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -391,27 +395,29 @@ main(int argc, char **argv)
   mri_reg = mri_dist ;
   powell_minimize_rigid(mris, mri_dist, mri_mask, R0, skip, mrisRegistrationDistanceSimilarity);
 #endif
-  sigma = 1/mri_reg->xsize;
   for (skip = max_skip ; skip >= min_skip;  skip /= 2)
   {
-    printf("---------------- skip = %d ---------------------\n", skip);
-    printf("computing gradient at scale %2.3f...\n",sigma) ;
-    mri_kernel = MRIgaussian1d(sigma, -1) ;
-    mri_smooth = MRIconvolveGaussian(mri_reg, NULL, mri_kernel) ;
-    MRIfree(&mri_kernel) ;
-    mri_grad = MRIsobel(mri_smooth, mri_grad, NULL) ;
-    MRIeraseBorderPlanes(mri_grad, 1) ;
-    MRIfree(&mri_smooth) ; 
-    find_optimal_translations(mris, mri_reg, mri_mask,R0, max_trans, skip, similarity_func) ;
-    find_optimal_rotations(mris, mri_reg, mri_mask, R0, max_rot, skip, similarity_func) ;
-    find_optimal_rigid_alignment(mris, mri_reg, mri_mask, R0, max_trans/25, max_rot/2, skip, similarity_func);
-    powell_minimize_rigid(mris, mri_reg, mri_mask, R0, skip, similarity_func);
-    if (similarity_func != mrisRegistrationCNRSimilarity)
-      powell_minimize_rigid(mris, mri_reg, mri_mask, R0, skip, mrisRegistrationCNRSimilarity);
-    printf("saving current registration to %s\n", outregfile) ;
-    regio_write_register(outregfile,subject,mri_reg->xsize,
-                         mri_reg->zsize,1,R0,FLT2INT_ROUND);
-    sigma /= 2 ;
+    for (sigma = max_sigma ; sigma >= min_sigma ; sigma /= 2)
+    {
+      printf("---------------- skip = %d, sigma = %2.1f ---------------------\n", skip, sigma);
+      printf("computing gradient at scale %2.3f...\n",sigma) ;
+      mri_kernel = MRIgaussian1d(sigma/mri_reg->xsize, -1) ;
+      mri_smooth = MRIconvolveGaussian(mri_reg, NULL, mri_kernel) ;
+      MRIfree(&mri_kernel) ;
+      mri_grad = MRIsobel(mri_smooth, mri_grad, NULL) ;
+      MRIeraseBorderPlanes(mri_grad, 1) ;
+      MRIfree(&mri_smooth) ; 
+      find_optimal_translations(mris, mri_reg, mri_mask,R0, max_trans, skip, similarity_func) ;
+      find_optimal_rotations(mris, mri_reg, mri_mask, R0, max_rot, skip, similarity_func) ;
+      find_optimal_rigid_alignment(mris, mri_reg, mri_mask, R0, max_trans/25, 
+                                   max_rot/2, skip, similarity_func);
+      powell_minimize_rigid(mris, mri_reg, mri_mask, R0, skip, similarity_func);
+      if (similarity_func != mrisRegistrationCNRSimilarity)
+        powell_minimize_rigid(mris, mri_reg, mri_mask, R0, skip, mrisRegistrationCNRSimilarity);
+      printf("saving current registration to %s\n", outregfile) ;
+      regio_write_register(outregfile,subject,mri_reg->xsize,
+                           mri_reg->zsize,1,R0,FLT2INT_ROUND);
+    }
     if (skip == 0)
       break ;
   }
@@ -623,6 +629,11 @@ static int parse_commandline(int argc, char **argv) {
       min_skip = atoi(pargv[0]) ;
       max_skip = atoi(pargv[1]) ;
       nargsused = 2;
+    } else if (!strcasecmp(option, "--sigma")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      min_sigma = atof(pargv[0]) ;
+      max_sigma = atof(pargv[1]) ;
+      nargsused = 2;
     } else if (!strcasecmp(option, "--dist")) {
       nargsused = 0;
       similarity_func = mrisRegistrationDistanceSimilarity;
@@ -781,6 +792,7 @@ printf("\n");
 printf("  --noise stddev : add noise with stddev to input for testing sensitivity\n");
 printf("  --seed randseed : for use with --noise\n");
 printf("  --skip min max  : # of vertices to skip (starting at max and reducing)\n");
+printf("  --sigma min max  : size of blurring kernels to use (starting at max and reducing)\n");
 printf("  --CNR           : use CNR-based similarity function\n");
 printf("  --max_rot angle : max angle (degrees) to search over\n");
 printf("  --max_trans dist :max translation (mm) to search over\n");
@@ -1256,7 +1268,7 @@ mrisRegistrationGradientNormalSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *m
     VECTOR_ELT(v1, 4) = 1.0 ;
   }
   skip++ ;
-  for (num = vno = 0 ; vno < mris->nvertices ; vno += skip)
+  for (similarity = 0.0, num = vno = 0 ; vno < mris->nvertices ; vno += skip)
   {
     v = &mris->vertices[vno] ;
     v->marked = 0 ;
