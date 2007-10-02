@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 15:57:37 $
- *    $Revision: 1.13 $
+ *    $Date: 2007/10/02 18:59:37 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 #include "label.h"
 
 static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.13 2007/10/02 15:57:37 fischl Exp $";
+"$Id: mris_refine_surfaces.c,v 1.14 2007/10/02 18:59:37 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -180,7 +180,7 @@ main(int argc, char *argv[]) {
   char          **av, *hemi, *sname, *cp=0, fname[STRLEN];
   int           ac, nargs, i/*, label_val, replace_val*/, msec, n_averages, j ;
   MRI_SURFACE   *mris ;
-  MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL,
+  MRI           *mri_wm = NULL, *mri_kernel = NULL, *mri_smooth = NULL,
     *mri_filled, *mri_hires, *mri_hires_pial ;
   /*  MRI           *mri_tran = NULL;*/
   float         max_len ;
@@ -192,7 +192,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.13 2007/10/02 15:57:37 fischl Exp $", 
+     "$Id: mris_refine_surfaces.c,v 1.14 2007/10/02 18:59:37 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
