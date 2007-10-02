@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.11 $
+ *    $Author: fischl $
+ *    $Date: 2007/10/02 18:10:12 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,7 +42,7 @@
 #include "region.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.11 2006/12/29 02:09:08 nicks Exp $";
+static char vcid[] = "$Id: mri_nlfilter.c,v 1.12 2007/10/02 18:10:12 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -88,7 +88,7 @@ main(int argc, char *argv[]) {
   MRI_REGION  region, clip_region ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.11 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.12 2007/10/02 18:10:12 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -222,7 +222,7 @@ main(int argc, char *argv[]) {
                       "%s: could not allocate temporary buffer space",Progname);
           break ;
         case FILTER_MEDIAN:
-          mri_filter_dst = MRImedian(mri_filter_src,NULL,filter_window_size);
+          mri_filter_dst = MRImedian(mri_filter_src,NULL,filter_window_size, NULL);
           if (!mri_filter_dst)
             ErrorExit(ERROR_NOMEMORY,
                       "%s: could not allocate temporary buffer space",Progname);
