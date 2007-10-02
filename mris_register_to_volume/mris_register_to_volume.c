@@ -10,8 +10,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 18:42:27 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/10/02 18:47:03 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -154,7 +154,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_register_to_volume.c,v 1.2 2007/10/02 18:42:27 fischl Exp $";
+static char vcid[] = "$Id: mris_register_to_volume.c,v 1.3 2007/10/02 18:47:03 fischl Exp $";
 char *Progname = NULL;
 
 static int debug = 0, gdiagno = -1;
@@ -246,12 +246,12 @@ main(int argc, char **argv)
 #endif
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mris_register_to_volume.c,v 1.2 2007/10/02 18:42:27 fischl Exp $",
+                          "$Id: mris_register_to_volume.c,v 1.3 2007/10/02 18:47:03 fischl Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mris_register_to_volume.c,v 1.2 2007/10/02 18:42:27 fischl Exp $",
+                                "$Id: mris_register_to_volume.c,v 1.3 2007/10/02 18:47:03 fischl Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1374,7 +1374,7 @@ mrisRegistrationDistanceSimilarity(MRI_SURFACE *mris, MRI *mri_dist, MRI *mri_ma
   }
   skip++ ;
 
-  for (num = vno = 0 ; vno < mris->nvertices ; vno += skip)
+  for (similarity = 0.0, num = vno = 0 ; vno < mris->nvertices ; vno += skip)
   {
     v = &mris->vertices[vno] ;
     v->marked = 0 ;
