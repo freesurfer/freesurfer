@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/09/28 00:34:26 $
- *    $Revision: 1.399 $
+ *    $Author: fischl $
+ *    $Date: 2007/10/02 14:35:23 $
+ *    $Revision: 1.400 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.399 $";
+char *MRI_C_VERSION = "$Revision: 1.400 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -12381,37 +12381,40 @@ MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count)
 int
 MRIeraseBorderPlanes(MRI *mri, int border_size)
 {
-  int  x, y, z, i ;
+  int  x, y, z, i, f ;
 
-  for (x = 0 ; x < mri->width ; x++)
+  for (f = 0 ; f < mri->nframes ; f++)
+    for (x = 0 ; x < mri->width ; x++)
+      for (y = 0 ; y < mri->height ; y++)
+      {
+        for (i = 0 ; i < border_size ; i++)
+        {
+          MRIsetVoxVal(mri, x, y, i, f, 0)  ;
+          MRIsetVoxVal(mri, x, y, mri->depth-i-1, f, 0) ;
+      }
+    }
+
+  for (f = 0 ; f < mri->nframes ; f++)
     for (y = 0 ; y < mri->height ; y++)
-    {
-      for (i = 0 ; i < border_size ; i++)
+      for (z = 0 ; z < mri->depth ; z++)
       {
-        MRIsetVoxVal(mri, x, y, i, 0, 0)  ;
-        MRIsetVoxVal(mri, x, y, mri->depth-i-1, 0, 0) ;
+        for (i = 0 ; i < border_size ; i++)
+        {
+          MRIsetVoxVal(mri, i, y, z, f, 0) ;
+          MRIsetVoxVal(mri, mri->width-i-1, y, z, f,0) ;
+        }
       }
-    }
 
-  for (y = 0 ; y < mri->height ; y++)
-    for (z = 0 ; z < mri->depth ; z++)
-    {
-      for (i = 0 ; i < border_size ; i++)
+  for (f = 0 ; f < mri->nframes ; f++)
+    for (x = 0 ; x < mri->width ; x++)
+      for (z = 0 ; z < mri->depth ; z++)
       {
-        MRIsetVoxVal(mri, i, y, z, 0, 0) ;
-        MRIsetVoxVal(mri, mri->width-i-1, y, z, 0,0) ;
+        for (i = 0 ; i < border_size ; i++)
+        {
+          MRIsetVoxVal(mri, x, i, z, f, 0) ;
+          MRIsetVoxVal(mri, x, mri->height-i-1, z, f, 0) ;
+        }
       }
-    }
-
-  for (x = 0 ; x < mri->width ; x++)
-    for (z = 0 ; z < mri->depth ; z++)
-    {
-      for (i = 0 ; i < border_size ; i++)
-      {
-        MRIsetVoxVal(mri, x, i, z, 0, 0) ;
-        MRIsetVoxVal(mri, x, mri->height-i-1, z, 0, 0) ;
-      }
-    }
 
   return(NO_ERROR) ;
 }
