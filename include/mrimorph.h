@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.22 $
+ *    $Author: fischl $
+ *    $Date: 2007/10/02 14:37:51 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -159,6 +159,7 @@ int       MRIlabelCentroid(MRI *mri_label,int l,float *px,float *py,float *pz);
 int       MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms);
 int       MRIrigidAlign(MRI *mri_in,MRI *mri_ref, MORPH_PARMS *parms,
                         MATRIX *m_L);
+int       MRIquasiNewtonAlignVolumes(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX *m_L);
 int       MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L);
 MATRIX    *MRIpowellAlignImages(MRI *mri_in, MRI *mri_target, MATRIX *m_L, float *pscale_factor, MATRIX *m_constraint) ;
 MATRIX *
