@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/07/10 15:46:38 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/10/02 15:42:04 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@ using namespace std;
 const double vtkKWScubaLayerCollectionPath::DEFAULT_COLOR[] = { 0.4, 0.5, 1.0 };
 
 vtkStandardNewMacro( vtkKWScubaLayerCollectionPath );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollectionPath, "$Revision: 1.7 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollectionPath, "$Revision: 1.8 $" );
 
 vtkKWScubaLayerCollectionPath::vtkKWScubaLayerCollectionPath ():
   mPathVolumeSource( NULL ),
@@ -259,6 +259,16 @@ vtkKWScubaLayerCollectionPath::GetNumberOfSamples() const {
   return mSamples.size();
 }
 
+double 
+vtkKWScubaLayerCollectionPath::GetPointProbabilityValue( const int iPointIndex ) const {
+  return mProbabilities[ iPointIndex ];
+}
+    
+int 
+vtkKWScubaLayerCollectionPath::GetNumberOfProbabilities() const {
+  return mProbabilities.size();
+}
+
 void 
 vtkKWScubaLayerCollectionPath::SetPathThresholdMode ( int iMode ) {
 
@@ -322,14 +332,19 @@ vtkKWScubaLayerCollectionPath::LoadPathVolumeFromFileName () {
   mSimplePointsReader->Update();
   
   // this will be a collection of paths -- only for DJ testing at the moment
-  const char* sInitialPoints = "/InitialPath.txt";
-  string fnInitialPathPoints = this->GetFullFileName ( sInitialPoints );
-  this->ReadInitialPathPoints( fnInitialPathPoints.c_str() );
+  // NOTE from DJ: include this if you're testing out the initial paths
+//  const char* sInitialPoints = "/InitialPath.txt";
+//  string fnInitialPathPoints = this->GetFullFileName ( sInitialPoints );
+//  this->ReadInitialPathPoints( fnInitialPathPoints.c_str() );
       
   // read in the values sampled along the path
   const char* sPathSamples = "/OptimalPathSamples.txt";
   string fnOptimalPathSamples = this->GetFullFileName ( sPathSamples );
-  this->ReadSamples( fnOptimalPathSamples.c_str() );
+  this->ReadScalars( fnOptimalPathSamples.c_str(), &mSamples );
+
+  const char* sPathProbabilities = "/OptimalPathProbabilities.txt";  
+  string fnOptimalPathProbabilities = this->GetFullFileName ( sPathProbabilities );
+  this->ReadScalars( fnOptimalPathProbabilities.c_str(), &mProbabilities );
   
   // read in the path density
   mPathVolumeSource = vtkFSVolumeSource::New();
@@ -417,23 +432,24 @@ vtkKWScubaLayerCollectionPath::GetFullFileName ( const char* sShortFileName ) co
 }
 
 void 
-vtkKWScubaLayerCollectionPath::ReadSamples( const char* fnSamples ) {
+vtkKWScubaLayerCollectionPath::ReadScalars( const char* fnScalar, 
+  std::vector< double > *ioScalars ) {
 
   string s;
-  ifstream samplesFile( fnSamples );
+  ifstream scalarsFile( fnScalar );
 
-  double sample = 0.0;
+  double scalar = 0.0;
   
   // read all the samples
-  while( samplesFile >> s ) {
+  while( scalarsFile >> s ) {
     
     // convert the sample to double format
     stringstream stream;
     stream << s;
-    stream >> sample;
+    stream >> scalar;
     
     // add the sample the samples vector
-    mSamples.insert( mSamples.end(), sample );
+    ioScalars->insert( ioScalars->end(), scalar );
   }
   
 }

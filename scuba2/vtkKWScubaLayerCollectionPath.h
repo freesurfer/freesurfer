@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: dsjen $
- *    $Date: 2007/05/10 21:49:24 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/10/02 15:42:04 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -79,6 +79,14 @@ class vtkKWScubaLayerCollectionPath : public vtkKWScubaLayerCollection
     // Description:
     // Get the number of samples that were read.
     virtual int GetNumberOfSamples() const;
+
+    // Description:
+    // Get the probablity at each point.
+    virtual double GetPointProbabilityValue( const int iPointIndex ) const;
+    
+    // Description:
+    // Get the number of probabilities that were read.
+    virtual int GetNumberOfProbabilities() const;
     
     // Description.
     // Set the mode that we should threshold
@@ -108,9 +116,11 @@ class vtkKWScubaLayerCollectionPath : public vtkKWScubaLayerCollection
     std::string GetFullFileName ( const char* sShortFileName ) const;
     //ETX
     
+    //BTX
     // Description:
     // Reads in the sample values.
-    void ReadSamples( const char* fnSamples );
+    void ReadScalars( const char* fnSamples, std::vector< double >* ioScalars );
+    //ETX
 
     // Description:
     // Reads the intial path points and parses them into multiple pathways.
@@ -142,7 +152,12 @@ class vtkKWScubaLayerCollectionPath : public vtkKWScubaLayerCollection
     double mPathThreshold;
     
     //BTX
+    
+    // scalar values sampled by poistats
     std::vector< double > mSamples;
+
+    // probabilities that the path goes through the voxel
+    std::vector< double > mProbabilities;
     
     // this is a vector of pathways, each consisting of 3D points
     std::vector< std::vector< double* >* > mInitialPaths;
