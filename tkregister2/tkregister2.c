@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/27 22:32:30 $
- *    $Revision: 1.88 $
+ *    $Date: 2007/10/02 23:41:45 $
+ *    $Revision: 1.89 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.88 2007/09/27 22:32:30 greve Exp $";
+"$Id: tkregister2.c,v 1.89 2007/10/02 23:41:45 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -420,11 +420,14 @@ MATRIX *Ctarg, *invCtarg, *Starg, *Mcras0, *invMcras0;
 
 int DoFMovTarg = 0;
 
+char *DetFile = NULL;
+
 /**** ------------------ main() ------------------------------- ****/
 int Register(ClientData clientData,
              Tcl_Interp *interp,
              int argc, char *argv[]) {
   int i,j;
+  FILE *fp;
 #ifdef HAVE_TCL_TK_GL
   int n,c,r,s;
   MATRIX *Vxyz=NULL, *Vcrs=NULL;
@@ -742,6 +745,7 @@ int Register(ClientData clientData,
     }
   }
 
+
   for (i=0;i<4;i++) {
     for (j=0;j<4;j++) {
       tm[i][j] = RegMat->rptr[i+1][j+1];
@@ -759,6 +763,12 @@ int Register(ClientData clientData,
 
   printf("---- Input registration matrix --------\n");
   MatrixPrint(stdout,RegMat);
+  printf("Determinant %g\n",MatrixDeterminant(RegMat));
+  if(DetFile){
+    fp = fopen(DetFile,"w");
+    fprintf(fp,"%lf\n",MatrixDeterminant(RegMat));
+    fclose(fp);
+  }
 
   pname = subjectid;
   printf("subject = %s\n",subjectid);
@@ -1147,6 +1157,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       regfname = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--det")) {
+      if (nargc < 1) argnerr(option,1);
+      DetFile = pargv[0];
+      nargsused = 1;
     } else if (stringmatch(option, "--feat")) {
       if (nargc < 1) argnerr(option,1);
       //pargv[0] is featdir
@@ -1314,6 +1328,7 @@ static void print_usage(void) {
          "supply orientation string for targ\n");
   printf("   --int intvol intreg : "
          "use registration from intermediate volume \n");
+  printf("   --det  detfile : save determinant of reg mat here\n");
   printf("   --gdiagno n : set debug level\n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
@@ -4487,7 +4502,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.88 2007/09/27 22:32:30 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.89 2007/10/02 23:41:45 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
