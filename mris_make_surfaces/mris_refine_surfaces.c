@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/09 19:16:11 $
- *    $Revision: 1.12 $
+ *    $Author: fischl $
+ *    $Date: 2007/10/02 15:57:37 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 #include "label.h"
 
 static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.12 2007/01/09 19:16:11 nicks Exp $";
+"$Id: mris_refine_surfaces.c,v 1.13 2007/10/02 15:57:37 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -62,6 +62,7 @@ int main(int argc, char *argv[]) ;
 
 //static int  MRIScomputeClassStatistics(MRI_SURFACE *mris, MRI *mri, 
 //float *pwhite_mean, float *pwhite_std, float *pgray_mean, float *pgray_std) ;
+//static int compute_border_gradients(MRI_SURFACE *mris, MRI *mri, double thresh) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
@@ -88,7 +89,7 @@ static int create = 1 ;
 static int smoothwm = 0 ;
 static int white_only = 0 ;
 static int inverted_contrast = 0 ;
-static int auto_detect_stats = 1 ;
+static int auto_detect_stats = 0 ;
 static int apply_median_filter = 0 ;
 static int nbhd_size = 20 ;
 
@@ -119,15 +120,17 @@ static char *output_suffix = "hires" ;
 static char pial_name[STRLEN] = "pial" ;
 static char white_matter_name[STRLEN] = WHITE_MATTER_NAME ;
 
+#if 0
 static int lh_label = LH_LABEL ;
 static int rh_label = RH_LABEL ;
+#endif
 
 static int max_pial_averages = 16 ;
 static int min_pial_averages = 2 ;
 static int max_white_averages = 4 ;
 static int min_white_averages = 0 ;
 static float pial_sigma = 2.0f ;
-static float white_sigma = 0.5 ;
+static float white_sigma = 1.0 ;
 static float max_thickness = 5.0 ;
 
 static int num_dilate = 0 ;
@@ -166,30 +169,30 @@ static  float   max_border_white = MAX_BORDER_WHITE,
 static char sdir[STRLEN] = "" ;
 static char suffix[STRLEN] = "" ;
 
-static int MGZ = 0; // for use with MGZ format
+static int MGZ = 1; // for use with MGZ format
 static float check_contrast_direction
 (MRI_SURFACE *mris,MRI *mri_hires) ; //defined at the end
 
-#define MIN_BORDER_DIST 15.0  // mm from border
+#define MIN_BORDER_DIST 5.0  // mm from border
 
 int
 main(int argc, char *argv[]) {
   char          **av, *hemi, *sname, *cp=0, fname[STRLEN];
-  int           ac, nargs, i, label_val, replace_val, msec, n_averages, j ;
+  int           ac, nargs, i/*, label_val, replace_val*/, msec, n_averages, j ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL,
     *mri_filled, *mri_hires, *mri_hires_pial ;
-  MRI           *mri_tran = 0;
+  /*  MRI           *mri_tran = NULL;*/
   float         max_len ;
   float         white_mean, white_std, gray_mean, gray_std ;
   double        l_intensity, current_sigma ;
   struct timeb  then ;
-  LT            *lt =0;
+  /*  LT            *lt =0;*/
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.12 2007/01/09 19:16:11 nicks Exp $", 
+     "$Id: mris_refine_surfaces.c,v 1.13 2007/10/02 15:57:37 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -224,6 +227,10 @@ main(int argc, char *argv[]) {
   /*  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;*/
   parms.l_surf_repulse = 0.0 ;
   parms.l_repulse = 1 ;
+#if 0
+  parms.l_grad = 1 ;
+  parms.l_intensity = 0 ;
+#endif
 
   ac = argc ;
   av = argv ;
@@ -249,7 +256,7 @@ main(int argc, char *argv[]) {
     printf("\nArguments given are:\n");
     printf("\tSUBJECTS_DIR = %s\n", sdir);
     printf("\tsubject_name = %s\n", argv[1]);
-    printf("\themi sphere  = %s\n", argv[2]);
+    printf("\themisphere  = %s\n", argv[2]);
     printf("\thires volume = %s\n", argv[3]);
     printf("\tlabel file   = %s\n", argv[4]);
     if (argc==5)
@@ -301,10 +308,26 @@ main(int argc, char *argv[]) {
   if (apply_median_filter) /* -median option ... modify 
                               mri_hires using the filter */
   {
-    MRI *mri_tmp ;
+    MRI        *mri_tmp ;
+    MRI_REGION box ;
+    double     dist = MIN_BORDER_DIST-.5 ;
+
+    box.x = nint(dist/mri_hires->xsize) ;
+    box.y = nint(dist/mri_hires->ysize) ;
+    box.z = nint(dist/mri_hires->zsize) ;
+    box.dx = mri_hires->width - 2*nint(dist/mri_hires->xsize) ;
+    box.dy = mri_hires->height - 2*nint(dist/mri_hires->ysize) ;
+    box.dz = mri_hires->depth - 2*nint(dist/mri_hires->zsize) ;
 
     fprintf(stderr, "applying median filter to T1 image...\n") ;
-    mri_tmp = MRImedian(mri_hires, NULL, 3) ;
+    if (0)
+    {
+      mri_tmp = MRIcopy(mri_hires, NULL) ;  // copy stuff outside of range
+      MRImedian(mri_hires, mri_tmp, 3, &box) ;
+      MRIwrite(mri_tmp, "median.mgz") ;
+    }
+    else
+      mri_tmp = MRIread("median.mgz") ;
     MRIfree(&mri_hires) ;
     mri_hires = mri_tmp ;
   }
@@ -347,6 +370,7 @@ main(int argc, char *argv[]) {
   // timer starts here
   //////////////////////////////////////////////////////////////////////////
   TimerStart(&then) ;
+#if 0  
   ///////////////////////////////////////////////////////////////////////
   // read filled volume (rh = 127 and lh = 255)
   ///////////////////////////////////////////////////////////////////////
@@ -404,6 +428,7 @@ main(int argc, char *argv[]) {
 
   MRIfree(&mri_wm);
   mri_wm = mri_tran;
+#endif
 
   ////////////////////////////////////////////////////////////////////////////
   // move the vertex positions to the lh(rh).white positions (low res)
@@ -412,12 +437,14 @@ main(int argc, char *argv[]) {
   if (MRISreadVertexPositions(mris, orig_white) != NO_ERROR)
     ErrorExit(Gerror, "reading of orig white failed...");
 
+#if 0
   ///////////////////////////////////////////////////////////////////////
   // convert surface into hires volume surface if needed
   //////////////////////////////////////////////////////////////////////
   MRISsurf2surfAll(mris, mri_hires, hires_lta);
   if (debug__ == 1)
     MRISwrite(mris, "hiresSurf");
+#endif
 
   /////////////////////////////////////////////////////////////////////////////
   // read label file
@@ -540,7 +567,7 @@ main(int argc, char *argv[]) {
             min_gray_at_csf_border, MIN_GRAY_AT_CSF_BORDER) ;
     MRIfree(&mri_tmp) ;
   }
-  MRIfree(&mri_wm);
+  /*  MRIfree(&mri_wm);*/
   if (smooth && !nowhite) {
     printf("smoothing surface for %d iterations...\n", smooth) ;
     MRISaverageVertexPositions(mris, smooth) ;
@@ -586,6 +613,7 @@ main(int argc, char *argv[]) {
   // loop here
   ///////////////////////////////////////////////////////////////////////
   current_sigma = white_sigma / mri_hires->xsize ;
+  current_sigma = white_sigma ;  // in mm not voxels
   for (n_averages = max_white_averages, i = 0 ;
        n_averages >= min_white_averages ;
        n_averages /= 2, current_sigma /= 2, i++) {
@@ -606,6 +634,7 @@ main(int argc, char *argv[]) {
     }
     parms.n_averages = n_averages ;
     MRISprintTessellationStats(mris, stderr) ;
+#if 0
     if (inverted_contrast)
       MRIScomputeInvertedGrayWhiteBorderValues(mris, mri_hires, mri_smooth,
           max_white, max_border_white, min_border_white,
@@ -618,6 +647,11 @@ main(int argc, char *argv[]) {
                               min_gray_at_white_border,
                               max_border_white /*max_gray*/, current_sigma,
                               2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0) ;
+#else
+    MRIScomputeMaxGradBorderValues(mris,mri_hires, mri_smooth,
+                                   current_sigma, max_thickness, 1, parms.fp) ;
+    //    compute_border_gradients(mris, mri_hires, 20) ;
+#endif    
     MRISfindExpansionRegions(mris) ;
     if (vavgs) {
       fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
@@ -910,6 +944,10 @@ get_option(int argc, char *argv[]) {
     orig_white = argv[2] ;
     printf("using %s starting white location...\n", orig_white) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "median")) {
+    nargs = 0 ;
+    printf("applying median filter\n") ;
+    apply_median_filter = 1 ;
   } else if (!stricmp(option, "whiteonly") || !stricmp(option, "nopial")) {
     white_only = 1 ;
     fprintf(stderr,  "only generating white matter surface\n") ;
@@ -1202,20 +1240,28 @@ check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires) {
     z = v->z+0.5*v->nz ;
     // check new function
 
+#if 0
     if (mris->useRealRAS)
       MRIworldToVoxel(mri_hires, x, y, z, &xw, &yw, &zw);
     else
       MRIsurfaceRASToVoxel(mri_hires, x, y, z, &xw, &yw, &zw);
+#else
+    MRISsurfaceRASToVoxel(mris, mri_hires, x, y, z, &xw, &yw, &zw) ;
+#endif
     MRIsampleVolume(mri_hires, xw, yw, zw, &val) ;
     mean_outside += val ;
 
     x = v->x-0.5*v->nx ;
     y = v->y-0.5*v->ny ;
     z = v->z-0.5*v->nz ;
+#if 0
     if (mris->useRealRAS)
       MRIworldToVoxel(mri_hires, x, y, z, &xw, &yw, &zw);
     else
       MRIsurfaceRASToVoxel(mri_hires, x, y, z, &xw, &yw, &zw);
+#else
+    MRISsurfaceRASToVoxel(mris, mri_hires, x, y, z, &xw, &yw, &zw) ;
+#endif
     MRIsampleVolume(mri_hires, xw, yw, zw, &val) ;
     mean_inside += val ;
     n++ ;
@@ -1300,6 +1346,42 @@ MRIScomputeClassStatistics(MRI_SURFACE *mris,
     fclose(fpgm) ;
     fclose(fpwm) ;
   }
+  return(NO_ERROR) ;
+}
+static int
+compute_border_gradients(MRI_SURFACE *mris, MRI *mri, double thresh)
+{
+  int    vno, n ;
+  VERTEX *v, *vn ;
+  double  dif, max_dif ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag || v->marked == 0)
+      continue ;
+    max_dif = 0 ;
+    for (n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      if (vn->ripflag)
+        continue ;
+      dif = fabs(vn->val-v->val) ;
+      if (dif > max_dif)
+        max_dif = dif ;
+    }
+    v->val2 = max_dif ;
+    if (max_dif > thresh)
+      DiagBreak() ;
+  }
+
+  MRIScopyValuesToImagValues(mris) ;
+  MRIScopyVal2ToVal(mris) ;
+  MRISwriteValues(mris, "border_grad.mgz") ;
+  MRIScopyImagValuesToValues(mris);
+  MRISwriteValues(mris, "border.mgz") ;
   return(NO_ERROR) ;
 }
 #endif

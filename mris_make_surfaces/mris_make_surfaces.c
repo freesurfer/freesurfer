@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/14 01:56:01 $
- *    $Revision: 1.99 $
+ *    $Date: 2007/10/02 15:57:36 $
+ *    $Revision: 1.100 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.99 2007/08/14 01:56:01 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.100 2007/10/02 15:57:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -97,8 +97,6 @@ MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
 int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
 int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm) ;
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
-int MRISerodeRipped(MRI_SURFACE *mris, int niter) ;
-int MRISdilateRipped(MRI_SURFACE *mris, int niter) ;
 
 static int fix_mtl = 0 ;
 static LABEL *highres_label = NULL ;
@@ -203,7 +201,7 @@ static  float   max_border_white = MAX_BORDER_WHITE,
   max_csf = MAX_CSF ;
 static char sdir[STRLEN] = "" ;
 
-static int MGZ = 0; // for use with MGZ format
+static int MGZ = 1; // for use with MGZ format
 
 static int longitudinal = 0;
 
@@ -234,13 +232,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.99 2007/08/14 01:56:01 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.100 2007/10/02 15:57:36 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.99 2007/08/14 01:56:01 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.100 2007/10/02 15:57:36 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2251,6 +2249,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
   return(NO_ERROR) ;
 }
 
+#if 0
 int
 MRISdilateRipped(MRI_SURFACE *mris, int niter) {
   int    vno, n, i ;
@@ -2340,6 +2339,7 @@ MRISerodeRipped(MRI_SURFACE *mris, int niter) {
   }
   return(NO_ERROR) ;
 }
+#endif
 
 #if 0
 static double
