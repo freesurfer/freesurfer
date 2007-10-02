@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 14:34:53 $
- *    $Revision: 1.563 $
+ *    $Date: 2007/10/02 18:04:18 $
+ *    $Revision: 1.564 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -625,7 +625,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.563 2007/10/02 14:34:53 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.564 2007/10/02 18:04:18 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -27810,9 +27810,9 @@ MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
     
     // +- 2 standard deviations around the local mean
     // don't let std get too small
+    wm_mean = v->val2 ;
     wm_std = v->imag_val < 0.05*v->val2 ? .05*v->val2 : v->imag_val ;
     wm_std = wm_mean*.05 ;
-    wm_mean = v->val2 ;
     if (dir > 0)  // allow outside to be brighter to allow for partial volume
     {
       wm_hi = wm_mean + 4*wm_std ;
@@ -27836,7 +27836,7 @@ MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           break ;
         MRIsampleVolumeDerivativeScale(mri_brain, xv, yv, zv, nx, ny, nz, &grad, sigma_vox) ;
         if (grad*dir < 0)  // out of viable region
-          break ;
+          continue ;
         if (fabs(grad) > fabs(max_grad))  // in the right direction
         {
           max_grad = grad ;
@@ -27857,7 +27857,7 @@ MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           continue ;   // allow search to continue as we haven't reached valid region yet
         MRIsampleVolumeDerivativeScale(mri_brain, xv, yv, zv, nx, ny, nz, &grad, sigma_vox) ;
         if (grad*dir < 0)  // out of viable region
-          break ;
+          continue ;
         if (fabs(grad) > fabs(max_grad))  // in the right direction
         {
           max_grad = grad ;
