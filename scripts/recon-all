@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/09/17 16:39:55 $
-#    $Revision: 1.139 $
+#    $Date: 2007/10/03 17:12:33 $
+#    $Revision: 1.140 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.139 2007/09/17 16:39:55 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.140 2007/10/03 17:12:33 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2167,7 +2167,7 @@ endif
 if($DoCortRibbonVolMask) then
   echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
-  echo "#@# Cortical ribbon mask $hemi `date`" \
+  echo "#@# Cortical ribbon mask `date`" \
       |& tee -a $SF|& tee -a $LF|& tee -a $CF
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mris_volmask $XOptsFile`;
