@@ -9,8 +9,8 @@
  * Original Authors: Nick Schmansky and Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/10/01 22:39:14 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/10/03 15:57:05 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -73,16 +73,30 @@ int QdecGlmFit::Run ( QdecGlmDesign* iGlmDesign )
       ( "Running GLM..." );
   }
 
+  // check if the ?h.cortex.label file exists, if so, use it to mask-out
+  // non-cortical medial wall region
+  stringstream ssCortexLabelFile;
+  ssCortexLabelFile << iGlmDesign->GetSubjectsDir()
+                    << "/" << iGlmDesign->GetAverageSubject() << "/label/"
+                    << iGlmDesign->GetHemi() << ".cortex.label";
+  ifstream fInput( ssCortexLabelFile.str().c_str(), std::ios::in );
+  stringstream ssCortexLabel;
+  if( fInput && !fInput.bad() )
+  {
+    ssCortexLabel << " --label " << ssCortexLabelFile.str();
+  }
+  else
+  {
+    ssCortexLabel << "";
+  }
+
   // We need to build a command line.
   stringstream ssCommand;
   ssCommand << "mri_glmfit --y " << iGlmDesign->GetYdataFileName()
             << " --fsgd " << iGlmDesign-> GetFsgdFileName()
             << " --glmdir " << iGlmDesign->GetWorkingDir()
             << " --surf " << iGlmDesign->GetAverageSubject()
-            << " " << iGlmDesign->GetHemi()
-            << " --label " << iGlmDesign->GetSubjectsDir()
-            << "/" << iGlmDesign->GetAverageSubject() << "/label/"
-            << iGlmDesign->GetHemi() << ".cortex.label";
+            << " " << iGlmDesign->GetHemi() << ssCortexLabel.str();
 
   // Append the contrast option to the command for each contrast we
   // have.
