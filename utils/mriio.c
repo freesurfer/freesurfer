@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/09 20:54:58 $
- *    $Revision: 1.335 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/03 19:41:54 $
+ *    $Revision: 1.335.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -12399,6 +12399,7 @@ mghRead(char *fname, int read_volume, int frame)
             (mri->transform_fname)[0] = '\0';
           }
         }
+/* useless message:
         else
         {
           fprintf(stderr,
@@ -12408,7 +12409,7 @@ mghRead(char *fname, int read_volume, int frame)
           // should we do something to transform_fname?
         }
         break ;
-
+*/
       case TAG_CMDLINE:
         if (mri->ncmds > MAX_CMDS)
           ErrorExit(ERROR_NOMEMORY,
