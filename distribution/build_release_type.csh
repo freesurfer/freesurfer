@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.99 2007/09/17 09:35:40 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.100 2007/10/03 18:27:58 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -328,11 +328,28 @@ if ( "${OSTYPE}" == "Darwin") glibtoolize --force >>& $OUTPUTF
 echo "CMD: autoreconf --force" >>& $OUTPUTF
 autoreconf --force >>& $OUTPUTF
 echo "CMD: aclocal" >>& $OUTPUTF
+aclocal --version >>& $OUTPUTF
 aclocal >>& $OUTPUTF
 echo "CMD: autoconf" >>& $OUTPUTF
+autoconf --version >>& $OUTPUTF
 autoconf >>& $OUTPUTF
 echo "CMD: automake" >>& $OUTPUTF
+automake --version >>& $OUTPUTF
 automake >>& $OUTPUTF
+if ($status != 0) then
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED after automake"
+  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  rm -f ${FAILED_FILE}
+  touch ${FAILED_FILE}
+  # set group write bit on files changed by make tools:
+  echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
+  echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
+  chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
+  chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+  exit 1
+endif
 echo "CMD: ./configure..." >>& $OUTPUTF
 # notice that the configure command sets 'bindir' to /bin-new, overriding
 # the default /bin.  later, after make install, bin-new is moved to /bin.
