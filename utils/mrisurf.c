@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/10/02 18:05:20 $
- *    $Revision: 1.565 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/03 17:15:20 $
+ *    $Revision: 1.566 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -625,7 +625,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.565 2007/10/02 18:05:20 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.566 2007/10/03 17:15:20 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -62522,6 +62522,7 @@ MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, doub
   v = &mris->vertices[vno] ;
 
   norm[0]=norm[1]=norm[2]=0.0;
+  snorm[0]=snorm[1]=snorm[2]=0.0;
   for (num = n=0;n<v->num;n++) if (!mris->faces[v->f[n]].ripflag)
   {
     num++ ;
@@ -62537,7 +62538,6 @@ MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, doub
     norm[0] += snorm[0];
     norm[1] += snorm[1];
     norm[2] += snorm[2];
-
   }
   if (!num)
     return(ERROR_BADPARM) ;
