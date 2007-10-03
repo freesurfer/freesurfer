@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/09 20:54:58 $
- *    $Revision: 1.335 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/03 19:40:55 $
+ *    $Revision: 1.336 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -12399,6 +12399,7 @@ mghRead(char *fname, int read_volume, int frame)
             (mri->transform_fname)[0] = '\0';
           }
         }
+/* freakin' annoying and useless warning message:
         else
         {
           fprintf(stderr,
@@ -12407,6 +12408,7 @@ mghRead(char *fname, int read_volume, int frame)
           fprintf(stderr, "Transform is not loaded into mri\n");
           // should we do something to transform_fname?
         }
+*/
         break ;
 
       case TAG_CMDLINE:
