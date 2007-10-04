@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/04 21:23:54 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/10/04 21:52:47 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,17 +35,20 @@
 #include "vtkObjectFactory.h"
 #include "vtkPoints.h"
 #include "vtkPolyDataMapper.h"
+#include "vtkPolyDataNormals.h"
 #include "vtkTransformPolyDataFilter.h"
 
 
 vtkStandardNewMacro( vtkArrowPipeline );
-vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.4 $" );
 
 vtkArrowPipeline::vtkArrowPipeline () {
 
   // Arrow source object.
   vtkSmartPointer<vtkArrowSource> arrowSource =
     vtkSmartPointer<vtkArrowSource>::New();
+  arrowSource->SetShaftResolution( 20 );
+  arrowSource->SetTipResolution( 20 );
 
   // Initial points.
   mStartPoint[0] = mStartPoint[1] = mStartPoint[2] = 0;
@@ -80,10 +83,15 @@ vtkArrowPipeline::vtkArrowPipeline () {
   arrowTPDF->SetTransform( arrowTransform );
   arrowTPDF->SetInputConnection( arrowSource->GetOutputPort() );
 
+  // Now generate normals.
+  vtkSmartPointer<vtkPolyDataNormals> arrowNormals =
+    vtkSmartPointer<vtkPolyDataNormals>::New();
+  arrowNormals->SetInputConnection( arrowTPDF->GetOutputPort() );
+  
   // Mapper.
   vtkSmartPointer<vtkPolyDataMapper> arrowMapper = 
     vtkSmartPointer<vtkPolyDataMapper>::New();
-  arrowMapper->SetInputConnection( arrowTPDF->GetOutputPort() );
+  arrowMapper->SetInputConnection( arrowNormals->GetOutputPort() );
 
   // Actor.
   mActor =  vtkSmartPointer<vtkActor>::New();
