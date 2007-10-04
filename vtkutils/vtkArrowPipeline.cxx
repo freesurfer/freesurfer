@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/04 20:49:39 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/10/04 21:23:54 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,7 +39,7 @@
 
 
 vtkStandardNewMacro( vtkArrowPipeline );
-vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.3 $" );
 
 vtkArrowPipeline::vtkArrowPipeline () {
 
@@ -52,10 +52,10 @@ vtkArrowPipeline::vtkArrowPipeline () {
   mEndPoint[0] = mEndPoint[1] = mEndPoint[2] = 1;
 
   // This will be how we transform the source to go from point a to
-  // b. Create a simple landmark transform with just one point in the
-  // source and dest landmarks. Start tham out at 0,0,0.
+  // b. Create a simple landmark transform that goes from 0,0,0 to
+  // 1,0,0 at the source (the dimensions of the raw arrows source) to
+  // our start and end point at the destination.
   mTransform = vtkSmartPointer<vtkLandmarkTransform>::New();
-  //  mTransform->SetModeToRigidBody();
   vtkSmartPointer<vtkPoints> sourcePoints =
     vtkSmartPointer<vtkPoints>::New();
   sourcePoints->SetNumberOfPoints( 2 );
