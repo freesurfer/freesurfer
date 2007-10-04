@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/04 18:23:58 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/10/04 20:49:39 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,7 +39,7 @@
 
 
 vtkStandardNewMacro( vtkArrowPipeline );
-vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.2 $" );
 
 vtkArrowPipeline::vtkArrowPipeline () {
 
@@ -47,19 +47,26 @@ vtkArrowPipeline::vtkArrowPipeline () {
   vtkSmartPointer<vtkArrowSource> arrowSource =
     vtkSmartPointer<vtkArrowSource>::New();
 
+  // Initial points.
+  mStartPoint[0] = mStartPoint[1] = mStartPoint[2] = 0;
+  mEndPoint[0] = mEndPoint[1] = mEndPoint[2] = 1;
+
   // This will be how we transform the source to go from point a to
   // b. Create a simple landmark transform with just one point in the
   // source and dest landmarks. Start tham out at 0,0,0.
   mTransform = vtkSmartPointer<vtkLandmarkTransform>::New();
+  //  mTransform->SetModeToRigidBody();
   vtkSmartPointer<vtkPoints> sourcePoints =
     vtkSmartPointer<vtkPoints>::New();
-  sourcePoints->SetNumberOfPoints( 1 );
+  sourcePoints->SetNumberOfPoints( 2 );
   sourcePoints->SetPoint( 0, 0, 0, 0 );
+  sourcePoints->SetPoint( 1, 1, 0, 0 );
   mTransform->SetSourceLandmarks( sourcePoints );
   vtkSmartPointer<vtkPoints> destPoints =
     vtkSmartPointer<vtkPoints>::New();
-  destPoints->SetNumberOfPoints( 1 );
-  destPoints->SetPoint( 0, 0, 0, 0 );
+  destPoints->SetNumberOfPoints( 2 );
+  destPoints->SetPoint( 0, mStartPoint );
+  destPoints->SetPoint( 1, mEndPoint );
   mTransform->SetTargetLandmarks( destPoints );
 
   // Landmark transform goes into a general transform.
@@ -95,13 +102,18 @@ vtkArrowPipeline::SetStartPoint ( double const* iPoint ) {
   assert( iPoint );
   assert( mTransform.GetPointer() );
 
-  // Just set the source landmark point.
-  vtkSmartPointer<vtkPoints> sourcePoints =
-    vtkSmartPointer<vtkPoints>::New();
-  sourcePoints->SetNumberOfPoints( 1 );
-  sourcePoints->SetPoint( 0, iPoint );
-  mTransform->SetSourceLandmarks( sourcePoints );
+  // Set the first dest landmark point.
+  mStartPoint[0] = iPoint[0];
+  mStartPoint[1] = iPoint[1];
+  mStartPoint[2] = iPoint[2];
 
+  // Copy the new points in. We do it this way to force an update.
+  vtkSmartPointer<vtkPoints> destPoints =
+    vtkSmartPointer<vtkPoints>::New();
+  destPoints->SetNumberOfPoints( 2 );
+  destPoints->SetPoint( 0, mStartPoint );
+  destPoints->SetPoint( 1, mEndPoint );
+  mTransform->SetTargetLandmarks( destPoints );
 }
 
 void 
@@ -110,11 +122,17 @@ vtkArrowPipeline::SetEndPoint ( double const* iPoint ) {
   assert( iPoint );
   assert( mTransform.GetPointer() );
 
-  // Just set the dest landmark point.
+  // Set the first dest landmark point.
+  mEndPoint[0] = iPoint[0];
+  mEndPoint[1] = iPoint[1];
+  mEndPoint[2] = iPoint[2];
+
+  // Copy the new points in. We do it this way to force an update.
   vtkSmartPointer<vtkPoints> destPoints =
     vtkSmartPointer<vtkPoints>::New();
-  destPoints->SetNumberOfPoints( 1 );
-  destPoints->SetPoint( 0, iPoint );
+  destPoints->SetNumberOfPoints( 2 );
+  destPoints->SetPoint( 0, mStartPoint );
+  destPoints->SetPoint( 1, mEndPoint );
   mTransform->SetTargetLandmarks( destPoints );
 }
 
@@ -126,7 +144,7 @@ vtkArrowPipeline::SetStartAndEndPoint ( double const* iStartPoint,
   assert( iEndPoint );
 
   this->SetStartPoint( iStartPoint );
-  this->SetStartPoint( iEndPoint );
+  this->SetEndPoint( iEndPoint );
 }
 
 vtkActor* 

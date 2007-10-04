@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/04 18:23:58 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/10/04 20:49:39 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,6 +35,7 @@
 
 class vtkActor;
 class vtkLandmarkTransform;
+class vtkTransformPolyDataFilter;
 
 class vtkArrowPipeline : public vtkObject {
 
@@ -60,6 +61,9 @@ class vtkArrowPipeline : public vtkObject {
 
   vtkSmartPointer<vtkLandmarkTransform> mTransform;
   vtkSmartPointer<vtkActor> mActor;
+
+  double mStartPoint[3];
+  double mEndPoint[3];
 
  private:
   vtkArrowPipeline ( const vtkArrowPipeline& );
