@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/02/07 20:33:49 $
- *    $Revision: 1.85 $
+ *    $Author: greve $
+ *    $Date: 2007/10/04 08:00:25 $
+ *    $Revision: 1.86 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -155,6 +155,7 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
   if (npoints > MAX_SPLINE_POINTS)
     npoints = MAX_SPLINE_POINTS ;
 
+  printf("Starting OpenSpline(): npoints = %d\n",npoints);
   OpenSpline(inputs, outputs, npoints, 0.0f, 0.0f, outputs_2) ;
 
   if (!mri_dst)
@@ -813,6 +814,11 @@ MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni)
                 (ERROR_BADPARM,
                  "MRInormalize: could not find any valid peaks.\n"
                  "\nMake sure the Talairach alignment is correct!\n"));
+  printf("MRIsplineNormalize(): npeaks = %d\n",npeaks);
+  if(npeaks <= 1){
+    printf("ERROR: number of peaks must be > 1 for spline\n");
+    return(NULL);
+  }
   mri_dst = MRIsplineNormalize(mri_src, mri_dst,NULL,inputs,outputs,npeaks);
 
   if (Gdiag & DIAG_SHOW)
