@@ -24,6 +24,7 @@ libvtkutils_a_SOURCES= \
 	vtkKWRGBATransferFunctionEditorTcl.cxx \
 	vtkKWBltGraph.cxx vtkKWBltGraph.h vtkKWBltGraphTcl.cxx \
 	vtkFreesurferLookupTable.cxx vtkFreesurferLookupTable.h \
+	vtkArrowPipeline.cxx vtkArrowPipeline.h \
 	vtkRGBATransferFunction.cxx vtkRGBATransferFunction.h \
 	vtkFDTensorGlyph.cxx vtkFDTensorGlyph.h \
 	vtkODFGlyph.cxx vtkODFGlyph.h \
@@ -43,7 +44,7 @@ vtkKWBltGraphTcl.cxx: vtkKWBltGraph.h
 
 
 if ENABLE_KWWIDGETS_APPS
-check_PROGRAMS=vtkKWRGBATransferFunctionEditorTester
+check_PROGRAMS=vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
 else
 check_PROGRAMS=
 endif
@@ -82,6 +83,26 @@ vtkKWRGBATransferFunctionEditorTester_LDADD=\
 	-lvtkHybridTCL -lvtkGraphicsTCL -lvtkImagingTCL -lvtkIOTCL \
 	-lvtkCommonTCL \
 	$(KWWIDGETS_LIBS) -lKWWidgets
+
+# vtkArrowPipelineTester test program
+vtkArrowPipelineTester_SOURCES=vtkArrowPipelineTester.cxx
+
+vtkArrowPipelineTester_LDADD=\
+	$(top_srcdir)/vtkutils/libvtkutils.a \
+	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
+	-lvtkImaging -lvtkFiltering \
+	-lvtkCommon -lvtksys \
+	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
+	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
+	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
+	-lvtkFilteringTCL -lvtkWidgetsTCL \
+	-lvtkHybridTCL -lvtkGraphicsTCL -lvtkImagingTCL -lvtkIOTCL \
+	-lvtkCommonTCL 
+
 
 EXTRA_DIST=$(wildcard *.h) $(wildcard *.data)
 
