@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.26 $
+ *    $Author: fischl $
+ *    $Date: 2007/10/04 18:55:07 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,10 @@
 
 using namespace std;
 
+extern "C" {
+#include "mri_circulars.h"
+#include "mri.h"
+}
 
 SurfaceCollection::SurfaceCollection () :
     DataCollection(),
@@ -92,7 +96,7 @@ SurfaceCollection::~SurfaceCollection() {
   }
 }
 
-
+extern int MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg) ;
 void
 SurfaceCollection::SetSurfaceFileName ( string& ifnMRIS ) {
 
@@ -149,6 +153,19 @@ SurfaceCollection::LoadSurface () {
     }
 
     // Get transform.
+#if 1
+    {
+      MRI *mri_cor = MRIalloc(mMRIS->vg.width, mMRIS->vg.height, mMRIS->vg.depth, MRI_UCHAR) ;
+      MATRIX *m_RAS2SurfaceRAS ;
+      
+      MRIcopyVolGeomToMRI(mri_cor, &mMRIS->vg) ;
+      MRIreInitCache(mri_cor) ;
+      m_RAS2SurfaceRAS =  surfaceRASFromRAS_(mri_cor) ;
+      mDataToSurfaceTransform.SetMainTransform( m_RAS2SurfaceRAS );
+      MatrixFree( &m_RAS2SurfaceRAS ); 
+      MRIfree(&mri_cor) ;
+    }
+#else
     if ( NULL != mMRIS->lta ) {
 
       // This is our RAS -> TkRegRAS transform.
@@ -158,6 +175,7 @@ SurfaceCollection::LoadSurface () {
         0, 0, 1, -mMRIS->lta->xforms[0].src.c_s,
         0, 0, 0, 1 );
     }
+#endif      
 
     CalcWorldToSurfaceTransform();
 
