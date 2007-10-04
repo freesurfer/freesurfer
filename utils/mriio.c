@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/10/03 19:41:54 $
- *    $Revision: 1.335.2.1 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/04 20:53:49 $
+ *    $Revision: 1.335.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -12408,8 +12408,8 @@ mghRead(char *fname, int read_volume, int frame)
           fprintf(stderr, "Transform is not loaded into mri\n");
           // should we do something to transform_fname?
         }
-        break ;
 */
+        break ;
       case TAG_CMDLINE:
         if (mri->ncmds > MAX_CMDS)
           ErrorExit(ERROR_NOMEMORY,
