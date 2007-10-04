@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/20 03:41:44 $
-#    $Revision: 1.24 $
+#    $Date: 2007/10/04 22:02:43 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.24 2007/07/20 03:41:44 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.25 2007/10/04 22:02:43 greve Exp $';
 set inputargs = ($argv);
 
 set PWDCMD = pwd
@@ -72,9 +72,10 @@ set segcolor = ();
 set segopacity = .3;
 set ext = ();
 set usestatic = 0;
-
+set hdrtmpdir = ()
 set talreg = 0; # show on tal using register.tal
 set MGZ = .mgz;
+set DoAllContrasts = 0;
 
 set nolog = 0;
 set tmpdir = ();
@@ -336,7 +337,6 @@ if(! $nohdr ) then
   @ Nh = $tmp[2];
   if($Nh != 1 && ! $nohdr) then
     set hdroption  = (-timecourse $hdrdir/h.$ext )
-    set hdrtmpdir = ()
     set hdroption  = ($hdroption -timecourse-reg $hdrregfile)
     set offsetoption = (-timecourse-offset $hdrdir/h-offset.$ext)
   endif
@@ -417,6 +417,13 @@ echo "SUBJECTS_DIR $SUBJECTS_DIR"|& tee -a $LF
 $PWDCMD|& tee -a $LF
 echo $cmd|& tee -a $LF
 echo "------------------------"|& tee -a $LF
+
+@ nth = 0;
+foreach c ($contrastlist)
+  echo $nth $c
+  @ nth = $nth + 1;
+end
+
 $cmd|& tee -a $LF
 if($status) then
   echo "tkmedit failed"|& tee -a $LF
@@ -442,6 +449,10 @@ while( $#argv != 0 )
     case "-contrast":
       if ( $#argv == 0) goto arg1err;
       set contrastlist = ($contrastlist $argv[1]); shift;
+      breaksw
+
+    case "-call":
+      set DoAllContrasts = 1;
       breaksw
 
     case "-space":
@@ -747,6 +758,21 @@ check_params:
     echo "ERROR: no analysis specified" 
     exit 1;
   endif
+  if(! -e $analysis) then
+    echo "ERROR: $analysis does not exist"
+    exit 1;
+  endif
+  if($DoAllContrasts) then
+    set matlist = (`ls $analysis/*.mat`);
+    if($status) then
+      echo "ERROR: cannot find any contrasts in $analysis"
+      exit 1;
+    endif
+    foreach m ($matlist)
+      set c = `basename $m .mat`;
+      set contrastlist = ($contrastlist $c);
+    end
+  endif
   if($#contrastlist == 0) then
     echo "ERROR: no contrast specified" 
     exit 1;
@@ -903,6 +929,7 @@ usage_exit:
   echo "   -s         sessid   (only one allowed)"
   echo "   -isxavg    method (fixed or random)"
   echo "   -contrast  contrastname : contrast name"
+  echo "   -call      : do all contrasts"
   echo "   -map       mapname      : <sig>, minsig, iminsig, t"
   echo "   -mapanalysis analysisname : name of session-level functional analysis";
   echo "   -mapsess     sessid from which to get the map";
