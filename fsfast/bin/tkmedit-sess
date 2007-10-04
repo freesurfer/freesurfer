@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/10/04 22:02:43 $
-#    $Revision: 1.25 $
+#    $Date: 2007/10/04 23:10:30 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.25 2007/10/04 22:02:43 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.26 2007/10/04 23:10:30 greve Exp $';
 set inputargs = ($argv);
 
 set PWDCMD = pwd
@@ -762,8 +762,14 @@ check_params:
     echo "ERROR: $analysis does not exist"
     exit 1;
   endif
+  if($#mapsessid == 0)   set mapsessid   = $sessid;
+  if($#mapanalysis == 0) set mapanalysis = $analysis;
+  if(! -e $mapanalysis) then
+    echo "ERROR: $mapanalysis does not exist"
+    exit 1;
+  endif
   if($DoAllContrasts) then
-    set matlist = (`ls $analysis/*.mat`);
+    set matlist = (`ls $mapanalysis/*.mat`);
     if($status) then
       echo "ERROR: cannot find any contrasts in $analysis"
       exit 1;
@@ -804,8 +810,6 @@ check_params:
     endif
   endif
 
-  if($#mapsessid == 0)   set mapsessid   = $sessid;
-  if($#mapanalysis == 0) set mapanalysis = $analysis;
 
   if($mapmeanimg == 1) then
     set map = h-offset;
