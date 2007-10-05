@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/28 22:12:18 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/10/05 14:59:55 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -94,7 +94,7 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
   
   // Make a target dir for the expanded file in the data dir, with a
   // directory name of the project file.
-  string fnExpandedProjectBase = fnProjectBase + ".working";
+  string fnExpandedProjectBase = "qdec_project_archive";
   string fnExpandedProjectDir = string(ifnDataDir) + "/" + 
     fnExpandedProjectBase;
 
@@ -324,7 +324,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Make a target dir for the expanded file in the data dir, with a
   // directory name of the project file.
-  string fnExpandedProjectBase = fnProjectBase + ".working";
+  string fnExpandedProjectBase = "qdec_project_archive";
   string fnExpandedProjectDir = string(ifnDataDir) + "/" + 
     fnExpandedProjectBase;
 
