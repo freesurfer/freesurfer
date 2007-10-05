@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/10/05 18:16:32 $
- *    $Revision: 1.285 $
+ *    $Date: 2007/10/05 19:00:27 $
+ *    $Revision: 1.286 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -18643,7 +18643,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.285 2007/10/05 18:16:32 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.286 2007/10/05 19:00:27 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21401,12 +21401,38 @@ vset_load_surface_vertices(int set) {
   return(NO_ERROR);
 }
 
-int
-vset_set_current_set(int set) {
+int vset_set_current_set(int set) {
+  int err;
+
   if (set < 0 || set > NUM_VERTEX_SETS)
       ErrorReturn(ERROR_BADPARM,
                   (ERROR_BADPARM,
                    "vset_set_current_set: invalid set %d\n",set));
+
+  if(NULL == vset_vertex_list[set]){
+    switch(set){
+    case VSET_PIAL:
+      err = vset_read_vertex_set(set, "pial");
+      if(err) ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+                   "vset_set_current_set: set %d not loaded\n",set));
+      break;
+    case VSET_ORIGINAL:
+      err = vset_read_vertex_set(set, "orig");
+      if(err) ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+                   "vset_set_current_set: set %d not loaded\n",set));
+      break;
+    case VSET_WHITE:
+      err = vset_read_vertex_set(set, "white");
+      if(err) ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+                   "vset_set_current_set: set %d not loaded\n",set));
+      break;
+    case VSET_INFLATED:
+      err = vset_read_vertex_set(set, "inflated");
+      if(err) ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+                   "vset_set_current_set: set %d not loaded\n",set));
+      break;
+    }
+  }
 
   /* Make sure this set is loaded unless it's the main set which is
      always loaded.. */

@@ -2,9 +2,9 @@
 ## tksurfer.tcl
 ##
 ## CVS Revision Info:
-##    $Author: kteich $
-##    $Date: 2007/08/10 21:04:33 $
-##    $Revision: 1.150 $
+##    $Author: greve $
+##    $Date: 2007/10/05 19:00:27 $
+##    $Revision: 1.151 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -1351,7 +1351,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	pack $fwCopy -side top  -expand yes -fill x
 	pack $fwFDR  -side top  -expand yes -fill x
 
-	# buttons.
+	# Create buttons, including callback functions
 	tkm_MakeDialogButtons $fwButtons $wwDialog [list \
 		[list Apply { SendLinkedVarGroup overlay; 
 		    SetOverlayTimepointAndCondition;
@@ -3738,10 +3738,10 @@ proc CreateToolBar { ifwToolBar } {
 	{ image icon_surface_original 4
 	    "set_current_vertex_set $gaLinkedVars(vertexset); UpdateLinkedVarGroup view; UpdateAndRedraw" "Show Original Surface" }
     }
-    tkm_AddRadioButtonToEnableGroup mg_InflatedVSetLoaded $fwSurfaces.rb1
-    tkm_AddRadioButtonToEnableGroup mg_WhiteVSetLoaded $fwSurfaces.rb2
-    tkm_AddRadioButtonToEnableGroup mg_PialVSetLoaded $fwSurfaces.rb3
-    tkm_AddRadioButtonToEnableGroup mg_OriginalVSetLoaded $fwSurfaces.rb4
+    #tkm_AddRadioButtonToEnableGroup mg_InflatedVSetLoaded $fwSurfaces.rb1
+    #tkm_AddRadioButtonToEnableGroup mg_WhiteVSetLoaded $fwSurfaces.rb2
+    #tkm_AddRadioButtonToEnableGroup mg_PialVSetLoaded $fwSurfaces.rb3
+    #tkm_AddRadioButtonToEnableGroup mg_OriginalVSetLoaded $fwSurfaces.rb4
     bind $fwSurfaces.rb0 <Control-Button-3> "DoFileDlog LoadMainSurface"
     bind $fwSurfaces.rb1 <Control-Button-3> "DoFileDlog LoadInflatedSurface"
     bind $fwSurfaces.rb2 <Control-Button-3> "DoFileDlog LoadWhiteSurface"
