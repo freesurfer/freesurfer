@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/01 15:41:00 $
- *    $Revision: 1.284 $
+ *    $Author: greve $
+ *    $Date: 2007/10/05 18:16:32 $
+ *    $Revision: 1.285 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2107,6 +2107,8 @@ int ddt_get_hilite_face_color (int vno, GLubyte* r, GLubyte* g, GLubyte* b);
 #define ddt_get_hilite_face_color(vno,r,g,b)
 #endif
 
+int link_tool_and_image_windows_flag = 1;
+
 /* ---------------------------------------------------------------------- */
 
 int save_tiff (char* fname);
@@ -2138,7 +2140,7 @@ int  mai(int argc,char *argv[])
   char cwd[100*NAME_LENGTH];
   char *word;
   char path[MAX_DIR_DEPTH][NAME_LENGTH];
-  int  nargs ;
+  int  nargs = 0;
   char *functional_fname = NULL, *patch_name = NULL ;
   /* begin rkt */
   FunD_tRegistrationType overlay_reg_type = FunD_tRegistration_Identity;
@@ -2296,6 +2298,9 @@ int  mai(int argc,char *argv[])
       nargs = 2 ;
       white_suffix = argv[i+1] ;
       fprintf(stderr, "using white suffix %s\n", white_suffix) ;
+    } else if (!stricmp(argv[i], "-delink")) {
+      link_tool_and_image_windows_flag = 0;
+      nargs = 1 ;
     }
     /* begin rkt */
     else if (!stricmp(argv[i], "-timecourse") || !stricmp(argv[i], "-t")) {
@@ -2708,6 +2713,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
     switch (current.type) {
 
     case ConfigureNotify:
+      // Generated when window moves
       XGetWindowAttributes(xDisplay, w.wMain, &wat);
       XTranslateCoordinates(xDisplay, w.wMain, wat.root,
                             -wat.border_width, -wat.border_width,
@@ -2720,24 +2726,17 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
       tclvar =
         (char*)Tcl_GetVar(interp,(char*)"tksurferinterface",TCL_GLOBAL_ONLY);
       /* begin rkt */
-#if 0
-      if (followglwinflag && tclvar!=NULL &&
-          (MATCH(tclvar,"micro") || MATCH(tclvar,"mini"))) {
-        sprintf(command,"wm geometry .w +%d+%d",
-                w.x, w.y + w.h + MOTIF_YFUDGE /*+MOTIF_XFUDGE*/);
-        send_tcl_command (command);
-        /*send_tcl_command ("raise .");*/
+
+      if(link_tool_and_image_windows_flag){
+	/* link tool window with image window */
+	sprintf(command,"MoveToolWindow %d %d",
+		w.x, w.y + w.h + MOTIF_YFUDGE /*+MOTIF_XFUDGE*/);
+	send_tcl_command (command);
       }
-#else
-      /* move the tool window under us */
-      sprintf(command,"MoveToolWindow %d %d",
-              w.x, w.y + w.h + MOTIF_YFUDGE /*+MOTIF_XFUDGE*/);
-      send_tcl_command (command);
 
       /* update window position */
       curwindowleft = w.x;
       curwindowbottom = w.y + w.h;
-#endif
 
       /* if our redraw lock flag is on, redraw the window. check to
          see if there are any expose or configure events ahead of us,
@@ -3016,6 +3015,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
   }
 
 #else  /* use gl calls */
+  // This stuff should be deletable 10/5/07
   short dev, val;
   static int ctrlkeypressed = FALSE;
   static int altkeypressed = FALSE;
@@ -16689,6 +16689,7 @@ print_help_tksurfer(void) {
   printf("-timecourse-offset-reg-identity        : calculate an identity transform for\n");
   printf("                                       : registration\n");
   printf("\n");
+  printf("-delink : do not move tool window with image window\n");
 
   printf("-scalebarflag <1|0> : display the scale bar\n");
   printf("\n");
@@ -18642,7 +18643,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.284 2007/10/01 15:41:00 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.285 2007/10/05 18:16:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
