@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/10/03 17:12:33 $
-#    $Revision: 1.140 $
+#    $Author: greve $
+#    $Date: 2007/10/05 05:54:31 $
+#    $Revision: 1.141 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.140 2007/10/03 17:12:33 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.141 2007/10/05 05:54:31 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -383,6 +383,10 @@ echo "GCS $GCS" >> $LF
 echo "#######################################" >> $LF
 
 if($DoVersionsOnly) exit 0;
+
+# Delete the error file. This is created when error_exit is run.
+set ErrorFile = $subjdir/scripts/recon-all.error
+rm -f $ErrorFile
 
 # ------------ Create the IsRunning File --------- #
 if($DoIsRunning) then
@@ -2377,12 +2381,27 @@ error_exit:
   echo "" |& tee -a $LF |& tee -a $SF
   echo "recon-all exited with ERRORS at `date`" |& tee -a $LF |& tee -a $SF
   echo "" |& tee -a $LF |& tee -a $SF
+  # Handle IsRunningFile
   if($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
+  # Mail the user
   if($#mailuser != 0) then
     echo "recon-all $subjid finished with errors at `date`" | \
       mail -s "$subjid ERROR `date`" $mailuser
   endif
-
+  # Create an error file with date, cmd, etc of error
+  echo "------------------------------" > $ErrorFile
+  echo "SUBJECT $subjid" >> $ErrorFile
+  echo "DATE `date`"     >> $ErrorFile
+  echo "USER $user"      >> $ErrorFile
+  echo "HOST `hostname`" >> $ErrorFile
+  echo "PROCESSOR `uname -m`" >> $ErrorFile
+  echo "OS `uname -s`"       >> $ErrorFile
+  uname -a         >> $ErrorFile
+  echo $VERSION    >> $ErrorFile
+  echo $0          >> $ErrorFile
+  echo "PWD `pwd`" >> $ErrorFile
+  echo "CMD $cmd"  >> $ErrorFile
+  # Finally exit
   exit 1;
 endif
 
