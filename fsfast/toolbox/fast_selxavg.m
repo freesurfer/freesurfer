@@ -1,6 +1,6 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.40 2007/01/15 02:29:36 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.40.2.1 2007/10/05 21:10:30 greve Exp $'
 
 
 %
@@ -9,8 +9,8 @@ function r = fast_selxavg(varargin)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/01/15 02:29:36 $
-%    $Revision: 1.40 $
+%    $Date: 2007/10/05 21:10:30 $
+%    $Revision: 1.40.2.1 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@ function r = fast_selxavg(varargin)
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_selxavg.m,v 1.40 2007/01/15 02:29:36 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.40.2.1 2007/10/05 21:10:30 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -301,11 +301,10 @@ for slice = firstslice:lastslice
       if(~s.UseMRIread)
 	[nslices nrows ncols ntrs] = fmri_bvoldim(instem);
       else
-	if(slice == firstslice)
-	  mri = MRIread(instem,1);
-	  if(~isempty(mri)) ntrs = mri.nframes;
-	  else              ntrs = 0;
-	  end
+	% This might be slow for compressed nifti or mgz
+	mri = MRIread(instem,1);
+	if(~isempty(mri)) ntrs = mri.nframes;
+	else              ntrs = 0;
 	end
       end
       if(ntrs == 0)
