@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/10/03 17:15:20 $
- *    $Revision: 1.566 $
+ *    $Author: greve $
+ *    $Date: 2007/10/05 03:49:10 $
+ *    $Revision: 1.567 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -625,7 +625,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.566 2007/10/03 17:15:20 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.567 2007/10/05 03:49:10 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -639,7 +639,7 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
   FILE        *fp = NULL ;
   VERTEX      *vertex ;
   FACE        *face ;
-  int         tag;
+  int         tag,nread;
   char        tmpstr[2000];
   MRI         *mri;
 
@@ -688,7 +688,14 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
       ErrorReturn(NULL,(ERROR_NOFILE,"MRISread(%s): could not open file",
                         fname));
 
-    fread3(&magic, fp) ;
+    magic = 0;
+    nread = fread3(&magic, fp) ;
+    if(nread != 1){
+      printf("ERROR: reading %s\n",fname);
+      printf("Read %d bytes, expected 1\n",nread);
+      fclose(fp);
+      return(NULL);
+    }
     if (magic == QUAD_FILE_MAGIC_NUMBER)
     {
       version = -1;
@@ -27713,10 +27720,9 @@ MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
   box.dy = mri_brain->height - 2*nint(5/mri_brain->ysize) ;
   box.dz = mri_brain->depth - 2*nint(5/mri_brain->zsize) ;
 
-  if (0)
-  {
-    mri_median = MRImedian(mri_brain, NULL, 3, &box) ;
-    MRIwrite(mri_median, "median.mgz") ;
+  if (0)  {
+    //mri_median = MRImedian(mri_brain, NULL, 3, &box) ;
+    //MRIwrite(mri_median, "median.mgz") ;
   }
   else
     mri_median = mri_brain ;
