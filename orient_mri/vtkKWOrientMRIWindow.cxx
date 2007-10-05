@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/01 17:41:03 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/10/05 21:29:48 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,6 +57,7 @@
 #include "vtkKWToolbar.h"
 #include "vtkKWToolbarSet.h"
 #include "vtkLookupTable.h"
+#include "vtkMath.h"
 #include "vtkMatrix4x4.h"
 #include "vtkObjectFactory.h"
 #include "vtkRenderer.h"
@@ -65,7 +66,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.14 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.15 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
   mbDirty( false ),
@@ -74,6 +75,7 @@ vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
   mMenuSaveVolumeAs( NULL ),
   mMenuLoadLUT( NULL ),
   mMenuTransformVolume( NULL ),
+  mMenuReorthogonalizeVolume( NULL ),
   mMenuRevertVolume( NULL ),
   mMenuRestoreView( NULL ),
   mMenuZoomOut( NULL ),
@@ -201,7 +203,7 @@ vtkKWOrientMRIWindow::Create () {
   toolbar->AddWidget( mBtnTransformVolume );
   mBtnTransformVolume->SetText( "Transform Volume" );
   mBtnTransformVolume->SetBalloonHelpString( "Transform Volume");
-  mBtnTransformVolume->SetCommand( this, "TransformVolume" );
+  mBtnTransformVolume->SetCommand( this, "TransformVolumeWithUserTransform" );
   try { IconLoader::SetPushButtonIcon( "TransformVolume", mBtnTransformVolume ); }
   catch (...) {}
 
@@ -406,8 +408,14 @@ vtkKWOrientMRIWindow::Create () {
   mMenuTransformVolume = new MenuItem();
   mMenuTransformVolume->
     MakeCommand( this->GetEditMenu(), nItem++,
-		 "Trans&form Volume", this, "TransformVolume",
+		 "Trans&form Volume", this, "TransformVolumeWithUserTransform",
 		 "Ctrl+F", "TransformVolume" );
+
+  mMenuReorthogonalizeVolume = new MenuItem();
+  mMenuReorthogonalizeVolume->
+    MakeCommand( this->GetEditMenu(), nItem++,
+		 "Reorthogonalize Volume", this, "ReorthogonalizeVolume",
+		 NULL, NULL );
 
   this->GetEditMenu()->InsertSeparator( nItem++ );
 
@@ -496,7 +504,7 @@ vtkKWOrientMRIWindow::LoadVolume ( const char* ifnVolume ) {
     // Try to load the volume.
     vtkSmartPointer<vtkFSVolumeSource> volume = 
       vtkSmartPointer<vtkFSVolumeSource>::New();
-    //    volume->ActualSpacingOn();
+    //volume->ActualSpacingOn();
     volume->MRIRead( ifnVolume );
     volume->Update();
       
@@ -505,7 +513,7 @@ vtkKWOrientMRIWindow::LoadVolume ( const char* ifnVolume ) {
 
     // Initialize our transforms.
     mVolumeToRASTransform = vtkSmartPointer<vtkImageReslice>::New();
-#if 0    
+#if 0   
     vtkSmartPointer<vtkImageReslice> pixelSizer =
       vtkSmartPointer<vtkImageReslice>::New();
     pixelSizer->SetInputConnection( mVolume->GetOutputPort() );
@@ -752,7 +760,7 @@ vtkKWOrientMRIWindow::RevertToSavedTransform () {
 
 
 void
-vtkKWOrientMRIWindow::TransformVolume () {
+vtkKWOrientMRIWindow::TransformVolumeWithUserTransform () {
 
   assert( mVolume.GetPointer() );
   assert( mOriginalVoxelToRASMatrix.GetPointer() );
@@ -826,19 +834,122 @@ vtkKWOrientMRIWindow::TransformVolume () {
   // Recalc our reslice transform.
   this->RebuildVolumeToRASTransform();
 
-   // Broadcast our event.
-  this->InvokeEvent( OrientMRIEvents::VolumeToRASTransformChanged );
-
-  // Restore the view.
-  this->RestoreView();
-
-  // Now dirty.
-  mbDirty = true;
-
   // Update our menu and buttons.
   this->UpdateCommandStatus();
 }
 
+void
+vtkKWOrientMRIWindow::ReorthogonalizeVolume () {
+
+  double const* xStart = NULL;
+  double const* xEnd = NULL;
+  double const* yStart = NULL;
+  double const* yEnd = NULL;
+  double const* zStart = NULL;
+  double const* zEnd = NULL;
+
+  vtkKWOrientMRIView2D::GetReorthoPoints( xStart, xEnd, 
+					  yStart, yEnd,
+					  zStart, zEnd );
+
+  // First make vectors out of our points and normalize them.
+  double x[3], y[3], z[3];
+  for( int n = 0; n < 3; n++ ) {
+    x[n] = xEnd[n] - xStart[n];
+    y[n] = yEnd[n] - yStart[n];
+    z[n] = zEnd[n] - zStart[n];
+  }
+  vtkMath::Normalize( x );
+  vtkMath::Normalize( y );
+  vtkMath::Normalize( z );
+
+  // The rest of this is from some matlab code I got from Bruce.
+  // d = x'*y ;
+  double d = vtkMath::Dot( x, y );
+
+  // y = y - d*x ;
+  for( int n = 0; n < 3; n++ )
+    y[n] = y[n] - d*x[n];
+
+  vtkMath::Normalize( y );
+
+  // t = cross(x,y);
+  double t[3];
+  vtkMath::Cross( x, y, t );
+  
+  // d = t'*z ;
+  d = vtkMath::Dot( t, z );
+
+  // if (d < 0)
+  //   z =  -1*t ;
+  // end
+  if( d < 0 )
+    for( int n = 0; n < 3; n++ )
+      z[n] = -t[n];
+
+  vtkMath::Normalize( z );
+
+  // Now the 3x3 matrix made but putting x in the first row, y in the
+  // second, and z in the third, is our transform.
+  vtkSmartPointer<vtkMatrix4x4> matrix = 
+    vtkSmartPointer<vtkMatrix4x4>::New();
+
+  // 0,0 0,1 0,2 0,3
+  // 1,0 1,1 1,2 1,3
+  // 2,0 2,1 2,2 2,3
+  // 3,0 3,1 3,2 3,3
+  matrix->SetElement( 0, 0, x[0] );
+  matrix->SetElement( 0, 1, x[1] );
+  matrix->SetElement( 0, 2, x[2] );
+  matrix->SetElement( 0, 3, 0 );
+  matrix->SetElement( 1, 0, y[0] );
+  matrix->SetElement( 1, 1, y[1] );
+  matrix->SetElement( 1, 2, y[2] );
+  matrix->SetElement( 1, 3, 0 );
+  matrix->SetElement( 2, 0, z[0] );
+  matrix->SetElement( 2, 1, z[1] );
+  matrix->SetElement( 2, 2, z[2] );
+  matrix->SetElement( 2, 3, 0 );
+  matrix->SetElement( 3, 0, 0 );
+  matrix->SetElement( 3, 1, 0 );
+  matrix->SetElement( 3, 2, 0 );
+  matrix->SetElement( 3, 3, 1 );
+
+  // Note that the following code looks similar to the code in
+  // TransformVolumeWithUserTransform, except in that function, we
+  // extract the rotation elements from the user transform and rotate
+  // the voxelToRAS by them, where as here, we actually concatenate
+  // the volume created above, including skewing elements. This is
+  // done because we actually want to allow the volume to be skewed.
+
+  // Make a new transform. Set it to post multiply because we're going
+  // to start with an initial transform and then stack stuff on after
+  // that.
+  vtkSmartPointer<vtkTransform> transform = 
+    vtkSmartPointer<vtkTransform>::New();
+  transform->PostMultiply();
+
+  // Get the current VoxelToRAS matrix
+  vtkSmartPointer<vtkMatrix4x4> currentVoxelToRASM = 
+    vtkSmartPointer<vtkMatrix4x4>::New();
+  currentVoxelToRASM->DeepCopy( mVolume->GetVoxelToRASMatrix() );
+
+  // Initialize it with the current VoxelToRAS. 
+  transform->SetMatrix( currentVoxelToRASM );
+
+  // Concatenate the matrix we got.
+  transform->Concatenate( matrix );
+  
+  // Set the matrix in the volume.
+  mVolume->SetVoxelToRASMatrix( *transform->GetMatrix() );
+  mVolume->Update();
+
+  // Recalc our reslice transform.
+  this->RebuildVolumeToRASTransform();
+
+  // Reset the reortho points.
+  vtkKWOrientMRIView2D::ResetOrthoPoints();
+}
 
 void
 vtkKWOrientMRIWindow::RestoreView () {
@@ -940,9 +1051,13 @@ vtkKWOrientMRIWindow::UpdateCommandStatus () {
   if( mVolume.GetPointer() ) {
     mBtnTransformVolume->SetStateToNormal();
     mMenuTransformVolume->SetStateToNormal();
+
+    mMenuReorthogonalizeVolume->SetStateToNormal();
   } else {
     mBtnTransformVolume->SetStateToDisabled();
     mMenuTransformVolume->SetStateToDisabled();
+
+    mMenuReorthogonalizeVolume->SetStateToDisabled();
   }
 
   if( mVolume.GetPointer() && mbDirty ) {
@@ -1063,18 +1178,29 @@ vtkKWOrientMRIWindow::RebuildVolumeToRASTransform () {
        << bounds[0] << " " << bounds[1] << " "
        << bounds[2] << " " << bounds[3] << " "
        << bounds[4] << " " << bounds[5] << " " << endl;
- extent = mUserTransform->GetOutput()->GetExtent();
- cerr << "in window, user extent " << extent[0] << " " << extent[1] << " "
+  extent = mUserTransform->GetOutput()->GetExtent();
+  cerr << "in window, user extent " << extent[0] << " " << extent[1] << " "
       << extent[2] << " " << extent[3] << " "
       << extent[4] << " " << extent[5] << " " << endl;
 
- bounds = mUserTransform->GetOutput()->GetBounds();
- cerr << "in window, user bounds " << bounds[0] << " " << bounds[1] << " "
+  bounds = mUserTransform->GetOutput()->GetBounds();
+  cerr << "in window, user bounds " << bounds[0] << " " << bounds[1] << " "
       << bounds[2] << " " << bounds[3] << " "
       << bounds[4] << " " << bounds[5] << " " << endl;
 #endif
-
-
+  
+  // Broadcast our event.
+  this->InvokeEvent( OrientMRIEvents::VolumeToRASTransformChanged );
+  
+  // Restore the view.
+  this->RestoreView();
+  
+  // Now dirty.
+  mbDirty = true;
+  
+  // Update our menu and buttons.
+  this->UpdateCommandStatus();
+ 
 }
 
 vtkMatrix4x4&
@@ -1112,15 +1238,10 @@ vtkKWOrientMRIWindow::UserTransformChanged ( vtkObject* iCaller,
 
     // Get our window pointer from the client data.
     assert( iClientData );
-    try {
-      vtkKWOrientMRIWindow* window = 
-	static_cast<vtkKWOrientMRIWindow*>( iClientData );
-      
-      if( window ) window->UpdateUserTransform();
-    }
-    catch(...) {
-      cerr << "Invalid client data in UserTransformChanged callback" << endl;
-    }
+    vtkKWOrientMRIWindow* window = 
+      static_cast<vtkKWOrientMRIWindow*>( iClientData );
+    
+    window->UpdateUserTransform();
   }
 
 }

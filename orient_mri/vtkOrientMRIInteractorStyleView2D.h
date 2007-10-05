@@ -13,8 +13,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/13 20:58:21 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/10/05 21:29:48 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,14 +49,34 @@ public:
   void SetWindowLevelTable ( vtkWindowLevelLookupTable* iTable );
 
   // Description:
-  // Override left button stuff to do the window/level operation.
+  // Set the ortho points we're working on. 
+  void SetPointsAndLines ( double* iPointsButton1Start, 
+			   double* iPointsButton1End,
+			   double* iPointsButton2Start, 
+			   double* iPointsButton2End,
+			   double* iPointsButton3Start, 
+			   double* iPointsButton3End );
+
+  // Description:
+  // Override left button stuff to do the window/level
+  // operation. Override control-clicks on all buttons to do ortho
+  // line drawing.
   virtual void OnMouseMove ();
   virtual void OnLeftButtonDown ();
   virtual void OnLeftButtonUp ();
+  virtual void OnMiddleButtonDown ();
+  virtual void OnMiddleButtonUp ();
+  virtual void OnRightButtonDown ();
+  virtual void OnRightButtonUp ();
 
   // Description:
   // Do a window/level operation on the lookup table we have.
   void WindowLevel ();
+
+  // Description:
+  // Do a ortho line edit operation on the points and lines of the
+  // index ActiveOrthoLine.
+  void EditOrthoLine ();
 
 protected:
   vtkOrientMRIInteractorStyleView2D();
@@ -66,14 +86,27 @@ protected:
   void StartWindowLevel ();
   void EndWindowLevel ();
 
-  // Our custom state.
-  enum { IS_WindowLevel = 1000 };
+  // Start and end our ortho line editing operation.
+  void StartOrthoLineEdit ( int iWhich );
+  void EndOrthoLineEdit ();
+
+  // Our custom states.
+  enum { IS_WindowLevel = 1000, IS_OrthoLineEdit };
 
   // The window/level color table we'll modify with the left button.
   vtkSmartPointer<vtkWindowLevelLookupTable> LookupTable;
 
+  // The points we'll work with.
+  double* Points[3][2];
+
   // Save original window info.
   double OriginalWindow;
+
+  // Which ortho line we're drawing.
+  int ActiveOrthoLine;
+
+  // The first position of the line start (gotten at mouse down).
+  double ActiveOrthoLineStart[3];
 
 private:
   vtkOrientMRIInteractorStyleView2D(const vtkOrientMRIInteractorStyleView2D&);

@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/13 20:58:21 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/10/05 21:29:48 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,8 +38,12 @@
 #undef Y
 #endif
 
+#include "OrientMRIEvents.h"
 #include "vtkActor.h"
+#include "vtkArrowPipeline.h"
+#include "vtkCallbackCommand.h"
 #include "vtkCamera.h"
+#include "vtkCellArray.h"
 #include "vtkColorTransferFunction.h"
 #include "vtkCornerAnnotation.h"
 #include "vtkFSVolumeSource.h"
@@ -53,6 +57,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkOutlineFilter.h"
 #include "vtkPlaneSource.h"
+#include "vtkPoints.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkProperty.h"
@@ -67,13 +72,18 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIView2D );
-vtkCxxRevisionMacro( vtkKWOrientMRIView2D, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIView2D, "$Revision: 1.2 $" );
 
+double vtkKWOrientMRIView2D::sReorthoPoints[3][2][3] = 
+  { {{0,0,0}, {0,0,0}}, {{0,0,0}, {0,0,0}}, {{0,0,0}, {0,0,0}} };
+vector<vtkKWOrientMRIView2D*> vtkKWOrientMRIView2D::slViews;
 
 vtkKWOrientMRIView2D::vtkKWOrientMRIView2D () :
   mPlaneOrientation( UninitedPlaneOrientation ),
   mThroughPlane( 0.0 ) {
 
+  // Insert us in the list of instances.
+  slViews.push_back( this );
 }
 
 vtkKWOrientMRIView2D::~vtkKWOrientMRIView2D () {
@@ -89,6 +99,37 @@ vtkKWOrientMRIView2D::Create () {
   vtkSmartPointer<vtkOrientMRIInteractorStyleView2D> style = 
     vtkSmartPointer<vtkOrientMRIInteractorStyleView2D>::New();
   this->GetRenderWindow()->GetInteractor()->SetInteractorStyle( style );
+
+  // Add the pipelines for our reortho lines.
+  for( int nOrientation = 0; nOrientation < 3; nOrientation++ ) {
+
+    mReorthoArrow[nOrientation] = vtkSmartPointer<vtkArrowPipeline>::New();
+    mReorthoArrow[nOrientation]->
+      SetStartAndEndPoint( sReorthoPoints[nOrientation][0],
+			   sReorthoPoints[nOrientation][1] );
+
+    vtkSmartPointer<vtkActor> reorthoActor = 
+      mReorthoArrow[nOrientation]->GetActor();
+    reorthoActor->GetProperty()->
+      SetColor( const_cast<double*>
+		(this->GetColorForOrientation(nOrientation)) );
+    reorthoActor->PickableOff();
+
+    this->GetRenderer()->AddActor( reorthoActor );
+
+  }
+
+  // Tell our style to edit our points.
+  style->SetPointsAndLines( sReorthoPoints[0][0], sReorthoPoints[0][1],
+			    sReorthoPoints[1][0], sReorthoPoints[1][1],
+			    sReorthoPoints[2][0], sReorthoPoints[2][1] );
+
+  // Make a callback and observe the style for OrthoLineChanged events.
+  vtkSmartPointer<vtkCallbackCommand> callback =
+    vtkSmartPointer<vtkCallbackCommand>::New();
+  callback->SetCallback( OrthoLineChanged );
+  callback->SetClientData( this );
+  style->AddObserver( OrientMRIEvents::OrthoLineChanged, callback );
 }
 
 void
@@ -174,7 +215,6 @@ vtkKWOrientMRIView2D::SetFSVolumeAndImage ( vtkFSVolumeSource& iFSVolume,
   // Mapper for plane.
   //
   mPlaneMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-  //  mPlaneMapper->ImmediateModeRenderingOn();
   mPlaneMapper->SetInputConnection( planePDF->GetOutputPort() );
 
 
@@ -217,6 +257,8 @@ vtkKWOrientMRIView2D::SetFSVolumeAndImage ( vtkFSVolumeSource& iFSVolume,
     style->SetWindowLevelTable( mColorTable );
   }
 
+
+#if 0
   // Initial camera position.
   this->GetRenderer()->GetActiveCamera()->SetPosition( 0, 1, 0 );
   this->GetRenderer()->GetActiveCamera()->SetFocalPoint( 0, 0, 0 );
@@ -225,6 +267,8 @@ vtkKWOrientMRIView2D::SetFSVolumeAndImage ( vtkFSVolumeSource& iFSVolume,
   // Reset the camera to show all the actors.
   this->GetRenderer()->ResetCamera();
   this->GetRenderer()->GetRenderWindow()->Render();
+#endif
+
 
 }
 
@@ -260,6 +304,33 @@ vtkKWOrientMRIView2D::SetThroughPlane ( float iZ ) {
 }
 
 void
+vtkKWOrientMRIView2D::UpdateOrthoLine ( int inOrientation ) {
+  
+  assert( inOrientation == 0 ||
+	  inOrientation == 1 ||
+	  inOrientation == 2 );
+
+  // Tell the arrow to update.
+  mReorthoArrow[inOrientation]->
+    SetStartAndEndPoint( sReorthoPoints[inOrientation][0],
+			 sReorthoPoints[inOrientation][1] );
+
+  this->Render();
+}
+
+double const*
+vtkKWOrientMRIView2D::GetColorForOrientation ( int inOrientation ) const {
+
+  assert( inOrientation == 0 ||
+	  inOrientation == 1 ||
+	  inOrientation == 2 );
+
+  static double sColors[3][3] = { { 1, 0, 0 }, { 1, 1, 0 }, {0, 1, 0} };
+
+  return sColors[inOrientation];
+}
+
+void
 vtkKWOrientMRIView2D::SetUpView () {
   
   if( UninitedPlaneOrientation == mPlaneOrientation ) 
@@ -269,57 +340,71 @@ vtkKWOrientMRIView2D::SetUpView () {
   assert( mReslice.GetPointer() );
   assert( mOutlineActor.GetPointer() );
 
+  // Get the offset so our through plane coords are correct.
   float offset[3];
   offset[0] = mFSVolume->GetRASCenterX();
   offset[1] = mFSVolume->GetRASCenterY();
   offset[2] = mFSVolume->GetRASCenterZ();
 
-  // Set the orientation.
+  // Calcualte the size of the planes.
+  float RASBounds[6];
+  mFSVolume->GetRASBounds( RASBounds );
+  float size[3];
+  size[0] = RASBounds[1] - RASBounds[0];
+  size[1] = RASBounds[3] - RASBounds[2];
+  size[2] = RASBounds[5] - RASBounds[4];
+
+  // Get a pointer to the camera.
+  vtkSmartPointer<vtkCamera> camera = 
+    this->GetRenderer()->GetActiveCamera();
+
+  // Switch on the orientation and set our plane rotation and camera
+  // location appropriately.
   switch ( mPlaneOrientation ) {
   case 0:
     mPlaneTransform->Identity();
     mPlaneTransform->RotateX( 90 );
-    mPlaneTransform->RotateY( 180 );
-    mReslice->SetResliceAxesDirectionCosines( 0, -1, 0,
-					      0, 0, 1,
-					      1, 0, 0 );
+    mPlaneTransform->RotateY( 90 );
+    //mPlaneTransform->Scale( size[1], size[2], 1 );
+    mReslice->SetResliceAxesDirectionCosines( 0, -1, 0,  0, 0, 1,  1, 0, 0 );
     mReslice->SetResliceAxesOrigin( (int)(mThroughPlane - offset[0]), 0, 0 );
+
+    camera->SetFocalPoint( 0, 0, 0 );
+    camera->SetViewUp( 0, 0, 1 );
+    camera->SetPosition( 10, 0, 0 );
     break;
   case 1:
     mPlaneTransform->Identity();
     mPlaneTransform->RotateX( 90 );
     mPlaneTransform->RotateY( 180 );
-    mReslice->SetResliceAxesDirectionCosines( 1, 0, 0,
-					      0, 0, 1,
-					      0, 1, 0 );
+    //mPlaneTransform->Scale( size[0], size[2], 1 );
+    mReslice->SetResliceAxesDirectionCosines( 1, 0, 0,  0, 0, 1,  0, 1, 0 );
     mReslice->SetResliceAxesOrigin( 0, (int)(mThroughPlane - offset[1]), 0 );
+
+    camera->SetFocalPoint( 0, 0, 0 );
+    camera->SetViewUp( 0, 0, 1 );
+    camera->SetPosition( 0, 10, 0 );
     break;
   case 2:
     mPlaneTransform->Identity();
-    mPlaneTransform->RotateX( 90 );
-    mPlaneTransform->RotateY( 180 );
-    mReslice->SetResliceAxesDirectionCosines( 1, 0, 0,
-					      0, 1, 0,
-					      0, 0, -1 );
+    //mPlaneTransform->Scale( size[0], size[1], 1 );
+    mReslice->SetResliceAxesDirectionCosines( 1, 0, 0,  0, 1, 0,  0, 0, -1 );
     mReslice->SetResliceAxesOrigin( 0, 0, (int)(mThroughPlane - offset[2]) );
+
+    camera->SetFocalPoint( 0, 0, 0 );
+    camera->SetViewUp( 0, 1, 0 );
+    camera->SetPosition( 0, 0, 10 );
     break;
   }
 
+  // Reset the camera to show all the actors.
+  this->GetRenderer()->ResetCamera();
+
   // Set a color for the plane outline. This should match the axes
   // color in the 3D view.
-  double color[3] = {0,0,0};
-  switch ( mPlaneOrientation ) {
-  case 0:
-    color[0] = 1; color[1] = 0; color[2] = 0;
-    break;
-  case 1:
-    color[0] = 1; color[1] = 1; color[2] = 0;
-    break;
-  case 2:
-    color[0] = 0; color[1] = 1; color[2] = 0;
-    break;
-  }
-  mOutlineActor->GetProperty()->SetColor( color );
+  mOutlineActor->GetProperty()->
+    SetColor( const_cast<double*>
+	      (this->GetColorForOrientation(mPlaneOrientation)) );
 
   // Set the annotation to print our through plane label and number.
   stringstream ssLabel;
@@ -332,3 +417,61 @@ vtkKWOrientMRIView2D::SetUpView () {
   this->GetRenderer()->GetRenderWindow()->Render();
 }
 
+void
+vtkKWOrientMRIView2D::ResetOrthoPoints () {
+
+  // Put all points back at 0,0,0.
+  for( int nOrientation = 0; nOrientation < 3; ++nOrientation ) {
+
+    for( int nPoint = 0; nPoint < 2; ++nPoint )
+      for( int nCoord = 0; nCoord < 3; ++nCoord )
+	sReorthoPoints[nOrientation][nPoint][nCoord] = 0;
+    
+    // Go through our static list of views and call their
+    // UpdateOrthoLines functions.
+    vector<vtkKWOrientMRIView2D*>::iterator tView;
+    for( tView = slViews.begin(); tView != slViews.end(); ++tView )
+      (*tView)->UpdateOrthoLine( nOrientation );
+  }
+}
+
+void
+vtkKWOrientMRIView2D::OrthoLineChanged ( vtkObject* iCaller, 
+					 unsigned long iEventId,
+					 void* iClientData,
+					 void* iCallData ) {
+  
+  // We're listening for OrthoLineChanged events. When we get one,
+  // call the views' UpdateOrthoLines function.
+  if( OrientMRIEvents::OrthoLineChanged == iEventId ) {
+
+    assert( iClientData );
+    assert( iCallData );
+    
+    // Get the orientation.
+    int nOrientation = *static_cast<int*>( iCallData );
+    
+    // Go through our static list of views and call their
+    // UpdateOrthoLines functions.
+    vector<vtkKWOrientMRIView2D*>::iterator tView;
+    for( tView = slViews.begin(); tView != slViews.end(); ++tView )
+      (*tView)->UpdateOrthoLine( nOrientation );
+  }
+
+}
+
+void
+vtkKWOrientMRIView2D::GetReorthoPoints ( double const*& oXStart, 
+					 double const*& oXEnd,
+					 double const*& oYStart,
+					 double const*& oYEnd,
+					 double const*& oZStart,
+					 double const*& oZEnd ) {
+
+  oXStart = sReorthoPoints[0][0];
+  oXEnd = sReorthoPoints[0][1];
+  oYStart = sReorthoPoints[1][0];
+  oYEnd = sReorthoPoints[1][1];
+  oZStart = sReorthoPoints[2][0];
+  oZEnd = sReorthoPoints[2][1];
+}

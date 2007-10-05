@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/01 17:41:03 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/10/05 21:29:48 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -85,7 +85,13 @@ public:
   // Description: 
   // Set the volume's transform based on the current user transform,
   // rebuilds the RAS transform, and resets the user transform.
-  void TransformVolume ();
+  void TransformVolumeWithUserTransform ();
+
+  // Description: 
+  // Make a transformation matrix based on the orthogonalized
+  // reorthogonalization lines, and compose that with the user
+  // transform.
+  void ReorthogonalizeVolume ();
 
   // Description:
   // Go back to the original camera position that shows the entirety
@@ -195,6 +201,7 @@ protected:
   MenuItem* mMenuSaveVolumeAs;
   MenuItem* mMenuLoadLUT;
   MenuItem* mMenuTransformVolume;
+  MenuItem* mMenuReorthogonalizeVolume;
   MenuItem* mMenuRevertVolume;
   MenuItem* mMenuRestoreView;
   MenuItem* mMenuZoomOut;

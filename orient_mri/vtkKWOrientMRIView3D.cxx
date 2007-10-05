@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/18 17:10:22 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/10/05 21:29:48 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIView3D );
-vtkCxxRevisionMacro( vtkKWOrientMRIView3D, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIView3D, "$Revision: 1.3 $" );
 
 
 vtkKWOrientMRIView3D::vtkKWOrientMRIView3D () {
@@ -261,6 +261,32 @@ vtkKWOrientMRIView3D::GetUserTransform () {
   return *mUserTransform;
 }
 
+void
+vtkKWOrientMRIView3D::ComposeWithUserTransform ( vtkMatrix4x4 const& iMatrix ){
+
+  mVolumeActor->SetUserMatrix( const_cast<vtkMatrix4x4*>(&iMatrix) );
+
+#if 0
+  // Make a transform.
+  vtkSmartPointer<vtkTransform> transform =
+    vtkSmartPointer<vtkTransform>::New();
+  transform->SetMatrix( const_cast<vtkMatrix4x4*>(&iMatrix) );
+
+  // Extract the orientation.
+  double orientation[3];
+  transform->GetOrientation( orientation );
+
+  // Rotate the actor. This will trigger the user transform changed
+  // event.
+  mVolumeActor->RotateX( orientation[0] );
+  mVolumeActor->RotateY( orientation[1] );
+  mVolumeActor->RotateZ( orientation[2] );
+#endif
+
+  // Redraw with the new actor location.
+  this->Render();
+}
+
 void 
 vtkKWOrientMRIView3D::ActorPositionChanged () {
 
@@ -346,15 +372,11 @@ vtkKWOrientMRIView3D::ActorModifiedCallback ( vtkObject* iCaller,
 
     // Get our view pointer from the client data.
     assert( iClientData );
-    try {
-      vtkKWOrientMRIView3D* view = 
-	static_cast<vtkKWOrientMRIView3D*>( iClientData );
-
-      if( view ) view->ActorPositionChanged();
-    }
-    catch(...) {
-      cerr << "Invalid client data in ActorModified callback" << endl;
-    }
+    
+    vtkKWOrientMRIView3D* view = 
+      static_cast<vtkKWOrientMRIView3D*>( iClientData );
+    
+    view->ActorPositionChanged();
   }
 
 }
@@ -372,16 +394,11 @@ vtkKWOrientMRIView3D::VolumeToRASTransformChangedCallback ( vtkObject* iCaller,
 
     // Get our view pointer from the client data.
     assert( iClientData );
-    try {
-      vtkKWOrientMRIView3D* view = 
-	static_cast<vtkKWOrientMRIView3D*>( iClientData );
-      
-      if( view ) view->VolumeToRASTransformChanged();
-    } 
-    catch(...) {
-      cerr << "Invalid client data in VolumeToRASTransformChanged callback" 
-	   << endl;
-    }
+
+    vtkKWOrientMRIView3D* view = 
+      static_cast<vtkKWOrientMRIView3D*>( iClientData );
+    
+    view->VolumeToRASTransformChanged();
   }
 
 }

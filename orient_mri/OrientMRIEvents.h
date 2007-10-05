@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/13 20:58:20 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/10/05 21:29:48 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,7 +37,8 @@ class OrientMRIEvents {
   // Description:
   // Our event constants.
   enum { VolumeToRASTransformChanged = vtkCommand::UserEvent + 1,
-	 UserTransformChanged = vtkCommand::UserEvent + 2 };
+	 UserTransformChanged,
+	 OrthoLineChanged };
 
 };
 

@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/13 20:58:21 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/10/05 21:29:48 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +25,7 @@
  *
  */
 
+#include <vector>
 
 #ifndef vtkKWOrientMRIView2D_h
 #define vtkKWOrientMRIView2D_h
@@ -33,12 +34,16 @@
 #include "vtkSmartPointer.h"
 
 class vtkActor;
+class vtkArrowPipeline;
+class vtkCellArray;
 class vtkFSVolumeSource;
 class vtkImageData;
 class vtkImageMapToColors;
 class vtkImagePlaneWidget;
 class vtkImageReslice;
 class vtkLookupTable;
+class vtkPoints;
+class vtkPolyData;
 class vtkPolyDataMapper;
 class vtkTexture;
 class vtkTransform;
@@ -69,12 +74,38 @@ public:
   // Set the current through-plane coordinate to view.
   void SetThroughPlane ( float iZ );
 
+  // Description: 
+  // Called when the user modifies the ortho lines. The view redraws
+  // the lines.
+  void UpdateOrthoLine ( int iWhich );
+
+  //BTX
+  // Description:
+  // Reset the ortho lines to 0,0,0.
+  static void ResetOrthoPoints ();
+
+  // Description:
+  // Callback function for OrthoLineChanged events. Calls the view's
+  // UpdateOrthoLines function.
+  static void OrthoLineChanged ( vtkObject* iCaller, unsigned long iEventId,
+				 void* iClientData, void* iCallData );
+
+  // Description:
+  // Return pointers to our reortho points.
+  static void GetReorthoPoints ( double const*& oXStart, double const*& oXEnd,
+				 double const*& oYStart, double const*& oYEnd,
+				 double const*& oZStart, double const*& oZEnd);
+  //ETX
+
 protected:
 
   vtkKWOrientMRIView2D ();
   virtual ~vtkKWOrientMRIView2D ();
 
   //BTX
+  // Return a color for an orientation.
+  double const* GetColorForOrientation ( int inOrientation ) const;
+
   // Sets up the view with the current orientation and Z coord.
   void SetUpView ();
   
@@ -99,6 +130,15 @@ protected:
   vtkSmartPointer<vtkPolyDataMapper> mPlaneMapper;
   vtkSmartPointer<vtkActor> mPlaneActor;
   vtkSmartPointer<vtkActor> mOutlineActor;
+  vtkSmartPointer<vtkArrowPipeline> mReorthoArrow[3];
+
+  // Our points for the re-orthogonalize tool.
+  static double sReorthoPoints[3][2][3]; // [orientation][start/end][x/y/z]
+
+  // We keep a static list of our instances so we can notify them all
+  // when one of them gets a OrthLineChanged event.
+  static std::vector<vtkKWOrientMRIView2D*> slViews;
+
   //ETX
 };
 

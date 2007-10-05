@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/13 20:58:21 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/10/05 21:29:48 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -83,6 +83,12 @@ public:
   // Get the user transform, maintained by the view here.
   vtkMatrix4x4& GetUserTransform ();
 
+  //BTX
+  // Description:
+  // Compose the matrix with the current user transform.
+  void ComposeWithUserTransform ( vtkMatrix4x4 const& iMatrix );
+  //ETX
+  
   // Description:
   // Called when our volume actor changes.
   void ActorPositionChanged ();
