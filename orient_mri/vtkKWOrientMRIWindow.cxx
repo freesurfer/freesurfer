@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/05 21:29:48 $
- *    $Revision: 1.15 $
+ *    $Date: 2007/10/10 18:59:06 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.15 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.16 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
   mbDirty( false ),
@@ -881,11 +881,16 @@ vtkKWOrientMRIWindow::ReorthogonalizeVolume () {
   d = vtkMath::Dot( t, z );
 
   // if (d < 0)
-  //   z =  -1*t ;
+  //   z = -1*t ;
+  // else
+  //   z = t;
   // end
   if( d < 0 )
     for( int n = 0; n < 3; n++ )
       z[n] = -t[n];
+  else
+    for( int n = 0; n < 3; n++ )
+      z[n] = t[n];
 
   vtkMath::Normalize( z );
 
