@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.24 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/10 17:34:03 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -362,6 +362,22 @@ ToglManager::ExitCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   return TCL_OK;
 }
 
+int
+ToglManager::EnterCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
+
+  if ( iArgc != 2 ) {
+    return TCL_ERROR;
+  }
+
+  // Just clear the modifiers.
+  mState.SetShiftKey( false );
+  mState.SetAltKey( false );
+  mState.SetControlKey( false );
+  mState.ClearEvents();
+
+  return TCL_OK;
+}
+
 
 ToglManager&
 ToglManager::GetManager() {
@@ -393,6 +409,6 @@ ToglManager::InitializeTogl ( Tcl_Interp* iInterp ) {
   Togl_CreateCommand( "KeyDownCallback", ToglManager::KeyDownCallback );
   Togl_CreateCommand( "KeyUpCallback", ToglManager::KeyUpCallback );
   Togl_CreateCommand( "ExitCallback", ToglManager::ExitCallback );
+  Togl_CreateCommand( "EnterCallback", ToglManager::EnterCallback );
 }
-
 

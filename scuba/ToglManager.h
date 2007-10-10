@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.13 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/10 17:34:03 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,6 +61,7 @@ public:
   static int KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] );
   static int KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] );
   static int ExitCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] );
+  static int EnterCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] );
 
   // The main entry point should call this function to register all
   // the callbacks.
