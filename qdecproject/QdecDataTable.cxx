@@ -8,9 +8,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/25 19:19:37 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/10 20:48:45 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -142,7 +142,10 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
   }
 
   /*
-   * Count the number of columns in the first line from the file
+   * Count the number of columns in the first line from the file,
+   * and, at the same time, find the column which contains the subject
+   * names.  that column must have a special name (fsid, ID, Id...see below)
+   * and must be column zero (the first column)
    */
   int ncols = 0;
   int fsidcol = -1;
@@ -163,6 +166,14 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
   {
     printf("ERROR: QdecDataTable::Load could not find column named "
            "'fsid' or 'ID' in %s!",
+           isFileName);
+    ifsDatFile.close();
+    return (-1);
+  }
+  if (fsidcol != 0)
+  {
+    printf("ERROR: QdecDataTable::Load did not find a column named "
+           "'fsid', 'ID', or 'Subject' in the first column of %s!",
            isFileName);
     ifsDatFile.close();
     return (-1);
