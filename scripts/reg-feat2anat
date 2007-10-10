@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/08/15 15:33:06 $
-#    $Revision: 1.27 $
+#    $Date: 2007/10/10 04:31:07 $
+#    $Revision: 1.28 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: reg-feat2anat,v 1.27 2007/08/15 15:33:06 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.28 2007/10/10 04:31:07 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brainmask;
@@ -41,6 +41,7 @@ set manual_use_surf = 1;
 set manxfm = func2anat;
 set DoBETFunc = 0; # Not with FSL 4.0
 set title = ();
+set UseSPM = 0;
 
 set PrintHelp = 0;
 
@@ -248,16 +249,35 @@ else
 endif
 set outvol = $FeatDir/reg/freesurfer/tmp/exf-in-anat
 
-# Now run the fslregister cmd
-set cmd = (fslregister --s $subject --reg $anat2exf_regdat \
-  --mov $tempvol --dof $dof --bins $bins --cost $cost \
-  --fslmat $exf2anat_fslmat --fsvol $anatvol \
-  --maxangle $maxangle  --initfslmat $exf2anat_init_fslmat \
-  --tmp $FeatDir/reg/freesurfer/tmp --out $outvol.$fslext)
-if($DoBETFunc) set cmd = ($cmd --betfunc) # Not with FSL 4.0
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
+if(! $UseSPM) then
+  # Now run the fslregister cmd
+  set cmd = (fslregister --s $subject --reg $anat2exf_regdat \
+    --mov $tempvol --dof $dof --bins $bins --cost $cost \
+    --fslmat $exf2anat_fslmat --fsvol $anatvol \
+    --maxangle $maxangle  --initfslmat $exf2anat_init_fslmat \
+    --tmp $FeatDir/reg/freesurfer/tmp --out $outvol.$fslext)
+  if($DoBETFunc) set cmd = ($cmd --betfunc) # Not with FSL 4.0
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+else
+  # Or use SPM2 or SPM5 (but don't tell Steve)
+  # This will probably only work on x32 machines
+  set cmd = (spmregister --s $subject --reg $anat2exf_regdat \
+    --mov $tempvol  --fsvol $anatvol \
+    --tmp $FeatDir/reg/freesurfer/tmp )
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  # Now create the fsl matrix
+  set cmd = ($TKR --reg $anat2exf_regdat --mov $tempvol\
+     --fslregout $FeatDir/reg/freesurfer/exf2anat.fsl.mat \
+     --noedit)
+  echo $cmd
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
+
 cp $anat2exf_regdat $FeatDir/reg/freesurfer/register.dat
 
 # Just for fun, create a matrix to map exf to talairach:
@@ -280,7 +300,7 @@ set cmd = ($MM -fsl \
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) then
-  echo "ERROR: tkregister2" | tee -a $LF
+  echo "ERROR: mri_matrix_multiply" | tee -a $LF
   exit 1;
 endif
 
@@ -399,6 +419,10 @@ while( $#argv != 0 )
       set DoBETFunc = 1;
       breaksw
 
+    case "--spm":
+      set UseSPM = 1;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1; # turns on terminal echoing
@@ -509,6 +533,7 @@ usage_exit:
   echo " --bet            : run betfunc on example_func (not with FSL 4.0)"
   echo " "
   echo " --title        : title for tkregister window"
+  echo " --spm          : use SPM instead of flirt, 6 dof only"
   echo " --version      : print version and exit"
   echo " --help         : print help and exit"
   echo " --debug        : turn on debugging"
