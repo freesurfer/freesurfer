@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/08/29 17:52:31 $
-#    $Revision: 1.251 $
+#    $Date: 2007/10/10 17:34:18 $
+#    $Revision: 1.252 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.251 2007/08/29 17:52:31 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.252 2007/10/10 17:34:18 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -926,6 +926,9 @@ proc MakeScubaFrame { ifwTop } {
     set frameID [GetNewFrameID]
     togl $fwScuba -width 512 -height 512 -rgba true -ident $frameID
 
+    # The first callbacks are the callbacks registered in
+    # ToglManager.cpp. The second callbacks with the Scuba prefix are
+    # here in the tcl code.
     bind $fwScuba <Motion> \
 	"%W MouseMotionCallback %x %y %b; ScubaMouseMotionCallback %x %y %s %b"
     bind $fwScuba <ButtonPress> \
@@ -936,7 +939,9 @@ proc MakeScubaFrame { ifwTop } {
 	"%W KeyUpCallback %x %y %K; ScubaKeyUpCallback %x %y %s %K"
     bind $fwScuba <KeyPress> \
 	"%W KeyDownCallback %x %y %K; ScubaKeyDownCallback %x %y %s %K"
-    bind $fwScuba <Enter> "focus $fwScuba"
+    # We need to focus on entry, otherwise we won't get key events.
+    bind $fwScuba <Enter> "focus $fwScuba; %W EnterCallback"
+    bind $fwScuba <Leave> "%W ExitCallback"
 
     set gaWidget(scubaFrame,$frameID) $fwScuba
     set gFrameWidgetToID($fwScuba) $frameID
@@ -6960,7 +6965,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.251 2007/08/29 17:52:31 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.252 2007/10/10 17:34:18 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
