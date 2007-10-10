@@ -1,15 +1,16 @@
 /**
  * @file  Point3.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Simple class for a three component tuple
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is a simple class representing a three component tuple. It has
+ * the basic settors and accessors along with a stream output function.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.7 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/10 18:43:36 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,62 +34,68 @@
 
 template <typename T>
 class Point3 {
+
 public:
-  Point3 () {}
-  Point3 ( T iX, T iY, T iZ ) {
+
+  Point3 ();
+  Point3 ( T const iX, T const iY, T const iZ );
+  Point3 ( T const iXYZ[3] );
+
+  // Settors.
+  inline void Set ( T const iX, T const iY, T const iZ ) {
     m[0] = iX;
     m[1] = iY;
     m[2] = iZ;
   }
-  Point3 ( T const iXYZ[3] ) {
+  inline void Set ( T const iXYZ[3] ) {
     m[0] = iXYZ[0];
     m[1] = iXYZ[1];
     m[2] = iXYZ[2];
   }
-  void Set ( T iX, T iY, T iZ ) {
-    m[0] = iX;
-    m[1] = iY;
-    m[2] = iZ;
-  }
-  void Set ( T iXYZ[3] ) {
-    m[0] = iXYZ[0];
-    m[1] = iXYZ[1];
-    m[2] = iXYZ[2];
-  }
-  void Set ( Point3<T>& i ) {
+  inline void Set ( Point3<T> const& i ) {
     m[0] = i.x();
     m[1] = i.y();
     m[2] = i.z();
   }
-  void SetX ( T i ) {
+  inline void SetX ( T const i ) {
     m[0] = i;
   }
-  void SetY ( T i ) {
+  inline void SetY ( T const i ) {
     m[1] = i;
   }
-  void SetZ ( T i ) {
+  inline void SetZ ( T const i ) {
     m[2] = i;
   }
-  T& operator[]( int i ) {
+  inline T& operator[]( int i ) {
     return m[i];
   }
-  T* xyz() {
+  inline T* xyz() {
     return m;
   }
-  T x() {
+
+  // Accessors.
+  inline const T& operator[]( int i ) const {
+    return m[i];
+  }
+  inline T const* xyz() const {
+    return m;
+  }
+  inline T x() const {
     return m[0];
   }
-  T y() {
+  inline T y() const {
     return m[1];
   }
-  T z() {
+  inline T z() const {
     return m[2];
   }
+
+  // Storage.
   T m[3];
 };
 
 template <typename T>
-std::ostream& operator << ( std::ostream&, Point3<T> iPoint  );
+std::ostream& operator << ( std::ostream&, Point3<T> const& iPoint  );
 
 
 #endif

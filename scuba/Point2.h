@@ -1,15 +1,16 @@
 /**
  * @file  Point2.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Simple class for a two component tuple
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is a simple class representing a two component tuple. It has
+ * the basic settors and accessors along with a stream output function.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.6 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/10 18:43:32 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,48 +32,55 @@
 
 #include <iostream>
 
-
 template <typename T>
 class Point2 {
+
 public:
-  Point2 () {}
-  Point2 ( T iX, T iY ) {
+  
+  Point2 ();
+  Point2 ( T const iX, T const iY );
+  Point2 ( T const iXY[2] );
+
+  // Settors.
+  inline void Set ( T const iX, T const iY ) {
     m[0] = iX;
     m[1] = iY;
   }
-  Point2 ( T const iXY[2] ) {
+  inline void Set ( T const iXY[2] ) {
     m[0] = iXY[0];
     m[1] = iXY[1];
   }
-  void Set ( T iX, T iY ) {
-    m[0] = iX;
-    m[1] = iY;
-  }
-  void Set ( T iXY[2] ) {
-    m[0] = iXY[0];
-    m[1] = iXY[1];
-  }
-  void Set ( Point2<T>& i ) {
+  inline void Set ( Point2<T> const& i ) {
     m[0] = i.x();
     m[1] = i.y();
   }
-  T& operator[]( int i ) {
+  inline T& operator[]( int i ) {
     return m[i];
   }
-  T* xy() {
+  inline T* xy() {
     return m;
   }
-  T x () {
+
+  // Accessors.
+  inline T const& operator[]( int i ) const {
+    return m[i];
+  }
+  inline T const* xy() const {
+    return m;
+  }
+  inline T x () const {
     return m[0];
   }
-  T y () {
+  inline T y () const {
     return m[1];
   }
+
+  // Storage.
   T m[2];
 };
 
 
 template <typename T>
-std::ostream& operator << ( std::ostream&, Point2<T> iPoint  );
+std::ostream& operator << ( std::ostream&, Point2<T> const& iPoint  );
 
 #endif
