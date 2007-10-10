@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/10/05 05:54:31 $
-#    $Revision: 1.141 $
+#    $Date: 2007/10/10 01:54:16 $
+#    $Revision: 1.142 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.141 2007/10/05 05:54:31 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.142 2007/10/10 01:54:16 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -387,6 +387,9 @@ if($DoVersionsOnly) exit 0;
 # Delete the error file. This is created when error_exit is run.
 set ErrorFile = $subjdir/scripts/recon-all.error
 rm -f $ErrorFile
+# Delete the done file. This is created when recon-all exits normally
+set DoneFile = $subjdir/scripts/recon-all.done
+rm -f $DoneFile
 
 # ------------ Create the IsRunning File --------- #
 if($DoIsRunning) then
@@ -419,12 +422,17 @@ if($DoIsRunning) then
     echo "----------------------------------------------------------"
     exit 1;
   endif
-  echo "date      `date`" >> $IsRunningFile 
-  echo "processid $$ "   >> $IsRunningFile 
-  echo "hemi      $hemilist"  >> $IsRunningFile 
-  echo "host      `hostname` "   >> $IsRunningFile 
-  echo "user      $user"   >> $IsRunningFile 
-  uname -a            >> $IsRunningFile 
+  echo "------------------------------" > $IsRunningFile 
+  echo "SUBJECT $subjid" >> $IsRunningFile 
+  echo "HEMI    $hemilist"  >> $IsRunningFile 
+  echo "DATE `date`"     >> $IsRunningFile 
+  echo "USER $user"      >> $IsRunningFile 
+  echo "HOST `hostname`" >> $IsRunningFile 
+  echo "PROCESSID $$ "   >> $IsRunningFile 
+  echo "PROCESSOR `uname -m`" >> $IsRunningFile 
+  echo "OS `uname -s`"       >> $IsRunningFile 
+  uname -a         >> $IsRunningFile 
+  echo $VERSION    >> $IsRunningFile 
 endif
 
 # ------- Check FREESURFER HOME consistency ---------------------#
@@ -2359,6 +2367,18 @@ if($#NotifyFile != 0) then
 endif
 
 if($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
+
+# Create the Done File
+echo "------------------------------" > $DoneFile
+echo "SUBJECT $subjid" >> $DoneFile
+echo "DATE `date`"     >> $DoneFile
+echo "USER $user"      >> $DoneFile
+echo "HOST `hostname`" >> $DoneFile
+echo "PROCESSOR `uname -m`" >> $DoneFile
+echo "OS `uname -s`"       >> $DoneFile
+uname -a         >> $DoneFile
+echo $VERSION    >> $DoneFile
+echo $0          >> $DoneFile
 
 echo "recon-all finished without error at `date`" |& tee -a $LF |& tee -a $SF
 
