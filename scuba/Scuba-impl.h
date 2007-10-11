@@ -9,11 +9,11 @@
  * http://www.parashift.com/c++-faq-lite/templates.html#faq-35.15
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/10 18:43:47 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/10/11 15:13:30 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,6 @@ template class Point2<Point3<float> >;
 template class Array2<float>;
 template class Array2<int>;
 template class Array2<bool>;
-template class Array2<ShortestPathFinder::listElement>;
 template class Path<float>;
 template class Volume3<Point3<int> >;
 template class Array2<Point3<float> >;
