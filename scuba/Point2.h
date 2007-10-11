@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/10 18:43:32 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/10/11 21:45:44 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -73,6 +73,14 @@ public:
   }
   inline T y () const {
     return m[1];
+  }
+
+  // Operators.
+  inline bool operator== ( Point2<T> const& i ) {
+    return ((m[0] == i.x()) && (m[1] == i.y()));
+  }
+  inline bool operator!= ( Point2<T> const& i ) {
+    return ((m[0] != i.x()) || (m[1] != i.y()));
   }
 
   // Storage.
