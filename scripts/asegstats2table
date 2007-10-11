@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.9 2007/09/26 15:51:36 greve Exp $
+# $Id: asegstats2table,v 1.10 2007/10/11 19:57:49 greve Exp $
 import sys;
 import os;
 import string;
@@ -49,7 +49,7 @@ def print_usage():
   print "USAGE: asegstats2table";
   print "  --subjects  subject1 <subject2 ...>";
   print "  --s subject1 <--s subject2 ...>";
-  print "  --meas measure : default is vol (alt: mean)";
+  print "  --meas measure : default is vol (alt: mean, std)";
   print "  --maxsegno maxno : maximum segmentation no to report"  
   print "  --statsfile fname : use fname instead of aseg.stats"  
   print "  --subdir subdir : use subdir instead of stats"  
@@ -166,11 +166,11 @@ def check_args():
     print "ERROR: no tablefile specified";
     sys.exit(1);
   #endif    
-  if(meas != 'volume' and meas != 'vol' and meas != 'mean'):
-    print "ERROR: meas = %s, must be volume or mean" % (meas);
+  if(meas == 'vol'): meas = 'volume';
+  if(meas != 'volume' and meas != 'mean' and meas != 'std'):
+    print "ERROR: meas = %s, must be volume, mean, or std" % (meas);
     sys.exit(1);
   #endif
-  if(meas == 'vol'): meas = 'volume';
   if(len(SUBJECTS) == 0):
     # Does not work to look in env
     if(os.environ.get('SUBJECTS',0) == 0):
@@ -189,7 +189,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.9 2007/09/26 15:51:36 greve Exp $';
+Version = '$Id: asegstats2table,v 1.10 2007/10/11 19:57:49 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
@@ -282,6 +282,7 @@ for subject in SUBJECTS:
       if(maxsegno > 0 and segno > maxsegno): continue
       if(meas == 'volume'):  val = string.atof(tmp[3]);
       if(meas == 'mean'):    val = string.atof(tmp[5]);
+      if(meas == 'std'):     val = string.atof(tmp[6]);
       if(debug): print "%d %s %g %g" % (nthseg,segid,val)
       fptbl.write(' %g' % (val) );
       nthseg = nthseg + 1;
