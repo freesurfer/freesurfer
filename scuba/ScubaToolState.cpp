@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.26 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/11 21:47:12 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,6 @@ ScubaToolState::ScubaToolState() :
     mbFlood3D( false ),
     mFloodSourceCollection( -1 ),
     mbOnlyFloodZero( false ),
-    mEdgePathStraightBias( 0.9 ),
     mEdgePathEdgeBias( 0.9 ) {
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetToolMode", 2, "toolID mode",
@@ -136,12 +135,6 @@ ScubaToolState::ScubaToolState() :
   commandMgr.AddCommand( *this, "GetToolOnlyFloodZero", 1, "toolID",
                          "Returns whether or not a flood is only affecting "
                          "zero values." );
-  commandMgr.AddCommand( *this, "SetToolEdgePathStraightBias", 2,
-                         "toolID bias", "Sets the bias (0-1) for straight "
-                         "paths for the edge path tool." );
-  commandMgr.AddCommand( *this, "GetToolEdgePathStraightBias", 1,
-                         "toolID", "Returns the bias for straight "
-                         "paths for the edge path tool." );
   commandMgr.AddCommand( *this, "SetToolEdgePathEdgeBias", 2,
                          "toolID bias", "Sets the bias (0-1) for edges "
                          "for the edge path tool." );
@@ -819,43 +812,6 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
       sReturnValues =
         TclCommandManager::ConvertBooleanToReturnValue( GetOnlyFloodZero() );
       sReturnFormat = "i";
-    }
-  }
-
-  // SetToolEdgePathStraightBias <toolID> <bias>
-  if ( 0 == strcmp( isCommand, "SetToolEdgePathStraightBias" ) ) {
-    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad tool ID";
-      return error;
-    }
-
-    if ( GetID() == toolID ) {
-
-      float bias = (float) strtod( iasArgv[2], (char**)NULL );
-      if ( ERANGE == errno ) {
-        sResult = "bad bias";
-        return error;
-      }
-
-      SetEdgePathStraightBias( bias );
-    }
-  }
-
-  // GetToolEdgePathStraightBias <toolID>
-  if ( 0 == strcmp( isCommand, "GetToolEdgePathStraightBias" ) ) {
-    int toolID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad tool ID";
-      return error;
-    }
-
-    if ( GetID() == toolID ) {
-
-      sReturnFormat = "f";
-      stringstream ssReturnValues;
-      ssReturnValues << GetEdgePathStraightBias();
-      sReturnValues = ssReturnValues.str();
     }
   }
 

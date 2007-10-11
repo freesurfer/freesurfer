@@ -1,15 +1,20 @@
 /**
  * @file  ShortestPathFinder.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Calculates shortest path in 2D
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This class calculates shortest paths in a 2D plane given a cost to
+ * go to each point. An edge bias factor allows difference importance
+ * to be placed on the edge cost vs. the distance (1.0 for cardinal
+ * points, 1.4 for diagonals). The path from point A to B is returned
+ * as A+1 to B, not including the original point A.  To use it,
+ * subclass Shortest and redefine GetEdgeCost if you want.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.9 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/11 21:47:12 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,341 +30,204 @@
  *
  */
 
-
-#include "ShortestPathFinder.h"
-
 //  Portions (c) Copyright 2005 Brigham and Women's Hospital (BWH) All
 //  Rights Reserved.
 //  See docs/license.slicer
 //  or http://www.slicer.org/copyright/copyright.txt for details.
 
+#include <stdexcept>
+#include <queue>
+#include <vector>
+
+#include "ShortestPathFinder.h"
+
 using namespace std;
 
-ShortestPathFinder::ShortestPathFinder() {
+ShortestPathFinder::ShortestPathFinder() : 
+  mEdgeBias( 0.5 ),
+  mzX( 0 ),
+  mzY( 0 ),
+  mbValidCosts( false ),
+  maTotalCost( NULL ) {
 
-  mStraightBias = 1;
-  mEdgeBias = 0.5;
-  mLongestEdge = 0;
-  mzX = mzY = 0;
-  mQueue = NULL;
-  maCost = NULL;
-  maDir = NULL;
-  maDone = NULL;
-  mDebug = false;
-}
+  mStartPoint.Set( 0, 0 );
+} 
 
 ShortestPathFinder::~ShortestPathFinder() {
 
-  if ( NULL != mQueue ) {
-    delete mQueue;
-  }
-  if ( NULL != maCost ) {
-    delete maCost;
-  }
-  if ( NULL != maDir ) {
-    delete maDir;
-  }
-  if ( NULL != maDone ) {
-    delete maDone;
+  delete maTotalCost;
+}
+
+void
+ShortestPathFinder::SetDimensions ( int izX, int izY ) {
+
+  // If these are not our current dimensions...
+  if( mzX != izX || mzY != izY ) {
+    
+    // Save the new ones.
+    mzX = izX;
+    mzY = izY;
+    
+    // Recreate our cost array.
+    delete maTotalCost;
+    maTotalCost = new Array2<float>( mzX, mzY, numeric_limits<int>::max() );
+
+    // Need to find the costs again.
+    mbValidCosts = false;
   }
 }
 
 void
-ShortestPathFinder::SetDimensions ( int izX, int izY, int iLongestEdge ) {
+ShortestPathFinder::SetEdgeBias ( float iBias ) {
 
-  mzX = izX;
-  mzY = izY;
-  mLongestEdge = iLongestEdge;
+  if( iBias < 0 || iBias > 1.0 )
+    throw runtime_error ( "Invalid edge bias; should be 0-1." );
 
-  if ( NULL != mQueue ) {
-    delete mQueue;
-  }
-  if ( NULL != maCost ) {
-    delete maCost;
-  }
-  if ( NULL != maDir )  {
-    delete maDir;
-  }
-  if ( NULL != maDone ) {
-    delete maDone;
-  }
-
-  mQueue = new circularQueue( mzX, mzY, iLongestEdge );
-  maCost = new Array2<float>( mzX, mzY, iLongestEdge * mzX * mzY ); // max cost
-  maDir  = new Array2<int>( mzX, mzY, 0 );
-  maDone = new Array2<bool>( mzX, mzY, false );
+  mEdgeBias = iBias;
 }
 
+void
+ShortestPathFinder::SetStartPoint ( Point2<int> const& iStartPoint ) {
+
+  // If this is not the same start point...
+  if( mStartPoint != iStartPoint ) {
+
+    if( iStartPoint.x() < 0 || iStartPoint.x() >= mzX ||
+	iStartPoint.y() < 0 || iStartPoint.y() >= mzY )
+      throw runtime_error( "Invalid start point, out of bounds." );
+    
+    // Set the point and invalidate the costs.
+    mStartPoint = iStartPoint;
+    mbValidCosts = false;
+  }
+}
 
 void
-ShortestPathFinder::FindPath ( Point2<int>& iStartPoint,
-                               Point2<int>& iEndPoint,
-                               std::list<Point2<int> >& ioPoints ) {
+ShortestPathFinder::FindPathToEndPoint ( Point2<int> const& iEndPoint,
+					 std::list<Point2<int> >& ioPoints ) {
 
-  int aDirectionOffsets[9][2] = { { 0, 0},
-                                  {-1, 0}, {-1, 1}, {0, 1}, { 1, 1},
-                                  { 1, 0}, { 1,-1}, {0,-1}, {-1,-1} };
-  float aFactor[9] = { 0, 1, 1.4, 1, 1.4, 1, 1.4, 1, 1.4 };
+  if( iEndPoint.x() < 0 || iEndPoint.x() >= mzX ||
+      iEndPoint.y() < 0 || iEndPoint.y() >= mzY )
+      throw runtime_error( "Invalid start point, out of bounds." );
 
-  // Set begin and ending points.
-  Point2<int> begin( iStartPoint );
-  Point2<int> end( iEndPoint );
-
-  // Set initial cost to zero and insert it in the queue.
-  maCost->Set( begin, 0 );
-  mQueue->Insert( begin, 0 );
-
-  // While end point not done, keep checking out neighbors of current point
-  float currentCost = 0;
-  while ( !maDone->Get( end ) ) {
-
-    // Get min vertex from Q
-    listElement* min = mQueue->GetListElement( (int)currentCost );
-    if ( NULL == min ) {
-      cerr << "GetListElement returned NULL" << endl;
-      return;
-    }
-    Point2<int> current( min->Coord );
-
-    // Update the current path cost
-    currentCost = maCost->Get( current );
-
-    // Mark this point done.
-    maDone->Set( current, true );
-
-    // remove it from Q
-    mQueue->Remove( min );
-
-    // Check out neighbors.
-    for ( int direction = 1; direction < 9; direction++ ) {
-
-      Point2<int> neighbor( current.x() + aDirectionOffsets[direction][0],
-                            current.y() + aDirectionOffsets[direction][1]);
-
-      if ( neighbor.x() >= 0 && neighbor.x() < mzX &&
-           neighbor.y() >= 0 && neighbor.y() < mzY ) {
-
-        // Get the cost of this edge = value of weight volume *
-        // factor.  We add 0.001 to the edge cost because if it's
-        // 0, there's no preference for straight lines, since
-        // diagonal lines will have the same cost, which in some
-        // cases makes a really weird looking line.
-        float newCost = currentCost +
-                        ( (this->GetEdgeCost( neighbor ) * mEdgeBias + 0.001) *
-                          aFactor[direction] * (1.0 - mEdgeBias) );
-
-        // If path from current point shorter than old path
-        if ( newCost < maCost->Get( neighbor ) ) {
-
-          // lower the cumulative cost to reach this neighbor
-          maCost->Set( neighbor, newCost );
-
-          // store new short path direction
-          maDir->Set( neighbor, direction );
-
-          // remove this neighbor from Q if in it
-          mQueue->Remove( neighbor );
-
-          // then put it in the proper place in Q for its new cost
-          mQueue->Insert( neighbor, (int)newCost );
-        }
-      }
-    }
-
-#if 0
-    if ( mDebug ) {
-      cerr << "after pulling" << current << endl;
-      for ( int nY = 0; nY < mzY; nY++ ) {
-        for ( int nX = 0; nX < mzX; nX++ ) {
-          if ( nX == current.x() && nY == current.y() ) {
-            cerr.width( 4 );
-            cerr.fill( '-' );
-            cerr << maCost->Get( nX, nY ) << "-";
-          } else {
-            cerr.width( 4 );
-            cerr.fill( ' ' );
-            cerr << maCost->Get( nX, nY ) << " ";
-          }
-        }
-        cerr << endl;
-      }
-      cerr << endl;
-    }
-#endif
-  }
+  // Find the costs if we haven't already.
+  if( !mbValidCosts )
+    FindCosts();
 
   // Start at the end and follow the direction table back to the
-  // beginning, adding points on the way.
+  // beginning, adding points on the way. The next step in the
+  // shortest path is the neighbor with the lowest cost.
   ioPoints.clear();
-  Point2<int> current( end );
-  Point2<int> next;
-  while ( current.x() != begin.x() ||
-          current.y() != begin.y() ) {
+  Point2<int> current( iEndPoint );
+  while ( current.x() != mStartPoint.x() ||
+          current.y() != mStartPoint.y() ) {
 
+    // Push the current point to the result path.
     ioPoints.push_front( current );
 
-    next.Set( current.x() - aDirectionOffsets[maDir->Get(current)][0],
-              current.y() - aDirectionOffsets[maDir->Get(current)][1]);
-
-    current.Set( next.x(), next.y() );
-  }
-
-#if 0
-  if ( mDebug ) {
-    cerr << "final cost array and path" << endl;
-    for ( int nY = 0; nY < mzY; nY++ ) {
-      for ( int nX = 0; nX < mzX; nX++ ) {
-
-        bool bInPath = false;
-        list<Point2<int> >::iterator tPoint;
-        for ( tPoint = ioPoints.begin(); tPoint != ioPoints.end();
-              ++tPoint ) {
-          if ( nX == (*tPoint).x() && nY == (*tPoint).y() ) {
-            bInPath = true;
-            break;
-          }
-        }
-        if ( bInPath ) {
-          cerr.width( 7 );
-          cerr.precision( 4 );
-          cerr.fill( '-' );
-          cerr << maCost->Get( nX, nY ) << "-";
-        } else {
-          cerr.width( 7 );
-          cerr.precision( 4 );
-          cerr.fill( ' ' );
-          cerr << maCost->Get( nX, nY ) << " ";
-        }
+    // Search for the lowest cost of its neighbors.
+    float lowestCost = numeric_limits<float>::max();
+    int lowestDirection = 0;
+    for ( int direction = 1; direction < 9; direction++ ) {
+      Point2<int> neighbor( current.x() + GetDirectionOffset(direction)[0],
+			    current.y() + GetDirectionOffset(direction)[1]);
+      if ( neighbor.x() >= 0 && neighbor.x() < mzX &&
+	   neighbor.y() >= 0 && neighbor.y() < mzY ) {
+	float cost = maTotalCost->Get( neighbor );
+	if( cost < lowestCost ) {
+	  lowestCost = cost;
+	  lowestDirection = direction;
+	}
       }
-      cerr << endl;
     }
-    cerr << endl;
-  }
-#endif
-}
 
-
-linkedList::linkedList(int x, int y)
-    : Array2<listElement>(x,y) {
-  for (int i = 0; i < x; i++) {
-    for (int j = 0; j < y; j++) {
-      this->Element(i,j)->Coord.Set( i, j );
-    }
+    // Update current to be the neighbor with the lowest cost.
+    current.Set( current.x() + GetDirectionOffset(lowestDirection)[0],
+		 current.y() + GetDirectionOffset(lowestDirection)[1]);
   }
 }
 
+int const*
+ShortestPathFinder::GetDirectionOffset ( int inDirection )  const {
+ 
+  static int saDirectionOffsets[9][2] = { { 0, 0},
+					  {-1, 0}, {-1, 1}, {0, 1}, { 1, 1},
+					  { 1, 0}, { 1,-1}, {0,-1}, {-1,-1} };
+  return saDirectionOffsets[inDirection];
+}
 
-circularQueue::circularQueue(int x, int y, int buckets) {
-  this->A = new linkedList(x,y);
-  this->C = buckets;
-  this->Circle = new listElement[this->C+1];
-  // link each bucket into its circle
-  for (int i=0; i<C+1; i++) {
-    this->Circle[i].Prev = this->Circle[i].Next = &this->Circle[i];
-  }
-};
+float
+ShortestPathFinder::GetDirectionFactor ( int inDirection ) const {
 
-circularQueue::~circularQueue() {
-  if (this->A) delete this->A;
-  if (this->Circle) delete[] this->Circle;
-};
-
-void
-circularQueue::Insert ( Point2<int>& iLocation, int iCost ) {
-
-  int nBucket = this->GetBucket( iCost );
-
-  listElement *el = this->A->Element( iLocation );
-  // insert el at the top of the list from the bucket
-  el->Next = this->Circle[nBucket].Next;
-  if (el->Next == NULL) {
-    cout << "ERROR. bucket is NULL, not linked to self." << endl;
-  }
-  this->Circle[nBucket].Next->Prev = el;
-  this->Circle[nBucket].Next = el;
-  el->Prev = &this->Circle[nBucket];
+  static float saFactor[9] = { 0, 1, 1.4, 1, 1.4, 1, 1.4, 1, 1.4 };
+  return saFactor[inDirection];
 }
 
 void
-circularQueue::Remove ( Point2<int>& iLocation ) {
+ShortestPathFinder::FindCosts () {
 
-  listElement *el = this->A->Element( iLocation );
-  this->Remove( el );
-}
+  // The pair is the location in the grid and the cumulative cost from
+  // the start point to that location.
+  priority_queue<Entry, vector<Entry>, CompareEntriesGT > q;
+  
+  // Initialize all costs to max.
+  maTotalCost->SetAll( numeric_limits<int>::max() );
 
-void
-circularQueue::Remove( listElement *el ) {
+  // Set initial cost to zero and insert it in the queue.
+  maTotalCost->Set( mStartPoint, 0 );
+  q.push( Entry( mStartPoint, 0 ) );
 
-  // if el is in linked list
-  if (el->Prev != NULL) {
-    if (el->Next == NULL) {
-      cout <<"ERROR. el->Next is NULL."<< endl;
-      return;
+  // While we have points the check...
+  while ( !q.empty() ) {
+
+    // Get the nearest entry.
+    Entry currentEntry = q.top();
+    q.pop();
+
+    // Pull out the current point and cost.
+    Point2<int>& current = currentEntry.first;
+    float cost = currentEntry.second;
+
+    // If this cost is lower than we total we currently have for this
+    // point...
+    if( cost <= maTotalCost->Get( current ) ) {
+
+      // This is our new shortest path element. Check our neighbors to
+      // update their costs.
+      for ( int direction = 1; direction < 9; direction++ ) {
+	Point2<int> neighbor( current.x() + GetDirectionOffset(direction)[0],
+			      current.y() + GetDirectionOffset(direction)[1]);
+	if ( neighbor.x() >= 0 && neighbor.x() < mzX &&
+	     neighbor.y() >= 0 && neighbor.y() < mzY ) {
+
+	  // Get the cost of this edge, multiplying the edge cost by
+	  // the edge bias and the direction factor by the rest.
+	  float newCost = cost +
+	    ( (this->GetEdgeCost( neighbor ) * mEdgeBias) +
+	      (GetDirectionFactor(direction) * (1.0 - mEdgeBias)) );
+
+	  // If path from current point shorter than old path...
+	  if ( newCost < maTotalCost->Get( neighbor ) ) {
+
+	    // Save the new low cost.
+	    maTotalCost->Set( neighbor, newCost );
+	    
+	    // Push it to the queue with the new cost.
+	    q.push( Entry( neighbor, newCost ) );
+	  }
+	}
+      }
     }
-
-    el->Next->Prev = el->Prev;
-    el->Prev->Next = el->Next;
-
-    // clear el's pointers
-    el->Prev = el->Next = NULL;
   }
 
-  return;
+  // We now have our costs for this start point.
+  mbValidCosts = true;
 }
 
-listElement*
-circularQueue::GetListElement ( int iCost ) {
+bool
+ShortestPathFinder::CompareEntriesGT::operator() ( Entry const& iA, 
+						   Entry const& iB ) const {
 
-  int nBucket = FindMinBucket( iCost );
-
-  // return the last one in the linked list.
-  if (this->Circle[nBucket].Prev == NULL) {
-    cout << "ERROR. Unlinked list." << endl;
-    return NULL;
-  }
-  if (this->Circle[nBucket].Next == &this->Circle[nBucket]) {
-    cout << "ERROR. Empty linked list." << endl;
-    return NULL;
-  }
-
-  return this->Circle[nBucket].Prev;
-}
-
-int
-circularQueue::GetBucket( int iCost ) {
-
-  if ( iCost < 0 ) {
-    cout << "ERROR: negative cost of " << iCost << endl;
-  }
-
-  // return remainder
-  return div(iCost,this->C+1).rem;
-}
-
-int
-circularQueue::FindMinBucket( int iCost ) {
-
-  int nBucket = this->GetBucket( iCost );
-  int count = 0;
-
-  int cost = iCost;
-  while ( this->Circle[nBucket].Next == &this->Circle[nBucket] &&
-          count <= this->C ) {
-
-    // search around the Q for the next vertex
-    cost++;
-    nBucket = this->GetBucket( cost );
-    count++;
-  }
-
-  // have we looped all the way around?
-  if (count > this->C) {
-    cout << "ERROR. Empty Q." << endl;
-  }
-
-  if (this->Circle[nBucket].Prev == &this->Circle[nBucket]) {
-    cout <<"ERROR. Prev not linked to bucket." << endl;
-  }
-
-  return nBucket;
+  // Just compare the costs.
+  return iA.second > iB.second;
 }

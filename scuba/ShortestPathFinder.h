@@ -1,15 +1,20 @@
 /**
  * @file  ShortestPathFinder.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Calculates shortest path in 2D
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This class calculates shortest paths in a 2D plane given a cost to
+ * go to each point. An edge bias factor allows difference importance
+ * to be placed on the edge cost vs. the distance (1.0 for cardinal
+ * points, 1.4 for diagonals). The path from point A to B is returned
+ * as A+1 to B, not including the original point A.  To use it,
+ * subclass Shortest and redefine GetEdgeCost if you want.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.8 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/11 21:47:13 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,65 +30,19 @@
  *
  */
 
-
-#ifndef ShortestPathFinder_h
-#define ShortestPathFinder_h
-
 //  Portions (c) Copyright 2005 Brigham and Women's Hospital (BWH) All
 //  Rights Reserved.
 //  See docs/license.slicer
 //  or http://www.slicer.org/copyright/copyright.txt for details.
 
+#ifndef ShortestPathFinder_h
+#define ShortestPathFinder_h
+
 #include <list>
-#include "Point2.h"
+
 #include "Array2.h"
 #include "DebugReporter.h"
-
-// This class calculates shortest paths in a 2d plane given a cost to
-// go to each point. (This is possibly incorrectly called 'edge cost',
-// but is actually the cost to get to that point from any other.) The
-// path from point A to B is returned as A+1 to B, not including the
-// original point A.
-// To use it, subclass Shortest and redefine GetEdgeCost if you want.
-
-
-class listElement {
-public:
-  listElement *Prev;
-  listElement *Next;
-  Point2<int> Coord;
-  listElement() {
-    this->Prev=NULL;
-    this->Next=NULL;
-  };
-};
-
-
-class linkedList : public Array2<listElement> {
-public:
-  linkedList ( int izX, int izY );
-};
-
-class circularQueue {
-public:
-  circularQueue ( int izX, int izY, int icBuckets );
-  ~circularQueue();
-
-  void Insert ( Point2<int>& iLocation, int iCost );
-  void Remove ( Point2<int>& iLocation );
-  void Remove ( listElement *el );
-  listElement *GetListElement ( int iCost );
-
-private:
-  int GetBucket ( int iCost );
-  int FindMinBucket ( int iCost );
-
-  linkedList *A;
-  listElement *Circle;
-  int C;
-};
-
-
+#include "Point2.h"
 
 class ShortestPathFinder : public DebugReporter {
 
@@ -92,37 +51,70 @@ public:
   ShortestPathFinder();
   virtual ~ShortestPathFinder();
 
-  void SetDimensions ( int izX, int izY, int iLongestEdge );
+  // Set the dimensions of the range. If these are already the current
+  // dimensions, does nothing.
+  void SetDimensions ( int izX, int izY );
 
-  void SetStraightBias ( float iBias ) {
-    mStraightBias = iBias;
-  }
-  void SetEdgeBias ( float iBias ) {
-    mEdgeBias = iBias;
-  }
+  // Set the edge bias, from 0 to 1. This determines how much weight
+  // to give to the edge cost vs the direction cost (which is 1 for
+  // cardinal transitions and 1.4 for diagonal transitions.
+  void SetEdgeBias ( float iBias );
 
-  void FindPath ( Point2<int>& iStartPoint, Point2<int>& iEndPoint,
-                  std::list<Point2<int> >& ioPoints );
+  // Set the start point and find all the paths. This performs the
+  // searching algorithm. After this is called, you can call
+  // FindPathToEndPoint to use this data. If this function is called
+  // to change the start point, the paths must be recalculated.
+  void SetStartPoint ( Point2<int> const& iStartPoint );
 
-  virtual float GetEdgeCost ( Point2<int>& ) {
+  // Find the shortest path between the previously set start and end
+  // point. ioPoints will be cleared and the result path will be
+  // stored in it as a list of points from the point AFTER the start
+  // point up to and INCLUDING the end point.
+  void FindPathToEndPoint ( Point2<int> const& iEndPoint,
+			    std::list<Point2<int> >& ioPoints );
+
+  // Subclasses should override this to get the edge cost for a
+  // vertex.
+  virtual float GetEdgeCost ( Point2<int> const& ) const {
     return 1.0;
   }
 
-  void SetDebug ( bool iDebug ) {
-    mDebug = iDebug;
-  }
-
-
 protected:
-  float mStraightBias;
+
+  // Find the costs from the start point.
+  void FindCosts ();
+
+  // Returns a direction offset array of x,y. or a distance factor for
+  // each direction: for cardinal directions and 1.4 for
+  // diagonals. Valid numbers are from 1 to 8, representing 8
+  // directions you can travel. No input checking.
+  int const* GetDirectionOffset ( int inDirection ) const;
+  float GetDirectionFactor ( int inDirection ) const;
+
+  // Type used by the priority_queue in FindPath.
+  typedef std::pair<Point2<int>,float> Entry;
+
+  // Comparator used by the priority_queue in FindPath.
+  class CompareEntriesGT {
+  public: 
+    bool operator() ( Entry const&, Entry const& ) const;
+  };
+
+  // Edge bias, from 0 to 1.
   float mEdgeBias;
+
+  // Dimensions.
   int mzX, mzY;
-  float mLongestEdge;
-  circularQueue *mQueue;
-  Array2<float> *maCost;
-  Array2<int> *maDir;
-  Array2<bool> *maDone;
-  bool mDebug;
+
+  // The current start point.
+  Point2<int> mStartPoint;
+
+  // Whether or not the cost array is valid.
+  bool mbValidCosts;
+
+  // We calc this in SetStartPoint to store the total shortest cost
+  // from the start point to any point in the array.
+  Array2<float>* maTotalCost;
 };
 
 

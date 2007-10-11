@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/08/27 19:48:16 $
- *    $Revision: 1.61 $
+ *    $Date: 2007/10/11 21:47:12 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,6 +37,8 @@
 #include "ShortestPathFinder.h"
 #include "Path.h"
 #include "Listener.h"
+
+class EdgePathFinder;
 
 class ScubaLayer2DMRI : public Layer {
 
@@ -299,7 +301,7 @@ public:
                               float iRASBegin[3], float iRASEnd[3],
                               ViewState& iViewState,
                               ScubaWindowToRASTranslator& iTranslator,
-                              float iStraightBias, float iEdgeBias );
+                              float iEdgeBias );
 
 
   // Select or deselect voxels along a path.
@@ -417,6 +419,10 @@ protected:
 
   // The undo manager action ID for the current drawing operation.
   int mCurrentDrawingOperationActionID;
+
+  // Keep a pointer to our edge finder. It's initialized when first
+  // used.
+  EdgePathFinder* mEdgePathFinder;
 };
 
 // Flooders ============================================================
@@ -522,15 +528,15 @@ public:
 class EdgePathFinder : public ShortestPathFinder {
 
 public:
-  EdgePathFinder ( int iViewWidth, int iViewHeight, int iLongestEdge,
-                   ScubaWindowToRASTranslator* iTranslator,
-                   VolumeCollection* iVolume );
+  EdgePathFinder ( int iViewWidth, int iViewHeight,
+                   ScubaWindowToRASTranslator& iTranslator,
+                   VolumeCollection& iVolume );
 
-  virtual float GetEdgeCost ( Point2<int>& iPoint );
+  virtual float GetEdgeCost ( Point2<int> const& iPoint ) const;
 
 protected:
-  VolumeCollection* mVolume;
-  ScubaWindowToRASTranslator* mTranslator;
+  VolumeCollection& mVolume;
+  ScubaWindowToRASTranslator& mTranslator;
 };
 
 #endif

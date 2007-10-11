@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.23 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/11 21:47:12 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -197,13 +197,6 @@ public:
   }
 
   // edgePath.
-  void SetEdgePathStraightBias ( float iBias ) {
-    mEdgePathStraightBias = iBias;
-  }
-  float GetEdgePathStraightBias () {
-    return mEdgePathStraightBias;
-  }
-
   void SetEdgePathEdgeBias ( float iBias ) {
     mEdgePathEdgeBias = iBias;
   }

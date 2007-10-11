@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/11 15:16:51 $
- *    $Revision: 1.12 $
+ *    $Date: 2007/10/11 21:47:12 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,4 +57,3 @@ template class Volume3<Point3<int> >;
 template class Array2<Point3<float> >;
 template class Array2<VolumeLocation*>;
 template class Volume3<VolumeLocation*>;
-template class Array2<listElement>;

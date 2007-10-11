@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/08/27 19:48:16 $
- *    $Revision: 1.156 $
+ *    $Date: 2007/10/11 21:47:12 $
+ *    $Revision: 1.157 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -96,7 +96,8 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
     mCurrentPath(false),
     mRowStartRAS(NULL),
     mColIncrementRAS(NULL),
-    mCurrentDrawingOperationActionID(-1) {
+    mCurrentDrawingOperationActionID(-1),
+    mEdgePathFinder( NULL ) {
 
   SetOutputStreamToCerr();
 
@@ -284,6 +285,8 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
 ScubaLayer2DMRI::~ScubaLayer2DMRI () {
   if ( NULL != mVolume )
     mVolume->RemoveListener( this );
+
+  delete mEdgePathFinder;
 }
 
 void
@@ -2895,7 +2898,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
             } else if ( iTool.GetMode() == ScubaToolState::edgePath ) {
               StretchPathAsEdge( *mCurrentPath, ras.xyz(),
                                  mFirstPathRAS.xyz(), iViewState, iTranslator,
-                                 iTool.GetEdgePathStraightBias(),
                                  iTool.GetEdgePathEdgeBias() );
             }
 
@@ -2970,7 +2972,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
           } else if ( iTool.GetMode() == ScubaToolState::edgePath ) {
             StretchPathAsEdge( *mCurrentPath, end.xyz(),
                                iRAS, iViewState, iTranslator,
-                               iTool.GetEdgePathStraightBias(),
                                iTool.GetEdgePathEdgeBias() );
           }
 
@@ -3675,16 +3676,23 @@ ScubaLayer2DMRI::StretchPathAsEdge ( Path<float>& iPath,
                                      float iRASEnd[3],
                                      ViewState& iViewState,
                                      ScubaWindowToRASTranslator& iTranslator,
-                                     float iStraightBias, float iEdgeBias ) {
+                                     float iEdgeBias ) {
 
-  // Make an edge path finder.
-  EdgePathFinder finder( iViewState.GetBufferWidth(),
-                         iViewState.GetBufferHeight(),
-                         (int)mVolume->GetMRIMagnitudeMaxValue(),
-                         &iTranslator, mVolume );
-  finder.DisableOutput();
-  finder.SetStraightBias( iStraightBias );
-  finder.SetEdgeBias( iEdgeBias );
+  // Make an edge path finder if we don't have one already.
+  if( NULL == mEdgePathFinder ) {
+    mEdgePathFinder = 
+      new EdgePathFinder( iViewState.GetBufferWidth(),
+			  iViewState.GetBufferHeight(),
+			  iTranslator, *mVolume );
+  } else {
+    // If we already have one, make sure the dimensions are what we
+    // need, and set them if not.
+    mEdgePathFinder->SetDimensions( iViewState.GetBufferWidth(),
+				    iViewState.GetBufferHeight() );
+  }
+
+  // Set the bias.
+  mEdgePathFinder->SetEdgeBias( iEdgeBias );
 
   // Get the first point from the path and the last point as passed
   // in. Convert to window points. Then find the path between them.
@@ -3697,7 +3705,9 @@ ScubaLayer2DMRI::StretchPathAsEdge ( Path<float>& iPath,
   iTranslator.TranslateRASToWindow( endRAS.xyz(), endWindow.xy() );
   list<Point2<int> > windowPoints;
 
-  finder.FindPath( beginWindow, endWindow, windowPoints );
+  // Set the start point and find the path.
+  mEdgePathFinder->SetStartPoint( beginWindow ),
+  mEdgePathFinder->FindPathToEndPoint( endWindow, windowPoints );
 
   // Clear the path points and add the points we got from the path,
   // converting them to RAS one the way.
@@ -4206,29 +4216,28 @@ UndoDeletePathAction::Redo () {
 // ============================================================
 
 EdgePathFinder::EdgePathFinder ( int iViewWidth, int iViewHeight,
-                                 int iLongestEdge,
-                                 ScubaWindowToRASTranslator* iTranslator,
-                                 VolumeCollection* iVolume ) {
+                                 ScubaWindowToRASTranslator& iTranslator,
+                                 VolumeCollection& iVolume ) :
+  mVolume( iVolume ),
+  mTranslator( iTranslator ) {
 
-  SetDimensions( iViewWidth, iViewHeight, iLongestEdge );
-  mVolume = iVolume;
-  mTranslator = iTranslator;
+  SetDimensions( iViewWidth, iViewHeight );
 }
 
 float
-EdgePathFinder::GetEdgeCost ( Point2<int>& iPoint ) {
+EdgePathFinder::GetEdgeCost ( Point2<int> const& iPoint ) const {
 
 
   // Get the magnitude value at this point.
   float cost = 0.0;
   float RAS[3];
-  mTranslator->TranslateWindowToRAS( iPoint.xy(), RAS );
-  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS );
+  mTranslator.TranslateWindowToRAS( iPoint.xy(), RAS );
+  VolumeLocation& loc = (VolumeLocation&) mVolume.MakeLocationFromRAS( RAS );
 
-  if ( mVolume->IsInBounds( loc ) ) {
-    cost = 1.0 / (mVolume->GetMRIMagnitudeValue( loc ) + 0.0001);
+  if ( mVolume.IsInBounds( loc ) ) {
+    cost = 1.0 / (mVolume.GetMRIMagnitudeValue( loc ) + 0.0001);
   } else {
-    cost = mLongestEdge;
+    cost = numeric_limits<float>::max();
   }
 
   delete &loc;
