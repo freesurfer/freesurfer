@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.4 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/11 21:47:26 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,24 +53,22 @@ public:
 
 // These edge costs set us up so that we should be straight from 2,2 to 8,8
 float const maEdgeCosts[10][10] = {
-                                    {
-                                      9,   9,   9,   9,   9,   9,   9,   9,   9,   9
-                                    },
-                                    {  9,   1,   1,   1,   1,   1,   1,   1,   1,   9},
-                                    {  9,   7,   1,   9,   1,   1,   1,   9,   1,   9},
-                                    {  9,   1,   7,   1,   9,   1,   1,   1,   1,   9},
-                                    {  9,   5,   3,   7,   1,   9,   1,   9,   1,   9},
-                                    {  9,   5,   3,   2,   7,   1,   9,   9,   1,   9},
-                                    {  9,   3,   3,   5,   5,   7,   1,   9,   1,   9},
-                                    {  9,   3,   3,   3,   3,   5,   7,   1,   1,   9},
-                                    {  9,   5,   5,   5,   3,   3,   1,   7,   1,   9},
-                                    {  9,   9,   9,   9,   9,   9,   9,   9,   9,   9}
-                                  };
+  {  9,   9,   9,   9,   9,   9,   9,   9,   9,   9},
+  {  9,   1,   1,   1,   1,   1,   1,   1,   1,   9},
+  {  9,   7,   1,   9,   1,   1,   1,   9,   1,   9},
+  {  9,   1,   7,   1,   9,   1,   1,   1,   1,   9},
+  {  9,   5,   3,   7,   1,   9,   1,   9,   1,   9},
+  {  9,   5,   3,   2,   7,   1,   9,   9,   1,   9},
+  {  9,   3,   3,   5,   5,   7,   1,   9,   1,   9},
+  {  9,   3,   3,   3,   3,   5,   7,   1,   1,   9},
+  {  9,   5,   5,   5,   3,   3,   1,   7,   1,   9},
+  {  9,   9,   9,   9,   9,   9,   9,   9,   9,   9}
+};
 
 class TestShortestPathFinder : public ShortestPathFinder {
 public:
   TestShortestPathFinder () {
-    SetDimensions( 10, 10, 9 );
+    SetDimensions( 10, 10 );
   }
 
   float GetEdgeCost( Point2<int> &iPoint ) {
@@ -88,12 +86,13 @@ ShortestPathFinderTester::Test () {
   try {
 
     TestShortestPathFinder finder;
-    finder.SetDebug( true );
 
     Point2<int> begin( 1, 1 );
     Point2<int> end( 8, 8 );
     list<Point2<int> > points;
-    finder.FindPath( begin, end, points );
+
+    finder.SetStartPoint( begin );
+    finder.FindPathToEndPoint( end, points );
 
     // Our path should be straight from 2,2 to 8,8.
     list<Point2<int> >::iterator tPoint;
