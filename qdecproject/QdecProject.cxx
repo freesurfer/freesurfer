@@ -9,9 +9,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/05 14:59:55 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/11 23:52:35 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -303,7 +303,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
      and then compress into the destination .qdec file. This is the
      structure we want.
 
-    $ifnWorkingDir/$project.qdec.working/
+    $ifnWorkingDir/qdec_project_archive/
                                $Subject/surf/{r,l}h.{curv,inflatd,pial,white}
                                         label/{r,l}h.aparc.annot
                                $AnalysisName/ *
@@ -354,6 +354,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Make the average subject dir structure.
   sCommand = "mkdir -p " + 
+    fnExpandedProjectDir + "/" + sSubjectName + "/mri/transforms " + 
     fnExpandedProjectDir + "/" + sSubjectName + "/surf " + 
     fnExpandedProjectDir + "/" + sSubjectName + "/label";
   rSystem = system( sCommand.c_str() );
@@ -363,7 +364,18 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
     return -1;
   }
   
-  // Link the necessary files. Start with surfaces.
+  // Link the necessary files. Start with mri/transforms/talairach.xfm file
+  sCommand = "ln -s " +
+    fnSubjectsDir + "/" + sSubjectName + "/mri/transforms/talairach.xfm " +
+    fnExpandedProjectDir + "/" + sSubjectName + "/mri/transforms";
+  rSystem = system( sCommand.c_str() );
+  if( 0 != rSystem ) {
+    fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
+	     "link talairach.xfm file (cmd=%s)\n", sCommand.c_str() );
+    return -1;
+  }
+
+  // Surfaces
   sCommand = "ln -s " +
     fnSubjectsDir + "/" + sSubjectName + "/surf/*.curv " +
     fnSubjectsDir + "/" + sSubjectName + "/surf/*.inflated " +
@@ -406,21 +418,24 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
     fnDataTableBase = fnDataTable.substr( nPreLastSlash+1, fnDataTable.size());
     fnDataTablePath = fnDataTable.substr( 0, nPreLastSlash+1);
   }
-  // NOTE: Older versions of ln don't handle this properly. For
-  // example, on kani, with ln version 4.5.3, this will create a link
-  // file called "*.levels", which is a dead link. So we can test for
-  // the right version of ln. But levels files aren't strictly needed,
-  // so just don't do this for now.
-#if 0
-  sCommand = "ln -s " + fnDataTable + " " +
-    fnDataTablePath + "/*.levels " + fnExpandedProjectDir;
-#else
+
+  // NOTE: Older versions of ln don't handle multiple files specified
+  // in a symbolic link command properly. For example, on kani, with ln 
+  // version 4.5.3, this will create a dead qdec.table.dat link in /tmp:
+  // ln -s $PWD/qdec.table.dat *.levels /tmp
+  // so the files are linked singly
   sCommand = "ln -s " + fnDataTable + " " + fnExpandedProjectDir;
-#endif
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
 	     "link data table (cmd=%s)\n", sCommand.c_str() );
+    return -1;
+  }
+  sCommand = "ln -s " + fnDataTablePath + "/*.levels " + fnExpandedProjectDir;
+  rSystem = system( sCommand.c_str() );
+  if( 0 != rSystem ) {
+    fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
+	     "link *.levels (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
