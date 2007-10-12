@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/08/28 20:19:10 $
- *    $Revision: 1.118 $
+ *    $Date: 2007/10/12 17:20:54 $
+ *    $Revision: 1.119 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2748,7 +2748,7 @@ ScubaView::CalcViewIntersectionPoints ( int iViewID ) {
     Point3<float> P_1( p1dn1 * n2xn3 +
                        p2dn2 * n3xn1 +
                        p3dn3 * n1xn2);
-    Point3<float> P1 = P_1 / VectorOps::TripleScale( n1, n2, n3 );
+    Point3<float> P1 = P_1 / VectorOps::TripleScalar( n1, n2, n3 );
 
     // Now do the right or bottom plane.
     Point2<int> windowBottomRight( mWidth-1, mHeight-1 );
@@ -2757,7 +2757,7 @@ ScubaView::CalcViewIntersectionPoints ( int iViewID ) {
     Point3<float> P_2( p1dn1 * n2xn3 +
                        p2dn2 * n3xn1 +
                        p3dn3 * n1xn2);
-    Point3<float> P2 = P_2 / VectorOps::TripleScale( n1, n2, n3 );
+    Point3<float> P2 = P_2 / VectorOps::TripleScalar( n1, n2, n3 );
 
     // Save the results.
     mViewIDViewIntersectionPointMap[iViewID][0].Set( P1 );
