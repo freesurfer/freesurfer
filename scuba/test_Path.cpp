@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.6 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/12 22:13:37 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -102,7 +102,7 @@ PathTester::Test () {
     Path<float>& a = Path<float>::FindByID( l.GetID() );
     Assert( (l.GetID() == a.GetID()), "FindByID() didn't work." );
 
-    l.AddListener( &listener );
+    l.AddListener( listener );
 
     Point3<float> f;
     Point3<float>& t = f;

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.41 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/12 22:13:36 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -105,7 +105,7 @@ ScubaFrame::~ScubaFrame() {
         View* view;
         view = GetViewAtColRow( nCol, nRow );
         if ( view )
-          view->RemoveListener( this );
+          view->RemoveListener( *this );
       } catch (...) {}
     }
   }
@@ -874,7 +874,7 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
 
           view->SetVisibleInFrame( true );
 
-          view->AddListener( this );
+          view->AddListener( *this );
 
         } else {
           DebugOutput( << "Couldn't create new view because factory "

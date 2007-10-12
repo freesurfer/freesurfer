@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.3 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/12 22:13:36 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,11 +49,11 @@ ScubaMultiFrameVolumeChart ( VolumeCollection& iVolume ) :
   }
 
   // Listen to some stuff.
-  mChart->AddListener( this );
-  mVolume.AddListener( this );
+  mChart->AddListener( *this );
+  mVolume.AddListener( *this );
 
   // Listen to the view boradcaster for cursor changes.
-  ScubaViewBroadcaster::GetBroadcaster().AddListener( this );
+  ScubaViewBroadcaster::GetBroadcaster().AddListener( *this );
 
   // We want to listen to any layers that use this volume, so we can
   // update the current timepoint and condition when the layer changes
@@ -67,7 +67,7 @@ ScubaMultiFrameVolumeChart ( VolumeCollection& iVolume ) :
     DataCollection* col = layer.GetMainDataCollection();
     if ( NULL != col &&
          col->GetID() == mVolume.GetID() ) {
-      layer.AddListener( this );
+      layer.AddListener( *this );
     }
   }
 
@@ -89,12 +89,12 @@ ScubaMultiFrameVolumeChart ( VolumeCollection& iVolume,
   }
 
   // Listen to some stuff.
-  mChart->AddListener( this );
-  mVolume.AddListener( this );
-  mROI->AddListener( this );
+  mChart->AddListener( *this );
+  mVolume.AddListener( *this );
+  mROI->AddListener( *this );
 
   // Listen to the view boradcaster for cursor changes.
-  ScubaViewBroadcaster::GetBroadcaster().AddListener( this );
+  ScubaViewBroadcaster::GetBroadcaster().AddListener( *this );
 
   // We want to listen to any layers that use this volume, so we can
   // update the current timepoint and condition when the layer changes
@@ -108,7 +108,7 @@ ScubaMultiFrameVolumeChart ( VolumeCollection& iVolume,
     DataCollection* col = layer.GetMainDataCollection();
     if ( NULL != col &&
          col->GetID() == mVolume.GetID() ) {
-      layer.AddListener( this );
+      layer.AddListener( *this );
     }
   }
 
@@ -118,8 +118,8 @@ ScubaMultiFrameVolumeChart ( VolumeCollection& iVolume,
 ScubaMultiFrameVolumeChart::~ScubaMultiFrameVolumeChart () {
 
   // Stop listening.
-  //  mChart->RemoveListener( this );
-  mVolume.RemoveListener( this );
+  //  mChart->RemoveListener( *this );
+  mVolume.RemoveListener( *this );
 
   // Stop listening to all those listeners.
   list<int> lIDs;
@@ -131,7 +131,7 @@ ScubaMultiFrameVolumeChart::~ScubaMultiFrameVolumeChart () {
     DataCollection* col = layer.GetMainDataCollection();
     if ( NULL != col &&
          col->GetID() == mVolume.GetID() ) {
-      layer.RemoveListener( this );
+      layer.RemoveListener( *this );
     }
   }
 }

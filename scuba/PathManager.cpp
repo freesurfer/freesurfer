@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.10 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/12 22:13:36 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@ PathManager::PathManager () :
 void
 PathManager::ManagePath ( Path<float>& iPath ) {
 
-  iPath.AddListener( this );
+  iPath.AddListener( *this );
   mPaths.push_back( &iPath );
 
   // Notify listeners of changee.

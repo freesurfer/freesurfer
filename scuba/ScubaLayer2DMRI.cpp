@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/11 21:47:12 $
- *    $Revision: 1.157 $
+ *    $Date: 2007/10/12 22:13:36 $
+ *    $Revision: 1.158 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -284,7 +284,7 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () :
 
 ScubaLayer2DMRI::~ScubaLayer2DMRI () {
   if ( NULL != mVolume )
-    mVolume->RemoveListener( this );
+    mVolume->RemoveListener( *this );
 
   delete mEdgePathFinder;
 }
@@ -416,7 +416,7 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
   mOldMaxValue = mVolume->GetMRIMaxValue();
 
   // Listen to the volume for dataChanged messages.
-  mVolume->AddListener( this );
+  mVolume->AddListener( *this );
 
   // Init our grayscale.
   BuildGrayscaleLUT();

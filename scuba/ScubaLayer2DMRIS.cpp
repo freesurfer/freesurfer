@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/08/27 19:48:17 $
- *    $Revision: 1.36 $
+ *    $Date: 2007/10/12 22:13:36 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -103,7 +103,7 @@ ScubaLayer2DMRIS::SetSurfaceCollection ( SurfaceCollection& iSurface ) {
 
   mSurface = &iSurface;
 
-  mSurface->AddListener( this );
+  mSurface->AddListener( *this );
 
   mSurface->GetMRIS();
 }

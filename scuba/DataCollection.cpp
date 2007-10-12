@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 19:57:41 $
- *    $Revision: 1.28 $
+ *    $Date: 2007/10/12 22:13:36 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,7 @@ DataCollection::DataCollection() :
   // id 0. If it's not there, create it.
   try {
     mDataToWorldTransform = &(ScubaTransform::FindByID( 0 ));
-    mDataToWorldTransform->AddListener( this );
+    mDataToWorldTransform->AddListener( *this );
   } catch (...) {
 
     ScubaTransform* transform = new ScubaTransform();
@@ -57,7 +57,7 @@ DataCollection::DataCollection() :
 
     try {
       mDataToWorldTransform = &(ScubaTransform::FindByID( 0 ));
-      mDataToWorldTransform->AddListener( this );
+      mDataToWorldTransform->AddListener( *this );
     } catch (...) {
       DebugOutput( << "Couldn't make default transform!" );
     }
@@ -105,7 +105,7 @@ DataCollection::~DataCollection() {
   }
 
   // Stop listening to whoever is still around.
-  mDataToWorldTransform->RemoveListener( this );
+  mDataToWorldTransform->RemoveListener( *this );
 }
 
 DataLocation&
@@ -435,9 +435,9 @@ DataCollection::SetDataToWorldTransform ( int iTransformID ) {
     return;
 
   try {
-    mDataToWorldTransform->RemoveListener( this );
+    mDataToWorldTransform->RemoveListener( *this );
     mDataToWorldTransform = &(ScubaTransform::FindByID( iTransformID ));
-    mDataToWorldTransform->AddListener( this );
+    mDataToWorldTransform->AddListener( *this );
   } catch (...) {
     DebugOutput( << "Couldn't find transform " << iTransformID );
     mDataToWorldTransform = NULL;

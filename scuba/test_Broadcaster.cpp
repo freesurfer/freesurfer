@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.6 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/12 22:13:37 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -102,7 +102,7 @@ BroadcasterTester::Test () {
     TestListener listenerListening;
     TestListener listenerNotListening;
 
-    broadcaster.AddListener( &listenerListening );
+    broadcaster.AddListener( listenerListening );
 
     ListenerData data;
     data.mData = 5;
@@ -122,7 +122,7 @@ BroadcasterTester::Test () {
     Assert( (!listenerNotListening.GotMessage()),
             "NotListener got bogus message" );
 
-    broadcaster.RemoveListener( &listenerListening );
+    broadcaster.RemoveListener( listenerListening );
 
     listenerListening.Clear();
     listenerNotListening.Clear();
