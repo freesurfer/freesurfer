@@ -1,15 +1,15 @@
 /**
  * @file  test_IDTracker.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Test file for IDTracker
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ *  Test file for IDTracker.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.7 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/12 19:57:13 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,20 +61,26 @@ int main ( int argc, char** argv ) {
            !(a2.GetID() == 2) ||
            !(a3.GetID() == 3) ||
            !(a4.GetID() == 4) ) {
-        throw logic_error("IDs didn't match");
+	stringstream ssError;
+	ssError << "IDs didn't match. ID of a0=" << a0.GetID()
+		<< " a1=" << a1.GetID()
+		<< " a2=" << a2.GetID()
+		<< " a3=" << a3.GetID()
+		<< " a4=" << a4.GetID();
+        throw logic_error( ssError.str() );
       }
 
-      A findA0 = A::FindByID( 0 );
-      A findA1 = A::FindByID( 1 );
-      A findA2 = A::FindByID( 2 );
-      A findA3 = A::FindByID( 3 );
-      A findA4 = A::FindByID( 4 );
+      A& findA0 = A::FindByID( 0 );
+      A& findA1 = A::FindByID( 1 );
+      A& findA2 = A::FindByID( 2 );
+      A& findA3 = A::FindByID( 3 );
+      A& findA4 = A::FindByID( 4 );
       if ( !(a0.GetID() == findA0.GetID()) ||
            !(a1.GetID() == findA1.GetID()) ||
            !(a2.GetID() == findA2.GetID()) ||
            !(a3.GetID() == findA3.GetID()) ||
            !(a4.GetID() == findA4.GetID()) ) {
-        throw logic_error("IDs didn't match");
+        throw logic_error("IDs from FindByID didn't match");
       }
 
 
