@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/20 03:42:36 $
-#    $Revision: 1.25 $
+#    $Date: 2007/10/12 20:43:42 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.25 2007/07/20 03:42:36 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.26 2007/10/12 20:43:42 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -164,7 +164,7 @@ foreach hemi ($hemilist)
     set cmd = ($cmd -subject $subject)
     set cmd = ($cmd -hemi $hemi)
     if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
-    if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg $projfrac)
+    if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg 0 .25 1)
   endif
   set cmd = ($cmd $sessargs);
   echo "cd `pwd`" |& tee -a $LF
@@ -224,7 +224,7 @@ foreach hemi ($hemilist)
         set cmd = ($cmd -hemi $hemi)
         set cmd = ($cmd -subject $subject)
         if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
-        if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg $projfrac)
+        if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg 0 .25 1)
       endif
       set cmd = ($cmd $sessargs);
       echo "cd `pwd`" |& tee -a $LF
@@ -293,7 +293,7 @@ foreach hemi ($hemilist)
       set cmd = ($cmd -hemi $hemi)
       set cmd = ($cmd -subject $subject)
       if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
-      if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg $projfrac)
+      if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg 0 .25 1)
     endif
     set cmd = ($cmd $sessargs);
     echo "cd `pwd`" |& tee -a $LF
@@ -613,7 +613,8 @@ usage_exit:
   echo "  Surface-based options:"
   echo "   -hemis           : surface-based, both lh and rh";
   echo "   -hemi hemisphere : for surface-based analysis (lh or rh)";
-  echo "   -projfrac frac   : sample frac into surface"
+  echo "   -projfrac frac   : sample frac into surface bet white and gray"
+  echo "   -projfrac-avg    : average across cortical depth"
   echo "   -subject subject : sample to subject's surface (def fsaverage)"
   echo ""
   echo "   -sf sessidfile  ..."
