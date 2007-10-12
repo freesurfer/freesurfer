@@ -11,9 +11,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/27 21:38:52 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/12 17:51:21 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -72,15 +72,6 @@ QdecGlmDesign::QdecGlmDesign ( QdecDataTable* iDataTable )
     this->mfnDefaultWorkingDir += "/qdec";
   }
   this->mfnWorkingDir = this->mfnDefaultWorkingDir;
-
-  int err = mkdir( this->mfnWorkingDir.c_str(), 0777);
-  if( err != 0 && errno != EEXIST )
-  {
-    fprintf( stderr,
-             "ERROR: QdecGlmDesign::Constructor: "
-             "could not create directory %s\n",
-             this->mfnWorkingDir.c_str());
-  }
 }
 
 QdecGlmDesign::~QdecGlmDesign ( )
