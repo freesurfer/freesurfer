@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/11 21:45:44 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/10/12 19:30:21 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,9 +37,18 @@ class Point2 {
 
 public:
   
-  Point2 ();
-  Point2 ( T const iX, T const iY );
-  Point2 ( T const iXY[2] );
+  Point2 () {}
+
+  Point2 ( T const iX, T const iY ) {
+    m[0] = iX;
+    m[1] = iY;
+  }
+
+  Point2 ( T const iXY[2] ) {
+
+    m[0] = iXY[0];
+    m[1] = iXY[1];
+  }
 
   // Settors.
   inline void Set ( T const iX, T const iY ) {
@@ -89,6 +98,9 @@ public:
 
 
 template <typename T>
-std::ostream& operator << ( std::ostream&, Point2<T> const& iPoint  );
+std::ostream& operator << ( std::ostream& os, Point2<T> const& iPoint  ) {
+  os << "(" << iPoint.x() << "," << iPoint.y() << ")";
+  return os;
+}
 
 #endif

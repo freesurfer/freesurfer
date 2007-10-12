@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/11 21:47:12 $
- *    $Revision: 1.13 $
+ *    $Date: 2007/10/12 19:30:22 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,26 +29,17 @@
  *
  */
 
-#include "Volume3.cpp"
-#include "Point2.cpp"
-#include "Point3.cpp"
 #include "Array2.cpp"
 #include "Path.cpp"
+#include "Point2.h"
+#include "Point3.h"
 #include "ShortestPathFinder.h"
+#include "Volume3.cpp"
 #include "VolumeCollection.h"
 
 using namespace std;
 
 template class Volume3<bool>;
-template class Point3<int>;
-template ostream& operator << ( ostream&, Point3<int> const& );
-template class Point3<float>;
-template ostream& operator << ( ostream&, Point3<float> const& );
-template class Point2<int>;
-template ostream& operator << ( ostream&, Point2<int> const& );
-template class Point2<float>;
-template ostream& operator << ( ostream&, Point2<float> const& );
-template class Point2<Point3<float> >;
 template class Array2<float>;
 template class Array2<int>;
 template class Array2<bool>;

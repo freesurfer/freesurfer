@@ -3,14 +3,16 @@
  * @brief Simple class for a three component tuple
  *
  * This is a simple class representing a three component tuple. It has
- * the basic settors and accessors along with a stream output function.
+ * the basic settors and accessors along with a stream output
+ * function. All functions are defined here in the header to avoid
+ * having to explicitly declare the templated instantiations.
  */
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/11 21:45:44 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/10/12 19:30:21 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,9 +39,19 @@ class Point3 {
 
 public:
 
-  Point3 ();
-  Point3 ( T const iX, T const iY, T const iZ );
-  Point3 ( T const iXYZ[3] );
+  Point3 () {}
+
+  Point3 ( T const iX, T const iY, T const iZ ) {
+    m[0] = iX;
+    m[1] = iY;
+    m[2] = iZ;
+  }
+
+  Point3 ( T const iXYZ[3] ) {
+    m[0] = iXYZ[0];
+    m[1] = iXYZ[1];
+    m[2] = iXYZ[2];
+  }
 
   // Settors.
   inline void Set ( T const iX, T const iY, T const iZ ) {
@@ -103,7 +115,9 @@ public:
 };
 
 template <typename T>
-std::ostream& operator << ( std::ostream&, Point3<T> const& iPoint  );
-
+std::ostream& operator << ( std::ostream& os, Point3<T> const& iPoint ) {
+  os << "(" << iPoint.x() << "," << iPoint.y() << "," << iPoint.z() << ")";
+  return os;
+}
 
 #endif
