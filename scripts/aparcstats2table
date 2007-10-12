@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: aparcstats2table,v 1.6 2007/08/10 23:58:35 nicks Exp $
+# $Id: aparcstats2table,v 1.7 2007/10/12 01:34:05 greve Exp $
 import sys;
 import os;
 import string;
@@ -31,7 +31,9 @@ import tempfile;
 # Killiany/Desikan parcellation atlas. This can be changed with
 # '--parc parcellation' where parcellation is the parcellation to
 # use. An alternative is aparc.a2005s which was developed by
-# Christophe Destrieux.
+# Christophe Destrieux. If this file is not found, it will exit
+# with an error unless --skip in which case it skips this subject
+# and moves on to the next.
 
 # By default, the area (mm2) of each parcellation is reported. This can
 # be changed with '--meas measure', where measure can be area, volume
@@ -56,6 +58,7 @@ def print_usage():
   print "  --h hemi : lh or rh";
   print "  --parc parcellation : default is aparc (alt aparc.a2005s)";
   print "  --meas measure : default is area (alt volume, thickness, meancurv)";
+  print "  --skip : if a subject does not have the input, skip it";
   print "  ";
   print "  --t tablefile : output file";
   print "  ";
@@ -95,7 +98,7 @@ def argnerr(narg,flag):
 
 #---------------------------------------------------------
 def parse_args(argv):
-  global Version,debug;
+  global Version,debug,OKToSkip;
   global tablefile, SUBJECTS, nsubjects, hemi, parc, meas;
 
   del argv[0]; # get past program name (del is like shift)
@@ -129,6 +132,8 @@ def parse_args(argv):
     elif(flag == "--h" or flag == "--hemi"):
       if(len(argv) < 1): argnerr(1,flag);
       hemi = argv[0];  del argv[0];
+    elif(flag == "--skip"):
+      OKToSkip = 1;
     elif(flag == "--help"):
       print_usage();
       print "\n%s" % (Version);
@@ -196,11 +201,12 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: aparcstats2table,v 1.6 2007/08/10 23:58:35 nicks Exp $';
+Version = '$Id: aparcstats2table,v 1.7 2007/10/12 01:34:05 greve Exp $';
 tablefile = ();
 parc = 'aparc';
 hemi = [];
 meas = 'area';
+OKToSkip = 0;
 debug = 0;
 
 SUBJECTS  = [];
@@ -232,8 +238,12 @@ for subject in SUBJECTS:
 
   statsfile = SUBJECTS_DIR + '/' + subject + '/stats/' + hemi + '.' + parc + '.stats';
   if(not os.path.exists(statsfile)):
-    sys.stdout.write('ERROR: cannot find %s' % (statsfile) );
-    sys.exit(1);
+    if(not OKToSkip):
+      sys.stdout.write('ERROR: cannot find %s\n' % (statsfile) );
+      sys.exit(1);
+    else:
+      sys.stdout.write('WARNING: cannot find %s ... skipping\n' % (statsfile) );
+      continue;
   #endif
   if(debug): print "%s" % (statsfile);
 
