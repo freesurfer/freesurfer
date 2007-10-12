@@ -3,14 +3,16 @@
  * @brief Simple class for a two component tuple
  *
  * This is a simple class representing a two component tuple. It has
- * the basic settors and accessors along with a stream output function.
+ * the basic settors and accessors along with a stream output
+ * function. All functions are defined here in the header to avoid
+ * having to explicitly declare the templated instantiations.
  */
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 19:30:21 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/10/12 19:57:41 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

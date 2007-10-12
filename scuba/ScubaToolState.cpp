@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/11 21:47:12 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/10/12 19:57:42 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,9 +31,6 @@
 #include "ScubaToolState.h"
 
 using namespace std;
-
-DeclareIDTracker(ScubaToolState);
-
 
 ScubaToolState::ScubaToolState() :
     mMode( navigation ),

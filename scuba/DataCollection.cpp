@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/01/02 22:41:17 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/10/12 19:57:41 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,9 +36,6 @@
 #include "DataCollection.h"
 
 using namespace std;
-
-DeclareIDTracker(DataCollection);
-
 
 DataCollection::DataCollection() :
     Listener( "DataCollection" ),

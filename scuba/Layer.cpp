@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/08/27 19:48:16 $
- *    $Revision: 1.42 $
+ *    $Date: 2007/10/12 19:57:41 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,8 +33,6 @@
 #include "Point2.h"
 
 using namespace std;
-
-DeclareIDTracker(Layer);
 
 bool Layer::kbDefaultReportInfo = true;
 
