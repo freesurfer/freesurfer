@@ -1,15 +1,18 @@
 /**
  * @file  Listener.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Mixin class that recieves messages from Broadcasters
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Along with Broadcaster, this implements a broadcaster/listener
+ * pattern. Classes can mixin the Broadcaster class and have classes
+ * that have mixed in Listener added to their listener list, and then
+ * send them all a string message with associated data.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.5 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/12 22:12:56 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,20 +38,22 @@ class Listener {
 
 public:
 
+  // Ctor takes a label; not really used for anything other than
+  // debugging.
   Listener ( std::string isLabel );
   virtual ~Listener ();
 
-  void ListenToMessage ( std::string iMessage, void* iData );
+  std::string const& GetLabel() const;
 
-  virtual void DoListenToMessage ( std::string iMessage, void* iData );
+  // Called by Broadcaster to receive a message.
+  void ListenToMessage ( std::string isMessage, void* iData );
 
-  std::string GetLabel() {
-    return msLabel;
-  }
+  // Subclasses should override this to respond to messages.
+  virtual void DoListenToMessage ( std::string isMessage, void* iData ) = 0;
 
 protected:
-  std::string msLabel;
 
+  std::string msLabel;
 };
 
 #endif

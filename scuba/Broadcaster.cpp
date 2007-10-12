@@ -1,15 +1,18 @@
 /**
  * @file  Broadcaster.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Mixin class that sends messages to Listeners
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Along with Listener, this implements a broadcaster/listener
+ * pattern. Classes can mixin the Broadcaster class and have classes
+ * that have mixed in Listener added to their listener list, and then
+ * send them all a string message with associated data.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:13 $
- *    $Revision: 1.7 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/12 22:12:56 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,28 +40,32 @@ Broadcaster::Broadcaster ( string isLabel ) :
 Broadcaster::~Broadcaster () {}
 
 void
-Broadcaster::AddListener ( Listener* iListener ) {
+Broadcaster::AddListener ( Listener& iListener ) {
 
-  mlListeners.push_back( iListener );
+  mlListeners.push_back( &iListener );
 }
 
 void
-Broadcaster::RemoveListener ( Listener* iListener ) {
+Broadcaster::RemoveListener ( Listener& iListener ) {
 
-  mlListeners.remove( iListener );
+  mlListeners.remove( &iListener );
 }
 
 void
-Broadcaster::SendBroadcast ( std::string iMessage, void* iData ) {
+Broadcaster::SendBroadcast ( std::string isMessage, void* iData ) {
 
-  // cerr << "Broadcaster " << msLabel << " sending message " << iMessage << endl;
-
+  // Tell each listener to listen to this message.
   std::list<Listener*>::iterator tListener;
   for ( tListener = mlListeners.begin();
         tListener != mlListeners.end(); ++tListener ) {
 
     Listener* listener = *tListener;
-    // cerr << "\tSending to listener " << listener->GetLabel() << endl;
-    listener->ListenToMessage( iMessage, iData );
+    listener->ListenToMessage( isMessage, iData );
   }
+}
+
+string const&
+Broadcaster::GetLabel() const {
+
+  return msLabel;
 }

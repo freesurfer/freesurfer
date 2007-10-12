@@ -1,15 +1,18 @@
 /**
  * @file  Broadcaster.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Mixin class that sends messages to Listeners
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Along with Listener, this implements a broadcaster/listener
+ * pattern. Classes can mixin the Broadcaster class and have classes
+ * that have mixed in Listener added to their listener list, and then
+ * send them all a string message with associated data.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:13 $
- *    $Revision: 1.5 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/12 22:12:56 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,15 +40,22 @@ class Broadcaster {
 
 public:
 
+  // Ctor takes a label; not really used for anything other than
+  // debugging.
   Broadcaster ( std::string isLabel );
   virtual ~Broadcaster ();
 
-  void AddListener ( Listener* iListener );
-  void RemoveListener ( Listener* iListener );
+  std::string const& GetLabel() const;
 
-  virtual void SendBroadcast ( std::string iMessage, void* iData );
+  // Add or remove a Listener from its list.
+  void AddListener ( Listener& iListener );
+  void RemoveListener ( Listener& iListener );
+
+  // Send a message with optional data.
+  virtual void SendBroadcast ( std::string isMessage, void* iData = NULL );
 
 protected:
+
   std::string msLabel;
   std::list<Listener*> mlListeners;
 };

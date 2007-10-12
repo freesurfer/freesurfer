@@ -1,15 +1,18 @@
 /**
  * @file  Listener.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Mixin class that recieves messages from Broadcasters
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Along with Broadcaster, this implements a broadcaster/listener
+ * pattern. Classes can mixin the Broadcaster class and have classes
+ * that have mixed in Listener added to their listener list, and then
+ * send them all a string message with associated data.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.5 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/12 22:12:56 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,17 +40,14 @@ Listener::Listener ( string isLabel ) :
 Listener::~Listener () {}
 
 void
-Listener::ListenToMessage ( string iMessage, void* iData ) {
+Listener::ListenToMessage ( string isMessage, void* iData ) {
 
-  //  cerr << "Listener " << msLabel << " got message " << iMessage << endl;
-
-  this->DoListenToMessage( iMessage, iData );
+  // Call the overrideable function.
+  this->DoListenToMessage( isMessage, iData );
 }
 
-void
-Listener::DoListenToMessage ( string iMessage, void* iData ) {
+string const&
+Listener::GetLabel() const {
 
-  this->DoListenToMessage( iMessage, iData );
+  return msLabel;
 }
-
-
