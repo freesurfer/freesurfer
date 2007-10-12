@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 17:20:54 $
- *    $Revision: 1.119 $
+ *    $Date: 2007/10/12 22:24:05 $
+ *    $Revision: 1.120 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -92,23 +92,23 @@ ScubaView::ScubaView() {
 
   ScubaGlobalPreferences& globalPrefs =
     ScubaGlobalPreferences::GetPreferences();
-  globalPrefs.AddListener( this );
+  globalPrefs.AddListener( *this );
 
   // Get the prefs for the lock on cursor status.
   mbLockOnCursor =
     globalPrefs.GetPrefAsBool( ScubaGlobalPreferences::LockOnCursor );
 
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
-  broadcaster.AddListener( this );
+  broadcaster.AddListener( *this );
 
   PathManager& pathMgr = PathManager::GetManager();
-  pathMgr.AddListener( this );
+  pathMgr.AddListener( *this );
 
   // Try setting our initial transform to the default transform with
   // id 0. If it's not there, create it.
   try {
     mWorldToView = &(ScubaTransform::FindByID( 0 ));
-    mWorldToView->AddListener( this );
+    mWorldToView->AddListener( *this );
   } catch (...) {
 
     ScubaTransform* transform = new ScubaTransform();
@@ -116,7 +116,7 @@ ScubaView::ScubaView() {
 
     try {
       mWorldToView = &(ScubaTransform::FindByID( 0 ));
-      mWorldToView->AddListener( this );
+      mWorldToView->AddListener( *this );
     } catch (...) {
       DebugOutput( << "Couldn't make default transform!" );
     }
@@ -278,16 +278,16 @@ ScubaView::~ScubaView() {
   // Stop listening.
   ScubaGlobalPreferences& globalPrefs =
     ScubaGlobalPreferences::GetPreferences();
-  globalPrefs.RemoveListener( this );
+  globalPrefs.RemoveListener( *this );
 
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
-  broadcaster.RemoveListener( this );
+  broadcaster.RemoveListener( *this );
 
   PathManager& pathMgr = PathManager::GetManager();
-  pathMgr.RemoveListener( this );
+  pathMgr.RemoveListener( *this );
 
   if ( mWorldToView )
-    mWorldToView->RemoveListener( this );
+    mWorldToView->RemoveListener( *this );
 
   map<int,int>::iterator tLevelLayerID;
   for ( tLevelLayerID = mLevelLayerIDMap.begin();
@@ -295,7 +295,7 @@ ScubaView::~ScubaView() {
     int layerID = (*tLevelLayerID).second;
     try {
       Layer& layer = Layer::FindByID( layerID );
-      layer.RemoveListener( this );
+      layer.RemoveListener( *this );
     } catch (...) {}
   }
 }
@@ -529,7 +529,7 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       }
 
       // Listen to it.
-      layer.AddListener( this );
+      layer.AddListener( *this );
 
       // Rebuild our label value lists.
       float origin[3] = {0, 0, 0};
@@ -747,9 +747,9 @@ void
 ScubaView::SetWorldToViewTransform ( int iTransformID ) {
 
   try {
-    mWorldToView->RemoveListener( this );
+    mWorldToView->RemoveListener( *this );
     mWorldToView = &(ScubaTransform::FindByID( iTransformID ));
-    mWorldToView->AddListener( this );
+    mWorldToView->AddListener( *this );
     CalcWorldToWindowTransform();
     RequestRedisplay();
   } catch (...) {
