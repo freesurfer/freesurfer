@@ -19,8 +19,8 @@ AM_CXXFLAGS=-Wno-non-virtual-dtor
 AM_LDFLAGS=$(LDFLAGS_TCL) $(GLUT_LIBS)
 
 UTILITIES_SRCS=Volume3.cpp Volume3.h \
-	Point2.cpp Point2.h \
-	Point3.cpp Point3.h \
+	Point2.h \
+	Point3.h \
 	Path.cpp Path.h \
 	Array2.cpp Array2.h \
 	Utilities.cpp Utilities.h \
@@ -31,7 +31,7 @@ UTILITIES_SRCS=Volume3.cpp Volume3.h \
 
 BASIC_SRCS=TclCommandManager.cpp TclCommandManager.h \
 	DebugReporter.cpp DebugReporter.h \
-	IDTracker.cpp IDTracker.h \
+	IDTracker.h \
 	PreferencesManager.cpp PreferencesManager.h \
 	Broadcaster.cpp Broadcaster.h \
 	Listener.cpp Listener.h \
