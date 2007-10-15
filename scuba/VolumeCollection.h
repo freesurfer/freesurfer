@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/18 21:38:42 $
- *    $Revision: 1.69 $
+ *    $Date: 2007/10/15 20:42:21 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -128,7 +128,7 @@ public:
 
   // Get the MRI. If we're loading an MRI, this requires the MRI to be
   // set first.
-  MRI* GetMRI ();
+  MRI const* GetMRI () const;
 
   // Saves the current volume to a file name. If none is given, uses
   // the set file name.
@@ -255,7 +255,7 @@ public:
   virtual void SetDataToWorldTransform ( int iTransformID );
 
   // Returns the combined world to index transform.
-  Matrix44& GetWorldToIndexTransform ();
+  Matrix44 const& GetWorldToIndexTransform () const;
 
   // Enable or disable world to index transform.
   void SetUseWorldToIndexTransform ( bool ibUse );

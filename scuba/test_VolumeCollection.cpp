@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/30 16:47:49 $
- *    $Revision: 1.19 $
+ *    $Date: 2007/10/15 20:42:21 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,7 +80,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     string fnMRI = "test_data/bertT1.mgz";
     VolumeCollection* vol = new VolumeCollection();
     vol->SetFileName( fnMRI );
-    MRI* mri = vol->GetMRI();
+    MRI* mri = const_cast<MRI*>(vol->GetMRI());
 
     Assert( (vol->GetTypeDescription() == "Volume"),
             "GetTypeDescription didn't return Volume" );
@@ -106,7 +106,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 
     VolumeCollection* testVol = new VolumeCollection();
     testVol->SetFileName( fnSave );
-    MRI* testMri = testVol->GetMRI();
+    MRI* testMri = const_cast<MRI*>(testVol->GetMRI());
     Assert( (MRImatch( testMri, mri )), "MRImatch failed for load after save");
 
 

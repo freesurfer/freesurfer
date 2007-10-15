@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 22:13:36 $
- *    $Revision: 1.158 $
+ *    $Date: 2007/10/15 20:42:29 $
+ *    $Revision: 1.159 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -315,7 +315,7 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
     // We're going to get a historgram of the volume and use it to
     // remove any outliers when determining our initial
     // window/level. Create the histogram.
-    HISTOGRAM* histo = MRIhistogram( mVolume->GetMRI(),
+    HISTOGRAM* histo = MRIhistogram( const_cast<MRI*>(mVolume->GetMRI()),
                                      zGrayscaleHistogramBins );
     if ( NULL != histo ) {
 
@@ -3606,7 +3606,7 @@ ScubaLayer2DMRI::SetHeatScaleThresholdUsingFDR ( float  iRate,
 
   // Run the function.
   double newHeatScaleMin;
-  int eMRI = MRIfdr2vwth( mVolume->GetMRI(),
+  int eMRI = MRIfdr2vwth( const_cast<MRI*>(mVolume->GetMRI()),
                           mCurrentFrame,
                           iRate,
                           sign,

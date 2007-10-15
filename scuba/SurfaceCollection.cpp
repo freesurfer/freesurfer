@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/10/04 18:55:07 $
- *    $Revision: 1.27 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/15 20:42:21 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -610,7 +610,7 @@ SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
   }
 
   // We want to get the MRITkRegRASToRAS matrix from the volume.
-  MRI* mri = iVolume.GetMRI();
+  MRI* mri = const_cast<MRI*>(iVolume.GetMRI());
   if ( NULL == mri ) {
     throw runtime_error( "Couldn't get MRI from volume" );
   }

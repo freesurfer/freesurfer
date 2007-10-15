@@ -6,9 +6,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/09/19 15:26:04 $
- *    $Revision: 1.112 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/15 20:42:20 $
+ *    $Revision: 1.113 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -248,7 +248,7 @@ VolumeCollection::MakeUsingTemplate ( int iCollectionID, int iType ) {
   }
 
   // Get the mri from the template volume.
-  MRI* mri = vol->GetMRI();
+  MRI* mri = const_cast<MRI*>(vol->GetMRI());
   if ( NULL == mri ) {
     throw runtime_error( "Couldn't get MRI from template" );
   }
@@ -330,12 +330,16 @@ VolumeCollection::LoadVolume () {
   }
 }
 
-MRI*
-VolumeCollection::GetMRI() {
+MRI const*
+VolumeCollection::GetMRI() const {
 
   // If we don't already have one, load it.
   if ( NULL == mMRI ) {
-    LoadVolume();
+
+    // Make a mutable copy of ourselves so we can call the non-const
+    // function LoadVolume.
+    VolumeCollection* mutableThis = const_cast<VolumeCollection*>(this);
+    mutableThis->LoadVolume();
   }
 
   return mMRI;
@@ -2318,8 +2322,8 @@ VolumeCollection::SetDataToWorldTransform ( int iTransformID ) {
 }
 
 
-Matrix44&
-VolumeCollection::GetWorldToIndexTransform () {
+Matrix44 const&
+VolumeCollection::GetWorldToIndexTransform () const {
 
   return mWorldToIndexTransform.GetMainMatrix();
 }
