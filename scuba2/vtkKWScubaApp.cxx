@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/25 19:53:47 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/10/15 21:20:38 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaApp );
-vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.7 $" );
 
 vtkKWScubaApp::vtkKWScubaApp () {
 
@@ -139,18 +139,6 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
 
   // Tell the super to start.
   this->Superclass::Start( argc, argv );
-}
-
-void
-vtkKWScubaApp::RestoreApplicationSettingsFromRegistry () {
-
-  vtkKWApplication::RestoreApplicationSettingsFromRegistry();
-}
-
-void
-vtkKWScubaApp::SaveApplicationSettingsToRegistry () {
-
-  vtkKWApplication::SaveApplicationSettingsToRegistry();
 }
 
 void

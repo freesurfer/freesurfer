@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/06/21 22:12:55 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/10/15 21:20:38 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,11 +51,6 @@ public:
   // Description:
   // Override to show our window.
   virtual void Start ( int argc, char* argv[] );
-
-  // Description:
-  // Override to save/load our prefs.
-  virtual void RestoreApplicationSettingsFromRegistry ();
-  virtual void SaveApplicationSettingsToRegistry ();
 
   // Description:
   // Tells the window to load something.
