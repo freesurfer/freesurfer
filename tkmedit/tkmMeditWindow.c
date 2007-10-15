@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/01 21:53:43 $
- *    $Revision: 1.63 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/15 19:07:58 $
+ *    $Revision: 1.63.2.1 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -2653,11 +2653,12 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
 
     /* force 1x1 aspect ratio (unless env var is set) */
     if (getenv("TKMEDIT_DONT_FORCE_SQUARE_ASPECT_RATIO") == NULL) {
-      this->mnWidth = this->mnHeight; // force 1x1 aspect ratio
+      
+      /* If not square, make it so. */
+      if( this->mnWidth != this->mnHeight ) {
+	glutReshapeWindow ( this->mnWidth, this->mnWidth );
+      }
     }
-
-    /* resize the opengl port */
-    glutReshapeWindow ( this->mnWidth, this->mnHeight );
 
     /* recalc the display sizes. */
     MWin_PositionDisplays_( this );
