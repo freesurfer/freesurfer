@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/20 22:19:36 $
- *    $Revision: 1.7 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/15 23:15:55 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaWindow );
-vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.7 $" );
+vtkCxxRevisionMacro( vtkKWScubaWindow, "$Revision: 1.8 $" );
 
 int const vtkKWScubaWindow::kToolbarSpacerWidth = 5;
 const string vtkKWScubaWindow::sDefaultVolumeFileExtension = ".mgz";
@@ -93,7 +93,7 @@ vtkKWScubaWindow::~vtkKWScubaWindow () {
 }
 
 void
-vtkKWScubaWindow::Create () {
+vtkKWScubaWindow::CreateWidget () {
 
   // Restore our preferences. This needs to be done before we call the
   // superclass Create because that will instantiate our
@@ -108,7 +108,7 @@ vtkKWScubaWindow::Create () {
   this->SetPanelLayoutToSecondaryBelowMainAndView();
 
   // Create the window. The layout must be set before this.
-  this->Superclass::Create();
+  this->Superclass::CreateWidget();
 
   // Get our geometry. This needs to be done after the superclass
   // Create because we can't set geometry before that.
@@ -448,7 +448,7 @@ vtkKWScubaWindow::Create () {
 }
 
 void
-vtkKWScubaWindow::Delete () {
+vtkKWScubaWindow::PrepareForDelete () {
 
   // Save our geometry.
   this->SaveWindowGeometryToRegistry();
@@ -457,13 +457,16 @@ vtkKWScubaWindow::Delete () {
 vtkKWApplicationSettingsInterface*
 vtkKWScubaWindow::GetApplicationSettingsInterface() {
 
+  // If we don't have one already...
   if( NULL == ApplicationSettingsInterface ) {
 
+    // Create our custom interface.
     vtkSmartPointer<vtkKWScubaApplicationSettingsInterface> settings = 
       vtkSmartPointer<vtkKWScubaApplicationSettingsInterface>::New();
     settings->SetWindow( this );
     settings->SetScubaWindow( this );
-    settings->SetUserInterfaceManager( this->GetApplicationSettingsUserInterfaceManager() );
+    settings->SetUserInterfaceManager
+      ( this->GetApplicationSettingsUserInterfaceManager() );
 
     ApplicationSettingsInterface = settings;
   }
@@ -829,28 +832,40 @@ vtkKWScubaWindow::ZoomOut () {
 void
 vtkKWScubaWindow::SetViewLayout ( ViewLayout iLayout ) {
 
+  // If we're not already in this view layout...
   if( mCurrentViewLayout != iLayout ) {
 
     mCurrentViewLayout = iLayout;
 
+    // Unpack all our vurrent views.
     this->GetViewPanelFrame()->UnpackChildren();
 
-    if( Single == mCurrentViewLayout ) {
+    // Switch on the kind of layout.
+    switch( mCurrentViewLayout ) {
+    case Single: {
       
-      vtkKWScubaView* view = this->GetNthView( 0 );
+      // Just make one view the size of the whole frame.
+      vtkKWScubaView* view = this->GetOrMakeNthView( 0 );
       this->Script( "pack %s -expand yes -fill both -anchor c",
 		    view->GetWidgetName() );
+
+      // Set its label.
       view->SetLabel( "Main" );
 
+      // Select this view.
       this->SetCurrentView( *view );
+      
+    } 
+      break;
+    case TwoByTwo: {
 
-    } else if( TwoByTwo == mCurrentViewLayout ) {
+      // Get four views.
+      vtkKWScubaView* topLeft = this->GetOrMakeNthView( 0 );
+      vtkKWScubaView* topRight = this->GetOrMakeNthView( 1 );
+      vtkKWScubaView* bottomLeft = this->GetOrMakeNthView( 2 );
+      vtkKWScubaView* bottomRight = this->GetOrMakeNthView( 3 );
 
-      vtkKWScubaView* topLeft = this->GetNthView( 0 );
-      vtkKWScubaView* topRight = this->GetNthView( 1 );
-      vtkKWScubaView* bottomLeft = this->GetNthView( 2 );
-      vtkKWScubaView* bottomRight = this->GetNthView( 3 );
-
+      // Pack them in a 2x2 grid.
       this->Script( "grid %s -column 0 -row 0 -sticky news",
 		    topLeft->GetWidgetName() );
       this->Script( "grid %s -column 1 -row 0 -sticky news",
@@ -860,6 +875,7 @@ vtkKWScubaWindow::SetViewLayout ( ViewLayout iLayout ) {
       this->Script( "grid %s -column 1 -row 1 -sticky news",
 		    bottomRight->GetWidgetName() );
 
+      // Give all columns and rows equal weight.
       vtkKWWidget* parent = topLeft->GetParent();
       this->Script( "grid rowconfigure %s 0 -weight 1", 
  		    parent->GetWidgetName() );
@@ -870,16 +886,25 @@ vtkKWScubaWindow::SetViewLayout ( ViewLayout iLayout ) {
       this->Script( "grid columnconfigure %s 1 -weight 1", 
  		    parent->GetWidgetName() );
       
+      // Give them descriptive labels.
       topLeft->SetLabel( "Top Left" );
       topRight->SetLabel( "Top Right" );
       bottomLeft->SetLabel( "Bottom Left" );
       bottomRight->SetLabel( "Bottom Right" );
 
+      // Select the top left view.
       this->SetCurrentView( *topLeft );
     }
+      break;
+    default:
+      throw runtime_error( "Invalid view layout" );
+    }
 
+    // Set the current view settings (like RAS positions and
+    // orientation) for this layout.
     this->InitializeViewSettingsForLayout();
   
+    // Update the view menu with our new views and names.
     this->UpdateViewMenu();
   }
 }
@@ -1250,7 +1275,7 @@ vtkKWScubaWindow::UpdateInfoArea () {
 }
 
 vtkKWScubaView* 
-vtkKWScubaWindow::GetNthView ( int inView ) {
+vtkKWScubaWindow::GetOrMakeNthView ( int inView ) {
   
   map<int,vtkSmartPointer<vtkKWScubaView> >::iterator tView;
   tView = maView.find( inView );
@@ -1303,9 +1328,11 @@ vtkKWScubaWindow::GetNthView ( int inView ) {
 void
 vtkKWScubaWindow::InitializeViewSettingsForLayout () {
 
-  if( Single == mCurrentViewLayout ) {
-    
-    vtkKWScubaView* view = this->GetNthView( 0 );
+  switch( mCurrentViewLayout ) {
+  case Single: {
+
+    // Single view, put it in 2D mode and on the 0 RAS point.
+    vtkKWScubaView* view = this->GetOrMakeNthView( 0 );
 
     view->SetDisplayMode( vtkKWScubaView::TwoDee );
     view->Set2DRASZ( 0 );
@@ -1313,13 +1340,18 @@ vtkKWScubaWindow::InitializeViewSettingsForLayout () {
 
     this->SetCurrentView( *view );
 
-  } else if( TwoByTwo == mCurrentViewLayout ) {
+  }
+    break;
+  case TwoByTwo: {
 
-    vtkKWScubaView* topLeft = this->GetNthView( 0 );
-    vtkKWScubaView* topRight = this->GetNthView( 1 );
-    vtkKWScubaView* bottomLeft = this->GetNthView( 2 );
-    vtkKWScubaView* bottomRight = this->GetNthView( 3 );
+    // Four views.
+    vtkKWScubaView* topLeft = this->GetOrMakeNthView( 0 );
+    vtkKWScubaView* topRight = this->GetOrMakeNthView( 1 );
+    vtkKWScubaView* bottomLeft = this->GetOrMakeNthView( 2 );
+    vtkKWScubaView* bottomRight = this->GetOrMakeNthView( 3 );
 
+    // Put the first three in 2d mode with X, Y, and Z orientations,
+    // and the last one in 3d mode.
     topLeft->SetDisplayMode( vtkKWScubaView::TwoDee );
     topLeft->Set2DRASZ( 0 );
     topLeft->Set2DInPlane( 0 );
@@ -1335,6 +1367,10 @@ vtkKWScubaWindow::InitializeViewSettingsForLayout () {
     bottomRight->Set3DRASZ( 0 );
 
     this->SetCurrentView( *topLeft );
+  }
+    break;
+  default:
+    throw runtime_error( "Invalid view layout" );
   }
 }
 

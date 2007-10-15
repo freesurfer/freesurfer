@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/06/26 20:58:02 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/10/15 23:15:55 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,10 +72,15 @@ public:
 
   // Description:
   // Creates our UI.
-  virtual void Create ();
-  virtual void Delete ();
+  virtual void CreateWidget ();
 
-  // Override to return our custom interface class.
+  // Description:
+  // Save our window geometry before deleting.
+  virtual void PrepareForDelete ();
+
+  // Desciption:
+  // Override to return our custom interface class. This will end up
+  // in the prefs dialog.
   virtual vtkKWApplicationSettingsInterface* GetApplicationSettingsInterface();
 
   // Description:
@@ -176,7 +181,7 @@ protected:
   // Description:
   // Get a view at a slot. Makes and initializes it if it doesn't
   // exist.
-  vtkKWScubaView* GetNthView ( int inView );
+  vtkKWScubaView* GetOrMakeNthView ( int inView );
   
   // Description:
   // Adds the LayerCollection to the views and broadcasts the change.

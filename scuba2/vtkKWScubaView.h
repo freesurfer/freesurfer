@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/08/08 20:12:13 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/10/15 23:15:55 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,12 +67,13 @@ public:
   vtkTypeRevisionMacro( vtkKWScubaView, vtkKWRenderWidget );
 
   // Description:
-  void Create ();
+  // Create the widget.
+  void CreateWidget ();
 
   // Description:
   // This should be the label that will be used in the GUI.
   virtual void SetLabel ( const char* isLabel );
-  virtual const char* GetLabel ();
+  virtual const char* GetLabel () const;
 
   // Description: 
   // Populate a toolbar with controls for this view. Depopulate will
@@ -242,13 +243,17 @@ public:
   // Description:
   // World coords are the one VTK will use, and will have a 0 z
   // component. This changes the z coordinate to be the RASZ we're on.
-  void ConvertWorldCoordsToRAS ( double iWorldCoords[3],
+  //BTX
+  void ConvertWorldCoordsToRAS ( double const iWorldCoords[3],
                                  float  oRAS[3] ) const;
+  //ETX
 
   // Description:
   // Set the cursor for this view.
-  void SetCursorFromWorld ( double iWorldCoords[3] );
-  void SetCursorFromRAS   ( float iRASCoords[3] );
+  //BTX
+  void SetCursorFromWorld ( double const iWorldCoords[3] );
+  void SetCursorFromRAS   ( float const iRASCoords[3] );
+  //ETX
 
   // Description:
   // Get the info that should current be displayed in the window's
@@ -383,6 +388,8 @@ protected:
   float mMouseOverRASCoords[3];
   float mCursorRASCoords[3];
 
+  // Used by GetViewFromRenderWindow to map scuba views to vtk render
+  // windows. 
   static std::map<vtkRenderWindow*,vtkSmartPointer<vtkKWScubaView> > 
     mRenderWindowToViewMap;
 

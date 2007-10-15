@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/08/08 20:12:13 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/10/15 23:15:55 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaView );
-vtkCxxRevisionMacro( vtkKWScubaView, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWScubaView, "$Revision: 1.6 $" );
 
 map<vtkRenderWindow*,vtkSmartPointer<vtkKWScubaView> > vtkKWScubaView::mRenderWindowToViewMap;
 
@@ -102,11 +102,11 @@ vtkKWScubaView::~vtkKWScubaView () {
 }
 
 void
-vtkKWScubaView::Create () {
+vtkKWScubaView::CreateWidget () {
 
   // Create the superclass widget. This also sets up our
   // vtkRenderWindow stuff.
-  this->Superclass::Create();
+  this->Superclass::CreateWidget();
 
   // Make our cameras.
   m2DCamera = vtkSmartPointer<vtkCamera>::New();
@@ -179,7 +179,7 @@ vtkKWScubaView::SetLabel ( const char* isLabel ) {
 }
 
 const char*
-vtkKWScubaView::GetLabel () {
+vtkKWScubaView::GetLabel () const {
   return msLabel.c_str();
 }
 
@@ -1533,7 +1533,7 @@ vtkKWScubaView::PickPointAndCallToolEvent ( vtkKWScubaWindow* iWindow,
 }
 
 void
-vtkKWScubaView::ConvertWorldCoordsToRAS ( double iWorldCoords[3],
+vtkKWScubaView::ConvertWorldCoordsToRAS ( double const iWorldCoords[3],
 					  float  oRAS[3] ) const {
 
   // Our world coords are similar to RAS coords, but in 2d mode we
@@ -1548,7 +1548,7 @@ vtkKWScubaView::ConvertWorldCoordsToRAS ( double iWorldCoords[3],
 }
 
 void
-vtkKWScubaView::SetCursorFromWorld ( double iWorldCoords[3] ) {
+vtkKWScubaView::SetCursorFromWorld ( double const iWorldCoords[3] ) {
 
   // Convert the world coord to an RAS and set the cursor.
   float ras[3] = {0,0,0};
@@ -1557,7 +1557,7 @@ vtkKWScubaView::SetCursorFromWorld ( double iWorldCoords[3] ) {
 }
 
 void
-vtkKWScubaView::SetCursorFromRAS ( float iRASCoords[3] ) {
+vtkKWScubaView::SetCursorFromRAS ( float const iRASCoords[3] ) {
 
   // Set the cursor.
   mCursorRASCoords[0] = iRASCoords[0];
