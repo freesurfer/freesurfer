@@ -1,18 +1,19 @@
 /**
  * @file  IDTracker.h
- * @brief A mixin class for assigning an ID to a class
+ * @brief Template to track classes by an ID number
  *
- * Automatically assigns an ID to an object unique within that class,
- * and provides FindByID() and GetIDList() functions, as well as a
- * GetPointerList() function for returning all references to a tracked
- * object of a certain class.
+ * A template class that can be used by subclasses so they can be
+ * automatically tracked by a unique ID number. Also provides a class
+ * static function for returning a list of all instances of that
+ * class. All functions are defined here in the header to avoid having
+ * to explicitly declare the templated instantiations.
  */
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/10/15 20:50:07 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,8 +29,6 @@
  *
  */
 
-
-
 #ifndef IDTracker_h
 #define IDTracker_h
 
@@ -39,23 +38,8 @@
 #include <stdexcept>
 
 
-// A template class that can be used by subclasses so they can be
-// automatically tracked by a unique ID number. To use, declare your
-// class like this:
-//
-//    class myClass : public IDTracker<myClass> {
-//
-// And in the myClass.cpp file, add these lines near the top to
-// generate the template code and initialize the static variables:
-//
-//    template IDTracker<myClass>;
-//    int IDTracker<myClass>::mNextID = 0;
-//    std::map<int,myClass*> IDTracker<myClass>::mIDMap;
-
-#define DeclareIDTracker(ClassType)
-//template IDTracker<ClassType>;
-
-template <typename ClassType> class IDTracker {
+template <typename ClassType> 
+class IDTracker {
 
 public:
   // Ctor adds this object to the tracked map with a unique ID
@@ -66,7 +50,7 @@ public:
   }
 
   virtual ~IDTracker() {
-    mIDMap[mID] = (ClassType*)NULL;
+    mIDMap.erase( mID );
   }
 
   // Accessor for the ID.
@@ -74,58 +58,52 @@ public:
     return mID;
   }
 
-  // Static function that will return a reference to an object.
+  // Static function that will return a reference to an object given
+  // its ID. Will throw an exception if not found.
   static ClassType& FindByID( int const iID ) {
 
-    ClassType* obj = mIDMap[iID];
-    if ( NULL == obj ) {
+    typename std::map<int,ClassType*>::const_iterator tObj;
+    tObj = mIDMap.find( iID );
+    if( tObj == mIDMap.end() ) {
       std::stringstream sError;
       sError << "Couldn't find object with ID " << iID;
       throw std::out_of_range( sError.str() );
     }
 
-    return *obj;
+    return *(*tObj).second;
   }
 
-  // Static function that will fill a list of active (non-NULL) IDs.
-  static void GetIDList( std::list<int>& iList ) {
+  // Static function that will fill a list of valid IDs.
+  static void GetIDList( std::list<int>& ioList ) {
 
-    typename std::map<int,ClassType*>::iterator tIDObject;
-    for ( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject ) {
-      int id = (*tIDObject).first;
-      ClassType* object = (*tIDObject).second;
-      if ( NULL != object ) {
-        iList.push_back( id );
-      }
-    }
+    typename std::map<int,ClassType*>::const_iterator tIDObject;
+    for( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject )
+      ioList.push_back( (*tIDObject).first );
   }
 
-  // Static function that will fill a list of active (non-NULL) pointers.
+  // Static function that will fill a list of pointers.
   static void GetPointerList( std::list<ClassType*>& iList ) {
 
-    typename std::map<int,ClassType*>::iterator tIDObject;
-    for ( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject ) {
-      ClassType* object = (*tIDObject).second;
-      if ( NULL != object ) {
-        iList.push_back( object );
-      }
-    }
+    typename std::map<int,ClassType*>::const_iterator tIDObject;
+    for ( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject ) 
+      iList.push_back( (*tIDObject).second );
   }
 
   // Prints ID list.
   static void PrintIDList( std::ostream& os ) {
 
-    typename std::map<int,ClassType*>::iterator tIDObject;
-    for ( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject ) {
-      int id = (*tIDObject).first;
-      ClassType* object = (*tIDObject).second;
-      if ( NULL != object ) {
-        os << id << " ";
-      }
-    }
+    typename std::map<int,ClassType*>::const_iterator tIDObject;
+    for( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject )
+      os << (*tIDObject).first << " ";
   }
 
 protected:
+  
+  // Copy ctor needs to get its own ID number.
+  IDTracker ( IDTracker const& i ) { 
+    mID = GetNextID();
+    mIDMap[mID] = (ClassType*)this;
+  }
 
   // The map of tracked objects.
   static std::map<int,ClassType*> mIDMap;
@@ -139,7 +117,6 @@ protected:
     return mNextID++;
   }
 };
-
 
 template <typename T> int IDTracker<T>::mNextID = 0;
 template <typename T> std::map<int,T*> IDTracker<T>::mIDMap;
