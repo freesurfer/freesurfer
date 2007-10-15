@@ -1,15 +1,19 @@
 /**
  * @file  ScubaTransform.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief A Transform44 object wrapped for Scuba
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is a Transform44 that behaves like a Scuba object, with
+ * IDTrackeing, Tcl scripting, and Broadcasting of its changes. It
+ * also manages the special case of when a transform is used as a
+ * registration between two volumes, taking into account the source
+ * and destination voxel transforms.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 19:57:42 $
- *    $Revision: 1.15 $
+ *    $Date: 2007/10/15 20:41:47 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,12 +39,12 @@ using namespace std;
 ScubaTransformStaticTclListener ScubaTransform::mStaticListener;
 
 ScubaTransform::ScubaTransform() :
-    Broadcaster( "ScubaTransform" ),
-    msLabel( "" ),
-    mIsRegistration( false ),
-    mSourceVolume( NULL ),
-    mDestVolume( NULL ) {
-
+  Broadcaster( "ScubaTransform" ),
+  msLabel( "" ),
+  mIsRegistration( false ),
+  mSourceVolume( NULL ),
+  mDestVolume( NULL ) {
+  
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetTransformLabel", 2, "transformID label",
                          "Set the label for a transform." );
@@ -87,8 +91,8 @@ ScubaTransform::~ScubaTransform() {}
 
 
 TclCommandListener::TclCommandResult
-ScubaTransform::DoListenToTclCommand( char* isCommand,
-                                      int, char** iasArgv ) {
+ScubaTransform::DoListenToTclCommand ( char* isCommand,
+				       int, char** iasArgv ) {
 
   // SetTransformLabel <transformID> <label>
   if ( 0 == strcmp( isCommand, "SetTransformLabel" ) ) {
@@ -269,16 +273,16 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
 
         DataCollection& sourceCol =
           VolumeCollection::FindByID( sourceVolumeID );
-        VolumeCollection& sourceVolume = (VolumeCollection&)sourceCol;
-        //   dynamic_cast<VolumeCollection&>( sourceCol );
+        VolumeCollection& sourceVolume = 
+	  dynamic_cast<VolumeCollection&>( sourceCol );
 
         int destVolumeID =
           TclCommandManager::ConvertArgumentToInt( iasArgv[3] );
 
         DataCollection& destCol =
           VolumeCollection::FindByID( destVolumeID );
-        VolumeCollection& destVolume = (VolumeCollection&)destCol;
-        //   dynamic_cast<VolumeCollection&>( destCol );
+        VolumeCollection& destVolume = 
+	  dynamic_cast<VolumeCollection&>( destCol );
 
         TreatAsRegistration( sourceVolume, destVolume );
       } catch ( runtime_error& e ) {
@@ -380,8 +384,20 @@ ScubaTransform::DoListenToTclCommand( char* isCommand,
   return ok;
 }
 
+void
+ScubaTransform::SetLabel ( std::string const& isLabel ) {
+  
+  msLabel = isLabel;
+}
+
+string const&
+ScubaTransform::GetLabel() const {
+  
+  return msLabel;
+}
+
 string
-ScubaTransform::GetValuesAsString () {
+ScubaTransform::GetValuesAsString () const {
 
   stringstream ssResult;
   for ( int r = 0; r < 4; r++ ) {
@@ -392,8 +408,23 @@ ScubaTransform::GetValuesAsString () {
   return ssResult.str();
 }
 
+ScubaTransform& 
+ScubaTransform::operator= ( ScubaTransform const& iTransform ) {
+
+  // Check for self-assignment.
+  if( this == &iTransform )
+    return *this;
+
+  // Use our superclass assignment operator.
+  this->Transform44::operator=( iTransform );
+
+  // Return a pointer to ourself.
+  return *this;
+}
+
+
 int
-ScubaTransform::GetRegistrationSource () {
+ScubaTransform::GetRegistrationSource () const {
 
   if ( mSourceVolume ) {
     return mSourceVolume->GetID();
@@ -403,7 +434,7 @@ ScubaTransform::GetRegistrationSource () {
 }
 
 int
-ScubaTransform::GetRegistrationDestination () {
+ScubaTransform::GetRegistrationDestination () const {
 
   if ( mDestVolume ) {
     return mDestVolume->GetID();
@@ -415,33 +446,37 @@ ScubaTransform::GetRegistrationDestination () {
 void
 ScubaTransform::ValuesChanged () {
 
-  SendBroadcast( "transformChanged", NULL );
+  // Call our superclass function.
   Transform44::ValuesChanged();
+
+  // Broadcast our changed message so others can track us.
+  SendBroadcast( "transformChanged", NULL );
+
 }
 
 void
-ScubaTransform::TreatAsRegistration ( VolumeCollection& iSourceVolume,
-                                      VolumeCollection& iDestVolume ) {
+ScubaTransform::TreatAsRegistration ( VolumeCollection const& iSourceVolume,
+                                      VolumeCollection const& iDestVolume ) {
 
-  if ( mIsRegistration ) {
+  // If we are already a registration, and we're using these IDs, just
+  // return. Otherwise go to native to undo the current registration
+  // first.
+  if ( mIsRegistration ) 
     if ( iSourceVolume.GetID() == mSourceVolume->GetID() &&
-         iDestVolume.GetID()   == mDestVolume->GetID() ) {
+         iDestVolume.GetID()   == mDestVolume->GetID() ) 
       return;
-    } else {
-      // Undo current regisration first.
+    else 
       TreatAsNative();
-    }
-  }
 
   // Get the MRIs from the volumes.
-  MRI* sourceMRI = iSourceVolume.GetMRI();
+  MRI* sourceMRI = const_cast<MRI*>(iSourceVolume.GetMRI());
   if ( NULL == sourceMRI )
     throw runtime_error( "Couldn't get source MRI." );
-  MRI* destMRI = iDestVolume.GetMRI();
+  MRI* destMRI = const_cast<MRI*>(iDestVolume.GetMRI());
   if ( NULL == destMRI )
     throw runtime_error( "Couldn't get dest MRI." );
 
-  MATRIX* tkReg = GetMainMatrix().GetMatrix();
+  MATRIX* tkReg = const_cast<MATRIX*>(GetMainMatrix().GetMatrix());
   MATRIX* native = MRItkReg2Native( sourceMRI, destMRI, tkReg );
   if ( NULL == native )
     throw runtime_error( "Couldn't get native transform." );
@@ -463,15 +498,15 @@ ScubaTransform::TreatAsNative () {
   }
 
   // Get the MRIs from the volumes.
-  MRI* sourceMRI = mSourceVolume->GetMRI();
+  MRI* sourceMRI = const_cast<MRI*>(mSourceVolume->GetMRI());
   if ( NULL == sourceMRI )
     throw runtime_error( "Couldn't get source MRI." );
-  MRI* destMRI = mDestVolume->GetMRI();
+  MRI* destMRI = const_cast<MRI*>(mDestVolume->GetMRI());
   if ( NULL == destMRI )
     throw runtime_error( "Couldn't get dest MRI." );
 
   // Convert our matrix.
-  MATRIX* native = GetMainMatrix().GetMatrix();
+  MATRIX* native = const_cast<MATRIX*>(GetMainMatrix().GetMatrix());
   native = MatrixInverse( native, NULL );
   MATRIX* tkReg = MRItkRegMtx( sourceMRI, destMRI, native );
   if ( NULL == tkReg )
@@ -498,16 +533,19 @@ ScubaTransformStaticTclListener::~ScubaTransformStaticTclListener () {}
 
 TclCommandListener::TclCommandResult
 ScubaTransformStaticTclListener::DoListenToTclCommand ( char* isCommand,
-    int, char** ) {
-
+							int, char** ) {
+  
   // GetTransformIDList
   if ( 0 == strcmp( isCommand, "GetTransformIDList" ) ) {
+
+    // Get the ID list from the IDTracker, then make a list in the
+    // output and go through and insert the IDs.
     list<int> idList;
     ScubaTransform::GetIDList( idList );
     stringstream ssFormat;
     stringstream ssResult;
     ssFormat << "L";
-    list<int>::iterator tID;
+    list<int>::const_iterator tID;
     for ( tID = idList.begin(); tID != idList.end(); ++tID ) {
       int id = *tID;
       ssFormat << "i";
@@ -522,6 +560,7 @@ ScubaTransformStaticTclListener::DoListenToTclCommand ( char* isCommand,
   // MakeNewTransform
   if ( 0 == strcmp( isCommand, "MakeNewTransform" ) ) {
 
+    // Make a new transform object and return the ID.
     ScubaTransform* transform = new ScubaTransform();
     sReturnFormat = "i";
     stringstream ssReturnValues;
@@ -533,7 +572,7 @@ ScubaTransformStaticTclListener::DoListenToTclCommand ( char* isCommand,
 }
 
 ostream&
-operator <<  ( ostream& os, ScubaTransform& iTransform ) {
+operator <<  ( ostream& os, ScubaTransform const& iTransform ) {
   os << "Transform " << iTransform.GetLabel() << ":" << endl;
   os << setw(6) << iTransform(0,0) << " " << setw(6) << iTransform(1,0) << " "
   << setw(6) << iTransform(2,0) << " " << setw(6) << iTransform(3,0) << endl;

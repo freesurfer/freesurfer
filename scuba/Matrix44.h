@@ -1,15 +1,30 @@
 /**
  * @file  Matrix44.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief A 4x4 real matrix
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * A wrapper around the libutils MATRIX class for a 4x4 real number
+ * matrix. Uses Matrix* functions internally when possible but also
+ * includes some geometry functions. Note that all 16 element matrices
+ * used in this class are in openGL style format:
+ *
+ *  [ 0   4   8  12 ]
+ *  [ 1   5   9  13 ]
+ *  [ 2   6  10  14 ]
+ *  [ 3   7  11  15 ]
+ *
+ * Column/row arguments are in the following format (i,j):
+ *
+ *  [ 0,0  1,0  2,0  3,0 ]
+ *  [ 0,1  1,1  2,1  3,1 ]
+ *  [ 0,2  1,2  2,2  3,2 ]
+ *  [ 0,3  1,3  2,3  3,3 ]
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.4 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/15 20:41:46 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,15 +48,10 @@
 extern "C" {
 #include "matrix.h"
 }
-#include "DebugReporter.h"
-#include "Point3.h"
 
-// Note that all 16 element matrices used in this class are in openGL
-// style format:
-// [ 0   4   8  12 ]
-// [ 1   5   9  13 ]
-// [ 2   6  10  14 ]
-// [ 3   7  11  15 ]
+#include "DebugReporter.h"
+
+template <typename T> class Point3;
 
 class Matrix44 : public DebugReporter {
 
@@ -49,29 +59,60 @@ class Matrix44 : public DebugReporter {
 
 public:
 
+  // Initializes the matrix to the identity.
   Matrix44();
+
+  // Explicity set all elements.
   Matrix44( float i0j0, float i1j0, float i2j0, float i3j0,
             float i0j1, float i1j1, float i2j1, float i3j1,
             float i0j2, float i1j2, float i2j2, float i3j2,
             float i0j3, float i1j3, float i2j3, float i3j3 );
-  Matrix44 ( MATRIX* iMatrix );
+
+  // Initialize with the contents from an existing MATRIX or Matrix44.
+  Matrix44 ( MATRIX const* iMatrix );
+  Matrix44 ( Matrix44 const& );
+
   virtual ~Matrix44();
 
+  // Accessors.
+  // Get individual elements. Does not check bounds!
+  inline float const& GetCR ( int iCol, int iRow ) const {
+    return *MATRIX_RELT(m,(iRow+1),(iCol+1));
+  }
+  float const& operator() ( int iCol, int iRow ) const {
+    return *MATRIX_RELT(m,(iRow+1),(iCol+1));
+  }
+
+  // Settors.
+  // Explicitly set all elements.
   void SetMatrix ( float i0j0, float i1j0, float i2j0, float i3j0,
                    float i0j1, float i1j1, float i2j1, float i3j1,
                    float i0j2, float i1j2, float i2j2, float i3j2,
                    float i0j3, float i1j3, float i2j3, float i3j3 );
 
-  void SetMatrix ( MATRIX* iMatrix );
+  // Copy contents from an existing MATRIX or Matrix44.
+  void SetMatrix ( MATRIX const* iMatrix );
+  void SetMatrix ( Matrix44 const& iMatrix );
+  Matrix44& operator= ( Matrix44 const& iMatrix );
+  
+  // Set individual elements. Does not check bounds!
+  inline void SetCR ( int iCol, int iRow, float iValue ) {
+    *MATRIX_RELT(m,(iRow+1),(iCol+1)) = iValue;
+  }
+  float& operator()( int iCol, int iRow ) {
+    return *MATRIX_RELT(m,(iRow+1),(iCol+1));
+  }
 
-  void SetMatrix ( Matrix44& iMatrix );
-
+  // Set to the identity.
   void MakeIdentity ();
 
-  void MakeRotation ( float iCenterPoint[3],
-                      float iRotationVector[3],
-                      float iRadians );
+  // Make this the rotation matrix for a given center point, rotation
+  // vector, and number of radians. 
+  void MakeRotation ( float const iCenterPoint[3],
+                      float const iRotationVector[3],
+                      float const iRadians );
 
+  // Make the rotation matrix around specific axes.
   void MakeXRotation ( float iRadians );
   void MakeYRotation ( float iRadians );
   void MakeZRotation ( float iRadians );
@@ -79,54 +120,44 @@ public:
   void MakeInverseYRotation ( float iRadians );
   void MakeInverseZRotation ( float iRadians );
 
+  // Operations.
+  // Extract various components from matrices and return a new matrix.
+  Matrix44 ExtractRotation () const;
+  Matrix44 ExtractScale () const;
+  Matrix44 ExtractTranslation () const;
 
-  Matrix44 ExtractRotation ();
-  Matrix44 ExtractScale ();
-  Matrix44 ExtractTranslation ();
+  // Applies a transform matrix to this matrix.
+  void ApplyTransformMatrix ( Matrix44 const& iMatrix );
 
+  // Multiply a 3 component vector with this matrix and put the
+  // results in the output argument.
+  void MultiplyVector3 ( float const iVector[3], float oVector[3] ) const;
+  void MultiplyVector3 ( int   const iVector[3], float oVector[3] ) const;
+  void MultiplyVector3 ( float const iVector[3], int   oVector[3] ) const;
 
-  void ApplyTransformMatrix ( Matrix44& iMatrix );
+  // Return the inverse of the matrix. Doesn't modify this matrix.
+  Matrix44 Inverse () const;
 
-  void MultiplyVector3 ( float const iVector[3], float oVector[3] );
-  void MultiplyVector3 ( int   const iVector[3], float oVector[3] );
-  void MultiplyVector3 ( float const iVector[3], int   oVector[3] );
+  // Should only be used when we need the MATRIX for libutils
+  // functions. 
+  MATRIX const* GetMatrix () const;
 
-  MATRIX* GetMatrix () {
-    return m;
-  }
-
-  float operator()( int iCol, int iRow ) {
-    return GetCR(iCol, iRow);
-  }
-
-  Matrix44& operator=(Matrix44& m) {
-    SetMatrix( m );
-    return *this;
-  }
-
-  Matrix44 Inverse ();
-
-  inline void SetCR ( int iCol, int iRow, float iValue ) {
-    *MATRIX_RELT(m,(iRow+1),(iCol+1)) = iValue;
-  }
-
-  inline float GetCR ( int iCol, int iRow ) {
-    return *MATRIX_RELT(m,(iRow+1),(iCol+1));
-  }
 protected:
 
-  MATRIX* m;
-  MATRIX* mTmp;
+  MATRIX* m; 
 };
 
+// Multiplication operator for matrices. You can use it this way:
 // C = A * B
 // Matrix44 a;
 // Matrix44 b;
 // Matrix44 c = a * b;
-Matrix44 operator*(Matrix44& m1, Matrix44& m2);
-inline Point3<float> operator*(Matrix44& m, Point3<float>& p);
+Matrix44 operator* ( Matrix44 const& m1, Matrix44 const& m2 );
 
-std::ostream& operator << ( std::ostream&, Matrix44& iMatrix   );
+// This works for Point3<float>s as vectors or points.
+inline Point3<float> operator* (Matrix44 const& m, Point3<float> const& p );
+
+std::ostream& operator << ( std::ostream&, Matrix44 const& iMatrix   );
 
 #endif
 

@@ -1,15 +1,30 @@
 /**
  * @file  Matrix44.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief A 4x4 real matrix
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * A wrapper around the libutils MATRIX class for a 4x4 real number
+ * matrix. Uses Matrix* functions internally when possible but also
+ * includes some geometry functions.Note that all 16 element matrices
+ * used in this class are in openGL style format:
+ *
+ *  [ 0   4   8  12 ]
+ *  [ 1   5   9  13 ]
+ *  [ 2   6  10  14 ]
+ *  [ 3   7  11  15 ]
+ *
+ * Column/row arguments are in the following format (i,j):
+ *
+ *  [ 0,0  1,0  2,0  3,0 ]
+ *  [ 0,1  1,1  2,1  3,1 ]
+ *  [ 0,2  1,2  2,2  3,2 ]
+ *  [ 0,3  1,3  2,3  3,3 ]
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.18 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/15 20:41:46 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,22 +45,20 @@
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
-#include "Matrix44.h"
-#include "VectorOps.h"
-#if 0
-#include "mkl.h"
-#endif
+
 extern "C" {
 #include "macros.h"
 }
 
-#define USEFLOORTOROUND 1
+#include "Matrix44.h"
+#include "VectorOps.h"
 
 using namespace std;
 
 Matrix44::Matrix44() {
+
+  // Allocate our MATRIX object.
   m = MatrixIdentity( 4, NULL );
-  mTmp = MatrixIdentity( 4, NULL );
 }
 
 Matrix44::Matrix44 ( float i0j0, float i1j0, float i2j0, float i3j0,
@@ -53,8 +66,10 @@ Matrix44::Matrix44 ( float i0j0, float i1j0, float i2j0, float i3j0,
                      float i0j2, float i1j2, float i2j2, float i3j2,
                      float i0j3, float i1j3, float i2j3, float i3j3 ) {
 
+  // Allocate our MATRIX object.
   m = MatrixIdentity( 4, NULL );
-  mTmp = MatrixIdentity( 4, NULL );
+
+  // Set all our elements.
   SetCR(0,0,i0j0);
   SetCR(1,0,i1j0);
   SetCR(2,0,i2j0);
@@ -73,16 +88,29 @@ Matrix44::Matrix44 ( float i0j0, float i1j0, float i2j0, float i3j0,
   SetCR(3,3,i3j3);
 }
 
-Matrix44::Matrix44 ( MATRIX* iMatrix ) {
+Matrix44::Matrix44 ( MATRIX const* iMatrix ) {
 
+  // Allocate our MATRIX object.
   m = MatrixIdentity( 4, NULL );
-  mTmp = MatrixIdentity( 4, NULL );
-  MatrixCopy( iMatrix, m );
+
+  // Copy the matrix.
+  MatrixCopy( const_cast<MATRIX*>(iMatrix), m );
+}
+
+Matrix44::Matrix44 ( Matrix44 const& iMatrix ) {
+
+  // Allocate our MATRIX object.
+  m = MatrixIdentity( 4, NULL );
+
+  // Copy the matrix.
+  SetMatrix( iMatrix );
 }
 
 Matrix44::~Matrix44() {
+
+  // Free the matrix.
+  assert( m );
   MatrixFree( &m );
-  MatrixFree( &mTmp );
 }
 
 void
@@ -91,6 +119,7 @@ Matrix44::SetMatrix ( float i0j0, float i1j0, float i2j0, float i3j0,
                       float i0j2, float i1j2, float i2j2, float i3j2,
                       float i0j3, float i1j3, float i2j3, float i3j3 ) {
 
+  // Set the matrix elements.
   SetCR(0,0,i0j0);
   SetCR(1,0,i1j0);
   SetCR(2,0,i2j0);
@@ -110,54 +139,71 @@ Matrix44::SetMatrix ( float i0j0, float i1j0, float i2j0, float i3j0,
 }
 
 void
-Matrix44::SetMatrix ( MATRIX* iMatrix ) {
+Matrix44::SetMatrix ( MATRIX const* iMatrix ) {
 
-  MatrixCopy( iMatrix, m );
+  // Copy the matrix.
+  MatrixCopy( const_cast<MATRIX*>(iMatrix), m );
 }
 
 void
-Matrix44::SetMatrix ( Matrix44& iMatrix ) {
+Matrix44::SetMatrix ( Matrix44 const& iMatrix ) {
 
-  MatrixCopy( iMatrix.GetMatrix(), m );
+  // Copy the matrix.
+  MatrixCopy( const_cast<MATRIX*>(iMatrix.GetMatrix()), m );
+}
+
+Matrix44&
+Matrix44::operator= ( Matrix44 const& iMatrix ) {
+
+  // Check for self-assigment.
+  if( this == &iMatrix )
+    return *this;
+  
+  // Copy the matrix.
+  SetMatrix( iMatrix  );
+
+  // Return ourselves.
+  return *this;
 }
 
 void
 Matrix44::MakeIdentity () {
 
+  // Make our matrix the identity.
   MatrixIdentity( 4, m );
 }
 
 void
-Matrix44::MakeRotation ( float iCenterPoint[3],
-                         float iRotationVector[3],
-                         float iRadians ) {
+Matrix44::MakeRotation ( float const iCenterPoint[3],
+                         float const iRotationVector[3],
+                         float const iRadians ) {
 
   Point3<float> p( iCenterPoint );
   Point3<float> v( iRotationVector );
 
+  // Rotate around y so that it lies on the x/y plane.
   double radsAroundY = atan2 ( v[2], v[0] );
   Matrix44 yRotation;
   yRotation.MakeYRotation( radsAroundY );
+
+  // Rotate around z so that it lies on the x axis.
   Point3<float> vectorOnXY = yRotation * v;
-
   double radsAroundZ = -atan2 ( vectorOnXY[1], vectorOnXY[0] );
+  Matrix44 zRotation;
+  zRotation.MakeZRotation( radsAroundZ );
 
+  // Translation matrix with the center point.
   Matrix44 trans;
   trans.SetMatrix ( 1, 0, 0, p[0],
                     0, 1, 0, p[1],
                     0, 0, 1, p[2],
                     0, 0, 0, 1 );
 
-  // rotate around y so that it lies on the x/y plane.
-  yRotation.MakeYRotation( radsAroundY );
-
-  // rotate around z so that it lies on the x axis.
-  Matrix44 zRotation;
-  zRotation.MakeZRotation( radsAroundZ );
-
+  // Rotation.
   Matrix44 rotation;
   rotation.MakeXRotation( iRadians );
 
+  // Make all the inverse transformations.
   Matrix44 zRotationInv;
   zRotationInv.MakeInverseZRotation( radsAroundZ );
 
@@ -170,14 +216,12 @@ Matrix44::MakeRotation ( float iCenterPoint[3],
                        0, 0, 1, -p[2],
                        0, 0, 0, 1 );
 
-  Matrix44 tmp = trans * yRotation;
-  Matrix44 tmp2 = tmp * zRotation;
-  Matrix44 tmp3 = tmp2 * rotation;
-  Matrix44 tmp4 = tmp3 * zRotationInv;
-  Matrix44 tmp5 = tmp4 * yRotationInv;
-  Matrix44 final = tmp5 * transInv;
+  // Composition.
+  Matrix44 composed = trans * yRotation * zRotation * rotation *
+    zRotationInv * yRotationInv * transInv;
 
-  SetMatrix( final.GetMatrix() );
+  // Set the result.
+  SetMatrix( composed );
 }
 
 void
@@ -226,16 +270,36 @@ Matrix44::MakeInverseZRotation ( float iRadians ) {
 }
 
 Matrix44
-Matrix44::ExtractTranslation () {
+Matrix44::ExtractRotation () const {
 
-  return Matrix44( 1, 0, 0, GetCR(3,0),
-                   0, 1, 0, GetCR(3,1),
-                   0, 0, 1, GetCR(3,2),
-                   0, 0, 0, 1 );
+  // Create a matrix identital to this one but without the translation.
+  Matrix44 thisWithoutTranslate;
+  thisWithoutTranslate.SetMatrix( *this );
+  thisWithoutTranslate.SetCR(3,0, 0);
+  thisWithoutTranslate.SetCR(3,1, 0);
+  thisWithoutTranslate.SetCR(3,2, 0);
+
+  // We need to cancel the scale portion. Extract the scale from this
+  // new matrix and divide the scale factors. If it was 0 to begin
+  // with, set it to 1.
+  Matrix44 scale = thisWithoutTranslate.ExtractScale();
+  Matrix44 thisWithoutTranslateOrScale;
+  for ( int n = 0; n <= 3; n++ ) {
+    if ( FEQUAL( scale(n,n), 0 ) ) {
+      thisWithoutTranslateOrScale.SetCR( n, n, 1.0 );
+    } else {
+      float unscaled = 1.0 / scale(n,n);
+      thisWithoutTranslateOrScale.SetCR( n, n, unscaled );
+    }
+  }
+
+  // Our rotation matrix is thisWithoutTranslateOrScale composed with
+  // thisWithoutTranslate.
+  return thisWithoutTranslate * thisWithoutTranslateOrScale;
 }
 
 Matrix44
-Matrix44::ExtractScale () {
+Matrix44::ExtractScale () const {
 
   // Create a matrix identital to this one but without the translation.
   Matrix44 thisWithoutTranslate;
@@ -267,41 +331,53 @@ Matrix44::ExtractScale () {
                    0, 0, 0, 1 );
 }
 
-
 Matrix44
-Matrix44::ExtractRotation () {
+Matrix44::ExtractTranslation () const {
 
-  // Create a matrix identital to this one but without the translation.
-  Matrix44 thisWithoutTranslate;
-  thisWithoutTranslate.SetMatrix( *this );
-  thisWithoutTranslate.SetCR(3,0, 0);
-  thisWithoutTranslate.SetCR(3,1, 0);
-  thisWithoutTranslate.SetCR(3,2, 0);
-
-  // We need to cancel the scale portion. Extract the scale from this
-  // new matrix and divide the scale factors. If it was 0 to begin
-  // with, set it to 1.
-  Matrix44 scale = thisWithoutTranslate.ExtractScale();
-  Matrix44 thisWithoutTranslateOrScale;
-  for ( int n = 0; n <= 3; n++ ) {
-    if ( FEQUAL( scale(n,n), 0 ) ) {
-      thisWithoutTranslateOrScale.SetCR( n, n, 1.0 );
-    } else {
-      float unscaled = 1.0 / scale(n,n);
-      thisWithoutTranslateOrScale.SetCR( n, n, unscaled );
-    }
-  }
-
-  // Our rotation matrix is thisWithoutTranslateOrScale composed with
-  // thisWithoutTranslate.
-  return thisWithoutTranslate * thisWithoutTranslateOrScale;
+  return Matrix44( 1, 0, 0, GetCR(3,0),
+		   0, 1, 0, GetCR(3,1),
+		   0, 0, 1, GetCR(3,2),
+		   0, 0, 0, 1 );
 }
 
+void
+Matrix44::ApplyTransformMatrix ( Matrix44 const& iTransform ) {
+
+  // Get our transformation components.
+  Matrix44 scale     = ExtractScale();
+  Matrix44 translate = ExtractTranslation();
+  Matrix44 rotate    = ExtractRotation();
+
+  // Find the inverse of the translation and rotation.
+  Matrix44 translateInv = translate.Inverse();
+  Matrix44 rotateInv    = rotate.Inverse();
+
+  // Extract the transforms to apply.
+  Matrix44 scaleApply     = iTransform.ExtractScale();
+  Matrix44 translateApply = iTransform.ExtractTranslation();
+  Matrix44 rotateApply    = iTransform.ExtractRotation();
+
+  // The new translation is composed with the rotation and inverse rotation.
+  Matrix44 tmp1 = rotate * translateApply;
+  Matrix44 translateNew = tmp1 * rotateInv;
+
+  // Same with the rotation.
+  Matrix44 tmp2 = rotate * rotateApply;
+  Matrix44 rotateNew = tmp2 * rotateInv;
+
+  // Now compose everything together.
+  Matrix44 composed = translateNew * translate * 
+    scaleApply * scale * rotateNew * rotate;
+
+  // Set us.
+  SetMatrix( composed );
+}
 
 void
-Matrix44::MultiplyVector3 ( float const iVector[3], float oVector[3] ) {
+Matrix44::MultiplyVector3 ( float const iVector[3], float oVector[3] ) const {
 
-#if 1
+  // This is explicitly written out in an attempt to speed stuff
+  // up. Otherwise there's nothing really tricky about it.
   float iX = iVector[0];
   float iY = iVector[1];
   float iZ = iVector[2];
@@ -339,108 +415,13 @@ Matrix44::MultiplyVector3 ( float const iVector[3], float oVector[3] ) {
   oVector[0] = sum0;
   oVector[1] = sum1;
   oVector[2] = sum2;
-#endif
-
-#if 0
-  oVector[0] =
-    GetCR(0,0) * iVector[0] +
-    GetCR(1,0) * iVector[1] +
-    GetCR(2,0) * iVector[2] +
-    GetCR(3,0);
-  oVector[1] =
-    GetCR(0,1) * iVector[0] +
-    GetCR(1,1) * iVector[1] +
-    GetCR(2,1) * iVector[2] +
-    GetCR(3,1);
-  oVector[2] =
-    GetCR(0,2) * iVector[0] +
-    GetCR(1,2) * iVector[1] +
-    GetCR(2,2) * iVector[2] +
-    GetCR(3,2);
-#endif
-
-#if 0
-  float A[3], B[3], C[3];
-  float alpha = 1.0;
-  float beta = 2.0;
-
-  A[0] = iVector[0];
-  A[1] = iVector[1];
-  A[2] = iVector[2];
-  B[0] = GetCR(0,0);
-  B[1] = GetCR(1,0);
-  B[2] = GetCR(2,0);
-
-  // In case of row major, no transpose for A, B.
-  cblas_sgemm ( CblasRowMajor, CblasNoTrans, CblasNoTrans,
-                3, 3, 3,
-                alpha,
-                A, 3,
-                B, 3,
-                beta,
-                C, 3 );
-
-  oVector[0] = C[0];
-  oVector[1] = C[1];
-  oVector[2] = C[2];
-#endif
 }
 
 void
-Matrix44::ApplyTransformMatrix ( Matrix44& iTransform ) {
+Matrix44::MultiplyVector3 ( int const iVector[3], float oVector[3] ) const {
 
-  // Get our transformation components.
-  Matrix44 scale     = ExtractScale();
-  Matrix44 translate = ExtractTranslation();
-  Matrix44 rotate    = ExtractRotation();
-
-  // Find the inverse of the translation and rotation.
-  Matrix44 translateInv = translate.Inverse();
-  Matrix44 rotateInv    = rotate.Inverse();
-
-  // Extract the transforms to apply.
-  Matrix44 scaleApply     = iTransform.ExtractScale();
-  Matrix44 translateApply = iTransform.ExtractTranslation();
-  Matrix44 rotateApply    = iTransform.ExtractRotation();
-
-  //  cerr << "----------------------------------------" << endl;
-
-  // The new translation is composed with the rotation and inverse rotation.
-  Matrix44 tmp1 = rotate * translateApply;
-  Matrix44 translateNew = tmp1 * rotateInv;
-
-  // Same with the rotation.
-  Matrix44 tmp2 = rotate * rotateApply;
-  Matrix44 rotateNew = tmp2 * rotateInv;
-
-#if 0
-  cerr << "this " << *this << endl;
-  cerr << "applying " << iTransform << endl;
-
-  cerr << "scale " << scale << endl;
-  cerr << "translate " << translate << endl;
-  cerr << "rotate " << rotate << endl;
-  cerr << "scaleApply " << scaleApply << endl;
-  cerr << "translateApply " << translateApply << endl;
-  cerr << "rotateApply " << rotateApply << endl;
-  cerr << "translateNew " << translateNew << endl;
-  cerr << "rotateNew " << rotateNew << endl;
-#endif
-
-  // Now compose everything together.
-  Matrix44 tmp3 = translateNew * translate;
-  Matrix44 tmp4 = tmp3 * scaleApply;
-  Matrix44 tmp5 = tmp4 * scale;
-  Matrix44 tmp6 = tmp5 * rotateNew;
-  Matrix44 t = tmp6 * rotate;
-
-  // Set us.
-  SetMatrix( t );
-}
-
-void
-Matrix44::MultiplyVector3 ( int const iVector[3], float oVector[3] ) {
-
+  // This is explicitly written out in an attempt to speed stuff
+  // up. Otherwise there's nothing really tricky about it.
   float iVectorF[3];
   iVectorF[0] = iVector[0];
   iVectorF[1] = iVector[1];
@@ -464,25 +445,64 @@ Matrix44::MultiplyVector3 ( int const iVector[3], float oVector[3] ) {
 }
 
 void
-Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
+Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) const {
 
   float vectorF[3];
   MultiplyVector3( iVector, vectorF );
-#if USEFLOORTOROUND
+
+  // This rounding is consistent with some other libutils stuff. Just
+  // accept it.
   oVector[0] = (int) floor( vectorF[0] + 0.5 );
   oVector[1] = (int) floor( vectorF[1] + 0.5 );
   oVector[2] = (int) floor( vectorF[2] + 0.5 );
-#else
-  oVector[0] = (int) floor(vectorF[0]);
-  oVector[1] = (int) floor(vectorF[1]);
-  oVector[2] = (int) floor(vectorF[2]);
-#endif
 }
 
-inline Matrix44 operator*( Matrix44& m2,
-                           Matrix44& m1 ) {
+Matrix44
+Matrix44::Inverse() const {
+
+  // Allocate a temp copy. The temp is because MatrixInverse
+  // might be unsafe and this function is const.
+  MATRIX* temp = MatrixIdentity( 4, NULL );
+
+  // Copy in the main matrix.
+  MatrixCopy( m, temp );
+
+  // Perform the inverse and check the result. This allocates mInv.
+  MATRIX* inverse = MatrixInverse( temp, NULL );
+  if ( NULL == inverse ) {
+    
+    // Free our temps.
+    MatrixFree( &temp );
+    MatrixFree( &inverse );
+
+    // Wasn't invertible.
+    cerr << "Couldn't invert matrix: " << endl << *this << endl;
+    throw runtime_error("Couldn't invert matrix");
+  }
+
+  // Construct a return object.
+  Matrix44 inverseM( inverse );
+
+  // Free our temps.
+  MatrixFree( &temp );
+  MatrixFree( &inverse );
+
+  // Return the result.
+  return inverseM;
+}
+
+MATRIX const*
+Matrix44::GetMatrix () const {
+
+  return m;
+}
+
+inline Matrix44 operator*( Matrix44 const& m2,
+                           Matrix44 const& m1 ) {
 
 
+  // This is explicitly written out in an attempt to speed stuff
+  // up. Otherwise there's nothing really tricky about it.
   float m00 =
     m1(0,0) * m2(0,0) +
     m1(0,1) * m2(1,0) +
@@ -567,36 +587,22 @@ inline Matrix44 operator*( Matrix44& m2,
     m1(3,2) * m2(2,3) +
     m1(3,3) * m2(3,3);
 
-  //  MATRIX* mult = MatrixMultiply( m1.GetMatrix(), m2.GetMatrix(), NULL );
   return Matrix44( m00, m10, m20, m30,
                    m01, m11, m21, m31,
                    m02, m12, m22, m32,
                    m03, m13, m23, m33 );
 };
 
-Matrix44
-Matrix44::Inverse() {
-
-  mTmp = MatrixInverse( m, mTmp );
-  if ( NULL == mTmp ) {
-    cerr << "Couldn't invert matrix: " << endl << *this << endl;
-    throw runtime_error("Couldn't invert matrix");
-  }
-  return Matrix44( mTmp );
-}
-
-// This works for Point3<float>s as vectors or points.
-inline Point3<float> operator*(Matrix44& m,
-                               Point3<float>& p) {
+inline Point3<float> operator* ( Matrix44 const& m,
+				 Point3<float> const& p ) {
 
   return Point3<float> ( m(0,0)*p[0] + m(0,1)*p[1] + m(0,2)*p[2] + m(0,3),
                          m(1,0)*p[0] + m(1,1)*p[1] + m(1,2)*p[2] + m(1,3),
                          m(2,0)*p[0] + m(2,1)*p[1] + m(2,2)*p[2] + m(2,3) );
 };
 
-
 ostream&
-operator <<  ( ostream& os, Matrix44& iMatrix ) {
+operator <<  ( ostream& os, Matrix44 const& iMatrix ) {
   os << "Matrix44:" << endl;
   os << setw(6) << iMatrix(0,0) << " " << setw(6) << iMatrix(1,0) << " "
   << setw(6) << iMatrix(2,0) << " " << setw(6) << iMatrix(3,0) << endl;

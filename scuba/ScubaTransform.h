@@ -1,15 +1,19 @@
 /**
  * @file  ScubaTransform.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief A Transform44 object wrapped for Scuba
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is a Transform44 that behaves like a Scuba object, with
+ * IDTrackeing, Tcl scripting, and Broadcasting of its changes. It
+ * also manages the special case of when a transform is used as a
+ * registration between two volumes, taking into account the source
+ * and destination voxel transforms.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.8 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/15 20:41:47 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,29 +34,34 @@
 #define ScubaTransform_h
 
 #include "string_fixed.h"
-extern "C" {
-#include "matrix.h"
-}
-#include "Transform44.h"
-#include "DebugReporter.h"
-#include "TclCommandManager.h"
-#include "IDTracker.h"
+
 #include "Broadcaster.h"
+#include "DebugReporter.h"
+#include "IDTracker.h"
 #include "Point3.h"
+#include "TclCommandManager.h"
+#include "Transform44.h"
 
 class VolumeCollection;
 
-class ScubaTransformStaticTclListener : public DebugReporter, public TclCommandListener {
+// Static listener class so we can respond to singleton messages.
+class ScubaTransformStaticTclListener : public DebugReporter,
+					public TclCommandListener {
 
 public:
   ScubaTransformStaticTclListener ();
   ~ScubaTransformStaticTclListener ();
 
+  // Respond to Tcl commands.
   virtual TclCommandResult
-  DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 };
 
-class ScubaTransform : public Transform44, public IDTracker<ScubaTransform>, public TclCommandListener, public Broadcaster {
+class ScubaTransform : public Transform44,
+		       public IDTracker<ScubaTransform>,
+		       public TclCommandListener, 
+		       public Broadcaster // transformChanged
+{
 
   friend class ScubaTransformTester;
 
@@ -61,51 +70,56 @@ public:
   ScubaTransform();
   virtual ~ScubaTransform();
 
+  // Respond to Tcl commands.
   virtual TclCommandResult
-  DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
-  void SetLabel( std::string isLabel ) {
-    msLabel = isLabel;
-  }
-  std::string GetLabel() {
-    return msLabel;
-  }
+  // The label for this object.
+  void SetLabel ( std::string const& isLabel );
+  std::string const& GetLabel() const;
 
-  std::string GetValuesAsString();
+  // Return the main matrix values as a string.
+  std::string GetValuesAsString() const;
 
-  Transform44& operator=(ScubaTransform& iTransform) {
-    m.SetMatrix( iTransform.GetMainMatrix() );
-    ValuesChanged();
-    return *this;
-  }
+  // Copy the transform to this one.
+  ScubaTransform& operator= ( ScubaTransform const& iTransform );
 
-  // For making this volume a registration volume.
-  void TreatAsRegistration ( VolumeCollection& iSourceVolume,
-                             VolumeCollection& iDestVolume );
+  // Make this transform usable as a registration between two volumes.
+  void TreatAsRegistration ( VolumeCollection const& iSourceVolume,
+                             VolumeCollection const& iDestVolume );
+
+  // Make this a nomral (non-registration) transform.
   void TreatAsNative ();
 
-  bool IsRegistration () {
+  // Return whether this is a registration transform.
+  bool IsRegistration () const {
     return mIsRegistration;
   }
-  int GetRegistrationSource ();
-  int GetRegistrationDestination ();
+
+  // If this is a registration, return the IDs of the source and
+  // destination volumes.
+  int GetRegistrationSource () const;
+  int GetRegistrationDestination () const;
 
 protected:
 
+  // Called when our values change.
   virtual void ValuesChanged ();
 
+  // Static pointer to our static listener.
   static ScubaTransformStaticTclListener mStaticListener;
 
+  // Our label.
   std::string msLabel;
 
   // For making this a registration transform. Save the source and
   // dest volume IDs so we can unmake it.
   bool mIsRegistration;
-  VolumeCollection* mSourceVolume;
-  VolumeCollection* mDestVolume;
+  VolumeCollection const* mSourceVolume;
+  VolumeCollection const* mDestVolume;
 };
 
-std::ostream& operator << ( std::ostream&, ScubaTransform& iTransform  );
+std::ostream& operator << ( std::ostream&, ScubaTransform const& iTransform  );
 
 #endif
 

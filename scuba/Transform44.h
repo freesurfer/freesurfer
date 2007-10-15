@@ -1,15 +1,17 @@
 /**
  * @file  Transform44.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief A 4x4 real linear transform object
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * A linear transform object that provides a simplified interface to
+ * Matrix44, mainly allowing vector mulitplication and automatically
+ * caching inverse transforms.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.5 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/15 20:41:46 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,92 +32,109 @@
 #define Transform44_h
 
 #include "string_fixed.h"
-#include "Matrix44.h"
-#include "Point3.h"
+extern "C" {
+#include "matrix.h"
+}
 
-// Note that all 16 element matrices used in this class are in openGL
-// style format:
-// [ 0   4   8  12 ]
-// [ 1   5   9  13 ]
-// [ 2   6  10  14 ]
-// [ 3   7  11  15 ]
+#include "DebugReporter.h"
+#include "Matrix44.h"
 
 class Transform44 : public DebugReporter {
 
   friend class Transform44Tester;
 
 public:
-
+  
+  // Initializes the transform to the identity.
   Transform44();
+
+  // Explicity set the main transform matrix.
   Transform44 ( float i0j0, float i1j0, float i2j0, float i3j0,
                 float i0j1, float i1j1, float i2j1, float i3j1,
                 float i0j2, float i1j2, float i2j2, float i3j2,
                 float i0j3, float i1j3, float i2j3, float i3j3 );
-  Transform44 ( MATRIX* iMatrix );
-  Transform44 ( Matrix44& iMatrix );
+
+  // Initialize the main transform matrix contents from an existing
+  // MATRIX, Matrix44, or Transform44.
+  Transform44 ( MATRIX const* iMatrix );
+  Transform44 ( Matrix44 const& iMatrix );
+  Transform44 ( Transform44 const& iTransform );
+
   virtual ~Transform44();
 
+  // Accessor.
+  inline float const& operator() ( int iCol, int iRow ) const {
+    return m(iCol,iRow);
+  }
+
+  // Settors.
+  // Explicitly set element of main transform matirx.
   void SetMainTransform ( float i0j0, float i1j0, float i2j0, float i3j0,
                           float i0j1, float i1j1, float i2j1, float i3j1,
                           float i0j2, float i1j2, float i2j2, float i3j2,
                           float i0j3, float i1j3, float i2j3, float i3j3 );
 
-  void SetMainTransform ( MATRIX* iMatrix );
-  void SetMainTransform ( Matrix44& iMatrix );
-  void SetMainTransform ( Transform44&  iTransform );
+  // Copy contents from an existing MATRIX, Matrix44, or Transform44.
+  void SetMainTransform ( MATRIX const* iMatrix );
+  void SetMainTransform ( Matrix44 const& iMatrix );
+  void SetMainTransform ( Transform44 const&  iTransform );
+  Transform44& operator= (Transform44 const& iTransform );
 
+  // Set individual elements. Does not check bounds!
+  inline float& operator() ( int iCol, int iRow ) {
+    return m(iCol,iRow);
+  }
+
+  // Set to the identity.
   void MakeIdentity ();
 
-  void MakeRotation ( float iCenterPoint[3],
-                      float iRotationVector[3],
-                      float iRadians );
+  // Make this the rotation matrix for a given center point, rotation
+  // vector, and number of radians. 
+  void MakeRotation ( float const iCenterPoint[3],
+                      float const iRotationVector[3],
+                      float const iRadians );
 
-  void LoadFromLTAFile ( std::string ifnLTA );
+  // Load contents from an LTA file.
+  void LoadFromLTAFile ( std::string const& ifnLTA );
 
-  void ApplyTransform ( Transform44& iTransform );
+  // Applies a transform to this transform.
+  void ApplyTransform ( Transform44 const& iTransform );
 
-  void MultiplyVector3 ( float const iVector[3], float oVector[3] );
-  void MultiplyVector3 ( int   const iVector[3], float oVector[3] );
-  void MultiplyVector3 ( float const iVector[3], int   oVector[3] );
-  void InvMultiplyVector3 ( float const iVector[3], float oVector[3] );
-  void InvMultiplyVector3 ( int   const iVector[3], float oVector[3] );
-  void InvMultiplyVector3 ( float const iVector[3], int   oVector[3] );
+  // Transform a 3 component vector or point and put the results in
+  // the output argument. Can also do the inverse transform.
+  void MultiplyVector3 ( float const iVector[3], float oVector[3] ) const;
+  void MultiplyVector3 ( int   const iVector[3], float oVector[3] ) const;
+  void MultiplyVector3 ( float const iVector[3], int   oVector[3] ) const;
+  void InvMultiplyVector3 ( float const iVector[3], float oVector[3] ) const;
+  void InvMultiplyVector3 ( int   const iVector[3], float oVector[3] ) const;
+  void InvMultiplyVector3 ( float const iVector[3], int   oVector[3] ) const;
 
-  float operator()( int iCol, int iRow ) {
-    return m(iCol, iRow);
-  }
+  // Return the inverse of the transform. Doesn't modify this transform.
+  Transform44 Inverse () const;
 
-  Transform44& operator=(Transform44& iTransform) {
-    m.SetMatrix( iTransform.GetMainMatrix() );
-    ValuesChanged();
-    return *this;
-  }
-
-  Matrix44& GetMainMatrix () {
-    return m;
-  }
-
-  Transform44 Inverse ();
+  // Direct access to the main matrix of the transform.
+  Matrix44 const& GetMainMatrix () const;
 
 protected:
 
+  // Called when values have changed.
   virtual void ValuesChanged ();
 
+  // Calculates the inverse from the main matrix.
   void CalculateInverse ();
 
-  Matrix44 m;
-  Matrix44 mInv;
-
-  MATRIX* mTmp;
+  Matrix44 m;     // main matrix
+  Matrix44 mInv;  // inverse
 };
 
+// Multiplication operator for matrices. You can use it this way:
 // C = A * B
 // Transform44 a;
 // Transform44 b;
 // Transform44 c = a * b;
-Transform44 operator*(Transform44& m1, Transform44& m2);
+Transform44 operator* ( Transform44 const& m1, Transform44 const& m2 );
 
-std::ostream& operator << ( std::ostream&, Transform44& iTransform  );
+std::ostream& operator << ( std::ostream&, Transform44 const& iTransform  );
 
 #endif
 
