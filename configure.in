@@ -1957,6 +1957,11 @@ VTK_VERDICT_LIB=""
 AC_CHECK_LIB([verdict], [main], [VTK_VERDICT_LIB="-lverdict"], [])
 AC_SUBST(VTK_VERDICT_LIB)
 
+# ditto for libvtksqlite
+VTK_QSLITE_LIB=""
+AC_CHECK_LIB([vtksqlite], [main], [VTK_SQLITE_LIB="-lvtksqlite"], [])
+AC_SUBST(VTK_SQLITE_LIB)
+
 # libvtkMPEG2Encode disappeared from VTK v5.1.0, so test for it
 VTK_MPEG2ENCODE_LIB=""
 AC_CHECK_LIB([vtkMPEG2Encode], [main], 
