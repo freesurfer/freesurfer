@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 15:57:36 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/10/16 23:01:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@
 #include "label.h"
 
 static char vcid[] = 
-"$Id: mris_exvivo_surfaces.c,v 1.4 2007/10/02 15:57:36 fischl Exp $";
+"$Id: mris_exvivo_surfaces.c,v 1.5 2007/10/16 23:01:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -90,7 +90,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
                                  float gm_mean[2], float gm_std[2],
                                  double sigma,
                                  float max_thickness, FILE *log_fp, 
-                                 int formalin);
+                                 int formalin, int first);
 
 // int MRISpositionSurface_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, INTEGRATION_PARMS *parms, float weight30, float weight5);
 
@@ -197,13 +197,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_exvivo_surfaces.c,v 1.4 2007/10/02 15:57:36 fischl Exp $", 
+     "$Id: mris_exvivo_surfaces.c,v 1.5 2007/10/16 23:01:24 fischl Exp $", 
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_exvivo_surfaces.c,v 1.4 2007/10/02 15:57:36 fischl Exp $", 
+     "$Id: mris_exvivo_surfaces.c,v 1.5 2007/10/16 23:01:24 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -442,7 +442,7 @@ main(int argc, char *argv[]) {
                                       white_mean, white_std, gray_mean,
                                       gray_std,
                                       current_sigma,
-                                      2*max_thickness, parms.fp) ;
+                                      max_thickness, parms.fp) ;
 
     //what does this do?
     MRISfindExpansionRegions(mris) ;
@@ -518,7 +518,8 @@ main(int argc, char *argv[]) {
             "refinement took %2.1f minutes\n", (float)msec/(60*1000.0f));
     MRIfree(&mri_T1_30);
     MRIfree(&mri_T1_5);
-    MRIfree(&mri_em_seg);
+    if (mri_em_seg)
+      MRIfree(&mri_em_seg);
     exit(0) ;
   }
 
@@ -587,7 +588,7 @@ main(int argc, char *argv[]) {
       MRIScomputeBorderValues_MEF_PIAL
         (mris, mri_T1_30, mri_T1_30, mri_T1_5,
          white_mean, white_std, gray_mean, gray_std,
-         current_sigma, 2*max_thickness, parms.fp, formalin) ;
+         current_sigma, 2*max_thickness, parms.fp, formalin, j) ;
 
       //MRImask(mri_T1_30, mri_labeled, mri_T1_30, BRIGHT_LABEL, 0) ;
 
@@ -1154,11 +1155,11 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
     x = v->x ;
     y = v->y ;
     z = v->z ;
-    MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+    MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
     x = v->x + v->nx ;
     y = v->y + v->ny ;
     z = v->z + v->nz ;
-    MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw1, &yw1, &zw1) ;
+    MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw1, &yw1, &zw1) ;
     nx = xw1 - xw ;
     ny = yw1 - yw ;
     nz = zw1 - zw ;
@@ -1190,7 +1191,7 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
         x = v->x + v->nx*dist ;
         y = v->y + v->ny*dist ;
         z = v->z + v->nz*dist ;
-        MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+        MRIsurfaceRASToVoxelCached(mri_30, x, y, z, &xw, &yw, &zw) ;
         //       MRIsampleVolumeDerivativeScale(mri_30, xw, yw, zw, nx, ny,nz,&mag30,  current_sigma);
 
         // if (mag30 >= 0.0) //this condition doesn't make much sense to me
@@ -1223,7 +1224,7 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
         x = v->x + v->nx*dist ;
         y = v->y + v->ny*dist ;
         z = v->z + v->nz*dist ;
-        MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+        MRIsurfaceRASToVoxelCached(mri_30, x, y, z, &xw, &yw, &zw) ;
         //       MRIsampleVolumeDerivativeScale(mri_30, xw, yw, zw, nx, ny,nz, &mag30, current_sigma);
         // MRIsampleVolumeDerivativeScale(mri_5, xw, yw, zw, nx, ny,nz, &mag5, current_sigma);
 
@@ -1278,7 +1279,7 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
       x = v->x + v->nx*(dist-STEP_SIZE) ;
       y = v->y + v->ny*(dist-STEP_SIZE) ;
       z = v->z + v->nz*(dist-STEP_SIZE) ;
-      MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+      MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
       MRIsampleVolume(mri_30, xw, yw, zw, &previous_val30) ;
       MRIsampleVolume(mri_5, xw, yw, zw, &previous_val5) ;
 
@@ -1295,7 +1296,7 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
         x = v->x + v->nx*dist ;
         y = v->y + v->ny*dist ;
         z = v->z + v->nz*dist ;
-        MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolume(mri_30, xw, yw, zw, &val30) ;
         MRIsampleVolume(mri_5, xw, yw, zw, &val5) ;
         MRIsampleVolumeDerivativeScale(mri_30, xw, yw, zw, 
@@ -1306,7 +1307,7 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
         x = v->x + v->nx*(dist+STEP_SIZE) ;
         y = v->y + v->ny*(dist+STEP_SIZE) ;
         z = v->z + v->nz*(dist+STEP_SIZE) ;
-        MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_30, xw, yw, zw, nx, ny, nz,
                                        &next_mag30, sigma);
         MRIsampleVolumeDerivativeScale(mri_5, xw, yw, zw, nx, ny, nz,
@@ -1315,7 +1316,7 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
         x = v->x + v->nx*(dist-STEP_SIZE) ;
         y = v->y + v->ny*(dist-STEP_SIZE) ;
         z = v->z + v->nz*(dist-STEP_SIZE) ;
-        MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_30, xw, yw, zw, nx, ny, nz,
                                        &previous_mag30, sigma);
         MRIsampleVolumeDerivativeScale(mri_5, xw, yw, zw, nx, ny, nz,
@@ -1336,7 +1337,7 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
         mag = - mag5;
         previous_mag = - previous_mag5;
         next_mag = - next_mag5;
-        if (val30 < min_val30) {
+        if (val5 < min_val5) {
           min_val30 = val30;
           min_val5 = val5;
           min_val_dist = dist;
@@ -1353,14 +1354,18 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
         if (
           (fabs(mag) > fabs(previous_mag)) &&
           (fabs(mag) > fabs(next_mag)) &&
-          (val5 <= (gm_mean[1]+ 1.2*gm_std[1])) && 
+          (val5 <= (gm_mean[1]+ 1.2*gm_std[1]))
+#if 0
+          && 
           (val5 >= wm_mean[1]-0.5*wm_std[1]) //is this too restrictive??
-        ) {
+#endif
+          )
+        {
           x = v->x + v->nx*(dist+1) ;
           y = v->y + v->ny*(dist+1) ;
           z = v->z + v->nz*(dist+1) ;
 
-          MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+          MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
           MRIsampleVolume(mri_30, xw, yw, zw, &next_val30) ;
           /*
             if next val is in the right range, and the intensity at
@@ -1393,7 +1398,7 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
             x = v->x + v->nx*(dist+1) ;
             y = v->y + v->ny*(dist+1) ;
             z = v->z + v->nz*(dist+1) ;
-            MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+            MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
             MRIsampleVolume(mri_30, xw, yw, zw, &next_val30) ;
             // MRIsampleVolume(mri_5, xw, yw, zw, &next_val5) ;
             if ((next_val30 >= (gm_mean[0] - 2*gm_std[0])) &&
@@ -1468,8 +1473,8 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
     if (vno == Gdiag_no)
       fprintf
         (stdout,
-         "v %d, target value = %2.1f, mag = %2.1f, dist = %2.2f, %s\n",
-         Gdiag_no, v->val, v->mean, v->d,
+         "v %d, target value = 30:%2.1f, 5:%2.1f, mag = %2.1f, dist = %2.2f, %s\n",
+         Gdiag_no, v->val, v->valbak, v->mean, v->d,
          local_max_found ? "local max" : max_mag_val30 > 0 ? "grad":"min");
 
   }
@@ -1523,7 +1528,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
                                  float gm_mean[2], float gm_std[2],
                                  double sigma,
                                  float max_thickness, FILE *log_fp,
-                                 int formalin) {
+                                 int formalin, int first) {
   //for pial surface, dura is a problem if I still use 
   //original images, really need to use the membership functions
   //or equivalently, the EM_combined
@@ -1560,11 +1565,11 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
     x = v->x ;
     y = v->y ;
     z = v->z ;
-    MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+    MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
     x = v->x + v->nx ;
     y = v->y + v->ny ;
     z = v->z + v->nz ;
-    MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw1, &yw1, &zw1) ;
+    MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw1, &yw1, &zw1) ;
     nx = xw1 - xw ;
     ny = yw1 - yw ;
     nz = zw1 - zw ;
@@ -1586,34 +1591,37 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
     for (current_sigma = sigma; 
          current_sigma <= 10*sigma; 
          current_sigma *= 2) {
-      for (dist = 0 ; dist > -max_thickness ; dist -= step_size) {
-        dx = v->x-v->origx ;
-        dy = v->y-v->origy ;
-        dz = v->z-v->origz ;
-        orig_dist = fabs(dx*v->nx + dy*v->ny + dz*v->nz) ;
-        if (fabs(dist)+orig_dist > max_thickness)
-          break ;
-        x = v->x + v->nx*dist ;
-        y = v->y + v->ny*dist ;
-        z = v->z + v->nz*dist ;
-        MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
-        MRIsampleVolumeDerivativeScale(mri_30, xw, yw, zw, 
-                                       nx, ny,nz,&mag30,  current_sigma);
-        MRIsampleVolumeDerivativeScale(mri_5, xw, yw, zw, 
-                                       nx, ny,nz,&mag5,  current_sigma);
-
-        //The inside check can be restrictive, since pial surface have to 
-        //move outside anyway. No not necessary for longitudinal method
-        if (mag30 >= 0.0 || mag5 > 0.0)
-          break ;
-        MRIsampleVolume(mri_30, xw, yw, zw, &val30) ;
-        MRIsampleVolume(mri_5, xw, yw, zw, &val5) ;
-
-        if (val30 > wm_mean[0])
-          break ;
-      }
+      if (first)
+        dist = 0 ;
+      else
+        for (dist = 0 ; dist > -max_thickness ; dist -= step_size) {
+          dx = v->x-v->origx ;
+          dy = v->y-v->origy ;
+          dz = v->z-v->origz ;
+          orig_dist = fabs(dx*v->nx + dy*v->ny + dz*v->nz) ;
+          if (fabs(dist)+orig_dist > max_thickness)
+            break ;
+          x = v->x + v->nx*dist ;
+          y = v->y + v->ny*dist ;
+          z = v->z + v->nz*dist ;
+          MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
+          MRIsampleVolumeDerivativeScale(mri_30, xw, yw, zw, 
+                                         nx, ny,nz,&mag30,  current_sigma);
+          MRIsampleVolumeDerivativeScale(mri_5, xw, yw, zw, 
+                                         nx, ny,nz,&mag5,  current_sigma);
+          
+          //The inside check can be restrictive, since pial surface have to 
+          //move outside anyway. No not necessary for longitudinal method
+          if (mag30 >= 0.0 || mag5 > 0.0)
+            break ;
+          MRIsampleVolume(mri_30, xw, yw, zw, &val30) ;
+          MRIsampleVolume(mri_5, xw, yw, zw, &val5) ;
+          
+          if (val30 > wm_mean[0])
+            break ;
+        }
       inward_dist = dist+step_size/2 ;
-      for (dist = 0 ; dist < max_thickness ; dist += step_size) {
+      for (dist = first ? 1 : 0 ; dist < max_thickness ; dist += step_size) {
         dx = v->x-v->origx ;
         dy = v->y-v->origy ;
         dz = v->z-v->origz ;
@@ -1623,7 +1631,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
         x = v->x + v->nx*dist ;
         y = v->y + v->ny*dist ;
         z = v->z + v->nz*dist ;
-        MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
         //  MRIsampleVolumeDerivativeScale(mri_30, xw, yw, zw, nx, ny,nz, &mag30, current_sigma);
         // MRIsampleVolumeDerivativeScale(mri_5, xw, yw, zw, nx, ny,nz, &mag5, current_sigma);
 
@@ -1678,7 +1686,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
       x = v->x + v->nx*(dist-STEP_SIZE) ;
       y = v->y + v->ny*(dist-STEP_SIZE) ;
       z = v->z + v->nz*(dist-STEP_SIZE) ;
-      MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+      MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
       MRIsampleVolume(mri_30, xw, yw, zw, &previous_val30) ;
       //   MRIsampleVolume(mri_em_combined, xw, yw, zw, &previous_val5) ; //borrowed
 
@@ -1690,7 +1698,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
         x = v->x + v->nx*dist ;
         y = v->y + v->ny*dist ;
         z = v->z + v->nz*dist ;
-        MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolume(mri_30, xw, yw, zw, &val30) ;
         MRIsampleVolume(mri_5, xw, yw, zw, &val5) ;
         MRIsampleVolumeDerivativeScale(mri_30, xw, yw, zw, 
@@ -1701,7 +1709,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
         x = v->x + v->nx*(dist+STEP_SIZE) ;
         y = v->y + v->ny*(dist+STEP_SIZE) ;
         z = v->z + v->nz*(dist+STEP_SIZE) ;
-        MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_30, xw, yw, zw, nx, ny, nz,
                                        &next_mag30, sigma);
         MRIsampleVolumeDerivativeScale(mri_5, xw, yw, zw, nx, ny, nz,
@@ -1710,7 +1718,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
         x = v->x + v->nx*(dist-STEP_SIZE) ;
         y = v->y + v->ny*(dist-STEP_SIZE) ;
         z = v->z + v->nz*(dist-STEP_SIZE) ;
-        MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_30, xw, yw, zw, nx, ny, nz,
                                        &previous_mag30, sigma);
         MRIsampleVolumeDerivativeScale(mri_5, xw, yw, zw, nx, ny, nz,
@@ -1747,7 +1755,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
         x = v->x + v->nx*(dist+STEP_SIZE) ;
         y = v->y + v->ny*(dist+STEP_SIZE) ;
         z = v->z + v->nz*(dist+STEP_SIZE) ;
-        MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
         // MRIsampleVolume(mri_em_combined, xw, yw, zw, &next_val5) ; //borrowed
         MRIsampleVolume(mri_30, xw, yw, zw, &next_val30) ;
         if (next_val30 < 50)
@@ -1771,7 +1779,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
           y = v->y + v->ny*(dist+1) ;
           z = v->z + v->nz*(dist+1) ;
 
-          MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+          MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
           MRIsampleVolume(mri_30, xw, yw, zw, &next_val30) ;
 
           /*
@@ -1800,7 +1808,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
             x = v->x + v->nx*(dist+1) ;
             y = v->y + v->ny*(dist+1) ;
             z = v->z + v->nz*(dist+1) ;
-            MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+            MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
             MRIsampleVolume(mri_30, xw, yw, zw, &next_val30) ;
             // MRIsampleVolume(mri_5, xw, yw, zw, &next_val5) ;
             if ((next_val30 <= (gm_mean[0] - gm_std[0]))
@@ -1833,7 +1841,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
         x = v->x + v->nx*outlen ;
         y = v->y + v->ny*outlen ;
         z = v->z + v->nz*outlen ;
-        MRIsurfaceRASToVoxel(mri_30, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
         //       MRIsampleVolume(mri_em_combined, xw, yw, zw, &val) ; //borrowed
         MRIsampleVolume(mri_30, xw, yw, zw, &val) ; //borrowed
         if (val < gm_mean[0]-3*gm_std[0]) {

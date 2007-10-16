@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 18:59:37 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/10/16 23:01:24 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 #include "label.h"
 
 static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.14 2007/10/02 18:59:37 fischl Exp $";
+"$Id: mris_refine_surfaces.c,v 1.15 2007/10/16 23:01:24 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -192,7 +192,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.14 2007/10/02 18:59:37 fischl Exp $", 
+     "$Id: mris_refine_surfaces.c,v 1.15 2007/10/16 23:01:24 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -320,16 +320,17 @@ main(int argc, char *argv[]) {
     box.dz = mri_hires->depth - 2*nint(dist/mri_hires->zsize) ;
 
     fprintf(stderr, "applying median filter to T1 image...\n") ;
-    if (0)
+    if (1)
     {
       mri_tmp = MRIcopy(mri_hires, NULL) ;  // copy stuff outside of range
       MRImedian(mri_hires, mri_tmp, 3, &box) ;
-      MRIwrite(mri_tmp, "median.mgz") ;
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+        MRIwrite(mri_tmp, "median.mgz") ;
     }
     else
       mri_tmp = MRIread("median.mgz") ;
     MRIfree(&mri_hires) ;
-    mri_hires = mri_tmp ;
+    mri_hires = mri_hires_pial = mri_tmp ;
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -612,7 +613,6 @@ main(int argc, char *argv[]) {
   ///////////////////////////////////////////////////////////////////////
   // loop here
   ///////////////////////////////////////////////////////////////////////
-  current_sigma = white_sigma / mri_hires->xsize ;
   current_sigma = white_sigma ;  // in mm not voxels
   for (n_averages = max_white_averages, i = 0 ;
        n_averages >= min_white_averages ;
@@ -737,7 +737,7 @@ main(int argc, char *argv[]) {
       ErrorExit(Gerror, "%s: could not read white matter surfaces.",
                 Progname) ;
     //  restore to hires for further processing
-    MRISsurf2surfAll(mris, mri_hires, hires_lta);
+    //    MRISsurf2surfAll(mris, mri_hires, hires_lta);
     MRIScomputeMetricProperties(mris) ;
   }
 
@@ -794,7 +794,7 @@ main(int argc, char *argv[]) {
   /////////////////////////////////////////////////////////////////////////
   for (j = 0 ; j <= 0 ; parms.l_intensity *= 2, j++)  /* only once for now */
   {
-    current_sigma = pial_sigma / mri_hires->xsize ;
+    current_sigma = pial_sigma ;
     for (n_averages = max_pial_averages, i = 0 ;
          n_averages >= min_pial_averages ;
          n_averages /= 2, current_sigma /= 2, i++) {
@@ -1246,7 +1246,7 @@ check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires) {
     else
       MRIsurfaceRASToVoxel(mri_hires, x, y, z, &xw, &yw, &zw);
 #else
-    MRISsurfaceRASToVoxel(mris, mri_hires, x, y, z, &xw, &yw, &zw) ;
+    MRISsurfaceRASToVoxelCached(mris, mri_hires, x, y, z, &xw, &yw, &zw) ;
 #endif
     MRIsampleVolume(mri_hires, xw, yw, zw, &val) ;
     mean_outside += val ;
@@ -1260,7 +1260,7 @@ check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires) {
     else
       MRIsurfaceRASToVoxel(mri_hires, x, y, z, &xw, &yw, &zw);
 #else
-    MRISsurfaceRASToVoxel(mris, mri_hires, x, y, z, &xw, &yw, &zw) ;
+    MRISsurfaceRASToVoxelCached(mris, mri_hires, x, y, z, &xw, &yw, &zw) ;
 #endif
     MRIsampleVolume(mri_hires, xw, yw, zw, &val) ;
     mean_inside += val ;
@@ -1306,10 +1306,7 @@ MRIScomputeClassStatistics(MRI_SURFACE *mris,
     x = v->x+1.0*v->nx ;
     y = v->y+1.0*v->ny ;
     z = v->z+1.0*v->nz ;
-    if (mris->useRealRAS)
-      MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw);
-    else
-      MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxel(mris, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri, xw, yw, zw, &val) ;
     if (fpgm)
       fprintf(fpgm, "%d %2.1f %2.1f %2.1f %f\n", vno, xw, yw, zw, val) ;
@@ -1319,10 +1316,7 @@ MRIScomputeClassStatistics(MRI_SURFACE *mris,
     x = v->x-0.5*v->nx ;
     y = v->y-0.5*v->ny ;
     z = v->z-0.5*v->nz ;
-    if (mris->useRealRAS)
-      MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw);
-    else
-      MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri, xw, yw, zw, &val) ;
     if (fpwm)
       fprintf(fpwm, "%d %2.1f %2.1f %2.1f %f\n", vno, xw, yw, zw, val) ;
