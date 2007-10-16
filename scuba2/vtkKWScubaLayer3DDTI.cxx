@@ -6,9 +6,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/07/10 15:43:49 $
- *    $Revision: 1.8 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 16:01:50 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DDTI );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DDTI, "$Revision: 1.8 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DDTI, "$Revision: 1.9 $" );
 
 vtkKWScubaLayer3DDTI::vtkKWScubaLayer3DDTI () :
   mDTIProperties( NULL ),
@@ -109,7 +109,7 @@ vtkKWScubaLayer3DDTI::~vtkKWScubaLayer3DDTI () {
 }
 
 void
-vtkKWScubaLayer3DDTI::SetDTIProperties ( ScubaCollectionPropertiesDTI* const iProperties ) {
+vtkKWScubaLayer3DDTI::SetDTIProperties ( ScubaCollectionPropertiesDTI const* iProperties ) {
   mDTIProperties = iProperties;
 }
 

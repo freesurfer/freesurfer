@@ -16,8 +16,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:05 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/10/16 16:01:50 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -75,7 +75,7 @@ class vtkKWScubaLayerCollection : public vtkKWObject
   //BTX
   vtkKWScubaLayer* GetCurrentLayer () const;
   void SetDisplayModeAndView ( vtkKWScubaView::DisplayMode iMode,
-			       vtkKWScubaView* const iView );
+			       vtkKWScubaView* iView );
   //ETX
 
   // Description:

@@ -16,8 +16,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/25 19:53:47 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/10/16 16:01:50 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayerCollection );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollection, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollection, "$Revision: 1.3 $" );
 
 vtkKWScubaLayerCollection::vtkKWScubaLayerCollection () :
   Broadcaster( "vtkKWScubaLayerCollection" ),
@@ -102,7 +102,7 @@ vtkKWScubaLayerCollection::GetCurrentLayer () const {
 }
 
 void
-vtkKWScubaLayerCollection::SetDisplayModeAndView ( vtkKWScubaView::DisplayMode iMode, vtkKWScubaView* const iView ) {
+vtkKWScubaLayerCollection::SetDisplayModeAndView ( vtkKWScubaView::DisplayMode iMode, vtkKWScubaView* iView ) {
 
   // This function needs to do two things. First, make sure we have a
   // layer for this display mode and view, and if not, we create one,

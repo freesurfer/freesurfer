@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/10/16 16:01:50 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,7 +51,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DPath );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DPath, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DPath, "$Revision: 1.2 $" );
 
 vtkKWScubaLayer2DPath::vtkKWScubaLayer2DPath () :
   mPathProperties( NULL ),
@@ -67,7 +67,7 @@ vtkKWScubaLayer2DPath::~vtkKWScubaLayer2DPath () {
 }
 
 void
-vtkKWScubaLayer2DPath::SetPathProperties ( ScubaCollectionPropertiesPath* const iProperties ) {
+vtkKWScubaLayer2DPath::SetPathProperties ( ScubaCollectionPropertiesPath const* iProperties ) {
   mPathProperties = iProperties;
 }
 

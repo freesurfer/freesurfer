@@ -6,9 +6,9 @@
 /*
  * Original Author: Dennis Jen
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/10/01 20:18:34 $
- *    $Revision: 1.5 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 16:01:50 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,7 +56,7 @@ class vtkKWScubaLayer3DPath : public vtkKWScubaLayer {
     // Description:
     // Sets the surface in the layer.
     //BTX
-    void SetPathProperties ( ScubaCollectionPropertiesPath* const iProperties );
+    void SetPathProperties ( ScubaCollectionPropertiesPath const* iProperties );
     //ETX
 
     // Description:

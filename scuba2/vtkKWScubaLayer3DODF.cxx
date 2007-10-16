@@ -64,7 +64,7 @@ vtkKWScubaLayer3DODF::~vtkKWScubaLayer3DODF () {
 }
 
 void
-vtkKWScubaLayer3DODF::SetODFProperties ( ScubaCollectionPropertiesODF* const iProperties ) {
+vtkKWScubaLayer3DODF::SetODFProperties ( ScubaCollectionPropertiesODF const* iProperties ) {
   mODFProperties = iProperties;
 }
 

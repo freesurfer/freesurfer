@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/08/08 20:12:46 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/10/16 16:01:50 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@ public:
   // Description:
   // Sets the surface in the layer.
   //BTX
-  void SetMRISProperties ( ScubaCollectionPropertiesMRIS* const iProperties );
+  void SetMRISProperties ( ScubaCollectionPropertiesMRIS const* iProperties );
   //ETX
 
   // Description:

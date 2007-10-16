@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/25 19:53:47 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/10/16 16:01:50 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@ public:
   // layer with accessors to data sources, settings, and shared
   // pipeline objects.  
   //BTX
-  void SetCollectionProperties ( ScubaCollectionProperties* const iProperties );
+  void SetCollectionProperties ( ScubaCollectionProperties const* iProperties );
   //ETX
 
   // Description:
@@ -73,7 +73,7 @@ public:
   // layer is being display, Properties should provide the layer with
   // accessors to current RASZ settings, in plane, etc.
   //BTX
-  void SetViewProperties ( ScubaViewProperties* const iProperties );
+  void SetViewProperties ( ScubaViewProperties const* iProperties );
   //ETX
 
   // Description:

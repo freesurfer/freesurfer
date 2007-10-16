@@ -46,7 +46,7 @@ public:
   // Description:
   // Sets the surface in the layer.
   //BTX
-  void SetODFProperties ( ScubaCollectionPropertiesODF* const iProperties );
+  void SetODFProperties ( ScubaCollectionPropertiesODF const* iProperties );
   //ETX
 
   // Description:

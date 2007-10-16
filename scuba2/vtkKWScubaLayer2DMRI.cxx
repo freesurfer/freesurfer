@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/25 19:53:47 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/10/16 16:01:50 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DMRI );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DMRI, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DMRI, "$Revision: 1.3 $" );
 
 vtkKWScubaLayer2DMRI::vtkKWScubaLayer2DMRI () :
   mMRIProperties( NULL )
@@ -62,7 +62,7 @@ vtkKWScubaLayer2DMRI::~vtkKWScubaLayer2DMRI () {
 }
 
 void
-vtkKWScubaLayer2DMRI::SetMRIProperties ( ScubaCollectionPropertiesMRI* const iProperties ) {
+vtkKWScubaLayer2DMRI::SetMRIProperties ( ScubaCollectionPropertiesMRI const* iProperties ) {
   mMRIProperties = iProperties;
 }
 

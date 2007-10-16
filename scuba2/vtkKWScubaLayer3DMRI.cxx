@@ -7,9 +7,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/07/10 15:45:04 $
- *    $Revision: 1.3 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 16:01:50 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer3DMRI );
-vtkCxxRevisionMacro( vtkKWScubaLayer3DMRI, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer3DMRI, "$Revision: 1.4 $" );
 
 vtkKWScubaLayer3DMRI::vtkKWScubaLayer3DMRI () :
   mMRIProperties( NULL )
@@ -71,7 +71,7 @@ vtkKWScubaLayer3DMRI::~vtkKWScubaLayer3DMRI () {
 }
 
 void
-vtkKWScubaLayer3DMRI::SetMRIProperties ( ScubaCollectionPropertiesMRI* const iProperties ) {
+vtkKWScubaLayer3DMRI::SetMRIProperties ( ScubaCollectionPropertiesMRI const* iProperties ) {
   mMRIProperties = iProperties;
 }
 

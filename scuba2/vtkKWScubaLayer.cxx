@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/25 19:53:47 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/10/16 16:01:50 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,7 +39,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer );
-vtkCxxRevisionMacro( vtkKWScubaLayer, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer, "$Revision: 1.4 $" );
 
 map<vtkProp*,vtkKWScubaLayer*> vtkKWScubaLayer::mPropToLayerMap;
 
@@ -70,12 +70,12 @@ vtkKWScubaLayer::~vtkKWScubaLayer () {
 }
 
 void
-vtkKWScubaLayer::SetCollectionProperties ( ScubaCollectionProperties* const iProperties ) {
+vtkKWScubaLayer::SetCollectionProperties ( ScubaCollectionProperties const* iProperties ) {
   mProperties = iProperties;
 }
 
 void
-vtkKWScubaLayer::SetViewProperties ( ScubaViewProperties* const iProperties ) {
+vtkKWScubaLayer::SetViewProperties ( ScubaViewProperties const* iProperties ) {
   mViewProperties = iProperties;
 }
 
