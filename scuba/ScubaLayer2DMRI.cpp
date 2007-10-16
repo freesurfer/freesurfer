@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 16:40:23 $
- *    $Revision: 1.160 $
+ *    $Date: 2007/10/16 20:18:30 $
+ *    $Revision: 1.161 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2966,7 +2966,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
         current mouse position. */
         if ( NULL != mCurrentPath ) {
 
-          Point3<float>& end = mCurrentPath->GetPointAtEndOfLastSegment();
+          Point3<float> end = mCurrentPath->GetPointAtEndOfLastSegment();
           if ( iTool.GetMode() == ScubaToolState::straightPath ) {
             StretchPathStraight( *mCurrentPath, end.xyz(), iRAS );
           } else if ( iTool.GetMode() == ScubaToolState::edgePath ) {
@@ -3737,10 +3737,8 @@ ScubaLayer2DMRI::SelectVoxelsOnPath( Path<float>& iPath, bool ibSelect ) {
 
     int nBackVertex = nCurVertex - 1;
 
-    Point3<float>& curVertex  =
-      iPath.GetVertexAtIndex( nCurVertex );
-    Point3<float>& backVertex =
-      iPath.GetVertexAtIndex( nBackVertex );
+    Point3<float> curVertex = iPath.GetVertexAtIndex( nCurVertex );
+    Point3<float> backVertex = iPath.GetVertexAtIndex( nBackVertex );
 
     list<Point3<float> > rasPoints;
     mVolume->FindRASPointsOnSegment( backVertex.xyz(),
@@ -3795,11 +3793,11 @@ ScubaLayer2DMRI::FindClosestPathInPlane ( float iRAS[3],
   }
 
   PathManager& pathMgr = PathManager::GetManager();
-  list<Path<float>*>::iterator tPath;
-  list<Path<float>*>& paths = pathMgr.GetPathList();
+  vector<Path<float>*>::iterator tPath;
+  vector<Path<float>*>& paths = pathMgr.GetPathList();
   for ( tPath = paths.begin(); tPath != paths.end(); ++tPath ) {
     Path<float>* path = *tPath;
-    Point3<float>& beginRAS = path->GetVertexAtIndex( 0 );
+    Point3<float> beginRAS = path->GetVertexAtIndex( 0 );
     if ( iViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
 
       float minDistanceInPath = 999999;
@@ -3810,8 +3808,8 @@ ScubaLayer2DMRI::FindClosestPathInPlane ( float iRAS[3],
 
         int nBackVertex = nCurVertex - 1;
 
-        Point3<float>& curVertex  = path->GetVertexAtIndex( nCurVertex );
-        Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
+        Point3<float> curVertex  = path->GetVertexAtIndex( nCurVertex );
+        Point3<float> backVertex = path->GetVertexAtIndex( nBackVertex );
 
         float distance =
           Utilities::DistanceFromSegmentToPoint3f( curVertex, backVertex,
@@ -3848,8 +3846,8 @@ ScubaLayer2DMRI::DrawRASPathIntoBuffer ( GLubyte* iBuffer,
 
     int nBackVertex = nCurVertex - 1;
 
-    Point3<float>& curVertex  = iPath.GetVertexAtIndex( nCurVertex );
-    Point3<float>& backVertex = iPath.GetVertexAtIndex( nBackVertex );
+    Point3<float> curVertex  = iPath.GetVertexAtIndex( nCurVertex );
+    Point3<float> backVertex = iPath.GetVertexAtIndex( nBackVertex );
 
     int curWindow[2], backWindow[2];
     iTranslator.TranslateRASToWindow( curVertex.xyz(), curWindow );

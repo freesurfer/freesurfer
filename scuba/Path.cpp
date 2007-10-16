@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.9 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 20:18:29 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +25,7 @@
  *
  */
 
+#include <limits>
 
 #include "Path.h"
 #include "VectorOps.h"
@@ -33,143 +34,94 @@ using namespace std;
 
 template <typename T>
 Path<T>::Path () :
-    Broadcaster( "Path" ) {
+  Broadcaster( "Path" ),
+  mbSelected( false ),
+  mIndexOfSegmentEnd( 0 ) {
+}
 
-  mIndexOfSegmentEnd = 0;
-  mbSelected = false;
+template <typename T>
+int
+Path<T>::GetNumVertices () const {
+
+  return mVertices.size();
+}
+
+template <typename T>
+Point3<T> const& 
+Path<T>::GetVertexAtIndex ( int in ) const {
+  
+  return mVertices[in];
+}
+
+template <typename T>
+Point3<T> const& 
+Path<T>::GetPointAtEndOfLastSegment () const {
+  
+  return mVertices[mIndexOfSegmentEnd];
+}
+
+template <typename T>
+void
+Path<T>::SetSelected ( bool ibSelected ) {
+  
+  mbSelected = ibSelected;
+}
+
+template <typename T>
+bool
+Path<T>::IsSelected () const {
+
+  return mbSelected;
+}
+
+template <typename T>
+void
+Path<T>::AddVertex ( Point3<T> const& i ) {
+  
+  // Add this point to our vector.
+  mVertices.push_back( i );
+
+  // Let us notify listeners.
+  PathVertexAdded();
 }
 
 template <typename T>
 void
 Path<T>::Clear () {
 
+  // Clear our vector.
   mVertices.clear();
 
+  // Let us notify listeners.
   PathChanged();
 }
 
+
 template <typename T>
 void
-Path<T>::AddVertex ( Point3<T>& i ) {
+Path<T>::ClearLastSegment () {
 
-  mVertices.push_back( i );
+  // Pop entries from the index of the last segment to the end.
+  typename vector<Point3<T> >::iterator tEndOfLastSegment;
+  tEndOfLastSegment = mVertices.begin();
+  tEndOfLastSegment += mIndexOfSegmentEnd+1;
+  mVertices.erase( tEndOfLastSegment, mVertices.end() );
 
-  PathVertexAdded();
+  // Let us notify listeners.
+  PathChanged();
 }
 
 template <typename T>
 void
 Path<T>::MarkEndOfSegment () {
 
+  // Take the current size-1.
   mIndexOfSegmentEnd = mVertices.size() - 1;
 }
 
 template <typename T>
 void
-Path<T>::ClearLastSegment () {
-
-  for ( int cToPop = mVertices.size() - mIndexOfSegmentEnd-1;
-        cToPop > 0; cToPop-- ) {
-
-    mVertices.pop_back();
-  }
-
-  PathChanged();
-}
-
-template <typename T>
-T
-Path<T>::GetSquaredDistanceOfClosestPoint ( T iMinDistance,
-    Point3<T>& iWhere ) {
-
-  T minDistance = iMinDistance;
-
-  typename vector<Point3<T> >::iterator tPoint;
-  for ( tPoint = mVertices.begin(); tPoint != mVertices.end(); ++tPoint ) {
-    Point3<float>& point = (*tPoint);
-    T distance =
-      (iWhere.x() - point.x()) * (iWhere.x() - point.x()) +
-      (iWhere.y() - point.y()) * (iWhere.y() - point.y()) +
-      (iWhere.z() - point.z()) * (iWhere.z() - point.z());
-    if ( distance < minDistance ) {
-      minDistance = distance;
-    }
-  }
-
-  return minDistance;
-}
-
-template <typename T>
-bool
-Path<T>::PointInPath ( Point3<T>& iPoint ) {
-
-  // Make sure we have at least 3 points.
-  if ( mVertices.size() < 3 )
-    throw runtime_error( "Path too short." );
-
-  // Make sure we're all on the same plane and find that plane.
-  bool bSamePlane[3] = {true, true, true};
-  Point3<T> min;
-  min.Set( 10000, 10000, 10000 );
-  typename vector<Point3<T> >::iterator tPoint;
-  for ( tPoint = mVertices.begin(); tPoint != mVertices.end(); ++tPoint ) {
-    Point3<T>& first = mVertices[0];
-    Point3<T>& point = (*tPoint);
-    if ( point[0] != first[0] ) bSamePlane[0] = false;
-    if ( point[1] != first[1] ) bSamePlane[1] = false;
-    if ( point[2] != first[2] ) bSamePlane[2] = false;
-
-    // Also find a min.
-    if ( point[0] < min[0] ) min[0] = point[0];
-    if ( point[1] < min[1] ) min[1] = point[1];
-    if ( point[2] < min[2] ) min[2] = point[2];
-  }
-
-  // If we have no same planes, return false.
-  if ( !bSamePlane[0] && !bSamePlane[1] && !bSamePlane[2] ) {
-    throw runtime_error( "Not all in same plane." );
-  }
-
-  // Make sure we're closed.
-  Point3<T>& first = mVertices[0];
-  Point3<T>& last = mVertices[mVertices.size()-1];
-  if ( first != last )
-    throw runtime_error( "Not closed." );
-
-  // Make sure input point is in same plane.
-  if ( bSamePlane[0] && first[0] != iPoint[0] ||
-       bSamePlane[1] && first[1] != iPoint[1] ||
-       bSamePlane[2] && first[2] != iPoint[2] ) {
-    throw runtime_error( "Input point not in right plane." );
-  }
-
-  // Find a point on the outside edge.
-  Point3<T> p2 = min;
-
-  // Now count intersections.
-  Point3<T> x;
-  int cIntersections = 0;
-  int cVertices = mVertices.size();
-  for ( int nVertex = 0; nVertex < cVertices-1; nVertex++ ) {
-    Point3<T> q1 = mVertices[nVertex];
-    Point3<T> q2 = mVertices[nVertex+1];
-
-    VectorOps::IntersectionResult rIntersect =
-      VectorOps::SegmentIntersectsSegment( iPoint, p2, q1, q2, x );
-    if ( VectorOps::intersect == rIntersect ) {
-      cIntersections++;
-    }
-  }
-
-  if ( cIntersections % 2 == 0 )
-    return false;
-  else
-    return true;
-}
-
-template <typename T>
-void
-Path<T>::Move ( Point3<T>& iDelta ) {
+Path<T>::Move ( Point3<T> const& iDelta ) {
 
   typename vector<Point3<T> >::iterator tPoint;
   for ( tPoint = mVertices.begin(); tPoint != mVertices.end(); ++tPoint ) {
@@ -179,6 +131,7 @@ Path<T>::Move ( Point3<T>& iDelta ) {
                point.z() + iDelta.z() );
   }
 
+  // Notify listeners.
   PathChanged();
 }
 
@@ -204,9 +157,11 @@ template <typename T>
 void
 Path<T>::ReadFromStream ( istream& iStream ) {
 
+  // Read the number of vertices.
   int cVertices;
   iStream >> cVertices;
 
+  // Read values and construct points.
   for ( int nVertex = 0; nVertex < cVertices; nVertex++ ) {
     T x, y, z;
     iStream >> x >> y >> z;
@@ -214,18 +169,21 @@ Path<T>::ReadFromStream ( istream& iStream ) {
     AddVertex( point );
   }
 
+  // Mark this as the end of the segment.
   MarkEndOfSegment();
 }
 
 template <typename T>
 void
-Path<T>::WriteToStream ( ostream& ioStream ) {
+Path<T>::WriteToStream ( ostream& ioStream ) const {
 
+  // Write the number of vertices.
   ioStream << mVertices.size() << endl;
 
-  typename vector<Point3<T> >::iterator tPoint;
+  // Write all the values to the stream.
+  typename vector<Point3<T> >::const_iterator tPoint;
   for ( tPoint = mVertices.begin(); tPoint != mVertices.end(); ++tPoint ) {
-    Point3<float>& point = (*tPoint);
+    Point3<float> const& point = (*tPoint);
     ioStream << point.x() << " " << point.y() << " " << point.z() << endl;
   }
 }

@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/15 20:42:20 $
- *    $Revision: 1.113 $
+ *    $Date: 2007/10/16 20:18:30 $
+ *    $Revision: 1.114 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3335,12 +3335,12 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       bool bCross = false;
       Point3<float> x;
       // For each path...
-      list<Path<float>*>::iterator tPath;
+      vector<Path<float>*>::const_iterator tPath;
       PathManager& pathMgr = PathManager::GetManager();
-      list<Path<float>*>& pathList = pathMgr.GetPathList();
+      vector<Path<float>*> const& pathList = pathMgr.GetPathList();
       for ( tPath = pathList.begin();
             tPath != pathList.end() && !bCross; ++tPath ) {
-        Path<float>* path = *tPath;
+        Path<float> const* path = *tPath;
         if ( path->GetNumVertices() > 0 ) {
 
           // For each segment in the path...
@@ -3351,8 +3351,8 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
             int nBackVertex = nCurVertex - 1;
 
             // Get the end points of this segment.
-            Point3<float>& curVertex  = path->GetVertexAtIndex( nCurVertex );
-            Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
+            Point3<float> curVertex = path->GetVertexAtIndex( nCurVertex );
+            Point3<float> backVertex = path->GetVertexAtIndex( nBackVertex );
 
             // Get the view normal.
             Point3<float> viewNormal( iParams.mViewNormal );

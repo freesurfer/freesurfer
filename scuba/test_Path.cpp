@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 22:13:37 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/10/16 20:18:31 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -145,8 +145,13 @@ PathTester::Test () {
 
     l.ClearLastSegment();
 
-    Assert( (l.mVertices.size() == 100),
-            "Incorrect size after ClearLastSegment" );
+    {
+      stringstream ssError;
+      ssError << "Incorrect size after ClearLastSegment, was " 
+	      << l.mVertices.size();
+      Assert( (l.mVertices.size() == 100), ssError.str() );
+    }
+            
 
     for ( int c = 0; c < 100; c++ ) {
       t = l.mVertices[c];
@@ -188,52 +193,6 @@ PathTester::Test () {
       Assert( (t[0] == c+1 && t[1] == c-1 && t[2] == c),
               "Vertices not moved correctly." );
     }
-
-
-    // Test point inside path.
-    l.Clear();
-    f.Set( -0.5, 0, 0 );
-    l.AddVertex( f );
-    f.Set( 0, -0.5, 0 );
-    l.AddVertex( f );
-    f.Set( 0.5, 0, 0 );
-    l.AddVertex( f );
-    f.Set( 0, 0.5, 0 );
-    l.AddVertex( f );
-    bool bIn;
-    try {
-      bIn = l.PointInPath( f );
-      Assert( (0), "PointInPath failed to throw for open path." );
-    } catch (...) {}
-    f.Set( -0.5, 0, 0 );
-    l.AddVertex( f );
-    f.Set( 0, 0, 0 );
-    bIn = l.PointInPath( f );
-    Assert( (bIn), "PointInPath failed." );
-    f.Set( 1, 1, 0 );
-    bIn = l.PointInPath( f );
-    Assert( (!bIn), "PointInPath failed." );
-    try {
-      f.Set( 1, 1, 1 );
-      bIn = l.PointInPath( f );
-      Assert( (0), "PointInPath failed to throw point in same plane." );
-    } catch (...) {}
-
-    l.Clear();
-    f.Set( -0.5, 0, 0 );
-    l.AddVertex( f );
-    f.Set( 0, -0.5, 1 );
-    l.AddVertex( f );
-    f.Set( 0.5, 0, 0 );
-    l.AddVertex( f );
-    f.Set( 0, 0.5, 0 );
-    l.AddVertex( f );
-    f.Set( -0.5, 0, 0 );
-    l.AddVertex( f );
-    try {
-      bIn = l.PointInPath( f );
-      Assert( (0), "PointInPath failed to throw for non planar path." );
-    } catch (...) {}
 
 
 

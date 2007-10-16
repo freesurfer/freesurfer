@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 16:40:23 $
- *    $Revision: 1.121 $
+ *    $Date: 2007/10/16 20:18:30 $
+ *    $Revision: 1.122 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3398,13 +3398,13 @@ ScubaView::BuildOverlay () {
   // Drawing paths.
   if ( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawPaths )) {
 
-    list<Path<float>*>::iterator tPath;
+    vector<Path<float>*>::const_iterator tPath;
     PathManager& pathMgr = PathManager::GetManager();
-    list<Path<float>*>& pathList = pathMgr.GetPathList();
+    vector<Path<float>*> const& pathList = pathMgr.GetPathList();
     for ( tPath = pathList.begin(); tPath != pathList.end(); ++tPath ) {
-      Path<float>* path = *tPath;
+      Path<float> const* path = *tPath;
       if ( path->GetNumVertices() > 0 ) {
-        Point3<float>& beginRAS = path->GetVertexAtIndex( 0 );
+        Point3<float> beginRAS = path->GetVertexAtIndex( 0 );
         if ( mViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
 
           if ( path->IsSelected() ) {
@@ -3418,8 +3418,8 @@ ScubaView::BuildOverlay () {
 
             int nBackVertex = nCurVertex - 1;
 
-            Point3<float>& curVertex  = path->GetVertexAtIndex( nCurVertex );
-            Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
+            Point3<float> curVertex  = path->GetVertexAtIndex( nCurVertex );
+            Point3<float> backVertex = path->GetVertexAtIndex( nBackVertex );
 
             int curWindow[2], backWindow[2];
             TranslateRASToWindow( curVertex.xyz(), curWindow );

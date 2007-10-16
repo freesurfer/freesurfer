@@ -1,15 +1,17 @@
 /**
  * @file  PathManager.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Scuba manager for Path<float>s
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Managers multiple Path<floats>, relaying pathChanged messages from
+ * them to its Listener. Handles Tcl commands to read and write path
+ * files.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.4 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 20:18:30 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,14 +31,13 @@
 #ifndef PathManager_h
 #define PathManager_h
 
+#include <vector>
 
 #include "string_fixed.h"
-#include <list>
 #include "Path.h"
 #include "TclCommandManager.h"
 #include "Listener.h"
 #include "Broadcaster.h"
-#include "UndoManager.h"
 
 class PathManager : public TclCommandListener,
       public Broadcaster,  // pathChanged <id>
@@ -46,32 +47,35 @@ class PathManager : public TclCommandListener,
 
 public:
 
+  // Static function to get our singleton instance.
   static PathManager& GetManager ();
 
+  // While managed, the path will be in the managers list of
+  // paths. When unmanaged, it is removed.
   void ManagePath ( Path<float>& iPath );
+  void UnmanagePath ( Path<float> const& iPath );
 
-  void UnmanagePath ( Path<float>& iPath );
+  // Get a list of managed paths.
+  std::vector<Path<float>* > const& GetPathList () const;
+  std::vector<Path<float>* >& GetPathList ();
 
-  std::list<Path<float>* >& GetPathList ();
-
+  // Respond to Tcl commands.
   virtual TclCommandResult
-  DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
   // On pathChange, passes to listeners.
   virtual void DoListenToMessage ( std::string iMessage, void* iData );
 
-  void ReadPathFile  ( std::string ifnPaths );
-  void WritePathFile ( std::string ifnPaths );
-
-  void EnableUpdates ();
-  void DisableUpdates ();
+  // Read and write path files.
+  void ReadPathFile  ( std::string const& ifnPaths );
+  void WritePathFile ( std::string const& ifnPaths );
 
 protected:
 
   PathManager();
 
-  std::list<Path<float>* > mPaths;
-  bool mbSendUpdates;
+  // Our list of paths.
+  std::vector<Path<float>* > mPaths;
 };
 
 

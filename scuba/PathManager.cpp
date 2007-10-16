@@ -1,15 +1,17 @@
 /**
  * @file  PathManager.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Scuba manager for Path<float>s
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Managers multiple Path<floats>, relaying pathChanged messages from
+ * them to its Listener. Handles Tcl commands to read and write path
+ * files.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 22:13:36 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/10/16 20:18:30 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,7 +53,6 @@ PathManager::GetManager() {
 PathManager::PathManager () :
     Broadcaster( "PathManager" ),
     Listener( "PathManager" ) {
-  mbSendUpdates = true;
 }
 
 void
@@ -66,9 +67,10 @@ PathManager::ManagePath ( Path<float>& iPath ) {
 }
 
 void
-PathManager::UnmanagePath ( Path<float>& iPath ) {
+PathManager::UnmanagePath ( Path<float> const& iPath ) {
 
-  list<Path<float>*>::iterator tPath;
+  // Search for a path with the same ID and remove it from our list.
+  vector<Path<float>*>::iterator tPath;
   for ( tPath = mPaths.begin(); tPath != mPaths.end(); ++tPath ) {
     Path<float>* path = *tPath;
     if ( path->GetID() == iPath.GetID() ) {
@@ -82,7 +84,12 @@ PathManager::UnmanagePath ( Path<float>& iPath ) {
   }
 }
 
-list<Path<float>*>&
+vector<Path<float>*> const&
+PathManager::GetPathList () const {
+  return mPaths;
+}
+
+vector<Path<float>*>&
 PathManager::GetPathList () {
   return mPaths;
 }
@@ -110,38 +117,32 @@ PathManager::DoListenToTclCommand ( char* isCommand, int,
 }
 
 void
-PathManager::EnableUpdates () {
-  mbSendUpdates = true;
-}
-
-void
-PathManager::DisableUpdates () {
-  mbSendUpdates = false;
-}
-
-void
 PathManager::DoListenToMessage ( string isMessage, void* iData ) {
 
   if ( isMessage == "pathChanged" ||
        isMessage == "pathVertexAdded" ) {
-    if ( mbSendUpdates ) {
+
       SendBroadcast( isMessage, iData );
-    }
   }
 }
 
 void
-PathManager::ReadPathFile ( string ifnPaths ) {
+PathManager::ReadPathFile ( string const& ifnPaths ) {
 
+  // Try to open the file.
   ifstream fPaths( ifnPaths.c_str(), ios::in );
   if ( !fPaths || fPaths.bad() ) {
     throw runtime_error( "Couldn't open paths file." );
   }
 
+  // Read the number of paths.
   int cPaths;
   fPaths >> cPaths;
 
+  // For each one, create a new path and have it read from the
+  // stream. Then manage that path.
   for ( int nPath = 0; nPath < cPaths; nPath++ ) {
+
     Path<float>* path = new Path<float>;
     path->ReadFromStream( fPaths );
     ManagePath( *path );
@@ -155,16 +156,19 @@ PathManager::ReadPathFile ( string ifnPaths ) {
 }
 
 void
-PathManager::WritePathFile ( string ifnPaths ) {
+PathManager::WritePathFile ( string const& ifnPaths ) {
 
+  // Open the file.
   ofstream fPaths( ifnPaths.c_str(), ios::out );
   if ( !fPaths || fPaths.bad() ) {
     throw runtime_error( "Couldn't write paths file." );
   }
 
+  // Write the number of paths.
   fPaths << mPaths.size() << endl;
 
-  list<Path<float>*>::iterator tPath;
+  // For each of our paths, have the path write to the stream.
+  vector<Path<float>*>::iterator tPath;
   for ( tPath = mPaths.begin(); tPath != mPaths.end(); ++tPath ) {
     Path<float>* path = *tPath;
     path->WriteToStream( fPaths );
