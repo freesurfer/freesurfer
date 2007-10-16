@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.6 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 20:48:14 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -111,66 +111,7 @@ UtilitiesTester::Test () {
     int begin[2] = {0, 0};
     int end[2] = {1, 1};
     list<Point2<int> > points;
-    Utilities::FindPointsOnLine2d( begin, end, 1, points );
-    {
-      Point3<int> a( 0, 0, 0 );
-      Point3<int> b( 5, 6, 7 );
-      list<Point3<int> > l;
-      Utilities::FindPointsOnLine3d( a.xyz(), b.xyz(), l );
-
-      // Our list should be: (0,0,0) (0,1,1) (1,1,1) (1,2,2) (2,2,3)
-      // (2,3,3) (3,3,4) (3,4,5) (4,5,5) (4,5,6) (5,6,7)
-      int nPoint = 0;
-      list<Point3<int> >::iterator t;
-      for ( t = l.begin(); t != l.end(); ++t, nPoint++ ) {
-        stringstream ssError;
-        bool bGood = false;
-        Point3<int> p = *t;
-        switch ( nPoint ) {
-        case 0:
-          bGood = p[0] == 0 && p[1] == 0 && p[2] == 0;
-          break;
-        case 1:
-          bGood = p[0] == 0 && p[1] == 1 && p[2] == 1;
-          break;
-        case 2:
-          bGood = p[0] == 1 && p[1] == 1 && p[2] == 1;
-          break;
-        case 3:
-          bGood = p[0] == 1 && p[1] == 2 && p[2] == 2;
-          break;
-        case 4:
-          bGood = p[0] == 2 && p[1] == 2 && p[2] == 3;
-          break;
-        case 5:
-          bGood = p[0] == 2 && p[1] == 3 && p[2] == 3;
-          break;
-        case 6:
-          bGood = p[0] == 3 && p[1] == 3 && p[2] == 4;
-          break;
-        case 7:
-          bGood = p[0] == 3 && p[1] == 4 && p[2] == 5;
-          break;
-        case 8:
-          bGood = p[0] == 4 && p[1] == 5 && p[2] == 5;
-          break;
-        case 9:
-          bGood = p[0] == 4 && p[1] == 5 && p[2] == 6;
-          break;
-        case 10:
-          bGood = p[0] == 5 && p[1] == 6 && p[2] == 7;
-          break;
-        default:
-          ssError << "Too many points!";
-          break;
-        }
-        ssError << "Incorrect point at position " << nPoint << endl;
-        Assert( (bGood), ssError.str() );
-      }
-
-
-    }
-
+    Utilities::FindPointsOnLine2d( begin, end, points );
 
     {
       string sToSplit = "option1:option2=value2:option3";
