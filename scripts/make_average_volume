@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/08/13 20:55:16 $
-#    $Revision: 1.22 $
+#    $Author: nicks $
+#    $Date: 2007/10/16 15:48:21 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,10 +26,10 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-# increase number of allowable open files to maximum:
-limit descriptors unlimited
+# uncomment this to increase number of allowable open files to maximum:
+#limit descriptors unlimited
 
-set VERSION = '$Id: make_average_volume,v 1.22 2007/08/13 20:55:16 greve Exp $';
+set VERSION = '$Id: make_average_volume,v 1.23 2007/10/16 15:48:21 nicks Exp $';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm
