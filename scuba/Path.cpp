@@ -1,15 +1,19 @@
 /**
  * @file  Path.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief A path of Point3 objects
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This class provides a path made of Point3 objects. The path can be
+ * constructed in segments, marking the end of the segment so the
+ * current segment can be cleared and filled in as needed. Note: This
+ * is not the best designed class (along with PathManager) so try to
+ * roll with it.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 20:18:29 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/10/16 20:19:22 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
