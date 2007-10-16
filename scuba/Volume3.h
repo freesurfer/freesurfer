@@ -1,15 +1,16 @@
 /**
  * @file  Volume3.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Simple class for a 3D volume of elements
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Template class for creating 3D volumes of a data type with settors
+ * and accessors.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.4 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 16:57:38 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,16 +34,17 @@
 template <typename T>
 class Volume3 {
 public:
-  Volume3 ( int izX, int izY, int izZ, T iInitialValue );
+  Volume3 ( int izX, int izY, int izZ, T const iInitialValue );
   ~Volume3 ();
 
-  void SetAll ( T iValue );
+  // Accessors. Unsafe version doesn't check bounds.
+  T Get ( int inX, int inY, int inZ ) const;
+  T Get_Unsafe ( int inX, int inY, int inZ ) const;
 
-  T Get ( int inX, int inY, int inZ );
-  void Set ( int inX, int inY, int inZ, T iValue );
-
-  T Get_Unsafe ( int inX, int inY, int inZ );
-  void Set_Unsafe ( int inX, int inY, int inZ, T iValue );
+  // Settors. Unsafe version doesn't check bounds.
+  void SetAll ( T const iValue );
+  void Set ( int inX, int inY, int inZ, T const iValue );
+  void Set_Unsafe ( int inX, int inY, int inZ, T constiValue );
 
 protected:
   T*** mData;

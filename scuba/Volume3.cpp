@@ -1,15 +1,16 @@
 /**
  * @file  Volume3.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Simple class for a 3D volume of elements
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Template class for creating 3D volumes of a data type with settors
+ * and accessors.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.6 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 16:57:37 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +41,7 @@ Volume3<T>::Volume3 ( int izX, int izY, int izZ, T iInitialValue ) {
   mzY = izY;
   mzZ = izZ;
 
+  // Allocate our storage.
   mData = (T***) calloc( mzZ, sizeof(T**) );
   for ( int nZ = 0; nZ < mzZ; nZ++ ) {
     mData[nZ] = (T**) calloc( mzY, sizeof(T*) );
@@ -71,21 +73,8 @@ Volume3<T>::~Volume3 () {
 }
 
 template <typename T>
-void
-Volume3<T>::SetAll ( T iValue ) {
-
-  for ( int nZ = 0; nZ < mzZ; nZ++ ) {
-    for ( int nY = 0; nY < mzY; nY++ ) {
-      for ( int nX = 0; nX < mzX; nX++ ) {
-        mData[nZ][nY][nX] = iValue;
-      }
-    }
-  }
-}
-
-template <typename T>
 T
-Volume3<T>::Get ( int inX, int inY, int inZ ) {
+Volume3<T>::Get ( int inX, int inY, int inZ ) const {
 
   if ( inX >= 0 && inX < mzX &&
        inY >= 0 && inY < mzY &&
@@ -97,8 +86,28 @@ Volume3<T>::Get ( int inX, int inY, int inZ ) {
 }
 
 template <typename T>
+T
+Volume3<T>::Get_Unsafe ( int inX, int inY, int inZ ) const {
+
+  return mData[inZ][inY][inX];
+}
+
+template <typename T>
 void
-Volume3<T>::Set ( int inX, int inY, int inZ, T iValue ) {
+Volume3<T>::SetAll ( T const iValue ) {
+
+  for ( int nZ = 0; nZ < mzZ; nZ++ ) {
+    for ( int nY = 0; nY < mzY; nY++ ) {
+      for ( int nX = 0; nX < mzX; nX++ ) {
+        mData[nZ][nY][nX] = iValue;
+      }
+    }
+  }
+}
+
+template <typename T>
+void
+Volume3<T>::Set ( int inX, int inY, int inZ, T const iValue ) {
 
   if ( inX >= 0 && inX < mzX &&
        inY >= 0 && inY < mzY &&
@@ -110,15 +119,8 @@ Volume3<T>::Set ( int inX, int inY, int inZ, T iValue ) {
 }
 
 template <typename T>
-T
-Volume3<T>::Get_Unsafe ( int inX, int inY, int inZ ) {
-
-  return mData[inZ][inY][inX];
-}
-
-template <typename T>
 void
-Volume3<T>::Set_Unsafe ( int inX, int inY, int inZ, T iValue ) {
+Volume3<T>::Set_Unsafe ( int inX, int inY, int inZ, T const iValue ) {
 
   mData[inZ][inY][inX] = iValue;
 }
