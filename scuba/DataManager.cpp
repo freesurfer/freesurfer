@@ -1,15 +1,21 @@
 /**
  * @file  DataManager.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Reference counting data manager
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Templated object DataLoader that provides internal reference
+ * counting for data that can be accessed by the client. The MRILoader
+ * and MRISLoader objects, also defined here, implement that object
+ * and allow access to MRI and MRIS objects. If multiple clients
+ * access the same data, it is not loaded twice, and is only released
+ * when all clients are not using it any more. A DataManager provides
+ * singleton access to the loaders.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/09/14 17:57:42 $
- *    $Revision: 1.13 $
+ *    $Date: 2007/10/16 20:53:23 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
