@@ -96,7 +96,8 @@ and the others take explicit objects. These functions tell the objects
 to populate the UI areas with their specific controls. For example,
 the SetCurrentLayerCollection() first clears the Layer UI area, and
 then calls the PopulateControlPage() function on the collection being
-selected.
+selected (which in turns calls AddControls(), which a subclass
+overrides).
 
 Each View internally manages a list of slots, and each layer displays
 a LayerCollection. In the View UI panel, the user can select the view
@@ -191,20 +192,19 @@ in the case of the mouseover event.
 
 PickPointAndCallToolEvent() can be a tricky function to understand. It
 is passed in x/y coords from the event, a function belonging to
-vtkKWScubaTool, and optional world coords if it wants them (it does in
-MouseMoveEvent, so it can save them). The function then basically uses
-a cell picker to pick a world location and prop. It uses a static
-function of vtkKWScubaLayer's called GetLayerFromProp() to get a
-specific LayerCollection from a prop (similar to how we get ScubaViews
-from RenderWindows), and finds the one with the highest slot
-number. This way, we gather the Window, the View, and the
-LayerCollection clicked, along with the RAS point, and pass that data
-to the current vtkKWScubaTool (which it also gets from the
-window). This one function basically ties the entire VTK/KWWidgets
-interaction system and maps it into our Scuba system. It seems
-complicated, but it's nice because it actually means the View can
-leave all the UI stuff to the Tool objects, which can be overloaded by
-subclasses.
+vtkKWScubaTool, and optional world coords storage if the caller wants
+them (as in MouseMoveEvent). The function then uses a cell picker to
+pick a world location and prop. It uses a static function of
+vtkKWScubaLayer's called GetLayerFromProp() to get a specific
+LayerCollection from a prop (similar to how we get ScubaViews from
+RenderWindows), and finds the one with the highest slot number. This
+way, we gather the Window, the View, and the LayerCollection clicked,
+along with the RAS point, and pass that data to the current
+vtkKWScubaTool (which it also gets from the window). This one function
+basically ties the entire VTK/KWWidgets interaction system and maps it
+into our Scuba system. It seems complicated, but it's nice because it
+actually means the View can leave all the UI stuff to the Tool
+objects, which can be overloaded by subclasses.
 
 Views maintain their own cursor and mouseover points; the Tool will
 set the cursor, and the View will listen to MouseOver events to set
@@ -221,3 +221,53 @@ it needs to poll its LayerCollections for vtkProps to add to its
 renderer. This is done in AddLayerPropsToView(), which is called when
 LayerCollections are set in a slot. This is another function that
 glues our Scuba objects to the VTK pipeline.
+
+vtkKWScubaTool is worth a quick look now since we just discussed how
+it's used. The Window always knows what the current tool is, and the
+View can access that, so the View can call an event function on the
+current tool. This means calling one of the *Event functions in
+vtkKWScubaTool. These call the Do* functions that subclasses can
+redefine. In the case of vtkKWScubaToolNavigate, the tool overrides
+the mouse events. Notice how the Tool puts the view into FastMode;
+this lets the View know that speed is more important than accuracy
+during the UI event. Then the Tool gets the display mode from the View
+and does different things with the camera accordingly. Note that the
+Tool also has the same PopulateControlPage() function as Views and
+Layers.
+
+The final part of Scuba2 that takes some explanation is the way
+LayerCollections work. A View can have multiple display modes (TwoDee
+and ThreeDee and possibly more in the future) between which it needs
+to switch easily. To make this easier for the View, a
+vtkKWScubaLayerCollection lets the View set the current display mode
+and view, and get access to the current vtkKWScubaLayer. The
+LayerCollection decides which one to return. The subclass
+vtkKWScubaLayerCollectionMRI knows to return a vtkKWScubaLayer2DMRI
+when the display mode is TwoDee, and a vtkKWScubaLayer3DMRI when it's
+ThreeDee. There are vtkKWScubaLayerColletion* and vtkKWScubaLayer**
+for all data types (MRI, MRIS, DTI, Path, and ODF) and display types
+(2D and 3D). To see this in action look at the
+MakeLayerForDisplayMode() function in vtkKWScubaLayerColletion and its
+subclasses.
+
+Different subclasses of Layers need to access the same data. The
+Layer2DMRI is using the same MRI data as the Layer3DMRI, so it doesn't
+make sense for them to have separate copies. Instead, their
+LayerCollection manages the data. To keep the class heirarchy
+straight, the Layers can't access their LayerCollections directly, but
+do so through the abstract interface ScubaCollectionProperties and its
+subclasses. The ScubaCollectionProperties offers accessors to the
+label and opacity: the same properties that are available for all
+Layers in the GUI, and for which control are provided by the
+LayerCollection. Subclasses offer more specific data; for example, the
+ScubaCollectionPropertiesMRI has accessors for the MRI data and all
+the color tables and other settings, just like how the
+LayerCollectionMRI makes controls for them in its AddControls()
+function. The LayerCollectionMRI actually 'owns' the data. Each
+LayerCollection, implementing a ScubaCollectionProperties, passes an
+interface pointer to itself as a ScubaCollectionProperties to the
+Layers it creates. The Layers then use those accessors to create their
+pipelines. The vtkKWScubaLayer's LoadDataFromProperties() function
+actually gets the data from the ScubaCollectionProperties; this is
+done on initial instantiation is and is also use in the messaging
+system that tells a Layer when data has changed.
