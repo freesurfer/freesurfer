@@ -1,15 +1,41 @@
 /**
  * @file  ScubaKeyCombo.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Encapsulates keypress combinations
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is a class to encapsulate the idea of key combinations, or
+ * keypresses to trigger events. These are used in a few places:
+ *
+ *   The main interface widget (e.g. ToglFrame) transforms keypress
+ *   events into ScubaKeyCombo subclasses from their native widget
+ *   type.
+
+ *   Other widgets that check for key combos in event response
+ *   functions can simply match input ScubaKeyCombos against
+ *   ScubaKeyCombos stored in preferences. For example, ScubaView
+ *   grabs the string pref for the MoveViewIn key, makes a
+ *   ScubaKeyCombo out of it, and checks it against the current key
+ *   from the InputState.
+ *
+ *   Preference dialog boxes read input from the user, create a
+ *   ScubaKeyCombo from it, and use the ToString function to generate
+ *   the string version to be stored in ScubaGlobalPreferences.
+ *
+ *   Each widget type should have a subclass ScubaKeyCombo
+ *   (e.g. TclScubaKeyCombo) that knows how to parse input strings
+ *   from that widget framework. A corresponding ScubaKeyComboFactory
+ *   should be made to make those kinds of ScubaKeyCombo
+ *   subclasses. The main function, knowing what kind of widget
+ *   framework is being used, calls SetFactory with that subclass
+ *   factory. Then, all other classes use ScubaKeyCombo::MakeKeyCombo
+ *   to make their framework-specific ScubaKeyCombos.
+ *
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.6 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 16:40:23 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,34 +58,6 @@
 #include <string>
 #include "DebugReporter.h"
 
-// This is a class to encapsulate the idea of key combinations, or
-// keypresses to trigger events. These are used in a few places:
-
-//   The main interface widget (e.g. ToglFrame or QTScubaWidget)
-//   transforms keypress events into ScubaKeyCombo subclasses from
-//   their native widget type (tk and Qt respectively).
-
-//   Other widgets that check for key combos in event response
-//   functions can simply match input ScubaKeyCombos against
-//   ScubaKeyCombos stored in preferences. For example, ScubaView
-//   grabs the string pref for the MoveViewIn key, makes a
-//   ScubaKeyCombo out of it, and checks it against the current key
-//   from the InputState.
-
-//   Preference dialog boxes read input from the user, create a
-//   ScubaKeyCombo from it, and use the ToString function to generate
-//   the string version to be stored in ScubaGlobalPreferences.
-
-//   Each widget type should have a subclass ScubaKeyCombo
-//   (e.g. TclScubaKeyCombo) that knows how to parse input strings
-//   from that widget framework. A corresponding ScubaKeyComboFactory
-//   should be made to make those kinds of ScubaKeyCombo
-//   subclasses. The main function, knowing what kind of widget
-//   framework is being used, calls SetFactory with that subclass
-//   factory. Then, all other classes use ScubaKeyCombo::MakeKeyCombo
-//   to make their framework-specific ScubaKeyCombos.
-
-
 class ScubaKeyComboFactory;
 
 class ScubaKeyCombo : public DebugReporter {
@@ -70,55 +68,38 @@ public:
 
   virtual ~ScubaKeyCombo() {};
 
-  static void SetFactory ( ScubaKeyComboFactory* iFactory ) {
-    mFactory = iFactory;
-  }
+  // Static functions for setting the current factory and making a
+  // KeyCombo with that factory.
+  static void SetFactory ( ScubaKeyComboFactory* iFactory );
   static ScubaKeyCombo* MakeKeyCombo ();
+  
+  // Set ourselves from a string. This is overrideable by the subclass
+  // to take the string representation of a key and convert it to our
+  // generic type here.
+  virtual void SetFromString ( std::string const& isKey );
 
-  std::string ToString ();
+  // Return a human readable string for this combo.
+  std::string ToString () const;
 
-  virtual void SetFromString ( std::string isKey );
-  void CopyFrom ( ScubaKeyCombo& iKey );
-  void CopyFrom ( ScubaKeyCombo* iKey ) {
-    CopyFrom(*iKey);
-  }
+  // Comparators.
+  bool IsSameAs ( ScubaKeyCombo const& iCombo ) const;
+  bool IsSameAs ( ScubaKeyCombo const* iCombo ) const;
 
-  bool IsSameAs ( ScubaKeyCombo& iCombo );
-  bool IsSameAs ( ScubaKeyCombo* iCombo ) {
-    return IsSameAs(*iCombo);
-  }
+  // Accessors.
+  int GetKeyCode () const;
+  bool IsShiftKeyDown () const;
+  bool IsAltKeyDown () const;
+  bool IsMetaKeyDown () const;
+  bool IsControlKeyDown () const;
 
-  int GetKeyCode ()        {
-    return mKeyCode;
-  }
-  bool IsShiftKeyDown ()   {
-    return mbShift;
-  }
-  bool IsAltKeyDown ()     {
-    return mbAlt;
-  }
-  bool IsMetaKeyDown ()    {
-    return mbMeta;
-  }
-  bool IsControlKeyDown () {
-    return mbControl;
-  }
-
-  void SetKeyCode        ( int iKey )    {
-    mKeyCode = iKey;
-  }
-  void SetShiftKeyDown   ( bool isDown ) {
-    mbShift = isDown;
-  }
-  void SetAltKeyDown     ( bool isDown ) {
-    mbAlt = isDown;
-  }
-  void SetMetaKeyDown    ( bool isDown ) {
-    mbMeta = isDown;
-  }
-  void SetControlKeyDown ( bool isDown ) {
-    mbControl = isDown;
-  }
+  // Settors
+  void CopyFrom ( ScubaKeyCombo const& iKey );
+  void CopyFrom ( ScubaKeyCombo const* iKey );
+  void SetKeyCode ( int iKey );
+  void SetShiftKeyDown ( bool isDown );
+  void SetAltKeyDown ( bool isDown );
+  void SetMetaKeyDown ( bool isDown );
+  void SetControlKeyDown ( bool isDown );
 
   // This is straight out of Qt. We use their key codes for simplicity
   // with the QtScubaKeyCombo class.
@@ -270,20 +251,26 @@ public:
 protected:
   ScubaKeyCombo ();
 
+  // Key info.
   int mKeyCode;
   bool mbShift, mbAlt, mbMeta, mbControl;
 
+  // Our static factory.
   static ScubaKeyComboFactory* mFactory;
 };
 
+// A static factory class that we can subclass to create our specific
+// kind of key.
 class ScubaKeyComboFactory {
 public:
   virtual ~ScubaKeyComboFactory() {};
-  virtual ScubaKeyCombo* MakeKeyCombo() {
+
+  // Make the key type.
+  virtual ScubaKeyCombo* MakeKeyCombo() const {
     return new ScubaKeyCombo();
   }
 };
 
-std::ostream& operator << ( std::ostream&, ScubaKeyCombo iKey  );
+std::ostream& operator << ( std::ostream&, ScubaKeyCombo const& iKey  );
 
 #endif

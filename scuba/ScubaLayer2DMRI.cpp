@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/15 20:42:29 $
- *    $Revision: 1.159 $
+ *    $Date: 2007/10/16 16:40:23 $
+ *    $Revision: 1.160 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2758,7 +2758,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     if ( !iInput.IsShiftKeyDown() && !iInput.IsControlKeyDown() &&
          (( iInput.IsButtonDownEvent() &&
             (2 == iInput.Button() || 3 == iInput.Button()) )      ||
-          ( iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F )) ) {
+          ( iInput.Key().GetKeyCode() == ScubaKeyCombo::Key_F )) ) {
 
       VolumeLocation& loc =
         (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, mCurrentFrame );
@@ -2770,24 +2770,24 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
         // Create and run the flood object.
         if ( ScubaToolState::voxelFilling == iTool.GetMode() ) {
           if ( iInput.Button() == 2 ||
-               (iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F &&
+               (iInput.Key().GetKeyCode() == ScubaKeyCombo::Key_F &&
                 !iInput.IsControlKeyDown()) ) {
             ScubaLayer2DMRIFloodVoxelEdit flooder( iTool.GetNewValue() );
             flooder.Flood( *mVolume, iRAS, mCurrentFrame, params );
           } else if ( iInput.Button() == 3||
-                      (iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F &&
+                      (iInput.Key().GetKeyCode() == ScubaKeyCombo::Key_F &&
                        iInput.IsControlKeyDown()) ) {
             ScubaLayer2DMRIFloodVoxelEdit flooder(iTool.GetEraseValue());
             flooder.Flood( *mVolume, iRAS, mCurrentFrame, params );
           }
         } else if ( ScubaToolState::roiFilling == iTool.GetMode() ) {
           if ( iInput.Button() == 2||
-               (iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F &&
+               (iInput.Key().GetKeyCode() == ScubaKeyCombo::Key_F &&
                 !iInput.IsControlKeyDown()) ) {
             ScubaLayer2DMRIFloodSelect flooder( true );
             flooder.Flood( *mVolume, iRAS, mCurrentFrame, params );
           } else if ( iInput.Button() == 3||
-                      (iInput.Key()->GetKeyCode() == ScubaKeyCombo::Key_F &&
+                      (iInput.Key().GetKeyCode() == ScubaKeyCombo::Key_F &&
                        iInput.IsControlKeyDown()) ) {
             ScubaLayer2DMRIFloodSelect flooder( false );
             flooder.Flood( *mVolume, iRAS, mCurrentFrame, params );

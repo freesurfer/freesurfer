@@ -1,15 +1,16 @@
 /**
  * @file  TclScubaKeyCombo.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Tcl specific ScubaKeyCombo
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This overrides the SetFromString function so we can parse a Tk key
+ * string.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.4 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 16:40:23 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,7 +41,7 @@ class TclScubaKeyCombo : public ScubaKeyCombo {
 public:
 
   // Overrides constructor to read Tk key strings.
-  virtual void SetFromString ( std::string isKey );
+  virtual void SetFromString ( std::string const& isKey );
 
 protected:
   TclScubaKeyCombo ();
@@ -63,6 +64,7 @@ protected:
   static bool mbAddedTclCommands;
 };
 
+// Our specific factory to create this kind of key type.
 class TclScubaKeyComboFactory : public ScubaKeyComboFactory {
 public:
   virtual ScubaKeyCombo* MakeKeyCombo() {

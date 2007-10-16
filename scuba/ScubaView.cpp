@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 22:24:05 $
- *    $Revision: 1.120 $
+ *    $Date: 2007/10/16 16:40:23 $
+ *    $Revision: 1.121 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2359,7 +2359,8 @@ ScubaView::DoMouseDown( int iWindow[2],
 void
 ScubaView::DoKeyDown( int iWindow[2],
                       InputState& iInput, ScubaToolState& iTool ) {
-  ScubaKeyCombo* key = iInput.Key();
+
+  ScubaKeyCombo const& key = iInput.Key();
 
   float ras[3];
   TranslateWindowToRAS( iWindow, ras );
@@ -2368,7 +2369,7 @@ ScubaView::DoKeyDown( int iWindow[2],
   // that to the specific in plane increment. If control is down,
   // multiplay that value by 10.
   float moveDistance = 1.0;
-  if ( key->IsSameAs(msMoveViewIn) || key->IsSameAs(msMoveViewOut) ) {
+  if ( key.IsSameAs(msMoveViewIn) || key.IsSameAs(msMoveViewOut) ) {
     moveDistance = GetThroughPlaneIncrement( mViewState.GetInPlane() );
   }
   if ( iInput.IsControlKeyDown() ) {
@@ -2376,13 +2377,13 @@ ScubaView::DoKeyDown( int iWindow[2],
   }
 
 
-  if ( key->IsSameAs(msMoveViewLeft) || key->IsSameAs(msMoveViewRight) ||
-       key->IsSameAs(msMoveViewDown) || key->IsSameAs(msMoveViewUp) ||
-       key->IsSameAs(msMoveViewIn)   || key->IsSameAs(msMoveViewOut) ) {
+  if ( key.IsSameAs(msMoveViewLeft) || key.IsSameAs(msMoveViewRight) ||
+       key.IsSameAs(msMoveViewDown) || key.IsSameAs(msMoveViewUp) ||
+       key.IsSameAs(msMoveViewIn)   || key.IsSameAs(msMoveViewOut) ) {
 
     float move[3] = {0, 0, 0};
 
-    if ( key->IsSameAs(msMoveViewLeft) ) {
+    if ( key.IsSameAs(msMoveViewLeft) ) {
       switch ( mViewState.GetInPlane() ) {
       case ViewState::X:
         move[1] = -moveDistance;
@@ -2394,7 +2395,7 @@ ScubaView::DoKeyDown( int iWindow[2],
         move[0] = moveDistance;
         break;
       }
-    } else if ( key->IsSameAs(msMoveViewRight) ) {
+    } else if ( key.IsSameAs(msMoveViewRight) ) {
       switch ( mViewState.GetInPlane() ) {
       case ViewState::X:
         move[1] = moveDistance;
@@ -2406,7 +2407,7 @@ ScubaView::DoKeyDown( int iWindow[2],
         move[0] = -moveDistance;
         break;
       }
-    } else if ( key->IsSameAs(msMoveViewDown) ) {
+    } else if ( key.IsSameAs(msMoveViewDown) ) {
       switch ( mViewState.GetInPlane() ) {
       case ViewState::X:
         move[2] = -moveDistance;
@@ -2418,7 +2419,7 @@ ScubaView::DoKeyDown( int iWindow[2],
         move[1] = -moveDistance;
         break;
       }
-    } else if ( key->IsSameAs(msMoveViewUp) ) {
+    } else if ( key.IsSameAs(msMoveViewUp) ) {
       switch ( mViewState.GetInPlane() ) {
       case ViewState::X:
         move[2] = moveDistance;
@@ -2430,7 +2431,7 @@ ScubaView::DoKeyDown( int iWindow[2],
         move[1] = moveDistance;
         break;
       }
-    } else if ( key->IsSameAs(msMoveViewIn) ) {
+    } else if ( key.IsSameAs(msMoveViewIn) ) {
       switch ( mViewState.GetInPlane() ) {
       case ViewState::X:
         move[0] = moveDistance;
@@ -2442,7 +2443,7 @@ ScubaView::DoKeyDown( int iWindow[2],
         move[2] = moveDistance;
         break;
       }
-    } else if ( key->IsSameAs(msMoveViewOut) ) {
+    } else if ( key.IsSameAs(msMoveViewOut) ) {
       switch ( mViewState.GetInPlane() ) {
       case ViewState::X:
         move[0] = -moveDistance;
@@ -2467,12 +2468,12 @@ ScubaView::DoKeyDown( int iWindow[2],
     // Rebuild our label value info because the view has moved.
     RebuildLabelValueInfo( newCenterRAS, "mouse" );
 
-  } else if ( key->IsSameAs(msZoomViewIn) || key->IsSameAs(msZoomViewOut) ) {
+  } else if ( key.IsSameAs(msZoomViewIn) || key.IsSameAs(msZoomViewOut) ) {
 
     float newZoom = mViewState.GetZoomLevel();
-    if ( key->IsSameAs(msZoomViewIn) ) {
+    if ( key.IsSameAs(msZoomViewIn) ) {
       newZoom = mViewState.GetZoomLevel() * 2.0;
-    } else if ( key->IsSameAs(msZoomViewOut) ) {
+    } else if ( key.IsSameAs(msZoomViewOut) ) {
       newZoom = mViewState.GetZoomLevel() / 2.0;
       if ( newZoom < 0.25 ) {
         newZoom = 0.25;

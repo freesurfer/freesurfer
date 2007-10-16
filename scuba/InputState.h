@@ -1,15 +1,16 @@
 /**
  * @file  InputState.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Represents current input state
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Used by the ToglManager to communicate input state information to
+ * the frame, and then downwards through to the view and layer.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:13 $
- *    $Revision: 1.10 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 16:40:23 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,41 +37,51 @@
 class InputState {
   friend class InputStateTester;
 public:
-  InputState ();
-  bool IsShiftKeyDown ();
-  bool IsAltKeyDown ();
-  bool IsControlKeyDown ();
-  int Button ();
-  ScubaKeyCombo* Key ();
 
-  // For polling button state.
-  bool IsButtonDown ();
-  bool IsButtonUp ();
+  InputState ();
+
+  // Acessors.
+  // Key modifiers.
+  bool IsShiftKeyDown () const;
+  bool IsAltKeyDown () const;
+  bool IsControlKeyDown () const;
+  ScubaKeyCombo const& Key () const;
+
+  // Mouse button state.
+  int Button () const;
+  bool IsButtonDown () const;
+  bool IsButtonUp () const;
+  bool IsButtonDownEvent () const;
+  bool IsButtonDragEvent () const;
+  bool IsButtonUpEvent () const;
 
   // Returns the button delta during a drag event. This is in window
   // coords.
-  void AddButtonDelta( int iX, int iY );
-  int GetTotalButtonDeltaX ();
-  int GetTotalButtonDeltaY ();
+  int GetTotalButtonDeltaX () const;
+  int GetTotalButtonDeltaY () const;
 
-  // For getting the exact mouse event.
-  bool IsButtonDownEvent ();
-  bool IsButtonDragEvent ();
-  bool IsButtonUpEvent ();
 
-  // For setting the event type.
-  void SetButtonDownEvent ( int iButton );
-  void SetButtonDragEvent ();
-  void SetButtonUpEvent ();
+  // Settors.
   void ClearEvents ();
 
+  // Key modifiers and codes.
   void SetShiftKey ( bool ibShiftKey );
   void SetAltKey ( bool ibAltKey );
   void SetControlKey ( bool ibControlKey );
-  void SetKeyFromString ( std::string isKey );
+
+  // For modifying the ScubaKeyCombo.
+  void SetKeyFromString ( std::string const& isKey );
   void SetKeyCode ( int iKey );
+  void CopyKey ( ScubaKeyCombo const& iKey );
+
+  // Mouse information.
+  void AddButtonDelta( int iX, int iY );
+  void SetButtonDownEvent ( int iButton );
+  void SetButtonDragEvent ();
+  void SetButtonUpEvent ();
 
 protected:
+
   bool mbShiftKey;
   bool mbAltKey;
   bool mbControlKey;
@@ -82,7 +93,7 @@ protected:
   int mDelta[2];
 };
 
-std::ostream& operator << ( std::ostream& os, InputState& iInput );
+std::ostream& operator << ( std::ostream& os, InputState const& iInput );
 
 
 

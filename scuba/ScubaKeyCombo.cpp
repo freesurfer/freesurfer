@@ -1,15 +1,41 @@
 /**
  * @file  ScubaKeyCombo.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Encapsulates keypress combinations
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is a class to encapsulate the idea of key combinations, or
+ * keypresses to trigger events. These are used in a few places:
+ *
+ *   The main interface widget (e.g. ToglFrame) transforms keypress
+ *   events into ScubaKeyCombo subclasses from their native widget
+ *   type.
+
+ *   Other widgets that check for key combos in event response
+ *   functions can simply match input ScubaKeyCombos against
+ *   ScubaKeyCombos stored in preferences. For example, ScubaView
+ *   grabs the string pref for the MoveViewIn key, makes a
+ *   ScubaKeyCombo out of it, and checks it against the current key
+ *   from the InputState.
+ *
+ *   Preference dialog boxes read input from the user, create a
+ *   ScubaKeyCombo from it, and use the ToString function to generate
+ *   the string version to be stored in ScubaGlobalPreferences.
+ *
+ *   Each widget type should have a subclass ScubaKeyCombo
+ *   (e.g. TclScubaKeyCombo) that knows how to parse input strings
+ *   from that widget framework. A corresponding ScubaKeyComboFactory
+ *   should be made to make those kinds of ScubaKeyCombo
+ *   subclasses. The main function, knowing what kind of widget
+ *   framework is being used, calls SetFactory with that subclass
+ *   factory. Then, all other classes use ScubaKeyCombo::MakeKeyCombo
+ *   to make their framework-specific ScubaKeyCombos.
+ *
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.8 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 16:40:23 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,28 +62,8 @@ ScubaKeyComboFactory* ScubaKeyCombo::mFactory = NULL;
 ScubaKeyCombo::ScubaKeyCombo () :
     mKeyCode(-1), mbShift(false), mbAlt(false), mbMeta(false), mbControl(false) {}
 
-ScubaKeyCombo*
-ScubaKeyCombo::MakeKeyCombo () {
-
-  if ( mFactory ) {
-    return mFactory->MakeKeyCombo();
-  } else {
-    return new ScubaKeyCombo();
-  }
-}
-
 void
-ScubaKeyCombo::CopyFrom ( ScubaKeyCombo& iKey ) {
-
-  mKeyCode = iKey.GetKeyCode();
-  mbShift = iKey.IsShiftKeyDown();
-  mbAlt = iKey.IsAltKeyDown();
-  mbMeta = iKey.IsMetaKeyDown();
-  mbControl = iKey.IsControlKeyDown();
-}
-
-void
-ScubaKeyCombo::SetFromString ( string isKey ) {
+ScubaKeyCombo::SetFromString ( string const& isKey ) {
 
   // We're getting a string that is hopefully from a
   // ScubaKeyCombo::ToString originally, so we just look for the
@@ -274,7 +280,7 @@ ScubaKeyCombo::SetFromString ( string isKey ) {
 }
 
 string
-ScubaKeyCombo::ToString () {
+ScubaKeyCombo::ToString () const {
 
   string sModifers = "";
   if ( mbControl ) sModifers += "Ctrl ";
@@ -709,8 +715,74 @@ ScubaKeyCombo::ToString () {
   return sModifers + sKey;
 }
 
+void
+ScubaKeyCombo::CopyFrom ( ScubaKeyCombo const& iKey ) {
+
+  mKeyCode = iKey.GetKeyCode();
+  mbShift = iKey.IsShiftKeyDown();
+  mbAlt = iKey.IsAltKeyDown();
+  mbMeta = iKey.IsMetaKeyDown();
+  mbControl = iKey.IsControlKeyDown();
+}
+
+void 
+ScubaKeyCombo::CopyFrom ( ScubaKeyCombo const* iKey ) {
+
+  CopyFrom( *iKey );
+}
+
+int
+ScubaKeyCombo::GetKeyCode () const {
+  return mKeyCode;
+}
+
 bool
-ScubaKeyCombo::IsSameAs ( ScubaKeyCombo& iCombo ) {
+ScubaKeyCombo::IsShiftKeyDown () const {
+  return mbShift;
+}
+
+bool
+ScubaKeyCombo::IsAltKeyDown () const {
+  return mbAlt;
+}
+
+bool
+ScubaKeyCombo::IsMetaKeyDown () const {
+  return mbMeta;
+}
+
+bool
+ScubaKeyCombo::IsControlKeyDown () const {
+  return mbControl;
+}
+
+void
+ScubaKeyCombo::SetKeyCode ( int iKey ) {
+  mKeyCode = iKey;
+}
+
+void
+ScubaKeyCombo::SetShiftKeyDown ( bool isDown ) {
+  mbShift = isDown;
+}
+
+void
+ScubaKeyCombo::SetAltKeyDown ( bool isDown ) {
+  mbAlt = isDown;
+}
+
+void
+ScubaKeyCombo::SetMetaKeyDown ( bool isDown ) {
+  mbMeta = isDown;
+}
+
+void
+ScubaKeyCombo::SetControlKeyDown ( bool isDown ) {
+  mbControl = isDown;
+}
+
+bool
+ScubaKeyCombo::IsSameAs ( ScubaKeyCombo const& iCombo ) const {
 
   return ( GetKeyCode() == iCombo.GetKeyCode() &&
            IsShiftKeyDown() == iCombo.IsShiftKeyDown() &&
@@ -719,8 +791,30 @@ ScubaKeyCombo::IsSameAs ( ScubaKeyCombo& iCombo ) {
            IsControlKeyDown() == iCombo.IsControlKeyDown() );
 }
 
+bool
+ScubaKeyCombo::IsSameAs ( ScubaKeyCombo const* iCombo ) const {
+
+  return IsSameAs( *iCombo );
+}
+
+void
+ScubaKeyCombo::SetFactory ( ScubaKeyComboFactory* iFactory ) {
+
+  mFactory = iFactory;
+}
+
+ScubaKeyCombo*
+ScubaKeyCombo::MakeKeyCombo () {
+
+  if ( mFactory ) {
+    return mFactory->MakeKeyCombo();
+  } else {
+    return new ScubaKeyCombo();
+  }
+}
+
 ostream&
-operator <<  ( ostream& os, ScubaKeyCombo iKey ) {
+operator <<  ( ostream& os, ScubaKeyCombo const& iKey ) {
 
   os.setf(ios::hex,ios::basefield);
   os << "Key " << iKey.ToString() << " (code 0x" << iKey.GetKeyCode()

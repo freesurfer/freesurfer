@@ -1,15 +1,16 @@
 /**
  * @file  InputState.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Represents current input state
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Used by the ToglManager to communicate input state information to
+ * the frame, and then downwards through to the view and layer.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:13 $
- *    $Revision: 1.11 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 16:40:22 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,96 +32,72 @@
 using namespace std;
 
 InputState::InputState () :
-    mbShiftKey(false), mbAltKey(false), mbControlKey(false),
-    mbButtonDownEvent(false), mbButtonDragEvent(false), mbButtonUpEvent(false),
-    mButton(0), mKey(NULL) {
-  mKey = ScubaKeyCombo::MakeKeyCombo();
+    mbShiftKey(false), 
+    mbAltKey(false),
+    mbControlKey(false),
+    mbButtonDownEvent(false),
+    mbButtonDragEvent(false), 
+    mbButtonUpEvent(false),
+    mButton(0),
+    mKey( ScubaKeyCombo::MakeKeyCombo() ) {
+
   mDelta[0] = mDelta[1] = 0;
 }
 
-bool InputState::IsShiftKeyDown () {
+bool InputState::IsShiftKeyDown () const {
   return mbShiftKey;
 }
 
-bool InputState::IsAltKeyDown () {
+bool InputState::IsAltKeyDown () const {
   return mbAltKey;
 }
 
-bool InputState::IsControlKeyDown () {
+bool InputState::IsControlKeyDown () const {
   return mbControlKey;
 }
 
-int InputState::Button () {
+ScubaKeyCombo const& InputState::Key () const {
+  return *mKey;
+}
+
+int InputState::Button () const {
   return mButton;
 }
 
-ScubaKeyCombo* InputState::Key () {
-  return mKey;
-}
-
 bool
-InputState::IsButtonDown () {
+InputState::IsButtonDown () const {
   return (mbButtonDownEvent || mbButtonDragEvent);
 }
 
 bool
-InputState::IsButtonUp () {
+InputState::IsButtonUp () const {
   return (mbButtonUpEvent ||
           (!(mbButtonDragEvent) && !(mbButtonDownEvent)));
 }
 
 bool
-InputState::IsButtonDownEvent () {
+InputState::IsButtonDownEvent () const {
   return mbButtonDownEvent;
 }
 
 bool
-InputState::IsButtonDragEvent () {
+InputState::IsButtonDragEvent () const {
   return mbButtonDragEvent;
 }
 
 bool
-InputState::IsButtonUpEvent () {
+InputState::IsButtonUpEvent () const {
   return mbButtonUpEvent;
 }
 
-void
-InputState::AddButtonDelta ( int iX, int iY ) {
-  mDelta[0] += iX;
-  mDelta[1] += iY;
-}
-
 int
-InputState::GetTotalButtonDeltaX () {
+InputState::GetTotalButtonDeltaX () const {
   return mDelta[0];
 }
 
 int
-InputState::GetTotalButtonDeltaY () {
+InputState::GetTotalButtonDeltaY () const {
   return mDelta[1];
-}
-
-void
-InputState::SetButtonDownEvent ( int iButton ) {
-  mbButtonDownEvent = true;
-  mbButtonUpEvent   = false;
-  mbButtonDragEvent = false;
-  mButton = iButton;
-  mDelta[0] = mDelta[1] = 0;
-}
-
-void
-InputState::SetButtonDragEvent () {
-  mbButtonDownEvent = false;
-  mbButtonUpEvent   = false;
-  mbButtonDragEvent = true;
-}
-
-void
-InputState::SetButtonUpEvent () {
-  mbButtonDownEvent = false;
-  mbButtonUpEvent   = true;
-  mbButtonDragEvent = false;
 }
 
 void
@@ -154,7 +131,7 @@ InputState::SetControlKey ( bool ibControlKey ) {
 }
 
 void
-InputState::SetKeyFromString ( std::string isKey ) {
+InputState::SetKeyFromString ( std::string const& isKey ) {
   mKey->SetFromString( isKey );
 }
 
@@ -163,7 +140,41 @@ InputState::SetKeyCode ( int iKey ) {
   mKey->SetKeyCode( iKey );
 }
 
-std::ostream& operator << ( std::ostream& os, InputState& iInput ) {
+void
+InputState::CopyKey ( ScubaKeyCombo const& iKey ) {
+  mKey->CopyFrom( iKey );
+}
+
+void
+InputState::AddButtonDelta ( int iX, int iY ) {
+  mDelta[0] += iX;
+  mDelta[1] += iY;
+}
+
+void
+InputState::SetButtonDownEvent ( int iButton ) {
+  mbButtonDownEvent = true;
+  mbButtonUpEvent   = false;
+  mbButtonDragEvent = false;
+  mButton = iButton;
+  mDelta[0] = mDelta[1] = 0;
+}
+
+void
+InputState::SetButtonDragEvent () {
+  mbButtonDownEvent = false;
+  mbButtonUpEvent   = false;
+  mbButtonDragEvent = true;
+}
+
+void
+InputState::SetButtonUpEvent () {
+  mbButtonDownEvent = false;
+  mbButtonUpEvent   = true;
+  mbButtonDragEvent = false;
+}
+
+std::ostream& operator << ( std::ostream& os, InputState const& iInput ) {
   if ( iInput.IsShiftKeyDown() )
     os << "shift ";
   if ( iInput.IsAltKeyDown() )
@@ -172,7 +183,7 @@ std::ostream& operator << ( std::ostream& os, InputState& iInput ) {
     os << "control ";
   if ( iInput.Button() != 0 )
     os << "button " << iInput.Button();
-  if ( iInput.Key()->GetKeyCode() != -1 )
+  if ( iInput.Key().GetKeyCode() != -1 )
     os << "key " << iInput.Key();
   return os;
 }

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/10 17:34:03 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/10/16 16:40:24 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -261,7 +261,7 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     // Record the key.
     ScubaKeyCombo* key = ScubaKeyCombo::MakeKeyCombo();
     key->SetFromString( sKey );
-    mState.Key()->CopyFrom( key );
+    mState.CopyKey( *key );
 
     WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
     WindowFrame* frame = mFrames[id];
@@ -317,7 +317,7 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     // Record the key.
     ScubaKeyCombo* key = ScubaKeyCombo::MakeKeyCombo();
     key->SetFromString( sKey );
-    mState.Key()->CopyFrom( key );
+    mState.CopyKey( *key );
 
     WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
     WindowFrame* frame = mFrames[id];
