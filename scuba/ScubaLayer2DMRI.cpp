@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 20:18:30 $
- *    $Revision: 1.161 $
+ *    $Date: 2007/10/16 22:25:37 $
+ *    $Revision: 1.162 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -474,16 +474,15 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   int windowUpdateBounds[4];
   iViewState.CopyUpdateRect( windowUpdateBounds );
 
-  // Create a dummy location, we'll change it soon. Note to self:
-  // learn how to use C++ references properly. We'll create a location
-  // for the mask volume too, if it exists.
+  // Create a dummy location, we'll change it soon. We'll create a
+  // location for the mask volume too, if it exists.
   RAS[0] = RAS[1] = RAS[2] = 0;
-  VolumeLocation& loc =
-    (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS, mCurrentFrame );
+  VolumeLocation 
+    loc( mVolume->MakeVolumeLocationFromRAS( RAS, mCurrentFrame ) );
   VolumeLocation* maskLoc = NULL;
-  if ( mMaskVolume ) {
-    maskLoc = &(VolumeLocation&)(mMaskVolume->MakeLocationFromRAS( RAS, 0 ));
-  }
+  if( mMaskVolume )
+    maskLoc = 
+      new VolumeLocation( mMaskVolume->MakeVolumeLocationFromRAS( RAS, 0 ) );
 
   for ( window[1] = windowUpdateBounds[1];
         window[1] <= windowUpdateBounds[3]; window[1]++ ) {
@@ -506,12 +505,12 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       loc.SetFromRAS( RAS );
       if ( maskLoc ) maskLoc->SetFromRAS( RAS );
 
-      // If the location is in bound, and if there's a mask volume, if
+      // If the location is in bounds, and if there's a mask volume, if
       // this value in the mask volume is not 0...
       int selectColor[3];
       if ( mVolume->IsInBounds( loc ) &&
-           (maskLoc == NULL ||
-            (maskLoc != NULL && mMaskVolume->IsInBounds( *maskLoc ) &&
+           (NULL == mMaskVolume ||
+            (mMaskVolume->IsInBounds( *maskLoc ) &&
              mMaskVolume->GetMRINearestValue( *maskLoc ) != 0)) ) {
 
         switch ( mSampleMethod ) {
@@ -570,9 +569,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     }
   }
 
-  delete &loc;
-  if ( maskLoc ) delete maskLoc;
-
+  delete maskLoc;
 
   if ( mbDrawEditingLine ) {
 
@@ -651,8 +648,8 @@ ScubaLayer2DMRI::DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   // Create a dummy location, we'll change it soon. Note to self:
   // learn how to use C++ references properly.
   RAS[0] = RAS[1] = RAS[2] = 0;
-  VolumeLocation& loc =
-    (VolumeLocation&) mVolume->MakeLocationFromRAS( RAS, mCurrentFrame );
+  VolumeLocation 
+    loc( mVolume->MakeVolumeLocationFromRAS( RAS, mCurrentFrame ) );
 
   // Start a progress bar for the MIP since it takes a while.
   ProgressDisplayManager& progMgr = ProgressDisplayManager::GetManager();
@@ -812,9 +809,6 @@ ScubaLayer2DMRI::DrawMIPIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   }
 
   progMgr.EndTask();
-
-  delete &loc;
-
 
   if ( mbDrawEditingLine ) {
 
@@ -1033,8 +1027,8 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
 
   // Look up the value of the volume at this point.
   InfoAtRAS info;
-  VolumeLocation& loc =
-    (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, mCurrentFrame );
+  VolumeLocation 
+    loc( mVolume->MakeVolumeLocationFromRAS( iRAS, mCurrentFrame ) );
   if ( mVolume->IsInBounds( loc ) ) {
 
     if( GetReportInfo( kaReportableInfo[Value] ) ) {
@@ -1114,8 +1108,6 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
       info.Clear();
     }
   }
-
-  delete &loc;
 }
 
 TclCommandListener::TclCommandResult
@@ -2386,8 +2378,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
 #if 0
   if ( iInput.IsButtonUpEvent() ) {
-    VolumeLocation& loc =
-      (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
+    VolumeLocation loc( mVolume->MakeVolumeLocationFromRAS( iRAS ) );
     cerr << "Clicked " << Point3<float>(iRAS) << " -> "
     << Point3<int>(loc.Index()) << ", "
     << Point3<float>(loc.IndexF()) << endl;
@@ -2482,8 +2473,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       // Eyedropper the color and set the tool.
       if ( bEyedropper && iInput.IsButtonUpEvent() ) {
 
-        VolumeLocation& loc =
-          (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, mCurrentFrame );
+        VolumeLocation 
+	  loc( mVolume->MakeVolumeLocationFromRAS( iRAS, mCurrentFrame ) );
         if ( mVolume->IsInBounds( loc ) ) {
 
           float value = mVolume->GetMRINearestValue( loc );
@@ -2622,9 +2613,9 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
             // If the point is in bounds...
             Point3<float> point = *tPoints;
-            VolumeLocation& loc =
-              (VolumeLocation&) mVolume->MakeLocationFromRAS( point.xyz(),
-                  mCurrentFrame );
+            VolumeLocation 
+	      loc( mVolume->MakeVolumeLocationFromRAS( point.xyz(),
+						       mCurrentFrame ));
 
             if ( mVolume->IsInBounds( loc ) ) {
 
@@ -2688,8 +2679,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
               // Add the undo item.
               undoList.AddAction( mCurrentDrawingOperationActionID, action );
             }
-
-            delete &loc;
           }
 
           RequestRedisplay();
@@ -2736,8 +2725,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     if ( iInput.IsShiftKeyDown() && iInput.IsControlKeyDown() &&
          iInput.IsButtonDownEvent() && 2 == iInput.Button() ) {
 
-      VolumeLocation& loc =
-        (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, mCurrentFrame );
+      VolumeLocation
+	loc( mVolume->MakeVolumeLocationFromRAS( iRAS, mCurrentFrame ) );
       if ( mVolume->IsInBounds( loc ) ) {
 
         float value = mVolume->GetMRINearestValue( loc );
@@ -2760,8 +2749,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
             (2 == iInput.Button() || 3 == iInput.Button()) )      ||
           ( iInput.Key().GetKeyCode() == ScubaKeyCombo::Key_F )) ) {
 
-      VolumeLocation& loc =
-        (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, mCurrentFrame );
+      VolumeLocation
+	loc( mVolume->MakeVolumeLocationFromRAS( iRAS, mCurrentFrame ) );
       if ( mVolume->IsInBounds( loc ) ) {
 
         VolumeCollectionFlooder::Params params;
@@ -2796,7 +2785,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
         RequestRedisplay();
       }
-      delete &loc;
     }
 
 
@@ -3749,9 +3737,9 @@ ScubaLayer2DMRI::SelectVoxelsOnPath( Path<float>& iPath, bool ibSelect ) {
     for ( tRASPoint = rasPoints.begin();
           tRASPoint != rasPoints.end(); ++tRASPoint ) {
       Point3<float> rasPoint = *tRASPoint;
-      VolumeLocation& loc =
-        (VolumeLocation&) mVolume->MakeLocationFromRAS( rasPoint.xyz(),
-            mCurrentFrame );
+      VolumeLocation
+	loc( mVolume->MakeVolumeLocationFromRAS( rasPoint.xyz(),
+						 mCurrentFrame ) );
 
       if ( ibSelect )
         mVolume->Select( loc );
@@ -3761,8 +3749,6 @@ ScubaLayer2DMRI::SelectVoxelsOnPath( Path<float>& iPath, bool ibSelect ) {
       UndoAction* action =
         new UndoSelectionAction( mVolume, ibSelect, rasPoint.xyz() );
       undoList.AddAction( actionListID, action );
-
-      delete &loc;
     }
   }
 
@@ -3990,8 +3976,7 @@ void
 ScubaLayer2DMRIFloodVoxelEdit::DoVoxel ( float iRAS[3], int iFrame ) {
   UndoManager& undoList = UndoManager::GetManager();
 
-  VolumeLocation& loc =
-    (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, iFrame );
+  VolumeLocation loc( mVolume->MakeVolumeLocationFromRAS( iRAS, iFrame ) );
 
   // Save the original value. Set the new value.
   float origValue = mVolume->GetMRINearestValue( loc );
@@ -4002,8 +3987,6 @@ ScubaLayer2DMRIFloodVoxelEdit::DoVoxel ( float iRAS[3], int iFrame ) {
     new UndoVoxelEditAction( mVolume, mValue, origValue, iRAS, iFrame );
 
   undoList.AddAction( mActionListID, action );
-
-  delete &loc;
 }
 
 UndoVoxelEditAction::UndoVoxelEditAction ( VolumeCollection* iVolume,
@@ -4021,19 +4004,15 @@ UndoVoxelEditAction::UndoVoxelEditAction ( VolumeCollection* iVolume,
 void
 UndoVoxelEditAction::Undo () {
 
-  VolumeLocation& loc =
-    (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS, mFrame );
+  VolumeLocation loc( mVolume->MakeVolumeLocationFromRAS( mRAS, mFrame ) );
   mVolume->SetMRIValue( loc, mOrigValue );
-  delete &loc;
 }
 
 void
 UndoVoxelEditAction::Redo () {
 
-  VolumeLocation& loc =
-    (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS, mFrame );
+  VolumeLocation loc( mVolume->MakeVolumeLocationFromRAS( mRAS, mFrame ) );
   mVolume->SetMRIValue( loc, mNewValue );
-  delete &loc;
 }
 
 // ============================================================
@@ -4111,8 +4090,7 @@ void
 ScubaLayer2DMRIFloodSelect::DoVoxel ( float iRAS[3], int iFrame ) {
   UndoManager& undoList = UndoManager::GetManager();
 
-  VolumeLocation& loc =
-    (VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS, iFrame );
+  VolumeLocation loc( mVolume->MakeVolumeLocationFromRAS( iRAS, iFrame ) );
 
   if ( mbSelect ) {
     mVolume->Select( loc );
@@ -4125,8 +4103,6 @@ ScubaLayer2DMRIFloodSelect::DoVoxel ( float iRAS[3], int iFrame ) {
       new UndoSelectionAction( mVolume, false, iRAS );
     undoList.AddAction( mActionListID, action );
   }
-
-  delete &loc;
 }
 
 UndoSelectionAction::UndoSelectionAction ( VolumeCollection* iVolume,
@@ -4140,29 +4116,24 @@ UndoSelectionAction::UndoSelectionAction ( VolumeCollection* iVolume,
 
 void
 UndoSelectionAction::Undo () {
-  VolumeLocation& loc =
-    (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS );
+  VolumeLocation loc( mVolume->MakeVolumeLocationFromRAS( mRAS ) );
 
   if ( mbSelect ) {
     mVolume->Unselect( loc );
   } else {
     mVolume->Select( loc );
   }
-
-  delete &loc;
 }
 
 void
 UndoSelectionAction::Redo () {
-  VolumeLocation& loc = (VolumeLocation&) mVolume->MakeLocationFromRAS( mRAS );
+  VolumeLocation loc( mVolume->MakeVolumeLocationFromRAS( mRAS ) );
 
   if ( mbSelect ) {
     mVolume->Select( loc );
   } else {
     mVolume->Unselect( loc );
   }
-
-  delete &loc;
 }
 
 
@@ -4230,15 +4201,12 @@ EdgePathFinder::GetEdgeCost ( Point2<int> const& iPoint ) const {
   float cost = 0.0;
   float RAS[3];
   mTranslator.TranslateWindowToRAS( iPoint.xy(), RAS );
-  VolumeLocation& loc = (VolumeLocation&) mVolume.MakeLocationFromRAS( RAS );
+  VolumeLocation loc( mVolume.MakeVolumeLocationFromRAS( RAS ) );
 
   if ( mVolume.IsInBounds( loc ) ) {
     cost = 1.0 / (mVolume.GetMRIMagnitudeValue( loc ) + 0.0001);
   } else {
     cost = numeric_limits<float>::max();
   }
-
-  delete &loc;
-
   return cost;
 }

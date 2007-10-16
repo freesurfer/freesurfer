@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/15 20:42:21 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/10/16 22:25:38 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -166,16 +166,14 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 
 
     world.Set( -50, 0, -80 );
-    VolumeLocation& loc =
-      (VolumeLocation&) vol->MakeLocationFromRAS( world.xyz() );
+    VolumeLocation loc( vol->MakeVolumeLocationFromRAS( world.xyz() ) );
     if ( !vol->IsInBounds( loc ) ) {
       stringstream ssError;
       ssError << "IsInBounds failed. world " << world;
       throw( runtime_error( ssError.str() ) );
     }
     world.Set( -1000, 0, 0 );
-    VolumeLocation& loc2 =
-      (VolumeLocation&) vol->MakeLocationFromRAS( world.xyz() );
+    VolumeLocation loc2( vol->MakeVolumeLocationFromRAS( world.xyz() ) );
     if ( vol->IsInBounds( loc2 ) ) {
       stringstream ssError;
       ssError << "IsInBounds failed. world " << world;
@@ -189,8 +187,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
                                     0, 0, 0, 1 );
     vol->SetDataToWorldTransform( dataTransform.GetID() );
     world.Set( 0, -1000, -254 );
-    VolumeLocation& loc3 =
-      (VolumeLocation&) vol->MakeLocationFromRAS( world.xyz() );
+    VolumeLocation loc3( vol->MakeVolumeLocationFromRAS( world.xyz() ) );
     if ( vol->IsInBounds( loc3 ) ) {
       stringstream ssError;
       vol->RASToMRIIndex( world.xyz(), index.xyz() );
@@ -224,8 +221,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	      "NewUsingTemplate(float) failed, vol2 wasn't a float" );
       
       int idx[3] = { 0, 0, 0 };
-      VolumeLocation& loc =
-	(VolumeLocation&) vol2->MakeLocationFromIndex( idx );
+      VolumeLocation loc( vol2->MakeVolumeLocationFromIndex( idx ) );
       vol2->SetMRIValue( loc, 0.6789 );
       float value = vol2->GetMRINearestValue(loc);
 
@@ -403,8 +399,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       for ( int nZ = 0; nZ < 5; nZ++ ) {
         for ( int nY = 0; nY < 5; nY++ ) {
           int index[3] = { 3, nY, nZ };
-          VolumeLocation& loc =
-            (VolumeLocation&) vol->MakeLocationFromIndex( index );
+          VolumeLocation loc( vol->MakeVolumeLocationFromIndex( index ) );
           lVoxels.push_back( loc );
         }
       }
@@ -421,8 +416,7 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
       lVoxels.clear();
       for ( int nX = 0; nX < 5; nX++ ) {
         int index[3] = { nX, 3, 3 };
-        VolumeLocation& loc =
-          (VolumeLocation&) vol->MakeLocationFromIndex( index );
+        VolumeLocation loc( vol->MakeVolumeLocationFromIndex( index ) );
         lVoxels.push_back( loc );
       }
       average = vol->GetAverageValue( lVoxels );

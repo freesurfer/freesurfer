@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 22:24:05 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/10/16 22:25:38 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ ScubaVolumeROIIntensityChart::DrawWithSort() {
   }
 
   // Create the queue with the comparator class that we got.
-  priority_queue<VolumeLocation*,vector<VolumeLocation*>,T> lLocs;
+  priority_queue<VolumeLocation,vector<VolumeLocation>,T> lLocs;
 
   // Iterate over the ROI...
   int idx[3];
@@ -131,11 +131,10 @@ ScubaVolumeROIIntensityChart::DrawWithSort() {
         if ( mROI.IsVoxelSelected( idx ) ) {
 
           // Make a location from this index.
-          VolumeLocation& loc =
-            (VolumeLocation&) mVolume.MakeLocationFromIndex( idx );
+          VolumeLocation loc( mVolume.MakeVolumeLocationFromIndex( idx ) );
 
           // Add it our sorted queue of selected points.
-          lLocs.push( &loc );
+          lLocs.push( loc );
         }
       }
     }
@@ -148,25 +147,22 @@ ScubaVolumeROIIntensityChart::DrawWithSort() {
   while ( !lLocs.empty() ) {
 
     // Get the top element and pop it.
-    VolumeLocation* loc = lLocs.top();
+    VolumeLocation loc = lLocs.top();
     lLocs.pop();
 
     // Copy the data into the point data structure. The x value is an
     // incrementing index and the y is the intensity.
     data.mX = nPoint;
-    data.mY = mVolume.GetMRINearestValue( *loc );
+    data.mY = mVolume.GetMRINearestValue( loc );
 
     // Our label is the RAS coordinate.
     stringstream ssLabel;
-    ssLabel << "(" << loc->RAS(0) << ", " << loc->RAS(1)
-    << ", " << loc->RAS(2) << ")";
+    ssLabel << "(" << loc.RAS(0) << ", " << loc.RAS(1)
+    << ", " << loc.RAS(2) << ")";
     data.msLabel = ssLabel.str();
 
     // Add the data to the list of points we'll send to the chart.
     lData.push_back( data );
-
-    // Delete the VolumeLocation now.
-    delete loc;
 
     nPoint++;
     cSelected++;
@@ -192,48 +188,45 @@ ScubaVolumeROIIntensityChart::DrawWithSort() {
 
 bool
 ScubaVolumeROIIntensityChart::VolumeLocationRASXComparatorGT::operator()
-( const VolumeLocation* v1,
-  const VolumeLocation* v2 ) const {
+  ( VolumeLocation const& v1, VolumeLocation const& v2 ) const {
 
   // Compare the first VolumeLocation to the second and return true if
   // the x coordinate is greater in the first one. If they are equal,
   // move to the y coordinate, and then to z.
-  if ( fabs(v1->RAS(0) - v2->RAS(0)) > 0.00001 ) { //if v1->RAS(0) != v2->RAS(0)
-    return (v1->RAS(0) > v2->RAS(0));
-  } else if ( fabs(v1->RAS(1) - v2->RAS(1)) > 0.00001 ) {
-    return (v1->RAS(1) > v2->RAS(1));
+  if ( fabs(v1.RAS(0) - v2.RAS(0)) > 0.00001 ) { //if v1.RAS(0) != v2.RAS(0)
+    return (v1.RAS(0) > v2.RAS(0));
+  } else if ( fabs(v1.RAS(1) - v2.RAS(1)) > 0.00001 ) {
+    return (v1.RAS(1) > v2.RAS(1));
   } else {
-    return (v1->RAS(2) > v2->RAS(2));
+    return (v1.RAS(2) > v2.RAS(2));
   }
 }
 
 bool
 ScubaVolumeROIIntensityChart::VolumeLocationRASYComparatorGT::operator()
-( const VolumeLocation* v1,
-  const VolumeLocation* v2 ) const {
-
+  ( VolumeLocation const& v1, VolumeLocation const& v2 ) const {
+  
   // Same, but y first, then z, then x.
-  if ( fabs(v1->RAS(1) - v2->RAS(1)) > 0.00001 ) {
-    return (v1->RAS(1) > v2->RAS(1));
-  } else if ( fabs(v1->RAS(2) - v2->RAS(2)) > 0.00001 ) {
-    return (v1->RAS(2) > v2->RAS(2));
+  if ( fabs(v1.RAS(1) - v2.RAS(1)) > 0.00001 ) {
+    return (v1.RAS(1) > v2.RAS(1));
+  } else if ( fabs(v1.RAS(2) - v2.RAS(2)) > 0.00001 ) {
+    return (v1.RAS(2) > v2.RAS(2));
   } else {
-    return (v1->RAS(0) > v2->RAS(0));
+    return (v1.RAS(0) > v2.RAS(0));
   }
 }
 
 bool
 ScubaVolumeROIIntensityChart::VolumeLocationRASZComparatorGT::operator()
-( const VolumeLocation* v1,
-  const VolumeLocation* v2 ) const {
+  ( VolumeLocation const& v1, VolumeLocation const& v2 ) const {
 
   // Same, but z first, then x, then y.
-  if ( fabs(v1->RAS(2) - v2->RAS(2)) > 0.00001 ) {
-    return (v1->RAS(2) > v2->RAS(2));
-  } else if ( fabs(v1->RAS(0) - v2->RAS(0)) > 0.00001 ) {
-    return (v1->RAS(0) > v2->RAS(0));
+  if ( fabs(v1.RAS(2) - v2.RAS(2)) > 0.00001 ) {
+    return (v1.RAS(2) > v2.RAS(2));
+  } else if ( fabs(v1.RAS(0) - v2.RAS(0)) > 0.00001 ) {
+    return (v1.RAS(0) > v2.RAS(0));
   } else {
-    return (v1->RAS(1) > v2->RAS(1));
+    return (v1.RAS(1) > v2.RAS(1));
   }
 }
 

@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 20:18:30 $
- *    $Revision: 1.114 $
+ *    $Date: 2007/10/16 22:25:38 $
+ *    $Revision: 1.115 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -190,36 +190,30 @@ VolumeCollection::~VolumeCollection() {
   }
 }
 
-DataLocation&
-VolumeCollection::MakeLocationFromRAS ( float const iRAS[3] ) {
+VolumeLocation
+VolumeCollection::MakeVolumeLocationFromRAS ( float const iRAS[3] ) const {
 
-  VolumeLocation* loc = new VolumeLocation( *this, iRAS );
-  loc->SetFrame( 0 );
-  return *loc;
+  return VolumeLocation( *this, iRAS );
 }
 
-DataLocation&
-VolumeCollection::MakeLocationFromIndex ( int const iIndex[3] ) {
+VolumeLocation
+VolumeCollection::MakeVolumeLocationFromIndex ( int const iIndex[3] ) const {
 
-  VolumeLocation* loc = new VolumeLocation( *this, iIndex );
-  loc->SetFrame( 0 );
-  return *loc;
+  return VolumeLocation( *this, iIndex );
 }
 
-DataLocation&
-VolumeCollection::MakeLocationFromRAS ( float const iRAS[3], int iFrame ) {
+VolumeLocation
+VolumeCollection::MakeVolumeLocationFromRAS ( float const iRAS[3],
+					      int iFrame ) const {
 
-  VolumeLocation* loc = new VolumeLocation( *this, iRAS );
-  loc->SetFrame( iFrame );
-  return *loc;
+  return VolumeLocation( *this, iRAS, iFrame );
 }
 
-DataLocation&
-VolumeCollection::MakeLocationFromIndex ( int const iIndex[3], int iFrame ) {
+VolumeLocation
+VolumeCollection::MakeVolumeLocationFromIndex ( int const iIndex[3], 
+						int iFrame ) const {
 
-  VolumeLocation* loc = new VolumeLocation( *this, iIndex );
-  loc->SetFrame( iFrame );
-  return *loc;
+  return VolumeLocation( *this, iIndex, iFrame );
 }
 
 void
@@ -787,26 +781,14 @@ VolumeCollection::GetMRIMagnitudeMaxValue () {
 
 
 void
-VolumeCollection::RASToMRIIndex ( float const iRAS[3], int oIndex[3] ) {
+VolumeCollection::RASToMRIIndex ( float const iRAS[3], int oIndex[3] ) const {
 
-
-#if 0
-  int cacheIndex[3];
-  DataToIndexCacheIndex( iRAS, cacheIndex );
-  Point3<int> index =
-    mDataToIndexCache->Get( cacheIndex[0], cacheIndex[1], cacheIndex[2] );
-
-  oIndex[0] = index.x();
-  oIndex[1] = index.y();
-  oIndex[2] = index.z();
-
-#endif
 
   mWorldToIndexTransform.MultiplyVector3( iRAS, oIndex );
 }
 
 void
-VolumeCollection::RASToMRIIndex ( float const iRAS[3], float oIndex[3] ) {
+VolumeCollection::RASToMRIIndex ( float const iRAS[3], float oIndex[3] ) const {
 
   mWorldToIndexTransform.MultiplyVector3( iRAS, oIndex );
   oIndex[0] += 0.5;
@@ -815,31 +797,31 @@ VolumeCollection::RASToMRIIndex ( float const iRAS[3], float oIndex[3] ) {
 }
 
 void
-VolumeCollection::MRIIndexToRAS ( int const iIndex[3], float oRAS[3] ) {
+VolumeCollection::MRIIndexToRAS ( int const iIndex[3], float oRAS[3] ) const {
 
   mWorldToIndexTransform.InvMultiplyVector3( iIndex, oRAS );
 }
 
 void
-VolumeCollection::MRIIndexToRAS ( float const iIndex[3], float oRAS[3] ) {
+VolumeCollection::MRIIndexToRAS ( float const iIndex[3], float oRAS[3] ) const {
 
   mWorldToIndexTransform.InvMultiplyVector3( iIndex, oRAS );
 }
 
 void
-VolumeCollection::RASToDataRAS ( float const iRAS[3], float oDataRAS[3] ) {
+VolumeCollection::RASToDataRAS ( float const iRAS[3], float oDataRAS[3] ) const {
 
   mDataToWorldTransform->InvMultiplyVector3( iRAS, oDataRAS );
 }
 
 void
-VolumeCollection::DataRASToRAS ( float const iDataRAS[3], float oRAS[3] ) {
+VolumeCollection::DataRASToRAS ( float const iDataRAS[3], float oRAS[3] ) const {
 
   mDataToWorldTransform->MultiplyVector3( iDataRAS, oRAS );
 }
 
 bool
-VolumeCollection::IsTalTransformPresent() {
+VolumeCollection::IsTalTransformPresent() const {
 
   if( mMRI )
     return (mMRI->linear_transform != NULL);
@@ -848,7 +830,7 @@ VolumeCollection::IsTalTransformPresent() {
 }
 
 void
-VolumeCollection::RASToTal ( float const iRAS[3], float oTal[3] ) {
+VolumeCollection::RASToTal ( float const iRAS[3], float oTal[3] ) const {
 
   // Only do this if we have a transform.
   if( mMRI && mMRI->linear_transform ) {
@@ -876,7 +858,7 @@ VolumeCollection::RASToTal ( float const iRAS[3], float oTal[3] ) {
 
 void
 VolumeCollection::TkRegRASToRAS ( float const iTkRegRAS[3],
-                                  float oRAS[3] ) {
+                                  float oRAS[3] ) const {
 
   if ( NULL != mMRI ) {
     Real TkRegRAS[3], RAS[3];
@@ -896,7 +878,7 @@ VolumeCollection::TkRegRASToRAS ( float const iTkRegRAS[3],
 
 void
 VolumeCollection::RASToTkRegRAS ( float const iRAS[3],
-                                  float oTkRegRAS[3] ) {
+                                  float oTkRegRAS[3] ) const {
 
   if ( NULL != mMRI ) {
     Real TkRegRAS[3], RAS[3];
@@ -2168,7 +2150,7 @@ VolumeCollection::WriteROIToLabel ( int iROIID, bool ibUseRealRAS,
       // Convert the voxel to RAS.
       float ras[3];
       MRIIndexToRAS( voxel.xyz(), ras );
-      VolumeLocation& loc = (VolumeLocation&) MakeLocationFromRAS( ras );
+      VolumeLocation loc( MakeVolumeLocationFromRAS( ras ) );
 
       // Convert these points to TkRegRAS space if needed.
       if ( !ibUseRealRAS ) {
@@ -2184,8 +2166,6 @@ VolumeCollection::WriteROIToLabel ( int iROIID, bool ibUseRealRAS,
       label->lv[nPoint].deleted = false;
 
       nPoint++;
-
-      delete &loc;
     }
 
     int error = LabelWrite( label, fnLabel );
@@ -2481,7 +2461,7 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
   list<float> values;
   for ( tPoint = iRASPoints.begin(); tPoint != iRASPoints.end(); ++tPoint ) {
     Point3<float> point = *tPoint;
-    VolumeLocation& loc = (VolumeLocation&) MakeLocationFromRAS( point.xyz());
+    VolumeLocation loc( MakeVolumeLocationFromRAS( point.xyz()) );
     if( iROI && !iROI->IsVoxelSelected( loc.Index() ) ) {
       continue;
     }
@@ -2493,7 +2473,6 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
       high = value;
     }
     values.push_back( value );
-    delete &loc;
   }
 
   // No points in the ROI.
@@ -2692,10 +2671,8 @@ VolumeCollection::DoValueRangeFill ( VolumeCollection& iSourceVol,
   GetMRIIndexRange( range );
 
   Point3<int> index( 0, 0, 0 );
-  VolumeLocation& destLoc =
-    (VolumeLocation&) MakeLocationFromIndex( index.xyz() );
-  VolumeLocation& srcLoc =
-    (VolumeLocation&) iSourceVol.MakeLocationFromIndex( index.xyz() );
+  VolumeLocation destLoc( MakeVolumeLocationFromIndex( index.xyz() ) );
+  VolumeLocation srcLoc( iSourceVol.MakeVolumeLocationFromIndex( index.xyz() ) );
   //Point3<float> RAS;
 
   for( index[2] = 0; index[2] < range[2]; index[2]++ )
@@ -2760,8 +2737,7 @@ VolumeCollection::GetVoxelsWithValue ( float iValue,
 
         if ( fabs( value - iValue ) < EPSILON ) {
           int index[3] = { nX, nY, nZ };
-          VolumeLocation& loc =
-            (VolumeLocation&) MakeLocationFromIndex( index );
+          VolumeLocation loc( MakeVolumeLocationFromIndex( index ) );
           olLocations.push_back( loc );
         }
       }
@@ -2843,10 +2819,8 @@ VolumeCollection::GetAverageValue ( ScubaROIVolume& iROI ) {
         tSelected != lSelected.end(); ++tSelected ) {
 
     Point3<int> voxel = *tSelected;
-    VolumeLocation& loc =
-      (VolumeLocation&) MakeLocationFromIndex( voxel.xyz() );
+    VolumeLocation loc( MakeVolumeLocationFromIndex( voxel.xyz() ) );
     lLocs.push_back( loc );
-    delete &loc;
   }
 
   return GetAverageValue( lLocs );
@@ -2884,10 +2858,8 @@ VolumeCollection::GetStandardDeviation ( ScubaROIVolume& iROI, float iMean ) {
         tSelected != lSelected.end(); ++tSelected ) {
 
     Point3<int> voxel = *tSelected;
-    VolumeLocation& loc =
-      (VolumeLocation&) MakeLocationFromIndex( voxel.xyz() );
+    VolumeLocation loc( MakeVolumeLocationFromIndex( voxel.xyz() ) );
     lLocs.push_back( loc );
-    delete &loc;
   }
 
   return GetStandardDeviation( lLocs, iMean );
@@ -3168,18 +3140,15 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
                        iVolume.mMRI->depth, false );
 
   // Save the initial value.
-  VolumeLocation& seedLoc =
-    (VolumeLocation&) sourceVol->MakeLocationFromRAS( iRASSeed );
+  VolumeLocation seedLoc( sourceVol->MakeVolumeLocationFromRAS( iRASSeed ) );
   seedLoc.SetFrame( iFrame );
   float seedValue = sourceVol->GetMRINearestValue( seedLoc );
 
   // Create locations in the source volume space. These will be used
   // in the main loop.
-  VolumeLocation& sourceLoc =
-    (VolumeLocation&) sourceVol->MakeLocationFromRAS( iRASSeed );
+  VolumeLocation sourceLoc( sourceVol->MakeVolumeLocationFromRAS( iRASSeed ) );
   sourceLoc.SetFrame( iFrame );
-  VolumeLocation& sourceFromLoc =
-    (VolumeLocation&) sourceVol->MakeLocationFromRAS( iRASSeed );
+  VolumeLocation sourceFromLoc( sourceVol->MakeVolumeLocationFromRAS( iRASSeed ) );
   sourceFromLoc.SetFrame( iFrame );
 
 #if PRINTOUT
@@ -3230,13 +3199,11 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     checkPairs.pop_back();
 
     Point3<int> index = checkPair.mToIndex;
-    VolumeLocation& loc =
-      (VolumeLocation&) iVolume.MakeLocationFromIndex( index.xyz() );
+    VolumeLocation loc( iVolume.MakeVolumeLocationFromIndex( index.xyz() ) );
     loc.SetFrame( iFrame );
 
     Point3<int> fromIndex = checkPair.mFromIndex;
-    VolumeLocation& fromLoc =
-      (VolumeLocation&) iVolume.MakeLocationFromIndex( fromIndex.xyz() );
+    VolumeLocation fromLoc( iVolume.MakeVolumeLocationFromIndex( fromIndex.xyz() ) );
     fromLoc.SetFrame( iFrame );
 
     Point3<float> ras;
@@ -3252,20 +3219,14 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 
     // Check the bound of this volume and the source one.
     if ( !iVolume.IsInBounds( loc ) ) {
-      delete &loc;
-      delete &fromLoc;
       continue;
     }
     if ( bDifferentSource && !sourceVol->IsInBounds( sourceLoc ) ) {
-      delete &loc;
-      delete &fromLoc;
       continue;
     }
 
     // See if we've visited here before.
     if ( bVisited->Get_Unsafe( index.x(), index.y(), index.z() ) ) {
-      delete &loc;
-      delete &fromLoc;
       continue;
     }
     bVisited->Set_Unsafe( index.x(), index.y(), index.z(), true );
@@ -3273,8 +3234,6 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 
     if ( iParams.mbStopAtROIs ) {
       if ( iVolume.IsOtherRASSelected( ras.xyz(), iVolume.GetSelectedROI() ) ) {
-        delete &loc;
-        delete &fromLoc;
         continue;
       }
     }
@@ -3285,8 +3244,6 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
                              ((ras[1]-iRASSeed[1]) * (ras[1]-iRASSeed[1])) +
                              ((ras[2]-iRASSeed[2]) * (ras[2]-iRASSeed[2])) );
       if ( distance > iParams.mMaxDistance ) {
-        delete &loc;
-        delete &fromLoc;
         continue;
       }
     }
@@ -3295,8 +3252,6 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     if ( iParams.mbOnlyZero ) {
       float value = iVolume.GetMRINearestValue( loc );
       if ( value != 0 ) {
-        delete &loc;
-        delete &fromLoc;
         continue;
       }
     }
@@ -3307,8 +3262,6 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       switch ( iParams.mFuzzinessType ) {
       case Params::seed:
         if ( fabs( value - seedValue ) > iParams.mFuzziness ) {
-          delete &loc;
-          delete &fromLoc;
           continue;
         }
         break;
@@ -3316,8 +3269,6 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
           float fromValue =
             sourceVol->GetMRINearestValue( sourceFromLoc );
           if ( fabs( value - fromValue ) > iParams.mFuzziness ) {
-            delete &loc;
-            delete &fromLoc;
             continue;
           }
         }
@@ -3430,16 +3381,12 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 
       // If we crossed a path, continue.
       if ( bCross ) {
-        delete &loc;
-        delete &fromLoc;
         continue;
       }
     }
 
     // Call the user compare function to give them a chance to bail.
     if ( !this->CompareVoxel( ras.xyz(), iFrame ) ) {
-      delete &loc;
-      delete &fromLoc;
       continue;
     }
 
@@ -3512,38 +3459,31 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       }
     }
 
-    delete &loc;
-    delete &fromLoc;
   }
 
   this->DoEnd();
 
-  delete &seedLoc;
-  delete &sourceLoc;
-  delete &sourceFromLoc;
   delete bVisited;
 
   mVolume = NULL;
   mParams = NULL;
 }
 
-VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
-                                 float const iRAS[3] )
-    : DataLocation( iRAS ), mVolume( &iVolume ), mFrame( 0 ) {
+VolumeLocation::VolumeLocation ( VolumeCollection const& iVolume,
+                                 float const iRAS[3] ) :
+  DataLocation( iRAS ), 
+  mVolume( &iVolume ),
+  mFrame( 0 ) {
 
   mVolume->RASToMRIIndex( iRAS, mIdxf );
   mVolume->RASToMRIIndex( iRAS, mIdxi );
-
-#if 0
-  mIdxi[0] = (int) mIdxf[0];
-  mIdxi[1] = (int) mIdxf[1];
-  mIdxi[2] = (int) mIdxf[2];
-#endif
 }
 
-VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
-                                 int const iIndex[3] )
-    : DataLocation(), mVolume( &iVolume ), mFrame( 0 ) {
+VolumeLocation::VolumeLocation ( VolumeCollection const& iVolume,
+                                 int const iIndex[3] ) :
+  DataLocation(), 
+  mVolume( &iVolume ),
+  mFrame( 0 ) {
 
   mVolume->MRIIndexToRAS( iIndex, mRAS );
   mIdxi[0] = iIndex[0];
@@ -3554,8 +3494,37 @@ VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
   mIdxf[2] = iIndex[2];
 }
 
-VolumeLocation::VolumeLocation ( const VolumeLocation& iLoc )
-    : DataLocation(iLoc), mVolume(iLoc.GetVolume()), mFrame( 0 ) {
+VolumeLocation::VolumeLocation ( VolumeCollection const& iVolume,
+                                 float const iRAS[3],
+				 int iFrame ) :
+  DataLocation( iRAS ),
+  mVolume( &iVolume ),
+  mFrame( iFrame ) {
+
+  mVolume->RASToMRIIndex( iRAS, mIdxf );
+  mVolume->RASToMRIIndex( iRAS, mIdxi );
+}
+
+VolumeLocation::VolumeLocation ( VolumeCollection const& iVolume,
+                                 int const iIndex[3],
+				 int iFrame ) :
+  DataLocation(),
+  mVolume( &iVolume ),
+  mFrame( iFrame ) {
+
+  mVolume->MRIIndexToRAS( iIndex, mRAS );
+  mIdxi[0] = iIndex[0];
+  mIdxi[1] = iIndex[1];
+  mIdxi[2] = iIndex[2];
+  mIdxf[0] = iIndex[0];
+  mIdxf[1] = iIndex[1];
+  mIdxf[2] = iIndex[2];
+}
+
+VolumeLocation::VolumeLocation ( VolumeLocation const& iLoc ) :
+  DataLocation( iLoc ),
+  mVolume( &iLoc.GetVolume() ), 
+  mFrame( 0 ) {
 
   mIdxi[0] = iLoc.Index(0);
   mIdxi[1] = iLoc.Index(1);
@@ -3597,4 +3566,20 @@ VolumeLocation::SetFromIndex ( int const iIdx[3] ) {
 void
 VolumeLocation::SetFrame ( int iFrame ) {
   mFrame = iFrame;
+}
+
+VolumeLocation&
+VolumeLocation::operator= ( VolumeLocation const& iLocation ) {
+
+  // Check for self-assignment.
+  if( this == &iLocation )
+    return *this;
+
+  // Set our values.
+  mVolume = &iLocation.GetVolume();
+  SetFromRAS( iLocation.RAS() );
+  SetFrame( iLocation.GetFrame() );
+
+  // Return ourself.
+  return *this;
 }

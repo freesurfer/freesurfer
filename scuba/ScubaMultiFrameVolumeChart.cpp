@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 22:13:36 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/10/16 22:25:37 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -248,8 +248,8 @@ ScubaMultiFrameVolumeChart::Draw() {
         ScubaView::GetCursor( cursorRAS );
 
         // Make a location in the volume.
-        VolumeLocation& loc =
-          (VolumeLocation&) mVolume.MakeLocationFromRAS( cursorRAS, nFrame );
+        VolumeLocation 
+	  loc( mVolume.MakeVolumeLocationFromRAS( cursorRAS, nFrame ) );
 
         // Check against the bounds of the volume.
         if ( mVolume.IsInBounds( loc ) ) {
@@ -258,8 +258,6 @@ ScubaMultiFrameVolumeChart::Draw() {
           value = mVolume.GetMRINearestValue( loc );
           ssPointLabel << "Frame " << nX;
         }
-
-        delete &loc;
 
       } else {
 
@@ -272,11 +270,10 @@ ScubaMultiFrameVolumeChart::Draw() {
           for ( tSelected = lSelected.begin();
                 tSelected != lSelected.end(); ++tSelected ) {
             Point3<int> voxel = *tSelected;
-            VolumeLocation& loc =
-              (VolumeLocation&) mVolume.MakeLocationFromIndex(voxel.xyz(),
-                  nFrame);
+            VolumeLocation 
+	      loc( mVolume.MakeVolumeLocationFromIndex(voxel.xyz(),
+						       nFrame) );
             value += mVolume.GetMRINearestValue( loc );
-            delete &loc;
           }
 
           // Average the value.

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/15 20:42:21 $
- *    $Revision: 1.70 $
+ *    $Date: 2007/10/16 22:25:38 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -59,30 +59,36 @@ class VolumeLocation : public DataLocation {
   friend class VolumeCollectionTester;
   friend class VolumeCollection;
 public:
-  VolumeLocation ( VolumeCollection& iVolume, float const iRAS[3] );
-  VolumeLocation ( VolumeCollection& iVolume, int const iIndex[3] );
-  VolumeLocation ( const VolumeLocation& iLoc );
+
+  // Ctors.
+  VolumeLocation ( VolumeCollection const& iVolume,
+		   float const iRAS[3] );
+  VolumeLocation ( VolumeCollection const& iVolume,
+		   int const iIndex[3] );
+  VolumeLocation ( VolumeCollection const& iVolume,
+		   float const iRAS[3], int iFrame );
+  VolumeLocation ( VolumeCollection const& iVolume,
+		   int const iIndex[3], int iFrame );
+  VolumeLocation ( VolumeLocation const& iLoc );
   ~VolumeLocation () {}
-  int*   Index      ()               {
-    return mIdxi;
-  }
-  int    Index      ( int in ) const {
-    return mIdxi[in];
-  }
-  float* IndexF     ()               {
-    return mIdxf;
-  }
-  float  IndexF     ( int in ) const {
-    return mIdxf[in];
-  }
-  void   SetFromRAS   ( float const iRAS[3] );
-  void   SetFromIndex ( int const iIndex[3] );
-  void   SetFrame     ( int in );
-  VolumeCollection* GetVolume () const {
-    return mVolume;
-  }
+
+  // Accessors.
+  inline int const* Index () const { return mIdxi; }
+  inline int Index ( int in ) const { return mIdxi[in]; }
+  inline float const* IndexF () const { return mIdxf; }
+  inline float IndexF ( int in ) const { return mIdxf[in]; }
+  VolumeCollection const& GetVolume () const { return *mVolume; }
+  inline int GetFrame () const { return mFrame; }
+
+  // Reinit the location from a different set of coords.
+  void SetFromRAS   ( float const iRAS[3] );
+  void SetFromIndex ( int const iIndex[3] );
+  void SetFrame     ( int in );
+
+  VolumeLocation& operator= ( VolumeLocation const& iLocation );
+
 protected:
-  VolumeCollection* mVolume;
+  VolumeCollection const* mVolume;
   int mFrame;
   int mIdxi[3];
   float mIdxf[3];
@@ -97,13 +103,13 @@ public:
   VolumeCollection ();
   virtual ~VolumeCollection ();
 
-  // Sets the frame in the location to 0.
-  virtual DataLocation& MakeLocationFromRAS ( float const iRAS[3] );
-  DataLocation& MakeLocationFromIndex ( int const iIndex[3] );
-
-  // Optional way that also sets the frame.
-  DataLocation& MakeLocationFromRAS ( float const iRAS[3], int iFrame );
-  DataLocation& MakeLocationFromIndex ( int const iIndex[3], int iFrame );
+  // Makes specialized locations.
+  VolumeLocation MakeVolumeLocationFromRAS ( float const iRAS[3] ) const;
+  VolumeLocation MakeVolumeLocationFromIndex ( int const iIndex[3] ) const;
+  VolumeLocation MakeVolumeLocationFromRAS ( float const iRAS[3], 
+					     int iFrame ) const;
+  VolumeLocation MakeVolumeLocationFromIndex ( int const iIndex[3],
+					       int iFrame ) const;
 
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription() {
@@ -181,24 +187,24 @@ public:
   void GetMRIIndexRange ( int oMRIIndexRange[3] );
 
   // Coordinate conversion.
-  void RASToMRIIndex ( float const iRAS[3], int oIndex[3] );
-  void RASToMRIIndex ( float const iRAS[3], float oIndex[3] );
-  void MRIIndexToRAS ( int const iIndex[3], float oRAS[3] );
-  void MRIIndexToRAS ( float const iIndex[3], float oRAS[3] );
-  void RASToDataRAS  ( float const iRAS[3], float oDataRAS[3] );
-  void DataRASToRAS  ( float const iDataRAS[3], float oRAS[3] );
+  void RASToMRIIndex ( float const iRAS[3], int oIndex[3] ) const;
+  void RASToMRIIndex ( float const iRAS[3], float oIndex[3] ) const;
+  void MRIIndexToRAS ( int const iIndex[3], float oRAS[3] ) const;
+  void MRIIndexToRAS ( float const iIndex[3], float oRAS[3] ) const;
+  void RASToDataRAS  ( float const iRAS[3], float oDataRAS[3] ) const;
+  void DataRASToRAS  ( float const iDataRAS[3], float oRAS[3] ) const;
 
   // This is based on the internal MRI's linear_transform. We check to
   // see if it's present and convert if so. IsTalTransformPresent()
   // can be used to see if there is a transform present. If there is
   // none, RASToTal will have no effect.
-  bool IsTalTransformPresent();
-  void RASToTal      ( float const iRAS[3], float oTal[3] );
+  bool IsTalTransformPresent() const;
+  void RASToTal      ( float const iRAS[3], float oTal[3] ) const;
 
   // Special conversion for compatibility with old edit.dat formats.
   // Calls MRIRASToTkRegRAS and MRITkRegRASToRAS
-  void TkRegRASToRAS ( float const iTkRegRAS[3], float oRAS[3] );
-  void RASToTkRegRAS ( float const iRAS[3], float oTkRegRAS[3] );
+  void TkRegRASToRAS ( float const iTkRegRAS[3], float oRAS[3] ) const;
+  void RASToTkRegRAS ( float const iRAS[3], float oTkRegRAS[3] ) const;
 
   // Bounds testing.
   bool IsInBounds ( VolumeLocation& iLoc ) const;

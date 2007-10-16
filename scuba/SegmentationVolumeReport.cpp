@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.6 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 22:25:38 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -483,8 +483,7 @@ SegmentationVolumeReport::MakeVolumeReport () {
         // same volume as the ROI volume. So make a location for the
         // ROI volume from the RAS of the seg volume location.
         VolumeLocation& loc = *tLoc;
-        VolumeLocation& roiLoc =
-          (VolumeLocation&) mROIVol->MakeLocationFromRAS( loc.RAS() );
+        VolumeLocation roiLoc( mROIVol->MakeVolumeLocationFromRAS( loc.RAS() ) );
         if ( !mROIVol->IsSelected( roiLoc ) ) {
           lLocations.erase( tLoc );
         }
@@ -504,21 +503,17 @@ SegmentationVolumeReport::MakeVolumeReport () {
 
       // Have to make a list of locations for this volume from the
       // other one.
-      list<VolumeLocation> lLocationsForIntVol;
+      mStructureToVolumeVoxelListMap[nStructure][vol].clear();
       for ( tLoc = lLocations.begin(); tLoc != lLocations.end(); ++tLoc ) {
         VolumeLocation& loc = *tLoc;
-        VolumeLocation& intLoc =
-          (VolumeLocation&) vol->MakeLocationFromRAS( loc.RAS() );
-        lLocationsForIntVol.push_back( intLoc );
+        VolumeLocation intLoc( vol->MakeVolumeLocationFromRAS( loc.RAS() ) );
+        mStructureToVolumeVoxelListMap[nStructure][vol].push_back( intLoc );
       }
 
-      // Save the list.
-      mStructureToVolumeVoxelListMap[nStructure][vol] = lLocationsForIntVol;
-
       // Get the average intensity for this list of voxels.
-      if ( lLocationsForIntVol.size() > 0 ) {
+      if ( mStructureToVolumeVoxelListMap[nStructure][vol].size() > 0 ) {
         mVolumeToIntensityAverageMap[vol][nStructure] =
-          vol->GetAverageValue( lLocationsForIntVol );
+          vol->GetAverageValue( mStructureToVolumeVoxelListMap[nStructure][vol] );
       } else {
         mVolumeToIntensityAverageMap[vol][nStructure] = 0;
       }

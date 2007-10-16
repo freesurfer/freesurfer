@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.12 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 22:25:38 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -83,11 +83,6 @@ public:
     SetLabel( isLabel );
   }
 
-  virtual void GetInfo( DataLocation& iLoc,
-                        std::map<std::string,std::string>& iLabelValues ) {
-    return;
-  }
-
   virtual ScubaROI* DoNewROI () {
     return new TestROI();
   }
@@ -128,7 +123,7 @@ DataCollectionTester::Test ( Tcl_Interp* iInterp ) {
     ras[0] = 1;
     ras[1] = 2;
     ras[2] = 3;
-    DataLocation& loc = col1.MakeLocationFromRAS( ras );
+    DataLocation loc = col1.MakeLocationFromRAS( ras );
     Assert( (loc.mRAS[0] == ras[0] &&
              loc.mRAS[1] == ras[1] &&
              loc.mRAS[2] == ras[2]),

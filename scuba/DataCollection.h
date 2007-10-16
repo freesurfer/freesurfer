@@ -13,8 +13,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/02/28 18:33:14 $
- *    $Revision: 1.23 $
+ *    $Date: 2007/10/16 22:25:37 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,18 +63,14 @@ public:
     mRAS[1] = iRAS[1];
     mRAS[2] = iRAS[2];
   }
-  DataLocation ( const DataLocation& iLoc ) {
+  DataLocation ( DataLocation const& iLoc ) {
     mRAS[0] = iLoc.RAS(0);
     mRAS[1] = iLoc.RAS(1);
     mRAS[2] = iLoc.RAS(2);
   }
   ~DataLocation () {}
-  float* RAS() {
-    return mRAS;
-  }
-  float RAS ( int in ) const {
-    return mRAS[in];
-  }
+  float const* RAS() const { return mRAS; }
+  float RAS ( int in ) const { return mRAS[in]; }
 protected:
   float mRAS[3];
 };
@@ -96,11 +92,7 @@ public:
   // If the normal DataLocation is not enough, should subclass to
   // create specific DataLocation. Basically for caching RAS -> data
   // index, be it MRI coords or vertex index or whatever.
-  virtual DataLocation& MakeLocationFromRAS ( float const iRAS[3] );
-
-  // used to poll for any displayable data at the given point.
-  virtual void GetInfo( DataLocation& iLoc,
-                        std::map<std::string,std::string>& iLabelValues );
+  virtual DataLocation MakeLocationFromRAS ( float const iRAS[3] ) const;
 
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription() {

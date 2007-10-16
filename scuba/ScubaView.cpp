@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 20:18:30 $
- *    $Revision: 1.122 $
+ *    $Date: 2007/10/16 22:25:38 $
+ *    $Revision: 1.123 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2944,8 +2944,7 @@ ScubaView::GetVolumeHistogramInView ( VolumeCollection& iSourceVol,
   for ( window[1] = 0; window[1] < mHeight; window[1]++ ) {
     for ( window[0] = 0; window[0] < mWidth; window[0]++ ) {
       TranslateWindowToRAS( window, RAS.xyz() );
-      VolumeLocation& loc =
-        (VolumeLocation&) iSourceVol.MakeLocationFromRAS( RAS.xyz() );
+      VolumeLocation loc( iSourceVol.MakeVolumeLocationFromRAS( RAS.xyz() ) );
 
       if ( iSourceVol.IsInBounds( loc ) ) {
         iSourceVol.RASToMRIIndex( RAS.xyz(), index.xyz() );
@@ -2990,8 +2989,7 @@ ScubaView::DoVolumeValueRangeFill ( VolumeCollection& iSourceVol,
   for ( window[1] = 0; window[1] < mHeight; window[1]++ ) {
     for ( window[0] = 0; window[0] < mWidth; window[0]++ ) {
       TranslateWindowToRAS( window, RAS.xyz() );
-      VolumeLocation& loc =
-        (VolumeLocation&) iSourceVol.MakeLocationFromRAS( RAS.xyz() );
+      VolumeLocation loc( iSourceVol.MakeVolumeLocationFromRAS( RAS.xyz() ) );
       if ( iSourceVol.IsInBounds( loc ) ) {
         iSourceVol.RASToMRIIndex( RAS.xyz(), index.xyz() );
 

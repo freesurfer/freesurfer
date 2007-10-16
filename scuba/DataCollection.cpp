@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 22:13:36 $
- *    $Revision: 1.29 $
+ *    $Date: 2007/10/16 22:25:37 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -108,17 +108,9 @@ DataCollection::~DataCollection() {
   mDataToWorldTransform->RemoveListener( *this );
 }
 
-DataLocation&
-DataCollection::MakeLocationFromRAS ( float const iRAS[3] ) {
-  DataLocation* loc = new DataLocation( iRAS );
-  return *loc;
-}
-
-void
-DataCollection::GetInfo( DataLocation&,
-                         std::map<std::string,std::string>& ) {
-
-  return;
+DataLocation
+DataCollection::MakeLocationFromRAS ( float const iRAS[3] ) const {
+  return DataLocation( iRAS );
 }
 
 void
