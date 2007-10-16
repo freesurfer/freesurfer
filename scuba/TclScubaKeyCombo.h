@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 16:40:23 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/10/16 16:55:26 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,7 +67,7 @@ protected:
 // Our specific factory to create this kind of key type.
 class TclScubaKeyComboFactory : public ScubaKeyComboFactory {
 public:
-  virtual ScubaKeyCombo* MakeKeyCombo() {
+  virtual ScubaKeyCombo* MakeKeyCombo() const {
     return new TclScubaKeyCombo();
   }
 };

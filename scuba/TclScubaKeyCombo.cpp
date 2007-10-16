@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 16:40:23 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/10/16 16:55:26 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@ using namespace std;
 bool TclScubaKeyComboStaticTclListener::mbAddedTclCommands = false;
 
 TclScubaKeyCombo::TclScubaKeyCombo () :
-    ScubaKeyCombo() {}
+  ScubaKeyCombo() {}
 
 void
 TclScubaKeyCombo::SetFromString ( string const& isKey ) {

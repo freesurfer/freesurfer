@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.5 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/16 16:55:26 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -77,7 +77,8 @@ TclScubaKeyComboTester::Test ( Tcl_Interp* iInterp ) {
       string sMod;
       bool bCtrl, bShift, bAlt, bMeta;
     };
-    modTest aModifiers[] = {{"Ctrl ", true, false, false, false},
+    modTest aModifiers[] = {{"", false, false, false, false},
+			    {"Ctrl ", true, false, false, false},
                             {"Shift ", false, true, false, false},
                             {"Alt ", false, false, true, false},
                             {"Meta ", false, false, false, true},
