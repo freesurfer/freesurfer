@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/10 18:59:06 $
- *    $Revision: 1.16 $
+ *    $Date: 2007/10/17 21:04:57 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.16 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.17 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
   mbDirty( false ),
@@ -851,6 +851,20 @@ vtkKWOrientMRIWindow::ReorthogonalizeVolume () {
   vtkKWOrientMRIView2D::GetReorthoPoints( xStart, xEnd, 
 					  yStart, yEnd,
 					  zStart, zEnd );
+
+  // Make sure we have good points; they must all be different.
+  if( (fabs(xStart[0] - xEnd[0]) < numeric_limits<double>::epsilon() &&
+       fabs(xStart[1] - xEnd[2]) < numeric_limits<double>::epsilon() &&
+       fabs(xStart[2] - xEnd[1]) < numeric_limits<double>::epsilon()) ||
+      (fabs(yStart[0] - yEnd[0]) < numeric_limits<double>::epsilon() &&
+       fabs(yStart[1] - yEnd[2]) < numeric_limits<double>::epsilon() &&
+       fabs(yStart[2] - yEnd[1]) < numeric_limits<double>::epsilon()) ||
+      (fabs(zStart[0] - zEnd[0]) < numeric_limits<double>::epsilon() &&
+       fabs(zStart[1] - zEnd[2]) < numeric_limits<double>::epsilon() &&
+       fabs(zStart[2] - zEnd[1]) < numeric_limits<double>::epsilon()) ) {
+    this->GetApplication()->ErrorMessage( "You must draw all three orthogonalization arrows before reorthogonalizing the volume." );
+    return;
+  }
 
   // First make vectors out of our points and normalize them.
   double x[3], y[3], z[3];
