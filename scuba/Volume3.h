@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 16:57:38 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/10/17 23:59:49 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,7 @@ public:
   // Accessors. Unsafe version doesn't check bounds.
   T Get ( int inX, int inY, int inZ ) const;
   T Get_Unsafe ( int inX, int inY, int inZ ) const;
+  void GetBounds( int& ozX, int& ozY, int& ozZ ) const;
 
   // Settors. Unsafe version doesn't check bounds.
   void SetAll ( T const iValue );

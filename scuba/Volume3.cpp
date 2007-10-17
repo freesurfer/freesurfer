@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 16:57:37 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/10/17 23:59:49 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,6 +91,16 @@ Volume3<T>::Get_Unsafe ( int inX, int inY, int inZ ) const {
 
   return mData[inZ][inY][inX];
 }
+
+template <typename T>
+void
+Volume3<T>::GetBounds( int& ozX, int& ozY, int& ozZ ) const {
+
+  ozX = mzX;
+  ozY = mzY;
+  ozZ = mzZ;
+}
+
 
 template <typename T>
 void

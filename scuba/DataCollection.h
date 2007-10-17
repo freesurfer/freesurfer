@@ -13,8 +13,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 22:25:37 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/10/17 23:59:48 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,24 +53,17 @@ class DataLocation {
   friend class DataCollectionTester;
   friend class DataCollection;
 public:
-  DataLocation () {
-    mRAS[0] = 0;
-    mRAS[1] = 0;
-    mRAS[2] = 0;
-  }
-  DataLocation ( float const iRAS[3] ) {
-    mRAS[0] = iRAS[0];
-    mRAS[1] = iRAS[1];
-    mRAS[2] = iRAS[2];
-  }
-  DataLocation ( DataLocation const& iLoc ) {
-    mRAS[0] = iLoc.RAS(0);
-    mRAS[1] = iLoc.RAS(1);
-    mRAS[2] = iLoc.RAS(2);
-  }
+
+  // Ctors.
+  DataLocation ();
+  DataLocation ( float const iRAS[3] );
+  DataLocation ( DataLocation const& iLoc );
   ~DataLocation () {}
+
+  // Accessors.
   float const* RAS() const { return mRAS; }
   float RAS ( int in ) const { return mRAS[in]; }
+
 protected:
   float mRAS[3];
 };
@@ -86,6 +79,8 @@ class DataCollection : public DebugReporter,
 
 public:
 
+  // The Ctor sets the mDataToWorldTransform to a default identity
+  // transform with ID 0; if not found, it creates it.
   DataCollection();
   virtual ~DataCollection();
 
@@ -95,52 +90,71 @@ public:
   virtual DataLocation MakeLocationFromRAS ( float const iRAS[3] ) const;
 
   // Should return a type description unique to the subclass.
-  virtual std::string GetTypeDescription() {
+  virtual std::string GetTypeDescription() const {
     return "BaseCollection";
   }
 
-  std::string GetLabel() const {
-    return msLabel;
-  }
-  void SetLabel( std::string const isLabel );
+  // Get and set our human-readable label.
+  std::string const& GetLabel() const;
+  void SetLabel( std::string const& isLabel );
 
   // Return the bounds of the data in RAS coords. 0=xmin, 1=xmax,
   // 2=ymin, etc.
-  virtual void GetDataRASBounds ( float oBounds[6] );
+  virtual void GetDataRASBounds ( float oBounds[6] ) const;
 
+  // Respond to Tcl commands.
   virtual TclCommandResult
-  DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
   // Handle broadcast messages.
   virtual void
-  DoListenToMessage ( std::string isMessage, void* iData );
+    DoListenToMessage ( std::string isMessage, void* iData );
+  
+  // ROI management. Each DataCollection has a set of ROIs that belong
+  // to it, and each knows how to make the right kind of ROI for it.
 
-  // Get a list of ROI IDs that belong to this data collection.
-  std::vector<int> GetROIList ();
-  int GetNumberOfROIs () {
-    return mROIMap.size();
-  }
-  bool IsROIInThisCollection ( int iROIID );
-
-  // Create a new ROI and assign it to this collection. Return its ID.
+  // Create a new ROI and assign it to this collection. Return its
+  // ID. This calls the internal DoNewROI() function that subclasses
+  // can override to make their own ROI types. We take over ownership
+  // of the ROI pointer.
   int NewROI ();
 
-  // Tell this collection to select this ROI.
-  void SelectROI ( int iROIID );
-  int GetSelectedROI () {
-    return mSelectedROIID;
-  }
+  // Delete a given ROI.
   void DeleteROI ( int iROIID );
 
-  // Called by NewROI, should be subclassed to return specific ROI type.
-  virtual ScubaROI* DoNewROI ();
+  // Get a list of ROI IDs that belong to this data collection.
+  std::vector<int> GetROIList () const;
+  int GetNumberOfROIs () const;
+  bool IsROIInThisCollection ( int iROIID ) const;
 
-  // The Data <-> World transform.
+  // A collection can have a selected ROI. This lets it perform
+  // certain actions on the selected ROI.
+  void SelectROI ( int iROIID );
+  int GetSelectedROI () const;
+
+  // A DataCollection subclass will most likely define a custom space
+  // for whatever coordinates are in its data fields, such as
+  // column/row/slice space for a volume. "Data" space is an
+  // intermediate space that allows a user-transform (i.e. a display
+  // transform) to be inserted between this space and the final world
+  // space. "World" space is equivalent to RAS space, since in Scuba,
+  // everything that is drawn on the screen is meant to be in RAS
+  // space. This superclass only deals with the Data <-> World
+  // transform.
+
+  // Set the ID of the transform (this should be the ID of a
+  // ScubaTransform).
   virtual void SetDataToWorldTransform ( int iTransformID );
-  int GetDataToWorldTransform ();
 
-  // Returns a best guess value increment for a GUI.
-  virtual float GetPreferredValueIncrement ();
+  // Return the ID of the transform
+  int GetDataToWorldTransform () const;
+
+
+  // Returns a best guess value increment for a GUI. This is used by
+  // editor tools that change this data type's values. This is
+  // convenience function and may not be applicable to all subclasses.
+  virtual float GetPreferredValueIncrement () const;
+
 
   // Suppresses the dataChanged message. Use when changing a lot of
   // voxels in a row that don't need updates in between. Will call
@@ -153,13 +167,24 @@ public:
   void EndBatchROIChanges ();
 
 protected:
+
+  // Called by NewROI, should be subclassed to return specific ROI type.
+  virtual ScubaROI* DoNewROI ();
+
+  // Our human-readable label.
   std::string msLabel;
 
-  int mSelectedROIID;
+  // Our map of ROIs that belong to us. We own the pointers in this map.
   std::map<int,ScubaROI*> mROIMap;
+
+  // Our selected ROI.
+  int mSelectedROIID;
 
   // For self to call when data has changed.
   virtual void DataChanged ();
+
+  // Don't call DataChanged if true (set by the
+  // {Begin|End}BatchChanges calls);
   bool mbSuspendDataChangedMessage;
 
   // The data to world transform. Should be applied to all requests

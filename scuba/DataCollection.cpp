@@ -12,8 +12,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 22:25:37 $
- *    $Revision: 1.30 $
+ *    $Date: 2007/10/17 23:59:48 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,21 +43,24 @@ DataCollection::DataCollection() :
     msLabel(""),
     mSelectedROIID(-1),
     mbSuspendDataChangedMessage(false),
-    mDataToWorldTransform(NULL) {
+    mDataToWorldTransform( NULL ) {
 
   // Try setting our initial transform to the default transform with
-  // id 0. If it's not there, create it.
+  // id 0. If it's not there, create it. This ensures we always have a
+  // default identity transform.
   try {
     mDataToWorldTransform = &(ScubaTransform::FindByID( 0 ));
     mDataToWorldTransform->AddListener( *this );
   } catch (...) {
 
+    // This will be created with ID 0.
     ScubaTransform* transform = new ScubaTransform();
     transform->SetLabel( "Identity" );
 
     try {
       mDataToWorldTransform = &(ScubaTransform::FindByID( 0 ));
       mDataToWorldTransform->AddListener( *this );
+      
     } catch (...) {
       DebugOutput( << "Couldn't make default transform!" );
     }
@@ -99,13 +102,12 @@ DataCollection::~DataCollection() {
   for ( tIDROI = mROIMap.begin();
         tIDROI != mROIMap.end(); ++tIDROI ) {
     ScubaROI* roi = (*tIDROI).second;
-    if ( NULL != roi ) {
-      delete roi;
-    }
+    delete roi;
   }
 
   // Stop listening to whoever is still around.
-  mDataToWorldTransform->RemoveListener( *this );
+  if( mDataToWorldTransform )
+    mDataToWorldTransform->RemoveListener( *this );
 }
 
 DataLocation
@@ -113,14 +115,20 @@ DataCollection::MakeLocationFromRAS ( float const iRAS[3] ) const {
   return DataLocation( iRAS );
 }
 
+string const&
+DataCollection::GetLabel() const {
+  
+  return msLabel;
+}
+
 void
-DataCollection::SetLabel( string isLabel ) {
+DataCollection::SetLabel( string const& isLabel ) {
   msLabel = isLabel;
   DataChanged();
 }
 
 void
-DataCollection::GetDataRASBounds ( float oRASBounds[6] ) {
+DataCollection::GetDataRASBounds ( float oRASBounds[6] ) const {
   
   oRASBounds[0] = oRASBounds[1] = oRASBounds[2] =
     oRASBounds[3] = oRASBounds[4] = oRASBounds[5] = 0;
@@ -340,11 +348,52 @@ DataCollection::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
 void
 DataCollection::DoListenToMessage ( string, void* ) {}
 
-vector<int>
-DataCollection::GetROIList () {
+int
+DataCollection::NewROI () {
 
-  std::vector<int> lROIs;
+  // Let the subclass make the appropriate ROI.
+  ScubaROI* roi = this->DoNewROI();
+  if( NULL == roi ) 
+    throw runtime_error( "DoNewROI returned a NULL ROI" );
+
+  // Add it to the roi map.
+  mROIMap[roi->GetID()] = roi;
+
+  // Return the ID.
+  return roi->GetID();
+}
+
+void
+DataCollection::DeleteROI ( int iROIID ) {
+
+  // Look for this ID in the roi map. If found, delete the
+  // ROI. Otherwise throw an error.
   map<int,ScubaROI*>::iterator tIDROI;
+  tIDROI = mROIMap.find( iROIID );
+  if ( tIDROI != mROIMap.end() ) {
+
+    // Delete the ROI.
+    ScubaROI* roi = (*tIDROI).second;
+    delete roi;
+
+    // Delete the entry from the map.
+    mROIMap.erase( iROIID );
+
+    // If this was the selected ROI, unselect it.
+    if ( mSelectedROIID == iROIID )
+      mSelectedROIID = -1;
+
+  } else {
+    throw runtime_error( "ROI doesn't belong to this collection" );
+  }
+}
+
+vector<int>
+DataCollection::GetROIList () const {
+
+  // Put all our ROI IDs into a vector and return it.
+  std::vector<int> lROIs;
+  map<int,ScubaROI*>::const_iterator tIDROI;
   for ( tIDROI = mROIMap.begin();
         tIDROI != mROIMap.end(); ++tIDROI ) {
     int roiID = (*tIDROI).first;
@@ -354,26 +403,20 @@ DataCollection::GetROIList () {
   return lROIs;
 }
 
-bool
-DataCollection::IsROIInThisCollection ( int iROIID ) {
+int
+DataCollection::GetNumberOfROIs () const {
 
-  map<int,ScubaROI*>::iterator tIDROI;
+  return mROIMap.size();
+}
+
+bool
+DataCollection::IsROIInThisCollection ( int iROIID ) const {
+
+  // Try to find the ROI ID in our map and return if it was found.
+  map<int,ScubaROI*>::const_iterator tIDROI;
   tIDROI = mROIMap.find( iROIID );
 
   return ( tIDROI != mROIMap.end() );
-}
-
-int
-DataCollection::NewROI () {
-
-  // Let the subclass make the appropriate ROI.
-  ScubaROI* roi = this->DoNewROI();
-
-  // Add it to the roi map.
-  mROIMap[roi->GetID()] = roi;
-
-  // Return the ID.
-  return roi->GetID();
 }
 
 void
@@ -390,26 +433,9 @@ DataCollection::SelectROI ( int iROIID ) {
   }
 }
 
-void
-DataCollection::DeleteROI ( int iROIID ) {
-
-  // Look for this ID in the roi map. If found, delete the
-  // ROI. Otherwise throw an error.
-  map<int,ScubaROI*>::iterator tIDROI;
-  tIDROI = mROIMap.find( iROIID );
-  if ( tIDROI != mROIMap.end() ) {
-
-    ScubaROI* roi = (*tIDROI).second;
-    delete roi;
-
-    mROIMap.erase( iROIID );
-
-    if ( mSelectedROIID == iROIID ) {
-      mSelectedROIID = -1;
-    }
-  } else {
-    throw runtime_error( "ROI doesn't belong to this collection" );
-  }
+int
+DataCollection::GetSelectedROI () const {
+  return mSelectedROIID;
 }
 
 ScubaROI*
@@ -422,28 +448,33 @@ void
 DataCollection::SetDataToWorldTransform ( int iTransformID ) {
 
   // Don't set if we're already using this one.
-  if ( NULL != mDataToWorldTransform &&
-       iTransformID == mDataToWorldTransform->GetID() )
+  if ( iTransformID == mDataToWorldTransform->GetID() )
     return;
 
   try {
+
+    // Try to find this transform.
+    ScubaTransform& transform = ScubaTransform::FindByID( iTransformID );
+
+    // If we found it, stop listening to the current one and start
+    // listening to this new one.
     mDataToWorldTransform->RemoveListener( *this );
-    mDataToWorldTransform = &(ScubaTransform::FindByID( iTransformID ));
+    mDataToWorldTransform = &transform;
     mDataToWorldTransform->AddListener( *this );
+
   } catch (...) {
     DebugOutput( << "Couldn't find transform " << iTransformID );
-    mDataToWorldTransform = NULL;
   }
 }
 
 int
-DataCollection::GetDataToWorldTransform () {
+DataCollection::GetDataToWorldTransform () const {
 
   return mDataToWorldTransform->GetID();
 }
 
 float
-DataCollection::GetPreferredValueIncrement () {
+DataCollection::GetPreferredValueIncrement () const {
 
   return 0;
 }
@@ -451,6 +482,7 @@ DataCollection::GetPreferredValueIncrement () {
 void
 DataCollection::DataChanged () {
 
+  // When our data changes, broadcast a message with our ID.
   if ( !mbSuspendDataChangedMessage ) {
     int id = GetID();
     SendBroadcast( "dataChanged", (void*)&id );
@@ -460,17 +492,23 @@ DataCollection::DataChanged () {
 
 void
 DataCollection::BeginBatchChanges () {
+
+  // Don't call our changed function until we're done.
   mbSuspendDataChangedMessage = true;
 }
 
 void
 DataCollection::EndBatchChanges () {
+
+  // We're done, call our changed function.
   mbSuspendDataChangedMessage = false;
   DataChanged();
 }
 
 void
 DataCollection::BeginBatchROIChanges () {
+
+  // Same as the other batch changes, but we have to notify each ROI.
   map<int,ScubaROI*>::iterator tIDROI;
   tIDROI = mROIMap.find( mSelectedROIID );
   if ( tIDROI != mROIMap.end() ) {
@@ -480,9 +518,29 @@ DataCollection::BeginBatchROIChanges () {
 
 void
 DataCollection::EndBatchROIChanges () {
+
+  // Same as the other batch changes, but we have to notify each ROI.
   map<int,ScubaROI*>::iterator tIDROI;
   tIDROI = mROIMap.find( mSelectedROIID );
   if ( tIDROI != mROIMap.end() ) {
     (*tIDROI).second->EndBatchChanges();
   }
+}
+
+DataLocation::DataLocation () {
+  mRAS[0] = 0;
+  mRAS[1] = 0;
+  mRAS[2] = 0;
+}
+
+DataLocation::DataLocation ( float const iRAS[3] ) {
+  mRAS[0] = iRAS[0];
+  mRAS[1] = iRAS[1];
+  mRAS[2] = iRAS[2];
+}
+
+DataLocation::DataLocation ( DataLocation const& iLoc ) {
+  mRAS[0] = iLoc.RAS(0);
+  mRAS[1] = iLoc.RAS(1);
+  mRAS[2] = iLoc.RAS(2);
 }

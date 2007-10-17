@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 22:25:38 $
- *    $Revision: 1.115 $
+ *    $Date: 2007/10/17 23:59:49 $
+ *    $Revision: 1.116 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -217,10 +217,17 @@ VolumeCollection::MakeVolumeLocationFromIndex ( int const iIndex[3],
 }
 
 void
-VolumeCollection::SetFileName ( string& ifnMRI ) {
+VolumeCollection::SetFileName ( string const& ifnMRI ) {
 
+  // Set our file name and make the autosave name.
   mfnMRI = ifnMRI;
   mfnAutosave = MakeAutosaveFileName( mfnMRI );
+}
+
+string const&
+VolumeCollection::GetFileName () const {
+
+  return mfnMRI;
 }
 
 void
@@ -232,11 +239,11 @@ VolumeCollection::MakeUsingTemplate ( int iCollectionID, int iType ) {
     throw runtime_error( ssError.str() );
   }
 
+  // Try to find our template volume.
   VolumeCollection* vol = NULL;
   try {
     DataCollection* col = &DataCollection::FindByID( iCollectionID );
-    //    VolumeCollection* vol = dynamic_cast<VolumeCollection*>(col);
-    vol = (VolumeCollection*)col;
+    vol = dynamic_cast<VolumeCollection*>(col);
   } catch (...) {
     throw runtime_error( "Couldn't find template." );
   }
@@ -247,6 +254,7 @@ VolumeCollection::MakeUsingTemplate ( int iCollectionID, int iType ) {
     throw runtime_error( "Couldn't get MRI from template" );
   }
 
+  // If they passed -1, copy the type.
   int type = iType;
   if( iType == -1 )
     type = mri->type;
@@ -268,8 +276,7 @@ VolumeCollection::MakeUsingTemplate ( int iCollectionID, int iType ) {
   InitializeFromMRI();
 
   // Set a temporary filename.
-  string fn = "New_Volume.mgh";
-  SetFileName( fn );
+  SetFileName( "New_Volume.mgh" );
 }
 
 void
@@ -340,18 +347,21 @@ VolumeCollection::GetMRI() const {
 }
 
 void
-VolumeCollection::Save () {
+VolumeCollection::Save () const {
 
   Save( mfnMRI );
 }
 
 void
-VolumeCollection::Save ( string ifn ) {
+VolumeCollection::Save ( string const& ifn ) const {
 
+  // Make a local copy of the filename and call MRIwrite.
   char* fn = strdup( ifn.c_str() );
   int rMRI = MRIwrite( mMRI, fn );
   free( fn );
 
+  // If they gave us an error code (who knows what it could mean),
+  // throw an error.
   if ( ERROR_NONE != rMRI ) {
     stringstream ssError;
     ssError << "Couldn't write file " << ifn;
@@ -524,9 +534,94 @@ VolumeCollection::TryReadingTimeMetadata () {
   mCovarianceTable          = covTable;
 }
 
+
+float 
+VolumeCollection::GetMRIMinValue () const {
+  return mMRIMinValue;
+}
+
+float 
+VolumeCollection::GetMRIMaxValue () const {
+  return mMRIMaxValue;
+}
+
+float
+VolumeCollection::GetMRIMagnitudeMinValue () const {
+
+  if ( NULL == mMagnitudeMRI ) {
+
+    // Make a mutable copy of ourselves so we can call
+    // MakeMagnitudeVolume.
+    VolumeCollection* mutableThis = const_cast<VolumeCollection*>(this);
+    mutableThis->MakeMagnitudeVolume();
+  }
+
+  return mMRIMagMinValue;
+}
+
+float
+VolumeCollection::GetMRIMagnitudeMaxValue () const {
+
+  if ( NULL == mMagnitudeMRI ) {
+
+    // Make a mutable copy of ourselves so we can call
+    // MakeMagnitudeVolume.
+    VolumeCollection* mutableThis = const_cast<VolumeCollection*>(this);
+    mutableThis->MakeMagnitudeVolume();
+  }
+
+  return mMRIMagMaxValue;
+}
+
+float 
+VolumeCollection::GetVoxelXSize () const {
+  return mVoxelSize[0];
+}
+
+float 
+VolumeCollection::GetVoxelYSize () const {
+    return mVoxelSize[1];
+}
+
+float 
+VolumeCollection::GetVoxelZSize () const {
+  return mVoxelSize[2];
+}
+
+int
+VolumeCollection::GetDataType () const {
+
+  if( NULL != mMRI ) {
+    return mMRI->type;
+  } 
+
+  return -1;
+}
+
+int
+VolumeCollection::GetNumberOfFrames () const {
+  return mcFrames;
+}
+
+bool 
+VolumeCollection::InterpretFramesAsTimePoints () const {
+  return mbInterpretFramesAsTimePoints;
+}
+
+int 
+VolumeCollection::GetNumberOfConditions () const {
+  return mcConditions;
+}
+
+int 
+VolumeCollection::GetNumberOfTimePoints () const {
+  return mcTimePoints;
+}
+
 int
 VolumeCollection::ConvertConditionAndTimePointToFrame ( int iCondition,
-    int iTimePoint ) {
+							int iTimePoint ) const {
+
   if ( !mbInterpretFramesAsTimePoints )
     throw runtime_error( "Volume doesn't use time points." );
 
@@ -593,7 +688,7 @@ VolumeCollection::ConvertConditionAndTimePointToFrame ( int iCondition,
 }
 
 int
-VolumeCollection::ExtractConditionFromFrame ( int iFrame ) {
+VolumeCollection::ExtractConditionFromFrame ( int iFrame ) const {
 
   if ( !mbInterpretFramesAsTimePoints )
     throw runtime_error( "Volume doesn't use conditions." );
@@ -616,7 +711,7 @@ VolumeCollection::ExtractConditionFromFrame ( int iFrame ) {
 }
 
 int
-VolumeCollection::ExtractTimePointFromFrame ( int iFrame ) {
+VolumeCollection::ExtractTimePointFromFrame ( int iFrame ) const {
 
   if ( !mbInterpretFramesAsTimePoints )
     throw runtime_error( "Volume doesn't use time points." );
@@ -639,23 +734,27 @@ VolumeCollection::ExtractTimePointFromFrame ( int iFrame ) {
 }
 
 void
-VolumeCollection::GetDataRASBounds ( float oRASBounds[6] ) {
+VolumeCollection::GetDataRASBounds ( float oRASBounds[6] ) const {
 
   if ( NULL != mMRI ) {
 
+    // If our cache is dirty...
     if ( mbBoundsCacheDirty ) {
 
-      mRASBounds[0] = mRASBounds[2] = mRASBounds[4] = 999999;
-      mRASBounds[1] = mRASBounds[3] = mRASBounds[5] = -999999;
+      // Recalc our bounds.
+      mRASBounds[0] = mRASBounds[2] = mRASBounds[4] = 
+	numeric_limits<float>::max();
+      mRASBounds[1] = mRASBounds[3] = mRASBounds[5] = 
+	numeric_limits<float>::min();
 
       int index[3];
       int cornerFactor[3];
       float RAS[3];
-      for ( cornerFactor[2] = 0; cornerFactor[2] <= 1; cornerFactor[2]++ ) {
+      for( cornerFactor[2] = 0; cornerFactor[2] <= 1; cornerFactor[2]++ ) {
         index[2] = cornerFactor[2] * mMRI->width;
-        for ( cornerFactor[1] = 0; cornerFactor[1] <= 1; cornerFactor[1]++ ) {
+        for( cornerFactor[1] = 0; cornerFactor[1] <= 1; cornerFactor[1]++ ) {
           index[1] = cornerFactor[1] * mMRI->width;
-          for ( cornerFactor[0] = 0; cornerFactor[0] <= 1; cornerFactor[0]++ ) {
+          for( cornerFactor[0] = 0; cornerFactor[0] <= 1; cornerFactor[0]++ ) {
             index[0] = cornerFactor[0] * mMRI->width;
 
             MRIIndexToRAS( index, RAS );
@@ -673,6 +772,7 @@ VolumeCollection::GetDataRASBounds ( float oRASBounds[6] ) {
       mbBoundsCacheDirty = false;
     }
 
+    // Set the outgoing bounds.
     oRASBounds[0] = mRASBounds[0];
     oRASBounds[1] = mRASBounds[1];
     oRASBounds[2] = mRASBounds[2];
@@ -681,40 +781,29 @@ VolumeCollection::GetDataRASBounds ( float oRASBounds[6] ) {
     oRASBounds[5] = mRASBounds[5];
 
   } else {
+
+    // No MRI, not much we can do.
     oRASBounds[0] = oRASBounds[1] = oRASBounds[2] =
-                                      oRASBounds[3] = oRASBounds[4] = oRASBounds[5] = 0;
+      oRASBounds[3] = oRASBounds[4] = oRASBounds[5] = 0;
   }
 }
 
 void
-VolumeCollection::UpdateMRIValueRange () {
+VolumeCollection::GetMRIIndexRange ( int oMRIIndexRange[3] ) const {
 
   if ( NULL != mMRI ) {
+    oMRIIndexRange[0] = mMRI->width;
+    oMRIIndexRange[1] = mMRI->height;
+    oMRIIndexRange[2] = mMRI->depth;
 
-    // Get the range in every frame and find the most min and max.
-    mMRIMinValue = 99999;
-    mMRIMaxValue = -99999;
-    float minValue, maxValue;
-    for ( int nFrame = 0; nFrame < mMRI->nframes; nFrame++ ) {
-      MRIvalRangeFrame( mMRI, &minValue, &maxValue, nFrame );
-      if ( minValue < mMRIMinValue )
-        mMRIMinValue = minValue;
-      if ( maxValue > mMRIMaxValue )
-        mMRIMaxValue = maxValue;
-    }
+  } else {
+    
+    oMRIIndexRange[0] = oMRIIndexRange[1] = oMRIIndexRange[2] = 0;
   }
-}
-
-float
-VolumeCollection::GetMRIMagnitudeMinValue () {
-  if ( NULL == mMagnitudeMRI ) {
-    MakeMagnitudeVolume();
-  }
-  return mMRIMagMinValue;
 }
 
 bool
-VolumeCollection::IsInBounds ( VolumeLocation& iLoc ) const {
+VolumeCollection::IsInBounds ( VolumeLocation const& iLoc ) const {
 
   if ( NULL != mMRI ) {
     return ( iLoc.mIdxi[0] >= 0 && iLoc.mIdxi[0] < mMRI->width &&
@@ -759,26 +848,6 @@ VolumeCollection::IsFrameInBounds ( int const iFrame ) const {
     return false;
   }
 }
-
-
-void
-VolumeCollection::GetMRIIndexRange ( int oMRIIndexRange[3] ) {
-
-  if ( NULL != mMRI ) {
-    oMRIIndexRange[0] = mMRI->width;
-    oMRIIndexRange[1] = mMRI->height;
-    oMRIIndexRange[2] = mMRI->depth;
-  }
-}
-
-float
-VolumeCollection::GetMRIMagnitudeMaxValue () {
-  if ( NULL == mMagnitudeMRI ) {
-    MakeMagnitudeVolume();
-  }
-  return mMRIMagMaxValue;
-}
-
 
 void
 VolumeCollection::RASToMRIIndex ( float const iRAS[3], int oIndex[3] ) const {
@@ -897,7 +966,7 @@ VolumeCollection::RASToTkRegRAS ( float const iRAS[3],
 }
 
 float
-VolumeCollection::GetMRINearestValue ( VolumeLocation& iLoc ) const {
+VolumeCollection::GetMRINearestValue ( VolumeLocation const& iLoc ) const {
 
   Real value = 0;
   if ( NULL != mMRI ) {
@@ -932,8 +1001,8 @@ VolumeCollection::GetMRINearestValue ( VolumeLocation& iLoc ) const {
 }
 
 float
-VolumeCollection::GetMRINearestValueAtIndexUnsafe ( int iIndex[3],
-    int inFrame ) {
+VolumeCollection::GetMRINearestValueAtIndexUnsafe ( int const iIndex[3],
+						    int inFrame ) const {
 
   Real value = 0;
 
@@ -958,7 +1027,7 @@ VolumeCollection::GetMRINearestValueAtIndexUnsafe ( int iIndex[3],
 }
 
 float
-VolumeCollection::GetMRITrilinearValue ( VolumeLocation& iLoc ) const {
+VolumeCollection::GetMRITrilinearValue ( VolumeLocation const& iLoc ) const {
 
   Real value = 0;
   if ( NULL != mMRI ) {
@@ -974,7 +1043,7 @@ VolumeCollection::GetMRITrilinearValue ( VolumeLocation& iLoc ) const {
 }
 
 float
-VolumeCollection::GetMRISincValue ( VolumeLocation& iLoc ) const {
+VolumeCollection::GetMRISincValue ( VolumeLocation const& iLoc ) const {
 
   Real value = 0;
   if ( NULL != mMRI ) {
@@ -991,7 +1060,7 @@ VolumeCollection::GetMRISincValue ( VolumeLocation& iLoc ) const {
 }
 
 void
-VolumeCollection::SetMRIValue ( VolumeLocation& iLoc,
+VolumeCollection::SetMRIValue ( VolumeLocation const& iLoc,
                                 float iValue ) {
 
   if ( NULL != mMRI ) {
@@ -1035,38 +1104,18 @@ VolumeCollection::SetMRIValue ( VolumeLocation& iLoc,
   }
 }
 
-int
-VolumeCollection::GetDataType () {
-
-  if( NULL != mMRI ) {
-    return mMRI->type;
-  } 
-
-  return -1;
-}
-
-void
-VolumeCollection::MakeMagnitudeVolume () {
-
-  if ( NULL != mMRI ) {
-    mMagnitudeMRI =
-      MRIallocSequence( mMRI->width, mMRI->height, mMRI->depth,
-                        MRI_FLOAT, mMRI->nframes );
-    MRI* gradMRI = MRIsobel( mMRI, NULL, mMagnitudeMRI );
-    MRIfree( &gradMRI );
-
-    MRIvalRange( mMagnitudeMRI, &mMRIMagMinValue, &mMRIMagMaxValue );
-  }
-}
-
 float
-VolumeCollection::GetMRIMagnitudeValue ( VolumeLocation& iLoc ) {
+VolumeCollection::GetMRIMagnitudeValue ( VolumeLocation const& iLoc ) const {
 
   Real value = 0;
 
   // If we don't have the magnitude volume, calculate it.
   if ( NULL == mMagnitudeMRI ) {
-    MakeMagnitudeVolume();
+
+    // Make a mutable copy of ourselves so we can call
+    // MakeMagnitudeVolume.
+    VolumeCollection* mutableThis = const_cast<VolumeCollection*>(this);
+    mutableThis->MakeMagnitudeVolume();
   }
 
   // Get the value.
@@ -1083,9 +1132,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // SetVolumeCollectionFileName <collectionID> <fileName>
   if ( 0 == strcmp( isCommand, "SetVolumeCollectionFileName" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1098,9 +1149,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // LoadVolumeFromFileName <collectionID>
   if ( 0 == strcmp( isCommand, "LoadVolumeFromFileName" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1112,9 +1165,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // GetVolumeCollectionFileName <collectionID>
   if ( 0 == strcmp( isCommand, "GetVolumeCollectionFileName" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1148,18 +1203,22 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // WriteVolumeROIToLabel <collectionID> <roiID> <useRealRAS> <fileName>
   if ( 0 == strcmp( isCommand, "WriteVolumeROIToLabel" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
     if ( mID == collectionID ) {
 
-      int roiID = strtol(iasArgv[2], (char**)NULL, 10);
-      if ( ERANGE == errno ) {
-        sResult = "bad roi ID";
-        return error;
+      int roiID;
+      try {
+	roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      } catch ( runtime_error& e ) {
+	sResult = string("bad roi ID: ") + e.what();
+	return error;
       }
 
       bool bUseRealRAS = false;
@@ -1182,9 +1241,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // NewVolumeROIFromLabel <collectionID> <useRealRAS> <fileName>
   if ( 0 == strcmp( isCommand, "NewVolumeROIFromLabel" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1209,9 +1270,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // WriteVolumeROIsToSegmentation <collectionID> <fileName>
   if ( 0 == strcmp( isCommand, "WriteVolumeROIsToSegmentation" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1223,27 +1286,32 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // MakeVolumeUsingTemplate <collectionID> <templateID> <type>
   if ( 0 == strcmp( isCommand, "MakeVolumeUsingTemplate" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
     if ( mID == collectionID ) {
 
-      int templateID = strtol(iasArgv[2], (char**)NULL, 10);
-      if ( ERANGE == errno ) {
-        sResult = "bad template ID";
-        return error;
+      int templateID;
+      try {
+	templateID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      } catch ( runtime_error& e ) {
+	sResult = string("bad template ID: ") + e.what();
+	return error;
       }
 
-      int type = strtol(iasArgv[3], (char**)NULL, 10);
-      if ( ERANGE == errno ) {
-        sResult = "bad type";
-        return error;
-
+      int type;
+      try {
+	type = TclCommandManager::ConvertArgumentToInt( iasArgv[3] );
+      } catch ( runtime_error& e ) {
+	sResult = string("bad type: ") + e.what();
+	return error;
       }
-
+    
       MakeUsingTemplate( templateID, type );
     }
   }
@@ -1264,9 +1332,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // SaveVolumeWithFileName <collectionID> <fileName>
   if ( 0 == strcmp( isCommand, "SaveVolumeWithFileName" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1279,9 +1349,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // SetUseVolumeDataToIndexTransform <collectionID> <use>
   if ( 0 == strcmp( isCommand, "SetUseVolumeDataToIndexTransform" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1301,9 +1373,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // GetUseVolumeDataToIndexTransform <layerID>
   if ( 0 == strcmp( isCommand, "GetUseVolumeDataToIndexTransform" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1387,9 +1461,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // SetVolumeAutosaveOn <collectionID> <on>
   if ( 0 == strcmp( isCommand, "SetVolumeAutosaveOn" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1408,9 +1484,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // GetVolumeAutosaveOn <collectionID>
   if ( 0 == strcmp( isCommand, "GetVolumeAutosaveOn" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1435,9 +1513,14 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     if ( mID == collectionID ) {
 
       float TkRegRAS[3];
-      TkRegRAS[0] = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
-      TkRegRAS[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
-      TkRegRAS[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
+      try {
+	TkRegRAS[0] = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
+	TkRegRAS[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
+	TkRegRAS[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
+      } catch ( runtime_error& e ) {
+	sResult = string("bad x y z: ") + e.what();
+	return error;
+      }
 
       float ras[3];
       TkRegRASToRAS( TkRegRAS, ras );
@@ -1464,9 +1547,14 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
     if ( mID == collectionID ) {
 
       float ras[3];
-      ras[0] = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
-      ras[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
-      ras[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
+      try {
+	ras[0] = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
+	ras[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
+	ras[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
+      } catch ( runtime_error& e ) {
+	sResult = string("bad x y z: ") + e.what();
+	return error;
+      }
 
       float TkRegRAS[3];
       RASToTkRegRAS( ras, TkRegRAS );
@@ -1564,9 +1652,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // GetVolumeInterpretFramesAsTime <collectionID>
   if ( 0 == strcmp( isCommand, "GetVolumeInterpretFramesAsTime" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1580,9 +1670,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // GetVolumeNumberOfConditions <collectionID>
   if ( 0 == strcmp( isCommand, "GetVolumeNumberOfConditions" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1597,9 +1689,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // GetVolumeNumberOfTimePoints <collectionID>
   if ( 0 == strcmp( isCommand, "GetVolumeNumberOfTimePoints" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1614,9 +1708,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // GetVolumeTimeResolution <collectionID>
   if ( 0 == strcmp( isCommand, "GetVolumeTimeResolution" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1631,9 +1727,11 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
 
   // GetVolumeNumberOfPreStimTimePoints <collectionID>
   if ( 0 == strcmp( isCommand, "GetVolumeNumberOfPreStimTimePoints" ) ) {
-    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
-    if ( ERANGE == errno ) {
-      sResult = "bad collection ID";
+    int collectionID;
+    try {
+      collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    } catch ( runtime_error& e ) {
+      sResult = string("bad collection ID: ") + e.what();
       return error;
     }
 
@@ -1730,115 +1828,101 @@ VolumeCollection::DoListenToMessage ( string isMessage, void* iData ) {
   DataCollection::DoListenToMessage( isMessage, iData );
 }
 
-ScubaROI*
-VolumeCollection::DoNewROI () {
-
-  ScubaROIVolume* roi = new ScubaROIVolume();
-
-  if ( NULL != mMRI ) {
-    int bounds[3];
-    bounds[0] = mMRI->width;
-    bounds[1] = mMRI->height;
-    bounds[2] = mMRI->depth;
-
-    roi->SetROIBounds( bounds );
-  }
-
-  int color[] = { 0, 0, 255 };
-  roi->SetColor( color );
-
-  return roi;
-}
-
-
 void
-VolumeCollection::InitSelectionVolume () {
+VolumeCollection::Select ( VolumeLocation const& iLoc ) {
 
-  if ( NULL != mMRI ) {
+  // If we have an ROI selected...
+  if ( mSelectedROIID >= 0 ) {
 
-    if ( NULL != mSelectedVoxels ) {
-      delete mSelectedVoxels;
+    try {
+
+      // Try to find the ROI.
+      ScubaROI* roi = &ScubaROI::FindByID( mSelectedROIID );
+      ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+      
+      // Selectg in the ROI.
+      volumeROI->SelectVoxel( iLoc.mIdxi );
+      
+      // Also mark this in the selection volume.
+      mSelectedVoxels->
+	Set_Unsafe( iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2], true );
+    } catch ( runtime_error& e ) {
+      throw runtime_error ( "Couldn't select coxel, selected ROI "
+			    "could not be found" );
     }
-
-    mSelectedVoxels =
-      new Volume3<bool>( mMRI->width, mMRI->height, mMRI->depth, false );
   }
 }
 
 void
-VolumeCollection::Select ( VolumeLocation& iLoc ) {
+VolumeCollection::Unselect ( VolumeLocation const& iLoc ) {
 
   if ( mSelectedROIID >= 0 ) {
+    
+    try {
+      
+      // Try to find the ROI.
+      ScubaROI* roi = &ScubaROI::FindByID( mSelectedROIID );
+      ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+      
+      // Unselect in the ROI.
+      volumeROI->UnselectVoxel( iLoc.mIdxi );
+      
+      // If there are no more ROIs with this voxel selected, unselect it
+      // in the selection volume.
+      bool bSelected = false;
+      map<int,ScubaROI*>::const_iterator tIDROI;
+      for ( tIDROI = mROIMap.begin();
+	    tIDROI != mROIMap.end(); ++tIDROI ) {
+	int roiID = (*tIDROI).first;
 
-    ScubaROI* roi = &ScubaROI::FindByID( mSelectedROIID );
-    //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
-    ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
+	// Get this ROI.
+	ScubaROI* roi = &ScubaROI::FindByID( roiID );
+	ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
 
-    // Selectg in the ROI.
-    volumeROI->SelectVoxel( iLoc.mIdxi );
-
-    // Also mark this in the selection voxel.
-    mSelectedVoxels->Set_Unsafe( iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2],
-                                 true );
-  }
-}
-
-void
-VolumeCollection::Unselect ( VolumeLocation& iLoc ) {
-
-  if ( mSelectedROIID >= 0 ) {
-
-    ScubaROI* roi = &ScubaROI::FindByID( mSelectedROIID );
-    //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
-    ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
-
-    // Unselect in the ROI.
-    volumeROI->UnselectVoxel( iLoc.mIdxi );
-
-    // If there are no more ROIs with this voxel selected, unselect it
-    // in the selection volume.
-    bool bSelected = false;
-    map<int,ScubaROI*>::iterator tIDROI;
-    for ( tIDROI = mROIMap.begin();
-          tIDROI != mROIMap.end(); ++tIDROI ) {
-      int roiID = (*tIDROI).first;
-
-      ScubaROI* roi = &ScubaROI::FindByID( roiID );
-      //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
-      ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
-
-      if ( volumeROI->IsVoxelSelected( iLoc.mIdxi ) ) {
-        bSelected = true;
-        break;
+	// If it's selected, break.
+	if ( volumeROI->IsVoxelSelected( iLoc.mIdxi ) ) {
+	  bSelected = true;
+	  break;
+	}
       }
-    }
-    if ( !bSelected ) {
-      mSelectedVoxels->Set_Unsafe( iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2],
-                                   false );
+      if ( !bSelected ) {
+	mSelectedVoxels->
+	  Set_Unsafe( iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2], false );
+      }
+      
+    } catch ( runtime_error& e ) {
+      throw runtime_error ( "Couldn't unselect voxel, selected ROI "
+			    "could not be found" );
     }
   }
 }
 
 bool
-VolumeCollection::IsSelected ( VolumeLocation& iLoc, int oColor[3] ) {
+VolumeCollection::IsSelected ( VolumeLocation const& iLoc, int oColor[3] ) const {
 
   // Check the selection volume cache first.
-  if ( !(mSelectedVoxels->Get_Unsafe( iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] )) )
+  if ( !(mSelectedVoxels->
+	 Get_Unsafe( iLoc.mIdxi[0], iLoc.mIdxi[1], iLoc.mIdxi[2] )) )
     return false;
 
   try {
 
+    // Something is selected.
     bool bSelected = false;
     bool bFirstColor = true;
 
-    map<int,ScubaROI*>::iterator tIDROI;
+    // Go through our ROIs...
+    map<int,ScubaROI*>::const_iterator tIDROI;
     for ( tIDROI = mROIMap.begin();
           tIDROI != mROIMap.end(); ++tIDROI ) {
       int roiID = (*tIDROI).first;
 
+      // Get the ROI.
       ScubaROI* roi = &ScubaROI::FindByID( roiID );
-      //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
-      ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
+      ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+
+      // If this point is selected, get the color and blend it with
+      // previous colors we've gotten.
       if ( volumeROI->IsVoxelSelected( iLoc.mIdxi ) ) {
         bSelected = true;
         int color[3];
@@ -1857,6 +1941,7 @@ VolumeCollection::IsSelected ( VolumeLocation& iLoc, int oColor[3] ) {
     }
 
     return bSelected;
+
   } catch ( runtime_error& e ) {
     cerr << "Error in IsSelected(): " << e.what() << endl;
     return false;
@@ -1867,7 +1952,7 @@ VolumeCollection::IsSelected ( VolumeLocation& iLoc, int oColor[3] ) {
 }
 
 bool
-VolumeCollection::IsSelected ( VolumeLocation& iLoc ) {
+VolumeCollection::IsSelected ( VolumeLocation const& iLoc ) const {
 
   // Check the selection volume cache.
   return
@@ -1875,17 +1960,19 @@ VolumeCollection::IsSelected ( VolumeLocation& iLoc ) {
 }
 
 bool
-VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
+VolumeCollection::IsOtherRASSelected ( float const iRAS[3],
+				       int iThisROIID ) const {
 
-  // Check the selectin volume cache first.
+  // Check the selection volume cache first.
   int index[3];
   RASToMRIIndex( iRAS, index );
   if ( !(mSelectedVoxels->Get_Unsafe( index[0], index[1], index[2] )) )
     return false;
 
+  // Look at all our ROIs and if they aren't the one we are checking
+  // against, check if it's selected. Break if we find one.
   bool bSelected = false;
-
-  map<int,ScubaROI*>::iterator tIDROI;
+  map<int,ScubaROI*>::const_iterator tIDROI;
   for ( tIDROI = mROIMap.begin();
         tIDROI != mROIMap.end(); ++tIDROI ) {
     int roiID = (*tIDROI).first;
@@ -1894,25 +1981,244 @@ VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
     if ( roiID == iThisROIID ) {
       continue;
     }
-    //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
-    ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
+
+    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
     if ( volumeROI->IsVoxelSelected( index ) ) {
       bSelected = true;
-
+      break;
     }
   }
 
   return bSelected;
 }
 
+void
+VolumeCollection::WriteROIToLabel ( int iROIID, bool ibUseRealRAS,
+                                    string const& ifnLabel ) const {
+
+  // Look for our ROI.
+  map<int,ScubaROI*>::const_iterator tIDROI;
+  tIDROI = mROIMap.find( iROIID );
+  if ( tIDROI == mROIMap.end() ) 
+    throw runtime_error( "ROI doesn't belong to this collection" );
+  
+  // Get our ROI.
+  ScubaROIVolume const* roi = (ScubaROIVolume const*)(*tIDROI).second;
+  
+  // Get the bounds.
+  int bounds[3];
+  roi->GetROIBounds( bounds );
+
+  // If there are selected voxels, bail.
+  int cSelectedVoxels = roi->NumSelectedVoxels();
+  if ( 0 == cSelectedVoxels ) {
+    throw runtime_error( "No selected voxels." );
+  }
+
+  // Allocate a label for us.
+  char* fnLabel = strdup( ifnLabel.c_str() );
+  LABEL* label = LabelAlloc( cSelectedVoxels, NULL, fnLabel );
+  if ( NULL == label ) {
+    throw runtime_error( "Couldn't allocate label" );
+  }
+
+  // Set the number of points.
+  label->n_points = cSelectedVoxels;
+  
+  // Go through the selected voxels...
+  int nPoint = 0;
+  list<Point3<int> > lSelected = roi->GetSelectedVoxelList();
+  list<Point3<int> >::const_iterator tSelected;
+  for ( tSelected = lSelected.begin();
+	tSelected != lSelected.end(); ++tSelected ) {
+    
+    Point3<int> voxel = *tSelected;
+    
+    // Convert the voxel to RAS.
+    float ras[3];
+    MRIIndexToRAS( voxel.xyz(), ras );
+    VolumeLocation loc( MakeVolumeLocationFromRAS( ras ) );
+    
+    // Convert these points to TkRegRAS space if needed.
+    if ( !ibUseRealRAS ) {
+      RASToTkRegRAS( ras, ras );
+    }
+    
+    // Write the point to the label.
+    label->lv[nPoint].x = ras[0];
+    label->lv[nPoint].y = ras[1];
+    label->lv[nPoint].z = ras[2];
+    label->lv[nPoint].stat = GetMRINearestValue( loc );
+    label->lv[nPoint].vno = -1;
+    label->lv[nPoint].deleted = false;
+    
+    nPoint++;
+  }
+  
+  // Write the label.
+  int error = LabelWrite( label, fnLabel );
+  if ( NO_ERROR != error ) {
+    throw runtime_error( "Couldn't write label" );
+  }
+  
+  free( fnLabel );
+}
+
+int
+VolumeCollection::NewROIFromLabel ( bool ibUseRealRAS, 
+				    string const& ifnLabel ) {
+
+  // Read the label.
+  char* fnLabel = strdup( ifnLabel.c_str() );
+  LABEL* label = LabelRead( NULL, fnLabel );
+  free( fnLabel );
+  if ( NULL == label ) {
+    throw runtime_error( "Couldn't read label" );
+  }
+
+  // Make a new ROI for us.
+  ScubaROIVolume* volumeROI = NULL;
+  try {
+    int roiID = NewROI();
+    ScubaROI* roi = &ScubaROI::FindByID( roiID );
+    volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+  } catch (...) {
+    throw runtime_error( "Couldn't make ROI" );
+  }
+
+  // For each point in the label...
+  for ( int nPoint = 0; nPoint < label->n_points; nPoint++ ) {
+
+    // Read the RAS point from the label.
+    float ras[3];
+    ras[0] = label->lv[nPoint].x;
+    ras[1] = label->lv[nPoint].y;
+    ras[2] = label->lv[nPoint].z;
+
+    // Convert these points from TkRegRAS if needed.
+    if ( !ibUseRealRAS )
+      TkRegRASToRAS( ras, ras );
+
+    // Convert to index.
+    int index[3];
+    RASToMRIIndex( ras, index );
+
+    // Make sure it's in the bounds of the ROI (otherwise the label is
+    // giving us points that are out of our own bounds).
+    if ( !IsMRIIdxInBounds( index ) )
+      continue;
+
+    // Select the voxel.
+    volumeROI->SelectVoxel( index );
+
+    // Also mark this in the selection voxel in our cache.
+    mSelectedVoxels->Set_Unsafe( index[0], index[1], index[2], true );
+  }
+
+  // Get rid of the label.
+  LabelFree( &label );
+
+  // Return thenew ID we got.
+  return volumeROI->GetID();
+}
+
+void
+VolumeCollection::WriteROIsToSegmentation ( string const& ifnVolume ) const {
+
+  // Create a volume of the same size as our own.
+  MRI* segVolume = MRIallocSequence( mMRI->width, mMRI->height, mMRI->depth,
+                                     MRI_UCHAR, mMRI->nframes );
+  if ( NULL == segVolume ) {
+    throw runtime_error( "Couldn't create seg volume" );
+  }
+
+  // Copy the header from our own volume.
+  MRIcopyHeader( mMRI, segVolume );
+
+  // Go through the volume...
+  int index[3];
+  for ( index[2] = 0; index[2] < mMRI->depth; index[2]++ ) {
+    for ( index[1] = 0; index[1] < mMRI->height; index[1]++ ) {
+      for ( index[0] = 0; index[0] < mMRI->width; index[0]++ ) {
+
+        // For each of our ROIs, if one is selected here and if it's a
+        // structure ROI, set the value of the seg volume to the
+        // structure index.
+        map<int,ScubaROI*>::const_iterator tIDROI;
+        for ( tIDROI = mROIMap.begin();
+              tIDROI != mROIMap.end(); ++tIDROI ) {
+          int roiID = (*tIDROI).first;
+
+          ScubaROI* roi = &ScubaROI::FindByID( roiID );
+          ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+          if ( volumeROI->GetType() == ScubaROI::Structure &&
+               volumeROI->IsVoxelSelected( index ) )
+            MRIvox( segVolume, index[0], index[1], index[2] ) =
+              (BUFTYPE) volumeROI->GetStructure();
+        }
+      }
+    }
+  }
+
+  // Write the volume.
+  char* fnVolume = strdup( ifnVolume.c_str() );
+  int error = MRIwrite( segVolume, fnVolume );
+  free( fnVolume );
+
+  // Free the volume.
+  MRIfree( &segVolume );
+
+  // Throw an error if we couldn't write.
+  if ( NO_ERROR != error ) {
+    throw runtime_error( "Couldn't write segmentation." );
+  }
+}
+
+
+void
+VolumeCollection::SetDataToWorldTransform ( int iTransformID ) {
+
+  // Call the superclass function, then calc our composed transform.
+  DataCollection::SetDataToWorldTransform( iTransformID );
+  CalcWorldToIndexTransform();
+}
+
+
+Matrix44 const&
+VolumeCollection::GetWorldToIndexTransform () const {
+
+  return mWorldToIndexTransform.GetMainMatrix();
+}
+
+
+void
+VolumeCollection::SetUseWorldToIndexTransform ( bool ibUse ) {
+
+  // Don't change if it's the current setting.
+  if ( ibUse == mbUseDataToIndexTransform )
+    return;
+
+  // Set and recalc our composed transform.
+  mbUseDataToIndexTransform = ibUse;
+  CalcWorldToIndexTransform();
+}
+
+bool 
+VolumeCollection::GetUseWorldToIndexTransform () const {
+
+  return mbUseDataToIndexTransform;
+}
+
 #define PRINTOUT 0
 
 void
-VolumeCollection::FindRASPointsInSquare ( float iCenter[3],
-    float iPointA[3], float iPointB[3],
-    float iPointC[3], float iPointD[3],
-    float,
-    list<Point3<float> >& oPoints ) {
+VolumeCollection::FindRASPointsInSquare ( float const iCenter[3],
+					  float const iPointA[3],
+					  float const iPointB[3],
+					  float const iPointC[3],
+					  float const iPointD[3],
+					  float,
+				       list<Point3<float> >& oPoints ) const {
 
   Point3<float> planeRAS, squareRAS[4];
   squareRAS[0].Set( iPointA );
@@ -2043,11 +2349,14 @@ VolumeCollection::FindRASPointsInSquare ( float iCenter[3],
 }
 
 void
-VolumeCollection::FindRASPointsInCircle ( float iPointA[3], float iPointB[3],
-    float iPointC[3], float iPointD[3],
-    float iMaxDistance,
-    float iCenter[3], float iRadius,
-    list<Point3<float> >& oPoints ) {
+VolumeCollection::FindRASPointsInCircle ( float const iPointA[3], 
+					  float const iPointB[3],
+					  float const iPointC[3],
+					  float const iPointD[3],
+					  float iMaxDistance,
+					  float const iCenter[3],
+					  float iRadius,
+				      list<Point3<float> >& oPoints ) const {
 
   // Get a list of RAS voxels in the square.
   list<Point3<float> > squarePoints;
@@ -2070,8 +2379,9 @@ VolumeCollection::FindRASPointsInCircle ( float iPointA[3], float iPointB[3],
 }
 
 void
-VolumeCollection::FindRASPointsOnSegment ( float iPointA[3], float iPointB[3],
-    std::list<Point3<float> >& oPoints ) {
+VolumeCollection::FindRASPointsOnSegment ( float const iPointA[3],
+					   float const iPointB[3],
+			       std::list<Point3<float> >& oPoints ) const {
 
   // Convert the end points to MRI index, in float and int.
   Point3<float> segIdxf[2];
@@ -2115,258 +2425,10 @@ VolumeCollection::FindRASPointsOnSegment ( float iPointA[3], float iPointB[3],
 }
 
 void
-VolumeCollection::WriteROIToLabel ( int iROIID, bool ibUseRealRAS,
-                                    string ifnLabel ) {
+VolumeCollection::ImportControlPoints ( string const& ifnControlPoints,
+                              list<Point3<float> >& oControlPoints ) const {
 
-  map<int,ScubaROI*>::iterator tIDROI;
-  tIDROI = mROIMap.find( iROIID );
-  if ( tIDROI != mROIMap.end() ) {
-    ScubaROIVolume* roi = (ScubaROIVolume*)(*tIDROI).second;
-
-    int bounds[3];
-    roi->GetROIBounds( bounds );
-
-    int cSelectedVoxels = roi->NumSelectedVoxels();
-    if ( 0 == cSelectedVoxels ) {
-      throw runtime_error( "No selected voxels." );
-    }
-
-    char* fnLabel = strdup( ifnLabel.c_str() );
-    LABEL* label = LabelAlloc( cSelectedVoxels, NULL, fnLabel );
-    if ( NULL == label ) {
-      throw runtime_error( "Couldn't allocate label" );
-    }
-    label->n_points = cSelectedVoxels;
-
-    // Go through the selected voxels...
-    int nPoint = 0;
-    list<Point3<int> > lSelected = roi->GetSelectedVoxelList();
-    list<Point3<int> >::iterator tSelected;
-    for ( tSelected = lSelected.begin();
-          tSelected != lSelected.end(); ++tSelected ) {
-
-      Point3<int> voxel = *tSelected;
-
-      // Convert the voxel to RAS.
-      float ras[3];
-      MRIIndexToRAS( voxel.xyz(), ras );
-      VolumeLocation loc( MakeVolumeLocationFromRAS( ras ) );
-
-      // Convert these points to TkRegRAS space if needed.
-      if ( !ibUseRealRAS ) {
-        RASToTkRegRAS( ras, ras );
-      }
-
-      // Write the point to the label.
-      label->lv[nPoint].x = ras[0];
-      label->lv[nPoint].y = ras[1];
-      label->lv[nPoint].z = ras[2];
-      label->lv[nPoint].stat = GetMRINearestValue( loc );
-      label->lv[nPoint].vno = -1;
-      label->lv[nPoint].deleted = false;
-
-      nPoint++;
-    }
-
-    int error = LabelWrite( label, fnLabel );
-    if ( NO_ERROR != error ) {
-      throw runtime_error( "Couldn't write label" );
-    }
-
-    free( fnLabel );
-
-  } else {
-    throw runtime_error( "ROI doesn't belong to this collection" );
-  }
-}
-
-int
-VolumeCollection::NewROIFromLabel ( bool ibUseRealRAS, string ifnLabel ) {
-
-  char* fnLabel = strdup( ifnLabel.c_str() );
-  LABEL* label = LabelRead( NULL, fnLabel );
-  free( fnLabel );
-  if ( NULL == label ) {
-    throw runtime_error( "Couldn't read label" );
-  }
-
-  ScubaROIVolume* volumeROI = NULL;
-  try {
-    int roiID = NewROI();
-    ScubaROI* roi = &ScubaROI::FindByID( roiID );
-    //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
-    volumeROI = (ScubaROIVolume*)roi;
-  } catch (...) {
-    throw runtime_error( "Couldn't make ROI" );
-  }
-
-  for ( int nPoint = 0; nPoint < label->n_points; nPoint++ ) {
-
-    float ras[3];
-    ras[0] = label->lv[nPoint].x;
-    ras[1] = label->lv[nPoint].y;
-    ras[2] = label->lv[nPoint].z;
-
-    // Convert these points from TkRegRAS if needed.
-    if ( !ibUseRealRAS )
-      TkRegRASToRAS( ras, ras );
-
-    int index[3];
-    RASToMRIIndex( ras, index );
-
-    if ( !IsMRIIdxInBounds( index ) ) {
-      cerr << "ERROR: Label point out of bounds: Label point "
-      << Point3<float>(label->lv[nPoint].x,
-                       label->lv[nPoint].y, label->lv[nPoint].z);
-      if ( !ibUseRealRAS )
-        cerr << " -> RAS " << Point3<float>(ras);
-      cerr << " -> index " << Point3<int>(index) << endl;
-      continue;
-    }
-
-    try {
-      volumeROI->SelectVoxel( index );
-    } catch (...) {
-      cerr << "thrown in Set_Unsafe with idx " << Point3<int>(index)
-      << " ras " << Point3<float>(ras) << endl;
-    }
-
-    // Also mark this in the selection voxel.
-    mSelectedVoxels->Set_Unsafe( index[0], index[1], index[2], true );
-  }
-
-  LabelFree( &label );
-
-  return volumeROI->GetID();
-}
-
-void
-VolumeCollection::WriteROIsToSegmentation ( string ifnVolume ) {
-
-
-  // Create a volume of the same size as our own.
-  MRI* segVolume = MRIallocSequence( mMRI->width, mMRI->height, mMRI->depth,
-                                     MRI_UCHAR, mMRI->nframes );
-  if ( NULL == segVolume ) {
-    throw runtime_error( "Couldn't create seg volume" );
-  }
-
-  MRIcopyHeader( mMRI, segVolume );
-
-  // Go through the volume...
-  int index[3];
-  for ( index[2] = 0; index[2] < mMRI->depth; index[2]++ ) {
-    for ( index[1] = 0; index[1] < mMRI->height; index[1]++ ) {
-      for ( index[0] = 0; index[0] < mMRI->width; index[0]++ ) {
-
-        // For each of our ROIs, if one is selected here and if it's a
-        // structure ROI, set the value of the seg volume to the
-        // structure index.
-        map<int,ScubaROI*>::iterator tIDROI;
-        for ( tIDROI = mROIMap.begin();
-              tIDROI != mROIMap.end(); ++tIDROI ) {
-          int roiID = (*tIDROI).first;
-
-          ScubaROI* roi = &ScubaROI::FindByID( roiID );
-          //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
-          ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
-          if ( volumeROI->GetType() == ScubaROI::Structure &&
-               volumeROI->IsVoxelSelected( index ) ) {
-
-            MRIvox( segVolume, index[0], index[1], index[2] ) =
-              (BUFTYPE) volumeROI->GetStructure();
-
-          }
-        }
-      }
-    }
-  }
-
-  // Write the volume.
-  char* fnVolume = strdup( ifnVolume.c_str() );
-  int error = MRIwrite( segVolume, fnVolume );
-  free( fnVolume );
-  if ( NO_ERROR != error ) {
-    throw runtime_error( "Couldn't write segmentation." );
-  }
-
-  MRIfree( &segVolume );
-}
-
-
-void
-VolumeCollection::SetDataToWorldTransform ( int iTransformID ) {
-
-  DataCollection::SetDataToWorldTransform( iTransformID );
-  CalcWorldToIndexTransform();
-}
-
-
-Matrix44 const&
-VolumeCollection::GetWorldToIndexTransform () const {
-
-  return mWorldToIndexTransform.GetMainMatrix();
-}
-
-
-void
-VolumeCollection::SetUseWorldToIndexTransform ( bool ibUse ) {
-
-  // Don't change if it's the current setting.
-  if ( ibUse == mbUseDataToIndexTransform )
-    return;
-
-  mbUseDataToIndexTransform = ibUse;
-  CalcWorldToIndexTransform();
-}
-
-void
-VolumeCollection::CalcWorldToIndexTransform () {
-
-  if ( mbUseDataToIndexTransform ) {
-
-    // Just mult our transforms together.
-    Transform44 worldToData = mDataToWorldTransform->Inverse();
-    Transform44 tmp = mDataToIndexTransform * worldToData;
-    mWorldToIndexTransform = tmp;
-
-#if 0
-    cerr << "mDataToWorldTransform-1" << endl
-    << mDataToWorldTransform->Inverse().GetMainMatrix() << endl
-    << "mDataToIndex" << endl
-    << mDataToIndexTransform.GetMainMatrix() << endl
-    << "mWorldToIndexTransform" << endl
-    << mWorldToIndexTransform.GetMainMatrix() << endl;
-#endif
-
-  } else {
-
-    Transform44 center;
-    center.SetMainTransform( 1, 0, 0, (double)mMRI->width/2.0,
-                             0, 1, 0, (double)mMRI->height/2.0,
-                             0, 0, 1, (double)mMRI->depth/2.0,
-                             0, 0, 0, 1 );
-
-    Transform44 worldToData = mDataToWorldTransform->Inverse();
-    Transform44 tmp = center * worldToData;
-    mWorldToIndexTransform = tmp;
-
-
-  }
-
-#if 0
-  cerr << "mDataToIndex " << mDataToIndexTransform << endl;
-  cerr << "mDataToWorldTransform inv " << mDataToWorldTransform->Inverse() << endl;
-  cerr << "mWorldToIndexTransform" << mWorldToIndexTransform << endl;
-#endif
-
-  DataChanged();
-}
-
-void
-VolumeCollection::ImportControlPoints ( string ifnControlPoints,
-                                        list<Point3<float> >& oControlPoints ) {
-
+  // Read a control points file.
   int cControlPoints;
   int bUseRealRAS;
   char* fnControlPoints = strdup( ifnControlPoints.c_str() );
@@ -2377,7 +2439,9 @@ VolumeCollection::ImportControlPoints ( string ifnControlPoints,
     throw runtime_error( "Couldn't read control points file." );
   }
 
-  for ( int nControlPoint = 0; nControlPoint < cControlPoints; nControlPoint++) {
+  // For each one we got...
+  for ( int nControlPoint = 0; 
+	nControlPoint < cControlPoints; nControlPoint++) {
 
     Point3<float> newControlPoint;
     if ( !bUseRealRAS ) {
@@ -2403,6 +2467,7 @@ VolumeCollection::ImportControlPoints ( string ifnControlPoints,
       newControlPoint[2] = aControlPoints[nControlPoint].z;
     }
 
+    // Push the point onto the list of control points.
     oControlPoints.push_back( newControlPoint );
   }
 
@@ -2410,18 +2475,19 @@ VolumeCollection::ImportControlPoints ( string ifnControlPoints,
 }
 
 void
-VolumeCollection::ExportControlPoints ( string ifnControlPoints,
-                                        list<Point3<float> >& iControlPoints) {
+VolumeCollection::ExportControlPoints ( string const& ifnControlPoints,
+                           list<Point3<float> > const& iControlPoints) const {
 
-
+  // Allocate some control points.
   int cControlPoints = iControlPoints.size();
   MPoint* aControlPoints = (MPoint*) calloc( sizeof(MPoint), cControlPoints );
   if ( NULL == aControlPoints ) {
     throw runtime_error( "Couldn't allocate control point storage." );
   }
 
+  // Fill them out with the points we got.
   int nControlPoint = 0;
-  list<Point3<float> >::iterator tControlPoint;
+  list<Point3<float> >::const_iterator tControlPoint;
   for ( tControlPoint = iControlPoints.begin();
         tControlPoint != iControlPoints.end();
         ++tControlPoint ) {
@@ -2432,22 +2498,24 @@ VolumeCollection::ExportControlPoints ( string ifnControlPoints,
     nControlPoint++;
   }
 
+  // WRite the file.
   char* fnControlPoints = strdup( ifnControlPoints.c_str() );
   int rWrite = MRIwriteControlPoints( aControlPoints, cControlPoints,
                                       true, fnControlPoints );
   free( fnControlPoints );
 
+  // Throw an error if the write failed.
   if ( NO_ERROR != rWrite ) {
     throw runtime_error( "Couldn't write control point file." );
   }
 }
 
 void
-VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
-				  ScubaROIVolume* iROI, 
+VolumeCollection::MakeHistogram ( list<Point3<float> > const& iRASPoints,
+				  ScubaROIVolume const* iROI, 
                                   int icBins,
                                   float& oMinBinValue, float& oBinIncrement,
-                                  map<int,int>& oBinCounts ) {
+                                  map<int,int>& oBinCounts ) const {
 
   // If no points, return.
   if ( iRASPoints.size() == 0 ) {
@@ -2457,7 +2525,7 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
   // Find values for all the RAS points. Save the highs and lows.
   float low = numeric_limits<float>::max();
   float high = numeric_limits<float>::min();
-  list<Point3<float> >::iterator tPoint;
+  list<Point3<float> >::const_iterator tPoint;
   list<float> values;
   for ( tPoint = iRASPoints.begin(); tPoint != iRASPoints.end(); ++tPoint ) {
     Point3<float> point = *tPoint;
@@ -2509,11 +2577,11 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
 }
 
 void
-VolumeCollection::MakeHistogram ( ScubaROIVolume* iROI, 
+VolumeCollection::MakeHistogram ( ScubaROIVolume const* iROI, 
 				  int icBins,
                                   float iMinThresh, float iMaxThresh,
                                   float& oMinBinValue, float& oBinIncrement,
-                                  map<int,int>& oBinCounts ) {
+                                  map<int,int>& oBinCounts ) const {
 
   if ( iMinThresh < mMRIMinValue || iMinThresh > mMRIMaxValue ||
        iMaxThresh < mMRIMinValue || iMaxThresh > mMRIMaxValue ) {
@@ -2589,15 +2657,23 @@ VolumeCollection::MakeHistogram ( ScubaROIVolume* iROI,
   oBinIncrement = binIncrement;
 }
 
-void
-VolumeCollection::DataChanged () {
+void 
+VolumeCollection::SetAutoSaveOn ( bool ibAutosave ) {
+  mbAutosave = ibAutosave;
+}
 
-  mbAutosaveDirty = true;
-  DataCollection::DataChanged();
+bool 
+VolumeCollection::GetAutoSaveOn () const {
+  return mbAutosave;
+}
+
+bool 
+VolumeCollection::IsAutosaveDirty () const {
+  return mbAutosaveDirty;
 }
 
 string
-VolumeCollection::MakeAutosaveFileName ( string& ifn ) {
+VolumeCollection::MakeAutosaveFileName ( string const& ifn ) const {
 
   // Generate an autosave name.
   string fnAutosave = ifn;
@@ -2617,11 +2693,12 @@ VolumeCollection::MakeAutosaveFileName ( string& ifn ) {
 void
 VolumeCollection::DeleteAutosave () {
 
+  // Copy our autosave file name.
   char* fnAutosave = strdup( mfnAutosave.c_str() );
 
+  // If it exists, delete the file.
   struct stat info;
   int rStat = stat( fnAutosave, &info );
-
   if ( 0 == rStat ) {
     if ( S_ISREG(info.st_mode) ) {
       remove( fnAutosave );
@@ -2632,244 +2709,21 @@ VolumeCollection::DeleteAutosave () {
 }
 
 void
-VolumeCollection::AutosaveIfDirty () {
+VolumeCollection::AutosaveIfDirty () const {
 
+  // If we're dirty and on, save a copy of ourselves in the autosave
+  // location.
   if ( mbAutosave && mbAutosaveDirty ) {
     Save( mfnAutosave );
     mbAutosaveDirty = false;
   }
 }
 
-void
-VolumeCollection::PrintVoxelCornerCoords ( ostream& iStream,
-    Point3<int>& iMRIIndex ) {
-
-  // Create RAS versions of our corners.
-  Point3<int> voxelIdx[8];
-  voxelIdx[0].Set( iMRIIndex.x()    , iMRIIndex.y()    , iMRIIndex.z()   );
-  voxelIdx[1].Set( iMRIIndex.x()+1, iMRIIndex.y()    , iMRIIndex.z()   );
-  voxelIdx[2].Set( iMRIIndex.x()    , iMRIIndex.y()+1, iMRIIndex.z()   );
-  voxelIdx[3].Set( iMRIIndex.x()+1, iMRIIndex.y()+1, iMRIIndex.z()   );
-  voxelIdx[4].Set( iMRIIndex.x()    , iMRIIndex.y()    , iMRIIndex.z()+1 );
-  voxelIdx[5].Set( iMRIIndex.x()+1, iMRIIndex.y()    , iMRIIndex.z()+1 );
-  voxelIdx[6].Set( iMRIIndex.x()    , iMRIIndex.y()+1, iMRIIndex.z()+1 );
-  voxelIdx[7].Set( iMRIIndex.x()+1, iMRIIndex.y()+1, iMRIIndex.z()+1 );
-  Point3<float> voxelRAS[8];
-  for ( int nCorner = 0; nCorner < 8; nCorner++ ) {
-    MRIIndexToRAS( voxelIdx[nCorner].xyz(), voxelRAS[nCorner].xyz() );
-    iStream << nCorner << ": " << voxelRAS[nCorner] << endl;
-  }
-}
-
-void
-VolumeCollection::DoValueRangeFill ( VolumeCollection& iSourceVol,
-				     ScubaROIVolume* iROI,
-				     std::vector<ValueRangeFillElement>& lElements) {
-
-  // Do the same walk through of voxels that we do in the get histogram.
-  int range[3]; range[0]=0; range[2]=0; range[3]=0;
-  GetMRIIndexRange( range );
-
-  Point3<int> index( 0, 0, 0 );
-  VolumeLocation destLoc( MakeVolumeLocationFromIndex( index.xyz() ) );
-  VolumeLocation srcLoc( iSourceVol.MakeVolumeLocationFromIndex( index.xyz() ) );
-  //Point3<float> RAS;
-
-  for( index[2] = 0; index[2] < range[2]; index[2]++ )
-    for( index[1] = 0; index[1] < range[1]; index[1]++ )
-      for( index[0] = 0; index[0] < range[0]; index[0]++ ) {
-	
-	destLoc.SetFromIndex( index.xyz() );
-
-	// If they gave us an ROI to use, make sure this is in the
-        // ROI.
-        if ( NULL != iROI &&
-	     !iROI->IsVoxelSelected( index.xyz() ) )
-	  continue;
-
-	if( !iSourceVol.IsInBounds( destLoc ) )
-	    continue;
-
-	// Get the corresponding value from the source vol.
-	srcLoc.SetFromRAS( destLoc.RAS() );
-        float value = iSourceVol.GetMRINearestValue( srcLoc );
-	
-        // We need to see if we should fill this voxel. Go through our
-        // list and see if it falls into a range. If so, edit the
-        // value in the dest.
-        vector<ValueRangeFillElement>::iterator tElement;
-        for ( tElement = lElements.begin();
-	      tElement != lElements.end(); ++tElement ) {
-          if ( value > tElement->mBegin && value < tElement->mEnd ) {
-            SetMRIValue( destLoc, tElement->mValue );
-            break;
-          }
-        }
-      }
-
-}
-
-void
-VolumeCollection::GetVoxelsWithValue ( float iValue,
-                                       list<VolumeLocation>& olLocations ) {
-
-  for ( int nZ = 0; nZ < mMRI->depth; nZ++ ) {
-    for ( int nY = 0; nY < mMRI->height; nY++ ) {
-      for ( int nX = 0; nX < mMRI->width; nX++ ) {
-
-        float value;
-        switch ( mMRI->type ) {
-        case MRI_UCHAR:
-          value = (float)MRIvox(mMRI, nX, nY, nZ );
-          break;
-        case MRI_SHORT:
-          value = (float)MRISvox( mMRI, nX, nY, nZ );
-          break;
-        case MRI_INT:
-          value = (float)MRIIvox( mMRI, nX, nY, nZ );
-          break;
-        case MRI_FLOAT:
-          value = MRIFvox( mMRI, nX, nY, nZ );
-          break;
-        default:
-          value = 0;
-        }
-
-        if ( fabs( value - iValue ) < EPSILON ) {
-          int index[3] = { nX, nY, nZ };
-          VolumeLocation loc( MakeVolumeLocationFromIndex( index ) );
-          olLocations.push_back( loc );
-        }
-      }
-    }
-  }
-}
-
-float
-VolumeCollection::GetRASVolumeOfNVoxels ( int icVoxels ) {
-
-  return GetVoxelXSize() * GetVoxelYSize() * GetVoxelZSize() * (float)icVoxels;
-}
-
-float
-VolumeCollection::GetPreferredValueIncrement () {
-
-  // Look at the range. If it's > 100, inc is 1, 10-100, inc is .1,
-  // 1-10, inc is .01, etc.
-  float range = mMRIMaxValue - mMRIMinValue;
-  float inc = 1;
-  if ( range >= 1000000 )        {
-    inc = 1000;
-  } else if ( range >=  100000 )        {
-    inc =  100;
-  } else if ( range >=   10000 )        {
-    inc =   10;
-  } else if ( range >=    1000 )        {
-    inc =    1;
-  } else if ( range >=      10 )        {
-    inc =    0.1;
-  } else if ( range >=       1 )        {
-    inc =    0.01;
-  } else if ( range >=       0.1 )      {
-    inc =    0.001;
-  } else if ( range >=       0.01 )     {
-    inc =    0.0001;
-  } else if ( range >=       0.001 )    {
-    inc =    0.00001;
-  } else if ( range >=       0.0001 )   {
-    inc =    0.000001;
-  } else if ( range >=       0.00001 )  {
-    inc =    0.0000001;
-  } else if ( range >=       0.000001 ) {
-    inc =    0.00000001;
-  } else                          {
-    inc =    0.000000001;
-  }
-
-  return inc;
-}
-
-float
-VolumeCollection::GetAverageValue ( list<VolumeLocation>& ilLocations ) {
-
-  if ( ilLocations.size() < 1 ) {
-    throw runtime_error( "No voxels" );
-  }
-
-  float sumValue = 0;
-  list<VolumeLocation>::iterator tLocation;
-  for ( tLocation = ilLocations.begin(); tLocation != ilLocations.end();
-        ++tLocation ) {
-
-    VolumeLocation& loc = *tLocation;
-    sumValue += GetMRINearestValue( loc );
-  }
-
-  return sumValue / (float)ilLocations.size();
-}
-
-float
-VolumeCollection::GetAverageValue ( ScubaROIVolume& iROI ) {
-
-  list<VolumeLocation> lLocs;
-
-  list<Point3<int> > lSelected = iROI.GetSelectedVoxelList();
-  list<Point3<int> >::iterator tSelected;
-  for ( tSelected = lSelected.begin();
-        tSelected != lSelected.end(); ++tSelected ) {
-
-    Point3<int> voxel = *tSelected;
-    VolumeLocation loc( MakeVolumeLocationFromIndex( voxel.xyz() ) );
-    lLocs.push_back( loc );
-  }
-
-  return GetAverageValue( lLocs );
-}
-
-float
-VolumeCollection::GetStandardDeviation ( list<VolumeLocation>& ilLocations,
-    float iMean) {
-
-  if ( ilLocations.size() < 1 ) {
-    throw runtime_error( "No voxels" );
-  }
-
-  float sumDeviation = 0;
-  list<VolumeLocation>::iterator tLocation;
-  for ( tLocation = ilLocations.begin(); tLocation != ilLocations.end();
-        ++tLocation ) {
-
-    VolumeLocation& loc = *tLocation;
-    float value = GetMRINearestValue( loc );
-    float deviation = (value - iMean) * (value - iMean);
-    sumDeviation += deviation;
-  }
-
-  return sqrt( sumDeviation / (float)ilLocations.size() );
-}
-
-float
-VolumeCollection::GetStandardDeviation ( ScubaROIVolume& iROI, float iMean ) {
-
-  list<VolumeLocation> lLocs;
-  list<Point3<int> > lSelected = iROI.GetSelectedVoxelList();
-  list<Point3<int> >::iterator tSelected;
-  for ( tSelected = lSelected.begin();
-        tSelected != lSelected.end(); ++tSelected ) {
-
-    Point3<int> voxel = *tSelected;
-    VolumeLocation loc( MakeVolumeLocationFromIndex( voxel.xyz() ) );
-    lLocs.push_back( loc );
-  }
-
-  return GetStandardDeviation( lLocs, iMean );
-}
-
 VectorOps::IntersectionResult
-VolumeCollection::VoxelIntersectsPlane ( Point3<int>& iMRIIndex,
-    Point3<float>& iPlaneIdx,
-    Point3<float>& iPlaneIdxNormal,
-    Point3<float>& oIntersectionIdx ) {
+VolumeCollection::VoxelIntersectsPlane ( Point3<int> const& iMRIIndex,
+					 Point3<float> const& iPlaneIdx,
+					 Point3<float> const& iPlaneIdxNormal,
+				   Point3<float>& oIntersectionIdx ) const {
 
 
   // Call the big function and just return the first result if
@@ -2890,13 +2744,13 @@ VolumeCollection::VoxelIntersectsPlane ( Point3<int>& iMRIIndex,
 }
 
 bool
-VolumeCollection::VoxelIntersectsPlane ( Point3<int>& iMRIIndex,
-    Point3<float>& iPlaneIdx,
-    Point3<float>& iPlaneIdxNormal,
-    int& ocIntersections,
-    VectorOps::IntersectionResult orIntersection[12],
-    Point3<float> oIntersectionIdx[12] ) {
-
+VolumeCollection::VoxelIntersectsPlane ( Point3<int> const& iMRIIndex,
+					 Point3<float> const& iPlaneIdx,
+					 Point3<float> const& iPlaneIdxNormal,
+					 int& ocIntersections,
+			    VectorOps::IntersectionResult orIntersection[12],
+			       Point3<float> oIntersectionIdx[12] ) const {
+  
   // Create float idx versions of our corners.
   Point3<float> voxelIdx[8];
   voxelIdx[0].Set( iMRIIndex.x()  , iMRIIndex.y()  , iMRIIndex.z()   );
@@ -2953,11 +2807,11 @@ VolumeCollection::VoxelIntersectsPlane ( Point3<int>& iMRIIndex,
 }
 
 VectorOps::IntersectionResult
-VolumeCollection::VoxelIntersectsSegment( Point3<int>& iMRIIndex,
-    Point3<float>& iSegIdxA,
-    Point3<float>& iSegIdxB,
-    Point3<float>& oIntersectionIdx ) {
-
+VolumeCollection::VoxelIntersectsSegment( Point3<int> const& iMRIIndex,
+					  Point3<float> const& iSegIdxA,
+					  Point3<float> const& iSegIdxB,
+				    Point3<float>& oIntersectionIdx ) const {
+  
 #if PRINTOUT
   cerr << "VoxelIntersectsSegment idx " << iMRIIndex
   << " seg " << iSegIdxA << ", " << iSegIdxB << endl;
@@ -3064,7 +2918,321 @@ VolumeCollection::VoxelIntersectsSegment( Point3<int>& iMRIIndex,
   return VectorOps::dontIntersect;
 }
 
+void
+VolumeCollection::GetVoxelsWithValue ( float iValue,
+                                  list<VolumeLocation>& olLocations ) const {
 
+  // Just go through the volume and look for this value, and insert
+  // locations into the outgoing list.
+  for ( int nZ = 0; nZ < mMRI->depth; nZ++ ) {
+    for ( int nY = 0; nY < mMRI->height; nY++ ) {
+      for ( int nX = 0; nX < mMRI->width; nX++ ) {
+
+	int index[3] = { nX, nY, nZ };
+        float value = GetMRINearestValueAtIndexUnsafe( index, 0 );
+        if ( fabs( value - iValue ) < numeric_limits<float>::epsilon() ) {
+          VolumeLocation loc( MakeVolumeLocationFromIndex( index ) );
+          olLocations.push_back( loc );
+        }
+      }
+    }
+  }
+}
+
+float
+VolumeCollection::GetRASVolumeOfNVoxels ( int icVoxels ) const {
+
+  return GetVoxelXSize() * GetVoxelYSize() * GetVoxelZSize() * (float)icVoxels;
+}
+
+float
+VolumeCollection::GetPreferredValueIncrement () const {
+
+  // Look at the range. If it's > 100, inc is 1, 10-100, inc is .1,
+  // 1-10, inc is .01, etc.
+  float range = mMRIMaxValue - mMRIMinValue;
+  float inc = 1;
+  if ( range >= 1000000 )        {
+    inc = 1000;
+  } else if ( range >=  100000 )        {
+    inc =  100;
+  } else if ( range >=   10000 )        {
+    inc =   10;
+  } else if ( range >=    1000 )        {
+    inc =    1;
+  } else if ( range >=      10 )        {
+    inc =    0.1;
+  } else if ( range >=       1 )        {
+    inc =    0.01;
+  } else if ( range >=       0.1 )      {
+    inc =    0.001;
+  } else if ( range >=       0.01 )     {
+    inc =    0.0001;
+  } else if ( range >=       0.001 )    {
+    inc =    0.00001;
+  } else if ( range >=       0.0001 )   {
+    inc =    0.000001;
+  } else if ( range >=       0.00001 )  {
+    inc =    0.0000001;
+  } else if ( range >=       0.000001 ) {
+    inc =    0.00000001;
+  } else                          {
+    inc =    0.000000001;
+  }
+
+  return inc;
+}
+
+float
+VolumeCollection::GetAverageValue ( list<VolumeLocation> const& ilLocations ) const {
+
+  if ( ilLocations.size() < 1 ) {
+    throw runtime_error( "No voxels" );
+  }
+
+  float sumValue = 0;
+  list<VolumeLocation>::const_iterator tLocation;
+  for ( tLocation = ilLocations.begin(); tLocation != ilLocations.end();
+        ++tLocation ) {
+
+    VolumeLocation const& loc = *tLocation;
+    sumValue += GetMRINearestValue( loc );
+  }
+
+  return sumValue / (float)ilLocations.size();
+}
+
+float
+VolumeCollection::GetAverageValue ( ScubaROIVolume const& iROI ) const {
+
+  list<VolumeLocation> lLocs;
+
+  list<Point3<int> > lSelected = iROI.GetSelectedVoxelList();
+  list<Point3<int> >::const_iterator tSelected;
+  for ( tSelected = lSelected.begin();
+        tSelected != lSelected.end(); ++tSelected ) {
+
+    Point3<int> voxel = *tSelected;
+    VolumeLocation loc( MakeVolumeLocationFromIndex( voxel.xyz() ) );
+    lLocs.push_back( loc );
+  }
+
+  return GetAverageValue( lLocs );
+}
+
+float
+VolumeCollection::GetStandardDeviation ( list<VolumeLocation> const& ilLocations,
+					 float iMean ) const {
+
+  if ( ilLocations.size() < 1 ) {
+    throw runtime_error( "No voxels" );
+  }
+
+  float sumDeviation = 0;
+  list<VolumeLocation>::const_iterator tLocation;
+  for ( tLocation = ilLocations.begin(); tLocation != ilLocations.end();
+        ++tLocation ) {
+
+    VolumeLocation const& loc = *tLocation;
+    float value = GetMRINearestValue( loc );
+    float deviation = (value - iMean) * (value - iMean);
+    sumDeviation += deviation;
+  }
+
+  return sqrt( sumDeviation / (float)ilLocations.size() );
+}
+
+float
+VolumeCollection::GetStandardDeviation ( ScubaROIVolume const& iROI, 
+					 float iMean ) const {
+
+  list<VolumeLocation> lLocs;
+  list<Point3<int> > lSelected = iROI.GetSelectedVoxelList();
+  list<Point3<int> >::iterator tSelected;
+  for ( tSelected = lSelected.begin();
+        tSelected != lSelected.end(); ++tSelected ) {
+
+    Point3<int> voxel = *tSelected;
+    VolumeLocation loc( MakeVolumeLocationFromIndex( voxel.xyz() ) );
+    lLocs.push_back( loc );
+  }
+
+  return GetStandardDeviation( lLocs, iMean );
+}
+
+void
+VolumeCollection::PrintVoxelCornerCoords ( ostream& iStream,
+				       Point3<int> const& iMRIIndex ) const {
+
+  // Create RAS versions of our corners.
+  Point3<int> voxelIdx[8];
+  voxelIdx[0].Set( iMRIIndex.x()    , iMRIIndex.y()    , iMRIIndex.z()   );
+  voxelIdx[1].Set( iMRIIndex.x()+1, iMRIIndex.y()    , iMRIIndex.z()   );
+  voxelIdx[2].Set( iMRIIndex.x()    , iMRIIndex.y()+1, iMRIIndex.z()   );
+  voxelIdx[3].Set( iMRIIndex.x()+1, iMRIIndex.y()+1, iMRIIndex.z()   );
+  voxelIdx[4].Set( iMRIIndex.x()    , iMRIIndex.y()    , iMRIIndex.z()+1 );
+  voxelIdx[5].Set( iMRIIndex.x()+1, iMRIIndex.y()    , iMRIIndex.z()+1 );
+  voxelIdx[6].Set( iMRIIndex.x()    , iMRIIndex.y()+1, iMRIIndex.z()+1 );
+  voxelIdx[7].Set( iMRIIndex.x()+1, iMRIIndex.y()+1, iMRIIndex.z()+1 );
+  Point3<float> voxelRAS[8];
+  for ( int nCorner = 0; nCorner < 8; nCorner++ ) {
+    MRIIndexToRAS( voxelIdx[nCorner].xyz(), voxelRAS[nCorner].xyz() );
+    iStream << nCorner << ": " << voxelRAS[nCorner] << endl;
+  }
+}
+
+void
+VolumeCollection::DoValueRangeFill ( VolumeCollection const& iSourceVol,
+				     ScubaROIVolume const* iROI,
+				     std::vector<ValueRangeFillElement> const& lElements) {
+
+  // Do the same walk through of voxels that we do in the get histogram.
+  int range[3]; range[0]=0; range[2]=0; range[3]=0;
+  GetMRIIndexRange( range );
+
+  Point3<int> index( 0, 0, 0 );
+  VolumeLocation destLoc( MakeVolumeLocationFromIndex( index.xyz() ) );
+  VolumeLocation srcLoc( iSourceVol.MakeVolumeLocationFromIndex( index.xyz() ) );
+  //Point3<float> RAS;
+
+  for( index[2] = 0; index[2] < range[2]; index[2]++ )
+    for( index[1] = 0; index[1] < range[1]; index[1]++ )
+      for( index[0] = 0; index[0] < range[0]; index[0]++ ) {
+	
+	destLoc.SetFromIndex( index.xyz() );
+
+	// If they gave us an ROI to use, make sure this is in the
+        // ROI.
+        if ( NULL != iROI &&
+	     !iROI->IsVoxelSelected( index.xyz() ) )
+	  continue;
+
+	if( !iSourceVol.IsInBounds( destLoc ) )
+	    continue;
+
+	// Get the corresponding value from the source vol.
+	srcLoc.SetFromRAS( destLoc.RAS() );
+        float value = iSourceVol.GetMRINearestValue( srcLoc );
+	
+        // We need to see if we should fill this voxel. Go through our
+        // list and see if it falls into a range. If so, edit the
+        // value in the dest.
+        vector<ValueRangeFillElement>::const_iterator tElement;
+        for ( tElement = lElements.begin();
+	      tElement != lElements.end(); ++tElement ) {
+          if ( value > tElement->mBegin && value < tElement->mEnd ) {
+            SetMRIValue( destLoc, tElement->mValue );
+            break;
+          }
+        }
+      }
+
+}
+
+void
+VolumeCollection::UpdateMRIValueRange () {
+
+  if ( NULL != mMRI ) {
+
+    // Get the range in every frame and find the most min and max.
+    mMRIMinValue = 99999;
+    mMRIMaxValue = -99999;
+    float minValue, maxValue;
+    for ( int nFrame = 0; nFrame < mMRI->nframes; nFrame++ ) {
+      MRIvalRangeFrame( mMRI, &minValue, &maxValue, nFrame );
+      if ( minValue < mMRIMinValue )
+        mMRIMinValue = minValue;
+      if ( maxValue > mMRIMaxValue )
+        mMRIMaxValue = maxValue;
+    }
+  }
+}
+
+void
+VolumeCollection::CalcWorldToIndexTransform () {
+
+  if ( mbUseDataToIndexTransform ) {
+
+    // Just mult our transforms together.
+    Transform44 worldToData = mDataToWorldTransform->Inverse();
+    mWorldToIndexTransform = mDataToIndexTransform * worldToData;
+
+  } else {
+
+    // If they don't want to use a transform, just use an identity
+    // with enough translation to get us into the center of the world.
+    Transform44 center;
+    center.SetMainTransform( 1, 0, 0, (double)mMRI->width/2.0,
+                             0, 1, 0, (double)mMRI->height/2.0,
+                             0, 0, 1, (double)mMRI->depth/2.0,
+                             0, 0, 0, 1 );
+
+    Transform44 worldToData = mDataToWorldTransform->Inverse();
+    mWorldToIndexTransform = center * worldToData;
+  }
+
+  // Notify of changes.
+  DataChanged();
+}
+
+void
+VolumeCollection::MakeMagnitudeVolume () {
+
+  if ( NULL != mMRI ) {
+    mMagnitudeMRI =
+      MRIallocSequence( mMRI->width, mMRI->height, mMRI->depth,
+                        MRI_FLOAT, mMRI->nframes );
+    MRI* gradMRI = MRIsobel( mMRI, NULL, mMagnitudeMRI );
+    MRIfree( &gradMRI );
+
+    MRIvalRange( mMagnitudeMRI, &mMRIMagMinValue, &mMRIMagMaxValue );
+  }
+}
+
+ScubaROI*
+VolumeCollection::DoNewROI () {
+
+  // Create our specific ROI.
+  ScubaROIVolume* roi = new ScubaROIVolume();
+
+  // Set its bounds.
+  if ( NULL != mMRI ) {
+    int bounds[3];
+    bounds[0] = mMRI->width;
+    bounds[1] = mMRI->height;
+    bounds[2] = mMRI->depth;
+
+    roi->SetROIBounds( bounds );
+  }
+
+  // Give it a default color.
+  int color[] = { 0, 0, 255 };
+  roi->SetFreeColor( color );
+
+  return roi;
+}
+
+
+void
+VolumeCollection::InitSelectionVolume () {
+
+  if ( NULL != mMRI ) {
+    
+    delete mSelectedVoxels;
+
+    // Create our selection volume with the same dimensions as our
+    // volume.
+    mSelectedVoxels =
+      new Volume3<bool>( mMRI->width, mMRI->height, mMRI->depth, false );
+  }
+}
+
+void
+VolumeCollection::DataChanged () {
+
+  mbAutosaveDirty = true;
+  DataCollection::DataChanged();
+}
 
 VolumeCollectionFlooder::VolumeCollectionFlooder () {
   mVolume = NULL;

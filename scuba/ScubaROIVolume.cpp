@@ -1,15 +1,16 @@
 /**
  * @file  ScubaROIVolume.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Implementation of ScubaROI representing a volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is an ROI whose elements can be selected and unselected via
+ * voxel coordinates, used by VolumeCollection.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.9 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/17 23:59:48 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,33 +34,23 @@
 
 using namespace std;
 
-ScubaROIVolume::ScubaROIVolume () {
-
-  mBounds[0] = mBounds[1] = mBounds[2] = 0;
-  mVoxels = NULL;
-  mcSelectedVoxels = 0;
-  mbDirtyList = true;
+ScubaROIVolume::ScubaROIVolume () :
+  mVoxels( NULL ),
+  mcSelectedVoxels( 0 ),
+  mbDirtyList( true ) {
 
   // Init selected bounds cache.
-  mSelectedBounds[0] = 99999;
-  mSelectedBounds[1] = -99999;
-  mSelectedBounds[2] = 99999;
-  mSelectedBounds[3] = -99999;
-  mSelectedBounds[4] = 99999;
-  mSelectedBounds[5] = -99999;
+  mSelectedBounds[0] = numeric_limits<int>::max();
+  mSelectedBounds[1] = numeric_limits<int>::min();
+  mSelectedBounds[2] = numeric_limits<int>::max();
+  mSelectedBounds[3] = numeric_limits<int>::min();
+  mSelectedBounds[4] = numeric_limits<int>::max();
+  mSelectedBounds[5] = numeric_limits<int>::min();
 }
 
 ScubaROIVolume::~ScubaROIVolume () {
 
-  if ( NULL != mVoxels ) {
-    for ( int nZ = 0; nZ < mBounds[2]; nZ++ ) {
-      for ( int nY = 0; nY < mBounds[1]; nY++ ) {
-        free( mVoxels[nZ][nY] );
-      }
-      free( mVoxels[nZ] );
-    }
-    free( mVoxels );
-  }
+  delete mVoxels;
 }
 
 void
@@ -68,38 +59,17 @@ ScubaROIVolume::SetROIBounds ( int const iBounds[3] ) {
   if ( iBounds[0] <= 0 || iBounds[1] <= 0 || iBounds[2] <= 0 )
     throw runtime_error( "out of bounds" );
 
-  // Delete existing bounds.
-  if ( NULL != mVoxels ) {
-    for ( int nZ = 0; nZ < mBounds[2]; nZ++ ) {
-      for ( int nY = 0; nY < mBounds[1]; nY++ ) {
-        free( mVoxels[nZ][nY] );
-      }
-      free( mVoxels[nZ] );
-    }
-    free( mVoxels );
-  }
-
-  // Save the new bounds.
-  mBounds[0] = iBounds[0];
-  mBounds[1] = iBounds[1];
-  mBounds[2] = iBounds[2];
+  // Delete existing volume and allocate a new one..
+  delete mVoxels;
+  mVoxels = new Volume3<bool>( iBounds[0], iBounds[1], iBounds[2], false );
 
   // Init selected bounds cache.
-  mSelectedBounds[0] = 99999;
-  mSelectedBounds[1] = -99999;
-  mSelectedBounds[2] = 99999;
-  mSelectedBounds[3] = -99999;
-  mSelectedBounds[4] = 99999;
-  mSelectedBounds[5] = -99999;
-
-  // Allocate new volume.
-  mVoxels = (bool***) calloc( mBounds[2], sizeof(bool**) );
-  for ( int nZ = 0; nZ < mBounds[2]; nZ++ ) {
-    mVoxels[nZ] = (bool**) calloc( mBounds[1], sizeof(bool*) );
-    for ( int nY = 0; nY < mBounds[1]; nY++ ) {
-      mVoxels[nZ][nY] = (bool*) calloc( mBounds[0], sizeof(bool) );
-    }
-  }
+  mSelectedBounds[0] = numeric_limits<int>::max();
+  mSelectedBounds[1] = numeric_limits<int>::min();
+  mSelectedBounds[2] = numeric_limits<int>::max();
+  mSelectedBounds[3] = numeric_limits<int>::min();
+  mSelectedBounds[4] = numeric_limits<int>::max();
+  mSelectedBounds[5] = numeric_limits<int>::min();
 
   // No selected voxels.
   mcSelectedVoxels = 0;
@@ -111,27 +81,18 @@ ScubaROIVolume::SetROIBounds ( int const iBounds[3] ) {
 void
 ScubaROIVolume::GetROIBounds ( int oBounds[3] ) const {
 
-  oBounds[0] = mBounds[0];
-  oBounds[1] = mBounds[1];
-  oBounds[2] = mBounds[2];
+  mVoxels->GetBounds( oBounds[0], oBounds[1], oBounds[2] );
 }
 
 void
 ScubaROIVolume::SelectVoxel ( int const iVoxel[3] ) {
 
-  // Check the bounds.
-  if ( iVoxel[0] < 0 || iVoxel[0] >= mBounds[0] ||
-       iVoxel[1] < 0 || iVoxel[1] >= mBounds[1] ||
-       iVoxel[2] < 0 || iVoxel[2] >= mBounds[2] ) {
-    throw runtime_error( "out of bounds" );
-  }
-
   // If not selected...
-  if ( !mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]] ) {
+  if ( !mVoxels->Get( iVoxel[0], iVoxel[1], iVoxel[2] ) ) {
 
     // Inc the count and set the flag. Call our changed function.
     mcSelectedVoxels++;
-    mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]] = true;
+    mVoxels->Set( iVoxel[0], iVoxel[1], iVoxel[2], true );
     ROIChanged();
 
     // Change the size of our selected bounds cache if we need to.
@@ -147,19 +108,12 @@ ScubaROIVolume::SelectVoxel ( int const iVoxel[3] ) {
 void
 ScubaROIVolume::UnselectVoxel ( int const iVoxel[3] ) {
 
-  // Check the bounds.
-  if ( iVoxel[0] < 0 || iVoxel[0] >= mBounds[0] ||
-       iVoxel[1] < 0 || iVoxel[1] >= mBounds[1] ||
-       iVoxel[2] < 0 || iVoxel[2] >= mBounds[2] ) {
-    throw runtime_error( "out of bounds" );
-  }
-
   // If selected...
-  if ( mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]] ) {
+  if ( mVoxels->Get( iVoxel[0], iVoxel[1], iVoxel[2] ) ) {
 
     // Dec the count and set the flag. Call our changed function.
     mcSelectedVoxels--;
-    mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]] = false;
+    mVoxels->Set( iVoxel[0], iVoxel[1], iVoxel[2], false );
 
     ROIChanged();
   }
@@ -168,22 +122,12 @@ ScubaROIVolume::UnselectVoxel ( int const iVoxel[3] ) {
 bool
 ScubaROIVolume::IsVoxelSelected ( int const iVoxel[3] ) const {
 
-  // Check the bounds.
-  if ( iVoxel[0] < 0 || iVoxel[0] >= mBounds[0] ||
-       iVoxel[1] < 0 || iVoxel[1] >= mBounds[1] ||
-       iVoxel[2] < 0 || iVoxel[2] >= mBounds[2] ) {
-    stringstream ssErr;
-    ssErr << "Out of bounds voxel " << iVoxel[0] << ", "
-    << iVoxel[1] << ", " << iVoxel[2] << endl;
-    throw runtime_error( ssErr.str() );
-  }
-
   // Return the voxel of the flag.
-  return mVoxels[iVoxel[2]][iVoxel[1]][iVoxel[0]];
+  return mVoxels->Get( iVoxel[0], iVoxel[1], iVoxel[2] );
 }
 
 list<Point3<int> >
-ScubaROIVolume::GetSelectedVoxelList () {
+ScubaROIVolume::GetSelectedVoxelList () const {
 
   // If the flag is dirty, iterate over the selected bounds and
   // rebuild the list.
@@ -191,17 +135,14 @@ ScubaROIVolume::GetSelectedVoxelList () {
 
     mlSelectedVoxels.clear();
 
-    for ( int nZ = mSelectedBounds[4]; nZ <= mSelectedBounds[5]; nZ++ ) {
-      for ( int nY = mSelectedBounds[2]; nY <= mSelectedBounds[3]; nY++ ) {
-        for ( int nX = mSelectedBounds[0]; nX <= mSelectedBounds[1]; nX++ ) {
-          if ( mVoxels[nZ][nY][nX] ) {
+    for ( int nZ = mSelectedBounds[4]; nZ <= mSelectedBounds[5]; nZ++ )
+      for ( int nY = mSelectedBounds[2]; nY <= mSelectedBounds[3]; nY++ )
+        for ( int nX = mSelectedBounds[0]; nX <= mSelectedBounds[1]; nX++ )
+          if ( mVoxels->Get( nX, nY, nZ ) ) {
             Point3<int> voxel( nX, nY, nZ );
             mlSelectedVoxels.push_back( voxel );
-          }
-        }
-      }
-    }
-
+	  }
+	  
     mbDirtyList = false;
   }
 

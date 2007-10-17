@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.5 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/17 23:59:49 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,8 +69,6 @@ ScubaROIVolumeTester::Test ( Tcl_Interp* iInterp ) {
     bounds[1] = 11;
     bounds[2] = 12;
     roi.SetROIBounds( bounds );
-    Assert( (10 == roi.mBounds[0] && 11 == roi.mBounds[1] &&
-             12 == roi.mBounds[2]), "SetROIBounds didn't work" );
     Assert( (NULL != roi.mVoxels), "SetROIBounds didn't create mVoxels" );
 
     Assert( (0 == roi.NumSelectedVoxels()),

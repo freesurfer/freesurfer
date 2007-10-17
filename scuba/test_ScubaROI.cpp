@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.5 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/17 23:59:49 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -95,14 +95,9 @@ ScubaROITester::Test ( Tcl_Interp* iInterp ) {
     color[0] = 1;
     color[1] = 2;
     color[2] = 3;
-    roi.SetColor( color );
-    Assert( (1 == roi.mColor[0] && 2 == roi.mColor[1] &&
-             3 == roi.mColor[2]), "SetColor failed" );
-
-    color[0] = color[1] = color[2] = 0;
-    roi.GetColor( color );
-    Assert( (1 == color[0] && 2 == color[1] && 3 == color[2]),
-            "GetColor failed" );
+    roi.SetFreeColor( color );
+    Assert( (1 == roi.mFreeColor[0] && 2 == roi.mFreeColor[1] &&
+             3 == roi.mFreeColor[2]), "SetFreeColor failed" );
 
     // Try the tcl commands.
     char sCommand[1024];
@@ -169,13 +164,13 @@ ScubaROITester::Test ( Tcl_Interp* iInterp ) {
     sprintf( sCommand, "SetROIColor %d 7 8 9", roiID );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );
-    Assert( (7 == roi.mColor[0] && 8 == roi.mColor[1] && 9 == roi.mColor[2]),
+    Assert( (7 == roi.mFreeColor[0] && 8 == roi.mFreeColor[1] && 9 == roi.mFreeColor[2]),
             "Tcl SetROIColor failed" );
 
     color[0] = 10;
     color[1] = 11;
     color[2] = 12;
-    roi.SetColor( color );
+    roi.SetFreeColor( color );
     sprintf( sCommand, "GetROIColor %d", roiID );
     rTcl = Tcl_Eval( iInterp, sCommand );
     AssertTclOK( rTcl );

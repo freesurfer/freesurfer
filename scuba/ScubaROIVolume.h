@@ -1,15 +1,16 @@
 /**
  * @file  ScubaROIVolume.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Implementation of ScubaROI representing a volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is an ROI whose elements can be selected and unselected via
+ * voxel coordinates, used by VolumeCollection.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.4 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/17 23:59:48 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +32,7 @@
 
 #include "Point3.h"
 #include "ScubaROI.h"
+#include "Volume3.h"
 
 class ScubaROIVolume : public ScubaROI {
 
@@ -61,17 +63,15 @@ public:
   }
 
   // Get a list of selected voxels.
-  std::list<Point3<int> > GetSelectedVoxelList ();
+  std::list<Point3<int> > GetSelectedVoxelList () const;
 
 protected:
 
   // Sets the mbDirtyList flag then calls the superclass function.
   virtual void ROIChanged ();
 
-  // A volume of booleans for which voxels are selected, and the
-  // bounds.
-  int mBounds[3];
-  bool*** mVoxels;
+  // A volume of booleans for which voxels are selected.
+  Volume3<bool>* mVoxels;
 
   // The number of selected voxels.
   int mcSelectedVoxels;
@@ -81,8 +81,8 @@ protected:
 
   // A cache of the selected voxels. Invalidated when a voxel is
   // selected or unselected.
-  bool mbDirtyList;
-  std::list<Point3<int> > mlSelectedVoxels;
+  mutable bool mbDirtyList;
+  mutable std::list<Point3<int> > mlSelectedVoxels;
 };
 
 #endif

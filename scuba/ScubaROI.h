@@ -1,15 +1,18 @@
 /**
  * @file  ScubaROI.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Generic ROI with a an associated structure or color
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is a superclass for ROIs. It can be of the type Structure or
+ * Free. If Structure, it has a value associated with a ScubaColorLUT
+ * and gets a color from that. If it's Free, you can give it an
+ * explicit color.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.6 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/17 23:59:48 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,6 +38,7 @@
 #include "IDTracker.h"
 #include "Broadcaster.h"
 
+// This is a static listener to respond to static ROI Tcl commands.
 class ScubaROIStaticTclListener : public DebugReporter,
       public TclCommandListener {
 
@@ -42,8 +46,9 @@ public:
   ScubaROIStaticTclListener ();
   ~ScubaROIStaticTclListener ();
 
+  // Respond to Tcl commands.
   virtual TclCommandResult
-  DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 };
 
 class ScubaROI : public DebugReporter,
@@ -58,45 +63,37 @@ public:
   ScubaROI ();
   virtual ~ScubaROI ();
 
+  // Respond to Tcl commands.
   virtual TclCommandResult
-  DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
-
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+  
+  // Our ROI types.
   enum Type { Structure, Free };
-  void SetType( Type iType ) {
-    mType = iType;
-  }
-  Type GetType() {
-    return mType;
-  }
 
-  void SetColorLUT( int iLUTID ) {
-    mLUTID = iLUTID;
-  }
-  int GetColorLUT() {
-    return mLUTID;
-  }
+  // Get and set the type.
+  void SetType( Type iType );
+  Type GetType() const;
 
-  void SetStructure( int iStructure ) {
-    mStructure = iStructure;
-  }
-  int GetStructure() {
-    return mStructure;
-  }
+  // Get and set the ID of the ScubaColorLUT to use if this is a
+  // Structure ROI.
+  void SetColorLUT( int iLUTID );
+  int GetColorLUT() const;
 
-  void SetColor( int iColor[3] );
-  void GetColor( int oColor[3] );
+  // Get the structure index.
+  void SetStructure( int iStructure );
+  int GetStructure() const;
 
-  void SetLabel( std::string isLabel ) {
-    msLabel = isLabel;
-  }
-  std::string GetLabel() {
-    return msLabel;
-  }
+  // Set the free color.
+  void SetFreeColor( int const iColor[3] );
+
+  // Human-readable label.
+  void SetLabel( std::string const& isLabel );
+  std::string const& GetLabel() const;
 
   // Returns the color in which this ROI should be drawn; if its type
   // is free, it will return the color, if it's a structure, it will
   // look up its color from an LUT.
-  void GetDrawColor( int oColor[3] );
+  void GetDrawColor( int oColor[3] ) const;
 
   // Suppresses the roiChanged message. Use when changing a lot of
   // elements in a row that don't need updates in between. Will call
@@ -116,7 +113,7 @@ protected:
 
   int mLUTID;
   int mStructure;
-  int mColor[3];
+  int mFreeColor[3];
 
   bool mbSuspendROIChangedMessage;
 

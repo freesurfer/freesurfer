@@ -1,15 +1,18 @@
 /**
  * @file  ScubaROI.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Generic ROI with a an associated structure or color
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is a superclass for ROIs. It can be of the type Structure or
+ * Free. If Structure, it has a value associated with a ScubaColorLUT
+ * and gets a color from that. If it's Free, you can give it an
+ * explicit color.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 19:57:42 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/10/17 23:59:48 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +44,7 @@ ScubaROI::ScubaROI () :
     mLUTID( 0 ),
     mStructure( 0 ),
     mbSuspendROIChangedMessage( false ) {
-  mColor[0] = mColor[1] = mColor[2] = 0;
+  mFreeColor[0] = mFreeColor[1] = mFreeColor[2] = 0;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetROILabel", 2, "roiID label",
@@ -271,7 +274,7 @@ ScubaROI::DoListenToTclCommand ( char* isCommand,
       color[0] = red;
       color[1] = green;
       color[2] = blue;
-      SetColor( color );
+      SetFreeColor( color );
     }
   }
 
@@ -287,8 +290,8 @@ ScubaROI::DoListenToTclCommand ( char* isCommand,
 
       sReturnFormat = "Liiil";
       stringstream ssReturnValues;
-      ssReturnValues << mColor[0] << " " << mColor[1] << " "
-      << mColor[2];
+      ssReturnValues << mFreeColor[0] << " " << mFreeColor[1] << " "
+      << mFreeColor[2];
       sReturnValues = ssReturnValues.str();
     }
   }
@@ -296,31 +299,73 @@ ScubaROI::DoListenToTclCommand ( char* isCommand,
   return ok;
 }
 
-void
-ScubaROI::SetColor( int iColor[3] ) {
+void 
+ScubaROI::SetType( Type iType ) {
+  mType = iType;
+}
 
-  mColor[0] = iColor[0];
-  mColor[1] = iColor[1];
-  mColor[2] = iColor[2];
+ScubaROI::Type 
+ScubaROI::GetType() const {
+  return mType;
+}
+
+void 
+ScubaROI::SetColorLUT( int iLUTID ) {
+  mLUTID = iLUTID;
+}
+
+int 
+ScubaROI::GetColorLUT() const {
+  return mLUTID;
 }
 
 void
-ScubaROI::GetColor( int oColor[3] ) {
+ScubaROI::SetStructure( int iStructure ) {
 
-  oColor[0] = mColor[0];
-  oColor[1] = mColor[1];
-  oColor[2] = mColor[2];
+  mStructure = iStructure;
+  ROIChanged();
+}
+
+int
+ScubaROI::GetStructure() const {
+
+  return mStructure;
 }
 
 void
-ScubaROI::GetDrawColor( int oColor[3] ) {
+ScubaROI::SetFreeColor( int const iColor[3] ) {
 
+  mFreeColor[0] = iColor[0];
+  mFreeColor[1] = iColor[1];
+  mFreeColor[2] = iColor[2];
+  ROIChanged();
+}
+
+void 
+ScubaROI::SetLabel( string const& isLabel ) {
+
+  msLabel = isLabel;
+}
+
+string const&
+ScubaROI::GetLabel() const{
+
+  return msLabel;
+}
+
+void
+ScubaROI::GetDrawColor( int oColor[3] ) const {
+
+  // If this is a Free ROI, return the color, otherwise look up the
+  // structure in the LUT and return the color.
   switch ( mType ) {
+
   case Free:
-    oColor[0] = mColor[0];
-    oColor[1] = mColor[1];
-    oColor[2] = mColor[2];
+    oColor[0] = mFreeColor[0];
+    oColor[1] = mFreeColor[1];
+    oColor[2] = mFreeColor[2];
     break;
+
   case Structure: {
     try {
       ScubaColorLUT& lut = ScubaColorLUT::FindByID( mLUTID );
@@ -339,6 +384,7 @@ ScubaROI::GetDrawColor( int oColor[3] ) {
 void
 ScubaROI::ROIChanged() {
 
+  // Broadcast roiChanged message.
   if ( !mbSuspendROIChangedMessage ) {
     int id = GetID();
     SendBroadcast( "roiChanged", (void*)&id );
@@ -347,11 +393,13 @@ ScubaROI::ROIChanged() {
 
 void
 ScubaROI::BeginBatchChanges () {
+
   mbSuspendROIChangedMessage = true;
 }
 
 void
 ScubaROI::EndBatchChanges () {
+
   mbSuspendROIChangedMessage = false;
   ROIChanged();
 }
@@ -367,8 +415,8 @@ ScubaROIStaticTclListener::~ScubaROIStaticTclListener () {}
 
 TclCommandManager::TclCommandResult
 ScubaROIStaticTclListener::DoListenToTclCommand ( char* isCommand,
-    int, char** ) {
-
+						  int, char** ) {
+  
   // GetROIIDList
   if ( 0 == strcmp( isCommand, "GetROIIDList" ) ) {
     list<int> idList;
