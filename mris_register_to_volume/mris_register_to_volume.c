@@ -10,8 +10,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/17 19:50:40 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/10/17 20:15:35 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -155,7 +155,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_register_to_volume.c,v 1.4 2007/10/17 19:50:40 fischl Exp $";
+static char vcid[] = "$Id: mris_register_to_volume.c,v 1.5 2007/10/17 20:15:35 fischl Exp $";
 char *Progname = NULL;
 
 static int debug = 0, gdiagno = -1;
@@ -247,12 +247,12 @@ main(int argc, char **argv)
 #endif
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mris_register_to_volume.c,v 1.4 2007/10/17 19:50:40 fischl Exp $",
+                          "$Id: mris_register_to_volume.c,v 1.5 2007/10/17 20:15:35 fischl Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mris_register_to_volume.c,v 1.4 2007/10/17 19:50:40 fischl Exp $",
+                                "$Id: mris_register_to_volume.c,v 1.5 2007/10/17 20:15:35 fischl Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -369,6 +369,7 @@ main(int argc, char **argv)
       similarity =  
         mrisRegistrationCNRSimilarity(mris, mri_reg, mri_mask,R0,0, 1, 0) ;
 
+      i = 0 ;
       do
       {
         printf("-------- loop %d: starting similarity %2.1f ----------\n",
