@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/10/05 19:00:27 $
- *    $Revision: 1.286 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/17 18:08:42 $
+ *    $Revision: 1.287 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -1181,6 +1181,9 @@ void bpfilter(FLOATTYPE **data, int nchan, int nsamp,float lo,float hi);
 
 xGLutWindowRef gWindow = NULL;
 
+/* This was experimental code to make the main window be a GLut window
+   instead of a straight XWindow with Motif event handling. It wasn't
+   compatible with all systems. */
 void wndw_create (int x, int y, int width, int height);
 void wndw_set_title (char* title);
 void wndw_handle_event (void* data, xGWin_tEventRef event);
@@ -1194,6 +1197,13 @@ void wndw_handle_event (void* data, xGWin_tEventRef event);
 int cncl_listening = 0;
 int cncl_canceled = 0;
 
+/* This code lets you trap a ctrl-c during a long operation in case
+   the user wants to cancel it. Call cncl_start_listening() at the
+   beginning of your operation, and cncl_user_canceled() to check if
+   the user has hit ctrl-c. When you're done, call
+   cncl_stop_listening(). cncl_initialize() installs
+   cncl_handle_sigint() as the handler function for ctrl-c, and it
+   will set cncl_canceled to 1 if it receives that signal. */
 void cncl_initialize ();
 void cncl_start_listening ();
 void cncl_stop_listening ();
@@ -1284,6 +1294,7 @@ MATRIX* surfaceRAStoRAS = NULL;
 
 MRI* orig_mri_header = NULL;
 
+/* Handles conversion to and from Talairach coordinates. */
 int conv_initialize ();
 int conv_ras_to_mnital (float rasx, float rasy, float rasz,
                         float* talx, float* taly, float* talz);
@@ -1948,7 +1959,7 @@ typedef struct {
   char dont_cross_fthresh;
   char dont_fill_unlabeled;
 
-  char use_multiple_seeds;
+  char use_multiple_seeds; /* If set, use all marked[] vnos. */
 
   int action;
   int argument;
@@ -1958,6 +1969,9 @@ typedef struct {
 }
 FILL_PARAMETERS;
 
+/* Performs a flood fill from the parameter vertex, using the
+   FILL_PARAMETERS to determine what and how the fill should do. The
+   options are hopefully self-explanatory. */
 int fill_flood_from_seed (int vno, FILL_PARAMETERS* params);
 
 /* ---------------------------------------------------------------------- */
@@ -2113,6 +2127,9 @@ int link_tool_and_image_windows_flag = 1;
 
 int save_tiff (char* fname);
 
+/* Generates the edit.dat filename to use based on whether the subject
+   name has been defined, etc. Same code exists in tkmedit to ensure
+   the same names are generated. */
 void copy_edit_dat_file_name (char* fname, int len);
 
 /* end rkt */
@@ -13047,9 +13064,9 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
       g = g_base;
       b = b_base;
 
-      // This replaces the RGB with that of the label. The color may
-      // be overwritten below if a stat is above threshold thus putting
-      // the stat map ABOVE the label.
+      /* This replaces the RGB with that of the label. The color may
+	 be overwritten below if a stat is above threshold thus putting
+	 the stat map ABOVE the label. */
       if(labels_before_overlay_flag)
         /* get any label color for this vertex. this will not apply
            any color if there is no label. */
@@ -18643,7 +18660,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.286 2007/10/05 19:00:27 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.287 2007/10/17 18:08:42 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
