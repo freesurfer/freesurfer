@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/05 21:29:48 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/10/17 20:45:25 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,7 +72,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIView2D );
-vtkCxxRevisionMacro( vtkKWOrientMRIView2D, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIView2D, "$Revision: 1.3 $" );
 
 double vtkKWOrientMRIView2D::sReorthoPoints[3][2][3] = 
   { {{0,0,0}, {0,0,0}}, {{0,0,0}, {0,0,0}}, {{0,0,0}, {0,0,0}} };
@@ -394,6 +394,8 @@ vtkKWOrientMRIView2D::SetUpView () {
     camera->SetFocalPoint( 0, 0, 0 );
     camera->SetViewUp( 0, 1, 0 );
     camera->SetPosition( 0, 0, 10 );
+    break;
+  default:
     break;
   }
 
