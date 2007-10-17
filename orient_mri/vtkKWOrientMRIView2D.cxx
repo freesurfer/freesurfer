@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/17 20:45:25 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/10/17 21:04:47 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,7 +72,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIView2D );
-vtkCxxRevisionMacro( vtkKWOrientMRIView2D, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIView2D, "$Revision: 1.4 $" );
 
 double vtkKWOrientMRIView2D::sReorthoPoints[3][2][3] = 
   { {{0,0,0}, {0,0,0}}, {{0,0,0}, {0,0,0}}, {{0,0,0}, {0,0,0}} };
@@ -103,11 +103,13 @@ vtkKWOrientMRIView2D::Create () {
   // Add the pipelines for our reortho lines.
   for( int nOrientation = 0; nOrientation < 3; nOrientation++ ) {
 
+    // Make a pipeline and set our start and end poitns.
     mReorthoArrow[nOrientation] = vtkSmartPointer<vtkArrowPipeline>::New();
     mReorthoArrow[nOrientation]->
       SetStartAndEndPoint( sReorthoPoints[nOrientation][0],
 			   sReorthoPoints[nOrientation][1] );
 
+    // Get the actor and set its color and pickability.
     vtkSmartPointer<vtkActor> reorthoActor = 
       mReorthoArrow[nOrientation]->GetActor();
     reorthoActor->GetProperty()->
@@ -115,6 +117,7 @@ vtkKWOrientMRIView2D::Create () {
 		(this->GetColorForOrientation(nOrientation)) );
     reorthoActor->PickableOff();
 
+    // Add it to the renderer.
     this->GetRenderer()->AddActor( reorthoActor );
 
   }
