@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/04 21:52:47 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/10/17 20:46:25 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,6 +26,8 @@
  *
  */
 
+#include <limits>
+
 #include "vtkArrowPipeline.h"
 
 #include "vtkActor.h"
@@ -40,7 +42,7 @@
 
 
 vtkStandardNewMacro( vtkArrowPipeline );
-vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.5 $" );
 
 vtkArrowPipeline::vtkArrowPipeline () {
 
@@ -52,7 +54,8 @@ vtkArrowPipeline::vtkArrowPipeline () {
 
   // Initial points.
   mStartPoint[0] = mStartPoint[1] = mStartPoint[2] = 0;
-  mEndPoint[0] = mEndPoint[1] = mEndPoint[2] = 1;
+  mEndPoint[0] = 1;
+  mEndPoint[1] = mEndPoint[2] = 0;
 
   // This will be how we transform the source to go from point a to
   // b. Create a simple landmark transform that goes from 0,0,0 to
@@ -109,6 +112,7 @@ vtkArrowPipeline::SetStartPoint ( double const* iPoint ) {
 
   assert( iPoint );
   assert( mTransform.GetPointer() );
+  assert( mActor );
 
   // Set the first dest landmark point.
   mStartPoint[0] = iPoint[0];
@@ -122,6 +126,20 @@ vtkArrowPipeline::SetStartPoint ( double const* iPoint ) {
   destPoints->SetPoint( 0, mStartPoint );
   destPoints->SetPoint( 1, mEndPoint );
   mTransform->SetTargetLandmarks( destPoints );
+
+  // If the points are the same, set visibility off. This is to
+  // prevent a case on 64 bit machines where the landmark transform
+  // will be way crazy and make the arrow infinitely large.
+  if( fabs(mStartPoint[0] - mEndPoint[0]) < 
+      std::numeric_limits<double>::epsilon() &&
+      fabs(mStartPoint[1] - mEndPoint[2]) < 
+      std::numeric_limits<double>::epsilon() &&
+      fabs(mStartPoint[2] - mEndPoint[1]) < 
+      std::numeric_limits<double>::epsilon() ) {
+    mActor->VisibilityOff();
+  } else {
+    mActor->VisibilityOn();
+  }
 }
 
 void 
@@ -129,6 +147,7 @@ vtkArrowPipeline::SetEndPoint ( double const* iPoint ) {
 
   assert( iPoint );
   assert( mTransform.GetPointer() );
+  assert( mActor );
 
   // Set the first dest landmark point.
   mEndPoint[0] = iPoint[0];
@@ -142,6 +161,20 @@ vtkArrowPipeline::SetEndPoint ( double const* iPoint ) {
   destPoints->SetPoint( 0, mStartPoint );
   destPoints->SetPoint( 1, mEndPoint );
   mTransform->SetTargetLandmarks( destPoints );
+
+  // If the points are the same, set visibility off. This is to
+  // prevent a case on 64 bit machines where the landmark transform
+  // will be way crazy and make the arrow infinitely large.
+  if( fabs(mStartPoint[0] - mEndPoint[0]) < 
+      std::numeric_limits<double>::epsilon() &&
+      fabs(mStartPoint[1] - mEndPoint[2]) < 
+      std::numeric_limits<double>::epsilon() &&
+      fabs(mStartPoint[2] - mEndPoint[1]) < 
+      std::numeric_limits<double>::epsilon() ) {
+    mActor->VisibilityOff();
+  } else {
+    mActor->VisibilityOn();
+  }
 }
 
 void 
