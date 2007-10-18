@@ -1,15 +1,16 @@
 /**
  * @file  tkmDisplayArea.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Graphics and UI interaction for data display.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Manages a single pane of display in the window. Has slots for
+ * viewing different kinds of data. Handles UI events in the panel.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:16 $
- *    $Revision: 1.63 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/18 18:27:03 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 

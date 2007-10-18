@@ -1,15 +1,20 @@
 /**
  * @file  tkmFunctionalVolume.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Manages functional volume overlay and timecourse plotting
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Provides an interface for functional volumes as an overlay or
+ * timecourse plot. The same volume can be both, or you can have
+ * different volumes for each purpose. Handles loading via the
+ * mriFunctionaDataAccess code. Keeps track of the current time point
+ * and condition, and sends the Tcl commands to interface with
+ * tkm_functional.tcl to draw the graph.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/16 16:50:03 $
- *    $Revision: 1.26 $
+ *    $Date: 2007/10/18 18:27:04 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 

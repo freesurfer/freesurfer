@@ -1,15 +1,19 @@
 /**
  * @file  tkmedit.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Tcl/Tk-based MRI volume and surface viewer and editor
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * TkMedit displays anatomical data and allows the user to navigate through
+ * that data and view it from different orientations. TkMedit also displays
+ * other data types such as functional data and surfaces as overlays onto
+ * this anatomical data.
+ * See: http://surfer.nmr.mgh.harvard.edu/fswiki/TkMeditGuide
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/24 18:27:13 $
- *    $Revision: 1.55 $
+ *    $Date: 2007/10/18 18:27:05 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 

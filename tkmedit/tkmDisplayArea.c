@@ -1,15 +1,16 @@
 /**
  * @file  tkmDisplayArea.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Graphics and UI interaction for data display.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Manages a single pane of display in the window. Has slots for
+ * viewing different kinds of data. Handles UI events in the panel.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/06 19:39:57 $
- *    $Revision: 1.140 $
+ *    $Date: 2007/10/18 18:27:03 $
+ *    $Revision: 1.141 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -1523,28 +1524,6 @@ DspA_tErr DspA_SetZoomLevel ( tkmDisplayAreaRef this,
   /* set our zoom level. */
   this->mnZoomLevel = nNewLevel;
 
-
-
-#if 0
-  /* if this is zoom level one, set our center to the middle of
-     this slice. */
-  if ( 1 == this->mnZoomLevel ) {
-
-    /* set a voxel to 128,128,128, setting the zoom center will not change
-       the current slice. */
-    xVoxl_New( &pCenter );
-    xVoxl_Set( pCenter, this->mnVolumeSizeX/2,
-               this->mnVolumeSizeY/2, this->mnVolumeSizeZ/2 );
-    eResult = DspA_SetZoomCenter( this, pCenter );
-    xVoxl_Delete( &pCenter );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-  }
-#endif
-
-
-
-
   /* this requires a rebuild of the frame buffer. */
   this->mbSliceChanged = TRUE;
 
@@ -2987,13 +2966,6 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
-#if 0
-  DebugPrint( 
-    ("Mouse up screen x %d y %d buffer x %d y %d volume %f %f %f\n",
-     ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
-     xVoxl_ExpandFloat( pVolumeVox ) ) );
-#endif
-
   switch ( sTool ) {
 
   case DspA_tTool_Navigate:
@@ -3052,8 +3024,9 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 
   case DspA_tTool_EditVoxels:
 
-    /* If Shift-edit, restore-undo around the clicked point. */
 #if 0
+    /* If Shift-edit, restore-undo around the clicked point. Don't do
+       this now as it was really confusing people.*/
     if ( ipEvent->mbShiftKey ) {
       tkm_RestoreUndoVolumeAroundMRIIdx( pVolumeVox );
     }
@@ -3348,14 +3321,6 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
-#if 0
-  DebugPrint
-    ( ("Mouse down screen x %d y %d buffer x %d y %d volume %d %d %d\n",
-       ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
-       xVoxl_ExpandInt( pVolumeVox ) ) );
-#endif
-
-
   /* If shift button-1 was down, we're going to do an interactive
      brightness/contrast modification. */
   if ( 1 == ipEvent->mButton &&
@@ -3532,13 +3497,6 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
   eResult = DspA_ConvertBufferToVolume_( this, &bufferPt, &anaIdx );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
-
-#if 0
-  DebugPrint(("Mouse moved screen x %d y %d buffer x %d"
-              "y %d volume %d %d %d\n", ipEvent->mWhere.mnX,
-              ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
-              xVoxl_ExpandInt( &anaIdx ) ) );
-#endif
 
   /* Check if this is a valid voxel. If so, send the information about
      this point to Tcl for the mouseover info pane. */
@@ -4512,7 +4470,7 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
   }
 
 #if 0
-  /* Vector field */
+  /* Vector field. Never really finished debugging this. */
   if ( this->mabDisplayFlags[DspA_tDisplayFlag_VectorField] ) {
     eResult = DspA_DrawVectorField_( this );
     if ( DspA_tErr_NoErr != eResult ) {
@@ -4641,15 +4599,6 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
   Surf_tVertexSet   vertexSet    = Surf_tVertexSet_Main;
   xGrowableArrayRef list       = NULL;
   float             faColor[3] = {0, 0, 0};
-
-#if 0
-  /* just draw surface and return. */
-  eResult = DspA_DrawSurfaceDirect_( this );
-  if ( DspA_tErr_NoErr != eResult )
-    goto error;
-
-  goto cleanup;
-#endif
 
   for ( nSurface = 0; nSurface < tkm_knNumSurfaceTypes; nSurface++ ) {
 
@@ -4860,65 +4809,6 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
   DspA_tErr eResult     = DspA_tErr_NoErr;
   xPoint2n  volumePt    = {0, 0};
   xVoxelRef  pVoxel      = NULL;
-
-#if 0
-
-  int       nY          = 0;
-  char      sLabel[STRLEN] = "";
-  int       nLength     = 0;
-  int       nChar       = 0;
-
-  xVoxl_New( &pVoxel );
-
-  DspA_SetUpOpenGLPort_( this );
-
-  glColor3f ( 0.0, 1.0, 0.0 );
-
-  volumePt.mnX = 0;
-
-  /* all down the side, every size / 5 pixels */
-  for ( nY = 0; nY < this->mnVolumeSizeY; nY += this->mnVolumeSizeY/5 ) {
-
-    /* y flip the volume pt to flip the image over. */
-    //volumePt.mnY = BUFFER_Y_FLIP(nY);
-    volumePt.mnY = nY;
-
-    /* get a volume voxel.*/
-    eResult = DspA_ConvertBufferToVolume_ ( this, &volumePt, pVoxel );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-
-    /* if this is good... */
-    eResult = DspA_VerifyVolumeVoxel_( this, pVoxel );
-    if ( DspA_tErr_NoErr == eResult ) {
-
-      /* convert the voxel coords to a string */
-      sprintf( sLabel, "%d,%d,%d", xVoxl_ExpandInt(pVoxel) );
-
-      /* draw a line here. */
-      glBegin( GL_LINES );
-      glVertex2d( 0, nY );
-      glVertex2d( 10, nY );
-      glEnd();
-
-      /* get length of the string */
-      nLength = strlen( sLabel );
-
-      /* go to right place */
-      glRasterPos2i( 0, nY + 5 );
-
-      /* for every cahr in the string.. */
-      for ( nChar = 0; nChar < nLength; nChar++ ) {
-
-        /* draw the char */
-        glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
-      }
-    }
-
-    eResult = DspA_tErr_NoErr;
-  }
-
-#endif
 
   DspA_SetUpOpenGLPort_( this );
 
@@ -5329,23 +5219,6 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   int             yMin     = 0;
   int             yMax     = 0;
   int             yInc     = 0;
-
-
-#if 0
-  /* if we're in zoom level one, set zoom center to 128,128,128 */
-  if ( 1 == this->mnZoomLevel ) {
-
-    /* set a voxel to 128,128,128, setting the zoom center will not change
-       the current slice. */
-    xVoxl_Set( &anaIdx, this->mnVolumeSizeX/2,
-               this->mnVolumeSizeY/2, this->mnVolumeSizeZ/2 );
-    eResult = DspA_SetZoomCenter( this, &anaIdx );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-  }
-#endif
-
-
 
   /* get a ptr to the frame buffer. */
   pDest = this->mpFrameBuffer;
@@ -5890,58 +5763,6 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
     }
   }
 
-
-#if 0
-  /* if we're drawing the color scale bar... */
-  if ( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalColorScaleBar] ) {
-
-    /* draw the color scale bar. get threshold max. */
-    eFunctional = FunV_GetThresholdMax( this->mpFunctionalVolume, &max );
-    if ( FunV_tErr_NoError != eFunctional ) {
-      eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
-      goto error;
-    }
-
-    /* down the buffer */
-    for ( bufferPt.mnY = 0;
-          bufferPt.mnY < this->mnVolumeSizeY;
-          bufferPt.mnY++ ) {
-
-      /* get an interpolated value within the range of -max to +max
-      determined by the y value */
-      funcValue = (FunV_tFunctionalValue)
-                  ( (float)bufferPt.mnY *
-                    (float)((max*2.0)/(float)this->mnVolumeSizeY) - max );
-
-      /* get the functional color for this value */
-      eFunctional = FunV_GetColorForValue( this->mpFunctionalVolume,
-                                           funcValue, &color, &newColor );
-      if ( FunV_tErr_NoError != eFunctional ) {
-        eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
-        goto error;
-      }
-
-      /* draw on the right side... */
-      for ( bufferPt.mnX = this->mnVolumeSizeX - 10;
-            bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX++ ) {
-
-        /* write it back to the buffer. */
-        pDest = this->mpFrameBuffer +
-                ( (bufferPt.mnY * this->mnVolumeSizeY) + bufferPt.mnX ) *
-                DspA_knNumBytesPerPixel;
-
-        pDest[DspA_knRedPixelCompIndex]   =
-          (GLubyte)(newColor.mfRed * DspA_knMaxPixelValue);
-        pDest[DspA_knGreenPixelCompIndex] =
-          (GLubyte)(newColor.mfGreen * DspA_knMaxPixelValue);
-        pDest[DspA_knBluePixelCompIndex]  =
-          (GLubyte)(newColor.mfBlue * DspA_knMaxPixelValue);
-        pDest[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
-      }
-    }
-  }
-#endif
-
   goto cleanup;
 
   goto error;
@@ -6031,13 +5852,6 @@ DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
         eResult = DspA_ConvertVolumeToBuffer_( this, &anaIdx, &bufferPt );
         if ( DspA_tErr_NoErr != eResult )
           goto error;
-
-#if 0
-        DebugPrint( ("ctrl pt MRIIdx %d %d %d -> Idx %d %d %d -> "
-                     "buffer %d %d\n",
-                     xVoxl_ExpandInt(MRIIdx), xVoxl_ExpandInt(&anaIdx),
-                     bufferPt.mnX, bufferPt.mnY) );
-#endif
 
         /* draw a point here. */
         DspA_DrawMarker_( this, DspA_tMarker_Crosshair, faColor, &bufferPt,
@@ -6630,15 +6444,6 @@ DspA_tErr DspA_DrawVector_ ( tkmDisplayAreaRef this,
                    xVoxl_GetFloatZ( ipVoxelStart ) +
                    xVoxl_GetFloatZ( ipVoxelDirection ));
   DspA_ConvertVolumeToBufferf_ ( this, &voxelEnd, &bufferEnd );
-
-#if 0
-  fprintf( stderr, "vox start %.2f, %.2f, %.2f dir %.2f, %.2f, %.2f "
-           "bufst %.2f, %.2f bufend %.2f, %.2f\n",
-           xVoxl_ExpandFloat(ipVoxelStart),
-           xVoxl_ExpandFloat(ipVoxelDirection),
-           bufferStart.mfX, bufferStart.mfY,
-           bufferEnd.mfX, bufferEnd.mfY );
-#endif
 
   DspA_SetUpOpenGLPort_( this );
 
@@ -8029,25 +7834,6 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
     yn = nint(xVoxl_GetY(iAnaIdx) / this->mVLI1->resolution) ;
     zn = nint(xVoxl_GetZ(iAnaIdx) / this->mVLI1->resolution) ;
 
-#if 0
-    printf("voxel (%d, %d, %d) --> node (%d, %d, %d)\n",
-           xVoxl_ExpandInt( iAnaIdx ), xn, yn, zn) ;
-    vl = &this->mVLI1->vl[xn][yn][zn] ;
-    printf("%s:\n", name1) ;
-    for (n = 0 ; n < vl->nlabels ; n++) {
-      if (vl->counts[n] > 0)
-        printf("%s (%d): %d\n", cma_label_to_name(vl->labels[n]),
-               vl->labels[n], vl->counts[n]) ;
-    }
-    vl = &this->mVLI2->vl[xn][yn][zn] ;
-    printf("%s:\n", name2) ;
-    for (n = 0 ; n < vl->nlabels ; n++) {
-      if (vl->counts[n] > 0)
-        printf("%s (%d): %d\n", cma_label_to_name(vl->labels[n]),
-               vl->labels[n], vl->counts[n]) ;
-    }
-#endif
-
     memset(label_counts_c1, 0, sizeof(label_counts_c1)) ;
     vl = &this->mVLI1->vl[xn][yn][zn] ;
     for (n1 = index = 0 ; index < vl->nlabels ; index++) {
@@ -8121,62 +7907,6 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       free( histoParams.masXAxisLabels[nValue] );
     free( histoParams.masXAxisLabels );
   }
-
-
-#if 0
-  /* histogram example */
-  if ( getenv("SEE_HISTO_DEMO") ) {
-    if ( DspA_tDisplaySet_Cursor == iSet ) {
-
-      /* the title of the window and graph */
-      DebugNote( ("Sprintfing coords") );
-      xUtil_snprintf( histoParams.msTitle, sizeof(histoParams.msTitle),
-                      "%d, %d, %d", xVoxl_ExpandInt( iAnaIdx ) );
-      /* the titles of the axes */
-      DebugNote( ("Copying axis titles") );
-      xUtil_strncpy( histoParams.msXAxisTitle, "The Kinds of Stuff",
-                     sizeof(histoParams.msXAxisTitle) );
-      xUtil_strncpy( histoParams.msYAxisTitle, "Amount of Stuff",
-                     sizeof(histoParams.msYAxisTitle) );
-      /* the title of the elements in the legend */
-      DebugNote( ("Copying element titles") );
-      xUtil_strncpy( histoParams.msLabel1, "Some Stuff",
-                     sizeof(histoParams.msLabel1) );
-      xUtil_strncpy( histoParams.msLabel2, "Other Stuff",
-                     sizeof(histoParams.msLabel2) );
-
-      /* declare arrays of values and labels */
-#define knNumValues 20
-      histoParams.mafValues1 = (float*) calloc( knNumValues, sizeof(float) );
-      histoParams.mafValues2 = (float*) calloc( knNumValues, sizeof(float) );
-      histoParams.masXAxisLabels = 
-        (char**) calloc( knNumValues, sizeof(float) );
-
-      /* fill them up with some random nubmers and cma labels */
-      histoParams.mnNumValues = knNumValues;
-      for ( nValue = 0; nValue < knNumValues; nValue++ ) {
-        /* assign values for the elements */
-        histoParams.mafValues1[nValue] = random()%100;
-        histoParams.mafValues2[nValue] = random()%100;
-        /* allocate and set the label for this element */
-        histoParams.masXAxisLabels[nValue] =
-          (char*) malloc( sizeof(char) * DspA_knHistoTitleLength );
-        xUtil_strncpy( histoParams.masXAxisLabels[nValue],
-                       cma_label_to_name( nValue ), DspA_knHistoTitleLength );
-      }
-
-      /* draw the thing */
-      DspA_DrawHistogram( this, &histoParams );
-
-      free( histoParams.mafValues1 );
-      free( histoParams.mafValues2 );
-      for ( nValue = 0; nValue < knNumValues; nValue++ )
-        free( histoParams.masXAxisLabels[nValue] );
-      free( histoParams.masXAxisLabels );
-    }
-  }
-#endif
-
 
   /* if we have a surfaec, update the surface distance. if this is the
      cursor, find the distance from the last cursor and print that. if

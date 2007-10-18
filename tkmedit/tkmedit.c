@@ -1,6 +1,6 @@
 /**
  * @file  tkmedit.c
- * @brief Tcl/Tk-based MRI volume viewer
+ * @brief Tcl/Tk-based MRI volume and surface viewer and editor
  *
  * TkMedit displays anatomical data and allows the user to navigate through
  * that data and view it from different orientations. TkMedit also displays
@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/21 18:58:58 $
- *    $Revision: 1.322 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/18 18:27:04 $
+ *    $Revision: 1.323 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.322 $";
+char *VERSION = "$Revision: 1.323 $";
 
 #define TCL
 #define TKMEDIT
@@ -64,7 +64,6 @@ char *VERSION = "$Revision: 1.322 $";
 #include "fsgdf.h"
 #include "mri2.h"
 
-#define SET_TCL_ENV_VAR 0
 #include <tcl.h>
 //#include <tclDecls.h>
 #include <tk.h>
@@ -1127,12 +1126,6 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   int                   nTruncPhaseFlag      = 0;
   tBoolean              bUseOverlayCacheFlag = FALSE;
   int                   nUseOverlayCacheFlag = 0;
-#if 0
-  tBoolean      bSetConversionMethod      = FALSE;
-#endif
-#if 0
-  FunD_tConversionMethod  convMethod     = FunD_tConversionMethod_FFF;
-#endif
 
   tBoolean      bLoadingHeadPts                  = FALSE;
   tBoolean      bHaveHeadPtsTransform            = FALSE;
@@ -1193,7 +1186,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.322 2007/08/21 18:58:58 nicks Exp $",
+     "$Id: tkmedit.c,v 1.323 2007/10/18 18:27:04 kteich Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -2343,49 +2336,6 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg += 1;
         }
 
-        /* rkt - commented out because the functional volume should no
-           longer set the conversion method explicitly. it should only be
-           set when parsing the register.dat file. */
-#if 0
-      } else if ( MATCH( sArg, "-float2int" ) ) {
-
-        /* check for the value following the switch */
-        if ( argc > nCurrentArg + 1
-             && '-' != argv[nCurrentArg+1][0] ) {
-
-          /* get the value */
-          DebugNote( ("Parsing -float2int option") );
-          if ( MATCH( argv[nCurrentArg+1], "tkreg" ) ) {
-            convMethod = FunD_tConversionMethod_FCF;
-            bSetConversionMethod = TRUE;
-            nCurrentArg +=2;
-          } else if ( MATCH( argv[nCurrentArg+1], "floor" ) ) {
-            convMethod = FunD_tConversionMethod_FFF;
-            bSetConversionMethod = TRUE;
-            nCurrentArg +=2;
-          } else if ( MATCH( argv[nCurrentArg+1], "round" ) ) {
-            convMethod = FunD_tConversionMethod_Round;
-            bSetConversionMethod = TRUE;
-            nCurrentArg +=2;
-          } else {
-            tkm_DisplayError( "Parsing -float2int option",
-                              "Argument not recognized",
-                              "Please specify tkreg, floor, or round "
-                              "as the conversion method." );
-            nCurrentArg +=1;
-          }
-
-        } else {
-
-          /* misuse of that switch */
-          tkm_DisplayError( "Parsing -overlaycache option",
-                            "Expected an argument",
-                            "This option needs an argument: a 1 or 0 to "
-                            "turn the option on or off." );
-          nCurrentArg += 1;
-        }
-#endif
-
       } else if ( MATCH( sArg, "-interface" ) ) {
 
         /* check for another value */
@@ -2826,16 +2776,6 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
                          DspA_tDisplayFlag_MaxIntProj, bMIP );
   }
 
-  /* rkt - commented out because the functional volume should no
-     longer set the conversion method explicitly. it should only be
-     set when parsing the register.dat file. */
-#if 0
-  if ( bSetConversionMethod ) {
-    DebugNote( ("Setting conversion method to %d", convMethod) );
-    eFunctional = FunV_SetConversionMethod( gFunctionalVolume, convMethod );
-  }
-#endif
-
   /* clear error flag because if we get here we've already handled it
      with an error message. */
   eResult = tkm_tErr_NoErr;
@@ -3104,14 +3044,6 @@ void GotoSurfaceVertex ( Surf_tVertexSet iSurface, int inVertex ) {
   Surf_GetSurfaceSetName( iSurface, sSetName );
   OutputPrint "%s vertex index %d:\n\t%s\n",
     sSetName, inVertex, sDescription EndOutputPrint;
-
-  /* RKT: We don't need to adjust surface verts any more. */
-#if 0
-  /* adjust it so it aligns to the surface. */
-  eWindow = MWin_AdjustSurfaceAnaIdx( gMeditWindow, &anaIdx );
-  if ( MWin_tErr_NoErr != eWindow )
-    goto error;
-#endif
 
   /* tell the window to go there. */
   eWindow = MWin_SetCursor ( gMeditWindow, -1, &anaIdx );
@@ -3619,11 +3551,6 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   char*     sBaseName;
   char      sHemi[3];
   char      sFileNameCopy[tkm_knPathLen];
-#if 0
-  Volm_tErr eVolume           = Volm_tErr_NoErr;
-  VOL_GEOM  surfaceGeometry;
-  VOL_GEOM  volumeGeometry;
-#endif
 
   DebugEnterFunction( ("LoadSurface( iType=%d, isName=%s )",
                        (int)iType, isName) );
@@ -3669,36 +3596,6 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   } else if ( bUseRealRAS != gbUseRealRAS ) {
     tkm_SendTclCommand( tkm_tTclCommand_DoResolveUseRealRASDlog, "" );
   }
-
-  /* This stuff stopped working after Tosa left, so don't use it now. */
-#if 0
-  /* We might need to adjust the surface coordinates if volume
-     geomoetry information is present and it doesn't match the current
-     volume. */
-  DebugNote( ("Getting volume geometry information") );
-  eVolume =
-    Volm_CopyGeometryInformation( gAnatomicalVolume[tkm_tVolumeType_Main],
-                                  &volumeGeometry );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-                     eResult, tkm_tErr_ErrorAccessingVolume );
-
-  DebugNote( ("Getting surface geometry information") );
-  eSurface =
-    Surf_CopyGeometryInformation( gSurface[iType], &surfaceGeometry );
-  DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
-                     eResult, tkm_tErr_ErrorAccessingSurface );
-
-  if ( surfaceGeometry.valid ) {
-    if ( !vg_isEqual( &volumeGeometry, &surfaceGeometry ) ) {
-      printf( "Transforming surface to match volume geometry.\n" );
-      DebugNote( ("Transforming surface to match volume geometry") );
-      eSurface =
-        Surf_TransformToVolumeGeometry( gSurface[iType], &volumeGeometry );
-      DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
-                         eResult, tkm_tErr_ErrorAccessingSurface );
-    }
-  }
-#endif
 
   /* turn on the loading and viewing options for surfaces in our interface.
      also turn the surface display onn in the window. turn on the
@@ -5834,11 +5731,6 @@ static Tcl_Interp *interp;
 static Tcl_DString command;
 static int tty;
 
-#if SET_TCL_ENV_VAR
-static char sTclEnvVar[STRLEN] = "";
-static char sTkEnvVar[STRLEN] = "";
-#endif
-
 int main ( int argc, char** argv ) {
 
   tkm_tErr   eResult                           = tkm_tErr_NoErr;
@@ -5854,18 +5746,6 @@ int main ( int argc, char** argv ) {
   int        nArg                              = 0;
   time_t     theTime;
   char       sSubjectName[tkm_knNameLen]       = "";
-
-#if SET_TCL_ENV_VAR
-  tBoolean  bChangedEnvVar    = FALSE;
-  char*      sTclLib        = NULL;
-  char      sSavedTclLib[STRLEN] = "";
-  int      nTclLength        = 0;
-  char      sNewTclLib[STRLEN]   = "";
-  char*      sTkLib        = NULL;
-  char      sSavedTkLib[STRLEN]   = "";
-  int      nTkLength        = 0;
-  char      sNewTkLib[STRLEN]   = "";
-#endif
 
   /* init our debugging macro code, if any. */
   InitDebugging( "tkmedit" );
@@ -5904,7 +5784,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.322 2007/08/21 18:58:58 nicks Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.323 2007/10/18 18:27:04 kteich Exp $ $Name:  $\n"
         )
       );
 
@@ -6125,66 +6005,6 @@ int main ( int argc, char** argv ) {
   gbAcceptingTclCommands = FALSE;
 
   /* ============================================================ TCL INIT */
-
-#if SET_TCL_ENV_VAR
-  /* get tcl and tk lib env vars */
-  sTclLib = getenv( "TCL_LIBRARY" );
-  sTkLib  = getenv( "TK_LIBRARY" );
-
-  /* if we got them... */
-  if ( NULL != sTclLib
-       && NULL != sTkLib ) {
-
-    /* save them */
-    strcpy( sSavedTclLib, sTclLib );
-    strcpy( sSavedTkLib, sTkLib );
-
-    /* check out major version number */
-    strcpy( sNewTclLib, sTclLib );
-    nTclLength = strlen( sNewTclLib );
-    strcpy( sNewTkLib, sTkLib );
-    nTkLength = strlen( sNewTkLib );
-
-    if ( sNewTclLib[nTclLength-3] != '8' ) {
-
-      /* we changed it */
-      bChangedEnvVar = TRUE;
-
-      /* set verseion to 8.3 */
-      sNewTclLib[nTclLength-3] = '8';
-      sNewTclLib[nTclLength-1] = '3';
-      sNewTkLib[nTkLength-3] = '8';
-      sNewTkLib[nTkLength-1] = '3';
-
-      /* set env variable */
-      sprintf( sTclEnvVar, "%s=%s", "TCL_LIBRARY", sNewTclLib );
-      if ( putenv( sTclEnvVar ) ) {
-        OutputPrint "ERROR: Couldn't set TCL_LIBRARY env var.\n"
-          EndOutputPrint;
-        DebugPrint( ( "Couldn't set TCL_LIBRARY to %s\n", sNewTclLib
-                      ) );
-        exit( 1 );
-      }
-      sprintf( sTkEnvVar, "%s=%s", "TK_LIBRARY", sNewTkLib );
-      if ( putenv( sTkEnvVar ) ) {
-        OutputPrint "ERROR: Couldn't set TK_LIBRARY env var.\n"
-          EndOutputPrint;
-        DebugPrint( ( "Couldn't set TK_LIBRARY to %s\n", sNewTkLib
-                      ) );
-        exit( 1 );
-      }
-    }
-
-  } else {
-
-    OutputPrint "ERROR: TCL_LIBRARY or TK_LIBRARY "
-      "environement variable is not set.\n" EndOutputPrint;
-    DebugPrint
-      ( ( "TCL_LIBRARY or TK_LIBRARY env var not set.\n" ) );
-    exit ( 1 );
-  }
-
-#endif
 
   /* start tcl/tk; first make interpreter */
   DebugNote( ("Creating Tcl interpreter") );
@@ -6709,17 +6529,6 @@ int main ( int argc, char** argv ) {
   /* set data in window */
   DebugNote( ("Setting functional volume in main window") );
   MWin_SetOverlayVolume( gMeditWindow, -1, gFunctionalVolume );
-
-#if 0
-  /* show the tal coords and hide the ras coords */
-  if (NULL !=
-      gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues->linear_transform) {
-    DebugNote( ("Showing Tal coords") );
-    tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "1" );
-    DebugNote( ("Showing coords") );
-    tkm_SendTclCommand( tkm_tTclCommand_ShowRASCoords, "0" );
-  }
-#endif
 
   /* show the volume coords */
   DebugNote( ("Showing volume coords") );
@@ -8468,22 +8277,10 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
     tkm_SendTclCommand( tkm_tTclCommand_ShowRASCoords, "1" );
   }
 
-#if 0
-  /* save the volume size */
-  DebugNote( ("Getting dimension of volume") );
-  Volm_GetDimensions( gAnatomicalVolume[iType], &gnAnatomicalDimensionX,
-                      &gnAnatomicalDimensionY, &gnAnatomicalDimensionZ  );
-#else
-
-  /* RKT - that's what it _should_ be able to do, but too much of
-     tkmedit depends on the anatomical dimensions being
-     256^3. mriVolume.c, as well. So we define an intermediate 'screen
-     space' as 256^3. tkmedit uses this screen space for
-     everything. */
+  /* AnaIdx coordinate dimensions. */
   gnAnatomicalDimensionX = 256;
   gnAnatomicalDimensionY = 256;
   gnAnatomicalDimensionZ = 256 ;
-#endif
 
   /* Set the default color scale. Get the value min and max from the
      volume and use that. Set brightness and contrast, which will be
@@ -12157,21 +11954,6 @@ tkm_tErr LoadHeadPts ( char* isHeadPtsFile,
     spTransformFileArg = NULL;
   }
 
-#if 0
-  /* Get a transform going from RAS -> ana Idx for our client
-     transform. This is ras->b from our Idx->RAS transform, so we need
-     to get b->ras and invert it..*/
-  DebugNote( ("Getting RAS->anaIdx transform") );
-  Trns_GetBtoRAS( gMRIIdxToAnaIdxTransform, &anaIdxToRASTransform );
-  DebugAssertThrowX( (NULL != anaIdxToRASTransform),
-                     eResult, tkm_tErr_ErrorAccessingTransform );
-
-  DebugNote( ("Inverting RAS->anaIdx transform") );
-  RAStoAnaIdxTransform = MatrixInverse( anaIdxToRASTransform, NULL );
-  DebugAssertThrowX( (NULL != RAStoAnaIdxTransform),
-                     eResult, tkm_tErr_ErrorAccessingTransform );
-#else
-
   /* We want surface RAS -> ana Idx for our client transform, as the
      head points are in surface RAS space. */
   DebugNote( ("Getting surface RAS->anaIdx transform from volume") );
@@ -12179,7 +11961,6 @@ tkm_tErr LoadHeadPts ( char* isHeadPtsFile,
     voxelFromSurfaceRAS_(gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues);
   DebugAssertThrowX( (NULL != RAStoAnaIdxTransform),
                      eResult, tkm_tErr_ErrorAccessingTransform );
-#endif
 
   /* Read the head points. */
   DebugNote( ("Creating head points list") );

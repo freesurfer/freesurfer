@@ -1,15 +1,20 @@
 /**
  * @file  tkmFunctionalVolume.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Manages functional volume overlay and timecourse plotting
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Provides an interface for functional volumes as an overlay or
+ * timecourse plot. The same volume can be both, or you can have
+ * different volumes for each purpose. Handles loading via the
+ * mriFunctionaDataAccess code. Keeps track of the current time point
+ * and condition, and sends the Tcl commands to interface with
+ * tkm_functional.tcl to draw the graph.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/07/18 16:18:30 $
- *    $Revision: 1.58 $
+ *    $Date: 2007/10/18 18:27:03 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -553,23 +558,6 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
     eResult = FunV_tErr_ErrorLoadingVolume;
     goto error;
   }
-
-  /* Set the client bounds here. Now this would be the anatomical
-     bounds, but since the rest of the anatomical code really uses
-     'screen coords' which are 256^3, we use those here. */
-  //  eVolume = FunD_SetClientCoordBounds( pVolume, 0, 0, 0, 256, 256, 256 );
-
-  /* rkt - commented out because the functional volume should no
-     longer set the conversion method explicitly. it should only be
-     set when parsing the register.dat file. */
-#if 0
-  /* set the conversion method */
-  eVolume = FunD_SetConversionMethod( pVolume, this->mDefaultConvMethod );
-  if ( FunD_tErr_NoError != eVolume ) {
-    eResult = FunV_tErr_ErrorAccessingInternalVolume;
-    goto error;
-  }
-#endif
 
   /* return the volume */
   *ioppVolume = pVolume;
@@ -2164,32 +2152,6 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   br = iBaseColor->mfRed;
   bg = iBaseColor->mfGreen;
   bb = iBaseColor->mfBlue;
-
-#if 0
-  /* if we're opaque, use no background color */
-  if ( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_Opaque] ) {
-    br = 0;
-    bg = 0;
-    bb = 0;
-  }
-#endif
-
-  /*
-    if( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_IgnoreThreshold] ) {
-    FunD_GetValueRange( this->mpOverlayVolume, &min, &max );
-    if( f < min ) {
-    oColor->mfRed   = 0;
-    oColor->mfGreen = 0;
-    oColor->mfBlue  = 0;
-    goto cleanup;
-    }
-    r = (f-min) / (max-min);
-    oColor->mfRed   = MAX(r,iBaseColor->mfGreen);
-    oColor->mfGreen = iBaseColor->mfGreen;
-    oColor->mfBlue  = iBaseColor->mfBlue;
-    goto cleanup;
-    }
-  */
 
   /* if we're ignoreing the threshold,use the max and min values, else
      use the threshold */
