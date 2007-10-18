@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/07/18 21:55:11 $
-#    $Revision: 1.247 $
+#    $Date: 2007/10/18 15:35:12 $
+#    $Revision: 1.247.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.247 2007/07/18 21:55:11 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.247.2.1 2007/10/18 15:35:12 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3609,10 +3609,6 @@ proc CopyLayerSettingsToSimilarLayers { iViewID iLayerID } {
 			     [Get2DMRILayerWindow $iLayerID]
 			Set2DMRILayerColorLUT $layerID \
 			     [Get2DMRILayerColorLUT $iLayerID]
-			Set2DMRILayerMinVisibleValue $layerID \
-			     [Get2DMRILayerMinVisibleValue $iLayerID]
-			Set2DMRILayerMaxVisibleValue $layerID \
-			     [Get2DMRILayerMaxVisibleValue $iLayerID]
 			Set2DMRILayerEditableROI $layerID \
 			     [Get2DMRILayerEditableROI $iLayerID]
 			Set2DMRILayerROIOpacity $layerID \
@@ -3625,6 +3621,17 @@ proc CopyLayerSettingsToSimilarLayers { iViewID iLayerID } {
 			     [Get2DMRILayerHeatScaleMax $iLayerID]
 			Set2DMRILayerHeatScaleOffset $layerID \
 			     [Get2DMRILayerHeatScaleOffset $iLayerID]
+
+			# Only copy the min/max visibile value if
+			# we're doing grayscale, as it can mess up
+			# other views.
+			if { [string match $thisColorMapMethod grayscale] } {
+			    Set2DMRILayerMinVisibleValue $layerID \
+				[Get2DMRILayerMinVisibleValue $iLayerID]
+			    Set2DMRILayerMaxVisibleValue $layerID \
+				[Get2DMRILayerMaxVisibleValue $iLayerID]
+			}
+
 		    }
 		    2DMRIS {
 			set color [Get2DMRISLayerLineColor $iLayerID]
@@ -6749,7 +6756,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.247 2007/07/18 21:55:11 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.247.2.1 2007/10/18 15:35:12 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
