@@ -9,8 +9,8 @@
 # Original Author: Kevin Teich
 # CVS Revision Info:
 #    $Author: kteich $
-#    $Date: 2007/10/10 17:34:18 $
-#    $Revision: 1.252 $
+#    $Date: 2007/10/18 15:34:08 $
+#    $Revision: 1.253 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 package require Tix
 
-DebugOutput "\$Id: scuba.tcl,v 1.252 2007/10/10 17:34:18 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.253 2007/10/18 15:34:08 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3698,6 +3698,7 @@ proc LayerSettingsChanged { iLayerID } {
 proc CopyLayerSettingsToSimilarLayers { iViewID iLayerID } {
 
     set thisType [GetLayerType $iLayerID]
+    set thisColorMapMethod [Get2DMRILayerColorMapMethod $iLayerID]
 
     # Go through the layers in the current view. For each one...
     set lLevels [GetListOfLevelsInView $iViewID]
@@ -3714,7 +3715,8 @@ proc CopyLayerSettingsToSimilarLayers { iViewID iLayerID } {
 			
 			# Only copy the settings if the colormap
 			# method is the same.
-			if { ![string match [Get2DMRILayerColorMapMethod $iLayerID] [Get2DMRILayerColorMapMethod $layerID]] } {
+			if { ![string match $thisColorMapMethod \
+				   [Get2DMRILayerColorMapMethod $layerID]] } {
 			    continue
 			}
 
@@ -3734,10 +3736,6 @@ proc CopyLayerSettingsToSimilarLayers { iViewID iLayerID } {
 			     [Get2DMRILayerWindow $iLayerID]
 			Set2DMRILayerColorLUT $layerID \
 			     [Get2DMRILayerColorLUT $iLayerID]
-			Set2DMRILayerMinVisibleValue $layerID \
-			     [Get2DMRILayerMinVisibleValue $iLayerID]
-			Set2DMRILayerMaxVisibleValue $layerID \
-			     [Get2DMRILayerMaxVisibleValue $iLayerID]
 			Set2DMRILayerEditableROI $layerID \
 			     [Get2DMRILayerEditableROI $iLayerID]
 			Set2DMRILayerROIOpacity $layerID \
@@ -3750,6 +3748,17 @@ proc CopyLayerSettingsToSimilarLayers { iViewID iLayerID } {
 			     [Get2DMRILayerHeatScaleMax $iLayerID]
 			Set2DMRILayerHeatScaleOffset $layerID \
 			     [Get2DMRILayerHeatScaleOffset $iLayerID]
+
+			# Only copy the min/max visibile value if
+			# we're doing grayscale, as it can mess up
+			# other views.
+			if { [string match $thisColorMapMethod grayscale] } {
+			    Set2DMRILayerMinVisibleValue $layerID \
+				[Get2DMRILayerMinVisibleValue $iLayerID]
+			    Set2DMRILayerMaxVisibleValue $layerID \
+				[Get2DMRILayerMaxVisibleValue $iLayerID]
+			}
+
 		    }
 		    2DMRIS {
 			set color [Get2DMRISLayerLineColor $iLayerID]
@@ -6965,7 +6974,7 @@ proc SaveSceneScript { ifnScene } {
     }
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.252 2007/10/10 17:34:18 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.253 2007/10/18 15:34:08 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
