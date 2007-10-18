@@ -3,11 +3,12 @@ subj=$(SUBJECTS_DIR)/$(MAKE_SUBJECT)
 
 all: $(subj) autorecon1 autorecon2 autorecon3
 
-#---------------------- A U T O R E C O N		1 --------------------------
+#---------------------- A U T O R E C O N  1 --------------------------
 RAW=$(subj)/mri/rawavg.mgz
 ORIG=$(subj)/mri/orig.mgz
 NU=$(subj)/mri/nu.mgz
 TAL=$(subj)/mri/transforms/talairach.auto.xfm
+CP=$(wildcard $(subj)/tmp/control.dat)
 T1=$(subj)/mri/T1.mgz
 BRAINMASK=$(subj)/mri/brainmask.mgz
 AUTORECON1=$(RAW) $(ORIG) $(NU) $(TAL) $(T1) $(BRAINMASK)
@@ -26,7 +27,7 @@ $(NU): $(ORIG)
 $(TAL): $(NU)
 	recon-all -s $(subj) -talairach -tal-check
 
-$(T1): $(NU)
+$(T1): $(NU) $(CP)
 	recon-all -s $(subj) -normalization
 
 $(BRAINMASK): $(T1)
@@ -36,7 +37,6 @@ $(BRAINMASK): $(T1)
 #------------------- A U T O R E C O N	 2	 V O L	----------------------
 TAL_LTA=$(subj)/mri/transforms/talairach.lta
 NORM=$(subj)/mri/norm.mgz
-CP=$(subj)/tmp/control.dat
 TAL_M3Z=$(subj)/mri/transforms/talairach.m3z
 NU_NONECK=$(subj)/mri/nu_noneck.mgz
 TAL_SKULL_LTA=$(subj)/mri/transforms/talairach_with_skull.lta
@@ -46,10 +46,10 @@ SUBCORTICAL=$(TAL_LTA) $(NORM) $(TAL_M3Z) $(NU_NONECK) $(TAL_SKULL_LTA) \
 	$(ASEG) $(ASEG_STATS)
 BRAIN=$(subj)/mri/brain.mgz
 WM=$(subj)/mri/wm.mgz
-SEED_PONS=$(subj)/scripts/seed-pons.crs.man.dat
-SEED_CC=$(subj)/scripts/seed-cc.crs.man.dat
-SEED_LH=$(subj)/scripts/seed-lh.crs.man.dat
-SEED_RH=$(subj)/scripts/seed-rh.crs.man.dat
+SEED_PONS=$(wildcard $(subj)/scripts/seed-pons.crs.man.dat)
+SEED_CC=$(wildcard $(subj)/scripts/seed-cc.crs.man.dat)
+SEED_LH=$(wildcard $(subj)/scripts/seed-lh.crs.man.dat)
+SEED_RH=$(wildcard $(subj)/scripts/seed-rh.crs.man.dat)
 FILLED=$(subj)/mri/filled.mgz
 AUTORECON2_VOL=$(SUBCORTICAL) $(BRAIN) $(WM) $(FILLED)
 
@@ -60,7 +60,7 @@ autorecon2-volonly: autorecon2-vol
 $(TAL_LTA): $(BRAINMASK) $(NU)
 	recon-all -s $(subj) -gcareg
 
-$(NORM): $(TAL_LTA)
+$(NORM): $(TAL_LTA) $(CP)
 	recon-all -s $(subj) -canorm
 
 $(TAL_M3Z): $(NORM)
@@ -80,7 +80,7 @@ $(ASEG_STATS): $(ASEG)
 
 $(CP):
 
-$(BRAIN): $(BRAINMASK) $(NORM)
+$(BRAIN): $(BRAINMASK) $(NORM) $(CP)
 	recon-all -s $(subj) -normalization2
 	recon-all -s $(subj) -maskbfs
 
@@ -95,7 +95,7 @@ $(SEED_LH):
 
 $(SEED_RH):
 
-$(FILLED): $(WM) $(ASEG) $(TAL_LTA)
+$(FILLED): $(WM) $(ASEG) $(TAL_LTA) $(SEED_PONS) $(SEED_CC) $(SEED_LH) $(SEED_RH)
 	recon-all -s $(subj) -fill
 
 
