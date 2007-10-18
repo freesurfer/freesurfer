@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/05 21:29:48 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/10/18 15:41:37 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,6 +113,9 @@ protected:
   enum { UninitedPlaneOrientation = -1 };
   int mPlaneOrientation;
 
+  // The orientation for which the camera is currently configured.
+  int mCurrentCameraOrientation;
+  
   // Our through plane.
   float mThroughPlane;
 

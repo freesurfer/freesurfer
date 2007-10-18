@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/17 21:04:47 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/10/18 15:41:37 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,7 +72,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIView2D );
-vtkCxxRevisionMacro( vtkKWOrientMRIView2D, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIView2D, "$Revision: 1.5 $" );
 
 double vtkKWOrientMRIView2D::sReorthoPoints[3][2][3] = 
   { {{0,0,0}, {0,0,0}}, {{0,0,0}, {0,0,0}}, {{0,0,0}, {0,0,0}} };
@@ -80,6 +80,7 @@ vector<vtkKWOrientMRIView2D*> vtkKWOrientMRIView2D::slViews;
 
 vtkKWOrientMRIView2D::vtkKWOrientMRIView2D () :
   mPlaneOrientation( UninitedPlaneOrientation ),
+  mCurrentCameraOrientation( UninitedPlaneOrientation ),
   mThroughPlane( 0.0 ) {
 
   // Insert us in the list of instances.
@@ -357,12 +358,45 @@ vtkKWOrientMRIView2D::SetUpView () {
   size[1] = RASBounds[3] - RASBounds[2];
   size[2] = RASBounds[5] - RASBounds[4];
 
-  // Get a pointer to the camera.
-  vtkSmartPointer<vtkCamera> camera = 
-    this->GetRenderer()->GetActiveCamera();
+  // If our camera is looking at a different orientation, set it up
+  // now.
+  if( mCurrentCameraOrientation != mPlaneOrientation ) {
+    
+    // Get a pointer to the camera.
+    vtkSmartPointer<vtkCamera> camera = 
+      this->GetRenderer()->GetActiveCamera();
+    
+    // Switch on the orientation and set our camera location
+    // appropriately.
+    switch ( mPlaneOrientation ) {
+    case 0:
+      camera->SetFocalPoint( 0, 0, 0 );
+      camera->SetViewUp( 0, 0, 1 );
+      camera->SetPosition( 10, 0, 0 );
+      break;
+    case 1:
+      camera->SetFocalPoint( 0, 0, 0 );
+      camera->SetViewUp( 0, 0, 1 );
+      camera->SetPosition( 0, 10, 0 );
+      break;
+    case 2:
+      camera->SetFocalPoint( 0, 0, 0 );
+      camera->SetViewUp( 0, 1, 0 );
+      camera->SetPosition( 0, 0, 10 );
+      break;
+    default:
+      break;
+    }
+    
+    // Reset the camera to show all the actors.
+    this->GetRenderer()->ResetCamera();
 
-  // Switch on the orientation and set our plane rotation and camera
-  // location appropriately.
+    // Camera is now set for this orientation.
+    mCurrentCameraOrientation = mPlaneOrientation;
+  }
+
+  // Switch on the orientation and set our plane rotation and reslice
+  // axes appropriately.
   switch ( mPlaneOrientation ) {
   case 0:
     mPlaneTransform->Identity();
@@ -371,10 +405,6 @@ vtkKWOrientMRIView2D::SetUpView () {
     //mPlaneTransform->Scale( size[1], size[2], 1 );
     mReslice->SetResliceAxesDirectionCosines( 0, -1, 0,  0, 0, 1,  1, 0, 0 );
     mReslice->SetResliceAxesOrigin( (int)(mThroughPlane - offset[0]), 0, 0 );
-
-    camera->SetFocalPoint( 0, 0, 0 );
-    camera->SetViewUp( 0, 0, 1 );
-    camera->SetPosition( 10, 0, 0 );
     break;
   case 1:
     mPlaneTransform->Identity();
@@ -383,27 +413,16 @@ vtkKWOrientMRIView2D::SetUpView () {
     //mPlaneTransform->Scale( size[0], size[2], 1 );
     mReslice->SetResliceAxesDirectionCosines( 1, 0, 0,  0, 0, 1,  0, 1, 0 );
     mReslice->SetResliceAxesOrigin( 0, (int)(mThroughPlane - offset[1]), 0 );
-
-    camera->SetFocalPoint( 0, 0, 0 );
-    camera->SetViewUp( 0, 0, 1 );
-    camera->SetPosition( 0, 10, 0 );
     break;
   case 2:
     mPlaneTransform->Identity();
     //mPlaneTransform->Scale( size[0], size[1], 1 );
     mReslice->SetResliceAxesDirectionCosines( 1, 0, 0,  0, 1, 0,  0, 0, -1 );
     mReslice->SetResliceAxesOrigin( 0, 0, (int)(mThroughPlane - offset[2]) );
-
-    camera->SetFocalPoint( 0, 0, 0 );
-    camera->SetViewUp( 0, 1, 0 );
-    camera->SetPosition( 0, 0, 10 );
     break;
   default:
     break;
   }
-
-  // Reset the camera to show all the actors.
-  this->GetRenderer()->ResetCamera();
 
   // Set a color for the plane outline. This should match the axes
   // color in the 3D view.
