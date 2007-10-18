@@ -1,9 +1,9 @@
-function [beta, exitflag, beta2] = fast_lmfit(y,X,L)
-% [beta exitflag beta2] = fast_lmfit(y,X,L)
-% $Id: fast_lmfit.m,v 1.1 2007/10/18 01:06:30 greve Exp $
+function [beta, exitflag, cost, beta2] = fast_lmfit(y,X,L)
+% [beta exitflag cost beta2] = fast_lmfit(y,X,L)
+% $Id: fast_lmfit.m,v 1.2 2007/10/18 02:45:10 greve Exp $
 
 if(nargin ~= 3)
-  fprintf('[beta exitflag beta2] = fast_lmfit(y,X,L)');
+  fprintf('[beta exitflag cost beta2] = fast_lmfit(y,X,L)');
   return;
 end
 
@@ -19,6 +19,7 @@ nbeta = size(X,2);
 nvox = size(y,2);
 beta = zeros(nbeta,nvox);
 exitflag = zeros(1,nvox);
+cost = zeros(1,nvox);
 n10 = round(nvox/100);
 fprintf('Starting voxel-wise iteration (%d)\n',nvox);
 %keyboard
@@ -29,13 +30,14 @@ for nthvox = 1:nvox
     pctdone = 100*nthvox/nvox;
     ttogo = (toc/nthvox)*(nvox-nthvox);
     fprintf('%4.1f %5d/%5d %8.2f %8.2f\n',...
-	    pctdone,nthvox,nvox,toc,ttogo);
+	    pctdone,nthvox,nvox,toc/60,ttogo/60);
   end
   yv = y(:,nthvox);
   beta2v = beta2(:,nthvox);
-  [betav cost exitflagv] = fminsearch(@lmcost,beta2v,[],yv,X,L);
+  [betav costv exitflagv] = fminsearch(@lmcost,beta2v,[],yv,X,L);
   beta(:,nthvox) = betav;
   exitflag(1,nthvox) = exitflagv;
+  cost(1,nthvox) = costv;
 end
 
 return;
