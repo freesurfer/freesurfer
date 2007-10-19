@@ -1010,7 +1010,7 @@ AC_ARG_WITH(kwwidgets-dir,
      ac_kwwidgets_libraries="$withval"/lib/KWWidgets
      ac_kwwidgets_dir="$withval"
   ])
-AC_ARG_WITH(kwwidgets-dir,
+AC_ARG_WITH(KWWidgets-dir,
   [  --with-KWWidgets-dir=DIR where the root of KWWidgets is installed.],
   [  ac_kwwidgets_includes="$withval"/include/KWWidgets
      ac_kwwidgets_libraries="$withval"/lib/KWWidgets
