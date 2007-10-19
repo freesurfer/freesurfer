@@ -1,15 +1,18 @@
 /**
  * @file  Layer.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Basic Layer superclass
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is a superclass for a visual layer that can be displayed by a
+ * View. Contains the basic functionality for drawing, returning info
+ * at an RAS point, responding to Tcl and Broadcaster messages, and
+ * tool UI stuff.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 20:48:13 $
- *    $Revision: 1.44 $
+ *    $Date: 2007/10/19 22:31:57 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

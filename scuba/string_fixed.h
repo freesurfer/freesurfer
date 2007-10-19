@@ -1,15 +1,16 @@
 /**
  * @file  string_fixed.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Support for older C++ compilers.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Supports including the <string> header on old compilers with a
+ * weird alloc.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.5 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/19 22:31:58 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

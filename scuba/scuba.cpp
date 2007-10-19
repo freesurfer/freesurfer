@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.28 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/19 22:31:58 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -137,22 +137,16 @@ int main ( int argc, char** argv ) {
     toglMgr.InitializeTogl( interp );
     toglMgr.SetFrameFactory( new ScubaFrameFactory );
 
+    // By getting these factories, we force them to initialize, and
+    // register their Tcl commands.
     ScubaKeyCombo::SetFactory( new TclScubaKeyComboFactory() );
-
     ScubaFrame::SetViewFactory( new ScubaViewFactory );
-
     ScubaLayerFactory::GetFactory();
-
     ScubaDataCollectionFactory::GetFactory();
-
     PathManager::GetManager();
-
     ProgressDisplayManager::SetManager( new TclProgressDisplayManager );
-
     ScubaVolumeROIIntensityChartFactory::GetFactory();
-
     ScubaMultiFrameVolumeChartFactory::GetFactory();
-
     ChartWindow::SetFactory( new TclChartWindowFactory );
 
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();

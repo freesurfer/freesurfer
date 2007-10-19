@@ -1,15 +1,18 @@
 /**
  * @file  View.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Basic View superclass, or a subpanel in a ScubaFrame.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is a base class used by ScubaFrame as an interface to views,
+ * or the internal components of the Frame. Each Frame can have
+ * multiple non-overlapping Views, and each View can have multiple
+ * layers.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 19:57:42 $
- *    $Revision: 1.13 $
+ *    $Date: 2007/10/19 22:31:57 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
