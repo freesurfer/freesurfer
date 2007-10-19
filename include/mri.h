@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 14:36:07 $
- *    $Revision: 1.350 $
+ *    $Date: 2007/10/19 18:52:14 $
+ *    $Revision: 1.351 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -641,6 +641,8 @@ int MRIvoxelToSurfaceRAS(MRI *mri, Real xv, Real yv, Real zv,
                          Real *xs, Real *ys, Real *zs);
 int MRIsurfaceRASToVoxel(MRI *mri, Real xr, Real yr, Real zr,
                          Real *xv, Real *yv, Real *zv);
+int MRIsurfaceRASToVoxelCached(MRI *mri, Real xr, Real yr, Real zr,
+                               Real *xv, Real *yv, Real *zv);
 int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr,
                        Real *xsr, Real *ysr, Real *zsr);
 int MRIsurfaceRASToRAS(MRI *mri, Real xsr, Real ysr, Real zsr,
