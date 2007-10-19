@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/05 21:29:48 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/10/19 17:54:31 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,7 @@
 #include "vtkCamera.h"
 #include "vtkCornerAnnotation.h"
 #include "vtkCubeSource.h"
+#include "vtkFollower.h"
 #include "vtkFSVolumeSource.h"
 // These are defined in the mri headers somewhere.
 #ifdef X
@@ -60,13 +61,15 @@
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRenderer.h"
+#include "vtkTextProperty.h"
 #include "vtkTransform.h"
 #include "vtkTubeFilter.h"
+#include "vtkVectorText.h"
 
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIView3D );
-vtkCxxRevisionMacro( vtkKWOrientMRIView3D, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIView3D, "$Revision: 1.4 $" );
 
 
 vtkKWOrientMRIView3D::vtkKWOrientMRIView3D () {
@@ -86,7 +89,6 @@ vtkKWOrientMRIView3D::Create () {
   // get a volume to display.
   mAxes = vtkSmartPointer<vtkAxes>::New();
   mAxes->SetOrigin( 0, 0, 0 );
-  mAxes->SetScaleFactor( 100 );
 
   vtkSmartPointer<vtkTubeFilter> axesTubes =
     vtkSmartPointer<vtkTubeFilter>::New();
@@ -104,6 +106,40 @@ vtkKWOrientMRIView3D::Create () {
   axesActor->SetPickable( false );
 
   this->GetRenderer()->AddActor( (vtkActor*)axesActor );
+
+  // Make our labels.
+  for( int nAxes = 0; nAxes < 3; ++nAxes ) {
+    
+    mTextSource[nAxes] = vtkSmartPointer<vtkVectorText>::New();
+    
+    vtkSmartPointer<vtkPolyDataMapper> textMapper =
+      vtkSmartPointer<vtkPolyDataMapper>::New();
+    textMapper->SetInputConnection( mTextSource[nAxes]->GetOutputPort() );
+    
+    mTextActor[nAxes] = vtkSmartPointer<vtkFollower>::New();
+    mTextActor[nAxes]->SetMapper( textMapper );
+    mTextActor[nAxes]->SetCamera( this->GetRenderer()->GetActiveCamera() );
+    this->GetRenderer()->AddActor( mTextActor[nAxes] );
+
+    // Set the label and color.
+    switch( nAxes ) {
+    case 0:
+      mTextSource[nAxes]->SetText( "X" );
+      mTextActor[nAxes]->GetProperty()->SetColor( 1, 0, 0 );
+      break;
+    case 1:
+      mTextSource[nAxes]->SetText( "Y" );
+      mTextActor[nAxes]->GetProperty()->SetColor( 1, 1, 0 );
+      break;
+    case 2:
+      mTextSource[nAxes]->SetText( "Z" );
+      mTextActor[nAxes]->GetProperty()->SetColor( 0, 1, 0 );
+      break;
+    }      
+  }
+
+  // Start by scaling our axes and labels to 100.
+  this->ScaleAxesAndLabels( 100 );
 
   // Reset the camera to show all the actors.
   this->GetRenderer()->ResetCamera();
@@ -182,8 +218,8 @@ vtkKWOrientMRIView3D::SetFSVolumeAndImage ( vtkFSVolumeSource& iVolume,
   // bit past that.
   int dimensions[3];
   mImage->GetDimensions( dimensions );
-  mAxes->SetScaleFactor(MAX(dimensions[0]*0.6, MAX(dimensions[1]*0.6,
-						   dimensions[2]*0.6)));
+  this->ScaleAxesAndLabels(MAX(dimensions[0]*0.6, MAX(dimensions[1]*0.6,
+						      dimensions[2]*0.6)));
 
   // Initial camera position.
   this->GetRenderer()->GetActiveCamera()->SetPosition( 0, 1, 0 );
@@ -401,4 +437,31 @@ vtkKWOrientMRIView3D::VolumeToRASTransformChangedCallback ( vtkObject* iCaller,
     view->VolumeToRASTransformChanged();
   }
 
+}
+
+void
+vtkKWOrientMRIView3D::ScaleAxesAndLabels ( double iScale ) {
+
+  // Scale the axes tubes.
+  mAxes->SetScaleFactor( iScale );
+
+  // For each of the axes labels....
+  for( int nAxes = 0; nAxes < 3; ++nAxes ) {
+
+    // Set the scale of the letters.
+    mTextActor[nAxes]->SetScale( 10, 10, 10 );
+
+    // Set the position at the end of an axis.
+    switch( nAxes ) {
+    case 0:
+      mTextActor[nAxes]->SetPosition( iScale + 5, 0, 0 );
+      break;
+    case 1:
+      mTextActor[nAxes]->SetPosition( 0, iScale + 5, 0 );
+      break;
+    case 2:
+      mTextActor[nAxes]->SetPosition( 0, 0, iScale + 5 );
+      break;
+    }      
+  }
 }

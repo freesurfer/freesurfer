@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/05 21:29:48 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/10/19 17:54:32 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,12 +37,14 @@
 class vtkActor;
 class vtkAxes;
 class vtkCubeSource;
+class vtkFollower;
 class vtkFSVolumeSource;
 class vtkImageData;
 class vtkImagePlaneWidget;
 class vtkOutlineFilter;
 class vtkLookupTable;
 class vtkMatrix4x4;
+class vtkVectorText;
 
 class vtkKWOrientMRIView3D : public vtkKWRenderWidget {
 
@@ -116,6 +118,10 @@ protected:
   vtkKWOrientMRIView3D ();
   virtual ~vtkKWOrientMRIView3D ();
 
+  // Description:
+  // Scale our axes and axes labels.
+  void ScaleAxesAndLabels ( double iScale );
+
   //BTX
   // Set by the window; we don't own these.
   vtkSmartPointer<vtkFSVolumeSource> mFSVolume;
@@ -128,6 +134,8 @@ protected:
   vtkSmartPointer<vtkActor> mOutlineActor;
   vtkSmartPointer<vtkCubeSource> mCubeSource;
   vtkSmartPointer<vtkActor> mVolumeActor;
+  vtkSmartPointer<vtkVectorText> mTextSource[3];
+  vtkSmartPointer<vtkFollower> mTextActor[3];
 
   // Our user transform.
   vtkSmartPointer<vtkMatrix4x4> mUserTransform;

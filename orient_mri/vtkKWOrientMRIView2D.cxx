@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/18 15:41:37 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/10/19 17:54:31 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,6 +64,7 @@
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkRenderer.h"
+#include "vtkTextProperty.h"
 #include "vtkTexture.h"
 #include "vtkTransform.h"
 #include "vtkTransformPolyDataFilter.h"
@@ -72,7 +73,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIView2D );
-vtkCxxRevisionMacro( vtkKWOrientMRIView2D, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIView2D, "$Revision: 1.6 $" );
 
 double vtkKWOrientMRIView2D::sReorthoPoints[3][2][3] = 
   { {{0,0,0}, {0,0,0}}, {{0,0,0}, {0,0,0}}, {{0,0,0}, {0,0,0}} };
@@ -134,6 +135,9 @@ vtkKWOrientMRIView2D::Create () {
   callback->SetCallback( OrthoLineChanged );
   callback->SetClientData( this );
   style->AddObserver( OrientMRIEvents::OrthoLineChanged, callback );
+
+  // Make our corner annotation bold.
+  this->GetCornerAnnotation()->GetTextProperty()->BoldOn();
 }
 
 void
@@ -292,6 +296,10 @@ vtkKWOrientMRIView2D::SetOrientation ( int iOrientation ) {
   
   // Set the orientation. This will determing the plane transform.
   mPlaneOrientation = iOrientation;
+
+  // Set our annotation color.
+  this->SetCornerAnnotationColor( const_cast<double*>
+			  (this->GetColorForOrientation(mPlaneOrientation)) );
 
   if( mPlaneTransform.GetPointer() )
     this->SetUpView();
