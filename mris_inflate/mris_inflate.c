@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/16 01:39:27 $
- *    $Revision: 1.36 $
+ *    $Author: fischl $
+ *    $Date: 2007/10/19 13:26:29 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_inflate.c,v 1.36 2007/08/16 01:39:27 nicks Exp $";
+  "$Id: mris_inflate.c,v 1.37 2007/10/19 13:26:29 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -68,6 +68,7 @@ static int navgs = 0 ;
 static float base_dt_scale = BASE_DT_SCALE ;
 
 static int SaveSulc = 1;
+static char *sulc_name = "sulc" ;
 
 int
 main(int argc, char *argv[])
@@ -83,13 +84,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_inflate.c,v 1.36 2007/08/16 01:39:27 nicks Exp $",
+   "$Id: mris_inflate.c,v 1.37 2007/10/19 13:26:29 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_inflate.c,v 1.36 2007/08/16 01:39:27 nicks Exp $",
+           "$Id: mris_inflate.c,v 1.37 2007/10/19 13:26:29 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -202,8 +203,8 @@ main(int argc, char *argv[])
 
   if (SaveSulc)
   {
-    sprintf(fname, "%s/%s.sulc", path,
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
+    sprintf(fname, "%s/%s.%s", path,
+            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sulc_name) ;
     fprintf(stderr, "writing sulcal depths to %s\n", fname) ;
     MRISwriteCurvature(mris, fname) ;
   }
@@ -240,6 +241,14 @@ get_option(int argc, char *argv[])
     strcpy(parms.base_name, argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "base name = %s\n", parms.base_name) ;
+  }
+  else if (!stricmp(option, "sulc"))
+  {
+    if (argc < 2)
+      print_usage() ;
+    sulc_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "sulc name = %s\n", sulc_name) ;
   }
   else if (!stricmp(option, "angle"))
   {
