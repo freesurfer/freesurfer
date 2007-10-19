@@ -1,5 +1,5 @@
 function varargout = read_meas_dat(filename, options)
-%READ_MEAS_DAT  read in Siemens format raw data, VB13A-style "meas.dat"
+%READ_MEAS_DAT  read in Siemens format raw data, VB13A/VB15A-style "meas.dat"
 %
 % data = read_meas_dat(filename, <options>)
 %
@@ -17,8 +17,7 @@ function varargout = read_meas_dat(filename, options)
 %    options.ReadMultipleRepetitions      -- set to 0 or 1  (default is 1)
 %    options.ReturnStruct                 -- set to 0 or 1  (default is 0)
 %
-% If a field does not exist, then the default is used.
-% "options" is optional :).
+% if a field does not exist, then the default is used. "options" is optional :).
 %
 %
 % the raw k-space data is returned in a 16-dimensional array, following
@@ -72,24 +71,28 @@ function varargout = read_meas_dat(filename, options)
 % 2007/jul/09: improved support for "meas.out" files lacking headers
 
 % 2007/aug/07: added ability to return all data as fields of a struct
-  
+
 % 2007/aug/14: fixed phase stabilization support for multiecho acquisitions
-  
-  
-% jonathan polimeni <jonnyreb@padkeemao.nmr.mgh.harvard.edu>, 10/04/2006
-% $Id: read_meas_dat.m,v 1.6 2007/08/14 20:04:01 jonnyreb Exp $
+
+% 2007/oct/16: fixed order swapping for even and odd phascor lines in EPI
+
+% 2007/oct/19: added ability to return data even if file incomplete
+
+
+% jonathan polimeni <jonp@nmr.mgh.harvard.edu>, 10/04/2006
+% $Id: read_meas_dat.m,v 1.7 2007/10/19 22:16:14 jonnyreb Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.6 $';
+  VERSION = '$Revision: 1.7 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
 
   %------------------------------------------------------------------------%
   % basic error checking
 
-  matlab = version;
-  if ( str2num(matlab(1)) < 7 )
-    disp(sprintf('"%s" only supported for MATLAB 7.0 and higher', mfilename));
+  matlab_version = regexprep(version, '[^0-9]', '');
+  if ( str2num(matlab_version(1:2)) < 71 )
+    disp(sprintf('"%s" only supported for MATLAB 7.1 and higher', mfilename));
     return;
   end;
 
@@ -107,6 +110,8 @@ function varargout = read_meas_dat(filename, options)
 
   DO__MDH_SAVE = 0;
 
+  DO__RECOVER_FROM_INCOMPLETE = 1;
+
   DO__FLIP_REFLECTED_LINES = 1;
   DO__CANONICAL_REORDER_COIL_CHANNELS = 1;
   DO__APPLY_FFT_SCALEFACTORS = 0;
@@ -114,7 +119,7 @@ function varargout = read_meas_dat(filename, options)
 
   % by default, return individual arrays (for backward compatibility)
   DO__RETURN_STRUCT = 0;
-  
+
 
   % if the "options" struct is provided by caller, then override default
   % flags
@@ -140,12 +145,12 @@ function varargout = read_meas_dat(filename, options)
       DO__READ_MULTIPLE_REPETITIONS = options.ReadMultipleRepetitions;
       disp(sprintf(' :READ_MULTIPLE_REPETITIONS = %d', DO__READ_MULTIPLE_REPETITIONS));
     end;
-  
+
     if ( isfield(options, 'ReturnStruct') ),
       DO__RETURN_STRUCT = options.ReturnStruct;
       disp(sprintf(' :RETURN_STRUCT = %d', DO__RETURN_STRUCT));
     end;
-  
+
   end;
 
 
@@ -164,6 +169,8 @@ function varargout = read_meas_dat(filename, options)
 
   t0 = clock;
 
+  [pathstr, filestr] = fileparts(filename);
+
   [fp, errstr] = fopen(filename, 'r', 'l');
   if ( fp == -1 ),
     error(errstr);
@@ -180,13 +187,32 @@ function varargout = read_meas_dat(filename, options)
   % "data_start" should be 32.
   if ( data_start == 32 ),
     disp('no header detected! assuming "meas.out" format...');
-    header = '';
+
+    [pathstr, name, ext] = fileparts(filename);
+    meas_asc = fullfile(pathstr, [name, '.asc']);
+
+    if ( exist(meas_asc, 'file') ),
+      disp('discovered corresponding "meas.asc" file! parsing...');
+
+      [asc, errstr] = fopen(meas_asc, 'r', 'l');
+      if ( asc == -1 ), error(errstr); end;
+
+      % read header into one string for parsing
+      header = fscanf(asc, '%c');
+
+      fclose(asc);
+
+    else,
+      % set header to empty string
+      header = '';
+    end;
+
+    % can't sort channels without header information  :(
+    DO__CANONICAL_REORDER_COIL_CHANNELS = 0;
 
     % jump to beginning of binary data, let's get to work!
     fseek(fp, data_start, 'bof');
 
-    % can't sort channels without header information  :(
-    DO__CANONICAL_REORDER_COIL_CHANNELS = 0;
   else,
 
     % read header into one string for parsing
@@ -319,11 +345,7 @@ function varargout = read_meas_dat(filename, options)
   scan_num = 0;
   echo_num = 0;
 
-  if ( DO__MDH_SAVE ),
-    mdh = repmat(read_meas__mdh_struct, [1, total_scans]);
-  else,
-    mdh = read_meas__mdh_struct;
-  end;
+  mdh = read_meas__mdh_struct;
 
   % number of measurements along all 16 dimensions can be found in the
   % 'Config_.evp' file contained within "meas.dat" header; allocate memory
@@ -355,6 +377,8 @@ function varargout = read_meas_dat(filename, options)
 
 
   FLAG__data_phascor1d_orderswap = 0;
+
+  FLAG__patrefscan_phascor_orderswap = 0;
 
   % convert binary mask into strings
   EvalInfoMask = read_meas__evaluation_info_mask_definition;
@@ -393,6 +417,7 @@ function varargout = read_meas_dat(filename, options)
       if ( ~isempty(mdh(idx).ulScanCounter) ), scan_num = mdh(idx).ulScanCounter; end;
       mdh(idx).ulTimeStamp                = uint32(fread(fp, 1, 'uint32')*2.5); % milliseconds
       mdh(idx).ulPMUTimeStamp             = uint32(fread(fp, 1, 'uint32')*2.5); % milliseconds
+
       mdh(idx).aulEvalInfoMask(1:MDH_NUMBEROFEVALINFOMASK) = uint32(fread(fp, MDH_NUMBEROFEVALINFOMASK, 'uint32'));
 
       % build 64-bit mask from two 32-bit integers
@@ -488,9 +513,9 @@ function varargout = read_meas_dat(filename, options)
       if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFLECT) ),
         if ( ~FLAG__data_reflect ),
           if ( DO__FLIP_REFLECTED_LINES ),
-            disp('REFLECT detected, reversing lines.');
+            disp(' REFLECT detected reversing lines.');
           else,
-            disp('REFLECT detected.');
+            disp(' REFLECT detected.');
           end;
           FLAG__data_reflect = 1;
         end;
@@ -646,7 +671,7 @@ function varargout = read_meas_dat(filename, options)
       if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_NOISEADJSCAN) ),
 
         if ( ~FLAG__noiseadjscan ),
-          disp('NOISEADJSCAN detected.');
+          disp(' NOISEADJSCAN detected.');
           FLAG__noiseadjscan = 1;
           noise_line = 0;
         end;
@@ -670,7 +695,7 @@ function varargout = read_meas_dat(filename, options)
       elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PATREFSCAN) ),
 
         if ( ~FLAG__patrefscan ),
-          disp('PATREFSCAN detected.');
+          disp(' PATREFSCAN detected.');
           FLAG__patrefscan = 1;
         end;
 
@@ -678,9 +703,19 @@ function varargout = read_meas_dat(filename, options)
         if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASCOR) ),
 
           if ( ~FLAG__patrefscan_phascor ),
-            disp('PATREFSCAN_PHASCOR detected.');
+            disp(' PATREFSCAN_PHASCOR detected.');
             FLAG__patrefscan_phascor = 1;
+
+            % check if first phase correction reference line is reflected (see comments below)
+            if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFLECT) ),
+
+              disp('first "PATREFSCAN_PHASCOR" line reflected! compensating with odd--even order swap...');
+              FLAG__patrefscan_phascor_orderswap = 1;
+            end;
+
             ref_line = 0;
+            ref_part = 1;  % (see comments below)
+
           end;
 
           % reset reference scan line counter at the beginning of each slice
@@ -697,7 +732,7 @@ function varargout = read_meas_dat(filename, options)
 
           patrefscan_phascor(...
               :,   ref_line, ...     % only center line and center partition collected
-              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08),       1, ...
+              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
               pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
 
           %%% CATEGORY #2B: lines used for both iPAT ACS and data
@@ -731,7 +766,7 @@ function varargout = read_meas_dat(filename, options)
           % 2-dimensional imaging!)
 
           if ( ~FLAG__patrefandimascan ),
-            disp('PATREFANDIMASCAN detected.');
+            disp(' PATREFANDIMASCAN detected.');
             FLAG__patrefandimascan = 1;
           end;
 
@@ -766,47 +801,64 @@ function varargout = read_meas_dat(filename, options)
       elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASESTABSCAN) ),
 
         if ( ~FLAG__phasestabscan ),
-          disp('PHASESTABSCAN detected.');
+
+          % need the time of the phase stabilization navigator echo, "TS",
+          % for image reconstruction, but its NOT available from the header
+          % for some weird reason. extract it from the MDH header. it should
+          % be the same across segments and slices (which are the only
+          % dimensions over which its repeated).
+          TS = double(mdh(idx).ulTimeSinceLastRF) / 1e3;    % store as milliseconds
+
+          disp(sprintf(' PHASESTABSCAN detected;  (( TS = %.3f ms )).', TS));
           FLAG__phasestabscan = 1;
+
         end;
 
-	  % NOTE: both the phase stabilization measurements and the phase
-          % stabilization reference measurements are stored as echo 0
-          % regardless of how many echoes are acquired for the imaging data.
+        %%% (note to self) tested with the following examples:
+        %%%  -  meas_MID864_gre_mgh_multiecho_FID16967.dat
+        %%%  -  meas_MID865_gre_mgh_multiecho_body_FID16968.dat
+        %%%  -  meas_MID1048_Flash_SWI_Best_8Ch_lowBW_FID6643.dat
+        %%%  -  meas_MID1579_gre_2d_phasestab_FID4764.dat
+        %%%  -  meas_MID1582_gre_3d_phasestab_FID4767.dat
 
-	  %%% VB13A ICE manual, V0.7, p. 274:
-	  %  "Phase stabilization is restricted to the sharing of phase
-	  %   stabilization scans between different contrasts (echoes), i.e.
-          %   the imaging scans, which belong to the same phase stabilization
-          %   echo, may only differ in the ECO ICE Dimension."
 
-	  if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFPHASESTABSCAN) ),
-	    
-	    % the phase stabilization works by collecting a full set
-	    % (potentially multiple echoes) of lines at the beginning of each
-	    % slice that are tagged as MDH_REFPHASESTABSCAN, followed by a
-	    % *single* measurement that is tagged as both MDH_REFPHASESTABSCAN
-	    % and MDH_PHASESTABSCAN. it is this last scan that serves as the
-	    % reference, and it will exhibit the same timing as the subsequent
-	    % phase stabilization scans that follow each group of image
-	    % echoes. therefore the group of MDH_REFPHASESTABSCAN lines
-	    % preceding each *single* reference echo are not used by the
-	    % correction and are discarded.
-  
-	  refphasestabscan(...
+        % NOTE: both the phase stabilization measurements and the phase
+        % stabilization reference measurements are stored as echo 0
+        % regardless of how many echoes are acquired for the imaging data.
+
+        %%% VB13A ICE manual, V0.7, p. 274:
+        %  "Phase stabilization is restricted to the sharing of phase
+        %   stabilization scans between different contrasts (echoes), i.e.
+        %   the imaging scans, which belong to the same phase stabilization
+        %   echo, may only differ in the ECO ICE Dimension."
+
+          if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFPHASESTABSCAN) ),
+
+            % the phase stabilization works by collecting a full set
+            % (potentially multiple echoes) of lines at the beginning of each
+            % slice that are tagged as MDH_REFPHASESTABSCAN, followed by a
+            % *single* measurement that is tagged as both MDH_REFPHASESTABSCAN
+            % and MDH_PHASESTABSCAN. it is this last scan that serves as the
+            % reference, and it will exhibit the same timing as the subsequent
+            % phase stabilization scans that follow each group of image
+            % echoes. therefore the group of MDH_REFPHASESTABSCAN lines
+            % preceding each *single* reference echo are not used by the
+            % correction and are discarded.
+
+          refphasestabscan(...
               :, pos(02), ...
               pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
               pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) ...
               = adc_cplx;
-	else,
+        else,
 
           phasestabscan(...
               :, pos(02), ...
               pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
               pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) ...
               = adc_cplx;
-        
-	end;
+
+        end;
         continue;
 
         %%% CATEGORY #4: data
@@ -816,24 +868,30 @@ function varargout = read_meas_dat(filename, options)
         if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASCOR) ),
 
           if ( ~FLAG__data_phascor1d ),
-            disp('PHASCOR (1D) detected.');
+            disp(' PHASCOR (1D) detected.');
             FLAG__data_phascor1d = 1;
 
             % check if first phase correction reference line is reflected
             if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFLECT) ),
-              % "ge_functionals" reflects the first reference line, so the
-              % EVEN indexed reference lines will correspond to the ODD
-              % indexed data lines. yuck!
+
+              % for example, siemens's "ep2d_bold" reflects the first
+              % reference line, in which case the EVEN-indexed reference
+              % lines will correspond to the ODD-indexed data lines. yuck!
+              disp('first "PHASCOR" line reflected! compensating with odd--even order swap...');
+              FLAG__data_phascor1d_orderswap = 1;
 
               % TODO: store the reflected and non-reflected lines in
               % separate matrices, instead of adhering to the "odd--even"
               % organization, since siemens appears to like to collect more
               % of one than the other!
-
-              FLAG__data_phascor1d_orderswap = 1;
             end;
 
             ref_line = 0;
+
+            % if 2D, only one partition. if 3D each reference line is
+            % collected at center of k-space, but partition loopcounter set
+            % to center partition, so here we force it to 1 so that only
+            % ref_line counter is incremented.
             ref_part = 1;
           end;
 
@@ -846,25 +904,6 @@ function varargout = read_meas_dat(filename, options)
           % increment reference scan line counter after all channels' data is in
           if ( mdh(idx).ushChannelId == channel_1 ),
             ref_line = ref_line + 1;
-          end;
-
-          if ( FLAG__data_phascor1d_orderswap ),
-            if ( ref_line == 2 ),
-              data_phascor1d(...
-                  :, 2, ...
-                  pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
-                  pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = ...
-                  data_phascor1d(...
-                      :, 1, ...
-                      pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
-                      pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16));
-
-              data_phascor1d(...
-                  :, 1, ...
-                  pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
-                  pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
-              ref_line = ref_line + 1;
-            end;
           end;
 
           data_phascor1d(...
@@ -908,7 +947,7 @@ function varargout = read_meas_dat(filename, options)
         elseif ( ~read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_ONLINE) ),
 
           if ( ~FLAG__data_phascor2d ),
-            disp('PHASCOR (2D) detected.');
+            disp(' PHASCOR (2D) detected.');
             FLAG__data_phascor2d = 1;
             ref_line = 0;
             ref_part = 1;
@@ -964,6 +1003,35 @@ function varargout = read_meas_dat(filename, options)
       end; % IF (to determine category assignment)
     end;  % WHILE
 
+
+    %------------------------------------------------------------------------%
+    %%% post file I/O reorganization
+
+    % if the phase correction lines and the data lines mismatch in terms
+    % whether the odd or even lines are reflected, shift the phase
+    % correction line index by one and insert a duplicate of the second
+    % line at the beginning.
+
+    if ( FLAG__patrefscan_phascor_orderswap ),
+      patrefscan_phascor(:, 2:end+1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
+          patrefscan_phascor(:, 1:end, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
+
+      patrefscan_phascor(:, 1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
+          patrefscan_phascor(:, 3, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
+    end;
+
+
+    if ( FLAG__data_phascor1d_orderswap ),
+      data_phascor1d(:, 2:end+1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
+          data_phascor1d(:, 1:end, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
+
+      data_phascor1d(:, 1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
+          data_phascor1d(:, 3, :, :, :, :, :, :, :, :, :, :, :,: , :, :);
+    end;
+
+
+    %------------------------------------------------------------------------%
+
   catch,
 
     caught = lasterror;
@@ -973,14 +1041,32 @@ function varargout = read_meas_dat(filename, options)
 
     if ( feof(fp) ),
 
-      caught.message = sprintf('EOF encountered, scan number %d before ACQEND!', ...
+      caught.message = sprintf('EOF encountered before ACQEND! last scan number = %d ', ...
                                scan_num);
-      error(caught);
+
+      if ( DO__RECOVER_FROM_INCOMPLETE ),
+
+        fprintf(1, '\n');
+        warning(caught.identifier, caught.message);
+        fprintf(1, '\n');
+
+        disp(sprintf('<!> [%s]:  ABORTING read, incomplete file!!!', mfilename));
+        fprintf(1, '\n');
+
+      else,
+        error(caught.identifier, caught.message);
+      end;
+
+    else,
+
+      rethrow(caught);
+
     end;
 
-    rethrow(caught);
 
   end;
+
+  %------------------------------------------------------------------------%
 
   fclose(fp);
 
@@ -1018,12 +1104,17 @@ function varargout = read_meas_dat(filename, options)
                  redundancy));
   end;
 
-  
+
+  %------------------------------------------------------------------------%
+
   if ( DO__RETURN_STRUCT ),
 
     meas = struct;
+    meas.file = filestr;
+    meas.time = datestr(t1, 'yyyy-mmm-dd HH:MM:SS');
+
     meas.data = data;
-    
+
     if ( FLAG__data_phascor1d ),
       meas.data_phascor1d = data_phascor1d;
     end;
@@ -1048,13 +1139,23 @@ function varargout = read_meas_dat(filename, options)
       meas.phasestabscan = phasestabscan;
       meas.refphasestabscan = refphasestabscan;
     end;
-    
+
+    if ( DO__MDH_SAVE ),
+      meas.mdh = mdh;
+    end;
+
+    if ( exist('read_meas_prot', 'file') ),
+      [meas.prot, meas.evp] = read_meas_prot(filename, header);
+    end;
+
+
     if ( nargout > 0 ),
       varargout{1} = meas;
-    end;        
-  
-  else,  
-    
+    end;
+
+
+  else,
+
     % if auxiliary data is not present, set arrays to empty arrays in case
     % user requested arrays as output arguments
 
@@ -1096,7 +1197,7 @@ function varargout = read_meas_dat(filename, options)
     end;
 
   end;
-  
+
   return;
 
 
