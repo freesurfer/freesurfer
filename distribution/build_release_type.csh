@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.100 2007/10/03 18:27:58 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.101 2007/10/20 22:57:16 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -16,8 +16,8 @@ set RELEASE_TYPE=$1
 set STABLE_VER_NUM="v4.0.1"
 set STABLE_PUB_VER_NUM="v4.0.1"
 
-set SUCCESS_MAIL_LIST=(nicks kteich)
-set FAILURE_MAIL_LIST=(nicks kteich fischl greve dsjen)
+set SUCCESS_MAIL_LIST=(nicks)
+set FAILURE_MAIL_LIST=(nicks fischl greve)
 #set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
 
 set HOSTNAME=`hostname -s`
