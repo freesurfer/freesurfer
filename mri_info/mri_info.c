@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/10/21 05:01:44 $
- *    $Revision: 1.62.2.1 $
+ *    $Date: 2007/10/21 21:54:11 $
+ *    $Revision: 1.62.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.62.2.1 $";
+char *MRI_INFO_VERSION = "$Revision: 1.62.2.2 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.62.2.1 2007/10/21 05:01:44 nicks Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.62.2.2 2007/10/21 21:54:11 nicks Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -542,6 +542,15 @@ static void do_file(char *fname) {
       fprintf(fpout,"%f\n",MRIgetVoxVal(mri,c,r,s,f));
     return;
   }
+  if (PrintCmds) {
+    int i;
+    //if (mri->ncmds) printf("\nCommand history (provenance):\n");
+    printf("\n");
+    for (i=0; i < mri->ncmds; i++) {
+      printf("%s\n\n",mri->cmdlines[i]);
+    }
+    return;
+  }
 
   fprintf(fpout,"Volume information for %s\n", fname);
   // mri_identify has been called but the result is not stored
@@ -615,15 +624,6 @@ static void do_file(char *fname) {
   printf("\nras to voxel transform:\n");
   PrettyMatrixPrint(m);
   MatrixFree(&m);
-
-  if (PrintCmds) {
-    int i;
-    if (mri->ncmds) printf("\nCommand history:\n");
-    for (i=0; i < mri->ncmds; i++) {
-      printf("\n%s\n",mri->cmdlines[i]);
-    }
-  }
-
   MRIfree(&mri);
 
   return;
