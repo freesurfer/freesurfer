@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/07 20:58:34 $
- *    $Revision: 1.62 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/21 04:44:33 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.62 $";
+char *MRI_INFO_VERSION = "$Revision: 1.63 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.62 2007/08/07 20:58:34 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.63 2007/10/21 04:44:33 nicks Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -92,6 +92,7 @@ static int PrintSliceDirection = 0;
 static int PrintCRAS = 0;
 static int PrintVoxel = 0;
 static int PrintAutoAlign = 0;
+static int PrintCmds = 0;
 static int VoxelCRS[3];
 static FILE *fpout;
 static int PrintToFile = 0;
@@ -200,6 +201,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--orientation")) PrintOrientation = 1;
     else if (!strcasecmp(option, "--slicedirection")) PrintSliceDirection = 1;
     else if (!strcasecmp(option, "--autoalign")) PrintAutoAlign = 1;
+    else if (!strcasecmp(option, "--cmds")) PrintCmds = 1;
     else if (!strcasecmp(option, "--o")) {
       PrintToFile = 1;
       outfile = pargv[0];
@@ -266,6 +268,7 @@ static void print_usage(void) {
   printf("   --orientation : orientation string (eg, LPS, RAS, RPI)\n");
   printf("   --slicedirection : primary slice direction (eg, axial)\n");
   printf("   --autoalign : print auto align matrix (if it exists)\n");
+  printf("   --cmds : print command-line provenance info\n");
   printf("   --voxel c r s : dump voxel value from col row slice "
          "(0-based, all frames)\n");
   printf("   --o file : print flagged results to file \n");
@@ -612,6 +615,15 @@ static void do_file(char *fname) {
   printf("\nras to voxel transform:\n");
   PrettyMatrixPrint(m);
   MatrixFree(&m);
+
+  if (PrintCmds) {
+    int i;
+    if (mri->ncmds) printf("\nCommand history:\n");
+    for (i=0; i < mri->ncmds; i++) {
+      printf("\n%s\n",mri->cmdlines[i]);
+    }
+  }
+
   MRIfree(&mri);
 
   return;

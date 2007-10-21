@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/10/03 19:40:55 $
- *    $Revision: 1.336 $
+ *    $Date: 2007/10/21 04:44:33 $
+ *    $Revision: 1.337 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -12421,9 +12421,11 @@ mghRead(char *fname, int read_volume, int frame)
         mri->cmdlines[mri->ncmds][len] = 0 ;
         mri->ncmds++ ;
         break ;
+
       case TAG_AUTO_ALIGN:
-	mri->AutoAlign = TAGreadAutoAlign(fp);
-	break;
+        mri->AutoAlign = TAGreadAutoAlign(fp);
+        break;
+
       default:
         TAGskip(fp, tag, (long long)len) ;
         break ;
