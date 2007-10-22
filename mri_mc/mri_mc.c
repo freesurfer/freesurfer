@@ -6,9 +6,9 @@
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: segonne $
- *    $Date: 2007/02/13 18:16:32 $
- *    $Revision: 1.17 $
+ *    $Author: fischl $
+ *    $Date: 2007/10/22 18:50:35 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -888,11 +888,11 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mri_mc.c,v 1.17 2007/02/13 18:16:32 segonne Exp $", "$Name:  $", 
+     "$Id: mri_mc.c,v 1.18 2007/10/22 18:50:35 fischl Exp $", "$Name:  $", 
      cmdline);
   Progname=argv[0];
 
-  if (!stricmp(argv[1], "-d")) {
+  if (argc > 1 && stricmp(argv[1], "-d")) {
     downsample = atoi(argv[2]) ;
     argc -= 2;
     argv += 2 ;
