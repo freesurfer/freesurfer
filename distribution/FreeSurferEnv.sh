@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.41 2007/08/13 21:08:55 greve Exp $
+# $Id: FreeSurferEnv.sh,v 1.41.2.1 2007/10/22 22:16:47 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.41 2007/08/13 21:08:55 greve Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.41.2.1 2007/10/22 22:16:47 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -299,35 +299,42 @@ if [ -z "$NO_MINC" ]; then
         fi
     fi
     ## nu_correct and other MINC tools require a path to perl
-    if [ -z "$PERL5LIB" ]; then
+    if [ -z "$MNI_PERL5LIB" ]; then
         if [ -e $MINC_LIB_DIR/../System/Library/Perl/5.8.6 ]; then
             # Max OS X Tiger default:
-            export PERL5LIB="$MINC_LIB_DIR/../System/Library/Perl/5.8.6"
+            export MNI_PERL5LIB="$MINC_LIB_DIR/../System/Library/Perl/5.8.6"
         elif [ -e $MINC_LIB_DIR/../System/Library/Perl/5.8.1 ]; then
             # Max OS X Panther default:
-            export PERL5LIB="$MINC_LIB_DIR/../System/Library/Perl/5.8.1"
+            export MNI_PERL5LIB="$MINC_LIB_DIR/../System/Library/Perl/5.8.1"
         elif [ -e $MINC_LIB_DIR/perl5/5.8.5 ]; then
             # Linux CentOS4:
-            export PERL5LIB="$MINC_LIB_DIR/perl5/5.8.5"
+            export MNI_PERL5LIB="$MINC_LIB_DIR/perl5/5.8.5"
         elif [ -e $MINC_LIB_DIR/perl5/5.8.3 ]; then
             # Linux FC2:
-            export PERL5LIB="$MINC_LIB_DIR/perl5/5.8.3"
+            export MNI_PERL5LIB="$MINC_LIB_DIR/perl5/5.8.3"
         elif [ -e $MINC_LIB_DIR/perl5/5.8.0 ]; then
             # Linux RH9:
-            export PERL5LIB="$MINC_LIB_DIR/perl5/5.8.0"
+            export MNI_PERL5LIB="$MINC_LIB_DIR/perl5/5.8.0"
         elif [ -e $MINC_LIB_DIR/perl5/site_perl/5.8.3 ]; then
             # Linux:
-            export PERL5LIB="$MINC_LIB_DIR/perl5/site_perl/5.8.3"
+            export MNI_PERL5LIB="$MINC_LIB_DIR/perl5/site_perl/5.8.3"
         elif [ -e $MINC_LIB_DIR/5.6.0 ]; then
             # Linux RH7 and RH9:
-            export PERL5LIB="$MINC_LIB_DIR/5.6.0"
+            export MNI_PERL5LIB="$MINC_LIB_DIR/5.6.0"
         elif [ -e $MINC_LIB_DIR/perl5/5.8 ]; then
             # Cygwin:
-            export PERL5LIB="$MINC_LIB_DIR/perl5/5.8"
+            export MNI_PERL5LIB="$MINC_LIB_DIR/perl5/5.8"
         elif [ -e $MINC_LIB_DIR/MNI ]; then
             # Solaris:
-            export PERL5LIB="$MINC_LIB_DIR"
+            export MNI_PERL5LIB="$MINC_LIB_DIR"
+        else
+            export MNI_PERL5LIB=""
         fi
+    fi
+    if [ -z "$PERL5LIB" ]; then
+        export PERL5LIB="$MNI_PERL5LIB"
+    elif [ "$PERL5LIB" != "$MNI_PERL5LIB" ]; then
+        export PERL5LIB="$MNI_PERL5LIB":"$PERL5LIB"
     fi
     #if [[ $output == 1 && -n "$PERL5LIB" ]]; then
     #    echo "PERL5LIB        $PERL5LIB"
