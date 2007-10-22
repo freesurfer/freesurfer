@@ -1,15 +1,19 @@
 /**
  * @file  PreferencesManager.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Assigns, reads, and writes preferences values
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This object manages the setting and accessing of preferences values
+ * of different data types and writing and reading them to a file. Use
+ * RegisterValue() to create a value and its default value, and
+ * Set/GetValue() to access those values. UseFile() specifies a file
+ * from which to read values and write them when done.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.16 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/22 04:39:27 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -304,7 +308,7 @@ PreferencesManager::WriteFile() {
 
   fPrefs << "begin-timestamp" << endl;
   fPrefs << "# Scuba preferences file written " << ctime(&curTime);
-  fPrefs << "# $Id: PreferencesManager.cpp,v 1.16 2006/12/29 02:09:14 nicks Exp $" << endl;
+  fPrefs << "# $Id: PreferencesManager.cpp,v 1.17 2007/10/22 04:39:27 kteich Exp $" << endl;
   fPrefs << "end-timestamp" << endl << endl;
 
   fPrefs << "begin-header" << endl;

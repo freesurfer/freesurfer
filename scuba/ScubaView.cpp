@@ -1,15 +1,21 @@
 /**
  * @file  ScubaView.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Scuba specific View that manages Layers
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * The ScubaView has draw slots which hold Layers, and composes the
+ * graphical contents of those layers in its graphics context with an
+ * optional view transform. ScubaViews have their own 2D draw state,
+ * and tell Layers what poarts of themselves to draw. ScubaViews also
+ * have markers and a shared cursor, and can 'lock on' the cursor to
+ * synchronize view states between Views. The View also passes events
+ * down to Layers.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 22:25:38 $
- *    $Revision: 1.123 $
+ *    $Date: 2007/10/22 04:39:29 $
+ *    $Revision: 1.124 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

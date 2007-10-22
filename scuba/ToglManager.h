@@ -1,15 +1,21 @@
 /**
  * @file  ToglManager.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Main C++ object started by Tcl
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Togl is a bunch of code that implements a Tk GL
+ * context. ToglManager is a class that interfaces with togl and acts
+ * as the frontline for getting events from Tcl via the togl
+ * object. When the ToglManager starts up, it registers a callback for
+ * the creation of a togl object, and when the Tcl code creates one,
+ * this code makes a WindowFrame, our base Window object. ToglManager
+ * takes events and passes them to WindowFrames.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/10 17:34:03 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/10/22 04:39:31 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -81,8 +87,8 @@ protected:
     return (iFrame->GetHeight() - iY);
   }
 
-  // Maps Window IDs to frames.
-  static std::map<WindowFrame::ID,WindowFrame*> mFrames;
+  // Maps togl ids to frames.
+  static std::map<int,WindowFrame*> mFrames;
 
   static WindowFrameFactory* mFactory;
 

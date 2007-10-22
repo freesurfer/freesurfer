@@ -1,15 +1,21 @@
 /**
  * @file  ToglManager.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Main C++ object started by Tcl
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Togl is a bunch of code that implements a Tk GL
+ * context. ToglManager is a class that interfaces with togl and acts
+ * as the frontline for getting events from Tcl via the togl
+ * object. When the ToglManager starts up, it registers a callback for
+ * the creation of a togl object, and when the Tcl code creates one,
+ * this code makes a WindowFrame, our base Window object. ToglManager
+ * takes events and passes them to WindowFrames.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 16:40:24 $
- *    $Revision: 1.26 $
+ *    $Date: 2007/10/22 04:39:30 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,7 +40,7 @@
 
 using namespace std;
 
-map<WindowFrame::ID,WindowFrame*> ToglManager::mFrames;
+map<int,WindowFrame*> ToglManager::mFrames;
 WindowFrameFactory* ToglManager::mFactory = NULL;
 InputState ToglManager::mState;
 int ToglManager::mCurrentWindowCoords[2];
@@ -43,7 +49,7 @@ int ToglManager::mCurrentWindowCoords[2];
 void
 ToglManager::DrawCallback ( struct Togl* iTogl ) {
 
-  WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+  int id = atoi( Togl_Ident( iTogl ));
   WindowFrame* frame = mFrames[id];
   frame->Draw();
   Togl_SwapBuffers( iTogl );
@@ -53,8 +59,8 @@ void
 ToglManager::CreateCallback ( struct Togl* iTogl ) {
 
   if ( NULL != mFactory ) {
-    WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
-    WindowFrame* frame = (WindowFrame*) mFactory->NewWindowFrame( id );
+    int id = atoi( Togl_Ident( iTogl ));
+    WindowFrame* frame = (WindowFrame*) mFactory->NewWindowFrame();
     mFrames[id] = frame;
   }
 }
@@ -64,7 +70,7 @@ ToglManager::DestroyCallback ( struct Togl* iTogl ) {
 
   char* sIdent = Togl_Ident( iTogl ); // sometimes this is null?
   if ( NULL != sIdent ) {
-    WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+    int id = atoi( Togl_Ident( iTogl ));
     WindowFrame* frame = mFrames[id];
     delete frame;
     mFrames[id] = NULL;
@@ -74,7 +80,7 @@ ToglManager::DestroyCallback ( struct Togl* iTogl ) {
 void
 ToglManager::ReshapeCallback ( struct Togl* iTogl ) {
 
-  WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+  int id = atoi( Togl_Ident( iTogl ));
   WindowFrame* frame = mFrames[id];
   int width = Togl_Width( iTogl );
   int height = Togl_Height( iTogl );
@@ -90,7 +96,7 @@ ToglManager::ReshapeCallback ( struct Togl* iTogl ) {
 void
 ToglManager::TimerCallback ( struct Togl* iTogl ) {
 
-  WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+  int id = atoi( Togl_Ident( iTogl ));
   WindowFrame* frame = mFrames[id];
   frame->Timer();
 
@@ -117,7 +123,7 @@ ToglManager::MouseMotionCallback ( struct Togl* iTogl,
     mState.SetButtonDragEvent();
   }
 
-  WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+  int id = atoi( Togl_Ident( iTogl ));
   WindowFrame* frame = mFrames[id];
 
   mState.AddButtonDelta( atoi(iArgv[2]) - mCurrentWindowCoords[0],
@@ -160,7 +166,7 @@ ToglManager::MouseDownCallback ( struct Togl* iTogl,
   // Mouse down event.
   mState.SetButtonDownEvent( atoi(iArgv[4]) );
 
-  WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+  int id = atoi( Togl_Ident( iTogl ));
   WindowFrame* frame = mFrames[id];
 
   mCurrentWindowCoords[0] = atoi(iArgv[2]);
@@ -199,7 +205,7 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   // Mouse up event.
   mState.SetButtonUpEvent();
 
-  WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+  int id = atoi( Togl_Ident( iTogl ));
   WindowFrame* frame = mFrames[id];
 
   mCurrentWindowCoords[0] = atoi(iArgv[2]);
@@ -263,7 +269,7 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     key->SetFromString( sKey );
     mState.CopyKey( *key );
 
-    WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+    int id = atoi( Togl_Ident( iTogl ));
     WindowFrame* frame = mFrames[id];
 
     mCurrentWindowCoords[0] = atoi(iArgv[2]);
@@ -319,7 +325,7 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     key->SetFromString( sKey );
     mState.CopyKey( *key );
 
-    WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+    int id = atoi( Togl_Ident( iTogl ));
     WindowFrame* frame = mFrames[id];
 
     mCurrentWindowCoords[0] = atoi(iArgv[2]);

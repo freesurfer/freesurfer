@@ -1,15 +1,17 @@
 /**
  * @file  WindowFrame.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Top level window class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * These are created by ToglManager when the togl object in Tcl is
+ * created. The Window receives events and manages a redisplay flag
+ * that ToglManager uses to know when to post draw events.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.6 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/22 04:39:31 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,16 +40,9 @@ class WindowFrame : public DebugReporter,
       public IDTracker<WindowFrame> {
 
 public:
-  typedef int ID;
 
-  // Constructor takes an ID that is ultimately set by the Tcl script.
-  WindowFrame( ID iID );
+  WindowFrame();
   virtual ~WindowFrame();
-
-  // Accessor for the ID
-  ID GetID() const {
-    return mID;
-  }
 
   // These callabacks are called by the WindowFrame. Subclasses
   // can't/shouldn't override these as these setup the environment
@@ -118,8 +113,8 @@ protected:
 class WindowFrameFactory {
 public:
   virtual ~WindowFrameFactory() {};
-  virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) {
-    return new WindowFrame( iID );
+  virtual WindowFrame* NewWindowFrame() {
+    return new WindowFrame();
   }
 };
 

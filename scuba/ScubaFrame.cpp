@@ -1,15 +1,19 @@
 /**
  * @file  ScubaFrame.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Scuba specific subclass of WindowFrame that manages Views
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This class adds the capability to display Views, which are panels
+ * in the GL context that have their own display state and event
+ * handling. The ScubaFrame creates and arranges the views according
+ * to ViewConfigurations. It also listens to Tcl commands and
+ * Broadcast messages. It also owns the tool state.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 22:13:36 $
- *    $Revision: 1.42 $
+ *    $Date: 2007/10/22 04:39:28 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,8 +48,8 @@ using namespace std;
 
 ViewFactory* ScubaFrame::mFactory = NULL;
 
-ScubaFrame::ScubaFrame( ID iID ) :
-    WindowFrame( iID ) ,
+ScubaFrame::ScubaFrame() :
+    WindowFrame() ,
     Listener( "ScubaFrame" ) {
 
   SetOutputStreamToCerr();

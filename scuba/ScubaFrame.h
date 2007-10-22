@@ -1,15 +1,19 @@
 /**
  * @file  ScubaFrame.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Scuba specific subclass of WindowFrame that manages Views
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This class adds the capability to display Views, which are panels
+ * in the GL context that have their own display state and event
+ * handling. The ScubaFrame creates and arranges the views according
+ * to ViewConfigurations. It also listens to Tcl commands and
+ * Broadcast messages. It also owns the tool state.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.18 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/22 04:39:28 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +48,7 @@ class ScubaFrame : public WindowFrame,
   friend class ScubaFrameTester;
 
 public:
-  ScubaFrame( ID iID );
+  ScubaFrame();
   virtual ~ScubaFrame();
 
   // View configurations. The cxx numbers spec the number of columns
@@ -57,11 +61,13 @@ public:
   }
   std::string GetViewConfigurationAsString();
 
+  // Listen to Tcl commands.
   virtual TclCommandResult
-  DoListenToTclCommand( char* isCommand, int iArgc, char** iArgv );
+    DoListenToTclCommand( char* isCommand, int iArgc, char** iArgv );
 
+  // Listen to Broadcast messages.
   virtual void
-  DoListenToMessage ( std::string isMessage, void* iData );
+    DoListenToMessage ( std::string isMessage, void* iData );
 
   // Sets the factory to use for creating new frames.
   static void SetViewFactory( ViewFactory* const iFactory ) {
@@ -143,8 +149,8 @@ protected:
 // created.
 class ScubaFrameFactory : public WindowFrameFactory {
 public:
-  virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) {
-    ScubaFrame* frame = new ScubaFrame( iID );
+  virtual WindowFrame* NewWindowFrame() {
+    ScubaFrame* frame = new ScubaFrame();
     frame->SetViewConfiguration( ScubaFrame::c1 );
     frame->SetOutputStreamToCerr();
     return frame;

@@ -1,15 +1,18 @@
 /**
  * @file  ScubaMultiFrameVolumeChart.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Creates charts for values in multiframe volumes
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Uses the ChartWindow class to create charts based on volumes that
+ * will get the current cursor and draw the volume's values at that
+ * cursor over multiple frames. If there is time metadata available,
+ * it will use that to format the graph into conditions and times.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 22:25:37 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/10/22 04:39:29 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

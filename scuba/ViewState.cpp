@@ -1,15 +1,18 @@
 /**
  * @file  ViewState.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief View orientation information for ScubaViews
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Settable and accesible information for a
+ * View. IsRASVisibleInPlane() is used to tell when an RAS point is in
+ * the current view given a range (usually half the voxel size in the
+ * inplane direction). Also manages update rects.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.14 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/22 04:39:31 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

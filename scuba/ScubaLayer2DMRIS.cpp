@@ -1,15 +1,18 @@
 /**
  * @file  ScubaLayer2DMRIS.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Draws a MRIS surface
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Draws the intersection of a surface and a plane into the
+ * Layer. Also handles getting information about a surface at an RAS
+ * point, and responding to Tcl commands requesting vertex
+ * information.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 22:13:36 $
- *    $Revision: 1.37 $
+ *    $Date: 2007/10/22 04:39:28 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

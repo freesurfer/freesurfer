@@ -1,15 +1,18 @@
 /**
  * @file  TclChartWindow.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Implements a Tcl based ChartWindow
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * A Tcl implementation of the ChartWindow interface. Uses BLT code in
+ * TclChartWindow.tcl to implement the window itself. The Draw()
+ * function uses the current ChartWindow's setting to set up the BLT
+ * window.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.11 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/22 04:39:30 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

@@ -1,15 +1,17 @@
 /**
  * @file  ScubaLayerFactory.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief A factory for Scuba specific Layers
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Makes layers  for specific types.  This is a little  different that
+ * our  other factories  because it  creates  layers based  on a  type
+ * (2DMRI and 2DMRIS). Also handles Tcl commands for doing the same.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.7 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/22 04:39:29 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

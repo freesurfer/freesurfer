@@ -1,15 +1,17 @@
 /**
  * @file  ScubaColorLUT.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Reads a FreeSurfer LUT file and allows access to values
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Reads a FressSurfer LUT file (using the utils/colortab.c code) and
+ * provides access to values, transforming from colors to indices and
+ * getting label strings for indices.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 19:57:42 $
- *    $Revision: 1.16 $
+ *    $Date: 2007/10/22 04:39:27 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

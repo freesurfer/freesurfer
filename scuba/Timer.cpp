@@ -1,15 +1,16 @@
 /**
  * @file  Timer.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Simple stopwatch class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Just call Start() when you want and TimeNow() when you want the
+ * time between calls. Start() resets the timer.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.2 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/22 04:39:30 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

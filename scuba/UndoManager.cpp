@@ -1,15 +1,18 @@
 /**
  * @file  UndoManager.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Manager for a list of undoable (and redoable) actions
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Use by adding UndoAction subclasses to the list in groups of
+ * actions. When told to undo, the Actions will have their Undo()
+ * functions called. If an Undo is undone, they will have their Redo()
+ * functions called.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/03/30 16:47:02 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/10/22 04:39:31 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

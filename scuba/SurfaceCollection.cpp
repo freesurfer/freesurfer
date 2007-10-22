@@ -1,15 +1,16 @@
 /**
  * @file  SurfaceCollection.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Implements DataCollection with a MRIS data set
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Very simple class that reads MRIS data and provides access to
+ * geometry information.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/15 20:42:21 $
- *    $Revision: 1.28 $
+ *    $Date: 2007/10/22 04:39:30 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

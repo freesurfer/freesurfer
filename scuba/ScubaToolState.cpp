@@ -1,15 +1,16 @@
 /**
  * @file  ScubaToolState.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief State variables for the Window-global tool
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This class simply represents the Window's tool and its current
+ * settings. It is available all the way to the Layer subclasses.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 19:57:42 $
- *    $Revision: 1.28 $
+ *    $Date: 2007/10/22 04:39:29 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

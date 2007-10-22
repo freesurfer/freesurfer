@@ -1,15 +1,17 @@
 /**
  * @file  WindowFrame.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Top level window class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * These are created by ToglManager when the togl object in Tcl is
+ * created. The Window receives events and manages a redisplay flag
+ * that ToglManager uses to know when to post draw events.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/12 19:57:42 $
- *    $Revision: 1.17 $
+ *    $Date: 2007/10/22 04:39:31 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,7 +36,7 @@
 
 using namespace std;
 
-WindowFrame::WindowFrame( ID ) {
+WindowFrame::WindowFrame() {
   mLastMoved[0] = 0;
   mLastMoved[1] = 1;
   mWidth = 0;

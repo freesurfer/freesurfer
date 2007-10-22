@@ -1,15 +1,19 @@
 /**
  * @file  ScubaGlobalPreferences.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Scuba specific preferences values
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This class acts as a bridge between PreferencesManager and the rest
+ * of the Scuba objects. Scuba objects can add themselves as listeners
+ * to this object to get messages when preference values have been
+ * changed by the user. This class also acts as the bridge between
+ * prefs values and tcl.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.20 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/22 04:39:28 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,12 +35,6 @@
 
 #include "TclCommandManager.h"
 #include "Broadcaster.h"
-
-// This class acts as a bridge between PreferencesManager and the rest
-// of the Scuba objects. Scuba objects can add themselves as listeners
-// to this object to get messages when preference values have been
-// changed by the user. This class also acts as the bridge between
-// prefs values and tcl.
 
 class ScubaGlobalPreferences : public TclCommandListener, public Broadcaster {
 

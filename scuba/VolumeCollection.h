@@ -1,15 +1,20 @@
 /**
  * @file  VolumeCollection.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief MRI volume access and utilities
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Provides access to MRI volume data and volume ROIs. Also contains
+ * functions for determining of RAS points are in a square or circular
+ * area, used by tools. Can also generate histogram data given a set
+ * of points. Can generate average value and standard deviation of
+ * points. Can perform value-based fills that set ranges of volumes
+ * to new values.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/17 23:59:49 $
- *    $Revision: 1.72 $
+ *    $Date: 2007/10/22 04:39:31 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

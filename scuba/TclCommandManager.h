@@ -1,15 +1,18 @@
 /**
  * @file  TclCommandManager.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Allows objects to register and respond to Tcl commands
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Classes should subclass from TclCommandListener to respond to
+ * commands, then use the TclCommandManager to register their
+ * commands. Override the DoListenToTclCommand() to respond to the
+ * commands.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.17 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/22 04:39:30 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,9 +33,9 @@
 // TclCommandManager.h
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:15 $
-// Revision       : $Revision: 1.17 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2007/10/22 04:39:30 $
+// Revision       : $Revision: 1.18 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h

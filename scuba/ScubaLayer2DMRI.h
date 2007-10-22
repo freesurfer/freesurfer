@@ -1,15 +1,18 @@
 /**
  * @file  ScubaLayer2DMRI.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Layer for displaying MRI volumes
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Displays MRI volumes in grayscale, heatscale, and with an
+ * LUT. Handles multiframe volumes and can interpret them as having
+ * time points and conditions. Contains the logic for the Edge Path
+ * and other path tools.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/11 21:47:12 $
- *    $Revision: 1.62 $
+ *    $Date: 2007/10/22 04:39:28 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 

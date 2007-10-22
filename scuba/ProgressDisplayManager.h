@@ -1,15 +1,18 @@
 /**
  * @file  ProgressDisplayManager.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Generic progress update GUI functions
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This is a virtual class meant to be reimplemented in a specific
+ * widget framework. See TclProgressDisplayManager and
+ * QtProgressDisplayManager. Clients can use this class to start a
+ * task and check for user input during that class, i.e. to cancel it.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author:Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.2 $
+ *    $Author: kteich $
+ *    $Date: 2007/10/22 04:39:27 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,11 +34,6 @@
 
 #include "string_fixed.h"
 #include <list>
-
-// This is a virtual class meant to be reimplemented in a specific
-// widget framework. See TclProgressDisplayManager and
-// QtProgressDisplayManager. Clients can use this class to start a
-// task and check for user input during that class, i.e. to cancel it.
 
 class ProgressDisplayManager {
 

@@ -1,15 +1,16 @@
 /**
  * @file  ScubaVolumeROIIntensityChart.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Given a volume and an ROI, uses a ChartWindow to plot intenity data
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Uses a ChartWindow to plot the voxel index on the x axes and the
+ * intensity on the y axis. Voxel index can be sorted by x, y, or z.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: kteich $
- *    $Date: 2007/10/16 22:25:38 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/10/22 04:39:29 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
