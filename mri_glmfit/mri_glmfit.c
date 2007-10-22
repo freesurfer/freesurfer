@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/18 04:52:03 $
- *    $Revision: 1.140 $
+ *    $Date: 2007/10/22 20:25:25 $
+ *    $Revision: 1.141 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -99,6 +99,7 @@ USAGE: ./mri_glmfit
    --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)
    --allowsubjrep allow subject names to repeat in the fsgd file (must appear
                   before --fsgd)
+   --illcond : allow ill-conditioned design matrices
 
 ENDUSAGE --------------------------------------------------------------
 
@@ -525,7 +526,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.140 2007/09/18 04:52:03 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.141 2007/10/22 20:25:25 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -646,6 +647,8 @@ int DoDistance = 0;
 int DoTemporalAR1 = 0;
 int DoFFx = 0;
 IMAGE *I;
+
+int IllCondOK = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -880,7 +883,7 @@ int main(int argc, char **argv) {
   Xnorm = MatrixNormalizeCol(mriglm->Xg,NULL);
   Xcond = MatrixNSConditionNumber(Xnorm);
   printf("Matrix condition is %g\n",Xcond);
-  if (Xcond > 10000) {
+  if(Xcond > 10000 && ! IllCondOK) {
     printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",
            Xcond);
     printf("Possible problem with experimental design:\n");
@@ -1707,6 +1710,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--qa")) useqa = 1;
     else if (!strcasecmp(option, "--no-mask-smooth")) UseMaskWithSmoothing = 0;
     else if (!strcasecmp(option, "--distance")) DoDistance = 1;
+    else if (!strcasecmp(option, "--illcond")) IllCondOK = 1;
+    else if (!strcasecmp(option, "--no-illcond")) IllCondOK = 0;
     else if (!strcasecmp(option, "--asl")) useasl = 1;
     else if (!strcasecmp(option, "--asl-rev")){
       useasl = 1;
@@ -2034,6 +2039,7 @@ printf("   --version   print out version and exit\n");
 printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)\n");
 printf("   --allowsubjrep allow subject names to repeat in the fsgd file (must appear\n");
 printf("                  before --fsgd)\n");
+printf("   --illcond : allow ill-conditioned desgin matrix\n");
 printf("\n");
 }
 /* --------------------------------------------- */
@@ -2518,6 +2524,7 @@ static void dump_options(FILE *fp) {
   if (labelFile || maskFile) fprintf(fp,"maskinv %d\n",maskinv);
 
   fprintf(fp,"glmdir %s\n",GLMDir);
+  fprintf(fp,"IllCondOK %d\n",IllCondOK);
 
   for (n=0; n < nSelfReg; n++) {
     fprintf(fp,"SelfRegressor %d  %4d %4d %4d\n",n+1,
