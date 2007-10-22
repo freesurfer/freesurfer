@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/10/10 01:54:16 $
-#    $Revision: 1.142 $
+#    $Date: 2007/10/22 15:06:29 $
+#    $Revision: 1.143 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.142 2007/10/10 01:54:16 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.143 2007/10/22 15:06:29 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -194,6 +194,7 @@ set DoSkullLTA       = 0;
 set DoCALabel        = 0;
 set DoCCSeg          = 0;
 set DoSegStats       = 0;
+set DoAParcASegStats = 0;
 set DoFill           = 0;
 #----- Surface -----------#
 set DoTessellate     = 0;
@@ -1273,9 +1274,11 @@ if($DoCAReg) then
              transforms/talairach.m3z)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) then
-    echo "ERROR: mri_ca_register with non-zero status" |& tee -a $LF
-    goto error_exit;
+  set st = $status
+  if($st) then
+    echo "ERROR: mri_ca_register with non-zero status $st" |& tee -a $LF
+    echo "but continuing despite the error" |& tee -a $LF
+    #goto error_exit;
   endif
   echo $cmd > $touchdir/ca_register.touch
 endif
@@ -1291,7 +1294,7 @@ if($DoCARegInv) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: mri_ca_register with non-zero status" |& tee -a $LF
+    echo "ERROR: mri_ca_register with non-zero status $status" |& tee -a $LF
     goto error_exit;
   endif
   echo $cmd > $touchdir/ca_register_inv.touch
@@ -2174,7 +2177,6 @@ if ($DoAsegStatsDiff) then
   echo $cmd > $touchdir/asegstatsdiff.touch
 endif
 
-
 #---------------- Cortical Ribbon -------------------------#
 if($DoCortRibbonVolMask) then
   echo "#--------------------------------------------" \
@@ -2355,6 +2357,31 @@ if ($DoQdecCache) then
     end # measure
   end # hemi
 endif # DoQdecCache
+
+#-------------- AParc+ASeg Stats -----------------#
+# This is not something you want to do in general. The volumes
+# of cortical structures should be obtained from the aparc.stats,
+# but getting the intensity means and stddevs can be useful.
+if($DoAParcASegStats) then
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# AParcASeg Stats `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir > /dev/null
+  set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
+  set cmd = (mri_segstats --seg mri/aparc+aseg.mgz --sum stats/aparc+aseg.stats)
+  set cmd = ($cmd --pv mri/norm.mgz )
+  set cmd = ($cmd --excludeid 0 --ctab-default)
+  set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
+  set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
+  set cmd = ($cmd --in-intensity-units MR)
+  set cmd = ($cmd --etiv --subject $subjid $xopts);
+  set cmd = ($cmd $xopts);
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/aparc+aseg.stats.touch
+endif
 
 
 echo "" |& tee -a $LF
@@ -2995,6 +3022,13 @@ while( $#argv != 0 )
       breaksw
     case "-noaparc2aseg":
       set DoAParc2ASeg = 0;
+      breaksw
+
+    case "-aparc+aseg-stats":
+      set DoAParcASegStats = 1;
+      breaksw
+    case "-no-aparc+aseg-stats":
+      set DoAParcASegStats = 0;
       breaksw
 
     case "-wmparc":
@@ -3860,7 +3894,7 @@ check_params:
      ! $DoMorphRGB && ! $DoFinalSurfs && ! $DoContraSurfRegWithinSubject &&\
      ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoCCSeg && \
-     ! $DoMaskBFS && \
+     ! $DoMaskBFS && ! $DoAParcASegStats &&\
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff ) then
      echo "ERROR: nothing to do"
      exit 1;
