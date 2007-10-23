@@ -8,11 +8,11 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/13 20:58:21 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/23 20:58:17 $
+ *    $Revision: 1.6 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -26,6 +26,7 @@
  *
  */
 
+#include <assert.h>
 
 #include "vtkKWOrientMRIApp.h"
 
@@ -40,7 +41,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIApp );
-vtkCxxRevisionMacro( vtkKWOrientMRIApp, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIApp, "$Revision: 1.6 $" );
 
 vtkKWOrientMRIApp::vtkKWOrientMRIApp () {
 

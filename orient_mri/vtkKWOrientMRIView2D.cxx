@@ -7,11 +7,11 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/19 17:54:31 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/23 20:58:17 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -28,6 +28,9 @@
 
 #include <sstream>
 #include <stdexcept>
+
+#include <assert.h>
+
 #include "vtkKWOrientMRIView2D.h"
 
 // These are defined in the mri headers somewhere.
@@ -73,7 +76,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIView2D );
-vtkCxxRevisionMacro( vtkKWOrientMRIView2D, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIView2D, "$Revision: 1.7 $" );
 
 double vtkKWOrientMRIView2D::sReorthoPoints[3][2][3] = 
   { {{0,0,0}, {0,0,0}}, {{0,0,0}, {0,0,0}}, {{0,0,0}, {0,0,0}} };

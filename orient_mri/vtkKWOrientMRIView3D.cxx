@@ -9,11 +9,11 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/19 17:54:31 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/23 20:58:17 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -30,6 +30,9 @@
 
 #include <sstream>
 #include <stdexcept>
+
+#include <assert.h>
+
 #include "vtkKWOrientMRIView3D.h"
 
 #include "OrientMRIEvents.h"
@@ -69,7 +72,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIView3D );
-vtkCxxRevisionMacro( vtkKWOrientMRIView3D, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIView3D, "$Revision: 1.5 $" );
 
 
 vtkKWOrientMRIView3D::vtkKWOrientMRIView3D () {

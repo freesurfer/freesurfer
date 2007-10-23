@@ -12,11 +12,11 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/05 21:29:48 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/23 20:58:17 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -29,6 +29,8 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
+
+#include <assert.h>
 
 #include "vtkOrientMRIInteractorStyleView2D.h"
 
@@ -43,7 +45,7 @@
 #include "vtkRenderWindow.h"
 #include "vtkWindowLevelLookupTable.h"
 
-vtkCxxRevisionMacro(vtkOrientMRIInteractorStyleView2D, "$Revision: 1.2 $");
+vtkCxxRevisionMacro(vtkOrientMRIInteractorStyleView2D, "$Revision: 1.3 $");
 vtkStandardNewMacro(vtkOrientMRIInteractorStyleView2D);
 
 vtkOrientMRIInteractorStyleView2D::vtkOrientMRIInteractorStyleView2D () :
