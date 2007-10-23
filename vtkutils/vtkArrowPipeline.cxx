@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/17 20:46:25 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/23 20:36:07 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,6 +27,7 @@
  */
 
 #include <limits>
+#include <assert.h>
 
 #include "vtkArrowPipeline.h"
 
@@ -42,7 +43,7 @@
 
 
 vtkStandardNewMacro( vtkArrowPipeline );
-vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkArrowPipeline, "$Revision: 1.6 $" );
 
 vtkArrowPipeline::vtkArrowPipeline () {
 
