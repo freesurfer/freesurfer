@@ -22,9 +22,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/15 20:41:46 $
- *    $Revision: 1.19 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/23 21:04:22 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,11 +40,11 @@
  *
  */
 
-
 #include "string_fixed.h"
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
+#include <assert.h>
 
 extern "C" {
 #include "macros.h"
