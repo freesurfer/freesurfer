@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/10/22 20:25:25 $
- *    $Revision: 1.141 $
+ *    $Date: 2007/10/25 21:31:06 $
+ *    $Revision: 1.142 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -526,7 +526,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.141 2007/10/22 20:25:25 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.142 2007/10/25 21:31:06 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -548,7 +548,7 @@ int   nmask, nvoxels;
 float maskfraction, voxelsize;
 int   prunemask = 1;
 
-MRI *mritmp=NULL, *sig=NULL, *rstd;
+MRI *mritmp=NULL, *sig=NULL, *rstd, *fsnr;
 
 int debug = 0, checkoptsonly = 0;
 char tmpstr[2000];
@@ -1451,6 +1451,17 @@ int main(int argc, char **argv) {
 
   sprintf(tmpstr,"%s/Xg.dat",GLMDir);
   MatrixWriteTxt(tmpstr, mriglm->Xg);
+
+  if(useqa){
+    // Compute FSNR
+    printf("Computing FSNR\n");
+    fsnr = MRIdivide(mriglm->gamma[0],rstd,NULL);
+    sprintf(tmpstr,"%s/fsnr.%s",GLMDir,format);
+    MRIwrite(fsnr,tmpstr);
+    // Write out mean
+    sprintf(tmpstr,"%s/mean.%s",GLMDir,format);
+    MRIwrite(mriglm->gamma[0],tmpstr);
+  }
 
   // Save the contrast results
   for (n=0; n < mriglm->glm->ncontrasts; n++) {
