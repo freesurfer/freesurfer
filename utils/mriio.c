@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/10/21 04:44:33 $
- *    $Revision: 1.337 $
+ *    $Author: greve $
+ *    $Date: 2007/10/25 19:19:41 $
+ *    $Revision: 1.338 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -10322,6 +10322,10 @@ static MRI *niiRead(char *fname, int read_volume)
                  "niiRead(): unknown or no data type in %s; bailing out",
                  fname));
   }
+  if(hdr.dim[4] == 0){
+    printf("WARNING: hdr.dim[4] = 0 (nframes), setting to 1\n");
+    hdr.dim[4] = 1;
+  }
 
   space_units  = XYZT_TO_SPACE(hdr.xyzt_units) ;
   if (space_units == NIFTI_UNITS_METER)       space_units_factor = 1000.0;
@@ -10543,17 +10547,14 @@ static MRI *niiRead(char *fname, int read_volume)
     // no voxel value scaling needed
     void *buf;
 
-    for (t = 0;t < mri->nframes;t++)
-    {
-      for (k = 0;k < mri->depth;k++)
-      {
-        for (j = 0;j < mri->height;j++)
-        {
+    for (t = 0;t < mri->nframes;t++)    {
+      for (k = 0;k < mri->depth;k++)      {
+        for (j = 0;j < mri->height;j++)        {
           buf = &MRIseq_vox(mri, 0, j, k, t);
 
           n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
-          if (n_read != mri->width)
-          {
+          if(n_read != mri->width) {
+	    printf("ERROR: Read %d, expected %d\n",n_read,mri->width);
             znzclose(fp);
             MRIfree(&mri);
             errno = 0;
