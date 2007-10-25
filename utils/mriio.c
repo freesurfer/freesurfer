@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/04 20:53:49 $
- *    $Revision: 1.335.2.2 $
+ *    $Author: greve $
+ *    $Date: 2007/10/25 19:37:33 $
+ *    $Revision: 1.335.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -10322,6 +10322,10 @@ static MRI *niiRead(char *fname, int read_volume)
                  "niiRead(): unknown or no data type in %s; bailing out",
                  fname));
   }
+  if(hdr.dim[4] == 0){
+    printf("WARNING: hdr.dim[4] = 0 (nframes), setting to 1\n");
+    hdr.dim[4] = 1;
+  }
 
   space_units  = XYZT_TO_SPACE(hdr.xyzt_units) ;
   if (space_units == NIFTI_UNITS_METER)       space_units_factor = 1000.0;
@@ -10554,6 +10558,7 @@ static MRI *niiRead(char *fname, int read_volume)
           n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
           if (n_read != mri->width)
           {
+	    printf("ERROR: Read %d, expected %d\n",n_read,mri->width);
             znzclose(fp);
             MRIfree(&mri);
             errno = 0;
