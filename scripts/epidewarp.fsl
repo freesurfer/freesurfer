@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/09/16 21:45:10 $
-#    $Revision: 1.27.2.1 $
+#    $Date: 2007/10/25 20:09:02 $
+#    $Revision: 1.27.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.27.2.1 2007/09/16 21:45:10 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.27.2.2 2007/10/25 20:09:02 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -84,6 +84,25 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+set FSLVersion = `cat $FSLDIR/etc/fslversion`;
+set FSLVerMaj = `echo $FSLVersion | cut -c 1`
+echo FSLVersion $FSLVersion 
+echo FSLVerMaj  $FSLVerMaj
+if($FSLVerMaj == 3) then
+  set FSLPre = avw
+  set DilFlag = -dil
+  set FSLToFloat = avwmaths_32R
+  set FSLToFloatFlag = ()
+else if($FSLVerMaj == 4) then
+  set FSLPre = fsl
+  set DilFlag = -dilM
+  set FSLToFloat = (fslmaths)
+  set FSLToFloatFlag = (-odt float)
+else
+  echo "FSL Version is $FSLVersion, must be 3.X or 4.X"
+  exit 1;
+endif
+
 # Setup the proper extensions
 if($FSLOUTPUTTYPE == ANALYZE)  set ext = img
 if($FSLOUTPUTTYPE == NIFTI)    set ext = nii
@@ -123,14 +142,14 @@ if(! -e $epimat) set epimat = ();
 if($#exf == 0) then
   # Extract the middle time point for the example func (exf)
   set exf   = $tmpdir/exf.$ext
-  set nframes = `avwinfo $epi | awk '{if($1 == "dim4") print $2}'`
+  set nframes = `"$FSLPre"info $epi | awk '{if($1 == "dim4") print $2}'`
   if($nframes == 1) then
     set nmidframe = 0;
   else
     set nmidframe = `echo "$nframes/2" | bc `;
   endif
   echo "nframes = $nframes, nmidframe = $nmidframe" |& tee -a $LF
-  set cmd = (avwroi $epi $exf $nmidframe 1)
+  set cmd = ("$FSLPre"roi $epi $exf $nmidframe 1)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -144,27 +163,27 @@ endif
 if($UseComplex) then
   # construct complex of 1st echo
   set complex1 = $tmpdir/complex1
-  set cmd = (avwcomplex -complex $real1 $imag1 $complex1);
+  set cmd = ("$FSLPre"complex -complex $real1 $imag1 $complex1);
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
 
   # construct complex of 2nd echo
   set complex2 = $tmpdir/complex2
-  set cmd = (avwcomplex -complex $real2 $imag2 $complex2);
+  set cmd = ("$FSLPre"complex -complex $real2 $imag2 $complex2);
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
 
   # construct mag from 1st echo
   set mag = $tmpdir/mag.$ext
-  set cmd = (avwcomplex -realabs $complex1 $mag)
+  set cmd = ("$FSLPre"complex -realabs $complex1 $mag)
   $cmd |& tee -a $LF
   if($status) exit 1;
 
 else
   # Keep only the first frame from mag
-  set cmd = (avwroi $mag $tmpdir/mag 0 1)
+  set cmd = ("$FSLPre"roi $mag $tmpdir/mag 0 1)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -177,7 +196,7 @@ set cmd = (bet $mag $brain)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
-set cmd = (avwmaths $brain -bin $brain)
+set cmd = ("$FSLPre"maths $brain -bin $brain)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
@@ -187,9 +206,9 @@ if($#epimat) cp $epimat `dirname $brain`/`basename $brain .$ext`.mat
 @ nthdil = 1;
 while($nthdil <= 3)
   if($nthdil == 1) then
-    set cmd = (avwmaths $brain -dil $head)
+    set cmd = ("$FSLPre"maths $brain $DilFlag $head)
   else
-    set cmd = (avwmaths $head  -dil $head)
+    set cmd = ("$FSLPre"maths $head  $DilFlag $head)
   endif
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
@@ -217,14 +236,14 @@ if($UseComplex) then
   echo ""|& tee -a $LF
   echo "Merging " |& tee -a $LF
   set ph2 = $tmpdir/ph.$ext
-  set cmd = (avwmerge -t $ph2 $ph1uw $ph2uw)
+  set cmd = ("$FSLPre"merge -t $ph2 $ph1uw $ph2uw)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
 else
   # Rescale the delta phase to be between -pi and pi. Starts out
   # at 0 - 4095. Make sure the phase is float precision with _32R
-  set cmd = (avwmaths_32R $dph -sub 2047.5 -mul 0.00153436 $tmpdir/dph)
+  set cmd = ($FSLToFloat $dph -sub 2047.5 -mul 0.00153436 $tmpdir/dph $FSLToFloatFlag )
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -241,13 +260,13 @@ else
   # phase difference between echoes. So create an image of 0s
   # and merging with the phase diff.
   set ph1 = $tmpdir/ph1.$ext
-  set cmd = (avwmaths $dph -mul 0 $ph1)
+  set cmd = ("$FSLPre"maths $dph -mul 0 $ph1)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
   # Merge, baby, merge
   set ph2 = $tmpdir/ph.$ext
-  set cmd = (avwmerge -t $ph2 $ph1 $dph)
+  set cmd = ("$FSLPre"merge -t $ph2 $ph1 $dph)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -273,12 +292,12 @@ if($status) exit 1;
 if($#epimat) cp $epimat `dirname $vsmmag`/`basename $vsmmag .$ext`.mat
 
 # Remove the mean in-brain shift from VSM
-set vsmmean = `avwstats $vsmmag -M`;
-set cmd = (avwmaths $vsmmag -sub $vsmmean $vsmmag)
+set vsmmean = `"$FSLPre"stats $vsmmag -M`;
+set cmd = ("$FSLPre"maths $vsmmag -sub $vsmmean $vsmmag)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
-set cmd = (avwmaths $vsmmag -mul $brain $vsmmag);
+set cmd = ("$FSLPre"maths $vsmmag -mul $brain $vsmmag);
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
@@ -360,13 +379,13 @@ endif
 
 #------------------ Dewarp the epis --------------------------#
 if($#epidw != 0) then
-  set nframes = `avwinfo $epi | awk '{if($1 == "dim4") print $2}'`;
+  set nframes = `"$FSLPre"info $epi | awk '{if($1 == "dim4") print $2}'`;
 
   # Split the epi into multiple volumes
   set epipath = $epi
   mkdir -p $tmpdir/epi-split
   pushd $tmpdir/epi-split
-  set cmd = (avwsplit $epipath)
+  set cmd = ("$FSLPre"split $epipath)
   echo $cmd
   $cmd
   if($status) exit 1;
@@ -385,7 +404,7 @@ if($#epidw != 0) then
   end
 
   # Merge them back - could they make this more convoluted???
-  set cmd = (avwmerge -t $epidw `ls $tmpdir/epi-split/voldw*$ext`);
+  set cmd = ("$FSLPre"merge -t $epidw `ls $tmpdir/epi-split/voldw*$ext`);
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -640,13 +659,6 @@ check_params:
       echo "ERROR: cannot create $exfdwdir"
       exit 1;
     endif
-  endif
-
-  which avwmaths >& /dev/null
-  if($status) then
-    echo "ERROR: cannot find avwmaths"
-    echo "NOTE: this program does not work with FSL 4.0"
-    exit 1;
   endif
 
 goto check_params_return;
