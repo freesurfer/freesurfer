@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/26 12:41:24 $
- *    $Revision: 1.569 $
+ *    $Date: 2007/10/26 13:08:53 $
+ *    $Revision: 1.570 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.569 2007/10/26 12:41:24 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.570 2007/10/26 13:08:53 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -15560,28 +15560,17 @@ mrisComputeDuraTerm(MRI_SURFACE *mris,
       xw = x + nx ;
       yw = y + ny ;
       zw = z + nz ;
-      if (mris->useRealRAS)
-        MRIworldToVoxel(mri_dura, xw, yw, zw, &xwo, &ywo, &zwo);
-      else
-        MRIsurfaceRASToVoxel(mri_dura, xw, yw, zw, &xwo, &ywo, &zwo);
+      MRISsurfaceRASToVoxel(mris, mri_dura, xw, yw, zw, &xwo, &ywo, &zwo);
       MRIsampleVolume(mri_dura, xw, yw, zw, &val_outside) ;
 
       /* sample inward from surface */
       xw = x - nx ;
       yw = y - ny ;
       zw = z - nz ;
-      // MRIworldToVoxel(mri_dura, xw, yw, zw, &xwi, &ywi, &zwi) ;
-      if (mris->useRealRAS)
-        MRIworldToVoxel(mri_dura, xw, yw, zw, &xwi, &ywi, &zwi);
-      else
-        MRIsurfaceRASToVoxel(mri_dura, xw, yw, zw, &xwi, &ywi, &zwi);
+      MRISsurfaceRASToVoxel(mris, mri_dura, xw, yw, zw, &xwi, &ywi, &zwi);
       MRIsampleVolume(mri_dura, xw, yw, zw, &val_inside) ;
 
-      // MRIworldToVoxel(mri_dura, x, y, z, &xw, &yw, &zw) ;
-      if (mris->useRealRAS)
-        MRIworldToVoxel(mri_dura, x, y, z, &xw, &yw, &zw);
-      else
-        MRIsurfaceRASToVoxel(mri_dura, x, y, z, &xw, &yw, &zw);
+      MRISsurfaceRASToVoxel(mris, mri_dura, x, y, z, &xw, &yw, &zw);
       fprintf(stdout,
               "D(%2.1f,%2.1f,%2.1f)=%2.1f, Do(%2.1f,%2.1f,%2.1f)=%2.1f, "
               "Di(%2.1f,%2.1f,%2.1f)=%2.1f\n",
@@ -15973,21 +15962,11 @@ mrisComputeIntensityGradientTerm(MRI_SURFACE*mris, double l_grad,
     x = v->x+v->nx ;
     y = v->y+v->ny ;
     z = v->z+v->nz ;
-    //MRIworldToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
-#if 0
-    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
-#else
     MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
-#endif
     x = v->x ;
     y = v->y ;
     z = v->z ;
-    //MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-#if 0
-    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-#else
     MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
-#endif
     nx = xw1-xw ;
     ny = yw1-yw ;
     nz = zw1-zw ;
@@ -16002,12 +15981,7 @@ mrisComputeIntensityGradientTerm(MRI_SURFACE*mris, double l_grad,
     xw = x + nx ;
     yw = y + ny ;
     zw = z + nz ;
-    //MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
-#if 0
-    MRIsurfaceRASToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
-#else
     MRISsurfaceRASToVoxel(mris, mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
-#endif
     MRIsampleVolumeGradient(mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
     mag_outside = sqrt(dx*dx+dy*dy+dz*dz) ;
     MRIsampleVolume(mri_smooth, xw, yw, zw, &val_outside) ;
@@ -16016,12 +15990,7 @@ mrisComputeIntensityGradientTerm(MRI_SURFACE*mris, double l_grad,
     xw = x - nx ;
     yw = y - ny ;
     zw = z - nz ;
-    //MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
-#if 0
-    MRIsurfaceRASToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
-#else
     MRISsurfaceRASToVoxel(mris, mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
-#endif
     MRIsampleVolumeGradient(mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
     mag_inside = sqrt(dx*dx+dy*dy+dz*dz) ;
     MRIsampleVolume(mri_smooth, xw, yw, zw, &val_inside) ;
@@ -16107,8 +16076,7 @@ mrisComputeIntensityGradientTerm(MRI_SURFACE*mris, double l_grad,
     nx = v->nx ;
     ny = v->ny ;
     nz = v->nz ;
-    //MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
     MRIsampleVolumeGradient(mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
     mag = sqrt(dx*dx + dy*dy + dz*dz) ;
     MRIsampleVolume(mri_smooth, xw, yw, zw, &val) ;
@@ -16117,8 +16085,7 @@ mrisComputeIntensityGradientTerm(MRI_SURFACE*mris, double l_grad,
     xw = x + v->dx ;
     yw = y + v->dy ;
     zw = z + v->dz ;
-    //MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
-    MRIsurfaceRASToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    MRISsurfaceRASToVoxel(mris, mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
     MRIsampleVolumeGradient(mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
     mag_next = sqrt(dx*dx + dy*dy + dz*dz) ;
 
@@ -23929,14 +23896,7 @@ MRISvertexToVoxel(MRI_SURFACE *mris,
   xw = v->x ;
   yw = v->y ;
   zw = v->z ;
-#if 0
-  if (mris->useRealRAS)
-    MRIworldToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
-  else
-    MRIsurfaceRASToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
-#else
   MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, pxv, pyv, pzv) ;
-#endif
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -23953,10 +23913,7 @@ MRISvertexCoordToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, int coords,
   Real  xw=0., yw=0., zw =0.;
 
   MRISgetCoords(v, coords, &xw, &yw, &zw);
-  if (mris->useRealRAS)
-    MRIworldToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
-  else
-    MRIsurfaceRASToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
+  MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, pxv, pyv, pzv) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -23975,10 +23932,7 @@ MRISorigVertexToVoxel
   xw = v->origx ;
   yw = v->origy ;
   zw = v->origz ;
-  if (mris->useRealRAS)
-    MRIworldToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
-  else
-    MRIsurfaceRASToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
+  MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, pxv, pyv, pzv) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -23997,10 +23951,7 @@ MRISwhiteVertexToVoxel
   xw = v->whitex ;
   yw = v->whitey ;
   zw = v->whitez ;
-  if (mris->useRealRAS)
-    MRIworldToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
-  else
-    MRIsurfaceRASToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
+  MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, pxv, pyv, pzv) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -25218,8 +25169,8 @@ mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on)
         y = ya + t1*dy ;
         z = za + t1*dz ;
         // MRIworldToVoxel(mri, x,y,z,&x,&y,&z);/* volume coordinate */
-        MRIsurfaceRASToVoxel
-        (mri, x, y, z, &x, &y, &z);/* volume coordinate */
+        MRISsurfaceRASToVoxel
+        (mris, mri, x, y, z, &x, &y, &z);/* volume coordinate */
         xv = nint(x) ;
         yv = nint(y) ;
         zv = nint(z);/* voxel coordinate */
@@ -25233,8 +25184,7 @@ mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on)
       x = xa + t1*dx ;
       y = ya + t1*dy ;
       z = za + t1*dz ;
-      // MRIworldToVoxel(mri, x, y, z, &x, &y, &z);/* volume coordinate */
-      MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z);/*volume coordinate */
+      MRISsurfaceRASToVoxel(mris, mri, x, y, z, &x, &y, &z);//volume coordinate
       xv = nint(x) ;
       yv = nint(y) ;
       zv = nint(z) ;  /* voxel coordinate */
@@ -25273,7 +25223,7 @@ mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on)
       y = ya + t1*dy ;
       z = za + t1*dz ;
       // MRIworldToVoxel(mri, x, y, z, &x, &y, &z);/* volume coordinate */
-      MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z);/*volume coordinate */
+      MRISsurfaceRASToVoxel(mris, mri, x, y, z, &x, &y, &z);//volume coordinate
       xv = nint(x) ;
       yv = nint(y) ;
       zv = nint(z) ;  /* voxel coordinate */
@@ -25287,8 +25237,7 @@ mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on)
     x = xa + t1*dx ;
     y = ya + t1*dy ;
     z = za + t1*dz ;
-    // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
-    MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ; /* volume coordinate */
+    MRISsurfaceRASToVoxel(mris, mri, x, y, z, &x, &y, &z) ; //volume coordinate
     xv = nint(x) ;
     yv = nint(y) ;
     zv = nint(z) ;  /* voxel coordinate */
@@ -26817,13 +26766,11 @@ MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth)
     x = v->x ;
     y = v->y ;
     z = v->z ;
-    // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
     x = v->x+nx ;
     y = v->y + ny ;
     z = v->z + nz ;
-    // MRIworldToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
-    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
+    MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
     nx = xw1 - xw ;
     ny = yw1 - yw ;
     nz = zw1 - zw ;
@@ -26832,16 +26779,14 @@ MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth)
       x = v->x+v->nx*(dist-1) ;
       y = v->y + v->ny*(dist-1) ;
       z = v->z + v->nz*(dist-1) ;
-      // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-      MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+      MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
       MRIsampleVolume(mri_brain, xw, yw, zw, &previous_val) ;
       if (previous_val < 120 && previous_val > 95)  /* in right range */
       {
         x = v->x + v->nx*dist ;
         y = v->y + v->ny*dist ;
         z = v->z + v->nz*dist ;
-        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
 
         /* see if we are at a local maximum in the gradient magnitude */
         MRIsampleVolumeDerivative(mri_smooth, xw, yw, zw,
@@ -26855,7 +26800,7 @@ MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth)
           y = v->y + v->ny*(dist+1) ;
           z = v->z + v->nz*(dist+1) ;
           // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-          MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
           if (next_val > 60 && next_val < 95)
           {
@@ -27070,19 +27015,11 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
     x = v->x ;
     y = v->y ;
     z = v->z ;
-    // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-    if (mris->useRealRAS)
-      MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-    else
-      MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
     x = v->x + v->nx ;
     y = v->y + v->ny ;
     z = v->z + v->nz ;
-    // MRIworldToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
-    if (mris->useRealRAS)
-      MRIworldToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
-    else
-      MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
+    MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
     nx = xw1 - xw ;
     ny = yw1 - yw ;
     nz = zw1 - zw ;
@@ -27115,11 +27052,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         x = v->x + v->nx*dist ;
         y = v->y + v->ny*dist ;
         z = v->z + v->nz*dist ;
-        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        if (mris->useRealRAS)
-          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        else
-          MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw,
                                        nx, ny,nz,&mag,
                                        current_sigma);
@@ -27147,11 +27080,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         x = v->x + v->nx*dist ;
         y = v->y + v->ny*dist ;
         z = v->z + v->nz*dist ;
-        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        if (mris->useRealRAS)
-          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        else
-          MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale
         (mri_tmp, xw, yw, zw, nx, ny,nz, &mag,
          current_sigma);
@@ -27207,11 +27136,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       x = v->x + v->nx*(dist-STEP_SIZE) ;
       y = v->y + v->ny*(dist-STEP_SIZE) ;
       z = v->z + v->nz*(dist-STEP_SIZE) ;
-      // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-      if (mris->useRealRAS)
-        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-      else
-        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+      MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
       MRIsampleVolume(mri_brain, xw, yw, zw, &previous_val) ;
 #else
       /* find max val within 1 mm in inwards direction */
@@ -27225,11 +27150,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           x = v->x + v->nx*(d-1) ;
           y = v->y + v->ny*(d-1) ;
           z = v->z + v->nz*(d-1) ;
-          // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-          if (mris->useRealRAS)
-            MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-          else
-            MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
           MRIsampleVolume(mri_brain, xw, yw, zw, &tmp_val) ;
           if (tmp_val > previous_val)
             previous_val = tmp_val ;
@@ -27244,32 +27165,20 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         x = v->x + v->nx*dist ;
         y = v->y + v->ny*dist ;
         z = v->z + v->nz*dist ;
-        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        if (mris->useRealRAS)
-          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        else
-          MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
 
         x = v->x + v->nx*(dist+STEP_SIZE) ;
         y = v->y + v->ny*(dist+STEP_SIZE) ;
         z = v->z + v->nz*(dist+STEP_SIZE) ;
-        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        if (mris->useRealRAS)
-          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        else
-          MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz,
                                        &next_mag, sigma);
 
         x = v->x + v->nx*(dist-STEP_SIZE) ;
         y = v->y + v->ny*(dist-STEP_SIZE) ;
         z = v->z + v->nz*(dist-STEP_SIZE) ;
-        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        if (mris->useRealRAS)
-          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        else
-          MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz,
                                        &previous_mag, sigma);
 
@@ -27283,11 +27192,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         x = v->x + v->nx*dist;
         y = v->y + v->ny*dist;
         z = v->z + v->nz*dist;
-        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        if (mris->useRealRAS)
-          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        else
-          MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale
         (mri_tmp, xw, yw, zw, nx, ny, nz,&mag,sigma);
         if (which == GRAY_CSF)
@@ -27306,11 +27211,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           x = v->x + v->nx*(dist+STEP_SIZE) ;
           y = v->y + v->ny*(dist+STEP_SIZE) ;
           z = v->z + v->nz*(dist+STEP_SIZE) ;
-          // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-          if (mris->useRealRAS)
-            MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-          else
-            MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
           if (next_val < border_low)
             next_mag = 0 ;
@@ -27335,11 +27236,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           x = v->x + v->nx*(dist+1) ;
           y = v->y + v->ny*(dist+1) ;
           z = v->z + v->nz*(dist+1) ;
-          // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-          if (mris->useRealRAS)
-            MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-          else
-            MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
           /*
             if next val is in the right range, and the intensity at
@@ -27376,11 +27273,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
             x = v->x + v->nx*(dist+1) ;
             y = v->y + v->ny*(dist+1) ;
             z = v->z + v->nz*(dist+1) ;
-            // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-            if (mris->useRealRAS)
-              MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-            else
-              MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+            MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
             MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
             if (next_val >= outside_low && next_val <= border_hi &&
                 next_val < outside_hi)
@@ -27413,11 +27306,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         x = v->x + v->nx*outlen ;
         y = v->y + v->ny*outlen ;
         z = v->z + v->nz*outlen ;
-        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        if (mris->useRealRAS)
-          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-        else
-          MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
         if ((val < outside_hi /*border_low*/) || (val > border_hi))
         {
@@ -27905,7 +27794,7 @@ MRIScomputeInvertedGrayWhiteBorderValues
     x = v->x+1.0*v->nx ;
     y = v->y+1.0*v->ny ;
     z = v->z+1.0*v->nz ;
-    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
     if (MRIindexNotInVolume(mri_brain, xw, yw, zw) == 0)
     {
@@ -27917,7 +27806,7 @@ MRIScomputeInvertedGrayWhiteBorderValues
     x = v->x-0.5*v->nx ;
     y = v->y-0.5*v->ny ;
     z = v->z-0.5*v->nz ;
-    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
     if (MRIindexNotInVolume(mri_brain, xw, yw, zw) == 0)
     {
@@ -27982,20 +27871,20 @@ MRIScomputeInvertedPialBorderValues
       x = v->x+dist*v->nx ;
       y = v->y+dist*v->ny ;
       z = v->z+dist*v->nz ;
-      MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+      MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw);
       MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
       if (MRIindexNotInVolume(mri_brain, xw, yw, zw) == 0)
       {
         x = v->x+(dist+SAMPLE_DIST)*v->nx ;
         y = v->y+(dist+SAMPLE_DIST)*v->ny ;
         z = v->z+(dist+SAMPLE_DIST)*v->nz ;
-        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+        MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
 
         x = v->x+(dist-SAMPLE_DIST)*v->nx ;
         y = v->y+(dist-SAMPLE_DIST)*v->ny ;
         z = v->z+(dist-SAMPLE_DIST)*v->nz ;
-        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+        MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &prev_val) ;
         if (val < next_val && val < prev_val)
         {
@@ -28016,7 +27905,7 @@ MRIScomputeInvertedPialBorderValues
     x = v->x+dist*v->nx ;
     y = v->y+dist*v->ny ;
     z = v->z+dist*v->nz ;
-    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
     if (MRIindexNotInVolume(mri_brain, xw, yw, zw) == 0)
     {
@@ -28045,7 +27934,7 @@ MRIScomputeInvertedPialBorderValues
       x = v->x+dist*v->nx ;
       y = v->y+dist*v->ny ;
       z = v->z+dist*v->nz ;
-      MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+      MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw);
       MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
       if (val >= mean_gray-0.5*std_gray)
         continue ;
@@ -28054,13 +27943,13 @@ MRIScomputeInvertedPialBorderValues
         x = v->x+(dist+SAMPLE_DIST)*v->nx ;
         y = v->y+(dist+SAMPLE_DIST)*v->ny ;
         z = v->z+(dist+SAMPLE_DIST)*v->nz ;
-        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+        MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
 
         x = v->x+(dist-SAMPLE_DIST)*v->nx ;
         y = v->y+(dist-SAMPLE_DIST)*v->ny ;
         z = v->z+(dist-SAMPLE_DIST)*v->nz ;
-        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+        MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &prev_val) ;
         if (val < next_val && val < prev_val)
         {
@@ -28145,7 +28034,7 @@ MRIScomputeGraySurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth,
       y = v->y + v->ny*dist ;
       z = v->z + v->nz*dist ;
       // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-      MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+      MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw) ;
       MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
       if (val < 70 && val > gray_surface)  /* in right range */
       {
@@ -29478,7 +29367,7 @@ MRISaccumulateMeansInVolume(MRI_SURFACE *mris, MRI *mri, int mris_dof,
         break ;
       default:  /* surface-based */
         // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;
-        MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ;
+        MRISsurfaceRASToVoxel(mris, mri, x, y, z, &x, &y, &z) ;
         break ;
       }
       xv = nint(x) ;
@@ -29537,7 +29426,7 @@ MRISaccumulateStandardErrorsInVolume(MRI_SURFACE *mris, MRI *mri,
         break ;
       default:  /* surface-based */
         // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;
-        MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ;
+        MRISsurfaceRASToVoxel(mris, mri, x, y, z, &x, &y, &z) ;
         break ;
       }
       xv = nint(x) ;
@@ -29817,7 +29706,7 @@ mrisComputeIntensityGradientError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     // MRIworldToVoxel(parms->mri_smooth, x, y, z, &xw, &yw, &zw) ;
 #if 0
-    MRIsurfaceRASToVoxel(parms->mri_smooth, x, y, z, &xw, &yw, &zw) ;
+    MRISsurfaceRASToVoxel(mris, parms->mri_smooth, x, y, z, &xw, &yw, &zw) ;
 #else
     MRISsurfaceRASToVoxel(mris, parms->mri_smooth, x, y, z, &xw, &yw, &zw) ;
 #endif
@@ -32394,10 +32283,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
 #else
       GCAMsampleMorph(gcam, xv, yv, zv, &xv2, &yv2, &zv2) ;
 #endif
-      if (mris->useRealRAS)
-        MRIvoxelToWorld(mri_dst, xv2, yv2, zv2, &xs, &ys, &zs) ;
-      else
-        MRIvoxelToSurfaceRAS(mri_dst, xv2, yv2, zv2, &xs, &ys, &zs) ;
+      MRIvoxelToSurfaceRAS(mri_dst, xv2, yv2, zv2, &xs, &ys, &zs) ;
       v->x = xs ;
       v->y = ys ;
       v->z = zs ;
@@ -37720,7 +37606,7 @@ static void defectVolumeWM(MRI *mri, MRI* mri_defect, MRI *mri_wm)
 #if MATRIX_ALLOCATION
         mriSurfaceRASToVoxel(x, y, z, &xv, &yv, &zv) ;
 #else
-        MRIsurfaceRASToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+        MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xv, &yv, &zv) ;
 #endif
 
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
@@ -37757,7 +37643,7 @@ static void defectVolumeLikelihood(MRI *mri,
 #if MATRIX_ALLOCATION
         mriSurfaceRASToVoxel(x, y, z, &xv, &yv, &zv) ;
 #else
-        MRIsurfaceRASToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+        MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xv, &yv, &zv) ;
 #endif
 
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
@@ -37906,7 +37792,7 @@ static void computeDefectStatistics(MRI *mri,
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x, y, z, &xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xv, &yv, &zv) ;
 #endif
     cx+=(float)xv;
     cy+=(float)yv;
@@ -38557,21 +38443,21 @@ static void MRISdefectMaximizeLikelihood(MRI *mri,
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x-0.5*nx, y-0.5*ny, z-0.5*nz, &xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x-0.5*nx, y-0.5*ny, z-0.5*nz, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x-0.5*nx, y-0.5*ny, z-0.5*nz, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
 
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x, y, z, &xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &val) ;
 
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x+0.5*nx, y+0.5*ny, z+0.5*nz, &xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x+0.5*nx, y+0.5*ny, z+0.5*nz, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x+0.5*nx, y+0.5*ny, z+0.5*nz, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
 
@@ -38664,21 +38550,21 @@ static void defectMaximizeLikelihood(MRI *mri,MRI_SURFACE *mris,DP *dp, int nite
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x-0.5*nx, y-0.5*ny, z-0.5*nz, &xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x-0.5*nx, y-0.5*ny, z-0.5*nz, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x-0.5*nx, y-0.5*ny, z-0.5*nz, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
 
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x, y, z, &xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &val) ;
 
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x+0.5*nx, y+0.5*ny, z+0.5*nz, &xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x+0.5*nx, y+0.5*ny, z+0.5*nz, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x+0.5*nx, y+0.5*ny, z+0.5*nz, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
 
@@ -45034,7 +44920,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
 
@@ -45043,7 +44929,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
 
@@ -45146,7 +45032,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-  MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+  MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
 
       MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
@@ -45155,7 +45041,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-  MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+  MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
       ll += log(h_white->counts[nint(white_val)]) ;
@@ -45178,7 +45064,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-  MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+  MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
     ll += log(h_gray->counts[nint(gray_val)]) ;
@@ -45186,7 +45072,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-  MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+  MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
     ll += log(h_white->counts[nint(white_val)]) ;
@@ -45234,7 +45120,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-  MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+  MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
     ll += log(h_gray->counts[nint(gray_val)]) ;
@@ -45242,7 +45128,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-  MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+  MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
     ll += log(h_white->counts[nint(white_val)]) ;
@@ -45265,7 +45151,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
   mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-  MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+  MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
   MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
   ll += log(h_gray->counts[nint(gray_val)]) ;
@@ -45273,7 +45159,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
   mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-  MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+  MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
   MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
   ll += log(h_white->counts[nint(white_val)]) ;
@@ -45327,7 +45213,7 @@ mrisDefectVertexMRILogLikelihood
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
 
@@ -45336,7 +45222,7 @@ mrisDefectVertexMRILogLikelihood
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
 
@@ -47060,7 +46946,7 @@ mrisComputeDefectMRILogUnlikelihood
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x,y,z,&xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &val) ;
       ll += log(1-h_border->counts[nint(val)]) ;
@@ -47330,7 +47216,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
       ll += log(h_gray->counts[nint(gray_val)]) ;
@@ -47338,7 +47224,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
       ll += log(h_white->counts[nint(white_val)]) ;
@@ -47361,7 +47247,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
     ll += log(h_gray->counts[nint(gray_val)]) ;
@@ -47369,7 +47255,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
     ll += log(h_white->counts[nint(white_val)]) ;
@@ -47417,7 +47303,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
     ll += log(h_gray->counts[nint(gray_val)]) ;
@@ -47425,7 +47311,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
     ll += log(h_white->counts[nint(white_val)]) ;
@@ -47448,7 +47334,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
   mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-  MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+  MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
   MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
   ll += log(h_gray->counts[nint(gray_val)]) ;
@@ -47456,7 +47342,7 @@ mrisDefectFaceMRILogLikelihood
 #if MATRIX_ALLOCATION
   mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-  MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+  MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
   MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
   ll += log(h_white->counts[nint(white_val)]) ;
@@ -47562,7 +47448,7 @@ mrisComputeDefectMRILogLikelihood
 #if MATRIX_ALLOCATION
         mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-        MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+        MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
         MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
         /*   ll += log(h_gray->counts[nint(gray_val)]) ;*/
@@ -47571,7 +47457,7 @@ mrisComputeDefectMRILogLikelihood
 #if MATRIX_ALLOCATION
         mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-        MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+        MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
         MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
         total += fabs(white_val-wval) ;
@@ -47635,7 +47521,7 @@ mrisComputeDefectMRILogLikelihood
 #if MATRIX_ALLOCATION
           mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-          MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+          MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
           MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
           ll += log(h_gray->counts[nint(gray_val)]) ;
@@ -47644,7 +47530,7 @@ mrisComputeDefectMRILogLikelihood
 #if MATRIX_ALLOCATION
           mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-          MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+          MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
           MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
           ll += log(h_white->counts[nint(white_val)]) ;
@@ -47754,7 +47640,7 @@ mrisComputeDefectMRIEnergy
 #if MATRIX_ALLOCATION
         mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-        MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+        MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
         total += fabs(val-gval) ;
@@ -47762,7 +47648,7 @@ mrisComputeDefectMRIEnergy
 #if MATRIX_ALLOCATION
         mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-        MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+        MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
         total += fabs(val-wval) ;
@@ -47807,7 +47693,7 @@ mrisComputeDefectMRIEnergy
 #if MATRIX_ALLOCATION
           mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-          MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+          MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
           MRIsampleVolume(mri, xv, yv, zv, &val) ;
           total += fabs(val-gval) ;
@@ -47815,7 +47701,7 @@ mrisComputeDefectMRIEnergy
 #if MATRIX_ALLOCATION
           mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-          MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+          MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
           MRIsampleVolume(mri, xv, yv, zv, &val) ;
           total += fabs(val-wval) ;
@@ -49006,7 +48892,7 @@ mrisTessellateDefect
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x,y,z,&xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolumeGradient(mri, xv, yv, zv, &Ix, &Iy, &Iz) ;
       total = sqrt(Ix*Ix + Iy*Iy + Iz*Iz) ;
@@ -49046,7 +48932,7 @@ mrisTessellateDefect
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &val) ;
       total = fabs(val-gval) ;
@@ -49054,7 +48940,7 @@ mrisTessellateDefect
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &val) ;
       total += fabs(val-wval) ;
@@ -49067,7 +48953,7 @@ mrisTessellateDefect
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &val) ;
       total += fabs(val-gval) ;
@@ -49075,7 +48961,7 @@ mrisTessellateDefect
 #if MATRIX_ALLOCATION
       mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-      MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
       MRIsampleVolume(mri, xv, yv, zv, &val) ;
       total += fabs(val-wval) ;
@@ -49093,7 +48979,7 @@ mrisTessellateDefect
 #if MATRIX_ALLOCATION
         mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-        MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+        MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
         total += fabs(val-gval) ;
@@ -49101,7 +48987,7 @@ mrisTessellateDefect
 #if MATRIX_ALLOCATION
         mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-        MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+        MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
         total += fabs(val-wval) ;
@@ -56725,14 +56611,14 @@ mrisComputeJointGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri,
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(xw+.5*nx, yw+.5*ny, zw+.5*nz,&xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, xw+.5*nx, yw+.5*ny, zw+.5*nz, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, xw+.5*nx, yw+.5*ny, zw+.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolumeType(mri, xv, yv, zv, &gray_val, SAMPLE_NEAREST) ;
     // MRIworldToVoxel(mri, xw-.5*nx, yw-.5*ny, zw-.5*nz, &xv, &yv, &zv) ;
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(xw-.5*nx, yw-.5*ny, zw-.5*nz,&xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, xw-.5*nx, yw-.5*ny, zw-.5*nz, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, xw-.5*nx, yw-.5*ny, zw-.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolumeType(mri, xv, yv, zv, &white_val, SAMPLE_NEAREST) ;
 
@@ -56811,14 +56697,14 @@ static int mrisFindGrayWhiteBorderMean(MRI_SURFACE *mris, MRI *mri)
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x+.5*nx, y+.5*ny, z+.5*nz,&xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
     // MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x-.5*nx, y-.5*ny, z-.5*nz,&xv, &yv, &zv) ;
 #else
-    MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxel(mris, mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
 #endif
     MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
     v->val2 = white_val ;
@@ -58355,7 +58241,7 @@ mrisMarkSulcalVertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     z = v->z ;
 
     // MRIworldToVoxel(parms->mri_brain, x, y, z, &xw, &yw, &zw) ;
-    MRIsurfaceRASToVoxel(parms->mri_brain, x, y, z, &xw, &yw, &zw) ;
+    MRISsurfaceRASToVoxel(mris, parms->mri_brain, x, y, z, &xw, &yw, &zw) ;
     MRIsampleVolume(parms->mri_brain, xw, yw, zw, &val0) ;
     dot = v->dx * v->nx + v->dy * v->ny + v->dz * v->nz ;
 
@@ -58535,7 +58421,7 @@ MRISeraseOutsideOfSurface(float h,MRI* mri_dst,MRIS *mris,unsigned char val)
         pz = pz0 + (pz1-pz0)*u/numu;
 
         // MRIworldToVoxel(mri_dst,px,py,pz,&tx,&ty,&tz);
-        MRIsurfaceRASToVoxel(mri_dst,px,py,pz,&tx,&ty,&tz);
+        MRISsurfaceRASToVoxel(mris, mri_dst,px,py,pz,&tx,&ty,&tz);
 
         imnr=(int)(tz+0.5);
         j=(int)(ty+0.5);
@@ -58853,7 +58739,7 @@ mrisComputeExpandwrapTerm(MRI_SURFACE *mris, MRI *mri_brain,
     x = v->x ;
     y = v->y ;
     z = v->z ;
-    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
     delta = (val - target_val) ;
     dx = -delta * v->nx * l_expandwrap ;
@@ -58894,7 +58780,7 @@ mrisComputeExpandwrapError(MRI_SURFACE *mris, MRI *mri_brain,
     x = v->x ;
     y = v->y ;
     z = v->z ;
-    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
     delta = (val - target_val) ;
     if (val < 0.25*target_val)
@@ -58940,7 +58826,7 @@ mrisComputeShrinkwrapTerm(MRI_SURFACE *mris,
     x = v->x ;
     y = v->y ;
     z = v->z ;
-    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxel(mris, mri_brain, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
     delta = (val - target_val) ;
     dx = delta * v->nx * l_shrinkwrap ;
@@ -60505,10 +60391,7 @@ MRIScomputeClassStatistics(MRI_SURFACE *mris,
     x = v->x+1.0*v->nx ;
     y = v->y+1.0*v->ny ;
     z = v->z+1.0*v->nz ;
-    if (mris->useRealRAS)
-      MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw);
-    else
-      MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri, xw, yw, zw, &val) ;
     if (fpgm)
       fprintf(fpgm, "%d %2.1f %2.1f %2.1f %f\n", vno, xw, yw, zw, val) ;
@@ -60518,10 +60401,7 @@ MRIScomputeClassStatistics(MRI_SURFACE *mris,
     x = v->x-0.5*v->nx ;
     y = v->y-0.5*v->ny ;
     z = v->z-0.5*v->nz ;
-    if (mris->useRealRAS)
-      MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw);
-    else
-      MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri, xw, yw, zw, &val) ;
     if (fpwm)
       fprintf(fpwm, "%d %2.1f %2.1f %2.1f %f\n", vno, xw, yw, zw, val) ;
@@ -60682,10 +60562,7 @@ MRISrasToVoxel(MRI_SURFACE *mris,
                Real xs, Real ys, Real zs,
                Real *pxv, Real *pyv, Real *pzv)
 {
-  if (mris->useRealRAS)
-    return(MRIworldToVoxel(mri, xs, ys, zs, pxv, pyv, pzv));
-  else
-    return(MRIsurfaceRASToVoxel(mri, xs, ys, zs, pxv, pyv, pzv));
+  return(MRISsurfaceRASToVoxel(mris, mri, xs, ys, zs, pxv, pyv, pzv));
 }
 
 int
@@ -60791,10 +60668,7 @@ MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris,
   xw = v->x + v->nx ;
   yw = v->y + v->ny ;
   zw = v->z + v->nz ;
-  if (mris->useRealRAS)
-    MRIworldToVoxel(mri, xw, yw, zw, &xv1, &yv1, &zv1);
-  else
-    MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv1, &yv1, &zv1);
+  MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, &xv1, &yv1, &zv1);
 
   nx = xv1-xv0 ;
   ny = yv1-yv0 ;
