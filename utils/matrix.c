@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/14 22:56:21 $
- *    $Revision: 1.110 $
+ *    $Date: 2007/10/26 18:56:32 $
+ *    $Revision: 1.110.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -389,6 +389,13 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
   float *r3 ;
   register float val, *r1, *r2 ;
   MATRIX   *m_tmp1 = NULL, *m_tmp2 = NULL ;
+
+  if (!m1)
+    ErrorExit(ERROR_BADPARM,
+              "MatrixMultiply: m1 is null!\n") ;
+  if (!m2)
+    ErrorExit(ERROR_BADPARM,
+              "MatrixMultiply: m2 is null!\n") ;
 
   if (m1->cols != m2->rows)
     ErrorReturn(NULL,
