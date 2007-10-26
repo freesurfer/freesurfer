@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/08/23 19:16:26 $
-#    $Revision: 1.37.2.1 $
+#    $Date: 2007/10/26 21:02:46 $
+#    $Revision: 1.37.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.37.2.1 2007/08/23 19:16:26 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.37.2.2 2007/10/26 21:02:46 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -623,8 +623,8 @@ if($#SessFile) then
   foreach sess ($SessList)
     set anadir = $sess/$fsd/$FSFAnalysis
     set map = `stem2fname $anadir/$FSFContrast/$FSFMap`
-    if(! -e $map) then
-      echo "ERROR: cannot find $map"
+    if($status) then
+      echo "$map"
       exit 1;
     endif
     # should check that map has only one frame
