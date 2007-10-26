@@ -1,15 +1,16 @@
 /**
  * @file  label.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief include file for ROI utilies.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * structures, macros, constants and prototypes for the manipulation, creation and 
+ * I/O for labels (lists of vertices and/or voxels)
  */
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/10 16:36:04 $
- *    $Revision: 1.39 $
+ *    $Author: fischl $
+ *    $Date: 2007/10/26 12:42:33 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,6 +69,7 @@ int     LabelDump(FILE *fp, LABEL *area) ;
 LABEL   *LabelRead(char *subject_name, char *label_name) ;
 int     LabelWrite(LABEL *area, char *fname) ;
 int     LabelToCanonical(LABEL *area, MRI_SURFACE *mris) ;
+int     LabelMarkWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh);
 int     LabelMarkSurface(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelToOriginal(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelToWhite(LABEL *area, MRI_SURFACE *mris) ;
@@ -117,6 +119,7 @@ int     LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times);
 int     LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times);
 
 int   LabelSetStat(LABEL *area, float stat) ;
+int   LabelCopyStatsToSurface(LABEL *area, MRI_SURFACE *mris, int which) ;
 LABEL *LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords) ;
 LABEL *LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris) ;
 LABEL *LabelfromASeg(MRI *aseg, int segcode);

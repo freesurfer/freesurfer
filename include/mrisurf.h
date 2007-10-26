@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 14:36:49 $
- *    $Revision: 1.301 $
+ *    $Date: 2007/10/26 12:42:33 $
+ *    $Revision: 1.302 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -518,6 +518,8 @@ typedef struct
   float   *geometry_error ;
   int     which_norm ;        // mean or median normalization
   int     abs_norm ;
+  int     grad_dir ;          // use this instead of gradient direction
+  int     fill_interior ;     // use filled interior to constrain gradient to not leave surface
 }
 INTEGRATION_PARMS ;
 
@@ -1043,7 +1045,8 @@ int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris,
 int
 MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                                MRI *mri_smooth, double sigma,
-                               float max_thickness, float dir, FILE *log_fp) ;
+                               float max_thickness, float dir, FILE *log_fp,
+                               MRI *mri_wm) ;
 int MRIScomputeInvertedGrayWhiteBorderValues(MRI_SURFACE *mris,
                                              MRI *mri_brain,
                                              MRI *mri_smooth,
@@ -1429,6 +1432,7 @@ int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
 #define VERTEX_DX          6
 #define VERTEX_DY          7
 #define VERTEX_DZ          8
+#define VERTEX_STATS       9
 
 
 int MRISclearOrigArea(MRI_SURFACE *mris) ;

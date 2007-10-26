@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/19 18:52:14 $
- *    $Revision: 1.351 $
+ *    $Date: 2007/10/26 12:42:33 $
+ *    $Revision: 1.352 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -208,6 +208,7 @@ float  MRIfindNearestNonzeroLocation(MRI *mri, int wsize,
 /* single pixel filtering */
 float MRIvoxelMedian(MRI *mri, int x0, int y0, int z0, int wsize) ;
 float MRIvoxelMean(MRI *mri, int x, int y, int z, int wsize) ;
+float MRIvoxelMin(MRI *mri, int x0, int y0, int z0, int wsize) ;
 float MRIvoxelStd(MRI *mri, int x, int y, int z, float mean, int wsize) ;
 float MRIvoxelZscore(MRI *mri, int x, int y, int z, int wsize) ;
 float MRIvoxelDx(MRI *mri, int x, int y, int z) ;
