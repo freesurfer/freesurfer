@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/10/12 17:51:21 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/10/26 22:28:15 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -797,8 +797,10 @@ int QdecGlmDesign::GenerateContrasts ( )
       {
         QdecFactor* otherFactor = this->mContinuousFactors[nthvar-1];
         string otherFactorName = otherFactor->GetFactorName();
-        sprintf(tmpstr,"Diff-%s-%s-Cor-%s",
-                df1l1name,df1l2name,this->msMeasure.c_str());
+        sprintf(tmpstr,"Diff-%s-%s-Cor-%s-%s",
+                df1l1name,df1l2name,
+                this->msMeasure.c_str(),
+                otherFactorName.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the %s--%s correlation differ between %s and %s?",
                 this->msMeasure.c_str(),
