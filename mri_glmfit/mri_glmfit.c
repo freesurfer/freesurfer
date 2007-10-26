@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/10/25 21:31:06 $
- *    $Revision: 1.142 $
+ *    $Date: 2007/10/26 17:53:20 $
+ *    $Revision: 1.143 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -526,7 +526,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.142 2007/10/25 21:31:06 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.143 2007/10/26 17:53:20 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1699,7 +1699,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--save-yhat")) yhatSave = 1;
+    else if (!strcasecmp(option, "--yhat-save")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-eres")) eresSave = 1;
+    else if (!strcasecmp(option, "--eres-save")) eresSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
