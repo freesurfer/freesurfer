@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 14:34:55 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/10/26 12:41:25 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -229,6 +229,47 @@ MRIvoxelMean(MRI *mri, int x0, int y0, int z0, int wsize)
   else
     mean = 0.0f ;
   return(mean) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+float
+MRIvoxelMin(MRI *mri, int x0, int y0, int z0, int wsize)
+{
+  float   min_val, val ;
+  int     whalf, width, height, depth, x, y, z, xmin, xmax,
+          ymin, ymax, zmin, zmax ;
+
+  whalf = wsize/2 ;
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  zmin = MAX(0, z0-whalf) ;
+  zmax = MIN(depth-1, z0+whalf) ;
+  ymin = MAX(0, y0-whalf) ;
+  ymax = MIN(height-1, y0+whalf) ;
+  xmin = MAX(0, x0-whalf) ;
+  xmax = MIN(width-1, x0+whalf) ;
+
+  min_val = MRIgetVoxVal(mri, x0, y0, z0, 0) ;
+  for (z = zmin ; z <= zmax ; z++)
+  {
+    for (y = ymin ; y <= ymax ; y++)
+    {
+      for (x = xmin ; x <= xmax ; x++)
+      {
+        val = MRIgetVoxVal(mri, x, y, z, 0) ;
+        if (val < min_val)
+          min_val = val ;
+      }
+    }
+  }
+  return(min_val) ;
 }
 /*-----------------------------------------------------
         Parameters:

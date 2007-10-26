@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 14:34:53 $
- *    $Revision: 1.76 $
+ *    $Date: 2007/10/26 12:41:25 $
+ *    $Revision: 1.77 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2451,3 +2451,26 @@ LABEL *MRISlabelInvert(MRIS *surf, LABEL *label)
   MRIfree(&tmpmri);
   return(invlabel);
 }
+int
+LabelCopyStatsToSurface(LABEL *area, MRI_SURFACE *mris, int which)
+{
+  int    n, vno ;
+  VERTEX *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    v = &mris->vertices[vno] ;
+    v->marked = 1 ;
+    switch (which)
+    {
+    case VERTEX_VALS: v->val = area->lv[n].stat ; break ;
+    case VERTEX_CURV: v->curv = area->lv[n].stat ; break ;
+    case VERTEX_STATS: v->stat = area->lv[n].stat ; break ;
+    default:
+      ErrorExit(ERROR_BADPARM, "LabelCopyStatsToSurface: unsupported which = %d", which);
+    }
+  }
+  return(NO_ERROR) ;
+}
+
