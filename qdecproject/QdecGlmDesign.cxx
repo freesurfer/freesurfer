@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/10/26 22:28:15 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/10/26 22:49:44 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -691,11 +691,14 @@ int QdecGlmDesign::GenerateContrasts ( )
       string question = "";
       if (nthc == 0)
       {
-        name = "Avg-Intercept";
+        sprintf(tmpstr,
+                "Avg-Intercept-%s",
+                this->msMeasure.c_str());
+        name = strdup(tmpstr);
         sprintf(tmpstr,
                 "Does the average %s differ from zero?",
                 this->msMeasure.c_str());
-        question = tmpstr;
+        question = strdup(tmpstr);
       }
       else
       {
@@ -705,12 +708,12 @@ int QdecGlmDesign::GenerateContrasts ( )
                 "Avg-%s-%s-Cor",
                 this->msMeasure.c_str(),
                 otherFactorName.c_str());
-        name = tmpstr;
+        name = strdup(tmpstr);
         sprintf(tmpstr,
                 "Does the correlation between %s and %s differ from zero?",
                 this->msMeasure.c_str(),
                 otherFactorName.c_str());
-        question = tmpstr;
+        question = strdup(tmpstr);
       }
       QdecContrast* newContrast = new QdecContrast ( contrast,
                                                      name,
@@ -748,7 +751,10 @@ int QdecGlmDesign::GenerateContrasts ( )
       string question = "";
       if (nthvar == 0)
       {
-        name = "Avg-Intercept";
+        sprintf(tmpstr,
+                "Avg-Intercept-%s",
+                this->msMeasure.c_str());
+        name = strdup(tmpstr);
         sprintf(tmpstr,
                 "Does the average %s differ from zero?",
                 this->msMeasure.c_str());
@@ -787,7 +793,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       string question = "";
       if (nthvar == 0)
       {
-        sprintf(tmpstr,"Diff-%s-%s-Intercept",df1l1name,df1l2name);
+        sprintf(tmpstr,"Diff-%s-%s-Intercept-%s",
+                df1l1name,df1l2name,this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the average %s differ between %s and %s?",
                 this->msMeasure.c_str(),df1l1name,df1l2name);
@@ -856,7 +863,10 @@ int QdecGlmDesign::GenerateContrasts ( )
       string question = "";
       if (nthvar == 0)
       {
-        name = "Avg-Intercept";
+        sprintf(tmpstr,
+                "Avg-Intercept-%s",
+                this->msMeasure.c_str());
+        name = strdup(tmpstr);
         sprintf(tmpstr,"Does the average %s differ from zero?",
                 this->msMeasure.c_str());
         question = strdup(tmpstr);
@@ -896,7 +906,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       string question = "";
       if (nthvar == 0)
       {
-        sprintf(tmpstr,"Diff-%s-%s-Intercept",df1l1name,df1l2name);
+        sprintf(tmpstr,"Diff-%s-%s-Intercept-%s",
+                df1l1name,df1l2name,this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the average %s differ between %s and %s?",
                 this->msMeasure.c_str(),df1l1name,df1l2name);
@@ -906,8 +917,10 @@ int QdecGlmDesign::GenerateContrasts ( )
       {
         QdecFactor* otherFactor = this->mContinuousFactors[nthvar-1];
         string otherFactorName = otherFactor->GetFactorName();
-        sprintf(tmpstr,"Diff-%s-%s-Cor-%s",
-                df1l1name,df1l2name,this->msMeasure.c_str());
+        sprintf(tmpstr,"Diff-%s-%s-Cor-%s-%s",
+                df1l1name,df1l2name,
+                this->msMeasure.c_str(),
+                otherFactorName.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the %s--%s correlation differ between %s and %s?",
                 this->msMeasure.c_str(),
@@ -935,7 +948,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       string question = "";
       if (nthvar == 0)
       {
-        sprintf(tmpstr,"Diff-%s-%s-Intercept",df2l1name,df2l2name);
+        sprintf(tmpstr,"Diff-%s-%s-Intercept-%s",
+                df2l1name,df2l2name,this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the average %s differ between %s and %s?",
                 this->msMeasure.c_str(),df2l1name,df2l2name);
@@ -945,8 +959,10 @@ int QdecGlmDesign::GenerateContrasts ( )
       {
         QdecFactor* otherFactor = this->mContinuousFactors[nthvar-1];
         string otherFactorName = otherFactor->GetFactorName();
-        sprintf(tmpstr,"Diff-%s-%s-Cor-%s",
-                df2l1name,df2l2name,this->msMeasure.c_str());
+        sprintf(tmpstr,"Diff-%s-%s-Cor-%s-%s",
+                df2l1name,df2l2name,
+                this->msMeasure.c_str(),
+                otherFactorName.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the %s--%s correlation differ between %s and %s?",
                 this->msMeasure.c_str(),
@@ -974,7 +990,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       string question = "";
       if (nthvar == 0)
       {
-        sprintf(tmpstr,"X-%s-%s-Intercept",df1name,df2name);
+        sprintf(tmpstr,"X-%s-%s-Intercept-%s",
+                df1name,df2name,this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Is there a %s--%s interaction in the mean %s?",
                 df1name,df2name,this->msMeasure.c_str());
