@@ -151,6 +151,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_apply_inu_correction
 
 MRISSUBDIRS=label_area \
+	label_border \
 	label2patch \
 	label2flat \
 	spherical_stats \
@@ -220,6 +221,7 @@ MRISSUBDIRS=label_area \
 	mrisp_paint \
 	mris_talairach \
 	mris_thickness \
+	mris_BA_segment \
 	mris_compute_optimal_kernel \
 	mris_thickness_comparison \
 	mris_transform \
