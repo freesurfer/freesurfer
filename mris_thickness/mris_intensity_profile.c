@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.11 $
+ *    $Author: fischl $
+ *    $Date: 2007/10/26 12:45:31 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.11 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.12 2007/10/26 12:45:31 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -73,10 +73,12 @@ static char *sdir = NULL ;
 static int num_erode = 0 ;
 static float thresh ;
 static int normalize = 0 ;
+static int use_normal = 0 ;
+static int use_pial = 1 ;
 static char *curv_fname = NULL ;
 static int  curv_thresh = 0 ;
 static int navgs = 0 ;
-#define MIN_BORDER_DIST 20.0  // mm from border
+#define MIN_BORDER_DIST 5.0  // mm from border
 #define MAX_SAMPLES 20
 
 static char *wm_norm_fname = NULL ;
@@ -98,11 +100,10 @@ main(int argc, char *argv[]) {
   int           ac, nargs ;
   MRI_SURFACE   *mris ;
   LABEL         *label = NULL ;
-  MRI           *mri, *mri_cor, *mri_profiles ;
-  LTA           *lta ;
+  MRI           *mri, *mri_profiles ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.11 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.12 2007/10/26 12:45:31 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -189,7 +190,12 @@ main(int argc, char *argv[]) {
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
-  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  if (use_pial)
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  else
+    MRIScomputeMetricProperties(mris) ; // use surface normals from white surface
+
+    
 
   //use the specified xform if it's given
   if (xform_fname != NULL) {
@@ -290,9 +296,12 @@ main(int argc, char *argv[]) {
   }
   // now convert the surface to be in the volume ras coords
   else if (mriConformed(mri) == 0 && mris->useRealRAS == 0) {
+#if 0
     LINEAR_TRANSFORM *lt = 0;
     MATRIX           *m_L = 0;
     TRANSFORM        *xform ;
+    MRI              *mri_cor ;
+    LTA              *lta ;
 
     printf("volume is not conformed - transforming surfaces....\n") ;
     sprintf(fname, "%s/%s/mri/T1/COR-256", sdir, sname) ;
@@ -332,6 +341,7 @@ main(int argc, char *argv[]) {
     // convert surface into hires volume surface if needed
     //////////////////////////////////////////////////////////////////////
     MRISsurf2surfAll(mris, mri, lta);
+#endif
   }
 
   if (nlabels > 0) {
@@ -463,6 +473,16 @@ get_option(int argc, char *argv[]) {
     nargs = 1 ;
   } else if (!stricmp(option, "sdir")) {
     sdir = argv[2] ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "use_normal")) {
+    use_normal = atoi(argv[2]) ;
+    printf("sampling along surface normal\n") ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "use_pial")) {
+    use_pial = atoi(argv[2]) ;
+    if (use_pial == 0)
+      use_normal = 1 ;  // must use surface normal if no pial surface
+    printf("%susing pial surface to compute profiles\n", use_pial ? "" : "not ") ;
     nargs = 1 ;
   } else if (!stricmp(option, "normalize")) {
     normalize = 1 ;
@@ -715,30 +735,41 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
 
     pial_vno = vno ;  // disable shortest distance!!!
     vn2 = &mris->vertices[pial_vno] ;
-    // vector pointing from white to pial
-    dx = vn2->x-v->origx ;
-    dy = vn2->y-v->origy ;
-    dz = vn2->z-v->origz ;
-    thick = sqrt(dx*dx + dy*dy + dz*dz) ;
-    dx /= thick ;
-    dy /= thick ;
-    dz /= thick ;
-#define SAMPLE_DIST 0.25
+    if (use_normal)
+    {
+      dx = vn2->x-v->origx ;
+      dy = vn2->y-v->origy ;
+      dz = vn2->z-v->origz ;
+      thick = sqrt(dx*dx + dy*dy + dz*dz) ;
+      dx = v->nx ; dy = v->ny ; dz = v->nz ;
+    }
+    else  // use vector pointing from white to pial
+    {
+      dx = vn2->x-v->origx ;
+      dy = vn2->y-v->origy ;
+      dz = vn2->z-v->origz ;
+      thick = sqrt(dx*dx + dy*dy + dz*dz) ;
+      dx /= thick ;
+      dy /= thick ;
+      dz /= thick ;
+    }
+    if (use_pial == 0)
+      thick = max_thick ;  // uniform length for samples
+#define SAMPLE_DIST 0.5
+    if (Gdiag_no == vno)
+      DiagBreak() ;
     if (normalize) {
       sample_dist = thick / (max_samples-1);
       for (nsamples = 0, d = 0.0 ; nsamples < max_samples ; d += sample_dist, nsamples++) {
         x = v->origx + d*dx ;
         y = v->origy + d*dy ;
         z = v->origz + d*dz ;
-        if (mris->useRealRAS == 0)
-          MRIsurfaceRASToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
-        else
-          MRIworldToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+        MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
         MRIFseq_vox(mri_profiles, vno, 0, 0, nsamples) = val ;
       }
     } else {
-      sample_dist = SAMPLE_DIST ;
+      sample_dist = SAMPLE_DIST * mri->xsize ; 
       //   for (nsamples = 0, d = 0.0 ; d <= max_thick ; d += sample_dist, nsamples++)
       for (nsamples = 0, d = -extra*sample_dist ;nsamples < max_samples; d += sample_dist, nsamples++) {
 #if 0
@@ -752,7 +783,7 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
           x = v->origx + d*dx ;
           y = v->origy + d*dy ;
           z = v->origz + d*dz ;
-          MRISrasToVoxel(mris, mri, x, y, z, &xv, &yv, &zv) ;
+          MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
           MRIsampleVolume(mri, xv, yv, zv, &val) ;
           MRIFseq_vox(mri_profiles, vno, 0, 0, nsamples) = val ;
         }
@@ -762,7 +793,7 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
 
 
   // now check profiles and correct them where they are obviously wrong
-  min_vox = (int)ceil(20/mri->xsize) ;  // within 2cm of edge
+  min_vox = (int)ceil(MIN_BORDER_DIST/mri->xsize) ;  // within 2cm of edge
   {
     int  bad ;
 
@@ -782,7 +813,7 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
         if (val < min_gray_at_wm)
           bad = 1 ;
       }
-      MRISrasToVoxel(mris, mri, v->whitex, v->whitey, v->whitez, &xv, &yv, &zv) ;
+      MRISsurfaceRASToVoxelCached(mris, mri, v->whitex, v->whitey, v->whitez, &xv, &yv, &zv) ;
       if (xv < min_vox || yv < min_vox || zv < min_vox ||
           xv > mri->width-min_vox || yv > mri->height-min_vox || zv > mri->depth-min_vox)
         continue ;   // near edge of FOV
@@ -942,7 +973,7 @@ remove_bad_profiles(MRI_SURFACE *mris, MRI *mri_profiles, MRI *mri, float border
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
-    MRISrasToVoxel(mris, mri, v->x, v->y, v->z, &xv, &yv, &zv) ;
+    MRISsurfaceRASToVoxelCached(mris, mri, v->x, v->y, v->z, &xv, &yv, &zv) ;
     CTABfindAnnotation(mris->ct, v->annotation, &annot_index);
     if (xv < nvox || yv < nvox || zv < nvox ||
         xv > mri->width-nvox || yv > mri->height-nvox || zv > mri->depth-nvox ||
@@ -968,4 +999,3 @@ remove_bad_profiles(MRI_SURFACE *mris, MRI *mri_profiles, MRI *mri, float border
   }
   return(NO_ERROR) ;
 }
-
