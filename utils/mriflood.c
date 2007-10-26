@@ -8,8 +8,8 @@
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/26 19:04:07 $
- *    $Revision: 1.23 $
+ *    $Date: 2007/10/26 13:10:00 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.23 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.24 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -264,10 +264,14 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
         //        imnr = (int)((py-yy0)/st+1.5-imnr0);
         //        i = (int)((xx1-px)/ps+0.5);
         //        j = (int)((zz1-pz)/ps+1.0);
+#if 0
         if (mris->useRealRAS)
           MRIworldToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
         else
           MRIsurfaceRASToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
+#else
+        MRISsurfaceRASToVoxel(mris, mri_src,px,py,pz,&fi,&fj,&fimnr);
+#endif
         i=nint(fi);
         j=nint(fj);
         imnr=nint(fimnr);
@@ -288,7 +292,7 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
 MRI *
 MRISfloodoutside(MRI *mri_src,MRI *mri_dst)
 {
-  int newfilled,width,height,depth,i,j,k;
+  int newfilled,width,height,depth,i,j,k, v1, v2, v3;
 
   mri_dst = MRIcopy(mri_src, mri_dst) ;
 
@@ -304,7 +308,7 @@ MRISfloodoutside(MRI *mri_src,MRI *mri_dst)
   while (newfilled>0)
   {
   newfilled=0;
-
+  
   for (i=1;i<width-1;i++)
   for (j=1;j<height-1;j++)
   for (k=1;k<depth-1;k++)
@@ -327,7 +331,8 @@ MRISfloodoutside(MRI *mri_src,MRI *mri_dst)
   }
   }*/
 
-  MRIsetVoxVal(mri_dst,0,0,0,0,1) ;
+#define FILL_VAL  1
+  MRIsetVoxVal(mri_dst,0,0,0,0,FILL_VAL) ;
 
   newfilled=1;
   while (newfilled>0)
@@ -339,26 +344,40 @@ MRISfloodoutside(MRI *mri_src,MRI *mri_dst)
         for (k=0;k<depth;k++)
         {
           if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
-            if ((int)MRIgetVoxVal(mri_dst,i,j,k-1+((k==0)? 1:0),0)==1||
-                (int)MRIgetVoxVal(mri_dst,i-1+((i==0)?1:0),j,k,0)==1||
-                (int)MRIgetVoxVal(mri_dst,i,j-1+((j==0)?1:0),k,0)==1)
+          {
+            v1 = (int)MRIgetVoxVal(mri_dst,i,j,k-1+((k==0)? 1:0),0);
+            v2 = (int)MRIgetVoxVal(mri_dst,i-1+((i==0)?1:0),j,k,0);
+            v3 = (int)MRIgetVoxVal(mri_dst,i,j-1+((j==0)?1:0),k,0);
+            if (v1==FILL_VAL||
+                v2==FILL_VAL||
+                v3==FILL_VAL)
             {
-              MRIsetVoxVal(mri_dst,i,j,k,0,1);
+              if (i == Gx && j == Gy && k == Gz)
+                DiagBreak() ;
+              MRIsetVoxVal(mri_dst,i,j,k,0,FILL_VAL);
               newfilled++;
             }
+          }
         }
     for (i=width-1;i>=0;i--)
       for (j=height-1;j>=0;j--)
         for (k=depth-1;k>=0;k--)
         {
           if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
-            if ((int)MRIgetVoxVal(mri_dst,i,j,k+1-((k==depth-1)?1:0),0)==1||
-                (int)MRIgetVoxVal(mri_dst,i+1-((i==width-1)?1:0),j,k,0)==1||
-                (int)MRIgetVoxVal(mri_dst,i,j+1-((j==height-1)?1:0),k,0)==1) 
+          {
+            v1 = (int)MRIgetVoxVal(mri_dst,i,j,k+1-((k==depth-1)?1:0),0);
+            v2 = (int)MRIgetVoxVal(mri_dst,i+1-((i==width-1)?1:0),j,k,0) ;
+            v3 = (int)MRIgetVoxVal(mri_dst,i,j+1-((j==height-1)?1:0),k,0);
+            if (v1==FILL_VAL||
+                v2==FILL_VAL||
+                v3==FILL_VAL) 
             {
-              MRIsetVoxVal(mri_dst,i,j,k,0,1);
+              if (i == Gx && j == Gy && k == Gz)
+                DiagBreak() ;
+              MRIsetVoxVal(mri_dst,i,j,k,0,FILL_VAL);
               newfilled++;
             }
+          }
         }
   }
 
@@ -540,7 +559,7 @@ MRI *MRISpartialshell(MRI *mri_src,
            the inferior direction */
 //        j = (int)((zz1-pz)/ps+1.0);
         // MRIworldToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
-        MRIsurfaceRASToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
+        MRISsurfaceRASToVoxel(mris, mri_src,px,py,pz,&fi,&fj,&fimnr);
         i=nint(fi);
         j=nint(fj);
         imnr=nint(fimnr);
