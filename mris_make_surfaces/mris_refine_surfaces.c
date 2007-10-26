@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/16 23:01:24 $
- *    $Revision: 1.15 $
+ *    $Date: 2007/10/26 12:44:55 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 #include "label.h"
 
 static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.15 2007/10/16 23:01:24 fischl Exp $";
+"$Id: mris_refine_surfaces.c,v 1.16 2007/10/26 12:44:55 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -107,8 +107,8 @@ static double l_surf_repulse = 5.0 ;
 
 static int smooth = 0 ;
 static int vavgs = 5 ;
-static int nwhite = 25 /*5*/ ;
-static int ngray = 30 /*45*/ ;
+static int nwhite = 50 /*5*/ ;
+static int ngray = 50 /*45*/ ;
 
 static int nowhite = 0 ;
 static int nbrs = 2 ;
@@ -147,6 +147,7 @@ static int num_dilate = 0 ;
 #define MIN_CSF                10
 #define MAX_CSF                40
 
+static MRI *find_wm(MRI_SURFACE *mris, MRI *mri, MRI *mri_wm) ;
 static double max_white = MAX_WHITE ;
 static  int   max_border_white_set = 0,
   min_border_white_set = 0,
@@ -180,8 +181,8 @@ main(int argc, char *argv[]) {
   char          **av, *hemi, *sname, *cp=0, fname[STRLEN];
   int           ac, nargs, i/*, label_val, replace_val*/, msec, n_averages, j ;
   MRI_SURFACE   *mris ;
-  MRI           *mri_wm = NULL, *mri_kernel = NULL, *mri_smooth = NULL,
-    *mri_filled, *mri_hires, *mri_hires_pial ;
+  MRI           *mri_wm = NULL, *mri_kernel = NULL, *mri_smooth = NULL, *mri_hires, 
+                *mri_hires_pial ;
   /*  MRI           *mri_tran = NULL;*/
   float         max_len ;
   float         white_mean, white_std, gray_mean, gray_std ;
@@ -192,7 +193,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.15 2007/10/16 23:01:24 fischl Exp $", 
+     "$Id: mris_refine_surfaces.c,v 1.16 2007/10/26 12:44:55 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -205,6 +206,7 @@ main(int argc, char *argv[]) {
 
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = NO_PROJECTION ;
+  parms.fill_interior = 1 ;  // don't let gradient use exterior information (slows things down)
   parms.tol = 1e-4 ;
   parms.dt = 0.5f ;
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
@@ -320,7 +322,7 @@ main(int argc, char *argv[]) {
     box.dz = mri_hires->depth - 2*nint(dist/mri_hires->zsize) ;
 
     fprintf(stderr, "applying median filter to T1 image...\n") ;
-    if (1)
+    if (0)
     {
       mri_tmp = MRIcopy(mri_hires, NULL) ;  // copy stuff outside of range
       MRImedian(mri_hires, mri_tmp, 3, &box) ;
@@ -332,6 +334,7 @@ main(int argc, char *argv[]) {
     MRIfree(&mri_hires) ;
     mri_hires = mri_hires_pial = mri_tmp ;
   }
+
 
   /////////////////////////////////////////////////////////////////////////////
   // read or setup lowrestohires transform
@@ -371,65 +374,6 @@ main(int argc, char *argv[]) {
   // timer starts here
   //////////////////////////////////////////////////////////////////////////
   TimerStart(&then) ;
-#if 0  
-  ///////////////////////////////////////////////////////////////////////
-  // read filled volume (rh = 127 and lh = 255)
-  ///////////////////////////////////////////////////////////////////////
-  sprintf(fname, "%s/%s/mri/filled", sdir, sname) ;
-  if (MGZ) strcat(fname, ".mgz");
-  fprintf(stderr, "reading mri/filled %s...\n", fname) ;
-  mri_filled = MRIread(fname) ;
-  if (!mri_filled)
-    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
-              Progname, fname) ;
-  ////////////////////////////// we can handle only conformed volumes
-  // setMRIforSurface(mri_filled);
-
-  if (!stricmp(hemi, "lh")) {
-    label_val = lh_label ;
-    replace_val = rh_label ;
-  } else {
-    label_val = rh_label ;
-    replace_val = lh_label ;
-  }
-
-  ///////////////////////////////////////////////////////////////
-  // read mri_wm
-  ///////////////////////////////////////////////////////////////
-  sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
-  if (MGZ) strcat(fname, ".mgz");
-  fprintf(stderr, "reading wm volume %s...\n", fname) ;
-  mri_wm = MRIread(fname) ;
-  if (!mri_wm)
-    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
-              Progname, fname) ;
-  //////////////////////////////////////////
-  //  setMRIforSurface(mri_wm);
-
-  ///////////////////////////////////////////////////////////////////
-  // convert wm into hires space
-  ///////////////////////////////////////////////////////////////////
-  lt = &hires_lta->xforms[0];
-  // fill geometry
-  if (!lt->src.valid)
-    getVolGeom(mri_wm, &lt->src);
-  if (!lt->dst.valid)
-    getVolGeom(mri_hires, &lt->dst);
-
-  // now ready to transform mri_wm into mri_hires space
-  // first create the volume with mri_hires property
-  mri_tran = MRIclone(mri_hires, NULL);
-  if (hires_lta->type == LINEAR_RAS_TO_RAS)
-    MRIapplyRASlinearTransform(mri_wm, mri_tran, lt->m_L);
-  else if (hires_lta->type == LINEAR_VOXEL_TO_VOXEL)
-    MRIlinearTransform(mri_wm, mri_tran, lt->m_L);
-
-  if (debug__ == 1)
-    MRIwrite(mri_tran, "./wmtransformed.mgz");
-
-  MRIfree(&mri_wm);
-  mri_wm = mri_tran;
-#endif
 
   ////////////////////////////////////////////////////////////////////////////
   // move the vertex positions to the lh(rh).white positions (low res)
@@ -438,14 +382,6 @@ main(int argc, char *argv[]) {
   if (MRISreadVertexPositions(mris, orig_white) != NO_ERROR)
     ErrorExit(Gerror, "reading of orig white failed...");
 
-#if 0
-  ///////////////////////////////////////////////////////////////////////
-  // convert surface into hires volume surface if needed
-  //////////////////////////////////////////////////////////////////////
-  MRISsurf2surfAll(mris, mri_hires, hires_lta);
-  if (debug__ == 1)
-    MRISwrite(mris, "hiresSurf");
-#endif
 
   /////////////////////////////////////////////////////////////////////////////
   // read label file
@@ -496,15 +432,8 @@ main(int argc, char *argv[]) {
     fprintf(stderr, "inverted contrast detected....\n") ;
   }
 
+  mri_wm = find_wm(mris, mri_hires, NULL) ;
 
-#if 0
-  ///////////////////////////////////////////////////////////////////////
-  // convert surface into lowres volume surface again for more processing
-  ////////////////////////////////////////////////////////////////////////
-  LTAinvert(hires_lta); // get inverse
-  MRISsurf2surfAll(mris, mri_filled, hires_lta);
-  LTAinvert(hires_lta); // restore the original
-#endif
 
   /////////////////////////////////////////////////////////////////////
   // detect grey/white stats
@@ -649,7 +578,8 @@ main(int argc, char *argv[]) {
                               2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0) ;
 #else
     MRIScomputeMaxGradBorderValues(mris,mri_hires, mri_smooth,
-                                   current_sigma, max_thickness, 1, parms.fp) ;
+                                   current_sigma, max_thickness, 1, parms.fp,
+                                   mri_wm) ;
     //    compute_border_gradients(mris, mri_hires, 20) ;
 #endif    
     MRISfindExpansionRegions(mris) ;
@@ -680,6 +610,30 @@ main(int argc, char *argv[]) {
       sprintf(fname, "./%s-white%2.2f.w", hemi, current_sigma) ;
       MRISwriteValues(mris, fname) ;
     }
+    if (i == 0)
+    {
+      parms.niterations = 10 ;
+      parms.grad_dir = 1 ;
+      MRISpositionSurface(mris, mri_hires, mri_smooth,&parms);
+      MRIScomputeMaxGradBorderValues(mris,mri_hires, mri_smooth,
+                                     current_sigma, max_thickness, 1, parms.fp,
+                                     mri_wm) ;
+      //    compute_border_gradients(mris, mri_hires, 20) ;
+      MRISfindExpansionRegions(mris) ;
+      if (vavgs) {
+        fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
+        MRISaverageMarkedVals(mris, vavgs) ;
+        if (Gdiag_no > 0) {
+          VERTEX *v ;
+          v = &mris->vertices[Gdiag_no] ;
+          fprintf(stderr,"v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
+                  Gdiag_no, v->val, v->mean, v->d) ;
+      }
+    }
+
+      parms.niterations = nwhite ;
+      parms.grad_dir = 0 ;
+    }
     MRISpositionSurface(mris, mri_hires, mri_smooth,&parms);
     if (add) {
       for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
@@ -698,11 +652,6 @@ main(int argc, char *argv[]) {
     /////////////////////////////////////////////////////////////////////////
     // convert surface into lowres volume surface again for more processing
     //////////////////////////////////////////////////////////////////////////
-#if 0
-    LTAinvert(hires_lta); // get inverse
-    MRISsurf2surfAll(mris, mri_filled, hires_lta);
-    LTAinvert(hires_lta); // restore the original
-#endif
 
     // default smoothwm = 0 and thus don't do anything
     MRISaverageVertexPositions(mris, smoothwm) ;
@@ -730,9 +679,6 @@ main(int argc, char *argv[]) {
   } else   /* read in previously generated white matter surface */
   {
     sprintf(fname, "%s", white_matter_name) ;
-    LTAinvert(hires_lta); // get inverse
-    MRISsurf2surfAll(mris, mri_filled, hires_lta);
-    LTAinvert(hires_lta); // restore the original
     if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
       ErrorExit(Gerror, "%s: could not read white matter surfaces.",
                 Progname) ;
@@ -774,16 +720,8 @@ main(int argc, char *argv[]) {
     // set vertices to orig_pial positions
     //////////////////////////////////////////////////////////////////////////
     printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
-    LTAinvert(hires_lta); // get inverse
-    MRISsurf2surfAll(mris, mri_filled, hires_lta);
-    LTAinvert(hires_lta); // restore the original
     if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
       ErrorExit(Gerror, "reading orig pial positions failed") ;
-
-    /////////////////////////////////////////////////////////////////////////
-    // convert the surface into hires volume
-    /////////////////////////////////////////////////////////////////////////
-    MRISsurf2surfAll(mris, mri_hires, hires_lta);
   }
 
   // we need to retain the mask
@@ -854,14 +792,6 @@ main(int argc, char *argv[]) {
         break ;
     }
   }
-  /////////////////////////////////////////////////////////////////////////
-  // convert surface into lowres
-  /////////////////////////////////////////////////////////////////////////
-#if 0
-  LTAinvert(hires_lta); // get inverse
-  MRISsurf2surfAll(mris, mri_filled, hires_lta);
-  LTAinvert(hires_lta); // restore the original
-#endif
 
   sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, pial_name,
           output_suffix, suffix) ;
@@ -875,7 +805,6 @@ main(int argc, char *argv[]) {
   // free up memory
   ////////////////////////////////////////////////////////////////////////
   MRIfree(&mri_hires);
-  MRIfree(&mri_filled) ;
 
   /*  if (!(parms.flags & IPFLAG_NO_SELF_INT_TEST))*/
   ////////////////////////////////////////////////////////////////////////
@@ -1008,6 +937,10 @@ get_option(int argc, char *argv[]) {
     parms.l_spring = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "l_spring = %2.3f\n", parms.l_spring) ;
+  } else if (!stricmp(option, "tspring")) {
+    parms.l_tspring = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_tspring = %2.3f\n", parms.l_tspring) ;
   } else if (!stricmp(option, "smooth")) {
     smooth = atoi(argv[2]) ;
     nargs = 1 ;
@@ -1379,3 +1312,56 @@ compute_border_gradients(MRI_SURFACE *mris, MRI *mri, double thresh)
   return(NO_ERROR) ;
 }
 #endif
+static MRI *
+find_wm(MRI_SURFACE *mris, MRI *mri, MRI *mri_wm)
+{
+  MRI       *mri_interior, *mri_ctrl, *mri_kernel ;
+  int       vno, x, y, z ;
+  VERTEX    *v ;
+  Real      xv, yv, zv, val ;
+  
+  return(NULL) ;
+#define SDIST 0.5
+  mri_interior = MRIclone(mri, NULL) ;
+  mri_ctrl = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
+  MRIcopyHeader(mri, mri_ctrl) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    MRISsurfaceRASToVoxel(mris, mri, 
+                          v->x-SDIST*v->nx, v->y-SDIST*v->ny, 
+                          v->z-SDIST*v->nz, &xv, &yv, &zv) ;
+    MRIsampleVolume(mri, xv, yv, zv, &val) ;
+    for (x = floor(xv) ; x <= ceil(xv) ; x++)
+      for (y = floor(yv) ; y <= ceil(yv) ; y++)
+        for (z = floor(zv) ; z <= ceil(zv) ; z++)
+        {
+          if (MRIindexNotInVolume(mri, x, y, z) == 0)
+          {
+            MRIsetVoxVal(mri_ctrl, x, y, z, 0, 1) ;
+            MRIsetVoxVal(mri_interior, x, y, z, 0, val) ;
+          }
+        }
+  }
+
+  print("writing 1...\n") ;
+  MRIwrite(mri_interior, "i1.mgz") ;
+  MRIbuildVoronoiDiagram(mri, mri_ctrl, mri_interior) ;
+  print("writing 2...\n") ;
+  MRIwrite(mri_interior, "i2.mgz") ;
+  MRIwrite(mri_ctrl, "c.mgz") ;
+  mri_kernel = MRIgaussian1d(.25/mri->xsize, 0) ;
+  mri_wm = MRIconvolveGaussian(mri_interior, NULL, mri_kernel) ;
+  //  MRIsoapBubble(mri_interior, mri_ctrl, mri_interior, 5) ;
+  print("writing 3...\n") ;
+  MRIwrite(mri_wm, "i3.mgz") ;
+
+  MRIfree(&mri_interior) ; MRIfree(&mri_ctrl) ; MRIfree(&mri_kernel) ;
+  return(mri_wm) ;
+}
+

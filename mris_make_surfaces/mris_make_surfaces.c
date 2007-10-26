@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 15:57:36 $
- *    $Revision: 1.100 $
+ *    $Date: 2007/10/26 12:44:55 $
+ *    $Revision: 1.101 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.100 2007/10/02 15:57:36 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.101 2007/10/26 12:44:55 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -232,13 +232,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.100 2007/10/02 15:57:36 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.101 2007/10/26 12:44:55 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.100 2007/10/02 15:57:36 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.101 2007/10/26 12:44:55 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -250,6 +250,8 @@ main(int argc, char *argv[]) {
   DiagInit(NULL, NULL, NULL) ;
 
   memset(&parms, 0, sizeof(parms)) ;
+   // don't let gradient use exterior information (slows things down)
+  parms.fill_interior = 0 ; 
   parms.projection = NO_PROJECTION ;
   parms.tol = 1e-4 ;
   parms.dt = 0.5f ;
