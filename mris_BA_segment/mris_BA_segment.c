@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/26 12:55:25 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/10/27 13:34:56 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_BA_segment.c,v 1.1 2007/10/26 12:55:25 fischl Exp $";
+static char vcid[] = "$Id: mris_BA_segment.c,v 1.2 2007/10/27 13:34:56 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -78,7 +78,7 @@ main(int argc, char *argv[])
   MRI           *mri ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_BA_segment.c,v 1.1 2007/10/26 12:55:25 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_BA_segment.c,v 1.2 2007/10/27 13:34:56 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -235,6 +235,7 @@ segment_MT(MRI_SURFACE *mris, MRI *mri_profiles, LABEL *lprior,
   ll = max_ll = -1e8; ;
   rmin = MT_radius_mean-2*MT_radius_std ;
   rmax = MT_radius_mean+2*MT_radius_std;
+  vno_best = -1 ; rbest = -1 ;
   for (i = 0 ; i < nvertices ; i++)
   {
     vno = vertices[i] ;
