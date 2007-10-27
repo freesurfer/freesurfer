@@ -7,11 +7,11 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/08/08 20:12:46 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/27 23:40:51 $
+ *    $Revision: 1.3.2.1 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -26,6 +26,7 @@
  */
 
 
+#include <assert.h>
 #include <string>
 #include <stdexcept>
 #include "vtkKWScubaLayer2DMRIS.h"
@@ -51,7 +52,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayer2DMRIS );
-vtkCxxRevisionMacro( vtkKWScubaLayer2DMRIS, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayer2DMRIS, "$Revision: 1.3.2.1 $" );
 
 vtkKWScubaLayer2DMRIS::vtkKWScubaLayer2DMRIS () :
   mMRISProperties( NULL ) {

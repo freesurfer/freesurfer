@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/08/08 20:12:13 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/27 23:40:52 $
+ *    $Revision: 1.5.2.1 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,7 @@
  *
  */
 
+#include <assert.h>
 #include <stdexcept>
 #include "IconLoader.h"
 #include "ScubaInfoItem.h"
@@ -65,7 +66,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaView );
-vtkCxxRevisionMacro( vtkKWScubaView, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWScubaView, "$Revision: 1.5.2.1 $" );
 
 map<vtkRenderWindow*,vtkSmartPointer<vtkKWScubaView> > vtkKWScubaView::mRenderWindowToViewMap;
 

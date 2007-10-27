@@ -10,11 +10,11 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/25 19:53:47 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/27 23:40:51 $
+ *    $Revision: 1.4.2.1 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -28,6 +28,7 @@
  *
  */
 
+#include <assert.h>
 #include "vtkKWScubaLayerCollectionMRI.h"
 #include "vtkKWScubaLayer2DMRI.h"
 #include "vtkKWScubaLayer3DMRI.h"
@@ -50,7 +51,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayerCollectionMRI );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollectionMRI, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollectionMRI, "$Revision: 1.4.2.1 $" );
 
 vtkKWScubaLayerCollectionMRI::vtkKWScubaLayerCollectionMRI () :
   mColorMapType( ScubaCollectionPropertiesMRI::GrayScale ),

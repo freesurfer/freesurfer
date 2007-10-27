@@ -8,11 +8,11 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/25 19:53:47 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2007/10/27 23:40:51 $
+ *    $Revision: 1.2.2.1 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -26,6 +26,7 @@
  *
  */
 
+#include <assert.h>
 #include "vtkKWScubaLayerCollectionMRIS.h"
 #include "vtkCommand.h"
 #include "vtkDecimatePro.h"
@@ -57,7 +58,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaLayerCollectionMRIS );
-vtkCxxRevisionMacro( vtkKWScubaLayerCollectionMRIS, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWScubaLayerCollectionMRIS, "$Revision: 1.2.2.1 $" );
 
 vtkKWScubaLayerCollectionMRIS::vtkKWScubaLayerCollectionMRIS () :
   mfnSurface("") {
