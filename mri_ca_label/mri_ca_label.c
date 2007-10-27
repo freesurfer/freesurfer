@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/22 21:35:36 $
- *    $Revision: 1.82 $
+ *    $Date: 2007/10/27 23:22:29 $
+ *    $Revision: 1.83 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,13 +171,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.82 2007/09/22 21:35:36 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.83 2007/10/27 23:22:29 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.82 2007/09/22 21:35:36 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.83 2007/10/27 23:22:29 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -598,9 +598,11 @@ main(int argc, char *argv[]) {
         GCAmapRenormalizeWithAlignment
         (gca, mri_inputs, transform,
          logfp, base_name, NULL, handle_expanded_ventricles) ;
+#if 0
         GCAmapRenormalizeWithAlignment
         (gca, mri_inputs, transform,
          logfp, base_name, NULL, handle_expanded_ventricles) ;
+#endif
         if (regularize_mean > 0)
           GCAregularizeConditionalDensities(gca, regularize_mean) ;
         GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
