@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/08/13 03:12:44 $
-#    $Revision: 1.15 $
+#    $Date: 2007/10/28 00:18:49 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.15 2007/08/13 03:12:44 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.16 2007/10/28 00:18:49 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -183,6 +183,7 @@ if (-e $SUBJECTS_DIR/$TEST_SUBJ) then
     exit 1
   continue1:
 endif
+mkdir -p $SUBJECTS_DIR/$TEST_SUBJ
 
 #
 # and create a symlink in our SUBJECTS_DIR naming the reference subject
@@ -214,9 +215,6 @@ echo "Start: $BEGIN_TIME" >>& $OUTPUTF
 
 source $FREESURFER_HOME/SetUpFreeSurfer.csh
 
-# there are a couple utilities that are not yet in stable, so use this path:
-set DEV_PATH=/usr/local/freesurfer/dev/bin
-
 # setenv SKIP_RECON to skip recon-all and procede to compare
 # previously completed results against the reference data:
 if ($?SKIP_RECON) goto compare
@@ -241,7 +239,7 @@ set INVOL_LIST=($INVOL_LIST 026.mgz 027.mgz 028.mgz 029.mgz 030.mgz)
 set INVOL_LIST=($INVOL_LIST 031.mgz 032.mgz 033.mgz 034.mgz 035.mgz)
 set INVOL=()
 foreach invol ($INVOL_LIST)
-  set involfull=$SUBJ_REF_DIR/$REF_SUBJ/mri/orig/$invol
+  set involfull=$SUBJ_REF_DIR/ref_subj/mri/orig/$invol
   if (-e $involfull) set INVOL=($INVOL -i $involfull)
 end
 
@@ -428,7 +426,7 @@ foreach hemi ($TEST_HEMIS)
 # to map the reference annotations onto the test surface, then run
 # mris_compute_parc_overlap to calculate a Dice coefficent, and more
 # usefuly, create some .annot files which show which areas are different
-    set cmd=($DEV_PATH/mri_surf2surf)
+    set cmd=(mri_surf2surf)
     set cmd=($cmd --srcsubject ref_subj)
     set cmd=($cmd --trgsubject $TEST_SUBJ)
     set cmd=($cmd --hemi $hemi)
@@ -451,7 +449,7 @@ foreach hemi ($TEST_HEMIS)
       if (-e $S2SF) chmod g+rw $S2SF
     endif # if ($RunIt)
 
-    set cmd=($DEV_PATH/mris_compute_parc_overlap)
+    set cmd=(mris_compute_parc_overlap)
     set cmd=($cmd --sd $SUBJECTS_DIR)
     set cmd=($cmd --s $TEST_SUBJ)
     set cmd=($cmd --hemi $hemi)
@@ -541,7 +539,7 @@ foreach statfile ($STATS_FILES)
   endif # ($RunIt)
 end
 
-set cmd=($DEV_PATH/asegstatsdiff ref_subj $TEST_SUBJ $LOG_DIR)
+set cmd=(asegstatsdiff ref_subj $TEST_SUBJ $LOG_DIR)
 echo $cmd
 set outfile=($LOG_DIR/asegstatsdiff.txt)
 $cmd > $outfile
@@ -558,7 +556,7 @@ endif
 foreach hemi (rh lh)
     foreach parc (aparc aparc.a2005s)
         foreach meas (area volume thickness)
-        set cmd=($DEV_PATH/aparcstatsdiff \
+        set cmd=(aparcstatsdiff \
             ref_subj $TEST_SUBJ $hemi $parc $meas $LOG_DIR)
         echo $cmd
         set outfile=($LOG_DIR/aparcstatsdiff-$hemi-$parc-$meas.txt)
