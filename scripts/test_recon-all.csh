@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/10/28 00:18:49 $
-#    $Revision: 1.16 $
+#    $Date: 2007/10/29 14:03:14 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.16 2007/10/28 00:18:49 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.17 2007/10/29 14:03:14 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -183,7 +183,6 @@ if (-e $SUBJECTS_DIR/$TEST_SUBJ) then
     exit 1
   continue1:
 endif
-mkdir -p $SUBJECTS_DIR/$TEST_SUBJ
 
 #
 # and create a symlink in our SUBJECTS_DIR naming the reference subject
@@ -239,7 +238,7 @@ set INVOL_LIST=($INVOL_LIST 026.mgz 027.mgz 028.mgz 029.mgz 030.mgz)
 set INVOL_LIST=($INVOL_LIST 031.mgz 032.mgz 033.mgz 034.mgz 035.mgz)
 set INVOL=()
 foreach invol ($INVOL_LIST)
-  set involfull=$SUBJ_REF_DIR/ref_subj/mri/orig/$invol
+  set involfull=$SUBJECTS_DIR/ref_subj/mri/orig/$invol
   if (-e $involfull) set INVOL=($INVOL -i $involfull)
 end
 
