@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/23 17:44:16 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/10/29 21:57:17 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@ int MRISmatrixMultiply(MRIS *mris, MATRIX *M);
 
 //------------------------------------------------------------------------
 static char vcid[] =
-  "$Id: mris_convert.c,v 1.24 2007/08/23 17:44:16 greve Exp $";
+  "$Id: mris_convert.c,v 1.25 2007/10/29 21:57:17 greve Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -80,6 +80,7 @@ static char *orig_surf_name = NULL ;
 static double scale=0;
 static int rescale=0;  // for rescaling group average surfaces
 static int output_normals=0;
+static int PrintXYZOnly = 1;
 static MATRIX *XFM=NULL;
 static int write_vertex_neighbors = 0;
 int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
@@ -91,12 +92,13 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
   char         **av, *in_fname, *out_fname, fname[STRLEN], hemi[10],
   *cp, path[STRLEN], *dot, ext[STRLEN] ;
-  int          ac, nargs ;
+  int          ac, nargs,nthvtx ;
+  FILE *fp=NULL;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_convert.c,v 1.24 2007/08/23 17:44:16 greve Exp $",
+           "$Id: mris_convert.c,v 1.25 2007/10/29 21:57:17 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -217,6 +219,15 @@ main(int argc, char *argv[]) {
     MRISwriteNormalsAscii(mris, out_fname) ;
   else if (write_vertex_neighbors)
     MRISwriteVertexNeighborsAscii(mris, out_fname) ;
+  else if(PrintXYZOnly){
+    printf("Printing only XYZ to ascii file\n");
+    fp = fopen(out_fname,"w");
+    for(nthvtx = 0; nthvtx < mris->nvertices; nthvtx++){
+      fprintf(fp,"%9.4f %9.4f %9.4f\n",mris->vertices[nthvtx].x,
+	      mris->vertices[nthvtx].y,mris->vertices[nthvtx].z);
+    }
+    fclose(fp);
+  }
   else
     MRISwrite(mris, out_fname) ;
 
@@ -243,6 +254,9 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "-version"))
     print_version() ;
   else switch (toupper(*option)) {
+    case 'A':
+      PrintXYZOnly = 1;
+      break ;
     case 'C':
       curv_file_flag = 1 ;
       curv_fname = argv[2] ;
@@ -326,6 +340,8 @@ print_help(void) {
   printf( "     column is the vertex number, the 2nd col is the number of neighbors,\n");
   printf( "     the remaining cols are the vertex numbers of the neighbors.  \n");
   printf( "     Note: there can be a different number of neighbors for each vertex.\n") ;
+  printf( "\n") ;
+  printf( "  -a Print only surface xyz to ascii file\n") ;
   printf( "\n") ;
   printf( "Surface and scalar files can be ascii or binary.\n") ;
   printf( "Ascii file is assumed if filename ends with .asc\n") ;
