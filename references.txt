@@ -60,6 +60,10 @@
  * on MRI scans into gyral based regions of interest", Desikan et al.
  * (2006) NeuroImage 31(3):968-80.
 
+ * "Atlas Renormalization for Improved Brain MR Image Segmentation Across
+ *  Scanner Platforms", Han, X. and B. Fischl 
+ * (2007) IEEE Transactions on Medical Imaging, 26(4):479-486.
+
 
 
  * subcortical segmentation:
