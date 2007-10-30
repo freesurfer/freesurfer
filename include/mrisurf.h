@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/26 12:42:33 $
- *    $Revision: 1.302 $
+ *    $Date: 2007/10/30 21:58:12 $
+ *    $Revision: 1.303 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -520,6 +520,7 @@ typedef struct
   int     abs_norm ;
   int     grad_dir ;          // use this instead of gradient direction
   int     fill_interior ;     // use filled interior to constrain gradient to not leave surface
+  double  rms ;
 }
 INTEGRATION_PARMS ;
 
