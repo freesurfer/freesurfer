@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/19 05:42:44 $
- *    $Revision: 1.15 $
+ *    $Date: 2007/10/30 22:49:49 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.15 2007/09/19 05:42:44 greve Exp $
+// $Id: mri_binarize.c,v 1.16 2007/10/30 22:49:49 greve Exp $
 
 /*
   BEGINHELP
@@ -60,6 +60,10 @@ specified. Cannot be used with --min/--max.
 --o outvol
 
 Path to output volume.
+
+--count countfile
+
+Save number of voxels that meet match criteria in ascii countefile.
 
 --binval    binval
 --binvalnot binvalnot
@@ -150,7 +154,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.15 2007/09/19 05:42:44 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.16 2007/10/30 22:49:49 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -165,6 +169,7 @@ double MinThresh, MaxThresh;
 int MinThreshSet=0, MaxThreshSet=0;
 double RMinThresh, RMaxThresh;
 int RMinThreshSet=0, RMaxThreshSet=0;
+char *CountFile = NULL;
 
 int BinVal=1;
 int BinValNot=0;
@@ -191,6 +196,7 @@ int DoBinCol = 0;
 int main(int argc, char *argv[]) {
   int nargs, c, r, s, nhits, InMask, n;
   double val,maskval,mergeval,gmean,gstd,gmax;
+  FILE *fp;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -364,6 +370,16 @@ int main(int argc, char *argv[]) {
   // Save output
   MRIwrite(OutVol,OutVolFile);
 
+  if(CountFile){
+    fp = fopen(CountFile,"w");
+    if(fp == NULL){
+      printf("ERROR: could not open %s\n",CountFile);
+      exit(1);
+    }
+    fprintf(fp,"%d\n",nhits);
+    fclose(fp);
+  }
+
   printf("mri_binarize done\n");
   exit(0);
 }
@@ -489,6 +505,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nErode2d);
       nargsused = 1;
+    } else if (!strcasecmp(option, "--count")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      CountFile = pargv[0];
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -520,6 +540,7 @@ static void print_usage(void) {
   printf("   --ventricles : set match vals those for aseg ventricles (not 4th)\n");
   printf("   \n");
   printf("   --o outvol : output volume \n");
+  printf("   --count countfile : save number of hits in ascii file\n");
   printf("   \n");
   printf("   --binval    val    : set vox within thresh to val (default is 1) \n");
   printf("   --binvalnot notval : set vox outside range to notval (default is 0) \n");
@@ -577,6 +598,10 @@ printf("\n");
 printf("--o outvol\n");
 printf("\n");
 printf("Path to output volume.\n");
+printf("\n");
+printf("--count countfile\n");
+printf("\n");
+printf("Save number of voxels that meet match criteria in ascii countefile.\n");
 printf("\n");
 printf("--binval    binval\n");
 printf("--binvalnot binvalnot\n");
