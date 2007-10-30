@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/10/21 21:48:31 $
- *    $Revision: 1.64 $
+ *    $Author: greve $
+ *    $Date: 2007/10/30 20:24:46 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.64 $";
+char *MRI_INFO_VERSION = "$Revision: 1.65 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.64 2007/10/21 21:48:31 nicks Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.65 2007/10/30 20:24:46 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -86,6 +86,8 @@ static int PrintRAS2Vox = 0;
 static int PrintRASGood = 0;
 static int PrintVox2RAStkr = 0;
 static int PrintVox2RASfsl = 0;
+static int PrintTkr2Scanner = 0;
+static int PrintScanner2Tkr = 0;
 static int PrintDet = 0;
 static int PrintOrientation = 0;
 static int PrintSliceDirection = 0;
@@ -191,6 +193,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--ras2vox"))   PrintRAS2Vox = 1;
     else if (!strcasecmp(option, "--vox2ras-tkr")) PrintVox2RAStkr = 1;
     else if (!strcasecmp(option, "--vox2ras-fsl")) PrintVox2RASfsl = 1;
+    else if (!strcasecmp(option, "--tkr2scanner")) PrintTkr2Scanner = 1;
+    else if (!strcasecmp(option, "--scanner2tkr")) PrintScanner2Tkr = 1;
     else if (!strcasecmp(option, "--ras_good"))   PrintRASGood = 1;
     else if (!strcasecmp(option, "--cras"))      PrintCRAS = 1;
 
@@ -255,12 +259,14 @@ static void print_usage(void) {
   printf("   --cdc : print column direction cosine (x_{r,a,s})\n");
   printf("   --rdc : print row    direction cosine (y_{r,a,s})\n");
   printf("   --sdc : print slice  direction cosine (z_{r,a,s})\n");
-  printf("   --vox2ras : print the the native/qform vox2ras matrix\n");
-  printf("   --ras2vox : print the the native/qform ras2vox matrix\n");
-  printf("   --vox2ras-tkr : print the the tkregister vox2ras matrix\n");
-  printf("   --vox2ras-fsl : print the the FSL/FLIRT vox2ras matrix\n");
-  printf("   --ras_good : print the the ras_good_flag\n");
-  printf("   --cras : print the the RAS at the 'center' of the volume\n");
+  printf("   --vox2ras : print the native/qform vox2ras matrix\n");
+  printf("   --ras2vox : print the native/qform ras2vox matrix\n");
+  printf("   --vox2ras-tkr : print the tkregister vox2ras matrix\n");
+  printf("   --vox2ras-fsl : print the FSL/FLIRT vox2ras matrix\n");
+  printf("   --tkr2scanner : print tkrRAS-to-scannerRAS matrix \n");
+  printf("   --scanner2tkr : print scannerRAS-to-tkrRAS matrix \n");
+  printf("   --ras_good : print the ras_good_flag\n");
+  printf("   --cras : print the RAS at the 'center' of the volume\n");
   printf("   --det : print the determinant of the vox2ras matrix\n");
   printf("   --dof : print the dof stored in the header\n");
   printf("   --nframes : print number of frames to stdout\n");
@@ -336,7 +342,7 @@ int PrettyMatrixPrint(MATRIX *mat) {
 /***-------------------------------------------------------****/
 static void do_file(char *fname) {
   MRI *mri ;
-  MATRIX *m, *minv ;
+  MATRIX *m, *minv, *m2, *m2inv, *p ;
   int r,c,s,f;
   char ostr[5];
   GCA_MORPH *gcam;
@@ -504,6 +510,40 @@ static void do_file(char *fname) {
       fprintf(fpout,"\n");
     }
     MatrixFree(&m) ;
+    return;
+  }
+  if (PrintTkr2Scanner) {
+    m = MRIxfmCRS2XYZ(mri,0);
+    m2 = MRIxfmCRS2XYZtkreg(mri);
+    m2inv = MatrixInverse(m2,NULL);
+    p = MatrixMultiply(m,m2inv,NULL);
+    for (r=1; r<=4; r++) {
+      for (c=1; c<=4; c++) {
+        fprintf(fpout,"%10.5f ",p->rptr[r][c]);
+      }
+      fprintf(fpout,"\n");
+    }
+    MatrixFree(&m) ;
+    MatrixFree(&m2) ;
+    MatrixFree(&m2inv) ;
+    MatrixFree(&p) ;
+    return;
+  }
+  if(PrintScanner2Tkr) {
+    m = MRIxfmCRS2XYZ(mri,0);
+    minv = MatrixInverse(m,NULL);
+    m2 = MRIxfmCRS2XYZtkreg(mri);
+    p = MatrixMultiply(m2,minv,NULL);
+    for (r=1; r<=4; r++) {
+      for (c=1; c<=4; c++) {
+        fprintf(fpout,"%10.5f ",p->rptr[r][c]);
+      }
+      fprintf(fpout,"\n");
+    }
+    MatrixFree(&m) ;
+    MatrixFree(&minv) ;
+    MatrixFree(&m2) ;
+    MatrixFree(&p) ;
     return;
   }
   if (PrintVox2RASfsl) {
