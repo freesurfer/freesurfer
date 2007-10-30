@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/26 12:44:55 $
- *    $Revision: 1.101 $
+ *    $Date: 2007/10/30 21:29:22 $
+ *    $Revision: 1.102 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.101 2007/10/26 12:44:55 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.102 2007/10/30 21:29:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -232,13 +232,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.101 2007/10/26 12:44:55 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.102 2007/10/30 21:29:22 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.101 2007/10/26 12:44:55 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.102 2007/10/30 21:29:22 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2070,7 +2070,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
   }
   MRISclearMarks(mris) ;
 
-  if (CTABfindName(mris->ct, "unknown", &index) == NO_ERROR)
+  if (mris->ct && CTABfindName(mris->ct, "unknown", &index) == NO_ERROR)
   {
     CTABannotationAtIndex(mris->ct, index, &annotation) ;
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
