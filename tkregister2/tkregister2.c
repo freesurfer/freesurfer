@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/10/02 23:41:45 $
- *    $Revision: 1.89 $
+ *    $Date: 2007/10/30 23:32:45 $
+ *    $Revision: 1.90 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.89 2007/10/02 23:41:45 greve Exp $";
+"$Id: tkregister2.c,v 1.90 2007/10/30 23:32:45 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1089,7 +1089,7 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcmp(option, "--movbright")) {
+    } else if (!strcmp(option, "--movbright") || !strcmp(option, "--fmov")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fscale_2);
       use_inorm = 0;
@@ -1299,6 +1299,7 @@ static void print_usage(void) {
   printf("   --no-zero-cras : do not zero target cras (done with --fstal)\n");
   printf("   --movbright  f : brightness of movable volume\n");
   printf("   --no-inorm  : turn off intensity normalization\n");
+  printf("   --fmov fmov : set mov brightness \n");
   printf("   --fmov-targ : apply fmov brightness to the target\n");
   printf("   --plane  orient  : startup view plane <cor>, sag, ax\n");
   printf("   --slice  sliceno : startup slice number\n");
@@ -4502,7 +4503,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.89 2007/10/02 23:41:45 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.90 2007/10/30 23:32:45 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
