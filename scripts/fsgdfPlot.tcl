@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2007/04/09 05:17:22 $
-##    $Revision: 1.24 $
+##    $Date: 2007/10/31 18:01:42 $
+##    $Revision: 1.24.2.1 $
 ##
 ## Original Author: Kevin Teich
 ##
@@ -1132,7 +1132,7 @@ proc FsgdfPlot_HideWindow { iID } {
   global gGDF gWidgets gbLibLoaded
   if { !$gbLibLoaded } { return }
   if { [lsearch $gGDF(lID) $iID] == -1 } { puts "ID not found"; return }
-  if { [info exists gWidgets($iID,wwTop)] } {
+  if { [info exists gWidgets($iID,window,wwTop)] } {
     set gWidgets($iID,state,window,geometry) \
       [wm geometry $gWidgets($iID,wwTop)]
     wm withdraw $gWidgets($iID,wwTop)
