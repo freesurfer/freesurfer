@@ -2,9 +2,9 @@
 ## fsgdfPlot.tcl
 ##
 ## CVS Revision Info:
-##    $Author: kteich $
-##    $Date: 2007/09/20 16:02:10 $
-##    $Revision: 1.25 $
+##    $Author: nicks $
+##    $Date: 2007/10/31 18:00:58 $
+##    $Revision: 1.26 $
 ##
 ## Original Author: Kevin Teich
 ##
@@ -1132,7 +1132,7 @@ proc FsgdfPlot_HideWindow { iID } {
   global gGDF gWidgets gbLibLoaded
   if { !$gbLibLoaded } { return }
   if { [lsearch $gGDF(lID) $iID] == -1 } { puts "ID not found"; return }
-  if { [info exists gWidgets($iID,wwTop)] } {
+  if { [info exists gWidgets($iID,window,wwTop)] } {
     set gWidgets($iID,state,window,geometry) \
       [wm geometry $gWidgets($iID,wwTop)]
     wm withdraw $gWidgets($iID,wwTop)
