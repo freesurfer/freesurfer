@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/10/29 21:57:17 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/11/01 21:13:42 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@ int MRISmatrixMultiply(MRIS *mris, MATRIX *M);
 
 //------------------------------------------------------------------------
 static char vcid[] =
-  "$Id: mris_convert.c,v 1.25 2007/10/29 21:57:17 greve Exp $";
+  "$Id: mris_convert.c,v 1.26 2007/11/01 21:13:42 greve Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -80,7 +80,7 @@ static char *orig_surf_name = NULL ;
 static double scale=0;
 static int rescale=0;  // for rescaling group average surfaces
 static int output_normals=0;
-static int PrintXYZOnly = 1;
+static int PrintXYZOnly = 0;
 static MATRIX *XFM=NULL;
 static int write_vertex_neighbors = 0;
 int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
@@ -98,7 +98,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_convert.c,v 1.25 2007/10/29 21:57:17 greve Exp $",
+           "$Id: mris_convert.c,v 1.26 2007/11/01 21:13:42 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
