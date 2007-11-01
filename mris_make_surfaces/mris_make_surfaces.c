@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/30 21:29:22 $
- *    $Revision: 1.102 $
+ *    $Date: 2007/11/01 14:23:19 $
+ *    $Revision: 1.103 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,13 +55,18 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.102 2007/10/30 21:29:22 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.103 2007/11/01 14:23:19 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
 #define MIN_NONCORTEX_VERTICES 10
 #define BRIGHT_LABEL         130
 #define BRIGHT_BORDER_LABEL  100
+
+static int compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0, 
+                                int label, int whalf, 
+                                double *pnx, double *pny, 
+                                double *pnz);
 
 static int edit_aseg_with_surfaces(MRI_SURFACE *mris, MRI *mri_aseg) ;
 #if 0
@@ -232,13 +237,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.102 2007/10/30 21:29:22 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.103 2007/11/01 14:23:19 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.102 2007/10/30 21:29:22 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.103 2007/11/01 14:23:19 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2052,7 +2057,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
   int      vno, label, contra_wm_label, nvox=0, total_vox=0, adjacent=0,
            wm_label, gm_label, nlabels, n, index, annotation ;
   VERTEX   *v ;
-  double   xv, yv, zv, val, xs, ys, zs, d ;
+  double   xv, yv, zv, val, xs, ys, zs, d, nx, ny, nz ;
   LABEL    **labels ;
 
   printf("inhibiting deformation at non-cortical midline structures...\n") ;
@@ -2099,14 +2104,13 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       xs = v->x + d*v->nx ;
       ys = v->y + d*v->ny ;
       zs = v->z + d*v->nz ;
-      if (mris->useRealRAS)
-        MRIworldToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
-      else
-        MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+      MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
       if (label == contra_wm_label ||
           label == Left_Lateral_Ventricle ||
+          label == Left_choroid_plexus ||
+          label == Right_choroid_plexus ||
           label == Third_Ventricle ||
           label == Right_Lateral_Ventricle ||
           ((label == Left_Accumbens_area ||
@@ -2117,7 +2121,6 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
           label == Left_Pallidum ||
           ((IS_HIPPO(label)  || IS_AMYGDALA(label)) && fix_mtl) ||
           label == Right_Pallidum ||
-          label == Third_Ventricle ||
           label == Right_Thalamus_Proper ||
           label == Left_Thalamus_Proper ||
           label == Brain_Stem ||
@@ -2136,20 +2139,26 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       }
     }
 
+    MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+    if (label == Left_Putamen || label == Right_Putamen)
+      compute_label_normal(mri_aseg, xv, yv, zv, label, 3, &nx, &ny, &nz) ;
+    else
+      nx = ny = nz = 0 ;
     // search inwards
-    for (d = 0 ; d <= 2 ; d += 0.5) {
+    for (d = 0 ; d <= 2 ; d += 0.5) 
+    {
       xs = v->x - d*v->nx ;
       ys = v->y - d*v->ny ;
       zs = v->z - d*v->nz ;
-      if (mris->useRealRAS)
-        MRIworldToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
-      else
-        MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+      MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
       if (d < 1.1 && (label == wm_label || label == gm_label))
         break ;   // found real white matter next to surface
+
       if ((label == contra_wm_label ||
+           label == Left_choroid_plexus ||
+           label == Right_choroid_plexus ||
            label == Left_Lateral_Ventricle ||
            label == Third_Ventricle ||
            label == Right_Lateral_Ventricle ||
@@ -2162,14 +2171,16 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
            label == Right_Thalamus_Proper ||
            label == Left_Thalamus_Proper ||
            label == Right_Pallidum ||
-           label == Third_Ventricle ||
            label == Brain_Stem ||
            label == Left_VentralDC ||
            label == Right_VentralDC) ||
-          // putamen can be adjacent to insula in aseg
-          ((label == Left_Putamen || label == Right_Putamen) &&
-           ((mris->hemisphere == LEFT_HEMISPHERE && v->nx > 0) ||
-            (mris->hemisphere == RIGHT_HEMISPHERE && v->nx < 0))))
+          // putamen can be adjacent to insula in aseg for pial
+          (which == GRAY_WHITE && (d < 1.1) &&
+           (label == Left_Putamen || label == Right_Putamen)))
+#if 0
+           ((mris->hemisphere == LEFT_HEMISPHERE && nx < 0) ||
+            (mris->hemisphere == RIGHT_HEMISPHERE && nx > 0))))
+#endif
 
       {
         if (label == Left_Putamen || label == Right_Putamen)
@@ -2197,10 +2208,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       {
         xs = v->x ; ys = v->y ;
         zs = v->z + d ;  // sample superiorly
-        if (mris->useRealRAS)
-          MRIworldToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
-        else
-          MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+        MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xv, &yv, &zv);
         MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
         label = nint(val) ;
         if (label == Left_Putamen || label == Right_Putamen)
@@ -2212,9 +2220,20 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       }
       if (adjacent && (double)nvox/(double)total_vox > 0.5) // more than 50% putamen
       {
+        MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+        MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+        label = nint(val) ;
+        compute_label_normal(mri_aseg, xv, yv, zv, label, 3, &nx, &ny, &nz) ;
+
+#if 0
         if (v->nz < 0 &&
             fabs(v->nz) > fabs(v->nx) &&
             fabs(v->nz) > fabs(v->ny))  // inferior pointing normal
+#else
+          if (ny > 0 &&
+              fabs(ny) > fabs(nx) &&
+              fabs(ny) > fabs(nz))
+#endif
         {
           if (vno == Gdiag_no)
             DiagBreak() ;
@@ -2371,10 +2390,7 @@ mark_dura(MRI_SURFACE *mris, MRI *mri_ratio, MRI *mri_brain, double sigma) {
       xs = v->x - d*v->nx ;
       ys = v->y - d*v->ny ;
       zs = v->z - d*v->nz ;
-      if (mris->useRealRAS)
-        MRIworldToVoxel(mri_ratio, xs, ys, zs, &xv, &yv, &zv);
-      else
-        MRIsurfaceRASToVoxel(mri_ratio, xs, ys, zs, &xv, &yv, &zv);
+      MRISsurfaceRASToVoxelCached(mris, mri_ratio, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_ratio, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
       if (val < 0)
         continue ;
@@ -2407,10 +2423,7 @@ mark_dura(MRI_SURFACE *mris, MRI *mri_ratio, MRI *mri_brain, double sigma) {
     xs = v->x - d*v->nx ;
     ys = v->y - d*v->ny ;
     zs = v->z - d*v->nz ;
-    if (mris->useRealRAS)
-      MRIworldToVoxel(mri_ratio, xs, ys, zs, &xv, &yv, &zv);
-    else
-      MRIsurfaceRASToVoxel(mri_ratio, xs, ys, zs, &xv, &yv, &zv);
+    MRISsurfaceRASToVoxelCached(mris, mri_ratio, xs, ys, zs, &xv, &yv, &zv);
     MRIsampleVolumeType(mri_ratio, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
     if (val > thresh)  // T2* too large for gm or csf
       v->marked = 1 ;
@@ -2431,10 +2444,7 @@ mark_dura(MRI_SURFACE *mris, MRI *mri_ratio, MRI *mri_brain, double sigma) {
       xs = v->x - d*v->nx ;
       ys = v->y - d*v->ny ;
       zs = v->z - d*v->nz ;
-      if (mris->useRealRAS)
-        MRIworldToVoxel(mri_ratio, xs, ys, zs, &xv, &yv, &zv);
-      else
-        MRIsurfaceRASToVoxel(mri_ratio, xs, ys, zs, &xv, &yv, &zv);
+      MRISsurfaceRASToVoxelCached(mris, mri_ratio, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_ratio, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
       if (val < thresh)  // find 1st occurrence of
         // bigger T2* - could be gm or csf
@@ -2552,10 +2562,7 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, int nstd) {
       xs = v->x + d*v->nx ;
       ys = v->y + d*v->ny ;
       zs = v->z + d*v->nz ;
-      if (mris->useRealRAS)
-        MRIworldToVoxel(mri_ratio, xs, ys, zs, &xv, &yv, &zv);
-      else
-        MRIsurfaceRASToVoxel(mri_ratio, xs, ys, zs, &xv, &yv, &zv);
+      MRISsurfaceRASToVoxelCached(mris, mri_ratio, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_ratio, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
       if (val < 0)
         continue ;
@@ -2650,6 +2657,59 @@ edit_aseg_with_surfaces(MRI_SURFACE *mris, MRI *mri_aseg)
   free(counts) ;
   MRIfree(&mri_hires_aseg) ; MRIfree(&mri_filled) ;
 
+  return(NO_ERROR) ;
+}
+
+static int
+compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0, 
+                     int label, int whalf, double *pnx, double *pny, 
+                     double *pnz)
+{
+  int xi, yi, zi, xk, yk, zk, nvox, val, dx, dy, dz, xn, yn, zn ;
+  double  nx, ny, nz, mag ;
+
+  nx = ny = nz = 0.0 ;
+  for (xk = -whalf ; xk <= whalf ; xk++)
+  {
+    xi = mri_aseg->xi[x0+xk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri_aseg->yi[y0+yk] ;
+      for (zk = -whalf ; zk <= whalf ; zk++)
+      {
+        zi = mri_aseg->zi[z0+zk] ;
+        val = (int)MRIgetVoxVal(mri_aseg, xi, yi, zi, 0) ;
+        if (val != label)
+          continue ;
+        for (dx = -1 ; dx <= 1 ; dx++)
+          for (dy = -1 ; dy <= 1 ; dy++)
+            for (dz = -1 ; dz <= 1 ; dz++)
+            {
+              if (fabs(dx) + fabs(dy) + fabs(dz) != 1)
+                continue ;  // only 8-connected nbrs
+              xn = mri_aseg->xi[xi+dx] ;
+              yn = mri_aseg->yi[yi+dy] ;
+              zn = mri_aseg->zi[zi+dz] ;
+              val = (int)MRIgetVoxVal(mri_aseg, xn, yn, zn, 0) ;
+              if (val != label)  // "surface" of label - interface between label and non-label
+              {
+                nvox++ ;
+                nx += dx ;  ny += dy ;  nz += dz ; 
+              }
+            }
+      }
+    }
+  }
+  if (nvox > 0)
+  {
+    nx /= nvox ; ny /= nvox ; nz /= nvox ;
+  }
+  mag = sqrt(nx*nx + ny*ny + nz*nz) ;
+  if (mag > 0)
+  {
+    nx /= mag ; ny /= mag ; nz /= mag ;
+  }
+  *pnx = nx ; *pny = ny ; *pnz = nz ;
   return(NO_ERROR) ;
 }
 
