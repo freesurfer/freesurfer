@@ -47,8 +47,8 @@ function mri = MRIread(fstring,headeronly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/07/18 17:13:30 $
-%    $Revision: 1.18 $
+%    $Date: 2007/11/01 17:47:14 $
+%    $Revision: 1.19 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -197,7 +197,9 @@ mri.ti  = ti;
 % MRIwrite() derives all geometry information (ie, direction cosines,
 % voxel resolution, and P0 from vox2ras0. If you change other geometry
 % elements of the structure, it will not be reflected in the output
-% volume.
+% volume. Also note that vox2ras still maps Col-Row-Slice and not
+% Row-Col-Slice.  Make sure to take this into account when indexing
+% into matlab volumes (which are RCS). 
 mri.vox2ras0 = M; 
 
 % Dimensions not redundant when using header only
@@ -219,19 +221,19 @@ mri.nframes = volsz(4);
 mri.vox2ras = mri.vox2ras0;
 
 mri.nvoxels = mri.height * mri.width * mri.depth; % number of spatial voxles
-mri.xsize = sqrt(sum(M(:,1).^2));
-mri.ysize = sqrt(sum(M(:,2).^2));
-mri.zsize = sqrt(sum(M(:,3).^2));
+mri.xsize = sqrt(sum(M(:,1).^2)); % Col
+mri.ysize = sqrt(sum(M(:,2).^2)); % Row
+mri.zsize = sqrt(sum(M(:,3).^2)); % Slice
 
-mri.x_r = M(1,1)/mri.xsize;
+mri.x_r = M(1,1)/mri.xsize; % Col
 mri.x_a = M(2,1)/mri.xsize;
 mri.x_s = M(3,1)/mri.xsize;
 
-mri.y_r = M(1,2)/mri.ysize;
+mri.y_r = M(1,2)/mri.ysize; % Row
 mri.y_a = M(2,2)/mri.ysize;
 mri.y_s = M(3,2)/mri.ysize;
 
-mri.z_r = M(1,3)/mri.zsize;
+mri.z_r = M(1,3)/mri.zsize; % Slice
 mri.z_a = M(2,3)/mri.zsize;
 mri.z_s = M(3,3)/mri.zsize;
 
@@ -250,7 +252,7 @@ mri.vox2ras1 = vox2ras_0to1(M);
 % Matrix of direction cosines
 mri.Mdc = [M(1:3,1)/mri.xsize M(1:3,2)/mri.ysize M(1:3,3)/mri.zsize];
 
-% Vector of voxel resolutions
+% Vector of voxel resolutions (Col-Row-Slice)
 mri.volres = [mri.xsize mri.ysize mri.zsize];
 
 mri.tkrvox2ras = vox2ras_tkreg(mri.volsize,mri.volres);
