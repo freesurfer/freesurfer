@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/14 01:56:01 $
- *    $Revision: 1.99 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/01 23:05:02 $
+ *    $Revision: 1.99.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.99 2007/08/14 01:56:01 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.99.2.1 2007/11/01 23:05:02 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -234,13 +234,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.99 2007/08/14 01:56:01 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.99.2.1 2007/11/01 23:05:02 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.99 2007/08/14 01:56:01 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.99.2.1 2007/11/01 23:05:02 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2115,6 +2115,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
           label == Left_Caudate ||
           label == Right_Caudate ||
           label == Left_Pallidum ||
+          IS_CC(label) ||
           ((IS_HIPPO(label)  || IS_AMYGDALA(label)) && fix_mtl) ||
           label == Right_Pallidum ||
           label == Third_Ventricle ||
@@ -2159,6 +2160,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
            label == Left_Caudate ||
            label == Right_Caudate ||
            label == Left_Pallidum ||
+           IS_CC(label) ||
            label == Right_Thalamus_Proper ||
            label == Left_Thalamus_Proper ||
            label == Right_Pallidum ||
