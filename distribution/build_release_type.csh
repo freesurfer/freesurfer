@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.101 2007/10/20 22:57:16 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.102 2007/11/01 20:43:17 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -439,7 +439,7 @@ endif
 # make check (run available unit tests)
 ######################################################################
 #
-goto make_check_done
+#goto make_check_done
 if ("$RELEASE_TYPE" != "stable-pub") then
   echo "########################################################" >>& $OUTPUTF
   echo "Make check $DEV_DIR" >>& $OUTPUTF
