@@ -3,15 +3,15 @@
  * @brief anisotropic nonstationary markov random field labeling
  *
  * Program for computing the MAP segmentation modeling the labeling as an
- * anisotropic nonstationary markov random field (based on manually labeled data
- * compiled into an atlas and stored in a .gca file)
+ * anisotropic nonstationary markov random field (based on manually labeled 
+ * data compiled into an atlas and stored in a .gca file)
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/10/27 23:22:29 $
- *    $Revision: 1.83 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/01 22:54:04 $
+ *    $Revision: 1.84 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,13 +171,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.83 2007/10/27 23:22:29 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.84 2007/11/01 22:54:04 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.83 2007/10/27 23:22:29 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.84 2007/11/01 22:54:04 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -598,11 +598,10 @@ main(int argc, char *argv[]) {
         GCAmapRenormalizeWithAlignment
         (gca, mri_inputs, transform,
          logfp, base_name, NULL, handle_expanded_ventricles) ;
-#if 0
         GCAmapRenormalizeWithAlignment
         (gca, mri_inputs, transform,
          logfp, base_name, NULL, handle_expanded_ventricles) ;
-#endif
+
         if (regularize_mean > 0)
           GCAregularizeConditionalDensities(gca, regularize_mean) ;
         GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
