@@ -25,9 +25,9 @@ function err = MRIwrite(mri,fstring)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:09 $
-%    $Revision: 1.9 $
+%    $Author: greve $
+%    $Date: 2007/11/01 17:48:00 $
+%    $Revision: 1.9.2.1 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -101,7 +101,9 @@ switch(fmt)
   hdr.bitpix          = 4;
   hdr.slice_start     = 0;
   
-  hdr.pixdim          = [0 mri.volres([2 1 3]) mri.tr]; % physical units
+  % volres is not permuted in MRIread()
+  %hdr.pixdim          = [0 mri.volres([2 1 3]) mri.tr]; % physical units
+  hdr.pixdim          = [0 mri.volres mri.tr]; % physical units
   hdr.vox_offset      = 348; % will be set again
   hdr.scl_slope       = 0;
   hdr.scl_inter       = 0;
