@@ -1,15 +1,14 @@
 /**
  * @file  test_ToglManager.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/11/02 15:57:26 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,7 +39,7 @@ char* Progname = "test_ToglManager";
 
 class TestFrame : public WindowFrame {
 public:
-  TestFrame( WindowFrame::ID iID );
+  TestFrame( int iID );
   virtual ~TestFrame();
 protected:
   virtual void DoDraw();
@@ -56,7 +55,7 @@ protected:
 };
 
 
-TestFrame::TestFrame( WindowFrame::ID iID ) : WindowFrame( iID ) {
+TestFrame::TestFrame( int iID ) : WindowFrame( ) {
   SetOutputStreamToCerr();
   DebugOutput( << "Created TestFrame " << iID );
   bTimerCalled = false;
@@ -125,7 +124,7 @@ TestFrame::DoKeyUp( int iWindow[2], InputState& iInput ) {
 
 class TestFrameFactory : public WindowFrameFactory {
 public:
-  virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) {
+  virtual WindowFrame* NewWindowFrame( int iID ) {
     return new TestFrame( iID );
   }
 };
