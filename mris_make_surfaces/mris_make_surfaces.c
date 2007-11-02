@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/11/01 20:23:50 $
- *    $Revision: 1.104 $
+ *    $Date: 2007/11/02 01:22:17 $
+ *    $Revision: 1.105 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.104 2007/11/01 20:23:50 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.105 2007/11/02 01:22:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -237,13 +237,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.104 2007/11/01 20:23:50 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.105 2007/11/02 01:22:17 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.104 2007/11/01 20:23:50 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.105 2007/11/02 01:22:17 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2667,7 +2667,7 @@ compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
                      int label, int whalf, double *pnx, double *pny, 
                      double *pnz)
 {
-  int xi, yi, zi, xk, yk, zk, nvox, val, dx, dy, dz, xn, yn, zn ;
+  int xi, yi, zi, xk, yk, zk, nvox = 0, val, dx, dy, dz, xn, yn, zn ;
   double  nx, ny, nz, mag ;
 
   nx = ny = nz = 0.0 ;
