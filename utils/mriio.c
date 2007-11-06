@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/10/25 19:19:41 $
- *    $Revision: 1.338 $
+ *    $Date: 2007/11/06 02:04:16 $
+ *    $Revision: 1.339 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -12427,6 +12427,11 @@ mghRead(char *fname, int read_volume, int frame)
         mri->AutoAlign = TAGreadAutoAlign(fp);
         break;
 
+      case TAG_PEDIR:
+	mri->pedir = (char*)calloc(len+1,sizeof(char));
+        fread(mri->pedir,sizeof(char),len,fp);
+        break;
+
       default:
         TAGskip(fp, tag, (long long)len) ;
         break ;
@@ -12678,6 +12683,8 @@ mghWrite(MRI *mri, char *fname, int frame)
   }
 
   if(mri->AutoAlign) TAGwriteAutoAlign(fp, mri->AutoAlign);
+  if(mri->pedir) TAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir)+1);
+  else TAGwrite(fp, TAG_PEDIR, "UNKNOWN", strlen("UNKNOWN"));
 
   // write other tags
   {
