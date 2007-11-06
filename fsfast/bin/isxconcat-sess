@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/10/12 20:44:11 $
-#    $Revision: 1.25.2.1 $
+#    $Date: 2007/11/06 01:25:21 $
+#    $Revision: 1.25.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.25.2.1 2007/10/12 20:44:11 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.25.2.2 2007/11/06 01:25:21 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -164,7 +164,7 @@ foreach hemi ($hemilist)
     set cmd = ($cmd -subject $subject)
     set cmd = ($cmd -hemi $hemi)
     if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
-    if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg 0 .25 1)
+    if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
   endif
   set cmd = ($cmd $sessargs);
   echo "cd `pwd`" |& tee -a $LF
