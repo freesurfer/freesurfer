@@ -7,8 +7,8 @@
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/13 03:50:38 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/11/06 01:05:34 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
@@ -144,6 +144,7 @@ typedef struct
   InversionTime,
   FlipAngle;
   short EchoNumber;
+  char *PhEncDir;
 
   // pixels
   void *PixelData;
