@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/12 15:14:27 $
-#    $Revision: 1.21 $
+#    $Date: 2007/11/06 02:18:49 $
+#    $Revision: 1.21.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.21 2007/06/12 15:14:27 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.21.2.1 2007/11/06 02:18:49 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -42,6 +42,10 @@ set midframe = 0;
 set templateout = ();
 set MGZ = ();
 set nolog = 0;
+
+# To left-right reverse the input volume, know what you are doing
+set LeftRightReverse = 0; 
+
 set ForceRAS = 0;
 # zero_center forces mri_convert to set the coordinate
 # of the center to zero. This allows spm to register
@@ -118,6 +122,7 @@ if($zero_center) set cmd = ($cmd -ic 0 0 0)
 if($midframe) set cmd = ($cmd --mid-frame)
 if($#frame)   set cmd = ($cmd --frame $frame)
 if($ForceRAS) set cmd = ($cmd --in_orientation RAS) # for spm tal
+if($LeftRightReverse) set cmd = ($cmd --left-right-reverse)
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
 echo $cmd  |& tee -a $LF
@@ -235,7 +240,7 @@ endif
 
 # Computer the registration file #
 #set TKR2 = ~/sg1/build/tkregister2/tkregister2
-set TKR2 = tkregister2
+set TKR2 = tkregister2_cmdl
 set cmd = ($TKR2 --s $subjid --mov $movvolimg \
            --regheader --noedit --reg $regfile \
            --targ $refvolimg );
@@ -249,6 +254,14 @@ if($status) exit 1;
 if($#templateout) then
   mri_convert $movvolimg $templateout
   if($status) exit 1;
+endif
+
+if($LeftRightReverse) then
+  echo ""
+  echo "WARNING: input was left-right reversed prior to registration"
+  echo "because this is what you said you wanted. Make sure you"
+  echo "know what you are doing."
+  echo ""
 endif
 
 # Cleanup
@@ -347,6 +360,10 @@ while( $#argv != 0 )
 
     case "--force-ras":
       set ForceRAS = 1;
+      breaksw
+
+    case "--left-right-reverse":
+      set LeftRightReverse = 1;
       breaksw
 
     case "--mgz":
