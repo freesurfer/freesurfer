@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/06 00:50:04 $
- *    $Revision: 1.63 $
+ *    $Date: 2007/11/06 00:52:26 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1212,7 +1212,7 @@ char *deblank(char *str)
     //printf("   %d %c\n",m,dbstr[m]);
     m++;
   }
-  printf("*%s*  *%s*\n",str,dbstr);
+  //printf("*%s*  *%s*\n",str,dbstr);
 
   return(dbstr);
 }
