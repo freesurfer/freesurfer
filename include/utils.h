@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/06 00:50:03 $
- *    $Revision: 1.28 $
+ *    $Date: 2007/11/06 01:32:46 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -87,5 +87,6 @@ void printMemoryUsed(); // print function of the above.
 char *strcpyalloc(char *str);
 int  ItemsInString(char *str);
 char *deblank(char *str);
+char *str_toupper(char *str);
 
 #endif

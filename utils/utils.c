@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/06 00:52:26 $
- *    $Revision: 1.64 $
+ *    $Date: 2007/11/06 01:32:46 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1216,4 +1216,15 @@ char *deblank(char *str)
 
   return(dbstr);
 }
+/*!
+  \fn int str_toupper(char *str)
+  \brief Converts each char in str to upper case. Done in place.
+*/
+char *str_toupper(char *str)
+{
+  int n;
+  for(n=0; n < strlen(str); n++) str[n] = toupper(str[n]);
+  return(0);
+}
+
 
