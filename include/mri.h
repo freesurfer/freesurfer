@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/10/26 12:42:33 $
- *    $Revision: 1.352 $
+ *    $Author: greve $
+ *    $Date: 2007/11/06 01:04:52 $
+ *    $Revision: 1.353 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -131,6 +131,7 @@ typedef struct
   int           dof ;
   double        mean ;
   double        flip_angle ;  /* in radians */
+  int           pedir; /* phase enc direction 1=row-to-row, 2=col-to-col, 3=slice-to-slice*/
 
   void*         tag_data; /* saved tag data */
   int           tag_data_size; /* size of saved tag data */
