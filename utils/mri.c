@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/06 01:07:18 $
- *    $Revision: 1.401 $
+ *    $Date: 2007/11/06 01:33:55 $
+ *    $Revision: 1.402 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.401 $";
+char *MRI_C_VERSION = "$Revision: 1.402 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -5538,7 +5538,7 @@ MRI *MRIallocHeader(int width, int height, int depth, int type)
   mri->tag_data = NULL;
   mri->tag_data_size = 0;
   mri->transform_fname[0] = '\0';
-  mri->pedir = 0; // unknown
+  mri->pedir = NULL;
 
   mri->i_to_r__ = extract_i_to_r(mri);
   mri->r_to_i__ = extract_r_to_i(mri);

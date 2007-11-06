@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/06 01:06:09 $
- *    $Revision: 1.117 $
+ *    $Date: 2007/11/06 01:33:55 $
+ *    $Revision: 1.118 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -283,13 +283,12 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   }
 
   // Phase Enc Direction
-  if(sdfi->PhEncDir == NULL) vol->pedir = 0;
+  if(sdfi->PhEncDir == NULL) vol->pedir = strcpyalloc("UNKNOWN");
   else {
-    if(! strcmp(sdfi->PhEncDir,"ROW") ) vol->pedir = 1;
-    if(! strcmp(sdfi->PhEncDir,"COL") ) vol->pedir = 2;
-    if(! strcmp(sdfi->PhEncDir,"SLICE") ) vol->pedir = 3; //??? never seen this
+    vol->pedir = strcpyalloc(sdfi->PhEncDir);
+    str_toupper(vol->pedir);
   }
-  printf("PE Dir %s %d\n",sdfi->PhEncDir,vol->pedir);
+  printf("PE Dir %s %s\n",sdfi->PhEncDir,vol->pedir);
   fflush(stdout);
 
   // Load the AutoAlign Matrix, if one is there
@@ -4659,13 +4658,14 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
   mri->z_r     = -RefDCMInfo.Vs[0];
   mri->z_a     = -RefDCMInfo.Vs[1];
   mri->z_s     = +RefDCMInfo.Vs[2];
-  if(RefDCMInfo.PhEncDir == NULL) mri->pedir = 0;
+
+  // Phase Enc Direction
+  if(RefDCMInfo.PhEncDir == NULL) mri->pedir = strcpyalloc("UNKNOWN");
   else {
-    if(! strcmp(RefDCMInfo.PhEncDir,"ROW") ) mri->pedir = 1;
-    if(! strcmp(RefDCMInfo.PhEncDir,"COL") ) mri->pedir = 2;
-    if(! strcmp(RefDCMInfo.PhEncDir,"SLICE") ) mri->pedir = 3; //??? never seen this
+    mri->pedir = strcpyalloc(RefDCMInfo.PhEncDir);
+    str_toupper(mri->pedir);
   }
-  printf("PE Dir = %d (dicom read)\n",mri->pedir);
+  printf("PE Dir = %s (dicom read)\n",mri->pedir);
 
   // RAS of "first" voxel (ie, at col,row,slice=0)
   r0 = -dcminfo[0]->ImagePosition[0];
