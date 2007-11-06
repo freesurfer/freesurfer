@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/10/03 03:51:21 $
-#    $Revision: 1.22 $
+#    $Date: 2007/11/06 02:17:25 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.22 2007/10/03 03:51:21 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.23 2007/11/06 02:17:25 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -240,7 +240,7 @@ endif
 
 # Computer the registration file #
 #set TKR2 = ~/sg1/build/tkregister2/tkregister2
-set TKR2 = tkregister2
+set TKR2 = tkregister2_cmdl
 set cmd = ($TKR2 --s $subjid --mov $movvolimg \
            --regheader --noedit --reg $regfile \
            --targ $refvolimg );
