@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/10/30 20:24:46 $
- *    $Revision: 1.65 $
+ *    $Date: 2007/11/06 01:39:32 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.65 $";
+char *MRI_INFO_VERSION = "$Revision: 1.66 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.65 2007/10/30 20:24:46 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.66 2007/11/06 01:39:32 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -67,6 +67,7 @@ static int PrintTR=0;
 static int PrintTE=0;
 static int PrintTI=0;
 static int PrintFlipAngle=0;
+static int PrintPEDir = 0;
 static int PrintCRes = 0;
 static int PrintType = 0 ;
 static int PrintConformed = 0 ;
@@ -168,6 +169,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--ti"))   PrintTI = 1;
     else if (!strcasecmp(option, "--fa"))   PrintFlipAngle = 1;
     else if (!strcasecmp(option, "--flip_angle"))   PrintFlipAngle = 1;
+    else if (!strcasecmp(option, "--pedir"))   PrintPEDir = 1;
 
     else if (!strcasecmp(option, "--cres"))    PrintCRes = 1;
     else if (!strcasecmp(option, "--xsize"))   PrintCRes = 1;
@@ -250,6 +252,7 @@ static void print_usage(void) {
   printf("   --te : print TE to stdout\n");
   printf("   --ti : print TI to stdout\n");
   printf("   --fa : print flip angle to stdout\n");
+  printf("   --pedir : print phase encode direction\n");
   printf("   --cres : print column voxel size (xsize) to stdout\n");
   printf("   --rres : print row    voxel size (ysize) to stdout\n");
   printf("   --sres : print slice  voxel size (zsize) to stdout\n");
@@ -417,6 +420,11 @@ static void do_file(char *fname) {
 
   if (PrintFlipAngle) {
     fprintf(fpout,"%g\n",mri->flip_angle);
+    return;
+  }
+  if(PrintPEDir) {
+    if(mri->pedir) fprintf(fpout,"%s\n",mri->pedir);
+    else           fprintf(fpout,"UNKNOWN\n");
     return;
   }
   if (PrintCRes) {
@@ -630,6 +638,8 @@ static void do_file(char *fname) {
          "flip angle: %2.2f degrees\n",
          mri->tr, mri->te, mri->ti, DEGREES(mri->flip_angle)) ;
   printf("       nframes: %d\n", mri->nframes) ;
+  if(mri->pedir) printf("       PhEncDir: %s\n", mri->pedir);
+  else           printf("       PhEncDir: UNKNOWN\n");
   printf("ras xform %spresent\n", mri->ras_good_flag ? "" : "not ") ;
   printf("    xform info: x_r = %8.4f, y_r = %8.4f, z_r = %8.4f, "
          "c_r = %10.4f\n",
