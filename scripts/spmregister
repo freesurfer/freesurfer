@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/11/06 02:18:49 $
-#    $Revision: 1.21.2.1 $
+#    $Date: 2007/11/06 02:42:19 $
+#    $Revision: 1.21.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.21.2.1 2007/11/06 02:18:49 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.21.2.2 2007/11/06 02:42:19 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -42,8 +42,13 @@ set midframe = 0;
 set templateout = ();
 set MGZ = ();
 set nolog = 0;
+set matlab = matlab
 
-# To left-right reverse the input volume, know what you are doing
+if($?FS_SPMREG_MATLAB) then
+  set matlab = $FS_SPMREG_MATLAB
+endif
+
+# To left-right reverse the input volume. Know what you are doing.
 set LeftRightReverse = 0; 
 
 set ForceRAS = 0;
@@ -90,6 +95,7 @@ echo "Logfile for spmregister" >> $LF
 date |& tee -a $LF
 echo $inputargs |& tee -a $LF
 echo $VERSION |& tee -a $LF
+echo matlab $matlab |& tee -a $LF
 
 set StartTime = `date`;
 set DateString = "`date '+%y%m%d%H%M'`"
@@ -230,7 +236,7 @@ EOF
 
 if($monly) exit 1;
 
-cat $MLF | matlab -nosplash -display iconic -nodesktop |& tee -a $LF
+cat $MLF | $matlab -nosplash -display iconic -nodesktop |& tee -a $LF
 rm $MLF
 
 if(! -e $okfile) then
@@ -348,6 +354,15 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set MLF = $argv[1]; shift;
       set monly = 1;
+      breaksw
+
+    case "--matlab":
+      if ( $#argv < 1) goto arg1err;
+      set matlab = $argv[1]; shift;
+      if(! -e $matlab) then
+        echo "ERROR: cannot find $matlab"
+        exit 1;
+      endif
       breaksw
 
     case "--zero-center":
@@ -527,6 +542,16 @@ data is registered to spm2/templates/EPI.mnc, SPM will not write
 a .mat file with the normalized volume (which will be RAS). But
 without a .mat file, the assumption is that the volume will be
 LAS.
+
+--matlab path-to-matlab-binary
+
+Use the given matlab binary instead of the PATH default. This can be
+handy if your default matlab version is incompatable with SPM. Note:
+you can also set the FS_SPMREG_MATLAB environment variable to point
+to path-to-matlab-binary. Eg: 
+
+    --matlab /usr/pubsw/common/matlab/7.0.1/bin/matlab
+    setenv FS_SPMREG_MATLAB /usr/pubsw/common/matlab/7.0.1/bin/matlab
 
 NOTES:
 
