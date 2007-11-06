@@ -1,9 +1,9 @@
 function u = fmri_norm(v,order)
 % u = fmri_norm(v, <order>)
 % 
-% normalizes the columns of v
+% normalizes the columns of v. order=2 by default.
 %
-% '$Id: fmri_norm.m,v 1.2 2007/01/10 22:02:33 nicks Exp $'
+% '$Id: fmri_norm.m,v 1.3 2007/11/06 21:52:55 greve Exp $'
 
 
 %
@@ -11,9 +11,9 @@ function u = fmri_norm(v,order)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:33 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2007/11/06 21:52:55 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@ if(size(v,1)==1)
   return;
 end
 
-if(nargin == 1 ) order = 1 ; end
+if(nargin == 1 ) order = 2 ; end
 
 f = (sum(v.^order)).^(1/order);
 ind = find(f==0);
