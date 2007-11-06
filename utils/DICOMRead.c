@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/21 17:42:13 $
- *    $Revision: 1.116 $
+ *    $Date: 2007/11/06 01:06:09 $
+ *    $Revision: 1.117 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -152,7 +152,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   sdfiAssignRunNo2(sdfi_list, nlist);
 
   /* First File in the Run */
-  if (nthonly < 0) sdfi = sdfi_list[0];
+  if(nthonly < 0) sdfi = sdfi_list[0];
   else            sdfi = sdfi_list[nthonly];
 
   /* There are some Siemens files don't have the slice dircos
@@ -281,6 +281,16 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
            sdfi->RepetitionTime,vol->tr);
     if(tmpstring != NULL) free(tmpstring);
   }
+
+  // Phase Enc Direction
+  if(sdfi->PhEncDir == NULL) vol->pedir = 0;
+  else {
+    if(! strcmp(sdfi->PhEncDir,"ROW") ) vol->pedir = 1;
+    if(! strcmp(sdfi->PhEncDir,"COL") ) vol->pedir = 2;
+    if(! strcmp(sdfi->PhEncDir,"SLICE") ) vol->pedir = 3; //??? never seen this
+  }
+  printf("PE Dir %s %d\n",sdfi->PhEncDir,vol->pedir);
+  fflush(stdout);
 
   // Load the AutoAlign Matrix, if one is there
   vol->AutoAlign = sdcmAutoAlignMatrix(dcmfile);
@@ -1432,7 +1442,7 @@ int sdcmIsMosaic(char *dcmfile,
                  int *pNframes)
 {
   DCM_ELEMENT *e;
-  char PhEncDir[4];
+  char *PhEncDir;
   int Nrows, Ncols;
   float ColRes, RowRes, SliceRes;
   int NrowsExp, NcolsExp;
@@ -1450,14 +1460,13 @@ int sdcmIsMosaic(char *dcmfile,
     return(IsMosaic);
   }
 
-
   IsMosaic = 0;
 
   /* Get the phase encode direction: should be COL or ROW */
-  /* COL means that each row is a different phase encode */
+  /* COL means that each row is a different phase encode (??)*/
   e = GetElementFromFile(dcmfile, 0x18, 0x1312);
   if (e == NULL) return(0);
-  memcpy(PhEncDir,e->d.string,3);
+  PhEncDir = deblank((char*)e->d.string);
   FreeElementData(e);
   free(e);
 
@@ -1523,6 +1532,7 @@ int sdcmIsMosaic(char *dcmfile,
       free(tmpstr);
     }
   }
+  free(PhEncDir);
 
   return(IsMosaic);
 }
@@ -1634,12 +1644,17 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   if (cond == DCM_NORMAL)  sdcmfi->InversionTime = (float) dtmp;
   else                    sdcmfi->InversionTime = -1;
 
+  /* Get the phase encode direction: should be COL or ROW */
+  /* COL means that each row is a different phase encode (??)*/
+  // Phase Enc Dir (DNG)
+  tag=DCM_MAKETAG(0x18, 0x1312);
+  cond=GetString(&object, tag, &strtmp);
+  sdcmfi->PhEncDir = deblank(strtmp);
+  free(strtmp);
+
   tag=DCM_MAKETAG(0x18, 0x80);
   cond=GetDoubleFromString(&object, tag, &dtmp);
   sdcmfi->RepetitionTime = (float) dtmp;
-
-  tag=DCM_MAKETAG(0x18, 0x1312);
-  cond=GetString(&object, tag, &sdcmfi->PhEncDir);
 
   strtmp = SiemensAsciiTagEx(dcmfile, "lRepetitions", 0);
   if(strtmp != NULL){
@@ -3514,6 +3529,7 @@ CONDITION GetDICOMInfo(char *fname,
   double *tmp=(double*)calloc(10, sizeof(double));
   short *itmp=(short*)calloc(3, sizeof(short));
   int i;
+  char *strtmp=NULL;
 
   // Transfer Syntax UIDs
   // see http://www.psychology.nottingham.ac.uk/staff/cr1/dicom.html
@@ -3904,8 +3920,18 @@ CONDITION GetDICOMInfo(char *fname,
     dcminfo->Vs[2] = 0;
   }
 
+  // Phase Enc Dir.
+  tag=DCM_MAKETAG(0x18, 0x1312);
+  cond=GetString(object, tag, &strtmp);
+  if(cond != DCM_NORMAL) dcminfo->PhEncDir = NULL;
+  else {
+    dcminfo->PhEncDir = deblank(strtmp);
+    free(strtmp);
+  }
+  //printf("PE Dir %s\n",dcminfo->PhEncDir);
+
   // pixel data
-  if (ReadImage)
+  if(ReadImage)
   {
     tag=DCM_MAKETAG(0x7FE0, 0x10);
     cond=GetPixelData(object, tag, &dcminfo->PixelData);
@@ -4633,6 +4659,13 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
   mri->z_r     = -RefDCMInfo.Vs[0];
   mri->z_a     = -RefDCMInfo.Vs[1];
   mri->z_s     = +RefDCMInfo.Vs[2];
+  if(RefDCMInfo.PhEncDir == NULL) mri->pedir = 0;
+  else {
+    if(! strcmp(RefDCMInfo.PhEncDir,"ROW") ) mri->pedir = 1;
+    if(! strcmp(RefDCMInfo.PhEncDir,"COL") ) mri->pedir = 2;
+    if(! strcmp(RefDCMInfo.PhEncDir,"SLICE") ) mri->pedir = 3; //??? never seen this
+  }
+  printf("PE Dir = %d (dicom read)\n",mri->pedir);
 
   // RAS of "first" voxel (ie, at col,row,slice=0)
   r0 = -dcminfo[0]->ImagePosition[0];
