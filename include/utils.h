@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/28 01:53:44 $
- *    $Revision: 1.27 $
+ *    $Author: greve $
+ *    $Date: 2007/11/06 00:50:03 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -86,5 +86,6 @@ int getMemoryUsed(); // return total virtual memory used by Progname in Kbytes
 void printMemoryUsed(); // print function of the above.
 char *strcpyalloc(char *str);
 int  ItemsInString(char *str);
+char *deblank(char *str);
 
 #endif

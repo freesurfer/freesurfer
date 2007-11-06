@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/27 02:23:44 $
- *    $Revision: 1.62 $
+ *    $Author: greve $
+ *    $Date: 2007/11/06 00:50:04 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1192,3 +1192,28 @@ int ItemsInString(char *str)
 
   return(items); // should never get here
 }
+
+/*!
+  \fn char *deblank(char *str)
+  \brief removes blanks from a string.
+*/
+char *deblank(char *str)
+{
+  char *dbstr;
+  int n,m;
+
+  dbstr = (char *) calloc(strlen(str)+1,sizeof(char));
+  
+  m = 0;
+  for(n=0; n < strlen(str); n++){
+    //printf("%d %c %d\n",n,str[n],isspace(str[n]));
+    if(isspace(str[n])) continue;
+    dbstr[m] = str[n];
+    //printf("   %d %c\n",m,dbstr[m]);
+    m++;
+  }
+  printf("*%s*  *%s*\n",str,dbstr);
+
+  return(dbstr);
+}
+
