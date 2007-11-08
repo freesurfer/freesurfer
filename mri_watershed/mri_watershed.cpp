@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/06/29 13:40:47 $
- *    $Revision: 1.67 $
+ *    $Date: 2007/11/08 16:34:42 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-char *MRI_WATERSHED_VERSION = "$Revision: 1.67 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.68 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -855,7 +855,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.67 2007/06/29 13:40:47 fischl Exp $", 
+     "$Id: mri_watershed.cpp,v 1.68 2007/11/08 16:34:42 fischl Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.67 2007/06/29 13:40:47 fischl Exp $", 
+     "$Id: mri_watershed.cpp,v 1.68 2007/11/08 16:34:42 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1395,7 +1395,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull,
     }
 
     if (parms->preweightemp){
-      printf("Weighting the input with before template \n");
+      printf("Weighting the input with prior template \n");
       MRI_weight_atlas(MRI_var->mri_src, parms->transform, parms );
     }
 
@@ -4827,15 +4827,33 @@ int AtlasToRegion(int i, int j, int k,
                   STRIP_PARMS *parms, 
                   MRI_variables *MRI_var)
 {
-  int xp, yp, zp, label;
+  int       xp, yp, zp, label;
+  GCA_PRIOR *gcap ;
+
   GCAsourceVoxelToPrior(parms->gca, 
                         MRI_var->mri_src, 
                         parms->transform, 
                         i, j, k, 
                         &xp, &yp, &zp);
-  if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128 )
+  gcap = &parms->gca->priors[xp][yp][zp] ;
+  if (xp>=0 && yp>=0 && zp>=0 && 
+      xp<parms->gca->prior_width && 
+      yp<parms->gca->prior_height &&
+      zp<parms->gca->prior_depth &&
+      gcap->nlabels > 0)
   {
-    label = (parms->gca)->priors[xp][yp][zp].labels[0];
+    int    n ;
+    double max_prior ;
+
+    label = gcap->labels[0] ;
+    max_prior = gcap->priors[0] ;
+    for (n = 1 ; n < gcap->nlabels ; n++)
+      if (gcap->priors[n] > max_prior)
+        {
+          max_prior = gcap->priors[n] ;
+          label = gcap->labels[n] ;
+        }
+
     if (IS_CER(label))
       if (IS_RIGHT(label))
         return(RIGHT_CER);
