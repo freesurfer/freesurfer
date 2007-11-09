@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/18 03:40:02 $
- *    $Revision: 1.22 $
+ *    $Date: 2007/11/09 00:27:59 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.c,v 1.22 2007/07/18 03:40:02 greve Exp $
+// $Id: dti.c,v 1.23 2007/11/09 00:27:59 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.22 2007/07/18 03:40:02 greve Exp $");
+  return("$Id: dti.c,v 1.23 2007/11/09 00:27:59 greve Exp $");
 }
 /* --------------------------------------------- */
 int DTIfree(DTI **pdti)
@@ -88,7 +88,7 @@ int DTIparamsFromSiemensAscii(char *fname, float *bValue,int *nDir, int *nB0)
   }
 
   tag = "sDiffusion.alBValue[1]";
-  pc = SiemensAsciiTag(fname,tag);
+  pc = SiemensAsciiTag(fname,tag,0);
   if (pc == NULL) {
     printf("ERROR: cannot extract %s from %s\n",tag,fname);
     return(1);
@@ -98,7 +98,7 @@ int DTIparamsFromSiemensAscii(char *fname, float *bValue,int *nDir, int *nB0)
   free(pc);
 
   tag = "sWiPMemBlock.alFree[8]";
-  pc = SiemensAsciiTag(fname,tag);
+  pc = SiemensAsciiTag(fname,tag,0);
   if (pc == NULL)
   {
     printf("ERROR: cannot extract %s from %s\n",tag,fname);
@@ -109,7 +109,7 @@ int DTIparamsFromSiemensAscii(char *fname, float *bValue,int *nDir, int *nB0)
   free(pc);
 
   tag = "sDiffusion.lDiffDirections";
-  pc = SiemensAsciiTag(fname,tag);
+  pc = SiemensAsciiTag(fname,tag,0);
   if (pc == NULL)
   {
     printf("ERROR: cannot extract %s from %s\n",tag,fname);
