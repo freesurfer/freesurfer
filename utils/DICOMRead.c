@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/21 17:43:12 $
- *    $Revision: 1.111.2.4 $
+ *    $Date: 2007/11/09 00:20:42 $
+ *    $Revision: 1.111.2.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -297,6 +297,10 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
     else DoDTI = 0;
     if(! DoDTI) printf("  but not getting bvec info because UNPACK_MGH_DTI is 0\n");
   } else DoDTI = 0;
+  if(DoDTI && ! sdfi->IsMosaic){
+    printf("DTI is in non-moasic form, so cannot extract bvals/bvects\n");
+    DoDTI = 0;
+  }
   if(DoDTI){
     printf("MGH DTI SeqPack Info\n");
     // Get b Values from header, based on sequence name
@@ -308,7 +312,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
 			   &sdfi->bValue, &sdfi->nthDirection);
       bval   = sdfi->bValue;
       nthdir = sdfi->nthDirection;
-      vol->bvals->rptr[nthdir+1][1] = bval;
+      vol->bvals->rptr[nthfile+1][1] = bval;
       printf("%d %s %lf %d\n",nthfile,sdfi->PulseSequence,
 	     sdfi->bValue, sdfi->nthDirection);
     }
