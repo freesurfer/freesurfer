@@ -7,8 +7,8 @@
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/06 01:05:34 $
- *    $Revision: 1.26 $
+ *    $Date: 2007/11/09 00:20:18 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
@@ -265,7 +265,7 @@ int FreeElementData(DCM_ELEMENT *e);
 DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid);
 DCM_OBJECT *GetObjectFromFile(char *fname, unsigned long options);
 int IsSiemensDICOM(char *dcmfile);
-char *SiemensAsciiTag(char *dcmfile, char *TagString);
+char *SiemensAsciiTag(char *dcmfile, char *TagString, int flag);
 char *SiemensAsciiTagEx(char *dcmfile, char *TagString, int cleanup);
 int dcmGetNCols(char *dcmfile);
 int dcmGetNRows(char *dcmfile);
