@@ -8,8 +8,8 @@
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/26 13:10:00 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/11/12 22:14:18 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.24 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.25 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -227,6 +227,10 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
     v_0 = &mris->vertices[f->v[0]];
     v_1 = &mris->vertices[f->v[1]];
     v_2 = &mris->vertices[f->v[2]];
+    if (f->v[0] == Gdiag_no ||
+        f->v[1] == Gdiag_no ||
+        f->v[2] == Gdiag_no)
+      DiagBreak();
     x0 = v_0->x;
     y0 = v_0->y;
     z0 = v_0->z;
@@ -270,7 +274,7 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
         else
           MRIsurfaceRASToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
 #else
-        MRISsurfaceRASToVoxel(mris, mri_src,px,py,pz,&fi,&fj,&fimnr);
+        MRISsurfaceRASToVoxelCached(mris, mri_src,px,py,pz,&fi,&fj,&fimnr);
 #endif
         i=nint(fi);
         j=nint(fj);
@@ -559,7 +563,7 @@ MRI *MRISpartialshell(MRI *mri_src,
            the inferior direction */
 //        j = (int)((zz1-pz)/ps+1.0);
         // MRIworldToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
-        MRISsurfaceRASToVoxel(mris, mri_src,px,py,pz,&fi,&fj,&fimnr);
+        MRISsurfaceRASToVoxelCached(mris, mri_src,px,py,pz,&fi,&fj,&fimnr);
         i=nint(fi);
         j=nint(fj);
         imnr=nint(fimnr);
@@ -1457,9 +1461,9 @@ MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_interior)
   *MATRIX_RELT(m_vox2ras, 2, 2) = resolution ;
   *MATRIX_RELT(m_vox2ras, 3, 3) = resolution ;
 
-  *MATRIX_RELT(m_vox2ras, 1, 4) = mris->xlo ;
-  *MATRIX_RELT(m_vox2ras, 2, 4) = mris->ylo ;
-  *MATRIX_RELT(m_vox2ras, 3, 4) = mris->zlo ;
+  *MATRIX_RELT(m_vox2ras, 1, 4) = mris->xlo+mris->vg.c_r ;
+  *MATRIX_RELT(m_vox2ras, 2, 4) = mris->ylo+mris->vg.c_a ;
+  *MATRIX_RELT(m_vox2ras, 3, 4) = mris->zlo+mris->vg.c_s ;
 
   MRIsetVoxelToRasXform(mri_shell, m_vox2ras) ;
   MRISshell(mri_shell, mris, mri_shell, 1) ;
