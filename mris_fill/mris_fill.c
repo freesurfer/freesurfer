@@ -8,12 +8,12 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/04 15:59:46 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/12 19:47:23 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -25,8 +25,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +41,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fill.c,v 1.2 2007/01/04 15:59:46 fischl Exp $";
+static char vcid[] = "$Id: mris_fill.c,v 1.3 2007/11/12 19:47:23 nicks Exp $";
 
 
 int main(int argc, char *argv[]) ;
@@ -59,7 +57,8 @@ char *Progname ;
 static double resolution = .25 ;
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char          **av, *out_fname, *in_fname ;
   int           ac, nargs ;
   MRI_SURFACE   *mris ;
@@ -69,11 +68,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_fill.c,v 1.2 2007/01/04 15:59:46 fischl Exp $", "$Name:  $",
+   "$Id: mris_fill.c,v 1.3 2007/11/12 19:47:23 nicks Exp $", "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fill.c,v 1.2 2007/01/04 15:59:46 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option
+          (argc, argv,
+           "$Id: mris_fill.c,v 1.3 2007/11/12 19:47:23 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -84,7 +86,8 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -99,7 +102,9 @@ main(int argc, char *argv[]) {
   fprintf(stderr, "reading surface from %s...\n", in_fname) ;
   mris = MRISread(in_fname) ;
   if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",Progname, in_fname) ;
+    ErrorExit(ERROR_NOFILE,
+              "%s: could not read surface file %s",
+              Progname, in_fname) ;
   mri_interior = MRISfillInterior(mris, resolution, NULL) ;
   MRIaddCommandLine(mri_interior, cmdline) ;
   fprintf(stderr, "writing filled volume to %s...\n", out_fname) ;
@@ -109,25 +114,29 @@ main(int argc, char *argv[]) {
 }
 
 /*----------------------------------------------------------------------
-            Parameters:
-
-           Description:
+  Parameters:
+  Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
-  else if (!stricmp(option, "-version")){
+  else if (!stricmp(option, "-version"))
+  {
     print_version() ;
-  } else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case 'R':
       resolution = (double)atof(argv[2]) ;
       nargs = 1 ;
-      printf("setting resolution for intermediate calculations to %2.4f\n", resolution) ;
+      printf("setting resolution for intermediate calculations to %2.4f\n",
+             resolution) ;
       break ;
     case 'V':
       Gdiag_no = atoi(argv[2]) ;
@@ -148,31 +157,34 @@ get_option(int argc, char *argv[]) {
 }
 
 static void
-usage_exit(void) {
+usage_exit(void)
+{
   print_help() ;
   exit(1) ;
 }
 
 static void
-print_usage(void) {
+print_usage(void)
+{
   printf("usage: %s [options] <input surface> <output volume>\n",
          Progname) ;
 }
 
 static void
-print_help(void) 
+print_help(void)
 {
   print_usage() ;
   printf("\nThis program floodfills the interior of a surface and writes\n"
          "the results into a volume of the specified resolution.\n") ;
   printf("\nvalid options are:\n\n") ;
-  printf("\t-r <resolution>: set the resolution of the output volume"
-         " (default = %2.3f mm/voxel)\n", resolution) ;
+  printf("   -r <resolution>: set the resolution of the output volume\n"
+         "                    (default = %2.3f mm/voxel)\n", resolution) ;
   exit(1) ;
 }
 
 static void
-print_version(void) {
+print_version(void)
+{
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
