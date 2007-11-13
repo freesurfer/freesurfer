@@ -1,15 +1,15 @@
 /**
  * @file  mris_smooth.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief iterative averaging of vertex positions to smooth a surface.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * See (Fischl et al, NeuroImage, 1999)
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/01 18:16:19 $
- *    $Revision: 1.21 $
+ *    $Date: 2007/11/13 15:22:45 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_smooth.c,v 1.21 2007/01/01 18:16:19 fischl Exp $";
+  "$Id: mris_smooth.c,v 1.22 2007/11/13 15:22:45 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,13 +87,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_smooth.c,v 1.21 2007/01/01 18:16:19 fischl Exp $",
+   "$Id: mris_smooth.c,v 1.22 2007/11/13 15:22:45 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_smooth.c,v 1.21 2007/01/01 18:16:19 fischl Exp $",
+           "$Id: mris_smooth.c,v 1.22 2007/11/13 15:22:45 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -393,6 +393,7 @@ print_help(void) {
   fprintf(stderr, "-a <avgs>  "
           "specify # of curvature averaging iterations (def=10).\n") ;
   fprintf(stderr, "-n <niter> specify # of smoothing iterations (def=10).\n") ;
+  fprintf(stderr, "-nw        disable writing of curvature and area estimates\n");
   exit(1) ;
 }
 
