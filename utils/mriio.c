@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/06 02:04:16 $
- *    $Revision: 1.339 $
+ *    $Date: 2007/11/13 04:48:34 $
+ *    $Revision: 1.340 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -10347,17 +10347,12 @@ static MRI *niiRead(char *fname, int read_volume)
   if (time_units == NIFTI_UNITS_SEC)       time_units_factor = 1000.0;
   else if (time_units == NIFTI_UNITS_MSEC) time_units_factor = 1.0;
   else if (time_units == NIFTI_UNITS_USEC) time_units_factor = 0.001;
-  else
-  {
-    if (hdr.dim[4] > 1)
-    {
-      ErrorReturn
-      (NULL,
-       (ERROR_BADFILE,
-        "niiRead(): unknown time units %d in %s",
-        time_units,fname));
-    }
-    else time_units_factor = 0;
+  else  {
+    // This can be a tricky situation because the time units may not mean
+    // anything even with multiple frames (eg, BO mag and phase).
+    if(hdr.dim[4] > 1)
+      printf("WARNING: niiRead(): unknown time units %d in %s\n",time_units,fname);
+    time_units_factor = 0;
   }
   //printf("hdr.xyzt_units = %d, time_units = %d, %g, %g\n",
   // hdr.xyzt_units,time_units,hdr.pixdim[4],time_units_factor);
