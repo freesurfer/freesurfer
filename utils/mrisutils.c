@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/28 22:07:43 $
- *    $Revision: 1.31 $
+ *    $Date: 2007/11/13 22:11:40 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1973,3 +1973,145 @@ int MRISripZeros(MRIS *surf, MRI *mri)
   }
   return(0);
 }
+
+/*!
+  \fn int MRISfindPath ( int *vert_vno, int num_vno, int max_path_length,
+                         int *path, int *path_length, MRIS *mris ).
+  \brief Finds a path that connects all the vertices listed in vert_vno
+  \params vert_vno[] - array of vertex numbers to connect
+  \params num_vno - number in array of vertex numbers to connect
+  \params max_path_length - max number in path
+  \params path - array of connected vertex numbers
+  \params path_length - pointer to length of array of connected vertex numbers
+  \params mris - surface
+  This was copied from tksurfer.c find_path() and modified slightly.
+*/
+int MRISfindPath ( int *vert_vno, int num_vno, int max_path_length,
+		   int *path, int *path_length, MRIS *mris ) {
+  int cur_vert_vno;
+  int src_vno;
+  int dest_vno;
+  int vno;
+  char* check;
+  float* dist;
+  int* pred;
+  char done;
+  VERTEX* v;
+  VERTEX* u;
+  float closest_dist;
+  int closest_vno;
+  int neighbor;
+  int neighbor_vno;
+  float dist_uv;
+  int path_vno;
+  int num_path = 0;
+  int num_checked;
+  float vu_x, vu_y, vu_z;
+  int flag2d = 0; // for flattend surface?
+
+  dist = (float*) calloc (mris->nvertices, sizeof(float));
+  pred = (int*) calloc (mris->nvertices, sizeof(int));
+  check = (char*) calloc (mris->nvertices, sizeof(char));
+  num_path = 0;
+  num_checked = 0;
+  (*path_length) = 0;
+
+  for (cur_vert_vno = 0; cur_vert_vno < num_vno-1; cur_vert_vno++) {
+    /* clear everything */
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      dist[vno] = 999999;
+      pred[vno] = -1;
+      check[vno] = FALSE;
+    }
+
+    /* Set src and dest */
+    src_vno = vert_vno[cur_vert_vno+1];
+    dest_vno = vert_vno[cur_vert_vno];
+
+    /* make sure both are in range. */
+    if (src_vno < 0 || src_vno >= mris->nvertices ||
+        dest_vno < 0 || dest_vno >= mris->nvertices)
+      continue;
+
+    if (src_vno == dest_vno)
+      continue;
+
+    /* pull the src vertex in. */
+    dist[src_vno] = 0;
+    pred[src_vno] = vno;
+    check[src_vno] = TRUE;
+
+    done = FALSE;
+    while (!done) {
+
+      /* find the vertex with the shortest edge. */
+      closest_dist = 999999;
+      closest_vno = -1;
+      for (vno = 0; vno < mris->nvertices; vno++)
+        if (check[vno])
+          if (dist[vno] < closest_dist) {
+            closest_dist = dist[vno];
+            closest_vno = vno;
+          }
+      v = &(mris->vertices[closest_vno]);
+      check[closest_vno] = FALSE;
+
+      /* if this is the dest node, we're done. */
+      if (closest_vno == dest_vno) {
+        done = TRUE;
+      } else {
+        /* relax its neighbors. */
+        for (neighbor = 0; neighbor < v->vnum; neighbor++) {
+          neighbor_vno = v->v[neighbor];
+          u = &(mris->vertices[neighbor_vno]);
+
+          /* calc the vector from u to v. */
+          vu_x = u->x - v->x;
+          vu_y = u->y - v->y;
+	  if (flag2d)	    vu_z = 0;
+	  else     	    vu_z = u->z - v->z;
+
+          /* recalc the weight. */
+	  if (flag2d)
+	    dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
+			   ((v->y - u->y) * (v->y - u->y)));
+	  else
+	    dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
+			   ((v->y - u->y) * (v->y - u->y)) +
+			   ((v->z - u->z) * (v->z - u->z)));
+
+          /* if this is a new shortest path, update the predecessor,
+             weight, and add it to the list of ones to check next. */
+          if (dist_uv + dist[closest_vno] < dist[neighbor_vno]) {
+            pred[neighbor_vno] = closest_vno;
+            dist[neighbor_vno] = dist_uv + dist[closest_vno];
+            check[neighbor_vno] = TRUE;
+          }
+        }
+      }
+      num_checked++;
+      if ((num_checked % 100) == 0) {
+        printf (".");
+        fflush (stdout);
+      }
+    }
+
+    /* add the predecessors from the dest to the src to the path. */
+    path_vno = dest_vno;
+    path[(*path_length)++] = dest_vno;
+    while (pred[path_vno] != src_vno &&
+           (*path_length) < max_path_length ) {
+      path[(*path_length)++] = pred[path_vno];
+      path_vno = pred[path_vno];
+    }
+  }
+  printf (" done\n");
+  fflush (stdout);
+
+  free (dist);
+  free (pred);
+  free (check);
+
+  return (ERROR_NONE);
+}
+

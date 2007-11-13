@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/28 22:07:42 $
- *    $Revision: 1.16 $
+ *    $Date: 2007/11/13 22:11:40 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,5 +55,7 @@ double MRISvolumeInSurf(MRIS *mris);
 LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices);
 int MRISripZeros(MRIS *surf, MRI *mri);
 int MRISsphericalCoords(MRIS *surf);
+int MRISfindPath ( int *vert_vno, int num_vno, int max_path_length,
+		   int *path, int *path_length, MRIS *mris );
 
 #endif
