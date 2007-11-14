@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/10/30 21:28:51 $
- *    $Revision: 1.571 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/14 19:43:48 $
+ *    $Revision: 1.572 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.571 2007/10/30 21:28:51 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.572 2007/11/14 19:43:48 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1515,6 +1515,14 @@ MRI_SURFACE *
 MRISalloc(int nvertices, int nfaces)
 {
   MRI_SURFACE   *mris ;
+
+  if (nvertices < 0)
+    ErrorExit(ERROR_BADPARM,
+              "ERROR: MRISalloc: nvertices=%d < 0\n", nvertices);
+
+  if (nfaces < 0)
+    ErrorExit(ERROR_BADPARM,
+              "ERROR: MRISalloc: nfaces=%d < 0\n", nfaces);
 
   mris = (MRI_SURFACE *)calloc(1, sizeof(MRI_SURFACE)) ;
   if (!mris)
