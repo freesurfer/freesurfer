@@ -17,7 +17,24 @@ AC_MSG_NOTICE(Setting System...)
 # set target, build, host etc.
 AC_CANONICAL_SYSTEM
 
+##########################################################################
+# To use the Intel C/C++ compiler, assuming it is installed here:
+#   /opt/intel/cce/10.0.023
+# do this prior to configuring:
+#   source /opt/intel/cce/10.0.023/bin/iccvars.csh
+#   setenv CC icc
+#   setenv CXX icpc
+#   setenv LD icc
+#   setenv LDFLAGS "-L/opt/intel/cce/10.0.023/lib"
+#
+# Note: until all the warnings produced by icc are fixed in the source,
+# it is necessary to remove -Werror from CFLAGS (see WERROR in this file).
+##########################################################################
+
+
+#####################################################################
 # perform our own vendor string customizations...
+#####################################################################
 if test -e /etc/redhat-release ; then
   # Centos4
   cat /etc/redhat-release | grep CentOS | grep 4 >& /dev/null
@@ -292,6 +309,11 @@ AC_ARG_ENABLE(Werror,
  [  --disable-Werror        do not add -Werror to compiler flags],
  [ WERROR="" ],
  [ WERROR="-Werror" ])
+# the Intel C/C++ compiler complains about *a lot* of stuff, so escalating
+# warnings to errors (which stops the build) is not an option right now
+if test "x$CC" = "xicc"; then
+  WERROR=""
+fi
 
 # to strip unused code when using Linux gcc:
 #DEADCODE_STRIP="-ffunction-sections -Wl,--gc-sections"
@@ -379,9 +401,9 @@ AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
 ##############################################################
 # cpu optimization
 ##############################################################
+CPUFLAGS=""
 if test "${CC}" = "gcc"; then
 AC_MSG_NOTICE(Setting CPU optimization...)
-CPUFLAGS=""
 CPUTYPE="NO"
 ####
 #### cpu type: we support
@@ -513,7 +535,21 @@ found=$CPUFLAGS
 # set the value
 
 AC_MSG_RESULT($found)
-# verify the flag work (need to make this as macro)
+
+#####
+# if gcc
+fi
+
+# if using the Intel compiler, enable additional interprocedural 
+# optimizations for single file compilation, and generate  SSE3, SSE2, and 
+# SSE instructions. 
+if test "x$CC" = "xicc"; then
+  AC_MSG_NOTICE(Setting CPU optimization...)
+  CPUFLAGS="-ip -axP $CPUFLAGS"
+fi
+
+###############################################################
+# verify that CPUFLAGS work
 ###############################################################
 ac_save_CFLAGS=$CFLAGS
 CFLAGS="$CPUFLAGS $CFLAGS"
@@ -564,7 +600,7 @@ echo "$as_me:$LINENO: result: $ac_cv_prog_cc_cpuflags" >&5
 echo "${ECHO_T}$ac_cv_prog_cc_cpuflags" >&6
 
 if test $ac_cv_prog_cc_cpuflags = no; then
- AC_MSG_NOTICE([gcc on this PC cannot accept $CPUFLAGS. gcc may be too old?])
+ AC_MSG_NOTICE([$CC on this PC cannot accept $CPUFLAGS. $CC may be too old?])
  CPUFLAGS=""
 fi
 # write the flag file
@@ -575,12 +611,6 @@ CFLAGS=$ac_save_CFLAGS
 # append these CPUFLAGS to our existing CPPFLAGS
 CPPFLAGS="$CPPFLAGS $CPUFLAGS"
 
-#####
-else
-  AC_MSG_NOTICE([cpu optimization not done. gcc must be used.])
-
-# if gcc
-fi
 
 ##############################################################
 # This macro figures out how to build C programs using
@@ -1567,6 +1597,8 @@ fi
 ac_save_cflags=$CFLAGS
 ac_save_ldflags=$LDFLAGS
 CFLAGS="$gl_cflags $CFLAGS"
+# bug in AX_CHECK_GL: assumes HAVE_WINDOWS_H is defined, so fix CFLAGS
+CFLAGS="-DHAVE_WINDOWS_H=0 $CFLAGS"
 LDFLAGS="$gl_libs $LDFLAGS"
 AX_CHECK_GL
 if test "X$no_gl" = "Xyes"; then
@@ -1993,6 +2025,18 @@ if test ! "x$xawplus_apps" = "xNO"; then
   Set LDFLAGS or --with-xawplus-dir.])] )
 fi
 
+
+###########################################################
+# Intel C/C++ compiler stuff
+###########################################################
+LIBS_ICC=""
+if test "x$CC" = "xicc"; then
+  LIBS_ICC="-lirc -lsvml -lguide -limf"
+fi
+AC_SUBST(LIBS_ICC)
+AM_CONDITIONAL(HAVE_INTEL_COMPILER, test "x$CC" = "xicc" )
+
+
 #
 # recover previous settings, from prior to checks.
 # let each Makefile.am set as appropriate, choose from:
@@ -2038,7 +2082,8 @@ LIBS="$VTK_EXPAT_LIB -ljpeg -ltiff -lz -lm $LIB_CRYPT -ldl -lpthread $LIBS"
 LIBS="$LIBS $LIBS_MNI"
 LIBS="$LIBS $LIBS_VXL"
 LIBS="$LIBS $LIBS_NIFTI"
-LIBS="$LIBS_ITK $LIBS "
+LIBS="$LIBS_ITK $LIBS"
+LIBS="$LIBS_ICC $LIBS "
 
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
@@ -2281,6 +2326,7 @@ AC_OUTPUT([Makefile
            mris_ca_train/Makefile
            mris_classify_thickness/Makefile
            mris_compute_acorr/Makefile
+           mris_compute_lgi/Makefile
            mris_compute_overlap/Makefile
            mris_compute_parc_overlap/Makefile
            mris_convert/Makefile
