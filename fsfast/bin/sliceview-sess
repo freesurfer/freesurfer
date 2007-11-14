@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/04 21:35:32 $
-#    $Revision: 1.6 $
+#    $Date: 2007/11/14 00:07:47 $
+#    $Revision: 1.6.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: sliceview-sess,v 1.6 2007/06/04 21:35:32 greve Exp $';
+set VERSION = '$Id: sliceview-sess,v 1.6.2.1 2007/11/14 00:07:47 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -62,6 +62,10 @@ set mask = ();
 set rawstem0 = ();
 set pneg = 0;
 set UseVersion = "-v1";
+
+if($?FSF_OUTPUT_FORMAT == 0) then
+  setenv FSF_OUTPUT_FORMAT bhdr
+endif
 
 ## If there are no options, just print the usage ##
 if($#argv == 0) then
@@ -298,7 +302,7 @@ foreach sess ($SessList)
    if(-e $datfile) set cmd = ($cmd -hdat $datfile)
   endif
   set cmd = ($cmd $UseVersion)
-  if($?FSF_OUTPUT_FORMAT) set cmd = ($cmd -mgh)
+  if($FSF_OUTPUT_FORMAT != bhdr) set cmd = ($cmd -mgh)
 
   echo "----------------------------------------------" |& tee -a $LF
   pwd        |& tee -a $LF
