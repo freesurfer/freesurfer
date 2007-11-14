@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/10/05 20:42:25 $
-#    $Revision: 1.12 $
+#    $Date: 2007/11/14 00:07:05 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 
 
-set YAKVIEW_VER = '\$Id: yakview,v 1.12 2007/10/05 20:42:25 greve Exp $'
+set YAKVIEW_VER = '\$Id: yakview,v 1.13 2007/11/14 00:07:05 greve Exp $'
 
 # Set Default Values #
 set imgstem = ();
@@ -256,7 +256,7 @@ if( $#rawstem == 1 ) then
     set RawFile = $rawstem;
     if($IsMosaic || $ForceMkMosaic) set RawMkMosaic = 1;
     if(! -e $RawFile) then
-      echo "ERROR: cannot find $SigMaskFile" 
+      echo "ERROR: cannot find $RawFile" 
       exit 1;
     endif
   endif # fmtimg
