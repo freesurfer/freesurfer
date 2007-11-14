@@ -3,15 +3,15 @@
 #
 # mris_compute_lgi
 #
-# Creates average surfaces, curvatures, and volumes from a set of subjects.
+# 
 #
 # --help option will show usage
 #
 # Original Author: Marie Schaer and Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/14 21:38:19 $
-#    $Revision: 1.1 $
+#    $Date: 2007/11/14 23:37:04 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,9 +26,12 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.1 2007/11/14 21:38:19 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.2 2007/11/14 23:37:04 nicks Exp $'
 set PrintHelp = 0;
+set RunIt = 0;
 set cmdargs = ($argv);
+set tmpdir = tmp-mris_compute_lgi
+#set echo=1
 
 if($#argv == 0) then
   # zero args is not allowed
@@ -41,9 +44,59 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+# begin...
+#---------
 
-echo "Done."
+# temporary work files go here...
+set cmd=(mkdir -p $tmpdir)
+echo "=================\n$cmd\n================="
+if ($RunIt) $cmd
 
+
+# create a filled-volume from the input surface file...
+set cmd=(mris_fill -c -r 1 ${input} ${tmpdir}/${input}.filled.mgz)
+echo "=================\n$cmd\n================="
+if ($RunIt) $cmd
+
+
+# create the outer surface from the filled volume
+set cmd=(make_outer_surface -se 15 \
+    ${tmpdir}/${input}.filled.mgz \
+    ${tmpdir}/${input}-outer)
+echo "=================\n$cmd\n================="
+if ($RunIt) $cmd
+
+
+# smooth this jaggy, tessellated surface
+set cmd=(mris_smooth -nw -n 3 \
+    ${tmpdir}/${input}-outer \
+    ${tmpdir}/${input}-outer-smoothed)
+echo "=================\n$cmd\n================="
+if ($RunIt) $cmd
+
+
+# create ROI path files
+set cmd=(make_roi_paths ${input} ${tmpdir}/${input}-outer-smoothed ${tmpdir})
+echo "=================\n$cmd\n================="
+if ($RunIt) $cmd
+
+
+# create ROI label files (a wrapper for mri_path2label)
+set cmd=(make_roi_labels ${input} ${tmpdir})
+echo "=================\n$cmd\n================="
+if ($RunIt) $cmd
+
+
+# finally, compute lGI measurements
+set cmd=(compute_lgi)
+echo "=================\n$cmd\n================="
+if ($RunIt) $cmd
+
+
+#--------
+# end...
+#rm -Rf $tmpdir
+echo "done."
 exit 0
 
 
@@ -70,10 +123,18 @@ while( $#argv != 0 )
       exit 0;
       breaksw
 
-    case "--sd":
-    case "--sdir":
+    case "--i":
+    case "--input":
       if ( $#argv == 0) goto arg1err;
-      setenv SUBJECTS_DIR $argv[1]; shift;
+      set input = $argv[1]; shift;
+      #echo ${input}
+      breaksw
+
+    case "--o":
+    case "--output":
+      if ( $#argv == 0) goto arg1err;
+      set output = $argv[1]; shift;
+      #echo $output
       breaksw
 
    case "--debug":
@@ -84,6 +145,7 @@ while( $#argv != 0 )
 
     default:
       breaksw
+
   endsw
 
 end
@@ -102,23 +164,24 @@ arg1err:
 
 ############--------------##################
 check_params:
-  if (! $?SUBJECTS_DIR) then
-    echo "ERROR: SUBJECTS_DIR is not declared!"
-    echo "  Either set the SUBJECTS_DIR environment variable,"
-    echo "  or declare using --sdir argument, the root directory"
-    echo "  for subject data files."
-    exit 1
-  endif
-  if(! -e $SUBJECTS_DIR ) then
-    echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
-    exit 1;
-  endif
   if(! $?FREESURFER_HOME ) then
     echo "ERROR: environment variable FREESURFER_HOME not set."
     exit 1;
   endif
   if(! -e $FREESURFER_HOME ) then
     echo "ERROR: FREESURFER_HOME $FREESURFER_HOME does not exist."
+    exit 1;
+  endif
+  if(! $?input) then
+    echo "ERROR: missing input filename!  See  mris_compute_lgi --help"
+    exit 1;
+  endif
+  if(! $?output) then
+    echo "ERROR: missing output filename!  See  mris_compute_lgi --help"
+    exit 1;
+  endif
+  if(! -e ${input} ) then
+    echo "ERROR: input file '${input}' does not exist."
     exit 1;
   endif
 goto check_params_return;
@@ -129,9 +192,11 @@ goto check_params_return;
 ############--------------##################
 usage_exit:
   echo ""
-  echo "USAGE: mris_compute_lgi"
+  echo "USAGE: mris_compute_lgi --i <input surface> --o <lgi surface data>"
   echo ""
   echo "Required Arguments"
+  echo "   --i       : input surface file, typically ?h.pial"
+  echo "   --o       : name of output scalar file, typically ?h.lgi_pial"
   echo ""
   echo "Optional Arguments"
   echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
@@ -160,6 +225,6 @@ EXAMPLES
 
 Example 1:
 
-  mris_compute_lgi 
+  mris_compute_lgi --i lh.pial --o lh.lgi_pial
 
 See also http://surfer.nmr.mgh.harvard.edu/fswiki/LGI
