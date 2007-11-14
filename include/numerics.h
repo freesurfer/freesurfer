@@ -1,17 +1,15 @@
 /**
  * @file  numerics.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief Wrappers for core math routines from open-sources: VNL and CEPHES.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author:  Dennis Jen and Silvester Czanner
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/09/27 22:10:52 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/14 21:43:16 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *

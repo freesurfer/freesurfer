@@ -1,11 +1,11 @@
 /**
  * @file  mghendian.h
- * @brief BYTE_ORDER, LITTLE_ENDIAN, BIG_ENDIAN and BYTE_ORDER
+ * @brief define BYTE_ORDER, LITTLE_ENDIAN, BIG_ENDIAN and BYTE_ORDER
  *
- * SGI  /usr/include/sys/endian.h (decides on _MIPSEB or _MIPSEL)       LITTLE_ENDIAN/BIG_ENDIAN
- * Mac /usr/include/machine/endian.h (decides on __ppc__ or __i386__)  LITTLE_EHNDIAN/BIG_ENDIAN
- * Linux  /usr/include/endian.h -> /usr/include/bits/endian.h             __LITTLE_ENDIAN/__BIG_ENDIAN
- * Solaris /usr/include/sys/isa_defs.h                                     _LITTLE_ENDIUAN/_BIG_ENDIAN
+ * SGI  /usr/include/sys/endian.h (decides on _MIPSEB or _MIPSEL)
+ * Mac /usr/include/machine/endian.h (decides on __ppc__ or __i386__)
+ * Linux  /usr/include/endian.h -> /usr/include/bits/endian.h
+ * Solaris /usr/include/sys/isa_defs.h
  *
  * BSD defines non-underscore variables
  */
@@ -13,8 +13,8 @@
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/27 02:23:41 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/11/14 21:43:16 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,33 +30,14 @@
  *
  */
 
-
-/*
-// mghendian.h
-//
-// purpose:
-// define BYTE_ORDER, LITTLE_ENDIAN, BIG_ENDIAN and which BYTE_ORDER it is
-//
-// by y.tosa
-// July 7th, 2004
-//
-// SGI       /usr/include/sys/endian.h (decides on _MIPSEB or _MIPSEL)       LITTLE_ENDIAN/BIG_ENDIAN
-// Mac       /usr/include/machine/endian.h (decides on __ppc__ or __i386__)  LITTLE_EHNDIAN/BIG_ENDIAN
-// Linux     /usr/include/endian.h -> /usr/include/bits/endian.h             __LITTLE_ENDIAN/__BIG_ENDIAN
-// Solaris   /usr/include/sys/isa_defs.h                                     _LITTLE_ENDIUAN/_BIG_ENDIAN
-//
-//
-// BSD defines non-underscore variables
-*/
 /* See if it is set in the imake config first */
 #ifndef mghendian_h
 #define mghendian_h
 
-/*/////////////////////////////////////////////////////*/
 /* allow override */
 #ifndef BYTE_ORDER
 
-/*////////////Linux///////////////////////////*/
+/////////////Linux////////////////////////////
 #ifdef linux
 #include <endian.h>
 
@@ -74,7 +55,7 @@
 
 #endif
 
-/*////////////Windows Cygwin///////////////////////////*/
+/////////////Windows Cygwin////////////////////////////
 #ifdef Windows_NT
 #include <endian.h>
 
@@ -92,12 +73,12 @@
 
 #endif
 
-/*///////////MacOS X and BSD ///////////////////////////*/
+////////////MacOS X and BSD ////////////////////////////
 #if defined(__APPLE__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <machine/endian.h>
 #endif
 
-/*///////////Solaris 2.5.1/////////////////////*/
+////////////Solaris 2.5.1//////////////////////
 #ifdef sun
 
 #ifndef LITTLE_ENDIAN
@@ -120,12 +101,12 @@
 
 #endif
 
-/*////////////IRIX  ///////////////////////////*/
+/////////////IRIX  ////////////////////////////
 #if defined(__sgi) || defined(Mips)
 #include <sys/endian.h>
 #endif
 
-/*/////////////////////////////////////////////*/
+///////////////////////////////////////////////
 #ifndef BYTE_ORDER
 #error "Unknown OS to mghendian.h.   Please report"
 #endif
@@ -138,9 +119,9 @@
 #define BIG_ENDIAN    4321
 #endif
 
-/*/////////////////////////////////////////////////*/
+///////////////////////////////////////////////////
 #endif /* BYTE_ORDER */
-/*/////////////////////////////////////////////////*/
+///////////////////////////////////////////////////
 
 /* final check   bomb if not */
 #if !defined(BYTE_ORDER) || \

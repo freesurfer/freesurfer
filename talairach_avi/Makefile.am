@@ -7,7 +7,12 @@ AM_FFLAGS=-ffixed-line-length-132 -fno-second-underscore
 
 # LIB_G2C_A is defined to libg2c.a (static lib) if configure find it
 AM_LDFLAGS=$(LIB_G2C_A)
+if HAVE_INTEL_COMPILER
+# LIBS_ICC are the libs needed by the Intel compiler (if used)
+LIBS=-lirc
+else
 LIBS=
+endif
 
 foodir=$(prefix)/average
 foo_DATA= \

@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/11/06 01:32:46 $
- *    $Revision: 1.29 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/14 21:43:16 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -81,12 +81,16 @@ int devIsinf(float value);
 int devIsnan(float value);
 int devFinite(float value);
 
-int getMemoryUsed(); // return total virtual memory used by Progname in Kbytes
-                     // works only under Linux /proc system
-void printMemoryUsed(); // print function of the above.
+int getMemoryUsed(void); // return total virtual memory used by Progname 
+                     // in Kbytes. works only under Linux /proc system
+void printMemoryUsed(void); // print function of the above.
 char *strcpyalloc(char *str);
 int  ItemsInString(char *str);
 char *deblank(char *str);
 char *str_toupper(char *str);
+
+/* Necessary when Intel C/C++ compiler is used... */
+void __ltoq(void);
+void __qtol(void);
 
 #endif

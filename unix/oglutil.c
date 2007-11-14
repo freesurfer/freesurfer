@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/14 22:56:20 $
- *    $Revision: 1.28 $
+ *    $Date: 2007/11/14 21:40:19 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.28 2007/07/14 22:56:20 nicks Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.29 2007/11/14 21:40:19 nicks Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -215,7 +215,8 @@ OGLUsetLightingModel(float lite0, float lite1, float lite2, float lite3,
 
   /* material: change DIFFUSE,EMISSION (purpler: EMISSION=0.05*newoffset) */
   mat0_diffuse[0] = mat0_diffuse[1] = mat0_diffuse[2] = newoffset;
-  mat0_emission[0] = mat0_emission[1] = mat0_emission[2] = 0.1*newoffset;
+  mat0_emission[0] = mat0_emission[1] = 
+    mat0_emission[2] = (GLfloat)0.1*newoffset;
 
   /* lights: change DIFFUSE */
   light0_diffuse[0] = light0_diffuse[1] = light0_diffuse[2] = lite0;
@@ -370,9 +371,11 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
 
           radius = sqrt(SQR(v->cx)+SQR(v->cy)+SQR(v->cz)) ;
           itheta =
-            nint((DEGREES(v->theta) / oglu_coord_spacing)) * oglu_coord_spacing ;
+            nint((DEGREES(v->theta) / oglu_coord_spacing)) 
+            * oglu_coord_spacing ;
           iphi =
-            nint((DEGREES(v->phi)   / oglu_coord_spacing)) * oglu_coord_spacing ;
+            nint((DEGREES(v->phi)   / oglu_coord_spacing)) 
+            * oglu_coord_spacing ;
           phi = RADIANS((double)iphi) ;
           theta = RADIANS((double)itheta) ;
           xc = radius * sin(phi) * cos(v->theta) ;
