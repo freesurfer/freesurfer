@@ -1,0 +1,165 @@
+#! /bin/tcsh -ef
+
+#
+# mris_compute_lgi
+#
+# Creates average surfaces, curvatures, and volumes from a set of subjects.
+#
+# --help option will show usage
+#
+# Original Author: Marie Schaer and Nick Schmansky
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/11/14 21:38:19 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION = '$Id: mris_compute_lgi,v 1.1 2007/11/14 21:38:19 nicks Exp $'
+set PrintHelp = 0;
+set cmdargs = ($argv);
+
+if($#argv == 0) then
+  # zero args is not allowed
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+
+echo "Done."
+
+exit 0
+
+
+
+#----------------------------------------------------------#
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--help":
+      set PrintHelp = 1;
+      goto usage_exit;
+      exit 0;
+      breaksw
+
+    case "--version":
+      echo $VERSION
+      exit 0;
+      breaksw
+
+    case "--sd":
+    case "--sdir":
+      if ( $#argv == 0) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+   case "--debug":
+   case "--echo":
+      set echo = 1;
+      set verbose = 1
+      breaksw
+
+    default:
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+
+
+############--------------##################
+check_params:
+  if (! $?SUBJECTS_DIR) then
+    echo "ERROR: SUBJECTS_DIR is not declared!"
+    echo "  Either set the SUBJECTS_DIR environment variable,"
+    echo "  or declare using --sdir argument, the root directory"
+    echo "  for subject data files."
+    exit 1
+  endif
+  if(! -e $SUBJECTS_DIR ) then
+    echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
+    exit 1;
+  endif
+  if(! $?FREESURFER_HOME ) then
+    echo "ERROR: environment variable FREESURFER_HOME not set."
+    exit 1;
+  endif
+  if(! -e $FREESURFER_HOME ) then
+    echo "ERROR: FREESURFER_HOME $FREESURFER_HOME does not exist."
+    exit 1;
+  endif
+goto check_params_return;
+############--------------##################
+
+
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mris_compute_lgi"
+  echo ""
+  echo "Required Arguments"
+  echo ""
+  echo "Optional Arguments"
+  echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
+  echo "   --sd      : same as --sdir"
+  echo ""
+  echo "   --help    : short descriptive help"
+  echo "   --version : script version info"
+  echo "   --echo    : enable command echo, for debug"
+  echo "   --debug   : same as --echo"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo Version: $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+
+EXAMPLES
+
+Example 1:
+
+  mris_compute_lgi 
+
+See also http://surfer.nmr.mgh.harvard.edu/fswiki/LGI
