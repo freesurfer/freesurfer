@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/14 04:22:02 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/11/14 16:33:51 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /**
  * @file   mri_path2label.c
  * @author Kevin Teich
- * @date   $Date: 2007/11/14 04:22:02 $
+ * @date   $Date: 2007/11/14 16:33:51 $
  *
  * @brief  Converts scuba's path file format to a label file.
  *
@@ -66,8 +66,10 @@ static int  convert_path_to_label (char* fname, char* ofname);
 static int  convert_label_to_path (char* fname, char* ofname);
 static int  convert_single_path_to_label (char* fname, char* ofname);
 static int  convert_single_label_to_path (char* fname, char* ofname);
-static int connect_single_path(char* fname, char* ofname, char *subject, char *hemi) ;
-static int fill_single_path(char* fname, char* ofname, char *subject, char *hemi, int seed) ;
+
+static int connect_path(char* fname, char* ofname, char *subject, char *hemi) ;
+static int fill_path(char* fname, char* ofname, char *subject, char *hemi, int seed) ;
+static int con_and_fill_path(char* fname, char* ofname, char *subject, char *hemi, int seed) ;
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -75,7 +77,7 @@ static void usage_exit(void);
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 
-static char vcid[] = "$Id: mri_path2label.c,v 1.14 2007/11/14 04:22:02 greve Exp $";
+static char vcid[] = "$Id: mri_path2label.c,v 1.15 2007/11/14 16:33:51 greve Exp $";
 
 char* source_file          = NULL;
 char* dest_file            = NULL;
@@ -83,7 +85,7 @@ int   path_to_label  = 0;
 int   label_to_path  = 0;
 int   single_path          = 0;
 int connect = 0;
-int fill = 0, fillseed = -1;
+int fill = 0, con_and_fill = 0, fillseed = -1;
 char *subject=NULL, *hemi=NULL;
 int debug=0;
 int checkoptsonly=0;
@@ -99,7 +101,7 @@ int main(int argc, char *argv[])
   FILE* fp                   = NULL;
 
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_path2label.c,v 1.14 2007/11/14 04:22:02 greve Exp $", "$Name:  $");
+      "$Id: mri_path2label.c,v 1.15 2007/11/14 16:33:51 greve Exp $", "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
 
@@ -135,16 +137,21 @@ int main(int argc, char *argv[])
   if(connect){
     // Still under construction
     printf("Connecting vertices in path\n");
-    connect_single_path(source_file, dest_file, subject, hemi) ;
+    connect_path(source_file, dest_file, subject, hemi) ;
     exit(0);
   }
   if(fill){
     // Still under construction
     printf("Filling vertices in path\n");
-    fill_single_path(source_file, dest_file, subject, hemi, fillseed) ;
+    fill_path(source_file, dest_file, subject, hemi, fillseed) ;
     exit(0);
   }
-
+  if(con_and_fill){
+    // Still under construction
+    printf("Connecting and Filling vertices in path\n");
+    con_and_fill_path(source_file, dest_file, subject, hemi, fillseed) ;
+    exit(0);
+  }
 
   printf ("INFO: Converting %s\n", source_file);
   printf ("INFO:         to %s\n", dest_file);
@@ -209,6 +216,14 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%d",&fillseed);
       nargsused = 3;
     } 
+    else if (!strcasecmp(option, "--confill")){
+      if(nargc < 2) CMDargNErr(option,3);
+      con_and_fill = 1;
+      subject = pargv[0];
+      hemi    = pargv[1];
+      sscanf(pargv[2],"%d",&fillseed);
+      nargsused = 3;
+    } 
     else if (!strcasecmp(option, "--i")){
       if(nargc < 1) CMDargNErr(option,1);
       source_file = pargv[0];
@@ -263,7 +278,9 @@ static void print_usage(void) {
   printf("   --path2label : will treat input as a path and output a label\n");
   printf("   --label2path : will treat input as a label and output a path\n");
   printf("   --connect subject hemi : connect path (input and output must be paths)\n");
-  printf("   --fill subject hemi seedvtx : fill closed, connected path\n");
+  printf("   --fill subject hemi seedvtx : fill already closed, connected path\n");
+  printf("      input must be a path, output must be a label\n");
+  printf("   --confill subject hemi seedvtx : connect and fill path\n");
   printf("      input must be a path, output must be a label\n");
   printf("\n");
 }
@@ -605,7 +622,7 @@ static int convert_single_label_to_path (char* fname, char* ofname) {
 }
 
 /*---------------------------------------------------------------------------------*/
-static int connect_single_path(char* fname, char* ofname, char *subject, char *hemi) 
+static int connect_path(char* fname, char* ofname, char *subject, char *hemi) 
 {
   int     err;
   int     num_paths;
@@ -670,7 +687,7 @@ static int connect_single_path(char* fname, char* ofname, char *subject, char *h
   return(ERROR_NONE);
 }
 /*---------------------------------------------------------------------------------*/
-static int fill_single_path(char* fname, char* ofname, char *subject, char *hemi, int seed) 
+static int con_and_fill_path(char* fname, char* ofname, char *subject, char *hemi, int seed) 
 {
   int     err;
   int     num_paths;
@@ -743,6 +760,74 @@ static int fill_single_path(char* fname, char* ofname, char *subject, char *hemi
   MRISfree(&mris);
   free(final_path);
   free(vtxnolist);
+  LabelFree(&label);
+
+  return(ERROR_NONE);
+}
+
+
+/*---------------------------------------------------------------------------------*/
+static int fill_path(char* fname, char* ofname, char *subject, char *hemi, int seed) 
+{
+  int     err;
+  int     num_paths;
+  PATH **paths = NULL;
+  LABEL *label;
+  int  k, nlabel, nth;
+  char tmpstr[2000];
+  MRIS *mris;
+
+  /* Read the paths file. */
+  err = PathReadMany (fname, &num_paths, &paths);
+  if (ERROR_NONE != err) {
+    ErrorReturn (ERROR_BADFILE,
+                 (ERROR_BADFILE, "Couldn't read %s", fname));
+  }
+
+  /* Warn if we have more than one path. */
+  if (num_paths != 1) {
+    printf ("WARNING: Found multiple paths in paths file. \n"
+	    "Maybe you didn't mean to use the connect option?\n"
+	    "Will only convert first path\n\n");
+  }
+
+  sprintf(tmpstr,"%s/%s/surf/%s.orig",getenv("SUBJECTS_DIR"),subject,hemi);
+  printf("Reading %s\n",tmpstr);
+  mris = MRISread(tmpstr);
+  if(mris == NULL) exit(1);
+
+  // Make sure vals are 0
+  for(k=0; k < mris->nvertices; k++) mris->vertices[k].val = 0;
+
+  for(k=0; k < paths[0]->n_points; k++)
+    mris->vertices[paths[0]->points[k].vno].val = 1;
+
+  printf("Filling %d\n",seed);
+  MRISfill(mris, seed);
+
+  nlabel = 0;
+  for(k=0; k < mris->nvertices; k++) 
+    if(mris->vertices[k].val > 0.5) nlabel++;
+
+  printf("nlabel %d\n",nlabel);
+  label = LabelAlloc(nlabel, subject, "");
+  label->n_points = nlabel;
+  nth = 0;
+  for(k=0; k < mris->nvertices; k++){
+    if(mris->vertices[k].val < 0.5) continue;
+    label->lv[nth].vno = k;
+    label->lv[nth].x = mris->vertices[k].x;
+    label->lv[nth].y = mris->vertices[k].y;
+    label->lv[nth].z = mris->vertices[k].z;
+    label->lv[nth].stat = 0;
+    nth ++;
+  }
+  printf("Saving label file %s\n",ofname);
+  LabelWrite(label, ofname);
+
+  PathFree(&paths[0]);
+  free (paths);
+  MRISfree(&mris);
   LabelFree(&label);
 
   return(ERROR_NONE);
