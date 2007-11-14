@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/14 01:11:02 $
- *    $Revision: 1.12 $
+ *    $Date: 2007/11/14 03:29:07 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /**
  * @file   mri_path2label.c
  * @author Kevin Teich
- * @date   $Date: 2007/11/14 01:11:02 $
+ * @date   $Date: 2007/11/14 03:29:07 $
  *
  * @brief  Converts scuba's path file format to a label file.
  *
@@ -46,6 +46,9 @@
 #include "path.h"
 #include "error.h"
 #include "mrisutils.h"
+#include "cmdargs.h"
+#include "diag.h"
+#include "error.h"
 
 #ifdef Darwin
 #include "getline.h"
@@ -64,96 +67,50 @@ static int  convert_label_to_path (char* fname, char* ofname);
 static int  convert_single_path_to_label (char* fname, char* ofname);
 static int  convert_single_label_to_path (char* fname, char* ofname);
 static int connect_single_path(char* fname, char* ofname, char *subject, char *hemi) ;
+static int  parse_commandline(int argc, char **argv);
+static void check_options(void);
+static void usage_exit(void);
+static void print_version(void) ;
+static void dump_options(FILE *fp);
 
-struct option long_options[] = {
-                                 {"path2label", 0, 0, 0
-                                 },
-                                 {"label2path", 0, 0, 0},
-                                 {"single", 0, 0, 0},
-                                 {"help", 0, 0, 0},
-                                 {"connect", 0, 0, 0},
-                                 {0, 0, 0, 0}
-                               };
+static char vcid[] = "$Id: mri_path2label.c,v 1.13 2007/11/14 03:29:07 greve Exp $";
 
-int main(int argc, char *argv[]) {
+char* source_file          = NULL;
+char* dest_file            = NULL;
+int   path_to_label  = 0;
+int   label_to_path  = 0;
+int   single_path          = 0;
+int connect = 0;
+char *subject=NULL, *hemi=NULL;
+int debug=0;
+int checkoptsonly=0;
 
+/*-------------------------------------------------------------*/
+int main(int argc, char *argv[]) 
+{
   int   nargs;
-  int   c;
-  int   option_index;
-  char* source_file          = NULL;
-  char* dest_file            = NULL;
-  int   path_to_label  = 0;
-  int   label_to_path  = 0;
   int   source_is_label      = 0;
   int   source_is_path       = 0;
-  int   single_path          = 0;
   int   err                  = 0;
   FILE* fp                   = NULL;
-  int connect = 0;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.12 2007/11/14 01:11:02 greve Exp $", "$Name:  $");
-  if (nargs && argc - nargs == 1)
-    exit (0);
+  nargs = handle_version_option (argc, argv, 
+      "$Id: mri_path2label.c,v 1.13 2007/11/14 03:29:07 greve Exp $", "$Name:  $");
+  if(nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
 
   Progname = argv[0] ;
+  argc --;
+  argv++;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
+  if (argc == 0) usage_exit();
+  parse_commandline(argc, argv);
+  check_options();
+  if (checkoptsonly) return(0);
+  dump_options(stdout);
 
-  while (1) {
-    c = getopt_long (argc, argv, "h", long_options, &option_index);
-    if (c == -1)
-      break;
-
-    switch (c) {
-      /* Parsing a long option. */
-    case 0:
-      switch (option_index) {
-      case 0: // path2label
-        if (label_to_path) {
-          printf ("ERROR: Only specify one option.\n\n");
-          print_usage();
-          exit(0);
-        }
-        path_to_label = 1;
-        break;
-      case 1: // label2path
-        if (path_to_label) {
-          printf ("ERROR: Only specify one option.\n\n");
-          print_usage();
-          exit(0);
-        }
-        label_to_path = 1;
-        break;
-      case 2: // single
-        single_path = 1;
-        break;
-      case 3:
-        print_usage();
-        print_help();
-        exit(0);
-      case 4: // connect
-        connect = 1;
-        break;
-      }
-      break;
-
-    case 'h':
-      print_usage();
-      print_help();
-      exit (0);
-      break;
-    }
-  }
-
-  if ((argc - optind) != 2) {
-    printf ("ERROR: Please specify an input and output file.\n\n");
-    print_usage ();
-    exit (0);
-  }
-
-  source_file = strdup (argv[optind++]);
-  dest_file = strdup (argv[optind++]);
-
-  if (!label_to_path && !path_to_label) {
+  if(!label_to_path && !path_to_label) {
     err = guess_file_type (source_file, &source_is_path, &source_is_label);
     if (err) {
       printf ("ERROR: Couldn't determing source file type.\n");
@@ -197,8 +154,11 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+/*--------------------------------------------------------------------*/
+/*------ end main ------>>>>*<<<<<<-----------------------------------*/
+/*--------------------------------------------------------------------*/
 
-
+/*--------------------------------------------------------------------*/
 static void print_usage(void) {
   printf ("USAGE: %s [options] input output\n", Progname);
   printf ("\n");
@@ -208,10 +168,10 @@ static void print_usage(void) {
   printf ("\n");
 }
 
-
+/*--------------------------------------------------------------------*/
 static void print_help(void) {
   printf (
-    "  Purpose: Converts a path file to a label or a labe file to a path\n"
+    "  Purpose: Converts a path file to a label or a label file to a path\n"
     "  file. Attempts to guess the correct format by looking for\n"
     "  .path and .label suffixes and by looking at the first line in\n"
     "  the file. Use one of the options to override this behavior.\n"
@@ -226,7 +186,7 @@ static void print_help(void) {
   );
   printf ("\n");
 }
-
+/*--------------------------------------------------------------------*/
 static int guess_file_type (char* fname, int* is_path, int *is_label) {
   FILE*  fp         = NULL;
   char*  line       = NULL;
@@ -280,7 +240,7 @@ static int guess_file_type (char* fname, int* is_path, int *is_label) {
 
   return (ERROR_NONE);
 }
-
+/*--------------------------------------------------------------------*/
 static int convert_path_to_label (char* fname, char* ofname) {
   int     err;
   int     num_paths;
@@ -351,7 +311,7 @@ static int convert_path_to_label (char* fname, char* ofname) {
 
   return (ERROR_NONE);
 }
-
+/*--------------------------------------------------------------------*/
 static int convert_label_to_path (char* fname, char* ofname) {
   LABEL* label           = NULL;
   int    label_vno;
@@ -440,6 +400,7 @@ static int convert_label_to_path (char* fname, char* ofname) {
   return (ERROR_NONE);
 }
 
+/*--------------------------------------------------------------------*/
 static int convert_single_path_to_label (char* fname, char* ofname) {
   int     err;
   int     num_paths;
@@ -456,7 +417,9 @@ static int convert_single_path_to_label (char* fname, char* ofname) {
 
   /* Warn if we have more than one path. */
   if (num_paths != 1) {
-    printf ("WARNING: Found multiple paths in paths file. Maybe you didn't mean to use the single option? Will only convert first path\n\n");
+    printf ("WARNING: Found multiple paths in label file.\n"
+	    "Maybe you didn't mean to use the single option?\n"
+	    "Converting it to a single path.\n");
   }
 
   /* Convert our first path. */
@@ -510,7 +473,9 @@ static int convert_single_label_to_path (char* fname, char* ofname) {
 
   /* Make sure we only got one paths. */
   if (num_paths > 1) {
-    printf ("WARNING: Found multiple paths in label file. Maybe you didn't mean to use the single option? Converting it to a single path.\n");
+    printf ("WARNING: Found multiple paths in label file.\n"
+	    "Maybe you didn't mean to use the single option?\n"
+	    "Converting it to a single path.\n");
   }
 
   /* Allocate path objects. */
@@ -605,3 +570,82 @@ static int connect_single_path(char* fname, char* ofname, char *subject, char *h
   return(ERROR_NONE);
 }
 
+/*-----------------------------------------------------------*/
+static int parse_commandline(int argc, char **argv) {
+  int  nargc , nargsused;
+  char **pargv, *option ;
+
+  if (argc < 1) usage_exit();
+
+  nargc   = argc;
+  pargv = argv;
+  while (nargc > 0) {
+
+    option = pargv[0];
+    if (debug) printf("%d %s\n",nargc,option);
+    nargc -= 1;
+    pargv += 1;
+
+    nargsused = 0;
+
+    if (!strcasecmp(option, "--help"))  print_help() ;
+    else if (!strcasecmp(option, "--version")) print_version() ;
+    else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
+    else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--single")) single_path = 1;
+    else if (!strcasecmp(option, "--label2path")) label_to_path = 1;
+    else if (!strcasecmp(option, "--path2label")) path_to_label = 1;
+
+    else if (!strcasecmp(option, "--connect")){
+      if(nargc < 2) CMDargNErr(option,2);
+      connect = 1;
+      subject = pargv[0];
+      hemi    = pargv[1];
+      nargsused = 2;
+    } 
+    else if (!strcasecmp(option, "--i")){
+      if(nargc < 1) CMDargNErr(option,1);
+      source_file = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--o")){
+      if(nargc < 1) CMDargNErr(option,1);
+      dest_file = pargv[0];
+      nargsused = 1;
+    } 
+    else {
+      if(source_file == NULL) source_file = option;
+      else if(dest_file == NULL) dest_file = option;
+      else {
+	fprintf(stderr,"ERROR: Option %s unknown\n",option);
+	if(CMDsingleDash(option))
+	  fprintf(stderr,"       Did you really mean -%s ?\n",option);
+	exit(-1);
+      }
+    }
+    nargc -= nargsused;
+    pargv += nargsused;
+  }
+  return(0);
+}
+/*-----------------------------------------------------------*/
+static void usage_exit(void) {
+  print_usage() ;
+  exit(1) ;
+}
+/*-----------------------------------------------------------*/
+static void print_version(void) {
+  printf("%s\n", vcid) ;
+  exit(1) ;
+}
+/*-----------------------------------------------------------*/
+static void check_options(void) 
+{
+  return;
+}
+/*-----------------------------------------------------------*/
+static void dump_options(FILE *fp) 
+{
+  return;
+}
