@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/11/06 01:32:46 $
- *    $Revision: 1.65 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/14 19:41:03 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -243,10 +243,10 @@ QuadEqual(double a1, double a2)
 void
 fComplementCode(double *pdIn, double *pdOut, int iLen)
 {
-  int     i, iFullLen ;
+  int     i ;
   double  d ;
 
-  iFullLen = iLen * 2 ;
+//  int iFullLen = iLen * 2 ;
   for (i = 0 ; i < iLen ; i++, pdOut++)
   {
     d = *pdIn++ ;
@@ -414,7 +414,7 @@ StrReplace(char *src, char *dst, char csrc, int cdst)
   for (cp_src = src, cp_dst = dst ; *cp_src ; cp_src++, cp_dst++)
   {
     if (*cp_src == csrc)
-      *cp_dst = cdst ;
+      *cp_dst = (char)cdst ;
     else
       *cp_dst = *cp_src ;
   }
@@ -891,9 +891,9 @@ deltaAngle(float angle1, float angle2)
 
   delta = angle1 - angle2 ;
   if (delta > M_PI)
-    delta = 2.0 * M_PI - delta ;
+    delta = 2.0f * (float)M_PI - delta ;
   else if (delta < -M_PI)
-    delta = -2.0f * M_PI - delta ;
+    delta = -2.0f * (float)M_PI - delta ;
 
   return(delta) ;
 }
@@ -1010,11 +1010,12 @@ int devIsinf(float value)
 /* isnan non-zero if NaN, 0 otherwise */
 int devIsnan(float value)
 {
-  unsigned int s, e, f;
+  unsigned int e, f;
+//  unsigned int s;
 
   union ieee754_float v;
   v.f = value;
-  s = v.ieee.negative;
+//  s = v.ieee.negative;
   e = v.ieee.exponent;
   f = v.ieee.mantissa;
 
@@ -1193,6 +1194,7 @@ int ItemsInString(char *str)
   return(items); // should never get here
 }
 
+
 /*!
   \fn char *deblank(char *str)
   \brief removes blanks from a string.
@@ -1227,4 +1229,21 @@ char *str_toupper(char *str)
   return(0);
 }
 
+
+/*
+ * The Intel C/C++ compiler references the routines 'ltoq' and 'qtol', which
+ * don't seem to exist anywhere (not even in Google-land).  So dead-end
+ * routines are declared here (instead of trying to guess how long to quad
+ * should be implemented)...
+ */
+void __ltoq(void)
+{
+  printf("ERROR: Attempting usage of '__ltoq' routine!\n");
+  exit(1);
+}
+void __qtol(void)
+{
+  printf("ERROR: Attempting usage of '__qtol' routine!\n");
+  exit(1);
+}
 
