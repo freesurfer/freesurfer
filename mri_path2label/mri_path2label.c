@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.11 $
+ *    $Author: greve $
+ *    $Date: 2007/11/14 01:11:02 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /**
  * @file   mri_path2label.c
  * @author Kevin Teich
- * @date   $Date: 2006/12/29 02:09:08 $
+ * @date   $Date: 2007/11/14 01:11:02 $
  *
  * @brief  Converts scuba's path file format to a label file.
  *
@@ -45,6 +45,7 @@
 #include "label.h"
 #include "path.h"
 #include "error.h"
+#include "mrisutils.h"
 
 #ifdef Darwin
 #include "getline.h"
@@ -62,6 +63,7 @@ static int  convert_path_to_label (char* fname, char* ofname);
 static int  convert_label_to_path (char* fname, char* ofname);
 static int  convert_single_path_to_label (char* fname, char* ofname);
 static int  convert_single_label_to_path (char* fname, char* ofname);
+static int connect_single_path(char* fname, char* ofname, char *subject, char *hemi) ;
 
 struct option long_options[] = {
                                  {"path2label", 0, 0, 0
@@ -69,6 +71,7 @@ struct option long_options[] = {
                                  {"label2path", 0, 0, 0},
                                  {"single", 0, 0, 0},
                                  {"help", 0, 0, 0},
+                                 {"connect", 0, 0, 0},
                                  {0, 0, 0, 0}
                                };
 
@@ -86,8 +89,9 @@ int main(int argc, char *argv[]) {
   int   single_path          = 0;
   int   err                  = 0;
   FILE* fp                   = NULL;
+  int connect = 0;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.11 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_path2label.c,v 1.12 2007/11/14 01:11:02 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -126,6 +130,9 @@ int main(int argc, char *argv[]) {
         print_usage();
         print_help();
         exit(0);
+      case 4: // connect
+        connect = 1;
+        break;
       }
       break;
 
@@ -153,10 +160,8 @@ int main(int argc, char *argv[]) {
       exit (1);
     }
 
-    if (source_is_path)
-      path_to_label = 1;
-    if (source_is_label)
-      label_to_path = 1;
+    if(source_is_path)  path_to_label = 1;
+    if(source_is_label) label_to_path = 1;
   }
 
   fp = fopen (dest_file, "w");
@@ -166,26 +171,28 @@ int main(int argc, char *argv[]) {
   }
   fclose (fp);
 
+  if(connect){
+    // Still under construction
+    printf("Connecting vertices in path\n");
+    connect_single_path(source_file, dest_file, "bert", "lh") ;
+    exit(0);
+  }
+
+
   printf ("INFO: Converting %s\n", source_file);
   printf ("INFO:         to %s\n", dest_file);
-  if (path_to_label)
-    printf ("INFO: Path to label\n");
-  else
-    printf ("INFO: Label to path\n");
+  if(path_to_label) printf ("INFO: Path to label\n");
+  else              printf ("INFO: Label to path\n");
   printf ("\n");
-  if (single_path)
-    printf ("INFO: Converting a single path\n");
+
+  if (single_path) printf ("INFO: Converting a single path\n");
 
   if (single_path) {
-    if (path_to_label)
-      convert_single_path_to_label (source_file, dest_file);
-    else if (label_to_path)
-      convert_single_label_to_path (source_file, dest_file);
+    if(path_to_label) convert_single_path_to_label(source_file, dest_file);
+    else if (label_to_path) convert_single_label_to_path (source_file, dest_file);
   } else {
-    if (path_to_label)
-      convert_path_to_label (source_file, dest_file);
-    else if (label_to_path)
-      convert_label_to_path (source_file, dest_file);
+    if (path_to_label)      convert_path_to_label (source_file, dest_file);
+    else if (label_to_path) convert_label_to_path (source_file, dest_file);
   }
 
   return 0;
@@ -530,5 +537,71 @@ static int convert_single_label_to_path (char* fname, char* ofname) {
   free (paths);
 
   return (ERROR_NONE);
+}
+
+/*---------------------------------------------------------------------------------*/
+static int connect_single_path(char* fname, char* ofname, char *subject, char *hemi) 
+{
+  int     err;
+  int     num_paths;
+  PATH **paths = NULL, *newpath;
+
+  int *vtxnolist,*final_path, path_length, k, vtxno;
+  char tmpstr[2000];
+  MRIS *mris;
+
+  /* Read the paths file. */
+  err = PathReadMany (fname, &num_paths, &paths);
+  if (ERROR_NONE != err) {
+    ErrorReturn (ERROR_BADFILE,
+                 (ERROR_BADFILE, "Couldn't read %s", fname));
+  }
+
+  /* Warn if we have more than one path. */
+  if (num_paths != 1) {
+    printf ("WARNING: Found multiple paths in paths file. \n"
+	    "Maybe you didn't mean to use the connect option?\n"
+	    "Will only convert first path\n\n");
+  }
+
+  sprintf(tmpstr,"%s/%s/surf/%s.orig",getenv("SUBJECTS_DIR"),subject,hemi);
+  printf("Reading %s\n",tmpstr);
+  mris = MRISread(tmpstr);
+  if(mris == NULL) exit(1);
+
+  final_path = (int*) calloc(mris->nvertices,sizeof(int));
+  vtxnolist = (int*) calloc(paths[0]->n_points,sizeof(int));
+  for(k=0; k < paths[0]->n_points; k++)
+    vtxnolist[k] = paths[0]->points[k].vno;
+
+  MRISfindPath(vtxnolist, paths[0]->n_points, mris->nvertices, 
+	       final_path, &path_length, mris );
+
+  newpath = PathAlloc(path_length,"");
+  newpath->n_points = path_length;
+  newpath->points = (PATH_POINT *) calloc(path_length,sizeof(PATH_POINT));
+  for(k=0; k < path_length; k++){
+    vtxno = final_path[k];
+    newpath->points[k].vno = vtxno;
+    newpath->points[k].x = mris->vertices[vtxno].x;
+    newpath->points[k].y = mris->vertices[vtxno].y;
+    newpath->points[k].z = mris->vertices[vtxno].z;
+  }
+
+  /* Write the path file. */
+  err = PathWriteMany (ofname, 1, &newpath);
+  if (0 != err) {
+    ErrorReturn (ERROR_BADFILE,
+                 (ERROR_BADFILE, "Couldn't write to %s", ofname));
+  }
+
+  PathFree(&paths[0]);
+  free (paths);
+  PathFree(&newpath);
+  MRISfree(&mris);
+  free(final_path);
+  free(vtxnolist);
+
+  return(ERROR_NONE);
 }
 
