@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/10/25 20:07:20 $
-#    $Revision: 1.29 $
+#    $Date: 2007/11/15 21:02:56 $
+#    $Revision: 1.30 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.29 2007/10/25 20:07:20 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.30 2007/11/15 21:02:56 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -396,7 +396,7 @@ if($#epidw != 0) then
   while($nthframe < $nframes)
     set invol  = $tmpdir/epi-split/`printf vol%04d.$ext $nthframe`;
     set outvol = $tmpdir/epi-split/`printf voldw%04d.$ext $nthframe`;
-    set cmd = (fugue -i $invol -u $outvol --loadshift=$vsm --mask=$brain );
+    set cmd = (fugue -i $invol -u $outvol --loadshift=$vsm --mask=$exfbrain );
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
