@@ -19,8 +19,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/15 23:02:26 $
- *    $Revision: 1.16 $
+ *    $Date: 2007/11/15 23:07:04 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static int MRISfill(MRIS *mris, int seedvtxno);
 
 static char vcid[] = 
-"$Id: mri_path2label.c,v 1.16 2007/11/15 23:02:26 nicks Exp $";
+"$Id: mri_path2label.c,v 1.17 2007/11/15 23:07:04 nicks Exp $";
 
 char* source_file          = NULL;
 char* dest_file            = NULL;
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_path2label.c,v 1.16 2007/11/15 23:02:26 nicks Exp $", 
+     "$Id: mri_path2label.c,v 1.17 2007/11/15 23:07:04 nicks Exp $", 
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -311,6 +311,8 @@ static void print_usage(void) {
   printf("      input must be a path, output must be a label\n");
   printf("   --confill subject hemi seedvtx : connect and fill path\n");
   printf("      input must be a path, output must be a label\n");
+  printf("   --i source_file : the path file, if path2label\n");
+  printf("   --o dest_file   : the label file, if path2label\n");
   printf("\n");
 }
 
