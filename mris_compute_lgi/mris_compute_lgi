@@ -10,8 +10,8 @@
 # Original Author: Marie Schaer and Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/15 20:56:49 $
-#    $Revision: 1.4 $
+#    $Date: 2007/11/15 21:10:16 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.4 2007/11/15 20:56:49 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.5 2007/11/15 21:10:16 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
@@ -59,7 +59,7 @@ if ($RunIt) $cmd
 # create a filled-volume from the input surface file...
 set cmd=(mris_fill -c -r 1 ${input} ${tmpdir}/${input}.filled.mgz)
 echo "=================\n$cmd\n================="
-#if ($RunIt) $cmd
+if ($RunIt) $cmd
 
 
 # create the outer surface from the filled volume
@@ -69,7 +69,7 @@ set arg2 = 15
 set arg3 = ${tmpdir}/${input}-outer
 echo "make_outer_surface('${arg1}',${arg2},'${arg3}')" > $MLF
 echo "=================\n`cat $MLF`\n================="
-#if ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
+if ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
 
 
 # smooth this jaggy, tessellated surface
@@ -77,7 +77,15 @@ set cmd=(mris_smooth -nw -n 3 \
     ${tmpdir}/${input}-outer \
     ${tmpdir}/${input}-outer-smoothed)
 echo "=================\n$cmd\n================="
-#if ($RunIt) $cmd
+if ($RunIt) $cmd
+
+
+# output normals of the smoothed outer surface
+set cmd=(mris_convert -n \
+    {tmpdir}/${input}-outer-smoothed \
+    {tmpdir}/${input}-outer-smoothed-normals.asc)
+echo "=================\n$cmd\n================="
+if ($RunIt) $cmd
 
 
 # create ROI center files
