@@ -21,7 +21,9 @@ else if  ("$PROC" == "x86_64") then
 
   # the Intel compiler produces an x86_64 tetgen that produces results 
   # that match the i686 platform, so compare against that
-  if ( "x${CC}" == "xicc" ) set PROC=i686
+  if ( $?CC ) then 
+    if ( "x${CC}" == "xicc" ) set PROC=i686
+  endif
 else if  ("$PROC" == "Power Macintosh") then
   # PowerPC Mac produces the same results as x86_64
   set PROC=x86_64
