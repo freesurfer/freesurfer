@@ -10,8 +10,8 @@
 # Original Author: Marie Schaer and Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/15 21:10:16 $
-#    $Revision: 1.5 $
+#    $Date: 2007/11/15 23:22:18 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.5 2007/11/15 21:10:16 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.6 2007/11/15 23:22:18 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
@@ -49,17 +49,23 @@ check_params_return:
 
 # temporary work files go here...
 set cmd=(rm -Rf $tmpdir)
-echo "=================\n$cmd\n================="
-if ($RunIt) $cmd
+echo "================="
+echo "$cmd"
+echo "================="
+#if ($RunIt) $cmd
 set cmd=(mkdir -p $tmpdir)
-echo "=================\n$cmd\n================="
+echo "================="
+echo "$cmd"
+echo "================="
 if ($RunIt) $cmd
 
 
 # create a filled-volume from the input surface file...
 set cmd=(mris_fill -c -r 1 ${input} ${tmpdir}/${input}.filled.mgz)
-echo "=================\n$cmd\n================="
-if ($RunIt) $cmd
+echo "================="
+echo "$cmd"
+echo "================="
+#if ($RunIt) $cmd
 
 
 # create the outer surface from the filled volume
@@ -68,24 +74,30 @@ set arg1 = ${tmpdir}/${input}.filled.mgz
 set arg2 = 15
 set arg3 = ${tmpdir}/${input}-outer
 echo "make_outer_surface('${arg1}',${arg2},'${arg3}')" > $MLF
-echo "=================\n`cat $MLF`\n================="
-if ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
+echo "================="
+echo "`cat $MLF`"
+echo "================="
+#if ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
 
 
 # smooth this jaggy, tessellated surface
 set cmd=(mris_smooth -nw -n 3 \
     ${tmpdir}/${input}-outer \
     ${tmpdir}/${input}-outer-smoothed)
-echo "=================\n$cmd\n================="
-if ($RunIt) $cmd
+echo "================="
+echo "$cmd"
+echo "================="
+#if ($RunIt) $cmd
 
 
 # output normals of the smoothed outer surface
 set cmd=(mris_convert -n \
-    {tmpdir}/${input}-outer-smoothed \
-    {tmpdir}/${input}-outer-smoothed-normals.asc)
-echo "=================\n$cmd\n================="
-if ($RunIt) $cmd
+    ${tmpdir}/${input}-outer-smoothed \
+    ${tmpdir}/${input}-outer-smoothed-normals.asc)
+echo "================="
+echo "$cmd"
+echo "================="
+#if ($RunIt) $cmd
 
 
 # create ROI center files
@@ -95,19 +107,37 @@ set arg2 = ${tmpdir}/${input}-outer-smoothed
 set arg3 = ${tmpdir}
 echo "find_corresponding_center_FSformat('${arg1}','${arg2}','${arg3}')" \
   > $MLF
-echo "=================\n`cat $MLF`\n================="
-if ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
+echo "================="
+echo "`cat $MLF`"
+echo "================="
+#if ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
 
 
 # create ROI path files
 
 
 # create ROI label files
+set vertices = `cat ${tmpdir}/${input}.center.vertices`
+foreach v ($vertices)
+  set center = `cat ${tmpdir}/${input}.${v}.center`
+  set cmd = (mri_path2label \
+    --single \
+    --path2label \
+    --fillx ${input} ${center} \
+    --i ${tmpdir}/${input}.${v}.path \
+    --o ${tmpdir}/${input}.${v}.label)
+    echo "================="
+    echo "$cmd"
+    echo "================="
+    if ($RunIt) $cmd
+end
 
 
 # finally, compute lGI measurements
 set cmd=(compute_lgi)
-echo "=================\n$cmd\n================="
+echo "================="
+echo "$cmd"
+echo "================="
 if ($RunIt) $cmd
 
 
