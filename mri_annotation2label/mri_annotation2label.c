@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/06/01 00:37:10 $
- *    $Revision: 1.13 $
+ *    $Author: greve $
+ *    $Date: 2007/11/15 20:34:27 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.13 2007/06/01 00:37:10 fischl Exp $
+  $Id: mri_annotation2label.c,v 1.14 2007/11/15 20:34:27 greve Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -49,6 +49,7 @@
 #include "label.h"
 #include "annotation.h"
 #include "version.h"
+#include "mri.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -62,7 +63,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.13 2007/06/01 00:37:10 fischl Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.14 2007/11/15 20:34:27 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -86,6 +87,11 @@ char annotfile[1000];
 char labelfile[1000];
 int  nperannot[1000];
 
+char *segfile=NULL;
+MRI  *seg;
+int  segbase = -1000;
+
+MRI *MRISannot2seg(MRIS *surf, int base);
 
 /*-------------------------------------------------*/
 /*-------------------------------------------------*/
@@ -95,7 +101,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.13 2007/06/01 00:37:10 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.14 2007/11/15 20:34:27 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -160,6 +166,26 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  if(segfile != NULL){
+    printf("Converting to a segmentation\n");
+    if(segbase == -1000){
+      // segbase has not been set with --segbase
+      if(!strcmp(annotation,"aparc")){
+	if(!strcmp(hemi,"lh")) segbase = 1000;
+	else                   segbase = 2000;
+      }
+      else if(!strcmp(annotation,"aparc.a2005s")){
+	if(!strcmp(hemi,"lh")) segbase = 1100;
+	else                   segbase = 2100;
+      }
+      else segbase = 0;
+    }
+    printf("Seg base %d\n",segbase);
+    seg = MRISannot2seg(Surf,segbase);
+    MRIwrite(seg,segfile);
+    exit(1);
+  }
+
   /* Determine which indices are present in the file by
      examining the index at each vertex */
   animax = -1;
@@ -221,6 +247,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--version")) print_version() ;
 
     else if (!strcmp(option, "--debug"))   debug = 1;
+    else if (!strcmp(option, "--a2005s"))  annotation = "aparc.a2005s";
 
     /* -------- source inputs ------ */
     else if (!strcmp(option, "--subject")) {
@@ -252,6 +279,14 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       hemi = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--seg")) {
+      if (nargc < 1) argnerr(option,1);
+      segfile = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--segbase")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&segbase);
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -274,11 +309,15 @@ static void print_usage(void) {
   printf("\n");
   printf("   --subject    source subject\n");
   printf("   --hemi       hemisphere (lh or rh) (with surface)\n");
+  printf("\n");
+  printf("Output options:\n");
   printf("   --labelbase  output will be base-XXX.label \n");
   printf("   --outdir dir :  output will be dir/hemi.name.label \n");
+  printf("   --seg segfile : output will be a segmentation 'volume'\n");
+  printf("   --segbase base : add base to the annotation number to get seg value\n");
   printf("\n");
   printf("   --annotation as found in SUBJDIR/labels <aparc>\n");
-  printf("   --surface    name of surface <white>\n");
+  printf("   --surface    name of surface <white>. Only affect xyz in label.\n");
   printf("\n");
   printf("   --table : obsolete. Now gets from annotation file\n");
   printf("\n");
@@ -291,8 +330,9 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"subject = %s\n",subject);
   fprintf(fp,"annotation = %s\n",annotation);
   fprintf(fp,"hemi = %s\n",hemi);
-  if (labelbase) fprintf(fp,"labelbase = %s\n",labelbase);
-  if (outdir) fprintf(fp,"outdir = %s\n",labelbase);
+  if(labelbase) fprintf(fp,"labelbase = %s\n",labelbase);
+  if(outdir)    fprintf(fp,"outdir = %s\n",labelbase);
+  if(segfile)   fprintf(fp,"segfile = %s\n",segfile);
   fprintf(fp,"surface   = %s\n",surfacename);
   fprintf(fp,"\n");
   return;
@@ -300,7 +340,8 @@ static void dump_options(FILE *fp) {
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
-  printf("This program will convert an annotation into multiple label files.\n");
+  printf("This program will convert an annotation into multiple label files\n");
+  printf("or into a segmentaion 'volume'.\n\n");
 
   printf(
     "User specifies the subject, hemisphere, label base, and (optionally)\n"
@@ -324,6 +365,19 @@ static void print_help(void) {
     "necessary (or possible) to specify the table explicitly with the\n"
     "--table option.\n"
     " \n"
+    "--seg segfile \n"
+    "--segbase segbase \n"
+    " \n"
+    "Convert annotation into a volume-encoded surface segmentation file. This \n"
+    "is a volume format where the value at each 'voxel' is an integer index.\n"
+    "The value of the index depends on several factors. By default, it should \n"
+    "match the index for the label as found in $FREESURFER_HOME/FreeSurferColorLUT.txt;\n"
+    "this requires that the annotation be either aparc or aparc.a2005s. If \n"
+    "aparc and hemi=lh, then segbase=1000, etc. This makes the index match\n"
+    "that found in aparc+aseg.mgz. If the annotation is neither \n"
+    "aparc nor aparc.a2005s, then segbase=0. This behavior can be overridden \n"
+    "by manually specifying a segbase with --segbase.\n"
+    "\n"
     "Bugs:\n"
     "\n"
     "  If the name of the label base does not include a forward slash (ie, '/') \n"
@@ -398,7 +452,7 @@ static void check_options(void) {
     fprintf(stderr,"ERROR: No hemisphere specified\n");
     exit(1);
   }
-  if (outdir == NULL && labelbase == NULL) {
+  if(outdir == NULL && labelbase == NULL && segfile == NULL) {
     fprintf(stderr,"ERROR: no output specified\n");
     exit(1);
   }
