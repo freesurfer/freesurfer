@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/30 14:40:10 $
- *    $Revision: 1.19 $
+ *    $Author: greve $
+ *    $Date: 2007/11/15 20:33:31 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -682,4 +682,28 @@ int MRISmergeAnnotations(MRIS *mris, int nparcs, char **parcnames, char *newparc
   free(annotlist);
 
   return(NO_ERROR);
+}
+
+/*---------------------------------------------------------------*/
+/*!
+  \fn MRI *MRISannot2seg(MRIS *surf, int base)
+  \brief Constructs a 'segmentation' MRI from an annotation. The
+  segmentation index is the annotation ID + base. See mri_annnotation2label 
+  for more details on setting the base. The returned
+  MRI is a volume-encoded surface.   
+*/
+MRI *MRISannot2seg(MRIS *surf, int base)
+{
+  int k, annot, annotid;
+  MRI *seg;
+  
+  seg = MRIalloc(surf->nvertices,1,1,MRI_INT);
+
+  for(k=0; k < surf->nvertices; k++){
+    annot = surf->vertices[k].annotation;
+    if(surf->ct)  CTABfindAnnotation(surf->ct, annot, &annotid);
+    else          annotid = annotation_to_index(annot);
+    MRIsetVoxVal(seg,k,0,0,0, annotid + base);
+  }
+  return(seg);
 }

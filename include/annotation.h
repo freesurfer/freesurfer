@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/08 03:47:42 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/11/15 20:33:30 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,5 +49,6 @@ int set_atable_from_ctable(COLOR_TABLE *pct);
 int  MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) ;
 int  MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits) ;
 int  MRISmergeAnnotations(MRIS *mris, int nparcs, char **parcnames, char *newparcname);
+MRI *MRISannot2seg(MRIS *surf, int base);
 
 #endif
