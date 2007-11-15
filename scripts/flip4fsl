@@ -1,0 +1,194 @@
+#! /bin/tcsh -f
+#
+# flip4fsl
+#
+# Flip NIfTI image data and change orientation in header to please FSL
+#
+# Original Author: Anastasia Yendiki
+# CVS Revision Info:
+#    $Author: ayendiki $
+#    $Date: 2007/11/15 22:25:00 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+if ($#argv < 2) then
+  echo $argv | grep -q " --help"
+  if (! $status || $#argv == 0) then
+    goto usage
+  else
+    echo "ERROR: not enough arguments"
+    exit 1
+  endif
+endif
+
+set in = $1
+set out = $2
+if ($#argv == 3 && $3 == "--check") then
+  set docheck = 1
+else
+  set docheck = 0
+endif
+
+if !(-e $in) then
+  echo "ERROR: $in does not exist"
+  exit 1
+endif
+
+mri_info $in | grep type | grep -q nii
+if $status then
+  echo "ERROR: input file must be in NIfTI format"
+  exit 1
+endif
+
+set inorient = `mri_info $in | grep Orientation | awk '{print $3}'`
+set indeterm = `mri_info $in | grep determinant | awk '{print $3}'`
+echo "INFO: input image orientation is $inorient"
+echo "INFO: input image determinant is $indeterm"
+
+set sign = `echo $inorient | sed "s/[LAS]/+\ /g; s/[RPI]/-\ /g"`
+set order = `echo $inorient | sed "s/[LR]/1\ /; s/[AP]/2\ /; s/[IS]/3\ /"`
+set xyz = (x y z)
+set swapstr
+foreach k (1 2 3)
+  set swapstr = ($swapstr $sign[$order[$k]]$xyz[$order[$k]])
+end
+set swapstr = `echo $swapstr | sed "s/+/\ /g"`
+
+set cmd = (fslswapdim $in $swapstr $out)
+echo $cmd
+$cmd | & grep -q "Flipping Left/Right orientation"
+
+if !($status) then
+  set fslflipx = 1
+  echo "INFO: left-right orientation was flipped by fslswapdim"
+endif
+
+set cmd = (fslorient -forceradiological $out)
+echo $cmd
+$cmd
+
+set inbase = `echo $in | awk -v FS=.nii '{print $1}'`
+set outbase = `echo $out | awk -v FS=.nii '{print $1}'`
+
+set inbvals = $inbase.mghdti.bvals
+set outbvals = $outbase.mghdti.bvals
+if (-e $inbvals) then
+  echo "INFO: found $inbvals, converting to FSL format"
+  printf '%s ' `cat $inbvals` > $outbvals
+  printf '\n' >> $outbvals
+endif
+
+set inbvecs = $inbase.mghdti.bvecs
+set outbvecs = $outbase.mghdti.bvecs
+if (-e $inbvecs) then
+  echo "INFO: found $inbvecs, converting to FSL format"
+  if $fslflipx then
+    set sign = `echo $inorient | sed "s/[RAS]/+\ /g; s/[LPI]/-\ /g"`
+  endif
+  cp /dev/null $outbvecs
+  foreach k (1 2 3)
+    printf '%s ' `cat $inbvecs | awk -v sgn=$sign[$order[$k]]1 -v n=$order[$k] '{print sgn*$n}'` >> $outbvecs
+    printf '\n' >> $outbvecs
+  end
+endif
+
+if $docheck then
+  set tmpdir = /tmp/checkswap.$$
+  mkdir -p $tmpdir
+
+  #
+  # General check for images
+  #
+  set nframes = `mri_info $in | grep nframes | awk '{print $2}'`
+  if ($nframes > 1) then
+    set inframe = $tmpdir/`basename $inbase`.0.nii.gz
+    set outframe = $tmpdir/`basename $outbase`.0.nii.gz
+    set cmd = (mri_convert $in $inframe --frame 0)
+    echo $cmd
+    $cmd
+    set cmd = (mri_convert $out $outframe --frame 0)
+    echo $cmd
+    $cmd
+  else
+    set inframe = $in
+    set outframe = $out
+  endif
+  echo "INFO: checking that image was reoriented correctly"
+  echo "INFO: inspect overlap in tkregister window"
+  set cmd = tkregister2 
+  set cmd = ($cmd --targ $inframe --mov $outframe)
+  set cmd = ($cmd --regheader --reg $tmpdir/register.dat)
+  echo $cmd
+  $cmd &
+
+  #
+  # Diffusion tensor check for images + bvecs
+  #
+  if (-e $outbvals && -e $outbvecs) then
+    set cmd = (fslroi $out $tmpdir/nodif.nii.gz 0 1)
+    echo $cmd
+    $cmd
+    set cmd = (bet $tmpdir/nodif.nii.gz $tmpdir/nodif_brain.nii.gz -m)
+    echo $cmd
+    $cmd
+    set cmd = dtifit
+    set cmd = ($cmd -k $out -b $outbvals -r $outbvecs)
+    set cmd = ($cmd -m $tmpdir/nodif_brain_mask.nii.gz -o $tmpdir/dtifit)
+    echo $cmd
+    $cmd
+    echo "INFO: checking that image & bvecs were reoriented correctly"
+    echo "INFO: inspect tensors in fslview window"
+    set cmd = (fslview $tmpdir/dtifit_FA.nii.gz $tmpdir/dtifit_V1.nii.gz)
+    echo $cmd
+    $cmd &
+  endif
+endif
+
+exit 0
+
+############--------------##################
+usage:
+    echo "Usage:"
+    echo "  $0 inputimage outputimage [--check]"
+    echo
+    echo "Flip image data and change orientation in header to please FSL."
+    echo
+    echo "The input image must be in NIfTI format. The output image"
+    echo "will be in NIfTI format with LAS orientation."
+    echo
+    echo "The optional argument --check will bring up a tkregister"
+    echo "window with the input and output image so you can check"
+    echo "that they match completely."
+    echo
+    echo "Extra features for diffusion data"
+    echo "---------------------------------"
+    echo "You can convert your diffusion DICOM files by running:"
+    echo "  mri_convert your_diffusion.dcm your_diffusion.nii.gz"
+    echo "This produces an image file, your_diffusion.nii.gz, as well"
+    echo "as a gradient text file, your_diffusion.mghdti.bvecs, and a" 
+    echo "b-value text file, your_diffusion.mghdti.bvals."
+    echo
+    echo "If you then run this script on the converted image:"
+    echo "  $0 your_diffusion.nii.gz your_swapped_diffusion.nii.gz"
+    echo "it will also detect the bvecs and bvals files, swap the bvecs"
+    echo "to match the image swap, and convert the bvecs and bvals to"
+    echo "FSL-friendly (column-wise rather than row-wise) format."
+    echo
+    echo "For such data, the optional argument --check will also run"
+    echo "dtifit and bring up an fslview window with the tensors."
+    echo
+
+    exit 1
+
