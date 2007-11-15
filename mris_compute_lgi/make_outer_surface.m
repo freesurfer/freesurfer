@@ -50,7 +50,7 @@ function make_outer_surface (filled_volume, se_diameter, output_surface)
     % open it as a big-endian file
     fid = fopen(fname, 'wb', 'b');
     TRIANGLE_FILE_MAGIC_NUMBER = 16777214;
-    freesurfer_fwrite3(fid, TRIANGLE_FILE_MAGIC_NUMBER);
+    fwrite3(fid, TRIANGLE_FILE_MAGIC_NUMBER);
     
     % Ouput a couple of text lines with creation date
     str = sprintf('created from matlab on %s\n',datestr(now))
