@@ -2,7 +2,7 @@
 ## Makefile.am 
 ##
 
-dist_bin_SCRIPTS = mris_compute_lgi make_outer_surface
+dist_bin_SCRIPTS = mris_compute_lgi
 
 foodir=$(prefix)/matlab
 foo_DATA= $(wildcard *.m)
