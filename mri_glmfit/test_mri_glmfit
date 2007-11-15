@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/14 21:44:05 $
-#    $Revision: 1.6 $
+#    $Date: 2007/11/15 04:00:05 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_glmfit,v 1.6 2007/11/14 21:44:05 nicks Exp $'
+set VERSION='$Id: test_mri_glmfit,v 1.7 2007/11/15 04:00:05 nicks Exp $'
 
 umask 002
 
@@ -74,7 +74,9 @@ end
 
 # eres.mgh 
 set THRESHOLD=0.00007
-if ( "x$CC" == "xicc" ) set THRESHOLD=0.005
+if ( $?CC ) then
+  if ( "x$CC" == "xicc" ) set THRESHOLD=0.005
+endif
 set TEST_FILES=( ar1.mgh beta.mgh mask.mgh rstd.mgh rvar.mgh )
 foreach tstvol ($TEST_FILES)
   # now compare expected with observed data
@@ -94,7 +96,9 @@ foreach tstvol ($TEST_FILES)
 end
 
 set THRESHOLD=0.008
-if ( "x$CC" == "xicc" ) set THRESHOLD=0.4
+if ( $?CC ) then
+  if ( "x$CC" == "xicc" ) set THRESHOLD=0.4
+endif
 set EXPECTED=expected.lh.gender_age.glmdir/age
 set ACTUAL=lh.gender_age.glmdir/age
 set TEST_FILES=( F.mgh gamma.mgh sig.mgh )
