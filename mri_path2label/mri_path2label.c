@@ -19,8 +19,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/15 23:07:04 $
- *    $Revision: 1.17 $
+ *    $Date: 2007/11/15 23:13:41 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static int MRISfill(MRIS *mris, int seedvtxno);
 
 static char vcid[] = 
-"$Id: mri_path2label.c,v 1.17 2007/11/15 23:07:04 nicks Exp $";
+"$Id: mri_path2label.c,v 1.18 2007/11/15 23:13:41 nicks Exp $";
 
 char* source_file          = NULL;
 char* dest_file            = NULL;
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_path2label.c,v 1.17 2007/11/15 23:07:04 nicks Exp $", 
+     "$Id: mri_path2label.c,v 1.18 2007/11/15 23:13:41 nicks Exp $", 
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -154,26 +154,27 @@ int main(int argc, char *argv[])
   if(connect){
     // Still under construction
     printf("Connecting vertices in path\n");
-    connect_path(source_file, dest_file, subject, hemi) ;
-    exit(0);
+    int stat=connect_path(source_file, dest_file, subject, hemi) ;
+    exit(stat);
   }
   if(fill){
     // Still under construction
     printf("Filling vertices in path\n");
-    fill_path(source_file, dest_file, subject, hemi, fillseed) ;
-    exit(0);
+    int stat=fill_path(source_file, dest_file, subject, hemi, fillseed) ;
+    exit(stat);
   }
   if(fillx){
     // Still under construction
     printf("Filling vertices in path\n");
-    fill_pathx(source_file, dest_file, surfacefname, fillseed) ;
-    exit(0);
+    int stat=fill_pathx(source_file, dest_file, surfacefname, fillseed) ;
+    exit(stat);
   }
   if(con_and_fill){
     // Still under construction
     printf("Connecting and Filling vertices in path\n");
-    con_and_fill_path(source_file, dest_file, subject, hemi, fillseed) ;
-    exit(0);
+    int stat=
+      con_and_fill_path(source_file, dest_file, subject, hemi, fillseed) ;
+    exit(stat);
   }
 
   printf ("INFO: Converting %s\n", source_file);
