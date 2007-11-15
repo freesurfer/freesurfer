@@ -18,14 +18,15 @@ function find_corresponding_center_FSformat (pial, outersmoothed, outdir)
 % 
 % Output:
 %  c_* asci files containing the index of the mesh_pial vertex
-%  corresponding to the vertex number * of the outer mesh
+%  corresponding to the vertex number * of the outer mesh,
+%  and a file named 'center.vertices' which contains selected vertices
 
 t0 = cputime;    
 
 [mesh_pial.vertices, mesh_pial.faces] = read_surf(pial);
 [mesh_outer.vertices, mesh_outer.faces] = read_surf(outersmoothed);
 
-
+fidv = fopen([outdir '/' pial '.center.vertices'], 'w') ;
 
 for iV = 1 :100: length(mesh_outer.vertices) 
         
@@ -37,6 +38,9 @@ for iV = 1 :100: length(mesh_outer.vertices)
     fprintf(fid,'%d\n',centerSeed);
     fclose(fid) ;
 
+    fprintf(fidv,'%s\n',p);
 end
     
+fclose(fidv) ;
+
 deltaT = cputime - t0
