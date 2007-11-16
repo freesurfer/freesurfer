@@ -85,11 +85,12 @@ clear nbVertices
         % ------- Part2: Define the corresponding set of points on the pial surface:
         % Transfer a few points of the perimeter of the hull's ROI from 
         % the envelope to the pial surface, and save them as path file.
-        [verticeslist] = SearchProjectionOnPial(mesh_total, mesh_outer, perim, 7);
+        step = 7;
+        [verticeslist] = SearchProjectionOnPial(mesh_total, mesh_outer, perim, step);
         
         % reorganize the set of points in the right order to input them to
         % mri_path2label
-        reorglist = reorganize_verticeslist (mesh_total, A, verticeslist);
+        reorglist = reorganize_verticeslist (mesh_total, A, mesh_outer, perim, verticeslist, step);
         lindex = reorglist -1 ; lindex = lindex';
         lxyz = mesh_total.vertices(lindex,:);
         

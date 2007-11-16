@@ -1,4 +1,4 @@
-function [verticeslist_org] = reorganize_verticeslist (mesh_total, A, verticeslist)
+function [verticeslist_org] = reorganize_verticeslist (mesh_total, A, mesh_outer, perim, verticeslist,step)
 
 % --- Step 1: iterative reorganization of the vertices' list 
 % (each vertex must appear in the right order so that they can be
@@ -13,6 +13,13 @@ function [verticeslist_org] = reorganize_verticeslist (mesh_total, A, verticesli
 start_vertex=1;
 reorglist=[];
 while ( size (reorglist,2) ~= (size(verticeslist,2)+1) )  
+    
+    if start_vertex>=size(verticeslist,2);
+        step = step +1;
+        [verticeslist]=SearchProjectionOnPial(mesh_total,mesh_outer,perim,step);
+        start_vertex = 1;
+    end
+    
     reorglist=verticeslist(start_vertex);
     remaininglist=verticeslist;
     remaininglist(start_vertex)=[];
