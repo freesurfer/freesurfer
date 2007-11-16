@@ -19,8 +19,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/15 23:13:41 $
- *    $Revision: 1.18 $
+ *    $Date: 2007/11/16 02:07:53 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static int MRISfill(MRIS *mris, int seedvtxno);
 
 static char vcid[] = 
-"$Id: mri_path2label.c,v 1.18 2007/11/15 23:13:41 nicks Exp $";
+"$Id: mri_path2label.c,v 1.19 2007/11/16 02:07:53 nicks Exp $";
 
 char* source_file          = NULL;
 char* dest_file            = NULL;
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_path2label.c,v 1.18 2007/11/15 23:13:41 nicks Exp $", 
+     "$Id: mri_path2label.c,v 1.19 2007/11/16 02:07:53 nicks Exp $", 
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -814,12 +814,12 @@ static int fill_path(char* fname,
 {
   char tmpstr[2000];
   sprintf(tmpstr,"%s/%s/surf/%s.orig",getenv("SUBJECTS_DIR"),subject,hemi);
-  return fill_pathx(fname, ofname, surfacefname, seed);
+  return fill_pathx(fname, ofname, tmpstr, seed);
 }
 
 static int fill_pathx(char* fname, 
                       char* ofname, 
-                      char* surfacefname, 
+                      char* surfaceFname, 
                       int seed) 
 {
   int     err;
@@ -843,8 +843,8 @@ static int fill_pathx(char* fname,
 	    "Will only convert first path\n\n");
   }
 
-  printf("Reading %s\n",surfacefname);
-  mris = MRISread(surfacefname);
+  printf("Reading %s\n",surfaceFname);
+  mris = MRISread(surfaceFname);
   if(mris == NULL) exit(1);
 
   // Make sure vals are 0
