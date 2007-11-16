@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/15 20:33:31 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/11/16 20:32:39 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -707,3 +707,33 @@ MRI *MRISannot2seg(MRIS *surf, int base)
   }
   return(seg);
 }
+/*---------------------------------------------------------------*/
+/*!
+  \fn MRI *MRISannot2border(MRIS *surf)
+  Creates a binary overlay that is 1 for vertices as the border
+  of parcellations and 0 everywhere else.
+*/
+MRI *MRISannot2border(MRIS *surf)
+{
+  int k, annot, nnbrs, nthnbr, knbr, nbrannot, isborder;
+  MRI *border;
+
+  border = MRIalloc(surf->nvertices,1,1,MRI_INT);
+
+  for(k=0; k < surf->nvertices; k++){
+    annot = surf->vertices[k].annotation;
+    nnbrs = surf->vertices[k].vnum;
+    isborder = 0;
+    for (nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+      knbr = surf->vertices[k].v[nthnbr];
+      nbrannot = surf->vertices[knbr].annotation;
+      if(nbrannot != annot) {
+	isborder = 1;
+	break;
+      }
+    }
+    MRIsetVoxVal(border,k,0,0,0, isborder);
+  }
+  return(border);
+}
+
