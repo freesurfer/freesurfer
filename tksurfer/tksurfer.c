@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/17 18:08:42 $
- *    $Revision: 1.287 $
+ *    $Author: greve $
+ *    $Date: 2007/11/16 20:13:15 $
+ *    $Revision: 1.288 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2365,6 +2365,10 @@ int  mai(int argc,char *argv[])
     } else if (!stricmp(argv[i], "-curv")){
       nargs = 1 ;
       load_curv = TRUE;
+    } else if (!stricmp(argv[i], "-gray")){
+      nargs = 1 ;
+      load_curv = TRUE;
+      forcegraycurvatureflag = TRUE;
     } else if (!stricmp(argv[i], "-colortable") ||
                !stricmp(argv[i], "-ctab")) {
       nargs = 2 ;
@@ -16673,6 +16677,7 @@ print_help_tksurfer(void) {
   printf("-colortable <filename> : load a color table file\n");
   printf("\n");
   printf("-curv : automatically load ?h.curv\n");
+  printf("-gray : automatically load ?h.curv and make it gray\n");
   printf("\n");
 
   printf("-overlay          <filename> : load an overlay volume\n");
@@ -18660,7 +18665,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.287 2007/10/17 18:08:42 kteich Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.288 2007/11/16 20:13:15 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
