@@ -19,8 +19,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/16 02:07:53 $
- *    $Revision: 1.19 $
+ *    $Date: 2007/11/16 02:45:24 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -82,9 +82,13 @@ static int fill_pathx(char* fname,
                       int seed) ;
 static int con_and_fill_path(char* fname, 
                              char* ofname, 
-                             char *subject, 
-                             char *hemi, 
+                             char* subject, 
+                             char* hemi, 
                              int seed) ;
+static int con_and_fill_pathx(char* fname, 
+                              char* ofname, 
+                              char* surfaceFname, 
+                              int seed) ;
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void usage_exit(void);
@@ -92,7 +96,7 @@ static void print_version(void) ;
 static int MRISfill(MRIS *mris, int seedvtxno);
 
 static char vcid[] = 
-"$Id: mri_path2label.c,v 1.19 2007/11/16 02:07:53 nicks Exp $";
+"$Id: mri_path2label.c,v 1.20 2007/11/16 02:45:24 nicks Exp $";
 
 char* source_file          = NULL;
 char* dest_file            = NULL;
@@ -100,7 +104,7 @@ int path_to_label  = 0;
 int label_to_path  = 0;
 int single_path    = 0;
 int connect = 0;
-int fill = 0, fillx = 0, con_and_fill = 0, fillseed = -1;
+int fill = 0, con_and_fill = 0, con_and_fillx = 0, fillseed = -1;
 char *subject=NULL, *hemi=NULL;
 char *surfacefname=NULL;
 int debug=0;
@@ -118,7 +122,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_path2label.c,v 1.19 2007/11/16 02:07:53 nicks Exp $", 
+     "$Id: mri_path2label.c,v 1.20 2007/11/16 02:45:24 nicks Exp $", 
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -163,17 +167,18 @@ int main(int argc, char *argv[])
     int stat=fill_path(source_file, dest_file, subject, hemi, fillseed) ;
     exit(stat);
   }
-  if(fillx){
-    // Still under construction
-    printf("Filling vertices in path\n");
-    int stat=fill_pathx(source_file, dest_file, surfacefname, fillseed) ;
-    exit(stat);
-  }
   if(con_and_fill){
     // Still under construction
     printf("Connecting and Filling vertices in path\n");
     int stat=
       con_and_fill_path(source_file, dest_file, subject, hemi, fillseed) ;
+    exit(stat);
+  }
+  if(con_and_fillx){
+    // Still under construction
+    printf("Connecting and filling vertices in path\n");
+    int stat=con_and_fill_pathx
+      (source_file, dest_file, surfacefname, fillseed) ;
     exit(stat);
   }
 
@@ -241,9 +246,9 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%d",&fillseed);
       nargsused = 3;
     } 
-    else if (!strcasecmp(option, "--fillx")){
+    else if (!strcasecmp(option, "--confillx")){
       if(nargc < 2) CMDargNErr(option,3);
-      fillx = 1;
+      con_and_fillx = 1;
       surfacefname = pargv[0];
       sscanf(pargv[1],"%d",&fillseed);
       nargsused = 2;
@@ -308,7 +313,7 @@ static void print_usage(void) {
   printf("   --connect subject hemi : connect path (input and output must be paths)\n");
   printf("   --fill subject hemi seedvtx : fill already closed, connected path\n");
   printf("      input must be a path, output must be a label\n");
-  printf("   --fillx surface_fname seedvtx : fill already closed, connected path\n");
+  printf("   --confillx surface_fname seedvtx : connect and fill path\n");
   printf("      input must be a path, output must be a label\n");
   printf("   --confill subject hemi seedvtx : connect and fill path\n");
   printf("      input must be a path, output must be a label\n");
@@ -724,16 +729,25 @@ static int connect_path(char* fname, char* ofname, char *subject, char *hemi)
 /*-------------------------------------------------------------------------*/
 static int con_and_fill_path(char* fname, 
                              char* ofname, 
-                             char *subject, 
-                             char *hemi, 
+                             char* subject, 
+                             char* hemi, 
                              int seed) 
+{
+  char tmpstr[2000];
+  sprintf(tmpstr,"%s/%s/surf/%s.orig",getenv("SUBJECTS_DIR"),subject,hemi);
+  return con_and_fill_pathx(fname, ofname, tmpstr, seed);
+
+}
+static int con_and_fill_pathx(char* fname, 
+                              char* ofname, 
+                              char* surfaceFname, 
+                              int seed) 
 {
   int     err;
   int     num_paths;
   PATH **paths = NULL;
   LABEL *label;
   int *vtxnolist,*final_path, path_length, k, vtxno, nlabel, nth;
-  char tmpstr[2000];
   MRIS *mris;
 
   /* Read the paths file. */
@@ -750,15 +764,16 @@ static int con_and_fill_path(char* fname,
 	    "Will only convert first path\n\n");
   }
 
-  sprintf(tmpstr,"%s/%s/surf/%s.orig",getenv("SUBJECTS_DIR"),subject,hemi);
-  printf("Reading %s\n",tmpstr);
-  mris = MRISread(tmpstr);
+  printf("Reading %s\n",surfaceFname);
+  mris = MRISread(surfaceFname);
   if(mris == NULL) exit(1);
 
   final_path = (int*) calloc(mris->nvertices,sizeof(int));
   vtxnolist = (int*) calloc(paths[0]->n_points,sizeof(int));
   for(k=0; k < paths[0]->n_points; k++)
     vtxnolist[k] = paths[0]->points[k].vno;
+
+  printf("Finding path...");
 
   MRISfindPath(vtxnolist, paths[0]->n_points, mris->nvertices, 
 	       final_path, &path_length, mris );
