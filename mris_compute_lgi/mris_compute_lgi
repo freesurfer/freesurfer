@@ -10,8 +10,8 @@
 # Original Author: Marie Schaer and Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/15 23:22:18 $
-#    $Revision: 1.6 $
+#    $Date: 2007/11/16 02:48:42 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.6 2007/11/15 23:22:18 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.7 2007/11/16 02:48:42 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
@@ -52,7 +52,7 @@ set cmd=(rm -Rf $tmpdir)
 echo "================="
 echo "$cmd"
 echo "================="
-#if ($RunIt) $cmd
+#HACKif ($RunIt) $cmd
 set cmd=(mkdir -p $tmpdir)
 echo "================="
 echo "$cmd"
@@ -65,7 +65,7 @@ set cmd=(mris_fill -c -r 1 ${input} ${tmpdir}/${input}.filled.mgz)
 echo "================="
 echo "$cmd"
 echo "================="
-#if ($RunIt) $cmd
+#HACKif ($RunIt) $cmd
 
 
 # create the outer surface from the filled volume
@@ -77,7 +77,7 @@ echo "make_outer_surface('${arg1}',${arg2},'${arg3}')" > $MLF
 echo "================="
 echo "`cat $MLF`"
 echo "================="
-#if ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
+#HACKif ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
 
 
 # smooth this jaggy, tessellated surface
@@ -87,7 +87,7 @@ set cmd=(mris_smooth -nw -n 3 \
 echo "================="
 echo "$cmd"
 echo "================="
-#if ($RunIt) $cmd
+#HACKif ($RunIt) $cmd
 
 
 # output normals of the smoothed outer surface
@@ -97,23 +97,35 @@ set cmd=(mris_convert -n \
 echo "================="
 echo "$cmd"
 echo "================="
-#if ($RunIt) $cmd
+#HACKif ($RunIt) $cmd
 
 
 # create ROI center files
 set MLF = /tmp/mrc"_$$_".m
 set arg1 = ${input}
 set arg2 = ${tmpdir}/${input}-outer-smoothed
-set arg3 = ${tmpdir}
-echo "find_corresponding_center_FSformat('${arg1}','${arg2}','${arg3}')" \
+set arg3 = 10000
+set arg4 = ${tmpdir}
+echo "find_corresponding_center_FSformat('${arg1}','${arg2}',${arg3},'${arg4}')" \
   > $MLF
 echo "================="
 echo "`cat $MLF`"
 echo "================="
-#if ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
+#HACKif ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
 
 
 # create ROI path files
+set MLF = /tmp/mrp"_$$_".m
+set arg1 = ${input}
+set arg2 = ${tmpdir}/${input}-outer-smoothed
+set arg3 = 25
+set arg4 = 10000
+set arg5 = ${tmpdir}
+echo "make_roi_paths('${arg1}','${arg2}',${arg3},${arg4},'${arg5}')" > $MLF
+echo "================="
+echo "`cat $MLF`"
+echo "================="
+#HACKif ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
 
 
 # create ROI label files
@@ -121,9 +133,7 @@ set vertices = `cat ${tmpdir}/${input}.center.vertices`
 foreach v ($vertices)
   set center = `cat ${tmpdir}/${input}.${v}.center`
   set cmd = (mri_path2label \
-    --single \
-    --path2label \
-    --fillx ${input} ${center} \
+    --confillx ${input} ${center} \
     --i ${tmpdir}/${input}.${v}.path \
     --o ${tmpdir}/${input}.${v}.label)
     echo "================="
