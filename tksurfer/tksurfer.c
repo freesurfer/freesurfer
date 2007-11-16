@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/16 21:20:27 $
- *    $Revision: 1.289 $
+ *    $Date: 2007/11/16 22:14:16 $
+ *    $Revision: 1.290 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -456,6 +456,7 @@ char val_dir[STRLEN] ; /* directory that value (.w) file was read from */
 char *subjectsdir; /* $subjectsdir: from getenv */
 char *srname;      /* $session(dir!) abs:#/951206MS/image,#/MARTY0928/08192*/
 char *pname;       /* name: $home = $subjectsdir/$name */
+char *tkstitle=NULL;/* image window title, pname by default, change with -title*/
 char *stem;        /* hemisphere (head: e.g., rh from rh.wmsooth) */
 char *ext;         /* surf (suffix: e.g., wmsmooth from rh.wmsmooth) */
 char *fpref;       /* $home/surf/hemi. (for assembly) */
@@ -2134,7 +2135,7 @@ void copy_edit_dat_file_name (char* fname, int len);
 
 /* end rkt */
 
-
+/* ---------------------------- main() --------------------------------*/
 #ifdef TCL
 int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 #else
@@ -2362,6 +2363,13 @@ int  mai(int argc,char *argv[])
       nargs = 2 ;
       strncpy (annotation_fname, argv[i+1], sizeof(annotation_fname));
       load_annotation = TRUE;
+    } else if (!stricmp(argv[i], "-aparc")){
+      strncpy (annotation_fname, "aparc.annot", sizeof(annotation_fname));
+      load_annotation = TRUE;
+      nargs = 1 ;
+    } else if (!stricmp(argv[i], "-title")){
+      nargs = 2 ;
+      tkstitle = argv[i+1];
     } else if (!stricmp(argv[i], "-curv")){
       nargs = 1 ;
       load_curv = TRUE;
@@ -2372,6 +2380,9 @@ int  mai(int argc,char *argv[])
     } else if (!stricmp(argv[i], "-labels-under")){
       nargs = 1 ;
       labels_before_overlay_flag = TRUE;
+    } else if (!stricmp(argv[i], "-label-outline")){
+      nargs = 1 ;
+      labl_draw_style = LABL_STYLE_OUTLINE;
     } else if (!stricmp(argv[i], "-colortable") ||
                !stricmp(argv[i], "-ctab")) {
       nargs = 2 ;
@@ -2681,7 +2692,8 @@ int  mai(int argc,char *argv[])
       if (MATCH("TRUE",envptr))  renderoffscreen = TRUE;
     }
 //#endif
-    open_window(pname);
+    if(tkstitle == NULL) tkstitle = pname;
+    open_window(tkstitle);
     if (stem[0]=='r'&&stem[1]=='h')
       rotate_brain(-90.0,'y');
     else
@@ -16663,6 +16675,7 @@ print_help_tksurfer(void) {
 
   printf("Options\n");
   printf("\n");
+  printf("-title title : set window title to title. Def is subject name.\n");
 
   printf("-reassign      : resample labels onto surface (set vnos=-1)\n");
   printf("-sdir <path>   : sets the subjects directory path\n");
@@ -16679,6 +16692,7 @@ print_help_tksurfer(void) {
   printf("-annotation <filename> : load an annotation\n");
   printf("-colortable <filename> : load a color table file\n");
   printf("-labels-under : display labels under any overlay\n");
+  printf("-label-outline : draw labels as outlines\n");
   printf("\n");
   printf("-curv : automatically load ?h.curv\n");
   printf("-gray : automatically load ?h.curv and make it gray\n");
@@ -18669,7 +18683,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.289 2007/11/16 21:20:27 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.290 2007/11/16 22:14:16 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23776,7 +23790,7 @@ int labl_initialize () {
   labl_num_labels = 0;
   labl_selected_label = LABL_NONE_SELECTED;
   labl_ctab = NULL;
-  labl_draw_style = LABL_STYLE_FILLED;
+  //labl_draw_style = LABL_STYLE_FILLED; // initiallized in declaration
   labl_num_labels_created = 0;
   labl_color_table_name = (char*) calloc (NAME_LENGTH, sizeof(char));
   labl_draw_flag = 1;
