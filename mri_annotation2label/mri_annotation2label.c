@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/15 20:34:27 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/11/16 20:32:50 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.14 2007/11/15 20:34:27 greve Exp $
+  $Id: mri_annotation2label.c,v 1.15 2007/11/16 20:32:50 greve Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -63,7 +63,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.14 2007/11/15 20:34:27 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.15 2007/11/16 20:32:50 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -91,7 +91,8 @@ char *segfile=NULL;
 MRI  *seg;
 int  segbase = -1000;
 
-MRI *MRISannot2seg(MRIS *surf, int base);
+char *borderfile=NULL;
+
 
 /*-------------------------------------------------*/
 /*-------------------------------------------------*/
@@ -99,9 +100,10 @@ MRI *MRISannot2seg(MRIS *surf, int base);
 int main(int argc, char **argv) {
   int err,vtxno,ano,ani,vtxani,animax;
   int nargs;
+  MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.14 2007/11/15 20:34:27 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.15 2007/11/16 20:32:50 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -166,6 +168,13 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  if(borderfile != NULL){
+    printf("Computing border\n");
+    border = MRISannot2border(Surf);
+    MRIwrite(border,borderfile);
+    exit(0);
+  }
+
   if(segfile != NULL){
     printf("Converting to a segmentation\n");
     if(segbase == -1000){
@@ -183,7 +192,7 @@ int main(int argc, char **argv) {
     printf("Seg base %d\n",segbase);
     seg = MRISannot2seg(Surf,segbase);
     MRIwrite(seg,segfile);
-    exit(1);
+    exit(0);
   }
 
   /* Determine which indices are present in the file by
@@ -287,6 +296,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&segbase);
       nargsused = 1;
+    } else if (!strcmp(option, "--border")) {
+      if (nargc < 1) argnerr(option,1);
+      borderfile = pargv[0];
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -315,6 +328,7 @@ static void print_usage(void) {
   printf("   --outdir dir :  output will be dir/hemi.name.label \n");
   printf("   --seg segfile : output will be a segmentation 'volume'\n");
   printf("   --segbase base : add base to the annotation number to get seg value\n");
+  printf("   --border borderfile : output will be a binary overlay of the parc borders \n");
   printf("\n");
   printf("   --annotation as found in SUBJDIR/labels <aparc>\n");
   printf("   --surface    name of surface <white>. Only affect xyz in label.\n");
@@ -341,7 +355,7 @@ static void dump_options(FILE *fp) {
 static void print_help(void) {
   print_usage() ;
   printf("This program will convert an annotation into multiple label files\n");
-  printf("or into a segmentaion 'volume'.\n\n");
+  printf("or into a segmentaion 'volume'. It can also create a border overlay.\n\n");
 
   printf(
     "User specifies the subject, hemisphere, label base, and (optionally)\n"
@@ -378,6 +392,14 @@ static void print_help(void) {
     "aparc nor aparc.a2005s, then segbase=0. This behavior can be overridden \n"
     "by manually specifying a segbase with --segbase.\n"
     "\n"
+    " \n"
+    "--border borderfile \n"
+    "\n"
+    "Creates an overlay file in which the boundaries of the parcellations are \n"
+    "set to 1 and everything else is 0. This can then be loaded as an overlay\n"
+    "in tksurfer.\n"
+    " \n"
+    "Convert annotation into a volume-encoded surface segmentation file. This \n"
     "Bugs:\n"
     "\n"
     "  If the name of the label base does not include a forward slash (ie, '/') \n"
@@ -452,7 +474,7 @@ static void check_options(void) {
     fprintf(stderr,"ERROR: No hemisphere specified\n");
     exit(1);
   }
-  if(outdir == NULL && labelbase == NULL && segfile == NULL) {
+  if(outdir == NULL && labelbase == NULL && segfile == NULL && borderfile == NULL) {
     fprintf(stderr,"ERROR: no output specified\n");
     exit(1);
   }
@@ -473,3 +495,4 @@ static int singledash(char *flag) {
   if (flag[0] == '-' && flag[1] != '-') return(1);
   return(0);
 }
+
