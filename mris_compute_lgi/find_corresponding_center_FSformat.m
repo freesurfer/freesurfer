@@ -1,4 +1,4 @@
-function find_corresponding_center_FSformat (pial, outersmoothed, outdir)
+function find_corresponding_center_FSformat (pial, outersmoothed, stepsize, outdir)
 
 % Original Author: Marie Schaer
 % Date: 2007/11/14
@@ -9,8 +9,8 @@ function find_corresponding_center_FSformat (pial, outersmoothed, outdir)
 % point for the obtention of the pial regions of interests (by filling 
 % until a closed perimeter).
 % 
-% The function uses "mesh_vertex_nearest" and "read_surf"
-% from Darren Weber's bioelectromagnetism toolbox
+% The function uses "mesh_vertex_nearest" and "freesurfer_read_surf"
+% from Darren Webers bioelectromagnetism toolbox
 %
 % Input:
 %  ?h.pial surface from FreeSurfer
@@ -23,12 +23,12 @@ function find_corresponding_center_FSformat (pial, outersmoothed, outdir)
 
 t0 = cputime;    
 
-[mesh_pial.vertices, mesh_pial.faces] = read_surf(pial);
-[mesh_outer.vertices, mesh_outer.faces] = read_surf(outersmoothed);
+[mesh_pial.vertices, mesh_pial.faces] = freesurfer_read_surf(pial);
+[mesh_outer.vertices, mesh_outer.faces] = freesurfer_read_surf(outersmoothed);
 
 fidv = fopen([outdir '/' pial '.center.vertices'], 'w') ;
 
-for iV = 1 :100: length(mesh_outer.vertices) 
+for iV = 1 :stepsize: length(mesh_outer.vertices) 
         
     centerSeed=mesh_vertex_nearest(mesh_pial.vertices,mesh_outer.vertices(iV,:));
     centerSeed = centerSeed - 1; %FreeSurfer-s vertex are 0-based
