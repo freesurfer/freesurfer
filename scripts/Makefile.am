@@ -11,6 +11,7 @@ aparcstatsdiff \
 asegstatsdiff \
 batchjobs \
 bblabel \
+bedpostx_seychelles \
 browse-minc-header.tcl \
 browse-sessions \
 bugr \
@@ -34,7 +35,9 @@ fix_subject_corrected-rh \
 fix_subject-lh \
 fix_subject_on_seychelles \
 fix_subject-rh \
+flip4fsl \
 fname2stem \
+fsl_sub_seychelles \
 stem2fname \
 freesurfer \
 fs_lib_check \
