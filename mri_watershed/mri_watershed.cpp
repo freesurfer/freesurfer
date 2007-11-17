@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/11/08 16:34:42 $
- *    $Revision: 1.68 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/17 00:12:50 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-char *MRI_WATERSHED_VERSION = "$Revision: 1.68 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.69 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -855,7 +855,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.68 2007/11/08 16:34:42 fischl Exp $", 
+     "$Id: mri_watershed.cpp,v 1.69 2007/11/17 00:12:50 nicks Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.68 2007/11/08 16:34:42 fischl Exp $", 
+     "$Id: mri_watershed.cpp,v 1.69 2007/11/17 00:12:50 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -4835,36 +4835,39 @@ int AtlasToRegion(int i, int j, int k,
                         parms->transform, 
                         i, j, k, 
                         &xp, &yp, &zp);
-  gcap = &parms->gca->priors[xp][yp][zp] ;
+
   if (xp>=0 && yp>=0 && zp>=0 && 
       xp<parms->gca->prior_width && 
       yp<parms->gca->prior_height &&
-      zp<parms->gca->prior_depth &&
-      gcap->nlabels > 0)
+      zp<parms->gca->prior_depth)
   {
-    int    n ;
-    double max_prior ;
+    gcap = &parms->gca->priors[xp][yp][zp] ;
+    if (gcap->nlabels > 0)
+    {
+      int    n ;
+      double max_prior ;
 
-    label = gcap->labels[0] ;
-    max_prior = gcap->priors[0] ;
-    for (n = 1 ; n < gcap->nlabels ; n++)
-      if (gcap->priors[n] > max_prior)
+      label = gcap->labels[0] ;
+      max_prior = gcap->priors[0] ;
+      for (n = 1 ; n < gcap->nlabels ; n++)
+        if (gcap->priors[n] > max_prior)
         {
           max_prior = gcap->priors[n] ;
           label = gcap->labels[n] ;
         }
 
-    if (IS_CER(label))
-      if (IS_RIGHT(label))
-        return(RIGHT_CER);
+      if (IS_CER(label))
+        if (IS_RIGHT(label))
+          return(RIGHT_CER);
+        else
+          return(LEFT_CER);
+      else if (IS_RIGHT(label))
+        return(RIGHT_BRAIN);
+      else if (IS_LEFT(label))
+        return(LEFT_BRAIN);
       else
-        return(LEFT_CER);
-    else if (IS_RIGHT(label))
-      return(RIGHT_BRAIN);
-    else if (IS_LEFT(label))
-      return(LEFT_BRAIN);
-    else
-      return(OTHER);
+        return(OTHER);
+    }
   }
   return (-1);
 }
