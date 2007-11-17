@@ -4,14 +4,18 @@
 # mris_compute_lgi
 #
 # Computes local measurements of gyrification at points over cortical surface
-#
 # --help option will show usage
 #
-# Original Author: Marie Schaer and Nick Schmansky
+# This script implements the work of Marie Schaer et al., as described in:
+# 
+# "A Surface-based Approach to Quantify Local Cortical Gyrification",
+# Schaer M. et al., IEEE Transactions on Medical Imaging, 2007, TMI-2007-0180
+#
+# Original Authors: Marie Schaer
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/16 02:48:42 $
-#    $Revision: 1.7 $
+#    $Date: 2007/11/17 01:17:32 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,12 +30,16 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.7 2007/11/16 02:48:42 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.8 2007/11/17 01:17:32 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
 set tmpdir = tmp-mris_compute_lgi
+set spheresize = 15
+set radius = 25
+set stepsize = 100
 #set echo=1
+set start=`date`
 
 if($#argv == 0) then
   # zero args is not allowed
@@ -52,7 +60,7 @@ set cmd=(rm -Rf $tmpdir)
 echo "================="
 echo "$cmd"
 echo "================="
-#HACKif ($RunIt) $cmd
+if ($RunIt) $cmd
 set cmd=(mkdir -p $tmpdir)
 echo "================="
 echo "$cmd"
@@ -65,19 +73,19 @@ set cmd=(mris_fill -c -r 1 ${input} ${tmpdir}/${input}.filled.mgz)
 echo "================="
 echo "$cmd"
 echo "================="
-#HACKif ($RunIt) $cmd
+if ($RunIt) $cmd
 
 
 # create the outer surface from the filled volume
 set MLF = /tmp/mos"_$$_".m
 set arg1 = ${tmpdir}/${input}.filled.mgz
-set arg2 = 15
+set arg2 = ${spheresize}
 set arg3 = ${tmpdir}/${input}-outer
 echo "make_outer_surface('${arg1}',${arg2},'${arg3}')" > $MLF
 echo "================="
 echo "`cat $MLF`"
 echo "================="
-#HACKif ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
+if ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
 
 
 # smooth this jaggy, tessellated surface
@@ -87,7 +95,7 @@ set cmd=(mris_smooth -nw -n 3 \
 echo "================="
 echo "$cmd"
 echo "================="
-#HACKif ($RunIt) $cmd
+if ($RunIt) $cmd
 
 
 # output normals of the smoothed outer surface
@@ -97,35 +105,35 @@ set cmd=(mris_convert -n \
 echo "================="
 echo "$cmd"
 echo "================="
-#HACKif ($RunIt) $cmd
+if ($RunIt) $cmd
 
 
 # create ROI center files
 set MLF = /tmp/mrc"_$$_".m
 set arg1 = ${input}
 set arg2 = ${tmpdir}/${input}-outer-smoothed
-set arg3 = 10000
+set arg3 = ${stepsize}
 set arg4 = ${tmpdir}
 echo "find_corresponding_center_FSformat('${arg1}','${arg2}',${arg3},'${arg4}')" \
   > $MLF
 echo "================="
 echo "`cat $MLF`"
 echo "================="
-#HACKif ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
+if ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
 
 
 # create ROI path files
 set MLF = /tmp/mrp"_$$_".m
 set arg1 = ${input}
 set arg2 = ${tmpdir}/${input}-outer-smoothed
-set arg3 = 25
-set arg4 = 10000
+set arg3 = ${radius}
+set arg4 = ${stepsize}
 set arg5 = ${tmpdir}
 echo "make_roi_paths('${arg1}','${arg2}',${arg3},${arg4},'${arg5}')" > $MLF
 echo "================="
 echo "`cat $MLF`"
 echo "================="
-#HACKif ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
+if ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
 
 
 # create ROI label files
@@ -144,7 +152,26 @@ end
 
 
 # finally, compute lGI measurements
-set cmd=(compute_lgi)
+set MLF = /tmp/clgi"_$$_".m
+set arg1 = ${input}
+set arg2 = ${tmpdir}/${input}-outer-smoothed
+set arg3 = ${tmpdir}/${input}-outer-smoothed-normals.asc
+set arg4 = ${stepsize}
+set arg5 = ${radius}
+set arg6 = ${tmpdir}
+echo "compute_lgi('${arg1}','${arg2}','${arg3}',${arg4},${arg5},'${arg6}')" \
+    > $MLF
+echo "================="
+echo "`cat $MLF`"
+echo "================="
+if ($RunIt) cat $MLF | matlab -display iconic -nojvm -nosplash 
+
+
+# convert ascii file to scalar
+set cmd=(mris_convert -c \
+    ${tmpdir}/${input}_lgi.asc \
+    ${input} \
+    ${input}_lgi)
 echo "================="
 echo "$cmd"
 echo "================="
@@ -153,8 +180,11 @@ if ($RunIt) $cmd
 
 #--------
 # end...
-#rm -Rf $tmpdir
+rm -Rf $tmpdir
+set end=`date`
 echo "done."
+echo "Start: $start"
+echo "End:   $end"
 exit 0
 
 

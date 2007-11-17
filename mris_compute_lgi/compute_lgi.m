@@ -1,4 +1,4 @@
-function compute_lgi (pial, outersmoothed, fnormal, nsteps, radius)
+function compute_lgi (pial, outersmoothed, fnormal, nsteps, radius, outdir)
 
 % Original Author: Marie Schaer
 % Date: 2007/11/15
@@ -51,15 +51,16 @@ mtTotalWeightDegressive = sparse (mtTotalWeightDegressive);
 mtTotalRatioDegressive = zeros(size(mesh_total.vertices,1),1);
 mtTotalRatioDegressive = sparse (mtTotalRatioDegressive);
     
-disp('loading outer area information...')       
-load outer_ROIs_area.mat areasOuterROI
+disp('loading outer area information...')
+fname=[outdir '/' pial '.outer_ROIs_area.mat'];
+load(fname,'areasOuterROI');
 
 
 for iV = 1 : nsteps: length(mesh_outer.vertices)
     
     p = sprintf ('%06d', iV);
     
-    [ VerticesInPialROI ] = read_ROIlabel (['ROI_' p '.label']); %read_ROIlabel is based on read_label but do not require the subject's name as an input
+    [ VerticesInPialROI ] = read_ROIlabel ([outdir '/' pial '.' p '.label']); %read_ROIlabel is based on read_label but do not require the subject's name as an input
         
     FacesInPialROI = [];
     for j = VerticesInPialROI'
@@ -78,7 +79,7 @@ for iV = 1 : nsteps: length(mesh_outer.vertices)
         step = 7;
         clear lGI
         lGI = redo_lgi(mesh_total, A, mesh_outer, iV, radius, step) % caution: does not output any value if higher than 7
-        save ratio_intermed.mat mtTotalWeightDegressive mtTotalRatioDegressive vertexRatio ;
+%        save ratio_intermed.mat mtTotalWeightDegressive mtTotalRatioDegressive vertexRatio ;
     end
 
     disp(['lGI for vertex number ',num2str(iV),' of the outer mesh is ',num2str(lGI)])
@@ -104,13 +105,13 @@ for iV = 1 : nsteps: length(mesh_outer.vertices)
         clear distance;
                
         if (mod(iV,100 * nsteps) == 1)
-            save ratio_intermed.mat mtTotalWeightDegressive mtTotalRatioDegressive vertexRatio ; 
+%            save ratio_intermed.mat mtTotalWeightDegressive mtTotalRatioDegressive vertexRatio ; 
             disp(['ratio saved at ',num2str(iV)])
         end
             
     end
  
-    save ratio_intermed.mat mtTotalWeightDegressive mtTotalRatioDegressive vertexRatio  ;
+%    save ratio_intermed.mat mtTotalWeightDegressive mtTotalRatioDegressive vertexRatio  ;
     
     
 fprintf('.. Almost finished .. now back-propagating values on the folded mesh ..')
@@ -126,19 +127,15 @@ for iV = 1:size(mesh_total.vertices,1)
     end
 end
 
-save('outer_lGI.mat','vertexRatio');
-save('pial_lGI.mat','mtActualRatioDegressive');
+fname=[outdir '/' pial '.outer_lGI.mat'];
+save(fname,'vertexRatio');
+fname=[outdir '/' pial '.pial_lGI.mat'];
+save(fname,'mtActualRatioDegressive');
 
 average_lGI_over_the_hemisphere = mean (mtActualRatioDegressive)
 
-% %  In order to write the lGI value to mgh format:
-% % first convert a curv file for this subject into mgh format:
-% % mri_convert lh.curv lh.curv.mgh
-%       load pial_lGI.mat mtActualRatioDegressive
-%       lgi_pial = mtActualRatioDegressive;
-%       curv = MRIread('?h.curv.mgh');
-%       curv.vol = lgi_pial;
-%       MRIwrite(curv, [output_name]) % where output_name is '?h.lgi.mgh'
+fname=[outdir '/' pial '_lgi.asc'];
+write_lgi(mesh_total, mtActualRatioDegressive, fname);
 
 disp('DONE.')
 deltaT = cputime - t0
