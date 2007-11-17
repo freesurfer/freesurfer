@@ -19,8 +19,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/16 02:45:24 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/11/17 22:40:49 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -96,7 +96,7 @@ static void print_version(void) ;
 static int MRISfill(MRIS *mris, int seedvtxno);
 
 static char vcid[] = 
-"$Id: mri_path2label.c,v 1.20 2007/11/16 02:45:24 nicks Exp $";
+"$Id: mri_path2label.c,v 1.21 2007/11/17 22:40:49 nicks Exp $";
 
 char* source_file          = NULL;
 char* dest_file            = NULL;
@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_path2label.c,v 1.20 2007/11/16 02:45:24 nicks Exp $", 
+     "$Id: mri_path2label.c,v 1.21 2007/11/17 22:40:49 nicks Exp $", 
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
   if(!label_to_path && !path_to_label) {
     err = guess_file_type (source_file, &source_is_path, &source_is_label);
     if (err) {
-      printf ("ERROR: Couldn't determing source file type.\n");
+      printf ("ERROR: Couldn't determine source file type.\n");
       exit (1);
     }
 
