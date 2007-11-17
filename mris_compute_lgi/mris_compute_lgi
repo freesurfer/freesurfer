@@ -14,8 +14,8 @@
 # Original Authors: Marie Schaer
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/17 01:17:32 $
-#    $Revision: 1.8 $
+#    $Date: 2007/11/17 01:25:08 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.8 2007/11/17 01:17:32 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.9 2007/11/17 01:25:08 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
@@ -219,14 +219,6 @@ while( $#argv != 0 )
       #echo ${input}
       breaksw
 
-    case "-o":
-    case "--o":
-    case "--output":
-      if ( $#argv == 0) goto arg1err;
-      set output = $argv[1]; shift;
-      #echo $output
-      breaksw
-
    case "--debug":
    case "--echo":
       set echo = 1;
@@ -266,10 +258,6 @@ check_params:
     echo "ERROR: missing input filename!  See  mris_compute_lgi --help"
     exit 1;
   endif
-  if(! $?output) then
-    echo "ERROR: missing output filename!  See  mris_compute_lgi --help"
-    exit 1;
-  endif
   if(! -e ${input} ) then
     echo "ERROR: input file '${input}' does not exist."
     exit 1;
@@ -282,16 +270,16 @@ goto check_params_return;
 ############--------------##################
 usage_exit:
   echo ""
-  echo "USAGE: mris_compute_lgi --i <input surface> --o <lgi surface data>"
+  echo "USAGE: mris_compute_lgi --i <input surface>"
+  echo ""
+  echo "Produces a surface scalar file containing local gyrification measures."
+  echo "Output file is named <input surface>_lgi, where <input surface> is the"
+  echo "specified input surface (ex. lh.pial produces lh.pial_lgi)."
   echo ""
   echo "Required Arguments"
-  echo "   --i       : input surface file, typically ?h.pial"
-  echo "   --o       : name of output scalar file, typically ?h.lgi_pial"
+  echo "   --i       : input surface file, typically lh.pial or rh.pial"
   echo ""
   echo "Optional Arguments"
-  echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
-  echo "   --sd      : same as --sdir"
-  echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"
   echo "   --echo    : enable command echo, for debug"
@@ -319,10 +307,10 @@ Schaer M. et al., IEEE Transactions on Medical Imaging, 2007, TMI-2007-0180
 Input is a pial surface mesh, and the output a scalar data file containing
 the local gyrification index data at each vertices.
 
-EXAMPLES
+Example:
 
-Example 1:
+  mris_compute_lgi --i lh.pial
 
-  mris_compute_lgi --i lh.pial --o lh.lgi_pial
+produces lh.pial_lgi
 
 See also http://surfer.nmr.mgh.harvard.edu/fswiki/LGI
