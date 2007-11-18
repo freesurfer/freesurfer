@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:33 $
- *    $Revision: 1.70 $
+ *    $Author: fischl $
+ *    $Date: 2007/11/18 21:26:11 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.70 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.71 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -266,7 +266,7 @@ static int old_type ;
 // this routine is slow and should be used only for diagnostics
 static int calcBrainSize(const MRI* mri_src, const MRIS *mris);
 #endif
-static void Error(const char *string);
+static void Error(char *string);
 static int get_option(int argc, char *argv[],STRIP_PARMS *parms) ;
 static STRIP_PARMS* init_parms(void);
 static MRI_variables* init_variables(MRI *mri_with_skull);
@@ -611,7 +611,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     parms->brainsurf=1;
     parms->surf=1;
     if (parms->surfname==NULL)
-      parms->surfname=(char*)"./";
+      parms->surfname="./";
     fprintf(stdout,"Mode:          Writing out tissue label "
             "into output volume\n") ;
     fprintf(stdout,"                       Assumption : "
@@ -820,7 +820,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
   Returns value:void
   Description: Error routine - stop the prog
   ------------------------------------------------------*/
-static void Error(const char *string)
+static void Error(char *string)
 {
   fprintf(stdout, "\nmri_watershed Error: %s\n",string) ;
   exit(1) ;
@@ -855,7 +855,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.70 2007/11/18 03:03:33 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.71 2007/11/18 21:26:11 fischl Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.70 2007/11/18 03:03:33 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.71 2007/11/18 21:26:11 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2700,7 +2700,7 @@ static void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
                          MRIgetVoxVal(MRI_var->mri_src, i, j, k, 0));
         }
 
-    MRIwrite(MRI_seedpoint,(char*)"  the path of the seed image  "); 
+    MRIwrite(MRI_seedpoint,"  the path of the seed image  "); 
   }
   for (i=0;i<n;i++){
     parms->seed_coord[parms->nb_seed_points][0] = seeds[i][0];
@@ -4334,25 +4334,25 @@ char *region_to_name(int label)
   switch (label)
   {
   case GLOBAL:
-    return((char*)" GLOBAL   ");
+    return("  GLOBAL   ");
     break;
   case RIGHT_CER:
-    return((char*)" RIGHT_CER ");
+    return(" RIGHT_CER ");
     break;
   case LEFT_CER:
-    return((char*)" LEFT_CER  ");
+    return(" LEFT_CER  ");
     break;
   case RIGHT_BRAIN:
-    return((char*)" RIGHT_BRAIN");
+    return("RIGHT_BRAIN");
     break;
   case LEFT_BRAIN:
-    return((char*)" LEFT_BRAIN ");
+    return("LEFT_BRAIN ");
     break;
   case OTHER:
-    return((char*)" OTHER   ");
+    return("   OTHER   ");
     break;
   }
-  return((char*)" UNKNOWN  ");
+  return("  UNKNOWN  ");
 }
 
 //New function - Feb 26 2006 - Thomas Nommer
@@ -4830,44 +4830,42 @@ int AtlasToRegion(int i, int j, int k,
   int       xp, yp, zp, label;
   GCA_PRIOR *gcap ;
 
-  GCAsourceVoxelToPrior(parms->gca, 
+  if (GCAsourceVoxelToPrior(parms->gca, 
                         MRI_var->mri_src, 
                         parms->transform, 
                         i, j, k, 
-                        &xp, &yp, &zp);
-
+                        &xp, &yp, &zp) != NO_ERROR)
+    return(-1) ;
+  gcap = &parms->gca->priors[xp][yp][zp] ;
   if (xp>=0 && yp>=0 && zp>=0 && 
       xp<parms->gca->prior_width && 
       yp<parms->gca->prior_height &&
-      zp<parms->gca->prior_depth)
+      zp<parms->gca->prior_depth &&
+      gcap->nlabels > 0)
   {
-    gcap = &parms->gca->priors[xp][yp][zp] ;
-    if (gcap->nlabels > 0)
-    {
-      int    n ;
-      double max_prior ;
+    int    n ;
+    double max_prior ;
 
-      label = gcap->labels[0] ;
-      max_prior = gcap->priors[0] ;
-      for (n = 1 ; n < gcap->nlabels ; n++)
-        if (gcap->priors[n] > max_prior)
+    label = gcap->labels[0] ;
+    max_prior = gcap->priors[0] ;
+    for (n = 1 ; n < gcap->nlabels ; n++)
+      if (gcap->priors[n] > max_prior)
         {
           max_prior = gcap->priors[n] ;
           label = gcap->labels[n] ;
         }
 
-      if (IS_CER(label))
-        if (IS_RIGHT(label))
-          return(RIGHT_CER);
-        else
-          return(LEFT_CER);
-      else if (IS_RIGHT(label))
-        return(RIGHT_BRAIN);
-      else if (IS_LEFT(label))
-        return(LEFT_BRAIN);
+    if (IS_CER(label))
+      if (IS_RIGHT(label))
+        return(RIGHT_CER);
       else
-        return(OTHER);
-    }
+        return(LEFT_CER);
+    else if (IS_RIGHT(label))
+      return(RIGHT_BRAIN);
+    else if (IS_LEFT(label))
+      return(LEFT_BRAIN);
+    else
+      return(OTHER);
   }
   return (-1);
 }
