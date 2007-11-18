@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/20 21:19:40 $
- *    $Revision: 1.55 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 06:01:10 $
+ *    $Revision: 1.55.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,6 +45,8 @@
 #include "filter.h"
 #include "box.h"
 #include "region.h"
+
+extern const char* Progname;
 
 /*-----------------------------------------------------
   MACROS AND CONSTANTS

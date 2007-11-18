@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:41 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/11/18 06:01:15 $
+ *    $Revision: 1.11.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,6 +35,8 @@
 #include "voxlist.h"
 #include "macros.h"
 #include "proto.h"
+
+extern const char* Progname;
 
 VOXEL_LIST  *
 VLSTcreateInRegion(MRI *mri, float low_val, float hi_val ,

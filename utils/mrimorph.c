@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/04/23 15:26:41 $
- *    $Revision: 1.67 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 06:01:10 $
+ *    $Revision: 1.67.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,9 +38,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/04/23 15:26:41 $
-// Revision       : $Revision: 1.67 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2007/11/18 06:01:10 $
+// Revision       : $Revision: 1.67.2.1 $
 */
 
 /*-----------------------------------------------------
@@ -70,6 +70,8 @@
 #include "voxlist.h"
 #include "matrix.h"
 #include "mri_circulars.h"
+
+extern const char* Progname;
 
 #define MN_SUB(mns1, mns2, v)     \
     V3_LOAD(v, mns1->x - mns2->x, mns1->y - mns2->y, mns1->z - mns2->z)

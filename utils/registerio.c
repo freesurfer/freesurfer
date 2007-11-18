@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/05/11 17:31:52 $
- *    $Revision: 1.16 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 06:01:14 $
+ *    $Revision: 1.16.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,8 @@
 #include "fio.h"
 #include "macros.h" // FEQUAL
 #include "proto.h" // nint
+
+extern const char* Progname;
 
 
 /* ----------------------------------------------------------

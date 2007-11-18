@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/10 18:11:52 $
- *    $Revision: 1.74 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 06:01:09 $
+ *    $Revision: 1.74.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,8 @@
 #include "label.h"
 #include "mri.h"
 #include "mrishash.h"
+
+extern const char* Progname;
 
 static LABEL_VERTEX *labelFindVertexNumber(LABEL *area, int vno) ;
 static Transform *labelLoadTransform(char *subject_name, char *sdir,

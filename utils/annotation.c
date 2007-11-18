@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/30 14:40:10 $
- *    $Revision: 1.19 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 06:00:46 $
+ *    $Revision: 1.19.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,8 @@
 #define ANNOTATION_SRC
 #include "annotation.h"
 #undef ANNOTATION_SRC
+
+extern const char* Progname;
 
 typedef struct
 {

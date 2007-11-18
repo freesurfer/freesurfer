@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/30 12:36:55 $
- *    $Revision: 1.129 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 06:00:48 $
+ *    $Revision: 1.129.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,8 @@
 #if WITH_DMALLOC
 #include <dmalloc.h>
 #endif
+
+extern const char* Progname;
 
 #define GCAM_VERSION   1.0
 #define MIN_STD (2.0)

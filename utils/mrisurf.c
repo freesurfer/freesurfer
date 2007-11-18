@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/09/16 23:33:06 $
- *    $Revision: 1.557.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 06:01:11 $
+ *    $Revision: 1.557.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -70,6 +70,8 @@
 #if DMALLOC
 #include "dmalloc.h"
 #endif
+
+extern const char* Progname;
 
 /*---------------------------- STRUCTURES -------------------------*/
 
@@ -622,7 +624,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.557.2.2 2007/09/16 23:33:06 greve Exp $");
+  return("$Id: mrisurf.c,v 1.557.2.3 2007/11/18 06:01:11 nicks Exp $");
 }
 
 /*-----------------------------------------------------
