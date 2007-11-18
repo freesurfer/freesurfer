@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:30 $
- *    $Revision: 1.233 $
+ *    $Author: fischl $
+ *    $Date: 2007/11/18 21:27:58 $
+ *    $Revision: 1.234 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,7 +58,7 @@
 #include <dmalloc.h>
 #endif
 
-extern const char* Progname;
+extern char* Progname;
 
 int Ggca_label = -1 ;
 int Ggca_nbr_label = -1 ;
@@ -700,6 +700,8 @@ GCAisPossible(GCA *gca, MRI *mri, int label,
       != NO_ERROR)
     return(1) ;
   gc = GCAfindGC(gca, xn, yn, zn, label) ;
+  if (gc == NULL)
+    return(1) ;
   for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
   {
     found = 0 ;
@@ -12660,7 +12662,16 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
       HISTOplot(h_mri, "mri.histo") ;
     HISTOclearZeroBin(h_mri) ;
     if (gca->ninputs == 1)   /* assume it is T1-weighted */
+    {
+#define MIN_CONFORMED_WM_VAL  50   // assume wm > 50
+#define MAX_CONFORMED_WM_VAL  200   // assume wm < 200
+      if (mriConformed(mri))  // use strong priors on where wm should be
+      {
+        HISTOclearBins(h_mri, h_mri, 0, MIN_CONFORMED_WM_VAL) ;
+        HISTOclearBins(h_mri, h_mri, MAX_CONFORMED_WM_VAL+1, 255) ;
+      }
       mri_peak = HISTOfindLastPeak(h_mri, 2*HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+    }
     else
       mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins);
     mri_peak = h_mri->bins[mri_peak] ;
