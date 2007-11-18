@@ -1,4 +1,4 @@
-function find_corresponding_center_FSformat (pial, outersmoothed, stepsize, outdir)
+function find_corresponding_center_FSformat (pial, outersmoothed, stepsize, outdir, flagfile)
 
 % Original Author: Marie Schaer
 % Date: 2007/11/14
@@ -44,3 +44,6 @@ end
 fclose(fidv) ;
 
 deltaT = cputime - t0
+
+% indicate successful completion by deleting flagfile
+delete(flagfile);
