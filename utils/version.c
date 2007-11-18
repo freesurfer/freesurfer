@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/05 17:48:19 $
- *    $Revision: 1.31 $
+ *    $Date: 2007/11/18 03:06:23 $
+ *    $Revision: 1.31.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -112,8 +112,8 @@
    argc -= nargs;
 */
 int
-make_cmd_version_string (int argc, char** argv,  char* id_string,
-                         char* version_string, char *return_string)
+make_cmd_version_string (int argc, char** argv,  const char* id_string,
+                         const char* version_string, char *return_string)
 {
   int nnarg = 0;
   char stripped_version_string[1024];
@@ -228,7 +228,7 @@ make_cmd_version_string (int argc, char** argv,  char* id_string,
 
 int
 handle_version_option (int argc, char** argv,
-                       char* id_string, char* version_string)
+                       const char* id_string, const char* version_string)
 {
   int narg = 0;
   int nnarg = 0;

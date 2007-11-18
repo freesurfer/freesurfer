@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.24 $
+ *    $Date: 2007/11/18 03:06:21 $
+ *    $Revision: 1.24.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -387,12 +387,18 @@ ToglManager::InitializeTogl ( Tcl_Interp* iInterp ) {
 
   // Create our Tcl commands that will be bound to the Togl object as
   // callbacks.
-  Togl_CreateCommand( "MouseMotionCallback", ToglManager::MouseMotionCallback);
-  Togl_CreateCommand( "MouseDownCallback", ToglManager::MouseDownCallback );
-  Togl_CreateCommand( "MouseUpCallback", ToglManager::MouseUpCallback );
-  Togl_CreateCommand( "KeyDownCallback", ToglManager::KeyDownCallback );
-  Togl_CreateCommand( "KeyUpCallback", ToglManager::KeyUpCallback );
-  Togl_CreateCommand( "ExitCallback", ToglManager::ExitCallback );
+  Togl_CreateCommand( (char*)"MouseMotionCallback", 
+                      ToglManager::MouseMotionCallback);
+  Togl_CreateCommand( (char*)"MouseDownCallback", 
+                      ToglManager::MouseDownCallback );
+  Togl_CreateCommand( (char*)"MouseUpCallback", 
+                      ToglManager::MouseUpCallback );
+  Togl_CreateCommand((char*) "KeyDownCallback", 
+                      ToglManager::KeyDownCallback );
+  Togl_CreateCommand( (char*)"KeyUpCallback", 
+                      ToglManager::KeyUpCallback );
+  Togl_CreateCommand( (char*)"ExitCallback", 
+                      ToglManager::ExitCallback );
 }
 
 

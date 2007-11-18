@@ -2,14 +2,16 @@
  * @file  mris_topo_fixer.cpp
  * @brief optimally correcting the topology of triangulated surface
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * "Genetic Algorithm for the Topology Correction of Cortical Surfaces",
+ * F. Segonne, E. Grimson, B. Fischl
+ * (2005) IPMI pp393--405.
  */
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: segonne $
- *    $Date: 2007/02/13 19:30:47 $
- *    $Revision: 1.26 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 03:06:20 $
+ *    $Revision: 1.26.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,15 +59,15 @@ static int  get_option(int argc, char *argv[]) ;
 static void initTopoFixerParameters();
 static void freeTopoFixerParameters();
 
-char *Progname ;
+const char *Progname ;
 
-static char *brain_name    = "brain" ;
-static char *wm_name       = "wm" ;
-static char *orig_name     = "orig" ;
-static char *input_name   = "input" ;
-//static char *defect_name  = "defects" ;
-static char *sphere_name = "qsphere" ;
-static char *out_name = "orig_corrected" ;
+static const char *brain_name    = "brain" ;
+static const char *wm_name       = "wm" ;
+static const char *orig_name     = "orig" ;
+static const char *input_name   = "input" ;
+//static const char *defect_name  = "defects" ;
+static const char *sphere_name = "qsphere" ;
+static const char *out_name = "orig_corrected" ;
 
 static char sdir[STRLEN] = "";///space/tensor/7/users/fstest/" ;
 static TOPOFIX_PARMS parms;
@@ -165,7 +167,7 @@ int main(int argc, char *argv[]) {
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_topo_fixer.cpp,v 1.26 2007/02/13 19:30:47 segonne Exp $",
+   "$Id: mris_topo_fixer.cpp,v 1.26.2.1 2007/11/18 03:06:20 nicks Exp $",
    "$Name:  $",
    cmdline);
 
@@ -174,7 +176,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.26 2007/02/13 19:30:47 segonne Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.26.2.1 2007/11/18 03:06:20 nicks Exp $",
      "$Name:  $");
 
   if (nargs && argc - nargs == 1)
@@ -256,7 +258,7 @@ int main(int argc, char *argv[]) {
 		//before extracting the largest component, we will load the spherical coordinates
 		MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
 		sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, sphere_name) ;
-		if (MRISreadVertexPositions(mris, sphere_name) != NO_ERROR)
+		if (MRISreadVertexPositions(mris, (char*)sphere_name) != NO_ERROR)
 				ErrorExit(ERROR_NOFILE, "%s: could not read original surface %s",
 									Progname, orig_name) ;
 		MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
@@ -314,7 +316,7 @@ int main(int argc, char *argv[]) {
 		if(did_extract_main_component==0){
 			//read the spherical coordinates
 			sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, sphere_name) ;
-			if (MRISreadVertexPositions(mris, sphere_name) != NO_ERROR)
+			if (MRISreadVertexPositions(mris, (char*)sphere_name) != NO_ERROR)
 				ErrorExit(ERROR_NOFILE, "%s: could not read original surface %s",
 									Progname, orig_name) ;
 		}else //surface already extracted
@@ -473,105 +475,105 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, (char*)"-help"))
     exit(1);//print_help() ;
-  else if (!stricmp(option, "mgz")) {
+  else if (!stricmp(option, (char*)"mgz")) {
     printf("INFO: assuming .mgz format\n");
     MGZ = 1;
-  } else if (!stricmp(option , "fast")) {
+  } else if (!stricmp(option , (char*)"fast")) {
     parms.mode=1;
     fprintf(stderr,"fast mode on\n");
-  } else if (!stricmp(option , "verbose")) {
+  } else if (!stricmp(option , (char*)"verbose")) {
     Gdiag = DIAG_VERBOSE;
-  } else if (!stricmp(option , "write")) {
+  } else if (!stricmp(option ,(char*) "write")) {
     parms.write=1;
-  } else if (!stricmp(option, "verbose_low")) {
+  } else if (!stricmp(option, (char*)"verbose_low")) {
     parms.verbose=VERBOSE_MODE_LOW;
     fprintf(stderr,"verbose mode on (default+low mode)\n");
     nargs = 0 ;
-  } else if (!stricmp(option, "warnings")) {
+  } else if (!stricmp(option, (char*)"warnings")) {
     parms.verbose=VERBOSE_MODE_MEDIUM;
     fprintf(stderr,"verbose mode on (medium mode): printing warnings\n");
     nargs = 0 ;
-  } else if (!stricmp(option, "errors")) {
+  } else if (!stricmp(option, (char*)"errors")) {
     parms.verbose=VERBOSE_MODE_HIGH;
     fprintf(stderr,"verbose mode on (high mode): "
             "exiting when warnings appear\n");
     nargs = 0 ;
-  } else if (!stricmp(option, "mri")) {
+  } else if (!stricmp(option, (char*)"mri")) {
     parms.l_mri = atof(argv[2]) ;
     fprintf(stderr,"setting l_mri = %2.2f\n", parms.l_mri) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "curv")) {
+  } else if (!stricmp(option, (char*)"curv")) {
     parms.l_curv = atof(argv[2]) ;
     fprintf(stderr,"setting l_curv = %2.2f\n", parms.l_curv) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "qcurv")) {
+  } else if (!stricmp(option, (char*)"qcurv")) {
     parms.l_qcurv = atof(argv[2]) ;
     fprintf(stderr,"setting l_qcurv = %2.2f\n", parms.l_qcurv) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "unmri")) {
+  } else if (!stricmp(option, (char*)"unmri")) {
     parms.l_unmri = atof(argv[2]) ;
     //parms.l_unmri = 0.0;
     fprintf(stderr,"setting l_unmri = %2.2f\n", parms.l_unmri) ;
     //      if(parms.volume_resolution<1)
     //parms.volume_resolution = 2;
     nargs = 1 ;
-  } else if (!stricmp(option, "pct")) {
+  } else if (!stricmp(option, (char*)"pct")) {
     parms.nattempts_percent = atof(argv[2]) ;
     fprintf
     (stderr,
      "setting pct of attempts = %2.2f\n",
      parms.nattempts_percent) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "inverted_contrast")) {
+  } else if (!stricmp(option,(char*) "inverted_contrast")) {
     parms.contrast = -1 ;
     fprintf(stderr,"contrast inversion\n") ;
-  } else if (!stricmp(option, "detect_contrast")) {
+  } else if (!stricmp(option, (char*)"detect_contrast")) {
     parms.contrast = -2 ;
     fprintf(stderr,"automatically detecting contrast inversion\n") ;
-  } else if (!stricmp(option, "usual_contrast")) {
+  } else if (!stricmp(option, (char*)"usual_contrast")) {
     parms.contrast = 1 ;
     fprintf(stderr,"contrast in right direction\n") ;
-  } else if (!stricmp(option, "nmin")) {
+  } else if (!stricmp(option, (char*)"nmin")) {
     parms.nminattempts = __MAX(1,atoi(argv[2])) ;
     fprintf
     (stderr,
      "setting minimal number of attempts = %d\n",
      parms.nminattempts) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "asc")) {
+  } else if (!stricmp(option, (char*)"asc")) {
     asc=1;
     fprintf(stderr,"writting out surface in asci mode\n") ;
-  } else if (!stricmp(option, "int")) {
+  } else if (!stricmp(option, (char*)"int")) {
     noint = 0 ;
     nargs = 0 ;
     parms.no_self_intersections = 0 ;
-  } else if (!stricmp(option, "no_intersection")) {
+  } else if (!stricmp(option,(char*) "no_intersection")) {
     parms.no_self_intersections = 1;
     fprintf(stderr,"avoiding self-intersecting patches\n") ;
-  } else if (!stricmp(option, "minimal")) {
+  } else if (!stricmp(option, (char*)"minimal")) {
     parms.minimal_mode=1;
     parms.nminattempts = 1;
     parms.nattempts_percent=0.0f;
     fprintf(stderr,"cuting minimal loop only\n") ;
-  } else if (!stricmp(option, "loop_pct")) {
+  } else if (!stricmp(option, (char*)"loop_pct")) {
     parms.minimal_loop_percent = atof(argv[2]) ;
     fprintf
     (stderr,
      "setting loop_pct = %2.2f\n",
      parms.minimal_loop_percent) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "smooth")) {
+  } else if (!stricmp(option, (char*)"smooth")) {
     parms.smooth = atoi(argv[2]) ;
     fprintf(stderr,"smoothing defect with mode %d\n", parms.smooth) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "match")) {
+  } else if (!stricmp(option, (char*)"match")) {
     if (atoi(argv[2])) parms.match = 1 ;
     else  parms.match = 0;
     fprintf(stderr,"matching mode : %d \n", parms.match) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "seed")) {
+  } else if (!stricmp(option, (char*)"seed")) {
     setRandomSeed(atol(argv[2])) ;
     fprintf
     (stderr,

@@ -1,6 +1,6 @@
 /**
  * @file  mris_volmask.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Uses the 4 surfaces of a scan to construct a mask volume
  *
  * Uses the 4 surfaces of a scan to construct a mask volume showing the 
  *      position of each voxel with respect to the surfaces - GM, WM, LH or RH.
@@ -8,9 +8,9 @@
 /*
  * Original Author: Gheorghe Postelnicu
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/31 21:06:47 $
- *    $Revision: 1.10 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 03:06:20 $
+ *    $Revision: 1.10.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -402,7 +402,7 @@ IoParams::parse(int ac, char* av[]) {
                           " override default value for right ribbon label - 110"
                         );
   interface.AddOptionFloat( "cap_distance", &capValue,
-                            " maximum distance up to which the signed distance function computation is accurate"
+                            (char*)" maximum distance up to which the signed distance function computation is accurate"
                           );
   interface.AddOptionBool( "save_distance", &bSaveDistance,
                            " option to save the signed distance function as ?h.dwhite.mgz ?h.dpial.mgz in the mri directory"

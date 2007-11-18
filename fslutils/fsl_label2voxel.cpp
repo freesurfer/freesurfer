@@ -1,15 +1,15 @@
 /**
  * @file  fsl_label2voxel.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief two fsl aligned label volume and src volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * to get the voxel values of the src corresponding to the label volume
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:57 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/11/18 03:06:16 $
+ *    $Revision: 1.5.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,15 +25,6 @@
  *
  */
 
-
-//
-// fsl_label2voxel.cpp
-//
-// purpose:
-// two fsl aligned label volume and src volume
-// to get the voxel values of the src corresponding to the label volume
-//
-
 #include <iostream>
 #include <iomanip>
 #if (__GNUC__ < 3)
@@ -46,7 +37,7 @@
 extern "C" {
 #include "mri.h"
 #include "macros.h"
-  char *Progname="fsl_label2voxel";
+  const char *Progname="fsl_label2voxel";
 }
 
 using namespace std;

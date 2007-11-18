@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/21 18:59:18 $
- *    $Revision: 1.320.2.2 $
+ *    $Date: 2007/11/18 03:06:22 $
+ *    $Revision: 1.320.2.3 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.320.2.2 $";
+char *VERSION = "$Revision: 1.320.2.3 $";
 
 #define TCL
 #define TKMEDIT
@@ -1193,7 +1193,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.320.2.2 2007/08/21 18:59:18 nicks Exp $",
+     "$Id: tkmedit.c,v 1.320.2.3 2007/11/18 03:06:22 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5904,7 +5904,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.320.2.2 2007/08/21 18:59:18 nicks Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.320.2.3 2007/11/18 03:06:22 nicks Exp $ $Name:  $\n"
         )
       );
 
@@ -11050,6 +11050,7 @@ tkm_tErr GraphSegLabel ( tkm_tSegType iVolume,
   FunV_tErr eFunctional    = FunV_tErr_NoError;
   int       nNumEntries    = 0;
   char      sLabel[1024]   = "";
+  sLabel[0]=0;
 
   DebugEnterFunction( ("GraphSegLabel ( iVolume=%d, inIndex=%d )",
                        iVolume, inIndex) );
@@ -11087,7 +11088,7 @@ tkm_tErr GraphSegLabel ( tkm_tSegType iVolume,
 
   /* set the graph window */
   CTABcopyName( gColorTable[iVolume], inIndex, sLabel, sizeof(sLabel) );
-  if ( sLabel != "" )
+  if ( sLabel[0] != 0 )
     FunV_SetLocationString( gFunctionalVolume, sLabel );
 
   UpdateAndRedraw ();

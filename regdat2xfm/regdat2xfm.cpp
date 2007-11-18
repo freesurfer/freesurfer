@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:13 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/11/18 03:06:20 $
+ *    $Revision: 1.6.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,7 @@ extern "C" {
 #include "transform.h"
 #include "talairachex.h"
 #include "utils.h"
-  char *Progname="regdat2xfm";
+  const char *Progname="regdat2xfm";
 }
 
 using namespace std;

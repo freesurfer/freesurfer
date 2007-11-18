@@ -1,15 +1,18 @@
 /**
  * @file  version.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief freesurfer version functions defined here
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Looks for the --version, -version, --all-info, or -all-info tag in the 
+ * argv and if found, prints out version information, namely this:
+ * ProgramVersion, TimeStamp, CVS, User, Machine, Platform, PlatformVersion
+ * CompilerName, and CompilerVersion.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.12 $
+ *    $Date: 2007/11/18 03:06:17 $
+ *    $Revision: 1.12.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,12 +27,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author $
-// Revision Date  : $Date $
-// Revision       : $Revision $
 
 
 #ifndef VERSION_H
@@ -71,9 +68,9 @@
 */
 
 int handle_version_option (int argc, char** argv,
-                           char* id_string, char* version_string);
-int make_cmd_version_string (int argc, char** argv,  char* id_string,
-                             char* version_string, char *return_string) ;
+                           const char* id_string, const char* version_string);
+int make_cmd_version_string (int argc, char** argv,  const char* id_string,
+                             const char* version_string, char *return_string) ;
 char *argv2cmdline(int argc, char *argv[]);
 char *VERuser(void);
 char *VERfileTimeStamp(char *fname);

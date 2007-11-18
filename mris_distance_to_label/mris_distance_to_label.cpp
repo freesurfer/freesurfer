@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/11/18 03:06:19 $
+ *    $Revision: 1.4.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,11 +46,12 @@ extern "C" {
 
 #include "fastmarching.h"
 
-static char vcid[] = "$Id: mris_distance_to_label.cpp,v 1.4 2006/12/29 02:09:10 nicks Exp $";
+static const char vcid[] = 
+  "$Id: mris_distance_to_label.cpp,v 1.4.2.1 2007/11/18 03:06:19 nicks Exp $";
 
 static char *aseg_fname=NULL;
 
-static char *FRAME_FIELD_NAMES[]=  /* order correspond to maccros defined in mrisurf.h */
+static const char *FRAME_FIELD_NAMES[]=  /* order correspond to maccros defined in mrisurf.h */
   {
     NULL,
     "sulc",
@@ -76,7 +77,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *Progname ;
+const char *Progname ;
 
 static int labels[50];
 static int nlabels=0;
@@ -86,7 +87,11 @@ static int mode = 1 ;
 
 static char subjects_dir[STRLEN] ;
 
-static void mrisExtractMRIvalues(MRIS * mris,MRI * mri,MRI *mri_distance,float distance,int mode) {
+static void mrisExtractMRIvalues(MRIS * mris,
+                                 MRI * mri,
+                                 MRI *mri_distance,
+                                 float distance,
+                                 int mode) {
   int n;
   Real xw,yw,zw,xv,yv,zv,val;
   VERTEX *v;
@@ -193,7 +198,7 @@ int main(int argc, char *argv[]) {
   struct timeb start;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_distance_to_label.cpp,v 1.4 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_distance_to_label.cpp,v 1.4.2.1 2007/11/18 03:06:19 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -241,7 +246,7 @@ int main(int argc, char *argv[]) {
     //  fprintf(stderr,"      inferior lateral ventricle\n");
     fprintf(stderr,"      layer IV gray\n");
     nlabels=8;
-    if (!stricmp(hemi,"rh")) { /* right hemisphere */
+    if (!stricmp(hemi,(char*)"rh")) { /* right hemisphere */
       labels[0]=54;
       labels[1]=53;
       labels[2]=52;
@@ -346,28 +351,28 @@ get_option(int argc, char *argv[]) {
   char   *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "SDIR")) {
+  if (!stricmp(option, (char*)"SDIR")) {
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
     printf("using %s as subjects directory\n", subjects_dir) ;
-  } else if (!stricmp(option, "aseg")) {
+  } else if (!stricmp(option, (char*)"aseg")) {
     aseg_fname=argv[2];
     fprintf(stderr,"using %s for the aseg volume\n",aseg_fname);
     nargs = 1 ;
-  } else if (!stricmp(option, "mode")) {
+  } else if (!stricmp(option,(char*) "mode")) {
     mode=atoi(argv[2]);
     fprintf(stderr,"mode %d : (1 == outside ; 2 == inside ; 3 == both) \n",mode);
     nargs = 1 ;
-  } else if (!stricmp(option, "distance")) {
+  } else if (!stricmp(option, (char*)"distance")) {
     fdistance=atof(argv[2]);
     fprintf(stderr,"computing distance map for distances smaller than %f\n",fdistance);
     nargs = 1 ;
     printf("using %s as subjects directory\n", subjects_dir) ;
-  } else if (!stricmp(option, "-help"))
+  } else if (!stricmp(option,(char*) "-help"))
     print_help() ;
-  else if (!stricmp(option, "-version"))
+  else if (!stricmp(option, (char*)"-version"))
     print_version() ;
-  else if (!stricmp(option, "navgs")) {
+  else if (!stricmp(option,(char*) "navgs")) {
     navgs=atoi(argv[2]);
     fprintf(stderr,"smoothing curv for %d iterations\n",navgs);
     nargs=1;

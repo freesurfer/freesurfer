@@ -1,17 +1,18 @@
 /**
  * @file  mri_surfacemask.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief taking mri volume and surface and create volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * where all pixels outside the surface has been zeroed
+ *
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/11/18 03:06:18 $
+ *    $Revision: 1.3.2.1 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2003,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,22 +26,6 @@
  *
  */
 
-
-//
-// mri_surfacemask
-//
-// taking mri volume and surface and create volume
-//
-// where all pixels outside the surface has been zeroed
-//
-// original author: Yasunari Tosa
-// code date      : Nov. 13th, 2003
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:09 $
-// Revision       : $Revision: 1.3 $
-
 #include <iostream>
 #include <iomanip>
 
@@ -48,7 +33,7 @@ extern "C" {
 #include "mri.h"
 #include "mrisurf.h"
 #include "version.h"
-  char *Progname = "mri_surfacemask";
+  const char *Progname = "mri_surfacemask";
 }
 
 using namespace std;
@@ -117,7 +102,9 @@ void markSurfaceVoxels(MRI *mri_filled, MRIS *mris) {
         xv = int(floor(tx + 0.5));
         yv = int(floor(ty + 0.5));
         zv = int(floor(tz + 0.5));
-        if (xv >= 0 && xv < width && yv >=0 && yv < height && zv >= 0 && zv < depth) {
+        if (xv >= 0 && xv < width && 
+            yv >=0 && yv < height && 
+            zv >= 0 && zv < depth) {
           MRIvox(mri_filled,xv,yv,zv)  = 255;
         }
       }  // numu
@@ -143,7 +130,8 @@ void markOutsideVoxels(MRI *mri_filled) {
       for (j=0;j<height;j++)
         for (i=0;i<width;i++)
           if (MRIvox(mri_filled,i,j,k)==0)
-            if (MRIvox(mri_filled,i,j,mri_filled->zi[k-1])==64||MRIvox(mri_filled,i,mri_filled->yi[j-1],k)==64||
+            if (MRIvox(mri_filled,i,j,mri_filled->zi[k-1])==64||
+                MRIvox(mri_filled,i,mri_filled->yi[j-1],k)==64||
                 MRIvox(mri_filled,mri_filled->xi[i-1],j,k)==64) {
               MRIvox(mri_filled,i,j,k)= 64;
               newfilled++;
@@ -153,7 +141,8 @@ void markOutsideVoxels(MRI *mri_filled) {
       for (j=height-1;j>=0;j--)
         for (i=width-1;i>=0;i--)
           if (MRIvox(mri_filled,i,j,k)==0)
-            if (MRIvox(mri_filled,i,j,mri_filled->zi[k+1])==64||MRIvox(mri_filled,i,mri_filled->yi[j+1],k)==64||
+            if (MRIvox(mri_filled,i,j,mri_filled->zi[k+1])==64||
+                MRIvox(mri_filled,i,mri_filled->yi[j+1],k)==64||
                 MRIvox(mri_filled,mri_filled->xi[i+1],j,k)==64) {
               MRIvox(mri_filled,i,j,k) = 64;
               newfilled++;
@@ -182,7 +171,10 @@ void markOutsideVoxels(MRI *mri_filled) {
 
 int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
-  int nargs = handle_version_option (argc, argv, "$Id: mri_surfacemask.cpp,v 1.3 2006/12/29 02:09:09 nicks Exp $", "$Name:  $");
+  int nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mri_surfacemask.cpp,v 1.3.2.1 2007/11/18 03:06:18 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

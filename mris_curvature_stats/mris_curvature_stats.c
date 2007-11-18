@@ -2,18 +2,18 @@
  * @file  mris_curvature_stats.c
  * @brief Determine the mean and std of curvature files, and much much more. 
  *
- * 'mris_curvature_stats' calculates statistics on curvature across a surface. It also
- * creates simple histograms on curvature distribution. Additionally, it can also
- * be used to analyze a surface and determine the principle curvatures and save to
- * extra curvature files, e.g. K, H, k1, k2.
+ * 'mris_curvature_stats' calculates statistics on curvature across a surface. 
+ * It also creates simple histograms on curvature distribution. 
+ * Additionally, it can also be used to analyze a surface and determine the 
+ * principle curvatures and save to extra curvature files, e.g. K, H, k1, k2.
  *
  */
 /*
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/09/14 23:55:36 $
- *    $Revision: 1.28.2.1 $
+ *    $Date: 2007/11/18 03:06:19 $
+ *    $Revision: 1.28.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -82,25 +82,25 @@ typedef enum _surfaceIntegrals {
 
 // Set of possible output curvature files
 char* Gppch[] = {
-                  "Raw",
-                  "K",
-                  "H",
-                  "k1",
-                  "k2",
-		  "S",
-		  "C",
-		  "SI",
-		  "BE",
-                  "Normalised",
-                  "Scaled",
-                  "ScaledTrans"
-                };
+  "Raw",
+  "K",
+  "H",
+  "k1",
+  "k2",
+  "S",
+  "C",
+  "SI",
+  "BE",
+  "Normalised",
+  "Scaled",
+  "ScaledTrans"
+};
 
 // Output file prefixes
 typedef enum _OFSP {
-    e_None,   			// No prefix
-    e_Partial,  		// A partial prefix (does not include the stem)
-    e_Full,   			// Full prefix - including stem
+  e_None,   			// No prefix
+  e_Partial,  		// A partial prefix (does not include the stem)
+  e_Full,   			// Full prefix - including stem
 }   e_OFSP;
 
 // This structure is used to house data on the min/max curvature of a
@@ -108,18 +108,18 @@ typedef enum _OFSP {
 //	used to convey information between the various functions that
 //	use it.
 typedef struct _minMax {
-    float	f_min;			// The minimum curvature value
-    float	f_max;			// The maximum curvature value
-    int		vertexMin;		// The vertex where min lives
-    int		vertexMax;		// The vertex where max lives
-    short	b_minTest;		// If true, perform explicit min test
-    short	b_maxTest;		// If true, perform explicit max test
-    short	b_minViolation;		// If true, min value != explicit min
-    short	b_maxViolation;	  	// If true, max value != explicit max
+  float	f_min;			// The minimum curvature value
+  float	f_max;			// The maximum curvature value
+  int		vertexMin;		// The vertex where min lives
+  int		vertexMax;		// The vertex where max lives
+  short	b_minTest;		// If true, perform explicit min test
+  short	b_maxTest;		// If true, perform explicit max test
+  short	b_minViolation;		// If true, min value != explicit min
+  short	b_maxViolation;	  	// If true, max value != explicit max
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.28.2.1 2007/09/14 23:55:36 nicks Exp $";
+  "$Id: mris_curvature_stats.c,v 1.28.2.2 2007/11/18 03:06:19 nicks Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -129,19 +129,19 @@ static void  print_usage(void) ;
 static void  print_help(void) ;
 static void  print_version(void) ;
 
-	//----------------------------//
-	// Function Prototypes: START //
-	//----------------------------// 
+//----------------------------//
+// Function Prototypes: START //
+//----------------------------// 
 
 // Simple functions of principle curvatures
 float 	f_sharpnessCurvature(float af_k1, float af_k2) 
-	{return ((af_k1 - af_k2)*(af_k1 - af_k2));}
+{return ((af_k1 - af_k2)*(af_k1 - af_k2));}
 float 	f_bendingEnergyCurvature(float af_k1, float af_k2) 
-	{return (af_k1*af_k1 + af_k2*af_k2);}
+{return (af_k1*af_k1 + af_k2*af_k2);}
 float 	f_curvednessCurvature(float af_k1, float af_k2) 
-	{return (sqrt(0.5*(af_k1*af_k1 + af_k2*af_k2)));}
+{return (sqrt(0.5*(af_k1*af_k1 + af_k2*af_k2)));}
 float 	f_shapeIndexCurvature(float af_k1, float af_k2) 
-	{return (af_k1 == af_k2 ? 0 : atan((af_k1+af_k2)/(af_k2 - af_k1)));}
+{return (af_k1 == af_k2 ? 0 : atan((af_k1+af_k2)/(af_k2 - af_k1)));}
 
 // Simple functions on specific vertices
 float 	f_absCurv(VERTEX*		pv) {return (fabs(pv->curv));}
@@ -153,7 +153,7 @@ short 	f_lessThanZero(VERTEX*		pv) {return (pv->curv <0 ? 1 : 0);}
 int 	MRISusePrincipleCurvatureFunction(
 	MRI_SURFACE*		pmris, 
 	float 			(*f)(float k1, float k2)
-);
+  );
 
 short 	MRIS_surfaceIntegral_compute(
 	MRI_SURFACE* 		pmris, 
@@ -161,10 +161,10 @@ short 	MRIS_surfaceIntegral_compute(
 	float*			pf_areaCounted,
 	short			(*fcond)(VERTEX*	pv),
 	float			(*fv)	(VERTEX*	pv),
-      	float*			pf_surfaceIntegral,
+  float*			pf_surfaceIntegral,
 	float*			pf_meanIntegral,
 	float*			pf_areaNormalizedIntegral	
-);
+  );
 
 int	comp(
 	const void *p, 
@@ -172,24 +172,24 @@ int	comp(
 	);    			// Compare p and q for qsort()
 
 void	histogram_wrapper(
-  	MRIS*   	amris,
-  	e_secondOrderType aesot
-);
+  MRIS*   	amris,
+  e_secondOrderType aesot
+  );
 
 void	histogram_create(
-  	MRIS*   		amris_curvature,
-  	float   		af_minCurv,
-  	double   		af_binSize,
-  	int   			abins,
-  	float*   		apf_histogram,
-  	e_secondOrderType 	aesot
-);
+  MRIS*   		amris_curvature,
+  float   		af_minCurv,
+  double   		af_binSize,
+  int   			abins,
+  float*   		apf_histogram,
+  e_secondOrderType 	aesot
+  );
 
 void	OFSP_create(
-  	char*   		apch_prefix,
-  	char*   		apch_suffix,
-  	e_OFSP   		ae_OFSP
-);
+  char*   		apch_prefix,
+  char*   		apch_suffix,
+  e_OFSP   		ae_OFSP
+  );
 
 void	outputFileNames_create(void);
 void	outputFiles_open(void);
@@ -198,24 +198,24 @@ void	outputFiles_close(void);
 int	MRIS_curvatureStats_analyze(
 	MRIS*			apmris,
 	e_secondOrderType	aesot
-);
+  );
 
 int  	MRISminMaxCurvaturesSearchSOT(
-  	MRI_SURFACE*  		apmris,
-  	int*   			ap_vertexMin,
-  	int*   			ap_vertexMax,
-  	float*   		apf_min,
-  	float*   		apf_max,
-  	e_secondOrderType 	aesot
-);
+  MRI_SURFACE*  		apmris,
+  int*   			ap_vertexMin,
+  int*   			ap_vertexMax,
+  float*   		apf_min,
+  float*   		apf_max,
+  e_secondOrderType 	aesot
+  );
 
 int  	MRISminMaxCurvaturesSearch(
-  	MRI_SURFACE*  		apmris,
-  	int*   			ap_vertexMin,
-  	int*   			ap_vertexMax,
-  	float*   		apf_min,
-  	float*   		apf_max
-) {
+  MRI_SURFACE*  		apmris,
+  int*   			ap_vertexMin,
+  int*   			ap_vertexMax,
+  float*   		apf_min,
+  float*   		apf_max
+  ) {
   MRISminMaxCurvaturesSearchSOT(  apmris,
                                   ap_vertexMin,
                                   ap_vertexMax,
@@ -225,9 +225,9 @@ int  	MRISminMaxCurvaturesSearch(
   return(NO_ERROR);
 };
 
-	//----------------------------//
-	// Function Prototypes: END   //
-	//----------------------------// 
+//----------------------------//
+// Function Prototypes: END   //
+//----------------------------// 
 
 
 // Global variables
@@ -366,23 +366,23 @@ static int which_norm = NORM_MEAN;
 int 
 stats_update(
 	int	ai
-) {
-    //
-    // PRECONDITIONS
-    //	o Typically called if the mean and sigma for a surface
-    //	  has been determined.
-    //	o <ai> denotes the position in the global 'mean' array
-    //	  to update.
-    //
-    // POSTCONDITIONS
-    //	o Updates several globals with new mean/sigma data.
-    //
+  ) {
+  //
+  // PRECONDITIONS
+  //	o Typically called if the mean and sigma for a surface
+  //	  has been determined.
+  //	o <ai> denotes the position in the global 'mean' array
+  //	  to update.
+  //
+  // POSTCONDITIONS
+  //	o Updates several globals with new mean/sigma data.
+  //
 
-    Gpf_means[ai-START_i]  	 = Gf_mean;
-    Gf_total    		+= Gf_mean;
-    Gf_total_sq   		+= Gf_mean*Gf_mean ;
-    Gf_n   			+= 1.0;
-    return 1;
+  Gpf_means[ai-START_i]  	 = Gf_mean;
+  Gf_total    		+= Gf_mean;
+  Gf_total_sq   		+= Gf_mean*Gf_mean ;
+  Gf_n   			+= 1.0;
+  return 1;
 }
 
 int
@@ -397,7 +397,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-	"$Id: mris_curvature_stats.c,v 1.28.2.1 2007/09/14 23:55:36 nicks Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.28.2.2 2007/11/18 03:06:19 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -464,59 +464,59 @@ main(int argc, char *argv[]) {
   // Process all the command-line spec'd curvature files
   if(argc>=4)
     for (Gf_n= Gf_total_sq = Gf_total = 0.0, i = START_i ; i < argc ; i++) {
-	curv_fname = argv[i] ;
-	cprints("Setting texture", curv_fname);
-	cprints("Reading texture...", "");
+      curv_fname = argv[i] ;
+      cprints("Setting texture", curv_fname);
+      cprints("Reading texture...", "");
     	if (MRISreadCurvatureFile(mris, curv_fname) != NO_ERROR) {
-            fprintf(stderr,
-		"\n\t\t***WARNING!***\n");
-            fprintf(stderr,
-		"\tSome error has occurred while reading '%s.%s'.\n",
+        fprintf(stderr,
+                "\n\t\t***WARNING!***\n");
+        fprintf(stderr,
+                "\tSome error has occurred while reading '%s.%s'.\n",
               	hemi, curv_fname);
-            fprintf(stderr,
-		"\tThis might be due a vertex incompatibility\n");
-            fprintf(stderr, 
-		"\tbetween the surface '%s.%s' and curv '%s.%s'.\n",
+        fprintf(stderr,
+                "\tThis might be due a vertex incompatibility\n");
+        fprintf(stderr, 
+                "\tbetween the surface '%s.%s' and curv '%s.%s'.\n",
               	hemi, surf_name, hemi, curv_fname);
-            fprintf(stderr, 
-		"\n\tYou might be able to correct this by re-running\n");
-            fprintf(stderr, 
-		"\t'mris_make_surfaces' on this dataset.\n\n");
-            fprintf(stderr, 
-		"\tSkipping this (and any remaining) curvature files.\n");
-            fprintf(stderr, 
-		"\tAny measurements / calcuations that depend on the\n");
-            fprintf(stderr, 
-		"\tcurvature file will be skipped.\n");
-            fprintf(stderr, "\t\t*************\n\n");
-            break;
-        }
-        cprints("", "ok");
+        fprintf(stderr, 
+                "\n\tYou might be able to correct this by re-running\n");
+        fprintf(stderr, 
+                "\t'mris_make_surfaces' on this dataset.\n\n");
+        fprintf(stderr, 
+                "\tSkipping this (and any remaining) curvature files.\n");
+        fprintf(stderr, 
+                "\tAny measurements / calcuations that depend on the\n");
+        fprintf(stderr, 
+                "\tcurvature file will be skipped.\n");
+        fprintf(stderr, "\t\t*************\n\n");
+        break;
+      }
+      cprints("", "ok");
 
-	if (Gb_zeroVertex)
-	    MRISvertexCurvature_set(mris, G_zeroVertex, 0);
+      if (Gb_zeroVertex)
+        MRISvertexCurvature_set(mris, G_zeroVertex, 0);
 
-	if (Gb_scale) {
-	    MRISscaleCurvature(mris, Gf_scaleFactor);
-      	    if (Gpch_scaledCurv && Gb_writeCurvatureFiles) 
-		MRISwriteCurvature(mris, Gpch_scaledCurv);
+      if (Gb_scale) {
+        MRISscaleCurvature(mris, Gf_scaleFactor);
+        if (Gpch_scaledCurv[0] && Gb_writeCurvatureFiles) 
+          MRISwriteCurvature(mris, Gpch_scaledCurv);
     	}
 
-        if (Gb_scaleMin && Gb_scaleMax) {
-      	    MRISscaleCurvatures(mris, Gf_scaleMin, Gf_scaleMax);
-      	    if (Gpch_scaledCurv && Gb_writeCurvatureFiles) 
-		MRISwriteCurvature(mris, Gpch_scaledCurv);
+      if (Gb_scaleMin && Gb_scaleMax) {
+        MRISscaleCurvatures(mris, Gf_scaleMin, Gf_scaleMax);
+        if (Gpch_scaledCurv[0] && Gb_writeCurvatureFiles) 
+          MRISwriteCurvature(mris, Gpch_scaledCurv);
     	}
 
     	if (normalize_flag) {
-      	    MRISnormalizeCurvature(mris,which_norm);
-      	    if (Gpch_normCurv && Gb_writeCurvatureFiles) 
-		MRISwriteCurvature(mris, Gpch_normCurv);
+        MRISnormalizeCurvature(mris,which_norm);
+        if (Gpch_normCurv[0] && Gb_writeCurvatureFiles) 
+          MRISwriteCurvature(mris, Gpch_normCurv);
     	}
 
     	MRISaverageCurvatures(mris, navgs) ;
-	MRIS_curvatureStats_analyze(mris, e_Raw); stats_update(i);
-      }
+      MRIS_curvatureStats_analyze(mris, e_Raw); stats_update(i);
+    }
 
   // Should we calculate all the principle curvature based curvatures? 
   // This is a surface-based calculation, and does not depend on the 
@@ -524,45 +524,45 @@ main(int argc, char *argv[]) {
   if (Gb_gaussianAndMean) {
     MRISsetNeighborhoodSize(mris, G_nbrs);
     if(!Gb_discreteCurvaturesUse) {
-	cprints("Calculating Continuous Principle Curvatures...", "");
-        MRIScomputeSecondFundamentalForm(mris);
-        cprints("", "ok");
+      cprints("Calculating Continuous Principle Curvatures...", "");
+      MRIScomputeSecondFundamentalForm(mris);
+      cprints("", "ok");
     } else {
-	cprints("Calculating Discrete Principle Curvatures...", "");
-        MRIScomputeSecondFundamentalFormDiscrete(mris);
+      cprints("Calculating Discrete Principle Curvatures...", "");
+      MRIScomputeSecondFundamentalFormDiscrete(mris);
     }
 
     MRIS_curvatureStats_analyze(mris, e_Gaussian); stats_update(i++);
-    if (Gpch_KCurv && Gb_writeCurvatureFiles) 
-	MRISwriteCurvature(mris, 	Gpch_KCurv);
+    if (Gpch_KCurv[0] && Gb_writeCurvatureFiles) 
+      MRISwriteCurvature(mris, 	Gpch_KCurv);
     MRIS_curvatureStats_analyze(mris, e_Mean); stats_update(i++);
-    if (Gpch_HCurv && Gb_writeCurvatureFiles) 
-	MRISwriteCurvature(mris, 	Gpch_HCurv);
+    if (Gpch_HCurv[0] && Gb_writeCurvatureFiles) 
+      MRISwriteCurvature(mris, 	Gpch_HCurv);
     MRIS_curvatureStats_analyze(mris, e_K1); stats_update(i++);
-    if (Gpch_K1Curv && Gb_writeCurvatureFiles) 
-	MRISwriteCurvature(mris, 	Gpch_K1Curv);
+    if (Gpch_K1Curv[0] && Gb_writeCurvatureFiles) 
+      MRISwriteCurvature(mris, 	Gpch_K1Curv);
     MRIS_curvatureStats_analyze(mris, e_K2); stats_update(i++);
-    if (Gpch_K2Curv && Gb_writeCurvatureFiles) 
-	MRISwriteCurvature(mris, 	Gpch_K2Curv);
+    if (Gpch_K2Curv[0] && Gb_writeCurvatureFiles) 
+      MRISwriteCurvature(mris, 	Gpch_K2Curv);
     MRIS_curvatureStats_analyze(mris, e_S); stats_update(i++);
-    if (Gpch_SCurv && Gb_writeCurvatureFiles) 
-	MRISwriteCurvature(mris, 	Gpch_SCurv);
+    if (Gpch_SCurv[0] && Gb_writeCurvatureFiles) 
+      MRISwriteCurvature(mris, 	Gpch_SCurv);
     MRIS_curvatureStats_analyze(mris, e_C); stats_update(i++);
-    if (Gpch_CCurv && Gb_writeCurvatureFiles) 
-	MRISwriteCurvature(mris, 	Gpch_CCurv);
+    if (Gpch_CCurv[0] && Gb_writeCurvatureFiles) 
+      MRISwriteCurvature(mris, 	Gpch_CCurv);
     MRIS_curvatureStats_analyze(mris, e_BE); stats_update(i++);
-    if (Gpch_BECurv && Gb_writeCurvatureFiles) 
-	MRISwriteCurvature(mris, 	Gpch_BECurv);
+    if (Gpch_BECurv[0] && Gb_writeCurvatureFiles) 
+      MRISwriteCurvature(mris, 	Gpch_BECurv);
     
     // NOTE:
     // The "Shape Index" can be problematic due to the atan calculations.
     // To analyze the "Shape Index", you must pass an explicit
     // '--shapeIndex' on the command line
     if(Gb_shapeIndex) {
-        MRIS_curvatureStats_analyze(mris, e_SI); stats_update(i++);
-        if (Gpch_SICurv && Gb_writeCurvatureFiles) 
-    	    MRISwriteCurvature(mris, 	Gpch_SICurv);
-        }
+      MRIS_curvatureStats_analyze(mris, e_SI); stats_update(i++);
+      if (Gpch_SICurv[0] && Gb_writeCurvatureFiles) 
+        MRISwriteCurvature(mris, 	Gpch_SICurv);
+    }
   }
 
   if (Gf_n> 1.8) {
@@ -571,8 +571,8 @@ main(int argc, char *argv[]) {
     fprintf(stdout, "\nMean across %d curvatures: %8.4e +- %8.4e\n",
             (int) Gf_n, Gf_mean, Gf_sigma) ;
     if(GpFILE_log) 
-    fprintf(GpFILE_log, "\nMean across %d curvatures: %8.4e +- %8.4e\n",
-            (int) Gf_n, Gf_mean, Gf_sigma) ;
+      fprintf(GpFILE_log, "\nMean across %d curvatures: %8.4e +- %8.4e\n",
+              (int) Gf_n, Gf_mean, Gf_sigma) ;
   }
 
   MRISfree(&mris) ;
@@ -590,7 +590,7 @@ surfaceIntegrals_compute(
 	int*			ap_vertices,
 	float*			apf_areaNormalizedIntegral,
 	float*			apf_area
-) {
+  ) {
   //
   // PRECONDITIONS
   // o amris must have been prepared with a call to
@@ -605,41 +605,41 @@ surfaceIntegrals_compute(
   short b_ret	= 0;
 
   switch(aeSI_type) {
-    case e_natural:
-	b_ret		= MRIS_surfaceIntegral_compute(
-				apmris, ap_vertices, apf_area,
-				f_allVertices,
-				f_pass,
-				apf_surfaceIntegral,
-				apf_meanIntegral,
-				apf_areaNormalizedIntegral);
+  case e_natural:
+    b_ret		= MRIS_surfaceIntegral_compute(
+      apmris, ap_vertices, apf_area,
+      f_allVertices,
+      f_pass,
+      apf_surfaceIntegral,
+      apf_meanIntegral,
+      apf_areaNormalizedIntegral);
     break;
-    case e_rectified:
-	b_ret		= MRIS_surfaceIntegral_compute(
-				apmris, ap_vertices, apf_area,
-				f_allVertices,
-				f_absCurv,
-				apf_surfaceIntegral,
-				apf_meanIntegral,
-				apf_areaNormalizedIntegral); 
+  case e_rectified:
+    b_ret		= MRIS_surfaceIntegral_compute(
+      apmris, ap_vertices, apf_area,
+      f_allVertices,
+      f_absCurv,
+      apf_surfaceIntegral,
+      apf_meanIntegral,
+      apf_areaNormalizedIntegral); 
     break;
-    case e_pos:
-	b_ret		= MRIS_surfaceIntegral_compute(
-				apmris, ap_vertices, apf_area,
-				f_greaterEqualZero,
-				f_absCurv,
-				apf_surfaceIntegral,
-				apf_meanIntegral,
-				apf_areaNormalizedIntegral);
+  case e_pos:
+    b_ret		= MRIS_surfaceIntegral_compute(
+      apmris, ap_vertices, apf_area,
+      f_greaterEqualZero,
+      f_absCurv,
+      apf_surfaceIntegral,
+      apf_meanIntegral,
+      apf_areaNormalizedIntegral);
     break;
-    case e_neg:
-	b_ret		= MRIS_surfaceIntegral_compute(
-				apmris, ap_vertices, apf_area,
-				f_lessThanZero,
-				f_absCurv,
-				apf_surfaceIntegral,
-				apf_meanIntegral,
-				apf_areaNormalizedIntegral);
+  case e_neg:
+    b_ret		= MRIS_surfaceIntegral_compute(
+      apmris, ap_vertices, apf_area,
+      f_lessThanZero,
+      f_absCurv,
+      apf_surfaceIntegral,
+      apf_meanIntegral,
+      apf_areaNormalizedIntegral);
     break;
   }
   return b_ret;
@@ -650,204 +650,204 @@ MRIS_minMaxCurvature_analyze(
 	MRIS*			apmris,
 	e_secondOrderType	aesot,
 	s_MINMAX*		aps_minMax
-) {
-    //
-    // PRECONDITIONS
-    //	o Typically called only by MRIS_minMaxCurve_report(...)
-    //	o Either surfFunc or k1k2Func should be NULL -- this function
-    //	  will call whichever of the above is non-NULL.
-    //	o The <s_MINMAX> structure is used to communicate back to the
-    //	  calling function. If the boolean b_{min,max}Violation fields are set
-    //	  to TRUE, the caller should interpret this to mean that an explicit
-    //	  lookup failed.
-    //	o Similarly, if the <s_MINMAX> b_{min,max}Test fields are true as
-    //	  set by caller, this function will perform an explicit min/max
-    //	  search across the surface.
-    //
-    // POSTCONDITIONS
-    //	o The <s_MINMAX> structure is populated, and pre- post- behaviour
-    //	  is set by the <s_MINMAX> boolean control flags.
-    //
+  ) {
+  //
+  // PRECONDITIONS
+  //	o Typically called only by MRIS_minMaxCurve_report(...)
+  //	o Either surfFunc or k1k2Func should be NULL -- this function
+  //	  will call whichever of the above is non-NULL.
+  //	o The <s_MINMAX> structure is used to communicate back to the
+  //	  calling function. If the boolean b_{min,max}Violation fields are set
+  //	  to TRUE, the caller should interpret this to mean that an explicit
+  //	  lookup failed.
+  //	o Similarly, if the <s_MINMAX> b_{min,max}Test fields are true as
+  //	  set by caller, this function will perform an explicit min/max
+  //	  search across the surface.
+  //
+  // POSTCONDITIONS
+  //	o The <s_MINMAX> structure is populated, and pre- post- behaviour
+  //	  is set by the <s_MINMAX> boolean control flags.
+  //
 
-    int		vmin		= 0;
-    int 	vmax		= 0;
-    float	f_minExplicit	= 0.;
-    float	f_maxExplicit	= 0.;
-    char*	pch_function	= "MRIS_minMaxCurvature_analyze";
+  int		vmin		= 0;
+  int 	vmax		= 0;
+  float	f_minExplicit	= 0.;
+  float	f_maxExplicit	= 0.;
+  char*	pch_function	= "MRIS_minMaxCurvature_analyze";
 
-    DebugEnterFunction (( pch_function ));
-    aps_minMax->b_minViolation	= 0;	// Assume no "violations" for min
-    aps_minMax->b_maxViolation	= 0;	// Assume no "violations" for max
-    MRISminMaxCurvaturesSearch(	apmris, 
-				&vmin, 		&vmax, 
-				&f_minExplicit, &f_maxExplicit);
-    aps_minMax->vertexMin	= vmin;
-    aps_minMax->vertexMax	= vmax;
-    if (aps_minMax->b_minTest && aps_minMax->f_min != f_minExplicit) {
-     	fprintf(stderr, "\nWARN:%5s%-40s%f\n", Gppch[aesot], 
-			" lookup   min:", aps_minMax->f_min);
-      	fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d", Gppch[aesot],
-			" explicit min:", f_minExplicit, vmin);
-	aps_minMax->b_minViolation	= 1;
-	aps_minMax->f_min 		= f_minExplicit;
-    }
-    if (aps_minMax->b_maxTest && aps_minMax->f_max != f_maxExplicit) {
-     	fprintf(stderr, "\nWARN:%5s%-40s%f\n", Gppch[aesot], 
-			" lookup   max:", aps_minMax->f_max);
-      	fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d", Gppch[aesot],
-			" explicit max:", f_maxExplicit, vmax);
-	aps_minMax->b_maxViolation	= 1;
-	aps_minMax->f_max 		= f_maxExplicit;
-    }
-    xDbg_PopStack();
-    return 1;
+  DebugEnterFunction (( pch_function ));
+  aps_minMax->b_minViolation	= 0;	// Assume no "violations" for min
+  aps_minMax->b_maxViolation	= 0;	// Assume no "violations" for max
+  MRISminMaxCurvaturesSearch(	apmris, 
+                              &vmin, 		&vmax, 
+                              &f_minExplicit, &f_maxExplicit);
+  aps_minMax->vertexMin	= vmin;
+  aps_minMax->vertexMax	= vmax;
+  if (aps_minMax->b_minTest && aps_minMax->f_min != f_minExplicit) {
+    fprintf(stderr, "\nWARN:%5s%-40s%f\n", Gppch[aesot], 
+            " lookup   min:", aps_minMax->f_min);
+    fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d", Gppch[aesot],
+            " explicit min:", f_minExplicit, vmin);
+    aps_minMax->b_minViolation	= 1;
+    aps_minMax->f_min 		= f_minExplicit;
+  }
+  if (aps_minMax->b_maxTest && aps_minMax->f_max != f_maxExplicit) {
+    fprintf(stderr, "\nWARN:%5s%-40s%f\n", Gppch[aesot], 
+            " lookup   max:", aps_minMax->f_max);
+    fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d", Gppch[aesot],
+            " explicit max:", f_maxExplicit, vmax);
+    aps_minMax->b_maxViolation	= 1;
+    aps_minMax->f_max 		= f_maxExplicit;
+  }
+  xDbg_PopStack();
+  return 1;
 }
 
 short
 MRIS_curvatures_prepare(
 	MRIS*			apmris,
 	e_secondOrderType	aesot
-) {
-    //
-    // PRECONDITIONS
-    //	o For second order type curves, <aprmis> *must* have been 
-    //	  pre-processed with a call to one of the second order 
-    //	  functions:
-    //
-    //		MRIScomputeSecondFundamentalForm(...)
-    //		MRIScomputeSecondFundamentalFormDiscrete(...)
-    //
-    //	  Note that there is no way for this function to know that this
-    //	  preprocessing has occurred.
-    //  o The <aesot> "second order type" determines which particular curvature
-    //	  value to process.
-    //	o This is the main entry point for preparing a surface for subsequent
-    //	  analysis.
-    //
-    // POSTCONDITIONS
-    //  o Depending on <aesot>, the <apmris> surface is prepared for subsequent
-    //	  analysis.
-    //	o The return value from the surface prepation function is returned, or
-    //	  '-1' if no preparation was performed.
-    //
+  ) {
+  //
+  // PRECONDITIONS
+  //	o For second order type curves, <aprmis> *must* have been 
+  //	  pre-processed with a call to one of the second order 
+  //	  functions:
+  //
+  //		MRIScomputeSecondFundamentalForm(...)
+  //		MRIScomputeSecondFundamentalFormDiscrete(...)
+  //
+  //	  Note that there is no way for this function to know that this
+  //	  preprocessing has occurred.
+  //  o The <aesot> "second order type" determines which particular curvature
+  //	  value to process.
+  //	o This is the main entry point for preparing a surface for subsequent
+  //	  analysis.
+  //
+  // POSTCONDITIONS
+  //  o Depending on <aesot>, the <apmris> surface is prepared for subsequent
+  //	  analysis.
+  //	o The return value from the surface prepation function is returned, or
+  //	  '-1' if no preparation was performed.
+  //
 
-    char*	pch_function	= "MRIS_curvatures_prepare";
-    short	ret		= -1;
+  char*	pch_function	= "MRIS_curvatures_prepare";
+  short	ret		= -1;
 
-    DebugEnterFunction (( pch_function ));
+  DebugEnterFunction (( pch_function ));
 
-    switch (aesot) {
-        case e_Gaussian:
-	    ret = MRISuseGaussianCurvature(apmris);
-    	break;
-  	case e_Mean:
-	    ret = MRISuseMeanCurvature(apmris);
-    	break;
+  switch (aesot) {
+  case e_Gaussian:
+    ret = MRISuseGaussianCurvature(apmris);
+    break;
+  case e_Mean:
+    ret = MRISuseMeanCurvature(apmris);
+    break;
  	case e_K1:
-	    ret = MRISuseK1Curvature(apmris);
-    	break;
+    ret = MRISuseK1Curvature(apmris);
+    break;
  	case e_K2:
-	    ret = MRISuseK2Curvature(apmris);
-    	break;
+    ret = MRISuseK2Curvature(apmris);
+    break;
 	case e_S:
-	    ret = MRISusePrincipleCurvatureFunction(apmris, 
-			f_sharpnessCurvature);
-	break;
+    ret = MRISusePrincipleCurvatureFunction(apmris, 
+                                            f_sharpnessCurvature);
+    break;
 	case e_C:
-	    ret = MRISusePrincipleCurvatureFunction(apmris, 
-			f_sharpnessCurvature);
-        break;
+    ret = MRISusePrincipleCurvatureFunction(apmris, 
+                                            f_sharpnessCurvature);
+    break;
 	case e_BE:
-	    ret = MRISusePrincipleCurvatureFunction(apmris,
-			f_bendingEnergyCurvature);
-        break;
+    ret = MRISusePrincipleCurvatureFunction(apmris,
+                                            f_bendingEnergyCurvature);
+    break;
 	case e_SI:
-	    ret = MRISusePrincipleCurvatureFunction(apmris, 
-			f_shapeIndexCurvature);
-        break;
-  	case e_Raw:
-  	case e_Normal:
-  	case e_Scaled:
-  	case e_ScaledTrans:
-    	break;
-    }
-    xDbg_PopStack();
-    return ret;
+    ret = MRISusePrincipleCurvatureFunction(apmris, 
+                                            f_shapeIndexCurvature);
+    break;
+  case e_Raw:
+  case e_Normal:
+  case e_Scaled:
+  case e_ScaledTrans:
+    break;
+  }
+  xDbg_PopStack();
+  return ret;
 }
 
 short
 MRIS_minMaxCurve_report(
 	MRIS*   		apmris,
-  	e_secondOrderType 	aesot,
+  e_secondOrderType 	aesot,
 	char*			apch_report
-) {
-    //
-    // PRECONDITIONS
-    //	o MRIS_curvatures_prepare(...) *must* have been called for <aesot>.
-    //  o The <aesot> "second order type" determines which particular curvature
-    //	  value to process.
-    //	o This is the main entry point for analyzing the min/max curves. It is
-    //	  typically called by any higher-level function that wants to determine
-    //	  the min/max for a curvature function type (as specified in <aesot>).
-    //
-    // POSTCONDITIONS
-    //	o Calls MRIS_minMaxCurvature_analyze(...) to find the min/max
-    //	  curvatures and vertex "occurrences".
-    //  o Depending on <aesot>, data is printed to stdout (and
-    //    output file, if spec'd).
-    //	o Essentially, function determines the minimum and maximum values of
-    //	  a particular curvature by explicit search. It also checks, for 
-    //	  curvature cases that record min/max in the <apmris> structure, that 
-    //	  the embedded min/max matches the searched min/max.
-    //	o The report itself is returned in the apch_report string.
-    //
+  ) {
+  //
+  // PRECONDITIONS
+  //	o MRIS_curvatures_prepare(...) *must* have been called for <aesot>.
+  //  o The <aesot> "second order type" determines which particular curvature
+  //	  value to process.
+  //	o This is the main entry point for analyzing the min/max curves. It is
+  //	  typically called by any higher-level function that wants to determine
+  //	  the min/max for a curvature function type (as specified in <aesot>).
+  //
+  // POSTCONDITIONS
+  //	o Calls MRIS_minMaxCurvature_analyze(...) to find the min/max
+  //	  curvatures and vertex "occurrences".
+  //  o Depending on <aesot>, data is printed to stdout (and
+  //    output file, if spec'd).
+  //	o Essentially, function determines the minimum and maximum values of
+  //	  a particular curvature by explicit search. It also checks, for 
+  //	  curvature cases that record min/max in the <apmris> structure, that 
+  //	  the embedded min/max matches the searched min/max.
+  //	o The report itself is returned in the apch_report string.
+  //
 
-    s_MINMAX	s_minMax;
-    char*	pch_function	= "MRIS_minMaxCurve_report";
+  s_MINMAX	s_minMax;
+  char*	pch_function	= "MRIS_minMaxCurve_report";
 
-    DebugEnterFunction (( pch_function ));
+  DebugEnterFunction (( pch_function ));
 
-    s_minMax.f_min		= apmris->min_curv;
-    s_minMax.f_max		= apmris->max_curv;
-    s_minMax.vertexMin		= -1;
-    s_minMax.vertexMax		= -1;
-    s_minMax.b_minTest		= 1;
-    s_minMax.b_maxTest		= 1;
-    s_minMax.b_minViolation	= 0;
-    s_minMax.b_maxViolation	= 0;
+  s_minMax.f_min		= apmris->min_curv;
+  s_minMax.f_max		= apmris->max_curv;
+  s_minMax.vertexMin		= -1;
+  s_minMax.vertexMax		= -1;
+  s_minMax.b_minTest		= 1;
+  s_minMax.b_maxTest		= 1;
+  s_minMax.b_minViolation	= 0;
+  s_minMax.b_maxViolation	= 0;
 
-    if(aesot == e_Gaussian) 
+  if(aesot == e_Gaussian) 
 	{s_minMax.f_min	= apmris->Kmin; s_minMax.f_max	= apmris->Kmax;}
-    if(aesot == e_Mean) 
+  if(aesot == e_Mean) 
 	{s_minMax.f_min	= apmris->Hmin; s_minMax.f_max	= apmris->Hmax;}
 
-    MRIS_minMaxCurvature_analyze(apmris, aesot, &s_minMax);
+  MRIS_minMaxCurvature_analyze(apmris, aesot, &s_minMax);
 
-    if(aesot == e_Gaussian) {	    
-	if(s_minMax.b_minViolation) apmris->Kmin = s_minMax.f_min;
-	if(s_minMax.b_maxViolation) apmris->Kmax = s_minMax.f_max;
-    }
-    if(aesot == e_Mean) {
-	if(s_minMax.b_minViolation) apmris->Hmin = s_minMax.f_min;
-	if(s_minMax.b_maxViolation) apmris->Hmax = s_minMax.f_max;
-    }
+  if(aesot == e_Gaussian) {	    
+    if(s_minMax.b_minViolation) apmris->Kmin = s_minMax.f_min;
+    if(s_minMax.b_maxViolation) apmris->Kmax = s_minMax.f_max;
+  }
+  if(aesot == e_Mean) {
+    if(s_minMax.b_minViolation) apmris->Hmin = s_minMax.f_min;
+    if(s_minMax.b_maxViolation) apmris->Hmax = s_minMax.f_max;
+  }
 
-    if(s_minMax.b_minViolation) apmris->min_curv = s_minMax.f_min;
-    if(s_minMax.b_maxViolation) apmris->max_curv = s_minMax.f_max;
+  if(s_minMax.b_minViolation) apmris->min_curv = s_minMax.f_min;
+  if(s_minMax.b_maxViolation) apmris->max_curv = s_minMax.f_max;
 
-    strcpy(apch_report, "");
-    sprintf(apch_report, "%*s%-*s", 	G_leftCols, 	Gppch[aesot], 
+  strcpy(apch_report, "");
+  sprintf(apch_report, "%*s%-*s", 	G_leftCols, 	Gppch[aesot], 
 					G_rightCols, 	" Min:");
-    sprintf(apch_report, "%s%12.5f at vertex %-8d\n", 	apch_report,
-		s_minMax.f_min, s_minMax.vertexMin);
-    sprintf(apch_report, "%s%*s%-*s",	apch_report,
+  sprintf(apch_report, "%s%12.5f at vertex %-8d\n", 	apch_report,
+          s_minMax.f_min, s_minMax.vertexMin);
+  sprintf(apch_report, "%s%*s%-*s",	apch_report,
 					G_leftCols, 	Gppch[aesot], 
 					G_rightCols, 	" Max:");
-    sprintf(apch_report, "%s%12.5f at vertex %-8d\n", 	apch_report, 
-		s_minMax.f_max, s_minMax.vertexMax);
+  sprintf(apch_report, "%s%12.5f at vertex %-8d\n", 	apch_report, 
+          s_minMax.f_max, s_minMax.vertexMax);
 
-    xDbg_PopStack();
-    return 1;
+  xDbg_PopStack();
+  return 1;
 }
 
 short
@@ -855,229 +855,229 @@ MRIS_surfaceIntegrals_report(
 	MRIS*   		apmris,
 	e_secondOrderType	aesot,
 	char*			apch_report
-) {
-    //
-    // PRECONDITIONS
-    //  o The 'curv' field of <apmris> must contain the particular curvature
-    //    map value to integrate.
-    //  o The <apch_curvName> is a string that is prefixed to each output line
-    //	  denoting the curve being processed.
-    //
-    // POSTCONDITIONS
-    //  o This function is the typical entry point to performing a surface
-    //	  integral. The 'report' in the function name is meant to convey
-    //	  that this function performs the integral, and *prints* the results
-    //	  to the output device.
-    //	o The function performs/prints the following surface integral
-    //	  functions:
-    //		- "natural":	no change/filtering on the vertex curv values
-    //		- "abs":	the fabs(...) of each vertex curv value
-    //		- "pos":	process only the positive vertex curv values 
-    //		- "neg":	process only the negative vertex curv values
-    //	o In addition, the following qualifiers are also evaluated:
-    //		- "Mean":	the integral normalized to number of vertices
-    //		- "AreaNorm":	the integral value normalized to unit surface
-    //	o The report itself is returned in the apch_report string.
-    //
+  ) {
+  //
+  // PRECONDITIONS
+  //  o The 'curv' field of <apmris> must contain the particular curvature
+  //    map value to integrate.
+  //  o The <apch_curvName> is a string that is prefixed to each output line
+  //	  denoting the curve being processed.
+  //
+  // POSTCONDITIONS
+  //  o This function is the typical entry point to performing a surface
+  //	  integral. The 'report' in the function name is meant to convey
+  //	  that this function performs the integral, and *prints* the results
+  //	  to the output device.
+  //	o The function performs/prints the following surface integral
+  //	  functions:
+  //		- "natural":	no change/filtering on the vertex curv values
+  //		- "abs":	the fabs(...) of each vertex curv value
+  //		- "pos":	process only the positive vertex curv values 
+  //		- "neg":	process only the negative vertex curv values
+  //	o In addition, the following qualifiers are also evaluated:
+  //		- "Mean":	the integral normalized to number of vertices
+  //		- "AreaNorm":	the integral value normalized to unit surface
+  //	o The report itself is returned in the apch_report string.
+  //
 
-    // Surface integral variables
-    float f_SInatural		= 0.0;
-    float f_SIabs		= 0.0;
-    float f_SIpos		= 0.0;
-    float f_SIneg		= 0.0;
-    float f_SInaturalMean	= 0.0;	int SInaturalVertices	= 0;
-    float f_SIabsMean		= 0.0; 	int SIabsVertices	= 0;
-    float f_SIposMean		= 0.0;	int SIposVertices	= 0;
-    float f_SInegMean		= 0.0;  int SInegVertices	= 0;
+  // Surface integral variables
+  float f_SInatural		= 0.0;
+  float f_SIabs		= 0.0;
+  float f_SIpos		= 0.0;
+  float f_SIneg		= 0.0;
+  float f_SInaturalMean	= 0.0;	int SInaturalVertices	= 0;
+  float f_SIabsMean		= 0.0; 	int SIabsVertices	= 0;
+  float f_SIposMean		= 0.0;	int SIposVertices	= 0;
+  float f_SInegMean		= 0.0;  int SInegVertices	= 0;
   
-    float f_SInaturalAreaNorm	= 0.0;	float f_SInaturalArea	= 0.0;
-    float f_SIabsAreaNorm	= 0.0; 	float f_SIabsArea	= 0.0;
-    float f_SIposAreaNorm	= 0.0;	float f_SIposArea	= 0.0;
-    float f_SInegAreaNorm	= 0.0;  float f_SInegArea	= 0.0;
-    char* pch_curveName;
-    char* pch_function		= "MRIS_surfaceIntegrals_report";
+  float f_SInaturalAreaNorm	= 0.0;	float f_SInaturalArea	= 0.0;
+  float f_SIabsAreaNorm	= 0.0; 	float f_SIabsArea	= 0.0;
+  float f_SIposAreaNorm	= 0.0;	float f_SIposArea	= 0.0;
+  float f_SInegAreaNorm	= 0.0;  float f_SInegArea	= 0.0;
+  char* pch_curveName;
+  char* pch_function		= "MRIS_surfaceIntegrals_report";
 
-    DebugEnterFunction (( pch_function ));
-    pch_curveName		= Gppch[aesot];
+  DebugEnterFunction (( pch_function ));
+  pch_curveName		= Gppch[aesot];
 
-    surfaceIntegrals_compute(apmris, e_natural,
-				&f_SInatural, 		 	
-				&f_SInaturalMean, 	&SInaturalVertices,
-				&f_SInaturalAreaNorm,	&f_SInaturalArea);
+  surfaceIntegrals_compute(apmris, e_natural,
+                           &f_SInatural, 		 	
+                           &f_SInaturalMean, 	&SInaturalVertices,
+                           &f_SInaturalAreaNorm,	&f_SInaturalArea);
 
-    surfaceIntegrals_compute(apmris, e_rectified, 	 	
-				&f_SIabs, 		 	
-				&f_SIabsMean,		&SIabsVertices,
-				&f_SIabsAreaNorm,	&f_SIabsArea);
+  surfaceIntegrals_compute(apmris, e_rectified, 	 	
+                           &f_SIabs, 		 	
+                           &f_SIabsMean,		&SIabsVertices,
+                           &f_SIabsAreaNorm,	&f_SIabsArea);
  
-    surfaceIntegrals_compute(apmris, e_pos, 		 	
-				&f_SIpos, 		 	
-				&f_SIposMean,		&SIposVertices,
-				&f_SIposAreaNorm,	&f_SIposArea);
+  surfaceIntegrals_compute(apmris, e_pos, 		 	
+                           &f_SIpos, 		 	
+                           &f_SIposMean,		&SIposVertices,
+                           &f_SIposAreaNorm,	&f_SIposArea);
   
-    surfaceIntegrals_compute(apmris, e_neg, 		 	
-				&f_SIneg, 		 	
-				&f_SInegMean,		&SInegVertices,
-				&f_SInegAreaNorm,	&f_SInegArea);
+  surfaceIntegrals_compute(apmris, e_neg, 		 	
+                           &f_SIneg, 		 	
+                           &f_SInegMean,		&SInegVertices,
+                           &f_SInegAreaNorm,	&f_SInegArea);
 
-    strcpy(apch_report, "");
+  strcpy(apch_report, "");
 
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " Average Vertex Separation:");
-    sprintf(apch_report, "%s%12.5f +- %2.5f mm\n", apch_report,
-		apmris->avg_vertex_dist, apmris->std_vertex_dist);
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Average Vertex Separation:");
+  sprintf(apch_report, "%s%12.5f +- %2.5f mm\n", apch_report,
+          apmris->avg_vertex_dist, apmris->std_vertex_dist);
 
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " Total number of vertices:");
-    sprintf(apch_report, "%s%12.5d\n", apch_report,
-			apmris->nvertices);
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " Total surface area:");
-    sprintf(apch_report, "%s%12.5f mm^2\n", 	apch_report, 
-			apmris->total_area);
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " Average Vertex Area:");
-    sprintf(apch_report, "%s%12.5f mm^2\n",	apch_report, 
-			apmris->avg_vertex_area);
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Total number of vertices:");
+  sprintf(apch_report, "%s%12.5d\n", apch_report,
+          apmris->nvertices);
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Total surface area:");
+  sprintf(apch_report, "%s%12.5f mm^2\n", 	apch_report, 
+          apmris->total_area);
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Average Vertex Area:");
+  sprintf(apch_report, "%s%12.5f mm^2\n",	apch_report, 
+          apmris->avg_vertex_area);
 
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " Natural Surface Integral:");
-    sprintf(apch_report, "%s%12.5f\n", 	apch_report,
-			f_SInatural);
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " Rectified Surface Integral:");
-    sprintf(apch_report, "%s%12.5f\n",	apch_report, 
-			f_SIabs);
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " Positive Surface Integral:");
-    sprintf(apch_report, "%s%12.5f\n", 	apch_report,
-			f_SIpos);
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " Negative Surface Integral:");
-    sprintf(apch_report,"%s%12.5f\n", 	apch_report,
-			f_SIneg);
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Natural Surface Integral:");
+  sprintf(apch_report, "%s%12.5f\n", 	apch_report,
+          f_SInatural);
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Rectified Surface Integral:");
+  sprintf(apch_report, "%s%12.5f\n",	apch_report, 
+          f_SIabs);
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Positive Surface Integral:");
+  sprintf(apch_report, "%s%12.5f\n", 	apch_report,
+          f_SIpos);
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Negative Surface Integral:");
+  sprintf(apch_report,"%s%12.5f\n", 	apch_report,
+          f_SIneg);
 
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " Mean Natural Surface Integral:");
-    sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n",
-			apch_report, 
-			f_SInaturalMean, SInaturalVertices, 
-			100 * (float)SInaturalVertices / apmris->nvertices, 
-			"%");
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " Mean Rectified Surface Integral:");
-    sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n", 
-			apch_report,
-			f_SIabsMean, SIabsVertices, 
-			100 * (float)SIabsVertices / apmris->nvertices, "%");
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " Mean Positive Surface Integral:");
-    sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n", 
-			apch_report,
-			f_SIposMean, SIposVertices, 
-			100 * (float)SIposVertices / apmris->nvertices, "%");
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " Mean Negative Surface Integral:");
-    sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n", 
-			apch_report,
-			f_SInegMean, SInegVertices, 
-			100 * (float)SInegVertices / apmris->nvertices, "%");
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Mean Natural Surface Integral:");
+  sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n",
+          apch_report, 
+          f_SInaturalMean, SInaturalVertices, 
+          100 * (float)SInaturalVertices / apmris->nvertices, 
+          "%");
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Mean Rectified Surface Integral:");
+  sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n", 
+          apch_report,
+          f_SIabsMean, SIabsVertices, 
+          100 * (float)SIabsVertices / apmris->nvertices, "%");
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Mean Positive Surface Integral:");
+  sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n", 
+          apch_report,
+          f_SIposMean, SIposVertices, 
+          100 * (float)SIposVertices / apmris->nvertices, "%");
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Mean Negative Surface Integral:");
+  sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n", 
+          apch_report,
+          f_SInegMean, SInegVertices, 
+          100 * (float)SInegVertices / apmris->nvertices, "%");
 
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " AreaNorm Natural Surface Integral:");
-    sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
-			apch_report,
-			f_SInaturalAreaNorm, f_SInaturalArea, 
-			100 * f_SInaturalArea / apmris->total_area, "%");
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " AreaNorm Rectified Surface Integral:");
-    sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
-			apch_report,
-			f_SIabsAreaNorm, f_SIabsArea, 
-			100 * f_SIabsArea / apmris->total_area, "%");
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " AreaNorm Positive Surface Integral:");
-    sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
-			apch_report,
-			f_SIposAreaNorm, f_SIposArea, 
-			100 * f_SIposArea / apmris->total_area, "%");
-    sprintf(apch_report, "%s%10s%-40s", apch_report,
-			pch_curveName, " AreaNorm Negative Surface Integral:");
-    sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
-			apch_report,
-			f_SInegAreaNorm, f_SInegArea, 
-			100 * f_SInegArea / apmris->total_area, "%");
-    xDbg_PopStack();
-    return 1;
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " AreaNorm Natural Surface Integral:");
+  sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
+          apch_report,
+          f_SInaturalAreaNorm, f_SInaturalArea, 
+          100 * f_SInaturalArea / apmris->total_area, "%");
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " AreaNorm Rectified Surface Integral:");
+  sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
+          apch_report,
+          f_SIabsAreaNorm, f_SIabsArea, 
+          100 * f_SIabsArea / apmris->total_area, "%");
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " AreaNorm Positive Surface Integral:");
+  sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
+          apch_report,
+          f_SIposAreaNorm, f_SIposArea, 
+          100 * f_SIposArea / apmris->total_area, "%");
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " AreaNorm Negative Surface Integral:");
+  sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
+          apch_report,
+          f_SInegAreaNorm, f_SInegArea, 
+          100 * f_SInegArea / apmris->total_area, "%");
+  xDbg_PopStack();
+  return 1;
 }
 
 int
 MRIS_curvatureStats_analyze(
 	MRIS*			apmris,
 	e_secondOrderType	aesot
-) {
-    //
-    // PRECONDITIONS
-    //	o <aprmis> is valid
-    // 	o <aesot> denotes the enumerated surface type to analyze.
-    //
-    // POSTCONDITIONS
-    //  o For the specific <aesot>, the following are analyzed:
-    //		- min/max values and vertices (*)
-    //		- Surface intergrals are performed and reported
-    //		- histograms are prepared (*)
-    //	  (*) if the appropriate flag has been set by the main
-    //	  user on the command line.
-    //
-    // SIDE EFFECTS
-    //	o Modifies the current global Gf_mean and Gf_sigma
-    //
+  ) {
+  //
+  // PRECONDITIONS
+  //	o <aprmis> is valid
+  // 	o <aesot> denotes the enumerated surface type to analyze.
+  //
+  // POSTCONDITIONS
+  //  o For the specific <aesot>, the following are analyzed:
+  //		- min/max values and vertices (*)
+  //		- Surface intergrals are performed and reported
+  //		- histograms are prepared (*)
+  //	  (*) if the appropriate flag has been set by the main
+  //	  user on the command line.
+  //
+  // SIDE EFFECTS
+  //	o Modifies the current global Gf_mean and Gf_sigma
+  //
 
-    char 	pch_text[65536];
-    char	pch_minMaxReport[65536];
-    char	pch_surfaceIntegralReport[65536];
-    char*	pch_function	= "MRIS_curvatureStats_analyze";
+  char 	pch_text[65536];
+  char	pch_minMaxReport[65536];
+  char	pch_surfaceIntegralReport[65536];
+  char*	pch_function	= "MRIS_curvatureStats_analyze";
 
-    DebugEnterFunction (( pch_function ));
+  DebugEnterFunction (( pch_function ));
 
-    strcpy(pch_text, "");	
-    strcpy(pch_minMaxReport, "");	
-    strcpy(pch_surfaceIntegralReport, "");	
+  strcpy(pch_text, "");	
+  strcpy(pch_minMaxReport, "");	
+  strcpy(pch_surfaceIntegralReport, "");	
 
-    // Perform the analyses and prepare reports
-    MRIS_curvatures_prepare(apmris, aesot);
-    if(Gb_minMaxShow) MRIS_minMaxCurve_report(apmris, aesot, pch_minMaxReport);
-    MRIS_surfaceIntegrals_report(apmris, aesot, pch_surfaceIntegralReport);
+  // Perform the analyses and prepare reports
+  MRIS_curvatures_prepare(apmris, aesot);
+  if(Gb_minMaxShow) MRIS_minMaxCurve_report(apmris, aesot, pch_minMaxReport);
+  MRIS_surfaceIntegrals_report(apmris, aesot, pch_surfaceIntegralReport);
 
-    // Now, dump the reports to stdout
-    //	First the mean/sigma results
-    Gf_mean = MRIScomputeAverageCurvature(apmris, &Gf_sigma);
-    if(aesot == e_Raw)
-        sprintf(pch_text, 
-	"\n%s <mean> +- <std> (using '%s.%s'):",
-          Gppch[aesot], hemi, curv_fname);
-    else
-        sprintf(pch_text, 
-	"\n%s <mean> +- <std> (using '%s.%s'):",
-          Gppch[aesot], hemi, surf_name);
-    fprintf(stdout, "%-50s", pch_text);
-    fprintf(stdout, " %12.5f +- %2.4f mm\n", Gf_mean, Gf_sigma);
-    if(GpFILE_log) {
-        fprintf(GpFILE_log, "%-50s", pch_text);
-        fprintf(GpFILE_log, " %12.5f +- %2.4f mm", Gf_mean, Gf_sigma);
-    }
+  // Now, dump the reports to stdout
+  //	First the mean/sigma results
+  Gf_mean = MRIScomputeAverageCurvature(apmris, &Gf_sigma);
+  if(aesot == e_Raw)
+    sprintf(pch_text, 
+            "\n%s <mean> +- <std> (using '%s.%s'):",
+            Gppch[aesot], hemi, curv_fname);
+  else
+    sprintf(pch_text, 
+            "\n%s <mean> +- <std> (using '%s.%s'):",
+            Gppch[aesot], hemi, surf_name);
+  fprintf(stdout, "%-50s", pch_text);
+  fprintf(stdout, " %12.5f +- %2.4f mm\n", Gf_mean, Gf_sigma);
+  if(GpFILE_log) {
+    fprintf(GpFILE_log, "%-50s", pch_text);
+    fprintf(GpFILE_log, " %12.5f +- %2.4f mm", Gf_mean, Gf_sigma);
+  }
 
-    // Now the min/max report
-    if(Gb_minMaxShow) fprintf(stdout, "%s", pch_minMaxReport);
+  // Now the min/max report
+  if(Gb_minMaxShow) fprintf(stdout, "%s", pch_minMaxReport);
 
-    // The surface integral report
-    fprintf(stdout, "%s", pch_surfaceIntegralReport);
+  // The surface integral report
+  fprintf(stdout, "%s", pch_surfaceIntegralReport);
 
-    // and any histograms...
-    if(Gb_histogram) histogram_wrapper(apmris, aesot);
+  // and any histograms...
+  if(Gb_histogram) histogram_wrapper(apmris, aesot);
 
-    xDbg_PopStack();
-    return 1;
+  xDbg_PopStack();
+  return 1;
 }
 
 int
@@ -1085,7 +1085,7 @@ MRISvertexCurvature_set(
   MRI_SURFACE*  apmris,
   int   aindex,
   float   af_val
-) {
+  ) {
   //
   // PRECONDITIONS
   //  o <af_val> is typically zero.
@@ -1148,7 +1148,7 @@ MRISminMaxCurvaturesSearchSOT(
   float*   apf_min,
   float*   apf_max,
   e_secondOrderType aesot
-) {
+  ) {
   //
   // PRECONDITIONS
   //  o apmris should have its curvature fields applicably set (i.e. Gaussian
@@ -1218,7 +1218,7 @@ MRISminMaxCurvatureIndicesLookup(
   MRI_SURFACE*  apmris,
   int*   ap_vertexMin,
   int*   ap_vertexMax
-) {
+  ) {
   //
   // PRECONDITIONS
   //  o apmris should already have its max_curv and min_curv fields
@@ -1252,16 +1252,16 @@ int
 MRISusePrincipleCurvature(
 	MRIS*		apmris,
 	int		(*f)(MRIS* apmris)
-) {
-    //
-    // 	This is a thin wrapper/dispatch about an underlying
-    //	MRISuse[Gaussian|Mean|k1|k2]Curvature() function.
-    //
-    int	ret	= 0;
+  ) {
+  //
+  // 	This is a thin wrapper/dispatch about an underlying
+  //	MRISuse[Gaussian|Mean|k1|k2]Curvature() function.
+  //
+  int	ret	= 0;
 
-    ret		= f(apmris);
+  ret		= f(apmris);
 
-    return(ret);
+  return(ret);
 }
 
 int
@@ -1357,7 +1357,7 @@ MRIS_surfaceIntegral_compute(
 	float*		pf_surfaceIntegral,
 	float*		pf_meanIntegral,
 	float*		pf_areaNormalizedIntegral	
-) {
+  ) {
   //
   // DESCRIPTION
   //	This function computes a surface integral across the 
@@ -1414,34 +1414,34 @@ MRIS_surfaceIntegral_compute(
       continue ;
  
     if(Gb_lowPassFilter) {
-	if(fabs(pv->curv)<fabs(Gf_lowPassFilter))
-	    b_canCount &= 1;
-	else
-	    b_canCount &= 0;
+      if(fabs(pv->curv)<fabs(Gf_lowPassFilter))
+        b_canCount &= 1;
+      else
+        b_canCount &= 0;
     }
     if(Gb_highPassFilter) {
-	if(fabs(pv->curv)>=fabs(Gf_highPassFilter))
-	    b_canCount &= 1;
-	else
-	    b_canCount &= 0;
+      if(fabs(pv->curv)>=fabs(Gf_highPassFilter))
+        b_canCount &= 1;
+      else
+        b_canCount &= 0;
     }
     if(Gb_lowPassFilterGaussian) {
-	if(fabs(pv->K)<fabs(Gf_lowPassFilterGaussian))
-	    b_canCount &= 1;
-	else
-	    b_canCount &= 0;
+      if(fabs(pv->K)<fabs(Gf_lowPassFilterGaussian))
+        b_canCount &= 1;
+      else
+        b_canCount &= 0;
     }
     if(Gb_highPassFilterGaussian) {
-	if(fabs(pv->K)>=fabs(Gf_highPassFilterGaussian))
-	    b_canCount &= 1;
-	else
-	    b_canCount &= 0;
+      if(fabs(pv->K)>=fabs(Gf_highPassFilterGaussian))
+        b_canCount &= 1;
+      else
+        b_canCount &= 0;
     }
     if(b_canCount && (*fcond)(pv)) {
-        f_total 		+= ((*fv)(pv) * pv->area) ;
-        f_n 			+= 1.0 ;
-	(*pf_areaCounted) 	+= pv->area;
-	(*p_verticesCounted)++;
+      f_total 		+= ((*fv)(pv) * pv->area) ;
+      f_n 			+= 1.0 ;
+      (*pf_areaCounted) 	+= pv->area;
+      (*p_verticesCounted)++;
     }
   }
   if(f_n > 1) {
@@ -1460,7 +1460,7 @@ MRIS_surfaceIntegral_compute(
 int
 MRISzeroCurvature(
   MRI_SURFACE* apmris
-) {
+  ) {
   //
   // POSTCONDITIONS
   // o Each curvature (as well as Gaussian and Mean )value in
@@ -1486,7 +1486,7 @@ OFSP_create(
   char*  apch_prefix,
   char*  apch_suffix,
   e_OFSP  ae_OFSP
-) {
+  ) {
   //
   // PRECONDITIONS
   // o pch_prefix / pch_suffix must be large enough to contain
@@ -1502,14 +1502,14 @@ OFSP_create(
   switch (ae_OFSP) {
   case e_None:
     if(output_fname != NULL)
-        sprintf(apch_prefix, output_fname);
+      sprintf(apch_prefix, output_fname);
     break;
   case e_Partial:
     sprintf(apch_prefix, "%s.%s.%s",
             hemi,
             surf_name,
             apch_suffix
-           );
+      );
     break;
   case e_Full:
     sprintf(apch_prefix, "%s.%s.%s.%s",
@@ -1517,7 +1517,7 @@ OFSP_create(
             hemi,
             surf_name,
             apch_suffix
-           );
+      );
     break;
   }
 }
@@ -1526,7 +1526,7 @@ void
 histogram_wrapper(
   MRIS*   amris,
   e_secondOrderType aesot
-) {
+  ) {
   //
   // PRECONDITIONS
   // o amris_curvature must be valid and populated with curvature values
@@ -1570,7 +1570,7 @@ histogram_wrapper(
               Progname, f_maxCurv, f_minCurv);
 
   b_error =   (long)(((double)f_minCurv+(double)G_bins*(double)f_binSize)*1e10) >
-              (long)(((double)f_maxCurv)*1e10);
+    (long)(((double)f_maxCurv)*1e10);
 
   if (b_error)
     ErrorExit(ERROR_SIZE, "%s: Invalid <binSize> and <bins> combination",
@@ -1596,55 +1596,55 @@ histogram_wrapper(
     switch (aesot) {
     case e_Raw:
       if (GpFILE_rawHist!=NULL)
-	{ b_writeToFile = 1; pFILE = GpFILE_rawHist; }
+      { b_writeToFile = 1; pFILE = GpFILE_rawHist; }
       break;
     case e_Gaussian:
       if (GpFILE_KHist!=NULL)
-	{ b_writeToFile = 1; pFILE = GpFILE_KHist; }
+      { b_writeToFile = 1; pFILE = GpFILE_KHist; }
       break;
     case e_Mean:
       if (GpFILE_HHist!=NULL)
-	{ b_writeToFile = 1; pFILE = GpFILE_HHist; }
+      { b_writeToFile = 1; pFILE = GpFILE_HHist; }
       break;
     case e_K1:
       if (GpFILE_K1Hist!=NULL)
-	{ b_writeToFile = 1; pFILE = GpFILE_K1Hist; }
+      { b_writeToFile = 1; pFILE = GpFILE_K1Hist; }
       break;
     case e_K2:
       if (GpFILE_K2Hist!=NULL)
-	{ b_writeToFile = 1; pFILE = GpFILE_K2Hist; }
+      { b_writeToFile = 1; pFILE = GpFILE_K2Hist; }
       break;
     case e_S:
       if (GpFILE_SHist!=NULL)
-	{ b_writeToFile = 1; pFILE = GpFILE_SHist; }
+      { b_writeToFile = 1; pFILE = GpFILE_SHist; }
       break;
     case e_C:
       if (GpFILE_CHist !=NULL)
-	{ b_writeToFile = 1; pFILE = GpFILE_CHist; }
+      { b_writeToFile = 1; pFILE = GpFILE_CHist; }
       break;
     case e_BE:
       if (GpFILE_BEHist!=NULL)
-	{ b_writeToFile = 1; pFILE = GpFILE_BEHist; }
+      { b_writeToFile = 1; pFILE = GpFILE_BEHist; }
       break;
     case e_SI:
       if (GpFILE_SIHist!=NULL)
-	{ b_writeToFile = 1; pFILE = GpFILE_SIHist; }
+      { b_writeToFile = 1; pFILE = GpFILE_SIHist; }
       break;
     case e_Normal:
       if (GpFILE_normHist!=NULL)
-	{ b_writeToFile = 1; pFILE = GpFILE_normHist; }
+      { b_writeToFile = 1; pFILE = GpFILE_normHist; }
       break;
     case e_ScaledTrans:
     case e_Scaled:
       if (GpFILE_scaledHist!=NULL) 
-	{ b_writeToFile = 1; pFILE = GpFILE_scaledHist; }
+      { b_writeToFile = 1; pFILE = GpFILE_scaledHist; }
       break;
     }
     if(b_writeToFile)
     	fprintf(pFILE, "%f\t%f\t%f\n",
-                (i*f_binSize)+f_minCurv,
-                ((i+1)*f_binSize)+f_minCurv,
-                pf_histogram[i]);
+              (i*f_binSize)+f_minCurv,
+              ((i+1)*f_binSize)+f_minCurv,
+              pf_histogram[i]);
   }
   free(pf_histogram);
 }
@@ -1686,7 +1686,7 @@ histogram_create(
   int   abins,
   float*   apf_histogram,
   e_secondOrderType aesot
-) {
+  ) {
   //
   // PRECONDITIONS
   // o amris_curvature must be valid and populated with curvature values
@@ -1792,13 +1792,13 @@ get_option(int argc, char *argv[]) {
     Gf_lowPassFilterGaussian	= atof(argv[2]);
     nargs			= 1;
     cprintf("Setting rectified low pass Gaussian filter", 
-		Gf_lowPassFilterGaussian);
+            Gf_lowPassFilterGaussian);
   } else if (!stricmp(option, "-highPassFilterGaussian")) {
     Gb_highPassFilterGaussian	= 1;
     Gf_highPassFilterGaussian	= atof(argv[2]);
     nargs			= 1;
     cprintf("Setting rectified high pass Gaussian filter", 
-		Gf_highPassFilterGaussian);
+            Gf_highPassFilterGaussian);
   } else if (!stricmp(option, "-highPassFilter")) {
     Gb_highPassFilter		= 1;
     Gf_highPassFilter		= atof(argv[2]);
