@@ -3,13 +3,13 @@
 #
 # epidewarp.fsl
 #
-# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+# Use FSL's prelude and fugue to do B0 dewarping of EPI images
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/11/15 22:18:30 $
-#    $Revision: 1.31 $
+#    $Author: ayendiki $
+#    $Date: 2007/11/18 02:49:59 $
+#    $Revision: 1.32 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,11 +27,12 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.31 2007/11/15 22:18:30 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.32 2007/11/18 02:49:59 ayendiki Exp $'
 set inputargs = ($argv);
 
-set dph = ();
 set mag = ();
+set dph = ();
+set ph = ();
 set real1 = ();
 set imag1 = ();
 set real2 = ();
@@ -128,7 +129,7 @@ echo "Extension is $ext" | tee -a $LF
 set brain = $tmpdir/brain.$ext
 set head  = $tmpdir/head.$ext
 
-# See if there's a .mat file to propogate
+# See if there's a .mat file to propagate
 if($#epi) then
   set epibase = `basename $epi .$ext`;
   set epidir  = `dirname $epi`;
@@ -218,7 +219,7 @@ end
 if($#epimat) cp $epimat `dirname $head`/`basename $head .$ext`.mat # Copy matfile
 
 # ------------ Unwrap --------------------
-if($UseComplex) then
+if($UseComplex) then		# Input is real and imaginary part
   echo ""|& tee -a $LF
   echo "Unwarping Echo 1 Phase "|& tee -a $LF
   set ph1uw = $tmpdir/ph1uw.$ext
@@ -240,10 +241,10 @@ if($UseComplex) then
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
-else
+else if ($#dph != 0) then	# Input is phase difference and magnitude
   # Rescale the delta phase to be between -pi and pi. Starts out
   # at 0 - 4095. Make sure the phase is float precision with _32R
-  set cmd = ($FSLToFloat $dph -sub 2047.5 -mul 0.00153436 $tmpdir/dph $FSLToFloatFlag )
+  set cmd = ($FSLToFloat $dph -sub 2047.5 -mul 0.00153435539 $tmpdir/dph $FSLToFloatFlag )
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -270,6 +271,22 @@ else
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+else				# Input is phase and magnitude
+  # Rescale the phase to be between -pi and pi. Starts out at 0 - 4095.
+  # Make sure the phase is float precision with _32R
+  set cmd = ($FSLToFloat $ph -sub 2047.5 -mul 0.00153435539 $tmpdir/ph $FSLToFloatFlag )
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  set ph = $tmpdir/ph
+  if($#epimat) cp $epimat `dirname $ph`/`basename $ph .$ext`.mat # Copy matfile
+
+  # Do the phase unwrapping (-f for 3D, -v for verbose)
+  set cmd = (prelude -p $ph -a $mag -o $ph -f -v -m $head);
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  set ph2 = $ph
 endif
 
 if($PERev) then
@@ -459,6 +476,15 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--ph":
+      if ( $#argv == 0) goto arg1err;
+      set ph = $argv[1]; shift;
+      if(! -e $ph) then
+        echo "ERROR: cannot find $ph"
+        exit 1;
+      endif
+      breaksw
+
     case "--complex":
       if ( $#argv < 4) goto arg4err;
       set real1 = $argv[1]; shift;
@@ -587,8 +613,13 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if(($#mag || $#dph) && $UseComplex) then
-    echo "ERROR: cannot spec --mag/--dph and --complex"
+  if(($#mag || $#dph || $#ph) && $UseComplex) then
+    echo "ERROR: use either --mag/--dph or --mag/--ph or --complex"
+    exit 1
+  endif
+
+  if($#ph && $#dph) then
+    echo "ERROR: use either --dph or --ph"
     exit 1
   endif
 
@@ -597,8 +628,8 @@ check_params:
       echo "ERROR: no magnitude volume specified"
       exit 1;
     endif
-    if($#dph == 0) then
-      echo "ERROR: no phase diff volume specified"
+    if(($#dph == 0) && ($#ph == 0)) then
+      echo "ERROR: no phase or phase diff volume specified"
       exit 1;
     endif
   endif
@@ -685,6 +716,7 @@ usage_exit:
   echo ""
   echo "  --mag volid     : B0 magnitude volume"
   echo "  --dph volid     : B0 phase difference volume"
+  echo "  --ph volid      : B0 phase volume"
   echo "  --complex r1 i1 r2 i2 : B0 map in complex values"
   echo ""
   echo "  --exf volid     : example func volume (or use epi)"
@@ -784,7 +816,14 @@ present, then only the first is used. Not with --complex.
 
 Phase difference volume (Echo2-Echo1). These are assumed to be scaled
 between 0 to 4095 for -pi to pi. Eg, dph.ext, where ext is either nii,
-nii.gz, or img. Not with --complex.
+nii.gz, or img. Not with --complex or with --ph.
+
+--ph phasevolid
+
+Phase volume from the B0 fieldmap (if the phases from Echo1, Echo2 are
+available instead of their difference). These are assumed to be scaled
+between 0 to 4095 for -pi to pi. Eg, ph.ext, where ext is either nii,
+nii.gz, or img. Not with --complex or with --dph.
 
 --complex real1 imag1 real2 imag2
 
