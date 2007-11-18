@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.10 2007/10/11 19:57:49 greve Exp $
+# $Id: asegstats2table,v 1.11 2007/11/18 18:26:07 greve Exp $
 import sys;
 import os;
 import string;
@@ -51,7 +51,7 @@ def print_usage():
   print "  --s subject1 <--s subject2 ...>";
   print "  --meas measure : default is vol (alt: mean, std)";
   print "  --maxsegno maxno : maximum segmentation no to report"  
-  print "  --statsfile fname : use fname instead of aseg.stats"  
+  print "  --stats fname : use fname instead of aseg.stats"  
   print "  --subdir subdir : use subdir instead of stats"  
   print ""  
   print "  --t tablefile";
@@ -92,7 +92,7 @@ def argnerr(narg,flag):
 
 #---------------------------------------------------------
 def parse_args(argv):
-  global Version,debug;
+  global Version,debug,OKToSkip;
   global tablefile, SUBJECTS, nsubjects, meas, maxsegno;
   global subdir, statsname;
 
@@ -124,13 +124,15 @@ def parse_args(argv):
     elif(flag == "--maxsegno"):
       if(len(argv) < 1): argnerr(1,flag);
       maxsegno = string.atof(argv[0]);  del argv[0];
-    elif(flag == "--statsfile"):
+    elif(flag == "--statsfile" or flag == "--stats"):
       if(len(argv) < 1): argnerr(1,flag);
       statsname = argv[0];  del argv[0];
     elif(flag == "--subdir"):
       if(len(argv) < 1): argnerr(1,flag);
       subdir = argv[0];  del argv[0];
       print "%s" % (subdir);
+    elif(flag == "--skip"):
+      OKToSkip = 1;
     elif(flag == "--help"):
       print_usage();
       print_help();
@@ -189,12 +191,13 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.10 2007/10/11 19:57:49 greve Exp $';
+Version = '$Id: asegstats2table,v 1.11 2007/11/18 18:26:07 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
 meas = 'volume';
 maxsegno = -1;
+OKToSkip = 0;
 debug = 0;
 statsname = 'aseg.stats';
 subdir = 'stats';
@@ -225,6 +228,10 @@ for subject in SUBJECTS:
 
   statsfile = SUBJECTS_DIR + '/' + subject + '/' + subdir + '/' + statsname;
   if(not os.path.exists(statsfile)):
+    if(OKToSkip):
+      #sys.stdout.write('Cannot find %s, skipping\n' % (statsfile) );
+      continue;
+    #endif
     sys.stdout.write('ERROR: cannot find %s\n' % (statsfile) );
     sys.exit(1);
   #endif
