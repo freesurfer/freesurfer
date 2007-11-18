@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/11/18 21:27:58 $
- *    $Revision: 1.234 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 22:47:45 $
+ *    $Revision: 1.235 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,7 +58,7 @@
 #include <dmalloc.h>
 #endif
 
-extern char* Progname;
+extern const char* Progname;
 
 int Ggca_label = -1 ;
 int Ggca_nbr_label = -1 ;
