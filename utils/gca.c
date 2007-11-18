@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 06:00:46 $
- *    $Revision: 1.231.2.1 $
+ *    $Date: 2007/11/18 22:49:24 $
+ *    $Revision: 1.231.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -700,6 +700,8 @@ GCAisPossible(GCA *gca, MRI *mri, int label,
       != NO_ERROR)
     return(1) ;
   gc = GCAfindGC(gca, xn, yn, zn, label) ;
+  if (gc == NULL)
+    return(1) ;
   for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
   {
     found = 0 ;
@@ -7994,7 +7996,7 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
     /*    printf("\t%d segments:\n", mriseg->nsegments) ;*/
     for (j = 0 ; j < mriseg->nsegments ; j++)
     {
-      if (IS_LAT_VENT(i) && mriseg->segments[j].nvoxels > 500)
+      if (IS_LAT_VENT(i) && mriseg->segments[j].nvoxels > 50)
         continue ;
       /* printf("\t\t%02d: %d voxels", j, mriseg->segments[j].nvoxels) ;*/
       if ((float)mriseg->segments[j].nvoxels / (float)nvox < MIN_SEG_PCT)
@@ -8278,7 +8280,7 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
               }
               // change it to ventricle
               nchanged++ ;
-              MRIsetVoxVal(mri_dst, x, y, z, target_label, 0) ;
+              MRIsetVoxVal(mri_dst, x, y, z, 0, target_label) ;
               if (x <= xmin)
                 xmin = mri_dst->xi[x-1] ;
               if (y <= ymin)
@@ -11256,7 +11258,7 @@ GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform)
   means = (float *)calloc(biggest_label+1, sizeof(float)) ;
   stds = (float *)calloc(biggest_label+1, sizeof(float)) ;
   if (!gca_means || !means || !stds)
-    ErrorExit(ERROR_NOMEMORY, "%s: could not allocated %d vector",
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d vector",
               Progname, biggest_label+1) ;
 
   /* do unknown labels separately */
@@ -12660,7 +12662,16 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
       HISTOplot(h_mri, "mri.histo") ;
     HISTOclearZeroBin(h_mri) ;
     if (gca->ninputs == 1)   /* assume it is T1-weighted */
+    {
+#define MIN_CONFORMED_WM_VAL  50   // assume wm > 50
+#define MAX_CONFORMED_WM_VAL  200   // assume wm < 200
+      if (mriConformed(mri))  // use strong priors on where wm should be
+      {
+        HISTOclearBins(h_mri, h_mri, 0, MIN_CONFORMED_WM_VAL) ;
+        HISTOclearBins(h_mri, h_mri, MAX_CONFORMED_WM_VAL+1, 255) ;
+      }
       mri_peak = HISTOfindLastPeak(h_mri, 2*HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+    }
     else
       mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins);
     mri_peak = h_mri->bins[mri_peak] ;
