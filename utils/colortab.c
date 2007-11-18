@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/07 19:41:51 $
- *    $Revision: 1.26 $
+ *    $Date: 2007/11/18 17:53:52 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -426,6 +426,7 @@ COLOR_TABLE *CTABalloc(int nentries)
     /* Make a fake name. */
     sprintf (ct->entries[structure]->name, "cluster%d", structure);
   }
+  ct->idbase = 0;
 
   return(ct);
 }
@@ -1208,12 +1209,10 @@ int CTABprintASCII(COLOR_TABLE *ct, FILE *fp)
                 (ERROR_BADPARM, 
                  "CTABprintASCII: fp was NULL"));
 
-  for (structure = 0; structure < ct->nentries; structure++)
-  {
-    if (NULL != ct->entries[structure])
-    {
+  for (structure = 0; structure < ct->nentries; structure++)  {
+    if (NULL != ct->entries[structure])    {
       fprintf (fp, "%3d  %-30s  %3d %3d %3d  %3d\n",
-               structure, ct->entries[structure]->name,
+               structure + ct->idbase, ct->entries[structure]->name,
                ct->entries[structure]->ri,
                ct->entries[structure]->gi,
                ct->entries[structure]->bi,
