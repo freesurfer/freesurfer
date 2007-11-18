@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 03:06:18 $
- *    $Revision: 1.67.2.3 $
+ *    $Date: 2007/11/18 22:52:02 $
+ *    $Revision: 1.67.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.67.2.3 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.67.2.4 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -254,7 +254,7 @@ typedef struct
 }
 MRI_variables;
 
-char *Progname;
+const char *Progname;
 
 static int type_changed = 0 ;
 static int conformed = 0 ;
@@ -855,7 +855,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.67.2.3 2007/11/18 03:06:18 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.67.2.4 2007/11/18 22:52:02 nicks Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.67.2.3 2007/11/18 03:06:18 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.67.2.4 2007/11/18 22:52:02 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -4334,7 +4334,7 @@ char *region_to_name(int label)
   switch (label)
   {
   case GLOBAL:
-    return((char*)" GLOBAL   ");
+    return((char*)"  GLOBAL   ");
     break;
   case RIGHT_CER:
     return((char*)" RIGHT_CER ");
@@ -4343,16 +4343,16 @@ char *region_to_name(int label)
     return((char*)" LEFT_CER  ");
     break;
   case RIGHT_BRAIN:
-    return((char*)" RIGHT_BRAIN");
+    return((char*)"RIGHT_BRAIN");
     break;
   case LEFT_BRAIN:
-    return((char*)" LEFT_BRAIN ");
+    return((char*)"LEFT_BRAIN ");
     break;
   case OTHER:
-    return((char*)" OTHER   ");
+    return((char*)"   OTHER   ");
     break;
   }
-  return((char*)" UNKNOWN  ");
+  return((char*)"  UNKNOWN  ");
 }
 
 //New function - Feb 26 2006 - Thomas Nommer
@@ -4830,44 +4830,42 @@ int AtlasToRegion(int i, int j, int k,
   int       xp, yp, zp, label;
   GCA_PRIOR *gcap ;
 
-  GCAsourceVoxelToPrior(parms->gca, 
+  if (GCAsourceVoxelToPrior(parms->gca, 
                         MRI_var->mri_src, 
                         parms->transform, 
                         i, j, k, 
-                        &xp, &yp, &zp);
-
+                        &xp, &yp, &zp) != NO_ERROR)
+    return(-1) ;
+  gcap = &parms->gca->priors[xp][yp][zp] ;
   if (xp>=0 && yp>=0 && zp>=0 && 
       xp<parms->gca->prior_width && 
       yp<parms->gca->prior_height &&
-      zp<parms->gca->prior_depth)
+      zp<parms->gca->prior_depth &&
+      gcap->nlabels > 0)
   {
-    gcap = &parms->gca->priors[xp][yp][zp] ;
-    if (gcap->nlabels > 0)
-    {
-      int    n ;
-      double max_prior ;
+    int    n ;
+    double max_prior ;
 
-      label = gcap->labels[0] ;
-      max_prior = gcap->priors[0] ;
-      for (n = 1 ; n < gcap->nlabels ; n++)
-        if (gcap->priors[n] > max_prior)
+    label = gcap->labels[0] ;
+    max_prior = gcap->priors[0] ;
+    for (n = 1 ; n < gcap->nlabels ; n++)
+      if (gcap->priors[n] > max_prior)
         {
           max_prior = gcap->priors[n] ;
           label = gcap->labels[n] ;
         }
 
-      if (IS_CER(label))
-        if (IS_RIGHT(label))
-          return(RIGHT_CER);
-        else
-          return(LEFT_CER);
-      else if (IS_RIGHT(label))
-        return(RIGHT_BRAIN);
-      else if (IS_LEFT(label))
-        return(LEFT_BRAIN);
+    if (IS_CER(label))
+      if (IS_RIGHT(label))
+        return(RIGHT_CER);
       else
-        return(OTHER);
-    }
+        return(LEFT_CER);
+    else if (IS_RIGHT(label))
+      return(RIGHT_BRAIN);
+    else if (IS_LEFT(label))
+      return(LEFT_BRAIN);
+    else
+      return(OTHER);
   }
   return (-1);
 }
