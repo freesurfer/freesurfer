@@ -20641,14 +20641,14 @@ void tetgenmesh::constrainedfacets() {
   missingshlist = new list(sizeof(face), NULL);
   boundedgelist = new list(sizeof(face), NULL);
   crossedgelist = new list(sizeof(triface), NULL);
-  equatptlist = new list("point *");
+  equatptlist = new list((char*)"point *");
   crossshlist = new list(sizeof(face), NULL);
   crosstetlist = new list(sizeof(triface), NULL);
   belowfacelist = new list(sizeof(triface), NULL);
   abovefacelist = new list(sizeof(triface), NULL);
-  horizptlist = new list("point *");
-  belowptlist = new list("point *");
-  aboveptlist = new list("point *");
+  horizptlist = new list((char*)"point *");
+  belowptlist = new list((char*)"point *");
+  aboveptlist = new list((char*)"point *");
   frontlist = new list(sizeof(triface), NULL);
   misfrontlist = new list(sizeof(triface), NULL);
   newtetlist = new list(sizeof(triface), NULL);
@@ -24207,7 +24207,7 @@ long tetgenmesh::reconstructmesh() {
   // Find the acute vertices and set them be type ACUTEVERTEX.
 
   // Indentify facets and set the facet marker (1-based) for subfaces.
-  markerlist = new list("int");
+  markerlist = new list((char*)"int");
 
   subfaces->traversalinit();
   subloop.sh = shellfacetraverse(subfaces);

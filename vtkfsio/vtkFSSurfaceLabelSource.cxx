@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/18 18:39:06 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 03:03:41 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFSSurfaceLabelSource );
-vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.12 $" );
+vtkCxxRevisionMacro( vtkFSSurfaceLabelSource, "$Revision: 1.13 $" );
 
 vtkFSSurfaceLabelSource::vtkFSSurfaceLabelSource() :
   LabelFileName( NULL ), Mris( NULL ), Label( NULL ) {
@@ -92,7 +92,7 @@ vtkFSSurfaceLabelSource::InitializeEmptyLabel () {
     LabelFree( &Label );
   }
 
-  Label = LabelAlloc( 0, "", "" );
+  Label = LabelAlloc( 0, (char*)"", (char*)"" );
 
   this->Modified();
 }
@@ -279,7 +279,7 @@ vtkFSSurfaceLabelSource::ReadLabelFile () {
 
 
   // Load the white vertex positions in the surface.
-  int eMRIS = MRISreadWhiteCoordinates( Mris, "white" );
+  int eMRIS = MRISreadWhiteCoordinates( Mris, (char*)"white" );
   if( eMRIS != 0 )
     throw runtime_error( "Couldn't read the white surface file, so unable to load a label." );
   

@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/10/01 19:18:46 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/11/18 03:03:37 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -39,7 +39,7 @@ extern "C" {
 
 using namespace std;
 
-char* Progname = "qdec_glmfit";
+const char* Progname = "qdec_glmfit";
 
 void PrintUsage ();
 

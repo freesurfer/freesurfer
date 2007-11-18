@@ -37,12 +37,12 @@ extern "C" {
 #include "matfile.h"
 #include "randomfields.h"
 }
-static void ErrorValidation(char *string) {
+static void ErrorValidation(const char *string) {
   fprintf(stdout, "\nValidation Error: %s\n",string) ;
   exit(1) ;
 }
 
-char *Progname = "Validation";
+const char *Progname = "Validation";
 MRI  *mri_ref, *mri_tst;
 int  width, height, depth, i, j, k, consistent=1;
 int  nb_union, falsep, falsen;

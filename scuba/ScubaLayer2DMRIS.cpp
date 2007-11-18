@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/22 04:39:28 $
- *    $Revision: 1.38 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 03:03:38 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,7 +37,7 @@
 using namespace std;
 
 char* const ScubaLayer2DMRIS::kaReportableInfo[ScubaLayer2DMRIS::kcReportableInfo] = 
-  { "Vertex", "Distance" };
+  { (char*)"Vertex", (char*)"Distance" };
 
 ScubaLayer2DMRIS::ScubaLayer2DMRIS () :
     mSurface( NULL ),

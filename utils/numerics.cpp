@@ -6,8 +6,8 @@
  * Original Author: Dennis Jen and Silvester Czanner
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/14 19:41:39 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/11/18 03:03:40 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1909,7 +1909,7 @@ extern "C" int sc_linalg_cholesky_decomp(MATRIX *U)
 
 //######### UTILS #######################################################
 
-static void sc_err_msg(char *msg)
+static void sc_err_msg(const char *msg)
 {
   printf("ERROR: %s", msg);
   exit(1);

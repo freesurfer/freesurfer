@@ -1,17 +1,16 @@
 /**
  * @file  mri_copy_params.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief copy volume parameters from template and write out the volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:07 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/11/18 03:03:33 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2005,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,20 +24,6 @@
  *
  */
 
-
-//
-// mri_copy_params.cpp
-//
-// purpose: copy volume parameters from template and write out the volume
-//
-// written by: tosa@nmr.mgh.harvard.edu
-// date      : Feb. 23rd, 2005
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:07 $
-// Revision       : $Revision: 1.2 $
-
 #include <iostream>
 #include <iomanip>
 
@@ -46,7 +31,7 @@ extern "C" {
 #include "error.h"
 #include "mri.h"
 #include "version.h"
-  char *Progname = "mri_copy_params";
+  const char *Progname = "mri_copy_params";
 }
 
 using namespace std;
@@ -61,7 +46,10 @@ int main(int argc, char *argv[]) {
   bool bSizeDifferent = false;
   int nargs;
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_copy_params.cpp,v 1.2 2006/12/29 02:09:07 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mri_copy_params.cpp,v 1.3 2007/11/18 03:03:33 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

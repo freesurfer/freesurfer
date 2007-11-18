@@ -1,15 +1,14 @@
 /**
  * @file  mri_brain_volume.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief modified mri_watershed.c
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/11/18 03:03:34 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,18 +25,7 @@
  */
 
 
-////////////////////////////////////////////////////////////////////
-//               Florent Segonne & Bruce Fischl
-//
-// modified mri_watershed.c
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:10 $
-// Revision       : $Revision: 1.7 $
-//
-////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.7 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.8 $";
 
 using namespace std;
 
@@ -221,7 +209,7 @@ static int type_changed = 0 ;
 static int old_type ;
 
 
-static void Error(char *string);
+static void Error(const char *string);
 static int get_option(int argc, char *argv[],STRIP_PARMS *parms) ;
 static STRIP_PARMS* init_parms(void);
 static MRI_variables* init_variables(MRI *mri_with_skull);
@@ -433,7 +421,7 @@ int main(int argc, char *argv[]) {
 
         Description: Error routine - stop the prog
 ------------------------------------------------------*/
-static void Error(char *string) {
+static void Error(const char *string) {
   fprintf(stderr, "\nError %s\n",string) ;
   exit(1) ;
 }

@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/03/08 20:07:46 $
- *    $Revision: 1.19 $
+ *    $Date: 2007/11/18 03:03:40 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -123,7 +123,7 @@ ErrorInit(char *fname,
         Description
 ------------------------------------------------------*/
 void
-ErrorExit(int ecode, char *fmt, ...)
+ErrorExit(int ecode, const char *fmt, ...)
 {
   va_list  args ;
 
@@ -153,7 +153,7 @@ ErrorExit(int ecode, char *fmt, ...)
         Description
 ------------------------------------------------------*/
 int
-ErrorPrintf(int ecode, char *fmt, ...)
+ErrorPrintf(int ecode, const char *fmt, ...)
 {
   va_list  args ;
   FILE     *fp ;

@@ -7,8 +7,8 @@
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/11 23:01:18 $
- *    $Revision: 1.28 $
+ *    $Date: 2007/11/18 03:03:35 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@ extern "C" {
 #include "proto.h"
 #include "error.h"
 
-  char *Progname = "mris_info";
+const char *Progname = "mris_info";
 }
 
 static int  parse_commandline(int argc, char **argv);
@@ -64,7 +64,7 @@ static void print_version(void);
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
 static char vcid[] = 
-"$Id: mris_info.cpp,v 1.28 2007/05/11 23:01:18 nicks Exp $";
+"$Id: mris_info.cpp,v 1.29 2007/11/18 03:03:35 nicks Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL, *curvfile=NULL, *annotfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Check whether it's a gcs file. If so, just print ctab
-  if (!stricmp(FileNameExtension(surffile, ext), "gcs")) {
+  if (!stricmp(FileNameExtension(surffile, ext), (char*)"gcs")) {
     GCSA *gcsa = GCSAread(surffile) ;
     if (!gcsa) {
       cerr << "could not open " << surffile << endl;
@@ -139,7 +139,8 @@ int main(int argc, char *argv[]) {
       printf("\n");
       exit(1);
     }
-    print("%s has the same number of vertices as %s\n",curvfile,surffile);
+    print((char*)"%s has the same number of vertices as %s\n",
+          curvfile,surffile);
   }
 
   // read number of vertices in annotation file, and check
@@ -163,7 +164,8 @@ int main(int argc, char *argv[]) {
              annotfile, numVertices, surffile, mris->nvertices);
       exit(1);
     }
-    print("%s has the same number of vertices as %s\n",annotfile,surffile);
+    print((char*)"%s has the same number of vertices as %s\n",
+          annotfile,surffile);
   }
 
   if (rescale) {

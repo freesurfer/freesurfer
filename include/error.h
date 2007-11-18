@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/29 16:16:26 $
- *    $Revision: 1.17 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 03:03:32 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,8 @@ int     ErrorInit(char *fname,
                   int (*vfprint)(FILE *fp, const char *fmt, va_list args),
                   int (*vprint)(const char *fmt, va_list args)) ;
 int     ErrorSetExitFunc(void (*exit_func)(int ecode)) ;
-void    ErrorExit(int ecode, char *fmt, ...) ;
-int     ErrorPrintf(int ecode, char *fmt, ...) ;
+void    ErrorExit(int ecode, const char *fmt, ...) ;
+int     ErrorPrintf(int ecode, const char *fmt, ...) ;
 #define ErrorReturn(ret, args)  { ErrorPrintf args ; return(ret) ; }
 
 #define ESCAPE   ErrorExit

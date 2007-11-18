@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/19 22:31:58 $
- *    $Revision: 1.29 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 03:03:38 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@ extern "C" {
 #include "TclChartWindow.h"
 #include "ScubaMultiFrameVolumeChart.h"
 
-char* Progname = "scuba";
+const char* Progname = "scuba";
 
 // Togl tester ---------------------------------------------------------
 

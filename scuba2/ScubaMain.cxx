@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/06 22:23:04 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 03:03:38 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@ extern "C" {
 
 using namespace std;
 
-char* Progname = "scuba2";
+const char* Progname = "scuba2";
 
 int main ( int argc, char** argv ) {
 

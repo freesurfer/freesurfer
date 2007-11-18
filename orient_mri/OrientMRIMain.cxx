@@ -7,9 +7,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/13 20:58:21 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 03:03:37 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@ extern "C" {
 
 using namespace std;
 
-char* Progname = "orient_mri";
+const char* Progname = "orient_mri";
 
 int main ( int argc, char** argv ) {
 

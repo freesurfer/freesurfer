@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/17 00:12:50 $
- *    $Revision: 1.69 $
+ *    $Date: 2007/11/18 03:03:33 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-char *MRI_WATERSHED_VERSION = "$Revision: 1.69 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.70 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -266,7 +266,7 @@ static int old_type ;
 // this routine is slow and should be used only for diagnostics
 static int calcBrainSize(const MRI* mri_src, const MRIS *mris);
 #endif
-static void Error(char *string);
+static void Error(const char *string);
 static int get_option(int argc, char *argv[],STRIP_PARMS *parms) ;
 static STRIP_PARMS* init_parms(void);
 static MRI_variables* init_variables(MRI *mri_with_skull);
@@ -611,7 +611,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     parms->brainsurf=1;
     parms->surf=1;
     if (parms->surfname==NULL)
-      parms->surfname="./";
+      parms->surfname=(char*)"./";
     fprintf(stdout,"Mode:          Writing out tissue label "
             "into output volume\n") ;
     fprintf(stdout,"                       Assumption : "
@@ -820,7 +820,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
   Returns value:void
   Description: Error routine - stop the prog
   ------------------------------------------------------*/
-static void Error(char *string)
+static void Error(const char *string)
 {
   fprintf(stdout, "\nmri_watershed Error: %s\n",string) ;
   exit(1) ;
@@ -855,7 +855,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.69 2007/11/17 00:12:50 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.70 2007/11/18 03:03:33 nicks Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.69 2007/11/17 00:12:50 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.70 2007/11/18 03:03:33 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2700,7 +2700,7 @@ static void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
                          MRIgetVoxVal(MRI_var->mri_src, i, j, k, 0));
         }
 
-    MRIwrite(MRI_seedpoint,"  the path of the seed image  "); 
+    MRIwrite(MRI_seedpoint,(char*)"  the path of the seed image  "); 
   }
   for (i=0;i<n;i++){
     parms->seed_coord[parms->nb_seed_points][0] = seeds[i][0];
@@ -4334,25 +4334,25 @@ char *region_to_name(int label)
   switch (label)
   {
   case GLOBAL:
-    return("  GLOBAL   ");
+    return((char*)" GLOBAL   ");
     break;
   case RIGHT_CER:
-    return(" RIGHT_CER ");
+    return((char*)" RIGHT_CER ");
     break;
   case LEFT_CER:
-    return(" LEFT_CER  ");
+    return((char*)" LEFT_CER  ");
     break;
   case RIGHT_BRAIN:
-    return("RIGHT_BRAIN");
+    return((char*)" RIGHT_BRAIN");
     break;
   case LEFT_BRAIN:
-    return("LEFT_BRAIN ");
+    return((char*)" LEFT_BRAIN ");
     break;
   case OTHER:
-    return("   OTHER   ");
+    return((char*)" OTHER   ");
     break;
   }
-  return("  UNKNOWN  ");
+  return((char*)" UNKNOWN  ");
 }
 
 //New function - Feb 26 2006 - Thomas Nommer

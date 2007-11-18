@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/22 04:39:28 $
- *    $Revision: 1.163 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 03:03:38 $
+ *    $Revision: 1.164 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,7 +58,7 @@ int const ScubaLayer2DMRI::kMaxPixelComponentValue = 255;
 float const ScubaLayer2DMRI::kMaxPixelComponentValueFloat = 255.0;
 int const ScubaLayer2DMRI::kcTimersBetweenAutosaves = 60000;
 char* const ScubaLayer2DMRI::kaReportableInfo[ScubaLayer2DMRI::kcReportableInfo] = 
-  { "Value", "Index", "Talairach" };
+{ (char*)"Value", (char*)"Index", (char*)"Talairach" };
 
 
 /* When setting the initial window/level, use a histogram and cut this
