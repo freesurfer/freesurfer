@@ -1,17 +1,20 @@
 /**
  * @file  mri_gdfglm.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief performs glm analysis given group descriptor file and dep. var. table
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Things to do:
+ * Class-based/Covar-based partial model fit
+ * Spec search ranges for given covariates.
+ * Allow spec of subjects to exclude
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/11/18 05:55:28 $
+ *    $Revision: 1.6 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2003-2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,23 +27,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
-  Name:    mri_gdfglm.c
-  Author:  Douglas N. Greve
-  email:   analysis-bugs@nmr.mgh.harvard.edu
-  Date:    4/4/03
-  Purpose: performs glm analysis given group descirptor file
-           and dependent variable table
-  $Id: mri_gdfglm.c,v 1.5 2006/12/29 02:09:06 nicks Exp $
-
-Things to do:
-  Class-based/Covar-based partial model fit
-  Spec search ranges for given covariates.
-  Allow spec of subjects to exclude
-
-*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -107,8 +93,8 @@ static int WriteClassDat(char *base, char *Class, FSGD *fsgd,
 //static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gdfglm.c,v 1.5 2006/12/29 02:09:06 nicks Exp $";
-char *Progname = NULL;
+static char vcid[] = "$Id: mri_gdfglm.c,v 1.6 2007/11/18 05:55:28 nicks Exp $";
+const char *Progname = "mri_gdfglm";
 
 typedef struct tagCOVARPRUNE {
   char *Covar;
@@ -169,7 +155,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_gdfglm.c,v 1.5 2006/12/29 02:09:06 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_gdfglm.c,v 1.6 2007/11/18 05:55:28 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -1,15 +1,14 @@
 /**
  * @file  mrimorph.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for 3d morph of one volume into another
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/09/12 13:46:17 $
- *    $Revision: 1.68 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 05:55:32 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,19 +28,6 @@
 #define USE_ITERATIVE_AVERAGING   0
 #define SCALE_INVARIANT           0
 #define USE_ORIGINAL_PROPERTIES   0
-/*
- *       FILE NAME:   mrimorph.c
- *
- *       DESCRIPTION: utilities for 3d morph of one volume into another
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
- *
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/09/12 13:46:17 $
-// Revision       : $Revision: 1.68 $
-*/
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -70,6 +56,8 @@
 #include "voxlist.h"
 #include "matrix.h"
 #include "mri_circulars.h"
+
+extern const char* Progname;
 
 #define MN_SUB(mns1, mns2, v)     \
     V3_LOAD(v, mns1->x - mns2->x, mns1->y - mns2->y, mns1->z - mns2->z)

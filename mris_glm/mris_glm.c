@@ -1,15 +1,14 @@
 /**
  * @file  mris_glm.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Computes glm inferences on the surface.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/04/27 21:28:54 $
- *    $Revision: 1.50 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 05:55:29 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,15 +24,7 @@
  *
  */
 
-
 /*
-  Name:    mris_glm.c
-  Author:  Douglas N. Greve
-  email:   analysis-bugs@nmr.mgh.harvard.edu
-  Date:    2/27/02
-  Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.50 2007/04/27 21:28:54 greve Exp $
-
 Things to do:
   0. Documentation.
   1. More sophisticated derived variable.
@@ -104,8 +95,8 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.50 2007/04/27 21:28:54 greve Exp $";
-char *Progname = NULL;
+static char vcid[] = "$Id: mris_glm.c,v 1.51 2007/11/18 05:55:29 nicks Exp $";
+const char *Progname = "mris_glm";
 
 char *hemi        = NULL;
 char *desmtxfname = NULL;
@@ -231,7 +222,7 @@ int main(int argc, char **argv) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_glm.c,v 1.50 2007/04/27 21:28:54 greve Exp $", "$Name:  $");
+                                 "$Id: mris_glm.c,v 1.51 2007/11/18 05:55:29 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

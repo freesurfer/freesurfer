@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:41 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/11/18 05:55:34 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,8 +35,7 @@
 #include "macros.h"
 #include "fio.h"
 
-extern char *Progname ;
-
+extern const char* Progname;
 
 VOXEL_LABELS_IMAGE *
 VLalloc(int width, int height, int depth, float resolution)

@@ -1,6 +1,6 @@
 /**
  * @file  annotation.c
- * @brief REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief utilities for surface-based parcellations
  *
  * utilities for surface-based parcellations (see Fischl et al., 
  * Cerebral Cortex)
@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/11/16 20:32:39 $
- *    $Revision: 1.21 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 05:55:29 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -382,8 +382,10 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) {
   MRIScomputeSecondFundamentalForm(mris) ;
   done = (int *)calloc(mris->ct->nentries, sizeof(int)) ;
   if (done == NULL)
-    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d index table",
-              Progname, mris->ct->nentries) ;
+    ErrorExit
+      (ERROR_NOMEMORY, 
+       "ERROR: MRISdivideAnnotation: could not allocate %d index table\n",
+       mris->ct->nentries) ;
 
   MRISclearMarks(mris) ;
   MRISsetNeighborhoodSize(mris, 2) ;

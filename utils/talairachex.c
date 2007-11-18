@@ -5,13 +5,13 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:40 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/11/18 05:55:34 $
+ *    $Revision: 1.11 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2003-2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,23 +25,12 @@
  *
  */
 
-
-//
-// talairachex.c
-//
-// created by tosa
-// date       12/17/2003
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 01:49:40 $
-// Revision       : $Revision: 1.10 $
-
-
 #include "talairachex.h"
 #include "diag.h"
 #include "error.h"
 #include "proto.h"
+
+extern const char* Progname;
 
 ////////////////////////////////////////////////////////////////////
 

@@ -2,14 +2,15 @@
  * @file  label.c
  * @brief utilities for manipulating ROIs.
  *
- * utilities (surface and volume) for manipulating arbitrary lists of vertices/voxels.
+ * utilities (surface and volume) for manipulating arbitrary lists of 
+ * vertices/voxels.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/10/26 12:41:25 $
- *    $Revision: 1.77 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 05:55:31 $
+ *    $Revision: 1.78 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +43,8 @@
 #include "label.h"
 #include "mri.h"
 #include "mrishash.h"
+
+extern const char* Progname;
 
 static LABEL_VERTEX *labelFindVertexNumber(LABEL *area, int vno) ;
 static Transform *labelLoadTransform(char *subject_name, char *sdir,

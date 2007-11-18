@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/11/06 01:33:55 $
- *    $Revision: 1.402 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 05:55:31 $
+ *    $Revision: 1.403 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,8 @@
  *
  */
 
-char *MRI_C_VERSION = "$Revision: 1.402 $";
+extern const char* Progname;
+const char *MRI_C_VERSION = "$Revision: 1.403 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES

@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/24 14:58:21 $
- *    $Revision: 1.28 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 05:55:31 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,6 +50,8 @@
 #include "colortab.h"
 #include "tags.h"
 #include "cma.h"
+
+extern const char* Progname;
 
 #define BIG_AND_NEGATIVE            -10000000.0
 

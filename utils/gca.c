@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/09/22 21:35:19 $
- *    $Revision: 1.232 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 05:55:30 $
+ *    $Revision: 1.233 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,6 +57,8 @@
 #if WITH_DMALLOC
 #include <dmalloc.h>
 #endif
+
+extern const char* Progname;
 
 int Ggca_label = -1 ;
 int Ggca_nbr_label = -1 ;
@@ -11254,7 +11256,7 @@ GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform)
   means = (float *)calloc(biggest_label+1, sizeof(float)) ;
   stds = (float *)calloc(biggest_label+1, sizeof(float)) ;
   if (!gca_means || !means || !stds)
-    ErrorExit(ERROR_NOMEMORY, "%s: could not allocated %d vector",
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d vector",
               Progname, biggest_label+1) ;
 
   /* do unknown labels separately */

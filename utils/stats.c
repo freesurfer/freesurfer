@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:40 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/11/18 05:55:34 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,6 +44,8 @@
 #include "transform.h"
 #include "mghendian.h"
 #include "stats.h"
+
+extern const char* Progname;
 
 #define REG_ROWS      4
 #define REG_COLS      4

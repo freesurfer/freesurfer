@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/30 12:36:55 $
- *    $Revision: 1.129 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 05:55:30 $
+ *    $Revision: 1.130 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,6 +64,8 @@
 #ifndef FSIGN
 #define FSIGN(f)  (((f) < 0) ? -1 : 1)
 #endif
+
+extern const char* Progname;
 
 int gcam_write_grad = 0 ;
 

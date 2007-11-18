@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/11/13 04:48:34 $
- *    $Revision: 1.340 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 05:55:32 $
+ *    $Revision: 1.341 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -195,8 +195,7 @@ static int mghAppend(MRI *mri, char *fname, int frame) ;
 
 extern int errno;
 
-extern char *Progname;
-/*char *Progname;*/
+extern const char *Progname;
 
 static char *command_line;
 static char *subject_name;

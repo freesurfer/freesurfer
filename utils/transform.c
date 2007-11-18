@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/09/15 18:44:19 $
- *    $Revision: 1.118 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/18 05:55:34 $
+ *    $Revision: 1.119 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,8 @@
 #include "matrix.h"
 #include "transform.h"
 #include "mri_circulars.h"
+
+extern const char* Progname;
 
 #define MAX_TRANSFORMS (1024*4)
 
