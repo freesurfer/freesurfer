@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/09/16 23:15:37 $
-#    $Revision: 1.11 $
+#    $Date: 2007/11/19 20:05:49 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: selfreqavg,v 1.11 2007/09/16 23:15:37 greve Exp $';
+set VERSION = '$Id: selfreqavg,v 1.12 2007/11/19 20:05:49 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -60,6 +60,8 @@ set parname = ();
 set hanrad = 0;
 set fwhm = 0;
 set cfgfile = ();
+set IsEccen = 0;
+set debug = 0;
 
 set usecfg = `echo $argv | egrep -e "-cfg" | wc -l`;
 if($usecfg > 0) then
@@ -107,6 +109,7 @@ $TARGET <<EOF
   fwhm       = $fwhm;
   SynthSeed  = [$SynthSeed];
   inplaneres = 0;
+  IsEccen    = $IsEccen;
 
   ext = getenv('FSF_OUTPUT_FORMAT');
   if(isempty(ext)) ext = 'bhdr'; end
@@ -302,6 +305,20 @@ $TARGET <<EOF
 
     real_signal = sum_real_signal/nruns;
     imag_signal = sum_imag_signal/nruns;
+    u = real_signal + sqrt(-1)*imag_signal;
+    phz = angle(u);
+
+    if(IsEccen)
+      % Force angle to be 0-2pi
+      fprintf('Force angle to be 0-2pi for Eccen\n');
+      ind = find(phz < 0);
+      phz(ind) = phz(ind) + 2*pi;
+      amp = abs(u);
+      real_signal = amp .* cos(phz); 
+      imag_signal = amp .* sin(phz);
+      u = real_signal + sqrt(-1)*imag_signal;
+    end
+
     var_noise   = sum_noise_var/nruns;
     ind0 = find(var_noise==0);
     var_noise(ind0) = 10^10;
@@ -309,11 +326,9 @@ $TARGET <<EOF
     meanimg     = (sum_fft0 + sum_wtrend(1,:))/nruns; % one will be zero
     trendimg    = sum_wtrend(2,:)/nruns; 
 
-    u = real_signal + sqrt(-1)*imag_signal;
     F = (abs(u).^2)./(var_noise/nruns);
     sigf = FTest(2,sfa.dof,F);
     log10sigf = -log10(sigf);
-    phz = angle(u);
     t = imag(u)./sqrt(var_noise/nruns);
 
     %fprintf('Mean Phase = %g (%g)\n',mean(phz),mean(phz)*180/pi);
@@ -384,9 +399,9 @@ set cmdline = "$argv";
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
+  if($debug) echo "flag $flag"
   
   switch($flag)
-
 
     case "-i":
       if ( $#argv == 0) goto arg1err;
@@ -512,6 +527,10 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "-eccen":
+      set IsEccen = 1;
+      breaksw
+
     case "-debug":
       set verbose = 1;
       breaksw
@@ -520,7 +539,17 @@ while( $#argv != 0 )
       set echo = 1;
       breaksw
 
+    # Ignore
+    case "-noautostimdur":
+      breaksw
+
+    # Ignore
+    case "-acfbins":
+      shift;
+      breaksw
+
     case "-debug":
+      set debug = 1;
       set echo = 1;
       set verbose = 1;
       breaksw
