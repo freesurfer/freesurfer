@@ -1,14 +1,18 @@
 /**
  * @file  mri_mc.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief generates a marching cubes triangulation
+ *
+ * Generates a marching cubes triangulation that is topologically consistent
+ * with a specific choice of connectivity. By default, this program will only 
+ * keep the main connected component.
  *
  */
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/11/19 15:35:02 $
- *    $Revision: 1.19 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/19 17:58:46 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -888,7 +892,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mri_mc.c,v 1.19 2007/11/19 15:35:02 fischl Exp $", "$Name:  $", 
+     "$Id: mri_mc.c,v 1.20 2007/11/19 17:58:46 nicks Exp $", "$Name:  $", 
      cmdline);
   Progname=argv[0];
 
