@@ -3,7 +3,7 @@
 #
 # mris_compute_lgi
 #
-# Computes local measurements of gyrification at points over cortical surface
+# Computes local measurements of gyrification at points over cortical surface.
 # --help option will show usage
 #
 # This script implements the work of Marie Schaer et al., as described in:
@@ -11,11 +11,11 @@
 # "A Surface-based Approach to Quantify Local Cortical Gyrification",
 # Schaer M. et al., IEEE Transactions on Medical Imaging, 2007, TMI-2007-0180
 #
-# Original Authors: Marie Schaer
+# Original Author: Marie Schaer
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/18 00:21:53 $
-#    $Revision: 1.10 $
+#    $Date: 2007/11/19 00:04:28 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.10 2007/11/18 00:21:53 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.11 2007/11/19 00:04:28 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
@@ -93,7 +93,7 @@ if ($RunIt) $cmd
 set MLF = /tmp/mos"_$$_".m
 set arg1 = ${tmpdir}/${input}.filled.mgz
 set arg2 = ${spheresize}
-set arg3 = ${tmpdir}/${input}-outer
+set arg3 =  ${tmpdir}/${input}-outer
 rm -f ${arg3}
 echo "make_outer_surface('${arg1}',${arg2},'${arg3}')" > $MLF
 echo "================="
@@ -114,7 +114,7 @@ endif
 # smooth this jaggy, tessellated surface
 set cmd=(mris_smooth -nw -n 3 \
     ${tmpdir}/${input}-outer \
-    ${tmpdir}/${input}-outer-smoothed)
+    ./${input}-outer-smoothed)
 echo "================="
 echo "$cmd"
 echo "================="
@@ -126,7 +126,7 @@ if ($RunIt) $cmd
 #
 # output normals of the smoothed outer surface
 set cmd=(mris_convert -n \
-    ${tmpdir}/${input}-outer-smoothed \
+    ${input}-outer-smoothed \
     ${tmpdir}/${input}-outer-smoothed-normals.asc)
 echo "================="
 echo "$cmd"
@@ -140,7 +140,7 @@ if ($RunIt) $cmd
 # create ROI center files
 set MLF = /tmp/mrc"_$$_".m
 set arg1 = ${input}
-set arg2 = ${tmpdir}/${input}-outer-smoothed
+set arg2 = ${input}-outer-smoothed
 set arg3 = ${stepsize}
 set arg4 = ${tmpdir}
 set arg5 = ${MLF}
@@ -162,7 +162,7 @@ endif
 # create ROI path files
 set MLF = /tmp/mrp"_$$_".m
 set arg1 = ${input}
-set arg2 = ${tmpdir}/${input}-outer-smoothed
+set arg2 = ${input}-outer-smoothed
 set arg3 = ${radius}
 set arg4 = ${stepsize}
 set arg5 = ${tmpdir}
@@ -203,7 +203,7 @@ end
 # finally, compute lGI measurements
 set MLF = /tmp/clgi"_$$_".m
 set arg1 = ${input}
-set arg2 = ${tmpdir}/${input}-outer-smoothed
+set arg2 = ${input}-outer-smoothed
 set arg3 = ${tmpdir}/${input}-outer-smoothed-normals.asc
 set arg4 = ${stepsize}
 set arg5 = ${radius}
