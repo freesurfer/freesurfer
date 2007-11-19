@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.102 2007/11/01 20:43:17 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.103 2007/11/19 20:06:16 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -104,6 +104,9 @@ else
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   set TJGDIR=/usr/pubsw/packages/tiffjpegglut/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
+  if ( "x`uname -m`" == "xx86_64" ) then
+    setenv FSLDIR /usr/pubsw/packages/fsl.64/current
+  endif
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
 endif
