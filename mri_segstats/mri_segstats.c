@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/18 17:55:05 $
- *    $Revision: 1.35 $
+ *    $Date: 2007/11/19 04:32:49 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -411,7 +411,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.35 2007/11/18 17:55:05 greve Exp $";
+"$Id: mri_segstats.c,v 1.36 2007/11/19 04:32:49 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -692,7 +692,10 @@ int main(int argc, char **argv) {
              frame,invol->nframes);
       exit(1);
     }
-    /* Should check that invol the same dim as seg, etc*/
+    if(MRIdimMismatch(invol,seg,0)) {
+      printf("ERROR: dimension mismatch between input volume and seg\n");
+      exit(1); 
+    }
   }
 
   /* Load the partial volume mri */
@@ -704,7 +707,10 @@ int main(int argc, char **argv) {
       printf("ERROR: loading %s\n",PVVolFile);
       exit(1);
     }
-    /* Should check that invol the same dim as seg, etc*/
+    if(MRIdimMismatch(pvvol,seg,0)) {
+      printf("ERROR: dimension mismatch between PV volume and seg\n");
+      exit(1); 
+    }
   }
 
   /* Load the brain volume */
@@ -712,11 +718,14 @@ int main(int argc, char **argv) {
     printf("Loading %s\n",BrainMaskFile);
     fflush(stdout);
     brainvol = MRIread(BrainMaskFile);
-    if (brainvol == NULL) {
+    if(brainvol == NULL) {
       printf("ERROR: loading %s\n",BrainMaskFile);
       exit(1);
     }
-    /* Should check that invol the same dim as seg, etc*/
+    if(MRIdimMismatch(brainvol,seg,0)) {
+      printf("ERROR: dimension mismatch between brain volume and seg\n");
+      exit(1); 
+    }
     nbrainmaskvoxels = MRItotalVoxelsOn(brainvol, WM_MIN_VAL) ;
     brainmaskvolume =
       nbrainmaskvoxels * brainvol->xsize * brainvol->ysize * brainvol->zsize;
@@ -750,7 +759,10 @@ int main(int argc, char **argv) {
              maskframe,maskvol->nframes);
       exit(1);
     }
-    /* Should check that maskvol the same dim as seg, etc*/
+    if(MRIdimMismatch(maskvol,seg,0)) {
+      printf("ERROR: dimension mismatch between brain volume and seg\n");
+      exit(1); 
+    }
     mri_binarize(maskvol, maskthresh, masksign, maskinvert,
                  maskvol, &nmaskhits);
     if (nmaskhits == 0) {
