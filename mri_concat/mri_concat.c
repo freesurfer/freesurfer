@@ -1,18 +1,25 @@
 /**
  * @file  mri_concat.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Concatenates input data sets.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * EXAMPLES:
+ *   mri_concat --i f1.mgh --i f2.mgh --o cout.mgh
+ *   mri_concat f1.mgh f2.mgh --o cout.mgh
+ *   mri_concat f*.mgh --o cout.mgh
+ *   mri_concat f*.mgh --o coutmn.mgh --mean
+ *   mri_concat f*.mgh --o coutdiff.mgh --paired-diff
+ *   mri_concat f*.mgh --o coutdiff.mgh --paired-diff-norm
+ *   mri_concat f*.mgh --o coutdiff.mgh --paired-diff-norm1
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/09 19:38:28 $
- *    $Revision: 1.20 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/20 21:08:11 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -25,9 +32,6 @@
  *
  */
 
-
-// mri_concat.c
-// $Id: mri_concat.c,v 1.20 2007/08/09 19:38:28 greve Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.20 2007/08/09 19:38:28 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.21 2007/11/20 21:08:11 nicks Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -74,6 +78,7 @@ int DoPairedDiffNorm1=0;
 int DoPairedDiffNorm2=0;
 int DoVote=0;
 int DoSort=0;
+int DoCombine=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -121,10 +126,11 @@ int main(int argc, char **argv) {
       nr = mritmp->height;
       ns = mritmp->depth;
     }
-    if (mritmp->width != nc || mritmp->height != nr ||
-	mritmp->depth != ns) {
+    if (mritmp->width != nc ||
+        mritmp->height != nr ||
+        mritmp->depth != ns) {
       printf("ERROR: dimension mismatch between %s and %s\n",
-	     inlist[0],inlist[nthin]);
+             inlist[0],inlist[nthin]);
       exit(1);
     }
 
@@ -162,7 +168,8 @@ int main(int argc, char **argv) {
         for(r=0; r < nr; r++) {
           for(s=0; s < ns; s++) {
             v = MRIgetVoxVal(mritmp,c,r,s,f);
-            MRIsetVoxVal(mriout,c,r,s,fout,v);
+            if (DoCombine && (v > 0)) MRIsetVoxVal(mriout,c,r,s,0,v);
+            else MRIsetVoxVal(mriout,c,r,s,fout,v);
           }
         }
       }
@@ -182,22 +189,22 @@ int main(int argc, char **argv) {
           for (f=0; f < mriout->nframes; f+=2) {
             v1 = MRIgetVoxVal(mriout,c,r,s,f);
             v2 = MRIgetVoxVal(mriout,c,r,s,f+1);
-	    v = 0;
+            v = 0;
             if(DoPairedAvg)  v = (v1+v2)/2.0;
             if(DoPairedSum)  v = (v1+v2);
             if(DoPairedDiff) v = v1-v2; // difference
             if(DoPairedDiffNorm) {
-	      v = v1-v2; // difference
+              v = v1-v2; // difference
               vavg = (v1+v2)/2.0;
               if (vavg != 0.0) v = v/vavg;
             }
             if(DoPairedDiffNorm1) {
-	      v = v1-v2; // difference
+              v = v1-v2; // difference
               if (v1 != 0.0) v = v/v1;
               else v = 0;
             }
             if(DoPairedDiffNorm2) {
-	      v = v1-v2; // difference
+              v = v1-v2; // difference
               if (v2 != 0.0) v = v/v2;
               else v = 0;
             }
@@ -316,6 +323,8 @@ static int parse_commandline(int argc, char **argv) {
       DoPairedDiff = 1;
       DoPairedDiffNorm2 = 1;
       DoPaired = 1;
+    } else if (!strcasecmp(option, "--combine")) {
+      DoCombine = 1;
     } else if ( !strcmp(option, "--i") ) {
       if (nargc < 1) argnerr(option,1);
       inlist[ninputs] = pargv[0];
@@ -360,6 +369,9 @@ static void print_usage(void) {
   printf("   --paired-diff-norm : same as paired-diff but scale by TP1,2 average \n");
   printf("   --paired-diff-norm1 : same as paired-diff but scale by TP1 \n");
   printf("   --paired-diff-norm2 : same as paired-diff but scale by TP2 \n");
+  printf("\n");
+  printf("   --combine : combine non-zero values into a one-frame volume\n");
+  printf("             (useful to combine lh.ribbon.mgz and rh.ribbon.mgz)\n");
   printf("\n");
   printf("   --mean : compute mean of concatenated volumes\n");
   printf("   --std  : compute std  of concatenated volumes\n");
