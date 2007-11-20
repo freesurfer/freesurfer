@@ -1,15 +1,17 @@
 /**
  * @file  mri_segment.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief segments white matter from a brain volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * "Cortical Surface-Based Analysis I: Segmentation and Surface
+ * Reconstruction", Dale, A.M., Fischl, B., Sereno, M.I.
+ * (1999) NeuroImage 9(2):179-194
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/02/14 19:59:27 $
- *    $Revision: 1.33 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/20 22:28:42 $
+ *    $Revision: 1.33.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,20 +27,7 @@
  *
  */
 
-
-//
-// mri_segment.c
-//
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-//
-// ID             : $Id: mri_segment.c,v 1.33 2007/02/14 19:59:27 fischl Exp $
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/02/14 19:59:27 $
-// Revision       : $Revision: 1.33 $
-//
-////////////////////////////////////////////////////////////////////
-char *MRI_SEGMENT_VERSION = "$Revision: 1.33 $";
+const char *MRI_SEGMENT_VERSION = "$Revision: 1.33.2.1 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -93,7 +82,7 @@ static void  usage_exit(int code) ;
 #define BLUR_SIGMA 0.25f
 static float blur_sigma = BLUR_SIGMA ;
 
-char *Progname ;
+const char *Progname ;
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -131,7 +120,10 @@ main(int argc, char *argv[]) {
   TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.33 2007/02/14 19:59:27 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mri_segment.c,v 1.33.2.1 2007/11/20 22:28:42 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -146,9 +138,7 @@ main(int argc, char *argv[]) {
     argv += nargs ;
   }
 
-  if (argc < 3)
-    ErrorExit(ERROR_BADPARM,
-              "usage: %s <input volume> <output volume>", Progname);
+  if (argc < 3) usage_exit(1);
 
   TimerStart(&then) ;
   input_file_name = argv[1] ;
@@ -176,7 +166,8 @@ main(int argc, char *argv[]) {
   }
 
   mri_labels = MRIclone(mri_src, NULL) ;
-  if (auto_detect_stats && !wm_low_set) /* widen range to allow for more variability */
+  if (auto_detect_stats && !wm_low_set) /* widen range to allow 
+                                           for more variability */
     wm_low -= 10 ;
   fprintf(stderr, "doing initial intensity segmentation...\n") ;
   mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
@@ -196,7 +187,10 @@ main(int argc, char *argv[]) {
                               &gray_sigma) ;
     if (!finite(white_mean) || !finite(white_sigma) ||
         !finite(gray_mean) || !finite(gray_sigma))
-      ErrorExit(ERROR_BADPARM, "%s: class statistics not finite - check input volume!", Progname);
+      ErrorExit
+        (ERROR_BADPARM, 
+         "%s: class statistics not finite - check input volume!", 
+         Progname);
 
     if (!wm_low_set) {
       if (FZERO(gray_sigma))
@@ -249,7 +243,7 @@ main(int argc, char *argv[]) {
           "\nreclassifying voxels using Gaussian border classifier...\n") ;
 
   /*
-    now use the gray and white mattter border voxels to build a Gaussian
+    now use the gray and white matter border voxels to build a Gaussian
     classifier at each point in space and reclassify all voxels in the
     range [wm_low-5,gray_hi].
     */
@@ -324,6 +318,8 @@ main(int argc, char *argv[]) {
   exit(0) ;
   return(0) ;
 }
+
+
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -338,6 +334,9 @@ get_option(int argc, char *argv[]) {
   if (!strcasecmp(option, "-version")) {
     fprintf(stderr, "Version: %s\n", MRI_SEGMENT_VERSION);
     exit(0);
+  } else if ((!stricmp(option, "help")) ||
+             (!stricmp(option, "-help"))) {
+    usage_exit(0);
   } else if (!stricmp(option, "MGH_MPRAGE") || !stricmp(option, "MPRAGE")) {
     scan_type = MRI_MGH_MPRAGE;
     printf("assuming input volume is MGH (Van der Kouwe) MP-RAGE\n") ;
@@ -415,7 +414,8 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "fillbg") || !stricmp(option, "fill_bg")) {
     fill_bg = !fill_bg ;
     fprintf(stderr,"%sfilling basal ganglia\n", fill_bg ? "" : "not ") ;
-  } else if (!stricmp(option, "fillv") || !stricmp(option, "fill_ventricles")) {
+  } else if (!stricmp(option, "fillv") || 
+             !stricmp(option, "fill_ventricles")) {
     fill_ventricles = !fill_ventricles ;
     fprintf(stderr,"%sfilling ventricles\n", fill_ventricles ? "" : "not ") ;
   } else switch (toupper(*option)) {
@@ -456,12 +456,15 @@ get_option(int argc, char *argv[]) {
       break ;
     default:
       fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      usage_exit(1) ;
       exit(1) ;
       break ;
     }
 
   return(nargs) ;
 }
+
+
 MRI *
 MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
                         float low_thresh, float hi_thresh, MRI *mri_labels) {
@@ -912,7 +915,8 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst) {
 }
 static MRI *
 MRIrecoverBrightWhite(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
-                      float wm_low, float wm_hi, float slack, float pct_thresh) {
+                      float wm_low, float wm_hi, 
+                      float slack, float pct_thresh) {
   int     x, y, z, xk, yk, zk, xi, yi, zi, width, height, depth, nwhite,
   ntested, nchanged ;
   BUFTYPE val ;
@@ -1088,6 +1092,8 @@ MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst, MRI *mri_labels, int wsize) {
   }
   return(NO_ERROR) ;
 }
+
+
 MRI *
 MRIremoveFilledBrightStuff(MRI *mri_T1, MRI *mri_labeled, MRI *mri_dst,
                            int filled_label, float thresh) {
@@ -1195,12 +1201,19 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
   MRIfree(&mri_tmp) ;
   return(mri_labeled) ;
 }
+
+
 static void
 usage_exit(int code) {
-  printf("usage: %s <classifier file> <input volume> <output volume>\n\n", Progname) ;
+  printf("\nSegments white matter from the input volume.\n\n");
+  printf("Usage: %s [options] <input volume> <output volume>\n\n", 
+         Progname) ;
+  printf("Options:\n");
   printf("\t-slope <float s>  set the curvature slope (both n and p)\n");
-  printf("\t-pslope <float p> set the curvature pslope (default=%2.1f)\n", pslope);
-  printf("\t-nslope <float n> set the curvature nslope (default=%2.1f)\n", nslope);
+  printf("\t-pslope <float p> set the curvature pslope (default=%2.1f)\n", 
+         pslope);
+  printf("\t-nslope <float n> set the curvature nslope (default=%2.1f)\n", 
+         nslope);
   printf("\t-debug_voxel <int x y z> set voxel for debugging\n");
   printf("\t-auto             automatically detect class statistics (default)\n");
   printf("\t-noauto           don't automatically detect class statistics\n");
@@ -1220,6 +1233,6 @@ usage_exit(int code) {
   printf("\t-p <float p>       set %% threshold (default=%2.2f)\n", pct);
   printf("\t-x <filename>      extract options from filename\n");
   printf("\t-w <int w>         set wsize (default=%d)\n", wsize);
-  printf("\t-u                 usage\n");
+  printf("\t-u, -help          usage\n");
   exit(code);
 }
