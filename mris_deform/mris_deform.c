@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/11/21 01:56:21 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/11/21 02:24:01 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -108,7 +108,8 @@ int
 main(int argc, char *argv[]) {
   char        *out_fname, **av ;
   int         ac, nargs, i ;
-  MRI         *mri_intensities, *mri_labels/*, *mri_kernel, *mri_smooth=NULL*/, *mri_ll ;
+  MRI         *mri_intensities, *mri_labels/*, *mri_kernel, *mri_smooth=NULL*/,
+              *mri_ll = NULL ;
   MRI_SURFACE *mris ;
   int         msec, minutes, seconds, n_averages ;
   float        current_sigma ;
@@ -141,11 +142,11 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_deform.c,v 1.6 2007/11/21 01:56:21 fischl Exp $",
+   "$Id: mris_deform.c,v 1.7 2007/11/21 02:24:01 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.6 2007/11/21 01:56:21 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.7 2007/11/21 02:24:01 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
