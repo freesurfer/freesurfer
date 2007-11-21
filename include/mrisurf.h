@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/30 21:58:12 $
- *    $Revision: 1.303 $
+ *    $Date: 2007/11/21 01:52:36 $
+ *    $Revision: 1.304 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -732,6 +732,15 @@ int          MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, Real r,
 int          MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri, Real r, 
                                          Real a, Real s, 
                                          Real *px, Real *py, Real *pz) ;
+
+// these are the inverse of the previous two
+int          MRISsurfaceRASFromVoxel(MRI_SURFACE *mris, MRI *mri, 
+                                     Real x, Real y, Real z, 
+                                     Real *pr, Real *pa, Real *ps) ;
+int          MRISsurfaceRASFromVoxelCached(MRI_SURFACE *mris, MRI *mri, 
+                                           Real x, Real y, Real z, 
+                                           Real *pr, Real *pa, Real *ps) ;
+
 int          MRISsurfaceRASToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
     Real xw, Real yw, Real zw,
     Real *pxv, Real *pyv, Real *pzv) ;
