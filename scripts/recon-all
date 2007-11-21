@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/10/03 17:13:11 $
-#    $Revision: 1.133.2.6 $
+#    $Date: 2007/11/21 23:57:59 $
+#    $Revision: 1.133.2.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.6 2007/10/03 17:13:11 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.7 2007/11/21 23:57:59 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1085,6 +1085,7 @@ skullstrip:
     if(-e $BMA && -e $BM && ! $DoCleanBM) set cmd = ($cmd -keep $BMA $BM $BM)
     set INVOL = T1
     if( -e optimal_skullstrip_invol) set INVOL = `cat optimal_skullstrip_invol`
+    if("$INVOL" == "T1") set opts = ( -T1 $opts  )
     set cmd = ($cmd $opts $xopts $INVOL.mgz $BMA)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
