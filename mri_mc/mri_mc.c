@@ -10,9 +10,9 @@
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/19 17:58:46 $
- *    $Revision: 1.20 $
+ *    $Author: fischl $
+ *    $Date: 2007/11/21 01:53:47 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -497,6 +497,7 @@ int saveTesselation2(tesselation_parms *parms) {
   mris=MRISoverAlloc(pct_over*parms->vertex_index,pct_over*parms->face_index
                      ,parms->vertex_index,parms->face_index);
 
+  MRIScopyVolGeomFromMRI(mris, parms->mri) ;
   fprintf(stderr,"\n(surface with %d faces and %d vertices)...",
           parms->face_index,parms->vertex_index);
 
@@ -513,7 +514,8 @@ int saveTesselation2(tesselation_parms *parms) {
     //y = yy0+(imnr-0.5)*st;
     //z = zz1-(i-0.5)*ps;
 
-    MRIvoxelToWorld(parms->mri,i,j,imnr,&xw,&yw,&zw);
+    MRISsurfaceRASFromVoxelCached(mris, parms->mri, i, j, imnr, &xw, &yw,&zw);
+    //    MRIvoxelToWorld(parms->mri,i,j,imnr,&xw,&yw,&zw);
     x=xw;
     y=yw;
     z=zw;
@@ -686,7 +688,7 @@ void generateMCtesselation(tesselation_parms * parms) {
   f_c[6]=0;
   f_c[7]=1;
 
-  fprintf(stderr,"starting generating surface...");
+  fprintf(stderr,"starting generation of surface...");
 
   for (k=zmin;k<zmax;k++) {
     if (!(k % 10))
@@ -892,7 +894,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mri_mc.c,v 1.20 2007/11/19 17:58:46 nicks Exp $", "$Name:  $", 
+     "$Id: mri_mc.c,v 1.21 2007/11/21 01:53:47 fischl Exp $", "$Name:  $", 
      cmdline);
   Progname=argv[0];
 
