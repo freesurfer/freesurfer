@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:32 $
- *    $Revision: 1.573 $
+ *    $Author: fischl $
+ *    $Date: 2007/11/21 01:52:46 $
+ *    $Revision: 1.574 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.573 2007/11/18 05:55:32 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.574 2007/11/21 01:52:46 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -15673,7 +15673,7 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
           MRIsampleVolume(mri_interior, xvi, yvi, zvi, &interior) ;
         }
 
-        if (mri_interior  == NULL || interior < .9)
+        if (mri_interior == NULL || interior < .9)
         {
           ktotal_outside += k ;
           MRISsurfaceRASToVoxel(mris, mri_brain, xw, yw, zw, &xw, &yw, &zw) ;
@@ -15776,12 +15776,21 @@ mrisComputeIntensityTerm_mef(MRI_SURFACE *mris, double l_intensity,
   VERTEX  *v ;
   float   x, y, z, nx, ny, nz, dx, dy, dz ;
   Real    val0, xw, yw, zw, del, val_outside, val_inside, delI, delV, k,
-  ktotal ;
+          ktotal_outside, ktotal_inside, interior, xvi, yvi, zvi ;
   double  sigma ;
+  MRI     *mri_interior ;
 
   if (FZERO(l_intensity))
     return(NO_ERROR) ;
 
+  if (parms->grad_dir == 0 && parms->fill_interior)  // create binary mask of interior of surface
+  {
+    mri_interior = MRISfillInterior(mris, 0.5, NULL) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_interior, "int.mgz") ;
+  }
+  else
+    mri_interior = NULL ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -15792,7 +15801,7 @@ mrisComputeIntensityTerm_mef(MRI_SURFACE *mris, double l_intensity,
 
     x = v->x ; y = v->y ; z = v->z ;
 
-    MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_30, xw, yw, zw, &val0) ;
     sigma = v->val2 ;
     if (FZERO(sigma))
@@ -15810,25 +15819,49 @@ mrisComputeIntensityTerm_mef(MRI_SURFACE *mris, double l_intensity,
       step_size = MIN(sigma/2,
                       MIN(mri_30->xsize,
                           MIN(mri_30->ysize, mri_30->zsize))*0.5) ;
-      ktotal = 0.0 ;
+      ktotal_outside = ktotal_inside = 0.0 ;
       for (n = 0, val_outside = val_inside = 0.0, dist = step_size ;
            dist <= 2*sigma;
            dist += step_size, n++)
       {
         k = exp(-dist*dist/(2*sigma*sigma)) ;
-        ktotal += k ;
         xw = x + dist*nx ; yw = y + dist*ny ; zw = z + dist*nz ;
-        MRISsurfaceRASToVoxel(mris, mri_30, xw, yw, zw, &xw, &yw, &zw);
-        MRIsampleVolume(mri_30, xw, yw, zw, &val) ;
-        val_outside += k*val ;
+        if (mri_interior)
+        {
+          MRISsurfaceRASToVoxelCached(mris, mri_interior, xw, yw, zw, &xvi,&yvi,&zvi) ;
+          MRIsampleVolume(mri_interior, xvi, yvi, zvi, &interior) ;
+        }
+
+        if (mri_interior == NULL || interior < .9)
+        {
+          MRISsurfaceRASToVoxelCached(mris, mri_30, xw, yw, zw, &xw, &yw, &zw);
+          MRIsampleVolume(mri_30, xw, yw, zw, &val) ;
+          val_outside += k*val ;
+          ktotal_outside += k ;
+        }
+        else
+          DiagBreak() ;
 
         xw = x - dist*nx ; yw = y - dist*ny ; zw = z - dist*nz ;
-        MRISsurfaceRASToVoxel(mris, mri_30, xw, yw, zw, &xw, &yw, &zw);
-        MRIsampleVolume(mri_30, xw, yw, zw, &val) ;
-        val_inside += k*val ;
+        if (mri_interior)
+        {
+          MRISsurfaceRASToVoxelCached(mris, mri_interior, xw, yw, zw, &xvi,&yvi,&zvi) ;
+          MRIsampleVolume(mri_interior, xvi, yvi, zvi, &interior) ;
+        }
+        if (mri_interior == NULL || interior > 0)
+        {
+          MRISsurfaceRASToVoxelCached(mris, mri_30, xw, yw, zw, &xw, &yw, &zw);
+          MRIsampleVolume(mri_30, xw, yw, zw, &val) ;
+          val_inside += k*val ;
+          ktotal_inside += k ;
+        }
+        else
+          DiagBreak() ;
       }
-      val_inside /= (double)ktotal ;
-      val_outside /= (double)ktotal ;
+      if (ktotal_inside> 0)
+        val_inside /= (double)ktotal_inside ;
+      if (ktotal_outside> 0)
+        val_outside /= (double)ktotal_outside ;
     }
     else  // don't compute gradient - assume
     {
@@ -15853,6 +15886,9 @@ mrisComputeIntensityTerm_mef(MRI_SURFACE *mris, double l_intensity,
 
     dx = nx * del*weight30 ; dy = ny * del*weight30 ; dz = nz * del*weight30;
 
+    if (dx*nx+dy*ny+dz*nz < 0)
+      DiagBreak() ;
+
     if (vno == Gdiag_no)
     {
       Real xwi, ywi, zwi, xwo, ywo, zwo ;
@@ -15861,104 +15897,130 @@ mrisComputeIntensityTerm_mef(MRI_SURFACE *mris, double l_intensity,
 
       /* sample outward from surface */
       xw = x + nx ; yw = y + ny ; zw = z + nz ;
-      MRISsurfaceRASToVoxel(mris, mri_30, xw, yw, zw, &xwo, &ywo, &zwo) ;
+      MRISsurfaceRASToVoxelCached(mris, mri_30, xw, yw, zw, &xwo, &ywo, &zwo) ;
       /* sample inward from surface */
       xw = x - nx ; yw = y - ny ; zw = z - nz ;
-      MRISsurfaceRASToVoxel(mris, mri_30, xw, yw, zw, &xwi, &ywi, &zwi) ;
-      MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
+      MRISsurfaceRASToVoxelCached(mris, mri_30, xw, yw, zw, &xwi, &ywi, &zwi) ;
+      MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
       fprintf(stdout,
               "I30(%2.1f,%2.1f,%2.1f)=%2.1f, Io(%2.1f,%2.1f,%2.1f)=%2.1f, "
               "Ii(%2.1f,%2.1f,%2.1f)=%2.1f\n",
               xw,yw,zw,val0, xwo, ywo,zwo,
               val_outside,xwi,ywi,zwi,val_inside);
       fprintf(stdout, "v %d I30 intensity term:  (%2.3f, %2.3f, %2.3f), "
-              "delV=%2.1f, delI=%2.0f, dot=%2.1f\n", vno, dx, dy, dz, delV, delI,
+              "targ=%2.1f, delV=%2.1f, delI=%2.0f, dot=%2.1f\n", vno, dx, dy, dz, v->val,
+              delV, delI,
               dx*nx+dy*ny+dz*nz) ;
     }
     v->dx += dx ; v->dy += dy ; v->dz += dz ;
 
     //now compute flash5
     /* compute intensity gradient using smoothed volume */
-    MRISsurfaceRASToVoxel(mris, mri_5, x, y, z, &xw, &yw, &zw);
-    MRIsampleVolume(mri_5, xw, yw, zw, &val0) ;
-    if (parms->grad_dir == 0)
+    if (!FZERO(weight5))
     {
-      Real dist, val, step_size ;
-      int  n ;
-
-      step_size = MIN(sigma/2,
-                      MIN(mri_5->xsize,
-                          MIN(mri_5->ysize, mri_5->zsize))*0.5) ;
-      ktotal = 0.0 ;
-      for (n = 0, val_outside = val_inside = 0.0, dist = step_size ;
-           dist <= 2*sigma;
-           dist += step_size, n++)
+      MRISsurfaceRASToVoxelCached(mris, mri_5, x, y, z, &xw, &yw, &zw);
+      MRIsampleVolume(mri_5, xw, yw, zw, &val0) ;
+      if (parms->grad_dir == 0)
       {
-        k = exp(-dist*dist/(2*sigma*sigma)) ;
-        ktotal += k ;
-        xw = x + dist*nx ; yw = y + dist*ny ; zw = z + dist*nz ;
-        MRISsurfaceRASToVoxel(mris, mri_5, xw, yw, zw, &xw, &yw, &zw);
-        MRIsampleVolume(mri_5, xw, yw, zw, &val) ;
-        val_outside += k*val ;
+        Real dist, val, step_size ;
+        int  n ;
+        
+        step_size = MIN(sigma/2,
+                        MIN(mri_5->xsize,
+                            MIN(mri_5->ysize, mri_5->zsize))*0.5) ;
+        ktotal_inside = ktotal_outside = 0.0 ;
+        for (n = 0, val_outside = val_inside = 0.0, dist = step_size ;
+             dist <= 2*sigma;
+             dist += step_size, n++)
+        {
+          k = exp(-dist*dist/(2*sigma*sigma)) ;
 
-        xw = x - dist*nx ; yw = y - dist*ny ; zw = z - dist*nz ;
-        MRISsurfaceRASToVoxel(mris, mri_5, xw, yw, zw, &xw, &yw, &zw);
-        MRIsampleVolume(mri_5, xw, yw, zw, &val) ;
-        val_inside += k*val ;
+          xw = x + dist*nx ; yw = y + dist*ny ; zw = z + dist*nz ;
+          if (mri_interior)
+          {
+            MRISsurfaceRASToVoxel(mris, mri_interior, xw, yw, zw, &xvi,&yvi,&zvi) ;
+            MRIsampleVolume(mri_interior, xvi, yvi, zvi, &interior) ;
+          }
+          if (mri_interior == NULL || interior < .9)
+          {
+            MRISsurfaceRASToVoxelCached(mris, mri_5, xw, yw, zw, &xw, &yw, &zw);
+            MRIsampleVolume(mri_5, xw, yw, zw, &val) ;
+            val_outside += k*val ;
+            ktotal_outside += k ;
+          }
+          
+          xw = x - dist*nx ; yw = y - dist*ny ; zw = z - dist*nz ;
+          if (mri_interior)
+          {
+            MRISsurfaceRASToVoxel(mris, mri_interior, xw, yw, zw, &xvi,&yvi,&zvi) ;
+            MRIsampleVolume(mri_interior, xvi, yvi, zvi, &interior) ;
+          }
+          if (mri_interior == NULL || interior > 0)
+          {
+            MRISsurfaceRASToVoxelCached(mris, mri_5, xw, yw, zw, &xw, &yw, &zw);
+            MRIsampleVolume(mri_5, xw, yw, zw, &val) ;
+            val_inside += k*val ;
+            ktotal_inside += k ;
+          }
+        }
+        if (ktotal_inside> 0)
+          val_inside /= (double)ktotal_inside ;
+        if (ktotal_outside> 0)
+          val_outside /= (double)ktotal_outside ;
       }
-      val_inside /= (double)ktotal ;
-      val_outside /= (double)ktotal ;
+      else  // don't compute gradient - assume
+      {
+        val_outside = parms->grad_dir ;
+        val_inside = -parms->grad_dir ;
+      }
+      
+      delV = v->valbak - val0 ;
+      delI = (val_outside - val_inside) / 2.0 ;
+      
+      if (!FZERO(delI))
+        delI /= fabs(delI) ;
+      else
+        delI = 0 ;
+      
+      if (delV > 5)
+        delV = 5 ;
+      else if (delV < -5)
+        delV = -5 ;
+      
+      del = l_intensity * delV * delI ;
+      
+      dx = nx * del*weight5 ; dy = ny * del*weight5; dz = nz * del*weight5;
+
+      if (vno == Gdiag_no && !FZERO(weight5))
+      {
+        Real xwi, ywi, zwi, xwo, ywo, zwo ;
+        
+        x = v->x ; y = v->y ;z = v->z ;
+        
+        /* sample outward from surface */
+        xw = x + nx ; yw = y + ny ; zw = z + nz ;
+        MRISsurfaceRASToVoxelCached(mris, mri_30, xw, yw, zw, &xwo, &ywo, &zwo) ;
+        /* sample inward from surface */
+        xw = x - nx ; yw = y - ny ; zw = z - nz ;
+        MRISsurfaceRASToVoxelCached(mris, mri_30, xw, yw, zw, &xwi, &ywi, &zwi) ;
+        MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
+        fprintf(stdout,
+                "I5(%2.1f,%2.1f,%2.1f)=%2.1f, Io(%2.1f,%2.1f,%2.1f)=%2.1f, "
+                "Ii(%2.1f,%2.1f,%2.1f)=%2.1f\n",
+                xw,yw,zw,val0, xwo, ywo,zwo,
+                val_outside,xwi,ywi,zwi,val_inside);
+        fprintf(stdout, "v %d I5 intensity term:   (%2.3f, %2.3f, %2.3f), "
+                "delV=%2.1f, delI=%2.0f, dot=%2.1f\n", 
+                vno, dx, dy, dz, delV, delI,
+                dx*nx + dy*ny + dz*nz) ;
+      }
+      v->dx += dx ; v->dy += dy ; v->dz += dz ; // add flash5 component
     }
-    else  // don't compute gradient - assume
-    {
-      val_outside = parms->grad_dir ;
-      val_inside = -parms->grad_dir ;
-    }
-
-    delV = v->valbak - val0 ;
-    delI = (val_outside - val_inside) / 2.0 ;
-
-    if (!FZERO(delI))
-      delI /= fabs(delI) ;
-    else
-      delI = 0 ;
-
-    if (delV > 5)
-      delV = 5 ;
-    else if (delV < -5)
-      delV = -5 ;
-
-    del = l_intensity * delV * delI ;
-
-    dx = nx * del*weight5 ; dy = ny * del*weight5; dz = nz * del*weight5;
-
-    if (vno == Gdiag_no && !FZERO(weight5))
-    {
-      Real xwi, ywi, zwi, xwo, ywo, zwo ;
-
-      x = v->x ; y = v->y ;z = v->z ;
-
-      /* sample outward from surface */
-      xw = x + nx ; yw = y + ny ; zw = z + nz ;
-      MRISsurfaceRASToVoxel(mris, mri_30, xw, yw, zw, &xwo, &ywo, &zwo) ;
-      /* sample inward from surface */
-      xw = x - nx ; yw = y - ny ; zw = z - nz ;
-      MRISsurfaceRASToVoxel(mris, mri_30, xw, yw, zw, &xwi, &ywi, &zwi) ;
-      MRISsurfaceRASToVoxel(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
-      fprintf(stdout,
-              "I5(%2.1f,%2.1f,%2.1f)=%2.1f, Io(%2.1f,%2.1f,%2.1f)=%2.1f, "
-              "Ii(%2.1f,%2.1f,%2.1f)=%2.1f\n",
-              xw,yw,zw,val0, xwo, ywo,zwo,
-              val_outside,xwi,ywi,zwi,val_inside);
-      fprintf(stdout, "v %d I5 intensity term:   (%2.3f, %2.3f, %2.3f), "
-              "delV=%2.1f, delI=%2.0f, dot=%2.1f\n", 
-              vno, dx, dy, dz, delV, delI,
-              dx*nx + dy*ny + dz*nz) ;
-    }
-    v->dx += dx ; v->dy += dy ; v->dz += dz ; // add flash5 component
   }
 
 
+  if (mri_interior)
+    MRIfree(&mri_interior) ;
   return(NO_ERROR) ;
 }
 
@@ -17037,8 +17099,8 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
   else
     strcpy(host_name, "unknown") ;
 
-  fprintf(fp, "tol=%2.1e, host=%5.5s, nav=%d, nbrs=%d",
-          (float)parms->tol, host_name, parms->n_averages, mris->nsize) ;
+  fprintf(fp, "tol=%2.1e, sigma=%2.1f, host=%5.5s, nav=%d, nbrs=%d",
+          (float)parms->tol, parms->sigma, host_name, parms->n_averages, mris->nsize) ;
   if (!FZERO(parms->l_area))
     fprintf(fp, ", l_area=%2.3f", parms->l_area) ;
   if (!FZERO(parms->l_dura))
@@ -62356,7 +62418,7 @@ MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, Real r, Real a, Real s,
   MATRIX  *m_sras2vox = NULL ;
   MATRIX *m_sras2ras, *m_ras2vox ;
   static VECTOR *v1 = NULL, *v2  ;
-  MRI *mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+  MRI *mri_tmp ;
 
   if ( v1 == NULL)
   {
@@ -62364,15 +62426,23 @@ MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, Real r, Real a, Real s,
     v2 = VectorAlloc(4, MATRIX_REAL) ;
     VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
   }
-  MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
-  m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
+  if (mris->vg.valid)
+  {
+      mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+    MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+    MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
+    m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
+    MRIfree(&mri_tmp) ;
+  }
+  else // no valid geom - assume it came from provided volume
+    m_sras2ras =  RASFromSurfaceRAS_(mri) ;  
+
   m_ras2vox = MRIgetRasToVoxelXform(mri) ;
   m_sras2vox = MatrixMultiply(m_ras2vox, m_sras2ras, NULL) ;
 
   V3_X(v1) = r ; V3_Y(v1) = a ; V3_Z(v1) = s ; 
   MatrixMultiply(m_sras2vox, v1, v2) ;
   *px = V3_X(v2) ; *py = V3_Y(v2) ; *pz = V3_Z(v2) ;
-  MRIfree(&mri_tmp) ;
   MatrixFree(&m_ras2vox) ; MatrixFree(&m_sras2ras) ; MatrixFree(&m_sras2vox);
   return(NO_ERROR) ;
 }
@@ -62386,12 +62456,19 @@ MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri, Real r, Real a, Real s,
 
   if (m_sras2vox == NULL)
   {
-    MRI *mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+    MRI *mri_tmp ;
     MATRIX *m_sras2ras, *m_ras2vox ;
       
-    MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
-    m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
-    MRIfree(&mri_tmp) ;
+    if (mris->vg.valid)
+    {
+      mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+      MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
+      m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
+      MRIfree(&mri_tmp) ;
+    }
+    else
+      m_sras2ras =  RASFromSurfaceRAS_(mri) ;
+
     m_ras2vox = MRIgetRasToVoxelXform(mri) ;
     m_sras2vox = MatrixMultiply(m_ras2vox, m_sras2ras, NULL) ;
     v1 = VectorAlloc(4, MATRIX_REAL) ;
@@ -62401,6 +62478,83 @@ MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri, Real r, Real a, Real s,
   V3_X(v1) = r ;  V3_Y(v1) = a ; V3_Z(v1) = s ; 
   MatrixMultiply(m_sras2vox, v1, v2) ;
   *px = V3_X(v2) ; *py = V3_Y(v2) ; *pz = V3_Z(v2) ;
+  return(NO_ERROR) ;
+}
+
+int
+MRISsurfaceRASFromVoxel(MRI_SURFACE *mris, MRI *mri, Real x, Real y, Real z, 
+                        Real *pr, Real *pa, Real *ps)
+{
+  MATRIX  *m_sras2vox = NULL ;
+  MATRIX  *m_vox2sras = NULL ;
+  MATRIX *m_sras2ras, *m_ras2vox ;
+  static VECTOR *v1 = NULL, *v2  ;
+  MRI *mri_tmp ;
+
+  if ( v1 == NULL)
+  {
+    v1 = VectorAlloc(4, MATRIX_REAL) ;
+    v2 = VectorAlloc(4, MATRIX_REAL) ;
+    VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
+  }
+  if (mris->vg.valid)
+  {
+      mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+    MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+    MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
+    m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
+    MRIfree(&mri_tmp) ;
+  }
+  else // no valid geom - assume it came from provided volume
+    m_sras2ras =  RASFromSurfaceRAS_(mri) ;  
+
+  m_ras2vox = MRIgetRasToVoxelXform(mri) ;
+  m_sras2vox = MatrixMultiply(m_ras2vox, m_sras2ras, NULL) ;
+  m_vox2sras = MatrixInverse(m_sras2vox, NULL) ;
+
+  V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ; 
+  MatrixMultiply(m_vox2sras, v1, v2) ;
+  *pr = V3_X(v2) ; *pa = V3_Y(v2) ; *ps = V3_Z(v2) ;
+  MatrixFree(&m_ras2vox) ; MatrixFree(&m_sras2ras) ; MatrixFree(&m_sras2vox);
+  MatrixFree(&m_vox2sras) ;
+  return(NO_ERROR) ;
+}
+// note that this is *NOT* safe for parallel implementations
+int
+MRISsurfaceRASFromVoxelCached(MRI_SURFACE *mris, MRI *mri, Real x, Real y, 
+                              Real z, Real *pr, Real *pa, Real *ps)
+{
+  static MATRIX  *m_vox2sras = NULL ;
+  static VECTOR *v1, *v2  ;
+
+  if (m_vox2sras == NULL)
+  {
+    MRI *mri_tmp ;
+    MATRIX *m_sras2ras, *m_ras2vox ;
+    MATRIX  *m_sras2vox = NULL ;
+      
+    if (mris->vg.valid)
+    {
+      mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+      MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
+      m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
+      MRIfree(&mri_tmp) ;
+    }
+    else
+      m_sras2ras =  RASFromSurfaceRAS_(mri) ;
+
+    m_ras2vox = MRIgetRasToVoxelXform(mri) ;
+    m_sras2vox = MatrixMultiply(m_ras2vox, m_sras2ras, NULL) ;
+    m_vox2sras = MatrixInverse(m_sras2vox, NULL) ;
+    v1 = VectorAlloc(4, MATRIX_REAL) ;
+    v2 = VectorAlloc(4, MATRIX_REAL) ;
+    VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
+    MatrixFree(&m_sras2vox) ; MatrixFree(&m_ras2vox) ;
+    MatrixFree(&m_sras2ras) ;
+  }
+  V3_X(v1) = x ;  V3_Y(v1) = y ; V3_Z(v1) = z ; 
+  MatrixMultiply(m_vox2sras, v1, v2) ;
+  *pr = V3_X(v2) ; *pa = V3_Y(v2) ; *ps = V3_Z(v2) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
