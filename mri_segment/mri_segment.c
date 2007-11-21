@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/20 22:27:46 $
- *    $Revision: 1.34 $
+ *    $Date: 2007/11/21 04:38:06 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_SEGMENT_VERSION = "$Revision: 1.34 $";
+const char *MRI_SEGMENT_VERSION = "$Revision: 1.35 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_segment.c,v 1.34 2007/11/20 22:27:46 nicks Exp $", 
+     "$Id: mri_segment.c,v 1.35 2007/11/21 04:38:06 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1205,7 +1205,10 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
 
 static void
 usage_exit(int code) {
-  printf("\nSegments white matter from the input volume.\n\n");
+  printf("\nSegments white matter from the input volume.  The input\n"
+         "volume should be normalized such that white matter voxels are\n"
+         "~110-valued, and the volume is conformed to 256^3.  This can be\n"
+         "accomplished by:  mri_normalize invol outvol -conform\n\n");
   printf("Usage: %s [options] <input volume> <output volume>\n\n", 
          Progname) ;
   printf("Options:\n");
