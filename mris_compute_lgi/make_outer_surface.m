@@ -54,7 +54,7 @@ TRIANGLE_FILE_MAGIC_NUMBER = 16777214;
 fwrite3(fid, TRIANGLE_FILE_MAGIC_NUMBER);
     
 % Ouput a couple of text lines with creation date
-str = sprintf('created from matlab on %s\n',datestr(now))
+str = sprintf('created from matlab on %s\n',datestr(now));
 fwrite(fid, str,'char');
 fwrite(fid, vnum,'int32');
 fwrite(fid, fnum,'int32');
