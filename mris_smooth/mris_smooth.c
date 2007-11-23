@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/11/13 15:22:45 $
- *    $Revision: 1.22 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/23 20:39:13 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_smooth.c,v 1.22 2007/11/13 15:22:45 fischl Exp $";
+  "$Id: mris_smooth.c,v 1.23 2007/11/23 20:39:13 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,13 +87,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_smooth.c,v 1.22 2007/11/13 15:22:45 fischl Exp $",
+   "$Id: mris_smooth.c,v 1.23 2007/11/23 20:39:13 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_smooth.c,v 1.22 2007/11/13 15:22:45 fischl Exp $",
+           "$Id: mris_smooth.c,v 1.23 2007/11/23 20:39:13 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -386,14 +386,17 @@ static void
 print_help(void) {
   print_usage() ;
   fprintf(stderr,
-          "\nThis program smooths the tessellation of a cortical surface and\n"
-          "write out the first and second order properties after smoothing\n"
+          "\nThis program smooths the tessellation of a surface and\n"
+          "writes-out the first and second order properties after smoothing\n"
           "to the files $hemi.curv (mean curvature) and $hemi.area (area).\n");
-  fprintf(stderr, "\nvalid options are:\n\n") ;
+  fprintf(stderr, "\nValid options are:\n\n") ;
   fprintf(stderr, "-a <avgs>  "
           "specify # of curvature averaging iterations (def=10).\n") ;
   fprintf(stderr, "-n <niter> specify # of smoothing iterations (def=10).\n") ;
   fprintf(stderr, "-nw        disable writing of curvature and area estimates\n");
+  fprintf(stderr, "-g <norm> <steps>  use Gaussian curvature smoothing with\n"
+          "           norm <norm> and <steps> smoothing steps\n"
+          "           (-g 20 8 works well for hippo)\n");
   exit(1) ;
 }
 
