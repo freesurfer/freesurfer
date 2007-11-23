@@ -14,8 +14,8 @@
 # Original Author: Marie Schaer
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/20 23:07:49 $
-#    $Revision: 1.12 $
+#    $Date: 2007/11/23 22:15:48 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.12 2007/11/20 23:07:49 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.13 2007/11/23 22:15:48 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
@@ -112,11 +112,24 @@ endif
 
 
 #
+# mris_extract_main_component
+#
+# remove artifact (unconnected) faces
+set cmd=(mris_extract_main_component \
+    ${tmpdir}/${input}-outer \
+    ${tmpdir}/${input}-outer-main)
+echo "================="
+echo "$cmd"
+echo "================="
+if ($RunIt) $cmd
+
+
+#
 # mris_smooth
 #
 # smooth this jaggy, tessellated surface
 set cmd=(mris_smooth -nw -n ${smoothiters} \
-    ${tmpdir}/${input}-outer \
+    ${tmpdir}/${input}-outer-main \
     ./${input}-outer-smoothed)
 echo "================="
 echo "$cmd"
