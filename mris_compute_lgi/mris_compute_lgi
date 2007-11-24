@@ -14,8 +14,8 @@
 # Original Author: Marie Schaer
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/23 22:15:48 $
-#    $Revision: 1.13 $
+#    $Date: 2007/11/24 03:55:03 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.13 2007/11/23 22:15:48 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.14 2007/11/24 03:55:03 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
@@ -234,7 +234,7 @@ set arg3 = ${tmpdir}/${input}-outer-smoothed-normals.asc
 set arg4 = ${stepsize}
 set arg5 = ${radius}
 set arg6 = ${tmpdir}
-rm -f ${tmpdir}/${input}_lgi_asc
+rm -f ${tmpdir}/${input}_lgi.asc
 echo "compute_lgi('${arg1}','${arg2}','${arg3}',${arg4},${arg5},'${arg6}')" \
     > $MLF
 echo "================="
@@ -245,8 +245,8 @@ if ($RunIt) then
 endif
 echo ""
 rm -f ${MLF}
-if ( $RunIt && ! -e ${tmpdir}/${input}_lgi_asc ) then
-  echo "ERROR: compute_lgi did not create output file '${tmpdir}/${input}_lgi_asc'!"
+if ( $RunIt && ! -e ${tmpdir}/${input}_lgi.asc ) then
+  echo "ERROR: compute_lgi did not create output file '${tmpdir}/${input}_lgi.asc'!"
   exit 1
 endif
 
