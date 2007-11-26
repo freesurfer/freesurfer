@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/11/21 23:57:28 $
-#    $Revision: 1.144 $
+#    $Author: greve $
+#    $Date: 2007/11/26 22:46:26 $
+#    $Revision: 1.145 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.144 2007/11/21 23:57:28 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.145 2007/11/26 22:46:26 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -128,6 +128,7 @@ set measurelist = ( thickness area area.pial volume curv sulc white.K white.H ja
                      # ^ these are the files smoothed by DoQdecCache (-qcache)
 set fwhmlist = ( 0 5 10 15 20 25 ) # see DoQdecCache
 set target = fsaverage # see DoQdecCache
+set SmoothCortexOnly = 0; # For -qcache. At some point, this should be the default
 
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
 set DoMakefile = 0; # if 1, run make -f recon-all.makefile $(MakefileTarget)
@@ -2344,6 +2345,7 @@ if ($DoQdecCache) then
               --fwhm ${fwhm} \
               --sval ${MeasFile}.mgh \
               --tval ${OutFile}.mgh)
+          if($SmoothCortexOnly) set cmd = ($cmd --cortex)
           echo "#--------------------------------------------" \
               |& tee -a $LF |& tee -a $CF
           echo "#@# Qdec Cache $hemi $measure fwhm$fwhm $target `date`" \
@@ -3543,6 +3545,14 @@ while( $#argv != 0 )
       set DoQdecCache = 1;
       breaksw;
 
+    case "-smooth-cortex-only"
+      set SmoothCortexOnly = 1;
+      breaksw;
+
+    case "-no-smooth-cortex-only"
+      set SmoothCortexOnly = 0;
+      breaksw;
+
     case "-measure":
       if ( $#argv < 1) goto arg1err;
       set measurelist = $argv[1]; shift;
@@ -4390,6 +4400,18 @@ curv, sulc, area, jacobian_white or any surface measure. Another option is
 -fwhm <num> where <num> is a value in mm.  Also, -target <name> allows
 specifying a common-space target other than fsaverage (the default).
 See also: http://surfer.nmr.mgh.harvard.edu/fswiki/Qdec
+
+-smooth-cortex-only
+
+Only applies with -qcache. Only smooth data if it is part of the ?h.cortex.label.
+This prevents values in the medial wall (which are meaningless) from being smoothed
+into cortical areas. At some point in the future, this will be the default and
+you will have to turn it off with -no-smooth-cortex-only. This documentation will
+reflect this change.
+
+-no-smooth-cortex-only
+
+Allow medial wall values to smooth into cortex.
 
 -make target
 
