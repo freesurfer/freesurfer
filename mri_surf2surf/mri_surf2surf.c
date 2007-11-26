@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/21 22:38:24 $
- *    $Revision: 1.60 $
+ *    $Date: 2007/11/26 22:28:23 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,6 +171,24 @@ OPTIONS
     the input surface values prior to any resampling. --smooth-out smooths
     after any resampling. See also --fwhm-src and --fwhm-trg.
 
+  --label-src sourcelabel
+  --label-trg targetlabel
+  --cortex
+  --no-cortex
+
+    Only smooth within the given label. If --cortex is specified, then
+    ?h.cortex.label will be used (this is created by automatically be
+    recon-all). Even if you do not have a label of interest, it is
+    recommended that you only smooth within cortex in order to prevent
+    values from the medial wall from being smoothed into the
+    surrounding cortical areas. At some point, this will be the
+    default at which point you will have to use --no-cortex to turn it
+    off.  This documentation will reflect the change. For --label-src
+    and --label-trg, if you do not give it a full path, it will look
+    in the subjects label dir. There is no need to specify both source
+    and target unless you are smoothing on both (which you probably
+    should not be doing).
+
   --frame framenumber
 
     When using paint/w output format, this specifies which frame to output. This
@@ -285,6 +303,7 @@ ENDHELP
 #include "version.h"
 #include "colortab.h"
 #include "fsenv.h"
+#include "utils.h"
 
 int DumpSurface(MRIS *surf, char *outfile);
 MRI *MRIShksmooth(MRIS *Surf, MRI *Src, double sigma, int nSmoothSteps, MRI *Targ);
@@ -324,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.60 2007/09/21 22:38:24 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.61 2007/11/26 22:28:23 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -382,6 +401,7 @@ double fwhm=0, gstd;
 double fwhm_Input=0, gstd_Input=0;
 int nSmoothSteps_Input = 0;
 int usediff = 0;
+char *LabelFile=NULL, *LabelFile_Input=NULL; // for masking smoothing
 
 int debug = 0;
 char *SrcDumpFile  = NULL;
@@ -409,6 +429,7 @@ int reshapefactortarget = 6;
 
 int DoNormVar=0;
 int NormVar(MRI *mri, MRI *mask);
+int UseCortexLabel = 0;
 
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -423,9 +444,11 @@ int main(int argc, char **argv) {
   VERTEX *vtx0,*vtx1,*vtx2;
   double area, a0, a1, a2;
   COLOR_TABLE *ctab=NULL;
+  LABEL *MaskLabel;
+  MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.60 2007/09/21 22:38:24 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.61 2007/11/26 22:28:23 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -658,9 +681,17 @@ int main(int argc, char **argv) {
            fwhm_Input,gstd_Input,nSmoothSteps_Input);
   }
 
-  if (nSmoothSteps_Input > 0) {
+  if(nSmoothSteps_Input > 0) {
+    printf("------Reading smoothing mask label %s\n",LabelFile_Input);
+    if(LabelFile_Input != NULL){
+      printf("Reading smoothing mask label %s\n",LabelFile_Input);
+      MaskLabel = LabelRead(srcsubject, LabelFile_Input);
+      if(MaskLabel == NULL) exit(1);
+      mask = MRISlabel2Mask(SrcSurfReg, MaskLabel, NULL);
+    } else mask = NULL;
     printf("NN smoothing input with n = %d\n",nSmoothSteps_Input);
-    MRISsmoothMRI(SrcSurfReg, SrcVals, nSmoothSteps_Input, NULL, SrcVals);
+    MRISsmoothMRI(SrcSurfReg, SrcVals, nSmoothSteps_Input, mask, SrcVals);
+    if(mask) MRIfree(&mask);
   }
 
   if (strcmp(srcsubject,trgsubject) || strcmp(srchemi,trghemi)) {
@@ -779,8 +810,17 @@ int main(int argc, char **argv) {
            " std = %lf, with %d iterations of nearest-neighbor smoothing\n",
            fwhm,gstd,nSmoothSteps);
   }
-  if (nSmoothSteps > 0)
-    MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, NULL, TrgVals);
+  if(nSmoothSteps > 0){
+    if(LabelFile != NULL){
+      printf("Reading smoothing mask label %s\n",LabelFile);
+      MaskLabel = LabelRead(trgsubject, LabelFile);
+      if(MaskLabel == NULL) exit(1);
+      mask = MRISlabel2Mask(TrgSurfReg, MaskLabel, NULL);
+    } else mask = NULL;
+    printf("NN smoothing output with n = %d\n",nSmoothSteps);
+    MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, mask, TrgVals);
+    if(mask) MRIfree(&mask);
+  }
 
   /* readjust frame power if necessary */
   if (is_sxa_volume(srcvalfile)) {
@@ -1034,7 +1074,17 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&fwhm);
       gstd = fwhm/sqrt(log(256.0));
       nargsused = 1;
-    }
+    } else if (!strcmp(option, "--label-trg")) {
+      if (nargc < 1) argnerr(option,1);
+      LabelFile = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--label-src")) {
+      if (nargc < 1) argnerr(option,1);
+      LabelFile_Input = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--cortex")) UseCortexLabel = 1;
+    else if (!strcmp(option, "--no-cortex")) UseCortexLabel = 0;
 
     /* -------- target value inputs ------ */
     else if (!strcmp(option, "--trgsubject")) {
@@ -1163,6 +1213,10 @@ static void print_usage(void) {
   printf("   --fwhm-trg fwhmtrg: smooth the target to fwhmtrg\n");
   printf("   --nsmooth-in N  : smooth the input\n");
   printf("   --nsmooth-out N : smooth the output\n");
+  printf("   --cortex : use ?h.cortex.label as a smoothing mask\n");
+  printf("   --no-cortex : do NOT use ?h.cortex.label as a smoothing mask (default)\n");
+  printf("   --label-src label : source smoothing mask\n");
+  printf("   --label-trg label : target smoothing mask\n");
 
   printf("   --reshape  reshape output to multiple 'slices'\n");
   printf("   --reshape-factor Nfactor : reshape to Nfactor 'slices'\n");
@@ -1318,6 +1372,24 @@ printf("    the source and target subjects to the same subject. --smooth-in smoo
 printf("    the input surface values prior to any resampling. --smooth-out smooths\n");
 printf("    after any resampling. See also --fwhm-src and --fwhm-trg.\n");
 printf("\n");
+printf("  --label-src sourcelabel\n");
+printf("  --label-trg targetlabel\n");
+printf("  --cortex\n");
+printf("  --no-cortex\n");
+printf("\n");
+printf("    Only smooth within the given label. If --cortex is specified, then\n");
+printf("    ?h.cortex.label will be used (this is created by automatically be\n");
+printf("    recon-all). Even if you do not have a label of interest, it is\n");
+printf("    recommended that you only smooth within cortex in order to prevent\n");
+printf("    values from the medial wall from being smoothed into the\n");
+printf("    surrounding cortical areas. At some point, this will be the\n");
+printf("    default at which point you will have to use --no-cortex to turn it\n");
+printf("    off.  This documentation will reflect the change. For --label-src\n");
+printf("    and --label-trg, if you do not give it a full path, it will look\n");
+printf("    in the subjects label dir. There is no need to specify both source\n");
+printf("    and target unless you are smoothing on both (which you probably\n");
+printf("    should not be doing).\n");
+printf("\n");
 printf("  --frame framenumber\n");
 printf("\n");
 printf("    When using paint/w output format, this specifies which frame to output. This\n");
@@ -1418,6 +1490,9 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"frame      = %d\n",framesave);
   fprintf(fp,"fwhm-in    = %g\n",fwhm_Input);
   fprintf(fp,"fwhm-out   = %g\n",fwhm);
+  fprintf(fp,"label-src  = %s\n",LabelFile_Input);
+  fprintf(fp,"label-trg  = %s\n",LabelFile);
+
   return;
 }
 /* --------------------------------------------- */
@@ -1506,6 +1581,17 @@ static void check_options(void) {
 
   if(DoNormVar && !SynthPDF){
     printf("WARNING: variance normalization turned on but not synthesizing\n");
+  }
+
+  if(UseCortexLabel){
+    if(fwhm_Input > 0 || nSmoothSteps_Input > 0){
+      sprintf(tmpstr,"%s.cortex.label",srchemi);
+      LabelFile_Input = strcpyalloc(tmpstr);
+    }
+    if(fwhm > 0 || nSmoothSteps > 0){
+      sprintf(tmpstr,"%s.cortex.label",trghemi);
+      LabelFile = strcpyalloc(tmpstr);
+    }
   }
 
   return;
