@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/10/26 21:02:15 $
-#    $Revision: 1.39 $
+#    $Date: 2007/11/26 23:04:14 $
+#    $Revision: 1.40 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.39 2007/10/26 21:02:15 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.40 2007/11/26 23:04:14 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -70,6 +70,7 @@ set CacheIn = 0;
 set MeasIn  = 0;
 set outdir = ();
 set SurfReg = sphere.reg
+set SmoothCortexOnly = 0; # At some point, this should be the default
 
 set SessFile = ();
 set SessDirFile = ();
@@ -219,6 +220,7 @@ foreach subj ($subjlist)
     if($#niterssrc) set cmd = ($cmd --nsmooth-in $niterssrc) # Smth in the targ space below
     if(! $reshape)  set cmd = ($cmd --noreshape);
     if(! $hash)     set cmd = ($cmd --nohash);
+    if($SmoothCortexOnly) set cmd = ($cmd --cortex)
     echo "-----------------------"| tee -a $LF
     echo $cmd | tee -a $LF
     if($RunIt) $cmd |& tee -a $LF
@@ -236,6 +238,7 @@ foreach subj ($subjlist)
       if($#fwhmtarg)   set cmd = ($cmd --fwhm-trg $fwhmtarg)
       if($#niterstarg) set cmd = ($cmd --nsmooth-out $niterstarg)
       if(! $reshape)   set cmd = ($cmd --noreshape);
+      if($SmoothCortexOnly) set cmd = ($cmd --cortex)
       echo "-----------------------"| tee -a $LF
       echo $cmd | tee -a $LF
       if($RunIt) $cmd |& tee -a $LF
@@ -281,6 +284,7 @@ if(! $CacheOutOnly) then
     if($#fwhmtarg)   set cmd = ($cmd --fwhm-trg $fwhmtarg)
     if($#niterstarg) set cmd = ($cmd --nsmooth-out $niterstarg)
     if(! $reshape)   set cmd = ($cmd --noreshape);
+    if($SmoothCortexOnly) set cmd = ($cmd --cortex)
     echo "-----------------------"| tee -a $LF
     echo $cmd | tee -a $LF
     if($RunIt) $cmd |& tee -a $LF
@@ -438,6 +442,14 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set niterstarg = $argv[1]; shift;
       breaksw
+
+    case "--smooth-cortex-only"
+      set SmoothCortexOnly = 1;
+      breaksw;
+
+    case "--no-smooth-cortex-only"
+      set SmoothCortexOnly = 0;
+      breaksw;
 
     case "--projfrac":
       if ( $#argv == 0) goto arg1err;
@@ -818,6 +830,9 @@ usage_exit:
   echo "  --niters niters : smooth by niters on the target surface"
   echo "  --niters-src niterssrc : smooth by niters on the source surface"
   echo ""
+  echo "  --smooth-cortex-only : only smooth cortex (ie, exclude medial wall)"
+  echo "  --no-smooth-cortex-only : default"
+  echo ""
   echo "  --paired-diff"
   echo "  --paired-diff-norm"
   echo "  --paired-diff-norm1"
@@ -945,6 +960,18 @@ on the target surface.
 
 Smooth target or source by niters or nitersrc nearest neighbor iterations.
 This is an alternative to specifying the smoothing level with FWHM.
+
+--smooth-cortex-only
+
+Only applies with -qcache. Only smooth data if it is part of the ?h.cortex.label.
+This prevents values in the medial wall (which are meaningless) from being smoothed
+into cortical areas. At some point in the future, this will be the default and
+you will have to turn it off with -no-smooth-cortex-only. This documentation will
+reflect this change.
+
+--no-smooth-cortex-only
+
+Allow medial wall values to smooth into cortex (default).
 
 --paired-diff
 
