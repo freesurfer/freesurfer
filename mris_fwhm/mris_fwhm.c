@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/16 22:38:29 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/11/26 23:25:37 $
+ *    $Revision: 1.14.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -144,7 +144,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.14 2007/07/16 22:38:29 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.14.2.1 2007/11/26 23:25:37 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -264,8 +264,8 @@ int main(int argc, char *argv[]) {
     InVals = MRIrandn(surf->nvertices, 1, 1, nframes,0, 1, NULL);
   }
 
-  if (labelpath) {
-    label = LabelRead(NULL, labelpath);
+  if(labelpath) {
+    label = LabelRead(subject, labelpath);
     if (label == NULL) {
       printf("ERROR reading %s\n",labelpath);
       exit(1);
@@ -412,7 +412,9 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (!strcasecmp(option, "--label")) {
       if (nargc < 1) CMDargNErr(option,1);
-      labelpath = pargv[0];
+      if(fio_FileExistsReadable(pargv[0]))
+	labelpath = fio_fullpath(pargv[0]); // defeat LabelRead()
+      else labelpath = pargv[0];
       nargsused = 1;
     } else if (!strcasecmp(option, "--sum")) {
       if (nargc < 1) CMDargNErr(option,1);
