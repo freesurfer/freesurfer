@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/11/22 13:21:53 $
- *    $Revision: 1.575 $
+ *    $Author: rudolph $
+ *    $Date: 2007/11/27 21:31:36 $
+ *    $Revision: 1.576 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.575 2007/11/22 13:21:53 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.576 2007/11/27 21:31:36 rudolph Exp $");
 }
 
 /*-----------------------------------------------------
@@ -62308,7 +62308,8 @@ MRIS_discreteKH_compute(
 
 short
 MRIS_discretek1k2_compute(
-	MRIS*			apmris
+	MRIS*			apmris,
+	short			ab_signedPrinciples
 ) {
     //
     // PRECONDITIONS
@@ -62318,6 +62319,9 @@ MRIS_discretek1k2_compute(
     // POSTCONDITIONS
     //	o The discrete K and H curvatures at each vertex are
     //	  computed.
+    //	o If <ab_signedPrinciples> is true, then k1 and k2
+    //	  are assigned according to signed size, and not
+    //	  f_abs(..) size.
     //
 
     char*	pch_function	= "MRIS_discretek1k2_compute";
@@ -62346,8 +62350,13 @@ MRIS_discretek1k2_compute(
 			);
 	f_A	= f_H + sqrt(f_delta);
 	f_B	= f_H - sqrt(f_delta);
-	f_k1	= fabs(f_A) >= fabs(f_B) ? f_A : f_B;
-	f_k2	= fabs(f_A) <= fabs(f_B) ? f_A : f_B;
+	if(!ab_signedPrinciples) {
+	    f_k1	= fabs(f_A) >= fabs(f_B) ? f_A : f_B;
+	    f_k2	= fabs(f_A) <= fabs(f_B) ? f_A : f_B;
+	} else {
+	    f_k1	= f_A >= f_B ? f_A : f_B;
+	    f_k2	= f_A <= f_B ? f_A : f_B;
+	}
 	pVERTEX->k1	= f_k1;
 	pVERTEX->k2	= f_k2;
     }
@@ -62358,7 +62367,8 @@ MRIS_discretek1k2_compute(
 
 short
 MRIScomputeSecondFundamentalFormDiscrete(
-	MRIS*			apmris
+	MRIS*			apmris,
+	short			ab_signedPrinciples
 ) {
     int 	retKH, retk1k2;
 	
@@ -62367,7 +62377,7 @@ MRIScomputeSecondFundamentalFormDiscrete(
     MRIScomputeTriangleProperties(apmris);
     MRIScomputeGeometricProperties(apmris);
     retKH	= MRIS_discreteKH_compute(apmris);
-    retk1k2	= MRIS_discretek1k2_compute(apmris);
+    retk1k2	= MRIS_discretek1k2_compute(apmris, ab_signedPrinciples);
     return(retKH | retk1k2);
 }
 
