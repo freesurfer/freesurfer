@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2007/11/27 21:31:36 $
- *    $Revision: 1.576 $
+ *    $Author: fischl $
+ *    $Date: 2007/11/27 21:33:13 $
+ *    $Revision: 1.577 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.576 2007/11/27 21:31:36 rudolph Exp $");
+  return("$Id: mrisurf.c,v 1.577 2007/11/27 21:33:13 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1625,6 +1625,9 @@ MRISfree(MRI_SURFACE **pmris)
     for (i = 0 ; i < mris->ncmds ; i++)
       free(mris->cmdlines[i]) ;
   }
+  if (mris->m_sras2vox)
+    MatrixFree(&mris->m_sras2vox) ;
+
   free(mris) ;
   return(NO_ERROR) ;
 }
@@ -62460,10 +62463,22 @@ int
 MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri, Real r, Real a, Real s, 
                       Real *px, Real *py, Real *pz)
 {
-  static MATRIX  *m_sras2vox = NULL ;
-  static VECTOR *v1, *v2  ;
+  static VECTOR *v1 = NULL, *v2  ;
 
-  if (m_sras2vox == NULL)
+  if (v1 == NULL)  // only allocate vectors once
+  {
+    v1 = VectorAlloc(4, MATRIX_REAL) ;
+    v2 = VectorAlloc(4, MATRIX_REAL) ;
+    VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
+  }
+
+  if (mris->mri_sras2vox != mri)  // a different volume then previously used
+  {
+    if (mris->m_sras2vox)
+      MatrixFree(&mris->m_sras2vox) ;  // free it so it will be recomputed
+    mris->mri_sras2vox = mri ;
+  }
+  if (mris->m_sras2vox == NULL)  // recompute surface ras to vox transform
   {
     MRI *mri_tmp ;
     MATRIX *m_sras2ras, *m_ras2vox ;
@@ -62479,13 +62494,10 @@ MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri, Real r, Real a, Real s,
       m_sras2ras =  RASFromSurfaceRAS_(mri) ;
 
     m_ras2vox = MRIgetRasToVoxelXform(mri) ;
-    m_sras2vox = MatrixMultiply(m_ras2vox, m_sras2ras, NULL) ;
-    v1 = VectorAlloc(4, MATRIX_REAL) ;
-    v2 = VectorAlloc(4, MATRIX_REAL) ;
-    VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
+    mris->m_sras2vox = MatrixMultiply(m_ras2vox, m_sras2ras, NULL) ;
   }
   V3_X(v1) = r ;  V3_Y(v1) = a ; V3_Z(v1) = s ; 
-  MatrixMultiply(m_sras2vox, v1, v2) ;
+  MatrixMultiply(mris->m_sras2vox, v1, v2) ;
   *px = V3_X(v2) ; *py = V3_Y(v2) ; *pz = V3_Z(v2) ;
   return(NO_ERROR) ;
 }
