@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/11/21 01:52:36 $
- *    $Revision: 1.304 $
+ *    $Author: rudolph $
+ *    $Date: 2007/11/27 21:33:05 $
+ *    $Revision: 1.305 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1732,7 +1732,8 @@ short	MRIS_discreteKH_compute(
 );
 
 short	MRIS_discretek1k2_compute(
-	MRIS*			apmris
+	MRIS*			apmris,
+	short			ab_signedPrinciples
 );
 
 // The discrete curvature calculations are based on the Gauss-Bonnet Scheme.
@@ -1767,7 +1768,8 @@ short	MRIS_discretek1k2_compute(
 // 
 
 short	MRIScomputeSecondFundamentalFormDiscrete(
-	MRIS*			apmris
+	MRIS*			apmris,
+	short			ab_signedPrinciples
 );
 
 int  	MRISminMaxCurvatureIndicesLookup(
