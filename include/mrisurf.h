@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2007/11/27 21:33:05 $
- *    $Revision: 1.305 $
+ *    $Author: fischl $
+ *    $Date: 2007/11/27 21:34:01 $
+ *    $Revision: 1.306 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -287,7 +287,9 @@ typedef struct
   int    group_avg_vtxarea_loaded; /* average vertex area for group
                                               at each vertex */
   int    triangle_links_removed ;  // for quad surfaces
-  void   *user_parms ;             // for whatever the user wants to hang here
+  void   *user_parms ;             // for whatever the user wants to hang here 
+  MATRIX *m_sras2vox ;             // for converting surface ras to voxel coords
+  MRI    *mri_sras2vox ;           // volume that the above matrix is for
 }
 MRI_SURFACE, MRIS ;
 
