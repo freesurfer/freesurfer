@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/09/16 23:15:37 $
-#    $Revision: 1.7 $
+#    $Date: 2007/11/27 23:56:58 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,13 +23,14 @@
 #
 
 
-set VERSION = '$Id: sfa-sess,v 1.7 2007/09/16 23:15:37 greve Exp $'
+set VERSION = '$Id: sfa-sess,v 1.8 2007/11/27 23:56:58 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
 
 set analysis  = ();
 set debugopt  = ();
+set debug = 0;
 set nolog     = 0;
 set SynthSeed = 0;
 set outdir    = ();
@@ -236,20 +237,22 @@ foreach sess ($SessList)
       exit 1;
     endif
 
-    foreach type (polar eccen)
+    foreach type (eccen polar)
       if($type == eccen) then
         if($#eccenstems == 0) continue;
         set instems = ($eccenstems);
+        set eccenflag = "-eccen";
       else
         if($#polarstems == 0) continue;
         set instems = ($polarstems);
+        set eccenflag = ();
       endif
       set sfastem = $outdir$analysis/$type/h;
 
       # Build command line (need to do same for abblocked above)
       set cmd = (selfreqavg)
       set cmd = ($cmd -TR $TR -o $sfastem $instems -cfg $cfgfile)
-      set cmd = ($cmd -parname $parname);
+      set cmd = ($cmd -parname $parname $eccenflag);
       if($SynthSeed != 0)  set cmd = ($cmd -synth $SynthSeed);
       echo "--------------------------------------------------" |& tee -a $LF
       pwd |& tee -a $LF
@@ -299,6 +302,7 @@ set cmdline = ($argv);
 while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
+  if($debug) echo "flag $flag"
   
   switch($flag)
 
@@ -341,6 +345,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-debug":
+      set debug = 1;
       set debugopt = "-debug";
       set verbose = 1;
       set echo = 1;
