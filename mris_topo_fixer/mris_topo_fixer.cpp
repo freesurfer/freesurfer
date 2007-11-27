@@ -10,8 +10,8 @@
  * Original Author: Florent Segonne
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:36 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/11/27 18:37:19 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,9 +69,9 @@ static const char *input_name   = "input" ;
 static const char *sphere_name = "qsphere" ;
 static const char *out_name = "orig_corrected" ;
 
-static char sdir[STRLEN] = "";///space/tensor/7/users/fstest/" ;
+static char sdir[STRLEN] = "";
 static TOPOFIX_PARMS parms;
-static int MGZ = 0; // set to 1 for MGZ
+static int MGZ = 1; // set to 1 for MGZ
 
 static double pct_over = 1.1;
 
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]) {
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_topo_fixer.cpp,v 1.27 2007/11/18 03:03:36 nicks Exp $",
+   "$Id: mris_topo_fixer.cpp,v 1.28 2007/11/27 18:37:19 nicks Exp $",
    "$Name:  $",
    cmdline);
 
@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_topo_fixer.cpp,v 1.27 2007/11/18 03:03:36 nicks Exp $",
+     "$Id: mris_topo_fixer.cpp,v 1.28 2007/11/27 18:37:19 nicks Exp $",
      "$Name:  $");
 
   if (nargs && argc - nargs == 1)
@@ -252,10 +252,14 @@ int main(int argc, char *argv[]) {
 	MRISextractMainComponent(mris,1, 0, &ncpts);
 	if(ncpts != 1){
 		fprintf
-    (stderr,
-     "The original surface has more than one component (%d components)!!\n",ncpts);
-		fprintf(stderr,"   ->   Extracting the largest component of the initial surface\n");
-		//before extracting the largest component, we will load the spherical coordinates
+      (stderr,
+       "The original surface has more than one component (%d components)!!\n",
+       ncpts);
+		fprintf
+      (stderr,
+       "   ->   Extracting the largest component of the initial surface\n");
+    /*before extracting the largest component, 
+      we will load the spherical coordinates*/
 		MRISsaveVertexPositions(mris,ORIGINAL_VERTICES);
 		sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, sphere_name) ;
 		if (MRISreadVertexPositions(mris, (char*)sphere_name) != NO_ERROR)
