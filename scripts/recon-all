@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/11/28 00:26:42 $
-#    $Revision: 1.146 $
+#    $Date: 2007/11/28 01:08:40 $
+#    $Revision: 1.147 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.146 2007/11/28 00:26:42 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.147 2007/11/28 01:08:40 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -51,6 +51,8 @@ set DoLegacy = 0;
 set LegacyWarnOnly = 0; # only warn if -legacy but not a legacy but was once
 set DoTime = 0;
 set fs_time = "";
+set ErrorFile = /dev/null
+set cmd = ();
 
 set Force = 0;
 set DoCleanTal   = 0;
@@ -248,6 +250,32 @@ goto parse_args;
 parse_args_return:
 goto check_params;
 check_params_return:
+
+# This allows the user to require that the build stamp be
+# consitent from one recon-all invokation to the next.
+# Good for frozen versions.
+if($?REQUIRE_FS_MATCH == 0) setenv REQUIRE_FS_MATCH 0
+#echo "REQUIRE_FS_MATCH $REQUIRE_FS_MATCH"
+set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
+set bstampfile  = $SUBJECTS_DIR/$subjid/scripts/build-stamp.txt
+if(-e $bstampfile0) then
+  if(! -e $bstampfile) cp $bstampfile0 $bstampfile
+  set bstamp0 = `cat $bstampfile0`
+  set bstamp  = `cat $bstampfile`
+  if("$bstamp0" != "$bstamp") then
+    if($REQUIRE_FS_MATCH) then
+      echo "ERROR: FreeSurfer build stamps do not match"
+      echo "Subject Stamp: $bstamp"
+      echo "Current Stamp: $bstamp0"
+      exit 1;
+    else
+      echo "INFO: FreeSurfer build stamps do not match"
+    endif
+  endif
+  echo "Subject Stamp: $bstamp"
+  echo "Current Stamp: $bstamp0"
+endif
+
 
 if ($DoMakefile) then
   setenv MAKE_SUBJECT $subjid
