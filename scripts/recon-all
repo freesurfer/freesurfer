@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/11/28 01:08:40 $
-#    $Revision: 1.147 $
+#    $Date: 2007/11/28 01:21:06 $
+#    $Revision: 1.148 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.147 2007/11/28 01:08:40 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.148 2007/11/28 01:21:06 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -257,6 +257,7 @@ check_params_return:
 if($?REQUIRE_FS_MATCH == 0) setenv REQUIRE_FS_MATCH 0
 #echo "REQUIRE_FS_MATCH $REQUIRE_FS_MATCH"
 set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
+mkdir -p $SUBJECTS_DIR/$subjid/scripts
 set bstampfile  = $SUBJECTS_DIR/$subjid/scripts/build-stamp.txt
 if(-e $bstampfile0) then
   if(! -e $bstampfile) cp $bstampfile0 $bstampfile
