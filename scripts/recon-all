@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/11/26 22:46:26 $
-#    $Revision: 1.145 $
+#    $Date: 2007/11/28 00:26:42 $
+#    $Revision: 1.146 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.145 2007/11/26 22:46:26 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.146 2007/11/28 00:26:42 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2345,7 +2345,8 @@ if ($DoQdecCache) then
               --fwhm ${fwhm} \
               --sval ${MeasFile}.mgh \
               --tval ${OutFile}.mgh)
-          if($SmoothCortexOnly) set cmd = ($cmd --cortex)
+          if($SmoothCortexOnly)   set cmd = ($cmd --cortex)
+          if(! $SmoothCortexOnly) set cmd = ($cmd --no-cortex)
           echo "#--------------------------------------------" \
               |& tee -a $LF |& tee -a $CF
           echo "#@# Qdec Cache $hemi $measure fwhm$fwhm $target `date`" \
