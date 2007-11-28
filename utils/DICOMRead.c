@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/09 00:20:42 $
- *    $Revision: 1.111.2.5 $
+ *    $Date: 2007/11/28 01:46:43 $
+ *    $Revision: 1.111.2.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -318,6 +318,12 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
     }
     // Have to get vectors from archive
     dti = DTIstructFromSiemensAscii(dcmfile);
+    if(dti == NULL){
+      printf("There was an error when tyring to load the gradient directions\n");
+      printf("If you 'setenv UNPACK_MGH_DTI 0', it will not attempt to load\n");
+      printf("the gradients\n");
+      exit(1);
+    }
     //vol->bvals = MatrixCopy(dti->bValue,NULL);
     vol->bvecs = MatrixCopy(dti->GradDir,NULL);
     DTIfree(&dti);
