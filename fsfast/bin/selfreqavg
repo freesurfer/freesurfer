@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/09/16 23:22:58 $
-#    $Revision: 1.10.2.1 $
+#    $Date: 2007/11/28 00:01:02 $
+#    $Revision: 1.10.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: selfreqavg,v 1.10.2.1 2007/09/16 23:22:58 greve Exp $';
+set VERSION = '$Id: selfreqavg,v 1.10.2.2 2007/11/28 00:01:02 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -510,6 +510,15 @@ while( $#argv != 0 )
         echo "ERROR: $cfgfile does not exist"
         exit 1;
       endif
+      breaksw
+
+    # Ignore
+    case "-noautostimdur":
+      breaksw
+
+    # Ignore
+    case "-acfbins":
+      shift;
       breaksw
 
     case "-debug":
