@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/10/29 14:03:14 $
-#    $Revision: 1.17 $
+#    $Date: 2007/11/28 19:01:22 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.17 2007/10/29 14:03:14 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.18 2007/11/28 19:01:22 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -237,10 +237,18 @@ set INVOL_LIST=($INVOL_LIST 021.mgz 022.mgz 023.mgz 024.mgz 025.mgz)
 set INVOL_LIST=($INVOL_LIST 026.mgz 027.mgz 028.mgz 029.mgz 030.mgz)
 set INVOL_LIST=($INVOL_LIST 031.mgz 032.mgz 033.mgz 034.mgz 035.mgz)
 set INVOL=()
+set echo=1
 foreach invol ($INVOL_LIST)
   set involfull=$SUBJECTS_DIR/ref_subj/mri/orig/$invol
   if (-e $involfull) set INVOL=($INVOL -i $involfull)
 end
+if ($#INVOL == "0") then
+    echo "***FAILED :: no input volumes found"  >>& $OUTPUTF
+    mail -s "test_recon-all -all FAILED: no input volumes found" $FMAIL_LIST < $RECON_LOG
+    cp $RECON_LOG $LOG_DIR/
+    touch $SUBJECTS_DIR/test_recon-all_FAILED
+    exit 1
+endif
 
 set cmd=(recon-all)
 if ("`uname -n`" == "hades") then
@@ -267,6 +275,19 @@ if ($RunIt) then
     cp $RECON_LOG $LOG_DIR/
   endif
 endif # ($RunIt)
+
+#
+# check if recon-all exited without failure code, but did not actually finish
+# 
+if (-e $SUBJECTS_DIR/$TEST_SUBJ/IsRunning.lh+rh) then
+    echo "$PROC test_recon-all FAILED"  >>& $OUTPUTF
+    echo "IsRunning.lh+rh flag exists: recon-all did not finish" >>& $OUTPUTF
+    echo "Check recon-all.log to pinpoint failure" >>& $OUTPUTF
+    mail -s "test_recon-all FAILED on $PROC" $FMAIL_LIST < $OUTPUTF
+    touch $SUBJECTS_DIR/test_recon-all_FAILED
+    exit 1
+endif
+
 
 #
 # compare resulting volumes and surfaces with reference data (prior recon)
