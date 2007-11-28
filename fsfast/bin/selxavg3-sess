@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/18 02:22:28 $
-#    $Revision: 1.32 $
+#    $Date: 2007/11/28 23:00:46 $
+#    $Revision: 1.32.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.32 2007/06/18 02:22:28 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.32.2.1 2007/11/28 23:00:46 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -249,7 +249,7 @@ if(! $monly && $nprocs > 0) then
   rm -f $okfile
 endif
 
-# Copy the flac
+# Copy the flac or analysis.*
 if(! $monly) then
   foreach sess ($SessList)
     set sessbase = `basename $sess`;
@@ -259,7 +259,12 @@ if(! $monly) then
     else
       set anadir = $OutParent/$sessbase/$fsd/$analysisname
     endif
-    if($#flacfile) cp $flacfile $anadir 
+    if($#flacfile) then
+      cp $flacfile $anadir 
+    else
+      cp $cfgfile $anadir
+      cp $infofile $anadir
+    endif
   end
 endif
 
