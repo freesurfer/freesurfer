@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:31 $
- *    $Revision: 1.403 $
+ *    $Author: fischl $
+ *    $Date: 2007/11/29 15:03:43 $
+ *    $Revision: 1.404 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.403 $";
+const char *MRI_C_VERSION = "$Revision: 1.404 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -3122,6 +3122,28 @@ int MRIsurfaceRASToVoxel(MRI *mri, Real xr, Real yr, Real zr,
   MatrixFree(&voxelFromSRAS);
   //  VectorFree(&sr);
   //  VectorFree(&vv);
+
+  return (NO_ERROR);
+}
+
+// same as above, but don't free matrix. Won't work if mri is changing
+int
+MRIsurfaceRASToVoxelCached(MRI *mri, Real xr, Real yr, Real zr,
+                           Real *xv, Real *yv, Real *zv)
+{
+  static MATRIX *voxelFromSRAS = NULL;
+  static VECTOR *sr = NULL, *vv = NULL;
+
+  if (voxelFromSRAS == NULL)
+  {
+    voxelFromSRAS=voxelFromSurfaceRAS_(mri);
+    sr = VectorAlloc(4, MATRIX_REAL);
+  }
+  V4_LOAD(sr, xr, yr, zr, 1.);
+  vv = MatrixMultiply(voxelFromSRAS, sr, vv);
+  *xv = V3_X(vv);
+  *yv = V3_Y(vv);
+  *zv = V3_Z(vv);
 
   return (NO_ERROR);
 }
@@ -7058,6 +7080,7 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
   BUFTYPE *pdst ;
   short   *psdst ;
   float   *pfdst ;
+  MATRIX  *m_vox2ras, *m_scale, *m_tmp ;
 
   if (mri_dst && mri_src->type != mri_dst->type)
     ErrorReturn
@@ -7070,8 +7093,35 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
 
   if (!mri_dst)
   {
+    //    Real c_r, c_a, c_s;
+  
     mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
     MRIcopyHeader(mri_src, mri_dst) ;
+    MRIsetResolution(mri_dst,
+                     mri_src->xsize/2, mri_src->ysize/2, mri_src->zsize/2) ;
+    mri_dst->xstart = mri_src->xstart ;
+    mri_dst->ystart = mri_src->ystart ;
+    mri_dst->zstart = mri_src->zstart ;
+    mri_dst->xend = mri_src->xend ;
+    mri_dst->yend = mri_src->yend ;
+    mri_dst->zend = mri_src->zend ;
+    m_vox2ras = MRIgetVoxelToRasXform(mri_src) ;
+    m_scale = MatrixIdentity(4, NULL) ;
+    *MATRIX_RELT(m_scale, 1,1) = 0.5; 
+    *MATRIX_RELT(m_scale, 2,2) = 0.5 ; 
+    *MATRIX_RELT(m_scale, 3,3) = 0.5;
+    m_tmp = MatrixMultiply(m_vox2ras, m_scale, NULL) ;
+    MatrixFree(&m_vox2ras) ; MatrixFree(&m_scale) ; m_vox2ras = m_tmp ;
+    MRIsetVoxelToRasXform(mri_dst, m_vox2ras) ;
+    MatrixFree(&m_vox2ras) ;
+    m_vox2ras = MRIgetVoxelToRasXform(mri_dst) ;
+    MatrixFree(&m_vox2ras) ;
+#if 0
+    MRIcalcCRASforSampledVolume(mri_src, mri_dst, &c_r, &c_a, &c_s);
+    mri_dst->c_a = c_a;
+    mri_dst->c_s = c_s;
+    mri_dst->c_r = c_r;
+#endif
   }
 
   for (z = 0 ; z < depth ; z++)
@@ -7112,7 +7162,6 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
   mri_dst->ysize = mri_src->ysize/2 ;
   mri_dst->zsize = mri_src->zsize/2 ;
 
-  mri_dst->ras_good_flag = 0;
   MRIreInitCache(mri_dst) ;
 
   return(mri_dst) ;
@@ -12238,6 +12287,7 @@ MRIsetVoxelToRasXform(MRI *mri, MATRIX *m_vox2ras)
              (*MATRIX_RELT(m_vox2ras, 3, 1) * ci +
               *MATRIX_RELT(m_vox2ras, 3, 2) * cj +
               *MATRIX_RELT(m_vox2ras, 3, 3) * ck);
+  mri->ras_good_flag = 1;
   MRIreInitCache(mri);
   return(NO_ERROR) ;
 }
@@ -14527,56 +14577,6 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol)
 
   return(outvol);
 }
-/*-------------------------------------------------------------------
-  MRIcopyVolGeomToMRI - copies the volume geometry passed in into the MRI
-  structure.
-  -------------------------------------------------------------------*/
-int
-MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg)
-{
-  mri->xsize = vg->xsize ;
-  mri->ysize = vg->ysize ;
-  mri->zsize = vg->zsize ;
-  mri->x_r = vg->x_r;
-  mri->y_r = vg->y_r;
-  mri->z_r = vg->z_r;
-  mri->c_r = vg->c_r;
-  mri->x_a = vg->x_a;
-  mri->y_a = vg->y_a;
-  mri->z_a = vg->z_a;
-  mri->c_a = vg->c_a;
-  mri->x_s = vg->x_s;
-  mri->y_s = vg->y_s;
-  mri->z_s = vg->z_s;
-  mri->c_s = vg->c_s;
-  return(NO_ERROR) ;
-}
-/*-------------------------------------------------------------------
-  MRIcopyVolGeomToMRI - copies the volume geometry passed in into the MRI
-  structure.
-  -------------------------------------------------------------------*/
-int
-MRIcopyVolGeomFromMRI(MRI *mri, VOL_GEOM *vg)
-{
-  vg->xsize = mri->xsize ;
-  vg->ysize = mri->ysize ;
-  vg->zsize = mri->zsize ;
-  vg->x_r = mri->x_r ;
-  vg->y_r = mri->y_r ;
-  vg->z_r = mri->z_r ;
-  vg->c_r = mri->c_r ;
-  vg->x_a = mri->x_a ;
-  vg->y_a = mri->y_a ;
-  vg->z_a = mri->z_a ;
-  vg->c_a = mri->c_a ;
-  vg->x_s = mri->x_s ;
-  vg->y_s = mri->y_s ;
-  vg->z_s = mri->z_s ;
-  vg->c_s = mri->c_s ;
-  vg->valid = mri->ras_good_flag ;
-  strcpy(vg->fname, mri->fname) ;
-  return(NO_ERROR) ;
-}
 
 #define NDIRS 3
 static int dirs[NDIRS][3] =
@@ -15154,3 +15154,53 @@ MRIlabelBoundingBox(MRI *mri, int label, MRI_REGION *region)
   return(NO_ERROR) ;
 }
 
+/*-------------------------------------------------------------------
+  MRIcopyVolGeomToMRI - copies the volume geometry passed in into the MRI
+  structure.
+  -------------------------------------------------------------------*/
+int
+MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg)
+{
+  mri->xsize = vg->xsize ;
+  mri->ysize = vg->ysize ;
+  mri->zsize = vg->zsize ;
+  mri->x_r = vg->x_r;
+  mri->y_r = vg->y_r;
+  mri->z_r = vg->z_r;
+  mri->c_r = vg->c_r;
+  mri->x_a = vg->x_a;
+  mri->y_a = vg->y_a;
+  mri->z_a = vg->z_a;
+  mri->c_a = vg->c_a;
+  mri->x_s = vg->x_s;
+  mri->y_s = vg->y_s;
+  mri->z_s = vg->z_s;
+  mri->c_s = vg->c_s;
+  return(NO_ERROR) ;
+}
+/*-------------------------------------------------------------------
+  MRIcopyVolGeomToMRI - copies the volume geometry passed in into the MRI
+  structure.
+  -------------------------------------------------------------------*/
+int
+MRIcopyVolGeomFromMRI(MRI *mri, VOL_GEOM *vg)
+{
+  vg->xsize = mri->xsize ;
+  vg->ysize = mri->ysize ;
+  vg->zsize = mri->zsize ;
+  vg->x_r = mri->x_r ;
+  vg->y_r = mri->y_r ;
+  vg->z_r = mri->z_r ;
+  vg->c_r = mri->c_r ;
+  vg->x_a = mri->x_a ;
+  vg->y_a = mri->y_a ;
+  vg->z_a = mri->z_a ;
+  vg->c_a = mri->c_a ;
+  vg->x_s = mri->x_s ;
+  vg->y_s = mri->y_s ;
+  vg->z_s = mri->z_s ;
+  vg->c_s = mri->c_s ;
+  vg->valid = mri->ras_good_flag ;
+  strcpy(vg->fname, mri->fname) ;
+  return(NO_ERROR) ;
+}

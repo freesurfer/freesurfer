@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 14:34:54 $
- *    $Revision: 1.63 $
+ *    $Date: 2007/11/29 15:03:45 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2604,6 +2604,7 @@ static void MRImodifySampledHeader(MRI *mri_src, MRI *mri_dst)
   MRIcalcCRASforSampledVolume(mri_src, mri_dst, &c_r, &c_a, &c_s);
   mri_dst->c_a = c_a;
   mri_dst->c_s = c_s;
+  mri_dst->c_r = c_r;
 
   // header modified update cached info
   MRIreInitCache(mri_dst);
@@ -2732,12 +2733,11 @@ static float kernel[KERNEL_SIZE]  =
 MRI *
 MRIreduce(MRI *mri_src, MRI *mri_dst)
 {
-  int  width, height, depth ;
-  MRI  *mtmp1, *mtmp2 ;
+  int     width, height, depth ;
+  MRI     *mtmp1, *mtmp2 ;
+  MATRIX  *m_vox2ras, *m_scale, *m_tmp ;
 
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
 
   if (width <= 1 || height <= 1 || depth <= 1)
     ErrorExit(ERROR_BADPARM, "MRIreduce: insufficient dimension (%d, %d, %d)",
@@ -2751,7 +2751,25 @@ MRIreduce(MRI *mri_src, MRI *mri_dst)
   // half dimensions of the original
   mri_dst = MRIreduce1d(mtmp2, mri_dst, kernel, KERNEL_SIZE, MRI_DEPTH) ;
 
-  MRImodifySampledHeader(mri_src, mri_dst);
+  MRIcopyHeader(mri_src, mri_dst) ;
+  MRIsetResolution(mri_dst,
+                   mri_src->xsize*2, mri_src->ysize*2, mri_src->zsize*2) ;
+  mri_dst->xstart = mri_src->xstart ;
+  mri_dst->ystart = mri_src->ystart ;
+  mri_dst->zstart = mri_src->zstart ;
+  mri_dst->xend = mri_src->xend ;
+  mri_dst->yend = mri_src->yend ;
+  mri_dst->zend = mri_src->zend ;
+  m_vox2ras = MRIgetVoxelToRasXform(mri_src) ;
+  m_scale = MatrixIdentity(4, NULL) ;
+  *MATRIX_RELT(m_scale, 1,1) = 2.0; 
+  *MATRIX_RELT(m_scale, 2,2) = 2.0 ; 
+  *MATRIX_RELT(m_scale, 3,3) = 2.0;
+  m_tmp = MatrixMultiply(m_vox2ras, m_scale, NULL) ;
+  MatrixFree(&m_vox2ras) ; MatrixFree(&m_scale) ; m_vox2ras = m_tmp ;
+  MRIsetVoxelToRasXform(mri_dst, m_vox2ras) ;
+  MatrixFree(&m_vox2ras) ;
+  //  MRImodifySampledHeader(mri_src, mri_dst);
 
   MRIfree(&mtmp2) ;
 
@@ -2827,11 +2845,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
   int           x, y, z, width, height, halflen, depth, *xi, *yi, *zi ;
   register int  i ;
   BUFTYPE       *inBase ;
-  float         *ki, total, *inBase_f, *foutPix ;
+  float         *ki, total, *inBase_f, *foutPix, val ;
 
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
 
   if (!mri_dst)
     mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
@@ -2849,9 +2865,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
   halflen = len/2 ;
 
-  xi = mri_src->xi ;
-  yi = mri_src->yi ;
-  zi = mri_src->zi ;
+  xi = mri_src->xi ; yi = mri_src->yi ; zi = mri_src->zi ;
 
   switch (mri_src->type)
   {
@@ -2987,9 +3001,73 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
     }
     break ;
   default:
-    ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED,
-                 "MRIconvolve1d: unsupported pixel format %d",mri_src->type));
+    switch (axis)
+    {
+    case MRI_WIDTH:
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
+          for (x = 0 ; x < width ; x++)
+          {
+            total = 0.0f ;
+
+            for (ki = k, i = 0 ; i < len ; i++)
+            {
+              val = MRIgetVoxVal(mri_src, x+i-halflen, y, z, src_frame) ;
+              total += *ki++ * val ;
+            }
+
+            *foutPix++ = total ;
+          }
+        }
+      }
+      break ;
+    case MRI_HEIGHT:
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
+          for (x = 0 ; x < width ; x++)
+          {
+            if (x == Gx && y == Gy && z == Gz)
+              DiagBreak() ;
+            total = 0.0f ;
+
+            for (ki = k, i = 0 ; i < len ; i++)
+            {
+              val = MRIgetVoxVal(mri_src, x, y+i-halflen, z, src_frame) ;
+              total += *ki++ * val ;
+            }
+            *foutPix++ = total ;
+          }
+        }
+      }
+      break ;
+    case MRI_DEPTH:
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
+          for (x = 0 ; x < width ; x++)
+          {
+            total = 0.0f ;
+
+            for (ki = k, i = 0 ; i < len ; i++)
+            {
+              val = MRIgetVoxVal(mri_src, x, y, z+i-halflen, src_frame) ;
+              total += *ki++ * val ;
+            }
+            *foutPix++ = total ;
+          }
+        }
+      }
+      break ;
+    }
+    break ;
   }
 
   return(mri_dst) ;
@@ -4730,6 +4808,9 @@ MRIwindow(MRI *mri_src, MRI *mri_dst, int which, float x0, float y0, float z0,
 }
 /*-----------------------------------------------------
         Parameters:
+          setting gray_low <0 disables the intensity range checking.
+          This is useful for images with contrast that is inverted with
+          respect to normal T1-weighted in vivo scans.
 
         Returns value:
 
@@ -4741,11 +4822,11 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
                           float *pmean_wm, float *psigma_wm,
                           float *pmean_gm, float *psigma_gm)
 {
-  MRI     *mri_border ;
-  int     x, y, z, width, height, depth, label, border_label, ngray, nwhite, nbins, bin, peak ;
-  double  white_min, white_max, white_mean, white_std,
-  gray_min, gray_max, gray_mean, gray_std ;
-  BUFTYPE *p_T1, *p_border, *p_labeled, val ;
+  MRI       *mri_border ;
+  int       x, y, z, width, height, depth, label, border_label, ngray, nwhite, 
+            nbins, bin, peak ;
+  double    white_min, white_max, white_mean, white_std,
+            gray_min, gray_max, gray_mean, gray_std, val ;
   HISTOGRAM *h_white, *h_gray ;
   float     min_val, max_val, white_mode, gray_mode ;
 
@@ -4776,22 +4857,19 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
   {
     for (y = 0 ; y < height ; y++)
     {
-      p_T1 = &MRIvox(mri_T1, 0, y, z) ;
-      p_border = &MRIvox(mri_border, 0, y, z) ;
-      p_labeled = &MRIvox(mri_labeled, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 144 && y == 53 && z == 127)
+        if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
 
-        label = *p_labeled++ ;
-        val = *p_T1++ ;
-        border_label = *p_border++ ;
+        label = MRIgetVoxVal(mri_labeled, x, y,z ,0) ;
+        val = MRIgetVoxVal(mri_T1, x, y,z ,0) ;
+        border_label = MRIgetVoxVal(mri_border, x, y, z, 0) ;
         if (label == MRI_AMBIGUOUS)
           continue ;
         if (border_label == MRI_WHITE)
         {
-          if (val >= (gray_low+gray_hi)/2)
+          if ((val >= (gray_low+gray_hi)/2) || (gray_low < 0))
           {
             nwhite++ ;
             white_mean += (double)val ;
@@ -4808,7 +4886,7 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
         }
         else if (border_label == MRI_NOT_WHITE)  /* gray bordering white */
         {
-          if (val >= gray_low && val <= gray_hi)
+          if ((val >= gray_low && val <= gray_hi) || gray_low < 0)
           {
             ngray++ ;
             gray_mean += (double)val ;
