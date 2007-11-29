@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/26 22:28:23 $
- *    $Revision: 1.61 $
+ *    $Date: 2007/11/29 19:23:12 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.61 2007/11/26 22:28:23 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.62 2007/11/29 19:23:12 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -421,6 +421,7 @@ int jac = 0;
 MRI *sphdist;
 
 int SynthPDF = 0;
+int SynthOnes = 0;
 int SynthSeed = -1;
 double ProjDepth;
 int    DoProj = 0;
@@ -448,7 +449,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.61 2007/11/26 22:28:23 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.62 2007/11/29 19:23:12 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -664,6 +665,11 @@ int main(int argc, char **argv) {
     srand48(SynthSeed);
     MRIrandn(SrcVals->width, SrcVals->height, SrcVals->depth,
              SrcVals->nframes,0, 1, SrcVals);
+  }
+  if (SynthOnes != 0) {
+    printf("INFO: filling input with all 1s\n");
+    MRIconst(SrcVals->width, SrcVals->height, SrcVals->depth,
+             SrcVals->nframes, 1, SrcVals);
   }
 
   if (SrcDumpFile != NULL) {
@@ -917,6 +923,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--usediff"))   usediff = 1;
     else if (!strcasecmp(option, "--nousediff")) usediff = 0;
     else if (!strcasecmp(option, "--synth"))     SynthPDF = 1;
+    else if (!strcasecmp(option, "--ones"))      SynthOnes = 1;
     else if (!strcasecmp(option, "--jac"))       jac = 1;
     else if (!strcasecmp(option, "--norm-var"))  DoNormVar = 1;
 
@@ -1221,6 +1228,7 @@ static void print_usage(void) {
   printf("   --reshape  reshape output to multiple 'slices'\n");
   printf("   --reshape-factor Nfactor : reshape to Nfactor 'slices'\n");
   printf("   --synth : replace input with WGN\n");
+  printf("   --ones  : replace input with 1s\n");
   printf("   --normvar : rescale so that stddev=1 (good with --synth)\n");
   printf("   --seed seed : seed for synth (default is auto)\n");
 
