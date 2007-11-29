@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:40 $
- *    $Revision: 1.32 $
+ *    $Date: 2007/11/29 23:18:05 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,7 +42,10 @@
 #include "error.h"
 
 /* Set our compiler name */
-#if defined(__GNUC__)
+#if defined(__INTEL_COMPILER)
+#  undef __GNUC__
+#  define COMPILER_NAME "INTEL_COMPILER"
+#elif defined(__GNUC__)
 #  define COMPILER_NAME "GCC"
 #else
 #  define COMPILER_NAME "Non-GCC"
@@ -83,6 +86,9 @@
 #  define PLATFORM "Windows"
 #endif
 
+#ifndef PLATFORM
+#error "PLATFORM not defined!"
+#endif
 
 /* This function looks for the --version, or -version tag in the
    argv and if found, prints out version information. This can be used
