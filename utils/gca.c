@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 22:47:45 $
- *    $Revision: 1.235 $
+ *    $Author: fischl $
+ *    $Date: 2007/11/29 15:02:18 $
+ *    $Revision: 1.236 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -16784,7 +16784,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         case Left_Putamen:
         case Right_Putamen:
           lower_thresh = 60 ;
-          upper_thresh = 100 ;
+          upper_thresh = 107 ;
           break ;
         case Left_Lateral_Ventricle:
         case Right_Lateral_Ventricle:
@@ -16792,7 +16792,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         case Fourth_Ventricle:
         case CSF:
           lower_thresh = 0 ;
-          upper_thresh = 40 ;
+          upper_thresh = 45 ;
           break ;
         case Left_Inf_Lat_Vent:
         case Right_Inf_Lat_Vent:
@@ -16811,9 +16811,9 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         {
           //          if (transform->type != MORPH_3D_TYPE)
           {
-            printf("unreasonable value (%2.1f/%2.1f), "
+            printf("%s: unreasonable value (%2.1f/%2.1f), "
                    "not in range [%2.0f, %2.0f] - rejecting\n",
-                   val, h_mri->bins[mri_peak], lower_thresh, upper_thresh) ;
+                   cma_label_to_name(l), val, h_mri->bins[mri_peak], lower_thresh, upper_thresh) ;
             label_scales[l] = 1.0 ;
             label_offsets[l] = 1.0 ;
             continue ;
