@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/24 20:29:24 $
- *    $Revision: 1.55 $
+ *    $Date: 2007/11/29 15:02:37 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1456,6 +1456,26 @@ HISTOclearZeroBin(HISTOGRAM *h)
 
 
 int
+HISTOfindBinWithCount(HISTOGRAM *h, float val) 
+{
+  int b, min_b ;
+  double min_dist, dist ;
+
+  min_b = 0 ; min_dist = fabs(h->counts[0]-val) ;
+  for (b = 1 ; b < h->nbins ; b++)
+  {
+    dist = fabs(h->counts[b]-val) ;
+    if (dist < min_dist)
+    {
+      min_dist = dist ;
+      min_b = b ;
+    }
+  }
+
+  return(min_b) ;
+}
+
+int
 HISTOfindBin(HISTOGRAM *h, float val)
 {
   int b ;
@@ -1817,4 +1837,28 @@ HISTOfindMedian(HISTOGRAM *h)
   }
   return(median) ;
 }
+
+HISTOGRAM *
+HISTOmakeCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst)
+{
+  int    b ;
+  double total = 0 ;
+
+  if (hdst == NULL)
+    hdst = HISTOcopy(hsrc, NULL) ;
+  for (b = 0 ; b < hsrc->nbins ; b++)
+  {
+    total += hsrc->counts[b] ;
+    hdst->counts[b] = total ;
+  }
+  if (!FZERO(total))
+  {
+    for (b = 0 ; b < hdst->nbins ; b++)
+      hdst->counts[b] /= total ;
+  }
+  return(hdst) ;
+}
+
+
+
 

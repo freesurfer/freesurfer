@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/24 20:29:01 $
- *    $Revision: 1.32 $
+ *    $Date: 2007/11/29 15:02:45 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -99,7 +99,9 @@ int       HISTOfindCurrentPeak(HISTOGRAM *histo,
 int       HISTOfillHoles(HISTO *h) ;
 int       HISTOtotal(HISTO *h) ;
 int       HISTOtotalInRegion(HISTO *h, int b0, int b1) ;
+HISTOGRAM *HISTOmakeCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst) ;
 int       HISTOfindBin(HISTOGRAM *h, float val) ;
+int       HISTOfindBinWithCount(HISTOGRAM *h, float val) ;
 HISTO     *HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end) ;
 int       HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf) ;
 HISTO     *HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale,
