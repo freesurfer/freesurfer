@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/30 18:03:40 $
- *    $Revision: 1.63 $
+ *    $Date: 2007/11/30 18:06:13 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.63 2007/11/30 18:03:40 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.64 2007/11/30 18:06:13 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -449,7 +449,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.63 2007/11/30 18:03:40 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.64 2007/11/30 18:06:13 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -490,7 +490,7 @@ int main(int argc, char **argv) {
     printf("Source Ico Order = %d\n",SrcIcoOrder);
   } else {
     // Set source reg depending on whether hemis are same or diff
-    // Changed to this on 11/30/97
+    // Changed to this on 11/30/97 
     if (!strcmp(srchemi,trghemi)) // hemis are the same
       sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,surfregfile);
     else // hemis are the different
