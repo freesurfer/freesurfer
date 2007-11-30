@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/26 22:29:11 $
- *    $Revision: 1.59.2.2 $
+ *    $Date: 2007/11/30 18:07:33 $
+ *    $Revision: 1.59.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.59.2.2 2007/11/26 22:29:11 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.59.2.3 2007/11/30 18:07:33 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -421,6 +421,7 @@ int jac = 0;
 MRI *sphdist;
 
 int SynthPDF = 0;
+int SynthOnes = 0;
 int SynthSeed = -1;
 double ProjDepth;
 int    DoProj = 0;
@@ -448,7 +449,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.59.2.2 2007/11/26 22:29:11 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.59.2.3 2007/11/30 18:07:33 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -488,9 +489,13 @@ int main(int argc, char **argv) {
     SrcSurfReg = ReadIcoByOrder(SrcIcoOrder, IcoRadius);
     printf("Source Ico Order = %d\n",SrcIcoOrder);
   } else {
-    // use srchemi.sphere.reg regardless of whether hemis are diff
-    sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,
-            srcsubject,srchemi,surfregfile);
+    // Set source reg depending on whether hemis are same or diff
+    // Changed to this on 11/30/97 
+    if (!strcmp(srchemi,trghemi)) // hemis are the same
+      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,surfregfile);
+    else // hemis are the different
+      sprintf(fname,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,
+	      srcsubject,srchemi,trghemi,surfregfile);
     printf("Reading source surface reg %s\n",fname);
     SrcSurfReg = MRISread(fname) ;
     if (cavtx > 0)
@@ -665,6 +670,11 @@ int main(int argc, char **argv) {
     MRIrandn(SrcVals->width, SrcVals->height, SrcVals->depth,
              SrcVals->nframes,0, 1, SrcVals);
   }
+  if (SynthOnes != 0) {
+    printf("INFO: filling input with all 1s\n");
+    MRIconst(SrcVals->width, SrcVals->height, SrcVals->depth,
+             SrcVals->nframes, 1, SrcVals);
+  }
 
   if (SrcDumpFile != NULL) {
     printf("Dumping input to %s\n",SrcDumpFile);
@@ -702,11 +712,9 @@ int main(int argc, char **argv) {
       TrgSurfReg = ReadIcoByOrder(TrgIcoOrder, IcoRadius);
       reshapefactor = 6;
     } else {
-      if (!strcmp(srchemi,trghemi)) // hemis are the same
-        sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,trghemi,surfregfile);
-      else // hemis are the different
-        sprintf(fname,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,
-                trgsubject,trghemi,srchemi,surfregfile);
+      // Use same target regardless of whether hemis are the same or diff
+      // Changed to this on 11/30/97
+      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,trghemi,surfregfile);
       printf("Reading target surface reg %s\n",fname);
       TrgSurfReg = MRISread(fname) ;
     }
@@ -917,6 +925,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--usediff"))   usediff = 1;
     else if (!strcasecmp(option, "--nousediff")) usediff = 0;
     else if (!strcasecmp(option, "--synth"))     SynthPDF = 1;
+    else if (!strcasecmp(option, "--ones"))      SynthOnes = 1;
     else if (!strcasecmp(option, "--jac"))       jac = 1;
     else if (!strcasecmp(option, "--norm-var"))  DoNormVar = 1;
 
@@ -1221,6 +1230,7 @@ static void print_usage(void) {
   printf("   --reshape  reshape output to multiple 'slices'\n");
   printf("   --reshape-factor Nfactor : reshape to Nfactor 'slices'\n");
   printf("   --synth : replace input with WGN\n");
+  printf("   --ones  : replace input with 1s\n");
   printf("   --normvar : rescale so that stddev=1 (good with --synth)\n");
   printf("   --seed seed : seed for synth (default is auto)\n");
 
