@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/29 19:23:12 $
- *    $Revision: 1.62 $
+ *    $Date: 2007/11/30 18:03:40 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.62 2007/11/29 19:23:12 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.63 2007/11/30 18:03:40 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -449,7 +449,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.62 2007/11/29 19:23:12 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.63 2007/11/30 18:03:40 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -489,9 +489,13 @@ int main(int argc, char **argv) {
     SrcSurfReg = ReadIcoByOrder(SrcIcoOrder, IcoRadius);
     printf("Source Ico Order = %d\n",SrcIcoOrder);
   } else {
-    // use srchemi.sphere.reg regardless of whether hemis are diff
-    sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,
-            srcsubject,srchemi,surfregfile);
+    // Set source reg depending on whether hemis are same or diff
+    // Changed to this on 11/30/97
+    if (!strcmp(srchemi,trghemi)) // hemis are the same
+      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,surfregfile);
+    else // hemis are the different
+      sprintf(fname,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,
+	      srcsubject,srchemi,trghemi,surfregfile);
     printf("Reading source surface reg %s\n",fname);
     SrcSurfReg = MRISread(fname) ;
     if (cavtx > 0)
@@ -708,11 +712,9 @@ int main(int argc, char **argv) {
       TrgSurfReg = ReadIcoByOrder(TrgIcoOrder, IcoRadius);
       reshapefactor = 6;
     } else {
-      if (!strcmp(srchemi,trghemi)) // hemis are the same
-        sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,trghemi,surfregfile);
-      else // hemis are the different
-        sprintf(fname,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,
-                trgsubject,trghemi,srchemi,surfregfile);
+      // Use same target regardless of whether hemis are the same or diff
+      // Changed to this on 11/30/97
+      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,trghemi,surfregfile);
       printf("Reading target surface reg %s\n",fname);
       TrgSurfReg = MRISread(fname) ;
     }
