@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/11/27 21:33:13 $
- *    $Revision: 1.577 $
+ *    $Author: nicks $
+ *    $Date: 2007/11/30 20:57:03 $
+ *    $Revision: 1.578 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.577 2007/11/27 21:33:13 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.578 2007/11/30 20:57:03 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -730,6 +730,11 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
   {
     fread3(&nvertices, fp);
     fread3(&nquads, fp);   /* # of qaudrangles - not triangles */
+
+    if (nvertices <= 0) /* sanity-checks */
+      ErrorExit
+        (ERROR_BADFILE,
+         "ERROR: MRISread: file '%s' has %d vertices!\n",fname,nvertices);
 
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stdout,"reading %d vertices and %d faces.\n",
