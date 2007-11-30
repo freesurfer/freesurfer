@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/26 19:26:26 $
- *    $Revision: 1.146 $
+ *    $Date: 2007/11/30 23:18:44 $
+ *    $Revision: 1.146.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -95,6 +95,7 @@ int main(int argc, char *argv[]) {
   char in_orientation_string[STRLEN];
   int  out_orientation_flag = FALSE;
   char out_orientation_string[STRLEN];
+  char ostr[4] = {'\0','\0','\0','\0'};
   char *errmsg = NULL;
   int in_tr_flag = 0;
   float in_tr = 0;
@@ -170,13 +171,14 @@ int main(int argc, char *argv[]) {
   int LeftRightReverse = FALSE;
   char AutoAlignFile[STRLEN];
   MATRIX *AutoAlign = NULL;
+  MATRIX *cras = NULL, *vmid = NULL;
 
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.146 2007/07/26 19:26:26 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.146.2.1 2007/11/30 23:18:44 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -278,7 +280,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.146 2007/07/26 19:26:26 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.146.2.1 2007/11/30 23:18:44 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1264,7 +1266,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.146 2007/07/26 19:26:26 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.146.2.1 2007/11/30 23:18:44 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1393,19 +1395,63 @@ int main(int argc, char *argv[]) {
   }
 
   if(LeftRightReverse){
+    // Performs a left-right reversal of the geometry by finding the
+    // dimension that is most left-right oriented and negating its
+    // column in the vox2ras matrix. The pixel data itself is not
+    // changed. It would also have worked to have negated the first
+    // row in the vox2ras, but negating a column is the header
+    // equivalent to reversing the pixel data in a dimension. This
+    // also adjusts the CRAS so that if the pixel data are
+    // subsequently reversed then a header registration will bring
+    // the new and the original volume into perfect registration.
     printf("WARNING: applying left-right reversal to the input geometry\n"
 	   "without reversing the pixel data. This will likely make \n"
 	   "the volume geometry WRONG, so make sure you know what you  \n"
 	   "are doing.\n");
-    mri->x_r *= -1.0;
-    mri->x_a *= -1.0;
-    mri->x_s *= -1.0;
-    if(in_like_flag) {
-      printf("WARNING: also applying left-right reversal to the in_like geometry\n");
-      mri_in_like->x_r *= -1.0;
-      mri_in_like->x_a *= -1.0;
-      mri_in_like->x_s *= -1.0;
+
+    printf("  CRAS Before: %g %g %g\n",mri->c_r,mri->c_a,mri->c_s);
+    T = MRIxfmCRS2XYZ(mri, 0);
+    vmid = MatrixAlloc(4,1,MATRIX_REAL);
+    vmid->rptr[4][1] = 1;
+
+    MRIdircosToOrientationString(mri,ostr);
+    if(ostr[0] == 'L' || ostr[0] == 'R'){
+      printf("  Reversing geometry for the columns\n");
+      vmid->rptr[1][1] = mri->width/2.0 - 1;
+      vmid->rptr[2][1] = mri->height/2.0;
+      vmid->rptr[3][1] = mri->depth/2.0;
+      cras = MatrixMultiply(T,vmid,NULL);
+      mri->x_r *= -1.0;
+      mri->x_a *= -1.0;
+      mri->x_s *= -1.0;
     }
+    if(ostr[1] == 'L' || ostr[1] == 'R'){
+      printf("  Reversing geometry for the rows\n");
+      vmid->rptr[1][1] = mri->width/2.0;
+      vmid->rptr[2][1] = mri->height/2.0 - 1;
+      vmid->rptr[3][1] = mri->depth/2.0;
+      cras = MatrixMultiply(T,vmid,NULL);
+      mri->y_r *= -1.0;
+      mri->y_a *= -1.0;
+      mri->y_s *= -1.0;
+    }
+    if(ostr[2] == 'L' || ostr[2] == 'R'){
+      printf("  Reversing geometry for the slices\n");
+      vmid->rptr[1][1] = mri->width/2.0;
+      vmid->rptr[2][1] = mri->height/2.0;
+      vmid->rptr[3][1] = mri->depth/2.0 - 1;
+      cras = MatrixMultiply(T,vmid,NULL);
+      mri->z_r *= -1.0;
+      mri->z_a *= -1.0;
+      mri->z_s *= -1.0;
+    }
+    mri->c_r = cras->rptr[1][1];
+    mri->c_a = cras->rptr[2][1];
+    mri->c_s = cras->rptr[3][1];
+    printf("  CRAS After %g %g %g\n",mri->c_r,mri->c_a,mri->c_s);
+    MatrixFree(&T);
+    MatrixFree(&vmid);
+    MatrixFree(&cras);
   }
 
   if (fwhm > 0) {
