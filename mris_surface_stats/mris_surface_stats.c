@@ -12,8 +12,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/03/07 22:37:07 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/11/30 23:56:03 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,9 +67,9 @@ static char *mask_fname = NULL; /* filename for subcortical mask */
 static char *zscore_fname = NULL; /* filename for output stat */
 static int first_group_size = 0;  /* number of subjects for first group */
 
-char *srctypestring = "paint";
+char *srctypestring = "";
 int srctype = MRI_VOLUME_TYPE_UNKNOWN;
-char *trgtypestring = "paint";
+char *trgtypestring = "";
 int trgtype = MRI_VOLUME_TYPE_UNKNOWN;
 
 static void usage_exit(int code) ;
@@ -86,7 +86,7 @@ static int nSmoothSteps = 0;
 #define MAX_SURFACES 200
 
 static char vcid[] = 
-"$Id: mris_surface_stats.c,v 1.4 2007/03/07 22:37:07 nicks Exp $";
+"$Id: mris_surface_stats.c,v 1.5 2007/11/30 23:56:03 nicks Exp $";
 
 int
 main(int argc, char *argv[]) {
@@ -107,7 +107,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_surface_stats.c,v 1.4 2007/03/07 22:37:07 nicks Exp $", 
+     "$Id: mris_surface_stats.c,v 1.5 2007/11/30 23:56:03 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -190,8 +190,12 @@ main(int argc, char *argv[]) {
       MRISreadValues(mri_surf,in_fname);
       surfVal[nsurfaces] = MRIcopyMRIS(NULL, mri_surf, 0, "val");
     } else {
-      printf("ERROR: unknown data file format\n");
-      exit(1);
+      mri_surf=MRISread(in_fname);
+      if (NULL==mri_surf) {
+        printf("ERROR: reading file %s as surface file\n",in_fname);
+        exit(1);
+      }
+      surfVal[nsurfaces] = MRIcopyMRIS(NULL, mri_surf, 0, "val");
     }
 
     if (surfVal[nsurfaces] == NULL) {
@@ -367,7 +371,7 @@ main(int argc, char *argv[]) {
     } else if (!strcmp(trgtypestring,"curv")) {
       MRISwriteCurvature(mri_surf,zscore_fname);
     } else {
-      fprintf(stderr, "ERROR unknown output file format.\n");
+      MRIwrite(Zscore,zscore_fname);
     }
 
     // These are computed but never used yet
@@ -376,7 +380,7 @@ main(int argc, char *argv[]) {
     MRIfree(&mriStd2);
     MRIfree(&mriAbsStd2);
 
-  } else {
+ } else {
     MRIScopyMRI(mri_surf, mriStd, 0, "curv");
     if (!strcmp(trgtypestring,"paint") || !strcmp(trgtypestring,"w")) {
 
@@ -415,7 +419,16 @@ main(int argc, char *argv[]) {
         MRISwriteCurvatureToWFile(mri_surf,absstd_fname);
       }
     } else {
-      fprintf(stderr, "ERROR unknown output file format.\n");
+      MRIwrite(mriStd,stat_fname);
+      if (mean_fname != NULL) {
+        MRIwrite(mriStd,mean_fname);
+      }
+      if (absmean_fname != NULL) {
+        MRIwrite(mriStd,absmean_fname);
+      }
+      if (absstd_fname != NULL) {
+        MRIwrite(mriStd,absstd_fname);
+      }
     }
   }
 
