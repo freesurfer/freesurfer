@@ -12,8 +12,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/30 23:56:03 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/12/01 00:08:17 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -86,7 +86,7 @@ static int nSmoothSteps = 0;
 #define MAX_SURFACES 200
 
 static char vcid[] = 
-"$Id: mris_surface_stats.c,v 1.5 2007/11/30 23:56:03 nicks Exp $";
+"$Id: mris_surface_stats.c,v 1.6 2007/12/01 00:08:17 nicks Exp $";
 
 int
 main(int argc, char *argv[]) {
@@ -107,7 +107,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_surface_stats.c,v 1.5 2007/11/30 23:56:03 nicks Exp $", 
+     "$Id: mris_surface_stats.c,v 1.6 2007/12/01 00:08:17 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -371,7 +371,10 @@ main(int argc, char *argv[]) {
     } else if (!strcmp(trgtypestring,"curv")) {
       MRISwriteCurvature(mri_surf,zscore_fname);
     } else {
-      MRIwrite(Zscore,zscore_fname);
+      if (MRIwrite(Zscore,zscore_fname)) {
+        fprintf(stderr,"ERROR: failed MRIwrite file %s\n",zscore_fname);
+        exit(1);
+      }
     }
 
     // These are computed but never used yet
@@ -419,15 +422,27 @@ main(int argc, char *argv[]) {
         MRISwriteCurvatureToWFile(mri_surf,absstd_fname);
       }
     } else {
-      MRIwrite(mriStd,stat_fname);
+      if(MRIwrite(mriStd,stat_fname)) {
+        fprintf(stderr,"ERROR: failed MRIwrite file %s\n",stat_fname);
+        exit(1);
+      }
       if (mean_fname != NULL) {
-        MRIwrite(mriStd,mean_fname);
+        if(MRIwrite(mriStd,mean_fname)) {
+          fprintf(stderr,"ERROR: failed MRIwrite file %s\n",mean_fname);
+          exit(1);
+        }
       }
       if (absmean_fname != NULL) {
-        MRIwrite(mriStd,absmean_fname);
+        if(MRIwrite(mriStd,absmean_fname)) {
+          fprintf(stderr,"ERROR: failed MRIwrite file %s\n",absmean_fname);
+          exit(1);
+        }
       }
       if (absstd_fname != NULL) {
-        MRIwrite(mriStd,absstd_fname);
+        if(MRIwrite(mriStd,absstd_fname)) {
+          fprintf(stderr,"ERROR: failed MRIwrite file %s\n",absstd_fname);
+          exit(1);
+        }
       }
     }
   }
