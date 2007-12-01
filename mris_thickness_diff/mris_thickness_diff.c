@@ -14,8 +14,8 @@
  * Original Author: Xaio Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/01 18:46:27 $
- *    $Revision: 1.12 $
+ *    $Date: 2007/12/01 23:28:43 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -70,7 +70,7 @@ static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
 static char vcid[] =
-  "$Id: mris_thickness_diff.c,v 1.12 2007/12/01 18:46:27 nicks Exp $";
+  "$Id: mris_thickness_diff.c,v 1.13 2007/12/01 23:28:43 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_thickness_diff.c,v 1.12 2007/12/01 18:46:27 nicks Exp $",
+           "$Id: mris_thickness_diff.c,v 1.13 2007/12/01 23:28:43 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
     usage_exit();
   }
 
-  printf("Reading first surface file\n");
+  printf("Reading first surface file %s\n",surf1_name);
   Surf1 = MRISread(surf1_name);
   if (!Surf1)
     ErrorExit
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 
   printf("Surface1 has %d vertices\n", Surf1->nvertices);
 
-  printf("Reading in first data file\n");
+  printf("Reading in first data file %s\n",data1_name);
   /* Read in the first data file */
   if (!strcmp(srctypestring,"curv"))
   { /* curvature file */
@@ -235,12 +235,12 @@ int main(int argc, char *argv[])
   }
   else
   {
-    Surf1=MRISread(data1_name);
-    if (NULL==Surf1) {
+    SrcVal1=MRIread(data1_name);
+    if (NULL==SrcVal1) 
+    {
       printf("ERROR: reading file %s as surface file\n",data1_name);
       exit(1);
     }
-    SrcVal1 = MRIcopyMRIS(NULL, Surf1, 0, "val");
   }
 
   if (SrcVal1 == NULL)
@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
 
   }
 
-  printf("Reading second surface file\n");
+  printf("Reading second surface file %s\n",surf2_name);
   Surf2 = MRISread(surf2_name);
   if (!Surf2)
     ErrorExit
@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
 
   printf("Surface2 has %d vertices\n", Surf2->nvertices);
 
-  printf("Reading in second data file\n");
+  printf("Reading in second data file %s\n",data2_name);
   /* Read in the second data file */
   /* only two data types are supported */
   if (!strcmp(srctypestring,"curv"))
@@ -282,12 +282,12 @@ int main(int argc, char *argv[])
   }
   else
   {
-    Surf2=MRISread(data2_name);
-    if (NULL==Surf2) {
+    SrcVal2=MRIread(data2_name);
+    if (NULL==SrcVal2) 
+    {
       printf("ERROR: reading file %s as surface file\n",data2_name);
       exit(1);
     }
-    SrcVal2 = MRIcopyMRIS(NULL, Surf2, 0, "val");
   }
 
   if (SrcVal2 == NULL)
@@ -641,7 +641,8 @@ int main(int argc, char *argv[])
     }
     else
     {
-      if (MRIwrite(resVal, out_name)) {
+      if (MRIwrite(resVal, out_name)) 
+      {
         fprintf(stderr,"ERROR: failed MRIwrite file %s\n",out_name);
         exit(1);
       }

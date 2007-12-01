@@ -12,8 +12,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/01 22:52:07 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/12/01 23:24:05 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -86,7 +86,7 @@ static int nSmoothSteps = 0;
 #define MAX_SURFACES 200
 
 static char vcid[] =
-  "$Id: mris_surface_stats.c,v 1.7 2007/12/01 22:52:07 nicks Exp $";
+  "$Id: mris_surface_stats.c,v 1.8 2007/12/01 23:24:05 nicks Exp $";
 
 int
 main(int argc, char *argv[])
@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_surface_stats.c,v 1.7 2007/12/01 22:52:07 nicks Exp $",
+           "$Id: mris_surface_stats.c,v 1.8 2007/12/01 23:24:05 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -206,13 +206,12 @@ main(int argc, char *argv[])
     }
     else
     {
-      mri_surf=MRISread(in_fname);
-      if (NULL==mri_surf)
+      surfVal[nsurfaces]=MRIread(in_fname);
+      if (NULL==surfVal[nsurfaces])
       {
         printf("ERROR: reading file %s as surface file\n",in_fname);
         exit(1);
       }
-      surfVal[nsurfaces] = MRIcopyMRIS(NULL, mri_surf, 0, "val");
     }
 
     if (surfVal[nsurfaces] == NULL)
