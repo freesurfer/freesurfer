@@ -14,8 +14,8 @@
  * Original Author: Xaio Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/01 01:51:05 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/12/01 18:46:27 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -30,9 +30,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-//Modified from utils/test/mris_diff.cpp; replaced ANN routine with
-// HASH_TABLE method implemented in FreeSurfer.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +70,7 @@ static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
 static char vcid[] =
-  "$Id: mris_thickness_diff.c,v 1.11 2007/12/01 01:51:05 nicks Exp $";
+  "$Id: mris_thickness_diff.c,v 1.12 2007/12/01 18:46:27 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -97,7 +94,6 @@ static char *mapout_fname = NULL; /* must be used together with above */
 
 static int debugflag = 0;
 static int debugvtx = 0;
-static int pathflag = 0;
 static int abs_flag = 0;
 static int percentage = 0;
 static int register_flag = 0;
@@ -175,7 +171,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_thickness_diff.c,v 1.11 2007/12/01 01:51:05 nicks Exp $",
+           "$Id: mris_thickness_diff.c,v 1.12 2007/12/01 18:46:27 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
