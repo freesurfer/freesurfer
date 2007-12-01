@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/30 20:57:03 $
- *    $Revision: 1.578 $
+ *    $Author: fischl $
+ *    $Date: 2007/12/01 15:40:46 $
+ *    $Revision: 1.579 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.578 2007/11/30 20:57:03 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.579 2007/12/01 15:40:46 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -2871,7 +2871,7 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 int
 MRISremoveRipped(MRI_SURFACE *mris)
 {
-  int     vno, n, fno, nripped ;
+  int     vno, n, fno, nripped, remove, vno2 ;
   VERTEX  *v ;
   FACE    *face ;
 
@@ -2900,6 +2900,53 @@ MRISremoveRipped(MRI_SURFACE *mris)
       {
         /* remove this vertex from neighbor list if it is ripped */
         if (mris->vertices[v->v[n]].ripflag)
+        {
+          if (n < v->vtotal-1)  /* not the last one in the list */
+          {
+            memmove(v->v+n, v->v+n+1, (v->vtotal-n-1)*sizeof(int)) ;
+            memmove(v->dist+n, v->dist+n+1,
+                    (v->vtotal-n-1)*sizeof(float)) ;
+            memmove(v->dist_orig+n, v->dist_orig+n+1,
+                    (v->vtotal-n-1)*sizeof(float)) ;
+          }
+          if (n < v->vnum)      /* it was a 1-neighbor */
+            v->vnum-- ;
+          if (n < v->v2num)     /* it was a 2-neighbor */
+            v->v2num-- ;
+          if (n < v->v3num)     /* it was a 3-neighbor */
+            v->v3num-- ;
+          n-- ;
+          v->vtotal-- ;
+        }
+      }
+
+
+      // make sure every nbr is a member of at least one unripped face
+      for (n = 0 ; n < v->vtotal ; n++)
+      {
+        int members, m ;
+
+        vno2 = v->v[n] ;
+        if (mris->vertices[v->v[n]].ripflag)
+          continue ;
+
+        remove = 1 ;
+        for (fno = 0 ; fno < v->num ; fno++)
+        {
+          face = &mris->faces[v->f[fno]] ;
+          if (face->ripflag == 1)   // only consider unripped
+            continue ;
+          for (members = m = 0 ; m < VERTICES_PER_FACE ; m++)
+            if (face->v[m] == vno || face->v[m] == vno2)
+              members++ ;
+          if (members >= 2)
+          {
+            remove = 0 ;
+            break ;
+          }
+        }
+
+        if (remove)
         {
           if (n < v->vtotal-1)  /* not the last one in the list */
           {
