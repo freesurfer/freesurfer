@@ -14,8 +14,8 @@
  * Original Author: Xaio Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/09 23:09:58 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/12/02 20:48:03 $
+ *    $Revision: 1.10.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -30,9 +30,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-//Modified from utils/test/mris_diff.cpp; replaced ANN routine with
-// HASH_TABLE method implemented in FreeSurfer.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +70,7 @@ static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
 static char vcid[] =
-  "$Id: mris_thickness_diff.c,v 1.10 2007/05/09 23:09:58 nicks Exp $";
+  "$Id: mris_thickness_diff.c,v 1.10.2.1 2007/12/02 20:48:03 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -85,31 +82,31 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 
-char *srctypestring = "paint";
-int srctype = MRI_VOLUME_TYPE_UNKNOWN;
-char *trgtypestring = "paint";
-int trgtype = MRI_VOLUME_TYPE_UNKNOWN;
+static char *srctypestring = "";
+static int srctype = MRI_VOLUME_TYPE_UNKNOWN;
+static char *trgtypestring = "";
+static int trgtype = MRI_VOLUME_TYPE_UNKNOWN;
 
-char *out_name = NULL;
-char *maplike_fname = NULL; /*Generate maps to indicate thickness difference */
-char *mapout_fname = NULL; /* must be used together with above */
+static char *out_name = NULL;
+static char *maplike_fname = NULL; /*Generate maps to indicate 
+                                     thickness difference */
+static char *mapout_fname = NULL; /* must be used together with above */
 
-int debugflag = 0;
-int debugvtx = 0;
-int pathflag = 0;
-int abs_flag = 0;
-int percentage = 0;
-int register_flag = 0;
+static int debugflag = 0;
+static int debugvtx = 0;
+static int abs_flag = 0;
+static int percentage = 0;
+static int register_flag = 0;
 
 static int annotation_flag = 0;
 static char *annotation_fname = NULL;
 static char *annotation_name = NULL;
 
-int compute_distance = 0;
+static int compute_distance = 0;
 
 static int nSmoothSteps = 0;
 
-char *Progname ;
+const char *Progname ;
 
 MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
                           MRI *mri_data1,
@@ -128,8 +125,8 @@ void FindClosest(MRI_SURFACE *TrueMesh,
 void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2);
 
 /* the following two are used when applying a lta transform to the surface */
-MRI          *mri = 0;
-MRI          *mri_dst = 0;
+static MRI *mri = 0;
+static MRI *mri_dst = 0;
 static int invert = 0 ;
 static char *xform_fname = NULL;
 
@@ -174,7 +171,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_thickness_diff.c,v 1.10 2007/05/09 23:09:58 nicks Exp $",
+           "$Id: mris_thickness_diff.c,v 1.10.2.1 2007/12/02 20:48:03 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -212,7 +209,7 @@ int main(int argc, char *argv[])
     usage_exit();
   }
 
-  printf("Reading first surface file\n");
+  printf("Reading first surface file %s\n",surf1_name);
   Surf1 = MRISread(surf1_name);
   if (!Surf1)
     ErrorExit
@@ -220,9 +217,8 @@ int main(int argc, char *argv[])
 
   printf("Surface1 has %d vertices\n", Surf1->nvertices);
 
-  printf("Reading in first data file\n");
+  printf("Reading in first data file %s\n",data1_name);
   /* Read in the first data file */
-  /* only two data types are supported */
   if (!strcmp(srctypestring,"curv"))
   { /* curvature file */
     if (MRISreadCurvatureFile(Surf1, data1_name) != 0)
@@ -239,8 +235,12 @@ int main(int argc, char *argv[])
   }
   else
   {
-    printf("ERROR: unknown data file format\n");
-    exit(1);
+    SrcVal1=MRIread(data1_name);
+    if (NULL==SrcVal1) 
+    {
+      printf("ERROR: reading file %s as surface file\n",data1_name);
+      exit(1);
+    }
   }
 
   if (SrcVal1 == NULL)
@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
 
   }
 
-  printf("Reading second surface file\n");
+  printf("Reading second surface file %s\n",surf2_name);
   Surf2 = MRISread(surf2_name);
   if (!Surf2)
     ErrorExit
@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
 
   printf("Surface2 has %d vertices\n", Surf2->nvertices);
 
-  printf("Reading in second data file\n");
+  printf("Reading in second data file %s\n",data2_name);
   /* Read in the second data file */
   /* only two data types are supported */
   if (!strcmp(srctypestring,"curv"))
@@ -282,8 +282,12 @@ int main(int argc, char *argv[])
   }
   else
   {
-    printf("ERROR: unknown data file format\n");
-    exit(1);
+    SrcVal2=MRIread(data2_name);
+    if (NULL==SrcVal2) 
+    {
+      printf("ERROR: reading file %s as surface file\n",data2_name);
+      exit(1);
+    }
   }
 
   if (SrcVal2 == NULL)
@@ -637,7 +641,11 @@ int main(int argc, char *argv[])
     }
     else
     {
-      fprintf(stderr, "ERROR unknown output file format.\n");
+      if (MRIwrite(resVal, out_name)) 
+      {
+        fprintf(stderr,"ERROR: failed MRIwrite file %s\n",out_name);
+        exit(1);
+      }
     }
   }
 
