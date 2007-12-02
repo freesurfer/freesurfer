@@ -1,0 +1,120 @@
+#!/bin/tcsh -ef
+
+if ($#argv < 5) then
+  echo "usage: thickdiffmap <subjscan1> <subjscan2> <commonsubj> <hemi> <step>..."
+  echo ""
+  echo "where:"
+  echo "  <subjscan1>   first scan of a subject"
+  echo "  <subjscan2>   second (later) scan of the same subject"
+  echo "  <commonsubj>  subject to use as the common template"
+  echo "  <hemi>        hemisphere to process"
+  echo "  <step>...     stages of processing:"
+  echo "                  1  - Compute linear alignment"
+  echo "                  2  - Compute thickness difference map"
+  echo "                  3  - Resample map to common template"
+  echo "                  4  - Compute group-wise stats"
+  echo ""
+  echo "example: thickdiffmap subj1 subj1a fsaverage lh 1 2 3"
+  exit 1
+endif
+
+set DoStep1=0
+set DoStep2=0
+set DoStep3=0
+set DoStep4=0
+
+# input args:
+set subj = $argv[1]; shift;
+set subja = $argv[1]; shift;
+set templsubj = $argv[1]; shift;
+set hemi = $argv[1]; shift;
+while( $#argv != 0 )
+  set step = $argv[1]; shift;
+  if ($step == 1) set DoStep1=1
+  if ($step == 2) set DoStep2=1
+  if ($step == 3) set DoStep3=1
+  if ($step == 4) set DoStep4=1
+end
+
+
+##############################
+set _to_=(${subj}_to_${subja})
+set lta=(${_to_}.lta)
+
+#
+# Step 1. Compute linear alignment between two repeated scans of a subject.
+#
+if ($DoStep1) then
+  set cmd=(fsl_rigid_register \
+  -i $SUBJECTS_DIR/${subj}/mri/orig.mgz \
+  -r $SUBJECTS_DIR/${subja}/mri/orig.mgz \
+  -o $SUBJECTS_DIR/${subja}/mri/orig_${_to_}.mgz \
+  -dof 9 \
+  -cost corratio \
+  -ltamat $SUBJECTS_DIR/${subj}/mri/transforms/${lta})
+
+  echo $cmd
+  $cmd
+endif
+
+
+#
+# Step 2. Compute thickness difference map for the two repeated scans.
+#
+if ($DoStep2) then
+  set cmd=(mris_thickness_diff \
+  -xform $SUBJECTS_DIR/${subj}/mri/transforms/${lta} \
+  -src_type curv \
+  -out $SUBJECTS_DIR/${subj}/surf/${hemi}.thickness_diff_${_to_}.mgh \
+  -nsmooth 0 \
+  -abs \
+  -S ${subj} \
+  -L $SUBJECTS_DIR/${subj}/surf/${hemi}.thickness_diff_${_to_}.log \
+  $SUBJECTS_DIR/${subj}/surf/${hemi}.white \
+  $SUBJECTS_DIR/${subj}/surf/${hemi}.thickness \
+  $SUBJECTS_DIR/${subja}/surf/${hemi}.white \
+  $SUBJECTS_DIR/${subja}/surf/${hemi}.thickness)
+
+  echo $cmd
+  $cmd
+endif
+
+
+#
+# Step 3. Resample thickness difference map to the common template.
+#
+if ($DoStep3) then
+  set out=(${subj}_${hemi}_thickness_diff_${_to_}_resampled_to_${templsubj}.mgh)
+  set cmd=(mri_surf2surf \
+  --srcsubject ${subj} \
+  --sval $SUBJECTS_DIR/${subj}/surf/${hemi}.thickness_diff_${_to_}.mgh \
+  --trgsubject ${templsubj} \
+  --tval $SUBJECTS_DIR/groupstudy/${out} \
+  --hemi ${hemi} \
+  --surfreg sphere.reg)
+
+  echo "$SUBJECTS_DIR/groupstudy/${out}" >> resampled
+  echo $cmd
+  mkdir -p $SUBJECTS_DIR/groupstudy
+  $cmd
+endif
+
+
+#
+# Step 4. Compute group-wise mean and std of the thickness differences
+#
+if ($DoStep4) then
+  set RESAMPLED=(`cat resampled`)
+  set cmd=(mris_surface_stats \
+  -nsmooth 60 \
+  -surf_name $SUBJECTS_DIR/${templsubj}/surf/lh.white \
+  -out_name $SUBJECTS_DIR/groupstudy/pair1_${hemi}_std_60.mgh \
+  -absmean $SUBJECTS_DIR/groupstudy/${hemi}_absmean_60.mgh \
+  -mean $SUBJECTS_DIR/groupstudy/${hemi}_mean_60.mgh \
+  -absstd $SUBJECTS_DIR/groupstudy/${hemi}_absstd_60.mgh \
+  ${RESAMPLED})
+
+  echo $cmd
+  $cmd
+endif
+

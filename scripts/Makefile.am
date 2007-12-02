@@ -25,6 +25,7 @@ deface_subject \
 dicom-rename \
 dt_recon \
 epidewarp.fsl\
+extract_talairach_avi_QA.awk \
 feat2surf \
 findsession \
 fixup_mni_paths \
@@ -149,6 +150,7 @@ tal_compare \
 talsegprob \
 tcl_setup \
 test_recon-all.csh \
+thickdiffmap \
 unpack_ima1.tcl \
 unpackimadir \
 unpackimadir2 \
@@ -208,7 +210,8 @@ install-exec-hook:
 	echo "unpacksdcmdir.tcl \$$argv" >> $(DESTDIR)$(bindir)/unpacksdcmdir
 	chmod a+x $(DESTDIR)$(bindir)/unpacksdcmdir
 
-EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup
+EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup \
+extract_talairach_avi_QA.awk
 
 # notes: 
 # recon-all.2005 is the renamed recon-all-nmr, which is no longer used.
