@@ -24,7 +24,7 @@ AC_CANONICAL_SYSTEM
 #   source /opt/intel/cce/10.0.023/bin/iccvars.csh
 #   setenv CC icc
 #   setenv CXX icpc
-#   setenv LD icc
+#   setenv LD icpc
 #   setenv LDFLAGS "-L/opt/intel/cce/10.0.023/lib"
 #
 # Note: until all the warnings produced by icc are fixed in the source,
@@ -244,8 +244,11 @@ AC_SUBST(LIB_G2C_A)
 AC_CHECK_FILE(/bin/tcsh,[],
   [AC_MSG_ERROR([FATAL: /bin/tcsh is required!])])
 
-# links with g++ rather than gcc, I think
+# links with g++ rather than gcc (and for Intel Compiler, use icpc)
 CCLD=g++
+if test "x$CC" = "xicc"; then
+  CCLD=icpc
+fi
 AC_SUBST(CCLD)
 
 # two programs used for compress/decompress files
