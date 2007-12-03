@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/29 16:17:06 $
- *    $Revision: 1.85 $
+ *    $Date: 2007/12/03 17:23:33 $
+ *    $Revision: 1.86 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -189,6 +189,10 @@ int  GCAvoxelToPrior(GCA *gca, MRI *mri,
                      int xv, int yv, int zv, int *pxp,int *pyp,int *pzp);
 int  GCAvoxelToNode(GCA *gca, MRI *mri,
                     int xv, int yv, int zv, int *pxn,int *pyn,int *pzn);
+int  GCAvoxelToPriorNearest(GCA *gca, MRI *mri,
+                            int xv, int yv, int zv,int *pxp,int *pyp,int *pzp);
+int  GCAvoxelToNodeNearest(GCA *gca, MRI *mri,
+                           int xv, int yv, int zv, int *pxn,int *pyn,int *pzn);
 GCA  *GCAalloc(int ninputs, float prior_spacing, float node_spacing, int width, int height, int depth, int flags) ;
 int  GCAfree(GCA **pgca) ;
 int  GCANfree(GCA_NODE *gcan, int ninputs) ;
@@ -419,5 +423,6 @@ int copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs) ;
 COLOR_TABLE *GCAcolorTableCMA(GCA *gca);
 int GCAstructureBoundingBox(GCA *gca, int label, MRI_REGION *box) ;
 
+int GCArenormalizeClass(GCA *gca, int class, float scale_to_wm) ;
 
 #endif
