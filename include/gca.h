@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/12/03 17:23:33 $
- *    $Revision: 1.86 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/03 21:21:28 $
+ *    $Revision: 1.87 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -423,6 +423,6 @@ int copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs) ;
 COLOR_TABLE *GCAcolorTableCMA(GCA *gca);
 int GCAstructureBoundingBox(GCA *gca, int label, MRI_REGION *box) ;
 
-int GCArenormalizeClass(GCA *gca, int class, float scale_to_wm) ;
+int GCArenormalizeClass(GCA *gca, int the_class, float scale_to_wm) ;
 
 #endif
