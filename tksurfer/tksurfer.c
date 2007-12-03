@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/16 22:14:16 $
- *    $Revision: 1.290 $
+ *    $Date: 2007/12/03 23:00:47 $
+ *    $Revision: 1.291 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2216,6 +2216,7 @@ int  mai(int argc,char *argv[])
 	exit(1);
       }
       load_curv = TRUE;
+      forcegraycurvatureflag = TRUE;
     } else if (!stricmp(argv[i], "-overlay-reg") ||
                !stricmp(argv[i], "-orf") || !stricmp(argv[i], "-ovreg")) {
       nargs = 2 ;
@@ -18683,7 +18684,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.290 2007/11/16 22:14:16 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.291 2007/12/03 23:00:47 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
