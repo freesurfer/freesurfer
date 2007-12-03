@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/11/29 15:02:18 $
- *    $Revision: 1.236 $
+ *    $Date: 2007/12/03 16:40:52 $
+ *    $Revision: 1.237 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -964,9 +964,40 @@ GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
   GCAvoxelToNodeReal(gca, mri, xv, yv, zv, &xn, &yn, &zn);
 
   // xn, yn, zn are double.  we use voxel center as integer
+#if 0
   ixn = (int) floor(xn);
   iyn = (int) floor(yn);
   izn = (int) floor(zn);
+#else
+  ixn = (int) floor(xn);
+  iyn = (int) floor(yn);
+  izn = (int) floor(zn);
+#endif
+  // if outofbounds, tell it
+  errCode = boundsCheck(&ixn, &iyn, &izn, gca->mri_node__);
+  //
+  *pxn = ixn;
+  *pyn = iyn;
+  *pzn = izn;
+
+  return errCode;
+}
+
+// use rounding to compute the index, not truncation
+int
+GCAvoxelToNodeNearest(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
+                      int *pyn, int *pzn)
+{
+  Real xn, yn, zn;
+  int   ixn, iyn, izn;
+  int errCode = NO_ERROR;
+
+  GCAvoxelToNodeReal(gca, mri, xv, yv, zv, &xn, &yn, &zn);
+
+  // xn, yn, zn are double.  we use voxel center as integer
+  ixn = (int) nint(xn);
+  iyn = (int) nint(yn);
+  izn = (int) nint(zn);
   // if outofbounds, tell it
   errCode = boundsCheck(&ixn, &iyn, &izn, gca->mri_node__);
   //
@@ -1011,6 +1042,31 @@ GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv,
   ixp = (int) floor(xp);
   iyp = (int) floor(yp);
   izp = (int) floor(zp);
+  // bound check
+  // if outofbounds, tell it
+  errCode = boundsCheck(&ixp, &iyp, &izp, gca->mri_prior__);
+  //
+  *pxp = ixp;
+  *pyp = iyp;
+  *pzp = izp;
+
+  return errCode;
+}
+
+// use rounding to compute the index, not truncation
+int
+GCAvoxelToPriorNearest(GCA *gca, MRI *mri, int xv, int yv, int zv,
+                       int *pxp, int *pyp, int *pzp)
+{
+  Real xp, yp, zp;
+  int ixp, iyp, izp;
+  int errCode = NO_ERROR;
+
+  GCAvoxelToPriorReal(gca, mri, xv, yv, zv, &xp, &yp, &zp);
+
+  ixp = (int) nint(xp);
+  iyp = (int) nint(yp);
+  izp = (int) nint(zp);
   // bound check
   // if outofbounds, tell it
   errCode = boundsCheck(&ixp, &iyp, &izp, gca->mri_prior__);
@@ -1224,8 +1280,9 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
                      int *pxn, int *pyn, int *pzn)
 {
   float xt, yt, zt;
-  Real  xrt, yrt, zrt ;
+  Real  xrt, yrt, zrt, xrn, yrn, zrn ;
   LTA *lta;
+  int  retval ;
 
   if (transform->type != MORPH_3D_TYPE)
   {
@@ -1248,13 +1305,18 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
   {
     TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
   }
+  retval = GCAvoxelToNodeReal(gca, gca->mri_tal__, xt, yt, zt, &xrn,&yrn,&zrn);
+  *pxn = nint(xrn) ;
+  *pyn = nint(yrn) ;
+  *pzn = nint(zrn) ;
+
   if (Ggca_x == xv && Ggca_y == yv && Ggca_z == zv && DIAG_VERBOSE_ON)
     fprintf(stdout, "source (%d, %d, %d) to talposition (%.2f, %.2f, %.2f)\n",
             xv, yv, zv, xt, yt, zt);
   fflush(stdout) ;
 
   // get the position in node from the talairach position
-  return GCAvoxelToNode(gca, gca->mri_tal__, xt, yt, zt, pxn, pyn, pzn) ;
+  return(retval) ;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -7791,10 +7853,10 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         // get node value
-        if (GCAvoxelToNode(gca, mri, x, y, z, &xn, &yn, &zn) == NO_ERROR)
+        if (GCAvoxelToNodeNearest(gca,mri, x, y, z, &xn, &yn, &zn) == NO_ERROR)
         {
           // get prior value
-          if (GCAvoxelToPrior(gca, mri, x, y, z,
+          if (GCAvoxelToPriorNearest(gca, mri, x, y, z,
                               &xp, &yp, &zp) == NO_ERROR)
           {
             gcan = &gca->nodes[xn][yn][zn] ;
@@ -21143,5 +21205,46 @@ GCAstructureBoundingBox(GCA *gca, int label, MRI_REGION *box)
   zmax *= gca->prior_spacing ;
   box->x = xmin ; box->y = ymin ; box->z = zmin ;
   box->dx = xmax-xmin+1 ;  box->dy = ymax-ymin+1 ;  box->dz = zmax-zmin+1 ; 
+  return(NO_ERROR) ;
+}
+int
+GCArenormalizeClass(GCA *gca, int class, float scale_to_wm)
+{
+  float     wm_mode, class_mode, scale ;
+  int       x, y, z, n, same_class, r ;
+  GCA_NODE  *gcan ;
+
+  GCAclassMode(gca, WM_CLASS, &wm_mode) ;
+  GCAclassMode(gca, class, &class_mode) ;
+  
+  scale = scale_to_wm * wm_mode / class_mode ;
+  printf("current wm/csf ratio = %2.2f (%2.0f/%2.0f), scaling by %2.3f\n", 
+         wm_mode/class_mode, wm_mode, class_mode, scale) ;
+  for (x = 0 ; x < gca->node_width ; x++)
+  {
+    for (y = 0 ; y < gca->node_height ; y++)
+    {
+      for (z = 0 ; z < gca->node_depth ; z++)
+      {
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          switch (class)
+          {
+          case CSF_CLASS: same_class = IS_CSF_CLASS(gcan->labels[n]) ;   break ;
+          case GM_CLASS:  same_class = IS_GRAY_CLASS(gcan->labels[n]) ;  break ;
+          case WM_CLASS:  same_class = IS_WHITE_CLASS(gcan->labels[n]) ; break ;
+          default: same_class = 0 ; break ;
+          }
+          if (same_class)
+          {
+            for (r = 0 ; r < gca->ninputs ; r++)
+              gcan->gcs[n].means[r] *= scale ;
+          }
+        }
+      }
+    }
+  }
+
   return(NO_ERROR) ;
 }
