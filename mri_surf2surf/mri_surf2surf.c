@@ -10,9 +10,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/12/01 23:12:17 $
- *    $Revision: 1.65 $
+ *    $Author: greve $
+ *    $Date: 2007/12/04 02:47:14 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.65 2007/12/01 23:12:17 nicks Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.66 2007/12/04 02:47:14 greve Exp $";
 char *Progname = NULL;
 
 char *surfregfile = NULL;
@@ -432,6 +432,9 @@ int DoNormVar=0;
 int NormVar(MRI *mri, MRI *mask);
 int UseCortexLabel = 0;
 
+int OKToRevFaceOrder = 1;
+int RevFaceOrder = 0;
+
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
   int f,tvtx,svtx,n,err;
@@ -449,7 +452,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.65 2007/12/01 23:12:17 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.66 2007/12/04 02:47:14 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -577,10 +580,14 @@ int main(int argc, char **argv) {
         MatrixPrint(stdout,XFM);
         MRISmatrixMultiply(SurfSrc,XFM);
       }
-      if (ApplyReg) {
-        printf("Applying registration transform\n");
+      if(ApplyReg) {
+        printf("Applying linear registration transform\n");
         MatrixPrint(stdout,XFM);
         MRISmatrixMultiply(SurfSrc,XFM);
+	if(MatrixDeterminant(XFM) < 0.0 && OKToRevFaceOrder) {
+	  printf("Determinant of linear transform is negative, so reversing face order\n");
+	  RevFaceOrder = 1;
+	}
       }
       SrcVals = MRIcopyMRIS(NULL, SurfSrc, 2, "z"); // start at z to autoalloc
       MRIcopyMRIS(SrcVals, SurfSrc, 0, "x");
@@ -863,6 +870,10 @@ int main(int argc, char **argv) {
     MRIScopyMRI(TrgSurfReg,TrgVals,0,"x");
     MRIScopyMRI(TrgSurfReg,TrgVals,1,"y");
     MRIScopyMRI(TrgSurfReg,TrgVals,2,"z");
+    if(RevFaceOrder){
+      printf("Reversing Face Order\n");
+      MRISreverseFaceOrder(TrgSurfReg);
+    }
     MRISwrite(TrgSurfReg, trgvalfile);
   } else if (UseSurfSrc == SURF_SRC_ANNOT) {
     printf("Converting to target annot\n");
@@ -933,6 +944,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--ones"))      SynthOnes = 1;
     else if (!strcasecmp(option, "--jac"))       jac = 1;
     else if (!strcasecmp(option, "--norm-var"))  DoNormVar = 1;
+    else if (!strcasecmp(option, "--no-rev-face-order")) OKToRevFaceOrder = 0;
 
     else if (!strcmp(option, "--seed")) {
       if (nargc < 1) argnerr(option,1);
@@ -1507,6 +1519,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"fwhm-out   = %g\n",fwhm);
   fprintf(fp,"label-src  = %s\n",LabelFile_Input);
   fprintf(fp,"label-trg  = %s\n",LabelFile);
+  fprintf(fp,"OKToRevFaceOrder  = %d\n",OKToRevFaceOrder);
 
   return;
 }
