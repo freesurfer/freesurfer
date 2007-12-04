@@ -55,7 +55,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.11 2007/07/10 17:18:54 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.12 2007/12/04 18:03:57 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -730,6 +730,11 @@ set(handles.txSPMHRFNDeriv,'enable',SPMHRFEnable);
 set(handles.txSPMHRFNDeriv,'string',...
   sprintf('NDerivatives = %d',handles.flac.ana.nspmhrfderiv));
 set(handles.slSPMHRFNDeriv,'enable',SPMHRFEnable);
+
+if(~isfield(handles.flac.ana,'con'))
+  handles.flac.ana.con = [];
+end
+
 
 ncontrasts = length(handles.flac.ana.con);
 clear tmpstr;
