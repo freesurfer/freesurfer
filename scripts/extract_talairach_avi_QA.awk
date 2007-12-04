@@ -12,4 +12,5 @@ BEGIN {go = 0;}
 END {
 	for (k = 0; k < 12; k++) printf ("%5.0f", p[k]);
 	printf ("%10.5f\n", p[12]);
+	printf ("TalAviQA: %10.5f\n", p[12]);
 }
