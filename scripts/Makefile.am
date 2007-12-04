@@ -161,6 +161,7 @@ unpacksdcmdir \
 vno_match_check \
 vtk_setup \
 wfilemask \
+xhemireg \
 xsanatreg
 
 tcldir = $(prefix)/lib/tcl
