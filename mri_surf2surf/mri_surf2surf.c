@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/04 02:47:14 $
- *    $Revision: 1.66 $
+ *    $Date: 2007/12/04 18:30:46 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,11 +343,12 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.66 2007/12/04 02:47:14 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.67 2007/12/04 18:30:46 greve Exp $";
 char *Progname = NULL;
 
-char *surfregfile = NULL;
+char *srcsurfregfile = NULL;
 char *srchemi    = NULL;
+char *trgsurfregfile = NULL;
 char *trghemi    = NULL;
 
 char *srcsubject = NULL;
@@ -452,7 +453,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.66 2007/12/04 02:47:14 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.67 2007/12/04 18:30:46 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -495,10 +496,10 @@ int main(int argc, char **argv) {
     // Set source reg depending on whether hemis are same or diff
     // Changed to this on 11/30/97
     if (!strcmp(srchemi,trghemi)) // hemis are the same
-      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,surfregfile);
+      sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,srcsurfregfile);
     else // hemis are the different
       sprintf(fname,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,
-              srcsubject,srchemi,trghemi,surfregfile);
+              srcsubject,srchemi,trghemi,srcsurfregfile);
     printf("Reading source surface reg %s\n",fname);
     SrcSurfReg = MRISread(fname) ;
     if (cavtx > 0)
@@ -724,7 +725,7 @@ int main(int argc, char **argv) {
       // Use same target regardless of whether hemis are the same or diff
       // Changed to this on 11/30/97
       sprintf(fname,"%s/%s/surf/%s.%s",
-              SUBJECTS_DIR,trgsubject,trghemi,surfregfile);
+              SUBJECTS_DIR,trgsubject,trghemi,trgsurfregfile);
       printf("Reading target surface reg %s\n",fname);
       TrgSurfReg = MRISread(fname) ;
     }
@@ -1161,7 +1162,16 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (!strcmp(option, "--surfreg")) {
       if (nargc < 1) argnerr(option,1);
-      surfregfile = pargv[0];
+      srcsurfregfile = pargv[0];
+      trgsurfregfile = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--srcsurfreg")) {
+      if (nargc < 1) argnerr(option,1);
+      srcsurfregfile = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--trgsurfreg")) {
+      if (nargc < 1) argnerr(option,1);
+      trgsurfregfile = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--mapmethod")) {
       if (nargc < 1) argnerr(option,1);
@@ -1232,7 +1242,9 @@ static void print_usage(void) {
   printf("   --trgdist distfile : save distance from source to target vtx\n");
   printf("   --s subject : use subject as src and target\n");
   printf("   --hemi       hemisphere (lh or rh) \n");
-  printf("   --surfreg    surface registration (sphere.reg)  \n");
+  printf("   --surfreg    source and targ surface registration (sphere.reg)  \n");
+  printf("   --srcsurfreg source surface registration (sphere.reg)  \n");
+  printf("   --trgsurfreg target surface registration (sphere.reg)  \n");
   printf("   --mapmethod  nnfr or nnf\n");
   printf("   --frame      save only nth frame (with --trg_type paint)\n");
   printf("   --fwhm-src fwhmsrc: smooth the source to fwhmsrc\n");
@@ -1511,7 +1523,8 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"trgsubject = %s\n",trgsubject);
   fprintf(fp,"trgval     = %s\n",trgvalfile);
   fprintf(fp,"trgtype    = %s\n",trgtypestring);
-  fprintf(fp,"surfreg    = %s\n",surfregfile);
+  fprintf(fp,"srcsurfreg = %s\n",srcsurfregfile);
+  fprintf(fp,"trgsurfreg = %s\n",trgsurfregfile);
   fprintf(fp,"srchemi    = %s\n",srchemi);
   fprintf(fp,"trghemi    = %s\n",trghemi);
   fprintf(fp,"frame      = %d\n",framesave);
@@ -1590,8 +1603,11 @@ static void check_options(void) {
     }
   }
 
-  if (surfregfile == NULL) surfregfile = "sphere.reg";
-  else printf("Registration surface changed to %s\n",surfregfile);
+  if(srcsurfregfile == NULL) srcsurfregfile = "sphere.reg";
+  else printf("Source registration surface changed to %s\n",srcsurfregfile);
+
+  if(trgsurfregfile == NULL) trgsurfregfile = "sphere.reg";
+  else printf("Target registration surface changed to %s\n",trgsurfregfile);
 
   if (srchemi == NULL) {
     fprintf(stdout,"ERROR: no hemifield specified\n");
