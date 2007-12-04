@@ -1,0 +1,267 @@
+#!/bin/csh -f
+# xhemireg
+
+# Create a new subject from an existing subject by left-right reversal
+# of the volumes.
+#
+# surfaces: 
+#  Apply xfm: orig, white, pial, smoothwm, inflated
+#  Copy to contra hemi: area, area.pial, curv, curv.pial, avg_curv, 
+#     inflated.{H,K}, sulc, thickness, jacobian_white, aparc, aparc.a2005s
+#  Regenerate: qsphere, sphere, sphere.reg
+#  Not sure: before, after, defect, uncorrected, *.nofix
+#
+# volumes:
+#  Dont convert volumes in mri/orig
+#
+
+set VERSION = '$Id: xhemireg,v 1.1 2007/12/04 04:02:20 greve Exp $';
+
+set subject = ();
+set ipsi = ();
+set contra = ();
+set surfreg = xhemi.reg
+set UseNoNeg = 0
+set NoRandomness = 1;
+set RngSeed = 1234
+set PrintHelp = 0;
+set tmpdir = ();
+
+# For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
+set AvgCurvTifPath = "$FREESURFER_HOME/average"
+set AvgCurvTif = average.curvature.filled.buckner40.tif
+
+set cmdargs = ($argv);
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e -version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | egrep -e -help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set LF = $SUBJECTS_DIR/$subject/xhemireg.$ipsi.log
+if(-e $LF) mv $LF $LF.bak
+echo "Logfile is $LF"
+
+echo $0 | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+date | tee -a $LF
+uname -a | tee -a $LF
+pwd | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR "| tee -a $LF
+
+
+if($#tmpdir == 0) set tmpdir = $SUBJECTS_DIR/$subject/xhemireg.$ipsi.tmp.$$
+echo "tmpdir is $tmpdir" | tee -a $LF
+mkdir -p $tmpdir/mri
+mkdir -p $tmpdir/surf
+
+cd $SUBJECTS_DIR/$subject
+pwd | tee -a $LF
+
+#--------------------------------------------------------------
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+date | tee -a $LF
+set cmd = (mri_convert mri/orig.mgz $tmpdir/mri/orig.mgz --left-right-reverse)
+echo $cmd  | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+#--------------------------------------------------------------
+echo ""| tee -a $LF
+echo ""| tee -a $LF
+date| tee -a $LF
+set reg = $tmpdir/lrrev.register.dat
+set cmd = (tkregister2_cmdl --targ mri/orig.mgz \
+         --mov $tmpdir/mri/orig.mgz \
+         --reg $reg --regheader --noedit)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+
+#--------------------------------------------------------------
+foreach surf (orig white pial smoothwm inflated sphere)
+#foreach surf (orig white pial smoothwm inflated)
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+  date | tee -a $LF
+  set cmd = (mri_surf2surf --s $subject --sval-xyz $surf \
+   --hemi $ipsi --tval-xyz --tval $tmpdir/surf/$contra.$surf \
+   --reg $reg)
+  echo $cmd  | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+end
+
+#--------------------------------------------------------------
+foreach ov (area area.pial curv curv.pial avg_curv \
+     inflated.H inflated.K sulc thickness jacobian_white)
+  if(! -e surf/$ipsi.$ov) continue;
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+  date | tee -a $LF
+  set cmd = (cp surf/$ipsi.$ov $tmpdir/surf/$contra.$ov)
+  echo $cmd  | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+end
+
+#--------------------------------------------------------------
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+date | tee -a $LF
+set AvgTif = ${AvgCurvTifPath}/$contra.${AvgCurvTif}
+set cmd = (mris_register -curv)
+if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
+set cmd = ($cmd $tmpdir/surf/$contra.sphere $AvgTif $tmpdir/surf/$contra.sphere.reg)
+echo $cmd  | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+#--------------------------------------------------------------
+cp $tmpdir/surf/$contra.sphere.reg surf/$ipsi.$contra.xhemi.reg |& tee -a $LF
+if($status) exit 1;
+
+#--------------------------------------------------------------
+# Should cleanup here
+
+#--------------------------------------------------------------
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+date | tee -a $LF
+echo "xhemireg done"  | tee -a $LF
+
+exit 0
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--s":
+      if ( $#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--hemi":
+      if ( $#argv < 1) goto arg1err;
+      set ipsi = $argv[1]; shift;
+      breaksw
+
+    case "--lh":
+      set ipsi = lh;
+      set contra = rh;
+      breaksw
+
+    case "--rh":
+      set ipsi = rh;
+      set contra = lh;
+      breaksw
+
+    case "--reg":
+      if ( $#argv < 1) goto arg1err;
+      set surfreg = $argv[1]; shift;
+      breaksw
+
+    case "--tmp":
+      if ( $#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec a subject id"
+  exit 1;
+endif
+
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+
+if($#ipsi == 0) then
+  echo "ERROR: must spec a hemi"
+  exit 1;
+endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "xhemireg"
+  echo ""
+  echo "   --s subjid"
+  echo "   --lh : map from left to right "
+  echo "   --rh : map from right to left"
+  echo "   --reg surfreg : output will be ipsi.contra.surfreg (def xhemi.reg)"
+  echo ""
+  echo "   --tmp tmpdir  : temporary dir (implies --nocleanup)"
+  echo "   --nocleanup  : do not delete temporary files"
+  echo "   --version : print version and exit"
+  echo "   --help    : print help and exit"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
