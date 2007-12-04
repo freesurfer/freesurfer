@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/12/01 15:40:46 $
- *    $Revision: 1.579 $
+ *    $Author: greve $
+ *    $Date: 2007/12/04 02:30:49 $
+ *    $Revision: 1.580 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.579 2007/12/01 15:40:46 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.580 2007/12/04 02:30:49 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -28227,15 +28227,13 @@ MRIScomputeGraySurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth,
   fprintf(stdout, "mean pial surface=%2.1f, %d missing\n", mean_gray,nmissing);
   return(NO_ERROR) ;
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-int
-MRISreverse(MRI_SURFACE *mris, int which)
+/*-----------------------------------------------------*/
+/*! 
+  \fn int MRISreverse(MRI_SURFACE *mris, int which)
+  \brief Reverse sign of one of the dimensions of the surface coords.
+  If reversing X, the order of the verticies is also reversed.
+*/
+int MRISreverse(MRI_SURFACE *mris, int which)
 {
   int    vno ;
   float  x, y, z ;
@@ -28266,27 +28264,38 @@ MRISreverse(MRI_SURFACE *mris, int which)
     v->y = y ;
     v->z = z ;
   }
-  if (which == REVERSE_X)   /* swap order of faces */
-  {
-    int  fno, vno0, vno1, vno2 ;
-    FACE *f ;
+  if(which == REVERSE_X)   /* swap order of faces */
+    MRISreverseFaceOrder(mris);
 
-    for (fno = 0 ; fno < mris->nfaces ; fno++)
-    {
-      f = &mris->faces[fno] ;
-      vno0 = f->v[0] ;
-      vno1 = f->v[1] ;
-      vno2 = f->v[2] ;
-      f->v[0] = vno2 ;
-      f->v[1] = vno1 ;
-      f->v[2] = vno0 ;
-      mrisSetVertexFaceIndex(mris, vno0, fno) ;
-      mrisSetVertexFaceIndex(mris, vno1, fno) ;
-      mrisSetVertexFaceIndex(mris, vno2, fno) ;
-    }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------*/
+/*! 
+  \fn int MRISreverseFaceOrder(MRIS *mris)
+  \brief Reverse order of the vertices in each face. This
+  is needed when changing the sign of the x surface coord.
+*/
+int MRISreverseFaceOrder(MRIS *mris)
+{
+  int  fno, vno0, vno1, vno2 ;
+  FACE *f ;
+
+  for (fno = 0 ; fno < mris->nfaces ; fno++){
+    f = &mris->faces[fno] ;
+    vno0 = f->v[0] ;
+    vno1 = f->v[1] ;
+    vno2 = f->v[2] ;
+    f->v[0] = vno2 ;
+    f->v[1] = vno1 ;
+    f->v[2] = vno0 ;
+    mrisSetVertexFaceIndex(mris, vno0, fno) ;
+    mrisSetVertexFaceIndex(mris, vno1, fno) ;
+    mrisSetVertexFaceIndex(mris, vno2, fno) ;
   }
   return(NO_ERROR) ;
 }
+
+
 /*-----------------------------------------------------
   Parameters:
 
