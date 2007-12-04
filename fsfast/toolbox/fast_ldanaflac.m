@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/10/18 01:29:21 $
-%    $Revision: 1.26 $
+%    $Date: 2007/12/04 18:02:16 $
+%    $Revision: 1.27 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -101,6 +101,7 @@ nextreg = 0;
 nskip = 0;
 ncycles = [];
 delay = 0;
+timeoffset = 0;
 gammafit = 0;
 gamdelay = 0;
 gamtau = 0;
@@ -151,6 +152,7 @@ while(1)
    case '-timewindow', timewindow  = sscanf(tline,'%*s %d',1);
    case '-ncycles',    ncycles     = sscanf(tline,'%*s %d',1);
    case '-delay',      delay       = sscanf(tline,'%*s %f',1);
+   case '-timeoffset', timeoffset  = sscanf(tline,'%*s %f',1);
    case '-fwhm',       sscanf(tline,'%*s %f',1); % dont worry about it
    otherwise
     fprintf('INFO: key %s unrecognized, line %d, skipping\n',key,nthline);
@@ -158,6 +160,7 @@ while(1)
   nthline = nthline + 1;
 end % while (1)
 fclose(fp);
+
 
 if(isempty(flac.funcstem)) 
   fprintf('ERROR: no funcstem specified in %s\n',flacfile);
@@ -176,7 +179,8 @@ end
 if(isempty(flac.fsd)) flac.fsd = 'bold'; end 
 if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end 
 
-flac.stimulusdelay = delay;
+if(timeoffset ~= 0) flac.stimulusdelay = timeoffset; end
+if(delay ~= 0)      flac.stimulusdelay = delay; end
 
 ana.analysis     = analysis;
 ana.designtype   = designtype;
