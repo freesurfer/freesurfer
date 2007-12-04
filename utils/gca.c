@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/12/03 16:40:52 $
- *    $Revision: 1.237 $
+ *    $Date: 2007/12/04 01:49:25 $
+ *    $Revision: 1.238 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -242,7 +242,7 @@ static double gcaGibbsImageLogLikelihood(GCA *gca,
     MRI *mri_inputs,
     TRANSFORM *transform) ;
 
-static int mriFillRegion(MRI *mri, int x,int y,int z,int fill_val,int whalf);
+static int mriFillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf);
 static int gcaFindMaxPriors(GCA *gca, float *max_priors) ;
 static int gcaFindIntensityBounds(GCA *gca, float *pmin, float *pmax) ;
 static int dump_gcan(GCA *gca,
@@ -1282,7 +1282,6 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
   float xt, yt, zt;
   Real  xrt, yrt, zrt, xrn, yrn, zrn ;
   LTA *lta;
-  int  retval ;
 
   if (transform->type != MORPH_3D_TYPE)
   {
@@ -1305,18 +1304,26 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
   {
     TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
   }
-  retval = GCAvoxelToNodeReal(gca, gca->mri_tal__, xt, yt, zt, &xrn,&yrn,&zrn);
+  GCAvoxelToNodeReal(gca, gca->mri_tal__, xt, yt, zt, &xrn,&yrn,&zrn);
   *pxn = nint(xrn) ;
   *pyn = nint(yrn) ;
   *pzn = nint(zrn) ;
 
   if (Ggca_x == xv && Ggca_y == yv && Ggca_z == zv && DIAG_VERBOSE_ON)
+  {
     fprintf(stdout, "source (%d, %d, %d) to talposition (%.2f, %.2f, %.2f)\n",
             xv, yv, zv, xt, yt, zt);
-  fflush(stdout) ;
+    fflush(stdout) ;
+  }
+
+  if (*pxn < 0 || *pyn < 0 || *pzn < 0 ||
+      *pxn >= gca->node_width ||
+      *pyn >= gca->node_height ||
+      *pzn >= gca->node_depth)
+    return(ERROR_BADPARM) ;
 
   // get the position in node from the talairach position
-  return(retval) ;
+  return(NO_ERROR) ;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -4244,6 +4251,9 @@ GCAcomputeLogSampleProbability(GCA *gca,
     if (!GCApriorToSourceVoxel(gca, mri_inputs, transform,
                                xp, yp, zp, &x, &y, &z))
     {
+      if (x == Gx && y == Gy && z == Gz)
+        DiagBreak() ;
+
       // (x,y,z) is the source voxel position
       gcas[i].x = x ;
       gcas[i].y = y ;
@@ -4251,6 +4261,12 @@ GCAcomputeLogSampleProbability(GCA *gca,
       // get values from all inputs
       load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
       log_p = gcaComputeSampleLogDensity(&gcas[i], vals, gca->ninputs) ;
+      if (FZERO(vals[0]) && gcas[i].label == Gdiag_no)
+      {
+        if (fabs(log_p) < 5)
+          DiagBreak() ;
+        DiagBreak() ;
+      }
       total_log_p += log_p ;
       gcas[i].log_p = log_p ;
 
@@ -6029,6 +6045,54 @@ gcaFindClosestMeanSample(GCA *gca,
 }
 #endif
 
+// same as GCAtransformAndWriteSamples except here we write
+// the -logp into the volume instead of the seg label
+int
+GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri, 
+                                GCA_SAMPLE *gcas,int nsamples,
+                                char *fname,TRANSFORM *transform)
+{
+  int    n, xv, yv, zv ;
+  MRI    *mri_dst ;
+
+  mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
+  MRIcopyHeader(mri, mri_dst);
+
+  TransformInvert(transform, mri) ;
+  for (n = 0 ; n < nsamples ; n++)
+  {
+    if (gcas[n].label == Gdiag_no)
+      DiagBreak() ;
+    if (!GCApriorToSourceVoxel(gca, mri_dst, transform,
+                               gcas[n].xp, gcas[n].yp, gcas[n].zp,
+                               &xv, &yv, &zv))
+    {
+      mriFillRegion(mri_dst, xv, yv, zv, -gcas[n].log_p, 1) ;
+
+      if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
+        DiagBreak() ;
+
+      gcas[n].x = xv ;
+      gcas[n].y = yv ;
+      gcas[n].z = zv ;
+
+      //////////// diag /////////////////////////
+      if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
+        DiagBreak() ;
+      if (DIAG_VERBOSE_ON && Gdiag & DIAG_SHOW)
+        printf("label %d: (%d, %d, %d) <-- (%d, %d, %d)\n",
+               gcas[n].label,gcas[n].xp,gcas[n].yp,gcas[n].zp,
+               xv, yv, zv) ;
+      //////////////////////////////////////////////
+    }
+  }
+  fprintf(stdout, "writing sample pvals to %s...\n", fname) ;
+  MRIwrite(mri_dst, fname) ;
+  MRIfree(&mri_dst) ;
+  fflush(stdout) ;
+
+  return(NO_ERROR) ;
+}
 // create a volume mapped to the current mri volume
 int
 GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
@@ -6084,7 +6148,7 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
 }
 
 static int
-mriFillRegion(MRI *mri, int x, int y, int z, int fill_val, int whalf)
+mriFillRegion(MRI *mri, int x, int y, int z, float fill_val, int whalf)
 {
   int   xi, xk, yi, yk, zi, zk ;
 
@@ -6097,7 +6161,8 @@ mriFillRegion(MRI *mri, int x, int y, int z, int fill_val, int whalf)
       for (zk = -whalf ; zk <= whalf ; zk++)
       {
         zi = mri->zi[z+zk] ;
-        MRIvox(mri, xi, yi, zi) = fill_val ;
+        MRIsetVoxVal(mri, xi, yi, zi, 0, fill_val) ;
+        //        MRIvox(mri, xi, yi, zi) = fill_val ;
       }
     }
   }
