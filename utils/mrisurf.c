@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/12/04 02:30:49 $
- *    $Revision: 1.580 $
+ *    $Author: fischl $
+ *    $Date: 2007/12/05 18:31:37 $
+ *    $Revision: 1.581 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.580 2007/12/04 02:30:49 greve Exp $");
+  return("$Id: mrisurf.c,v 1.581 2007/12/05 18:31:37 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -6768,7 +6768,8 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   ------------------------------------------------------*/
 static float neg_area_ratios[] =
   {
-    1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-3, 1e-2, 5e-2,1e-1
+    //    1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-3, 1e-2, 5e-2,1e-1
+    1e-8, 1e-6, 1e-4, 1e-2, 1e-1
   } ;
 #define MAX_PASSES (sizeof(neg_area_ratios) / sizeof(neg_area_ratios[0]))
 static int
@@ -54755,7 +54756,7 @@ MRISdilateMarked(MRI_SURFACE *mris, int ndil)
 int
 MRISdilateRipped(MRI_SURFACE *mris, int ndil)
 {
-  int    vno, i, n, mx ;
+  int    vno, i, n ;
   VERTEX *v, *vn ;
 
   for (i = 0 ; i < ndil ; i++)
@@ -54763,19 +54764,22 @@ MRISdilateRipped(MRI_SURFACE *mris, int ndil)
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
-      v->tx = 0 ;
+      v->tx = v->ripflag ;
     }
 
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
-      mx =  v->ripflag ;
+      if (v->ripflag == 0)
+        continue ;
+
+      // turn on ripflag of all neighbors of this (ripped) vertex
       for (n = 0 ; n < v->vnum ; n++)
       {
         vn = &mris->vertices[v->v[n]] ;
-        mx = MAX(vn->ripflag, mx) ;
+        if (vn->ripflag == 0)
+          vn->tx = 1 ;
       }
-      v->tx = mx ;
     }
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
