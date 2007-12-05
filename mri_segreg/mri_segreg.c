@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/10/02 00:00:42 $
- *    $Revision: 1.19 $
+ *    $Date: 2007/12/05 22:17:19 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -123,6 +123,8 @@
 #endif
 
 int MRIsegReg(char *subject);
+int MRISsegReg(char *subject, int ForceReRun);
+
 double *GetCosts(MRI *mov, MRI *seg,
                  MATRIX *R0, MATRIX *R,
                  double *p, double *costs);
@@ -156,7 +158,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.19 2007/10/02 00:00:42 greve Exp $";
+"$Id: mri_segreg.c,v 1.20 2007/12/05 22:17:19 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -212,6 +214,12 @@ int ntx=0, nty=0, ntz=0, nax=0, nay=0, naz=0;
 double txlist[NMAX],tylist[NMAX],tzlist[NMAX];
 double axlist[NMAX],aylist[NMAX],azlist[NMAX];
 
+int UseSurf = 0;
+MRIS *lhwm, *rhwm, *lhctx, *rhctx;
+double SurfProj = 0.5;
+MRI *lhsegmask, *rhsegmask;
+
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
@@ -228,13 +236,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.19 2007/10/02 00:00:42 greve Exp $",
+     "$Id: mri_segreg.c,v 1.20 2007/12/05 22:17:19 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.19 2007/10/02 00:00:42 greve Exp $",
+     "$Id: mri_segreg.c,v 1.20 2007/12/05 22:17:19 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -300,6 +308,13 @@ int main(int argc, char **argv) {
     free(fspec);
   }
   segreg0 = segreg;
+
+  if(UseSurf){
+    MRISsegReg(subject,1);
+    exit(1);
+  }
+
+
 
   // Cropping reduces the size of the target volume down to the
   // voxels that really matter. This can greatly increase the speed
@@ -1205,7 +1220,6 @@ int MRIsegReg(char *subject)
   int c,r,s,n,nwm,nctx,segid,v,z=0,nErode3d;
   MRI *apas, *brain, *wm, *ctx, *segreg;
 
-
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
 
   printf("Reading aparc+aseg\n");
@@ -1299,6 +1313,211 @@ int MRIsegReg(char *subject)
   MRIfree(&wm);
   MRIfree(&ctx);
   MRIfree(&segreg);
+
+  return(0);
+}
+
+/*---------------------------------------------------------------*/
+int MRISsegReg(char *subject, int ForceReRun)
+{
+  extern MRI *lhsegmask, *rhsegmask;
+  extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
+  extern double SurfProj;
+  char *SUBJECTS_DIR;
+  char tmpstr[2000];
+  int c,r,s,n,v,z=0;
+  LABEL *label;
+  MRI *apas, *brain;
+  MRI *lhCortexLabel, *rhCortexLabel, *lhwmmask, *rhwmmask, *lhctxmask, *rhctxmask;
+  float  fx, fy, fz;
+  int ReRun=0;
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+
+  // Load the LH white surface, project it into WM and Ctx
+  printf("Loading lh.white surf\n");
+  sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
+  lhwm = MRISread(tmpstr);
+  if(lhwm == NULL) exit(1);
+  sprintf(tmpstr,"%s/%s/surf/lh.thickness",SUBJECTS_DIR,subject);
+  lhctx = MRISclone(lhwm);
+
+  printf("Loading lh.thickness\n");
+  err = MRISreadCurvatureFile(lhwm, tmpstr);
+  if(err) exit(1);
+
+  printf("Projecting LH Surfs by %g\n",SurfProj);
+  for(n = 0; n < lhwm->nvertices; n++){
+    ProjNormFracThick(&fx, &fy, &fz,lhwm,n,-SurfProj);
+    lhwm->vertices[n].x = fx;
+    lhwm->vertices[n].y = fy;
+    lhwm->vertices[n].z = fz;
+    ProjNormFracThick(&fx, &fy, &fz,lhctx,n,+SurfProj);
+    lhctx->vertices[n].x = fx;
+    lhctx->vertices[n].y = fy;
+    lhctx->vertices[n].z = fz;
+  }
+
+  // Load the RH white surface, project it into WM and Ctx
+  printf("Loading rh.white surf\n");
+  sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
+  rhwm = MRISread(tmpstr);
+  if(rhwm == NULL) exit(1);
+  rhctx = MRISclone(rhwm);
+
+  printf("Loading rh.thickness\n");
+  sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
+  err = MRISreadCurvatureFile(rhwm, tmpstr);
+  if(err) exit(1);
+
+  printf("Projecting RH Surfs by %g\n",SurfProj);
+  for(n = 0; n < rhwm->nvertices; n++){
+    ProjNormFracThick(&fx, &fy, &fz,rhwm,n,-SurfProj);
+    rhwm->vertices[n].x = fx;
+    rhwm->vertices[n].y = fy;
+    rhwm->vertices[n].z = fz;
+    ProjNormFracThick(&fx, &fy, &fz,rhctx,n,+SurfProj);
+    rhctx->vertices[n].x = fx;
+    rhctx->vertices[n].y = fy;
+    rhctx->vertices[n].z = fz;
+  }
+
+  // Determine whether segreg needs to be recomputed or not
+  ReRun = 0;
+  sprintf(tmpstr,"%s/%s/surf/lh.segreg.mgh",SUBJECTS_DIR,subject);
+  if(!fio_FileExistsReadable(tmpstr)) ReRun = 1;
+  sprintf(tmpstr,"%s/%s/surf/rh.segreg.mgh",SUBJECTS_DIR,subject);
+  if(!fio_FileExistsReadable(tmpstr)) ReRun = 1;
+
+  if(!ReRun && !ForceReRun){
+    printf("Surf segreg already exists, reading in\n");
+    sprintf(tmpstr,"%s/%s/surf/lh.segreg.mgh",SUBJECTS_DIR,subject);
+    lhsegmask = MRIread(tmpstr);
+    if(lhsegmask == NULL) exit(1);
+    sprintf(tmpstr,"%s/%s/surf/rh.segreg.mgh",SUBJECTS_DIR,subject);
+    rhsegmask = MRIread(tmpstr);
+    if(rhsegmask == NULL) exit(1);
+    return(0); // Return here
+  }
+  if(!ReRun && ForceReRun)
+    printf("Surf segreg already exists, but rerun forced\n");
+  else
+    printf("Surf segreg does not exist ... computing \n");
+
+
+  /* First, create a mask by zeroing the brainmask in dropout regions
+     then eroding that by 5 voxels. This gets rid of both the edges of
+     the brain and areas near the dropout.
+   */
+
+  printf("Reading aparc+aseg\n");
+  sprintf(tmpstr,"%s/%s/mri/aparc+aseg.mgz",SUBJECTS_DIR,subject);
+  apas = MRIread(tmpstr);
+  if(apas==NULL) exit(1);
+    
+  printf("Reading brainmask\n");
+  sprintf(tmpstr,"%s/%s/mri/brainmask.mgz",SUBJECTS_DIR,subject);
+  brain = MRIread(tmpstr);
+  if(brain==NULL) exit(1);
+    
+  printf("Zeroing B0 regions\n");
+  for(c=0; c < brain->width; c++){
+    for(r=0; r < brain->height; r++){
+      for(s=0; s < brain->depth; s++){
+	if(MRIgetVoxVal(brain,c,r,s,0) < 0.5) continue;
+	v = MRIgetVoxVal(apas,c,r,s,0);
+	z = 0;
+	if(v == 1006 || v == 2006) z = 1; // entorhinal
+	if(v == 1009 || v == 2009) z = 1; // inferiortemp
+	if(v == 1012 || v == 2012) z = 1; // lat orb front
+	if(v == 1014 || v == 2014) z = 1; // med orb front
+	if(v == 1016 || v == 2016) z = 1; // parahipp
+	if(v == 1032 || v == 2032) z = 1; // frontal pole
+	if(v == 1033 || v == 2033) z = 1; // temporal pole
+	if(z) MRIsetVoxVal(brain,c,r,s,0, 0);
+	else  MRIsetVoxVal(brain,c,r,s,0, 1);
+      }
+    }
+  }
+
+  printf("Eroding mask %d\n",5);
+  for(n=0; n < 5; n++) MRIerode(brain,brain);
+
+  // Now sample the new mask on the both the wm and ctx LH surfaces
+  lhwmmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
+			     lhwm, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0);
+  lhctxmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
+			      lhctx, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0);
+
+  // Load the LH cortex label
+  label = LabelRead(subject, "lh.cortex.label");
+  if(label == NULL) exit(1);
+  lhCortexLabel = MRISlabel2Mask(lhwm, label, NULL);
+  LabelFree(&label);
+
+  // Create the final mask by forcing each vertex to be in both
+  // the wm and ctx masks as well as in the cortex label
+  lhsegmask = MRIalloc(lhwm->nvertices,1,1,MRI_INT);
+  for(n = 0; n < lhwm->nvertices; n++){
+    if(MRIgetVoxVal(lhCortexLabel,n,0,0,0) < 0.5 ||
+       MRIgetVoxVal(lhwmmask,n,0,0,0) < 0.5 ||
+       MRIgetVoxVal(lhctxmask,n,0,0,0) < 0.5)
+      MRIsetVoxVal(lhsegmask,n,0,0,0,  0);
+    else
+      MRIsetVoxVal(lhsegmask,n,0,0,0,  1);
+  }
+
+  // Finally, Write out the mask 
+  sprintf(tmpstr,"%s/%s/surf/lh.segreg.mgh",SUBJECTS_DIR,subject);
+  MRIwrite(lhsegmask,tmpstr);
+
+  // -----------------------------------------------------
+  // Do the same thing for the RH 
+  // Load the RH cortex label
+  label = LabelRead(subject, "rh.cortex.label");
+  if(label == NULL) exit(1);
+  rhCortexLabel = MRISlabel2Mask(rhwm, label, NULL);
+  LabelFree(&label);
+
+  rhwmmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
+			     rhwm, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0);
+
+  rhctxmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
+			      rhctx, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0);
+
+  rhsegmask = MRIalloc(rhwm->nvertices,1,1,MRI_FLOAT);
+  for(n = 0; n < rhwm->nvertices; n++){
+    if(MRIgetVoxVal(rhCortexLabel,n,0,0,0) < 0.5 ||
+       MRIgetVoxVal(rhwmmask,n,0,0,0) < 0.5 ||
+       MRIgetVoxVal(rhctxmask,n,0,0,0) < 0.5)
+      MRIsetVoxVal(rhsegmask,n,0,0,0,  0);
+    else
+      MRIsetVoxVal(rhsegmask,n,0,0,0,  1);
+  }
+  sprintf(tmpstr,"%s/%s/surf/rh.segreg.mgh",SUBJECTS_DIR,subject);
+  MRIwrite(rhsegmask,tmpstr);
+
+  //-----------------------------------------------------------------
+
+  if(0) {
+    MRIwrite(brain,"be5.mgh");
+    MRIwrite(lhwmmask,"lh.wm.b5.mgh");
+    MRIwrite(lhctxmask,"lh.ctx.b5.mgh");
+    MRIwrite(rhctxmask,"rh.ctx.b5.mgh");
+    MRIwrite(rhwmmask,"rh.wm.b5.mgh");
+    MRISwrite(rhwm,"./rh.wm");
+    MRISwrite(rhctx,"./rh.ctx");
+    MRISwrite(lhwm,"./lh.wm");
+    MRISwrite(lhctx,"./lh.ctx");
+  }
+  MRIfree(&lhwmmask);
+  MRIfree(&lhctxmask);
+  MRIfree(&lhCortexLabel);
+  MRIfree(&rhctxmask);
+  MRIfree(&rhwmmask);
+  MRIfree(&rhCortexLabel);
+  MRIfree(&brain);
+  MRIfree(&apas);
 
   return(0);
 }
