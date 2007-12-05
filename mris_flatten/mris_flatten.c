@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/06 21:36:04 $
- *    $Revision: 1.31 $
+ *    $Author: fischl $
+ *    $Date: 2007/12/05 18:48:06 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "fastmarching.h"
 
 static char vcid[] =
-  "$Id: mris_flatten.c,v 1.31 2007/04/06 21:36:04 nicks Exp $";
+  "$Id: mris_flatten.c,v 1.32 2007/12/05 18:48:06 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -69,11 +69,11 @@ static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int randomly_flatten = 0 ;
 static int   nospring = 0 ;
 static float scale = 3 ;
-static int   max_passes = 3 ;
+static int   max_passes = 2 ;
 
 static int sphere_flag = 0 ;
 static int plane_flag = 0 ;
-
+static int dilate = 0 ;
 
 static int one_surf_flag = 0 ;
 static char *original_surf_name = SMOOTH_NAME ;
@@ -92,7 +92,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_flatten.c,v 1.31 2007/04/06 21:36:04 nicks Exp $",
+           "$Id: mris_flatten.c,v 1.32 2007/12/05 18:48:06 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -109,7 +109,7 @@ main(int argc, char *argv[])
   parms.tol = 0.2 ;
   parms.n_averages = 1024 ;
   parms.l_dist = 1.0 ;
-  parms.l_area = 1.0 ;
+  parms.l_nlarea = 1.0 ;
   parms.niterations = 40 ;
   parms.area_coef_scale = 1.0 ;
   parms.dt_increase = 1.01 /* DT_INCREASE */;
@@ -176,6 +176,14 @@ main(int argc, char *argv[])
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   }
 
+  if (Gdiag_no >= 0)
+  {
+    int n ;
+    printf("vertex %d has %d nbrs before patch:\n",
+           Gdiag_no, mris->vertices[Gdiag_no].vnum) ;
+    for (n = 0 ; n < mris->vertices[Gdiag_no].vnum ; n++)
+      printf("\t%d\n", mris->vertices[Gdiag_no].v[n]) ;
+  }
   if (one_surf_flag)  /* only have the 1 surface - no patch file */
   {
     mris->patch = 1 ;
@@ -190,21 +198,37 @@ main(int argc, char *argv[])
 
   } else
   {
-    if (MRISreadPatch(mris, in_patch_fname) != NO_ERROR)
+    if (MRISreadPatchNoRemove(mris, in_patch_fname) != NO_ERROR)
       ErrorExit(ERROR_BADPARM, "%s: could not read patch file %s",
                 Progname, in_patch_fname) ;
+    if (dilate)
+    {
+      printf("dilating patch %d times\n", dilate) ;
+      MRISdilateRipped(mris, dilate) ;
+      printf("%d valid vertices (%2.1f %% of total)\n",
+             MRISvalidVertices(mris), 100.0*MRISvalidVertices(mris)/mris->nvertices) ;
+    }
+    MRISremoveRipped(mris) ;
   }
 
   if (Gdiag_no >= 0)
     printf("vno %d is %sin patch\n", Gdiag_no,
            mris->vertices[Gdiag_no].ripflag ? "NOT " : "") ;
 
+  if (Gdiag_no >= 0 && mris->vertices[Gdiag_no].ripflag == 0)
+  {
+    int n ;
+    printf("vertex %d has %d nbrs after patch:\n",
+           Gdiag_no, mris->vertices[Gdiag_no].vnum) ;
+    for (n = 0 ; n < mris->vertices[Gdiag_no].vnum ; n++)
+      printf("\t%d\n", mris->vertices[Gdiag_no].v[n]) ;
+  }
   fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
     mrisDisturbVertices(mris, disturb) ;
   if (parms.niterations > 0)
   {
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    MRISresetNeighborhoodSize(mris, nbrs) ;
 
     if (!FZERO(parms.l_unfold) || !FZERO(parms.l_expand))
     {
@@ -328,6 +352,10 @@ get_option(int argc, char *argv[])
   {
     print_version() ;
   }
+  else if (!stricmp(option, "norand"))
+  {
+    setRandomSeed(0L) ;
+  }
   else if (!stricmp(option, "sphere"))
   {
     sphere_flag = 1 ;
@@ -341,6 +369,12 @@ get_option(int argc, char *argv[])
     rescale = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "rescaling brain by %2.3f\n", rescale) ;
+  }
+  else if (!stricmp(option, "dilate"))
+  {
+    dilate = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "dilating cuts %d times\n", dilate) ;
   }
   else if (!stricmp(option, "dist"))
   {
@@ -404,6 +438,12 @@ get_option(int argc, char *argv[])
     sscanf(argv[2], "%f", &parms.l_area) ;
     nargs = 1 ;
     fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
+  }
+  else if (!stricmp(option, "nlarea"))
+  {
+    sscanf(argv[2], "%f", &parms.l_nlarea) ;
+    nargs = 1 ;
+    fprintf(stderr, "using l_nlarea = %2.3f\n", parms.l_nlarea) ;
   }
   else if (!stricmp(option, "boundary"))
   {
