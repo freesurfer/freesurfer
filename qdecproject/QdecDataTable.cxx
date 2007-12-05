@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/10/10 20:48:45 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/12/05 20:01:22 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -165,7 +165,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
   if (fsidcol == -1)
   {
     printf("ERROR: QdecDataTable::Load could not find column named "
-           "'fsid' or 'ID' in %s!",
+           "'fsid' or 'ID' in %s!\n",
            isFileName);
     ifsDatFile.close();
     return (-1);
@@ -173,7 +173,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
   if (fsidcol != 0)
   {
     printf("ERROR: QdecDataTable::Load did not find a column named "
-           "'fsid', 'ID', or 'Subject' in the first column of %s!",
+           "'fsid', 'ID', or 'Subject' in the first column of %s!\n",
            isFileName);
     ifsDatFile.close();
     return (-1);
@@ -184,9 +184,10 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
    * Count the number of input rows (subjects)
    */
   int nInputs = 0;
-  while ( ifsDatFile.getline(tmpstr,tmpstrMaxSize).good() ) 
+  int getLineRet = 0;
+  while ( getLineRet = ifsDatFile.getline(tmpstr,tmpstrMaxSize).good() ) 
   {
-    if( tmpstr[0] != '#' ) nInputs++;
+    if( (strlen(tmpstr) > 2) && (tmpstr[0] != '#') ) nInputs++;
   }
 
   // --------------------------------------------------
@@ -195,6 +196,20 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
   printf("Number of factors:  %d\n",nFactors);
   printf("Number of subjects: %d\n",nInputs);
 
+  if (nInputs <= 0)
+  {
+    printf("ERROR: QdecDataTable::Load  number of subjects = %d!\n", nInputs);
+    ifsDatFile.close();
+    return (-1);
+  }
+  if ( (getLineRet == 0) && (strlen(tmpstr) > 2) )
+  {
+    printf("ERROR: QdecDataTable::Load  problem parsing file %s!\n", 
+           isFileName);
+    printf("This line did not appear to end with a newline:\n%s\n",tmpstr);
+    ifsDatFile.close();
+    return (-1);
+  }
 
   /*
    * read-in the factor names from the first non-commented line of input
