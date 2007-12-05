@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/23 18:19:55 $
- *    $Revision: 1.26 $
+ *    $Date: 2007/12/05 20:42:42 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.26 2007/07/23 18:19:55 greve Exp $
+  $Id: resample.c,v 1.27 2007/12/05 20:42:42 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another,
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -715,7 +715,8 @@ int ProjNormDistNbr(float *x, float *y, float *z, MRI_SURFACE *surf,
   it will project along the surface normal a distance equal to
   a fraction ProjFrac of the surface thickness at that point.
   If ProjDistFlag is set then ProjFrac is interpreted as an
-  absolute distance.
+  absolute distance. Qsrc is the tkreg ras2vox (can be NULL),
+  Dsrc is the register.dat, just set Fsrc and Wsrc to NULL.
   ------------------------------------------------------------*/
 MRI *vol2surf_linear(MRI *SrcVol,
                      MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc,
@@ -729,10 +730,16 @@ MRI *vol2surf_linear(MRI *SrcVol,
   int   irow_src, icol_src, islc_src; /* integer row, col, slc in source */
   float frow_src, fcol_src, fslc_src; /* float row, col, slc in source */
   float srcval, Tx, Ty, Tz;
-  int frm;
+  int frm, FreeQsrc=0;
   int vtx,nhits;
   float *valvect;
   Real rval;
+
+  if(Qsrc == NULL){
+    Qsrc = MRIxfmCRS2XYZtkreg(SrcVol);
+    Qsrc = MatrixInverse(Qsrc,Qsrc);
+    FreeQsrc = 1;
+  }
 
   /* compute the transforms */
   QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
@@ -868,6 +875,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
   MatrixFree(&Scrs);
   MatrixFree(&Txyz);
   free(valvect);
+  if(FreeQsrc) MatrixFree(&Qsrc);
 
   printf("vol2surf_linear: nhits = %d/%d\n",nhits,TrgSurf->nvertices);
 
