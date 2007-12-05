@@ -24,6 +24,7 @@ deface_subject \
 dicom-rename \
 dt_recon \
 epidewarp.fsl\
+extract_talairach_avi_QA.awk \
 feat2surf \
 findsession \
 fixup_mni_paths \
