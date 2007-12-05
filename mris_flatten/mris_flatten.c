@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/12/05 18:48:06 $
- *    $Revision: 1.32 $
+ *    $Date: 2007/12/05 18:49:02 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "fastmarching.h"
 
 static char vcid[] =
-  "$Id: mris_flatten.c,v 1.32 2007/12/05 18:48:06 fischl Exp $";
+  "$Id: mris_flatten.c,v 1.33 2007/12/05 18:49:02 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -92,7 +92,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_flatten.c,v 1.32 2007/12/05 18:48:06 fischl Exp $",
+           "$Id: mris_flatten.c,v 1.33 2007/12/05 18:49:02 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -633,6 +633,9 @@ print_help(void)
           " -distances <nbhd size> <# of vertices at each distance>\n\t"
           "specify size of neighborhood and number of vertices at each\n\t"
           "distance to be used in the optimization.\n") ;
+  fprintf(stderr,
+          " -dilate <# of dilations>\n\t"
+          "specify the number of times to dilate the ripped edges to ensure a clean cut\n") ;
   exit(1) ;
 }
 
