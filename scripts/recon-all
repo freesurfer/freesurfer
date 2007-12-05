@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/04 00:28:47 $
-#    $Revision: 1.149 $
+#    $Date: 2007/12/05 01:30:59 $
+#    $Revision: 1.150 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.149 2007/12/04 00:28:47 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.150 2007/12/05 01:30:59 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -861,18 +861,19 @@ if($DoTalCheck) then
   set qalog = ($subjdir/mri/transforms/talairach_avi_QA.log)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) then
-    $fs_time $cmd |& tee -a $LF >& $qalog
+    $fs_time $cmd >& $qalog
     if($status) goto error_exit;
     set talAviQA=`grep "TalAviQA" $qalog | awk '{print $2}'`
     echo "TalAviQA: ${talAviQA}" |& tee -a $LF
     set mean=(0.9787) # buckner40 mean TalAviQA
     set std=(0.0046)  # buckner40 std TalAviQA
     set zscore=`echo "scale=0;(${talAviQA} - ${mean}) / ${std}" | bc`
-    echo "z-score: $zscore"
+    echo "z-score: $zscore" |& tee -a $LF
     set zscoreThreshold=(-5) # conservative value, but catches M.Harms subj.
     if ($zscore < $zscoreThreshold) then
-        echo "ERROR: Talairach QA check failed!"
-        echo "       z-score = ${zscore} < ${zscoreThreshold} = threshold"
+        echo "ERROR: Talairach QA check failed!" |& tee -a $LF
+        echo "       z-score = ${zscore} < ${zscoreThreshold} = threshold" \
+             |& tee -a $LF
         goto error_exit;
     endif
   endif
