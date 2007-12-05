@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/05 20:01:22 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/12/05 20:58:29 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -112,6 +112,21 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
     return(-1);
   }
 
+  // the file might be in Mac text format, which uses CR as the end-of-line,
+  // so try getting a line, and if we reach end-of-file without getting a line,
+  // then try using the Mac delimiter 'CR' (instead of the default 'LF')
+#define UNIX_EOL 0x0A
+#define MAC_EOL  0x0D
+  char eol_delim = UNIX_EOL;
+  ifsDatFile.getline(tmpstr, tmpstrMaxSize, eol_delim);
+  if (ifsDatFile.eof())
+  {
+    printf("QdecDataTable::Load: will attempt to open as Mac text file...\n");
+    eol_delim =  MAC_EOL;
+  }
+  ifsDatFile.clear();
+  ifsDatFile.seekg( 0 ); // rewind
+
 #undef WHITESPC
 #define WHITESPC " ,\"\t\n\r"
 
@@ -120,7 +135,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
   tmpstr[0]='#';
   while( tmpstr[0] == '#' ) // ignore lines beginning with #
   {
-    ifsDatFile.getline(tmpstr, tmpstrMaxSize);
+    ifsDatFile.getline(tmpstr, tmpstrMaxSize, eol_delim);
     if (ifsDatFile.fail())
     {
       printf("ERROR: QdecDataTable::Load failed to load first line of %s!\n",
@@ -185,7 +200,8 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
    */
   int nInputs = 0;
   int getLineRet = 0;
-  while ( getLineRet = ifsDatFile.getline(tmpstr,tmpstrMaxSize).good() ) 
+  while ( getLineRet = 
+          ifsDatFile.getline(tmpstr, tmpstrMaxSize, eol_delim).good() ) 
   {
     if( (strlen(tmpstr) > 2) && (tmpstr[0] != '#') ) nInputs++;
   }
@@ -198,13 +214,13 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
 
   if (nInputs <= 0)
   {
-    printf("ERROR: QdecDataTable::Load  number of subjects = %d!\n", nInputs);
+    printf("ERROR: QdecDataTable::Load: number of subjects = %d!\n", nInputs);
     ifsDatFile.close();
     return (-1);
   }
   if ( (getLineRet == 0) && (strlen(tmpstr) > 2) )
   {
-    printf("ERROR: QdecDataTable::Load  problem parsing file %s!\n", 
+    printf("ERROR: QdecDataTable::Load: problem parsing file %s!\n", 
            isFileName);
     printf("This line did not appear to end with a newline:\n%s\n",tmpstr);
     ifsDatFile.close();
@@ -219,7 +235,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
   tmpstr[0]='#';
   while( tmpstr[0] == '#' ) // ignore lines beginning with # and SUBJECTS_DIR
   {
-    ifsDatFile.getline(tmpstr, tmpstrMaxSize);
+    ifsDatFile.getline(tmpstr, tmpstrMaxSize, eol_delim);
     if (ifsDatFile.fail() || (NULL==tmpstr))
     {
       fprintf(stderr,
@@ -288,7 +304,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
       printf("Reading discrete factor levels from config file %s...",
 	     fnLevels.str().c_str() );
       char tmpstr2[1000];
-      while ( ifsLevelFile.getline(tmpstr2,1000).good()  )
+      while ( ifsLevelFile.getline(tmpstr2,1000,UNIX_EOL).good()  )
       {
         if (strlen(tmpstr2) >= 1)
         {
@@ -344,7 +360,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
     tmpstr[0]='#';
     while( tmpstr[0] == '#' ) // ignore lines beginning with #
     {
-      ifsDatFile.getline(tmpstr, tmpstrMaxSize);
+      ifsDatFile.getline(tmpstr, tmpstrMaxSize, eol_delim);
       if (ifsDatFile.fail() || (NULL==tmpstr))
       {
         fprintf(stderr,
