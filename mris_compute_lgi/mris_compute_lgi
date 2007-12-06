@@ -14,8 +14,8 @@
 # Original Author: Marie Schaer
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/28 19:25:12 $
-#    $Revision: 1.15 $
+#    $Date: 2007/12/06 22:37:44 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,12 +30,13 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.15 2007/11/28 19:25:12 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.16 2007/12/06 22:37:44 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
 set tmpdir = tmp-mris_compute_lgi
 set use_mris_shrinkwrap = 0
+set use_mris_extract = 0
 set closespheresize = 15
 set smoothiters = 3
 set radius = 25
@@ -63,7 +64,6 @@ if($status) then
   echo "ERROR: Matlab is required to run mris_compute_lgi!"
   exit 1;
 endif
-
 
 # temporary work files go here...
 set cmd=(rm -Rf $tmpdir)
@@ -143,6 +143,25 @@ else
   if ( $RunIt && ! -e ${arg3} ) then
     echo "ERROR: make_outer_surface did not create output file '${arg3}'!"
     exit 1
+  endif
+
+  #
+  # mris_extract_main_component (optional)
+  #
+  if ($use_mris_extract) then
+    set cmd=(mris_extract_main_component 
+      ${tmpdir}/${input}-outer \
+      ${tmpdir}/${input}-outer-main)
+    echo "================="
+    echo "$cmd"
+    echo "================="
+    if ($RunIt) $cmd
+  else
+    set cmd=(cp ${tmpdir}/${input}-outer ${tmpdir}/${input}-outer-main)
+    echo "================="
+    echo "$cmd"
+    echo "================="
+    if ($RunIt) $cmd
   endif
 
   #
@@ -250,6 +269,7 @@ endif
 # compute_lgi.m
 #
 # finally, compute lGI measurements
+compute_lgi:
 set MLF = /tmp/clgi"_$$_".m
 set arg1 = ${input}
 set arg2 = ${input}-outer-smoothed
@@ -352,6 +372,10 @@ while( $#argv != 0 )
       set use_mris_shrinkwrap = 1
       breaksw
 
+   case "--use_mris_extract_main_component":
+      set use_mris_extract = 1
+      breaksw
+
    case "--debug":
    case "--echo":
       set echo = 1;
@@ -418,6 +442,7 @@ usage_exit:
   echo ""
   echo "Optional Arguments"
   echo "  --use_mris_shrinkwrap    : use mris_shrinkwrap to create outer surface"
+  echo "  --use_mris_extract_main_component : extract main component from outer surface"
   echo "  --close_sphere_size <mm> : use sphere of size <mm> mm for morph"
   echo "                             closing operation (default: ${closespheresize})"
   echo "  --smooth_iters <iters>   : smooth outer-surface <iters> number of"
