@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/06 01:16:44 $
- *    $Revision: 1.21 $
+ *    $Date: 2007/12/06 01:48:07 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -160,7 +160,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.21 2007/12/06 01:16:44 greve Exp $";
+"$Id: mri_segreg.c,v 1.22 2007/12/06 01:48:07 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -237,13 +237,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.21 2007/12/06 01:16:44 greve Exp $",
+     "$Id: mri_segreg.c,v 1.22 2007/12/06 01:48:07 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.21 2007/12/06 01:16:44 greve Exp $",
+     "$Id: mri_segreg.c,v 1.22 2007/12/06 01:48:07 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1625,8 +1625,10 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   costs[5] = sqrt(costs[5]/nhits);
   dmean = dsum/nhits;
   costs[6] = dmean;
+
+  // Penalize for sign here?
   if(dmean > 0)  costs[7] = 1/dmean;
-  else           costs[7] = 2/fabs(dmean);
+  else           costs[7] = 1/fabs(dmean);
 
   MatrixFree(&Mrot);
   MatrixFree(&Mtrans);
