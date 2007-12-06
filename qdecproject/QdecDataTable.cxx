@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/05 20:58:29 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/12/06 15:54:56 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -200,8 +200,8 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
    */
   int nInputs = 0;
   int getLineRet = 0;
-  while ( getLineRet = 
-          ifsDatFile.getline(tmpstr, tmpstrMaxSize, eol_delim).good() ) 
+  while ( (getLineRet = 
+           ifsDatFile.getline(tmpstr, tmpstrMaxSize, eol_delim).good()) ) 
   {
     if( (strlen(tmpstr) > 2) && (tmpstr[0] != '#') ) nInputs++;
   }
