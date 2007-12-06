@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/05 22:17:19 $
- *    $Revision: 1.20 $
+ *    $Date: 2007/12/06 01:16:44 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -128,6 +128,8 @@ int MRISsegReg(char *subject, int ForceReRun);
 double *GetCosts(MRI *mov, MRI *seg,
                  MATRIX *R0, MATRIX *R,
                  double *p, double *costs);
+double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
+		     double *p, double *costs);
 int Min1D(MRI *mov, MRI *seg,
           MATRIX *R, double *p, char *costfile, double *costs);
 float compute_powell_cost(float *p) ;
@@ -158,7 +160,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.20 2007/12/05 22:17:19 greve Exp $";
+"$Id: mri_segreg.c,v 1.21 2007/12/06 01:16:44 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -219,7 +221,6 @@ MRIS *lhwm, *rhwm, *lhctx, *rhctx;
 double SurfProj = 0.5;
 MRI *lhsegmask, *rhsegmask;
 
-
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
@@ -236,13 +237,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.20 2007/12/05 22:17:19 greve Exp $",
+     "$Id: mri_segreg.c,v 1.21 2007/12/06 01:16:44 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.20 2007/12/05 22:17:19 greve Exp $",
+     "$Id: mri_segreg.c,v 1.21 2007/12/06 01:16:44 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -309,12 +310,7 @@ int main(int argc, char **argv) {
   }
   segreg0 = segreg;
 
-  if(UseSurf){
-    MRISsegReg(subject,1);
-    exit(1);
-  }
-
-
+  if(UseSurf) MRISsegReg(subject,0);
 
   // Cropping reduces the size of the target volume down to the
   // voxels that really matter. This can greatly increase the speed
@@ -400,7 +396,8 @@ int main(int argc, char **argv) {
 
   // Compute cost at initial
   for(nth=0; nth < 6; nth++) p[nth] = 0.0;
-  GetCosts(mov, segreg, R0, R, p, costs);
+  if(!UseSurf)  GetCosts(mov,     segreg, R0, R, p, costs);
+  else          GetSurfCosts(mov, segreg, R0, R, p, costs);
 
   printf("Initial cost is %lf\n",costs[7]);
   printf("Initial Costs\n");
@@ -410,7 +407,6 @@ int main(int argc, char **argv) {
          (int)costs[3],costs[4],costs[5]); // CTX n mean std
   printf("%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
   printf("\n");
-
 
   TimerStart(&mytimer) ;
   if(DoPowell) {
@@ -432,7 +428,9 @@ int main(int argc, char **argv) {
   secCostTime = TimerStop(&mytimer)/1000.0 ;
 
   // Recompute at optimal. This forces MRI *out to be the output at best reg
-  GetCosts(mov, segreg, R0, R, p, costs);
+  if(!UseSurf)  GetCosts(mov,     segreg, R0, R, p, costs);
+  else          GetSurfCosts(mov, segreg, R0, R, p, costs);
+  
 
   printf("Min cost was %lf\n",costs[7]);
   printf("Number of iterations %5d in %lf sec\n",nth,secCostTime);
@@ -615,6 +613,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--powell"))   DoPowell = 1;
     else if (!strcasecmp(option, "--no-powell")) DoPowell = 0;
     else if (!strcasecmp(option, "--1dmin"))     DoPowell = 0;
+    else if (!strcasecmp(option, "--surf")){
+      UseSurf = 1;
+      DoCrop = 0;
+    }
+    else if (!strcasecmp(option, "--no-surf"))   UseSurf = 0;
     else if (istringnmatch(option, "--mov",0)) {
       if (nargc < 1) argnerr(option,1);
       movvolfile = pargv[0];
@@ -1007,6 +1010,7 @@ double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
 int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
           char *costfile, double *costs)
 {
+  extern int UseSurf;
   double q, q0, pp[6], c, copt=0, qopt=0, costsopt[8], qdelta;
   int nthp, nth, n, hit, nthq;
   MATRIX *R0, *Rtmp;
@@ -1022,7 +1026,9 @@ int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
   R0 = MatrixCopy(R,NULL);
   Rtmp = MatrixAlloc(4,4,MATRIX_REAL);
 
-  GetCosts(mov, seg, R0, Rtmp, pp, costs);
+  if(!UseSurf)  GetCosts(    mov, seg, R0, Rtmp, pp, costs);
+  else          GetSurfCosts(mov, seg, R0, Rtmp, pp, costs);
+  
   copt = costs[7];
 
   fp = stdout;
@@ -1166,20 +1172,27 @@ float compute_powell_cost(float *p)
   static int nth=0;
   static double copt = -1;
   double costs[8], pp[6];
-  int n;
+  int n, newopt;
   FILE *fp;
 
   if(R==NULL) R = MatrixAlloc(4,4,MATRIX_REAL);
   for(n=0; n < 6; n++) pp[n] = p[n+1];
 
-  GetCosts(mov_powell, seg_powell, R0_powell, R, pp, costs);
+  
+  if(!UseSurf)  GetCosts(mov_powell,     seg_powell, R0_powell, R, pp, costs);
+  else          GetSurfCosts(mov_powell, seg_powell, R0_powell, R, pp, costs);
 
   // This is for a fast check on convergence
   //costs[7] = 0;
   //for(n=0; n < 6; n++) costs[7] += ((pp[n]-n)*(pp[n]-n)+1);
 
   if(copt == -1) copt = costs[7];
-  if(copt > costs[7]) copt = costs[7];
+  newopt = 0;
+  if(copt > costs[7]){
+    copt = costs[7];
+    newopt = 1;
+  }
+
 
   if(costfile_powell != NULL){
     // write costs to file
@@ -1196,17 +1209,19 @@ float compute_powell_cost(float *p)
     fclose(fp);
   }
 
-  fp = stdout;
-  fprintf(fp,"%4d ",nth);
-  fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
-  fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
-  fprintf(fp,"%7d %10.4lf %8.4lf ",
-	  (int)costs[0],costs[1],costs[2]); // WM  n mean std
-  fprintf(fp,"%7d %10.4lf %8.4lf ",
-	  (int)costs[3],costs[4],costs[5]); // CTX n mean std
-  fprintf(fp,"%8.4lf %8.5lf   %8.5lf ",costs[6],costs[7],copt); // t, cost=1/t
-  fprintf(fp,"\n");
-  fflush(stdout);
+  if(newopt){
+    fp = stdout;
+    fprintf(fp,"%4d ",nth);
+    fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
+    fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+    fprintf(fp,"%7d %10.4lf %8.4lf ",
+	    (int)costs[0],costs[1],costs[2]); // WM  n mean std
+    fprintf(fp,"%7d %10.4lf %8.4lf ",
+	    (int)costs[3],costs[4],costs[5]); // CTX n mean std
+    fprintf(fp,"%8.4lf %8.5lf   %8.5lf ",costs[6],costs[7],copt); // t, cost=1/t
+    fprintf(fp,"\n");
+    fflush(stdout); 
+  }
 
   nth++;
   return((float)costs[7]);
@@ -1339,20 +1354,21 @@ int MRISsegReg(char *subject, int ForceReRun)
   sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
   lhwm = MRISread(tmpstr);
   if(lhwm == NULL) exit(1);
-  sprintf(tmpstr,"%s/%s/surf/lh.thickness",SUBJECTS_DIR,subject);
-  lhctx = MRISclone(lhwm);
+  lhctx = MRISread(tmpstr);
 
   printf("Loading lh.thickness\n");
+  sprintf(tmpstr,"%s/%s/surf/lh.thickness",SUBJECTS_DIR,subject);
   err = MRISreadCurvatureFile(lhwm, tmpstr);
   if(err) exit(1);
+  err = MRISreadCurvatureFile(lhctx, tmpstr);
 
   printf("Projecting LH Surfs by %g\n",SurfProj);
   for(n = 0; n < lhwm->nvertices; n++){
-    ProjNormFracThick(&fx, &fy, &fz,lhwm,n,-SurfProj);
+    ProjNormFracThick(&fx, &fy, &fz, lhwm,  n, -SurfProj);
     lhwm->vertices[n].x = fx;
     lhwm->vertices[n].y = fy;
     lhwm->vertices[n].z = fz;
-    ProjNormFracThick(&fx, &fy, &fz,lhctx,n,+SurfProj);
+    ProjNormFracThick(&fx, &fy, &fz, lhctx, n, +SurfProj);
     lhctx->vertices[n].x = fx;
     lhctx->vertices[n].y = fy;
     lhctx->vertices[n].z = fz;
@@ -1363,20 +1379,21 @@ int MRISsegReg(char *subject, int ForceReRun)
   sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
   rhwm = MRISread(tmpstr);
   if(rhwm == NULL) exit(1);
-  rhctx = MRISclone(rhwm);
+  rhctx = MRISread(tmpstr);
 
   printf("Loading rh.thickness\n");
   sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
   err = MRISreadCurvatureFile(rhwm, tmpstr);
   if(err) exit(1);
+  err = MRISreadCurvatureFile(rhctx, tmpstr);
 
   printf("Projecting RH Surfs by %g\n",SurfProj);
   for(n = 0; n < rhwm->nvertices; n++){
-    ProjNormFracThick(&fx, &fy, &fz,rhwm,n,-SurfProj);
+    ProjNormFracThick(&fx, &fy, &fz, rhwm,n,-SurfProj);
     rhwm->vertices[n].x = fx;
     rhwm->vertices[n].y = fy;
     rhwm->vertices[n].z = fz;
-    ProjNormFracThick(&fx, &fy, &fz,rhctx,n,+SurfProj);
+    ProjNormFracThick(&fx, &fy, &fz, rhctx,n,+SurfProj);
     rhctx->vertices[n].x = fx;
     rhctx->vertices[n].y = fy;
     rhctx->vertices[n].z = fz;
@@ -1521,3 +1538,103 @@ int MRISsegReg(char *subject, int ForceReRun)
 
   return(0);
 }
+
+/*-------------------------------------------------------*/
+double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
+		     double *p, double *costs)
+{
+  extern MRI *out, *inorm;
+  extern int interpcode, sinchw;
+  extern MRI *lhsegmask, *rhsegmask;
+  extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
+  double angles[3],dsum,dmean,vwm,vctx;
+  MATRIX *Mrot=NULL, *Mtrans=NULL;
+  MRI *vlhwm, *vlhctx, *vrhwm, *vrhctx;
+  int nhits,n;
+
+  if(R==NULL){
+    printf("ERROR: GetSurfCosts(): R cannot be NULL\n");
+    return(NULL);
+  }
+
+  Mtrans = MatrixIdentity(4,NULL);
+  Mtrans->rptr[1][4] = p[0];
+  Mtrans->rptr[2][4] = p[1];
+  Mtrans->rptr[3][4] = p[2];
+
+  angles[0] = p[3]*(M_PI/180);
+  angles[1] = p[4]*(M_PI/180);
+  angles[2] = p[5]*(M_PI/180);
+  Mrot = MRIangles2RotMat(angles);
+
+  // R = Mtrans*Mrot*R0
+  R = MatrixMultiply(Mrot,R0,R);
+  R = MatrixMultiply(Mtrans,R,R);
+
+  //printf("Trans: %g %g %g\n",p[0],p[1],p[2]);
+  //printf("Rot:   %g %g %g\n",p[3],p[4],p[5]);
+
+  vlhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
+			  lhwm, 0,SAMPLE_TRILINEAR, 
+			  FLT2INT_ROUND, NULL, 0);
+  vlhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
+			  lhctx, 0,SAMPLE_TRILINEAR, 
+			  FLT2INT_ROUND, NULL, 0);
+  vrhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
+			  rhwm, 0,SAMPLE_TRILINEAR, 
+			  FLT2INT_ROUND, NULL, 0);
+  vrhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
+			  rhctx, 0,SAMPLE_TRILINEAR, 
+			  FLT2INT_ROUND, NULL, 0);
+
+  for(n = 0; n < 8; n++) costs[n] = 0;
+  dsum = 0.0;
+  nhits = 0;
+
+  for(n = 0; n < lhwm->nvertices; n++){
+    if(MRIgetVoxVal(lhsegmask,n,0,0,0) < 0.5) continue;
+    vwm = MRIgetVoxVal(vlhwm,n,0,0,0);
+    if(vwm == 0.0) continue;
+    vctx = MRIgetVoxVal(vlhctx,n,0,0,0);
+    if(vctx == 0.0) continue;
+    nhits++;
+    costs[1] += vwm;
+    costs[2] += (vwm*vwm);
+    costs[4] += vctx;
+    costs[5] += (vctx*vctx);
+    dsum += (vctx-vwm);
+  }
+  for(n = 0; n < rhwm->nvertices; n++){
+    if(MRIgetVoxVal(rhsegmask,n,0,0,0) < 0.5) continue;
+    vwm = MRIgetVoxVal(vrhwm,n,0,0,0);
+    if(vwm == 0.0) continue;
+    vctx = MRIgetVoxVal(vrhctx,n,0,0,0);
+    if(vctx == 0.0) continue;
+    nhits++;
+    costs[1] += vwm;
+    costs[2] += (vwm*vwm);
+    costs[4] += vctx;
+    costs[5] += (vctx*vctx);
+    dsum += (vctx-vwm);
+  }
+  costs[0] = nhits;
+  costs[1] = costs[1]/nhits;
+  costs[2] = sqrt(costs[2]/nhits);
+  costs[3] = nhits;
+  costs[4] = costs[4]/nhits;
+  costs[5] = sqrt(costs[5]/nhits);
+  dmean = dsum/nhits;
+  costs[6] = dmean;
+  if(dmean > 0)  costs[7] = 1/dmean;
+  else           costs[7] = 2/fabs(dmean);
+
+  MatrixFree(&Mrot);
+  MatrixFree(&Mtrans);
+  MRIfree(&vlhwm);
+  MRIfree(&vlhctx);
+  MRIfree(&vrhwm);
+  MRIfree(&vrhctx);
+
+  return(costs);
+}
+
