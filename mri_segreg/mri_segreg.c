@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/06 01:48:07 $
- *    $Revision: 1.22 $
+ *    $Date: 2007/12/06 18:28:15 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -37,6 +37,8 @@
   --o out : save final output
   --out-reg outreg : reg at lowest cost
   --cost costfile
+  --sum sumfile : def is outreg.sum
+  --no-surf : do not use surface-based method
 
   --frame nthframe : use given frame in input (default = 0)
 
@@ -95,6 +97,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/utsname.h>
 
 #include "macros.h"
 #include "error.h"
@@ -160,7 +163,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.22 2007/12/06 01:48:07 greve Exp $";
+"$Id: mri_segreg.c,v 1.23 2007/12/06 18:28:15 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -168,6 +171,8 @@ int debug = 0, gdiagno = -1;
 char *movvolfile=NULL;
 char *regfile=NULL;
 char *outregfile=NULL;
+char *sumfile=NULL;
+
 char *interpmethod = "trilinear";
 int   interpcode = 0;
 int   sinchw;
@@ -216,10 +221,12 @@ int ntx=0, nty=0, ntz=0, nax=0, nay=0, naz=0;
 double txlist[NMAX],tylist[NMAX],tzlist[NMAX];
 double axlist[NMAX],aylist[NMAX],azlist[NMAX];
 
-int UseSurf = 0;
+int UseSurf = 1;
 MRIS *lhwm, *rhwm, *lhctx, *rhctx;
 double SurfProj = 0.5;
 MRI *lhsegmask, *rhsegmask;
+char *cmdline2;
+struct utsname uts;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -227,25 +234,28 @@ int main(int argc, char **argv) {
   double costs[8], mincost, p[6];
   double tx, ty, tz, ax, ay, az;
   int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz, ntot, n, err;
-  FILE *fp;
   MATRIX *Ttemp=NULL, *invTtemp=NULL, *Stemp=NULL, *invStemp=NULL;
   MATRIX *R=NULL, *Rcrop=NULL, *R00=NULL, *Rdiff=NULL;
   MATRIX *Rmin=NULL, *Scrop=NULL, *invScrop=NULL, *invTcrop=NULL, *Tcrop=NULL;
   struct timeb  mytimer;
   double secCostTime;
   MRI_REGION box;
+  FILE *fp;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.22 2007/12/06 01:48:07 greve Exp $",
+     "$Id: mri_segreg.c,v 1.23 2007/12/06 18:28:15 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.22 2007/12/06 01:48:07 greve Exp $",
+     "$Id: mri_segreg.c,v 1.23 2007/12/06 18:28:15 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
+
+  cmdline2 = argv2cmdline(argc,argv);
+  uname(&uts);
 
   Progname = argv[0] ;
   argc --;
@@ -260,9 +270,10 @@ int main(int argc, char **argv) {
   check_options();
   dump_options(stdout);
 
-  printf("Input reg\n");
-  MatrixPrint(stdout,R0);
-  printf("\n");
+  fp = fopen(sumfile,"w");
+  dump_options(fp);
+  fflush(fp);
+
   R00 = MatrixCopy(R0,NULL);
 
   printf("Loading mov\n");
@@ -281,6 +292,12 @@ int main(int argc, char **argv) {
     if(inorm == NULL) exit(1);
   }
 
+  if(UseSurf){
+    MRISsegReg(subject,0);
+    sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
+    segreg = MRIread(tmpstr); // Just need a template
+    if(segreg == NULL) exit(1);
+  } else {
   if(!UseASeg){
     if(!MkSegReg){
       printf("Loading segreg\n");
@@ -308,9 +325,9 @@ int main(int argc, char **argv) {
     if(segreg == NULL) exit(1);
     free(fspec);
   }
+  }
   segreg0 = segreg;
 
-  if(UseSurf) MRISsegReg(subject,0);
 
   // Cropping reduces the size of the target volume down to the
   // voxels that really matter. This can greatly increase the speed
@@ -380,12 +397,13 @@ int main(int argc, char **argv) {
     if (SynthSeed < 0) SynthSeed = PDFtodSeed();
     srand48(SynthSeed);
     printf("Adding noise, Seed = %d, stddev = %lf\n",SynthSeed,NoiseStd);
+    fprintf(fp,"Adding noise, Seed = %d, stddev = %lf\n",SynthSeed,NoiseStd);
     noise = MRIrandn(mov->width,mov->height,mov->depth,mov->nframes,
                      0,NoiseStd,NULL);
     mov = MRIadd(mov, noise, mov);
   }
 
-  R   = MatrixCopy(R0,NULL);
+  R = MatrixCopy(R0,NULL);
 
   // Allocate the output
   out = MRIallocSequence(segreg->width,
@@ -407,6 +425,16 @@ int main(int argc, char **argv) {
          (int)costs[3],costs[4],costs[5]); // CTX n mean std
   printf("%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
   printf("\n");
+
+  fprintf(fp,"Initial cost is %lf\n",costs[7]);
+  fprintf(fp,"Initial Costs\n");
+  fprintf(fp,"%7d %10.4lf %8.4lf ",
+         (int)costs[0],costs[1],costs[2]); // WM  n mean std
+  fprintf(fp,"%7d %10.4lf %8.4lf ",
+         (int)costs[3],costs[4],costs[5]); // CTX n mean std
+  fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
+  fprintf(fp,"\n");
+  fflush(fp);
 
   TimerStart(&mytimer) ;
   if(DoPowell) {
@@ -433,8 +461,9 @@ int main(int argc, char **argv) {
   
 
   printf("Min cost was %lf\n",costs[7]);
-  printf("Number of iterations %5d in %lf sec\n",nth,secCostTime);
-  printf("Parameters at optimum\n");
+  printf("Number of iterations %5d\n",nth);
+  printf("Optmization time %lf sec\n",secCostTime);
+  printf("Parameters at optimum (transmm, rotdeg)\n");
   printf("%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
 	 p[0],p[1],p[2],p[3],p[4],p[5]);
   printf("Costs at optimum\n");
@@ -449,6 +478,24 @@ int main(int argc, char **argv) {
   MatrixPrint(stdout,R);
   printf("\n");
   
+  fprintf(fp,"Min cost was %lf\n",costs[7]);
+  fprintf(fp,"Number of iterations %5d\n",nth);
+  fprintf(fp,"Optmization time %lf sec\n",secCostTime);
+  fprintf(fp,"Parameters at optimum (transmm, rotdeg)\n");
+  fprintf(fp,"%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
+	 p[0],p[1],p[2],p[3],p[4],p[5]);
+  fprintf(fp,"Costs at optimum\n");
+  fprintf(fp,"%7d %10.4lf %8.4lf ",
+	 (int)costs[0],costs[1],costs[2]); // WM  n mean std
+  fprintf(fp,"%7d %10.4lf %8.4lf ",
+	 (int)costs[3],costs[4],costs[5]); // CTX n mean std
+  fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
+  fprintf(fp,"\n");
+  
+  fprintf(fp,"Reg at min cost was \n");
+  MatrixPrint(fp,R);
+  fprintf(fp,"\n");
+  
   if(DoCrop){
     printf("Uncropping reg\n");
     // R = Rc*Tc*inv(Sc)*S*inv(T)
@@ -462,6 +509,13 @@ int main(int argc, char **argv) {
     printf("\n");
   }
   
+  if(outregfile){
+    printf("Writing optimal reg to %s \n",outregfile);
+    fflush(stdout);
+    regio_write_register(outregfile,subject,mov->xsize,
+			 mov->zsize,1,R,FLT2INT_ROUND);
+  }
+  
   if(outfile) {
     // This changes values in segreg0
     printf("Writing output volume to %s \n",outfile);
@@ -471,13 +525,6 @@ int main(int argc, char **argv) {
     MRIwrite(segreg0,outfile);
   }
 
-  if(outregfile){
-    printf("Writing optimal reg to %s \n",outregfile);
-    fflush(stdout);
-    regio_write_register(outregfile,subject,mov->xsize,
-			 mov->zsize,1,R,FLT2INT_ROUND);
-  }
-  
   printf("Original Reg \n");
   fflush(stdout);
   MatrixPrint(stdout,R00);
@@ -487,11 +534,16 @@ int main(int argc, char **argv) {
   printf("Original Reg - Optimal Reg\n");
   MatrixPrint(stdout,Rdiff);
   printf("\n");
+
+  fprintf(fp,"Original Reg - Optimal Reg\n");
+  MatrixPrint(fp,Rdiff);
+  fprintf(fp,"\n");
+  fclose(fp);
   
   printf("mri_segreg done\n");
 
   exit(0);
-  /*-----------------------------------------------------*/
+  /*- end main ----------------------------------------------------*/
 
   ntot = ntx*nty*ntz*nax*nay*naz;
   printf("Staring loop over %d\n",ntot);
@@ -661,6 +713,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       outregfile = pargv[0];
       nargsused = 1;
+    } else if (istringnmatch(option, "--sum",0)) {
+      if (nargc < 1) argnerr(option,1);
+      sumfile = pargv[0];
+      nargsused = 1;
     } else if (istringnmatch(option, "--noise",0)) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&NoiseStd);
@@ -797,6 +853,8 @@ printf("\n");
 printf("  --o out : save final output\n");
 printf("  --out-reg outreg : reg at lowest cost\n");
 printf("  --cost costfile\n");
+printf("  --sum sumfile : def is outreg.sum\n");
+printf("  --no-surf : do not use surface-based method\n");
 printf("\n");
 printf("  --frame nthframe : use given frame in input (default = 0)\n");
 printf("\n");
@@ -818,7 +876,6 @@ printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
 printf("\n");
 printf("  --mksegreg subject : create segreg.mgz and exit\n");
 printf("\n");
-  
 }
 /* --------------------------------------------- */
 static void print_help(void) {
@@ -839,8 +896,12 @@ static void check_options(void)
     printf("ERROR: No mov volume supplied.\n");
     exit(1);
   }
-  if (regfile == NULL) {
+  if(regfile == NULL) {
     printf("ERROR: need --reg.\n");
+    exit(1);
+  }
+  if(outregfile == NULL) {
+    printf("ERROR: need --out-reg.\n");
     exit(1);
   }
   if (SegRegCostFile == NULL) {
@@ -853,6 +914,11 @@ static void check_options(void)
     printf("ERROR: interpolation method %s unrecognized\n",interpmethod);
     printf("       legal values are nearest, trilin, and sinc\n");
     exit(1);
+  }
+
+  if(sumfile == NULL) {
+    sprintf(tmpstr,"%s.sum",outregfile);
+    sumfile = strcpyalloc(tmpstr);
   }
 
   if(ntx == 0) {ntx=1; txlist[0] = 0;}
@@ -868,20 +934,35 @@ static void check_options(void)
 static void dump_options(FILE *fp)
 {
   int n;
+  fprintf(fp,"setenv SUBJECTS_DIR %s\n",SUBJECTS_DIR);
+  fprintf(fp,"cd %s\n",getcwd(tmpstr,sizeof(tmpstr)));
+  fprintf(fp,"%s\n",cmdline2);
+  fprintf(fp,"sysname  %s\n",uts.sysname);
+  fprintf(fp,"hostname %s\n",uts.nodename);
+  fprintf(fp,"machine  %s\n",uts.machine);
+  fprintf(fp,"user     %s\n",VERuser());
   fprintf(fp,"movvol %s\n",movvolfile);
   fprintf(fp,"regfile %s\n",regfile);
+  fprintf(fp,"subject %s\n",subject);
   if(inormfile) fprintf(fp,"inorm %s\n",inormfile);
   if(outregfile) fprintf(fp,"outregfile %s\n",outregfile);
+  if(outfile) fprintf(fp,"outfile %s\n",outfile);
+  fprintf(fp,"UseSurf %d\n",UseSurf);
   fprintf(fp,"interp  %s (%d)\n",interpmethod,interpcode);
   fprintf(fp,"frame  %d\n",frame);
   fprintf(fp,"DoPowell  %d\n",DoPowell);
   fprintf(fp,"TolPowell %lf\n",TolPowell);
-  fprintf(fp," nMaxItersPowell %d\n",nMaxItersPowell);
+  fprintf(fp,"nMaxItersPowell %d\n",nMaxItersPowell);
   fprintf(fp,"n1dmin  %d\n",n1dmin);
   if(interpcode == SAMPLE_SINC) fprintf(fp,"sinc hw  %d\n",sinchw);
   fprintf(fp,"Crop      %d\n",DoCrop);
   fprintf(fp,"Profile   %d\n",DoProfile);
   fprintf(fp,"Gdiag_no  %d\n",Gdiag_no);
+  fprintf(fp,"AddNoise  %d (%g)\n",AddNoise,NoiseStd);
+  fprintf(fp,"Input reg\n");
+  MatrixPrint(fp,R0);
+  fprintf(fp,"\n");
+
   if(0){
     fprintf(fp,"ntx %d\n",ntx);
     if(ntx > 0){
