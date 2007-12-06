@@ -4,14 +4,16 @@
 # make_cortex_label
 #
 # Creates a label for cortex from Christophe's parcellation (eveything but 
-# Medial_wall). The name is currently ?h.cortex2.label. Also copies
-# ?h.Medial_wall.label to label dir.
+# Medial_wall). The label name is ?h.cortex.label. As of freesurfer version 4,
+# all recons should have a label of this name (created using a different
+# process). If this label name exists, then the execution is halted.
+# Also copies ?h.Medial_wall.label to label dir.
 #
 # Original Author: Douglas Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/08/10 20:03:32 $
-#    $Revision: 1.1 $
+#    $Date: 2007/12/06 04:57:20 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +28,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: make_cortex_label,v 1.1 2007/08/10 20:03:32 greve Exp $';
+set VERSION = '$Id: make_cortex_label,v 1.2 2007/12/06 04:57:20 greve Exp $';
 set inputargs = ($argv);
 
 set subject   = ();
@@ -50,6 +52,15 @@ if(! -e $sdir) then
   echo "ERROR: cannto find $sdir"
   exit 1;
 endif
+
+# Make sure $hemi.cortex.label does not exist
+foreach hemi ($hemilist)
+  set ctxlabel = $sdir/label/$hemi.cortex.label
+  if(-e $ctxlabel) then
+    echo "ERROR: $ctxlabel already exists"
+    exit 1;
+  endif
+end
 
 # Loop thru the hemis
 foreach hemi ($hemilist)
@@ -76,7 +87,7 @@ foreach hemi ($hemilist)
   mv $tmpdir/$hemi.Medial_wall.label $sdir/label
 
   # Create the cortex label with all the remaining labels
-  set ctxlabel = $sdir/label/$hemi.cortex2.label
+  set ctxlabel = $sdir/label/$hemi.cortex.label
   set cmd = (mri_mergelabels -o $ctxlabel -d $tmpdir)
   echo $cmd 
   $cmd
