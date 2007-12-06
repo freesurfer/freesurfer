@@ -14,8 +14,8 @@
 # Original Author: Marie Schaer
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/06 22:37:44 $
-#    $Revision: 1.16 $
+#    $Date: 2007/12/06 22:41:40 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.16 2007/12/06 22:37:44 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.17 2007/12/06 22:41:40 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
@@ -149,7 +149,7 @@ else
   # mris_extract_main_component (optional)
   #
   if ($use_mris_extract) then
-    set cmd=(mris_extract_main_component 
+    set cmd=(mris_extract_main_component \
       ${tmpdir}/${input}-outer \
       ${tmpdir}/${input}-outer-main)
     echo "================="
