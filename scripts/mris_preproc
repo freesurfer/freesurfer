@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/11/26 23:04:14 $
-#    $Revision: 1.40 $
+#    $Date: 2007/12/06 19:21:34 $
+#    $Revision: 1.41 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.40 2007/11/26 23:04:14 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.41 2007/12/06 19:21:34 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -220,7 +220,8 @@ foreach subj ($subjlist)
     if($#niterssrc) set cmd = ($cmd --nsmooth-in $niterssrc) # Smth in the targ space below
     if(! $reshape)  set cmd = ($cmd --noreshape);
     if(! $hash)     set cmd = ($cmd --nohash);
-    if($SmoothCortexOnly) set cmd = ($cmd --cortex)
+    if($SmoothCortexOnly)   set cmd = ($cmd --cortex)
+    if(! $SmoothCortexOnly) set cmd = ($cmd --no-cortex)
     echo "-----------------------"| tee -a $LF
     echo $cmd | tee -a $LF
     if($RunIt) $cmd |& tee -a $LF
@@ -238,7 +239,8 @@ foreach subj ($subjlist)
       if($#fwhmtarg)   set cmd = ($cmd --fwhm-trg $fwhmtarg)
       if($#niterstarg) set cmd = ($cmd --nsmooth-out $niterstarg)
       if(! $reshape)   set cmd = ($cmd --noreshape);
-      if($SmoothCortexOnly) set cmd = ($cmd --cortex)
+      if($SmoothCortexOnly)   set cmd = ($cmd --cortex)
+      if(! $SmoothCortexOnly) set cmd = ($cmd --no-cortex)
       echo "-----------------------"| tee -a $LF
       echo $cmd | tee -a $LF
       if($RunIt) $cmd |& tee -a $LF
@@ -284,7 +286,8 @@ if(! $CacheOutOnly) then
     if($#fwhmtarg)   set cmd = ($cmd --fwhm-trg $fwhmtarg)
     if($#niterstarg) set cmd = ($cmd --nsmooth-out $niterstarg)
     if(! $reshape)   set cmd = ($cmd --noreshape);
-    if($SmoothCortexOnly) set cmd = ($cmd --cortex)
+    if($SmoothCortexOnly)   set cmd = ($cmd --cortex)
+    if(! $SmoothCortexOnly) set cmd = ($cmd --no-cortex)
     echo "-----------------------"| tee -a $LF
     echo $cmd | tee -a $LF
     if($RunIt) $cmd |& tee -a $LF
