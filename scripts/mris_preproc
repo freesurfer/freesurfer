@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/12/06 19:21:34 $
-#    $Revision: 1.41 $
+#    $Date: 2007/12/06 20:19:40 $
+#    $Revision: 1.42 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.41 2007/12/06 19:21:34 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.42 2007/12/06 20:19:40 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -69,7 +69,6 @@ set CacheOutUpdate = 0;
 set CacheIn = 0;
 set MeasIn  = 0;
 set outdir = ();
-set SurfReg = sphere.reg
 set SmoothCortexOnly = 0; # At some point, this should be the default
 
 set SessFile = ();
@@ -79,6 +78,11 @@ set FSFContrast = ();
 set FSFMap = ces
 set DoFSFCVar = 0;
 set DoFSFOffset = 0;
+
+set srchemi = ();
+set trghemi = ();
+set SrcSurfReg = sphere.reg
+set TrgSurfReg = sphere.reg
 
 set cmdargs = ($argv);
 if($#argv == 0)  goto usage_exit;
@@ -146,8 +150,8 @@ endif
 
 # Log file
 if($#LF == 0) then
-  if(! $#CacheOutOnly) set LF = $outdir/mris_preproc.$geom.$hemi.log
-  if($#CacheOutOnly)   set LF = mris_preproc.$geom.$hemi.log
+  if(! $#CacheOutOnly) set LF = $outdir/mris_preproc.$geom.$trghemi.log
+  if($#CacheOutOnly)   set LF = mris_preproc.$geom.$trghemi.log
   if(-e $LF) mv $LF $LF.bak
 endif
 
@@ -156,7 +160,9 @@ pwd | tee -a $LF
 echo $cmdargs  | tee -a $LF
 uname -a  | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
-echo "tmpdir is $tmpdir"| tee -a $LF
+echo "tmpdir is $tmpdir" | tee -a $LF
+echo "Src $srchemi $SrcSurfReg" | tee -a $LF
+echo "Trg $trghemi $TrgSurfReg" | tee -a $LF
 
 set tvallist = ();
 @ nthsubj = 0;
@@ -169,13 +175,17 @@ foreach subj ($subjlist)
   set subjpath = $SUBJECTS_DIR/$subj
 
   if($CacheOutOnly && $CacheOutUpdate) then
-    set tcache = $subjpath/surf/$hemi.$CacheOutFile
+    if($trghemi == $srchemi) then
+      set tcache = $subjpath/surf/$trghemi.$CacheOutFile
+    else
+      set tcache = $subjpath/surf/$trghemi.$srchemi.$CacheOutFile
+    endif
     if(-e $tcache) continue;
   endif
 
   if($CacheIn) then
     # Input has been cached
-    set tval = $subjpath/surf/$hemi.$meas.mgh
+    set tval = $subjpath/surf/$srchemi.$meas.mgh
     if(! -e $tval) then
       echo "ERROR: cannot find cahed file $tval"
       exit 1;
@@ -187,7 +197,7 @@ foreach subj ($subjlist)
       set srcsurfpath = $tmpdir/subjsurfvals.mgh
       set vol = $ivplist[$nthsubj];
       set reg = $irplist[$nthsubj];
-      set cmd = (mri_vol2surf --src $vol --srcreg $reg --hemi $hemi)
+      set cmd = (mri_vol2surf --src $vol --srcreg $reg --hemi $srchemi)
       set cmd = ($cmd --out $srcsurfpath)
       if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
       if($synth)     set cmd = ($cmd --srcsynth -1) # Synth if desired
@@ -199,14 +209,17 @@ foreach subj ($subjlist)
     else
       # Source is already a surface
       if($#meas || $#sval) then
-        set srcsurfpath = $subjpath/surf/$hemi.$meas
-        else
+        set srcsurfpath = $subjpath/surf/$srchemi.$meas
+      else
         set srcsurfpath = $isplist[$nthsubj];
       endif
     endif
     # Now srcsurfpath file exists, convert it to the target subject
     set tval = $tmpdir/$subj.mgh
-    set cmd = (mri_surf2surf --hemi $hemi --srcsubject $subj --surfreg $SurfReg)
+    set cmd = (mri_surf2surf)
+    set cmd = ($cmd --srcsubject $subj   --srchemi $srchemi --srcsurfreg $SrcSurfReg)
+    set cmd = ($cmd --trgsubject $target --trghemi $trghemi --trgsurfreg $TrgSurfReg)
+    set cmd = ($cmd --tval $tval)
     if($#sval == 0) then
        set cmd = ($cmd --sval $srcsurfpath)
     else
@@ -214,7 +227,6 @@ foreach subj ($subjlist)
     endif
     if($jac) set cmd = ($cmd --jac)
     if($#srcfmt) set cmd = ($cmd --sfmt $srcfmt)
-    set cmd = ($cmd --trgsubject $target --tval $tval)
     if($synth && ! $srcvol) set cmd = ($cmd --synth) # Synth if desired, vol done above
     if($#fwhmsrc)   set cmd = ($cmd --fwhm-src $fwhmsrc) # Smth in the targ space below
     if($#niterssrc) set cmd = ($cmd --nsmooth-in $niterssrc) # Smth in the targ space below
@@ -230,10 +242,14 @@ foreach subj ($subjlist)
 
   # Copy/smooth resampled data to CacheOutFile
   if($#CacheOutFile) then
-    set tcache = $subjpath/surf/$hemi.$CacheOutFile
+    if($trghemi == $srchemi) then
+      set tcache = $subjpath/surf/$trghemi.$CacheOutFile
+    else
+      set tcache = $subjpath/surf/$trghemi.$srchemi.$CacheOutFile
+    endif
     # Smooth in the target space
     if($#fwhmtarg || $#niterstarg) then
-      set cmd = (mri_surf2surf --hemi $hemi --s $target )
+      set cmd = (mri_surf2surf --hemi $trghemi --s $target )
       set cmd = ($cmd --sval $tval)
       set cmd = ($cmd --tval $tcache)
       if($#fwhmtarg)   set cmd = ($cmd --fwhm-trg $fwhmtarg)
@@ -248,7 +264,11 @@ foreach subj ($subjlist)
       echo "\n\n" | tee -a $LF
     else
       # Does this work?
-      set cmd = (cp $tval $subjpath/surf/$hemi.$CacheOutFile.mgh)
+      if($trghemi == $srchemi) then
+        set cmd = (cp $tval $subjpath/surf/$trghemi.$CacheOutFile.mgh)
+      else
+        set cmd = (cp $tval $subjpath/surf/$trghemi.$srchemi.$CacheOutFile.mgh)
+      endif
       echo "-----------------------"| tee -a $LF
       echo $cmd | tee -a $LF
       if($RunIt) $cmd |& tee -a $LF
@@ -280,7 +300,7 @@ if(! $CacheOutOnly) then
 
   # Smooth in the target space
   if($#fwhmtarg || $#niterstarg) then
-    set cmd = (mri_surf2surf --hemi $hemi --s $target )
+    set cmd = (mri_surf2surf --hemi $trghemi --s $target )
     set cmd = ($cmd --sval $outpath)
     set cmd = ($cmd --tval $outpath)
     if($#fwhmtarg)   set cmd = ($cmd --fwhm-trg $fwhmtarg)
@@ -374,7 +394,18 @@ while( $#argv != 0 )
 
     case "--surfreg":
       if($#argv < 1) goto arg1err;
-      set SurfReg = $argv[1]; shift;
+      set SrcSurfReg = $argv[1]; shift;
+      set TrgSurfReg = $argv[1]; shift;
+      breaksw
+
+    case "--srcsurfreg":
+      if($#argv < 1) goto arg1err;
+      set SrcSurfReg = $argv[1]; shift;
+      breaksw
+
+    case "--trgsurfreg":
+      if($#argv < 1) goto arg1err;
+      set TrgSurfReg = $argv[1]; shift;
       breaksw
 
     case "--srcfmt":
@@ -416,7 +447,18 @@ while( $#argv != 0 )
 
     case "--hemi":
       if ( $#argv == 0) goto arg1err;
-      set hemi = $argv[1]; shift;
+      set srchemi = $argv[1]; shift;
+      set trghemi = $srchemi;
+      breaksw
+
+    case "--srchemi":
+      if ( $#argv == 0) goto arg1err;
+      set srchemi = $argv[1]; shift;
+      breaksw
+
+    case "--trghemi":
+      if ( $#argv == 0) goto arg1err;
+      set trghemi = $argv[1]; shift;
       breaksw
 
     case "--target":
@@ -687,8 +729,12 @@ if($#subjlist == 0) then
   exit 1;
 endif
 echo "nsubjects = $#subjlist";
-if($#hemi == 0) then
-  echo "ERROR: no hemi specified"
+if($#srchemi == 0) then
+  echo "ERROR: no source hemi specified"
+  exit 1;
+endif
+if($#trghemi == 0) then
+  echo "ERROR: no  hemi specified"
   exit 1;
 endif
 if($#outpath == 0 && ! $CacheOutOnly) then
@@ -755,8 +801,8 @@ foreach subj ($subjlist)
     exit 1;
   endif
   if($#meas) then
-    if(! $CacheIn) set measpath = $subjpath/surf/$hemi.$meas
-    if($CacheIn) set measpath = $subjpath/surf/$hemi.$meas.mgh
+    if(! $CacheIn) set measpath = $subjpath/surf/$srchemi.$meas
+    if($CacheIn) set measpath = $subjpath/surf/$srchemi.$meas.mgh
     if(! -e $measpath) then
       echo "ERROR: cannot find $measpath"
       exit 1;
