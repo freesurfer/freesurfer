@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/06 18:28:15 $
- *    $Revision: 1.23 $
+ *    $Date: 2007/12/06 19:28:29 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -163,7 +163,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.23 2007/12/06 18:28:15 greve Exp $";
+"$Id: mri_segreg.c,v 1.24 2007/12/06 19:28:29 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -244,13 +244,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.23 2007/12/06 18:28:15 greve Exp $",
+     "$Id: mri_segreg.c,v 1.24 2007/12/06 19:28:29 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.23 2007/12/06 18:28:15 greve Exp $",
+     "$Id: mri_segreg.c,v 1.24 2007/12/06 19:28:29 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -920,6 +920,8 @@ static void check_options(void)
     sprintf(tmpstr,"%s.sum",outregfile);
     sumfile = strcpyalloc(tmpstr);
   }
+
+  if(UseSurf) DoCrop = 0;
 
   if(ntx == 0) {ntx=1; txlist[0] = 0;}
   if(nty == 0) {nty=1; tylist[0] = 0;}
