@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/05 20:42:42 $
- *    $Revision: 1.27 $
+ *    $Date: 2007/12/06 01:28:34 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.27 2007/12/05 20:42:42 greve Exp $
+  $Id: resample.c,v 1.28 2007/12/06 01:28:34 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another,
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -877,7 +877,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
   free(valvect);
   if(FreeQsrc) MatrixFree(&Qsrc);
 
-  printf("vol2surf_linear: nhits = %d/%d\n",nhits,TrgSurf->nvertices);
+  //printf("vol2surf_linear: nhits = %d/%d\n",nhits,TrgSurf->nvertices);
 
   return(TrgVol);
 }
