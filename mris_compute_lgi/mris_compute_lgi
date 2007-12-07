@@ -14,8 +14,8 @@
 # Original Author: Marie Schaer
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/06 22:41:40 $
-#    $Revision: 1.17 $
+#    $Date: 2007/12/07 21:29:01 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,15 +30,14 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.17 2007/12/06 22:41:40 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.18 2007/12/07 21:29:01 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
 set tmpdir = tmp-mris_compute_lgi
-set use_mris_shrinkwrap = 0
-set use_mris_extract = 0
+set use_mris_extract = 1
 set closespheresize = 15
-set smoothiters = 3
+set smoothiters = 30
 set radius = 25
 set stepsize = 100
 #set echo=1
@@ -88,96 +87,67 @@ echo "================="
 if ($RunIt) $cmd
 
 #
-# create outer_surface, either with mris_shrinkwrap or make_outer_surface.m
+# make_outer_surface.m
 #
-if ( $use_mris_shrinkwrap ) then
-
-  set cmd=(mri_convert -odt uchar -ns 1 \
-      ${tmpdir}/${input}.filled.mgz \
-      ${tmpdir}/${input}.filled.uchar.mgz )
-  echo "================="
-  echo "$cmd"
-  echo "================="
-  if ($RunIt) $cmd
-
-  #
-  # mris_shrinkwrap
-  #
-  set cmd=(mris_shrinkwrap -inner_skull_only \
-      -inner_skull_fname ${tmpdir}/${input}-outer.tri \
-      ${tmpdir}/${input}.filled.uchar.mgz \
-      .)
-  echo "================="
-  echo "$cmd"
-  echo "================="
-  if ($RunIt) $cmd
-
-  set cmd=(mris_convert \
-      ${tmpdir}/${input}-outer.tri \
-      ${input}-outer-smoothed)
-  echo "================="
-  echo "$cmd"
-  echo "================="
-  if ($RunIt) $cmd
-
-else
-
-  #
-  # make_outer_surface.m
-  #
-  # create the outer surface from the filled volume
-  set MLF = /tmp/mos"_$$_".m
-  set arg1 = ${tmpdir}/${input}.filled.mgz
-  set arg2 = ${closespheresize}
-  set arg3 =  ${tmpdir}/${input}-outer
-  rm -f ${arg3}
-  echo "make_outer_surface('${arg1}',${arg2},'${arg3}')" > $MLF
-  echo "================="
-  echo "`cat $MLF`"
-  echo "================="
-  if ($RunIt) then
-    cat $MLF | ${MATLAB} -display iconic -nojvm -nosplash
-  endif
-  echo ""
-  rm -f ${MLF}
-  if ( $RunIt && ! -e ${arg3} ) then
-    echo "ERROR: make_outer_surface did not create output file '${arg3}'!"
-    exit 1
-  endif
-
-  #
-  # mris_extract_main_component (optional)
-  #
-  if ($use_mris_extract) then
-    set cmd=(mris_extract_main_component \
-      ${tmpdir}/${input}-outer \
-      ${tmpdir}/${input}-outer-main)
-    echo "================="
-    echo "$cmd"
-    echo "================="
-    if ($RunIt) $cmd
-  else
-    set cmd=(cp ${tmpdir}/${input}-outer ${tmpdir}/${input}-outer-main)
-    echo "================="
-    echo "$cmd"
-    echo "================="
-    if ($RunIt) $cmd
-  endif
-
-  #
-  # mris_smooth
-  #
-  # smooth this jaggy, tessellated surface
-  set cmd=(mris_smooth -nw -n ${smoothiters} \
-      ${tmpdir}/${input}-outer-main \
-      ./${input}-outer-smoothed)
-  echo "================="
-  echo "$cmd"
-  echo "================="
-  if ($RunIt) $cmd
-
+# create the outer surface from the filled volume
+set MLF = /tmp/mos"_$$_".m
+set arg1 = ${tmpdir}/${input}.filled.mgz
+set arg2 = ${closespheresize}
+set arg3 =  ${tmpdir}/${input}-outer
+rm -f ${arg3}
+echo "make_outer_surface('${arg1}',${arg2},'${arg3}')" > $MLF
+echo "================="
+echo "`cat $MLF`"
+echo "================="
+if ($RunIt) then
+  cat $MLF | ${MATLAB} -display iconic -nojvm -nosplash
+endif
+echo ""
+rm -f ${MLF}
+if ( $RunIt && ! -e ${arg3} ) then
+  echo "ERROR: make_outer_surface did not create output file '${arg3}'!"
+  exit 1
 endif
 
+#
+# mris_extract_main_component (optional, default)
+#
+if ($use_mris_extract) then
+  set cmd=(mris_extract_main_component \
+    ${tmpdir}/${input}-outer \
+    ${tmpdir}/${input}-outer-main)
+  echo "================="
+  echo "$cmd"
+  echo "================="
+  if ($RunIt) $cmd
+else
+  set cmd=(cp ${tmpdir}/${input}-outer ${tmpdir}/${input}-outer-main)
+  echo "================="
+  echo "$cmd"
+  echo "================="
+  if ($RunIt) $cmd
+endif
+
+#
+# mris_smooth
+#
+# smooth this jaggy, tessellated surface
+set cmd=(mris_smooth -nw -n ${smoothiters} \
+    ${tmpdir}/${input}-outer-main \
+    ./${input}-outer-smoothed)
+echo "================="
+echo "$cmd"
+echo "================="
+if ($RunIt) $cmd
+
+#
+# mris_euler_number (a QA check, total defects should = 0)
+#
+set cmd=(mris_euler_number ./${input}-outer-smoothed)
+echo "================="
+echo "$cmd"
+echo "================="
+if ($RunIt) $cmd
 
 #
 # mris_convert
@@ -368,12 +338,8 @@ while( $#argv != 0 )
       #echo ${input}
       breaksw
 
-   case "--use_mris_shrinkwrap":
-      set use_mris_shrinkwrap = 1
-      breaksw
-
-   case "--use_mris_extract_main_component":
-      set use_mris_extract = 1
+   case "--dont_extract":
+      set use_mris_extract = 0
       breaksw
 
    case "--debug":
@@ -441,8 +407,6 @@ usage_exit:
   echo "  --i       : input surface file, typically lh.pial or rh.pial"
   echo ""
   echo "Optional Arguments"
-  echo "  --use_mris_shrinkwrap    : use mris_shrinkwrap to create outer surface"
-  echo "  --use_mris_extract_main_component : extract main component from outer surface"
   echo "  --close_sphere_size <mm> : use sphere of size <mm> mm for morph"
   echo "                             closing operation (default: ${closespheresize})"
   echo "  --smooth_iters <iters>   : smooth outer-surface <iters> number of"
