@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:34 $
- *    $Revision: 1.119 $
+ *    $Author: greve $
+ *    $Date: 2007/12/07 20:21:14 $
+ *    $Revision: 1.120 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3873,10 +3873,12 @@ double *SegRegCost(MRI *regseg, MRI *f, double *costs)
   //printf("wmsum2 = %lf ctxsum2 = %lf\n",wmsum2,ctxsum2);
 
   wmmean = wmsum/nwmhits;
-  wmstd = sqrt( (wmsum2 - 2*wmmean*wmsum + nwmhits*wmmean*wmmean)/nwmhits );
+  wmstd = sum2stddev(wmsum,wmsum2,nwmhits);
+  //wmstd = sqrt( (wmsum2 - 2*wmmean*wmsum + nwmhits*wmmean*wmmean)/(nwmhits-1) );
 
   ctxmean = ctxsum/nctxhits;
-  ctxstd = sqrt( (ctxsum2 - 2*ctxmean*ctxsum + nctxhits*ctxmean*ctxmean)/nctxhits );
+  ctxstd = sum2stddev(ctxsum,ctxsum2,nctxhits);
+  //ctxstd = sqrt( (ctxsum2 - 2*ctxmean*ctxsum + nctxhits*ctxmean*ctxmean)/nctxhits );
 
   t = fabs(ctxmean-wmmean)/sqrt(ctxstd*ctxstd + wmstd*wmstd);
   cost = 1/t;
