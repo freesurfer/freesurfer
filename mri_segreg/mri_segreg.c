@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/06 20:14:24 $
- *    $Revision: 1.25 $
+ *    $Date: 2007/12/07 00:09:39 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -163,7 +163,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.25 2007/12/06 20:14:24 greve Exp $";
+"$Id: mri_segreg.c,v 1.26 2007/12/07 00:09:39 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -228,6 +228,10 @@ MRI *lhsegmask, *rhsegmask;
 char *cmdline2;
 struct utsname uts;
 
+int PenaltySign  = -1;
+double PenaltySlope = .5;
+
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
@@ -244,13 +248,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.25 2007/12/06 20:14:24 greve Exp $",
+     "$Id: mri_segreg.c,v 1.26 2007/12/07 00:09:39 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.25 2007/12/06 20:14:24 greve Exp $",
+     "$Id: mri_segreg.c,v 1.26 2007/12/07 00:09:39 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -438,6 +442,8 @@ int main(int argc, char **argv) {
   fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
   fprintf(fp,"\n");
   fflush(fp);
+
+  //exit(1);
 
   TimerStart(&mytimer) ;
   if(DoPowell) {
@@ -720,6 +726,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sumfile = pargv[0];
       nargsused = 1;
+    } else if (istringnmatch(option, "--gm-gt-wm",0)) {
+      if (nargc < 1) argnerr(option,1);
+      PenaltySign = -1;
+      sscanf(pargv[0],"%lf",&PenaltySlope);
+      nargsused = 1;
+    } else if (istringnmatch(option, "--wm-gt-gm",0)) {
+      if (nargc < 1) argnerr(option,1);
+      PenaltySign = +1;
+      sscanf(pargv[0],"%lf",&PenaltySlope);
+      nargsused = 1;
     } else if (istringnmatch(option, "--noise",0)) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&NoiseStd);
@@ -953,6 +969,8 @@ static void dump_options(FILE *fp)
   if(outregfile) fprintf(fp,"outregfile %s\n",outregfile);
   if(outfile) fprintf(fp,"outfile %s\n",outfile);
   fprintf(fp,"UseSurf %d\n",UseSurf);
+  fprintf(fp,"PenaltySign  %d\n",PenaltySign);
+  fprintf(fp,"PenaltySlope %lf\n",PenaltySlope);
   fprintf(fp,"interp  %s (%d)\n",interpmethod,interpcode);
   fprintf(fp,"frame  %d\n",frame);
   fprintf(fp,"DoPowell  %d\n",DoPowell);
@@ -1633,10 +1651,13 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   extern int interpcode, sinchw;
   extern MRI *lhsegmask, *rhsegmask;
   extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
-  double angles[3],dsum,dmean,vwm,vctx;
+  extern int PenaltySign;
+  extern double PenaltySlope;
+  double angles[3],d,dsum,dmean,vwm,vctx,c,csum,cmean,a=0;
   MATRIX *Mrot=NULL, *Mtrans=NULL;
   MRI *vlhwm, *vlhctx, *vrhwm, *vrhctx;
   int nhits,n;
+  //FILE *fp;
 
   if(R==NULL){
     printf("ERROR: GetSurfCosts(): R cannot be NULL\n");
@@ -1674,9 +1695,12 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 			  FLT2INT_ROUND, NULL, 0);
 
   for(n = 0; n < 8; n++) costs[n] = 0;
+
   dsum = 0.0;
+  csum = 0.0;
   nhits = 0;
 
+  //fp = fopen("tmp.dat","w");
   for(n = 0; n < lhwm->nvertices; n++){
     if(MRIgetVoxVal(lhsegmask,n,0,0,0) < 0.5) continue;
     vwm = MRIgetVoxVal(vlhwm,n,0,0,0);
@@ -1688,7 +1712,14 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
     costs[2] += (vwm*vwm);
     costs[4] += vctx;
     costs[5] += (vctx*vctx);
-    dsum += (vctx-vwm);
+    d = 100*(vctx-vwm)/((vctx+vwm)/2.0);
+    dsum += d;
+    if(PenaltySign ==  0) a = -abs(PenaltySlope*d);
+    if(PenaltySign == -1) a =    -(PenaltySlope*d);
+    if(PenaltySign == +1) a =    +(PenaltySlope*d);
+    c = 1+tanh(a);
+    csum += c;
+    //fprintf(fp,"%6d %lf %lf %lf %lf %lf %lf %lf\n",nhits,vwm,vctx,d,dsum,a,c,csum);
   }
   for(n = 0; n < rhwm->nvertices; n++){
     if(MRIgetVoxVal(rhsegmask,n,0,0,0) < 0.5) continue;
@@ -1701,20 +1732,28 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
     costs[2] += (vwm*vwm);
     costs[4] += vctx;
     costs[5] += (vctx*vctx);
-    dsum += (vctx-vwm);
+    d = 100*(vctx-vwm)/((vctx+vwm)/2.0);
+    dsum += d;
+    if(PenaltySign ==  0) a = -abs(PenaltySlope*d);
+    if(PenaltySign == -1) a =    -(PenaltySlope*d);
+    if(PenaltySign == +1) a =    +(PenaltySlope*d);
+    c = 1+tanh(a);
+    csum += c;
+    //fprintf(fp,"%6d %lf %lf %lf %lf %lf %lf %lf\n",nhits,vwm,vctx,d,dsum,a,c,csum);
   }
+  //fclose(fp);
+
+  dmean = dsum/nhits;
+  cmean = csum/nhits;
+
   costs[0] = nhits;
   costs[1] = costs[1]/nhits;
   costs[2] = sqrt(costs[2]/nhits);
   costs[3] = nhits;
   costs[4] = costs[4]/nhits;
   costs[5] = sqrt(costs[5]/nhits);
-  dmean = dsum/nhits;
   costs[6] = dmean;
-
-  // Penalize for sign here?
-  if(dmean > 0)  costs[7] = 1/dmean;
-  else           costs[7] = 1/fabs(dmean);
+  costs[7] = cmean;
 
   MatrixFree(&Mrot);
   MatrixFree(&Mtrans);
