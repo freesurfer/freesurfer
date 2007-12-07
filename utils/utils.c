@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/14 19:41:03 $
- *    $Revision: 1.66 $
+ *    $Author: greve $
+ *    $Date: 2007/12/07 20:10:39 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1247,3 +1247,19 @@ void __qtol(void)
   exit(1);
 }
 
+/*------------------------------------------------------------------*/
+/*!
+  \fn double sum2stddev(double xsum, double xsum2, int nx)
+  \brief Computes the stddev of a list of numbers given: the sum of
+  the numbers (xsum), the sum of the square of the numbers (xsum2),
+  and the number in the list (nx). This allows the computation of the
+  stddev with only one trip through the list.
+*/
+double sum2stddev(double xsum, double xsum2, int nx)
+{
+  double xmean, xstd;
+  xmean = xsum/nx;
+  xstd = sqrt( (xsum2 - 2*xmean*xsum + nx*xmean*xmean)/(nx-1) );
+  //printf("%g %g %d %g %g\n",xsum,xsum2,nx,xmean,xstd);
+  return(xstd);
+}

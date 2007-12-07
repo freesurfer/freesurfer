@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/14 21:43:16 $
- *    $Revision: 1.30 $
+ *    $Author: greve $
+ *    $Date: 2007/12/07 20:10:38 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -88,6 +88,7 @@ char *strcpyalloc(char *str);
 int  ItemsInString(char *str);
 char *deblank(char *str);
 char *str_toupper(char *str);
+double sum2stddev(double xsum, double xsum2, int nx);
 
 /* Necessary when Intel C/C++ compiler is used... */
 void __ltoq(void);
