@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/12/07 19:12:24 $
- *    $Revision: 1.27 $
+ *    $Author: greve $
+ *    $Date: 2007/12/07 20:19:40 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -163,7 +163,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.27 2007/12/07 19:12:24 nicks Exp $";
+"$Id: mri_segreg.c,v 1.28 2007/12/07 20:19:40 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -231,7 +231,6 @@ struct utsname uts;
 int PenaltySign  = -1;
 double PenaltySlope = .5;
 
-
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
@@ -248,13 +247,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.27 2007/12/07 19:12:24 nicks Exp $",
+     "$Id: mri_segreg.c,v 1.28 2007/12/07 20:19:40 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.27 2007/12/07 19:12:24 nicks Exp $",
+     "$Id: mri_segreg.c,v 1.28 2007/12/07 20:19:40 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1734,7 +1733,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
     costs[5] += (vctx*vctx);
     d = 100*(vctx-vwm)/((vctx+vwm)/2.0);
     dsum += d;
-    if(PenaltySign ==  0) a = -abs(PenaltySlope*d);
+    if(PenaltySign ==  0) a = -abs(PenaltySlope*d); // not sure this is useful
     if(PenaltySign == -1) a =    -(PenaltySlope*d);
     if(PenaltySign == +1) a =    +(PenaltySlope*d);
     c = 1+tanh(a);
@@ -1747,11 +1746,11 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   cmean = csum/nhits;
 
   costs[0] = nhits;
+  costs[2] = sum2stddev(costs[1],costs[2],nhits);
   costs[1] = costs[1]/nhits;
-  costs[2] = sqrt(costs[2]/nhits);
   costs[3] = nhits;
+  costs[5] = sum2stddev(costs[4],costs[5],nhits);
   costs[4] = costs[4]/nhits;
-  costs[5] = sqrt(costs[5]/nhits);
   costs[6] = dmean;
   costs[7] = cmean;
 
