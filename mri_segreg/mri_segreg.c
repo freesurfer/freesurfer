@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/07 20:19:40 $
- *    $Revision: 1.28 $
+ *    $Date: 2007/12/07 22:30:27 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -163,7 +163,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.28 2007/12/07 20:19:40 greve Exp $";
+"$Id: mri_segreg.c,v 1.29 2007/12/07 22:30:27 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -247,13 +247,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.28 2007/12/07 20:19:40 greve Exp $",
+     "$Id: mri_segreg.c,v 1.29 2007/12/07 22:30:27 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.28 2007/12/07 20:19:40 greve Exp $",
+     "$Id: mri_segreg.c,v 1.29 2007/12/07 22:30:27 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -427,8 +427,8 @@ int main(int argc, char **argv) {
   printf("Initial Costs\n");
   printf("%7d %10.4lf %8.4lf ",
          (int)costs[0],costs[1],costs[2]); // WM  n mean std
-  printf("%7d %10.4lf %8.4lf ",
-         (int)costs[3],costs[4],costs[5]); // CTX n mean std
+  printf("%10.4lf %10.4lf %8.4lf ",
+         costs[3],costs[4],costs[5]); // CTX n mean std
   printf("%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
   printf("\n");
 
@@ -436,8 +436,8 @@ int main(int argc, char **argv) {
   fprintf(fp,"Initial Costs\n");
   fprintf(fp,"%7d %10.4lf %8.4lf ",
          (int)costs[0],costs[1],costs[2]); // WM  n mean std
-  fprintf(fp,"%7d %10.4lf %8.4lf ",
-         (int)costs[3],costs[4],costs[5]); // CTX n mean std
+  printf("%10.4lf %10.4lf %8.4lf ",
+         costs[3],costs[4],costs[5]); // CTX n mean std
   fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
   fprintf(fp,"\n");
   fflush(fp);
@@ -1305,8 +1305,8 @@ float compute_powell_cost(float *p)
     fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
     fprintf(fp,"%7d %10.4lf %8.4lf ",
 	    (int)costs[0],costs[1],costs[2]); // WM  n mean std
-    fprintf(fp,"%7d %10.4lf %8.4lf ",
-	    (int)costs[3],costs[4],costs[5]); // CTX n mean std
+    fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
+	    costs[3],costs[4],costs[5]); // CTX n mean std
     fprintf(fp,"%8.4lf %8.5lf   %8.5lf ",costs[6],costs[7],copt); // t, cost=1/t
     fprintf(fp,"\n");
     fclose(fp);
@@ -1319,8 +1319,8 @@ float compute_powell_cost(float *p)
     fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
     fprintf(fp,"%7d %10.4lf %8.4lf ",
 	    (int)costs[0],costs[1],costs[2]); // WM  n mean std
-    fprintf(fp,"%7d %10.4lf %8.4lf ",
-	    (int)costs[3],costs[4],costs[5]); // CTX n mean std
+    fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
+	    costs[3],costs[4],costs[5]); // CTX n mean std
     fprintf(fp,"%8.4lf %8.5lf   %8.5lf ",costs[6],costs[7],copt); // t, cost=1/t
     fprintf(fp,"\n");
     fflush(stdout); 
@@ -1646,13 +1646,11 @@ int MRISsegReg(char *subject, int ForceReRun)
 double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 		     double *p, double *costs)
 {
-//  extern MRI *out, *inorm;
-//  extern int interpcode, sinchw;
   extern MRI *lhsegmask, *rhsegmask;
   extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
   extern int PenaltySign;
   extern double PenaltySlope;
-  double angles[3],d,dsum,dmean,vwm,vctx,c,csum,cmean,a=0;
+  double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean,a=0;
   MATRIX *Mrot=NULL, *Mtrans=NULL;
   MRI *vlhwm, *vlhctx, *vrhwm, *vrhctx;
   int nhits,n;
@@ -1696,7 +1694,9 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   for(n = 0; n < 8; n++) costs[n] = 0;
 
   dsum = 0.0;
+  dsum2 = 0.0;
   csum = 0.0;
+  csum2 = 0.0;
   nhits = 0;
 
   //fp = fopen("tmp.dat","w");
@@ -1713,11 +1713,13 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
     costs[5] += (vctx*vctx);
     d = 100*(vctx-vwm)/((vctx+vwm)/2.0);
     dsum += d;
+    dsum2 += (d*d);
     if(PenaltySign ==  0) a = -abs(PenaltySlope*d);
     if(PenaltySign == -1) a =    -(PenaltySlope*d);
     if(PenaltySign == +1) a =    +(PenaltySlope*d);
     c = 1+tanh(a);
     csum += c;
+    csum2 += (c*c);
     //fprintf(fp,"%6d %lf %lf %lf %lf %lf %lf %lf\n",nhits,vwm,vctx,d,dsum,a,c,csum);
   }
   for(n = 0; n < rhwm->nvertices; n++){
@@ -1743,12 +1745,14 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   //fclose(fp);
 
   dmean = dsum/nhits;
+  dstd  = sum2stddev(dsum,dsum2,nhits);
   cmean = csum/nhits;
+  cstd  = sum2stddev(csum,csum2,nhits);
 
   costs[0] = nhits;
   costs[2] = sum2stddev(costs[1],costs[2],nhits);
   costs[1] = costs[1]/nhits;
-  costs[3] = nhits;
+  costs[3] = dstd;
   costs[5] = sum2stddev(costs[4],costs[5],nhits);
   costs[4] = costs[4]/nhits;
   costs[6] = dmean;
