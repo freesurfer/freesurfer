@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/01 16:49:37 $
-#    $Revision: 1.4 $
+#    $Date: 2007/12/07 23:24:38 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: mcparams2extreg,v 1.4 2007/06/01 16:49:37 greve Exp $';
+set VERSION = '$Id: mcparams2extreg,v 1.5 2007/12/07 23:24:38 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -47,6 +47,8 @@ endif
 # Set Default Values #
 set mcfile     = ();
 set extreg     = ();
+set extregasc  = ();
+set ascpoly    = ();
 set nkeep      = ();
 set northog    = ();
 set pctorthog  = ();
@@ -96,6 +98,8 @@ endif
 tee $MLF > /dev/null <<EOF
   mcfile = '$mcfile';
   extreg = '$extreg';
+  extregasc = '$extregasc';
+  ascpoly   = [$ascpoly];
   nkeep     = [$nkeep];
   northog   = [$northog];
   pctorthog = [$pctorthog];
@@ -149,6 +153,29 @@ tee $MLF > /dev/null <<EOF
   fname = sprintf('%s.bhdr',extreg);
   MRIwrite(mri,fname);
 
+  if(~isempty(extregasc))
+    % Save out as an ascii (demean, maybe add poly)
+    xmn = mean(x);
+    xdm = x - repmat(xmn,[ntrs 1]);
+    if(~isempty(ascpoly))
+      Xpoly = fast_polytrendmtx(1,ntrs,1,ascpoly);
+    end
+    fp = fopen(extregasc,'w');
+    for n = 1:ntrs
+      if(~isempty(ascpoly))
+        for m = 1:size(Xpoly,2)
+          fprintf(fp,'%g ',Xpoly(n,m));
+        end
+      end
+      for m = 1:size(x,2)
+        fprintf(fp,'%g ',xdm(n,m));
+      end
+      fprintf(fp,'\n');
+    end
+    fclose(fp);    
+  end
+
+
 EOF
 #------------------------------------------#
 
@@ -198,6 +225,17 @@ while( $#argv != 0 )
     case "-extreg":
       if ( $#argv < 1) goto arg1err;
       set extreg = $argv[1]; shift;
+      breaksw
+
+    case "-asc":
+      if ( $#argv < 1) goto arg1err;
+      set extregasc = $argv[1]; shift;
+      breaksw
+
+    case "-ascpoly":
+    case "-asc-poly":
+      if ( $#argv < 1) goto arg1err;
+      set ascpoly = $argv[1]; shift;
       breaksw
 
     case "-nkeep":
@@ -300,6 +338,8 @@ usage_exit:
   echo "  -nkeep    nkeep  : keep nkeep (max 6)"
   echo "  -northog  nkeep  : keep nkeep (max 6) after orthogonalizing"
   echo "  -pctorthog pctkeep : orthogonalize and keep enough for pctkeep"
+  echo "  -asc ascfile       : save in ascii file (demeaned)"
+  echo "  -ascpoly order     : add polnomial to ascii file"
   echo "  -umask umask      : set unix file permission mask"
   echo "  -version          : print version and exit"
   echo "  -monly mfile      : only create matlab file"
