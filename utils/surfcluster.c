@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/31 00:34:19 $
- *    $Revision: 1.19 $
+ *    $Date: 2007/12/08 23:05:00 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   surfcluster.c - routines for growing clusters on the surface
   based on intensity thresholds and area threshold. Note: this
   makes use of the undefval in the MRI_SURFACE structure.
-  $Id: surfcluster.c,v 1.19 2007/07/31 00:34:19 greve Exp $
+  $Id: surfcluster.c,v 1.20 2007/12/08 23:05:00 greve Exp $
   ----------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -535,3 +535,85 @@ int sclustAnnot(MRIS *surf, int NClusters)
   return(0);
 }
 
+/* --------------------------------------------------------------*/
+/*!
+  \fn int sclustGrowByDist(MRIS *surf, int seedvtxno, double dthresh, 
+        int shape, int vtxno, int init, int *vtxlist)
+  \brief Grow a cluster from the seed vertex out to a given distance.
+  The undefval of the surf will be zeroed and all vertices in
+  within distance are set to 1. vtxlist is filled with the vertex 
+  numbers, and the return value is the number of vertices in the
+  cluster. If shape is SPHERICAL_COORDS, then distance is computed
+  along the arc of a sphere, otherwise 2d flat is assumed. This
+  is a recursive function. Recursive calls will have the
+  the vtxno >= 0, so set vtxno = -1 when you call this function.
+*/
+int sclustGrowByDist(MRIS *surf, int seedvtxno, double dthresh, 
+		   int shape, int vtxno, int *vtxlist)
+{
+  static double radius=0, radius2=0;
+  static int nhits=0, ncalls=0;
+  static VERTEX *v1 = NULL;
+  VERTEX *v2;
+  double theta=0, costheta=0, d=0;
+  int nthnbr,nbrvtxno;
+
+  if(vtxlist == NULL){
+    printf("ERROR: vtxlist is NULL\n");
+    return(-1);
+  }
+
+  // This is just a check to make sure that the caller has done the right thing.
+  // Note: this check does not work after the first call.
+  if(ncalls == 0 && vtxno >= 0){
+    printf("ERROR: set vtxno to a negative value when calling this function!\n");
+    return(-1);
+  }
+
+  // A negative vtxno indicates a non-recursive call, Init required
+  if(vtxno < 0){
+    v1 = &(surf->vertices[seedvtxno]);
+    ncalls = 0;
+    nhits = 0;
+    if(shape == SPHERICAL_COORDS){
+      radius2 = (v1->x*v1->x + v1->y*v1->y + v1->z*v1->z);
+      radius = sqrt(radius2);
+    }
+    for(vtxno = 0; vtxno < surf->nvertices; vtxno++)
+      surf->vertices[vtxno].undefval = 0;
+    vtxno = seedvtxno;
+  }
+  v2 = &(surf->vertices[vtxno]);
+  ncalls++;
+
+  if(v2->undefval) return(0);
+
+  if(shape == SPHERICAL_COORDS) {
+    costheta = ((v1->x*v2->x) + (v1->y*v2->y) + (v1->z*v2->z))/radius2;
+    theta = acos(costheta);
+    d = radius*theta;
+    //printf("%g %g %g %g\n",costheta,theta,radius,radius2);
+  } else {
+    d = sqrt((v1->x-v2->x)*(v1->x-v2->x) + (v1->y-v2->y)*(v1->y-v2->y));
+  }
+
+  // Check distance against threshold
+  if(d > dthresh) return(0);
+
+  // Add to the list
+  vtxlist[nhits] = vtxno;
+  nhits ++;
+  
+  //printf("%3d %3d %6d %6d   %g %g %g   %g %g %g   %g\n",
+  // ncalls,nhits,seedvtxno,vtxno,
+  // v1->x,v1->y,v1->z,v2->x,v2->y,v2->z, d);
+
+  // Go throught the neighbors ...
+  v2->undefval = 1;
+  for(nthnbr=0; nthnbr < v2->vnum; nthnbr++){
+    nbrvtxno = v2->v[nthnbr];
+    sclustGrowByDist(surf, seedvtxno, dthresh, shape, nbrvtxno, vtxlist);
+  }
+  
+  return(nhits);
+}
