@@ -572,10 +572,10 @@ fi
 
 # if using the Intel compiler, enable additional interprocedural 
 # optimizations for single file compilation, and generate  SSE3, SSE2, and 
-# SSE instructions. 
+# SSE instructions, and enable auto-parallelization. 
 if test "x$CC" = "xicc"; then
-  AC_MSG_NOTICE(Setting CPU optimization...)
-  CPUFLAGS="-ip -axP $CPUFLAGS"
+  AC_MSG_NOTICE(Setting Intel compiler optimizations...)
+  CPUFLAGS="-ip -axP -parallel -O3 $CPUFLAGS"
 fi
 
 ###############################################################
@@ -2055,7 +2055,7 @@ fi
 ###########################################################
 LIBS_ICC=""
 if test "x$CC" = "xicc"; then
-  LIBS_ICC="-lirc -lsvml -lguide -limf"
+  LIBS_ICC="-lirc -lsvml -lguide -limf -lpthread"
 fi
 AC_SUBST(LIBS_ICC)
 AM_CONDITIONAL(HAVE_INTEL_COMPILER, test "x$CC" = "xicc" )
