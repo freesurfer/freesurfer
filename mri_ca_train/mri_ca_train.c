@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/09/19 12:49:33 $
- *    $Revision: 1.55 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/09 01:40:57 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -128,7 +128,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.55 2007/09/19 12:49:33 fischl Exp $",
+           "$Id: mri_ca_train.c,v 1.56 2007/12/09 01:40:57 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1554,7 +1554,34 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
     {
       for (z = 0 ; z < mri_seg->depth ; z++)
       {
+        /*
+         * rules:
+         * - no label should have a voxel coord < 6 or > 249
+         * - no left or right hippo labels with z tal coord > 13
+         * - no left hippo, caudate, amydala, putamen or pallidum 
+         *   labels with x tal coord > 5 (or right, with x tal coord < -5)
+         */
         label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
+        int proper_label = label; // used for making corrections
+
+        if (label != Unknown)
+        {
+          // note: these won't be caught if -mask brainmask.mgz is included
+          // on the command-line, since voxels outside of brainmask get 
+          // labelled as Unknown.
+          if ((x < 6) || (y < 6) || (z < 6) ||
+              (x > 249) || (y > 249) || (z > 249))
+          {
+            printf
+              ("ERROR: %s: found label outside of brain: "
+               "%d %d %d\n", 
+               cma_label_to_name(label),x,y,z);
+            fflush(stdout) ;
+            errors++;
+
+            proper_label = Unknown;
+          }
+        }
 
         if ((label == Left_Hippocampus)  || (label == Right_Hippocampus) ||
             (label == Left_Caudate)      || (label == Right_Caudate) ||
@@ -1570,14 +1597,6 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
                           xw, yw, zw, &xmt, &ymt, &zmt);// get mni tal coords
           FixMNITal(xmt,ymt,zmt, &xt,&yt,&zt); // get 'real' tal coords
 
-          int proper_label = label;
-
-          /*
-           * rules:
-           * - no left or right hippo labels with z tal coord > 13
-           * - no left hippo, caudate, amydala, putamen or pallidum 
-           *   labels with x tal coord > 5 (or right, with x tal coord < -5)
-           */
           switch (label)
           {
           case Left_Hippocampus:
@@ -1656,14 +1675,6 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
             break ;
           }
 
-          /* 
-           * if -check_and_fix is being used, then mod our fixed volume
-           */
-          if (do_fix_badsubjs && (label != proper_label))
-          {
-            MRIsetVoxVal(mri_fixed, x, y, z, 0, proper_label) ;
-          }
-
           /*
            * collect stats on positioning of structures.
            * used to determine reasonable boundaries.
@@ -1706,6 +1717,14 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
             break ;
           }
         }
+
+        /* 
+         * if -check_and_fix is being used, then mod our fixed volume
+         */
+        if (do_fix_badsubjs && (label != proper_label))
+        {
+          MRIsetVoxVal(mri_fixed, x, y, z, 0, proper_label) ;
+        }
       }
     }
   }
@@ -1723,7 +1742,7 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
   printf("min_xtal_r_putamen  = %4.1f\n",min_xtal_r_putamen);
   printf("min_xtal_r_pallidum = %4.1f\n",min_xtal_r_pallidum);
   
-  if (do_fix_badsubjs && errors)
+  if ( do_fix_badsubjs && errors)
   {
     char fname[STRLEN];
     sprintf(fname, "%s/%s/mri/seg_fixed.mgz", subjects_dir, subject_name);
