@@ -1,14 +1,14 @@
 /**
  * @file  mrisutils.c
- * @brief surface utilities
+ * @brief more surface processing utils
  *
  */
 /*
- * Original Author: Bruce Fischl
+ * Original Authors: Segonne and Greve 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/14 02:31:29 $
- *    $Revision: 1.29 $
+ *    $Date: 2007/12/09 22:43:01 $
+ *    $Revision: 1.29.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
-////                    USEFUL ROUTINES                ////////////
+////                    USEFUL ROUTINES               ////////////
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
@@ -158,7 +158,12 @@ void MRIScenterCOG2(MRI_SURFACE *mris,double *xCOG,double *yCOG,double *zCOG)
 // *** NbVoxels corresponds to:
 //               - the number of kept voxels if (type>=0)
 //               - the number of removed voxels if (type<0)
-MRI* MRISpeelVolume(MRIS *mris,MRI *mri_src,MRI *mri_dst,int type,unsigned char val,unsigned long *NbVoxels)
+MRI* MRISpeelVolume(MRIS *mris,
+                    MRI *mri_src,
+                    MRI *mri_dst,
+                    int type,
+                    unsigned char val,
+                    unsigned long *NbVoxels)
 {
   int i,j,k,imnr;
   float x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax,u,v;
@@ -169,8 +174,6 @@ MRI* MRISpeelVolume(MRIS *mris,MRI *mri_src,MRI *mri_dst,int type,unsigned char 
   unsigned long size;
   int width, height,depth;
   MRI *mri_buff;
-
-
 
   width=mri_src->width;
   height=mri_src->height;
@@ -345,15 +348,20 @@ static MRI* mriIsolateLabel(MRI* mri_seg,int label,MRI_REGION* bbox);
 static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs);
 static double mrisRmsValError(MRI_SURFACE *mris, MRI *mri);
 static void mrisSetVal(MRIS *mris,float val);
-static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum,
-    float delta_t, MHT *mht, float max_mag);
+static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, 
+                                          float momentum,
+                                          float delta_t, 
+                                          MHT *mht, 
+                                          float max_mag);
 static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno);
 static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno);
 static int mrisRemoveNormalGradientComponent(MRI_SURFACE *mris, int vno);
 static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv);
 static int mrisComputeTangentPlanes(MRI_SURFACE *mris);
-static int mrisComputeIntensityTerm(MRI_SURFACE *mris
-                                    , double l_intensity, MRI *mri,double sigma);
+static int mrisComputeIntensityTerm(MRI_SURFACE *mris, 
+                                    double l_intensity, 
+                                    MRI *mri,
+                                    double sigma);
 static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring);
 static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring);
 
@@ -394,6 +402,8 @@ mrisClearGradient(MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -420,6 +430,7 @@ mrisClearExtraGradient(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 #endif
+
 
 static int
 mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
@@ -479,7 +490,8 @@ mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
             float dot ;
             dot = vn->dx*v->dx + vn->dy*v->dy + vn->dz*v->dz ;
             if (dot < 0)
-              fprintf(stdout, "vn %d: dot = %2.3f, dx = (%2.3f, %2.3f, %2.3f)\n",
+              fprintf(stdout, 
+                      "vn %d: dot = %2.3f, dx = (%2.3f, %2.3f, %2.3f)\n",
                       v->v[vnb], dot, vn->dx, vn->dy, vn->dz) ;
           }
 #endif
@@ -554,7 +566,10 @@ static MRI* mriIsolateLabel(MRI* mri_seg,int label,MRI_REGION* bbox)
 {
   int i,j,k;
   int xplusdx,yplusdy,zplusdz;
-  MRI *mri=MRIalloc(mri_seg->width,mri_seg->height,mri_seg->depth,mri_seg->type);
+  MRI *mri=MRIalloc(mri_seg->width,
+                    mri_seg->height,
+                    mri_seg->depth,
+                    mri_seg->type);
 
   xplusdx=bbox->x+bbox->dx+1;
   yplusdy=bbox->y+bbox->dy+1;
@@ -783,7 +798,8 @@ mrisComputeTangentPlanes(MRI_SURFACE *mris)
       V3_CROSS_PRODUCT(v_n, v, v_e1) ;
     }
 
-    if ((V3_LEN_IS_ZERO(v_e1)) && DIAG_VERBOSE_ON)  /* happened to pick a parallel vector */
+    if ((V3_LEN_IS_ZERO(v_e1)) && 
+        DIAG_VERBOSE_ON)  /* happened to pick a parallel vector */
       fprintf(stderr, "vertex %d: degenerate tangent plane\n", vno) ;
     V3_CROSS_PRODUCT(v_n, v_e1, v_e2) ;
     V3_NORMALIZE(v_e1, v_e1) ;
@@ -885,7 +901,10 @@ mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
 
 
 static int
-mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri, double sigma)
+mrisComputeIntensityTerm(MRI_SURFACE *mris, 
+                         double l_intensity, 
+                         MRI *mri, 
+                         double sigma)
 {
   int     vno ;
   VERTEX  *v ;
@@ -1133,7 +1152,12 @@ mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
 #define AVERAGES_NBR 1
 #define BASE_DT_SCALE    1.0
 
-MRIS *MRISmatchSurfaceToLabel(MRIS *mris,MRI *mri_seg,int label,MRI_REGION *mri_region,INTEGRATION_PARMS *integration_parms,int connectivity)
+MRIS *MRISmatchSurfaceToLabel(MRIS *mris,
+                              MRI *mri_seg,
+                              int label,
+                              MRI_REGION *mri_region,
+                              INTEGRATION_PARMS *integration_parms,
+                              int connectivity)
 {
   int bbox_indicator=0,done,niterations,n,nreductions=0;
   MRI_REGION *bbox;
@@ -1252,7 +1276,11 @@ MRIS *MRISmatchSurfaceToLabel(MRIS *mris,MRI *mri_seg,int label,MRI_REGION *mri_
     do
     {
       MRISsaveVertexPositions(mris,TMP_VERTICES);
-      delta_t=mrisAsynchronousTimeStepNew(mris,parms->momentum,dt,mht,MAX_ASYNCH_MM);
+      delta_t=mrisAsynchronousTimeStepNew(mris,
+                                          parms->momentum,
+                                          dt,
+                                          mht,
+                                          MAX_ASYNCH_MM);
 
       MRIScomputeMetricProperties(mris);
       rms=mrisRmsValError(mris,mri);
@@ -1264,7 +1292,8 @@ MRIS *MRISmatchSurfaceToLabel(MRIS *mris,MRI *mri_seg,int label,MRI_REGION *mri_
         nreductions++;
         dt*=REDUCTION_PCT;
         if (0)//Gdiag & DIAG_SHOW)
-          fprintf(stdout,"      sse=%2.1f, last_sse=%2.1f,\n      ->  time setp reduction %d of %d to %2.3f...\n",
+          fprintf(stdout,"      sse=%2.1f, last_sse=%2.1f,\n"
+                  "      ->  time setp reduction %d of %d to %2.3f...\n",
                   sse,last_sse,nreductions,MAX_REDUCTIONS+1,dt);
 
         mrisClearMomentum(mris);
@@ -1282,14 +1311,15 @@ MRIS *MRISmatchSurfaceToLabel(MRIS *mris,MRI *mri_seg,int label,MRI_REGION *mri_
 
     rms=mrisRmsValError(mris,mri);
     sse=MRIScomputeSSE(mris,parms)/(double)mris->nvertices;
-    fprintf(stdout,"%3d, sse=%2.1f, last sse=%2.1f,\n     rms=%2.4f, last_rms=%2.4f\n",
+    fprintf(stdout,"%3d, sse=%2.1f, last sse=%2.1f,\n"
+            "     rms=%2.4f, last_rms=%2.4f\n",
             n,sse,last_sse,rms,last_rms);
   }
 
   msec=TimerStop(&then);
   if (1)//Gdiag & DIAG_SHOW)
-    fprintf(stdout,"positioning took %2.2f minutes\n",(float)msec/(60*1000.0f));
-
+    fprintf(stdout,"positioning took %2.2f minutes\n",
+            (float)msec/(60*1000.0f));
 
   if (bbox_indicator)
     free(bbox);
@@ -1355,6 +1385,8 @@ void MRISsmoothSurface2(MRI_SURFACE *mris,int niter,float step,int avrg)
     }
   }
 }
+
+
 /*--------------------------------------------------------------------*/
 MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
                           char *SUBJECTS_DIR)
@@ -1386,6 +1418,8 @@ MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
 
   return(Surf);
 }
+
+
 /*-----------------------------------------------------------------
   MRISfdr2vwth() - computes the voxel-wise (or vertex-wise) threshold
     needed to realize the given False Discovery Rate (FDR) based on the
@@ -1533,6 +1567,8 @@ int MRISfwhm2niters(double fwhm, MRIS *surf)
   niters = floor(1.14*(4*PI*(gstd*gstd))/(7*avgvtxarea) + 0.5);
   return(niters);
 }
+
+
 /*----------------------------------------------------------------------*/
 double MRISniters2fwhm(int niters, MRIS *surf)
 {
@@ -1554,6 +1590,8 @@ double MRISniters2fwhm(int niters, MRIS *surf)
   fwhm = gstd*sqrt(log(256.0));
   return(fwhm);
 }
+
+
 /*---------------------------------------------------------------*/
 int MRISfwhm2nitersSubj(double fwhm, char *subject, char *hemi, char *surfname)
 {
@@ -1580,6 +1618,7 @@ int MRISfwhm2nitersSubj(double fwhm, char *subject, char *hemi, char *surfname)
   return(niters);
 }
 
+
 /*----------------------------------------------------------------------
   MRISfwhm() - estimates fwhm from global ar1 mean
   ----------------------------------------------------------------------*/
@@ -1593,7 +1632,8 @@ double MRISfwhmFromAR1(MRIS *surf, double ar1)
     // This should be ok even if metric properties have been scaled ??
     if (getenv("FIX_VERTEX_AREA") != NULL)    {
       printf("INFO: fwhmFromAR1: Fixing group surface area\n");
-      InterVertexDistAvg *= sqrt(surf->group_avg_surface_area/surf->total_area);
+      InterVertexDistAvg *= 
+        sqrt(surf->group_avg_surface_area/surf->total_area);
     }
     else printf("INFO: fwhmFromAR1: NOT fixing group surface area\n");
   }
@@ -1611,6 +1651,7 @@ double MRISfwhmFromAR1(MRIS *surf, double ar1)
   return(fwhm);
 }
 
+
 /*----------------------------------------------------------------------
   MRIscale() - scales vertex XYZ by scale.
   ----------------------------------------------------------------------*/
@@ -1627,11 +1668,13 @@ int MRISscale(MRIS *mris, double scale)
   }
   return(0);
 }
-/*------------------------------------------------------------------------------
+
+
+/*-------------------------------------------------------------------------
   MRISsmoothingArea() - computes the area coverted by the give number
   of iterations at the given vertex. Essentially it's the area of the
   neighborhood.
-  ------------------------------------------------------------------------------*/
+  -------------------------------------------------------------------------*/
 double MRISsmoothingArea(MRIS *mris, int vtxno, int niters)
 {
   MRI *mri;
@@ -1670,6 +1713,7 @@ double MRISsmoothingArea(MRIS *mris, int vtxno, int niters)
   return(area);
 }
 
+
 /*-------------------------------------------------------------------
   MRISseg2annot() - converts a segmentation in a surface-encoded
   MRI struct to an annotation in an MRIS struct. If ctab is null,
@@ -1700,6 +1744,8 @@ int MRISseg2annot(MRIS *mris, MRI *surfseg, COLOR_TABLE *ctab)
 
   return(0);
 }
+
+
 /*----------------------------------------------------------------
   MRISannotIndex2Seg() - creates an MRI struct where each voxel is the
   annotation index. The struct has nvertices columns, 1 row, 1 slice,
@@ -1784,7 +1830,8 @@ double MRISvolumeInSurf(MRIS *mris)
   the search for non-cortical vertices (that is, they will be labeled
   cortex).
 */
-LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices) {
+LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices) 
+{
   LABEL      *lcortex ;
   int        vno, label, nvox, total_vox, adjacent, x, y, z, target_label,l ;
   VERTEX     *v ;
@@ -1891,7 +1938,7 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices) {
   // remove small holes that shouldn't be non-cortex
   {
     LABEL **label_array ;
-    int   nlabels, n, i=0;
+    int   nlabels, n, i ;
 
     MRISinvertMarks(mris) ; // marked->not cortex now
     MRISsegmentMarked(mris, &label_array, &nlabels, 0) ;
@@ -1901,10 +1948,9 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices) {
       if (label_array[n]->n_points < min_vertices)
       {
         printf("erasing segment %d (vno[0] = %d)\n", 
-               i, label_array[n]->lv[0].vno) ;
+               n, label_array[n]->lv[0].vno) ;
         for (i = 0 ; i < label_array[n]->n_points ; i++)
-          mris->vertices[label_array[n]->lv[i].vno].marked = 0 ; /* mark it as 
-                                                                    cortex */
+          mris->vertices[label_array[n]->lv[i].vno].marked = 0 ; // mark it as cortex
       }
       LabelFree(&label_array[n]) ;
     }
@@ -1917,3 +1963,204 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices) {
   MRIfree(&mri_aseg) ;  // a locally edited copy, not the original
   return(lcortex) ;
 }
+
+
+/*-------------------------------------------------------*/
+/*!
+  \fn int MRISsphericalCoords(MRIS *surf)
+  \brief Replaces x,y,z with theta,phi,radius. Assumes
+    that the surface xyz are already on the sphere.
+    Note: this is not realated to the surface-based
+    spherical coords.
+ */
+int MRISsphericalCoords(MRIS *surf)
+{
+  int k;
+  double x,y,z,d2,d,r,theta,phi;
+
+  for(k=0; k < surf->nvertices; k++){
+    x = surf->vertices[k].x;
+    y = surf->vertices[k].y;
+    z = surf->vertices[k].z;
+    d2 = x*x + y*y;
+    d = sqrt(d2);
+    r = sqrt(d2 + z*z);
+    theta = atan2(y,x);
+    phi = atan2(z,d);
+    surf->vertices[k].x = theta;
+    surf->vertices[k].y = phi;
+    surf->vertices[k].z = r;
+  }
+  return(0);
+}
+
+
+/*-------------------------------------------------------*/
+/*!
+  \fn int MRISripZeros(MRIS *surf, MRI *mri)
+  \brief Sets ripflag=1 for vertices where the mri value is 0 
+    (actually less than 1e-5). If mri is null, then uses the
+    val field. No change to a vertex if ripflag already = 1.
+*/
+int MRISripZeros(MRIS *surf, MRI *mri)
+{
+  int k;
+  double v;
+
+  if(mri){
+    if(mri->width != surf->nvertices){
+      printf("ERROR: MRISripZeros(): dimension mismatch\n");
+      return(1);
+    }
+  }
+
+  for(k=0; k < surf->nvertices; k++){
+    if(surf->vertices[k].ripflag) continue;
+    if(mri) v = MRIgetVoxVal(mri,k,0,0,0);
+    else    v = surf->vertices[k].val;
+    if(fabs(v) < 1e-5) surf->vertices[k].ripflag = 1;
+  }
+  return(0);
+}
+
+/*!
+  \fn int MRISfindPath ( int *vert_vno, int num_vno, int max_path_length,
+                         int *path, int *path_length, MRIS *mris ).
+  \brief Finds a path that connects all the vertices listed in vert_vno
+  \params vert_vno[] - array of vertex numbers to connect
+  \params num_vno - number in array of vertex numbers to connect
+  \params max_path_length - max number in path
+  \params path - array of connected vertex numbers
+  \params path_length - pointer to length of array of connected vertex numbers
+  \params mris - surface
+  This was copied from tksurfer.c find_path() and modified slightly.
+*/
+int MRISfindPath ( int *vert_vno, int num_vno, int max_path_length,
+		   int *path, int *path_length, MRIS *mris ) {
+  int cur_vert_vno;
+  int src_vno;
+  int dest_vno;
+  int vno;
+  char* check;
+  float* dist;
+  int* pred;
+  char done;
+  VERTEX* v;
+  VERTEX* u;
+  float closest_dist;
+  int closest_vno;
+  int neighbor;
+  int neighbor_vno;
+  float dist_uv;
+  int path_vno;
+  int num_path = 0;
+  int num_checked;
+  float vu_x, vu_y, vu_z;
+  int flag2d = 0; // for flattend surface?
+
+  dist = (float*) calloc (mris->nvertices, sizeof(float));
+  pred = (int*) calloc (mris->nvertices, sizeof(int));
+  check = (char*) calloc (mris->nvertices, sizeof(char));
+  num_path = 0;
+  num_checked = 0;
+  (*path_length) = 0;
+
+  for (cur_vert_vno = 0; cur_vert_vno < num_vno-1; cur_vert_vno++) {
+    /* clear everything */
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      dist[vno] = 999999;
+      pred[vno] = -1;
+      check[vno] = FALSE;
+    }
+
+    /* Set src and dest */
+    src_vno = vert_vno[cur_vert_vno+1];
+    dest_vno = vert_vno[cur_vert_vno];
+
+    /* make sure both are in range. */
+    if (src_vno < 0 || src_vno >= mris->nvertices ||
+        dest_vno < 0 || dest_vno >= mris->nvertices)
+      continue;
+
+    if (src_vno == dest_vno)
+      continue;
+
+    /* pull the src vertex in. */
+    dist[src_vno] = 0;
+    pred[src_vno] = vno;
+    check[src_vno] = TRUE;
+
+    done = FALSE;
+    while (!done) {
+
+      /* find the vertex with the shortest edge. */
+      closest_dist = 999999;
+      closest_vno = -1;
+      for (vno = 0; vno < mris->nvertices; vno++)
+        if (check[vno])
+          if (dist[vno] < closest_dist) {
+            closest_dist = dist[vno];
+            closest_vno = vno;
+          }
+      v = &(mris->vertices[closest_vno]);
+      check[closest_vno] = FALSE;
+
+      /* if this is the dest node, we're done. */
+      if (closest_vno == dest_vno) {
+        done = TRUE;
+      } else {
+        /* relax its neighbors. */
+        for (neighbor = 0; neighbor < v->vnum; neighbor++) {
+          neighbor_vno = v->v[neighbor];
+          u = &(mris->vertices[neighbor_vno]);
+
+          /* calc the vector from u to v. */
+          vu_x = u->x - v->x;
+          vu_y = u->y - v->y;
+	  if (flag2d)	    vu_z = 0;
+	  else     	    vu_z = u->z - v->z;
+
+          /* recalc the weight. */
+	  if (flag2d)
+	    dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
+			   ((v->y - u->y) * (v->y - u->y)));
+	  else
+	    dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
+			   ((v->y - u->y) * (v->y - u->y)) +
+			   ((v->z - u->z) * (v->z - u->z)));
+
+          /* if this is a new shortest path, update the predecessor,
+             weight, and add it to the list of ones to check next. */
+          if (dist_uv + dist[closest_vno] < dist[neighbor_vno]) {
+            pred[neighbor_vno] = closest_vno;
+            dist[neighbor_vno] = dist_uv + dist[closest_vno];
+            check[neighbor_vno] = TRUE;
+          }
+        }
+      }
+      num_checked++;
+      if ((num_checked % 100) == 0) {
+        printf (".");
+        fflush (stdout);
+      }
+    }
+
+    /* add the predecessors from the dest to the src to the path. */
+    path_vno = dest_vno;
+    path[(*path_length)++] = dest_vno;
+    while (pred[path_vno] != src_vno &&
+           (*path_length) < max_path_length ) {
+      path[(*path_length)++] = pred[path_vno];
+      path_vno = pred[path_vno];
+    }
+  }
+  printf (" done\n");
+  fflush (stdout);
+
+  free (dist);
+  free (pred);
+  free (check);
+
+  return (ERROR_NONE);
+}
+
