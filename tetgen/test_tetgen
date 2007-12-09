@@ -18,6 +18,10 @@ else if ("$PROC" == "i86pc") then
   set PROC=i686
 else if  ("$PROC" == "x86_64") then
   # known architecture
+  # except the Intel compiler on x86_64 produces the same results as i686
+  if ($?CC) then
+    if ("$CC" == "icc") set PROC=i686
+  endif
 else if  ("$PROC" == "Power Macintosh") then
   # PowerPC Mac produces the same results as x86_64
   set PROC=x86_64
