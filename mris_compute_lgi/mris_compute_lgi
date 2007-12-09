@@ -14,8 +14,8 @@
 # Original Author: Marie Schaer
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/07 21:29:01 $
-#    $Revision: 1.18 $
+#    $Date: 2007/12/09 01:38:18 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.18 2007/12/07 21:29:01 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.19 2007/12/09 01:38:18 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
@@ -63,6 +63,7 @@ if($status) then
   echo "ERROR: Matlab is required to run mris_compute_lgi!"
   exit 1;
 endif
+
 
 # temporary work files go here...
 set cmd=(rm -Rf $tmpdir)
@@ -216,18 +217,20 @@ endif
 #
 # create ROI label files
 if ($RunIt) then
-  set vertices = `cat ${tmpdir}/${input}.center.vertices`
-  foreach v ($vertices)
-    set center = `cat ${tmpdir}/${input}.${v}.center`
-    set cmd = (mri_path2label \
-      --confillx ${input} ${center} \
-      --i ${tmpdir}/${input}.${v}.path \
-      --o ${tmpdir}/${input}.${v}.label)
-      echo "================="
-      echo "$cmd"
-      echo "================="
-      $cmd
+  set confillxfn = ${tmpdir}/mri_path2label.input
+  rm -f ${confillxfn}
+  set vertices = (`cat ${tmpdir}/${input}.center.vertices`)
+  foreach v (${vertices})
+    set center = (`cat ${tmpdir}/${input}.${v}.center`)
+    set pathf = (${tmpdir}/${input}.${v}.path)
+    set labelf = (${tmpdir}/${input}.${v}.label)
+    echo "${center} ${pathf} ${labelf}" >> ${confillxfn}
   end
+  set cmd = (mri_path2label --confillxfn ${input} ${confillxfn})
+  echo "================="
+  echo "$cmd"
+  echo "================="
+  $cmd
 else # -dontrun flag is set
   echo "================="
   echo "mri_path2label..."
