@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/11 17:41:33 $
-#    $Revision: 1.3 $
+#    $Date: 2007/12/09 19:29:37 $
+#    $Revision: 1.3.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_convert,v 1.3 2007/01/11 17:41:33 nicks Exp $'
+set VERSION='$Id: test_mri_convert,v 1.3.2.1 2007/12/09 19:29:37 nicks Exp $'
 
 umask 002
 
@@ -89,7 +89,7 @@ foreach tstvol ($TEST_FILES)
   set cmd=(../../mri_diff/mri_diff --debug \
             --thresh 0.0 \
             --res-thresh 0.000001 \
-            --geo-thresh 0.000001 \
+            --geo-thresh 0.000008 \
             $ACQ --log $MRIDIFFF \
             $REF_VOL $TST_VOL --diff $DIFF_VOL);
   echo ""
