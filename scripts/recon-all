@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/05 01:30:59 $
-#    $Revision: 1.150 $
+#    $Date: 2007/12/09 01:30:17 $
+#    $Revision: 1.151 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.150 2007/12/05 01:30:59 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.151 2007/12/09 01:30:17 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -223,14 +223,16 @@ set DoParcStats      = 0;
 set DoParcStats2     = 0;
 set DoCortRibbonVolMask = 0;
 set DoVnoMatchCheck  = 0;
+set DoLocalGyriIndex = 0;
+# ----------- Surface and Volume ------------------#
+set DoAParc2ASeg = 0;
+set DoWMParc = 0;
+
+
 set DoIsRunning  = 1;
 set IsRunningFile  = ();
 
 setenv LANG C # Required by MNI tool
-
-# ----------- Surface and Volume ------------------#
-set DoAParc2ASeg = 0;
-set DoWMParc = 0;
 
 # -------------------------------------------------- #
 set PWD = pwd;
@@ -2414,6 +2416,25 @@ if ($DoQdecCache) then
   end # hemi
 endif # DoQdecCache
 
+
+# ---------------------------------------------------------------
+# Compute local gyrification index measurements
+if ($DoLocalGyriIndex) then
+  cd $subjdir/surf
+  $PWD |& tee -a $LF
+  foreach hemi ($hemilist)
+      echo "#--------------------------------------------" \
+          |& tee -a $LF |& tee -a $CF
+      echo "#@# Local Gyrification Index $hemi `date`" \
+          |& tee -a $SF |& tee -a $LF |& tee -a $CF
+        set cmd=(mris_compute_lgi --i ${hemi}.pial)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+  end # hemi
+endif # DoLocalGyriIndex
+
+
 #-------------- AParc+ASeg Stats -----------------#
 # This is not something you want to do in general. The volumes
 # of cortical structures should be obtained from the aparc.stats,
@@ -3649,6 +3670,12 @@ while( $#argv != 0 )
       set DoTime = 0;
       breaksw;
 
+    case "-lgi":
+    case "-lGI":
+    case "-localGI":
+      set DoLocalGyriIndex = 1;
+      breaksw;
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -3960,7 +3987,7 @@ check_params:
      ! $DoMorphRGB && ! $DoFinalSurfs && ! $DoContraSurfRegWithinSubject &&\
      ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoCCSeg && \
-     ! $DoMaskBFS && ! $DoAParcASegStats &&\
+     ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff ) then
      echo "ERROR: nothing to do"
      exit 1;
@@ -4491,6 +4518,13 @@ particular file as a target.
 
 The flag -dontrun can also be specified to show the commands that will run
 without excuting them.
+
+-lgi
+-lGI
+-localGI
+
+Computes local measurements of pial-surface gyrification at thousands of 
+points over the cortical surface. See reference [13] for details.
 
 
 EXPERT OPTIONS FILE
@@ -5093,3 +5127,6 @@ NeuroImage, 22,  pp. 1160-1075, 2004
 [12] Han et al.,  Reliability of MRI-derived measurements of human
 cerebral cortical thickness: The effects of field strength, scanner
 upgrade and manufacturer, (2006) NeuroImage, 32(1):180-194.
+
+[13] Schaer et al., A Surface-based Approach to Quantify Local Cortical 
+Gyrification (2007) IEEE Transactions on Medical Imaging.
