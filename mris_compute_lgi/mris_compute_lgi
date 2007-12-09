@@ -1,0 +1,453 @@
+#! /bin/tcsh -ef
+
+#
+# mris_compute_lgi
+#
+# Computes local measurements of gyrification at points over cortical surface.
+# --help option will show usage
+#
+# This script implements the work of Marie Schaer et al., as described in:
+# 
+# "A Surface-based Approach to Quantify Local Cortical Gyrification",
+# Schaer M. et al., IEEE Transactions on Medical Imaging, 2007, TMI-2007-0180
+#
+# Original Author: Marie Schaer
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2007/12/09 22:50:25 $
+#    $Revision: 1.19.2.1 $
+#
+# Copyright (C) 2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION = '$Id: mris_compute_lgi,v 1.19.2.1 2007/12/09 22:50:25 nicks Exp $'
+set PrintHelp = 0;
+set RunIt = 1;
+set cmdargs = ($argv);
+set tmpdir = tmp-mris_compute_lgi
+set use_mris_extract = 1
+set closespheresize = 15
+set smoothiters = 30
+set radius = 25
+set stepsize = 100
+#set echo=1
+set start=`date`
+
+if($#argv == 0) then
+  # zero args is not allowed
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# begin...
+#---------
+
+# check for matlab
+set MATLAB = `getmatlab`;
+if($status) then
+  echo "ERROR: Matlab is required to run mris_compute_lgi!"
+  exit 1;
+endif
+
+
+# temporary work files go here...
+set cmd=(rm -Rf $tmpdir)
+echo "================="
+echo "$cmd"
+echo "================="
+if ($RunIt) $cmd
+set cmd=(mkdir -p $tmpdir)
+echo "================="
+echo "$cmd"
+echo "================="
+if ($RunIt) $cmd
+
+#
+# mris_fill
+#
+# create a filled-volume from the input surface file...
+set cmd=(mris_fill -c -r 1 ${input} ${tmpdir}/${input}.filled.mgz)
+echo "================="
+echo "$cmd"
+echo "================="
+if ($RunIt) $cmd
+
+#
+# make_outer_surface.m
+#
+# create the outer surface from the filled volume
+set MLF = /tmp/mos"_$$_".m
+set arg1 = ${tmpdir}/${input}.filled.mgz
+set arg2 = ${closespheresize}
+set arg3 =  ${tmpdir}/${input}-outer
+rm -f ${arg3}
+echo "make_outer_surface('${arg1}',${arg2},'${arg3}')" > $MLF
+echo "================="
+echo "`cat $MLF`"
+echo "================="
+if ($RunIt) then
+  cat $MLF | ${MATLAB} -display iconic -nojvm -nosplash
+endif
+echo ""
+rm -f ${MLF}
+if ( $RunIt && ! -e ${arg3} ) then
+  echo "ERROR: make_outer_surface did not create output file '${arg3}'!"
+  exit 1
+endif
+
+#
+# mris_extract_main_component (optional, default)
+#
+if ($use_mris_extract) then
+  set cmd=(mris_extract_main_component \
+    ${tmpdir}/${input}-outer \
+    ${tmpdir}/${input}-outer-main)
+  echo "================="
+  echo "$cmd"
+  echo "================="
+  if ($RunIt) $cmd
+else
+  set cmd=(cp ${tmpdir}/${input}-outer ${tmpdir}/${input}-outer-main)
+  echo "================="
+  echo "$cmd"
+  echo "================="
+  if ($RunIt) $cmd
+endif
+
+#
+# mris_smooth
+#
+# smooth this jaggy, tessellated surface
+set cmd=(mris_smooth -nw -n ${smoothiters} \
+    ${tmpdir}/${input}-outer-main \
+    ./${input}-outer-smoothed)
+echo "================="
+echo "$cmd"
+echo "================="
+if ($RunIt) $cmd
+
+#
+# mris_euler_number (a QA check, total defects should = 0)
+#
+set cmd=(mris_euler_number ./${input}-outer-smoothed)
+echo "================="
+echo "$cmd"
+echo "================="
+if ($RunIt) $cmd
+
+#
+# mris_convert
+#
+# output normals of the smoothed outer surface
+set cmd=(mris_convert -n \
+    ${input}-outer-smoothed \
+    ${tmpdir}/${input}-outer-smoothed-normals.asc)
+echo "================="
+echo "$cmd"
+echo "================="
+if ($RunIt) $cmd
+
+
+#
+# find_corresponding_center_FSformat.m
+#
+# create ROI center files
+set MLF = /tmp/mrc"_$$_".m
+set arg1 = ${input}
+set arg2 = ${input}-outer-smoothed
+set arg3 = ${stepsize}
+set arg4 = ${tmpdir}
+set arg5 = ${MLF}
+echo "find_corresponding_center_FSformat('${arg1}','${arg2}',${arg3},'${arg4}','${arg5}')" > $MLF
+echo "================="
+echo "`cat $MLF`"
+echo "================="
+if ($RunIt) then
+  cat ${MLF} | ${MATLAB} -display iconic -nojvm -nosplash
+endif
+echo ""
+if ( $RunIt &&  -e ${MLF} ) then
+  echo "ERROR: find_corresponding_center_FSformat did not complete successfully!"
+  exit 1
+endif
+
+
+#
+# make_roi_paths.m
+#
+# create ROI path files
+set MLF = /tmp/mrp"_$$_".m
+set arg1 = ${input}
+set arg2 = ${input}-outer-smoothed
+set arg3 = ${radius}
+set arg4 = ${stepsize}
+set arg5 = ${tmpdir}
+set arg6 = ${MLF}
+echo "make_roi_paths('${arg1}','${arg2}',${arg3},${arg4},'${arg5}','${arg6}')" > $MLF
+echo "================="
+echo "`cat $MLF`"
+echo "================="
+if ($RunIt) then
+  cat $MLF | ${MATLAB} -display iconic -nojvm -nosplash
+endif
+echo ""
+if ( $RunIt && -e ${MLF} ) then
+  echo "ERROR:  make_roi_paths did not complete successfully!"
+  exit 1
+endif
+
+
+#
+# mri_path2label
+#
+# create ROI label files
+if ($RunIt) then
+  set confillxfn = ${tmpdir}/mri_path2label.input
+  rm -f ${confillxfn}
+  set vertices = (`cat ${tmpdir}/${input}.center.vertices`)
+  foreach v (${vertices})
+    set center = (`cat ${tmpdir}/${input}.${v}.center`)
+    set pathf = (${tmpdir}/${input}.${v}.path)
+    set labelf = (${tmpdir}/${input}.${v}.label)
+    echo "${center} ${pathf} ${labelf}" >> ${confillxfn}
+  end
+  set cmd = (mri_path2label --confillxfn ${input} ${confillxfn})
+  echo "================="
+  echo "$cmd"
+  echo "================="
+  $cmd
+else # -dontrun flag is set
+  echo "================="
+  echo "mri_path2label..."
+  echo "================="
+endif
+
+
+#
+# compute_lgi.m
+#
+# finally, compute lGI measurements
+compute_lgi:
+set MLF = /tmp/clgi"_$$_".m
+set arg1 = ${input}
+set arg2 = ${input}-outer-smoothed
+set arg3 = ${tmpdir}/${input}-outer-smoothed-normals.asc
+set arg4 = ${stepsize}
+set arg5 = ${radius}
+set arg6 = ${tmpdir}
+rm -f ${tmpdir}/${input}_lgi.asc
+echo "compute_lgi('${arg1}','${arg2}','${arg3}',${arg4},${arg5},'${arg6}')" \
+    > $MLF
+echo "================="
+echo "`cat $MLF`"
+echo "================="
+if ($RunIt) then
+  cat $MLF | ${MATLAB} -display iconic -nojvm -nosplash
+endif
+echo ""
+rm -f ${MLF}
+if ( $RunIt && ! -e ${tmpdir}/${input}_lgi.asc ) then
+  echo "ERROR: compute_lgi did not create output file '${tmpdir}/${input}_lgi.asc'!"
+  exit 1
+endif
+
+
+#
+# mris_convert
+#
+# convert ascii file to scalar
+set cmd=(mris_convert -c \
+    ${tmpdir}/${input}_lgi.asc \
+    ${input} \
+    ${input}_lgi)
+echo "================="
+echo "$cmd"
+echo "================="
+if ($RunIt) $cmd
+
+
+#--------
+# end...
+set cmd=(rm -Rf $tmpdir)
+echo "================="
+echo "$cmd"
+echo "================="
+if ($RunIt) $cmd
+set end=`date`
+echo "done."
+echo "Start: $start"
+echo "End:   $end"
+exit 0
+
+
+
+#----------------------------------------------------------#
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+   case "--close_sphere_size":
+      set closespheresize = $argv[1]; shift;
+      echo "Using sphere size of ${closespheresize}mm for morph closing op."
+      breaksw
+
+   case "--smooth_iters":
+      set smoothiters = $argv[1]; shift;
+      echo "Smoothing using ${smoothiters} iterations."
+      breaksw
+
+   case "--step_size":
+      set stepsize = $argv[1]; shift;
+      echo "Skipping every ${stepsize} vertices during lGI calcs."
+      breaksw
+
+    case "--help":
+      set PrintHelp = 1;
+      goto usage_exit;
+      exit 0;
+      breaksw
+
+    case "--version":
+      echo $VERSION
+      exit 0;
+      breaksw
+
+    case "-i":
+    case "--i":
+    case "--input":
+      if ( $#argv == 0) goto arg1err;
+      set input = $argv[1]; shift;
+      #echo ${input}
+      breaksw
+
+   case "--dont_extract":
+      set use_mris_extract = 0
+      breaksw
+
+   case "--debug":
+   case "--echo":
+      set echo = 1;
+      set verbose = 1
+      breaksw
+
+   case "--dontrun":
+      set RunIt = 0;
+      breaksw
+
+    default:
+      breaksw
+
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+
+
+############--------------##################
+check_params:
+  if(! $?FREESURFER_HOME ) then
+    echo "ERROR: environment variable FREESURFER_HOME not set."
+    exit 1;
+  endif
+  if(! -e $FREESURFER_HOME ) then
+    echo "ERROR: FREESURFER_HOME $FREESURFER_HOME does not exist."
+    exit 1;
+  endif
+  if(! $?input) then
+    echo "ERROR: missing input filename!  See  mris_compute_lgi --help"
+    exit 1;
+  endif
+  if(! -e ${input} ) then
+    echo "ERROR: input file '${input}' does not exist."
+    exit 1;
+  endif
+goto check_params_return;
+############--------------##################
+
+
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mris_compute_lgi [options] --i <input surface>"
+  echo ""
+  echo "Produces a surface map file containing local gyrification measures."
+  echo "Output file is named <input surface>_lgi, where <input surface> is the"
+  echo "specified input surface (ex. lh.pial produces lh.pial_lgi)."
+  echo ""
+  echo "Required Arguments"
+  echo "  --i       : input surface file, typically lh.pial or rh.pial"
+  echo ""
+  echo "Optional Arguments"
+  echo "  --close_sphere_size <mm> : use sphere of size <mm> mm for morph"
+  echo "                             closing operation (default: ${closespheresize})"
+  echo "  --smooth_iters <iters>   : smooth outer-surface <iters> number of"
+  echo "                             iterations (default: ${smoothiters})"
+  echo "  --step_size <steps>      : skip every <steps> vertices when"
+  echo "                             computing lGI (default: ${stepsize})"
+  echo "  --help    : short descriptive help"
+  echo "  --version : script version info"
+  echo "  --echo    : enable command echo, for debug"
+  echo "  --debug   : same as --echo"
+  echo "  --dontrun : just show commands (dont run them)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo Version: $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes local measurements of gyrification at thousands of points over the 
+entire cortical surface using the method described in:
+
+"A Surface-based Approach to Quantify Local Cortical Gyrification",
+Schaer M. et al., IEEE Transactions on Medical Imaging, 2007, TMI-2007-0180
+
+Input is a pial surface mesh, and the output a scalar data file containing
+the local gyrification index data at each vertices.
+
+Example:
+
+  mris_compute_lgi --i lh.pial
+
+produces lh.pial_lgi
+
+See also http://surfer.nmr.mgh.harvard.edu/fswiki/LGI

@@ -2344,6 +2344,7 @@ AC_OUTPUT([Makefile
            mris_ca_train/Makefile
            mris_classify_thickness/Makefile
            mris_compute_acorr/Makefile
+           mris_compute_lgi/Makefile
            mris_compute_overlap/Makefile
            mris_compute_parc_overlap/Makefile
            mris_convert/Makefile

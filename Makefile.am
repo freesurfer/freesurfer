@@ -166,6 +166,7 @@ MRISSUBDIRS=label_area \
 	mris_ca_train \
 	mris_classify_thickness \
 	mris_compute_acorr \
+	mris_compute_lgi \
 	mris_compute_overlap \
 	mris_compute_parc_overlap \
 	mris_convert \
