@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.4 $
+#    $Author: greve $
+#    $Date: 2007/12/10 19:03:47 $
+#    $Revision: 1.4.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set SEQEFF_VER = '$Id: seqefficiency,v 1.4 2007/01/09 22:41:18 nicks Exp $';
+set SEQEFF_VER = '$Id: seqefficiency,v 1.4.2.1 2007/12/10 19:03:47 greve Exp $';
 
 if ( $#argv < 4 ) then
   echo ""
@@ -79,6 +79,7 @@ set ExtRegList = ();
 set nExtReg = ();
 set ExtRegOrthog = 0;
 set spmhrf = -1;
+set cmatfile = ();
 
 goto parse_args;
 parse_args_return:
@@ -437,6 +438,11 @@ while( $#argv != 0 )
    case "-pf"
       if( $#argv == 0) goto arg1err;
       set pforder = $argv[1]; shift;
+      breaksw
+
+   case "-cmat"
+      if( $#argv == 0) goto arg1err;
+      set cmatfile = $argv[1]; shift;
       breaksw
 
     case "-monly":
