@@ -16,7 +16,7 @@ extern "C" {
   extern int Rgbatransferfunctioneditortesterlib_SafeInit ( Tcl_Interp* );
 }
 
-char* Progname = "vtkKWRGBATransferFunctionEditorTester";
+const char* Progname = "vtkKWRGBATransferFunctionEditorTester";
 
 int
 main ( int iArgc, char** iArgv ) {
@@ -41,7 +41,7 @@ main ( int iArgc, char** iArgv ) {
 }
 
 vtkStandardNewMacro( vtkKWRGBATransferFunctionEditorTester );
-vtkCxxRevisionMacro( vtkKWRGBATransferFunctionEditorTester, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWRGBATransferFunctionEditorTester, "$Revision: 1.3 $" );
 
 void
 vtkKWRGBATransferFunctionEditorTester::Start ( int iArgc, char** iArgv ) {
