@@ -1,15 +1,14 @@
 /**
  * @file  test_TclCommandManager.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test TclCommandManager class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/05 22:19:29 $
- *    $Revision: 1.16 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/10 23:19:44 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +47,7 @@ extern "C" {
   throw runtime_error( ss.str() ); \
   }
 
-char* Progname = "test_TclCommandManager";
+const char* Progname = "test_TclCommandManager";
 
 using namespace std;
 

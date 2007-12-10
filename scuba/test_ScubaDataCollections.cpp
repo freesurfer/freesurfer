@@ -1,15 +1,14 @@
 /**
  * @file  test_ScubaDataCollections.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test ScubaDataCollections class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/12/10 23:19:43 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,7 +30,7 @@
 #include "VolumeCollection.h"
 #include "Scuba-impl.h"
 
-char* Progname = "test_ScubaDataCollections";
+const char* Progname = "test_ScubaDataCollections";
 
 using namespace std;
 

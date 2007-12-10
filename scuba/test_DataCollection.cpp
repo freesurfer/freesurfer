@@ -1,15 +1,14 @@
 /**
  * @file  test_DataCollection.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test DataCollection class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/16 22:25:38 $
- *    $Revision: 1.13 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/10 23:19:43 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,8 +29,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-
-
 #include <stdlib.h>
 #include "string_fixed.h"
 #include <iostream>
@@ -67,7 +64,7 @@
 
 using namespace std;
 
-char* Progname = "test_DataCollection";
+const char* Progname = "test_DataCollection";
 
 class TestROI : public ScubaROI {
 public:

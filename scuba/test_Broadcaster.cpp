@@ -1,15 +1,14 @@
 /**
  * @file  test_Broadcaster.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test routines for Broadcaster class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/12 22:13:37 $
- *    $Revision: 1.7 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/10 23:19:43 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,7 +35,7 @@
 #include "Scuba-impl.h"
 
 
-char* Progname = "test_Broadcaster";
+const char* Progname = "test_Broadcaster";
 
 using namespace std;
 

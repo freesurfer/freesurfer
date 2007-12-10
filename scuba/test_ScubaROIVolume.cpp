@@ -1,15 +1,14 @@
 /**
  * @file  test_ScubaROIVolume.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test ScubaROIVolume class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/17 23:59:49 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/10 23:19:44 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +28,7 @@
 #include "ScubaROIVolume.h"
 #include "Scuba-impl.h"
 
-char* Progname = "test_ScubaROIVolume";
+const char* Progname = "test_ScubaROIVolume";
 
 using namespace std;
 

@@ -1,15 +1,14 @@
 /**
  * @file  test_VolumeCollection.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test VolumeCollection class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/16 22:25:38 $
- *    $Revision: 1.21 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/10 23:19:45 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,7 +60,7 @@ extern "C" {
 
 using namespace std;
 
-char* Progname = "test_VolumeCollection";
+const char* Progname = "test_VolumeCollection";
 
 
 

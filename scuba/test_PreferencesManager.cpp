@@ -1,15 +1,14 @@
 /**
  * @file  test_PreferencesManager.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test PreferencesManager class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.9 $
+ *    $Date: 2007/12/10 23:19:43 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,15 +24,6 @@
  *
  */
 
-
-//
-// PreferencesManager.cpp
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:15 $
-// Revision       : $Revision: 1.9 $
-
 #include <stdlib.h>
 #include "string_fixed.h"
 #include <iostream>
@@ -48,7 +38,7 @@
 
 using namespace std;
 
-char* Progname = "test_PreferencesManager";
+const char* Progname = "test_PreferencesManager";
 
 
 // Try to register a value.

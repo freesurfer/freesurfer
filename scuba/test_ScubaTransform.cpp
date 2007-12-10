@@ -1,15 +1,14 @@
 /**
  * @file  test_ScubaTransform.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test ScubaTransform class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/12/10 23:19:44 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +32,7 @@ extern "C" {
 }
 #include "Scuba-impl.h"
 
-char* Progname = "test_ScubaTransform";
+const char* Progname = "test_ScubaTransform";
 
 using namespace std;
 

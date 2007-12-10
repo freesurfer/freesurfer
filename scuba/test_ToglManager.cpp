@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/02 15:57:26 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/12/10 23:19:44 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@ extern "C" {
 
 using namespace std;
 
-char* Progname = "test_ToglManager";
+const char* Progname = "test_ToglManager";
 
 class TestFrame : public WindowFrame {
 public:

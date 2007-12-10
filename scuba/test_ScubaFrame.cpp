@@ -1,14 +1,14 @@
 /**
  * @file  test_ScubaFrame.cpp
- * @brief test routines
+ * @brief test ScubaFrame class
  *
  */
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/02 15:57:26 $
- *    $Revision: 1.11 $
+ *    $Date: 2007/12/10 23:19:43 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@ extern "C" {
 }
 #include "Scuba-impl.h"
 
-char* Progname = "test_ScubaFrame";
+const char* Progname = "test_ScubaFrame";
 
 using namespace std;
 

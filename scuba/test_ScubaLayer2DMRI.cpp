@@ -1,15 +1,14 @@
 /**
  * @file  test_ScubaLayer2DMRI.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test ScubaLayer2DMRI class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.7 $
+ *    $Date: 2007/12/10 23:19:44 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +31,7 @@
 #include "ScubaLayer2DMRI.h"
 #include "Scuba-impl.h"
 
-char* Progname = "test_ScubaLayers";
+const char* Progname = "test_ScubaLayer2DMRI";
 
 using namespace std;
 

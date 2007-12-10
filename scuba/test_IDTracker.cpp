@@ -7,9 +7,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/12 19:57:13 $
- *    $Revision: 1.8 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/10 23:19:43 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
 
 using namespace std;
 
-char* Progname = "test_IDTracker";
+const char* Progname = "test_IDTracker";
 
 class A : public IDTracker<A> {
 public:
