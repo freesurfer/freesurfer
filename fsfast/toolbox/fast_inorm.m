@@ -10,8 +10,8 @@ function r = fast_inorm(varargin)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.4 $
+%    $Date: 2007/12/10 00:50:56 $
+%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -107,8 +107,10 @@ for slice = s.firstslice:s.lastslice
   nunder(nthslice,1) = length(iunder);
 
   % Compute the spatial average at each time point %
-  if(nunder(nthslice,1) > 0)
-    twf_under(nthslice,:) = mean(y2(iunder,:));
+  if(nunder(nthslice,1) > 1)
+    twf_under(nthslice, 1) = mean(y2(iunder,:));
+  elseif (nunder(nthslice,1) == 1)
+    twf_under(nthslice, 1) = y2(iunder,:);
   else
     fprintf('INFO: no voxels found under threshold\n');
     twf_under(nthslice,:) = zeros(1,s.ntp);
