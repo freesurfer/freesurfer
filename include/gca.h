@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/12/03 21:21:28 $
- *    $Revision: 1.87 $
+ *    $Author: fischl $
+ *    $Date: 2007/12/10 15:16:10 $
+ *    $Revision: 1.88 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -272,6 +272,9 @@ int        GCAwriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, int nsamples,
                            char *fname) ;
 int        GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
                                        int nsamples,char *fname,TRANSFORM *transform) ;
+int        GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri, 
+                                           GCA_SAMPLE *gcas,int nsamples,
+                                           char *fname,TRANSFORM *transform) ;
 int        GCAcomputeSampleCoords(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
                                   int nsamples,TRANSFORM *transform) ;
 MRI        *GCAmri(GCA *gca, MRI *mri) ;
