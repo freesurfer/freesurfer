@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/11/29 15:03:43 $
- *    $Revision: 1.404 $
+ *    $Date: 2007/12/10 15:15:31 $
+ *    $Revision: 1.405 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.404 $";
+const char *MRI_C_VERSION = "$Revision: 1.405 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -15202,5 +15202,25 @@ MRIcopyVolGeomFromMRI(MRI *mri, VOL_GEOM *vg)
   vg->c_s = mri->c_s ;
   vg->valid = mri->ras_good_flag ;
   strcpy(vg->fname, mri->fname) ;
+  return(NO_ERROR) ;
+}
+int 
+MRIfillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf)
+{
+  int   xi, xk, yi, yk, zi, zk ;
+
+  for (xk = -whalf ; xk <= whalf ; xk++)
+  {
+    xi = mri->xi[x+xk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (zk = -whalf ; zk <= whalf ; zk++)
+      {
+        zi = mri->zi[z+zk] ;
+        MRIsetVoxVal(mri, xi, yi, zi, 0, fill_val) ;
+      }
+    }
+  }
   return(NO_ERROR) ;
 }

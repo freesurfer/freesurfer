@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/11/06 01:33:55 $
- *    $Revision: 1.354 $
+ *    $Author: fischl $
+ *    $Date: 2007/12/10 15:15:46 $
+ *    $Revision: 1.355 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1168,6 +1168,7 @@ int MRIgeometryMatched(MRI *mri1, MRI *mri2) ;
 
 MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol);
 MRI *MRIfillHoles(MRI *mri_src, MRI *mri_fill, int thresh)  ;
+int  MRIfillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf) ;
 
 // types of MRI sequences
 #define MRI_UNKNOWN          0
