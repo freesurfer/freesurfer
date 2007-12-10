@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/26 22:20:18 $
-#    $Revision: 1.23 $
+#    $Date: 2007/12/10 19:01:15 $
+#    $Revision: 1.23.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.23 2007/03/26 22:20:18 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.23.2.1 2007/12/10 19:01:15 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -42,10 +42,11 @@ set DoPerRun     = 0;
 set Plane        = "cor";
 set Slice        = ();
 set Inorm        = 0;
-set VolView      = targ;
+set VolView      = mov;
 set regfilename  = register.dat
 set funcstem     = f;
 set FOV          = ();
+set fmov         = ();
 set movscale     = ();
 set movframe     = 0;
 set ForceRegHeader = 0;
@@ -228,8 +229,10 @@ foreach sess ($SessList)
     set cmd = ($cmd --movframe $movframe)
     if($#Slice) set cmd = ($cmd --slice $Slice)
     if($Inorm)  set cmd = ($cmd --inorm)
+    if(! $Inorm)  set cmd = ($cmd --no-inorm)
     if($FOV)    set cmd = ($cmd --fov $FOV)
-    if($movscale) set cmd = ($cmd --movscale $movscale)
+    if($#movscale) set cmd = ($cmd --movscale $movscale)
+    if($#fmov)     set cmd = ($cmd --fmov $fmov)
     if($#MGZ) set cmd = ($cmd --mgz)
     if($#Surf != 0) then
       set lhsurfpath = $SUBJECTS_DIR/$subject/surf/lh.$Surf;
@@ -404,6 +407,11 @@ while( $#argv != 0 )
       set movscale = $argv[1]; shift;
       breaksw
 
+    case "-fmov":
+      if ( $#argv == 0) goto arg1err;
+      set fmov = $argv[1]; shift;
+      breaksw
+
     case "-movframe":
       if ( $#argv == 0) goto arg1err;
       set movframe = $argv[1]; shift;
@@ -429,6 +437,11 @@ while( $#argv != 0 )
 
     case "-inorm":
       set Inorm = 1;
+      breaksw
+
+    case "-noinorm":
+    case "-no-inorm":
+      set Inorm = 0;
       breaksw
 
     case "-regheader":
@@ -563,9 +576,10 @@ usage_exit:
   echo "   -nocopy        : do not copy registration to fsd"
   echo "   -sessanat      : register to same-session anatomical"
   echo "   -anatvol dir   : specify subdirectory of subjid/mri"
-  echo "   -volview volid : starup with either <targ> or mov"
+  echo "   -volview volid : starup with either mov (def) or targ"
   echo "   -fov FOV       : set window FOV in mm (default is 256)"
-  echo "   -movscale scale: scale size of move"
+  echo "   -fmov fmov     : set mov brightness"
+  echo "   -movscale scale: scale FOV size of mov volume"
   echo "   -movframe frame: 0-based frame number"
   echo "   -plane orient  : starup with orient. <cor>, sag, or ax"
   echo "   -slice sliceno : starup with slice. Default is 128."
