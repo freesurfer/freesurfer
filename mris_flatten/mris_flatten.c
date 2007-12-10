@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/12/05 18:49:02 $
- *    $Revision: 1.33 $
+ *    $Date: 2007/12/10 14:30:19 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "fastmarching.h"
 
 static char vcid[] =
-  "$Id: mris_flatten.c,v 1.33 2007/12/05 18:49:02 fischl Exp $";
+  "$Id: mris_flatten.c,v 1.34 2007/12/10 14:30:19 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -69,7 +69,7 @@ static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int randomly_flatten = 0 ;
 static int   nospring = 0 ;
 static float scale = 3 ;
-static int   max_passes = 2 ;
+static int   max_passes = 1 ;
 
 static int sphere_flag = 0 ;
 static int plane_flag = 0 ;
@@ -92,7 +92,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_flatten.c,v 1.33 2007/12/05 18:49:02 fischl Exp $",
+           "$Id: mris_flatten.c,v 1.34 2007/12/10 14:30:19 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -198,7 +198,8 @@ main(int argc, char *argv[])
 
   } else
   {
-    if (MRISreadPatchNoRemove(mris, in_patch_fname) != NO_ERROR)
+    MRISresetNeighborhoodSize(mris, mris->vertices[0].nsize) ; // set back to max
+    if (MRISreadPatch(mris, in_patch_fname) != NO_ERROR)
       ErrorExit(ERROR_BADPARM, "%s: could not read patch file %s",
                 Progname, in_patch_fname) ;
     if (dilate)
@@ -209,6 +210,20 @@ main(int argc, char *argv[])
              MRISvalidVertices(mris), 100.0*MRISvalidVertices(mris)/mris->nvertices) ;
     }
     MRISremoveRipped(mris) ;
+#if 0
+    mris->nsize = 1 ; // fore recalculation of 2 and 3-nbrs
+    {
+      int vno ;
+      VERTEX *v ;
+      for (vno= 0 ; vno < mris->nvertices ; vno++)
+      {
+        v = &mris->vertices[vno] ;
+        v->vtotal = v->vnum ;
+        v->nsize = 1 ;
+      }
+    }
+    MRISsetNeighborhoodSize(mris, nbrs) ;
+#endif
   }
 
   if (Gdiag_no >= 0)
