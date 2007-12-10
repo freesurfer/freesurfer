@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/01 23:05:02 $
- *    $Revision: 1.99.2.1 $
+ *    $Date: 2007/12/10 23:42:06 $
+ *    $Revision: 1.99.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.99.2.1 2007/11/01 23:05:02 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.99.2.2 2007/12/10 23:42:06 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -97,8 +97,6 @@ MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
 int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
 int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm) ;
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
-int MRISerodeRipped(MRI_SURFACE *mris, int niter) ;
-int MRISdilateRipped(MRI_SURFACE *mris, int niter) ;
 
 static int fix_mtl = 0 ;
 static LABEL *highres_label = NULL ;
@@ -234,13 +232,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.99.2.1 2007/11/01 23:05:02 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.99.2.2 2007/12/10 23:42:06 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.99.2.1 2007/11/01 23:05:02 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.99.2.2 2007/12/10 23:42:06 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2250,96 +2248,6 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
 
   MRISripMarked(mris) ;
   MRISsetAllMarks(mris, 0) ;
-  return(NO_ERROR) ;
-}
-
-int
-MRISdilateRipped(MRI_SURFACE *mris, int niter) {
-  int    vno, n, i ;
-  VERTEX *v, *vn ;
-
-  MRISsetAllMarks(mris, 0) ;
-  for (i = 0 ; i < niter ; i++) {
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag == 0)
-        continue ;
-      for (n = 0 ; n < v->vnum ; n++) {
-        vn = &mris->vertices[v->v[n]] ;
-        if (vn->ripflag == 0) {
-          if (v->v[n] == Gdiag_no)
-            DiagBreak() ;
-          vn->marked = 1 ;  // rip it at end of loop
-        }
-      }
-    }
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag == 0 && v->marked) {
-        if (vno == Gdiag_no)
-          DiagBreak() ;
-        v->ripflag = 1 ;
-      }
-    }
-    MRISsetAllMarks(mris, 0) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-      LABEL *l ;
-      char fname[STRLEN] ;
-      MRISsetMarks(mris, 1) ;
-      l = LabelFromMarkedSurface(mris) ;
-      sprintf(fname, "%s.dilate%d.label",
-              mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-              i) ;
-      LabelWrite(l, fname) ;
-      LabelFree(&l) ;
-      MRISsetAllMarks(mris, 0) ;
-    }
-  }
-  return(NO_ERROR) ;
-}
-int
-MRISerodeRipped(MRI_SURFACE *mris, int niter) {
-  int    vno, n, i ;
-  VERTEX *v, *vn ;
-
-  MRISsetAllMarks(mris, 0) ;
-  for (i = 0 ; i < niter ; i++) {
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      // look for nbrs that are ripped and mark them
-      for (n = 0 ; n < v->vnum ; n++) {
-        vn = &mris->vertices[v->v[n]] ;
-        if (vn->ripflag) {
-          if (v->v[n] == Gdiag_no)
-            DiagBreak() ;
-          vn->marked = 1 ;  // unrip it at end of loop
-        }
-      }
-    }
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag && v->marked) {
-        if (vno == Gdiag_no)
-          DiagBreak() ;
-        v->ripflag = 0 ;
-      }
-    }
-    MRISsetAllMarks(mris, 0) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-      LABEL *l ;
-      char fname[STRLEN] ;
-      MRISsetMarks(mris, 1) ;
-      l = LabelFromMarkedSurface(mris) ;
-      sprintf(fname, "%s.erode%d.label",
-              mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-              i) ;
-      LabelWrite(l, fname) ;
-      LabelFree(&l) ;
-      MRISsetAllMarks(mris, 0) ;
-    }
-  }
   return(NO_ERROR) ;
 }
 
