@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 03:06:19 $
- *    $Revision: 1.28.2.2 $
+ *    $Date: 2007/12/10 21:49:04 $
+ *    $Revision: 1.28.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.28.2.2 2007/11/18 03:06:19 nicks Exp $";
+  "$Id: mris_curvature_stats.c,v 1.28.2.3 2007/12/10 21:49:04 nicks Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -280,6 +280,8 @@ static float	Gf_highPassFilter		= 0.;
 static int	Gb_highPassFilterGaussian	= 0;
 static float	Gf_highPassFilterGaussian	= 0.;
 
+static int	Gb_signedPrinciples		= 0;
+
 // All possible output file name and suffixes
 static	short	Gb_writeCurvatureFiles		= 0;
 static 	char 	Gpch_log[STRBUF];
@@ -397,7 +399,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.28.2.2 2007/11/18 03:06:19 nicks Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.28.2.3 2007/12/10 21:49:04 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -529,7 +531,7 @@ main(int argc, char *argv[]) {
       cprints("", "ok");
     } else {
       cprints("Calculating Discrete Principle Curvatures...", "");
-      MRIScomputeSecondFundamentalFormDiscrete(mris);
+      MRIScomputeSecondFundamentalFormDiscrete(mris, Gb_signedPrinciples);
     }
 
     MRIS_curvatureStats_analyze(mris, e_Gaussian); stats_update(i++);
@@ -1818,6 +1820,9 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "-writeCurvatureFiles")) {
     Gb_writeCurvatureFiles	= 1;
     cprints("Toggling save flag on curvature files", "ok");
+  } else if (!stricmp(option, "-signedPrinciples")) {
+    Gb_signedPrinciples	= 1;
+    cprints("Toggling 'signedPrinciples' flag ON", "ok");
   } else switch (toupper(*option)) {
   case 'O':
     output_fname  		= argv[2] ;
