@@ -10,8 +10,8 @@ function r = fast_inorm(varargin)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: nicks $
-%    $Date: 2007/12/10 16:00:06 $
-%    $Revision: 1.6 $
+%    $Date: 2007/12/10 18:23:28 $
+%    $Revision: 1.7 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -97,7 +97,7 @@ for slice = s.firstslice:s.lastslice
   if(nover(nthslice,1) > 1)
     twf_over(nthslice,:) = mean(y2(iover,:));
   elseif(nover(nthslice,1) == 1)
-    twf_over(nthslice,1) = y2(iover,:);
+    twf_over(nthslice,:) = y2(iover,:);
   else
     twf_over(nthslice,:) = zeros(1,s.ntp);
   end
@@ -110,7 +110,7 @@ for slice = s.firstslice:s.lastslice
   if(nunder(nthslice,1) > 1)
     twf_under(nthslice, :) = mean(y2(iunder,:));
   elseif (nunder(nthslice,1) == 1)
-    twf_under(nthslice, 1) = y2(iunder,:);
+    twf_under(nthslice, :) = y2(iunder,:);
   else
     fprintf('INFO: no voxels found under threshold\n');
     twf_under(nthslice,:) = zeros(1,s.ntp);
