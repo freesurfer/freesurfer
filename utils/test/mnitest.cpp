@@ -7,8 +7,8 @@
  * Original Author: Yasanari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 03:42:33 $
- *    $Revision: 1.5.2.1 $
+ *    $Date: 2007/12/10 03:51:14 $
+ *    $Revision: 1.5.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
   cout << "Old way of reading -----------------" << endl;
   cout << "////////////////////////////////////" << endl;
   cout << "bruce.xfm" << endl;
-  lta1 = LTAread(file1);
+  lta1 = LTAread((char*)file1);
   LTAprint(stdout, lta1);
   // old way always convert it to vox-to-vox
 #if 0
@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
   }
 #endif
   cout << "bruce2.xfm" << endl;
-  lta2 = LTAread(file2);
+  lta2 = LTAread((char*)file2);
   LTAprint(stdout, lta2);
 #if 0
   if (!isEqual(lta2->xforms[0].m_L, m2))
@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
   }
 #endif
   cout << "david.xfm" << endl;
-  lta3 = LTAread(file3);
+  lta3 = LTAread((char*)file3);
   LTAprint(stdout, lta3);
 #if 0
   if (!isEqual(lta3->xforms[0].m_L, m3))
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
   }
 #endif
   cout << "tosa.xfm" << endl;
-  lta4 = LTAread(file4);
+  lta4 = LTAread((char*)file4);
   LTAprint(stdout, lta4);
 #if 0
   if (!isEqual(lta4->xforms[0].m_L, m4))
