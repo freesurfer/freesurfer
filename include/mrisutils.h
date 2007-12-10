@@ -1,14 +1,14 @@
 /**
  * @file  mrisutils.h
- * @brief surface utilities
+ * @brief more surface processing utils
  *
  */
 /*
- * Original Author: Bruce Fischl
+ * Original Authors: Segonne and Greve 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/14 03:38:14 $
- *    $Revision: 1.13.2.1 $
+ *    $Date: 2007/12/10 03:20:07 $
+ *    $Revision: 1.13.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,6 @@
  *
  */
 
-
 #include "mri.h"
 #include "mrisurf.h"
 
@@ -35,8 +34,18 @@ void MRISsmoothSurface(MRI_SURFACE *mris,int niter,float step);
 void MRISsmoothSurface2(MRI_SURFACE *mris,int niter,float step,int avrg);
 void MRIScenterCOG(MRI_SURFACE *mris);
 void MRIScenterCOG2(MRI_SURFACE *mris,double *xCOG,double *yCOG,double *zCOG);
-MRI* MRISpeelVolume(MRIS *mris,MRI *mri_src,MRI *mri_dst,int type,unsigned char val,unsigned long *NbVoxels);
-MRIS *MRISmatchSurfaceToLabel(MRIS *mris,MRI *mri_seg,int label,MRI_REGION *mri_region,INTEGRATION_PARMS *integration_parms,int connectivity);
+MRI* MRISpeelVolume(MRIS *mris,
+                    MRI *mri_src,
+                    MRI *mri_dst,
+                    int type,
+                    unsigned char val,
+                    unsigned long *NbVoxels);
+MRIS *MRISmatchSurfaceToLabel(MRIS *mris,
+                              MRI *mri_seg,
+                              int label,
+                              MRI_REGION *mri_region,
+                              INTEGRATION_PARMS *integration_parms,
+                              int connectivity);
 MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
                           char *SUBJECTS_DIR);
 int MRISfdr2vwth(MRIS *surf, double fdr, int signid,
@@ -52,5 +61,9 @@ MRI *MRISannotIndex2Seg(MRIS *mris);
 double MRISvolumeInSurf(MRIS *mris);
 
 LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices);
+int MRISripZeros(MRIS *surf, MRI *mri);
+int MRISsphericalCoords(MRIS *surf);
+int MRISfindPath ( int *vert_vno, int num_vno, int max_path_length,
+                   int *path, int *path_length, MRIS *mris );
 
 #endif
