@@ -1,15 +1,14 @@
 /**
  * @file  mrivoxel.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for MRI data structure
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:39 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/12/10 20:30:07 $
+ *    $Revision: 1.6.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,17 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
- *       FILE NAME:   mri.c
- *
- *       DESCRIPTION: utilities for MRI  data structure
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
- *
-*/
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -235,6 +223,47 @@ MRIvoxelMean(MRI *mri, int x0, int y0, int z0, int wsize)
   else
     mean = 0.0f ;
   return(mean) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+float
+MRIvoxelMin(MRI *mri, int x0, int y0, int z0, int wsize)
+{
+  float   min_val, val ;
+  int     whalf, width, height, depth, x, y, z, xmin, xmax,
+          ymin, ymax, zmin, zmax ;
+
+  whalf = wsize/2 ;
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  zmin = MAX(0, z0-whalf) ;
+  zmax = MIN(depth-1, z0+whalf) ;
+  ymin = MAX(0, y0-whalf) ;
+  ymax = MIN(height-1, y0+whalf) ;
+  xmin = MAX(0, x0-whalf) ;
+  xmax = MIN(width-1, x0+whalf) ;
+
+  min_val = MRIgetVoxVal(mri, x0, y0, z0, 0) ;
+  for (z = zmin ; z <= zmax ; z++)
+  {
+    for (y = ymin ; y <= ymax ; y++)
+    {
+      for (x = xmin ; x <= xmax ; x++)
+      {
+        val = MRIgetVoxVal(mri, x, y, z, 0) ;
+        if (val < min_val)
+          min_val = val ;
+      }
+    }
+  }
+  return(min_val) ;
 }
 /*-----------------------------------------------------
         Parameters:
