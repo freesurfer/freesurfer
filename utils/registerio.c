@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:34 $
- *    $Revision: 1.17 $
+ *    $Author: fischl $
+ *    $Date: 2007/12/10 15:15:15 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -441,4 +441,78 @@ int regio_read_xfm(char *xfmfile, MATRIX **R)
   free(ext);
 
   return(err);
+}
+/*
+  write a transform that takes standard surfaces into hires
+  volumes (in surface coords) into a register.dat file. See
+  mris_register_to_volume.
+*/
+#include "mri_circulars.h"
+#include "error.h"
+int
+regio_write_surfacexform_to_register_dat(MATRIX *B, char *fname, 
+                                         MRI_SURFACE *mris, MRI *mri, 
+                                         char *subject, int float2int)
+{
+  MATRIX *Ta, *Sa, *invTa, *A, *R, *S, *invS, *T, *m1, *m2 ;
+  MRI *mri_surf = MRIallocHeader(mris->vg.width, mris->vg.height, 
+                                 mris->vg.depth, MRI_UCHAR) ;
+
+  MRIcopyVolGeomToMRI(mri_surf, &mris->vg) ;
+
+  T = MRIxfmCRS2XYZtkreg(mri) ;
+  S = MRIgetVoxelToRasXform(mri) ;
+  invS = MatrixInverse(S, NULL) ;
+  Ta = MRIxfmCRS2XYZtkreg(mri_surf);
+  Sa = MRIgetVoxelToRasXform(mri_surf);
+  invTa = MatrixInverse(Ta,NULL);
+  A  = MatrixMultiply(Sa,invTa, NULL);
+  
+  m1 = MatrixMultiply(A, B, NULL) ;
+  m2 = MatrixMultiply(invS, m1, NULL) ;
+  R = MatrixMultiply(T, m2, NULL) ;
+  regio_write_register(fname,subject,mri->xsize, mri->zsize,1,R,float2int);
+  MatrixFree(&A) ; MatrixFree(&Ta) ; MatrixFree(&Sa) ; MatrixFree(&invTa) ;
+  MatrixFree(&R) ; MatrixFree(&m1) ; MatrixFree(&m2) ; MatrixFree(&S) ; 
+  MatrixFree(&invS);
+  MatrixFree(&T) ;
+  MRIfree(&mri_surf) ;
+  return(NO_ERROR) ;
+}
+
+MATRIX *
+regio_read_surfacexform_from_register_dat(char *fname, MRI_SURFACE *mris, 
+                                          MRI *mri, char **subject)
+{
+  MATRIX *Ta, *Sa, *invT, *A, *R, *S, *invSa, *T, *m1, *m2, *B ;
+  float  pres, bres, intensity ;
+  int    float2int ;
+  MRI *mri_surf = MRIallocHeader(mris->vg.width, mris->vg.height, 
+                                 mris->vg.depth, MRI_UCHAR) ;
+
+  if (regio_read_register(fname, subject, &pres, &bres, &intensity,&B,&float2int) != 0)
+    ErrorReturn(NULL, (ERROR_NOFILE, 
+                       "regio_read_surfacexform_from_register_dat(%s) failed",
+                       fname)) ;
+
+
+  MRIcopyVolGeomToMRI(mri_surf, &mris->vg) ;
+
+  T = MRIxfmCRS2XYZtkreg(mri) ;
+  S = MRIgetVoxelToRasXform(mri) ;
+  Ta = MRIxfmCRS2XYZtkreg(mri_surf);
+  Sa = MRIgetVoxelToRasXform(mri_surf);
+  invSa = MatrixInverse(Sa, NULL) ;
+  invT = MatrixInverse(T,NULL);
+  A  = MatrixMultiply(S,invT, NULL);
+  
+  m1 = MatrixMultiply(A, B, NULL) ;
+  m2 = MatrixMultiply(invSa, m1, NULL) ;
+  R = MatrixMultiply(Ta, m2, NULL) ;
+  MatrixFree(&A) ; MatrixFree(&Ta) ; MatrixFree(&Sa) ; MatrixFree(&invT) ;
+  MatrixFree(&B) ; MatrixFree(&m1) ; MatrixFree(&m2) ; MatrixFree(&S) ; 
+  MatrixFree(&invSa);
+  MatrixFree(&T) ;
+  MRIfree(&mri_surf) ;
+  return(R) ;
 }
