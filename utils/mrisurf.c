@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/12/05 18:31:37 $
- *    $Revision: 1.581 $
+ *    $Date: 2007/12/10 14:30:47 $
+ *    $Revision: 1.582 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.581 2007/12/05 18:31:37 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.582 2007/12/10 14:30:47 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1929,9 +1929,9 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 
     /* small neighborhood is always fixed, don't overwrite them */
     vtotal = v->vtotal ;
-    if (v->v3num > 0)
+    if (v->nsize == 3)
       v->vtotal = v->v3num ;
-    else if (v->v2num > 0)
+    else if (v->nsize == 2)
       v->vtotal = v->v2num ;
     else
       v->vtotal = v->vnum ;
@@ -2264,9 +2264,9 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       DiagBreak()  ;
     if (v->ripflag)
       continue ;
-    if (v->v3num > 0)
+    if (v->nsize == 3)
       vtotal = v->v3num ;
-    else if (v->v2num > 0)
+    else if (v->nsize == 2)
       vtotal = v->v2num ;
     else
       vtotal = v->vnum ;
@@ -2426,9 +2426,9 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 
     /* small neighborhood is always fixed, don't overwrite them */
     vtotal = v->vtotal ;
-    if (v->v3num > 0)
+    if (v->nsize == 3)
       v->vtotal = v->v3num ;
-    else if (v->v2num > 0)
+    else if (v->nsize == 2)
       v->vtotal = v->v2num ;
     else
       v->vtotal = v->vnum ;
@@ -2657,9 +2657,9 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       DiagBreak()  ;
     if (v->ripflag)
       continue ;
-    if (v->v3num > 0)
+    if (v->nsize == 3)
       vtotal = v->v3num ;
-    else if (v->v2num > 0)
+    else if (v->nsize == 2)
       vtotal = v->v2num ;
     else
       vtotal = v->vnum ;
@@ -2872,7 +2872,7 @@ int
 MRISremoveRipped(MRI_SURFACE *mris)
 {
   int     vno, n, fno, nripped, remove, vno2 ;
-  VERTEX  *v ;
+  VERTEX  *v, *vn ;
   FACE    *face ;
 
   if (Gdiag & DIAG_SHOW)
@@ -2896,7 +2896,7 @@ MRISremoveRipped(MRI_SURFACE *mris)
         continue ;
       }
 
-      for (n = 0 ; n < v->vtotal ; n++)
+      for (n = 0 ; n < v->vnum ; n++)
       {
         /* remove this vertex from neighbor list if it is ripped */
         if (mris->vertices[v->v[n]].ripflag)
@@ -2920,9 +2920,8 @@ MRISremoveRipped(MRI_SURFACE *mris)
         }
       }
 
-
       // make sure every nbr is a member of at least one unripped face
-      for (n = 0 ; n < v->vtotal ; n++)
+      for (n = 0 ; n < v->vnum ; n++)
       {
         int members, m ;
 
@@ -2966,6 +2965,90 @@ MRISremoveRipped(MRI_SURFACE *mris)
           v->vtotal-- ;
         }
       }
+
+      // go through 2-nbr list and make sure each one is a nbr of a 1-nbr
+      for (n = v->vnum ; n < v->v2num ; n++)
+      {
+        int    n2, n3 ;
+        VERTEX *vn2 ;
+
+        remove = 1  ;
+
+        vno2 = v->v[n] ;
+        vn = &mris->vertices[vno2] ;
+        for (n2 = 0 ; n2 < v->vnum ; n2++)  // 1-nbrs of the central node
+        {
+          vn2 = &mris->vertices[v->v[n2]] ;
+          for (n3 = 0 ; remove && n3 < vn2->vnum ; n3++) // 1 nbrs of nbr
+            if (vn2->v[n3] == vno2)
+            {
+              remove = 0 ;  // they still share a 1-nbr, keep it
+              break ;
+            }
+        }
+        if (remove)
+        {
+          nripped++ ;
+          if (n < v->vtotal-1)  /* not the last one in the list */
+          {
+            memmove(v->v+n, v->v+n+1, (v->vtotal-n-1)*sizeof(int)) ;
+            memmove(v->dist+n, v->dist+n+1,
+                    (v->vtotal-n-1)*sizeof(float)) ;
+            memmove(v->dist_orig+n, v->dist_orig+n+1,
+                    (v->vtotal-n-1)*sizeof(float)) ;
+          }
+          if (n < v->vnum)      /* it was a 1-neighbor */
+            v->vnum-- ;
+          if (n < v->v2num)     /* it was a 2-neighbor */
+            v->v2num-- ;
+          if (n < v->v3num)     /* it was a 3-neighbor */
+            v->v3num-- ;
+          n-- ;
+          v->vtotal-- ;
+        }
+      }
+
+      // go through 3-nbr list and make sure each one is a nbr of a 2-nbr
+      for (n = v->v2num ; n < v->v3num ; n++)
+      {
+        int    n2, n3 ;
+        VERTEX *vn2 ;
+
+        remove = 1  ;
+
+        vno2 = v->v[n] ;
+        vn = &mris->vertices[vno2] ;
+        for (n2 = v->vnum ; n2 < v->v2num ; n2++)  // 2-nbrs of the central node
+        {
+          vn2 = &mris->vertices[v->v[n2]] ;
+          for (n3 = 0 ; remove && n3 < vn2->vnum ; n3++) // 1 nbrs of nbr
+            if (vn2->v[n3] == vno2)
+            {
+              remove = 0 ;  // they still share a 1- or 2-nbr, keep it
+              break ;
+            }
+        }
+        if (remove)
+        {
+          if (n < v->vtotal-1)  /* not the last one in the list */
+          {
+            memmove(v->v+n, v->v+n+1, (v->vtotal-n-1)*sizeof(int)) ;
+            memmove(v->dist+n, v->dist+n+1,
+                    (v->vtotal-n-1)*sizeof(float)) ;
+            memmove(v->dist_orig+n, v->dist_orig+n+1,
+                    (v->vtotal-n-1)*sizeof(float)) ;
+          }
+          if (n < v->vnum)      /* it was a 1-neighbor */
+            v->vnum-- ;
+          if (n < v->v2num)     /* it was a 2-neighbor */
+            v->v2num-- ;
+          if (n < v->v3num)     /* it was a 3-neighbor */
+            v->v3num-- ;
+          n-- ;
+          v->vtotal-- ;
+        }
+      }
+
       for (fno = 0 ; fno < v->num ; fno++)
       {
         /* remove this face from face list if it is ripped */
@@ -6769,7 +6852,7 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
 static float neg_area_ratios[] =
   {
     //    1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-3, 1e-2, 5e-2,1e-1
-    1e-8, 1e-6, 1e-4, 1e-2, 1e-1
+    1e-6, 1e-5, 1e-3, 1e-2, 1e-1
   } ;
 #define MAX_PASSES (sizeof(neg_area_ratios) / sizeof(neg_area_ratios[0]))
 static int
