@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/12/10 18:59:28 $
-#    $Revision: 1.24.2.1 $
+#    $Date: 2007/12/10 21:16:13 $
+#    $Revision: 1.24.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.24.2.1 2007/12/10 18:59:28 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.24.2.2 2007/12/10 21:16:13 greve Exp $';
 set inputargs = ($argv);
 
 set PWDCMD = pwd
@@ -299,7 +299,9 @@ echo "INFO: subject is $subject"
 
 if($subject != talairach && $space == tal) set mrivolid = talairach
 
-if(-e $SUBJECTS_DIR/$subject/mri/$mrivolid.mgz) then
+set tmp = $SUBJECTS_DIR/$subject/mri/$mrivolid.mgz
+if(-e $tmp) then
+  echo "Cannot find $tmp, assuming COR"
   set MGZ = ".mgz";
 else
   set MGZ = ();
@@ -351,7 +353,8 @@ if(! $sessanat ) then
       echo "SUBJECTS_DIR: $SUBJECTS_DIR" |& tee -a $LF
       exit 1;
     endif
-    set anatoption = "$subject $mrivolid";
+    set anatoption = "$subject $mrivolid$MGZ";
+    echo "mrivolid $mrivolid$MGZ "
   else
     set tmpreg = $sess/$fsd/register.dat
     set tmpsubject = `head -n 1 $tmpreg`;
@@ -361,7 +364,7 @@ if(! $sessanat ) then
       set anatoption = "$subject talairach";
     else
       set anatdir = $SUBJECTS_DIR/$subject/mri/$mrivolid
-      set anatoption = "$subject $mrivolid";
+      set anatoption = "$subject $mrivolid$MGZ";
     endif
   endif
 else
@@ -405,7 +408,7 @@ endif
 #------- Create and run the cmd line -----------------------#
 set TKMEDIT = tkmedit
 if($usestatic) set TKMEDIT = $TKMEDIT.static
-set cmd = ($TKMEDIT $anatoption$MGZ $hsurf $mapoption $hdroption $offsetoption)
+set cmd = ($TKMEDIT $anatoption $hsurf $mapoption $hdroption $offsetoption)
 set cmd = ($cmd -fthresh $fthresh -fmax $fmax)
 set cmd = ($cmd $segoption);
 if($#auxvolid) set cmd = ($cmd -aux $auxvolid);
