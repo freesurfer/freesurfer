@@ -1,15 +1,14 @@
 /**
  * @file  checkanalyze.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief testing analyze orient handling
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:44 $
- *    $Revision: 1.3 $
+ *    $Date: 2007/12/10 19:47:42 $
+ *    $Revision: 1.3.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,16 +24,6 @@
  *
  */
 
-
-/**
- * @file   checkanalyze.cpp
- * @author Yasunari Tosa
- * @date   Thu Dec  2 16:16:33 2004
- *
- * @brief  testing analyze orient handling
- *
- *
- */
 #include <iostream>
 #include <iomanip>
 // just the hack for RH7.3
@@ -47,7 +36,7 @@ extern "C"
 {
 #include "mri.h"
 #include "matrix.h"
-  char *Progname = "checkanalyze";
+const char *Progname = "checkanalyze";
 }
 
 using namespace std;

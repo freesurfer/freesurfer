@@ -1,15 +1,14 @@
 /**
  * @file  extest.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test fread*Ex() routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Y. Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:44 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/12/10 19:47:42 $
+ *    $Revision: 1.5.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,13 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// extest.cpp
-//
-// test fread*Ex() routines
-//
 
 #include <iostream>
 #include <iomanip>
@@ -110,7 +102,7 @@ int main(int argc, char *argv[])
   float ff[MAX];
   double dd[MAX];
 
-  char *file = "./extest.out";
+  const char *file = "./extest.out";
 
   out = fopen(file, "w");
   if (!out)

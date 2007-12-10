@@ -1,15 +1,16 @@
 /**
  * @file  icotest.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief tests MRISwriteICO.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * read icosahedron tri file and write test.tri file.
+ * read back test.tri and compare values.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Y. Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:44 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/12/10 19:47:42 $
+ *    $Revision: 1.6.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,16 +26,6 @@
  *
  */
 
-
-//
-// icotest
-//
-// testing MRISwriteICO.
-//
-// what this does:
-// read icosahedron tri file and write test.tri file.
-// read back test.tri and compare values.
-//
 #include <iostream>
 #include <fstream>
 #if (__GNUC__ < 3)
@@ -46,7 +37,7 @@
 extern "C"
 {
 #include <mrisurf.h>
-  char *Progname = "icotest";
+const char *Progname = "icotest";
 }
 
 using namespace std;
@@ -54,7 +45,7 @@ using namespace std;
 int main()
 {
   MRIS *mris;
-  char *mri_dir = "../../distribution";
+  const char *mri_dir = "../../distribution";
   for (int index=0; index < 8; ++index)
   {
     ostringstream infile, outfile;

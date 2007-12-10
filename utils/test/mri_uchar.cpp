@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:46 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/12/10 19:47:43 $
+ *    $Revision: 1.2.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,7 +39,7 @@ extern "C"
 {
 #include "mri.h"
 
-  char *Progname = "mri_uchar";
+  const char *Progname = "mri_uchar";
 }
 
 using namespace std;

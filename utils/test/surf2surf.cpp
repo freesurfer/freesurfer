@@ -1,15 +1,14 @@
 /**
  * @file  surf2surf.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief surface2surface test routine
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Y. Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:46 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/12/10 19:47:43 $
+ *    $Revision: 1.2.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,12 +24,6 @@
  *
  */
 
-
-//
-// surf2surf.cpp
-//
-// surface2surface routine
-//
 #include <iostream>
 #include <iomanip>
 
@@ -40,7 +33,7 @@ extern "C"
 #include "transform.h"
 #include "matrix.h"
 
-  char *Progname = "surf2surf";
+const char *Progname = "surf2surf";
 }
 
 using namespace std;

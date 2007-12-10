@@ -1,15 +1,14 @@
 /**
  * @file  MRISresampleOntoSphere.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utils
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Peng Yu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:44 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/12/10 19:47:42 $
+ *    $Revision: 1.2.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,18 +24,6 @@
  *
  */
 
-
-///////////////////////////////////////////
-// mris_spherical_wavelets.cpp
-//
-// written by Peng Yu
-// date: 11/10/04
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 01:49:44 $
-// Revision       : $Revision: 1.2 $
-////////////////////////////////////////////
 #include "ANN.h"
 
 extern "C"
@@ -64,7 +51,8 @@ extern "C"
 #include "matrix.h"
 }
 
-//static char vcid[] = "$Id: MRISresampleOntoSphere.cpp,v 1.2 2006/12/29 01:49:44 nicks Exp $";
+static char vcid[] = 
+"$Id: MRISresampleOntoSphere.cpp,v 1.2.2.1 2007/12/10 19:47:42 nicks Exp $";
 #define VERTEX_EDGE(vec, v0, v1)   VECTOR_LOAD(vec,v1->x-v0->x,v1->y-v0->y, v1->z-v0->z)
 typedef struct _double_3d
 {
@@ -80,7 +68,7 @@ double3d ;
 
 int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
-char            *Progname ;
+const char      *Progname ;
 static MRI_SURFACE *center_brain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst);
 static MRI_SURFACE *sample_origposition(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
 static MRI_SURFACE *sample_origcurvature(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;

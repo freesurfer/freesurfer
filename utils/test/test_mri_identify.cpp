@@ -1,15 +1,14 @@
 /**
  * @file  test_mri_identify.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Y. Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:46 $
- *    $Revision: 1.2 $
+ *    $Date: 2007/12/10 19:47:43 $
+ *    $Revision: 1.2.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +37,7 @@ extern "C"
 
 using namespace std;
 
-char *Progname = NULL; // to satisfy mriio.c's extern Progname declaration
+const char *Progname = NULL;
 
 #define Assert(x,s)   \
   if(!(x)) { \
@@ -58,22 +57,22 @@ void
 mri_identifyTester::Test ()
 {
   cerr << "Check that mri_identify() returns NRRD_FILE for a .nrrd...";
-  Assert(mri_identify("test_mri_identify_data/nrrd_basic.nrrd") == NRRD_FILE,
+  Assert(mri_identify((char*)"test_mri_identify_data/nrrd_basic.nrrd") == NRRD_FILE,
          "Failed to recognize NRRD file w/ correct extension.");
   cerr << "passed." << endl;
 
   cerr << "Check that a .nrrd is recognized by is_nrrd()...";
-  Assert(is_nrrd("test_mri_identify_data/nrrd_basic.nrrd"),
+  Assert(is_nrrd((char*)"test_mri_identify_data/nrrd_basic.nrrd"),
          "Failed to recognize NRRD file w/ correct extension.");
   cerr << "passed." << endl;
 
   cerr << "Check recognition of NRRD by magic number when extension is bad...";
-  Assert(is_nrrd("test_mri_identify_data/nrrd_bad_extension.something"),
+  Assert(is_nrrd((char*)"test_mri_identify_data/nrrd_bad_extension.something"),
          "Failed to identify NRRD w/ bad extension but correct magic.");
   cerr << "passed." << endl;
 
   cerr << "Check recognition of not NRRD by magic number when extension is bad...";
-  Assert(!is_nrrd("test_mri_identify_data/nrrd_bad_magic.something"),
+  Assert(!is_nrrd((char*)"test_mri_identify_data/nrrd_bad_magic.something"),
          "Failed to identify bad magic NRRD as not a NRRD.");
   cerr << "passed." << endl;
 }
