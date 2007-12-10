@@ -5,7 +5,7 @@
 const char* kfnInput = "lh.vtkFSSurfaceWriterTestFile";
 const char* kfnOutput = "lh.vtkFSSurfaceWriterTestFileOut";
 
-char* Progname = "vtkFSSurfaceWriterTester";
+const char* Progname = "vtkFSSurfaceWriterTester";
 
 int
 main ( int argc, char** argv ) {
