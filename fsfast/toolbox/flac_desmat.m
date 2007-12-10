@@ -16,8 +16,8 @@ function flacnew = flac_desmat(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/27 23:05:32 $
-%    $Revision: 1.11 $
+%    $Date: 2007/12/10 18:52:05 $
+%    $Revision: 1.11.2.1 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@ for nthev = 1:nev
   
   if(ev.ishrf)  
     % HRF Regressors
-    st = ev.st - flac.stimulusdelay;
+    st = ev.st; % Delay has already been added
     flacnew.ev(nthev).Xfir = fast_st2fir(st,flac.ntp,flac.TR,ev.psdwin,1);
     if(isempty(flacnew.ev(nthev).Xfir)) 
       fprintf('ERROR: creating FIR design matrix for %s\n',...
