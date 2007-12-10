@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/09/14 13:56:41 $
- *    $Revision: 1.298.2.1 $
+ *    $Date: 2007/12/10 20:21:58 $
+ *    $Revision: 1.298.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -287,7 +287,9 @@ typedef struct
   int    group_avg_vtxarea_loaded; /* average vertex area for group
                                               at each vertex */
   int    triangle_links_removed ;  // for quad surfaces
-  void   *user_parms ;             // for whatever the user wants to hang here
+  void   *user_parms ;             // for whatever the user wants to hang here 
+  MATRIX *m_sras2vox ;             // for converting surface ras to voxel coords
+  MRI    *mri_sras2vox ;           // volume that the above matrix is for
 }
 MRI_SURFACE, MRIS ;
 
@@ -518,6 +520,9 @@ typedef struct
   float   *geometry_error ;
   int     which_norm ;        // mean or median normalization
   int     abs_norm ;
+  int     grad_dir ;          // use this instead of gradient direction
+  int     fill_interior ;     // use filled interior to constrain gradient to not leave surface
+  double  rms ;
 }
 INTEGRATION_PARMS ;
 
@@ -636,6 +641,7 @@ int          MRISreadCTABFromAnnotationIfPresent(const char *fname,
 int          MRISisCTABPresentInAnnotation(const char *fname, int* present);
 int          MRISreadValuesBak(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadImagValues(MRI_SURFACE *mris, char *fname) ;
+int          MRIScopyImagValuesToValues(MRI_SURFACE *mris) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
 
 int          MRIScopyValToVal2(MRI_SURFACE *mris) ;
@@ -678,6 +684,7 @@ int          MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter) ;
 int          MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs) ;
 double       MRIScomputeAverageCurvature(MRI_SURFACE *mris, double *psigma) ;
 int          MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
+int          MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, double *pnz) ;
 
 MRI_SURFACE  *MRISoverAlloc(int max_vertices, int max_faces,
                             int nvertices, int nfaces) ;
@@ -724,6 +731,18 @@ int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
 int          MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, Real r, 
                                    Real a, Real s, 
                                    Real *px, Real *py, Real *pz) ;
+int          MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri, Real r, 
+                                         Real a, Real s, 
+                                         Real *px, Real *py, Real *pz) ;
+
+// these are the inverse of the previous two
+int          MRISsurfaceRASFromVoxel(MRI_SURFACE *mris, MRI *mri, 
+                                     Real x, Real y, Real z, 
+                                     Real *pr, Real *pa, Real *ps) ;
+int          MRISsurfaceRASFromVoxelCached(MRI_SURFACE *mris, MRI *mri, 
+                                           Real x, Real y, Real z, 
+                                           Real *pr, Real *pa, Real *ps) ;
+
 int          MRISsurfaceRASToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
     Real xw, Real yw, Real zw,
     Real *pxv, Real *pyv, Real *pzv) ;
@@ -1009,6 +1028,7 @@ int   MRISclearAnnotations(MRI_SURFACE *mris) ;
 int   MRISsetMarks(MRI_SURFACE *mris, int mark) ;
 int   MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISreverse(MRI_SURFACE *mris, int which) ;
+int   MRISreverseFaceOrder(MRIS *mris);
 int   MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct) ;
 double MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which) ;
 int   MRISnegateValues(MRI_SURFACE *mris) ;
@@ -1035,6 +1055,11 @@ int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris,
     int total_dof,int new_dof);
 #define GRAY_WHITE     1
 #define GRAY_CSF       2
+int
+MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
+                               MRI *mri_smooth, double sigma,
+                               float max_thickness, float dir, FILE *log_fp,
+                               MRI *mri_wm) ;
 int MRIScomputeInvertedGrayWhiteBorderValues(MRI_SURFACE *mris,
                                              MRI *mri_brain,
                                              MRI *mri_smooth,
@@ -1420,6 +1445,7 @@ int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
 #define VERTEX_DX          6
 #define VERTEX_DY          7
 #define VERTEX_DZ          8
+#define VERTEX_STATS       9
 
 
 int MRISclearOrigArea(MRI_SURFACE *mris) ;
@@ -1512,6 +1538,9 @@ int MRISopenMarked(MRI_SURFACE *mris, int order) ;
 int MRIScloseMarked(MRI_SURFACE *mris, int order) ;
 int MRISerodeMarked(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateMarked(MRI_SURFACE *mris, int ndil) ;
+int MRISerodeRipped(MRI_SURFACE *mris, int ndil) ;
+int MRISdilateRipped(MRI_SURFACE *mris, int ndil) ;
+int   MRISvalidVertices(MRI_SURFACE *mris) ;
 
 int MRIScomputeClassStatistics(MRI_SURFACE *mris,
                                MRI *mri,
@@ -1706,7 +1735,8 @@ short	MRIS_discreteKH_compute(
 );
 
 short	MRIS_discretek1k2_compute(
-	MRIS*			apmris
+	MRIS*			apmris,
+	short			ab_signedPrinciples
 );
 
 // The discrete curvature calculations are based on the Gauss-Bonnet Scheme.
@@ -1741,7 +1771,8 @@ short	MRIS_discretek1k2_compute(
 // 
 
 short	MRIScomputeSecondFundamentalFormDiscrete(
-	MRIS*			apmris
+	MRIS*			apmris,
+	short			ab_signedPrinciples
 );
 
 int  	MRISminMaxCurvatureIndicesLookup(
