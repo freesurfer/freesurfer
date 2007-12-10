@@ -1,15 +1,14 @@
 /**
  * @file  i2rtest.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Testing routine to verify extract_i_to_r
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Y. Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:44 $
- *    $Revision: 1.6 $
+ *    $Date: 2007/12/10 19:26:11 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,17 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// i2rtest.cpp
-//
-// Purpose:
-// Testing routine to verify extract_i_to_r
-//
-// Requires:
-//    rot0.mgh
-//
 
 #include <iostream>
 #if (__GNUC__ < 3)
@@ -57,7 +45,7 @@ extern "C"
 #endif
 
 // libutils needs Progname defined
-char *Progname = "i2rtest";
+const char *Progname = "i2rtest";
 
 using namespace std;
 

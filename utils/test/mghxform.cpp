@@ -1,15 +1,15 @@
 /**
  * @file  mghxform.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test xform name saving and reading
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Y. Tosa
+ *
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:44 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/12/10 19:26:11 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,13 +25,6 @@
  *
  */
 
-
-//
-// mghxform.cpp
-//
-// test xform name saving and reading
-//
-
 #include <iostream>
 
 extern "C"
@@ -40,7 +33,7 @@ extern "C"
 #include "matrix.h"
 #include "mri.h"
 
-  char *Progname="mghxform";
+const char *Progname="mghxform";
 }
 
 using namespace std;
@@ -66,7 +59,7 @@ int main(int argc, char *argv[])
   system("gunzip -c orig.tar.gz | tar xvf - > /dev/null");
   // now we have talairach.xfm and orig cor files
   cout << "reading COR" << endl;
-  MRI *mriCOR=MRIread("./orig");
+  MRI *mriCOR=MRIread((char*)"./orig");
   if (!mriCOR)
   {
     cerr << "could not read orig volume" << endl;
@@ -76,11 +69,11 @@ int main(int argc, char *argv[])
   printLinearTransform(mriCOR);
   // this should have read the xform
   cout << "writing mgh with xform info" << endl;
-  MRIwrite(mriCOR, "./testxfm.mgh");
+  MRIwrite(mriCOR, (char*)"./testxfm.mgh");
   MRIfree(&mriCOR);
 
   cout << "reading mgh with xform info" << endl;
-  MRI *mriMGH = MRIread("./testxfm.mgh");
+  MRI *mriMGH = MRIread((char*)"./testxfm.mgh");
   cout << mriMGH->transform_fname << endl;
   printLinearTransform(mriMGH);
   if (strcmp(mriMGH->transform_fname, "./orig/../talairach.xfm"))
