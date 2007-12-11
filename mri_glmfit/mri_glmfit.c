@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:29 $
- *    $Revision: 1.144 $
+ *    $Author: greve $
+ *    $Date: 2007/12/11 08:20:05 $
+ *    $Revision: 1.145 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -526,7 +526,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.144 2007/11/18 05:55:29 nicks Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.145 2007/12/11 08:20:05 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1559,6 +1559,11 @@ int main(int argc, char **argv) {
     printf("Computing vr\n");
     vr = DTIeigvals2VR(evals, mriglm->mask, NULL);
     sprintf(tmpstr,"%s/vr.%s",GLMDir,format);
+    MRIwrite(vr,tmpstr);
+
+    printf("Computing radial diffusivity\n");
+    vr = DTIradialDiffusivity(evals, mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/radialdiff.%s",GLMDir,format);
     MRIwrite(vr,tmpstr);
 
     printf("Computing adc\n");

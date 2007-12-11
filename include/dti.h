@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/18 03:40:00 $
- *    $Revision: 1.14 $
+ *    $Date: 2007/12/11 08:20:05 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.h,v 1.14 2007/07/18 03:40:00 greve Exp $
+// $Id: dti.h,v 1.15 2007/12/11 08:20:05 greve Exp $
 
 #ifndef DTI_INC
 #define DTI_INC
@@ -62,6 +62,7 @@ int DTItensor2Eig(MRI *tensor, MRI *mask,   MRI **evals,
 MRI *DTIeigvals2FA(MRI *evals, MRI *mask, MRI *FA);
 MRI *DTIeigvals2RA(MRI *evals, MRI *mask, MRI *RA);
 MRI *DTIeigvals2VR(MRI *evals, MRI *mask, MRI *VR);
+MRI *DTIradialDiffusivity(MRI *evals, MRI *mask, MRI *RD);
 
 MRI *DTItensor2ADC(MRI *tensor, MRI *mask, MRI *adc);
 int DTIsortEV(float *EigVals, MATRIX *EigVecs);

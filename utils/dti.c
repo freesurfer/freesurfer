@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/09 00:27:59 $
- *    $Revision: 1.23 $
+ *    $Date: 2007/12/11 08:20:05 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.c,v 1.23 2007/11/09 00:27:59 greve Exp $
+// $Id: dti.c,v 1.24 2007/12/11 08:20:05 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.23 2007/11/09 00:27:59 greve Exp $");
+  return("$Id: dti.c,v 1.24 2007/12/11 08:20:05 greve Exp $");
 }
 /* --------------------------------------------- */
 int DTIfree(DTI **pdti)
@@ -1158,3 +1158,42 @@ int DTIisFSLBVec(char *fname)
   if(nread == 3) return(0);
   return(1);
 }
+/*-----------------------------------------------------------*/
+/*!/
+  \fn MRI *DTIradialDiffusivity(MRI *evals, MRI *mask, MRI *RD)
+  \brief Computes radial diffusivity, which is the average
+  of the 2nd and 3rd eigenvalues.
+*/
+MRI *DTIradialDiffusivity(MRI *evals, MRI *mask, MRI *RD)
+{
+  int c,r,s;
+  double m,v2,v3,vmean;
+
+  if (evals->nframes != 3)  {
+    printf("ERROR: evals must have 3 frames\n");
+    return(NULL);
+  }
+  if (RD == NULL)  {
+    RD = MRIcloneBySpace(evals, MRI_FLOAT, 1);
+    if (!RD) return(NULL);
+  }
+  // should check consistency with spatial
+
+  for (c=0; c < evals->width; c++)  {
+    for (r=0; r < evals->height; r++) {
+      for (s=0; s < evals->depth; s++) {
+        if (mask){
+          m = MRIgetVoxVal(mask,c,r,s,0);
+          if (m < 0.5) continue;
+        }
+        v2 = MRIgetVoxVal(evals,c,r,s,1);
+        v3 = MRIgetVoxVal(evals,c,r,s,2);
+        vmean = (v2+v3)/2.0;
+        MRIsetVoxVal(RD,c,r,s,0,vmean);
+      }
+    }
+  }
+
+  return(RD);
+}
+
