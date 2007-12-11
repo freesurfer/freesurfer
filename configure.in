@@ -2205,6 +2205,7 @@ AC_OUTPUT([Makefile
            log/Makefile
            matlab/Makefile
            mkxsubjreg/Makefile
+  	   mricurv_calc/Makefile
            mri_bias/Makefile
            mri_log_likelihood/Makefile
            mri_add_xform_to_header/Makefile
