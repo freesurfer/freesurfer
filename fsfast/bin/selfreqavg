@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/11/19 20:05:49 $
-#    $Revision: 1.12 $
+#    $Date: 2007/12/11 21:20:10 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: selfreqavg,v 1.12 2007/11/19 20:05:49 greve Exp $';
+set VERSION = '$Id: selfreqavg,v 1.13 2007/12/11 21:20:10 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -200,10 +200,11 @@ $TARGET <<EOF
   ph_delay = sfa.delay * (2*pi)* sfa.fundamental;
 
   %%%%--------- Slice Loop ----------------%%%
+  nslices = lastslice-firstslice+1;
   fprintf('Slice ');
   for slice = firstslice:lastslice
     fprintf('%3d ',slice);
-    if(rem(slice,5)==19) fprintf('\n'); end
+    if(rem(slice,5)==19 | nslices == 1) fprintf('\n'); end
 
     sum_real_signal = 0;
     sum_imag_signal = 0;
@@ -213,14 +214,15 @@ $TARGET <<EOF
 
     for n = 1:nruns,
       instem = deblank(instems(n,:));
-      %fprintf('Input Volume %s\n',instem);
+      if(nslices == 1) fprintf('  Input Volume %s\n',instem); end
 
       mri = MRIread(instem);
       if(isempty(mri))
          msg = sprintf('Could not load %s',instem);
          qoe(msg); error(msg);
       end
-      f = squeeze(mri.vol(:,:,slice+1,:));
+      f = permute(mri.vol(:,:,slice+1,:),[1 2 4 3]);
+      %f = squeeze(mri.vol(:,:,slice+1,:));
       if(SynthSeed > 0) f = randn(size(f)); end
 
       %%% Global Rescaling %%%
