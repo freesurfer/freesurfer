@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/03 23:03:11 $
- *    $Revision: 1.292 $
+ *    $Date: 2007/12/11 04:41:32 $
+ *    $Revision: 1.293 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -796,6 +796,7 @@ double sol_baseline_period=100,sol_baseline_end=0,sol_lat0=0,sol_lat1=100000;
 double sol_loflim=2.0,sol_hiflim=10.0;
 double sol_pthresh=0.0,sol_pslope=0.0,sol_maxrat=10.0;
 int vertex_nplotlist=0,vertex_plotlist[MAX_NPLOTLIST];
+int LeftRightRev = 0;
 
 #define LIGHT0_BR  0.4 /* was 0.2 */
 #define LIGHT1_BR  0.0
@@ -2368,6 +2369,9 @@ int  mai(int argc,char *argv[])
       strncpy (annotation_fname, "aparc.annot", sizeof(annotation_fname));
       load_annotation = TRUE;
       labl_draw_style = LABL_STYLE_OUTLINE;
+      nargs = 1 ;
+    } else if (!stricmp(argv[i], "-lrrev")){
+      LeftRightRev = TRUE; 
       nargs = 1 ;
     } else if (!stricmp(argv[i], "-title")){
       nargs = 2 ;
@@ -7004,17 +7008,21 @@ read_positions(char *name) {
   }
   surface_compiled = 0 ;
 }
-int
-read_binary_surface(char *fname) {
-  if (mris)
-    MRISfree(&mris) ;
+/*------------------------------------------------------- */
+int read_binary_surface(char *fname) 
+{
+  if(mris)  MRISfree(&mris) ;
   mris = MRISread(ifname) ;
-  if (!mris)
-    return(Gerror) ;
+  if(!mris)  return(Gerror) ;
+
+  if(LeftRightRev){
+    printf("Applying Left-Right reversal\n");
+    MRISreverse(mris, REVERSE_X) ;
+  }
+
   marked = (int *)calloc(mris->nvertices, sizeof(int)) ;
-  if (!marked)
-    ErrorExit(ERROR_BADPARM, "%s: could not allocate %d vertex list array",
-              Progname, mris->nvertices) ;
+  if(!marked) ErrorExit(ERROR_BADPARM, "%s: could not allocate %d vertex list array",
+			Progname, mris->nvertices) ;
 
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   flag2d = FALSE ;
@@ -7236,11 +7244,18 @@ send_spherical_point(char *subject_name, char *canon_name, char *orig_name) {
 #endif
   fclose(fp);
 }
-int
-read_white_vertex_coordinates(void) {
+/*--------------------------------------------------------- */
+int read_white_vertex_coordinates(void) 
+{
+  int n;
   fprintf(stderr, "reading white matter vertex locations...\n") ;
 #if 1
-  if (MRISreadWhiteCoordinates(mris, white_suffix) == NO_ERROR) {
+  if(MRISreadWhiteCoordinates(mris, white_suffix) == NO_ERROR) {
+    if(LeftRightRev){
+      printf("Applying Left-Right reversal\n");
+      for(n=0; n < mris->nvertices; n++) mris->vertices[n].whitex *= -1.0;
+      // Don't reverse faces
+    }
     white_surf_loaded = TRUE ;
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
     MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
@@ -7257,17 +7272,25 @@ read_white_vertex_coordinates(void) {
 #endif
   return(NO_ERROR) ;
 }
-int
-read_inflated_vertex_coordinates(void) {
+
+int read_inflated_vertex_coordinates(void) 
+{
+  int n;
   fprintf(stderr, "reading inflated vertex locations...\n") ;
-  if (MRISreadInflatedCoordinates(mris, "inflated") != NO_ERROR)
+  if(MRISreadInflatedCoordinates(mris, "inflated") != NO_ERROR)
     return(Gerror) ;
+  if(LeftRightRev){
+    printf("Applying Left-Right reversal\n");
+    for(n=0; n < mris->nvertices; n++) mris->vertices[n].infx *= -1.0;
+    // Don't reverse faces
+  }
   surface_compiled = 0 ;
   inflated_surf_loaded = 1 ;
   return(NO_ERROR) ;
 }
-int
-read_pial_vertex_coordinates(void) {
+
+int read_pial_vertex_coordinates(void) 
+{
   fprintf(stderr, "reading pial surface vertex locations...\n") ;
   /*  MRISsaveVertexPositions(mris, TMP_VERTICES) ;*/
   if (MRISreadVertexPositions(mris, "pial") != NO_ERROR) {
@@ -7280,8 +7303,8 @@ read_pial_vertex_coordinates(void) {
   surface_compiled = 0 ;
   return(NO_ERROR) ;
 }
-void
-show_surf(char *surf_name) {
+
+void show_surf(char *surf_name) {
   if (!stricmp(surf_name, "white")) {
     if (!white_surf_loaded)
       read_white_vertex_coordinates() ;
@@ -7303,9 +7326,16 @@ show_surf(char *surf_name) {
   vertex_array_dirty = 1 ;
   redraw() ;
 }
-int
-read_orig_vertex_coordinates(char *fname) {
-  if (MRISreadOriginalProperties(mris, fname) == NO_ERROR) {
+
+int read_orig_vertex_coordinates(char *fname) 
+{
+  int n;
+  if(MRISreadOriginalProperties(mris, fname) == NO_ERROR) {
+    if(LeftRightRev){
+      printf("Applying Left-Right reversal\n");
+      for(n=0; n < mris->nvertices; n++) mris->vertices[n].origx *= -1.0;
+      // Don't reverse faces
+    }
     origsurfloaded = TRUE ;
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
@@ -18686,7 +18716,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.292 2007/12/03 23:03:11 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.293 2007/12/11 04:41:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21334,9 +21364,8 @@ vset_initialize() {
   return(NO_ERROR);
 }
 
-int
-vset_read_vertex_set(int set, char* fname) {
-
+int vset_read_vertex_set(int set, char* fname) 
+{
   /* copy the current main verts into tmp */
   MRISsaveVertexPositions( mris, TMP_VERTICES );
 
@@ -21444,7 +21473,8 @@ vset_load_surface_vertices(int set) {
   return(NO_ERROR);
 }
 
-int vset_set_current_set(int set) {
+int vset_set_current_set(int set) 
+{
   int err;
 
   if (set < 0 || set > NUM_VERTEX_SETS)
