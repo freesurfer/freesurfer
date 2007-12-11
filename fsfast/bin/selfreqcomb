@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/09/19 00:50:06 $
-#    $Revision: 1.7 $
+#    $Date: 2007/12/11 21:39:50 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: selfreqcomb,v 1.7 2007/09/19 00:50:06 greve Exp $';
+set VERSION = '$Id: selfreqcomb,v 1.8 2007/12/11 21:39:50 greve Exp $';
 set cmdargv = ($argv);
 
 set instems = ();
@@ -93,7 +93,12 @@ $TARGET <<EOF
   okfile     = '$okfile';
 
   %% Get the dimensions from the bfile %%
-  [nrows ncols ntp fs ns endian] = fmri_bfiledim(instems(1,:));
+  mri0 = MRIread(deblank(instems(1,:)),0);
+  nrows = size(mri0.vol,1);
+  ncols = size(mri0.vol,2);
+  ns    = size(mri0.vol,3);
+  ntp   = size(mri0.vol,4);
+  %[nrows ncols ntp fs ns endian] = fmri_bfiledim(instems(1,:));
   if(ntp ~= 13 & ntp ~= 14) 
     msg = sprintf('Input file %s has wrong number of frames (%d)', ...
                   instems(1,:),ntp);
@@ -108,6 +113,7 @@ $TARGET <<EOF
   nruns = size(instems,1);
 
   %%%%--------- Slice Loop ----------------%%%
+  clear tmpall;
   for slice = firstslice:lastslice
     fprintf('Slice %3d\n',slice);
 
@@ -130,8 +136,10 @@ $TARGET <<EOF
       end
 
       %%% Load the averages %%%
-      fname = sprintf('%s_%03d.bfloat',instem,slice);
-      f = fmri_ldbfile(fname);
+      mri = MRIread(deblank(instems(n,:)));
+      f = permute(mri.vol(:,:,slice+1,:),[1 2 4 3]);
+      %fname = sprintf('%s_%03d.bfloat',instem,slice);
+      %f = fmri_ldbfile(fname);
       sfa.nrows = size(f,1);
       sfa.ncols = size(f,2);
       f = reshape(f, [Nv ntp])'; %'
@@ -191,10 +199,17 @@ $TARGET <<EOF
 
     ntmp  = size(tmp,1);
     tmp   = reshape(tmp', [sfa.nrows sfa.ncols ntmp]); %'
-    fname = sprintf('%s_%03d.bfloat',outstem,slice);
-    fmri_svbfile(tmp,fname);
+    %fname = sprintf('%s_%03d.bfloat',outstem,slice);
+    %fmri_svbfile(tmp,fname);
+
+    tmpall(:,:,:,slice+1) = tmp;
 
   end %% loop over slices %%
+
+  tmpall = permute(tmpall,[1 2 4 3]);
+  mri0.vol = tmpall;
+  fname = sprintf('%s.mgh',outstem);
+  MRIwrite(mri0,fname);
 
   %% Save the data file %%
   sfa.analysistype = 'combavg';
