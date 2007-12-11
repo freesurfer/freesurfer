@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:32 $
- *    $Revision: 1.56 $
+ *    $Date: 2007/12/11 02:09:57 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2955,4 +2955,132 @@ MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol)
     }
   }
   return(bincol);
+}
+
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  Iteratively set all voxels in mri_dst that neighbor
+  a voxel that has already been filled (starting with the seed),
+  and for which the corresponding voxel in mri_src is
+  below threshold.
+------------------------------------------------------*/
+MRI *MRIfloodFillRegion(MRI *mri_src, MRI *mri_dst, 
+                        int threshold, int fill_val, int max_count)
+{
+  int     width, height, depth, x, y, z, nfilled, xmin, xmax, ymin, ymax,
+  zmin, zmax, on, x0, x1, y0, y1, z0, z1 ;
+  BUFTYPE *psrc, *pdst, val ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+
+  xmin = width ;
+  ymin = height ;
+  zmin = depth ;
+  xmax = ymax = zmax = 0 ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++, pdst++)
+      {
+        val = *pdst ;
+        if (val == fill_val)
+        {
+          if (x < xmin)
+            xmin = x ;
+          if (x > xmax)
+            xmax = x ;
+          if (y < ymin)
+            ymin = y ;
+          if (y > ymax)
+            ymax = y ;
+          if (z < zmin)
+            zmin = z ;
+          if (z > zmax)
+            zmax = z ;
+        }
+      }
+    }
+  }
+
+  do
+  {
+    z0 = zmin ;
+    z1 = zmax ;
+    y0 = ymin ;
+    y1 = ymax ;
+    x0 = xmin ;
+    x1 = xmax ;
+    nfilled = 0 ;
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      for (y = ymin ; y <= ymax ; y++)
+      {
+        psrc = &MRIvox(mri_src, xmin, y, z) ;
+        pdst = &MRIvox(mri_dst, xmin, y, z) ;
+        for (x = xmin ; x <= xmax ; x++, psrc++, pdst++)
+        {
+          if (x == 89 && y == 110 && z == 127)
+            DiagBreak() ;
+          val = *psrc ;
+          if ((val > threshold) || (*pdst == fill_val))
+            continue ;
+
+          on = 0 ;
+          if (x > 0)
+            on = (MRIvox(mri_dst, x-1, y, z) > 0) ;
+          if (!on && (x < width-1))
+            on = (MRIvox(mri_dst, x+1, y, z) > 0) ;
+          if (!on && (y > 0))
+            on = (MRIvox(mri_dst, x, y-1, z) > 0) ;
+          if (!on && (y < height-1))
+            on = (MRIvox(mri_dst, x, y+1, z) > 0) ;
+          if (!on && (z > 0))
+            on = (MRIvox(mri_dst, x, y, z-1) > 0) ;
+          if (!on && (z < depth-1))
+            on = (MRIvox(mri_dst, x, y, z+1) > 0) ;
+          if (on)
+          {
+            if (x <= x0)
+              x0 = MAX(x-1,0) ;
+            if (x >= x1)
+              x1 = MIN(x+1,width-1) ;
+            if (y <= y0)
+              y0 = MAX(y-1,0) ;
+            if (y >= y1)
+              y1 = MIN(y+1,height-1) ;
+            if (z <= z0)
+              z0 = MAX(z-1,0) ;
+            if (z >= z1)
+              z1 = MIN(z+1,depth-1) ;
+            nfilled++ ;
+            *pdst = fill_val ;
+          }
+        }
+      }
+    }
+    zmin = z0 ;
+    zmax = z1 ;
+    ymin = y0 ;
+    ymax = y1 ;
+    xmin = x0 ;
+    xmax = x1 ;
+    /*    fprintf(stderr, "# filled = %d\n", nfilled) ;*/
+    if ((max_count > 0) && (nfilled > max_count))
+      break ;
+  }
+  while (nfilled > 0) ;
+
+  return(mri_dst) ;
 }

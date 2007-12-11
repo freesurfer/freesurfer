@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/12/10 15:15:46 $
- *    $Revision: 1.355 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/11 02:09:57 $
+ *    $Revision: 1.356 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1159,7 +1159,8 @@ MRI *MRIsort(MRI *in, MRI *mask, MRI *sorted);
 int CompareDoubles(const void *a, const void *b);
 int MRIlabelInVolume(MRI *mri_src, int label) ;
 #define MRI_MEAN_MIN_DISTANCE 0
-double MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref, int which, FILE *fp) ;
+double MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref, 
+                               int which, FILE *fp) ;
 double MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label) ;
 int MRIcomputeLabelCentroid(MRI *mri_aseg, int label, 
 														double *pxc, double *pyc, double *pzc) ;
@@ -1169,6 +1170,8 @@ int MRIgeometryMatched(MRI *mri1, MRI *mri2) ;
 MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol);
 MRI *MRIfillHoles(MRI *mri_src, MRI *mri_fill, int thresh)  ;
 int  MRIfillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf) ;
+MRI *MRIfloodFillRegion(MRI *mri_src, MRI *mri_dst, 
+                        int threshold, int fill_val, int max_count) ;
 
 // types of MRI sequences
 #define MRI_UNKNOWN          0
