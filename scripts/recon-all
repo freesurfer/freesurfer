@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/05 01:45:05 $
-#    $Revision: 1.133.2.8 $
+#    $Date: 2007/12/11 21:57:46 $
+#    $Revision: 1.133.2.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.8 2007/12/05 01:45:05 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.9 2007/12/11 21:57:46 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -340,6 +340,11 @@ if (-e $FREESURFER_HOME/build-stamp.txt) then
 endif
 uname -a | tee -a $LF
 limit >> $LF
+if (-e /usr/bin/free) then
+  echo "" >> $LF
+  /usr/bin/free -o >> $LF
+  echo "" >> $LF
+endif
 
 ## gather all versions here
 echo "########################################" >> $LF
