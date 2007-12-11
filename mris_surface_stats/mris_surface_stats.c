@@ -12,8 +12,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/01 23:24:05 $
- *    $Revision: 1.8 $
+ *    $Date: 2007/12/11 18:54:26 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -86,7 +86,7 @@ static int nSmoothSteps = 0;
 #define MAX_SURFACES 200
 
 static char vcid[] =
-  "$Id: mris_surface_stats.c,v 1.8 2007/12/01 23:24:05 nicks Exp $";
+  "$Id: mris_surface_stats.c,v 1.9 2007/12/11 18:54:26 nicks Exp $";
 
 int
 main(int argc, char *argv[])
@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_surface_stats.c,v 1.8 2007/12/01 23:24:05 nicks Exp $",
+           "$Id: mris_surface_stats.c,v 1.9 2007/12/11 18:54:26 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -479,7 +479,7 @@ main(int argc, char *argv[])
       }
       if (mean_fname != NULL)
       {
-        if (MRIwrite(mriStd,mean_fname))
+        if (MRIwrite(mriMean,mean_fname))
         {
           fprintf(stderr,"ERROR: failed MRIwrite file %s\n",mean_fname);
           exit(1);
@@ -487,7 +487,7 @@ main(int argc, char *argv[])
       }
       if (absmean_fname != NULL)
       {
-        if (MRIwrite(mriStd,absmean_fname))
+        if (MRIwrite(mriAbsMean,absmean_fname))
         {
           fprintf(stderr,"ERROR: failed MRIwrite file %s\n",absmean_fname);
           exit(1);
@@ -495,7 +495,7 @@ main(int argc, char *argv[])
       }
       if (absstd_fname != NULL)
       {
-        if (MRIwrite(mriStd,absstd_fname))
+        if (MRIwrite(mriAbsStd,absstd_fname))
         {
           fprintf(stderr,"ERROR: failed MRIwrite file %s\n",absstd_fname);
           exit(1);
