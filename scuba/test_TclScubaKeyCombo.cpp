@@ -1,15 +1,14 @@
 /**
  * @file  test_TclScubaKeyCombo.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test TclScubaKeyCombo class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/12/11 00:06:04 $
+ *    $Revision: 1.5.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -59,7 +58,7 @@ extern "C" {
 
 using namespace std;
 
-char* Progname = "test_TclScubaKeyCombo";
+const char* Progname = "test_TclScubaKeyCombo";
 
 
 
@@ -77,7 +76,8 @@ TclScubaKeyComboTester::Test ( Tcl_Interp* iInterp ) {
       string sMod;
       bool bCtrl, bShift, bAlt, bMeta;
     };
-    modTest aModifiers[] = {{"Ctrl ", true, false, false, false},
+    modTest aModifiers[] = {{"", false, false, false, false},
+			    {"Ctrl ", true, false, false, false},
                             {"Shift ", false, true, false, false},
                             {"Alt ", false, false, true, false},
                             {"Meta ", false, false, false, true},

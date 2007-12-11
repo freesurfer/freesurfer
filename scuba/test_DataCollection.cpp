@@ -1,15 +1,14 @@
 /**
  * @file  test_DataCollection.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test DataCollection class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.12 $
+ *    $Date: 2007/12/11 00:06:02 $
+ *    $Revision: 1.12.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,8 +29,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-
-
 #include <stdlib.h>
 #include "string_fixed.h"
 #include <iostream>
@@ -67,7 +64,7 @@
 
 using namespace std;
 
-char* Progname = "test_DataCollection";
+const char* Progname = "test_DataCollection";
 
 class TestROI : public ScubaROI {
 public:
@@ -81,11 +78,6 @@ public:
   TestCollection( string isLabel ) :
       DataCollection() {
     SetLabel( isLabel );
-  }
-
-  virtual void GetInfo( DataLocation& iLoc,
-                        std::map<std::string,std::string>& iLabelValues ) {
-    return;
   }
 
   virtual ScubaROI* DoNewROI () {
@@ -128,7 +120,7 @@ DataCollectionTester::Test ( Tcl_Interp* iInterp ) {
     ras[0] = 1;
     ras[1] = 2;
     ras[2] = 3;
-    DataLocation& loc = col1.MakeLocationFromRAS( ras );
+    DataLocation loc = col1.MakeLocationFromRAS( ras );
     Assert( (loc.mRAS[0] == ras[0] &&
              loc.mRAS[1] == ras[1] &&
              loc.mRAS[2] == ras[2]),

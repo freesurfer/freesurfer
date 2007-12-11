@@ -1,15 +1,14 @@
 /**
  * @file  test_UndoManager.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test UndoManager class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/29 21:36:35 $
- *    $Revision: 1.7 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/11 00:06:04 $
+ *    $Revision: 1.7.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,7 +33,7 @@ extern "C" {
 }
 #include "Scuba-impl.h"
 
-char* Progname = "test_UndoManager";
+const char* Progname = "test_UndoManager";
 
 using namespace std;
 

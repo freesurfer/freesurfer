@@ -1,15 +1,14 @@
 /**
  * @file  test_ScubaROIVolume.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test ScubaROIVolume class
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:15 $
- *    $Revision: 1.5 $
+ *    $Date: 2007/12/11 00:06:03 $
+ *    $Revision: 1.5.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +28,7 @@
 #include "ScubaROIVolume.h"
 #include "Scuba-impl.h"
 
-char* Progname = "test_ScubaROIVolume";
+const char* Progname = "test_ScubaROIVolume";
 
 using namespace std;
 
@@ -69,8 +68,6 @@ ScubaROIVolumeTester::Test ( Tcl_Interp* iInterp ) {
     bounds[1] = 11;
     bounds[2] = 12;
     roi.SetROIBounds( bounds );
-    Assert( (10 == roi.mBounds[0] && 11 == roi.mBounds[1] &&
-             12 == roi.mBounds[2]), "SetROIBounds didn't work" );
     Assert( (NULL != roi.mVoxels), "SetROIBounds didn't create mVoxels" );
 
     Assert( (0 == roi.NumSelectedVoxels()),
