@@ -2205,7 +2205,6 @@ AC_OUTPUT([Makefile
            log/Makefile
            matlab/Makefile
            mkxsubjreg/Makefile
-  	   mricurv_calc/Makefile
            mri_bias/Makefile
            mri_log_likelihood/Makefile
            mri_add_xform_to_header/Makefile
@@ -2349,6 +2348,7 @@ AC_OUTPUT([Makefile
            mris_ca_label/Makefile
            mris_divide_parcellation/Makefile
            mris_ca_train/Makefile
+           mris_calc/Makefile
            mris_classify_thickness/Makefile
            mris_compute_acorr/Makefile
            mris_compute_lgi/Makefile
@@ -2450,8 +2450,8 @@ AC_OUTPUT([Makefile
            utils/test/mrishash/Makefile
            utilscpp/Makefile
            utilscpp/test/Makefile
-	   qdec_glmfit/Makefile
-	   qdecproject/Makefile
+           qdec_glmfit/Makefile
+           qdecproject/Makefile
            vtkfsio/Makefile
            vtkutils/Makefile])
 

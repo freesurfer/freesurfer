@@ -158,7 +158,7 @@ MRISSUBDIRS=label_area \
 	stim \
 	stim_polar \
 	tridec \
-	mricurv_calc \
+	mris_calc \
 	mris_shrinkwrap \
 	mris_density \
 	mris_fbirn_annot \
