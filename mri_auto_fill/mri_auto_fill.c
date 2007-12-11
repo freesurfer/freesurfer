@@ -2,17 +2,16 @@
  * @file  mri_auto_fill.c
  * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:04 $
- *    $Revision: 1.10 $
+ *    $Date: 2007/12/11 01:16:33 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -24,18 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// mri_auto_fill.c
-//
-// written by Bruce Fischl
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:04 $
-// Revision       : $Revision: 1.10 $
-//
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,22 +45,23 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static MRI *MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
                                   MRI *mri_lh_prob, MRI *mri_rh_prob) ;
-
 static int MRIfillVolume(MRI *mri) ;
 static MRI *MRIcheckHemisphereOverlap(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
                                       MRI *mri_lh_prob, MRI *mri_rh_prob) ;
-
-MRI *MRIthresholdFilled(MRI *mri_src, MRI *mri_T1, MRI *mri_mask,
-                        MRI *mri_inv_T1, MRI *mri_inv_T1_std, MRI *mri_dst,
-                        float threshold, float nsigma, int out_label) ;
-
-MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
-                      int out_label, MRI *mri_dst);
-MRI *MRIfillVentricles(MRI *mri_src, MRI *mri_T1, MRI *mri_mask,
-                       MRI *mri_inv_T1, MRI *mri_inv_T1_std, MRI *mri_dst,
-                       int out_label) ;
-MRI *MRIfillRegion(MRI *mri_src, MRI *mri_dst, int threshold,
-                   int fill_val, int max_count) ;
+static MRI *MRIthresholdFilled(MRI *mri_src, MRI *mri_T1, MRI *mri_mask,
+                               MRI *mri_inv_T1, MRI *mri_inv_T1_std,
+                               MRI *mri_dst,
+                               float threshold, float nsigma, int out_label) ;
+static MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
+                             int out_label, MRI *mri_dst);
+#if 0
+static MRI *MRIfillVentricles(MRI *mri_src, MRI *mri_T1, MRI *mri_mask,
+                              MRI *mri_inv_T1, MRI *mri_inv_T1_std,
+                              MRI *mri_dst,
+                              int out_label) ;
+static MRI *MRIfillRegion(MRI *mri_src, MRI *mri_dst, int threshold,
+                          int fill_val, int max_count) ;
+#endif
 
 char *Progname ;
 
@@ -89,7 +77,8 @@ static int dilate = 0 ;
 int old_flag = 0; // use M3Dmorph instead of GCAmorph
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char   **av, path[STRLEN], ventricle_fname[500] ;
   int    ac, nargs ;
   MRI    *mri_filled, *mri_lh_template, *mri_lh_inverse_template, *mri_lh,
@@ -104,7 +93,10 @@ main(int argc, char *argv[]) {
   int     msec ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_auto_fill.c,v 1.10 2006/12/29 02:09:04 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option
+          (argc, argv,
+           "$Id: mri_auto_fill.c,v 1.11 2007/12/11 01:16:33 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -117,7 +109,8 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -134,12 +127,15 @@ main(int argc, char *argv[]) {
 
   /////////////////////////////////////////////////////////////////////
   fprintf(stderr, "reading transform %s...", xform_fname) ;
-  if (old_flag) {
+  if (old_flag)
+  {
     m3d = MRI3DreadSmall(xform_fname) ;
     if (!m3d)
       ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
                 Progname, xform_fname) ;
-  } else {
+  }
+  else
+  {
     gcam = GCAMread(xform_fname);
     if (!gcam)
       ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
@@ -176,13 +172,16 @@ main(int argc, char *argv[]) {
   fprintf(stderr, "applying inverse transform...\n") ;
   if (old_flag)
     mri_rh_inverse_template = MRIapplyInverse3DMorph(mri_rh_template,m3d,NULL);
-  else {
+  else
+  {
     mri_rh_inverse_template = MRIclone(mri_rh_template, NULL);
-    mri_rh_inverse_template = GCAMmorphFromAtlas(mri_rh_template, gcam, mri_rh_inverse_template);
+    mri_rh_inverse_template =
+      GCAMmorphFromAtlas(mri_rh_template, gcam, mri_rh_inverse_template);
   }
   MRIfree(&mri_rh_template) ;
   /////////////////////////////////////////////////////////////////////////
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     fprintf(stderr, "writing inverse image to lh and rh_inverse.mgh\n") ;
     MRIwrite(mri_lh_inverse_template, "lh_inverse.mgh@mgh") ;
     MRIwrite(mri_rh_inverse_template, "rh_inverse.mgh@mgh") ;
@@ -198,7 +197,8 @@ main(int argc, char *argv[]) {
   ///////////////////////////////////////////////////////////////////////////
   if (old_flag)
     mri_inv_T1 = MRIapplyInverse3DMorph(mri_tmp, m3d, NULL);
-  else {
+  else
+  {
     mri_inv_T1 = MRIclone(mri_tmp, NULL);
     mri_inv_T1 = GCAMmorphFromAtlas(mri_tmp, gcam, mri_inv_T1);
   }
@@ -213,7 +213,8 @@ main(int argc, char *argv[]) {
   //////////////////////////////////////////////////////////////////////////
   if (old_flag)
     mri_inv_T1_std = MRIapplyInverse3DMorph(mri_tmp, m3d, NULL);
-  else {
+  else
+  {
     mri_inv_T1_std = MRIclone(mri_tmp, NULL);
     mri_inv_T1_std = GCAMmorphFromAtlas(mri_tmp, gcam, mri_inv_T1_std);
   }
@@ -258,14 +259,17 @@ main(int argc, char *argv[]) {
 
   fprintf(stderr, "reading transform %s...", xform_fname) ;
   //////////////////////////////////////////////////////////////////////////
-  if (old_flag) {
+  if (old_flag)
+  {
     m3d = MRI3DreadSmall(xform_fname) ;
     if (!m3d)
       ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
                 Progname, xform_fname) ;
     mri_inv_lv = MRIapplyInverse3DMorph(mri_lv,m3d,NULL);
     MRI3DmorphFree(&m3d) ;
-  } else {
+  }
+  else
+  {
     gcam = GCAMread(xform_fname);
     if (!gcam)
       ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
@@ -301,7 +305,8 @@ main(int argc, char *argv[]) {
 
   /////////////////////////////////////////////////////////
   fprintf(stderr, "reading transform %s...", xform_fname) ;
-  if (old_flag) {
+  if (old_flag)
+  {
     m3d = MRI3DreadSmall(xform_fname) ;
     if (!m3d)
       ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
@@ -309,7 +314,9 @@ main(int argc, char *argv[]) {
     fprintf(stderr, "done.\n") ;
     mri_inv_rv = MRIapplyInverse3DMorph(mri_rv,m3d,NULL);
     MRI3DmorphFree(&m3d) ;
-  } else {
+  }
+  else
+  {
     m3d = MRI3DreadSmall(xform_fname) ;
     if (!m3d)
       ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
@@ -375,20 +382,25 @@ main(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "dilate")) {
+  if (!stricmp(option, "dilate"))
+  {
     dilate = atoi(argv[2]) ;
     fprintf(stderr, "dilating ventricles %d times before filling\n",dilate);
     nargs = 1 ;
   }
-  if (!strcmp(option, "old")) {
+  if (!strcmp(option, "old"))
+  {
     fprintf(stderr, "using old m3d morph routine\n");
     old_flag = 1;
-  } else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case 'N':
       nsigma = atof(argv[2]) ;
       fprintf(stderr, "using nsigma = %2.2f\n", nsigma) ;
@@ -423,15 +435,17 @@ get_option(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static void
-usage_exit(int code) {
-  printf("usage: %s <filled volume> <T1 volume> <m3d transform> <template volume> "
-         "<output volume>\n",
+usage_exit(int code)
+{
+  printf("usage: %s <filled volume> <T1 volume> <m3d transform> "
+         "<template volume> <output volume>\n",
          Progname) ;
   exit(code) ;
 }
 static MRI *
 MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
-                      MRI *mri_lh_prob, MRI *mri_rh_prob) {
+                      MRI *mri_lh_prob, MRI *mri_rh_prob)
+{
   int       x, y, z, width, height, depth ;
   BUFTYPE   *plh_prob, *prh_prob, *plh, *prh, *pdst,
   lh_prob, rh_prob, lh_label, rh_label, out_label ;
@@ -443,14 +457,17 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
   height = mri_dst->height ;
   depth = mri_dst->depth ;
 
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
       plh = &MRIvox(mri_lh, 0, y, z) ;
       prh = &MRIvox(mri_rh, 0, y, z) ;
       plh_prob = &MRIvox(mri_lh_prob, 0, y, z) ;
       prh_prob = &MRIvox(mri_rh_prob, 0, y, z) ;
       pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++) {
+      for (x = 0 ; x < width ; x++)
+      {
         lh_label = *plh++ ;
         rh_label = *prh++ ;
         lh_prob =  *plh_prob++ ;
@@ -459,12 +476,14 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
           out_label = lh_label ;
         else if (rh_label && !lh_label)
           out_label = rh_label ;
-        else if (rh_label && lh_label) {
+        else if (rh_label && lh_label)
+        {
           if (rh_prob > lh_prob)
             out_label = rh_label ;
           else
             out_label = lh_label ;
-        } else
+        }
+        else
           out_label = 0 ;
         *pdst++ = out_label ;
       }
@@ -483,7 +502,8 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
 static int neighbors_on(MRI *mri, int x0, int y0, int z0, int label) ;
 
 static int
-MRIfillVolume(MRI *mri) {
+MRIfillVolume(MRI *mri)
+{
   Real     wm_rh_tal_x = 29.0 ;
   Real     wm_rh_tal_y = -12.0 ;
   Real     wm_rh_tal_z = 28.0 ;
@@ -503,9 +523,12 @@ MRIfillVolume(MRI *mri) {
   ylim0 = mri->height ;
   xlim0 = mri->width ;
   zlim1 = ylim1 = xlim1 = 0;
-  for (z = 0 ; z < mri->depth ; z++) {
-    for (y = 0 ; y < mri->height; y++) {
-      for (x = 0 ; x < mri->width ; x++) {
+  for (z = 0 ; z < mri->depth ; z++)
+  {
+    for (y = 0 ; y < mri->height; y++)
+    {
+      for (x = 0 ; x < mri->width ; x++)
+      {
         val = MRIvox(mri, x, y, z) ;
         if (val == MRI_RIGHT_HEMISPHERE || val == MRI_LEFT_HEMISPHERE) ;
         {
@@ -531,25 +554,35 @@ MRIfillVolume(MRI *mri) {
   wm_lh_z = nint(zr) ;
   if ((MRIvox(mri, wm_lh_x, wm_lh_y, wm_lh_z) != MRI_LEFT_HEMISPHERE) ||
       (neighbors_on(mri, wm_lh_x, wm_lh_y, wm_lh_z, MRI_LEFT_HEMISPHERE)
-       < MIN_NEIGHBORS)) {
+       < MIN_NEIGHBORS))
+  {
     xnew = ynew = znew = 0 ;
     min_dist = 10000.0f ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "searching for lh wm seed...\n") ;
-    for (z = wm_lh_z-SEED_SEARCH_SIZE ; z <= wm_lh_z+SEED_SEARCH_SIZE ; z++) {
+    for (z = wm_lh_z-SEED_SEARCH_SIZE ; z <= wm_lh_z+SEED_SEARCH_SIZE ; z++)
+    {
       zi = mri->zi[z] ;
-      for (y = wm_lh_y-SEED_SEARCH_SIZE ; y <= wm_lh_y+SEED_SEARCH_SIZE ; y++) {
+      for (y = wm_lh_y-SEED_SEARCH_SIZE ;
+           y <= wm_lh_y+SEED_SEARCH_SIZE ;
+           y++)
+      {
         yi = mri->yi[y] ;
-        for (x = wm_lh_x-SEED_SEARCH_SIZE;x <= wm_lh_x+SEED_SEARCH_SIZE ; x++) {
+        for (x = wm_lh_x-SEED_SEARCH_SIZE;
+             x <= wm_lh_x+SEED_SEARCH_SIZE ;
+             x++)
+        {
           xi = mri->xi[x] ;
           if ((MRIvox(mri, xi, yi, zi) == MRI_LEFT_HEMISPHERE) &&
               neighbors_on(mri, xi, yi, zi, MRI_LEFT_HEMISPHERE) >=
-              MIN_NEIGHBORS) {
+              MIN_NEIGHBORS)
+          {
             xd = (xi - wm_lh_x) ;
             yd = (yi - wm_lh_y) ;
             zd = (zi - wm_lh_z) ;
             dist = xd*xd + yd*yd + zd*zd ;
-            if (dist < min_dist) {
+            if (dist < min_dist)
+            {
               xnew = xi ;
               ynew = yi ;
               znew = zi ;
@@ -579,25 +612,37 @@ MRIfillVolume(MRI *mri) {
   wm_rh_z = nint(zr) ;
   if ((MRIvox(mri, wm_rh_x, wm_rh_y, wm_rh_z) == MRI_RIGHT_HEMISPHERE) ||
       (neighbors_on(mri, wm_rh_x, wm_rh_y, wm_rh_z, MRI_RIGHT_HEMISPHERE)
-       < MIN_NEIGHBORS)) {
+       < MIN_NEIGHBORS))
+  {
     xnew = ynew = znew = 0 ;
     min_dist = 10000.0f ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "searching for rh wm seed...\n") ;
-    for (z = wm_rh_z-SEED_SEARCH_SIZE ; z <= wm_rh_z+SEED_SEARCH_SIZE ; z++) {
+    for (z = wm_rh_z-SEED_SEARCH_SIZE ;
+         z <= wm_rh_z+SEED_SEARCH_SIZE ;
+         z++)
+    {
       zi = mri->zi[z] ;
-      for (y = wm_rh_y-SEED_SEARCH_SIZE ; y <= wm_rh_y+SEED_SEARCH_SIZE ; y++) {
+      for (y = wm_rh_y-SEED_SEARCH_SIZE ;
+           y <= wm_rh_y+SEED_SEARCH_SIZE ;
+           y++)
+      {
         yi = mri->yi[y] ;
-        for (x = wm_rh_x-SEED_SEARCH_SIZE ;x <= wm_rh_x+SEED_SEARCH_SIZE; x++) {
+        for (x = wm_rh_x-SEED_SEARCH_SIZE ;
+             x <= wm_rh_x+SEED_SEARCH_SIZE;
+             x++)
+        {
           xi = mri->xi[x] ;
           if ((MRIvox(mri, xi, yi, zi) == MRI_RIGHT_HEMISPHERE) &&
               (neighbors_on(mri, xi, yi, zi, MRI_RIGHT_HEMISPHERE)
-               >= MIN_NEIGHBORS)) {
+               >= MIN_NEIGHBORS))
+          {
             xd = (xi - wm_rh_x) ;
             yd = (yi - wm_rh_y) ;
             zd = (zi - wm_rh_z) ;
             dist = xd*xd + yd*yd + zd*zd ;
-            if (dist < min_dist) {
+            if (dist < min_dist)
+            {
               xnew = xi ;
               ynew = yi ;
               znew = zi ;
@@ -643,8 +688,10 @@ MRIfillVolume(MRI *mri) {
   MRIfree(&mri_bg) ;
   return(NO_ERROR) ;
 }
+
 static int
-neighbors_on(MRI *mri, int x0, int y0, int z0, int label) {
+neighbors_on(MRI *mri, int x0, int y0, int z0, int label)
+{
   int   nbrs = 0 ;
 
   if (MRIvox(mri,x0-1,y0,z0) == label)
@@ -661,6 +708,7 @@ neighbors_on(MRI *mri, int x0, int y0, int z0, int label) {
     nbrs++ ;
   return(nbrs) ;
 }
+
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -668,7 +716,8 @@ neighbors_on(MRI *mri, int x0, int y0, int z0, int label) {
 ----------------------------------------------------------------------*/
 static MRI *
 MRIcheckHemisphereOverlap(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
-                          MRI *mri_lh_prob, MRI *mri_rh_prob) {
+                          MRI *mri_lh_prob, MRI *mri_rh_prob)
+{
   int       x, y, z, width, height, depth ;
   BUFTYPE   *plh_prob, *prh_prob, *plh, *prh, *pdst, *psrc,
   lh_prob, rh_prob, lh_label, rh_label, label ;
@@ -680,15 +729,18 @@ MRIcheckHemisphereOverlap(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
   height = mri_dst->height ;
   depth = mri_dst->depth ;
 
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
       plh = &MRIvox(mri_lh, 0, y, z) ;
       prh = &MRIvox(mri_rh, 0, y, z) ;
       plh_prob = &MRIvox(mri_lh_prob, 0, y, z) ;
       prh_prob = &MRIvox(mri_rh_prob, 0, y, z) ;
       psrc = &MRIvox(mri_dst, 0, y, z) ;
       pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++) {
+      for (x = 0 ; x < width ; x++)
+      {
         if (x == 131 && y == 135 && z == 76)
           DiagBreak() ;  /* marked as 255, should be 127 */
         if (x == 125 && y == 148 && z == 100)
@@ -719,15 +771,17 @@ MRIcheckHemisphereOverlap(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
   }
   return(mri_dst) ;
 }
+
 /*----------------------------------------------------------------------
             Parameters:
 
            Description:
 ----------------------------------------------------------------------*/
-MRI *
+static MRI *
 MRIthresholdFilled(MRI *mri_src, MRI *mri_T1, MRI *mri_mask, MRI *mri_inv_T1,
                    MRI *mri_inv_T1_std, MRI *mri_dst, float threshold,
-                   float nsigma, int out_label) {
+                   float nsigma, int out_label)
+{
   BUFTYPE   *pmask, *pdst, *psrc, out_val, mask, in_val,
   T1_val, T1_inv_val, sigma, *pT1, *pinvT1, *psigma ;
   int       width, height, depth, x, y, z, nchanged, noff, non ;
@@ -747,17 +801,19 @@ MRIthresholdFilled(MRI *mri_src, MRI *mri_T1, MRI *mri_mask, MRI *mri_inv_T1,
      of the input volume
      */
 
-
   noff = non = nchanged = 0 ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
       pmask = &MRIvox(mri_mask, 0, y, z) ;
       psrc = &MRIvox(mri_src, 0, y, z) ;
       pdst = &MRIvox(mri_dst, 0, y, z) ;
       pT1 = &MRIvox(mri_T1, 0, y, z) ;
       pinvT1 = &MRIvox(mri_inv_T1, 0, y, z) ;
       psigma = &MRIvox(mri_inv_T1_std, 0, y, z) ;
-      for (x = 0 ; x < width ; x++) {
+      for (x = 0 ; x < width ; x++)
+      {
         T1_val = *pT1++ ;
         T1_inv_val = *pinvT1++ ;
         sigma = *psigma++ ;
@@ -772,15 +828,17 @@ MRIthresholdFilled(MRI *mri_src, MRI *mri_T1, MRI *mri_mask, MRI *mri_inv_T1,
         in_val = *psrc++ ;
         if (sdist > nsigma)  /* intensities are too different - don't change */
           out_val = in_val ;
-        else {
+        else
+        {
           if (mask < 100-threshold)        /* probably off */
             out_val = 0 ;
           else  if (mask > threshold)      /* probably on */
             out_val = out_label ;
-          else                             /* not sure, use original fill val */
+          else              /* not sure, use original fill val */
             out_val = in_val ;
         }
-        if (out_val != in_val) {
+        if (out_val != in_val)
+        {
           if (out_val)
             non++ ;
           else
@@ -804,7 +862,8 @@ MRIthresholdFilled(MRI *mri_src, MRI *mri_T1, MRI *mri_mask, MRI *mri_inv_T1,
 #if 1
 MRI *
 MRIfillVentricle(MRI *mri_inv_ventricle, MRI *mri_T1, float thresh,
-                 int out_label, MRI *mri_dst) {
+                 int out_label, MRI *mri_dst)
+{
   BUFTYPE   *pdst, *pinv_ventricle, out_val, T1_val, inv_ventricle_val, *pT1 ;
   int       width, height, depth, x, y, z,
   ventricle_voxels, dno ;
@@ -819,21 +878,24 @@ MRIfillVentricle(MRI *mri_inv_ventricle, MRI *mri_T1, float thresh,
      of the input volume
      */
 
-
   for (dno = dilate ; dno > 0 ; dno--)
     MRIdilate(mri_inv_ventricle, mri_inv_ventricle) ;
 
   ventricle_voxels = 0 ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
       pdst = &MRIvox(mri_dst, 0, y, z) ;
       pT1 = &MRIvox(mri_T1, 0, y, z) ;
       pinv_ventricle = &MRIvox(mri_inv_ventricle, 0, y, z) ;
-      for (x = 0 ; x < width ; x++) {
+      for (x = 0 ; x < width ; x++)
+      {
         T1_val = *pT1++ ;
         inv_ventricle_val = *pinv_ventricle++ ;
         out_val = 0 ;
-        if (inv_ventricle_val >= thresh) {
+        if (inv_ventricle_val >= thresh)
+        {
           ventricle_voxels++ ;
           out_val = out_label ;
         }
@@ -850,10 +912,12 @@ MRIfillVentricle(MRI *mri_inv_ventricle, MRI *mri_T1, float thresh,
   return(mri_dst) ;
 }
 #else
-MRI *
+#if 0
+static MRI *
 MRIfillVentricles(MRI *mri_src, MRI *mri_T1, MRI *mri_mask,
                   MRI *mri_inv_T1, MRI *mri_inv_T1_std, MRI *mri_dst,
-                  int out_label) {
+                  int out_label)
+{
   BUFTYPE   *pmask, *pdst, *psrc, out_val, mask, in_val,
   T1_val, T1_inv_val, sigma, *pT1, *pinvT1, *psigma ;
   int       width, height, depth, x, y, z, nchanged, noff, non,
@@ -874,17 +938,19 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_T1, MRI *mri_mask,
   of the input volume
   */
 
-
   ventricle_voxels = noff = non = nchanged = 0 ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
       pmask = &MRIvox(mri_mask, 0, y, z) ;
       psrc = &MRIvox(mri_src, 0, y, z) ;
       pdst = &MRIvox(mri_dst, 0, y, z) ;
       pT1 = &MRIvox(mri_T1, 0, y, z) ;
       pinvT1 = &MRIvox(mri_inv_T1, 0, y, z) ;
       psigma = &MRIvox(mri_inv_T1_std, 0, y, z) ;
-      for (x = 0 ; x < width ; x++) {
+      for (x = 0 ; x < width ; x++)
+      {
         T1_val = *pT1++ ;
         T1_inv_val = *pinvT1++ ;
         sigma = *psigma++ ;
@@ -898,12 +964,15 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_T1, MRI *mri_mask,
         mask = *pmask++ ;   /* value from inverse morphed volume */
         in_val = *psrc++ ;
         if (in_val != out_label && mask > 70 && T1_val < 45 &&
-            T1_inv_val < 60) {
+            T1_inv_val < 60)
+        {
           ventricle_voxels++ ;
           out_val = out_label ;
-        } else
+        }
+        else
           out_val = in_val ;
-        if (out_val != in_val) {
+        if (out_val != in_val)
+        {
           if (out_val)
             non++ ;
           else
@@ -928,6 +997,9 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_T1, MRI *mri_mask,
   return(mri_dst) ;
 }
 #endif
+#endif
+
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -939,9 +1011,10 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_T1, MRI *mri_mask,
           and for which the corresponding voxel in mri_src is
           below threshold.
 ------------------------------------------------------*/
-MRI *
+static MRI *
 MRIfillRegion(MRI *mri_src, MRI *mri_dst, int threshold,
-              int fill_val, int max_count) {
+              int fill_val, int max_count)
+{
   int     width, height, depth, x, y, z, nfilled, xmin, xmax, ymin, ymax,
   zmin, zmax, on, x0, x1, y0, y1, z0, z1 ;
   BUFTYPE *psrc, *pdst, val ;
@@ -957,12 +1030,16 @@ MRIfillRegion(MRI *mri_src, MRI *mri_dst, int threshold,
   ymin = height ;
   zmin = depth ;
   xmax = ymax = zmax = 0 ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
       pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++, pdst++) {
+      for (x = 0 ; x < width ; x++, pdst++)
+      {
         val = *pdst ;
-        if (val == fill_val) {
+        if (val == fill_val)
+        {
           if (x < xmin)
             xmin = x ;
           if (x > xmax)
@@ -980,8 +1057,8 @@ MRIfillRegion(MRI *mri_src, MRI *mri_dst, int threshold,
     }
   }
 
-
-  do {
+  do
+  {
     z0 = zmin ;
     z1 = zmax ;
     y0 = ymin ;
@@ -989,11 +1066,14 @@ MRIfillRegion(MRI *mri_src, MRI *mri_dst, int threshold,
     x0 = xmin ;
     x1 = xmax ;
     nfilled = 0 ;
-    for (z = zmin ; z <= zmax ; z++) {
-      for (y = ymin ; y <= ymax ; y++) {
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      for (y = ymin ; y <= ymax ; y++)
+      {
         psrc = &MRIvox(mri_src, xmin, y, z) ;
         pdst = &MRIvox(mri_dst, xmin, y, z) ;
-        for (x = xmin ; x <= xmax ; x++, psrc++, pdst++) {
+        for (x = xmin ; x <= xmax ; x++, psrc++, pdst++)
+        {
           if (x == 89 && y == 110 && z == 127)
             DiagBreak() ;
           val = *psrc ;
@@ -1013,7 +1093,8 @@ MRIfillRegion(MRI *mri_src, MRI *mri_dst, int threshold,
             on = (MRIvox(mri_dst, x, y, z-1) > 0) ;
           if (!on && (z < depth-1))
             on = (MRIvox(mri_dst, x, y, z+1) > 0) ;
-          if (on) {
+          if (on)
+          {
             if (x <= x0)
               x0 = MAX(x-1,0) ;
             if (x >= x1)
@@ -1041,7 +1122,9 @@ MRIfillRegion(MRI *mri_src, MRI *mri_dst, int threshold,
     /*    fprintf(stderr, "# filled = %d\n", nfilled) ;*/
     if ((max_count > 0) && (nfilled > max_count))
       break ;
-  } while (nfilled > 0) ;
+  }
+  while (nfilled > 0) ;
 
   return(mri_dst) ;
 }
+#endif
