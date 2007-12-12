@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/12 01:15:28 $
- *    $Revision: 1.4 $
+ *    $Date: 2007/12/12 01:33:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.4 2007/12/12 01:15:28 greve Exp $
+// $Id: mri_fieldsign.c,v 1.5 2007/12/12 01:33:24 greve Exp $
 
 /*
   BEGINHELP
@@ -88,7 +88,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.4 2007/12/12 01:15:28 greve Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.5 2007/12/12 01:33:24 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -687,6 +687,7 @@ int RETcompute_fieldsign2(MRIS *mris)
 		vctx[k],uctx[knbr]);
       }
     }
+    v->K = nlist; // size of neighborhood
 
     // Solve GLM
     glm = GLMalloc();
@@ -695,33 +696,34 @@ int RETcompute_fieldsign2(MRIS *mris)
     GLMxMatrices(glm);
     GLMfit(glm);
 
-    // Fill Jacobian matrix
-    J->rptr[1][1] = glm->beta->rptr[1][1]; // dR/dU
-    J->rptr[1][2] = glm->beta->rptr[1][2]; // dR/dV
-    J->rptr[2][1] = glm->beta->rptr[2][1]; // dTheta/dU
-    J->rptr[2][2] = glm->beta->rptr[2][2]; // dTheta/dV
+    if(! glm->ill_cond_flag){
+      v->H = glm->rvar; // residual variance
 
-    if(0){
-    printf("J -----------\n");
-    MatrixPrint(stdout,J);
-    printf("J -----------\n");
+      // Fill Jacobian matrix
+      J->rptr[1][1] = glm->beta->rptr[1][1]; // dR/dU
+      J->rptr[1][2] = glm->beta->rptr[1][2]; // dR/dV
+      J->rptr[2][1] = glm->beta->rptr[2][1]; // dTheta/dU
+      J->rptr[2][2] = glm->beta->rptr[2][2]; // dTheta/dV
+      
+      if(0){
+	printf("J -----------\n");
+	MatrixPrint(stdout,J);
+	printf("J -----------\n");
+      }
+      
+      det = MatrixDeterminant(J);
+      v->stat = 1000*fabs(det); // 1000 to make range a little easier
+      if(det < 0) v->fieldsign = -1.0;
+      else        v->fieldsign = +1.0;
+      v->fsmask = sqrt(v->val2*v->val2bak);  /* geom mean of r,th power */
     }
-
-    det = MatrixDeterminant(J);
-    v->stat = 1000*fabs(det); // 1000 to make range a little easier
-    if(det < 0) v->fieldsign = -1.0;
-    else        v->fieldsign = +1.0;
-    v->fsmask = sqrt(v->val2*v->val2bak);  /* geom mean of r,th power */
-
-    v->K = nlist;     // size of neighborhood
-    v->H = glm->rvar; // residual variance
 
     GLMfree(&glm); // Also frees X and y
 
     if(nhit%1000 == 0 || nhit == 0) {
       msecTime = TimerStop(&mytimer) ;
-      printf("%5d %5d %3d %g  %g\n",k,nhit,nlist,msecTime/1000.0,det);
       msecTot += msecTime;
+      printf("%5d %5d %3d %6.2f  %g\n",k,nhit,nlist,msecTot/1000.0,det);
       TimerStart(&mytimer) ;
     }
     nhit ++;
