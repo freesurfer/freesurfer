@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/11 21:57:46 $
-#    $Revision: 1.133.2.9 $
+#    $Date: 2007/12/12 18:39:22 $
+#    $Revision: 1.133.2.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.9 2007/12/11 21:57:46 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.10 2007/12/12 18:39:22 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1982,8 +1982,8 @@ foreach hemi ($hemilist)
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
     echo "#@# AvgCurv $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
     cd $subjdir/scripts > /dev/null
+    set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
     set xopts = `fsr-getxopts mrisp_paint $XOptsFile`;
     # -a 5 means to smooth 5 iterations
     set cmd = (mrisp_paint -a 5 $xopts "$AvgTif#6" \
