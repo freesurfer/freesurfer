@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/27 16:35:56 $
- *    $Revision: 1.43 $
+ *    $Date: 2007/12/12 00:47:48 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,7 +80,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.43 2007/09/27 16:35:56 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.44 2007/12/12 00:47:48 greve Exp $";
 
 char *Progname = NULL;
 
@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.43 2007/09/27 16:35:56 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.44 2007/12/12 00:47:48 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -665,6 +665,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-reshape")) reshape = 0;
     else if (!strcasecmp(option, "--fixtkreg")) fixtkreg = 1;
     else if (!strcasecmp(option, "--nofixtkreg")) fixtkreg = 0;
+    else if (!strcasecmp(option, "--inflated"))  surfname = "inflated";
 
     else if ( !strcmp(option, "--sd") ) {
       if (nargc < 1) argnerr(option,1);
@@ -746,6 +747,14 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--surf")) {
       if (nargc < 1) argnerr(option,1);
       surfname = pargv[0];
+      if(!strcmp(surfname,"inflated")){
+	printf("ERROR: you have chosen the inflated surface.\n");
+	printf("This is most likely not what you want to do.\n");
+	printf("If you really want to use the inflated surface,\n");
+	printf("re-run this program with --inflated instead of\n");
+	printf("--surf inflated.\n");
+	exit(1);
+      }
       nargsused = 1;
     } else if (!strcmp(option, "--hemi")) {
       if (nargc < 1) argnerr(option,1);
