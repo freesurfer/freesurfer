@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/11 08:20:05 $
- *    $Revision: 1.145 $
+ *    $Date: 2007/12/13 21:49:32 $
+ *    $Revision: 1.146 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -526,7 +526,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.145 2007/12/11 08:20:05 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.146 2007/12/13 21:49:32 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1400,7 +1400,7 @@ int main(int argc, char **argv) {
     if (surf != NULL) {
       printf("Computing spatial AR1 on surface\n");
       ar1 = MRISar1(surf, mriglm->eres, mriglm->mask, NULL);
-      sprintf(tmpstr,"%s/ar1.%s",GLMDir,format);
+      sprintf(tmpstr,"%s/sar1.%s",GLMDir,format);
       MRIwrite(ar1,tmpstr);
       RFglobalStats(ar1, mriglm->mask, &ar1mn, &ar1std, &ar1max);
       eresgstd = InterVertexDistAvg/sqrt(-4*log(ar1mn));
@@ -1414,6 +1414,8 @@ int main(int argc, char **argv) {
       printf("Computing spatial AR1 in volume.\n");
       ar1 = fMRIspatialAR1(mriglm->eres, mriglm->mask, NULL);
       if (ar1 == NULL) exit(1);
+      sprintf(tmpstr,"%s/sar1.%s",GLMDir,format);
+      MRIwrite(ar1,tmpstr);
       fMRIspatialAR1Mean(ar1, mriglm->mask, &car1mn, &rar1mn, &sar1mn);
       cfwhm = RFar1ToFWHM(car1mn, mriglm->eres->xsize);
       rfwhm = RFar1ToFWHM(rar1mn, mriglm->eres->ysize);
@@ -1725,7 +1727,10 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--allowsubjrep"))
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
-    else if (!strcasecmp(option, "--qa")) useqa = 1;
+    else if (!strcasecmp(option, "--qa")) {
+      useqa = 1;
+      DoTemporalAR1 = 1;
+    }
     else if (!strcasecmp(option, "--no-mask-smooth")) UseMaskWithSmoothing = 0;
     else if (!strcasecmp(option, "--distance")) DoDistance = 1;
     else if (!strcasecmp(option, "--illcond")) IllCondOK = 1;
