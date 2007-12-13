@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/10/30 23:32:45 $
- *    $Revision: 1.90 $
+ *    $Date: 2007/12/13 06:32:48 $
+ *    $Revision: 1.91 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.90 2007/10/30 23:32:45 greve Exp $";
+"$Id: tkregister2.c,v 1.91 2007/12/13 06:32:48 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -81,6 +81,7 @@ static char vcid[] =
 #  define frontbuffer(X)   glDrawBuffer(GL_FRONT)
 #  define backbuffer(X)    glDrawBuffer(GL_BACK)
 #  define clear()          glClear(GL_COLOR_BUFFER_BIT)
+//#  define getorigin(X,Y)   *(X) = w.x; *(Y) = 1024 - w.y - w.h
 #  define getorigin(X,Y)   *(X) = w.x; *(Y) = 1024 - w.y - w.h
 /*WINDOW_REC w;*/
 #  define getsize(X,Y)     *(X) = w.w; *(Y) = w.h
@@ -250,8 +251,8 @@ MATRIX *Vox2Vox = NULL;
 #define TARGET   1
 #define MOVEABLE 2
 
-#define WINDOW_ROWS 512
-#define WINDOW_COLS 512
+int WINDOW_ROWS = 512;
+int WINDOW_COLS = 512;
 
 float FOV = 256;
 float mov_scale = 1;
@@ -368,9 +369,11 @@ int tagmov = 0;
 MRI *mov_vol, *targ_vol,*targ_vol0, *mritmp, *mrisurf;
 MRI_SURFACE *surf;
 
-float movimg[WINDOW_ROWS][WINDOW_COLS];
-float targimg[WINDOW_ROWS][WINDOW_COLS];
-int surfimg[WINDOW_ROWS][WINDOW_COLS];
+//float movimg[WINDOW_ROWS][WINDOW_COLS];
+//float targimg[WINDOW_ROWS][WINDOW_COLS];
+//int surfimg[WINDOW_ROWS][WINDOW_COLS];
+float **movimg, **targimg;
+int **surfimg;
 
 int debug;
 
@@ -421,6 +424,7 @@ MATRIX *Ctarg, *invCtarg, *Starg, *Mcras0, *invMcras0;
 int DoFMovTarg = 0;
 
 char *DetFile = NULL;
+int AllocBuffs(void);
 
 /**** ------------------ main() ------------------------------- ****/
 int Register(ClientData clientData,
@@ -448,6 +452,8 @@ int Register(ClientData clientData,
   dump_options(stdout);
   printf("%s\n",vcid);
   printf("Diagnostic Level %d\n",Gdiag_no);
+
+  AllocBuffs();
 
   freesurferhome = getenv("FREESURFER_HOME");
   if (freesurferhome==NULL) {
@@ -915,8 +921,13 @@ int Register(ClientData clientData,
   zf = (int)nint((float)xdim/xnum); /* zoom factor */
   ozf = zf;
   fsf = (float)zf;
-  printf("Zoom Factor = %g\n",(float)zf);
+  printf("Zoom Factor = %g, SQR() = %g\n",(float)zf,(float)SQR(zf));
   printf("FOV = %g\n",FOV);
+
+  vidbuf    = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
+  blinkbuft = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
+  blinkbufm = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
+
 
   ps = targ_vol->xsize;
   st = targ_vol->zsize;
@@ -926,10 +937,6 @@ int Register(ClientData clientData,
   yy1 = +128.0;
   zz0 = -128.0;
   zz1 = +128.0;
-
-  vidbuf = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
-  blinkbuft = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
-  blinkbufm = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
 
   binbuff = (unsigned char *)calloc(3*xdim*ydim,sizeof(char));
 
@@ -1045,6 +1052,17 @@ static int parse_commandline(int argc, char **argv) {
       sprintf(tmpstr,"/tmp/reg.tmp.%ld.dat",PDFtodSeed());
       regfname = strcpyalloc(tmpstr);
       checkreg = 1;
+    }
+    else if (!strcasecmp(option, "--2")){
+      WINDOW_ROWS = 2*512;
+      WINDOW_COLS = 2*512;
+    }
+    else if (!strcasecmp(option, "--size")){
+      double size;
+      sscanf(pargv[0],"%lf",&size);
+      WINDOW_ROWS = nint(size*512);
+      WINDOW_COLS = nint(size*512);
+      nargsused = 1;
     }
     else if (stringmatch(option, "--targ")) {
       if (nargc < 1) argnerr(option,1);
@@ -1325,10 +1343,10 @@ static void print_usage(void) {
   printf("   --title title : set window title\n");
   printf("   --tag : tag mov vol near the col/row origin\n");
   printf("   --mov-orientation ostring : supply orientation string for mov\n");
-  printf("   --targ-orientation ostring : "
-         "supply orientation string for targ\n");
-  printf("   --int intvol intreg : "
-         "use registration from intermediate volume \n");
+  printf("   --targ-orientation ostring : supply orientation string for targ\n");
+  printf("   --int intvol intreg : use registration from intermediate volume \n");
+  printf("   --2 : double window size \n");
+  printf("   --size scale : scale window by scale (eg, 0.5, 1.5) \n");
   printf("   --det  detfile : save determinant of reg mat here\n");
   printf("   --gdiagno n : set debug level\n");
   printf("\n");
@@ -1974,9 +1992,9 @@ void draw_image2(int imc,int ic,int jc) {
   extern int overlay_mode;
   extern double ps_2, st_2, fscale_2;
   extern int xdim_2, ydim_2, imnr1_2; /* func Nc, Ns, Nr */
-  extern float movimg[WINDOW_ROWS][WINDOW_COLS];
-  extern float targimg[WINDOW_ROWS][WINDOW_COLS];
-  extern int surfimg[WINDOW_ROWS][WINDOW_COLS];
+  //extern float movimg[WINDOW_ROWS][WINDOW_COLS];
+  //extern float targimg[WINDOW_ROWS][WINDOW_COLS];
+  //extern int surfimg[WINDOW_ROWS][WINDOW_COLS];
   extern MATRIX *Qmov, *Qtarg;
   static int firstpass = 1;
   static int PrevPlane, PrevImc, PrevIc, PrevJc, PrevOverlayMode;
@@ -2535,24 +2553,28 @@ int draw_cross_hair(int rScreen, int cScreen) {
   int r,c,k;
   unsigned char *lvidbuf;
 
-  if (overlay_mode==TARGET) lvidbuf = blinkbuft;
+  //printf("Drawing crosshair at row = %d, col = %d\n",rScreen,cScreen);
+
+  if(overlay_mode==TARGET) lvidbuf = blinkbuft;
   else                     lvidbuf = blinkbufm;
 
   if (lvidbuf == NULL) return(1);
 
   for (r = rScreen - 4; r < rScreen + 4; r++) {
     if (r < 0 || r >= WINDOW_ROWS) continue;
-    k = 3 * ((r*WINDOW_COLS)+cScreen);
-    lvidbuf[k]   = 255;
-    lvidbuf[k+1] = 0;
-    lvidbuf[k+2] = 0;
+    k =  ((r*WINDOW_COLS)+cScreen);
+    lvidbuf[3*k]   = 255;
+    lvidbuf[3*k+1] = 0;
+    lvidbuf[3*k+2] = 0;
+    //printf("r = %d, c = %d, k = %d\n",r,cScreen,k);
   }
   for (c = cScreen - 4; c < cScreen + 4; c++) {
     if (c < 0 || c >= WINDOW_COLS) continue;
-    k = 3 * ((rScreen*WINDOW_COLS)+c);
-    lvidbuf[k]   = 255;
-    lvidbuf[k+1] = 0;
-    lvidbuf[k+2] = 0;
+    k = ((rScreen*WINDOW_COLS)+c);
+    lvidbuf[3*k]   = 255;
+    lvidbuf[3*k+1] = 0;
+    lvidbuf[3*k+2] = 0;
+    //printf("r = %d, c = %d, k = %d\n",rScreen,c,k);
   }
 
   return(0);
@@ -2629,11 +2651,12 @@ void select_pixel(short sx, short sy) {
 
   getorigin(&ox,&oy);
   getsize(&lx,&ly);
+  //printf("select_pix: sx = %d, sy = %d, ox = %d, oy = %d, lx=%d, ly = %d\n",
+  // sx,sy,ox,oy,lx,ly);
 
   if (overlay_mode==TARGET) lvidbuf = blinkbuft;
   else                     lvidbuf = blinkbufm;
-  //printf("sx=%d, sy=%d, ox=%ld, oy=%ld, lx=%ld,
-  //ly=%ld, dx = %ld, dy = %ld\n",
+  //printf("sx=%d, sy=%d, ox=%ld, oy=%ld, lx=%ld, ly=%ld, dx = %ld, dy = %ld\n",
   // sx,sy,ox,oy,lx,ly,sx-ox,sy-oy);
 
   /* hack: x-y of click on tk win caught by qread when clicks buffered! */
@@ -2654,7 +2677,8 @@ void select_pixel(short sx, short sy) {
       }
   xc = xx1-ps*jc/fsf;
   yc = yy0+st*imc/fsf;
-  zc = zz1-ps*(255.0-ic/fsf);
+  //zc = zz1-ps*(255.0-ic/fsf);
+  zc = zz1-ps*(((WINDOW_ROWS/2.0)-1)-ic/fsf);
   //printf("select_pixel: xc=%g, yc=%g,  zc=%g\n",xc,yc,zc);
   //printf("select_pixel: jc=%d, imc=%d, ic=%d\n",jc,imc,ic);
   //printf("xx1 = %g, ps = %g, fsf = %g, st=%g, yy0 = %g, zz1 = %g\n",
@@ -3083,7 +3107,10 @@ void  open_window(char *name) {
     exit(1);
   }
 
-  hin.max_width = hin.max_height = 3*xnum + xnum/2;  /* maxsize */
+  printf("Opening %s, xnum = %d, xdim = %d\n",name,xnum,xdim);
+
+  //hin.max_width = hin.max_height = 3*xnum + xnum/2;  /* maxsize */
+  hin.max_width = hin.max_height = xdim;
   hin.min_aspect.x = hin.max_aspect.x = xdim;        /* keepaspect */
   hin.min_aspect.y = hin.max_aspect.y = ydim;
   hin.flags = PMaxSize|PAspect;
@@ -4503,7 +4530,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.90 2007/10/30 23:32:45 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.91 2007/12/13 06:32:48 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4894,4 +4921,23 @@ MATRIX *Load4x4(char *fname)
   }
   fclose(fp);
   return(mat);
+}
+
+/*-----------------------------------------------------------*/
+int AllocBuffs(void)
+{
+  extern float **movimg, **targimg;
+  extern int **surfimg;
+  int n;
+
+  movimg = (float **) calloc(WINDOW_ROWS,sizeof(float*));
+  targimg = (float **) calloc(WINDOW_ROWS,sizeof(float*));
+  surfimg = (int **) calloc(WINDOW_ROWS,sizeof(int*));
+
+  for(n=0; n < WINDOW_ROWS; n++){
+    movimg[n] = (float *) calloc(WINDOW_COLS,sizeof(float));
+    targimg[n] = (float *) calloc(WINDOW_COLS,sizeof(float));
+    surfimg[n] = (int *) calloc(WINDOW_COLS,sizeof(int));
+  }
+  return(0);
 }
