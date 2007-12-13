@@ -8,9 +8,9 @@ AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/NrrdIO
 LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
-CHECKS=mnitest i2rtest icotest extest \
+CHECKS=test_c_nr_wrapper mnitest i2rtest icotest extest \
 	mghxform inftest checkanalyze \
-	test_mri_identify test_c_nr_wrapper \
+	test_mri_identify \
 	sc_test tiff_write_image
 
 BROKEN=difftool test_mriio mri_compute_stats \
