@@ -1,0 +1,269 @@
+The qdec2, orient_mri, and scuba2 apps follow a very similar design
+pattern. They are both VTK and KWWidgets based apps with similar class
+names. Therefore some of these docs are roughly applicable to
+those apps, and some of their docs are applicable here.
+
+All the vtkKW*.h code here are KW subclasses and so are wrapped to
+produce vtkKW*Tcl.cxx code as per normal KWWidgets
+functionality. However, since we're not using CMake, this isn't done
+automatically for us, so we have a few explicit lines in the
+Makefile.am that does this for us. First, we always require the
+vtkKW*Tcl.cxx code along with the vtkKW*.{cxx,h} code:
+
+qdec_SOURCES= \
+...
+	vtkKWQdecApp.cxx vtkKWQdecApp.h vtkKWQdecAppTcl.cxx \
+...
+
+Then there's a target for that Tcl code:
+
+vtkKWQdecAppTcl.cxx: vtkKWQdecApp.h
+	${VTK_DIR}/bin/vtkWrapTcl vtkKWQdecApp.h \
+	${VTK_LIB_VTK}/hints 1 vtkKWQdecAppTcl.cxx
+
+This will run the wrapping program on the header file and generate the
+Tcl file.
+
+Then you must compile a library that contains all this Tcl
+code. Again, CMake does this for us, but we have to do it
+manually. This line is in the Makefile.am:
+
+QdecLibInit.cxx: QdecLibInit.data
+	${VTK_DIR}/bin/vtkWrapTclInit QdecLibInit.data QdecLibInit.cxx
+
+It just looks for QdecLibInit.data and runs a utility on it. The .data
+file is the name of the library and a list of the classes that should
+be wrapped and included in the library:
+
+QdecLib
+vtkKWQdecApp
+...
+
+All this together will generate QdecLibInit.o.
+
+QdecMain.cxx is the main function and does some library
+initialization. The Tcl code for a KW project is compiled into a
+library and we must call its initialization function to use it. The
+function name is the name of the library in all lowercase with the
+first letter capped, and _SafeInit at the end:
+
+  extern int Qdeclib_SafeInit( Tcl_Interp* iInterp );
+
+We call this in the main function, and then we have access to our Tcl
+wrapped functions.
+
+Then the main function creates and instance of vtkKWQdecApp and starts
+it.
+
+The vtkKWQdecApp function does command line parsing in its Start()
+function, using the vtksys::CommandLineArguments object. It also
+creates the main window and does some other initialization in its
+ctor. It looks for option names and tells the window to load the file
+names it finds.
+
+The vtkKWQdecWindow creates and handles a lot of the UI elements and
+loads and manages (and owns) all the data. It also has the data
+visualization settings. It generates the scalar data that the View
+displays. It is probably a little heavy in this regard, and the View
+is a little too dumb, but it's not too unwieldly. It also interacts
+with the QdecProject class, which is a bunch of code that interfaces
+with the data and process of actually running mri_glmfit. (If you have
+questions about that stuff, though, talk to Nick.)
+
+The Window's main UI is the main user interface panel. (If this
+terminology is not clear, check out the documentation for
+vtkKWWindow.) This is a tabbed notebook with pages for Subjects,
+Design, and Display. The idea is that first you load in a data table
+and check it out in the Subjects panel. The view panel in this mode is
+a BLT graph that plots continuous factor data when one is selected in
+the menu. In the Design panel, you select the different factors and
+other glmfit paramters in the main panel, while the view panel is
+empty. Once an analysis has been done (or a project file loaded), the
+Display panel contains settings for the various data types loaded, and
+the view panel is a vtkKWQdecView.
+
+The vtkKWQdecView contains all teh VTK pipeline objects for displaying
+stuff and has a bunch of Set* functions which the Window uses to set
+dat types in it, and it simply displays them. The visualization
+settings are handled in the Window so the View is relatively state
+free, except for knowing what data it's currently displaying.
+
+The View does have its own ViewInteractor which is a subclass of
+vtkInteractorStyleTrackballCamera. This means its default behavior is
+to move the camera around in the view, but it overrides some things to
+provide the line drawing and selection functionality.
+
+Here's the list of TODO items and how they might be implemented.
+
+- In Design panel, put mri_glmfit shell output in the view frame.
+
+The main thing would be to put a new object in the view frame when the
+Design panel is raised. This is done already with the Subjects panel
+(packs in the mGraph object) and the Display panel (packs in the
+mGraph object), so check how that is done. You'd probably just use a
+vtkKWTextWithScrollbars.
+
+As far as how to get the output and put it in the
+vtkKWTextWithScrollbars, I'm not really sure. I don't know if the
+system() command can reroute stdout and stderr somewhere else, but
+that would be my first try. If not that, perhaps you can just run
+mri_glmfit normally but pipe it into a file, and continually check the
+file for new contents and display the contents in the text widget.
+
+- In Display panel, be able to load alternate annotations and allow
+  them to be selected.
+
+Right now, the Window only holds one annotation (maAnnotationIndicies
+that maps vnos to table index values, and maAnnotationTable on which
+you can use the table indecies). Look at how Window handles multiple
+surfaces (by having a map of strings and surface sources) and multiple
+scalar arrays (by having a map of ints and scalars) and do something
+like that. There is also code for displaying the radio buttons for
+different surface sources in UpdateDisplayPage, or you could go the
+table route as is done with the scalars.
+
+- In Display panel, load and display gamma.mgh. Add a control to "View
+  signfigance of gamma" for a contrast, and mask the gamma to the
+  contraste values over the current threshold.
+
+Most of the work for this would be done in
+ComposeSurfaceScalarsAndShow. You would load in the gamma as a scalar
+array and if the "View signifigance" flag was on, you would modify
+what value was written to composedScalars based on the value the
+surfaceScalars; if over the threshold, write the value in the
+gammaScalars, otherwise write 0.
+
+- In Subject panel, put labels on the graph.
+
+The graph in the Subject view is done with vtkKWBltGraph. This is a
+new object that is meant to wrap the Blt graph object in a KW
+widget. Note that the fsgdfPlot.tcl code uses a Blt graph, so there's
+a lot of sample code there. So you could just incrementally add new
+functionality to the vtkKWBltGraph using the fsgdfPlot.tcl graph code
+as a source.
+
+- In Subject panel, allow the graph contents to be saved to a TIFF.
+
+I don't know if you could do TIFF, but you could definitely save it as
+a Postscript, making a new function and vtkKWBltGraph based on the
+FsgdfPlot_SaveToPostscript code in fsgdfPlot.tcl.
+
+- In Subject panel, allow the user to zoom in on the graph contents.
+
+Same thing; add new functionality to vtkKWBltGraph to do more stuff to
+the Blt object.
+
+- In Design panel, have a live search text field to find measures.
+
+Add a vtkKWEntry and call SetCommandTriggerToAnyChange on it so you
+get the callback every time the user types in it (instead of just
+pressing Enter in it), and make the callback call
+UpdateSubjectsPage. In UpdateSubjectsPage(), where it fills in
+mListPlotDiscreteFactors, only Append() the item if it contains the
+value of the field. Do the same for mListPlotContinuousFactors with a
+second field.
+
+- In Design panel, have explicit "None" option.
+
+This is really bad design and I recommend against it. The problem is
+that right now you can select 0, 1, or 2 items from the list box. With
+a None item, what would it mean if you selected None and some other
+item at the same time? Or would you make it so that if None were
+selected, you couldn't select a second item? If anything, I would put
+an extra button under the list box that said "Clear selections" that
+would unselect everything in the list box.
+
+- Have a way to display the contrast matrix.
+
+Easy enough, just add a new little text widget to the design panel, or
+have a button that pops up a window or something.
+
+- Option to take a screen shot with the color bar.
+
+In vtkKWQdecWindow::SaveTIFFImage, it turns off the legend and
+annotation if there is any magnification factor before taking the
+screen shot. Just add another option in the dialog box in
+SaveTIFFImageFromDlog to leave this on, and make it a parameter to
+SaveTIFFImage.
+
+- Change the Display pane viewing area into a split pane. Move the
+  plotting window into the bottom frame, so you can see it at the same
+  time as the surface.
+
+This involves a few things. First, instead of having the fsgdf plot in
+a separate window that's managed by tcl/tk, which is what is done by
+using the fsgdfPlot.tcl code, it should be all done in vtkKWBltGraph,
+which is a normal KW widget. To get that far, you'd have to add all
+the functionality in fgsdfPlot.tcl into vtkKWBltGraph. It wouldn't be
+hard, but it's a bit of work. However, it'd be really useful in the
+long run, I think, as the Blt graphing code is pretty nice. Just make
+sure that the vtkKWBltGraph is purely general, with maybe a subclass
+like vtkKWFsgdfPlot that does specific fsgdf stuff.
+
+Next, you'd make the view panel when the Display tab was active a
+vtkKWSplitFrame, and then put the vtkKWQdecView in one frame and the
+vtkKWFsgdfPlot in the other. This would be pretty easy actually, as
+the vtkKWQdecView wouldn't even now the difference. You'd just have to
+make sure the Window arranges everything correctly, and the View would
+have to have a way of communicating to the FsgdfPlot; currently the
+Window responds to UserSelectedVertex events, which the View
+generates, so the window could just pass a call to the vtkKWFsgdfPlot
+when that happens.
+
+- Be able to save analyzed data to a different directory, and load in
+  analyzed data from a directory.
+
+This is pretty much done with the .qdec project file stuff, but I
+think the default should be to set the working dir to /tmp, and no
+longer put anything in subjects/qdec, so that the only way of saving
+your data is to save a project file. Right now, if you load a data
+table and run an analysis, you'll have results in subjects/qdec, then
+if you save a project file, you have that too. That's duplication of
+data and confusing. Just make the user save a project file.
+
+- Have a method to categorize measurement names. This could be done by
+  using a naming scheme where categories are divided by a string
+  token, e.g. Category|Name. The user would be able to hide or show
+  all measures in a category in order to simplify the measurement
+  lists.
+
+You'd have to coordinate with Doug on this one. Basically you'd have
+factor names in the above mentioned format, and then Qdec would parse
+them out to arrange them into a heirarchy. I think the vtkKWTree
+object will implement a list with categories and items, so you could
+use that.
+
+- Allow the user to mark a measurement as a nuisance variable in the
+  Design panel. In the Display panel, this would prevent any contrast
+  question containing the text of that variable from showing up in the
+  list.
+
+I don't really know what this means.
+
+- Get rid of the Subjects and Design panels. Instead, use a Wizard
+  interface to load a table, check subjects, set the average subject
+  name, choose measures, and specify other options. This will let use
+  have more room for GUI elements, as well as potentially have some
+  context-sensitive help by dividing the steps into their own pages
+  and havign a "Help" button for each page.
+
+This is a long term thing, but I think it's no longer really good to
+have the Subjects and Design panels the way they are. If you think
+about the flow of user interaction in Qdec, the user can either start
+with a data table and go through the process to create an analysis and
+get data that way, or just load data. You shouldn't have a UI for
+Subjects and Design if they are just going to load data. So you can
+separate the UI for that stuff into a Wizard. You'd also have a lot
+more room instead of the cramped 325 pixels on the left of the window.
+
+There is a KW framework for Wizards, but it's really nothing more than
+just a succession of frames with left/right arrows, which would be
+great. The first page would be a prompt to load a table. Then the next
+page would be the contents of the Subjects panel as it stands now, so
+you can check your factors and exclude subjects if you want. The third
+frame would be the parameters for the analysis. The fourth page would
+be the log of the mris_glmfit output. Then it would load your data for
+you. The only UI you'd see on the main view would be the contents of
+the Display page, which would always be visible, and the view frame
+would contain the split frame containing the vtkKWQdecView and the
+vtkKWFsgdfPlot.
