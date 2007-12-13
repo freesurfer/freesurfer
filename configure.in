@@ -1287,6 +1287,7 @@ AM_CONDITIONAL(ENABLE_QT_APPS, test ! "x$ac_qt_libraries" = "xNO")
 AC_SUBST(QT_CFLAGS)
 AC_SUBST(QT_LIBS)
 
+
 #################################################################
 # If on a Mac, make scuba and qdec, bundles (Qt apps)
 SCUBA_BUNDLE_TARGET=""
@@ -2428,7 +2429,9 @@ AC_OUTPUT([Makefile
            nmovie/Makefile
            optseq2/Makefile
            orient_mri/Makefile
-           qdec2/Makefile
+           qdec/Makefile
+           qdec_glmfit/Makefile
+           qdecproject/Makefile
            rbftest/Makefile
            regdat2xfm/Makefile
            repair_siemens_file/Makefile

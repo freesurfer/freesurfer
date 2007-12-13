@@ -16,7 +16,7 @@ GLSUBDIRS=mris2rgb \
 	tksurfer \
 	mri_probedicom \
 	orient_mri \
-	qdec2
+	qdec
 
 MRISUBDIRS=check_siemens_dir \
 	repair_siemens_file \
@@ -266,6 +266,7 @@ SUBDIRS=include \
 	itkio \
 	itkutils \
 	tetgen \
+	qdecproject \
 	$(FSGDF) \
 	$(MRISUBDIRS) \
 	$(MRISSUBDIRS) \
@@ -277,7 +278,8 @@ SUBDIRS=include \
 	fsfast \
 	matlab \
 	scuba \
-	scuba2
+	scuba2 \
+	qdec_glmfit
 
 # build stamp and symlinks to necessary 3rd-party packages
 install-data-hook:
