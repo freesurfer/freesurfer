@@ -15,7 +15,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.1 2007/12/04 04:02:20 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.2 2007/12/13 22:54:03 greve Exp $';
 
 set subject = ();
 set ipsi = ();
@@ -25,7 +25,7 @@ set UseNoNeg = 0
 set NoRandomness = 1;
 set RngSeed = 1234
 set PrintHelp = 0;
-set tmpdir = ();
+set outdir = ();
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
 set AvgCurvTifPath = "$FREESURFER_HOME/average"
@@ -62,10 +62,10 @@ pwd | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR "| tee -a $LF
 
 
-if($#tmpdir == 0) set tmpdir = $SUBJECTS_DIR/$subject/xhemireg.$ipsi.tmp.$$
-echo "tmpdir is $tmpdir" | tee -a $LF
-mkdir -p $tmpdir/mri
-mkdir -p $tmpdir/surf
+if($#outdir == 0) set outdir = $SUBJECTS_DIR/$subject/xhemireg.$ipsi
+echo "outdir is $outdir" | tee -a $LF
+mkdir -p $outdir/mri
+mkdir -p $outdir/surf
 
 cd $SUBJECTS_DIR/$subject
 pwd | tee -a $LF
@@ -74,7 +74,7 @@ pwd | tee -a $LF
 echo "" | tee -a $LF
 echo "" | tee -a $LF
 date | tee -a $LF
-set cmd = (mri_convert mri/orig.mgz $tmpdir/mri/orig.mgz --left-right-reverse)
+set cmd = (mri_convert mri/orig.mgz $outdir/mri/orig.mgz --left-right-reverse)
 echo $cmd  | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
@@ -83,9 +83,9 @@ if($status) exit 1;
 echo ""| tee -a $LF
 echo ""| tee -a $LF
 date| tee -a $LF
-set reg = $tmpdir/lrrev.register.dat
+set reg = $outdir/lrrev.register.dat
 set cmd = (tkregister2_cmdl --targ mri/orig.mgz \
-         --mov $tmpdir/mri/orig.mgz \
+         --mov $outdir/mri/orig.mgz \
          --reg $reg --regheader --noedit)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
@@ -99,7 +99,7 @@ foreach surf (orig white pial smoothwm inflated sphere)
   echo "" | tee -a $LF
   date | tee -a $LF
   set cmd = (mri_surf2surf --s $subject --sval-xyz $surf \
-   --hemi $ipsi --tval-xyz --tval $tmpdir/surf/$contra.$surf \
+   --hemi $ipsi --tval-xyz --tval $outdir/surf/$contra.$surf \
    --reg $reg)
   echo $cmd  | tee -a $LF
   $cmd | tee -a $LF
@@ -113,7 +113,7 @@ foreach ov (area area.pial curv curv.pial avg_curv \
   echo "" | tee -a $LF
   echo "" | tee -a $LF
   date | tee -a $LF
-  set cmd = (cp surf/$ipsi.$ov $tmpdir/surf/$contra.$ov)
+  set cmd = (cp surf/$ipsi.$ov $outdir/surf/$contra.$ov)
   echo $cmd  | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1;
@@ -126,17 +126,15 @@ date | tee -a $LF
 set AvgTif = ${AvgCurvTifPath}/$contra.${AvgCurvTif}
 set cmd = (mris_register -curv)
 if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
-set cmd = ($cmd $tmpdir/surf/$contra.sphere $AvgTif $tmpdir/surf/$contra.sphere.reg)
+set cmd = ($cmd $outdir/surf/$contra.sphere $AvgTif $outdir/surf/$contra.sphere.reg)
 echo $cmd  | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
 
 #--------------------------------------------------------------
-cp $tmpdir/surf/$contra.sphere.reg surf/$ipsi.$contra.xhemi.reg |& tee -a $LF
+cp $outdir/surf/$contra.sphere.reg surf/$ipsi.$contra.xhemi.reg |& tee -a $LF
 if($status) exit 1;
 
-#--------------------------------------------------------------
-# Should cleanup here
 
 #--------------------------------------------------------------
 echo "" | tee -a $LF
@@ -180,14 +178,9 @@ while( $#argv != 0 )
       set surfreg = $argv[1]; shift;
       breaksw
 
-    case "--tmp":
+    case "--o":
       if ( $#argv < 1) goto arg1err;
-      set tmpdir = $argv[1]; shift;
-      set cleanup = 0;
-      breaksw
-
-    case "--nocleanup":
-      set cleanup = 0;
+      set outdir = $argv[1]; shift;
       breaksw
 
     case "--debug":
@@ -251,8 +244,7 @@ usage_exit:
   echo "   --rh : map from right to left"
   echo "   --reg surfreg : output will be ipsi.contra.surfreg (def xhemi.reg)"
   echo ""
-  echo "   --tmp tmpdir  : temporary dir (implies --nocleanup)"
-  echo "   --nocleanup  : do not delete temporary files"
+  echo "   --o outdir  : output dir (subject/xhemireg.hemi by def)"
   echo "   --version : print version and exit"
   echo "   --help    : print help and exit"
   echo ""
