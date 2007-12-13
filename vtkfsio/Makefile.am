@@ -24,7 +24,11 @@ am_libvtkfsio_a_OBJECTS=$(libvtkfsio_a_SOURCES:%.cxx=%.o)
 
 EXTRA_DIST=$(wildcard *.h)
 
+if ENABLE_KWWIDGETS_APPS
 check_PROGRAMS = vtkFSSurfaceWriterTester
+else
+check_PROGRAMS =
+endif
 
 vtkFSSurfaceWriterTester_SOURCES=vtkFSSurfaceWriterTester.cxx
 

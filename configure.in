@@ -227,13 +227,18 @@ AC_CHECK_FUNCS([\
 # the talairach_avi/Makefile.am file uses LIB_G2C_A
 LIB_G2C_A=""
 if test -e /usr/local/lib/libg2c.a ; then
-   LIB_G2C_A="/usr/local/lib/libg2c.a"
+  LIB_G2C_A="/usr/local/lib/libg2c.a"
 fi
 if test -e /usr/lib/libg2c.a ; then
-   LIB_G2C_A="/usr/lib/libg2c.a"
+  LIB_G2C_A="/usr/lib/libg2c.a"
 fi
 if test -e /usr/lib64/libg2c.a ; then
-   LIB_G2C_A="/usr/lib64/libg2c.a"
+  LIB_G2C_A="/usr/lib64/libg2c.a"
+fi
+if test "$host" = "powerpc64-suse-linux"; then
+  if test -e /usr/lib/libg2c.a ; then
+    LIB_G2C_A="/usr/lib/libg2c.a"
+  fi
 fi
 AC_SUBST(LIB_G2C_A)
 
@@ -394,6 +399,15 @@ case "${target}" in
  SHARED_LDFLAGS="-shared "
  CPPFLAGS="-g -O2 $NSALIASING $WALL $WERROR $LFS_CFLAGS"
  ;;
+ powerpc64-suse-linux)
+ OS=Linux
+ OS_CPPFLAGS="$DEADCODE_STRIP"
+ OS_LDFLAGS="$DEADCODE_STRIP"
+ DYNAMIC_LIB_EXT=".so"
+ SHARED_CFLAGS="-fPIC "
+ SHARED_LDFLAGS="-shared "
+ CPPFLAGS="-g -O2 $NSALIASING $WALL $WERROR $LFS_CFLAGS"
+ ;;
 esac
 AC_SUBST(OS)
 AC_SUBST(OS_CPPFLAGS)
@@ -498,7 +512,7 @@ if test "$CPUTYPE" = "NO"; then
       esac
       ;;
     powerpc64-*)
-      CPUTYPE=power4
+      CPUTYPE=powerpc64
       ;;
     ia64-*)
       CPUTYPE=itanium
@@ -552,6 +566,9 @@ case "$CPUTYPE" in
      ;;
   power5)
      CPUFLAGS="-mtune=power5 -mcpu=power5"
+     ;;
+  powerpc64)
+     CPUFLAGS="-mpowerpc64 -m32"
      ;;
   intel-mac)
      CPUFLAGS="-fast"

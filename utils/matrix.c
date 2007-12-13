@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/10/26 18:56:32 $
- *    $Revision: 1.110.2.1 $
+ *    $Date: 2007/12/13 02:52:21 $
+ *    $Revision: 1.110.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -349,11 +349,14 @@ MatrixFree(MATRIX **pmat)
 {
   MATRIX *mat ;
 
+  if (!pmat)
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MatrixFree: NULL pmat POINTER!\n"));
+
   mat = *pmat ;
   *pmat = NULL;
 
   if (!mat)
-    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MatrixFree: NULL POINTER!\n"));
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MatrixFree: NULL mat POINTER!\n"));
 
   /* silly numerical recipes in C requires 1-based stuff */
   mat->data -= 2 ;

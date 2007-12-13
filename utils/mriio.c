@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/11/13 04:51:09 $
- *    $Revision: 1.335.2.4 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/13 02:52:23 $
+ *    $Revision: 1.335.2.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -6236,7 +6236,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
         T->rptr[3][4] =  mri->ysize*(mri->height/2.0);
         T->rptr[4][4] = 1.;
       }
-      if (hdr->hist.orient == -1)
+      if (hdr->hist.orient == (char)-1)
       {
         /* Unknown, so assume: x = -r, y = -a, z = s */
         // This is incompatible with mghRead() when rasgood=0.
