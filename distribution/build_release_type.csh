@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.105 2007/11/20 16:16:10 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.106 2007/12/13 19:23:41 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -182,7 +182,15 @@ echo "##########################################################" >>& $OUTPUTF
 echo "Settings" >>& $OUTPUTF
 echo "PLATFORM $PLATFORM" >>& $OUTPUTF
 echo "HOSTNAME $HOSTNAME" >>& $OUTPUTF
-echo "gcc      `gcc --version | grep gcc`" >>& $OUTPUTF
+if ($?CC) then
+  if ("$CC" == "icc") then
+    echo "icc      `icc --version | grep icc`" >>& $OUTPUTF
+  else
+    echo "gcc      `gcc --version | grep gcc`" >>& $OUTPUTF
+  endif
+else
+  echo "gcc      `gcc --version | grep gcc`" >>& $OUTPUTF
+endif
 echo "BUILD_DIR $BUILD_DIR" >>& $OUTPUTF
 echo "SCRIPT_DIR $SCRIPT_DIR" >>& $OUTPUTF
 echo "LOG_DIR $LOG_DIR" >>& $OUTPUTF
@@ -215,6 +223,16 @@ if (-e ${DEVOLD}) then
   echo "CMD: rm -Rf ${DEVOLD}" >>& $OUTPUTF
   rm -rf ${DEVOLD} >>& $OUTPUTF
 endif
+
+
+#
+# make distclean
+######################################################################
+#
+echo "##########################################################" >>& $OUTPUTF
+echo "" >>& $OUTPUTF
+echo "CMD: make distclean" >>& $OUTPUTF
+if (-e Makefile) make distclean >>& $OUTPUTF
 
 
 #
@@ -318,14 +336,11 @@ rm -f $CVSUPDATEF
 
 
 #
-# make distclean and configure
+# configure
 ######################################################################
 #
 echo "##########################################################" >>& $OUTPUTF
-echo "Freshening Makefiles" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
-echo "CMD: make distclean" >>& $OUTPUTF
-if (-e Makefile) make distclean >>& $OUTPUTF
 echo "CMD: rm -rf autom4te.cache" >>& $OUTPUTF
 if (-e autom4te.cache) rm -rf autom4te.cache >>& $OUTPUTF
 echo "CMD: libtoolize --force" >>& $OUTPUTF
@@ -412,6 +427,16 @@ if ($status != 0) then
   chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
   exit 1
 endif
+
+
+#
+# make clean
+######################################################################
+#
+echo "##########################################################" >>& $OUTPUTF
+echo "" >>& $OUTPUTF
+echo "CMD: make clean" >>& $OUTPUTF
+if (-e Makefile) make clean >>& $OUTPUTF
 
 
 #
