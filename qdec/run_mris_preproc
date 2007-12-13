@@ -1,0 +1,136 @@
+#! /bin/tcsh -ef
+
+#
+# Script to create a cache of the preprocessed files needed by qdec.
+# Should be run on a cluster, like seychelles, as it spawns *lots* of jobs
+#
+
+#set echo=1
+
+if ( "x$1" == "x--help" ) then
+    echo "Usage:\n"
+    echo "  run_mris_preproc <qdec.table.dat> [target average]"
+    echo ""
+    echo "where:"
+    echo "  <qdec.table.dat>   is the text file of subject data used by qdec"
+    echo "  [target averag]    optional: specify a target average, where the"
+    echo "                     default is fsaverage\n"
+    echo "This utility will create the pre-smoothed surface data on a target" 
+    echo "average subject needed by the Qdec application.  If the current"
+    echo "machine is not the cluster machine 'seychelles', then just the"
+    echo "commands that need to be executed will be printed."
+    echo ""
+    exit 1
+endif
+
+if ( "x$1" == "x" ) then
+    echo "Must specify a qdec.table.dat file as the input argument."
+    exit 1
+endif
+if ( ! -e $1 ) then
+    echo "File $1 does not exist."
+    exit 1
+endif
+
+if ( "x$2" != "x" ) then
+    set target=($2)
+else
+    # default target
+    set target=fsaverage
+endif
+
+# now form a list of subjects, taken from the qdec.table.dat file
+unsetenv SUBJECTS
+set SUBJECTS=`grep -v fsid $1 | awk '{print $1}'`
+
+if ( ! -e $SUBJECTS_DIR) then
+    echo "The SUBJECTS_DIR '$SUBJECTS_DIR' does not exist!"
+    exit 1
+endif
+
+set cmd=(cd $SUBJECTS_DIR)
+echo "$cmd"
+$cmd
+
+foreach s ( ${SUBJECTS} ${target} )
+    if ( ! -e $s) then
+        echo "Subject '$s' does not exist in $SUBJECTS_DIR"
+        exit 1
+    endif
+end
+
+#echo $SUBJECTS
+#echo $SUBJECTS_DIR
+
+set cmd=(mkdir -p mris_preproc.tmp)
+echo "$cmd"
+$cmd
+set cmd=(cd mris_preproc.tmp)
+echo "$cmd"
+$cmd
+set WD=$PWD
+
+#set pbs_flags="-f -m $USER"    <-- too many emails if this is used!
+set pbs_flags=
+
+set count=0
+
+if ("$HOST" != "seychelles") then
+    echo "\nINFO:"
+    echo "You are not using the cluster machine 'seychelles', so you must"
+    echo "run the command-list contained in the file named:"
+    echo "   mris_preproc.tmp/cmds"
+    echo "being produced right now. This file can take several minutes to "
+    echo "produce if there are many subjects.  Stand by..."
+    rm -f cmds
+endif
+
+foreach subj ( $SUBJECTS )
+
+    foreach hemi ( rh lh )
+
+        foreach measure ( thickness curv sulc area jacobian_white )
+
+            foreach fwhm ( 0 5 10 15 20 25 )
+
+            set CacheOutFile=(${measure}.fwhm${fwhm}.${target})
+            set cmdf=(${WD}/${hemi}.${CacheOutFile}.cmd)
+            set cmd=(mris_preproc \
+                --s $subj \
+                --hemi $hemi \
+                --meas $measure \
+                --fwhm $fwhm \
+                --target $target \
+                --cache-out ${CacheOutFile}.mgh \
+                --out mris_preproc.${hemi}.${CacheOutFile}.mgh \
+                --log mris_preproc.${hemi}.${CacheOutFile}.log)
+            echo "${cmd}" > ${cmdf}
+            chmod a+x ${cmdf}
+            if ("$HOST" == "seychelles") then
+                pbsubmit ${pbs_flags} -c "${cmdf}"
+            else
+                cat ${cmdf} >> cmds
+                chmod a+x cmds
+            endif
+            @ count = ($count + 1)
+            
+            end
+            
+        end
+        
+    end
+    
+end
+
+if ("$HOST" == "seychelles") then
+  echo "\n"
+  echo "Note: the directory '$WD'"
+  echo "can be deleted once all jobs are finished."
+  echo "You will receive a total of $count emails, indicating"
+  echo "job start and end."
+else
+  echo "\n"
+  echo "A total of $count commands were written to mris_preproc.tmp/cmds"
+  echo "for you to execute as you see fit.  The total set of commands in"
+  echo "that file can take several hours to complete on a single CPU machine."
+endif
