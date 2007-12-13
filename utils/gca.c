@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/12/04 01:49:25 $
- *    $Revision: 1.238 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/13 02:48:23 $
+ *    $Revision: 1.239 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -5273,6 +5273,9 @@ GCAfindStableSamples(GCA *gca,
   /* compute the max priors and min variances for each class */
   for (nzeros = nfound = x = 0 ; x < width ; x += prior_stride)
   {
+    fflush(stdout);//nicknote: this prevents a segfault on Linux PowerPC
+                   //when -O2 optimization is used w/ gcc 3.3.3
+
     xi = nint(x) ;
     for (y = 0 ; y < height ; y += prior_stride)
     {

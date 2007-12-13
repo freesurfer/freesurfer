@@ -9,9 +9,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/10/17 20:15:35 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2007/12/13 02:48:23 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -155,7 +155,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_register_to_volume.c,v 1.5 2007/10/17 20:15:35 fischl Exp $";
+static char vcid[] = "$Id: mris_register_to_volume.c,v 1.6 2007/12/13 02:48:23 nicks Exp $";
 char *Progname = NULL;
 
 static int debug = 0, gdiagno = -1;
@@ -247,12 +247,12 @@ main(int argc, char **argv)
 #endif
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mris_register_to_volume.c,v 1.5 2007/10/17 20:15:35 fischl Exp $",
+                          "$Id: mris_register_to_volume.c,v 1.6 2007/12/13 02:48:23 nicks Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mris_register_to_volume.c,v 1.5 2007/10/17 20:15:35 fischl Exp $",
+                                "$Id: mris_register_to_volume.c,v 1.6 2007/12/13 02:48:23 nicks Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -961,9 +961,9 @@ int Min1D(MRI *mri_reg, MRI_SURFACE *mris, MATRIX *R, double *p,
 static double
 mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX *m, int skip, double scale, int diag)
 {
-  double    similarity, grad, grad_var, grad_mean, xv, yv, zv, nx, ny, nz, 
+  double    similarity, grad, grad_var=0.0, grad_mean=0.0, xv, yv, zv, nx, ny, nz, 
             mag, gm_mean, wm_mean, sample_dist ;
-  int       vno, num, num_in_fov = 0 ;
+  int       vno, num=0, num_in_fov = 0 ;
   VERTEX    *v ;
   static VECTOR *v1 = NULL, *v2 = NULL ;
   VERTEX    *vn ;
@@ -1074,7 +1074,7 @@ mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MA
 static double
 mrisRegistrationGradientSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX *m, int skip, double scale, int diag)
 {
-  double    similarity, grad, grad_var, grad_mean, xv, yv, zv, nx, ny, nz, 
+  double    similarity, grad, grad_var=0.0, grad_mean, xv, yv, zv, nx, ny, nz, 
             mag, gm_mean, wm_mean, sample_dist ;
   int       vno, num, num_in_fov = 0 ;
   VERTEX    *v ;
