@@ -1,5 +1,5 @@
 #
-# $Id: ASegStatsLUT.txt,v 1.2 2007/01/09 18:19:20 nicks Exp $
+# $Id: ASegStatsLUT.txt,v 1.3 2007/12/14 23:11:12 nicks Exp $
 #
 # This is a subset of the labels found in FreeSurferColorLUT.txt.
 # This is the set that will be reported in the stats/aseg.stats file.
@@ -41,6 +41,7 @@
  58  Right-Accumbens-area                  255  165    0    0
  60  Right-VentralDC                       165   42   42    0
  62  Right-vessel                          160   32  240    0
+ 63  Right-choroid-plexus                    0   200 221 0
  72  5th-Ventricle                         120  190  150    0
  77  WM-hypointensities                    200   70  255    0
  78  Left-WM-hypointensities               255  148   10    0
