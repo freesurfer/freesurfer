@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/06 00:01:14 $
-#    $Revision: 1.7 $
+#    $Author: greve $
+#    $Date: 2007/12/14 22:26:27 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mksurfatlas,v 1.7 2007/01/06 00:01:14 nicks Exp $';
+set VERSION = '$Id: mksurfatlas,v 1.8 2007/12/14 22:26:27 greve Exp $';
 
 set atlas = ();
 set target = ();
@@ -65,8 +65,9 @@ check_params_return:
 
 if(-e $atlas && $force) rm -f $atlas
 
+set nsmooth = 10
 set cmd = (mris_make_template -norot -annot aparc \
-            -overlay $surfval 10 -overlay-dir $surfvaldir \
+            -overlay $surfval $nsmooth -overlay-dir $surfvaldir \
             $hemi $regsurf $subjects $atlas)
 echo $cmd
 $cmd
@@ -264,13 +265,15 @@ like:
 3. Create an initial registration surface based on this atlas,
 
    foreach subject (subject1 subject2 ...)
+     cd $SUBJECTS_DIR/$subject/surf
      mris_register -dist 0 -para 0 -annot aparc -remove_negative 1 -w 0 \
        -overlay func.mgh 10 -overlay-dir func \
         $SUBJECTS_DIR/$subject/surf/$hemi.sphere \
        lh.func.atlas.init.tif $SUBJECTS_DIR/$subject/surf/$hemi.funcreg.init
    end
 
-   This will create $hemi.funcreg.init.
+   This will create $hemi.funcreg.init. Note: 10 is the number of smoothing 
+   steps.
 
 4. Create final atlas based on all subjects (similar to step 2)
 
@@ -280,6 +283,7 @@ like:
 5. Create a final registration surface based on final atlas,
 
    foreach subject (subject1 subject2 ...)
+     cd $SUBJECTS_DIR/$subject/surf
      mris_register -dist 0 -para 0 -annot aparc -remove_negative 1 -w 0 \
        -overlay func.mgh 10 -overlay-dir func \
        $SUBJECTS_DIR/$subject/surf/$hemi.sphere \
