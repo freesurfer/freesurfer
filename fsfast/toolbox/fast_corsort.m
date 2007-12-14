@@ -1,5 +1,5 @@
-function [csort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
-% [csort rhosort zrhoabs] = fast_corsort(rho,Nps)
+function [csort isort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
+% [csort isort rhosort zrhoabs] = fast_corsort(rho,Nps)
 % rho is an NxN correlation matrix
 % Nps is a list of number of inputs for each subject
 %   sum(Nps) must equal N (the size of rho)
@@ -13,6 +13,9 @@ function [csort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
 %   subject component that belongs to that coherent component.
 %   Each row will have all the subjects; each col must not have
 %   any repeats.
+% isort is like csort except that it gives the index of the component
+%   into the full matrix instead of relative to the start of the 
+%   subject (this can be very convenient)
 % rhosort - correlation values corresponding to the components
 % spair - Nmin by Ns. The value is the subject that the column
 %   subject was paired with.
@@ -23,7 +26,7 @@ function [csort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
 %   yn = fast_fnorm(y,2,1); % Normalize across space
 %   rho = yn*yn'; % Cor Coeff across component
 %
-% $Id: fast_corsort.m,v 1.2 2007/12/14 20:11:19 greve Exp $
+% $Id: fast_corsort.m,v 1.3 2007/12/14 21:10:40 greve Exp $
 
 %
 % fast_corsort.m
@@ -31,8 +34,8 @@ function [csort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/12/14 20:11:19 $
-%    $Revision: 1.2 $
+%    $Date: 2007/12/14 21:10:40 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -53,9 +56,12 @@ zrhoabs = [];
 spair   = [];
 
 if(nargin ~= 2)
-  fprintf('[csort rhosort zrhoabs] = fast_corsort(rho,Nps)\n');
+  fprintf('[csort isort rhosort spair zrhoabs] = fast_corsort(rho,Nps)\n');
   return;
 end
+
+% Make sure it is a row vector
+Nps = Nps(:)';
 
 % Sort over absolute
 rhoabs = abs(rho);
@@ -103,7 +109,11 @@ zrhoabs = rhoabs; % keep a copy
 csort  = zeros(Nmax,Ns);
 rhosort = zeros(Nmax,Ns);
 rhoabsR = rhoabs;
+tic;
 for nthcomp = 1:Nmax
+  fprintf('%4d/%4d  %g\n',nthcomp,Nmax,toc);
+
+  % Initialize
   rhoabs = rhoabsR;
 
   % Loop over subjects
@@ -173,5 +183,6 @@ for nthcomp = 1:Nmax
   
 end
 
+isort = csort + repmat(i1,[Nmax 1]) - 1;
 
 
