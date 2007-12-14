@@ -1,4 +1,4 @@
-function [csort isort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
+function [csort isort ksort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
 % [csort isort rhosort zrhoabs] = fast_corsort(rho,Nps)
 % rho is an NxN correlation matrix
 % Nps is a list of number of inputs for each subject
@@ -16,6 +16,7 @@ function [csort isort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
 % isort is like csort except that it gives the index of the component
 %   into the full matrix instead of relative to the start of the 
 %   subject (this can be very convenient)
+% ksort - sorting order rank (note: there will be two 1s)
 % rhosort - correlation values corresponding to the components
 % spair - Nmin by Ns. The value is the subject that the column
 %   subject was paired with.
@@ -26,7 +27,7 @@ function [csort isort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
 %   yn = fast_fnorm(y,2,1); % Normalize across space
 %   rho = yn*yn'; % Cor Coeff across component
 %
-% $Id: fast_corsort.m,v 1.3 2007/12/14 21:10:40 greve Exp $
+% $Id: fast_corsort.m,v 1.4 2007/12/14 23:21:58 greve Exp $
 
 %
 % fast_corsort.m
@@ -34,8 +35,8 @@ function [csort isort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/12/14 21:10:40 $
-%    $Revision: 1.3 $
+%    $Date: 2007/12/14 23:21:58 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -51,6 +52,8 @@ function [csort isort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
 %
 
 csort   = [];
+isort   = [];
+ksort   = [];
 rhosort = [];
 zrhoabs = [];
 spair   = [];
@@ -107,11 +110,13 @@ zrhoabs = rhoabs; % keep a copy
 
 % Start loop over coherent components
 csort  = zeros(Nmax,Ns);
+isort  = zeros(Nmax,Ns);
+ksort  = zeros(Nmax,Ns);
 rhosort = zeros(Nmax,Ns);
 rhoabsR = rhoabs;
 tic;
 for nthcomp = 1:Nmax
-  fprintf('%4d/%4d  %g\n',nthcomp,Nmax,toc);
+  %fprintf('%4d/%4d  %g\n',nthcomp,Nmax,toc);
 
   % Initialize
   rhoabs = rhoabsR;
@@ -132,22 +137,42 @@ for nthcomp = 1:Nmax
     cB = jmax - i1(sB) + 1;
 
     % Add them to the list
+    hit = 0;
     if(csort(nthcomp,sA) == 0)
       csort(nthcomp,sA) = cA;
       rhosort(nthcomp,sA) = rho(imax,jmax);
       spair(nthcomp,sA) = sB;
+      ksort(nthcomp,sA) = nth;
+      hit = 1;
     end
     if(csort(nthcomp,sB) == 0)
       csort(nthcomp,sB) = cB;
       rhosort(nthcomp,sB) = rho(imax,jmax);
       spair(nthcomp,sB) = sA;
+      ksort(nthcomp,sB) = nth;
+      hit = 1;
     end
 
-    % Eliminate the sA-sB block 
-    indA = find(slist == sA);
-    indB = find(slist == sB);
+    if(~hit)
+      % Should never happen
+      printf('ERROR: did not find a new subject\n');
+      fprintf('%3d %2d    %2d %2d    %2d %2d  %6.4f %d\n',...
+	      nthcomp,nth,sA,sB,cA,cB,rhomax,hit);
+      %csort = [];
+      %return;
+    end
+    
+    % Eliminate cross products of all subjects chosen
+    sclist = find(csort(nthcomp,:) ~= 0);
     z = zeros(size(rhoabs));
-    z(indA,indB) = 1;
+    for s1 = sclist
+      for s2 = sclist
+	if(s1 == s2) continue; end
+	ind1 = find(slist == s1);
+	ind2 = find(slist == s2);
+	z(ind1,ind2) = 1;
+      end
+    end
     ind = find(z);
     rhoabs(ind) = 0;
     
@@ -164,8 +189,8 @@ for nthcomp = 1:Nmax
     % Now eliminate now eliminate cross blocks of
     % subjects that are neither sA or sB
     if(nth == 1)
-      ind = find(slist ~= sA & slist ~= sB);
-      rhoabs(ind,ind) = 0;
+      indM = find(slist ~= sA & slist ~= sB);
+      rhoabs(indM,indM) = 0;
     end
 
     % Is there anything left?
