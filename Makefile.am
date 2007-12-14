@@ -289,7 +289,8 @@ SUBDIRS=include \
 	scuba2 \
 	qdec_glmfit
 
-# build stamp and symlinks to necessary 3rd-party packages
+# build stamp and symlinks to necessary 3rd-party packages.
+# in the case of FSL, just copy the 'flirt' utility to our bin
 install-data-hook:
 	echo "$(PACKAGE)-$(target_triplet)-$(VERSION)-`date +%Y%m%d`" \
 		> $(DESTDIR)$(prefix)/build-stamp.txt ;
@@ -302,11 +303,9 @@ install-data-hook:
 		fi; \
 	fi;
 	if test ! "x$(FSLDIR)" = "x" ; then \
-		if test ! "$(FSLDIR)" = "$(DESTDIR)$(prefix)/fsl" ; then \
-			if test -e $(FSLDIR) ; then \
-				rm -Rf $(DESTDIR)$(prefix)/fsl ; \
-				ln -s $(FSLDIR) $(DESTDIR)$(prefix)/fsl ; \
-			fi; \
+		if test -e $(FSLDIR) ; then \
+			cp -f $(FSLDIR)/bin/flirt $(DESTDIR)$(prefix)/bin/ ; \
+			rm -Rf $(DESTDIR)$(prefix)/fsl ; \
 		fi; \
 	fi;
 	if test ! "x$(TCL_DIR)" = "x" ; then \
