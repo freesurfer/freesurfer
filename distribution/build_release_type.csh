@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.106 2007/12/13 19:23:41 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.107 2007/12/14 00:27:06 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -231,6 +231,8 @@ endif
 #
 echo "##########################################################" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
+echo "CMD: cd $DEV_DIR" >>& $OUTPUTF
+cd ${DEV_DIR} >>& $OUTPUTF
 echo "CMD: make distclean" >>& $OUTPUTF
 if (-e Makefile) make distclean >>& $OUTPUTF
 
