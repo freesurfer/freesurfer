@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/12/12 18:40:20 $
-#    $Revision: 1.153 $
+#    $Author: greve $
+#    $Date: 2007/12/14 00:19:53 $
+#    $Revision: 1.154 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.153 2007/12/12 18:40:20 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.154 2007/12/14 00:19:53 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2561,6 +2561,14 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set subjid = $argv[1]; shift;
       set subjid = `basename $subjid`; # removes trailing /
+      breaksw
+
+    case "-sb":
+      # Hidden option: same as -s but no basename;
+      # needed when passing a subdir of a subject
+      # as a subject.
+      if( $#argv < 1) goto arg1err;
+      set subjid = $argv[1]; shift;
       breaksw
 
     case "-sd":
