@@ -294,11 +294,9 @@ install-data-hook:
 		fi; \
 	fi;
 	if test ! "x$(FSLDIR)" = "x" ; then \
-		if test ! "$(FSLDIR)" = "$(DESTDIR)$(prefix)/fsl" ; then \
-			if test -e $(FSLDIR) ; then \
-				rm -Rf $(DESTDIR)$(prefix)/fsl ; \
-				ln -s $(FSLDIR) $(DESTDIR)$(prefix)/fsl ; \
-			fi; \
+		if test -e $(FSLDIR) ; then \
+			cp -f $(FSLDIR)/bin/flirt $(DESTDIR)$(prefix)/bin/ ; \
+			rm -Rf $(DESTDIR)$(prefix)/fsl ; \
 		fi; \
 	fi;
 	if test ! "x$(TCL_DIR)" = "x" ; then \
