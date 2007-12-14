@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/14 20:34:09 $
-#    $Revision: 1.155 $
+#    $Date: 2007/12/14 22:05:09 $
+#    $Revision: 1.156 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.155 2007/12/14 20:34:09 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.156 2007/12/14 22:05:09 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1610,7 +1610,7 @@ if($DoFill) then
   if(-e transforms/talairach.lta) then
     set cmd = ($cmd  -xform transforms/talairach.lta)
   endif
-  if($UseAseg) set cmd = ($cmd -segmentation aseg.mgz);
+  if($UseAseg) set cmd = ($cmd -segmentation aseg.auto.mgz);
   if(! $UseOldTopoFix && ! $NoNormMGZ) set cmd = ($cmd -topofix norm.mgz);
   set cmd = ($cmd $xopts wm.mgz filled.mgz)
   $PWD |& tee -a $LF
