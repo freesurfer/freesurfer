@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/15 04:00:05 $
-#    $Revision: 1.7 $
+#    $Date: 2007/12/14 18:45:08 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_glmfit,v 1.7 2007/11/15 04:00:05 nicks Exp $'
+set VERSION='$Id: test_mri_glmfit,v 1.8 2007/12/14 18:45:08 nicks Exp $'
 
 umask 002
 
@@ -77,7 +77,7 @@ set THRESHOLD=0.00007
 if ( $?CC ) then
   if ( "x$CC" == "xicc" ) set THRESHOLD=0.005
 endif
-set TEST_FILES=( ar1.mgh beta.mgh mask.mgh rstd.mgh rvar.mgh )
+set TEST_FILES=( sar1.mgh beta.mgh mask.mgh rstd.mgh rvar.mgh )
 foreach tstvol ($TEST_FILES)
   # now compare expected with observed data
   set REF_VOL  = $EXPECTED/$tstvol
