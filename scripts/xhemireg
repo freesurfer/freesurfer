@@ -15,11 +15,11 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.2 2007/12/13 22:54:03 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.3 2007/12/14 00:41:54 greve Exp $';
 
 set subject = ();
-set ipsi = ();
-set contra = ();
+set srchemi = ();
+set trghemi = ();
 set surfreg = xhemi.reg
 set UseNoNeg = 0
 set NoRandomness = 1;
@@ -49,7 +49,14 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-set LF = $SUBJECTS_DIR/$subject/xhemireg.$ipsi.log
+cd $SUBJECTS_DIR/$subject
+
+set xsubject = $subject/xhemi
+if($#outdir == 0) set outdir = $SUBJECTS_DIR/$xsubject
+echo "outdir is $outdir" 
+mkdir -p $outdir/mri $outdir/surf $outdir/label $outdir/scripts
+
+set LF = $SUBJECTS_DIR/$xsubject/xhemireg.$srchemi.log
 if(-e $LF) mv $LF $LF.bak
 echo "Logfile is $LF"
 
@@ -62,22 +69,16 @@ pwd | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR "| tee -a $LF
 
 
-if($#outdir == 0) set outdir = $SUBJECTS_DIR/$subject/xhemireg.$ipsi
-echo "outdir is $outdir" | tee -a $LF
-mkdir -p $outdir/mri
-mkdir -p $outdir/surf
-
-cd $SUBJECTS_DIR/$subject
-pwd | tee -a $LF
-
 #--------------------------------------------------------------
 echo "" | tee -a $LF
 echo "" | tee -a $LF
 date | tee -a $LF
-set cmd = (mri_convert mri/orig.mgz $outdir/mri/orig.mgz --left-right-reverse)
-echo $cmd  | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
+foreach vol (orig aseg)
+  set cmd = (mri_convert mri/$vol.mgz $outdir/mri/$vol.mgz --left-right-reverse)
+  echo $cmd  | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
 
 #--------------------------------------------------------------
 echo ""| tee -a $LF
@@ -94,12 +95,11 @@ if($status) exit 1;
 
 #--------------------------------------------------------------
 foreach surf (orig white pial smoothwm inflated sphere)
-#foreach surf (orig white pial smoothwm inflated)
   echo "" | tee -a $LF
   echo "" | tee -a $LF
   date | tee -a $LF
   set cmd = (mri_surf2surf --s $subject --sval-xyz $surf \
-   --hemi $ipsi --tval-xyz --tval $outdir/surf/$contra.$surf \
+   --hemi $srchemi --tval-xyz --tval $outdir/surf/$trghemi.$surf \
    --reg $reg)
   echo $cmd  | tee -a $LF
   $cmd | tee -a $LF
@@ -107,32 +107,56 @@ foreach surf (orig white pial smoothwm inflated sphere)
 end
 
 #--------------------------------------------------------------
-foreach ov (area area.pial curv curv.pial avg_curv \
-     inflated.H inflated.K sulc thickness jacobian_white)
-  if(! -e surf/$ipsi.$ov) continue;
+foreach ov (curv sulc area area.pial curv.pial avg_curv \
+     inflated.H inflated.K thickness )
+  if(! -e surf/$srchemi.$ov) continue;
   echo "" | tee -a $LF
   echo "" | tee -a $LF
   date | tee -a $LF
-  set cmd = (cp surf/$ipsi.$ov $outdir/surf/$contra.$ov)
+  set cmd = (cp surf/$srchemi.$ov $outdir/surf/$trghemi.$ov)
   echo $cmd  | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1;
 end
 
-#--------------------------------------------------------------
+
+#------------------------------------------------------------------
+set cmd = (recon-all -sb $xsubject -hemi $trghemi -surfreg -cortparc)
 echo "" | tee -a $LF
 echo "" | tee -a $LF
 date | tee -a $LF
-set AvgTif = ${AvgCurvTifPath}/$contra.${AvgCurvTif}
-set cmd = (mris_register -curv)
-if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
-set cmd = ($cmd $outdir/surf/$contra.sphere $AvgTif $outdir/surf/$contra.sphere.reg)
 echo $cmd  | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
 
+#------------------------------------------------------------------
+if(0) then
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+date | tee -a $LF
+set AvgTif = ${AvgCurvTifPath}/$trghemi.${AvgCurvTif}
+set cmd = (mris_register -curv)
+if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
+set cmd = ($cmd $outdir/surf/$trghemi.sphere $AvgTif $outdir/surf/$trghemi.sphere.reg)
+echo $cmd  | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+date | tee -a $LF
+set GCS = curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs 
+set CPAtlas = $FREESURFER_HOME/average/$trghemi.$GCS
+set annot = $xsubject/label/$trghemi.aparc.annot
+set cmd = (mris_ca_label -seed 1234 -aseg $xsubject/mri/aseg.mgz \
+             $xsubject $trghemi  $xsubject/surf/$trghemi.sphere.reg \
+             $CPAtlas $annot)
+echo $cmd  | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+endif
+
 #--------------------------------------------------------------
-cp $outdir/surf/$contra.sphere.reg surf/$ipsi.$contra.xhemi.reg |& tee -a $LF
+cp $outdir/surf/$trghemi.sphere.reg surf/$srchemi.$trghemi.xhemi.reg |& tee -a $LF
 if($status) exit 1;
 
 
@@ -160,17 +184,17 @@ while( $#argv != 0 )
 
     case "--hemi":
       if ( $#argv < 1) goto arg1err;
-      set ipsi = $argv[1]; shift;
+      set srchemi = $argv[1]; shift;
       breaksw
 
     case "--lh":
-      set ipsi = lh;
-      set contra = rh;
+      set srchemi = lh;
+      set trghemi = rh;
       breaksw
 
     case "--rh":
-      set ipsi = rh;
-      set contra = lh;
+      set srchemi = rh;
+      set trghemi = lh;
       breaksw
 
     case "--reg":
@@ -213,7 +237,7 @@ if(! -e $SUBJECTS_DIR/$subject) then
   exit 1;
 endif
 
-if($#ipsi == 0) then
+if($#srchemi == 0) then
   echo "ERROR: must spec a hemi"
   exit 1;
 endif
@@ -239,10 +263,10 @@ usage_exit:
   echo ""
   echo "xhemireg"
   echo ""
-  echo "   --s subjid"
-  echo "   --lh : map from left to right "
-  echo "   --rh : map from right to left"
-  echo "   --reg surfreg : output will be ipsi.contra.surfreg (def xhemi.reg)"
+  echo "   --s subject"
+  echo "   --lh : srchemi = lh (map from left to right) "
+  echo "   --rh : srchemi = rh (map from right to left) "
+  echo "   --reg surfreg : output will be srchemi.trghemi.surfreg (def xhemi.reg)"
   echo ""
   echo "   --o outdir  : output dir (subject/xhemireg.hemi by def)"
   echo "   --version : print version and exit"
