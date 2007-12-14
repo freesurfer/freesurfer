@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/12/14 00:19:53 $
-#    $Revision: 1.154 $
+#    $Author: nicks $
+#    $Date: 2007/12/14 20:34:09 $
+#    $Revision: 1.155 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.154 2007/12/14 00:19:53 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.155 2007/12/14 20:34:09 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3529,6 +3529,10 @@ while( $#argv != 0 )
 
     case "-noaparc-makesurf":
       set NoAparcMakeSurf = 1;
+      breaksw
+
+    case "-aparc-makesurf":
+      set NoAparcMakeSurf = 0;
       breaksw
 
     case "-uncompress":
