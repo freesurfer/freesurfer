@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.11 2007/11/18 18:26:07 greve Exp $
+# $Id: asegstats2table,v 1.12 2007/12/14 22:24:54 greve Exp $
 import sys;
 import os;
 import string;
@@ -191,7 +191,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.11 2007/11/18 18:26:07 greve Exp $';
+Version = '$Id: asegstats2table,v 1.12 2007/12/14 22:24:54 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
@@ -269,8 +269,9 @@ for subject in SUBJECTS:
   fp = open(statsfile,'r');
   nthseg = 0;
   ICV = -1;
+  nthline = 0;
   for line in fp:
-
+    nthline = nthline + 1;
     if(meas == 'volume'):
       ind = line.rfind('IntraCranialVol');
       if(ind != -1):
@@ -285,6 +286,10 @@ for subject in SUBJECTS:
     else:
       if(debug): print "%s" % line;
       tmp = string.split(line);
+      if(len(tmp) != 10):
+        print "ERROR: %s, line %d has only %d items" % (statsfile,nthline,len(tmp));
+        sys.exit(1);
+      #endif
       segno = string.atoi(tmp[1]);
       if(maxsegno > 0 and segno > maxsegno): continue
       if(meas == 'volume'):  val = string.atof(tmp[3]);
@@ -298,12 +303,20 @@ for subject in SUBJECTS:
   fp.close();
   if(meas == 'volume'):
     if(ICV == -1):
-      sys.stdout.write('ERROR: subjects %s does not have ICV\n' % subject);
+      sys.stdout.write('ERROR: subject %s does not have ICV\n' % subject);
       sys.exit(1);
     #endif
     fptbl.write(' %f' % (ICV));
   #endif
   fptbl.write('\n');
+  if(nthsubj == 1):
+    nsegs = nthseg;
+  else:
+    if(nsegs != nthseg):
+      sys.stdout.write('ERROR: subject %s has %d segs, expecting %d\n' % (subject,nthseg,nsegs));
+      sys.exit(1);
+    #endif
+  #endif
   nthsubj = nthsubj + 1;
 #end  for subject
 
