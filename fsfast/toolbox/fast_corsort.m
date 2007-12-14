@@ -1,4 +1,4 @@
-function [csort rhosort zrhoabs] = fast_corsort(rho,Nps)
+function [csort rhosort spair zrhoabs] = fast_corsort(rho,Nps)
 % [csort rhosort zrhoabs] = fast_corsort(rho,Nps)
 % rho is an NxN correlation matrix
 % Nps is a list of number of inputs for each subject
@@ -11,7 +11,11 @@ function [csort rhosort zrhoabs] = fast_corsort(rho,Nps)
 %   is the number of subjects. Each row of csort represents
 %   a "coherent component". The number in csort is the
 %   subject component that belongs to that coherent component.
+%   Each row will have all the subjects; each col must not have
+%   any repeats.
 % rhosort - correlation values corresponding to the components
+% spair - Nmin by Ns. The value is the subject that the column
+%   subject was paired with.
 % zrhoabs - used for debugging.
 %
 % Eg:
@@ -19,7 +23,7 @@ function [csort rhosort zrhoabs] = fast_corsort(rho,Nps)
 %   yn = fast_fnorm(y,2,1); % Normalize across space
 %   rho = yn*yn'; % Cor Coeff across component
 %
-% $Id: fast_corsort.m,v 1.1 2007/12/14 19:19:37 greve Exp $
+% $Id: fast_corsort.m,v 1.2 2007/12/14 20:11:19 greve Exp $
 
 %
 % fast_corsort.m
@@ -27,8 +31,8 @@ function [csort rhosort zrhoabs] = fast_corsort(rho,Nps)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/12/14 19:19:37 $
-%    $Revision: 1.1 $
+%    $Date: 2007/12/14 20:11:19 $
+%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -46,6 +50,7 @@ function [csort rhosort zrhoabs] = fast_corsort(rho,Nps)
 csort   = [];
 rhosort = [];
 zrhoabs = [];
+spair   = [];
 
 if(nargin ~= 2)
   fprintf('[csort rhosort zrhoabs] = fast_corsort(rho,Nps)\n');
@@ -94,32 +99,41 @@ indz = find(blk==1 | tt==1);
 rhoabs(indz) = 0;
 zrhoabs = rhoabs; % keep a copy
 
-% Start loop over sorted components
+% Start loop over coherent components
 csort  = zeros(Nmax,Ns);
 rhosort = zeros(Nmax,Ns);
 rhoabsR = rhoabs;
 for nthcomp = 1:Nmax
   rhoabs = rhoabsR;
 
-  %fprintf('%d ------------------------------------\n',nthcomp);
-  %rhoabs
-
+  % Loop over subjects
+  nth = 0;
   while(1)
+    nth = nth + 1;
+
+    % Find max of the (remaining) cors
     [rhomax indmax] = max(rhoabs(:));
+
+    % Extract the corresponding subject and components numbers
     [imax jmax] = ind2sub(size(rhoabs),indmax);
     sA = slist(imax);
     cA = imax - i1(sA) + 1;
     sB = slist(jmax);
     cB = jmax - i1(sB) + 1;
+
+    % Add them to the list
     if(csort(nthcomp,sA) == 0)
       csort(nthcomp,sA) = cA;
       rhosort(nthcomp,sA) = rho(imax,jmax);
+      spair(nthcomp,sA) = sB;
     end
     if(csort(nthcomp,sB) == 0)
       csort(nthcomp,sB) = cB;
       rhosort(nthcomp,sB) = rho(imax,jmax);
+      spair(nthcomp,sB) = sA;
     end
 
+    % Eliminate the sA-sB block 
     indA = find(slist == sA);
     indB = find(slist == sB);
     z = zeros(size(rhoabs));
@@ -127,18 +141,30 @@ for nthcomp = 1:Nmax
     ind = find(z);
     rhoabs(ind) = 0;
     
+    % For each subject, eliminate the components NOT
+    % chosen for further consideration for this
+    % coherent component
     indA = find(slist == sA & clist ~= cA);
     rhoabs(:,indA) = 0;
     rhoabs(indA,:) = 0;
-    
     indB = find(slist == sB & clist ~= cB);
     rhoabs(:,indB) = 0;
     rhoabs(indB,:) = 0;
 
+    % Now eliminate now eliminate cross blocks of
+    % subjects that are neither sA or sB
+    if(nth == 1)
+      ind = find(slist ~= sA & slist ~= sB);
+      rhoabs(ind,ind) = 0;
+    end
+
+    % Is there anything left?
     if(length(find(rhoabs ~= 0)) == 0) break; end
   
   end
 
+  % Now eliminate the components just selected from
+  % the master list
   for s = 1:Ns
     ind = find(slist == s & clist == csort(nthcomp,s));
     rhoabsR(:,ind) = 0;
