@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/08/13 03:12:44 $
-#    $Revision: 1.15 $
+#    $Date: 2007/12/15 23:03:35 $
+#    $Revision: 1.15.2.1 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.15 2007/08/13 03:12:44 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.15.2.1 2007/12/15 23:03:35 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -214,9 +214,6 @@ echo "Start: $BEGIN_TIME" >>& $OUTPUTF
 
 source $FREESURFER_HOME/SetUpFreeSurfer.csh
 
-# there are a couple utilities that are not yet in stable, so use this path:
-set DEV_PATH=/usr/local/freesurfer/dev/bin
-
 # setenv SKIP_RECON to skip recon-all and procede to compare
 # previously completed results against the reference data:
 if ($?SKIP_RECON) goto compare
@@ -240,10 +237,18 @@ set INVOL_LIST=($INVOL_LIST 021.mgz 022.mgz 023.mgz 024.mgz 025.mgz)
 set INVOL_LIST=($INVOL_LIST 026.mgz 027.mgz 028.mgz 029.mgz 030.mgz)
 set INVOL_LIST=($INVOL_LIST 031.mgz 032.mgz 033.mgz 034.mgz 035.mgz)
 set INVOL=()
+set echo=1
 foreach invol ($INVOL_LIST)
-  set involfull=$SUBJ_REF_DIR/$REF_SUBJ/mri/orig/$invol
+  set involfull=$SUBJECTS_DIR/ref_subj/mri/orig/$invol
   if (-e $involfull) set INVOL=($INVOL -i $involfull)
 end
+if ($#INVOL == "0") then
+    echo "***FAILED :: no input volumes found"  >>& $OUTPUTF
+    mail -s "test_recon-all -all FAILED: no input volumes found" $FMAIL_LIST < $RECON_LOG
+    cp $RECON_LOG $LOG_DIR/
+    touch $SUBJECTS_DIR/test_recon-all_FAILED
+    exit 1
+endif
 
 set cmd=(recon-all)
 if ("`uname -n`" == "hades") then
@@ -270,6 +275,19 @@ if ($RunIt) then
     cp $RECON_LOG $LOG_DIR/
   endif
 endif # ($RunIt)
+
+#
+# check if recon-all exited without failure code, but did not actually finish
+# 
+if (-e $SUBJECTS_DIR/$TEST_SUBJ/IsRunning.lh+rh) then
+    echo "$PROC test_recon-all FAILED"  >>& $OUTPUTF
+    echo "IsRunning.lh+rh flag exists: recon-all did not finish" >>& $OUTPUTF
+    echo "Check recon-all.log to pinpoint failure" >>& $OUTPUTF
+    mail -s "test_recon-all FAILED on $PROC" $FMAIL_LIST < $OUTPUTF
+    touch $SUBJECTS_DIR/test_recon-all_FAILED
+    exit 1
+endif
+
 
 #
 # compare resulting volumes and surfaces with reference data (prior recon)
@@ -428,7 +446,7 @@ foreach hemi ($TEST_HEMIS)
 # to map the reference annotations onto the test surface, then run
 # mris_compute_parc_overlap to calculate a Dice coefficent, and more
 # usefuly, create some .annot files which show which areas are different
-    set cmd=($DEV_PATH/mri_surf2surf)
+    set cmd=(mri_surf2surf)
     set cmd=($cmd --srcsubject ref_subj)
     set cmd=($cmd --trgsubject $TEST_SUBJ)
     set cmd=($cmd --hemi $hemi)
@@ -451,7 +469,7 @@ foreach hemi ($TEST_HEMIS)
       if (-e $S2SF) chmod g+rw $S2SF
     endif # if ($RunIt)
 
-    set cmd=($DEV_PATH/mris_compute_parc_overlap)
+    set cmd=(mris_compute_parc_overlap)
     set cmd=($cmd --sd $SUBJECTS_DIR)
     set cmd=($cmd --s $TEST_SUBJ)
     set cmd=($cmd --hemi $hemi)
@@ -541,7 +559,7 @@ foreach statfile ($STATS_FILES)
   endif # ($RunIt)
 end
 
-set cmd=($DEV_PATH/asegstatsdiff ref_subj $TEST_SUBJ $LOG_DIR)
+set cmd=(asegstatsdiff ref_subj $TEST_SUBJ $LOG_DIR)
 echo $cmd
 set outfile=($LOG_DIR/asegstatsdiff.txt)
 $cmd > $outfile
@@ -558,7 +576,7 @@ endif
 foreach hemi (rh lh)
     foreach parc (aparc aparc.a2005s)
         foreach meas (area volume thickness)
-        set cmd=($DEV_PATH/aparcstatsdiff \
+        set cmd=(aparcstatsdiff \
             ref_subj $TEST_SUBJ $hemi $parc $meas $LOG_DIR)
         echo $cmd
         set outfile=($LOG_DIR/aparcstatsdiff-$hemi-$parc-$meas.txt)

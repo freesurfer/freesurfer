@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.94 2007/08/14 02:39:25 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.94.2.1 2007/12/15 23:03:34 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,14 +13,18 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v4.0.0"
-set STABLE_PUB_VER_NUM="v4.0.0"
-
-set SUCCESS_MAIL_LIST=(nicks kteich)
-set FAILURE_MAIL_LIST=(nicks kteich fischl greve dsjen)
-#set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
+set STABLE_VER_NUM="v4.0.2"
+set STABLE_PUB_VER_NUM="v4.0.2"
 
 set HOSTNAME=`hostname -s`
+
+set SUCCESS_MAIL_LIST=(nicks)
+set FAILURE_MAIL_LIST=(nicks fischl greve)
+#set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
+if ("$HOSTNAME" == "blade") then
+  set FAILURE_MAIL_LIST=(nicks)
+endif
+
 setenv OSTYPE `uname -s`
 if ("$OSTYPE" == "linux") setenv OSTYPE Linux
 if ("$OSTYPE" == "Linux") setenv OSTYPE Linux
@@ -85,31 +89,38 @@ set LOG_DIR=${SPACE_FS}/build/logs
 # stable build use explicit package versions (for stability)
 if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set MNIDIR=/usr/pubsw/packages/mni/1.4
+  set VXLDIR=/usr/pubsw/packages/vxl/1.8.0
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
-  set VXLDIR=/usr/pubsw/packages/vxl/1.8.0
+  set VTKDIR=/usr/pubsw/packages/vtk/current
+  set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   set TJGDIR=/usr/pubsw/packages/tiffjpegglut/1.1
   setenv FSLDIR /usr/pubsw/packages/fsl/4.0.0
-  unset CPPUNITDIR
-  # GSL and Qt are no longer used, so they're not defined
-  unsetenv QTDIR
-  unsetenv GSLDIR
+  if ( "x`uname -m`" == "xx86_64" ) then
+    setenv FSLDIR /usr/pubsw/packages/fsl.64bit/4.0.0
+  endif
+  set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
+  if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
 else
   # dev build uses most current
   set MNIDIR=/usr/pubsw/packages/mni/current
   set VXLDIR=/usr/pubsw/packages/vxl/current
-  set VTKDIR=/usr/pubsw/packages/vtk/current
-  set TJGDIR=/usr/pubsw/packages/tiffjpegglut/current
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
+  set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
+  set TJGDIR=/usr/pubsw/packages/tiffjpegglut/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
+  if ( "x`uname -m`" == "xx86_64" ) then
+    setenv FSLDIR /usr/pubsw/packages/fsl.64bit/current
+  endif
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
-  # GSL and Qt are no longer used, so they're not defined
-  unsetenv QTDIR
-  unsetenv GSLDIR
 endif
+
+# GSL and Qt are no longer used, so they're not defined
+unsetenv QTDIR
+unsetenv GSLDIR
 
 # on Mac OS X Tiger, need /sw/bin (Fink) to get latex and dvips.
 if ("$OSTYPE" == "Darwin") then
@@ -175,7 +186,15 @@ echo "##########################################################" >>& $OUTPUTF
 echo "Settings" >>& $OUTPUTF
 echo "PLATFORM $PLATFORM" >>& $OUTPUTF
 echo "HOSTNAME $HOSTNAME" >>& $OUTPUTF
-echo "gcc      `gcc --version | grep gcc`" >>& $OUTPUTF
+if ($?CC) then
+  if ("$CC" == "icc") then
+    echo "icc      `icc --version | grep icc`" >>& $OUTPUTF
+  else
+    echo "gcc      `gcc --version | grep gcc`" >>& $OUTPUTF
+  endif
+else
+  echo "gcc      `gcc --version | grep gcc`" >>& $OUTPUTF
+endif
 echo "BUILD_DIR $BUILD_DIR" >>& $OUTPUTF
 echo "SCRIPT_DIR $SCRIPT_DIR" >>& $OUTPUTF
 echo "LOG_DIR $LOG_DIR" >>& $OUTPUTF
@@ -208,6 +227,18 @@ if (-e ${DEVOLD}) then
   echo "CMD: rm -Rf ${DEVOLD}" >>& $OUTPUTF
   rm -rf ${DEVOLD} >>& $OUTPUTF
 endif
+
+
+#
+# make distclean
+######################################################################
+#
+echo "##########################################################" >>& $OUTPUTF
+echo "" >>& $OUTPUTF
+echo "CMD: cd $DEV_DIR" >>& $OUTPUTF
+cd ${DEV_DIR} >>& $OUTPUTF
+echo "CMD: make distclean" >>& $OUTPUTF
+if (-e Makefile) make distclean >>& $OUTPUTF
 
 
 #
@@ -311,14 +342,11 @@ rm -f $CVSUPDATEF
 
 
 #
-# make distclean and configure
+# configure
 ######################################################################
 #
 echo "##########################################################" >>& $OUTPUTF
-echo "Freshening Makefiles" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
-echo "CMD: make distclean" >>& $OUTPUTF
-if (-e Makefile) make distclean >>& $OUTPUTF
 echo "CMD: rm -rf autom4te.cache" >>& $OUTPUTF
 if (-e autom4te.cache) rm -rf autom4te.cache >>& $OUTPUTF
 echo "CMD: libtoolize --force" >>& $OUTPUTF
@@ -327,11 +355,28 @@ if ( "${OSTYPE}" == "Darwin") glibtoolize --force >>& $OUTPUTF
 echo "CMD: autoreconf --force" >>& $OUTPUTF
 autoreconf --force >>& $OUTPUTF
 echo "CMD: aclocal" >>& $OUTPUTF
+aclocal --version >>& $OUTPUTF
 aclocal >>& $OUTPUTF
 echo "CMD: autoconf" >>& $OUTPUTF
+autoconf --version >>& $OUTPUTF
 autoconf >>& $OUTPUTF
 echo "CMD: automake" >>& $OUTPUTF
+automake --version >>& $OUTPUTF
 automake >>& $OUTPUTF
+if ($status != 0) then
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED after automake"
+  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  rm -f ${FAILED_FILE}
+  touch ${FAILED_FILE}
+  # set group write bit on files changed by make tools:
+  echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
+  echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
+  chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
+  chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+  exit 1
+endif
 echo "CMD: ./configure..." >>& $OUTPUTF
 # notice that the configure command sets 'bindir' to /bin-new, overriding
 # the default /bin.  later, after make install, bin-new is moved to /bin.
@@ -346,7 +391,12 @@ set cnfgr=(./configure)
 set cnfgr=($cnfgr --prefix=${FREESURFER_HOME})
 set cnfgr=($cnfgr --bindir=${DEST_DIR}/bin-new)
 set cnfgr=($cnfgr $ENAB_NMR)
-set cnfgr=($cnfgr `cat ${BUILD_DIR}/configure_options.txt`)
+if (("${RELEASE_TYPE}" == "stable") || \
+    ("${RELEASE_TYPE}" == "stable-pub")) then
+  set cnfgr=($cnfgr `cat ${BUILD_DIR}/stable-configure_options.txt`)
+else
+  set cnfgr=($cnfgr `cat ${BUILD_DIR}/dev-configure_options.txt`)
+endif
 set cnfgr=($cnfgr --with-mni-dir=${MNIDIR})
 set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 if ($?VTKDIR) then
@@ -386,6 +436,16 @@ endif
 
 
 #
+# make clean
+######################################################################
+#
+echo "##########################################################" >>& $OUTPUTF
+echo "" >>& $OUTPUTF
+echo "CMD: make clean" >>& $OUTPUTF
+if (-e Makefile) make clean >>& $OUTPUTF
+
+
+#
 # make
 ######################################################################
 #
@@ -416,27 +476,31 @@ endif
 # make check (run available unit tests)
 ######################################################################
 #
-echo "########################################################" >>& $OUTPUTF
-echo "Make check $DEV_DIR" >>& $OUTPUTF
-echo "" >>& $OUTPUTF
-echo "CMD: make check" >>& $OUTPUTF
-make check >>& $OUTPUTF
-if ($status != 0) then
-  # note: /usr/local/freesurfer/dev/bin/ dirs have not 
-  # been modified (bin/ gets written after make install)
-  set msg="$HOSTNAME $RELEASE_TYPE build (make check) FAILED unit tests"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
-  rm -f ${FAILED_FILE}
-  touch ${FAILED_FILE}
-  # set group write bit on files changed by make tools:
-  echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
-  chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
-  echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
-  chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
-  chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
-  chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
-  exit 1  
+#goto make_check_done
+if ("$RELEASE_TYPE" != "stable-pub") then
+  echo "########################################################" >>& $OUTPUTF
+  echo "Make check $DEV_DIR" >>& $OUTPUTF
+  echo "" >>& $OUTPUTF
+  echo "CMD: make check" >>& $OUTPUTF
+  make check >>& $OUTPUTF
+  if ($status != 0) then
+    # note: /usr/local/freesurfer/dev/bin/ dirs have not 
+    # been modified (bin/ gets written after make install)
+    set msg="$HOSTNAME $RELEASE_TYPE build (make check) FAILED unit tests"
+    mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+    rm -f ${FAILED_FILE}
+    touch ${FAILED_FILE}
+    # set group write bit on files changed by make tools:
+    echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
+    chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
+    echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
+    chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
+    chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
+    chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+    exit 1  
+  endif
 endif
+make_check_done:
 
 
 #
@@ -476,22 +540,20 @@ if ($status != 0) then
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
-if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
+if (("${RELEASE_TYPE}" == "stable") || \
+    ("${RELEASE_TYPE}" == "stable-pub")) then
   echo "CMD: strip ${DEST_DIR}/bin-new/*" >>& $OUTPUTF
   strip ${DEST_DIR}/bin-new/* >& /dev/null
 endif
 #
-# Shift bin/ to bin-old/, and bin-old/ to bin-old-old/ to keep old versions.
+# Shift bin/ to bin-old/ to keep old versions.
 # Move bin/ to bin-old/ instead of copy, to avoid core dumps if some script
 # is using a binary in bin/.
 # Move newly created bin-new/ to bin/.
 # This series of mv's minimizes the time window where the /bin directory
 # would appear empty to a machine trying to reference its contents in recon-all
-echo "CMD: rm -rf ${DEST_DIR}/bin-old-old" >>& $OUTPUTF
-if (-e ${DEST_DIR}/bin-old-old) rm -rf ${DEST_DIR}/bin-old-old >>& $OUTPUTF
-echo "CMD: mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old" >>& $OUTPUTF
-if (-e ${DEST_DIR}/bin-old) mv ${DEST_DIR}/bin-old ${DEST_DIR}/bin-old-old \
-    >>& $OUTPUTF
+echo "CMD: rm -Rf ${DEST_DIR}/bin-old" >>& $OUTPUTF
+rm -Rf ${DEST_DIR}/bin-old >>& $OUTPUTF
 echo "CMD: mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old" >>& $OUTPUTF
 mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
 echo "CMD: mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin" >>& $OUTPUTF
@@ -517,6 +579,19 @@ chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
 
 
 #
+# HACK
+#
+# dmri_poistats only builds in dev on the centos platforms because currently
+# only those have working ITK libs, so copy dmri_poistats from there, for now..
+#
+if (("${RELEASE_TYPE}" == "stable") || \
+    ("${RELEASE_TYPE}" == "stable-pub")) then
+  cp /usr/local/freesurfer/dev/bin/dmri_poistats ${DEST_DIR}/bin/ >& /dev/null
+endif
+
+
+
+#
 # library and sample subject symlinks
 ######################################################################
 # ensure that the symlinks to the necessary packages are in place
@@ -532,7 +607,7 @@ symlinks:
   rm -f ${DEST_DIR}/lib/misc
   # then setup for proper installation
   set cmd1=(ln -s ${MNIDIR} ${DEST_DIR}/mni)
-  set cmd2=(ln -s ${FSLDIR} ${DEST_DIR}/fsl)
+  set cmd2=
   set cmd3=(ln -s ${TCLDIR} ${DEST_DIR}/lib/tcltktixblt)
   set cmd4=
   if ($?VTKDIR) then
