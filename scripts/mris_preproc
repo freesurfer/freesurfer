@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/12/15 18:33:19 $
-#    $Revision: 1.43 $
+#    $Date: 2007/12/15 21:56:14 $
+#    $Revision: 1.44 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.43 2007/12/15 18:33:19 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.44 2007/12/15 21:56:14 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -215,7 +215,8 @@ foreach subj ($subjlist)
       endif
     endif
     # Now srcsurfpath file exists, convert it to the target subject
-    set tval = $tmpdir/$subj.mgh
+    set subjtmp = `echo $subj | sed 's/\//./g'`; # Hack to handle xhemi subdirs
+    set tval = $tmpdir/$subjtmp.mgh
     set cmd = (mri_surf2surf)
     set cmd = ($cmd --srcsubject $subj   --srchemi $srchemi --srcsurfreg $SrcSurfReg)
     set cmd = ($cmd --trgsubject $target --trghemi $trghemi --trgsurfreg $TrgSurfReg)
