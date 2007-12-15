@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.108 2007/12/15 20:28:55 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.109 2007/12/15 20:45:55 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -607,7 +607,7 @@ symlinks:
   rm -f ${DEST_DIR}/lib/misc
   # then setup for proper installation
   set cmd1=(ln -s ${MNIDIR} ${DEST_DIR}/mni)
-  set cmd2=(ln -s ${FSLDIR} ${DEST_DIR}/fsl)
+  set cmd2=
   set cmd3=(ln -s ${TCLDIR} ${DEST_DIR}/lib/tcltktixblt)
   set cmd4=
   if ($?VTKDIR) then
