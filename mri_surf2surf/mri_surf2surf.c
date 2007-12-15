@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/04 18:30:46 $
- *    $Revision: 1.67 $
+ *    $Date: 2007/12/15 21:51:39 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.67 2007/12/04 18:30:46 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.68 2007/12/15 21:51:39 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -453,7 +453,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.67 2007/12/04 18:30:46 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.68 2007/12/15 21:51:39 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -813,7 +813,11 @@ int main(int argc, char **argv) {
     /* save the Target Hits into a .w file */
     if (TrgDistFile != NULL) {
       printf("INFO: saving target distance to %s\n",TrgDistFile);
-      MRIwrite(TrgDist,TrgDistFile);
+      err = MRIwrite(TrgDist,TrgDistFile);
+      if(err){
+	printf("ERROR: wrting %s\n",TrgDistFile);
+	exit(1);
+      }
     }
   } else {
     /* --- Source and Target Subjects are the same --- */
@@ -899,7 +903,11 @@ int main(int argc, char **argv) {
       TrgVals = mritmp;
     }
     if(DoNormVar) NormVar(TrgVals, NULL);
-    MRIwriteType(TrgVals,trgvalfile,trgtype);
+    err = MRIwriteType(TrgVals,trgvalfile,trgtype);
+    if(err){
+      printf("ERROR: wrting %s\n",trgvalfile);
+      exit(1);
+    }
     if (is_sxa_volume(srcvalfile)) sv_sxadat_by_stem(sxa,trgvalfile);
   }
 
