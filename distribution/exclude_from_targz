@@ -47,6 +47,7 @@ freesurfer/include
 freesurfer/mni/src
 freesurfer/mni/include
 freesurfer/mni/man
+freesurfer/fsl
 freesurfer/fsl/patchL-fsl-3.2-redhat9.tar
 freesurfer/fsl/patchL-fsl-3.2-redhat7.tar
 freesurfer/fsl/fsl-3.2-macosx.tar.gz

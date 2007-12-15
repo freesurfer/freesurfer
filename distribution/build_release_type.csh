@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.107 2007/12/14 00:27:06 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.108 2007/12/15 20:28:55 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,14 +13,18 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v4.0.1"
-set STABLE_PUB_VER_NUM="v4.0.1"
+set STABLE_VER_NUM="v4.0.2"
+set STABLE_PUB_VER_NUM="v4.0.2"
+
+set HOSTNAME=`hostname -s`
 
 set SUCCESS_MAIL_LIST=(nicks)
 set FAILURE_MAIL_LIST=(nicks fischl greve)
 #set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
+if ("$HOSTNAME" == "blade") then
+  set FAILURE_MAIL_LIST=(nicks)
+endif
 
-set HOSTNAME=`hostname -s`
 setenv OSTYPE `uname -s`
 if ("$OSTYPE" == "linux") setenv OSTYPE Linux
 if ("$OSTYPE" == "Linux") setenv OSTYPE Linux
