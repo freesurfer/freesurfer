@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/12/06 20:19:40 $
-#    $Revision: 1.42 $
+#    $Date: 2007/12/15 18:33:19 $
+#    $Revision: 1.43 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.42 2007/12/06 20:19:40 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.43 2007/12/15 18:33:19 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -395,7 +395,7 @@ while( $#argv != 0 )
     case "--surfreg":
       if($#argv < 1) goto arg1err;
       set SrcSurfReg = $argv[1]; shift;
-      set TrgSurfReg = $argv[1]; shift;
+      set TrgSurfReg = $SrcSurfReg;
       breaksw
 
     case "--srcsurfreg":
