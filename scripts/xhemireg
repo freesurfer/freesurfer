@@ -2,7 +2,8 @@
 # xhemireg
 
 # Create a new subject from an existing subject by left-right reversal
-# of the volumes.
+# of the volumes. Should be enough to be able to include in 
+# make_average_subject. 
 #
 # surfaces: 
 #  Apply xfm: orig, white, pial, smoothwm, inflated
@@ -15,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.4 2007/12/14 22:23:46 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.5 2007/12/16 18:34:42 greve Exp $';
 
 set subject = ();
 set srchemi = ();
@@ -73,7 +74,7 @@ echo "setenv SUBJECTS_DIR $SUBJECTS_DIR "| tee -a $LF
 echo "" | tee -a $LF
 echo "" | tee -a $LF
 date | tee -a $LF
-foreach vol (orig aseg)
+foreach vol (orig aseg T1 brain)
   set cmd = (mri_convert mri/$vol.mgz $outdir/mri/$vol.mgz --left-right-reverse)
   echo $cmd  | tee -a $LF
   $cmd | tee -a $LF
@@ -121,39 +122,14 @@ foreach ov (curv sulc area area.pial curv.pial avg_curv \
 end
 
 #------------------------------------------------------------------
-set cmd = (recon-all -sb $xsubject -hemi $trghemi -surfreg -cortparc)
+set cmd = (recon-all -sb $xsubject -hemi $trghemi \
+            -talairach -surfreg -cortparc -cortparc2)
 echo "" | tee -a $LF
 echo "" | tee -a $LF
 date | tee -a $LF
 echo $cmd  | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
-
-#------------------------------------------------------------------
-if(0) then
-echo "" | tee -a $LF
-echo "" | tee -a $LF
-date | tee -a $LF
-set AvgTif = ${AvgCurvTifPath}/$trghemi.${AvgCurvTif}
-set cmd = (mris_register -curv)
-if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
-set cmd = ($cmd $outdir/surf/$trghemi.sphere $AvgTif $outdir/surf/$trghemi.sphere.reg)
-echo $cmd  | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
-echo "" | tee -a $LF
-echo "" | tee -a $LF
-date | tee -a $LF
-set GCS = curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs 
-set CPAtlas = $FREESURFER_HOME/average/$trghemi.$GCS
-set annot = $xsubject/label/$trghemi.aparc.annot
-set cmd = (mris_ca_label -seed 1234 -aseg $xsubject/mri/aseg.mgz \
-             $xsubject $trghemi  $xsubject/surf/$trghemi.sphere.reg \
-             $CPAtlas $annot)
-echo $cmd  | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
-endif
 
 #--------------------------------------------------------------
 cp $outdir/surf/$trghemi.sphere.reg surf/$srchemi.$trghemi.xhemi.reg |& tee -a $LF
