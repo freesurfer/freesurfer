@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/10/16 15:48:21 $
-#    $Revision: 1.23 $
+#    $Author: greve $
+#    $Date: 2007/12/16 18:27:23 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_volume,v 1.23 2007/10/16 15:48:21 nicks Exp $';
+set VERSION = '$Id: make_average_volume,v 1.24 2007/12/16 18:27:23 greve Exp $';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm
@@ -331,6 +331,7 @@ while( $#argv != 0 )
     case "--no-surf":
     case "--no-vol":
     case "--force":
+    case "--xhemi":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop
@@ -339,6 +340,7 @@ while( $#argv != 0 )
 
     # These are flags passed to make_average_subject, but dont apply here.
     # Need to eat the arguments.
+    case "--surfreg":
     case "--surf-reg":
     case "--surf_reg":
       if ( $getting_subjects ) then
