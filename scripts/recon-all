@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/14 22:05:09 $
-#    $Revision: 1.156 $
+#    $Date: 2007/12/16 02:19:23 $
+#    $Revision: 1.157 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.156 2007/12/14 22:05:09 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.157 2007/12/16 02:19:23 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -453,7 +453,7 @@ if($DoIsRunning) then
     echo "died in an unexpected way. If it is the case that there"
     echo "is a process running, you can kill it and start over or"
     echo "just let it run. If the process has died, you should"
-    echo "delete $bailfile and re-run. Or you can add -no-isrunning"
+    echo "rm $bailfile and re-run. Or you can add -no-isrunning"
     echo "to the recon-all command-line. The contents of this file are:"
     echo "----------------------------------------------------------"
     cat  $bailfile
@@ -731,6 +731,16 @@ if($DoMotionCor) then
     endif
   endif
 
+  # check if FOV > 256 and issue warning if so
+  set FOV=`mri_info ${origvol} | grep fov: | awk '{print $2}'`
+  set FOV_gt_256=`echo "${FOV} > 256" | bc`
+  if ($FOV_gt_256) then
+    echo "\n*************************************" |& tee -a $LF
+    echo "WARNING! FOV=${FOV} > 256" |& tee -a $LF
+    echo "The flag -cropsize256 is recommended!" |& tee -a $LF
+    echo "*************************************\n" |& tee -a $LF
+  endif
+
   # Add xfm to orig, eventhough it does not exist yet. This is a
   # compromise to keep from having to change the time stamp of
   # the orig volume after talairaching.
@@ -863,29 +873,30 @@ if($DoTalCheck) then
     if($status) goto error_exit;
   endif
   # now run Avi's QA check on the results found in talairach_avi.log
-  set cmd = (awk -f $FREESURFER_HOME/bin/extract_talairach_avi_QA.awk)
-  set cmd = ($cmd $subjdir/mri/transforms/talairach_avi.log)
-  set qalog = ($subjdir/mri/transforms/talairach_avi_QA.log)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) then
-    $fs_time $cmd >& $qalog
-    if($status) goto error_exit;
-    set talAviQA=`grep "TalAviQA" $qalog | awk '{print $2}'`
-    echo "TalAviQA: ${talAviQA}" |& tee -a $LF
-    set mean=(0.9787) # buckner40 mean TalAviQA
-    set std=(0.0046)  # buckner40 std TalAviQA
-    set zscore=`echo "scale=0;(${talAviQA} - ${mean}) / ${std}" | bc`
-    echo "z-score: $zscore" |& tee -a $LF
-    set zscoreThreshold=(-5) # conservative value, but catches M.Harms subj.
-    if ($zscore < $zscoreThreshold) then
+  if ( ! $UseMincMritotal) then
+    set cmd = (awk -f $FREESURFER_HOME/bin/extract_talairach_avi_QA.awk)
+    set cmd = ($cmd $subjdir/mri/transforms/talairach_avi.log)
+    set qalog = ($subjdir/mri/transforms/talairach_avi_QA.log)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd >& $qalog
+      if($status) goto error_exit;
+      set talAviQA=`grep "TalAviQA" ${qalog} | awk '{print $2}'`
+      echo "TalAviQA: ${talAviQA}" |& tee -a $LF
+      set mean=(0.9787) # buckner40 mean TalAviQA
+      set std=(0.0046)  # buckner40 std TalAviQA
+      set zscore=`echo "scale=0;(${talAviQA} - ${mean}) / ${std}" | bc`
+      echo "z-score: ${zscore}" |& tee -a $LF
+      set zscoreThreshold=(-5) # conservative value, but catches M.Harms subj.
+      if ($zscore < $zscoreThreshold) then
         echo "ERROR: Talairach QA check failed!" |& tee -a $LF
         echo "       z-score = ${zscore} < ${zscoreThreshold} = threshold" \
              |& tee -a $LF
         goto error_exit;
+      endif
     endif
   endif
 endif
-
 
 #----------- Defacing ------------------#
 if($DoDeface) then
