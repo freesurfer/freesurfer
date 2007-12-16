@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.5 2007/12/16 18:34:42 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.6 2007/12/16 18:48:27 greve Exp $';
 
 set subject = ();
 set srchemi = ();
@@ -74,7 +74,7 @@ echo "setenv SUBJECTS_DIR $SUBJECTS_DIR "| tee -a $LF
 echo "" | tee -a $LF
 echo "" | tee -a $LF
 date | tee -a $LF
-foreach vol (orig aseg T1 brain)
+foreach vol (orig aseg T1 brain brainmask nu norm )
   set cmd = (mri_convert mri/$vol.mgz $outdir/mri/$vol.mgz --left-right-reverse)
   echo $cmd  | tee -a $LF
   $cmd | tee -a $LF
