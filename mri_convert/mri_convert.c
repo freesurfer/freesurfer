@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/30 23:15:16 $
- *    $Revision: 1.147 $
+ *    $Date: 2007/12/17 22:23:47 $
+ *    $Revision: 1.148 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -59,6 +59,7 @@ extern int errno;
 
 char *Progname;
 
+/*-------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs = 0;
   MRI *mri_unwarped;
@@ -172,13 +173,14 @@ int main(int argc, char *argv[]) {
   char AutoAlignFile[STRLEN];
   MATRIX *AutoAlign = NULL;
   MATRIX *cras = NULL, *vmid = NULL;
+  int ascii_flag = FALSE, c=0,r=0,s=0,f=0;
 
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.147 2007/11/30 23:15:16 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.148 2007/12/17 22:23:47 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -280,7 +282,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.147 2007/11/30 23:15:16 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.148 2007/12/17 22:23:47 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -295,6 +297,10 @@ int main(int argc, char *argv[]) {
     }
     else if(strcmp(argv[i], "--debug") == 0) debug = 1;
     else if(strcmp(argv[i], "--left-right-reverse") == 0) LeftRightReverse = 1;
+    else if(strcmp(argv[i], "--ascii") == 0) {
+      ascii_flag = 1;
+      force_out_type_flag = TRUE;
+    }
     else if(strcmp(argv[i], "--invert_contrast") == 0)
       get_floats(argc, argv, &i, &invert_val, 1);
     else if(strcmp(argv[i], "-i") == 0 ||
@@ -1144,7 +1150,8 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  if (force_out_type_flag && forced_out_type == MRI_VOLUME_TYPE_UNKNOWN) {
+  if(force_out_type_flag && forced_out_type == MRI_VOLUME_TYPE_UNKNOWN &&
+     ! ascii_flag) {
     fprintf(stderr, "\n%s: unknown output volume type %s\n",
             Progname, out_type_string);
     usage_message(stdout);
@@ -1163,8 +1170,8 @@ int main(int argc, char *argv[]) {
 
 
   /* ----- get the type of the output ----- */
-  if (!read_only_flag) {
-    if (!force_out_type_flag) {
+  if(!read_only_flag) {
+    if(!force_out_type_flag) {
       // if(!read_only_flag && !no_write_flag)
       // because conform_flag value changes depending on type below
       {
@@ -1266,7 +1273,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.147 2007/11/30 23:15:16 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.148 2007/12/17 22:23:47 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2233,6 +2240,22 @@ int main(int argc, char *argv[]) {
   if(AutoAlign) mri->AutoAlign = AutoAlign ;
 
   /*------ Finally, write the output -----*/
+  if(ascii_flag){
+    printf("Writing as ASCII to %s\n",out_name);
+    fptmp = fopen(out_name,"w");
+    for(f=0; f < mri->nframes; f++){
+      for(s=0; s < mri->depth; s++){
+	for(r=0; r < mri->height; r++){
+	  for(c=0; c < mri->width; c++){
+	    fprintf(fptmp,"%lf \n",MRIgetVoxVal(mri,c,r,s,f));
+	  }
+	}
+      }
+    }
+    fclose(fptmp);
+    printf("done\n");
+    exit(0);
+  }
   if (!no_write_flag) {
     printf("writing to %s...\n", out_name);
     if (force_out_type_flag) {
@@ -2554,6 +2577,9 @@ void usage(FILE *stream) {
           "N is the new width.\n"
           "\n"  );
 
+  printf("--ascii : save output as ascii. This will be a data file with a single \n");
+  printf("    column of data. The fastest dimension will be col, then row, \n");
+  printf("    then slice, then frame.\n");
   printf("\n");
   printf("Other options\n");
   printf("\n");
