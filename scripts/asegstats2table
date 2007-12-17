@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.12 2007/12/14 22:24:54 greve Exp $
+# $Id: asegstats2table,v 1.13 2007/12/17 21:42:52 greve Exp $
 import sys;
 import os;
 import string;
@@ -18,15 +18,28 @@ import tempfile;
 # of the segmentation in mm3 or the mean intensity over the structure.
 # The first row is a list of the segmentation names. The first column
 # is the subject name. If the measure is volume, then the estimated
-# intracranial volume (eTIV) is printed as the last column.
+# intracranial volume (eTIV) is printed as the last column (if present
+# in the input).
 
-# The subjects list can be specified in either of two ways:
+# The subjects list can be specified in one of four ways:
 #   1. Specify each subject with --s:
 #             --s subject1 --s subject2 ...
 #   2. Specify all subjects after --subjects. --subjects does not have
 #      to be the last argument. Eg:
 #             --subject subject1 subject2 ... 
-#
+
+#   3. Specify each input file with --i:
+#        --i subject1/stats/aseg.stats
+#        --i subject2/stats/aseg.stats  ...
+#   4. Specify all input files after --inputs. --inputs does not have
+#      to be the last argument. Eg:
+#        --inputs subject1/stats/aseg.stats subject2/stats/aseg.stats ...
+
+# The first two methods assume the freesurfer directory structure. The
+# last two are general and can be used with any file produced by
+# mri_segstats regardless of whether it was created with recon-all or not,
+# however, the subject name is not printed in the file (just the row
+# number).
 
 # By default, the volume (mm3) of each segmentation is reported. This
 # can be changed with '--meas measure', where measure can be 
@@ -38,8 +51,9 @@ import tempfile;
 # number with --maxsegno. This can be convenient for removing
 # segmentations that are always empty.
 
-# By default, uses stats/aseg.stats. This can be changed to
-# subdir/statsfile with --subdir subdir --statsfile statsfile.
+# With methods 1 and 2 above uses stats/aseg.stats by default. 
+# This can be changed to subdir/statsfile with --subdir subdir
+# --statsfile statsfile.
 
 # ENDHELP
 # -------------------------------------------------------------------
@@ -47,8 +61,13 @@ import tempfile;
 #---------------------------------------------------------
 def print_usage():
   print "USAGE: asegstats2table";
+  print "";
   print "  --subjects  subject1 <subject2 ...>";
   print "  --s subject1 <--s subject2 ...>";
+  print "";
+  print "  --inputs  input1 <input2 ...>";
+  print "  --i input1 <--i input2 ...>";
+  print "";
   print "  --meas measure : default is vol (alt: mean, std)";
   print "  --maxsegno maxno : maximum segmentation no to report"  
   print "  --stats fname : use fname instead of aseg.stats"  
@@ -92,7 +111,7 @@ def argnerr(narg,flag):
 
 #---------------------------------------------------------
 def parse_args(argv):
-  global Version,debug,OKToSkip;
+  global Version,debug,OKToSkip,DoDirect;
   global tablefile, SUBJECTS, nsubjects, meas, maxsegno;
   global subdir, statsname;
 
@@ -115,6 +134,21 @@ def parse_args(argv):
         del argv[0];
         if(len(argv) < 1): break;
       #endwhile
+      DoDirect = 0;
+    elif(flag == "--i"):
+      if(len(argv) < 1): argnerr(1,flag);
+      SUBJECTS.insert(nsubjects,argv[0]); del argv[0];
+      nsubjects = nsubjects + 1;
+      DoDirect = 1;
+    elif(flag == "--inputs"):
+      if(len(argv) < 1): argnerr(1,flag);
+      while(not isflag(argv[0])):
+        SUBJECTS.insert(nsubjects,argv[0]); 
+        nsubjects = nsubjects + 1;
+        del argv[0];
+        if(len(argv) < 1): break;
+      #endwhile
+      DoDirect = 1;
     elif(flag == "--t"):
       if(len(argv) < 1): argnerr(1,flag);
       tablefile = argv[0];  del argv[0];
@@ -191,13 +225,14 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.12 2007/12/14 22:24:54 greve Exp $';
+Version = '$Id: asegstats2table,v 1.13 2007/12/17 21:42:52 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
 meas = 'volume';
 maxsegno = -1;
 OKToSkip = 0;
+DoDirect = 0;
 debug = 0;
 statsname = 'aseg.stats';
 subdir = 'stats';
@@ -224,9 +259,14 @@ fptbl = open(tablefile,'w');
 
 # Loop thru each subject
 nthsubj = 1;
-for subject in SUBJECTS:
+list = SUBJECTS;
+for subject in list:
 
-  statsfile = SUBJECTS_DIR + '/' + subject + '/' + subdir + '/' + statsname;
+  if(not DoDirect):
+    statsfile = SUBJECTS_DIR + '/' + subject + '/' + subdir + '/' + statsname;
+  else:
+    statsfile = subject;
+  #endif
   if(not os.path.exists(statsfile)):
     if(OKToSkip):
       #sys.stdout.write('Cannot find %s, skipping\n' % (statsfile) );
@@ -263,8 +303,12 @@ for subject in SUBJECTS:
   #endif
 
   # Print subjectid as first col
-  fptbl.write('%s' % (subject) );
-
+  if(not DoDirect):
+    fptbl.write('%s' % (subject) );
+  else:
+    fptbl.write('%d' % (nthsubj) );
+  #endif
+  
   # Now go thru each line and print the measure
   fp = open(statsfile,'r');
   nthseg = 0;
@@ -303,10 +347,13 @@ for subject in SUBJECTS:
   fp.close();
   if(meas == 'volume'):
     if(ICV == -1):
-      sys.stdout.write('ERROR: subject %s does not have ICV\n' % subject);
-      sys.exit(1);
+      if(not DoDirect):
+        sys.stdout.write('ERROR: subject %s does not have ICV\n' % subject);
+        sys.exit(1);
+      #endif
+    else:
+      fptbl.write(' %f' % (ICV));
     #endif
-    fptbl.write(' %f' % (ICV));
   #endif
   fptbl.write('\n');
   if(nthsubj == 1):
