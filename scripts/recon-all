@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/12/16 02:19:23 $
-#    $Revision: 1.157 $
+#    $Author: greve $
+#    $Date: 2007/12/18 04:41:37 $
+#    $Revision: 1.158 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.157 2007/12/16 02:19:23 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.158 2007/12/18 04:41:37 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -210,6 +210,7 @@ set DoSmooth2        = 0;
 set DoInflate2       = 0;
 set DoSphere         = 0;
 set DoSurfReg        = 0;
+set SurfRegToSubj    = ();
 set DoJacobianWhite  = 0;
 set DoJacobianDist0  = 0;
 set DoContraSurfReg  = 0;
@@ -1997,6 +1998,25 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.sphreg.touch
   endif
 
+  #---------- Surface Registration to Average Subject ----------------#
+  if($#SurfRegToSubj) then
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Surf RegTo $SurfRegToSubj $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set AvgTif = $SUBJECTS_DIR/$SurfRegToSubj/$hemi.reg.template.tif
+    set outreg =  ../surf/$hemi.sphere.$SurfRegToSubj.reg
+    set cmd = (mris_register -curv)
+    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
+    set cmd = ($cmd ../surf/$hemi.sphere $AvgTif $outreg);
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.sphreg.$SurfRegToSubj.touch
+  endif
+
   #---------------- Jacobian white --------------------------#
   if($DoJacobianWhite) then
     echo "#--------------------------------------------" \
@@ -3043,6 +3063,16 @@ while( $#argv != 0 )
       set DoSurfReg = 0;
       breaksw
 
+    # Specify an average subject, which will have a tif
+    # in its directory. Output will be hemi.sphere.avgsubj.reg
+    case "-surfreg-to-subject":
+      if( $#argv < 1) goto arg1err;
+      set SurfRegToSubj = $argv[1]; shift;
+      breaksw
+    case "-no-surfreg-to-subject":
+      set SurfRegToSubj = ();
+      breaksw
+
     case "-jacobian_white":
       set DoJacobianWhite = 1;
       breaksw
@@ -4003,7 +4033,7 @@ check_params:
      ! $DoCleanASeg && ! $DoCleanWM && ! $DoCleanSeed && \
      ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && ! $DoCARegInv &&\
      ! $DoMotionCor && ! $DoTalairach && ! $DoTalCheck && \
-     ! $DoNormalization  && \
+     ! $DoNormalization  && ! $#SurfRegToSubj &&\
      ! $DoNormalization2  && ! $DoParcStats && ! $DoParcStats2 && \
      ! $DoVersionsOnly && ! $DoDeface &&  ! $DoCleanPFH && \
      ! $DoSkullStrip && ! $DoSegmentation && ! $DoNuIntensityCor &&\
@@ -4042,6 +4072,19 @@ check_params:
       echo "ERROR: -aparcstatsdiff requires -tp1 <subjid>"
       exit 1;
     endif
+  endif
+
+  if($#SurfRegToSubj) then
+    if(! -e $SUBJECTS_DIR/$SurfRegToSubj) then
+      echo "ERROR: cannot find $SurfRegToSubj"
+      exit 1;
+    endif
+    set AvgTif = $SUBJECTS_DIR/$SurfRegToSubj/$hemi.reg.template.tif
+    if(! -e $AvgTif) then
+      echo "ERROR: cannot find $AvgTif"
+      exit 1;
+    endif
+
   endif
 
 goto check_params_return;
