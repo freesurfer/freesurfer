@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: aparcstats2table,v 1.7 2007/10/12 01:34:05 greve Exp $
+# $Id: aparcstats2table,v 1.8 2007/12/18 00:02:05 greve Exp $
 import sys;
 import os;
 import string;
@@ -61,6 +61,7 @@ def print_usage():
   print "  --skip : if a subject does not have the input, skip it";
   print "  ";
   print "  --t tablefile : output file";
+  print "  --parcid-only : do not pre/append hemi/meas to parc name";
   print "  ";
   print "  --help : help";
   print "  --debug ";
@@ -98,7 +99,7 @@ def argnerr(narg,flag):
 
 #---------------------------------------------------------
 def parse_args(argv):
-  global Version,debug,OKToSkip;
+  global Version,debug,OKToSkip,ParcIdOnly;
   global tablefile, SUBJECTS, nsubjects, hemi, parc, meas;
 
   del argv[0]; # get past program name (del is like shift)
@@ -134,6 +135,8 @@ def parse_args(argv):
       hemi = argv[0];  del argv[0];
     elif(flag == "--skip"):
       OKToSkip = 1;
+    elif(flag == "--parcid-only"):
+      ParcIdOnly = 1;
     elif(flag == "--help"):
       print_usage();
       print "\n%s" % (Version);
@@ -201,12 +204,13 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: aparcstats2table,v 1.7 2007/10/12 01:34:05 greve Exp $';
+Version = '$Id: aparcstats2table,v 1.8 2007/12/18 00:02:05 greve Exp $';
 tablefile = ();
 parc = 'aparc';
 hemi = [];
 meas = 'area';
 OKToSkip = 0;
+ParcIdOnly = 0;
 debug = 0;
 
 SUBJECTS  = [];
@@ -260,7 +264,11 @@ for subject in SUBJECTS:
       else:
         tmp = string.split(line);
         parcid = tmp[0];
-        fptbl.write('%s_%s_%s ' % (hemi,parcid,meas) );
+        if(not ParcIdOnly):
+          fptbl.write('%s_%s_%s ' % (hemi,parcid,meas) );
+        else:
+          fptbl.write('%s ' % (parcid) );
+        #endif
       #endif
     #end # line
     fp.close();
