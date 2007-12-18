@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/12/16 18:26:47 $
-#    $Revision: 1.41 $
+#    $Date: 2007/12/18 03:17:24 $
+#    $Revision: 1.42 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.41 2007/12/16 18:26:47 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.42 2007/12/18 03:17:24 greve Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -142,7 +142,7 @@ foreach hemi (lh rh)
 
   # ------------------------------------------------------------------
   echo "#@# Making $hemi registration template ---------"  | tee -a $LF
-  set atlas = $hemi.atlas.template.tif
+  set atlas = $hemi.reg.template.tif
   set cmd = (mris_make_template -norot -annot aparc \
              $hemi $sphere_reg $tmp_subjects $atlas)
   pwd | tee -a $LF
