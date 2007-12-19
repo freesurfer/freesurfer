@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/02 17:37:13 $
- *    $Revision: 1.54 $
+ *    $Date: 2007/12/19 01:22:05 $
+ *    $Revision: 1.54.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.54 2007/08/02 17:37:13 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.54.2.1 2007/12/19 01:22:05 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -102,24 +102,21 @@ main(int argc, char *argv[])
   int           ac, nargs, vno ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_orig ;
-  double        gray_volume, wm_volume, thickness_mean=0.,thickness_var=0.;
+  double        gray_volume, wm_volume;
   double        mean_abs_mean_curvature, mean_abs_gaussian_curvature;
   double        intrinsic_curvature_index, folding_index ;
-  int           annotation = 0 ;
   FILE          *log_fp = NULL ;
   VERTEX        *v ;
   HISTOGRAM     *histo_gray ;
-  int           ct_index;
-  int           n_vertices = -1;
   MRI           *ThicknessMap = NULL;
   struct utsname uts;
   char *cmdline, *names[MAX_INDICES], full_name[STRLEN] ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option(
-    argc, argv,
-    "$Id: mris_anatomical_stats.c,v 1.54 2007/08/02 17:37:13 nicks Exp $",
-    "$Name:  $");
+  nargs = handle_version_option
+    (argc, argv,
+     "$Id: mris_anatomical_stats.c,v 1.54.2.1 2007/12/19 01:22:05 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -472,7 +469,6 @@ main(int argc, char *argv[])
     fclose(fp);
   }
 
-  if (1 || annotation_name) // new stuff
   {
     double  areas[MAX_INDICES],
     volumes[MAX_INDICES], thicknesses[MAX_INDICES],
@@ -608,10 +604,13 @@ main(int argc, char *argv[])
 
       MRISuseGaussianCurvature(mris) ;
       mean_abs_gaussian_curvature = MRIScomputeAbsoluteCurvatureMarked(mris,i);
-      MRIScomputeCurvatureIndicesMarked(mris, &intrinsic_curvature_index, &folding_index,i) ;
+      MRIScomputeCurvatureIndicesMarked(mris, 
+                                        &intrinsic_curvature_index, 
+                                        &folding_index,i) ;
 
       volumes[i] /= 2 ;
       thickness_vars[i] /= dofs[i] ;
+
       /* output */
 
       if (tablefile != NULL)
@@ -652,6 +651,7 @@ main(int argc, char *argv[])
           (ERROR_BADFILE,
            "%s: no color table loaded - cannot translate annot  file",
            Progname);
+        
         fprintf(stdout,
                 "structure is \"%s\"\n", names[i]) ;
         fprintf(stdout,
@@ -676,257 +676,55 @@ main(int argc, char *argv[])
                 "%2.3f\n",
                 mean_abs_gaussian_curvature) ;
         fprintf(stdout,
-                "folding index                           = %2.0f\n", 
+                "folding index                           = %2.0f\n",
                 folding_index);
         fprintf(stdout,
                 "intrinsic curvature index               = %2.1f\n",
                 intrinsic_curvature_index);
+      }
+
+      if (log_fp)
+      {
+#if SHOW_WHITE_MATTER_VOLUME
+        if (!noheader)
+          fprintf(log_fp, "%% %s: <wm vol> <surf area> <gray vol> "
+                  "<thick mean> <thick var> <integ rect. mean curv> "
+                  "<integ rect. Gauss curv> <fold index> <intr curv ind>\n",
+                  sname) ;
+        fprintf
+        (log_fp,
+         "%2.0f\t%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.0f\t%2.1f\n",
+         wm_volume,
+         mris->total_area,
+         volumes[i],
+         thicknesses[i],
+         sqrt(thickness_vars[i]),
+         mean_abs_mean_curvature,
+         mean_abs_gaussian_curvature,
+         folding_index,
+         intrinsic_curvature_index) ;
+#else
+        if (!noheader)
+          fprintf(log_fp, "%% %s: <surf area> <gray vol> "
+                  "<thick mean> <thick var> <integ rect. mean curv> "
+                  "<integ rect. Gauss curv> <fold index> <intr curv ind>\n",
+                  sname) ;
+        fprintf
+        (log_fp,
+         "%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.0f\t%2.1f\n",
+         mris->total_area,
+         volumes[i],
+         thicknesses[i],
+         sqrt(thickness_vars[i]),
+         mean_abs_mean_curvature,
+         mean_abs_gaussian_curvature,
+         folding_index,
+         intrinsic_curvature_index) ;
+#endif
+        fclose(log_fp) ;
       }
     }
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-    exit(0) ;
-  }
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    if (!histo_flag && annotation_name == NULL)
-      break ;
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    if (histo_flag)
-    {
-      double d, xw, yw, zw, x, y, z, thickness, val ;
-
-      thickness = v->imag_val ;
-
-      for (d = 0.5 ; d < (thickness-0.5) ; d += 0.1)
-      {
-        x = v->x+d*v->nx ;
-        y = v->y+d*v->ny ;
-        z = v->z+d*v->nz ;
-        // MRIworldToVoxel(mri_orig, x, y, z, &xw, &yw, &zw) ;
-        MRIsurfaceRASToVoxel(mri_orig, x, y, z, &xw, &yw, &zw) ;
-        MRIsampleVolume(mri_orig, xw, yw, zw, &val) ;
-        HISTOaddSample(histo_gray, val, 0, 255) ;
-      }
-    }
-    if (annotation_name)
-    {
-
-      annotation = v->annotation ;
-      if (mris->ct && Gdiag_no >= 0)
-      {
-        CTABfindAnnotation(mris->ct, annotation,&ct_index );
-        if (ct_index == Gdiag_no) /* 6 is ectorhinal */
-          DiagBreak() ;
-      }
-
-      MRISripVerticesWithoutAnnotation(mris, annotation) ;
-
-      n_vertices = MRIScountVertices(mris);
-
-      MRIScomputeMetricProperties(mris) ;
-
-      MRIScopyCurvatureFromImagValues(mris) ; /* restore thickness measures */
-      MRIScomputeCurvatureStats(mris, &thickness_mean, &thickness_var,
-                                ignore_below, ignore_above) ;
-
-      gray_volume = MRISmeasureCorticalGrayMatterVolume(mris) ;
-
-      MRISuseMeanCurvature(mris) ;
-      mean_abs_mean_curvature = MRIScomputeAbsoluteCurvature(mris) ;
-
-      MRISuseGaussianCurvature(mris) ;
-      mean_abs_gaussian_curvature = MRIScomputeAbsoluteCurvature(mris) ;
-
-      MRIScomputeCurvatureIndices(mris, 
-                                  &intrinsic_curvature_index, 
-                                  &folding_index) ;
-
-      /* output */
-
-      if (annotation_name && tablefile != NULL)
-      {
-        fp = fopen(tablefile,"a");
-        CTABfindAnnotation(mris->ct, annotation,&ct_index );
-        if (ct_index < 0)
-          fprintf(fp, "  ** annotation %08x", annotation);
-        else
-          fprintf(fp, "%-40s", mris->ct->entries[ct_index]->name);
-        fprintf(fp, "%5d", n_vertices);
-        fprintf(fp, "  %5.0f", mris->total_area) ;
-        fprintf(fp, "  %5.0f", gray_volume) ;
-        fprintf(fp, "  %5.3f %5.3f", thickness_mean, sqrt(thickness_var)) ;
-        fprintf(fp, "  %8.3f", mean_abs_mean_curvature) ;
-        fprintf(fp, "  %8.3f", mean_abs_gaussian_curvature) ;
-        fprintf(fp, "  %7.0f", folding_index);
-        fprintf(fp, "  %6.1f",intrinsic_curvature_index);
-        fprintf(fp, "\n");
-        fclose(fp);
-      }
-
-      if (tabular_output_flag)
-      {
-
-        fprintf(stdout, "%5d", n_vertices);
-        fprintf(stdout, "  %5.0f", mris->total_area) ;
-        fprintf(stdout, "  %5.0f", gray_volume) ;
-        fprintf(stdout, "  %5.3f +- %5.3f",
-                thickness_mean, sqrt(thickness_var)) ;
-        fprintf(stdout, "  %8.3f", mean_abs_mean_curvature) ;
-        fprintf(stdout, "  %8.3f", mean_abs_gaussian_curvature) ;
-        fprintf(stdout, "  %7.0f", folding_index);
-        fprintf(stdout, "  %6.1f",intrinsic_curvature_index);
-
-        CTABfindAnnotation(mris->ct, annotation,&ct_index );
-        if (ct_index < 0)
-          fprintf(stdout, "  ** annotation %08x", annotation);
-        else
-          fprintf(stdout, "  %s", mris->ct->entries[ct_index]->name);
-
-        fprintf(stdout, "\n");
-
-      }
-      else
-      {
-
-        if (mris->ct == NULL)
-          ErrorExit
-          (ERROR_BADFILE,
-           "%s: no color table loaded - cannot translate annot  file",
-           Progname);
-        CTABfindAnnotation(mris->ct, annotation,&ct_index );
-
-        if (ct_index < 0)
-          fprintf
-          (stdout,
-           "statistics for unknown label: annotation %d (%08x) "
-           "(%d %d %d)\n",
-           annotation,
-           annotation,
-           annotation&0xff,
-           (annotation>>8)&0xff,
-           (annotation>>16)&0xff) ;
-        else
-          fprintf(stdout,
-                  "structure is \"%s\"\n",
-                  mris->ct->entries[ct_index]->name);
-        fprintf(stdout,
-                "number of vertices                      = %d\n",
-                n_vertices);
-        fprintf(stdout,
-                "total surface area                      = %2.0f mm^2\n",
-                mris->total_area) ;
-        fprintf(stdout,
-                "total gray matter volume                = %2.0f mm^3\n",
-                gray_volume) ;
-        fprintf(stdout,
-                "average cortical thickness              = %2.3f mm "
-                "+- %2.3f mm\n",
-                thickness_mean, sqrt(thickness_var)) ;
-        fprintf(stdout,
-                "average integrated rectified mean curvature     = "
-                "%2.3f\n",
-                mean_abs_mean_curvature) ;
-        fprintf(stdout,
-                "average integrated rectified Gaussian curvature = "
-                "%2.3f\n",
-                mean_abs_gaussian_curvature) ;
-        fprintf(stdout,
-                "folding index                           = %2.0f\n", 
-                folding_index);
-        fprintf(stdout,
-                "intrinsic curvature index               = %2.1f\n",
-                intrinsic_curvature_index);
-      }
-
-      MRISrestoreSurface(mris) ;
-      MRISreplaceAnnotations(mris, annotation, -1) ;
-      MRISripVerticesWithAnnotation(mris, -1) ;
-
-    }
-  }
-
-  if (annotation_name == NULL)
-  {
-    MRIScopyCurvatureFromImagValues(mris) ;  /* restore thickness measures */
-    MRIScomputeCurvatureStats(mris, &thickness_mean, &thickness_var,
-                              ignore_below, ignore_above) ;
-
-    fprintf(stdout,
-            "total surface area                      = %2.0f mm^2\n",
-            mris->total_area) ;
-
-    gray_volume = MRISmeasureCorticalGrayMatterVolume(mris) ;
-    fprintf(stdout,
-            "total gray matter volume                = %2.0f mm^3\n",
-            gray_volume) ;
-
-    fprintf
-    (stdout,
-     "average cortical thickness              = %2.3f mm +- %2.3f mm\n",
-     thickness_mean, sqrt(thickness_var)) ;
-
-    MRISuseMeanCurvature(mris) ;
-    mean_abs_mean_curvature = MRIScomputeAbsoluteCurvature(mris) ;
-    fprintf
-    (stdout,
-     "average integrated rectified mean curvature     = %2.3f\n",
-     mean_abs_mean_curvature) ;
-    MRISuseGaussianCurvature(mris) ;
-    mean_abs_gaussian_curvature = MRIScomputeAbsoluteCurvature(mris) ;
-    fprintf
-    (stdout,
-     "average integrated rectified Gaussian curvature = %2.3f\n",
-     mean_abs_gaussian_curvature) ;
-    MRIScomputeCurvatureIndices(mris, &intrinsic_curvature_index, &folding_index) ;
-    fprintf(stdout, "folding index                           = %2.0f\n", 
-            folding_index);
-    fprintf
-    (stdout, "intrinsic curvature index               = %2.1f\n", 
-     intrinsic_curvature_index);
-  }
-
-  if (log_fp)
-  {
-#if SHOW_WHITE_MATTER_VOLUME
-    if (!noheader)
-      fprintf(log_fp, "%% %s: <wm vol> <surf area> <gray vol> "
-              "<thick mean> <thick var> <integ rect. mean curv> "
-              "<integ rect. Gauss curv> <fold index> <intr curv ind>\n",
-              sname) ;
-    fprintf
-    (log_fp,
-     "%2.0f\t%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.0f\t%2.1f\n",
-     wm_volume,
-     mris->total_area,
-     gray_volume,
-     thickness_mean,
-     sqrt(thickness_var),
-     mean_abs_mean_curvature,
-     mean_abs_gaussian_curvature,
-     folding_index,
-     intrinsic_curvature_index) ;
-#else
-    if (!noheader)
-      fprintf(log_fp, "%% %s: <surf area> <gray vol> "
-              "<thick mean> <thick var> <integ rect. mean curv> "
-              "<integ rect. Gauss curv> <fold index> <intr curv ind>\n",
-              sname) ;
-    fprintf
-    (log_fp,
-     "%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.0f\t%2.1f\n",
-     mris->total_area,
-     gray_volume,
-     thickness_mean,
-     sqrt(thickness_var),
-     mean_abs_mean_curvature,
-     mean_abs_gaussian_curvature,
-     folding_index,
-     intrinsic_curvature_index) ;
-#endif
-    fclose(log_fp) ;
   }
 
   if (histo_flag)
@@ -1098,46 +896,46 @@ print_help(void)
 {
   print_usage() ;
   fprintf
-    (stderr,
-     "\nThis program measures a variety of anatomical properties.\n") ;
+  (stderr,
+   "\nThis program measures a variety of anatomical properties.\n") ;
   fprintf
-    (stderr, "\nValid options are:\n\n") ;
+  (stderr, "\nValid options are:\n\n") ;
   fprintf
-    (stderr,
-     "-i <low thresh> <hi thresh>  - only consider thicknesses in\n"
-     "                               the specified range\n") ;
+  (stderr,
+   "-i <low thresh> <hi thresh>  - only consider thicknesses in\n"
+   "                               the specified range\n") ;
   fprintf
-    (stderr,
-     "-l <.label file>             - limit calculations to specified "
-     "label\n") ;
+  (stderr,
+   "-l <.label file>             - limit calculations to specified "
+   "label\n") ;
   fprintf
-    (stderr,
-     "-t <thickness file>          - use specified file for computing\n"
-     "                               thickness statistics\n") ;
+  (stderr,
+   "-t <thickness file>          - use specified file for computing\n"
+   "                               thickness statistics\n") ;
   fprintf
-    (stderr,
-     "-a <.annot file>             - compute properties for each label\n"
-     "                               in the annotation file separately\n") ;
+  (stderr,
+   "-a <.annot file>             - compute properties for each label\n"
+   "                               in the annotation file separately\n") ;
   fprintf
-    (stderr,
-     "-b                           - tabular output\n");
+  (stderr,
+   "-b                           - tabular output\n");
   fprintf
-    (stderr,
-     "-f <tablefile>               - table output to a file named tablefile\n"
-     "                               (different format than -b) must specify\n"
-     "                               an annotation file with -a or label\n"
-     "                               file with -l\n");
+  (stderr,
+   "-f <tablefile>               - table output to a file named tablefile\n"
+   "                               (different format than -b) must specify\n"
+   "                               an annotation file with -a or label\n"
+   "                               file with -l\n");
   fprintf
-    (stderr,
-     "-log <log>                   - will write the stats into a file\n"
-     "                               named <log>\n");
+  (stderr,
+   "-log <log>                   - will write the stats into a file\n"
+   "                               named <log>\n");
   fprintf
-    (stderr,
-     "-nsmooth <#>                 - will smooth the thicknessmap # of\n"
-     "                               iterations before using it\n");
+  (stderr,
+   "-nsmooth <#>                 - will smooth the thicknessmap # of\n"
+   "                               iterations before using it\n");
   fprintf
-    (stderr,
-     "-c <.ctab file>              - output the colortable for this annotation\n") ;
+  (stderr,
+   "-c <.ctab file>              - output the colortable for this annotation\n") ;
 
   exit(1) ;
 }
