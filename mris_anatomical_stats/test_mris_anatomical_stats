@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/03 16:41:11 $
-#    $Revision: 1.2 $
+#    $Date: 2007/12/19 01:19:16 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_anatomical_stats,v 1.2 2007/07/03 16:41:11 nicks Exp $'
+set VERSION='$Id: test_mris_anatomical_stats,v 1.3 2007/12/19 01:19:16 nicks Exp $'
 
 umask 002
 
@@ -65,9 +65,9 @@ endif
 
 
 #
-# test2: repeat basic call sequence for lh
+# test2: repeat basic call sequence for lh, plus -log
 #
-set cmd=( ./mris_anatomical_stats testdata2 lh )
+set cmd=( ./mris_anatomical_stats -log test2_logfile.observed testdata2 lh )
 echo ""
 echo $cmd
 $cmd >& test2.out
@@ -77,6 +77,13 @@ if ($status != 0) then
 endif
 grep "=" test2.out > test2.observed
 set cmd=(diff test2.expected test2.observed)
+echo $cmd
+$cmd
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+set cmd=(diff test2_logfile.expected test2_logfile.observed)
 echo $cmd
 $cmd
 if ($status != 0) then
