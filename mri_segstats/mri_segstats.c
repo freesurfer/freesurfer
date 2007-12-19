@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/19 04:32:49 $
- *    $Revision: 1.36 $
+ *    $Date: 2007/12/19 19:14:58 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -411,7 +411,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.36 2007/11/19 04:32:49 greve Exp $";
+"$Id: mri_segstats.c,v 1.37 2007/12/19 19:14:58 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -449,6 +449,7 @@ GCA *gca;
 float maskthresh = 0.5;
 int   maskinvert = 0, maskframe = 0;
 char *masksign=NULL;
+int   maskerode = 0;
 int   nmaskhits;
 int   nbrainsegvoxels = 0;
 double brainsegvolume = 0;
@@ -767,9 +768,14 @@ int main(int argc, char **argv) {
                  maskvol, &nmaskhits);
     if (nmaskhits == 0) {
       printf("ERROR: no voxels in mask meet thresholding criteria\n");
+      printf("thresh = %g, sign = %s, inv = %d\n",maskthresh,masksign,maskinvert);
       exit(1);
     }
-    printf("There were %d voxels in the mask\n",nmaskhits);
+    printf("There were %d voxels in the orginal mask\n",nmaskhits);
+    if(maskerode > 0){
+      printf("Eroding %d voxels in 3d\n",maskerode);
+      for(n=0; n<maskerode; n++) MRIerode(maskvol,maskvol);
+    }
 
     /* perform the masking */
     for (c=0; c < seg->width; c++) {
@@ -1364,6 +1370,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&maskframe);
       nargsused = 1;
+    } else if (!strcmp(option, "--maskerode")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&maskerode);
+      nargsused = 1;
     } else if (!strcasecmp(option, "--maskinvert"))  maskinvert = 1;
 
     else if ( !strcmp(option, "--sum") ) {
@@ -1469,6 +1479,7 @@ static void print_usage(void) {
   printf("   --masksign sign : <abs>,pos,neg\n");
   printf("   --maskframe frame : 0-based frame number <0>\n");
   printf("   --maskinvert : invert mask \n");
+  printf("   --maskerode nerode : erode mask \n");
   printf("\n");
   printf("Brain volume options\n");
   printf("   --brain-vol-from-seg : "
