@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/06/14 03:08:20 $
- *    $Revision: 1.47 $
+ *    $Date: 2007/12/19 21:55:04 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.47 2007/06/14 03:08:20 greve Exp $
+  $Id: fmriutils.c,v 1.48 2007/12/19 21:55:04 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.47 2007/06/14 03:08:20 greve Exp $");
+  return("$Id: fmriutils.c,v 1.48 2007/12/19 21:55:04 greve Exp $");
 }
 
 
@@ -1615,6 +1615,33 @@ MRI *MRIframeMean(MRI *vol, MRI *volmn)
     }//r
   }//s
   return(volmn);
+}
+
+
+/*---------------------------------------------------------------
+  MRIframeSum() - computes sum over frames of each voxel.
+  --------------------------------------------------------------*/
+MRI *MRIframeSum(MRI *vol, MRI *volsum)
+{
+  int c, r, s,f;
+  double v;
+
+  if (volsum == NULL){
+    volsum = MRIallocSequence(vol->width,vol->height,vol->depth,MRI_FLOAT,1);
+    MRIcopyHeader(vol,volsum);
+  }
+
+  for (c=0; c < vol->width; c++)  {
+    for (r=0; r < vol->height; r++)    {
+      for (s=0; s < vol->depth; s++)      {
+        v = 0;
+        for (f=0; f < vol->nframes; f++)
+          v += MRIgetVoxVal(vol,c,r,s,f);
+        MRIsetVoxVal(volsum,c,r,s,0,v);
+      }//s
+    }//r
+  }//s
+  return(volsum);
 }
 
 
