@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/10 22:58:11 $
- *    $Revision: 1.39 $
+ *    $Date: 2007/12/19 19:14:31 $
+ *    $Revision: 1.39.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.39 2007/08/10 22:58:11 greve Exp $
+  $Id: mri2.c,v 1.39.2.1 2007/12/19 19:14:31 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -461,7 +461,8 @@ MRI *mri_binarize(MRI *vol, float thresh, char *tail, int invert,
       {
         for (f=0;f<vol->nframes;f++)
         {
-          val = MRIFseq_vox(vol,c,r,s,f);
+          //val = MRIFseq_vox(vol,c,r,s,f);
+          val = MRIgetVoxVal(vol,c,r,s,f);
           switch (tailcode)
           {
           case 2:
@@ -474,7 +475,8 @@ MRI *mri_binarize(MRI *vol, float thresh, char *tail, int invert,
           if (val > thresh) b = onval;
           else             b = offval;
           if (b) (*nover) ++;
-          MRIFseq_vox(voltmp,c,r,s,f) = b;
+          //MRIFseq_vox(voltmp,c,r,s,f) = b;
+          MRIsetVoxVal(voltmp,c,r,s,f,b);
         }
       }
     }
