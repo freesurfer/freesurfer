@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/18 22:43:49 $
- *    $Revision: 1.22 $
+ *    $Date: 2007/12/20 19:37:20 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -75,6 +75,7 @@ double MRIsum2All(MRI *mri);
 MRI *MRIchecker(MRI *mri, MRI *checker);
 MRI *MRIcrop(MRI *mri,int c1, int r1, int s1, int c2, int r2, int s2);
 MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int s2);
-
+MRI *MRIsquare(MRI *in, MRI *mask, MRI *out);
+MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out);
 
 #endif

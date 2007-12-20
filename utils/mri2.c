@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/19 19:13:01 $
- *    $Revision: 1.41 $
+ *    $Date: 2007/12/20 19:37:21 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.41 2007/12/19 19:13:01 greve Exp $
+  $Id: mri2.c,v 1.42 2007/12/20 19:37:21 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -2042,6 +2042,72 @@ double MRIsum2All(MRI *mri)
     }
   }
   return(sum2all);
+}
+/*!
+  \fn MRI *MRIsquare(MRI *in, MRI *mask, MRI *out)
+  \brief Squares the value at each voxel. Values outside 
+  of the mask are set to 0. mask can be NULL.
+*/
+MRI *MRIsquare(MRI *in, MRI *mask, MRI *out)
+{
+  int c,r,s,f;
+  double val, mval;
+
+  if(out == NULL)  out = MRIclone(in, NULL);
+
+  mval = 1;
+  for(c=0; c < in->width; c++) {
+    for(r=0; r < in->height; r++) {
+      for(s=0; s < in->depth; s++) {
+	if(mask) mval = MRIgetVoxVal(mask,c,r,s,0);
+	if(mask){
+	  val = MRIgetVoxVal(mask,c,r,s,0);
+	  if(val < 0.5) continue;
+	}
+        for(f=0; f < in->nframes; f++) {
+	  if(mval > 0.5){
+	    val = MRIgetVoxVal(in,c,r,s,f);
+	    if(val < 0) val = 0.0;
+	  }
+	  else val = 0.0;
+	  MRIsetVoxVal(out,c,r,s,f,val*val);
+        }
+      }
+    }
+  }
+  return(out);
+}
+/*!
+  \fn MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out)
+  \brief Square root of the value at each voxel.
+  If a value is less than 0, then sets the sqroot 
+  to 0. Values outside of the mask are set to 0.
+  mask can be NULL.
+*/
+MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out)
+{
+  int c,r,s,f;
+  double val, mval;
+
+  if(out == NULL)  out = MRIclone(in, NULL);
+
+  mval = 1;
+  for(c=0; c < in->width; c++) {
+    for(r=0; r < in->height; r++) {
+      for(s=0; s < in->depth; s++) {
+	if(mask) mval = MRIgetVoxVal(mask,c,r,s,0);
+        for(f=0; f < in->nframes; f++) {
+	  if(mval > 0.5){
+	    val = MRIgetVoxVal(in,c,r,s,f);
+	    if(val < 0) val = 0.0;
+	  }
+	  else val = 0.0;
+	  MRIsetVoxVal(out,c,r,s,f,sqrt(val));
+        }
+      }
+    }
+  }
+  return(out);
 }
 /*---------------------------------------------------------------*/
 /*!
