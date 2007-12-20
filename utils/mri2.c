@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/20 19:37:21 $
- *    $Revision: 1.42 $
+ *    $Date: 2007/12/20 20:06:18 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.42 2007/12/20 19:37:21 greve Exp $
+  $Id: mri2.c,v 1.43 2007/12/20 20:06:18 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -1369,37 +1369,11 @@ int WritePCAStats(char *fname, MATRIX *Spca)
   return(0);
 }
 /*---------------------------------------------------------------
-  MRIsqrt() - computes sqrt(fabs(v))
+  MRIsqrt() - computes sqrt(fabs(v)). Calls MRIsquraRoot().
   ---------------------------------------------------------------*/
 MRI *MRIsqrt(MRI *invol, MRI *outvol)
 {
-  int c,r,s,f;
-  double v;
-
-  if (outvol == NULL)
-  {
-    outvol = MRIallocSequence(invol->width, invol->height,
-                              invol->depth,MRI_FLOAT, invol->nframes);
-    MRIcopyHeader(invol,outvol);
-    outvol->type = MRI_FLOAT;
-  }
-  // Should check that the dims are the same
-
-  for (c=0;c<invol->width;c++)
-  {
-    for (r=0;r<invol->height;r++)
-    {
-      for (s=0;s<invol->depth;s++)
-      {
-        for (f=0; f < invol->nframes; f++)
-        {
-          v = MRIgetVoxVal(invol,c,r,s,f);
-          MRIsetVoxVal(outvol,c,r,s,f,sqrt(fabs(v)));
-        }
-      }
-    }
-  }
-
+  outvol = MRIsquareRoot(invol,NULL,outvol);
   return(outvol);
 }
 /*------------------------------------------------------*/
@@ -2079,17 +2053,21 @@ MRI *MRIsquare(MRI *in, MRI *mask, MRI *out)
 }
 /*!
   \fn MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out)
-  \brief Square root of the value at each voxel.
-  If a value is less than 0, then sets the sqroot 
-  to 0. Values outside of the mask are set to 0.
-  mask can be NULL.
+  \brief Square root of the fabs(value) at each voxel.
+  Values outside of the mask are set to 0.  mask can be 
+  NULL.
 */
 MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out)
 {
   int c,r,s,f;
   double val, mval;
 
-  if(out == NULL)  out = MRIclone(in, NULL);
+  if (out == NULL) {
+    out = MRIallocSequence(in->width, in->height,
+			   in->depth,MRI_FLOAT, in->nframes);
+    MRIcopyHeader(in,out);
+    out->type = MRI_FLOAT;
+  }
 
   mval = 1;
   for(c=0; c < in->width; c++) {
@@ -2099,10 +2077,9 @@ MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out)
         for(f=0; f < in->nframes; f++) {
 	  if(mval > 0.5){
 	    val = MRIgetVoxVal(in,c,r,s,f);
-	    if(val < 0) val = 0.0;
 	  }
 	  else val = 0.0;
-	  MRIsetVoxVal(out,c,r,s,f,sqrt(val));
+	  MRIsetVoxVal(out,c,r,s,f,sqrt(fabs(val)));
         }
       }
     }
