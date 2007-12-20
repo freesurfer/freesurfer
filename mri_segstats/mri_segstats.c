@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/19 19:14:58 $
- *    $Revision: 1.37 $
+ *    $Date: 2007/12/20 20:08:20 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -92,6 +92,11 @@ and dimension as the segmentation volume.
 
 Report statistics of the input volume at the 0-based frame number.
 frame is 0 be default.
+
+--sqr
+--sqrt
+
+Compute square or square root of input prior to computing stats.
 
 --ctab ctabfile
 
@@ -411,7 +416,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.37 2007/12/19 19:14:58 greve Exp $";
+"$Id: mri_segstats.c,v 1.38 2007/12/20 20:08:20 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -471,6 +476,9 @@ char *annot   = NULL;
 
 int Vox[3], DoVox = 0;
 int  segbase = -1000;
+
+int DoSquare = 0;
+int DoSquareRoot = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -696,6 +704,14 @@ int main(int argc, char **argv) {
     if(MRIdimMismatch(invol,seg,0)) {
       printf("ERROR: dimension mismatch between input volume and seg\n");
       exit(1); 
+    }
+    if(DoSquare){
+      printf("Computing square of input\n");
+      MRIsquare(invol, NULL, invol);
+    }
+    if(DoSquareRoot){
+      printf("Computing square root of input\n");
+      MRIsquareRoot(invol, NULL, invol);
     }
   }
 
@@ -1295,6 +1311,8 @@ static int parse_commandline(int argc, char **argv) {
     else if ( !strcmp(option, "--excl-ctxgmwm") ) DoExclCtxGMWM = 1;
     else if ( !strcmp(option, "--surf-ctxgmwm") ) DoSurfCtxGMWM = 1;
     else if ( !strcmp(option, "--surf-wm-vol") )  DoSurfWMVol = 1;
+    else if ( !strcmp(option, "--sqr") )  DoSquare = 1;
+    else if ( !strcmp(option, "--sqrt") )  DoSquareRoot = 1;
 
     else if ( !strcmp(option, "--sd") ) {
       if(nargc < 1) argnerr(option,1);
@@ -1463,6 +1481,8 @@ static void print_usage(void) {
   printf("   --pv pvvol : use pvvol to compensate for partial voluming\n");
   printf("   --in invol : report more stats on the input volume\n");
   printf("   --frame frame : report stats on nth frame of input volume\n");
+  printf("   --sqr  : compute the square of the input\n");
+  printf("   --sqrt : compute the square root of the input\n");
   printf("\n");
   printf("   --ctab ctabfile : color table file with seg id names\n");
   printf("   --ctab-default: use $FREESURFER_HOME/FreeSurferColorLUT.txt\n");
@@ -1566,6 +1586,11 @@ printf("--frame frame\n");
 printf("\n");
 printf("Report statistics of the input volume at the 0-based frame number.\n");
 printf("frame is 0 be default.\n");
+printf("\n");
+printf("--sqr\n");
+printf("--sqrt\n");
+printf("\n");
+printf("Compute square or square root of input prior to computing stats.\n");
 printf("\n");
 printf("--ctab ctabfile\n");
 printf("\n");
