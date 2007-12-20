@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/12/10 18:53:00 $
-%    $Revision: 1.25.2.1 $
+%    $Date: 2007/12/20 21:06:21 $
+%    $Revision: 1.25.2.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -227,6 +227,7 @@ if(ana.firfit)
 end
 
 flac.ana = ana;
+flac.ana.con = [];
 
 nthev = 1;
 tline = sprintf('EV Baseline baseline nuis');
