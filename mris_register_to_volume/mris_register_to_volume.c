@@ -4,14 +4,15 @@
  *        
  *
  * Program to compute a rigid alignment between a surface and a volume by maximizing the gradient
- * magnitude across the gray/white boundary, divided by it's variance
+ * magnitude across the gray/white boundary, divided by its variance
+ * Now supports multiple similarity functions.
  */
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/12/13 02:48:23 $
- *    $Revision: 1.6 $
+ *    $Author: fischl $
+ *    $Date: 2007/12/20 21:49:00 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +36,8 @@ BEGINUSAGE --------------------------------------------------------------
   --reg regfile
   --mov fvol
   --surf surface   : surface to read in
-  --pial pial surface name   : surface to read in
+  --pial pial surface name   : pial surface to read in
+  --pial_only pial surface name   : pial surface to read in (don't use white in similarity)
 
   --median        : apply median filter
   --patch patch   :  patch  to read in
@@ -119,11 +121,15 @@ ENDHELP --------------------------------------------------------------
 #include "pdf.h"
 #include "timer.h"
 #include "numerics.h"
+#include "mri_circulars.h"
 
 #ifdef X
 #undef X
 #endif
 
+#define MIN_RES .1 // reduce until mri->xsize is less than this in mm
+
+  //static int write_register_dat(MATRIX *m, char *fname, MRI_SURFACE *mris, MRI *mri, char *subject) ;
 double *GetCosts(MRI *mri_reg, MRI *seg, MATRIX *R0, MATRIX *R, double *p, double *costs);
 int Min1D(MRI *mri_reg, MRI_SURFACE *mris, MATRIX *R, double *p, char *costfile, double *costs);
 
@@ -136,8 +142,10 @@ static int powell_minimize_rigid(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask,
                                  double (*similarity_func)(MRI_SURFACE *mris, MRI *mri_reg, 
                                                            MRI *mri_mask, MATRIX *m, int skip, double scale, int diag));
 
+static MRI *mri_surface_edges(MRI *mri, MRI *mri_grad, float ndist, float tdist, int dir, MRI *mri_edge) ;;
 static int  parse_commandline(int argc, char **argv);
 static double mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX *m, int skip, double scale, int diag);
+static double mrisRegistrationOverlapSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX *m, int skip, double scale, int diag);
 static double mrisRegistrationDistanceSimilarity(MRI_SURFACE *mris, MRI *mri_dist, MRI *mri_mask, MATRIX *m, int skip, double scale, int diag);
 static double mrisRegistrationGradientSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX *m, int skip, double scale, int diag);
 static double mrisRegistrationGradientSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX *m, int skip, double scale, int diag);
@@ -155,15 +163,19 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_register_to_volume.c,v 1.6 2007/12/13 02:48:23 nicks Exp $";
+static char vcid[] = "$Id: mris_register_to_volume.c,v 1.7 2007/12/20 21:49:00 fischl Exp $";
 char *Progname = NULL;
 
+static int cropy0 = -1 ; 
+static int cropy1 = -1 ;
+static FILE *logfp = NULL ;
 static int debug = 0, gdiagno = -1;
 static int ndilates = 2 ;
 static char *patch_fname = NULL ;
 static char *vol_fname=NULL;
 static char *surf_fname = NULL ;
 static char *pial_fname = NULL ;
+static int pial_only = 0 ;   
 static char *regfile=NULL;
 static char *outregfile=NULL;
 static char *interpmethod = "trilinear";
@@ -177,6 +189,8 @@ static int min_skip = 8 ;
 static double max_sigma = 2 ;
 static double min_sigma = .5 ;
 
+static int do_global_search = 1 ;
+static int ncalls = 0 ;
 
 static MRI *mri_reg, *mri_grad = NULL ;
 
@@ -185,8 +199,9 @@ MATRIX *R0;
 char *SUBJECTS_DIR=NULL;
 char *subject = "unknown";
 
-static float ipr, bpr, intensity;
-static int float2int, nargs;
+//static float ipr, bpr, intensity;
+//static int float2int ;
+static int nargs;
 
 static int niter = 0 ;
 static int write_iter = 1 ;
@@ -201,7 +216,7 @@ static int UseASeg = 0;
 static int DoCrop = 0;
 static int DoProfile = 0;
 static int mask_size = 20 ;
-static int apply_median_filter = 1 ;
+static int apply_median_filter = 0 ;
 #define NMAX 100
 static int ntx=0, nty=0, ntz=0, nax=0, nay=0, naz=0;
 static double txlist[NMAX],tylist[NMAX],tzlist[NMAX];
@@ -230,7 +245,7 @@ static double find_optimal_rigid_alignment(MRI_SURFACE *mris, MRI *mri_reg, MRI 
 static double (*similarity_func)
      (MRI_SURFACE *mris, MRI *mri_reg, 
       MRI *mri_mask, MATRIX *m, int skip, double scale, 
-      int diag) = mrisRegistrationGradientSimilarity ;
+      int diag) = mrisRegistrationGradientNormalSimilarity ;
 
 /*---------------------------------------------------------------*/
 int
@@ -239,20 +254,21 @@ main(int argc, char **argv)
   char          cmdline[CMD_LINE_LEN], *saved_pial_fname ;
   MRI_SURFACE   *mris ;
   int           skip, i ;
-  MRI           *mri_kernel, *mri_smooth, *mri_mask ;
+  MRI           *mri_kernel, *mri_smooth, *mri_mask, *mri_mag ;
   double        sigma, last_similarity, similarity ;
 #if 0
   MRI           *mri_dist;
   HISTOGRAM     *h ;
 #endif
+  MATRIX        *m_save = NULL ;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mris_register_to_volume.c,v 1.6 2007/12/13 02:48:23 nicks Exp $",
+                          "$Id: mris_register_to_volume.c,v 1.7 2007/12/20 21:49:00 fischl Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mris_register_to_volume.c,v 1.6 2007/12/13 02:48:23 nicks Exp $",
+                                "$Id: mris_register_to_volume.c,v 1.7 2007/12/20 21:49:00 fischl Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -281,10 +297,12 @@ main(int argc, char **argv)
     if (MRISreadVertexPositions(mris, pial_fname) != NO_ERROR)
       ErrorExit(Gerror, "") ;
     MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+    MRIScomputeMetricProperties(mris) ;
+    MRISsaveNormals(mris, PIAL_VERTICES) ;
     MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+    MRIScomputeMetricProperties(mris) ;
   }
     
-
   if (patch_fname)
   {
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
@@ -292,42 +310,59 @@ main(int argc, char **argv)
     MRISdilateRipped(mris, ndilates) ;
     printf("using surface patch with %d vertices\n", MRISvalidVertices(mris)) ;
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRIScomputeMetricProperties(mris) ;
   }
   MRISresetNeighborhoodSize(mris, 2) ;
-  
-  printf("Loading mov %s\n", vol_fname);
-  mri_reg = MRIread(vol_fname);
-  if (mri_reg == NULL) 
-    exit(1);
-  {
-    MRI *mri_tmp ;
-    mri_tmp = MRIextract(mri_reg, NULL, mask_size, mask_size, mask_size,
-                         (mri_reg->width-2*mask_size),
-                         (mri_reg->height-2*mask_size),
-                         (mri_reg->depth-2*mask_size)) ;
-    MRIfree(&mri_reg) ;
-    mri_reg = mri_tmp ;
-  }
 
+  if (0)
+  {
+    printf("Loading mov %s\n", vol_fname);
+    mri_reg = MRIread(vol_fname);
+    if (mri_reg == NULL) 
+      exit(1);
+    {
+      MRI *mri_tmp ;
+      int y0, y1 ;
+      
+      y0 = mask_size ; 
+      y1 = (mri_reg->height-2*mask_size) ;
+      if (cropy0 >= 0 && cropy0 > y0)
+        y0 = cropy0 ;
+      if (cropy1 >= 0 && cropy1 < y1)
+        y1 = cropy1 ;
+      mri_tmp = MRIextract(mri_reg, NULL, mask_size, y0, mask_size,
+                           (mri_reg->width-2*mask_size),
+                           y1,
+                           (mri_reg->depth-2*mask_size)) ;
+      MRIfree(&mri_reg) ;
+      mri_reg = mri_tmp ;
+    }
+  }
+  else
+    mri_reg = MRIread("reduced.mgz") ;
+  if (outregfile)
+  {
+    char fname[STRLEN] ;
+    FileNameOnly(outregfile, fname) ;
+    FileNameRemoveExtension(fname, fname) ;
+    strcat(fname, ".log") ;
+    logfp = fopen(fname, "w") ;
+  }
   if (apply_median_filter) /* -median option ... modify 
                               mri_reg using the filter */
   {
     MRI        *mri_tmp ;
-    MRI_REGION box ;
-    double     dist = mask_size-.5 ;
-
-    box.x = nint(dist/mri_reg->xsize) ;
-    box.y = nint(dist/mri_reg->ysize) ;
-    box.z = nint(dist/mri_reg->zsize) ;
-    box.dx = mri_reg->width - 2*nint(dist/mri_reg->xsize) ;
-    box.dy = mri_reg->height - 2*nint(dist/mri_reg->ysize) ;
-    box.dz = mri_reg->depth - 2*nint(dist/mri_reg->zsize) ;
-
     fprintf(stderr, "applying median filter to input volume...\n") ;
-    mri_tmp = MRIcopy(mri_reg, NULL) ;  // copy stuff outside of range
-    MRImedian(mri_reg, mri_tmp, 3, &box) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+
+    if (0)
+    {
+      mri_tmp = MRIcopy(mri_reg, NULL) ;  // copy stuff outside of range
+      MRImedian(mri_reg, mri_tmp, 3, NULL) ;
+    //    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_tmp, "median.mgz") ;
+    }
+    else
+      mri_tmp = MRIread("median.mgz") ;
     MRIfree(&mri_reg) ;
     mri_reg = mri_tmp ;
   }
@@ -335,86 +370,199 @@ main(int argc, char **argv)
   MRIsetValues(mri_mask, 1) ;
   MRIeraseBorderPlanes(mri_mask, 1) ;
 
+  if (regfile)
+  {
+    printf("reading in previously computed registration from %s\n", regfile);
+    R0 = regio_read_surfacexform_from_register_dat(regfile, mris,
+                                                   mri_reg, &subject);
+    if (R0 == NULL)
+      exit(Gerror) ;
+  }
+
   for (skip = max_skip ; skip >= min_skip;  skip /= 2)
   {
     for (sigma = max_sigma ; sigma >= min_sigma ; sigma /= 2)
     {
       printf("---------------- skip = %d, sigma = %2.1f ---------------------\n", skip, sigma);
       printf("computing gradient at scale %2.3f...\n",sigma) ;
-      mri_kernel = MRIgaussian1d(sigma/mri_reg->xsize, -1) ;
-      mri_smooth = MRIconvolveGaussian(mri_reg, NULL, mri_kernel) ;
-      MRIfree(&mri_kernel) ;
-      mri_grad = MRIsobel(mri_smooth, mri_grad, NULL) ;
-      MRIeraseBorderPlanes(mri_grad, 1) ;
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      if (logfp)
       {
-        MRIwrite(mri_grad, "grad.mgz") ;
-        MRIwrite(mri_reg, "r.mgz") ;
+        fprintf(logfp, "---------------- skip = %d, sigma = %2.1f ---------------------\n", skip, sigma);
+        fprintf(logfp, "computing gradient at scale %2.3f...\n",sigma) ;
+        fflush(logfp) ;
       }
-      MRIfree(&mri_smooth) ; 
-      find_optimal_translations(mris, mri_reg, mri_mask,R0, max_trans, skip, similarity_func) ;
-      find_optimal_rotations(mris, mri_reg, mri_mask, R0, max_rot, skip, similarity_func) ;
-      find_optimal_rigid_alignment(mris, mri_reg, mri_mask, R0, max_trans/5, 
-                                   max_rot, skip, similarity_func);
-      powell_minimize_rigid(mris, mri_reg, mri_mask, R0, skip,similarity_func);
+      if (!FEQUAL(sigma, max_sigma) || 0)  // compute gradient of smoothed image
       {
-        MATRIX *m = MatrixInverse(R0, NULL) ;
+        mri_kernel = MRIgaussian1d(sigma/mri_reg->xsize, -1) ;
+        mri_smooth = MRIconvolveGaussian(mri_reg, NULL, mri_kernel) ;
+        mri_mag = MRIclone(mri_smooth, NULL) ;
+        mri_grad = MRIsobel(mri_smooth, mri_grad, mri_mag) ;
+        if (FEQUAL(sigma, max_sigma))
+        {
+          MRIwrite(mri_mag, "mag.mgz") ;
+          MRIwrite(mri_grad, "grad.mgz") ;
+        }
+        MRIeraseBorderPlanes(mri_grad, 1) ;
+        if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+        {
+          MRIwrite(mri_reg, "r.mgz") ;
+        }
+        MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
+      }
+      else
+      {
+        mri_grad = MRIread("grad.mgz") ;
+        mri_mag = MRIread("mag.mgz") ;
+      }
+      if (0)
+      {
+        MRI *mri_edge, *mri_reduced, *mri_tmp, *mri_reduced_grad  ;
+        int  nreductions = 0;
 
-        regio_write_register("reg1.dat",subject,mri_reg->xsize,
-                             mri_reg->zsize,1,R0,FLT2INT_ROUND);
-        regio_write_register("inv1.dat",subject,mri_reg->xsize,
-                             mri_reg->zsize,1,m,FLT2INT_ROUND);
-        MatrixFree(&m) ;
+        mri_reduced = MRIcopy(mri_reg, NULL) ;
+        while (mri_reduced->xsize < MIN_RES)
+        {
+          char fname[STRLEN] ;
+
+          mri_tmp = mri_reduced ;
+          mri_reduced = MRIreduce(mri_tmp, NULL) ;
+          MRIfree(&mri_tmp) ; 
+          nreductions++ ;
+          sprintf(fname, "red%d.mgz", nreductions) ;
+          MRIwrite(mri_reduced, fname) ;
+        }
+
+        mri_kernel = MRIgaussian1d(sigma/mri_reduced->xsize, -1) ;
+        mri_smooth = MRIconvolveGaussian(mri_reduced, NULL, mri_kernel) ;
+        MRIwrite(mri_reduced, "red.mgz") ;
+        MRIwrite(mri_smooth, "rsmooth.mgz") ;
+        mri_smooth = MRIconvolveGaussian(mri_reduced, NULL, mri_kernel) ;
+        mri_reduced_grad = MRIsobel(mri_smooth, NULL, NULL) ;
+        MRIwrite(mri_reduced_grad, "rgrad.mgz") ;
+        mri_edge = mri_surface_edges(mri_reduced, mri_reduced_grad, 1.0, 2.0, 1.0, NULL) ;
+        MRIwrite(mri_edge, "edge.mgz") ;
+        MRIfree(&mri_smooth) ;
+        mri_smooth = MRIconvolveGaussian(mri_edge, NULL, mri_kernel) ;
+        MRIfree(&mri_edge) ; mri_edge = mri_smooth ;
+        MRIwrite(mri_edge, "sedge.mgz") ;
+        MRIfree(&mri_kernel) ;
+        while (nreductions > 0)
+        {
+          char fname[STRLEN] ;
+
+          mri_tmp = MRIupsample2(mri_edge, NULL) ;
+          MRIfree(&mri_edge) ;
+          mri_edge = mri_tmp ;
+          sprintf(fname, "up%d.mgz", nreductions) ;
+          MRIwrite(mri_edge, fname) ;
+          nreductions-- ;
+        }
+        MRIwrite(mri_edge, "eup.mgz") ;
+        {
+          MRI       *mri_distance ;
+          HISTOGRAM *h, *hcdf ;
+          int       b ;
+          float     thresh ;
+
+          h = MRIhistogram(mri_edge, 100) ;
+          HISTOplot(h, "h.plt") ;
+          HISTOclearZeroBin(h) ;
+          hcdf = HISTOmakeCDF(h, NULL) ;
+          HISTOplot(hcdf, "cdf.plt") ;
+          b = HISTOfindBinWithCount(hcdf, 0.8) ;
+          thresh = h->bins[b] ;
+          MRIbinarize(mri_edge, mri_edge, thresh, 0, 1) ;
+          mri_distance = MRIdistanceTransform(mri_edge, NULL, 1, 1000, DTRANS_MODE_UNSIGNED) ;
+          MRIscalarMul(mri_distance, mri_distance, -1) ;
+          MRIwrite(mri_distance, "dist.mgz") ;
+          mri_edge->outside_val = -1000;
+          MRIfree(&mri_edge) ; mri_edge = mri_distance ;
+          HISTOfree(&h) ; HISTOfree(&hcdf) ;
+        }
+
+        find_optimal_translations(mris, mri_edge,mri_mask,R0, max_trans, skip, 
+                                  mrisRegistrationOverlapSimilarity) ;
+        if (0)
+          find_optimal_rotations(mris, mri_edge, mri_mask, R0, max_rot, skip, 
+                                 mrisRegistrationOverlapSimilarity) ;
+        find_optimal_rigid_alignment(mris, mri_edge, mri_mask, R0, max_trans/5,
+                                     max_rot, skip, 
+                                     mrisRegistrationOverlapSimilarity);
+        MRIfree(&mri_edge) ; MRIfree(&mri_reduced) ;
       }
-      similarity =  
-        mrisRegistrationCNRSimilarity(mris, mri_reg, mri_mask,R0,0, 1, 0) ;
+      if (1) // threshold gradient image
+      {
+        int       b ;
+        double    thresh ;
+        HISTOGRAM *h, *hcdf ;
+
+        h = MRIhistogram(mri_mag, 100) ;
+        HISTOplot(h, "h.plt") ;
+        HISTOclearZeroBin(h) ;
+        hcdf = HISTOmakeCDF(h, NULL) ;
+        HISTOplot(hcdf, "cdf.plt") ;
+        thresh = .5 ;
+        b = HISTOfindBinWithCount(hcdf, thresh) ; // only keep top 20% of edges
+        thresh = h->bins[b] ;
+        MRIbinarize(mri_mag, mri_mag, thresh, 0, 1) ;
+        MRImask(mri_grad, mri_mag, mri_grad, 0,0) ;
+        MRIwrite(mri_grad, "mgrad.mgz") ;
+        MRIwrite(mri_grad, "mmag.mgz") ;
+        HISTOfree(&h) ; HISTOfree(&hcdf) ;
+      }
+
+      if (do_global_search != 0)
+      {
+        find_optimal_translations(mris, mri_reg, mri_mask,R0, max_trans, skip, similarity_func) ;
+#if 0
+        find_optimal_rotations(mris, mri_reg, mri_mask, R0, max_rot, skip, similarity_func) ;
+#endif
+        find_optimal_rigid_alignment(mris, mri_reg, mri_mask, R0, max_trans/5, 
+                                     max_rot, skip, similarity_func);
+      }
+      //      powell_minimize_rigid(mris, mri_reg, mri_mask, R0, skip,similarity_func);
+      if (pial_only)
+        similarity = (*similarity_func)(mris, mri_reg, mri_mask,R0,0, 1, 0) ;
+      else
+        similarity =  
+          mrisRegistrationCNRSimilarity(mris, mri_reg, mri_mask,R0,0, 1, 0) ;
 
       i = 0 ;
       do
       {
         printf("-------- loop %d: starting similarity %2.1f ----------\n",
                ++i, similarity) ;
+        m_save = MatrixCopy(R0, m_save) ;
         powell_minimize_rigid(mris, mri_reg, mri_mask, R0, 0, similarity_func);
-        powell_minimize_rigid(mris, mri_reg, mri_mask, R0, 0, similarity_func);
-        saved_pial_fname = pial_fname ;
-        pial_fname = NULL ;
-        printf("!!!!!! disabling pial surface !!!!!!!!!!!!\n") ;
-        powell_minimize_rigid(mris, mri_reg, mri_mask, R0, 0, similarity_func);
-        pial_fname = saved_pial_fname ;
+        if (pial_fname && !pial_only)
         {
-          MATRIX *m = MatrixInverse(R0, NULL) ;
-          
-          regio_write_register("reg2.dat",subject,mri_reg->xsize,
-                               mri_reg->zsize,1,R0,FLT2INT_ROUND);
-          regio_write_register("inv2.dat",subject,mri_reg->xsize,
-                               mri_reg->zsize,1,m,FLT2INT_ROUND);
-          MatrixFree(&m) ;
+          saved_pial_fname = pial_fname ;
+          pial_fname = NULL ;
+          printf("!!!!!! disabling pial surface !!!!!!!!!!!!\n") ;
+          powell_minimize_rigid(mris, mri_reg, mri_mask, R0, 0, similarity_func);
+          pial_fname = saved_pial_fname ;
         }
-        if (similarity_func != mrisRegistrationCNRSimilarity)
-        {
+        if (similarity_func != mrisRegistrationCNRSimilarity && !pial_only)
           powell_minimize_rigid(mris, mri_reg, mri_mask, R0, 0, 
                                 mrisRegistrationCNRSimilarity);
-          {
-            MATRIX *m = MatrixInverse(R0, NULL) ;
-            
-            regio_write_register("reg2.dat",subject,mri_reg->xsize,
-                                 mri_reg->zsize,1,R0,FLT2INT_ROUND);
-            regio_write_register("inv2.dat",subject,mri_reg->xsize,
-                                 mri_reg->zsize,1,m,FLT2INT_ROUND);
-            MatrixFree(&m) ;
-          }
-        }
         last_similarity = similarity ;
-        similarity =  
-          mrisRegistrationCNRSimilarity(mris, mri_reg, mri_mask,R0,0, 1, 0) ;
+        if (pial_only)
+          similarity = (*similarity_func)(mris, mri_reg, mri_mask,R0,0, 1, 0) ;
+        else
+          similarity =  
+            mrisRegistrationCNRSimilarity(mris, mri_reg, mri_mask,R0,0, 1, 0) ;
+        if (similarity < last_similarity)
+        {
+          printf("similarity decreased - restoring saved registration\n") ;
+          MatrixCopy(m_save, R0) ;
+        }
       } while (similarity > last_similarity) ;
 
       printf("saving current registration to %s\n", outregfile) ;
-      regio_write_register(outregfile,subject,mri_reg->xsize,
-                           mri_reg->zsize,1,R0,FLT2INT_ROUND);
-      break ;
+      regio_write_surfacexform_to_register_dat(R0, outregfile, mris, mri_reg, subject, FLT2INT_ROUND) ;
+      if (FZERO(min_sigma) && FZERO(sigma))
+        break ;
     }
-    break ;
     if (skip == 0)
       break ;
   }
@@ -425,8 +573,7 @@ main(int argc, char **argv)
   
   if(outregfile){
     printf("Writing optimal reg to %s \n",outregfile);
-    regio_write_register(outregfile,subject,mri_reg->xsize,
-                         mri_reg->zsize,1,R0,FLT2INT_ROUND);
+    regio_write_surfacexform_to_register_dat(R0, outregfile, mris, mri_reg, subject, FLT2INT_ROUND) ;
   }
 
   printf("\n");
@@ -442,7 +589,7 @@ main(int argc, char **argv)
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
-  int err,nv,n;
+  int nv,n;
   double vmin, vmax, vdelta;
   
 
@@ -465,14 +612,12 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--aseg"))     UseASeg = 1;
     else if (!strcasecmp(option, "--no-crop"))  DoCrop = 0;
     else if (!strcasecmp(option, "--crop"))     DoCrop = 1;
+    else if (!strcasecmp(option, "--noglobal")) do_global_search = 0;
     else if (!strcasecmp(option, "--profile"))  DoProfile = 1;
     else if (!strcasecmp(option, "--median"))   apply_median_filter = 1;
     else if (istringnmatch(option, "--reg",0)) {
       if (nargc < 1) argnerr(option,1);
       regfile = pargv[0];
-      err = regio_read_register(regfile, &subject, &ipr, &bpr,
-                                &intensity, &R0, &float2int);
-      if (err) exit(1);
       nargsused = 1;
     } else if (istringnmatch(option, "--out-reg",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -492,6 +637,12 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) 
         argnerr(option,1);
       pial_fname = pargv[0];
+      nargsused = 1;
+    } else if (istringnmatch(option, "--pial_only",0)) {
+      if (nargc < 1) 
+        argnerr(option,1);
+      pial_fname = pargv[0];
+      pial_only = 1 ;
       nargsused = 1;
     } else if (istringnmatch(option, "--dilate",0)) {
       if (nargc < 1) 
@@ -530,11 +681,18 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--dist")) {
       nargsused = 0;
       similarity_func = mrisRegistrationDistanceSimilarity;
+    } else if (!strcasecmp(option, "--cropy")) {
+      cropy0 = atoi(pargv[0]) ;
+      cropy1 = atoi(pargv[1]) ;
+      nargsused = 2;
     } else if (!strcasecmp(option, "--CNR")) {
       similarity_func = mrisRegistrationCNRSimilarity ;
       nargsused = 0;
     } else if (!strcasecmp(option, "--DOT")) {
       similarity_func = mrisRegistrationGradientNormalSimilarity ;
+      nargsused = 0;
+    } else if (!strcasecmp(option, "--GRADIENT")) {
+      similarity_func = mrisRegistrationGradientSimilarity ;
       nargsused = 0;
     } else if (!strcasecmp(option, "--w")) {
       write_iter = atoi(pargv[0]) ;
@@ -668,7 +826,9 @@ printf("\n");
 printf("mris_register_to_volume\n");
 printf("  --surf surface\n");
 printf("  --pial pial surface name\n");
+printf("  --pial_only pial surface name\n");
 printf("  --reg regfile\n");
+printf("  --noglobal\n");
 printf("  --median\n");
 printf("  --mri_reg fvol\n");
 printf("\n");
@@ -961,14 +1121,19 @@ int Min1D(MRI *mri_reg, MRI_SURFACE *mris, MATRIX *R, double *p,
 static double
 mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX *m, int skip, double scale, int diag)
 {
-  double    similarity, grad, grad_var=0.0, grad_mean=0.0, xv, yv, zv, nx, ny, nz, 
-            mag, gm_mean, wm_mean, sample_dist ;
-  int       vno, num=0, num_in_fov = 0 ;
+  double    similarity, grad, grad_var, grad_mean, xv, yv, zv, nx, ny, nz, 
+            mag, gm_mean, wm_mean, sample_dist, vertex_similarity,
+            xw, yw, zw, xg, yg, zg ;
+  int       vno, num, num_in_fov = 0 ;
   VERTEX    *v ;
   static VECTOR *v1 = NULL, *v2 = NULL ;
   VERTEX    *vn ;
   double    gm_var, wm_var, contrast, noise, total_contrast, total_noise ;
   int       n, num_nbrs ;
+  MRI       *mri = NULL ;
+
+  if (diag)
+    mri = MRIclone(mri_reg, NULL) ;
 
   if (v1 == NULL)
   {
@@ -986,31 +1151,43 @@ mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MA
   for (num = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     if (v->ripflag)
       continue ;
     num++ ;
     V3_X(v1) = v->whitex ; V3_Y(v1) = v->whitey ; V3_Z(v1) = v->whitez ;
     v2 = MatrixMultiply(m, v1, v2) ;
-    MRISsurfaceRASToVoxelCached(mris, mri_reg, V3_X(v2), V3_Y(v2), V3_Z(v2), &xv, &yv, &zv) ;
-    if (MRIindexNotInVolume(mri_reg, xv, yv, zv) || MRIgetVoxVal(mri_mask, xv, yv, zv, 0) == 0)
+    MRISsurfaceRASToVoxelCached(mris, mri_reg, V3_X(v2), V3_Y(v2), V3_Z(v2), 
+                                &xv, &yv, &zv) ;
+    if (MRIindexNotInVolume(mri_reg, xv, yv, zv) || 
+        MRIgetVoxVal(mri_mask, xv, yv, zv, 0) == 0)
       grad = 0 ;
     else  // in the volume
     {
       num_in_fov++ ;
-      V3_X(v1) = v->whitex+v->nx ; V3_Y(v1) = v->whitey+v->ny ; V3_Z(v1) = v->whitez+v->nz ;
+      V3_X(v1) = v->whitex+v->nx ; V3_Y(v1) = v->whitey+v->ny ; 
+      V3_Z(v1) = v->whitez+v->nz ;
       v2 = MatrixMultiply(m, v1, v2) ;
-      MRISsurfaceRASToVoxelCached(mris, mri_reg, V3_X(v2), V3_Y(v2), V3_Z(v2), &nx, &ny, &nz) ;
+      MRISsurfaceRASToVoxelCached(mris, mri_reg, V3_X(v2), V3_Y(v2), V3_Z(v2), 
+                                  &nx, &ny, &nz) ;
       nx -= xv ; ny -= yv ; nz -= zv ;  // vertex normal in voxel coords
       mag = sqrt(nx*nx + ny*ny + nz*nz) ;
       if (FZERO(mag))
         mag = 1.0 ;
       nx /= mag;  ny /= mag ; nz /= mag ;
       MRIsampleVolumeDerivativeScale(mri_reg, xv, yv, zv, nx, ny, nz, &grad, .5/mri_reg->xsize) ;
-      MRIsampleVolume(mri_reg, xv-sample_dist*nx, yv-sample_dist*ny, zv-sample_dist*nz, &wm_mean) ;
-      MRIsampleVolume(mri_reg, xv+sample_dist*nx, yv+sample_dist*ny, zv+sample_dist*nz, &gm_mean) ;
-      v->val = wm_mean ;
-      v->val2 = gm_mean ;
-      v->marked = 1 ;
+      xw = xv-sample_dist*nx ; yw = yv-sample_dist*ny ; zw = zv-sample_dist*nz;
+      xg = xv+sample_dist*nx ; yg = yv+sample_dist*ny ; zg = zv+sample_dist*nz;
+      if ((MRIindexNotInVolume(mri_reg, xw, yw, zw) == 0) &&
+          (MRIindexNotInVolume(mri_reg, xg, yg, zg) == 0))
+      {
+        MRIsampleVolume(mri_reg, xw, yw, zw, &wm_mean) ;
+        MRIsampleVolume(mri_reg, xg, yg, zg, &gm_mean) ;
+        v->val = wm_mean ;
+        v->val2 = gm_mean ;
+        v->marked = 1 ;
+      }
     }
     if (!FZERO(grad))
       grad /= fabs(grad) ;
@@ -1029,10 +1206,13 @@ mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MA
   for (vno = 0 ; vno < mris->nvertices ; vno += skip)
   {
     v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     v->curv = 0 ;
     if (v->ripflag || v->marked == 0)
       continue ;
     gm_mean = v->val2 ; gm_var = v->val2*v->val2 ;
+    vertex_similarity = 0 ;
     wm_mean = v->val ;  wm_var = v->val*v->val ;
     for (n = 0, num_nbrs = 1 ; n < v->vtotal ; n++)
     {
@@ -1057,17 +1237,57 @@ mrisRegistrationCNRSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MA
         {
           total_contrast += contrast ;
           total_noise += noise ;
-          similarity += contrast*contrast / noise ;
+          vertex_similarity = contrast*contrast / noise ;
         }
         v->curv = contrast*contrast  ;  // for diagnostics
       }
       else
         DiagBreak() ;
     }
+    if (vertex_similarity > 10000)
+      DiagBreak() ;
+    similarity += vertex_similarity ;
+    if (mri)
+    {
+      float val = vertex_similarity > 0 ? vertex_similarity : -5 ;
+      V3_X(v1) = v->whitex ; V3_Y(v1) = v->whitey ; V3_Z(v1) = v->whitez ;
+      v2 = MatrixMultiply(m, v1, v2) ;
+      MRISsurfaceRASToVoxelCached(mris, mri_reg, V3_X(v2), V3_Y(v2), V3_Z(v2), 
+                                  &xv, &yv, &zv) ;
+      MRIfillRegion(mri, xv, yv, zv, val < 0 ? -.02 : .02, nint(.25/mri->xsize)) ;
+      MRIsetVoxVal(mri, xv, yv, zv, 0, val) ;
+    }
   }
 
   if (diag)
+  {
     printf("num_in_fov = %d\n", num_in_fov) ;
+    if (!(++ncalls%write_iter))
+    {
+      char name[STRLEN], fname[STRLEN] ;
+
+      FileNameOnly(outregfile, name) ;
+      FileNameRemoveExtension(name, name) ;
+
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        v = &mris->vertices[vno] ;
+        if (v->ripflag == 0)
+          continue ;
+        V3_X(v1) = v->whitex ; V3_Y(v1) = v->whitey ; V3_Z(v1) = v->whitez ;
+        v2 = MatrixMultiply(m, v1, v2) ;
+        MRISsurfaceRASToVoxelCached(mris, mri_reg, V3_X(v2), V3_Y(v2),V3_Z(v2),
+                                    &xv, &yv, &zv) ;
+        if (MRIindexNotInVolume(mri, xv, yv, zv) == 0)
+          MRIsetVoxVal(mri, xv, yv, zv, 0, -.01) ;
+      }
+
+      sprintf(fname, "%s_hvol%03d.mgz", name, ncalls) ;
+      printf("writing hit vol to %s\n", fname) ;
+      MRIwrite(mri, fname) ;
+    }
+    MRIfree(&mri) ;
+  }
   return(similarity) ;
 }
 
@@ -1151,57 +1371,89 @@ mrisRegistrationGradientSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mas
 static double
 mrisRegistrationGradientNormalSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX *m, int skip, double scale, int diag)
 {
-  double    similarity, xv, yv, zv, nx, ny, nz, mag, dx, dy, dz, white_dot, pial_dot ;
+  double    similarity, xv, yv, zv, nx, ny, nz, mag, dx, dy, dz, white_dot, 
+            pial_dot, theta ;
   int       vno, num, num_in_fov = 0 ;
   VERTEX    *v ;
   static VECTOR *v1 = NULL, *v2 = NULL ;
+  MRI       *mri = NULL;
+  char fname[STRLEN] ;
+
+  if (diag)
+    mri = MRIclone(mri_reg, NULL) ;
 
   if (v1 == NULL)
   {
     v1 = VectorAlloc(4, MATRIX_REAL) ;
     VECTOR_ELT(v1, 4) = 1.0 ;
   }
-  skip++ ;
-  for (similarity = 0.0, num = vno = 0 ; vno < mris->nvertices ; vno += skip)
+  for (similarity=0.0, num = vno = 0 ; vno < mris->nvertices; vno += (skip+1))
   {
     v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     v->marked = 0 ;
     if (v->ripflag)
       continue ;
     num++ ;
-    V3_X(v1) = v->whitex ; V3_Y(v1) = v->whitey ; V3_Z(v1) = v->whitez ;
-    v2 = MatrixMultiply(m, v1, v2) ;
-    MRISsurfaceRASToVoxelCached(mris, mri_reg, 
-                                V3_X(v2), V3_Y(v2), V3_Z(v2), &xv, &yv, &zv);
-    if (MRIindexNotInVolume(mri_reg, xv, yv, zv) || 
-        MRIgetVoxVal(mri_mask, xv, yv, zv, 0) == 0)
-      white_dot = 0 ;
-    else  // in the volume
+    if (pial_only == 0)
     {
-      num_in_fov++ ;
-      V3_X(v1) = v->whitex+v->nx ; V3_Y(v1) = v->whitey+v->ny ; 
-      V3_Z(v1) = v->whitez+v->nz ;
+      V3_X(v1) = v->whitex ; V3_Y(v1) = v->whitey ; V3_Z(v1) = v->whitez ;
       v2 = MatrixMultiply(m, v1, v2) ;
-      MRISsurfaceRASToVoxelCached(mris, mri_reg, V3_X(v2), V3_Y(v2), V3_Z(v2),
-                                  &nx, &ny, &nz) ;
-      nx -= xv ; ny -= yv ; nz -= zv ;  // vertex normal in voxel coords
-      mag = sqrt(nx*nx + ny*ny + nz*nz) ;
-      if (FZERO(mag))
-        mag = 1.0 ;
-      nx /= mag;  ny /= mag ; nz /= mag ;
-      MRIsampleVolumeFrame(mri_grad, xv, yv, zv, 0, &dx) ;
-      MRIsampleVolumeFrame(mri_grad, xv, yv, zv, 1, &dy) ;
-      MRIsampleVolumeFrame(mri_grad, xv, yv, zv, 2, &dz) ;
-      mag = sqrt(dx*dx + dy*dy + dz*dz) ; 
-      if (FZERO(mag))
-        mag = 1.0 ;
-      dx /= mag;  dy /= mag ; dz /= mag ;
-
-      v->marked = 1 ;
-      white_dot = nx*dx + ny*dy + nz*dz ;
-      if (white_dot < 0)
+      MRISsurfaceRASToVoxelCached(mris, mri_reg, 
+                                  V3_X(v2), V3_Y(v2), V3_Z(v2), &xv, &yv, &zv);
+      if (MRIindexNotInVolume(mri_reg, xv, yv, zv) || 
+          MRIgetVoxVal(mri_mask, xv, yv, zv, 0) == 0)
         white_dot = 0 ;
+      else  // in the volume
+      {
+        num_in_fov++ ;
+        V3_X(v1) = v->whitex+v->nx ; V3_Y(v1) = v->whitey+v->ny ; 
+        V3_Z(v1) = v->whitez+v->nz ;
+        v2 = MatrixMultiply(m, v1, v2) ;
+        MRISsurfaceRASToVoxelCached(mris, mri_reg, V3_X(v2), V3_Y(v2), V3_Z(v2),
+                                    &nx, &ny, &nz) ;
+        nx -= xv ; ny -= yv ; nz -= zv ;  // vertex normal in voxel coords
+        mag = sqrt(nx*nx + ny*ny + nz*nz) ;
+        if (FZERO(mag))
+          mag = 1.0 ;
+        nx /= mag;  ny /= mag ; nz /= mag ;
+        MRIsampleVolumeFrame(mri_grad, xv, yv, zv, 0, &dx) ;
+        MRIsampleVolumeFrame(mri_grad, xv, yv, zv, 1, &dy) ;
+        MRIsampleVolumeFrame(mri_grad, xv, yv, zv, 2, &dz) ;
+        mag = sqrt(dx*dx + dy*dy + dz*dz) ; 
+        if (FZERO(mag))
+          mag = 1.0 ;
+        dx /= mag;  dy /= mag ; dz /= mag ;
+        
+        v->marked = 1 ;
+        white_dot = nx*dx + ny*dy + nz*dz ;
+        theta = acos(white_dot) ;
+#define MAX_THETA (RADIANS(60))
+#if 1
+        if (white_dot < 0)
+          white_dot = 0 ;
+#else
+        if (fabs(theta) > MAX_THETA)
+          white_dot = 0 ;
+        else
+          DiagBreak() ;
+#endif
+        if (mri)
+        {
+          float val ;
+          
+          if (FZERO(white_dot))
+            val = -.5 ;
+          else
+            val = white_dot ;
+          MRIfillRegion(mri, nint(xv), nint(yv), nint(zv), val < 0 ? -.02 : 0.02, nint(.25/mri->xsize)) ;
+          MRIsetVoxVal(mri, nint(xv), nint(yv), nint(zv), 0, val) ;
+        }
+      }
     }
+    else
+      white_dot = 0 ;
 
     if (pial_fname)  // only if pial loaded and white was reasonable
     {
@@ -1215,8 +1467,8 @@ mrisRegistrationGradientNormalSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *m
       else  // in the volume
       {
         num_in_fov++ ;
-        V3_X(v1) = v->pialx+v->nx ; V3_Y(v1) = v->pialy+v->ny ; 
-        V3_Z(v1) = v->pialz+v->nz ;
+        V3_X(v1) = v->pialx+v->pnx ; V3_Y(v1) = v->pialy+v->pny ; 
+        V3_Z(v1) = v->pialz+v->pnz ;
         v2 = MatrixMultiply(m, v1, v2) ;
         MRISsurfaceRASToVoxelCached(mris, mri_reg, V3_X(v2), V3_Y(v2), V3_Z(v2),
                                     &nx, &ny, &nz) ;
@@ -1237,9 +1489,13 @@ mrisRegistrationGradientNormalSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *m
         pial_dot = -1*(nx*dx + ny*dy + nz*dz) ; // pial contrast should be inverse
         if (pial_dot < 0)
           pial_dot = 0 ;
+        else
+          DiagBreak() ;
       }
       v->val = white_dot ;
       //      if (!FZERO(white_dot) && !FZERO(pial_dot))
+      if (mri)
+        MRIsetVoxVal(mri, nint(xv), nint(yv), nint(zv), 0, white_dot) ;
       similarity += (white_dot+pial_dot)  ;
     }
     else
@@ -1248,7 +1504,33 @@ mrisRegistrationGradientNormalSimilarity(MRI_SURFACE *mris, MRI *mri_reg, MRI *m
   }
 
   if (diag)
-    printf("num_in_fov = %d\n", num_in_fov) ;
+  {
+    //    printf("num_in_fov = %d\n", num_in_fov) ;
+    if (!(++ncalls%write_iter))
+    {
+      char name[STRLEN] ;
+      FileNameOnly(outregfile, name) ;
+      FileNameRemoveExtension(name, name) ;
+
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        v = &mris->vertices[vno] ;
+        if (v->ripflag == 0)
+          continue ;
+        V3_X(v1) = v->whitex ; V3_Y(v1) = v->whitey ; V3_Z(v1) = v->whitez ;
+        v2 = MatrixMultiply(m, v1, v2) ;
+        MRISsurfaceRASToVoxelCached(mris, mri_reg, V3_X(v2), V3_Y(v2),V3_Z(v2),
+                                    &xv, &yv, &zv) ;
+        if (MRIindexNotInVolume(mri, xv, yv, zv) == 0)
+          MRIsetVoxVal(mri, xv, yv, zv, 0, -.01) ;
+      }
+      sprintf(fname, "%s_hvol%03d.mgz", name, ncalls) ;
+      printf("writing hit vol to %s\n", fname) ;
+      MRIwrite(mri, fname) ;
+    }
+    MRIfree(&mri) ;
+  }
+    
 
   if (num == 0)
     num = 1;
@@ -1309,7 +1591,7 @@ find_optimal_translations(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX
                           double (*similarity_func)(MRI_SURFACE *mris, MRI *mri_reg, 
                                                     MRI *mri_mask, MATRIX *m, int skip, double scale, int diag))
 {
-  double   tx, ty, tz, scale, max_similarity, similarity, max_cnr_similarity,
+  double   tx, ty, tz, scale, max_similarity, similarity,
            xtrans, ytrans, ztrans ;
   MATRIX   *m_trans, *m = NULL ;
   int      good_step = 0 ;
@@ -1320,12 +1602,10 @@ find_optimal_translations(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX
 
   max_similarity = similarity = 
     (*similarity_func)(mris, mri_reg, mri_mask, M_min, skip, skip/8.0, 0) ;
-  max_cnr_similarity =  
-    mrisRegistrationCNRSimilarity(mris, mri_reg, mri_mask,M_min,0, 1, 0) ;
 #ifdef WHALF
 #undef WHALF
 #endif
-#define WHALF 9
+#define WHALF 11
   scale = max_trans/WHALF ; 
   do
   {
@@ -1343,26 +1623,22 @@ find_optimal_translations(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX
           similarity = (*similarity_func)(mris, mri_reg,  mri_mask, m, skip, skip/8.0, 0) ;
           if (similarity > max_similarity)
           {
-            double cnr_similarity ;
-#if 0
-            cnr_similarity =  
-              mrisRegistrationCNRSimilarity(mris, mri_reg, mri_mask,m,0, 1,0);
-#else
-            cnr_similarity =  max_cnr_similarity+1;
-#endif
-            if (cnr_similarity > max_cnr_similarity)
+            MatrixCopy(m, M_min) ;
+            max_similarity = similarity ;
+            //            MatrixPrint(Gstdout, M_min) ;
+            printf("%03d: new max %2.2f found at T = (%2.1f, %2.1f, %2.1f)\n",
+                   niter+1, max_similarity, xtrans, ytrans, ztrans) ;
+            if ((++niter % write_iter) == 0)
+              write_snapshot(mris, M_min, outregfile, niter) ;
+            if (logfp)
             {
-              MatrixCopy(m, M_min) ;
-              max_cnr_similarity = cnr_similarity ;
-              max_similarity = similarity ;
-              //            MatrixPrint(Gstdout, M_min) ;
-              if ((++niter % write_iter) == 0)
-                write_snapshot(mris, M_min, outregfile, niter) ;
-              printf("%03d: new max %2.2f found at T = (%2.1f, %2.1f, %2.1f)\n",
-                     niter, max_similarity, xtrans, ytrans, ztrans) ;
-              similarity = (*similarity_func)(mris, mri_reg,  mri_mask, m, skip,skip/8.0, 0) ;
-              good_step = 1 ;
+              fprintf(logfp, "%03d: new max %2.2f found at T = (%2.1f, %2.1f, %2.1f)\n",
+                      niter, max_similarity, xtrans, ytrans, ztrans) ;
+              fflush(logfp) ;
             }
+            
+            similarity = (*similarity_func)(mris, mri_reg,  mri_mask, m, skip,skip/8.0, 1) ;
+            good_step = 1 ;
           }
         }
     if (good_step == 0)
@@ -1378,6 +1654,10 @@ find_optimal_translations(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX
   return(max_similarity) ;
 }
 
+#ifdef WHALF
+#undef WHALF
+#endif
+#define WHALF 5
 static double
 find_optimal_rigid_alignment(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX *M_min, double max_trans, 
                              double max_rot, int skip,
@@ -1386,7 +1666,7 @@ find_optimal_rigid_alignment(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MAT
 
 {
   double   tx, ty, tz, rot_scale, trans_scale, max_similarity, similarity, 
-           max_cnr_similarity, xtrans, ytrans, ztrans, rx, ry, rz ;
+           xtrans, ytrans, ztrans, rx, ry, rz, whalf = WHALF ;
   MATRIX   *M_trans, *M_test = NULL, *M_rot, *M_tmp, *M_ctr, *M_ctr_inv  ;
   int      good_step = 0 ;
   double   angles[3] ;
@@ -1401,25 +1681,19 @@ find_optimal_rigid_alignment(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MAT
   M_tmp = MatrixCopy(M_trans, NULL) ;
   M_test = MatrixCopy(M_trans, NULL) ;
   max_similarity = similarity = (*similarity_func)(mris, mri_reg,  mri_mask, M_min, skip, skip/8.0, 0) ;
-  max_cnr_similarity =  
-    mrisRegistrationCNRSimilarity(mris, mri_reg, mri_mask,M_min,0, 1, 0) ;
-#ifdef WHALF
-#undef WHALF
-#endif
-#define WHALF 3
-  trans_scale = max_trans/WHALF ; 
-  rot_scale = max_rot/WHALF ;
+  trans_scale = max_trans/whalf ; 
+  rot_scale = max_rot/whalf ;
   do
   {
-    for (rot_scale = max_rot/WHALF ; 
+    for (rot_scale = max_rot/whalf ; 
          rot_scale > .1 ;
          rot_scale /= 2)
-      for (rx = -WHALF ; rx <= WHALF ; rx++)
-        for (ry = -WHALF ; ry <= WHALF ; ry++)
-          for (rz = -WHALF ; rz <= WHALF ; rz++)
-            for (tx = -WHALF ; tx <= WHALF ; tx++)
-              for (ty = -WHALF ; ty <= WHALF ; ty++)
-                for (tz = -WHALF ; tz <= WHALF ; tz++)
+      for (rx = -whalf ; rx <= whalf ; rx++)
+        for (ry = -whalf ; ry <= whalf ; ry++)
+          for (rz = -whalf ; rz <= whalf ; rz++)
+            for (tx = -whalf ; tx <= whalf ; tx++)
+              for (ty = -whalf ; ty <= whalf ; ty++)
+                for (tz = -whalf ; tz <= whalf ; tz++)
                 {
                   angles[0] = RADIANS(rx*rot_scale) ;
                   angles[1] = RADIANS(ry*rot_scale) ;
@@ -1439,31 +1713,30 @@ find_optimal_rigid_alignment(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MAT
                   similarity = (*similarity_func)(mris, mri_reg,  mri_mask, M_test, skip, skip/8.0, 0) ;
                   if (similarity > max_similarity)
                   {
-                    double cnr_similarity ;
-#if 0
-                    cnr_similarity =  
-                      mrisRegistrationCNRSimilarity(mris, mri_reg, mri_mask,
-                                                    M_test,0, 1,0);
-#else
-                    cnr_similarity =  max_cnr_similarity+1;
-#endif
-                    if (cnr_similarity > max_cnr_similarity)
+                    MatrixCopy(M_test, M_min) ;
+                    max_similarity = similarity ;
+                    printf("%03d: new max %2.2f found at T=(%2.3f, %2.3f, %2.3f), "
+                           "R=(%2.3f, %2.3f, %2.3f)\n",
+                           niter+1, max_similarity, 
+                           xtrans, ytrans, ztrans,
+                           DEGREES(angles[0]), 
+                           DEGREES(angles[1]), DEGREES(angles[2]));
+                    if (logfp)
                     {
-                      MatrixCopy(M_test, M_min) ;
-                      max_cnr_similarity = cnr_similarity ;
-                      max_similarity = similarity ;
-                      if ((++niter % write_iter) == 0)
-                        write_snapshot(mris, M_min, outregfile, niter) ;
-                      printf("%03d: new max %2.2f found at T=(%2.3f, %2.3f, %2.3f), "
-                             "R=(%2.3f, %2.3f, %2.3f)\n",
-                             niter, max_similarity, 
-                             xtrans, ytrans, ztrans,
-                             DEGREES(angles[0]), 
-                             DEGREES(angles[1]), DEGREES(angles[2]));
-                      //                    MatrixPrint(Gstdout, M_min) ;
-                      similarity = (*similarity_func)(mris, mri_reg,  mri_mask, M_min, skip, skip/8.0, 0) ;
-                      good_step = 1 ;
+                      fprintf(logfp, "%03d: new max %2.2f found at T=(%2.3f, %2.3f, %2.3f), "
+                              "R=(%2.3f, %2.3f, %2.3f)\n",
+                              niter+1, max_similarity, 
+                              xtrans, ytrans, ztrans,
+                              DEGREES(angles[0]), 
+                              DEGREES(angles[1]), DEGREES(angles[2]));
+                      fflush(logfp) ;
                     }
+
+                    //                    MatrixPrint(Gstdout, M_min) ;
+                    if ((++niter % write_iter) == 0)
+                      write_snapshot(mris, M_min, outregfile, niter) ;
+                    similarity = (*similarity_func)(mris, mri_reg,  mri_mask, M_min,skip,skip/8.0,1);
+                    good_step = 1 ;
                   }
                 }
     if (good_step == 0)
@@ -1471,7 +1744,7 @@ find_optimal_rigid_alignment(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MAT
       trans_scale /= 2 ;
       if (trans_scale >= mri_reg->xsize/2)
         printf("reducing scale to %2.4f mm, %2.4f deg\n", 
-               trans_scale, max_rot/WHALF);
+               trans_scale, max_rot/whalf);
     }
     good_step = 0 ;
   } while (trans_scale >= mri_reg->xsize/2) ;
@@ -1489,7 +1762,7 @@ find_optimal_rotations(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask,
                                                  int skip, double scale, int diag))
 
 {
-  double   rot_scale, max_similarity, similarity, rx, ry,rz,max_cnr_similarity;
+  double   rot_scale, max_similarity, similarity, rx, ry,rz;
   MATRIX   *M_test = NULL, *M_rot, *M_tmp, *M_ctr, *M_ctr_inv  ;
   int      good_step = 0 ;
   double   angles[3] ;
@@ -1502,12 +1775,10 @@ find_optimal_rotations(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask,
   M_tmp = MatrixCopy(M_ctr, NULL) ;
   M_test = MatrixCopy(M_ctr, NULL) ;
   max_similarity = similarity = (*similarity_func)(mris, mri_reg,  mri_mask, M_min, skip, skip/8.0, 0) ;
-  max_cnr_similarity =  
-    mrisRegistrationCNRSimilarity(mris, mri_reg, mri_mask,M_min,0, 1, 0) ;
 #ifdef WHALF
 #undef WHALF
 #endif
-#define WHALF 9
+#define WHALF 11
   rot_scale = max_rot/WHALF ;
   do
   {
@@ -1528,27 +1799,24 @@ find_optimal_rotations(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask,
           similarity = (*similarity_func)(mris, mri_reg,  mri_mask, M_test, skip, skip/8.0, 0) ;
           if (similarity > max_similarity)
           {
-            double cnr_similarity ;
-#if 0
-            cnr_similarity =  
-              mrisRegistrationCNRSimilarity(mris, mri_reg, mri_mask,M_test,0, 1,0);
-#else
-            cnr_similarity =  max_cnr_similarity+1;
-#endif
-            if (cnr_similarity > max_cnr_similarity)
+            MatrixCopy(M_test, M_min) ;
+            max_similarity = similarity ;
+            if (logfp)
             {
-              MatrixCopy(M_test, M_min) ;
-              max_similarity = similarity ;
-              max_cnr_similarity = cnr_similarity ;
-              if ((++niter % write_iter) == 0)
-                write_snapshot(mris, M_min, outregfile, niter) ;
-              printf("%03d: new max %2.2f found at R=(%2.3f, %2.3f, %2.3f)\n",
-                     niter, max_similarity, DEGREES(angles[0]), 
-                     DEGREES(angles[1]), DEGREES(angles[2])) ;
-              //            MatrixPrint(Gstdout, M_min) ;
-              similarity = (*similarity_func)(mris, mri_reg,  mri_mask, M_min, skip, skip/8.0, 0) ;
-              good_step = 1 ;
+              fprintf(logfp, "%03d: new max %2.2f found at R=(%2.3f, %2.3f, %2.3f)\n",
+                      niter+1, max_similarity, DEGREES(angles[0]), 
+                      DEGREES(angles[1]), DEGREES(angles[2])) ;
+              fflush(logfp) ;
             }
+
+            printf("%03d: new max %2.2f found at R=(%2.3f, %2.3f, %2.3f)\n",
+                   niter+1, max_similarity, DEGREES(angles[0]), 
+                   DEGREES(angles[1]), DEGREES(angles[2])) ;
+            //            MatrixPrint(Gstdout, M_min) ;
+            if ((++niter % write_iter) == 0)
+              write_snapshot(mris, M_min, outregfile, niter) ;
+            similarity = (*similarity_func)(mris, mri_reg,  mri_mask, M_min, skip, skip/8.0, 1) ;
+            good_step = 1 ;
           }
         }
     if (good_step == 0)
@@ -1595,23 +1863,35 @@ write_snapshot(MRI_SURFACE *mris, MATRIX *m, char *name, int n)
     v->x = V3_X(v2) ; v->y = V3_Y(v2) ; v->z = V3_Z(v2) ;
   }
 
+  sprintf(fname, "%s%03d.dat", fname_only,n) ;
+  regio_write_surfacexform_to_register_dat(m, fname, mris, mri_reg, subject,
+                                           FLT2INT_ROUND) ;
   sprintf(fname, "%s%03d", fname_only,n) ;
   printf("writing snapshot to %s\n", fname) ;
   MRISwrite(mris, fname) ;
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  MRISrestoreRipFlags(mris);
+  sprintf(fname, "%s%03d.patch", fname_only,n) ;
+  MRISwritePatch(mris, fname) ;
+  MRISunrip(mris) ;
+  
+  if (pial_fname)
   {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    V3_X(v1) = v->pialx ; V3_Y(v1) = v->pialy ; V3_Z(v1) = v->pialz ;
-    v2 = MatrixMultiply(m, v1, v2) ;
-    v->x = V3_X(v2) ; v->y = V3_Y(v2) ; v->z = V3_Z(v2) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      V3_X(v1) = v->pialx ; V3_Y(v1) = v->pialy ; V3_Z(v1) = v->pialz ;
+      v2 = MatrixMultiply(m, v1, v2) ;
+      v->x = V3_X(v2) ; v->y = V3_Y(v2) ; v->z = V3_Z(v2) ;
+    }
+    
+    sprintf(fname, "%s_pial%03d", fname_only,n) ;
+    printf("writing snapshot to %s\n", fname) ;
+    MRISwrite(mris, fname) ;
+    sprintf(fname, "%s%03d.patch", fname_only,n) ;
+    MRISwritePatch(mris, fname) ;
   }
-
-  sprintf(fname, "%s_pial%03d", fname_only,n) ;
-  printf("writing snapshot to %s\n", fname) ;
-  MRISwrite(mris, fname) ;
 
 #if 0
   sprintf(fname, "%s%03d.mgz", fname_only,n) ;
@@ -1639,13 +1919,28 @@ powell_minimize_rigid(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX *ma
   float *p, **xi, fret, fstart ;
   int    r, c, iter, diag, old_write ;
   double xr, yr, zr, xt, yt, zt;
+  char   *sname ;
 
+  if (similarity_func == mrisRegistrationCNRSimilarity)
+    sname = "CNR" ;
+  else if (similarity_func == mrisRegistrationGradientNormalSimilarity)
+    sname = "DOT" ;
+  else
+    sname = "UNK" ;
   old_write = write_iter ; write_iter = 1 ;
 
   // extract rigid body parameters from matrix
   MatrixToRigidParameters(mat, &xr, &yr, &zr, &xt, &yt, &zt) ;
-  printf("initial rigid body parameters = (%2.4f, %2.4f, %2.4f) + (%2.2f, %2.2f, %2.2f)\n",
+  printf("initial rigid parms = (%2.4f, %2.4f, %2.4f) + (%2.2f, %2.2f, %2.2f)\n",
          DEGREES(xr), DEGREES(yr), DEGREES(zr), xt, yt, zt) ;
+  if (logfp)
+  {
+    fprintf(logfp, "initial rigid parms = (%2.4f, %2.4f, %2.4f) + (%2.2f, %2.2f, %2.2f)\n",
+            DEGREES(xr), DEGREES(yr), DEGREES(zr), xt, yt, zt) ;
+    fflush(logfp) ;
+  }
+  if ((niter == 0) && (write_iter >= 0))
+    write_snapshot(mris, mat, outregfile, niter) ;
   p = vector(1, NPARMS_RIGID) ;
   xi = matrix(1, NPARMS_RIGID, 1, NPARMS_RIGID) ;
   p[1] = xr ;
@@ -1670,9 +1965,19 @@ powell_minimize_rigid(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX *ma
   Gsimilarity_func = similarity_func ;
   OpenPowell(p, xi, NPARMS_RIGID, TOL, &iter, &fret, compute_powell_rigid_sse);
   MatrixFromRigidParameters(mat, p[1],p[2],p[3],p[4],p[5],p[6]) ;
-  printf("%3.3d: best alignment at after powell: "
+  compute_powell_rigid_sse(p) ;
+  if (logfp)
+  {
+    fprintf(logfp, "%3.3d: best alignment after %s powell: "
+            "%2.5f (%d steps)\n\tparms = R:(%2.4f, %2.4f, %2.4f) + T:(%2.2f, %2.2f, %2.2f)\n",
+            niter+1,sname, fret, iter,
+            DEGREES(p[1]), DEGREES(p[2]), DEGREES(p[3]), p[4], p[5], p[6]) ;
+    fflush(logfp) ;
+  }
+
+  printf("%3.3d: best alignment after %s powell: "
          "%2.5f (%d steps)\n\tparms = R:(%2.4f, %2.4f, %2.4f) + T:(%2.2f, %2.2f, %2.2f)\n",
-         niter,fret, iter,
+         niter+1,sname, fret, iter,
          DEGREES(p[1]), DEGREES(p[2]), DEGREES(p[3]), p[4], p[5], p[6]) ;
   if ((++niter % write_iter) == 0)
     write_snapshot(mris, mat, outregfile, niter) ;
@@ -1693,9 +1998,17 @@ powell_minimize_rigid(MRI_SURFACE *mris, MRI *mri_reg, MRI *mri_mask, MATRIX *ma
     *MATRIX_RELT(mat, 4, 3) = 0.0 ;
     *MATRIX_RELT(mat, 4, 4) = 1.0 ;
 #endif
-    printf("%3.3d: best alignment at after powell: "
+    if (logfp)
+    {
+      fprintf(logfp, "%3.3d: best alignment after %s powell: "
+              "%2.5f (%d steps)\n\tparms = (%2.4f, %2.4f, %2.4f) + (%2.2f, %2.2f, %2.2f)\n",
+              niter+1,sname, fret, iter,
+           DEGREES(p[1]), DEGREES(p[2]), DEGREES(p[3]), p[4], p[5], p[6]) ;
+      fflush(logfp) ;
+    }
+    printf("%3.3d: best alignment after %s powell: "
            "%2.5f (%d steps)\n\tparms = (%2.4f, %2.4f, %2.4f) + (%2.2f, %2.2f, %2.2f)\n",
-           niter,fret, iter,
+           niter+1,sname, fret, iter,
            DEGREES(p[1]), DEGREES(p[2]), DEGREES(p[3]), p[4], p[5], p[6]) ;
     if ((++niter % write_iter) == 0)
       write_snapshot(mris, mat, outregfile, niter) ;
@@ -1720,4 +2033,181 @@ compute_powell_rigid_sse(float *p)
   similarity = (*Gsimilarity_func)(Gmris, Gmri_reg, Gmri_mask, mat, Gskip, 
                                    Gskip/8, 0) ;
   return(-(float)similarity) ;
+}
+#if 0
+static int
+write_register_dat(MATRIX *B, char *fname, MRI_SURFACE *mris, MRI *mri, char *subject)
+{
+  MATRIX *Ta, *Sa, *invTa, *A, *R, *S, *invS, *T, *m1, *m2 ;
+  MRI *mri_surf = MRIallocHeader(mris->vg.width, mris->vg.height, 
+                                 mris->vg.depth, MRI_UCHAR) ;
+
+  MRIcopyVolGeomToMRI(mri_surf, &mris->vg) ;
+
+  T = MRIxfmCRS2XYZtkreg(mri) ;
+  S = MRIgetVoxelToRasXform(mri) ;
+  invS = MatrixInverse(S, NULL) ;
+  Ta = MRIxfmCRS2XYZtkreg(mri_surf);
+  Sa = MRIgetVoxelToRasXform(mri_surf);
+  invTa = MatrixInverse(Ta,NULL);
+  A  = MatrixMultiply(Sa,invTa, NULL);
+  
+  m1 = MatrixMultiply(A, B, NULL) ;
+  m2 = MatrixMultiply(invS, m1, NULL) ;
+  R = MatrixMultiply(T, m2, NULL) ;
+  regio_write_register(fname,subject,mri_reg->xsize,
+                       mri_reg->zsize,1,R,FLT2INT_ROUND);
+  MatrixFree(&A) ; MatrixFree(&Ta) ; MatrixFree(&Sa) ; MatrixFree(&invTa) ;
+  MatrixFree(&R) ; MatrixFree(&m1) ; MatrixFree(&m2) ; MatrixFree(&S) ; MatrixFree(&invS);
+  MatrixFree(&T) ;
+  MRIfree(&mri_surf) ;
+  return(NO_ERROR) ;
+}
+
+
+
+#endif
+static MRI *
+mri_surface_edges(MRI *mri, MRI *mri_grad, float normal_dist, float tangent_dist, int dir, 
+                  MRI *mri_edge)
+{
+  int     x, y, z, nout, nin ;
+  double  dx, dy, dz, d, norm, mean_in, mean_out, var_in, var_out, step_size, 
+          x1, y1, z1,val, t1x, t1y, t1z, t2x, t2y, t2z, d1, d2  ;
+
+  if (mri_edge == NULL)
+  {
+    mri_edge = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri, mri_edge) ;
+  }
+
+  step_size = 0.5 ;         // in voxels
+  normal_dist /= mri->xsize ;  // convert to voxels from mm
+  for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        dx = MRIgetVoxVal(mri_grad, x, y, z, 0) ;
+        dy = MRIgetVoxVal(mri_grad, x, y, z, 1) ;
+        dz = MRIgetVoxVal(mri_grad, x, y, z, 2) ;
+        norm = sqrt(dx*dx + dy*dy + dz*dz) ;
+        if (FZERO(norm))
+          continue ;
+        dx /= norm ; dy /= norm ; dz /= norm ;
+        if (!FEQUAL(dx, dy))  // find non-colinear vector swap x and y
+        { 
+          t2x = dy ; t2y = dx ; t2z = dz ;
+        }
+        else if (!FEQUAL(dy, dz))  // swap y and z
+        {
+          t2x = dx ; t2y = dz ; t2z = dy ;
+        }
+        else  // swap x and z
+        {
+          t2x = dz ; t2y = dy ; t2z = dx ;
+        }
+
+        // cross product for 1st tangent
+        t1x=dy*t2z-dz*t2y;  t1y=dz*t2x-dx*t2z; t1z=dx*t2y-dy*t2x;
+        norm = sqrt(t1x*t1x + t1y*t1y + t1z*t1z ) ;
+        t1x /= norm ; t1y /= norm; ; t1z /= norm ;
+
+        // 2nd tangent
+        t2x=dy*t1z-dz*t1y;  t2y=dz*t1x-dx*t1z; t2z=dx*t1y-dy*t1x;
+        norm = sqrt(t2x*t2x + t2y*t2y + t2z*t2z ) ;
+        t2x /= norm ; t2y /= norm; ; t2z /= norm ;
+
+        mean_in = mean_out = var_in = var_out = 0.0 ;
+        nout = nin = 0 ;
+        for (d1 = -tangent_dist/mri->xsize  ; d1 <= tangent_dist/mri->xsize ; d1++)
+          for (d2 = -tangent_dist/mri->xsize  ; d2 <= tangent_dist/mri->xsize ; d2++)
+            for (d = step_size ; d <= normal_dist ; d += step_size)
+            {
+              x1 = x + d*dx + d1*t1x + d2*t2x ; 
+              y1 = y + d*dy + d1*t1y + d2*t2y; 
+              z1 = z + d*dz + d1*t1z + d2*t2z ; // outside
+              if (MRIindexNotInVolume(mri, x1, y1, z1) != 1)
+              {
+                MRIsampleVolume(mri, x1, y1, z1, &val) ;
+                mean_out += val ; var_out += (val*val) ;
+                nout++ ;
+              }
+
+              x1 = x - d*dx + d1*t1x + d2*t2x ; 
+              y1 = y - d*dy + d1*t1y + d2*t2y; 
+              z1 = z - d*dz + d1*t1z + d2*t2z ; // outside
+              if (MRIindexNotInVolume(mri, x1, y1, z1) != 1)
+              {
+                MRIsampleVolume(mri, x1, y1, z1, &val) ;
+                mean_in += val ; var_in += (val*val) ;
+                nin++ ;
+              }
+            }
+        if (nin < 3 || nout < 3)
+          continue ;
+        mean_out /= nout ; mean_in /= nin ;
+        var_out = var_out/nout - mean_out*mean_out ;
+        var_in = var_in/nin - mean_in*mean_in ;
+        val = dir*(mean_out-mean_in) / (pow((mean_out+mean_in)/2, 0.333)*sqrt(var_out+var_in)) ;
+        if (val < 0)
+          val = 0 ;
+        if (val > 100)
+          DiagBreak() ;
+        MRIsetVoxVal(mri_edge, x, y, z, 0, val) ;
+      }
+    }
+  }
+
+  return(mri_edge) ;
+}
+
+static double
+mrisRegistrationOverlapSimilarity(MRI_SURFACE *mris, MRI *mri_reg, 
+                                  MRI *mri_mask, MATRIX *m, int skip, 
+                                  double scale, int diag)
+{
+  double    similarity, xv, yv, zv, white_val ;
+  int       vno, num, num_in_fov = 0 ;
+  VERTEX    *v ;
+  static VECTOR *v1 = NULL, *v2 = NULL ;
+
+  if (v1 == NULL)
+  {
+    v1 = VectorAlloc(4, MATRIX_REAL) ;
+    VECTOR_ELT(v1, 4) = 1.0 ;
+  }
+  skip++ ;
+  for (similarity = 0.0, num = vno = 0 ; vno < mris->nvertices ; vno += skip)
+  {
+    v = &mris->vertices[vno] ;
+    v->marked = 0 ;
+    if (v->ripflag)
+      continue ;
+    num++ ;
+    V3_X(v1) = v->whitex ; V3_Y(v1) = v->whitey ; V3_Z(v1) = v->whitez ;
+    v2 = MatrixMultiply(m, v1, v2) ;
+    MRISsurfaceRASToVoxelCached(mris, mri_reg, 
+                                V3_X(v2), V3_Y(v2), V3_Z(v2), &xv, &yv, &zv);
+    if (MRIindexNotInVolume(mri_reg, xv, yv, zv) || 
+        MRIgetVoxVal(mri_mask, xv, yv, zv, 0) == 0)
+      white_val = mri_reg->outside_val ;
+    else  // in the volume
+    {
+      num_in_fov++ ;
+      white_val = MRIgetVoxVal(mri_reg, xv, yv, zv, 0) ;
+      v->marked = 1 ;
+    }
+    similarity += white_val ;
+  }
+
+  if (diag)
+    printf("num_in_fov = %d\n", num_in_fov) ;
+
+  if (num == 0)
+    num = 1;
+  return(similarity) ;  
 }
