@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/12/10 14:30:47 $
- *    $Revision: 1.582 $
+ *    $Date: 2007/12/20 21:42:30 $
+ *    $Revision: 1.583 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.582 2007/12/10 14:30:47 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.583 2007/12/20 21:42:30 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -8172,7 +8172,7 @@ MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     float dot ;
     v = &mris->vertices[Gdiag_no] ;
     dot = v->nx*v->dx + v->ny*v->dy + v->nz*v->dz ;
-    fprintf(stdout, " after dot = %2.2f\n",dot) ;
+    fprintf(stdout, " after dot = %2.2f (%2.1f, %2.1f, %2.1f)\n",dot,v->dx, v->dy, v->dz) ;
     if (fabs(dot) > 50)
       DiagBreak() ;
   }
@@ -15825,13 +15825,13 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
         xw = x - dist*nx ; yw = y - dist*ny ; zw = z - dist*nz ;
         if (mri_interior)
         {
-          MRISsurfaceRASToVoxel(mris, mri_interior, xw, yw, zw, &xvi,&yvi,&zvi) ;
+          MRISsurfaceRASToVoxelCached(mris, mri_interior,xw,yw,zw, &xvi,&yvi,&zvi);
           MRIsampleVolume(mri_interior, xvi, yvi, zvi, &interior) ;
         }
 
         if (mri_interior == NULL || interior > 0)
         {
-          MRISsurfaceRASToVoxel(mris, mri_brain, xw, yw, zw, &xw, &yw, &zw) ;
+          MRISsurfaceRASToVoxelCached(mris, mri_brain, xw, yw, zw,&xw,&yw,&zw);
           MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
           val_inside += k*val ;
           ktotal_inside += k ;
@@ -15939,119 +15939,118 @@ mrisComputeIntensityTerm_mef(MRI_SURFACE *mris, double l_intensity,
       DiagBreak() ;
 
     x = v->x ; y = v->y ; z = v->z ;
+    nx = v->nx ; ny = v->ny ; nz = v->nz ;
 
-    MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw);
-    MRIsampleVolume(mri_30, xw, yw, zw, &val0) ;
     sigma = v->val2 ;
     if (FZERO(sigma))
       sigma = sigma_global ;
-
-    nx = v->nx ; ny = v->ny ; nz = v->nz ;
-
-    /* compute intensity gradient using smoothed volume */
-
-    if (parms->grad_dir == 0)
+    if (!FZERO(weight30))
     {
-      Real dist, val, step_size ;
-      int  n ;
-
-      step_size = MIN(sigma/2,
-                      MIN(mri_30->xsize,
-                          MIN(mri_30->ysize, mri_30->zsize))*0.5) ;
-      ktotal_outside = ktotal_inside = 0.0 ;
-      for (n = 0, val_outside = val_inside = 0.0, dist = step_size ;
-           dist <= 2*sigma;
-           dist += step_size, n++)
-      {
-        k = exp(-dist*dist/(2*sigma*sigma)) ;
-        xw = x + dist*nx ; yw = y + dist*ny ; zw = z + dist*nz ;
-        if (mri_interior)
-        {
-          MRISsurfaceRASToVoxelCached(mris, mri_interior, xw, yw, zw, &xvi,&yvi,&zvi) ;
-          MRIsampleVolume(mri_interior, xvi, yvi, zvi, &interior) ;
-        }
-
-        if (mri_interior == NULL || interior < .9)
-        {
-          MRISsurfaceRASToVoxelCached(mris, mri_30, xw, yw, zw, &xw, &yw, &zw);
-          MRIsampleVolume(mri_30, xw, yw, zw, &val) ;
-          val_outside += k*val ;
-          ktotal_outside += k ;
-        }
-        else
-          DiagBreak() ;
-
-        xw = x - dist*nx ; yw = y - dist*ny ; zw = z - dist*nz ;
-        if (mri_interior)
-        {
-          MRISsurfaceRASToVoxelCached(mris, mri_interior, xw, yw, zw, &xvi,&yvi,&zvi) ;
-          MRIsampleVolume(mri_interior, xvi, yvi, zvi, &interior) ;
-        }
-        if (mri_interior == NULL || interior > 0)
-        {
-          MRISsurfaceRASToVoxelCached(mris, mri_30, xw, yw, zw, &xw, &yw, &zw);
-          MRIsampleVolume(mri_30, xw, yw, zw, &val) ;
-          val_inside += k*val ;
-          ktotal_inside += k ;
-        }
-        else
-          DiagBreak() ;
-      }
-      if (ktotal_inside> 0)
-        val_inside /= (double)ktotal_inside ;
-      if (ktotal_outside> 0)
-        val_outside /= (double)ktotal_outside ;
-    }
-    else  // don't compute gradient - assume
-    {
-      val_outside = parms->grad_dir ;
-      val_inside = -parms->grad_dir ;
-    }
-
-    delV = v->val - val0 ;
-    delI = (val_outside - val_inside) / 2.0 ;
-
-    if (!FZERO(delI))
-      delI /= fabs(delI) ;
-    else
-      delI = -1; //intensity tends to increase inwards for flash30
-
-    if (delV > 5)
-      delV = 5 ;
-    else if (delV < -5)
-      delV = -5 ;
-
-    del = l_intensity * delV * delI ;
-
-    dx = nx * del*weight30 ; dy = ny * del*weight30 ; dz = nz * del*weight30;
-
-    if (dx*nx+dy*ny+dz*nz < 0)
-      DiagBreak() ;
-
-    if (vno == Gdiag_no)
-    {
-      Real xwi, ywi, zwi, xwo, ywo, zwo ;
-
-      x = v->x ; y = v->y ;z = v->z ;
-
-      /* sample outward from surface */
-      xw = x + nx ; yw = y + ny ; zw = z + nz ;
-      MRISsurfaceRASToVoxelCached(mris, mri_30, xw, yw, zw, &xwo, &ywo, &zwo) ;
-      /* sample inward from surface */
-      xw = x - nx ; yw = y - ny ; zw = z - nz ;
-      MRISsurfaceRASToVoxelCached(mris, mri_30, xw, yw, zw, &xwi, &ywi, &zwi) ;
       MRISsurfaceRASToVoxelCached(mris, mri_30, x, y, z, &xw, &yw, &zw) ;
-      fprintf(stdout,
-              "I30(%2.1f,%2.1f,%2.1f)=%2.1f, Io(%2.1f,%2.1f,%2.1f)=%2.1f, "
-              "Ii(%2.1f,%2.1f,%2.1f)=%2.1f\n",
-              xw,yw,zw,val0, xwo, ywo,zwo,
-              val_outside,xwi,ywi,zwi,val_inside);
-      fprintf(stdout, "v %d I30 intensity term:  (%2.3f, %2.3f, %2.3f), "
-              "targ=%2.1f, delV=%2.1f, delI=%2.0f, dot=%2.1f\n", vno, dx, dy, dz, v->val,
-              delV, delI,
-              dx*nx+dy*ny+dz*nz) ;
+      MRIsampleVolume(mri_30, xw, yw, zw, &val0) ;
+      
+      /* compute intensity gradient using smoothed volume */
+      
+      if (parms->grad_dir == 0)
+      {
+        Real dist, val, step_size ;
+        int  n ;
+        
+        step_size = MIN(sigma/2,
+                        MIN(mri_30->xsize,
+                            MIN(mri_30->ysize, mri_30->zsize))*0.5) ;
+        ktotal_outside = ktotal_inside = 0.0 ;
+        for (n = 0, val_outside = val_inside = 0.0, dist = step_size ;
+             dist <= 2*sigma;
+             dist += step_size, n++)
+        {
+          k = exp(-dist*dist/(2*sigma*sigma)) ;
+          xw = x + dist*nx ; yw = y + dist*ny ; zw = z + dist*nz ;
+          if (mri_interior)
+          {
+            MRISsurfaceRASToVoxelCached(mris, mri_interior, xw, yw, zw, &xvi,&yvi,&zvi) ;
+            MRIsampleVolume(mri_interior, xvi, yvi, zvi, &interior) ;
+          }
+          
+          if (mri_interior == NULL || interior < .9)
+          {
+            MRIsampleVolume(mri_30, xw, yw, zw, &val) ;
+            val_outside += k*val ;
+            ktotal_outside += k ;
+          }
+          else
+            DiagBreak() ;
+          
+          xw = x - dist*nx ; yw = y - dist*ny ; zw = z - dist*nz ;
+          if (mri_interior)
+          {
+            MRISsurfaceRASToVoxelCached(mris, mri_interior, xw, yw, zw, &xvi,&yvi,&zvi) ;
+            MRIsampleVolume(mri_interior, xvi, yvi, zvi, &interior) ;
+          }
+          if (mri_interior == NULL || interior > 0)
+          {
+            MRIsampleVolume(mri_30, xw, yw, zw, &val) ;
+            val_inside += k*val ;
+            ktotal_inside += k ;
+          }
+          else
+            DiagBreak() ;
+        }
+        if (ktotal_inside> 0)
+          val_inside /= (double)ktotal_inside ;
+        if (ktotal_outside> 0)
+          val_outside /= (double)ktotal_outside ;
+      }
+      else  // don't compute gradient - assume
+      {
+        val_outside = parms->grad_dir ;
+        val_inside = -parms->grad_dir ;
+      }
+      
+      delV = v->val - val0 ;
+      delI = (val_outside - val_inside) / 2.0 ;
+      
+      if (!FZERO(delI))
+        delI /= fabs(delI) ;
+      else
+        delI = -1; //intensity tends to increase inwards for flash30
+      
+      if (delV > 5)
+        delV = 5 ;
+      else if (delV < -5)
+        delV = -5 ;
+      
+      del = l_intensity * delV * delI ;
+      
+      dx = nx * del*weight30 ; dy = ny * del*weight30 ; dz = nz * del*weight30;
+      
+      if (dx*nx+dy*ny+dz*nz < 0)
+        DiagBreak() ;
+      
+      if (vno == Gdiag_no)
+      {
+        Real xwi, ywi, zwi, xwo, ywo, zwo ;
+        
+        x = v->x ; y = v->y ;z = v->z ;
+        
+        /* sample outward from surface */
+        xw = x + nx ; yw = y + ny ; zw = z + nz ;
+        MRISsurfaceRASToVoxelCached(mris, mri_30, xw, yw, zw, &xwo, &ywo, &zwo) ;
+        /* sample inward from surface */
+        xw = x - nx ; yw = y - ny ; zw = z - nz ;
+        MRISsurfaceRASToVoxelCached(mris, mri_30, xw, yw, zw, &xwi, &ywi, &zwi) ;
+        fprintf(stdout,
+                "I30(%2.1f,%2.1f,%2.1f)=%2.1f, Io(%2.1f,%2.1f,%2.1f)=%2.1f, "
+                "Ii(%2.1f,%2.1f,%2.1f)=%2.1f\n",
+                xw,yw,zw,val0, xwo, ywo,zwo,
+                val_outside,xwi,ywi,zwi,val_inside);
+        fprintf(stdout, "v %d I30 intensity term:  (%2.3f, %2.3f, %2.3f), "
+                "targ=%2.1f, delV=%2.1f, delI=%2.0f, dot=%2.1f\n", vno, dx, dy, dz, v->val,
+                delV, delI,
+                dx*nx+dy*ny+dz*nz) ;
+      }
+      v->dx += dx ; v->dy += dy ; v->dz += dz ;
     }
-    v->dx += dx ; v->dy += dy ; v->dz += dz ;
 
     //now compute flash5
     /* compute intensity gradient using smoothed volume */
@@ -16077,7 +16076,8 @@ mrisComputeIntensityTerm_mef(MRI_SURFACE *mris, double l_intensity,
           xw = x + dist*nx ; yw = y + dist*ny ; zw = z + dist*nz ;
           if (mri_interior)
           {
-            MRISsurfaceRASToVoxel(mris, mri_interior, xw, yw, zw, &xvi,&yvi,&zvi) ;
+            MRISsurfaceRASToVoxelCached(mris, mri_interior, xw, yw, zw, 
+                                        &xvi,&yvi,&zvi) ;
             MRIsampleVolume(mri_interior, xvi, yvi, zvi, &interior) ;
           }
           if (mri_interior == NULL || interior < .9)
@@ -16091,7 +16091,8 @@ mrisComputeIntensityTerm_mef(MRI_SURFACE *mris, double l_intensity,
           xw = x - dist*nx ; yw = y - dist*ny ; zw = z - dist*nz ;
           if (mri_interior)
           {
-            MRISsurfaceRASToVoxel(mris, mri_interior, xw, yw, zw, &xvi,&yvi,&zvi) ;
+            MRISsurfaceRASToVoxelCached(mris, mri_interior, xw, yw, zw, 
+                                        &xvi,&yvi,&zvi) ;
             MRIsampleVolume(mri_interior, xvi, yvi, zvi, &interior) ;
           }
           if (mri_interior == NULL || interior > 0)
@@ -19682,8 +19683,99 @@ MRISsaveVertexPositions(MRI_SURFACE *mris, int which)
     MRIScomputeCanonicalCoordinates(mris) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+  Parameters:
 
+  Returns value:
 
+  Description
+  ------------------------------------------------------*/
+int
+MRISsaveNormals(MRI_SURFACE *mris, int which)
+{
+  int     vno, nvertices ;
+  VERTEX  *v ;
+
+  nvertices = mris->nvertices ;
+  for (vno = 0 ; vno < nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    switch (which)
+    {
+    case TMP_VERTICES:
+      v->tx = v->nx ;
+      v->ty = v->ny ;
+      v->tz = v->nz ;
+      break ;
+    case TMP2_VERTICES:
+      v->tx2 = v->nx ;
+      v->ty2 = v->ny ;
+      v->tz2 = v->nz ;
+      break ;
+    case PIAL_VERTICES:
+      v->pnx = v->nx ;
+      v->pny = v->ny ;
+      v->pnz = v->nz ;
+      break ;
+    case WHITE_VERTICES:
+    case INFLATED_VERTICES:
+    case FLATTENED_VERTICES:
+    case CANONICAL_VERTICES:
+    case ORIGINAL_VERTICES:
+    default:
+      ErrorExit(ERROR_BADPARM, "MRISsaveNormals: unsupported which %d", which);
+      break ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
+MRISrestoreNormals(MRI_SURFACE *mris, int which)
+{
+  int     vno, nvertices ;
+  VERTEX  *v ;
+
+  nvertices = mris->nvertices ;
+  for (vno = 0 ; vno < nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    switch (which)
+    {
+    case TMP_VERTICES:
+      v->nx = v->tx ;
+      v->ny = v->ty ;
+      v->nz = v->tz ;
+      break ;
+    case TMP2_VERTICES:
+      v->nx = v->tx2 ;
+      v->ny = v->ty2 ;
+      v->nz = v->tz2 ;
+      break ;
+    case PIAL_VERTICES:
+      v->nx = v->pnx ;
+      v->ny = v->pny ;
+      v->nz = v->pnz ;
+      break ;
+    case WHITE_VERTICES:
+    case INFLATED_VERTICES:
+    case FLATTENED_VERTICES:
+    case CANONICAL_VERTICES:
+    case ORIGINAL_VERTICES:
+    default:
+      ErrorExit(ERROR_BADPARM, "MRISsaveNormals: unsupported which %d", which);
+      break ;
+    }
+  }
+  return(NO_ERROR) ;
+}
 
 /*-----------------------------------------------------
   Parameters:
@@ -27781,7 +27873,7 @@ int
 MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                                MRI *mri_smooth, double sigma,
                                float max_thickness, float dir, FILE *log_fp,
-                               MRI *mri_wm)
+                               MRI *mri_wm, int callno)
 {
   int     total_vertices, vno, n, num, found ;
   VERTEX  *v, *vn ;
@@ -27912,17 +28004,17 @@ MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
     // +- 2 standard deviations around the local mean
     // don't let std get too small
     wm_mean = v->val2 ;
-    wm_std = v->imag_val < 0.05*v->val2 ? .05*v->val2 : v->imag_val ;
-    wm_std = wm_mean*.05 ;
+    wm_std =  v->imag_val ;
+    wm_std = MAX(wm_std, wm_mean*.1) ;  // don't let std be too low
     if (dir > 0)  // allow outside to be brighter to allow for partial volume
     {
-      wm_hi = wm_mean + 4*wm_std ;
+      wm_hi = wm_mean + 10*wm_std ;
       wm_lo = wm_mean - 2*wm_std ;
     }
     else
     {
       wm_hi = wm_mean + 2*wm_std ;
-      wm_lo = wm_mean - 4*wm_std ;
+      wm_lo = wm_mean - 7*wm_std ;
     }
     max_grad = 0 ; max_grad_dist = 0 ; found = 0 ;
     /* search outwards for local maximum */
@@ -27937,8 +28029,225 @@ MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           break ;
         MRIsampleVolumeDerivativeScale(mri_brain, xv, yv, zv, nx, ny, nz, &grad, sigma_vox) ;
         if (grad*dir < 0)  // out of viable region
+        {
+          if (callno > 0 || dist > max_thickness/2)
+            break ;
+        }
+        if (dir*grad > dir*max_grad)  // in the right direction
+        {
+          max_grad = grad ;
+          max_grad_dist = dist ;
+          MRIsampleVolume(mri_brain, xv, yv, zv, &max_grad_val) ;
+          found = 1 ;
+        }
+      }
+    }
+    /* search inwards for local maximum */
+    for (dist = 0 ; dist >= -max_thickness ; dist -= sample_dist)
+    {
+      x = v->x+dist*v->nx ; y = v->y+dist*v->ny ; z = v->z+dist*v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xv, &yv, &zv) ;
+      if (MRIindexNotInVolume(mri_brain, xv, yv, zv) == 0)
+      {
+        MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
+        if (val < wm_lo || val > wm_hi)
+          continue ;   // allow search to continue as we haven't reached valid region yet
+        MRIsampleVolumeDerivativeScale(mri_brain, xv, yv, zv, nx, ny, nz, &grad, sigma_vox) ;
+        if (grad*dir < 0)  // out of viable region
           break ;
         if (fabs(grad) > fabs(max_grad))  // in the right direction
+        {
+          max_grad = grad ;
+          max_grad_dist = dist ;
+          MRIsampleVolume(mri_brain, xv, yv, zv, &max_grad_val) ;
+          found = 1 ;
+        }
+      }
+    }
+
+    if (found)
+    {
+      if (vno == Gdiag_no)
+        printf("max grad %2.3f found at distance %2.2f, val = %2.0f in [%2.0f %2.0f]\n", 
+               max_grad, max_grad_dist, max_grad_val, wm_lo, wm_hi) ;
+      v->val = max_grad_val ;
+      v->marked = 1 ;
+    }
+    else
+    {
+      v->marked = 0 ;
+      if (vno == Gdiag_no)
+        printf("v %d: could not find valid gradient maximum\n", vno) ;
+    }
+  }
+  for (total_vertices = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+    v->val2 = sigma ;
+  }
+
+ MRISsoapBubbleVals(mris, 100) ;
+  if (mri_median != mri_brain)
+    MRIfree(&mri_median) ;
+  return(NO_ERROR) ;
+}
+int
+MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
+                                   MRI *mri_smooth, double sigma,
+                                   float max_thickness, float dir, FILE *log_fp,
+                                   int callno)
+{
+  int     total_vertices, vno, n, num, found ;
+  VERTEX  *v, *vn ;
+  Real    x, y, z, xv, yv, zv, dist, grad, max_grad, max_grad_dist, sigma_vox,
+          nx, ny, nz, sample_dist, mag,max_grad_val, min_val, val, wm_mean, wm_std, wm_hi, wm_lo ;
+  MRI     *mri_median ;
+  MRI_REGION box ;
+  
+  box.x = nint(5/mri_brain->xsize) ;
+  box.y = nint(5/mri_brain->ysize) ;
+  box.z = nint(5/mri_brain->zsize) ;
+  box.dx = mri_brain->width - 2*nint(5/mri_brain->xsize) ;
+  box.dy = mri_brain->height - 2*nint(5/mri_brain->ysize) ;
+  box.dz = mri_brain->depth - 2*nint(5/mri_brain->zsize) ;
+
+  if (0)  {
+    //mri_median = MRImedian(mri_brain, NULL, 3, &box) ;
+    //MRIwrite(mri_median, "median.mgz") ;
+  }
+  else
+    mri_median = mri_brain ;
+
+  sample_dist = .5*mri_brain->xsize ;
+
+  // first compute white matter statistics over space
+
+  sigma_vox = sigma / mri_brain->xsize ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+    v->marked = 1 ;
+    // compute surface normal in voxel coords
+    MRISsurfaceRASToVoxelCached(mris, mri_brain, v->x, v->y, v->z, &xv, &yv, &zv) ;
+    x = v->x+v->nx ; y = v->y+v->ny ; z = v->z+v->nz ;
+    MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &nx, &ny, &nz) ;
+    nx -= xv ; ny -= yv ; nz -= zv ;
+    mag = sqrt(nx*nx + ny*ny + nz*nz) ;
+    if (FZERO(mag))
+      continue ;
+    nx /= mag ; ny /= mag ; nz /= mag ;
+
+    /* search inwards for min value */
+    min_val = 1e10 ;
+    for (dist = 0 ; dist <= 2 ; dist += sample_dist)
+    {
+      x = v->x-dist*v->nx ; y = v->y-dist*v->ny ; z = v->z-dist*v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xv, &yv, &zv) ;
+      if (MRIindexNotInVolume(mri_brain, xv, yv, zv) == 0)
+      {
+        MRIsampleVolume(mri_median, xv, yv, zv, &val) ;
+        if (val < min_val)
+        {
+          v->marked = 0 ;
+          min_val = val ;
+        }
+      }
+    }
+    if (v->marked == 1)
+      DiagBreak() ;
+    v->val = min_val ;
+  }
+
+  // let user do smoothing  MRISaverageVals(mris, 10) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+    wm_mean = v->val ; wm_std = v->val*v->val ;
+    v->valbak = v->val2bak = v->val ;  // min and max 
+    for (num = 1, n = 0 ; n < v->vtotal ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      if (vn->ripflag)
+        continue ;
+      if (vn->val < v->valbak)
+        v->valbak = vn->val ;
+      if (vn->val > v->val2bak)
+        v->val2bak = vn->val ;
+      wm_mean += vn->val ; wm_std += vn->val*vn->val ;
+      num++ ;
+    }
+    wm_mean /= num ;
+    wm_std = sqrt(wm_std/num - wm_mean*wm_mean) ;
+    v->val2 = v->val = wm_mean ;
+    v->imag_val = wm_std ;
+  }
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRISwriteValues(mris, "wm.mgz") ;
+
+  for (total_vertices = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+    total_vertices++ ;
+
+    // compute surface normal in voxel coords
+    MRISsurfaceRASToVoxelCached(mris, mri_brain, v->x, v->y, v->z, &xv, &yv, &zv) ;
+    x = v->x+v->nx ; y = v->y+v->ny ; z = v->z+v->nz ;
+    MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &nx, &ny, &nz) ;
+    nx -= xv ; ny -= yv ; nz -= zv ;
+    mag = sqrt(nx*nx + ny*ny + nz*nz) ;
+    if (FZERO(mag))
+      continue ;
+    nx /= mag ; ny /= mag ; nz /= mag ;
+    
+    // +- 2 standard deviations around the local mean
+    // don't let std get too small
+    wm_mean = v->val2 ;
+    wm_std =  v->imag_val ;
+    wm_std = MAX(wm_std, wm_mean*.1) ;  // don't let std be too low
+    if (dir > 0)  // allow outside to be brighter to allow for partial volume
+    {
+      wm_hi = wm_mean + 10*wm_std ;
+      wm_lo = wm_mean - 2*wm_std ;
+    }
+    else
+    {
+      wm_hi = wm_mean + 2*wm_std ;
+      wm_lo = wm_mean - 7*wm_std ;
+    }
+    max_grad = 0 ; max_grad_dist = 0 ; found = 0 ;
+    /* search outwards for local maximum */
+    for (dist = 0 ; dist <= max_thickness ; dist += sample_dist)
+    {
+      x = v->x+dist*v->nx ; y = v->y+dist*v->ny ; z = v->z+dist*v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xv, &yv, &zv) ;
+      if (MRIindexNotInVolume(mri_brain, xv, yv, zv) == 0)
+      {
+        MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
+        if (val < wm_lo || val > wm_hi)
+          break ;
+        MRIsampleVolumeDerivativeScale(mri_brain, xv, yv, zv, nx, ny, nz, &grad, sigma_vox) ;
+        if (grad*dir < 0)  // out of viable region
+        {
+          if (callno > 0 || dist > max_thickness/2)
+            break ;
+        }
+        if (dir*grad > dir*max_grad)  // in the right direction
         {
           max_grad = grad ;
           max_grad_dist = dist ;
@@ -29192,7 +29501,18 @@ mrisRmsValError(MRI_SURFACE *mris, MRI *mri)
     zv = nint(z) ;
     MRIsampleVolume(mri, x, y, z, &val) ;
     delta = (val - v->val) ;
+    if (fabs(delta) > 100)
+      DiagBreak() ;
+    else if (fabs(delta) > 1000)
+      DiagBreak() ;
+    else if (fabs(delta) > 10000)
+      DiagBreak() ;
+    else if (fabs(delta) > 100000)
+      DiagBreak() ;
+
     total += delta*delta ;
+    if (sqrt(total / (double)n) > 1000)
+      DiagBreak() ;
   }
   return(sqrt(total / (double)n)) ;
 }
@@ -58310,7 +58630,7 @@ mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
     float dot ;
     v = &mris->vertices[Gdiag_no] ;
     dot = v->nx*v->dx + v->ny*v->dy + v->nz*v->dz ;
-    fprintf(stdout, " after dot = %2.2f\n",dot) ;
+    fprintf(stdout, " after dot = %2.2f (%2.3f, %2.3f, %2.3f)\n",dot, v->dx, v->dy, v->dz) ;
     if (fabs(dot) > 50)
       DiagBreak() ;
   }
@@ -58456,7 +58776,7 @@ mrisAverageWeightedGradients(MRI_SURFACE *mris, int num_avgs)
     float dot ;
     v = &mris->vertices[Gdiag_no] ;
     dot = v->nx*v->dx + v->ny*v->dy + v->nz*v->dz ;
-    fprintf(stdout, " after dot = %2.2f\n",dot) ;
+    fprintf(stdout, " after dot = %2.2f (%2.3f, %2.3f, %2.3f)\n",dot, v->dx, v->dy, v->dz) ;
     if (fabs(dot) > 50)
       DiagBreak() ;
   }

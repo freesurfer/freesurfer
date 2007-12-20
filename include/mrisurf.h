@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/12/04 02:30:49 $
- *    $Revision: 1.307 $
+ *    $Author: fischl $
+ *    $Date: 2007/12/20 21:42:23 $
+ *    $Revision: 1.308 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -95,6 +95,7 @@ typedef struct vertex_type_
 {
   float x,y,z;           /* curr position */
   float nx,ny,nz;        /* curr normal */
+  float pnx,pny,pnz;     /* pial normal */
   float dx, dy, dz ;     /* current change in position */
   float odx, ody, odz ;  /* last change of position (for momentum) */
   float tdx, tdy, tdz ;  /* temporary storage for averaging gradient */
@@ -927,6 +928,8 @@ double       MRISParea(MRI_SP *mrisp) ;
 
 int          MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
 int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
+int MRISrestoreNormals(MRI_SURFACE *mris, int which) ;
+int MRISsaveNormals(MRI_SURFACE *mris, int which) ;
 
 /* constants for vertex->tethered */
 #define TETHERED_NONE           0
@@ -1056,10 +1059,15 @@ int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris,
 #define GRAY_WHITE     1
 #define GRAY_CSF       2
 int
+MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
+                                   MRI *mri_smooth, double sigma,
+                                   float max_thickness, float dir, FILE *log_fp,
+                                   int callno) ;
+int
 MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                                MRI *mri_smooth, double sigma,
                                float max_thickness, float dir, FILE *log_fp,
-                               MRI *mri_wm) ;
+                               MRI *mri_wm, int callno) ;
 int MRIScomputeInvertedGrayWhiteBorderValues(MRI_SURFACE *mris,
                                              MRI *mri_brain,
                                              MRI *mri_smooth,
