@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/26 12:44:55 $
- *    $Revision: 1.16 $
+ *    $Date: 2007/12/20 21:43:00 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,9 +48,10 @@
 #include "mrinorm.h"
 #include "version.h"
 #include "label.h"
+#include "registerio.h"
 
 static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.16 2007/10/26 12:44:55 fischl Exp $";
+"$Id: mris_refine_surfaces.c,v 1.17 2007/12/20 21:43:00 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -83,6 +84,7 @@ static char *orig_pial = NULL ;
 
 char *Progname ;
 
+static char *reg_fname = NULL ;
 static int graymid = 0 ;
 static int curvature_avgs = 10 ;
 static int create = 1 ;
@@ -116,7 +118,7 @@ static int write_vals = 0 ;
 
 static char *orig_name = ORIG_NAME ;
 
-static char *output_suffix = "hires" ;
+static char output_suffix[STRLEN] = "hires" ;
 static char pial_name[STRLEN] = "pial" ;
 static char white_matter_name[STRLEN] = WHITE_MATTER_NAME ;
 
@@ -174,7 +176,7 @@ static int MGZ = 1; // for use with MGZ format
 static float check_contrast_direction
 (MRI_SURFACE *mris,MRI *mri_hires) ; //defined at the end
 
-#define MIN_BORDER_DIST 5.0  // mm from border
+#define MIN_BORDER_DIST 2.0  // mm from border
 
 int
 main(int argc, char *argv[]) {
@@ -188,12 +190,13 @@ main(int argc, char *argv[]) {
   float         white_mean, white_std, gray_mean, gray_std ;
   double        l_intensity, current_sigma ;
   struct timeb  then ;
+  MATRIX        *m_reg = NULL ;
   /*  LT            *lt =0;*/
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.16 2007/10/26 12:44:55 fischl Exp $", 
+     "$Id: mris_refine_surfaces.c,v 1.17 2007/12/20 21:43:00 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -206,7 +209,7 @@ main(int argc, char *argv[]) {
 
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = NO_PROJECTION ;
-  parms.fill_interior = 1 ;  // don't let gradient use exterior information (slows things down)
+  parms.fill_interior = 0 ;  // don't let gradient use exterior information (slows things down)
   parms.tol = 1e-4 ;
   parms.dt = 0.5f ;
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
@@ -300,19 +303,16 @@ main(int argc, char *argv[]) {
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, argv[3]) ;
   if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading hires volume %s...\n", fname) ;
-  mri_hires = mri_hires_pial = MRIread(fname);
-  if (!mri_hires)
-    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
-              Progname, fname) ;
-  /////////////////////////////////////////
-  // no idea why Tosa was doing this  setMRIforSurface(mri_hires);
-
-  if (apply_median_filter) /* -median option ... modify 
-                              mri_hires using the filter */
+  if (0)
   {
-    MRI        *mri_tmp ;
     MRI_REGION box ;
     double     dist = MIN_BORDER_DIST-.5 ;
+    MRI        *mri_tmp ;
+      
+    mri_hires = MRIread(fname);
+    if (!mri_hires)
+      ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
+                Progname, fname) ;
 
     box.x = nint(dist/mri_hires->xsize) ;
     box.y = nint(dist/mri_hires->ysize) ;
@@ -320,20 +320,31 @@ main(int argc, char *argv[]) {
     box.dx = mri_hires->width - 2*nint(dist/mri_hires->xsize) ;
     box.dy = mri_hires->height - 2*nint(dist/mri_hires->ysize) ;
     box.dz = mri_hires->depth - 2*nint(dist/mri_hires->zsize) ;
-
-    fprintf(stderr, "applying median filter to T1 image...\n") ;
-    if (0)
-    {
-      mri_tmp = MRIcopy(mri_hires, NULL) ;  // copy stuff outside of range
-      MRImedian(mri_hires, mri_tmp, 3, &box) ;
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        MRIwrite(mri_tmp, "median.mgz") ;
-    }
-    else
-      mri_tmp = MRIread("median.mgz") ;
+      
+    mri_tmp = MRIextract(mri_hires, NULL, box.x, box.y, box.z,
+                         box.dx, box.dy, box.dz) ;
     MRIfree(&mri_hires) ;
     mri_hires = mri_hires_pial = mri_tmp ;
+
+    if (apply_median_filter) /* -median option ... modify 
+                                mri_hires using the filter */
+    {
+      fprintf(stderr, "applying median filter to T1 image...\n") ;
+      if (1)
+      {
+        mri_tmp = MRIcopy(mri_hires, NULL) ;  // copy stuff outside of range
+        MRImedian(mri_hires, mri_tmp, 3, NULL) ;
+      //      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+        MRIwrite(mri_tmp, "median.mgz") ;
+      }
+      else
+        mri_tmp = MRIread("median.mgz") ;
+      MRIfree(&mri_hires) ;
+      mri_hires = mri_hires_pial = mri_tmp ;
+    }
   }
+  else
+    mri_hires = mri_hires_pial = MRIread("median.mgz") ;
 
 
   /////////////////////////////////////////////////////////////////////////////
@@ -379,9 +390,20 @@ main(int argc, char *argv[]) {
   // move the vertex positions to the lh(rh).white positions (low res)
   ////////////////////////////////////////////////////////////////////////////
   printf("reading initial white vertex positions from %s...\n", orig_white) ;
+  if (reg_fname)
+  {
+    char *subject ;
+    printf("reading registration from %s\n", reg_fname);
+    m_reg = regio_read_surfacexform_from_register_dat(reg_fname, mris, mri_hires, &subject);
+    if (m_reg == NULL)
+      exit(Gerror) ;
+  }
+
   if (MRISreadVertexPositions(mris, orig_white) != NO_ERROR)
     ErrorExit(Gerror, "reading of orig white failed...");
 
+  if (m_reg)
+    MRISmatrixMultiply(mris, m_reg) ;
 
   /////////////////////////////////////////////////////////////////////////////
   // read label file
@@ -413,7 +435,7 @@ main(int argc, char *argv[]) {
   }
   else   // build a label that contains the whole field of view
   {
-    hires_label = LabelInFOV(mris, mri_hires, MIN_BORDER_DIST) ;
+    hires_label = LabelInFOV(mris, mri_hires, 2*mri_hires->xsize) ;
   }
 
   printf("deforming %d vertices\n", hires_label->n_points) ;
@@ -579,7 +601,7 @@ main(int argc, char *argv[]) {
 #else
     MRIScomputeMaxGradBorderValues(mris,mri_hires, mri_smooth,
                                    current_sigma, max_thickness, 1, parms.fp,
-                                   mri_wm) ;
+                                   mri_wm, i) ;
     //    compute_border_gradients(mris, mri_hires, 20) ;
 #endif    
     MRISfindExpansionRegions(mris) ;
@@ -612,12 +634,12 @@ main(int argc, char *argv[]) {
     }
     if (i == 0)
     {
-      parms.niterations = 10 ;
+      parms.niterations = 15 ;
       parms.grad_dir = 1 ;
       MRISpositionSurface(mris, mri_hires, mri_smooth,&parms);
       MRIScomputeMaxGradBorderValues(mris,mri_hires, mri_smooth,
                                      current_sigma, max_thickness, 1, parms.fp,
-                                     mri_wm) ;
+                                     mri_wm, i) ;
       //    compute_border_gradients(mris, mri_hires, 20) ;
       MRISfindExpansionRegions(mris) ;
       if (vavgs) {
@@ -628,11 +650,13 @@ main(int argc, char *argv[]) {
           v = &mris->vertices[Gdiag_no] ;
           fprintf(stderr,"v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
                   Gdiag_no, v->val, v->mean, v->d) ;
+        }
       }
-    }
 
+      printf("enabling interior filling and gradient direction calculation...\n") ;
       parms.niterations = nwhite ;
       parms.grad_dir = 0 ;
+      parms.fill_interior = 1 ;
     }
     MRISpositionSurface(mris, mri_hires, mri_smooth,&parms);
     if (add) {
@@ -685,6 +709,8 @@ main(int argc, char *argv[]) {
     //  restore to hires for further processing
     //    MRISsurf2surfAll(mris, mri_hires, hires_lta);
     MRIScomputeMetricProperties(mris) ;
+    if (m_reg)
+      MRISmatrixMultiply(mris, m_reg) ;
   }
 
   if (white_only) {
@@ -722,6 +748,8 @@ main(int argc, char *argv[]) {
     printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
     if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
       ErrorExit(Gerror, "reading orig pial positions failed") ;
+    if (m_reg)
+      MRISmatrixMultiply(mris, m_reg) ;
   }
 
   // we need to retain the mask
@@ -754,12 +782,14 @@ main(int argc, char *argv[]) {
         if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
           MRIwrite(mri_hires, "pial_masked.mgh") ;
       }
+      MRISunrip(mris) ;
+      if (hires_label)
+        LabelFree(&hires_label) ;
+      hires_label = LabelInFOV(mris, mri_hires, 2*mri_hires->xsize) ;
+      LabelRipRestOfSurface(hires_label, mris) ;
       if (inverted_contrast)
-        MRIScomputeInvertedPialBorderValues
-          (mris, mri_hires, mri_smooth, max_gray,
-           max_gray_at_csf_border, min_gray_at_csf_border,
-           min_csf,(max_csf+max_gray_at_csf_border)/2,
-           current_sigma, 2*max_thickness, parms.fp) ;
+        MRIScomputeMaxGradBorderValuesPial(mris,mri_hires, mri_smooth,
+                                           current_sigma, max_thickness, -1, parms.fp,i) ;
       else
         MRIScomputeBorderValues
           (mris, mri_hires, mri_smooth, max_gray,
@@ -767,6 +797,7 @@ main(int argc, char *argv[]) {
            min_csf,(max_csf+max_gray_at_csf_border)/2,
            current_sigma, 2*max_thickness, parms.fp,
            GRAY_CSF, NULL, 0) ;
+
       if (vavgs) {
         fprintf(stderr, 
                 "averaging target values for %d iterations...\n",vavgs) ;
@@ -853,6 +884,17 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "fill_interior"))
+  {
+    parms.fill_interior = 1 ;  // don't let gradient use exterior information (slows things down)
+    printf("limiting gradient calculations to interior of surface\n") ;
+  }
+  else if (!stricmp(option, "reg"))
+  {
+    reg_fname = argv[2] ;
+    printf("using registration file %s to transform surfaces\n", reg_fname) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "nowhite") || !stricmp(option, "pialonly")) {
     nowhite = 1 ;
     fprintf(stderr, "reading previously compute gray/white surface\n") ;
