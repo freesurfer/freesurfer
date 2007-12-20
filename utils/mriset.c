@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/12/11 02:09:57 $
- *    $Revision: 1.57 $
+ *    $Author: fischl $
+ *    $Date: 2007/12/20 21:46:53 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,6 +45,7 @@
 #include "filter.h"
 #include "box.h"
 #include "region.h"
+#include "matrix.h"
 
 extern const char* Progname;
 
@@ -1753,7 +1754,7 @@ MRI   *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
 MRI *
 MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
 {
-  int     width, height, depth, nframes, x, y, z, f, mask_val;
+  int     width, height, depth, nframes, x, y, z, f, mask_val ;
   float   val ;
 
   if (mri_src->width != mri_mask->width ||
@@ -2923,6 +2924,126 @@ MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label)
   return(mean_min_dist) ;
 }
 
+int
+MRIcomputeLabelCentroid(MRI *mri_aseg, int label, 
+												double *pxc, double *pyc, double *pzc)
+{
+	int    l, x, y, z, num ;
+	double xc, yc, zc ;
+
+	for (xc = yc = zc = 0.0, num = x = 0 ; x < mri_aseg->width ; x++)
+	{
+		for (y = 0 ; y < mri_aseg->height ; y++)
+		{
+			for (z = 0 ; z < mri_aseg->depth ; z++)
+			{
+				l = nint(MRIgetVoxVal(mri_aseg, x, y, z, 0)) ;
+				if (l != label)
+					continue ;
+				num++ ;
+				xc += x; yc += y; zc += z;
+			}
+		}
+	}
+
+	if (num>0)
+	{
+		xc /= num;  yc /= num;  zc /= num; 
+	}
+	*pxc = xc ; *pyc = yc ; *pzc = zc ;
+
+	return(NO_ERROR) ;
+}
+MRI *
+MRIdivideAseg(MRI *mri_src, MRI *mri_dst, int label, int nunits)
+{
+  float  evalues[3], dx, dy, dz, e1x, e1y, e1z, mx ;
+  MATRIX *m_obs, *m_obs_T, *m_cov, *m_eig ;
+  int    x, y, z, l, num ;
+  double cx, cy, cz, dot, min_dot, max_dot ;
+
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+  if (nunits <= 1)
+    return(mri_dst) ;
+
+  // compute centroid of label
+  MRIcomputeLabelCentroid(mri_src, label, &cx, &cy, &cz);
+  num = MRIvoxelsInLabel(mri_dst, label) ;
+
+  // now compute eigensystem around this vertex
+  m_obs = MatrixAlloc(3, num, MATRIX_REAL) ;
+  for (num = x = 0 ; x < mri_dst->width ; x++)
+    for (y = 0 ; y < mri_dst->height ; y++)
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+        l = nint(MRIgetVoxVal(mri_dst, x, y, z, 0)) ;
+        if (l != label)
+          continue ;
+        dx = x - cx ; dy = y - cy ; dz = z - cz ;
+        *MATRIX_RELT(m_obs, 1, num+1) = dx ;
+        *MATRIX_RELT(m_obs, 2, num+1) = dy ;
+        *MATRIX_RELT(m_obs, 3, num+1) = dz ;
+        num++ ;
+      }
+  
+  m_obs_T = MatrixTranspose(m_obs, NULL) ;
+  m_cov = MatrixMultiply(m_obs,m_obs_T, NULL) ;
+  m_eig = MatrixEigenSystem(m_cov, evalues, NULL) ;
+  e1x = *MATRIX_RELT(m_eig, 1,1) ;
+  e1y = *MATRIX_RELT(m_eig, 2,1) ;
+  e1z = *MATRIX_RELT(m_eig, 3,1) ;
+  if (fabs(e1x) > fabs(e1y) &&  fabs(e1x) > fabs(e1z))
+    mx = e1x ;
+  else if (fabs(e1y) > fabs(e1z))
+    mx = e1y ;
+  else
+    mx = e1z ;
+  //  if (mx < 0)
+  if (e1y < 0)  // orient them from posterior to anterior
+  {
+    e1x *= -1 ;
+    e1y *= -1 ;
+    e1z *= -1 ;
+  }
+  min_dot = max_dot = 0 ;
+  for (x = 0 ; x < mri_dst->width ; x++)
+    for (y = 0 ; y < mri_dst->height ; y++)
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+        l = nint(MRIgetVoxVal(mri_dst, x, y, z, 0)) ;
+        if (l != label)
+          continue ;
+        dx = x - cx ; dy = y - cy ; dz = z - cz ;
+        dot = dx*e1x + dy*e1y + dz*e1z ;
+        if (dot < min_dot)
+           min_dot = dot ;
+        if (dot > max_dot)
+          max_dot = dot ;
+      }
+
+
+  for (x = 0 ; x < mri_dst->width ; x++)
+    for (y = 0 ; y < mri_dst->height ; y++)
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+        l = nint(MRIgetVoxVal(mri_dst, x, y, z, 0)) ;
+        if (l != label)
+          continue ;
+        dx = x - cx ; dy = y - cy ; dz = z - cz ;
+        dot = dx*e1x + dy*e1y + dz*e1z ;
+        l += (int)(nunits * ((dot-min_dot) / (max_dot-min_dot+1))) ;
+        if (l < label || l >= label+nunits)
+          DiagBreak() ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, l) ;
+      }
+
+  MatrixFree(&m_obs) ; MatrixFree(&m_obs_T) ; 
+  MatrixFree(&m_eig) ; MatrixFree(&m_cov) ; 
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_dst, "d.mgz") ;
+  return(mri_dst) ;
+}
+
 /*-----------------------------------------------------------------*/
 /*!
   \fn MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol)
@@ -2956,7 +3077,6 @@ MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol)
   }
   return(bincol);
 }
-
 
 /*-----------------------------------------------------
   Parameters:
