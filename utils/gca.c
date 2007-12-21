@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 02:52:19 $
- *    $Revision: 1.231.2.3 $
+ *    $Date: 2007/12/21 17:45:36 $
+ *    $Revision: 1.231.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -5201,6 +5201,9 @@ GCAfindStableSamples(GCA *gca,
     xi = nint(x) ;
     for (y = 0 ; y < height ; y += prior_stride)
     {
+      fflush(stdout);//nicknote: this prevents a segfault on Linux PowerPC 
+                     //when -O2 optimization is used w/ gcc 3.3.3
+
       yi = nint(y) ;
       for (z = 0 ; z < depth ; z += prior_stride)
       {
