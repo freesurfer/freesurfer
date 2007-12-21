@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/05/04 17:32:34 $
- *    $Revision: 1.1 $
+ *    $Date: 2007/12/21 14:31:01 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,13 +51,17 @@ static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
 
+MRI *MRIdivideAseg(MRI *mri_src, MRI *mri_dst, int label, int nunits);
 static void usage_exit(int code) ;
 static char sdir[STRLEN] = "" ;
 
+static int notransform = 0 ;
 static char surf_name[STRLEN] = "white" ;
+static int dist_flag = 0 ;
+static int divide = 1 ;
+static int dot_flag = 0 ;
+static int normalize = 0 ;
 
-int MRIcomputeLabelCentroid(MRI *mri_aseg, int label, 
-														double *pxc, double *pyc, double *pzc) ;
 int
 main(int argc, char *argv[]) {
   char        **av, *subject, *hemi, *out_fname, fname[STRLEN], *cp ;
@@ -67,11 +71,11 @@ main(int argc, char *argv[]) {
 	MRI_SURFACE *mris ;
 	double      xc, yc, zc, xv, yv, zv ;
 	VECTOR      *v1, *v2 ;
-	int         vno ;
+	int         vno, l ;
 	VERTEX      *v ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_aseg_distance.c,v 1.1 2007/05/04 17:32:34 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_aseg_distance.c,v 1.2 2007/12/21 14:31:01 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -114,38 +118,83 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_BADPARM, "%s: could not read aseg volume %s\n", 
 							Progname,fname);
 
-	sprintf(fname, "%s/%s/mri/transforms/talairach.lta", sdir, subject) ;
-  lta = LTAread(fname) ;
-  if (lta == NULL)
-    ErrorExit(ERROR_BADPARM, "%s: could not read transform %s\n", 
-							Progname,fname);
+  if (divide > 1)
+  {
+    MRI *mri_tmp ;
+    mri_tmp = MRIclone(mri_aseg, NULL) ;
+    MRIcopyLabel(mri_aseg, mri_tmp, label) ;
+    MRIfree(&mri_aseg) ; mri_aseg = mri_tmp ;
+    MRIdivideAseg(mri_aseg, mri_aseg, label, divide) ;
+  }
+  if (notransform == 0)
+  {
+    sprintf(fname, "%s/%s/mri/transforms/talairach.lta", sdir, subject) ;
+    lta = LTAread(fname) ;
+    if (lta == NULL)
+      ErrorExit(ERROR_BADPARM, "%s: could not read transform %s\n", 
+                Progname,fname);
+  }
 
-	MRIcomputeLabelCentroid(mri_aseg, label, &xc, &yc, &zc) ;
-	printf("centroid of label %s (%d) = (%2.3f, %2.3f, %2.3f)\n", 
-				 cma_label_to_name(label), label, xc, yc, zc) ;
-
-	mri_out = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 3) ;  
-
-	v1 = VectorAlloc(4, MATRIX_REAL) ;
-	v2 = VectorAlloc(4, MATRIX_REAL) ;
+  if (dist_flag || dot_flag)
+    mri_out = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 1) ;  
+  else
+    mri_out = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 3) ;  
+  
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
 	VECTOR_ELT(v1, 4) = VECTOR_ELT(v2, 4) = 1.0 ;
-	V3_X(v1) = xc ;  V3_Y(v1) = yc ;  V3_Z(v1) = zc ; 
-	MatrixMultiply(lta->xforms[0].m_L, v1, v2) ;
-	xc = V3_X(v2) ;  yc = V3_Y(v2) ;  zc = V3_Z(v2) ; 
-	for (vno = 0 ; vno < mris->nvertices ; vno++)
-	{
-		v = &mris->vertices[vno] ;
-		MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
-		V3_X(v1) = xv ;  V3_Y(v1) = yv ;  V3_Z(v1) = zv ; 
-		MatrixMultiply(lta->xforms[0].m_L, v1, v2) ;
-		xv = V3_X(v2) ;  yv = V3_Y(v2) ;  zv = V3_Z(v2) ; 
-		MRIsetVoxVal(mri_out, vno, 0, 0, 0, xv-xc) ;
-		MRIsetVoxVal(mri_out, vno, 0, 0, 1, yv-yc) ;
-		MRIsetVoxVal(mri_out, vno, 0, 0, 2, zv-zc) ;
-	}
+  for (l = 0 ; l < divide ; l++)
+  {
+    MRIcomputeLabelCentroid(mri_aseg, label+l, &xc, &yc, &zc) ;
+    printf("centroid of label %s (%d+%d) = (%2.3f, %2.3f, %2.3f)\n", 
+           cma_label_to_name(label), label, l, xc, yc, zc) ;
+    
+    if (notransform == 0)
+    {
+      V3_X(v1) = xc ;  V3_Y(v1) = yc ;  V3_Z(v1) = zc ; 
+      MatrixMultiply(lta->xforms[0].m_L, v1, v2) ;
+      xc = V3_X(v2) ;  yc = V3_Y(v2) ;  zc = V3_Z(v2) ; 
+      printf("centroid in tal coords = (%2.0f, %2.0f, %2.0f)\n",
+             xc, yc, zc) ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+      if (notransform == 0)
+      {
+        V3_X(v1) = xv ;  V3_Y(v1) = yv ;  V3_Z(v1) = zv ; 
+        MatrixMultiply(lta->xforms[0].m_L, v1, v2) ;
+        xv = V3_X(v2) ;  yv = V3_Y(v2) ;  zv = V3_Z(v2) ; 
+      }
+      if (dist_flag)
+      {
+        double dist, dx, dy, dz ;
+        dx = xv-xc ; dy = yv-yc ; dz = zv-zc ; 
+        dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+        MRIsetVoxVal(mri_out, vno, 0, 0, 0, dist) ;
+      }
+      else if (dot_flag)
+      {
+        double dot, dx, dy, dz, nx, ny, nz ;
+        dx = xv-xc ; dy = yv-yc ; dz = zv-zc ; 
+        MRISvertexNormalInVoxelCoords(mris,
+                                      mri_aseg, vno, &nx, &ny, &nz) ;
+        dot = dx*nx + dy*ny + dz*nz ;
+        MRIsetVoxVal(mri_out, vno, 0, 0, 0, dot) ;
+      }
+      else
+      {
+        MRIsetVoxVal(mri_out, vno, 0, 0, 0, xv-xc) ;
+        MRIsetVoxVal(mri_out, vno, 0, 0, 1, yv-yc) ;
+        MRIsetVoxVal(mri_out, vno, 0, 0, 2, zv-zc) ;
+      }
+    }
 
-	printf("writing output to %s\n", out_fname) ;
-	MRIwrite(mri_out, out_fname) ;
+    sprintf(fname, out_fname, l) ;
+    printf("writing output to %s\n", fname) ;
+    MRIwrite(mri_out, fname) ;
+  }
 	MatrixFree(&v1) ; MatrixFree(&v2) ;
   if (Gdiag_fp)
     fclose(Gdiag_fp) ;
@@ -172,8 +221,26 @@ get_option(int argc, char *argv[]) {
     strcpy(sdir, argv[2]) ;
     printf("using %s as SUBJECTS_DIR...\n", sdir) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "dot")) {
+    dot_flag = 1 ;
+    printf("using dot product instead of distances...\n") ;
+  } else if (!stricmp(option, "normalize")) {
+    normalize = 1 ;
+    printf("normalizing distances...\n") ;
+  } else if (!stricmp(option, "divide")) {
+    divide = atoi(argv[2]) ;
+    printf("dividing aseg into %d units\n", divide) ;
+    nargs = 1 ;
   }
   else switch (toupper(*option)) {
+  case 'D':
+    dist_flag = 1 ;
+    printf("storing distances instead of full vector\n") ;
+    break ;
+  case 'N':
+    notransform = 1 ;
+    printf("not using Talairach transform\n") ;
+    break ;
   case 'L':
     break ;
   case '?':
@@ -201,34 +268,6 @@ usage_exit(int code) {
   exit(code) ;
 }
 
-int
-MRIcomputeLabelCentroid(MRI *mri_aseg, int label, 
-												double *pxc, double *pyc, double *pzc)
-{
-	int    l, x, y, z, num ;
-	double xc, yc, zc ;
 
-	for (xc = yc = zc = 0.0, num = x = 0 ; x < mri_aseg->width ; x++)
-	{
-		for (y = 0 ; y < mri_aseg->height ; y++)
-		{
-			for (z = 0 ; z < mri_aseg->depth ; z++)
-			{
-				l = nint(MRIgetVoxVal(mri_aseg, x, y, z, 0)) ;
-				if (l != label)
-					continue ;
-				num++ ;
-				xc += x; yc += y; zc += z;
-			}
-		}
-	}
-
-	if (num>0)
-	{
-		xc /= num;  yc /= num;  zc /= num; 
-	}
-	*pxc = xc ; *pyc = yc ; *pzc = zc ;
-
-	return(NO_ERROR) ;
-}
+#include "matrix.h"
 
