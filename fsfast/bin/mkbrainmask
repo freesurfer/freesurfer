@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/09/16 21:24:47 $
-#    $Revision: 1.13 $
+#    $Date: 2007/12/21 10:54:52 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask,v 1.13 2007/09/16 21:24:47 greve Exp $';
+set VERSION = '$Id: mkbrainmask,v 1.14 2007/12/21 10:54:52 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -133,9 +133,9 @@ endif
 
 #------------------------------------------------------------------
 if($nerodes > 0) then
-  echo Diliating $ndilates
+  echo Eroding $nerodes
   set cmd = (mri_binarize --i $srcmask --min 0.5 \
-     --erode $ndilates --o $srcmask);
+     --erode $nerodes --o $srcmask);
   pwd
   echo $cmd
   $cmd
