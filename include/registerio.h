@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/12/21 04:30:08 $
- *    $Revision: 1.6 $
+ *    $Author: fischl $
+ *    $Date: 2007/12/21 14:31:46 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,14 @@ int regio_write_mincxfm(char *xfmfile, MATRIX *R, char *fileinfo);
 
 int regio_read_xfm4(char *xfmfile, MATRIX **R);
 int regio_read_xfm(char *xfmfile, MATRIX **R);
+#include "mri.h"
+#include "mrisurf.h"
+int regio_write_surfacexform_to_register_dat(MATRIX *B, char *fname, 
+                                             MRI_SURFACE *mris, MRI *mri, 
+                                             char *subject, int float2int);
+MATRIX *regio_read_surfacexform_from_register_dat(char *fname, 
+                                                  MRI_SURFACE *mris, 
+                                                  MRI *mri, char **subject);
 
 #include "mri.h"
 #include "mrisurf.h"
