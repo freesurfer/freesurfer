@@ -1,10 +1,10 @@
 #############################################################################
-# Name:    nmr-std-env
+# Name:    nmr-stable4-env
 # Purpose: sets up the environment to run the MGH-NMR standard MRI processing
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source /usr/local/freesurfer/nmr-std-env
 #
-# $Id: nmr-std-env,v 1.20 2007/08/13 22:17:34 nicks Exp $
+# $Id: nmr-std-env,v 1.21 2007/12/25 16:04:29 nicks Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
@@ -17,15 +17,23 @@ if( -e /etc/NOFREESURFER ) then
   exit
 endif
 
+#echo "================================================="
+#echo " Reminder!  This is a new version of Freesurfer!"
+#echo ""
+#echo " If you need to use the older v3.0.5, type this:"
+#echo ""
+#echo "   source /usr/local/freesurfer/nmr-stable3-env"
+#echo "================================================="
+
 # track usage
 if ("`uname -s`" == "Darwin") then
   set USER_LIST_PATH=/autofs/space/freesurfer
 else
   set USER_LIST_PATH=/space/freesurfer
 endif
-echo "`date`|`whoami`|`hostname -s`|nmr-std-env" >> $USER_LIST_PATH/nmr-std-env_user_list.txt
+(echo "`date`|`whoami`|`hostname -s`|nmr-stable4-env" >> $USER_LIST_PATH/nmr-stable4-env_user_list.txt) >& /dev/null
 
-set VERSION = '$Id: nmr-std-env,v 1.20 2007/08/13 22:17:34 nicks Exp $';
+set VERSION = '$Id: nmr-std-env,v 1.21 2007/12/25 16:04:29 nicks Exp $';
 set NSE_VERSION = '${VERSION}';
 
 if( $?FS_FREESURFERENV_NO_OUTPUT ) then
@@ -38,8 +46,8 @@ if($?NMR_STD_VERBOSE) then
   set verbose
 endif
 
-# Point to stable freesurfer
-setenv FREESURFER_HOME /usr/local/freesurfer/stable
+# Point to stable4 freesurfer
+setenv FREESURFER_HOME /usr/local/freesurfer/stable4
 unsetenv NO_FSFAST
 setenv FSFAST_HOME     $FREESURFER_HOME/fsfast
 unsetenv NO_MINC
