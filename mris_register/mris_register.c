@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/19 15:58:50 $
- *    $Revision: 1.48 $
+ *    $Date: 2007/12/27 21:34:05 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "gcsa.h"
 
 static char vcid[] = 
-"$Id: mris_register.c,v 1.48 2007/07/19 15:58:50 fischl Exp $";
+"$Id: mris_register.c,v 1.49 2007/12/27 21:34:05 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -137,14 +137,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.48 2007/07/19 15:58:50 fischl Exp $", 
+     "$Id: mris_register.c,v 1.49 2007/12/27 21:34:05 fischl Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.48 2007/07/19 15:58:50 fischl Exp $", 
+     "$Id: mris_register.c,v 1.49 2007/12/27 21:34:05 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -162,8 +162,8 @@ main(int argc, char *argv[])
   parms.tol = 0.5 ;    // was 1e-0*2.5
   parms.min_averages = 0 ;
   parms.l_area = 0.0 ;
-  parms.l_parea = 0.2f ;
-  parms.l_dist = 0.5 ; // used to be 0.1
+  parms.l_parea = 0.1f ;  // used to be 0.2
+  parms.l_dist = 1.0 ; // used to be 0.5, and before that 0.1
   parms.l_corr = 1.0f ;
   parms.l_nlarea = 1 ;
   parms.l_pcorr = 0.0f ;
@@ -224,12 +224,18 @@ main(int argc, char *argv[])
 
   if (parms.var_smoothness)
   {
-    int vno ;
     parms.vsmoothness = (float *)calloc(mris->nvertices, sizeof(float)) ;
     if (parms.vsmoothness == NULL)
       ErrorExit(ERROR_NOMEMORY, "%s: could not allocate vsmoothness array", Progname) ;
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
-      parms.vsmoothness[vno] = 1.0 ;
+    parms.dist_error = (float *)calloc(mris->nvertices, sizeof(float)) ;
+    if (parms.dist_error == NULL)
+      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate dist_error array", Progname) ;
+    parms.area_error = (float *)calloc(mris->nvertices, sizeof(float)) ;
+    if (parms.area_error == NULL)
+      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate area_error array", Progname) ;
+    parms.geometry_error = (float *)calloc(mris->nvertices, sizeof(float)) ;
+    if (parms.geometry_error == NULL)
+      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate geometry_error array", Progname) ;
   }
 
   MRISresetNeighborhoodSize(mris, 1) ;
