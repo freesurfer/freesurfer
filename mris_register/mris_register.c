@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/12/27 21:34:05 $
- *    $Revision: 1.49 $
+ *    $Date: 2007/12/28 00:49:46 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "gcsa.h"
 
 static char vcid[] = 
-"$Id: mris_register.c,v 1.49 2007/12/27 21:34:05 fischl Exp $";
+"$Id: mris_register.c,v 1.50 2007/12/28 00:49:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -137,14 +137,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.49 2007/12/27 21:34:05 fischl Exp $", 
+     "$Id: mris_register.c,v 1.50 2007/12/28 00:49:46 fischl Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.49 2007/12/27 21:34:05 fischl Exp $", 
+     "$Id: mris_register.c,v 1.50 2007/12/28 00:49:46 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -163,7 +163,7 @@ main(int argc, char *argv[])
   parms.min_averages = 0 ;
   parms.l_area = 0.0 ;
   parms.l_parea = 0.1f ;  // used to be 0.2
-  parms.l_dist = 1.0 ; // used to be 0.5, and before that 0.1
+  parms.l_dist = 5.0 ; // used to be 0.5, and before that 0.1
   parms.l_corr = 1.0f ;
   parms.l_nlarea = 1 ;
   parms.l_pcorr = 0.0f ;
