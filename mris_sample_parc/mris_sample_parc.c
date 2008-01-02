@@ -1,15 +1,15 @@
 /**
  * @file  mris_sample_parc.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief program for sampling a volumetric parcellation onto a surface model
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.24 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/02 18:16:32 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 #include "mrishash.h"
 
 static char vcid[] =
-  "$Id: mris_sample_parc.c,v 1.24 2006/12/29 02:09:11 nicks Exp $";
+  "$Id: mris_sample_parc.c,v 1.25 2008/01/02 18:16:32 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -102,7 +102,7 @@ main(int argc, char *argv[]) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_sample_parc.c,v 1.24 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+                                 "$Id: mris_sample_parc.c,v 1.25 2008/01/02 18:16:32 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -160,7 +160,8 @@ main(int argc, char *argv[]) {
     MRIcopyLabeledVoxels(mri_parc, mri_mask, mri_tmp, mask_val) ;
     MRIfree(&mri_parc) ;
     mri_parc = mri_tmp ;
-    MRIwrite(mri_parc, "p.mgz") ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_parc, "p.mgz") ;
     MRIfree(&mri_mask) ;
   }
 
@@ -804,7 +805,7 @@ MRIsampleParcellationToSurface(MRI_SURFACE *mris, MRI *mri_parc) {
         if (l == 0)
           continue ;
         MRIvoxelToSurfaceRAS(mri_parc, x, y, z, &xs, &ys, &zs) ;
-        v = MHTfindClosestVertexInTable(mht, mris, xs, ys, zs) ;
+        v = MHTfindClosestVertexInTable(mht, mris, xs, ys, zs, 0) ;
         if (v == NULL)
           continue ;
         if (sqrt(SQR(v->x-xs) + SQR(v->y-ys) + SQR(v->z-zs)) > 3)
@@ -812,7 +813,11 @@ MRIsampleParcellationToSurface(MRI_SURFACE *mris, MRI *mri_parc) {
         MRIsetVoxVal(mri_parc_unused, x, y, z, 0, 0) ;
         vno = v-mris->vertices ;
         if (vno == Gdiag_no)
+        {
+          printf("v %d: sampling from (%d, %d, %d) - %d\n",
+                 vno, x, y, z, l);
           DiagBreak() ;
+        }
         label_histo[vno][l-min_label]++ ;
       }
     }
