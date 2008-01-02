@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.5 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/02 18:17:04 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@
 #include "mrishash.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_relabel_hypointensities.c,v 1.5 2006/12/29 02:09:08 nicks Exp $";
+static char vcid[] = "$Id: mri_relabel_hypointensities.c,v 1.6 2008/01/02 18:17:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -214,7 +214,7 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right) {
 
         // MRIvoxelToWorld(mri, x, y, z, &xw, &yw, &zw) ;
         MRIvoxelToSurfaceRAS(mri, x, y, z, &xw, &yw, &zw);
-        v = MHTfindClosestVertexInTable(mht, mris, xw, yw, zw) ;
+        v = MHTfindClosestVertexInTable(mht, mris, xw, yw, zw, 0) ;
         if (v == NULL)  /* no vertices within range - assume it is hypointensity */
         {
           dot = -1 ;
