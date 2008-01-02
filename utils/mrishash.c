@@ -9,9 +9,9 @@
 /*
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/03 20:41:05 $
- *    $Revision: 1.42 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/02 18:17:17 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1764,7 +1764,8 @@ int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht,
   ---------------------------------------------------------------*/
 VERTEX * MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, 
                                      MRI_SURFACE *mris, 
-                                     float x, float y, float z)
+                                     float x, float y, float z,
+                                     int do_global_search)
 {
 //------------------------------------------------------
   VERTEX * vtx;
@@ -1778,8 +1779,15 @@ VERTEX * MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht,
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
                                      1000,
-                                     1, // max_mhts: search out to 3 x 3 x 3
+                                     1, // max_mhts: search out to 7x7x7 (was 1, BRF)
                                      &vtx, NULL, NULL);
+  if (!vtx && do_global_search) // did not find a vertex, so use brute-force (BRF)
+  {
+    int vnum = mhtBruteForceClosestVertex(mris, x, y, z, 
+                                          mht->which_vertices, NULL);    
+    vtx = &mris->vertices[vnum];
+  }
+
   return vtx;
 }
 
