@@ -1,5 +1,5 @@
-function [volsm, G] = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm)
-% [volsm, G] = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm)
+function volsm = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm)
+% volsm = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm)
 % 
 % 3D gaussian smoother.
 %
@@ -17,9 +17,9 @@ function [volsm, G] = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.5 $
+%    $Author: greve $
+%    $Date: 2008/01/02 06:54:06 $
+%    $Revision: 1.6 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,10 @@ function [volsm, G] = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm)
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
+volsm = [];
+
 if(nargin ~= 4)
-  fprintf('[volsm, G] = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm)\n');
+  fprintf('volsm = fast_smooth3d(vol,cfwhm,rfwhm,sfwhm)\n');
   return;
 end
 
