@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/11/29 15:03:45 $
- *    $Revision: 1.64 $
+ *    $Author: greve $
+ *    $Date: 2008/01/02 03:45:52 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1895,7 +1895,7 @@ MRI *
 MRIinvert(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z ;
-  float   val, max_val ;
+  float   val, max_val;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -2306,7 +2306,7 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
   int c,r,s,f;
   MATRIX *v, *vg, *G;
   MATRIX *vr, *vc, *vs;
-  double scale, val;
+  double scale, val, vmf;
 
   if (targ == NULL)
   {
@@ -2354,7 +2354,7 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
     if (Gdiag_no > 0)
     {
       printf("%d ",r);
-      if (r%10==0) printf("\n");
+      if (r%10==9) printf("\n");
     }
 
     for (s=0; s < src->depth; s++)
@@ -2394,7 +2394,7 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
     if (Gdiag_no > 0)
     {
       printf("%d ",c);
-      if (c%10==0) printf("\n");
+      if (c%10==9) printf("\n");
     }
 
     for (s=0; s < src->depth; s++)
@@ -2433,7 +2433,7 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
     if (Gdiag_no > 0)
     {
       printf("%d ",c);
-      if (c%10==0) printf("\n");
+      if (c%10==9) printf("\n");
     }
     for (r=0; r < src->height; r++)
     {
@@ -2462,22 +2462,22 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
   MatrixFree(&v);
   MatrixFree(&vg);
 
-  if (norm)
-  {
+  if(norm)  {
     // Compute the sum of the kernel. Note the expected variance
     // will be sum(k^2)
     scale = 0;
-    for (c=0; c < src->width; c++)
-    {
-      for (r=0; r < src->height; r++)
-      {
-        for (s=0; s < src->depth; s++)
-        {
-          scale += (vc->rptr[c+1][1] * vr->rptr[r+1][1] * vs->rptr[s+1][1]);
+    vmf = 0;
+    for (c=0; c < src->width; c++) {
+      for (r=0; r < src->height; r++) {
+        for (s=0; s < src->depth; s++)  {
+	  val = (vc->rptr[c+1][1] * vr->rptr[r+1][1] * vs->rptr[s+1][1]);
+          scale += (val);
+	  vmf += (val*val);
         }
       }
     }
-    if (Gdiag_no > 0) printf("MRIguassianSmooth(): scale = %g\n",scale);
+    printf("MRIguassianSmooth(): scale = %g\n",scale);
+    printf("MRIguassianSmooth(): VMF = %g, VRF = %g\n",vmf,1.0/vmf);
 
     // Divide by the sum of the kernel so that a smoothed delta function
     // will sum to one and so that a constant input yields const output.
@@ -5766,3 +5766,190 @@ MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent){
   MRIfree(&src_fft);
   return(dst);
 }
+/*---------------------------------------------------------------------
+  MRIgaussianSmoothNI() - performs non-isotropic gaussian spatial
+  smoothing.  The standard deviation of the gaussian is std.  The mean
+  is preserved (ie, sets the kernel integral to 1).  Can be done
+  in-place. Handles multiple frames. See also MRIconvolveGaussian()
+  and MRImaskedGaussianSmooth().
+  -------------------------------------------------------------------*/
+MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, 
+			 MRI *targ)
+{
+  int c,r,s,f,cstop,rstop,sstop;
+  MATRIX *v, *vg, *G;
+  MATRIX *vr=NULL, *vc=NULL, *vs=NULL;
+  double scale, val, aa=1.0,bb=1.0,cc=1.0,vmf;
+
+  if (targ == NULL)  {
+    targ = MRIallocSequence(src->width,src->height,src->depth,
+                            MRI_FLOAT,src->nframes);
+    if (targ == NULL)    {
+      printf("ERROR: MRIgaussianSmoothNI: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopy(src,targ);
+  }
+  else  {
+    if (src->width != targ->width)    {
+      printf("ERROR: MRIgaussianSmoothNI: width dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->height != targ->height)    {
+      printf("ERROR: MRIgaussianSmoothNI: height dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->depth != targ->depth)    {
+      printf("ERROR: MRIgaussianSmoothNI: depth dimension mismatch\n");
+      return(NULL);
+    }
+    if (src->nframes != targ->nframes)    {
+      printf("ERROR: MRIgaussianSmoothNI: frames dimension mismatch\n");
+      return(NULL);
+    }
+    if (src != targ) MRIcopy(src,targ);
+  }
+
+  /* Smooth the columns */
+  if(cstd > 0){
+    printf("Smoothing columns by std=%g\n",cstd);
+    G  = GaussianMatrix(src->width, cstd/src->xsize, 1, NULL);
+    v  = MatrixAlloc(src->width,1,MATRIX_REAL);
+    vg = MatrixAlloc(src->width,1,MATRIX_REAL);
+    for (r=0; r < src->height; r++) {
+      if (Gdiag_no > 0) {
+	printf("%d ",r);
+	if (r%10==9) printf("\n");
+      }
+      for (s=0; s < src->depth; s++)    {
+	for (f=0; f < src->nframes; f++)      {
+	  for (c=0; c < src->width; c++)
+	    v->rptr[c+1][1] = MRIgetVoxVal(targ,c,r,s,f);
+	  MatrixMultiply(G,v,vg);
+	  for (c=0; c < src->width; c++)
+	    MRIsetVoxVal(targ,c,r,s,f,vg->rptr[c+1][1]);
+	}
+      }
+    }
+    if (Gdiag_no > 0) printf("\n");
+    
+    // This is for scaling
+    vc = MatrixAlloc(src->width,1,MATRIX_REAL) ;
+    for (c=0; c < src->width; c++)
+      vc->rptr[c+1][1] = G->rptr[src->width/2][c+1];
+  
+    MatrixFree(&G);
+    MatrixFree(&v);
+    MatrixFree(&vg);
+  }
+
+  if(rstd > 0){
+    /* Smooth the rows */
+    printf("Smoothing rows by std=%g\n",rstd);
+    G = GaussianMatrix(src->height, rstd/src->ysize, 1, NULL);
+    v  = MatrixAlloc(src->height,1,MATRIX_REAL);
+    vg = MatrixAlloc(src->height,1,MATRIX_REAL);
+    for (c=0; c < src->width; c++){
+      if (Gdiag_no > 0) {
+	printf("%d ",c);
+	if (c%10==9) printf("\n");
+      }
+      
+      for (s=0; s < src->depth; s++)    {
+	for (f=0; f < src->nframes; f++)      {
+	  for (r=0; r < src->height; r++)
+	    v->rptr[r+1][1] = MRIgetVoxVal(targ,c,r,s,f);
+	  MatrixMultiply(G,v,vg);
+	  for (r=0; r < src->height; r++)
+	    MRIsetVoxVal(targ,c,r,s,f,vg->rptr[r+1][1]);
+	}
+      }
+    }
+    if (Gdiag_no > 0) printf("\n");
+    // This is for scaling
+    vr = MatrixAlloc(src->height,1,MATRIX_REAL) ;
+    for (r=0; r < src->height; r++)
+      vr->rptr[r+1][1] = G->rptr[src->height/2][r+1];
+    
+    MatrixFree(&G);
+    MatrixFree(&v);
+    MatrixFree(&vg);
+  }
+
+  /* Smooth the slices */
+  if(sstd > 0){
+    printf("Smoothing slices by std=%g\n",sstd);
+    G = GaussianMatrix(src->depth, sstd/src->zsize, 1, NULL);
+    v  = MatrixAlloc(src->depth,1,MATRIX_REAL);
+    vg = MatrixAlloc(src->depth,1,MATRIX_REAL);
+    for (c=0; c < src->width; c++)  {
+      if (Gdiag_no > 0)    {
+	printf("%d ",c);
+	if (c%10==9) printf("\n");
+      }
+      for (r=0; r < src->height; r++)    {
+	for (f=0; f < src->nframes; f++)      {
+	  for (s=0; s < src->depth; s++)
+	    v->rptr[s+1][1] = MRIgetVoxVal(targ,c,r,s,f);
+	  MatrixMultiply(G,v,vg);
+	  for (s=0; s < src->depth; s++)
+	    MRIsetVoxVal(targ,c,r,s,f,vg->rptr[s+1][1]);
+	}
+      }
+    }
+    if (Gdiag_no > 0) printf("\n");
+    
+    // This is for scaling
+    vs = MatrixAlloc(src->depth,1,MATRIX_REAL) ;
+    for (s=0; s < src->depth; s++)
+      vs->rptr[s+1][1] = G->rptr[src->depth/2][s+1];
+    
+    MatrixFree(&G);
+    MatrixFree(&v);
+    MatrixFree(&vg);
+  }
+
+  // Compute the sum of the kernel. Note: the expected variance
+  // will be sum(k^2)
+  scale = 0;
+  vmf = 0;
+  if(cstd > 0.0) cstop = src->width;
+  else           cstop = 1;
+  if(rstd > 0.0) rstop = src->height;
+  else           rstop = 1;
+  if(sstd > 0.0) sstop = src->depth;
+  else           sstop = 1;
+  for (c=0; c < cstop; c++){
+    for (r=0; r < rstop; r++){
+      for (s=0; s < sstop; s++){
+	if(cstd > 0.0) aa = vc->rptr[c+1][1];
+	if(rstd > 0.0) bb = vr->rptr[r+1][1];
+	if(sstd > 0.0) cc = vs->rptr[s+1][1];
+	scale += (aa*bb*cc);
+	vmf += ((aa*bb*cc)*(aa*bb*cc));
+      }
+    }
+  }
+  printf("MRIguassianSmoothNI(): scale = %g\n",scale);
+  printf("MRIguassianSmoothNI(): VMF = %g, VRF = %g\n",vmf,1.0/vmf);
+    
+  // Divide by the sum of the kernel so that a smoothed delta function
+  // will sum to one and so that a constant input yields const output.
+  for (c=0; c < src->width; c++)    {
+    for (r=0; r < src->height; r++)      {
+      for (s=0; s < src->depth; s++)        {
+	for (f=0; f < src->nframes; f++)          {
+	  val = MRIgetVoxVal(targ,c,r,s,f);
+	  MRIsetVoxVal(targ,c,r,s,f,val/scale);
+	}
+      }
+    }
+  }
+
+  if(vc) MatrixFree(&vc);
+  if(vr) MatrixFree(&vr);
+  if(vs) MatrixFree(&vs);
+
+  return(targ);
+}
+

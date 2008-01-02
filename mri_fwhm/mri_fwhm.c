@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/31 21:16:36 $
- *    $Revision: 1.22 $
+ *    $Date: 2008/01/02 03:46:03 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -253,7 +253,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.22 2007/08/31 21:16:36 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.23 2008/01/02 03:46:03 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -280,13 +280,16 @@ char tmpstr[2000];
 MRI *ar1;
 char *ar1path=NULL;
 
-double infwhm = 0, ingstd = 0;
-double byfwhm, tofwhm, togstd, tofwhmact, tofwhmtol=0.5;
+double infwhm = 0,ingstd =0;
+double infwhmc=0, infwhmr=0, infwhms=0;
+double ingstdc=0, ingstdr=0, ingstds=0;
+double byfwhm;
 double bygstd;
 char *tofwhmfile = NULL;
+double  tofwhm, togstd, tofwhmact, tofwhmtol=0.5;
 int tofwhmnitersmax = 20;
 int tofwhmniters;
-int synth = 0, nframes = 10;
+int synth = 0, nframes = -1;
 int SynthSeed = -1;
 
 char *Xfile=NULL;
@@ -338,10 +341,11 @@ int main(int argc, char *argv[]) {
 
   // ------------- load or synthesize input ---------------------
   InVals = MRIreadType(inpath,InValsType);
-  if (InVals == NULL) exit(1);
-  if (InVals->nframes < nframesmin && !SmoothOnly && !sum2file) {
+  if(InVals == NULL) exit(1);
+  if((nframes < 0 && synth) || !synth) nframes = InVals->nframes;
+  if(nframes < nframesmin && !SmoothOnly && !sum2file) {
     printf("ERROR: nframes = %d, need at least %d\n",
-	   InVals->nframes,nframesmin);
+	   nframes,nframesmin);
     exit(1);
   }
   if (InVals->type != MRI_FLOAT) {
@@ -351,8 +355,11 @@ int main(int argc, char *argv[]) {
   }
   if(synth) {
     printf("Synthesizing %d frames, Seed = %d\n",nframes,SynthSeed);
-    MRIrandn(InVals->width, InVals->height, InVals->depth, 
-	     InVals->nframes, 0, 1, InVals);
+    mritmp = MRIcloneBySpace(InVals,MRI_FLOAT,nframes);
+    MRIfree(&InVals);
+    MRIrandn(mritmp->width, mritmp->height, mritmp->depth, 
+	     nframes, 0, 1, mritmp);
+    InVals = mritmp;
   }
   voxelvolume = InVals->xsize * InVals->ysize * InVals->zsize ;
   printf("voxelvolume %g mm3\n",voxelvolume);
@@ -400,7 +407,10 @@ int main(int argc, char *argv[]) {
   } else nsearch = InVals->width * InVals->height * InVals->depth;
   printf("Search region is %d voxels = %lf mm3\n",nsearch,nsearch*voxelvolume);
 
-  if (infwhm > 0 && SmoothOnly) {
+  // Make a copy, if needed, prior to doing anything to data
+  if(outpath) InValsCopy = MRIcopy(InVals,NULL);
+
+  if(infwhm > 0 && SmoothOnly) {
     printf("Smoothing input by fwhm=%lf, gstd=%lf\n",infwhm,ingstd);
     if (SaveUnmasked) mritmp = NULL;
     else             mritmp = mask;
@@ -410,9 +420,6 @@ int main(int argc, char *argv[]) {
     printf("SmoothOnly requested, so exiting now\n");
     exit(0);
   }
-
-  // Make a copy, if needed, prior to doing anything to data
-  if (outpath) InValsCopy = MRIcopy(InVals,NULL);
 
   // Compute variance reduction factor -------------------
   if(sum2file){
@@ -452,10 +459,17 @@ int main(int argc, char *argv[]) {
   }
 
   // ------------ Smooth Input BY infwhm -------------------------
-  if (infwhm > 0) {
+  if(infwhm > 0) {
     printf("Smoothing input by fwhm=%lf, gstd=%lf\n",infwhm,ingstd);
     MRImaskedGaussianSmooth(InVals, mask, ingstd, InVals);
   }
+  // ------------ Smooth Input BY infwhm -------------------------
+  if(infwhmc > 0 || infwhmr > 0 || infwhms > 0) {
+    printf("Smoothing input by fwhm=(%lf,%lf,%lf) gstd=(%lf,%lf,%lf)\n",
+	   infwhmc,infwhmr,infwhms,ingstdc,ingstdr,ingstds);
+    MRIgaussianSmoothNI(InVals, ingstdc, ingstdr, ingstds, InVals);
+  }
+
   // ------------ Smooth Input TO fwhm -------------------------
   if (tofwhm > 0) {
     printf("Attempting to smooth to %g +/- %g mm fwhm (nitersmax=%d)\n",
@@ -485,6 +499,9 @@ int main(int argc, char *argv[]) {
 
   // ------ Save smoothed/detrended ------------------------------
   if(outpath) {
+    // This is a bit of a hack in order to be able to save undetrended
+    // Operates on InValsCopy, which has not been modified (requires
+    // smoothing twice, which is silly:).
     printf("Saving to %s\n",outpath);
     // Smoothed output will not be masked
     if (SaveDetrended && X) {
@@ -495,9 +512,11 @@ int main(int argc, char *argv[]) {
     }
     if (SaveUnmasked) mritmp = NULL;
     else             mritmp = mask;
-    if (infwhm > 0)
+    if(infwhm > 0)
       MRImaskedGaussianSmooth(InValsCopy, mritmp, ingstd, InValsCopy);
-    if (tofwhm > 0) {
+    if(infwhmc > 0 || infwhmr > 0 || infwhms > 0) 
+      MRIgaussianSmoothNI(InValsCopy, ingstdc, ingstdr, ingstds, InValsCopy);
+    if(tofwhm > 0) {
       bygstd = byfwhm/sqrt(log(256.0));
       MRImaskedGaussianSmooth(InValsCopy, mritmp, bygstd, InValsCopy);
     }
@@ -574,6 +593,8 @@ int main(int argc, char *argv[]) {
   }
 
 
+  printf("mri_fwhm done\n");
+
   return 0;
 }
 /* ------------------=================--------------------------- */
@@ -612,7 +633,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--smooth-only")) SmoothOnly = 1;
     else if (!strcasecmp(option, "--ispm")) InValsType = MRI_ANALYZE_FILE;
     else if (!strcasecmp(option, "--ar2")) DoAR2 = 1;
-
+    else if (!strcasecmp(option, "--gdiag")) Gdiag_no = 1;
     else if (!strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
       inpath = pargv[0];
@@ -646,6 +667,21 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&infwhm);
       ingstd = infwhm/sqrt(log(256.0));
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--fwhmc")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&infwhmc);
+      ingstdc = infwhmc/sqrt(log(256.0));
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--fwhmr")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&infwhmr);
+      ingstdr = infwhmr/sqrt(log(256.0));
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--fwhms")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&infwhms);
+      ingstds = infwhms/sqrt(log(256.0));
       nargsused = 1;
     } else if (!strcasecmp(option, "--gstd")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -684,6 +720,11 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--synth-frames")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nframes);
+      synth = 1;
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--seed")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&SynthSeed);
       synth = 1;
       nargsused = 1;
     } else if (!strcasecmp(option, "--o")) {

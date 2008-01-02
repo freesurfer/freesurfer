@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/12/11 02:09:57 $
- *    $Revision: 1.356 $
+ *    $Author: greve $
+ *    $Date: 2008/01/02 03:45:52 $
+ *    $Revision: 1.357 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -505,6 +505,8 @@ MRI   *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ);
 MRI   *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, float std, MRI *targ);
 MRI   *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst,
     MRI *mri_gaussian) ;
+MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, 
+			 MRI *targ);
     
 /* frequency filtering*/
 MRI* MRI_fft(MRI *mri_src, MRI* dst);
