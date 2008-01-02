@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/02 03:46:03 $
- *    $Revision: 1.23 $
+ *    $Date: 2008/01/02 06:52:22 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -253,7 +253,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.23 2008/01/02 03:46:03 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.24 2008/01/02 06:52:22 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -407,19 +407,26 @@ int main(int argc, char *argv[]) {
   } else nsearch = InVals->width * InVals->height * InVals->depth;
   printf("Search region is %d voxels = %lf mm3\n",nsearch,nsearch*voxelvolume);
 
-  // Make a copy, if needed, prior to doing anything to data
-  if(outpath) InValsCopy = MRIcopy(InVals,NULL);
-
-  if(infwhm > 0 && SmoothOnly) {
-    printf("Smoothing input by fwhm=%lf, gstd=%lf\n",infwhm,ingstd);
-    if (SaveUnmasked) mritmp = NULL;
+  if( (infwhm > 0 || infwhmc > 0 || infwhmr > 0 || infwhms > 0) && SmoothOnly) {
+    if(SaveUnmasked) mritmp = NULL;
     else             mritmp = mask;
-    MRImaskedGaussianSmooth(InVals, mritmp, ingstd, InVals);
+    if(infwhm > 0) {
+      printf("Smoothing input by fwhm=%lf, gstd=%lf\n",infwhm,ingstd);
+      MRImaskedGaussianSmooth(InVals, mritmp, ingstd, InVals);
+    }
+    if(infwhmc > 0 || infwhmr > 0 || infwhms > 0) {
+      printf("Smoothing input by fwhm=(%lf,%lf,%lf) gstd=(%lf,%lf,%lf)\n",
+	     infwhmc,infwhmr,infwhms,ingstdc,ingstdr,ingstds);
+      MRIgaussianSmoothNI(InVals, ingstdc, ingstdr, ingstds, InVals);
+    }
     printf("Saving to %s\n",outpath);
     MRIwrite(InVals,outpath);
     printf("SmoothOnly requested, so exiting now\n");
     exit(0);
   }
+
+  // Make a copy, if needed, prior to doing anything to data
+  if(outpath) InValsCopy = MRIcopy(InVals,NULL);
 
   // Compute variance reduction factor -------------------
   if(sum2file){
@@ -432,6 +439,7 @@ int main(int argc, char *argv[]) {
     printf("sum2all: %20.10lf\n",ftmp);
     printf("vrf: %20.10lf\n",1/ftmp);
     fprintf(fp,"%20.10lf\n",ftmp);
+    exit(0);
   }
 
   //------------------------ Detrend ------------------
