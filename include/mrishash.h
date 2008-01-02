@@ -9,9 +9,9 @@
 /*
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/30 23:14:16 $
- *    $Revision: 1.20 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/02 18:17:13 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -192,7 +192,7 @@ int     MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht,
                                float *min_dist);
 VERTEX *MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, 
                                     MRI_SURFACE *mris,
-                                    float x, float y, float z) ;
+                                    float x, float y, float z, int do_global_search) ;
 
 //------------------------------------------------
 //  Utility
