@@ -9,9 +9,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:15 $
- *    $Revision: 1.8 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/02 18:17:19 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -31,30 +31,58 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <math.h>
+
 #include "mri.h"
+#include "diag.h"
+#include "macros.h"
 #include "mrisurf.h"
 #include "macros.h"
 #include "version.h"
-
-#define IMGSIZE 256
+#include "label.h"
+#include "error.h"
+#include "mrishash.h"
 
 char *Progname;
+
+MRI *MRIcropVolumeToLabel(MRI *mri_src, MRI *mri_dst, LABEL *area, MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial);
 
 int main(int argc, char *argv[]) {
   char *inner_mris_fname,*outer_mris_fname,*input_mri_pref,*output_mri_pref;
   MRI *mri=0,*mri_src=0;
   MRI_SURFACE *inner_mris=0,*outer_mris=0;
   int nargs;
+  LABEL *area = NULL ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ribbon.c,v 1.8 2007/01/11 20:15:15 nicks Exp $", 
+     "$Id: mri_ribbon.c,v 1.9 2008/01/02 18:17:19 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
+
+  Progname=argv[0];
+  while (*argv[1] == '-')
+  {
+    int nargs = 0 ;
+    switch (toupper(argv[1][1]))
+    {
+    case 'L':
+      printf("cropping ribbon to label file %s\n", argv[2]) ;
+      nargs = 1 ;
+      area = LabelRead(NULL, argv[2]) ;
+      if (area == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", argv[2]) ;
+      break ;
+    default:
+      break ;
+    }
+    argc -= (nargs+1) ;
+    argv += (nargs+1) ;
+  }
 
   /* Set command-line parameters */
   if (argc!=5) {
@@ -62,7 +90,7 @@ int main(int argc, char *argv[]) {
            "input_volume_pref output_volume_pref\n");
     exit(1);
   }
-  Progname=argv[0];
+
   inner_mris_fname=argv[1];
   outer_mris_fname=argv[2];
   input_mri_pref=argv[3];
@@ -96,6 +124,8 @@ int main(int argc, char *argv[]) {
   printf("Extracting ribbon.\n");
   mri=MRISribbon(inner_mris,outer_mris,mri_src,NULL);
 
+  if (area)
+    MRIcropVolumeToLabel(mri, mri, area, inner_mris, outer_mris) ;
   /* Save MRI volume to directory */
   printf("Writing volume file %s.\n",output_mri_pref);
   MRIwrite(mri,output_mri_pref);
@@ -108,3 +138,47 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
+MRI *
+MRIcropVolumeToLabel(MRI *mri_src, MRI *mri_dst, LABEL *area, MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial)
+{
+  MHT    *mht_white, *mht_pial ;
+  int    x, y, z ;
+  VERTEX *v_white, *v_pial ;
+  Real   xs, ys, zs ;
+
+  mht_white = MHTfillVertexTableRes(mris_white, NULL, CURRENT_VERTICES, 5.0) ;
+  mht_pial = MHTfillVertexTableRes(mris_pial, NULL, CURRENT_VERTICES, 5.0) ;
+  if (mri_dst == NULL)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  MRISclearMarks(mris_white) ; MRISclearMarks(mris_pial) ;
+  LabelMarkSurface(area, mris_white) ; LabelMarkSurface(area, mris_pial) ;
+  for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
+    {
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+              
+        if (MRIgetVoxVal(mri_src, x, y, z, 0) > 0)
+        {
+          MRISsurfaceRASFromVoxel(mris_white, mri_dst, x, y, z, &xs, &ys, &zs) ;
+          v_white = MHTfindClosestVertexInTable(mht_white, mris_white, xs, ys, zs, 1) ;
+          v_pial = MHTfindClosestVertexInTable(mht_pial, mris_pial, xs, ys, zs, 1) ;
+          if ((v_white && v_white->marked == 1) ||
+              (v_pial && v_pial->marked == 1))
+          {
+            MRIsetVoxVal(mri_dst, x, y, z, 0, 255) ;
+          }
+          else
+            MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
+        }
+      }
+    }
+  }
+
+  MHTfree(&mht_white) ; MHTfree(&mht_pial) ;
+  return(mri_dst) ;
+}
