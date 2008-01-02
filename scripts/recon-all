@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/16 02:32:54 $
-#    $Revision: 1.133.2.13 $
+#    $Date: 2008/01/02 21:41:27 $
+#    $Revision: 1.133.2.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.13 2007/12/16 02:32:54 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.14 2008/01/02 21:41:27 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -828,9 +828,10 @@ if($DoTalCheck) then
     if($status) goto error_exit;
   endif
   # now run Avi's QA check on the results found in talairach_avi.log
-  if ( ! $UseMincMritotal) then
+  set avilog = ($subjdir/mri/transforms/talairach_avi.log)
+  if ( ! $UseMincMritotal && -e $avilog) then
     set cmd = (awk -f $FREESURFER_HOME/bin/extract_talairach_avi_QA.awk)
-    set cmd = ($cmd $subjdir/mri/transforms/talairach_avi.log)
+    set cmd = ($cmd $avilog)
     set qalog = ($subjdir/mri/transforms/talairach_avi_QA.log)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) then
