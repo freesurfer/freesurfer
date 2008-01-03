@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2007/10/31 18:01:42 $
-##    $Revision: 1.24.2.1 $
+##    $Date: 2008/01/03 13:45:36 $
+##    $Revision: 1.24.2.2 $
 ##
 ## Original Author: Kevin Teich
 ##
@@ -1139,6 +1139,17 @@ proc FsgdfPlot_HideWindow { iID } {
   }
 }
 
+# Returns whether a plot window is built and visible.
+proc FsgdfPlot_IsWindowShowing { iID } {
+  global gGDF gWidgets gbLibLoaded
+  if { !$gbLibLoaded } { return 0 }
+  if { [lsearch $gGDF(lID) $iID] == -1 } { puts "ID not found"; return 0 }
+  if { ![info exists gWidgets($iID,bWindowBuilt)] ||
+       !$gWidgets($iID,bWindowBuilt) } {
+      return 0
+  }
+    return 1
+}
 
 # Set the current variable.
 proc FsgdfPlot_SetVariable { iID inVariable } {
