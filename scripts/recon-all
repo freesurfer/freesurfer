@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/01/02 21:41:27 $
-#    $Revision: 1.133.2.14 $
+#    $Date: 2008/01/03 13:40:24 $
+#    $Revision: 1.133.2.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.14 2008/01/02 21:41:27 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.15 2008/01/03 13:40:24 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3185,6 +3185,7 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoFinalSurfs     = 1;
       set DoCortRibbonVolMask = 1;
+      set DoSegStats       = 1;
       breaksw
 
     case "-autorecon2-inflate1":
@@ -3220,6 +3221,7 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoCortRibbonVolMask = 1;
+      set DoSegStats       = 1;
       breaksw
 
     case "-autorecon2-wm":
@@ -3234,6 +3236,7 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoCortRibbonVolMask = 1;
+      set DoSegStats       = 1;
       breaksw
 
     case "-autorecon2-pial":
@@ -3242,6 +3245,7 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoCortRibbonVolMask = 1;
+      set DoSegStats       = 1;
       breaksw
 
     case "-autorecon3":
@@ -3288,6 +3292,7 @@ while( $#argv != 0 )
       set DoParcStats2     = 1;
       set DoAParc2ASeg     = 0;
       set DoWMParc         = 0;
+      set DoSegStats       = 1;
       breaksw
 
     case "-waitfor":
