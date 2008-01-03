@@ -171,7 +171,7 @@ int TestNearestVtxInConcentricIcos(int surfacenum,
 
     fcvit_vtx  = MHTfindClosestVertexInTable(mht,
                                              mris,
-                                             probex, probey, probez) ;
+                                             probex, probey, probez,1) ;
     fcvn_vno   = MHTfindClosestVertexNo(mht,
                                         mris,
                                         &probe_vtx,
