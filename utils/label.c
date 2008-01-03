@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:31 $
- *    $Revision: 1.78 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/03 00:23:47 $
+ *    $Revision: 1.79 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -434,7 +434,7 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
         MRISfindClosestVertex(mris, area->lv[n].x,area->lv[n].y,area->lv[n].z,&dmin);
 #endif
       v =
-        MHTfindClosestVertexInTable(mht, mris, area->lv[n].x,area->lv[n].y,area->lv[n].z);
+        MHTfindClosestVertexInTable(mht, mris, area->lv[n].x,area->lv[n].y,area->lv[n].z, 0);
       if (v == NULL)
         continue ;
       vno = v - mris->vertices ;
