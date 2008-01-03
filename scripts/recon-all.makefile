@@ -75,9 +75,6 @@ $(TAL_SKULL_LTA): $(NU_NONECK) $(TAL_LTA)
 $(ASEG): $(NORM) $(TAL_M3Z)
 	recon-all -s $(subj) -calabel
 
-$(ASEG_STATS): $(ASEG)
-	recon-all -s $(subj) -segstats
-
 $(CP):
 
 $(BRAIN): $(BRAINMASK) $(NORM) $(CP)
@@ -239,6 +236,9 @@ $(RIBBON_LH): $(ORIG) $(WHITE_LH) $(PIAL_LH)
 
 $(RIBBON_RH): $(ORIG) $(WHITE_RH) $(PIAL_RH)
 	recon-all -s $(subj) -hemi rh -cortribbon
+
+$(ASEG_STATS): $(ASEG) $(WHITE_LH) $(WHITE_RH)
+	recon-all -s $(subj) -segstats
 
 
 #---------------------- A U T O R E C O N	 3 --------------------------
