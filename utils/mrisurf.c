@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 20:20:29 $
- *    $Revision: 1.557.2.5 $
+ *    $Date: 2008/01/03 22:12:20 $
+ *    $Revision: 1.557.2.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.557.2.5 2007/12/10 20:20:29 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.557.2.6 2008/01/03 22:12:20 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -37128,6 +37128,9 @@ static void generateOrdering(DP *dp,SEGMENTATION *segmentation, int i)
   for (m=0;m<11;m++)
     for (n=0; n < nseg;n++)
     {
+      fflush(stdout); // nicknote: prevents segfault on Linux PowerPC
+                      // when -O2 optimization is used w/gcc 3.3.3
+
       r=nint(randomNumber(0.0, (double)nseg-1)) ;
 
       val=seg_order[n];
@@ -42315,6 +42318,9 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
       defect = &dl->defects[i] ;
       for (n = 0 ; n < defect->nborder ; n++)
       {
+        fflush(stdout); // nicknote: prevents segfault on Linux PowerPC
+                        // when -O2 optimization is used w/gcc 3.3.3
+
         mris->vertices[defect->border[n]].curv = i+1;
       }
     }
@@ -42333,6 +42339,9 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
       }
       for (n = 0 ; n < defect->nvertices ; n++)
       {
+        fflush(stdout); // nicknote: prevents segfault on Linux PowerPC
+                        // when -O2 optimization is used w/gcc 3.3.3
+
         mris->vertices[defect->vertices[n]].curv = i+1 ;
       }
     }
