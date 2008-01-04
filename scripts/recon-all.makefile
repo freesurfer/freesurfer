@@ -261,6 +261,7 @@ APARC_A2005S_ANNOT_RH=$(subj)/label/rh.aparc.a2005s.annot
 APARC_A2005S_STATS_LH=$(subj)/stats/lh.aparc.a2005s.stats
 APARC_A2005S_STATS_RH=$(subj)/stats/rh.aparc.a2005s.stats
 APARC_ASEG=$(subj)/mri/aparc+aseg.mgz
+WMPARC=$(subj)/mri/wmparc.mgz
 
 AUTORECON3=$(SPHERE_LH) $(SPHERE_RH) \
 	$(SPHERE_REG_LH) $(SPHERE_REG_RH) \
@@ -270,7 +271,7 @@ AUTORECON3=$(SPHERE_LH) $(SPHERE_RH) \
 	$(APARC_STATS_LH) $(APARC_STATS_RH) \
 	$(APARC_A2005S_ANNOT_LH) $(APARC_A2005S_ANNOT_RH) \
 	$(APARC_A2005S_STATS_LH) $(APARC_A2005S_STATS_RH) \
-	$(APARC_ASEG)
+	$(APARC_ASEG) $(WMPARC)
 
 autorecon3: $(AUTORECON3)
 
@@ -325,6 +326,9 @@ $(APARC_A2005S_STATS_RH): $(APARC_A2005S_ANNOT_RH)
 $(APARC_ASEG): $(ASEG) $(RIBBON_LH) $(RIBBON_RH) \
 	$(APARC_ANNOT_LH) $(APARC_ANNOT_RH)
 	recon-all -s $(subj) -aparc2aseg
+
+$(WMPARC): $(APARC_ASEG) $(RIBBON_LH) $(RIBBON_RH)
+	recon-all -s $(subj) -wmparc
 
 contrasurfreg: $(CONTRA_REG_LH) $(CONTRA_REG_RH)
 
