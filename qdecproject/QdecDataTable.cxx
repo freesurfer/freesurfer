@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:41:57 $
- *    $Revision: 1.7.2.1 $
+ *    $Date: 2008/01/04 23:44:45 $
+ *    $Revision: 1.7.2.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -392,13 +392,15 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
         // start by assuming its continuous by trying to convert to a double
         double dtmp=0.0;
         int retCode = sscanf(token,"%lf",&dtmp);
-        if (retCode == 1) // yes!  its a continuous factor
-        {
+        if (retCode == 1 &&
+            ! this->mFactors[nthfactor]->IsDiscrete() &&
+            ! this->mFactors[nthfactor]->HaveDotLevelsFile()) 
+        { // yes!  its a continuous factor
           //printf("%d %lf\n",nthInput,dtmp);
           QdecFactor* qf =
             new QdecFactor( this->mFactors[nthfactor]->GetFactorName().c_str(),
                             QdecFactor::qdecContinuousFactorType,
-                            dtmp /* value */);
+                            dtmp /* value */ );
           theFactors.push_back( qf ); // save this factor data
         }
         else // it must be a discrete factor
@@ -432,7 +434,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
             new QdecFactor
             ( this->mFactors[nthfactor]->GetFactorName().c_str(),
               QdecFactor::qdecDiscreteFactorType,
-              (const char*)strdup(token) /* value */);
+              (const char*)strdup(token) /* value */ );
           theFactors.push_back( qf ); // save this factor data
         }
         nthfactor++;
