@@ -162,6 +162,7 @@ MRISSUBDIRS=label_area \
 	mris_aseg_distance \
 	mris_average_curvature \
 	mris_ca_label \
+	mris_calc \
 	mris_divide_parcellation \
 	mris_ca_train \
 	mris_classify_thickness \

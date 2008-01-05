@@ -2358,6 +2358,7 @@ AC_OUTPUT([Makefile
            mris_annot_to_segmentation/Makefile
            mris_average_curvature/Makefile
            mris_ca_label/Makefile
+           mris_calc/Makefile
            mris_divide_parcellation/Makefile
            mris_ca_train/Makefile
            mris_classify_thickness/Makefile
