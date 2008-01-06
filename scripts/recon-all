@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/01/03 13:37:04 $
-#    $Revision: 1.160 $
+#    $Date: 2008/01/06 00:44:27 $
+#    $Revision: 1.161 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.160 2008/01/03 13:37:04 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.161 2008/01/06 00:44:27 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -218,6 +218,7 @@ set DoContraSurfRegWithinSubject = 0;
 set DoAvgCurv        = 0;
 set DoMorphRGB       = 0;
 set DoFinalSurfs     = 0;
+set DoSurfVolume     = 0;
 set DoCortParc       = 0;
 set DoCortParc2      = 0;
 set DoParcStats      = 0;
@@ -1899,6 +1900,28 @@ foreach hemi ($hemilist)
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     echo $cmd > $touchdir/$hemi.final_surfaces.touch
+  endif
+  if($DoFinalSurfs || $DoSurfVolume) then
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Surf Volume $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/surf > /dev/null
+    $PWD |& tee -a $LF
+    set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area add ${hemi}.area.pial)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area.mid div 2)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd=(mris_calc -o ${hemi}.volume)
+    set cmd=($cmd ${hemi}.area.mid mul ${hemi}.thickness)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.surfvolume.touch
   endif
 
   #---------------- Smooth2 --------------------------#
@@ -3739,6 +3762,10 @@ while( $#argv != 0 )
       set DoLocalGyriIndex = 1;
       breaksw;
 
+    case "-surfvolume":
+      set DoSurfVolume = 1;
+      breaksw;
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -4051,7 +4078,8 @@ check_params:
      ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoCCSeg && \
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
-     ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff ) then
+     ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
+     ! $DoSurfVolume ) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
@@ -4894,6 +4922,13 @@ the white-gray intensity gradient as found in the T1 volume. The pial
 surface is created by expanding the white surface so that it closely
 follows the gray-CSF intensity gradient as found in the T1 volume.
 Calls mris_make_surfaces.
+
+Surface Volume (-surfvolume)
+
+Creates the ?h.volume file by first creating the ?h.mid.area file by
+adding ?h.area(.white) to ?h.area.pial, then dividing by two.  Then
+?h.volume is created by multiplying ?.mid.area with ?h.thickness.
+This step is also run at the end of the -finalsurfs step.
 
 Cortical Ribbon Mask (-<no>cortribbon)
 
