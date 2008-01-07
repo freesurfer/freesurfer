@@ -7,8 +7,8 @@
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/09 22:43:01 $
- *    $Revision: 1.29.2.1 $
+ *    $Date: 2008/01/07 22:24:19 $
+ *    $Revision: 1.29.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1943,6 +1943,14 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
     MRISinvertMarks(mris) ; // marked->not cortex now
     MRISsegmentMarked(mris, &label_array, &nlabels, 0) ;
     printf("%d non-cortical segments detected\n", nlabels) ;
+    if (min_vertices < 0)  // means only keep max segment
+    {
+      for (n = 0 ; n < nlabels ; n++)
+        if (label_array[n]->n_points > min_vertices)
+          min_vertices = label_array[n]->n_points ;
+      printf("only using segment with %d vertices\n", min_vertices) ;
+    }
+
     for (n = 0 ; n < nlabels ; n++)
     {
       if (label_array[n]->n_points < min_vertices)
