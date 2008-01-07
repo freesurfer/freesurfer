@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/11/02 01:22:17 $
- *    $Revision: 1.105 $
+ *    $Date: 2008/01/07 21:43:48 $
+ *    $Revision: 1.106 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.105 2007/11/02 01:22:17 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.106 2008/01/07 21:43:48 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -237,13 +237,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.105 2007/11/02 01:22:17 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.106 2008/01/07 21:43:48 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.105 2007/11/02 01:22:17 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.106 2008/01/07 21:43:48 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -853,7 +853,8 @@ main(int argc, char *argv[]) {
       LABEL *lcortex, **labels ;
       int   n, max_l, max_n, nlabels ;
 
-      lcortex = MRIScortexLabel(mris, mri_aseg, MIN_NONCORTEX_VERTICES) ;
+      //      lcortex = MRIScortexLabel(mris, mri_aseg, MIN_NONCORTEX_VERTICES) ;
+      lcortex = MRIScortexLabel(mris, mri_aseg, -1) ;
       if (Gdiag & DIAG_VERBOSE_ON)
       {
         sprintf(fname,
@@ -1296,7 +1297,7 @@ get_option(int argc, char *argv[]) {
     nargs = 1 ;
   } else if (!stricmp(option, "fix_mtl")) {
     fix_mtl = 1 ;
-    printf("not allowing deformations in hippocampus when estimating pial surface\n") ;
+    printf("not allowing deformations in hippocampus or amygdala when estimating pial surface\n") ;
   } else if (!stricmp(option, "mode")) {
     use_mode = atoi(argv[2]) ;
     printf("%susing class modes instead of means...\n",
@@ -2551,7 +2552,10 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, int nstd) {
   int       vno, num ;
   VERTEX    *v ;
   double    thresh ;
+  FILE      *logfp = NULL ;
 
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    logfp = fopen("gm.plt", "w") ; 
   mean = std = 0.0 ;
   num = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
@@ -2568,12 +2572,16 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, int nstd) {
       MRIsampleVolumeType(mri_ratio, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
       if (val < 0)
         continue ;
+      if (logfp)
+        fprintf(logfp, "%f\n", val) ;
       mean += val ;
       std += val*val ;
       num++ ;
     }
   }
 
+  if (logfp)
+    fclose(logfp) ;
   mean /= num ;
   std = sqrt(std/num - mean*mean) ;
   thresh = mean+nstd*std ;
