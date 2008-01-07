@@ -11,10 +11,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 23:58:14 $
- *    $Revision: 1.1.2.1 $
+ *    $Date: 2008/01/07 22:32:36 $
+ *    $Revision: 1.1.2.2 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.1 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.2 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -795,7 +795,7 @@ vtkKWQdecWindow::CreateWidget () {
   mMenuMeasure->GetMenu()->AddRadioButton( "thickness" );
   mMenuMeasure->GetMenu()->AddRadioButton( "area" );
   mMenuMeasure->GetMenu()->AddRadioButton( "area.pial" );
-//TODO recon-all doesnt create ?h.volume yet:  mMenuMeasure->GetMenu()->AddRadioButton( "volume" );
+  mMenuMeasure->GetMenu()->AddRadioButton( "volume" );
   mMenuMeasure->GetMenu()->AddRadioButton( "sulc" );
   mMenuMeasure->GetMenu()->AddRadioButton( "curv" );
   mMenuMeasure->GetMenu()->AddRadioButton( "white.K" );
