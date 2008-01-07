@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 23:42:06 $
- *    $Revision: 1.99.2.2 $
+ *    $Date: 2008/01/07 22:30:43 $
+ *    $Revision: 1.99.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.99.2.2 2007/12/10 23:42:06 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.99.2.3 2008/01/07 22:30:43 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -232,13 +232,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.99.2.2 2007/12/10 23:42:06 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.99.2.3 2008/01/07 22:30:43 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.99.2.2 2007/12/10 23:42:06 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.99.2.3 2008/01/07 22:30:43 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -846,7 +846,7 @@ main(int argc, char *argv[]) {
       LABEL *lcortex, **labels ;
       int   n, max_l, max_n, nlabels ;
 
-      lcortex = MRIScortexLabel(mris, mri_aseg, MIN_NONCORTEX_VERTICES) ;
+      lcortex = MRIScortexLabel(mris, mri_aseg, -1) ;
       if (Gdiag & DIAG_VERBOSE_ON)
       {
         sprintf(fname,
@@ -1289,7 +1289,7 @@ get_option(int argc, char *argv[]) {
     nargs = 1 ;
   } else if (!stricmp(option, "fix_mtl")) {
     fix_mtl = 1 ;
-    printf("not allowing deformations in hippocampus when estimating pial surface\n") ;
+    printf("not allowing deformations in hippocampus or amygdala when estimating pial surface\n") ;
   } else if (!stricmp(option, "mode")) {
     use_mode = atoi(argv[2]) ;
     printf("%susing class modes instead of means...\n",
