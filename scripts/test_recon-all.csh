@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/11/28 19:01:22 $
-#    $Revision: 1.18 $
+#    $Date: 2008/01/07 20:13:56 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.18 2007/11/28 19:01:22 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.19 2008/01/07 20:13:56 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -251,18 +251,18 @@ if ($#INVOL == "0") then
 endif
 
 set cmd=(recon-all)
-if ("`uname -n`" == "hades") then
-  set cmd=(nice +19 recon-all)
-else if ("`uname -n`" == "mist") then
-  set cmd=(nice +19 recon-all)
-endif
+#if ("`uname -n`" == "hades") then
+#  set cmd=(nice +19 recon-all)
+#else if ("`uname -n`" == "mist") then
+#  set cmd=(nice +19 recon-all)
+#endif
 set cmd=($cmd -s $TEST_SUBJ $INVOL)
 set cmd=($cmd -all -debug -clean -norandomness -time);
 echo $cmd
 if ($RunIt) then
   cd $SUBJECTS_DIR
   # recon-all: this will take some 30 hours to run...
-  $cmd
+  /usr/bin/time $cmd >& /tmp/recon-all.log.txt
   if ($status != 0) then
     echo "***FAILED :: $PROC recon-all -all"  >>& $OUTPUTF
     mail -s "test_recon-all -all FAILED on $PROC" $FMAIL_LIST < $RECON_LOG
@@ -271,7 +271,8 @@ if ($RunIt) then
     exit 1
   else
     set CURRENT_TIME=`date`
-    echo "   pass :: recon-all -all (Finish: $CURRENT_TIME)" >>& $OUTPUTF
+    set ELAPSED=`grep elapsed /tmp/recon-all.log.txt | grep CPU | awk '{print $3}'`
+    echo "   pass :: recon-all -all (Finish: $CURRENT_TIME, ${ELAPSED})" >>& $OUTPUTF
     cp $RECON_LOG $LOG_DIR/
   endif
 endif # ($RunIt)
@@ -279,7 +280,7 @@ endif # ($RunIt)
 #
 # check if recon-all exited without failure code, but did not actually finish
 # 
-if (-e $SUBJECTS_DIR/$TEST_SUBJ/IsRunning.lh+rh) then
+if (-e $SUBJECTS_DIR/$TEST_SUBJ/scripts/IsRunning.lh+rh) then
     echo "$PROC test_recon-all FAILED"  >>& $OUTPUTF
     echo "IsRunning.lh+rh flag exists: recon-all did not finish" >>& $OUTPUTF
     echo "Check recon-all.log to pinpoint failure" >>& $OUTPUTF
@@ -372,6 +373,33 @@ foreach hemi ($TEST_HEMIS)
         printf "   pass :: mris_diff $hemi.$tstsurf\n" >>& $OUTPUTF
       endif
       if (-e $MRISDIFFF) chmod g+rw $MRISDIFFF
+    endif # ($RunIt)
+  end
+end
+
+
+set TEST_LABELS=(cortex.label)
+set TEST_HEMIS=(rh lh)
+
+foreach hemi ($TEST_HEMIS)
+  foreach labelname ($TEST_LABELS)
+    set DIFFF=$LOG_DIR/diff-$hemi.$labelname.txt
+    set cmd=(diff)
+    set cmd=($cmd $SUBJECTS_DIR/ref_subj/label/${hemi}.${labelname})
+    set cmd=($cmd $SUBJECTS_DIR/${TEST_SUBJ}/label/${hemi}.${labelname})
+    echo $cmd
+    if ($RunIt) then
+      if (-e $DIFFF) rm -f $DIFFF
+      $cmd >& $DIFFF
+      set diff_status=$status
+      if ($diff_status != 0) then
+        printf "***FAILED :: diff $hemi.$labelname (exit status=$diff_status)\n"  >>& $OUTPUTF
+        setenv FOUND_ERROR 1
+        # continue running tests
+      else
+        printf "   pass :: diff $hemi.$labelname\n" >>& $OUTPUTF
+      endif
+      if (-e $DIFFF) chmod g+rw $DIFFF
     endif # ($RunIt)
   end
 end
