@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/01/08 22:04:01 $
-#    $Revision: 1.18 $
+#    $Date: 2008/01/08 23:08:06 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.18 2008/01/08 22:04:01 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.19 2008/01/08 23:08:06 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -51,6 +51,7 @@ set PrintHelp = 0;
 set frame = 0;
 set DoMidFrame = 0;
 set templateout = ();
+set DoSegReg = 0;
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -244,6 +245,18 @@ if($isflipped) then
   echo ""
 endif
 
+if($DoSegReg) then
+  set cmd = (mri_segreg --reg $regfile --mov $movvol \
+     --out-reg $segregfile --cost segreg.cost.$segregfile)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_segreg failed" | tee -a $LF
+    exit 1;
+  endif
+endif
+
+
 if($#templateout) then
   mri_convert $movvolimg $templateout
   if($status) exit 1;
@@ -384,6 +397,12 @@ while( $#argv != 0 )
     case "--reg":
       if ( $#argv < 1) goto arg1err;
       set regfile = $argv[1]; shift;
+      breaksw
+
+    case "--segreg":
+      if ( $#argv < 1) goto arg1err;
+      set segregfile = $argv[1]; shift;
+      set DoSegReg = 1;
       breaksw
 
     case "--tmp":
