@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/01 16:50:41 $
-#    $Revision: 1.1 $
+#    $Date: 2008/01/08 22:57:04 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: fslregister-sess,v 1.1 2007/06/01 16:50:41 greve Exp $';
+set VERSION = '$Id: fslregister-sess,v 1.2 2008/01/08 22:57:04 greve Exp $';
 set inputargs = ($argv);
 
 set fsd          = bold;
@@ -178,7 +178,7 @@ foreach sess ($SessList)
       set movfile = $funcdir/$funcstem.$fmtuse
       # Does not do COR anymore
 
-      set regfile = $funcdir/fs.register.dat
+      set regfile = $funcdir/$regfilename
       set cmd = (fslregister --s $subject --mov $movfile \
         --reg $regfile --fsvol $fsvol)
       if($midframe) set cmd = ($cmd --mid-frame)
@@ -277,6 +277,7 @@ while( $#argv != 0 )
       umask $argv[1]; shift;
       breaksw
 
+    case "-reg":
     case "-regfile":
       if ( $#argv == 0) goto arg1err;
       set regfilename = $argv[1]; shift;
@@ -362,7 +363,7 @@ usage_exit:
   echo "   -sv-template    : save template used for registration"
   echo "   -no-sv-template : turn off saving template used for registration"
   echo "   -fsvol volid   : FreeSurfer vol id (default is $fsvol)"
-  echo "   -regfile file  : Save reg as file instead of register.dat"
+  echo "   -reg   file  : Save reg as file instead of register.dat"
   echo "   -fmt format    : format of functional: <auto>, nii.gz, bhdr, mgh, etc"
   echo ""
   echo "   -umask umask   : set unix file permission mask"
