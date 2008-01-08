@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/01/08 04:56:08 $
-#    $Revision: 1.2 $
+#    $Date: 2008/01/08 07:27:46 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: segregister-sess,v 1.2 2008/01/08 04:56:08 greve Exp $';
+set VERSION = '$Id: segregister-sess,v 1.3 2008/01/08 07:27:46 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -182,9 +182,9 @@ foreach sess ($SessList)
       set movfile = $funcdir/$funcstem.$fmtuse
       # Does not do COR anymore
 
-      set inregfile  = $funcdir/fs.register.dat
-      set outregfile = $funcdir/fs.register.seg.dat
-      set cmd = (mri_segreg --reg $regfile --mov $movfile \
+      set inregfile  = $funcdir/$inregfilename
+      set outregfile = $funcdir/$outregfilename
+      set cmd = (mri_segreg --reg $inregfile --mov $movfile \
          --o  $funcdir/func.anat-opt.nii --out-reg $outregfile \
          --cost $funcdir/cost.register.seg.dat)
       if($midframe) set cmd = ($cmd --mid-frame)
