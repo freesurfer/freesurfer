@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/11 01:26:36 $
- *    $Revision: 1.30 $
+ *    $Date: 2008/01/08 07:27:19 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -41,6 +41,7 @@
   --no-surf : do not use surface-based method
 
   --frame nthframe : use given frame in input (default = 0)
+  --mid-frame : use use middle frame
 
   --interp interptype : interpolation trilinear or nearest (def is trilin)
   --no-crop: do not crop anat (crops by default)
@@ -163,7 +164,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.30 2007/12/11 01:26:36 greve Exp $";
+"$Id: mri_segreg.c,v 1.31 2008/01/08 07:27:19 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -230,6 +231,7 @@ struct utsname uts;
 
 int PenaltySign  = -1;
 double PenaltySlope = .5;
+int DoMidFrame = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -247,13 +249,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.30 2007/12/11 01:26:36 greve Exp $",
+     "$Id: mri_segreg.c,v 1.31 2008/01/08 07:27:19 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.30 2007/12/11 01:26:36 greve Exp $",
+     "$Id: mri_segreg.c,v 1.31 2008/01/08 07:27:19 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -283,7 +285,10 @@ int main(int argc, char **argv) {
   mov = MRIread(movvolfile);
   if (mov == NULL) exit(1);
 
+  if(DoMidFrame) frame = nint(mov->nframes/2);
+
   if(mov->nframes > 1){
+    printf("Extracting frame %d\n",frame);
     mritmp = fMRIframe(mov, frame, NULL);
     MRIfree(&mov);
     mov = mritmp;
@@ -673,6 +678,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--powell"))   DoPowell = 1;
     else if (!strcasecmp(option, "--no-powell")) DoPowell = 0;
     else if (!strcasecmp(option, "--1dmin"))     DoPowell = 0;
+    else if (!strcasecmp(option, "--mid-frame")) DoMidFrame = 1;
     else if (!strcasecmp(option, "--surf")){
       UseSurf = 1;
       DoCrop = 0;
@@ -875,6 +881,7 @@ printf("  --sum sumfile : def is outreg.sum\n");
 printf("  --no-surf : do not use surface-based method\n");
 printf("\n");
 printf("  --frame nthframe : use given frame in input (default = 0)\n");
+printf("  --mid-frame : use middle frame\n");
 printf("\n");
 printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
 printf("  --no-crop: do not crop anat (crops by default)\n");
