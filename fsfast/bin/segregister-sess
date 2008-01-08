@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/10/02 01:32:26 $
-#    $Revision: 1.1 $
+#    $Date: 2008/01/08 04:56:08 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: segregister-sess,v 1.1 2007/10/02 01:32:26 greve Exp $';
+set VERSION = '$Id: segregister-sess,v 1.2 2008/01/08 04:56:08 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -35,7 +35,8 @@ set Run          = ();
 set PerRun       = 0;
 set RunListFile  = ();
 set fsvol        = brainmask;
-set regfilename  = register.dat
+set inregfilename  = ();
+set outregfilename  = ();
 set funcstem     = f;
 set fmt          = ();
 set frame        = ();
@@ -147,12 +148,11 @@ foreach sess ($SessList)
       exit 1;
     endif
     echo "Detected format at $fmtuse" |& tee -a $LF
-    set movfile = $funcdir/$funcstem.$fmtuse
-    set regfile = $fsd/$regfilename
-    set segregfile = $fsd/register.seg.dat
-    set cmd = (mri_segreg --reg $regfile --mov $movfile \
-       --o  $fsd/func.anat-opt.nii --out-reg $segregfile \
-       --cost $fsd/cost.register.seg.dat)
+    set movfile    = $funcdir/$funcstem.$fmtuse
+    set inregfile  = $fsd/$inregfilename
+    set outregfile = $fsd/$outregfilename
+    set cmd = (mri_segreg --reg $inregfile --mov $movfile \
+       --out-reg $outregfile  --cost $fsd/$outregfilename.cost)
     if($frame)  set cmd = ($cmd --frame $frame)
     $cmd |& tee -a $LF
     if($status) then 
@@ -182,10 +182,10 @@ foreach sess ($SessList)
       set movfile = $funcdir/$funcstem.$fmtuse
       # Does not do COR anymore
 
-      set regfile = $funcdir/fs.register.dat
-      set segregfile = $funcdir/fs.register.seg.dat
+      set inregfile  = $funcdir/fs.register.dat
+      set outregfile = $funcdir/fs.register.seg.dat
       set cmd = (mri_segreg --reg $regfile --mov $movfile \
-         --o  $funcdir/func.anat-opt.nii --out-reg $segregfile \
+         --o  $funcdir/func.anat-opt.nii --out-reg $outregfile \
          --cost $funcdir/cost.register.seg.dat)
       if($midframe) set cmd = ($cmd --mid-frame)
       if($#frame)   set cmd = ($cmd --frame $frame)
@@ -278,9 +278,16 @@ while( $#argv != 0 )
       umask $argv[1]; shift;
       breaksw
 
-    case "-regfile":
+    case "-in-reg":
+    case "-in-regfile":
       if ( $#argv == 0) goto arg1err;
-      set regfilename = $argv[1]; shift;
+      set inregfilename = $argv[1]; shift;
+      breaksw
+
+    case "-out-reg":
+    case "-out-regfile":
+      if ( $#argv == 0) goto arg1err;
+      set outregfilename = $argv[1]; shift;
       breaksw
 
     case "-nolog":
@@ -326,6 +333,16 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
+  if($#inregfilename == 0) then
+    echo "ERROR: need input reg file"
+    exit 1;
+  endif
+
+  if($#outregfilename == 0) then
+    echo "ERROR: need output reg file"
+    exit 1;
+  endif
+
   if($#SessList == 0) then
     echo "ERROR: no sessions specified" |& tee -a $LF
     exit 1;
@@ -362,9 +379,10 @@ usage_exit:
   echo "   -mid-frame     : use middle frame"
   echo "   -sv-template    : save template used for registration"
   echo "   -no-sv-template : turn off saving template used for registration"
-  echo "   -fsvol volid   : FreeSurfer vol id (default is $fsvol)"
-  echo "   -regfile file  : Save reg as file instead of register.dat"
-  echo "   -fmt format    : format of functional: <auto>, nii.gz, bhdr, mgh, etc"
+  echo "   -fsvol volid    : FreeSurfer vol id (default is $fsvol)"
+  echo "   -in-reg  file   : source registration file"
+  echo "   -out-reg  file  : output registration file"
+  echo "   -fmt format     : format of functional: <auto>, nii.gz, bhdr, mgh, etc"
   echo ""
   echo "   -umask umask   : set unix file permission mask"
   echo "   -version       : print version and exit"
