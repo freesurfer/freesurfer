@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/01/08 23:08:06 $
-#    $Revision: 1.19 $
+#    $Date: 2008/01/08 23:39:52 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.19 2008/01/08 23:08:06 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.20 2008/01/08 23:39:52 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -247,7 +247,7 @@ endif
 
 if($DoSegReg) then
   set cmd = (mri_segreg --reg $regfile --mov $movvol \
-     --out-reg $segregfile --cost segreg.cost.$segregfile)
+     --out-reg $segregfile --cost $segregfile.segreg.cost)
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) then
