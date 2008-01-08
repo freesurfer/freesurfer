@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/08/16 16:51:14 $
-#    $Revision: 1.17 $
+#    $Date: 2008/01/08 22:04:01 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.17 2007/08/16 16:51:14 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.18 2008/01/08 22:04:01 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -49,6 +49,8 @@ set tmpdir = ();
 set cleanup = 1;
 set PrintHelp = 0;
 set frame = 0;
+set DoMidFrame = 0;
+set templateout = ();
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -120,7 +122,12 @@ if($status) exit 1;
 # Convert input to analyze #
 set movvolbase = $tmpdir/movvol.fslregister
 set movvolimg  = $movvolbase.nii
-set cmd = (mri_convert $movvol $movvolimg --frame $frame)
+set cmd = (mri_convert $movvol $movvolimg)
+if($DoMidFrame) then
+  set cmd = ($cmd --mid-frame)
+else
+  set cmd = ($cmd --frame $frame)
+endif
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
 echo $cmd  |& tee -a $LF
@@ -235,6 +242,11 @@ if($isflipped) then
   echo ""
   echo "WARNING: possible left-right reversal" | tee -a $LF
   echo ""
+endif
+
+if($#templateout) then
+  mri_convert $movvolimg $templateout
+  if($status) exit 1;
 endif
 
 # Cleanup
@@ -355,9 +367,18 @@ while( $#argv != 0 )
       set fslmat = $argv[1]; shift;
       breaksw
 
+    case "--template-out":
+      if ( $#argv < 1) goto arg1err;
+      set templateout = $argv[1]; shift;
+      breaksw
+
     case "--frame":
       if ( $#argv < 1) goto arg1err;
       set frame = $argv[1]; shift;
+      breaksw
+
+    case "--mid-frame":
+      set DoMidFrame = 1;
       breaksw
 
     case "--reg":
@@ -461,7 +482,9 @@ usage_exit:
   echo "   --betref      : brain extration on ref (usually not needed)"
   echo " "
   echo "   --frame frameno : reg to frameno (default 0=1st)"
+  echo "   --mid-frame  : use middle frame"
   echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
+  echo "   --template-out template : save template (good with --frame)"
   echo " "
   echo "   --out outvol : have flirt reslice mov to targ"
   echo "   --tmp tmpdir : use tmpdir (implies --nocleanup)"
