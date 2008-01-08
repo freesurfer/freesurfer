@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/01/08 06:50:35 $
-#    $Revision: 1.29 $
+#    $Date: 2008/01/08 06:52:47 $
+#    $Revision: 1.30 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.29 2008/01/08 06:50:35 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.30 2008/01/08 06:52:47 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -128,7 +128,7 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  set reg = $sess/$fsd/$reg
+  set reg = $sess/$fsd/$regfile
   if(! -e $reg) then
     echo "ERROR: cannot find $reg"|& tee -a $LF
     exit 1;
