@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/10/10 04:31:07 $
-#    $Revision: 1.28 $
+#    $Date: 2008/01/08 23:46:12 $
+#    $Revision: 1.29 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: reg-feat2anat,v 1.28 2007/10/10 04:31:07 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.29 2008/01/08 23:46:12 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brainmask;
@@ -42,6 +42,7 @@ set manxfm = func2anat;
 set DoBETFunc = 0; # Not with FSL 4.0
 set title = ();
 set UseSPM = 0;
+set DoSegReg = 0;
 
 set PrintHelp = 0;
 
@@ -112,6 +113,7 @@ set std2anat_fslmat = $FeatDir/reg/freesurfer/std2anat.fsl.mat
 set exf2anat_init_fslmat = $FeatDir/reg/freesurfer/exf2anat.init.fsl.mat
 set exf2anat_fslmat = $FeatDir/reg/freesurfer/exf2anat.fsl.mat
 set std2exf_regdat  = $FeatDir/reg/freesurfer/std2exf.register.dat
+set segregdat  = $FeatDir/reg/freesurfer/segreg.dat
 set stdbrain = `stem2fname $FSLDIR/etc/standard/avg152T1_brain`; # For FSL 4.0
 
 set refvolcor =  $SUBJECTS_DIR/$subject/mri/$anatvol.mgz
@@ -257,6 +259,7 @@ if(! $UseSPM) then
     --maxangle $maxangle  --initfslmat $exf2anat_init_fslmat \
     --tmp $FeatDir/reg/freesurfer/tmp --out $outvol.$fslext)
   if($DoBETFunc) set cmd = ($cmd --betfunc) # Not with FSL 4.0
+  if($DoSegReg) set cmd = ($cmd --segreg $segregdat)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1;
@@ -316,7 +319,6 @@ echo "-------------------------------------------------------" | tee -a $LF
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
-
 
 set cmd = ($TKR --s $subject --mov $tempvol)
 set cmd = ($cmd --reg $anat2exf_regdat)
@@ -421,6 +423,10 @@ while( $#argv != 0 )
 
     case "--spm":
       set UseSPM = 1;
+      breaksw
+
+    case "--segreg":
+      set DoSegReg = 1;
       breaksw
 
     case "--debug":
