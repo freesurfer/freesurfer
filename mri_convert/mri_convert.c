@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/17 22:23:47 $
- *    $Revision: 1.148 $
+ *    $Date: 2008/01/09 01:15:25 $
+ *    $Revision: 1.149 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,6 +58,9 @@ int debug=0;
 extern int errno;
 
 char *Progname;
+
+MRI *MRIcutEndSlices(MRI *mri, int ncut);
+int ncutends = 0, cutends_flag = 0;
 
 /*-------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -180,7 +183,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.148 2007/12/17 22:23:47 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.149 2008/01/09 01:15:25 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -282,7 +285,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.148 2007/12/17 22:23:47 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.149 2008/01/09 01:15:25 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -810,6 +813,10 @@ int main(int argc, char *argv[]) {
       get_ints(argc, argv, &i, &frame, 1);
       frame_flag = TRUE;
     }
+    else if(strcmp(argv[i], "--cutends") == 0) {
+      get_ints(argc, argv, &i, &ncutends, 1);
+      cutends_flag = TRUE;
+    }
     else if(strcmp(argv[i], "--mid-frame") == 0)        {
       frame_flag = TRUE;
       mid_frame_flag = TRUE;
@@ -1273,7 +1280,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.148 2007/12/17 22:23:47 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.149 2008/01/09 01:15:25 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2209,6 +2216,15 @@ int main(int argc, char *argv[]) {
     mri = mri2;
   }
 
+  if(cutends_flag == TRUE){
+    printf("Cutting ends: n = %d\n",ncutends);
+    mri2 = MRIcutEndSlices(mri, ncutends);
+    if(mri2 == NULL) exit(1);
+    MRIfree(&mri);
+    mri = mri2;
+  }
+
+
   /* ----- crops ---------*/
   if (crop_flag == TRUE) {
     MRI *mri_tmp ;
@@ -2473,6 +2489,7 @@ void usage(FILE *stream) {
           "center (x,y,z) \n");
   fprintf(stream, "  --cropsize <dx> <dy> <dz> crop to size "
           "<dx, dy, dz> \n");
+  fprintf(stream, "  --cutends ncut : remove ncut slices from the ends\n");
   fprintf(stream, "  --fwhm fwhm : smooth input volume by fwhm mm\n ");
   fprintf(stream, "\n");
 
@@ -2834,3 +2851,37 @@ int findRightSize(MRI *mri, float conform_size) {
   }
   return conform_width;
 }
+
+/*----------------------------------------------------------------*/
+MRI *MRIcutEndSlices(MRI *mri, int ncut)
+{
+  MRI *out;
+  int nslices;
+  int c,r,s,f,scut;
+  double v;
+
+  nslices = mri->depth - 2*ncut;
+  if(nslices <= 0){
+    printf("ERROR: MRIcutEndSlices(): ncut = %d, input only has %d \n",
+	   ncut,mri->depth);
+    return(NULL);
+  }
+
+  out = MRIallocSequence(mri->width, mri->height, nslices, mri->type, mri->nframes);
+  MRIcopyHeader(mri,out);
+
+  for(c = 0; c < mri->width; c ++){
+    for(r = 0; r < mri->height; r ++){
+      scut = 0;
+      for(s = ncut; s < mri->depth - ncut; s++){
+	for(f = 0; f < mri->nframes; f++){
+	  v = MRIgetVoxVal(mri,c,r,s,f);
+	  MRIsetVoxVal(out,c,r,scut,f,v);
+	}
+	scut ++;
+      }
+    }
+  }
+  return(out);
+}
+
