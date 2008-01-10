@@ -12,9 +12,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/22 04:39:31 $
- *    $Revision: 1.117 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/10 15:32:34 $
+ *    $Revision: 1.118 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -388,6 +388,11 @@ VolumeCollection::InitializeFromMRI () {
     throw runtime_error( "Couldn't get voxelFromTkRegRAS matrix" );
   }
 
+  if (getenv("FS_DEBUG_XFORMS"))
+    {
+      printf("voxelFromTkRegRAS:\n") ;
+      MatrixPrint(stdout, voxelFromTkRegRAS) ;
+    }
   // Copy it to a Matrix44 and release the MATRIX. Then set our
   // mDataToIndexTransform transform from this matrix. Then calculate
   // the WorldToIndex transform.

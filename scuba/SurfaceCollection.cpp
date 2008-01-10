@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/22 04:39:30 $
- *    $Revision: 1.29 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/10 15:32:34 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -162,6 +162,11 @@ SurfaceCollection::LoadSurface () {
       MRIcopyVolGeomToMRI(mri_cor, &mMRIS->vg) ;
       MRIreInitCache(mri_cor) ;
       m_RAS2SurfaceRAS =  surfaceRASFromRAS_(mri_cor) ;
+      if (getenv("FS_DEBUG_XFORMS"))
+        {
+          printf("RAS2SurfaceRAS:\n") ;
+          MatrixPrint(stdout, m_RAS2SurfaceRAS) ;
+        }
       mDataToSurfaceTransform.SetMainTransform( m_RAS2SurfaceRAS );
       MatrixFree( &m_RAS2SurfaceRAS ); 
       MRIfree(&mri_cor) ;
@@ -205,7 +210,7 @@ SurfaceCollection::LoadPatch ( string& ifnPatch ) {
 
   char* cfnPath;
   cfnPath = strdup( ifnPatch.c_str() );
-  int rMRIS = MRISreadPatchNoRemove( mMRIS, cfnPath );
+  int rMRIS = MRISreadPatch( mMRIS, cfnPath );
   if ( rMRIS != NO_ERROR ) {
     throw runtime_error( "Error loading " + ifnPatch );
   }
@@ -225,6 +230,8 @@ SurfaceCollection::GetDataRASBounds ( float oRASBounds[6] ) {
 
       VERTEX* vertex = &(mMRIS->vertices[nVertex]);
       float TkRegRAS[3], RAS[3];
+      if (vertex->ripflag)
+        continue ;
       TkRegRAS[0] = vertex->x;
       TkRegRAS[1] = vertex->y;
       TkRegRAS[2] = vertex->z;
@@ -466,6 +473,8 @@ SurfaceCollection::FindNearestVertexToRAS ( float iRAS[3], float* oDistance ) {
 
     VERTEX* vertex = &(mMRIS->vertices[nVertex]);
     float curDataRAS[3];
+    if (vertex->ripflag)
+      continue ;
     curDataRAS[0] = vertex->x;
     curDataRAS[1] = vertex->y;
     curDataRAS[2] = vertex->z;
