@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 2.12 $
+ *    $Author: greve $
+ *    $Date: 2008/01/10 23:25:16 $
+ *    $Revision: 2.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,7 +76,7 @@ Can something be done to affect the off-diagonals?
 #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 2.12 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: optseq2.c,v 2.13 2008/01/10 23:25:16 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.12 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.13 2008/01/10 23:25:16 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -561,8 +561,10 @@ PastSearch:
         fprintf(fpsum,"%3d ",EvSchList[n]->nEvReps[m]);
     fprintf(fpsum,"\n");
 
-    sprintf(fname,"%s-%03d.par",outstem,n+1);
-    EVSwritePar(fname,EvSchList[n],EvLabel,TPreScan,TR*Ntp);
+    if(outstem != NULL){
+      sprintf(fname,"%s-%03d.par",outstem,n+1);
+      EVSwritePar(fname,EvSchList[n],EvLabel,TPreScan,TR*Ntp);
+    }
 
     if (mtxstem != NULL) {
       sprintf(fname,"%s_%03d.mat",mtxstem,n+1);
@@ -678,11 +680,11 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (stringmatch(option, "--tnullmax")) {
       if (nargc < 1) argnerr(option,1);
-      sscanf(pargv[0],"%g",&tNullMax);
+      sscanf(pargv[0],"%f",&tNullMax);
       nargsused = 1;
     } else if (stringmatch(option, "--tnullmin")) {
       if (nargc < 1) argnerr(option,1);
-      sscanf(pargv[0],"%g",&tNullMin);
+      sscanf(pargv[0],"%f",&tNullMin);
       nargsused = 1;
     } else if (stringmatch(option, "--ar1")) {
       if (nargc < 1) argnerr(option,1);
