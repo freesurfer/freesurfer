@@ -10,8 +10,8 @@ function [nslices, nrows, ncols, nt, endian, bext, hdrdat] = fmri_bvoldim(stem)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/02/22 19:31:37 $
-%    $Revision: 1.5 $
+%    $Date: 2008/01/10 23:05:52 $
+%    $Revision: 1.6 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -47,8 +47,8 @@ stem = deblank(stem);
 bhdr = sprintf('%s.bhdr',stem);
 if(fast_fileexists(bhdr))
   mri = fast_ldbhdr(stem);
-  nrows   = mri.voldim(1);
-  ncols   = mri.voldim(2);
+  ncols   = mri.voldim(1);
+  nrows   = mri.voldim(2);
   nslices = mri.voldim(3);
   bext = 'bshort';
   fname = sprintf('%s_000.%s',stem,bext);  
