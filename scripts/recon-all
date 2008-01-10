@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/01/06 00:44:27 $
-#    $Revision: 1.161 $
+#    $Date: 2008/01/10 18:31:34 $
+#    $Revision: 1.162 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.161 2008/01/06 00:44:27 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.162 2008/01/10 18:31:34 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4558,6 +4558,13 @@ segmentation, such as baby brains, or non-human primates.
 -noaseg-inorm2
 
 Does not use aseg.mgz for the second mri_normalize step.
+
+-bigventricles
+
+If a subject has enlarged ventricles due to atrophy, include the -bigventricles
+flag with the -autorecon2 stage in order to prevent surfaces extending into
+the ventricle regions. The flag directly affects the binaries mri_ca_register 
+and mri_ca_label, and mris_make_surfaces indirectly via aseg.mgz.
 
 -norandomness
 
