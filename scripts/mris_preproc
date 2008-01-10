@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/10/26 21:02:46 $
-#    $Revision: 1.37.2.2 $
+#    $Date: 2008/01/10 22:27:12 $
+#    $Revision: 1.37.2.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.37.2.2 2007/10/26 21:02:46 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.37.2.3 2008/01/10 22:27:12 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -204,7 +204,7 @@ foreach subj ($subjlist)
       endif
     endif
     # Now srcsurfpath file exists, convert it to the target subject
-    set tval = $tmpdir/$subj.mgh
+    set tval = $tmpdir/$subj.$nthsubj.mgh
     set cmd = (mri_surf2surf --hemi $hemi --srcsubject $subj --surfreg $SurfReg)
     if($#sval == 0) then
        set cmd = ($cmd --sval $srcsurfpath)
