@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/10/11 23:52:35 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/01/10 23:40:54 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -281,6 +281,8 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 				   const char* ifnDataDir )
 {
 
+  cout << "Saving project file...\n";
+
   // If the project file name doesn't have a path, give it one.
   string fnProject( ifnProject );
   if( fnProject.find( '/' ) == string::npos ) {
@@ -315,6 +317,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   string fnSubjectsDir = this->GetSubjectsDir();
   string sSubjectName = this->GetAverageSubject();
   string fnWorkingDir = this->GetWorkingDir();
+  string fnDefaultWorkingDir = this->GetDefaultWorkingDir();
 
   // Find the base name of the project file.
   string fnProjectBase( fnProject );
@@ -330,6 +333,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Erase old working directory if present.
   string sCommand = "rm -rf " + fnExpandedProjectDir;
+  cout << sCommand << endl;
   int rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -339,6 +343,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Make a temporary directory for our data.
   sCommand = "mkdir " + fnExpandedProjectDir;
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -357,6 +362,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
     fnExpandedProjectDir + "/" + sSubjectName + "/mri/transforms " + 
     fnExpandedProjectDir + "/" + sSubjectName + "/surf " + 
     fnExpandedProjectDir + "/" + sSubjectName + "/label";
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -368,6 +374,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   sCommand = "ln -s " +
     fnSubjectsDir + "/" + sSubjectName + "/mri/transforms/talairach.xfm " +
     fnExpandedProjectDir + "/" + sSubjectName + "/mri/transforms";
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -382,6 +389,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
     fnSubjectsDir + "/" + sSubjectName + "/surf/*.pial " +
     fnSubjectsDir + "/" + sSubjectName + "/surf/*.white " +
     fnExpandedProjectDir + "/" + sSubjectName + "/surf";
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -393,6 +401,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   sCommand = "ln -s " +
     fnSubjectsDir + "/" + sSubjectName + "/label/*.aparc.annot " +
     fnExpandedProjectDir + "/" + sSubjectName + "/label";
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -402,6 +411,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // The whole working dir.
   sCommand = "ln -s " + fnWorkingDir + " " + fnExpandedProjectDir;
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -423,21 +433,26 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   // in a symbolic link command properly. For example, on kani, with ln 
   // version 4.5.3, this will create a dead qdec.table.dat link in /tmp:
   // ln -s $PWD/qdec.table.dat *.levels /tmp
-  // so the files are linked singly
-  sCommand = "ln -s " + fnDataTable + " " + fnExpandedProjectDir;
+  // so the files are linked/copied singly
+  sCommand = "ln -s " + fnDefaultWorkingDir + "/" + fnDataTableBase + 
+    " " + fnExpandedProjectDir;
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
 	     "link data table (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
-  sCommand = "ln -s " + fnDataTablePath + "/*.levels " + fnExpandedProjectDir;
+  sCommand = "cp " + fnDefaultWorkingDir + "/*.levels " + fnExpandedProjectDir;
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
+  /* .levels files may not exist, so don't check for copy error:
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "link *.levels (cmd=%s)\n", sCommand.c_str() );
+	     "copy *.levels (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
+  */
 
   // Generate the meta data file.
   string fnMetadata = fnExpandedProjectDir + "/" + this->GetMetadataFileName();
@@ -478,7 +493,6 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   fMetadata.close();
 
-
   // Get our command string and compress the directory to the
   // destination location with the .qdec filename.
   this->FormatCommandString( fnProject.c_str(),
@@ -486,6 +500,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 			     ifnDataDir,
 			     msZipCommandFormat.c_str(),
 			     sCommand );
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -495,12 +510,15 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Delete the temp directory.
   sCommand = "rm -rf " + fnExpandedProjectDir;
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
 	     "remove temp directory (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
+
+  cout << "Saving project file done.\n";
 
   return 0;
 }
