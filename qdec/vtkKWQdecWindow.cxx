@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/11 00:31:44 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/01/11 01:13:04 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.5 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -3378,6 +3378,11 @@ vtkKWQdecWindow::UpdateContinuousFactorPlot () {
                           sSymbol.c_str(),
                           0,
                           color[0], color[1], color[2] );
+
+      // and the axis labels
+      mGraph->SetYAxisTitle( sFactor.c_str() ); 
+      string sXaxis = "subject";
+      mGraph->SetXAxisTitle( sXaxis.c_str() ); 
     }
   }
 
