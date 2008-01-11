@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:22:16 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/01/11 00:31:44 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -444,6 +444,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   MenuItem* mMenuLoadDataTable;
   MenuItem* mMenuLoadProjectFile;
   MenuItem* mMenuLoadLabel;
+  MenuItem* mMenuLoadAnnotation;
   MenuItem* mMenuSaveProjectFile;
   MenuItem* mMenuSaveTIFF;
   MenuItem* mMenuSaveGDFPostscript;

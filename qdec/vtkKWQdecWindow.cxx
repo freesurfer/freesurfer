@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/10 23:51:48 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/01/11 00:31:44 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.4 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -113,6 +113,7 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mMenuLoadDataTable( NULL ),
   mMenuLoadProjectFile( NULL ),
   mMenuLoadLabel( NULL ),
+  mMenuLoadAnnotation( NULL ),
   mMenuSaveProjectFile( NULL ),
   mMenuSaveTIFF( NULL ),
   mMenuSaveGDFPostscript( NULL ),
@@ -167,6 +168,7 @@ vtkKWQdecWindow::~vtkKWQdecWindow () {
   delete mMenuLoadDataTable;
   delete mMenuLoadProjectFile;
   delete mMenuLoadLabel;
+  delete mMenuLoadAnnotation;
   delete mMenuSaveProjectFile;
   delete mMenuSaveTIFF;
   delete mMenuSaveGDFPostscript;
@@ -400,7 +402,14 @@ vtkKWQdecWindow::CreateWidget () {
                  "Load &Label...", this, "LoadLabelFromDlog",
                  "Ctrl+L", "LoadLabel" );
 
-  // These menu items are for loading pieces of data individuall, and
+  // Load Annotation
+  mMenuLoadAnnotation = new MenuItem();
+  mMenuLoadAnnotation->
+    MakeCommand( this->GetFileMenu(), nItem++,
+                 "Load &Annotation...", this, "LoadAnnotationFromDlog",
+                 "Ctrl+A", "LoadAnnotation" );
+
+  // These menu items are for loading pieces of data individually, and
   // can be enabled for debugging.
 #if 0
   this->GetFileMenu()->InsertCommand( nItem++, "Load Surface...",
@@ -411,10 +420,7 @@ vtkKWQdecWindow::CreateWidget () {
                                       this, "LoadSurfaceScalarsFromDlog" );
   this->GetFileMenu()->InsertCommand( nItem++, "Load Curvature...",
                                       this, "LoadCurvatureFromDlog" );
-  this->GetFileMenu()->InsertCommand( nItem++, "Load Annotation...",
-                                      this, "LoadAnnotationFromDlog" );
 #endif
-
   this->GetFileMenu()->InsertSeparator( nItem++ );
 
   // Save Project File.

@@ -1,6 +1,7 @@
 LoadDataTable IMAGEDIR/icon_table_open.tif IMAGEDIR/icon_table_open.gif
 LoadAnalyzedData IMAGEDIR/icon_analysis_open.tif IMAGEDIR/icon_analysis_open.gif
 LoadLabel IMAGEDIR/icon_label_open.tif IMAGEDIR/icon_label_open.gif
+LoadAnnotation IMAGEDIR/icon_label_open.tif IMAGEDIR/icon_label_open.gif
 SaveTIFF IMAGEDIR/icon_camera.tif IMAGEDIR/icon_camera.gif
 SaveLabel IMAGEDIR/icon_label_save.tif IMAGEDIR/icon_label_save.gif
 RestoreView IMAGEDIR/icon_home.tif IMAGEDIR/icon_home.gif
