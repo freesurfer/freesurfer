@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.109 2007/12/15 20:45:55 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.110 2008/01/11 16:17:50 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -95,9 +95,9 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   set TJGDIR=/usr/pubsw/packages/tiffjpegglut/1.1
-  setenv FSLDIR /usr/pubsw/packages/fsl/4.0.0
+  setenv FSLDIR /usr/pubsw/packages/fsl/4.0.2
   if ( "x`uname -m`" == "xx86_64" ) then
-    setenv FSLDIR /usr/pubsw/packages/fsl.64bit/4.0.0
+    setenv FSLDIR /usr/pubsw/packages/fsl.64bit/4.0.2
   endif
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
