@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:04 $
- *    $Revision: 1.32 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/11 19:41:29 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,6 +71,8 @@ static int sinc_flag = 1;
 static int sinchalfwindow = 3;
 static float scale_factor = 0.0 ;
 
+static float binarize_thresh = 0 ;
+
 int  MRIsqrtAndNormalize(MRI *mri, float num) ;
 MRI  *MRIsumSquare(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 
@@ -129,7 +131,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_average.c,v 1.32 2006/12/29 02:09:04 nicks Exp $",
+           "$Id: mri_average.c,v 1.33 2008/01/11 19:41:29 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -168,6 +170,8 @@ main(int argc, char *argv[]) {
     mri_src = MRIread(in_fname) ;
     if (!mri_src)
       ErrorExit(Gerror, "%s: MRIread(%s) failed", Progname, in_fname) ;
+    if (binarize_thresh > 0)
+      MRIbinarize(mri_src, mri_src, binarize_thresh, 0, 100) ;
     if (pct)
       MRIbinarize(mri_src, mri_src, 1, 0, 100) ;
 
@@ -293,7 +297,14 @@ main(int argc, char *argv[]) {
     if (sqr_images)
       mri_avg = MRIsumSquare(mri_src, mri_avg, mri_avg) ;
     else
-      mri_avg = MRIaverage(mri_src, (i-1)-skipped, mri_avg) ;
+    {
+      if (mri_avg == NULL)
+      {
+        mri_avg = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+        MRIcopyHeader(mri_src, mri_avg) ;
+      }
+      MRIaverage(mri_src, (i-1)-skipped, mri_avg) ;
+    }
     MRIfree(&mri_src) ;
   }
   if (sqr_images)
@@ -380,6 +391,11 @@ get_option(int argc, char *argv[]) {
     case 'P':
       pct = 1 ;
       printf("binarizing images to compute pct at each voxel\n") ;
+      break ;
+    case 'B':
+      binarize_thresh = atof(argv[2]) ;
+      printf("binarizing images with thresh %2.1f to compute pct at each voxel\n", binarize_thresh) ;
+      nargs = 1 ;
       break ;
     case 'R':
       rxrot = RADIANS(atof(argv[2])) ;
