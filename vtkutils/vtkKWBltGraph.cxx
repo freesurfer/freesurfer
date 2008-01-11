@@ -10,7 +10,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.9.2.1 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.9.2.2 $" );
 
 unsigned long const vtkKWBltGraph::MouseoverEnterElementEvent = 
   vtkCommand::UserEvent + 1;
@@ -193,8 +193,9 @@ vtkKWBltGraph::SetXAxisTitle ( const char* isTitle ) {
     delete [] XAxisTitle;
   
   if( isTitle ) {
-    XAxisTitle = new char[strlen(isTitle) + 1];
-    strncpy( XAxisTitle, isTitle, sizeof(XAxisTitle) );
+    int len = strlen(isTitle);
+    XAxisTitle = new char[len + 1];
+    strcpy( XAxisTitle, isTitle );
   } else {
     XAxisTitle = NULL;
   }
@@ -218,8 +219,9 @@ vtkKWBltGraph::SetYAxisTitle ( const char* isTitle ) {
     delete [] YAxisTitle;
   
   if( isTitle ) {
-    YAxisTitle = new char[strlen(isTitle) + 1];
-    strncpy( YAxisTitle, isTitle, sizeof(YAxisTitle) );
+    int len = strlen(isTitle);
+    YAxisTitle = new char[len + 1];
+    strcpy( YAxisTitle, isTitle );
   } else {
     YAxisTitle = NULL;
   }
