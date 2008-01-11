@@ -10,7 +10,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.11 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.12 $" );
 
 unsigned long const vtkKWBltGraph::MouseoverEnterElementEvent = 
   vtkCommand::UserEvent + 1;
@@ -292,7 +292,7 @@ vtkKWBltGraph::UpdateXAxisTitle () {
 
     // Set the title in the graph.
     if( NULL != XAxisTitle ) {
-      this->Script( "%s axis configure x -title %s",
+      this->Script( "%s axis configure x -title {%s}",
 		    this->GetWidgetName(), XAxisTitle );
     } else {
       this->Script( "%s axis configure x -title {}",
@@ -309,7 +309,7 @@ vtkKWBltGraph::UpdateYAxisTitle () {
 
     // Set the title in the graph.
     if( NULL != YAxisTitle ) {
-      this->Script( "%s axis configure y -title %s",
+      this->Script( "%s axis configure y -title {%s}",
 		    this->GetWidgetName(), YAxisTitle );
     } else {
       this->Script( "%s axis configure y -title {}",
