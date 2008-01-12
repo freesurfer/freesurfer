@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/12 00:23:45 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/01/12 01:12:17 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -107,9 +107,9 @@ class vtkKWQdecWindow : public vtkKWWindow
   void LoadAnnotationFromDlog ();
   void LoadLabelFromDlog ();
   void SaveProjectFileFromDlog ();
+  void SaveScatterPlotPostscriptFromDlog ();
   void SaveTIFFImageFromDlog ();
   void SaveGDFPostscriptFromDlog ();
-  void SaveFactorPlotPostscriptFromDlog ();
   void SaveLabelFromDlog ();
   void MapLabelFromDlog ();
 
@@ -222,8 +222,8 @@ class vtkKWQdecWindow : public vtkKWWindow
   void ManageFactorListBoxSelections ( vtkKWListBox* iListBox,
                                        int iaSelections[2] );
 
-  // Called when the user selects a continuous factor.
-  void PlotContinuousFactorsListBoxCallback ();
+  // Called when the user selects a continuous factor for the scatter plot.
+  void ScatterPlotListBoxCallback ();
 
   // Take the Design form input, extract a design, and run glm.
   void AnalyzeDesign ();
@@ -293,20 +293,20 @@ class vtkKWQdecWindow : public vtkKWWindow
 
   // This is called by vtkQdecBltGraphObserver when an element is
   // moused over or not moused over.
-  void ContinuousPlotGraphMouseoverEnterElement ( const char* isElement );
-  void ContinuousPlotGraphMouseoverExitElement ();
+  void ScatterPlotGraphMouseoverEnterElement ( const char* isElement );
+  void ScatterPlotGraphMouseoverExitElement ();
 
   // This is called by vtkQdecBltGraphObserver when an element is
   // right-clicked and a contextual menu is about to pop up.
-  void ContinuousPlotGraphSetUpContextualMenu ( const char* isElement,
+  void ScatterPlotGraphSetUpContextualMenu ( const char* isElement,
 						vtkKWMenu* iMenu );
 
   // Callbacks for the continuous element graph.
-  static void ContinuousPlotGraphMouseoverEnterElementCallback
+  static void ScatterPlotGraphMouseoverEnterElementCallback
     ( vtkObject*, unsigned long, void*, void* );
-  static void ContinuousPlotGraphMouseoverExitElementCallback
+  static void ScatterPlotGraphMouseoverExitElementCallback
     ( vtkObject*, unsigned long, void*, void* );
-  static void ContinuousPlotGraphContextualMenuOpeningCallback
+  static void ScatterPlotGraphContextualMenuOpeningCallback
     ( vtkObject*, unsigned long, void*, void* );
   
 
@@ -355,7 +355,7 @@ class vtkKWQdecWindow : public vtkKWWindow
 
   // Update the scatter plot of continuous factors in the subject
   // panel.
-  void UpdateContinuousFactorPlot ();
+  void UpdateScatterPlot ();
 
   //BTX
   // Use MRISreadValuesIntoArray to load in a file and initialize a
@@ -448,7 +448,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   MenuItem* mMenuLoadLabel;
   MenuItem* mMenuLoadAnnotation;
   MenuItem* mMenuSaveProjectFile;
-  MenuItem* mMenuSaveFactorPlotPostscript;
+  MenuItem* mMenuSaveScatterPlotPostscript;
   MenuItem* mMenuSaveTIFF;
   MenuItem* mMenuSaveGDFPostscript;
   MenuItem* mMenuSaveLabel;
@@ -494,7 +494,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkKWEntry>       mEntryAverageSubject;
   vtkSmartPointer<vtkKWEntry>       mEntryDataTable;
   vtkSmartPointer<vtkKWEntry>       mEntryNumberOfSubjects;
-  vtkSmartPointer<vtkKWListBox>     mListPlotContinuousFactors;
+  vtkSmartPointer<vtkKWListBox>     mListScatterPlot;
 
   // Widgets in the Design panel.
   vtkSmartPointer<vtkKWListBox>     mListDiscreteFactors;
@@ -541,7 +541,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   
   // The factor selected to plot in the scatter plot from
   // the Subjects panel.
-  int mPlotContinuousFactorSelection;
+  int mScatterPlotSelection;
 
   // The struct for a scalars object.
   typedef struct {

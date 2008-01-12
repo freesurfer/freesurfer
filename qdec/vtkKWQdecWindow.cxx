@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/12 00:23:45 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/01/12 01:12:17 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.7 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -116,7 +116,7 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mMenuLoadLabel( NULL ),
   mMenuLoadAnnotation( NULL ),
   mMenuSaveProjectFile( NULL ),
-  mMenuSaveFactorPlotPostscript( NULL ),
+  mMenuSaveScatterPlotPostscript( NULL ),
   mMenuSaveTIFF( NULL ),
   mMenuSaveGDFPostscript( NULL ),
   mMenuSaveLabel( NULL ),
@@ -137,7 +137,7 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mbFrameCurvatureInited( false ),
   mbFrameOverlayInited( false ),
   mbFrameSurfaceScalarsInited( false ),
-  mPlotContinuousFactorSelection( -1 ),
+  mScatterPlotSelection( -1 ),
   mQdecProject( NULL ),
   mcVertices( -1 ),
   msCurrentSurfaceSource( "" ),
@@ -172,7 +172,7 @@ vtkKWQdecWindow::~vtkKWQdecWindow () {
   delete mMenuLoadLabel;
   delete mMenuLoadAnnotation;
   delete mMenuSaveProjectFile;
-  delete mMenuSaveFactorPlotPostscript;
+  delete mMenuSaveScatterPlotPostscript;
   delete mMenuSaveTIFF;
   delete mMenuSaveGDFPostscript;
   delete mMenuSaveLabel;
@@ -434,11 +434,11 @@ vtkKWQdecWindow::CreateWidget () {
                  NULL, NULL );
 
   // Save Postcript of continuous factor plot
-  mMenuSaveFactorPlotPostscript = new MenuItem();
-  mMenuSaveFactorPlotPostscript->
+  mMenuSaveScatterPlotPostscript = new MenuItem();
+  mMenuSaveScatterPlotPostscript->
     MakeCommand( this->GetFileMenu(), nItem++,
-                 "Save Factor Plot as Postcript...", this,
-                 "SaveFactorPlotPostscriptFromDlog", NULL, NULL );
+                 "Save Scatter Plot as Postcript...", this,
+                 "SaveScatterPlotPostscriptFromDlog", NULL, NULL );
 
   // Save TIFF
   mMenuSaveTIFF = new MenuItem();
@@ -670,13 +670,13 @@ vtkKWQdecWindow::CreateWidget () {
   listBox->SetLabelText( "Continuous Factors:" );
   listBox->Create();
   listBox->SetLabelPositionToTop();
-  mListPlotContinuousFactors = listBox->GetWidget()->GetWidget();
-  mListPlotContinuousFactors->SetHeight( 5 );
-  mListPlotContinuousFactors->ExportSelectionOff();
+  mListScatterPlot = listBox->GetWidget()->GetWidget();
+  mListScatterPlot->SetHeight( 5 );
+  mListScatterPlot->ExportSelectionOff();
   this->Script( "pack %s -side top -fill x -expand yes",
                 listBox->GetWidgetName() );
-  mListPlotContinuousFactors->
-    SetSelectionCommand( this, "PlotContinuousFactorsListBoxCallback" );
+  mListScatterPlot->
+    SetSelectionCommand( this, "ScatterPlotListBoxCallback" );
 
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
   labeledEntry->SetParent( panelFrame );
@@ -989,17 +989,17 @@ vtkKWQdecWindow::CreateWidget () {
   // Add callbacks for the graph.
   callback = vtkSmartPointer<vtkCallbackCommand>::New();
   callback->SetClientData( this );
-  callback->SetCallback( ContinuousPlotGraphMouseoverEnterElementCallback );
+  callback->SetCallback( ScatterPlotGraphMouseoverEnterElementCallback );
   mGraph->AddObserver( vtkKWBltGraph::MouseoverEnterElementEvent, callback );
 
   callback = vtkSmartPointer<vtkCallbackCommand>::New();
   callback->SetClientData( this );
-  callback->SetCallback( ContinuousPlotGraphMouseoverExitElementCallback );
+  callback->SetCallback( ScatterPlotGraphMouseoverExitElementCallback );
   mGraph->AddObserver( vtkKWBltGraph::MouseoverExitElementEvent, callback );
 
   callback = vtkSmartPointer<vtkCallbackCommand>::New();
   callback->SetClientData( this );
-  callback->SetCallback( ContinuousPlotGraphContextualMenuOpeningCallback );
+  callback->SetCallback( ScatterPlotGraphContextualMenuOpeningCallback );
   mGraph->AddObserver( vtkKWBltGraph::ContextualMenuOpening, callback );
 
 }
@@ -1215,19 +1215,19 @@ vtkKWQdecWindow::SaveProjectFileFromDlog () {
 }
 
 void
-vtkKWQdecWindow::SaveFactorPlotPostscriptFromDlog () {
+vtkKWQdecWindow::SaveScatterPlotPostscriptFromDlog () {
 
   vtkSmartPointer<vtkKWLoadSaveDialog> dialog =
     vtkSmartPointer<vtkKWLoadSaveDialog>::New();
   dialog->SetApplication( this->GetApplication() );
   dialog->SaveDialogOn();
   dialog->Create();
-  dialog->SetTitle( "Save Factor Plot" );
+  dialog->SetTitle( "Save Scatter Plot" );
 
   dialog->SetFileTypes( "{{All} {*}}" );
-  dialog->RetrieveLastPathFromRegistry( "SaveFactorPlot" );
+  dialog->RetrieveLastPathFromRegistry( "SaveScatterPlot" );
   if( dialog->Invoke() ) {
-    dialog->SaveLastPathToRegistry( "SaveFactorPlot" );
+    dialog->SaveLastPathToRegistry( "SaveScatterPlot" );
     string fnPostscript( dialog->GetFileName() );
     mGraph->SavePostscript( fnPostscript.c_str() );
   }
@@ -2329,13 +2329,13 @@ vtkKWQdecWindow::ContinuousFactorsListBoxCallback () {
 }
 
 void
-vtkKWQdecWindow::PlotContinuousFactorsListBoxCallback () {
-  assert( mListPlotContinuousFactors.GetPointer() );
+vtkKWQdecWindow::ScatterPlotListBoxCallback () {
+  assert( mListScatterPlot.GetPointer() );
 
-  mPlotContinuousFactorSelection =
-    mListPlotContinuousFactors->GetSelectionIndex();
+  mScatterPlotSelection =
+    mListScatterPlot->GetSelectionIndex();
 
-  this->UpdateContinuousFactorPlot();
+  this->UpdateScatterPlot();
 }
 
 void
@@ -2395,7 +2395,7 @@ vtkKWQdecWindow::UpdateSubjectsPage () {
   assert( mEntryNumberOfSubjects.GetPointer() );
   assert( mQdecProject );
   assert( mQdecProject->GetDataTable() );
-  assert( mListPlotContinuousFactors.GetPointer() );
+  assert( mListScatterPlot.GetPointer() );
 
   QdecDataTable* dTable = this->mQdecProject->GetDataTable();
 
@@ -2404,12 +2404,12 @@ vtkKWQdecWindow::UpdateSubjectsPage () {
   this->mQdecProject->SetAverageSubject( mEntryAverageSubject->GetValue() );
   this->mQdecProject->SetSubjectsDir( mEntrySubjectsDir->GetValue() );
 
-  mListPlotContinuousFactors->DeleteAll();
+  mListScatterPlot->DeleteAll();
 
   vector< string > factors =
     this->mQdecProject->GetDataTable()->GetContinuousFactors();
   for(unsigned int i=0; i < factors.size(); i++) {
-    mListPlotContinuousFactors->Append( factors[i].c_str() );
+    mListScatterPlot->Append( factors[i].c_str() );
   }
 }
 
@@ -3361,7 +3361,7 @@ vtkKWQdecWindow::SetSurfaceScalarsColorsFDRRate ( const char* isValue ) {
 }
 
 void
-vtkKWQdecWindow::UpdateContinuousFactorPlot () {
+vtkKWQdecWindow::UpdateScatterPlot () {
 
   assert( mGraph.GetPointer() );
   assert( mQdecProject );
@@ -3369,14 +3369,13 @@ vtkKWQdecWindow::UpdateContinuousFactorPlot () {
   // Remove all the elements in the graph.
   mGraph->DeleteAllElements();
 
-  if( mPlotContinuousFactorSelection != -1 ) {
+  if( mScatterPlotSelection != -1 ) {
       
     // Start a list of points for our data to graph.
     vector<double> lPoints;
     
     // Get the name of the factor.
-    string sFactor( mListPlotContinuousFactors->GetItem
-                    (mPlotContinuousFactorSelection) );
+    string sFactor( mListScatterPlot->GetItem(mScatterPlotSelection) );
     
     // For each subject...
     vector<QdecSubject*>::iterator tSubject;
@@ -3422,7 +3421,7 @@ vtkKWQdecWindow::UpdateContinuousFactorPlot () {
       mGraph->SetXAxisTitle( sXaxis.c_str() ); 
 
       // and un-gray the Save Factor Plot to Postscript menu item
-      mMenuSaveFactorPlotPostscript->SetStateToNormal();
+      mMenuSaveScatterPlotPostscript->SetStateToNormal();
     }
   }
 
@@ -3674,7 +3673,7 @@ vtkKWQdecWindow::NotebookRaisePageCallback ( vtkObject* iCaller,
   assert( iClientData );
 
   // Extract the client and call data and call the window's
-  // ContinuousPlotGraphMouseoverEnterElement function.
+  // ScatterPlotGraphMouseoverEnterElement function.
   try {
 
     char** args = static_cast<char**>( iCallData );
@@ -3692,7 +3691,7 @@ vtkKWQdecWindow::NotebookRaisePageCallback ( vtkObject* iCaller,
 }
 
 void 
-vtkKWQdecWindow::ContinuousPlotGraphMouseoverEnterElement 
+vtkKWQdecWindow::ScatterPlotGraphMouseoverEnterElement 
 ( const char* isElement ) {
 
   // Just show it in our status bar.
@@ -3700,14 +3699,14 @@ vtkKWQdecWindow::ContinuousPlotGraphMouseoverEnterElement
 }
 
 void 
-vtkKWQdecWindow::ContinuousPlotGraphMouseoverExitElement () {
+vtkKWQdecWindow::ScatterPlotGraphMouseoverExitElement () {
 
   // Clear our status bar.
   this->SetStatusText( "" );
 }
 
 void
-vtkKWQdecWindow::ContinuousPlotGraphSetUpContextualMenu (const char* isElement,
+vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
                                                          vtkKWMenu* iMenu ) {
 
   assert( isElement );
@@ -3751,6 +3750,7 @@ vtkKWQdecWindow::ContinuousPlotGraphSetUpContextualMenu (const char* isElement,
                      << " }] ; if { $err != 0 } { "
                      << this->GetApplication()->GetTclName() << " "
                      << "ErrorMessage \"Couldn't start tkmedit.\" }";
+    cout << ssTkmeditCommand.str() << endl;
     iMenu->AddCommand( "Open in tkmedit ", NULL, 
                        ssTkmeditCommand.str().c_str() );
     stringstream ssTksurferCommand;
@@ -3761,6 +3761,7 @@ vtkKWQdecWindow::ContinuousPlotGraphSetUpContextualMenu (const char* isElement,
                       << mMenuHemisphere->GetValue() << " inflated "
                       << "-annotation aparc.annot"
                       << " }";
+    cout << ssTksurferCommand.str() << endl;
     iMenu->AddCommand( "Open in tksurfer ", NULL, 
                        ssTksurferCommand.str().c_str() );
 
@@ -3776,7 +3777,7 @@ vtkKWQdecWindow::ContinuousPlotGraphSetUpContextualMenu (const char* isElement,
 }
 
 void
-vtkKWQdecWindow::ContinuousPlotGraphMouseoverEnterElementCallback
+vtkKWQdecWindow::ScatterPlotGraphMouseoverEnterElementCallback
 ( vtkObject* iCaller, unsigned long iEventId, void* iClientData,
   void* iCallData ) {
 
@@ -3785,7 +3786,7 @@ vtkKWQdecWindow::ContinuousPlotGraphMouseoverEnterElementCallback
   assert( iClientData );
 
   // Extract the client and call data and call the window's
-  // ContinuousPlotGraphMouseoverEnterElement function.
+  // ScatterPlotGraphMouseoverEnterElement function.
   try {
 
     vtkKWBltGraph::SelectedElementAndPoint* foundElement =
@@ -3795,16 +3796,16 @@ vtkKWQdecWindow::ContinuousPlotGraphMouseoverEnterElementCallback
       static_cast<vtkKWQdecWindow*>( iClientData );
     
     if( window )
-      window->ContinuousPlotGraphMouseoverEnterElement( foundElement->msLabel);
+      window->ScatterPlotGraphMouseoverEnterElement( foundElement->msLabel);
   }
   catch(...) {
     cerr << "Invalid call or client data in "
-         << "ContinuousPlotGraphMouseoverEnterElementCallback" << endl;
+         << "ScatterPlotGraphMouseoverEnterElementCallback" << endl;
   }
 }
 
 void
-vtkKWQdecWindow::ContinuousPlotGraphMouseoverExitElementCallback
+vtkKWQdecWindow::ScatterPlotGraphMouseoverExitElementCallback
 ( vtkObject* iCaller, unsigned long iEventId, void* iClientData,
   void* iCallData ) {
 
@@ -3812,23 +3813,23 @@ vtkKWQdecWindow::ContinuousPlotGraphMouseoverExitElementCallback
   assert( iClientData );
 
   // Extract the client data and call the window's
-  // ContinuousPlotGraphMouseoverExitElement function.
+  // ScatterPlotGraphMouseoverExitElement function.
   try {
 
     vtkKWQdecWindow* window = 
       static_cast<vtkKWQdecWindow*>( iClientData );
     
     if( window )
-      window->ContinuousPlotGraphMouseoverExitElement();
+      window->ScatterPlotGraphMouseoverExitElement();
   }
   catch(...) {
     cerr << "Invalid call or client data in "
-         << "ContinuousPlotGraphMouseoverExitElementCallback" << endl;
+         << "ScatterPlotGraphMouseoverExitElementCallback" << endl;
   }
 }
 
 void
-vtkKWQdecWindow::ContinuousPlotGraphContextualMenuOpeningCallback
+vtkKWQdecWindow::ScatterPlotGraphContextualMenuOpeningCallback
 ( vtkObject* iCaller, unsigned long iEventId, void* iClientData,
   void* iCallData ) {
 
@@ -3837,7 +3838,7 @@ vtkKWQdecWindow::ContinuousPlotGraphContextualMenuOpeningCallback
   assert( iCallData );
 
   // Extract the client and call data and call the window's
-  // ContinuousPlotGraphSetUpContextualMenu function.
+  // ScatterPlotGraphSetUpContextualMenu function.
   try {
 
     vtkKWBltGraph::ContextualMenuElement* clickedElement =
@@ -3847,12 +3848,12 @@ vtkKWQdecWindow::ContinuousPlotGraphContextualMenuOpeningCallback
       static_cast<vtkKWQdecWindow*>( iClientData );
     
     if( window )
-      window->ContinuousPlotGraphSetUpContextualMenu(clickedElement->msElement,
+      window->ScatterPlotGraphSetUpContextualMenu(clickedElement->msElement,
                                                      clickedElement->mMenu);
   }
   catch(...) {
     cerr << "Invalid call or client data in "
-         << "ContinuousPlotGraphContextualMenuOpeningCallback" << endl;
+         << "ScatterPlotGraphContextualMenuOpeningCallback" << endl;
   }
 }
 
@@ -3871,7 +3872,7 @@ vtkKWQdecWindow::SetExcludeSubjectID ( const char* isElement,
   design->SetExcludeSubjectID( isElement, ibExclude );
 
   // Redraw our graph.
-  this->UpdateContinuousFactorPlot();
+  this->UpdateScatterPlot();
 }
 
 char const*
@@ -4283,14 +4284,14 @@ vtkKWQdecWindow::UpdateCommandStatus () {
   else
     mMenuSaveProjectFile->SetStateToDisabled();
 
-  assert( mMenuSaveFactorPlotPostscript );
-  if( ( mPlotContinuousFactorSelection != -1 ) && 
+  assert( mMenuSaveScatterPlotPostscript );
+  if( ( mScatterPlotSelection != -1 ) && 
       mGraph &&
       ( mCurrentNotebookPanelName == ksSubjectsPanelName) )
   {
-    mMenuSaveFactorPlotPostscript->SetStateToNormal();
+    mMenuSaveScatterPlotPostscript->SetStateToNormal();
   } else {
-    mMenuSaveFactorPlotPostscript->SetStateToDisabled();
+    mMenuSaveScatterPlotPostscript->SetStateToDisabled();
   }
 
   assert( mMenuSaveTIFF );

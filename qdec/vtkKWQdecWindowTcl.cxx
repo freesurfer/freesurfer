@@ -257,6 +257,12 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
+  if ((!strcmp("SaveScatterPlotPostscriptFromDlog",argv[1]))&&(argc == 2))
+    {
+    op->SaveScatterPlotPostscriptFromDlog();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
   if ((!strcmp("SaveTIFFImageFromDlog",argv[1]))&&(argc == 2))
     {
     op->SaveTIFFImageFromDlog();
@@ -266,12 +272,6 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
   if ((!strcmp("SaveGDFPostscriptFromDlog",argv[1]))&&(argc == 2))
     {
     op->SaveGDFPostscriptFromDlog();
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-  if ((!strcmp("SaveFactorPlotPostscriptFromDlog",argv[1]))&&(argc == 2))
-    {
-    op->SaveFactorPlotPostscriptFromDlog();
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -606,9 +606,9 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
-  if ((!strcmp("PlotContinuousFactorsListBoxCallback",argv[1]))&&(argc == 2))
+  if ((!strcmp("ScatterPlotListBoxCallback",argv[1]))&&(argc == 2))
     {
-    op->PlotContinuousFactorsListBoxCallback();
+    op->ScatterPlotListBoxCallback();
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -967,7 +967,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
-  if ((!strcmp("ContinuousPlotGraphMouseoverEnterElement",argv[1]))&&(argc == 3))
+  if ((!strcmp("ScatterPlotGraphMouseoverEnterElement",argv[1]))&&(argc == 3))
     {
     char    *temp0;
     error = 0;
@@ -975,18 +975,18 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     temp0 = argv[2];
     if (!error)
     {
-    op->ContinuousPlotGraphMouseoverEnterElement(temp0);
+    op->ScatterPlotGraphMouseoverEnterElement(temp0);
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
     }
-  if ((!strcmp("ContinuousPlotGraphMouseoverExitElement",argv[1]))&&(argc == 2))
+  if ((!strcmp("ScatterPlotGraphMouseoverExitElement",argv[1]))&&(argc == 2))
     {
-    op->ContinuousPlotGraphMouseoverExitElement();
+    op->ScatterPlotGraphMouseoverExitElement();
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
-  if ((!strcmp("ContinuousPlotGraphSetUpContextualMenu",argv[1]))&&(argc == 4))
+  if ((!strcmp("ScatterPlotGraphSetUpContextualMenu",argv[1]))&&(argc == 4))
     {
     char    *temp0;
     vtkKWMenu  *temp1;
@@ -996,7 +996,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     temp1 = (vtkKWMenu *)(vtkTclGetPointerFromObject(argv[3],(char *) "vtkKWMenu",interp,error));
     if (!error)
     {
-    op->ContinuousPlotGraphSetUpContextualMenu(temp0,temp1);
+    op->ScatterPlotGraphSetUpContextualMenu(temp0,temp1);
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -1072,9 +1072,9 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  LoadAnnotationFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  LoadLabelFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveProjectFileFromDlog\n",NULL);
+    Tcl_AppendResult(interp,"  SaveScatterPlotPostscriptFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveTIFFImageFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveGDFPostscriptFromDlog\n",NULL);
-    Tcl_AppendResult(interp,"  SaveFactorPlotPostscriptFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveLabelFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  MapLabelFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SmoothCurvatureScalarsFromDlog\n",NULL);
@@ -1106,7 +1106,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SetCurrentSurfaceScalarsFromTableSelection\n",NULL);
     Tcl_AppendResult(interp,"  DiscreteFactorsListBoxCallback\n",NULL);
     Tcl_AppendResult(interp,"  ContinuousFactorsListBoxCallback\n",NULL);
-    Tcl_AppendResult(interp,"  PlotContinuousFactorsListBoxCallback\n",NULL);
+    Tcl_AppendResult(interp,"  ScatterPlotListBoxCallback\n",NULL);
     Tcl_AppendResult(interp,"  AnalyzeDesign\n",NULL);
     Tcl_AppendResult(interp,"  SetSubjectsDir\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetAverageSubject\t with 1 arg\n",NULL);
@@ -1136,9 +1136,9 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SmoothCurvatureScalars\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SmoothSurfaceScalars\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  NotebookPageRaised\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  ContinuousPlotGraphMouseoverEnterElement\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  ContinuousPlotGraphMouseoverExitElement\n",NULL);
-    Tcl_AppendResult(interp,"  ContinuousPlotGraphSetUpContextualMenu\t with 2 args\n",NULL);
+    Tcl_AppendResult(interp,"  ScatterPlotGraphMouseoverEnterElement\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  ScatterPlotGraphMouseoverExitElement\n",NULL);
+    Tcl_AppendResult(interp,"  ScatterPlotGraphSetUpContextualMenu\t with 2 args\n",NULL);
     Tcl_AppendResult(interp,"  SetExcludeSubjectID\t with 2 args\n",NULL);
     Tcl_AppendResult(interp,"  GetAnnotationForVertex\t with 1 arg\n",NULL);
     return TCL_OK;
