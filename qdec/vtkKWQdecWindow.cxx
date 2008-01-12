@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/12 01:12:17 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/01/12 02:14:24 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.7 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.8 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -3740,28 +3740,39 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
     
     // Add commands to load this subject's data in tksurfer and tkmedit.
     iMenu->AddSeparator();
+    stringstream ssTkmeditCmd;
     stringstream ssTkmeditCommand;
     // catch { exec tkmedit $s norm.mgz $hemi.white -segmentation aseg.mgz }
+    ssTkmeditCmd << envVars->FREESURFER_HOME << "/bin/tkmedit "
+                 << isElement << " norm.mgz " 
+                 << mMenuHemisphere->GetValue() << ".white "
+                 << "-segmentation aseg.mgz";
     ssTkmeditCommand << "set err [catch { exec "
-                     << envVars->FREESURFER_HOME << "/bin/tkmedit "
-                     << isElement << " norm.mgz " 
-                     << mMenuHemisphere->GetValue() << ".white "
-                     << "-segmentation aseg.mgz"
+                     << ssTkmeditCmd
                      << " }] ; if { $err != 0 } { "
                      << this->GetApplication()->GetTclName() << " "
-                     << "ErrorMessage \"Couldn't start tkmedit.\" }";
-    cout << ssTkmeditCommand.str() << endl;
+                     << "ErrorMessage \"Couldn't run: " 
+                     << ssTkmeditCmd.str().c_str()
+                     << "\" }";
+    //cout << ssTkmeditCommand.str() << endl;
     iMenu->AddCommand( "Open in tkmedit ", NULL, 
                        ssTkmeditCommand.str().c_str() );
+
+    stringstream ssTksurferCmd;
     stringstream ssTksurferCommand;
     // catch { exec tksurfer $s $hemi inflated -annotation aparc.annot }
-    ssTksurferCommand << "catch { exec "
-                      << envVars->FREESURFER_HOME << "/bin/tksurfer "
-                      << isElement << " " 
-                      << mMenuHemisphere->GetValue() << " inflated "
-                      << "-annotation aparc.annot"
-                      << " }";
-    cout << ssTksurferCommand.str() << endl;
+    ssTksurferCmd << envVars->FREESURFER_HOME << "/bin/tksurfer "
+                  << isElement << " " 
+                  << mMenuHemisphere->GetValue() << " inflated "
+                  << "-annotation aparc.annot";
+    ssTksurferCommand << "set err [catch { exec "
+                     << ssTksurferCmd
+                     << " }] ; if { $err != 0 } { "
+                     << this->GetApplication()->GetTclName() << " "
+                     << "ErrorMessage \"Couldn't run: " 
+                     << ssTksurferCmd.str().c_str()
+                     << "\" }";
+    //cout << ssTksurferCommand.str() << endl;
     iMenu->AddCommand( "Open in tksurfer ", NULL, 
                        ssTksurferCommand.str().c_str() );
 
