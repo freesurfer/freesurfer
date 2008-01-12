@@ -12,10 +12,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/10/26 22:49:44 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/01/12 02:12:03 $
+ *    $Revision: 1.8 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -77,10 +77,10 @@ QdecGlmDesign::QdecGlmDesign ( QdecDataTable* iDataTable )
 QdecGlmDesign::~QdecGlmDesign ( )
 {
   while (mContrasts.size() != 0)
-    {
-      delete mContrasts.back();
-      mContrasts.pop_back();
-    }
+  {
+    delete mContrasts.back();
+    mContrasts.pop_back();
+  }
 }
 
 //
@@ -139,10 +139,10 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
   mContinuousFactors.clear();  // containers; QdecDataTable does
 
   while (mContrasts.size() != 0)
-    {
-      delete mContrasts.back();
-      mContrasts.pop_back();
-    }
+  {
+    delete mContrasts.back();
+    mContrasts.pop_back();
+  }
 
   // begin absorbing input parameters
 
@@ -445,7 +445,7 @@ ProgressUpdateGUI* QdecGlmDesign::GetProgressUpdateGUI ( )
  * param bool ibExclude
  */
 void QdecGlmDesign::SetExcludeSubjectID ( const char* isSubjectID, 
-					  bool ibExclude )
+                                          bool ibExclude )
 {
   assert( isSubjectID );
   
@@ -453,7 +453,7 @@ void QdecGlmDesign::SetExcludeSubjectID ( const char* isSubjectID,
     maExcludedSubjects.insert( string(isSubjectID) );
   } else {
     if( maExcludedSubjects.find( string(isSubjectID) ) != 
-	maExcludedSubjects.end() ) {
+        maExcludedSubjects.end() ) {
       maExcludedSubjects.erase( string(isSubjectID) );
     }
   }
@@ -525,12 +525,12 @@ string QdecGlmDesign::GetLevels2ClassName ( unsigned int* nthlevels )
     if ( nthlevels[df] >= nLevels )
     {
       fprintf
-      (stderr,
-       "ERROR: QdecGlmDesign::GetLevels2ClassName: "
-       "factor %s, level %d >= nlevels = %d\n",
-       F->GetFactorName().c_str(),
-       nthlevels[df],
-       nLevels);
+        (stderr,
+         "ERROR: QdecGlmDesign::GetLevels2ClassName: "
+         "factor %s, level %d >= nlevels = %d\n",
+         F->GetFactorName().c_str(),
+         nthlevels[df],
+         nLevels);
       break;
     }
     vector< string > levelNames = F->GetLevelNames();
@@ -660,10 +660,10 @@ int QdecGlmDesign::GenerateContrasts ( )
   char tmpstr[2000];
 
   while (mContrasts.size() != 0)
-    {
-      delete mContrasts.back();
-      mContrasts.pop_back();
-    }
+  {
+    delete mContrasts.back();
+    mContrasts.pop_back();
+  }
 
   /*----------------------------------------------------------*/
   unsigned int ndf = this->GetNumberOfDiscreteFactors();
@@ -1084,7 +1084,7 @@ int QdecGlmDesign::WriteYdataFile ( )
   {
     // If this name is in our list of subject exclusions, skip it.
     if( maExcludedSubjects.find( *tSubjectID ) !=
-	maExcludedSubjects.end() ) {
+        maExcludedSubjects.end() ) {
       continue;
     }
 
@@ -1110,7 +1110,7 @@ int QdecGlmDesign::WriteYdataFile ( )
   if ( lfnInputs.size() < 1 )
     throw runtime_error( "No input files" );
 
-   // Go through and concatenate copy all the volumes.
+  // Go through and concatenate copy all the volumes.
   if( this->mProgressUpdateGUI )
   {
     this->mProgressUpdateGUI->UpdateProgressMessage( "Concatenating volumes..." );
