@@ -10,7 +10,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.12 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.13 $" );
 
 unsigned long const vtkKWBltGraph::MouseoverEnterElementEvent = 
   vtkCommand::UserEvent + 1;
@@ -485,5 +485,13 @@ vtkKWBltGraph::Button3DownCallback ( const char* isWidget, int iX, int iY ) {
 vtkKWBltGraph::GraphElement::GraphElement () :
   msLabel( "" ),
   msSymbol( "" ), mRed( 0 ), mGreen( 0 ), mBlue( 0 ) {
+}
+
+void
+vtkKWBltGraph::SavePostscript ( const char* ifnPS ) {
+
+  if( this->IsCreated() ) {
+    this->Script( "%s postscript output %s", this->GetWidgetName(), ifnPS );
+  }
 }
 

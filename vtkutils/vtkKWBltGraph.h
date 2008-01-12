@@ -113,6 +113,8 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   void MotionCallback ( const char* isWidget, int iX, int iY );
   void Button3DownCallback ( const char* isWidget, int iX, int iY );
 
+  void SavePostscript ( const char* ifnPS );
+
  protected:
 
   vtkKWBltGraph ();
