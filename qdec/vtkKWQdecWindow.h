@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/11 00:31:44 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/01/12 00:23:45 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -104,11 +104,12 @@ class vtkKWQdecWindow : public vtkKWWindow
   void LoadGDFFromDlog ();            // These are ifdef'd out
   void LoadSurfaceScalarsFromDlog (); // and only used for
   void LoadCurvatureFromDlog ();      // debugging.
-  void LoadAnnotationFromDlog ();     //
+  void LoadAnnotationFromDlog ();
   void LoadLabelFromDlog ();
   void SaveProjectFileFromDlog ();
   void SaveTIFFImageFromDlog ();
   void SaveGDFPostscriptFromDlog ();
+  void SaveFactorPlotPostscriptFromDlog ();
   void SaveLabelFromDlog ();
   void MapLabelFromDlog ();
 
@@ -329,6 +330,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   static const char* ksSubjectsPanelName;
   static const char* ksDesignPanelName;
   static const char* ksDisplayPanelName;
+  const char* mCurrentNotebookPanelName;
 
   // Compose the scalars and color table and display it in the view.
   void ComposeSurfaceScalarsAndShow ();
@@ -446,6 +448,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   MenuItem* mMenuLoadLabel;
   MenuItem* mMenuLoadAnnotation;
   MenuItem* mMenuSaveProjectFile;
+  MenuItem* mMenuSaveFactorPlotPostscript;
   MenuItem* mMenuSaveTIFF;
   MenuItem* mMenuSaveGDFPostscript;
   MenuItem* mMenuSaveLabel;

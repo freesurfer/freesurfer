@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/11 01:13:04 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/01/12 00:23:45 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.6 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -109,12 +109,14 @@ const char* vtkKWQdecWindow::ksDisplayPanelName = "Display";
 
 vtkKWQdecWindow::vtkKWQdecWindow () :
   vtkKWWindow(),
+  mCurrentNotebookPanelName ( NULL ),
   mbUseHistogramEditor( true ),
   mMenuLoadDataTable( NULL ),
   mMenuLoadProjectFile( NULL ),
   mMenuLoadLabel( NULL ),
   mMenuLoadAnnotation( NULL ),
   mMenuSaveProjectFile( NULL ),
+  mMenuSaveFactorPlotPostscript( NULL ),
   mMenuSaveTIFF( NULL ),
   mMenuSaveGDFPostscript( NULL ),
   mMenuSaveLabel( NULL ),
@@ -170,6 +172,7 @@ vtkKWQdecWindow::~vtkKWQdecWindow () {
   delete mMenuLoadLabel;
   delete mMenuLoadAnnotation;
   delete mMenuSaveProjectFile;
+  delete mMenuSaveFactorPlotPostscript;
   delete mMenuSaveTIFF;
   delete mMenuSaveGDFPostscript;
   delete mMenuSaveLabel;
@@ -430,6 +433,13 @@ vtkKWQdecWindow::CreateWidget () {
                  "Save Project File...", this, "SaveProjectFileFromDlog",
                  NULL, NULL );
 
+  // Save Postcript of continuous factor plot
+  mMenuSaveFactorPlotPostscript = new MenuItem();
+  mMenuSaveFactorPlotPostscript->
+    MakeCommand( this->GetFileMenu(), nItem++,
+                 "Save Factor Plot as Postcript...", this,
+                 "SaveFactorPlotPostscriptFromDlog", NULL, NULL );
+
   // Save TIFF
   mMenuSaveTIFF = new MenuItem();
   mMenuSaveTIFF->
@@ -581,7 +591,7 @@ vtkKWQdecWindow::CreateWidget () {
 
   //
   // Use the Subjects pane and put some sample form stuff in it
-  vtkKWWidget* panelFrame = mPanel->GetPageWidget( "Subjects" );
+  vtkKWWidget* panelFrame = mPanel->GetPageWidget( ksSubjectsPanelName );
 
   // Make the top level frame in this page a scrolling frame.
   vtkSmartPointer<vtkKWFrameWithScrollbar> scrolledFrame = 
@@ -661,6 +671,7 @@ vtkKWQdecWindow::CreateWidget () {
   listBox->Create();
   listBox->SetLabelPositionToTop();
   mListPlotContinuousFactors = listBox->GetWidget()->GetWidget();
+  mListPlotContinuousFactors->SetHeight( 5 );
   mListPlotContinuousFactors->ExportSelectionOff();
   this->Script( "pack %s -side top -fill x -expand yes",
                 listBox->GetWidgetName() );
@@ -696,7 +707,7 @@ vtkKWQdecWindow::CreateWidget () {
   //
   // Design pane gets the control for configuring the input to
   // mri_glmfit.
-  panelFrame = mPanel->GetPageWidget( "Design" );
+  panelFrame = mPanel->GetPageWidget( ksDesignPanelName );
 
   // Make the top level frame in this page a scrolling frame.
   scrolledFrame = vtkSmartPointer<vtkKWFrameWithScrollbar>::New();
@@ -753,6 +764,7 @@ vtkKWQdecWindow::CreateWidget () {
   listBox->SetLabelPositionToTop();
   mListContinuousFactors = listBox->GetWidget()->GetWidget();
   mListContinuousFactors->ExportSelectionOff();
+  mListContinuousFactors->SetHeight ( 5 );
   this->Script( "pack %s -fill x -expand y", listBox->GetWidgetName() );
   mListContinuousFactors->SetSelectionModeToMultiple();
   mListContinuousFactors->
@@ -899,7 +911,7 @@ vtkKWQdecWindow::CreateWidget () {
   // ---------------------------------------------------------------------
   //
   // Display pane gets the settings for the surface display.
-  panelFrame = mPanel->GetPageWidget( "Display" );
+  panelFrame = mPanel->GetPageWidget( ksDisplayPanelName );
 
 
   // Make the top level frame in this page a scrolling frame.
@@ -1203,6 +1215,26 @@ vtkKWQdecWindow::SaveProjectFileFromDlog () {
 }
 
 void
+vtkKWQdecWindow::SaveFactorPlotPostscriptFromDlog () {
+
+  vtkSmartPointer<vtkKWLoadSaveDialog> dialog =
+    vtkSmartPointer<vtkKWLoadSaveDialog>::New();
+  dialog->SetApplication( this->GetApplication() );
+  dialog->SaveDialogOn();
+  dialog->Create();
+  dialog->SetTitle( "Save Factor Plot" );
+
+  dialog->SetFileTypes( "{{All} {*}}" );
+  dialog->RetrieveLastPathFromRegistry( "SaveFactorPlot" );
+  if( dialog->Invoke() ) {
+    dialog->SaveLastPathToRegistry( "SaveFactorPlot" );
+    string fnPostscript( dialog->GetFileName() );
+    mGraph->SavePostscript( fnPostscript.c_str() );
+  }
+}
+
+
+void
 vtkKWQdecWindow::SaveTIFFImageFromDlog () {
 
   vtkSmartPointer<vtkKWLoadSaveDialog> dialog =
@@ -1280,6 +1312,7 @@ vtkKWQdecWindow::SaveGDFPostscriptFromDlog () {
                   mGDFID, fnPostscript.c_str() );
   }
 }
+
 
 void
 vtkKWQdecWindow::SaveLabelFromDlog () {
@@ -1964,6 +1997,7 @@ vtkKWQdecWindow::LoadLabel ( const char* ifnLabel ) {
     this->GetApplication()->ErrorMessage( e.what() );
   }
 
+  // Update our menu and buttons.
   this->UpdateCommandStatus();
 }
 
@@ -1985,6 +2019,7 @@ vtkKWQdecWindow::SaveLabel ( const char* ifnLabel ) {
     this->GetApplication()->ErrorMessage( e.what() );
   }
 
+  // Update our menu and buttons.
   this->UpdateCommandStatus();
 }
 
@@ -2010,6 +2045,7 @@ vtkKWQdecWindow::MapLabelToSubjects ( const char* ifnLabel ) {
     this->GetApplication()->ErrorMessage( e.what() );
   }
 
+  // Update our menu and buttons.
   this->UpdateCommandStatus();
 }
 
@@ -2019,6 +2055,7 @@ vtkKWQdecWindow::SaveTIFFImage ( const char* ifnTIFF,
 
   assert( iMagnificationLevel >= 1 );
 
+  // if there is an image on the Display page...
   if( mView ) {
     try {
 
@@ -2065,7 +2102,7 @@ vtkKWQdecWindow::SaveTIFFImage ( const char* ifnTIFF,
         mView->SetShowAnnotation( 1 );
       }
 
-      this->SetStatusText( "TIFF saved." );
+      this->SetStatusText( "Display Panel TIFF saved." );
 
     } catch ( exception& e ) {
       this->GetApplication()->ErrorMessage( e.what() );
@@ -3381,8 +3418,11 @@ vtkKWQdecWindow::UpdateContinuousFactorPlot () {
 
       // and the axis labels
       mGraph->SetYAxisTitle( sFactor.c_str() ); 
-      string sXaxis = "subject";
+      string sXaxis = "Subject";
       mGraph->SetXAxisTitle( sXaxis.c_str() ); 
+
+      // and un-gray the Save Factor Plot to Postscript menu item
+      mMenuSaveFactorPlotPostscript->SetStateToNormal();
     }
   }
 
@@ -3602,20 +3642,25 @@ vtkKWQdecWindow::NotebookPageRaised ( const char* isTitle ) {
 
   if( 0 == strcmp( isTitle, ksSubjectsPanelName ) ) {
 
+    this->mCurrentNotebookPanelName = ksSubjectsPanelName;
     this->GetViewFrame()->UnpackChildren();
     this->Script( "pack %s -expand yes -fill both -anchor c",
                   mGraph->GetWidgetName() );
   
   } else if ( 0 == strcmp( isTitle, ksDesignPanelName ) ) {
 
+    this->mCurrentNotebookPanelName = ksDesignPanelName;
     this->GetViewFrame()->UnpackChildren();
 
   } else if ( 0 == strcmp( isTitle, ksDisplayPanelName ) ) {
 
+    this->mCurrentNotebookPanelName = ksDisplayPanelName;
     this->GetViewFrame()->UnpackChildren();
     this->Script( "pack %s -expand yes -fill both -anchor c",
                   mView->GetWidgetName() );
   }
+
+  this->UpdateCommandStatus();
 }
 
 void
@@ -4238,9 +4283,21 @@ vtkKWQdecWindow::UpdateCommandStatus () {
   else
     mMenuSaveProjectFile->SetStateToDisabled();
 
+  assert( mMenuSaveFactorPlotPostscript );
+  if( ( mPlotContinuousFactorSelection != -1 ) && 
+      mGraph &&
+      ( mCurrentNotebookPanelName == ksSubjectsPanelName) )
+  {
+    mMenuSaveFactorPlotPostscript->SetStateToNormal();
+  } else {
+    mMenuSaveFactorPlotPostscript->SetStateToDisabled();
+  }
+
   assert( mMenuSaveTIFF );
   assert( mBtnSaveTIFF.GetPointer() );
-  if( maSurfaceSource.size() > 0 ) {
+  if( (maSurfaceSource.size() > 0) &&
+      mView &&
+      ( mCurrentNotebookPanelName == ksDisplayPanelName) ) {
     mBtnSaveTIFF->SetStateToNormal();
     mMenuSaveTIFF->SetStateToNormal();
   } else {

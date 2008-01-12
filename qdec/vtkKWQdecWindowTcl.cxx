@@ -269,6 +269,12 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
+  if ((!strcmp("SaveFactorPlotPostscriptFromDlog",argv[1]))&&(argc == 2))
+    {
+    op->SaveFactorPlotPostscriptFromDlog();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
   if ((!strcmp("SaveLabelFromDlog",argv[1]))&&(argc == 2))
     {
     op->SaveLabelFromDlog();
@@ -1068,6 +1074,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SaveProjectFileFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveTIFFImageFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveGDFPostscriptFromDlog\n",NULL);
+    Tcl_AppendResult(interp,"  SaveFactorPlotPostscriptFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveLabelFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  MapLabelFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SmoothCurvatureScalarsFromDlog\n",NULL);
