@@ -7,9 +7,9 @@
 /*
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:33 $
- *    $Revision: 1.6 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/13 21:59:36 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,49 +60,49 @@ int get_option(int argc, char *argv[], VOL_GEOM &vg) {
   if (!strcmp(option, "-help")) {
     print_usage();
     exit(0);
-  } else if (!strcmp(option, "xras")) {
+  } else if (!stricmp(option, "xras")) {
     vg.x_r = atof(argv[2]);
     vg.x_a = atof(argv[3]);
     vg.x_s = atof(argv[4]);
     nargs=3;
-  } else if (!strcmp(option, "yras")) {
+  } else if (!stricmp(option, "yras")) {
     vg.y_r = atof(argv[2]);
     vg.y_a = atof(argv[3]);
     vg.y_s = atof(argv[4]);
     nargs=3;
-  } else if (!strcmp(option, "zras")) {
+  } else if (!stricmp(option, "zras")) {
     vg.z_r = atof(argv[2]);
     vg.z_a = atof(argv[3]);
     vg.z_s = atof(argv[4]);
     nargs=3;
-  } else if (!strcmp(option, "cras")) {
+  } else if (!stricmp(option, "cras")) {
     vg.c_r = atof(argv[2]);
     vg.c_a = atof(argv[3]);
     vg.c_s = atof(argv[4]);
     nargs=3;
-  } else if (!strcmp(option, "xsize")) {
+  } else if (!stricmp(option, "xsize")) {
     vg.xsize = atof(argv[2]);
     nargs=1;
-  } else if (!strcmp(option, "ysize")) {
+  } else if (!stricmp(option, "ysize")) {
     vg.ysize = atof(argv[2]);
     nargs=1;
-  } else if (!strcmp(option, "zsize")) {
+  } else if (!stricmp(option, "zsize")) {
     vg.zsize = atof(argv[2]);
     nargs=1;
-  } else if (!strcmp(option, "tr")) {
+  } else if (!stricmp(option, "tr")) {
     gtr=atof(argv[2]);
     nargs=1;
-  } else if (!strcmp(option, "te")) {
+  } else if (!stricmp(option, "te")) {
     gte=atof(argv[2]);
     nargs=1;
-  } else if (!strcmp(option, "ti")) {
+  } else if (!stricmp(option, "ti")) {
     gti=atof(argv[2]);
     nargs=1;
-  } else if (!strcmp(option, "fa")) {
+  } else if (!stricmp(option, "fa")) {
     // mri stores it as radian
     gflip_angle=RADIANS(atof(argv[2]));
     nargs=1;
-  } else if (!strcmp(option, "xform")) {
+  } else if (!stricmp(option, "xform")) {
     // get new transform file name
     strcpy(new_transform_fname,argv[2]);
   }
@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_modify.cpp,v 1.6 2007/11/18 03:03:33 nicks Exp $", 
+     "$Id: mri_modify.cpp,v 1.7 2008/01/13 21:59:36 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -204,7 +204,10 @@ int main(int argc, char *argv[]) {
 
   // now TR, TE, TI, flip_angle
   if (gtr)
+  {
+    printf("setting tr to %2.1f ms\n", gtr) ;
     mri->tr = gtr;
+  }
   if (gte)
     mri->te = gte;
   if (gti)
