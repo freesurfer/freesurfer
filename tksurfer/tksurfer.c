@@ -2,18 +2,18 @@
  * @file  tksurfer.c
  * @brief Tcl/Tk-based cortical surface viewer
  *
- * TkSurfer displays surface data and allows the user to navigate through 
- * that data and view it from different orientations. TkSurfer also displays 
- * other data types such as functional data and curvature as overlays onto 
+ * TkSurfer displays surface data and allows the user to navigate through
+ * that data and view it from different orientations. TkSurfer also displays
+ * other data types such as functional data and curvature as overlays onto
  * this surface data.
  * See: http://surfer.nmr.mgh.harvard.edu/fswiki/TkSurferGuide
  */
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/12/11 04:41:32 $
- *    $Revision: 1.293 $
+ *    $Author: nicks $
+ *    $Date: 2008/01/14 21:20:00 $
+ *    $Revision: 1.294 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -137,7 +137,7 @@ static GCSA *Ggcsa = NULL ;
 #include <stdlib.h>
 #include <string.h>
 #ifdef Windows_NT
-int stricmp(const char* const str1, const char* const  str2) 
+int stricmp(const char* const str1, const char* const  str2)
 {
   return strcasecmp(str1, str2);
 }
@@ -384,7 +384,8 @@ int Tix_SafeInit ( Tcl_Interp* interp );
 #define LABELSET_MOUSEOVER  1
 
 /* label fields for update_labels, also used in tcl script */
-enum {
+enum
+{
   LABEL_VERTEXINDEX = 0,
   LABEL_DISTANCE,
   LABEL_COORDS_RAS,
@@ -734,30 +735,38 @@ double cvfact = 1.5;
 double fadef = 0.7;
 
 
-float normal1[3] = {
-                     1.0,0.0,0.0
-                   };
-float normal2[3] = {
-                     0.0,1.0,0.0
-                   };
-float xpos[3] = {
-                  1.0,0.0,0.0
-                };
-float xneg[3] = {
-                  -1.0,0.0,0.0
-                };
-float ypos[3] = {
-                  0.0,1.0,0.0
-                };
-float yneg[3] = {
-                  0.0,-1.0,0.0
-                };
-float zpos[3] = {
-                  0.0,0.0,1.0
-                };
-float zneg[3] = {
-                  0.0,0.0,-1.0
-                };
+float normal1[3] =
+  {
+    1.0,0.0,0.0
+  };
+float normal2[3] =
+  {
+    0.0,1.0,0.0
+  };
+float xpos[3] =
+  {
+    1.0,0.0,0.0
+  };
+float xneg[3] =
+  {
+    -1.0,0.0,0.0
+  };
+float ypos[3] =
+  {
+    0.0,1.0,0.0
+  };
+float yneg[3] =
+  {
+    0.0,-1.0,0.0
+  };
+float zpos[3] =
+  {
+    0.0,0.0,1.0
+  };
+float zneg[3] =
+  {
+    0.0,0.0,-1.0
+  };
 float v1[3],v2[3],v3[3],v4[3];
 float v1[3],v2[3],v3[3],v4[3];
 
@@ -807,26 +816,28 @@ int LeftRightRev = 0;
 double offset = OFFSET;
 double light0_br,light1_br,light2_br,light3_br;
 
-float idmat[4][4] = {
-                      {
-                        1.0,0.0,0.0,0.0
-                      }
-                      ,  /* Matrix idmat = */
-                      {0.0,1.0,0.0,0.0},
-                      {0.0,0.0,1.0,0.0},
-                      {0.0,0.0,0.0,1.0}
-                    };
+float idmat[4][4] =
+  {
+    {
+      1.0,0.0,0.0,0.0
+    }
+    ,  /* Matrix idmat = */
+    {0.0,1.0,0.0,0.0},
+    {0.0,0.0,1.0,0.0},
+    {0.0,0.0,0.0,1.0}
+  };
 
 /* accumulate really_ tranforms here */
-float reallymat[4][4] = {
-                          {
-                            1.0,0.0,0.0,0.0
-                          }
-                          ,   /* Matrix reallymat = */
-                          {0.0,1.0,0.0,0.0},
-                          {0.0,0.0,1.0,0.0},
-                          {0.0,0.0,0.0,1.0}
-                        };
+float reallymat[4][4] =
+  {
+    {
+      1.0,0.0,0.0,0.0
+    }
+    ,   /* Matrix reallymat = */
+    {0.0,1.0,0.0,0.0},
+    {0.0,0.0,1.0,0.0},
+    {0.0,0.0,0.0,1.0}
+  };
 
 /* Talairach stuff */
 LINEAR_TRANSFORM_ARRAY  *lta  = NULL;
@@ -1258,7 +1269,8 @@ static int vset_current_set = VSET_MAIN ;
 
 /* storage for other sets, a node and a list. the list is allocated
    dynamically, getting the number of verts from the MRIS. */
-typedef struct {
+typedef struct
+{
   float x,y,z;
 }
 VSET_VERTEX;
@@ -1339,14 +1351,16 @@ int conv_tal_to_ras    (float talx, float taly, float talz,
 #define UNDO_CUT          2
 #define NUM_UNDO_ACTIONS  3
 
-char *undo_action_strings[NUM_UNDO_ACTIONS] = {
-      "INVALID UNDO ACTION",
-      "Nothing to Undo",
-      "Undo Cut"
-    };
+char *undo_action_strings[NUM_UNDO_ACTIONS] =
+  {
+    "INVALID UNDO ACTION",
+    "Nothing to Undo",
+    "Undo Cut"
+  };
 
 /* represents an undoable action, a list of action nodes of specific types */
-typedef struct {
+typedef struct
+{
   int undo_type; /* UNDO_* */
   xGrowableArrayRef node_list;
 }
@@ -1402,7 +1416,8 @@ int undo_do_first_action();
 #define UNDO_CUT_VERTEX 0
 #define UNDO_CUT_FACE   1
 
-typedef struct {
+typedef struct
+{
   int cut_type;   /* UNDO_CUT_* */
   int index;      /* face or vertex */
   int rip_value;  /* the value that will be restored */
@@ -1424,7 +1439,8 @@ int undo_do_action_cut(UNDO_ACTION* action);
 #include "xUtilities.h"
 
 /* we keep a separate list of  */
-typedef struct {
+typedef struct
+{
   float x, y, z;
   int vno;
 }
@@ -1516,12 +1532,14 @@ int func_convert_error (FunD_tErr error);
 #define SCLV_FSMASK       7
 #endif
 
-static char *sclv_field_names [NUM_SCALAR_VALUES] = {
-      "val", "val2", "valbak", "val2bak", "valstat", "imagval",
-      "mean", "meanimag", "std_error"
-    };
+static char *sclv_field_names [NUM_SCALAR_VALUES] =
+  {
+    "val", "val2", "valbak", "val2bak", "valstat", "imagval",
+    "mean", "meanimag", "std_error"
+  };
 
-typedef struct {
+typedef struct
+{
   int is_functional_volume; /* use func_volume */
   tBoolean is_scalar_volume;     /* use vno,0,0 as func index */
   int cur_timepoint;
@@ -1538,11 +1556,11 @@ typedef struct {
 
   int num_freq_bins;
   int ***frequencies; /* the frequency of values in num_freq_bins for
-			 each time point and condition i.e.
-			 frequency[cond][tp][bin] */
+                             each time point and condition i.e.
+                             frequency[cond][tp][bin] */
   int num_zeroes_in_zero_bin;   /* This contains the number of 0s in the 0 */
   int zero_bin_index;           /* bin. We do this separately so we
-				   can turn off the 0 displa  easily. */
+                                       can turn off the 0 displa  easily. */
 
 }
 SCLV_FIELD_INFO;
@@ -1690,16 +1708,17 @@ typedef enum {
 #define LABL_DEFAULT_COLOR_B 200
 #define LABL_DEFAULT_COLOR_A 255
 
-typedef struct {
+typedef struct
+{
   LABEL* label;
   int structure;    /* the structure assigned to this label, or
-                                   LABL_TYPE_FREE for a free color label */
+                           LABL_TYPE_FREE for a free color label */
   int r, g, b, a;   /* from color of structure in lookup table or if
-                                   LABL_TYPE_FREE, assigned by the user */
+                           LABL_TYPE_FREE, assigned by the user */
   int visible;
   char name[NAME_LENGTH];  /* name of this label (not neccessarily the
-                                          same as the structure name, if
-                                          assigned) */
+                                  same as the structure name, if
+                                  assigned) */
   float min_x, max_x;    /* the bounding cube of this label. */
   float min_y, max_y;
   float min_z, max_z;
@@ -1866,7 +1885,8 @@ int labl_print_table ();
 
 int path_debug = 0;
 
-typedef struct {
+typedef struct
+{
   int num_vertices;      /* number of vertices in path. */
   int* vertices;         /* array of vertices in path. */
   float min_x, max_x;    /* the bounding cube of this path. */
@@ -1953,7 +1973,8 @@ int path_load (char* fname);
 #define FILL_ACTION_REMOVE_LABEL 3
 #define NUM_FILL_ACTIONS         4
 
-typedef struct {
+typedef struct
+{
 
   char dont_cross_path;
   char dont_cross_label;
@@ -2044,7 +2065,7 @@ char* cptn_format_string = NULL;
 char* cptn_value_string = NULL;
 
 #define CPTN_CODE_VERTEXINDEX "!V" /* vertex index */
-#define CPTN_CODE_DISTANCE "!D"	/* distance */
+#define CPTN_CODE_DISTANCE "!D" /* distance */
 #define CPTN_CODE_COORDS_RAS "!R" /* RAS coords */
 #define CPTN_CODE_COORDS_MNITAL "!M" /* mni tal coords */
 #define CPTN_CODE_COORDS_TAL "!T" /* tal coords */
@@ -2055,13 +2076,13 @@ char* cptn_value_string = NULL;
 #define CPTN_CODE_CURVATURE "!C" /* curvature */
 #define CPTN_CODE_FIELDSIGN "!F" /* fieldsign */
 #define CPTN_CODE_FIELD_PREFIX "!o"
-#define CPTN_CODE_FIELD0 "!o1"	/* overlay layer 1 */
-#define CPTN_CODE_FIELD1 "!o2"	/* overlay layer 2 */
-#define CPTN_CODE_FIELD2 "!o3"	/* overlay layer 3 */
-#define CPTN_CODE_FIELD3 "!o4"	/* overlay layer 4 */
-#define CPTN_CODE_FIELD4 "!o5"	/* overlay layer 5 */
-#define CPTN_CODE_FIELD5 "!o6"	/* overlay layer 6 */
-#define CPTN_CODE_FIELD6 "!o7"	/* overlay layer 7 */
+#define CPTN_CODE_FIELD0 "!o1" /* overlay layer 1 */
+#define CPTN_CODE_FIELD1 "!o2" /* overlay layer 2 */
+#define CPTN_CODE_FIELD2 "!o3" /* overlay layer 3 */
+#define CPTN_CODE_FIELD3 "!o4" /* overlay layer 4 */
+#define CPTN_CODE_FIELD4 "!o5" /* overlay layer 5 */
+#define CPTN_CODE_FIELD5 "!o6" /* overlay layer 6 */
+#define CPTN_CODE_FIELD6 "!o7" /* overlay layer 7 */
 #define CPTN_CODE_FIELD7 "!o8" /* overlay layer 8 */
 #define CPTN_CODE_FIELD8 "!o9" /* overlay layer 9 */
 #define CPTN_CODE_CONDITION  "!cond" /* condition */
@@ -2069,7 +2090,7 @@ char* cptn_value_string = NULL;
 #define CPTN_CODE_AMPLITUDE "!amp" /* amplitude */
 #define CPTN_CODE_ANGLE "!ang" /* angle */
 #define CPTN_CODE_DEGREE "!deg" /* degree */
-#define CPTN_CODE_LABEL "!L"	/* label */
+#define CPTN_CODE_LABEL "!L" /* label */
 #define CPTN_CODE_ANNOTATION "!A" /* annotation */
 #define CPTN_CODE_MRIVALUE "!mriv" /* MRI value */
 #define CPTN_CODE_PARCELLATION_NAME "!P" /* parcellation */
@@ -2095,8 +2116,8 @@ int cptn_sprintf_for_code (const char* code, const char* format, ... );
 int cptn_draw ();
 
 /* Substitute a code in the caption string with an actual value. */
-int cptn_substitute_code_with_value (char* caption, int caption_size, 
-				     const char* code, char* value);
+int cptn_substitute_code_with_value (char* caption, int caption_size,
+                                     const char* code, char* value);
 
 /* ---------------------------------------------------------------------- */
 
@@ -2140,7 +2161,7 @@ void copy_edit_dat_file_name (char* fname, int len);
 #ifdef TCL
 int Surfer(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
 #else
-int  mai(int argc,char *argv[])
+int  main(int argc,char *argv[])
 #endif
 {
   int tclscriptflag;
@@ -2192,10 +2213,12 @@ int  mai(int argc,char *argv[])
   EnableDebuggingOutput ;
 
   // Read in env defaults
-  if(getenv("FS_TKFTHRESH")){
+  if (getenv("FS_TKFTHRESH"))
+  {
     sscanf(getenv("FS_TKFTHRESH"),"%lf",&fthresh);
   }
-  if(getenv("FS_TKFMAX")){
+  if (getenv("FS_TKFMAX"))
+  {
     sscanf(getenv("FS_TKFMAX"),"%lf",&tksfmax);
     fmid = (tksfmax+fthresh)/2.0;
     fslope = 1.0/(tksfmax-fthresh);
@@ -2206,211 +2229,308 @@ int  mai(int argc,char *argv[])
      memmoves the argv contents so that the old arg parsing code can
      work as it did historically. In other words, this is a dirty hack
      that should be rewritten. */
-  for (i = 0 ; i < argc ; i++) {
+  for (i = 0 ; i < argc ; i++)
+  {
     /*      fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);*/
-    if (!stricmp(argv[i], "-o") || !stricmp(argv[i], "-ov") || 
-        !stricmp(argv[i], "-overlay")) {
+    if (!stricmp(argv[i], "-o") || !stricmp(argv[i], "-ov") ||
+        !stricmp(argv[i], "-overlay"))
+    {
       nargs = 2 ;
       functional_fname = argv[i+1] ;
-      if(!fio_FileExistsReadable(functional_fname)){
-	printf("ERROR: cannot find %s\n",functional_fname);
-	exit(1);
+      if (!fio_FileExistsReadable(functional_fname))
+      {
+        printf("ERROR: cannot find %s\n",functional_fname);
+        exit(1);
       }
       load_curv = TRUE;
       forcegraycurvatureflag = TRUE;
-    } else if (!stricmp(argv[i], "-overlay-reg") ||
-               !stricmp(argv[i], "-orf") || !stricmp(argv[i], "-ovreg")) {
+    }
+    else if (!stricmp(argv[i], "-overlay-reg") ||
+             !stricmp(argv[i], "-orf") || !stricmp(argv[i], "-ovreg"))
+    {
       nargs = 2 ;
       strncpy (overlay_reg, argv[i+1], sizeof(overlay_reg) );
       overlay_reg_type = FunD_tRegistration_File;
-      if(!fio_FileExistsReadable(overlay_reg)){
-	printf("ERROR: cannot find %s\n",overlay_reg);
-	exit(1);
+      if (!fio_FileExistsReadable(overlay_reg))
+      {
+        printf("ERROR: cannot find %s\n",overlay_reg);
+        exit(1);
       }
-    } else if (!stricmp(argv[i], "-overlay-reg-find")) {
+    }
+    else if (!stricmp(argv[i], "-overlay-reg-find"))
+    {
       nargs = 1 ;
       overlay_reg_type = FunD_tRegistration_Find;
-    } else if (!stricmp(argv[i], "-overlay-reg-identity")) {
+    }
+    else if (!stricmp(argv[i], "-overlay-reg-identity"))
+    {
       nargs = 1 ;
       overlay_reg_type = FunD_tRegistration_Identity;
-    } else if (!stricmp(argv[i], "-fslope")) {
+    }
+    else if (!stricmp(argv[i], "-fslope"))
+    {
       nargs = 2 ;
       fslope = atof(argv[i+1]) ;
       fprintf(stderr, "setting fslope to %2.4f\n", fslope) ;
-    } else if (!stricmp(argv[i], "-colscalebarflag")) {
+    }
+    else if (!stricmp(argv[i], "-colscalebarflag"))
+    {
       nargs = 2 ;
       colscalebarflag = atoi(argv[i+1]) ;
       fprintf(stderr, "setting colscalebarflag to %d\n", colscalebarflag) ;
-    } else if (!stricmp(argv[i], "-colscaletext")) {
+    }
+    else if (!stricmp(argv[i], "-colscaletext"))
+    {
       nargs = 2 ;
       colscalebartextflag = atoi(argv[i+1]) ;
-      fprintf(stderr, "setting colscalebartextflag to %d\n", colscalebartextflag) ;
-    } else if (!stricmp(argv[i], "-colscalebarvertflag")) {
+      fprintf(stderr, "setting colscalebartextflag to %d\n",
+              colscalebartextflag) ;
+    }
+    else if (!stricmp(argv[i], "-colscalebarvertflag"))
+    {
       nargs = 2 ;
       colscalebarvertflag = atoi(argv[i+1]) ;
-      fprintf(stderr, "setting colscalebarvertflag to %d\n", colscalebarvertflag) ;
-    } else if (!stricmp(argv[i], "-scalebarflag")) {
+      fprintf(stderr, "setting colscalebarvertflag to %d\n",
+              colscalebarvertflag) ;
+    }
+    else if (!stricmp(argv[i], "-scalebarflag"))
+    {
       nargs = 2 ;
       scalebarflag = atoi(argv[i+1]) ;
       fprintf(stderr, "setting scalebarflag to %d\n", scalebarflag) ;
-    } else if (!stricmp(argv[i], "-truncphaseflag")) {
+    }
+    else if (!stricmp(argv[i], "-truncphaseflag"))
+    {
       nargs = 2 ;
       truncphaseflag = atoi(argv[i+1]) ;
       fprintf(stderr, "setting truncphaseflag to %d\n", truncphaseflag) ;
-    } else if (!stricmp(argv[i], "-revphaseflag")) {
+    }
+    else if (!stricmp(argv[i], "-revphaseflag"))
+    {
       nargs = 2 ;
       revphaseflag = atoi(argv[i+1]) ;
       fprintf(stderr, "setting revphaseflag to %d\n", revphaseflag) ;
-    } else if (!stricmp(argv[i], "-invphaseflag")) {
+    }
+    else if (!stricmp(argv[i], "-invphaseflag"))
+    {
       nargs = 2 ;
       invphaseflag = atoi(argv[i+1]) ;
       fprintf(stderr, "setting invphaseflag to %d\n", invphaseflag) ;
-    } else if (!stricmp(argv[i], "-fthresh")) {
+    }
+    else if (!stricmp(argv[i], "-fthresh"))
+    {
       nargs = 2 ;
       fthresh = atof(argv[i+1]) ;
       fprintf(stderr, "setting fthresh to %2.4f\n", fthresh) ;
-    } else if (!stricmp(argv[i], "-patch")) {
+    }
+    else if (!stricmp(argv[i], "-patch"))
+    {
       nargs = 2 ;
       patch_name = argv[i+1] ;
       fprintf(stderr, "displaying patch %s...\n", patch_name) ;
-    } else if (!stricmp(argv[i], "-mask")) {
+    }
+    else if (!stricmp(argv[i], "-mask"))
+    {
       nargs = 2 ;
       mrismaskfile = argv[i+1] ;
       fprintf(stderr, "mrismaskfile %s...\n", mrismaskfile) ;
-      if(!fio_FileExistsReadable(mrismaskfile)){
-	printf("ERROR: cannot find %s\n",mrismaskfile);
-	exit(1);
+      if (!fio_FileExistsReadable(mrismaskfile))
+      {
+        printf("ERROR: cannot find %s\n",mrismaskfile);
+        exit(1);
       }
-    } else if (!stricmp(argv[i], "-mask-thresh")) {
+    }
+    else if (!stricmp(argv[i], "-mask-thresh"))
+    {
       nargs = 2 ;
       mrismaskthresh = atof(argv[i+1]) ;
       fprintf(stderr, "setting mrismaskthresh to %2.4f\n", mrismaskthresh) ;
-    } else if (!stricmp(argv[i], "-fmid")) {
+    }
+    else if (!stricmp(argv[i], "-fmid"))
+    {
       nargs = 2 ;
       fmid = atof(argv[i+1]) ;
       fprintf(stderr, "setting fmid to %2.4f\n", fmid) ;
-    } else if (!stricmp(argv[i], "-foffset")) {
+    }
+    else if (!stricmp(argv[i], "-foffset"))
+    {
       nargs = 2 ;
       foffset = atof(argv[i+1]) ;
       fprintf(stderr, "setting foffset to %2.4f\n", foffset) ;
-    } else if (!stricmp(argv[i], "-offset")) {
+    }
+    else if (!stricmp(argv[i], "-offset"))
+    {
       nargs = 2 ;
       offset = atof(argv[i+1]) ;
       fprintf(stderr, "setting offset to %2.4f\n", offset) ;
-    } else if (!stricmp(argv[i], "-sdir")) {
+    }
+    else if (!stricmp(argv[i], "-sdir"))
+    {
       nargs = 2 ;
       sdir = argv[i+1] ;
       fprintf(stderr, "using SUBJECTS_DIR %s\n", sdir) ;
       FSENVsetSUBJECTS_DIR(sdir);
-    } else if (!stricmp(argv[i], "-reassign")) {
+    }
+    else if (!stricmp(argv[i], "-reassign"))
+    {
       reassign = 1 ;
       nargs = 1 ;
       fprintf(stderr, "reassigning label vertex #s\n") ;
-    } else if (!stricmp(argv[i], "-orig")) {
+    }
+    else if (!stricmp(argv[i], "-orig"))
+    {
       nargs = 2 ;
       orig_suffix = argv[i+1] ;
       fprintf(stderr, "using orig suffix %s\n", orig_suffix) ;
-    } else if (!stricmp(argv[i], "-sphere")) {
+    }
+    else if (!stricmp(argv[i], "-sphere"))
+    {
       nargs = 2 ;
       sphere_reg_suffix = argv[i+1] ;
       fprintf(stderr, "using sphere_reg suffix %s\n", sphere_reg_suffix) ;
-    } else if (!stricmp(argv[i], "-white")) {
+    }
+    else if (!stricmp(argv[i], "-white"))
+    {
       nargs = 2 ;
       white_suffix = argv[i+1] ;
       fprintf(stderr, "using white suffix %s\n", white_suffix) ;
-    } else if (!stricmp(argv[i], "-delink")) {
+    }
+    else if (!stricmp(argv[i], "-delink"))
+    {
       link_tool_and_image_windows_flag = 0;
       nargs = 1 ;
     }
     /* begin rkt */
-    else if (!stricmp(argv[i], "-timecourse") || !stricmp(argv[i], "-t")) {
+    else if (!stricmp(argv[i], "-timecourse") || !stricmp(argv[i], "-t"))
+    {
       nargs = 2;
       strncpy (timecourse_fname, argv[i+1], sizeof(timecourse_fname));
       load_timecourse = TRUE;
-      if(!fio_FileExistsReadable(timecourse_fname)){
-	printf("ERROR: cannot find %s\n",timecourse_fname);
-	exit(1);
+      if (!fio_FileExistsReadable(timecourse_fname))
+      {
+        printf("ERROR: cannot find %s\n",timecourse_fname);
+        exit(1);
       }
-    } else if (!stricmp(argv[i], "-timecourse-reg") || !stricmp(argv[i], "-treg")) {
+    }
+    else if (!stricmp(argv[i], "-timecourse-reg") ||
+             !stricmp(argv[i], "-treg"))
+    {
       nargs = 2;
       strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
       timecourse_reg_type = FunD_tRegistration_File;
-      if(!fio_FileExistsReadable(timecourse_reg)){
-	printf("ERROR: cannot find %s\n",timecourse_reg);
-	exit(1);
+      if (!fio_FileExistsReadable(timecourse_reg))
+      {
+        printf("ERROR: cannot find %s\n",timecourse_reg);
+        exit(1);
       }
-    } else if (!stricmp(argv[i], "-timecourse-reg-find")) {
+    }
+    else if (!stricmp(argv[i], "-timecourse-reg-find"))
+    {
       nargs = 1 ;
       timecourse_reg_type = FunD_tRegistration_Find;
-    } else if (!stricmp(argv[i], "-timecourse-reg-identity")) {
+    }
+    else if (!stricmp(argv[i], "-timecourse-reg-identity"))
+    {
       nargs = 1 ;
       timecourse_reg_type = FunD_tRegistration_Identity;
-    } else if (!stricmp(argv[i], "-timecourse-offset")) {
+    }
+    else if (!stricmp(argv[i], "-timecourse-offset"))
+    {
       nargs = 2;
       strncpy (timecourse_offset_fname, argv[i+1],
                sizeof(timecourse_offset_fname));
       load_timecourse_offset = TRUE;
-    } else if (!stricmp(argv[i], "-timecourse-offset-reg-file")) {
+    }
+    else if (!stricmp(argv[i], "-timecourse-offset-reg-file"))
+    {
       nargs = 2;
       strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
       timecourse_offset_reg_type = FunD_tRegistration_File;
-    } else if (!stricmp(argv[i], "-timecourse-offset-reg-find")) {
+    }
+    else if (!stricmp(argv[i], "-timecourse-offset-reg-find"))
+    {
       nargs = 1 ;
       timecourse_offset_reg_type = FunD_tRegistration_Find;
-    } else if (!stricmp(argv[i], "-timecourse-offset-reg-identity")) {
+    }
+    else if (!stricmp(argv[i], "-timecourse-offset-reg-identity"))
+    {
       nargs = 1 ;
       timecourse_offset_reg_type = FunD_tRegistration_Identity;
-    } else if (!stricmp(argv[i], "-annotation") ||
-               !stricmp(argv[i], "-annot")) {
+    }
+    else if (!stricmp(argv[i], "-annotation") ||
+             !stricmp(argv[i], "-annot"))
+    {
       nargs = 2 ;
       strncpy (annotation_fname, argv[i+1], sizeof(annotation_fname));
       load_annotation = TRUE;
-    } else if (!stricmp(argv[i], "-aparc")){
+    }
+    else if (!stricmp(argv[i], "-aparc"))
+    {
       strncpy (annotation_fname, "aparc.annot", sizeof(annotation_fname));
       load_annotation = TRUE;
       labl_draw_style = LABL_STYLE_OUTLINE;
       nargs = 1 ;
-    } else if (!stricmp(argv[i], "-lrrev")){
-      LeftRightRev = TRUE; 
+    }
+    else if (!stricmp(argv[i], "-lrrev"))
+    {
+      LeftRightRev = TRUE;
       nargs = 1 ;
-    } else if (!stricmp(argv[i], "-title")){
+    }
+    else if (!stricmp(argv[i], "-title"))
+    {
       nargs = 2 ;
       tkstitle = argv[i+1];
-    } else if (!stricmp(argv[i], "-curv")){
+    }
+    else if (!stricmp(argv[i], "-curv"))
+    {
       nargs = 1 ;
       load_curv = TRUE;
-    } else if (!stricmp(argv[i], "-gray")){
+    }
+    else if (!stricmp(argv[i], "-gray"))
+    {
       nargs = 1 ;
       load_curv = TRUE;
       forcegraycurvatureflag = TRUE;
-    } else if (!stricmp(argv[i], "-labels-under")){
+    }
+    else if (!stricmp(argv[i], "-labels-under"))
+    {
       nargs = 1 ;
       labels_before_overlay_flag = TRUE;
-    } else if (!stricmp(argv[i], "-label-outline")){
+    }
+    else if (!stricmp(argv[i], "-label-outline"))
+    {
       nargs = 1 ;
       labl_draw_style = LABL_STYLE_OUTLINE;
-    } else if (!stricmp(argv[i], "-colortable") ||
-               !stricmp(argv[i], "-ctab")) {
+    }
+    else if (!stricmp(argv[i], "-colortable") ||
+             !stricmp(argv[i], "-ctab"))
+    {
       nargs = 2 ;
       strncpy (colortable_fname, argv[i+1], sizeof(colortable_fname));
       load_colortable = TRUE;
-    } else if (!stricmp(argv[i], "-tcl")) {
+    }
+    else if (!stricmp(argv[i], "-tcl"))
+    {
       nargs = 2;
       strncpy (script_tcl, argv[i+1], sizeof(script_tcl));
       scriptok = TRUE;
     }
     /* end rkt */
-    else {
+    else
+    {
       nargs = 0 ;
-      if(i >= 4){
-	printf("WARNING: flag %s unrecognized\n",argv[i]);
-	if(getenv("TK_EXIT_ON_CMD_ERROR")!=NULL){
-	  printf("  ... and exiting because of it.\n");
-	  exit(1);
-	}
+      if (i >= 4)
+      {
+        printf("WARNING: flag %s unrecognized\n",argv[i]);
+        if (getenv("TK_EXIT_ON_CMD_ERROR")!=NULL)
+        {
+          printf("  ... and exiting because of it.\n");
+          exit(1);
+        }
       }
     }
-    if (nargs > 0) {
+    if (nargs > 0)
+    {
       if (argc-(nargs+i) > 0)
         memmove(argv+i, argv+i+nargs, (argc-(nargs+i))*sizeof(char*)) ;
       argc -= nargs ;
@@ -2421,20 +2541,24 @@ int  mai(int argc,char *argv[])
   /* args */
   if (argc==2)
     strcpy(str,argv[1]);
-  if (MATCH_STR("-help") || MATCH_STR("-h")) {
+  if (MATCH_STR("-help") || MATCH_STR("-h"))
+  {
     strcpy(str,argv[0]);
     if (MATCH_STR("tksurfer")) print_help_tksurfer();
     exit(1);
   }
-  if (argc<4 || argc>6) {
+  if (argc<4 || argc>6)
+  {
     strcpy(str,argv[0]);
-    if (MATCH_STR("surfer")) {
+    if (MATCH_STR("surfer"))
+    {
       printf("\n");
       printf("Usage: %s [-]name hemi surf\n",argv[0]);
       printf("       %s -help, -h [after startup: h,?]\n",argv[0]);
       printf("\n");
     }
-    if (MATCH_STR("tksurfer")) {
+    if (MATCH_STR("tksurfer"))
+    {
       printf("\n");
       printf("Usage: %s [-]name hemi surf [-tcl script]\n",argv[0]);
       printf("       %s -help, -h [after startup: help]\n",argv[0]);
@@ -2449,11 +2573,14 @@ int  mai(int argc,char *argv[])
     /* end rkt */
     exit(1);
   }
-  if (argv[1][0]=='-') {
+  if (argv[1][0]=='-')
+  {
     MRIflag = FALSE;
     MRIloaded = FALSE;
     sprintf(lpname,"%s",argv[1]+1);
-  } else {
+  }
+  else
+  {
 #if 0
     MRIflag = TRUE;
     MRIloaded = TRUE;
@@ -2470,21 +2597,28 @@ int  mai(int argc,char *argv[])
   /* rkt: commented this part out. i'm not sure how it was accepting
      any other command line options with it active. */
 #if 0
-  if (argc>=5) {
+  if (argc>=5)
+  {
     strcpy(str,argv[4]);
     if (MATCH_STR("-tcl"))
       tclscriptflag = TRUE;
-    else {
+    else
+    {
       option = atoi(argv[4]);
-      if (option==5) {
+      if (option==5)
+      {
         printf("surfer: ### option 5 defunct--instead use:\n\n");
         printf("    tksurfer %s %s %s -tcl inflate.tcl\n\n",
                argv[1],argv[2],argv[3]);
-      } else if (option==12) {
+      }
+      else if (option==12)
+      {
         printf("surfer: ### option 12 defunct--instead use:\n\n");
         printf("    tksurfer %s %s %s -tcl flatten.tcl\n\n",
                argv[1],argv[2],argv[3]);
-      } else {
+      }
+      else
+      {
         printf("surfer: defunct option\n");
       }
       exit(1);
@@ -2497,7 +2631,8 @@ int  mai(int argc,char *argv[])
     envptr = sdir ;
   else
     envptr = getenv("SUBJECTS_DIR");
-  if (envptr==NULL) {
+  if (envptr==NULL)
+  {
     printf("surfer: env var SUBJECTS_DIR undefined (use setenv)\n");
     exit(1);
   }
@@ -2509,26 +2644,38 @@ int  mai(int argc,char *argv[])
   word = strtok(cwd,"/");
   strcpy(path[0],word);
   i = 1;
-  while ((word = strtok(NULL,"/")) != NULL) {  /* save,count */
+  while ((word = strtok(NULL,"/")) != NULL)
+  {  /* save,count */
     strcpy(path[i],word);
     i++;
   }
-  if (MATCH(path[i-1],"scripts") && MATCH(path[i-2],"image")) {
+  if (MATCH(path[i-1],"scripts") && MATCH(path[i-2],"image"))
+  {
     printf("surfer: in new (APD2) format \"scripts\" dir\n");
     j = i-1;
-  } else if (MATCH(path[i-1],"scripts") && strspn(path[i-2],"0123456789")==5) {
+  }
+  else if (MATCH(path[i-1],"scripts") && strspn(path[i-2],"0123456789")==5)
+  {
     printf("surfer: in old (APD1) format \"scripts\" dir\n");
     j = i-1;
-  } else if (MATCH(path[i-1],"scripts") && MATCH(path[i-2],lpname)) {
+  }
+  else if (MATCH(path[i-1],"scripts") && MATCH(path[i-2],lpname))
+  {
     printf("surfer: in subjects \"scripts\" dir\n");
     j = i-1;
-  } else if (MATCH(path[i-1],"scripts")) {
+  }
+  else if (MATCH(path[i-1],"scripts"))
+  {
     printf("surfer: in \"scripts\" dir (not APD1,APD2,subjects format)\n");
     j = i-1;
-  } else if (strstr(path[i-1],"scripts")!=NULL) {
+  }
+  else if (strstr(path[i-1],"scripts")!=NULL)
+  {
     printf("surfer: in dir with \"scripts\" in name\n");
     j = i-1;
-  } else {
+  }
+  else
+  {
     printf("surfer: not in \"scripts\" dir ==> using cwd for session root\n");
     j = i;
   }
@@ -2540,14 +2687,18 @@ int  mai(int argc,char *argv[])
 
   /* logfile */
   fplog = fopen("surfer.log","a");
-  if (fplog==NULL) {
+  if (fplog==NULL)
+  {
     printf("surfer: can't create file surfer.log in cwd\n");
     sprintf(str,"/tmp/surfer.log.%s",getenv("USER"));
     fplog = fopen(str,"a");
-    if (fplog==NULL) {
+    if (fplog==NULL)
+    {
       printf("surfer: can't create surfer.log--written to stdout\n");
       fplog = stdout;  /* give up and write log to standard out */
-    } else {
+    }
+    else
+    {
       printf("surfer: surfer.log created in /tmp\n");
       strcpy(lsrname,"/tmp");
       printf("surfer: session root data dir ($session) reset to:\n");
@@ -2577,7 +2728,8 @@ int  mai(int argc,char *argv[])
 
   make_filenames(lsubjectsdir,lsrname,lpname,lstem,lext);
 
-  if (MATCH(cwd,srname)) {   /* if elsewhere, write rgbs in cwd */
+  if (MATCH(cwd,srname))
+  {   /* if elsewhere, write rgbs in cwd */
     strcpy(gfname,srname);
     strcpy(sgfname,srname);
     sprintf(agfname,"%s/%s",srname,"surfer.rgb");
@@ -2600,18 +2752,23 @@ int  mai(int argc,char *argv[])
   if (read_binary_surface(ifname) != NO_ERROR)
     ErrorExit(Gerror, "%s: could not read surface file %s.",Progname,ifname);
 
-  if (read_orig_vertex_coordinates(orfname) == NO_ERROR) {
+  if (read_orig_vertex_coordinates(orfname) == NO_ERROR)
+  {
     char fname[STRLEN] ;
     sprintf(fname, "%s.%s", fpref, sphere_reg_suffix) ;
     if (FileExists(fname))
       read_canon_vertex_coordinates(fname) ;
   }
 
-  if (functional_fname){  /* -o specified on command line */
+  if (functional_fname)
+  {  /* -o specified on command line */
     if (strlen(functional_fname) > 2 &&
-        strcmp (&functional_fname[strlen(functional_fname)-2], ".w") == 0) {
+        strcmp (&functional_fname[strlen(functional_fname)-2], ".w") == 0)
+    {
       read_binary_values(functional_fname) ;
-    } else {
+    }
+    else
+    {
       sclv_read_from_volume(functional_fname, overlay_reg_type,
                             overlay_reg, SCLV_VAL);
     }
@@ -2619,7 +2776,8 @@ int  mai(int argc,char *argv[])
     colscale = HEAT_SCALE ;
   }
 
-  if(load_curv){
+  if (load_curv)
+  {
     read_binary_curvature(cfname) ;
     val_to_stat() ;
   }
@@ -2630,48 +2788,54 @@ int  mai(int argc,char *argv[])
 #endif
 
   /* begin rkt */
-  if (load_timecourse) {
+  if (load_timecourse)
+  {
     err = func_load_timecourse (timecourse_fname,
-				timecourse_reg_type, timecourse_reg);
+                                timecourse_reg_type, timecourse_reg);
 
-    if ( ERROR_NONE == err ) 
-      {
-	/* send the number of conditions */
-	sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
-	send_tcl_command (tcl_cmd);
-	
-	/* show the graph window */
-	send_tcl_command ("Graph_ShowWindow");
-      }
+    if ( ERROR_NONE == err )
+    {
+      /* send the number of conditions */
+      sprintf (tcl_cmd, "Graph_SetNumConditions %d", func_num_conditions);
+      send_tcl_command (tcl_cmd);
+
+      /* show the graph window */
+      send_tcl_command ("Graph_ShowWindow");
+    }
   }
 
-  if (load_timecourse_offset) {
+  if (load_timecourse_offset)
+  {
 
     err = func_load_timecourse_offset (timecourse_offset_fname,
-				       timecourse_offset_reg_type,
-				       timecourse_offset_reg);
+                                       timecourse_offset_reg_type,
+                                       timecourse_offset_reg);
 
-    if ( ERROR_NONE == err ) 
-      {
-	/* turn on the offset options */
-	send_tcl_command ("Graph_ShowOffsetOptions 1");
-      }
+    if ( ERROR_NONE == err )
+    {
+      /* turn on the offset options */
+      send_tcl_command ("Graph_ShowOffsetOptions 1");
+    }
   }
 
-  if (load_colortable) {
+  if (load_colortable)
+  {
     labl_load_color_table (colortable_fname);
   }
 
-  if (load_annotation) {
+  if (load_annotation)
+  {
     err = labl_import_annotation (annotation_fname);
-    if(err && getenv("TK_EXIT_ON_CMD_ERROR")!=NULL) exit(1);
+    if (err && getenv("TK_EXIT_ON_CMD_ERROR")!=NULL) exit(1);
   }
 
   /* If we didn't load an annotation or color table filename, load the
      default color table. */
-  if (!load_colortable && !load_annotation) {
+  if (!load_colortable && !load_annotation)
+  {
     freesurfer_home_envptr = getenv( "FREESURFER_HOME" );
-    if ( NULL != freesurfer_home_envptr ) {
+    if ( NULL != freesurfer_home_envptr )
+    {
       sprintf (colortable_fname, "%s/surface_labels.txt",
                freesurfer_home_envptr);
       fprintf( stderr, "Loading %s\n", colortable_fname );
@@ -2681,24 +2845,29 @@ int  mai(int argc,char *argv[])
 
   /* end rkt */
 
-  if (tclscriptflag) {
+  if (tclscriptflag)
+  {
     /* tksurfer tcl script */
     /* called from tksurfer.c; do nothing (don't even open gl window) */
     /* wait for tcl interp to start; tksurfer calls tcl script */
-  } else {
+  }
+  else
+  {
 
     /* open window for surfer or non-script tksurfer (a few envs) */
 //#ifndef Linux
-    if ((envptr=getenv("doublebufferflag"))!=NULL) { /*tmp:TODO OGL toggle*/
+    if ((envptr=getenv("doublebufferflag"))!=NULL)
+    { /*tmp:TODO OGL toggle*/
       if (MATCH("1",envptr))     doublebufferflag = TRUE;
       if (MATCH("TRUE",envptr))  doublebufferflag = TRUE;
     }
-    if ((envptr=getenv("renderoffscreen"))!=NULL) {
+    if ((envptr=getenv("renderoffscreen"))!=NULL)
+    {
       if (MATCH("1",envptr))     renderoffscreen = TRUE;
       if (MATCH("TRUE",envptr))  renderoffscreen = TRUE;
     }
 //#endif
-    if(tkstitle == NULL) tkstitle = pname;
+    if (tkstitle == NULL) tkstitle = pname;
     open_window(tkstitle);
     if (stem[0]=='r'&&stem[1]=='h')
       rotate_brain(-90.0,'y');
@@ -2707,7 +2876,8 @@ int  mai(int argc,char *argv[])
     redraw();
   }
 
-  if (patch_name) {
+  if (patch_name)
+  {
     strcpy(pfname, patch_name) ;
     read_binary_patch(patch_name) ;
     restore_zero_position() ;
@@ -2748,11 +2918,13 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 
   if (!openglwindowflag) return(0);
 
-  if (XPending(xDisplay)) {  /* do one if queue test */
+  if (XPending(xDisplay))
+  {  /* do one if queue test */
 
     XNextEvent(xDisplay, &current);   /* blocks here if no event */
 
-    switch (current.type) {
+    switch (current.type)
+    {
 
     case ConfigureNotify:
       // Generated when window moves
@@ -2769,11 +2941,12 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         (char*)Tcl_GetVar(interp,(char*)"tksurferinterface",TCL_GLOBAL_ONLY);
       /* begin rkt */
 
-      if(link_tool_and_image_windows_flag){
-	/* link tool window with image window */
-	sprintf(command,"MoveToolWindow %d %d",
-		w.x, w.y + w.h + MOTIF_YFUDGE /*+MOTIF_XFUDGE*/);
-	send_tcl_command (command);
+      if (link_tool_and_image_windows_flag)
+      {
+        /* link tool window with image window */
+        sprintf(command,"MoveToolWindow %d %d",
+                w.x, w.y + w.h + MOTIF_YFUDGE /*+MOTIF_XFUDGE*/);
+        send_tcl_command (command);
       }
 
       /* update window position */
@@ -2784,8 +2957,10 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
          see if there are any expose or configure events ahead of us,
          and if so, don't redraw now. this saves us from having
          multiple redraw flashes. */
-      if (redrawlockflag) {
-        if (XPending(xDisplay)) {
+      if (redrawlockflag)
+      {
+        if (XPending(xDisplay))
+        {
           XPeekEvent(xDisplay, &ahead);
           if (ahead.type==Expose || ahead.type==ConfigureNotify)
             break;
@@ -2801,8 +2976,10 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
          see if there are any expose or configure events ahead of us,
          and if so, don't redraw now. this saves us from having
          multiple redraw flashes. */
-      if (redrawlockflag) {
-        if (XPending(xDisplay)) {
+      if (redrawlockflag)
+      {
+        if (XPending(xDisplay))
+        {
           XPeekEvent(xDisplay, &ahead);
           if (ahead.type==Expose || ahead.type==ConfigureNotify)
             break;
@@ -2810,7 +2987,8 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         send_tcl_command ("UpdateAndRedraw");
       }
 #if 0
-      if (XPending(xDisplay)) {
+      if (XPending(xDisplay))
+      {
         XPeekEvent(xDisplay, &ahead);
         if (ahead.type==Expose || ahead.type==ConfigureNotify) break;
       }
@@ -2821,8 +2999,10 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 
       /* begin rkt */
     case MotionNotify:
-      if (mouseoverflag) {
-        if (XPending(xDisplay)) {
+      if (mouseoverflag)
+      {
+        if (XPending(xDisplay))
+        {
           XPeekEvent(xDisplay, &ahead);
           if (ahead.type==MotionNotify)
             break;
@@ -2844,9 +3024,11 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
       sy = current.xbutton.y;
       sx += w.x;   /* convert back to screen pos (ugh) */
       sy = 1024 - w.y - sy;
-      if (current.xbutton.button == 1) {  /** left **/
+      if (current.xbutton.button == 1)
+      {  /** left **/
         button1pressed = TRUE;
-        if (ctrlkeypressed) { /* scale around click */
+        if (ctrlkeypressed)
+        { /* scale around click */
           getorigin(&ox,&oy);
           getsize(&lx,&ly);
           wx = sf*(sx-ox-lx/2.0)*2.0*fov/lx;
@@ -2863,20 +3045,26 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           scale_brain (SCALE_UP_MOUSE);
           redraw();
           /* end rkt */
-        } else if (shiftkeypressed) {  /* curvim */
+        }
+        else if (shiftkeypressed)
+        {  /* curvim */
           select_vertex(sx,sy);
           read_curvim_at_vertex(selection);
           draw_cursor(selection,TRUE);
-        } else {
+        }
+        else
+        {
 
           /* begin rkt */
-          if (selection>=0) {
+          if (selection>=0)
+          {
             draw_vertex_hilite(selection);
             draw_cursor(selection,FALSE);
 
           }
           select_vertex(sx,sy);
-          if (selection>=0) {
+          if (selection>=0)
+          {
             mark_vertex(selection,TRUE);
             draw_cursor(selection,TRUE);
           }
@@ -2887,12 +3075,14 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
             find_orig_vertex_coordinates(selection);
         }
       }
-      if (current.xbutton.button == 2) {  /** middle **/
+      if (current.xbutton.button == 2)
+      {  /** middle **/
         button2pressed = TRUE;
 
         /* begin rkt */
         find_closest_marked_vertex (sx, sy, NULL, &vno);
-        if (vno>=0 && vno < mris->nvertices) {
+        if (vno>=0 && vno < mris->nvertices)
+        {
           fprintf (stderr, "Unmarking %d\n", vno);
           mark_vertex (vno, FALSE);
           draw_cursor (vno, FALSE);
@@ -2905,9 +3095,11 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 #endif
 
       }
-      if (current.xbutton.button == 3) {  /** right **/
+      if (current.xbutton.button == 3)
+      {  /** right **/
         button3pressed = TRUE;
-        if (ctrlkeypressed) {
+        if (ctrlkeypressed)
+        {
           getorigin(&ox,&oy);
           getsize(&lx,&ly);
           wx = sf*(sx-ox-lx/2.0)*2.0*fov/lx;
@@ -2924,7 +3116,9 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           scale_brain (1.0/SCALE_UP_MOUSE);
           redraw();
           /* end rkt */
-        } else {
+        }
+        else
+        {
           clear_all_vertex_marks();
           /* begin rkt */
           /* deselect label. */
@@ -2945,7 +3139,8 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 
     case KeyPress:
       XLookupString(&current.xkey, buf, sizeof(buf), &ks, 0);
-      switch (ks) {
+      switch (ks)
+      {
 
         /* numbers */
       case XK_0:
@@ -3036,7 +3231,8 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 
     case KeyRelease:   /* added this mask to owindow.c */
       XLookupString(&current.xkey, buf, sizeof(buf), &ks, 0);
-      switch (ks) {
+      switch (ks)
+      {
       case XK_Shift_L:
       case XK_Shift_R:
         shiftkeypressed=FALSE;
@@ -3075,12 +3271,14 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 
   blinkbuffers();
 
-  if (qtest()) {  /* do one event */
+  if (qtest())
+  {  /* do one event */
     dev = qread(&val);
     if (dev != LEFTMOUSE &&
         dev != RIGHTMOUSE) /* hack: mouse zeros getbutton! */
       ctrlkeypressed = getbutton(LEFTCTRLKEY) || getbutton(RIGHTCTRLKEY);
-    switch (dev) {
+    switch (dev)
+    {
     case REDRAW:
       resize_window(0);   /* reshape flag */
       break;
@@ -3088,7 +3286,8 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
       if (val == 0)  break;
       sx = getvaluator(MOUSEX);
       sy = getvaluator(MOUSEY);
-      if (ctrlkeypressed) { /* scale around click */
+      if (ctrlkeypressed)
+      { /* scale around click */
         getorigin(&ox,&oy);
         getsize(&lx,&ly);
         wx = sf*(sx-ox-lx/2.0)*2.0*fov/lx;
@@ -3096,11 +3295,15 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         translate_brain(-wx,-wy,0.0);
         scale_brain(SCALE_UP_MOUSE);
         redraw();
-      } else if (shiftkeypressed) {
+      }
+      else if (shiftkeypressed)
+      {
         select_vertex(sx,sy);
         read_curvim_at_vertex(selection);
         draw_cursor(selection,TRUE);
-      } else {
+      }
+      else
+      {
         if (selection>=0)
           draw_cursor(selection,FALSE);
         select_vertex(sx,sy);
@@ -3122,7 +3325,8 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
       if (val == 0)  break;
       sx = getvaluator(MOUSEX);
       sy = getvaluator(MOUSEY);
-      if (ctrlkeypressed) {
+      if (ctrlkeypressed)
+      {
         getorigin(&ox,&oy);
         getsize(&lx,&ly);
         wx = sf*(sx-ox-lx/2.0)*2.0*fov/lx;
@@ -3130,7 +3334,9 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         translate_brain(-wx,-wy,0.0);
         scale_brain(1.0/SCALE_UP_MOUSE);
         redraw();
-      } else {
+      }
+      else
+      {
         clear_vertex_marks();
       }
       break;
@@ -3196,7 +3402,8 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
       break;
     case KEYBD:
       if (altkeypressed)
-        switch ((char)val) {
+        switch ((char)val)
+        {
         case 'f':
           find_orig_vertex_coordinates(selection);
           break;
@@ -3254,7 +3461,8 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           printf("enter number of rec files: ");
           scanf("%d",&num);
           sol_nrec = 0;
-          for (i=0;i<num;i++) {
+          for (i=0;i<num;i++)
+          {
             printf("enter .rec-name: ");
             scanf("%s",fname);
             read_rec(fname);
@@ -3304,10 +3512,12 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           load_vals_from_sol(tmid,dt,num);
           break;
         case 'C':
-          if (sol_nrec>1) {
+          if (sol_nrec>1)
+          {
             printf("enter num: ");
             scanf("%d",&num);
-          } else
+          }
+          else
             num = 0;
           load_var_from_sol(num);
           PR
@@ -3368,7 +3578,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
           break;
         }
     }
-  }}
+  }
 #endif
   return(0) ;
 }
@@ -3376,7 +3586,8 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 
 
 void
-read_ncov(char *fname) {
+read_ncov(char *fname)
+{
   int i,j,tnmeg,tneeg;
   float f;
   FILE *fptr;
@@ -3384,28 +3595,35 @@ read_ncov(char *fname) {
 
   printf("read_ncov(%s)\n",fname);
   fptr = fopen(fname,"r");
-  if (fptr==NULL) {
+  if (fptr==NULL)
+  {
     printf("can't find file %s\n",fname);
     exit(1);
   }
   fscanf(fptr,"%*s");
   fscanf(fptr,"%d %d",&tnmeg,&tneeg);
-  if ((sol_nmeg!=0 && tnmeg!=sol_nmeg) || (sol_nmeg!=0 && tnmeg!=sol_nmeg)) {
+  if ((sol_nmeg!=0 && tnmeg!=sol_nmeg) || (sol_nmeg!=0 && tnmeg!=sol_nmeg))
+  {
     printf("incompatible nmeg or meeg in ncov file\n");
     exit(1);
   }
   sol_NoiseCovariance = MGH_matrix(sol_nchan,sol_nchan);
   for (i=0;i<tneeg+tnmeg;i++)
-    for (j=0;j<tneeg+tnmeg;j++) {
+    for (j=0;j<tneeg+tnmeg;j++)
+    {
       fscanf(fptr,"%f",&f);
-      if (sol_nmeg==0) {
+      if (sol_nmeg==0)
+      {
         if (i<tneeg && j<tneeg)
           sol_NoiseCovariance[i][j] = f;
-      } else
-        if (sol_neeg==0) {
+      }
+      else
+        if (sol_neeg==0)
+        {
           if (i>=tneeg && j>=tneeg)
             sol_NoiseCovariance[i-tneeg][j-tneeg] = f;
-        } else
+        }
+        else
           sol_NoiseCovariance[i][j] = f;
     }
   /*
@@ -3417,7 +3635,8 @@ read_ncov(char *fname) {
 }
 
 void
-regularize_matrix(FLOATTYPE **m, int n, float fact) {
+regularize_matrix(FLOATTYPE **m, int n, float fact)
+{
   int i;                   /* loop counters */
   float sum;
 
@@ -3435,7 +3654,8 @@ regularize_matrix(FLOATTYPE **m, int n, float fact) {
 }
 
 void
-read_iop(char *fname, int dipfilenum) {
+read_iop(char *fname, int dipfilenum)
+{
   int i,j,k,jc,d;
   FILE *fp;
   char c,str[200];
@@ -3446,22 +3666,27 @@ read_iop(char *fname, int dipfilenum) {
 
   sol_pthresh = 1000;
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't find file %s\n",fname);
     PR return;
   }
   c = fgetc(fp);
-  if (c=='#') {
+  if (c=='#')
+  {
     fscanf(fp,"%s",str);
     if (MATCH_STR("version"))
       fscanf(fp,"%d",&iop_vernum);
     printf("iop version = %d\n",iop_vernum);
     fscanf(fp,"%d %d %d %d",&sol_neeg,&sol_nmeg,&sol_nperdip,&sol_ndipfiles);
     sol_nchan = sol_neeg+sol_nmeg;
-    for (i=1;i<=dipfilenum;i++) {
+    for (i=1;i<=dipfilenum;i++)
+    {
       fscanf(fp,"%d %d",&sol_ndip,&sol_nnz);
-      if (i==dipfilenum) {
-        if (sol_ndip != sol_ndec) {
+      if (i==dipfilenum)
+      {
+        if (sol_ndip != sol_ndec)
+        {
           printf(".dec and .iop file mismatch (%d!=%d)\n",
                  sol_ndip,sol_ndec);
           fclose(fp);
@@ -3483,58 +3708,76 @@ read_iop(char *fname, int dipfilenum) {
         sol_prior = MGH_vector(sol_nnz);
         sol_dipfact = MGH_vector(sol_nnz);
       }
-      for (j=0;j<sol_nnz;j++) {
-        if (i==dipfilenum) {
+      for (j=0;j<sol_nnz;j++)
+      {
+        if (i==dipfilenum)
+        {
           fscanf(fp,"%d",&d);
           sol_dipindex[j] = d;
-        } else
+        }
+        else
           fscanf(fp,"%*d");
       }
-      for (j=0;j<sol_nnz;j++) {
-        if (i==dipfilenum) {
+      for (j=0;j<sol_nnz;j++)
+      {
+        if (i==dipfilenum)
+        {
           fscanf(fp,"%f",&f);
           sol_pval[j] = f;
           f = fabs(f);
           if (f<sol_pthresh) sol_pthresh = f;
-        } else
+        }
+        else
           fscanf(fp,"%*f");
       }
-      for (j=0;j<sol_nnz;j++) {
-        if (i==dipfilenum) {
+      for (j=0;j<sol_nnz;j++)
+      {
+        if (i==dipfilenum)
+        {
           fscanf(fp,"%f",&f);
           sol_prior[j] = f;
           mris->vertices[sol_dipindex[j]].val = f;
-        } else
+        }
+        else
           fscanf(fp,"%*f");
       }
       for (j=0;j<sol_nnz;j++)
         for (jc=0;jc<sol_nperdip;jc++)
-          for (k=0;k<sol_nchan;k++) {
-            if (i==dipfilenum) {
+          for (k=0;k<sol_nchan;k++)
+          {
+            if (i==dipfilenum)
+            {
               fscanf(fp,"%f",&f);
               sol_W[j*sol_nperdip+jc][k] = f;
-            } else
+            }
+            else
               fscanf(fp,"%*f");
           }
       if (iop_vernum==1)
         for (j=0;j<sol_nnz;j++)
           for (jc=0;jc<sol_nperdip;jc++)
-            for (k=0;k<sol_nchan;k++) {
-              if (i==dipfilenum) {
+            for (k=0;k<sol_nchan;k++)
+            {
+              if (i==dipfilenum)
+              {
                 fscanf(fp,"%f",&f);
                 sol_A[k][j*sol_nperdip+jc] = f;
-              } else
+              }
+              else
                 fscanf(fp,"%*f");
             }
     }
-  } else {
+  }
+  else
+  {
     printf("Can't read binary .iop files\n");
   }
   fclose(fp);
 }
 
 void
-read_rec(char *fname) {
+read_rec(char *fname)
+{
   int i,j,tntime,tptime,tnmeg,tneeg,tnchan;
   float f;
   FILE *fp;
@@ -3542,18 +3785,21 @@ read_rec(char *fname) {
   printf("read_rec(%s)\n",fname);
 
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("can't find file %s\n",fname);
     exit(1);
   }
-  if (sol_nmeg+sol_nmeg<=0) {
+  if (sol_nmeg+sol_nmeg<=0)
+  {
     printf("iop-file must be read before rec-file\n");
     return;
   }
   fscanf(fp,"%*s");
   fscanf(fp,"%d %d %d",&tntime,&tnmeg,&tneeg);
   tnchan = tnmeg+tneeg;
-  if (sol_ntime>0 && sol_ntime!=tntime) {
+  if (sol_ntime>0 && sol_ntime!=tntime)
+  {
     printf("ntime does not match tntime (%d != %d)\n",sol_ntime,tntime);
     exit(1);
   }
@@ -3562,26 +3808,31 @@ read_rec(char *fname) {
   printf("tptime=%d\n",tptime);
   sol_ntime = tntime;
   sol_ptime = tptime;
-  if (sol_nmeg>0 && sol_nmeg!=tnmeg) {
+  if (sol_nmeg>0 && sol_nmeg!=tnmeg)
+  {
     printf("nmeg does not match tnmeg (%d != %d)\n",sol_nmeg,tnmeg);
     exit(1);
   }
-  if (sol_neeg>0 && sol_neeg!=tneeg) {
+  if (sol_neeg>0 && sol_neeg!=tneeg)
+  {
     printf("neeg does not match tnmeg (%d != %d)\n",sol_neeg,tneeg);
     exit(1);
   }
   if (sol_nrec==0)
     sol_lat = MGH_vector(sol_ptime);
   sol_Data[sol_nrec] = MGH_matrix(tnchan,sol_ptime);
-  for (j=0;j<tntime;j++) {
+  for (j=0;j<tntime;j++)
+  {
     fscanf(fp,"%f",&f);
     sol_lat[j] = f;
-    for (i=0;i<tneeg;i++) {
+    for (i=0;i<tneeg;i++)
+    {
       fscanf(fp,"%f",&f);
       if (sol_neeg>0)
         sol_Data[sol_nrec][i][j] = f;
     }
-    for (i=0;i<tnmeg;i++) {
+    for (i=0;i<tnmeg;i++)
+    {
       fscanf(fp,"%f",&f);
       if (sol_nmeg>0)
         sol_Data[sol_nrec][i+sol_neeg][j] = f;
@@ -3594,7 +3845,8 @@ read_rec(char *fname) {
   sol_nrec++;
 }
 void
-filter_recs(void) {
+filter_recs(void)
+{
   int i;
 
   for (i=0;i<sol_nrec;i++)
@@ -3602,7 +3854,8 @@ filter_recs(void) {
 }
 
 void
-filter_rec(int np) {
+filter_rec(int np)
+{
   int i,j,k,n,i0,i1;
   float sum;
 
@@ -3625,7 +3878,8 @@ filter_rec(int np) {
   i1 = floor((sol_baseline_end-sol_epoch_begin_lat)/sol_sample_period+0.5);
   i0 = floor(i1-sol_baseline_period/sol_sample_period+0.5);
   if (i0<0) i0 = 0;
-  for (k=0;k<sol_nchan;k++) {
+  for (k=0;k<sol_nchan;k++)
+  {
     for (j=i0,n=0,sum=0;j<=i1;j++,n++)
       sum += sol_Data[np][k][j];
     sum /= n;
@@ -3635,12 +3889,14 @@ filter_rec(int np) {
 }
 
 void
-remove_trend(FLOATTYPE *v, int n) {
+remove_trend(FLOATTYPE *v, int n)
+{
   int k;
   double a,b,c1,c2,c11,c12,c21,c22,f;
 
   c1 = c2 = c11 = c12 = c21 = c22 = 0;
-  for (k=0;k<n;k++) {
+  for (k=0;k<n;k++)
+  {
     f = v[k];
     c1 += f;
     c2 += k*f;
@@ -3659,7 +3915,8 @@ remove_trend(FLOATTYPE *v, int n) {
 }
 
 void
-compute_timecourses(void) {
+compute_timecourses(void)
+{
   int i;
 
   for (i=0;i<sol_nrec;i++)
@@ -3667,14 +3924,17 @@ compute_timecourses(void) {
 }
 
 void
-compute_timecourse(int num) {
+compute_timecourse(int num)
+{
   int i,j,k,jc;
   double sum;
 
   printf("compute_timecourse(%d)\n",num);
-  for (i=0;i<sol_ntime;i++) {
+  for (i=0;i<sol_ntime;i++)
+  {
     for (j=0;j<sol_nnz;j++)
-      for (jc=0;jc<sol_nperdip;jc++) {
+      for (jc=0;jc<sol_nperdip;jc++)
+      {
         sum = 0;
         for (k=0;k<sol_nchan;k++)
           sum += sol_W[j*sol_nperdip+jc][k]*sol_Data[num][k][i];
@@ -3684,11 +3944,13 @@ compute_timecourse(int num) {
 }
 
 void
-plot_all_time_courses(void) {
+plot_all_time_courses(void)
+{
   int j,xpos,ypos;
 
   printf("plot_all_time_courses()\n");
-  for (j=0;j<sol_nplotlist;j++) {
+  for (j=0;j<sol_nplotlist;j++)
+  {
     xpos = PLOT_XFUDGE+(j%6)*(2*PLOT_XFUDGE+PLOT_XDIM);
     ypos = PLOT_YFUDGE+(j/6)*(PLOT_YFUDGE+PLOT_XFUDGE+PLOT_YDIM);
     plot_sol_time_course(sol_plotlist[j],PLOT_XDIM,PLOT_YDIM,xpos,ypos,j);
@@ -3696,7 +3958,8 @@ plot_all_time_courses(void) {
 }
 
 void
-read_plot_list(char *fname) {
+read_plot_list(char *fname)
+{
   /*
     AKL This differs from megsurfer.c
     The plot list has a label associated with each vertex number
@@ -3707,12 +3970,14 @@ read_plot_list(char *fname) {
 
   printf("read_plot_list(%s)\n",fname);
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't find file %s\n",fname);
     PR return;
   }
   fscanf(fp,"%d",&sol_nplotlist);
-  for (j=0;j<sol_nplotlist;j++) {
+  for (j=0;j<sol_nplotlist;j++)
+  {
     fscanf(fp,"%d",&vnum);
     find_nearest_nonzero(vnum,&sol_plotlist[j]);
   }
@@ -3720,19 +3985,22 @@ read_plot_list(char *fname) {
 }
 
 void
-read_vertex_list(char *fname) {
+read_vertex_list(char *fname)
+{
   int j;
   FILE *fp;
 
   printf("read_vertex_list(%s)\n",fname);
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't find file %s\n",fname);
     PR return;
   }
   fscanf(fp,"%d",&vertex_nplotlist);
   printf("  vertex_nplotlist = %d\n  ",vertex_nplotlist);
-  for (j=0;j<vertex_nplotlist;j++) {
+  for (j=0;j<vertex_nplotlist;j++)
+  {
     fscanf(fp,"%d",&vertex_plotlist[j]);
     printf("%d ",vertex_plotlist[j]);
   }
@@ -3741,7 +4009,8 @@ read_vertex_list(char *fname) {
 }
 
 void
-plot_nearest_nonzero(int vnum) {
+plot_nearest_nonzero(int vnum)
+{
   int imin;
 
   find_nearest_nonzero(vnum,&imin);
@@ -3749,18 +4018,21 @@ plot_nearest_nonzero(int vnum) {
 }
 
 void
-find_nearest_nonzero(int vnum, int *indxptr) {
+find_nearest_nonzero(int vnum, int *indxptr)
+{
   int i,imin;
   float d,mindist;
 
   imin = 0 ;
   printf("find_nearest_nonzero(%d,*)\n",vnum);
   mindist = 1000000;
-  for (i=0;i<sol_nnz;i++) {
+  for (i=0;i<sol_nnz;i++)
+  {
     d = SQR(mris->vertices[sol_dipindex[i]].x-mris->vertices[vnum].x)+
         SQR(mris->vertices[sol_dipindex[i]].y-mris->vertices[vnum].y)+
         SQR(mris->vertices[sol_dipindex[i]].z-mris->vertices[vnum].z);
-    if (d<mindist) {
+    if (d<mindist)
+    {
       mindist=d;
       imin=i;
     }
@@ -3771,18 +4043,21 @@ find_nearest_nonzero(int vnum, int *indxptr) {
 }
 
 void
-find_nearest_fixed(int vnum, int *vnumptr) {
+find_nearest_fixed(int vnum, int *vnumptr)
+{
   int i,imin= -1;
   float d,mindist;
 
   printf("find_nearest_fixed(%d,*)\n",vnum);
   mindist = 1000000;
   for (i=0;i<mris->nvertices;i++)
-    if (mris->vertices[i].fixedval) {
+    if (mris->vertices[i].fixedval)
+    {
       d = SQR(mris->vertices[i].x-mris->vertices[vnum].x)+
           SQR(mris->vertices[i].y-mris->vertices[vnum].y)+
           SQR(mris->vertices[i].z-mris->vertices[vnum].z);
-      if (d<mindist) {
+      if (d<mindist)
+      {
         mindist=d;
         imin=i;
       }
@@ -3793,7 +4068,8 @@ find_nearest_fixed(int vnum, int *vnumptr) {
 
 void
 plot_sol_time_course(int imin, int plot_xdim, int plot_ydim, int plot_xloc,
-                     int plot_yloc, int plotnum) {
+                     int plot_yloc, int plotnum)
+{
   int i,k;
   float val;
   FILE *fp;
@@ -3802,12 +4078,14 @@ plot_sol_time_course(int imin, int plot_xdim, int plot_ydim, int plot_xloc,
   printf("plot_sol_time_course(%d,%d,%d,%d,%d)\n",
          imin,plot_xdim,plot_ydim,plot_xloc,plot_yloc);
   sprintf(command,"xplot");
-  for (i=0;i<sol_nrec;i++) {
+  for (i=0;i<sol_nrec;i++)
+  {
     sprintf(fname,"/tmp/tmp-%d-%d.xplot",plotnum,i);
     sprintf(cmd,"%s %s",command,fname);
     sprintf(command,"%s",cmd);
     fp = fopen(fname,"w");
-    if (fp==NULL) {
+    if (fp==NULL)
+    {
       printf("surfer: ### can't create file %s\n",fname);
       PR return;
     }
@@ -3819,7 +4097,8 @@ plot_sol_time_course(int imin, int plot_xdim, int plot_ydim, int plot_xloc,
     if (plot_xdim>0)
       fprintf(fp,"/geometry %dx%d+%d+%d\n",
               plot_xdim,plot_ydim,plot_xloc,plot_yloc);
-    for (k=0;k<sol_ntime;k++) {
+    for (k=0;k<sol_ntime;k++)
+    {
       val = dipval(i,imin,k);
       fprintf(fp,"%f %f\n",sol_lat[k],val);
     }
@@ -3831,12 +4110,14 @@ plot_sol_time_course(int imin, int plot_xdim, int plot_ydim, int plot_xloc,
 }
 
 void
-load_vals_from_sol(float tmid, float dt, int num) {
+load_vals_from_sol(float tmid, float dt, int num)
+{
   int j,k,ilat0,ilat1;
   double avgval,nsum,val,f;
 
   printf("load_vals_from_sol(%f,%f,%d)\n",tmid,dt,num);
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].val = 0;
     if (!mris->vertices[k].fixedval)
       mris->vertices[k].undefval = TRUE;
@@ -3845,9 +4126,11 @@ load_vals_from_sol(float tmid, float dt, int num) {
   ilat1 = floor((tmid+dt/2-sol_epoch_begin_lat)/sol_sample_period+0.5);
   printf("ilat0=%d, ilat1=%d\n",ilat0,ilat1);
   nsum = ilat1-ilat0+1;
-  for (k=0;k<sol_nnz;k++) {
+  for (k=0;k<sol_nnz;k++)
+  {
     avgval = 0;
-    for (j=ilat0;j<=ilat1;j++) {
+    for (j=ilat0;j<=ilat1;j++)
+    {
       val = dipval(num,k,j);
       avgval += val;
     }
@@ -3864,20 +4147,24 @@ load_vals_from_sol(float tmid, float dt, int num) {
 }
 
 void
-load_var_from_sol(int num) {
+load_var_from_sol(int num)
+{
   int j,k,ilat2;
   double val,maxval,f;
 
   printf("load_var_from_sol(%d)\n",num);
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].val = 0;
     if (!mris->vertices[k].fixedval)
       mris->vertices[k].undefval = TRUE;
   }
   ilat2 = floor((0-sol_epoch_begin_lat)/sol_sample_period+0.5);
-  for (k=0;k<sol_nnz;k++) {
+  for (k=0;k<sol_nnz;k++)
+  {
     maxval = 0;
-    for (j=ilat2;j<sol_ntime;j++) {
+    for (j=ilat2;j<sol_ntime;j++)
+    {
       val = fabs(dipval(num,k,j));
       if (val>maxval) maxval = val;
     }
@@ -3894,21 +4181,25 @@ load_var_from_sol(int num) {
 }
 
 void
-variance_ratio(void) {
+variance_ratio(void)
+{
   int j,k,ilat2;
   double sum0,sum1,nsum,val;
 
   printf("variance_ratio()\n");
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].val = 0;
     if (!mris->vertices[k].fixedval)
       mris->vertices[k].undefval = TRUE;
   }
   ilat2 = floor((0-sol_epoch_begin_lat)/sol_sample_period+0.5);
-  for (k=0;k<sol_nnz;k++) {
+  for (k=0;k<sol_nnz;k++)
+  {
     sum0 = sum1 = 0;
     nsum = 0;
-    for (j=ilat2;j<sol_ntime;j++) {
+    for (j=ilat2;j<sol_ntime;j++)
+    {
       val = dipval(0,k,j);
       sum0 += SQR(val);
       val = dipval(1,k,j);
@@ -3921,17 +4212,20 @@ variance_ratio(void) {
 }
 
 void
-load_pvals(void) {
+load_pvals(void)
+{
   int k;
   double f;
 
   printf("load_pvals()\n");
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].val = 0;
     if (!mris->vertices[k].fixedval)
       mris->vertices[k].undefval = TRUE;
   }
-  for (k=0;k<sol_nnz;k++) {
+  for (k=0;k<sol_nnz;k++)
+  {
     f = sol_pval[k];
     if (sol_rectpval)
       f = fabs(f);
@@ -3940,24 +4234,28 @@ load_pvals(void) {
 }
 
 void
-compute_pval_fwd(float pthresh) {
+compute_pval_fwd(float pthresh)
+{
 #if 0
   int j,k;
   float f;
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].val = 0;
     if (!mris->vertices[k].fixedval)
       mris->vertices[k].undefval = TRUE;
   }
   for (j=0;j<sol_nchan;j++)
     sol_sensval[j] = 0;
-  for (k=0;k<sol_nnz;k++) {
+  for (k=0;k<sol_nnz;k++)
+  {
     f = sol_pval[k];
     if ((pthresh>=0 && f<pthresh) || (pthresh<0 && -f<-pthresh)) f = 0;
     if (f<0) f = -f;
     mris->vertices[sol_dipindex[k]].val = f;
-    if (f>0) {
+    if (f>0)
+    {
       if (sol_nperdip==1)
         for (j=0;j<sol_nchan;j++)
           sol_sensval[j] += f*sol_A[j][sol_nperdip*k];
@@ -3976,27 +4274,31 @@ compute_pval_fwd(float pthresh) {
 }
 
 void
-compute_select_fwd(float maxdist) {
+compute_select_fwd(float maxdist)
+{
 #if 0
   int j,k;
   float dist;
 
   for (j=0;j<sol_nchan;j++)
     sol_sensval[j] = 0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].val = 0;
     if (!mris->vertices[k].fixedval)
       mris->vertices[k].undefval = TRUE;
   }
   find_nearest_fixed(selection,&selection);
-  for (k=0;k<sol_nnz;k++) {
+  for (k=0;k<sol_nnz;k++)
+  {
     dist = sqrt(SQR(mris->vertices[sol_dipindex[k]].\
                     x-mris->vertices[selection].x)+
                 SQR(mris->vertices[sol_dipindex[k]].\
                     y-mris->vertices[selection].y)+
                 SQR(mris->vertices[sol_dipindex[k]].\
                     z-mris->vertices[selection].z));
-    if (dist<=maxdist) {
+    if (dist<=maxdist)
+    {
       mris->vertices[sol_dipindex[k]].val = 1;
       if (sol_nperdip==1)
         for (j=0;j<sol_nchan;j++)
@@ -4016,7 +4318,8 @@ compute_select_fwd(float maxdist) {
 }
 
 void
-compute_select_crosstalk(void) {
+compute_select_crosstalk(void)
+{
 #if 0
   int j,k,l,lc;
   float dist,maxdist=1e-10;
@@ -4024,24 +4327,29 @@ compute_select_crosstalk(void) {
 
   for (j=0;j<sol_nchan;j++)
     sol_sensval[j] = 0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].val = 0;
     if (!mris->vertices[k].fixedval)
       mris->vertices[k].undefval = TRUE;
   }
   find_nearest_fixed(selection,&selection);
   sumwtdist = sumwt = hvol = 0;
-  for (k=0;k<sol_nnz;k++) {
+  for (k=0;k<sol_nnz;k++)
+  {
     dist = sqrt(SQR(mris->vertices[sol_dipindex[k]].\
                     x-mris->vertices[selection].x)+
                 SQR(mris->vertices[sol_dipindex[k]].\
                     y-mris->vertices[selection].y)+
                 SQR(mris->vertices[sol_dipindex[k]].\
                     z-mris->vertices[selection].z));
-    if (dist<=maxdist) {
-      for (l=0;l<sol_nnz;l++) {
+    if (dist<=maxdist)
+    {
+      for (l=0;l<sol_nnz;l++)
+      {
         xtalk = 0;
-        for (lc=0;lc<sol_nperdip;lc++) {
+        for (lc=0;lc<sol_nperdip;lc++)
+        {
           sum = 0;
           for (j=0;j<sol_nchan;j++)
             sum +=
@@ -4051,7 +4359,8 @@ compute_select_crosstalk(void) {
         mris->vertices[sol_dipindex[l]].val = xtalk;
       }
       xtalk0 = mris->vertices[sol_dipindex[k]].val;
-      for (l=0;l<sol_nnz;l++) {
+      for (l=0;l<sol_nnz;l++)
+      {
         xtalk = mris->vertices[sol_dipindex[l]].val /= xtalk0;
         /* normalize by auto-crosstalk */
         dist = sqrt(SQR(mris->vertices[sol_dipindex[l]].\
@@ -4073,7 +4382,8 @@ compute_select_crosstalk(void) {
 
 #if 0
 void
-compute_all_crosstalk(void) {
+compute_all_crosstalk(void)
+{
   int i,j,k,l,lc;
   float dist,maxdist=1e-10;
   double sum,xtalk,xtalk0,sumwtdist,sumwt,hvol,sumhvol,sumxtalk,nsum;
@@ -4082,19 +4392,23 @@ compute_all_crosstalk(void) {
 
   for (j=0;j<sol_nchan;j++)
     sol_sensval[j] = 0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].val = 0;
     if (!mris->vertices[k].fixedval)
       mris->vertices[k].undefval = TRUE;
   }
   sumhvol = nsum = 0;
-  for (k=0;k<sol_nnz;k++) {
+  for (k=0;k<sol_nnz;k++)
+  {
     printf("\rcountdown %4d  ",sol_nnz-k);
     fflush(stdout);
     sumwtdist = sumwt = hvol = 0;
-    for (l=0;l<sol_nnz;l++) {
+    for (l=0;l<sol_nnz;l++)
+    {
       xtalk = 0;
-      for (lc=0;lc<sol_nperdip;lc++) {
+      for (lc=0;lc<sol_nperdip;lc++)
+      {
         sum = 0;
         for (j=0;j<sol_nchan;j++)
           sum += sol_W[k*sol_nperdip+lc][j]*sol_A[j][sol_nperdip*l+lc];
@@ -4103,7 +4417,8 @@ compute_all_crosstalk(void) {
       mris->vertices[sol_dipindex[l]].val2 = xtalk;
     }
     xtalk0 = mris->vertices[sol_dipindex[k]].val2;
-    for (l=0;l<sol_nnz;l++) {
+    for (l=0;l<sol_nnz;l++)
+    {
       xtalk = mris->vertices[sol_dipindex[l]].val2 /= xtalk0;
       /* normalize by auto-cross talk */
       sumwt += xtalk;
@@ -4123,7 +4438,8 @@ compute_all_crosstalk(void) {
 #endif
 
 void
-compute_all_crosstalk(int weighttype) {
+compute_all_crosstalk(int weighttype)
+{
 #if 0
   int j,k,l,lc;
   float dist;
@@ -4133,18 +4449,22 @@ compute_all_crosstalk(int weighttype) {
 
   for (j=0;j<sol_nchan;j++)
     sol_sensval[j] = 0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].val = 0;
     if (!mris->vertices[k].fixedval)
       mris->vertices[k].undefval = TRUE;
   }
-  for (k=0;k<sol_nnz;k++) {
+  for (k=0;k<sol_nnz;k++)
+  {
     printf("\rcountdown %4d  ",sol_nnz-k);
     fflush(stdout);
     sumwtxtalk = sumxtalk = sumwt = 0;
-    for (l=0;l<sol_nnz;l++) {
+    for (l=0;l<sol_nnz;l++)
+    {
       xtalk = 0;
-      for (lc=0;lc<sol_nperdip;lc++) {
+      for (lc=0;lc<sol_nperdip;lc++)
+      {
         sum = 0;
         for (j=0;j<sol_nchan;j++)
           sum += sol_W[k*sol_nperdip+lc][j]*sol_A[j][sol_nperdip*l+lc];
@@ -4152,9 +4472,11 @@ compute_all_crosstalk(int weighttype) {
       }
       mris->vertices[sol_dipindex[l]].val2 = xtalk;
     }
-    if (weighttype==0) {
+    if (weighttype==0)
+    {
       xtalk0 = mris->vertices[sol_dipindex[k]].val2;
-      for (l=0;l<sol_nnz;l++) {
+      for (l=0;l<sol_nnz;l++)
+      {
         xtalk = mris->vertices[sol_dipindex[l]].val2 /= xtalk0;
         /* normalize by auto-crosstalk */
         wt = 1;
@@ -4162,9 +4484,12 @@ compute_all_crosstalk(int weighttype) {
         sumxtalk += xtalk;
         sumwtxtalk += wt*xtalk;
       }
-    } else if (weighttype==1) {
+    }
+    else if (weighttype==1)
+    {
       xtalk0 = mris->vertices[sol_dipindex[k]].val2;
-      for (l=0;l<sol_nnz;l++) {
+      for (l=0;l<sol_nnz;l++)
+      {
         dist = sqrt(SQR(mris->vertices[sol_dipindex[l]].\
                         dipx-mris->vertices[sol_dipindex[k]].dipx)+
                     SQR(mris->vertices[sol_dipindex[l]].\
@@ -4178,9 +4503,12 @@ compute_all_crosstalk(int weighttype) {
         sumxtalk += xtalk;
         sumwtxtalk += wt*xtalk;
       }
-    } else if (weighttype==2) {
+    }
+    else if (weighttype==2)
+    {
       xtalk0 = mris->vertices[sol_dipindex[k]].val2;
-      for (l=0;l<sol_nnz;l++) {
+      for (l=0;l<sol_nnz;l++)
+      {
         dist = sqrt(SQR(mris->vertices[sol_dipindex[l]].\
                         dipx-mris->vertices[sol_dipindex[k]].dipx)+
                     SQR(mris->vertices[sol_dipindex[l]].\
@@ -4202,7 +4530,8 @@ compute_all_crosstalk(int weighttype) {
 }
 
 void
-compute_select_pointspread(void) {
+compute_select_pointspread(void)
+{
 #if 0
   int j,k,l,lc;
   float dist,maxdist=1e-10;
@@ -4210,24 +4539,29 @@ compute_select_pointspread(void) {
 
   for (j=0;j<sol_nchan;j++)
     sol_sensval[j] = 0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].val = 0;
     if (!mris->vertices[k].fixedval)
       mris->vertices[k].undefval = TRUE;
   }
   find_nearest_fixed(selection,&selection);
   sumwtdist = sumwt = hvol = 0;
-  for (k=0;k<sol_nnz;k++) {
+  for (k=0;k<sol_nnz;k++)
+  {
     dist = sqrt(SQR(mris->vertices[sol_dipindex[k]].\
                     x-mris->vertices[selection].x)+
                 SQR(mris->vertices[sol_dipindex[k]].\
                     y-mris->vertices[selection].y)+
                 SQR(mris->vertices[sol_dipindex[k]].\
                     z-mris->vertices[selection].z));
-    if (dist<=maxdist) {
-      for (l=0;l<sol_nnz;l++) {
+    if (dist<=maxdist)
+    {
+      for (l=0;l<sol_nnz;l++)
+      {
         xtalk = 0;
-        for (lc=0;lc<sol_nperdip;lc++) {
+        for (lc=0;lc<sol_nperdip;lc++)
+        {
           sum = 0;
           for (j=0;j<sol_nchan;j++)
             sum +=
@@ -4237,7 +4571,8 @@ compute_select_pointspread(void) {
         mris->vertices[sol_dipindex[l]].val = xtalk;
       }
       xtalk0 = mris->vertices[sol_dipindex[k]].val;
-      for (l=0;l<sol_nnz;l++) {
+      for (l=0;l<sol_nnz;l++)
+      {
         xtalk = mris->vertices[sol_dipindex[l]].val;
         dist = sqrt(SQR(mris->vertices[sol_dipindex[l]].\
                         dipx-mris->vertices[sol_dipindex[k]].dipx)+
@@ -4260,7 +4595,8 @@ compute_select_pointspread(void) {
 }
 
 void
-compute_all_pointspread(void) {
+compute_all_pointspread(void)
+{
 #if 0
   int i,j,k,l,lc;
   float dist2;
@@ -4280,8 +4616,10 @@ compute_all_pointspread(void) {
     }
   */
   printf("AW\n");
-  for (i=0;i<10;i++) {
-    for (j=0;j<10;j++) {
+  for (i=0;i<10;i++)
+  {
+    for (j=0;j<10;j++)
+    {
       sum = 0;
       for (l=0;l<sol_nnz;l++)
         for (lc=0;lc<sol_nperdip;lc++)
@@ -4291,15 +4629,19 @@ compute_all_pointspread(void) {
     printf("\n");
   }
   printf("A\n");
-  for (i=0;i<10;i++) {
-    for (j=0;j<10;j++) {
+  for (i=0;i<10;i++)
+  {
+    for (j=0;j<10;j++)
+    {
       printf("%9.1e",sol_A[i][j]);
     }
     printf("\n");
   }
   printf("W\n");
-  for (i=0;i<10;i++) {
-    for (j=0;j<10;j++) {
+  for (i=0;i<10;i++)
+  {
+    for (j=0;j<10;j++)
+    {
       printf("%9.1e",sol_W[i][j]);
     }
     printf("\n");
@@ -4308,19 +4650,23 @@ compute_all_pointspread(void) {
 
   for (j=0;j<sol_nchan;j++)
     sol_sensval[j] = 0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].val = 0;
     if (!mris->vertices[k].fixedval)
       mris->vertices[k].undefval = TRUE;
   }
   sumhvol = nsum = totwtdist = 0;
-  for (k=0;k<sol_nnz;k++) {
+  for (k=0;k<sol_nnz;k++)
+  {
     printf("\rcountdown %4d  ",sol_nnz-k);
     fflush(stdout);
     sumwtdist = sumwt = hvol = 0;
-    for (l=0;l<sol_nnz;l++) {
+    for (l=0;l<sol_nnz;l++)
+    {
       xtalk = 0;
-      for (lc=0;lc<sol_nperdip;lc++) {
+      for (lc=0;lc<sol_nperdip;lc++)
+      {
         sum = 0;
         for (j=0;j<sol_nchan;j++)
           sum += sol_W[l*sol_nperdip+lc][j]*sol_A[j][sol_nperdip*k+lc];
@@ -4329,7 +4675,8 @@ compute_all_pointspread(void) {
       mris->vertices[sol_dipindex[l]].val2 = xtalk;
     }
     xtalk0 = mris->vertices[sol_dipindex[k]].val2;
-    for (l=0;l<sol_nnz;l++) {
+    for (l=0;l<sol_nnz;l++)
+    {
       dist2 =
         SQR(mris->vertices[sol_dipindex[l]].\
             dipx-mris->vertices[sol_dipindex[k]].dipx)+
@@ -4360,7 +4707,8 @@ compute_all_pointspread(void) {
 }
 
 void
-recompute_select_inverse(void) {
+recompute_select_inverse(void)
+{
 #if 0
   int i,j,k,l,lc;
   float dist,maxdist=1e-10;
@@ -4372,15 +4720,18 @@ recompute_select_inverse(void) {
   for (i=0;i<sol_nchan;i++)
     for (j=0;j<sol_nchan;j++)
       sol_M[i][j] = 0;
-  for (k=0;k<sol_nnz;k++) {
+  for (k=0;k<sol_nnz;k++)
+  {
     dist = sqrt(SQR(mris->vertices[sol_dipindex[k]].\
                     x-mris->vertices[selection].x)+
                 SQR(mris->vertices[sol_dipindex[k]].\
                     y-mris->vertices[selection].y)+
                 SQR(mris->vertices[sol_dipindex[k]].\
                     z-mris->vertices[selection].z));
-    if (dist<=maxdist) {
-      for (l=0;l<sol_nnz;l++) {
+    if (dist<=maxdist)
+    {
+      for (l=0;l<sol_nnz;l++)
+      {
         dist = sqrt(SQR(mris->vertices[sol_dipindex[l]].\
                         dipx-mris->vertices[sol_dipindex[k]].dipx)+
                     SQR(mris->vertices[sol_dipindex[l]].\
@@ -4396,7 +4747,8 @@ recompute_select_inverse(void) {
       }
       regularize_matrix(sol_M,sol_nchan,0.0001);
       inverse(sol_M,sol_Mi,sol_nchan);
-      for (lc=0;lc<sol_nperdip;lc++) {
+      for (lc=0;lc<sol_nperdip;lc++)
+      {
         for (i=0;i<sol_nchan;i++)
           sol_sensvec1[i] = sol_A[i][sol_nperdip*k+lc];
         vector_multiply(sol_Mi,
@@ -4417,21 +4769,26 @@ recompute_select_inverse(void) {
 }
 
 void
-compute_pval_inv(void) {
+compute_pval_inv(void)
+{
 #if 0
   int j,k,jc;
   double sum,sum2;
 
   printf("compute_pval_inv()\n");
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].val = 0;
     if (!mris->vertices[k].fixedval)
       mris->vertices[k].undefval = TRUE;
   }
-  if (sol_plot_type==0) {
-    for (j=0;j<sol_nnz;j++) {
+  if (sol_plot_type==0)
+  {
+    for (j=0;j<sol_nnz;j++)
+    {
       sum2 = 0;
-      for (jc=0;jc<sol_nperdip;jc++) {
+      for (jc=0;jc<sol_nperdip;jc++)
+      {
         sum = 0;
         for (k=0;k<sol_nchan;k++)
           sum += sol_W[j*sol_nperdip+jc][k]*sol_sensval[k];
@@ -4440,16 +4797,20 @@ compute_pval_inv(void) {
       mris->vertices[sol_dipindex[j]].val = sqrt(sum2);
     }
   }
-  if (sol_plot_type==1 || sol_plot_type==2) {
-    for (j=0;j<sol_nnz;j++) {
+  if (sol_plot_type==1 || sol_plot_type==2)
+  {
+    for (j=0;j<sol_nnz;j++)
+    {
       sum2 = 0;
-      for (jc=0;jc<sol_nperdip;jc++) {
+      for (jc=0;jc<sol_nperdip;jc++)
+      {
         sum = 0;
         for (k=0;k<sol_nchan;k++)
           sum += sol_W[j*sol_nperdip+jc][k]*sol_sensval[k];
         if (sol_nperdip==1)
           sum2 += sum;
-        else {
+        else
+        {
           if (jc==0)
             sum2 += sum*mris->vertices[sol_dipindex[j]].dipnx;
           else if (jc==1)
@@ -4466,11 +4827,13 @@ compute_pval_inv(void) {
 }
 
 void
-normalize_vals(void) {
+normalize_vals(void)
+{
   int k;
   float val,maxval=0;
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     val = fabs(mris->vertices[k].val);
     if (val>maxval) maxval = val;
   }
@@ -4480,28 +4843,34 @@ normalize_vals(void) {
 }
 
 void
-normalize_time_courses(int normtype) {
+normalize_time_courses(int normtype)
+{
   double val,sum,sum2,nsum,noise_rms,maxval;
   int i,j,k,ic,ilat0,ilat1,ilat2;
   FLOATTYPE tmpvec1[2048];
 
   sum = maxval = 0.0f ;
   printf("normalize_time_courses(%d)\n",normtype);
-  if (normtype==0) {
+  if (normtype==0)
+  {
     for (i=0;i<sol_nnz;i++)
       sol_dipfact[i] = 1.0;
-  } else if (normtype==1) /* normalize for baseline noise covariance */
+  }
+  else if (normtype==1) /* normalize for baseline noise covariance */
   {
     ilat1 = floor((sol_baseline_end-sol_epoch_begin_lat)/
                   sol_sample_period+0.5);
     ilat0 = floor(ilat1-sol_baseline_period/sol_sample_period+0.5);
     ilat2 = floor((0-sol_epoch_begin_lat)/sol_sample_period+0.5);
-    for (k=0;k<sol_nnz;k++) {
+    for (k=0;k<sol_nnz;k++)
+    {
       sol_dipfact[k] = 1;
       sum2 = 0;
       nsum = 0;
-      for (i=0;i<sol_nrec;i++) {
-        for (j=ilat0;j<=ilat1;j++) {
+      for (i=0;i<sol_nrec;i++)
+      {
+        for (j=ilat0;j<=ilat1;j++)
+        {
           val = dipval(i,k,j);
           sum2 += SQR(val);
           val = fabs(val);
@@ -4511,8 +4880,10 @@ normalize_time_courses(int normtype) {
       }
       noise_rms = sqrt(sum2/nsum);
       maxval = 0;
-      for (i=0;i<sol_nrec;i++) {
-        for (j=ilat2;j<sol_ntime;j++) {
+      for (i=0;i<sol_nrec;i++)
+      {
+        for (j=ilat2;j<sol_ntime;j++)
+        {
           val = dipval(i,k,j);
           val = fabs(val);
           if (val>maxval) maxval=val;
@@ -4522,10 +4893,13 @@ normalize_time_courses(int normtype) {
     }
   } else if (normtype==2) /* normalize for white noise w.w = 1 */
   {
-    for (i=0;i<sol_nnz;i++) {
+    for (i=0;i<sol_nnz;i++)
+    {
       sum2 = 0;
-      for (ic=0;ic<sol_nperdip;ic++) {
-        for (j=0;j<sol_nchan;j++) {
+      for (ic=0;ic<sol_nperdip;ic++)
+      {
+        for (j=0;j<sol_nchan;j++)
+        {
           sum = 0;
           for (k=0;k<sol_nchan;k++)
             sum += SQR(sol_W[i*sol_nperdip+ic][k]);
@@ -4537,10 +4911,13 @@ normalize_time_courses(int normtype) {
     }
   } else if (normtype==3) /* normalize by read noise covariance matrix */
   {
-    for (i=0;i<sol_nnz;i++) {
+    for (i=0;i<sol_nnz;i++)
+    {
       sum2 = 0;
-      for (ic=0;ic<sol_nperdip;ic++) {
-        for (j=0;j<sol_nchan;j++) {
+      for (ic=0;ic<sol_nperdip;ic++)
+      {
+        for (j=0;j<sol_nchan;j++)
+        {
           sum = 0;
           for (k=0;k<sol_nchan;k++)
             sum +=
@@ -4560,8 +4937,10 @@ normalize_time_courses(int normtype) {
     }
   } else if (normtype==4) /* "Unity Gain  wa = 1 */
   {
-    for (i=0;i<sol_nnz;i++) {
-      for (ic=0;ic<sol_nperdip;ic++) {
+    for (i=0;i<sol_nnz;i++)
+    {
+      for (ic=0;ic<sol_nperdip;ic++)
+      {
         sum = 0;
         for (k=0;k<sol_nchan;k++)
           sum +=
@@ -4574,7 +4953,8 @@ normalize_time_courses(int normtype) {
       sol_dipfact[i] = 1.0;
     }
   }
-  for (i=0;i<sol_nnz;i++) {
+  for (i=0;i<sol_nnz;i++)
+  {
     for (ic=0;ic<sol_nperdip;ic++)
       for (k=0;k<sol_nchan;k++)
         sol_W[i*sol_nperdip+ic][k] *= sol_dipfact[i];
@@ -4582,12 +4962,14 @@ normalize_time_courses(int normtype) {
 }
 
 void
-normalize_inverse(void) {
+normalize_inverse(void)
+{
   int j,k,jc;
   double sum;
 
   printf("normalize_inverse()\n");
-  for (j=0;j<sol_nnz;j++) {
+  for (j=0;j<sol_nnz;j++)
+  {
     sum = 0;
     for (jc=0;jc<sol_nperdip;jc++)
       for (k=0;k<sol_nchan;k++)
@@ -4600,8 +4982,10 @@ normalize_inverse(void) {
 }
 
 void
-setsize_window(int pix) {
-  if (openglwindowflag) {
+setsize_window(int pix)
+{
+  if (openglwindowflag)
+  {
     printf("surfer: ### setsize_window failed: gl window already open\n");
     PR return;
   }
@@ -4611,21 +4995,25 @@ setsize_window(int pix) {
 }
 
 void
-resize_window(int pix) {
-  if (!openglwindowflag) {
+resize_window(int pix)
+{
+  if (!openglwindowflag)
+  {
     printf("surfer: ### resize_window failed: no gl window open\n");
     PR return;
   }
 
 #ifdef OPENGL
-  if (renderoffscreen1) {
+  if (renderoffscreen1)
+  {
     printf("surfer: ### resize_window failed: can't resize offscreen win\n");
     PR printf("surfer: ### use setsize_window <pix> before open_window\n");
     PR return;
   }
 
 #ifndef USE_XGLUT_WINDOW
-  if (pix>0) {  /* command line (not mouse) resize */
+  if (pix>0)
+  {  /* command line (not mouse) resize */
     XResizeWindow(xDisplay, w.wMain, pix, pix);
     if (TKO_HAS_OVERLAY(w.type))
       XResizeWindow(xDisplay, w.wOverlay, pix, pix);
@@ -4639,7 +5027,8 @@ resize_window(int pix) {
   resize_buffers(frame_xdim, frame_ydim);
 
 #else
-  if (pix>0) {   /* tcl: zeropix -> flag to reshape after mouse resize */
+  if (pix>0)
+  {   /* tcl: zeropix -> flag to reshape after mouse resize */
     prefposition(0,(short)pix,0,(short)pix);
     winconstraints();
     reshapeviewport();
@@ -4647,7 +5036,9 @@ resize_window(int pix) {
     keepaspect(1,1);
     winconstraints();  /* call again to keep resizable */
     resize_buffers(frame_xdim,frame_ydim);
-  } else {  /* tcl: zeropix flag->reshape w/mouse resize (REDRAW event) */
+  }
+  else
+  {  /* tcl: zeropix flag->reshape w/mouse resize (REDRAW event) */
     reshapeviewport();
     getsize(&frame_xdim,&frame_ydim);
     resize_buffers(frame_xdim,frame_ydim);
@@ -4656,7 +5047,8 @@ resize_window(int pix) {
 }
 
 void
-save_rgb(char *fname) {
+save_rgb(char *fname)
+{
 #if 1
   unsigned short *red, *blue, *green ;
   int             width, height, size ;
@@ -4673,17 +5065,22 @@ save_rgb(char *fname) {
   free(red) ;
   free(green) ;
 #else
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### save_rgb failed: no gl window open\n");
     PR return;
   }
 
   if (renderoffscreen1)
     pix_to_rgb(fname);
-  else {
-    if (scrsaveflag) {
+  else
+  {
+    if (scrsaveflag)
+    {
       scrsave_to_rgb(fname);
-    } else             {
+    }
+    else
+    {
       pix_to_rgb(fname);
     }
   }
@@ -4691,32 +5088,40 @@ save_rgb(char *fname) {
 }
 
 static void
-move_window(int x,int y) {
+move_window(int x,int y)
+{
 #ifdef OPENGL
-  if (openglwindowflag) {
+  if (openglwindowflag)
+  {
     XMoveWindow(xDisplay, w.wMain, x, y);
     w.x = x;
     w.y = y;
-  } else if (!initpositiondoneflag) {
+  }
+  else if (!initpositiondoneflag)
+  {
     tkoInitPosition(x,y,frame_xdim,frame_ydim);
     initpositiondoneflag = TRUE;
-  } else ;
+  }
+  else ;
 #endif
 }
 
 void
-save_rgb_num(char *dir) {
+save_rgb_num(char *dir)
+{
   char fname[NAME_LENGTH];
   FILE *fp;
 
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### save_rgb_num failed: no gl window open\n");
     PR return;
   }
 
   fp = stdin;
   framenum = 0;
-  while (fp!=NULL && framenum<999) {
+  while (fp!=NULL && framenum<999)
+  {
     framenum++;
     sprintf(fname,"%s/im-%03d.rgb",dir,framenum);
     fp = fopen(fname,"r");
@@ -4725,20 +5130,26 @@ save_rgb_num(char *dir) {
 
   if (renderoffscreen1)
     pix_to_rgb(fname);
-  else {
-    if (scrsaveflag) {
+  else
+  {
+    if (scrsaveflag)
+    {
       scrsave_to_rgb(fname);
-    } else             {
+    }
+    else
+    {
       pix_to_rgb(fname);
     }
   }
 }
 
 void
-save_rgb_named_orig(char *dir, char *name) {
+save_rgb_named_orig(char *dir, char *name)
+{
   char fname[NAME_LENGTH];
 
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### save_rgb_named_orig failed: no gl window open\n");
     PR return;
   }
@@ -4747,10 +5158,14 @@ save_rgb_named_orig(char *dir, char *name) {
 
   if (renderoffscreen1)
     pix_to_rgb(fname);
-  else {
-    if (scrsaveflag) {
+  else
+  {
+    if (scrsaveflag)
+    {
       scrsave_to_rgb(fname);
-    } else             {
+    }
+    else
+    {
       pix_to_rgb(fname);
     }
   }
@@ -4771,7 +5186,8 @@ scrsave_to_rgb(char *fname)  /* about 2X faster than pix_to_rgb */
   y0 = (int)yorig;
   y1 = (int)(yorig+ysize-1);
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
@@ -4783,7 +5199,8 @@ scrsave_to_rgb(char *fname)  /* about 2X faster than pix_to_rgb */
 }
 
 void
-pix_to_rgb(char *fname) {
+pix_to_rgb(char *fname)
+{
 
 #ifdef OPENGL
   GLint swapbytes, lsbfirst, rowlength;
@@ -4828,7 +5245,8 @@ pix_to_rgb(char *fname) {
   glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
 
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
@@ -4840,7 +5258,8 @@ pix_to_rgb(char *fname) {
 #endif
   if (!image)
     return ;
-  for (y = 0 ; y < height; y++) {
+  for (y = 0 ; y < height; y++)
+  {
     r = red + y * width;
     g = green + y * width;
     b = blue + y * width;
@@ -4862,7 +5281,8 @@ pix_to_rgb(char *fname) {
 }
 
 void
-read_annotations(char *fname) {
+read_annotations(char *fname)
+{
   /* begin rkt */
   /* now handled as importing into multiple labels. */
 #if 1
@@ -4876,7 +5296,8 @@ read_annotations(char *fname) {
   /* end rkt */
 }
 void
-read_annotated_image(char *fpref, int frame_xdim, int frame_ydim) {
+read_annotated_image(char *fpref, int frame_xdim, int frame_ydim)
+{
   char fname[NAME_LENGTH],command[NAME_LENGTH*2];
   FILE *fp;
   int i,j,k;
@@ -4885,12 +5306,14 @@ read_annotated_image(char *fpref, int frame_xdim, int frame_ydim) {
   system(command);
   sprintf(fname,"%s.bin",fpref);
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### File %s not found\n",fname);
     PR return;
   }
   k = fread(binbuff,3,frame_xdim*frame_ydim,fp);
-  if (k != frame_xdim*frame_ydim) {
+  if (k != frame_xdim*frame_ydim)
+  {
     printf("surfer: ### %s.rgb does not match current window size\n",fpref);
     PR return;
   }
@@ -4898,7 +5321,8 @@ read_annotated_image(char *fpref, int frame_xdim, int frame_ydim) {
   sprintf(command,"rm %s.bin\n",fpref);
   system(command);
   for (i=0;i<frame_ydim;i++)
-    for (j=0;j<frame_xdim;j++) {
+    for (j=0;j<frame_xdim;j++)
+    {
       /*
         framebuff[i*frame_xdim+j] = (binbuff[(i*frame_xdim+j)*3+2]<<16) |
         (binbuff[(i*frame_xdim+j)*3+1]<<8) |
@@ -4910,7 +5334,8 @@ read_annotated_image(char *fpref, int frame_xdim, int frame_ydim) {
         (binbuff[(i*frame_xdim+j)+0]);
     }
   for (i=0;i<frame_ydim;i++)
-    for (j=0;j<frame_xdim;j++) {
+    for (j=0;j<frame_xdim;j++)
+    {
       binbuff[(i*frame_xdim+j)*3+2] =
         (framebuff[i*frame_xdim+j]&0xff0000)>>16;
       binbuff[(i*frame_xdim+j)*3+1] = (framebuff[i*frame_xdim+j]&0xff00)>>8;
@@ -4918,7 +5343,8 @@ read_annotated_image(char *fpref, int frame_xdim, int frame_ydim) {
     }
   sprintf(fname,"%s.bin~",fpref);
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
@@ -4931,7 +5357,8 @@ read_annotated_image(char *fpref, int frame_xdim, int frame_ydim) {
   system(command);
 }
 
-int diff(int a,int b) {
+int diff(int a,int b)
+{
   int d;
   unsigned char a1,a2,a3,b1,b2,b3,d1,d2,d3;
 
@@ -4960,7 +5387,8 @@ save_rgb_cmp_frame(char *dir, int ilat)    /* open/close version */
   char fname[NAME_LENGTH];
   FILE *fp;
 
-  if (renderoffscreen1) {
+  if (renderoffscreen1)
+  {
     printf("surfer: ### save_rgb_cmp_frame failed: TODO: offscreen\n");
     PR return;
   }
@@ -4972,23 +5400,27 @@ save_rgb_cmp_frame(char *dir, int ilat)    /* open/close version */
   y1 = ysize-1;
   flat = (float)ilat;
 
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### save_rgb_cmp_frame failed: no gl window open\n");
     PR return;
   }
 
   /* open next avail new file, else append (this session), get numframes */
   numframes = -1;  /* last==first: n frames written = n-1 images */
-  if (!openedcmpfilenum) {
+  if (!openedcmpfilenum)
+  {
     fp = stdin;
-    while (fp!=NULL && openedcmpfilenum<999) {
+    while (fp!=NULL && openedcmpfilenum<999)
+    {
       openedcmpfilenum++;
       sprintf(fname,"%s/movie-%03d.cmp",dir,openedcmpfilenum);
       fp = fopen(fname,"r");
       if (fp!=NULL) fclose(fp);
     }
     fp = fopen(fname,"w");
-    if (fp==NULL) {
+    if (fp==NULL)
+    {
       printf("surfer: ### can't create file %s\n",fname);
       PR openedcmpfilenum = FALSE;
       return;
@@ -5001,10 +5433,13 @@ save_rgb_cmp_frame(char *dir, int ilat)    /* open/close version */
     fwrite2(numframes,fp);
     lrectread(x0,y0,x1,y1,framebuff3);  /* save for later */
     firstflat = flat;
-  } else { /* get frames written, reopen to append */
+  }
+  else
+  { /* get frames written, reopen to append */
     sprintf(fname,"%s/movie-%03d.cmp",dir,openedcmpfilenum);
     fp = fopen(fname,"r");
-    if (fp==NULL) {
+    if (fp==NULL)
+    {
       printf("surfer: ### File %s not found\n",fname);
       PR openedcmpfilenum = FALSE;
       return;
@@ -5014,7 +5449,8 @@ save_rgb_cmp_frame(char *dir, int ilat)    /* open/close version */
     fread2(&numframes,fp);
     fclose(fp);
     fp = fopen(fname,"r+"); /* "r+": overwrite ("a": no backseek;"w": trunc) */
-    if (fp==NULL) {
+    if (fp==NULL)
+    {
       printf("surfer: ### can't create file %s\n",fname);
       PR return;
     }
@@ -5057,24 +5493,31 @@ save_rgb_cmp_frame(char *dir, int ilat)    /* open/close version */
 
 /* open file return if already open */
 void
-open_rgb_cmp_named(char *dir, char *name) {
+open_rgb_cmp_named(char *dir, char *name)
+{
   char str[NAME_LENGTH];
 
-  if (renderoffscreen1) {
+  if (renderoffscreen1)
+  {
     printf("surfer: ### open_rgb_cmp_named failed: TODO: offscreen\n");
     PR return;
   }
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### open_rgb_cmp_named failed: no gl window open\n");
     PR return;
   }
-  if (cmpfilenamedframe != -1) {
+  if (cmpfilenamedframe != -1)
+  {
     printf("surfer: ### named compressed rgb movie already open\n");
     PR return;
-  } else {
+  }
+  else
+  {
     sprintf(str,"%s/%s",dir,name);
     fpcmpfilenamed = fopen(str,"w");
-    if (fpcmpfilenamed==NULL) {
+    if (fpcmpfilenamed==NULL)
+    {
       printf("surfer: ### can't create file %s\n",str);
       PR return;
     }
@@ -5087,11 +5530,13 @@ open_rgb_cmp_named(char *dir, char *name) {
 }
 
 void
-save_rgb_cmp_frame_named(float lat) {
+save_rgb_cmp_frame_named(float lat)
+{
   long xsize,ysize;
   short x0,y0,x1,y1;
 
-  if (renderoffscreen1) {
+  if (renderoffscreen1)
+  {
     printf("surfer: ### save_rgb_cmp_frame_named failed: TODO: offscreen\n");
     PR return;
   }
@@ -5102,11 +5547,13 @@ save_rgb_cmp_frame_named(float lat) {
   x1 = xsize-1;
   y1 = ysize-1;
 
-  if (cmpfilenamedframe == -1) {
+  if (cmpfilenamedframe == -1)
+  {
     printf("surfer: ### can't write frame: cmp movie file not opened yet\n");
     PR return;
   }
-  if (cmpfilenamedframe == 0) {  /* save 1st framebuff for end; write header */
+  if (cmpfilenamedframe == 0)
+  {  /* save 1st framebuff for end; write header */
     lrectread(x0,y0,x1,y1,framebuff3);
     fwrite2((int)xsize,fpcmpfilenamed);
     fwrite2((int)ysize,fpcmpfilenamed);
@@ -5130,30 +5577,37 @@ save_rgb_cmp_frame_named(float lat) {
 }
 
 void
-do_rgb_cmp_frame(long xsize,long ysize, FILE *fp) {
+do_rgb_cmp_frame(long xsize,long ysize, FILE *fp)
+{
   int i,lo,hi,pos,change;
   long32 fb1, fb2 ;
 
   lo = 0;
   hi = 0;
   pos = 0;
-  while (lo<xsize*ysize) {
+  while (lo<xsize*ysize)
+  {
     fb1 = orderLong32Bytes(framebuff[hi])&0xffffff ;
     fb2 = orderLong32Bytes(framebuff2[hi])&0xffffff ;
     while ((hi<xsize*ysize)&&
            (hi-lo<32767)&&
-           (fb1==fb2)) {
+           (fb1==fb2))
+    {
       hi++;
-      if (hi < xsize*ysize) {
+      if (hi < xsize*ysize)
+      {
         fb1 = orderLong32Bytes(framebuff[hi])&0xffffff ;
         fb2 = orderLong32Bytes(framebuff2[hi])&0xffffff ;
       }
     }
-    if (hi>lo) {
+    if (hi>lo)
+    {
       i = ((hi-lo)|0x8000);
       fwrite2(i,fp);
       pos += 2;
-    } else {
+    }
+    else
+    {
       fb1 = orderLong32Bytes(framebuff[lo])&0xffffff ;
       fb2 = orderLong32Bytes(framebuff2[lo])&0xffffff ;
       change = diff(fb1,fb2);
@@ -5161,9 +5615,11 @@ do_rgb_cmp_frame(long xsize,long ysize, FILE *fp) {
       fb2 = orderLong32Bytes(framebuff2[hi])&0xffffff ;
       while ((hi<xsize*ysize)&&
              (hi-lo<32767)&&
-             (diff(fb1,fb2)==change)) {
+             (diff(fb1,fb2)==change))
+      {
         hi++;
-        if (hi < xsize*ysize) {
+        if (hi < xsize*ysize)
+        {
           fb1 = orderLong32Bytes(framebuff[hi])&0xffffff ;
           fb2 = orderLong32Bytes(framebuff2[hi])&0xffffff ;
         }
@@ -5183,7 +5639,8 @@ close_rgb_cmp_named(void)      /* load first; save; write total frames */
   long xsize,ysize;
   short x0,y0,x1,y1;
 
-  if (cmpfilenamedframe == -1) {
+  if (cmpfilenamedframe == -1)
+  {
     printf("surfer: ### can't close_rgb_cmp_named: file not opened yet\n");
     PR return;
   }
@@ -5211,15 +5668,18 @@ close_rgb_cmp_named(void)      /* load first; save; write total frames */
 }
 
 void
-redraw(void) {
+redraw(void)
+{
   int i,navg;
 
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### redraw failed: no gl window open\n");
     PR return;
   }
 
-  if (overlayflag) {
+  if (overlayflag)
+  {
     redraw_overlay();
     return ;
   }
@@ -5230,7 +5690,8 @@ redraw(void) {
   dipavg = dipvar = logaratavg = logaratvar = logshearavg = logshearvar = 0;
   navg = 0;
   for (i=0;i<mris->nvertices;i++)
-    if (!mris->vertices[i].ripflag) {
+    if (!mris->vertices[i].ripflag)
+    {
       if (fabs(mris->vertices[i].curv)>dipscale)
         dipscale=fabs(mris->vertices[i].curv);
       dipavg += mris->vertices[i].curv;
@@ -5265,11 +5726,13 @@ redraw(void) {
            dipscale,dipavg,dipvar);
   dipscale = (dipscale!=0)?1/dipscale:1.0;
 #if 0
-  if (areaflag) {
+  if (areaflag)
+  {
     printf("surfer: logaratavg=%f, logaratvar=%f\n",logaratavg,logaratvar);
     PR
   }
-  if (flag2d) {
+  if (flag2d)
+  {
     printf("surfer: logshearavg=%f, logshearvar=%f\n",logshearavg,logshearvar);
     PR
   }
@@ -5277,14 +5740,17 @@ redraw(void) {
 }
 
 void
-redraw_second(void) {
+redraw_second(void)
+{
   int i,navg;
 
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### redraw_second failed: no gl window open\n");
     PR return;
   }
-  if (!secondsurfaceloaded) {
+  if (!secondsurfaceloaded)
+  {
     printf("surfer: ### redraw_second failed: no second surface read\n");
     PR return;
   }
@@ -5294,7 +5760,8 @@ redraw_second(void) {
   dipavg2 = 0;
   navg = 0;
   for (i=0;i<mris2->nvertices;i++)
-    if (!mris2->vertices[i].ripflag) {
+    if (!mris2->vertices[i].ripflag)
+    {
       dipavg2 += mris2->vertices[i].curv;
       navg++;
     }
@@ -5304,22 +5771,27 @@ redraw_second(void) {
   if (doublebufferflag) swapbuffers();
 }
 void
-blinkbuffers(void) {
-  if (blinkflag) {
-    if (blinkdelay<0) {
+blinkbuffers(void)
+{
+  if (blinkflag)
+  {
+    if (blinkdelay<0)
+    {
       if (doublebufferflag) swapbuffers();
 #ifdef Irix
       sginap(blinktime);
 #else
       sleep(blinktime);
 #endif
-    } else
+    }
+    else
       blinkdelay--;
   }
 }
 
 void
-redraw_overlay(void) {
+redraw_overlay(void)
+{
   int i;
   float curvavg;
 
@@ -5329,11 +5801,13 @@ redraw_overlay(void) {
   for (i=0;i<mris->nvertices;i++)
     curvavg += mris->vertices[i].curv;
   curvavg /= mris->nvertices;
-  if (avgflag) {
+  if (avgflag)
+  {
     for (i=0;i<mris->nvertices;i++)
       mris->vertices[i].curv -= curvavg;
   }
-  if (autoscaleflag) {
+  if (autoscaleflag)
+  {
     dipscale = 0;
     for (i=0;i<mris->nvertices;i++)
       if (fabs(mris->vertices[i].val)>dipscale)
@@ -5358,15 +5832,20 @@ redraw_overlay(void) {
 
 
 void
-draw_cursor(int vindex,int onoroff) {
+draw_cursor(int vindex,int onoroff)
+{
   /* begin rkt */
 # if 1
   /* don't draw if our flag isn't on. */
-  if (drawcursorflag) {
-    if (onoroff) {
+  if (drawcursorflag)
+  {
+    if (onoroff)
+    {
       RGBcolor (0, 255, 255);
       draw_vertex_hilite (vindex);
-    } else {
+    }
+    else
+    {
       set_color (0, 0, GREEN_RED_CURV);
       draw_vertex_hilite (vindex);
     }
@@ -5382,7 +5861,8 @@ draw_cursor(int vindex,int onoroff) {
 
   /* offscreen render opengl bug: RGBcolor(white) => surrounding faces color */
 
-  if ((vindex > mris->nvertices)||(vindex<0)) {
+  if ((vindex > mris->nvertices)||(vindex<0))
+  {
     if (vindex != -1)
       printf ("surfer: ### vertex index %d out of bounds\n",vindex);
     return;
@@ -5390,12 +5870,14 @@ draw_cursor(int vindex,int onoroff) {
   vselect = &mris->vertices[vindex];
   if (onoroff==FALSE)
     set_color(0.0,0.0,GREEN_RED_CURV);
-  else {
+  else
+  {
     if (blackcursorflag)  RGBcolor(0,0,0);
     else                  RGBcolor(0,255,255);
   }
 
-  for (i=0;i<vselect->vnum;i++) {
+  for (i=0;i<vselect->vnum;i++)
+  {
     v = &mris->vertices[vselect->v[i]];
     linewidth(CURSOR_LINE_PIX_WIDTH);
     bgnline();
@@ -5412,11 +5894,14 @@ draw_cursor(int vindex,int onoroff) {
     endline();
   }
 
-  if (bigcursorflag) {
-    for (k=0;k<vselect->num;k++) {
+  if (bigcursorflag)
+  {
+    for (k=0;k<vselect->num;k++)
+    {
       bgnquadrangle();
       f = &mris->faces[vselect->f[k]];
-      for (n=0;n<VERTICES_PER_FACE;n++) {
+      for (n=0;n<VERTICES_PER_FACE;n++)
+      {
         v = &mris->vertices[f->v[n]];
         load_brain_coords(v->nx,v->ny,v->nz,v1);
         n3f(v1);
@@ -5432,35 +5917,42 @@ draw_cursor(int vindex,int onoroff) {
 }
 
 void
-draw_all_cursor(void) {
+draw_all_cursor(void)
+{
   int j;
 
-  for (j=0;j<sol_nplotlist;j++) {
+  for (j=0;j<sol_nplotlist;j++)
+  {
     draw_cursor(sol_dipindex[sol_plotlist[j]],TRUE);
   }
 } /*end draw_all_cursor*/
 
 void
-draw_all_vertex_cursor(void) {
+draw_all_vertex_cursor(void)
+{
   int j;
 
-  for (j=0;j<vertex_nplotlist;j++) {
+  for (j=0;j<vertex_nplotlist;j++)
+  {
     draw_cursor(vertex_plotlist[j],TRUE);
   }
 } /*end draw_all_vertex_cursor*/
 
 void
-clear_all_vertex_cursor(void) {
+clear_all_vertex_cursor(void)
+{
   int j;
 
-  for (j=0;j<vertex_nplotlist;j++) {
+  for (j=0;j<vertex_nplotlist;j++)
+  {
     draw_cursor(vertex_plotlist[j],FALSE);
   }
 } /*end clear_all_vertex_cursor*/
 
 
 void
-invert_vertex(int vno) {
+invert_vertex(int vno)
+{
   VERTEX *v ;
   int    n ;
   FACE   *f ;
@@ -5469,7 +5961,8 @@ invert_vertex(int vno) {
   v->nx *= -1.0f ;
   v->ny *= -1.0f ;
   v->nz *= -1.0f ;
-  for (n = 0 ; n < v->num ; n++) {
+  for (n = 0 ; n < v->num ; n++)
+  {
     f = &mris->faces[v->f[n]] ;
     f->nx *= -1.0f ;
     f->ny *= -1.0f ;
@@ -5478,7 +5971,8 @@ invert_vertex(int vno) {
 }
 
 void
-invert_face(int fno) {
+invert_face(int fno)
+{
   FACE   *f ;
 
   if (fno < 0 || fno >= mris->nfaces)
@@ -5490,18 +5984,21 @@ invert_face(int fno) {
 }
 
 void
-orient_sphere(void) {
+orient_sphere(void)
+{
   int    vno, n ;
   VERTEX *v ;
 
   mris->status = MRIS_SPHERE ;
   MRIScomputeMetricProperties(mris) ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     v->stat = v->curv ;
     v->curv = 0.0 ;
   }
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     for (n = 0 ; n < v->num ; n++)
       if (mris->faces[v->f[n]].area < 0)
@@ -5510,20 +6007,23 @@ orient_sphere(void) {
 }
 
 static void
-load_gcsa(char *fname) {
+load_gcsa(char *fname)
+{
   Ggcsa = GCSAread(fname) ;
   if (Ggcsa == NULL)
     ErrorPrintf(ERROR_NOFILE, "load_gcsa(%s): could not read file",
                 fname) ;
 }
 void
-dump_faces(int vno) {
+dump_faces(int vno)
+{
   VERTEX *v ;
   int    n ;
   FACE   *f ;
 
   v = &mris->vertices[vno] ;
-  for (n = 0 ; n < v->num ; n++) {
+  for (n = 0 ; n < v->num ; n++)
+  {
     f = &mris->faces[v->f[n]] ;
     fprintf(stderr,
             "face %6d [%d,%d,%d], n = (%2.1f,%2.1f,%2.1f), area = %2.1f\n",
@@ -5532,7 +6032,8 @@ dump_faces(int vno) {
 }
 
 void
-dump_vertex(int vno) {
+dump_vertex(int vno)
+{
   VERTEX *v ;
 
   v = &mris->vertices[vno] ;
@@ -5543,7 +6044,8 @@ dump_vertex(int vno) {
 
 /* Screencoord sx,sy; */
 void
-select_vertex(short sx,short sy) {
+select_vertex(short sx,short sy)
+{
 
   /* begin rkt */
   int vno;
@@ -5552,23 +6054,27 @@ select_vertex(short sx,short sy) {
 
   /* sets d to the distance of the vertex found */
   find_vertex_at_screen_point(sx, sy, &vno, &d);
-  if (vno>=0) {
+  if (vno>=0)
+  {
     selection = vno;
     print_vertex_data(selection, stdout, d) ;
   }
 
   /* select the label at this vertex, if there is one. */
-  if (labl_draw_flag && labl_select_flag) {
+  if (labl_draw_flag && labl_select_flag)
+  {
     labl_select_label_by_vno (vno);
   }
 
   /* if we have functional data... */
-  if (func_timecourse) {
+  if (func_timecourse)
+  {
     func_clear_selection ();
 
     /* Depending on our avg mode, select the proper voxels and graph
-    them. */
-    switch (func_graph_avg_mode) {
+       them. */
+    switch (func_graph_avg_mode)
+    {
     case FUNC_GRAPH_AVG_MODE_SELECTED:
       func_select_selected_vertex();
       break;
@@ -5591,7 +6097,8 @@ select_vertex(short sx,short sy) {
   send_tcl_command (command);
 
   /* finally, update the labels. */
-  if (vno>=0) {
+  if (vno>=0)
+  {
     update_labels(LABELSET_CURSOR, vno, d);
   }
 
@@ -5604,10 +6111,12 @@ select_vertex(short sx,short sy) {
 
 /* begin rkt */
 void
-select_vertex_by_vno (int vno) {
+select_vertex_by_vno (int vno)
+{
   VERTEX* v;
 
-  if (vno < 0 || vno >= mris->nvertices) {
+  if (vno < 0 || vno >= mris->nvertices)
+  {
     return;
   }
 
@@ -5615,7 +6124,8 @@ select_vertex_by_vno (int vno) {
   print_vertex_data(selection, stdout, 0) ;
 
   /* if we have functional data... */
-  if (func_timecourse) {
+  if (func_timecourse)
+  {
     v = &(mris->vertices[selection]);
 
     /* select only this voxel and graph it */
@@ -5632,7 +6142,8 @@ select_vertex_by_vno (int vno) {
   path_select_path_by_vno (vno);
 
   /* finally, update the labels. */
-  if (vno>=0) {
+  if (vno>=0)
+  {
     update_labels(LABELSET_CURSOR, vno, 0);
   }
 
@@ -5642,7 +6153,8 @@ select_vertex_by_vno (int vno) {
 }
 
 void
-find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) {
+find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
+{
   float m[4][4];                /* Surface -> screen matrix */
   int i, j;                     /* Matrix index counters */
   float mf;                     /* Temp matrix value */
@@ -5681,7 +6193,8 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) {
   getmatrix(m);
 #ifdef OPENGL
   for (i=0;i<4;i++)
-    for (j=0;j<4;j++) {
+    for (j=0;j<4;j++)
+    {
       mf = m[i][j];
       m[i][j] = m[j][i];
       m[j][i] = mf;
@@ -5707,7 +6220,8 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) {
   /* For each face... */
   sImin = 10000;
   fmin = -1;
-  for (fno = 0; fno < mris->nfaces; fno++) {
+  for (fno = 0; fno < mris->nfaces; fno++)
+  {
     f = &mris->faces[fno];
     v0 = &mris->vertices[f->v[0]];
 
@@ -5725,8 +6239,8 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) {
 
     /* Make sure the normal's z < 0, so the face is facing us. */
     /* RKT: Removed this test as it caused vertices 'inside' folds
-    on the non-inflated surface to be not selected, even if in
-    the inflated view. */
+       on the non-inflated surface to be not selected, even if in
+       the inflated view. */
     /*       if (n[2] > 0) */
     /*         continue; */
 
@@ -5758,10 +6272,12 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) {
     N = - (n[0]*ww[0] + n[1]*ww[1] + n[2]*ww[2]);
 
     /* If intersection... */
-    if (!(fabs(D) < 0.0001 || fabs(N) < 0.0001)) {
+    if (!(fabs(D) < 0.0001 || fabs(N) < 0.0001))
+    {
       /* If the intersection is on the segment... */
       sI = N / D;
-      if (sI >= 0.0 && sI <= 1.0) {
+      if (sI >= 0.0 && sI <= 1.0)
+      {
 
         /* Get the intersection point */
         /* x = p1 + sI*uu */
@@ -5772,7 +6288,8 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) {
         /* Get the bounds of the face. */
         min[0] = min[1] = min[2] = 9999;
         max[0] = max[1] = max[2] = -9999;
-        for (vno = 0; vno < VERTICES_PER_FACE; vno++) {
+        for (vno = 0; vno < VERTICES_PER_FACE; vno++)
+        {
           v = &mris->vertices[f->v[vno]];
 
           if (v->ripflag)
@@ -5794,8 +6311,10 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) {
            hit. NOTE This is a rough estimate, but good enough
            in most cases. */
         if (x[0] >= min[0] && x[0] <= max[0] &&
-            x[1] >= min[1] && x[1] <= max[1]) {
-          if (Gdiag && DIAG_VERBOSE_ON) {
+            x[1] >= min[1] && x[1] <= max[1])
+        {
+          if (Gdiag && DIAG_VERBOSE_ON)
+          {
             ddt_hilite_face (fno, 1);
             fprintf (stderr,"Hit fno %d sI %f\n"
                      "\tbounds %f %f, %f %f\n"
@@ -5807,7 +6326,8 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) {
 
           /* Save the closest face. */
           if (sI < sImin &&
-              !f->ripflag) {
+              !f->ripflag)
+          {
             sImin = sI;
             fmin = fno;
             xmin[0] = x[0];
@@ -5820,7 +6340,8 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) {
   }
 
   /* If we couldn't find a face here, bail. */
-  if (-1 ==fmin) {
+  if (-1 ==fmin)
+  {
     *ovno = -1;
     *od = -1;
 
@@ -5835,7 +6356,8 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) {
   dmin = 1000;
   imin = -1;
   f = &mris->faces[fmin];
-  for (vno = 0; vno < VERTICES_PER_FACE; vno++) {
+  for (vno = 0; vno < VERTICES_PER_FACE; vno++)
+  {
     v = &mris->vertices[f->v[vno]];
 
     vs[0] =   -m[0][0]*v->x + m[1][0]*v->z + m[2][0]*v->y + m[3][0];
@@ -5852,11 +6374,13 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) {
     /* If this is the closest vertex, remember
        it. But not if it's ripped. */
     if (d < dmin &&
-        !v->ripflag) {
+        !v->ripflag)
+    {
       dmin = d;
       imin = f->v[vno];
 
-      if (Gdiag && DIAG_VERBOSE_ON) {
+      if (Gdiag && DIAG_VERBOSE_ON)
+      {
         fprintf (stderr,"\t** Found close vno %d d %f\n"
                  "\t   vs %f %f %f\n"
                  "\t   dx %f dy %f dz %f\n",
@@ -5878,7 +6402,8 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od) {
 /* end rkt */
 
 void
-left_click(short sx,short sy) {
+left_click(short sx,short sy)
+{
 #ifdef OPENGL
   sx += w.x;
   sy = 1024 - w.y - sy;
@@ -5894,7 +6419,8 @@ left_click(short sx,short sy) {
 }
 
 void
-sample_annotated_image(void) {
+sample_annotated_image(void)
+{
   int i,j;
   int sx,sy;
   int c1,c2,c3;
@@ -5906,7 +6432,8 @@ sample_annotated_image(void) {
   getmatrix(m);
 #ifdef OPENGL
   for (i=0;i<4;i++)
-    for (j=0;j<4;j++) {
+    for (j=0;j<4;j++)
+    {
       f = m[i][j];
       m[i][j] = m[j][i];
       m[j][i] = f;
@@ -5915,7 +6442,8 @@ sample_annotated_image(void) {
   getorigin(&ox,&oy);
   getsize(&lx,&ly);
   for (i=0;i<mris->nvertices;i++)
-    if (!mris->vertices[i].ripflag) {
+    if (!mris->vertices[i].ripflag)
+    {
       v = &mris->vertices[i];
       cx = -m[0][0]*v->x+m[1][0]*v->z+m[2][0]*v->y+m[3][0];
       cy = -m[0][1]*v->x+m[1][1]*v->z+m[2][1]*v->y+m[3][1];
@@ -5925,11 +6453,13 @@ sample_annotated_image(void) {
       /*
         printf("%d: x=%f y=%f z=%f, sx=%d, sy=%d\n",i,v->x,v->y,v->z,sx,sy);
       */
-      if (sy>=0 && sy<frame_ydim && sx>=0 && sx<frame_xdim) {
+      if (sy>=0 && sy<frame_ydim && sx>=0 && sx<frame_xdim)
+      {
         c1 = framebuff[sy*frame_xdim+sx]&0xff;
         c2 = (framebuff[sy*frame_xdim+sx]>>8)&0xff;
         c3 = (framebuff[sy*frame_xdim+sx]>>16)&0xff;
-        if (c1!=0 && c1==c2 && c2==c3) {
+        if (c1!=0 && c1==c2 && c2==c3)
+        {
           v->annotation = framebuff[sy*frame_xdim+sx]&0xff;
           /*
             printf("mris->vertices[%d].annotation=%06x\n",
@@ -5941,8 +6471,10 @@ sample_annotated_image(void) {
 }
 
 void
-restore_zero_position(void) {
-  if (!openglwindowflag) {
+restore_zero_position(void)
+{
+  if (!openglwindowflag)
+  {
     printf("surfer: ### restore_zero_position failed: no gl window open\n");
     PR;
     return;
@@ -5953,8 +6485,10 @@ restore_zero_position(void) {
 }
 
 void
-restore_initial_position(void) {
-  if (!openglwindowflag) {
+restore_initial_position(void)
+{
+  if (!openglwindowflag)
+  {
     printf("surfer: ### restore_initial_position failed: no gl window open\n");
     PR;
     return;
@@ -5966,8 +6500,10 @@ restore_initial_position(void) {
 }
 
 void
-make_lateral_view(char *stem) {
-  if (!openglwindowflag) {
+make_lateral_view(char *stem)
+{
+  if (!openglwindowflag)
+  {
     printf("surfer: ### redraw failed: no gl window open\n");
     PR
     return;
@@ -5983,12 +6519,15 @@ make_lateral_view(char *stem) {
 }
 
 void
-make_lateral_view_second(char *stem) {
-  if (!openglwindowflag) {
+make_lateral_view_second(char *stem)
+{
+  if (!openglwindowflag)
+  {
     printf("surfer: ### make_lateral_view_second failed: no gl window open\n");
     PR return;
   }
-  if (!secondsurfaceloaded) {
+  if (!secondsurfaceloaded)
+  {
     printf("surfer: ### make_lateral_view_second failed: "
            "no second surface read\n");
     PR return;
@@ -6004,7 +6543,8 @@ make_lateral_view_second(char *stem) {
 }
 
 void
-write_val_histogram(float min, float max, int nbins) {
+write_val_histogram(float min, float max, int nbins)
+{
   int i,num,index;
   FILE *fp;
   char fname[200];
@@ -6014,7 +6554,8 @@ write_val_histogram(float min, float max, int nbins) {
     hist[i] = chist[i] = 0;
   num = 0;
   for (i=0;i<mris->nvertices;i++)
-    if (!mris->vertices[i].ripflag) {
+    if (!mris->vertices[i].ripflag)
+    {
       index = floor(nbins*(mris->vertices[i].val-min)/(max-min)+0.5);
       if (index>=0 && index<nbins)
         hist[index]++;
@@ -6025,14 +6566,16 @@ write_val_histogram(float min, float max, int nbins) {
       num++;
     }
   sum = 0;
-  for (i=0;i<nbins;i++) {
+  for (i=0;i<nbins;i++)
+  {
     hist[i] /= num;
     sum += hist[i];
     chist[i] = sum;
   }
   sprintf(fname,"hist.tmp");
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
@@ -6041,7 +6584,8 @@ write_val_histogram(float min, float max, int nbins) {
   fclose(fp);
   sprintf(fname,"chist.tmp");
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
@@ -6051,14 +6595,17 @@ write_val_histogram(float min, float max, int nbins) {
 }
 
 void
-print_view_matrix() {
+print_view_matrix()
+{
   int      i, j ;
   float m[4][4];
 
   getmatrix(m);
   printf("----- view matrix\n");
-  for (i=0;i<4;i++) {
-    for (j=0;j<4;j++) {
+  for (i=0;i<4;i++)
+  {
+    for (j=0;j<4;j++)
+    {
       printf("%f ",m[j][i]);
     }
     printf("\n");
@@ -6067,26 +6614,31 @@ print_view_matrix() {
 }
 
 void
-write_view_matrix(char *dir) {
+write_view_matrix(char *dir)
+{
   int i,j;
   float m[4][4]; /* Matrix m; */
   char fname[NAME_LENGTH];
   FILE *fp;
 
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### write_view_matrix failed: no gl window open\n");
     PR return;
   }
 
   sprintf(fname,"%s/surfer.mat",dir);
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
   getmatrix(m);
-  for (i=0;i<4;i++) {
-    for (j=0;j<4;j++) {
+  for (i=0;i<4;i++)
+  {
+    for (j=0;j<4;j++)
+    {
       fprintf(fp,"%13.3e ",m[i][j]);
     }
     fprintf(fp,"\n");
@@ -6097,7 +6649,8 @@ write_view_matrix(char *dir) {
 }
 
 void
-read_view_matrix(char *dir) {
+read_view_matrix(char *dir)
+{
   int i;
   float m[4][4]; /* Matrix m; */
   float a,b,c,d;
@@ -6105,27 +6658,33 @@ read_view_matrix(char *dir) {
   char fname[NAME_LENGTH];
   FILE *fp;
 
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### read_view_matrix failed: no gl window open\n");
     PR return;
   }
 
   sprintf(fname,"%s/surfer.mat",dir);
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### File %s not found\n",fname);
     PR return;
   }
 
   i = 0;
-  while (fgets(line,NAME_LENGTH,fp) != NULL) {
-    if (sscanf(line,"%f %f %f %f",&a,&b,&c,&d) == 4)  {
+  while (fgets(line,NAME_LENGTH,fp) != NULL)
+  {
+    if (sscanf(line,"%f %f %f %f",&a,&b,&c,&d) == 4)
+    {
       m[i][0] = a;
       m[i][1] = b;
       m[i][2] = c;
       m[i][3] = d;
       i++;
-    } else {
+    }
+    else
+    {
       printf("surfer: ### couldn't parse this line in matrix file:  %s",line);
       printf("surfer: ###   ...read_view_matrix() failed\n");
       PR return;
@@ -6135,11 +6694,13 @@ read_view_matrix(char *dir) {
 }
 
 void
-translate_brain(float x, float y, float z) {
+translate_brain(float x, float y, float z)
+{
   int i,j,k;
   float m[4][4], m1[4][4], m2[4][4]; /* Matrix m,m1,m2; */
 
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### translate_brain failed: no gl window open\n");
     PR return;
   }
@@ -6152,7 +6713,8 @@ translate_brain(float x, float y, float z) {
   m1[3][1] = y;
   m1[3][2] = z;
   for (i=0;i<4;i++)
-    for (j=0;j<4;j++) {
+    for (j=0;j<4;j++)
+    {
       m2[i][j] = 0;
       for (k=0;k<4;k++)
         m2[i][j] += m[i][k]*m1[k][j];
@@ -6161,11 +6723,13 @@ translate_brain(float x, float y, float z) {
 }
 
 void
-scale_brain(float s) {
+scale_brain(float s)
+{
   int i,j,k;
   float m[4][4], m1[4][4], m2[4][4]; /* Matrix m,m1,m2; */
 
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### scale_brain failed: no gl window open\n");
     PR return;
   }
@@ -6180,7 +6744,8 @@ scale_brain(float s) {
   m1[1][1] = s;
   m1[2][2] = s;
   for (i=0;i<4;i++)
-    for (j=0;j<4;j++) {
+    for (j=0;j<4;j++)
+    {
       m2[i][j] = 0;
       for (k=0;k<4;k++)
         m2[i][j] += m[i][k]*m1[k][j];
@@ -6189,12 +6754,14 @@ scale_brain(float s) {
 }
 
 void
-rotate_brain(float a, char c) {
+rotate_brain(float a, char c)
+{
   int i,j,k;
   float m[4][4], m1[4][4], m2[4][4]; /* Matrix m,m1,m2; */
   float sa,ca;
 
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### rotate_brain failed: no gl window open\n");
     PR return;
   }
@@ -6206,22 +6773,30 @@ rotate_brain(float a, char c) {
   a = a*M_PI/180;
   sa = sin(a);
   ca = cos(a);
-  if (c=='y') {
+  if (c=='y')
+  {
     m1[0][0] = m1[2][2] = ca;
     m1[2][0] = -(m1[0][2] = sa);
-  } else if (c=='x') {
+  }
+  else if (c=='x')
+  {
     m1[1][1] = m1[2][2] = ca;
     m1[1][2] = -(m1[2][1] = sa);
-  } else if (c=='z') {
+  }
+  else if (c=='z')
+  {
     m1[0][0] = m1[1][1] = ca;
     m1[1][0] = -(m1[0][1] = sa);
-  } else {
+  }
+  else
+  {
     printf("surfer: ### Illegal axis %c\n",c);
     return;
     PR
   }
   for (i=0;i<4;i++)
-    for (j=0;j<4;j++) {
+    for (j=0;j<4;j++)
+    {
       m2[i][j] = 0;
       for (k=0;k<4;k++)
         m2[i][j] += m[i][k]*m1[k][j];
@@ -6230,7 +6805,8 @@ rotate_brain(float a, char c) {
 }
 
 void
-read_image_info(char *fpref) {
+read_image_info(char *fpref)
+{
   char fname[NAME_LENGTH];
   MRI* mri_header;
   FILE* fTest;
@@ -6238,51 +6814,62 @@ read_image_info(char *fpref) {
   mri_header = NULL;
   sprintf (fname, "%s.info", fpref);
   fTest = fopen (fname, "r");
-  if (NULL != fTest) {
+  if (NULL != fTest)
+  {
     fclose (fTest);
     mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
   }
 
-  if(NULL == mri_header) {
+  if (NULL == mri_header)
+  {
     sprintf (fname, "%s/%s/mri/T1.mgh", subjectsdir, pname);
     fTest = fopen (fname, "r");
-    if (NULL != fTest) {
+    if (NULL != fTest)
+    {
       fclose (fTest);
       mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
     }
   }
 
-  if(NULL == mri_header) {
+  if (NULL == mri_header)
+  {
     sprintf (fname, "%s/%s/mri/T1.mgz", subjectsdir, pname);
     fTest = fopen (fname, "r");
-    if (NULL != fTest) {
+    if (NULL != fTest)
+    {
       fclose (fTest);
       mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
     }
   }
-  if(NULL == mri_header) {
+  if (NULL == mri_header)
+  {
     sprintf (fname, "%s/%s/mri/orig.mgz", subjectsdir, pname);
     fTest = fopen (fname, "r");
-    if (NULL != fTest) {
+    if (NULL != fTest)
+    {
       fclose (fTest);
       mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
     }
   }
-  if(NULL == mri_header) {
+  if (NULL == mri_header)
+  {
     sprintf (fname, "%s/%s/mri/orig.mgh", subjectsdir, pname);
     fTest = fopen (fname, "r");
-    if (NULL != fTest) {
+    if (NULL != fTest)
+    {
       fclose (fTest);
       mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
     }
   }
 
-  if(NULL == mri_header) {
+  if (NULL == mri_header)
+  {
     printf ("ERROR: could not read header info from T1 or orig in %s/%s/mri\n",
-	    subjectsdir, pname);
+            subjectsdir, pname);
     exit(1);
   }
-  if (mri_header) {
+  if (mri_header)
+  {
     printf ("surfer: Reading header info from %s\n", fname);
     imnr0 = mri_header->imnr0;
     imnr1 = mri_header->imnr1;
@@ -6302,7 +6889,8 @@ read_image_info(char *fpref) {
 
   /* RKT: Check for fov == 0, which is incorrect. If it is, set it to
      0.256, which is a reasonable default.  */
-  if (fabs(fov) < 0.00001) {
+  if (fabs(fov) < 0.00001)
+  {
     print ("surfer: WARNING: fov was ~0, setting to 0.256\n");
     fov = 0.256;
   }
@@ -6316,16 +6904,19 @@ read_talairach(char *fname)    /* marty: ignore abs paths in COR-.info */
   lta = LTAreadEx(fname) ;
   if (lta==NULL)
     printf("surfer: Talairach xform file not found (ignored)\n");
-  else {
+  else
+  {
     transform_loaded = TRUE;
-    if ( lta->type == LINEAR_VOX_TO_VOX ) {
+    if ( lta->type == LINEAR_VOX_TO_VOX )
+    {
       lta->xforms[0].m_L = DevolveXFM(pname, lta->xforms[0].m_L, fname);
     }
   }
 }
 
 void
-read_images(char *fpref) {
+read_images(char *fpref)
+{
   int i,k;
   FILE *fptr;
   char fname[NAME_LENGTH];
@@ -6333,17 +6924,21 @@ read_images(char *fpref) {
   numimg = imnr1-imnr0+1;
   bufsize = ((unsigned long)xnum)*ynum;
   if (buf==NULL) buf = (unsigned char *)lcalloc(bufsize,sizeof(char));
-  for (k=0;k<numimg;k++) {
+  for (k=0;k<numimg;k++)
+  {
     im[k] = (unsigned char **)lcalloc(IMGSIZE,sizeof(char *));
-    for (i=0;i<IMGSIZE;i++) {
+    for (i=0;i<IMGSIZE;i++)
+    {
       im[k][i] = (unsigned char *)lcalloc(IMGSIZE,sizeof(char));
     }
   }
   printf("surfer: allocated image buffer (16 Meg)\n");
-  PR for (k=0;k<numimg;k++) {
+  PR for (k=0;k<numimg;k++)
+  {
     file_name(fpref,fname,k+imnr0,"%03d");
     fptr = fopen(fname,"r");
-    if (fptr==NULL) {
+    if (fptr==NULL)
+    {
       printf("surfer: ### File %s not found\n",fname);
       exit(1);
     }
@@ -6355,14 +6950,17 @@ read_images(char *fpref) {
 }
 
 void
-alloc_curv_images(void) {
+alloc_curv_images(void)
+{
   int i,k;
 
-  for (k=0;k<numimg;k++) {
+  for (k=0;k<numimg;k++)
+  {
     curvim[k] = (unsigned char **)lcalloc(IMGSIZE,sizeof(char *));
     ocurvim[k] = (unsigned char **)lcalloc(IMGSIZE,sizeof(char *));
     curvimflags[k] = (unsigned char **)lcalloc(IMGSIZE,sizeof(char *));
-    for (i=0;i<IMGSIZE;i++) {
+    for (i=0;i<IMGSIZE;i++)
+    {
       curvim[k][i] = (unsigned char *)lcalloc(IMGSIZE,sizeof(char));
       ocurvim[k][i] = (unsigned char *)lcalloc(IMGSIZE,sizeof(char));
       curvimflags[k][i] = (unsigned char *)lcalloc(IMGSIZE,sizeof(char));
@@ -6382,10 +6980,12 @@ read_curv_images(char *fpref)/* assumes norm'ed curvim:{CURVIM_NORM_MIN,MAX} */
 
   if (!curvim_allocated) alloc_curv_images();
 
-  for (k=0;k<numimg;k++) {
+  for (k=0;k<numimg;k++)
+  {
     file_name(fpref,fname,k+imnr0,"%03d");
     fptr = fopen(fname,"r");
-    if (fptr==NULL) {
+    if (fptr==NULL)
+    {
       printf("surfer: ### File %s not found\n",fname);
       PR return;
     }
@@ -6405,7 +7005,8 @@ read_curv_images(char *fpref)/* assumes norm'ed curvim:{CURVIM_NORM_MIN,MAX} */
   /* no FIXEDVAL allows smooth; should write smooth_curvim() */
   for (k=0;k<numimg;k++)
     for (i=0;i<IMGSIZE;i++)
-      for (j=0;j<IMGSIZE;j++) {
+      for (j=0;j<IMGSIZE;j++)
+      {
         if (curvim[k][i][j]!=0)
           curvimflags[k][i][j] |= CURVIM_DEFINED;
       }
@@ -6416,14 +7017,18 @@ read_curv_images(char *fpref)/* assumes norm'ed curvim:{CURVIM_NORM_MIN,MAX} */
 }
 
 void
-curv_to_curvim(void) {
+curv_to_curvim(void)
+{
   VERTEX *v;
   int imnr,i,j,k,vdef,pdef;
   float x,y,z;
 
-  if (!curvim_allocated) {
+  if (!curvim_allocated)
+  {
     alloc_curv_images();
-  } else {
+  }
+  else
+  {
     for (k=0;k<numimg;k++)
       for (i=0;i<IMGSIZE;i++)
         for (j=0;j<IMGSIZE;j++)
@@ -6433,7 +7038,8 @@ curv_to_curvim(void) {
   }
 
   vdef = pdef = 0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     x = v->x;
     y = v->y;
@@ -6457,23 +7063,29 @@ curv_to_curvim(void) {
 }
 
 void
-second_surface_curv_to_curvim(void) {
+second_surface_curv_to_curvim(void)
+{
   VERTEX *v;
   int imnr,i,j,k,vdef,pdef;
   float x,y,z;
 
-  if (!secondsurfaceloaded) {
+  if (!secondsurfaceloaded)
+  {
     printf("surfer: ### second surface not loaded!\n");
     PR return;
   }
-  if (!secondcurvloaded) {
+  if (!secondcurvloaded)
+  {
     printf("surfer: ### second curv not loaded!\n");
     PR return;
   }
 
-  if (!curvim_allocated) {
+  if (!curvim_allocated)
+  {
     alloc_curv_images();
-  } else {
+  }
+  else
+  {
     for (k=0;k<numimg;k++)
       for (i=0;i<IMGSIZE;i++)
         for (j=0;j<IMGSIZE;j++)
@@ -6483,7 +7095,8 @@ second_surface_curv_to_curvim(void) {
   }
 
   vdef = pdef = 0;
-  for (k=0;k<mris2->nvertices;k++) {
+  for (k=0;k<mris2->nvertices;k++)
+  {
     v = &mris2->vertices[k];
     x = v->x;
     y = v->y;
@@ -6508,12 +7121,14 @@ second_surface_curv_to_curvim(void) {
 }
 
 void
-swap_curv(void) {
+swap_curv(void)
+{
   VERTEX *v;
   int k;
   float tmp;
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     tmp = v->curv;
     v->curv = v->curvbak;
@@ -6523,7 +7138,8 @@ swap_curv(void) {
 
 /* begin rkt */
 void
-swap_vertex_fields(int typea, int typeb) {
+swap_vertex_fields(int typea, int typeb)
+{
   VERTEX *v;
   int k;
   float *a;
@@ -6532,11 +7148,13 @@ swap_vertex_fields(int typea, int typeb) {
   enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
 
   /* for every vertex, swap the values specified in the parameters */
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     /* point us in the direction of the first field */
     a = NULL;
-    switch (typea) {
+    switch (typea)
+    {
     case FIELD_CURV:
       a = &(v->curv);
       break;
@@ -6569,7 +7187,8 @@ swap_vertex_fields(int typea, int typeb) {
     tmp = *a;
     /* get the second field. set the value of the first field to the second
        field and set the second to the saved value. */
-    switch (typeb) {
+    switch (typeb)
+    {
     case FIELD_CURV:
       *a = v->curv;
       v->curv = tmp;
@@ -6619,12 +7238,14 @@ curvim_to_surface(void)   /* assumes norm'ed curvim:{CURVIM_NORM_MIN,MAX} */
   int imnr,i,j,k;
   float x,y,z;
 
-  if (!curvimloaded) {
+  if (!curvimloaded)
+  {
     printf("surfer: ### curvim not loaded!\n");
     PR return;
   }
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     x = v->x;
     y = v->y;
@@ -6638,9 +7259,12 @@ curvim_to_surface(void)   /* assumes norm'ed curvim:{CURVIM_NORM_MIN,MAX} */
 
     /* hack: byte 0 => UNDEFINED; should save flags w/images!! */
     /* no FIXEDVAL allows smooth; should write smooth_curvim() */
-    if (curvim[imnr][i][j]==0) {
+    if (curvim[imnr][i][j]==0)
+    {
       v->curv = 0.0;
-    } else {
+    }
+    else
+    {
       v->curv= bytetofloat(curvim[imnr][i][j],CURVIM_NORM_MIN,CURVIM_NORM_MAX);
       curvimflags[imnr][i][j] |= CURVIM_DEFINED; /* Why? AMD */
     }
@@ -6649,21 +7273,25 @@ curvim_to_surface(void)   /* assumes norm'ed curvim:{CURVIM_NORM_MIN,MAX} */
 
 /* assumes norm'ed curvim:{CURVIM_NORM_MIN,MAX} */
 void
-curvim_to_second_surface(void) {
+curvim_to_second_surface(void)
+{
   VERTEX *v;
   int imnr,i,j,k;
   float x,y,z;
 
-  if (!curvimloaded) {
+  if (!curvimloaded)
+  {
     printf("surfer: ### curvim not loaded!\n");
     PR return;
   }
-  if (!secondsurfaceloaded) {
+  if (!secondsurfaceloaded)
+  {
     printf("surfer: ### second surface not loaded!\n");
     PR return;
   }
 
-  for (k=0;k<mris2->nvertices;k++) {
+  for (k=0;k<mris2->nvertices;k++)
+  {
     v = &mris2->vertices[k];
     x = v->x;
     y = v->y;
@@ -6677,9 +7305,12 @@ curvim_to_second_surface(void) {
 
     /* hack: byte 0 => UNDEFINED; should save flags w/images!! */
     /* no FIXEDVAL allows smooth; should write smooth_curvim() */
-    if (curvim[imnr][i][j]==0) {
+    if (curvim[imnr][i][j]==0)
+    {
       v->curv = 0.0;
-    } else {
+    }
+    else
+    {
       v->curv = bytetofloat(curvim[imnr][i][j],
                             CURVIM_NORM_MIN,CURVIM_NORM_MAX);
       curvimflags[imnr][i][j] |= CURVIM_DEFINED;
@@ -6689,7 +7320,8 @@ curvim_to_second_surface(void) {
 }
 
 void
-smooth_curvim(int window) {
+smooth_curvim(int window)
+{
   int i,j,k,di,dj,dk;
   double avgcurv,numcurv;
 
@@ -6700,16 +7332,20 @@ smooth_curvim(int window) {
       for (j=0;j<IMGSIZE;j++)
         ocurvim[k][i][j] = curvim[k][i][j];
 
-  for (i=0;i<IMGSIZE;i++) {
+  for (i=0;i<IMGSIZE;i++)
+  {
     printf(".");
     fflush(stdout);
-    for (j=0;j<IMGSIZE;j++) {
+    for (j=0;j<IMGSIZE;j++)
+    {
       for (k=0;k<numimg;k++)
-        if (curvimflags[k][i][j] & CURVIM_DEFINED) {
+        if (curvimflags[k][i][j] & CURVIM_DEFINED)
+        {
           avgcurv = numcurv = 0;
           for (dk= -window;dk<=window;dk++)
             if ((k+dk>=0)&&(k+dk<numimg))
-              if (curvimflags[k+dk][i][j] & CURVIM_DEFINED) {
+              if (curvimflags[k+dk][i][j] & CURVIM_DEFINED)
+              {
                 avgcurv +=
                   bytetofloat(ocurvim[k+dk][i][j],
                               CURVIM_NORM_MIN,CURVIM_NORM_MAX);
@@ -6729,16 +7365,20 @@ smooth_curvim(int window) {
       for (j=0;j<IMGSIZE;j++)
         ocurvim[k][i][j] = curvim[k][i][j];
 
-  for (k=0;k<numimg;k++) {
+  for (k=0;k<numimg;k++)
+  {
     printf(".");
     fflush(stdout);
-    for (j=0;j<IMGSIZE;j++) {
+    for (j=0;j<IMGSIZE;j++)
+    {
       for (i=0;i<IMGSIZE;i++)
-        if (curvimflags[k][i][j] & CURVIM_DEFINED) {
+        if (curvimflags[k][i][j] & CURVIM_DEFINED)
+        {
           avgcurv = numcurv = 0;
           for (di= -window;di<=window;di++)
             if ((i+di>=0)&&(i+di<IMGSIZE))
-              if (curvimflags[k][i+di][j] & CURVIM_DEFINED) {
+              if (curvimflags[k][i+di][j] & CURVIM_DEFINED)
+              {
                 avgcurv +=
                   bytetofloat(ocurvim[k][i+di][j],
                               CURVIM_NORM_MIN,CURVIM_NORM_MAX);
@@ -6758,16 +7398,20 @@ smooth_curvim(int window) {
       for (j=0;j<IMGSIZE;j++)
         ocurvim[k][i][j] = curvim[k][i][j];
 
-  for (k=0;k<numimg;k++) {
+  for (k=0;k<numimg;k++)
+  {
     printf(".");
     fflush(stdout);
-    for (i=0;i<IMGSIZE;i++) {
+    for (i=0;i<IMGSIZE;i++)
+    {
       for (j=0;j<IMGSIZE;j++)
-        if (curvimflags[k][i][j] & CURVIM_DEFINED) {
+        if (curvimflags[k][i][j] & CURVIM_DEFINED)
+        {
           avgcurv = numcurv = 0;
           for (dj= -window;dj<=window;dj++)
             if ((j+dj>=0)&&(j+dj<IMGSIZE))
-              if (curvimflags[k][i][j+dj] & CURVIM_DEFINED) {
+              if (curvimflags[k][i][j+dj] & CURVIM_DEFINED)
+              {
                 avgcurv +=
                   bytetofloat(ocurvim[k][i][j+dj],
                               CURVIM_NORM_MIN,CURVIM_NORM_MAX);
@@ -6796,12 +7440,14 @@ int window;
       for (j=0;j<IMGSIZE;j++)
         ocurvim[k][i][j] = curvim[k][i][j];
 
-  for (k=0;k<numimg;k++) {
+  for (k=0;k<numimg;k++)
+  {
     printf(".");
     fflush(stdout);
     for (i=0;i<IMGSIZE;i++)
       for (j=0;j<IMGSIZE;j++)
-        if (curvimflags[k][i][j] & CURVIM_DEFINED) {
+        if (curvimflags[k][i][j] & CURVIM_DEFINED)
+        {
           avgcurv = numcurv = 0;
           for (dk= -window;dk<=window;dk++)
             for (di= -window;di<=window;di++)
@@ -6809,7 +7455,8 @@ int window;
                 if ((k+dk>=0)&&(k+dk<numimg)&&
                     (i+di>=0)&&(i+di<IMGSIZE)&&
                     (j+dj>=0)&&(j+dj<IMGSIZE))
-                  if (curvimflags[k+dk][i+di][j+dj] & CURVIM_DEFINED) {
+                  if (curvimflags[k+dk][i+di][j+dj] & CURVIM_DEFINED)
+                  {
                     avgcurv +=
                       bytetofloat(ocurvim[k+dk][i+di][j+dj],
                                   mris2->min_curv,mris2->max_curv);
@@ -6826,7 +7473,8 @@ int window;
 
 /* assumes norm'd curvim */
 void
-add_subject_to_average_curvim(char *name, char *morphsubdir) {
+add_subject_to_average_curvim(char *name, char *morphsubdir)
+{
   int i,j,k;
   float curv,avgcurv;
   char fname[NAME_LENGTH],fpref[NAME_LENGTH];
@@ -6836,7 +7484,8 @@ add_subject_to_average_curvim(char *name, char *morphsubdir) {
   /*sprintf(fpref,"%s/%s/%s.%s.%s/COR-",
     subjectsdir,name,CURVDIR_STEM,stem,ext);*/
   sprintf(fname,"%s/%s/morph/%s/COR-001",subjectsdir,name,morphsubdir);
-  if ((test = fopen(fname,"r"))==NULL) {
+  if ((test = fopen(fname,"r"))==NULL)
+  {
     printf("surfer: ### File %s not found\n",fname);
     PR return;
   }
@@ -6845,10 +7494,12 @@ add_subject_to_average_curvim(char *name, char *morphsubdir) {
   /* avgcurv->old */
   if (!curvim_allocated)
     alloc_curv_images();
-  else {
+  else
+  {
     for (k=0;k<numimg;k++)
       for (i=0;i<IMGSIZE;i++)
-        for (j=0;j<IMGSIZE;j++) {
+        for (j=0;j<IMGSIZE;j++)
+        {
           ocurvim[k][i][j] = curvim[k][i][j];
         }
   }
@@ -6857,10 +7508,12 @@ add_subject_to_average_curvim(char *name, char *morphsubdir) {
   sprintf(fpref,"%s/%s/morph/%s/COR-",subjectsdir,name,morphsubdir);
   read_curv_images(fpref);
 
-  if (curvim_averaged) {
+  if (curvim_averaged)
+  {
     for (k=0;k<numimg;k++)
       for (i=0;i<IMGSIZE;i++)
-        for (j=0;j<IMGSIZE;j++) {
+        for (j=0;j<IMGSIZE;j++)
+        {
           avgcurv =
             bytetofloat(ocurvim[k][i][j],CURVIM_NORM_MIN,CURVIM_NORM_MAX);
           curv = bytetofloat(curvim[k][i][j],CURVIM_NORM_MIN,CURVIM_NORM_MAX);
@@ -6868,7 +7521,9 @@ add_subject_to_average_curvim(char *name, char *morphsubdir) {
           curvim[k][i][j] =
             floattobyte(avgcurv,CURVIM_NORM_MIN,CURVIM_NORM_MAX);
         }
-  } else {
+  }
+  else
+  {
     curvimflag = TRUE;
     curvimloaded = TRUE;
   }
@@ -6877,54 +7532,69 @@ add_subject_to_average_curvim(char *name, char *morphsubdir) {
 }
 
 void
-smooth_curvim_sparse(int niter) {
+smooth_curvim_sparse(int niter)
+{
   int iter,i,j,k,n;
   int i2,j2,k2;
   int ndef;
   float sum;
 
   printf("surfer: smooth_curvim_sparse:\n");
-  PR for (iter=0;iter<niter;iter++) {
+  PR for (iter=0;iter<niter;iter++)
+  {
     ndef = 0;
     for (k=0;k<numimg;k++)
       for (i=0;i<IMGSIZE;i++)
-        for (j=0;j<IMGSIZE;j++) {
+        for (j=0;j<IMGSIZE;j++)
+        {
           ocurvim[k][i][j] = curvim[k][i][j];
-          if (curvimflags[k][i][j] & CURVIM_DEFINED) {
+          if (curvimflags[k][i][j] & CURVIM_DEFINED)
+          {
             curvimflags[k][i][j] |= CURVIM_DEFINED_OLD;
             ndef++;
           }
         }
     printf("surfer:  iter = %d  defined curv pix = %d\n",iter,ndef);
-    PR for (k=1;k<numimg-1;k++) {
-      for (i=1;i<IMGSIZE-1;i++) {
-        for (j=1;j<IMGSIZE-1;j++) {
-          if (!(curvimflags[k][i][j] & CURVIM_FIXEDVAL)) {
+    PR for (k=1;k<numimg-1;k++)
+    {
+      for (i=1;i<IMGSIZE-1;i++)
+      {
+        for (j=1;j<IMGSIZE-1;j++)
+        {
+          if (!(curvimflags[k][i][j] & CURVIM_FIXEDVAL))
+          {
             sum = 0;
             n = 0;
 #if 0
-            if (curvimflags[k][i][j] & CURVIM_DEFINED_OLD) {  /* center + 6 */
+            if (curvimflags[k][i][j] & CURVIM_DEFINED_OLD)
+            {  /* center + 6 */
               sum +=
                 bytetofloat(ocurvim[k2][i][j],mris2->min_curv,mris2->max_curv);
               n++;
             }
-            for (k2=k-1;k2<k+2;k2+=2) {  /* 6 */
-              if (curvimflags[k2][i][j] & CURVIM_DEFINED_OLD) {
+            for (k2=k-1;k2<k+2;k2+=2)
+            {  /* 6 */
+              if (curvimflags[k2][i][j] & CURVIM_DEFINED_OLD)
+              {
                 sum +=
                   bytetofloat(ocurvim[k2][i][j],
                               mris2->min_curv,mris2->max_curv);
                 n++;
               }
             }
-            for (i2=i-1;i2<i+2;i2+=2) {
-              if (curvimflags[k][i2][j] & CURVIM_DEFINED_OLD) {
+            for (i2=i-1;i2<i+2;i2+=2)
+            {
+              if (curvimflags[k][i2][j] & CURVIM_DEFINED_OLD)
+              {
                 sum += bytetofloat(ocurvim[k][i2][j],
                                    mris2->min_curv,mris2->max_curv);
                 n++;
               }
             }
-            for (j2=j-1;j2<j+2;j2+=2) {
-              if (curvimflags[k][i][j2] & CURVIM_DEFINED_OLD) {
+            for (j2=j-1;j2<j+2;j2+=2)
+            {
+              if (curvimflags[k][i][j2] & CURVIM_DEFINED_OLD)
+              {
                 sum += bytetofloat(ocurvim[k][i][j2],
                                    mris2->min_curv,mris2->max_curv);
                 n++;
@@ -6933,14 +7603,17 @@ smooth_curvim_sparse(int niter) {
 #endif
             for (k2=k-1;k2<k+2;k2++)  /* 27 */
               for (i2=i-1;i2<i+2;i2++)
-                for (j2=j-1;j2<j+2;j2++) {
-                  if (curvimflags[k2][i2][j2] & CURVIM_DEFINED_OLD) {
+                for (j2=j-1;j2<j+2;j2++)
+                {
+                  if (curvimflags[k2][i2][j2] & CURVIM_DEFINED_OLD)
+                  {
                     sum += bytetofloat(ocurvim[k2][i2][j2],
                                        mris2->min_curv,mris2->max_curv);
                     n++;
                   }
                 }
-            if (n>0) {
+            if (n>0)
+            {
               curvim[k][i][j] =
                 floattobyte(sum/n,mris2->min_curv,mris2->max_curv);
               curvimflags[k][i][j] |= CURVIM_DEFINED;
@@ -6953,13 +7626,15 @@ smooth_curvim_sparse(int niter) {
 }
 
 unsigned char
-floattobyte(float f, float min, float max) {
+floattobyte(float f, float min, float max)
+{
   f = (f>max)?max:(f<min)?min:f;  /* needed? */
   return (unsigned char)((f-min)*(255/(max-min)));
 }
 
 float
-bytetofloat(unsigned char c, float min, float max) {
+bytetofloat(unsigned char c, float min, float max)
+{
   /*if ((int)c>255) {
     printf("surfer: bad input byte %d for current 255\n",(int)c);
     return HUGE_VAL;
@@ -6969,17 +7644,20 @@ bytetofloat(unsigned char c, float min, float max) {
 
 /* tksurfer.c: write_{curv,fill}_images */
 void
-write_images(unsigned char ***mat,char *fpref) {
+write_images(unsigned char ***mat,char *fpref)
+{
   int k;
   FILE *fptr;
   char fname[NAME_LENGTH];
 
   bufsize = ((unsigned long)xnum)*ynum;
   if (buf==NULL) buf = (unsigned char *)lcalloc(bufsize,sizeof(char));
-  for (k=0;k<numimg;k++) {
+  for (k=0;k<numimg;k++)
+  {
     file_name(fpref,fname,k+1,"%03d");
     fptr = fopen(fname,"w");
-    if (fptr==NULL) {
+    if (fptr==NULL)
+    {
       printf("surfer: ### can't create file %s\n",fname);
       PR return;
     }
@@ -6992,37 +7670,42 @@ write_images(unsigned char ***mat,char *fpref) {
 }
 
 void
-save_surf(void) {
+save_surf(void)
+{
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
 }
 void
-restore_surf(void) {
+restore_surf(void)
+{
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   MRIScomputeNormals(mris) ;
 }
 void
-read_positions(char *name) {
-  if (MRISreadVertexPositions(mris, name) == NO_ERROR) {
+read_positions(char *name)
+{
+  if (MRISreadVertexPositions(mris, name) == NO_ERROR)
+  {
     mris->status = MRIS_SURFACE ;
     MRIScomputeMetricProperties(mris) ;
   }
   surface_compiled = 0 ;
 }
 /*------------------------------------------------------- */
-int read_binary_surface(char *fname) 
+int read_binary_surface(char *fname)
 {
-  if(mris)  MRISfree(&mris) ;
+  if (mris)  MRISfree(&mris) ;
   mris = MRISread(ifname) ;
-  if(!mris)  return(Gerror) ;
+  if (!mris)  return(Gerror) ;
 
-  if(LeftRightRev){
+  if (LeftRightRev)
+  {
     printf("Applying Left-Right reversal\n");
     MRISreverse(mris, REVERSE_X) ;
   }
 
   marked = (int *)calloc(mris->nvertices, sizeof(int)) ;
-  if(!marked) ErrorExit(ERROR_BADPARM, "%s: could not allocate %d vertex list array",
-			Progname, mris->nvertices) ;
+  if (!marked) ErrorExit(ERROR_BADPARM, "%s: could not allocate %d vertex list array",
+                           Progname, mris->nvertices) ;
 
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   flag2d = FALSE ;
@@ -7060,7 +7743,8 @@ read_second_binary_surface(char *fname)   /* inlined hack */
 }
 
 void
-read_second_binary_curvature(char *fname) {
+read_second_binary_curvature(char *fname)
+{
   MRISreadCurvatureFile(mris2, fname) ;
   secondcurvloaded = TRUE;
   surface_compiled = 0 ;
@@ -7070,13 +7754,15 @@ read_second_binary_curvature(char *fname) {
 
 
 void
-normalize_second_binary_curvature(void) {
+normalize_second_binary_curvature(void)
+{
   int k;
   float curv,min,max;
   float sum,avg,sum_sq,sd,n;
 
   min = max = 0.0f ;
-  if (!secondcurvloaded) {
+  if (!secondcurvloaded)
+  {
     printf("surfer: ### second curv not loaded!\n");
     PR return;
   }
@@ -7088,7 +7774,8 @@ normalize_second_binary_curvature(void) {
 
   n = (float)mris2->nvertices;
   sum = sum_sq = 0.0;
-  for (k=0;k<mris2->nvertices;k++) {
+  for (k=0;k<mris2->nvertices;k++)
+  {
     mris2->vertices[k].curv -= avg;
     curv = mris2->vertices[k].curv;
     sum += curv;
@@ -7096,7 +7783,8 @@ normalize_second_binary_curvature(void) {
   }
   sd = sqrt((n*sum_sq - sum*sum)/(n*(n-1.0)));
 
-  for (k=0;k<mris2->nvertices;k++) {
+  for (k=0;k<mris2->nvertices;k++)
+  {
     curv = (mris2->vertices[k].curv)/sd;
     if (k==0) min=max=curv;
     if (curv>max) max=curv;
@@ -7114,15 +7802,18 @@ normalize_second_binary_curvature(void) {
 }
 
 static void
-read_imag_vals(char *fname) {
+read_imag_vals(char *fname)
+{
   MRISreadImagValues(mris, fname) ;
 }
 
 static char *last_subject_name = NULL ;
 
 static void
-resend_to_subject(void) {
-  if (!last_subject_name) {
+resend_to_subject(void)
+{
+  if (!last_subject_name)
+  {
     printf("must send_to_subject to specify subject name first.\n") ;
     return ;
   }
@@ -7131,7 +7822,8 @@ resend_to_subject(void) {
 }
 
 void
-send_to_subject(char *subject_name) {
+send_to_subject(char *subject_name)
+{
   char canon_name[STRLEN], orig_name[STRLEN] ;
 
   sprintf(canon_name, "%s.%s", stem, sphere_reg) ;
@@ -7144,7 +7836,8 @@ send_to_subject(char *subject_name) {
 #endif
 }
 void
-send_spherical_point(char *subject_name, char *canon_name, char *orig_name) {
+send_spherical_point(char *subject_name, char *canon_name, char *orig_name)
+{
   float           x, y, z, dx, dy, dz, dist, min_dist ;
   SMALL_VERTEX    *sv ;
   VERTEX          *v ;
@@ -7153,15 +7846,18 @@ send_spherical_point(char *subject_name, char *canon_name, char *orig_name) {
   int             vno, min_vno ;
   FILE            *fp ;
 
-  if (selection < 0) {
+  if (selection < 0)
+  {
     printf("must select a vertex.\n") ;
     return ;
   }
-  if (canonsurfloaded == FALSE) {
+  if (canonsurfloaded == FALSE)
+  {
     if (DIAG_VERBOSE_ON)
       printf("reading canonical vertex positions from %s...\n", canon_name) ;
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-    if (MRISreadVertexPositions(mris, canon_name) != NO_ERROR) {
+    if (MRISreadVertexPositions(mris, canon_name) != NO_ERROR)
+    {
       canonsurffailed = TRUE ;
       return ;
     }
@@ -7176,7 +7872,8 @@ send_spherical_point(char *subject_name, char *canon_name, char *orig_name) {
            subject_name, fname) ;
 
   mriss = MRISSread(fname) ;
-  if (!mriss) {
+  if (!mriss)
+  {
     fprintf(stderr, "### could not open surface file %s\n", fname) ;
     return ;
   }
@@ -7187,13 +7884,15 @@ send_spherical_point(char *subject_name, char *canon_name, char *orig_name) {
   z = v->cz ;
   min_dist = 1000000.0f ;
   min_vno = -1 ;
-  for (vno = 0 ; vno < mriss->nvertices ; vno++) {
+  for (vno = 0 ; vno < mriss->nvertices ; vno++)
+  {
     sv = &mriss->vertices[vno] ;
     dx = sv->x - x ;
     dy = sv->y - y ;
     dz = sv->z - z ;
     dist = sqrt(dx*dx + dy*dy + dz*dz) ;
-    if (dist < min_dist) {
+    if (dist < min_dist)
+    {
       min_dist = dist ;
       min_vno  = vno ;
     }
@@ -7208,7 +7907,8 @@ send_spherical_point(char *subject_name, char *canon_name, char *orig_name) {
            subject_name, fname) ;
 
   mriss = MRISSread(fname) ;
-  if (!mriss) {
+  if (!mriss)
+  {
     fprintf(stderr, "### could not open surface file %s\n", fname) ;
     return ;
   }
@@ -7223,7 +7923,8 @@ send_spherical_point(char *subject_name, char *canon_name, char *orig_name) {
   if (DIAG_VERBOSE_ON)
     printf("writing coordinates to file %s\n", fname) ;
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
@@ -7245,15 +7946,17 @@ send_spherical_point(char *subject_name, char *canon_name, char *orig_name) {
   fclose(fp);
 }
 /*--------------------------------------------------------- */
-int read_white_vertex_coordinates(void) 
+int read_white_vertex_coordinates(void)
 {
   int n;
   fprintf(stderr, "reading white matter vertex locations...\n") ;
 #if 1
-  if(MRISreadWhiteCoordinates(mris, white_suffix) == NO_ERROR) {
-    if(LeftRightRev){
+  if (MRISreadWhiteCoordinates(mris, white_suffix) == NO_ERROR)
+  {
+    if (LeftRightRev)
+    {
       printf("Applying Left-Right reversal\n");
-      for(n=0; n < mris->nvertices; n++) mris->vertices[n].whitex *= -1.0;
+      for (n=0; n < mris->nvertices; n++) mris->vertices[n].whitex *= -1.0;
       // Don't reverse faces
     }
     white_surf_loaded = TRUE ;
@@ -7262,7 +7965,8 @@ int read_white_vertex_coordinates(void)
     vset_save_surface_vertices( VSET_WHITE );
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
     enable_menu_set( MENUSET_VSET_WHITE_LOADED, 1 );
-  } else
+  }
+  else
     return(Gerror) ;
 #else
   if (MRISreadOriginalProperties(mris, white_suffix) != NO_ERROR)
@@ -7273,15 +7977,16 @@ int read_white_vertex_coordinates(void)
   return(NO_ERROR) ;
 }
 
-int read_inflated_vertex_coordinates(void) 
+int read_inflated_vertex_coordinates(void)
 {
   int n;
   fprintf(stderr, "reading inflated vertex locations...\n") ;
-  if(MRISreadInflatedCoordinates(mris, "inflated") != NO_ERROR)
+  if (MRISreadInflatedCoordinates(mris, "inflated") != NO_ERROR)
     return(Gerror) ;
-  if(LeftRightRev){
+  if (LeftRightRev)
+  {
     printf("Applying Left-Right reversal\n");
-    for(n=0; n < mris->nvertices; n++) mris->vertices[n].infx *= -1.0;
+    for (n=0; n < mris->nvertices; n++) mris->vertices[n].infx *= -1.0;
     // Don't reverse faces
   }
   surface_compiled = 0 ;
@@ -7289,11 +7994,12 @@ int read_inflated_vertex_coordinates(void)
   return(NO_ERROR) ;
 }
 
-int read_pial_vertex_coordinates(void) 
+int read_pial_vertex_coordinates(void)
 {
   fprintf(stderr, "reading pial surface vertex locations...\n") ;
   /*  MRISsaveVertexPositions(mris, TMP_VERTICES) ;*/
-  if (MRISreadVertexPositions(mris, "pial") != NO_ERROR) {
+  if (MRISreadVertexPositions(mris, "pial") != NO_ERROR)
+  {
     fprintf(stderr, "could not read canonical surface from 'pial'\n") ;
     return(Gerror) ;
   }
@@ -7304,20 +8010,28 @@ int read_pial_vertex_coordinates(void)
   return(NO_ERROR) ;
 }
 
-void show_surf(char *surf_name) {
-  if (!stricmp(surf_name, "white")) {
+void show_surf(char *surf_name)
+{
+  if (!stricmp(surf_name, "white"))
+  {
     if (!white_surf_loaded)
       read_white_vertex_coordinates() ;
     MRISrestoreVertexPositions(mris, ORIG_VERTICES) ;
-  } else if (!stricmp(surf_name, "pial") || !stricmp(surf_name, "folded")) {
+  }
+  else if (!stricmp(surf_name, "pial") || !stricmp(surf_name, "folded"))
+  {
     if (!pial_surf_loaded)
       read_pial_vertex_coordinates() ;
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
-  } else if (!stricmp(surf_name, "inflated")) {
+  }
+  else if (!stricmp(surf_name, "inflated"))
+  {
     if (!inflated_surf_loaded)
       read_inflated_vertex_coordinates() ;
     MRISrestoreVertexPositions(mris, INFLATED_VERTICES) ;
-  } else {
+  }
+  else
+  {
     fprintf(stderr, "unknown surface %s\n", surf_name) ;
     return ;
   }
@@ -7327,13 +8041,15 @@ void show_surf(char *surf_name) {
   redraw() ;
 }
 
-int read_orig_vertex_coordinates(char *fname) 
+int read_orig_vertex_coordinates(char *fname)
 {
   int n;
-  if(MRISreadOriginalProperties(mris, fname) == NO_ERROR) {
-    if(LeftRightRev){
+  if (MRISreadOriginalProperties(mris, fname) == NO_ERROR)
+  {
+    if (LeftRightRev)
+    {
       printf("Applying Left-Right reversal\n");
-      for(n=0; n < mris->nvertices; n++) mris->vertices[n].origx *= -1.0;
+      for (n=0; n < mris->nvertices; n++) mris->vertices[n].origx *= -1.0;
       // Don't reverse faces
     }
     origsurfloaded = TRUE ;
@@ -7342,30 +8058,36 @@ int read_orig_vertex_coordinates(char *fname)
     vset_save_surface_vertices( VSET_ORIGINAL );
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
     enable_menu_set( MENUSET_VSET_ORIGINAL_LOADED, 1 );
-  } else
+  }
+  else
     return(Gerror) ;
   return(NO_ERROR) ;
 }
 int
-read_canon_vertex_coordinates(char *fname) {
+read_canon_vertex_coordinates(char *fname)
+{
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-  if (MRISreadVertexPositions(mris, fname) == NO_ERROR) {
+  if (MRISreadVertexPositions(mris, fname) == NO_ERROR)
+  {
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     canonsurfloaded = TRUE ;
-  } else
+  }
+  else
     canonsurffailed = TRUE ;
 
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   if (canonsurfloaded)
     return(NO_ERROR);
-  else {
+  else
+  {
     canonsurffailed = TRUE ;
     return(Gerror) ;
   }
 }
 
 void
-read_ellipsoid_vertex_coordinates(char *fname,float a,float b,float c) {
+read_ellipsoid_vertex_coordinates(char *fname,float a,float b,float c)
+{
 #if 0
   int k,n,num,dummy;
   float x,y,z,ctrx,ctry,ctrz,phi,theta;
@@ -7375,17 +8097,21 @@ read_ellipsoid_vertex_coordinates(char *fname,float a,float b,float c) {
   int first;
 
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### File %s not found\n",fname);
     PR return;
   }
 
   /* marty */
   fread3(&first,fp);
-  if (first == QUAD_FILE_MAGIC_NUMBER) {
+  if (first == QUAD_FILE_MAGIC_NUMBER)
+  {
     version = -1;
     printf("surfer: new surface file format\n");
-  } else {
+  }
+  else
+  {
     rewind(fp);
     version = 0;
     printf("surfer: old surface file format\n");
@@ -7396,7 +8122,8 @@ read_ellipsoid_vertex_coordinates(char *fname,float a,float b,float c) {
          fname,a,b,c);
   printf("surfer: vertices=%d, faces=%d\n",mris->nvertices,mris->nfaces);
   ctrx = ctry = ctrz = 0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     fread2(&ix,fp);
     fread2(&iy,fp);
     fread2(&iz,fp);
@@ -7413,15 +8140,19 @@ read_ellipsoid_vertex_coordinates(char *fname,float a,float b,float c) {
 
   rewind(fp);
   fread3(&first,fp);
-  if (first == QUAD_FILE_MAGIC_NUMBER) {
+  if (first == QUAD_FILE_MAGIC_NUMBER)
+  {
     version = -1;
-  } else {
+  }
+  else
+  {
     rewind(fp);
     version = 0;
   }
   fread3(&mris->nvertices,fp);
   fread3(&mris->nfaces,fp);
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     fread2(&ix,fp);
     fread2(&iy,fp);
     fread2(&iz,fp);
@@ -7435,7 +8166,8 @@ read_ellipsoid_vertex_coordinates(char *fname,float a,float b,float c) {
     mris->vertices[k].coords[0] = phi*180/M_PI;
     mris->vertices[k].coords[1] = 2+theta*180/M_PI;
     mris->vertices[k].coords[2] = 0;
-    if (version==0) {
+    if (version==0)
+    {
       fread1(&num,fp);
       for (n=0;n<num;n++)
         fread3(&dummy,fp);
@@ -7447,45 +8179,53 @@ read_ellipsoid_vertex_coordinates(char *fname,float a,float b,float c) {
 #endif
 }
 
-static float e0[3] = {
-                       0.08, -0.73, 0.67
-                     } ;
-static float e1[3] = {
-                       0.57, 0.58, 0.57
-                     } ;
-static float e2[3] = {
-                       -0.82, 0.34, 0.47
-                     } ;
+static float e0[3] =
+  {
+    0.08, -0.73, 0.67
+  } ;
+static float e1[3] =
+  {
+    0.57, 0.58, 0.57
+  } ;
+static float e2[3] =
+  {
+    -0.82, 0.34, 0.47
+  } ;
 
 void
-find_orig_vertex_coordinates(int vindex) {
+find_orig_vertex_coordinates(int vindex)
+{
   float x,y,z;
   char  fname[NAME_LENGTH];
   float x_tal, y_tal, z_tal ;
   FILE  *fp ;
   int   error = 0 ;
 
-  if (vindex < 0 || vindex >= mris->nvertices) {
+  if (vindex < 0 || vindex >= mris->nvertices)
+  {
     fprintf(stderr, "no vertex selected.\n") ;
     return ;
   }
 
   x_tal = y_tal = z_tal = 0.0 ;
 
-  if (origsurfloaded == FALSE) {
+  if (origsurfloaded == FALSE)
+  {
     printf("surfer: reading original coordinates from\n");
     printf("surfer:   %s\n",orfname);
   }
   /* read coordinates from .orig file and put them in the .tx fields */
   if (origsurfloaded == FALSE &&
-      read_orig_vertex_coordinates(orfname) != NO_ERROR) {
+      read_orig_vertex_coordinates(orfname) != NO_ERROR)
+  {
     error = 1 ;
     printf("surfer: wrong number of vertices/faces in file %s\n",orfname);
     PR printf("surfer: writing current coordinate (not orig) to file\n");
     PR x = mris->vertices[vindex].x ;
     y = mris->vertices[vindex].y ;
     z = mris->vertices[vindex].z ;
-  } else  /* read file successfully */
+  }
+  else  /* read file successfully */
   {
     x = mris->vertices[vindex].origx ;
     y = mris->vertices[vindex].origy ;
@@ -7496,25 +8236,30 @@ find_orig_vertex_coordinates(int vindex) {
   copy_edit_dat_file_name (fname, sizeof(fname));
   printf("writing coordinates to file %s\n", fname) ;
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
   printf("vertex %d coordinates:\n", vindex);
-  if (!error) {
+  if (!error)
+  {
     if (transform_loaded)
       printf("TALAIRACH (%2.1f %2.1f %2.1f)\n",x_tal,y_tal,z_tal);
     printf("ORIGINAL  (%2.1f %2.1f %2.1f)\n",x,y,z);
-  } else
+  }
+  else
     printf("CURRENT   (%2.1f %2.1f %2.1f)\n",x,y,z);
   fprintf(fp,"%f %f %f\n",x,y,z);
   fprintf(fp,"%f %f %f\n",x_tal,y_tal,z_tal);
   fclose(fp);
 
 
-  if (canonsurfloaded == FALSE) {
+  if (canonsurfloaded == FALSE)
+  {
     sprintf(fname, "%s.%s", fpref, sphere_reg_suffix) ;
-    if (FileExists(fname)) {
+    if (FileExists(fname))
+    {
       printf("surfer: reading canonical coordinates from\n");
       printf("surfer:   %s\n",fname);
     }
@@ -7522,7 +8267,8 @@ find_orig_vertex_coordinates(int vindex) {
 
   if (canonsurfloaded == TRUE ||
       (FileExists(fname) &&
-       read_canon_vertex_coordinates(fname) == NO_ERROR)) {
+       read_canon_vertex_coordinates(fname) == NO_ERROR))
+  {
     float sx, sy, sz, r, d, phi, theta ;
 
     x = mris->vertices[vindex].cx ;
@@ -7558,7 +8304,8 @@ find_orig_vertex_coordinates(int vindex) {
   PR
 }
 
-void copy_edit_dat_file_name (char* fname, int len) {
+void copy_edit_dat_file_name (char* fname, int len)
+{
   static int warned_local = 0;
   char* local_file  = NULL;
   int found = 0;
@@ -7569,23 +8316,27 @@ void copy_edit_dat_file_name (char* fname, int len) {
      normal one. */
   found = FALSE;
   local_file = getenv ("FS_SAVE_GOTO_POINT");
-  if (NULL != local_file) {
+  if (NULL != local_file)
+  {
 
     sprintf (file_name, "%s-%s", local_file, pname);
 
     test_file = fopen (file_name, "a");
-    if (test_file) {
+    if (test_file)
+    {
       found = TRUE;
       fclose (test_file);
 
-      if (!warned_local) {
+      if (!warned_local)
+      {
         printf ("tksurfer: Using local edit.dat file %s\n", file_name);
         warned_local = TRUE;
       }
     }
   }
 
-  if (!found) {
+  if (!found)
+  {
 
     /* Make the normal file name. */
     sprintf (file_name, "%s/edit.dat", tfname);
@@ -7597,12 +8348,14 @@ void copy_edit_dat_file_name (char* fname, int len) {
 
 
 void
-select_talairach_point(int *vindex,float x_tal,float y_tal,float z_tal) {
+select_talairach_point(int *vindex,float x_tal,float y_tal,float z_tal)
+{
   float x,y,z;
   char fname[NAME_LENGTH];
   FILE *fp;
 
-  if (!transform_loaded) {
+  if (!transform_loaded)
+  {
     printf("surfer: ### select_talairach_point failed: transform not "
            "loaded\n");
     PR return;
@@ -7612,7 +8365,8 @@ select_talairach_point(int *vindex,float x_tal,float y_tal,float z_tal) {
 
   copy_edit_dat_file_name (fname, sizeof(fname));
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
@@ -7624,7 +8378,8 @@ select_talairach_point(int *vindex,float x_tal,float y_tal,float z_tal) {
 }
 
 void
-select_orig_vertex_coordinates(int *vindex) {
+select_orig_vertex_coordinates(int *vindex)
+{
   int   k;
   float d=0;
   float x,y,z,px,py,pz,mind;
@@ -7633,7 +8388,8 @@ select_orig_vertex_coordinates(int *vindex) {
 
   copy_edit_dat_file_name (fname, sizeof(fname));
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### File %s not found\n",fname);
     PR return;
   }
@@ -7643,35 +8399,42 @@ select_orig_vertex_coordinates(int *vindex) {
   if (selection>=0)
     draw_cursor(selection,FALSE);
 
-  if (origsurfloaded == FALSE) {
+  if (origsurfloaded == FALSE)
+  {
     printf("surfer: reading coordinates from %s\n",orfname);
     read_orig_vertex_coordinates(orfname) ;
   }
 
   mind = 1e10;
-  if (origsurfloaded == FALSE) {
+  if (origsurfloaded == FALSE)
+  {
     printf("surfer: ### wrong number of vertices/faces in file %s\n",fname);
     PR;
     printf("        using current position instead of orig...\n");
     PR;
-    for (k = 0 ; k < mris->nvertices ; k++) {
+    for (k = 0 ; k < mris->nvertices ; k++)
+    {
       x=mris->vertices[k].x;
       y = mris->vertices[k].y;
       z = mris->vertices[k].z;
       d = SQR(x-px)+SQR(y-py)+SQR(z-pz);
-      if (d<mind) {
+      if (d<mind)
+      {
         mind=d;
         *vindex=k;
       }
     }
-  } else   /* find closest original vertex */
+  }
+  else   /* find closest original vertex */
   {
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       x = mris->vertices[k].origx ;
       y = mris->vertices[k].origy ;
       z = mris->vertices[k].origz ;
       d = SQR(x-px)+SQR(y-py)+SQR(z-pz);
-      if (d<mind) {
+      if (d<mind)
+      {
         mind=d;
         *vindex=k ;
       }
@@ -7692,7 +8455,8 @@ select_orig_vertex_coordinates(int *vindex) {
 
 /* print curv,icurv,icurvnei,=>cfact */
 void
-read_curvim_at_vertex(int vindex) {
+read_curvim_at_vertex(int vindex)
+{
   VERTEX *v;
   int imnr,i,j,m,n;
   int delcurvdefined;
@@ -7703,11 +8467,13 @@ read_curvim_at_vertex(int vindex) {
   float icrange,crange;
 
   icurv = icurvnei = 0.0f ;
-  if (!curvloaded)   {
+  if (!curvloaded)
+  {
     printf("surfer: ### curv not loaded!\n");
     PR return;
   }
-  if (!curvimloaded) {
+  if (!curvimloaded)
+  {
     printf("surfer: ### curvim not loaded!\n");
     PR return;
   }
@@ -7733,7 +8499,8 @@ read_curvim_at_vertex(int vindex) {
   else
     delcurvdefined = FALSE;
   curv = v->curv;
-  for (m=0;m<v->vnum;m++) {
+  for (m=0;m<v->vnum;m++)
+  {
     xnei = mris->vertices[v->v[m]].x;
     ynei = mris->vertices[v->v[m]].y;
     znei = mris->vertices[v->v[m]].z;
@@ -7753,14 +8520,15 @@ read_curvim_at_vertex(int vindex) {
     cfact = 1.0;
     if (delcurvdefined)
       cfact += (icurvnei-icurv)/icrange
-               * copysign(icstrength,mris2->min_curv+curv*(icrange/crange) - 
+               * copysign(icstrength,mris2->min_curv+curv*(icrange/crange) -
                           icurv);
     sx += dx = (xnei - x)*cfact;
     sy += dy = (ynei - y)*cfact;
     sz += dz = (znei - z)*cfact;
     sd += sqrt(dx*dx+dy*dy+dz*dz);
     n++;
-    if (delcurvdefined) {
+    if (delcurvdefined)
+    {
       printf("surfer: ### nei vertex number: %d\n",n);
       PR printf("surfer: curv: %f\n",curv);
       PR printf("surfer: icurv: %f\n",icurv);
@@ -7769,7 +8537,8 @@ read_curvim_at_vertex(int vindex) {
       PR
     }
   }
-  if (!delcurvdefined) {
+  if (!delcurvdefined)
+  {
     printf("surfer: del curv not defined somewhere around this vertex\n");
     PR
   }
@@ -7786,7 +8555,8 @@ float rad;
   int k;
 
   fp=fopen(tfname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### File %s not found\n",tfname);
     PR return;
   }
@@ -7796,12 +8566,14 @@ float rad;
 
   /* read vertex coords from orig surface file */
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     x = mris->vertices[k].x;
     y = mris->vertices[k].y;
     z = mris->vertices[k].z;
     sqdist = SQR(x-xpt) + SQR(y-ypt) + SQR(z-zpt);
-    if (dist < sqrad) {
+    if (dist < sqrad)
+    {
       mris->vertices[k].val = ;
       mris->vertices[k].val2 = ;
     }
@@ -7810,7 +8582,8 @@ float rad;
 #endif
 
 int
-write_binary_surface(char *fname) {
+write_binary_surface(char *fname)
+{
 #if 1
   MRISwrite(mris, fname) ;
 #else
@@ -7824,16 +8597,20 @@ write_binary_surface(char *fname) {
   else if (type == MRIS_GEO_TRIANGLE_FILE)
     return(-1/*MRISwriteGeo(mris, fname)*/) ;
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return(-1);
-  } else {
+  }
+  else
+  {
     return(MRISwriteTriangularSurface(fname)) ;
   }
   fwrite3(-1,fp);
   fwrite3(mris->nvertices,fp);
   fwrite3(mris->nfaces/2,fp);  /* # of quadrangles */
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     x = mris->vertices[k].x;
     y = mris->vertices[k].y;
     z = mris->vertices[k].z;
@@ -7841,7 +8618,8 @@ write_binary_surface(char *fname) {
     fwrite2((int)(y*100),fp);
     fwrite2((int)(z*100),fp);
   }
-  for (k=0;k<mris->nfaces;k+=2) {
+  for (k=0;k<mris->nfaces;k+=2)
+  {
     fwrite3(mris->faces[k].v[0],fp);
     fwrite3(mris->faces[k].v[1],fp);
     fwrite3(mris->faces[k+1].v[0],fp);
@@ -7855,7 +8633,8 @@ write_binary_surface(char *fname) {
 }
 
 void
-write_binary_patch(char *fname) {
+write_binary_patch(char *fname)
+{
 #if 1
   MRISwritePatch(mris, fname) ;
 #else
@@ -7868,13 +8647,15 @@ write_binary_patch(char *fname) {
     if (!mris->vertices[k].ripflag) npts++;
   printf("npts=%d\n",npts);
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
   fwriteInt(npts,fp);
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       i = (mris->vertices[k].border)?-(k+1):k+1;
       fwriteInt(i,fp);
       x = mris->vertices[k].x;
@@ -7892,8 +8673,10 @@ write_binary_patch(char *fname) {
 }
 
 void
-read_binary_patch(char *fname) {
-  if (mris->patch) {
+read_binary_patch(char *fname)
+{
+  if (mris->patch)
+  {
 #if 1
     MRISunrip(mris) ;
 #else
@@ -7909,11 +8692,13 @@ read_binary_patch(char *fname) {
     int vno ;
     VERTEX *v ;
     flag2d = TRUE;
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
         continue ;
-      if (!FZERO(v->z)) {
+      if (!FZERO(v->z))
+      {
         printf("surface not flattened - disabling 2d code...\n");
         flag2d = FALSE ;
         break ;
@@ -7925,7 +8710,8 @@ read_binary_patch(char *fname) {
 }
 
 void
-read_and_color_labeled_vertices(int r, int g, int b) {
+read_and_color_labeled_vertices(int r, int g, int b)
+{
   meshr = r ;
   meshg = g ;
   meshb = b ;
@@ -7940,14 +8726,16 @@ read_and_color_labeled_vertices(int r, int g, int b) {
 #if 1
 
 void
-read_labeled_vertices(char *fname) {
+read_labeled_vertices(char *fname)
+{
   labl_load (fname);
 }
 
 #else
 
 void
-read_labeled_vertices(char *fname) {
+read_labeled_vertices(char *fname)
+{
   if (area)
     LabelFree(&area) ;
   area = LabelRead(pname,fname) ;
@@ -7973,7 +8761,8 @@ read_labeled_vertices(char *fname) {
    area->lv[n].stat field with the current overlay value instead of
    v->stat. */
 void
-write_labeled_vertices(char *fname) {
+write_labeled_vertices(char *fname)
+{
   int    vno, npoints, n ;
   VERTEX *v ;
   LABEL* area;
@@ -7986,7 +8775,8 @@ write_labeled_vertices(char *fname) {
       npoints++ ;
 
   /* if we didn't get any, return. */
-  if (!npoints) {
+  if (!npoints)
+  {
     fprintf(stderr, "no marked vertices...\n") ;
     return;
   }
@@ -7999,7 +8789,8 @@ write_labeled_vertices(char *fname) {
 
   /* for every vertex, if it's marked, save its vertex coords,
      index, and fill the value of the current overlay. */
-  for (n = vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (n = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (!v->marked)
       continue ;
@@ -8021,10 +8812,13 @@ write_labeled_vertices(char *fname) {
 
 #if 0
 void
-write_labeled_vertices(char *fname) {
+write_labeled_vertices(char *fname)
+{
 #if 1
-  if (area) {
-    if (origsurfloaded == FALSE) {
+  if (area)
+  {
+    if (origsurfloaded == FALSE)
+    {
       fprintf(stderr, "reading original vertex locations...\n") ;
       MRISreadOriginalProperties(mris, NULL) ;
       origsurfloaded = TRUE ;
@@ -8033,10 +8827,13 @@ write_labeled_vertices(char *fname) {
             area ? area->n_points : -1, fname) ;
     LabelToWhite(area, mris) ;
     LabelWrite(area, fname) ;
-  } else {
+  }
+  else
+  {
     fprintf(stderr, "generating label from marked vertices...\n") ;
     area = LabelFromMarkedSurface(mris) ;
-    if (!area) {
+    if (!area)
+    {
       fprintf(stderr, "no marked vertices...\n") ;
       return ;
     }
@@ -8056,11 +8853,13 @@ write_labeled_vertices(char *fname) {
     if (!mris->vertices[k].ripflag) npts++;
   printf("npts=%d\n",npts);
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
-  if (asciiflag) {
+  if (asciiflag)
+  {
     fprintf(fp,"#!ascii\n");
     fprintf(fp,"%d\n",npts);
     for (k=0;k<mris->nvertices;k++)
@@ -8068,11 +8867,14 @@ write_labeled_vertices(char *fname) {
         fprintf(fp,"%d %f %f %f %f\n",
                 k,mris->vertices[k].coords[0],mris->vertices[k].coords[1],
                 mris->vertices[k].coords[2],mris->vertices[k].stat);
-  } else {
+  }
+  else
+  {
     fputc('\0',fp);
     fwrite2(npts,fp);
     for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].ripflag) {
+      if (!mris->vertices[k].ripflag)
+      {
         fwriteInt(k,fp);
         fwriteFloat(mris->vertices[k].coords[0],fp);
         fwriteFloat(mris->vertices[k].coords[1],fp);
@@ -8090,7 +8892,8 @@ write_labeled_vertices(char *fname) {
 
 
 void
-write_binary_curvature(char *fname) {
+write_binary_curvature(char *fname)
+{
 #if 1
   MRISwriteCurvature(mris, fname) ;
 #else
@@ -8098,13 +8901,15 @@ write_binary_curvature(char *fname) {
   FILE *fp;
 
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
   fwrite3(mris->nvertices,fp);
   fwrite3(mris->nfaces,fp);
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     fwrite2((int)(mris->vertices[k].curv*100),fp);
   }
   fclose(fp);
@@ -8114,7 +8919,8 @@ write_binary_curvature(char *fname) {
 }
 
 void
-write_binary_areas(char *fname) {
+write_binary_areas(char *fname)
+{
 #if 1
   MRISwriteArea(mris, fname) ;
 #else
@@ -8122,13 +8928,15 @@ write_binary_areas(char *fname) {
   FILE *fp;
 
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
   fwrite3(mris->nvertices,fp);
   fwrite3(mris->nfaces,fp);
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     fwriteFloat((mris->vertices[k].area),fp);
     mris->vertices[k].origarea = mris->vertices[k].area;
   }
@@ -8140,7 +8948,8 @@ write_binary_areas(char *fname) {
 
 /* 1/29/96: from paint.c */
 void
-write_binary_values(char *fname) {
+write_binary_values(char *fname)
+{
 #if 1
   MRISwriteValues(mris, fname) ;
 #else
@@ -8150,7 +8959,8 @@ write_binary_values(char *fname) {
   double sum=0,sum2=0,max= -1000,min=1000;
 
   fp = fopen(fname,"wb");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
@@ -8158,8 +8968,10 @@ write_binary_values(char *fname) {
   printf("num = %d\n",num);
   fwrite2(0,fp);
   fwrite3(num,fp);
-  for (k=0;k<mris->nvertices;k++) {
-    if (mris->vertices[k].val!=0) {
+  for (k=0;k<mris->nvertices;k++)
+  {
+    if (mris->vertices[k].val!=0)
+    {
       fwrite3(k,fp);
       f = mris->vertices[k].val;
       fwriteFloat(f,fp);
@@ -8179,7 +8991,8 @@ write_binary_values(char *fname) {
 
 }
 void
-read_stds(int cond_no) {
+read_stds(int cond_no)
+{
   char  fname[STRLEN] ;
   int   dof, vno ;
   FILE  *fp  ;
@@ -8192,14 +9005,16 @@ read_stds(int cond_no) {
   sprintf(fname, "sigavg%d.dof", cond_no) ;
 
   fp = fopen(fname, "r") ;
-  if (!fp) {
+  if (!fp)
+  {
     fprintf(stderr, "##tksurfer: could not open dof file %s\n", fname) ;
     return ;
   }
   fscanf(fp, "%d", &dof) ;
   fclose(fp) ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -8225,7 +9040,8 @@ read_stds(int cond_no) {
  */
 
 void
-read_binary_values(char *fname) {
+read_binary_values(char *fname)
+{
   sclv_read_from_dotw (fname, SCLV_VAL);
 }
 
@@ -8244,7 +9060,8 @@ sclv_read_from_dotw(char *fname, int field)  /* marty: openclose */
   sclv_unload_field (field);
 
   /* save all the v->val values */
-  if (field != SCLV_VAL) {
+  if (field != SCLV_VAL)
+  {
     saved_vals = (float*) calloc (mris->nvertices, sizeof(float));
     if (saved_vals==NULL)
       ErrorReturn(ERROR_NOMEMORY,
@@ -8252,7 +9069,8 @@ sclv_read_from_dotw(char *fname, int field)  /* marty: openclose */
                    "sclv_read_from_dotw: calloc with %d elmnts failed\n",
                    mris->nvertices));
 
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
       v = &mris->vertices[vno] ;
       saved_vals[vno] = v->val;
     }
@@ -8264,7 +9082,8 @@ sclv_read_from_dotw(char *fname, int field)  /* marty: openclose */
   /* read the file. if not found, bail. This sets all the v->val
      values to the new surface values. */
   error_code = MRISreadValues(mris, fname) ;
-  if (error_code != NO_ERROR) {
+  if (error_code != NO_ERROR)
+  {
     printf ("surfer: ### File %s could not be opened.\n", fname);
     return (error_code);
   }
@@ -8272,7 +9091,8 @@ sclv_read_from_dotw(char *fname, int field)  /* marty: openclose */
   /* look for the min and max values. */
   min = 1000000;
   max = -1000000;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
 
     /* look for the min or max value */
@@ -8284,8 +9104,10 @@ sclv_read_from_dotw(char *fname, int field)  /* marty: openclose */
 
   /* move the v->vals into the proper field and restore the saved
      values. */
-  if (field != SCLV_VAL && saved_vals != NULL) {
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  if (field != SCLV_VAL && saved_vals != NULL)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
       v = &mris->vertices[vno] ;
 
       /* look for the min or max value */
@@ -8341,7 +9163,8 @@ sclv_read_from_dotw(char *fname, int field)  /* marty: openclose */
 
 int
 sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
-                       char* registration, int field) {
+                       char* registration, int field)
+{
   FunD_tErr volume_error;
   mriFunctionalDataRef volume;
   char cmd[STRLEN];
@@ -8353,7 +9176,8 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   /* unload this field if it already exists */
   sclv_unload_field (field);
 
-  if (FunD_tRegistration_None == reg_type) {
+  if (FunD_tRegistration_None == reg_type)
+  {
     printf ("surfer: ERROR: Must specify registration type for overlay.\n"
             "Use -overlay-reg <file>, -overlay-reg-find, "
             "or -overlay-reg-identity.\n");
@@ -8364,19 +9188,24 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
      to load up a volume for them to use as the base for the
      transform. So we use the orig header, which should already have
      been loaded, to get one. */
-  if (FunD_tRegistration_NoneNeeded != reg_type) {
+  if (FunD_tRegistration_NoneNeeded != reg_type)
+  {
     good = 0;
-    if (NULL != orig_mri_header) {
+    if (NULL != orig_mri_header)
+    {
       volm_err = Volm_New (&volm);
-      if (Volm_tErr_NoErr == volm_err) {
+      if (Volm_tErr_NoErr == volm_err)
+      {
         volm_err = Volm_ImportData (volm, orig_mri_header->fname);
-        if (Volm_tErr_NoErr == volm_err) {
+        if (Volm_tErr_NoErr == volm_err)
+        {
           good = 1;
         }
       }
     }
 
-    if (!good) {
+    if (!good)
+    {
       if (NULL != volm)
         Volm_Delete (&volm);
       printf ("surfer: ERROR: You specified registration type identity,\n"
@@ -8394,16 +9223,17 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
                            registration,
                            mris->nvertices, /* Try to be scalar */
                            volm);
-  if (volume_error!=FunD_tErr_NoError) {
+  if (volume_error!=FunD_tErr_NoError)
+  {
     if (NULL != volm)
       Volm_Delete (&volm);
     printf("surfer: couldn't load %s.\n "
-	   "If you were trying to load a functional volume, make sure\n"
-	   "you selected the right registration method, and if necessary,\n"
-	   "that the registration file exists. \n"
-	   "If you were trying to load a volume-encoded value file,\n"
-	   "make sure it has the same number of values as this surface\n"
-	   "does vertices (%d).\n", fname, mris->nvertices);
+           "If you were trying to load a functional volume, make sure\n"
+           "you selected the right registration method, and if necessary,\n"
+           "that the registration file exists. \n"
+           "If you were trying to load a volume-encoded value file,\n"
+           "make sure it has the same number of values as this surface\n"
+           "does vertices (%d).\n", fname, mris->nvertices);
 
     ErrorReturn(func_convert_error(volume_error),
                 (func_convert_error(volume_error),
@@ -8413,7 +9243,8 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   /* Notify the volume we're in tkreg space, so our transform is
      correct. */
   volume_error = FunD_ClientSpaceIsTkRegRAS (volume);
-  if (volume_error!=FunD_tErr_NoError) {
+  if (volume_error!=FunD_tErr_NoError)
+  {
     if (NULL != volm)
       Volm_Delete (&volm);
     if (NULL != volume)
@@ -8429,10 +9260,13 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   /* See if it's scalar */
   FunD_IsScalar (volume, &sclv_field_info[field].is_scalar_volume);
 
-  if (sclv_field_info[field].is_scalar_volume) {
+  if (sclv_field_info[field].is_scalar_volume)
+  {
     printf ("surfer: Interpreting overlay volume %s "
             "as encoded scalar volume.\n", fname);
-  } else {
+  }
+  else
+  {
     printf ("surfer: Interpreting overlay volume %s "
             "as registered functional volume.\n", fname);
   }
@@ -8442,11 +9276,12 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   sclv_field_info[field].func_volume = volume;
 
   /* get the range information */
-  volume_error = 
+  volume_error =
     FunD_GetValueRange (sclv_field_info[field].func_volume,
-			&sclv_field_info[field].min_value,
-			&sclv_field_info[field].max_value);
-  if (volume_error!=FunD_tErr_NoError) {
+                        &sclv_field_info[field].min_value,
+                        &sclv_field_info[field].max_value);
+  if (volume_error!=FunD_tErr_NoError)
+  {
     if (NULL != volm)
       Volm_Delete (&volm);
     if (NULL != volume)
@@ -8456,10 +9291,11 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
                 (func_convert_error(volume_error),
                  "sclv_read_from_volume: error in FunD_GetValueRange\n"));
   }
-  volume_error = 
+  volume_error =
     FunD_GetNumConditions (sclv_field_info[field].func_volume,
-			   &sclv_field_info[field].num_conditions);
-  if (volume_error!=FunD_tErr_NoError) {
+                           &sclv_field_info[field].num_conditions);
+  if (volume_error!=FunD_tErr_NoError)
+  {
     if (NULL != volm)
       Volm_Delete (&volm);
     if (NULL != volume)
@@ -8469,10 +9305,11 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
                 (func_convert_error(volume_error),
                  "sclv_read_from_volume: error in FunD_GetNumConditions\n"));
   }
-  volume_error = 
+  volume_error =
     FunD_GetNumTimePoints (sclv_field_info[field].func_volume,
-			   &sclv_field_info[field].num_timepoints);
-  if (volume_error!=FunD_tErr_NoError) {
+                           &sclv_field_info[field].num_timepoints);
+  if (volume_error!=FunD_tErr_NoError)
+  {
     if (NULL != volm)
       Volm_Delete (&volm);
     if (NULL != volume)
@@ -8515,7 +9352,8 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
 }
 
 
-int sclv_new_from_label (int field, int label) {
+int sclv_new_from_label (int field, int label)
+{
 
   VERTEX *v;
   LABEL  *area;
@@ -8542,8 +9380,10 @@ int sclv_new_from_label (int field, int label) {
      set our overlay value. Also check for min/max values. */
   area = labl_labels[label].label ;
   min = max = 0.0 ;
-  for (n = 0  ; n < area->n_points ; n++) {
-    if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices) {
+  for (n = 0  ; n < area->n_points ; n++)
+  {
+    if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices)
+    {
       v = &mris->vertices[area->lv[n].vno] ;
       f = area->lv[n].stat ;
 
@@ -8594,7 +9434,8 @@ int sclv_new_from_label (int field, int label) {
 }
 
 int
-sclv_new_empty (int field, char* name) {
+sclv_new_empty (int field, char* name)
+{
   int    vno;
   VERTEX *v;
   char   cmd[STRLEN];
@@ -8610,7 +9451,8 @@ sclv_new_empty (int field, char* name) {
   sclv_unload_field (field);
 
   /* Init the field to 0s. */
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     sclv_set_value (v, field, 0);
   }
@@ -8651,7 +9493,8 @@ sclv_new_empty (int field, char* name) {
 }
 
 void
-read_binary_values_frame(char *fname) {
+read_binary_values_frame(char *fname)
+{
   sclv_read_from_dotw_frame (fname, SCLV_VAL);
 }
 
@@ -8666,13 +9509,16 @@ sclv_read_from_dotw_frame(char *fname,
 
   surface_compiled = 0 ;
 
-  if (!openvalfileflag) {
+  if (!openvalfileflag)
+  {
     fpvalfile = fopen(fname,"r");
-    if (fpvalfile==NULL) {
+    if (fpvalfile==NULL)
+    {
       printf("surfer: ### File %s not found\n",fname);
       PR
       return(ERROR_NOFILE);
-    } else
+    }
+    else
       openvalfileflag = TRUE;
   }
 
@@ -8680,7 +9526,8 @@ sclv_read_from_dotw_frame(char *fname,
   lat = ilat/10.0;
   printf("surfer: latency = %6.1f\n",lat);
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &(mris->vertices[k]);
     sclv_set_value (v, field, 0);
 #if 0
@@ -8690,14 +9537,16 @@ sclv_read_from_dotw_frame(char *fname,
 
   fread3(&num,fpvalfile);
   printf("surfer: num=%d\n",num);
-  for (i=0;i<num;i++) {
+  for (i=0;i<num;i++)
+  {
     fread3(&k,fpvalfile);
     f = freadFloat(fpvalfile);
     if (k>=mris->nvertices||k<0)
       printf("surfer: vertex index out of range: %d f=%f\n",k,f);
     else if (mris->vertices[k].d!=0)
       printf("surfer: subsample and data file mismatch\n");
-    else {
+    else
+    {
       v = &(mris->vertices[k]);
       sclv_set_value (v, field, f);
 #if 0
@@ -8712,13 +9561,15 @@ sclv_read_from_dotw_frame(char *fname,
 }
 
 int
-sclv_write_dotw(char *fname, int field) {
+sclv_write_dotw(char *fname, int field)
+{
   float *saved_vals = NULL;
   VERTEX* v = NULL;
   int vno;
 
   /* first save all the current val values */
-  if (field != SCLV_VAL) {
+  if (field != SCLV_VAL)
+  {
     saved_vals = (float*) calloc (mris->nvertices, sizeof(float));
     if (saved_vals==NULL)
       ErrorReturn(ERROR_NOMEMORY,
@@ -8726,7 +9577,8 @@ sclv_write_dotw(char *fname, int field) {
                    "sclv_write_dotw: calloc with %d elmnts failed\n",
                    mris->nvertices));
 
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
       v = &mris->vertices[vno] ;
 
       /* save the value. */
@@ -8741,8 +9593,10 @@ sclv_write_dotw(char *fname, int field) {
   MRISwriteValues(mris, fname) ;
 
   /* restore the saved values */
-  if (field != SCLV_VAL && saved_vals != NULL) {
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  if (field != SCLV_VAL && saved_vals != NULL)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
       v = &mris->vertices[vno] ;
       v->val = saved_vals[vno];
     }
@@ -8757,7 +9611,8 @@ sclv_write_dotw(char *fname, int field) {
 
 
 void
-swap_stat_val(void) {
+swap_stat_val(void)
+{
   sclv_swap_fields (SCLV_VAL, SCLV_VALSTAT);
 
 #if 0
@@ -8767,7 +9622,8 @@ swap_stat_val(void) {
   char cmd[STRLEN] ;
   /* end rkt */
   statflag = TRUE;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     tmp = mris->vertices[k].stat;
     mris->vertices[k].stat = mris->vertices[k].val;
     mris->vertices[k].val = tmp;
@@ -8782,14 +9638,16 @@ swap_stat_val(void) {
 }
 
 void
-swap_val_val2(void) {
+swap_val_val2(void)
+{
   sclv_swap_fields (SCLV_VAL, SCLV_VAL2);
 
 #if 0
   int k;
   float tmp;
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     tmp = mris->vertices[k].val2;
     mris->vertices[k].val2 = mris->vertices[k].val;
     mris->vertices[k].val = tmp ;
@@ -8826,7 +9684,8 @@ swap_values(void)   /* swap complex: val,valbak <-> val2,val2bak */
   int k;
   float h;
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     h = mris->vertices[k].valbak;
     mris->vertices[k].valbak = mris->vertices[k].val;
     mris->vertices[k].val = h;
@@ -8845,7 +9704,8 @@ swap_values(void)   /* swap complex: val,valbak <-> val2,val2bak */
 }
 
 void
-read_binary_decimation(char *fname) {
+read_binary_decimation(char *fname)
+{
   int vno ;
   surface_compiled = 0 ;
   sol_ndec = MRISreadDecimation(mris, fname) ;
@@ -8858,25 +9718,29 @@ read_binary_decimation(char *fname) {
 }
 
 void
-write_binary_decimation(char *fname) {
+write_binary_decimation(char *fname)
+{
   MRISwriteDecimation(mris, fname) ;
   printf("surfer: decimation file %s written\n",fname);
   PR
 }
 
 void
-write_decimation(char *fname) {
+write_decimation(char *fname)
+{
   int k;
   FILE *fptr;
 
   fptr = fopen(fname,"w");
-  if (fptr==NULL) {
+  if (fptr==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
   fprintf(fptr,"#!ascii\n");
   fprintf(fptr,"%d\n",mris->nvertices);
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     if (mris->vertices[k].d==0)
       fprintf(fptr,"1\n");
     else
@@ -8888,26 +9752,31 @@ write_decimation(char *fname) {
 }
 
 void
-read_binary_dipoles(char *fname) {
+read_binary_dipoles(char *fname)
+{
 #if 0
   int k,d;
   char c;
   FILE *fptr;
 
   fptr = fopen(fname,"r");
-  if (fptr==NULL) {
+  if (fptr==NULL)
+  {
     printf("surfer: ### File %s not found\n",fname);
     PR return;
   }
   c = fgetc(fptr);
-  if (c=='#') {
+  if (c=='#')
+  {
     fscanf(fptr,"%*s");
     fscanf(fptr,"%d",&d);
-    if (d!=mris->nvertices) {
+    if (d!=mris->nvertices)
+    {
       printf("surfer: ### diople file mismatch %s\n",fname);
       PR return;
     }
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       fscanf(fptr,"%f %f %f %f %f %f",
              &mris->vertices[k].dipx,
              &mris->vertices[k].dipy,
@@ -8916,13 +9785,17 @@ read_binary_dipoles(char *fname) {
              &mris->vertices[k].dipny,
              &mris->vertices[k].dipnz);
     }
-  } else {
+  }
+  else
+  {
     d = freadInt(fptr);
-    if (d!=mris->nvertices) {
+    if (d!=mris->nvertices)
+    {
       printf("surfer: ### dipole file mismatch %s\n",fname);
       PR return;
     }
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       mris->vertices[k].dipx = freadFloat(fptr);
       mris->vertices[k].dipy = freadFloat(fptr);
       mris->vertices[k].dipz = freadFloat(fptr);
@@ -8938,18 +9811,21 @@ read_binary_dipoles(char *fname) {
 }
 
 void
-write_binary_dipoles(char *fname) {
+write_binary_dipoles(char *fname)
+{
   int i,k;
   FILE *fptr;
 
   fptr = fopen(fname,"w");
-  if (fptr==NULL) {
+  if (fptr==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
   fputc('\0',fptr);
   fwriteInt(mris->nvertices,fptr);
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     fwriteFloat(mris->vertices[k].x,fptr);
     fwriteFloat(mris->vertices[k].y,fptr);
     fwriteFloat(mris->vertices[k].z,fptr);
@@ -8957,7 +9833,8 @@ write_binary_dipoles(char *fname) {
     fwriteFloat(mris->vertices[k].ny,fptr);
     fwriteFloat(mris->vertices[k].nz,fptr);
   }
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     fwriteInt(mris->vertices[k].vnum,fptr);
     for (i=0;i<mris->vertices[k].vnum;i++)
       fwriteInt(mris->vertices[k].v[i],fptr);
@@ -8968,19 +9845,22 @@ write_binary_dipoles(char *fname) {
 }
 
 void
-write_dipoles(char *fname) {
+write_dipoles(char *fname)
+{
   int i,k;
   float x,y,z;
   FILE *fptr;
 
   fptr = fopen(fname,"w");
-  if (fptr==NULL) {
+  if (fptr==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
   fprintf(fptr,"#!ascii\n");
   fprintf(fptr,"%d\n",mris->nvertices);
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     x = mris->vertices[k].x;
     y = mris->vertices[k].y;
     z = mris->vertices[k].z;
@@ -8990,7 +9870,8 @@ write_dipoles(char *fname) {
             mris->vertices[k].ny,
             mris->vertices[k].nz);
   }
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     fprintf(fptr,"%d ",mris->vertices[k].vnum);
     for (i=0;i<mris->vertices[k].vnum;i++)
       fprintf(fptr,"%d ",mris->vertices[k].v[i]);
@@ -9002,19 +9883,23 @@ write_dipoles(char *fname) {
 }
 
 void
-write_subsample(char *fname) {
+write_subsample(char *fname)
+{
   int k;
   float x,y,z;
   FILE *fptr;
 
   fptr = fopen(fname,"w");
-  if (fptr==NULL) {
+  if (fptr==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
   fprintf(fptr,"%d\n",sub_num);
-  for (k=0;k<mris->nvertices;k++) {
-    if (mris->vertices[k].d==0) {
+  for (k=0;k<mris->nvertices;k++)
+  {
+    if (mris->vertices[k].d==0)
+    {
       x = mris->vertices[k].x;
       y = mris->vertices[k].y;
       z = mris->vertices[k].z;
@@ -9030,19 +9915,23 @@ write_subsample(char *fname) {
 }
 
 void
-write_binary_subsample(char *fname) {
+write_binary_subsample(char *fname)
+{
   int k;
   float x,y,z,nx,ny,nz;
   FILE *fp;
 
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
   fwrite3(sub_num,fp);
-  for (k=0;k<mris->nvertices;k++) {
-    if (mris->vertices[k].d==0) {
+  for (k=0;k<mris->nvertices;k++)
+  {
+    if (mris->vertices[k].d==0)
+    {
       x = mris->vertices[k].x;
       y = mris->vertices[k].y;
       z = mris->vertices[k].z;
@@ -9064,20 +9953,23 @@ write_binary_subsample(char *fname) {
 }
 
 void
-read_binary_subsample(char *fname) {
+read_binary_subsample(char *fname)
+{
   int i,k;
   int ix,iy,iz,inx,iny,inz;
   FILE *fp;
 
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### File %s not found\n",fname);
     PR return;
   }
   fread3(&sub_num,fp);
   for (k=0;k<mris->nvertices;k++)
     mris->vertices[k].d = 1;
-  for (i=0;i<sub_num;i++) {
+  for (i=0;i<sub_num;i++)
+  {
     fread3(&k,fp);
     fread2(&ix,fp);
     fread2(&iy,fp);
@@ -9091,7 +9983,8 @@ read_binary_subsample(char *fname) {
 }
 
 void
-read_binary_curvature(char *fname) {
+read_binary_curvature(char *fname)
+{
 #if 1
   int    vno, n ;
   VERTEX *v ;
@@ -9099,11 +9992,13 @@ read_binary_curvature(char *fname) {
 
   surface_compiled = 0 ;
   error = MRISreadCurvatureFile(mris, fname) ;
-  if (NO_ERROR != error) {
+  if (NO_ERROR != error)
+  {
     printf ("surfer: error reading curvature file\n");
     return;
   }
-  for (dipavg = 0.0, n = vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (dipavg = 0.0, n = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -9117,17 +10012,20 @@ read_binary_curvature(char *fname) {
   FILE *fp;
 
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### File %s not found\n",fname);
     PR return;
   }
   fread3(&vnum,fp);
   fread3(&fnum,fp);
-  if (vnum!=mris->nvertices) {
+  if (vnum!=mris->nvertices)
+  {
     printf("surfer: ### incompatible vertex number in file %s\n",fname);
     PR return;
   }
-  for (k=0;k<vnum;k++) {
+  for (k=0;k<vnum;k++)
+  {
     fread2(&i,fp);
     curv = i/100.0;
     if (k==0) mris->min_curv=mris->max_curv=curv;
@@ -9156,13 +10054,15 @@ read_binary_curvature(char *fname) {
 }
 
 void
-normalize_binary_curvature(void) {
+normalize_binary_curvature(void)
+{
   int k;
   float curv,min,max;
   float sum,avg,sum_sq,sd,n;
 
   min = max = 0.0f ;
-  if (!curvloaded)   {
+  if (!curvloaded)
+  {
     printf("surfer: ### curv not loaded!\n");
     PR return;
   }
@@ -9174,7 +10074,8 @@ normalize_binary_curvature(void) {
 
   n = (float)mris->nvertices;
   sum = sum_sq = 0.0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].curv -= avg;
     curv = mris->vertices[k].curv;
     sum += curv;
@@ -9182,7 +10083,8 @@ normalize_binary_curvature(void) {
   }
   sd = sqrt((n*sum_sq - sum*sum)/(n*(n-1.0)));
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     curv = (mris->vertices[k].curv)/sd;
     if (k==0) min=max=curv;
     if (curv<min) min=curv;
@@ -9200,7 +10102,8 @@ normalize_binary_curvature(void) {
 }
 
 void
-read_binary_areas(char *fname) {
+read_binary_areas(char *fname)
+{
 #if 1
   surface_compiled = 0 ;
   MRISreadBinaryAreas(mris, fname) ;
@@ -9211,18 +10114,21 @@ read_binary_areas(char *fname) {
 
   mris->total_area = 0;
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: no area file %s\n",fname);
     PR return;
   }
   fread3(&vnum,fp);
   fread3(&fnum,fp);
-  if (vnum!=mris->nvertices) {
+  if (vnum!=mris->nvertices)
+  {
     printf("surfer: ### incompatible vertex number in file %s\n",fname);
     PR printf("   ...file ignored\n");
     PR return;
   }
-  for (k=0;k<vnum;k++) {
+  for (k=0;k<vnum;k++)
+  {
     f = freadFloat(fp);
     mris->vertices[k].origarea = f;
     mris->total_area += f;
@@ -9234,24 +10140,28 @@ read_binary_areas(char *fname) {
 }
 
 void
-read_fieldsign(char *fname) {
+read_fieldsign(char *fname)
+{
   int k,vnum;
   float f;
   FILE *fp;
 
   printf("surfer: read_fieldsign(%s)\n",fname);
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### File %s not found\n",fname);
     PR return;
   }
   vnum = freadInt(fp);
   printf("surfer: mris->nvertices = %d, vnum = %d\n",mris->nvertices,vnum);
-  if (vnum!=mris->nvertices) {
+  if (vnum!=mris->nvertices)
+  {
     printf("surfer: ### incompatible vertex number in file %s\n",fname);
     printf("   ...file read anyway\n");
   }
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     f = freadFloat(fp);
     mris->vertices[k].fieldsign = f;
   }
@@ -9262,7 +10172,8 @@ read_fieldsign(char *fname) {
   send_tcl_command ("ShowLabel kLabel_Fieldsign 1");
 }
 
-void write_fieldsign(char *fname) {
+void write_fieldsign(char *fname)
+{
   int k,vnum;
   float f;
   FILE *fp;
@@ -9271,20 +10182,22 @@ void write_fieldsign(char *fname) {
 
   vnum = mris->nvertices;
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
   fwriteInt(vnum,fp);
   printf("surfer: mris->nvertices = %d, vnum = %d\n",mris->nvertices,vnum);
-  for (k=0;k<vnum;k++) {
+  for (k=0;k<vnum;k++)
+  {
     f = mris->vertices[k].fieldsign;
     fwriteFloat(f,fp);
   }
   fclose(fp);
   printf("surfer: file %s written\n",fname);
 
-  // This writes it out as an mgz file 
+  // This writes it out as an mgz file
   sprintf(tmpstr,"%s.mgz",fname);
   mri = MRIcopyMRIS(NULL, mris, 0, "fieldsign");
   MRIwrite(mri,tmpstr);
@@ -9293,21 +10206,24 @@ void write_fieldsign(char *fname) {
   PR
 }
 
-void read_fsmask(char *fname) {
+void read_fsmask(char *fname)
+{
   int k,vnum;
   float f;
   FILE *fp;
 
   printf("surfer: read_fsmask(%s)\n",fname);
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### File %s not found\n",fname);
     PR return;
   }
   vnum = freadInt(fp);
   if (vnum!=mris->nvertices)
     printf("surfer: warning: incompatible vertex number in file %s\n",fname);
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     f = freadFloat(fp);
     mris->vertices[k].fsmask = f;
   }
@@ -9317,7 +10233,8 @@ void read_fsmask(char *fname) {
   enable_menu_set (MENUSET_FIELDMASK_LOADED, 1);
 }
 
-void write_fsmask(char *fname) {
+void write_fsmask(char *fname)
+{
   int k,vnum;
   float f;
   FILE *fp;
@@ -9327,19 +10244,21 @@ void write_fsmask(char *fname) {
 
   vnum = mris->nvertices;
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
   fwriteInt(vnum,fp);
-  for (k=0;k<vnum;k++) {
+  for (k=0;k<vnum;k++)
+  {
     f = mris->vertices[k].fsmask;
     fwriteFloat(f,fp);
   }
   fclose(fp);
   printf("surfer: file %s written\n",fname);
 
-  // This writes it out as an mgz file 
+  // This writes it out as an mgz file
   sprintf(tmpstr,"%s.mgz",fname);
   mri = MRIcopyMRIS(NULL, mris, 0, "fsmask");
   MRIwrite(mri,tmpstr);
@@ -9349,32 +10268,39 @@ void write_fsmask(char *fname) {
 }
 
 void
-write_vrml(char *fname,int mode) {
+write_vrml(char *fname,int mode)
+{
   FILE *fp;
   int k,n;
 
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
 
-  if (mode==VRML_POINTS) {
+  if (mode==VRML_POINTS)
+  {
     /* color here */
-    if (vrml2flag) {
+    if (vrml2flag)
+    {
       fprintf(fp,"#VRML V2.0 utf8\n");
       fprintf(fp,"Collision { collide FALSE\n");
       fprintf(fp,"children [ Group { children [ Shape {\n");
       fprintf(fp,"appearance Appearance { "
               "material DEF _DefMat Material { } }\n");
       fprintf(fp,"geometry PointSet { coord Coordinate {\n");
-    } else {
+    }
+    else
+    {
       fprintf(fp,"#VRML V1.0 ascii\n");
       fprintf(fp,"Coordinate3 {\n");
     }
 
     fprintf(fp,"\tpoint [\n");
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       fprintf(fp,"%3.2f %3.2f %3.2f",
               mris->vertices[k].x,
               mris->vertices[k].y,
@@ -9383,9 +10309,12 @@ write_vrml(char *fname,int mode) {
     }
     fprintf(fp,"\n\t]\n");
 
-    if (vrml2flag) {
+    if (vrml2flag)
+    {
       fprintf(fp,"} } } ] } ] }\n");
-    } else {
+    }
+    else
+    {
       fprintf(fp,"}\n");
       fprintf(fp,"PointSet {\n");
       fprintf(fp,"\tstartIndex 0\n");
@@ -9393,11 +10322,13 @@ write_vrml(char *fname,int mode) {
       fprintf(fp,"}\n");
     }
   }
-  if (mode==VRML_QUADS_GRAY || mode==VRML_QUADS_GRAY_SMOOTH) {
+  if (mode==VRML_QUADS_GRAY || mode==VRML_QUADS_GRAY_SMOOTH)
+  {
     fprintf(fp,"#VRML V1.0 ascii\n");
     fprintf(fp,"Coordinate3 {\n");
     fprintf(fp,"\tpoint [\n");
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       fprintf(fp,"%3.2f %3.2f %3.2f",
               mris->vertices[k].x,
               mris->vertices[k].y,
@@ -9407,7 +10338,8 @@ write_vrml(char *fname,int mode) {
     fprintf(fp,"\n\t]\n");
     fprintf(fp,"}\n");
 
-    if (mode==VRML_QUADS_GRAY_SMOOTH) {
+    if (mode==VRML_QUADS_GRAY_SMOOTH)
+    {
       fprintf(fp,"ShapeHints {\n");
       /*fprintf(fp,"\tvertexOrdering COUNTERCLOCKWISE\n");*/
       /*fprintf(fp,"\tshapeType SOLID\n");*/  /* no backface speedup */
@@ -9417,12 +10349,17 @@ write_vrml(char *fname,int mode) {
 
     fprintf(fp,"IndexedFaceSet {\n");
     fprintf(fp,"\tcoordIndex [\n");
-    for (k=0;k<mris->nfaces;k++) {
-      for (n=0;n<VERTICES_PER_FACE;n++) {
+    for (k=0;k<mris->nfaces;k++)
+    {
+      for (n=0;n<VERTICES_PER_FACE;n++)
+      {
         fprintf(fp,"%d",mris->faces[k].v[n]);
-        if (n<3) {
+        if (n<3)
+        {
           fprintf(fp,", ");
-        } else     {
+        }
+        else
+        {
           if (k!=mris->nfaces-1) fprintf(fp,", -1,\n");
         }
       }
@@ -9430,14 +10367,16 @@ write_vrml(char *fname,int mode) {
     fprintf(fp,"\n\t]\n");
     fprintf(fp,"}\n");
   }
-  if (mode==VRML_QUADS_CURV) {
+  if (mode==VRML_QUADS_CURV)
+  {
     if (!curvloaded) read_binary_curvature(cfname);
 #if 0
     /*** TODO ***/
     fprintf(fp,"#VRML V1.0 ascii\n");
     fprintf(fp,"Coordinate3 {\n");
     fprintf(fp," point [\n");
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       fprintf(fp,"%3.2f %3.2f %3.2f",
               mris->vertices[k].x,
               mris->vertices[k].y,
@@ -9459,12 +10398,17 @@ write_vrml(char *fname,int mode) {
 
     fprintf(fp,"IndexedFaceSet {\n");
     fprintf(fp," coordIndex [\n");
-    for (k=0;k<mris->nfaces;k++) {
-      for (n=0;n<VERTICES_PER_FACE;n++) {
+    for (k=0;k<mris->nfaces;k++)
+    {
+      for (n=0;n<VERTICES_PER_FACE;n++)
+      {
         fprintf(fp,"%d",mris->faces[k].v[n]);
-        if (n<3) {
+        if (n<3)
+        {
           fprintf(fp,", ");
-        } else     {
+        }
+        else
+        {
           if (k!=mris->nfaces-1) fprintf(fp,", -1,\n");
         }
       }
@@ -9484,13 +10428,15 @@ write_vrml(char *fname,int mode) {
 }
 
 void
-rip_faces(void) {
+rip_faces(void)
+{
   int n,k;
   FACE *f;
 
   for (k=0;k<mris->nfaces;k++)
     mris->faces[k].ripflag = FALSE;
-  for (k=0;k<mris->nfaces;k++) {
+  for (k=0;k<mris->nfaces;k++)
+  {
     f = &mris->faces[k];
     for (n=0;n<VERTICES_PER_FACE;n++)
       if (mris->vertices[f->v[n]].ripflag)
@@ -9499,7 +10445,8 @@ rip_faces(void) {
   for (k=0;k<mris->nvertices;k++)
     mris->vertices[k].border = FALSE;
   for (k=0;k<mris->nfaces;k++)
-    if (mris->faces[k].ripflag) {
+    if (mris->faces[k].ripflag)
+    {
       f = &mris->faces[k];
       for (n=0;n<VERTICES_PER_FACE;n++)
         mris->vertices[f->v[n]].border = TRUE;
@@ -9507,11 +10454,13 @@ rip_faces(void) {
 }
 
 void
-normalize(float v[3]) {
+normalize(float v[3])
+{
   float d;
 
   d = sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
-  if (d>0) {
+  if (d>0)
+  {
     v[0] /= d;
     v[1] /= d;
     v[2] /= d;
@@ -9519,7 +10468,8 @@ normalize(float v[3]) {
 }
 
 void
-normal_face(int fac,int n,float *norm) {
+normal_face(int fac,int n,float *norm)
+{
   int n0,n1;
   FACE *f;
   float v0[3],v1[3];
@@ -9544,7 +10494,8 @@ normal_face(int fac,int n,float *norm) {
   */
 }
 
-float triangle_area(int fac,int n) {
+float triangle_area(int fac,int n)
+{
   int n0,n1;
   FACE *f;
   float v0[3],v1[3],d1,d2,d3;
@@ -9567,16 +10518,19 @@ float triangle_area(int fac,int n) {
 #define MAX_NEIGHBORS 300  /* ridiculously large */
 
 void
-find_neighbors(void) {
+find_neighbors(void)
+{
   int n0,n1,i,k,m,n;
   FACE *f;
   VERTEX *v;
   int vtmp[MAX_NEIGHBORS];
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     v->vnum = 0;
-    for (m=0;m<v->num;m++) {
+    for (m=0;m<v->num;m++)
+    {
       n = v->n[m];
       f = &mris->faces[v->f[m]];
       n0 = (n==0)                   ? VERTICES_PER_FACE-1 : n-1;
@@ -9589,7 +10543,8 @@ find_neighbors(void) {
         vtmp[(int)v->vnum++] = f->v[n1];
     }
     mris->vertices[k].v = (int *)lcalloc(mris->vertices[k].vnum,sizeof(int));
-    for (i=0;i<v->vnum;i++) {
+    for (i=0;i<v->vnum;i++)
+    {
       v->v[i] = vtmp[i];
     }
     /*
@@ -9597,9 +10552,11 @@ find_neighbors(void) {
       printf("%d: num=%d vnum=%d\n",k,v->num,v->vnum);
     */
   }
-  for (k=0;k<mris->nfaces;k++) {
+  for (k=0;k<mris->nfaces;k++)
+  {
     f = &mris->faces[k];
-    for (m=0;m<VERTICES_PER_FACE;m++) {
+    for (m=0;m<VERTICES_PER_FACE;m++)
+    {
       v = &mris->vertices[f->v[m]];
       for (i=0;i<v->num && k!=v->f[i];i++);
       if (i==v->num)
@@ -9617,18 +10574,21 @@ compute_normals(void)  /* no triangle area in msurfer, no explodeflag here */
   float norm[3],snorm[3];
 
   for (k=0;k<mris->nfaces;k++)
-    if (mris->faces[k].ripflag) {
+    if (mris->faces[k].ripflag)
+    {
       f = &mris->faces[k];
       for (n=0;n<VERTICES_PER_FACE;n++)
         mris->vertices[f->v[n]].border = TRUE;
     }
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       v = &mris->vertices[k];
       snorm[0]=snorm[1]=snorm[2]=0;
       v->area = 0;
       for (n=0;n<v->num;n++)
-        if (!mris->faces[v->f[n]].ripflag) {
+        if (!mris->faces[v->f[n]].ripflag)
+        {
           normal_face(v->f[n],v->n[n],norm);
           snorm[0] += norm[0];
           snorm[1] += norm[1];
@@ -9648,32 +10608,38 @@ compute_normals(void)  /* no triangle area in msurfer, no explodeflag here */
 }
 
 void
-flip_normals (char *axes) {
+flip_normals (char *axes)
+{
   int flip_x, flip_y, flip_z;
   int    vno ;
   VERTEX *v ;
 
   printf ("surfer: flipping normals for ");
   flip_x = flip_y = flip_z = 0;
-  if (NULL != strstr (axes, "x")) {
+  if (NULL != strstr (axes, "x"))
+  {
     flip_x = 1;
     printf ("x ");
   }
-  if (NULL != strstr (axes, "y")) {
+  if (NULL != strstr (axes, "y"))
+  {
     flip_y = 1;
     printf ("y ");
   }
-  if (NULL != strstr (axes, "z")) {
+  if (NULL != strstr (axes, "z"))
+  {
     flip_z = 1;
     printf ("z ");
   }
-  if (!flip_x && !flip_y && !flip_z) {
+  if (!flip_x && !flip_y && !flip_z)
+  {
     printf ("no axes. Please specify x y or z or a combination, i.e. xz\n");
     return;
   }
   printf ("\n");
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (flip_x) v->nx = -v->nx;
     if (flip_y) v->ny = -v->ny;
@@ -9684,7 +10650,8 @@ flip_normals (char *axes) {
 }
 
 void
-compute_shear(void) {
+compute_shear(void)
+{
 #if 0
   int k,n,sumn;
   float x0,y0,x1,y1,x2,y2,x3,y3;
@@ -9695,7 +10662,8 @@ compute_shear(void) {
   VERTEX *v;
 
   for (k=0;k<mris->nfaces;k++)
-    if (!mris->faces[k].ripflag) {
+    if (!mris->faces[k].ripflag)
+    {
       f = &mris->faces[k];
       x0 = mris->vertices[f->v[0]].x;
       y0 = mris->vertices[f->v[0]].y;
@@ -9731,21 +10699,30 @@ compute_shear(void) {
       d13 = sqrt(x13*x13+y13*y13);
       r1 = (((d01+d23)*(d12+d30))>0)?log((d01+d23)/(d12+d30)):0;
       r2 = ((d02*d13)>0)?log(d02/d13):0;
-      if (fabs(r1)>fabs(r2)) {
+      if (fabs(r1)>fabs(r2))
+      {
         r = fabs(r1);
-        if (r1>0) {
+        if (r1>0)
+        {
           shearx = (x01-x23-y12+y30);
           sheary = (y01-y23+x12-x30);
-        } else {
+        }
+        else
+        {
           shearx = (x12-x30+y01-y23);
           sheary = (y12-y30-x01+x23);
         }
-      } else {
+      }
+      else
+      {
         r = fabs(r2);
-        if (r2>0) {
+        if (r2>0)
+        {
           shearx = (x02-y13);
           sheary = (y02+x13);
-        } else {
+        }
+        else
+        {
           shearx = (x13+y02);
           sheary = (y13-x02);
         }
@@ -9762,11 +10739,13 @@ compute_shear(void) {
       f->sheary = sheary;
     }
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       v = &mris->vertices[k];
       dshearx = dsheary = sumn = 0;
       for (n=0;n<v->num;n++)
-        if (!mris->faces[v->f[n]].ripflag) {
+        if (!mris->faces[v->f[n]].ripflag)
+        {
           sx = mris->faces[v->f[n]].shearx;
           sy = mris->faces[v->f[n]].sheary;
           double_angle(sx,sy,&dsx,&dsy);
@@ -9788,7 +10767,8 @@ compute_shear(void) {
 #endif
 }
 void
-double_angle(float x,float y,float *dx,float *dy) {
+double_angle(float x,float y,float *dx,float *dy)
+{
   float a,d;
 
   d = sqrt(x*x+y*y);
@@ -9802,7 +10782,8 @@ double_angle(float x,float y,float *dx,float *dy) {
 }
 
 void
-halve_angle(float x,float y,float *dx,float *dy) {
+halve_angle(float x,float y,float *dx,float *dy)
+{
   float a,d;
 
   d = sqrt(x*x+y*y);
@@ -9816,20 +10797,23 @@ halve_angle(float x,float y,float *dx,float *dy) {
 }
 
 void
-compute_boundary_normals(void) {
+compute_boundary_normals(void)
+{
 #if 0
   int k,m,n;
   VERTEX *v;
   float sumx,sumy,r,nx,ny,f;
 
   for (k=0;k<mris->nvertices;k++)
-    if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border) {
+    if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border)
+    {
       v = &mris->vertices[k];
       n = 0;
       sumx = 0;
       sumy = 0;
       for (m=0;m<v->vnum;m++)
-        if (!mris->vertices[v->v[m]].ripflag) {
+        if (!mris->vertices[v->v[m]].ripflag)
+        {
           sumx += v->x-mris->vertices[v->v[m]].x;
           sumy += v->y-mris->vertices[v->v[m]].y;
           n++;
@@ -9838,14 +10822,16 @@ compute_boundary_normals(void) {
       v->bny = (n>0)?sumy/n:0;
     }
   for (k=0;k<mris->nvertices;k++)
-    if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border) {
+    if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border)
+    {
       v = &mris->vertices[k];
       n = 0;
       sumx = 0;
       sumy = 0;
       for (m=0;m<v->vnum;m++)
         if ((!mris->vertices[v->v[m]].ripflag)&&
-            mris->vertices[v->v[m]].border) {
+            mris->vertices[v->v[m]].border)
+        {
           nx = -(v->y-mris->vertices[v->v[m]].y);
           ny = v->x-mris->vertices[v->v[m]].x;
           f = nx*v->bnx+ny*v->bny;
@@ -9860,9 +10846,11 @@ compute_boundary_normals(void) {
       v->bny = (n>0)?sumy/n:0;
     }
   for (k=0;k<mris->nvertices;k++)
-    if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border) {
+    if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border)
+    {
       r = sqrt(SQR(mris->vertices[k].bnx)+SQR(mris->vertices[k].bny));
-      if (r>0) {
+      if (r>0)
+      {
         mris->vertices[k].bnx /= r;
         mris->vertices[k].bny /= r;
       }
@@ -9871,7 +10859,8 @@ compute_boundary_normals(void) {
 }
 
 void
-subsample_dist(int spacing) {
+subsample_dist(int spacing)
+{
   int k ;
 
   sub_num = MRISsubsampleDist(mris, spacing) ;
@@ -9886,35 +10875,43 @@ subsample_dist(int spacing) {
 
 /* 1-adjdot */
 void
-subsample_orient(float spacing) {
+subsample_orient(float spacing)
+{
   int k,m,n;
   VERTEX *v,*v2,*v3;
   float d;
 
   sub_num = 0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     v->d = 10000;
     v->val = 0;
   }
   for (k=0;k<mris->nvertices;k++)
-    if (mris->vertices[k].d > 0) {
+    if (mris->vertices[k].d > 0)
+    {
       v = &mris->vertices[k];
-      for (m=0;m<v->vnum;m++) {
+      for (m=0;m<v->vnum;m++)
+      {
         v2 = &mris->vertices[v->v[m]];
-        if (v2->d == 0) {
+        if (v2->d == 0)
+        {
           d = 1.0 - (v->nx*v2->nx+v->ny*v2->ny+v->nz*v2->nz);
           if (v->d > d) v->d = d;
         }
-        for (n=0;n<v2->vnum;n++) {
+        for (n=0;n<v2->vnum;n++)
+        {
           v3 = &mris->vertices[v2->v[n]];
-          if (v3->d == 0) {
+          if (v3->d == 0)
+          {
             d = 1.0 - (v->nx*v3->nx+v->ny*v3->ny+v->nz*v3->nz);
             if (v->d > d) v->d = d;
           }
         }
       }
-      if (v->d>=spacing) {
+      if (v->d>=spacing)
+      {
         v->d = 0;
         v->val = 1;
         v->fixedval = TRUE;
@@ -9922,14 +10919,17 @@ subsample_orient(float spacing) {
       }
     }
   for (k=0;k<mris->nvertices;k++)
-    if (mris->vertices[k].d == 0) {
+    if (mris->vertices[k].d == 0)
+    {
       v = &mris->vertices[k];
       n = 0;
-      for (m=0;m<v->vnum;m++) {
+      for (m=0;m<v->vnum;m++)
+      {
         if (mris->vertices[v->v[m]].d > 0)
           n++;
       }
-      if (n == 0) {
+      if (n == 0)
+      {
         v->d = 1;
         v->val = 0;
         sub_num--;
@@ -9941,19 +10941,24 @@ subsample_orient(float spacing) {
 }
 
 void
-smooth_curv(int niter) {
+smooth_curv(int niter)
+{
   int iter,k,m,n;
   VERTEX *v;
   float sum;
 
-  for (iter=0;iter<niter;iter++) {
-    for (k=0;k<mris->nvertices;k++) {
+  for (iter=0;iter<niter;iter++)
+  {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       sum = v->curv;
       n = 1;
       for (m=0;m<v->vnum;m++)
-        if (!mris->vertices[v->v[m]].ripflag) {
-          if (mris->vertices[v->v[m]].d <= v->d) {
+        if (!mris->vertices[v->v[m]].ripflag)
+        {
+          if (mris->vertices[v->v[m]].d <= v->d)
+          {
             sum += mris->vertices[v->v[m]].curv;
             n++;
           }
@@ -9965,41 +10970,49 @@ smooth_curv(int niter) {
 
 #if 1
 void
-smooth_val_sparse(int niter) {
+smooth_val_sparse(int niter)
+{
   int    iter,k,m,n;
   VERTEX *v;
   float  sum;
 
   printf("surfer: smooth_val_sparse(%d)\n",niter);
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     printf(".");
     fflush(stdout);
     for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].ripflag) {
+      if (!mris->vertices[k].ripflag)
+      {
         mris->vertices[k].tdx = mris->vertices[k].val;
         mris->vertices[k].old_undefval = mris->vertices[k].undefval;
       }
     for (k=0;k<mris->nvertices;k++)
       if (!mris->vertices[k].ripflag)
-        if (!mris->vertices[k].fixedval) {
+        if (!mris->vertices[k].fixedval)
+        {
           v = &mris->vertices[k];
           if (k == 3)
             DiagBreak() ;
           sum=0;
           n = 0;
-          if (!v->old_undefval) {
+          if (!v->old_undefval)
+          {
             sum = v->val;
             n = 1;
           }
-          for (m=0;m<v->vnum;m++) {
+          for (m=0;m<v->vnum;m++)
+          {
             /*        if (mris->vertices[v->v[m]].dist < v->dist) */
             /*        if (mris->vertices[v->v[m]].dist <= v->dist) */
-            if (!mris->vertices[v->v[m]].old_undefval) {
+            if (!mris->vertices[v->v[m]].old_undefval)
+            {
               sum += mris->vertices[v->v[m]].tdx;
               n++;
             }
           }
-          if (n>0) {
+          if (n>0)
+          {
             v->val = sum/n;
             v->undefval = FALSE;
           }
@@ -10010,12 +11023,14 @@ smooth_val_sparse(int niter) {
 }
 #else
 void
-smooth_val_sparse(int niter) {
+smooth_val_sparse(int niter)
+{
 #if 0
   int    vno ;
   VERTEX *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     v->marked = v->fixedval ;
   }
@@ -10028,33 +11043,40 @@ VERTEX *v;
 float sum;
 
 printf("surfer: smooth_val_sparse(%d)\n",niter);
-for (iter=0;iter<niter;iter++) {
+for (iter=0;iter<niter;iter++)
+{
   printf(".");
   fflush(stdout);
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       mris->vertices[k].tdx = mris->vertices[k].val;
       mris->vertices[k].old_undefval = mris->vertices[k].undefval;
     }
   for (k=0;k<mris->nvertices;k++)
     if (!mris->vertices[k].ripflag)
-      if (!mris->vertices[k].fixedval) {
+      if (!mris->vertices[k].fixedval)
+      {
         v = &mris->vertices[k];
         sum=0;
         n = 0;
-        if (!v->old_undefval) {
+        if (!v->old_undefval)
+        {
           sum = v->val;
           n = 1;
         }
-        for (m=0;m<v->vnum;m++) {
+        for (m=0;m<v->vnum;m++)
+        {
           /*        if (mris->vertices[v->v[m]].d < v->d) */
           /*        if (mris->vertices[v->v[m]].d <= v->d) */
-          if (!mris->vertices[v->v[m]].old_undefval) {
+          if (!mris->vertices[v->v[m]].old_undefval)
+          {
             sum += mris->vertices[v->v[m]].tdx;
             n++;
           }
         }
-        if (n>0) {
+        if (n>0)
+        {
           v->val = sum/n;
           v->undefval = FALSE;
         }
@@ -10067,25 +11089,29 @@ PR
 #endif
 
 void
-smooth_val(int niter) {
+smooth_val(int niter)
+{
   int iter,k,m,n;
   VERTEX *v;
   float sum;
 
   surface_compiled = 0 ;
   printf("surfer: smooth_val(%d)\n",niter);
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     printf(".");
     fflush(stdout);
     for (k=0;k<mris->nvertices;k++)
       mris->vertices[k].tdx = mris->vertices[k].val;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       sum=v->tdx;
       if (k == Gdiag_no)
         DiagBreak() ;
       n = 1;
-      for (m=0;m<v->vnum;m++) {
+      for (m=0;m<v->vnum;m++)
+      {
         sum += mris->vertices[v->v[m]].tdx;
         n++;
       }
@@ -10102,22 +11128,26 @@ smooth_val(int niter) {
 }
 
 void
-smooth_fs(int niter) {
+smooth_fs(int niter)
+{
   int iter,k,m,n;
   VERTEX *v;
   float sum;
 
   printf("surfer: smooth_fs(%d)\n",niter);
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     printf(".");
     fflush(stdout);
     for (k=0;k<mris->nvertices;k++)
       mris->vertices[k].tdx = mris->vertices[k].fieldsign;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       sum=v->tdx;
       n = 1;
-      for (m=0;m<v->vnum;m++) {
+      for (m=0;m<v->vnum;m++)
+      {
         sum += mris->vertices[v->v[m]].tdx;
         n++;
       }
@@ -10131,26 +11161,30 @@ smooth_fs(int niter) {
 /* begin rkt */
 
 int
-sclv_smooth(int niter, int field) {
+sclv_smooth(int niter, int field)
+{
   int iter,k,m,n;
   VERTEX *v;
   float sum, average;
 
   surface_compiled = 0 ;
   printf("surfer: sclv_smooth(%d,%s)\n",niter,sclv_field_names[field]);
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     printf(".");
     fflush(stdout);
     for (k=0;k<mris->nvertices;k++)
       sclv_get_value( (&(mris->vertices[k])),
                       field, &(mris->vertices[k].tdx));
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       sum=v->tdx;
       if (k == Gdiag_no)
         DiagBreak() ;
       n = 1;
-      for (m=0;m<v->vnum;m++) {
+      for (m=0;m<v->vnum;m++)
+      {
         sum += mris->vertices[v->v[m]].tdx;
         n++;
       }
@@ -10176,19 +11210,23 @@ sclv_smooth(int niter, int field) {
 /* end rkt */
 
 void
-fatten_border(int niter) {
+fatten_border(int niter)
+{
   int iter,k,m,n;
   VERTEX *v;
 
   printf("surfer: fatten_border(%d)\n",niter);
   n = 0;
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     for (k=0;k<mris->nvertices;k++)
       mris->vertices[k].d = mris->vertices[k].border;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       for (m=0;m<v->vnum;m++)
-        if (mris->vertices[v->v[m]].d!=0) {
+        if (mris->vertices[v->v[m]].d!=0)
+        {
           v->border = TRUE;
           n++;
         }
@@ -10199,12 +11237,14 @@ fatten_border(int niter) {
 }
 
 void
-compute_angles(void) {
+compute_angles(void)
+{
   int k;
   float val,valbak,val2,val2bak;
 
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       val = atan2(mris->vertices[k].val2,mris->vertices[k].val);
       val2 = sqrt(SQR(mris->vertices[k].val2)+SQR(mris->vertices[k].val));
       valbak = atan2(mris->vertices[k].val2bak,mris->vertices[k].valbak);
@@ -10217,7 +11257,8 @@ compute_angles(void) {
     }
 }
 
-float circsubtract(float a,float b) {
+float circsubtract(float a,float b)
+{
   float h = a-b;
   if (h<-M_PI) h = h+2*M_PI;
   else if (h>M_PI) h = h-2*M_PI;
@@ -10225,7 +11266,8 @@ float circsubtract(float a,float b) {
 }
 
 void
-compute_fieldsign(void) {
+compute_fieldsign(void)
+{
   int k,m,n;
   VERTEX *v;
   float dv1,dv2,dx,dy,dv1dx,dv1dy,dv2dx,dv2dy;
@@ -10233,14 +11275,17 @@ compute_fieldsign(void) {
 
   MRISremoveTriangleLinks(mris) ;
   printf("surfer: compute_fieldsign()\n");
-  PR for (k=0;k<mris->nvertices;k++) {
-    if (!mris->vertices[k].ripflag) {
+  PR for (k=0;k<mris->nvertices;k++)
+  {
+    if (!mris->vertices[k].ripflag)
+    {
       v = &mris->vertices[k];
       dv1dx = dv1dy = dv2dx = dv2dy = 0;
       m11 = m12 = m13 = m22 = m23 = z1 = z2 = z3 = z1b = z2b = z3b = 0;
       n = 0;
       for (m=0;m<v->vnum;m++)
-        if (!mris->vertices[v->v[m]].ripflag) {
+        if (!mris->vertices[v->v[m]].ripflag)
+        {
           dv1 = circsubtract(v->val,mris->vertices[v->v[m]].val);
           dv2 = circsubtract(v->valbak,mris->vertices[v->v[m]].valbak);
           dx = v->x-mris->vertices[v->v[m]].x;
@@ -10294,21 +11339,24 @@ compute_cortical_thickness(void)   /* marty */
   float gmdist;
   float x,y,z;
 
-  if (!MRIflag || !MRIloaded) {
+  if (!MRIflag || !MRIloaded)
+  {
     printf("surfer: ### need MRI data to compute cortical thickness\n");
     PR return;
   }
 
   compute_normals();
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     v->d = 1;   /* for smooth_val_sparse */
     v->val = 0.0;
     x = v->x;
     y = v->y;
     z = v->z;
-    for (h=0;h<GRAYBINS;h++) {
+    for (h=0;h<GRAYBINS;h++)
+    {
       gmdist = (float)h*GRAYINCR;
 
       imnr = (int)((y-yy0)/st+0.5-imnr0);
@@ -10326,7 +11374,8 @@ compute_cortical_thickness(void)   /* marty */
       sum = gmval;
       n = 1;
 
-      for (m=0;m<v->vnum;m++) {
+      for (m=0;m<v->vnum;m++)
+      {
         x = mris->vertices[v->v[m]].x;
         y = mris->vertices[v->v[m]].y;
         z = mris->vertices[v->v[m]].z;
@@ -10349,9 +11398,11 @@ compute_cortical_thickness(void)   /* marty */
       else     gmvalhist[h] = 0.0;
       /*** printf("avggmval[%d]=%f ",h,gmvalhist[h]); */
     }
-    for (h=0;h<GRAYBINS;h++) {
+    for (h=0;h<GRAYBINS;h++)
+    {
       gmdist = (float)h*GRAYINCR;
-      if (gmvalhist[h]<=mingm) {
+      if (gmvalhist[h]<=mingm)
+      {
         gmdist -= 0.5 * (GRAYBINS-1)*GRAYINCR;
         /* green thin, red thick */
         v->val = gmdist;  /* no gm dropoff: val=0.0 -  */
@@ -10375,19 +11426,22 @@ compute_CMF(void)  /* TODO: update to use new labels! */
   float maxrad=10.0,minrad=0.05*maxrad,afact;
 
   afact = pow(maxrad/minrad,1.0/(maxrad-minrad));
-  for (i=0;i<NLABELS;i++) {
+  for (i=0;i<NLABELS;i++)
+  {
     valtot[i] = 0;
     radmin[i] = 1000000;
     gradx_avg[i] = 0;
     grady_avg[i] = 0;
-    for (j=0;j<CMFBINS;j++) {
+    for (j=0;j<CMFBINS;j++)
+    {
       val1avg[i][j] = 0;
       val2avg[i][j] = 0;
       valnum[i][j] = 0;
     }
   }
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag && !mris->vertices[k].border) {
+    if (!mris->vertices[k].ripflag && !mris->vertices[k].border)
+    {
       v = &mris->vertices[k];
       a = v->val/(2*M_PI);
       a += 0.5;
@@ -10397,14 +11451,16 @@ compute_CMF(void)  /* TODO: update to use new labels! */
     }
   for (k=0;k<mris->nvertices;k++)
     if (!mris->vertices[k].ripflag && !mris->vertices[k].border)
-      if (mris->vertices[k].annotation!=0) {
+      if (mris->vertices[k].annotation!=0)
+      {
         v = &mris->vertices[k];
         dv1dx = dv1dy = dv2dx = dv2dy = 0;
         m11 = m12 = m13 = m22 = m23 = z1 = z2 = z3 = z1b = z2b = z3b = 0;
         n = 0;
         for (m=0;m<v->vnum;m++)
           if (!mris->vertices[v->v[m]].ripflag &&
-              !mris->vertices[v->v[m]].border) {
+              !mris->vertices[v->v[m]].border)
+          {
             dv1 = circsubtract(v->val,mris->vertices[v->v[m]].val);
             dv2 = circsubtract(v->valbak,mris->vertices[v->v[m]].valbak);
             dx = v->x-mris->vertices[v->v[m]].x;
@@ -10428,7 +11484,8 @@ compute_CMF(void)  /* TODO: update to use new labels! */
         dv2dy =
           (-m12*z1b+m13*m23*z1b+m11*z2b-m13*m13*z2b+m12*m13*z3b-m11*m23*z3b);
         denom = -m12*m12+m11*m22-m13*m13*m22+2*m12*m13*m23-m11*m23*m23;
-        if (denom!=0) {
+        if (denom!=0)
+        {
           dv1dx /= denom;
           dv2dx /= denom;
           dv1dy /= denom;
@@ -10438,16 +11495,19 @@ compute_CMF(void)  /* TODO: update to use new labels! */
         gradx_avg[label] += dv1dx;
         grady_avg[label] += dv1dy;
       }
-  for (i=0;i<NLABELS;i++) {
+  for (i=0;i<NLABELS;i++)
+  {
     a = sqrt(SQR(gradx_avg[i])+SQR(grady_avg[i]));
-    if (a!=0) {
+    if (a!=0)
+    {
       gradx_avg[i] /= a;
       grady_avg[i] /= a;
     }
   }
   for (k=0;k<mris->nvertices;k++)
     if (!mris->vertices[k].ripflag && !mris->vertices[k].border)
-      if (mris->vertices[k].annotation!=0) {
+      if (mris->vertices[k].annotation!=0)
+      {
         v = &mris->vertices[k];
         label = mris->vertices[k].annotation;
         rad = (v->x*gradx_avg[label]+v->y*grady_avg[label]);
@@ -10455,16 +11515,19 @@ compute_CMF(void)  /* TODO: update to use new labels! */
       }
   for (k=0;k<mris->nvertices;k++)
     if (!mris->vertices[k].ripflag && !mris->vertices[k].border)
-      if (mris->vertices[k].annotation!=0) {
+      if (mris->vertices[k].annotation!=0)
+      {
         v = &mris->vertices[k];
         label = mris->vertices[k].annotation;
         rad = (v->x*gradx_avg[label]+v->y*grady_avg[label])-radmin[label];
         bin = floor(rad/MAXVAL*CMFBINS);
-        if (bin<0) {
+        if (bin<0)
+        {
           printf("surfer: --- bin=%d too low\n",bin);
           bin=0;
         }
-        if (bin>CMFBINS-1) {
+        if (bin>CMFBINS-1)
+        {
           printf("surfer: --- bin=%d too high\n",bin);
           bin=CMFBINS-1;
         }
@@ -10476,11 +11539,14 @@ compute_CMF(void)  /* TODO: update to use new labels! */
         valtot[label] += 1;
       }
   for (i=0;i<NLABELS;i++)
-    if (valtot[i]!=0) {
+    if (valtot[i]!=0)
+    {
       printf("surfer: label=%d\n",i);
       sum = 0;
-      for (j=0;j<CMFBINS;j++) {
-        if (valnum[i][j]!=0) {
+      for (j=0;j<CMFBINS;j++)
+      {
+        if (valnum[i][j]!=0)
+        {
           a = atan2(val2avg[i][j],val1avg[i][j]);
           if (a<0) a += 2*M_PI;
           a = 2*M_PI-a;
@@ -10495,7 +11561,8 @@ compute_CMF(void)  /* TODO: update to use new labels! */
         if (valnum[i][j]!=0)
           radmax = j*MAXVAL/CMFBINS;
       for (j=0;j<CMFBINS;j++)
-        if (valnum[i][j]!=0) {
+        if (valnum[i][j]!=0)
+        {
           fprintf(fp,"%f %f\n",radmax-j*MAXVAL/CMFBINS,angleavg[i][j]);
         }
       fclose(fp);
@@ -10504,36 +11571,42 @@ compute_CMF(void)  /* TODO: update to use new labels! */
 }
 
 void
-smooth_momentum(int niter) {
+smooth_momentum(int niter)
+{
 #if 0
   int iter,k,m,n;
   VERTEX *v;
   float sumx,sumy,sumz;
 
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       v = &mris->vertices[k];
       v->smx = v->odx;
       v->smy = v->ody;
       v->smz = v->odz;
     }
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].ripflag) {
+      if (!mris->vertices[k].ripflag)
+      {
         v = &mris->vertices[k];
         v->osmx = v->smx;
         v->osmy = v->smy;
         v->osmz = v->smz;
       }
     for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].ripflag) {
+      if (!mris->vertices[k].ripflag)
+      {
         v = &mris->vertices[k];
         sumx = v->osmx;
         sumy = v->osmy;
         sumz = v->osmz;
         n = 1;
         for (m=0;m<v->vnum;m++)
-          if (!mris->vertices[v->v[m]].ripflag) {
+          if (!mris->vertices[v->v[m]].ripflag)
+          {
             sumx += mris->vertices[v->v[m]].osmx;
             sumy += mris->vertices[v->v[m]].osmy;
             sumz += mris->vertices[v->v[m]].osmz;
@@ -10548,14 +11621,16 @@ smooth_momentum(int niter) {
 }
 
 void
-smooth_logarat(int niter) {
+smooth_logarat(int niter)
+{
 #if 0
   int iter,k,m,n;
   VERTEX *v;
   float sum,arat;
 
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       arat = mris->vertices[k].area/mris->vertices[k].origarea;
       mris->vertices[k].logarat = (arat>0)?log(arat):0;
       /*
@@ -10564,17 +11639,20 @@ smooth_logarat(int niter) {
         mris->vertices[k].logarat);
       */
     }
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     for (k=0;k<mris->nvertices;k++)
       if (!mris->vertices[k].ripflag)
         mris->vertices[k].ologarat = mris->vertices[k].logarat;
     for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].ripflag) {
+      if (!mris->vertices[k].ripflag)
+      {
         v = &mris->vertices[k];
         sum = v->ologarat;
         n = 1;
         for (m=0;m<v->vnum;m++)
-          if (!mris->vertices[v->v[m]].ripflag) {
+          if (!mris->vertices[v->v[m]].ripflag)
+          {
             sum += mris->vertices[v->v[m]].ologarat;
             n++;
           }
@@ -10582,38 +11660,45 @@ smooth_logarat(int niter) {
       }
   }
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       mris->vertices[k].sqrtarat = exp(0.5*mris->vertices[k].logarat);
     }
 #endif
 }
 
 void
-smooth_shear(int niter) {
+smooth_shear(int niter)
+{
 #if 0
   int iter,k,m,n;
   VERTEX *v;
   float sumx,sumy,r;
 
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       double_angle(mris->vertices[k].shearx,mris->vertices[k].sheary,
                    &mris->vertices[k].shearx,&mris->vertices[k].sheary);
     }
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].ripflag) {
+      if (!mris->vertices[k].ripflag)
+      {
         mris->vertices[k].oshearx = mris->vertices[k].shearx;
         mris->vertices[k].osheary = mris->vertices[k].sheary;
       }
     for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].ripflag) {
+      if (!mris->vertices[k].ripflag)
+      {
         v = &mris->vertices[k];
         sumx = v->oshearx;
         sumy = v->osheary;
         n = 1;
         for (m=0;m<v->vnum;m++)
-          if (!mris->vertices[v->v[m]].ripflag) {
+          if (!mris->vertices[v->v[m]].ripflag)
+          {
             sumx += mris->vertices[v->v[m]].oshearx;
             sumy += mris->vertices[v->v[m]].osheary;
             n++;
@@ -10623,7 +11708,8 @@ smooth_shear(int niter) {
       }
   }
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       halve_angle(mris->vertices[k].shearx,mris->vertices[k].sheary,
                   &mris->vertices[k].shearx,&mris->vertices[k].sheary);
       r = sqrt(SQR(mris->vertices[k].shearx)+SQR(mris->vertices[k].sheary));
@@ -10633,27 +11719,32 @@ smooth_shear(int niter) {
 }
 
 void
-smooth_boundary_normals(int niter) {
+smooth_boundary_normals(int niter)
+{
 #if 0
   int iter,k,m,n;
   VERTEX *v;
   float sumx,sumy,r;
 
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     for (k=0;k<mris->nvertices;k++)
-      if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border) {
+      if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border)
+      {
         mris->vertices[k].obnx = mris->vertices[k].bnx;
         mris->vertices[k].obny = mris->vertices[k].bny;
       }
     for (k=0;k<mris->nvertices;k++)
-      if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border) {
+      if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border)
+      {
         v = &mris->vertices[k];
         n = 1;
         sumx = v->obnx;
         sumy = v->obny;
         for (m=0;m<v->vnum;m++)
           if ((!mris->vertices[v->v[m]].ripflag)&&
-              mris->vertices[v->v[m]].border) {
+              mris->vertices[v->v[m]].border)
+          {
             sumx += mris->vertices[v->v[m]].obnx;
             sumy += mris->vertices[v->v[m]].obny;
             n++;
@@ -10663,9 +11754,11 @@ smooth_boundary_normals(int niter) {
       }
   }
   for (k=0;k<mris->nvertices;k++)
-    if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border) {
+    if ((!mris->vertices[k].ripflag)&&mris->vertices[k].border)
+    {
       r = sqrt(SQR(mris->vertices[k].bnx)+SQR(mris->vertices[k].bny));
-      if (r>0) {
+      if (r>0)
+      {
         mris->vertices[k].bnx /= r;
         mris->vertices[k].bny /= r;
       }
@@ -10674,12 +11767,14 @@ smooth_boundary_normals(int niter) {
 }
 
 void
-scaledist(float sf) {
+scaledist(float sf)
+{
   int k;
   VERTEX *v;
 
   printf("surfer: scaledist(%f)\n",sf);
-  PR for (k=0;k<mris->nvertices;k++) {
+  PR for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     v->x = (v->x+mris->xctr)*sf-mris->xctr;
     v->y = (v->y-mris->yctr)*sf+mris->yctr;
@@ -10687,7 +11782,8 @@ scaledist(float sf) {
   }
 }
 
-float rtanh(float x) {
+float rtanh(float x)
+{
   return (x<0.0)?0.0:tanh(x);
 }
 
@@ -10704,27 +11800,32 @@ shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
 
   orig_area = mris->total_area ;
   val = inval = outval = 0.0f ;
-  if (shrinkfillflag) {
+  if (shrinkfillflag)
+  {
     shrink_to_fill(niter);
     return;
   }
-  if (flag2d) {
+  if (flag2d)
+  {
     shrink2d(niter);
     return;
   }
-  if (areaflag) {
+  if (areaflag)
+  {
     area_shrink(niter);
     return;
   }
   if (MRIflag && !MRIloaded)
     printf("surfer: MRIflag on but no MRI data loaded... MRIflag ignored\n");
 
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     ad = 0;
     dmax = 0;
     an = 0;
     nclip = 0;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
@@ -10736,7 +11837,8 @@ shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
     maxstress = avgstress = 0;
     navg = 0;
     for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].oripflag) {
+      if (!mris->vertices[k].oripflag)
+      {
         v = &mris->vertices[k];
         x = v->tx;
         y = v->ty;
@@ -10747,20 +11849,23 @@ shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
         sx=sy=sz=sd=0;
         n=0;
         for (m=0;m<v->vnum;m++)
-          if (!mris->vertices[v->v[m]].oripflag) {
+          if (!mris->vertices[v->v[m]].oripflag)
+          {
             sx += dx = mris->vertices[v->v[m]].tx - x;
             sy += dy = mris->vertices[v->v[m]].ty - y;
             sz += dz = mris->vertices[v->v[m]].tz - z;
             sd += sqrt(dx*dx+dy*dy+dz*dz);
             n++;
           }
-        if (n>0) {
+        if (n>0)
+        {
           sx = sx/n;
           sy = sy/n;
           sz = sz/n;
           sd = sd/n;
           stress = sd;
-          if (explodeflag && stress>=stressthresh) {
+          if (explodeflag && stress>=stressthresh)
+          {
             nrip++;
             v->ripflag = TRUE;
           }
@@ -10772,7 +11877,8 @@ shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
           v->stress = stress;
 #endif
         }
-        if (MRIflag && MRIloaded) {
+        if (MRIflag && MRIloaded)
+        {
           imnr = (int)((y-yy0)/st+0.5);
           i = (int)((zz1-z)/ps+0.5);
           j = (int)((xx1-x)/ps+0.5);
@@ -10804,10 +11910,14 @@ shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
           force = (mstrength*tanh((inval-whitemid)*mslope)+
                    mstrength*tanh((val-graymid)*mslope))/2;
 
-        } else
-          if (expandflag) {
+        }
+        else
+          if (expandflag)
+          {
             force = 0.1;
-          } else {
+          }
+          else
+          {
             force = 0;
           }
         nc = sx*nx+sy*ny+sz*nz;
@@ -10817,13 +11927,16 @@ shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
         snc += nc;
         v->nc = nc;
 #if 0
-        if (stiffnessflag) {
+        if (stiffnessflag)
+        {
           anc = 0;
           for (m=0;m<v->vnum;m++)
             anc += mris->vertices[v->v[m]].onc;
           anc /= v->vnum;
           force += tanh((nc-anc)*0.2);
-        } else {
+        }
+        else
+        {
           anc = 0;
           force += tanh((nc-anc)*0.5);
         }
@@ -10834,11 +11947,13 @@ shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
         dx = sx*0.5 + v->nx*force;
         dy = sy*0.5 + v->ny*force;
         dz = sz*0.5 + v->nz*force;
-        if (momentumflag) {
+        if (momentumflag)
+        {
           dx = decay*v->odx+update*dx;
           dy = decay*v->ody+update*dy;
           dz = decay*v->odz+update*dz;
-          if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0) {
+          if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0)
+          {
             nclip ++;
             dx /= d;
             dy /= d;
@@ -10862,7 +11977,8 @@ shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
         soutval += outval;
       }
     snc /= mris->nvertices;
-    if (MRIflag && MRIloaded) {
+    if (MRIflag && MRIloaded)
+    {
       compute_normals();
       sval /= mris->nvertices;
       sinval /= mris->nvertices;
@@ -10870,7 +11986,9 @@ shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
       printf("surfer: %d: sval=%5.2f,sinval=%5.2f,soutval=%5.2f,"
              "snc=%5.2f\n",
              iter,sval,sinval,soutval,snc);
-    } else {
+    }
+    else
+    {
       printf("surfer: %d: ad=%f, dmax=%f, snc=%f\n",iter,ad/an,dmax,snc);
       if (expandflag || explodeflag)
         compute_normals();
@@ -10882,7 +12000,8 @@ shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
              iter,maxstress,avgstress,stressthresh,nrip);
     PR
   }
-  if (!(MRIflag || expandflag || explodeflag)) {
+  if (!(MRIflag || expandflag || explodeflag))
+  {
     compute_normals();
   }
 
@@ -10895,7 +12014,8 @@ shrink(int niter)   /* shrinktypes: nei,mri,curv,exp,area,2d,fill,sphe,ell */
 }
 
 void
-curv_shrink_to_fill(int niter) {
+curv_shrink_to_fill(int niter)
+{
   VERTEX *v;
   int imnr,i,j,iter,k,m,n;
   int an,nclip,delcurvdefined;
@@ -10909,27 +12029,32 @@ curv_shrink_to_fill(int niter) {
   float icrange,crange;
 
   icurv = curv = icurvnei = 0.0f ;
-  if (!curvloaded) {
+  if (!curvloaded)
+  {
     printf("surfer: ### curv not loaded!\n");
     PR return;
   }
-  if (!curvimloaded) {
+  if (!curvimloaded)
+  {
     printf("surfer: ### curvim not loaded!\n");
     PR return;
   }
-  if (!curvimflag) {
+  if (!curvimflag)
+  {
     printf("surfer: ### curvimflag not set!\n");
     PR return;
   }
 
   icrange = mris2->max_curv-mris2->min_curv;
   crange = mris->max_curv-mris->min_curv;
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     ad = 0;
     dmax = 0;
     an = 0;
     nclip = 0;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
@@ -10939,7 +12064,8 @@ curv_shrink_to_fill(int niter) {
     }
     sval = snc = 0;
     for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].oripflag) {
+      if (!mris->vertices[k].oripflag)
+      {
         v = &mris->vertices[k];
         x = v->tx;
         y = v->ty;
@@ -10962,7 +12088,8 @@ curv_shrink_to_fill(int niter) {
           delcurvdefined = FALSE;
         curv = v->curv;
         for (m=0;m<v->vnum;m++)
-          if (!mris->vertices[v->v[m]].oripflag) {
+          if (!mris->vertices[v->v[m]].oripflag)
+          {
             xnei = mris->vertices[v->v[m]].tx;
             ynei = mris->vertices[v->v[m]].ty;
             znei = mris->vertices[v->v[m]].tz;
@@ -10979,7 +12106,7 @@ curv_shrink_to_fill(int niter) {
             if (delcurvdefined)
               cfact += (icurvnei-icurv)/icrange
                        * copysign(icstrength,
-                                  mris2->min_curv+curv*(icrange/crange) - 
+                                  mris2->min_curv+curv*(icrange/crange) -
                                   icurv);
             sx += dx = (xnei - x)*cfact;
             sy += dy = (ynei - y)*cfact;
@@ -10987,7 +12114,8 @@ curv_shrink_to_fill(int niter) {
             sd += sqrt(dx*dx+dy*dy+dz*dz);
             n++;
           }
-        if (n>0) {
+        if (n>0)
+        {
           sx = sx/n;
           sy = sy/n;
           sz = sz/n;
@@ -11011,11 +12139,13 @@ curv_shrink_to_fill(int niter) {
         dx = sx*0.5 + v->nx*force;
         dy = sy*0.5 + v->ny*force;
         dz = sz*0.5 + v->nz*force;
-        if (momentumflag) {
+        if (momentumflag)
+        {
           dx = decay*v->odx+update*dx;
           dy = decay*v->ody+update*dy;
           dz = decay*v->odz+update*dz;
-          if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0) {
+          if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0)
+          {
             nclip ++;
             dx /= d;
             dy /= d;
@@ -11042,7 +12172,8 @@ curv_shrink_to_fill(int niter) {
 }
 
 void
-shrink_to_fill(int niter) {
+shrink_to_fill(int niter)
+{
   float x,y,z,sx,sy,sz,val,inval,outval,nc,force;
   float d,dx,dy,dz,sval,sinval,soutval,snc;
   float nx,ny,nz;
@@ -11052,12 +12183,14 @@ shrink_to_fill(int niter) {
   int navg,an,nclip,inim,ini,inj,outim,outi,outj;
 
   outval = inval = val = 0.0f ;
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     ad = 0;
     dmax = 0;
     an = 0;
     nclip = 0;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
@@ -11068,7 +12201,8 @@ shrink_to_fill(int niter) {
     sval = sinval = soutval = snc = 0;
     navg = 0;
     for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].oripflag) {
+      if (!mris->vertices[k].oripflag)
+      {
         v = &mris->vertices[k];
         x = v->tx;
         y = v->ty;
@@ -11079,21 +12213,24 @@ shrink_to_fill(int niter) {
         sx=sy=sz=sd=0;
         n=0;
         for (m=0;m<v->vnum;m++)
-          if (!mris->vertices[v->v[m]].oripflag) {
+          if (!mris->vertices[v->v[m]].oripflag)
+          {
             sx += dx = mris->vertices[v->v[m]].tx - x;
             sy += dy = mris->vertices[v->v[m]].ty - y;
             sz += dz = mris->vertices[v->v[m]].tz - z;
             sd += sqrt(dx*dx+dy*dy+dz*dz);
             n++;
           }
-        if (n>0) {
+        if (n>0)
+        {
           sx = sx/n;
           sy = sy/n;
           sz = sz/n;
           sd = sd/n;
           navg++;
         }
-        if (MRIflag && MRIloaded) {
+        if (MRIflag && MRIloaded)
+        {
           imnr = (int)(y+numimg/2.0+0.5);
           i = (int)(IMGSIZE/2.0-z+0.5);
           j = (int)(IMGSIZE/2.0-x+0.5);
@@ -11116,7 +12253,8 @@ shrink_to_fill(int niter) {
           else
             outval = 0;
           force = mstrength*tanh((val-mmid)*mslope);
-        } else force = 0;
+        }
+        else force = 0;
         nc = sx*nx+sy*ny+sz*nz;
         /*
           sx -= nc*nx;
@@ -11143,11 +12281,13 @@ shrink_to_fill(int niter) {
         dx = sx*0.5 + v->nx*force;
         dy = sy*0.5 + v->ny*force;
         dz = sz*0.5 + v->nz*force;
-        if (momentumflag) {
+        if (momentumflag)
+        {
           dx = decay*v->odx+update*dx;
           dy = decay*v->ody+update*dy;
           dz = decay*v->odz+update*dz;
-          if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0) {
+          if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0)
+          {
             nclip ++;
             dx /= d;
             dy /= d;
@@ -11170,14 +12310,17 @@ shrink_to_fill(int niter) {
       }
     snc /= mris->nvertices;
     compute_normals();
-    if (MRIflag && MRIloaded) {
+    if (MRIflag && MRIloaded)
+    {
       sval /= mris->nvertices;
       sinval /= mris->nvertices;
       soutval /= mris->nvertices;
       printf("surfer: %d: sval=%5.2f,sinval=%5.2f,"
              "soutval=%5.2f,snc=%5.2f\n",
              iter,sval,sinval,soutval,snc);
-    } else {
+    }
+    else
+    {
       printf("surfer: %d: ad=%f, dmax=%f, snc=%f\n",iter,ad/an,dmax,snc);
     }
     PR
@@ -11200,7 +12343,8 @@ transform(float *xptr, float *yptr, float *zptr, float nx, float ny, float nz,
 }
 
 void
-really_translate_brain(float x, float y, float z) {
+really_translate_brain(float x, float y, float z)
+{
   VERTEX *v;
   int i,j,k;
   float curr[4][4], accum[4][4]; /* Matrix curr,accum; */
@@ -11212,7 +12356,8 @@ really_translate_brain(float x, float y, float z) {
   curr[3][1] = y;
   curr[3][2] = z;
   for (i=0;i<4;i++)
-    for (j=0;j<4;j++) {
+    for (j=0;j<4;j++)
+    {
       accum[i][j] = 0;
       for (k=0;k<4;k++)
         accum[i][j] += curr[i][k]*reallymat[k][j];
@@ -11222,7 +12367,8 @@ really_translate_brain(float x, float y, float z) {
       reallymat[i][j] = accum[i][j];
   print_real_transform_matrix();
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     v->x += x;
     v->y += y;
@@ -11231,7 +12377,8 @@ really_translate_brain(float x, float y, float z) {
 }
 
 void
-really_scale_brain(float x, float y, float z) {
+really_scale_brain(float x, float y, float z)
+{
   VERTEX *v;
   int i,j,k;
   float curr[4][4], accum[4][4]; /* Matrix curr,accum; */
@@ -11243,7 +12390,8 @@ really_scale_brain(float x, float y, float z) {
   curr[1][1] = y;
   curr[2][2] = z;
   for (i=0;i<4;i++)
-    for (j=0;j<4;j++) {
+    for (j=0;j<4;j++)
+    {
       accum[i][j] = 0;
       for (k=0;k<4;k++)
         accum[i][j] += curr[i][k]*reallymat[k][j];
@@ -11253,7 +12401,8 @@ really_scale_brain(float x, float y, float z) {
       reallymat[i][j] = accum[i][j];
   print_real_transform_matrix();
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     v->x *= x;
     v->y *= y;
@@ -11265,12 +12414,14 @@ int
 MRIStransformBrain(MRI_SURFACE *mris,
                    float exx, float exy, float exz,
                    float eyx, float eyy, float eyz,
-                   float ezx, float ezy, float ezz) {
+                   float ezx, float ezy, float ezz)
+{
   int     vno ;
   VERTEX  *v ;
   float   x, y, z ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -11285,7 +12436,8 @@ MRIStransformBrain(MRI_SURFACE *mris,
   return(NO_ERROR) ;
 }
 void
-align_sphere(MRI_SURFACE *mris) {
+align_sphere(MRI_SURFACE *mris)
+{
   int     vno1, vno2 ;
   VERTEX  *v1, *v2 ;
   double  ex[3], ey[3], ez[3], len, p2[3], dot, tmp[3] ;
@@ -11297,7 +12449,8 @@ align_sphere(MRI_SURFACE *mris) {
   */
   if (nmarked != 2)
     fprintf(stderr, "must pick origin and alignment points (previous two)\n");
-  else {
+  else
+  {
     vno1 = marked[nmarked-2] ;
     vno2 = marked[nmarked-1] ;
     v1 = &mris->vertices[vno1] ;
@@ -11338,7 +12491,8 @@ align_sphere(MRI_SURFACE *mris) {
 }
 
 void
-really_rotate_brain(float a, char axis) {
+really_rotate_brain(float a, char axis)
+{
   VERTEX *v;
   float x,y,z;
   float cosa,sina;
@@ -11352,22 +12506,30 @@ really_rotate_brain(float a, char axis) {
   for (i=0;i<4;i++)
     for (j=0;j<4;j++)
       curr[i][j] = idmat[i][j];
-  if (axis=='y') {
+  if (axis=='y')
+  {
     curr[0][0] = curr[2][2] = cosa;
     curr[2][0] = -(curr[0][2] = sina);
-  } else if (axis=='x') {
+  }
+  else if (axis=='x')
+  {
     curr[1][1] = curr[2][2] = cosa;
     curr[1][2] = -(curr[2][1] = sina);
-  } else if (axis=='z') {
+  }
+  else if (axis=='z')
+  {
     curr[0][0] = curr[1][1] = cosa;
     curr[1][0] = -(curr[0][1] = sina);
-  } else {
+  }
+  else
+  {
     printf("surfer: ### Illegal axis %c\n",axis);
     return;
     PR
   }
   for (i=0;i<4;i++)
-    for (j=0;j<4;j++) {
+    for (j=0;j<4;j++)
+    {
       accum[i][j] = 0;
       for (k=0;k<4;k++)
         accum[i][j] += curr[i][k]*reallymat[k][j];
@@ -11377,21 +12539,29 @@ really_rotate_brain(float a, char axis) {
       reallymat[i][j] = accum[i][j];
   print_real_transform_matrix();
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     x = v->x;
     y = v->y;
     z = v->z;
-    if (axis=='x') {
+    if (axis=='x')
+    {
       v->y = y*cosa - z*sina;
       v->z = y*sina + z*cosa;
-    } else if (axis=='y') {
+    }
+    else if (axis=='y')
+    {
       v->x = x*cosa + z*sina;
       v->z = -x*sina + z*cosa;
-    } else if (axis=='z') {
+    }
+    else if (axis=='z')
+    {
       v->x = x*cosa - y*sina;
       v->y = x*sina + y*cosa;
-    } else {
+    }
+    else
+    {
       printf("surfer: ### Illegal axis %c\n",axis);
       return;
       PR
@@ -11408,13 +12578,15 @@ really_align_brain(void)  /* trans cent first -> cent targ */
   float cx,cy,cz;
   float tcx,tcy,tcz;
 
-  if (!secondsurfaceloaded) {
+  if (!secondsurfaceloaded)
+  {
     printf("surfer: ### really_align brain failed: no second surface read\n");
     PR return;
   }
 
   cx = cy = cz = 0.0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     cx += v->x;
     cy += v->y;
@@ -11425,7 +12597,8 @@ really_align_brain(void)  /* trans cent first -> cent targ */
   cz /= mris->nvertices;
 
   tcx = tcy = tcz = 0.0;
-  for (k=0;k<mris2->nvertices;k++) {
+  for (k=0;k<mris2->nvertices;k++)
+  {
     v2 = &mris2->vertices[k];
     tcx += v2->x;
     tcy += v2->y;
@@ -11441,13 +12614,15 @@ really_align_brain(void)  /* trans cent first -> cent targ */
 }
 
 void
-really_center_brain(void) {
+really_center_brain(void)
+{
   VERTEX *v;
   int k;
   float cx,cy,cz;
 
   cx = cy = cz = 0.0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     cx += v->x;
     cy += v->y;
@@ -11464,19 +12639,22 @@ really_center_brain(void) {
 }
 
 void
-really_center_second_brain(void) {
+really_center_second_brain(void)
+{
   VERTEX *v2;
   int k;
   float cx,cy,cz;
 
-  if (!secondsurfaceloaded) {
+  if (!secondsurfaceloaded)
+  {
     printf("surfer: ### really_center_second_brain failed: "
            "no second surface read\n");
     PR return;
   }
 
   cx = cy = cz = 0.0;
-  for (k=0;k<mris2->nvertices;k++) {
+  for (k=0;k<mris2->nvertices;k++)
+  {
     v2 = &mris2->vertices[k];
     cx += v2->x;
     cy += v2->y;
@@ -11488,7 +12666,8 @@ really_center_second_brain(void) {
 
   mris2->xctr = mris2->zctr = mris2->yctr = 0.0;
 
-  for (k=0;k<mris2->nvertices;k++) {  /* really translate */
+  for (k=0;k<mris2->nvertices;k++)
+  {  /* really translate */
     v2 = &mris2->vertices[k];
     v2->x += -cx;
     v2->y += -cy;
@@ -11500,12 +12679,15 @@ really_center_second_brain(void) {
 }
 
 void
-print_real_transform_matrix(void) {
+print_real_transform_matrix(void)
+{
   int i,j;
 
   printf("surfer: accumulated real transforms\n");
-  for (i=0;i<4;i++) {
-    for (j=0;j<4;j++) {
+  for (i=0;i<4;i++)
+  {
+    for (j=0;j<4;j++)
+    {
       printf(" %13.3e ",reallymat[i][j]);
     }
     printf("\n");
@@ -11514,19 +12696,23 @@ print_real_transform_matrix(void) {
 }
 
 void
-write_really_matrix(char *dir) {
+write_really_matrix(char *dir)
+{
   int i,j;
   char fname[NAME_LENGTH];
   FILE *fp;
 
   sprintf(fname,"%s/really.mat",dir);
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
-  for (i=0;i<4;i++) {
-    for (j=0;j<4;j++) {
+  for (i=0;i<4;i++)
+  {
+    for (j=0;j<4;j++)
+    {
       fprintf(fp,"%13.3e ",reallymat[i][j]);
     }
     fprintf(fp,"\n");
@@ -11537,7 +12723,8 @@ write_really_matrix(char *dir) {
 }
 
 void
-read_really_matrix(char *dir) {
+read_really_matrix(char *dir)
+{
   VERTEX *v;
   int i,j,k;
   float a,b,c,d;
@@ -11548,26 +12735,32 @@ read_really_matrix(char *dir) {
 
   sprintf(fname,"%s/really.mat",dir);
   fp = fopen(fname,"r");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### File %s not found\n",fname);
     PR return;
   }
 
   i = 0;
-  while (fgets(line,NAME_LENGTH,fp) != NULL) {
-    if (sscanf(line,"%f %f %f %f",&a,&b,&c,&d) == 4)  {
+  while (fgets(line,NAME_LENGTH,fp) != NULL)
+  {
+    if (sscanf(line,"%f %f %f %f",&a,&b,&c,&d) == 4)
+    {
       reallymat[i][0] = a;
       reallymat[i][1] = b;
       reallymat[i][2] = c;
       reallymat[i][3] = d;
       i++;
-    } else {
+    }
+    else
+    {
       printf("surfer: ### couldn't parse this line in matrix file:  %s",line);
       printf("surfer: ###   ...read_really_matrix() failed\n");
       PR return;
     }
   }
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     or[0] = v->x;
     or[1] = v->y;
@@ -11575,7 +12768,8 @@ read_really_matrix(char *dir) {
     or[3] = 1.0;
     r[0] = r[1] = r[2] = r[3] = 0.0;
     for (i=0;i<4;i++)
-      for (j=0;j<4;j++) {
+      for (j=0;j<4;j++)
+      {
         r[i] += reallymat[i][j]*or[j];
       }
     v->x = r[0];
@@ -11588,7 +12782,8 @@ read_really_matrix(char *dir) {
 }
 
 void
-flatten(char *dir) {
+flatten(char *dir)
+{
   float x,y,z,d,d1,d2;
   float nx,ny,nz;
   VERTEX *v;
@@ -11599,7 +12794,8 @@ flatten(char *dir) {
   x = y = z = nx = ny = nz = 0;
   an = 0;
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       v = &mris->vertices[k];
       x += v->x;
       y += v->y;
@@ -11615,11 +12811,13 @@ flatten(char *dir) {
   printf("surfer: avg p = {%f,%f,%f}\n",x,y,z);
   printf("surfer: sum n = {%f,%f,%f}\n",nx,ny,nz);
   /* or override with direct front,back */
-  if (project==POSTERIOR) {
+  if (project==POSTERIOR)
+  {
     nx = nz = 0.0;
     ny = -1.0;
   }
-  if (project==ANTERIOR)  {
+  if (project==ANTERIOR)
+  {
     nx = nz = 0.0;
     ny = 1.0;
   }
@@ -11630,7 +12828,8 @@ flatten(char *dir) {
   d = sqrt(nx*nx+ny*ny);
   printf("surfer: norm n = {%f,%f,%f}\n",nx,ny,nz);
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       v = &mris->vertices[k];
       v->x -= x;
       v->y -= y;
@@ -11645,10 +12844,13 @@ flatten(char *dir) {
   /* print transform matrix in tmp dir */
   sprintf(fname,"%s/surfer.mat",dir);
   fp = fopen(fname,"w");
-  if (fp==NULL) {
+  if (fp==NULL)
+  {
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
-  } else {
+  }
+  else
+  {
     fprintf(fp,"%13.3e %13.3e %13.3e %13.3e\n",  nx*nz/d,  -nx,  ny/d,   0.0);
     fprintf(fp,"%13.3e %13.3e %13.3e %13.3e\n",    d,       nz,   0.0,   0.0);
     fprintf(fp,"%13.3e %13.3e %13.3e %13.3e\n",  -ny*nz/d,  ny,   nx/d,  0.0);
@@ -11659,7 +12861,8 @@ flatten(char *dir) {
 
   transform(&nx,&ny,&nz,nx,ny,nz,d);
   printf("surfer: transformed n = {%f,%f,%f}\n",nx,ny,nz);
-  PR for (k=0;k<mris->nvertices;k++) {
+  PR for (k=0;k<mris->nvertices;k++)
+  {
     mris->vertices[k].z = 0;
   }
   compute_normals();
@@ -11680,13 +12883,15 @@ area_shrink(int niter)  /* consider area */
   float ax,ay,az,tx,ty,tz;
   int nneg;
 
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     smooth_logarat(10);
     ad = 0;
     dmax = 0;
     an = 0;
     nclip = 0;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
@@ -11702,7 +12907,8 @@ area_shrink(int niter)  /* consider area */
     minrat = 100;
     dd = 0;
     for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].oripflag) {
+      if (!mris->vertices[k].oripflag)
+      {
         v = &mris->vertices[k];
         x = v->tx;
         y = v->ty;
@@ -11725,19 +12931,22 @@ area_shrink(int niter)  /* consider area */
         /*v->curv = logarat;*/   /* marty: out 10/9/97 */
 
         for (m=0;m<v->vnum;m++)
-          if (!mris->vertices[v->v[m]].oripflag) {
+          if (!mris->vertices[v->v[m]].oripflag)
+          {
             v1 = &mris->vertices[v->v[m]];
             sx += dx = v1->tx - x;
             sy += dy = v1->ty - y;
             sz += dz = v1->tz - z;
 
             d = sqrt(dx*dx+dy*dy+dz*dz);
-            if (d>0) {
+            if (d>0)
+            {
               ax += (v1->tx - x)/d*(v1->logarat-logarat);
               ay += (v1->ty - y)/d*(v1->logarat-logarat);
               az += (v1->tz - z)/d*(v1->logarat-logarat);
             }
-            if (v->border) {
+            if (v->border)
+            {
               force = -logarat;
               d = sqrt(x*x+y*y+z*z);
               tx += x/d*force;
@@ -11748,7 +12957,8 @@ area_shrink(int niter)  /* consider area */
             dd += SQR(d-1.0);
             n++;
           }
-        if (n>0) {
+        if (n>0)
+        {
           sx = sx/n;
           sy = sy/n;
           sz = sz/n;
@@ -11760,7 +12970,8 @@ area_shrink(int niter)  /* consider area */
           az = az/n;
           sd = sd/n;
         }
-        if ((d=sqrt(ax*ax+ay*ay+az*az))>1.0) {
+        if ((d=sqrt(ax*ax+ay*ay+az*az))>1.0)
+        {
           ax /= d;
           ay /= d;
           az /= d;
@@ -11776,10 +12987,12 @@ area_shrink(int niter)  /* consider area */
 
         v->val = nc;
 
-        if (logarat<0) {
+        if (logarat<0)
+        {
           nforce = -logarat;
         }
-        if (ncthreshflag) {
+        if (ncthreshflag)
+        {
           if (nc<0)
             nc = (nc<-ncthresh)?nc+ncthresh:0;
           else
@@ -11788,7 +13001,8 @@ area_shrink(int niter)  /* consider area */
         dx = tx*wt + ax*wa + sx*ws + nx*nc*wn + nx*nforce*wc;
         dy = ty*wt + ay*wa + sy*ws + ny*nc*wn + ny*nforce*wc;
         dz = tz*wt + az*wa + sz*ws + nz*nc*wn + nz*nforce*wc;
-        if (momentumflag) {
+        if (momentumflag)
+        {
           dx = decay*v->odx+update*dx;
           dy = decay*v->ody+update*dy;
           dz = decay*v->odz+update*dz;
@@ -11800,7 +13014,8 @@ area_shrink(int niter)  /* consider area */
           s=(%f,%f,%f), a=(%f,%f,%f)\n",
           k,d,dx,dy,dz,sd,sy,sz,ax,ay,az);
         */
-        if (d>1.0) {
+        if (d>1.0)
+        {
           nclip ++;
           dx /= d;
           dy /= d;
@@ -11813,7 +13028,8 @@ area_shrink(int niter)  /* consider area */
         if (d>dmax) dmax = d;
         ad += d;
         an ++;
-        if (!(v->border&&fixed_border)) {
+        if (!(v->border&&fixed_border))
+        {
           v->x += dx;
           v->y += dy;
           v->z += dz;
@@ -11836,7 +13052,8 @@ area_shrink(int niter)  /* consider area */
 }
 
 void
-shrink2d(int niter) {
+shrink2d(int niter)
+{
 #if 0
   float x,y,z,sx,sy,sz,nc,force,nforce;
   float d,dx,dy,dz,sval,sinval,soutval,snc;
@@ -11850,7 +13067,8 @@ shrink2d(int niter) {
   float ax,ay,az,shx,shy,shz,tx,ty,tz,tnx,tny,tnz,f1,f2;
   int nneg;
 
-  if (!computed_shear_flag) {
+  if (!computed_shear_flag)
+  {
     smooth_logarat(10);
     compute_shear();
     smooth_shear(10);
@@ -11859,7 +13077,8 @@ shrink2d(int niter) {
     computed_shear_flag = TRUE;
   }
 
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     /*
       smooth_momentum(10);
     */
@@ -11867,7 +13086,8 @@ shrink2d(int niter) {
     dmax = 0;
     an = 0;
     nclip = 0;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
@@ -11886,7 +13106,8 @@ shrink2d(int niter) {
     minshear = 100;
     dd = 0;
     for (k=0;k<mris->nvertices;k++)
-      if (!mris->vertices[k].ripflag) {
+      if (!mris->vertices[k].ripflag)
+      {
         v = &mris->vertices[k];
         x = v->tx;
         y = v->ty;
@@ -11920,15 +13141,18 @@ shrink2d(int niter) {
         */
 
         for (m=0;m<v->vnum;m++)
-          if (!mris->vertices[v->v[m]].oripflag) {
+          if (!mris->vertices[v->v[m]].oripflag)
+          {
             v1 = &mris->vertices[v->v[m]];
             sx += dx = v1->tx - x;
             sy += dy = v1->ty - y;
             sz += dz = v1->tz - z;
 
             d = sqrt(dx*dx+dy*dy+dz*dz);
-            if (!v->border) {
-              if (d>0) {
+            if (!v->border)
+            {
+              if (d>0)
+              {
                 ax += (v1->tx - x)/d*(v1->logarat-logarat);
                 ay += (v1->ty - y)/d*(v1->logarat-logarat);
                 az += (v1->tz - z)/d*(v1->logarat-logarat);
@@ -11937,15 +13161,18 @@ shrink2d(int niter) {
                    fabs(-(v1->tx-x)*v1->sheary+(v1->ty-y)*v1->shearx);
               f2 = fabs((v1->tx-x)*shearx+(v1->ty-y)*sheary)-
                    fabs(-(v1->tx-x)*sheary+(v1->ty-y)*shearx);
-              if (d>0) {
+              if (d>0)
+              {
                 shx += (v1->tx-x)/d*(f1-f2);
                 shy += (v1->ty-y)/d*(f1-f2);
                 shz += 0;
               }
             }
-            if (v->border) {
+            if (v->border)
+            {
               force = -logarat;
-              if (v->nz<0) {
+              if (v->nz<0)
+              {
                 force = 0.0;
                 nneg++;
               }
@@ -11954,7 +13181,8 @@ shrink2d(int niter) {
               tz += 0;
               f1 = -(fabs((v->bnx)*shearx+(v->bny)*sheary)-
                      fabs(-(v->bnx)*sheary+(v->bny)*shearx));
-              if (v->nz<0) {
+              if (v->nz<0)
+              {
                 f1 = 0.0;
               }
               tnx += v->bnx*f1;
@@ -11965,7 +13193,8 @@ shrink2d(int niter) {
             dd += SQR(d-1.0);
             n++;
           }
-        if (n>0) {
+        if (n>0)
+        {
           sx = sx/n;
           sy = sy/n;
           sz = sz/n;
@@ -11983,12 +13212,14 @@ shrink2d(int niter) {
           shz = shz/n;
           sd = sd/n;
         }
-        if ((d=sqrt(ax*ax+ay*ay+az*az))>1.0) {
+        if ((d=sqrt(ax*ax+ay*ay+az*az))>1.0)
+        {
           ax /= d;
           ay /= d;
           az /= d;
         }
-        if ((d=sqrt(shx*shx+shy*shy+shz*shz))>1.0) {
+        if ((d=sqrt(shx*shx+shy*shy+shz*shz))>1.0)
+        {
           shx /= d;
           shy /= d;
           shz /= d;
@@ -12014,7 +13245,8 @@ shrink2d(int niter) {
           }
         */
 
-        if (logarat<0) {
+        if (logarat<0)
+        {
           nforce = -logarat;
         }
         if (nc<0)
@@ -12024,13 +13256,15 @@ shrink2d(int niter) {
         dx = tx*wt + ax*wa + sx*ws + shx*wsh + tnx*wbn;
         dy = ty*wt + ay*wa + sy*ws + shy*wsh + tny*wbn;
         dz = tz*wt + az*wa + sz*ws + shz*wsh + tnz*wbn;
-        if (momentumflag) {
+        if (momentumflag)
+        {
           dx = decay*v->odx+update*dx;
           dy = decay*v->ody+update*dy;
           dz = decay*v->odz+update*dz;
         }
         d=sqrt(dx*dx+dy*dy+dz*dz);
-        if (d>1.0) {
+        if (d>1.0)
+        {
           nclip ++;
           dx /= d;
           dy /= d;
@@ -12045,7 +13279,8 @@ shrink2d(int niter) {
           v->odz = 0.8*dz+0.5*v->smz;
         */
         d=sqrt(v->odx*v->odx+v->ody*v->ody+v->odz*v->odz);
-        if (d>1.0) {
+        if (d>1.0)
+        {
           v->odx /= d;
           v->ody /= d;
           v->odz /= d;
@@ -12060,7 +13295,8 @@ shrink2d(int niter) {
 
         ad += d;
         an ++;
-        if (!(v->border&&fixed_border)) {
+        if (!(v->border&&fixed_border))
+        {
           v->x += dx;
           v->y += dy;
           v->z += dz;
@@ -12093,7 +13329,8 @@ shrink2d(int niter) {
 }
 
 void
-sphere_shrink(int niter, float rad) {
+sphere_shrink(int niter, float rad)
+{
   float x,y,z,sx,sy,sz;
   float d,dx,dy,dz;
   float xc,yc,zc,r,dr;
@@ -12102,32 +13339,37 @@ sphere_shrink(int niter, float rad) {
   float sd,ad,dmax;
   int an,nclip;
 
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     ad = 0;
     dmax = 0;
     an = 0;
     nclip = 0;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
       v->tz = v->z;
     }
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       x = v->tx;
       y = v->ty;
       z = v->tz;
       sx=sy=sz=sd=0;
       n=0;
-      for (m=0;m<v->vnum;m++) {
+      for (m=0;m<v->vnum;m++)
+      {
         sx += dx = mris->vertices[v->v[m]].tx - x;
         sy += dy = mris->vertices[v->v[m]].ty - y;
         sz += dz = mris->vertices[v->v[m]].tz - z;
         sd += sqrt(dx*dx+dy*dy+dz*dz);
         n++;
       }
-      if (n>0) {
+      if (n>0)
+      {
         sx = sx/n;
         sy = sy/n;
         sz = sz/n;
@@ -12142,11 +13384,13 @@ sphere_shrink(int niter, float rad) {
       dx = sx*0.5 + xc/r*dr;
       dy = sy*0.5 + yc/r*dr;
       dz = sz*0.5 + zc/r*dr;
-      if (momentumflag) {
+      if (momentumflag)
+      {
         dx = decay*v->odx+update*dx;
         dy = decay*v->ody+update*dy;
         dz = decay*v->odz+update*dz;
-        if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0) {
+        if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0)
+        {
           nclip ++;
           dx /= d;
           dy /= d;
@@ -12173,7 +13417,8 @@ sphere_shrink(int niter, float rad) {
 
 /* a=rh/lh, b=ant/post,  c=sup/inf */
 void
-ellipsoid_project(float a, float b, float c) {
+ellipsoid_project(float a, float b, float c)
+{
   VERTEX *v;
   int k;
   float x,y,z,x2,y2,z2,dx,dy,dz,a2,b2,c2,a4,b4,c4,a6,b6,c6;
@@ -12191,7 +13436,8 @@ ellipsoid_project(float a, float b, float c) {
   b6 = b2*b4;
   c6 = c2*c4;
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     /*
       printf("%6d: before: %6.2f\n",k,SQR(v->x/a)+SQR(v->y/b)+SQR(v->z/c));
@@ -12226,7 +13472,8 @@ ellipsoid_project(float a, float b, float c) {
 
 /* a=rh/lh, b=ant/post,  c=sup/inf */
 void
-ellipsoid_morph(int niter, float a, float b, float c) {
+ellipsoid_morph(int niter, float a, float b, float c)
+{
   VERTEX *v;
   int imnr,i,j,iter,k,m,n,dk,di,dj;
   int an,nclip,delcurvdefined;
@@ -12238,7 +13485,8 @@ ellipsoid_morph(int niter, float a, float b, float c) {
   float icrange,crange;
   double gradnormsum,rmscurv,rmsicurv,rmscurverr,curvfact,rmsinum;
 
-  if (curvloaded && curvimloaded) {
+  if (curvloaded && curvimloaded)
+  {
     icrange = mris2->max_curv-mris2->min_curv;
     crange = mris->max_curv-mris->min_curv;
   }
@@ -12251,14 +13499,16 @@ ellipsoid_morph(int niter, float a, float b, float c) {
     for (imnr=0;imnr<numimg;imnr++)
       for (i=0;i<IMGSIZE;i++)
         for (j=0;j<IMGSIZE;j++)
-          if (curvimflags[imnr][i][j] & CURVIM_DEFINED) {
+          if (curvimflags[imnr][i][j] & CURVIM_DEFINED)
+          {
             icurv = bytetofloat(curvim[imnr][i][j],
                                 mris2->min_curv,mris2->max_curv);
             rmsicurv += SQR(icurv);
             rmsinum++;
           }
   rmsicurv = sqrt(rmsicurv/rmsinum);
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     curv = v->curv;
     rmscurv += SQR(curv);
@@ -12267,30 +13517,35 @@ ellipsoid_morph(int niter, float a, float b, float c) {
   curvfact = rmsicurv/rmscurv;
   printf("rmscurv = %f, rmsicurv = %f, curvfact = %f\n",
          rmscurv,rmsicurv,curvfact);
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     v->curv *= curvfact;
   }
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     ad = 0;
     dmax = 0;
     an = 0;
     nclip = 0;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
       v->tz = v->z;
     }
     gradnormsum = rmsicurv = rmscurverr = 0;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       x = v->tx;
       y = v->ty;
       z = v->tz;
       sx=sy=sz=sd=0;
       n=0;
-      if (curvimflag && curvimloaded) {
+      if (curvimflag && curvimloaded)
+      {
         delcurvdefined = TRUE;
         imnr = (int)((y-yy0)/st+0.5);
         i = (int)((zz1-z)/ps+0.5);
@@ -12309,7 +13564,8 @@ ellipsoid_morph(int niter, float a, float b, float c) {
         gradx = grady = gradz = 0;
         for (dk=-1;dk<=1;dk++)
           for (di=-1;di<=1;di++)
-            for (dj=-1;dj<=1;dj++) {
+            for (dj=-1;dj<=1;dj++)
+            {
               if (!(curvimflags[imnr+dk][i+di][j+dj] & CURVIM_DEFINED))
                 delcurvdefined = FALSE;
               val = bytetofloat(curvim[imnr+dk][i+di][j+dj],
@@ -12328,7 +13584,8 @@ ellipsoid_morph(int niter, float a, float b, float c) {
         sz += icstrength*gradz*(curv-icurv);
         gradnormsum += sqrt(gradx*gradx+grady*grady+gradz*gradz);
       }
-      for (m=0;m<v->vnum;m++) {
+      for (m=0;m<v->vnum;m++)
+      {
         xnei = mris->vertices[v->v[m]].tx;
         ynei = mris->vertices[v->v[m]].ty;
         znei = mris->vertices[v->v[m]].tz;
@@ -12338,7 +13595,8 @@ ellipsoid_morph(int niter, float a, float b, float c) {
         sd += sqrt(dx*dx+dy*dy+dz*dz);
         n++;
       }
-      if (n>0) {
+      if (n>0)
+      {
         sx = sx/n;
         sy = sy/n;
         sz = sz/n;
@@ -12347,11 +13605,13 @@ ellipsoid_morph(int niter, float a, float b, float c) {
       dx = sx;
       dy = sy;
       dz = sz;
-      if (momentumflag) {
+      if (momentumflag)
+      {
         dx = decay*v->odx+update*dx;
         dy = decay*v->ody+update*dy;
         dz = decay*v->odz+update*dz;
-        if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0) {
+        if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0)
+        {
           nclip ++;
           dx /= d;
           dy /= d;
@@ -12380,7 +13640,8 @@ ellipsoid_morph(int niter, float a, float b, float c) {
 
 /* a=rh/lh, b=ant/post,  c=sup/inf */
 void
-ellipsoid_shrink(int niter, float a, float b, float c) {
+ellipsoid_shrink(int niter, float a, float b, float c)
+{
   VERTEX *v;
   int imnr,i,j,iter,k,m,n;
   int an,nclip,delcurvdefined = 0;
@@ -12395,13 +13656,15 @@ ellipsoid_shrink(int niter, float a, float b, float c) {
   float icrange,crange;
 
   curv = icurv = icurvnei = 0.0f ;
-  if (curvloaded && curvimloaded) {
+  if (curvloaded && curvimloaded)
+  {
     icrange = mris2->max_curv-mris2->min_curv;
     crange = mris->max_curv-mris->min_curv;
   }
 
   acx = acy = acz = 0.0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     acx += v->x;
     acy += v->y;
@@ -12411,25 +13674,29 @@ ellipsoid_shrink(int niter, float a, float b, float c) {
   acy /= mris->nvertices;
   acz /= mris->nvertices;
 
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     ad = 0;
     dmax = 0;
     an = 0;
     nclip = 0;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
       v->tz = v->z;
     }
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       x = v->tx;
       y = v->ty;
       z = v->tz;
       sx=sy=sz=sd=0;
       n=0;
-      if (curvimflag && curvimloaded) {
+      if (curvimflag && curvimloaded)
+      {
         delcurvdefined = TRUE;
         imnr = (int)((y-yy0)/st+0.5);
         i = (int)((zz1-z)/ps+0.5);
@@ -12444,11 +13711,13 @@ ellipsoid_shrink(int niter, float a, float b, float c) {
           delcurvdefined = FALSE;
         curv = v->curv;
       }
-      for (m=0;m<v->vnum;m++) {
+      for (m=0;m<v->vnum;m++)
+      {
         xnei = mris->vertices[v->v[m]].tx;
         ynei = mris->vertices[v->v[m]].ty;
         znei = mris->vertices[v->v[m]].tz;
-        if (curvimflag && curvimloaded) {
+        if (curvimflag && curvimloaded)
+        {
           imnr = (int)((ynei-yy0)/st+0.5);
           i = (int)((zz1-znei)/ps+0.5);
           j = (int)((xx1-xnei)/ps+0.5);
@@ -12472,7 +13741,9 @@ ellipsoid_shrink(int niter, float a, float b, float c) {
           sx += dx = (xnei - x)*cfact;
           sy += dy = (ynei - y)*cfact;
           sz += dz = (znei - z)*cfact;
-        } else {
+        }
+        else
+        {
           sx += dx = xnei - x;
           sy += dy = ynei - y;
           sz += dz = znei - z;
@@ -12480,7 +13751,8 @@ ellipsoid_shrink(int niter, float a, float b, float c) {
         sd += sqrt(dx*dx+dy*dy+dz*dz);
         n++;
       }
-      if (n>0) {
+      if (n>0)
+      {
         sx = sx/n;
         sy = sy/n;
         sz = sz/n;
@@ -12498,21 +13770,26 @@ ellipsoid_shrink(int niter, float a, float b, float c) {
       dy = sy*0.5 + yc/r*dr;
       dz = sz*0.5 + zc/r*dr;
 #if 0
-      if (dr > 0.01 || dr < -0.01) {
+      if (dr > 0.01 || dr < -0.01)
+      {
         dx = sx*0.5 + xc/r*dr;   /* radial approach */
         dy = sy*0.5 + yc/r*dr;
         dz = sz*0.5 + zc/r*dr;
-      } else {
+      }
+      else
+      {
         dx = sx*0.5 + dr*v->nx;  /* normal there (unstable if folded) */
         dy = sy*0.5 + dr*v->ny;
         dz = sz*0.5 + dr*v->nz;
       }
 #endif
-      if (momentumflag) {
+      if (momentumflag)
+      {
         dx = decay*v->odx+update*dx;
         dy = decay*v->ody+update*dy;
         dz = decay*v->odz+update*dz;
-        if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0) {
+        if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0)
+        {
           nclip ++;
           dx /= d;
           dy /= d;
@@ -12538,7 +13815,8 @@ ellipsoid_shrink(int niter, float a, float b, float c) {
 
 /* 50 ellipsoid_shrink(2,100,150); */
 void
-ellipsoid_shrink_bug(int niter, float rad, float len) {
+ellipsoid_shrink_bug(int niter, float rad, float len)
+{
   float x,y,z,sx,sy,sz;
   float d,dx,dy,dz;
   float xc,yc,zc,r,dr;
@@ -12554,7 +13832,8 @@ ellipsoid_shrink_bug(int niter, float rad, float len) {
   ez = 0.0;
 
   acx = acy = acz = 0.0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     acx += v->x;
     acy += v->y;
@@ -12564,32 +13843,37 @@ ellipsoid_shrink_bug(int niter, float rad, float len) {
   acy /= (float)mris->nvertices;
   acz /= (float)mris->nvertices;
 
-  for (iter=0;iter<niter;iter++) {
+  for (iter=0;iter<niter;iter++)
+  {
     ad = 0;
     dmax = 0;
     an = 0;
     nclip = 0;
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
       v->tz = v->z;
     }
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k];
       x = v->tx;
       y = v->ty;
       z = v->tz;
       sx=sy=sz=sd=0;
       n=0;
-      for (m=0;m<v->vnum;m++) {
+      for (m=0;m<v->vnum;m++)
+      {
         sx += dx = mris->vertices[v->v[m]].tx - x;
         sy += dy = mris->vertices[v->v[m]].ty - y;
         sz += dz = mris->vertices[v->v[m]].tz - z;
         sd += sqrt(dx*dx+dy*dy+dz*dz);
         n++;
       }
-      if (n>0) {
+      if (n>0)
+      {
         sx = sx/n;
         sy = sy/n;
         sz = sz/n;
@@ -12609,11 +13893,13 @@ ellipsoid_shrink_bug(int niter, float rad, float len) {
       dx = sx*0.5 + xc/r*dr;
       dy = sy*0.5 + yc/r*dr;
       dz = sz*0.5 + zc/r*dr;
-      if (momentumflag) {
+      if (momentumflag)
+      {
         dx = decay*v->odx+update*dx;
         dy = decay*v->ody+update*dy;
         dz = decay*v->odz+update*dz;
-        if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0) {
+        if ((d=sqrt(dx*dx+dy*dy+dz*dz))>1.0)
+        {
           nclip ++;
           dx /= d;
           dy /= d;
@@ -12638,7 +13924,8 @@ ellipsoid_shrink_bug(int niter, float rad, float len) {
 }
 
 void
-compute_curvature(void) {
+compute_curvature(void)
+{
   float x,y,z,dx,dy,dz,r;
   VERTEX *v;
   int k,m;
@@ -12646,13 +13933,15 @@ compute_curvature(void) {
 
   min_curv = 99999;
   max_curv = -99999;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     x = v->x;
     y = v->y;
     z = v->z;
     v->curv = 0;
-    for (m=0;m<v->vnum;m++) {
+    for (m=0;m<v->vnum;m++)
+    {
       dx = mris->vertices[v->v[m]].x-x;
       dy = mris->vertices[v->v[m]].y-y;
       dz = mris->vertices[v->v[m]].z-z;
@@ -12670,7 +13959,7 @@ compute_curvature(void) {
   /* save the curv min and max. */
   mris->min_curv = cmin = min_curv;
   mris->max_curv = cmax = max_curv;
-  
+
   curvloaded = TRUE;
   enable_menu_set (MENUSET_CURVATURE_LOADED, 1);
   send_tcl_command ("ShowLabel kLabel_Curvature 1");
@@ -12682,38 +13971,45 @@ compute_curvature(void) {
 }
 
 void
-clear_curvature(void) {
+clear_curvature(void)
+{
   VERTEX *v;
   int k;
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     v->curv = 0;
   }
 }
 
 void
-clear_vals(void) {
+clear_vals(void)
+{
   VERTEX *v;
   int k;
 
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     v->val = 0;
   }
 }
 
 void
-normalize_curvature(int which_norm) {
+normalize_curvature(int which_norm)
+{
   MRISnormalizeCurvature(mris, which_norm) ;
 }
 void
-normalize_area(void) {
+normalize_area(void)
+{
   VERTEX *v;
   int k;
   float a,oa,f;
 
-  if (MRIflag && MRIloaded) {
+  if (MRIflag && MRIloaded)
+  {
     printf("surfer: ### normalize_area not done w/MRIflag: "
            "misaligns surface\n");
     PR return;
@@ -12721,15 +14017,18 @@ normalize_area(void) {
 
   oa = a = 0;
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       v = &mris->vertices[k];
       a += v->area;
       oa += v->origarea;
     }
   f = sqrt(oa/a);
   printf("surfer: oa=%f sqmm, a=%f sqmm, f=%f\n",oa/2,a/2,f);
-  PR for (k=0;k<mris->nvertices;k++) {
-    if (!mris->vertices[k].ripflag) {
+  PR for (k=0;k<mris->nvertices;k++)
+  {
+    if (!mris->vertices[k].ripflag)
+    {
       v = &mris->vertices[k];
       v->x *= f;
       v->y *= f;
@@ -12740,7 +14039,8 @@ normalize_area(void) {
 }
 
 void
-normalize_surface(void) {
+normalize_surface(void)
+{
   VERTEX *v;
   int i,j,k;
   float x,y,z;
@@ -12751,11 +14051,13 @@ normalize_surface(void) {
   maxx2 = maxy2 = maxz2 = -1000;
   for (k=1;k<numimg-1;k++)
     for (i=1;i<IMGSIZE-1;i++)
-      for (j=1;j<IMGSIZE-1;j++) {
+      for (j=1;j<IMGSIZE-1;j++)
+      {
         x = IMGSIZE/2.0-j;
         z = IMGSIZE/2.0-i;
         y = k-numimg/2.0;
-        if (im[k][i][j]!=0) {
+        if (im[k][i][j]!=0)
+        {
           if (x>maxx2) maxx2 = x;
           if (x<minx2) minx2 = x;
           if (y>maxy2) maxy2 = y;
@@ -12767,7 +14069,8 @@ normalize_surface(void) {
   minx = miny = minz = 1000;
   maxx = maxy = maxz = -1000;
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       v = &mris->vertices[k];
       if (v->x>maxx) maxx = v->x;
       if (v->x<minx) minx = v->x;
@@ -12784,7 +14087,8 @@ normalize_surface(void) {
   printf("surfer: minz=%f, maxz=%f\n",minz,maxz);
   PR
   for (k=0;k<mris->nvertices;k++)
-    if (!mris->vertices[k].ripflag) {
+    if (!mris->vertices[k].ripflag)
+    {
       v = &mris->vertices[k];
       v->x = minx2+(v->x-minx)*(maxx2-minx2)/(maxx-minx);
       v->y = miny2+(v->y-miny)*(maxy2-miny2)/(maxy-miny);
@@ -12794,13 +14098,15 @@ normalize_surface(void) {
 }
 
 void
-load_brain_coords(float x, float y, float z, float v[]) {
+load_brain_coords(float x, float y, float z, float v[])
+{
   v[0] = -x;
   v[1] = z;
   v[2] = y;
 }
 
-int outside(float x,float y, float z) {
+int outside(float x,float y, float z)
+{
   return (x<xmin||x>xmax
           ||y<ymin||y>ymax
           ||-z<zmin||-z>zmax);
@@ -12828,7 +14134,8 @@ static void get_complexval_color_vals
 ) ;
 static int fill_vertex_arrays(MRI_SURFACE *mris) ;
 static int
-init_vertex_arrays(MRI_SURFACE *mris) {
+init_vertex_arrays(MRI_SURFACE *mris)
+{
 #ifndef IRIX
   colors = (float *)calloc(3*VERTICES_PER_FACE*mris->nfaces, sizeof(float));
   if (!colors)
@@ -12870,14 +14177,16 @@ init_vertex_arrays(MRI_SURFACE *mris) {
   return(NO_ERROR) ;
 }
 
-static int init_mesh_colors(MRI_SURFACE *mris) {
+static int init_mesh_colors(MRI_SURFACE *mris)
+{
   int i;
   mesh_colors = (float *)calloc(3*VERTICES_PER_FACE*mris->nfaces,
                                 sizeof(float));
   if (!mesh_colors)
     ErrorExit(ERROR_NOMEMORY, "init_mesh_colors: calloc failed") ;
 
-  for (i=0; i<mris->nvertices; i++) {
+  for (i=0; i<mris->nvertices; i++)
+  {
     mesh_colors[3*i] = (float)meshr/255.0;
     mesh_colors[3*i+1] = (float)meshg/255.0;
     mesh_colors[3*i+2] = (float)meshb/255.0;
@@ -12885,10 +14194,12 @@ static int init_mesh_colors(MRI_SURFACE *mris) {
   return(NO_ERROR) ;
 }
 
-static int fill_mesh_colors() {
+static int fill_mesh_colors()
+{
   int i;
   GLubyte r, g, b;
-  for (i=0; i<mris->nvertices; i++) {
+  for (i=0; i<mris->nvertices; i++)
+  {
     r = meshr;
     g = meshg;
     b = meshb;
@@ -12900,14 +14211,17 @@ static int fill_mesh_colors() {
   return(NO_ERROR) ;
 }
 static int
-fill_vertex_arrays(MRI_SURFACE *mris) {
+fill_vertex_arrays(MRI_SURFACE *mris)
+{
   int    vno, fno, i, n ;
   VERTEX *v ;
   FACE   *f ;
 
-  for (i = vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (i = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
-    if (v->ripflag) {
+    if (v->ripflag)
+    {
       i+=3;
       continue ;
     }
@@ -12916,9 +14230,11 @@ fill_vertex_arrays(MRI_SURFACE *mris) {
     vertices[i++] = v->y ;
   }
 
-  for (i = vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (i = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
-    if (v->ripflag) {
+    if (v->ripflag)
+    {
       i+=3;
       continue ;
     }
@@ -12930,7 +14246,8 @@ fill_vertex_arrays(MRI_SURFACE *mris) {
   for (i =  0; i<mris->nfaces*VERTICES_PER_FACE; i++)
     faces[i]=0;
 
-  for (i = fno = 0 ; fno < mris->nfaces ; fno++) {
+  for (i = fno = 0 ; fno < mris->nfaces ; fno++)
+  {
     f = &mris->faces[fno] ;
     if (f->ripflag)
       continue ;
@@ -12948,7 +14265,8 @@ draw_surface(void)  /* marty: combined three versions */
   glEnable(GL_CULL_FACE);
   glDeleteLists(FS_Brain_List,1);
   if (!colors) init_vertex_arrays(mris) ;
-  if (vertex_array_dirty==1) {
+  if (vertex_array_dirty==1)
+  {
     fill_vertex_arrays(mris);
     glEnableClientState ( GL_VERTEX_ARRAY );
     glEnableClientState ( GL_COLOR_ARRAY );
@@ -12958,49 +14276,62 @@ draw_surface(void)  /* marty: combined three versions */
     glColorPointer(3, GL_FLOAT, 0, colors);
     vertex_array_dirty = 0;
   }
-  if (color_scale_changed) {
+  if (color_scale_changed)
+  {
     fill_color_array(mris, colors) ; // draws the overlay
     color_scale_changed = TRUE;
     glColorPointer  ( 3, GL_FLOAT, 0, colors );
   }
   glPolygonOffset(1.0,1.0);
   glEnable(GL_POLYGON_OFFSET_FILL);
-  
+
   /* Draw the object*/
-  if (surfaceflag) {
+  if (surfaceflag)
+  {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    if (VERTICES_PER_FACE==3) {
+    if (VERTICES_PER_FACE==3)
+    {
       glDrawElements ( GL_TRIANGLES, 3*mris->nfaces, GL_UNSIGNED_INT,faces );
-    } else {
+    }
+    else
+    {
       glDrawElements ( GL_QUADS, 4*mris->nfaces, GL_UNSIGNED_INT, faces );
     }
   }
   glDisable(GL_POLYGON_OFFSET_FILL);
-  if (pointsflag) {
+  if (pointsflag)
+  {
     glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
     if (!mesh_colors)
       init_mesh_colors(mris);
     fill_mesh_colors();
     glColorPointer( 3, GL_FLOAT, 0, mesh_colors);
-    if (VERTICES_PER_FACE==3) {
+    if (VERTICES_PER_FACE==3)
+    {
       glDrawElements ( GL_TRIANGLES, 3*mris->nfaces, GL_UNSIGNED_INT,faces );
-    } else {
+    }
+    else
+    {
       glDrawElements ( GL_QUADS, 4*mris->nfaces, GL_UNSIGNED_INT, faces );
     }
   }
-  if (verticesflag) {
+  if (verticesflag)
+  {
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     if (!mesh_colors)
       init_mesh_colors(mris);
     fill_mesh_colors();
     glColorPointer( 3, GL_FLOAT, 0, mesh_colors);
-    if (VERTICES_PER_FACE==3) {
+    if (VERTICES_PER_FACE==3)
+    {
       glDrawElements( GL_TRIANGLES, 3*mris->nfaces, GL_UNSIGNED_INT, faces );
-    } else {
+    }
+    else
+    {
       glDrawElements ( GL_QUADS, 4*mris->nfaces, GL_UNSIGNED_INT, faces );
     }
   }
-  
+
   glFlush() ;
   if (scalebarflag)    draw_scalebar();
   if (colscalebarflag) draw_colscalebar();
@@ -13020,8 +14351,9 @@ draw_surface(void)  /* marty: combined three versions */
   surface. Things that can affect surface color are: background (curv:
   red/green or gray), annotation, path, stat, debug hilite, and
   something about the surface normal.
- */
-static void fill_color_array(MRI_SURFACE *mris, float *colors) {
+*/
+static void fill_color_array(MRI_SURFACE *mris, float *colors)
+{
   int n;
   float curv;
   VERTEX *v;
@@ -13058,44 +14390,56 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
   //  MARKED?
 
   // Go through each vertex
-  for (n=0;n<mris->nvertices;n++) {
+  for (n=0;n<mris->nvertices;n++)
+  {
     v = &mris->vertices[n];
-    
+
     r_base = g_base = b_base = 0;
 
-    if(mrismask){
-      if(fabs(MRIgetVoxVal(mrismask,n,0,0,0)) < mrismaskthresh) maskout = 1;
+    if (mrismask)
+    {
+      if (fabs(MRIgetVoxVal(mrismask,n,0,0,0)) < mrismaskthresh) maskout = 1;
       else maskout = 0;
     }
 
     /* begin rkt */
-    if (simpledrawmodeflag) {
+    if (simpledrawmodeflag)
+    {
       /* if surfcolor (curvature) is on and there is an overlay,
          or if the force grayscale curvature flag is on, get a
          grayscale value. if just surfcolor and curvflag are on,
          get a red/green color based on the curvature. else just
          use the solid background color. */
-      if ((surfcolor && overlayflag && curvflag) || forcegraycurvatureflag) {
+      if ((surfcolor && overlayflag && curvflag) || forcegraycurvatureflag)
+      {
         /* grayscale curvature */
         mode = REAL_VAL;
         val2 = v->curv;
-      } else if (surfcolor && curvflag) {
+      }
+      else if (surfcolor && curvflag)
+      {
         /* red green curvature */
         mode = GREEN_RED_CURV;
         val2 = v->curv;
-      } else {
+      }
+      else
+      {
         /* solid background color */
         mode = REAL_VAL;
         val2 = 0;
       }
 
       val = 0;
-      if (fieldsignflag) {
+      if (fieldsignflag)
+      {
         val = v->fsmask * v->fieldsign;
-        if (v->fieldsign > 0) {
+        if (v->fieldsign > 0)
+        {
           if (!revphaseflag)  mode = FIELDSIGN_POS;
           else                mode = FIELDSIGN_NEG;
-        } else {
+        }
+        else
+        {
           val = -val;
           if (!revphaseflag)  mode = FIELDSIGN_NEG;
           else                mode = FIELDSIGN_POS;
@@ -13103,10 +14447,10 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
       }
 
       /* This gets the RGB of the background only.  The RGB may be
-	 overwritten or blended later.  Note: val is NOT ignored, so
-	 we need to pass in the current overlay value. */
-      if(overlayflag)	sclv_get_value(v, sclv_current_field, &val);
-      if(maskout) val = 0;
+         overwritten or blended later.  Note: val is NOT ignored, so
+         we need to pass in the current overlay value. */
+      if (overlayflag) sclv_get_value(v, sclv_current_field, &val);
+      if (maskout) val = 0;
       get_color_vals(val, val2, mode, &r_base, &g_base, &b_base);
 
       /* save the base color for later comparison, but set our
@@ -13116,16 +14460,18 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
       b = b_base;
 
       /* This replaces the RGB with that of the label. The color may
-	 be overwritten below if a stat is above threshold thus putting
-	 the stat map ABOVE the label. */
-      if(labels_before_overlay_flag)
+         be overwritten below if a stat is above threshold thus putting
+         the stat map ABOVE the label. */
+      if (labels_before_overlay_flag)
         /* get any label color for this vertex. this will not apply
            any color if there is no label. */
         labl_apply_color_to_vertex (n, &r, &g, &b ); // n = vertex no
 
       /* if overlay flag is on... */
-      if (overlayflag) {
-        if (complexvalflag) {
+      if (overlayflag)
+      {
+        if (complexvalflag)
+        {
           /* if complexvalflag is on, we have to do this
              special drawing thing. this is for compatibility
              with the two-cond stuff. assumes that val, val2,
@@ -13144,16 +14490,18 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
           r = r_overlay;
           g = g_overlay;
           b = b_overlay;
-        } 
-	else {  // not complex
+        }
+        else
+        {  // not complex
           /* get a color based on the currently selected field
              if it is above fthresh. */
           sclv_get_value(v, sclv_current_field, &val);
-	  if(!maskout){
-	    /* This will blend the functional color into the
-	       input color. rgb are currently the background color*/
-	    sclv_apply_color_for_value(val, sclv_overlay_alpha,&r, &g, &b);
-	  }
+          if (!maskout)
+          {
+            /* This will blend the functional color into the
+               input color. rgb are currently the background color*/
+            sclv_apply_color_for_value(val, sclv_overlay_alpha,&r, &g, &b);
+          }
         }
       }
 
@@ -13175,19 +14523,27 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
          our normal is pointing away from is in camera space. If
          so, color this poly red. */
       nz = -(-m[0][2]*v->nx + m[1][2]*v->nz + m[2][2]*v->ny);
-      if ( nz > 0 ) {
+      if ( nz > 0 )
+      {
         r = 255;
       }
       /* end rkt */
 
-    } else { // not simpledrawmodeflag
+    }
+    else
+    { // not simpledrawmodeflag
       // probably will never get here. dng
       /**** msurfer: single val data on gray curvature */
-      if (overlayflag && !complexvalflag) {
-        if (v->annotation) {
+      if (overlayflag && !complexvalflag)
+      {
+        if (v->annotation)
+        {
           r = g = b = v->annotation ;
-        } else if (fieldsignflag) {
-          if (v->fieldsign>0.0) {
+        }
+        else if (fieldsignflag)
+        {
+          if (v->fieldsign>0.0)
+          {
             if (revphaseflag)
               get_color_vals(v->fsmask*v->fieldsign,
                              v->curv,FIELDSIGN_NEG,
@@ -13196,7 +14552,9 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
               get_color_vals(v->fsmask*v->fieldsign,
                              v->curv,FIELDSIGN_POS,
                              &r, &g, &b);
-          } else {
+          }
+          else
+          {
             if (revphaseflag)
               get_color_vals(-v->fsmask*v->fieldsign,
                              v->curv,FIELDSIGN_POS,
@@ -13206,14 +14564,16 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
                              v->curv,FIELDSIGN_NEG,
                              &r, &g, &b);
           }
-        } else if (surfcolor)
+        }
+        else if (surfcolor)
           get_color_vals(v->val,v->curv,REAL_VAL, &r, &g, &b);
         else
           get_color_vals(v->val,0.0,REAL_VAL, &r, &g, &b);
       }
 
       /**** msurfer: complex val data on gray curvature */
-      else if (overlayflag && complexvalflag) {
+      else if (overlayflag && complexvalflag)
+      {
         if (surfcolor)
           get_complexval_color_vals(v->val,v->val2,v->stat,v->curv,
                                     &r, &g, &b);
@@ -13223,21 +14583,27 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
       }
 
       /**** nsurfer: curvature, etc. red/green curv, 2d */
-      else {
-        if (v->annotation) {
+      else
+      {
+        if (v->annotation)
+        {
           /* int  r, g, b ; */
           r = v->annotation & 0xff ;
           g = (v->annotation >> 8) & 0xff ;
           b = (v->annotation >> 16) & 0xff ;
-        } else {
+        }
+        else
+        {
           if (surfcolor==CURVATURE_OR_SULCUS)
             curv = (avgflag)?v->curv-dipavg:v->curv;
           else
             curv = 0.0;
 
-          if (surfcolor) {
+          if (surfcolor)
+          {
             get_color_vals(0.0,curv,GREEN_RED_CURV, &r, &g, &b);
-          } else
+          }
+          else
             get_color_vals(0.0,0.0,GREEN_RED_CURV, &r, &g, &b);
 
           if (v->border)
@@ -13255,17 +14621,18 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors) {
     colors[3*n+1] = ((float)g)/255.0;
     colors[3*n+2] = ((float)b)/255.0;
   } // end loop over vertices
-  
+
 }
 
 /*!
   \fn int get_color_vals()
   \brief Appears to set the RGB based only on the curv. The "val"
-    arg is immediately offset with foffset. Colors of the
-    overlay are controlled with sclv_apply_color_for_value().
+  arg is immediately offset with foffset. Colors of the
+  overlay are controlled with sclv_apply_color_for_value().
 */
 static int get_color_vals(float val, float curv, int mode,
-               GLubyte *pr, GLubyte *pg, GLubyte *pb) {
+                          GLubyte *pr, GLubyte *pg, GLubyte *pb)
+{
   short r,g,b;
   float f,fr,fg,fb,tmpoffset;
 
@@ -13284,21 +14651,30 @@ static int get_color_vals(float val, float curv, int mode,
   if (curv<cmid)  tmpoffset = cvfact*offset;
   else         tmpoffset = offset;
 
-  if (mode==GREEN_RED_CURV) {
-    if (curv < cmin) {
+  if (mode==GREEN_RED_CURV)
+  {
+    if (curv < cmin)
+    {
       b = 255 * (offset/blufact + 0.95*(1-offset/blufact)); /* yellow */
       r = g = 0 ;
 
-    } else if (curv > cmax) {
+    }
+    else if (curv > cmax)
+    {
       r = g = 255 * (offset/blufact + 0.95*(1-offset/blufact));
       /* yellow */
       b = 0 ;
-    } else {
+    }
+    else
+    {
       f = tanh(cslope*(curv-cmid));
-      if (f>0) {
+      if (f>0)
+      {
         r = 255 * (offset/blufact + 0.95*(1-offset/blufact)*fabs(f));
         g = 255 * (offset/blufact*(1 - fabs(f)));
-      } else {
+      }
+      else
+      {
         r = 255 * (offset/blufact*(1 - fabs(f)));
         g = 255 * (offset/blufact + 0.95*(1-offset/blufact)*fabs(f));
       }
@@ -13317,11 +14693,15 @@ static int get_color_vals(float val, float curv, int mode,
     } else  /* positive */
       if (colscale==CYAN_TO_RED ||
           colscale==BLU_GRE_RED ||
-          colscale==JUST_GRAY) {
-        if (val<fthresh) {
+          colscale==JUST_GRAY)
+      {
+        if (val<fthresh)
+        {
           r = g = 255 * (tmpoffset/blufact);
           b =     255 * (tmpoffset*blufact);
-        } else {
+        }
+        else
+        {
           if (fslope!=0)
             f = (tanh(fslope*fmid)+
                  tanh(fslope*(val-fmid)))/(2-tanh(fslope*fmid));
@@ -13332,16 +14712,22 @@ static int get_color_vals(float val, float curv, int mode,
           g=fg;
           b=fb;
         }
-      } else /* signed */
+      }
+      else /* signed */
       {
-        if (fabs(val)<fthresh) {
+        if (fabs(val)<fthresh)
+        {
           r = g = 255 * (tmpoffset/blufact);
           b =     255 * (tmpoffset*blufact);
-        } else {
-          if (fslope!=0) {
+        }
+        else
+        {
+          if (fslope!=0)
+          {
             if (fmid==0)
               f = tanh(fslope*(val));
-            else {
+            else
+            {
               if (val<0)
                 f = -(tanh(fslope*fmid) + tanh(fslope*(-val-fmid)))/
                     (2-tanh(fslope*fmid));
@@ -13349,11 +14735,13 @@ static int get_color_vals(float val, float curv, int mode,
                 f = (tanh(fslope*fmid) + tanh(fslope*( val-fmid)))/
                     (2-tanh(fslope*fmid));
             }
-          } else
+          }
+          else
             f = (val<-1)?-1:((val>1)?1:val);
           if (revphaseflag)
             f = -f;
-          if (truncphaseflag) {
+          if (truncphaseflag)
+          {
             if (f<0.0) f = 0.0;
           }
           set_signed_color(f,&fr,&fg,&fb,tmpoffset);
@@ -13364,16 +14752,23 @@ static int get_color_vals(float val, float curv, int mode,
       }
   }
 
-  if (mode==FIELDSIGN_POS || mode==FIELDSIGN_NEG) {
-    if (val<fthresh) {
+  if (mode==FIELDSIGN_POS || mode==FIELDSIGN_NEG)
+  {
+    if (val<fthresh)
+    {
       r = g = 255 * (tmpoffset/blufact);
       b =     255 * (tmpoffset*blufact);
-    } else {
+    }
+    else
+    {
       f = (1.0 + tanh(fslope*(val-fmid)))/2.0;
-      if (mode==FIELDSIGN_POS) {
+      if (mode==FIELDSIGN_POS)
+      {
         b = 255 * (tmpoffset + 0.95*(1-tmpoffset)*fabs(f));
         r = g = 255* (tmpoffset*(1 - fabs(f)));
-      } else {
+      }
+      else
+      {
         b = 255 * (tmpoffset*(1 - fabs(f)));
         r = g = 255 * (tmpoffset + 0.95*(1-tmpoffset)*fabs(f));
       }
@@ -13387,7 +14782,8 @@ static int get_color_vals(float val, float curv, int mode,
     b = 0;
   }
 
-  if (mode==MARKED) {
+  if (mode==MARKED)
+  {
 #if 0
     r = 255;
     g = 255;
@@ -13399,12 +14795,16 @@ static int get_color_vals(float val, float curv, int mode,
 #endif
   }
 
-  if (mode > MARKED) {
-    if (EVEN(mode-MARKED)) {
+  if (mode > MARKED)
+  {
+    if (EVEN(mode-MARKED))
+    {
       r = 255 ;
       g = 255 ;
       b = 0 ;
-    } else {
+    }
+    else
+    {
       r = 0 ;
       g = 0 ;
       b = 255 ;
@@ -13422,7 +14822,8 @@ static int get_color_vals(float val, float curv, int mode,
 
 void
 get_complexval_color_vals(float x, float y, float stat, float curv,
-                          GLubyte *pr, GLubyte *pg, GLubyte *pb) {
+                          GLubyte *pr, GLubyte *pg, GLubyte *pb)
+{
   short sr,sg,sb;
   float f,a,r,g,b;
   float tmpoffset,fscale;
@@ -13444,13 +14845,15 @@ get_complexval_color_vals(float x, float y, float stat, float curv,
     b =     255 * (tmpoffset*blufact);
   } else  /* use complex (or stat vals which ignore complex!!) */
   {
-    if (!statflag && sclv_current_field != SCLV_VALSTAT) {
+    if (!statflag && sclv_current_field != SCLV_VALSTAT)
+    {
       if (fslope!=0)
         f = (1.0 + tanh(fslope*(f-fmid)))/2.0;
       else
         f = (f<0)?0:((f>1)?1:f);
 
-      if (truncphaseflag) {
+      if (truncphaseflag)
+      {
         a = atan2(y,x)/(2*M_PI);
         if (revphaseflag)
           a = -a;
@@ -13467,12 +14870,15 @@ get_complexval_color_vals(float x, float y, float stat, float curv,
     fscale = f;
 
     if (colscale==HEAT_SCALE || colscale==CYAN_TO_RED ||
-        colscale==BLU_GRE_RED || colscale==JUST_GRAY) {
+        colscale==BLU_GRE_RED || colscale==JUST_GRAY)
+    {
       if (statflag || sclv_current_field == SCLV_VALSTAT)
         set_stat_color(f,&r,&g,&b,tmpoffset);
       else
         set_positive_color(f,&r,&g,&b,tmpoffset);
-    } else if (colscale==TWOCOND_GREEN_RED) {
+    }
+    else if (colscale==TWOCOND_GREEN_RED)
+    {
       a = atan2(y,x)/(2*M_PI);
       if (revphaseflag)
         a = -a;
@@ -13491,7 +14897,9 @@ get_complexval_color_vals(float x, float y, float stat, float curv,
       r = 255 * (tmpoffset/blufact*(1-f)+f*r);
       g = 255 * (tmpoffset/blufact*(1-f)+f*g);
       b = 255 * (tmpoffset*blufact*(1-f));
-    } else if (colscale==COLOR_WHEEL) {
+    }
+    else if (colscale==COLOR_WHEEL)
+    {
       a = atan2(y,x)/(2*M_PI);
       if (revphaseflag)
         a = -a;
@@ -13512,13 +14920,18 @@ get_complexval_color_vals(float x, float y, float stat, float curv,
         if (a<0) a += 1;
         a = 3*a;
         r = g = b = 0;
-        if (a<1.0) {
+        if (a<1.0)
+        {
           r = 1-a;
           b = a;
-        } else if (a<2.0) {
+        }
+        else if (a<2.0)
+        {
           b = 1-(a-1);
           g = a-1;
-        } else {
+        }
+        else
+        {
           r = a-2;
           g = 1-(a-2);
         }
@@ -13531,25 +14944,34 @@ get_complexval_color_vals(float x, float y, float stat, float curv,
         a -= 0.5;          /* center on blue (1/2) */
         a = a_cycles*a;
         r = g = b = 0;
-        if (a<-0.33333) {
+        if (a<-0.33333)
+        {
           r = 1;
-        } else if (a<0.0) {
+        }
+        else if (a<0.0)
+        {
           r = 1-(a-(-0.33333))/(0.0-(-0.33333));
           b = (a-(-0.33333))/(0.0-(-0.33333));
-        } else if (a<0.33333) {
+        }
+        else if (a<0.33333)
+        {
           b = 1-(a)/(0.33333);
           g = (a)/(0.33333);
-        } else {
+        }
+        else
+        {
           g = 1;
         }
 
-        if (a>fadef*a_cycles/2) {
+        if (a>fadef*a_cycles/2)
+        {
           f = 1-(a-fadef*a_cycles/2)/(a_cycles/2-fadef*a_cycles/2);
           r = (tmpoffset*(1-f)+f*r);
           g = (tmpoffset*(1-f)+f*g);
           b = (tmpoffset*(1-f)+f*b);
         }
-        if (a<-fadef*a_cycles/2) {
+        if (a<-fadef*a_cycles/2)
+        {
           f = (a-(-a_cycles/2))/(a_cycles/2-fadef*a_cycles/2);
           r = (tmpoffset*(1-f)+f*r);
           g = (tmpoffset*(1-f)+f*g);
@@ -13562,7 +14984,8 @@ get_complexval_color_vals(float x, float y, float stat, float curv,
       g = (tmpoffset*(1-fscale)+fscale*g)*255;
     }  /* end color wheel */
 
-    else if (colscale==RYGB_WHEEL) {
+    else if (colscale==RYGB_WHEEL)
+    {
       a = atan2(y,x)/(2*M_PI);
       if (revphaseflag)
         a = -a;
@@ -13580,16 +15003,23 @@ get_complexval_color_vals(float x, float y, float stat, float curv,
       if (a<0) a += 1;
       a = 4*a;
       r = g = b = 0;
-      if (a<1.0) {
+      if (a<1.0)
+      {
         r = 1.0;
         g = a;
-      } else if (a<2.0) {
+      }
+      else if (a<2.0)
+      {
         r = 1-(a-1);
         g = 1.0;
-      } else if (a<3.0) {
+      }
+      else if (a<3.0)
+      {
         g = 1-(a-2);
         b = a-2;
-      } else {
+      }
+      else
+      {
         r = a-3;
         b = 1-(a-3);
       }
@@ -13598,16 +15028,22 @@ get_complexval_color_vals(float x, float y, float stat, float curv,
       g = (tmpoffset*(1-fscale)+fscale*g)*255;
     }  /* end RYGB wheel */
 
-    if (phasecontourflag) {
-      if (phasecontour_min < phasecontour_max) {
-        if (oa>phasecontour_min&&oa<phasecontour_max) {
+    if (phasecontourflag)
+    {
+      if (phasecontour_min < phasecontour_max)
+      {
+        if (oa>phasecontour_min&&oa<phasecontour_max)
+        {
           if (phasecontourmodflag)
             r = g = b = (tmpoffset*(1-fscale)+fscale*1.0)*255;
           else
             r = g = b = phasecontour_bright;
         }
-      } else { /* wrap */
-        if (oa>phasecontour_min||oa<phasecontour_max) {
+      }
+      else
+      { /* wrap */
+        if (oa>phasecontour_min||oa<phasecontour_max)
+        {
           if (phasecontourmodflag)
             r = g = b = (tmpoffset*(1-fscale)+fscale*1.0)*255;
           else
@@ -13625,20 +15061,20 @@ get_complexval_color_vals(float x, float y, float stat, float curv,
 }
 
 const float DEG2RAD = 3.14159/180;
- 
-void 
+
+void
 drawCircle(float radius)
 {
   int i;
   float degInRad;
 
-   glBegin(GL_LINE_LOOP);
-   for (i=0; i < 360; i++) 
-     {
-       degInRad = i*DEG2RAD;
-       glVertex2f(cos(degInRad)*radius,sin(degInRad)*radius);
-     } 
-   glEnd();
+  glBegin(GL_LINE_LOOP);
+  for (i=0; i < 360; i++)
+  {
+    degInRad = i*DEG2RAD;
+    glVertex2f(cos(degInRad)*radius,sin(degInRad)*radius);
+  }
+  glEnd();
 }
 
 void
@@ -13654,13 +15090,13 @@ draw_ellipsoid_latlong(float a, float b, float c)   /* 50.0,140.0,80.0 */
   b *= 1.01;  /* brain y, 140  ant/post */
   c *= 1.01;  /* brain z,  80, sup/inf  */
   cx = cy = cz = 0.0;
-  for (k=0; k<mris->nvertices; k++) 
-    {
-      v = &mris->vertices[k];
-      cx += v->x;
-      cy += v->y;
-      cz += v->z;
-    }
+  for (k=0; k<mris->nvertices; k++)
+  {
+    v = &mris->vertices[k];
+    cx += v->x;
+    cy += v->y;
+    cz += v->z;
+  }
   cx /= mris->nvertices;
   cy /= mris->nvertices;
   cz /= mris->nvertices;
@@ -13671,40 +15107,40 @@ draw_ellipsoid_latlong(float a, float b, float c)   /* 50.0,140.0,80.0 */
   /* center:cx->lh/rh, cz->sup/inf, cy->ant/post */
   glTranslatef (-cx, -cz, cy);
 
-  for (lati= -90.0; lati<90.0; lati+=10.0) 
+  for (lati= -90.0; lati<90.0; lati+=10.0)
+  {
+
+    glPushMatrix();
+
+    glTranslatef (0.0, 0.0, b*sin(M_PI/180.0*lati));
+    glScalef (a/c, 1.0, 1.0);
+
+    if (lati==0.0)
     {
-      
-      glPushMatrix();
-      
-      glTranslatef (0.0, 0.0, b*sin(M_PI/180.0*lati));
-      glScalef (a/c, 1.0, 1.0);
-      
-      if (lati==0.0) 
-	{
-	  glLineWidth (6.0);
-	  glColor3ub (255, 255, 0);
-	} 
-      else
-	{
-	  glLineWidth (2.0);
-	  glColor3ub (217, 170, 0);
-	}
-      drawCircle (c*cos(M_PI/180.0*lati));
-      glPopMatrix();
+      glLineWidth (6.0);
+      glColor3ub (255, 255, 0);
     }
+    else
+    {
+      glLineWidth (2.0);
+      glColor3ub (217, 170, 0);
+    }
+    drawCircle (c*cos(M_PI/180.0*lati));
+    glPopMatrix();
+  }
 
   glColor3ub (190, 145, 255);
   glLineWidth (2.0);
 
   for (longi=0.0; longi<180.0; longi+=10.0)
-    {
-      glPushMatrix();
-      glRotatef (90.0, 0, 1, 0 ); /* Rotate around y axis */
-      glScalef (1.0, c/b, a/b);
-      glRotatef (longi, 1, 0, 0); /* Rotate around the x axis */
-      drawCircle (b);
-      glPopMatrix();
-    }
+  {
+    glPushMatrix();
+    glRotatef (90.0, 0, 1, 0 ); /* Rotate around y axis */
+    glScalef (1.0, c/b, a/b);
+    glRotatef (longi, 1, 0, 0); /* Rotate around the x axis */
+    drawCircle (b);
+    glPopMatrix();
+  }
 
   glPopMatrix();
 
@@ -13720,7 +15156,8 @@ draw_ellipsoid_latlong(float a, float b, float c)   /* 50.0,140.0,80.0 */
   b *= 1.01;  /* brain y, 140  ant/post */
   c *= 1.01;  /* brain z,  80, sup/inf  */
   cx = cy = cz = 0.0;
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     cx += v->x;
     cy += v->y;
@@ -13737,14 +15174,18 @@ draw_ellipsoid_latlong(float a, float b, float c)   /* 50.0,140.0,80.0 */
   lsrepeat(1);
   pushmatrix();    /* circ() draws in brain transverse plane */
   translate(-cx,cz,cy);  /* center:cx->lh/rh, cz->sup/inf, cy->ant/post */
-  for (lati= -90.0; lati<90.0; lati+=10.0) {
+  for (lati= -90.0; lati<90.0; lati+=10.0)
+  {
     pushmatrix();
     translate(0.0,0.0,b*sin(M_PI/180.0*lati));
     scale(a/c,1.0,1.0);
-    if (lati==0.0) {
+    if (lati==0.0)
+    {
       linewidth(6);
       RGBcolor(255,255,0);
-    } else           {
+    }
+    else
+    {
       linewidth(2);
       RGBcolor(217,170,0);
     }
@@ -13753,7 +15194,8 @@ draw_ellipsoid_latlong(float a, float b, float c)   /* 50.0,140.0,80.0 */
   }
   RGBcolor(190,145,255);
   linewidth(2);
-  for (longi=0.0; longi<180.0; longi+=10.0) {
+  for (longi=0.0; longi<180.0; longi+=10.0)
+  {
     pushmatrix();
     rot(90.0,'y');
     scale(1.0,c/b,a/b);
@@ -13774,17 +15216,20 @@ draw_second_surface(void)   /* for blink doublebuffer--FIX: no 2d */
   VERTEX *v;
   float curv;
 
-  if (flag2d) {
+  if (flag2d)
+  {
     printf("surfer: ### can't yet blink flat\n");
     PR return;
   }
 
   for (k=0;k<mris2->nfaces;k++)
-    if (!mris2->faces[k].ripflag) {
+    if (!mris2->faces[k].ripflag)
+    {
       f = &mris2->faces[k];
       bgnpolygon();
       for (n=0;n<VERTICES_PER_FACE;n++)
-        if (!flag2d || mris2->vertices[f->v[n]].nz>0) {
+        if (!flag2d || mris2->vertices[f->v[n]].nz>0)
+        {
           v = &mris2->vertices[f->v[n]];
           if (surfcolor==CURVATURE_OR_SULCUS)
             curv = (avgflag)?v->curv-dipavg2:v->curv;
@@ -13806,7 +15251,8 @@ draw_second_surface(void)   /* for blink doublebuffer--FIX: no 2d */
 }
 
 void
-draw_scalebar(void) {
+draw_scalebar(void)
+{
   float old_width;
   float v[3], tmpzf;
 
@@ -13826,9 +15272,9 @@ draw_scalebar(void) {
 
   /* rkt: scale for surface area */
   if (mris->group_avg_surface_area > 0)
-    {
-      v[0] *= sqrt (mris->group_avg_surface_area / mris->total_area);
-    }
+  {
+    v[0] *= sqrt (mris->group_avg_surface_area / mris->total_area);
+  }
 
   v3f(v);
   endline();
@@ -13838,7 +15284,8 @@ draw_scalebar(void) {
 }
 
 void
-draw_colscalebar(void) {
+draw_colscalebar(void)
+{
   int i, j;
   float v[3], tmpzf, stat, maxval;
   int NSEGMENTS = 100 ;
@@ -13864,7 +15311,7 @@ draw_colscalebar(void) {
 
   /* This is an array of segement indices at which we will draw
      labels. Init them to -1 for now. */
-  for (i=0; i<4; i++) 
+  for (i=0; i<4; i++)
   {
     label_at_segment[i] = -1;
   }
@@ -13884,7 +15331,7 @@ draw_colscalebar(void) {
 
   /* The full range of the bar. */
   bar_range = bar_max_value - bar_min_value;
-  
+
   /* Find where we should draw our labels. */
   func_per_segment = bar_range / (float)NSEGMENTS;
   if (truncphaseflag)
@@ -13903,22 +15350,32 @@ draw_colscalebar(void) {
 
   /* Find our font. */
   switch (colscalebar_font_size)
-    {
-    case 1: glut_font = ((void*)GLUT_BITMAP_8_BY_13); break;
-    case 2: glut_font = ((void*)GLUT_BITMAP_9_BY_15); break;
-    case 3: glut_font = ((void*)GLUT_BITMAP_TIMES_ROMAN_24); break;
-    default: glut_font = ((void*)GLUT_BITMAP_8_BY_13); break;
-    }
-  
+  {
+  case 1:
+    glut_font = ((void*)GLUT_BITMAP_8_BY_13);
+    break;
+  case 2:
+    glut_font = ((void*)GLUT_BITMAP_9_BY_15);
+    break;
+  case 3:
+    glut_font = ((void*)GLUT_BITMAP_TIMES_ROMAN_24);
+    break;
+  default:
+    glut_font = ((void*)GLUT_BITMAP_8_BY_13);
+    break;
+  }
+
   /* For each segment... */
-  for (i=0;i<NSEGMENTS;i++) {
+  for (i=0;i<NSEGMENTS;i++)
+  {
     /*
       stat = fthresh+i*(maxval-fthresh)/(NSEGMENTS-1.0);
     */
     stat = bar_min_value + (float)i*bar_range/(float)(NSEGMENTS-1) +foffset;
     if (statflag || sclv_current_field == SCLV_VALSTAT)
       set_complexval_color(0.0,0.0,stat,0.0);
-    else {
+    else
+    {
       if (complexvalflag)
         set_complexval_color(stat,0.0,0.0,0.0);
       else
@@ -13933,18 +15390,22 @@ draw_colscalebar(void) {
       v3f(v);
       v[0] = fov*sf*(colscalebar_xpos+colscalebar_width);
       v3f(v);
-      v[1] = fov*sf*(colscalebar_ypos+colscalebar_height*((i+1)/(NSEGMENTS-1.0)));
+      v[1] = fov*sf*(colscalebar_ypos+
+                     colscalebar_height*
+                     ((i+1)/(NSEGMENTS-1.0)));
       v3f(v);
       v[0] = fov*sf*colscalebar_xpos;
       v3f(v);
-    } 
+    }
     else
     {
       v[0] = fov*sf*(colscalebar_xpos+colscalebar_width*(i/(NSEGMENTS-1.0)));
       v[1] = fov*sf*colscalebar_ypos;
       v[2] = fov*sf*9.99;
       v3f(v);
-      v[0] = fov*sf*(colscalebar_xpos+colscalebar_width*((i+1)/(NSEGMENTS-1.0)));
+      v[0] = fov*sf*(colscalebar_xpos+
+                     colscalebar_width*
+                     ((i+1)/(NSEGMENTS-1.0)));
       v3f(v);
       v[1] = fov*sf*(colscalebar_ypos+colscalebar_height);
       v3f(v);
@@ -13960,81 +15421,85 @@ draw_colscalebar(void) {
         if (label_at_segment[j] == i)
         {
 
-	  if (colscalebartickflag)
-	    {
-	      /* Draw an extra little line to our label. */
-	      glBegin (GL_LINES);
-	      glVertex3f (v[0], v[1], v[2]);
-	      if (colscalebarvertflag)
-		glVertex3f (v[0]-2, v[1], v[2]);
-	      else
-		glVertex3f (v[0], v[1]+2, v[2]);
-	      glEnd ();
-	    }
+          if (colscalebartickflag)
+          {
+            /* Draw an extra little line to our label. */
+            glBegin (GL_LINES);
+            glVertex3f (v[0], v[1], v[2]);
+            if (colscalebarvertflag)
+              glVertex3f (v[0]-2, v[1], v[2]);
+            else
+              glVertex3f (v[0], v[1]+2, v[2]);
+            glEnd ();
+          }
 
-	  if (colscalebartextflag)
-	    {
-	      /* Create the label string. Otherwise generate a format
-		 string from the decimal size of our value and print the
-		 value to the string. */
-	      if (colscalebaruselabelsflag && colscalebar_label[j])
-		{
-		  strcpy (label, colscalebar_label[j]);
-		}
-	      else
-		{
-		  /* Calc how many decimals our label should have. */
-		  abs_func_value = fabs(stat);
-		  if (abs_func_value > 1 || abs_func_value == 0) num_decimals = 2;
-		  else if (abs_func_value > 0.1) num_decimals = 3;
-		  else if (abs_func_value > 0.01) num_decimals = 4;
-		  else if (abs_func_value > 0.001) num_decimals = 5;
-		  else if (abs_func_value > 0.0001) num_decimals = 6;
-		  else if (abs_func_value > 0.00001) num_decimals = 7;
-		  else if (abs_func_value > 0.000001) num_decimals = 8;
-		  else if (abs_func_value > 0.0000001) num_decimals = 9;
-		  else num_decimals = 10;
-		  
-		  /* Make a format string with that many decimals. */
-		  sprintf (format, "%%2.%df", num_decimals);
-		  
-		  /* Copy the value to the label using that format string. */
-		  sprintf (label, format, stat);
-		}
-	      
-	      /* Figure out a good label position based. Here,
-		 strlen(label)*3.1 + strlen(label)*colscalebar_font_size*0.6 is
-		 a good rough estimate as to the width of the string. */
-	      glColor3f (1.0, 1.0, 1.0);
-	      if (colscalebarvertflag)
-		{
-		  glRasterPos3i (v[0] - (((float)strlen(label)*3.1) + 
-		      ((float)strlen(label)*(float)colscalebar_font_size*0.6))
-				 - 2,
-				 v[1], v[2]);
-		}
-	      else
-		{
-		  glRasterPos3i (v[0] - (((float)strlen(label)*3.1) + 
-		      ((float)strlen(label)*(float)colscalebar_font_size*0.6))
-				 / 2, 
-				 v[1] + 5, v[2]);
-		}
-	      
-	      /* Draw the string. */
-	      for (cur_char = 0; cur_char < strlen(label); cur_char++) {
-		glutBitmapCharacter (glut_font, label[cur_char]);
-	      }
-	    }
+          if (colscalebartextflag)
+          {
+            /* Create the label string. Otherwise generate a format
+               string from the decimal size of our value and print the
+               value to the string. */
+            if (colscalebaruselabelsflag && colscalebar_label[j])
+            {
+              strcpy (label, colscalebar_label[j]);
+            }
+            else
+            {
+              /* Calc how many decimals our label should have. */
+              abs_func_value = fabs(stat);
+              if (abs_func_value > 1 || abs_func_value == 0) num_decimals = 2;
+              else if (abs_func_value > 0.1) num_decimals = 3;
+              else if (abs_func_value > 0.01) num_decimals = 4;
+              else if (abs_func_value > 0.001) num_decimals = 5;
+              else if (abs_func_value > 0.0001) num_decimals = 6;
+              else if (abs_func_value > 0.00001) num_decimals = 7;
+              else if (abs_func_value > 0.000001) num_decimals = 8;
+              else if (abs_func_value > 0.0000001) num_decimals = 9;
+              else num_decimals = 10;
+
+              /* Make a format string with that many decimals. */
+              sprintf (format, "%%2.%df", num_decimals);
+
+              /* Copy the value to the label using that format string. */
+              sprintf (label, format, stat);
+            }
+
+            /* Figure out a good label position based. Here,
+               strlen(label)*3.1 + strlen(label)*colscalebar_font_size*0.6 is
+               a good rough estimate as to the width of the string. */
+            glColor3f (1.0, 1.0, 1.0);
+            if (colscalebarvertflag)
+            {
+              glRasterPos3i (v[0] - (((float)strlen(label)*3.1) +
+                                     ((float)strlen(label)*
+                                      (float)colscalebar_font_size*0.6))
+                             - 2,
+                             v[1], v[2]);
+            }
+            else
+            {
+              glRasterPos3i (v[0] - (((float)strlen(label)*3.1) +
+                                     ((float)strlen(label)*
+                                      (float)colscalebar_font_size*0.6))
+                             / 2,
+                             v[1] + 5, v[2]);
+            }
+
+            /* Draw the string. */
+            for (cur_char = 0; cur_char < strlen(label); cur_char++)
+            {
+              glutBitmapCharacter (glut_font, label[cur_char]);
+            }
+          }
         }
   }
-  
+
   popmatrix();
   zf = tmpzf;
 }
 
 void
-set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
+set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset)
+{
   float r,g,b;
   float ftmp,c1,c2;
   float min, mid, max;
@@ -14055,7 +15520,8 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
   mid = (float)(fmid);
   max = (0.5 / (float)fslope) + (float)fmid;
 
-  if (fabs(f)>fthresh && fabs(f)<fmid) {
+  if (fabs(f)>fthresh && fabs(f)<fmid)
+  {
     ftmp = fabs(f);
     c1 = 1.0/(fmid-fthresh);
     if (fcurv!=1.0)
@@ -14067,59 +15533,67 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
     f = (f<0)?-ftmp:ftmp;
   }
 
-  if (colscale==HEAT_SCALE) {
-    if (f>=0) {
+  if (colscale==HEAT_SCALE)
+  {
+    if (f>=0)
+    {
       /* rkt: changed this to make it match up with the tkmedit
          method. */
       if (sclv_opaque)
-	{
-	  /* If opaque, don't use blending at all. Min->mid is all
-	     red, and mid->max gets yellower. */
-	  r = ((f<min) ? tmpoffset : 1.0);
-	  g = ((f<min) ? tmpoffset : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-	  b = ((f<min) ? tmpoffset : 0);
-	}
+      {
+        /* If opaque, don't use blending at all. Min->mid is all
+           red, and mid->max gets yellower. */
+        r = ((f<min) ? tmpoffset : 1.0);
+        g = ((f<min) ? tmpoffset : (f<mid) ?
+             0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+        b = ((f<min) ? tmpoffset : 0);
+      }
       else
-	{
-	  or = tmpoffset *
-	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-	  og = tmpoffset *
-	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-	  ob = tmpoffset *
-	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-	  r = or +
-	    ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-	  g = og +
-	    ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-	  b = ob;
-	}	  
-    } else {
+      {
+        or = tmpoffset *
+             ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+        og = tmpoffset *
+             ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+        ob = tmpoffset *
+             ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+        r = or +
+            ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+        g = og +
+            ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+        b = ob;
+      }
+    }
+    else
+    {
       f = -f;
       if (sclv_opaque)
-	{
-	  b = ((f<min) ? tmpoffset : 1.0);
-	  g = ((f<min) ? tmpoffset : (f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-	  r = ((f<min) ? tmpoffset : 0);
-	}
-      else 
-	{
-	  or = tmpoffset *
-	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-	  og = tmpoffset *
-	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-	  ob = tmpoffset *
-	    ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-	  b = ob +
-	    ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-	  g = og +
-	    ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-	  r = or;
-	}
+      {
+        b = ((f<min) ? tmpoffset : 1.0);
+        g = ((f<min) ? tmpoffset : (f<mid) ?
+             0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+        r = ((f<min) ? tmpoffset : 0);
+      }
+      else
+      {
+        or = tmpoffset *
+             ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+        og = tmpoffset *
+             ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+        ob = tmpoffset *
+             ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+        b = ob +
+            ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+        g = og +
+            ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+        r = or;
+      }
     }
     r = r*255;
     g = g*255;
     b = b*255;
-  } else if (colscale==BLU_GRE_RED) {
+  }
+  else if (colscale==BLU_GRE_RED)
+  {
     /*
       if (f<0) f = -f;
       b = tmpoffset*((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
@@ -14135,7 +15609,8 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
       ((f<fmid+0.25/fslope)?0:(f<fmid+0.50/fslope)?4*(f-(fmid+0.25/fslope))
       *fslope:1);
       */
-    if (f>=0) {
+    if (f>=0)
+    {
       r = tmpoffset*
           ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
           ((f<fthresh)?0:(f<fmid)?(f-fthresh)/(fmid-fthresh):1);
@@ -14145,7 +15620,9 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
       b = tmpoffset*
           ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
           ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
-    } else {
+    }
+    else
+    {
       f = -f;
       b = tmpoffset*
           ((f<fthresh)?1:(f<fmid)?1-(f-fthresh)/(fmid-fthresh):0) +
@@ -14160,7 +15637,9 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
     r = r*255;
     g = g*255;
     b = b*255;
-  } else if (colscale==JUST_GRAY) {
+  }
+  else if (colscale==JUST_GRAY)
+  {
     if (f<0) f = -f;
     r = g = b = f*255;
   }
@@ -14170,26 +15649,32 @@ set_stat_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
 }
 
 void
-set_positive_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
+set_positive_color(float f, float *rp, float *gp, float *bp, float tmpoffset)
+{
   float r,g,b;
 
   f -= foffset ;
   r = g = b = 0 ;
   f = fabs(f);
-  if (colscale==HEAT_SCALE) {
+  if (colscale==HEAT_SCALE)
+  {
     r = tmpoffset + f*(1-tmpoffset);
     g = tmpoffset + ((f>0.333)?(f-0.333)/(1.0-0.333):0)*(1-tmpoffset);
     b = tmpoffset + ((f>0.666)?(f-0.666)/(1.0-0.666):0)*(1-tmpoffset);
     r = r*255;
     g = g*255;
     b = b*255;
-  } else if (colscale==CYAN_TO_RED) {
+  }
+  else if (colscale==CYAN_TO_RED)
+  {
     b = g = tmpoffset + (1-tmpoffset)*((f<0.3)?f:0.3*(1-(f-0.3)/(1-0.3)));
     r = tmpoffset + (1-tmpoffset)*((f>0.3)?(f-0.3)/(1-0.3):0);
     r = r*255;
     g = g*255;
     b = b*255;
-  } else if (colscale==BLU_GRE_RED) {
+  }
+  else if (colscale==BLU_GRE_RED)
+  {
     b = tmpoffset + (1-tmpoffset) *
         ((f<0.25)?f:((f<0.50)?(0.25)*(1-(f-0.25)/(1-0.25)):0));
     g = tmpoffset + (1-tmpoffset) *
@@ -14198,7 +15683,9 @@ set_positive_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
     r = r*255;
     g = g*255;
     b = b*255;
-  } else if (colscale==JUST_GRAY) {
+  }
+  else if (colscale==JUST_GRAY)
+  {
     r = g = b = f*255;
   }
   *rp = r;
@@ -14207,10 +15694,12 @@ set_positive_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
 }
 
 void
-set_signed_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
+set_signed_color(float f, float *rp, float *gp, float *bp, float tmpoffset)
+{
   float r,g,b;
 
-  if (colscale==BLUE_TO_RED_SIGNED) {
+  if (colscale==BLUE_TO_RED_SIGNED)
+  {
     b = tmpoffset + (1-tmpoffset) *
         ((f<0)?-2*f:(f>0.75)?((0.5)*(f-0.75)/(1-0.75)):0);
     r = tmpoffset + (1-tmpoffset) *
@@ -14221,8 +15710,10 @@ set_signed_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
     r = r*255;
     g = g*255;
     b = b*255;
-  } else
-    if (colscale==GREEN_TO_RED_SIGNED) {
+  }
+  else
+    if (colscale==GREEN_TO_RED_SIGNED)
+    {
       b = tmpoffset + (1-tmpoffset) *
           ((f<-0.5)?(1-(-f-0.5)/(1-0.5)):(f<0.0)?(-f/0.5):
            (f>0.5)?(1-(f-0.5)/(1-0.5)):(f/0.5));
@@ -14231,13 +15722,17 @@ set_signed_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
       r = r*255;
       g = g*255;
       b = b*255;
-    } else  /*  */
+    }
+    else  /*  */
     {
-      if (f>0) {
+      if (f>0)
+      {
         r = 255 *
             (tmpoffset/blufact + 0.95*(1-tmpoffset/blufact)*fabs(f));
         g = 255 * (tmpoffset/blufact*(1 - fabs(f)));
-      } else {
+      }
+      else
+      {
         r = 255 * (tmpoffset/blufact*(1 - fabs(f)));
         g = 255 *
             (tmpoffset/blufact + 0.95*(1-tmpoffset/blufact)*fabs(f));
@@ -14250,7 +15745,8 @@ set_signed_color(float f, float *rp, float *gp, float *bp, float tmpoffset) {
 }
 
 void
-set_color(float val, float curv, int mode) {
+set_color(float val, float curv, int mode)
+{
   short r,g,b;
   float f,fr,fg,fb,tmpoffset;
 
@@ -14260,21 +15756,30 @@ set_color(float val, float curv, int mode) {
   if (curv<0)  tmpoffset = cvfact*offset;
   else         tmpoffset = offset;
 
-  if (mode==GREEN_RED_CURV) {
-    if (curv < cmin) {
+  if (mode==GREEN_RED_CURV)
+  {
+    if (curv < cmin)
+    {
       b = 255 * (offset/blufact + 0.95*(1-offset/blufact)); /* yellow */
       r = g = 0 ;
 
-    } else if (curv > cmax) {
+    }
+    else if (curv > cmax)
+    {
       r = g = 255 *
               (offset/blufact + 0.95*(1-offset/blufact)); /* yellow */
       b = 0 ;
-    } else {
+    }
+    else
+    {
       f = tanh(cslope*(curv-cmid));
-      if (f>0) {
+      if (f>0)
+      {
         r = 255 * (offset/blufact + 0.95*(1-offset/blufact)*fabs(f));
         g = 255 * (offset/blufact*(1 - fabs(f)));
-      } else {
+      }
+      else
+      {
         r = 255 * (offset/blufact*(1 - fabs(f)));
         g = 255 * (offset/blufact + 0.95*(1-offset/blufact)*fabs(f));
       }
@@ -14293,11 +15798,15 @@ set_color(float val, float curv, int mode) {
     } else  /* positive */
       if (colscale==CYAN_TO_RED ||
           colscale==BLU_GRE_RED ||
-          colscale==JUST_GRAY) {
-        if (val<fthresh) {
+          colscale==JUST_GRAY)
+      {
+        if (val<fthresh)
+        {
           r = g = 255 * (tmpoffset/blufact);
           b =     255 * (tmpoffset*blufact);
-        } else {
+        }
+        else
+        {
           if (fslope!=0)
             f = (tanh(fslope*fmid)+
                  tanh(fslope*(val-fmid)))/(2-tanh(fslope*fmid));
@@ -14308,16 +15817,22 @@ set_color(float val, float curv, int mode) {
           g=fg;
           b=fb;
         }
-      } else /* signed */
+      }
+      else /* signed */
       {
-        if (fabs(val)<fthresh) {
+        if (fabs(val)<fthresh)
+        {
           r = g = 255 * (tmpoffset/blufact);
           b =     255 * (tmpoffset*blufact);
-        } else {
-          if (fslope!=0) {
+        }
+        else
+        {
+          if (fslope!=0)
+          {
             if (fmid==0)
               f = tanh(fslope*(val));
-            else {
+            else
+            {
               if (val<0)
                 f = -(tanh(fslope*fmid) + tanh(fslope*(-val-fmid)))/
                     (2-tanh(fslope*fmid));
@@ -14325,11 +15840,13 @@ set_color(float val, float curv, int mode) {
                 f = (tanh(fslope*fmid) + tanh(fslope*( val-fmid)))/
                     (2-tanh(fslope*fmid));
             }
-          } else
+          }
+          else
             f = (val<-1)?-1:((val>1)?1:val);
           if (revphaseflag)
             f = -f;
-          if (truncphaseflag) {
+          if (truncphaseflag)
+          {
             if (f<0.0) f = 0.0;
           }
           set_signed_color(f,&fr,&fg,&fb,tmpoffset);
@@ -14340,16 +15857,23 @@ set_color(float val, float curv, int mode) {
       }
   }
 
-  if (mode==FIELDSIGN_POS || mode==FIELDSIGN_NEG) {
-    if (val<fthresh) {
+  if (mode==FIELDSIGN_POS || mode==FIELDSIGN_NEG)
+  {
+    if (val<fthresh)
+    {
       r = g = 255 * (tmpoffset/blufact);
       b =     255 * (tmpoffset*blufact);
-    } else {
+    }
+    else
+    {
       f = (1.0 + tanh(fslope*(val-fmid)))/2.0;
-      if (mode==FIELDSIGN_POS) {
+      if (mode==FIELDSIGN_POS)
+      {
         b = 255 * (tmpoffset + 0.95*(1-tmpoffset)*fabs(f));
         r = g = 255* (tmpoffset*(1 - fabs(f)));
-      } else {
+      }
+      else
+      {
         b = 255 * (tmpoffset*(1 - fabs(f)));
         r = g = 255 * (tmpoffset + 0.95*(1-tmpoffset)*fabs(f));
       }
@@ -14363,7 +15887,8 @@ set_color(float val, float curv, int mode) {
     b = 0;
   }
 
-  if (mode==MARKED) {
+  if (mode==MARKED)
+  {
 #if 0
     r = 255;
     g = 255;
@@ -14374,12 +15899,16 @@ set_color(float val, float curv, int mode) {
     b = meshb;
 #endif
   }
-  if (mode > MARKED) {
-    if (EVEN(mode-MARKED)) {
+  if (mode > MARKED)
+  {
+    if (EVEN(mode-MARKED))
+    {
       r = 255 ;
       g = 255 ;
       b = 0 ;
-    } else {
+    }
+    else
+    {
       r = 0 ;
       g = 0 ;
       b = 255 ;
@@ -14393,7 +15922,8 @@ set_color(float val, float curv, int mode) {
 }
 
 void
-set_complexval_color(float x, float y, float stat, float curv) {
+set_complexval_color(float x, float y, float stat, float curv)
+{
   short sr,sg,sb;
   float f,a,r,g,b;
   float tmpoffset,fscale;
@@ -14415,13 +15945,15 @@ set_complexval_color(float x, float y, float stat, float curv) {
     b =     255 * (tmpoffset*blufact);
   } else  /* use complex (or stat vals which ignore complex!!) */
   {
-    if (!statflag && (sclv_current_field != SCLV_VALSTAT)) {
+    if (!statflag && (sclv_current_field != SCLV_VALSTAT))
+    {
       if (fslope!=0)
         f = (1.0 + tanh(fslope*(f-fmid)))/2.0;
       else
         f = (f<0)?0:((f>1)?1:f);
 
-      if (truncphaseflag) {
+      if (truncphaseflag)
+      {
         a = atan2(y,x)/(2*M_PI);
         if (revphaseflag)
           a = -a;
@@ -14438,12 +15970,15 @@ set_complexval_color(float x, float y, float stat, float curv) {
     fscale = f;
 
     if (colscale==HEAT_SCALE || colscale==CYAN_TO_RED ||
-        colscale==BLU_GRE_RED || colscale==JUST_GRAY) {
+        colscale==BLU_GRE_RED || colscale==JUST_GRAY)
+    {
       if (statflag || sclv_current_field == SCLV_VALSTAT)
         set_stat_color(f,&r,&g,&b,tmpoffset);
       else
         set_positive_color(f,&r,&g,&b,tmpoffset);
-    } else if (colscale==TWOCOND_GREEN_RED) {
+    }
+    else if (colscale==TWOCOND_GREEN_RED)
+    {
       a = atan2(y,x)/(2*M_PI);
       if (revphaseflag)
         a = -a;
@@ -14462,7 +15997,9 @@ set_complexval_color(float x, float y, float stat, float curv) {
       r = 255 * (tmpoffset/blufact*(1-f)+f*r);
       g = 255 * (tmpoffset/blufact*(1-f)+f*g);
       b = 255 * (tmpoffset*blufact*(1-f));
-    } else if (colscale==COLOR_WHEEL) {
+    }
+    else if (colscale==COLOR_WHEEL)
+    {
       a = atan2(y,x)/(2*M_PI);
       if (revphaseflag)
         a = -a;
@@ -14483,13 +16020,18 @@ set_complexval_color(float x, float y, float stat, float curv) {
         if (a<0) a += 1;
         a = 3*a;
         r = g = b = 0;
-        if (a<1.0) {
+        if (a<1.0)
+        {
           r = 1-a;
           b = a;
-        } else if (a<2.0) {
+        }
+        else if (a<2.0)
+        {
           b = 1-(a-1);
           g = a-1;
-        } else {
+        }
+        else
+        {
           r = a-2;
           g = 1-(a-2);
         }
@@ -14502,25 +16044,34 @@ set_complexval_color(float x, float y, float stat, float curv) {
         a -= 0.5;          /* center on blue (1/2) */
         a = a_cycles*a;
         r = g = b = 0;
-        if (a<-0.33333) {
+        if (a<-0.33333)
+        {
           r = 1;
-        } else if (a<0.0) {
+        }
+        else if (a<0.0)
+        {
           r = 1-(a-(-0.33333))/(0.0-(-0.33333));
           b = (a-(-0.33333))/(0.0-(-0.33333));
-        } else if (a<0.33333) {
+        }
+        else if (a<0.33333)
+        {
           b = 1-(a)/(0.33333);
           g = (a)/(0.33333);
-        } else {
+        }
+        else
+        {
           g = 1;
         }
 
-        if (a>fadef*a_cycles/2) {
+        if (a>fadef*a_cycles/2)
+        {
           f = 1-(a-fadef*a_cycles/2)/(a_cycles/2-fadef*a_cycles/2);
           r = (tmpoffset*(1-f)+f*r);
           g = (tmpoffset*(1-f)+f*g);
           b = (tmpoffset*(1-f)+f*b);
         }
-        if (a<-fadef*a_cycles/2) {
+        if (a<-fadef*a_cycles/2)
+        {
           f = (a-(-a_cycles/2))/(a_cycles/2-fadef*a_cycles/2);
           r = (tmpoffset*(1-f)+f*r);
           g = (tmpoffset*(1-f)+f*g);
@@ -14533,7 +16084,8 @@ set_complexval_color(float x, float y, float stat, float curv) {
       g = (tmpoffset*(1-fscale)+fscale*g)*255;
     }  /* end color wheel */
 
-    else if (colscale==RYGB_WHEEL) {
+    else if (colscale==RYGB_WHEEL)
+    {
       a = atan2(y,x)/(2*M_PI);
       if (revphaseflag)
         a = -a;
@@ -14551,16 +16103,23 @@ set_complexval_color(float x, float y, float stat, float curv) {
       if (a<0) a += 1;
       a = 4*a;
       r = g = b = 0;
-      if (a<1.0) {
+      if (a<1.0)
+      {
         r = 1.0;
         g = a;
-      } else if (a<2.0) {
+      }
+      else if (a<2.0)
+      {
         r = 1-(a-1);
         g = 1.0;
-      } else if (a<3.0) {
+      }
+      else if (a<3.0)
+      {
         g = 1-(a-2);
         b = a-2;
-      } else {
+      }
+      else
+      {
         r = a-3;
         b = 1-(a-3);
       }
@@ -14569,16 +16128,22 @@ set_complexval_color(float x, float y, float stat, float curv) {
       g = (tmpoffset*(1-fscale)+fscale*g)*255;
     }  /* end RYGB wheel */
 
-    if (phasecontourflag) {
-      if (phasecontour_min < phasecontour_max) {
-        if (oa>phasecontour_min&&oa<phasecontour_max) {
+    if (phasecontourflag)
+    {
+      if (phasecontour_min < phasecontour_max)
+      {
+        if (oa>phasecontour_min&&oa<phasecontour_max)
+        {
           if (phasecontourmodflag)
             r = g = b = (tmpoffset*(1-fscale)+fscale*1.0)*255;
           else
             r = g = b = phasecontour_bright;
         }
-      } else { /* wrap */
-        if (oa>phasecontour_min||oa<phasecontour_max) {
+      }
+      else
+      { /* wrap */
+        if (oa>phasecontour_min||oa<phasecontour_max)
+        {
           if (phasecontourmodflag)
             r = g = b = (tmpoffset*(1-fscale)+fscale*1.0)*255;
           else
@@ -14594,7 +16159,8 @@ set_complexval_color(float x, float y, float stat, float curv) {
 }
 
 void
-draw_spokes(int option) {
+draw_spokes(int option)
+{
   float /*r0=0.1*/r0=0.07,r1=1.0,th0=0,th1=2*M_PI;
   int nr=100,nth=100;
   float scf=50.0;
@@ -14608,14 +16174,16 @@ draw_spokes(int option) {
   v4[0] = v4[1] = 0;
   v4[2] = 1;
   a = pow(r1/r0,1.0/(r1-r0)); /* marty */
-  for (thi=0;thi<nth-1;thi++) {
+  for (thi=0;thi<nth-1;thi++)
+  {
     tha = th0+thi*(th1-th0)/(nth-1);
     thb = th0+(thi+1)*(th1-th0)/(nth-1);
     cosa = cos(tha);
     sina = sin(tha);
     cosb = cos(thb);
     sinb = sin(thb);
-    for (ri=1;ri<nr+1;ri++) {
+    for (ri=1;ri<nr+1;ri++)
+    {
       ra = r0+(ri-1)*(r1-r0)/(nr);
       rb = r0+(ri)*(r1-r0)/(nr);
       ra = (ra<r0)?r0:(ra>r1)?r1:ra;
@@ -14649,7 +16217,8 @@ draw_spokes(int option) {
 }
 
 void
-set_vertex_color(float r, float th, int option) {
+set_vertex_color(float r, float th, int option)
+{
   if (option==RADIUS) set_color_wheel(r,0.0,angle_cycles,0,TRUE,1.0);
   if (option==THETA)  set_color_wheel(th,0.0,angle_cycles,0,FALSE,1.0);
 }
@@ -14657,7 +16226,8 @@ set_vertex_color(float r, float th, int option) {
 /* msurferCMF.c (msurferMARTY.c hack) */
 void
 set_color_wheel(float a, float a_offset, float a_cycles, int mode, int logmode,
-                float fscale) {
+                float fscale)
+{
   float r,g,b,f,fadef=0.7;
   short sr,sg,sb;
   float maxrad=1.0,minrad=0.05,afact,offset=0.0f;
@@ -14665,7 +16235,8 @@ set_color_wheel(float a, float a_offset, float a_cycles, int mode, int logmode,
   if (mode==-1) offset=cvfact*offset;
   else          offset=offset;
   afact = pow(maxrad/minrad,1.0/(maxrad-minrad));
-  if (fmod(a_cycles,1.0)==0) {
+  if (fmod(a_cycles,1.0)==0)
+  {
     a += 0.5;
     a += a_offset;
     a = fmod(a,1.0);
@@ -14676,18 +16247,24 @@ set_color_wheel(float a, float a_offset, float a_cycles, int mode, int logmode,
     a = fmod(a,1.0);  /* marty: OK if not logmode?? */
     a = 3*a;
     r = g = b = 0;
-    if (a<1.0) {
+    if (a<1.0)
+    {
       r = 1-a;
       b = a;
-    } else
-      if (a<2.0) {
+    }
+    else
+      if (a<2.0)
+      {
         b = 1-(a-1);
         g = a-1;
-      } else {
+      }
+      else
+      {
         r = a-2;
         g = 1-(a-2);
       }
-  } else  /* with angle offset */
+  }
+  else  /* with angle offset */
   {
     a += 0.5;
     a += a_offset;
@@ -14696,20 +16273,28 @@ set_color_wheel(float a, float a_offset, float a_cycles, int mode, int logmode,
     a = a_cycles*a;
     /*a = (a<-1)?-1:(a>1)?1:a;*/
     r = g = b = 0;
-    if (a<-0.5) {
+    if (a<-0.5)
+    {
       r = 1;
-    } else
-      if (a<0.0) {
+    }
+    else
+      if (a<0.0)
+      {
         r = 1-(a-(-0.5))/(0.0-(-0.5));
         b = (a-(-0.5))/(0.0-(-0.5));
-      } else
-        if (a<0.5) {
+      }
+      else
+        if (a<0.5)
+        {
           b = 1-(a)/(0.5);
           g = (a)/(0.5);
-        } else {
+        }
+        else
+        {
           g = 1;
         }
-    if (a>fadef*a_cycles/2) {
+    if (a>fadef*a_cycles/2)
+    {
       f = 1-(a-fadef*a_cycles/2)/(a_cycles/2-fadef*a_cycles/2);
       /*
         r *= f;
@@ -14720,7 +16305,8 @@ set_color_wheel(float a, float a_offset, float a_cycles, int mode, int logmode,
       g = (offset*(1-f)+f*g);
       b = (offset*(1-f)+f*b);
     }
-    if (a<-fadef*a_cycles/2) {
+    if (a<-fadef*a_cycles/2)
+    {
       f = (a-(-a_cycles/2))/(a_cycles/2-fadef*a_cycles/2);
       /*r *= f;g *= f;b *= f;*/
       r = (offset*(1-f)+f*r);
@@ -14739,18 +16325,21 @@ set_color_wheel(float a, float a_offset, float a_cycles, int mode, int logmode,
 }
 
 void
-restore_ripflags(int mode) {
+restore_ripflags(int mode)
+{
   int k,h;
 
   printf("restore_ripflags(%d)\n",mode);
   if (mode==1)
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       h = mris->vertices[k].oripflag;
       mris->vertices[k].oripflag = mris->vertices[k].ripflag;
       mris->vertices[k].ripflag = h;
     }
   else if (mode==2)
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       mris->vertices[k].oripflag = mris->vertices[k].ripflag;
       mris->vertices[k].ripflag = mris->vertices[k].origripflag;
     }
@@ -14762,29 +16351,35 @@ restore_ripflags(int mode) {
 }
 
 void
-dilate_ripped(void) {
+dilate_ripped(void)
+{
   int    vno, n, nripped ;
   VERTEX *v, *vn ;
 
   MRISclearDistances(mris) ;
   nripped = 0 ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag == 0)
       continue ;
-    for (n = 0 ; n < v->vnum ; n++) {
+    for (n = 0 ; n < v->vnum ; n++)
+    {
       vn = &mris->vertices[v->v[n]] ;
       if (vn->ripflag == 0)
         vn->d = 1.0 ;
     }
-    if (v->border && v->d < 0.5) {
+    if (v->border && v->d < 0.5)
+    {
       v->d = 1 ;
     }
   }
   undo_begin_action (UNDO_CUT);
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
-    if (v->d > 0.5) {
+    if (v->d > 0.5)
+    {
       v->d = 0 ;
       set_vertex_rip(vno, TRUE, TRUE) ;
       nripped++ ;
@@ -14799,9 +16394,11 @@ dilate_ripped(void) {
 }
 
 void
-floodfill_marked_patch(int filltype) {
+floodfill_marked_patch(int filltype)
+{
   /* Compatibility function. */
-  switch (filltype) {
+  switch (filltype)
+  {
   case RIPFILL:
     rip_all_vertices_except_contiguous_upripped ();
     break;
@@ -14832,7 +16429,8 @@ floodfill_marked_patch(int filltype) {
   params.action = FILL_NO_ACTION_JUST_MARK;
   fill_flood_from_seed (marked[0], &params);
 
-  if (filltype == CURVFILL) {
+  if (filltype == CURVFILL)
+  {
     area = LabelAlloc(mris->nvertices, pname, lfname) ;
     strncpy( area->subject_name, pname, 100 );
     fprintf(stderr, "subject_name=%s, lfname=%s\n", pname,lfname) ;
@@ -14840,13 +16438,16 @@ floodfill_marked_patch(int filltype) {
     LabelMark(area, mris) ;
     /*    redraw() ;*/
     return ;
-  } else if (filltype == RIPFILL) {
+  }
+  else if (filltype == RIPFILL)
+  {
 
     /* begin rkt */
 
     undo_begin_action (UNDO_CUT);
 
-    for (k=0;k<mris->nvertices;k++) {
+    for (k=0;k<mris->nvertices;k++)
+    {
       v = &mris->vertices[k] ;
       if (!v->marked)
         set_vertex_rip (k, TRUE, TRUE);
@@ -14872,22 +16473,28 @@ floodfill_marked_patch(int filltype) {
 
   filled = nmarked;
   i = 0;
-  while (filled>0) {
+  while (filled>0)
+  {
     filled = 0;
-    if ((i%2)==0) {
+    if ((i%2)==0)
+    {
       kmin = 0;
       kmax = mris->nvertices-1;
       kstep = 1;
-    } else {
+    }
+    else
+    {
       kmin = mris->nvertices-1;
       kmax = 0;
       kstep = -1;
     }
-    for (k=kmin;k!=kmax;k+=kstep) {
+    for (k=kmin;k!=kmax;k+=kstep)
+    {
       if (mris->vertices[k].marked)   /* look for an unmarked neighbor */
       {
         v = &mris->vertices[k];
-        for (m=0;m<v->vnum;m++) {
+        for (m=0;m<v->vnum;m++)
+        {
           vn = &mris->vertices[v->v[m]] ;
           /* begin rkt */
 #if 0
@@ -14920,11 +16527,13 @@ floodfill_marked_patch(int filltype) {
 }
 
 int
-mark_contiguous_vertices_over_thresh () {
+mark_contiguous_vertices_over_thresh ()
+{
   FILL_PARAMETERS params;
   int error;
 
-  if (nmarked==0) {
+  if (nmarked==0)
+  {
     printf ("surfer: need a seed point, please mark a vertex\n");
     return (ERROR_BADPARM);
   }
@@ -14948,11 +16557,13 @@ mark_contiguous_vertices_over_thresh () {
 }
 
 int
-mark_contiguous_vertices_with_similar_curvature () {
+mark_contiguous_vertices_with_similar_curvature ()
+{
   FILL_PARAMETERS params;
   int error;
 
-  if (nmarked==0) {
+  if (nmarked==0)
+  {
     printf ("surfer: need a seed point, please mark a vertex\n");
     return (ERROR_BADPARM);
   }
@@ -14976,13 +16587,15 @@ mark_contiguous_vertices_with_similar_curvature () {
 }
 
 int
-rip_all_vertices_except_contiguous_upripped () {
+rip_all_vertices_except_contiguous_upripped ()
+{
   FILL_PARAMETERS params;
   int error;
   int vno;
   int count;
 
-  if (nmarked==0) {
+  if (nmarked==0)
+  {
     printf ("surfer: need a seed point, please mark a vertex\n");
     return (ERROR_BADPARM);
   }
@@ -15002,8 +16615,10 @@ rip_all_vertices_except_contiguous_upripped () {
   undo_begin_action (UNDO_CUT);
 
   count = 0;
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    if (!mris->vertices[vno].marked) {
+  for (vno = 0; vno < mris->nvertices; vno++)
+  {
+    if (!mris->vertices[vno].marked)
+    {
       count++;
       set_vertex_rip (vno, TRUE, TRUE);
     }
@@ -15025,7 +16640,8 @@ rip_all_vertices_except_contiguous_upripped () {
 }
 
 void
-clear_ripflags(void) {
+clear_ripflags(void)
+{
   int k;
 
   /* begin rkt */
@@ -15042,7 +16658,8 @@ clear_ripflags(void) {
 }
 
 void
-cut_marked_vertices(int closedcurveflag) {
+cut_marked_vertices(int closedcurveflag)
+{
   int i,j,k,m,mmin;
   float d,d1,d2,dx,dy,dz,x1,y1,z1,x2,y2,z2,dmin;
   VERTEX *v1,*v2;
@@ -15052,14 +16669,16 @@ cut_marked_vertices(int closedcurveflag) {
   undo_begin_action (UNDO_CUT);
   /* end rkt */
 
-  for (i=0;i<((closedcurveflag)?nmarked:nmarked-1);i++) {
+  for (i=0;i<((closedcurveflag)?nmarked:nmarked-1);i++)
+  {
     j = (i==nmarked-1)?0:i+1;
     v2 = &mris->vertices[marked[j]];
     x2 = v2->x;
     y2 = v2->y;
     z2 = v2->z;
     k = marked[i];
-    while (k!=marked[j]) {
+    while (k!=marked[j])
+    {
       v1 = &mris->vertices[k];
       v1->border = 1;
       /* begin rkt */
@@ -15072,7 +16691,8 @@ cut_marked_vertices(int closedcurveflag) {
       dmin = 100000;
       mmin = 0;
       for (m=0;m<v1->vnum;m++)
-        if (!mris->vertices[v1->v[m]].border||v1->v[m]==marked[0]) {
+        if (!mris->vertices[v1->v[m]].border||v1->v[m]==marked[0])
+        {
           dx = mris->vertices[v1->v[m]].x - x1;
           dy = mris->vertices[v1->v[m]].y - y1;
           dz = mris->vertices[v1->v[m]].z - z1;
@@ -15081,7 +16701,8 @@ cut_marked_vertices(int closedcurveflag) {
           dy = mris->vertices[v1->v[m]].y - y2;
           dz = mris->vertices[v1->v[m]].z - z2;
           d2 = sqrt(dx*dx+dy*dy+dz*dz);
-          if ((d=d1+d2)<dmin) {
+          if ((d=d1+d2)<dmin)
+          {
             dmin = d;
             mmin = m;
           }
@@ -15089,7 +16710,8 @@ cut_marked_vertices(int closedcurveflag) {
                  "d1=%f, d2=%f, d=%f\n",
                  k,m,v1->v[m],d1,d2,d);
         }
-      if (mmin==100000) {
+      if (mmin==100000)
+      {
         printf("surfer: failed (infinite loop)\n");
         PR return;
       }
@@ -15113,7 +16735,8 @@ cut_marked_vertices(int closedcurveflag) {
 }
 
 void
-cut_plane(void) {
+cut_plane(void)
+{
   int k;
   float dx0,dy0,dz0,dx1,dy1,dz1,nx,ny,nz,poffset,sign;
   VERTEX *v,*v0,*v1,*v2,*v3;
@@ -15122,7 +16745,8 @@ cut_plane(void) {
   undo_begin_action (UNDO_CUT);
   /* end rkt */
 
-  if (nmarked!=4) {
+  if (nmarked!=4)
+  {
     printf("surfer: needs 4 marked vertices\n");
     PR return;
   }
@@ -15149,7 +16773,8 @@ cut_plane(void) {
   sign = (nx*v3->x+ny*v3->y+nz*v3->z)-poffset;
   printf("surfer: poffset = %f, sign = %f, n = {%f,%f,%f}\n",
          poffset,sign,nx,ny,nz);
-  PR for (k=0;k<mris->nvertices;k++) {
+  PR for (k=0;k<mris->nvertices;k++)
+  {
     v = &mris->vertices[k];
     if ((((nx*v->x+ny*v->y+nz*v->z)-poffset)/sign)<0)
       /* begin rkt */
@@ -15167,7 +16792,8 @@ cut_plane(void) {
 }
 
 void
-cut_vertex(void) {
+cut_vertex(void)
+{
   /* begin rkt */
 # if 0
   int k;
@@ -15187,12 +16813,14 @@ cut_vertex(void) {
 }
 
 void
-cut_line(int closedcurveflag) {
+cut_line(int closedcurveflag)
+{
   int vno;
   int* path;
   int path_length;
 
-  if (nmarked<2) {
+  if (nmarked<2)
+  {
     printf("surfer: needs at least 2 marked vertices\n");
     PR return;
   }
@@ -15207,7 +16835,8 @@ cut_line(int closedcurveflag) {
 
   undo_begin_action (UNDO_CUT);
 
-  for (vno = 0; vno < path_length; vno++) {
+  for (vno = 0; vno < path_length; vno++)
+  {
     set_vertex_rip (path[vno], TRUE, TRUE);
   }
 
@@ -15220,7 +16849,8 @@ cut_line(int closedcurveflag) {
 
 /* begin rkt */
 
-void set_face_rip(int fno, int rip, int undoable) {
+void set_face_rip(int fno, int rip, int undoable)
+{
   FACE *f;
 
   f = &mris->faces[fno];
@@ -15232,7 +16862,8 @@ void set_face_rip(int fno, int rip, int undoable) {
   f->ripflag = rip;
 }
 
-void set_vertex_rip(int vno, int rip, int undoable) {
+void set_vertex_rip(int vno, int rip, int undoable)
+{
   VERTEX *v;
 
   v = &mris->vertices[vno];
@@ -15245,13 +16876,15 @@ void set_vertex_rip(int vno, int rip, int undoable) {
 
 }
 
-void close_marked_vertices () {
+void close_marked_vertices ()
+{
   /* just add a copy of the first vertex to the end of the list. */
   marked[nmarked] = marked[0];
   nmarked++;
 }
 
-void draw_vertex_hilite (int vno) {
+void draw_vertex_hilite (int vno)
+{
   VERTEX* v;
   VERTEX* vn;
   int neighbor_index;
@@ -15261,7 +16894,8 @@ void draw_vertex_hilite (int vno) {
 
   v = &(mris->vertices[vno]);
 
-  for (neighbor_index = 0; neighbor_index < v->vnum; neighbor_index++) {
+  for (neighbor_index = 0; neighbor_index < v->vnum; neighbor_index++)
+  {
     vn = &(mris->vertices[v->v[neighbor_index]]);
 
     glLineWidth (CURSOR_LINE_PIX_WIDTH);
@@ -15285,7 +16919,8 @@ void draw_vertex_hilite (int vno) {
   glFlush ();
 }
 
-void draw_marked_vertices () {
+void draw_marked_vertices ()
+{
   int marked_index;
 
   /* draw all our marked verts in white. */
@@ -15297,7 +16932,8 @@ void draw_marked_vertices () {
 /* end rkt */
 
 void
-draw_vector(char *fname) {
+draw_vector(char *fname)
+{
   float   dx, dy, len ;
   float   v[3] ;
   FILE    *fp ;
@@ -15305,7 +16941,8 @@ draw_vector(char *fname) {
 
   fp = fopen(fname, "r") ;
 
-  if (!fp) {
+  if (!fp)
+  {
     printf("could not open file %s.\n", fname) ;
     return ;
   }
@@ -15334,11 +16971,13 @@ draw_vector(char *fname) {
 }
 
 void
-put_retinotopy_stats_in_vals(void) {
+put_retinotopy_stats_in_vals(void)
+{
   int      vno ;
   VERTEX   *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -15347,7 +16986,8 @@ put_retinotopy_stats_in_vals(void) {
 }
 
 void
-plot_marked(char *fname) {
+plot_marked(char *fname)
+{
   FILE   *fp ;
   int    vno, total ;
   VERTEX *v ;
@@ -15356,12 +16996,14 @@ plot_marked(char *fname) {
   fprintf(stderr, "vno x y z distance curv val val2 stat amp "
           "deg normalized_deg radians\n") ;
   fp = fopen(fname, "w") ;
-  if (!fp) {
+  if (!fp)
+  {
     fprintf(stderr, "### could not open file %s\n", fname) ;
     return ;
   }
 
-  for (vno = total = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = total = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag || !v->marked)
       continue ;
@@ -15381,7 +17023,8 @@ static int find_best_path(MRI_SURFACE *mris, int start_vno, int end_vno,
                           double l_len) ;
 
 void
-draw_fundus(int bdry_index) {
+draw_fundus(int bdry_index)
+{
   PATH_PATH  *borig, *bnew, *bold ;
   double         last_sse, sse, curv_error, initial_length, total_length,
   l_curv, l_len, min_curv_error, target_curv ;
@@ -15391,7 +17034,8 @@ draw_fundus(int bdry_index) {
 
   MRISclearMarks(mris) ;
   target_curv = mris->max_curv ;
-  if (bdry_index == PATH_NONE_SELECTED) {
+  if (bdry_index == PATH_NONE_SELECTED)
+  {
     printf("### no boundary selected\n") ;
     return ;
   }
@@ -15409,7 +17053,8 @@ draw_fundus(int bdry_index) {
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate index array", Progname) ;
   path_copy(bold, bnew) ;
   niter = 0 ;
-  do {
+  do
+  {
     /*    path_set_marks(bold, mris, 1) ;*/
 
     /* compute sse of current line */
@@ -15424,40 +17069,47 @@ draw_fundus(int bdry_index) {
     min_curv_error = v->curv-target_curv ;
     min_curv_error *= min_curv_error ;
     v = &mris->vertices[start_vno] ;
-    for (n = 0 ; n < v->vnum ; n++) {
+    for (n = 0 ; n < v->vnum ; n++)
+    {
       vn = &mris->vertices[v->v[n]] ;
       if (vn->marked)
         continue ;  /* already in path */
       curv_error = vn->curv - target_curv ;
       curv_error *= curv_error ;
-      if (min_n < 0 || curv_error < min_curv_error) {
+      if (min_n < 0 || curv_error < min_curv_error)
+      {
         min_curv_error = curv_error ;
         min_n = n ;
       }
     }
-    if (min_n >= 0) {
+    if (min_n >= 0)
+    {
       printf("modifying starting vertex to be %d (was %d)...\n",
              v->v[min_n],start_vno) ;
       start_vno = v->v[min_n] ;
-    } else   /* try searching nbrs of nbr of endpoint */
+    }
+    else   /* try searching nbrs of nbr of endpoint */
     {
       min_n = -1 ;
       v = &mris->vertices[bold->vertices[0]] ;
       min_curv_error = v->curv-target_curv ;
       min_curv_error *= min_curv_error ;
       v = &mris->vertices[bold->vertices[1]] ;
-      for (n = 0 ; n < v->vnum ; n++) {
+      for (n = 0 ; n < v->vnum ; n++)
+      {
         vn = &mris->vertices[v->v[n]] ;
         if (vn->marked)
           continue ;  /* already in path */
         curv_error = vn->curv - target_curv ;
         curv_error *= curv_error ;
-        if (min_n < 0 || curv_error < min_curv_error) {
+        if (min_n < 0 || curv_error < min_curv_error)
+        {
           min_curv_error = curv_error ;
           min_n = n ;
         }
       }
-      if (min_n >= 0) {
+      if (min_n >= 0)
+      {
         printf("modifying starting vertex to be %d (was %d)...\n",
                v->v[min_n],start_vno) ;
         start_vno = v->v[min_n] ;
@@ -15469,40 +17121,47 @@ draw_fundus(int bdry_index) {
     min_n = -1 ;
     min_curv_error = v->curv-target_curv ;
     min_curv_error *= min_curv_error ;
-    for (n = 0 ; n < v->vnum ; n++) {
+    for (n = 0 ; n < v->vnum ; n++)
+    {
       vn = &mris->vertices[v->v[n]] ;
       if (vn->marked)
         continue ;  /* already in path */
       curv_error = vn->curv - target_curv ;
       curv_error *= curv_error ;
-      if (min_n < 0 || curv_error < min_curv_error) {
+      if (min_n < 0 || curv_error < min_curv_error)
+      {
         min_curv_error = curv_error ;
         min_n = n ;
       }
     }
-    if (min_n >= 0) {
+    if (min_n >= 0)
+    {
       printf("modifying end point to be %d (was %d)...\n",
              v->v[min_n], end_vno) ;
       end_vno = v->v[min_n] ;
-    } else   /* try searching nbrs of nbr of endpoint */
+    }
+    else   /* try searching nbrs of nbr of endpoint */
     {
       min_n = -1 ;
       v = &mris->vertices[bold->vertices[bold->num_vertices-1]] ;
       min_curv_error = v->curv-target_curv ;
       min_curv_error *= min_curv_error ;
       v = &mris->vertices[bold->vertices[bold->num_vertices-2]] ;
-      for (n = 0 ; n < v->vnum ; n++) {
+      for (n = 0 ; n < v->vnum ; n++)
+      {
         vn = &mris->vertices[v->v[n]] ;
         if (vn->marked)
           continue ;  /* already in path */
         curv_error = vn->curv - target_curv ;
         curv_error *= curv_error ;
-        if (min_n < 0 || curv_error < min_curv_error) {
+        if (min_n < 0 || curv_error < min_curv_error)
+        {
           min_curv_error = curv_error ;
           min_n = n ;
         }
       }
-      if (min_n >= 0) {
+      if (min_n >= 0)
+      {
         printf("modifying ending vertex to be %d (was %d)...\n",
                v->v[min_n],end_vno) ;
         end_vno = v->v[min_n] ;
@@ -15514,7 +17173,8 @@ draw_fundus(int bdry_index) {
     v_in_path = find_best_path(mris, start_vno, end_vno, indices,
                                target_curv, l_curv, l_len) ;
     /* indices[0] = startvno and indices[v_in_path-1] = endvno */
-    for (i = 0 ; i < v_in_path ; i++) {
+    for (i = 0 ; i < v_in_path ; i++)
+    {
       vno = indices[i] ;
       if (vno == 0 || vno == Gdiag_no)
         DiagBreak() ;
@@ -15539,21 +17199,25 @@ draw_fundus(int bdry_index) {
            sse, last_sse, 100*(last_sse-sse)/last_sse,bnew->num_vertices) ;
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       redraw() ;
-  } while (!FZERO(sse-last_sse)) ;
+  }
+  while (!FZERO(sse-last_sse)) ;
   free(indices) ;
 
 }
 static double
-path_length(PATH_PATH *b, MRI_SURFACE *mris) {
+path_length(PATH_PATH *b, MRI_SURFACE *mris)
+{
   double total_length, length ;
   int    i, vno ;
   VERTEX *v, *v_last = NULL ;
 
   /* compute length of current line */
-  for (total_length = 0.0, i = 0 ; i < b->num_vertices ; i++) {
+  for (total_length = 0.0, i = 0 ; i < b->num_vertices ; i++)
+  {
     vno = b->vertices[i] ;
     v = &mris->vertices[vno] ;
-    if (i > 0) {
+    if (i > 0)
+    {
       length = sqrt(SQR(v->x-v_last->x) +
                     SQR(v->y-v_last->y) + SQR(v->z-v_last->z)) ;
       total_length += length ;
@@ -15565,18 +17229,21 @@ path_length(PATH_PATH *b, MRI_SURFACE *mris) {
 
 static double
 path_sse(PATH_PATH *b, MRI_SURFACE *mris, double target_curv,
-         double l_curv, double l_len) {
+         double l_curv, double l_len)
+{
   double sse, curv_error, length ;
   int    i, vno ;
   VERTEX *v, *v_last = NULL ;
 
   /* compute length of current line */
-  for (sse = 0.0, i = 0 ; i < b->num_vertices ; i++) {
+  for (sse = 0.0, i = 0 ; i < b->num_vertices ; i++)
+  {
     vno = b->vertices[i] ;
     v = &mris->vertices[vno] ;
     curv_error = (target_curv - v->curv) ;
     sse += l_curv * (curv_error*curv_error) ;
-    if (i > 0) {
+    if (i > 0)
+    {
       length = sqrt(SQR(v->x-v_last->x) +
                     SQR(v->y-v_last->y) + SQR(v->z-v_last->z)) ;
       sse += l_len * length ;
@@ -15589,7 +17256,8 @@ path_sse(PATH_PATH *b, MRI_SURFACE *mris, double target_curv,
 static int
 find_best_path(MRI_SURFACE *mris, int start_vno, int end_vno,
                int *path_indices,
-               double target_curv, double l_curv, double l_len) {
+               double target_curv, double l_curv, double l_len)
+{
   int    *nbrs, *new_nbrs, num_new_nbrs, num_nbrs, n, done = 0, i, vno,
       min_n ;
   double sse, min_d, d ;
@@ -15602,7 +17270,8 @@ find_best_path(MRI_SURFACE *mris, int start_vno, int end_vno,
   new_nbrs = (int *)calloc(mris->nvertices, sizeof(int)) ;
   v = &mris->vertices[end_vno] ;
   done = FALSE ;
-  for (num_nbrs = n = 0 ; n < v->vnum ; n++) {
+  for (num_nbrs = n = 0 ; n < v->vnum ; n++)
+  {
     vno = v->v[n] ;
     vn = &mris->vertices[vno] ;
     if (vn->marked && vno != start_vno)
@@ -15617,9 +17286,11 @@ find_best_path(MRI_SURFACE *mris, int start_vno, int end_vno,
 
   do  /* keep expanding front until start_vno is found */
   {
-    for (num_new_nbrs = i = 0 ; i < num_nbrs ; i++) {
+    for (num_new_nbrs = i = 0 ; i < num_nbrs ; i++)
+    {
       v = &mris->vertices[nbrs[i]] ;
-      for (n = 0 ; n < v->vnum ; n++) {
+      for (n = 0 ; n < v->vnum ; n++)
+      {
         vno = v->v[n] ;
         vn = &mris->vertices[vno] ;
         if (vn->marked && (vno != start_vno))  /* already visited */
@@ -15635,7 +17306,8 @@ find_best_path(MRI_SURFACE *mris, int start_vno, int end_vno,
             vn->d = d ;
           continue ;    /* don't add it to nbr list twice */
         }
-        if (vno == start_vno) {
+        if (vno == start_vno)
+        {
           done = TRUE ;
           break ;
         }
@@ -15648,7 +17320,8 @@ find_best_path(MRI_SURFACE *mris, int start_vno, int end_vno,
     if (done == FALSE)
       for (num_nbrs = 0 ; num_nbrs < num_new_nbrs ; num_nbrs++)
         nbrs[num_nbrs] = new_nbrs[num_nbrs] ;
-  } while (done == FALSE) ;
+  }
+  while (done == FALSE) ;
 
   /* now search from start_vno to find shortest total path */
   done = FALSE ;
@@ -15656,10 +17329,12 @@ find_best_path(MRI_SURFACE *mris, int start_vno, int end_vno,
   path_indices[0] = vno = start_vno ;
   num_nbrs = 1 ;
   v = &mris->vertices[vno] ;
-  do {
+  do
+  {
     min_n = -1 ;
     min_d = 10000000 ;
-    for (n = 0 ; n < v->vnum ; n++) {
+    for (n = 0 ; n < v->vnum ; n++)
+    {
       vno = v->v[n] ;
       vn = &mris->vertices[vno] ;
       if (vno == end_vno)
@@ -15672,7 +17347,8 @@ find_best_path(MRI_SURFACE *mris, int start_vno, int end_vno,
       }
       if (FZERO(vn->d))   /* wasn't visited */
         continue ;
-      if (vn->d < min_d || min_n < 0) {
+      if (vn->d < min_d || min_n < 0)
+      {
         min_d = vn->d ;
         min_n = n ;
       }
@@ -15681,12 +17357,14 @@ find_best_path(MRI_SURFACE *mris, int start_vno, int end_vno,
     path_indices[num_nbrs++] = vno ;
     v = &mris->vertices[vno] ;
     sse += v->d ;
-  } while (done == FALSE) ;
+  }
+  while (done == FALSE) ;
   return(num_nbrs) ;
 }
 
 void
-plot_curv(int closedcurveflag) {
+plot_curv(int closedcurveflag)
+{
   float x0, y0, z0, dx, dy, dz, dist;
   VERTEX *v;
   FILE *fp;
@@ -15707,7 +17385,8 @@ plot_curv(int closedcurveflag) {
              path, &path_length);
 
   /* Make sure we got a path. */
-  if (path_length < 2) {
+  if (path_length < 2)
+  {
     printf ("surfer: needs at least 2 marked vertices\n");
     free (path);
     return;
@@ -15717,7 +17396,8 @@ plot_curv(int closedcurveflag) {
   fprintf(stderr, "generating data file %s with entries:\n", LINE_FNAME) ;
   fprintf(stderr, "vno x y z distance curv val val2 stat amp "
           "deg normalized_deg radians\n") ;
-  if (nmarked<2) {
+  if (nmarked<2)
+  {
     printf("surfer: needs at least 2 marked vertices\n");
     PR return;
   }
@@ -15729,7 +17409,8 @@ plot_curv(int closedcurveflag) {
   z0 = mris->vertices[path[0]].z ;
 
   /* For each vert in the path, write some info about it. */
-  for (vno = 0; vno < path_length; vno++) {
+  for (vno = 0; vno < path_length; vno++)
+  {
     v = &mris->vertices[path[vno]];
 
     /* Get the info from the first point. */
@@ -15765,7 +17446,8 @@ plot_curv(int closedcurveflag) {
 }
 
 void
-clear_vertex_marks(void) {
+clear_vertex_marks(void)
+{
   int i;
 
   for (i=0;i<nmarked;i++)
@@ -15773,7 +17455,8 @@ clear_vertex_marks(void) {
   nmarked = 0;
 }
 void
-clear_all_vertex_marks(void) {
+clear_all_vertex_marks(void)
+{
   int i;
 
   for (i=0;i<mris->nvertices;i++)
@@ -15784,7 +17467,8 @@ clear_all_vertex_marks(void) {
 /* begin rkt */
 void
 find_closest_marked_vertex (int screen_x, int screen_y,
-                            int* closest_index, int* closest_vno ) {
+                            int* closest_index, int* closest_vno )
+{
   int vno;
   float d;
   VERTEX* v;
@@ -15797,7 +17481,8 @@ find_closest_marked_vertex (int screen_x, int screen_y,
   int closest_marked;
 
   find_vertex_at_screen_point (screen_x, screen_y, &vno, &d);
-  if (vno < 0) {
+  if (vno < 0)
+  {
     if (closest_index) *closest_index = -1;
     if (closest_vno) *closest_vno = -1;
     return;
@@ -15810,14 +17495,16 @@ find_closest_marked_vertex (int screen_x, int screen_y,
 
   dmin = 1000;
   closest_marked = -1;
-  for (test_marked = 0; test_marked < nmarked; test_marked++) {
+  for (test_marked = 0; test_marked < nmarked; test_marked++)
+  {
     test_vno = marked[test_marked];
     test_v = &(mris->vertices[test_vno]);
     dx = test_v->x - ras[0];
     dy = test_v->y - ras[1];
     dz = test_v->z - ras[2];
     d = sqrt (dx*dx + dy*dy + dz*dz);
-    if (d < dmin) {
+    if (d < dmin)
+    {
       dmin = d;
       closest_marked = test_marked;
     }
@@ -15829,7 +17516,7 @@ find_closest_marked_vertex (int screen_x, int screen_y,
 /* end rkt */
 
 void
-mark_translated_vertex(int vindex, int onoroff, char *surf_fname) 
+mark_translated_vertex(int vindex, int onoroff, char *surf_fname)
 {
   MRI_SURFACE *mris2 ;
   float       x0, y0, z0, dist, min_dist, x, y, z ;
@@ -15839,19 +17526,23 @@ mark_translated_vertex(int vindex, int onoroff, char *surf_fname)
 
   mris2 = MRISread(surf_fname) ;
   if (!mris2)
-    ErrorExit(ERROR_NOFILE, "%s: could not load translation surface %s", Progname, surf_fname) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not load translation surface %s",
+              Progname, surf_fname) ;
   FileNameOnly(surf_fname, surf_name) ;
   read_canon_vertex_coordinates(surf_name)  ;
   x0 = mris2->vertices[vindex].x ;
   y0 = mris2->vertices[vindex].y ;
   z0 = mris2->vertices[vindex].z ;
-  min_dist = 1e10 ; min_vno = -1 ;
+  min_dist = 1e10 ;
+  min_vno = -1 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    x = v->cx ; y = v->cy ; z = v->cz ;
+    x = v->cx ;
+    y = v->cy ;
+    z = v->cz ;
     dist = sqrt(SQR(x-x0) + SQR(y-y0) + SQR(z-z0)) ;
     if (dist < min_dist)
     {
@@ -15864,7 +17555,8 @@ mark_translated_vertex(int vindex, int onoroff, char *surf_fname)
 }
 
 void
-mark_vertex(int vindex, int onoroff) {
+mark_vertex(int vindex, int onoroff)
+{
   int i,j;
   VERTEX *v ;
 
@@ -15874,16 +17566,19 @@ mark_vertex(int vindex, int onoroff) {
   for (i=0; i < nmarked && marked[i] != vindex; i++);
 
   v = &mris->vertices[vindex] ;
-  if ((onoroff==FALSE)&&(i<nmarked)) {
+  if ((onoroff==FALSE)&&(i<nmarked))
+  {
     v->marked = 0 ;
     nmarked--;
     for (j=i;j<nmarked;j++) marked[j] = marked[j+1];
     printf("surfer: vertex %d unmarked\n",vindex);
   }
-  if ((onoroff==TRUE)&&(i==nmarked)) {
+  if ((onoroff==TRUE)&&(i==nmarked))
+  {
     if (nmarked==mris->nvertices-1)
       printf("surfer: too many marked vertices\n");
-    else {
+    else
+    {
       marked[nmarked] = vindex;
       printf("surfer: vertex %d marked (curv=%f, stat=%f)\n",
              vindex,mris->vertices[vindex].curv,
@@ -15892,18 +17587,22 @@ mark_vertex(int vindex, int onoroff) {
              v->x, v->y, v->z, v->nx, v->ny, v->nz) ;
       nmarked++;
     }
-  } else if (onoroff > 1) {
+  }
+  else if (onoroff > 1)
+  {
     v = &mris->vertices[vindex] ;
     v->marked = onoroff ;
   }
 }
 
 void
-mark_annotation(int vno_annot) {
+mark_annotation(int vno_annot)
+{
   int    vno, annotation ;
   VERTEX *v ;
 
-  if (vno_annot < 0) {
+  if (vno_annot < 0)
+  {
     fprintf(stderr, "no vertex currently selected...\n") ;
     return ;
   }
@@ -15912,7 +17611,8 @@ mark_annotation(int vno_annot) {
   annotation = v->annotation ;
   fprintf(stderr, "marking annotation %d...\n", annotation) ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -15921,7 +17621,8 @@ mark_annotation(int vno_annot) {
   }
 }
 void
-mark_faces(int vno) {
+mark_faces(int vno)
+{
   int    n ;
   VERTEX *v;
 
@@ -15932,14 +17633,16 @@ mark_faces(int vno) {
     mark_face(v->f[n]) ;
 }
 void
-mark_face(int fno) {
+mark_face(int fno)
+{
   int    i ;
   FACE   *f;
   VERTEX *v;
 
   /* offscreen render opengl bug: RGBcolor(white) => surrounding faces color */
 
-  if ((fno >= mris->nfaces)||(fno<0)) {
+  if ((fno >= mris->nfaces)||(fno<0))
+  {
     if (fno != -1)
       printf ("surfer: ### face index %d out of bounds\n",fno);
     return;
@@ -15959,7 +17662,8 @@ mark_face(int fno) {
   f = &mris->faces[fno] ;
   RGBcolor(0,255,255);
   bgnpolygon();
-  for (i = 0 ; i< VERTICES_PER_FACE ; i++) {
+  for (i = 0 ; i< VERTICES_PER_FACE ; i++)
+  {
     v = &mris->vertices[f->v[i]];
     load_brain_coords(v->nx,v->ny,v->nz,v1);
     n3f(v1);
@@ -15974,11 +17678,14 @@ mark_face(int fno) {
   endpolygon();
 
 #if 0
-  if (bigcursorflag) {
-    for (k=0;k<vselect->num;k++) {
+  if (bigcursorflag)
+  {
+    for (k=0;k<vselect->num;k++)
+    {
       bgnquadrangle();
       f = &mris->faces[vselect->f[k]];
-      for (n=0;n<VERTICES_PER_FACE;n++) {
+      for (n=0;n<VERTICES_PER_FACE;n++)
+      {
         v = &mris->vertices[f->v[n]];
         load_brain_coords(v->nx,v->ny,v->nz,v1);
         n3f(v1);
@@ -15993,7 +17700,8 @@ mark_face(int fno) {
 #endif
 }
 void
-prompt_for_parameters(void) {
+prompt_for_parameters(void)
+{
   float  f1, f2, f3, f4, f5, f6, f7 ;
   printf("surfer: enter wt,wa,ws,wn,wc,wsh,wbn ");
   printf("surfer: (%5.2f,%5.2f,%5.2f,%5.2f,%5.2f,%5.2f,%5.2f)\n",
@@ -16010,7 +17718,8 @@ prompt_for_parameters(void) {
 }
 
 void
-prompt_for_drawmask(void) {
+prompt_for_drawmask(void)
+{
   printf("surfer: enter mask (curv,area,shear,shearvec,"
          "normvec,movevec) = %d: ",
          drawmask);
@@ -16026,7 +17735,8 @@ prompt_for_drawmask(void) {
 
 void
 fill_triangle(float x0,float y0,float z0,float x1,float y1,float z1,
-              float x2,float y2,float z2) {
+              float x2,float y2,float z2)
+{
   int i,j,imnr;
   float d0,d1,d2,dmax,u,v;
   float px,py,pz,px0,py0,pz0,px1,py1,pz1;
@@ -16040,23 +17750,28 @@ fill_triangle(float x0,float y0,float z0,float x1,float y1,float z1,
   numv = ceil(2*dmax);
   if (numu==0) numu=1;
   if (numv==0) numv=1;
-  for (v=0;v<=numv;v++) {
+  for (v=0;v<=numv;v++)
+  {
     px0 = x0 + (x2-x0)*v/numv;
     py0 = y0 + (y2-y0)*v/numv;
     pz0 = z0 + (z2-z0)*v/numv;
     px1 = x1 + (x2-x1)*v/numv;
     py1 = y1 + (y2-y1)*v/numv;
     pz1 = z1 + (z2-z1)*v/numv;
-    for (u=0;u<=numu;u++) {
+    for (u=0;u<=numu;u++)
+    {
       px = px0 + (px1-px0)*u/numu;
       py = py0 + (py1-py0)*u/numu;
       pz = pz0 + (pz1-pz0)*u/numu;
-      if (curvim_allocated) {
+      if (curvim_allocated)
+      {
         imnr = (int)((py-mris2->yctr)/fillscale+numimg/2.0+0.5);
         i = (int)(IMGSIZE/2.0-(pz-mris2->zctr)/fillscale+0.5);
         j = (int)(IMGSIZE/2.0-(px-mris2->xctr)/fillscale+0.5);
         curvim[imnr][i][j] = 255;
-      } else {
+      }
+      else
+      {
         imnr = (int)((py-mris->yctr)/fillscale+numimg/2.0+0.5);
         i = (int)(IMGSIZE/2.0-(pz-mris->zctr)/fillscale+0.5);
         j = (int)(IMGSIZE/2.0-(px-mris->xctr)/fillscale+0.5);
@@ -16067,19 +17782,23 @@ fill_triangle(float x0,float y0,float z0,float x1,float y1,float z1,
 }
 
 void
-fill_surface(void) {
+fill_surface(void)
+{
   int i,j,k;
   int totalfilled,newfilled;
 
   numimg = IMGSIZE;
-  for (k=0;k<numimg;k++) {
+  for (k=0;k<numimg;k++)
+  {
     fill[k] = (unsigned char **)lcalloc(IMGSIZE,sizeof(char *));
-    for (i=0;i<IMGSIZE;i++) {
+    for (i=0;i<IMGSIZE;i++)
+    {
       fill[k][i] = (unsigned char *)lcalloc(IMGSIZE,sizeof(char));
     }
   }
 
-  for (k=0;k<mris->nfaces;k++) {
+  for (k=0;k<mris->nfaces;k++)
+  {
     fill_triangle(mris->vertices[mris->faces[k].v[0]].x,
                   mris->vertices[mris->faces[k].v[0]].y,
                   mris->vertices[mris->faces[k].v[0]].z,
@@ -16104,7 +17823,8 @@ fill_surface(void) {
 
   fill[1][1][1] = 64;
   totalfilled = newfilled = 1;
-  while (newfilled>0) {
+  while (newfilled>0)
+  {
     newfilled = 0;
     for (k=1;k<numimg-1;k++)
       for (i=1;i<IMGSIZE-1;i++)
@@ -16112,7 +17832,8 @@ fill_surface(void) {
           if (fill[k][i][j]==0)
             if (fill[k-1][i][j]==64||
                 fill[k][i-1][j]==64||
-                fill[k][i][j-1]==64) {
+                fill[k][i][j-1]==64)
+            {
               fill[k][i][j] = 64;
               newfilled++;
             }
@@ -16122,7 +17843,8 @@ fill_surface(void) {
           if (fill[k][i][j]==0)
             if (fill[k+1][i][j]==64||
                 fill[k][i+1][j]==64||
-                fill[k][i][j+1]==64) {
+                fill[k][i][j+1]==64)
+            {
               fill[k][i][j] = 64;
               newfilled++;
             }
@@ -16138,16 +17860,19 @@ fill_surface(void) {
 }
 
 void
-fill_second_surface(void) {
+fill_second_surface(void)
+{
   int i,j,k;
   int totalfilled,newfilled;
 
-  if (!curvim_allocated) {
+  if (!curvim_allocated)
+  {
     printf("surfer: ### fill_second_surface failed: first make curv images\n");
     PR return;
   }
 
-  for (k=0;k<mris2->nfaces;k++) {
+  for (k=0;k<mris2->nfaces;k++)
+  {
     fill_triangle(mris2->vertices[mris2->faces[k].v[0]].x,
                   mris2->vertices[mris2->faces[k].v[0]].y,
                   mris2->vertices[mris2->faces[k].v[0]].z,
@@ -16172,7 +17897,8 @@ fill_second_surface(void) {
 
   ocurvim[1][1][1] = 64;   /* ocurvim for tmp: don't overwrite loaded curvim */
   totalfilled = newfilled = 1;
-  while (newfilled>0) {
+  while (newfilled>0)
+  {
     newfilled = 0;
     for (k=1;k<numimg-1;k++)
       for (i=1;i<IMGSIZE-1;i++)
@@ -16180,7 +17906,8 @@ fill_second_surface(void) {
           if (ocurvim[k][i][j]==0)
             if (ocurvim[k-1][i][j]==64||
                 ocurvim[k][i-1][j]==64||
-                ocurvim[k][i][j-1]==64) {
+                ocurvim[k][i][j-1]==64)
+            {
               ocurvim[k][i][j] = 64;
               newfilled++;
             }
@@ -16190,7 +17917,8 @@ fill_second_surface(void) {
           if (ocurvim[k][i][j]==0)
             if (ocurvim[k+1][i][j]==64||
                 ocurvim[k][i+1][j]==64||
-                ocurvim[k][i][j+1]==64) {
+                ocurvim[k][i][j+1]==64)
+            {
               ocurvim[k][i][j] = 64;
               newfilled++;
             }
@@ -16207,7 +17935,8 @@ fill_second_surface(void) {
 }
 
 void
-resize_buffers(long frame_xdim, long frame_ydim) {
+resize_buffers(long frame_xdim, long frame_ydim)
+{
   free(framebuff);
   free(framebuff2);
   free(framebuff3);
@@ -16219,14 +17948,16 @@ resize_buffers(long frame_xdim, long frame_ydim) {
 }
 
 void
-open_window(char *name) {
+open_window(char *name)
+{
 #ifdef OPENGL
 #ifndef USE_XGLUT_WINDOW
   XSizeHints hin;
   int success;
 #endif /* USE_XGLUT_WINDOW */
 
-  if (openglwindowflag) {
+  if (openglwindowflag)
+  {
     printf("surfer: ### GL window already open: can't open second\n");
     PR return;
   }
@@ -16239,21 +17970,27 @@ open_window(char *name) {
 
 #else /* USE_XGLUT_WINDOW */
 
-  if (doublebufferflag) {
+  if (doublebufferflag)
+  {
     tkoInitDisplayMode(TKO_DOUBLE | TKO_RGB | TKO_DEPTH);
     printf("surfer: double buffered window\n");
-  } else {
+  }
+  else
+  {
     tkoInitDisplayMode(TKO_SINGLE | TKO_RGB | TKO_DEPTH);
     printf("surfer: single buffered window\n");
   }
 
-  if (renderoffscreen) {
+  if (renderoffscreen)
+  {
     renderoffscreen1 = renderoffscreen; /* val at winopen time safe from tcl */
     tkoInitPosition(MOTIF_XFUDGE+5,MOTIF_YFUDGE+5,frame_xdim,frame_ydim);
     tkoInitPixmap(frame_xdim,frame_ydim);
     printf("surfer: ### rendering to offscreen window ###\n");
     PR
-  } else {
+  }
+  else
+  {
     if (!initpositiondoneflag)
       tkoInitPosition(MOTIF_XFUDGE+wx0,(1024-wy0-frame_ydim)+MOTIF_XFUDGE,
                       frame_xdim,frame_ydim);
@@ -16261,17 +17998,22 @@ open_window(char *name) {
     /* if we don't get a display, try again with the other kind of
     buffer. */
     success = tkoInitWindow(name);
-    if (!success) {
-      if (doublebufferflag) {
+    if (!success)
+    {
+      if (doublebufferflag)
+      {
         tkoInitDisplayMode(TKO_SINGLE | TKO_RGB | TKO_DEPTH);
         printf("surfer: failed, trying single buffered window\n");
-      } else {
+      }
+      else
+      {
         tkoInitDisplayMode(TKO_DOUBLE | TKO_RGB | TKO_DEPTH);
         printf("surfer: failed, trying double buffered window\n");
       }
       success = tkoInitWindow(name);
     }
-    if (!success) {
+    if (!success)
+    {
       printf("surfer: failed, no suitable display found\n");
       exit(1);
     }
@@ -16298,11 +18040,13 @@ open_window(char *name) {
 
 
 #else  /* use gl calls */
-  if (openglwindowflag) {
+  if (openglwindowflag)
+  {
     printf("surfer: ### gl window already open: can't open second\n");
     PR return;
   }
-  if (renderoffscreen) {
+  if (renderoffscreen)
+  {
     printf("surfer: ### render offscreen request ignored "
            "(OpenGL version only)\n");
     renderoffscreen1 = FALSE;
@@ -16359,7 +18103,8 @@ swap_buffers(void)  /* so tcl sees OpenGL define */
 }
 
 void
-to_single_buffer(void) {
+to_single_buffer(void)
+{
   if (!doublebufferflag) return;
 #ifdef OPENGL
   /* TODO: to toggle single/double in X: init second, glXChooseVisual */
@@ -16370,7 +18115,8 @@ to_single_buffer(void) {
             "restart tksurfer\n");
   PR
 #else
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### gl window not open: use open_window\n");
     PR return;
   }
@@ -16381,7 +18127,8 @@ to_single_buffer(void) {
 }
 
 void
-to_double_buffer(void) {
+to_double_buffer(void)
+{
   if (doublebufferflag) return;
 #ifdef OPENGL
   /* TODO: to toggle single/double in X: init second, glXChooseVisual */
@@ -16392,7 +18139,8 @@ to_double_buffer(void) {
             "restart tksurfer\n");
   PR
 #else
-  if (!openglwindowflag) {
+  if (!openglwindowflag)
+  {
     printf("surfer: ### gl window not open: use open_window\n");
     PR
     return;
@@ -16405,47 +18153,60 @@ to_double_buffer(void) {
 
 void
 do_lighting_model(float lite0,float lite1,float lite2,float lite3,
-                  float newoffset) {
+                  float newoffset)
+{
 #ifdef OPENGL
   /* init static arrays for non-default vars */
-  static GLfloat mat0_ambient[] =  {
-                                     0.0, 0.0, 0.0, 1.0
-                                   };
-  static GLfloat mat0_diffuse[] =  {
-                                     OFFSET, OFFSET, OFFSET, 1.0
-                                   };
-  static GLfloat mat0_emission[] = {
-                                     0.0, 0.0, 0.0, 1.0
-                                   };
-  static GLfloat light0_diffuse[] = {
-                                      LIGHT0_BR, LIGHT0_BR, LIGHT0_BR, 1.0
-                                    };
-  static GLfloat light1_diffuse[] = {
-                                      LIGHT1_BR, LIGHT1_BR, LIGHT1_BR, 1.0
-                                    };
-  static GLfloat light2_diffuse[] = {
-                                      LIGHT2_BR, LIGHT2_BR, LIGHT2_BR, 1.0
-                                    };
-  static GLfloat light3_diffuse[] = {
-                                      LIGHT3_BR, LIGHT3_BR, LIGHT3_BR, 1.0
-                                    };
-  static GLfloat light0_position[] = {
-                                       0.0, 0.0, 1.0, 0.0
-                                     };
+  static GLfloat mat0_ambient[] =
+    {
+      0.0, 0.0, 0.0, 1.0
+    };
+  static GLfloat mat0_diffuse[] =
+    {
+      OFFSET, OFFSET, OFFSET, 1.0
+    };
+  static GLfloat mat0_emission[] =
+    {
+      0.0, 0.0, 0.0, 1.0
+    };
+  static GLfloat light0_diffuse[] =
+    {
+      LIGHT0_BR, LIGHT0_BR, LIGHT0_BR, 1.0
+    };
+  static GLfloat light1_diffuse[] =
+    {
+      LIGHT1_BR, LIGHT1_BR, LIGHT1_BR, 1.0
+    };
+  static GLfloat light2_diffuse[] =
+    {
+      LIGHT2_BR, LIGHT2_BR, LIGHT2_BR, 1.0
+    };
+  static GLfloat light3_diffuse[] =
+    {
+      LIGHT3_BR, LIGHT3_BR, LIGHT3_BR, 1.0
+    };
+  static GLfloat light0_position[] =
+    {
+      0.0, 0.0, 1.0, 0.0
+    };
   /* w=0:directional*/
-  static GLfloat light1_position[] = {
-                                       0.0, 0.0,-1.0, 0.0
-                                     };
-  static GLfloat light2_position[] = {
-                                       0.6, 0.6, 1.6, 0.0
-                                     }
-                                     ;/* 0.6->1.6 */
-  static GLfloat light3_position[] = {
-                                       -1.0, 0.0, 0.0, 0.0
-                                     };
-  static GLfloat lmodel_ambient[] =  {
-                                       0.0, 0.0, 0.0, 0.0
-                                     };
+  static GLfloat light1_position[] =
+    {
+      0.0, 0.0,-1.0, 0.0
+    };
+  static GLfloat light2_position[] =
+    {
+      0.6, 0.6, 1.6, 0.0
+    }
+    ;/* 0.6->1.6 */
+  static GLfloat light3_position[] =
+    {
+      -1.0, 0.0, 0.0, 0.0
+    };
+  static GLfloat lmodel_ambient[] =
+    {
+      0.0, 0.0, 0.0, 0.0
+    };
   /* cancel 0.2 amb */
 
   /* neg lite => no change (func args override interface light?_br update) */
@@ -16506,38 +18267,43 @@ do_lighting_model(float lite0,float lite1,float lite2,float lite3,
 
 #else  /* use gl calls */
   /* init float arrays */
-  static float material0[] = {
-                               ALPHA,1.0,
-                               AMBIENT,0.0,0.0,0.0,
-                               DIFFUSE,OFFSET,OFFSET,OFFSET,
-                               EMISSION,0.0,0.0,0.0,
-                               SHININESS,0.0,
-                               LMNULL
-                             };
-  static float light0[] = {
-                            AMBIENT,0.0,0.0,0.0,
-                            LCOLOR,LIGHT0_BR,LIGHT0_BR,LIGHT0_BR,
-                            POSITION,0.0,0.0,1.0,0.0,
-                            LMNULL
-                          };
-  static float light1[] = {
-                            AMBIENT,0.0,0.0,0.0,
-                            LCOLOR,LIGHT1_BR,LIGHT1_BR,LIGHT1_BR,
-                            POSITION,0.0,0.0,-1.0,0.0,
-                            LMNULL
-                          };
-  static float light2[] = {
-                            AMBIENT,0.0,0.0,0.0,
-                            LCOLOR,LIGHT2_BR,LIGHT2_BR,LIGHT2_BR,
-                            POSITION,0.6,0.6,0.6,0.0,
-                            LMNULL
-                          };
-  static float light3[] = {
-                            AMBIENT,0.0,0.0,0.0,
-                            LCOLOR,LIGHT3_BR,LIGHT3_BR,LIGHT3_BR,
-                            POSITION,-1.0,0.0,0.0,0.0,
-                            LMNULL
-                          };
+  static float material0[] =
+    {
+      ALPHA,1.0,
+      AMBIENT,0.0,0.0,0.0,
+      DIFFUSE,OFFSET,OFFSET,OFFSET,
+      EMISSION,0.0,0.0,0.0,
+      SHININESS,0.0,
+      LMNULL
+    };
+  static float light0[] =
+    {
+      AMBIENT,0.0,0.0,0.0,
+      LCOLOR,LIGHT0_BR,LIGHT0_BR,LIGHT0_BR,
+      POSITION,0.0,0.0,1.0,0.0,
+      LMNULL
+    };
+  static float light1[] =
+    {
+      AMBIENT,0.0,0.0,0.0,
+      LCOLOR,LIGHT1_BR,LIGHT1_BR,LIGHT1_BR,
+      POSITION,0.0,0.0,-1.0,0.0,
+      LMNULL
+    };
+  static float light2[] =
+    {
+      AMBIENT,0.0,0.0,0.0,
+      LCOLOR,LIGHT2_BR,LIGHT2_BR,LIGHT2_BR,
+      POSITION,0.6,0.6,0.6,0.0,
+      LMNULL
+    };
+  static float light3[] =
+    {
+      AMBIENT,0.0,0.0,0.0,
+      LCOLOR,LIGHT3_BR,LIGHT3_BR,LIGHT3_BR,
+      POSITION,-1.0,0.0,0.0,0.0,
+      LMNULL
+    };
 
   if (lite0 < 0.0)     lite0 = light0[5];
   if (lite1 < 0.0)     lite1 = light1[5];
@@ -16577,7 +18343,8 @@ do_lighting_model(float lite0,float lite1,float lite2,float lite3,
   lmcolor(LMC_DIFFUSE);
 #endif
 
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+  {
     printf("surfer: offset=%3.2f\n",newoffset);
     printf("surfer: light0=%3.2f, light1=%3.2f, light2=%3.2f, "
            "light3=%3.2f\n",
@@ -16586,11 +18353,13 @@ do_lighting_model(float lite0,float lite1,float lite2,float lite3,
 }
 
 void
-invert_surface(void) {
+invert_surface(void)
+{
   int     vno ;
   VERTEX  *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -16602,7 +18371,8 @@ invert_surface(void) {
 
 void
 make_filenames(char *lsubjectsdir,char *lsrname,char *lpname,char *lstem,
-               char *lext) {
+               char *lext)
+{
   /* malloc for tcl */
   sphere_reg = (char *)malloc(NAME_LENGTH*sizeof(char));
   subjectsdir = (char *)malloc(NAME_LENGTH*sizeof(char));
@@ -16696,7 +18466,8 @@ make_filenames(char *lsubjectsdir,char *lsrname,char *lpname,char *lstem,
 }
 
 void
-print_help_tksurfer(void) {
+print_help_tksurfer(void)
+{
   printf("usage: tksurfer subject hemisphere surface [options]\n");
   printf("\n");
   printf("subject    : a subject directory in the SUBJECTS_DIR path\n");
@@ -18169,10 +19940,12 @@ WEND
 
 
 int W_func_load_timecourse (ClientData clientData,Tcl_Interp *interp,
-                            int argc,char *argv[]) {
+                            int argc,char *argv[])
+{
   FunD_tRegistrationType reg_type = FunD_tRegistration_None;
 
-  if (argc!=3 && argc!=4) {
+  if (argc!=3 && argc!=4)
+  {
     Tcl_SetResult(interp,"Wrong # args: func_load_timecourse volumeFileName"
                   "registrationType [registrationFileName]",TCL_VOLATILE);
     return TCL_ERROR;
@@ -18185,7 +19958,8 @@ int W_func_load_timecourse (ClientData clientData,Tcl_Interp *interp,
   /* even if we have 3 args, tcl could have passed us a blank string
      for the 4th. if it's blank, call the load function with a null
      registration, otherwise it will think it's a valid file name. */
-  if (argc==4) {
+  if (argc==4)
+  {
     if (strcmp(argv[3],"")==0)
       func_load_timecourse (argv[1], reg_type, NULL);
     else
@@ -18195,10 +19969,12 @@ int W_func_load_timecourse (ClientData clientData,Tcl_Interp *interp,
 }
 
 int W_func_load_timecourse_offset (ClientData clientData,Tcl_Interp *interp,
-                                   int argc,char *argv[]) {
+                                   int argc,char *argv[])
+{
   FunD_tRegistrationType reg_type = FunD_tRegistration_None;
 
-  if (argc!=3 && argc!=4) {
+  if (argc!=3 && argc!=4)
+  {
     Tcl_SetResult(interp,"Wrong # args: func_load_timecourse_offset fname"
                   "registrationType [registration]",TCL_VOLATILE);
     return TCL_ERROR;
@@ -18211,7 +19987,8 @@ int W_func_load_timecourse_offset (ClientData clientData,Tcl_Interp *interp,
   /* even if we have 3 args, tcl could have passed us a blank string
      for the 4th. if it's blank, call the load function with a null
      registration, otherwise it will think it's a valid file name. */
-  if (argc==4) {
+  if (argc==4)
+  {
     if (strcmp(argv[3],"")==0)
       func_load_timecourse_offset (argv[1], reg_type, NULL);
     else
@@ -18222,10 +19999,12 @@ int W_func_load_timecourse_offset (ClientData clientData,Tcl_Interp *interp,
 }
 
 int W_sclv_read_from_volume (ClientData clientData,Tcl_Interp *interp,
-                             int argc,char *argv[]) {
+                             int argc,char *argv[])
+{
   FunD_tRegistrationType reg_type = FunD_tRegistration_None;
 
-  if (argc!=4&&argc!=5) {
+  if (argc!=4&&argc!=5)
+  {
     Tcl_SetResult(interp,"Wrong # args: sclv_read_from_volume field fname "
                   "registrationType [registration]",TCL_VOLATILE);
     return TCL_ERROR;
@@ -18238,7 +20017,8 @@ int W_sclv_read_from_volume (ClientData clientData,Tcl_Interp *interp,
   /* even if we have 4 args, tcl could have passed us a blank string
      for the 4th. if it's blank, call the read function with a null
      registration, otherwise it will think it's a valid file name. */
-  if (argc==5) {
+  if (argc==5)
+  {
     if (strcmp(argv[4],"")==0)
       sclv_read_from_volume (argv[2], reg_type, NULL, atoi(argv[1]));
     else
@@ -18301,11 +20081,13 @@ WEND
 
 int W_sclv_get_normalized_color_for_value (ClientData clientData,
     Tcl_Interp *interp,
-    int argc,char *argv[]) {
+    int argc,char *argv[])
+{
   float r, g, b;
   char stringResult[256];
 
-  if (argc!=2) {
+  if (argc!=2)
+  {
     Tcl_SetResult(interp,"Wrong # args: sclv_get_normalized_color_for_value "
                   "value",TCL_VOLATILE);
     return TCL_ERROR;
@@ -18463,7 +20245,8 @@ edit_vertex_at_cursor(atoi(argv[1]), atoi(argv[2]));
 WEND
 
 int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
-                              int argc,char *argv[]) {
+                              int argc,char *argv[])
+{
   FILL_PARAMETERS params;
   char first_fill;
   int seed;
@@ -18471,7 +20254,8 @@ int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
   int nseeds;
   int n;
 
-  if (argc != 9) {
+  if (argc != 9)
+  {
     Tcl_SetResult(interp,"Wrong # args: fill_flood_from_cursor "
                   "dont_cross_path dont_cross_label dont_fill_unlabeled "
                   "dont_cross_cmid dont_cross_fthresh  "
@@ -18489,7 +20273,8 @@ int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
   params.action              = atoi(argv[7]);
   params.argument            = atoi(argv[8]);
 
-  if (params.use_multiple_seeds) {
+  if (params.use_multiple_seeds)
+  {
     /* Since making a label will mess with the marked array, we need to
        copy the marked verts to use them as seeds. */
     for (n = 0; n < nmarked; n++)
@@ -18502,7 +20287,8 @@ int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
 
     /* Fill for each seed point. */
     first_fill = TRUE;
-    for (n = 0; n < nseeds; n++) {
+    for (n = 0; n < nseeds; n++)
+    {
       fill_flood_from_seed (seeds[n], &params);
 
       /* If this was the first fill and this was a NEW_LABEL
@@ -18510,13 +20296,16 @@ int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
          the params block and make it the new argument of a
          ADD_LABEL action, so that the next label is added to the
          one we just made. */
-      if (first_fill && FILL_ACTION_NEW_LABEL == params.action ) {
+      if (first_fill && FILL_ACTION_NEW_LABEL == params.action )
+      {
         first_fill = FALSE;
         params.action = FILL_ACTION_ADD_LABEL;
         params.argument = params.new_label_index;
       }
     }
-  } else {
+  }
+  else
+  {
     /* Use the selection as the seed. */
     seed = selection;
 
@@ -18532,21 +20321,25 @@ int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
 }
 
 int W_get_marked_vnos ( ClientData clientData, Tcl_Interp *interp,
-                        int argc, char *argv[] ) {
+                        int argc, char *argv[] )
+{
   Tcl_Obj *list;
   int vno;
   VERTEX* v = NULL;
 
-  if (argc != 1) {
+  if (argc != 1)
+  {
     Tcl_SetResult(interp, "Wrong # args: get_marked_vnos", TCL_VOLATILE);
     return TCL_ERROR;
   }
 
   list = Tcl_NewListObj(0,NULL);
 
-  for (vno = 0; vno < mris->nvertices; vno++) {
+  for (vno = 0; vno < mris->nvertices; vno++)
+  {
     v = &mris->vertices[vno];
-    if (v->marked) {
+    if (v->marked)
+    {
       Tcl_ListObjAppendElement(interp,list,Tcl_NewIntObj(vno));
     }
   }
@@ -18557,17 +20350,20 @@ int W_get_marked_vnos ( ClientData clientData, Tcl_Interp *interp,
 }
 
 int W_get_selected_path_vnos ( ClientData clientData, Tcl_Interp *interp,
-                               int argc, char *argv[] ) {
+                               int argc, char *argv[] )
+{
   Tcl_Obj *list;
   int path_vno, vno;
 
-  if (argc != 1) {
+  if (argc != 1)
+  {
     Tcl_SetResult(interp, "Wrong # args: get_selected_path_vnos",
                   TCL_VOLATILE);
     return TCL_ERROR;
   }
 
-  if (path_selected_path < 0 || path_selected_path >= path_num_paths) {
+  if (path_selected_path < 0 || path_selected_path >= path_num_paths)
+  {
     Tcl_SetResult(interp, "No path selected.", TCL_VOLATILE);
     return TCL_ERROR;
   }
@@ -18576,7 +20372,8 @@ int W_get_selected_path_vnos ( ClientData clientData, Tcl_Interp *interp,
 
   for (path_vno = 0;
        path_vno < path_paths[path_selected_path].num_vertices;
-       path_vno++) {
+       path_vno++)
+  {
     vno = path_paths[path_selected_path].vertices[path_vno];
     Tcl_ListObjAppendElement(interp,list,Tcl_NewIntObj(vno));
   }
@@ -18637,7 +20434,8 @@ WEND
 #ifndef IRIX
 extern char *crypt(char *, char *) ;
 #endif
-void checkLicense(char* dirname) {
+void checkLicense(char* dirname)
+{
   FILE* lfile;
   char* email;
   char* magic;
@@ -18654,17 +20452,21 @@ void checkLicense(char* dirname) {
   sprintf(lfilename,"%s/.license",dirname);
 
   lfile = fopen(lfilename,"r");
-  if (lfile) {
+  if (lfile)
+  {
     fscanf(lfile,"%s\n",email);
     fscanf(lfile,"%s\n",magic);
     fscanf(lfile,"%s\n",key);
 
     sprintf(gkey,"%s.%s",email,magic);
-    if (strcmp(key,crypt(gkey,"*C*O*R*T*E*C*H*S*0*1*2*3*"))!=0) {
+    if (strcmp(key,crypt(gkey,"*C*O*R*T*E*C*H*S*0*1*2*3*"))!=0)
+    {
       printf("No valid license key !\n");
       exit(-1);
     }
-  } else {
+  }
+  else
+  {
     printf("License file not found !\n");
     exit(-1);
   }
@@ -18716,7 +20518,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.293 2007/12/11 04:41:32 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.294 2008/01/14 21:20:00 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18750,7 +20552,8 @@ int main(int argc, char *argv[])   /* new main */
 
   /* get tksurfer tcl startup script location from environment */
   envptr = getenv("FREESURFER_HOME");
-  if (envptr==NULL) {
+  if (envptr==NULL)
+  {
     printf("tksurfer: env var FREESURFER_HOME undefined (use setenv)\n");
     printf("    [dir containing mri distribution]\n");
     exit(0);
@@ -18774,49 +20577,62 @@ int main(int argc, char *argv[])   /* new main */
   found_script = FALSE;
   tksurfer_scripts_dir = getenv ("TKSURFER_SCRIPTS_DIR");
 
-  if (!found_script && tksurfer_scripts_dir) {
+  if (!found_script && tksurfer_scripts_dir)
+  {
     sprintf (tksurfer_tcl, "%s/tksurfer.new.tcl", tksurfer_scripts_dir);
-    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL) {
+    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+    {
       fclose(fp);
       found_script = TRUE;
     }
   }
-  if (!found_script && tksurfer_scripts_dir) {
+  if (!found_script && tksurfer_scripts_dir)
+  {
     sprintf (tksurfer_tcl, "%s/tksurfer.tcl", tksurfer_scripts_dir);
-    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL) {
+    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+    {
       fclose(fp);
       found_script = TRUE;
     }
   }
-  if (!found_script) {
+  if (!found_script)
+  {
     strcpy (tksurfer_tcl, "tksurfer.new.tcl");
-    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL) {
+    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+    {
       fclose(fp);
       found_script = TRUE;
     }
   }
-  if (!found_script) {
+  if (!found_script)
+  {
     strcpy (tksurfer_tcl, "tksurfer.tcl");
-    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL) {
+    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+    {
       fclose(fp);
       found_script = TRUE;
     }
   }
-  if (!found_script && envptr) {
+  if (!found_script && envptr)
+  {
     sprintf (tksurfer_tcl, "%s/lib/tcl/tksurfer.new.tcl", envptr);
-    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL) {
+    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+    {
       fclose(fp);
       found_script = TRUE;
     }
   }
-  if (!found_script && envptr) {
+  if (!found_script && envptr)
+  {
     sprintf (tksurfer_tcl, "%s/lib/tcl/tksurfer.tcl", envptr);
-    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL) {
+    if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+    {
       fclose(fp);
       found_script = TRUE;
     }
   }
-  if (!found_script) {
+  if (!found_script)
+  {
     printf ("surfer: cannot find tksurfer.tcl script\n");
     exit (1);
   }
@@ -18826,13 +20642,15 @@ int main(int argc, char *argv[])   /* new main */
   /* look for script: (1) cwd,
      (2) FREESURFER_HOME/lib/tcl, (3) [same]/alias.tcl */
   sprintf(script_tcl,"%s/lib/tcl/twocond-views.tcl",envptr);  /* default */
-  if (argc==6) {
+  if (argc==6)
+  {
     strcpy(str,argv[4]);
     if (MATCH_STR("-tcl")) /* if command line script, run as batch job */
     {
       char *cp ;
 
-      if (argc!=6) {
+      if (argc!=6)
+      {
         printf("Usage: tksurfer [-]name hemi surf [-tcl script]\n");
         exit(0);
       }
@@ -18874,7 +20692,8 @@ int main(int argc, char *argv[])   /* new main */
         }
       }
       scriptok = TRUE;
-    } else {
+    } else
+    {
       ; /* ignore 6 arg command lines without -tcl option */
     }
   }
@@ -18902,10 +20721,12 @@ int main(int argc, char *argv[])   /* new main */
   if (tty) promptflag = TRUE;  /* no-CR blocks pipe log read */
 
   /* read tcl/tk internal startup scripts */
-  if (Tcl_Init(interp) == TCL_ERROR) {
+  if (Tcl_Init(interp) == TCL_ERROR)
+  {
     fprintf(stderr, "Tcl_Init failed: %s\n", interp->result);
   }
-  if (Tk_Init(interp) == TCL_ERROR) {
+  if (Tk_Init(interp) == TCL_ERROR)
+  {
     fprintf(stderr, "Tk_Init failed: %s\n", interp->result);
   }
 
@@ -18915,24 +20736,29 @@ int main(int argc, char *argv[])   /* new main */
   // Do the following only for RedHat Enterprise Linux only
 
 #if NEEDS_ITCL_ITK
-  if (Itcl_Init(interp) == TCL_ERROR) {
+  if (Itcl_Init(interp) == TCL_ERROR)
+  {
     fprintf(stderr, "Itcl_Init failed: %s\n", interp->result);
   }
-  if (Itk_Init(interp) == TCL_ERROR) {
+  if (Itk_Init(interp) == TCL_ERROR)
+  {
     fprintf(stderr, "Itk_Init failed: %s\n", interp->result);
   }
 #endif
 
   /* begin rkt */
-  if (Tix_Init(interp) == TCL_ERROR) {
+  if (Tix_Init(interp) == TCL_ERROR)
+  {
     fprintf(stderr, "Tix_Init failed: %s\n", interp->result);
   }
-  if (Blt_Init(interp) == TCL_ERROR) {
+  if (Blt_Init(interp) == TCL_ERROR)
+  {
     fprintf(stderr, "Blt_Init failed: %s\n", interp->result);
   }
 
   /* Initialize our Fsgdf functions. This is in fsgdf_wrap.c */
-  if (Fsgdf_Init(interp) == TCL_ERROR) {
+  if (Fsgdf_Init(interp) == TCL_ERROR)
+  {
     fprintf(stderr, "Fsgdf_Init failed: %s\n", interp->result);
   }
 
@@ -19665,9 +21491,12 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"fnumconditions",
               (char *)&sclv_num_conditions, TCL_LINK_INT);
   Tcl_LinkVar(interp,"labelstyle",(char *)&labl_draw_style, TCL_LINK_INT);
-  Tcl_LinkVar(interp,"labeloutlinered",(char *)&labl_outline_color[0], TCL_LINK_INT);
-  Tcl_LinkVar(interp,"labeloutlinegreen",(char *)&labl_outline_color[1], TCL_LINK_INT);
-  Tcl_LinkVar(interp,"labeloutlineblue",(char *)&labl_outline_color[2], TCL_LINK_INT);
+  Tcl_LinkVar(interp,"labeloutlinered",
+              (char *)&labl_outline_color[0], TCL_LINK_INT);
+  Tcl_LinkVar(interp,"labeloutlinegreen",
+              (char *)&labl_outline_color[1], TCL_LINK_INT);
+  Tcl_LinkVar(interp,"labeloutlineblue",
+              (char *)&labl_outline_color[2], TCL_LINK_INT);
   Tcl_LinkVar(interp,"func_graph_avg_mode",(char *)&func_graph_avg_mode,
               TCL_LINK_INT);
   Tcl_LinkVar(interp,"colscalebar_font_size",(char *)&colscalebar_font_size,
@@ -19786,13 +21615,13 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"subjtmpdir",  (char *)&tfname,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"transform",   (char *)&xffname,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"colscalebar_label1",(char *)&colscalebar_label[0],
-	      TCL_LINK_STRING);
+              TCL_LINK_STRING);
   Tcl_LinkVar(interp,"colscalebar_label2",(char *)&colscalebar_label[1],
-	      TCL_LINK_STRING);
+              TCL_LINK_STRING);
   Tcl_LinkVar(interp,"colscalebar_label3",(char *)&colscalebar_label[2],
-	      TCL_LINK_STRING);
+              TCL_LINK_STRING);
   Tcl_LinkVar(interp,"colscalebar_label4",(char *)&colscalebar_label[3],
-	      TCL_LINK_STRING);
+              TCL_LINK_STRING);
 
   /* begin rkt */
   Tcl_LinkVar(interp,"colortablename",
@@ -19804,7 +21633,8 @@ int main(int argc, char *argv[])   /* new main */
   /*=======================================================================*/
 
   strcpy(rfname,script_tcl);  /* save in global (malloc'ed in Surfer) */
-  if (aliasflag) {
+  if (aliasflag)
+  {
     sprintf(alias_tcl,"%s/lib/tcl/%s",envptr,argv[5]);
     Tcl_SetVar(interp,"aliasedscript",alias_tcl,0);
   }
@@ -19845,11 +21675,14 @@ int main(int argc, char *argv[])   /* new main */
   send_tcl_command (tcl_cmd);
 
   /* if command line script exists, now run as batch job (possibly exiting) */
-  if (scriptok) {    /* script may or may not open gl window */
+  if (scriptok)
+  {    /* script may or may not open gl window */
     printf("tksurfer: run tcl script: %s\n",script_tcl);
     code = Tcl_EvalFile (g_interp, script_tcl);
     if (code != TCL_OK)  printf(Tcl_GetStringResult(interp));
-  } else {
+  }
+  else
+  {
     ; /* surfer has already opened gl window if no script */
   }
 
@@ -19880,8 +21713,10 @@ int main(int argc, char *argv[])   /* new main */
   glutMainLoop(); /* never returns */
 #else /* USE_XGLUT_WINDOW */
   /* dual event loop (interface window made now) */
-  while (tk_NumMainWindows > 0) {
-    while (Tk_DoOneEvent(TK_ALL_EVENTS|TK_DONT_WAIT)) {
+  while (tk_NumMainWindows > 0)
+  {
+    while (Tk_DoOneEvent(TK_ALL_EVENTS|TK_DONT_WAIT))
+    {
       /* do all the tk events; non-blocking */
     }
     do_one_gl_event(interp);
@@ -19891,7 +21726,7 @@ int main(int argc, char *argv[])   /* new main */
     tv.tv_usec = 10000;
     select(0, NULL, NULL, NULL, &tv);
 #else
-    sginap((long)1);   /* block for 10 msec */
+  sginap((long)1);   /* block for 10 msec */
 #endif
   }
 #endif  /* USE_XGLUT_WINDOW */
@@ -19914,24 +21749,33 @@ int mask;
   int code, count;
 
   count = read(fileno(stdin), input, BUFFER_SIZE);
-  if (count <= 0) {
-    if (!gotPartial) {
-      if (tty) {
+  if (count <= 0)
+  {
+    if (!gotPartial)
+    {
+      if (tty)
+      {
         send_tcl_command("exit");
         exit(1);
-      } else     {
+      }
+      else
+      {
         Tk_DeleteFileHandler(0);
       }
       return;
-    } else count = 0;
+    }
+    else count = 0;
   }
   cmd = Tcl_DStringAppend(&command, input, count);
-  if (count != 0) {
-    if ((input[count-1] != '\n') && (input[count-1] != ';')) {
+  if (count != 0)
+  {
+    if ((input[count-1] != '\n') && (input[count-1] != ';'))
+    {
       gotPartial = 1;
       goto prompt;
     }
-    if (!Tcl_CommandComplete(cmd)) {
+    if (!Tcl_CommandComplete(cmd))
+    {
       gotPartial = 1;
       goto prompt;
     }
@@ -19962,13 +21806,17 @@ int partial;
     (char*)Tcl_GetVar(interp,
                       partial ? (char*)"tcl_prompt2" : (char*)"tcl_prompt1",
                       TCL_GLOBAL_ONLY);
-  if (promptCmd == NULL) {
+  if (promptCmd == NULL)
+  {
 defaultPrompt:
     if (!partial)
       fputs("% ", stdout);
-  } else {
+  }
+  else
+  {
     code = Tcl_Eval (g_interp, promptCmd);
-    if (code != TCL_OK) {
+    if (code != TCL_OK)
+    {
       Tcl_AddErrorInfo(interp,
                        "\n    (script that generates prompt)");
       fprintf(stderr, "%s\n", Tcl_GetStringResult(interp));
@@ -19980,7 +21828,8 @@ defaultPrompt:
 
 static void
 grabPixels(unsigned int width, unsigned int height, unsigned short *red,
-           unsigned short *green, unsigned short *blue) {
+           unsigned short *green, unsigned short *blue)
+{
   GLint    swapbytes, lsbfirst, rowlength ;
   GLint    skiprows, skippixels, alignment ;
 
@@ -20010,7 +21859,8 @@ grabPixels(unsigned int width, unsigned int height, unsigned short *red,
 }
 static void
 save_rgbfile(char *fname, int width, int height, unsigned short *red,
-             unsigned short *green, unsigned short *blue) {
+             unsigned short *green, unsigned short *blue)
+{
   RGB_IMAGE  *image ;
   int    y ;
   unsigned short *r, *g, *b ;
@@ -20022,7 +21872,8 @@ save_rgbfile(char *fname, int width, int height, unsigned short *red,
 #endif
   if (!image)
     return ;
-  for (y = 0 ; y < height; y++) {
+  for (y = 0 ; y < height; y++)
+  {
     r = red + y * width ;
     g = green + y * width ;
     b = blue + y * width ;
@@ -20036,11 +21887,13 @@ save_rgbfile(char *fname, int width, int height, unsigned short *red,
 }
 
 void
-fix_nonzero_vals(void) {
+fix_nonzero_vals(void)
+{
   int    vno ;
   VERTEX *v ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -20052,7 +21905,8 @@ fix_nonzero_vals(void) {
 }
 
 void
-curv_to_val(void) {
+curv_to_val(void)
+{
   int    vno ;
   VERTEX *v ;
   char   label[1024];
@@ -20065,7 +21919,8 @@ curv_to_val(void) {
   /* Copy the data in. */
   min = 1000000000;
   max = -min;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -20092,12 +21947,14 @@ curv_to_val(void) {
   sclv_set_current_field (SCLV_VAL);
 }
 int
-read_parcellation(char *parc_name, char *lut_name) {
+read_parcellation(char *parc_name, char *lut_name)
+{
   return(read_and_smooth_parcellation(parc_name, lut_name, 25, 25)) ;
 }
 int
 read_and_smooth_parcellation(char *parc_name, char *lut_name,
-                             int siter, int miter) {
+                             int siter, int miter)
+{
   char   *cp, fname[STRLEN], path[STRLEN], name[STRLEN] ;
   MRI    *mri ;
   int    vno, index, rd, gn, bl, xv, yv, zv ;
@@ -20116,7 +21973,8 @@ read_and_smooth_parcellation(char *parc_name, char *lut_name,
     strcpy(fname, parc_name) ;  /* path specified explcitly */
   fprintf(stderr, "reading parcellation from %s...\n", fname) ;
   mri = MRIread(fname) ;
-  if (!mri) {
+  if (!mri)
+  {
     fprintf(stderr, "### could not read parcellation file %s\n", fname) ;
     return(Gerror) ;
   }
@@ -20131,13 +21989,15 @@ read_and_smooth_parcellation(char *parc_name, char *lut_name,
 
   fprintf(stderr, "reading color lut from %s...\n", fname) ;
   fp = fopen(fname, "r") ;
-  if (!fp) {
+  if (!fp)
+  {
     fprintf(stderr, "### could not read parcellation lut from %s\n", fname) ;
     return(Gerror) ;
   }
 
 
-  while ((cp = fgetl(line, 199, fp)) != NULL) {
+  while ((cp = fgetl(line, 199, fp)) != NULL)
+  {
     sscanf(cp, "%d %s %d %d %d %*s\n", &index, name, &rd, &gn, &bl) ;
     r[index] = (char)rd ;
     g[index] = (char)gn ;
@@ -20155,7 +22015,8 @@ read_and_smooth_parcellation(char *parc_name, char *lut_name,
   read_orig_vertex_coordinates("pial") ;
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
   fprintf(stderr, "painting parcellation onto surface...\n") ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -20183,7 +22044,8 @@ read_and_smooth_parcellation(char *parc_name, char *lut_name,
   MRISsoapBubbleVals(mris, siter) ;
   fprintf(stderr, "applying mode filter...\n") ;
   MRISmodeFilterVals(mris, miter) ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -20202,12 +22064,14 @@ read_and_smooth_parcellation(char *parc_name, char *lut_name,
   return(NO_ERROR) ;
 }
 int
-read_curv_to_val(char *fname) {
+read_curv_to_val(char *fname)
+{
   int    vno ;
   VERTEX *v ;
 
   enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -20219,7 +22083,8 @@ read_curv_to_val(char *fname) {
 
   printf("surfer: values read: min=%f max=%f\n",
          mris->min_curv,mris->max_curv);
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -20230,12 +22095,14 @@ read_curv_to_val(char *fname) {
 }
 
 void
-val_to_curv(void) {
+val_to_curv(void)
+{
   int    vno ;
   VERTEX *v ;
 
   enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -20244,12 +22111,14 @@ val_to_curv(void) {
 }
 
 void
-val_to_stat(void) {
+val_to_stat(void)
+{
   int    vno ;
   VERTEX *v ;
 
   enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -20258,12 +22127,14 @@ val_to_stat(void) {
 }
 
 void
-stat_to_val(void) {
+stat_to_val(void)
+{
   int    vno ;
   VERTEX *v ;
 
   enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -20272,13 +22143,15 @@ stat_to_val(void) {
 }
 
 void
-show_flat_regions(char *surf_name, double thresh) {
+show_flat_regions(char *surf_name, double thresh)
+{
   int    vno, nfound = 0 ;
   VERTEX *v ;
   float  mx ;
 
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-  if (MRISreadVertexPositions(mris, surf_name) != NO_ERROR) {
+  if (MRISreadVertexPositions(mris, surf_name) != NO_ERROR)
+  {
     ErrorPrintf(ERROR_NOFILE,
                 "show_flat_regions(%s): could not read surface",
                 surf_name) ;
@@ -20287,15 +22160,18 @@ show_flat_regions(char *surf_name, double thresh) {
 
   MRIScomputeMetricProperties(mris) ;  /* compute normals */
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
     mx = MAX(MAX(fabs(v->nx), fabs(v->ny)), fabs(v->nz)) ;
-    if (mx > thresh) {
+    if (mx > thresh)
+    {
       nfound++ ;
       v->val = mx ;
-    } else
+    }
+    else
       v->val = 0 ;
   }
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
@@ -20305,7 +22181,8 @@ show_flat_regions(char *surf_name, double thresh) {
 }
 
 static void
-resize_brain(float surface_area) {
+resize_brain(float surface_area)
+{
   float scale ;
 
   MRIScomputeMetricProperties(mris) ;
@@ -20318,12 +22195,14 @@ resize_brain(float surface_area) {
 }
 
 void
-val_to_mark(void) {
+val_to_mark(void)
+{
   int    vno ;
   VERTEX *v ;
   static int mark = 2 ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -20334,7 +22213,8 @@ val_to_mark(void) {
 }
 
 void
-twocond(int c0, int c1) {
+twocond(int c0, int c1)
+{
   char  fname[STRLEN], val_name[STRLEN], *cp ;
   int   dof ;
   FILE  *fp ;
@@ -20352,7 +22232,8 @@ twocond(int c0, int c1) {
 
   sprintf(fname, "%s/sigavg%d.dof", val_dir, c1) ;
   fp = fopen(fname, "r") ;
-  if (!fp) {
+  if (!fp)
+  {
     printf("### surfer: could not open dof file %s\n", fname) ;
     return ;
   }
@@ -20369,7 +22250,8 @@ twocond(int c0, int c1) {
 
   sprintf(fname, "%s/sigavg%d.dof", val_dir, c0) ;
   fp = fopen(fname, "r") ;
-  if (!fp) {
+  if (!fp)
+  {
     printf("### surfer: could not open dof file %s\n", fname) ;
     return ;
   }
@@ -20415,7 +22297,8 @@ twocond(int c0, int c1) {
 }
 
 int
-mask_label(char *label_name) {
+mask_label(char *label_name)
+{
   LABEL  *area ;
   int     vno ;
   VERTEX  *v ;
@@ -20423,14 +22306,16 @@ mask_label(char *label_name) {
   surface_compiled = 0 ;
   MRISclearMarks(mris) ;
   area = LabelRead(pname, label_name) ;
-  if (!area) {
+  if (!area)
+  {
     fprintf(stderr, "unable to read label file %s\n", label_name) ;
     return(NO_ERROR) ;
   }
 
   LabelMarkSurface(area, mris) ;  /* mark all points in label */
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->marked || v->ripflag)
       continue ;
@@ -20444,7 +22329,8 @@ mask_label(char *label_name) {
 
 #include "mrishash.h"
 static void
-deconvolve_weights(char *weight_fname, char *scale_fname) {
+deconvolve_weights(char *weight_fname, char *scale_fname)
+{
   MHT     *mht ;
   MHBT    *bucket ;
   MHB     *bin ;
@@ -20457,10 +22343,12 @@ deconvolve_weights(char *weight_fname, char *scale_fname) {
 
 
   surface_compiled = 0 ;
-  if (is_val_file(weight_fname)) {
+  if (is_val_file(weight_fname))
+  {
     if (MRISreadValues(mris,weight_fname) != NO_ERROR)
       return ;
-  } else if (read_curv_to_val(weight_fname) != NO_ERROR)
+  }
+  else if (read_curv_to_val(weight_fname) != NO_ERROR)
     return ;
 
   fprintf(stderr, "loading spherical coordinate system...\n") ;
@@ -20479,7 +22367,8 @@ deconvolve_weights(char *weight_fname, char *scale_fname) {
   fprintf(stderr, "average radius = %2.1f\n", radius) ;
 
   MRIScopyValToVal2(mris) ;   /* put weights in val2 field */
-  if (MRISreadValues(mris, scale_fname) != NO_ERROR) {
+  if (MRISreadValues(mris, scale_fname) != NO_ERROR)
+  {
     fprintf(stderr,
             "### surfer: could not open scale file %s\n",scale_fname);
     PR ;
@@ -20495,11 +22384,13 @@ deconvolve_weights(char *weight_fname, char *scale_fname) {
   fprintf(stderr, "deconvolving weights...\n") ;
   MRISsetVals(mris, 0.0) ;  /* clear all values */
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     v->tdx = 0 ;  /* used for normalization below */
   }
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     if (!(vno % (mris->nvertices/50)))
       fprintf(stderr, ".") ;
     v = &mris->vertices[vno] ;
@@ -20523,7 +22414,8 @@ deconvolve_weights(char *weight_fname, char *scale_fname) {
 
     for (dx = -MAX_DIST ; dx <= MAX_DIST ; dx += MAX_DIST)
       for (dy = -MAX_DIST ; dy <= MAX_DIST ; dy += MAX_DIST)
-        for (dz = -MAX_DIST ; dz <= MAX_DIST ; dz += MAX_DIST) {
+        for (dz = -MAX_DIST ; dz <= MAX_DIST ; dz += MAX_DIST)
+        {
           x0 = v->cx + dx ;
           y0 = v->cy + dy ;
           z0 = v->cz + dz ;
@@ -20531,7 +22423,8 @@ deconvolve_weights(char *weight_fname, char *scale_fname) {
           bucket = MHTgetBucket(mht, x0, y0, z0) ;
           if (!bucket)
             continue ;
-          for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++) {
+          for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++)
+          {
             n = bin->fno ;
             vn = &mris->vertices[n] ;
             if (vn->marked)
@@ -20571,11 +22464,13 @@ deconvolve_weights(char *weight_fname, char *scale_fname) {
   fprintf(stderr, "\n") ;
 
   mean = var = mn = mx = 0.0f ;
-  for (i = vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (i = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
       DiagBreak() ;
-    if (!FZERO(v->tdx)) {
+    if (!FZERO(v->tdx))
+    {
       i++ ;
       v->val /= v->tdx ;
       v->tdx = 0 ;
@@ -20588,7 +22483,8 @@ deconvolve_weights(char *weight_fname, char *scale_fname) {
     }
   }
 
-  if (i) {
+  if (i)
+  {
     mean /= (double)i ;
     var = var / i - mean*mean ;
     fprintf(stderr, "%d non-zero vals, [%2.2f --> %2.2f], %2.2f += %2.2f\n",
@@ -20607,7 +22503,8 @@ deconvolve_weights(char *weight_fname, char *scale_fname) {
 }
 
 static void
-read_disc(char *subject_name) {
+read_disc(char *subject_name)
+{
   char   fname[300] ;
   int    vno ;
   VERTEX *v ;
@@ -20615,13 +22512,15 @@ read_disc(char *subject_name) {
 
   surface_compiled = 0 ;
   sprintf(fname, "./%s.offset_%s", stem, subject_name) ;
-  if (read_curv_to_val(fname) != NO_ERROR) {
+  if (read_curv_to_val(fname) != NO_ERROR)
+  {
     fprintf(stderr, "### surfer: could not open %s\n", fname) ;
     return ;
   }
   shift_values() ;
   sprintf(fname, "./%s.mdiff", stem) ;
-  if (read_curv_to_val(fname) != NO_ERROR) {
+  if (read_curv_to_val(fname) != NO_ERROR)
+  {
     fprintf(stderr, "### surfer: could not open %s\n", fname) ;
     return ;
   }
@@ -20629,13 +22528,15 @@ read_disc(char *subject_name) {
   swap_values() ;  /* mdiff ->valbak, offset ->val2bak */
 
   sprintf(fname, "control_thickness/%s.thickness_%s", stem, subject_name) ;
-  if (read_curv_to_val(fname) != NO_ERROR) {
+  if (read_curv_to_val(fname) != NO_ERROR)
+  {
     fprintf(stderr, "### surfer: could not open %s\n", fname) ;
     return ;
   }
   shift_values() ;    /* thickness -> val2 */
   sprintf(fname, "./%s.disc_%s", stem, subject_name) ; /* disc -> val */
-  if (read_curv_to_val(fname) != NO_ERROR) {
+  if (read_curv_to_val(fname) != NO_ERROR)
+  {
     fprintf(stderr, "### surfer: could not open %s\n", fname) ;
     return ;
   }
@@ -20652,7 +22553,8 @@ read_disc(char *subject_name) {
 
   disc_flag = 1 ;
   mask_label("lh-cortex") ;
-  for (proj = 0.0, vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (proj = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     v->val = (v->val2 - v->val2bak) * v->imag_val ;
     proj += (double)v->val ;
@@ -20664,12 +22566,14 @@ read_disc(char *subject_name) {
 /* begin rkt */
 
 static void
-print_vertex_data(int vno, FILE *fp, float dmin) {
+print_vertex_data(int vno, FILE *fp, float dmin)
+{
   VERTEX   *v ;
   int      i, j, imnr ;
 
   v = &mris->vertices[vno] ;
-  if (twocond_flag) {
+  if (twocond_flag)
+  {
     if (!FZERO(v->imag_val))
       fprintf(fp, "cond %d: %2.3f +- %2.3f, cond %d: %2.3f +- %2.3f, "
               "scale=%2.0f\n",
@@ -20679,7 +22583,9 @@ print_vertex_data(int vno, FILE *fp, float dmin) {
       fprintf(fp, "cond %d: %2.3f +- %2.3f, cond %d: %2.3f +- %2.3f\n",
               cond0, v->val, v->valbak, cond1, v->val2, v->val2bak);
     PR;
-  } else if (disc_flag) {
+  }
+  else if (disc_flag)
+  {
     fprintf(fp, "v %d:\n\tdisc:\t\t%2.3f\n\tmdiff:"
             "\t\t%2.3f\n\tthickness:\t%2.3f\n\toffset:\t\t%2.3f\n"
             "\tdiff:\t\t%2.3f\n\tproj:\t\t%2.3f\n",
@@ -20687,7 +22593,9 @@ print_vertex_data(int vno, FILE *fp, float dmin) {
             v->val2-v->val2bak, v->val);
     PR;
 
-  } else {
+  }
+  else
+  {
 #if 0
     fprintf(fp, "surfer: dmin=%3.4f, vno=%d, x=%3.4f, y=%3.4f, z=%3.4f, "
             "nz=%3.4f\n", dmin,vno,v->x,
@@ -20708,14 +22616,16 @@ print_vertex_data(int vno, FILE *fp, float dmin) {
             (float)(atan2(v->val2,v->val)/(2*M_PI)));
     PR;
   }
-  if (annotationloaded) {
+  if (annotationloaded)
+  {
     int  r, g, b ;
     r = v->annotation & 0x00ff ;
     g = (v->annotation >> 8) & 0x00ff ;
     b = (v->annotation >> 16) & 0x00ff ;
     fprintf(fp, "annot = %d (%d, %d, %d)\n", v->annotation, r, g, b) ;
   }
-  if (MRIflag && MRIloaded) {
+  if (MRIflag && MRIloaded)
+  {
     imnr = (int)((v->y-yy0)/st+0.5);
     i = (int)((zz1-v->z)/ps+0.5);
     j = (int)((xx1-v->x)/ps+0.5);
@@ -20725,7 +22635,8 @@ print_vertex_data(int vno, FILE *fp, float dmin) {
   }
   if (parc_flag && v->val > 0 && parc_names[(int)nint(v->val)])
     fprintf(stderr, "parcellation name: %s\n", parc_names[(int)nint(v->val)]) ;
-  if (Ggcsa != NULL) {
+  if (Ggcsa != NULL)
+  {
     VERTEX *v_classifier, *v_prior ;
     int     vno_classifier, vno_prior ;
     GCSA_NODE *gcsan ;
@@ -20753,7 +22664,8 @@ print_vertex_data(int vno, FILE *fp, float dmin) {
 }
 
 static void
-send_current_labels() {
+send_current_labels()
+{
   /* We've cached the current vnos of the cursor and mouseover, so
      just send those. */
   update_labels (LABELSET_MOUSEOVER, mouseover_vno, 0);
@@ -20761,7 +22673,8 @@ send_current_labels() {
 }
 
 static void
-update_labels(int label_set, int vno, float dmin) {
+update_labels(int label_set, int vno, float dmin)
+{
   int err;
   char command[NAME_LENGTH];
   VERTEX *v;
@@ -20808,10 +22721,11 @@ update_labels(int label_set, int vno, float dmin) {
           label_set, LABEL_COORDS_RAS, v->origx, v->origy, v->origz);
   send_tcl_command(command);
   if (LABELSET_CURSOR == label_set)
-    cptn_sprintf_for_code (CPTN_CODE_COORDS_RAS, "(%.2f, %.2f, %.2f)", 
-			   v->origx, v->origy, v->origz);
+    cptn_sprintf_for_code (CPTN_CODE_COORDS_RAS, "(%.2f, %.2f, %.2f)",
+                           v->origx, v->origy, v->origz);
 
-  if (MRIflag && MRIloaded) {
+  if (MRIflag && MRIloaded)
+  {
     imnr = (int)((v->y-yy0)/st+0.5);
     i = (int)((zz1-v->z)/ps+0.5);
     j = (int)((xx1-v->x)/ps+0.5);
@@ -20819,8 +22733,8 @@ update_labels(int label_set, int vno, float dmin) {
             label_set, LABEL_COORDS_INDEX, imnr, i, j);
     send_tcl_command(command);
     if (LABELSET_CURSOR == label_set)
-      cptn_sprintf_for_code (CPTN_CODE_COORDS_INDEX, "(%d, %d, %d)", 
-			     imnr, i, j);
+      cptn_sprintf_for_code (CPTN_CODE_COORDS_INDEX, "(%d, %d, %d)",
+                             imnr, i, j);
 
     sprintf(command, "UpdateLabel %d %d %d",
             label_set, LABEL_MRIVALUE, im[imnr][i][j]);
@@ -20829,14 +22743,15 @@ update_labels(int label_set, int vno, float dmin) {
       cptn_sprintf_for_code (CPTN_CODE_MRIVALUE, "%d", im[imnr][i][j]);
   }
   /* if we have a tal transform, compute the tal. */
-  if (transform_loaded) {
+  if (transform_loaded)
+  {
     conv_ras_to_tal( v->origx, v->origy, v->origz, &x_tal, &y_tal, &z_tal );
     sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
             label_set, LABEL_COORDS_TAL, x_tal, y_tal, z_tal );
     send_tcl_command(command);
     if (LABELSET_CURSOR == label_set)
       cptn_sprintf_for_code (CPTN_CODE_COORDS_TAL, "(%.2f, %.2f, %.2f)",
-			     x_tal, y_tal, z_tal);
+                             x_tal, y_tal, z_tal);
 
     conv_ras_to_mnital( v->origx, v->origy, v->origz,
                         &x_mni, &y_mni, &z_mni );
@@ -20845,7 +22760,7 @@ update_labels(int label_set, int vno, float dmin) {
     send_tcl_command(command);
     if (LABELSET_CURSOR == label_set)
       cptn_sprintf_for_code (CPTN_CODE_COORDS_MNITAL, "(%.2f, %.2f, %.2f)",
-			     x_mni, y_mni, z_mni);
+                             x_mni, y_mni, z_mni);
   }
 
   sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"",
@@ -20853,15 +22768,19 @@ update_labels(int label_set, int vno, float dmin) {
   send_tcl_command(command);
   if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_COORDS_NORMAL, "(%.2f, %.2f, %.2f)",
-			   v->nx, v->ny, v->nz);
+                           v->nx, v->ny, v->nz);
 
   /* if a canon surface isn't loaded, make a name and see if it exists. */
-  if (canonsurfloaded == FALSE && canonsurffailed == FALSE) {
+  if (canonsurfloaded == FALSE && canonsurffailed == FALSE)
+  {
     sprintf(fname, "%s.%s", fpref, sphere_reg_suffix) ;
-    if (FileExists(fname)) {
+    if (FileExists(fname))
+    {
       printf("surfer: reading canonical coordinates from\n");
       printf("surfer:   %s\n",fname);
-    } else {
+    }
+    else
+    {
       /* set our don't load flag here so we don't
          try and load it every time */
       dontloadspherereg = TRUE;
@@ -20876,7 +22795,8 @@ update_labels(int label_set, int vno, float dmin) {
   if (canonsurfloaded == TRUE ||
       (dontloadspherereg == FALSE &&
        FileExists(fname) &&
-       read_canon_vertex_coordinates(fname) == NO_ERROR) ) {
+       read_canon_vertex_coordinates(fname) == NO_ERROR) )
+  {
     x = mris->vertices[vno].cx ;
     y = mris->vertices[vno].cy ;
     z = mris->vertices[vno].cz ;
@@ -20900,15 +22820,15 @@ update_labels(int label_set, int vno, float dmin) {
     send_tcl_command(command);
     if (LABELSET_CURSOR == label_set)
       cptn_sprintf_for_code (CPTN_CODE_COORDS_SPHERE_XYZ, "(%.2f, %.2f, %.2f)",
-			     sx, sy, sz);
-     
+                             sx, sy, sz);
+
     sprintf(command, "UpdateLabel %d %d \"(%2.1f  %2.1f)\"",
             label_set, LABEL_COORDS_SPHERE_RT,
             DEGREES(phi), DEGREES(theta) );
     send_tcl_command(command);
     if (LABELSET_CURSOR == label_set)
-      cptn_sprintf_for_code (CPTN_CODE_COORDS_SPHERE_RT, "(%2.1f, %2.1f)", 
-			     DEGREES(phi), DEGREES(theta));
+      cptn_sprintf_for_code (CPTN_CODE_COORDS_SPHERE_RT, "(%2.1f, %2.1f)",
+                             DEGREES(phi), DEGREES(theta));
   }
 
   sprintf(command, "UpdateLabel %d %d %f",
@@ -20916,32 +22836,36 @@ update_labels(int label_set, int vno, float dmin) {
   send_tcl_command(command);
   if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_CURVATURE, "%f", v->curv);
-     
+
   sprintf(command, "UpdateLabel %d %d %f",
           label_set, LABEL_FIELDSIGN, v->fieldsign);
   send_tcl_command(command);
   if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_FIELDSIGN, "%f", v->fieldsign);
-     
+
   /* overlay labels. draw the current one in stars. */
-  for (field = 0; field < NUM_SCALAR_VALUES; field++ ) {
+  for (field = 0; field < NUM_SCALAR_VALUES; field++ )
+  {
     sclv_get_value(v,field,&value);
-    if (field == sclv_current_field) {
+    if (field == sclv_current_field)
+    {
       sprintf(command, "UpdateLabel %d %d \"** %f **\"", label_set,
               LABEL_VAL + field, value);
-    } else {
+    }
+    else
+    {
       sprintf(command, "UpdateLabel %d %d %f", label_set,
               LABEL_VAL + field, value);
     }
     send_tcl_command(command);
 
     if (LABELSET_CURSOR == label_set)
-      {    
-	/* Build the string for the code here be affixing the field
-	   number + 1 to the prefix, e.g. field 0 -> !o1 */
-	sprintf (command, "%s%d", CPTN_CODE_FIELD_PREFIX, field+1);
-	cptn_sprintf_for_code (command, "%f", value);
-      }
+    {
+      /* Build the string for the code here be affixing the field
+         number + 1 to the prefix, e.g. field 0 -> !o1 */
+      sprintf (command, "%s%d", CPTN_CODE_FIELD_PREFIX, field+1);
+      cptn_sprintf_for_code (command, "%f", value);
+    }
   }
 
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_AMPLITUDE,
@@ -20949,48 +22873,54 @@ update_labels(int label_set, int vno, float dmin) {
   send_tcl_command(command);
   if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_AMPLITUDE, "%f", hypot(v->val,v->val2));
-     
+
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_ANGLE,
           (float)(atan2(v->val2,v->val)*180.0/M_PI));
   send_tcl_command(command);
   if (LABELSET_CURSOR == label_set)
-    cptn_sprintf_for_code (CPTN_CODE_ANGLE, "%f", 
-			   (float)(atan2(v->val2,v->val)*180.0/M_PI));
-     
+    cptn_sprintf_for_code (CPTN_CODE_ANGLE, "%f",
+                           (float)(atan2(v->val2,v->val)*180.0/M_PI));
+
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_DEGREE,
           (float)(atan2(v->val2,v->val)/(2*M_PI)));
   send_tcl_command(command);
   if (LABELSET_CURSOR == label_set)
     cptn_sprintf_for_code (CPTN_CODE_DEGREE, "%f",
-			   (float)(atan2(v->val2,v->val)/(2*M_PI)));
-     
+                           (float)(atan2(v->val2,v->val)/(2*M_PI)));
+
   /* send label update. */
   err = labl_find_label_by_vno( vno, 0, label_index_array,
                                 2, &num_labels_found );
-  if (err == ERROR_NONE && num_labels_found > 0) {
-    if (num_labels_found > 1) {
+  if (err == ERROR_NONE && num_labels_found > 0)
+  {
+    if (num_labels_found > 1)
+    {
       sprintf(command, "UpdateLabel %d %d \"%s, %d others\"",
               label_set, LABEL_LABEL,
               labl_labels[label_index_array[0]].name,
               num_labels_found-1);
       if (LABELSET_CURSOR == label_set)
-	cptn_sprintf_for_code (CPTN_CODE_LABEL, "%s, %d others",
-			       labl_labels[label_index_array[0]].name,
-			       num_labels_found-1 );
-     
-    } else {
+        cptn_sprintf_for_code (CPTN_CODE_LABEL, "%s, %d others",
+                               labl_labels[label_index_array[0]].name,
+                               num_labels_found-1 );
+
+    }
+    else
+    {
       sprintf(command, "UpdateLabel %d %d \"%s\"", label_set, LABEL_LABEL,
               labl_labels[label_index_array[0]].name );
       cptn_sprintf_for_code (CPTN_CODE_LABEL, "%s",
-			     labl_labels[label_index_array[0]].name);
+                             labl_labels[label_index_array[0]].name);
     }
     send_tcl_command(command);
-  } else {
+  }
+  else
+  {
     sprintf(command, "UpdateLabel %d %d \"None.\"", label_set, LABEL_LABEL );
     send_tcl_command(command);
     if (LABELSET_CURSOR == label_set)
-     cptn_sprintf_for_code (CPTN_CODE_LABEL, "None");
-    
+      cptn_sprintf_for_code (CPTN_CODE_LABEL, "None");
+
   }
 
   //  if (annotationloaded)
@@ -21002,38 +22932,40 @@ update_labels(int label_set, int vno, float dmin) {
           label_set, LABEL_ANNOTATION, v->annotation, r, g, b);
   send_tcl_command(command);
   if (LABELSET_CURSOR == label_set)
-    cptn_sprintf_for_code (CPTN_CODE_ANNOTATION, "%d (%d, %d, %d)", 
-			   v->annotation, r, g, b);
+    cptn_sprintf_for_code (CPTN_CODE_ANNOTATION, "%d (%d, %d, %d)",
+                           v->annotation, r, g, b);
   //    }
 
-  if (parc_flag && v->val > 0 && parc_names[(int)nint(v->val)]) {
+  if (parc_flag && v->val > 0 && parc_names[(int)nint(v->val)])
+  {
     sprintf(command, "UpdateLabel %d %d \"%s\"",
             label_set, LABEL_PARCELLATION_NAME,
             parc_names[(int)nint(v->val)]);
     send_tcl_command(command);
     if (LABELSET_CURSOR == label_set)
       cptn_sprintf_for_code (CPTN_CODE_PARCELLATION_NAME, "%s",
-			     parc_names[(int)nint(v->val)] );
+                             parc_names[(int)nint(v->val)] );
   }
 
   /* Although we don't update the time point and condition in the
      label section, we kind of need to update the caption with their
      values here, so do that. */
-  if( sclv_current_field != -1 )
-    {
-      cptn_sprintf_for_code (CPTN_CODE_TIME_POINT, "%d",
-			 sclv_field_info[sclv_current_field].cur_timepoint );
-      
-      cptn_sprintf_for_code (CPTN_CODE_CONDITION, "%d",
-			 sclv_field_info[sclv_current_field].cur_condition );
-    }
+  if ( sclv_current_field != -1 )
+  {
+    cptn_sprintf_for_code (CPTN_CODE_TIME_POINT, "%d",
+                           sclv_field_info[sclv_current_field].cur_timepoint );
+
+    cptn_sprintf_for_code (CPTN_CODE_CONDITION, "%d",
+                           sclv_field_info[sclv_current_field].cur_condition );
+  }
 }
 
 /* ------------------------------------------------------------- the window */
 
 #ifdef USE_XGLUT_WINDOW
 
-void wndw_create (int x, int y, int width, int height) {
+void wndw_create (int x, int y, int width, int height)
+{
   xGWin_New (&gWindow, width, height, "tksurfer");
   xGWin_SetEventHandlerFunc (gWindow, wndw_handle_event, gWindow);
   xGWin_ActivateIdleEvents (gWindow);
@@ -21042,11 +22974,13 @@ void wndw_create (int x, int y, int width, int height) {
   openglwindowflag = 1;
 }
 
-void wndw_set_title (char* title) {
+void wndw_set_title (char* title)
+{
   xGWin_SetWindowTitle (gWindow, title);
 }
 
-void wndw_handle_event (void* data, xGWin_tEventRef event) {
+void wndw_handle_event (void* data, xGWin_tEventRef event)
+{
   char command[STRLEN];
   int screen_x;
   int screen_y;
@@ -21061,42 +22995,50 @@ void wndw_handle_event (void* data, xGWin_tEventRef event) {
   int vno;
   struct timeval tv;
 
-  switch (event->mType) {
+  switch (event->mType)
+  {
   case xGWin_tEventType_KeyDown:
-    switch (event->mKey) {
+    switch (event->mKey)
+    {
     case 'r':
-      if (event->mbAltKey && g_interp) {
+      if (event->mbAltKey && g_interp)
+      {
         send_tcl_command("UpdateAndRedraw");
       }
       break;
     case 'q':
-      if (event->mbCtrlKey) {
+      if (event->mbCtrlKey)
+      {
         exit (0);
       }
       break;
     case xGWin_tKey_UpArrow:
-      if (event->mbAltKey && g_interp) {
+      if (event->mbAltKey && g_interp)
+      {
         send_tcl_command("set gNextTransform(rotate,x) "
                          "[expr $gNextTransform(rotate,x)+18.0]");
         send_tcl_command (command);
       }
       break;
     case xGWin_tKey_DownArrow:
-      if (event->mbAltKey && g_interp) {
+      if (event->mbAltKey && g_interp)
+      {
         send_tcl_command("set gNextTransform(rotate,x) "
                          "[expr $gNextTransform(rotate,x)-18.0]");
         send_tcl_command (command);
       }
       break;
     case xGWin_tKey_RightArrow:
-      if (event->mbAltKey && g_interp) {
+      if (event->mbAltKey && g_interp)
+      {
         send_tcl_command("set gNextTransform(rotate,y) "
                          "[expr $gNextTransform(rotate,y)-18.0]");
         send_tcl_command (command);
       }
       break;
     case xGWin_tKey_LeftArrow:
-      if (event->mbAltKey && g_interp) {
+      if (event->mbAltKey && g_interp)
+      {
         send_tcl_command("set gNextTransform(rotate,y) "
                          "[expr $gNextTransform(rotate,y)+18.0]");
         send_tcl_command (command);
@@ -21114,9 +23056,11 @@ void wndw_handle_event (void* data, xGWin_tEventRef event) {
   case xGWin_tEventType_MouseDown:
     screen_x = event->mWhere.mnX + w.x;
     screen_y = 1024 - w.y - event->mWhere.mnY ;
-    if (1 == event->mButton) {
+    if (1 == event->mButton)
+    {
       /* Scale around click */
-      if (event->mbCtrlKey) {
+      if (event->mbCtrlKey)
+      {
         origin_x = w.x;
         origin_y = 1024 - w.y - w.h;
 
@@ -21124,25 +23068,29 @@ void wndw_handle_event (void* data, xGWin_tEventRef event) {
         size_y = w.h;
 
         translate_x = sf *
-          (screen_x - origin_x - size_x / 2.0 ) * 
-          2.0 * fov / size_x;
+                      (screen_x - origin_x - size_x / 2.0 ) *
+                      2.0 * fov / size_x;
         translate_y = sf *
-          (screen_y - origin_y - size_y / 2.0 ) * 
-          2.0 * fov / size_y;
+                      (screen_y - origin_y - size_y / 2.0 ) *
+                      2.0 * fov / size_y;
 
         translate_brain (-translate_x, -translate_y, 0);
         scale_brain (SCALE_UP_MOUSE);
         redraw();
       }
       /* curvim */
-      else if (event->mbShiftKey) {
+      else if (event->mbShiftKey)
+      {
         select_vertex (screen_x, screen_y);
         read_curvim_at_vertex (selection);
         draw_cursor (selection, TRUE);
-      } else {
+      }
+      else
+      {
         /* If something is already selected, hilite it (because
            it's marked now) and deselect it. */
-        if (selection>=0) {
+        if (selection>=0)
+        {
           draw_vertex_hilite (selection);
           draw_cursor (selection, FALSE);
         }
@@ -21150,7 +23098,8 @@ void wndw_handle_event (void* data, xGWin_tEventRef event) {
         /* Select the vertex at this point. If we got one, mark
            it and draw the cursor. */
         select_vertex (screen_x, screen_y);
-        if (selection >= 0) {
+        if (selection >= 0)
+        {
           mark_vertex (selection, TRUE);
           draw_cursor (selection, TRUE);
         }
@@ -21164,9 +23113,11 @@ void wndw_handle_event (void* data, xGWin_tEventRef event) {
     } /* if button 1 */
 
     /* Button 2, just select and mark this vertex. */
-    else if (2 == event->mButton) {
+    else if (2 == event->mButton)
+    {
       find_closest_marked_vertex ((int)sx, (int)sy, NULL, &vno);
-      if (vno>=0) {
+      if (vno>=0)
+      {
         fprintf (stderr, "Unmarking %d\n", vno);
         mark_vertex (vno, FALSE);
         draw_cursor (vno, FALSE);
@@ -21174,8 +23125,10 @@ void wndw_handle_event (void* data, xGWin_tEventRef event) {
     }
 
     /* Button 3, if ctrl, zoom out, else clear all the selections. */
-    else if (3 == event->mButton) {
-      if (event->mbCtrlKey) {
+    else if (3 == event->mButton)
+    {
+      if (event->mbCtrlKey)
+      {
         origin_x = w.x;
         origin_y = 1024 - w.y - w.h;
 
@@ -21190,7 +23143,9 @@ void wndw_handle_event (void* data, xGWin_tEventRef event) {
         translate_brain (-translate_x, -translate_y, 0);
         scale_brain (1.0/SCALE_UP_MOUSE);
         redraw();
-      } else {
+      }
+      else
+      {
         clear_all_vertex_marks();
         labl_select(-1);
         redraw();
@@ -21205,7 +23160,8 @@ void wndw_handle_event (void* data, xGWin_tEventRef event) {
     screen_x = event->mWhere.mnX + w.x;
     screen_y = 1024 - w.y - event->mWhere.mnY ;
     find_vertex_at_screen_point (screen_x, screen_y, &mvno, &md);
-    if (mvno >= 0) {
+    if (mvno >= 0)
+    {
       mouseover_vno = vno;
       update_labels (LABELSET_MOUSEOVER, mouseover_vno, md);
     }
@@ -21239,7 +23195,8 @@ void wndw_handle_event (void* data, xGWin_tEventRef event) {
 
   case xGWin_tEventType_Idle:
     /* Call the Tk event handling function. */
-  while (Tk_DoOneEvent (TK_ALL_EVENTS | TK_DONT_WAIT)) {}
+    while (Tk_DoOneEvent (TK_ALL_EVENTS | TK_DONT_WAIT))
+    {}
 
 #ifndef sgi
     tv.tv_sec = 0;
@@ -21261,35 +23218,43 @@ void wndw_handle_event (void* data, xGWin_tEventRef event) {
 
 /* -------------------------------------------------- ctrl-c cancel support */
 
-void cncl_initialize () {
+void cncl_initialize ()
+{
   /* init the flags and register our handler. */
   cncl_listening = 0;
   cncl_canceled = 0;
   signal (SIGINT, cncl_handle_sigint);
 }
 
-void cncl_start_listening () {
+void cncl_start_listening ()
+{
   /* set our listening flag. */
   cncl_listening = 1;
 }
 
-void cncl_stop_listening () {
+void cncl_stop_listening ()
+{
   /* stop listening and reset the canceled flag. */
   cncl_listening = 0;
   cncl_canceled = 0;
 }
 
-int cncl_user_canceled () {
+int cncl_user_canceled ()
+{
   /* just return the canceled flag. */
   return (cncl_canceled);
 }
 
-void cncl_handle_sigint (int signal) {
+void cncl_handle_sigint (int signal)
+{
 
   /* if we're listening, set the flag, if not, exit normally. */
-  if (cncl_listening) {
+  if (cncl_listening)
+  {
     cncl_canceled = 1;
-  } else {
+  }
+  else
+  {
     printf ("Killed\n");
     fflush ( stdout );
     exit (1);
@@ -21301,11 +23266,13 @@ void cncl_handle_sigint (int signal) {
 /* ------------------------------------------------------- menu set support */
 
 int
-enable_menu_set (int set, int enable) {
+enable_menu_set (int set, int enable)
+{
   char tcl_cmd[1024];
 
   strncpy (tcl_cmd, "tkm_SetEnableGroupStatus", sizeof(tcl_cmd));
-  switch (set) {
+  switch (set)
+  {
   case MENUSET_VSET_INFLATED_LOADED:
     sprintf (tcl_cmd, "%s mg_InflatedVSetLoaded", tcl_cmd);
     break;
@@ -21351,10 +23318,12 @@ enable_menu_set (int set, int enable) {
 /* -------------------------------------------- multiple vertex set support */
 
 int
-vset_initialize() {
+vset_initialize()
+{
   int i;
   /* set them all to null */
-  for (i=0; i<NUM_VERTEX_SETS; i++) {
+  for (i=0; i<NUM_VERTEX_SETS; i++)
+  {
     if (NULL != vset_vertex_list[i])
       free (vset_vertex_list[i]);
 
@@ -21364,13 +23333,14 @@ vset_initialize() {
   return(NO_ERROR);
 }
 
-int vset_read_vertex_set(int set, char* fname) 
+int vset_read_vertex_set(int set, char* fname)
 {
   /* copy the current main verts into tmp */
   MRISsaveVertexPositions( mris, TMP_VERTICES );
 
   /* read the file */
-  if ( MRISreadVertexPositions( mris, fname ) != NO_ERROR ) {
+  if ( MRISreadVertexPositions( mris, fname ) != NO_ERROR )
+  {
 
     /* restore the vertices */
     MRISrestoreVertexPositions( mris, TMP_VERTICES );
@@ -21389,7 +23359,8 @@ int vset_read_vertex_set(int set, char* fname)
   MRISrestoreVertexPositions( mris, TMP_VERTICES );
 
   /* enable the set menu */
-  switch (set) {
+  switch (set)
+  {
   case VSET_INFLATED:
     enable_menu_set (MENUSET_VSET_INFLATED_LOADED,1);
     break;
@@ -21410,7 +23381,8 @@ int vset_read_vertex_set(int set, char* fname)
 }
 
 int
-vset_save_surface_vertices(int set) {
+vset_save_surface_vertices(int set)
+{
 
   int vno,nvertices;
   VERTEX *v;
@@ -21421,7 +23393,8 @@ vset_save_surface_vertices(int set) {
                    "vset_load_surface_vertices: invalid set %d\n",set));
 
   /* allocate storage if not done so already */
-  if (vset_vertex_list[set]==NULL) {
+  if (vset_vertex_list[set]==NULL)
+  {
     vset_vertex_list[set]=(VSET_VERTEX*)
                           calloc(mris->nvertices,sizeof(VSET_VERTEX));
     if (vset_vertex_list[set]==NULL)
@@ -21434,7 +23407,8 @@ vset_save_surface_vertices(int set) {
 
   /* save all vertex values into storage */
   nvertices=mris->nvertices;
-  for (vno=0;vno<nvertices;vno++) {
+  for (vno=0;vno<nvertices;vno++)
+  {
     v = &mris->vertices[vno];
     vset_vertex_list[set][vno].x = v->x;
     vset_vertex_list[set][vno].y = v->y;
@@ -21445,7 +23419,8 @@ vset_save_surface_vertices(int set) {
 }
 
 int
-vset_load_surface_vertices(int set) {
+vset_load_surface_vertices(int set)
+{
 
   int vno,nvertices;
   VERTEX* v;
@@ -21456,14 +23431,16 @@ vset_load_surface_vertices(int set) {
                    "vset_load_surface_vertices: invalid set %d\n",set));
 
   /* if not allocated, no verts stored there */
-  if (vset_vertex_list[set]==NULL) {
+  if (vset_vertex_list[set]==NULL)
+  {
     printf("surfer: vertex set not loaded.\n");
     return(NO_ERROR);
   }
 
   /* load all vertex values from storage */
   nvertices=mris->nvertices;
-  for (vno=0;vno<mris->nvertices;vno++) {
+  for (vno=0;vno<mris->nvertices;vno++)
+  {
     v = &mris->vertices[vno];
     v->x = vset_vertex_list[set][vno].x;
     v->y = vset_vertex_list[set][vno].y;
@@ -21473,7 +23450,7 @@ vset_load_surface_vertices(int set) {
   return(NO_ERROR);
 }
 
-int vset_set_current_set(int set) 
+int vset_set_current_set(int set)
 {
   int err;
 
@@ -21482,26 +23459,36 @@ int vset_set_current_set(int set)
                   (ERROR_BADPARM,
                    "vset_set_current_set: invalid set %d\n",set));
 
-  if(NULL == vset_vertex_list[set]){
-    switch(set){
+  if (NULL == vset_vertex_list[set])
+  {
+    switch (set)
+    {
     case VSET_PIAL:
       err = vset_read_vertex_set(set, "pial");
-      if(err) ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+      if (err) ErrorReturn
+                 (ERROR_BADPARM,
+                  (ERROR_BADPARM,
                    "vset_set_current_set: set %d not loaded\n",set));
       break;
     case VSET_ORIGINAL:
       err = vset_read_vertex_set(set, "orig");
-      if(err) ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+      if (err) ErrorReturn
+                 (ERROR_BADPARM,
+                  (ERROR_BADPARM,
                    "vset_set_current_set: set %d not loaded\n",set));
       break;
     case VSET_WHITE:
       err = vset_read_vertex_set(set, "white");
-      if(err) ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+      if (err) ErrorReturn
+                 (ERROR_BADPARM,
+                  (ERROR_BADPARM,
                    "vset_set_current_set: set %d not loaded\n",set));
       break;
     case VSET_INFLATED:
       err = vset_read_vertex_set(set, "inflated");
-      if(err) ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
+      if (err) ErrorReturn
+                 (ERROR_BADPARM,
+                  (ERROR_BADPARM,
                    "vset_set_current_set: set %d not loaded\n",set));
       break;
     }
@@ -21540,7 +23527,8 @@ int vset_set_current_set(int set)
 
 /* -------------------------------------------------- coordinate conversion */
 
-int conv_initialize() {
+int conv_initialize()
+{
   char fname[STRLEN] = "";
   char surf_path[STRLEN] = "";
   FILE* fTest;
@@ -21583,37 +23571,45 @@ int conv_initialize() {
 
   /* We need to read in the COR- header from the orig volume, if
      available, and get the extract_i_to_r transform. */
-  if ( NULL != mris ) {
+  if ( NULL != mris )
+  {
     FileNamePath (mris->fname, surf_path);
     sprintf (fname, "%s/../mri/orig/COR-.info", surf_path);
 
     fTest = fopen (fname, "r" );
-    if (NULL != fTest) {
+    if (NULL != fTest)
+    {
       fclose (fTest );
       orig_mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
     }
-    if ( NULL == orig_mri_header ) {
+    if ( NULL == orig_mri_header )
+    {
       sprintf (fname, "%s/../mri/orig.mgh", surf_path);
       fTest = fopen (fname, "r" );
-      if (NULL != fTest) {
+      if (NULL != fTest)
+      {
         fclose (fTest );
         orig_mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
       }
-      if ( NULL == orig_mri_header ) {
+      if ( NULL == orig_mri_header )
+      {
         sprintf (fname, "%s/../mri/orig.mgz", surf_path);
         fTest = fopen (fname, "r" );
-        if (NULL != fTest) {
+        if (NULL != fTest)
+        {
           fclose (fTest );
           orig_mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
         }
-        if ( NULL == orig_mri_header ) {
+        if ( NULL == orig_mri_header )
+        {
           printf ("WARNING: Could not load orig volume.\n"
                   "         Talairach coords will be incorrect.\n" );
         }
       }
     }
 
-    if (NULL != orig_mri_header) {
+    if (NULL != orig_mri_header)
+    {
       surfaceRAStoRAS = surfaceRASFromRAS_( orig_mri_header );
     }
   }
@@ -21623,16 +23619,20 @@ int conv_initialize() {
 
 
 int conv_ras_to_mnital(float srasx, float srasy, float srasz,
-                       float* mnix, float* mniy, float* mniz) {
+                       float* mnix, float* mniy, float* mniz)
+{
   Real rasx, rasy, rasz;
 
   /* If we have the original MRI volume and this surface doesn't have
      the useRealRAS flag, use it to go from surface RAS coords to
      normal RAS coords. Otherwise just use the surface RAS coords. */
-  if (NULL != orig_mri_header && !mris->useRealRAS) {
+  if (NULL != orig_mri_header && !mris->useRealRAS)
+  {
     MRIsurfaceRASToRAS (orig_mri_header, srasx, srasy, srasz,
                         &rasx, &rasy, &rasz);
-  } else {
+  }
+  else
+  {
     rasx = srasx;
     rasy = srasy;
     rasz = srasz;
@@ -21641,7 +23641,8 @@ int conv_ras_to_mnital(float srasx, float srasy, float srasz,
   /* Run the talairach transformation. */
   if (transform_loaded &&
       NULL != lta &&
-      lta->type == LINEAR_RAS_TO_RAS) {
+      lta->type == LINEAR_RAS_TO_RAS)
+  {
     LTAworldToWorldEx (lta, rasx, rasy, rasz, mnix, mniy, mniz);
   }
 
@@ -21649,7 +23650,8 @@ int conv_ras_to_mnital(float srasx, float srasy, float srasz,
 }
 
 int conv_ras_to_tal(float srasx, float srasy, float srasz,
-                    float* talx, float* taly, float* talz) {
+                    float* talx, float* taly, float* talz)
+{
   float mnix, mniy, mniz;
 
   conv_ras_to_mnital (srasx, srasy, srasz, &mnix, &mniy, &mniz);
@@ -21659,9 +23661,12 @@ int conv_ras_to_tal(float srasx, float srasy, float srasz,
   *MATRIX_RELT(conv_tmp1_m,3,1) = mniz;
   *MATRIX_RELT(conv_tmp1_m,4,1) = 1.0;
 
-  if (mniz > 0) {
+  if (mniz > 0)
+  {
     MatrixMultiply (conv_mnital_to_tal_m_gtz, conv_tmp1_m, conv_tmp2_m);
-  } else {
+  }
+  else
+  {
     MatrixMultiply (conv_mnital_to_tal_m_ltz, conv_tmp1_m, conv_tmp2_m);
   }
 
@@ -21673,7 +23678,8 @@ int conv_ras_to_tal(float srasx, float srasy, float srasz,
 }
 
 int conv_mnital_to_ras(float mnix, float mniy, float mniz,
-                       float* osrasx, float* osrasy, float* osrasz) {
+                       float* osrasx, float* osrasy, float* osrasz)
+{
 
   float rasx, rasy, rasz;
   Real srasx, srasy, srasz;
@@ -21681,14 +23687,18 @@ int conv_mnital_to_ras(float mnix, float mniy, float mniz,
   /* Run the talairach transformation. */
   if (transform_loaded &&
       NULL != lta &&
-      lta->type == LINEAR_RAS_TO_RAS) {
+      lta->type == LINEAR_RAS_TO_RAS)
+  {
     LTAinverseWorldToWorldEx (lta, mnix, mniy, mniz, &rasx, &rasy, &rasz);
   }
 
-  if (NULL != orig_mri_header && !mris->useRealRAS) {
+  if (NULL != orig_mri_header && !mris->useRealRAS)
+  {
     MRIRASToSurfaceRAS (orig_mri_header, rasx, rasy, rasz,
                         &srasx, &srasy, &srasz);
-  } else {
+  }
+  else
+  {
     srasx = rasx;
     srasy = rasy;
     srasz = rasz;
@@ -21702,7 +23712,8 @@ int conv_mnital_to_ras(float mnix, float mniy, float mniz,
 }
 
 int conv_tal_to_ras(float talx, float taly, float talz,
-                    float* srasx, float* srasy, float* srasz) {
+                    float* srasx, float* srasy, float* srasz)
+{
 
   float mnix, mniy, mniz;
 
@@ -21712,9 +23723,12 @@ int conv_tal_to_ras(float talx, float taly, float talz,
   *MATRIX_RELT(conv_tmp1_m,3,1) = talz;
   *MATRIX_RELT(conv_tmp1_m,4,1) = 1.0;
 
-  if (talz > 0) {
+  if (talz > 0)
+  {
     MatrixMultiply (conv_tal_to_mnital_m_gtz, conv_tmp1_m, conv_tmp2_m);
-  } else {
+  }
+  else
+  {
     MatrixMultiply (conv_tal_to_mnital_m_ltz, conv_tmp1_m, conv_tmp2_m);
   }
 
@@ -21731,7 +23745,8 @@ int conv_tal_to_ras(float talx, float taly, float talz,
 
 /* ----------------------------------------------------------- undo support */
 
-int undo_initialize() {
+int undo_initialize()
+{
   int undo_index;
   for (undo_index = UNDO_LIST_POS_FIRST;
        undo_index <= UNDO_LIST_POS_LAST;
@@ -21743,12 +23758,14 @@ int undo_initialize() {
   return(NO_ERROR);
 }
 
-int undo_get_action_node_size(int action_type) {
+int undo_get_action_node_size(int action_type)
+{
   int size=-1;
 
   /* return the size of the specific action node impelementation, or
      -1 as an error condition. */
-  switch (action_type) {
+  switch (action_type)
+  {
   case UNDO_CUT:
     size = sizeof(UNDO_CUT_NODE);
     break;
@@ -21760,7 +23777,8 @@ int undo_get_action_node_size(int action_type) {
   return(size);
 }
 
-char* undo_get_action_string(int action_type) {
+char* undo_get_action_string(int action_type)
+{
   char* string=NULL;
 
   /* if the action type is in bounds, return a string from the
@@ -21773,7 +23791,8 @@ char* undo_get_action_string(int action_type) {
   return(string);
 }
 
-int undo_begin_action(int action_type) {
+int undo_begin_action(int action_type)
+{
   UNDO_ACTION* action = NULL;
   xGArr_tErr array_error = xGArr_tErr_NoErr;
   int action_size = 0;
@@ -21810,7 +23829,8 @@ int undo_begin_action(int action_type) {
                  "undo_begin_action: xGArr_New failed\n"));
 
   /* if there was a list in the last slot, delete it */
-  if (undo_list[UNDO_LIST_POS_LAST]!=NULL) {
+  if (undo_list[UNDO_LIST_POS_LAST]!=NULL)
+  {
     array_error = xGArr_Delete (&(undo_list[UNDO_LIST_POS_LAST]->node_list));
     if (array_error!=xGArr_tErr_NoErr)
       ErrorPrintf(0,"undo_begin_action: xGArr_Delete failed\n");
@@ -21820,7 +23840,8 @@ int undo_begin_action(int action_type) {
   /* move the undo lists down */
   for (undo_index=UNDO_LIST_POS_LAST;
        undo_index>UNDO_LIST_POS_FIRST;
-       undo_index--) {
+       undo_index--)
+  {
     undo_list[undo_index] = undo_list[undo_index-1];
   }
 
@@ -21833,7 +23854,8 @@ int undo_begin_action(int action_type) {
   return(NO_ERROR);
 }
 
-int undo_finish_action() {
+int undo_finish_action()
+{
   /* set our state */
   undo_list_state = UNDO_LIST_STATE_CLOSED;
 
@@ -21842,15 +23864,19 @@ int undo_finish_action() {
   return(NO_ERROR);
 }
 
-int undo_send_first_action_name() {
+int undo_send_first_action_name()
+{
   char* string = NULL;
   char command[1024] = "";
 
   /* get the undo action string and send it to the interface */
-  if (undo_list[UNDO_LIST_POS_FIRST]!=NULL) {
+  if (undo_list[UNDO_LIST_POS_FIRST]!=NULL)
+  {
     string = undo_get_action_string
              (undo_list[UNDO_LIST_POS_FIRST]->undo_type);
-  } else {
+  }
+  else
+  {
     string = undo_get_action_string (UNDO_NONE);
   }
 
@@ -21867,7 +23893,8 @@ int undo_send_first_action_name() {
   return(NO_ERROR);
 }
 
-int undo_copy_action_node(void* node) {
+int undo_copy_action_node(void* node)
+{
   xGArr_tErr array_error = xGArr_tErr_NoErr;
 
   /* make sure the list is open */
@@ -21885,7 +23912,8 @@ int undo_copy_action_node(void* node) {
   return(NO_ERROR);
 }
 
-int undo_do_first_action() {
+int undo_do_first_action()
+{
   int error = NO_ERROR;
   int undo_index = 0;
   xGArr_tErr array_error;
@@ -21902,7 +23930,8 @@ int undo_do_first_action() {
 
   /* get the action and switch on its type. call the proper handler. if it
      returns an error, print a msg but don't bail. */
-  switch (undo_list[UNDO_LIST_POS_FIRST]->undo_type) {
+  switch (undo_list[UNDO_LIST_POS_FIRST]->undo_type)
+  {
   case UNDO_CUT:
     error = undo_do_action_cut (undo_list[UNDO_LIST_POS_FIRST]);
     break;
@@ -21927,7 +23956,8 @@ int undo_do_first_action() {
      last pos to null. */
   for (undo_index=UNDO_LIST_POS_FIRST;
        undo_index<UNDO_LIST_POS_LAST;
-       undo_index++) {
+       undo_index++)
+  {
     undo_list[undo_index] = undo_list[undo_index+1];
   }
   undo_list[UNDO_LIST_POS_LAST] = NULL;
@@ -21943,7 +23973,8 @@ int undo_do_first_action() {
   return(NO_ERROR);
 }
 
-int undo_new_action_cut(int cut_type, int index, int rip_value) {
+int undo_new_action_cut(int cut_type, int index, int rip_value)
+{
   UNDO_CUT_NODE cut_action;
 
   /* make sure the list is open */
@@ -21963,7 +23994,8 @@ int undo_new_action_cut(int cut_type, int index, int rip_value) {
   return(NO_ERROR);
 }
 
-int undo_do_action_cut(UNDO_ACTION* action) {
+int undo_do_action_cut(UNDO_ACTION* action)
+{
   UNDO_CUT_NODE cut_action;
   xGArr_tErr array_error;
 
@@ -21981,10 +24013,12 @@ int undo_do_action_cut(UNDO_ACTION* action) {
   xGArr_ResetIterator (action->node_list);
   array_error = xGArr_tErr_NoErr;
   while ((array_error=xGArr_NextItem(action->node_list,(void*)&cut_action))
-         ==xGArr_tErr_NoErr) {
+         ==xGArr_tErr_NoErr)
+  {
     /* switch on the cut action type and set the face or vertex rip flag to
        the stored value */
-    switch (cut_action.cut_type) {
+    switch (cut_action.cut_type)
+    {
     case UNDO_CUT_VERTEX:
       set_vertex_rip (cut_action.index, cut_action.rip_value, FALSE);
       break;
@@ -22004,7 +24038,8 @@ int undo_do_action_cut(UNDO_ACTION* action) {
 
 /* -------------------------------------------- functional volume support */
 
-int func_initialize() {
+int func_initialize()
+{
   xGArr_tErr array_error = xGArr_tErr_NoErr;
 
   /* init our list */
@@ -22022,7 +24057,8 @@ int func_initialize() {
 }
 
 int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
-                          char* registration) {
+                          char* registration)
+{
   FunD_tErr volume_error;
   char tcl_cmd[1024];
   float time_resolution;
@@ -22036,14 +24072,16 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
                  "func_load_timecourse: fname was null\n"));
 
   /* delete existing mriFunctionalDataRef or MRI. */
-  if (func_timecourse!=NULL) {
+  if (func_timecourse!=NULL)
+  {
     volume_error = FunD_Delete(&func_timecourse);
     if (volume_error!=FunD_tErr_NoError)
       ErrorPrintf(func_convert_error(volume_error),
                   "func_load_timecourse: error in FunD_Delete\n");
   }
 
-  if (FunD_tRegistration_None == reg_type) {
+  if (FunD_tRegistration_None == reg_type)
+  {
     printf ("surfer: ERROR: Must specify registration type for "
             "time course. Use -timecourse-reg <file>, "
             "-timecourse-reg-find, or -timecourse-reg-identity.\n");
@@ -22054,19 +24092,24 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
      to load up a volume for them to use as the base for the
      transform. So we use the orig header, which should already have
      been loaded, to get one. */
-  if (FunD_tRegistration_NoneNeeded != reg_type) {
+  if (FunD_tRegistration_NoneNeeded != reg_type)
+  {
     good = 0;
-    if (NULL != orig_mri_header) {
+    if (NULL != orig_mri_header)
+    {
       volm_err = Volm_New (&volm);
-      if (Volm_tErr_NoErr == volm_err) {
+      if (Volm_tErr_NoErr == volm_err)
+      {
         volm_err = Volm_ImportData (volm, orig_mri_header->fname);
-        if (Volm_tErr_NoErr == volm_err) {
+        if (Volm_tErr_NoErr == volm_err)
+        {
           good = 1;
         }
       }
     }
 
-    if (!good) {
+    if (!good)
+    {
       if (NULL != volm)
         Volm_Delete (&volm);
       printf ("surfer: ERROR: You specified a registration type, "
@@ -22085,7 +24128,8 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
                            registration,
                            mris->nvertices,
                            volm);
-  if (volume_error!=FunD_tErr_NoError) {
+  if (volume_error!=FunD_tErr_NoError)
+  {
     if (NULL != volm)
       Volm_Delete (&volm);
     printf("### surfer: couldn't load %s\n",fname);
@@ -22097,13 +24141,15 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   /* Notify the volume we're in tkreg space, so our transform is
      correct. */
   volume_error = FunD_ClientSpaceIsTkRegRAS (func_timecourse);
-  if (volume_error!=FunD_tErr_NoError) {
+  if (volume_error!=FunD_tErr_NoError)
+  {
     if (NULL != volm)
       Volm_Delete (&volm);
     printf("surfer: couldn't load %s\n",fname);
-    ErrorReturn(func_convert_error(volume_error),
-                (func_convert_error(volume_error),
-                 "func_load_timecourse: error in FunD_ClientSpaceIsTkRegRAS\n"));
+    ErrorReturn
+      (func_convert_error(volume_error),
+       (func_convert_error(volume_error),
+        "func_load_timecourse: error in FunD_ClientSpaceIsTkRegRAS\n"));
   }
 
   printf("surfer: loaded timecourse %s\n",fname);
@@ -22111,10 +24157,13 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
   /* See if it's scalar */
   FunD_IsScalar (func_timecourse, &func_is_scalar_volume);
 
-  if (func_is_scalar_volume) {
+  if (func_is_scalar_volume)
+  {
     printf ("surfer: Interpreting time course volume %s "
             "as encoded scalar volume.\n", fname);
-  } else {
+  }
+  else
+  {
     printf ("surfer: Interpreting time course volume %s "
             "as registered functional volume.\n", fname);
   }
@@ -22143,7 +24192,8 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
 }
 
 int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
-                                 char* registration) {
+                                 char* registration)
+{
   FunD_tErr volume_error;
   Volm_tErr volm_err = Volm_tErr_NoErr;
   mriVolumeRef volm = NULL;
@@ -22155,14 +24205,16 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
                  "func_load_timecourse_offset: fname was null\n"));
 
   /* delete existing */
-  if (func_timecourse_offset!=NULL) {
+  if (func_timecourse_offset!=NULL)
+  {
     volume_error = FunD_Delete(&func_timecourse_offset);
     if (volume_error!=FunD_tErr_NoError)
       ErrorPrintf(func_convert_error(volume_error),
                   "func_load_timecourse_offset: error in FunD_Delete\n");
   }
 
-  if (FunD_tRegistration_None == reg_type) {
+  if (FunD_tRegistration_None == reg_type)
+  {
     printf ("surfer: ERROR: Must specify registration type for "
             "time course offset. Use -timecourse-offset-reg <file>, "
             "-timecourse-offset-reg-find, or "
@@ -22174,19 +24226,24 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
      load up a volume for them to use as the base for the
      transform. So we use the orig header, which should already have
      been loaded, to get one. */
-  if (FunD_tRegistration_Identity == reg_type) {
+  if (FunD_tRegistration_Identity == reg_type)
+  {
     good = 0;
-    if (NULL != orig_mri_header) {
+    if (NULL != orig_mri_header)
+    {
       volm_err = Volm_New (&volm);
-      if (Volm_tErr_NoErr == volm_err) {
+      if (Volm_tErr_NoErr == volm_err)
+      {
         volm_err = Volm_ImportData (volm, orig_mri_header->fname);
-        if (Volm_tErr_NoErr == volm_err) {
+        if (Volm_tErr_NoErr == volm_err)
+        {
           good = 1;
         }
       }
     }
 
-    if (!good) {
+    if (!good)
+    {
       if (NULL != volm)
         Volm_Delete (&volm);
       printf ("surfer: ERROR: You specified registration type identity, "
@@ -22204,7 +24261,8 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
                            registration,
                            mris->nvertices, /* Try to be scalar */
                            volm);
-  if (volume_error!=FunD_tErr_NoError) {
+  if (volume_error!=FunD_tErr_NoError)
+  {
     if (NULL != volm)
       Volm_Delete (&volm);
     ErrorReturn(func_convert_error(volume_error),
@@ -22215,13 +24273,15 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
   /* Notify the volume we're in tkreg space, so our transform is
      correct. */
   volume_error = FunD_ClientSpaceIsTkRegRAS (func_timecourse_offset);
-  if (volume_error!=FunD_tErr_NoError) {
+  if (volume_error!=FunD_tErr_NoError)
+  {
     if (NULL != volm)
       Volm_Delete (&volm);
     printf("surfer: couldn't load %s\n",fname);
-    ErrorReturn(func_convert_error(volume_error),
-                (func_convert_error(volume_error),
-                 "func_load_timecourse_offset: error in FunD_ClientSpaceIsTkRegRAS\n"));
+    ErrorReturn
+      (func_convert_error(volume_error),
+       (func_convert_error(volume_error),
+        "func_load_timecourse_offset: error in FunD_ClientSpaceIsTkRegRAS\n"));
   }
 
   /* enable offset display */
@@ -22238,7 +24298,8 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
   return(ERROR_NONE);
 }
 
-int func_select_selected_vertex() {
+int func_select_selected_vertex()
+{
   VERTEX* v = NULL;
   char tcl_cmd[1024];
 
@@ -22252,15 +24313,18 @@ int func_select_selected_vertex() {
   return(ERROR_NONE);
 }
 
-int func_select_marked_vertices() {
+int func_select_marked_vertices()
+{
   int vno, count;
   VERTEX* v = NULL;
   char tcl_cmd[1024];
 
   count = 0;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &(mris->vertices[vno]);
-    if (v->marked) {
+    if (v->marked)
+    {
       func_select_voxel (vno, v->origx,v->origy,v->origz);
       count++;
     }
@@ -22273,14 +24337,16 @@ int func_select_marked_vertices() {
   return(ERROR_NONE);
 }
 
-int func_select_label() {
+int func_select_label()
+{
   int n;
   int count;
   VERTEX* v = NULL;
   LABEL* area;
   char tcl_cmd[1024];
 
-  if (LABL_NONE_SELECTED == labl_selected_label) {
+  if (LABL_NONE_SELECTED == labl_selected_label)
+  {
     sprintf (tcl_cmd, "Graph_SetLabel \"No label selected\"");
     send_tcl_command (tcl_cmd);
     printf ("surfer: No label selected.\n" );
@@ -22289,8 +24355,10 @@ int func_select_label() {
 
   count = 0;
   area = labl_labels[labl_selected_label].label ;
-  for (n = 0  ; n < area->n_points ; n++) {
-    if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices) {
+  for (n = 0  ; n < area->n_points ; n++)
+  {
+    if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices)
+    {
       v = &mris->vertices[area->lv[n].vno] ;
       func_select_voxel (area->lv[n].vno, v->origx, v->origy, v->origz);
       count++;
@@ -22306,7 +24374,8 @@ int func_select_label() {
   return(ERROR_NONE);
 }
 
-int func_clear_selection() {
+int func_clear_selection()
+{
   xGArr_tErr array_error = xGArr_tErr_NoErr;
 
   if (func_selected_ras==NULL)
@@ -22324,7 +24393,8 @@ int func_clear_selection() {
   return(ERROR_NONE);
 }
 
-int func_select_voxel (int vno, float x, float y, float z) {
+int func_select_voxel (int vno, float x, float y, float z)
+{
   xGArr_tErr array_error = xGArr_tErr_NoErr;
   FUNC_SELECTED_VOXEL voxel;
 
@@ -22349,7 +24419,8 @@ int func_select_voxel (int vno, float x, float y, float z) {
   return(ERROR_NONE);
 }
 
-int func_graph_timecourse_selection () {
+int func_graph_timecourse_selection ()
+{
 
   int cond;
   int tp;
@@ -22362,7 +24433,8 @@ int func_graph_timecourse_selection () {
   float second;
 
   /* make sure we have a volume */
-  if (func_timecourse==NULL) {
+  if (func_timecourse==NULL)
+  {
     printf ("surfer: time course not loaded\n");
     return (ERROR_NONE);
   }
@@ -22401,7 +24473,8 @@ int func_graph_timecourse_selection () {
   send_tcl_command ("Graph_BeginData");
 
   /* for each condition... */
-  for (cond=0;cond<func_num_conditions;cond++) {
+  for (cond=0;cond<func_num_conditions;cond++)
+  {
 
     /* get the average values for this condition. we also find out from
        this function how many of our selected voxels were actually in
@@ -22410,18 +24483,21 @@ int func_graph_timecourse_selection () {
                                      values, deviations);
 
     /* if we had any good voxels, build a list of values and send to graph */
-    if (num_good_voxels>0) {
+    if (num_good_voxels>0)
+    {
       /* write the cmd name, condition number and first brace */
       sprintf (tcl_cmd, "Graph_SetPointsData %d {", cond);
 
       /* for each time point... */
-      for (tp=0; tp < func_num_timepoints; tp++) {
+      for (tp=0; tp < func_num_timepoints; tp++)
+      {
 
         /* convert to a second. If this is a
            mriFunctionalDataRef, let it convert for us, using TR
            if present, otherwise our second is just our time
            point. */
-        if (func_timecourse) {
+        if (func_timecourse)
+        {
           func_error =
             FunD_ConvertTimePointToSecond
             (func_timecourse, tp, &second);
@@ -22458,7 +24534,8 @@ int func_graph_timecourse_selection () {
   return(ERROR_NONE);
 }
 
-int func_print_timecourse_selection (char* fname) {
+int func_print_timecourse_selection (char* fname)
+{
   FILE* fp = NULL;
   int cond;
   int tp;
@@ -22504,7 +24581,8 @@ int func_print_timecourse_selection (char* fname) {
 
   /* get the num of conditions. for each one... */
   FunD_GetNumConditions (func_timecourse,&func_num_conditions);
-  for (cond=0;cond<func_num_conditions;cond++) {
+  for (cond=0;cond<func_num_conditions;cond++)
+  {
     fprintf (fp,"Condition %d/%d\n",cond,func_num_conditions);
 
     /* get the average values for this condition. we also find out from
@@ -22534,7 +24612,8 @@ int func_print_timecourse_selection (char* fname) {
 }
 
 int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
-                                     float values[], float deviations[] ) {
+                                     float values[], float deviations[] )
+{
 
   int tp = 0;
   float* sums;
@@ -22562,32 +24641,40 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
   xGArr_ResetIterator (func_selected_ras);
   array_error = xGArr_tErr_NoErr;
   while ((array_error=xGArr_NextItem(func_selected_ras,(void*)&selected_voxel))
-         ==xGArr_tErr_NoErr) {
+         ==xGArr_tErr_NoErr)
+  {
 
     /* If it's scalar, our index is vno,0,0, otherwise use the voxel. */
-    if (func_is_scalar_volume) {
+    if (func_is_scalar_volume)
+    {
       xVoxl_Set (&voxel, selected_voxel.vno, 0, 0);
-    } else {
+    }
+    else
+    {
       xVoxl_SetFloat (&voxel,
                       selected_voxel.x,selected_voxel.y,selected_voxel.z);
     }
 
     /* get all values at this voxel.*/
-    if (func_timecourse) {
+    if (func_timecourse)
+    {
       func_error = FunD_GetDataForAllTimePoints( func_timecourse, &voxel,
                    condition, values );
       /* if it was out of bounds, continue. */
-      if (func_error!=FunD_tErr_NoError) {
+      if (func_error!=FunD_tErr_NoError)
+      {
         continue;
       }
     }
 
     /* if we are displaying offsets and we have offset data... */
-    if (func_use_timecourse_offset && func_timecourse_offset) {
+    if (func_use_timecourse_offset && func_timecourse_offset)
+    {
       /* get the offset at this value. only one plane in offset data. */
       func_error = FunD_GetData( func_timecourse_offset,
                                  &voxel, 0, 0, &offset );
-      if (func_error==FunD_tErr_NoError ) {
+      if (func_error==FunD_tErr_NoError )
+      {
         /* divide all functional values by the offset and
            mult by 100 to get a percent */
         for (tp = 0; tp < func_num_timepoints; tp++)
@@ -22622,21 +24709,27 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
     offset = offset_sum / (float)(*num_good_voxels);
 
   /* if there is error data present.. */
-  if (func_timecourse) {
+  if (func_timecourse)
+  {
     FunD_IsErrorDataPresent(func_timecourse, &present);
-    if (present) {
+    if (present)
+    {
       /* go through the voxel list again. */
       xGArr_ResetIterator (func_selected_ras);
       array_error = xGArr_tErr_NoErr;
       while ((array_error=xGArr_NextItem(func_selected_ras,
                                          (void*)&selected_voxel))
-             ==xGArr_tErr_NoErr) {
+             ==xGArr_tErr_NoErr)
+      {
 
         /* If it's scalar, our index is vno,0,0, otherwise use
-        the voxel. */
-        if (func_is_scalar_volume) {
+           the voxel. */
+        if (func_is_scalar_volume)
+        {
           xVoxl_Set (&voxel, selected_voxel.vno, 0, 0);
-        } else {
+        }
+        else
+        {
           xVoxl_SetFloat (&voxel,
                           selected_voxel.x,
                           selected_voxel.y,
@@ -22655,7 +24748,8 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
                       "error in FunD_GetDeviationForAllTimePoints\n");
 
         /* if we have offset values... */
-        if (func_use_timecourse_offset && func_timecourse_offset!=NULL) {
+        if (func_use_timecourse_offset && func_timecourse_offset!=NULL)
+        {
 
           /* divide all deviations by the offset and mult by 100 to
              get a percent */
@@ -22664,7 +24758,9 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
         }
       }
     }
-  } else {
+  }
+  else
+  {
     /* fill deviations with 0s */
     for (tp=0; tp < func_num_timepoints; tp++)
       deviations[tp] = 0;
@@ -22673,7 +24769,8 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
   return(ERROR_NONE);
 }
 
-int func_calc_correlation_and_write_to_overlay (int selection_vno, int field) {
+int func_calc_correlation_and_write_to_overlay (int selection_vno, int field)
+{
 
   char   label[1024];
   int    vno;
@@ -22704,7 +24801,8 @@ int func_calc_correlation_and_write_to_overlay (int selection_vno, int field) {
      is vno,0,0, otherwise use the orig coords. */
   if (func_is_scalar_volume)
     xVoxl_Set (&selection_voxel, selection_vno, 0, 0);
-  else {
+  else
+  {
     v = &mris->vertices[selection_vno];
     xVoxl_SetFloat (&selection_voxel, v->origx, v->origy, v->origz);
   }
@@ -22715,31 +24813,36 @@ int func_calc_correlation_and_write_to_overlay (int selection_vno, int field) {
   /* For every vertex... */
   min = 1000000000;
   max = -min;
-  for (vno = 0; vno < mris->nvertices; vno++) {
+  for (vno = 0; vno < mris->nvertices; vno++)
+  {
     v = &mris->vertices[vno];
 
     /* If it's scalar, our index is vno,0,0, otherwise use the
-    orig coords. */
+       orig coords. */
     if (func_is_scalar_volume)
       xVoxl_Set (&cur_voxel, vno, 0, 0);
     else
       xVoxl_SetFloat (&cur_voxel, v->origx, v->origy, v->origz);
 
     num = d1 = d2 = cor = 0.0;
-    for (cond=0; cond < func_num_conditions; cond++) {
-      for (tp=0; tp < func_num_timepoints; tp++) {
+    for (cond=0; cond < func_num_conditions; cond++)
+    {
+      for (tp=0; tp < func_num_timepoints; tp++)
+      {
 
         /* Get the value at the selection point and the current
-        point. This will return an error if it's a spatial
-        volume and these coords are out of bounds. */
+           point. This will return an error if it's a spatial
+           volume and these coords are out of bounds. */
         func_error = FunD_GetData( func_timecourse,
                                    &selection_voxel, cond, tp, &val1 );
-        if (func_error!=FunD_tErr_NoError ) {
+        if (func_error!=FunD_tErr_NoError )
+        {
           continue;
         }
         func_error = FunD_GetData( func_timecourse,
                                    &cur_voxel, cond, tp, &val2 );
-        if (func_error!=FunD_tErr_NoError ) {
+        if (func_error!=FunD_tErr_NoError )
+        {
           continue;
         }
 
@@ -22786,7 +24889,8 @@ int func_calc_correlation_and_write_to_overlay (int selection_vno, int field) {
   return (ERROR_NONE);
 }
 
-int func_normalize () {
+int func_normalize ()
+{
   FunD_tErr func_error = FunD_tErr_NoError;
 
   /* make sure we have a volume */
@@ -22804,9 +24908,11 @@ int func_normalize () {
 }
 
 
-int func_convert_error (FunD_tErr volume_error) {
+int func_convert_error (FunD_tErr volume_error)
+{
   int error = ERROR_NONE;
-  switch (volume_error) {
+  switch (volume_error)
+  {
   case FunD_tErr_PathNotFound:
   case FunD_tErr_CouldntGuessStem:
   case FunD_tErr_DataNotFound:
@@ -22831,11 +24937,13 @@ int func_convert_error (FunD_tErr volume_error) {
 
 /* --------------------------------------------------- scalar value mgmnt */
 
-int sclv_initialize () {
+int sclv_initialize ()
+{
   int field;
 
   /* no layers loaded, clear all the stuff. */
-  for (field = 0; field < NUM_SCALAR_VALUES; field++) {
+  for (field = 0; field < NUM_SCALAR_VALUES; field++)
+  {
     sclv_field_info[field].is_functional_volume = FALSE;
     sclv_field_info[field].is_scalar_volume = FALSE;
     sclv_field_info[field].cur_timepoint = -1;
@@ -22850,7 +24958,8 @@ int sclv_initialize () {
   return (ERROR_NONE);
 }
 
-int sclv_unload_field (int field) {
+int sclv_unload_field (int field)
+{
 
   FunD_tErr volume_error;
 
@@ -22861,7 +24970,8 @@ int sclv_unload_field (int field) {
 
   /* if we have a binary volume, delete it */
   if (sclv_field_info[field].is_functional_volume &&
-      sclv_field_info[field].func_volume != NULL ) {
+      sclv_field_info[field].func_volume != NULL )
+  {
     volume_error = FunD_Delete (&(sclv_field_info[field].func_volume));
     if (volume_error!=FunD_tErr_NoError)
       ErrorReturn(func_convert_error(volume_error),
@@ -22879,7 +24989,8 @@ int sclv_unload_field (int field) {
 }
 
 int
-sclv_calc_frequencies(int field) {
+sclv_calc_frequencies(int field)
+{
   int timepoint, condition;
   float* values;
   int bin;
@@ -22918,12 +25029,14 @@ sclv_calc_frequencies(int field) {
   sclv_field_info[field].num_zeroes_in_zero_bin = 0;
 
   for (condition = 0;
-       condition < sclv_field_info[field].num_conditions; condition++) {
+       condition < sclv_field_info[field].num_conditions; condition++)
+  {
     sclv_field_info[field].frequencies[condition] =
       calloc( sclv_field_info[field].num_timepoints, sizeof(int*) );
 
     for (timepoint = 0;
-         timepoint < sclv_field_info[field].num_timepoints; timepoint++) {
+         timepoint < sclv_field_info[field].num_timepoints; timepoint++)
+    {
 
       /* allocate an array of num_freq_bins ints */
       sclv_field_info[field].frequencies[condition][timepoint] =
@@ -22935,8 +25048,10 @@ sclv_calc_frequencies(int field) {
 
       /* for each vno, find the bin the value should go in and inc
          the count in that bin. */
-      for (vno = 0 ; vno < mris->nvertices ; vno++) {
-        if (values[vno] != 0) {
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        if (values[vno] != 0)
+        {
           bin =
             (float)(values[vno] -
                     sclv_field_info[field].min_value) \
@@ -22944,7 +25059,9 @@ sclv_calc_frequencies(int field) {
           if (bin >= 0 && bin < sclv_field_info[field].num_freq_bins)
             sclv_field_info[field].\
             frequencies[condition][timepoint][bin]++;
-        } else {
+        }
+        else
+        {
           /* This is a zero so inc the number of zeroes. */
           sclv_field_info[field].num_zeroes_in_zero_bin++;
         }
@@ -22957,7 +25074,8 @@ sclv_calc_frequencies(int field) {
   return (ERROR_NONE);
 }
 
-int sclv_set_overlay_alpha (double alpha) {
+int sclv_set_overlay_alpha (double alpha)
+{
   if (alpha < 0 || alpha > 1.0)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
@@ -22968,7 +25086,8 @@ int sclv_set_overlay_alpha (double alpha) {
   return (ERROR_NONE);
 }
 
-int sclv_set_current_field (int field) {
+int sclv_set_current_field (int field)
+{
   if (field < 0 || field > NUM_SCALAR_VALUES)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
@@ -23008,7 +25127,8 @@ int sclv_set_current_field (int field) {
   return (ERROR_NONE);
 }
 
-int sclv_send_current_field_info () {
+int sclv_send_current_field_info ()
+{
 
   char cmd[1024];
 
@@ -23030,7 +25150,8 @@ int sclv_send_current_field_info () {
 }
 
 int sclv_set_timepoint_of_field (int field,
-                                 int timepoint, int condition) {
+                                 int timepoint, int condition)
+{
   int vno;
   VERTEX* v;
   float* values;
@@ -23042,7 +25163,8 @@ int sclv_set_timepoint_of_field (int field,
                  field));
 
   /* check if this field has a binary volume */
-  if (sclv_field_info[field].is_functional_volume == FALSE) {
+  if (sclv_field_info[field].is_functional_volume == FALSE)
+  {
     /* commented out because tksurfer.tcl will call this function
        even when there is a .w file in this layer. */
     /*      ErrorReturn(ERROR_BADPARM,
@@ -23054,7 +25176,8 @@ int sclv_set_timepoint_of_field (int field,
 
   /* make sure it actually has one */
   if ((sclv_field_info[field].is_functional_volume &&
-       sclv_field_info[field].func_volume == NULL)) {
+       sclv_field_info[field].func_volume == NULL))
+  {
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
                  "sclv_set_timepoint_of_field: "
@@ -23067,7 +25190,7 @@ int sclv_set_timepoint_of_field (int field,
                 (ERROR_BADPARM,
                  "sclv_set_timepoint_of_field: "
                  "timepoint was out of bounds: %d (max %d)",
-		 timepoint, sclv_field_info[field].num_timepoints));
+                 timepoint, sclv_field_info[field].num_timepoints));
   if (condition < 0 || condition > sclv_field_info[field].num_conditions)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
@@ -23077,7 +25200,8 @@ int sclv_set_timepoint_of_field (int field,
   /* check the timepoint and condition. if they're not what we're already
      using...*/
   if (timepoint != sclv_field_info[field].cur_timepoint ||
-      condition != sclv_field_info[field].cur_condition ) {
+      condition != sclv_field_info[field].cur_condition )
+  {
     values = (float*) calloc (mris->nvertices, sizeof(float));
     if (values == NULL)
       ErrorReturn(ERROR_NOMEMORY,
@@ -23090,7 +25214,8 @@ int sclv_set_timepoint_of_field (int field,
         values);
 
     /* For each vertex, set the value.. */
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
       v = &mris->vertices[vno] ;
       sclv_set_value (v, field, values[vno]);
     }
@@ -23115,7 +25240,8 @@ int sclv_set_timepoint_of_field (int field,
 }
 
 int sclv_get_values_for_field_and_timepoint (int field, int timepoint,
-    int condition, float* values) {
+    int condition, float* values)
+{
   int vno;
   VERTEX* v;
   xVoxel voxel;
@@ -23151,24 +25277,30 @@ int sclv_get_values_for_field_and_timepoint (int field, int timepoint,
 
   /* for each vertex, grab a value out of the volume and stick it
      in the field */
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
 
     /* skip ripped verts */
-    if (v->ripflag) {
+    if (v->ripflag)
+    {
       values[vno] = 0;
       continue;
     }
 
     /* Get value from the right volume. */
     if (sclv_field_info[field].is_functional_volume &&
-        sclv_field_info[field].func_volume ) {
+        sclv_field_info[field].func_volume )
+    {
 
       /* If it's scalar, our index is vno,0,0, otherwise use the
          orig coords. */
-      if (sclv_field_info[field].is_scalar_volume) {
+      if (sclv_field_info[field].is_scalar_volume)
+      {
         xVoxl_Set (&voxel, vno, 0, 0);
-      } else {
+      }
+      else
+      {
         xVoxl_SetFloat (&voxel, v->origx, v->origy, v->origz);
       }
 
@@ -23177,12 +25309,17 @@ int sclv_get_values_for_field_and_timepoint (int field, int timepoint,
       volume_error = FunD_GetData(sclv_field_info[field].func_volume,
                                   &voxel, condition, timepoint,
                                   &func_value);
-      if (volume_error == FunD_tErr_NoError) {
+      if (volume_error == FunD_tErr_NoError)
+      {
         values[vno] = func_value;
-      } else {
+      }
+      else
+      {
         values[vno] = 0;
       }
-    } else {
+    }
+    else
+    {
       /* There is no volume so we can just copy the proper sclv
          field value into our output. */
       sclv_get_value (v, field, &values[vno] );
@@ -23195,7 +25332,8 @@ int sclv_get_values_for_field_and_timepoint (int field, int timepoint,
 
 
 int sclv_set_current_threshold_from_percentile (float thresh, float mid,
-    float max) {
+    float max)
+{
   sclv_set_threshold_from_percentile(sclv_current_field,
                                      thresh, mid, max);
 
@@ -23205,7 +25343,8 @@ int sclv_set_current_threshold_from_percentile (float thresh, float mid,
 }
 
 int sclv_set_threshold_from_percentile (int field, float thresh, float mid,
-                                        float max) {
+                                        float max)
+{
   float thresh_value, mid_value, max_value;
 
   if (field < 0 || field >= NUM_SCALAR_VALUES)
@@ -23223,9 +25362,12 @@ int sclv_set_threshold_from_percentile (int field, float thresh, float mid,
 
   sclv_field_info[field].fthresh = thresh_value;
   sclv_field_info[field].fmid = mid_value;
-  if (max_value - mid_value < epsilon) {
+  if (max_value - mid_value < epsilon)
+  {
     sclv_field_info[field].fslope = 1.0;
-  } else {
+  }
+  else
+  {
     sclv_field_info[field].fslope = 1.0 / (max_value - mid_value);
   }
 
@@ -23237,7 +25379,8 @@ int sclv_set_threshold_from_percentile (int field, float thresh, float mid,
   return (ERROR_NONE);
 }
 
-int sclv_get_value_for_percentile (int field, float percentile, float* value) {
+int sclv_get_value_for_percentile (int field, float percentile, float* value)
+{
   int target_count;
   int bin, sum;
 
@@ -23250,10 +25393,12 @@ int sclv_get_value_for_percentile (int field, float percentile, float* value) {
 
   sum = 0;
   bin = 0;
-  while (sum < target_count && bin < sclv_field_info[field].num_freq_bins) {
+  while (sum < target_count && bin < sclv_field_info[field].num_freq_bins)
+  {
     sum += sclv_field_info[field].\
            frequencies[sclv_field_info[field].\
-                       cur_condition][sclv_field_info[field].cur_timepoint][bin];
+                       cur_condition][sclv_field_info[field].\
+                                      cur_timepoint][bin];
     bin++;
   }
 
@@ -23265,7 +25410,8 @@ int sclv_get_value_for_percentile (int field, float percentile, float* value) {
   return (ERROR_NONE);
 }
 
-int sclv_set_threshold_using_fdr (int field, float rate, int only_marked) {
+int sclv_set_threshold_using_fdr (int field, float rate, int only_marked)
+{
   float *saved_val;
   float *saved_val2;
   float current_value=0;
@@ -23281,7 +25427,8 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked) {
      values. if inverse is on, they want the negative values, else
      they just want the positive. */
   sign = 0;
-  if (truncphaseflag) {
+  if (truncphaseflag)
+  {
     if (invphaseflag)
       sign = -1;
     else
@@ -23292,20 +25439,23 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked) {
      need to back up these fields, and then write our current field
      into val. we'll restore everything later. */
   saved_val = (float*) calloc (mris->nvertices, sizeof(float));
-  if (NULL == saved_val) {
+  if (NULL == saved_val)
+  {
     ErrorReturn(ERROR_NO_MEMORY,
                 (ERROR_NO_MEMORY,
                  "sclv_set_threshold_using_fdr: "
                  "couldn't allocated saved_val array\n"));
   }
   saved_val2 = (float*) calloc (mris->nvertices, sizeof(float));
-  if (NULL == saved_val2) {
+  if (NULL == saved_val2)
+  {
     ErrorReturn(ERROR_NO_MEMORY,
                 (ERROR_NO_MEMORY,
                  "sclv_set_threshold_using_fdr: "
                  "couldn't allocated saved_val2 array\n"));
   }
-  for (vno = 0; vno < mris->nvertices; vno++) {
+  for (vno = 0; vno < mris->nvertices; vno++)
+  {
     /* save val and val2. */
     v = &mris->vertices[vno];
     sclv_get_value (v, SCLV_VAL, &saved_val[vno]);
@@ -23318,22 +25468,27 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked) {
 
   /* if we're only doing marked verts, go through the surface. save
      undefval, set undefval to 1 if marked. */
-  if (only_marked) {
+  if (only_marked)
+  {
     saved_undefval = (int*) calloc (mris->nvertices, sizeof(int));
-    if (NULL == saved_undefval) {
+    if (NULL == saved_undefval)
+    {
       ErrorReturn(ERROR_NO_MEMORY,
                   (ERROR_NO_MEMORY,
                    "sclv_set_threshold_using_fdr: "
                    "couldn't allocated saved_undefval array\n"));
     }
     num_marked = 0;
-    for (vno = 0; vno < mris->nvertices; vno++) {
+    for (vno = 0; vno < mris->nvertices; vno++)
+    {
       v = &mris->vertices[vno];
       saved_undefval[vno] = v->undefval;
-      if (v->marked) {
+      if (v->marked)
+      {
         v->undefval = 1;
         num_marked++;
-      } else
+      }
+      else
         v->undefval = 0;
     }
     printf ("surfer: performing FDR on %d vertices\n", num_marked);
@@ -23345,7 +25500,8 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked) {
   err = MRISfdr2vwth(mris, rate, sign, 1, only_marked, &threshold);
   fprintf (stderr, "MRISfdr2vwth(rate=%f, sign=%d, 1, only_marked=%d) = %f\n",
            rate, sign, only_marked, threshold);
-  if ( err ) {
+  if ( err )
+  {
     printf ("surfer: Error calculating threshold with FDR.\n");
     if (only_marked) free (saved_undefval);
     return (err);
@@ -23355,8 +25511,10 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked) {
 
   /* we we're only doing marked verts, go through and restore the
      undefval values. */
-  if (only_marked) {
-    for (vno = 0; vno < mris->nvertices; vno++) {
+  if (only_marked)
+  {
+    for (vno = 0; vno < mris->nvertices; vno++)
+    {
       v = &mris->vertices[vno];
       v->undefval = saved_undefval[vno];
     }
@@ -23364,7 +25522,8 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked) {
   }
 
   /* restore val and val2 */
-  for (vno = 0; vno < mris->nvertices; vno++) {
+  for (vno = 0; vno < mris->nvertices; vno++)
+  {
     v = &mris->vertices[vno];
     sclv_set_value (v, SCLV_VAL, saved_val[vno]);
     sclv_set_value (v, SCLV_VAL2, saved_val2[vno]);
@@ -23376,7 +25535,8 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked) {
   sclv_field_info[field].fmid = threshold + 1.5;
   sclv_field_info[field].fslope = 0.66;
 
-  if (field == sclv_current_field) {
+  if (field == sclv_current_field)
+  {
     fthresh = sclv_field_info[field].fthresh;
     fmid = sclv_field_info[field].fmid;
     fslope = sclv_field_info[field].fslope;
@@ -23387,14 +25547,16 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked) {
   return (ERROR_NONE);
 }
 
-int sclv_copy_view_settings_from_field (int field, int fromfield) {
+int sclv_copy_view_settings_from_field (int field, int fromfield)
+{
   if (field < 0 || field >= NUM_SCALAR_VALUES)
     return (ERROR_BADPARM);
   if (fromfield < 0 || fromfield >= NUM_SCALAR_VALUES)
     return (ERROR_BADPARM);
 
   /* if fromfield is the current field, update from the shared variables. */
-  if (fromfield == sclv_current_field) {
+  if (fromfield == sclv_current_field)
+  {
     sclv_field_info[fromfield].fthresh = fthresh;
     sclv_field_info[fromfield].fmid = fmid;
     sclv_field_info[fromfield].foffset = foffset;
@@ -23408,7 +25570,8 @@ int sclv_copy_view_settings_from_field (int field, int fromfield) {
 
   /* if this is the current field, update the shared variables and
      send the current info. */
-  if (field == sclv_current_field) {
+  if (field == sclv_current_field)
+  {
     fthresh = sclv_field_info[sclv_current_field].fthresh;
     fmid = sclv_field_info[sclv_current_field].fmid;
     ;
@@ -23422,16 +25585,19 @@ int sclv_copy_view_settings_from_field (int field, int fromfield) {
   return (ERROR_NONE);
 }
 
-int sclv_copy_view_settings_from_current_field (int field) {
+int sclv_copy_view_settings_from_current_field (int field)
+{
   sclv_copy_view_settings_from_field (field, sclv_current_field);
 
   return (ERROR_NONE);
 }
 
-int sclv_copy_all_view_settings_from_current_field () {
+int sclv_copy_all_view_settings_from_current_field ()
+{
   int field;
 
-  for (field = 0; field < NUM_SCALAR_VALUES; field++) {
+  for (field = 0; field < NUM_SCALAR_VALUES; field++)
+  {
     if (field != sclv_current_field)
       sclv_copy_view_settings_from_field (field, sclv_current_field);
   }
@@ -23439,7 +25605,8 @@ int sclv_copy_all_view_settings_from_current_field () {
   return (ERROR_NONE);
 }
 
-int sclv_swap_fields ( int fielda, int fieldb ) {
+int sclv_swap_fields ( int fielda, int fieldb )
+{
 
   SCLV_FIELD_INFO swap_field;
   char cmd[STRLEN];
@@ -23454,7 +25621,8 @@ int sclv_swap_fields ( int fielda, int fieldb ) {
     return (ERROR_BADPARM);
 
   /* swap the field values */
-  for (k=0;k<mris->nvertices;k++) {
+  for (k=0;k<mris->nvertices;k++)
+  {
     sclv_get_value(&(mris->vertices[k]), fielda, &a );
     sclv_get_value(&(mris->vertices[k]), fieldb, &b );
     sclv_set_value(&(mris->vertices[k]), fielda, b );
@@ -23473,7 +25641,8 @@ int sclv_swap_fields ( int fielda, int fieldb ) {
   return (ERROR_NONE);
 }
 
-int sclv_send_histogram ( int field ) {
+int sclv_send_histogram ( int field )
+{
 
   float increment;
   char *tcl_cmd;
@@ -23492,7 +25661,8 @@ int sclv_send_histogram ( int field ) {
      increment + num values */
   tcl_cmd = (char*)calloc(21 + (sclv_field_info[field].num_freq_bins + 4) * 10,
                           sizeof(char));
-  if (NULL == tcl_cmd) {
+  if (NULL == tcl_cmd)
+  {
     return (ERROR_NO_MEMORY);
   }
 
@@ -23505,14 +25675,16 @@ int sclv_send_histogram ( int field ) {
   /* for each frequency bin, add the value. */
   condition = sclv_field_info[field].cur_condition;
   timepoint = sclv_field_info[field].cur_timepoint;
-  for (bin = 0; bin < sclv_field_info[field].num_freq_bins; bin++) {
+  for (bin = 0; bin < sclv_field_info[field].num_freq_bins; bin++)
+  {
     count = sclv_field_info[field].frequencies[condition][timepoint][bin];
 
     /* If this is the zero bin, switch on
        ignorezeroesinhistogramflag to see whether or not we include
        the count in there. If we are ignoring, don't include it,
        otherwise add it in. */
-    if (bin == sclv_field_info[field].zero_bin_index) {
+    if (bin == sclv_field_info[field].zero_bin_index)
+    {
       if (!ignorezeroesinhistogramflag)
         count += sclv_field_info[field].num_zeroes_in_zero_bin;
     }
@@ -23533,7 +25705,8 @@ int sclv_send_histogram ( int field ) {
 int sclv_get_normalized_color_for_value (int field, float value,
     float *outRed,
     float *outGreen,
-    float *outBlue) {
+    float *outBlue)
+{
   GLubyte r, g, b;
   get_color_vals (value, 0, REAL_VAL, &r, &g, &b);
   *outRed = ((float)r / 255.0);
@@ -23543,7 +25716,8 @@ int sclv_get_normalized_color_for_value (int field, float value,
 }
 
 int sclv_apply_color_for_value (float f, float opacity,
-                                GLubyte* pr, GLubyte* pg, GLubyte* pb ) {
+                                GLubyte* pr, GLubyte* pg, GLubyte* pb )
+{
   float r,g,b;
   float ftmp,c1,c2;
   float min, mid, max;
@@ -23572,7 +25746,8 @@ int sclv_apply_color_for_value (float f, float opacity,
   bg = (float)*pg / 255.0;
   bb = (float)*pb / 255.0;
 
-  if (fabs(f)>fthresh && fabs(f)<fmid) {
+  if (fabs(f)>fthresh && fabs(f)<fmid)
+  {
     ftmp = fabs(f);
     c1 = 1.0/(fmid-fthresh);
     if (fcurv!=1.0)
@@ -23584,58 +25759,67 @@ int sclv_apply_color_for_value (float f, float opacity,
     f = (f<0)?-ftmp:ftmp;
   }
 
-  if (colscale==HEAT_SCALE) {
-    if (f>=0) {
+  if (colscale==HEAT_SCALE)
+  {
+    if (f>=0)
+    {
       if (sclv_opaque)
-	{
-	  /* If opaque, don't use blending at all. Min->mid is all
-	     red, and mid->max gets yellower. */
-	  r = ((f<min) ? br : 1.0);
-	  g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-	  b = ((f<min) ? bb : 0);
-	}
+      {
+        /* If opaque, don't use blending at all. Min->mid is all
+           red, and mid->max gets yellower. */
+        r = ((f<min) ? br : 1.0);
+        g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+        b = ((f<min) ? bb : 0);
+      }
       else
-	{
-	  /* the offset is a portion of the color that is 'blended'
-	     into the functional color so that a func value right at
-	     the threshold doesn't look black, but translucent. the
-	     rest is a standard interpolated color scale. */
-	  or = br * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
-	  og = bg * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
-	  ob = bb * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
-	  r = or + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-	  g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-	  b = ob;
-	}
-    } else {
+      {
+        /* the offset is a portion of the color that is 'blended'
+           into the functional color so that a func value right at
+           the threshold doesn't look black, but translucent. the
+           rest is a standard interpolated color scale. */
+        or = br * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
+        og = bg * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
+        ob = bb * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
+        r = or + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+        g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+        b = ob;
+      }
+    }
+    else
+    {
       f = -f;
       if (sclv_opaque)
-	{
-	  b = ((f<min) ? bb : 1.0);
-	  g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-	  r = ((f<min) ? br : 0);
-	}
-      else 
-	{
-	  or = br * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
-	  og = bg * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
-	  ob = bb * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
-	  b = ob + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-	  g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-	  r = or;
-	}
+      {
+        b = ((f<min) ? bb : 1.0);
+        g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+        r = ((f<min) ? br : 0);
+      }
+      else
+      {
+        or = br * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
+        og = bg * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
+        ob = bb * ((f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0);
+        b = ob + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+        g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+        r = or;
+      }
     }
     r = r*255;
     g = g*255;
     b = b*255;
-  } else if (colscale==CYAN_TO_RED ||
-             colscale==BLU_GRE_RED ||
-             colscale==JUST_GRAY) {
+  }
+  else if (colscale==CYAN_TO_RED ||
+           colscale==BLU_GRE_RED ||
+           colscale==JUST_GRAY)
+  {
     tmpoffset = (float)*pr;
-    if (f<fthresh) {
+    if (f<fthresh)
+    {
       r = g = 255 * (tmpoffset/blufact);
       b =     255 * (tmpoffset*blufact);
-    } else {
+    }
+    else
+    {
       if (fslope!=0)
         f2 = (tanh(fslope*fmid)+
               tanh(fslope*(f-fmid)))/(2-tanh(fslope*fmid));
@@ -23646,14 +25830,19 @@ int sclv_apply_color_for_value (float f, float opacity,
       g=fg;
       b=fb;
     }
-  } else if (colscale==BLUE_TO_RED_SIGNED ||
-             colscale==GREEN_TO_RED_SIGNED) {
+  }
+  else if (colscale==BLUE_TO_RED_SIGNED ||
+           colscale==GREEN_TO_RED_SIGNED)
+  {
     tmpoffset = (float)*pr;
-    if (fabs(f)>fthresh) {
-      if (fslope!=0) {
+    if (fabs(f)>fthresh)
+    {
+      if (fslope!=0)
+      {
         if (fmid==0)
           f2 = tanh(fslope*(f));
-        else {
+        else
+        {
           if (f<0)
             f2 = -(tanh(fslope*fmid) + tanh(fslope*(-f-fmid)))/
                  (2-tanh(fslope*fmid));
@@ -23662,7 +25851,9 @@ int sclv_apply_color_for_value (float f, float opacity,
                  (2-tanh(fslope*fmid));
         }
 
-      } else {
+      }
+      else
+      {
         f2 = (f<-1)?-1:((f>1)?1:f);
       }
       set_signed_color(f2,&fr,&fg,&fb,tmpoffset);
@@ -23680,7 +25871,8 @@ int sclv_apply_color_for_value (float f, float opacity,
   return (NO_ERROR);
 }
 
-int sclv_load_label_value_file (char *fname, int field) {
+int sclv_load_label_value_file (char *fname, int field)
+{
   FILE* fp = NULL;
   int line_number = 0;
   char line[1024] = "";
@@ -23702,7 +25894,8 @@ int sclv_load_label_value_file (char *fname, int field) {
 
   /* Go through the file line by line. */
   fp = fopen (fname, "r");
-  if (NULL == fp) {
+  if (NULL == fp)
+  {
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
                  "sclv_load_label_value_file: "
@@ -23712,18 +25905,21 @@ int sclv_load_label_value_file (char *fname, int field) {
   line_number = 1;
   min = 9999;
   max = -9999;
-  while (!feof(fp)) {
+  while (!feof(fp))
+  {
     /* Read a label name, value, and hemisphere. */
     fgetl (line, 1024, fp);
     num_read = sscanf (line, "%s %f %s", label_name, &value, hemisphere);
-    if (3 != num_read) {
+    if (3 != num_read)
+    {
       printf ("sclv_load_label_value_file: error reading line "
               "%d: %s\n", line_number, line);
       continue;
     }
 
     /* If this is our hemisphere... */
-    if (0 == strcmp (hemisphere, stem)) {
+    if (0 == strcmp (hemisphere, stem))
+    {
 
       /* Update min/max. */
       if (value < min)
@@ -23732,13 +25928,16 @@ int sclv_load_label_value_file (char *fname, int field) {
         max = value;
 
       /* Go through the labels. If one's name matches this label name... */
-      for (label_index = 0; label_index < labl_num_labels; label_index++) {
-        if (0 == strcmp (labl_labels[label_index].name, label_name)) {
+      for (label_index = 0; label_index < labl_num_labels; label_index++)
+      {
+        if (0 == strcmp (labl_labels[label_index].name, label_name))
+        {
           label = labl_labels[label_index].label;
 
           /* Go through the label points and set the sclv to
              this value. */
-          for (label_vno = 0; label_vno < label->n_points; label_vno++) {
+          for (label_vno = 0; label_vno < label->n_points; label_vno++)
+          {
             vno = label->lv[label_vno].vno;
             if ( vno < 0 || vno >= mris->nvertices )
               continue;
@@ -23781,7 +25980,8 @@ int sclv_load_label_value_file (char *fname, int field) {
   sclv_set_current_field (field);
 
   /* set the field name to the name of the file loaded */
-  if (NULL != g_interp) {
+  if (NULL != g_interp)
+  {
     FileNameOnly (fname, val_name);
     sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, val_name);
     send_tcl_command (cmd);
@@ -23803,12 +26003,14 @@ int sclv_load_label_value_file (char *fname, int field) {
 
 /* ------------------------------------------------------ multiple labels */
 
-int labl_initialize () {
+int labl_initialize ()
+{
 
   int label;
 
   /* initialize the array of labels to empty. */
-  for (label = 0; label < LABL_MAX_LABELS; label++) {
+  for (label = 0; label < LABL_MAX_LABELS; label++)
+  {
     labl_labels[label].label = NULL;
     labl_labels[label].structure = -1;
     labl_labels[label].r = 0;
@@ -23834,7 +26036,8 @@ int labl_initialize () {
   return (ERROR_NONE);
 }
 
-int labl_update_cache (int force_rebuild_all) {
+int labl_update_cache (int force_rebuild_all)
+{
 
   int label_index;
   LABEL* label;
@@ -23843,32 +26046,41 @@ int labl_update_cache (int force_rebuild_all) {
   int* new;
 
   /* if our basic stuff is not inited, do so now. */
-  if (NULL == labl_cache) {
+  if (NULL == labl_cache)
+  {
     labl_cache = (int**) calloc (mris->nvertices, sizeof(int*));
   }
-  if (NULL == labl_num_labels_at_cache_vno) {
+  if (NULL == labl_num_labels_at_cache_vno)
+  {
     labl_num_labels_at_cache_vno =
       (int*) calloc (mris->nvertices, sizeof(int));
   }
 
-  if (force_rebuild_all) {
+  if (force_rebuild_all)
+  {
     for (vno = 0; vno < mris->nvertices; vno++)
       labl_num_labels_at_cache_vno[vno] = 0;
   }
 
-  for (label_index = 0; label_index < labl_num_labels; label_index++) {
+  for (label_index = 0; label_index < labl_num_labels; label_index++)
+  {
     label = labl_labels[label_index].label;
-    if (!labl_labels[label_index].cached || force_rebuild_all) {
-      for (label_vno = 0; label_vno < label->n_points; label_vno++) {
+    if (!labl_labels[label_index].cached || force_rebuild_all)
+    {
+      for (label_vno = 0; label_vno < label->n_points; label_vno++)
+      {
         vno = label->lv[label_vno].vno;
         if ( vno < 0 || vno >= mris->nvertices )
           continue;
 
-        if (NULL == labl_cache[vno]) {
+        if (NULL == labl_cache[vno])
+        {
           labl_cache[vno] = (int*) calloc (1, sizeof(int));
           labl_cache[vno][0] = label_index;
           labl_num_labels_at_cache_vno[vno] = 1;
-        } else {
+        }
+        else
+        {
           new = (int*)
                 calloc (labl_num_labels_at_cache_vno[vno]+1, sizeof(int));
           memcpy (new, labl_cache[vno],
@@ -23889,7 +26101,8 @@ int labl_update_cache (int force_rebuild_all) {
   return (NO_ERROR);
 }
 
-int labl_load_color_table (char* fname) {
+int labl_load_color_table (char* fname)
+{
   COLOR_TABLE* ctab;
   int label_index;
   LABL_LABEL* label;
@@ -23897,12 +26110,14 @@ int labl_load_color_table (char* fname) {
 
   /* Attempt to read the color table. */
   ctab = CTABreadASCII (fname);
-  if (NULL == ctab) {
+  if (NULL == ctab)
+  {
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "Couldn't open %s\n", fname));
   }
 
   /* Save it in the surface. */
-  if (NULL != mris->ct) {
+  if (NULL != mris->ct)
+  {
     CTABfree (&mris->ct);
   }
   mris->ct = ctab;
@@ -23914,9 +26129,11 @@ int labl_load_color_table (char* fname) {
   labl_send_color_table_info ();
 
   /* Update all currently loaded structural labels. */
-  for (label_index = 0; label_index < labl_num_labels; label_index++) {
+  for (label_index = 0; label_index < labl_num_labels; label_index++)
+  {
     label = &(labl_labels[label_index]);
-    if (LABL_TYPE_FREE != label->structure) {
+    if (LABL_TYPE_FREE != label->structure)
+    {
       CTABcopyName (mris->ct, label->structure,
                     label->name, sizeof(label->name));
       r = 255;
@@ -23935,7 +26152,8 @@ int labl_load_color_table (char* fname) {
 }
 
 int
-labl_send_color_table_info () {
+labl_send_color_table_info ()
+{
   COLOR_TABLE* ctab;
   int num_valid_entries;
   int num_entries;
@@ -23959,14 +26177,16 @@ labl_send_color_table_info () {
      our labels. */
   structure_label_list = (char*)
                          malloc (256 * num_valid_entries * sizeof(char));
-  if (NULL != structure_label_list) {
+  if (NULL != structure_label_list)
+  {
     /* build a string out of all the label names and send them to the
-    tcl label list. */
+       tcl label list. */
     strcpy (structure_label_list, "LblLst_SetStructures {");
 
     /* Iterate over all the entries, but only get names for the
-    valid ones. */
-    for (structure = 0; structure < num_entries; structure++ ) {
+       valid ones. */
+    for (structure = 0; structure < num_entries; structure++ )
+    {
       /* If not valid, skip it. */
       CTABisEntryValid (ctab, structure, &valid);
       if (!valid)
@@ -23981,7 +26201,9 @@ labl_send_color_table_info () {
     send_tcl_command (structure_label_list);
 
     free( structure_label_list );
-  } else {
+  }
+  else
+  {
     fprintf (stderr, "labl_send_color_table_info: couldn't allocate "
              "string for %d structres\n", labl_num_structures );
     return (ERROR_NO_MEMORY);
@@ -23990,7 +26212,8 @@ labl_send_color_table_info () {
   return (NO_ERROR);
 }
 
-int labl_load (char* fname) {
+int labl_load (char* fname)
+{
   LABEL* label = NULL;
   LABEL *lnew;
   int label_index;
@@ -24002,7 +26225,8 @@ int labl_load (char* fname) {
 
   /* load label file. */
   label = LabelRead (pname, fname);
-  if (NULL == label) {
+  if (NULL == label)
+  {
     return (ERROR_NO_FILE);
   }
   if (reassign)
@@ -24022,7 +26246,8 @@ int labl_load (char* fname) {
   LabelFillUnassignedVertices (mris, label, WHITE_VERTICES);
 
   /* If we were unassigned before, fill it now. */
-  if (unassigned) {
+  if (unassigned)
+  {
     lnew = LabelFillHoles(label, mris, WHITE_VERTICES) ;
     LabelFree(&label) ;
     label = lnew ;
@@ -24050,7 +26275,8 @@ int labl_load (char* fname) {
   return (ERROR_NONE);
 }
 
-int labl_save (int index, char* fname) {
+int labl_save (int index, char* fname)
+{
   LABEL* label = NULL;
   int n;
   int vno;
@@ -24061,7 +26287,8 @@ int labl_save (int index, char* fname) {
     return (ERROR_BADPARM);
 
   /* Get a copy of our label. */
-	printf("label at index %d with %d points\n", index, labl_labels[index].label->n_points) ;
+  printf("label at index %d with %d points\n",
+         index, labl_labels[index].label->n_points) ;
   label = LabelCopy (labl_labels[index].label, NULL);
   if (NULL == label)
     return (ERROR_BADPARM);
@@ -24072,7 +26299,8 @@ int labl_save (int index, char* fname) {
 
   /* fill in the current overlay value in the stat field of our label
      verts. this is for the LabelWrite call. */
-  for (n = 0 ; n < label->n_points ; n++) {
+  for (n = 0 ; n < label->n_points ; n++)
+  {
     vno = label->lv[n].vno;
     if ( vno < 0 || vno >= mris->nvertices )
       continue;
@@ -24093,13 +26321,15 @@ int labl_save (int index, char* fname) {
   return (ERROR_NONE);
 }
 
-int labl_save_all (char* prefix) {
+int labl_save_all (char* prefix)
+{
   int label;
   char fname[NAME_LENGTH];
 
   /* for each label we have, build a decent name based on the prefix
      we got, and save it normally. */
-  for (label = 0; label < labl_num_labels; label++ ) {
+  for (label = 0; label < labl_num_labels; label++ )
+  {
     sprintf (fname, "%s-%d", prefix, label);
     labl_save (label, fname);
   }
@@ -24108,18 +26338,21 @@ int labl_save_all (char* prefix) {
 }
 
 
-int labl_find_and_set_all_borders () {
+int labl_find_and_set_all_borders ()
+{
   int label;
 
   /* for each label we have, find the border */
-  for (label = 0; label < labl_num_labels; label++ ) {
+  for (label = 0; label < labl_num_labels; label++ )
+  {
     labl_find_and_set_border (label);
   }
 
   return (ERROR_NONE);
 }
 
-int labl_find_and_set_border (int index) {
+int labl_find_and_set_border (int index)
+{
   int label_vno;
   LABEL* label;
   VERTEX* v;
@@ -24140,9 +26373,10 @@ int labl_find_and_set_border (int index) {
 
   /* for each vertex in the label... */
   label = labl_labels[index].label;
-  for (label_vno = 0; label_vno < label->n_points; label_vno++) {
+  for (label_vno = 0; label_vno < label->n_points; label_vno++)
+  {
     /* The label vno could be < 0 if it couldn't find a close vertex
-    for this label point. */
+       for this label point. */
     vno = label->lv[label_vno].vno;
     if (vno < 0 || vno >= mris->nvertices)
       continue;
@@ -24153,18 +26387,21 @@ int labl_find_and_set_border (int index) {
     v = &(mris->vertices[vno]);
     for (neighbor_vno = 0;
          neighbor_vno < v->vnum && !border[vno];
-         neighbor_vno++ ) {
+         neighbor_vno++ )
+    {
       /* See if there's a label at this neighbor vno. */
       labl_find_label_by_vno (v->v[neighbor_vno], 0, label_index_array,
                               LABL_MAX_LABELS, &num_labels_found);
-      if ( num_labels_found > 0 ) {
+      if ( num_labels_found > 0 )
+      {
         /* We found at least one label, check to see if it's
-        this label or somethign else. */
+           this label or somethign else. */
         vno_in_other_label = 0;
         vno_in_label = 0;
         for (found_label_index = 0;
              found_label_index < num_labels_found;
-             found_label_index++) {
+             found_label_index++)
+        {
           if (label_index_array[found_label_index] != index)
             vno_in_other_label = 1;
           if (label_index_array[found_label_index] == index)
@@ -24175,11 +26412,14 @@ int labl_find_and_set_border (int index) {
            label and not in this label. mark it so in the real
            border flag array and our temp one. */
         if (vno_in_other_label && !vno_in_label &&
-            !border[vno]) {
+            !border[vno])
+        {
           border[vno] = TRUE;
           num_borders++;
         }
-      } else {
+      }
+      else
+      {
         /* it's also a border if the vno is in no label. */
         border[vno] = TRUE;
         num_borders++;
@@ -24190,19 +26430,24 @@ int labl_find_and_set_border (int index) {
        border, check its surrounding vertices. For each one, if it's
        not already also a border, and if it's inside the label, mark
        it in the border list. */
-    if (border[vno]) {
+    if (border[vno])
+    {
       for (neighbor_vno = 0;
            neighbor_vno < v->vnum && !border[v->v[neighbor_vno]];
-           neighbor_vno++ ) {
+           neighbor_vno++ )
+      {
         /* If it's inside the label...*/
         labl_find_label_by_vno (v->v[neighbor_vno], 0, label_index_array,
                                 LABL_MAX_LABELS, &num_labels_found);
-        if ( num_labels_found > 0 ) {
+        if ( num_labels_found > 0 )
+        {
           for (found_label_index = 0;
                found_label_index < num_labels_found;
-               found_label_index++) {
+               found_label_index++)
+          {
             if (label_index_array[found_label_index] == index &&
-                !border[v->v[neighbor_vno]]) {
+                !border[v->v[neighbor_vno]])
+            {
               /* Also make it a border. */
               border[v->v[neighbor_vno]] = TRUE;
               num_borders++;
@@ -24221,13 +26466,15 @@ int labl_find_and_set_border (int index) {
   labl_labels[index].border_vno = (int*) calloc (num_borders, sizeof(int));
 
   labl_labels[index].num_border_vnos = 0;
-  for (label_vno = 0; label_vno < label->n_points; label_vno++) {
+  for (label_vno = 0; label_vno < label->n_points; label_vno++)
+  {
     vno = label->lv[label_vno].vno;
     if (vno < 0 || vno >= mris->nvertices)
       continue;
 
     v = &(mris->vertices[vno]);
-    if (border[vno]) {
+    if (border[vno])
+    {
       labl_labels[index].border_vno[labl_labels[index].num_border_vnos] =
         vno;
       labl_labels[index].num_border_vnos++;
@@ -24243,7 +26490,8 @@ int labl_find_and_set_border (int index) {
   return (ERROR_NONE);
 }
 
-int labl_vno_is_border (int index, int vno) {
+int labl_vno_is_border (int index, int vno)
+{
   int border_index;
 
   if (index < 0 || index >= labl_num_labels)
@@ -24253,7 +26501,8 @@ int labl_vno_is_border (int index, int vno) {
     return 0;
 
   for (border_index = 0;
-       border_index < labl_labels[index].num_border_vnos; border_index++) {
+       border_index < labl_labels[index].num_border_vnos; border_index++)
+  {
     if (labl_labels[index].border_vno[border_index] == vno)
       return 1;
   }
@@ -24261,7 +26510,8 @@ int labl_vno_is_border (int index, int vno) {
   return 0;
 }
 
-int labl_import_annotation (char *fname) {
+int labl_import_annotation (char *fname)
+{
   int mris_err;
   int ctab_err;
   COLOR_TABLE* ctab;
@@ -24283,7 +26533,8 @@ int labl_import_annotation (char *fname) {
   r = g = b = 255;
   MRISRGBToAnnot(r,g,b,max_annot);
   done = (unsigned int*) calloc( max_annot, sizeof(int) );
-  if ( NULL == done ) {
+  if ( NULL == done )
+  {
     printf( "calloc of size %d failed\n", max_annot );
     return (ERROR_NO_MEMORY);
   }
@@ -24293,7 +26544,8 @@ int labl_import_annotation (char *fname) {
   for (vno = 0; vno < mris->nvertices; vno++)
     mris->vertices[vno].annotation = 0;
   mris_err = MRISreadAnnotation (mris, fname);
-  if(mris_err){
+  if (mris_err)
+  {
     printf("\n");
     printf("ERROR: could not load %s\n",fname);
     printf("\n");
@@ -24301,20 +26553,26 @@ int labl_import_annotation (char *fname) {
   }
 
   /* Check if we got an embedded color table. */
-  if (mris->ct) {
+  if (mris->ct)
+  {
     printf ("Found embedded color table in annotation.\n");
-  } else {
+  }
+  else
+  {
     printf ("No embedded color table found in annotation.\n");
   }
 
   /* check all annotations... */
-  for (annotation_vno = 0; annotation_vno < mris->nvertices; annotation_vno++) {
+  for (annotation_vno = 0; annotation_vno < mris->nvertices; annotation_vno++)
+  {
     /* get the annotation. if there is one... */
     annotation = mris->vertices[annotation_vno].annotation;
 
-    if (annotation) {
+    if (annotation)
+    {
       /* get the rgb colors. */
-      if (annotation > max_annot) {
+      if (annotation > max_annot)
+      {
         printf("Warning: vertex %d with annotation %x - out of range!\n",
                annotation_vno, annotation) ;
         annotation &= max_annot ;
@@ -24322,7 +26580,8 @@ int labl_import_annotation (char *fname) {
       MRISAnnotToRGB( annotation, r, g, b );
 
       /* if we haven't imported this label yet... */
-      if ( !done[annotation] ) {
+      if ( !done[annotation] )
+      {
 
         /* mark it imported. */
         done[annotation] = 1;
@@ -24337,12 +26596,14 @@ int labl_import_annotation (char *fname) {
         /* make a new label, and go through again, setting the label
            values. */
         label = LabelAlloc(num_verts_in_annotation, NULL, NULL);
-        if (NULL != label) {
+        if (NULL != label)
+        {
           strncpy( label->subject_name, pname, 100 );
           label->n_points = num_verts_in_annotation;
           label_vno = 0;
           for (vno = 0; vno < mris->nvertices; vno++)
-            if (mris->vertices[vno].annotation == annotation) {
+            if (mris->vertices[vno].annotation == annotation)
+            {
               v = &mris->vertices[vno];
               label->lv[label_vno].x = v->x;
               label->lv[label_vno].y = v->y;
@@ -24370,12 +26631,15 @@ int labl_import_annotation (char *fname) {
 
           /* make a name for it. if we got a color from the
              color table, get the label, else use the color. */
-          if (structure != -1) {
+          if (structure != -1)
+          {
             ctab_err = CTABcopyName (ctab, structure,
                                      name, sizeof(name) );
             if (NO_ERROR != ctab_err)
               sprintf (name, "Parcellation %d, %d, %d", r, g, b);
-          } else {
+          }
+          else
+          {
             sprintf (name, "Parcellation %d, %d, %d", r, g, b);
           }
 
@@ -24392,7 +26656,8 @@ int labl_import_annotation (char *fname) {
   }
 
   /* any labels imported? */
-  if (num_labels > 0) {
+  if (num_labels > 0)
+  {
 
     /* if we have our own color table, now is the time to send it to the
        tcl side of things. */
@@ -24406,14 +26671,17 @@ int labl_import_annotation (char *fname) {
     labl_draw_flag = 1;
     send_tcl_command ("UpdateLinkedVarGroup label");
 
-  } else {
+  }
+  else
+  {
     printf ("surfer: WARNING: no labels imported; annotation was empty\n" );
   }
 
   return(ERROR_NONE);
 }
 
-int labl_export_annotation (char *fname) {
+int labl_export_annotation (char *fname)
+{
   int vno;
   int label_index;
   int color;
@@ -24427,18 +26695,21 @@ int labl_export_annotation (char *fname) {
     mris->vertices[vno].annotation = 0;
 
   /* for each label.. */
-  for (label_index = 0; label_index < labl_num_labels; label_index++) {
+  for (label_index = 0; label_index < labl_num_labels; label_index++)
+  {
 
     label = &(labl_labels[label_index]);
 
     /* if this is not a free label... */
-    if ( LABL_TYPE_FREE != label->structure) {
+    if ( LABL_TYPE_FREE != label->structure)
+    {
 
       /* make the composed color int for this label. */
       MRISRGBToAnnot (label->r, label->g, label->b, color);
 
       /* for every vertex in the label... */
-      for (label_vno = 0; label_vno < label->label->n_points; label_vno++) {
+      for (label_vno = 0; label_vno < label->label->n_points; label_vno++)
+      {
         if ( label->label->lv[label_vno].vno < 0 ||
              label->label->lv[label_vno].vno >= mris->nvertices )
           continue;
@@ -24448,7 +26719,8 @@ int labl_export_annotation (char *fname) {
           color;
       }
 
-      if (labl_debug) {
+      if (labl_debug)
+      {
         printf( "saved label %d with %d vertices, color %d %d %d "
                 "anot value %d\n", label_index, label->label->n_points,
                 label->r, label->g, label->b, color );
@@ -24462,7 +26734,8 @@ int labl_export_annotation (char *fname) {
   return (ERROR_NONE);
 }
 
-int labl_new_from_marked_vertices (int *new_index_out) {
+int labl_new_from_marked_vertices (int *new_index_out)
+{
   LABEL* label = NULL;
   int num_marked_verts;
   int vno;
@@ -24479,7 +26752,8 @@ int labl_new_from_marked_vertices (int *new_index_out) {
       num_marked_verts++;
 
   /* if we didn't get any, return. */
-  if (0 == num_marked_verts) {
+  if (0 == num_marked_verts)
+  {
     fprintf (stderr, "no marked vertices...\n");
     return (ERROR_NONE);
   }
@@ -24493,9 +26767,11 @@ int labl_new_from_marked_vertices (int *new_index_out) {
      should only be done when the label is actually written to
      file. */
   label_vno = 0;
-  for (vno = 0; vno < mris->nvertices; vno++) {
+  for (vno = 0; vno < mris->nvertices; vno++)
+  {
     v = &mris->vertices[vno];
-    if (v->marked) {
+    if (v->marked)
+    {
       sclv_get_value(v, sclv_current_field, &val) ;
       label->lv[label_vno].x = v->x;
       label->lv[label_vno].y = v->y;
@@ -24534,7 +26810,8 @@ int labl_new_from_marked_vertices (int *new_index_out) {
   return (ERROR_NONE);
 }
 
-int labl_add_marked_vertices_to_label (int index) {
+int labl_add_marked_vertices_to_label (int index)
+{
   int* vnos_to_add;
   int* found_labels;
   int in_label;
@@ -24556,18 +26833,22 @@ int labl_add_marked_vertices_to_label (int index) {
   /* Look at all the marked verts and find the ones that aren't
      already in this label. Make a list of them. */
   vnos_to_add = (int*) calloc (mris->nvertices, sizeof(int));
-  if (NULL == vnos_to_add) {
+  if (NULL == vnos_to_add)
+  {
     return (ERROR_NO_MEMORY);
   }
   found_labels = (int*) calloc (LABL_MAX_LABELS, sizeof(int));
-  if (NULL == found_labels) {
+  if (NULL == found_labels)
+  {
     free (vnos_to_add);
     return (ERROR_NO_MEMORY);
   }
   num_marked_verts = 0;
-  for (vno = 0; vno < mris->nvertices; vno++) {
+  for (vno = 0; vno < mris->nvertices; vno++)
+  {
     v = &mris->vertices[vno];
-    if (v->marked) {
+    if (v->marked)
+    {
       labl_find_label_by_vno (vno, 0, found_labels,
                               sizeof(found_labels), &num_found);
 
@@ -24585,7 +26866,8 @@ int labl_add_marked_vertices_to_label (int index) {
   free (found_labels);
 
   /* if we didn't get any, return. */
-  if (0 == num_marked_verts) {
+  if (0 == num_marked_verts)
+  {
     free (vnos_to_add);
     printf ("surfer: no marked vertices (that aren't already in the label)");
     return (ERROR_NONE);
@@ -24598,7 +26880,8 @@ int labl_add_marked_vertices_to_label (int index) {
   /* create a new label with the combined number of points */
   num_new_verts = num_marked_verts + num_label_verts;
   newlabel = LabelAlloc (num_new_verts, NULL, NULL);
-  if (NULL == newlabel) {
+  if (NULL == newlabel)
+  {
     free (vnos_to_add);
     return (ERROR_NO_MEMORY);
   }
@@ -24608,7 +26891,8 @@ int labl_add_marked_vertices_to_label (int index) {
   /* add the label's points (note we're going through both the
      curlabel and newlabel vnos in this loop */
   newlabel_vno = 0;
-  for (curlabel_vno = 0; curlabel_vno < curlabel->n_points; curlabel_vno++) {
+  for (curlabel_vno = 0; curlabel_vno < curlabel->n_points; curlabel_vno++)
+  {
     newlabel->lv[newlabel_vno].x = curlabel->lv[curlabel_vno].x;
     newlabel->lv[newlabel_vno].y = curlabel->lv[curlabel_vno].y;
     newlabel->lv[newlabel_vno].z = curlabel->lv[curlabel_vno].z;
@@ -24617,7 +26901,8 @@ int labl_add_marked_vertices_to_label (int index) {
   }
 
   /* add the marked verts */
-  for (vno = 0; vno < num_marked_verts; vno++) {
+  for (vno = 0; vno < num_marked_verts; vno++)
+  {
     v = &mris->vertices[vnos_to_add[vno]];
     newlabel->lv[newlabel_vno].x = v->x;
     newlabel->lv[newlabel_vno].y = v->y;
@@ -24641,7 +26926,8 @@ int labl_add_marked_vertices_to_label (int index) {
   return (ERROR_NONE);
 }
 
-int labl_remove_marked_vertices_from_label (int index) {
+int labl_remove_marked_vertices_from_label (int index)
+{
 
   LABEL* curlabel = NULL;
   LABEL* newlabel = NULL;
@@ -24662,7 +26948,8 @@ int labl_remove_marked_vertices_from_label (int index) {
       num_marked_verts++;
 
   /* if we didn't get any, return. */
-  if (0 == num_marked_verts) {
+  if (0 == num_marked_verts)
+  {
     printf ("surfer: no marked vertices\n");
     return (ERROR_NONE);
   }
@@ -24675,26 +26962,30 @@ int labl_remove_marked_vertices_from_label (int index) {
      num as the label. for each point in the label, see if it's marked
      on the surface. if so, dec the count. */
   num_new_verts = num_label_verts;
-  for (curlabel_vno = 0; curlabel_vno < curlabel->n_points; curlabel_vno++) {
+  for (curlabel_vno = 0; curlabel_vno < curlabel->n_points; curlabel_vno++)
+  {
     vno = curlabel->lv[curlabel_vno].vno;
     if ( vno < 0 || vno >= mris->nvertices )
       continue;
 
-    if (mris->vertices[vno].marked) {
+    if (mris->vertices[vno].marked)
+    {
       num_new_verts--;
     }
   }
 
   /* if the count is the same as the original label, there were no
      intersecting marked and label points. */
-  if (num_new_verts == num_label_verts) {
+  if (num_new_verts == num_label_verts)
+  {
     printf ("surfer: no intersection with label\n");
     return (ERROR_NONE);
   }
 
   /* create a new label with the difference of points */
   newlabel = LabelAlloc (num_new_verts, NULL, NULL);
-  if (NULL == newlabel) {
+  if (NULL == newlabel)
+  {
     return (ERROR_NO_MEMORY);
   }
 
@@ -24703,12 +26994,14 @@ int labl_remove_marked_vertices_from_label (int index) {
   /* for each of the labels verts, add it to the new label if the
      corresponding surface vert is not marked. */
   newlabel_vno = 0;
-  for (curlabel_vno = 0; curlabel_vno < curlabel->n_points; curlabel_vno++) {
+  for (curlabel_vno = 0; curlabel_vno < curlabel->n_points; curlabel_vno++)
+  {
     vno = curlabel->lv[curlabel_vno].vno;
     if ( vno < 0 || vno >= mris->nvertices )
       continue;
 
-    if (!mris->vertices[vno].marked && newlabel_vno < num_new_verts) {
+    if (!mris->vertices[vno].marked && newlabel_vno < num_new_verts)
+    {
       newlabel->lv[newlabel_vno].x = curlabel->lv[curlabel_vno].x;
       newlabel->lv[newlabel_vno].y = curlabel->lv[curlabel_vno].y;
       newlabel->lv[newlabel_vno].z = curlabel->lv[curlabel_vno].z;
@@ -24730,7 +27023,8 @@ int labl_remove_marked_vertices_from_label (int index) {
   return (ERROR_NONE);
 }
 
-int labl_mark_vertices (int index) {
+int labl_mark_vertices (int index)
+{
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
 
@@ -24740,7 +27034,8 @@ int labl_mark_vertices (int index) {
   return (ERROR_NONE);
 }
 
-int labl_select (int index) {
+int labl_select (int index)
+{
   char tcl_command[NAME_LENGTH + 50];
   int old_selected;
   /* mark this label as selected. */
@@ -24748,11 +27043,13 @@ int labl_select (int index) {
   labl_selected_label = index;
 
   /* if something changed... */
-  if (old_selected != labl_selected_label) {
+  if (old_selected != labl_selected_label)
+  {
     /* if something was selected, send the select cpmmand and the
        update command to the tcl label list with this label's
        information. */
-    if ((index >= 0 && index < labl_num_labels) && g_interp) {
+    if ((index >= 0 && index < labl_num_labels) && g_interp)
+    {
       sprintf (tcl_command, "LblLst_SelectLabel %d", index);
       send_tcl_command (tcl_command);
 
@@ -24766,7 +27063,8 @@ int labl_select (int index) {
   return (ERROR_NONE);
 }
 
-int labl_set_name_from_table (int index) {
+int labl_set_name_from_table (int index)
+{
   char name[NAME_LENGTH];
   LABL_LABEL* label;
   COLOR_TABLE* ctab;
@@ -24796,7 +27094,8 @@ int labl_set_name_from_table (int index) {
 }
 
 int labl_set_info (int index, char* name, int structure, int visible,
-                   int ir, int ig, int ib) {
+                   int ir, int ig, int ib)
+{
   int ctab_err;
   COLOR_TABLE* ctab;
   int r, g, b, a;
@@ -24817,18 +27116,22 @@ int labl_set_info (int index, char* name, int structure, int visible,
      not free, get the color from the table. otherwise, use the color
      that they gave us. */
   if ((labl_ctab || mris->ct) &&
-      LABL_TYPE_FREE != labl_labels[index].structure) {
+      LABL_TYPE_FREE != labl_labels[index].structure)
+  {
     if (mris->ct)
       ctab = mris->ct;
     else
       ctab = labl_ctab;
 
     ctab_err = CTABrgbaAtIndexi (ctab, structure, &r, &g, &b, &a);
-    if (NO_ERROR == ctab_err) {
+    if (NO_ERROR == ctab_err)
+    {
       labl_set_color (index, r, g, b);
       labl_set_alpha (index, a);
     }
-  } else {
+  }
+  else
+  {
     labl_set_color (index, ir, ig, ib);
     labl_set_alpha (index, 255);
   }
@@ -24839,7 +27142,8 @@ int labl_set_info (int index, char* name, int structure, int visible,
   return (ERROR_NONE);
 }
 
-int labl_set_color (int index, int r, int g, int b) {
+int labl_set_color (int index, int r, int g, int b)
+{
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
   if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255)
@@ -24856,7 +27160,8 @@ int labl_set_color (int index, int r, int g, int b) {
   return (ERROR_NONE);
 }
 
-int labl_set_alpha (int index, int alpha) {
+int labl_set_alpha (int index, int alpha)
+{
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
   if (alpha < 0 || alpha > 255)
@@ -24871,7 +27176,8 @@ int labl_set_alpha (int index, int alpha) {
   return (ERROR_NONE);
 }
 
-int labl_send_info (int index) {
+int labl_send_info (int index)
+{
   char tcl_command[NAME_LENGTH + 50];
 
   if (index < 0 || index >= labl_num_labels)
@@ -24893,7 +27199,8 @@ int labl_send_info (int index) {
   return (ERROR_NONE);
 }
 
-int labl_add (LABEL* label, int* new_index) {
+int labl_add (LABEL* label, int* new_index)
+{
   int index;
   char tcl_command[NAME_LENGTH + 50];
 
@@ -24945,7 +27252,8 @@ int labl_add (LABEL* label, int* new_index) {
   return (ERROR_NONE);
 }
 
-int labl_changed (int index, int vertices_were_removed) {
+int labl_changed (int index, int vertices_were_removed)
+{
   LABEL* label;
   float min_x, max_x;
   float min_y, max_y;
@@ -24960,7 +27268,8 @@ int labl_changed (int index, int vertices_were_removed) {
   /* go through the label and find the bounds. */
   min_x = min_y = min_z = 500;
   max_x = max_y = max_z = -500;
-  for (label_vno = 0; label_vno < label->n_points; label_vno++) {
+  for (label_vno = 0; label_vno < label->n_points; label_vno++)
+  {
     if (label->lv[label_vno].x < min_x)
       min_x = label->lv[label_vno].x;
     if (label->lv[label_vno].y < min_y)
@@ -24998,18 +27307,21 @@ int labl_changed (int index, int vertices_were_removed) {
   return (ERROR_NONE);
 }
 
-int labl_all_changed () {
+int labl_all_changed ()
+{
 
   int label;
 
-  for ( label = 0; label < labl_num_labels; label++ ) {
+  for ( label = 0; label < labl_num_labels; label++ )
+  {
     labl_changed( label, 0 );
   }
 
   return (ERROR_NONE);
 }
 
-int labl_remove (int index) {
+int labl_remove (int index)
+{
   int next;
   char tcl_command[NAME_LENGTH];
 
@@ -25024,7 +27336,8 @@ int labl_remove (int index) {
 
   /* for every label above it, copy it one slot down. */
   next = index + 1;
-  while (next < labl_num_labels) {
+  while (next < labl_num_labels)
+  {
     labl_labels[next-1] = labl_labels[next];
     next++;
   }
@@ -25057,24 +27370,27 @@ int labl_remove (int index) {
   return (ERROR_NONE);
 }
 
-int labl_remove_all () {
+int labl_remove_all ()
+{
 
   int labels;
 
   /* delete all the labels. */
   labels = labl_num_labels;
-  while (labels > 0) {
+  while (labels > 0)
+  {
     labl_remove (0);
     labels--;
   }
   labl_num_labels_created = 0;
-	labl_num_labels = 0 ;
+  labl_num_labels = 0 ;
 
   return (ERROR_NONE);
 }
 
 int labl_find_label_by_vno (int vno, int min_label, int* index_array,
-                            int array_size, int* out_num_found) {
+                            int array_size, int* out_num_found)
+{
   int num_to_copy, num_to_copy_from_beginning;
   int i;
 
@@ -25089,8 +27405,10 @@ int labl_find_label_by_vno (int vno, int min_label, int* index_array,
   /* return some points. */
   num_to_copy = MIN(array_size,labl_num_labels_at_cache_vno[vno]);
   num_to_copy_from_beginning = 0;
-  if (num_to_copy > 0) {
-    if (min_label != 0) {
+  if (num_to_copy > 0)
+  {
+    if (min_label != 0)
+    {
       /* find the first label index <= min_label */
       i = 0;
       while (labl_cache[vno][i] < min_label &&
@@ -25112,7 +27430,9 @@ int labl_find_label_by_vno (int vno, int min_label, int* index_array,
 
       memcpy (&(index_array[num_to_copy]), labl_cache[vno],
               num_to_copy_from_beginning * sizeof(int));
-    } else {
+    }
+    else
+    {
       memcpy (index_array, labl_cache[vno], num_to_copy * sizeof(int));
     }
   }
@@ -25122,7 +27442,8 @@ int labl_find_label_by_vno (int vno, int min_label, int* index_array,
   return (ERROR_NONE);
 }
 
-int labl_select_label_by_vno (int vno) {
+int labl_select_label_by_vno (int vno)
+{
   int label_index = -1;
   int num_found;
 
@@ -25142,7 +27463,8 @@ int labl_select_label_by_vno (int vno) {
   return (ERROR_NONE);
 }
 
-int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b ) {
+int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
+{
   int label_index_array[LABL_MAX_LABELS];
   int num_labels_found, found_label_index;
   float br, bg, bb;
@@ -25153,30 +27475,36 @@ int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b ) {
     return (ERROR_BADPARM);
 
   /* if our display flag is off, do nothing. */
-  if ( !labl_draw_flag ) {
+  if ( !labl_draw_flag )
+  {
     return (ERROR_NONE);
   }
 
   /* try and find a label. if found... */
   labl_find_label_by_vno (vno, 0, label_index_array,
                           LABL_MAX_LABELS, &num_labels_found);
-  if (num_labels_found > 0) {
+  if (num_labels_found > 0)
+  {
     for (found_label_index = 0; found_label_index < num_labels_found;
-         found_label_index++) {
+         found_label_index++)
+    {
       label_index = label_index_array[found_label_index];
 
       /* if this is the selected label and this is a border of width 1
          or 2, make it our outline color. */
       if (labl_selected_label == label_index &&
-          labl_vno_is_border(labl_selected_label, vno)) {
+          labl_vno_is_border(labl_selected_label, vno))
+      {
         *r = labl_outline_color[0];
         *g = labl_outline_color[1];
         *b = labl_outline_color[2];
       }
       /* else if this label is visible... */
-      else if (labl_labels[label_index].visible) {
+      else if (labl_labels[label_index].visible)
+      {
         /* color it in the given drawing style. */
-        switch (labl_draw_style) {
+        switch (labl_draw_style)
+        {
         case LABL_STYLE_FILLED:
           /* If this is filled, we're going to blend the
              background with the label color with the alpha
@@ -25202,7 +27530,8 @@ int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b ) {
         case LABL_STYLE_OUTLINE:
           /* if this is a border of width 1, color it the color of the
              label. */
-          if (labl_vno_is_border (label_index, vno)) {
+          if (labl_vno_is_border (label_index, vno))
+          {
             *r = labl_labels[label_index].r;
             *g = labl_labels[label_index].g;
             *b = labl_labels[label_index].b;
@@ -25218,7 +27547,8 @@ int labl_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b ) {
   return (ERROR_NONE);
 }
 
-int labl_erode (int index) {
+int labl_erode (int index)
+{
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
 
@@ -25231,7 +27561,8 @@ int labl_erode (int index) {
   return (ERROR_NONE);
 }
 
-int labl_dilate (int index) {
+int labl_dilate (int index)
+{
   if (index < 0 || index >= labl_num_labels)
     return (ERROR_BADPARM);
 
@@ -25244,7 +27575,8 @@ int labl_dilate (int index) {
   return (ERROR_NONE);
 }
 
-int labl_fill_holes (int index) {
+int labl_fill_holes (int index)
+{
   LABEL* filled;
 
   if (index < 0 || index >= labl_num_labels)
@@ -25256,7 +27588,8 @@ int labl_fill_holes (int index) {
 #else
   filled = LabelFillHolesWithOrig (labl_labels[index].label, mris);
 #endif
-  if (NULL != filled) {
+  if (NULL != filled)
+  {
     /* Save the new label. */
     LabelFree (&labl_labels[index].label);
     labl_labels[index].label = filled;
@@ -25271,13 +27604,15 @@ int labl_fill_holes (int index) {
   return (ERROR_NONE);
 }
 
-int labl_print_list () {
+int labl_print_list ()
+{
   int label_index;
   LABL_LABEL* label;
 
   printf ("Num labels: %d (%d) Num strucutres: %d\n",
           labl_num_labels, labl_selected_label, labl_num_structures );
-  for (label_index = 0; label_index < labl_num_labels; label_index++) {
+  for (label_index = 0; label_index < labl_num_labels; label_index++)
+  {
     label = &(labl_labels[label_index]);
 
     printf ("Label %d\n", label_index );
@@ -25294,7 +27629,8 @@ int labl_print_list () {
   return (ERROR_NONE);
 }
 
-int labl_print_table () {
+int labl_print_table ()
+{
   int structure_index;
   COLOR_TABLE* ctab;
   int r, g, b, a;
@@ -25302,7 +27638,8 @@ int labl_print_table () {
 
   printf( "Num strucutres: %d\n", labl_num_structures );
   for (structure_index = 0; structure_index < labl_num_structures;
-       structure_index++) {
+       structure_index++)
+  {
     if (mris->ct)
       ctab = mris->ct;
     else
@@ -25323,10 +27660,12 @@ int labl_print_table () {
 
 /* ------------------------------------------------------ fill paths */
 static int
-path_set_marks(PATH_PATH *b, MRI_SURFACE *mris, int mark) {
+path_set_marks(PATH_PATH *b, MRI_SURFACE *mris, int mark)
+{
   int i, vno ;
 
-  for (i = 0 ; i < b->num_vertices ; i++) {
+  for (i = 0 ; i < b->num_vertices ; i++)
+  {
     vno = b->vertices[i] ;
     if (vno < 0 || vno >= mris->nvertices)
       continue ;
@@ -25337,10 +27676,12 @@ path_set_marks(PATH_PATH *b, MRI_SURFACE *mris, int mark) {
 }
 
 PATH_PATH *
-path_copy(PATH_PATH *bsrc, PATH_PATH *bdst) {
+path_copy(PATH_PATH *bsrc, PATH_PATH *bdst)
+{
   int   vno ;
 
-  if (!bdst) {
+  if (!bdst)
+  {
     bdst = (PATH_PATH *)calloc(1, sizeof(PATH_PATH)) ;
     bdst->vertices = (int *)calloc(bsrc->num_vertices, sizeof(int)) ;
     if (!bdst->vertices)
@@ -25360,11 +27701,13 @@ path_copy(PATH_PATH *bsrc, PATH_PATH *bdst) {
   return(bdst) ;
 }
 
-int path_initialize () {
+int path_initialize ()
+{
   int path;
 
   /* Clear the path array. */
-  for (path = 0; path < PATH_MAX_PATHS; path++) {
+  for (path = 0; path < PATH_MAX_PATHS; path++)
+  {
     path_paths[path].num_vertices = 0;
     path_paths[path].vertices = NULL;
   }
@@ -25381,7 +27724,8 @@ int path_initialize () {
   return (ERROR_NONE);
 }
 
-int path_new_path_from_marked_vertices () {
+int path_new_path_from_marked_vertices ()
+{
   int* path;
   int path_length;
 
@@ -25402,7 +27746,8 @@ int path_new_path_from_marked_vertices () {
   return (ERROR_NONE);
 }
 
-int path_remove_selected_path () {
+int path_remove_selected_path ()
+{
   /* Call path_remove on currently selected path. */
   if (path_selected_path >= 0 &&
       path_selected_path < path_num_paths)
@@ -25411,7 +27756,8 @@ int path_remove_selected_path () {
   return (ERROR_NONE);
 }
 
-int path_add (int num_vertices, int* vertices, int* new_index) {
+int path_add (int num_vertices, int* vertices, int* new_index)
+{
   int index;
   float min_x, max_x;
   float min_y, max_y;
@@ -25436,7 +27782,8 @@ int path_add (int num_vertices, int* vertices, int* new_index) {
   /* Allocate the vertices array and copy everything in. */
   path_paths[index].num_vertices = num_vertices;
   path_paths[index].vertices = (int*) calloc (num_vertices, sizeof(int));
-  if (NULL == path_paths[index].vertices) {
+  if (NULL == path_paths[index].vertices)
+  {
     printf ("path_add: calloc failed with %d elements\n", num_vertices);
     return (ERROR_NO_MEMORY);
   }
@@ -25447,7 +27794,8 @@ int path_add (int num_vertices, int* vertices, int* new_index) {
   max_x = max_y = max_z = -500;
   for (path = 0;
        path < path_paths[index].num_vertices;
-       path++) {
+       path++)
+  {
     v = &(mris->vertices[ path_paths[index].vertices[path] ]);
 
     if (v->x < min_x)
@@ -25483,7 +27831,8 @@ int path_add (int num_vertices, int* vertices, int* new_index) {
   return (ERROR_NONE);
 }
 
-int path_remove (int index) {
+int path_remove (int index)
+{
   int next;
 
   if (index < 0 || index >= path_num_paths)
@@ -25494,7 +27843,8 @@ int path_remove (int index) {
 
   /* Bump everything above this index down one. */
   next = index + 1;
-  while (next < path_num_paths) {
+  while (next < path_num_paths)
+  {
     path_paths[next-1] = path_paths[next];
     next++;
   }
@@ -25517,7 +27867,8 @@ int path_remove (int index) {
   return (ERROR_NONE);
 }
 
-int path_update_bounding_boxes () {
+int path_update_bounding_boxes ()
+{
 
   VERTEX* v;
   int path, path_vno;
@@ -25525,14 +27876,16 @@ int path_update_bounding_boxes () {
   float max_x, max_y, max_z;
 
   /* For every path... */
-  for (path = 0; path < path_num_paths; path++) {
+  for (path = 0; path < path_num_paths; path++)
+  {
 
     /* Go through the path and find the bounds of the vertices. */
     min_x = min_y = min_z = 500;
     max_x = max_y = max_z = -500;
     for (path_vno = 0;
          path_vno < path_paths[path].num_vertices;
-         path_vno++ ) {
+         path_vno++ )
+    {
 
       v = &(mris->vertices[ path_paths[path].vertices[path_vno] ]);
 
@@ -25563,7 +27916,8 @@ int path_update_bounding_boxes () {
   return (ERROR_NONE);
 }
 
-int path_select (int index) {
+int path_select (int index)
+{
   int old_selected;
 
   /* Select this path. */
@@ -25577,54 +27931,63 @@ int path_select (int index) {
   return (ERROR_NONE);
 }
 
-int path_mark_selected_path () {
+int path_mark_selected_path ()
+{
 
   /* Call path_mark on currently selected path. */
   path_mark (path_selected_path);
-  
+
   return (ERROR_NONE);
 }
 
-int path_mark (int index) {
+int path_mark (int index)
+{
 
   int path_vno;
-  
+
   if (path_selected_path < 0 ||
       path_selected_path >= path_num_paths)
     ErrorReturn(ERROR_BADPARM,
-		(ERROR_BADPARM, "path_mark: path index not valid"));
-  
+                (ERROR_BADPARM, "path_mark: path index not valid"));
+
   /* Mark all vertices in the path. */
   for (path_vno = 0;
        path_vno < path_paths[index].num_vertices;
-       path_vno++ ) {
+       path_vno++ )
+  {
     mark_vertex (path_paths[index].vertices[path_vno], TRUE);
   }
 
   return (ERROR_NONE);
 }
 
-int path_update_surface_paths () {
+int path_update_surface_paths ()
+{
   int path;
   int path_vno;
 
   /* Make our path flag array if we haven't already. It's just the
      size of nvertices. All are initialized to FALSE. */
-  if (NULL == path_is_path) {
+  if (NULL == path_is_path)
+  {
     path_is_path = (char*) calloc (mris->nvertices, sizeof(char));
     if (NULL == path_is_path)
       return (ERROR_NO_MEMORY);
-  } else {
+  }
+  else
+  {
     /* Erase the current array. */
     bzero (path_is_path, mris->nvertices*sizeof(char) );
   }
 
   /* For every path... */
-  for (path = 0; path < path_num_paths; path++) {
+  for (path = 0; path < path_num_paths; path++)
+  {
     /* For every vertex, mark that vertex in the array as a path. */
     for (path_vno = 0;
          path_vno < path_paths[path].num_vertices;
-         path_vno++ ) {
+         path_vno++ )
+    {
       path_is_path[path_paths[path].vertices[path_vno]] = TRUE;
     }
   }
@@ -25632,7 +27995,8 @@ int path_update_surface_paths () {
   return (ERROR_NONE);
 }
 
-char path_is_vertex_on_path (int vno) {
+char path_is_vertex_on_path (int vno)
+{
   if (vno < 0 || vno >= mris->nvertices)
     return (FALSE);
   if (NULL == path_is_path)
@@ -25642,7 +28006,8 @@ char path_is_vertex_on_path (int vno) {
   return (path_is_path[vno]);
 }
 
-int path_select_path_by_vno (int vno) {
+int path_select_path_by_vno (int vno)
+{
   int path;
   int path_vno;
   float x, y, z;
@@ -25668,7 +28033,8 @@ int path_select_path_by_vno (int vno) {
   /* For each path.. */
   smallest_distance = 1000;
   path = -1;
-  for (path = 0; path < path_num_paths; path++) {
+  for (path = 0; path < path_num_paths; path++)
+  {
     /* Preflight test sees if this point is in the bounding cube of
        the path. */
     if (x >= path_paths[path].min_x &&
@@ -25676,11 +28042,13 @@ int path_select_path_by_vno (int vno) {
         y >= path_paths[path].min_y &&
         y <= path_paths[path].max_y &&
         z >= path_paths[path].min_z &&
-        z <= path_paths[path].max_z) {
+        z <= path_paths[path].max_z)
+    {
       /* For each vertex in the path... */
       for (path_vno = 0;
            path_vno < path_paths[path].num_vertices;
-           path_vno++) {
+           path_vno++)
+      {
         /* Get the vertex. */
         u = &(mris->vertices[path_paths[path].vertices[path_vno]]);
 
@@ -25692,7 +28060,8 @@ int path_select_path_by_vno (int vno) {
         /* If any is less than the select distance and closer
            than the closest path so far, select this path. */
         if (dist_uv < PATH_DISTANCE_TO_SELECT &&
-            dist_uv < smallest_distance) {
+            dist_uv < smallest_distance)
+        {
           smallest_distance = dist_uv;
           closest_path = path;
         }
@@ -25706,7 +28075,8 @@ int path_select_path_by_vno (int vno) {
   return (ERROR_NONE);
 }
 
-int path_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b ) {
+int path_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b )
+{
   float x, y, z;
   char selected;
   int path_vno;
@@ -25717,7 +28087,8 @@ int path_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b ) {
     return (ERROR_BADPARM);
 
   /* If this is a path.. */
-  if (path_is_vertex_on_path(vno)) {
+  if (path_is_vertex_on_path(vno))
+  {
 
     /* Get the location of this vertex. */
     x = mris->vertices[vno].x;
@@ -25740,12 +28111,15 @@ int path_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b ) {
             path_paths[path_selected_path].vertices[path_vno])
           selected = TRUE;
 
-    if (selected) {
+    if (selected)
+    {
       /* If it's selected, mark it yellow. */
       *r = 255;
       *g = 255;
       *b = 0;
-    } else {
+    }
+    else
+    {
       /* Else just color it red. */
       *r = 255;
       *g = 0;
@@ -25756,7 +28130,8 @@ int path_apply_color_to_vertex (int vno, GLubyte* r, GLubyte* g, GLubyte* b ) {
   return (ERROR_NONE);
 }
 
-int path_save (char* fname) {
+int path_save (char* fname)
+{
   PATH** paths;
   int    path_index;
   int    path_del_index;
@@ -25767,20 +28142,24 @@ int path_save (char* fname) {
   /* We need to convert out vertex paths to PATH object. Make a list
      of them of the size of the number of paths we have. */
   paths = (PATH**) calloc (path_num_paths, sizeof(PATH));
-  if (NULL == paths) {
+  if (NULL == paths)
+  {
     ErrorReturn (ERROR_NO_MEMORY,
                  (ERROR_NO_MEMORY, "Couldn't allocate %d paths",
                   path_num_paths));
 
   }
 
-  for (path_index = 0; path_index < path_num_paths; path_index++) {
+  for (path_index = 0; path_index < path_num_paths; path_index++)
+  {
 
     /* Allocate a path. */
     paths[path_index] =
       PathAlloc (path_paths[path_index].num_vertices, "");
-    if (NULL == paths[path_index]) {
-      for (path_del_index = 0; path_index < path_index; path_del_index++) {
+    if (NULL == paths[path_index])
+    {
+      for (path_del_index = 0; path_index < path_index; path_del_index++)
+      {
         PathFree( &paths[path_del_index] );
       }
       free (paths);
@@ -25791,7 +28170,8 @@ int path_save (char* fname) {
 
     /* Put the orig coordinates into the path we just created. */
     for (path_vno = 0;
-         path_vno < path_paths[path_index].num_vertices; path_vno++) {
+         path_vno < path_paths[path_index].num_vertices; path_vno++)
+    {
       vno = path_paths[path_index].vertices[path_vno];
 
       paths[path_index]->points[path_vno].x = mris->vertices[vno].origx;
@@ -25803,13 +28183,15 @@ int path_save (char* fname) {
 
   /* Write the paths. */
   err = PathWriteMany (fname, path_num_paths, paths);
-  if (err != ERROR_NONE) {
+  if (err != ERROR_NONE)
+  {
     printf ("ERROR: Couldn't write paths.\n");
     err = ERROR_NO_FILE;
   }
 
   /* Delete the stuff we allocated. */
-  for (path_index = 0; path_index < path_num_paths; path_index++) {
+  for (path_index = 0; path_index < path_num_paths; path_index++)
+  {
     PathFree( &paths[path_index] );
   }
   free (paths);
@@ -25817,7 +28199,8 @@ int path_save (char* fname) {
   return err;
 }
 
-int path_load (char* fname) {
+int path_load (char* fname)
+{
   int    err;
   int    num_read;
   int*   vertices = NULL;
@@ -25833,34 +28216,39 @@ int path_load (char* fname) {
   /* Try to read the paths file. */
   err = PathReadMany (fname, &num_read, &paths);
   if (err != ERROR_NONE ||
-      num_read <= 0 || paths == NULL) {
+      num_read <= 0 || paths == NULL)
+  {
     ErrorReturn (ERROR_BADFILE,
                  (ERROR_BADFILE, "Couldn't read any paths."));
   }
 
   /* Allocate temp vno storage for our conversions. */
   vertices = (int*) calloc (mris->nvertices, sizeof(int));
-  if (NULL == vertices) {
+  if (NULL == vertices)
+  {
     ErrorReturn (ERROR_NO_MEMORY,
                  (ERROR_NO_MEMORY, "Couldn't allocate vertex storage."));
   }
 
   connected_verts = (int*) calloc (mris->nvertices, sizeof(int));
-  if (NULL == connected_verts) {
+  if (NULL == connected_verts)
+  {
     ErrorReturn (ERROR_NO_MEMORY,
                  (ERROR_NO_MEMORY, "Couldn't allocate vertex storage."));
   }
 
-  for (path_index = 0; path_index < num_read; path_index++) {
+  for (path_index = 0; path_index < num_read; path_index++)
+  {
     /* Get the path. */
     path = paths[path_index];
 
     /* We'll do our coordinate->vertex conversion using the
-    LabelFillUnassignedVertices, but it only takes LABEL
-    structures, so we'll fill one of those out with the
-    path's coords. */
+       LabelFillUnassignedVertices, but it only takes LABEL
+       structures, so we'll fill one of those out with the
+       path's coords. */
     label = LabelAlloc (path->n_points, NULL, NULL);
-    if (NULL == label) {
+    if (NULL == label)
+    {
       free (vertices);
       ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
                                  "Couldn't allocate label for %d vertices\n",
@@ -25869,7 +28257,8 @@ int path_load (char* fname) {
     label->n_points = path->n_points;
 
     /* Put the path coords in the label. */
-    for (pno = 0; pno < path->n_points; pno++) {
+    for (pno = 0; pno < path->n_points; pno++)
+    {
       label->lv[pno].x = path->points[pno].x;
       label->lv[pno].y = path->points[pno].y;
       label->lv[pno].z = path->points[pno].z;
@@ -25880,8 +28269,9 @@ int path_load (char* fname) {
     LabelFillUnassignedVertices (mris, label, WHITE_VERTICES);
 
     /* Copy the vertex numbers from the label into our vertices
-    array. */
-    for (path_vno = 0; path_vno < path->n_points; path_vno++) {
+       array. */
+    for (path_vno = 0; path_vno < path->n_points; path_vno++)
+    {
       vertices[path_vno] = label->lv[path_vno].vno;
     }
     LabelFree (&label);
@@ -25893,7 +28283,7 @@ int path_load (char* fname) {
                mris->nvertices, connected_verts, &size_connected_path);
 
     /* Make a new path from our num_vertices and vertices
-    array. */
+       array. */
     path_add (size_connected_path, connected_verts, NULL);
 
     /* Free this path. */
@@ -25912,7 +28302,8 @@ int path_load (char* fname) {
 
 /* ------------------------------------------------------- floodfill mark */
 
-int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params) {
+int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
+{
   char* filled;
   int num_filled_this_iter;
   int num_filled;
@@ -25963,19 +28354,24 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params) {
   num_filled_this_iter = 1;
   num_filled = 0;
   iter = 0;
-  while (num_filled_this_iter > 0) {
-    if (cncl_user_canceled()) {
+  while (num_filled_this_iter > 0)
+  {
+    if (cncl_user_canceled())
+    {
       goto cancel;
     }
 
     num_filled_this_iter = 0;
 
     /* switch between iterating forward and backwards. */
-    if ((iter%2)==0) {
+    if ((iter%2)==0)
+    {
       min_vno = 0;
       max_vno = mris->nvertices-1;
       step_vno = 1;
-    } else {
+    }
+    else
+    {
       min_vno = mris->nvertices-1;
       max_vno = 0;
       step_vno = -1;
@@ -25985,21 +28381,25 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params) {
        rules that are up-to-and-including, make the check on this
        vertex. for the rules that are up-to-and-not-including, check
        on the neighbor. */
-    for (vno = min_vno; vno != max_vno; vno += step_vno) {
-      if (filled[vno]) {
+    for (vno = min_vno; vno != max_vno; vno += step_vno)
+    {
+      if (filled[vno])
+      {
 
         /* check the neighbors... */
         v = &mris->vertices[vno];
 
         /* if this vert is ripped, move on. */
-        if (v->ripflag) {
+        if (v->ripflag)
+        {
           continue;
         }
 
         /* if we're not crossing paths, check if this is a
            path. if so, move on. */
         if (params->dont_cross_path &&
-            path_is_vertex_on_path (vno)) {
+            path_is_vertex_on_path (vno))
+        {
           continue;
         }
 
@@ -26008,13 +28408,15 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params) {
            point. if so, move on. */
         if (params->dont_cross_cmid &&
             ((seed_curv <= cmid && v->curv > cmid) ||
-             (seed_curv >= cmid && v->curv < cmid))) {
+             (seed_curv >= cmid && v->curv < cmid)))
+        {
           continue;
         }
 
         for (neighbor_index = 0;
              neighbor_index < v->vnum;
-             neighbor_index++) {
+             neighbor_index++)
+        {
           neighbor_vno = v->v[neighbor_index];
           neighbor_v = &mris->vertices[neighbor_vno] ;
 
@@ -26026,20 +28428,24 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params) {
              this vertex is the same as the one at the seed. if not,
              move on. */
           if (params->dont_cross_label ||
-              params->dont_fill_unlabeled) {
+              params->dont_fill_unlabeled)
+          {
 
             labl_find_label_by_vno (neighbor_vno, 0,
                                     label_index_array,
                                     LABL_MAX_LABELS,
                                     &num_labels_found);
             if (num_labels_found > 0 &&
-                params->dont_cross_label) {
+                params->dont_cross_label)
+            {
               skip = 0;
               for (found_label_index = 0;
                    found_label_index < num_labels_found;
-                   found_label_index++) {
+                   found_label_index++)
+              {
                 if (label_index_array[found_label_index] !=
-                    this_label) {
+                    this_label)
+                {
                   skip = 1;
                   break;
                 }
@@ -26047,7 +28453,8 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params) {
               if (skip) continue;
             }
             if (num_labels_found == 0 &&
-                params->dont_fill_unlabeled) {
+                params->dont_fill_unlabeled)
+            {
               continue;
             }
           }
@@ -26056,7 +28463,8 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params) {
              point is above it, or, if our initial functional
              value was negative, make sure it's not above
              -fthresh. if not, move on. */
-          if (params->dont_cross_fthresh) {
+          if (params->dont_cross_fthresh)
+          {
             sclv_get_value (neighbor_v, sclv_current_field, &fvalue);
             if ((fthresh != 0 &&
                  seed_fvalue > 0 &&
@@ -26064,7 +28472,8 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params) {
                 (fthresh != 0 &&
                  seed_fvalue < 0 &&
                  fvalue > -fthresh) ||
-                (fthresh == 0 && (fvalue * seed_fvalue < 0))) {
+                (fthresh == 0 && (fvalue * seed_fvalue < 0)))
+            {
               continue;
             }
           }
@@ -26079,7 +28488,8 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params) {
 
     iter++;
 
-    if ((iter % 2) == 0) {
+    if ((iter % 2) == 0)
+    {
       printf (".");
       fflush (stdout);
     }
@@ -26088,12 +28498,14 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params) {
   /* mark all filled vertices. */
   count = 0;
   for (vno = 0; vno < mris->nvertices; vno++ )
-    if (filled[vno]) {
+    if (filled[vno])
+    {
       mris->vertices[vno].marked = TRUE;
       count++;
     }
 
-  switch (params->action) {
+  switch (params->action)
+  {
   case FILL_ACTION_NEW_LABEL:
     /* make a new label from the marked vertices. */
     labl_new_from_marked_vertices (&new_index);
@@ -26129,11 +28541,13 @@ done:
 }
 /* ---------------------------------------------------------------------- */
 
-int edit_vertex_at_cursor ( int action, int argument ) {
+int edit_vertex_at_cursor ( int action, int argument )
+{
   return edit_vertex (selection, action, argument);
 }
 
-int edit_vertex ( int vno, int action, int argument ) {
+int edit_vertex ( int vno, int action, int argument )
+{
   int i;
   int* saved_marks;
   int saved_nmarked;
@@ -26163,7 +28577,8 @@ int edit_vertex ( int vno, int action, int argument ) {
   mark_vertex (vno, TRUE);
 
   /* Work on stuff based on this one marked vertex. */
-  switch (action) {
+  switch (action)
+  {
   case VEDIT_ACTION_NEW_LABEL:
     labl_new_from_marked_vertices (NULL);
     break;
@@ -26195,7 +28610,8 @@ int edit_vertex ( int vno, int action, int argument ) {
 /* ---------------------------------------------------------------------- */
 
 int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
-                int* path, int* path_length ) {
+                int* path, int* path_length )
+{
 
 
   int cur_vert_vno;
@@ -26225,17 +28641,21 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
   num_checked = 0;
   (*path_length) = 0;
 
-  if (NULL != message) {
+  if (NULL != message)
+  {
     fprintf (stdout, "surfer: %s (ctrl-c to cancel)", message);
   }
   cncl_start_listening ();
-  for (cur_vert_vno = 0; cur_vert_vno < num_vno-1; cur_vert_vno++) {
-    if (cncl_user_canceled()) {
+  for (cur_vert_vno = 0; cur_vert_vno < num_vno-1; cur_vert_vno++)
+  {
+    if (cncl_user_canceled())
+    {
       goto cancel;
     }
 
     /* clear everything */
-    for (vno = 0; vno < mris->nvertices; vno++) {
+    for (vno = 0; vno < mris->nvertices; vno++)
+    {
       dist[vno] = 999999;
       pred[vno] = -1;
       check[vno] = FALSE;
@@ -26259,8 +28679,10 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
     check[src_vno] = TRUE;
 
     done = FALSE;
-    while (!done) {
-      if (cncl_user_canceled()) {
+    while (!done)
+    {
+      if (cncl_user_canceled())
+      {
         goto cancel;
       }
 
@@ -26269,7 +28691,8 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
       closest_vno = -1;
       for (vno = 0; vno < mris->nvertices; vno++)
         if (check[vno])
-          if (dist[vno] < closest_dist) {
+          if (dist[vno] < closest_dist)
+          {
             closest_dist = dist[vno];
             closest_vno = vno;
           }
@@ -26277,34 +28700,39 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
       check[closest_vno] = FALSE;
 
       /* if this is the dest node, we're done. */
-      if (closest_vno == dest_vno) {
+      if (closest_vno == dest_vno)
+      {
         done = TRUE;
-      } else {
+      }
+      else
+      {
         /* relax its neighbors. */
-        for (neighbor = 0; neighbor < v->vnum; neighbor++) {
+        for (neighbor = 0; neighbor < v->vnum; neighbor++)
+        {
           neighbor_vno = v->v[neighbor];
           u = &(mris->vertices[neighbor_vno]);
 
           /* calc the vector from u to v. */
           vu_x = u->x - v->x;
           vu_y = u->y - v->y;
-	  if (flag2d)
-	    vu_z = 0;
-	  else
-	    vu_z = u->z - v->z;
+          if (flag2d)
+            vu_z = 0;
+          else
+            vu_z = u->z - v->z;
 
           /* recalc the weight. */
-	  if (flag2d)
-	    dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
-			   ((v->y - u->y) * (v->y - u->y)));
-	  else
-	    dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
-			   ((v->y - u->y) * (v->y - u->y)) +
-			   ((v->z - u->z) * (v->z - u->z)));
+          if (flag2d)
+            dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
+                           ((v->y - u->y) * (v->y - u->y)));
+          else
+            dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
+                           ((v->y - u->y) * (v->y - u->y)) +
+                           ((v->z - u->z) * (v->z - u->z)));
 
           /* if this is a new shortest path, update the predecessor,
              weight, and add it to the list of ones to check next. */
-          if (dist_uv + dist[closest_vno] < dist[neighbor_vno]) {
+          if (dist_uv + dist[closest_vno] < dist[neighbor_vno])
+          {
             pred[neighbor_vno] = closest_vno;
             dist[neighbor_vno] = dist_uv + dist[closest_vno];
             check[neighbor_vno] = TRUE;
@@ -26312,7 +28740,8 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
         }
       }
       num_checked++;
-      if ((num_checked % 100) == 0) {
+      if ((num_checked % 100) == 0)
+      {
         printf (".");
         fflush (stdout);
       }
@@ -26322,7 +28751,8 @@ int find_path ( int* vert_vno, int num_vno, char* message, int max_path_length,
     path_vno = dest_vno;
     path[(*path_length)++] = dest_vno;
     while (pred[path_vno] != src_vno &&
-           (*path_length) < max_path_length ) {
+           (*path_length) < max_path_length )
+    {
       path[(*path_length)++] = pred[path_vno];
       path_vno = pred[path_vno];
     }
@@ -26350,25 +28780,30 @@ done:
 /* ---------------------------------------------------------------------- */
 
 #define TCL_CACHE_INC 10
-void send_tcl_command (char* cmd) {
+void send_tcl_command (char* cmd)
+{
   char** new_cached_tcl_commands = NULL;
   char* new_cmd = NULL;
   int n;
   int tcl_err;
 
   /* If g_interp is NULL we'll cache the command. */
-  if (NULL == g_interp) {
+  if (NULL == g_interp)
+  {
 
     /* If we need more space... */
-    if (num_cached_tcl_commands >= max_num_cached_tcl_commands) {
+    if (num_cached_tcl_commands >= max_num_cached_tcl_commands)
+    {
       /* Allocate a new batch of cached command space. */
-      new_cached_tcl_commands = (char**)
-                                calloc (max_num_cached_tcl_commands + TCL_CACHE_INC,sizeof(char*));
+      new_cached_tcl_commands =
+        (char**)calloc (max_num_cached_tcl_commands +
+                        TCL_CACHE_INC,sizeof(char*));
 
       /* Copy in old commands if necessary. Note we just copy the
          pointers, we don't allocate new strings.*/
       if (NULL != cached_tcl_commands)
-        for (n = 0; n < num_cached_tcl_commands; n++ ) {
+        for (n = 0; n < num_cached_tcl_commands; n++ )
+        {
           new_cached_tcl_commands[n] = cached_tcl_commands[n];
         }
 
@@ -26387,35 +28822,44 @@ void send_tcl_command (char* cmd) {
        been replaced by tixStrDup and we might not have called
        tixInit yet. */
     new_cmd = (char*) calloc( strlen(cmd) + 1, sizeof(char) );
-    if (NULL != new_cmd) {
+    if (NULL != new_cmd)
+    {
       strcpy( new_cmd, cmd );
       cached_tcl_commands[num_cached_tcl_commands] = new_cmd;
       num_cached_tcl_commands++;
-    } else {
+    }
+    else
+    {
       printf ("surfer: Error creating command storage of size %d\n",
               (int)strlen(cmd));
     }
-  } else {
+  }
+  else
+  {
     /* Send the command. */
     tcl_err = Tcl_Eval (g_interp, cmd);
 
     /* Print an error message if we got one. */
-    if (TCL_OK != tcl_err) {
+    if (TCL_OK != tcl_err)
+    {
       printf ("surfer: Error sending tcl command %s:\n\t%s\n",
               cmd, Tcl_GetStringResult (g_interp));
     }
   }
 }
 
-void send_cached_tcl_commands () {
+void send_cached_tcl_commands ()
+{
   int n;
 
-  if (NULL == g_interp) {
+  if (NULL == g_interp)
+  {
     printf ("surfer: Can't send cached commands, no interpreter present.\n");
   }
 
   /* For each command, send it. Then free the string. */
-  for (n = 0; n < num_cached_tcl_commands; n++ ) {
+  for (n = 0; n < num_cached_tcl_commands; n++ )
+  {
     send_tcl_command (cached_tcl_commands[n]);
     free (cached_tcl_commands[n]);
   }
@@ -26426,18 +28870,22 @@ void send_cached_tcl_commands () {
 /* ---------------------------------------------------------------------- */
 
 int
-cptn_initialize () 
+cptn_initialize ()
 {
   cptn_format_string = (char*) calloc (CPTN_STRING_LEN, sizeof(char));
   if (NULL == cptn_format_string)
-    ErrorReturn (ERROR_NO_MEMORY,
-		 (ERROR_NO_MEMORY, "cptn_initialize: Couldn't init format string"));
-  
+    ErrorReturn
+      (ERROR_NO_MEMORY,
+       (ERROR_NO_MEMORY,
+        "cptn_initialize: Couldn't init format string"));
+
   cptn_value_string = (char*) calloc (CPTN_STRING_LEN, sizeof(char));
   if (NULL == cptn_value_string)
-    ErrorReturn (ERROR_NO_MEMORY,
-		 (ERROR_NO_MEMORY, "cptn_initialize: Couldn't init value string"));
-  
+    ErrorReturn
+      (ERROR_NO_MEMORY,
+       (ERROR_NO_MEMORY,
+        "cptn_initialize: Couldn't init value string"));
+
   /* Initial value. */
   strncpy (cptn_format_string, "Vertex: !V", CPTN_STRING_LEN);
 
@@ -26445,15 +28893,19 @@ cptn_initialize ()
 }
 
 int
-cptn_set_format_string ( char* in ) 
+cptn_set_format_string ( char* in )
 {
   if (NULL == in)
-    ErrorReturn (ERROR_BADPARM,
-		 (ERROR_BADPARM, "cptn_set_format_string: in was NULL"));
+    ErrorReturn
+      (ERROR_BADPARM,
+       (ERROR_BADPARM,
+        "cptn_set_format_string: in was NULL"));
 
   if (NULL == cptn_format_string)
-    ErrorReturn (ERROR_BADPARM,
-		 (ERROR_BADPARM, "cptn_set_format_string: format string was NULL"));
+    ErrorReturn
+      (ERROR_BADPARM,
+       (ERROR_BADPARM,
+        "cptn_set_format_string: format string was NULL"));
 
   strncpy (cptn_format_string, in, CPTN_STRING_LEN);
 
@@ -26463,8 +28915,10 @@ cptn_set_format_string ( char* in )
 int cptn_clear_value_string ()
 {
   if (NULL == cptn_value_string)
-    ErrorReturn (ERROR_BADPARM,
-		 (ERROR_BADPARM, "cptn_clear_value_string: value string was NULL"));
+    ErrorReturn
+      (ERROR_BADPARM,
+       (ERROR_BADPARM,
+        "cptn_clear_value_string: value string was NULL"));
 
   strncpy (cptn_value_string, cptn_format_string, CPTN_STRING_LEN);
 
@@ -26479,8 +28933,10 @@ cptn_sprintf_for_code (const char* code, const char* format, ... )
   char value[1024];
 
   if (NULL == cptn_value_string)
-    ErrorReturn (ERROR_BADPARM,
-		 (ERROR_BADPARM, "cptn_sprintf_for_code: value string was NULL"));
+    ErrorReturn
+      (ERROR_BADPARM,
+       (ERROR_BADPARM,
+        "cptn_sprintf_for_code: value string was NULL"));
 
   /* sprintf the value into a string */
   va_start (args, format);
@@ -26489,7 +28945,7 @@ cptn_sprintf_for_code (const char* code, const char* format, ... )
 
   /* Make the substitution in the caption. */
   cptn_substitute_code_with_value (cptn_value_string,
-				   CPTN_STRING_LEN, code, value);
+                                   CPTN_STRING_LEN, code, value);
 
   return ERROR_NONE;
 }
@@ -26501,7 +28957,7 @@ cptn_draw ()
 
   if (NULL == cptn_value_string)
     ErrorReturn (ERROR_BADPARM,
-		 (ERROR_BADPARM, "cptn_draw: value string was NULL"));
+                 (ERROR_BADPARM, "cptn_draw: value string was NULL"));
 
   glPushMatrix();
   glLoadIdentity();
@@ -26512,13 +28968,13 @@ cptn_draw ()
   glColor3f (0.0, 0.0, 0.0);
   glBegin (GL_QUADS);
   glVertex3f (fov*sf * CPTN_LOC_RECTANGLE_LEFT,
-	      fov*sf * CPTN_LOC_RECTANGLE_BOTTOM, fov*sf * 10 );
-  glVertex3f (fov*sf * CPTN_LOC_RECTANGLE_RIGHT, 
-	      fov*sf * CPTN_LOC_RECTANGLE_BOTTOM, fov*sf * 10 );
-  glVertex3f (fov*sf * CPTN_LOC_RECTANGLE_RIGHT, 
-	      fov*sf * CPTN_LOC_RECTANGLE_TOP, fov*sf * 10 );
-  glVertex3f (fov*sf * CPTN_LOC_RECTANGLE_LEFT, 
-	      fov*sf * CPTN_LOC_RECTANGLE_TOP, fov*sf * 10 );
+              fov*sf * CPTN_LOC_RECTANGLE_BOTTOM, fov*sf * 10 );
+  glVertex3f (fov*sf * CPTN_LOC_RECTANGLE_RIGHT,
+              fov*sf * CPTN_LOC_RECTANGLE_BOTTOM, fov*sf * 10 );
+  glVertex3f (fov*sf * CPTN_LOC_RECTANGLE_RIGHT,
+              fov*sf * CPTN_LOC_RECTANGLE_TOP, fov*sf * 10 );
+  glVertex3f (fov*sf * CPTN_LOC_RECTANGLE_LEFT,
+              fov*sf * CPTN_LOC_RECTANGLE_TOP, fov*sf * 10 );
   glEnd ();
 
   /* Note that the color of bitmaps is taken from the raster color,
@@ -26527,10 +28983,11 @@ cptn_draw ()
   glNormal3f (0.0, 0.0, 1.0);
   glColor3f (1.0, 1.0, 1.0);
   glRasterPos3f (fov*sf * CPTN_LOC_CAPTION_X,
-		 fov*sf * CPTN_LOC_CAPTION_Y, fov*sf * 10 );
+                 fov*sf * CPTN_LOC_CAPTION_Y, fov*sf * 10 );
 
   /* Draw the caption. */
-  for (cur_char = 0; cur_char < strlen(cptn_value_string); cur_char++) {
+  for (cur_char = 0; cur_char < strlen(cptn_value_string); cur_char++)
+  {
     glutBitmapCharacter (CPTN_FONT, cptn_value_string[cur_char]);
   }
 
@@ -26542,8 +28999,8 @@ cptn_draw ()
 }
 
 int
-cptn_substitute_code_with_value (char* caption, int caption_size, 
-				 const char* code, char* value)
+cptn_substitute_code_with_value (char* caption, int caption_size,
+                                 const char* code, char* value)
 {
 
   char tmp[1024];
@@ -26553,7 +29010,7 @@ cptn_substitute_code_with_value (char* caption, int caption_size,
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
                  "cptn_subtitute_code_with_value: code invalid.\n"));
- 
+
   /* Copy the caption into a tmp string, find the code and replace it
      with %s, then use sprintf to copy the value in there. Then copy
      it back into the caption and back into the tmp string, and try to
@@ -26562,23 +29019,23 @@ cptn_substitute_code_with_value (char* caption, int caption_size,
 
   found = strstr (tmp, code);
   while (NULL != found)
-    {
-      found[0] = '%'; /* So "Vertex !V" turns into "Vertex %s" */
-      found[1] = 's'; /* which we can use as a sprintf argument. */
+  {
+    found[0] = '%'; /* So "Vertex !V" turns into "Vertex %s" */
+    found[1] = 's'; /* which we can use as a sprintf argument. */
 
-      /* If the code is longer than 2 chars, we need to copy the
-	 string back for each extra char to take up the space. */
-      if (strlen(code) > 2)
-	strcpy (&found[2], &found[strlen(code)]);
+    /* If the code is longer than 2 chars, we need to copy the
+       string back for each extra char to take up the space. */
+    if (strlen(code) > 2)
+      strcpy (&found[2], &found[strlen(code)]);
 
-      /* Sprintf the value in. */
-      snprintf (caption, caption_size, tmp, value);
+    /* Sprintf the value in. */
+    snprintf (caption, caption_size, tmp, value);
 
-      /* Copy caption into tmp and find again. */
-      strncpy (tmp, caption, sizeof(tmp));
-      found = strstr (tmp, code );
-    }
- 
+    /* Copy caption into tmp and find again. */
+    strncpy (tmp, caption, sizeof(tmp));
+    found = strstr (tmp, code );
+  }
+
   return ERROR_NONE;
 }
 
@@ -26588,8 +29045,10 @@ cptn_substitute_code_with_value (char* caption, int caption_size,
 #if DEBUG_DRAWING_TOOLS
 
 int
-ddt_initialize () {
-  if (NULL != mris) {
+ddt_initialize ()
+{
+  if (NULL != mris)
+  {
     if (NULL != ddt_hilited_vnos)
       free (ddt_hilited_vnos);
     if (NULL != ddt_hilited_fnos)
@@ -26601,7 +29060,9 @@ ddt_initialize () {
     if (NULL == ddt_hilited_vnos || NULL == ddt_hilited_fnos)
       ErrorExit(ERROR_NOMEMORY,
                 "Couldn't allocate ddt storage for verts or fnos");
-  } else {
+  }
+  else
+  {
     ErrorReturn(ERROR_NOT_INITED,
                 (ERROR_NOT_INITED,
                  "ddt_initialize called without mris.\n"));
@@ -26611,7 +29072,8 @@ ddt_initialize () {
 }
 
 int
-ddt_clear () {
+ddt_clear ()
+{
   if (NULL != ddt_hilited_vnos)
     bzero (ddt_hilited_vnos, sizeof(int) * mris->nvertices);
   if (NULL != ddt_hilited_fnos)
@@ -26620,7 +29082,8 @@ ddt_clear () {
   return (ERROR_NONE);
 }
 
-int ddt_hilite_vertex (int vno, int type) {
+int ddt_hilite_vertex (int vno, int type)
+{
   if (vno < 0 || vno >= mris->nvertices)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"ddt_hilite_vertex: bad vno.\n"));
 
@@ -26632,9 +29095,12 @@ int ddt_hilite_vertex (int vno, int type) {
   return (ERROR_NONE);
 }
 
-int ddt_get_hilite_vertex_color (int vno, GLubyte* r, GLubyte* g, GLubyte* b) {
-  if (ddt_hilited_vnos[vno]) {
-    switch (ddt_hilited_vnos[vno]) {
+int ddt_get_hilite_vertex_color (int vno, GLubyte* r, GLubyte* g, GLubyte* b)
+{
+  if (ddt_hilited_vnos[vno])
+  {
+    switch (ddt_hilited_vnos[vno])
+    {
     case 1:
       *r = 200;
       *g = 0;
@@ -26650,16 +29116,19 @@ int ddt_get_hilite_vertex_color (int vno, GLubyte* r, GLubyte* g, GLubyte* b) {
   return (ERROR_NONE);
 }
 
-int ddt_hilite_face (int fno, int type) {
+int ddt_hilite_face (int fno, int type)
+{
   FACE* f;
   int fvno, vno;
 
   if (fno < 0 || fno >= mris->nfaces)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"ddt_hilite_face: bad fno.\n"));
 
-  if (NULL != ddt_hilited_fnos) {
+  if (NULL != ddt_hilited_fnos)
+  {
     f = &mris->faces[fno];
-    for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
+    for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++)
+    {
       vno = f->v[fvno];
       /* Mark it, but only with a higher type value. */
       if (ddt_hilited_fnos[vno] < type)
@@ -26671,10 +29140,13 @@ int ddt_hilite_face (int fno, int type) {
 }
 
 
-int ddt_get_hilite_face_color (int vno, GLubyte* r, GLubyte* g, GLubyte* b) {
+int ddt_get_hilite_face_color (int vno, GLubyte* r, GLubyte* g, GLubyte* b)
+{
 
-  if (ddt_hilited_fnos[vno]) {
-    switch (ddt_hilited_fnos[vno]) {
+  if (ddt_hilited_fnos[vno])
+  {
+    switch (ddt_hilited_fnos[vno])
+    {
     case 1:
       *r = 100;
       *g = 0;
@@ -26694,7 +29166,8 @@ int ddt_get_hilite_face_color (int vno, GLubyte* r, GLubyte* g, GLubyte* b) {
 
 /* ---------------------------------------------------------------------- */
 
-int save_tiff (char* fname) {
+int save_tiff (char* fname)
+{
   GLint rowlength, skiprows, skippixels, alignment;
   GLboolean swapbytes, lsbfirst;
   GLubyte* pixel_data = NULL;
@@ -26751,14 +29224,16 @@ int save_tiff (char* fname) {
 
   /* Handle error now. We can bail safely as we've restored the GL
      context. */
-  if (GL_NO_ERROR != gl_error) {
+  if (GL_NO_ERROR != gl_error)
+  {
     free (pixel_data);
     ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"Error reading pixels."));
   }
 
   /* Open a TIFF. */
   tiff = TIFFOpen( fname, "w" );
-  if (NULL == tiff) {
+  if (NULL == tiff)
+  {
     free (pixel_data);
     ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,"Couldn't create file."));
   }
@@ -26776,13 +29251,15 @@ int save_tiff (char* fname) {
   line_bytes = 3 * width;
   line_buffer = NULL;
   scan_line_size = TIFFScanlineSize (tiff);
-  if (scan_line_size != line_bytes) {
+  if (scan_line_size != line_bytes)
+  {
     fprintf (stderr,"surfer: scan_line_size %d, line_bytes %d\n",
              scan_line_size, (int)line_bytes);
   }
 
   line_buffer = (unsigned char*) _TIFFmalloc( scan_line_size  );
-  if (NULL == line_buffer) {
+  if (NULL == line_buffer)
+  {
     free (pixel_data);
     TIFFClose (tiff);
     ErrorReturn(ERROR_NOMEMORY,
@@ -26794,7 +29271,8 @@ int save_tiff (char* fname) {
   TIFFSetField (tiff, TIFFTAG_ROWSPERSTRIP, strip_size);
 
   /* Write line by line (bottom to top). */
-  for (row = 0; row < height; row++) {
+  for (row = 0; row < height; row++)
+  {
     memcpy (line_buffer, &pixel_data[(height-row-1) * line_bytes],
             line_bytes);
     TIFFWriteScanline (tiff, line_buffer, row, 0);
@@ -26812,7 +29290,8 @@ int save_tiff (char* fname) {
 /* end rkt */
 
 static int
-is_val_file(char *fname) {
+is_val_file(char *fname)
+{
   char   *dot ;
 
   dot = strrchr(fname, '.') ;
@@ -26825,13 +29304,15 @@ is_val_file(char *fname) {
 #include "sig.h"
 
 static void
-f_to_p(int numer_dof, int denom_dof) {
+f_to_p(int numer_dof, int denom_dof)
+{
   int    vno ;
   VERTEX *v ;
   float sig ;
 
   surface_compiled = 0 ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -26844,13 +29325,15 @@ f_to_p(int numer_dof, int denom_dof) {
 }
 
 static void
-t_to_p(int dof) {
+t_to_p(int dof)
+{
   int    vno ;
   VERTEX *v ;
   float  sig ;
 
   surface_compiled = 0 ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -26863,13 +29346,15 @@ t_to_p(int dof) {
 }
 
 static void
-f_to_t(void) {
+f_to_t(void)
+{
   int    vno ;
   VERTEX *v ;
   float  f ;
 
   surface_compiled = 0 ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -26881,7 +29366,8 @@ f_to_t(void) {
 }
 
 static void
-label_to_stat(int field) {
+label_to_stat(int field)
+{
   sclv_new_from_label (field, labl_selected_label);
 }
 
@@ -26892,7 +29378,8 @@ static STC  *stc ;
 
 
 static void
-read_soltimecourse(char *fname) {
+read_soltimecourse(char *fname)
+{
 
   surface_compiled = 0 ;
   stc = StcRead(fname) ;
@@ -26909,20 +29396,23 @@ read_soltimecourse(char *fname) {
 }
 
 static void
-sol_plot(int timept, int plot_type) {
+sol_plot(int timept, int plot_type)
+{
   int    ilat0,ilat1, nsum, ilat ;
   double avgval;
   int    vno, dip ;
   VERTEX *v ;
   double val ;
 
-  if (!stc) {
+  if (!stc)
+  {
     fprintf(stderr, "stc file not loaded.\n") ;
     return ;
   }
 
   surface_compiled = 0 ;
-  if (sol_nperdip < 1) {
+  if (sol_nperdip < 1)
+  {
     fprintf(stderr,
             "set # of dipoles per location (nperdip) before plotting\n") ;
     return ;
@@ -26935,16 +29425,19 @@ sol_plot(int timept, int plot_type) {
 
   MRISsetVals(mris, 0.0) ;
   MRISclearMarks(mris) ;
-  for (dip = 0 ; dip < stc->nvertices ; dip++) {
+  for (dip = 0 ; dip < stc->nvertices ; dip++)
+  {
     vno = stc->vertices[dip] ;
-    if (vno < 0 || vno >= mris->nvertices) {
+    if (vno < 0 || vno >= mris->nvertices)
+    {
       printf("vertex # %d out of range\n", vno);
       return ;
     }
 
     v = &mris->vertices[vno] ;
     avgval = 0.0 ;
-    for (ilat = ilat0 ; ilat <= ilat1 ; ilat++) {
+    for (ilat = ilat0 ; ilat <= ilat1 ; ilat++)
+    {
       val = get_dipole_value(dip, ilat, plot_type, stc) ;
       avgval += val ;
     }
@@ -26955,7 +29448,8 @@ sol_plot(int timept, int plot_type) {
     v->val = avgval ;
     v->fixedval = 1 ;
   }
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->fixedval || v->ripflag)
       continue ;
@@ -26964,20 +29458,24 @@ sol_plot(int timept, int plot_type) {
 }
 
 static double
-get_dipole_value(int dipno, int ilat, int plot_type, STC *stc) {
+get_dipole_value(int dipno, int ilat, int plot_type, STC *stc)
+{
   double   sum, val ;
   int      i ;
 
   val = *MATRIX_RELT(stc->m_vals, dipno+1, ilat+1) ;
-  switch (plot_type) {
+  switch (plot_type)
+  {
   default:
   case 0:
     if (sol_nperdip == 1)
       val = fabs(val) ;
-    else {
+    else
+    {
       /* take sqrt of sum of squares */
       sum = 0.0 ;
-      for (i = 0 ; i < sol_nperdip ; i++) {
+      for (i = 0 ; i < sol_nperdip ; i++)
+      {
         val = *MATRIX_RELT(stc->m_vals, dipno+1+i, ilat+1) ;
         sum += (val*val) ;
       }
@@ -26985,7 +29483,8 @@ get_dipole_value(int dipno, int ilat, int plot_type, STC *stc) {
     }
     break ;
   case 1:
-    if (sol_nperdip == 3) {
+    if (sol_nperdip == 3)
+    {
 #if 0
       val =
         *MATRIX_RELT(stc->m_vals, sol_nperdip*dip+0+1,ilat+1)*v->dipnx+
@@ -26999,22 +29498,27 @@ get_dipole_value(int dipno, int ilat, int plot_type, STC *stc) {
 }
 #if 1
 double
-dipval(int cond_num, int nzdip_num, int ilat) {
+dipval(int cond_num, int nzdip_num, int ilat)
+{
 #if 0
   int ic;
   double sum,val;
 
   val = 0 ;
-  if (sol_plot_type==0) {
+  if (sol_plot_type==0)
+  {
     sum = 0;
     for (ic=0;ic<sol_nperdip;ic++)
       sum += SQR(sol_dipcmp_val[cond_num][sol_nperdip*nzdip_num+ic][ilat]);
     val = sqrt(sum);
-  } else
-    if (sol_plot_type==1 || sol_plot_type==2) {
+  }
+  else
+    if (sol_plot_type==1 || sol_plot_type==2)
+    {
       if (sol_nperdip==1)
         val = sol_dipcmp_val[cond_num][sol_nperdip*nzdip_num][ilat];
-      else {
+      else
+      {
         val = sol_dipcmp_val[cond_num][sol_nperdip*nzdip_num+0][ilat]*
               mris->vertices[sol_dipindex[nzdip_num]].dipnx +
               sol_dipcmp_val[cond_num][sol_nperdip*nzdip_num+1][ilat]*
@@ -27031,20 +29535,23 @@ dipval(int cond_num, int nzdip_num, int ilat) {
 }
 #endif
 static void
-remove_triangle_links(void) {
+remove_triangle_links(void)
+{
   MRISremoveTriangleLinks(mris) ;
   surface_compiled = 0 ;
 }
 
 static void
-drawcb(void) {
+drawcb(void)
+{
   draw_colscalebar();
   glFlush() ;
 }
 
 
 static void
-set_value_label_name(char *label_name, int field) {
+set_value_label_name(char *label_name, int field)
+{
   char cmd[STRLEN] ;
 
   sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, label_name);
@@ -27055,18 +29562,21 @@ set_value_label_name(char *label_name, int field) {
   send_tcl_command (cmd);
 }
 static int
-draw_curvature_line(void) {
+draw_curvature_line(void)
+{
   static int firsttime = 1 ;
   int    start_vno, current_vno, end_vno, n, best_n ;
   double dot, dx, dy, dz, odx, ody, odz, best_dot, len ;
   VERTEX *vn, *vend, *vstart, *vcurrent ;
 
-  if (nmarked < 2) {
+  if (nmarked < 2)
+  {
     fprintf(stderr, "must  origin and end points (previous two)\n");
     return(NO_ERROR) ;
   }
 
-  if (firsttime) {
+  if (firsttime)
+  {
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
     read_inflated_vertex_coordinates() ;
     read_white_vertex_coordinates() ;
@@ -27088,7 +29598,8 @@ draw_curvature_line(void) {
   odx = vend->x - vstart->x ;
   ody = vend->y - vstart->y ;
   odz = vend->z - vstart->z ;
-  do {
+  do
+  {
     vcurrent = &mris->vertices[current_vno] ;
     vcurrent->marked = 1 ;
     odx = vend->infx - vcurrent->infx ;
@@ -27096,7 +29607,8 @@ draw_curvature_line(void) {
     odz = vend->infz - vcurrent->infz ;
     best_n = -1 ;
     best_dot = 0.0 ;
-    for (n = 0 ; n < vcurrent->vnum ; n++) {
+    for (n = 0 ; n < vcurrent->vnum ; n++)
+    {
       vn = &mris->vertices[vcurrent->v[n]] ;
       if (vn->marked)
         continue ;   /* already in line */
@@ -27116,7 +29628,8 @@ draw_curvature_line(void) {
       dy /= len ;
       dz /= len ;
       dot = dx*vcurrent->e2x + dy*vcurrent->e2y + dz*vcurrent->e2z ;
-      if (fabs(dot) > best_dot) {
+      if (fabs(dot) > best_dot)
+      {
         best_dot = fabs(dot) ;
         best_n = n ;
       }
@@ -27125,7 +29638,8 @@ draw_curvature_line(void) {
       break ;
     draw_cursor(current_vno, FALSE) ;
     current_vno = vcurrent->v[best_n] ;
-    if (current_vno != end_vno) {
+    if (current_vno != end_vno)
+    {
 #if 1
       marked[nmarked++] = current_vno ;
 #else
@@ -27134,14 +29648,16 @@ draw_curvature_line(void) {
       /*    redraw() ;*/
 #endif
     }
-  } while (current_vno != end_vno) ;
+  }
+  while (current_vno != end_vno) ;
 
   redraw() ;
   return(NO_ERROR) ;
 }
 
 void
-transform_brain(void) {
+transform_brain(void)
+{
   int         vno ;
   VERTEX      *v ;
   float        x, y, z, xt, yt, zt ;
@@ -27152,7 +29668,8 @@ transform_brain(void) {
 
   xhi=yhi=zhi= -10000;
   xlo=ylo=zlo= 10000;
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     x = v->x ;
     y = v->y ;
@@ -27210,7 +29727,7 @@ label_from_stats(int field)
       DiagBreak() ;
     if (v->ripflag)
       continue ;
-    
+
     sclv_get_value(v, field, &val) ;
     if  (!FZERO(val))
       n++ ;
@@ -27225,7 +29742,7 @@ label_from_stats(int field)
       DiagBreak() ;
     if (v->ripflag)
       continue ;
-    
+
     sclv_get_value(v, field, &val) ;
     if  (!FZERO(val))
     {
@@ -27241,7 +29758,7 @@ label_from_stats(int field)
   LabelToWhite (l, mris);
   /* add this label to our list. */
   labl_add (l, &new_index);
-	printf("new label created at index %d with %d points\n", new_index, n) ;
+  printf("new label created at index %d with %d points\n", new_index, n) ;
 
   /* select this label */
   labl_select (new_index);
@@ -27268,34 +29785,38 @@ void LoadMRISMask(void)
   MRI *mritmp;
 
   // check whether already loaded
-  if(mrismask != NULL) return;
+  if (mrismask != NULL) return;
 
-  if(mrismaskfile == NULL){
+  if (mrismaskfile == NULL)
+  {
     mrismaskfile = getenv("TKS_MRIS_MASK_FILE");
-    if(mrismaskfile == NULL) return;
+    if (mrismaskfile == NULL) return;
   }
 
   printf("Reading mris mask %s\n",mrismaskfile);
   mrismask = MRIread(mrismaskfile);
-  if(mrismask == NULL) exit(1);
+  if (mrismask == NULL) exit(1);
 
-  if(mrismask->height != 1 || mrismask->depth != 1) {
+  if (mrismask->height != 1 || mrismask->depth != 1)
+  {
     reshapefactor = mrismask->height * mrismask->depth;
     printf("Reshaping %d\n",reshapefactor);
     mritmp = mri_reshape(mrismask, reshapefactor*mrismask->width,
-			 1, 1, mrismask->nframes);
+                         1, 1, mrismask->nframes);
     MRIfree(&mrismask);
     mrismask = mritmp;
     reshapefactor = 0; /* reset for output */
   }
-  if(mrismask->width != mris->nvertices){
+  if (mrismask->width != mris->nvertices)
+  {
     printf("ERROR: dimension mismatch between mask and surf\n");
     exit(1);
   }
 
-  if(mrismaskthresh < 0){
+  if (mrismaskthresh < 0)
+  {
     threshstring = getenv("TKS_MRIS_MASK_THRESH");
-    if(threshstring == NULL) return;
+    if (threshstring == NULL) return;
     sscanf(threshstring,"%lf",&mrismaskthresh);
     printf("mris mask thresh = %lf\n",mrismaskthresh);
   }
