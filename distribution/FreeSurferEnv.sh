@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.41.2.1 2007/10/22 22:16:47 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.41.2.2 2008/01/14 21:54:15 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.41.2.1 2007/10/22 22:16:47 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.41.2.2 2008/01/14 21:54:15 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -242,7 +242,7 @@ if [[ -z "$NO_FSFAST" ]]; then
             echo "Try adding the following lines to $SUF"
             echo "-----------------cut---------------------"
             echo "fshome = getenv('FREESURFER_HOME');"
-            echo "fsmatlab = sprintf('%s/matlab',fsmatlab);"
+            echo "fsmatlab = sprintf('%s/matlab',fshome);"
             echo "if (exist(fsmatlab) == 7)"
             echo "    path(path,fsmatlab);"
             echo "end"
