@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.40 2007/12/19 22:56:01 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.41 2008/01/14 17:39:56 fischl Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -453,7 +453,7 @@
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2005 flag) in which the aseg
 # cortex label is replaced by the labels in the aparc.a2005. The
-# cortical lables are the same as in Simple_surface_labels2005.txt,
+# cortical labels are the same as in Simple_surface_labels2005.txt,
 # except that left hemisphere has 1100 added to the index and the
 # right has 2100 added.  The label names are also prepended with
 # ctx-lh or ctx-rh.
@@ -789,3 +789,37 @@
 4179    wm-rh-S_temporal_inferior                       21  180 180 0
 4180    wm-rh-S_temporal_superior                       223 220 60  0
 4181    wm-rh-S_temporal_transverse                     221 60  60  0
+
+
+5050   Left-SLF1_waypoint				120 19  134 0
+5051   Left-SLF1-Start					197 58  250 0
+5052   Left-SLF1-End					198 58  250 0
+5053   Right-SLF1_waypoint				120 20  134 0
+5054   Right-SLF1-Start					199 58  250 0
+5055   Right-SLF1-End					200 58  250 0
+
+5056   Left-SLF2_waypoint				236 14  176 0
+5057   Left-SLF2-Start					206 62  78  0
+5058   Left-SLF2-End					207 62  78  0
+5059   Right-SLF2_waypoint				236 15  176 0
+5060   Right-SLF2-Start					208 62  78  0
+5061   Right-SLF2-End					209 62  78  0
+
+5062   Left-SLF3_waypoint				12  49  255 0
+5063   Left-SLF3-Start					123 186 220 0
+5064   Left-SLF3-End					124 186 220 0
+5065   Right-SLF3_waypoint				12  50  255 0 
+5066   Right-SLF3-Start					125 186 220 0
+5067   Right-SLF3-End					126 186 220 0
+
+5068   Left-CST_waypoint				255 166 0   0
+5069   Left-CST-Start					221 216 20  0
+5070   Left-CST-End					222 216 20  0
+5071   Right-CST_waypoint				255 167 0   0
+5072   Right-CST-Start					223 216 20  0
+5073   Right-CST-End					224 216 20  0
+
+6000 CST-orig   0 255 0 0
+6001 CST-hammer 255 255 0 0
+6002 CST-CVS    0 255 255 0
+6003 CST-flirt  0 0 255 0
