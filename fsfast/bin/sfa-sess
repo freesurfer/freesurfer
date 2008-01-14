@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/11/27 23:56:58 $
-#    $Revision: 1.8 $
+#    $Date: 2008/01/14 23:43:43 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: sfa-sess,v 1.8 2007/11/27 23:56:58 greve Exp $'
+set VERSION = '$Id: sfa-sess,v 1.9 2008/01/14 23:43:43 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -149,13 +149,22 @@ foreach sess ($SessList)
     set RunList = (`cat $runlistfile`);
   endif
 
-  echo "INFO ($sessbase): RunList = $RunList"
 
   set TR = $TRAnalysis;
   if($TR != $TRAnalysis) then
     echo "ERROR: TR for $sessbase = $TR, Analysis TR = $TRAnalysis"
     exit 1;
   endif
+
+  # Create a local log file
+  mkdir -p $outdir$analysis
+  set LLF = $outdir$analysis/sfa-sess.log
+  if(-e $LLF) mv $LLF $LLF.bak
+
+  date | tee -a $LLF
+  uname -a | tee -a $LLF
+  echo "Sess $sess" | tee -a $LLF
+  echo "RunList $RunList" | tee -a $LLF
 
   if($designtype == "abblocked") then
     ##### ------------ AB-Blocked ----------------- #####
@@ -213,12 +222,12 @@ foreach sess ($SessList)
       set instem = $run/$funcstem
       set parfile = $run/$parname
       if(! -e $parfile) then
-        echo "ERROR: cannot find $parfile" |& tee -a $LF
+        echo "ERROR: cannot find $parfile" |& tee -a $LF | tee -a $LLF
         exit 1;
       endif
       set stimtype = `cat $parfile | awk '{if($1 == "stimtype") print $2}'`;
       if($stimtype != eccen && $stimtype != polar) then
-        echo "ERROR: $parfile appears to be incorrectly formatted"|& tee -a $LF
+        echo "ERROR: $parfile appears to be incorrectly formatted"|& tee -a $LF | tee -a $LLF
         exit 1;
       endif
       if($stimtype == eccen) then
@@ -229,11 +238,11 @@ foreach sess ($SessList)
     end
 
     if($#eccenstems == 0) then
-      echo "ERROR: could not find any eccentricity runs"
+      echo "ERROR: could not find any eccentricity runs" | tee -a $LLF
       exit 1;
     endif
     if($#polarstems == 0) then
-      echo "ERROR: could not find any polar runs"
+      echo "ERROR: could not find any polar runs" | tee -a $LLF
       exit 1;
     endif
 
@@ -254,37 +263,49 @@ foreach sess ($SessList)
       set cmd = ($cmd -TR $TR -o $sfastem $instems -cfg $cfgfile)
       set cmd = ($cmd -parname $parname $eccenflag);
       if($SynthSeed != 0)  set cmd = ($cmd -synth $SynthSeed);
-      echo "--------------------------------------------------" |& tee -a $LF
-      pwd |& tee -a $LF
-      echo $cmd |& tee -a $LF
-      echo "--------------------------------------------------" |& tee -a $LF
-      $cmd |& tee -a $LF
+      echo "--------------------------------------------------" |& tee -a $LF | tee -a $LLF
+      pwd |& tee -a $LF | tee -a $LLF
+      echo $cmd |& tee -a $LF | tee -a $LLF
+      echo "--------------------------------------------------" |& tee -a $LF  | tee -a $LLF
+      $cmd |& tee -a $LF  | tee -a $LLF
       if($status) then
-        echo "ERROR: selfreqavg failed" |& tee -a $LF
+        echo "ERROR: selfreqavg failed" |& tee -a $LF  | tee -a $LLF
         exit 1;
       endif
 
       # Create the mean T2 images in the eccen/polar directory #
       set cmd = (mri_convert $sfastem.$ext -o $sfastem-offset.$ext --frame 10)
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
+      echo $cmd |& tee -a $LF  | tee -a $LLF
+      $cmd |& tee -a $LF | tee -a $LLF
       if($status) exit 1;
-    end
+
+      # Extract the angle
+      set fname = $outdir$analysis/$type/angle.$ext
+      set cmd = (mri_convert $sfastem.$ext -o $fname --frame 9)
+      echo $cmd |& tee -a $LF  | tee -a $LLF
+      $cmd |& tee -a $LF | tee -a $LLF
+      if($status) exit 1;
+
+    end # type
 
     # Create mean t2*-weighted vol in analysis directory #
     set cmd = (mri_concat --mean \
        $outdir$analysis/eccen/h-offset.$ext \
        $outdir$analysis/polar/h-offset.$ext \
        --o $outdir$analysis/h-offset.$ext)
-    $cmd |& tee -a $LF
+    $cmd |& tee -a $LF  | tee -a $LLF
     if($status) then
-      echo "ERROR: mri_concat for mean image failed" |& tee -a $LF
-      echo $cmd |& tee -a $LF
-      pwd |& tee -a $LF
+      echo "ERROR: mri_concat for mean image failed" |& tee -a $LF  | tee -a $LLF
+      echo $cmd |& tee -a $LF  | tee -a $LLF
+      pwd |& tee -a $LF  | tee -a $LLF
       exit 1;
     endif
 
   endif  #------------- retinotopy ------------------#
+  echo "" >>  $LLF
+  date >>  $LLF
+  echo "done for this sessino" >>  $LLF
+
 
 end #--------- Loop over sessions ---------------#
 
