@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/08 07:27:19 $
- *    $Revision: 1.31 $
+ *    $Date: 2008/01/14 07:17:10 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -39,6 +39,7 @@
   --cost costfile
   --sum sumfile : def is outreg.sum
   --no-surf : do not use surface-based method
+  --1dpreopt min max delta : brute force in PE direction
 
   --frame nthframe : use given frame in input (default = 0)
   --mid-frame : use use middle frame
@@ -164,7 +165,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.31 2008/01/08 07:27:19 greve Exp $";
+"$Id: mri_segreg.c,v 1.32 2008/01/14 07:17:10 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -185,7 +186,7 @@ MATRIX *R0;
 char *SUBJECTS_DIR=NULL;
 char *subject = NULL;
 
-float ipr, bpr, intensity;
+float ipr, bpr, intensity=1.0;
 int float2int,err, nargs;
 
 char tmpstr[2000];
@@ -233,6 +234,9 @@ int PenaltySign  = -1;
 double PenaltySlope = .5;
 int DoMidFrame = 0;
 
+int Do1DPreOpt = 0;
+double PreOptMin, PreOptMax, PreOptDelta, PreOpt, PreOptAtMin;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
@@ -249,13 +253,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.31 2008/01/08 07:27:19 greve Exp $",
+     "$Id: mri_segreg.c,v 1.32 2008/01/14 07:17:10 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.31 2008/01/08 07:27:19 greve Exp $",
+     "$Id: mri_segreg.c,v 1.32 2008/01/14 07:17:10 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -399,7 +403,7 @@ int main(int argc, char **argv) {
 
     //MRIwrite(segreg,"segregcrop.mgz");
     //regio_write_register("crop.reg",subject,mov->xsize,
-    //     mov->zsize,1,R0,FLT2INT_ROUND);
+    //     mov->zsize,intensity,R0,FLT2INT_ROUND);
     //exit(1);
   }
 
@@ -448,6 +452,38 @@ int main(int argc, char **argv) {
   fflush(fp);
 
   //exit(1);
+
+  if(Do1DPreOpt){
+    printf("\n");
+    printf("Performing 1D preopt %g %g %g\n",PreOptMin,PreOptMax,PreOptDelta);
+    fprintf(fp,"\n");
+    fprintf(fp,"Performing 1D preopt %g %g %g\n",PreOptMin,PreOptMax,PreOptDelta);
+    mincost = 10e10;
+    PreOptAtMin = 0;
+    for(nth=0; nth < 6; nth++) p[nth] = 0.0;
+    nth = 0;
+    for(PreOpt = PreOptMin; PreOpt <= PreOptMax; PreOpt += PreOptDelta){
+      p[2] = PreOpt;
+      GetSurfCosts(mov, segreg, R0, R, p, costs);
+      if(costs[7] < mincost) {
+	mincost = costs[7];
+	PreOptAtMin = PreOpt;
+      }
+      printf("%8.4lf %8.4lf %8.4lf \n",PreOpt,costs[7],mincost);
+      fprintf(fp,"%8.4lf %8.4lf %8.4lf \n",PreOpt,costs[7],mincost);
+      //sprintf(tmpstr,"myreg.%02d.dat",nth);
+      //regio_write_register(tmpstr,subject,mov->xsize,
+      //mov->zsize,intensity,R,FLT2INT_ROUND);
+      nth ++;
+    }
+    p[2] = PreOptAtMin; // phase encode direction
+    GetSurfCosts(mov, segreg, R0, R, p, costs);
+    //regio_write_register("myreg.reg",subject,mov->xsize,
+    //		 mov->zsize,intensity,R,FLT2INT_ROUND);
+    MatrixCopy(R0,R);
+    printf("\n");
+    fprintf(fp,"\n");
+  }
 
   TimerStart(&mytimer) ;
   if(DoPowell) {
@@ -526,7 +562,7 @@ int main(int argc, char **argv) {
     printf("Writing optimal reg to %s \n",outregfile);
     fflush(stdout);
     regio_write_register(outregfile,subject,mov->xsize,
-			 mov->zsize,1,R,FLT2INT_ROUND);
+			 mov->zsize,intensity,R,FLT2INT_ROUND);
   }
   
   if(outfile) {
@@ -616,7 +652,7 @@ int main(int argc, char **argv) {
                 Rmin = MatrixCopy(R,Rmin);
                 if(outregfile){
                   regio_write_register(outregfile,subject,mov->xsize,
-                                       mov->zsize,1,Rmin,FLT2INT_ROUND);
+                                       mov->zsize,intensity,Rmin,FLT2INT_ROUND);
                 }
               }
 
@@ -636,7 +672,7 @@ int main(int argc, char **argv) {
   if(outregfile){
     printf("Writing optimal reg to %s \n",outregfile);
     regio_write_register(outregfile,subject,mov->xsize,
-                         mov->zsize,1,Rmin,FLT2INT_ROUND);
+                         mov->zsize,intensity,Rmin,FLT2INT_ROUND);
   }
 
   printf("\n");
@@ -696,6 +732,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&n1dmin);
       nargsused = 1;
+    } else if (istringnmatch(option, "--1dpreopt",0)) {
+      if (nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%lf",&PreOptMin);
+      sscanf(pargv[1],"%lf",&PreOptMax);
+      sscanf(pargv[2],"%lf",&PreOptDelta);
+      Do1DPreOpt = 1;
+      nargsused = 3;
     } else if (istringnmatch(option, "--nmax",0)) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nMaxItersPowell);
@@ -879,6 +922,7 @@ printf("  --out-reg outreg : reg at lowest cost\n");
 printf("  --cost costfile\n");
 printf("  --sum sumfile : def is outreg.sum\n");
 printf("  --no-surf : do not use surface-based method\n");
+printf("  --1dpreopt min max delta : brute force in PE direction\n");
 printf("\n");
 printf("  --frame nthframe : use given frame in input (default = 0)\n");
 printf("  --mid-frame : use middle frame\n");
