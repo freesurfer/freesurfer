@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/12 01:33:24 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/01/14 21:48:12 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.5 2007/12/12 01:33:24 greve Exp $
+// $Id: mri_fieldsign.c,v 1.6 2008/01/14 21:48:12 greve Exp $
 
 /*
   BEGINHELP
@@ -88,7 +88,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.5 2007/12/12 01:33:24 greve Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.6 2008/01/14 21:48:12 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -106,6 +106,7 @@ char *EccenSFAFile=NULL,*PolarSFAFile=NULL;
 int DoComplex = 0;
 char *EccenRealFile=NULL, *EccenImagFile=NULL;
 char *PolarRealFile=NULL, *PolarImagFile=NULL;
+char *EccenOut=NULL, *PolarOut=NULL;
 
 char *subject, *hemi, *SUBJECTS_DIR;
 char *PatchFile = NULL;
@@ -236,7 +237,19 @@ int main(int argc, char *argv[]) {
   MRIScopyMRI(surf, mri, 2, "valbak"); // polar real
   MRIScopyMRI(surf, mri, 3, "val2bak");// polar imag
 
+  // Note: angle is also in 9th frame of SFA
   RETcompute_angles(surf);
+  if(EccenOut){
+    mritmp = MRIcopyMRIS(NULL, surf, 0, "val");
+    MRIwrite(mritmp,EccenOut);
+    MRIfree(&mritmp);
+  }
+  if(PolarOut){
+    mritmp = MRIcopyMRIS(NULL, surf, 0, "valbak");
+    MRIwrite(mritmp,PolarOut);
+    MRIfree(&mritmp);
+  }
+
   if(usenew) RETcompute_fieldsign2(surf);
   else       RETcompute_fieldsign(surf);
 
@@ -264,6 +277,7 @@ int main(int argc, char *argv[]) {
     MRIwrite(mritmp,RVarFile);
     MRIfree(&mritmp);
   }
+
 
   return 0;
 }
@@ -335,6 +349,14 @@ static int parse_commandline(int argc, char **argv) {
       }
       DoComplex = 1;
       nargsused = 1;
+    } else if (!strcasecmp(option, "--eccen-out")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      EccenOut = pargv[0];
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--polar-out")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      PolarOut = pargv[0];
+      nargsused = 1;
     } else if (!strcasecmp(option, "--s")) {
       if (nargc < 1) CMDargNErr(option,1);
       subject = pargv[0];
@@ -396,6 +418,9 @@ static void print_usage(void) {
   printf("%s \n",Progname) ;
   printf("   --fs fieldsignfile : output\n");
   printf("\n");
+  printf("   --eccen-out eccenangle : output\n");
+  printf("   --polar-out polarangle : output\n");
+  printf("\n");
   printf("   --eccen-sfa sfafile : eccen selfreqavg file \n");
   printf("   --polar-sfa sfafile : polar selfreqavg file \n");
   printf("   --sfa-true          : use true real and imag\n");
@@ -405,6 +430,8 @@ static void print_usage(void) {
   printf("   --patch patchfile : without hemi \n");
   printf("   --occip : patchfile = occip.patch.flat\n");
   printf("   --sphere : use spherical surface instead of patch\n");
+  printf("\n");
+  printf("   --old : use old FS estimation code (default is new)\n");
   printf("\n");
   printf("   --fwhm fwhm_mm\n");
   printf("   --nsmooth nsmoothsteps\n");
@@ -492,7 +519,8 @@ static void dump_options(FILE *fp) {
 }
 /*--------------------------------------------------------------------
   SFA2MRI(MRI *eccen, MRI *polar) - pack two SFAs int a single MRI. An
-  SFA is the output of selfreqavg. Must be sampled to the surface. 
+  SFA is the output of selfreqavg. Must be sampled to the surface. Note:
+  the actual phase is in the 9th frame of the SFA.
   ----------------------------------------------------------------*/
 MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue)
 {
@@ -510,24 +538,24 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue)
 
 	if(SFATrue){
 	  // Use pure real and imag
-	  v = MRIgetVoxVal(eccen,c,r,s,7); // eccen-real
+	  v = MRIgetVoxVal(eccen,c,r,s,7); // eccen-real (8th)
 	  MRIsetVoxVal(mri,c,r,s,0, v);
-	  v = MRIgetVoxVal(eccen,c,r,s,8); // eccen-imag
+	  v = MRIgetVoxVal(eccen,c,r,s,8); // eccen-imag (9th)
 	  MRIsetVoxVal(mri,c,r,s,1, v);
-	  v = MRIgetVoxVal(polar,c,r,s,7); // polar-real
+	  v = MRIgetVoxVal(polar,c,r,s,7); // polar-real (8th)
 	  MRIsetVoxVal(mri,c,r,s,2, v);
-	  v = MRIgetVoxVal(polar,c,r,s,8); // polar-imag
+	  v = MRIgetVoxVal(polar,c,r,s,8); // polar-imag (9th)
 	  MRIsetVoxVal(mri,c,r,s,3, v);
 	} else {
 	  // Use real and imag weighted by log10(p)
 	  // This corresponds to Marty's original code
-	  v = MRIgetVoxVal(eccen,c,r,s,1); // eccen-real
+	  v = MRIgetVoxVal(eccen,c,r,s,2); // eccen-real (3rd)
 	  MRIsetVoxVal(mri,c,r,s,0, v);
-	  v = MRIgetVoxVal(eccen,c,r,s,2); // eccen-imag
+	  v = MRIgetVoxVal(eccen,c,r,s,1); // eccen-image (2nd)
 	  MRIsetVoxVal(mri,c,r,s,1, v);
-	  v = MRIgetVoxVal(polar,c,r,s,1); // polar-real
+	  v = MRIgetVoxVal(polar,c,r,s,2); // polar-real (3rd)
 	  MRIsetVoxVal(mri,c,r,s,2, v);
-	  v = MRIgetVoxVal(polar,c,r,s,2); // polar-imag
+	  v = MRIgetVoxVal(polar,c,r,s,1); // polar-imag (2nd)
 	  MRIsetVoxVal(mri,c,r,s,3, v);
 	}
 
