@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/15 22:45:24 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/01/15 23:48:07 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.8 2008/01/15 22:45:24 greve Exp $
+// $Id: mri_fieldsign.c,v 1.9 2008/01/15 23:48:07 greve Exp $
 
 /*
   BEGINHELP
@@ -88,7 +88,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.8 2008/01/15 22:45:24 greve Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.9 2008/01/15 23:48:07 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
   mritmp = MRIcopyMRIS(NULL, surf, 0, "fieldsign");
   if(ReverseSign){
     printf("Reversing sign\n");
-    MRIscalarMul(mritmp, mritmp, -1.0);
+    RETreverseSign(mritmp);
   }
   MRIwrite(mritmp,FieldSignFile);
   MRIfree(&mritmp);
@@ -762,7 +762,7 @@ int RETcompute_fieldsign2(MRIS *mris)
       det = MatrixDeterminant(J);
       v->stat = 1000*fabs(det); // 1000 to make range a little easier
       if(det < 0) v->fieldsign = -1.0;
-      else        v->fieldsign = +1.0;
+      else        v->fieldsign = +2.0;
       v->fsmask = sqrt(v->val2*v->val2bak);  /* geom mean of r,th power */
     }
 
