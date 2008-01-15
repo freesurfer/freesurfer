@@ -8,8 +8,8 @@
  * Original Author: Doug Greve (and Marty and Anders, for now)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/15 22:28:54 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/01/15 23:47:39 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,9 +43,9 @@ double round(double x);
     valbak  = real * log10(p) for polar
     val2bak = imag * log10(p) for polar
   Output:
-    val  = angle for eccen
+    val  = angle for eccen (0 to 2*pi)
     val2 = log10(p) for eccen
-    valbak  = angle for polar
+    valbak  = angle for polar (-pi to +pi)
     val2bak = log10(p) for polar
   ------------------------------------------------------------*/
 void RETcompute_angles(MRIS *mris)
@@ -55,8 +55,11 @@ void RETcompute_angles(MRIS *mris)
 
   for (k=0;k<mris->nvertices;k++){
     if (!mris->vertices[k].ripflag) {
+      // Eccen: 0-2pi
       val = atan2(mris->vertices[k].val2,mris->vertices[k].val);
+      if(val < 0.0) val += (2*M_PI); 
       val2 = sqrt(SQR(mris->vertices[k].val2)+SQR(mris->vertices[k].val));
+      // Polar
       valbak = atan2(mris->vertices[k].val2bak,mris->vertices[k].valbak);
       val2bak = sqrt(SQR(mris->vertices[k].val2bak)+
                      SQR(mris->vertices[k].valbak));
@@ -131,7 +134,7 @@ void RETcompute_fieldsign(MRIS *mris)
       else
         v->fieldsign = 0;
 
-      v->fieldsign =  ((v->fieldsign<0)?-1:(v->fieldsign>0)?1:0);
+      v->fieldsign =  ((v->fieldsign<0)?-1:(v->fieldsign>0)?2:0);
 
       v->fsmask = sqrt(v->val2*v->val2bak);  /* geom mean of r,th power */
     } // if
@@ -198,5 +201,23 @@ int RETinvLogMapFunc(double xc, double yc, double xc0, double yc0,
   yw = r2*sin(theta2);
   *r = sqrt(xw*xw + yw*yw);
   *theta = atan2(yw,xw);
+  return(0);
+}
+/*--------------------------------------------------------------------------*/
+int RETreverseSign(MRI *mri)
+{
+  int c,r,s;
+  double v;
+
+  for(c = 0; c < mri->width; c ++){
+    for(r = 0; r < mri->height; r ++){
+      for(s = 0; s < mri->depth; s ++){
+	v = MRIgetVoxVal(mri,c,r,s,0);
+	if(v > 0)      v = -1;
+	else if(v < 0) v = +2;
+	MRIsetVoxVal(mri,c,r,s,0,v);
+      }
+    }
+  }
   return(0);
 }
