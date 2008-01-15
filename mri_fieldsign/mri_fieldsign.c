@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/15 22:29:40 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/01/15 22:45:24 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.7 2008/01/15 22:29:40 greve Exp $
+// $Id: mri_fieldsign.c,v 1.8 2008/01/15 22:45:24 greve Exp $
 
 /*
   BEGINHELP
@@ -88,7 +88,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.7 2008/01/15 22:29:40 greve Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.8 2008/01/15 22:45:24 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -332,6 +332,22 @@ static int parse_commandline(int argc, char **argv) {
       }
       DoSFA = 1;
       nargsused = 1;
+    } else if (!strcasecmp(option, "--sfa")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sprintf(tmpstr,"%s/eccen/h.nii",pargv[0]);
+      EccenSFAFile = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/polar/h.nii",pargv[0]);
+      PolarSFAFile = strcpyalloc(tmpstr);
+      if(!fio_FileExistsReadable(EccenSFAFile)){
+	printf("ERROR: cannot find %s\n",EccenSFAFile);
+	exit(1);
+      }
+      if(!fio_FileExistsReadable(PolarSFAFile)){
+	printf("ERROR: cannot find %s\n",PolarSFAFile);
+	exit(1);
+      }
+      DoSFA = 1;
+      nargsused = 1;
     } else if (!strcasecmp(option, "--eccen")) {
       if (nargc < 2) CMDargNErr(option,2);
       EccenRealFile = pargv[0];
@@ -426,6 +442,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --eccen-sfa sfafile : eccen selfreqavg file \n");
   printf("   --polar-sfa sfafile : polar selfreqavg file \n");
+  printf("   --sfa sfadir :  \n");
   printf("   --sfa-true          : use true real and imag\n");
   printf("\n");
   printf("   --s subject \n");
