@@ -8,8 +8,8 @@
  * Original Author: Doug Greve (and Marty and Anders, for now)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/25 20:39:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/01/15 22:28:54 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,8 @@
 double round(double x);
 #include "mri.h"
 #include "mrisurf.h"
+#include "fsglm.h"
+#include "surfcluster.h"
 
 /*------------------------------------------------------------
   \fn void RETcompute_angles(MRIS *mris)
@@ -58,11 +60,17 @@ void RETcompute_angles(MRIS *mris)
       valbak = atan2(mris->vertices[k].val2bak,mris->vertices[k].valbak);
       val2bak = sqrt(SQR(mris->vertices[k].val2bak)+
                      SQR(mris->vertices[k].valbak));
-      mris->vertices[k].val = val;
-      mris->vertices[k].val2 = val2;
-      mris->vertices[k].valbak = valbak;
-      mris->vertices[k].val2bak = val2bak;
     }
+    else{
+      val = 0.0;
+      val2 = 0.0;
+      valbak = 0.0;
+      val2bak = 0.0;
+    }
+    mris->vertices[k].val = val;
+    mris->vertices[k].val2 = val2;
+    mris->vertices[k].valbak = valbak;
+    mris->vertices[k].val2bak = val2bak;
   }
 }
 /*------------------------------------------------------------*/
@@ -89,24 +97,26 @@ void RETcompute_fieldsign(MRIS *mris)
       dv1dx = dv1dy = dv2dx = dv2dy = 0;
       m11 = m12 = m13 = m22 = m23 = z1 = z2 = z3 = z1b = z2b = z3b = 0;
       n = 0;
-      for (m=0;m<v->vnum;m++)
-        if (!mris->vertices[v->v[m]].ripflag) {
-          dv1 = RETcircsubtract(v->val,mris->vertices[v->v[m]].val);
-          dv2 = RETcircsubtract(v->valbak,mris->vertices[v->v[m]].valbak);
-          dx = v->x-mris->vertices[v->v[m]].x;
-          dy = v->y-mris->vertices[v->v[m]].y;
-          m11 += dx*dx;
-          m12 += dx*dy;
-          m13 += dx;
-          m22 += dy*dy;
-          m23 += dy;
-          z1 += dx*dv1;
-          z2 += dy*dv1;
-          z3 += dv1;
-          z1b += dx*dv2;
-          z2b += dy*dv2;
-          z3b += dv2;
-        }
+      for (m=0;m<v->vnum;m++){
+        if(mris->vertices[v->v[m]].ripflag) continue;
+	dv1 = RETcircsubtract(v->val,mris->vertices[v->v[m]].val);
+	dv2 = RETcircsubtract(v->valbak,mris->vertices[v->v[m]].valbak);
+	if(dv1 == 0 || dv2 == 0) continue;
+	dx = v->x-mris->vertices[v->v[m]].x;
+	dy = v->y-mris->vertices[v->v[m]].y;
+	m11 += dx*dx;
+	m12 += dx*dy;
+	m13 += dx;
+	m22 += dy*dy;
+	m23 += dy;
+	z1 += dx*dv1;
+	z2 += dy*dv1;
+	z3 += dv1;
+	z1b += dx*dv2;
+	z2b += dy*dv2;
+	z3b += dv2;
+	n++;
+      } // loop over neighbors
       dv1dx = (m22*z1-m23*m23*z1-m12*z2+m13*m23*z2-m13*m22*z3+m12*m23*z3);
       dv2dx = (m22*z1b-m23*m23*z1b-
                m12*z2b+m13*m23*z2b-
@@ -124,8 +134,8 @@ void RETcompute_fieldsign(MRIS *mris)
       v->fieldsign =  ((v->fieldsign<0)?-1:(v->fieldsign>0)?1:0);
 
       v->fsmask = sqrt(v->val2*v->val2bak);  /* geom mean of r,th power */
-    }
-  }
+    } // if
+  } // loop over vertices
 }
 
 /*--------------------------------------------------------------------------*/
