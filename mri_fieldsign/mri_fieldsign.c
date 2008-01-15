@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/14 21:48:12 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/01/15 22:29:40 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.6 2008/01/14 21:48:12 greve Exp $
+// $Id: mri_fieldsign.c,v 1.7 2008/01/15 22:29:40 greve Exp $
 
 /*
   BEGINHELP
@@ -88,7 +88,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.6 2008/01/14 21:48:12 greve Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.7 2008/01/15 22:29:40 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -173,16 +173,19 @@ int main(int argc, char *argv[]) {
   if(err) exit(1);
 
   if(DoSFA){
+    printf("SFA\n");
     eccensfa = MRIread(EccenSFAFile);
     if(eccensfa == NULL) exit(1);
     polarsfa = MRIread(PolarSFAFile);
     if(polarsfa == NULL) exit(1);
     mri = SFA2MRI(eccensfa, polarsfa, SFATrue);
+    //MRIwrite(mri,"epc.mgh");
     MRIfree(&eccensfa);
     MRIfree(&polarsfa);
   }
 
   if(DoComplex){
+    printf("Complex\n");
     eccenreal = MRIread(EccenRealFile);
     if(eccenreal == NULL) exit(1);
     eccenimag = MRIread(EccenImagFile);
@@ -237,7 +240,7 @@ int main(int argc, char *argv[]) {
   MRIScopyMRI(surf, mri, 2, "valbak"); // polar real
   MRIScopyMRI(surf, mri, 3, "val2bak");// polar imag
 
-  // Note: angle is also in 9th frame of SFA
+  // Note: angle is also in 10th frame (f0=9) of SFA
   RETcompute_angles(surf);
   if(EccenOut){
     mritmp = MRIcopyMRIS(NULL, surf, 0, "val");
@@ -520,7 +523,7 @@ static void dump_options(FILE *fp) {
 /*--------------------------------------------------------------------
   SFA2MRI(MRI *eccen, MRI *polar) - pack two SFAs int a single MRI. An
   SFA is the output of selfreqavg. Must be sampled to the surface. Note:
-  the actual phase is in the 9th frame of the SFA.
+  the actual phase is in the 10th frame (f0=9) of the SFA.
   ----------------------------------------------------------------*/
 MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue)
 {
