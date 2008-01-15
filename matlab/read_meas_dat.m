@@ -12,10 +12,12 @@ function varargout = read_meas_dat(filename, options)
 % "options" is a structure which allows changing of some of the defaults:
 %
 %    options.ReverseLines                 -- set to 0 or 1  (default is 1)
+%    options.PhascorCollapseSegments      -- set to 0 or 1  (default is 1)
 %    options.CanonicalReorderCoilChannels -- set to 0 or 1  (default is 1)
 %    options.ApplyFFTScaleFactors         -- set to 0 or 1  (default is 0)
 %    options.ReadMultipleRepetitions      -- set to 0 or 1  (default is 1)
 %    options.ReturnStruct                 -- set to 0 or 1  (default is 0)
+%    options.MatrixDouble                 -- set to 0 or 1  (default is 0)
 %
 % if a field does not exist, then the default is used. "options" is optional :).
 %
@@ -80,19 +82,19 @@ function varargout = read_meas_dat(filename, options)
 
 
 % jonathan polimeni <jonp@nmr.mgh.harvard.edu>, 10/04/2006
-% $Id: read_meas_dat.m,v 1.7 2007/10/19 22:16:14 jonnyreb Exp $
+% $Id: read_meas_dat.m,v 1.8 2008/01/15 23:19:32 jonnyreb Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.7 $';
+  VERSION = '$Revision: 1.8 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
 
   %------------------------------------------------------------------------%
   % basic error checking
 
-  matlab_version = regexprep(version, '[^0-9]', '');
-  if ( str2num(matlab_version(1:2)) < 71 )
-    disp(sprintf('"%s" only supported for MATLAB 7.1 and higher', mfilename));
+  matlab_version = version;
+  if ( str2num(matlab_version(1:3)) < 7.2 )
+    disp(sprintf('"%s" only supported for MATLAB 7.2 and higher', mfilename));
     return;
   end;
 
@@ -113,12 +115,17 @@ function varargout = read_meas_dat(filename, options)
   DO__RECOVER_FROM_INCOMPLETE = 1;
 
   DO__FLIP_REFLECTED_LINES = 1;
+  DO__PHASCOR_COLLAPSE_SEGMENTS = 1;
   DO__CANONICAL_REORDER_COIL_CHANNELS = 1;
   DO__APPLY_FFT_SCALEFACTORS = 0;
   DO__READ_MULTIPLE_REPETITIONS = 1;
 
   % by default, return individual arrays (for backward compatibility)
   DO__RETURN_STRUCT = 0;
+
+  % by default, return all data as full arrays of type SINGLE
+  DO__MATRIX_SPARSE = 0;
+  DO__MATRIX_DOUBLE = 0;
 
 
   % if the "options" struct is provided by caller, then override default
@@ -129,26 +136,50 @@ function varargout = read_meas_dat(filename, options)
     if ( isfield(options, 'ReverseLines') ),
       DO__FLIP_REFLECTED_LINES = options.ReverseLines;
       disp(sprintf(' :FLIP_REFLECTED_LINES = %d', DO__FLIP_REFLECTED_LINES));
+    else,
+      options.ReverseLines = DO__FLIP_REFLECTED_LINES;
+    end;
+
+    if ( isfield(options, 'PhascorCollapseSegments') ),
+      DO__PHASCOR_COLLAPSE_SEGMENTS = options.PhascorCollapseSegments;
+      disp(sprintf(' :PHASCOR_COLLAPSE_SEGMENTS = %d', DO__PHASCOR_COLLAPSE_SEGMENTS));
+    else,
+      options.PhascorCollapseSegments = DO__PHASCOR_COLLAPSE_SEGMENTS;
     end;
 
     if ( isfield(options, 'CanonicalReorderCoilChannels') ),
       DO__CANONICAL_REORDER_COIL_CHANNELS = options.CanonicalReorderCoilChannels;
       disp(sprintf(' :CANONICAL_REORDER_COIL_CHANNELS = %d', DO__CANONICAL_REORDER_COIL_CHANNELS));
+    else,
+      options.CanonicalReorderCoilChannels = DO__CANONICAL_REORDER_COIL_CHANNELS;
     end;
 
     if ( isfield(options, 'ApplyFFTScaleFactors') ),
       DO__APPLY_FFT_SCALEFACTORS = options.ApplyFFTScaleFactors;
       disp(sprintf(' :APPLY_FFT_SCALEFACTORS = %d', DO__APPLY_FFT_SCALEFACTORS));
+    else,
+      options.ApplyFFTScaleFactors = DO__APPLY_FFT_SCALEFACTORS;
     end;
 
     if ( isfield(options, 'ReadMultipleRepetitions') ),
       DO__READ_MULTIPLE_REPETITIONS = options.ReadMultipleRepetitions;
       disp(sprintf(' :READ_MULTIPLE_REPETITIONS = %d', DO__READ_MULTIPLE_REPETITIONS));
+    else,
+      options.ReadMultipleRepetitions = DO__READ_MULTIPLE_REPETITIONS;
     end;
 
     if ( isfield(options, 'ReturnStruct') ),
       DO__RETURN_STRUCT = options.ReturnStruct;
       disp(sprintf(' :RETURN_STRUCT = %d', DO__RETURN_STRUCT));
+    else,
+      options.ReturnStruct = DO__RETURN_STRUCT;
+    end;
+
+    if ( isfield(options, 'MatrixDouble') ),
+      DO__MATRIX_DOUBLE = options.MatrixDouble;
+      disp(sprintf(' :MATRIX_DOUBLE = %d', DO__MATRIX_DOUBLE));
+    else,
+      options.MatrixDouble = DO__MATRIX_DOUBLE;
     end;
 
   end;
@@ -287,10 +318,15 @@ function varargout = read_meas_dat(filename, options)
 
     if ( DO__APPLY_FFT_SCALEFACTORS && ...
          exist('read_meas_dat__fft_scalefactors', 'file') ),
-      fft_scale = read_meas_dat__fft_scalefactors(header);
-      disp('applying FFT scale factors.');
+      [fft_scale, fft_scale_channel] = read_meas_dat__fft_scalefactors(header);
+      if ( ~isempty( fft_scale ) ),
+        disp('applying FFT scale factors.');
+      else,
+        DO__APPLY_FFT_SCALEFACTORS = 0;
+        disp('FFT scale factors not found!!!');
+      end;
     else,
-      fft_scale = ones(dimensions.NChaMeas, 1);
+      fft_scale = [];
       disp('ignoring FFT scale factors.');
     end;
 
@@ -314,11 +350,18 @@ function varargout = read_meas_dat(filename, options)
       % to map using order:
       %   coil_order(dataind);
 
-      % don't forget to reorder FFT scalefactors!
-      fft_scale = fft_scale(coil_index);
+      if ( DO__APPLY_FFT_SCALEFACTORS ),
+        if ( length(fft_scale) ~= length(coil_index) ),
+          DO__APPLY_FFT_SCALEFACTORS = 0;
+          disp('mismatch between number of channels and FFT scale factors!!!  -->  ignoring FFT scale factors...');
+        else,
+          % don't forget to reorder FFT scalefactors!
+          fft_scale = fft_scale(coil_index);
+        end;
+      end;
 
     else,
-      coil_order = 1:dimensions.NChaMeas;
+%      coil_order = 1:dimensions.NChaMeas;
     end;
 
     %------------------------------------------------------------------------%
@@ -347,32 +390,48 @@ function varargout = read_meas_dat(filename, options)
 
   mdh = read_meas__mdh_struct;
 
+  %--------------------------------------------------------------------------%
+
+  matrixtype = @single;
+
+  % unfortunately, matlab does not support sparse arrays whose number of
+  % dimensions is larger than 2.   :(
+  if ( DO__MATRIX_SPARSE ),
+    %%%matrixtype = @sparse;
+  end;
+
+  if ( DO__MATRIX_DOUBLE ),
+    matrixtype = @double;
+  end;
+
+
   % number of measurements along all 16 dimensions can be found in the
   % 'Config_.evp' file contained within "meas.dat" header; allocate memory
-  % for a single measurement data, and grow data matrix with each line (this
-  % method is, surprisingly, faster than pre-allocation!)
-  %  data                    = single(complex(zeros(dimensions.NColMeas, 1)));
-  data                    = single([]);
+  % for measurement data, and grow data matrix with each line (this method
+  % is, surprisingly, faster than pre-allocation!)
+  %  data                    = matrixtype(complex(zeros(dimensions.NColMeas, 1)));
+  data                    = matrixtype([]);
 
+  FLAG__data               = 0;
   FLAG__data_reflect       = 0;
 
   FLAG__phascor1d          = 0;  % indicating presence of any type of phascor line
 
-  data_phascor1d          = single([]);
+  data_phascor1d          = matrixtype([]);
   FLAG__data_phascor1d     = 0;
-  data_phascor2d          = single([]);
+  data_phascor2d          = matrixtype([]);
   FLAG__data_phascor2d     = 0;
-  data_fieldmap           = single([]);
+  data_fieldmap           = matrixtype([]);
   FLAG__data_fieldmap      = 0;
-  noiseadjscan            = single([]);
+  noiseadjscan            = matrixtype([]);
   FLAG__noiseadjscan       = 0;
-  patrefscan              = single([]);
+  patrefscan              = matrixtype([]);
   FLAG__patrefscan         = 0;
-  patrefscan_phascor      = single([]);
+  patrefscan_phascor      = matrixtype([]);
   FLAG__patrefscan_phascor = 0;
   FLAG__patrefandimascan   = 0;
-  phasestabscan           = single([]);
-  refphasestabscan        = single([]);
+  phasestabscan           = matrixtype([]);
+  refphasestabscan        = matrixtype([]);
   FLAG__phasestabscan      = 0;
 
 
@@ -399,8 +458,22 @@ function varargout = read_meas_dat(filename, options)
 
   try,
     %------------------------------------------------------------------------%
+
+    ulDMALength = uint16(fread(fp, 1, 'uint16'));
+    ulFlags1    = uint16(fread(fp, 1, 'uint16'));
+    ulFlags2    = uint16(fread(fp, 1, 'uint16'));
+
+    fseek(fp, fpos, 'bof');
+
+
     % loop through file, peeling off one MDH and ADC line at a time
     while ( ~ACQEND ),
+
+
+
+
+
+      %----------------------------------------------------------------------%
 
       meas_num = meas_num + 1;
 
@@ -411,7 +484,13 @@ function varargout = read_meas_dat(filename, options)
         idx = 1;
       end;
 
-      mdh(idx).ulFlagsAndDMALength        = uint32(fread(fp, 1, 'uint32'));
+      %      mdh(idx).ulFlagsAndDMALength        = uint32(fread(fp, 1, 'uint32'));
+      ulDMALength = uint16(fread(fp, 1, 'uint16'));
+      ulFlags1    = uint8(fread(fp, 1, 'uint8'));
+      ulFlags2    = uint8(fread(fp, 1, 'uint8'));
+
+      mdh(idx).ulFlagsAndDMALength        = uint32(double(ulFlags2) * 2^24) + uint32(double(ulFlags1) * 2^16) + uint32(ulDMALength);
+
       mdh(idx).lMeasUID                   = int32(fread(fp, 1, 'int32'));
       mdh(idx).ulScanCounter              = uint32(fread(fp, 1, 'uint32'));
       if ( ~isempty(mdh(idx).ulScanCounter) ), scan_num = mdh(idx).ulScanCounter; end;
@@ -498,6 +577,16 @@ function varargout = read_meas_dat(filename, options)
 
       end;  % IF "IS__VB13_PRE_RELEASE_VERSION"
 
+      % for some auxiliary scans (e.g., "AdjCoilSens" for the prescan
+      % normalize), the first MDH contains gibberish and its mask contains
+      % the 'SYNCDATA' bit. if this is found, just skip ahead to the next
+      % MDH.
+      if ( read_meas__extract_flag(mdh(idx).aulEvalInfoMask(1), 'SYNCDATA') ),
+        fread(fp, double(ulDMALength) - 128, 'uint8');
+        continue;
+      end;
+
+
       % finally, after MDH, read in the data
       adc = single(fread(fp, double(mdh(idx).ushSamplesInScan)*2, 'float32'));
       adc_real = adc(1:2:end);
@@ -513,7 +602,7 @@ function varargout = read_meas_dat(filename, options)
       if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFLECT) ),
         if ( ~FLAG__data_reflect ),
           if ( DO__FLIP_REFLECTED_LINES ),
-            disp(' REFLECT detected reversing lines.');
+            disp(' REFLECT detected, reversing lines.');
           else,
             disp(' REFLECT detected.');
           end;
@@ -651,7 +740,7 @@ function varargout = read_meas_dat(filename, options)
       % ASSUME that if any phascor lines have been collected that all lines
       % (e.g., data and "patrefscan" lines) follow the same convention with
       % the segment loop counter---but this may not be true!
-      if ( FLAG__phascor1d && FLAG__data_reflect ),
+      if ( FLAG__phascor1d && FLAG__data_reflect && DO__PHASCOR_COLLAPSE_SEGMENTS ),
         pos(08) = floor(pos(08)/2);
       end;
 
@@ -777,7 +866,7 @@ function varargout = read_meas_dat(filename, options)
 
           % hack, hack, hack
           if ( isempty(data) ),
-            data = single(complex(zeros(size(adc_cplx))));
+            data = matrixtype(complex(zeros(size(adc_cplx))));
           end;
 
           % store ADC line in listed position within data volume (using 1-based indices)
@@ -950,7 +1039,7 @@ function varargout = read_meas_dat(filename, options)
             disp(' PHASCOR (2D) detected.');
             FLAG__data_phascor2d = 1;
             ref_line = 0;
-            ref_part = 1;
+            ref_part = 0;
           end;
 
           % TODO: when sequence code is fixed, this will be deleted!
@@ -967,30 +1056,36 @@ function varargout = read_meas_dat(filename, options)
           end;
 
 
+          % reference scan partition counter should NEVER be reset
+
+          % increment reference scan partition counter at the end of each partition
+          % (ASSUME here that these reference lines ONLY appear in 3D sequences)
+          if ( FLAG__stored_channel_indices && ...
+               ( mdh(idx).ushChannelId == channel_1 ) ...
+               && read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
+                                         EvalInfoMask.MDH_FIRSTSCANINSLICE) ),
+            ref_part = ref_part + 1;
+          end;
+
+
           % TODO: when sequence code is fixed, ref_line will be replaced by pos(02)!
           data_phascor2d(...
               :, ref_line, ...     % only center line and center partition collected
               pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
               pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
 
-          % reference scan partition counter should NEVER be reset
 
-          % increment reference scan partition counter at the end of each partition
-          % (ASSUME here that these reference lines ONLY appear in 3D sequences)
-          if ( FLAG__stored_channel_indices && ...
-               ( mdh(idx).ushChannelId == channel_N ) ...
-               && read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
-                                         EvalInfoMask.MDH_LASTSCANINSLICE) ),
-            ref_part = ref_part + 1;
-          end;
-
-
-          %%% CATEGORY #4B: data lines
+          %%% CATEGORY #4C: data lines
         else,
+
+          if ( ~FLAG__data ),
+            FLAG__data = 1;
+            fpos_data = ftell(fp);
+          end;
 
           % hack, hack, hack
           if ( isempty(data) ),
-            data = single(complex(zeros(size(adc_cplx))));
+            data = matrixtype(complex(zeros(size(adc_cplx))));
           end;
 
           % store ADC line in listed position within data volume (using 1-based indices)
@@ -1002,45 +1097,19 @@ function varargout = read_meas_dat(filename, options)
         end;
       end; % IF (to determine category assignment)
     end;  % WHILE
-
-
-    %------------------------------------------------------------------------%
-    %%% post file I/O reorganization
-
-    % if the phase correction lines and the data lines mismatch in terms
-    % whether the odd or even lines are reflected, shift the phase
-    % correction line index by one and insert a duplicate of the second
-    % line at the beginning.
-
-    if ( FLAG__patrefscan_phascor_orderswap ),
-      patrefscan_phascor(:, 2:end+1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
-          patrefscan_phascor(:, 1:end, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
-
-      patrefscan_phascor(:, 1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
-          patrefscan_phascor(:, 3, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
-    end;
-
-
-    if ( FLAG__data_phascor1d_orderswap ),
-      data_phascor1d(:, 2:end+1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
-          data_phascor1d(:, 1:end, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
-
-      data_phascor1d(:, 1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
-          data_phascor1d(:, 3, :, :, :, :, :, :, :, :, :, :, :,: , :, :);
-    end;
-
-
+    
+    
     %------------------------------------------------------------------------%
 
   catch,
-
+    
     caught = lasterror;
     status = dbstatus;
-
-    disp(sprintf('<!> [%s]:  trouble at line %d...', mfilename, caught.stack.line));
-
+    
+    disp(sprintf('<!> [%s]:  trouble at line %d...', mfilename, caught.stack(1).line));
+    
     if ( feof(fp) ),
-
+      
       caught.message = sprintf('EOF encountered before ACQEND! last scan number = %d ', ...
                                scan_num);
 
@@ -1065,6 +1134,33 @@ function varargout = read_meas_dat(filename, options)
 
 
   end;
+
+  
+  %------------------------------------------------------------------------%
+  %%% post file I/O reorganization
+
+  % if the phase correction lines and the data lines mismatch in terms
+  % whether the odd or even lines are reflected, shift the phase
+  % correction line index by one and insert a duplicate of the second
+  % line at the beginning.
+
+  if ( FLAG__patrefscan_phascor_orderswap ),
+    patrefscan_phascor(:, 2:end+1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
+	patrefscan_phascor(:, 1:end, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
+
+    patrefscan_phascor(:, 1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
+	patrefscan_phascor(:, 3, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
+  end;
+
+
+  if ( FLAG__data_phascor1d_orderswap ),
+    data_phascor1d(:, 2:end+1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
+	data_phascor1d(:, 1:end, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
+
+    data_phascor1d(:, 1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
+	data_phascor1d(:, 3, :, :, :, :, :, :, :, :, :, :, :,: , :, :);
+  end;
+
 
   %------------------------------------------------------------------------%
 
@@ -1140,13 +1236,15 @@ function varargout = read_meas_dat(filename, options)
       meas.refphasestabscan = refphasestabscan;
     end;
 
-    if ( DO__MDH_SAVE ),
+%    if ( DO__MDH_SAVE ),
       meas.mdh = mdh;
-    end;
+%    end;
 
     if ( exist('read_meas_prot', 'file') ),
       [meas.prot, meas.evp] = read_meas_prot(filename, header);
     end;
+
+    meas.options = options;
 
 
     if ( nargout > 0 ),
@@ -1212,7 +1310,7 @@ function bit = read_meas__extract_bit(mdh_eval_info, FLAG__EvalInfoMask)
 %**************************************************************************%
 function flag = read_meas__extract_flag(mdh_eval_info, flag_str)
 
-%  persistent EvalInfoMask
+%slow!  persistent EvalInfoMask
   EvalInfoMask = read_meas__evaluation_info_mask_definition;
 
   field_str = sprintf('MDH_%s', flag_str);
