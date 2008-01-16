@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/16 05:38:13 $
- *    $Revision: 1.295 $
+ *    $Date: 2008/01/16 21:56:03 $
+ *    $Revision: 1.296 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -916,7 +916,10 @@ void draw_spokes(int option) ;
 void set_vertex_color(float r, float th, int option) ;
 void set_color_wheel(float a, float a_offset, float a_cycles, int mode,
                      int logmode, float fscale) ;
+
 int dngheat(float f, float *r, float *g, float *b);
+int dngcolorwheel(float f, float *r, float *g, float *b);
+
 void restore_ripflags(int mode) ;
 void dilate_ripped(void) ;
 void floodfill_marked_patch(int filltype) ;
@@ -2208,7 +2211,6 @@ int  main(int argc,char *argv[])
 
   char tcl_cmd[1024];
   int err;
-  /* end rkt */
 
   InitDebugging("tksurfer") ;
   EnableDebuggingOutput ;
@@ -14367,14 +14369,15 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors)
   /* begin rkt */
   GLubyte r_base, b_base, g_base;
   GLubyte r_overlay, b_overlay, g_overlay;
-  float val, val2;
-  int mode;
-  float m[4][4];
-  float nz;
-  int maskout=0;
+  float val, val2, m[4][4], nz;
+  int maskout=0, mode;
   extern MRI *mrismask;
   extern double mrismaskthresh;
-  /* end rkt */
+  float min, mid, max;
+
+  min = (float)(fthresh);
+  mid = (float)(fmid);
+  max = (0.5 / (float)fslope) + (float)fmid;
 
   /* So we can get vertex normals in camera space and color backfaces
      red. */
@@ -14469,24 +14472,18 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors)
         labl_apply_color_to_vertex (n, &r, &g, &b ); // n = vertex no
 
       /* if overlay flag is on... */
-      if (overlayflag)
-      {
-        if (complexvalflag)
-        {
+      if(overlayflag) {
+        if(complexvalflag) {
           /* if complexvalflag is on, we have to do this
              special drawing thing. this is for compatibility
              with the two-cond stuff. assumes that val, val2,
              and stat are loaded. */
           if (surfcolor)
             get_complexval_color_vals(v->val,v->val2,v->stat,v->curv,
-                                      &r_overlay,
-                                      &g_overlay,
-                                      &b_overlay);
+                                      &r_overlay,&g_overlay,&b_overlay);
           else
             get_complexval_color_vals(v->val,v->val2,v->stat,0,
-                                      &r_overlay,
-                                      &g_overlay,
-                                      &b_overlay);
+                                      &r_overlay,&g_overlay,&b_overlay);
 
           r = r_overlay;
           g = g_overlay;
@@ -14628,8 +14625,8 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors)
 /*!
   \fn int get_color_vals()
   \brief Appears to set the RGB based only on the curv. The "val"
-  arg is immediately offset with foffset. Colors of the
-  overlay are controlled with sclv_apply_color_for_value().
+  arg is immediately offset with foffset (set on the gui). 
+  Colors of the overlay are controlled with sclv_apply_color_for_value().
 */
 static int get_color_vals(float val, float curv, int mode,
                           GLubyte *pr, GLubyte *pg, GLubyte *pb)
@@ -20519,7 +20516,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.295 2008/01/16 05:38:13 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.296 2008/01/16 21:56:03 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25728,7 +25725,7 @@ int sclv_apply_color_for_value (float f, float opacity,
   // extern double fcurv; // sets curv thresh
 
   /* Adjust by foffset. */
-  f -= foffset; // foffset might always be 0
+  f -= foffset; // foffset default is 0 (can be changed on gui)
 
   r = g = b = 0.0f ;
   if (invphaseflag)           f = -f;
@@ -29870,4 +29867,73 @@ int dngheat(float f, float *r, float *g, float *b)
     *b = c1;
   }
   return(0);
+}
+
+int dngcolorwheel(float f, float *r, float *g, float *b)
+{
+  static float x0 = 0.0;
+  static float x1 = 1.0/6.0;
+  static float x2 = 2.0/6.0;
+  static float x3 = 3.0/6.0;
+  static float x4 = 4.0/6.0;
+  static float x5 = 5.0/6.0;
+  static float x6 = 1.0;
+  float f2, xA, xB;
+
+  f2 = f/2; // expecting -1 <= f <= +1, so -0.5 <= f2 <= +0.5
+  if(fabs(f2) > 0.5) f2 = remainder(f2,0.5); // force it
+  f2 = f2 + 0.5; // recenter so that 0 <= f2 <= +1
+
+  xA = x0;
+  xB = x1;
+  if(f2 >= xA && f2 < xB){
+    *r = 1.0;
+    *g = (f2-xA)/(xB-xA);
+    *b = 0.0;
+    return(0);
+  }
+
+  xA = x1;
+  xB = x2;
+  if(f2 >= xA && f2 < xB){
+    *r = 1.0 - (f2-xA)/(xB-xA);
+    *g = 1.0;
+    *b = 0.0;
+    return(0);
+  }
+
+  xA = x2;
+  xB = x3;
+  if(f2 >= xA && f2 < xB){
+    *r = 0.0;
+    *g = 1.0;
+    *b = (f2-xA)/(xB-xA);
+    return(0);
+  }
+
+  xA = x3;
+  xB = x4;
+  if(f2 >= xA && f2 < xB){
+    *r = 0.0;
+    *g = 1.0 - (f2-xA)/(xB-xA);
+    *b = 1.0;
+    return(0);
+  }
+
+  xA = x4;
+  xB = x5;
+  if(f2 >= xA && f2 < xB){
+    *r = (f2-xA)/(xB-xA);
+    *g = 0.0;
+    *b = 1.0;
+    return(0);
+  }
+
+  xA = x5;
+  xB = x6;
+  *r = 1.0;
+  *g = 0.0;
+  *b = 1.0 - (f2-xA)/(xB-xA);
+  return(0);
+
 }
