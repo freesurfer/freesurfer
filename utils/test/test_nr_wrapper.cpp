@@ -7,8 +7,8 @@
  * Original Author: D. Jen
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 19:47:43 $
- *    $Revision: 1.22.2.1 $
+ *    $Date: 2008/01/16 17:40:43 $
+ *    $Revision: 1.22.2.2 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -902,6 +902,7 @@ NRWrapperTest::TestSVDcmp()
 void
 NRWrapperTest::TestRan1()
 {
+  //for (int j=0; j<1000; j++){
 
   std::cout << "\rNRWrapperTest::TestRan1()\n";
 
@@ -939,8 +940,13 @@ NRWrapperTest::TestRan1()
   }
 
   int x2Mean = numberOfBins - 1;
-  float lowerBound = 2.0;
-  float upperBound = x2Mean*3;
+  float lowerBound = 1.0;
+  float upperBound = x2Mean*4;
+
+  if (( x2 < lowerBound ) || ( x2 > upperBound ))
+  {
+    std::cout << "x2=" << x2 << std::endl;
+  }
 
   // if x2 is close to 0, it means that the
   // distribution it very uniform -- bad!
@@ -948,6 +954,8 @@ NRWrapperTest::TestRan1()
 
   // if x2 is way above the mean, then it's too non-uniform
   CPPUNIT_ASSERT( x2 < upperBound );
+
+  //} // end for (int j=0; j<1000; j++)
 }
 
 bool
