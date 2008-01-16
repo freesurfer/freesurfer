@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/01/14 21:20:00 $
- *    $Revision: 1.294 $
+ *    $Author: greve $
+ *    $Date: 2008/01/16 05:38:13 $
+ *    $Revision: 1.295 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -916,6 +916,7 @@ void draw_spokes(int option) ;
 void set_vertex_color(float r, float th, int option) ;
 void set_color_wheel(float a, float a_offset, float a_cycles, int mode,
                      int logmode, float fscale) ;
+int dngheat(float f, float *r, float *g, float *b);
 void restore_ripflags(int mode) ;
 void dilate_ripped(void) ;
 void floodfill_marked_patch(int filltype) ;
@@ -20518,7 +20519,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.294 2008/01/14 21:20:00 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.295 2008/01/16 05:38:13 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25727,7 +25728,7 @@ int sclv_apply_color_for_value (float f, float opacity,
   // extern double fcurv; // sets curv thresh
 
   /* Adjust by foffset. */
-  f -= foffset;
+  f -= foffset; // foffset might always be 0
 
   r = g = b = 0.0f ;
   if (invphaseflag)           f = -f;
@@ -25746,8 +25747,9 @@ int sclv_apply_color_for_value (float f, float opacity,
   bg = (float)*pg / 255.0;
   bb = (float)*pb / 255.0;
 
-  if (fabs(f)>fthresh && fabs(f)<fmid)
-  {
+  // Apparently, fcurv is always 0, which would mean this 
+  // section of code does nothing (dng)
+  if (fabs(f)>fthresh && fabs(f)<fmid) {
     ftmp = fabs(f);
     c1 = 1.0/(fmid-fthresh);
     if (fcurv!=1.0)
@@ -25759,20 +25761,26 @@ int sclv_apply_color_for_value (float f, float opacity,
     f = (f<0)?-ftmp:ftmp;
   }
 
-  if (colscale==HEAT_SCALE)
-  {
-    if (f>=0)
-    {
-      if (sclv_opaque)
-      {
+  if(colscale==HEAT_SCALE) {
+    if(f>=0){
+      if(sclv_opaque){
         /* If opaque, don't use blending at all. Min->mid is all
-           red, and mid->max gets yellower. */
-        r = ((f<min) ? br : 1.0);
-        g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-        b = ((f<min) ? bb : 0);
+           red, and mid->max gets yellower. Who decided that this
+	   was a good idea? */
+	// br,bg,bb are background values
+	// f<min means f>0 AND f<min
+        //r = ((f<min) ? br : 1.0);
+        //g = ((f<min) ? bg : ( f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0 );
+        //b = ((f<min) ? bb : 0);
+	// Here's my version, it actually works.
+	if(f >= min){
+	  ftmp = (f-min)/(max-min); // normalize
+	  dngheat(ftmp, &r, &g, &b);
+	} else {
+	  r=br; g=bg; b=br;
+	}
       }
-      else
-      {
+      else{
         /* the offset is a portion of the color that is 'blended'
            into the functional color so that a func value right at
            the threshold doesn't look black, but translucent. the
@@ -25785,14 +25793,18 @@ int sclv_apply_color_for_value (float f, float opacity,
         b = ob;
       }
     }
-    else
-    {
+    else { // f < 0
       f = -f;
-      if (sclv_opaque)
-      {
-        b = ((f<min) ? bb : 1.0);
-        g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-        r = ((f<min) ? br : 0);
+      if(sclv_opaque) {
+        //b = ((f<min) ? bb : 1.0);
+        //g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+        //r = ((f<min) ? br : 0);
+	if(f >= min){
+	  ftmp = (f-min)/(max-min); // normalize
+	  dngheat(-ftmp, &r, &g, &b);
+	} else {
+	  r=br; g=bg; b=br;
+	}
       }
       else
       {
@@ -29820,4 +29832,42 @@ void LoadMRISMask(void)
     sscanf(threshstring,"%lf",&mrismaskthresh);
     printf("mris mask thresh = %lf\n",mrismaskthresh);
   }
+}
+
+int dngheat(float f, float *r, float *g, float *b)
+{
+  static float x0 = 0.0;
+  static float x1 = 1.0/3.0;
+  static float x2 = 1.0;
+  static float a1 = 0.5625;
+  static float a2 = 0.4375; //1-a1
+  float absf, c1=0, cg=0, c3=0;
+
+  absf = fabs(f);
+
+  if(absf >= x0 && absf <= x1){
+    c1 = a1 + a2*absf/(x1-x0);
+    cg = 0.0;
+    c3 = 0.0;
+  }
+  if(absf > x1 && absf <= x2){
+    c1 = 1;
+    cg = (absf-x1)/(x2-x1);
+    c3 = 0.0;
+  }
+  if(absf > x2){
+    c1 = 1.0;
+    cg = 1.0;
+    c3 = 0.0;
+  }
+
+  *g = cg;
+  if(f >= 0.0){
+    *r = c1;
+    *b = c3;
+  } else {
+    *r = c3;
+    *b = c1;
+  }
+  return(0);
 }
