@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/01/07 20:13:56 $
-#    $Revision: 1.19 $
+#    $Date: 2008/01/17 13:48:29 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.19 2008/01/07 20:13:56 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.20 2008/01/17 13:48:29 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -405,7 +405,7 @@ foreach hemi ($TEST_HEMIS)
 end
 
 
-set TEST_CURVS=(curv curv.pial sulc thickness area area.pial)
+set TEST_CURVS=(curv curv.pial sulc thickness area area.pial volume)
 set TEST_HEMIS=(rh lh)
 
 foreach hemi ($TEST_HEMIS)
