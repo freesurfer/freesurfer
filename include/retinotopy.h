@@ -8,8 +8,8 @@
  * Original Author: Doug Greve (and Marty and Anders, for now)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/15 23:47:39 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/01/17 17:55:25 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@
 #endif
 
 void RETcompute_fieldsign(MRIS *mris);
-void RETcompute_angles(MRIS *mris);
+void RETcompute_angles(MRIS *mris, double EccenRotAngleRad, double PolarRotAngleRad);
 int RETlogMap(MRIS *surf, double k, double a, double xc0, double yc0);
 int RETinvLogMapFunc(double xc, double yc, double xc0, double yc0, 
 		     double a, double k, double *r, double *theta);

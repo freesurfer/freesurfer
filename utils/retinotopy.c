@@ -8,8 +8,8 @@
  * Original Author: Doug Greve (and Marty and Anders, for now)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/15 23:47:39 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/01/17 17:55:25 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@ double round(double x);
     valbak  = angle for polar (-pi to +pi)
     val2bak = log10(p) for polar
   ------------------------------------------------------------*/
-void RETcompute_angles(MRIS *mris)
+void RETcompute_angles(MRIS *mris, double EccenRotAngleRad, double PolarRotAngleRad)
 {
   int k;
   float val,valbak,val2,val2bak;
@@ -57,10 +57,12 @@ void RETcompute_angles(MRIS *mris)
     if (!mris->vertices[k].ripflag) {
       // Eccen: 0-2pi
       val = atan2(mris->vertices[k].val2,mris->vertices[k].val);
+      val += EccenRotAngleRad;
       if(val < 0.0) val += (2*M_PI); 
       val2 = sqrt(SQR(mris->vertices[k].val2)+SQR(mris->vertices[k].val));
       // Polar
       valbak = atan2(mris->vertices[k].val2bak,mris->vertices[k].valbak);
+      valbak += PolarRotAngleRad;
       val2bak = sqrt(SQR(mris->vertices[k].val2bak)+
                      SQR(mris->vertices[k].valbak));
     }
