@@ -23,20 +23,20 @@
  *
  *  Example of a legal file:
  *  ------------------------- cut here ------------------
-GroupDescriptorFile 1
-Title MyTitle
-MeasurementName thickness
-RegistrationSubject average7
-PlotFile /space/greve/1/users/greve/f_000.bfloat
+ GroupDescriptorFile 1
+ Title MyTitle
+ MeasurementName thickness
+ RegistrationSubject average7
+ PlotFile /space/greve/1/users/greve/f_000.bfloat
 
-Class Class1 plus blue
-CLASS Class2 circle green
-SomeTag
-Variables             Age  Weight   IQ
-Input subjid1 Class1   10    100   1000
-Input subjid2 Class2   20    200   2000
-#Input subjid3 Class2   20    200   2000
-DefaultVariable Age
+ Class Class1 plus blue
+ CLASS Class2 circle green
+ SomeTag
+ Variables             Age  Weight   IQ
+ Input subjid1 Class1   10    100   1000
+ Input subjid2 Class2   20    200   2000
+ #Input subjid3 Class2   20    200   2000
+ DefaultVariable Age
  *   ------------------------- cut here ------------------
  *
  *  NOTE: SomeTag is not a valid tag, so it will be ignored.
@@ -44,12 +44,12 @@ DefaultVariable Age
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/27 21:36:24 $
- *    $Revision: 1.43 $
+ *    $Author: nicks $
+ *    $Date: 2008/01/17 19:21:07 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -293,13 +293,13 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
       sprintf(datafilename,"%s/%s",dirname,gd->DesignMatFile);
       if (!fio_FileExistsReadable(datafilename)) {
 
-	/* If that doesn't work, try the path from the GDF file and the
-	   base of the file name. */
-	basename = fio_basename(gd->DesignMatFile,NULL);
-	sprintf(datafilename,"%s/%s",dirname,basename);	
-	free(basename);
+        /* If that doesn't work, try the path from the GDF file and the
+           base of the file name. */
+        basename = fio_basename(gd->DesignMatFile,NULL);
+        sprintf(datafilename,"%s/%s",dirname,basename);
+        free(basename);
       }
-      
+
       if (!fio_FileExistsReadable(datafilename)) {
         printf("ERROR: gdfRead: could not find file %s\n",gd->DesignMatFile);
         return(NULL);
@@ -334,16 +334,16 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
       strcpy(datafilename,gd->datafile);
     else {
       /* Construct the path of the data file by concat the
-      path from the GDF file and the data file name */
+         path from the GDF file and the data file name */
       if (NULL != dirname)
         sprintf(datafilename,"%s/%s",dirname,gd->datafile);
-      
+
       /* If that doesn't work, try the path from the GDF file and the
-	 base of the file name. */
+         base of the file name. */
       if (!fio_FileExistsReadable(datafilename)) {
-	basename = fio_basename(gd->datafile,NULL);
-        sprintf(datafilename,"%s/%s",dirname,basename);	
-	free(basename);
+        basename = fio_basename(gd->datafile,NULL);
+        sprintf(datafilename,"%s/%s",dirname,basename);
+        free(basename);
       }
     }
 
@@ -490,7 +490,7 @@ static FSGD *gdfReadV1(char *gdfname) {
       r = gdfCountItemsInString(tmpstr);
       if (r == 1) sscanf(tmpstr,"%s",gd->classmarker[gd->nclasses]);
       if (r == 2) sscanf(tmpstr,"%s %s",gd->classmarker[gd->nclasses],
-                           gd->classcolor[gd->nclasses]);
+                         gd->classcolor[gd->nclasses]);
       gd->nclasses ++;
       continue;
     }
@@ -648,7 +648,7 @@ static FSGD *gdfReadV1(char *gdfname) {
 
   return(gd);
 
-formaterror:
+ formaterror:
   printf("FSGDF Format Error: file = %s, tag=%s\n",gdfname,tag);
   gdfFree(&gd);
   FSENVfree(&env);
@@ -1030,7 +1030,7 @@ int gdfCheckMatrixMethod(char *gd2mtx_method) {
   if ( strcmp(gd2mtx_method,"doss") == 0 ||
        strcmp(gd2mtx_method,"dods") == 0 ||
        strcmp(gd2mtx_method,"none") == 0
-     ) return(0);
+    ) return(0);
 
   printf("ERROR: gd2mtx method %s unrecoginzied.\n",gd2mtx_method);
   printf("       Legal values are dods, doss, and none.\n");
@@ -1513,7 +1513,7 @@ int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject,
   are included. If nVars == -1, all variables are included.
   -------------------------------------------------------*/
 FSGD *gdfSubSet(FSGD *infsgd, int nClasses, char **ClassList,
-                int nVars, char **VarList) 
+                int nVars, char **VarList)
 {
   FSGD *fsgd;
   int n, nCUse, nVUse, c, ic, v, iv, ninputs, ok;
