@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/16 00:10:09 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/01/17 02:40:16 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -438,7 +438,7 @@ ProgressUpdateGUI* QdecGlmDesign::GetProgressUpdateGUI ( )
 /**
  * SetExcludeSubjectID( const char* isSubjecID, bool ibExclude ) -
  * sets a subject ID's exclusion status. If excluded, it will not be
- * included when writing the ydata file. This function modifies the
+ * included when writing the fsgd and ydata files. This function modifies the
  * maExcludedSubjects set, adding the subject ID if ibExclude is true
  * and removing it if not.
  * param const char* isSubjectID
@@ -474,6 +474,68 @@ bool QdecGlmDesign::GetExcludeSubjectID ( const char* isSubjectID )
   else
     return false;
 }
+
+/**
+ * SetExcludeSubjectsFactorGT
+ */
+void  QdecGlmDesign::SetExcludeSubjectsFactorGT ( const char* isFactorName,
+                                                  double inExcludeGT,
+                                                  bool ibExclude )
+{
+  assert( isFactorName );
+
+  vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
+  unsigned int nInputs = subjs.size();
+  for (unsigned int m=0; m < nInputs; m++)
+  {
+    if (subjs[m]->GetContinuousFactor( isFactorName ) > inExcludeGT)
+    {
+      this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), ibExclude );
+    }
+  }
+}
+
+/**
+ * SetExcludeSubjectsFactorLT
+ */
+void  QdecGlmDesign::SetExcludeSubjectsFactorLT ( const char* isFactorName,
+                                                  double inExcludeLT,
+                                                  bool ibExclude )
+{
+  assert( isFactorName );
+
+  vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
+  unsigned int nInputs = subjs.size();
+  for (unsigned int m=0; m < nInputs; m++)
+  {
+    if (subjs[m]->GetContinuousFactor( isFactorName ) < inExcludeLT)
+    {
+      this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), ibExclude );
+    }
+  }
+}
+
+/**
+ * ClearAllExcludedSubjects
+ */
+void  QdecGlmDesign::ClearAllExcludedSubjects ( )
+{
+  vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
+  unsigned int nInputs = subjs.size();
+  for (unsigned int m=0; m < nInputs; m++)
+  {
+    this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), 0 );
+  }
+}
+
+/**
+ * GetNumberOfExcludedSubjects
+ */
+int QdecGlmDesign::GetNumberOfExcludedSubjects ( )
+{
+  return this->maExcludedSubjects.size();
+}
+
 
 /**
  * GetNumberOfClasses( ) - returns the number of classes for the design.
@@ -615,6 +677,12 @@ int QdecGlmDesign::WriteFsgdFile ( )
   unsigned int nInputs = subjs.size();
   for (unsigned int m=0; m < nInputs; m++)
   {
+    // If this name is in our list of subject exclusions, skip it.
+    if( maExcludedSubjects.find( subjs[m]->GetId() ) !=
+        maExcludedSubjects.end() ) {
+      continue;
+    }
+
     fprintf( fp, "Input %s ", subjs[m]->GetId().c_str() );
     if ( nDiscreteFactors > 0 )
     {
@@ -1234,7 +1302,10 @@ int QdecGlmDesign::WriteContrastMatrices ()
 int QdecGlmDesign::WriteYdataFile ( )
 {
   if( !this->IsValid() ) {
-    fprintf( stderr, "ERROR: QdecGlmDesign::WriteYdataFile: Design parameters not valid.\n" );
+    fprintf
+      ( stderr, 
+        "ERROR: QdecGlmDesign::WriteYdataFile: "
+        "Design parameters not valid.\n" );
     return(-1);
   }
 

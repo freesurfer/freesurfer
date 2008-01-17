@@ -11,11 +11,11 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/25 19:19:37 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2008/01/17 02:40:16 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -228,6 +228,30 @@ public:
    */
   bool GetExcludeSubjectID ( const char* isSubjectID );
 
+  /**
+   * SetExcludeSubjectsFactorGT
+   */
+  void SetExcludeSubjectsFactorGT ( const char* isFactorName,
+                                    double inExcludeGT,
+                                    bool ibExclude );
+
+  /**
+   * SetExcludeSubjectsFactorLT
+   */
+  void SetExcludeSubjectsFactorLT ( const char* isFactorName,
+                                    double inExcludeLT,
+                                    bool ibExclude );
+
+  /**
+   * ClearAllExcludedSubjects
+   */
+  void  ClearAllExcludedSubjects ( );
+
+  /**
+   * GetNumberOfExcludedSubjects
+   */
+  int  GetNumberOfExcludedSubjects ( );
+
   /** 
    * Access the discrete and continuous factor names.
    * Returns a const vector of QdecFactors pointers. 
@@ -261,9 +285,9 @@ private:
   ProgressUpdateGUI* mProgressUpdateGUI;  
 
   // A list of excluded subjects. These will not be included when
-  // writing the ydata file. The key values are subject IDs, as found
-  // in data table, and if there is a value present in the set, that
-  // subject is to be excluded.
+  // writing the fsgd and ydata files. The key values are subject IDs, 
+  // as found in data table, and if there is a value present in the set,
+  // that subject is to be excluded.
   std::set<string> maExcludedSubjects;
 
   // private methods
