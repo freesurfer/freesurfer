@@ -87,6 +87,8 @@ Usage() {
     echo "-n (number of fibres per voxel, default 2)"
     echo "-w (ARD weight, more weight means less fibres killed per voxel, default 1)"
     echo "-b (burnin period, default 1000)"
+    echo "-j (number of jumps, default 1250)"
+    echo "-s (sample every, default 25)"
     echo ""
     echo "This is a modified version of FSL's bedpostx that is compatible with"
     echo "the PBS queueing system running on seychelles and can be used by"
@@ -134,12 +136,16 @@ echo subjectdir is $subjdir
 nfibres=2
 fudge=1
 burnin=1000
+njumps=1250
+sampleevery=25
 while [ ! -z "$2" ]
 do
   case "$2" in
       -n) nfibres=$3;shift;;
       -w) fudge=$3;shift;;
       -b) burnin=$3;shift;;
+      -j) njumps=$3;shift;;
+      -s) sampleevery=$3;shift;;
       *) break;;
   esac
   shift
@@ -187,11 +193,38 @@ preprocid=`${BPDIR}/fsl_sub_seychelles -l ${subjdir}.bedpostX/logs -m a -N bedpo
 echo Queuing parallel processing stage
 nslices=`${FSLDIR}/bin/fslval ${subjdir}/data dim3`
 [ -f ${subjdir}.bedpostX/commands.txt ] && rm ${subjdir}.bedpostX/commands.txt
+if [ "x$SGE_ROOT" = "x" ] && [ ! -d /pbs ]; then
+# 
+# Need to set off a backgrounded monitoring task
+# 
+    cat <<EOM > ${subjdir}.bedpostX/monitor
+#!/bin/sh
+finished=0
+logdir=${subjdir}.bedpostX/logs
+while [ \$finished -eq 0 ] ; do
+    nfin=0
+    if [ -f \$logdir/bedpostx.o*.1 ] ; then
+      nfin=\`cat \$logdir/bedpostx.o* |\
+        grep Done | wc -w | awk '{print \$1}'\` 
+    fi
+    if [ \$nfin -eq $nslices ] ; then
+        finished=1
+    fi
+
+    echo "\$nfin slices processed"
+    sleep 600;
+done
+EOM
+    chmod +x ${subjdir}.bedpostX/monitor
+    ${subjdir}.bedpostX/monitor&
+    monitorpid=$!
+fi
 for ((slice=0; slice < $nslices; slice++)) ; do
-    echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $slice" \
+    echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $njumps $sampleevery $slice" \
 	>> ${subjdir}.bedpostX/commands.txt
 done
 bedpostid=`${BPDIR}/fsl_sub_seychelles -j $preprocid -l ${subjdir}.bedpostX/logs -m a -N bedpostx -t ${subjdir}.bedpostX/commands.txt`
+[ "x$SGE_ROOT" = "x" ] && [ ! -d /pbs ] && kill $monitorpid
 
 echo Queuing post processing stage
 mergeid=`${BPDIR}/fsl_sub_seychelles -j $bedpostid -l ${subjdir}.bedpostX/logs -m ae -N bedpostx_post ${FSLDIR}/bin/bedpostx_postproc.sh $subjdir`
@@ -205,7 +238,7 @@ finished=0
 logdir=${subjdir}.bedpostX/logs
 while [ \$finished -eq 0 ] ; do
     nfin=0
-    if [ -f \$logdir/bedpost.o$bedpostid.1 ] ; then
+    if [ -f \$logdir/bedpostx.o$bedpostid.1 ] ; then
       nfin=\`cat \$logdir/bedpostx.o$bedpostid.* |\
         grep Done | wc -w | awk '{print \$1}'\` 
     fi
