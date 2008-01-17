@@ -9,9 +9,9 @@
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/01/17 19:34:04 $
- *    $Revision: 1.21 $
+ *    $Author: nicks $
+ *    $Date: 2008/01/17 22:54:33 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -162,13 +162,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.21 2008/01/17 19:34:04 fischl Exp $",
+   "$Id: mri_cc.c,v 1.22 2008/01/17 22:54:33 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.21 2008/01/17 19:34:04 fischl Exp $",
+           "$Id: mri_cc.c,v 1.22 2008/01/17 22:54:33 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -231,9 +231,13 @@ main(int argc, char *argv[])
     {
       if (force == 0)
       {
-        printf("%s: volume %s already has CC in it. Run with -force to reprocess (not recommended)\n", 
-               Progname, ifname) ;
-        exit(777) ;
+        fflush(stdout);
+        fflush(stderr);
+        ErrorExit
+          (77,
+           "%s: volume %s already has CC in it.\n"
+           "Run with -force to reprocess (not recommended)\n", 
+           Progname, ifname) ;
       }
       // need to replace the cc labels with either lh or rh wm here...
     }
