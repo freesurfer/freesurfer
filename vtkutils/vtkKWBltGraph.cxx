@@ -10,14 +10,14 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.13 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.14 $" );
 
-unsigned long const vtkKWBltGraph::MouseoverEnterElementEvent = 
-  vtkCommand::UserEvent + 1;
-unsigned long const vtkKWBltGraph::MouseoverExitElementEvent = 
-  vtkCommand::UserEvent + 2;
-unsigned long const vtkKWBltGraph::ContextualMenuOpening = 
-  vtkCommand::UserEvent + 3;
+unsigned long const vtkKWBltGraph::MouseoverEnterElementEvent =
+vtkCommand::UserEvent + 1;
+unsigned long const vtkKWBltGraph::MouseoverExitElementEvent =
+vtkCommand::UserEvent + 2;
+unsigned long const vtkKWBltGraph::ContextualMenuOpening =
+vtkCommand::UserEvent + 3;
 
 vtkKWBltGraph::vtkKWBltGraph() :
   XAxisTitle( NULL ),
@@ -48,8 +48,9 @@ void
 vtkKWBltGraph::CreateWidget () {
 
   // Create our blt widget.
-  if (!vtkKWCoreWidget::CreateSpecificTkWidget(this, 
-	"blt::graph", "-plotbackground white -relief raised -border 2")) {
+  if (!vtkKWCoreWidget::CreateSpecificTkWidget
+      (this,
+       "blt::graph", "-plotbackground white -relief raised -border 2")) {
     vtkErrorMacro("Failed creating widget " << this->GetClassName());
     return;
   }
@@ -76,10 +77,10 @@ vtkKWBltGraph::UnBind () {
 
 void
 vtkKWBltGraph::GetPlotBackgroundColor ( double* iRed, double* iGreen,
-					double* iBlue ) {
+                                        double* iBlue ) {
 
-  this->GetConfigurationOptionAsColor ( "-plotbackground", 
-					iRed, iGreen, iBlue );
+  this->GetConfigurationOptionAsColor ( "-plotbackground",
+                                        iRed, iGreen, iBlue );
 }
 
 double*
@@ -89,57 +90,58 @@ vtkKWBltGraph::GetPlotBackgroundColor () {
 }
 
 void
-vtkKWBltGraph::SetPlotBackgroundColor ( double iRed, double iGreen, 
-					double iBlue ) {
+vtkKWBltGraph::SetPlotBackgroundColor ( double iRed, double iGreen,
+                                        double iBlue ) {
 
-  this->SetConfigurationOptionAsColor ( "-plotbackground", 
-					iRed, iGreen, iBlue );
+  this->SetConfigurationOptionAsColor ( "-plotbackground",
+                                        iRed, iGreen, iBlue );
 }
 
-void 
+void
 vtkKWBltGraph::SetRelief ( int iRelief ) {
 
-  this->SetConfigurationOption( "-relief", 
-	     vtkKWOptions::GetReliefAsTkOptionValue(iRelief) );
+  this->SetConfigurationOption
+    ( "-relief",
+      vtkKWOptions::GetReliefAsTkOptionValue(iRelief) );
 }
 
-void 
+void
 vtkKWBltGraph::SetReliefToRaised () {
 
   this->SetRelief( vtkKWOptions::ReliefRaised );
 }
 
-void 
+void
 vtkKWBltGraph::SetReliefToSunken () {
 
   this->SetRelief( vtkKWOptions::ReliefSunken );
 }
 
-void 
+void
 vtkKWBltGraph::SetReliefToFlat () {
 
   this->SetRelief( vtkKWOptions::ReliefFlat );
 }
 
-void 
+void
 vtkKWBltGraph::SetReliefToRidge () {
 
   this->SetRelief( vtkKWOptions::ReliefRidge );
 }
 
-void 
+void
 vtkKWBltGraph::SetReliefToSolid () {
 
   this->SetRelief( vtkKWOptions::ReliefSolid );
 }
 
-void 
+void
 vtkKWBltGraph::SetReliefToGroove () {
 
   this->SetRelief( vtkKWOptions::ReliefGroove );
 }
 
-int 
+int
 vtkKWBltGraph::GetRelief () {
 
   return vtkKWOptions::GetReliefFromTkOptionValue
@@ -163,7 +165,7 @@ vtkKWBltGraph::SetLegendVisible ( int ibVisible ) {
 
   if( this->IsCreated() ) {
     this->Script( "%s legend configure -hide %d",
-		  this->GetWidgetName(), !ibVisible );
+                  this->GetWidgetName(), !ibVisible );
   }
 }
 
@@ -191,7 +193,7 @@ vtkKWBltGraph::SetXAxisTitle ( const char* isTitle ) {
 
   if( NULL != XAxisTitle )
     delete [] XAxisTitle;
-  
+
   if( isTitle ) {
     int len = strlen(isTitle);
     XAxisTitle = new char[len + 1];
@@ -201,7 +203,7 @@ vtkKWBltGraph::SetXAxisTitle ( const char* isTitle ) {
   }
 
   this->Modified();
-  
+
   this->UpdateXAxisTitle();
 }
 
@@ -217,7 +219,7 @@ vtkKWBltGraph::SetYAxisTitle ( const char* isTitle ) {
 
   if( NULL != YAxisTitle )
     delete [] YAxisTitle;
-  
+
   if( isTitle ) {
     int len = strlen(isTitle);
     YAxisTitle = new char[len + 1];
@@ -227,18 +229,18 @@ vtkKWBltGraph::SetYAxisTitle ( const char* isTitle ) {
   }
 
   this->Modified();
-  
+
   this->UpdateYAxisTitle();
 }
 
 void
 vtkKWBltGraph::AddElement ( const char* isLabel, vector<double>& iPoints,
-			    const char* isSymbol, int iLineWidth,
-			    double iRed, double iGreen, double iBlue ) {
+                            const char* isSymbol, int iLineWidth,
+                            double iRed, double iGreen, double iBlue ) {
 
   if( NULL == isLabel )
     throw runtime_error( "isLabel argument must not be provided" );
-  
+
   // See if we already have an element with this label
   GraphElementList::iterator tElement;
   for( tElement = mElements.begin(); tElement != mElements.end(); ++tElement ){
@@ -250,7 +252,7 @@ vtkKWBltGraph::AddElement ( const char* isLabel, vector<double>& iPoints,
   // Make sure we have the right number of points.
   if( iPoints.size() == 0 || iPoints.size() % 2 != 0 )
     throw runtime_error( "Points must have an even number of elements" );
-  
+
   // Make a graph element structure with this data.
   GraphElement element;
   element.msLabel = isLabel;
@@ -264,8 +266,22 @@ vtkKWBltGraph::AddElement ( const char* isLabel, vector<double>& iPoints,
 
   // Add it to our list of elements.
   mElements.push_back( element );
-		
+
   this->Modified();
+}
+
+void
+vtkKWBltGraph::DeleteElement ( const char* isLabel ) {
+  GraphElementList::iterator tElement;
+  for( tElement = mElements.begin(); tElement != mElements.end(); ++tElement ){
+    if( tElement->msLabel == isLabel ) {
+      // This will erase it in the graph
+      this->Script( "%s element delete %s", this->GetWidgetName(), isLabel );
+      // and in our vector
+      mElements.erase( tElement );
+      break;
+    }
+  }
 }
 
 void
@@ -274,12 +290,12 @@ vtkKWBltGraph::DeleteAllElements () {
   // Delete all our elements.
   GraphElementList::iterator tElement;
   for( tElement = mElements.begin(); tElement != mElements.end(); ++tElement ){
-    
+
     GraphElement& element = *tElement;
 
-    // This will erase it in the graph.    
-    this->Script( "%s element delete %s", 
-		  this->GetWidgetName(), element.msLabel.c_str() );
+    // This will erase it in the graph
+    this->Script( "%s element delete %s",
+                  this->GetWidgetName(), element.msLabel.c_str() );
   }
 
   mElements.clear();
@@ -293,10 +309,10 @@ vtkKWBltGraph::UpdateXAxisTitle () {
     // Set the title in the graph.
     if( NULL != XAxisTitle ) {
       this->Script( "%s axis configure x -title {%s}",
-		    this->GetWidgetName(), XAxisTitle );
+                    this->GetWidgetName(), XAxisTitle );
     } else {
       this->Script( "%s axis configure x -title {}",
-		    this->GetWidgetName() );
+                    this->GetWidgetName() );
     }
 
   }
@@ -310,10 +326,10 @@ vtkKWBltGraph::UpdateYAxisTitle () {
     // Set the title in the graph.
     if( NULL != YAxisTitle ) {
       this->Script( "%s axis configure y -title {%s}",
-		    this->GetWidgetName(), YAxisTitle );
+                    this->GetWidgetName(), YAxisTitle );
     } else {
       this->Script( "%s axis configure y -title {}",
-		    this->GetWidgetName() );
+                    this->GetWidgetName() );
     }
 
   }
@@ -325,37 +341,37 @@ vtkKWBltGraph::Draw () {
   if( !this->IsCreated() )
     return;
 
-  if( mElements.size() == 0 ) 
+  if( mElements.size() == 0 )
     return;
 
   // For each element...
   GraphElementList::iterator tElement;
   for( tElement = mElements.begin(); tElement != mElements.end(); ++tElement ){
-    
+
     GraphElement& element = *tElement;
 
     // Make a string with the point data.
     stringstream ssData;
     vector<double>::iterator tPoint;
     for( tPoint = element.mPoints.begin();
-	 tPoint != element.mPoints.end(); ++tPoint ) {
+         tPoint != element.mPoints.end(); ++tPoint ) {
       ssData << (*tPoint) << " ";
     }
 
     // Use a Tcl command to set the element data in the BLT graph widget.
     this->Script( "%s element create %s "
-		  "-data {%s} " 
-		  "-color #%02x%02x%02x " // format to hex
-		  "-linewidth %d "
-		  "-symbol %s",
-		  this->GetWidgetName(),
-		  element.msLabel.c_str(),
-		  ssData.str().c_str(),
-		  (int)(element.mRed * 255.0),
-		  (int)(element.mGreen * 255.0),
-		  (int)(element.mBlue * 255.0),
-		  element.mLineWidth,
-		  element.msSymbol.c_str() );
+                  "-data {%s} "
+                  "-color #%02x%02x%02x " // format to hex
+                  "-linewidth %d "
+                  "-symbol %s",
+                  this->GetWidgetName(),
+                  element.msLabel.c_str(),
+                  ssData.str().c_str(),
+                  (int)(element.mRed * 255.0),
+                  (int)(element.mGreen * 255.0),
+                  (int)(element.mBlue * 255.0),
+                  element.mLineWidth,
+                  element.msSymbol.c_str() );
 
   }
 }
@@ -364,7 +380,7 @@ void
 vtkKWBltGraph::MotionCallback ( const char* isWidget, int iX, int iY ) {
 
   // We're getting window coords, try to convert to graph coords.
-  const char* sReply = 
+  const char* sReply =
     this->Script( "%s invtransform %d %d", this->GetWidgetName(), iX, iY );
   if( sReply ) {
 
@@ -375,73 +391,73 @@ vtkKWBltGraph::MotionCallback ( const char* isWidget, int iX, int iY ) {
 
     // Go through our elements and try to find the closest point.
     GraphElementList::iterator tElement;
-    for( tElement = mElements.begin(); 
-	 tElement != mElements.end(); ++tElement ){
-    
+    for( tElement = mElements.begin();
+         tElement != mElements.end(); ++tElement ){
+
       GraphElement& element = *tElement;
 
       double minDist2 = numeric_limits<double>::max();
       string sMinElement = "";
       int nMinPoint = 0;
       double minX = 0, minY = 0;
-      
+
       vector<double>::iterator tPoint;
       bool bX = true;
       double pointX = 0, pointY = 0;
       int nPoint = 0;
       for( tPoint = element.mPoints.begin();
-	   tPoint != element.mPoints.end(); ++tPoint ) {
-	// Get an x one round, then get a y the next one.
-	if( bX ) {
-	  pointX = (*tPoint);
-	  bX = false;
-	} else {
-	  pointY = (*tPoint);
-	  // Calc the distance and compare.
-	  double dist2 = (pointX-x)*(pointX-x) + (pointY-y)*(pointY-y);
-	  if( dist2 < minDist2 ) {
-	    // If this is a new min, save its info.
-	    minDist2 = dist2;
-	    sMinElement = element.msLabel;
-	    nMinPoint = nPoint;
-	    minX = pointX;
-	    minY = pointY;
-	  }
-	  bX = true;
-	  nPoint++;
-	}
+           tPoint != element.mPoints.end(); ++tPoint ) {
+        // Get an x one round, then get a y the next one.
+        if( bX ) {
+          pointX = (*tPoint);
+          bX = false;
+        } else {
+          pointY = (*tPoint);
+          // Calc the distance and compare.
+          double dist2 = (pointX-x)*(pointX-x) + (pointY-y)*(pointY-y);
+          if( dist2 < minDist2 ) {
+            // If this is a new min, save its info.
+            minDist2 = dist2;
+            sMinElement = element.msLabel;
+            nMinPoint = nPoint;
+            minX = pointX;
+            minY = pointY;
+          }
+          bX = true;
+          nPoint++;
+        }
       }
 
       if( minDist2 < numeric_limits<double>::max() ){
-	// Convert our min x and y back to window coords and compare
-	// the distance to our mouse over distance. We convert to
-	// window coords so we can do the comparison in pixels.
-	sReply = this->Script( "%s transform %f %f",
-			       this->GetWidgetName(), minX, minY );
-	if( sReply ) {
-	  float minWindowX, minWindowY;
-	  stringstream ssReply( sReply );
-	  ssReply >> minWindowX >> minWindowY;
-	  double distance = sqrt( (minWindowX-iX)*(minWindowX-iX) +
-				  (minWindowY-iY)*(minWindowY-iY) );
-	  if( distance < mMouseoverDistanceToElement ) {
-	    // We found a good one. Notify our observers.
-	    SelectedElementAndPoint foundElement;
-	    foundElement.msLabel = sMinElement.c_str();
-	    foundElement.mnPointInElement = nMinPoint;
-	    foundElement.mElementX = minX;
-	    foundElement.mElementY = minY;
-	    foundElement.mWindowX = iX;
-	    foundElement.mWindowY = iY;
-	    foundElement.mDistanceToElement = distance;
-	    this->InvokeEvent( MouseoverEnterElementEvent, &foundElement );
-	    
-	    // Remember information about this moused over element.
-	    mbCurrentlyOverElement = true;
-	    msCurrentMouseoverElement = sMinElement.c_str();
-	    return;
-	  }
-	}
+        // Convert our min x and y back to window coords and compare
+        // the distance to our mouse over distance. We convert to
+        // window coords so we can do the comparison in pixels.
+        sReply = this->Script( "%s transform %f %f",
+                               this->GetWidgetName(), minX, minY );
+        if( sReply ) {
+          float minWindowX, minWindowY;
+          stringstream ssReply( sReply );
+          ssReply >> minWindowX >> minWindowY;
+          double distance = sqrt( (minWindowX-iX)*(minWindowX-iX) +
+                                  (minWindowY-iY)*(minWindowY-iY) );
+          if( distance < mMouseoverDistanceToElement ) {
+            // We found a good one. Notify our observers.
+            SelectedElementAndPoint foundElement;
+            foundElement.msLabel = sMinElement.c_str();
+            foundElement.mnPointInElement = nMinPoint;
+            foundElement.mElementX = minX;
+            foundElement.mElementY = minY;
+            foundElement.mWindowX = iX;
+            foundElement.mWindowY = iY;
+            foundElement.mDistanceToElement = distance;
+            this->InvokeEvent( MouseoverEnterElementEvent, &foundElement );
+
+            // Remember information about this moused over element.
+            mbCurrentlyOverElement = true;
+            msCurrentMouseoverElement = sMinElement.c_str();
+            return;
+          }
+        }
       }
     }
   }
@@ -449,7 +465,7 @@ vtkKWBltGraph::MotionCallback ( const char* isWidget, int iX, int iY ) {
   // If we got here, we couldn't find an element to mouseover. If we
   // were previously over one, send an event that we no longer are.
   if( mbCurrentlyOverElement ) {
-    
+
     this->InvokeEvent( MouseoverExitElementEvent, NULL );
     mbCurrentlyOverElement = false;
   }
@@ -460,13 +476,13 @@ vtkKWBltGraph::Button3DownCallback ( const char* isWidget, int iX, int iY ) {
 
   // If we're moused over an element...
   if( mbCurrentlyOverElement ) {
-    
+
     // Make a menu.
-    vtkSmartPointer<vtkKWMenu> popup = 
+    vtkSmartPointer<vtkKWMenu> popup =
       vtkSmartPointer<vtkKWMenu>::New();
     popup->SetParent( this );
     popup->Create();
-    
+
     // Make a struct with this menu and the currently moused over
     // element, and invoke the event that will let observers populate
     // the menu.
@@ -474,7 +490,7 @@ vtkKWBltGraph::Button3DownCallback ( const char* isWidget, int iX, int iY ) {
     data.mMenu = popup;
     data.msElement = msCurrentMouseoverElement.c_str();
     this->InvokeEvent( ContextualMenuOpening, (void*)&data );
-    
+
     // If we have any items in this menu, pop it up.
     if( popup->GetNumberOfItems() > 0 )
       popup->PopUp( iX, iY );

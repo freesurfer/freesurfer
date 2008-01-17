@@ -105,7 +105,8 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   void Draw ();
 
   // Description:
-  // Delete all elements
+  // Delete <all> element<s>
+  void DeleteElement ( const char* isLabel );
   void DeleteAllElements ();
 
   // Description:
