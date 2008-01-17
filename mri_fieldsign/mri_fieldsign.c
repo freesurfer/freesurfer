@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/15 23:48:07 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/01/17 17:57:05 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.9 2008/01/15 23:48:07 greve Exp $
+// $Id: mri_fieldsign.c,v 1.10 2008/01/17 17:57:05 greve Exp $
 
 /*
   BEGINHELP
@@ -88,7 +88,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.9 2008/01/15 23:48:07 greve Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.10 2008/01/17 17:57:05 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -117,6 +117,9 @@ int ReverseSign = 0;
 int SFATrue = 0;
 int UseSphere = 0;
 int usenew = 1;
+double EccenRotAngle = 0;
+double PolarRotAngle = 0;
+
 int RETcompute_fieldsign2(MRIS *mris);
 
 /*---------------------------------------------------------------*/
@@ -241,7 +244,8 @@ int main(int argc, char *argv[]) {
   MRIScopyMRI(surf, mri, 3, "val2bak");// polar imag
 
   // Note: angle is also in 10th frame (f0=9) of SFA
-  RETcompute_angles(surf);
+  printf("Rot (rad): %g %g\n",EccenRotAngle,PolarRotAngle);
+  RETcompute_angles(surf,EccenRotAngle,PolarRotAngle);
   if(EccenOut){
     mritmp = MRIcopyMRIS(NULL, surf, 0, "val");
     MRIwrite(mritmp,EccenOut);
@@ -376,6 +380,16 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       PolarOut = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--eccen-rot")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&EccenRotAngle); //degrees
+      EccenRotAngle *= M_PI/180.0;
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--polar-rot")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&PolarRotAngle); //degrees
+      PolarRotAngle *= M_PI/180.0;
+      nargsused = 1;
     } else if (!strcasecmp(option, "--s")) {
       if (nargc < 1) CMDargNErr(option,1);
       subject = pargv[0];
@@ -443,7 +457,10 @@ static void print_usage(void) {
   printf("   --eccen-sfa sfafile : eccen selfreqavg file \n");
   printf("   --polar-sfa sfafile : polar selfreqavg file \n");
   printf("   --sfa sfadir :  \n");
-  printf("   --sfa-true          : use true real and imag\n");
+  printf("   --sfa-true          : use true real and imag (only affects when smoothing)\n");
+  printf("\n");
+  printf("   --eccen-rot rotangle : rotate eccen by rotangle (degrees)\n");
+  printf("   --polar-rot rotangle : rotate polar by rotangle (degrees)\n");
   printf("\n");
   printf("   --s subject \n");
   printf("   --hemi hemi \n");
