@@ -1017,6 +1017,66 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
+  if ((!strcmp("SetExcludeSubjectGT",argv[1]))&&(argc == 3))
+    {
+    double   temp0;
+    error = 0;
+
+    if (Tcl_GetDouble(interp,argv[2],&tempd) != TCL_OK) error = 1;
+    temp0 = tempd;
+    if (!error)
+    {
+    op->SetExcludeSubjectGT(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetExcludeSubjectGT",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetExcludeSubjectGT(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetExcludeSubjectLT",argv[1]))&&(argc == 3))
+    {
+    double   temp0;
+    error = 0;
+
+    if (Tcl_GetDouble(interp,argv[2],&tempd) != TCL_OK) error = 1;
+    temp0 = tempd;
+    if (!error)
+    {
+    op->SetExcludeSubjectLT(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetExcludeSubjectLT",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetExcludeSubjectLT(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("ClearAllExcludedSubjects",argv[1]))&&(argc == 2))
+    {
+    op->ClearAllExcludedSubjects();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
   if ((!strcmp("GetAnnotationForVertex",argv[1]))&&(argc == 3))
     {
     int      temp0;
@@ -1140,6 +1200,11 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  ScatterPlotGraphMouseoverExitElement\n",NULL);
     Tcl_AppendResult(interp,"  ScatterPlotGraphSetUpContextualMenu\t with 2 args\n",NULL);
     Tcl_AppendResult(interp,"  SetExcludeSubjectID\t with 2 args\n",NULL);
+    Tcl_AppendResult(interp,"  SetExcludeSubjectGT\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetExcludeSubjectGT\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetExcludeSubjectLT\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetExcludeSubjectLT\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  ClearAllExcludedSubjects\n",NULL);
     Tcl_AppendResult(interp,"  GetAnnotationForVertex\t with 1 arg\n",NULL);
     return TCL_OK;
     }

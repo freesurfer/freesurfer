@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/14 21:29:12 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/01/17 02:41:08 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.9 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.10 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -654,6 +654,22 @@ vtkKWQdecWindow::CreateWidget () {
                 labeledEntry->GetWidgetName(), nRow );
   nRow++;
 
+  // Entry box for alternate fsaverage subject
+  labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
+  labeledEntry->SetParent( panelFrame );
+  labeledEntry->SetLabelText( "Common-space Subject:" );
+  labeledEntry->Create();
+  mEntryAverageSubject = labeledEntry->GetWidget();
+  mEntryAverageSubject->SetValue( "fsaverage" );
+  mEntryAverageSubject->SetCommandTrigger ( vtkKWEntry::TriggerOnReturnKey );
+  mEntryAverageSubject->RemoveBinding( "<Unmap>", 
+                                       mEntryAverageSubject, 
+                                       "ValueCallback" );
+  mEntryAverageSubject->SetCommand ( this, "SetAverageSubject" );
+  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
+                labeledEntry->GetWidgetName(), nRow );
+  nRow++;
+
   // Create the subject data scatter-plot exploration frame.
   vtkSmartPointer<vtkKWFrameWithLabel> exploreFrame = 
     vtkSmartPointer<vtkKWFrameWithLabel>::New();
@@ -677,22 +693,76 @@ vtkKWQdecWindow::CreateWidget () {
                 listBox->GetWidgetName() );
   mListScatterPlot->
     SetSelectionCommand( this, "ScatterPlotListBoxCallback" );
+  mListScatterPlot->SetSelectionModeToSingle();
 
+  // Create the subject exclusion frame.
+  vtkSmartPointer<vtkKWFrameWithLabel> excludeFrame = 
+    vtkSmartPointer<vtkKWFrameWithLabel>::New();
+  excludeFrame->SetParent( panelFrame );
+  excludeFrame->Create();
+  excludeFrame->SetLabelText( "Subject Exclusions" );
+  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
+                excludeFrame->GetWidgetName(), nRow );
+  nRow++;
+
+  // Entry boxes for excluding subjects
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
-  labeledEntry->SetParent( panelFrame );
-  labeledEntry->SetLabelText( "Common-space Subject:" );
+  labeledEntry->SetParent( excludeFrame->GetFrame() );
+  labeledEntry->SetLabelText( "Selected Factor:" );
   labeledEntry->Create();
-  mEntryAverageSubject = labeledEntry->GetWidget();
-  mEntryAverageSubject->SetValue( "fsaverage" );
-  mEntryAverageSubject->SetCommandTrigger ( vtkKWEntry::TriggerOnReturnKey );
-  mEntryAverageSubject->RemoveBinding( "<Unmap>", 
-                                       mEntryAverageSubject, 
-                                       "ValueCallback" );
-  mEntryAverageSubject->SetCommand ( this, "SetAverageSubject" );
+  labeledEntry->SetLabelPositionToLeft();
+  mEntryExcludeFactor = labeledEntry->GetWidget();
+  mEntryExcludeFactor->SetValue( "<none selected>" );
+  mEntryExcludeFactor->SetWidth( 25 );
+  mEntryExcludeFactor->SetReadOnly( 1 );
   this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
                 labeledEntry->GetWidgetName(), nRow );
   nRow++;
 
+  labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
+  labeledEntry->SetParent( excludeFrame->GetFrame() );
+  labeledEntry->Create();
+  labeledEntry->SetLabelText( "Greater Than:" );
+  mEntryExcludeSubjectGT = labeledEntry->GetWidget();
+  mEntryExcludeSubjectGT->SetRestrictValueToDouble();
+  mEntryExcludeSubjectGT->SetValue( "" );
+  mEntryExcludeSubjectGT->SetCommandTrigger ( vtkKWEntry::TriggerOnReturnKey );
+  mEntryExcludeSubjectGT->RemoveBinding( "<Unmap>", 
+                                         mEntryExcludeSubjectGT, 
+                                         "ValueCallback" );
+  mEntryExcludeSubjectGT->SetCommand ( this, "SetExcludeSubjectGT" );
+  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
+                labeledEntry->GetWidgetName(), nRow );
+  nRow++;
+
+  labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
+  labeledEntry->SetParent( excludeFrame->GetFrame() );
+  labeledEntry->Create();
+  labeledEntry->SetLabelText( "Less Than:" );
+  mEntryExcludeSubjectLT = labeledEntry->GetWidget();
+  mEntryExcludeSubjectLT->SetRestrictValueToDouble();
+  mEntryExcludeSubjectLT->SetValue( "" );
+  mEntryExcludeSubjectLT->SetCommandTrigger ( vtkKWEntry::TriggerOnReturnKey );
+  mEntryExcludeSubjectLT->RemoveBinding( "<Unmap>", 
+                                         mEntryExcludeSubjectLT, 
+                                         "ValueCallback" );
+  mEntryExcludeSubjectLT->SetCommand ( this, "SetExcludeSubjectLT" );
+  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
+                labeledEntry->GetWidgetName(), nRow );
+  nRow++;
+
+  // button to clear all excluded subjects
+  vtkSmartPointer<vtkKWPushButton> clrButton =
+    vtkSmartPointer<vtkKWPushButton>::New();
+  clrButton->SetParent( excludeFrame->GetFrame() );
+  clrButton->SetText( "Clear" );
+  clrButton->Create();
+  clrButton->SetCommand( this, "ClearAllExcludedSubjects" );
+  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
+                clrButton->GetWidgetName(), nRow );
+  nRow++;
+
+  // the Subjects panel is now complete, so finish configing and show...
   this->Script( "grid columnconfigure %s 0 -weight 0",
                 panelFrame->GetWidgetName() );
   this->Script( "grid columnconfigure %s 1 -weight 1",
@@ -740,13 +810,13 @@ vtkKWQdecWindow::CreateWidget () {
     vtkSmartPointer<vtkKWFrameWithLabel>::New();
   factorsFrame->SetParent( panelFrame );
   factorsFrame->Create();
-  factorsFrame->SetLabelText( "Factors" );
+  factorsFrame->SetLabelText( "Factors (Independent Variables)" );
   this->Script( "pack %s -fill x", factorsFrame->GetWidgetName() );
 
   // Discrete and continuous list boxes are inside the Factors frame.
   listBox = vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
   listBox->SetParent( factorsFrame->GetFrame() );
-  listBox->SetLabelText( "Discrete (choose up to two):" );
+  listBox->SetLabelText( "Discrete (Fixed Factors):" );
   listBox->Create();
   listBox->SetLabelPositionToTop();
   mListDiscreteFactors = listBox->GetWidget()->GetWidget();
@@ -759,7 +829,7 @@ vtkKWQdecWindow::CreateWidget () {
 
   listBox = vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
   listBox->SetParent( factorsFrame->GetFrame() );
-  listBox->SetLabelText( "Continuous (choose up to two):" );
+  listBox->SetLabelText( "Continuous (Covariates):" );
   listBox->Create();
   listBox->SetLabelPositionToTop();
   mListContinuousFactors = listBox->GetWidget()->GetWidget();
@@ -776,7 +846,7 @@ vtkKWQdecWindow::CreateWidget () {
     vtkSmartPointer<vtkKWFrameWithLabel>::New();
   measuresFrame->SetParent( panelFrame );
   measuresFrame->Create();
-  measuresFrame->SetLabelText( "Measures" );
+  measuresFrame->SetLabelText( "Measure (Dependent variable)" );
   this->Script( "pack %s -fill x", measuresFrame->GetWidgetName() );
 
   //
@@ -799,8 +869,7 @@ vtkKWQdecWindow::CreateWidget () {
   this->Script( "pack %s -fill x", morphMeasuresFrame->GetWidgetName() );
 
   nRow = 0;
-  vtkSmartPointer<vtkKWLabel> label = 
-    vtkSmartPointer<vtkKWLabel>::New();
+  vtkSmartPointer<vtkKWLabel> label = vtkSmartPointer<vtkKWLabel>::New();
   label->SetParent( morphMeasuresFrame->GetFrame() );
   label->Create();
   label->SetText( "Measure: " );
@@ -2335,6 +2404,18 @@ vtkKWQdecWindow::ScatterPlotListBoxCallback () {
   mScatterPlotSelection =
     mListScatterPlot->GetSelectionIndex();
 
+  if (mScatterPlotSelection != -1 &&
+      mEntryExcludeFactor &&
+      mEntryExcludeSubjectGT &&
+      mEntryExcludeSubjectLT) {
+    // Get the name of the selected factor.
+    string sFactor( mListScatterPlot->GetItem(mScatterPlotSelection) );
+    // and update the Subject Exclusions box
+    mEntryExcludeFactor->SetValue( sFactor.c_str() );
+    mEntryExcludeSubjectGT->SetValue( "" );
+    mEntryExcludeSubjectLT->SetValue( "" );
+  }
+
   this->UpdateScatterPlot();
 }
 
@@ -2392,15 +2473,10 @@ void
 vtkKWQdecWindow::UpdateSubjectsPage () {
 
   assert( mEntryDataTable.GetPointer() );
-  assert( mEntryNumberOfSubjects.GetPointer() );
   assert( mQdecProject );
-  assert( mQdecProject->GetDataTable() );
   assert( mListScatterPlot.GetPointer() );
 
-  QdecDataTable* dTable = this->mQdecProject->GetDataTable();
-
-  mEntryDataTable->SetValue( dTable->GetFileName().c_str() );
-  mEntryNumberOfSubjects->SetValueAsInt( dTable->GetSubjectIDs().size() );
+  this->UpdateNumberOfSubjects();
   this->mQdecProject->SetAverageSubject( mEntryAverageSubject->GetValue() );
   this->mQdecProject->SetSubjectsDir( mEntrySubjectsDir->GetValue() );
 
@@ -2411,6 +2487,23 @@ vtkKWQdecWindow::UpdateSubjectsPage () {
   for(unsigned int i=0; i < factors.size(); i++) {
     mListScatterPlot->Append( factors[i].c_str() );
   }
+}
+
+void
+vtkKWQdecWindow::UpdateNumberOfSubjects () {
+
+  assert( mEntryNumberOfSubjects.GetPointer() );
+  assert( mQdecProject );
+  assert( mQdecProject->GetDataTable() );
+  assert( mQdecProject->GetGlmDesign() );
+
+  QdecDataTable* dTable = this->mQdecProject->GetDataTable();
+  QdecGlmDesign* design = this->mQdecProject->GetGlmDesign();
+
+  mEntryDataTable->SetValue( dTable->GetFileName().c_str() );
+  mEntryNumberOfSubjects->SetValueAsInt
+    ( dTable->GetSubjectIDs().size() - design->GetNumberOfExcludedSubjects() );
+
 }
 
 void
@@ -3366,8 +3459,7 @@ vtkKWQdecWindow::UpdateScatterPlot () {
   assert( mGraph.GetPointer() );
   assert( mQdecProject );
 
-  // Remove all the elements in the graph.
-  mGraph->DeleteAllElements();
+  this->UpdateNumberOfSubjects(); // depends on number of excluded subjects
 
   if( mScatterPlotSelection != -1 ) {
       
@@ -3408,6 +3500,8 @@ vtkKWQdecWindow::UpdateScatterPlot () {
         color[2] = 1.0; // blue
       }
 
+      mGraph->DeleteElement( (*tSubject)->GetId().c_str() );
+
       // Add the data to the graph.
       mGraph->AddElement( (*tSubject)->GetId().c_str(),
                           lPoints,
@@ -3427,7 +3521,6 @@ vtkKWQdecWindow::UpdateScatterPlot () {
 
   // Draw the graph.
   mGraph->Draw();
-
 }
 
 void
@@ -3896,6 +3989,81 @@ vtkKWQdecWindow::SetExcludeSubjectID ( const char* isElement,
   // Redraw our graph.
   this->UpdateScatterPlot();
 }
+
+void
+vtkKWQdecWindow::SetExcludeSubjectGT ( double inExcludeGT ) {
+
+  if( this->mQdecProject )
+  {
+    string value = this->mEntryExcludeSubjectGT->GetValue();
+    if ( value == "") return;
+
+    this->mEntryExcludeSubjectGT->SetValueAsDouble( inExcludeGT );
+
+    // Get the design from the project.
+    QdecGlmDesign* design = mQdecProject->GetGlmDesign();
+    assert( design );
+  
+    // Set the exclude flag in the design for all subjects having the
+    // continuous factor value greater than iExcludeGT
+    design->SetExcludeSubjectsFactorGT( this->mEntryExcludeFactor->GetValue(),
+                                        inExcludeGT, 1 );
+
+    // Redraw our graph.
+    this->UpdateScatterPlot();
+  }
+}
+void
+vtkKWQdecWindow::SetExcludeSubjectGT ( const char* isExcludeGT ) {
+  if ( strcmp( isExcludeGT, "" ) == 0 ) return;
+}
+
+void
+vtkKWQdecWindow::SetExcludeSubjectLT ( double inExcludeLT ) {
+
+  if( this->mQdecProject )
+  {
+    this->mEntryExcludeSubjectLT->SetValueAsDouble( inExcludeLT );
+
+    // Get the design from the project.
+    QdecGlmDesign* design = mQdecProject->GetGlmDesign();
+    assert( design );
+  
+    // Set the exclude flag in the design for all subjects having the
+    // continuous factor value less than iExcludeLT
+    design->SetExcludeSubjectsFactorLT( this->mEntryExcludeFactor->GetValue(),
+                                       inExcludeLT, 1 );
+
+    // Redraw our graph.
+    this->UpdateScatterPlot();
+  }
+}
+void
+vtkKWQdecWindow::SetExcludeSubjectLT ( const char* isExcludeLT ) {
+  if ( strcmp( isExcludeLT, "" ) == 0 ) return;
+}
+
+
+void
+vtkKWQdecWindow::ClearAllExcludedSubjects ( ) {
+
+  if( this->mQdecProject )
+  {
+    this->mEntryExcludeSubjectGT->SetValue( "" );
+    this->mEntryExcludeSubjectLT->SetValue( "" );
+
+    // Get the design from the project.
+    QdecGlmDesign* design = mQdecProject->GetGlmDesign();
+    assert( design );
+  
+    // Clear the exclude flag in the design for all subjects
+    design->ClearAllExcludedSubjects( );
+
+    // Redraw our graph.
+    this->UpdateScatterPlot();
+  }
+}
+
 
 char const*
 vtkKWQdecWindow::GetAnnotationForVertex ( int inVertex ) {

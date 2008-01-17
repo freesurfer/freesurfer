@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/12 01:12:17 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/01/17 02:41:09 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -314,6 +314,11 @@ class vtkKWQdecWindow : public vtkKWWindow
   // factor plot elements. It affects whether or not a subject is used
   // in the QdecGlmDesign.
   void SetExcludeSubjectID ( const char* isElement, int ibExclude );
+  void SetExcludeSubjectGT ( double inExcludeGT );
+  void SetExcludeSubjectGT ( const char* isExcludeGT );
+  void SetExcludeSubjectLT ( double inExcludeLT );
+  void SetExcludeSubjectLT ( const char* isExcludeLT );
+  void ClearAllExcludedSubjects ( );
 
   // Implements QdecVertexAnnotationLookup, which the view will use to
   // get an annotation string for a vertex number. We use this to
@@ -340,6 +345,7 @@ class vtkKWQdecWindow : public vtkKWWindow
 
   // Update our Subjects tab menus with data from the data table.
   void UpdateSubjectsPage ();
+  void UpdateNumberOfSubjects ();
 
   // Update our Design tab menus with data from the project.
   void UpdateDesignPage ();
@@ -495,6 +501,9 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkKWEntry>       mEntryDataTable;
   vtkSmartPointer<vtkKWEntry>       mEntryNumberOfSubjects;
   vtkSmartPointer<vtkKWListBox>     mListScatterPlot;
+  vtkSmartPointer<vtkKWEntry>       mEntryExcludeFactor;
+  vtkSmartPointer<vtkKWEntry>       mEntryExcludeSubjectGT;
+  vtkSmartPointer<vtkKWEntry>       mEntryExcludeSubjectLT;
 
   // Widgets in the Design panel.
   vtkSmartPointer<vtkKWListBox>     mListDiscreteFactors;
