@@ -9,9 +9,9 @@
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/03 23:24:50 $
- *    $Revision: 1.19 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/17 18:59:55 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -56,6 +56,7 @@
 #include "tritri.h"
 
 static int use_aseg = 1 ;
+static int force = 0 ;
 int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
 static char     *wmvolume = "mri/wm" ;
@@ -161,13 +162,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.19 2007/08/03 23:24:50 nicks Exp $",
+   "$Id: mri_cc.c,v 1.20 2008/01/17 18:59:55 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.19 2007/08/03 23:24:50 nicks Exp $",
+           "$Id: mri_cc.c,v 1.20 2008/01/17 18:59:55 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -227,8 +228,15 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read aseg volume from %s",
                 Progname, ifname) ;
     if (MRIvoxelsInLabel(mri_aseg, CC_Central) > 0)
-      ErrorExit(ERROR_BADFILE, "%s: volume %s already has CC in it",
-                Progname, ifname) ;
+    {
+      if (force == 0)
+      {
+        printf("%s: volume %s already has CC in it. Run with -force to reprocess (not recommended)\n", 
+               Progname, ifname) ;
+        exit(0) ;
+      }
+      // need to replace the cc labels with either lh or rh wm here...
+    }
 
     sprintf(ifname,"%s/%s/mri/norm.mgz",data_dir,argv[1]) ;
     print("reading norm from %s\n", ifname);
@@ -1234,6 +1242,11 @@ get_option(int argc, char *argv[])
     printf("reading input aseg from %s\n", aseg_fname);
     use_aseg = 1 ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "force"))
+  {
+    force = 1 ;
+    printf("processing regardless of existence of cc in input volume\n") ;
   }
   else if ((!stricmp(option, "help")) ||
            (!stricmp(option, "-help")))
