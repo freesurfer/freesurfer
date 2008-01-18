@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/12/10 15:15:31 $
- *    $Revision: 1.405 $
+ *    $Date: 2008/01/18 14:48:47 $
+ *    $Revision: 1.406 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.405 $";
+const char *MRI_C_VERSION = "$Revision: 1.406 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -4036,9 +4036,8 @@ MRIbinaryPrincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
 MRI *
 MRIthresholdRangeInto(MRI *mri_src,MRI *mri_dst,BUFTYPE low_val,BUFTYPE hi_val)
 {
-  int     width, height, depth, x, y, z ;
-  BUFTYPE *psrc, *pdst, val ;
-  float   *pfsrc, *pfdst, fval ;
+  int     width, height, depth, x, y, z, f ;
+  float   val ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
@@ -4047,50 +4046,21 @@ MRIthresholdRangeInto(MRI *mri_src,MRI *mri_dst,BUFTYPE low_val,BUFTYPE hi_val)
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  switch (mri_src->type)
+  for (f = 0 ; f < mri_src->nframes ; f++)
   {
-  case MRI_UCHAR:
     for (z = 0 ; z < depth ; z++)
     {
       for (y = 0 ; y < height ; y++)
       {
-        psrc = &MRIvox(mri_src, 0, y, z) ;
-        pdst = &MRIvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++, pdst++)
+        for (x = 0 ; x < width ; x++)
         {
-          val = *psrc++ ;
-          if (val >=  low_val && val <= hi_val)
-            *pdst = val ;
-          else
-            *pdst = 0 ;
+          val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+          if (val <  low_val || val > hi_val)
+            val = 0 ;
+          MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
         }
       }
     }
-    break ;
-  case MRI_FLOAT:
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        pfsrc = &MRIFvox(mri_src, 0, y, z) ;
-        pfdst = &MRIFvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++, pdst++)
-        {
-          fval = *pfsrc++ ;
-          if (fval >=  low_val && fval <= hi_val)
-            *pfdst = fval ;
-          else
-            *pfdst = 0 ;
-        }
-      }
-    }
-    break ;
-  default:
-    ErrorReturn(mri_dst,
-                (ERROR_UNSUPPORTED,
-                 "MRIthresholdRangeInto: unsupported type %d",
-                 mri_src->type)) ;
-    break ;
   }
   return(mri_dst) ;
 }
@@ -15224,3 +15194,48 @@ MRIfillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf)
   }
   return(NO_ERROR) ;
 }
+MRI  *
+MRImatchIntensityRatio(MRI *mri_source, MRI *mri_target, MRI *mri_matched, 
+                       double min_scale, double max_scale, double thresh)
+{
+  HISTOGRAM *h ;
+  int       x, y, z, bin, peak ;
+  float     val_source, val_target, ratio ;
+  
+#define NBINS  256
+  h = HISTOalloc(NBINS) ;
+  h->bin_size = (max_scale - min_scale) / ((float)NBINS-1) ;
+  for (bin = 0 ; bin < h->nbins ; bin++)
+    h->bins[bin] = min_scale + h->bin_size*(float)bin ;
+  
+  for (x = 0 ; x < mri_source->width ; x++)
+    for (y = 0 ; y < mri_source->height ; y++)
+      for (z = 0 ; z < mri_source->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        val_source = MRIgetVoxVal(mri_source, x, y, z, 0); 
+        val_target = MRIgetVoxVal(mri_target, x, y, z, 0); 
+        if (FZERO(val_source) || val_source < thresh || val_target < thresh)
+          continue ;
+        ratio = val_target / val_source ;
+        bin = nint((ratio - min_scale) / h->bin_size) ;
+        if (bin < 0 || bin >= NBINS)
+          continue ;
+        h->counts[bin]++ ;
+      }
+
+  if (Gdiag & DIAG_WRITE)
+  {
+    printf("saving h.plt for ratio histogram\n") ;
+    HISTOplot(h, "h.plt") ;
+  }
+
+  peak = HISTOfindHighestPeakInRegion(h, 0, h->nbins) ;
+  ratio = h->bins[peak] ;
+  printf("peak ratio at %2.3f\n",ratio) ;
+  mri_matched = MRIscalarMul(mri_source, mri_matched, ratio) ;
+  HISTOfree(&h) ;
+  return(mri_matched) ;
+}
+
