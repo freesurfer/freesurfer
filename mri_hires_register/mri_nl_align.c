@@ -1,15 +1,15 @@
 /**
  * @file  mri_nl_align.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief nonlinear volumetric alignment
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * see (Fischl et al., Neuroimage, 2004)
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/05/03 11:51:48 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/01/18 14:48:33 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/05/03 11:51:48 $
-// Revision       : $Revision: 1.14 $
+// Revision Date  : $Date: 2008/01/18 14:48:33 $
+// Revision       : $Revision: 1.15 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -82,6 +82,7 @@ char *Progname ;
 static int skip = 2 ;
 static double distance = 1.0 ;
 static int nozero = 1 ;
+static int match_peak_intensity_ratio = 1 ;
 
 
 static TRANSFORM  *transform = NULL ;
@@ -161,7 +162,10 @@ main(int argc, char *argv[])
 	if (!mri_target)
 		ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s",
 							Progname, target_fname) ;
-	MRImatchMeanIntensity(mri_source, mri_target, mri_source) ;
+  if (match_peak_intensity_ratio)
+    MRImatchIntensityRatio(mri_source, mri_target, mri_source, .8, 1.2, 30) ;
+  else
+    MRImatchMeanIntensity(mri_source, mri_target, mri_source) ;
 	MRIboundingBox(mri_source, 0, &box) ;
 	pad = (int)ceil(PADVOX * 
 									MAX(mri_target->xsize,MAX(mri_target->ysize,mri_target->zsize)) / 
@@ -340,6 +344,11 @@ get_option(int argc, char *argv[])
     distance = atof(argv[2]) ;
 		nargs = 1 ;
     printf("expanding border by %2.1f mm every outer cycle\n", distance);
+  }
+  else if (!stricmp(option, "match_peak"))
+  {
+    match_peak_intensity_ratio = 1 ;
+    printf("matching peak of intensity ratio histogram\n") ;
   }
   else if (!stricmp(option, "intensity") ||!stricmp(option, "ll"))
   {
