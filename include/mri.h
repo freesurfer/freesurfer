@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/01/02 03:45:52 $
- *    $Revision: 1.357 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/18 14:48:57 $
+ *    $Revision: 1.358 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1174,6 +1174,8 @@ MRI *MRIfillHoles(MRI *mri_src, MRI *mri_fill, int thresh)  ;
 int  MRIfillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf) ;
 MRI *MRIfloodFillRegion(MRI *mri_src, MRI *mri_dst, 
                         int threshold, int fill_val, int max_count) ;
+MRI  *MRImatchIntensityRatio(MRI *mri_source, MRI *_target, MRI *mri_matched, 
+                             double min_scale, double max_scale,double thresh);
 
 // types of MRI sequences
 #define MRI_UNKNOWN          0
