@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/18 02:22:02 $
-#    $Revision: 1.16 $
+#    $Date: 2008/01/18 06:17:42 $
+#    $Revision: 1.16.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION    = '$Id: mc-sess,v 1.16 2007/06/18 02:22:02 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.16.2.1 2008/01/18 06:17:42 greve Exp $'
 set cmdargs = ($argv);
 
 set fsd = "bold";
@@ -193,11 +193,11 @@ foreach sess ($SessList)
     endif
     set outstem = $run/$funcmcstem
     if($PerRun) set targstem = $instem
+    if($targoffmid) then
+      set nframes = `getnframes $instem`;
+      set targoff = `echo $nframes/2 | bc`;
+    endif
     if(! $usenew) then
-      if($targoffmid) then
-        set nframes = `getnframes $instem`;
-        set targoff = `echo $nframes/2 | bc`;
-      endif
       set cmd = (mc-$mcmethod -i $instem -o $outstem \
                  -t $targstem -toff $targoff);
       set cmd = ($cmd -ipr $inplaneres -bpr $betplaneres -TR $TR)
