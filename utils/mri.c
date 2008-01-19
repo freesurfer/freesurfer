@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/18 14:48:47 $
- *    $Revision: 1.406 $
+ *    $Date: 2008/01/19 22:26:24 $
+ *    $Revision: 1.407 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.406 $";
+const char *MRI_C_VERSION = "$Revision: 1.407 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -15196,7 +15196,8 @@ MRIfillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf)
 }
 MRI  *
 MRImatchIntensityRatio(MRI *mri_source, MRI *mri_target, MRI *mri_matched, 
-                       double min_scale, double max_scale, double thresh)
+                       double min_scale, double max_scale, double low_thresh,
+                       double high_thresh)
 {
   HISTOGRAM *h ;
   int       x, y, z, bin, peak ;
@@ -15216,13 +15217,17 @@ MRImatchIntensityRatio(MRI *mri_source, MRI *mri_target, MRI *mri_matched,
           DiagBreak() ;
         val_source = MRIgetVoxVal(mri_source, x, y, z, 0); 
         val_target = MRIgetVoxVal(mri_target, x, y, z, 0); 
-        if (FZERO(val_source) || val_source < thresh || val_target < thresh)
+        if (FZERO(val_source) || 
+            val_source < low_thresh || val_target < low_thresh ||
+            val_source > high_thresh || val_target > high_thresh)
           continue ;
         ratio = val_target / val_source ;
         bin = nint((ratio - min_scale) / h->bin_size) ;
         if (bin < 0 || bin >= NBINS)
           continue ;
         h->counts[bin]++ ;
+        if (bin == Gdiag_no)
+          DiagBreak() ;
       }
 
   if (Gdiag & DIAG_WRITE)
@@ -15232,10 +15237,60 @@ MRImatchIntensityRatio(MRI *mri_source, MRI *mri_target, MRI *mri_matched,
   }
 
   peak = HISTOfindHighestPeakInRegion(h, 0, h->nbins) ;
+  if (peak < 0)
+  {
+    printf("warning: MRImatchIntensityRatio could not find any peaks\n");
+    ratio = 1.0 ;
+  }
   ratio = h->bins[peak] ;
   printf("peak ratio at %2.3f\n",ratio) ;
+  if (FZERO(ratio))
+  {
+    printf("warning: MRImatchIntensityRatio peak at 0 - disabling\n");
+    ratio = 1.0 ;
+  }
   mri_matched = MRIscalarMul(mri_source, mri_matched, ratio) ;
   HISTOfree(&h) ;
   return(mri_matched) ;
+}
+
+int
+MRIcountThreshInNbhd(MRI *mri, int wsize, int x, int y, int z, float thresh)
+{
+  int   xk, yk, zk, xi, yi, zi, whalf, total ;
+
+  whalf = (wsize-1)/2 ;
+  for (total = 0, zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        if (MRIgetVoxVal(mri, xi, yi, zi,0) > thresh)
+          total++ ;
+      }
+    }
+  }
+  return(total) ;
+}
+int
+MRIfillBox(MRI *mri, MRI_REGION *box, float fillval)
+{
+  int   x, y, z, xmin, xmax, ymin, ymax, zmin, zmax ;
+
+  xmin = MAX(0, box->x) ;
+  xmax = MIN(mri->width-1, box->x+box->dx-1) ;
+  ymin = MAX(0, box->y) ;
+  ymax = MIN(mri->height-1, box->y+box->dy-1) ;
+  zmin = MAX(0, box->z) ;
+  zmax = MIN(mri->depth-1, box->z+box->dz-1) ;
+  for (x = xmin ; x <= xmax ; x++)
+    for (y = ymin ; y <= ymax ; y++)
+      for (z = zmin ; z <= zmax ; z++)
+        MRIsetVoxVal(mri, x, y, z, 0, fillval) ;
+  return(NO_ERROR) ;
 }
 
