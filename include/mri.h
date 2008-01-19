@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/18 14:48:57 $
- *    $Revision: 1.358 $
+ *    $Date: 2008/01/19 22:26:40 $
+ *    $Revision: 1.359 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1098,6 +1098,7 @@ float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals,
     int label) ;
 MRI   *MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst,
                          float orig_res) ;
+int MRIfillBox(MRI *mri, MRI_REGION *box, float fillval) ;
 int MRIcropBoundingBox(MRI *mri, MRI_REGION *box) ;
 MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out) ;
 MRI *MRIapplyBiasCorrectionSameGeometry(MRI *mri_in, MRI *mri_bias,
@@ -1143,6 +1144,7 @@ MRI *MRIsetValuesOutsideRegion(MRI *mri_src,
                                MRI *mri_dst,
                                float val) ;
 int MRIcountNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z) ;
+int MRIcountThreshInNbhd(MRI *mri, int wsize, int x,int y,int z, float thresh);
 MRI *MRImatchMeanIntensity(MRI *mri_source,
                            MRI *mri_target,
                            MRI *mri_source_scaled) ;
@@ -1175,7 +1177,8 @@ int  MRIfillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf) ;
 MRI *MRIfloodFillRegion(MRI *mri_src, MRI *mri_dst, 
                         int threshold, int fill_val, int max_count) ;
 MRI  *MRImatchIntensityRatio(MRI *mri_source, MRI *_target, MRI *mri_matched, 
-                             double min_scale, double max_scale,double thresh);
+                             double min_scale, double max_scale,
+                             double low_thresh, double high_thresh);
 
 // types of MRI sequences
 #define MRI_UNKNOWN          0
