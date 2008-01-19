@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/18 14:48:33 $
- *    $Revision: 1.15 $
+ *    $Date: 2008/01/19 22:25:31 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/01/18 14:48:33 $
-// Revision       : $Revision: 1.15 $
+// Revision Date  : $Date: 2008/01/19 22:25:31 $
+// Revision       : $Revision: 1.16 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -82,7 +82,8 @@ char *Progname ;
 static int skip = 2 ;
 static double distance = 1.0 ;
 static int nozero = 1 ;
-static int match_peak_intensity_ratio = 1 ;
+static int match_peak_intensity_ratio = 0 ;
+static int match_mean_intensity = 1 ;
 
 
 static TRANSFORM  *transform = NULL ;
@@ -163,8 +164,9 @@ main(int argc, char *argv[])
 		ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s",
 							Progname, target_fname) ;
   if (match_peak_intensity_ratio)
-    MRImatchIntensityRatio(mri_source, mri_target, mri_source, .8, 1.2, 30) ;
-  else
+    MRImatchIntensityRatio(mri_source, mri_target, mri_source, .8, 1.2, 
+                           100, 125) ;
+  else if (match_mean_intensity)
     MRImatchMeanIntensity(mri_source, mri_target, mri_source) ;
 	MRIboundingBox(mri_source, 0, &box) ;
 	pad = (int)ceil(PADVOX * 
@@ -348,7 +350,16 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "match_peak"))
   {
     match_peak_intensity_ratio = 1 ;
+    match_mean_intensity = 0 ;
     printf("matching peak of intensity ratio histogram\n") ;
+  }
+  else if (!stricmp(option, "match_mean"))
+  {
+    match_peak_intensity_ratio = 0 ;
+    match_mean_intensity = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("%smatching peak of intensity ratio histogram\n",
+           match_mean_intensity ? "" : "not ") ;
   }
   else if (!stricmp(option, "intensity") ||!stricmp(option, "ll"))
   {
