@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/20 00:29:20 $
- *    $Revision: 1.23 $
+ *    $Date: 2008/01/20 02:41:00 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -787,6 +787,81 @@ int MRISaparc2lobes(MRIS *surf)
   parcnames[2] = "caudalanteriorcingulate";
   parcnames[3] = "rostralanteriorcingulate";
   MRISmergeAnnotations(surf, 4, parcnames, "cingulate");
+
+  return(0);
+}
+
+/* -------------------------------------------------------------------
+   int MRISfbirnAnnot(MRIS *surf) - creates an annotation for fBIRN
+   by dividing some aparcs or other geometric manipulations. Based on 
+   conversations with Jim Fallon.
+   -----------------------------------------------------------------*/
+int MRISfbirnAnnot(MRIS *surf)
+{
+  int *nunits;
+  int area32p,area32v,superiorfrontal,medialorbitofrontal;
+  int rostralanteriorcingulate, rostralmiddlefrontal;
+  int index;
+  COLOR_TABLE *ct ;
+  MRI *mri;
+
+  // Create new entries in the CTAB for area32p and area32v
+  ct = CTABaddEntry(surf->ct,"area32p");
+  CTABfree(&surf->ct);
+  surf->ct = ct;
+  ct = CTABaddEntry(surf->ct,"area32v");
+  CTABfree(&surf->ct);
+  surf->ct = ct;
+
+  // Get indices into CTAB for labels of interest
+  CTABfindName(surf->ct, "area32p", &area32p);
+  CTABfindName(surf->ct, "area32v", &area32v);
+  CTABfindName(surf->ct, "superiorfrontal", &superiorfrontal);
+  CTABfindName(surf->ct, "medialorbitofrontal", &medialorbitofrontal);
+  CTABfindName(surf->ct, "rostralanteriorcingulate", &rostralanteriorcingulate);
+  CTABfindName(surf->ct, "rostralmiddlefrontal", &rostralmiddlefrontal);
+
+  /* Create area32v by creating a mask of the region bordering 
+     MOF and RA Cingulate, then dilating 12 times and constraining 
+     to be in MOF. The new area is carved out of MOF.*/
+  mri = MRISfbirnMask_MOF_RACing(surf);
+  MRISdilateConfined(surf, mri, medialorbitofrontal, 12, area32v);
+  MRIfree(&mri);
+
+  /* Create area32p by creating a mask of the region bordering 
+     SFG and several Cingulates, then dilating 12 times and constraining 
+     to be in SFG. The new area is carved out of MOF.*/
+  mri = MRISfbirnMask_SFG_Cing(surf);
+  MRISdilateConfined(surf, mri, superiorfrontal, 12, area32p);
+  MRIfree(&mri);
+
+  // Now, divide up some units
+  nunits = (int *)calloc(surf->ct->nentries, sizeof(int)) ;
+  nunits[rostralanteriorcingulate] = 3;
+  nunits[rostralmiddlefrontal] = 3;
+  nunits[superiorfrontal] = 5;
+  nunits[area32p] = 2;
+  //nunits[area32v] = 2;
+
+  MRISdivideAnnotation(surf, nunits) ;
+
+  CTABfindName(surf->ct, "area32p", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area32p_pseudo");
+  CTABfindName(surf->ct, "area32p_div2", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area32a_pseudo");
+  CTABfindName(surf->ct, "area32v", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area32v_pseudo");
+  //CTABfindName(surf->ct, "area32v_div2", &index);
+  //sprintf(surf->ct->entries[index]->name, "%s","area32v_pseudo");
+
+  CTABfindName(surf->ct, "rostralanteriorcingulate", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area24d_pseudo");
+  CTABfindName(surf->ct, "rostralanteriorcingulate_div2", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area24pg_pseudo");
+  CTABfindName(surf->ct, "rostralanteriorcingulate_div3", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area24v_pseudo");
+
+  free(nunits);
 
   return(0);
 }
