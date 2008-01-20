@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/17 21:37:54 $
- *    $Revision: 1.43 $
+ *    $Date: 2008/01/20 02:41:18 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,6 +65,7 @@
 #include "annotation.h"
 #include "mrisutils.h"
 #include "image.h"
+#include "retinotopy.h"
 
 // setenv SUBJECTS_DIR /space/greve/1/users/greve/subjects
 // /autofs/space/greve_001/users/greve/dev/trunk/dngtester
@@ -103,38 +104,93 @@ char *hemi;
 
 MRI *fMRIvariance2(MRI *fmri, float DOF, int RmMean, MRI *var);
 void printrgb(void);
-MRI *GetMyMask(MRIS *surf);
-MRI *GetMyMask2(MRIS *surf);
 
-MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters, int newid);
 COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name);
 int MRISmercator(MRIS *surf);
 IMAGE *I;
 MHT *lhwhite_hash;
 MRIS *lhwhite;
-MRIS *surfs[100];
+MRIS *surfs[100], *mris;
 int *XNbrVtxNo, nXNbrs;
 double *XNbrDotProd;
 
 MRIS *MRISaverageSurfaces(int nsurfaces, MRIS **surfs);
 MATRIX *MatrixLoadFSL(char *fname);
+int find_path ( int* vert_vno, int num_vno, int max_path_length,
+                int* path, int* path_length, MRIS *mris );
 
 /*----------------------------------------*/
 int main(int argc, char **argv) {
   int err,area32p,area32v,superiorfrontal,medialorbitofrontal;
   int rostralanteriorcingulate, rostralmiddlefrontal;
-  int index,k;
+  int index,k,c,r,s,nvox;
   int *nunits;
   char *parcnames[10];
   COLOR_TABLE *ct ;
-  LABEL *lcortex;
+  //LABEL *lcortex=NULL;
   VERTEX *vtx;
   float dlhw,DotProdThresh;
   int  lhwvtx;
+  double sumval;
+  //----------------------------------------------------
+  subject = argv[1];
+  hemi = argv[2];
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
+  printf("\nReading lh white surface \n %s\n",tmpstr);
+  surf = MRISread(tmpstr);
+  if(!surf) exit(1);
 
-  MatrixLoadFSL(argv[1]);
+  sprintf(tmpstr,"%s/%s/label/%s.aparc.annot",SUBJECTS_DIR,subject,hemi);
+  printf("Loading annotations from %s\n",tmpstr);
+  err = MRISreadAnnotation(surf, tmpstr);
+  if(err) exit(1);
+
+  MRISfbirnAnnot(surf);
+  sprintf(tmpstr,"%s.fbirn2b.annot",hemi);
+  MRISwriteAnnotation(surf, tmpstr);
+
+  exit(1);
+  //----------------------------------------------
+
+  mri = MRIread(argv[1]);
+  if(mri == NULL) exit(1);
+
+  nvox = 0;
+  sumval = 0;
+  for (c=0; c < mri->width; c++) {
+    for (r=0; r < mri->height; r++) {
+      for (s=0; s < mri->depth; s++) {
+	sumval += MRIgetVoxVal(mri,c,r,s,0);
+	nvox ++;
+      }
+    }
+  }
+  printf("%lf\n",sumval/nvox);
+  exit(0);
+
+  if(argc <= 1){
+    printf("dngtester subject hemi\n");
+    exit(1);
+  }
+  subject = argv[1];
+  hemi = argv[2];
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  sprintf(tmpstr,"%s/%s/surf/%s.sphere",SUBJECTS_DIR,subject,hemi);
+  printf("\nReading lh white surface \n %s\n",tmpstr);
+  surf = MRISread(tmpstr);
+  if(!surf) exit(1);
+
+  sprintf(tmpstr,"%s/%s/surf/%s.occip.patch.flat",SUBJECTS_DIR,subject,hemi);
+  MRISreadPatchNoRemove(surf, tmpstr) ;
+
+  RETlogMap(surf, 15, .7, 0, 0);
+  mri = MRIcopyMRIS(NULL, surf, 0, "val");
+  MRIwrite(mri,"logmap.mgh");
+
   exit(1);
 
+  //-----------------------------------------------------
   printf("nsurfs %d\n",argc-1);
   for(k=1; k<argc; k++){
     printf("Loading %s\n",argv[k]);
@@ -146,14 +202,6 @@ int main(int argc, char **argv) {
   MRISwrite(surf,"lh.avgsurf");
 
   exit(1);
-
-  subject = argv[1];
-  hemi = argv[2];
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  sprintf(tmpstr,"%s/%s/surf/%s.sphere",SUBJECTS_DIR,subject,hemi);
-  printf("\nReading lh white surface \n %s\n",tmpstr);
-  surf = MRISread(tmpstr);
-  if(!surf) exit(1);
 
   vtx = &(surf->vertices[12282]);
   dlhw = sqrt((vtx->x * vtx->x) + (vtx->y * vtx->y) + (vtx->z * vtx->z));
@@ -193,42 +241,8 @@ int main(int argc, char **argv) {
   MRIwrite(mri,"xnbr2.mgh");
 
   exit (1);
-  //---------------------------------------------------------
-#if 0
-  printf("nvertices %d\n",surf->nvertices);
-  printf("patch %d\n",surf->patch);
-  printf("radius %g\n",dlhw);
-  printf("patch %d\n",surf->patch);
-  printf("rip %d\n",vtx->ripflag);
-#endif
 
-
-
-  printf("Building hash of lh white\n");
-  lhwhite_hash = MHTfillVertexTableRes(lhwhite, NULL,CURRENT_VERTICES,16);
-
-  vtx = &(lhwhite->vertices[1000]);
-
-  // Find closest when not ripped
-  vtx->ripflag = 0;
-  lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,vtx,&dlhw);
-  printf("%d\n",lhwvtx);
-
-  // Find closest when ripped
-  vtx->ripflag = 1;
-  lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,vtx,&dlhw);
-  printf("%d\n",lhwvtx);
-
-  // Brute-force find closest when ripped
-  lhwvtx = MRISfindClosestVertex(lhwhite,vtx->x,vtx->y,vtx->z,&dlhw);
-  printf("%d\n",lhwvtx);
-
-
-
-  return(1);
-
-
-
+  //----------------------------------------------------
   //R = MatrixDRand48(20,20,NULL);
   R = MatrixIdentity(100,NULL);
   MatrixPrint(stdout,R);
@@ -237,6 +251,7 @@ int main(int argc, char **argv) {
   return(1);
 
 
+  //----------------------------------------------------
   subject = argv[1];
   hemi = argv[2];
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
@@ -249,12 +264,11 @@ int main(int argc, char **argv) {
   mri = MRIread(tmpstr);
   if(!mri) exit(1);
 
-#define MIN_NONCORTEX_VERTICES 10
-
-  lcortex = MRIScortexLabel(surf, mri, MIN_NONCORTEX_VERTICES) ;
-  sprintf(tmpstr,"%s/%s/label/%s.%s.label",SUBJECTS_DIR, subject,hemi,"cortex");
-  printf("writing cortex label to %s...\n", tmpstr) ;
-  LabelWrite(lcortex, tmpstr) ;
+  //#define MIN_NONCORTEX_VERTICES 10
+  //lcortex = MRIScortexLabel(surf, mri, MIN_NONCORTEX_VERTICES) ;
+  //sprintf(tmpstr,"%s/%s/label/%s.%s.label",SUBJECTS_DIR, subject,hemi,"cortex");
+  //printf("writing cortex label to %s...\n", tmpstr) ;
+  //LabelWrite(lcortex, tmpstr) ;
 
   sprintf(tmpstr,"%s/%s/label/%s.aparc.annot",SUBJECTS_DIR,subject,hemi);
   printf("Loading annotations from %s\n",tmpstr);
@@ -302,21 +316,10 @@ int main(int argc, char **argv) {
   parcnames[3] = "rostralanteriorcingulate";
   MRISmergeAnnotations(surf, 4, parcnames, "cingulate");
 
-
   sprintf(tmpstr,"%s.lobes.annot",hemi);
   MRISwriteAnnotation(surf, tmpstr);
 
-
-  return(1);
-
-  if(1){
-  MRISmercator(surf);
-  sprintf(tmpstr,"%s/%s/surf/%s.mercator",SUBJECTS_DIR,subject,hemi);
-  MRISwrite(surf,tmpstr);
-  exit(0);
-  }
-
-
+  //------------------------------------------------------------
   ct = CTABaddEntry(surf->ct,"area32p");
   CTABfree(&surf->ct);
   surf->ct = ct;
@@ -332,11 +335,11 @@ int main(int argc, char **argv) {
   CTABfindName(surf->ct, "rostralanteriorcingulate", &rostralanteriorcingulate);
   CTABfindName(surf->ct, "rostralmiddlefrontal", &rostralmiddlefrontal);
 
-  mri = GetMyMask2(surf);
-  MRISdilateMask(surf, mri, medialorbitofrontal, 12, area32v);
+  mri = MRISfbirnMask_MOF_RACing(surf);
+  MRISdilateConfined(surf, mri, medialorbitofrontal, 12, area32v);
 
-  mri = GetMyMask(surf);
-  MRISdilateMask(surf, mri, superiorfrontal, 12, area32p);
+  mri = MRISfbirnMask_SFG_Cing(surf);
+  MRISdilateConfined(surf, mri, superiorfrontal, 12, area32p);
 
 
   nunits = (int *)calloc(surf->ct->nentries, sizeof(int)) ;
@@ -370,7 +373,7 @@ int main(int argc, char **argv) {
   CTABfindName(surf->ct, "rostralanteriorcingulate_div3", &index);
   sprintf(surf->ct->entries[index]->name, "%s","area24v_pseudo");
 
-  sprintf(tmpstr,"%s.fbirn.annot",hemi);
+  sprintf(tmpstr,"%s.fbirn0.annot",hemi);
   MRISwriteAnnotation(surf, tmpstr);
 
   return(0);
@@ -551,166 +554,14 @@ MRI *MRIsetSliceNo(MRI *mri, MRI *out) {
 
   return(out);
 }
-/*-------------------------------------------------------------
-  MRI *GetMyMask(MRIS *surf) - creates a mask at the intersection
-  of SFG and CAcing, PAcing, and RAcing.
-  -------------------------------------------------------------*/
-MRI *GetMyMask(MRIS *surf)
-{
-  int vtxno, annot, annotid, nnbrs, nbrvtx, nthnbr, nbrannotid; 
-  VERTEX *vtx;
-  int superiorfrontal, posteriorcingulate;
-  int caudalanteriorcingulate, rostralanteriorcingulate;
-  MRI *mri;
-
-  superiorfrontal = 28;
-  posteriorcingulate = 23;
-  caudalanteriorcingulate = 2;
-  rostralanteriorcingulate = 26;
-
-  mri = MRIalloc(surf->nvertices, 1, 1, MRI_INT) ;
-
-  for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
-    MRIsetVoxVal(mri,vtxno,0,0,0, 0);
-
-    vtx = &(surf->vertices[vtxno]);
-    annot = surf->vertices[vtxno].annotation;
-    CTABfindAnnotation(surf->ct, annot, &annotid);
-
-    if(annotid != superiorfrontal && 
-       annotid != posteriorcingulate &&
-       annotid != caudalanteriorcingulate && 
-       annotid != rostralanteriorcingulate) continue;
-
-    nnbrs = surf->vertices[vtxno].vnum;
-    for (nthnbr = 0; nthnbr < nnbrs; nthnbr++){
-      nbrvtx = surf->vertices[vtxno].v[nthnbr];
-      if (surf->vertices[nbrvtx].ripflag) continue; //skip ripped vtxs
-      annot = surf->vertices[nbrvtx].annotation;
-      CTABfindAnnotation(surf->ct, annot, &nbrannotid);
-      if(annotid == superiorfrontal && 
-	 (nbrannotid == posteriorcingulate ||
-	  nbrannotid == caudalanteriorcingulate ||
-	  nbrannotid == rostralanteriorcingulate) ){
-	MRIsetVoxVal(mri,vtxno,0,0,0,1);
-      }
-    }
-  }
-
-  //MRIwrite(mri,"mymask.mgh");
-
-  return(mri);
-}
-
-/*-------------------------------------------------------------
-  MRI *GetMyMask(MRIS *surf) - creates a mask at the intersection
-  of SFG and CAcing, PAcing, and RAcing.
-  -------------------------------------------------------------*/
-MRI *GetMyMask2(MRIS *surf)
-{
-  int vtxno, annot, annotid, nnbrs, nbrvtx, nthnbr, nbrannotid; 
-  VERTEX *vtx;
-  int medialorbitofrontal, rostralanteriorcingulate;
-  MRI *mri;
-
-  CTABfindName(surf->ct, "medialorbitofrontal", &medialorbitofrontal);
-  CTABfindName(surf->ct, "rostralanteriorcingulate", &rostralanteriorcingulate);
-
-  printf("medialorbitofrontal %d\n",medialorbitofrontal);
-  printf("rostralanteriorcingulate %d\n",rostralanteriorcingulate);
-
-  mri = MRIalloc(surf->nvertices, 1, 1, MRI_INT) ;
-
-  for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
-    MRIsetVoxVal(mri,vtxno,0,0,0, 0);
-
-    vtx = &(surf->vertices[vtxno]);
-    annot = surf->vertices[vtxno].annotation;
-    CTABfindAnnotation(surf->ct, annot, &annotid);
-
-    if(annotid != medialorbitofrontal) continue;
-
-    nnbrs = surf->vertices[vtxno].vnum;
-    for (nthnbr = 0; nthnbr < nnbrs; nthnbr++){
-
-      nbrvtx = surf->vertices[vtxno].v[nthnbr];
-      if (surf->vertices[nbrvtx].ripflag) continue; //skip ripped vtxs
-
-      annot = surf->vertices[nbrvtx].annotation;
-      CTABfindAnnotation(surf->ct, annot, &nbrannotid);
-      if(nbrannotid == rostralanteriorcingulate)
-	MRIsetVoxVal(mri,vtxno,0,0,0,1);
-
-    }
-  }
-
-  //MRIwrite(mri,"area32v.mgh");
-
-  return(mri);
-}
-/*---------------------------------------------------------------------*/
-MRI *MRISdilateMask(MRIS *surf, MRI *mask, int annotidmask, int niters, int newid)
-{
-  int vtxno, annot, annotid, nnbrs, nbrvtxno, nthnbr, nthiter,new_annot ;
-  VERTEX *vtx;
-  MRI *mri1, *mri2;
-  float val;
-
-  mri1 = MRIcopy(mask,NULL);
-  mri2 = MRIcopy(mask,NULL);
-
-  for(nthiter = 0; nthiter < niters; nthiter++){
-    printf("iter %d\n",nthiter);
-
-    for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
-      vtx = &(surf->vertices[vtxno]);
-
-      if(annotidmask > -1){
-	annot = surf->vertices[vtxno].annotation;
-	CTABfindAnnotation(surf->ct, annot, &annotid);
-	if(annotid != annotidmask){
-	  MRIsetVoxVal(mri2,vtxno,0,0,0,0);
-	  continue;
-	}
-      }
-
-      val = MRIgetVoxVal(mri1,vtxno,0,0,0);
-
-      if(val){
-	MRIsetVoxVal(mri2,vtxno,0,0,0,1);
-	continue;
-      }
-      // If it gets here, the vtx is in the annot and has not been set 
-      nnbrs = surf->vertices[vtxno].vnum;
-      for (nthnbr = 0; nthnbr < nnbrs; nthnbr++){
-	nbrvtxno = surf->vertices[vtxno].v[nthnbr];
-	if (surf->vertices[nbrvtxno].ripflag) continue; //skip ripped vtxs
-	val = MRIgetVoxVal(mri1,nbrvtxno,0,0,0);
-	if(val){
-	  MRIsetVoxVal(mri2,vtxno,0,0,0,1);
-	  continue;
-	}
-      }
-    }
-    MRIcopy(mri2,mri1);
-  
-  }
-
-  MRIfree(&mri2);
-
-  //MRIwrite(mri1,"mymask2.mgh");
-  
-  CTABannotationAtIndex(surf->ct, newid, &new_annot) ;
-
-  for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
-    if(MRIgetVoxVal(mri1,vtxno,0,0,0))
-      surf->vertices[vtxno].annotation = new_annot;
-  }
-
-  return(mri1);
-}
 
 /*-------------------------------------------------------*/
+//  if(1){
+//  MRISmercator(surf);
+//  sprintf(tmpstr,"%s/%s/surf/%s.mercator",SUBJECTS_DIR,subject,hemi);
+//  MRISwrite(surf,tmpstr);
+//  exit(0);
+//  }
 int MRISmercator(MRIS *surf)
 {
   int vtxno;
@@ -929,5 +780,135 @@ MATRIX *MatrixLoadFSL(char *fname)
   MatrixPrint(stdout,M);
   
   return(M);
+}
+/* ---------------------------------------------------------------------- */
+
+int find_path ( int* vert_vno, int num_vno, int max_path_length,
+                int* path, int* path_length, MRIS *mris ) {
+  int cur_vert_vno;
+  int src_vno;
+  int dest_vno;
+  int vno;
+  char* check;
+  float* dist;
+  int* pred;
+  char done;
+  VERTEX* v;
+  VERTEX* u;
+  float closest_dist;
+  int closest_vno;
+  int neighbor;
+  int neighbor_vno;
+  float dist_uv;
+  int path_vno;
+  int num_path = 0;
+  int num_checked;
+  float vu_x, vu_y, vu_z;
+  int flag2d = 0; // for flattend surface?
+
+  dist = (float*) calloc (mris->nvertices, sizeof(float));
+  pred = (int*) calloc (mris->nvertices, sizeof(int));
+  check = (char*) calloc (mris->nvertices, sizeof(char));
+  num_path = 0;
+  num_checked = 0;
+  (*path_length) = 0;
+
+  for (cur_vert_vno = 0; cur_vert_vno < num_vno-1; cur_vert_vno++) {
+    /* clear everything */
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      dist[vno] = 999999;
+      pred[vno] = -1;
+      check[vno] = FALSE;
+    }
+
+    /* Set src and dest */
+    src_vno = vert_vno[cur_vert_vno+1];
+    dest_vno = vert_vno[cur_vert_vno];
+
+    /* make sure both are in range. */
+    if (src_vno < 0 || src_vno >= mris->nvertices ||
+        dest_vno < 0 || dest_vno >= mris->nvertices)
+      continue;
+
+    if (src_vno == dest_vno)
+      continue;
+
+    /* pull the src vertex in. */
+    dist[src_vno] = 0;
+    pred[src_vno] = vno;
+    check[src_vno] = TRUE;
+
+    done = FALSE;
+    while (!done) {
+
+      /* find the vertex with the shortest edge. */
+      closest_dist = 999999;
+      closest_vno = -1;
+      for (vno = 0; vno < mris->nvertices; vno++)
+        if (check[vno])
+          if (dist[vno] < closest_dist) {
+            closest_dist = dist[vno];
+            closest_vno = vno;
+          }
+      v = &(mris->vertices[closest_vno]);
+      check[closest_vno] = FALSE;
+
+      /* if this is the dest node, we're done. */
+      if (closest_vno == dest_vno) {
+        done = TRUE;
+      } else {
+        /* relax its neighbors. */
+        for (neighbor = 0; neighbor < v->vnum; neighbor++) {
+          neighbor_vno = v->v[neighbor];
+          u = &(mris->vertices[neighbor_vno]);
+
+          /* calc the vector from u to v. */
+          vu_x = u->x - v->x;
+          vu_y = u->y - v->y;
+	  if (flag2d)	    vu_z = 0;
+	  else     	    vu_z = u->z - v->z;
+
+          /* recalc the weight. */
+	  if (flag2d)
+	    dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
+			   ((v->y - u->y) * (v->y - u->y)));
+	  else
+	    dist_uv = sqrt(((v->x - u->x) * (v->x - u->x)) +
+			   ((v->y - u->y) * (v->y - u->y)) +
+			   ((v->z - u->z) * (v->z - u->z)));
+
+          /* if this is a new shortest path, update the predecessor,
+             weight, and add it to the list of ones to check next. */
+          if (dist_uv + dist[closest_vno] < dist[neighbor_vno]) {
+            pred[neighbor_vno] = closest_vno;
+            dist[neighbor_vno] = dist_uv + dist[closest_vno];
+            check[neighbor_vno] = TRUE;
+          }
+        }
+      }
+      num_checked++;
+      if ((num_checked % 100) == 0) {
+        printf (".");
+        fflush (stdout);
+      }
+    }
+
+    /* add the predecessors from the dest to the src to the path. */
+    path_vno = dest_vno;
+    path[(*path_length)++] = dest_vno;
+    while (pred[path_vno] != src_vno &&
+           (*path_length) < max_path_length ) {
+      path[(*path_length)++] = pred[path_vno];
+      path_vno = pred[path_vno];
+    }
+  }
+  printf (" done\n");
+  fflush (stdout);
+
+  free (dist);
+  free (pred);
+  free (check);
+
+  return (ERROR_NONE);
 }
 
