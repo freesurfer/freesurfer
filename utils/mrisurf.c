@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/01/03 22:33:20 $
- *    $Revision: 1.584 $
+ *    $Author: greve $
+ *    $Date: 2008/01/20 02:36:07 $
+ *    $Revision: 1.585 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.584 2008/01/03 22:33:20 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.585 2008/01/20 02:36:07 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -55202,15 +55202,175 @@ MRISdilateRipped(MRI_SURFACE *mris, int ndil)
   MRISripFaces(mris);
   return(NO_ERROR) ;
 }
+/*---------------------------------------------------------------------
+  MRI *MRISdilateConfined() - dilates surface mask niters iterations.  
+  If annotidmask >= 0, then dilation is confined to the annotidmask
+  annotation. If newid >= 0, then the surface annot field of vertices
+  in the dilated mask is set to the annot corresponding to newid.
+  -------------------------------------------------------------------*/
+MRI *MRISdilateConfined(MRIS *surf, MRI *mask, int annotidmask, int niters, int newid)
+{
+  int vtxno, annot, annotid, nnbrs, nbrvtxno, nthnbr, nthiter,new_annot ;
+  VERTEX *vtx;
+  MRI *mri1, *mri2;
+  float val;
+
+  mri1 = MRIcopy(mask,NULL);
+  mri2 = MRIcopy(mask,NULL);
+
+  for(nthiter = 0; nthiter < niters; nthiter++){
+    //printf("iter %d\n",nthiter);
+
+    for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+      vtx = &(surf->vertices[vtxno]);
+
+      /* Set to 0 if not in annotidmask (ie, dont dilate outside 
+	 of annotidmask (if it is set) */
+      if(annotidmask > -1){
+	annot = surf->vertices[vtxno].annotation;
+	CTABfindAnnotation(surf->ct, annot, &annotid);
+	if(annotid != annotidmask){
+	  MRIsetVoxVal(mri2,vtxno,0,0,0,0);
+	  continue;
+	}
+      }
+
+      // Check whether this vertex has been set
+      val = MRIgetVoxVal(mri1,vtxno,0,0,0);
+      if(val){
+	MRIsetVoxVal(mri2,vtxno,0,0,0,1);
+	continue;
+      }
+
+      // If it gets here, the vtx is in the annot and has not been set 
+      nnbrs = surf->vertices[vtxno].vnum;
+      for (nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+	nbrvtxno = surf->vertices[vtxno].v[nthnbr];
+	if (surf->vertices[nbrvtxno].ripflag) continue; //skip ripped vtxs
+	val = MRIgetVoxVal(mri1,nbrvtxno,0,0,0);
+	if(val){
+	  MRIsetVoxVal(mri2,vtxno,0,0,0,1);
+	  continue;
+	}
+      }
+    }
+    MRIcopy(mri2,mri1);
+  
+  }
+
+  MRIfree(&mri2);
+  //MRIwrite(mri1,"mymask2.mgh");
+  
+  if(newid > 0){
+    // Set annots in this mask to the given annot
+    CTABannotationAtIndex(surf->ct, newid, &new_annot) ;
+    for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+      if(MRIgetVoxVal(mri1,vtxno,0,0,0))
+	surf->vertices[vtxno].annotation = new_annot;
+    }
+  }
+
+  return(mri1);
+}
+/*-------------------------------------------------------------
+  MRI *MRISfbirnMask_SFG_Cing(MRIS *surf) - creates a mask in the 
+  SFG where it borders CAcing, PAcing, and RAcing.
+  -------------------------------------------------------------*/
+MRI *MRISfbirnMask_SFG_Cing(MRIS *surf)
+{
+  int vtxno, annot, annotid, nnbrs, nbrvtx, nthnbr, nbrannotid; 
+  VERTEX *vtx;
+  int superiorfrontal, posteriorcingulate;
+  int caudalanteriorcingulate, rostralanteriorcingulate;
+  MRI *mri;
+
+  superiorfrontal = 28;
+  posteriorcingulate = 23;
+  caudalanteriorcingulate = 2;
+  rostralanteriorcingulate = 26;
+
+  mri = MRIalloc(surf->nvertices, 1, 1, MRI_INT) ;
+
+  for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+    MRIsetVoxVal(mri,vtxno,0,0,0, 0);
+
+    vtx = &(surf->vertices[vtxno]);
+    annot = surf->vertices[vtxno].annotation;
+    CTABfindAnnotation(surf->ct, annot, &annotid);
+
+    // Skip if not one of the target areas
+    if(annotid != superiorfrontal && 
+       annotid != posteriorcingulate &&
+       annotid != caudalanteriorcingulate && 
+       annotid != rostralanteriorcingulate) continue;
+
+    nnbrs = surf->vertices[vtxno].vnum;
+    for (nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+      nbrvtx = surf->vertices[vtxno].v[nthnbr];
+      if (surf->vertices[nbrvtx].ripflag) continue; //skip ripped vtxs
+      annot = surf->vertices[nbrvtx].annotation;
+      CTABfindAnnotation(surf->ct, annot, &nbrannotid);
+      if(annotid == superiorfrontal && 
+	 (nbrannotid == posteriorcingulate ||
+	  nbrannotid == caudalanteriorcingulate ||
+	  nbrannotid == rostralanteriorcingulate) ){
+	MRIsetVoxVal(mri,vtxno,0,0,0,1);
+      }
+    }
+  }
+  return(mri);
+}
+
+/*-------------------------------------------------------------
+  MRI *MRISfbirnMask_MOF_RACing(MRIS *surf) - creates a mask at the intersection
+  Meidal Orbital Frontal and RA Cingulate
+  -------------------------------------------------------------*/
+MRI *MRISfbirnMask_MOF_RACing(MRIS *surf)
+{
+  int vtxno, annot, annotid, nnbrs, nbrvtx, nthnbr, nbrannotid; 
+  VERTEX *vtx;
+  int medialorbitofrontal, rostralanteriorcingulate;
+  MRI *mri;
+
+  CTABfindName(surf->ct, "medialorbitofrontal", &medialorbitofrontal);
+  CTABfindName(surf->ct, "rostralanteriorcingulate", &rostralanteriorcingulate);
+
+  printf("medialorbitofrontal %d\n",medialorbitofrontal);
+  printf("rostralanteriorcingulate %d\n",rostralanteriorcingulate);
+
+  mri = MRIalloc(surf->nvertices, 1, 1, MRI_INT) ;
+
+  for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+    MRIsetVoxVal(mri,vtxno,0,0,0, 0);
+
+    vtx = &(surf->vertices[vtxno]);
+    annot = surf->vertices[vtxno].annotation;
+    CTABfindAnnotation(surf->ct, annot, &annotid);
+
+    if(annotid != medialorbitofrontal) continue;
+
+    nnbrs = surf->vertices[vtxno].vnum;
+    for (nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+
+      nbrvtx = surf->vertices[vtxno].v[nthnbr];
+      if (surf->vertices[nbrvtx].ripflag) continue; //skip ripped vtxs
+
+      annot = surf->vertices[nbrvtx].annotation;
+      CTABfindAnnotation(surf->ct, annot, &nbrannotid);
+      if(nbrannotid == rostralanteriorcingulate)
+	MRIsetVoxVal(mri,vtxno,0,0,0,1);
+
+    }
+  }
+  return(mri);
+}
+
 /*-----------------------------------------------------
   Parameters:
-
   Returns value:
-
   Description
   ------------------------------------------------------*/
-int
-MRISerodeRipped(MRI_SURFACE *mris, int ndil)
+int MRISerodeRipped(MRI_SURFACE *mris, int ndil)
 {
   int    vno, i, n, mn ;
   VERTEX *v, *vn ;

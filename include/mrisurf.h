@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/12/20 21:42:23 $
- *    $Revision: 1.308 $
+ *    $Author: greve $
+ *    $Date: 2008/01/20 02:36:08 $
+ *    $Revision: 1.309 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1548,6 +1548,10 @@ int MRISerodeMarked(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateMarked(MRI_SURFACE *mris, int ndil) ;
 int MRISerodeRipped(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateRipped(MRI_SURFACE *mris, int ndil) ;
+MRI *MRISdilateConfined(MRIS *surf, MRI *mask, int annotidmask, int niters, int newid);
+MRI *MRISfbirnMask_SFG_Cing(MRIS *surf);
+MRI *MRISfbirnMask_MOF_RACing(MRIS *surf);
+
 int   MRISvalidVertices(MRI_SURFACE *mris) ;
 
 int MRIScomputeClassStatistics(MRI_SURFACE *mris,
