@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/04 23:43:58 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/01/20 00:10:25 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -51,6 +51,8 @@ QdecDataTable::~QdecDataTable ( )
     delete this->mFactors.back();
     this->mFactors.pop_back();
   }
+  this->mDiscreteFactorNames.clear();
+  this->mContinuousFactorNames.clear();
   while (this->mSubjects.size() != 0)
   {
     delete this->mSubjects.back();
@@ -94,6 +96,8 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
     delete this->mFactors.back();
     this->mFactors.pop_back();
   }
+  this->mDiscreteFactorNames.clear();
+  this->mContinuousFactorNames.clear();
   while (this->mSubjects.size() != 0)
   {
     delete this->mSubjects.back();
@@ -458,6 +462,26 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
 
   free(tmpstr);
 
+  // keep a local copy of the factor names
+  this->mDiscreteFactorNames.clear();
+  this->mContinuousFactorNames.clear();
+  for (unsigned int i=0; i < this->mFactors.size(); i++)
+  {
+    if (this->mFactors[i]->IsDiscrete())
+    {
+      this->mDiscreteFactorNames.push_back
+        ( this->mFactors[i]->GetFactorName() );
+    }
+  }
+  for (unsigned int i=0; i < this->mFactors.size(); i++)
+  {
+    if (this->mFactors[i]->IsContinuous())
+    {
+      this->mContinuousFactorNames.push_back
+        ( this->mFactors[i]->GetFactorName() );
+    }
+  }
+
   return 0;
 }
 
@@ -478,8 +502,8 @@ int QdecDataTable::Save (const char* isFileName )
  */
 void QdecDataTable::Dump (FILE* fp )
 {
-  int nFactors=this->GetContinuousFactors().size()+
-               this->GetDiscreteFactors().size();
+  int nFactors=this->GetContinuousFactorNames().size()+
+               this->GetDiscreteFactorNames().size();
   int nInputs=this->mSubjects.size();
 
   assert(nFactors);
@@ -520,9 +544,9 @@ void QdecDataTable::Dump (FILE* fp )
   }
 
   // for testing GetMeanAndStdDev()...
-  vector< string > contFactorNames = this->GetContinuousFactors();
+  vector< string > contFactorNames = this->GetContinuousFactorNames();
   fprintf(fp,"Continuous Factors:                  Mean:  \tStdDev:\n");
-  for( unsigned int i=0; i < this->GetContinuousFactors().size(); i++)
+  for( unsigned int i=0; i < this->GetContinuousFactorNames().size(); i++)
   {
     vector< double > vals = 
       this->GetMeanAndStdDev( contFactorNames[i].c_str() );
@@ -538,8 +562,8 @@ void QdecDataTable::Dump (FILE* fp )
           "Number of regressors: %d\n",
           nInputs,
           nFactors,
-          (int)this->GetDiscreteFactors().size(),
-          (int)this->GetContinuousFactors().size(),
+          (int)this->GetDiscreteFactorNames().size(),
+          (int)this->GetContinuousFactorNames().size(),
           this->GetNumberOfClasses(),
           this->GetNumberOfRegressors());
 
@@ -612,38 +636,18 @@ QdecFactor* QdecDataTable::GetFactor ( const char* isFactorName )
 /**
  * @return vector< string >
  */
-vector< string > QdecDataTable::GetDiscreteFactors ( )
+vector< string > QdecDataTable::GetDiscreteFactorNames ( )
 {
-  vector<string> oFactorNames;
-
-  for (unsigned int i=0; i < this->mFactors.size(); i++)
-  {
-    if (this->mFactors[i]->IsDiscrete())
-    {
-      oFactorNames.push_back( this->mFactors[i]->GetFactorName() );
-    }
-  }
-
-  return oFactorNames;
+  return this->mDiscreteFactorNames;
 }
 
 
 /**
  * @return vector< string >
  */
-vector< string > QdecDataTable::GetContinuousFactors ( )
+vector< string > QdecDataTable::GetContinuousFactorNames ( )
 {
-  vector<string> oFactorNames;
-
-  for (unsigned int i=0; i < this->mFactors.size(); i++)
-  {
-    if (this->mFactors[i]->IsContinuous())
-    {
-      oFactorNames.push_back( this->mFactors[i]->GetFactorName() );
-    }
-  }
-
-  return oFactorNames;
+  return this->mContinuousFactorNames;
 }
 
 
@@ -674,7 +678,7 @@ int QdecDataTable::GetNumberOfClasses( )
 int QdecDataTable::GetNumberOfRegressors( )
 {
   int nReg = this->GetNumberOfClasses() *
-    ( this->GetContinuousFactors().size() + 1 );
+    ( this->GetContinuousFactorNames().size() + 1 );
   return(nReg);
 }
 

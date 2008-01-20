@@ -8,9 +8,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2008/01/20 00:10:25 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -93,13 +93,13 @@ public:
   /**
    * @return vector< string >
    */
-  vector< string > GetDiscreteFactors ( );
+  vector< string > GetDiscreteFactorNames ( );
 
 
   /**
    * @return vector< string >
    */
-  vector< string > GetContinuousFactors ( );
+  vector< string > GetContinuousFactorNames ( );
 
 
   /**
@@ -136,6 +136,9 @@ private:
   string mfnFileName;
 
   vector < QdecFactor* > mFactors;
+
+  vector < string > mDiscreteFactorNames;
+  vector < string > mContinuousFactorNames;
 
   // Stores subject data (id and factors) as read from the
   // table.dat input file.
