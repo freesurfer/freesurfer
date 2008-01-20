@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:29 $
- *    $Revision: 1.22 $
+ *    $Author: greve $
+ *    $Date: 2008/01/20 00:29:20 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -739,3 +739,54 @@ MRI *MRISannot2border(MRIS *surf)
   return(border);
 }
 
+/*---------------------------------------------------------------*/
+/*!
+  \fn int MRISaparc2lobes(MRIS *surf)
+  Merges aparc labels into lobes.  
+*/
+int MRISaparc2lobes(MRIS *surf)
+{
+  char *parcnames[10];
+  parcnames[0] = "caudalmiddlefrontal";
+  parcnames[1] = "superiorfrontal";
+  parcnames[2] = "rostralmiddlefrontal";
+  parcnames[3] = "parsopercularis";
+  parcnames[4] = "parstriangularis";
+  parcnames[5] = "parsorbitalis";
+  parcnames[6] = "lateralorbitofrontal";
+  parcnames[7] = "medialorbitofrontal";
+  parcnames[8] = "paracentral";
+  parcnames[9] = "frontalpole";
+  MRISmergeAnnotations(surf, 10, parcnames, "frontal");
+
+  parcnames[0] = "superiortemporal";
+  parcnames[1] = "entorhinal";
+  parcnames[2] = "temporalpole";
+  parcnames[3] = "fusiform";
+  parcnames[4] = "inferiortemporal";
+  parcnames[5] = "middletemporal";
+  parcnames[6] = "parahippocampal";
+  parcnames[7] = "bankssts";
+  parcnames[8] = "transversetemporal";
+  MRISmergeAnnotations(surf, 9, parcnames, "temporal");
+
+  parcnames[0] = "supramarginal";
+  parcnames[1] = "inferiorparietal";
+  parcnames[2] = "superiorparietal";
+  parcnames[3] = "precuneus";
+  MRISmergeAnnotations(surf, 4, parcnames, "parietal");
+
+  parcnames[0] = "pericalcarine";
+  parcnames[1] = "cuneus";
+  parcnames[2] = "lingual";
+  parcnames[3] = "lateraloccipital";
+  MRISmergeAnnotations(surf, 4, parcnames, "occipital");
+
+  parcnames[0] = "isthmuscingulate";  
+  parcnames[1] = "posteriorcingulate";
+  parcnames[2] = "caudalanteriorcingulate";
+  parcnames[3] = "rostralanteriorcingulate";
+  MRISmergeAnnotations(surf, 4, parcnames, "cingulate");
+
+  return(0);
+}
