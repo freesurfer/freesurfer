@@ -9,9 +9,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/28 22:12:18 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2008/01/20 00:11:12 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -174,13 +174,13 @@ public:
   /**
    * @return vector< string >
    */
-  vector< string > GetDiscreteFactors ( );
+  vector< string > GetDiscreteFactorNames ( );
 
 
   /**
    * @return vector< string >
    */
-  vector< string > GetContinousFactors ( );
+  vector< string > GetContinousFactorNames ( );
 
 
   /**

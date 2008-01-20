@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/10 23:40:54 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/01/20 00:11:12 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -262,6 +262,8 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
     return errorCode;
   
   // Create fit results data.
+  delete this->mGlmFitter;
+  this->mGlmFitter = new QdecGlmFit();
   errorCode = 
     mGlmFitter->CreateResultsFromCachedData ( this->mGlmDesign );
   if( errorCode )
@@ -550,10 +552,15 @@ int QdecProject::SetUnzipCommandFormat ( const char* isFormat ) {
  */
 int QdecProject::LoadDataTable ( const char* isFileName )
 {
-  char sd[3000];
-  int ret = this->mDataTable->Load ( isFileName, sd );
+  char subjectsDir[3000];
+  delete this->mDataTable;
+  this->mDataTable = new QdecDataTable();
+  int ret = this->mDataTable->Load ( isFileName, subjectsDir );
   if ( ret ) return ret;
-  if ( strlen(sd) > 0 ) ret = this->SetSubjectsDir ( sd );
+  if ( strlen(subjectsDir) > 0 ) ret = this->SetSubjectsDir ( subjectsDir );
+  if ( ret ) return ret;
+  delete this->mGlmDesign;
+  this->mGlmDesign = new QdecGlmDesign( this->mDataTable );
   return ret;
 }
 
@@ -662,18 +669,18 @@ vector< string > QdecProject::GetSubjectIDs ( )
 /**
  * @return vector< string >
  */
-vector< string > QdecProject::GetDiscreteFactors ( )
+vector< string > QdecProject::GetDiscreteFactorNames ( )
 {
-  return this->mDataTable->GetDiscreteFactors();
+  return this->mDataTable->GetDiscreteFactorNames();
 }
 
 
 /**
  * @return vector< string >
  */
-vector< string > QdecProject::GetContinousFactors ( )
+vector< string > QdecProject::GetContinousFactorNames ( )
 {
-  return this->mDataTable->GetContinuousFactors();
+  return this->mDataTable->GetContinuousFactorNames();
 }
 
 
