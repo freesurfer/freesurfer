@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 01:05:43 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/01/21 02:58:19 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.11 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.12 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -682,7 +682,7 @@ vtkKWQdecWindow::CreateWidget () {
   vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel> listBox =
     vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
   listBox->SetParent( exploreFrame->GetFrame() );
-  listBox->SetLabelText( "Continuous Factors:" );
+  listBox->SetLabelText( "Discrete and Continuous Factors:" );
   listBox->Create();
   listBox->SetLabelPositionToTop();
   mListScatterPlot = listBox->GetWidget()->GetWidget();
@@ -746,6 +746,22 @@ vtkKWQdecWindow::CreateWidget () {
                                          mEntryExcludeSubjectLT, 
                                          "ValueCallback" );
   mEntryExcludeSubjectLT->SetCommand ( this, "SetExcludeSubjectLT" );
+  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
+                labeledEntry->GetWidgetName(), nRow );
+  nRow++;
+
+  labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
+  labeledEntry->SetParent( excludeFrame->GetFrame() );
+  labeledEntry->Create();
+  labeledEntry->SetLabelText( "Equal To:" );
+  mEntryExcludeSubjectET = labeledEntry->GetWidget();
+  mEntryExcludeSubjectET->SetRestrictValueToDouble();
+  mEntryExcludeSubjectET->SetValue( "" );
+  mEntryExcludeSubjectET->SetCommandTrigger ( vtkKWEntry::TriggerOnReturnKey );
+  mEntryExcludeSubjectET->RemoveBinding( "<Unmap>", 
+                                         mEntryExcludeSubjectET, 
+                                         "ValueCallback" );
+  mEntryExcludeSubjectET->SetCommand ( this, "SetExcludeSubjectET" );
   this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
                 labeledEntry->GetWidgetName(), nRow );
   nRow++;
@@ -1040,7 +1056,7 @@ vtkKWQdecWindow::CreateWidget () {
 
   // Create the vertex plot window (hidden until a vertex is seleted)
   // Create the vertex plot window object
-//  mVertexPlot = new FsgdfPlot( this->GetMainInterp() );
+//  mVertexPlot = new FsgdfPlot( this->GetApplication()->GetMainInterp() );
   mVertexPlot = new FsgdfPlot();
   mView->SetVertexPlot( mVertexPlot );
 
@@ -2395,15 +2411,32 @@ vtkKWQdecWindow::ScatterPlotListBoxCallback () {
   if (mScatterPlotSelection != -1 &&
       mEntryExcludeFactor &&
       mEntryExcludeSubjectGT &&
-      mEntryExcludeSubjectLT) {
+      mEntryExcludeSubjectLT &&
+      mEntryExcludeSubjectET ) {
     // Get the name of the selected factor.
     string sFactor( mListScatterPlot->GetItem(mScatterPlotSelection) );
     // and update the Subject Exclusions box
     mEntryExcludeFactor->SetValue( sFactor.c_str() );
     mEntryExcludeSubjectGT->SetValue( "" );
     mEntryExcludeSubjectLT->SetValue( "" );
-  }
+    mEntryExcludeSubjectET->SetValue( "" );
 
+    // if the selected factor is discrete, print a legend at the bottom
+    QdecFactor* lFactor = 
+      this->mQdecProject->GetDataTable()->GetFactor( sFactor.c_str() );
+    if( lFactor->IsDiscrete() ) {
+      vector< string > lLevelNames = lFactor->GetLevelNames();
+      stringstream msg;
+      msg << "Discrete Factor Legend:     ";
+      for( unsigned int i=0; i < lLevelNames.size(); i++ ) {
+        msg << lLevelNames[i] << "=" << 
+          lFactor->GetContinuousValue(lLevelNames[i].c_str()) << "   " ;
+      }
+      this->SetStatusText( msg.str().c_str() );
+    } else {
+      this->SetStatusText( "" );
+    }
+  }
   this->UpdateScatterPlot();
 }
 
@@ -2471,7 +2504,11 @@ vtkKWQdecWindow::UpdateSubjectsPage () {
   mListScatterPlot->DeleteAll();
 
   vector< string > factors =
-    this->mQdecProject->GetDataTable()->GetContinuousFactorNames();
+    this->mQdecProject->GetDataTable()->GetDiscreteFactorNames();
+  for(unsigned int i=0; i < factors.size(); i++) {
+    mListScatterPlot->Append( factors[i].c_str() );
+  }
+  factors = this->mQdecProject->GetDataTable()->GetContinuousFactorNames();
   for(unsigned int i=0; i < factors.size(); i++) {
     mListScatterPlot->Append( factors[i].c_str() );
   }
@@ -3475,7 +3512,7 @@ vtkKWQdecWindow::UpdateScatterPlot () {
          ++tSubject, nIndex++ ) {
       
       // Get the value.
-      float value = (*tSubject)->GetContinuousFactor( sFactor.c_str() );
+      float value = (*tSubject)->GetContinuousFactorValue( sFactor.c_str() );
       
       // Add this index,value pair to the list of values to graph.
       lPoints.clear();
@@ -3730,23 +3767,21 @@ vtkKWQdecWindow::NotebookPageRaised ( const char* isTitle ) {
   assert( mGraph.GetPointer() );
 
   if( 0 == strcmp( isTitle, ksSubjectsPanelName ) ) {
-
     this->mCurrentNotebookPanelName = ksSubjectsPanelName;
     this->GetViewFrame()->UnpackChildren();
     this->Script( "pack %s -expand yes -fill both -anchor c",
                   mGraph->GetWidgetName() );
-  
+    this->SetStatusText( "Subjects" );
   } else if ( 0 == strcmp( isTitle, ksDesignPanelName ) ) {
-
     this->mCurrentNotebookPanelName = ksDesignPanelName;
     this->GetViewFrame()->UnpackChildren();
-
+    this->SetStatusText( "Design" );
   } else if ( 0 == strcmp( isTitle, ksDisplayPanelName ) ) {
-
     this->mCurrentNotebookPanelName = ksDisplayPanelName;
     this->GetViewFrame()->UnpackChildren();
     this->Script( "pack %s -expand yes -fill both -anchor c",
                   mView->GetWidgetName() );
+    this->SetStatusText( "Display" );
   }
 
   this->UpdateCommandStatus();
@@ -4042,12 +4077,42 @@ vtkKWQdecWindow::SetExcludeSubjectLT ( const char* isExcludeLT ) {
 
 
 void
+vtkKWQdecWindow::SetExcludeSubjectET ( double inExcludeET ) {
+
+  if( this->mQdecProject )
+  {
+    string value = this->mEntryExcludeSubjectET->GetValue();
+    if ( value == "") return;
+
+    this->mEntryExcludeSubjectET->SetValueAsDouble( inExcludeET );
+
+    // Get the design from the project.
+    QdecGlmDesign* design = mQdecProject->GetGlmDesign();
+    assert( design );
+  
+    // Set the exclude flag in the design for all subjects having the
+    // continuous factor value greater than iExcludeET
+    design->SetExcludeSubjectsFactorET( this->mEntryExcludeFactor->GetValue(),
+                                        inExcludeET, 1 );
+
+    // Redraw our graph.
+    this->UpdateScatterPlot();
+  }
+}
+void
+vtkKWQdecWindow::SetExcludeSubjectET ( const char* isExcludeET ) {
+  if ( strcmp( isExcludeET, "" ) == 0 ) return;
+}
+
+
+void
 vtkKWQdecWindow::ClearAllExcludedSubjects ( ) {
 
   if( this->mQdecProject )
   {
     this->mEntryExcludeSubjectGT->SetValue( "" );
     this->mEntryExcludeSubjectLT->SetValue( "" );
+    this->mEntryExcludeSubjectET->SetValue( "" );
 
     // Get the design from the project.
     QdecGlmDesign* design = mQdecProject->GetGlmDesign();

@@ -1071,6 +1071,33 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
+  if ((!strcmp("SetExcludeSubjectET",argv[1]))&&(argc == 3))
+    {
+    double   temp0;
+    error = 0;
+
+    if (Tcl_GetDouble(interp,argv[2],&tempd) != TCL_OK) error = 1;
+    temp0 = tempd;
+    if (!error)
+    {
+    op->SetExcludeSubjectET(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetExcludeSubjectET",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetExcludeSubjectET(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
   if ((!strcmp("ClearAllExcludedSubjects",argv[1]))&&(argc == 2))
     {
     op->ClearAllExcludedSubjects();
@@ -1204,6 +1231,8 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SetExcludeSubjectGT\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetExcludeSubjectLT\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetExcludeSubjectLT\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetExcludeSubjectET\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetExcludeSubjectET\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  ClearAllExcludedSubjects\n",NULL);
     Tcl_AppendResult(interp,"  GetAnnotationForVertex\t with 1 arg\n",NULL);
     return TCL_OK;

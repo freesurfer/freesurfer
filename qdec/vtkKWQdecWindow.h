@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 01:05:43 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/01/21 02:58:19 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -319,6 +319,8 @@ class vtkKWQdecWindow : public vtkKWWindow
   void SetExcludeSubjectGT ( const char* isExcludeGT );
   void SetExcludeSubjectLT ( double inExcludeLT );
   void SetExcludeSubjectLT ( const char* isExcludeLT );
+  void SetExcludeSubjectET ( double inExcludeET );
+  void SetExcludeSubjectET ( const char* isExcludeET );
   void ClearAllExcludedSubjects ( );
 
   // Implements QdecVertexAnnotationLookup, which the view will use to
@@ -504,6 +506,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkKWEntry>       mEntryExcludeFactor;
   vtkSmartPointer<vtkKWEntry>       mEntryExcludeSubjectGT;
   vtkSmartPointer<vtkKWEntry>       mEntryExcludeSubjectLT;
+  vtkSmartPointer<vtkKWEntry>       mEntryExcludeSubjectET;
 
   // Widgets in the Design panel.
   vtkSmartPointer<vtkKWListBox>     mListDiscreteFactors;
