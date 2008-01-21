@@ -199,20 +199,6 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     return TCL_OK;
     }
     }
-  if ((!strcmp("SetGDFID",argv[1]))&&(argc == 3))
-    {
-    int      temp0;
-    error = 0;
-
-    if (Tcl_GetInt(interp,argv[2],&tempi) != TCL_OK) error = 1;
-    temp0 = tempi;
-    if (!error)
-    {
-    op->SetGDFID(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
   if ((!strcmp("SetSurfaceScalars",argv[1]))&&(argc == 3))
     {
     vtkFloatArray  *temp0;
@@ -431,7 +417,6 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     Tcl_AppendResult(interp,"  GetShowCursor\n",NULL);
     Tcl_AppendResult(interp,"  SetShowCursor\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurface\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  SetGDFID\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalars\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColors\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceLookupScalars\t with 1 arg\n",NULL);

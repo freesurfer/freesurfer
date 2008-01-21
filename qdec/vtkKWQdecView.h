@@ -10,10 +10,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:22:16 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/01/21 01:05:43 $
+ *    $Revision: 1.2 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -36,6 +36,7 @@
 #include "vtkKWRenderWidget.h"
 #include "vtkInteractorStyleTrackballCamera.h"
 #include "vtkSmartPointer.h"
+#include "FsgdfPlot.h"
 
 //BTX
 class QdecVertexAnnotationLookup;
@@ -94,10 +95,6 @@ public:
   // one. This will also create all the pipeline objects. Nothing can
   // be drawn if there is no surface set first.
   void SetSurface ( vtkFSSurfaceSource* iSurfaceSource );
-
-  // Set the ID of the GDF plot. This will be used with the various
-  // FsgdfPlot_ functions.
-  void SetGDFID ( int iGDFID );
 
   // Set a scalar array to draw on the surface.
   void SetSurfaceScalars ( vtkFloatArray* iScalars );
@@ -162,6 +159,8 @@ public:
   // Select the numbered vertex.
   void SelectSurfaceVertex ( int inVertex );
 
+  void SetVertexPlot( FsgdfPlot* iPlot ) { this->mVertexPlot = iPlot; };
+
  protected:
 
   vtkKWQdecView ();
@@ -200,9 +199,7 @@ public:
   vtkSmartPointer<vtkPolyDataMapper> mROIMapper;
   vtkSmartPointer<vtkActor> mROIActor;
   
-  // GDF to use in the FsgdfPlot_ functions.
-  bool mbGDFLoaded;
-  int mGDFID;
+  FsgdfPlot* mVertexPlot;
 
   // Because the scalars on display are actually a composite of the
   // curvature and the overlay, we need to have separate arrays for

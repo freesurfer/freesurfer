@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/17 02:41:08 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/01/21 01:05:43 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.10 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.11 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -138,11 +138,10 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mbFrameOverlayInited( false ),
   mbFrameSurfaceScalarsInited( false ),
   mScatterPlotSelection( -1 ),
+  mVertexPlot( NULL ),
   mQdecProject( NULL ),
   mcVertices( -1 ),
   msCurrentSurfaceSource( "" ),
-  mGDFID( -1 ),
-  mbGDFLoaded( false ),
   mnCurrentSurfaceScalars( -1 ),
   maAnnotationIndicies( NULL ),
   mAnnotationTable( NULL ),
@@ -1039,6 +1038,13 @@ vtkKWQdecWindow::CreateWidget () {
                 mFrameOverlay->GetWidgetName(),
                 mFrameSurfaceScalars->GetWidgetName() );
 
+  // Create the vertex plot window (hidden until a vertex is seleted)
+  // Create the vertex plot window object
+//  mVertexPlot = new FsgdfPlot( this->GetMainInterp() );
+  mVertexPlot = new FsgdfPlot();
+  mView->SetVertexPlot( mVertexPlot );
+
+
   // ---------------------------------------------------------------------
   //
   // Make a callback and observe our view for UserSelectedVertex events.
@@ -1360,10 +1366,9 @@ vtkKWQdecWindow::SaveTIFFImageFromDlog () {
 void
 vtkKWQdecWindow::SaveGDFPostscriptFromDlog () {
 
-  assert( mbGDFLoaded );
-  assert( mGDFID >= 0  );
-  assert( this->GetApplication()->
-          EvaluateBooleanExpression( "FsgdfPlot_IsWindowShowing %d", mGDFID ));
+  assert( mVertexPlot );
+  assert( mVertexPlot->IsLoaded() );
+  assert( mVertexPlot->IsWindowShowing() );
 
   vtkSmartPointer<vtkKWLoadSaveDialog> dialog =
     vtkSmartPointer<vtkKWLoadSaveDialog>::New();
@@ -1376,9 +1381,8 @@ vtkKWQdecWindow::SaveGDFPostscriptFromDlog () {
   dialog->RetrieveLastPathFromRegistry( "SaveGDF" );
   if( dialog->Invoke() ) {
     dialog->SaveLastPathToRegistry( "SaveGDF" );
-    string fnPostscript( dialog->GetFileName() );
-    this->Script( "FsgdfPlot_SaveToPostscript %d %s", 
-                  mGDFID, fnPostscript.c_str() );
+    string fn = dialog->GetFileName();
+    mVertexPlot->SaveToPostscript( fn.c_str() );
   }
 }
 
@@ -1774,25 +1778,9 @@ vtkKWQdecWindow::LoadGDFFile ( const char* ifnGDFFile ) {
 
   if( mView ) {
     try {
-
-      // Try to load the GDF.
-      const char* sResult = this->Script( "FsgdfPlot_Read %s", ifnGDFFile );
-
-      int id = strtol( sResult, (char**)NULL, 10 );
-      if( ERANGE == errno ) {
-        cerr << "Couldn't load GDF: " << sResult;
-        return;
-      }
-
-      mGDFID = id;
-      mbGDFLoaded = true;
-
-      // Tell the view.
-      mView->SetGDFID( mGDFID );
-
+      if (mVertexPlot->ReadFile( ifnGDFFile )) return;
       this->SetStatusText( "GDF file loaded." );
       this->AddRecentFile( ifnGDFFile, this, "LoadGDFFile" );
-
     } catch ( exception& e ) {
       this->GetApplication()->ErrorMessage( e.what() );
     }
@@ -2483,7 +2471,7 @@ vtkKWQdecWindow::UpdateSubjectsPage () {
   mListScatterPlot->DeleteAll();
 
   vector< string > factors =
-    this->mQdecProject->GetDataTable()->GetContinuousFactors();
+    this->mQdecProject->GetDataTable()->GetContinuousFactorNames();
   for(unsigned int i=0; i < factors.size(); i++) {
     mListScatterPlot->Append( factors[i].c_str() );
   }
@@ -2528,7 +2516,7 @@ vtkKWQdecWindow::UpdateDesignPage () {
   mListDiscreteFactors->DeleteAll();
   mListContinuousFactors->DeleteAll();
 
-  // Get the current factors.
+  // Get the current factors selected for this design.
   vector<QdecFactor*> const& lDiscreteFactors =
     design->GetDiscreteFactors();
   vector<QdecFactor*> const& lContinuousFactors = 
@@ -2537,32 +2525,40 @@ vtkKWQdecWindow::UpdateDesignPage () {
   int nContinuousSelection = 0;
 
   vector< string > factors =
-    this->mQdecProject->GetDataTable()->GetDiscreteFactors();
+    this->mQdecProject->GetDataTable()->GetDiscreteFactorNames();
+
   for(unsigned int i=0; i < factors.size(); i++) {
     mListDiscreteFactors->Append( factors[i].c_str() );
 
     // If this factor is one of our chosen discrete factors from the
     // design, enter its index in our selections, and select this
     // item.
-    if( (lDiscreteFactors.size() > 0 && 
-         lDiscreteFactors[0]->GetFactorName() == factors[i]) ||
-        (lDiscreteFactors.size() > 1 &&
-         lDiscreteFactors[1]->GetFactorName() == factors[i]) ) {
-      maDiscreteFactorSelection[nDiscreteSelection++] = i;
-      mListDiscreteFactors->SetSelectState( i, 1 );
+    for(unsigned int j=0; j < lDiscreteFactors.size(); j++) {
+      if (lDiscreteFactors[j]) {
+        string factorName = lDiscreteFactors[j]->GetFactorName();
+        if (factorName == factors[i]) {
+          maDiscreteFactorSelection[nDiscreteSelection++] = i;
+          mListDiscreteFactors->SetSelectState( i, 1 );
+        }
+      }
     }
   }
 
-  factors = this->mQdecProject->GetDataTable()->GetContinuousFactors();
+  factors = this->mQdecProject->GetDataTable()->GetContinuousFactorNames();
   for(unsigned int i=0; i < factors.size(); i++) {
     mListContinuousFactors->Append( factors[i].c_str() );
 
-    if( (lContinuousFactors.size() > 0 && 
-         lContinuousFactors[0]->GetFactorName() == factors[i] ) ||
-        (lContinuousFactors.size() > 1 && 
-         lContinuousFactors[1]->GetFactorName() == factors[i] ) ) {
-      maContinuousFactorSelection[nContinuousSelection++] = i;
-      mListContinuousFactors->SetSelectState( i, 1 );
+    // If this factor is one of our chosen continuous factors from the
+    // design, enter its index in our selections, and select this
+    // item.
+    for(unsigned int j=0; j < lContinuousFactors.size(); j++) {
+      if (lContinuousFactors[j]) {
+        string factorName = lContinuousFactors[j]->GetFactorName();
+        if (factorName == factors[i]) {
+          maContinuousFactorSelection[nContinuousSelection++] = i;
+          mListContinuousFactors->SetSelectState( i, 1 );
+        }
+      }
     }
   }
 }
@@ -3652,7 +3648,7 @@ void
 vtkKWQdecWindow::GraphAverageROIInGDF () {
 
   assert( mROISource.GetPointer() );
-  assert( mbGDFLoaded );
+  assert( mVertexPlot->IsLoaded() );
 
   // Create a vertex vector.
   vector<int> lVertices;
@@ -3676,20 +3672,21 @@ vtkKWQdecWindow::GraphAverageROIInGDF () {
   }
 
   // Start the point list.
-  this->Script( "FsgdfPlot_BeginPointList %d", mGDFID );
+  mVertexPlot->BeginPointList();
 
   // For each vertex, add it to the point list.
   vector<int>::iterator tVertex;
   for( tVertex = lVertices.begin(); tVertex != lVertices.end(); ++tVertex ) {
     int nVertex = *tVertex;
-    this->Script( "FsgdfPlot_AddPoint %d %d 0 0", mGDFID, nVertex );
+    mVertexPlot->AddPoint( nVertex );
   }
 
   // End the point list and draw the graph.
-  this->Script( "FsgdfPlot_EndPointList %d", mGDFID );
+  mVertexPlot->EndPointList();
 
   // Set the info string.
-  this->Script( "FsgdfPlot_SetInfo %d \"Average of ROI\"", mGDFID );
+  string info = "\"Average of ROI\"";
+  mVertexPlot->SetInfo( info.c_str() );
 }
 
 void
@@ -4424,9 +4421,8 @@ vtkKWQdecWindow::UserSelectedVertex
   // and the window is showing, update the status of our Save GDF menu
   // command.
   if( iInfo.mnVertexIndex >= 0 &&
-      mbGDFLoaded && 
-      this->GetApplication()->
-      EvaluateBooleanExpression( "FsgdfPlot_IsWindowShowing %d", mGDFID )) {
+      mVertexPlot->IsLoaded() && 
+      mVertexPlot->IsWindowShowing() ) {
     mMenuSaveGDFPostscript->SetStateToNormal();
   } else {
     mMenuSaveGDFPostscript->SetStateToDisabled();
@@ -4497,14 +4493,13 @@ vtkKWQdecWindow::UpdateCommandStatus () {
   }
 
   assert( mMenuSaveGDFPostscript );
-  if( mbGDFLoaded && 
-      this->GetApplication()->EvaluateBooleanExpression
-      ( "FsgdfPlot_IsWindowShowing %d", mGDFID )) {
+  if( mVertexPlot->IsLoaded() && 
+      mVertexPlot->IsWindowShowing() ) {
     mMenuSaveGDFPostscript->SetStateToNormal();
   } else {
     mMenuSaveGDFPostscript->SetStateToDisabled();
   }
-
+  
   assert( mMenuClearCurvature );
 
   if( mCurvatureScalars.GetPointer() ) {
@@ -4589,7 +4584,7 @@ vtkKWQdecWindow::UpdateCommandStatus () {
     mMenuMapLabel->SetStateToDisabled();
   }
 
-  if( mbGDFLoaded && mROISource.GetPointer() ) {
+  if( mVertexPlot->IsLoaded() && mROISource.GetPointer() ) {
     mMenuGraphAverageROI->SetStateToNormal();
   } else {
     mMenuGraphAverageROI->SetStateToDisabled();

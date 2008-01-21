@@ -16,8 +16,7 @@ qdec_SOURCES= \
 	vtkKWQdecWindow.cxx vtkKWQdecWindow.h vtkKWQdecWindowTcl.cxx \
 	vtkKWQdecView.cxx vtkKWQdecView.h vtkKWQdecViewTcl.cxx \
 	QdecUtilities.cxx QdecLibInit.cxx \
-	QdecEvents.h QdecVertexAnnotationLookup.h \
-	$(top_srcdir)/fsgdf/fsgdf_wrap.c
+	QdecEvents.h QdecVertexAnnotationLookup.h
 qdec_LDADD=  \
 	$(top_srcdir)/fsgdf/libfsgdf.a \
 	$(top_srcdir)/vtkfsio/libvtkfsio.a \

@@ -10,10 +10,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:22:16 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/01/21 01:05:43 $
+ *    $Revision: 1.2 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -43,14 +43,12 @@
 #include "vtksys/CommandLineArguments.hxx"
 #include "vtksys/SystemTools.hxx"
 #include "QdecUtilities.h"
-extern "C" {
-#include "fsgdf_wrap.h"
-}
+#include "FsgdfPlot.h"
 
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.1 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.2 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -109,45 +107,45 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
   // Add the arguments we'll look for.
   bool bHelp = false;
   args.AddArgument( "--help", args.NO_ARGUMENT, &bHelp,
-		    "Print option information" );
-  
+                    "Print option information" );
+
   string fnTable;
   args.AddArgument( "--table", args.SPACE_ARGUMENT, &fnTable,
-		    "Data table to load" );
+                    "Data table to load" );
 
   string fnProject;
   args.AddArgument( "--project", args.SPACE_ARGUMENT, &fnProject,
-		    "Project file (*.qdec) to load" );
+                    "Project file (*.qdec) to load" );
 
   vector<string> lfnSurfaces;
   args.AddArgument( "--surface", args.MULTI_ARGUMENT, &lfnSurfaces,
-		    "A surface file or list of files to load" );
+                    "A surface file or list of files to load" );
 
   string fnGDF;
   args.AddArgument( "--gdf", args.SPACE_ARGUMENT, &fnGDF,
-		    "FSGDF file to load" );
+                    "FSGDF file to load" );
   args.AddArgument( "--fsgd", args.SPACE_ARGUMENT, &fnGDF,
-		    "FSGDF file to load" );
+                    "FSGDF file to load" );
 
   vector<string> lfnScalars;
   args.AddArgument( "--scalars", args.MULTI_ARGUMENT, &lfnScalars,
-		    "A scalar file or list of files to load" );
+                    "A scalar file or list of files to load" );
 
   string fnCurvature;
   args.AddArgument( "--curvature", args.SPACE_ARGUMENT, &fnCurvature,
-		    "Curvature file to load" );
+                    "Curvature file to load" );
 
   string fnAnnotation;
   args.AddArgument( "--annotation", args.SPACE_ARGUMENT, &fnAnnotation,
-		    "Annotation file to load" );
+                    "Annotation file to load" );
 
   vector<string> lfnOverlay;
   args.AddArgument( "--overlay", args.MULTI_ARGUMENT, &lfnOverlay,
-		    "Overlay file and color file to load" );
+                    "Overlay file and color file to load" );
 
   string fnLabel;
   args.AddArgument( "--label", args.SPACE_ARGUMENT, &fnLabel,
-		    "Label file to load" );
+                    "Label file to load" );
 
   // Try and parse the arguments. If there was an error, print our
   // help message and quit.
@@ -187,53 +185,6 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
   mWindow->Create();
   mWindow->FinishCreating();
 
-  // Load up our FSGDF stuff.
-  if( Fsgdf_Init( this->GetMainInterp() ) == TCL_ERROR ) {
-    cerr << "Fsgdf_Init failed: "
-         << Tcl_GetStringResult( this->GetMainInterp() ) << endl;
-  }
-
-  // Look in a few places for the fsgdfPlot.tcl script.
-  bool bFound = false;
-  string fnFSGDF = "../scripts/fsgdfPlot.tcl";
-  const char* rsTcl = NULL;
-  if( QdecUtilities::IsFileReadable( fnFSGDF ) )
-    bFound = this->LoadScript( fnFSGDF.c_str() );
-  if( !bFound ) {
-    char* pfnFreesurferDir = getenv( "FREESURFER_HOME" );
-    if( NULL != pfnFreesurferDir ) {
-      fnFSGDF = string(pfnFreesurferDir) + "/lib/tcl/fsgdfPlot.tcl";
-      if( QdecUtilities::IsFileReadable( fnFSGDF ) )
-        bFound = this->LoadScript( fnFSGDF.c_str() );
-    }
-  }
-  if( !bFound ) {
-    char* pfnFSGDFDir = getenv( "FSGDF_DIR" );
-    if( NULL != pfnFSGDFDir ) {
-      fnFSGDF = string(pfnFSGDFDir) + "/fsgdfPlot.tcl";
-      if( QdecUtilities::IsFileReadable( fnFSGDF ) )
-        bFound = this->LoadScript( fnFSGDF.c_str() );
-    }
-  }
-  if( !bFound ) {
-    this->ErrorMessage( "Couldn't find fsgdfPlot.tcl" );
-    this->SetExitStatus( 1 );
-    return;
-  }
-
-  // Log what script we're using.
-  string sMessage = string("Using ") + fnFSGDF;
-  this->InformationMessage( sMessage.c_str() );
-
-  // Initialize the FSGDF plotting stuff.
-  rsTcl = this->Script( "FsgdfPlot_Init" );
-  if( 0 != strcmp( rsTcl, "" ) ) {
-    string sError = string("FsgdfPlot_Init returned an error: ") + rsTcl;
-    this->ErrorMessage( sError.c_str() );
-    this->SetExitStatus( 1 );
-    return;
-  }
-
   // Show the window.
   mWindow->Display();
 
@@ -244,35 +195,35 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
   // Load up the data we got.
   try {
 
-    if( !fnTable.empty() ) 
+    if( !fnTable.empty() )
       this->LoadDataTable( fnTable.c_str() );
-    
+
     if( !fnProject.empty() )
       this->LoadProjectFile( fnProject.c_str() );
-    
+
     vector<string>::iterator tfn;
     for( tfn = lfnSurfaces.begin(); tfn != lfnSurfaces.end(); ++tfn )
       this->LoadSurface( tfn->c_str() );
-    
+
     if( !fnGDF.empty() )
       this->LoadGDFFile( fnGDF.c_str() );
-    
+
     for( tfn = lfnScalars.begin(); tfn != lfnScalars.end(); ++tfn )
       this->LoadSurfaceScalars( tfn->c_str() );
-    
+
     if( !fnCurvature.empty() )
-    this->LoadSurfaceCurvatureScalars( fnCurvature.c_str() );
-    
+      this->LoadSurfaceCurvatureScalars( fnCurvature.c_str() );
+
     if( !fnAnnotation.empty() )
       this->LoadAnnotation( fnAnnotation.c_str() );
-    
+
     if( lfnOverlay.size() == 2 )
-      this->LoadSurfaceOverlayScalars( lfnOverlay[0].c_str(), 
-				       lfnOverlay[1].c_str() );
-    
+      this->LoadSurfaceOverlayScalars( lfnOverlay[0].c_str(),
+                                       lfnOverlay[1].c_str() );
+
     if( !fnLabel.empty() )
       this->LoadLabel( fnLabel.c_str() );
-    
+
   }
   catch( exception& e ) {
     this->ErrorMessage( e.what() );
@@ -367,7 +318,7 @@ vtkKWQdecApp::LoadLabel ( const char* ifnLabel ) {
 void
 vtkKWQdecApp::ErrorMessage ( const char* isMessage ) {
 
-  vtkSmartPointer<vtkKWMessageDialog> dialog = 
+  vtkSmartPointer<vtkKWMessageDialog> dialog =
     vtkSmartPointer<vtkKWMessageDialog>::New();
   dialog->SetStyleToMessage();
   dialog->SetOptions( vtkKWMessageDialog::ErrorIcon );
@@ -398,7 +349,7 @@ vtkKWQdecApp::DisplayHelpDialog ( vtkKWTopLevel* iTop ) {
     scrolledText->SetParent( mDlogHelp );
     scrolledText->HorizontalScrollbarVisibilityOff();
     scrolledText->Create();
-    
+
     vtkSmartPointer<vtkKWPushButton> btnClose =
       vtkSmartPointer<vtkKWPushButton>::New();
     btnClose->SetParent( mDlogHelp );
@@ -406,12 +357,12 @@ vtkKWQdecApp::DisplayHelpDialog ( vtkKWTopLevel* iTop ) {
     btnClose->SetText( "Close" );
     btnClose->SetCommand( mDlogHelp, "Withdraw" );
     btnClose->SetWidth( 10 );
-    
+
     this->Script( "pack %s -side top -fill both -expand yes -padx 10 -pady 10",
-		  scrolledText->GetWidgetName() );
+                  scrolledText->GetWidgetName() );
     this->Script( "pack %s -side top -anchor e -padx 10 -pady 10",
-		  btnClose->GetWidgetName() );
-    
+                  btnClose->GetWidgetName() );
+
     vtkKWText* text = scrolledText->GetWidget();
     text->QuickFormattingOn();
     text->AppendText( "__Mouse Commands in Display View:__\n" );

@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/17 02:41:09 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/01/21 01:05:43 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,6 +46,7 @@ extern "C" {
 #include "QdecVertexAnnotationLookup.h"
 #include "vtkKWQdecView.h"
 #include "vtkSmartPointer.h"
+#include "FsgdfPlot.h"
 
 class vtkFSSurfaceSource;
 class vtkFSSurfaceLabelSource;
@@ -69,7 +70,7 @@ class vtkScalarsToColors;
 class vtkKWQdecWindow : public vtkKWWindow 
                         //BTX
                         , public ProgressUpdateGUI 
-			, public QdecVertexAnnotationLookup
+                        , public QdecVertexAnnotationLookup
                         //ETX
 {
 
@@ -325,7 +326,6 @@ class vtkKWQdecWindow : public vtkKWWindow
   // return a region string.
   const char* GetAnnotationForVertex ( int inVertex );
 
-
  protected:
 
   vtkKWQdecWindow ();
@@ -561,12 +561,11 @@ class vtkKWQdecWindow : public vtkKWWindow
   } SurfaceScalar;
 
   // Data objects.
+  FsgdfPlot* mVertexPlot;
   QdecProject* mQdecProject;
   int mcVertices;
   std::map<std::string,vtkSmartPointer<vtkFSSurfaceSource> > maSurfaceSource;
   std::string msCurrentSurfaceSource;
-  int mGDFID;
-  int mbGDFLoaded;
   vtkSmartPointer<vtkFloatArray> mCurvatureScalars;
   std::map<int,SurfaceScalar> maSurfaceScalars;
   int mnCurrentSurfaceScalars;
