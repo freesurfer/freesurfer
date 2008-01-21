@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/09/21 20:37:23 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/01/21 02:56:53 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -50,7 +50,8 @@ public:
                int iType /* ==1 discrete or ==2 continuous */ );
   QdecFactor ( const char* isName,
                int iType, // ==1 discrete
-               const char* iValue );
+               const char* iValue,
+               vector< string > iLevelNames );
   QdecFactor ( const char* isName,
                int iType, // ==2 continuous
                double iValue );
@@ -117,18 +118,24 @@ public:
 
   /**
    * Returns the value of the discrete factor stored in this instance
-   * (null if this is not a discrete factor).
    * @return string
    */
   string GetDiscreteValue ( );
 
 
   /**
-   * Returns the value of the continuous factor stored in this instance
-   * (null if this is not a continuous factor).
+   * Returns the value of the continuous factor stored in this instance.
+   * If this is a discrete factor, then it returns the level number.
    * @return double
    */
   double GetContinuousValue ( );
+
+  /**
+   * Returns the value as a continous even though its a  discrete factor, 
+   * value is the level number of the specified discrete value
+   * @return double
+   */
+  double GetContinuousValue ( const char* isDiscreteValue );
 
 private:
 

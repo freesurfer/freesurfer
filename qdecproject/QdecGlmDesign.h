@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/17 02:40:16 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/01/21 02:56:53 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -240,6 +240,13 @@ public:
    */
   void SetExcludeSubjectsFactorLT ( const char* isFactorName,
                                     double inExcludeLT,
+                                    bool ibExclude );
+
+  /**
+   * SetExcludeSubjectsFactorET
+   */
+  void SetExcludeSubjectsFactorET ( const char* isFactorName,
+                                    double inExcludeET,
                                     bool ibExclude );
 
   /**

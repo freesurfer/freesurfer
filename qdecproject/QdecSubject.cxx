@@ -7,9 +7,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2008/01/21 02:56:53 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -64,7 +64,7 @@ string QdecSubject::GetId ( )
  * @return string
  * @param  isFactorName
  */
-string QdecSubject::GetDiscreteFactor (const char* isFactorName )
+string QdecSubject::GetDiscreteFactorValue (const char* isFactorName )
 {
   for (unsigned int i=0; i < mFactors.size(); i++)
   {
@@ -86,16 +86,13 @@ string QdecSubject::GetDiscreteFactor (const char* isFactorName )
  * @return double
  * @param  isFactorName
  */
-double QdecSubject::GetContinuousFactor (const char* isFactorName )
+double QdecSubject::GetContinuousFactorValue (const char* isFactorName )
 {
   for (unsigned int i=0; i < mFactors.size(); i++)
   {
-    if (mFactors[i]->IsContinuous())
+    if ( 0 == strcmp( mFactors[i]->GetFactorName().c_str(), isFactorName ) )
     {
-      if ( 0 == strcmp( mFactors[i]->GetFactorName().c_str(), isFactorName ) )
-      {
-        return mFactors[i]->GetContinuousValue();
-      }
+      return mFactors[i]->GetContinuousValue();
     }
   }
 

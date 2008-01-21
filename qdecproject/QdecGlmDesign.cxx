@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/17 02:40:16 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/01/21 02:56:53 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -488,7 +488,7 @@ void  QdecGlmDesign::SetExcludeSubjectsFactorGT ( const char* isFactorName,
   unsigned int nInputs = subjs.size();
   for (unsigned int m=0; m < nInputs; m++)
   {
-    if (subjs[m]->GetContinuousFactor( isFactorName ) > inExcludeGT)
+    if (subjs[m]->GetContinuousFactorValue( isFactorName ) > inExcludeGT)
     {
       this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), ibExclude );
     }
@@ -508,7 +508,28 @@ void  QdecGlmDesign::SetExcludeSubjectsFactorLT ( const char* isFactorName,
   unsigned int nInputs = subjs.size();
   for (unsigned int m=0; m < nInputs; m++)
   {
-    if (subjs[m]->GetContinuousFactor( isFactorName ) < inExcludeLT)
+    if (subjs[m]->GetContinuousFactorValue( isFactorName ) < inExcludeLT)
+    {
+      this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), ibExclude );
+    }
+  }
+}
+
+
+/**
+ * SetExcludeSubjectsFactorET
+ */
+void  QdecGlmDesign::SetExcludeSubjectsFactorET ( const char* isFactorName,
+                                                  double inExcludeET,
+                                                  bool ibExclude )
+{
+  assert( isFactorName );
+
+  vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
+  unsigned int nInputs = subjs.size();
+  for (unsigned int m=0; m < nInputs; m++)
+  {
+    if (subjs[m]->GetContinuousFactorValue( isFactorName ) == inExcludeET)
     {
       this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), ibExclude );
     }
@@ -693,7 +714,7 @@ int QdecGlmDesign::WriteFsgdFile ( )
       {
         string factorName = mDiscreteFactors[f]->GetFactorName();
         ClassName += factorName;
-        ClassName += subjs[m]->GetDiscreteFactor( factorName.c_str() );
+        ClassName += subjs[m]->GetDiscreteFactorValue( factorName.c_str() );
         if (ndf > 1 && df < ndf-1) ClassName += "-";
         df++;
       }
@@ -706,7 +727,7 @@ int QdecGlmDesign::WriteFsgdFile ( )
       {
         const char* factorName = 
           this->mContinuousFactors[f]->GetFactorName().c_str();
-        fprintf( fp, "%lf ", subjs[m]->GetContinuousFactor( factorName ) );
+        fprintf( fp, "%lf ", subjs[m]->GetContinuousFactorValue(factorName) );
       }
     }
     fprintf( fp, "\n" );

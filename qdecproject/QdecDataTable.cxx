@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/20 00:10:25 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/01/21 02:56:53 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -438,7 +438,8 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
             new QdecFactor
             ( this->mFactors[nthfactor]->GetFactorName().c_str(),
               QdecFactor::qdecDiscreteFactorType,
-              (const char*)strdup(token) /* value */ );
+              (const char*)strdup(token), /* value */ 
+              this->mFactors[nthfactor]->GetLevelNames() );
           theFactors.push_back( qf ); // save this factor data
         }
         nthfactor++;
@@ -702,7 +703,7 @@ vector< double > QdecDataTable::GetMeanAndStdDev( const char* isFactorName )
   vector< QdecSubject* > subjects = this->GetSubjects();
   for (unsigned int i=0; i < this->GetSubjects().size(); i++,N++)
   {
-    d = subjects[i]->GetContinuousFactor( isFactorName );
+    d = subjects[i]->GetContinuousFactorValue( isFactorName );
     Sum  += d;
     Sum2 += (d*d);
   }

@@ -7,9 +7,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2008/01/21 02:56:53 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -60,14 +60,14 @@ public:
    * @return string
    * @param  isFactorName
    */
-  string GetDiscreteFactor ( const char* isFactorName );
+  string GetDiscreteFactorValue ( const char* isFactorName );
 
 
   /**
    * @return double
    * @param  isFactorName
    */
-  double GetContinuousFactor ( const char* isFactorName );
+  double GetContinuousFactorValue ( const char* isFactorName );
 
   /**
    * @return vector < QdecFactor* >
