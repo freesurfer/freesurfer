@@ -1,18 +1,18 @@
 /**
  * @file  mris_label2annot.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief rogram to convert one or more labels into an annotation
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Converts a set of surface labels to an annotation file.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/01/21 21:09:54 $
+ *    $Revision: 1.12 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2006-2008,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -25,8 +25,6 @@
  *
  */
 
-
-// $Id: mris_label2annot.c,v 1.11 2006/12/29 02:09:10 nicks Exp $
 
 /*
   BEGINHELP
@@ -154,7 +152,9 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_label2annot.c,v 1.11 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] =
+"$Id: mris_label2annot.c,v 1.12 2008/01/21 21:09:54 nicks Exp $";
+
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -206,7 +206,8 @@ int main(int argc, char *argv[]) {
   }
 
   // Get path to annot, make sure it does not exist
-  sprintf(tmpstr,"%s/%s/label/%s.%s.annot",SUBJECTS_DIR,subject,hemi,AnnotName);
+  sprintf(tmpstr,"%s/%s/label/%s.%s.annot",
+          SUBJECTS_DIR,subject,hemi,AnnotName);
   if (fio_FileExistsReadable(tmpstr)) {
     printf("ERROR: %s already exists\n",tmpstr);
     exit(1);
@@ -246,7 +247,9 @@ int main(int argc, char *argv[]) {
         exit(1);
       }
       if (MRIgetVoxVal(nhits,vtxno,0,0,0) > 0) {
-        printf("WARNING: vertex %d maps to multiple lables\n",vtxno);
+        printf
+          ("WARNING: vertex %d maps to multiple labels! (overwriting)\n",
+           vtxno);
       }
       MRIsetVoxVal(nhits,vtxno,0,0,0,MRIgetVoxVal(nhits,vtxno,0,0,0)+1);
       mris->vertices[vtxno].annotation = ano;
@@ -275,6 +278,8 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+
+
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
@@ -349,11 +354,15 @@ static int parse_commandline(int argc, char **argv) {
   }
   return(0);
 }
+
+
 /* ------------------------------------------------------ */
 static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
+
+
 /* --------------------------------------------- */
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
@@ -375,6 +384,8 @@ static void print_usage(void) {
   printf("%s\n", vcid) ;
   printf("\n");
 }
+
+
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
@@ -453,11 +464,15 @@ static void print_help(void) {
   printf("\n");
   exit(1) ;
 }
+
+
 /* --------------------------------------------- */
 static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
+
+
 /* --------------------------------------------- */
 static void check_options(void) {
   int n;
@@ -510,6 +525,7 @@ static void check_options(void) {
   return;
 }
 
+
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
@@ -528,7 +544,6 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"AnnotName  %s\n",AnnotName);
   if (NHitsFile) fprintf(fp,"NHitsFile %s\n",NHitsFile);
   fprintf(fp,"nlables %d\n",nlabels);
-
 
   return;
 }
