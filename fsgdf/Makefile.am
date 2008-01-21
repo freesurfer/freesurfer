@@ -28,7 +28,7 @@ test_LDADD=libfsgdf.a $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL)
 TESTS=setup_test_data test
 endif
 
-EXTRA_DIST=setup_test_data test_data.tar.gz fsgdf.i test.tcl
+EXTRA_DIST=setup_test_data test_data.tar.gz fsgdf.i test.tcl FsgdfPlot.cxx
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
