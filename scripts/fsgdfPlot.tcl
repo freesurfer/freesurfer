@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2007/10/31 18:00:58 $
-##    $Revision: 1.26 $
+##    $Date: 2008/01/21 01:06:57 $
+##    $Revision: 1.27 $
 ##
 ## Original Author: Kevin Teich
 ##
@@ -29,7 +29,7 @@ set gbLibLoaded 0
 if { [info commands gdfRead] == "gdfRead" }  {
   set gbLibLoaded 1
 } else {
-  puts "Couldn't find gdf commands."
+  puts "fsgdfPlot.tcl: Couldn't find gdf commands."
 }
 
 
@@ -42,7 +42,7 @@ proc FindFile { ifnFile ilDirs } {
       return $sFullFileName
     }
   }
-  puts "Couldn't find $ifnFile: Not in $ilDirs"
+  puts "fsgdfPlot.tcl: Couldn't find $ifnFile: Not in $ilDirs"
   return ""
 }
 
