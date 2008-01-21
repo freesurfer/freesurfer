@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 02:58:19 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/01/21 03:30:32 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.12 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.13 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -138,6 +138,7 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mbFrameOverlayInited( false ),
   mbFrameSurfaceScalarsInited( false ),
   mScatterPlotSelection( -1 ),
+  mScatterPlotLegend( "" ),
   mVertexPlot( NULL ),
   mQdecProject( NULL ),
   mcVertices( -1 ),
@@ -694,6 +695,15 @@ vtkKWQdecWindow::CreateWidget () {
     SetSelectionCommand( this, "ScatterPlotListBoxCallback" );
   mListScatterPlot->SetSelectionModeToSingle();
 
+  vtkSmartPointer<vtkKWLabel> label = vtkSmartPointer<vtkKWLabel>::New();
+  label->SetParent( exploreFrame->GetFrame() );
+  label->Create();
+  mLabelScatterPlotLegend = label;
+  mLabelScatterPlotLegend->SetText( mScatterPlotLegend.c_str() );
+  mLabelScatterPlotLegend->SetJustificationToRight();
+  this->Script( "pack %s -side top -fill x -expand yes",
+                label->GetWidgetName() );
+
   // Create the subject exclusion frame.
   vtkSmartPointer<vtkKWFrameWithLabel> excludeFrame = 
     vtkSmartPointer<vtkKWFrameWithLabel>::New();
@@ -884,7 +894,7 @@ vtkKWQdecWindow::CreateWidget () {
   this->Script( "pack %s -fill x", morphMeasuresFrame->GetWidgetName() );
 
   nRow = 0;
-  vtkSmartPointer<vtkKWLabel> label = vtkSmartPointer<vtkKWLabel>::New();
+  label = vtkSmartPointer<vtkKWLabel>::New();
   label->SetParent( morphMeasuresFrame->GetFrame() );
   label->Create();
   label->SetText( "Measure: " );
@@ -2426,15 +2436,19 @@ vtkKWQdecWindow::ScatterPlotListBoxCallback () {
       this->mQdecProject->GetDataTable()->GetFactor( sFactor.c_str() );
     if( lFactor->IsDiscrete() ) {
       vector< string > lLevelNames = lFactor->GetLevelNames();
-      stringstream msg;
-      msg << "Discrete Factor Legend:     ";
+      mScatterPlotLegend = "Legend:  ";
       for( unsigned int i=0; i < lLevelNames.size(); i++ ) {
-        msg << lLevelNames[i] << "=" << 
-          lFactor->GetContinuousValue(lLevelNames[i].c_str()) << "   " ;
+        mScatterPlotLegend += lLevelNames[i];
+        mScatterPlotLegend += "=";
+        stringstream val;
+        val << lFactor->GetContinuousValue(lLevelNames[i].c_str());
+        mScatterPlotLegend += val.str().c_str();
+        mScatterPlotLegend += "  ";
+        mLabelScatterPlotLegend->SetText( mScatterPlotLegend.c_str() );
       }
-      this->SetStatusText( msg.str().c_str() );
     } else {
-      this->SetStatusText( "" );
+      mScatterPlotLegend = "";
+      mLabelScatterPlotLegend->SetText( mScatterPlotLegend.c_str() );
     }
   }
   this->UpdateScatterPlot();

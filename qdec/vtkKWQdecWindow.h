@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 02:58:19 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/01/21 03:30:32 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -503,6 +503,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkKWEntry>       mEntryDataTable;
   vtkSmartPointer<vtkKWEntry>       mEntryNumberOfSubjects;
   vtkSmartPointer<vtkKWListBox>     mListScatterPlot;
+  vtkSmartPointer<vtkKWLabel>       mLabelScatterPlotLegend;
   vtkSmartPointer<vtkKWEntry>       mEntryExcludeFactor;
   vtkSmartPointer<vtkKWEntry>       mEntryExcludeSubjectGT;
   vtkSmartPointer<vtkKWEntry>       mEntryExcludeSubjectLT;
@@ -554,6 +555,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   // The factor selected to plot in the scatter plot from
   // the Subjects panel.
   int mScatterPlotSelection;
+  string mScatterPlotLegend;
 
   // The struct for a scalars object.
   typedef struct {
