@@ -7,8 +7,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/20 23:49:25 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/01/21 00:18:24 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008,
  * The General Hospital Corporation (Boston, MA).
@@ -38,22 +38,28 @@ using namespace std;
 // Constructors/Destructors
 //
 
-FsgdfPlot::FsgdfPlot () :
-  mGDFID( -1 ),
-  mbGDFLoaded( false )
+FsgdfPlot::FsgdfPlot ()
 {
+  mGDFID = -1;
+  mbGDFLoaded = false;
   mInterp = Tcl_CreateInterp();
   InitInterp();
   InitFsgdfPlot();
 }
 
-FsgdfPlot::FsgdfPlot ( Tcl_Interp *iInterp ) :
-  mGDFID( -1 ),
-  mbGDFLoaded( false )
+FsgdfPlot::FsgdfPlot ( Tcl_Interp *iInterp )
 {
+  mGDFID = -1;
+  mbGDFLoaded = false;
   mInterp = iInterp;
   InitFsgdfPlot();
 }
+
+FsgdfPlot::~FsgdfPlot ()
+{
+  delete mInterp;
+}
+
 
 /**
  * Tcl/Tk/Tix/BLT initialization

@@ -18,7 +18,7 @@ endif
 AM_LDFLAGS=
 
 noinst_LIBRARIES= libfsgdf.a
-libfsgdf_a_SOURCES = fsgdf.c
+libfsgdf_a_SOURCES = fsgdf.c fsgdf_wrap.c FsgdfPlot.cxx
 
 if ENABLE_TCLTK_APPS
 check_PROGRAMS=test

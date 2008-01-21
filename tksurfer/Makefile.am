@@ -13,7 +13,7 @@ AM_LDFLAGS=$(LDFLAGS_TCL)
 
 if ENABLE_TCLTK_APPS
 bin_PROGRAMS=tksurfer
-tksurfer_SOURCES=tksurfer.c $(top_srcdir)/fsgdf/fsgdf_wrap.c
+tksurfer_SOURCES=tksurfer.c
 tksurfer_LDADD= 	$(top_srcdir)/fsgdf/libfsgdf.a \
   $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
