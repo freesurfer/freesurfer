@@ -7,8 +7,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 00:18:24 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/01/21 01:02:52 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008,
  * The General Hospital Corporation (Boston, MA).
@@ -73,25 +73,27 @@ int FsgdfPlot::InitInterp()
   {
     cerr << "FsgdfPlot::Init:   Tcl_Init failed: " << 
       this->mInterp->result << endl;
+    cerr << Tcl_GetStringResult( this->mInterp ) << endl;
   }
-  cerr << Tcl_GetStringResult( this->mInterp ) << endl;
   if (Tk_Init(this->mInterp) == TCL_ERROR)
   {
     cerr << "FsgdfPlot::Init:  Tk_Init failed: " << 
       this->mInterp->result << endl;
+    cerr << Tcl_GetStringResult( this->mInterp ) << endl;
   }
-  cerr << Tcl_GetStringResult( this->mInterp ) << endl;
 
 #if NEEDS_ITCL_ITK
   if (Itcl_Init(this->mInterp) == TCL_ERROR)
   {
     cerr << "FsgdfPlot::Init:  Itcl_Init failed: " << 
       this->mInterp->result << endl;
+    cerr << Tcl_GetStringResult( this->mInterp ) << endl;
   }
   if (Itk_Init(this->mInterp) == TCL_ERROR)
   {
     cerr << "FsgdfPlot::Init:  Itk_Init failed: " << 
       this->mInterp->result << endl;
+    cerr << Tcl_GetStringResult( this->mInterp ) << endl;
   }
 #endif
 
@@ -99,16 +101,17 @@ int FsgdfPlot::InitInterp()
   {
     cerr << "FsgdfPlot::Init:  Tix_Init failed: " << 
       this->mInterp->result << endl;
+    cerr << Tcl_GetStringResult( this->mInterp ) << endl;
   }
-  cerr << Tcl_GetStringResult( this->mInterp ) << endl;
 
   if (Blt_Init(this->mInterp) == TCL_ERROR)
   {
     cerr << "FsgdfPlot::Init:  Blt_Init failed: " << 
       this->mInterp->result << endl;
+    cerr << Tcl_GetStringResult( this->mInterp ) << endl;
   }
-  cerr << Tcl_GetStringResult( this->mInterp ) << endl;
 
+  cerr << Tcl_GetStringResult( this->mInterp ) << endl;
   return( 0 );
 }
 
@@ -124,6 +127,7 @@ int FsgdfPlot::InitFsgdfPlot()
   {
     cerr << "FsgdfPlot::Init:  Fsgdf_Init failed: " << 
       this->mInterp->result << endl;
+    cerr << Tcl_GetStringResult( this->mInterp ) << endl;
   }
 
   // Look in a few places for the fsgdfPlot.tcl script.
@@ -164,11 +168,11 @@ int FsgdfPlot::InitFsgdfPlot()
 
   // Initialize the FSGDF plotting stuff.
   code = Tcl_Eval(this->mInterp, "FsgdfPlot_Init" );
-  cerr << Tcl_GetStringResult( this->mInterp ) << endl;
+  if( code != TCL_OK ) cerr << Tcl_GetStringResult( this->mInterp ) << endl;
 
   // Hide the window for now
   code = Tcl_Eval(this->mInterp, "wm withdraw ." );
-  cerr << Tcl_GetStringResult( this->mInterp ) << endl;
+  if( code != TCL_OK ) cerr << Tcl_GetStringResult( this->mInterp ) << endl;
 
   if (code == TCL_OK) return(0); else return(1);
 }
@@ -215,9 +219,9 @@ int FsgdfPlot::BeginPointList()
 {
   stringstream eval;
   eval << "FsgdfPlot_BeginPointList " <<  this->mGDFID;
-  int code = Tcl_Eval( this->mInterp, eval.str().c_str() );
+  if (Tcl_Eval( this->mInterp, eval.str().c_str() ) == TCL_OK) return(0);
   cerr << Tcl_GetStringResult( this->mInterp ) << endl;
-  if (code == TCL_OK) return(0); else return(1);
+  return(1);
 }
 
 
@@ -229,9 +233,9 @@ int FsgdfPlot::EndPointList()
 {
   stringstream eval;
   eval << "FsgdfPlot_EndPointList " <<  this->mGDFID;
-  int code = Tcl_Eval( this->mInterp, eval.str().c_str() );
+  if (Tcl_Eval( this->mInterp, eval.str().c_str() ) == TCL_OK) return(0);
   cerr << Tcl_GetStringResult( this->mInterp ) << endl;
-  if (code == TCL_OK) return(0); else return(1);
+  return(1);
 }
 
 
@@ -243,9 +247,9 @@ int FsgdfPlot::AddPoint( int inVertex )
 {
   stringstream eval;
   eval << "FsgdfPlot_AddPoint " << this->mGDFID << " " << inVertex << " 0 0";
-  int code = Tcl_Eval( this->mInterp, eval.str().c_str() );
+  if (Tcl_Eval( this->mInterp, eval.str().c_str() ) == TCL_OK) return(0);
   cerr << Tcl_GetStringResult( this->mInterp ) << endl;
-  if (code == TCL_OK) return(0); else return(1);
+  return(1);
 }
 
 
@@ -271,9 +275,9 @@ int FsgdfPlot::SetInfo( const char* isLabel )
 {
   stringstream eval;
   eval << "FsgdfPlot_SetInfo " <<  this->mGDFID << " \"" << isLabel << "\"";
-  int code = Tcl_Eval( this->mInterp, eval.str().c_str() );
+  if (Tcl_Eval( this->mInterp, eval.str().c_str() ) == TCL_OK) return(0);
   cerr << Tcl_GetStringResult( this->mInterp ) << endl;
-  if (code == TCL_OK) return(0); else return(1);
+  return(1);
 }
 
 
@@ -286,9 +290,9 @@ int FsgdfPlot::SaveToPostscript( const char* ifnPostscript )
   stringstream eval;
   eval << "FsgdfPlot_SaveToPostscript " <<  this->mGDFID << 
     " " << ifnPostscript;
-  int code = Tcl_Eval( this->mInterp, eval.str().c_str() );
+  if (Tcl_Eval( this->mInterp, eval.str().c_str() ) == TCL_OK) return(0);
   cerr << Tcl_GetStringResult( this->mInterp ) << endl;
-  if (code == TCL_OK) return(0); else return(1);
+  return(1);
 }
 
 
@@ -296,13 +300,14 @@ int FsgdfPlot::SaveToPostscript( const char* ifnPostscript )
  * @return
  * @param
  */
-int FsgdfPlot::IsWindowShowing()
+bool FsgdfPlot::IsWindowShowing()
 {
   stringstream eval;
   eval << "FsgdfPlot_IsWindowShowing " <<  this->mGDFID;
-  int code = Tcl_Eval( this->mInterp, eval.str().c_str() );
-  cerr << "FsgdfPlot_IsWindowShowing: " << Tcl_GetStringResult( this->mInterp ) << endl;
-  if (code == TCL_OK) return(0); else return(1);
+  if (Tcl_Eval( this->mInterp, eval.str().c_str() ) != TCL_OK) return false;
+  string showing = Tcl_GetStringResult( this->mInterp );
+  if (showing == "1") return true;
+  return false;
 }
 
 
@@ -314,8 +319,8 @@ int FsgdfPlot::HideWindow()
 {
   stringstream eval;
   eval << "FsgdfPlot_HideWindow " <<  this->mGDFID;
-  int code = Tcl_Eval( this->mInterp, eval.str().c_str() );
+  if (Tcl_Eval( this->mInterp, eval.str().c_str() ) == TCL_OK) return(0);
   cerr << Tcl_GetStringResult( this->mInterp ) << endl;
-  if (code == TCL_OK) return(0); else return(1);
+  return(1);
 }
 

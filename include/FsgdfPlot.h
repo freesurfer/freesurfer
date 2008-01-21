@@ -7,8 +7,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/20 23:49:37 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/01/21 01:02:52 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008,
  * The General Hospital Corporation (Boston, MA).
@@ -120,7 +120,7 @@ public:
    * @return
    * @param
    */
-  int IsWindowShowing();
+  bool IsWindowShowing();
 
   /**
    * @return
