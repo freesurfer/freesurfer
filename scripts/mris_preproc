@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/01/10 22:26:50 $
-#    $Revision: 1.45 $
+#    $Date: 2008/01/22 23:27:02 $
+#    $Revision: 1.46 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.45 2008/01/10 22:26:50 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.46 2008/01/22 23:27:02 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -910,6 +910,7 @@ usage_exit:
   echo "  --tmpdir dir : use tmpdir. Implies --nocleanup."
   echo "  --nocleanup  : do not delete tmpdir"
   echo "  --cleanup  : delete tmpdir (default)"
+  echo "  --log logfile : specify log file"
   echo "  --nolog    : do not create a log file"
   echo "  --help    : short descriptive help"
   echo "  --version : script version info"
