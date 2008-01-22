@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/09/15 20:37:23 $
- *    $Revision: 1.39 $
+ *    $Date: 2008/01/22 22:19:54 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.39 2007/09/15 20:37:23 greve Exp $
+  $Id: mri_vol2vol.c,v 1.40 2008/01/22 22:19:54 greve Exp $
 
 */
 
@@ -67,6 +67,7 @@ mri_vol2vol
 
   --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix
   --trans Tx Ty Tz : translation (mm) to apply to reg matrix
+  --shear Sxy Sxz Syz : xz is in-plane
   --reg-final regfinal.dat : final reg after rot and trans (but not inv)
 
   --no-save-reg : do not write out output volume registration matrix
@@ -427,7 +428,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.39 2007/09/15 20:37:23 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.40 2008/01/22 22:19:54 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -493,6 +494,8 @@ double angles[3] = {0,0,0};
 MATRIX *Mrot = NULL;
 double xyztrans[3] = {0,0,0};
 MATRIX *Mtrans = NULL;
+double shear[3] = {0,0,0};
+MATRIX *Mshear = NULL;
 
 char *SegRegCostFile = NULL;
 char  *fspec;
@@ -509,12 +512,12 @@ int main(int argc, char **argv) {
   int n;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.39 2007/09/15 20:37:23 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.40 2008/01/22 22:19:54 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.39 2007/09/15 20:37:23 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.40 2008/01/22 22:19:54 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -620,6 +623,15 @@ int main(int argc, char **argv) {
     printf("  Translation matrix:\n");
     MatrixPrint(stdout,Mtrans);
     R = MatrixMultiply(Mtrans,R,R);
+  }
+  if(Mshear){
+    printf("Applying shear matrix (R=M*R)\n");
+    printf("Current Reg Matrix is:\n");
+    MatrixPrint(stdout,R);
+    printf("  Shear: %lf %lf %lf\n",shear[0],shear[1],shear[2]);
+    printf("  Shear matrix:\n");
+    MatrixPrint(stdout,Mshear);
+    R = MatrixMultiply(Mshear,R,R);
   }
 
   if(RegFileFinal){
@@ -919,6 +931,17 @@ static int parse_commandline(int argc, char **argv) {
       Mtrans->rptr[2][4] = xyztrans[1];
       Mtrans->rptr[3][4] = xyztrans[2];
       nargsused = 3;
+    } else if (istringnmatch(option, "--shear",0)) {
+      if (nargc < 3) argnerr(option,3);
+      // Shear
+      sscanf(pargv[0],"%lf",&shear[0]);
+      sscanf(pargv[1],"%lf",&shear[1]);
+      sscanf(pargv[2],"%lf",&shear[2]);
+      Mshear = MatrixIdentity(4,NULL);
+      Mshear->rptr[1][2] = shear[0]; // xy/col-slice
+      Mshear->rptr[1][3] = shear[1]; // xz/col-row - in-plane
+      Mshear->rptr[2][3] = shear[2]; // yz/row-slice
+      nargsused = 3;
     } else if ( !strcmp(option, "--gdiagno") ) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&gdiagno);
@@ -977,6 +1000,7 @@ printf("  --no-resample : do not resample, just change vox2ras matrix\n");
 printf("\n");
 printf("  --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
 printf("  --trans Tx Ty Tz : translation (mm) to apply to reg matrix\n");
+printf("  --shear Sxy Sxz Syz : xz is in-plane\n");
 printf("  --reg-final regfinal.dat : final reg after rot and trans (but not inv)\n");
 printf("\n");
 printf("  --no-save-reg : do not write out output volume registration matrix\n");
