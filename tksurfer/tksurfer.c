@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/16 21:56:03 $
- *    $Revision: 1.296 $
+ *    $Date: 2008/01/22 06:36:46 $
+ *    $Revision: 1.297 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -919,6 +919,8 @@ void set_color_wheel(float a, float a_offset, float a_cycles, int mode,
 
 int dngheat(float f, float *r, float *g, float *b);
 int dngcolorwheel(float f, float *r, float *g, float *b);
+int UseNewOverlay = 0;
+static void fill_color_array2(MRI_SURFACE *mris, float *colors);
 
 void restore_ripflags(int mode) ;
 void dilate_ripped(void) ;
@@ -2401,6 +2403,11 @@ int  main(int argc,char *argv[])
     else if (!stricmp(argv[i], "-delink"))
     {
       link_tool_and_image_windows_flag = 0;
+      nargs = 1 ;
+    }
+    else if (!stricmp(argv[i], "-ovnew"))
+    {
+      UseNewOverlay = 1;
       nargs = 1 ;
     }
     /* begin rkt */
@@ -14281,7 +14288,10 @@ draw_surface(void)  /* marty: combined three versions */
   }
   if (color_scale_changed)
   {
-    fill_color_array(mris, colors) ; // draws the overlay
+    if(UseNewOverlay)
+      fill_color_array2(mris, colors) ; // draws the overlay
+    else
+      fill_color_array(mris, colors) ; // draws the overlay
     color_scale_changed = TRUE;
     glColorPointer  ( 3, GL_FLOAT, 0, colors );
   }
@@ -14341,6 +14351,54 @@ draw_surface(void)  /* marty: combined three versions */
   if (cptn_draw_flag)  cptn_draw();
   glFlush() ;
 }
+
+/*--------------------------------------------------------------*/
+static void fill_color_array2(MRI_SURFACE *mris, float *colors)
+{
+  extern MRI *mrismask;
+  int n;
+  VERTEX *v;
+  float  r, g, b, f ;
+  float min, mid, max;
+  int maskout=0;
+
+  min = (float)(fthresh);
+  mid = (float)(fmid);
+  max = (0.5 / (float)fslope) + (float)fmid;
+
+  LoadMRISMask();
+
+  // Go through each vertex
+  for (n=0;n<mris->nvertices;n++){
+    v = &mris->vertices[n];
+
+    maskout = 0;
+    if(mrismask) {
+      if(fabs(MRIgetVoxVal(mrismask,n,0,0,0)) < min) maskout = 1;
+      else if(fabs(v->val) < 1e-6) maskout = 1; // dont display 0s
+    }
+    else{
+      if(fabs(v->val) < min) maskout = 1;
+    }
+
+    if(maskout){
+      if(v->curv > 0) {r = 0.75; g = 0.75; b = 0.75;}
+      else            {r = 0.25; g = 0.25; b = 0.25;}
+    }
+    else {
+      if(mrismask) f = v->val/max;
+      else         f = (v->val-min)/(max-min);
+      dngheat(f,&r,&g,&b);
+    }
+
+    colors[3*n]   = r;
+    colors[3*n+1] = g;
+    colors[3*n+2] = b;
+  } // end loop over vertices
+
+  return;
+}
+
 
 /*!
   \fn static void fill_color_array(MRI_SURFACE *mris, float *colors)
@@ -20516,7 +20574,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.296 2008/01/16 21:56:03 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.297 2008/01/22 06:36:46 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
