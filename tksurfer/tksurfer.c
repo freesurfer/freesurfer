@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/22 06:36:46 $
- *    $Revision: 1.297 $
+ *    $Date: 2008/01/22 07:13:23 $
+ *    $Revision: 1.298 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -921,6 +921,7 @@ int dngheat(float f, float *r, float *g, float *b);
 int dngcolorwheel(float f, float *r, float *g, float *b);
 int UseNewOverlay = 0;
 static void fill_color_array2(MRI_SURFACE *mris, float *colors);
+int LabelColor(int vno, float* r, float* g, float* b);
 
 void restore_ripflags(int mode) ;
 void dilate_ripped(void) ;
@@ -14358,7 +14359,7 @@ static void fill_color_array2(MRI_SURFACE *mris, float *colors)
   extern MRI *mrismask;
   int n;
   VERTEX *v;
-  float  r, g, b, f ;
+  float  r, g, b, f;
   float min, mid, max;
   int maskout=0;
 
@@ -14390,6 +14391,7 @@ static void fill_color_array2(MRI_SURFACE *mris, float *colors)
       else         f = (v->val-min)/(max-min);
       dngheat(f,&r,&g,&b);
     }
+    LabelColor(n, &r,&g,&b);
 
     colors[3*n]   = r;
     colors[3*n+1] = g;
@@ -14398,6 +14400,60 @@ static void fill_color_array2(MRI_SURFACE *mris, float *colors)
 
   return;
 }
+/*-------------------------------------------------------------------*/
+int LabelColor(int vno, float* r, float* g, float* b)
+{
+  int label_index_array[LABL_MAX_LABELS];
+  int num_labels_found, found_label_index;
+  int label_index;
+
+  /* if our display flag is off, do nothing. */
+  if( !labl_draw_flag ) return(0);
+
+  /* try and find a label. if found... */
+  labl_find_label_by_vno (vno, 0, label_index_array,
+                          LABL_MAX_LABELS, &num_labels_found);
+  if (num_labels_found > 0){
+    for (found_label_index = 0; found_label_index < num_labels_found;
+         found_label_index++) {
+      label_index = label_index_array[found_label_index];
+
+      /* if this is the selected label and this is a border of width 1
+         or 2, make it our outline color. */
+      if (labl_selected_label == label_index &&
+          labl_vno_is_border(labl_selected_label, vno)){
+        *r = labl_outline_color[0];
+        *g = labl_outline_color[1];
+        *b = labl_outline_color[2];
+      }
+      /* else if this label is visible... */
+      else if (labl_labels[label_index].visible) {
+        /* color it in the given drawing style. */
+        switch (labl_draw_style) {
+        case LABL_STYLE_FILLED:
+          *r = labl_labels[label_index].r/255.0;
+          *g = labl_labels[label_index].g/255.0;
+          *b = labl_labels[label_index].b/255.0;
+          break;
+        case LABL_STYLE_OUTLINE:
+          /* if this is a border of width 1, color it the color of the
+             label. */
+          if (labl_vno_is_border (label_index, vno)){
+            *r = labl_labels[label_index].r;
+            *g = labl_labels[label_index].g;
+            *b = labl_labels[label_index].b;
+          }
+          break;
+        default:
+          ;
+        }
+      }
+    }
+  }
+
+  return(1);
+}
+
 
 
 /*!
@@ -20574,7 +20630,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.297 2008/01/22 06:36:46 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.298 2008/01/22 07:13:23 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
