@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 03:30:32 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/01/22 21:08:45 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -66,6 +66,7 @@ class vtkKWRGBATransferFunctionEditor;
 class vtkKWScale;
 class vtkRGBATransferFunction;
 class vtkScalarsToColors;
+class vtkKWFrameWithLabel;
 
 class vtkKWQdecWindow : public vtkKWWindow 
                         //BTX
@@ -83,11 +84,61 @@ class vtkKWQdecWindow : public vtkKWWindow
   // before Create.
   void SetUseHistogramEditor ( bool ibUse );
 
-  // Override to create our interior.
-  virtual void CreateWidget ();
-
   // Finish setting up after the KWWidgets Create calls are done.
   void FinishCreating ();
+
+  // Radio-button selection of which measure to use
+  void SetCurrentMeasure( const char* isMeasure );
+  void SetCurrentSurfaceMeasure( const char* isMeasure );
+
+  // Load the data table and update the subjects and design page with
+  // the loaded data.
+  void LoadDataTable ( const char* ifnDataTable );
+
+  // Load a project file, which will contain all the data and info we
+  // need to load analyzed data.
+  void LoadProjectFile ( const char* ifnProject );
+
+  // Load a surface and associate it with a label. Multiple surfaces
+  // may be loaded and identified with their label. Displays the
+  // surface in the view.
+  void LoadSurface ( const char* ifnSurface, const char* isLabel=NULL );
+
+  // Load a GDF file using Fsgdf_Read. The ID will be passed to the
+  // view so that it can use the Fsgdf_* plotting functions in Tcl
+  // land to plot data.
+  void LoadGDFFile ( const char* ifnGDFFile );
+
+  // Load an annotation file. This will create the lookup map used by
+  // the view so that it can get a string to display whenever a vertex
+  // is clicked, and also load the annotation as the surface overlay
+  // and set it in the view.
+  void LoadAnnotation ( const char* ifnScalars );
+
+  // Load a surface scalar file and return the entry index associated
+  // with it. Optionally takes a label name to associate with this label file.
+  // Optionally takes a frame number if reading a multi-frame file. 
+  // This does not change the active scalars file.
+  int  LoadSurfaceScalars ( const char* ifnScalars, 
+                            const char* isLabel=NULL,
+                            int inFrame=0 );
+
+  // Load a surface scalar file and associated color map and display
+  // it in the view as a translucent overlay over the
+  // surface. Normally we'll get a lookup map in the scalar (.annot)
+  // file itself, otherwise we need a color table file name.
+  void LoadSurfaceOverlayScalars ( const char* ifnScalars,
+				   const char* ifnColors=NULL );
+
+  // Load a curvature file and display it on the surface in the view.
+  void LoadSurfaceCurvatureScalars ( const char* ifnScalars );
+
+  // Use a vtkFSSurfaceLabelSource to load a label and pass the
+  // polydata to the view.
+  void LoadLabel ( const char* ifnLabel );
+  
+  // Override to create our interior.
+  virtual void CreateWidget ();
 
   // Implement ProgressUpdateGUI virtuals
   void BeginActionWithProgress( const char* isTitle );
@@ -119,14 +170,6 @@ class vtkKWQdecWindow : public vtkKWWindow
   void SmoothCurvatureScalarsFromDlog ();
   void SmoothSurfaceScalarsFromDlog ();
 
-  // Load the data table and update the subjects and design page with
-  // the loaded data.
-  void LoadDataTable ( const char* ifnDataTable );
-
-  // Load a project file, which will contain all the data and info we
-  // need to load analyzed data.
-  void LoadProjectFile ( const char* ifnProject );
-
   // Save analyzed data to a project file.
   void SaveProjectFile ( const char* ifnProject );
 
@@ -136,44 +179,6 @@ class vtkKWQdecWindow : public vtkKWWindow
   // coefficients scalars, and load the GDF.
   void LoadAnalyzedData ( QdecGlmFitResults* iGlmResults );
 
-  // Load a surface and associate it with a label. Multiple surfaces
-  // may be loaded and identified with their label. Displays the
-  // surface in the view.
-  void LoadSurface ( const char* ifnSurface, const char* isLabel=NULL );
-
-  // Load a GDF file using Fsgdf_Read. The ID will be passed to the
-  // view so that it can use the Fsgdf_* plotting functions in Tcl
-  // land to plot data.
-  void LoadGDFFile ( const char* ifnGDFFile );
-
-  // Load a surface scalar file and return the entry index associated
-  // with it. Optionally takes a label name to associate with this label file.
-  // Optionally takes a frame number if reading a multi-frame file. 
-  // This does not change the active scalars file.
-  int  LoadSurfaceScalars ( const char* ifnScalars, 
-                            const char* isLabel=NULL,
-                            int inFrame=0 );
-
-  // Load a curvature file and display it on the surface in the view.
-  void LoadSurfaceCurvatureScalars ( const char* ifnScalars );
-
-  // Load an annotation file. This will create the lookup map used by
-  // the view so that it can get a string to display whenever a vertex
-  // is clicked, and also load the annotation as the surface overlay
-  // and set it in the view.
-  void LoadAnnotation ( const char* ifnScalars );
-
-  // Load a surface scalar file and associated color map and display
-  // it in the view as a translucent overlay over the
-  // surface. Normally we'll get a lookup map in the scalar (.annot)
-  // file itself, otherwise we need a color table file name.
-  void LoadSurfaceOverlayScalars ( const char* ifnScalars,
-				   const char* ifnColors=NULL );
-
-  // Use a vtkFSSurfaceLabelSource to load a label and pass the
-  // polydata to the view.
-  void LoadLabel ( const char* ifnLabel );
-  
   // Save the current label.
   void SaveLabel ( const char* ifnLabel );
 
@@ -291,7 +296,6 @@ class vtkKWQdecWindow : public vtkKWWindow
   static void NotebookRaisePageCallback
     ( vtkObject*, unsigned long, void*, void* );
 
-
   // This is called by vtkQdecBltGraphObserver when an element is
   // moused over or not moused over.
   void ScatterPlotGraphMouseoverEnterElement ( const char* isElement );
@@ -310,7 +314,6 @@ class vtkKWQdecWindow : public vtkKWWindow
   static void ScatterPlotGraphContextualMenuOpeningCallback
     ( vtkObject*, unsigned long, void*, void* );
   
-
   // This is called by the contextual menus associated with continuous
   // factor plot elements. It affects whether or not a subject is used
   // in the QdecGlmDesign.
@@ -328,6 +331,9 @@ class vtkKWQdecWindow : public vtkKWWindow
   // return a region string.
   const char* GetAnnotationForVertex ( int inVertex );
 
+  // Compose the scalars and color table and display it in the view.
+  void ComposeSurfaceScalarsAndShow ();
+
  protected:
 
   vtkKWQdecWindow ();
@@ -336,11 +342,9 @@ class vtkKWQdecWindow : public vtkKWWindow
   // The names of our notebook pages.
   static const char* ksSubjectsPanelName;
   static const char* ksDesignPanelName;
+  static const char* ksContrastPanelName;
   static const char* ksDisplayPanelName;
   const char* mCurrentNotebookPanelName;
-
-  // Compose the scalars and color table and display it in the view.
-  void ComposeSurfaceScalarsAndShow ();
 
   // Enable or disable buttons and menu items based on program state.
   void UpdateCommandStatus ();
@@ -512,10 +516,17 @@ class vtkKWQdecWindow : public vtkKWWindow
   // Widgets in the Design panel.
   vtkSmartPointer<vtkKWListBox>     mListDiscreteFactors;
   vtkSmartPointer<vtkKWListBox>     mListContinuousFactors;
-  vtkSmartPointer<vtkKWMenuButton>  mMenuMeasure;
-  vtkSmartPointer<vtkKWMenuButton>  mMenuHemisphere;
-  vtkSmartPointer<vtkKWMenuButton>  mMenuSmoothness;
+  vtkSmartPointer<vtkKWRadioButtonSet>  mRadBtnSetMeasure;
+  vtkSmartPointer<vtkKWRadioButtonSet>  mRadBtnSetSurfaceMeasure;
+  vtkSmartPointer<vtkKWMenuButton>  mMenuMorphMeasure;
+  vtkSmartPointer<vtkKWMenuButton>  mMenuMorphHemisphere;
+  vtkSmartPointer<vtkKWMenuButton>  mMenuMorphSmoothness;
   vtkSmartPointer<vtkKWEntry>       mEntryDesignName;
+  vtkSmartPointer<vtkKWFrameWithLabel> mFrameMeasures; 
+  vtkSmartPointer<vtkKWFrame>       mFrameSurfaceMeasures;
+  vtkSmartPointer<vtkKWFrame>       mFrameMorphMeasures;
+  vtkSmartPointer<vtkKWFrame>       mFrameFunctionalMeasures;
+  vtkSmartPointer<vtkKWFrame>       mFrameVolumeMeasures;
 
   // Widgets for the Display panel.
   vtkSmartPointer<vtkKWFrame>           mFrameSurface;

@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 03:30:32 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/01/22 21:08:45 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,10 +101,11 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.13 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.14 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
+const char* vtkKWQdecWindow::ksContrastPanelName = "Contrast";
 const char* vtkKWQdecWindow::ksDisplayPanelName = "Display";
 
 vtkKWQdecWindow::vtkKWQdecWindow () :
@@ -585,7 +586,10 @@ vtkKWQdecWindow::CreateWidget () {
   mPanel->AddPage(
     ksSubjectsPanelName, "Explore data from the subjects data table", NULL );
   mPanel->AddPage(
-    ksDesignPanelName, "Design the GLM query and begin the analysis", NULL );
+    ksDesignPanelName, "Create the GLM Design matrix", NULL );
+  mPanel->AddPage(
+    ksContrastPanelName, "Create the Contrast matrix, and begin the analysis",
+    NULL );
   mPanel->AddPage(
     ksDisplayPanelName, "Configure the view of the results", NULL );
 
@@ -800,7 +804,7 @@ vtkKWQdecWindow::CreateWidget () {
 
   // ---------------------------------------------------------------------
   //
-  // Design pane gets the control for configuring the input to
+  // Design pane gets the control for configuring the design matrix input to
   // mri_glmfit.
   panelFrame = mPanel->GetPageWidget( ksDesignPanelName );
 
@@ -830,12 +834,43 @@ vtkKWQdecWindow::CreateWidget () {
   this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
   //
+  // Create the Measures frame, above the Factors frame.
+  mFrameMeasures = vtkSmartPointer<vtkKWFrameWithLabel>::New();
+  mFrameMeasures->SetParent( panelFrame );
+  mFrameMeasures->Create();
+  mFrameMeasures->SetLabelText( "Measure (Dependent variable)" );
+  this->Script( "pack %s -fill x", mFrameMeasures->GetWidgetName() );
+
+  // radio-buttons selecting measure category
+  mRadBtnSetMeasure = vtkSmartPointer<vtkKWRadioButtonSet>::New();
+  mRadBtnSetMeasure->SetParent(  mFrameMeasures->GetFrame() );
+  mRadBtnSetMeasure->Create();
+  mRadBtnSetMeasure->PackHorizontallyOn();
+  this->Script( "pack %s -side top -fill both",
+                mRadBtnSetMeasure->GetWidgetName() );
+
+  int nButton = 0;
+  vtkSmartPointer<vtkKWRadioButton> radBtn;
+  // first category is Surface-based measures
+  radBtn.TakeReference( mRadBtnSetMeasure->AddWidget( nButton++ ) );
+  radBtn->SetText( "Surface-based" );
+  radBtn->SelectedStateOn(); // this one is the default, so its on
+  string sCmd = string( "SetCurrentMeasure " ) + radBtn->GetText();
+  radBtn->SetCommand( this, sCmd.c_str() );
+  // second category is Volume-based measures
+  radBtn.TakeReference( mRadBtnSetMeasure->AddWidget( nButton++ ) );
+  radBtn->SetText( "Volume-based" );
+  radBtn->SelectedStateOff();
+  sCmd = string( "SetCurrentMeasure " ) + radBtn->GetText();
+  radBtn->SetCommand( this, sCmd.c_str() );
+  
+  //
   // Create the Factors frame.
   vtkSmartPointer<vtkKWFrameWithLabel> factorsFrame =
     vtkSmartPointer<vtkKWFrameWithLabel>::New();
   factorsFrame->SetParent( panelFrame );
   factorsFrame->Create();
-  factorsFrame->SetLabelText( "Factors (Independent Variables)" );
+  factorsFrame->SetLabelText( "Model Factors (Independent Variables)" );
   this->Script( "pack %s -fill x", factorsFrame->GetWidgetName() );
 
   // Discrete and continuous list boxes are inside the Factors frame.
@@ -865,130 +900,27 @@ vtkKWQdecWindow::CreateWidget () {
   mListContinuousFactors->
     SetSelectionCommand( this, "ContinuousFactorsListBoxCallback" );
 
+  // call the radio-button handler once to set it up
+  this->SetCurrentMeasure( "Surface-based" );
+
+
+  // ---------------------------------------------------------------------
   //
-  // Create the Measures frame, below the Factors frame.
-  vtkSmartPointer<vtkKWFrameWithLabel> measuresFrame =
-    vtkSmartPointer<vtkKWFrameWithLabel>::New();
-  measuresFrame->SetParent( panelFrame );
-  measuresFrame->Create();
-  measuresFrame->SetLabelText( "Measure (Dependent variable)" );
-  this->Script( "pack %s -fill x", measuresFrame->GetWidgetName() );
+  // Contrast pane gets the control for configuring the contrast matrix input
+  // to mri_glmfit.
+  panelFrame = mPanel->GetPageWidget( ksContrastPanelName );
 
-  //
-  // Create the Surface-based frame, inside the Measures frame.
-  vtkSmartPointer<vtkKWFrameWithLabel> surfaceMeasuresFrame = 
-    vtkSmartPointer<vtkKWFrameWithLabel>::New();
-  surfaceMeasuresFrame->SetParent( measuresFrame->GetFrame() );
-  surfaceMeasuresFrame->Create();
-  surfaceMeasuresFrame->SetLabelText( "Surface-based" );
-  this->Script( "pack %s -fill x", surfaceMeasuresFrame->GetWidgetName() );
+  // Make the top level frame in this page a scrolling frame.
+  scrolledFrame = vtkSmartPointer<vtkKWFrameWithScrollbar>::New();
+  scrolledFrame->SetParent( panelFrame );
+  scrolledFrame->Create();
+  scrolledFrame->VerticalScrollbarVisibilityOn();
+  scrolledFrame->HorizontalScrollbarVisibilityOff();
+  this->Script( "pack %s -expand yes -fill both",
+                scrolledFrame->GetWidgetName() );
 
-  // The widgets inside the Surface-based Measures frame. We'll pack
-  // these in a grid so we can get the actual menus as wide as
-  // possible and aligned nicely.
-  vtkSmartPointer<vtkKWFrameWithLabel> morphMeasuresFrame =
-    vtkSmartPointer<vtkKWFrameWithLabel>::New();
-  morphMeasuresFrame->SetParent( surfaceMeasuresFrame->GetFrame() );
-  morphMeasuresFrame->Create();
-  morphMeasuresFrame->SetLabelText( "Morphometric" );
-  this->Script( "pack %s -fill x", morphMeasuresFrame->GetWidgetName() );
-
-  nRow = 0;
-  label = vtkSmartPointer<vtkKWLabel>::New();
-  label->SetParent( morphMeasuresFrame->GetFrame() );
-  label->Create();
-  label->SetText( "Measure: " );
-  label->SetJustificationToRight();
-  this->Script( "grid %s -column 0 -row %d -sticky ne",
-                label->GetWidgetName(), nRow );
-
-  mMenuMeasure = vtkSmartPointer<vtkKWMenuButton>::New();
-  mMenuMeasure->SetParent( morphMeasuresFrame->GetFrame() );
-  mMenuMeasure->Create();
-  mMenuMeasure->GetMenu()->AddRadioButton( "thickness" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "area" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "area.pial" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "volume" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "sulc" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "curv" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "white.K" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "white.H" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "jacobian_white" );
-  mMenuMeasure->SetValue( "thickness" );
-  this->Script( "grid %s -column 1 -row %d -sticky nw",
-                mMenuMeasure->GetWidgetName(), nRow );
-
-  nRow++;
-  label = vtkSmartPointer<vtkKWLabel>::New();
-  label->SetParent( morphMeasuresFrame->GetFrame() );
-  label->Create();
-  label->SetText( "Hemisphere: " );
-  label->SetJustificationToRight();
-  this->Script( "grid %s -column 0 -row %d -sticky ne",
-                label->GetWidgetName(), nRow );
-
-  mMenuHemisphere = vtkSmartPointer<vtkKWMenuButton>::New();
-  mMenuHemisphere->SetParent( morphMeasuresFrame->GetFrame() );
-  mMenuHemisphere->Create();
-  mMenuHemisphere->GetMenu()->AddRadioButton( "lh" );
-  mMenuHemisphere->GetMenu()->AddRadioButton( "rh" );
-  mMenuHemisphere->SetValue( "lh" );
-  this->Script( "grid %s -column 1 -row %d -sticky nw",
-                mMenuHemisphere->GetWidgetName(), nRow );
-
-  nRow++;
-  label = vtkSmartPointer<vtkKWLabel>::New();
-  label->SetParent( morphMeasuresFrame->GetFrame() );
-  label->Create();
-  label->SetText( "Smoothing (FWHM): " );
-  label->SetJustificationToRight();
-  this->Script( "grid %s -column 0 -row %d -sticky ne",
-                label->GetWidgetName(), nRow );
-
-  mMenuSmoothness = vtkSmartPointer<vtkKWMenuButton>::New();
-  mMenuSmoothness->SetParent( morphMeasuresFrame->GetFrame() );
-  mMenuSmoothness->Create();
-  mMenuSmoothness->GetMenu()->AddRadioButton( "0" );
-  mMenuSmoothness->GetMenu()->AddRadioButton( "5" );
-  mMenuSmoothness->GetMenu()->AddRadioButton( "10" );
-  mMenuSmoothness->GetMenu()->AddRadioButton( "15" );
-  mMenuSmoothness->GetMenu()->AddRadioButton( "20" );
-  mMenuSmoothness->GetMenu()->AddRadioButton( "25" );
-  mMenuSmoothness->SetValue( "10" );
-  this->Script( "grid %s -column 1 -row %d -sticky nw",
-                mMenuSmoothness->GetWidgetName(), nRow );
-
-  // Weight our grid properly.
-  this->Script( "grid columnconfigure %s 0 -weight 0",
-                morphMeasuresFrame->GetFrame()->GetWidgetName() );
-  this->Script( "grid columnconfigure %s 1 -weight 1",
-                morphMeasuresFrame->GetFrame()->GetWidgetName() );
-  this->Script( "grid rowconfigure %s %d -weight 1",
-                morphMeasuresFrame->GetFrame()->GetWidgetName(), nRow );
-  for( int nRowConfigure = 0; nRowConfigure <= nRow; nRowConfigure++ )
-    this->Script( "grid rowconfigure %s %d -pad 4",
-                  surfaceMeasuresFrame->GetFrame()->GetWidgetName(),
-                  nRowConfigure );
-
-  //
-  // Create the Functional based frame, inside the Measures frame.
-  vtkSmartPointer<vtkKWFrameWithLabel> functionalMeasuresFrame = 
-    vtkSmartPointer<vtkKWFrameWithLabel>::New();
-  functionalMeasuresFrame->SetParent( surfaceMeasuresFrame->GetFrame() );
-  functionalMeasuresFrame->Create();
-  functionalMeasuresFrame->SetLabelText( "Functional" );
-  functionalMeasuresFrame->CollapseFrame();
-  this->Script( "pack %s -fill x", functionalMeasuresFrame->GetWidgetName() );
-
-  //
-  // Create the Volume-based frame, inside the Measures frame.
-  vtkSmartPointer<vtkKWFrameWithLabel> volumeMeasuresFrame =
-    vtkSmartPointer<vtkKWFrameWithLabel>::New();
-  volumeMeasuresFrame->SetParent( measuresFrame->GetFrame() );
-  volumeMeasuresFrame->Create();
-  volumeMeasuresFrame->SetLabelText( "Volume-based" );
-  volumeMeasuresFrame->CollapseFrame();
-  this->Script( "pack %s -fill x", volumeMeasuresFrame->GetWidgetName() );
+  // Get the inner scrolled frame as the parent for everything else.
+  panelFrame = scrolledFrame->GetFrame();
 
   //
   // Now for the 'go' button (to start analysis)
@@ -1136,6 +1068,195 @@ void
 vtkKWQdecWindow::EndActionWithProgress() {
 }
 // ------------------------------------
+
+
+void 
+vtkKWQdecWindow::SetCurrentMeasure( const char* isMeasure ) {
+  // remove the existing frame contents
+  if( mFrameSurfaceMeasures ) mFrameSurfaceMeasures->Unpack();
+  if( mFrameVolumeMeasures ) mFrameVolumeMeasures->Unpack();
+
+  // if Surface-based radio button was clicked...
+  if( 0 == strcmp(isMeasure,"Surface-based") )
+  {
+    // Create the Surface-based frame, inside the Measures frame.
+    mFrameSurfaceMeasures = vtkSmartPointer<vtkKWFrame>::New();
+    mFrameSurfaceMeasures->SetParent( mFrameMeasures->GetFrame() );
+    mFrameSurfaceMeasures->Create();
+    this->Script( "pack %s -fill x", mFrameSurfaceMeasures->GetWidgetName() );
+
+    // radio-buttons selecting surface measure category
+    mRadBtnSetSurfaceMeasure = vtkSmartPointer<vtkKWRadioButtonSet>::New();
+    mRadBtnSetSurfaceMeasure->SetParent(  mFrameSurfaceMeasures );
+    mRadBtnSetSurfaceMeasure->Create();
+    mRadBtnSetSurfaceMeasure->PackHorizontallyOn();
+    this->Script( "pack %s -side top -fill both",
+                  mRadBtnSetSurfaceMeasure->GetWidgetName() );
+
+    int nButton = 0;
+    vtkSmartPointer<vtkKWRadioButton> radBtn;
+    // first category is Morphometric measures
+    radBtn.TakeReference( mRadBtnSetSurfaceMeasure->AddWidget( nButton++ ) );
+    radBtn->SetText( "Morphometric" );
+    radBtn->SelectedStateOn(); // this one is the default, so its on
+    string sCmd = string( "SetCurrentSurfaceMeasure " ) + radBtn->GetText();
+    radBtn->SetCommand( this, sCmd.c_str() );
+    // second category is Functional measures
+    radBtn.TakeReference( mRadBtnSetSurfaceMeasure->AddWidget( nButton++ ) );
+    radBtn->SetText( "Functional" );
+    radBtn->SelectedStateOff();
+    sCmd = string( "SetCurrentSurfaceMeasure " ) + radBtn->GetText();
+    radBtn->SetCommand( this, sCmd.c_str() );
+    // run once to display
+    SetCurrentSurfaceMeasure( "Morphometric" );
+  
+  } // end if "Surface-based", else if Volume-based radio button was clicked:
+  else if( 0 == strcmp(isMeasure,"Volume-based") ) {
+    //
+    // Create the Volume-based frame, inside the Measures frame.
+    mFrameVolumeMeasures = vtkSmartPointer<vtkKWFrame>::New();
+    mFrameVolumeMeasures->SetParent( mFrameMeasures->GetFrame() );
+    mFrameVolumeMeasures->Create();
+    this->Script( "pack %s -fill x", mFrameVolumeMeasures->GetWidgetName() );
+
+    // temporary message:
+    int nRow=0;
+    vtkSmartPointer<vtkKWLabel> label = vtkSmartPointer<vtkKWLabel>::New();
+    label->SetParent( mFrameVolumeMeasures );
+    label->Create();
+    label->SetText( "-----<not yet implemented>-----" );
+    label->SetJustificationToCenter();
+    this->Script( "grid %s -column 0 -row %d -sticky ne",
+                  label->GetWidgetName(), nRow );
+
+  }
+
+  // make sure Design tab has most current info displayed
+  this->UpdateDesignPage();
+}
+
+void
+vtkKWQdecWindow::SetCurrentSurfaceMeasure( const char* isMeasure ) {
+
+  if( mFrameMorphMeasures ) mFrameMorphMeasures->Unpack();
+  if( mFrameFunctionalMeasures ) mFrameFunctionalMeasures->Unpack();
+
+  // if Morphometric radio button was clicked...
+  if( 0 == strcmp(isMeasure,"Morphometric") )
+  {
+    // The widgets inside the Surface-based Measures frame. We'll pack
+    // these in a grid so we can get the actual menus as wide as
+    // possible and aligned nicely.
+    mFrameMorphMeasures = vtkSmartPointer<vtkKWFrame>::New();
+    mFrameMorphMeasures->SetParent( mFrameSurfaceMeasures );
+    mFrameMorphMeasures->Create();
+    this->Script( "pack %s -fill x", mFrameMorphMeasures->GetWidgetName() );
+
+    int nRow = 0;
+    vtkSmartPointer<vtkKWLabel> label = vtkSmartPointer<vtkKWLabel>::New();
+    label->SetParent( mFrameMorphMeasures );
+    label->Create();
+    label->SetText( "Measure: " );
+    label->SetJustificationToRight();
+    this->Script( "grid %s -column 0 -row %d -sticky ne",
+                  label->GetWidgetName(), nRow );
+
+    if( mMenuMorphMeasure ) mMenuMorphMeasure->Unpack();
+    mMenuMorphMeasure = vtkSmartPointer<vtkKWMenuButton>::New();
+    mMenuMorphMeasure->SetParent( mFrameMorphMeasures );
+    mMenuMorphMeasure->Create();
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "thickness" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "area" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "area.pial" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "volume" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "sulc" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "curv" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "white.K" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "white.H" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "jacobian_white" );
+    mMenuMorphMeasure->SetValue( "thickness" );
+    this->Script( "grid %s -column 1 -row %d -sticky nw",
+                  mMenuMorphMeasure->GetWidgetName(), nRow );
+    nRow++;
+
+    label = vtkSmartPointer<vtkKWLabel>::New();
+    label->SetParent( mFrameMorphMeasures );
+    label->Create();
+    label->SetText( "Smoothing (FWHM): " );
+    label->SetJustificationToRight();
+    this->Script( "grid %s -column 0 -row %d -sticky ne",
+                  label->GetWidgetName(), nRow );
+
+    if( mMenuMorphSmoothness ) mMenuMorphSmoothness->Unpack();
+    mMenuMorphSmoothness = vtkSmartPointer<vtkKWMenuButton>::New();
+    mMenuMorphSmoothness->SetParent( mFrameMorphMeasures );
+    mMenuMorphSmoothness->Create();
+    mMenuMorphSmoothness->GetMenu()->AddRadioButton( "0" );
+    mMenuMorphSmoothness->GetMenu()->AddRadioButton( "5" );
+    mMenuMorphSmoothness->GetMenu()->AddRadioButton( "10" );
+    mMenuMorphSmoothness->GetMenu()->AddRadioButton( "15" );
+    mMenuMorphSmoothness->GetMenu()->AddRadioButton( "20" );
+    mMenuMorphSmoothness->GetMenu()->AddRadioButton( "25" );
+    mMenuMorphSmoothness->SetValue( "10" );
+    this->Script( "grid %s -column 1 -row %d -sticky nw",
+                  mMenuMorphSmoothness->GetWidgetName(), nRow );
+    nRow++;
+
+    label = vtkSmartPointer<vtkKWLabel>::New();
+    label->SetParent( mFrameMorphMeasures );
+    label->Create();
+    label->SetText( "Hemisphere: " );
+    label->SetJustificationToRight();
+    this->Script( "grid %s -column 0 -row %d -sticky ne",
+                  label->GetWidgetName(), nRow );
+
+    if( mMenuMorphHemisphere ) mMenuMorphHemisphere->Unpack();
+    mMenuMorphHemisphere = vtkSmartPointer<vtkKWMenuButton>::New();
+    mMenuMorphHemisphere->SetParent( mFrameMorphMeasures );
+    mMenuMorphHemisphere->Create();
+    mMenuMorphHemisphere->GetMenu()->AddRadioButton( "lh" );
+    mMenuMorphHemisphere->GetMenu()->AddRadioButton( "rh" );
+    mMenuMorphHemisphere->SetValue( "lh" );
+    this->Script( "grid %s -column 1 -row %d -sticky nw",
+                  mMenuMorphHemisphere->GetWidgetName(), nRow );
+    nRow++;
+
+    // Weight our grid properly.
+    this->Script( "grid columnconfigure %s 0 -weight 0",
+                  mFrameMorphMeasures->GetWidgetName() );
+    this->Script( "grid columnconfigure %s 1 -weight 1",
+                  mFrameMorphMeasures->GetWidgetName() );
+    this->Script( "grid rowconfigure %s %d -weight 1",
+                  mFrameMorphMeasures->GetWidgetName(), nRow );
+    for( int nRowConfigure = 0; nRowConfigure <= nRow; nRowConfigure++ )
+      this->Script( "grid rowconfigure %s %d -pad 4",
+                    mFrameSurfaceMeasures->GetWidgetName(), nRowConfigure );
+
+  } // end if Morphometric, else if Functional radio button was clicked...
+  else if( 0 == strcmp(isMeasure,"Functional") ) {
+    //
+    // Create the Functional based frame, inside the Measures frame.
+    //if( mFrameFunctionalMeasures ) delete mFrameFunctionalMeasures;
+    mFrameFunctionalMeasures = vtkSmartPointer<vtkKWFrame>::New();
+    mFrameFunctionalMeasures->SetParent( mFrameSurfaceMeasures );
+    mFrameFunctionalMeasures->Create();
+    this->Script( "pack %s -fill x", 
+                  mFrameFunctionalMeasures->GetWidgetName() );
+    // temporary message:
+    int nRow=0;
+    vtkSmartPointer<vtkKWLabel> label = vtkSmartPointer<vtkKWLabel>::New();
+    label->SetParent( mFrameFunctionalMeasures );
+    label->Create();
+    label->SetText( "-----<not yet implemented>-----" );
+    label->SetJustificationToCenter();
+    this->Script( "grid %s -column 0 -row %d -sticky ne",
+                  label->GetWidgetName(), nRow );
+
+  }
+
+  // make sure Design tab has most current info displayed
+  this->UpdateDesignPage();
+}
 
 
 
@@ -2557,11 +2678,13 @@ vtkKWQdecWindow::UpdateDesignPage () {
   // Fill our our entries with the values from the design.
   QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
   mEntryDesignName->SetValue( design->GetName().c_str() );
-  mMenuMeasure->SetValue( design->GetMeasure().c_str() );
-  mMenuHemisphere->SetValue( design->GetHemi().c_str() );
-  stringstream ssSmoothness;
-  ssSmoothness << design->GetSmoothness();
-  mMenuSmoothness->SetValue( ssSmoothness.str().c_str() );
+  if( mFrameMorphMeasures ) {
+    mMenuMorphMeasure->SetValue( design->GetMeasure().c_str() );
+    mMenuMorphHemisphere->SetValue( design->GetHemi().c_str() );
+    stringstream ssSmoothness;
+    ssSmoothness << design->GetSmoothness();
+    mMenuMorphSmoothness->SetValue( ssSmoothness.str().c_str() );
+  }
 
   // Clear the factor lists.
   mListDiscreteFactors->DeleteAll();
@@ -3615,7 +3738,7 @@ vtkKWQdecWindow::AddSelectionToROI () {
   // If we don't have a label source, create one now.
   if( !mROISource.GetPointer() ) {
     mROISource = vtkSmartPointer<vtkFSSurfaceLabelSource>::New();
-    string sLabelName = mMenuHemisphere->GetValue();
+    string sLabelName = mMenuMorphHemisphere->GetValue();
     sLabelName += ".untitled.label";
     mROISource->SetLabelFileName( sLabelName.c_str() );
     vtkFSSurfaceSource* surface = maSurfaceSource[msCurrentSurfaceSource];
@@ -3659,7 +3782,7 @@ vtkKWQdecWindow::RemoveSelectionFromROI () {
   // If we don't have a label source, create one now.
   if( !mROISource.GetPointer() ) {
     mROISource = vtkSmartPointer<vtkFSSurfaceLabelSource>::New();
-    string sLabelName = mMenuHemisphere->GetValue();
+    string sLabelName = mMenuMorphHemisphere->GetValue();
     sLabelName += ".untitled.label";
     mROISource->SetLabelFileName( sLabelName.c_str() );
     vtkFSSurfaceSource* surface = maSurfaceSource.begin()->second;
@@ -3785,17 +3908,21 @@ vtkKWQdecWindow::NotebookPageRaised ( const char* isTitle ) {
     this->GetViewFrame()->UnpackChildren();
     this->Script( "pack %s -expand yes -fill both -anchor c",
                   mGraph->GetWidgetName() );
-    this->SetStatusText( "Subjects" );
+    this->SetStatusText( "Subjects selection" );
   } else if ( 0 == strcmp( isTitle, ksDesignPanelName ) ) {
     this->mCurrentNotebookPanelName = ksDesignPanelName;
     this->GetViewFrame()->UnpackChildren();
-    this->SetStatusText( "Design" );
+    this->SetStatusText( "Design matrix creation" );
+  } else if ( 0 == strcmp( isTitle, ksContrastPanelName ) ) {
+    this->mCurrentNotebookPanelName = ksContrastPanelName;
+    this->GetViewFrame()->UnpackChildren();
+    this->SetStatusText( "Contrast matrix creation and analysis launch" );
   } else if ( 0 == strcmp( isTitle, ksDisplayPanelName ) ) {
     this->mCurrentNotebookPanelName = ksDisplayPanelName;
     this->GetViewFrame()->UnpackChildren();
     this->Script( "pack %s -expand yes -fill both -anchor c",
                   mView->GetWidgetName() );
-    this->SetStatusText( "Display" );
+    this->SetStatusText( "Display of results" );
   }
 
   this->UpdateCommandStatus();
@@ -3851,7 +3978,7 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
   assert( isElement );
   assert( iMenu );
   assert( mQdecProject );
-  assert( mMenuHemisphere.GetPointer() );
+  assert( mMenuMorphHemisphere.GetPointer() );
 
   // Add an inactive item at the top with the element (subject) name.
   iMenu->AddCommand( isElement,  NULL, "" ); 
@@ -4675,9 +4802,9 @@ vtkKWQdecWindow::AnalyzeDesign () {
 
   assert( mListDiscreteFactors.GetPointer() );
   assert( mListContinuousFactors.GetPointer() );
-  assert( mMenuSmoothness.GetPointer() );
-  assert( mMenuMeasure.GetPointer() );
-  assert( mMenuHemisphere.GetPointer() );
+  assert( mMenuMorphSmoothness.GetPointer() );
+  assert( mMenuMorphMeasure.GetPointer() );
+  assert( mMenuMorphHemisphere.GetPointer() );
   assert( mEntryDesignName.GetPointer() );
   assert( mEntryAverageSubject.GetPointer() );
 
@@ -4694,9 +4821,9 @@ vtkKWQdecWindow::AnalyzeDesign () {
 
     // Gather-up our selected design parameters, from user menu selections
     const char* name = strdup( mEntryDesignName->GetValue() );
-    const char* measure = strdup( mMenuMeasure->GetValue() );
-    int smoothness = atoi( mMenuSmoothness->GetValue() );
-    const char* hemi = strdup( mMenuHemisphere->GetValue() );
+    const char* measure = strdup( mMenuMorphMeasure->GetValue() );
+    int smoothness = atoi( mMenuMorphSmoothness->GetValue() );
+    const char* hemi = strdup( mMenuMorphHemisphere->GetValue() );
     const char sNone[10] = "none";
     const char* df1;
     if( -1 != maDiscreteFactorSelection[0] ) {

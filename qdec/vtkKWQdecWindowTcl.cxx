@@ -145,15 +145,170 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
-  if ((!strcmp("CreateWidget",argv[1]))&&(argc == 2))
-    {
-    op->CreateWidget();
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
   if ((!strcmp("FinishCreating",argv[1]))&&(argc == 2))
     {
     op->FinishCreating();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("SetCurrentMeasure",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetCurrentMeasure(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetCurrentSurfaceMeasure",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetCurrentSurfaceMeasure(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadDataTable",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->LoadDataTable(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadProjectFile",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->LoadProjectFile(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadSurface",argv[1]))&&(argc == 4))
+    {
+    char    *temp0;
+    char    *temp1;
+    error = 0;
+
+    temp0 = argv[2];
+    temp1 = argv[3];
+    if (!error)
+    {
+    op->LoadSurface(temp0,temp1);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadGDFFile",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->LoadGDFFile(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadAnnotation",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->LoadAnnotation(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadSurfaceScalars",argv[1]))&&(argc == 5))
+    {
+    char    *temp0;
+    char    *temp1;
+    int      temp2;
+    int      temp20;
+    error = 0;
+
+    temp0 = argv[2];
+    temp1 = argv[3];
+    if (Tcl_GetInt(interp,argv[4],&tempi) != TCL_OK) error = 1;
+    temp2 = tempi;
+    if (!error)
+    {
+    temp20 = (op)->LoadSurfaceScalars(temp0,temp1,temp2);
+    char tempResult[1024];
+    sprintf(tempResult,"%i",temp20);
+    Tcl_SetResult(interp, tempResult, TCL_VOLATILE);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadSurfaceOverlayScalars",argv[1]))&&(argc == 4))
+    {
+    char    *temp0;
+    char    *temp1;
+    error = 0;
+
+    temp0 = argv[2];
+    temp1 = argv[3];
+    if (!error)
+    {
+    op->LoadSurfaceOverlayScalars(temp0,temp1);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadSurfaceCurvatureScalars",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->LoadSurfaceCurvatureScalars(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadLabel",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->LoadLabel(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("CreateWidget",argv[1]))&&(argc == 2))
+    {
+    op->CreateWidget();
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -299,32 +454,6 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
-  if ((!strcmp("LoadDataTable",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->LoadDataTable(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadProjectFile",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->LoadProjectFile(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
   if ((!strcmp("SaveProjectFile",argv[1]))&&(argc == 3))
     {
     char    *temp0;
@@ -334,109 +463,6 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     if (!error)
     {
     op->SaveProjectFile(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadSurface",argv[1]))&&(argc == 4))
-    {
-    char    *temp0;
-    char    *temp1;
-    error = 0;
-
-    temp0 = argv[2];
-    temp1 = argv[3];
-    if (!error)
-    {
-    op->LoadSurface(temp0,temp1);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadGDFFile",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->LoadGDFFile(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadSurfaceScalars",argv[1]))&&(argc == 5))
-    {
-    char    *temp0;
-    char    *temp1;
-    int      temp2;
-    int      temp20;
-    error = 0;
-
-    temp0 = argv[2];
-    temp1 = argv[3];
-    if (Tcl_GetInt(interp,argv[4],&tempi) != TCL_OK) error = 1;
-    temp2 = tempi;
-    if (!error)
-    {
-    temp20 = (op)->LoadSurfaceScalars(temp0,temp1,temp2);
-    char tempResult[1024];
-    sprintf(tempResult,"%i",temp20);
-    Tcl_SetResult(interp, tempResult, TCL_VOLATILE);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadSurfaceCurvatureScalars",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->LoadSurfaceCurvatureScalars(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadAnnotation",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->LoadAnnotation(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadSurfaceOverlayScalars",argv[1]))&&(argc == 4))
-    {
-    char    *temp0;
-    char    *temp1;
-    error = 0;
-
-    temp0 = argv[2];
-    temp1 = argv[3];
-    if (!error)
-    {
-    op->LoadSurfaceOverlayScalars(temp0,temp1);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadLabel",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->LoadLabel(temp0);
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -1126,6 +1152,12 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
+  if ((!strcmp("ComposeSurfaceScalarsAndShow",argv[1]))&&(argc == 2))
+    {
+    op->ComposeSurfaceScalarsAndShow();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
 
   if (!strcmp("ListInstances",argv[1]))
     {
@@ -1144,8 +1176,19 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  NewInstance\n",NULL);
     Tcl_AppendResult(interp,"  SafeDownCast\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetUseHistogramEditor\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  CreateWidget\n",NULL);
     Tcl_AppendResult(interp,"  FinishCreating\n",NULL);
+    Tcl_AppendResult(interp,"  SetCurrentMeasure\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetCurrentSurfaceMeasure\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  LoadDataTable\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  LoadProjectFile\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  LoadSurface\t with 2 args\n",NULL);
+    Tcl_AppendResult(interp,"  LoadGDFFile\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  LoadAnnotation\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  LoadSurfaceScalars\t with 3 args\n",NULL);
+    Tcl_AppendResult(interp,"  LoadSurfaceOverlayScalars\t with 2 args\n",NULL);
+    Tcl_AppendResult(interp,"  LoadSurfaceCurvatureScalars\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  LoadLabel\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  CreateWidget\n",NULL);
     Tcl_AppendResult(interp,"  BeginActionWithProgress\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  UpdateProgressMessage\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  UpdateProgressPercent\t with 1 arg\n",NULL);
@@ -1166,16 +1209,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  MapLabelFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SmoothCurvatureScalarsFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SmoothSurfaceScalarsFromDlog\n",NULL);
-    Tcl_AppendResult(interp,"  LoadDataTable\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  LoadProjectFile\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SaveProjectFile\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  LoadSurface\t with 2 args\n",NULL);
-    Tcl_AppendResult(interp,"  LoadGDFFile\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  LoadSurfaceScalars\t with 3 args\n",NULL);
-    Tcl_AppendResult(interp,"  LoadSurfaceCurvatureScalars\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  LoadAnnotation\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  LoadSurfaceOverlayScalars\t with 2 args\n",NULL);
-    Tcl_AppendResult(interp,"  LoadLabel\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SaveLabel\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  MapLabelToSubjects\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SaveTIFFImage\t with 2 args\n",NULL);
@@ -1235,6 +1269,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SetExcludeSubjectET\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  ClearAllExcludedSubjects\n",NULL);
     Tcl_AppendResult(interp,"  GetAnnotationForVertex\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  ComposeSurfaceScalarsAndShow\n",NULL);
     return TCL_OK;
     }
 
