@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 02:56:53 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/01/23 00:39:56 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -52,6 +52,7 @@ QdecGlmDesign::QdecGlmDesign ( QdecDataTable* iDataTable )
   this->msMeasure = "thickness";
   this->msHemi = "lh";
   this->mSmoothness = 10;
+  this->msDesignMatrixType = "dods";
   if( NULL == getenv("SUBJECTS_DIR") )
   {
     fprintf( stderr, "SUBJECTS_DIR not defined!\n" );
@@ -252,11 +253,73 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
 
 
 /**
+ *
+ */
+void QdecGlmDesign::ClearDiscreteFactors ( )
+{
+  mDiscreteFactors.clear();
+}
+
+
+/**
+ *
+ */
+void QdecGlmDesign::AddDiscreteFactor ( const char* isFactorName)
+{
+  QdecFactor* qf = this->mDataTable->GetFactor( isFactorName );
+  if( NULL == qf )
+  {
+    fprintf( stderr,"ERROR: QdecGlmDesign::AddDiscreteFactor: bad factor!\n" );
+    mDataTable->Dump( stderr );
+    return;
+  }
+  assert( qf->IsDiscrete() );
+  this->mDiscreteFactors.push_back( qf );
+}
+
+
+/**
+ *
+ */
+void QdecGlmDesign::ClearContinuousFactors ( )
+{
+  mContinuousFactors.clear();
+}
+
+
+/**
+ *
+ */
+void QdecGlmDesign::AddContinuousFactor ( const char* isFactorName)
+{
+  QdecFactor* qf = this->mDataTable->GetFactor( isFactorName );
+  if( NULL == qf )
+  {
+    fprintf( stderr,
+             "ERROR: QdecGlmDesign::AddContinuousFactor: bad factor!\n" );
+    mDataTable->Dump( stderr );
+    return;
+  }
+  assert( qf->IsContinuous() );
+  this->mContinuousFactors.push_back( qf );
+}
+
+
+/**
  * @return string
  */
 string QdecGlmDesign::GetName ( )
 {
   return this->msName;
+}
+
+
+/**
+ * 
+ */
+void QdecGlmDesign::SetName ( const char* isName )
+{
+  this->msName = isName;
 }
 
 
@@ -270,6 +333,15 @@ string QdecGlmDesign::GetHemi ( )
 
 
 /**
+ * 
+ */
+void QdecGlmDesign::SetHemi ( const char* isHemi )
+{
+  this->msHemi = isHemi;
+}
+
+
+/**
  * @return string
  */
 string QdecGlmDesign::GetMeasure ( )
@@ -279,11 +351,46 @@ string QdecGlmDesign::GetMeasure ( )
 
 
 /**
+ * 
+ */
+void QdecGlmDesign::SetMeasure ( const char* isMeasure )
+{
+  this->msMeasure = isMeasure;
+}
+
+
+/**
  * @return int
  */
 int QdecGlmDesign::GetSmoothness ( )
 {
   return this->mSmoothness;
+}
+
+/**
+ *
+ */
+void QdecGlmDesign::SetSmoothness ( int iVal )
+{
+  this->mSmoothness = iVal;
+}
+
+
+/**
+ * @return string
+ */
+string QdecGlmDesign::GetDesignMatrixType ( )
+{
+  return this->msDesignMatrixType;
+}
+
+
+/**
+ * @param const char*
+ */
+void QdecGlmDesign::SetDesignMatrixType ( const char* isDesignMatrixType )
+{
+  this->msDesignMatrixType = isDesignMatrixType;
 }
 
 
@@ -566,11 +673,14 @@ int QdecGlmDesign::GetNumberOfExcludedSubjects ( )
  */
 int QdecGlmDesign::GetNumberOfClasses( )
 {
+  if( this->mDiscreteFactors.size() == 0 ) return( 0 );
+
   int nClasses = 1;
   for (unsigned int i=0; i < this->mDiscreteFactors.size(); i++)
   {
     nClasses *= this->mDiscreteFactors[i]->GetLevelNames().size();
   }
+
   return(nClasses);
 }
 
@@ -581,9 +691,32 @@ int QdecGlmDesign::GetNumberOfClasses( )
  */
 int QdecGlmDesign::GetNumberOfRegressors( )
 {
-  int nReg = this->GetNumberOfClasses() * 
+  int Nr = 0;
+
+  if( this->msDesignMatrixType == "dods" )
+  {
+    Nr = this->GetNumberOfClasses() * 
     ( this->GetNumberOfContinuousFactors() + 1 );
-  return(nReg);
+  }
+  else if( this->msDesignMatrixType == "doss" )
+  {
+    Nr = this->GetNumberOfClasses() + this->GetNumberOfContinuousFactors();
+  }
+
+  return(Nr);
+}
+
+
+/**
+ * @return int
+ */
+int QdecGlmDesign::GetDegreesOfFreedom ( )
+{
+  int Ns = this->mDataTable->GetNumberOfSubjects() - 
+    this->GetNumberOfExcludedSubjects();
+  int Nr = this->GetNumberOfRegressors();
+
+  return( Ns - Nr );
 }
 
 

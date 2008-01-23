@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/20 00:10:25 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/01/23 00:39:56 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -101,6 +101,11 @@ public:
    */
   vector< string > GetContinuousFactorNames ( );
 
+
+  /**
+   * GetNumberOfClasses( ) - returns the number of subjects in the table
+   */
+  int GetNumberOfSubjects ( );
 
   /**
    * GetNumberOfClasses( ) - returns the number of classes for the design.

@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 02:56:53 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/01/23 00:39:56 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -649,6 +649,15 @@ vector< string > QdecDataTable::GetDiscreteFactorNames ( )
 vector< string > QdecDataTable::GetContinuousFactorNames ( )
 {
   return this->mContinuousFactorNames;
+}
+
+
+/**
+ * GetNumberOfClasses( ) - returns the number of subjects in the table
+ */
+int QdecDataTable::GetNumberOfSubjects ( )
+{
+  return this->mSubjects.size();
 }
 
 

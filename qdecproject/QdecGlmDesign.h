@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 02:56:53 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/01/23 00:39:56 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -87,31 +87,45 @@ public:
                ProgressUpdateGUI* iProgressUpdateGUI );
 
   /**
-  * Using the design parameters, writes FSGF file to the working directory.
-   * @return int
+   *
    */
-  int WriteFsgdFile ( );
+  void ClearDiscreteFactors ( );
 
 
   /**
-   * Using the design parameters, writes .mat files for all our contrasts.
-   * @return int
+   *
    */
-  int WriteContrastMatrices ( );
+  void AddDiscreteFactor ( const char* isFactorName);
 
 
   /**
-   * Using the design parameters, creates the 'y' input data to
-   * mri_glmfit, by concatenating the subject volumes, and writes it
-   * to the specified filename.
+   *
+   */
+  void ClearContinuousFactors ( );
+
+
+  /**
+   *
+   */
+  void AddContinuousFactor ( const char* isFactorName);
+
+
+  /**
    * @return int
    */
-  int WriteYdataFile ( );
+  int GetDegreesOfFreedom ( );
+
 
   /**
    * @return string
    */
   string GetName ( );
+
+
+  /**
+   * 
+   */
+  void SetName ( const char* isName );
 
 
   /**
@@ -121,15 +135,44 @@ public:
 
 
   /**
+   * 
+   */
+  void SetHemi ( const char* isHemi );
+
+
+  /**
    * @return string
    */
   string GetMeasure ( );
 
 
   /**
+   * 
+   */
+  void SetMeasure ( const char* isMeasure );
+
+
+  /**
    * @return int
    */
   int GetSmoothness ( );
+
+
+  /**
+   *
+   */
+  void SetSmoothness ( int iVal );
+
+  /**
+   * @return string
+   */
+  string GetDesignMatrixType ( );
+
+
+  /**
+   * @param const char*
+   */
+  void SetDesignMatrixType ( const char* isDesignMatrixType );
 
 
   /**
@@ -142,7 +185,6 @@ public:
    * @param const char*
    */
   int SetSubjectsDir ( const char* ifnSubjectsDir );
-
 
   /**
    * @return string
@@ -259,6 +301,29 @@ public:
    */
   int  GetNumberOfExcludedSubjects ( );
 
+
+  /**
+   * Using the design parameters, writes FSGF file to the working directory.
+   * @return int
+   */
+  int WriteFsgdFile ( );
+
+
+  /**
+   * Using the design parameters, writes .mat files for all our contrasts.
+   * @return int
+   */
+  int WriteContrastMatrices ( );
+
+
+  /**
+   * Using the design parameters, creates the 'y' input data to
+   * mri_glmfit, by concatenating the subject volumes, and writes it
+   * to the specified filename.
+   * @return int
+   */
+  int WriteYdataFile ( );
+
   /** 
    * Access the discrete and continuous factor names.
    * Returns a const vector of QdecFactors pointers. 
@@ -281,6 +346,7 @@ private:
   string msMeasure;
   string msHemi;
   int mSmoothness;
+  string msDesignMatrixType; // dods or doss
   string mfnSubjectsDir;
   string msAverageSubject;
   // Stores contrasts created from an fsgdf file. Can be empty.
