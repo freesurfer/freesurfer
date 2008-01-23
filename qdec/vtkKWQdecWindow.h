@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/23 00:41:24 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/01/23 01:54:19 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -57,6 +57,7 @@ class vtkKWCheckButton;
 class vtkKWEntry;
 class vtkKWHistogram;
 class vtkKWListBox;
+class vtkKWListBoxWithScrollbarsWithLabel;
 class vtkKWMenu;
 class vtkKWMenuButton;
 class vtkKWMultiColumnList;
@@ -229,6 +230,9 @@ class vtkKWQdecWindow : public vtkKWWindow
   void ManageFactorListBoxSelections ( vtkKWListBox* iListBox,
                                        int iaSelections[2] );
 
+  // Called from Contrast tab
+  void NuisanceFactorsListBoxCallback ();
+
   // Called when the user selects a continuous factor for the scatter plot.
   void ScatterPlotListBoxCallback ();
 
@@ -356,6 +360,9 @@ class vtkKWQdecWindow : public vtkKWWindow
 
   // Update our Design tab menus with data from the project.
   void UpdateDesignPage ();
+
+  // Update our Contrast tab menus with data from the project.
+  void UpdateContrastPage ();
 
   // Update our Display tab with the current scalars and other view
   // settings. Will also pack the annotation and surface frame with
@@ -529,6 +536,9 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkKWFrame>       mFrameFunctionalMeasures;
   vtkSmartPointer<vtkKWFrame>       mFrameVolumeMeasures;
   vtkSmartPointer<vtkKWEntry>       mEntryDegreesOfFreedom;
+
+  // Widgets in the Contrast panel.
+  vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel> mListNuisanceFactors;
 
   // Widgets for the Display panel.
   vtkSmartPointer<vtkKWFrame>           mFrameSurface;

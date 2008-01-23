@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/23 00:41:23 $
- *    $Revision: 1.15 $
+ *    $Date: 2008/01/23 01:54:19 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.15 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.16 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -962,6 +962,29 @@ vtkKWQdecWindow::CreateWidget () {
 
   // Get the inner scrolled frame as the parent for everything else.
   panelFrame = scrolledFrame->GetFrame();
+
+  //
+  // Create the Nuisance Factors frame.
+  factorsFrame = vtkSmartPointer<vtkKWFrameWithLabel>::New();
+  factorsFrame->SetParent( panelFrame );
+  factorsFrame->Create();
+  factorsFrame->SetLabelText( "Nuisance Factors" );
+  this->Script( "pack %s -fill x", factorsFrame->GetWidgetName() );
+
+  // List box is inside the Nuisance Factors frame.
+  mListNuisanceFactors = 
+    vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
+  mListNuisanceFactors->SetParent( factorsFrame->GetFrame() );
+  mListNuisanceFactors->Create();
+  mListNuisanceFactors->SetLabelPositionToTop();
+  mListNuisanceFactors->SetLabelText( "<none selected>" );
+  mListNuisanceFactors->SetHeight( 5 );
+  mListNuisanceFactors->GetWidget()->GetWidget()->ExportSelectionOff();
+  mListNuisanceFactors->GetWidget()->GetWidget()->SetSelectionModeToMultiple();
+  mListNuisanceFactors->GetWidget()->GetWidget()->SetSelectionCommand
+    ( this, "NuisanceFactorsListBoxCallback" );
+  this->Script( "pack %s -fill x -expand y", 
+                mListNuisanceFactors->GetWidgetName() );
 
   //
   // Now for the 'go' button (to start analysis)
@@ -2570,6 +2593,51 @@ vtkKWQdecWindow::SetCurrentSurfaceScalarsFromTableSelection () {
   this->SetCurrentSurfaceScalars( nEntry );
 }
 
+
+void
+vtkKWQdecWindow::ScatterPlotListBoxCallback () {
+  assert( mListScatterPlot.GetPointer() );
+
+  mScatterPlotSelection =
+    mListScatterPlot->GetSelectionIndex();
+
+  if (mScatterPlotSelection != -1 &&
+      mEntryExcludeFactor &&
+      mEntryExcludeSubjectGT &&
+      mEntryExcludeSubjectLT &&
+      mEntryExcludeSubjectET ) {
+    // Get the name of the selected factor.
+    string sFactor( mListScatterPlot->GetItem(mScatterPlotSelection) );
+    // and update the Subject Exclusions box
+    mEntryExcludeFactor->SetValue( sFactor.c_str() );
+    mEntryExcludeSubjectGT->SetValue( "" );
+    mEntryExcludeSubjectLT->SetValue( "" );
+    mEntryExcludeSubjectET->SetValue( "" );
+
+    // if the selected factor is discrete, print a legend at the bottom
+    QdecFactor* lFactor = 
+      this->mQdecProject->GetDataTable()->GetFactor( sFactor.c_str() );
+    if( lFactor->IsDiscrete() ) {
+      vector< string > lLevelNames = lFactor->GetLevelNames();
+      mScatterPlotLegend = "Legend:  ";
+      for( unsigned int i=0; i < lLevelNames.size(); i++ ) {
+        mScatterPlotLegend += lLevelNames[i];
+        mScatterPlotLegend += "=";
+        stringstream val;
+        val << lFactor->GetContinuousValue(lLevelNames[i].c_str());
+        mScatterPlotLegend += val.str().c_str();
+        mScatterPlotLegend += "  ";
+        mLabelScatterPlotLegend->SetText( mScatterPlotLegend.c_str() );
+      }
+    } else {
+      mScatterPlotLegend = "";
+      mLabelScatterPlotLegend->SetText( mScatterPlotLegend.c_str() );
+    }
+  }
+  this->UpdateScatterPlot();
+}
+
+
 void
 vtkKWQdecWindow::DiscreteFactorsListBoxCallback () {
 
@@ -2624,48 +2692,6 @@ vtkKWQdecWindow::ContinuousFactorsListBoxCallback () {
   }
 }
 
-void
-vtkKWQdecWindow::ScatterPlotListBoxCallback () {
-  assert( mListScatterPlot.GetPointer() );
-
-  mScatterPlotSelection =
-    mListScatterPlot->GetSelectionIndex();
-
-  if (mScatterPlotSelection != -1 &&
-      mEntryExcludeFactor &&
-      mEntryExcludeSubjectGT &&
-      mEntryExcludeSubjectLT &&
-      mEntryExcludeSubjectET ) {
-    // Get the name of the selected factor.
-    string sFactor( mListScatterPlot->GetItem(mScatterPlotSelection) );
-    // and update the Subject Exclusions box
-    mEntryExcludeFactor->SetValue( sFactor.c_str() );
-    mEntryExcludeSubjectGT->SetValue( "" );
-    mEntryExcludeSubjectLT->SetValue( "" );
-    mEntryExcludeSubjectET->SetValue( "" );
-
-    // if the selected factor is discrete, print a legend at the bottom
-    QdecFactor* lFactor = 
-      this->mQdecProject->GetDataTable()->GetFactor( sFactor.c_str() );
-    if( lFactor->IsDiscrete() ) {
-      vector< string > lLevelNames = lFactor->GetLevelNames();
-      mScatterPlotLegend = "Legend:  ";
-      for( unsigned int i=0; i < lLevelNames.size(); i++ ) {
-        mScatterPlotLegend += lLevelNames[i];
-        mScatterPlotLegend += "=";
-        stringstream val;
-        val << lFactor->GetContinuousValue(lLevelNames[i].c_str());
-        mScatterPlotLegend += val.str().c_str();
-        mScatterPlotLegend += "  ";
-        mLabelScatterPlotLegend->SetText( mScatterPlotLegend.c_str() );
-      }
-    } else {
-      mScatterPlotLegend = "";
-      mLabelScatterPlotLegend->SetText( mScatterPlotLegend.c_str() );
-    }
-  }
-  this->UpdateScatterPlot();
-}
 
 void
 vtkKWQdecWindow::ManageFactorListBoxSelections ( vtkKWListBox* iListBox,
@@ -2716,6 +2742,27 @@ vtkKWQdecWindow::ManageFactorListBoxSelections ( vtkKWListBox* iListBox,
     }
   }
 }
+
+void
+vtkKWQdecWindow::NuisanceFactorsListBoxCallback () {
+
+  assert( mListNuisanceFactors.GetPointer() );
+
+  int cSelected = 0;
+  for( int nItem = 0; 
+       nItem < 
+         mListNuisanceFactors->GetWidget()->GetWidget()->GetNumberOfItems(); 
+       nItem++ )
+    if(mListNuisanceFactors->GetWidget()->GetWidget()->GetSelectState(nItem))
+      cSelected++;
+
+  if( cSelected == 0 ) {
+    mListNuisanceFactors->SetLabelText( "<none selected>" );
+  } else {
+    mListNuisanceFactors->SetLabelText( "" );
+  }
+}
+
 
 void
 vtkKWQdecWindow::UpdateSubjectsPage () {
@@ -2834,6 +2881,34 @@ vtkKWQdecWindow::UpdateDesignPage () {
   }
 
 }
+
+
+void
+vtkKWQdecWindow::UpdateContrastPage () {
+
+  assert( mListNuisanceFactors.GetPointer() );
+  assert( mQdecProject ) ;
+  assert( mQdecProject->GetDataTable() );
+  assert( mQdecProject->GetGlmDesign() );
+
+  QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+
+   // Get the current factors selected for this design.
+  mListNuisanceFactors->GetWidget()->GetWidget()->DeleteAll();
+  vector<QdecFactor*> const& lDiscreteFactors =
+    design->GetDiscreteFactors();
+  for(unsigned int j=0; j < lDiscreteFactors.size(); j++) {
+    mListNuisanceFactors->GetWidget()->GetWidget()->Append
+      ( lDiscreteFactors[j]->GetFactorName().c_str() );
+  }
+  vector<QdecFactor*> const& lContinuousFactors = 
+    design->GetContinuousFactors();
+  for(unsigned int j=0; j < lContinuousFactors.size(); j++) {
+    mListNuisanceFactors->GetWidget()->GetWidget()->Append
+      ( lContinuousFactors[j]->GetFactorName().c_str() );
+  }
+}
+
 
 void
 vtkKWQdecWindow::UpdateDisplayPage () {
@@ -4015,6 +4090,7 @@ vtkKWQdecWindow::NotebookPageRaised ( const char* isTitle ) {
     this->mCurrentNotebookPanelName = ksContrastPanelName;
     this->GetViewFrame()->UnpackChildren();
     this->SetStatusText( "Contrast matrix creation and analysis launch" );
+    this->UpdateContrastPage();
   } else if ( 0 == strcmp( isTitle, ksDisplayPanelName ) ) {
     this->mCurrentNotebookPanelName = ksDisplayPanelName;
     this->GetViewFrame()->UnpackChildren();

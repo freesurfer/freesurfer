@@ -645,6 +645,12 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
+  if ((!strcmp("NuisanceFactorsListBoxCallback",argv[1]))&&(argc == 2))
+    {
+    op->NuisanceFactorsListBoxCallback();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
   if ((!strcmp("ScatterPlotListBoxCallback",argv[1]))&&(argc == 2))
     {
     op->ScatterPlotListBoxCallback();
@@ -1241,6 +1247,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SetCurrentSurfaceScalarsFromTableSelection\n",NULL);
     Tcl_AppendResult(interp,"  DiscreteFactorsListBoxCallback\n",NULL);
     Tcl_AppendResult(interp,"  ContinuousFactorsListBoxCallback\n",NULL);
+    Tcl_AppendResult(interp,"  NuisanceFactorsListBoxCallback\n",NULL);
     Tcl_AppendResult(interp,"  ScatterPlotListBoxCallback\n",NULL);
     Tcl_AppendResult(interp,"  AnalyzeDesign\n",NULL);
     Tcl_AppendResult(interp,"  SetSubjectsDir\t with 1 arg\n",NULL);
