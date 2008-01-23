@@ -20,8 +20,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/22 09:19:30 $
- *    $Revision: 1.20 $
+ *    $Date: 2008/01/23 00:16:41 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -174,7 +174,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.20 2008/01/22 09:19:30 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.21 2008/01/23 00:16:41 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -186,7 +186,7 @@ char *InVol2File=NULL;
 char *subject, *hemi, *SUBJECTS_DIR;
 double pixthresh=0, resthresh=0, geothresh=0;
 char *DiffFile=NULL;
-int DiffAbs=0, DiffPct=0;
+int DiffAbs=0, AbsDiff=1,DiffPct=0;
 
 MRI *InVol1=NULL, *InVol2=NULL, *DiffVol=NULL, *DiffLabelVol=NULL;
 char *DiffVolFile=NULL;
@@ -430,8 +430,8 @@ int main(int argc, char *argv[]) {
             val2 = MRIgetVoxVal(InVol2,c,r,s,f);
 	    diff = val1-val2;
 	    SumSqErr += (diff*diff);
-            if(! DiffAbs) diff = fabs(val1-val2);
-            else          diff = fabs(fabs(val1)-fabs(val2));
+            if(AbsDiff)   diff = fabs(diff);
+            if(DiffAbs)   diff = fabs(fabs(val1)-fabs(val2));
 	    if(DiffPct)   diff = 100*(val1-val2)/((val1+val2)/2.0);
             if(DiffVolFile && !DoRSS) MRIsetVoxVal(DiffVol,c,r,s,f,diff);
             if(DiffLabelVolFile) {
@@ -534,6 +534,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--notallow-prec")) CheckPrecision = 0;
     else if (!strcasecmp(option, "--notallow-pix"))  CheckPixVals = 0;
     else if (!strcasecmp(option, "--notallow-ori"))  CheckOrientation = 0;
+    else if (!strcasecmp(option, "--no-absdiff"))  AbsDiff = 0;
+    else if (!strcasecmp(option, "--absdiff"))     AbsDiff = 1; //default
     else if (!strcasecmp(option, "--diffabs"))  DiffAbs = 1;
     else if (!strcasecmp(option, "--diffpct"))  DiffPct = 1;
     else if (!strcasecmp(option, "--rss"))  DoRSS = 1;
@@ -641,6 +643,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"checkgeo  %d\n",CheckGeo);
   fprintf(fp,"checkori  %d\n",CheckOrientation);
   fprintf(fp,"checkprec %d\n",CheckPrecision);
+  fprintf(fp,"absdiff   %d\n",AbsDiff);
   fprintf(fp,"diffabs   %d\n",DiffAbs);
   fprintf(fp,"diffpct   %d\n",DiffPct);
   fprintf(fp,"rss       %d\n",DoRSS);
@@ -666,6 +669,8 @@ static void print_usage(void) {
   printf("   --qa         : check res, acq, precision, "
          "and orientation only\n");
   printf("   --pix-only   : only check pixel data\n");
+  printf("   --absdiff    : take abs of diff (default)\n");
+  printf("   --no-absdiff : do not take abs of diff\n");
   printf("   --diffabs    : take abs before computing diff\n");
   printf("   --diffpct    : 100*(v1-v2)/((v1+v2)/2)\n");
   printf("   --rss        : save sqrt sum squares with --diff\n");
