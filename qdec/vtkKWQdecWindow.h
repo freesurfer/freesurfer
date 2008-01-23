@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/22 21:08:45 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/01/23 00:41:24 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -90,6 +90,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   // Radio-button selection of which measure to use
   void SetCurrentMeasure( const char* isMeasure );
   void SetCurrentSurfaceMeasure( const char* isMeasure );
+  void SetDesignMatrixType( const char* isType );
 
   // Load the data table and update the subjects and design page with
   // the loaded data.
@@ -527,6 +528,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkKWFrame>       mFrameMorphMeasures;
   vtkSmartPointer<vtkKWFrame>       mFrameFunctionalMeasures;
   vtkSmartPointer<vtkKWFrame>       mFrameVolumeMeasures;
+  vtkSmartPointer<vtkKWEntry>       mEntryDegreesOfFreedom;
 
   // Widgets for the Display panel.
   vtkSmartPointer<vtkKWFrame>           mFrameSurface;

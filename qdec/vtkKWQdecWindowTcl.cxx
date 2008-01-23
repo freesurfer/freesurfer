@@ -177,6 +177,19 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
+  if ((!strcmp("SetDesignMatrixType",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetDesignMatrixType(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
   if ((!strcmp("LoadDataTable",argv[1]))&&(argc == 3))
     {
     char    *temp0;
@@ -1179,6 +1192,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  FinishCreating\n",NULL);
     Tcl_AppendResult(interp,"  SetCurrentMeasure\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetCurrentSurfaceMeasure\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetDesignMatrixType\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  LoadDataTable\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  LoadProjectFile\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  LoadSurface\t with 2 args\n",NULL);

@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/22 21:08:45 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/01/23 00:41:23 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.14 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.15 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -903,6 +903,47 @@ vtkKWQdecWindow::CreateWidget () {
   // call the radio-button handler once to set it up
   this->SetCurrentMeasure( "Surface-based" );
 
+  //
+  // Create the Design Matrix Type frame.
+  vtkSmartPointer<vtkKWFrameWithLabel> designMatrixTypeFrame =
+    vtkSmartPointer<vtkKWFrameWithLabel>::New();
+  designMatrixTypeFrame->SetParent( panelFrame );
+  designMatrixTypeFrame->Create();
+  designMatrixTypeFrame->SetLabelText( "Design Matrix Type" );
+  this->Script( "pack %s -fill x", designMatrixTypeFrame->GetWidgetName() );
+  
+  // radio-buttons selecting type
+  vtkSmartPointer<vtkKWRadioButtonSet> radBtnSet = 
+    vtkSmartPointer<vtkKWRadioButtonSet>::New();
+  radBtnSet->SetParent(  designMatrixTypeFrame->GetFrame() );
+  radBtnSet->Create();
+  radBtnSet->PackHorizontallyOn();
+  this->Script( "pack %s -side top -fill both", radBtnSet->GetWidgetName() );
+
+  // select between DODS and DOSS
+  vtkSmartPointer<vtkKWRadioButton> radBtn2;
+  radBtn2.TakeReference( radBtnSet->AddWidget( nButton++ ) );
+  radBtn2->SetText( "DODS" );
+  radBtn2->SelectedStateOn(); // this one is the default, so its on
+  this->SetDesignMatrixType( "DODS" ); // needs to know the default
+  sCmd = string( "SetDesignMatrixType " ) + radBtn2->GetText();
+  radBtn2->SetCommand( this, sCmd.c_str() );
+  radBtn2.TakeReference( radBtnSet->AddWidget( nButton++ ) );
+  radBtn2->SetText( "DOSS" );
+  radBtn2->SelectedStateOff();
+  sCmd = string( "SetDesignMatrixType " ) + radBtn2->GetText();
+  radBtn2->SetCommand( this, sCmd.c_str() );
+
+  // show degrees of freedom
+  labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
+  labeledEntry->SetParent( panelFrame );
+  labeledEntry->SetLabelText( "Degrees Of Freedom:" );
+  labeledEntry->Create();
+  mEntryDegreesOfFreedom = labeledEntry->GetWidget();
+  mEntryDegreesOfFreedom->SetValue( "0" );
+  mEntryDegreesOfFreedom->SetReadOnly( 1 );
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
+
 
   // ---------------------------------------------------------------------
   //
@@ -1254,10 +1295,25 @@ vtkKWQdecWindow::SetCurrentSurfaceMeasure( const char* isMeasure ) {
 
   }
 
+}
+
+
+void
+vtkKWQdecWindow::SetDesignMatrixType( const char* isType ) {
+
+  assert( mQdecProject ) ;
+  assert( mQdecProject->GetGlmDesign() );
+  QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+
+  if( 0 == strcmp(isType,"DODS") ) {
+    design->SetDesignMatrixType( "dods" ); 
+  } else if( 0 == strcmp(isType,"DOSS") ) {
+    design->SetDesignMatrixType( "doss" );
+  }  
+
   // make sure Design tab has most current info displayed
   this->UpdateDesignPage();
 }
-
 
 
 void
@@ -2521,6 +2577,24 @@ vtkKWQdecWindow::DiscreteFactorsListBoxCallback () {
 
   this->ManageFactorListBoxSelections( mListDiscreteFactors,
                                        maDiscreteFactorSelection );
+
+  // keep the QdecGlmDesign object up-to-date
+  assert( mQdecProject ) ;
+  assert( mQdecProject->GetGlmDesign() );
+  QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+  design->ClearDiscreteFactors();
+  for( unsigned int i=0; i < 2; i++ ) {
+    if( -1 != maDiscreteFactorSelection[i] ) {
+      design->AddDiscreteFactor
+        ( strdup( mListDiscreteFactors->GetItem
+                  ( maDiscreteFactorSelection[i] ) ) );
+    }
+  }
+
+  // update degrees of freedom value
+  if( mEntryDegreesOfFreedom ) {
+    mEntryDegreesOfFreedom->SetValueAsInt( design->GetDegreesOfFreedom() );
+  }
 }
 
 void
@@ -2530,6 +2604,24 @@ vtkKWQdecWindow::ContinuousFactorsListBoxCallback () {
 
   this->ManageFactorListBoxSelections( mListContinuousFactors,
                                        maContinuousFactorSelection );
+
+  // keep the QdecGlmDesign object up-to-date
+  assert( mQdecProject ) ;
+  assert( mQdecProject->GetGlmDesign() );
+  QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+  design->ClearContinuousFactors();
+  for( unsigned int i=0; i < 2; i++ ) {
+    if( -1 != maContinuousFactorSelection[i] ) {
+      design->AddContinuousFactor
+        ( strdup( mListContinuousFactors->GetItem
+                  ( maContinuousFactorSelection[i] ) ) );
+    }
+  }
+
+  // update degrees of freedom value
+  if( mEntryDegreesOfFreedom ) {
+    mEntryDegreesOfFreedom->SetValueAsInt( design->GetDegreesOfFreedom() );
+  }
 }
 
 void
@@ -2735,6 +2827,12 @@ vtkKWQdecWindow::UpdateDesignPage () {
       }
     }
   }
+
+  // update degrees of freedom value
+  if( mEntryDegreesOfFreedom ) {
+    mEntryDegreesOfFreedom->SetValueAsInt( design->GetDegreesOfFreedom() );
+  }
+
 }
 
 void
@@ -4924,6 +5022,12 @@ void
 vtkKWQdecWindow::SetDesignName ( const char* isDesignName ) {
 
   this->mEntryDesignName->SetValue( isDesignName );
+
+  // keep the QdecGlmDesign object up-to-date
+  assert( mQdecProject ) ;
+  assert( mQdecProject->GetGlmDesign() );
+  QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+  design->SetName( isDesignName );
 }
 
 void
