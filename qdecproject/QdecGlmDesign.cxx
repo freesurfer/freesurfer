@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/23 00:39:56 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/01/23 05:04:43 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -673,9 +673,8 @@ int QdecGlmDesign::GetNumberOfExcludedSubjects ( )
  */
 int QdecGlmDesign::GetNumberOfClasses( )
 {
-  if( this->mDiscreteFactors.size() == 0 ) return( 0 );
-
   int nClasses = 1;
+
   for (unsigned int i=0; i < this->mDiscreteFactors.size(); i++)
   {
     nClasses *= this->mDiscreteFactors[i]->GetLevelNames().size();
