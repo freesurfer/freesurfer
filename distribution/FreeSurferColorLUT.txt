@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.42 2008/01/24 18:42:59 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.43 2008/01/24 19:42:55 fischl Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -830,3 +830,24 @@
 6002 CST-CVS    0 255 255 0
 6003 CST-flirt  0 0 255 0
 
+
+7001   Lateral-nucleus                         70  130 180 0
+7002   Basolateral-nucleus	                    245 245 245 0
+7003   Basal-nucleus                           205 62  78  0
+7004   Centromedial-nucleus                    120 18  134 0
+7005   Central-nucleus                         196 58  250 0
+7006   Medial-nucleus	                    0   148 0   0
+7007   Cortical-nucleus	                    220 248 164 0
+7008   Accessory-Basal-nucleus                 230 148 34  0
+7009   Corticoamygdaloid-transitio             0   118 14  0
+70010  Anterior-amygdaloid-area-AAA            0   118 14  0
+70011  Fusion-amygdala-HP-FAH                  122 186 220 0
+70012  Hippocampal-amygdala-transition-HATA    236 13  176 0
+70013  Endopiriform-nucleus                    12  48  255 0
+70014  Lateral-nucleus-olfactory-tract         204 182 142 0
+70015  Paralaminar-nucleus                     42  204 164 0
+70016  Intercalated-nucleus                    119 159 176 0
+70017  Prepiriform-cortex                      220 216 20  0
+70018  extra1                                  103 255 255 0
+70019  extra2                                  80  196 98  0
+70020  extra3                                  60  58  210 0
