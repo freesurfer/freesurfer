@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/24 01:54:58 $
- *    $Revision: 1.586 $
+ *    $Date: 2008/01/24 02:05:51 $
+ *    $Revision: 1.587 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.586 2008/01/24 01:54:58 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.587 2008/01/24 02:05:51 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -28271,6 +28271,7 @@ MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
     min_val = 2*wm_hi ;
     found = 0 ;
     /* search outwards for local maximum */
+    max_grad = max_grad_val = max_grad_dist = 0 ;
     for (dist = 0 ; dist <= max_thickness ; dist += sample_dist)
     {
       x = v->x+dist*v->nx ; y = v->y+dist*v->ny ; z = v->z+dist*v->nz ;
