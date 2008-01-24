@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.13 2007/12/17 21:42:52 greve Exp $
+# $Id: asegstats2table,v 1.14 2008/01/24 20:29:31 greve Exp $
 import sys;
 import os;
 import string;
@@ -18,8 +18,8 @@ import tempfile;
 # of the segmentation in mm3 or the mean intensity over the structure.
 # The first row is a list of the segmentation names. The first column
 # is the subject name. If the measure is volume, then the estimated
-# intracranial volume (eTIV) is printed as the last column (if present
-# in the input).
+# intracranial volume (eTIV) is printed as the 2nd to last column 
+# (if present in the input), and BrainSegVol is the last column.
 
 # The subjects list can be specified in one of four ways:
 #   1. Specify each subject with --s:
@@ -225,7 +225,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.13 2007/12/17 21:42:52 greve Exp $';
+Version = '$Id: asegstats2table,v 1.14 2008/01/24 20:29:31 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
@@ -298,6 +298,7 @@ for subject in list:
     fp.close();
     if(meas == 'volume'):
       fptbl.write(' %s' % ('IntraCranialVol'));
+      fptbl.write(' %s' % ('BrainSegVol'));
     #endif
     fptbl.write('\n');
   #endif
@@ -313,6 +314,7 @@ for subject in list:
   fp = open(statsfile,'r');
   nthseg = 0;
   ICV = -1;
+  BrainSegVol = -1;
   nthline = 0;
   for line in fp:
     nthline = nthline + 1;
@@ -321,6 +323,11 @@ for subject in list:
       if(ind != -1):
         tmp = string.split(line,',');
         ICV = string.atof(tmp[3]);
+      #endif
+      ind = line.rfind('BrainSegVol');
+      if(ind != -1):
+        tmp = string.split(line,',');
+        BrainSegVol = string.atof(tmp[3]);
       #endif
     #endif
 
@@ -353,6 +360,14 @@ for subject in list:
       #endif
     else:
       fptbl.write(' %f' % (ICV));
+    #endif
+    if(BrainSegVol == -1):
+      if(not DoDirect):
+        sys.stdout.write('ERROR: subject %s does not have BrainSegVol\n' % subject);
+        sys.exit(1);
+      #endif
+    else:
+      fptbl.write(' %f' % (BrainSegVol));
     #endif
   #endif
   fptbl.write('\n');
