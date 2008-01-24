@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/03 22:12:20 $
- *    $Revision: 1.557.2.6 $
+ *    $Date: 2008/01/24 02:17:09 $
+ *    $Revision: 1.557.2.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -274,7 +274,7 @@ static int mrisDirectionTriangleIntersection(MRI_SURFACE *mris, float x0,
     float y0, float z0, float nx,
     float ny, float nz, MHT *mht,
     double *pdist) ;
-static int mrisComputeCurvatureValues(MRI_SURFACE *mris) ;
+static int mrisComputeCurvatureMinMax(MRI_SURFACE *mris) ;
 static int
 mrisAllNormalDirectionCurrentTriangleIntersections(MRI_SURFACE *mris,
     VERTEX *v, MHT *mht,
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.557.2.6 2008/01/03 22:12:20 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.557.2.7 2008/01/24 02:17:09 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -22275,7 +22275,7 @@ MRISzeroMeanCurvature(MRI_SURFACE *mris)
     v->curv -= mean ;
   }
 
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -22369,7 +22369,7 @@ MRISnormalizeCurvature(MRI_SURFACE *mris, int which_norm)
       v->curv = (v->curv - mean) / std /* + mean*/ ;
     }
   }
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -22422,7 +22422,7 @@ MRISnormalizeCurvatureVariance(MRI_SURFACE *mris)
     v->curv = (v->curv - mean) / std  + mean ;
   }
 
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -22518,7 +22518,7 @@ MRISminFilterCurvatures(MRI_SURFACE *mris, int niter)
       v->curv = v->tdx ;
     }
   }
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -22563,7 +22563,7 @@ MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter)
       v->curv = v->tdx ;
     }
   }
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -22609,7 +22609,7 @@ MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
       v->curv = v->tdx ;
     }
   }
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -22655,7 +22655,7 @@ MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs)
       v->curv = v->tdx ;
     }
   }
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -32117,9 +32117,9 @@ MRIScomputeTotalVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
   Description
   ------------------------------------------------------*/
 static int
-mrisComputeCurvatureValues(MRI_SURFACE *mris)
+mrisComputeCurvatureMinMax(MRI_SURFACE *mris)
 {
-  int      vno ;
+  int      vno, found = 0 ;
   VERTEX   *v ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -32127,13 +32127,22 @@ mrisComputeCurvatureValues(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    if (v->curv > mris->max_curv)
-      mris->max_curv = v->curv ;
-    if (v->curv < mris->min_curv)
-      mris->min_curv = v->curv ;
+    if (found == 0)
+    {
+      mris->max_curv = mris->min_curv = v->curv ;
+      found = 1 ;
+    }
+    else
+    {
+      if (v->curv > mris->max_curv)
+        mris->max_curv = v->curv ;
+      if (v->curv < mris->min_curv)
+        mris->min_curv = v->curv ;
+    }
   }
   return(NO_ERROR) ;
 }
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -57948,7 +57957,7 @@ int MRISrectifyCurvature(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     v->curv = fabs(v->curv) ;
   }
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 
