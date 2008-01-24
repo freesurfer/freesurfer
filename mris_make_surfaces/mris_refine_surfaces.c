@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/12/20 21:43:00 $
- *    $Revision: 1.17 $
+ *    $Date: 2008/01/24 12:15:03 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,7 +51,7 @@
 #include "registerio.h"
 
 static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.17 2007/12/20 21:43:00 fischl Exp $";
+"$Id: mris_refine_surfaces.c,v 1.18 2008/01/24 12:15:03 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -75,6 +75,11 @@ MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_hires, float thresh,
 
 int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
 
+static double pial_errfunc_gradient(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+static double pial_errfunc_sse(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+static double pial_errfunc_rms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+
+static MRI *make_pial_location_mask(MRI_SURFACE *mris, MRI *mri_hires, float max_thickness, MRI *mri_dst) ;
 static LABEL *hires_label = NULL ;
 static TRANSFORM *hires_xform = NULL ;
 static LTA *hires_lta = 0 ;
@@ -180,11 +185,11 @@ static float check_contrast_direction
 
 int
 main(int argc, char *argv[]) {
-  char          **av, *hemi, *sname, *cp=0, fname[STRLEN];
+  char          **av, *hemi, *sname, *cp=0, fname[STRLEN], med_fname[STRLEN], *dot ;
   int           ac, nargs, i/*, label_val, replace_val*/, msec, n_averages, j ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm = NULL, *mri_kernel = NULL, *mri_smooth = NULL, *mri_hires, 
-                *mri_hires_pial ;
+                *mri_hires_pial, *mri_mask = NULL, *mri_hires_orig ;
   /*  MRI           *mri_tran = NULL;*/
   float         max_len ;
   float         white_mean, white_std, gray_mean, gray_std ;
@@ -196,7 +201,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.17 2007/12/20 21:43:00 fischl Exp $", 
+     "$Id: mris_refine_surfaces.c,v 1.18 2008/01/24 12:15:03 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -303,13 +308,18 @@ main(int argc, char *argv[]) {
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, argv[3]) ;
   if (MGZ) strcat(fname, ".mgz");
   fprintf(stderr, "reading hires volume %s...\n", fname) ;
+
+  strcpy(med_fname, fname) ;
+  dot = strchr(med_fname, '.') ;
+  *dot = 0 ;
+  strcat(med_fname, ".median.mgz") ;
   if (0)
   {
     MRI_REGION box ;
     double     dist = MIN_BORDER_DIST-.5 ;
     MRI        *mri_tmp ;
       
-    mri_hires = MRIread(fname);
+    mri_hires = mri_hires_orig = MRIread(fname);
     if (!mri_hires)
       ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
                 Progname, fname) ;
@@ -323,7 +333,7 @@ main(int argc, char *argv[]) {
       
     mri_tmp = MRIextract(mri_hires, NULL, box.x, box.y, box.z,
                          box.dx, box.dy, box.dz) ;
-    MRIfree(&mri_hires) ;
+    //    MRIfree(&mri_hires) ;  kept in mri_hires_orig
     mri_hires = mri_hires_pial = mri_tmp ;
 
     if (apply_median_filter) /* -median option ... modify 
@@ -335,16 +345,29 @@ main(int argc, char *argv[]) {
         mri_tmp = MRIcopy(mri_hires, NULL) ;  // copy stuff outside of range
         MRImedian(mri_hires, mri_tmp, 3, NULL) ;
       //      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-        MRIwrite(mri_tmp, "median.mgz") ;
+        printf("writing median to %s\n", med_fname) ;
+        MRIwrite(mri_tmp, med_fname) ;
       }
       else
-        mri_tmp = MRIread("median.mgz") ;
+      {
+        printf("reading median from %s\n", med_fname) ;
+        mri_tmp = MRIread(med_fname) ;
+        if (!mri_tmp)
+          ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
+                    Progname, med_fname) ;
+
+      }
       MRIfree(&mri_hires) ;
       mri_hires = mri_hires_pial = mri_tmp ;
     }
   }
   else
-    mri_hires = mri_hires_pial = MRIread("median.mgz") ;
+  {
+    printf("reading median filtered volume from %s\n", med_fname) ;
+    mri_hires = mri_hires_pial = MRIread(med_fname) ;
+    if (!mri_hires)
+      ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s", Progname, med_fname) ;
+  }
 
 
   /////////////////////////////////////////////////////////////////////////////
@@ -390,13 +413,31 @@ main(int argc, char *argv[]) {
   // move the vertex positions to the lh(rh).white positions (low res)
   ////////////////////////////////////////////////////////////////////////////
   printf("reading initial white vertex positions from %s...\n", orig_white) ;
-  if (reg_fname)
+  if (reg_fname && mri_hires_orig)
   {
     char *subject ;
-    printf("reading registration from %s\n", reg_fname);
-    m_reg = regio_read_surfacexform_from_register_dat(reg_fname, mris, mri_hires, &subject);
-    if (m_reg == NULL)
-      exit(Gerror) ;
+    int  type ;
+    LTA  *lta ;
+
+    type = TransformFileNameType(reg_fname) ;
+    printf("reading registration from %s (type = %d)\n", reg_fname, type);
+    switch (type)
+    {
+    case REGISTER_DAT:
+      m_reg = regio_read_surfacexform_from_register_dat(reg_fname, mris, mri_hires_orig, &subject);
+      if (m_reg == NULL)
+        exit(Gerror) ;
+      break ;
+    case LINEAR_VOX_TO_VOX:
+    case LINEAR_RAS_TO_RAS:
+    case TRANSFORM_ARRAY_TYPE:
+      lta = LTAreadEx(reg_fname) ;
+      m_reg = MatrixCopy(lta->xforms[0].m_L, NULL) ;
+      LTAfree(&lta) ;
+      break ;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "%s: cannot read registration file %s type %d", Progname, fname, type) ;
+    }
   }
 
   if (MRISreadVertexPositions(mris, orig_white) != NO_ERROR)
@@ -617,19 +658,8 @@ main(int argc, char *argv[]) {
     }
 
 
-    /*
-      there are frequently regions of gray whose intensity is fairly
-      flat. We want to make sure the surface settles at the innermost
-      edge of this region, so on the first pass, set the target
-      intensities artificially high so that the surface will move
-      all the way to white matter before moving outwards to seek the
-      border (I know it's a hack, but it improves the surface in
-      a few areas. The alternative is to explicitly put a gradient-seeking
-      term in the cost functional instead of just using one to find
-      the target intensities).
-    */
     if (write_vals) {
-      sprintf(fname, "./%s-white%2.2f.w", hemi, current_sigma) ;
+      sprintf(fname, "./%s-white%2.2f.mgz", hemi, current_sigma) ;
       MRISwriteValues(mris, fname) ;
     }
     if (i == 0)
@@ -787,9 +817,11 @@ main(int argc, char *argv[]) {
         LabelFree(&hires_label) ;
       hires_label = LabelInFOV(mris, mri_hires, 2*mri_hires->xsize) ;
       LabelRipRestOfSurface(hires_label, mris) ;
+      if (mri_mask == NULL)
+        mri_mask = make_pial_location_mask(mris, mri_hires, max_thickness, NULL) ;
       if (inverted_contrast)
         MRIScomputeMaxGradBorderValuesPial(mris,mri_hires, mri_smooth,
-                                           current_sigma, max_thickness, -1, parms.fp,i) ;
+                                           current_sigma, max_thickness, -1, parms.fp,i, mri_mask) ;
       else
         MRIScomputeBorderValues
           (mris, mri_hires, mri_smooth, max_gray,
@@ -797,6 +829,21 @@ main(int argc, char *argv[]) {
            min_csf,(max_csf+max_gray_at_csf_border)/2,
            current_sigma, 2*max_thickness, parms.fp,
            GRAY_CSF, NULL, 0) ;
+
+      if (i == 0)
+      {
+        gMRISexternalGradient = pial_errfunc_gradient ;
+        gMRISexternalSSE = pial_errfunc_sse ;
+        gMRISexternalRMS = pial_errfunc_rms ;
+        parms.l_external = parms.l_intensity ;
+        parms.l_intensity = 0 ;
+      }
+      else
+      {
+        gMRISexternalGradient = gMRISexternalSSE = gMRISexternalRMS = NULL ;
+        parms.l_intensity = parms.l_external ;
+        parms.l_external = 0 ;
+      }
 
       if (vavgs) {
         fprintf(stderr, 
@@ -812,7 +859,7 @@ main(int argc, char *argv[]) {
       }
 
       if (write_vals) {
-        sprintf(fname, "./%s-gray%2.2f.w", hemi, current_sigma) ;
+        sprintf(fname, "./%s-pial%2.2f.mgz", hemi, current_sigma) ;
         MRISwriteValues(mris, fname) ;
       }
       if (!mri_smooth)
@@ -897,7 +944,7 @@ get_option(int argc, char *argv[]) {
   }
   else if (!stricmp(option, "nowhite") || !stricmp(option, "pialonly")) {
     nowhite = 1 ;
-    fprintf(stderr, "reading previously compute gray/white surface\n") ;
+    fprintf(stderr, "reading previously computed gray/white surface\n") ;
   } else if (!stricmp(option, "wa")) {
     max_white_averages = atoi(argv[2]) ;
     fprintf(stderr, "using max white averages = %d\n", max_white_averages) ;
@@ -1405,5 +1452,80 @@ find_wm(MRI_SURFACE *mris, MRI *mri, MRI *mri_wm)
 
   MRIfree(&mri_interior) ; MRIfree(&mri_ctrl) ; MRIfree(&mri_kernel) ;
   return(mri_wm) ;
+}
+
+static double
+pial_errfunc_gradient(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  int    vno ;
+  VERTEX *v ;
+  double dist, sse, dx, dy, dz, l_external ;
+
+  l_external = parms->l_external ;
+  for (sse = 0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->marked == 0 || v->ripflag)
+      continue ;
+    dx = v->tx - v->x ;
+    dy = v->ty - v->y ;
+    dz = v->tz - v->z ;
+    dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (vno == Gdiag_no)
+      printf("v %d: pial_grad d = (%2.3f, %2.3f, %2.3f)\n", vno, dx, dy, dz) ;
+    v->dx += l_external * dx ;
+    v->dy += l_external * dy ;
+    v->dz += l_external * dz ;
+    sse += dist ;
+  }
+  return(sse) ;
+}
+
+static double
+pial_errfunc_sse(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  int    vno ;
+  VERTEX *v ;
+  double dist, sse, dx, dy, dz ;
+
+  for (sse = 0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->marked == 0 || v->ripflag)
+      continue ;
+    dx = v->tx - v->x ;
+    dy = v->ty - v->y ;
+    dz = v->tz - v->z ;
+    dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+    sse += dist ;
+  }
+  
+  return(sse) ;
+}
+static double
+pial_errfunc_rms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  double sse ;
+  int    nv ;
+
+  sse = pial_errfunc_gradient(mris, parms) ;
+  nv = MRISmarkedVertices(mris) ;
+  if (nv == 0)
+    nv = 1 ;
+  return(sqrt(sse)/nv) ;
+}
+
+static MRI *
+make_pial_location_mask(MRI_SURFACE *mris, MRI *mri_hires, float max_thickness, MRI *mri_dst)
+{
+  mri_dst = MRIScomputeDistanceToSurface(mris, NULL, 0.5) ;
+
+  MRIthresholdRangeInto(mri_dst, mri_dst, 0, max_thickness) ;
+  MRIwrite(mri_dst, "dist.mgz") ;
+  return(mri_dst) ;
 }
 
