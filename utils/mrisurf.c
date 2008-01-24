@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/01/20 02:36:07 $
- *    $Revision: 1.585 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/24 01:54:58 $
+ *    $Revision: 1.586 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -274,7 +274,7 @@ static int mrisDirectionTriangleIntersection(MRI_SURFACE *mris, float x0,
     float y0, float z0, float nx,
     float ny, float nz, MHT *mht,
     double *pdist) ;
-static int mrisComputeCurvatureValues(MRI_SURFACE *mris) ;
+static int mrisComputeCurvatureMinMax(MRI_SURFACE *mris) ;
 static int
 mrisAllNormalDirectionCurrentTriangleIntersections(MRI_SURFACE *mris,
     VERTEX *v, MHT *mht,
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.585 2008/01/20 02:36:07 greve Exp $");
+  return("$Id: mrisurf.c,v 1.586 2008/01/24 01:54:58 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -14899,6 +14899,25 @@ MRISvalidVertices(MRI_SURFACE *mris)
 
   return(nvalid) ;
 }
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
+MRISmarkedVertices(MRI_SURFACE *mris)
+{
+  int vno, nvertices, nmarked ;
+
+  nvertices = mris->nvertices ;
+  for (vno = nmarked = 0 ; vno < nvertices ; vno++)
+    if (!mris->vertices[vno].ripflag && mris->vertices[vno].marked > 0)
+      nmarked++ ;
+
+  return(nmarked) ;
+}
 
 
 /*-----------------------------------------------------
@@ -22367,7 +22386,7 @@ MRISzeroMeanCurvature(MRI_SURFACE *mris)
     v->curv -= mean ;
   }
 
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -22461,7 +22480,7 @@ MRISnormalizeCurvature(MRI_SURFACE *mris, int which_norm)
       v->curv = (v->curv - mean) / std /* + mean*/ ;
     }
   }
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -22514,7 +22533,7 @@ MRISnormalizeCurvatureVariance(MRI_SURFACE *mris)
     v->curv = (v->curv - mean) / std  + mean ;
   }
 
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -22610,7 +22629,7 @@ MRISminFilterCurvatures(MRI_SURFACE *mris, int niter)
       v->curv = v->tdx ;
     }
   }
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -22655,7 +22674,7 @@ MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter)
       v->curv = v->tdx ;
     }
   }
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -22701,7 +22720,7 @@ MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
       v->curv = v->tdx ;
     }
   }
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -22747,7 +22766,7 @@ MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs)
       v->curv = v->tdx ;
     }
   }
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -27877,11 +27896,11 @@ MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
 {
   int     total_vertices, vno, n, num, found ;
   VERTEX  *v, *vn ;
-  Real    x, y, z, xv, yv, zv, dist, grad, max_grad, max_grad_dist, sigma_vox,
+  Real    x, y, z, xv, yv, zv, dist, grad, max_grad, max_grad_dist, sigma_vox, 
           nx, ny, nz, sample_dist, mag,max_grad_val, min_val, val, wm_mean, wm_std, wm_hi, wm_lo ;
   MRI     *mri_median ;
   MRI_REGION box ;
-  
+
   box.x = nint(5/mri_brain->xsize) ;
   box.y = nint(5/mri_brain->ysize) ;
   box.z = nint(5/mri_brain->zsize) ;
@@ -27918,7 +27937,7 @@ MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       continue ;
     nx /= mag ; ny /= mag ; nz /= mag ;
 
-    /* search inwards for min value */
+    // search inwards for min value to estimate wm value
     min_val = 1e10 ;
     for (dist = 0 ; dist <= 2 ; dist += sample_dist)
     {
@@ -28099,14 +28118,23 @@ int
 MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
                                    MRI *mri_smooth, double sigma,
                                    float max_thickness, float dir, FILE *log_fp,
-                                   int callno)
+                                   int callno, MRI *mri_mask)
 {
   int     total_vertices, vno, n, num, found ;
   VERTEX  *v, *vn ;
-  Real    x, y, z, xv, yv, zv, dist, grad, max_grad, max_grad_dist, sigma_vox,
+  Real    x, y, z, xv, yv, zv, dist, grad, max_grad, max_grad_dist, sigma_vox, xm, ym, zm,
           nx, ny, nz, sample_dist, mag,max_grad_val, min_val, val, wm_mean, wm_std, wm_hi, wm_lo ;
-  MRI     *mri_median ;
+  MRI     *mri_median, *mri_targets ;
   MRI_REGION box ;
+  MATRIX  *m_vox2vox ;
+  VECTOR  *v1, *v2 ;
+  float   mval ;
+
+  mri_targets = MRIclone(mri_brain, NULL) ;
+
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri_brain, mri_mask) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
   
   box.x = nint(5/mri_brain->xsize) ;
   box.y = nint(5/mri_brain->ysize) ;
@@ -28134,7 +28162,7 @@ MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
       DiagBreak() ;
     if (v->ripflag)
       continue ;
-    v->marked = 1 ;
+    v->marked = 0 ;  // vertex is no good until marked is changed to 1
     // compute surface normal in voxel coords
     MRISsurfaceRASToVoxelCached(mris, mri_brain, v->x, v->y, v->z, &xv, &yv, &zv) ;
     x = v->x+v->nx ; y = v->y+v->ny ; z = v->z+v->nz ;
@@ -28147,22 +28175,32 @@ MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
 
     /* search inwards for min value */
     min_val = 1e10 ;
-    for (dist = 0 ; dist <= 2 ; dist += sample_dist)
+    for (dist = 0 ; dist <= 3 ; dist += sample_dist)
     {
-      x = v->x-dist*v->nx ; y = v->y-dist*v->ny ; z = v->z-dist*v->nz ;
+      x = v->x+dist*v->nx ; y = v->y+dist*v->ny ; z = v->z+dist*v->nz ;
       MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xv, &yv, &zv) ;
+      V3_X(v1) = xv ; V3_Y(v1) = yv ; V3_Z(v1) = zv ;
+      MatrixMultiply(m_vox2vox, v1, v2) ;
+      xm = V3_X(v2) ; ym = V3_Y(v2) ; zm = V3_Z(v2) ;
+      mval = MRIgetVoxVal(mri_mask, xm, ym, zm, 0) ;
+      if (!FZERO(mval))
+        continue ;   // not in interior
       if (MRIindexNotInVolume(mri_brain, xv, yv, zv) == 0)
       {
         MRIsampleVolume(mri_median, xv, yv, zv, &val) ;
         if (val < min_val)
         {
-          v->marked = 0 ;
+          v->marked = 1 ;
           min_val = val ;
         }
       }
     }
-    if (v->marked == 1)
+    if (v->marked == 0)
+    {
       DiagBreak() ;
+      if (vno == Gdiag_no)
+        printf("v %d: could not find any interior voxels\n", vno) ;
+    }
     v->val = min_val ;
   }
 
@@ -28172,14 +28210,14 @@ MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
     v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
       DiagBreak() ;
-    if (v->ripflag)
+    if (v->ripflag || v->marked == 0)
       continue ;
     wm_mean = v->val ; wm_std = v->val*v->val ;
     v->valbak = v->val2bak = v->val ;  // min and max 
     for (num = 1, n = 0 ; n < v->vtotal ; n++)
     {
       vn = &mris->vertices[v->v[n]] ;
-      if (vn->ripflag)
+      if (vn->ripflag || vn->marked == 0)
         continue ;
       if (vn->val < v->valbak)
         v->valbak = vn->val ;
@@ -28201,7 +28239,7 @@ MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
     v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
       DiagBreak() ;
-    if (v->ripflag)
+    if (v->ripflag || v->marked == 0)
       continue ;
     total_vertices++ ;
 
@@ -28230,29 +28268,48 @@ MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
       wm_hi = wm_mean + 2*wm_std ;
       wm_lo = wm_mean - 7*wm_std ;
     }
-    max_grad = 0 ; max_grad_dist = 0 ; found = 0 ;
+    min_val = 2*wm_hi ;
+    found = 0 ;
     /* search outwards for local maximum */
     for (dist = 0 ; dist <= max_thickness ; dist += sample_dist)
     {
       x = v->x+dist*v->nx ; y = v->y+dist*v->ny ; z = v->z+dist*v->nz ;
       MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xv, &yv, &zv) ;
+      V3_X(v1) = xv ; V3_Y(v1) = yv ; V3_Z(v1) = zv ;
+      MatrixMultiply(m_vox2vox, v1, v2) ;
+      xm = V3_X(v2) ; ym = V3_Y(v2) ; zm = V3_Z(v2) ;
+      mval = MRIgetVoxVal(mri_mask, xm, ym, zm, 0) ;
+      if (FZERO(mval))
+        continue ;   // not in possible region
       if (MRIindexNotInVolume(mri_brain, xv, yv, zv) == 0)
       {
         MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
+#if 0
         if (val < wm_lo || val > wm_hi)
           break ;
+#endif
         MRIsampleVolumeDerivativeScale(mri_brain, xv, yv, zv, nx, ny, nz, &grad, sigma_vox) ;
         if (grad*dir < 0)  // out of viable region
         {
           if (callno > 0 || dist > max_thickness/2)
             break ;
         }
+        else if ((dir*grad > 0) && val < min_val)
+        {
+          min_val = val ;
+          found = 1 ;
+          max_grad_dist = dist ;
+          max_grad_val = val ;
+        }
+
         if (dir*grad > dir*max_grad)  // in the right direction
         {
           max_grad = grad ;
+#if 0
           max_grad_dist = dist ;
-          MRIsampleVolume(mri_brain, xv, yv, zv, &max_grad_val) ;
+          max_grad_val = val ;
           found = 1 ;
+#endif
         }
       }
     }
@@ -28261,20 +28318,38 @@ MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
     {
       x = v->x+dist*v->nx ; y = v->y+dist*v->ny ; z = v->z+dist*v->nz ;
       MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xv, &yv, &zv) ;
+      V3_X(v1) = xv ; V3_Y(v1) = yv ; V3_Z(v1) = zv ;
+      MatrixMultiply(m_vox2vox, v1, v2) ;
+      xm = V3_X(v2) ; ym = V3_Y(v2) ; zm = V3_Z(v2) ;
+      mval = MRIgetVoxVal(mri_mask, xm, ym, zm, 0) ;
+      if (FZERO(mval))
+        continue ;   // not in possible region
       if (MRIindexNotInVolume(mri_brain, xv, yv, zv) == 0)
       {
         MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
+#if 0
         if (val < wm_lo || val > wm_hi)
           continue ;   // allow search to continue as we haven't reached valid region yet
+#endif
         MRIsampleVolumeDerivativeScale(mri_brain, xv, yv, zv, nx, ny, nz, &grad, sigma_vox) ;
         if (grad*dir < 0)  // out of viable region
           break ;
+        if ((dir*grad > 0) && val < min_val)
+        {
+          min_val = val ;
+          found = 1 ;
+          max_grad_dist = dist ;
+          max_grad_val = val ;
+        }
+
         if (fabs(grad) > fabs(max_grad))  // in the right direction
         {
           max_grad = grad ;
+#if 0
           max_grad_dist = dist ;
           MRIsampleVolume(mri_brain, xv, yv, zv, &max_grad_val) ;
           found = 1 ;
+#endif
         }
       }
     }
@@ -28285,6 +28360,14 @@ MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
         printf("max grad %2.3f found at distance %2.2f, val = %2.0f in [%2.0f %2.0f]\n", 
                max_grad, max_grad_dist, max_grad_val, wm_lo, wm_hi) ;
       v->val = max_grad_val ;
+      v->tx = v->x+max_grad_dist*v->nx ; 
+      v->ty = v->y+max_grad_dist*v->ny ; 
+      v->tz = v->z+max_grad_dist*v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_brain, v->tx, v->ty, v->tz, &xv, &yv, &zv) ;
+      if (MRIindexNotInVolume(mri_targets, xv, yv, zv) == 0)
+        MRIsetVoxVal(mri_targets, xv, yv, zv, 0, 1.0) ;
+      else
+        DiagBreak() ;
       v->marked = 1 ;
     }
     else
@@ -28303,10 +28386,12 @@ MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
       continue ;
     v->val2 = sigma ;
   }
-
- MRISsoapBubbleVals(mris, 100) ;
+  
+  MRIwrite(mri_targets, "targets.mgz") ;
+  MRISsoapBubbleVals(mris, 100) ;
   if (mri_median != mri_brain)
     MRIfree(&mri_median) ;
+  MatrixFree(&m_vox2vox) ; VectorFree(&v1) ; VectorFree(&v2) ;
   return(NO_ERROR) ;
 }
 #else
@@ -32437,9 +32522,9 @@ MRIScomputeTotalVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
   Description
   ------------------------------------------------------*/
 static int
-mrisComputeCurvatureValues(MRI_SURFACE *mris)
+mrisComputeCurvatureMinMax(MRI_SURFACE *mris)
 {
-  int      vno ;
+  int      vno, found = 0 ;
   VERTEX   *v ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -32447,10 +32532,18 @@ mrisComputeCurvatureValues(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    if (v->curv > mris->max_curv)
-      mris->max_curv = v->curv ;
-    if (v->curv < mris->min_curv)
-      mris->min_curv = v->curv ;
+    if (found == 0)
+    {
+      mris->max_curv = mris->min_curv = v->curv ;
+      found = 1 ;
+    }
+    else
+    {
+      if (v->curv > mris->max_curv)
+        mris->max_curv = v->curv ;
+      if (v->curv < mris->min_curv)
+        mris->min_curv = v->curv ;
+    }
   }
   return(NO_ERROR) ;
 }
@@ -58428,7 +58521,7 @@ int MRISrectifyCurvature(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     v->curv = fabs(v->curv) ;
   }
-  mrisComputeCurvatureValues(mris) ;
+  mrisComputeCurvatureMinMax(mris) ;
   return(NO_ERROR) ;
 }
 
@@ -61206,7 +61299,7 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
     y = v->y-WM_SAMPLE_DIST*v->ny ;
     z = v->z-WM_SAMPLE_DIST*v->nz ;
     MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
-    MRISsurfaceRASToVoxel(mris, mri, x, y, z, &xw, &yw, &zw) ;
+    MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xw, &yw, &zw) ;
     
     MRIsampleVolume(mri, xw, yw, zw, &val) ;
     bin = nint(val - min_val) ;
@@ -63078,7 +63171,7 @@ MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, Real r, Real a, Real s,
   }
   if (mris->vg.valid)
   {
-      mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+    mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
     MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
     m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
     MRIfree(&mri_tmp) ;
