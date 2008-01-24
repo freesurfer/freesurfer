@@ -1,17 +1,16 @@
 /**
  * @file  timer.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief TimerStart and TimerStop routines for timing programs
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:40 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/01/24 22:26:48 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -29,12 +28,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <sys/timeb.h>
+#include "sys/timeb.h"
 #include "timer.h"
 #include "proto.h"
 
-struct timeb *
-      TimerStart(struct timeb *then)
+struct timeb *TimerStart(struct timeb *then)
 {
   /* according to the header ftime() is obsolete */
 #if 0
@@ -50,8 +48,7 @@ struct timeb *
   return then;
 }
 
-int
-TimerStop(struct timeb *then)
+int TimerStop(struct timeb *then)
 {
 #if 0
   struct timeb now ;
