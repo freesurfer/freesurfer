@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/01/20 02:36:08 $
- *    $Revision: 1.309 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/24 01:56:27 $
+ *    $Revision: 1.310 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1062,7 +1062,7 @@ int
 MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
                                    MRI *mri_smooth, double sigma,
                                    float max_thickness, float dir, FILE *log_fp,
-                                   int callno) ;
+                                   int callno, MRI *mri_mask) ;
 int
 MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                                MRI *mri_smooth, double sigma,
@@ -1553,6 +1553,7 @@ MRI *MRISfbirnMask_SFG_Cing(MRIS *surf);
 MRI *MRISfbirnMask_MOF_RACing(MRIS *surf);
 
 int   MRISvalidVertices(MRI_SURFACE *mris) ;
+int MRISmarkedVertices(MRI_SURFACE *mris) ;
 
 int MRIScomputeClassStatistics(MRI_SURFACE *mris,
                                MRI *mri,
@@ -1637,7 +1638,7 @@ int MRISinvertMarks(MRI_SURFACE *mris) ;
 
 #endif
 
-// Discrete Principle Curvature and Related  vvvvvvvvvvvvvvvvvv
+// Discrete Principal Curvature and Related  vvvvvvvvvvvvvvvvvv
 // Column / width for formatted output
 #define		G_LC				50
 #define		G_RC				30
@@ -1748,7 +1749,7 @@ short	MRIS_discreteKH_compute(
 
 short	MRIS_discretek1k2_compute(
 	MRIS*			apmris,
-	short			ab_signedPrinciples
+	short			ab_signedPrincipals
 );
 
 // The discrete curvature calculations are based on the Gauss-Bonnet Scheme.
@@ -1784,7 +1785,7 @@ short	MRIS_discretek1k2_compute(
 
 short	MRIScomputeSecondFundamentalFormDiscrete(
 	MRIS*			apmris,
-	short			ab_signedPrinciples
+	short			ab_signedPrincipals
 );
 
 int  	MRISminMaxCurvatureIndicesLookup(
@@ -1811,4 +1812,4 @@ int	MRISuseK2Curvature(
   	MRI_SURFACE*  		mris
 );
 
-// Discrete Principle Curvature and Related ^^^^^^^^^^^^^^^^^^
+// Discrete Principal Curvature and Related ^^^^^^^^^^^^^^^^^^
