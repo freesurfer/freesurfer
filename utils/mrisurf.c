@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/01/24 02:05:51 $
- *    $Revision: 1.587 $
+ *    $Author: greve $
+ *    $Date: 2008/01/24 21:10:58 $
+ *    $Revision: 1.588 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.587 2008/01/24 02:05:51 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.588 2008/01/24 21:10:58 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -58258,11 +58258,11 @@ MRI *MRISsmoothMRI(MRIS *Surf,
   {
     Targ = MRIallocSequence(Src->width, Src->height, Src->depth,
                             MRI_FLOAT, Src->nframes);
-    if (Targ==NULL)
-    {
+    if (Targ==NULL)    {
       printf("ERROR: MRISsmooth: could not alloc\n");
       return(NULL);
     }
+    MRIcopyHeader(Src,Targ);
   }
   else
   {
