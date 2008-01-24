@@ -2208,7 +2208,6 @@ AC_OUTPUT([Makefile
            include/Makefile
            include/NrrdIO/Makefile
            include/dicom/Makefile
-           include/nodelib/Makefile
            include/pixrect/Makefile
            include/sys/Makefile
            include/xview/Makefile
