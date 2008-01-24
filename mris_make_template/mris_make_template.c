@@ -1,18 +1,17 @@
 /**
  * @file  mris_make_template.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief program to add a template into an average surface
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/02/13 12:20:16 $
- *    $Revision: 1.23 $
+ *    $Author: nicks $
+ *    $Date: 2008/01/24 00:44:33 $
+ *    $Revision: 1.23.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2008,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -40,7 +39,8 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.23 2007/02/13 12:20:16 fischl Exp $";
+static char vcid[] =
+  "$Id: mris_make_template.c,v 1.23.2.1 2008/01/24 00:44:33 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,17 +53,19 @@ static void print_version(void) ;
 char *Progname ;
 
 static char *annot_name = NULL ;
-static char *surface_names[] = {
-                                 "inflated",
-                                 "smoothwm",
-                                 "smoothwm"
-                               } ;
+static char *surface_names[] =
+  {
+    "inflated",
+    "smoothwm",
+    "smoothwm"
+  } ;
 
-static char *curvature_names[] = {
-                                   "inflated.H",
-                                   "sulc",
-                                   NULL
-                                 } ;
+static char *curvature_names[] =
+  {
+    "inflated.H",
+    "sulc",
+    NULL
+  } ;
 
 #define IMAGES_PER_SURFACE   3   /* mean, variance, and dof */
 #define SURFACES         sizeof(curvature_names) / sizeof(curvature_names[0])
@@ -89,7 +91,8 @@ static char *overlay_dir = "label";
 static int which_norm = NORM_MEAN;
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char         **av, surf_fname[STRLEN], *template_fname, *hemi, *sphere_name,
   *cp, *subject, fname[STRLEN] ;
   int          ac, nargs, ino, sno, nbad = 0, failed, n,nfields;
@@ -100,7 +103,10 @@ main(int argc, char *argv[]) {
   INTEGRATION_PARMS parms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.23 2007/02/13 12:20:16 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option
+          (argc, argv,
+           "$Id: mris_make_template.c,v 1.23.2.1 2008/01/24 00:44:33 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -114,7 +120,8 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)    {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv,&parms) ;
     argc -= nargs ;
     argv += nargs ;
@@ -129,7 +136,8 @@ main(int argc, char *argv[]) {
   {
     cp = getenv("SUBJECTS_DIR") ;
     if (!cp)
-      ErrorExit(ERROR_BADPARM, "%s: SUBJECTS_DIR not defined in environment.\n",
+      ErrorExit(ERROR_BADPARM,
+                "%s: SUBJECTS_DIR not defined in environment.\n",
                 Progname) ;
     strcpy(subjects_dir, cp) ;
   }
@@ -139,13 +147,16 @@ main(int argc, char *argv[]) {
   if (1 || !FileExists(template_fname))  /* first time - create it */
   {
     fprintf(stderr, "creating new parameterization...\n") ;
-    if (multiframes) {
+    if (multiframes)
+    {
       mrisp_template = MRISPalloc(scale, atlas_size * IMAGES_PER_SURFACE );
       /*    if (no_rot)  /\* don't do rigid alignment *\/ */
       /*     mrisp_aligned = NULL ; */
       /*    else */
       /*     mrisp_aligned = MRISPalloc(scale, PARAM_FRAMES);  */
-    } else {
+    }
+    else
+    {
       mrisp_template = MRISPalloc(scale, PARAM_IMAGES);
       /*    if (no_rot)  /\* don't do rigid alignment *\/ */
       /*     mrisp_aligned = NULL ; */
@@ -154,7 +165,8 @@ main(int argc, char *argv[]) {
     }
 
   }
-  else {
+  else
+  {
     fprintf(stderr, "reading template parameterization from %s...\n",
             template_fname) ;
     /* mrisp_aligned = NULL ; */
@@ -166,7 +178,8 @@ main(int argc, char *argv[]) {
 
   argv += 3 ;
   argc -= 3 ;
-  for (ino = 0 ; ino < argc-1 ; ino++) {
+  for (ino = 0 ; ino < argc-1 ; ino++)
+  {
     failed = 0 ;
     subject = argv[ino] ;
     fprintf(stderr, "\nprocessing subject %s (%d of %d)\n", subject,
@@ -175,15 +188,19 @@ main(int argc, char *argv[]) {
             subjects_dir, subject, hemi, sphere_name) ;
     fprintf(stderr, "reading spherical surface %s...\n", surf_fname) ;
     mris = MRISread(surf_fname) ;
-    if (!mris) {
+    if (!mris)
+    {
       nbad++ ;
       ErrorPrintf(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, surf_fname) ;
       exit(1) ;
     }
-    if (annot_name) {
+    if (annot_name)
+    {
       if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
-        ErrorExit(ERROR_BADPARM, "%s: could not read annot file %s", Progname, annot_name) ;
+        ErrorExit(ERROR_BADPARM,
+                  "%s: could not read annot file %s",
+                  Progname, annot_name) ;
       MRISripMedialWall(mris) ;
     }
 
@@ -191,18 +208,21 @@ main(int argc, char *argv[]) {
     MRIScomputeMetricProperties(mris) ;
     MRISstoreMetricProperties(mris) ;
 
-    if (Gdiag & DIAG_WRITE) {
+    if (Gdiag & DIAG_WRITE)
+    {
       char *cp1 ;
 
       FileNameOnly(template_fname, fname) ;
       cp = strchr(fname, '.') ;
-      if (cp) {
+      if (cp)
+      {
         cp1 = strrchr(fname, '.') ;
         if (cp1 && cp1 != cp)
           strncpy(parms.base_name, cp+1, cp1-cp-1) ;
         else
           strcpy(parms.base_name, cp+1) ;
-      } else
+      }
+      else
         strcpy(parms.base_name, "template") ;
       sprintf(fname, "%s.%s.out", hemi, parms.base_name);
       parms.fp = fopen(fname, "w") ;
@@ -210,22 +230,28 @@ main(int argc, char *argv[]) {
     }
 
     /* multiframe registration */
-    if (multiframes) {
+    if (multiframes)
+    {
       nfields=parms.nfields;
 
-      for ( n = 0; n < mris->nvertices ; n++) /* allocate the VALS_VP structure */
+      for ( n = 0; n < mris->nvertices ; n++) /* allocate the VALS_VP
+                                                                 structure */
       {
         v=&mris->vertices[n];
         vp=calloc(1,sizeof(VALS_VP));
         vp->nvals=nfields;
-        vp->orig_vals=(float*)malloc(nfields*sizeof(float)); /* before blurring */
-        vp->vals=(float*)malloc(nfields*sizeof(float));     /* values used by MRISintegrate */
+        vp->orig_vals=(float*)malloc(nfields*sizeof(float)); /* before
+                                                                blurring */
+        vp->vals=(float*)malloc(nfields*sizeof(float));     /* values used by
+                                                               MRISintegrate */
         v->vp=(void*)vp;
       }
 
       /* load the different fields */
-      for (n = 0 ; n < parms.nfields ; n++) {
-        if (parms.fields[n].name != NULL) {
+      for (n = 0 ; n < parms.nfields ; n++)
+      {
+        if (parms.fields[n].name != NULL)
+        {
           sprintf(surf_fname, "%s/%s/%s/%s.%s", subjects_dir,
                   subject, overlay_dir, hemi, parms.fields[n].name) ;
           printf("reading overlay file %s...\n", surf_fname) ;
@@ -233,18 +259,24 @@ main(int argc, char *argv[]) {
             ErrorExit(ERROR_BADPARM, "%s: could not read overlay file %s",
                       Progname, surf_fname) ;
           MRIScopyValuesToCurvature(mris) ;
-        } else if (ReturnFieldName(parms.fields[n].field)) {
+        }
+        else if (ReturnFieldName(parms.fields[n].field))
+        {
           /* read in precomputed curvature file */
           sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir,
                   subject, hemi, ReturnFieldName(parms.fields[n].field)) ;
           // fprintf(stderr,"\nreading field %d from %s(type=%d,frame=%d)\n",parms.fields[n].field,surf_fname,parms.fields[n].type,parms.fields[n].frame);
-          if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR) {
+          if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
+          {
             fprintf(stderr,"\n\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
-            fprintf(stderr, "%s: could not read curvature file '%s'\n",Progname, surf_fname) ;
+            fprintf(stderr, "%s: could not read curvature file '%s'\n",
+                    Progname, surf_fname) ;
             failed = 1;
             break;
           }
-        } else {                       /* compute curvature of surface */
+        }
+        else
+        {                       /* compute curvature of surface */
           sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir,
                   subject, hemi, surface_names[parms.fields[n].field]) ;
           /*if(parms.fields[n].field==0)
@@ -253,7 +285,8 @@ main(int argc, char *argv[]) {
            sprintf(fname, "smoothwm") ;*/
           //fprintf(stderr,"\ngenerating field %d(type=%d,frame=%d) (from %s)\n",parms.fields[n].field,parms.fields[n].type,parms.fields[n].frame,surf_fname);
           //     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-          if (MRISreadVertexPositions(mris, surf_fname) != NO_ERROR) {
+          if (MRISreadVertexPositions(mris, surf_fname) != NO_ERROR)
+          {
             fprintf(stderr,"\n\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
             ErrorPrintf(ERROR_NOFILE, "%s: could not read surface file %s",
                         Progname, surf_fname) ;
@@ -277,12 +310,14 @@ main(int argc, char *argv[]) {
         MRISsetCurvaturesToValues(mris,n);
       }
 
-      if (failed) {
+      if (failed)
+      {
         fprintf(stderr,"\n\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
         fprintf(stderr,"Subject %s Failed",subject);
         fprintf(stderr,"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\n");
         /* free cal structure*/
-        for ( n = 0; n < mris->nvertices ; n++) {
+        for ( n = 0; n < mris->nvertices ; n++)
+        {
           v=&mris->vertices[n];
           vp=(VALS_VP*)v->vp;
           free(vp->orig_vals);
@@ -297,7 +332,8 @@ main(int argc, char *argv[]) {
       }
     }
 
-    if (multiframes && (!no_rot)) { /* rigid body alignment */
+    if (multiframes && (!no_rot))
+    { /* rigid body alignment */
       parms.frame_no = 3 ;  /* don't use single field correlation functions */
       parms.l_corr = parms.l_pcorr = 0.0f ;
 
@@ -311,10 +347,12 @@ main(int argc, char *argv[]) {
       MRISPfree(&parms.mrisp) ;
       MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     };
-    if ((!multiframes) && (!no_rot) && ino > 0) { /* rigid body alignment */
+    if ((!multiframes) && (!no_rot) && ino > 0)
+    { /* rigid body alignment */
       sprintf(surf_fname, "%s/%s/surf/%s.%s",
               subjects_dir, subject, hemi, "sulc") ;
-      if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR) {
+      if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
+      {
         ErrorPrintf(Gerror, "%s: could not read curvature file '%s'\n",
                     Progname, surf_fname) ;
         nbad++ ;
@@ -336,16 +374,21 @@ main(int argc, char *argv[]) {
       MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     }
 
-    if (multiframes) {
-      for (n = 0; n < parms.nfields ; n++) {
+    if (multiframes)
+    {
+      for (n = 0; n < parms.nfields ; n++)
+      {
         MRISsetOrigValuesToCurvatures(mris,n);
         MRISaverageCurvatures(mris, parms.fields[n].navgs) ;
         mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
-        MRISPcombine(mrisp, mrisp_template, parms.fields[n].frame * IMAGES_PER_SURFACE) ;
+        MRISPcombine(mrisp,
+                     mrisp_template,
+                     parms.fields[n].frame * IMAGES_PER_SURFACE) ;
         MRISPfree(&mrisp) ;
       }
       /* free the VALS_VP structure */
-      for ( n = 0; n < mris->nvertices ; n++) {
+      for ( n = 0; n < mris->nvertices ; n++)
+      {
         v=&mris->vertices[n];
         vp=(VALS_VP*)v->vp;
         free(vp->orig_vals);
@@ -354,13 +397,17 @@ main(int argc, char *argv[]) {
         v->vp=NULL;
       }
       MRISfree(&mris) ;
-    } else {
-      for (sno = 0; sno < SURFACES ; sno++) {
+    }
+    else
+    {
+      for (sno = 0; sno < SURFACES ; sno++)
+      {
         if (curvature_names[sno])  /* read in precomputed curvature file */
         {
           sprintf(surf_fname, "%s/%s/surf/%s.%s",
                   subjects_dir, subject, hemi, curvature_names[sno]) ;
-          if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR) {
+          if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
+          {
             nbad++ ;
             ErrorPrintf(Gerror, "%s: could not read curvature file '%s'\n",
                         Progname, surf_fname) ;
@@ -374,7 +421,8 @@ main(int argc, char *argv[]) {
         {
           sprintf(surf_fname, "%s/%s/surf/%s.%s",
                   subjects_dir, subject, hemi, surface_names[sno]) ;
-          if (MRISreadVertexPositions(mris, surf_fname) != NO_ERROR) {
+          if (MRISreadVertexPositions(mris, surf_fname) != NO_ERROR)
+          {
             ErrorPrintf(ERROR_NOFILE, "%s: could not read surface file %s",
                         Progname, surf_fname) ;
             nbad++ ;
@@ -393,7 +441,8 @@ main(int argc, char *argv[]) {
         }
         fprintf(stderr, "computing parameterization for surface %s...\n",
                 surf_fname);
-        if (failed) {
+        if (failed)
+        {
           continue ;
           MRISfree(&mris) ;
         }
@@ -410,24 +459,28 @@ main(int argc, char *argv[]) {
   {
     MRI_SP *mrisp_tmp ;
 
-    if (Gdiag & DIAG_WRITE) {
+    if (Gdiag & DIAG_WRITE)
+    {
       char *cp1 ;
 
       FileNameOnly(template_fname, fname) ;
       cp = strchr(fname, '.') ;
-      if (cp) {
+      if (cp)
+      {
         cp1 = strrchr(fname, '.') ;
         if (cp1 && cp1 != cp)
           strncpy(parms.base_name, cp+1, cp1-cp-1) ;
         else
           strcpy(parms.base_name, cp+1) ;
-      } else
+      }
+      else
         strcpy(parms.base_name, "template") ;
       sprintf(fname, "%s.%s.out", hemi, parms.base_name);
       parms.fp = fopen(fname, "w") ;
       printf("writing output to '%s'\n", fname) ;
     }
-    for (ino = 0 ; ino < argc-1 ; ino++) {
+    for (ino = 0 ; ino < argc-1 ; ino++)
+    {
       subject = argv[ino] ;
       if (Gdiag & DIAG_WRITE)
         fprintf(parms.fp, "processing subject %s\n", subject) ;
@@ -469,7 +522,8 @@ main(int argc, char *argv[]) {
 #endif
 
       /* now generate new parameterization using the optimal alignment */
-      for (sno = 0; sno < SURFACES ; sno++) {
+      for (sno = 0; sno < SURFACES ; sno++)
+      {
         if (curvature_names[sno])  /* read in precomputed curvature file */
         {
           sprintf(surf_fname, "%s/%s/surf/%s.%s",
@@ -512,7 +566,9 @@ main(int argc, char *argv[]) {
     MRISPfree(&mrisp_aligned) ;
   }
 #endif
-  fprintf(stderr, "writing updated template with %d subjects to %s...\n", argc-1-nbad, template_fname) ;
+  fprintf(stderr,
+          "writing updated template with %d subjects to %s...\n",
+          argc-1-nbad, template_fname) ;
   MRISPwrite(mrisp_template, template_fname) ;
   MRISPfree(&mrisp_template) ;
   exit(0) ;
@@ -525,7 +581,8 @@ main(int argc, char *argv[]) {
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[],INTEGRATION_PARMS *parms) {
+get_option(int argc, char *argv[],INTEGRATION_PARMS *parms)
+{
   int  n,nargs = 0 ;
   char *option ;
 
@@ -534,21 +591,25 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms) {
     print_help() ;
   else if (!stricmp(option, "version") || !stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "nbrs")) {
+  else if (!stricmp(option, "nbrs"))
+  {
     nbrs = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using neighborhood size = %d\n", nbrs) ;
-  } else if (!stricmp(option, "sdir")) {
+  }
+  else if (!stricmp(option, "sdir"))
+  {
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using SUBJECTS_DIR=%s\n", subjects_dir) ;
-  } 
+  }
   else if (!stricmp(option, "median"))
   {
     which_norm = NORM_MEDIAN ;
     printf("using median normalization\n") ;
   }
-  else if (!stricmp(option, "infname")) {
+  else if (!stricmp(option, "infname"))
+  {
     char fname[STRLEN] ;
     surface_names[0] = argv[2] ;
     nargs = 1 ;
@@ -556,61 +617,89 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms) {
     sprintf(fname, "%s.H", argv[2]) ;
     curvature_names[0] = (char *)calloc(strlen(fname)+1, sizeof(char)) ;
     strcpy(curvature_names[0], fname) ;
-  } else if (!stricmp(option, "sulc")) {
+  }
+  else if (!stricmp(option, "sulc"))
+  {
     nargs = 1 ;
     printf("using %s instead of sulc\n", argv[2]) ;
     curvature_names[1] = (char *)calloc(strlen(argv[2])+1, sizeof(char)) ;
     strcpy(curvature_names[1], argv[2]) ;
-  } else if (!stricmp(option, "norot")) {
+  }
+  else if (!stricmp(option, "norot"))
+  {
     no_rot = 1 ;
     fprintf(stderr, "not aligning hemispheres before averaging.\n") ;
-  } else if (!stricmp(option, "rot")) {
+  }
+  else if (!stricmp(option, "rot"))
+  {
     no_rot = 0 ;
     fprintf(stderr, "rigidly aligning hemispheres before averaging.\n") ;
-  } else if (!stricmp(option, "nodefault")) {
+  }
+  else if (!stricmp(option, "nodefault"))
+  {
     base_default=0;
     atlas_size = 0;
     parms->nfields=0;
     for (n=0;n<3;n++)
       InitFieldLabel(&parms->fields[n]);
-  } else if (!stricmp(option, "size")) {
+  }
+  else if (!stricmp(option, "size"))
+  {
     int size=atoi(argv[2]);
-    if (size<=0) {
+    if (size<=0)
+    {
       fprintf(stderr,"ERROR: size should at least 1!\n");
       exit(1);
     }
     atlas_size = size;
     fprintf(stderr,"Setting up atlas size to %d\n",size);
     nargs=1;
-  } else if (!stricmp(option, "annot")) {
+  }
+  else if (!stricmp(option, "annot"))
+  {
     annot_name = argv[2] ;
     fprintf(stderr,"zeroing medial wall in %s\n", annot_name) ;
     nargs=1;
-  } else if (!strcmp(option, "overlay")) {
+  }
+  else if (!strcmp(option, "overlay"))
+  {
     int navgs ;
     overlays[noverlays++] = argv[2] ;
     navgs = atoi(argv[3]) ;
     printf("reading overlay from %s...\n", argv[2]) ;
     multiframes = 1 ;
     n=parms->nfields++;
-    SetFieldLabel(&parms->fields[n], OVERLAY_FRAME, atlas_size,0.0,0.0, navgs,which_norm);
+    SetFieldLabel(&parms->fields[n],
+                  OVERLAY_FRAME,
+                  atlas_size,
+                  0.0,
+                  0.0,
+                  navgs,
+                  which_norm);
     SetFieldName(&parms->fields[n], argv[2]) ;
     atlas_size++ ;
     nargs = 2 ;
-  } else if (!strcmp(option, "overlay-dir")) {
+  }
+  else if (!strcmp(option, "overlay-dir"))
+  {
     overlay_dir = argv[2] ;
     printf("Setting overlay_dir to %s\n",overlay_dir);
     nargs = 1 ;
-  } else if (!stricmp(option, "vector"))    {
+  }
+  else if (!stricmp(option, "vector"))
+  {
     fprintf(stderr,"\nMultiframe Mode:\n");
-    fprintf(stderr,"Use <addframe> option to add extra-fields into average atlas\n");
+    fprintf(stderr,
+            "Use <addframe> option to add extra-fields into average atlas\n");
     fprintf(stderr,"Use <size> option to set up the # of frames\n");
     fprintf(stderr,"field code:\n");
     for (n=0 ; n < NUMBER_OF_VECTORIAL_FIELDS ; n++)
       fprintf(stderr,"     field %d is '%s' (type = %d)\n",n,
               ReturnFieldName(n),IsDistanceField(n));
 
-  } else if (!stricmp(option, "addframe")) {
+  }
+  else if (!stricmp(option, "addframe"))
+  {
     int which_field,where_in_atlas;
 
     if (multiframes==0) /* activate multiframes mode */
@@ -619,8 +708,11 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms) {
     which_field=atoi(argv[2]);
     where_in_atlas=atoi(argv[3]);
 
-    fprintf(stderr, "adding field %d into average atlas at location %d\n",which_field,where_in_atlas) ;
-    if ( base_default && (where_in_atlas<3) ) {
+    fprintf(stderr,
+            "adding field %d into average atlas at location %d\n",
+            which_field,where_in_atlas) ;
+    if ( base_default && (where_in_atlas<3) )
+    {
       fprintf(stderr,"ERROR: Cannot add field %d into atlas\n",which_field);
       fprintf(stderr,"       By default, the first 3 fields are:\n");
       fprintf(stderr,"       -curvature of inflated surface \n");
@@ -630,21 +722,34 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms) {
       exit(1);
     }
     /* check if this field exist or not */
-    for (n = 0 ; n < parms->nfields ; n++) {
-      if (parms->fields[n].field==which_field) {
+    for (n = 0 ; n < parms->nfields ; n++)
+    {
+      if (parms->fields[n].field==which_field)
+      {
         fprintf(stderr,"ERROR: field already exists\n");
         exit(1);
       }
     }
     /* adding field into parms */
     n=parms->nfields++;
-    SetFieldLabel(&parms->fields[n],which_field,where_in_atlas,0.0,0.0,0,which_norm);
-    if (where_in_atlas >= atlas_size) {
+    SetFieldLabel(&parms->fields[n],
+                  which_field,
+                  where_in_atlas,
+                  0.0,
+                  0.0,
+                  0,
+                  which_norm);
+    if (where_in_atlas >= atlas_size)
+    {
       atlas_size = where_in_atlas+1;
-      fprintf(stderr,"Atlas size increased to contain at least %d frames\n",atlas_size);
+      fprintf(stderr,
+              "Atlas size increased to contain at least %d frames\n",
+              atlas_size);
     }
     nargs = 2 ;
-  } else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case 'W':
       Gdiag |= DIAG_WRITE ;
       if (isdigit((int)*argv[2]))
@@ -680,48 +785,60 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms) {
 }
 
 static void
-usage_exit(void) {
+usage_exit(void)
+{
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void) {
+print_usage(void)
+{
   printf("%s [options] <hemi> <surface name> <subject> <subject> ... "
          "<output name>\n", Progname) ;
   printf("\n");
   printf("Options:\n\n") ;
   printf(" -addframe which_field where_in_atlas \n");
   printf(" -vector : printf additional information for <addframe>\n");
-  printf(" -norot : align before averaging\n");
-  printf(" -annot : zero medial wall\n");
-  printf(" -overlay overlay naverages: use subject/label/hemi.overlay\n");
-  printf(" -overlay-dir dir: use subject/dir/hemi.overlay\n");
+  printf(" -norot  : not aligning hemispheres before averaging (default)\n");
+  printf(" -rot    : rough rigid alignment of hemispheres before averaging\n");
+  printf(" -annot  : zero medial wall\n");
+  printf(" -overlay overlay naverages : read overlay from <overlay>\n");
+  printf(" -overlay-dir dir           : use subject/<dir>/hemi.overlay\n");
   printf(" -s scale\n");
-  printf(" -a N : smooth curvature N iterations\n");
+  printf(" -a N    : smooth curvature <N> iterations\n");
   printf(" -sdir SUBJECTS_DIR\n");
   printf("\n");
 }
 
 static void
-print_help(void) {
+print_help(void)
+{
   print_usage() ;
   printf("This program will add a template into an average surface.\n");
   exit(1) ;
 }
 
 static void
-print_version(void) {
+print_version(void)
+{
   printf( "%s\n", vcid) ;
   exit(1) ;
 }
 
 /* set the correct set of vectorial parameters */
-static void setParms(INTEGRATION_PARMS *parms) {
+static void setParms(INTEGRATION_PARMS *parms)
+{
   /* default template fields*/
   parms->nfields=3;
 
-  SetFieldLabel(&parms->fields[0],INFLATED_CURV_CORR_FRAME,0,0.0,0.0,0,which_norm);
+  SetFieldLabel(&parms->fields[0],
+                INFLATED_CURV_CORR_FRAME,
+                0,
+                0.0,
+                0.0,
+                0,
+                which_norm);
   /* only use sulc for rigid registration */
   SetFieldLabel(&parms->fields[1],SULC_CORR_FRAME,1,1.0,0.0,0,which_norm);
   SetFieldLabel(&parms->fields[2],CURVATURE_CORR_FRAME,2,0.0,0.0,0,which_norm);
