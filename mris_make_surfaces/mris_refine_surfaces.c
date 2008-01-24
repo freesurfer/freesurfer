@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/24 12:15:03 $
- *    $Revision: 1.18 $
+ *    $Date: 2008/01/24 14:51:25 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,7 +51,7 @@
 #include "registerio.h"
 
 static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.18 2008/01/24 12:15:03 fischl Exp $";
+"$Id: mris_refine_surfaces.c,v 1.19 2008/01/24 14:51:25 fischl Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -201,7 +201,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.18 2008/01/24 12:15:03 fischl Exp $", 
+     "$Id: mris_refine_surfaces.c,v 1.19 2008/01/24 14:51:25 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -364,7 +364,7 @@ main(int argc, char *argv[]) {
   else
   {
     printf("reading median filtered volume from %s\n", med_fname) ;
-    mri_hires = mri_hires_pial = MRIread(med_fname) ;
+    mri_hires = mri_hires_orig = mri_hires_pial = MRIread(med_fname) ;
     if (!mri_hires)
       ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s", Progname, med_fname) ;
   }
