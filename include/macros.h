@@ -1,17 +1,16 @@
 /**
  * @file  macros.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief common macro definitions
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.34 $
+ *    $Date: 2008/01/24 22:24:52 $
+ *    $Revision: 1.35 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,17 +24,6 @@
  *
  */
 
-
-/*------------------------------------------------------------------------
-      File Name:  macros.h
-
-         Author:  Bruce Fischl
-
-        Created:  Jan. 1994
-
-    Description:
-
-------------------------------------------------------------------------*/
 #ifndef MACROS_H
 #define MACROS_H
 
@@ -52,7 +40,7 @@
 #define M_E 2.718282 /* exp(1) */
 #endif
 #ifndef M_PI
-#define M_PI  3.141593
+#define M_PI  3.14159265358979323846
 #endif
 
 #endif
