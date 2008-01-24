@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.41 2008/01/14 17:39:56 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.42 2008/01/24 18:42:59 fischl Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -804,6 +804,8 @@
 5059   Right-SLF2_waypoint				236 15  176 0
 5060   Right-SLF2-Start					208 62  78  0
 5061   Right-SLF2-End					209 62  78  0
+6010 Left-SLF2  236 14  230 0
+6020 Right-SLF2  237 14  230 0
 
 5062   Left-SLF3_waypoint				12  49  255 0
 5063   Left-SLF3-Start					123 186 220 0
@@ -811,6 +813,8 @@
 5065   Right-SLF3_waypoint				12  50  255 0 
 5066   Right-SLF3-Start					125 186 220 0
 5067   Right-SLF3-End					126 186 220 0
+6030 Left-SLF3 	13  49  255 0
+6040 Right-SLF3 14  49  255 0
 
 5068   Left-CST_waypoint				255 166 0   0
 5069   Left-CST-Start					221 216 20  0
@@ -818,8 +822,11 @@
 5071   Right-CST_waypoint				255 167 0   0
 5072   Right-CST-Start					223 216 20  0
 5073   Right-CST-End					224 216 20  0
+6050 Left-CST    1 255 1 0
+6060 Right-CST    2 255 1 0
 
 6000 CST-orig   0 255 0 0
 6001 CST-hammer 255 255 0 0
 6002 CST-CVS    0 255 255 0
 6003 CST-flirt  0 0 255 0
+
