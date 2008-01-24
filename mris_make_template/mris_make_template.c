@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/24 00:34:40 $
- *    $Revision: 1.24 $
+ *    $Date: 2008/01/24 00:43:32 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -40,7 +40,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_make_template.c,v 1.24 2008/01/24 00:34:40 nicks Exp $";
+  "$Id: mris_make_template.c,v 1.25 2008/01/24 00:43:32 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -105,7 +105,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_template.c,v 1.24 2008/01/24 00:34:40 nicks Exp $",
+           "$Id: mris_make_template.c,v 1.25 2008/01/24 00:43:32 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -800,12 +800,13 @@ print_usage(void)
   printf("Options:\n\n") ;
   printf(" -addframe which_field where_in_atlas \n");
   printf(" -vector : printf additional information for <addframe>\n");
-  printf(" -norot  : align before averaging\n");
+  printf(" -norot  : not aligning hemispheres before averaging (default)\n");
+  printf(" -rot    : rough rigid alignment of hemispheres before averaging\n");
   printf(" -annot  : zero medial wall\n");
-  printf(" -overlay overlay naverages: use subject/label/hemi.overlay\n");
-  printf(" -overlay-dir dir: use subject/dir/hemi.overlay\n");
+  printf(" -overlay overlay naverages : read overlay from <overlay>\n");
+  printf(" -overlay-dir dir           : use subject/<dir>/hemi.overlay\n");
   printf(" -s scale\n");
-  printf(" -a N    : smooth curvature N iterations\n");
+  printf(" -a N    : smooth curvature <N> iterations\n");
   printf(" -sdir SUBJECTS_DIR\n");
   printf("\n");
 }
