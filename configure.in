@@ -1023,10 +1023,10 @@ if test "x$TIXWISH" = "x"; then
     AC_PATH_PROG([TIXWISH],[tixwish8.1.8.4],[])
   fi
 fi
-# well check
+# and check
 if test "x$TIXWISH" = "x"; then
 if test ! "x$tcltk_apps" = "xNO"; then
-  AC_MSG_ERROR([FATAL: tixwish not found. Use --with-tixwish=... to specify])
+  AC_MSG_RESULT([INFO: tixwish not found. Use --with-tixwish=... to specify])
 fi
 fi
 
