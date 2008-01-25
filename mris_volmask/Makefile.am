@@ -13,7 +13,7 @@ $(X_LIBS) $(GL_LIBS) \
 -ldl -lpthread \
 $(VTK_LIBS) \
 $(VTK_FREETYPE_LIB) $(VTK_PNG_LIB) \
-$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) $(VTK_SQLITE_LIB) \
 $(VTK_Z_LIB) $(VTK_EXPAT_LIB) $(VTK_METAIO_LIB) \
 -lvtkFiltering $(VTK_VERDICT_LIB) -lvtkHybrid \
 -lvtkRendering -lvtkGraphics \
