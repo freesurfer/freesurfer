@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/01/09 01:15:25 $
- *    $Revision: 1.149 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/25 23:49:28 $
+ *    $Revision: 1.150 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -183,7 +183,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.149 2008/01/09 01:15:25 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.150 2008/01/25 23:49:28 fischl Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -285,7 +285,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.149 2008/01/09 01:15:25 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.150 2008/01/25 23:49:28 fischl Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1280,7 +1280,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.149 2008/01/09 01:15:25 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.150 2008/01/25 23:49:28 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1827,7 +1827,8 @@ int main(int argc, char *argv[]) {
       TRANSFORM *tran = TransformRead(transform_fname);
       if (invert_transform_flag == 0)
         mri_transformed =
-          GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0) ;
+          GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0,
+                           resample_type_val) ;
       else // invert
       {
         mri_transformed = MRIclone(mri, NULL);
