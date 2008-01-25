@@ -2033,7 +2033,7 @@ AC_CHECK_LIB([verdict], [main], [VTK_VERDICT_LIB="-lverdict"], [])
 AC_SUBST(VTK_VERDICT_LIB)
 
 # ditto for libvtksqlite
-VTK_QSLITE_LIB=""
+VTK_SQLITE_LIB=""
 AC_CHECK_LIB([vtksqlite], [main], [VTK_SQLITE_LIB="-lvtksqlite"], [])
 AC_SUBST(VTK_SQLITE_LIB)
 
