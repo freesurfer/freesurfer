@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/26 18:57:07 $
- *    $Revision: 1.46 $
+ *    $Date: 2008/01/25 23:32:03 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -152,6 +152,7 @@ typedef struct
   double l_area_intensity;
   double l_spring ;
   double l_area_smoothness;
+  double l_dtrans ;         // distance transform coefficient
   double tol ;
   int    levels ;
   FILE   *log_fp ;
@@ -187,6 +188,8 @@ typedef struct
   int    scale_smoothness ;     // scale down smoothness coef at larger gradient smoothing scales
   int    target_label ;
   int    min_avgs ;
+  int    diag_sample_type ;
+  char   *write_fname ;   // for writing intermiediate results (NULL otherwise)
 }
 GCA_MORPH_PARMS, GMP ;
 
@@ -207,7 +210,7 @@ MRI       *GCAMmorphToAtlasWithDensityCorrection(MRI *mri_src,
                                                  GCA_MORPH *gcam, 
                                                  MRI *mri_morphed, int frame) ;
 MRI       *GCAMmorphToAtlas(MRI *mri_src, 
-                            GCA_MORPH *gcam, MRI *mri_dst, int frame) ;
+                            GCA_MORPH *gcam, MRI *mri_dst, int frame, int sample_type) ;
 MRI       *GCAMmorphToAtlasType(MRI *mri_src, 
                                 GCA_MORPH *gcam, 
                                 MRI *mri_dst, int frame, int interp_type) ;
@@ -277,6 +280,8 @@ int GCAMaddStatus(GCA_MORPH *gcam, int status_bit) ;
 int GCAMremoveStatus(GCA_MORPH *gcam, int status_bit) ;
 int GCAMremoveCompressedRegions(GCA_MORPH *gcam, float min_ratio) ;
 int GCAMcountCompressedNodes(GCA_MORPH *gcam, float min_ratio) ;
+int GCAMsetVariances(GCA_MORPH *gcam, float var) ;
+int GCAMsetMeansForLabel(GCA_MORPH *gcam, MRI *mri_labels, MRI *mri_vals, int label) ;
 GCA_MORPH *GCAMcreateFromIntensityImage(MRI *mri_source, 
                                         MRI *mri_target, 
                                         TRANSFORM *transform);
