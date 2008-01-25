@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/19 22:25:31 $
- *    $Revision: 1.16 $
+ *    $Date: 2008/01/25 23:32:27 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/01/19 22:25:31 $
-// Revision       : $Revision: 1.16 $
+// Revision Date  : $Date: 2008/01/25 23:32:27 $
+// Revision       : $Revision: 1.17 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -71,6 +71,9 @@ static int write_snapshot(MRI *mri_target, MRI *mri_source,
 													MATRIX *m_vox_xform, GCA_MORPH_PARMS *parms, 
 													int fno, int conform, char *fname) ;
 
+static MRI *create_distance_transforms(MRI *mri_source, MRI *mri_target, 
+                                       MRI *mri_all_dtrans, float max_dist,
+                                       GCA_MORPH *gcam) ;
 static int regrid = 0 ;
 
 static void  usage_exit(int ecode) ;
@@ -81,6 +84,7 @@ char *Progname ;
 
 static int skip = 2 ;
 static double distance = 1.0 ;
+static int use_aseg = 0 ;
 static int nozero = 1 ;
 static int match_peak_intensity_ratio = 0 ;
 static int match_mean_intensity = 1 ;
@@ -159,27 +163,40 @@ main(int argc, char *argv[])
 		ErrorExit(ERROR_NOFILE, "%s: could not read source label volume %s",
 							Progname, source_fname) ;
 
+  if (mri_source->type == MRI_INT)
+  {
+    MRI *mri_tmp = MRIchangeType(mri_source, MRI_FLOAT, 0, 1, 1) ;
+    MRIfree(&mri_source); mri_source = mri_tmp ;
+  }
 	mri_target = MRIread(target_fname) ;
 	if (!mri_target)
 		ErrorExit(ERROR_NOFILE, "%s: could not read target label volume %s",
 							Progname, target_fname) ;
-  if (match_peak_intensity_ratio)
-    MRImatchIntensityRatio(mri_source, mri_target, mri_source, .8, 1.2, 
-                           100, 125) ;
+  if (mri_target->type == MRI_INT)
+  {
+    MRI *mri_tmp = MRIchangeType(mri_target, MRI_FLOAT, 0, 1, 1) ;
+    MRIfree(&mri_target); mri_target = mri_tmp ;
+  }
+  if (use_aseg == 0)
+  {
+    if (match_peak_intensity_ratio)
+      MRImatchIntensityRatio(mri_source, mri_target, mri_source, .8, 1.2, 
+                             100, 125) ;
   else if (match_mean_intensity)
     MRImatchMeanIntensity(mri_source, mri_target, mri_source) ;
-	MRIboundingBox(mri_source, 0, &box) ;
-	pad = (int)ceil(PADVOX * 
-									MAX(mri_target->xsize,MAX(mri_target->ysize,mri_target->zsize)) / 
-									MIN(mri_source->xsize,MIN(mri_source->ysize,mri_source->zsize))); 
-	if (pad < 1)
-		pad = 1 ;
-	printf("padding source with %d voxels...\n", pad) ;
-	mri_tmp = MRIextractRegionAndPad(mri_source, NULL, &box, pad) ;
-	if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
-		MRIwrite(mri_tmp, "t.mgz") ;
-	MRIfree(&mri_source) ;
-	mri_source = mri_tmp ;
+    MRIboundingBox(mri_source, 0, &box) ;
+    pad = (int)ceil(PADVOX * 
+                    MAX(mri_target->xsize,MAX(mri_target->ysize,mri_target->zsize)) / 
+                    MIN(mri_source->xsize,MIN(mri_source->ysize,mri_source->zsize))); 
+    if (pad < 1)
+      pad = 1 ;
+    printf("padding source with %d voxels...\n", pad) ;
+    mri_tmp = MRIextractRegionAndPad(mri_source, NULL, &box, pad) ;
+    if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
+      MRIwrite(mri_tmp, "t.mgz") ;
+    MRIfree(&mri_source) ;
+    mri_source = mri_tmp ;
+  }
 	mri_orig_source = MRIcopy(mri_source, NULL) ;
 
 	mp.max_grad = 0.3*mri_source->xsize ;
@@ -228,6 +245,12 @@ main(int argc, char *argv[])
 		printf("initializing GCAM with vox->vox matrix:\n") ;
 		MatrixPrint(stdout, m_L) ;
 		gcam = GCAMcreateFromIntensityImage(mri_source, mri_target, transform) ;
+    if (use_aseg)
+    {
+      GCAMinitLabels(gcam, mri_source) ;
+      GCAMsetVariances(gcam, 1.0) ;
+      mp.mri_dist_map = create_distance_transforms(mri_source, mri_target, NULL, 10.0, gcam) ;
+    }
 	}
 	else  /* use a previously create morph and integrate it some more */
 	{
@@ -249,7 +272,8 @@ main(int argc, char *argv[])
 	mp.mri_diag = mri_target ;
 	mp.diag_morph_from_atlas = 0 ;
 	mp.diag_write_snapshots = 1 ;
-	mp.diag_volume = GCAM_MEANS ;
+  mp.diag_sample_type = use_aseg ? SAMPLE_NEAREST : SAMPLE_TRILINEAR ;
+	mp.diag_volume = use_aseg ? GCAM_LABEL : GCAM_MEANS ;
 
   if (renormalize)
     GCAMnormalizeIntensities(gcam, mri_target) ;
@@ -287,6 +311,7 @@ main(int argc, char *argv[])
 	if (mp.regrid == True && new_transform == 0)
 		GCAMregrid(gcam, mri_target, PAD, &mp, &mri_source) ;
 
+  mp.write_fname = out_fname ;
 	GCAMregister(gcam, mri_target, &mp) ; // atlas is source, morph target into register with it
 	if (apply_transform)
 	{
@@ -331,10 +356,27 @@ get_option(int argc, char *argv[])
 		nargs = 3 ;
 		printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
 	}
+  else if (!stricmp(option, "debug_node"))
+	{
+		Gx = atoi(argv[2]) ;
+		Gy = atoi(argv[3]) ;
+		Gz = atoi(argv[4]) ;
+		nargs = 3 ;
+		printf("debugging node (%d, %d, %d)\n", Gx, Gy, Gz) ;
+	}
   else if (!stricmp(option, "OPTIMAL"))
   {
     mp.integration_type = GCAM_INTEGRATE_OPTIMAL ;
     printf("using optimal time-step integration\n") ;
+  }
+  else if (!stricmp(option, "aseg"))
+  {
+    match_mean_intensity = match_peak_intensity_ratio = 0 ;
+    use_aseg = 1 ;
+    mp.l_dtrans = 1 ;
+    mp.l_log_likelihood = 0 ;
+    renormalize = 0 ;
+    printf("treating inputs as segmentations\n") ;
   }
   else if (!stricmp(option, "MOMENTUM") || !stricmp(option, "FIXED"))
   {
@@ -346,6 +388,12 @@ get_option(int argc, char *argv[])
     distance = atof(argv[2]) ;
 		nargs = 1 ;
     printf("expanding border by %2.1f mm every outer cycle\n", distance);
+  }
+  else if (!stricmp(option, "dtrans"))
+  {
+    mp.l_dtrans = atof(argv[2]) ;
+		nargs = 1 ;
+    printf("setting distance transform coefficient to %2.3f\n", mp.l_dtrans) ;
   }
   else if (!stricmp(option, "match_peak"))
   {
@@ -614,5 +662,61 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
 	}
 
 	return(NO_ERROR) ;
+}
+
+// NOTE: the order here *must* match the frame #s listed in gcamorph.c:dtrans_label_to_frame
+static int dtrans_labels[] =
+  {
+    Left_Thalamus_Proper,
+    Right_Thalamus_Proper,
+    Left_Putamen,
+    Right_Putamen,
+    Left_Pallidum,
+    Right_Pallidum,
+    Left_Lateral_Ventricle,
+    Right_Lateral_Ventricle,
+    Left_Caudate,
+    Right_Caudate,
+    Left_Cerebral_White_Matter,
+    Right_Cerebral_White_Matter,
+    Left_Hippocampus,
+    Right_Hippocampus,
+    Left_Amygdala,
+    Right_Amygdala,
+    Left_VentralDC,
+    Right_VentralDC,
+    Brain_Stem,
+    Left_Inf_Lat_Vent,
+    Right_Inf_Lat_Vent
+  } ;
+
+#define NDTRANS_LABELS (sizeof(dtrans_labels) / sizeof(dtrans_labels[0]))
+
+static MRI *
+create_distance_transforms(MRI *mri_source, MRI *mri_target, MRI *mri_all_dtrans, float max_dist, GCA_MORPH *gcam)
+{
+  MRI   *mri_dtrans ;
+  int   frame ;
+  char  fname[STRLEN] ;
+  
+  mri_all_dtrans = MRIallocSequence(mri_target->width, mri_target->height, mri_target->depth, 
+                                    MRI_FLOAT, NDTRANS_LABELS) ;
+  MRIcopyHeader(mri_target, mri_all_dtrans) ;
+
+  for (frame = 0 ; frame < NDTRANS_LABELS ; frame++)
+  {
+    printf("creating distance transform for %s, frame %d...\n", cma_label_to_name(dtrans_labels[frame]), frame) ;
+    mri_dtrans = MRIdistanceTransform(mri_target, NULL, dtrans_labels[frame], 10, DTRANS_MODE_SIGNED) ;
+    sprintf(fname, "%s.mgz", cma_label_to_name(dtrans_labels[frame])) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_dtrans, fname) ;
+    MRIcopyFrame(mri_dtrans, mri_all_dtrans, 0, frame) ;
+    MRIfree(&mri_dtrans) ;
+    mri_dtrans = MRIdistanceTransform(mri_source, NULL, dtrans_labels[frame], 10, DTRANS_MODE_SIGNED) ;
+    GCAMsetMeansForLabel(gcam, mri_source, mri_dtrans, dtrans_labels[frame]);
+    MRIfree(&mri_dtrans) ;
+  }
+
+  return(mri_all_dtrans) ;
 }
 
