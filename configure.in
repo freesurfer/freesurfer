@@ -1867,25 +1867,31 @@ AC_SUBST(LIBS_NIFTI)
 # check tcl/tk/tix/blt only if tcl/tk apps are enabled
 if test ! "x$tcltk_apps" = "xNO"; then
   ################## Tcl
+  # check tcl8.5
+  AC_CHECK_LIB([tcl8.5],[Tcl_Init],
+    [LIB_TCL=-ltcl8.5],
   # check tcl8.4
-  AC_CHECK_LIB([tcl8.4],[Tcl_Init],
-    [LIB_TCL=-ltcl8.4],
-  # check tcl8.3
     [
-      AC_CHECK_LIB([tcl8.3],[Tcl_Init],
-      [LIB_TCL=-ltcl8.3],
-  # check tcl83
+    AC_CHECK_LIB([tcl8.4],[Tcl_Init],
+      [LIB_TCL=-ltcl8.4],
+  # check tcl8.3
       [
-        AC_CHECK_LIB([tcl83],[Tcl_Init],
-        [LIB_TCL=-ltcl83],
+        AC_CHECK_LIB([tcl8.3],[Tcl_Init],
+        [LIB_TCL=-ltcl8.3],
+  # check tcl83
+        [
+          AC_CHECK_LIB([tcl83],[Tcl_Init],
+          [LIB_TCL=-ltcl83],
   # check tcl
-        [ AC_CHECK_LIB([tcl],[Tcl_Init],
-          [LIB_TCL=-ltcl],
+          [ AC_CHECK_LIB([tcl],[Tcl_Init],
+            [LIB_TCL=-ltcl],
   # check tclstub
-          [ AC_CHECK_LIB([tclstub],[Tcl_Init],
-            [LIB_TCL=-ltclstub],
-            [AC_MSG_ERROR([FATAL: libtcl not found. \
-Check config.log. Set LDFLAGS or --with-tcl-dir.])        ] )
+            [ AC_CHECK_LIB([tclstub],[Tcl_Init],
+              [LIB_TCL=-ltclstub],
+              [AC_MSG_ERROR([FATAL: libtcl not found. \
+Check config.log. Set LDFLAGS or --with-tcl-dir.]) 
+              ])
+            ])
           ])
         ])
       ])
@@ -1895,23 +1901,28 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])        ] )
   LIBS="$X_LIBS $LIBS"
   CPPFLAGS="$GLUT_CFLAGS $GL_CFLAGS $CPPFLAGS"
   LDFLAGS="$X_LIBS $LDFLAGS"
+  # check tk8.5
+  AC_CHECK_LIB([tk8.5],[Tk_Init],
+    [LIB_TK=-ltk8.5],
   # check tk8.4
-  AC_CHECK_LIB([tk8.4],[Tk_Init],
-    [LIB_TK=-ltk8.4],
-  # check tk8.3
     [
-      AC_CHECK_LIB([tk8.3],[Tk_Init],
-      [LIB_TK=-ltk8.3],
-  # check tk83
+    AC_CHECK_LIB([tk8.4],[Tk_Init],
+      [LIB_TK=-ltk8.4],
+  # check tk8.3
       [
-        AC_CHECK_LIB([tk83],[Tk_Init],
-        [LIB_TK=-ltk83],
-  # check tk
+        AC_CHECK_LIB([tk8.3],[Tk_Init],
+        [LIB_TK=-ltk8.3],
+  # check tk83
         [
-          AC_CHECK_LIB([tk],[Tk_Init],
-          [LIB_TK=-ltk],
-          [AC_MSG_ERROR([FATAL: libtk not found. \
+          AC_CHECK_LIB([tk83],[Tk_Init],
+          [LIB_TK=-ltk83],
+  # check tk
+          [
+            AC_CHECK_LIB([tk],[Tk_Init],
+            [LIB_TK=-ltk],
+            [AC_MSG_ERROR([FATAL: libtk not found. \
 Check config.log. Set LDFLAGS or --with-tcl-dir.])
+            ])
           ])
         ])
       ])
@@ -1919,27 +1930,32 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
   AC_SUBST(LIB_TK)
   ##################### Tix
   LIBS="$LIB_TK $LIB_TCL $LIBS"
-  # check tix8.1.8.4 first, as that is known to work best with tcl/tk 8.4
-  AC_CHECK_LIB([tix8.1.8.4], [Tix_Init],
-  [LIB_TIX=-ltix8.1.8.4],
+  # check Tix8.4.2 first, as that is known to work best with tcl/tk 8.5
+  AC_CHECK_LIB([Tix8.4.2], [Tix_Init],
+  [LIB_TIX=-lTix8.4.2],
   [
-  # check tix8.1.8.3
-    AC_CHECK_LIB([tix8.1.8.3], [Tix_Init],
-    [LIB_TIX=-ltix8.1.8.3],
+    # check tix8.1.8.4, as that is known to work best with tcl/tk 8.4
+    AC_CHECK_LIB([tix8.1.8.4], [Tix_Init],
+    [LIB_TIX=-ltix8.1.8.4],
     [
-  # check tix8183
-      AC_CHECK_LIB([tix8183], [Tix_Init],
-      [LIB_TIX=-ltix8183],
+    # check tix8.1.8.3
+      AC_CHECK_LIB([tix8.1.8.3], [Tix_Init],
+      [LIB_TIX=-ltix8.1.8.3],
       [
-  # check tix8.4
-        AC_CHECK_LIB([Tix8.4], [Tix_Init],
-        [LIB_TIX=-lTix8.4],
+    # check tix8183
+        AC_CHECK_LIB([tix8183], [Tix_Init],
+        [LIB_TIX=-ltix8183],
         [
-  # check tix
-          AC_CHECK_LIB([tix],[Tix_Init],
-            [LIB_TIX=-ltix],
-            [AC_MSG_ERROR([FATAL: libtix not found. \
+    # check tix8.4
+          AC_CHECK_LIB([Tix8.4], [Tix_Init],
+          [LIB_TIX=-lTix8.4],
+          [
+    # check tix
+            AC_CHECK_LIB([tix],[Tix_Init],
+              [LIB_TIX=-ltix],
+              [AC_MSG_ERROR([FATAL: libtix not found. \
 Check config.log. Set LDFLAGS or --with-tcl-dir.])
+              ])
             ])
           ])
         ])
@@ -2033,7 +2049,7 @@ AC_CHECK_LIB([verdict], [main], [VTK_VERDICT_LIB="-lverdict"], [])
 AC_SUBST(VTK_VERDICT_LIB)
 
 # ditto for libvtksqlite
-VTK_QSLITE_LIB=""
+VTK_SQLITE_LIB=""
 AC_CHECK_LIB([vtksqlite], [main], [VTK_SQLITE_LIB="-lvtksqlite"], [])
 AC_SUBST(VTK_SQLITE_LIB)
 
@@ -2137,9 +2153,11 @@ AC_SUBST(LIBS)
 # except when using Tcl8.4, which doesn't contain Itcl_Init or Itk_Init
 ########################################################################
 if test ! "x$tcltk_apps" = "xNO"; then
-  if ! test "$LIB_TCL" = "-ltcl8.4"; then
-    if ! test "$LIB_TCL" = "-ltcl83"; then
-      AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
+  if ! test "$LIB_TCL" = "-ltcl8.5"; then
+    if ! test "$LIB_TCL" = "-ltcl8.4"; then
+      if ! test "$LIB_TCL" = "-ltcl83"; then
+        AX_TIX_INITCHECK($TCL_CFLAGS, $LDFLAGS_TCL, $LIBS_TCL)
+      fi
     fi
   fi
 fi
