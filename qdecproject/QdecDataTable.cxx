@@ -9,10 +9,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/23 00:39:56 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/01/25 21:17:12 $
+ *    $Revision: 1.12 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -28,7 +28,6 @@
 
 #include <stdio.h>
 #include <math.h>
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -546,13 +545,18 @@ void QdecDataTable::Dump (FILE* fp )
 
   // for testing GetMeanAndStdDev()...
   vector< string > contFactorNames = this->GetContinuousFactorNames();
-  fprintf(fp,"Continuous Factors:                  Mean:  \tStdDev:\n");
+  fprintf
+    (fp,
+     "                Continuous Factors:         Mean:       StdDev:\n"
+     "                -------------------         -----       -------\n");
   for( unsigned int i=0; i < this->GetContinuousFactorNames().size(); i++)
   {
     vector< double > vals = 
       this->GetMeanAndStdDev( contFactorNames[i].c_str() );
-    fprintf(fp,"%35s  %5.3f  \t%5.3f\n",
-            contFactorNames[i].c_str(),vals[0],vals[1]);
+    char val1[1000]; char val2[1000];
+    sprintf(val1,"%5.3f",vals[0]);
+    sprintf(val2,"%5.3f",vals[1]);
+    fprintf(fp,"%35s %13s %13s\n", contFactorNames[i].c_str(),val1,val2);
   }
 
   fprintf(fp,
