@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/25 23:31:23 $
- *    $Revision: 1.131 $
+ *    $Date: 2008/01/26 13:50:38 $
+ *    $Revision: 1.132 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -13021,13 +13021,13 @@ gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri, double l_dtrans)
 
         MRIsampleVolumeGradientFrame(mri, gcamn->x, gcamn->y, gcamn->z, &dx, &dy, &dz, frame) ;
         MRIsampleVolumeFrameType(mri, gcamn->x, gcamn->y, gcamn->z, frame, SAMPLE_TRILINEAR,&dist) ;
+        error = (dist - gcamn->gc->means[0]) ;
         if (x == Gx && y == Gy && z == Gz)
           printf("l_dtrans: node(%d,%d,%d, %s) -> (%2.1f,%2.1f,%2.1f), dist=%2.2f, T=%2.2f, D=(%2.1f,%2.1f,%2.1f)\n",
                  x, y, z, cma_label_to_name(gcamn->label), gcamn->x, gcamn->y, gcamn->z, 
                  dist, gcamn->gc->means[0], -error*dx, -error*dy, -error*dz) ;
 
         check_gcam(gcam) ;
-        error = (dist - gcamn->gc->means[0]) ;
         gcamn->dx -= l_dtrans*error*dx ;
         gcamn->dy -= l_dtrans*error*dy ;
         gcamn->dz -= l_dtrans*error*dz ;
