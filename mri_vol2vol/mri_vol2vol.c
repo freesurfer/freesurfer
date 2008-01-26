@@ -8,9 +8,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/01/22 22:19:54 $
- *    $Revision: 1.40 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/26 01:35:19 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.40 2008/01/22 22:19:54 greve Exp $
+  $Id: mri_vol2vol.c,v 1.41 2008/01/26 01:35:19 fischl Exp $
 
 */
 
@@ -428,7 +428,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.40 2008/01/22 22:19:54 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.41 2008/01/26 01:35:19 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -512,12 +512,12 @@ int main(int argc, char **argv) {
   int n;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.40 2008/01/22 22:19:54 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.41 2008/01/26 01:35:19 fischl Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.40 2008/01/22 22:19:54 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.41 2008/01/26 01:35:19 fischl Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -723,7 +723,7 @@ int main(int argc, char **argv) {
     GCAMapplyTransform(gcam, Rtransform);  //voxel2voxel
 
     printf("Applying morph to input\n");
-    out = GCAMmorphToAtlas(in, gcam, NULL, -1);
+    out = GCAMmorphToAtlas(in, gcam, NULL, -1, interpcode);
 
     printf("Extracting region\n");
     region.x = 51;
