@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/05/01 21:53:42 $
-#    $Revision: 1.4 $
+#    $Date: 2008/01/26 00:03:49 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -47,10 +47,14 @@ if ( $?FS_TCL_HOME ) then
     setenv TCLLIBPATH $FS_TCL_HOME/lib
     if ( -e $TCLLIBPATH/tcl8.3 ) setenv TCL_LIBRARY $TCLLIBPATH/tcl8.3
     if ( -e $TCLLIBPATH/tcl8.4 ) setenv TCL_LIBRARY $TCLLIBPATH/tcl8.4
+    if ( -e $TCLLIBPATH/tcl8.5 ) setenv TCL_LIBRARY $TCLLIBPATH/tcl8.5
     if ( -e $TCLLIBPATH/tk8.3 ) setenv TK_LIBRARY $TCLLIBPATH/tk8.3
     if ( -e $TCLLIBPATH/tk8.4 ) setenv TK_LIBRARY $TCLLIBPATH/tk8.4
-    setenv TIX_LIBRARY $TCLLIBPATH/tix8.1
-    setenv BLT_LIBRARY $TCLLIBPATH/blt2.4
+    if ( -e $TCLLIBPATH/tk8.5 ) setenv TK_LIBRARY $TCLLIBPATH/tk8.5
+    if ( -e $TCLLIBPATH/tix8.1 )   setenv TIX_LIBRARY $TCLLIBPATH/tix8.1
+    if ( -e $TCLLIBPATH/Tix8.4.2 ) setenv TIX_LIBRARY $TCLLIBPATH/Tix8.4.2
+    if ( -e $TCLLIBPATH/blt2.4 ) setenv BLT_LIBRARY $TCLLIBPATH/blt2.4
+    if ( -e $TCLLIBPATH/blt3.0 ) setenv BLT_LIBRARY $TCLLIBPATH/blt3.0
     if(! $?LD_LIBRARY_PATH ) then
       setenv LD_LIBRARY_PATH $TCLLIBPATH
     else
