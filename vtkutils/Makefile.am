@@ -75,7 +75,7 @@ vtkKWRGBATransferFunctionEditorTester_LDADD=\
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) $(VTL_SQLITE_LIB) \
 	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
@@ -95,7 +95,7 @@ vtkArrowPipelineTester_LDADD=\
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) $(VTL_SQLITE_LIB) \
 	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
