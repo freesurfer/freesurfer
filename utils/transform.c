@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/12/07 20:21:14 $
- *    $Revision: 1.120 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/27 01:45:25 $
+ *    $Revision: 1.121 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2225,7 +2225,8 @@ TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
   case MORPH_3D_TYPE:
     // does take care of the dst c_ras position using atlas information
     mri_dst = GCAMmorphToAtlas(mri_src,
-                               (GCA_MORPH*)transform->xform, NULL, -1) ;
+                               (GCA_MORPH*)transform->xform, NULL, -1,
+                               SAMPLE_TRILINEAR) ;
     break ;
   default:
     // now assumes that this is the LTA type
