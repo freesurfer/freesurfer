@@ -1967,18 +1967,22 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
   #              [AC_MSG_ERROR("FATAL: libTix8.4 not found.")])
 
   ##################### BLT (we cannot build BLT in Aqua) must use X11
-  AC_CHECK_LIB([BLT],[Blt_Init],
-    [LIB_BLT=-lBLT],
-  # check BLT.2 (MacOSX)
+  AC_CHECK_LIB([BltExt30 -lBltCore30],[Blt_Init],
+    [LIB_BLT="-lBltExt30 -lBltCore30"],
     [
-      AC_CHECK_LIB([BLT.2],[Blt_Init],
-      [LIB_BLT=-lBLT.2],
+    AC_CHECK_LIB([BLT],[Blt_Init],
+      [LIB_BLT=-lBLT],
+    # check BLT.2 (MacOSX)
       [
-  # check BLT24 (Fedora)
-        AC_CHECK_LIB([BLT24],[Blt_Init],
-        [LIB_BLT=-lBLT24],
-            [AC_MSG_ERROR([FATAL: libBLT not found. \
+        AC_CHECK_LIB([BLT.2],[Blt_Init],
+        [LIB_BLT=-lBLT.2],
+        [
+    # check BLT24 (Fedora)
+          AC_CHECK_LIB([BLT24],[Blt_Init],
+          [LIB_BLT=-lBLT24],
+              [AC_MSG_ERROR([FATAL: libBLT not found. \
 Check config.log. Set LDFLAGS or --with-BLT-dir.])
+          ])
         ])
       ])
     ])
