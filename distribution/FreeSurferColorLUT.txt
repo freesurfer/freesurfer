@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.43 2008/01/24 19:42:55 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.44 2008/01/29 17:57:46 fischl Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -797,6 +797,8 @@
 5053   Right-SLF1_waypoint				120 20  134 0
 5054   Right-SLF1-Start					199 58  250 0
 5055   Right-SLF1-End					200 58  250 0
+6010 Left-SLF1  236 16  231 0
+6020 Right-SLF1  237 18  232 0
 
 5056   Left-SLF2_waypoint				236 14  176 0
 5057   Left-SLF2-Start					206 62  78  0
@@ -804,8 +806,8 @@
 5059   Right-SLF2_waypoint				236 15  176 0
 5060   Right-SLF2-Start					208 62  78  0
 5061   Right-SLF2-End					209 62  78  0
-6010 Left-SLF2  236 14  230 0
-6020 Right-SLF2  237 14  230 0
+6070 Left-SLF2  236 14  230 0
+6080 Right-SLF2  237 14  230 0
 
 5062   Left-SLF3_waypoint				12  49  255 0
 5063   Left-SLF3-Start					123 186 220 0
@@ -813,8 +815,8 @@
 5065   Right-SLF3_waypoint				12  50  255 0 
 5066   Right-SLF3-Start					125 186 220 0
 5067   Right-SLF3-End					126 186 220 0
-6030 Left-SLF3 	13  49  255 0
-6040 Right-SLF3 14  49  255 0
+6030 Left-SLF3 	 236 13  227 0
+6040 Right-SLF3 236 17  228 0
 
 5068   Left-CST_waypoint				255 166 0   0
 5069   Left-CST-Start					221 216 20  0
@@ -831,23 +833,23 @@
 6003 CST-flirt  0 0 255 0
 
 
-7001   Lateral-nucleus                         70  130 180 0
-7002   Basolateral-nucleus	                    245 245 245 0
-7003   Basal-nucleus                           205 62  78  0
-7004   Centromedial-nucleus                    120 18  134 0
-7005   Central-nucleus                         196 58  250 0
-7006   Medial-nucleus	                    0   148 0   0
-7007   Cortical-nucleus	                    220 248 164 0
-7008   Accessory-Basal-nucleus                 230 148 34  0
-7009   Corticoamygdaloid-transitio             0   118 14  0
-70010  Anterior-amygdaloid-area-AAA            0   118 14  0
-70011  Fusion-amygdala-HP-FAH                  122 186 220 0
-70012  Hippocampal-amygdala-transition-HATA    236 13  176 0
-70013  Endopiriform-nucleus                    12  48  255 0
-70014  Lateral-nucleus-olfactory-tract         204 182 142 0
-70015  Paralaminar-nucleus                     42  204 164 0
-70016  Intercalated-nucleus                    119 159 176 0
-70017  Prepiriform-cortex                      220 216 20  0
-70018  extra1                                  103 255 255 0
-70019  extra2                                  80  196 98  0
-70020  extra3                                  60  58  210 0
+7001   Lateral-nucleus                         72  132 181 0
+7002   Basolateral-nucleus	                    243 243 243 0
+7003   Basal-nucleus                           207 63  79  0
+7004   Centromedial-nucleus                    121 20  135 0
+7005   Central-nucleus                         197 60  248 0
+7006   Medial-nucleus	                    2   149 2   0
+7007   Cortical-nucleus	                    221 249 166 0
+7008   Accessory-Basal-nucleus                 232 146 35  0
+7009   Corticoamygdaloid-transitio             2   119 16  0
+70010  Anterior-amygdaloid-area-AAA            4   115 17  0
+70011  Fusion-amygdala-HP-FAH                  122 187 222 0
+70012  Hippocampal-amygdala-transition-HATA    237 12  177 0
+70013  Endopiriform-nucleus                    10  49  255 0
+70014  Lateral-nucleus-olfactory-tract         205 184 144 0
+70015  Paralaminar-nucleus                     45  205 165 0
+70016  Intercalated-nucleus                    117 160 175 0
+70017  Prepiriform-cortex                      221 217 21  0
+70018  extra1                                  104 254 253 0
+70019  extra2                                  79  195 99  0
+70020  extra3                                  61  57  211 0
