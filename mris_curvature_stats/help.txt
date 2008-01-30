@@ -93,18 +93,43 @@
 
     [-G] [--discrete] [--continuous] [--signedPrinciples]
 
-	  Calculate the principle curvatures ('-G'). The calculation method
-	  used can be specified explicitly as '--discrete' which is slower
-	  but more accurate, or as '--continuous' which will result in
-	  measures similar to 'mris_anatomical_stats'.
+          The '-G' flag triggers a series of derived curvature values that
+          are calculated from the current <FreeSurferSurface>. These curvatures
+          include the Gaussian, K, the mean, H, and the principle curvatures
+          K1 and K2. Additionally, several curvature maps based off these
+          values are also determined.
 
-	  Note that the default assumes '--discrete'. If you specify both
-	  '--continuous' and '--discrete', the system will revert to its
-	  default, i.e. '--discrete', behaviour.
+          Two calculation methods are available, a '--discrete' method and a
+          '--continuous' method. By default, '--discrete' is assumed. This
+          method is slower than the '--continuous' method, but more accurate.
+          The '--continuous' method is also used by 'mris_anatomical_stats',
+          however, it does suffer from occasionally large Gaussian outliers.
 
-	
-	  In the '--discrete' mode, 'mris_curvature_stats' solves for
+          Note that if both '--discrete' and '--continuous' are specified
+          together, the system will assume '--discrete'.
 
+          In the '--discrete' mode, 'mris_curvature_stats' solves first for
+          K and H, and then solves a quadratic function to determine K1 and K2.
+          By default, K1 is assigned the fabs(max) solution, and K2 is
+          assigned the fabs(min) solution. By specifying '--signedPrinciples',
+          K1 is assigned the (signed) max and K2 the (signed) min.
+
+          Thus, if the solution principle curves at a vertex are -10 and 0.5,
+          the default assignment would be:
+
+                K1 = -10 and K2 = 0.5
+
+           but with '--signedPrinciples', this becomes:
+
+                K1 = 0.5 and K2 = -10
+
+    [--vertexAreaWeigh] [--vertexAreaNormalize]
+
+	  If specified, will change the value of the curvature value
+	  at each point. The '--vertexAreaWeigh' will multiply each
+	  curvature value by the area of its vertex, and 
+	  '--vertexAreaNormalize' will divide each curvature value by
+	  the area of its vertex.
 
     [--shapeIndex]
 
