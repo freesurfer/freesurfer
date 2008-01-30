@@ -105,7 +105,7 @@ scuba_SOURCES=$(UTILITIES_SRCS) \
 	scuba.cpp
 scuba_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) $(X_LIBS) -lX11 -lXmu -lGL
-scuba_LDFLAGS=
+scuba_LDFLAGS=$(AM_LDFLAGS)
 
 foodir=$(prefix)/lib/tcl
 foo_SCRIPTS=scuba.tcl tkcon.tcl histolabel.tcl TclChartWindow.tcl
