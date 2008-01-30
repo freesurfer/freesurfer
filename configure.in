@@ -330,6 +330,7 @@ DEADCODE_STRIP=""
 # and on the Mac:
 DEADCODE_STRIP_MAC="-dead_strip"
 
+FCLIBS=""
 AC_MSG_NOTICE(Setting OS from target...)
 case "${target}" in
  i*86-*-linux-gnu*)
@@ -367,10 +368,12 @@ case "${target}" in
  OS=Darwin
  OS_CPPFLAGS=
  OS_LDFLAGS="$DEADCODE_STRIP_MAC"
+ LDFLAGS="-L/usr/X11R6/lib $LDFLAGS"
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
  CPPFLAGS="-gfull -O2 $NSALIASING $WALL $WERROR -Wno-long-double $LFS_CFLAGS"
+ FCLIBS="-L/usr/lib -lgcc"
  ;;
  i*86-*-solaris*)
  OS=SunOS
@@ -385,6 +388,7 @@ case "${target}" in
  OS=Windows_NT
  OS_CPPFLAGS=
  OS_LDFLAGS=
+ LDFLAGS="-L/usr/X11R6/lib $LDFLAGS"
  DYNAMIC_LIB_EXT=
  SHARED_CFLAGS=
  SHARED_LDFLAGS=
@@ -419,6 +423,8 @@ AC_SUBST(TEEM_ENDIAN)
 # export
 AC_SUBST(SHARED_CFLAGS)
 AC_SUBST(SHARED_LDFLAGS)
+
+AC_SUBST(FCLIBS)
 
 AC_MSG_NOTICE(OS is $OS)
 
@@ -680,10 +686,9 @@ if test -z "$x_includes"; then
   AC_MSG_NOTICE([x_includes set to /usr/X11R6/include \
 If not correct specify using --x-includes=])
 fi
-if test "x$OS" = "xWindows_NT"; then
-X_LIBS="-L/usr/X11R6/lib"
-fi
-X_LIBS="$X_LIBS -lX11 -lXmu"
+
+AC_CHECK_LIB([X11],[XOpenDisplay],[X_LIBS="$X_LIBS -lX11"],[])
+AC_CHECK_LIB([Xmu],[XmuClientWindow],[X_LIBS="$X_LIBS -lXmu"],[])
 AC_SUBST(X_LIBS)
 
 
@@ -1589,6 +1594,13 @@ else
     gl_libs=-L$ac_gl_libraries
   fi
 
+  # stupid Mac OS Leopard fix:
+  if test "$OS" = "Darwin"; then
+    gl_libs="$gl_libs -Wl,-dylib_file,\
+/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:\
+/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib"
+  fi
+
   AC_SUBST(gl_cflags)
   AC_SUBST(gl_libs)
 
@@ -1792,7 +1804,7 @@ $MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS $NIFTI_CFLAGS \
 $GL_CFLAGS $GLU_CFLAGS $GLUT_CFLAGS $VTK_CFLAGS $KWWIDGETS_CFLAGS \
 $EXPAT_CFLAGS"
 LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
-$GL_LIBS $GLU_LIBS $GLUT_LIBS $VTK_LIBS $ITK_LIBS $KWWIDGETS_LIBS \
+$gl_libs $GL_LIBS $GLU_LIBS $GLUT_LIBS $VTK_LIBS $ITK_LIBS $KWWIDGETS_LIBS \
 $PETSC_LIBS $NIFTI_LIBS $XAWPLUS_LIBS $EXPAT_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 #AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
@@ -1897,6 +1909,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
       ])
     ])
   AC_SUBST(LIB_TCL)
+
   #################### Tk needs X11 (or Aqua)
   LIBS="$X_LIBS $LIBS"
   CPPFLAGS="$GLUT_CFLAGS $GL_CFLAGS $CPPFLAGS"
@@ -1928,8 +1941,9 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
       ])
     ])
   AC_SUBST(LIB_TK)
+
   ##################### Tix
-  LIBS="$LIB_TK $LIB_TCL $LIBS"
+  LIBS="$X_LIBS $LIB_TK $LIB_TCL $LIBS"
   # check Tix8.4.2 first, as that is known to work best with tcl/tk 8.5
   AC_CHECK_LIB([Tix8.4.2], [Tix_Init],
   [LIB_TIX=-lTix8.4.2],
@@ -1962,9 +1976,6 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
       ])
     ])
   AC_SUBST(LIB_TIX)
-  # if test "X$with_apple_tcl_framework" = "Xyes"; then
-  #   AC_CHECK_LIB([Tix8.4],[Tix_Init],[],
-  #              [AC_MSG_ERROR("FATAL: libTix8.4 not found.")])
 
   ##################### BLT (we cannot build BLT in Aqua) must use X11
   AC_CHECK_LIB([BltExt30 -lBltCore30],[Blt_Init],
