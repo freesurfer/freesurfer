@@ -687,9 +687,22 @@ if test -z "$x_includes"; then
 If not correct specify using --x-includes=])
 fi
 
+if test "x$x_libraries" = "x"; then
+  # AC_PATH_X doesnt seem to find lib64, so do our own checks
+  if test -d "/usr/lib64" ; then
+    x_libraries=/usr/lib64
+  fi
+  # override with X11R6 if that exists
+  if test -d "/usr/X11R6/lib64" ; then
+    x_libraries=/usr/X11R6/lib64
+  fi
+fi
+
 if test ! "x$x_libraries" = "x"; then
-  AC_CHECK_LIB([X11 -L$x_libraries],[XOpenDisplay],[X_LIBS="$X_LIBS -L$x_libraries -lX11"],[])
-  AC_CHECK_LIB([Xmu -L$x_libraries],[XmuClientWindow],[X_LIBS="$X_LIBS -L$x_libraries -lXmu"],[])
+  AC_CHECK_LIB([X11 -L$x_libraries],[XOpenDisplay],
+                    [X_LIBS="$X_LIBS -L$x_libraries -lX11"],[])
+  AC_CHECK_LIB([Xmu -L$x_libraries],[XmuClientWindow],
+                    [X_LIBS="$X_LIBS -L$x_libraries -lXmu"],[])
 fi
 AC_SUBST(X_LIBS)
 
