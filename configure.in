@@ -675,14 +675,23 @@ fi
 # get the path for X includes and X libraries
 ##############################################################
 AC_PATH_X
-if test -z "$x_includes"; then
+
+if test "x$x_includes" = "xNONE"; then
+  # Mac sets it to NONE, but this is really ""
+  x_includes=
+fi
+if test "x$x_includes" = "x"; then
   x_includes=/usr/X11R6/include
 fi
 AC_MSG_NOTICE([x_includes set to $x_includes  \
 If not correct specify using --x-includes=])
 
 # the path to the X libs is not always defined, so find it...
-if test -z "$x_libraries"; then
+if test "x$x_libraries" = "xNONE"; then
+  # Mac sets empty to NONE, we want ""
+  x_libraries=
+fi
+if test "x$x_libraries" = "x"; then
   # most common location
   if test -d "/usr/X11R6/lib" ; then
     x_libraries=/usr/X11R6/lib
@@ -1609,7 +1618,7 @@ else
 
   # stupid Mac OS Leopard fix:
   if test "$OS" = "Darwin"; then
-    gl_libs="$gl_libs -Wl,-dylib_file,\
+    gl_libs="$gl_libs $X_LIBS -Wl,-dylib_file,\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib"
   fi
