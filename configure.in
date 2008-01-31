@@ -348,7 +348,7 @@ case "${target}" in
  OS=Linux
  OS_CPPFLAGS="$DEADCODE_STRIP"
  OS_LDFLAGS="$DEADCODE_STRIP"
- LDFLAGS="-L/usr/X11R6/lib64 -L/usr/lib64 $LDFLAGS"
+ LDFLAGS="-L/usr/lib64 $LDFLAGS"
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
@@ -597,7 +597,7 @@ fi
 # optimizations for single file compilation, and generate  SSE3, SSE2, and 
 # SSE instructions, and enable auto-parallelization. 
 if test "x$CC" = "xicc"; then
-  AC_MSG_NOTICE(Setting Intel compiler optimizations...)
+  AC_MSG_NOTICE(Setting Intel Compiler optimizations...)
   CPUFLAGS="-ip -axP -parallel -O3 $CPUFLAGS"
 fi
 
@@ -677,21 +677,43 @@ fi
 # get the path for X includes and X libraries
 ##############################################################
 AC_PATH_X
-##### Apple is really tricky
-##### compiles <X11/Intrinsic.h> without the need for X_CFLAGS
-##### However, GL/gl.h in /usr/X11R6/include/GL/gl.h is not
-##### automaticaly found
-if test -z "$x_includes"; then
-  x_includes=/usr/X11R6/include
-  AC_MSG_NOTICE([x_includes set to /usr/X11R6/include \
-If not correct specify using --x-includes=])
-fi
-if test "x$OS" = "xWindows_NT"; then
-X_LIBS="-L/usr/X11R6/lib"
-fi
-X_LIBS="$X_LIBS -lX11 -lXmu"
-AC_SUBST(X_LIBS)
 
+if test "x$x_includes" = "xNONE"; then
+  # Mac sets it to NONE, but this is really ""
+  x_includes=
+fi
+if test "x$x_includes" = "x"; then
+  x_includes=/usr/X11R6/include
+fi
+AC_MSG_NOTICE([x_includes set to $x_includes  \
+If not correct specify using --x-includes=])
+
+# the path to the X libs is not always defined, so find it...
+if test "x$x_libraries" = "xNONE"; then
+  # Mac sets empty to NONE, we want ""
+  x_libraries=
+fi
+if test "x$x_libraries" = "x"; then
+  # most common location
+  if test -d "/usr/X11R6/lib" ; then
+    x_libraries=/usr/X11R6/lib
+  fi
+  # replace with lib64 if that exists
+  if test -d "/usr/X11R6/lib64" ; then
+    x_libraries=/usr/X11R6/lib64
+  fi
+fi
+AC_MSG_NOTICE([x_libraries set to $x_libraries  \
+If not correct specify using --x-libraries=])
+
+# find two necessary X libs
+if test ! "x$x_libraries" = "x"; then
+  AC_CHECK_LIB([X11 -L$x_libraries],[XOpenDisplay],
+                    [X_LIBS="$X_LIBS -L$x_libraries -lX11"],[])
+  AC_CHECK_LIB([Xmu -L$x_libraries],[XmuClientWindow],
+                    [X_LIBS="$X_LIBS -L$x_libraries -lXmu"],[])
+fi
+AC_SUBST(X_LIBS)
 
 ##############################################################
 # allow user to specify root of multi-package directory,
@@ -1032,7 +1054,7 @@ fi
 # well check
 if test "x$TIXWISH" = "x"; then
 if test ! "x$tcltk_apps" = "xNO"; then
-  AC_MSG_ERROR([FATAL: tixwish not found. Use --with-tixwish=... to specify])
+  AC_MSG_RESULT([INFO: tixwish not found. Use --with-tixwish=... to specify])
 fi
 fi
 
@@ -1543,6 +1565,7 @@ AC_SUBST(EXPAT_LIBS)
 #####################################################
 AC_MSG_NOTICE(Getting OpenGL info...)
 
+mac_gl_libs=
 if test "X$with_apple_opengl_framework" = "Xyes"; then
   AC_MSG_RESULT([Using the Apple OpenGL and GLUT Frameworks])
   AC_DEFINE([HAVE_APPLE_OPENGL_FRAMEWORK], [1],
@@ -1595,11 +1618,12 @@ else
     gl_libs=-L$ac_gl_libraries
   fi
 
-  # stupid Mac OS Leopard fix
+  # stupid Mac OS Leopard fix:
   if test "$OS" = "Darwin"; then
-    gl_libs="$gl_libs -Wl,-dylib_file,\
+    gl_libs="$gl_libs $X_LIBS -Wl,-dylib_file,\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib"
+    mac_gl_libs=$gl_libs
   fi
 
   AC_SUBST(gl_cflags)
@@ -1666,7 +1690,7 @@ else
   AC_MSG_RESULT([GL found:
 Setting GL_CFLAGS='$GL_CFLAGS'
 and GL_LIBS='$GL_LIBS'])
-  LIBS_OPENGL="$LIBS_OPENGL $GL_LIBS"
+  LIBS_OPENGL="$LIBS_OPENGL $GL_LIBS $mac_gl_libs"
 fi
 CFLAGS=$ac_save_cflags
 LDFLAGS=$ac_save_ldflags
@@ -1744,6 +1768,8 @@ and GLUT_LIBS='$GLUT_LIBS'])
 fi
 CFLAGS=$ac_save_cflags
 LDFLAGS=$ac_save_ldflags
+
+AC_SUBST(LIBS_OPENGL)
 
 AM_CONDITIONAL(HAVE_GLUT_LIBS, ! test "X$no_glut" = "Xyes")
 
