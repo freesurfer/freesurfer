@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.110 2008/01/11 16:17:50 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.111 2008/01/31 03:39:49 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -152,19 +152,19 @@ set TIME_STAMP=`date +%Y%m%d`
 if(! -d $SCRIPT_DIR) then 
   echo "$SCRIPT_DIR doesn't exist" >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - sanity"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 if(! -d $DEV_DIR) then 
   echo "$DEV_DIR doesn't exist" >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - sanity"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 if(! -d $DEST_DIR) then 
   echo "$DEST_DIR doesn't exist" >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - sanity"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 if ("${BUILD_PLATFORM}" != "${PLATFORM}") then
@@ -172,7 +172,7 @@ if ("${BUILD_PLATFORM}" != "${PLATFORM}") then
   echo "${LOCAL_FS}/PLATFORM=${PLATFORM}" >>& $OUTPUTF
   echo "${BUILD_DIR}/PLATFORM=${BUILD_PLATFORM}" >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - sanity"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -268,7 +268,7 @@ grep -e "Permission denied" $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update permission denied"
   echo "$msg" >>& $OUTPUTF
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -277,7 +277,7 @@ grep -e "cvs update: move away" $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file in the way"
   echo "$msg" >>& $OUTPUTF
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -286,7 +286,7 @@ grep -e ^\[M\]\   $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file modified!"
   echo "$msg" >>& $OUTPUTF
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -295,7 +295,7 @@ grep -e ^\[C\]\   $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file conflict!"
   echo "$msg" >>& $OUTPUTF
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -304,7 +304,7 @@ grep -e ^\[R\]\   $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file removed!"
   echo "$msg" >>& $OUTPUTF
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -313,7 +313,7 @@ grep -e ^\[A\]\   $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file added!"
   echo "$msg" >>& $OUTPUTF
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -365,7 +365,7 @@ automake --version >>& $OUTPUTF
 automake >>& $OUTPUTF
 if ($status != 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED after automake"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
@@ -421,7 +421,7 @@ if ($status != 0) then
   echo "" >>& $OUTPUTF
   cat ${DEV_DIR}/config.log >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED after configure"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
@@ -458,7 +458,7 @@ if ($status != 0) then
   # note: /usr/local/freesurfer/dev/bin/ dirs have not 
   # been modified (bin/ gets written after make install)
   set msg="$HOSTNAME $RELEASE_TYPE build (make) FAILED"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
@@ -487,7 +487,7 @@ if ("$RELEASE_TYPE" != "stable-pub") then
     # note: /usr/local/freesurfer/dev/bin/ dirs have not 
     # been modified (bin/ gets written after make install)
     set msg="$HOSTNAME $RELEASE_TYPE build (make check) FAILED unit tests"
-    mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+    tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
     rm -f ${FAILED_FILE}
     touch ${FAILED_FILE}
     # set group write bit on files changed by make tools:
@@ -522,7 +522,7 @@ echo "$make_cmd" >>& $OUTPUTF
 $make_cmd >>& $OUTPUTF
 if ($status != 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build ($make_cmd) FAILED"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
