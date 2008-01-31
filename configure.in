@@ -346,7 +346,7 @@ case "${target}" in
  OS=Linux
  OS_CPPFLAGS="$DEADCODE_STRIP"
  OS_LDFLAGS="$DEADCODE_STRIP"
- LDFLAGS="-L/usr/X11R6/lib64 -L/usr/lib64 $LDFLAGS"
+ LDFLAGS="-L/usr/lib64 $LDFLAGS"
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
@@ -368,7 +368,6 @@ case "${target}" in
  OS=Darwin
  OS_CPPFLAGS=
  OS_LDFLAGS="$DEADCODE_STRIP_MAC"
- LDFLAGS="-L/usr/X11R6/lib $LDFLAGS"
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
@@ -388,7 +387,6 @@ case "${target}" in
  OS=Windows_NT
  OS_CPPFLAGS=
  OS_LDFLAGS=
- LDFLAGS="-L/usr/X11R6/lib $LDFLAGS"
  DYNAMIC_LIB_EXT=
  SHARED_CFLAGS=
  SHARED_LDFLAGS=
@@ -677,27 +675,27 @@ fi
 # get the path for X includes and X libraries
 ##############################################################
 AC_PATH_X
-##### Apple is really tricky
-##### compiles <X11/Intrinsic.h> without the need for X_CFLAGS
-##### However, GL/gl.h in /usr/X11R6/include/GL/gl.h is not
-##### automaticaly found
 if test -z "$x_includes"; then
   x_includes=/usr/X11R6/include
-  AC_MSG_NOTICE([x_includes set to /usr/X11R6/include \
-If not correct specify using --x-includes=])
 fi
+AC_MSG_NOTICE([x_includes set to $x_includes  \
+If not correct specify using --x-includes=])
 
-if test "x$x_libraries" = "x"; then
-  # AC_PATH_X doesnt seem to find lib64, so do our own checks
-  if test -d "/usr/lib64" ; then
-    x_libraries=/usr/lib64
+# the path to the X libs is not always defined, so find it...
+if test -z "$x_libraries"; then
+  # most common location
+  if test -d "/usr/X11R6/lib" ; then
+    x_libraries=/usr/X11R6/lib
   fi
-  # override with X11R6 if that exists
+  # replace with lib64 if that exists
   if test -d "/usr/X11R6/lib64" ; then
     x_libraries=/usr/X11R6/lib64
   fi
 fi
+AC_MSG_NOTICE([x_libraries set to $x_libraries  \
+If not correct specify using --x-libraries=])
 
+# find two necessary X libs
 if test ! "x$x_libraries" = "x"; then
   AC_CHECK_LIB([X11 -L$x_libraries],[XOpenDisplay],
                     [X_LIBS="$X_LIBS -L$x_libraries -lX11"],[])
@@ -1992,7 +1990,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
     ])
   AC_SUBST(LIB_TIX)
 
-  ##################### BLT (we cannot build BLT in Aqua) must use X11
+  ######## BLT (we cannot build BLT in Aqua) must use X11
   AC_CHECK_LIB([BltExt30 -lBltCore30],[Blt_Init],
     [LIB_BLT="-lBltExt30 -lBltCore30"],
     [
