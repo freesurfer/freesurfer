@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/19 22:26:24 $
- *    $Revision: 1.407 $
+ *    $Date: 2008/01/31 01:19:47 $
+ *    $Revision: 1.408 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.407 $";
+const char *MRI_C_VERSION = "$Revision: 1.408 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -15292,5 +15292,16 @@ MRIfillBox(MRI *mri, MRI_REGION *box, float fillval)
       for (z = zmin ; z <= zmax ; z++)
         MRIsetVoxVal(mri, x, y, z, 0, fillval) ;
   return(NO_ERROR) ;
+}
+
+MRI *
+MRIcloneDifferentType(MRI *mri_src, int type)
+{
+  MRI *mri_dst ;
+
+  mri_dst = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth, 
+                             mri_src->type, mri_src->nframes) ;
+  MRIcopyHeader(mri_src, mri_dst) ;
+  return(mri_dst) ;
 }
 

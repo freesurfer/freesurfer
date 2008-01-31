@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/01/02 03:45:52 $
- *    $Revision: 1.65 $
+ *    $Author: fischl $
+ *    $Date: 2008/01/31 01:19:47 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -970,21 +970,48 @@ MRIsobel(MRI *mri_src, MRI *mri_grad, MRI *mri_mag)
 
   if (mri_mag)
   {
-    for (z = 0 ; z < depth ; z++)
+    if (mri_mag->type == MRI_FLOAT && mri_grad->type == MRI_FLOAT)
     {
-      for (y = 0 ; y < height ; y++)
+      for (z = 0 ; z < depth ; z++)
       {
-        px = &MRIFvox(mri_grad, 0, y, z) ;
-        py = &MRIFseq_vox(mri_grad, 0, y, z, 1) ;
-        pz = &MRIFseq_vox(mri_grad, 0, y, z, 2) ;
-        pmag = &MRIFvox(mri_mag, 0, y, z) ;
-
-        for (x = 0 ; x < width ; x++)
+        for (y = 0 ; y < height ; y++)
         {
-          xval = *px++ ;
-          yval = *py++ ;
-          zval = *pz++ ;
-          *pmag++ = sqrt(xval*xval + yval*yval + zval*zval) ;
+          px = &MRIFvox(mri_grad, 0, y, z) ;
+          py = &MRIFseq_vox(mri_grad, 0, y, z, 1) ;
+          pz = &MRIFseq_vox(mri_grad, 0, y, z, 2) ;
+          pmag = &MRIFvox(mri_mag, 0, y, z) ;
+          
+          for (x = 0 ; x < width ; x++)
+          {
+            xval = *px++ ;
+            yval = *py++ ;
+            zval = *pz++ ;
+            *pmag++ = sqrt(xval*xval + yval*yval + zval*zval) ;
+          }
+        }
+      }
+    }
+    else
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        float mag ;
+
+        for (y = 0 ; y < height ; y++)
+        {
+          px = &MRIFvox(mri_grad, 0, y, z) ;
+          py = &MRIFseq_vox(mri_grad, 0, y, z, 1) ;
+          pz = &MRIFseq_vox(mri_grad, 0, y, z, 2) ;
+          pmag = &MRIFvox(mri_mag, 0, y, z) ;
+          
+          for (x = 0 ; x < width ; x++)
+          {
+            xval = MRIgetVoxVal(mri_grad, x, y, z, 0) ;
+            yval = MRIgetVoxVal(mri_grad, x, y, z, 1) ;
+            zval = MRIgetVoxVal(mri_grad, x, y, z, 2) ;
+            mag = sqrt(xval*xval + yval*yval + zval*zval) ;
+            MRIsetVoxVal(mri_mag, x, y, z, 0, mag) ;
+          }
         }
       }
     }
