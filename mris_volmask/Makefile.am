@@ -5,8 +5,7 @@
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include $(VTK_CXXFLAGS) -Wno-deprecated
 
-bin_PROGRAMS = 
-#HACK broken, so dont build: mris_volmask
+bin_PROGRAMS = mris_volmask
 
 mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
 mris_volmask_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
@@ -23,7 +22,7 @@ $(VTK_Z_LIB) $(VTK_EXPAT_LIB) $(VTK_METAIO_LIB) \
 -lvtksys \
 $(VTK_MPEG2ENCODE_LIB) -lvtkexoIIc -lvtkNetCDF
 
-#TESTS=test_mris_volmask
+TESTS=test_mris_volmask
 
 # put a wrapper around the bin, used to setup VTK enviro vars
 install-exec-hook:
