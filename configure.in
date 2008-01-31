@@ -687,8 +687,10 @@ if test -z "$x_includes"; then
 If not correct specify using --x-includes=])
 fi
 
-AC_CHECK_LIB([X11 -L$x_libraries],[XOpenDisplay],[X_LIBS="$X_LIBS -L$x_libraries -lX11"],[])
-AC_CHECK_LIB([Xmu -L$x_libraries],[XmuClientWindow],[X_LIBS="$X_LIBS -L$x_libraries -lXmu"],[])
+if test ! "x$x_libraries" = "x"; then
+  AC_CHECK_LIB([X11 -L$x_libraries],[XOpenDisplay],[X_LIBS="$X_LIBS -L$x_libraries -lX11"],[])
+  AC_CHECK_LIB([Xmu -L$x_libraries],[XmuClientWindow],[X_LIBS="$X_LIBS -L$x_libraries -lXmu"],[])
+fi
 AC_SUBST(X_LIBS)
 
 
