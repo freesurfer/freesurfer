@@ -1564,6 +1564,7 @@ AC_SUBST(EXPAT_LIBS)
 #####################################################
 AC_MSG_NOTICE(Getting OpenGL info...)
 
+mac_gl_libs=
 if test "X$with_apple_opengl_framework" = "Xyes"; then
   AC_MSG_RESULT([Using the Apple OpenGL and GLUT Frameworks])
   AC_DEFINE([HAVE_APPLE_OPENGL_FRAMEWORK], [1],
@@ -1586,7 +1587,7 @@ if test "X$with_apple_opengl_framework" = "Xyes"; then
   AC_SUBST([glut_cflags])
   AC_SUBST([glut_libs])
   AC_SUBST(with_apple_opengl_framework)
-else 
+else
   #####
   # GL
   #####
@@ -1621,6 +1622,7 @@ else
     gl_libs="$gl_libs $X_LIBS -Wl,-dylib_file,\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib"
+    mac_gl_libs=$gl_libs
   fi
 
   AC_SUBST(gl_cflags)
@@ -1687,7 +1689,7 @@ else
   AC_MSG_RESULT([GL found:
 Setting GL_CFLAGS='$GL_CFLAGS'
 and GL_LIBS='$GL_LIBS'])
-  LIBS_OPENGL="$LIBS_OPENGL $GL_LIBS"
+  LIBS_OPENGL="$LIBS_OPENGL $GL_LIBS $mac_gl_libs"
 fi
 CFLAGS=$ac_save_cflags
 LDFLAGS=$ac_save_ldflags
@@ -1765,6 +1767,8 @@ and GLUT_LIBS='$GLUT_LIBS'])
 fi
 CFLAGS=$ac_save_cflags
 LDFLAGS=$ac_save_ldflags
+
+AC_SUBST(LIBS_OPENGL)
 
 AM_CONDITIONAL(HAVE_GLUT_LIBS, ! test "X$no_glut" = "Xyes")
 
