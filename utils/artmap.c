@@ -1,18 +1,18 @@
 /**
  * @file  artmap.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Adaptive Resonance Theory map
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * some kind of vestige of the CNS department
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:30 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/01/31 22:28:28 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -24,26 +24,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*----------------------------------------------------------------------
-
-      File Name:   artmap.c
-
-      Description:
-
-  $Header: /space/repo/1/dev/dev/utils/artmap.c,v 1.3 2006/12/29 01:49:30 nicks Exp $
-  $Log: artmap.c,v $
-  Revision 1.3  2006/12/29 01:49:30  nicks
-  added license header; ran astyle to set to kr and ansi code styling
-
-  Revision 1.2  2000/04/04 14:28:18  fischl
-  removed compiler warning.
-
-  Revision 1.1  1997/03/18 18:26:35  fischl
-  Initial revision
-
-----------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------------
               INCLUDE FILES
@@ -154,6 +134,8 @@ ArtmapAlloc(int ninputs, int noutputs, double rho_bar, int max_f2)
 
   return(artmap) ;
 }
+
+
 /*----------------------------------------------------------------------
     Parameters:
 
@@ -202,6 +184,8 @@ ArtmapRead(char *fname)
   fclose(fp) ;
   return(artmap) ;
 }
+
+
 /*----------------------------------------------------------------------
     Parameters:
 
@@ -245,6 +229,8 @@ ArtmapWrite(ARTMAP *artmap, char *fname)
   fclose(fp) ;
   return(0) ;
 }
+
+
 /*----------------------------------------------------------------------
     Parameters:
 
@@ -266,6 +252,8 @@ ArtmapFree(ARTMAP **artmap)
   *artmap = NULL ;
   return(0) ;
 }
+
+
 /*----------------------------------------------------------------------
     Parameters:
 
@@ -291,6 +279,8 @@ ArtmapProcess(ARTMAP *artmap, double *I)
   }
   return(mapFeedForward(artmap, class)) ;
 }
+
+
 /*----------------------------------------------------------------------
     Parameters:
 
@@ -329,6 +319,8 @@ artProcess(ARTMAP *artmap, double *I)
   if (Gdiag & DIAG_WRITE) printf("artProcess() --> %d\n", class) ;
   return(class) ;
 }
+
+
 /*----------------------------------------------------------------------
     Parameters:
 
@@ -381,6 +373,8 @@ ArtmapLearn(ARTMAP *artmap, double *I, int class)
   artmap->rho = artmap->rho_bar ;  /* relax to baseline vigilance */
   return(artClass) ;
 }
+
+
 /*----------------------------------------------------------------------
     Parameters:
 
@@ -410,6 +404,8 @@ artInitWeights(ARTMAP *artmap)
     }
   }
 }
+
+
 /*----------------------------------------------------------------------
     Parameters:
 
@@ -455,6 +451,8 @@ artFeedBack(ARTMAP *artmap, int class)
   else
     return(1) ;        /* resonance */
 }
+
+
 /*----------------------------------------------------------------------
     Parameters:
 
@@ -488,6 +486,8 @@ artFeedForward(ARTMAP *artmap)
     printf("artFeedForward() --> %d (%2.3f)\n", max_j, max_out) ;
   return(max_j) ;
 }
+
+
 /*----------------------------------------------------------------------
     Parameters:
 
@@ -523,6 +523,8 @@ artChoice(ARTMAP *artmap, int j)
   }
   return(Tj) ;
 }
+
+
 /*
    take the intersection of vectors a and b, and return it
    in vector c.  All vectors have length 'len'.
@@ -535,6 +537,7 @@ intersect(double huge *a, double huge *b, double huge *c, int len)
   for (i = 0 ; i < len ; i++, a++, b++, c++)
     *c = MIN(*a, *b) ;
 }
+
 
 /*
    take the norm (city block) of vector a of length 'len'.
@@ -550,6 +553,7 @@ norm(double huge *a, int len)
 
   return(norm_val) ;
 }
+
 
 /*
    f1->f2 learning:
@@ -575,6 +579,8 @@ artFastLearn(ARTMAP *artmap, int j)
     *Mzj(artmap, i, j) = artmap->scratch[i] ;
   }
 }
+
+
 /*----------------------------------------------------------------------
     Parameters:
 
@@ -607,6 +613,8 @@ mapFeedForward(ARTMAP *artmap, int class)
     printf("mapFeedForward(%d) --> %d\n", class, apredict) ;
   return(apredict) ;
 }
+
+
 /*----------------------------------------------------------------------
     Parameters:
 
