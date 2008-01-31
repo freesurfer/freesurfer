@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/19 22:26:40 $
- *    $Revision: 1.359 $
+ *    $Date: 2008/01/31 01:20:02 $
+ *    $Revision: 1.360 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -413,8 +413,9 @@ MRI   *MRIoffsetMagnitude(MRI *mri_src, MRI *mri_dst, int maxsteps) ;
 MRI   *MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset) ;
 
 
-MRI   *MRIclone(MRI *mri_src, MRI *mri_dst) ;  /* it just copies the
-                                                  header info */
+ /* it just copies the header info, not image data */
+MRI   *MRIclone(MRI *mri_src, MRI *mri_dst) ;  
+MRI   *MRIcloneDifferentType(MRI *mri_src, int type) ;
 MRI   *MRIcloneRoi(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcloneBySpace(MRI *mri_src, int type, int nframes);
 MRI   *MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold) ;
