@@ -1769,6 +1769,8 @@ fi
 CFLAGS=$ac_save_cflags
 LDFLAGS=$ac_save_ldflags
 
+GLUT_LIBS="$mac_gl_libs $GLUT_LIBS"
+AC_SUBST(GLUT_LIBS)
 AC_SUBST(LIBS_OPENGL)
 
 AM_CONDITIONAL(HAVE_GLUT_LIBS, ! test "X$no_glut" = "Xyes")
