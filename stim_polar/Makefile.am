@@ -10,7 +10,7 @@ if HAVE_GLUT_LIBS
 bin_PROGRAMS = stim_polar
 stim_polar_SOURCES=stim_polar.c $(top_srcdir)/utils/machine.c
 stim_polar_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
-	$(GLUT_LIBS)
+	$(LIBS_OPENGL) $(GLUT_LIBS)
 stim_polar_LDFLAGS=
 else
 bin_PROGRAMS=
