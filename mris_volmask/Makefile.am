@@ -9,7 +9,7 @@ bin_PROGRAMS = mris_volmask
 
 mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
 mris_volmask_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
-$(X_LIBS) $(GL_LIBS) \
+$(LIBS_OPENGL) $(X_LIBS) $(GL_LIBS) \
 -ldl -lpthread \
 $(VTK_LIBS) \
 $(VTK_FREETYPE_LIB) $(VTK_PNG_LIB) \

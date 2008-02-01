@@ -19,10 +19,10 @@ bin_PROGRAMS = nmovie
 nmovie_SOURCES=nmovie.c
 if ENABLE_XAWPLUS_APPS
 nmovie_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
-	$(GLUT_LIBS) $(XAWPLUS_LIBS) -lXawPlus -lXpm -lXt -lXext
+	$(LIBS_OPENGL) $(GLUT_LIBS) $(XAWPLUS_LIBS) -lXawPlus -lXpm -lXt -lXext
 else
 nmovie_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
-	$(GLUT_LIBS) -lXt -lXext -lXaw
+	$(LIBS_OPENGL) $(GLUT_LIBS) -lXt -lXext -lXaw
 endif
 nmovie_LDFLAGS=$(X_LIBS)
 else
