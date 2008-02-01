@@ -11,8 +11,7 @@ if HAVE_GLUT_LIBS
 bin_PROGRAMS = test_window_env
 test_window_env_SOURCES=test_window_env.c
 test_window_env_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
-	$(GLUT_LIBS) \
-	$(X_LIBS) -lGL  
+	$(LIBS_OPENGL) $(GLUT_LIBS) $(X_LIBS) -lGL  
 test_window_env_LDFLAGS=
 else
 bin_PROGRAMS=
