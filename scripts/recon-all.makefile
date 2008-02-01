@@ -393,6 +393,19 @@ AREA_FWHM20_RH=$(RH).area.fwhm20.$(TARGET).mgh
 AREA_FWHM25_LH=$(LH).area.fwhm25.$(TARGET).mgh
 AREA_FWHM25_RH=$(RH).area.fwhm25.$(TARGET).mgh
 
+VOLUME_FWHM0_LH=$(LH).volume.fwhm0.$(TARGET).mgh
+VOLUME_FWHM0_RH=$(RH).volume.fwhm0.$(TARGET).mgh
+VOLUME_FWHM5_LH=$(LH).volume.fwhm5.$(TARGET).mgh
+VOLUME_FWHM5_RH=$(RH).volume.fwhm5.$(TARGET).mgh
+VOLUME_FWHM10_LH=$(LH).volume.fwhm10.$(TARGET).mgh
+VOLUME_FWHM10_RH=$(RH).volume.fwhm10.$(TARGET).mgh
+VOLUME_FWHM15_LH=$(LH).volume.fwhm15.$(TARGET).mgh
+VOLUME_FWHM15_RH=$(RH).volume.fwhm15.$(TARGET).mgh
+VOLUME_FWHM20_LH=$(LH).volume.fwhm20.$(TARGET).mgh
+VOLUME_FWHM20_RH=$(RH).volume.fwhm20.$(TARGET).mgh
+VOLUME_FWHM25_LH=$(LH).volume.fwhm25.$(TARGET).mgh
+VOLUME_FWHM25_RH=$(RH).volume.fwhm25.$(TARGET).mgh
+
 JACOBIAN_WHITE_FWHM0_LH=$(LH).jacobian_white.fwhm0.$(TARGET).mgh
 JACOBIAN_WHITE_FWHM0_RH=$(RH).jacobian_white.fwhm0.$(TARGET).mgh
 JACOBIAN_WHITE_FWHM5_LH=$(LH).jacobian_white.fwhm5.$(TARGET).mgh
@@ -431,6 +444,12 @@ QCACHE= \
 	$(AREA_FWHM15_LH) $(AREA_FWHM15_RH) \
 	$(AREA_FWHM20_LH) $(AREA_FWHM20_RH) \
 	$(AREA_FWHM25_LH) $(AREA_FWHM25_RH) \
+	$(VOLUME_FWHM0_LH) $(VOLUME_FWHM0_RH) \
+	$(VOLUME_FWHM5_LH) $(VOLUME_FWHM5_RH) \
+	$(VOLUME_FWHM10_LH) $(VOLUME_FWHM10_RH) \
+	$(VOLUME_FWHM15_LH) $(VOLUME_FWHM15_RH) \
+	$(VOLUME_FWHM20_LH) $(VOLUME_FWHM20_RH) \
+	$(VOLUME_FWHM25_LH) $(VOLUME_FWHM25_RH) \
 	$(JACOBIAN_WHITE_FWHM0_LH) $(JACOBIAN_WHITE_FWHM0_RH) \
 	$(JACOBIAN_WHITE_FWHM5_LH) $(JACOBIAN_WHITE_FWHM5_RH) \
 	$(JACOBIAN_WHITE_FWHM10_LH) $(JACOBIAN_WHITE_FWHM10_RH) \
@@ -588,6 +607,43 @@ $(AREA_FWHM25_LH): $(AREA_LH)
 
 $(AREA_FWHM25_RH): $(AREA_RH)
 	recon-all -s $(subj) -hemi rh -qcache -measure area -fwhm 25 $(T)
+
+
+$(VOLUME_FWHM0_LH): $(VOLUME_LH)
+	recon-all -s $(subj) -hemi lh -qcache -measure volume -fwhm 0 $(T)
+
+$(VOLUME_FWHM0_RH): $(VOLUME_RH)
+	recon-all -s $(subj) -hemi rh -qcache -measure volume -fwhm 0 $(T)
+
+$(VOLUME_FWHM5_LH): $(VOLUME_LH)
+	recon-all -s $(subj) -hemi lh -qcache -measure volume -fwhm 5 $(T)
+
+$(VOLUME_FWHM5_RH): $(VOLUME_RH)
+	recon-all -s $(subj) -hemi rh -qcache -measure volume -fwhm 5 $(T)
+
+$(VOLUME_FWHM10_LH): $(VOLUME_LH)
+	recon-all -s $(subj) -hemi lh -qcache -measure volume -fwhm 10 $(T)
+
+$(VOLUME_FWHM10_RH): $(VOLUME_RH)
+	recon-all -s $(subj) -hemi rh -qcache -measure volume -fwhm 10 $(T)
+
+$(VOLUME_FWHM15_LH): $(VOLUME_LH)
+	recon-all -s $(subj) -hemi lh -qcache -measure volume -fwhm 15 $(T)
+
+$(VOLUME_FWHM15_RH): $(VOLUME_RH)
+	recon-all -s $(subj) -hemi rh -qcache -measure volume -fwhm 15 $(T)
+
+$(VOLUME_FWHM20_LH): $(VOLUME_LH)
+	recon-all -s $(subj) -hemi lh -qcache -measure volume -fwhm 20 $(T)
+
+$(VOLUME_FWHM20_RH): $(VOLUME_RH)
+	recon-all -s $(subj) -hemi rh -qcache -measure volume -fwhm 20 $(T)
+
+$(VOLUME_FWHM25_LH): $(VOLUME_LH)
+	recon-all -s $(subj) -hemi lh -qcache -measure volume -fwhm 25 $(T)
+
+$(VOLUME_FWHM25_RH): $(VOLUME_RH)
+	recon-all -s $(subj) -hemi rh -qcache -measure volume -fwhm 25 $(T)
 
 
 $(JACOBIAN_WHITE_FWHM0_LH): $(JACOBIAN_WHITE_LH)
