@@ -14,7 +14,7 @@ if HAVE_GLUT_LIBS
 bin_PROGRAMS = mris2rgb
 mris2rgb_SOURCES=mris2rgb.c
 mris2rgb_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
-	$(GLUT_LIBS) -lGL
+	$(LIBS_OPENGL) $(GLUT_LIBS) -lGL
 mris2rgb_LDFLAGS=
 else
 bin_PROGRAMS=
