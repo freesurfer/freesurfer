@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/01/16 18:50:33 $
- *    $Revision: 1.147 $
+ *    $Author: greve $
+ *    $Date: 2008/02/01 00:33:45 $
+ *    $Revision: 1.148 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -527,7 +527,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.147 2008/01/16 18:50:33 nicks Exp $";
+"$Id: mri_glmfit.c,v 1.148 2008/02/01 00:33:45 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1477,6 +1477,11 @@ int main(int argc, char **argv) {
 
   sprintf(tmpstr,"%s/Xg.dat",GLMDir);
   MatrixWriteTxt(tmpstr, mriglm->Xg);
+
+  sprintf(tmpstr,"%s/dof.dat",GLMDir);
+  fp = fopen(tmpstr,"w");  
+  if(DoFFx) fprintf(fp,"%d",(int)mriglm->ffxdof);
+  else      fprintf(fp,"%d",(int)mriglm->glm->dof);
 
   if(useqa){
     // Compute FSNR
