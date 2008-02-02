@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/09/19 15:27:33 $
- *    $Revision: 1.111.2.1 $
+ *    $Date: 2008/02/02 17:53:15 $
+ *    $Revision: 1.111.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 #include <fstream>
 extern "C" {
+#include "assert.h"
 #include "error.h"
 #include "ctrpoints.h"
 }
