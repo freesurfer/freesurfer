@@ -12,9 +12,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/01/10 15:32:34 $
- *    $Revision: 1.118 $
+ *    $Author: nicks $
+ *    $Date: 2008/02/02 21:56:04 $
+ *    $Revision: 1.119 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <fstream>
 extern "C" {
+#include <assert.h>
 #include "error.h"
 #include "ctrpoints.h"
 }
