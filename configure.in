@@ -2010,17 +2010,6 @@ Check config.log. Set LDFLAGS or --with-BLT-dir.])
   AC_SUBST(LIB_BLT)
 fi 
 
-# check for VTK libs
-AC_CHECK_FILE($VTK_LIB/libvtkCommon$DYNAMIC_LIB_EXT,
-  [if test "x$LD_LIBRARY_PATH" = "x"; then
-     export LD_LIBRARY_PATH=$VTK_LIB
-   else
-     export LD_LIBRARY_PATH="$VTK_LIB":"$LD_LIBRARY_PATH"
-   fi],[])
-AC_CHECK_LIB([vtkCommon -lstdc++], [main],[],
-  [AC_MSG_ERROR([FATAL: vtkCommon lib not found. \
-Try setting LDFLAGS, LD_LIBRARY_PATH and-or --with-vtk-dir.])] )
-
 # some systems, like Debian, do not include certain VTK libs which are
 # normally found elsewhere (from their official sources).  so here,
 # first we declare the commonly found lib, and override with vtk versions 
@@ -2079,6 +2068,17 @@ if test "$ac_expat_libraries" = "NO"; then
   fi
   AC_SUBST(VTK_EXPAT_LIB)
 fi
+
+# check for VTK libs
+AC_CHECK_FILE($VTK_LIB/libvtkCommon$DYNAMIC_LIB_EXT,
+  [if test "x$LD_LIBRARY_PATH" = "x"; then
+     export LD_LIBRARY_PATH=$VTK_LIB
+   else
+     export LD_LIBRARY_PATH="$VTK_LIB":"$LD_LIBRARY_PATH"
+   fi],[])
+AC_CHECK_LIB([vtkCommon -lstdc++], [main],[],
+  [AC_MSG_ERROR([FATAL: vtkCommon lib not found. \
+Try setting LDFLAGS, LD_LIBRARY_PATH and-or --with-vtk-dir.])] )
 
 # libverdict appeared in VTK v5.1.0, and is required by libvtkHybrid,
 # but doesnt exist in earlier versions of VTK
