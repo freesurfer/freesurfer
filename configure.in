@@ -2025,12 +2025,15 @@ VTK_Z_LIB="-lz"
 
 # limit the possible paths where these can be found, as things like
 # libfreetype can be squirreled away in odd locations (like /usr/X11R6/lib)
-local_cflags_save=$CFLAGS
+local_cppflags_save=$CPPFLAGS
 local_ldflags_save=$LDFLAGS
-CFLAGS="$EXPAT_CFLAGS $TIFF_CFLAGS $JPEG_CFLAGS"
+local_libs_save=$LIBS
+CPPFLAGS="$EXPAT_CFLAGS $TIFF_CFLAGS $JPEG_CFLAGS"
 LDFLAGS="$EXPAT_LIBS $TIFF_LIBS $JPEG_LIBS -L/usr/lib64"
-# AC_MSG_RESULT(CFLAGS: $CFLAGS)
+LIBS=""
+# AC_MSG_RESULT(CFLAGS: $CPPFLAGS)
 # AC_MSG_RESULT(LDFLAGS: $LDFLAGS)
+# AC_MSG_RESULT(LIBS: $LIBS)
 AC_CHECK_LIB([expat], [main], [], [VTK_EXPAT_LIB="-lvtkexpat"])
 AC_CHECK_LIB([freetype], [FTC_Manager_LookupSize], 
                          [], [VTK_FREETYPE_LIB="-lvtkfreetype"])
@@ -2038,8 +2041,9 @@ AC_CHECK_LIB([tiff], [TIFFGetVersion], [], [VTK_TIFF_LIB="-lvtktiff"])
 AC_CHECK_LIB([jpeg], [jpeg_start_compress], [], [VTK_JPEG_LIB="-lvtkjpeg"])
 AC_CHECK_LIB([png], [main], [], [VTK_PNG_LIB="-lvtkpng"])
 AC_CHECK_LIB([z], [gzopen], [], [VTK_Z_LIB="-lvtkzlib"])
-CFLAGS=$local_cflags_save
+CPPFLAGS=$local_cppflags_save
 LDFLAGS=$local_ldflags_save
+LIBS=$local_libs_save
 
 AC_SUBST(VTK_EXPAT_LIB)
 AC_SUBST(VTK_FREETYPE_LIB)
