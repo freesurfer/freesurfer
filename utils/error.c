@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 03:06:23 $
- *    $Revision: 1.19.2.1 $
+ *    $Date: 2008/02/03 01:08:50 $
+ *    $Revision: 1.19.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,7 +56,6 @@
 static char error_fname[100] = ERROR_FNAME ;
 static int (*error_vprintf)(const char *fmt, va_list args) = vprintf ;
 static int (*error_vfprintf)(FILE *fp,const char *fmt,va_list args) = vfprintf;
-/*static void (*error_exit)(int ecode) = (void *)(int)exit ;*/
 static void (*error_exit)(int ecode) = NULL ;
 static void rgb_error(char *error_str) ;
 
@@ -98,7 +97,7 @@ ErrorInit(char *fname,
           int (*vfprint)(FILE *fp, const char *fmt, va_list args),
           int (*vprint)(const char *fmt, va_list args))
 {
-  error_exit = (void *)(int)exit;
+  error_exit = (void *)exit;
   i_seterror(rgb_error) ;
   if (fname)
     strcpy(error_fname, fname) ;
