@@ -19,16 +19,16 @@ noinst_LIBRARIES=
 endif
 
 libvtkutils_a_SOURCES= \
-	vtkKWProgressDialog.cxx vtkKWProgressDialog.h \
-	vtkKWRGBATransferFunctionEditor.cxx vtkKWRGBATransferFunctionEditor.h \
+	vtkKWProgressDialog.cxx \
+	vtkKWRGBATransferFunctionEditor.cxx \
 	vtkKWRGBATransferFunctionEditorTcl.cxx \
-	vtkKWBltGraph.cxx vtkKWBltGraph.h vtkKWBltGraphTcl.cxx \
-	vtkFreesurferLookupTable.cxx vtkFreesurferLookupTable.h \
-	vtkRGBATransferFunction.cxx vtkRGBATransferFunction.h \
-	vtkFDTensorGlyph.cxx vtkFDTensorGlyph.h \
-	vtkODFGlyph.cxx vtkODFGlyph.h \
-	vtkInflatePolyData.cxx vtkInflatePolyData.h \
-	IconLoader.cxx IconLoader.h
+	vtkKWBltGraph.cxx vtkKWBltGraphTcl.cxx \
+	vtkFreesurferLookupTable.cxx \
+	vtkRGBATransferFunction.cxx \
+	vtkFDTensorGlyph.cxx \
+	vtkODFGlyph.cxx \
+	vtkInflatePolyData.cxx \
+	IconLoader.cxx
 
 am_libvtkutils_a_OBJECTS=$(libvtkutils_a_SOURCES:%.cxx=%.o)
 

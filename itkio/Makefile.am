@@ -20,8 +20,8 @@ AM_LDFLAGS=
 noinst_LIBRARIES= libitkio.a
 
 libitkio_a_SOURCES= \
-  itkMGHImageIO.h itkMGHImageIO.cxx \
-  itkMGHImageIOFactory.h itkMGHImageIOFactory.cxx 
+  itkMGHImageIO.cxx \
+  itkMGHImageIOFactory.cxx 
 
 am_libitkio_a_OBJECTS=$(libitkio_a_SOURCES:%.cxx=%.o)
 
@@ -35,5 +35,3 @@ EXTRA_DIST=$(wildcard *.h)
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
-
-	
