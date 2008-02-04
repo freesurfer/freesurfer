@@ -268,6 +268,7 @@ SUBDIRS=include \
 	itkutils \
 	tetgen \
 	qdecproject \
+	svm-lib \
 	$(FSGDF) \
 	$(MRISUBDIRS) \
 	$(MRISSUBDIRS) \
