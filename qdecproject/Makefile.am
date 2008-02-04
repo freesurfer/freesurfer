@@ -11,19 +11,15 @@ AM_LDFLAGS=
 
 noinst_LIBRARIES= libqdecproject.a
 
-libqdecproject_a_SOURCES=\
-	QdecContrast.cxx \
-	QdecDataTable.cxx \
-	QdecFactor.cxx \
-	QdecGlmDesign.cxx \
-	QdecGlmFit.cxx \
-	QdecGlmFitResults.cxx \
-	QdecProject.cxx \
-	QdecSubject.cxx
+libqdecproject_a_SOURCES= QdecContrast.cxx  QdecDataTable.cxx  \
+	QdecFactor.cxx QdecGlmDesign.cxx  QdecGlmFit.cxx  QdecGlmFitResults.cxx  \
+	QdecProject.cxx  QdecSubject.cxx
 
 am_libqdecprojet_a_OBJECTS=$(libqdecproject_a_SOURCES:%.cxx=%.o)
 
-EXTRA_DIST=$(wildcard *.h)
+EXTRA_DIST=	ProgressUpdateGUI.h  QdecContrast.h  QdecDataTable.h  \
+	QdecFactor.h  QdecGlmDesign.h  QdecGlmFit.h  QdecGlmFitResults.h  \
+	QdecProject.h  QdecSubject.h
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
