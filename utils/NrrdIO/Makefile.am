@@ -8,23 +8,29 @@ AM_CPPFLAGS=-I$(top_srcdir)/include/NrrdIO \
 
 noinst_LIBRARIES= libnrrdio.a
 
-libnrrdio_a_SOURCES = $(wildcard *.c) $(wildcard *.cpp)
-
-am_libnrrdio_a_OBJECTS = $(libnrrdio_a_SOURCES:%.c=%.o) \
-	$(libnrrdio_a_SOURCES:%.cpp=%.o)
-
-.c.o:
-	source='$<' object='$@' libtool=no \
-	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
-	$(CCDEPMODE) $(depcomp) \
-	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
-
-.cpp.o:
-	@echo "compiler: $(COMPILE) end_compiler"
-	source='$<' object='$@' libtool=no \
-	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
-	$(CCDEPMODE) $(depcomp) \
-	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
+libnrrdio_a_SOURCES = \
+	754.c            formatPNG.c \
+	accessors.c      formatPNM.c \
+	array.c          formatText.c \
+	arraysNrrd.c     formatVTK.c \
+	axis.c           gzio.c \
+	biffbiff.c       keyvalue.c \
+	comment.c        methodsNrrd.c \
+	defaultsNrrd.c   miscAir.c \
+	dio.c            mop.c \
+	encodingAscii.c  parseAir.c \
+	encodingBzip2.c  parseNrrd.c \
+	encoding.c       preamble.c \
+	encodingGzip.c   qnanhibit.c \
+	encodingHex.c    read.c \
+	encodingRaw.c    reorder.c \
+	endianAir.c      sampleIO.c \
+	endianNrrd.c     sane.c \
+	enum.c           simple.c \
+	enumsNrrd.c      string.c \
+	format.c         subset.c \
+	formatEPS.c      write.c \
+	formatNRRD.c
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

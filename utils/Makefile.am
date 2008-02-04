@@ -4,6 +4,9 @@
 
 NrrdIO_dir = NrrdIO
 cephes_dir = cephes
+test_dir = test
+
+SUBDIRS=$(NrrdIO_dir) $(cephes_dir) $(test_dir)
 
 if HAVE_ITK_LIBS
 ITK_THINGS=$(ITK_CFLAGS) -DHAVE_ITK_LIBS
@@ -31,32 +34,179 @@ AM_CPPFLAGS=$(X_CFLAGS) $(VXL_CFLAGS) \
 
 AM_LDFLAGS=
 
-noinst_LIBRARIES= libutils.a
+noinst_LIBRARIES= libutils_main.a libutils.a
 
-libutils_a_SOURCES = $(wildcard *.c) $(wildcard *.cpp)
+libutils_main_a_SOURCES=\
+	afni.c \
+	annotation.c \
+	art1.c \
+	artmap.c \
+	backprop.c \
+	bfileio.c \
+	box.c \
+	Bruker.c \
+	chklc.c \
+	cluster.c \
+	cma.c \
+	cmdargs.c \
+	colortab.c \
+	corio.c \
+	ctrpoints.c \
+	cvector.c \
+	dcdflib.c \
+	dct.c \
+	density.c \
+	diag.c \
+	DICOMRead.c \
+	diffuse.c \
+	dti.c \
+	eigen.c \
+	error.c \
+	evschutils.c \
+	fftutils.c \
+	field_code.c \
+	filter.c \
+	fio.c \
+	flash.c \
+	fmarchmesh.c \
+	fmriutils.c \
+	fsenv.c \
+	fsglm.c \
+	gcaboundary.c \
+	gca.c \
+	gcamorph.c \
+	gcarray.c \
+	gclass.c \
+	gcsa.c \
+	getdelim.c \
+	getline.c \
+	gifti.c \
+	gifti_local.c \
+	gifti_xml.c \
+	gw_ic2562.c \
+	gw_utils.c \
+	handle.c \
+	heap.c \
+	hippo.c \
+	histo.c \
+	ic163842.c \
+	ic2562.c \
+	ic642.c \
+	icosahedron.c \
+	image.c \
+	imageio.c \
+	imautils.c \
+	intensity_eig.c \
+	inverse.c \
+	ipmpar.c \
+	kernel.c \
+	kinput.c \
+	label.c \
+	lpafile.c \
+	machine.c \
+	matfile.c \
+	matrix.c \
+	mgh_filter.c \
+	mgh_matrix.c \
+	mincutils.c \
+	minmaxrc.c \
+	morph.c \
+	mosaic.c \
+	mri2.c \
+	mri.c \
+	mriclass.c \
+	mri_conform.c \
+	mricurv.c \
+	mrifilter.c \
+	mriflood.c \
+	mriFunctionalDataAccess.c \
+	mriHeadPointList.c \
+	mrihisto.c \
+	mri_identify.c \
+	mriio.c \
+	MRIio_old.c \
+	mri_level_set.c \
+	mrimorph.c \
+	mrinorm.c \
+	mripolv.c \
+	mriprob.c \
+	mrisbiorthogonalwavelets.c \
+	mrisegment.c \
+	mriset.c \
+	mrishash.c \
+	mrisp.c \
+	mriSurface.c \
+	mrisurf.c \
+	mrisutils.c \
+	mri_tess.c \
+	mri_topology.c \
+	mri_transform.c \
+	mriTransform.c \
+	mriVolume.c \
+	mrivoxel.c \
+	nifti1_io.c \
+	offset.c \
+	path.c \
+	pdf.c \
+	pgmstubs.c \
+	prime.c \
+	qdecutils.c \
+	queue.c \
+	randomfields.c \
+	rbf.c \
+	rec.c \
+	region.c \
+	registerio.c \
+	resample.c \
+	rescale.c \
+	retinotopy.c \
+	selxavgio.c \
+	sig.c \
+	signa.c \
+	stats.c \
+	stc.c \
+	stub.c \
+	surfcluster.c \
+	svm.c \
+	tags.c \
+	talairachex.c \
+	thread.c \
+	timer.c \
+	transform.c \
+	tritri.c \
+	tukey.c \
+	unwarpGradientNonlinearity.c \
+	utils.c \
+	version.c \
+	vlabels.c \
+	volcluster.c \
+	voxlist.c \
+	x3DList.c \
+	xDebug.c \
+	xGLutWindow.c \
+	xGrowableArray.c \
+	xList.c \
+	xSparseVolume.c \
+	xTypes.c \
+	xUndoList.c \
+	xUtilities.c \
+	xVoxel.c \
+	znzlib.c \
+	fs_cost_function.cpp \
+	fs_lbfgs.cpp \
+	fs_lbfgs_observer.cpp \
+	fs_lbfgs_subject.cpp \
+	fs_powell.cpp \
+	mri_fastmarching.cpp \
+	mriio_nrrd.cpp \
+	numerics.cpp
 
-am_libutils_a_OBJECTS = $(libutils_a_SOURCES:%.c=%.o) \
-	$(libutils_a_SOURCES:%.cpp=%.o) \
-	$(wildcard $(cephes_dir)/*.o) \
-	$(wildcard $(NrrdIO_dir)/*.o)
+libutils_a_SOURCES=
 
-#lib_LTLIBRARIES= libutils.la
-#libutils_la_SOURCES = $(wildcard *.c) $(wildcard *.h)
-
-.c.o:
-	source='$<' object='$@' libtool=no \
-	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
-	$(CCDEPMODE) $(depcomp) \
-	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
-
-.cpp.o:
-	@echo "compiler: $(COMPILE) end_compiler"
-	source='$<' object='$@' libtool=no \
-	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
-	$(CCDEPMODE) $(depcomp) \
-	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
-
-SUBDIRS=$(NrrdIO_dir) $(cephes_dir) test
+am_libutils_a_OBJECTS= \
+	$(libutils_main_a_OBJECTS) \
+	$(top_builddir)/utils/$(cephes_dir)/libcephes.a \
+	$(top_builddir)/utils/$(NrrdIO_dir)/libnrrdio.a
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
