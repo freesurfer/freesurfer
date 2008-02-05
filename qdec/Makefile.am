@@ -10,9 +10,7 @@ AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
 dist_bin_SCRIPTS=run_mris_preproc
 
 if ENABLE_KWWIDGETS_APPS
-bin_PROGRAMS = qdec xml
-xml_SOURCES=xml.c
-xml_LDADD=/usr/lib64/libxml2.a
+bin_PROGRAMS = qdec
 qdec_SOURCES= \
 	QdecMain.cxx \
 	vtkKWQdecApp.cxx vtkKWQdecApp.h vtkKWQdecAppTcl.cxx \
