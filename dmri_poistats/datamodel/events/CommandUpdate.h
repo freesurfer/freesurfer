@@ -5,7 +5,7 @@
 #include <itkDiffusionTensor3D.h>
 #include <itkOrientedImage.h>
 
-#include "dmri_poistats/datamodel/utils/itkPoistatsFilter.h"
+#include "datamodel/utils/itkPoistatsFilter.h" // dmri_poistats
 
 class CommandUpdate : public itk::Command
 {

@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "dmri_poistats/datamodel/utils/EigenVectorInitPathStrategy.h"
+#include "datamodel/utils/EigenVectorInitPathStrategy.h" // dmri_poistats
 
 PoistatsReplicas::PoistatsReplicas() 
 {

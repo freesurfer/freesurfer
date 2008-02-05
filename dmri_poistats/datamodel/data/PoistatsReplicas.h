@@ -5,7 +5,7 @@
 
 #include <itkArray.h>
 
-#include "dmri_poistats/datamodel/PoistatsModel.h"
+#include "datamodel/PoistatsModel.h" // dmri_poistats
 
 #include "PoistatsReplica.h"
 

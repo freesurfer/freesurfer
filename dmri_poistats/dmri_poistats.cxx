@@ -2,7 +2,6 @@
  * @file  dmri_poistats.cxx
  * @brief Finds the most probable path between two seed regions.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Dennis Jen, Dave Tuch (matlab prototype) 
@@ -38,7 +37,7 @@
 #include <itkNiftiImageIO.h>
 #include <itkOrientedImage.h>
 
-#include "itkio/itkMGHImageIOFactory.h"
+#include "itkMGHImageIOFactory.h" // itkio
 #include "io/SymmetricTensorReaderStrategy.h"
 #include "io/AsymmetricTensorReaderStrategy.h"
 #include "io/AsymmetricTensorVectorReaderStrategy.h"
@@ -47,8 +46,8 @@
 
 #include "datamodel/events/CommandUpdate.h"
 
-#include "itkutils/ui/CommandParser.h"
-#include "itkutils/ui/FreeSurferExecutable.h"
+#include "ui/CommandParser.h" //itkutils
+#include "ui/FreeSurferExecutable.h" //itkutils
 
 /** This is needed by the freesurfer utils library */
 char *Progname;

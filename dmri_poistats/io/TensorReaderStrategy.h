@@ -6,7 +6,7 @@
 #include <itkDiffusionTensor3D.h>
 #include <itkImage.h>
 
-#include "dmri_poistats/datamodel/events/CommandUpdate.h"
+#include "datamodel/events/CommandUpdate.h" // dmri_poistats
 
 class TensorReaderStrategy
 {

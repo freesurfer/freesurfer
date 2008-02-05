@@ -7,11 +7,9 @@
 
 #include <itkScalarVector.h>
 
-#include "dmri_poistats/datamodel/data/PoistatsReplicas.h"
-
-#include "dmri_poistats/datamodel/PoistatsModel.h"
-
-#include "dmri_poistats/datamodel/events/PoistatsEvents.h"
+#include "datamodel/data/PoistatsReplicas.h"// dmri_poistats
+#include "datamodel/PoistatsModel.h"// dmri_poistats
+#include "datamodel/events/PoistatsEvents.h"// dmri_poistats
 
 namespace itk
 {

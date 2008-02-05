@@ -6,7 +6,7 @@
 
 #include <itkPointSet.h>
 
-#include "dmri_poistats/datamodel/PoistatsModel.h"
+#include "datamodel/PoistatsModel.h" // dmri_poistats
 
 class PoistatsReplica
 {

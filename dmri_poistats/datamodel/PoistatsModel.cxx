@@ -1,7 +1,7 @@
 #include "PoistatsModel.h"
 
-#include "dmri_poistats/datamodel/utils/EigenVectorInitPathStrategy.h"
-#include "dmri_poistats/datamodel/utils/FieldLineInitPathStrategy.h"
+#include "datamodel/utils/EigenVectorInitPathStrategy.h" // dmri_poistats
+#include "datamodel/utils/FieldLineInitPathStrategy.h"// dmri_poistats
 
 #include <iostream>
 #include <cmath>
