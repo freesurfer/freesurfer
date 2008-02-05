@@ -26,7 +26,7 @@ TESTS=test_mris_volmask
 
 # put a wrapper around the bin, used to setup VTK enviro vars
 install-exec-hook:
-	cp $(srcdir)/mris_volmask $(DESTDIR)$(bindir)/mris_volmask.bin
+	cp $(top_builddir)/mris_volmask/mris_volmask $(DESTDIR)$(bindir)/mris_volmask.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/mris_volmask
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
 		>> $(DESTDIR)$(bindir)/mris_volmask

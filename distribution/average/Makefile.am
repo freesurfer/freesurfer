@@ -34,8 +34,8 @@ EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz
 install: install-fooDATA
 	mkdir -p $(DESTDIR)$(prefix)/subjects
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
-	gunzip -c fsaverage.tar.gz | tar xvf -
-	mv fsaverage $(DESTDIR)$(prefix)/subjects
+	gunzip -c $(top_srcdir)/distribution/average/fsaverage.tar.gz | tar xvf -
+	mv $(top_builddir)/distribution/average/fsaverage $(DESTDIR)$(prefix)/subjects
 	cd surf; make install
 
 # Our release target. Include files to be excluded here. They will be

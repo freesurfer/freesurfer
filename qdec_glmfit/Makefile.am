@@ -5,7 +5,7 @@ AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
 bin_PROGRAMS = qdec_glmfit
 qdec_glmfit_SOURCES=qdec_glmfit.cxx
 qdec_glmfit_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-	$(top_srcdir)/qdecproject/libqdecproject.a
+	$(top_builddir)/qdecproject/libqdecproject.a
 qdec_glmfit_LDFLAGS=$(OS_LDFLAGS)
 
 EXCLUDE_FILES=

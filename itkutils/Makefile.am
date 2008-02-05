@@ -36,9 +36,6 @@ libitkutils_a_SOURCES= \
   $(UI_SRCS) \
   itkOrientedVectorImage.h itkOrientedVectorImage.txx
 
-# I don't think that I need this
-#am_libitkutils_a_OBJECTS=$(libitkutils_a_SOURCES:%.cxx=%.o)
-
 endif
 #end itk
 
