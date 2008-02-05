@@ -7,8 +7,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2007/11/15 22:25:00 $
-#    $Revision: 1.1 $
+#    $Date: 2008/02/05 17:21:11 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -73,6 +73,8 @@ $cmd | & grep -q "Flipping Left/Right orientation"
 if !($status) then
   set fslflipx = 1
   echo "INFO: left-right orientation was flipped by fslswapdim"
+else
+  set fslflipx = 0
 endif
 
 set cmd = (fslorient -forceradiological $out)
