@@ -14,7 +14,7 @@ AM_CPPFLAGS=$(GLUT_CFLAGS) $(TCL_CFLAGS) $(tcl_includes) \
 AM_LDFLAGS= $(LDFLAGS_TCL)
 bin_PROGRAMS = tkregister2
 tkregister2_SOURCES=tkregister2.c
-tkregister2_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
+tkregister2_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
 	$(X_LIBS) $(GLUT_LIBS) -lGL
 
@@ -26,7 +26,7 @@ endif
 
 if ENABLE_TCLTK_APPS
 install-exec-hook:
-	cp $(srcdir)/tkregister2 $(DESTDIR)$(bindir)/tkregister2.bin
+	cp $(top_builddir)/tkregister2/tkregister2 $(DESTDIR)$(bindir)/tkregister2.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/tkregister2
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/tkregister2

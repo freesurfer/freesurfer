@@ -22,8 +22,8 @@ orient_mri_SOURCES= \
 	vtkOrientMRIInteractorStyleView2D.h \
 	OrientMRILibInit.cxx
 orient_mri_LDADD= \
-	$(top_srcdir)/vtkfsio/libvtkfsio.a \
-	$(top_srcdir)/vtkutils/libvtkutils.a \
+	$(top_builddir)/vtkfsio/libvtkfsio.a \
+	$(top_builddir)/vtkutils/libvtkutils.a \
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
 	-lvtkImaging -lvtkFiltering \
@@ -65,7 +65,7 @@ OrientMRILibInit.cxx: OrientMRILibInit.data
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 install-exec-hook:orient_mri
-	cp $(srcdir)/orient_mri $(DESTDIR)$(bindir)/orient_mri.bin
+	cp $(top_builddir)/orient_mri/orient_mri $(DESTDIR)$(bindir)/orient_mri.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/orient_mri
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/orient_mri

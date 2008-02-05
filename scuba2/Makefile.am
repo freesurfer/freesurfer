@@ -198,7 +198,7 @@ vtkKWScubaView.o: vtkKWScubaView.cxx
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 install-exec-hook:scuba2
-	cp $(srcdir)/scuba2 $(DESTDIR)$(bindir)/scuba2.bin
+	cp $(top_builddir)/scuba2/scuba2 $(DESTDIR)$(bindir)/scuba2.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/scuba2
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/scuba2

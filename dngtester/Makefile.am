@@ -1,13 +1,13 @@
 ## 
 ## Makefile.am 
 ##
+
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
 bin_PROGRAMS = dngtester
 dngtester_SOURCES=dngtester.c
-#dngtester_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
-dngtester_LDADD= $(top_srcdir)/fsgdf/libfsgdf.a\
+dngtester_LDADD= $(top_builddir)/fsgdf/libfsgdf.a \
   $(addprefix $(top_builddir)/, $(LIBS_MGH))
 dngtester_LDFLAGS=$(OS_LDFLAGS)
 

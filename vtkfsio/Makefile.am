@@ -33,10 +33,11 @@ endif
 vtkFSSurfaceWriterTester_SOURCES=vtkFSSurfaceWriterTester.cxx
 
 vtkFSSurfaceWriterTester_LDADD=\
-	$(top_srcdir)/fsgdf/libfsgdf.a \
-	$(top_srcdir)/vtkfsio/libvtkfsio.a \
-	$(top_srcdir)/vtkutils/libvtkutils.a \
-	$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
+	$(top_builddir)/fsgdf/libfsgdf.a \
+	$(top_builddir)/vtkfsio/libvtkfsio.a \
+	$(top_builddir)/vtkutils/libvtkutils.a \
+	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+	$(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \

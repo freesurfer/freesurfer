@@ -103,7 +103,7 @@ scuba_SOURCES=$(UTILITIES_SRCS) \
 	$(CHART_SRCS) \
 	$(SCUBA1_SRCS) \
 	scuba.cpp
-scuba_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
+scuba_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) $(X_LIBS) -lX11 -lXmu -lGL
 scuba_LDFLAGS=$(AM_LDFLAGS)
 
@@ -152,168 +152,168 @@ TESTS=testSetup.csh \
 testIDTracker_SOURCES=test_IDTracker.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testIDTracker_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testBroadcaster_SOURCES=test_Broadcaster.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testBroadcaster_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testUtilities_SOURCES=test_Utilities.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testUtilities_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testMatrix44_SOURCES=test_Matrix44.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testMatrix44_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testTransform44_SOURCES=test_Transform44.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testTransform44_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testVolume3_SOURCES=test_Volume3.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testVolume3_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testPath_SOURCES=test_Path.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testPath_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testShortestPathFinder_SOURCES=test_ShortestPathFinder.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testShortestPathFinder_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testVectorOps_SOURCES=test_VectorOps.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testVectorOps_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testRASToVoxel_SOURCES= test_RASToVoxel.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testRASToVoxel_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testToglManager_SOURCES=test_ToglManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS)
 testToglManager_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(GLUT_LIBS)
+	$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(GLUT_LIBS)
 
 testDataManager_SOURCES=test_DataManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testDataManager_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testTclCommandManager_SOURCES=test_TclCommandManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testTclCommandManager_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testPreferencesManager_SOURCES=test_PreferencesManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testPreferencesManager_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testUndoManager_SOURCES=test_UndoManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testUndoManager_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testCoordTimer_SOURCES= test_CoordTimer.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
 testCoordTimer_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testDataCollection_SOURCES=test_DataCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testDataCollection_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testScubaDataCollections_SOURCES=test_ScubaDataCollections.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testScubaDataCollections_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testVolumeCollection_SOURCES=test_VolumeCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testVolumeCollection_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testSurfaceCollection_SOURCES= test_SurfaceCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testSurfaceCollection_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testScubaKeyCombo_SOURCES=test_ScubaKeyCombo.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
 testScubaKeyCombo_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testTclScubaKeyCombo_SOURCES=test_TclScubaKeyCombo.cpp TclScubaKeyCombo.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
 testTclScubaKeyCombo_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testScubaLayers_SOURCES=test_ScubaLayers.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS)
 testScubaLayers_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testScubaLayer2DMRI_SOURCES=test_ScubaLayer2DMRI.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS)
 testScubaLayer2DMRI_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testScubaView_SOURCES=test_ScubaView.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS) $(SCUBA1_SRCS)
 testScubaView_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(X_LIBS)
+	$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(X_LIBS)
 
 testScubaFrame_SOURCES=test_ScubaFrame.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS)
 testScubaFrame_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testScubaTransform_SOURCES=test_ScubaTransform.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testScubaTransform_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testScubaColorLUT_SOURCES=test_ScubaColorLUT.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testScubaColorLUT_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testScubaROI_SOURCES=test_ScubaROI.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testScubaROI_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testScubaROIVolume_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testSegmentationVolumeReport_SOURCES=test_SegmentationVolumeReport.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(CHART_SRCS)
 testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testTclChartWindow_SOURCES=test_TclChartWindow.cpp TclChartWindow.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(CHART_SRCS)
 testTclChartWindow_LDADD=$(LIBS_TCL_OPENGL) \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH))
+	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 endif
 
 if ENABLE_TCLTK_APPS
 # put a wrapper around the bin, used to setup tcltktixblt enviro vars
 install-exec-hook:
-	cp $(srcdir)/scuba $(DESTDIR)$(bindir)/scuba.bin
+	cp $(top_builddir)/scuba/scuba $(DESTDIR)$(bindir)/scuba.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/scuba
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/scuba
 	echo "scuba.bin \$$argv" >> $(DESTDIR)$(bindir)/scuba

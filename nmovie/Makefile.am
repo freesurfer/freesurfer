@@ -18,10 +18,10 @@ if HAVE_GLUT_LIBS
 bin_PROGRAMS = nmovie
 nmovie_SOURCES=nmovie.c
 if ENABLE_XAWPLUS_APPS
-nmovie_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
+nmovie_LDADD= $(addprefix $(top_builddir)/,$(LIBS_MGH)) \
 	$(LIBS_OPENGL) $(GLUT_LIBS) $(XAWPLUS_LIBS) -lXawPlus -lXpm -lXt -lXext
 else
-nmovie_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
+nmovie_LDADD= $(addprefix $(top_builddir)/,$(LIBS_MGH)) \
 	$(LIBS_OPENGL) $(GLUT_LIBS) -lXt -lXext -lXaw
 endif
 nmovie_LDFLAGS=$(X_LIBS)

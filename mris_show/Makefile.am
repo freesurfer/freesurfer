@@ -10,7 +10,7 @@ AM_LDFLAGS=
 if HAVE_GLUT_LIBS
 bin_PROGRAMS = mris_show
 mris_show_SOURCES=mris_show.c
-mris_show_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(GLUT_LIBS)
+mris_show_LDADD= $(addprefix $(top_builddir)/,$(LIBS_MGH)) $(GLUT_LIBS)
 mris_show_LDFLAGS=$(X_LIBS)
 else
 bin_PROGRAMS=

@@ -65,8 +65,8 @@ dmri_poistats_SOURCES = \
   $(IO_SRCS) \
   dmri_poistats.cxx 
 dmri_poistats_LDADD = $(LIBS_ITK) \
-	$(top_srcdir)/itkio/libitkio.a \
-	$(top_srcdir)/itkutils/libitkutils.a \
+	$(top_builddir)/itkio/libitkio.a \
+	$(top_builddir)/itkutils/libitkutils.a \
 	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
 	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
 	-litkvnl -litkvcl \
@@ -81,7 +81,7 @@ dmri_initialize_path_SOURCES = \
   $(UTILS_SRCS) \
   dmri_initialize_path.cxx 
 dmri_initialize_path_LDADD = $(LIBS_ITK) \
-	$(top_srcdir)/itkutils/libitkutils.a \
+	$(top_builddir)/itkutils/libitkutils.a \
 	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
 	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
 	-litkvnl -litkvcl \
@@ -94,7 +94,7 @@ dmri_initialize_path_CXXFLAGS =
 dmri_mask_SOURCES = \
   dmri_mask.cxx 
 dmri_mask_LDADD = $(addprefix $(top_builddir)/, $(LIBS_MGH) ) \
-	$(top_srcdir)/itkutils/libitkutils.a
+	$(top_builddir)/itkutils/libitkutils.a
 dmri_mask_LDFLAGS = $(OS_LDFLAGS)
 dmri_mask_CXXFLAGS = 
 

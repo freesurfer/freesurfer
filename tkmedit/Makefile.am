@@ -20,8 +20,8 @@ tkmedit_SOURCES=tkmedit.c \
 	tkmFunctionalVolume.h \
 	tkmMeditWindow.h \
 	$(top_srcdir)/fsgdf/fsgdf_wrap.c
-tkmedit_LDADD= $(top_srcdir)/fsgdf/libfsgdf.a \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
+tkmedit_LDADD= $(top_builddir)/fsgdf/libfsgdf.a \
+	$(addprefix $(top_builddir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
 	$(X_LIBS) $(GLUT_LIBS)
 tkmedit_LDFLAGS=$(LDFLAGS_TCL)
@@ -32,7 +32,7 @@ endif
 if ENABLE_TCLTK_APPS
 # put a wrapper around the bin, used to setup tcltktixblt enviro vars
 install-exec-hook:
-	cp $(srcdir)/tkmedit $(DESTDIR)$(bindir)/tkmedit.bin
+	cp $(top_builddir)/tkmedit/tkmedit $(DESTDIR)$(bindir)/tkmedit.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/tkmedit
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/tkmedit
 	echo "exec tkmedit.bin \$$argv" >> $(DESTDIR)$(bindir)/tkmedit

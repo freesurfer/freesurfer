@@ -14,8 +14,8 @@ AM_LDFLAGS=$(LDFLAGS_TCL)
 if ENABLE_TCLTK_APPS
 bin_PROGRAMS=tksurfer
 tksurfer_SOURCES=tksurfer.c
-tksurfer_LDADD= 	$(top_srcdir)/fsgdf/libfsgdf.a \
-  $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
+tksurfer_LDADD= 	$(top_builddir)/fsgdf/libfsgdf.a \
+  $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
 	$(X_LIBS) $(GLUT_LIBS) -lGL
 tksurfer_LDFLAGS=$(LDFLAGS_TCL)
@@ -25,7 +25,7 @@ endif
 
 if ENABLE_TCLTK_APPS
 install-exec-hook:
-	cp $(srcdir)/tksurfer $(DESTDIR)$(bindir)/tksurfer.bin
+	cp $(top_builddir)/tksurfer/tksurfer $(DESTDIR)$(bindir)/tksurfer.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/tksurfer
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/tksurfer

@@ -64,7 +64,7 @@ QdecLibInit.cxx: QdecLibInit.data
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 install-exec-hook:qdec
-	cp $(builddir)/qdec $(DESTDIR)$(bindir)/qdec.bin
+	cp $(top_builddir)/qdec/qdec $(DESTDIR)$(bindir)/qdec.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/qdec
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/qdec
