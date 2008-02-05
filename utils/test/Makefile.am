@@ -6,7 +6,7 @@ SUBDIRS=mrishash
 AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
 	-I$(top_srcdir)/include/NrrdIO
-LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
+LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 CHECKS=test_c_nr_wrapper mnitest i2rtest icotest extest \
 	mghxform inftest checkanalyze \
@@ -67,12 +67,12 @@ if HAVE_CPPUNIT
 
 test_nr_wrapper_SOURCES=test_nr_wrapper.cpp
 test_nr_wrapper_CXXFLAGS=$(CPPUNIT_CFLAGS) -Wno-non-virtual-dtor
-test_nr_wrapper_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
+test_nr_wrapper_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(CPPUNIT_LIBS) -lcppunit -ldl
 
 test_matrix_SOURCES=test_matrix.cpp
 test_matrix_CXXFLAGS=$(CPPUNIT_CFLAGS) -Wno-non-virtual-dtor
-test_matrix_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
+test_matrix_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(CPPUNIT_LIBS) -lcppunit -ldl
 endif
 

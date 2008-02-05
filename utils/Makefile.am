@@ -30,13 +30,15 @@ AM_CPPFLAGS=$(X_CFLAGS) $(VXL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
 	-I$(top_srcdir)/include/NrrdIO \
+	-DTEEM_DIO=$(TEEM_DIO) -DTEEM_32BIT=$(TEEM_32BIT) \
+	-DTEEM_QNANHIBIT=$(TEEM_QNANHIBIT) -DTEEM_ENDIAN=$(TEEM_ENDIAN) \
 	$(ITK_THINGS) $(NIFTI_THINGS) $(GLUT_THINGS) -DHAVE_ZLIB
 
 AM_LDFLAGS=
 
-noinst_LIBRARIES= libutils_main.a libutils.a
+noinst_LIBRARIES=libutils.a
 
-libutils_main_a_SOURCES=\
+libutils_main_SOURCES=\
 	afni.c \
 	annotation.c \
 	art1.c \
@@ -201,12 +203,71 @@ libutils_main_a_SOURCES=\
 	mriio_nrrd.cpp \
 	numerics.cpp
 
-libutils_a_SOURCES=
+libutils_cephes_SOURCES=\
+	$(srcdir)/$(cephes_dir)/bdtr.c \
+	$(srcdir)/$(cephes_dir)/chdtr.c \
+	$(srcdir)/$(cephes_dir)/const.c \
+	$(srcdir)/$(cephes_dir)/fdtr.c \
+	$(srcdir)/$(cephes_dir)/gamma.c \
+	$(srcdir)/$(cephes_dir)/igam.c \
+	$(srcdir)/$(cephes_dir)/igami.c \
+	$(srcdir)/$(cephes_dir)/incbet.c \
+	$(srcdir)/$(cephes_dir)/incbi.c \
+	$(srcdir)/$(cephes_dir)/mtherr.c \
+	$(srcdir)/$(cephes_dir)/ndtr.c \
+	$(srcdir)/$(cephes_dir)/ndtri.c \
+	$(srcdir)/$(cephes_dir)/polevl.c \
+	$(srcdir)/$(cephes_dir)/stdtr.c
 
-am_libutils_a_OBJECTS= \
-	$(libutils_main_a_OBJECTS) \
-	$(top_builddir)/utils/$(cephes_dir)/libcephes.a \
-	$(top_builddir)/utils/$(NrrdIO_dir)/libnrrdio.a
+libutils_nrrdio_SOURCES=\
+	$(srcdir)/$(NrrdIO_dir)/754.c \
+	$(srcdir)/$(NrrdIO_dir)/formatPNG.c \
+	$(srcdir)/$(NrrdIO_dir)/accessors.c \
+	$(srcdir)/$(NrrdIO_dir)/formatPNM.c \
+	$(srcdir)/$(NrrdIO_dir)/array.c \
+	$(srcdir)/$(NrrdIO_dir)/formatText.c \
+	$(srcdir)/$(NrrdIO_dir)/arraysNrrd.c \
+	$(srcdir)/$(NrrdIO_dir)/formatVTK.c \
+	$(srcdir)/$(NrrdIO_dir)/axis.c \
+	$(srcdir)/$(NrrdIO_dir)/gzio.c \
+	$(srcdir)/$(NrrdIO_dir)/biffbiff.c \
+	$(srcdir)/$(NrrdIO_dir)/keyvalue.c \
+	$(srcdir)/$(NrrdIO_dir)/comment.c \
+	$(srcdir)/$(NrrdIO_dir)/methodsNrrd.c \
+	$(srcdir)/$(NrrdIO_dir)/defaultsNrrd.c \
+	$(srcdir)/$(NrrdIO_dir)/miscAir.c \
+	$(srcdir)/$(NrrdIO_dir)/dio.c \
+	$(srcdir)/$(NrrdIO_dir)/mop.c \
+	$(srcdir)/$(NrrdIO_dir)/encodingAscii.c \
+	$(srcdir)/$(NrrdIO_dir)/parseAir.c \
+	$(srcdir)/$(NrrdIO_dir)/encodingBzip2.c \
+	$(srcdir)/$(NrrdIO_dir)/parseNrrd.c \
+	$(srcdir)/$(NrrdIO_dir)/encoding.c \
+	$(srcdir)/$(NrrdIO_dir)/preamble.c \
+	$(srcdir)/$(NrrdIO_dir)/encodingGzip.c \
+	$(srcdir)/$(NrrdIO_dir)/qnanhibit.c \
+	$(srcdir)/$(NrrdIO_dir)/encodingHex.c \
+	$(srcdir)/$(NrrdIO_dir)/read.c \
+	$(srcdir)/$(NrrdIO_dir)/encodingRaw.c \
+	$(srcdir)/$(NrrdIO_dir)/reorder.c \
+	$(srcdir)/$(NrrdIO_dir)/endianAir.c \
+	$(srcdir)/$(NrrdIO_dir)/sampleIO.c \
+	$(srcdir)/$(NrrdIO_dir)/endianNrrd.c \
+	$(srcdir)/$(NrrdIO_dir)/sane.c \
+	$(srcdir)/$(NrrdIO_dir)/enum.c \
+	$(srcdir)/$(NrrdIO_dir)/simple.c \
+	$(srcdir)/$(NrrdIO_dir)/enumsNrrd.c \
+	$(srcdir)/$(NrrdIO_dir)/string.c \
+	$(srcdir)/$(NrrdIO_dir)/format.c \
+	$(srcdir)/$(NrrdIO_dir)/subset.c \
+	$(srcdir)/$(NrrdIO_dir)/formatEPS.c \
+	$(srcdir)/$(NrrdIO_dir)/write.c \
+	$(srcdir)/$(NrrdIO_dir)/formatNRRD.c
+
+libutils_a_SOURCES=\
+$(libutils_main_SOURCES) \
+$(libutils_cephes_SOURCES) \
+$(libutils_nrrdio_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
