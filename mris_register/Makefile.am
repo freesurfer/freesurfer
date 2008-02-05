@@ -6,7 +6,7 @@ AM_CFLAGS=-I$(top_srcdir)/include $(PETSC_CFLAGS) \
 	-I$(top_srcdir)/tetgen/include
 AM_LDFLAGS=$(PETSC_LIBS)
 
-# if there is a need to activate petsc support, deleted the #PETSC text
+# if there is a need to activate petsc support, delete the #PETSC text
 
 #PETSC if HAVE_PETSC_LIBS
 #PETSC LIBS_PETSC=-lpetsc -lmpiuni
@@ -17,7 +17,7 @@ LIBS_PETSC=
 bin_PROGRAMS = mris_register
 mris_register_SOURCES=mris_register.c
 mris_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-	-L$(top_srcdir)/tetgen -ltetgen $(LIBS_PETSC)
+	-L$(top_builddir)/tetgen -ltetgen $(LIBS_PETSC)
 mris_register_LDFLAGS=$(OS_LDFLAGS)
 
 
