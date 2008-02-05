@@ -488,7 +488,7 @@ if test "$CPUTYPE" = "NO"; then
   Linux)
     case "${target}" in
     i*86-*-linux-gnu*)
-      cpu386=`./x86cpucaps/cpucaps -m | sed 's/ //g'`
+      cpu386=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
       case "$cpu386" in
         PentiumIII*)
         CPUTYPE=pentium3
@@ -505,7 +505,7 @@ if test "$CPUTYPE" = "NO"; then
       esac
       ;;
     x86_64-*)
-      cpu386=`./x86cpucaps/cpucaps -m | sed 's/ //g'`
+      cpu386=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
       case "$cpu386" in
         AMDAthlon64)
         CPUTYPE=athlon64
@@ -2552,11 +2552,13 @@ AC_OUTPUT([Makefile
            vtkutils/Makefile])
 
 ########################################################################
+builddir=`pwd`
 AC_MSG_RESULT(
 [
 FreeSurfer is now configured for ${host}
 
   Source directory:  ${srcdir}
+  Build directory:   ${builddir}
   Install directory: ${prefix}
 
   C compiler:   ${CC} ${CPPFLAGS} ${CFLAGS}
