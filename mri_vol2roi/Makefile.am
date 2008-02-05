@@ -7,7 +7,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_vol2roi
 mri_vol2roi_SOURCES=mri_vol2roi.c
-mri_vol2roi_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_vol2roi_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_vol2roi_LDFLAGS=$(OS_LDFLAGS)
 
 

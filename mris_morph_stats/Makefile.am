@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_morph_stats
 mris_morph_stats_SOURCES=mris_morph_stats.c
-mris_morph_stats_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_morph_stats_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_morph_stats_LDFLAGS=$(OS_LDFLAGS)
 
 

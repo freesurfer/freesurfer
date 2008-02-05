@@ -1,4 +1,5 @@
-AM_CPPFLAGS=-I$(top_srcdir)/include $(TCL_CFLAGS)
+AM_CPPFLAGS=-I$(top_srcdir)/include $(TCL_CFLAGS) \
+	-I/usr/include/libxml2
 
 AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
 	-I$(top_srcdir)/vtkfsio \
@@ -9,7 +10,9 @@ AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
 dist_bin_SCRIPTS=run_mris_preproc
 
 if ENABLE_KWWIDGETS_APPS
-bin_PROGRAMS = qdec
+bin_PROGRAMS = qdec xml
+xml_SOURCES=xml.c
+xml_LDADD=/usr/lib64/libxml2.a
 qdec_SOURCES= \
 	QdecMain.cxx \
 	vtkKWQdecApp.cxx vtkKWQdecApp.h vtkKWQdecAppTcl.cxx \
@@ -18,11 +21,11 @@ qdec_SOURCES= \
 	QdecUtilities.cxx QdecLibInit.cxx \
 	QdecEvents.h QdecVertexAnnotationLookup.h
 qdec_LDADD=  \
-	$(top_srcdir)/fsgdf/libfsgdf.a \
-	$(top_srcdir)/vtkfsio/libvtkfsio.a \
-	$(top_srcdir)/vtkutils/libvtkutils.a \
-	$(top_srcdir)/qdecproject/libqdecproject.a \
-	$(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
+	$(top_builddir)/fsgdf/libfsgdf.a \
+	$(top_builddir)/vtkfsio/libvtkfsio.a \
+	$(top_builddir)/vtkutils/libvtkutils.a \
+	$(top_builddir)/qdecproject/libqdecproject.a \
+	$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkGraphics \
 	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
 	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
@@ -61,7 +64,7 @@ QdecLibInit.cxx: QdecLibInit.data
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 install-exec-hook:qdec
-	cp $(srcdir)/qdec $(DESTDIR)$(bindir)/qdec.bin
+	cp $(builddir)/qdec $(DESTDIR)$(bindir)/qdec.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/qdec
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/qdec

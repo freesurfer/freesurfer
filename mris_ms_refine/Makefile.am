@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_ms_refine
 mris_ms_refine_SOURCES=mris_ms_refine.c
-mris_ms_refine_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_ms_refine_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_ms_refine_LDFLAGS=$(OS_LDFLAGS)
 
 

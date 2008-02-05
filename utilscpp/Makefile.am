@@ -1,18 +1,21 @@
 #
-# Makefile.am for libutilscpp.a - specify in addition to the standard
+# Makefile.am for libutilscpp.a
 #
+
 AM_CPPFLAGS=$(X_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom
 
-noinst_LIBRARIES= libutilscpp.a
-libutilscpp_a_SOURCES = mris_fastmarching.cpp globals.cpp face.cpp vertex.cpp loop.cpp fastloop.cpp surface.cpp patchdisk.cpp mris_topology.cpp segment.cpp patchdisk.cpp
- 
 SUBDIRS=test
 
+noinst_LIBRARIES= libutilscpp.a
+
+libutilscpp_a_SOURCES = mris_fastmarching.cpp globals.cpp face.cpp \
+	vertex.cpp loop.cpp fastloop.cpp surface.cpp patchdisk.cpp \
+	mris_topology.cpp segment.cpp patchdisk.cpp
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra

@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_estimate_tissue_parms
 mri_estimate_tissue_parms_SOURCES=mri_estimate_tissue_parms.c
-mri_estimate_tissue_parms_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_estimate_tissue_parms_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_estimate_tissue_parms_LDFLAGS=$(OS_LDFLAGS)
 
 

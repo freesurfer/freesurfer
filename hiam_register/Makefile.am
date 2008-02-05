@@ -7,7 +7,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = hiam_register
 hiam_register_SOURCES=hiam_register.c
-hiam_register_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+hiam_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 hiam_register_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

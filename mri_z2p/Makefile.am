@@ -7,7 +7,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
 bin_PROGRAMS = mri_z2p
 mri_z2p_SOURCES=mri_z2p.c
-mri_z2p_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_z2p_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_z2p_LDFLAGS=$(OS_LDFLAGS)
 # to --------------------------------------------------
 #

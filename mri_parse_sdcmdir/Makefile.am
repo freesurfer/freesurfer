@@ -7,7 +7,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS=mri_parse_sdcmdir
 mri_parse_sdcmdir_SOURCES=mri_parse_sdcmdir.c
-mri_parse_sdcmdir_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_parse_sdcmdir_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_parse_sdcmdir_LDFLAGS=$(OS_LDFLAGS)
 
 TESTS=test_mri_parse_sdcmdir

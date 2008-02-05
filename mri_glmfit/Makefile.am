@@ -6,9 +6,8 @@ AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = mri_glmfit
-mri_glmfit_SOURCES=mri_glmfit.c
-mri_glmfit_LDADD= $(top_srcdir)/fsgdf/libfsgdf.a \
-$(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_glmfit_SOURCES=mri_glmfit.c $(top_srcdir)/fsgdf/fsgdf.c
+mri_glmfit_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_glmfit_LDFLAGS=$(OS_LDFLAGS)
 
 TESTS=test_mri_glmfit

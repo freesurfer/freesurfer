@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_twoclass
 mris_twoclass_SOURCES=mris_twoclass.c
-mris_twoclass_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_twoclass_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_twoclass_LDFLAGS=$(OS_LDFLAGS)
 
 

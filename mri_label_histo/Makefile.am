@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_label_histo
 mri_label_histo_SOURCES=mri_label_histo.c
-mri_label_histo_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_label_histo_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_label_histo_LDFLAGS=$(OS_LDFLAGS)
 
 

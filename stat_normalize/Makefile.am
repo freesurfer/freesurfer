@@ -7,7 +7,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = stat_normalize
 stat_normalize_SOURCES=stat_normalize.c
-stat_normalize_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+stat_normalize_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 stat_normalize_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

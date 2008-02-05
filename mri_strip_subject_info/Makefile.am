@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_strip_subject_info
 mri_strip_subject_info_SOURCES=mri_strip_subject_info.c
-mri_strip_subject_info_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_strip_subject_info_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_strip_subject_info_LDFLAGS=$(OS_LDFLAGS)
 
 

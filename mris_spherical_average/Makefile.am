@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_spherical_average
 mris_spherical_average_SOURCES=mris_spherical_average.c
-mris_spherical_average_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_spherical_average_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_spherical_average_LDFLAGS=$(OS_LDFLAGS)
 
 

@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_sample_parc
 mris_sample_parc_SOURCES=mris_sample_parc.c
-mris_sample_parc_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_sample_parc_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_sample_parc_LDFLAGS=$(OS_LDFLAGS)
 
 

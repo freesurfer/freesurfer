@@ -4,7 +4,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include
 bin_PROGRAMS = mri_mc mri_pretess mris_extract_main_component
 
 mri_mc_SOURCES=mri_mc.c
-mri_mc_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_mc_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 check_PROGRAMS=build_test_volume
 #build_MC_table
@@ -12,16 +12,16 @@ check_PROGRAMS=build_test_volume
 TESTS=compare_test_volumes
 
 build_test_volume_SOURCES=build_test_volume.c
-build_test_volume_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
+build_test_volume_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 mri_pretess_SOURCES=mri_pretess.c
-mri_pretess_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_pretess_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 mris_extract_main_component_SOURCES=mris_extract_main_component.c
-mris_extract_main_component_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_extract_main_component_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 #build_MC_table_SOURCES=build_MC_table.c
-#build_MC_table_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
+#build_MC_table_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 EXTRA_DIST=compare_test_volumes test_volume_reference.mgz
 

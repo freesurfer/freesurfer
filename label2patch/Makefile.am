@@ -7,7 +7,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = label2patch
 label2patch_SOURCES=label2patch.c
-label2patch_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+label2patch_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 label2patch_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

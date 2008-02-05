@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_edit_segmentation
 mri_edit_segmentation_SOURCES=mri_edit_segmentation.c
-mri_edit_segmentation_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_edit_segmentation_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_edit_segmentation_LDFLAGS=$(OS_LDFLAGS)
 
 

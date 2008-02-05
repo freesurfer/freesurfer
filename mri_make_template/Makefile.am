@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_make_template
 mri_make_template_SOURCES=mri_make_template.c
-mri_make_template_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_make_template_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_make_template_LDFLAGS=$(OS_LDFLAGS)
 
 

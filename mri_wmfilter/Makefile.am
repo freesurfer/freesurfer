@@ -7,7 +7,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_wmfilter
 mri_wmfilter_SOURCES=mri_wmfilter.c
-mri_wmfilter_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_wmfilter_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_wmfilter_LDFLAGS=$(OS_LDFLAGS)
 
 

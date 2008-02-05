@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_remove_neck
 mri_remove_neck_SOURCES=mri_remove_neck.c
-mri_remove_neck_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_remove_neck_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_remove_neck_LDFLAGS=$(OS_LDFLAGS)
 
 

@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_brain_volume
 mri_brain_volume_SOURCES=mri_brain_volume.cpp mrivariables.h TVector.h
-mri_brain_volume_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_brain_volume_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_brain_volume_LDFLAGS=$(OS_LDFLAGS)
 
 

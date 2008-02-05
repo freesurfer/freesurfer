@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_surfcluster
 mri_surfcluster_SOURCES=mri_surfcluster.c
-mri_surfcluster_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_surfcluster_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_surfcluster_LDFLAGS=$(OS_LDFLAGS)
 
 

@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_polv
 mri_polv_SOURCES=mri_polv.c
-mri_polv_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_polv_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_polv_LDFLAGS=$(OS_LDFLAGS)
 
 

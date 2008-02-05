@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_transform
 mris_transform_SOURCES=mris_transform.c
-mris_transform_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_transform_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_transform_LDFLAGS=$(OS_LDFLAGS)
 
 

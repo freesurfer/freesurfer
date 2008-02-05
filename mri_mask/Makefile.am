@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_mask
 mri_mask_SOURCES=mri_mask.c
-mri_mask_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_mask_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_mask_LDFLAGS=$(OS_LDFLAGS)
 
 

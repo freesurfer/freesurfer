@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_classify_thickness
 mris_classify_thickness_SOURCES=mris_classify_thickness.c
-mris_classify_thickness_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_classify_thickness_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_classify_thickness_LDFLAGS=$(OS_LDFLAGS)
 
 

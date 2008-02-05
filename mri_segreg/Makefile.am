@@ -6,7 +6,7 @@ AM_CFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = mri_segreg
 mri_segreg_SOURCES=mri_segreg.c
-mri_segreg_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_segreg_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_segreg_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

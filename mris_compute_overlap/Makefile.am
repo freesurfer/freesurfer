@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_compute_overlap
 mris_compute_overlap_SOURCES=mris_compute_overlap.c
-mris_compute_overlap_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_compute_overlap_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_compute_overlap_LDFLAGS=$(OS_LDFLAGS)
 
 

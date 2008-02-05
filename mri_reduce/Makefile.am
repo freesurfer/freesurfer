@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_reduce
 mri_reduce_SOURCES=mri_reduce.c
-mri_reduce_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_reduce_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_reduce_LDFLAGS=$(OS_LDFLAGS)
 
 

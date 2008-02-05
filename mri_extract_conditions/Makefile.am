@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_extract_conditions
 mri_extract_conditions_SOURCES=mri_extract_conditions.c
-mri_extract_conditions_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_extract_conditions_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_extract_conditions_LDFLAGS=$(OS_LDFLAGS)
 
 

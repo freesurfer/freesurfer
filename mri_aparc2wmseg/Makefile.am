@@ -28,7 +28,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
 bin_PROGRAMS = mri_aparc2wmseg
 mri_aparc2wmseg_SOURCES=mri_aparc2wmseg.c
-mri_aparc2wmseg_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_aparc2wmseg_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_aparc2wmseg_LDFLAGS=$(OS_LDFLAGS)
 # to --------------------------------------------------
 #

@@ -7,7 +7,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_anatomical_stats
 mris_anatomical_stats_SOURCES=mris_anatomical_stats.c
-mris_anatomical_stats_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_anatomical_stats_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_anatomical_stats_LDFLAGS=$(OS_LDFLAGS)
 
 TESTS=test_mris_anatomical_stats

@@ -11,7 +11,7 @@ mri_extract_largest_CC_SOURCES=mri_extract_largest_CC.c \
 	myutil.h \
 	subroutines.c \
 	subroutines.h
-mri_extract_largest_CC_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_extract_largest_CC_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_extract_largest_CC_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

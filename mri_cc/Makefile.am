@@ -7,7 +7,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_cc
 mri_cc_SOURCES=mri_cc.c
-mri_cc_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_cc_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_cc_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

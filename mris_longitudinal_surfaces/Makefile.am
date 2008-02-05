@@ -6,7 +6,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
 bin_PROGRAMS = mris_longitudinal_surfaces
 mris_longitudinal_surfaces_SOURCES=mris_longitudinal_surfaces.c
-mris_longitudinal_surfaces_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_longitudinal_surfaces_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_longitudinal_surfaces_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

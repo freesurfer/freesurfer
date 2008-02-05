@@ -7,7 +7,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
 bin_PROGRAMS = mris_diff
 mris_diff_SOURCES=mris_diff.c
-mris_diff_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_diff_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_diff_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_label_area
 mris_label_area_SOURCES=mris_label_area.c
-mris_label_area_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_label_area_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_label_area_LDFLAGS=$(OS_LDFLAGS)
 
 

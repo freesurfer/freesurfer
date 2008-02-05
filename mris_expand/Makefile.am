@@ -6,7 +6,7 @@ AM_CFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = mris_expand
 mris_expand_SOURCES=mris_expand.c
-mris_expand_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_expand_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_expand_LDFLAGS=$(OS_LDFLAGS)
 
 TESTS=test_mris_expand

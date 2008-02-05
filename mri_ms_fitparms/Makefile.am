@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_ms_fitparms
 mri_ms_fitparms_SOURCES=mri_ms_fitparms.c
-mri_ms_fitparms_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_ms_fitparms_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_ms_fitparms_LDFLAGS=$(OS_LDFLAGS)
 
 

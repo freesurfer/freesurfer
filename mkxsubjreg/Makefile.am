@@ -7,7 +7,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mkxsubjreg
 mkxsubjreg_SOURCES=mkxsubjreg.c
-mkxsubjreg_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mkxsubjreg_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mkxsubjreg_LDFLAGS=$(OS_LDFLAGS)
 
 

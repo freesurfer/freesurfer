@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_mark_temporal_lobe
 mri_mark_temporal_lobe_SOURCES=mri_mark_temporal_lobe.c
-mri_mark_temporal_lobe_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_mark_temporal_lobe_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_mark_temporal_lobe_LDFLAGS=$(OS_LDFLAGS)
 
 

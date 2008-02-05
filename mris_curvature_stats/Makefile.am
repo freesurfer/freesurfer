@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_curvature_stats
 mris_curvature_stats_SOURCES=mris_curvature_stats.c
-mris_curvature_stats_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_curvature_stats_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_curvature_stats_LDFLAGS=$(OS_LDFLAGS)
 
 

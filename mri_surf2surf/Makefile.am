@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_surf2surf
 mri_surf2surf_SOURCES=mri_surf2surf.c
-mri_surf2surf_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_surf2surf_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_surf2surf_LDFLAGS=$(OS_LDFLAGS)
 
 

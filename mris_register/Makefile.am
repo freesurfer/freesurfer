@@ -16,7 +16,7 @@ LIBS_PETSC=
 
 bin_PROGRAMS = mris_register
 mris_register_SOURCES=mris_register.c
-mris_register_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
+mris_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	-L$(top_srcdir)/tetgen -ltetgen $(LIBS_PETSC)
 mris_register_LDFLAGS=$(OS_LDFLAGS)
 

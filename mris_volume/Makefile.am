@@ -7,11 +7,11 @@ AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = mris_volume mris_wm_volume
 mris_volume_SOURCES=mris_volume.c
-mris_volume_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_volume_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_volume_LDFLAGS=$(OS_LDFLAGS)
 
 mris_wm_volume_SOURCES=mris_wm_volume.c
-mris_wm_volume_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_wm_volume_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_wm_volume_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

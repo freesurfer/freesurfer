@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_rotate
 mris_rotate_SOURCES=mris_rotate.c
-mris_rotate_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_rotate_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_rotate_LDFLAGS=$(OS_LDFLAGS)
 
 

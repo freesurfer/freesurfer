@@ -6,7 +6,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = optseq2
 optseq2_SOURCES=optseq2.c
-optseq2_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+optseq2_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 optseq2_LDFLAGS=$(OS_LDFLAGS)
 
 TESTS=test_optseq2.csh

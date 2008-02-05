@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_average
 mri_average_SOURCES=mri_average.c
-mri_average_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_average_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_average_LDFLAGS=$(OS_LDFLAGS)
 
 

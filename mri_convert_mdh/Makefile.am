@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_convert_mdh
 mri_convert_mdh_SOURCES=mri_convert_mdh.c
-mri_convert_mdh_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_convert_mdh_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_convert_mdh_LDFLAGS=$(OS_LDFLAGS)
 
 

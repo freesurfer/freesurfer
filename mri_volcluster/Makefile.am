@@ -7,7 +7,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_volcluster
 mri_volcluster_SOURCES=mri_volcluster.c
-mri_volcluster_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_volcluster_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_volcluster_LDFLAGS=$(OS_LDFLAGS)
 
 

@@ -7,7 +7,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = hiam_make_template
 hiam_make_template_SOURCES=hiam_make_template.c
-hiam_make_template_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+hiam_make_template_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 hiam_make_template_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

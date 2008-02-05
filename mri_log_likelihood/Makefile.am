@@ -7,7 +7,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = mri_log_likelihood
 mri_log_likelihood_SOURCES=mri_log_likelihood.c
-mri_log_likelihood_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_log_likelihood_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_log_likelihood_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

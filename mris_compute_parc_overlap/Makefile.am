@@ -7,7 +7,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = mris_compute_parc_overlap
 mris_compute_parc_overlap_SOURCES=mris_compute_parc_overlap.c
-mris_compute_parc_overlap_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_compute_parc_overlap_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_compute_parc_overlap_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

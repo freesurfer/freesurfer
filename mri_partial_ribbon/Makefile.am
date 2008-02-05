@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_partial_ribbon
 mri_partial_ribbon_SOURCES=mri_partial_ribbon.c
-mri_partial_ribbon_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_partial_ribbon_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_partial_ribbon_LDFLAGS=$(OS_LDFLAGS)
 
 

@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = tridec
 tridec_SOURCES=tridec.c
-tridec_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+tridec_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 tridec_LDFLAGS=$(OS_LDFLAGS)
 
 

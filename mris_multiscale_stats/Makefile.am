@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_multiscale_stats
 mris_multiscale_stats_SOURCES=mris_multiscale_stats.c
-mris_multiscale_stats_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_multiscale_stats_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_multiscale_stats_LDFLAGS=$(OS_LDFLAGS)
 
 

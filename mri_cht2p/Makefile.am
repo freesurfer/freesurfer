@@ -7,7 +7,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = mri_cht2p
 mri_cht2p_SOURCES=mri_cht2p.c
-mri_cht2p_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_cht2p_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_cht2p_LDFLAGS=$(OS_LDFLAGS)
 
 

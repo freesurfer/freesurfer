@@ -7,7 +7,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = check_siemens_dir
 check_siemens_dir_SOURCES=check_siemens_dir.c
-check_siemens_dir_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+check_siemens_dir_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 check_siemens_dir_LDFLAGS=$(OS_LDFLAGS)
 
 

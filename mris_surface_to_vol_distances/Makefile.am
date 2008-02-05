@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_surface_to_vol_distances
 mris_surface_to_vol_distances_SOURCES=mris_surface_to_vol_distances.c
-mris_surface_to_vol_distances_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_surface_to_vol_distances_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_surface_to_vol_distances_LDFLAGS=$(OS_LDFLAGS)
 
 

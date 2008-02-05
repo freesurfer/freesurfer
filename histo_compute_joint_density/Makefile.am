@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS=histo_compute_joint_density
 histo_compute_joint_density_SOURCES=histo_compute_joint_density.c
-histo_compute_joint_density_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+histo_compute_joint_density_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 histo_compute_joint_density_LDFLAGS=$(OS_LDFLAGS)
 
 

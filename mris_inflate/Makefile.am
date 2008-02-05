@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_inflate
 mris_inflate_SOURCES=mris_inflate.c
-mris_inflate_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_inflate_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_inflate_LDFLAGS=$(OS_LDFLAGS)
 
 

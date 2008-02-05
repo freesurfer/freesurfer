@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_w_to_curv
 mris_w_to_curv_SOURCES=mris_w_to_curv.c
-mris_w_to_curv_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_w_to_curv_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_w_to_curv_LDFLAGS=$(OS_LDFLAGS)
 
 

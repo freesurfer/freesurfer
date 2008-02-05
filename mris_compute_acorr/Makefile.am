@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_compute_acorr
 mris_compute_acorr_SOURCES=mris_compute_acorr.c
-mris_compute_acorr_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_compute_acorr_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_compute_acorr_LDFLAGS=$(OS_LDFLAGS)
 
 

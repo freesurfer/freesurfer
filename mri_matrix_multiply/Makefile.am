@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_matrix_multiply
 mri_matrix_multiply_SOURCES=mri_matrix_multiply.c
-mri_matrix_multiply_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_matrix_multiply_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_matrix_multiply_LDFLAGS=$(OS_LDFLAGS)
 
 

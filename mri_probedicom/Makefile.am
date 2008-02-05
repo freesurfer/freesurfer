@@ -9,7 +9,7 @@ AM_LDFLAGS=
 if HAVE_GLUT_LIBS
 bin_PROGRAMS = mri_probedicom
 mri_probedicom_SOURCES=mri_probedicom.c
-mri_probedicom_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(GLUT_LIBS)
+mri_probedicom_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(GLUT_LIBS)
 mri_probedicom_LDFLAGS=
 else
 bin_PROGRAMS=

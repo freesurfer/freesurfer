@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_errors
 mris_errors_SOURCES=mris_errors.c
-mris_errors_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_errors_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_errors_LDFLAGS=$(OS_LDFLAGS)
 
 

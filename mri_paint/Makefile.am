@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_paint
 mri_paint_SOURCES=mri_paint.c
-mri_paint_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_paint_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_paint_LDFLAGS=$(OS_LDFLAGS)
 
 

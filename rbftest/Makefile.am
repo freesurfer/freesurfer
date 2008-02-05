@@ -7,7 +7,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = rbftest
 rbftest_SOURCES=rbftest.c
-rbftest_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+rbftest_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 rbftest_LDFLAGS=$(OS_LDFLAGS)
 
 

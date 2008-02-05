@@ -7,7 +7,7 @@ AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
 bin_PROGRAMS = mri_threshold
 mri_threshold_SOURCES=mri_threshold.c
-mri_threshold_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_threshold_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_threshold_LDFLAGS=$(OS_LDFLAGS)
 
 

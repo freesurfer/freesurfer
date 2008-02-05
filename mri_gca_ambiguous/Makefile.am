@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_gca_ambiguous
 mri_gca_ambiguous_SOURCES=mri_gca_ambiguous.c
-mri_gca_ambiguous_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_gca_ambiguous_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_gca_ambiguous_LDFLAGS=$(OS_LDFLAGS)
 
 

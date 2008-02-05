@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_info
 mris_info_SOURCES=mris_info.cpp
-mris_info_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_info_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_info_LDFLAGS=$(OS_LDFLAGS)
 
 

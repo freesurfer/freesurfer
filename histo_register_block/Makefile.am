@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = histo_register_block
 histo_register_block_SOURCES=histo_register_block.c
-histo_register_block_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+histo_register_block_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 histo_register_block_LDFLAGS=$(OS_LDFLAGS)
 
 

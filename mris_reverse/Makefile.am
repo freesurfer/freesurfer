@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_reverse
 mris_reverse_SOURCES=mris_reverse.c
-mris_reverse_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_reverse_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_reverse_LDFLAGS=$(OS_LDFLAGS)
 
 

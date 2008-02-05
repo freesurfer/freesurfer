@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_probe_ima
 mri_probe_ima_SOURCES=mri_probe_ima.c
-mri_probe_ima_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_probe_ima_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_probe_ima_LDFLAGS=$(OS_LDFLAGS)
 
 

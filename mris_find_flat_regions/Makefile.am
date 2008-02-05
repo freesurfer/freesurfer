@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_find_flat_regions
 mris_find_flat_regions_SOURCES=mris_find_flat_regions.c
-mris_find_flat_regions_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_find_flat_regions_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_find_flat_regions_LDFLAGS=$(OS_LDFLAGS)
 
 

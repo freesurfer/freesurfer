@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_talairach
 mris_talairach_SOURCES=mris_talairach.c
-mris_talairach_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_talairach_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_talairach_LDFLAGS=$(OS_LDFLAGS)
 
 

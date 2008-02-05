@@ -7,7 +7,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_synthesize
 mri_synthesize_SOURCES=mri_synthesize.c
-mri_synthesize_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_synthesize_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_synthesize_LDFLAGS=$(OS_LDFLAGS)
 
 

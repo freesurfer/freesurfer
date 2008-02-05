@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_rescale
 mris_rescale_SOURCES=mris_rescale.c
-mris_rescale_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_rescale_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_rescale_LDFLAGS=$(OS_LDFLAGS)
 
 

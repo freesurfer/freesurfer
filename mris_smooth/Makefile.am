@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_smooth
 mris_smooth_SOURCES=mris_smooth.c
-mris_smooth_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_smooth_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_smooth_LDFLAGS=$(OS_LDFLAGS)
 
 

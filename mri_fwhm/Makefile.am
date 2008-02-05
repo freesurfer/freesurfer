@@ -7,7 +7,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = mri_fwhm
 mri_fwhm_SOURCES=mri_fwhm.c
-mri_fwhm_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_fwhm_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_fwhm_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

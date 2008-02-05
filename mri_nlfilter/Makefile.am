@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_nlfilter
 mri_nlfilter_SOURCES=mri_nlfilter.c
-mri_nlfilter_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_nlfilter_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_nlfilter_LDFLAGS=$(OS_LDFLAGS)
 
 

@@ -10,19 +10,17 @@ CCLD=g++
 AM_CFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom
 
-check_PROGRAMS= ctest
-
-TESTS=
+check_PROGRAMS=ctest
 
 ctest_SOURCES=ctest.c
 ctest_LDFLAGS=$(OS_LDFLAGS)
 
-LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH) utilscpp/libutilscpp.a)
+TESTS=ctest
 
-
+LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH) utilscpp/libutilscpp.a)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=""
+EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra

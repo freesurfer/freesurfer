@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_auto_fill
 mri_auto_fill_SOURCES=mri_auto_fill.c
-mri_auto_fill_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_auto_fill_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_auto_fill_LDFLAGS=$(OS_LDFLAGS)
 
 

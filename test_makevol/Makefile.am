@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS=makevol
 makevol_SOURCES=main.c
-makevol_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+makevol_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 makevol_LDFLAGS=$(OS_LDFLAGS)
 
 

@@ -7,7 +7,7 @@ AM_LDFLAGS=-static
 
 bin_PROGRAMS = mri_deface
 mri_deface_SOURCES=mri_deface.c
-mri_deface_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_deface_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_deface_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

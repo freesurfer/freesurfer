@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mrisp_paint
 mrisp_paint_SOURCES=mrisp_paint.c
-mrisp_paint_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mrisp_paint_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mrisp_paint_LDFLAGS=$(OS_LDFLAGS)
 
 

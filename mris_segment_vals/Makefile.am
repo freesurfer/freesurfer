@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_segment_vals
 mris_segment_vals_SOURCES=mris_segment_vals.c
-mris_segment_vals_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_segment_vals_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_segment_vals_LDFLAGS=$(OS_LDFLAGS)
 
 

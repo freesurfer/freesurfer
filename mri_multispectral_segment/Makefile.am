@@ -7,7 +7,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
 bin_PROGRAMS = mri_multispectral_segment
 mri_multispectral_segment_SOURCES=mri_multispectral_segment.c
-mri_multispectral_segment_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_multispectral_segment_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_multispectral_segment_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be

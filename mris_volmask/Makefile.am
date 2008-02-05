@@ -8,7 +8,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include $(VTK_CXXFLAGS) -Wno-deprecated
 bin_PROGRAMS = mris_volmask
 
 mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
-mris_volmask_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
+mris_volmask_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 $(LIBS_OPENGL) $(X_LIBS) $(GL_LIBS) \
 -ldl -lpthread \
 $(VTK_LIBS) \

@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_euler_number
 mris_euler_number_SOURCES=mris_euler_number.c
-mris_euler_number_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_euler_number_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_euler_number_LDFLAGS=$(OS_LDFLAGS)
 
 

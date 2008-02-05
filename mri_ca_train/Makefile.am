@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_ca_train
 mri_ca_train_SOURCES=mri_ca_train.c
-mri_ca_train_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_ca_train_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_ca_train_LDFLAGS=$(OS_LDFLAGS)
 
 

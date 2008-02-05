@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_joint_density
 mri_joint_density_SOURCES=mri_joint_density.c
-mri_joint_density_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_joint_density_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_joint_density_LDFLAGS=$(OS_LDFLAGS)
 
 

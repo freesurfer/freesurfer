@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = regdat2xfm
 regdat2xfm_SOURCES=regdat2xfm.cpp
-regdat2xfm_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+regdat2xfm_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 regdat2xfm_LDFLAGS=$(OS_LDFLAGS)
 
 

@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_translate_annotation
 mris_translate_annotation_SOURCES=mris_translate_annotation.c
-mris_translate_annotation_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_translate_annotation_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_translate_annotation_LDFLAGS=$(OS_LDFLAGS)
 
 

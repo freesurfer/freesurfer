@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mris_flatten
 mris_flatten_SOURCES=mris_flatten.c
-mris_flatten_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mris_flatten_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_flatten_LDFLAGS=$(OS_LDFLAGS)
 
 

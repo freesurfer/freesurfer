@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_evaluate_morph
 mri_evaluate_morph_SOURCES=mri_evaluate_morph.c
-mri_evaluate_morph_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_evaluate_morph_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_evaluate_morph_LDFLAGS=$(OS_LDFLAGS)
 
 

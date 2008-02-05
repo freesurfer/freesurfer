@@ -8,7 +8,7 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_surfacemask
 mri_surfacemask_SOURCES=mri_surfacemask.cpp
-mri_surfacemask_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+mri_surfacemask_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_surfacemask_LDFLAGS=$(OS_LDFLAGS)
 
 
