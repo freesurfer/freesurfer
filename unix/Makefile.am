@@ -2,7 +2,8 @@
 # Makefile.am
 #
 
-AM_CPPFLAGS=-I$(top_srcdir)/include $(GL_CFLAGS) 
+AM_CPPFLAGS=-I$(top_srcdir)/include \
+	$(GL_CFLAGS) $(HAVE_OPENGL)
 AM_LDFLAGS=
 
 noinst_LIBRARIES= libunix.a
