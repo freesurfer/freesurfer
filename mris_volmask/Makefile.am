@@ -3,11 +3,12 @@
 ##
 
 AM_CFLAGS=-I$(top_srcdir)/include
-AM_CXXFLAGS=-I$(top_srcdir)/include $(VTK_CXXFLAGS) -Wno-deprecated
-
+AM_CXXFLAGS=-I$(top_srcdir)/include \
+	$(VTK_CXXFLAGS) -Wno-deprecated
 bin_PROGRAMS = mris_volmask
 
-mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
+mris_volmask_SOURCES=mris_volmask.cpp \
+	cmd_line_interface.cpp
 mris_volmask_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) \
 $(LIBS_OPENGL) $(X_LIBS) $(GL_LIBS) \
 -ldl -lpthread \
@@ -20,7 +21,9 @@ $(VTK_Z_LIB) $(VTK_EXPAT_LIB) $(VTK_METAIO_LIB) \
 -lvtkImaging -lvtkftgl \
 -lvtkIO -lvtkFiltering -lvtkCommon -lvtkDICOMParser \
 -lvtksys \
-$(VTK_MPEG2ENCODE_LIB) -lvtkexoIIc -lvtkNetCDF
+$(VTK_MPEG2ENCODE_LIB) -lvtkexoIIc -lvtkNetCDF \
+$(VTK_FREETYPE_LIB) \
+$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
 TESTS=test_mris_volmask
 
