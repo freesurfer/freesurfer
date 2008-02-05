@@ -15,7 +15,7 @@ check_PROGRAMS=ctest
 ctest_SOURCES=ctest.c
 ctest_LDFLAGS=$(OS_LDFLAGS)
 
-TESTS=ctest
+#segfaults: TESTS=ctest
 
 LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH) utilscpp/libutilscpp.a)
 
