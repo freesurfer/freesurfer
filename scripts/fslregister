@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/01/08 23:39:52 $
-#    $Revision: 1.20 $
+#    $Date: 2008/02/06 19:25:21 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.20 2008/01/08 23:39:52 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.21 2008/02/06 19:25:21 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -52,6 +52,7 @@ set frame = 0;
 set DoMidFrame = 0;
 set templateout = ();
 set DoSegReg = 0;
+set Verbosity = 0;
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -190,11 +191,12 @@ endif
 if($#InitFSLMat)  set fslmat0 = $InitFSLMat;
 
 # Set up and run the Flirt command-line
-set cmd = (flirt -ref $refvolimg -in $movvolimg)
+set cmd = (flirt -ref $refvolimg -in $movvolimg -bins $bins)
 set cmd = ($cmd  -omat $fslmat -cost $cost -dof $dof)
 set cmd = ($cmd  -searchrx -$maxangle $maxangle);
 set cmd = ($cmd  -searchry -$maxangle $maxangle);
 set cmd = ($cmd  -searchrz -$maxangle $maxangle);
+set cmd = ($cmd  -verbose $Verbosity);
 if($#fslmat0) set cmd = ($cmd -init $fslmat0)
 if($#outvol) then
   set outvolbase = $tmpdir/outvol.fslregister
@@ -411,6 +413,11 @@ while( $#argv != 0 )
       set cleanup = 0;
       breaksw
 
+    case "--verbose":
+      if ( $#argv < 1) goto arg1err;
+      set Verbosity = $argv[1]; shift;
+      breaksw
+
     case "--nocleanup":
       set cleanup = 0;
       breaksw
@@ -506,6 +513,7 @@ usage_exit:
   echo "   --template-out template : save template (good with --frame)"
   echo " "
   echo "   --out outvol : have flirt reslice mov to targ"
+  echo "   --verbose N  : flirt verbosity level"
   echo "   --tmp tmpdir : use tmpdir (implies --nocleanup)"
   echo "   --nocleanup  : do not delete temporary files"
   echo "   --version    : print version and exit"
