@@ -10,8 +10,8 @@
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/03 23:24:50 $
- *    $Revision: 1.19 $
+ *    $Date: 2008/02/06 20:31:44 $
+ *    $Revision: 1.19.2.1 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -161,13 +161,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.19 2007/08/03 23:24:50 nicks Exp $",
+   "$Id: mri_cc.c,v 1.19.2.1 2008/02/06 20:31:44 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.19 2007/08/03 23:24:50 nicks Exp $",
+           "$Id: mri_cc.c,v 1.19.2.1 2008/02/06 20:31:44 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1950,6 +1950,7 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
     {
       if (x == Gx && y == Gy)
         DiagBreak() ;
+
       val = (int)MRIgetVoxVal(mri_slice_edited, x, y, 0, 0) ;
       if (val != FORNIX_VAL)
         continue ;
@@ -1959,6 +1960,7 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
         x1 = x + i ;
         if (x < 0 || x >= mri_slice_edited->width)
           continue ;
+
         val = (int)MRIgetVoxVal(mri_tmp, x1, y, 0, 0) ;
         if (val == LABEL_IN_CC)
         {
@@ -1981,6 +1983,7 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
     {
       if (x == Gx && y == Gy)
         DiagBreak() ;
+
       val = (int)MRIgetVoxVal(mri_slice_edited, x, y, 0, 0) ;
       if (val != FORNIX_VAL)
         continue ;
@@ -2013,6 +2016,7 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
       {
         if (x == Gx && y == Gy)
           DiagBreak() ;
+
         val = (int)MRIgetVoxVal(mri_slice, x, y, 0, 0) ;
         val2 = (int)MRIgetVoxVal(mri_slice_edited, x, y, 0, 0) ;
         if (val == LABEL_IN_CC && val2 == LABEL_ERASE)  // in fornix
@@ -2059,6 +2063,7 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
           first_off = y ;
       }
       thickness = first_on - last_on + 1 ;
+
       if (thickness >= max_thickness)  // erase inferior stuff
       {
         int y1 ;
@@ -2069,6 +2074,19 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
           ystart = first_off ;
         else 
           ystart = last_on+max_thickness-1 ;
+
+	/*
+	  printf("thickness=%d\n",thickness);
+	  printf("max_thickness=%d\n",max_thickness);
+	  printf("first_off=%d\n",first_off);
+	  printf("last_on=%d\n",last_on);
+	  printf("ystart=%d\n",ystart);
+	  fflush(stdout); fflush(stderr);
+	*/
+	// boundary check: there was one oddball subject (BM)
+	// where ystart was -2.  this handles that case:
+	if (ystart < 0) ystart=0;
+
         for (y1 = ystart ; y1 < mri_slice->height ; y1++)
         {
           val = MRIgetVoxVal(mri_slice_edited, x, y1, 0, 0) ;
