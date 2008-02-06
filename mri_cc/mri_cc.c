@@ -10,8 +10,8 @@
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/17 22:54:33 $
- *    $Revision: 1.22 $
+ *    $Date: 2008/02/06 20:36:10 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -162,13 +162,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.22 2008/01/17 22:54:33 nicks Exp $",
+   "$Id: mri_cc.c,v 1.23 2008/02/06 20:36:10 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.22 2008/01/17 22:54:33 nicks Exp $",
+           "$Id: mri_cc.c,v 1.23 2008/02/06 20:36:10 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2086,6 +2086,11 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
           ystart = first_off ;
         else 
           ystart = last_on+max_thickness-1 ;
+
+        // boundary check: there was one oddball subject (BM)
+        // where ystart was -2.  this handles that case:
+        if (ystart < 0) ystart=0;
+        
         for (y1 = ystart ; y1 < mri_slice->height ; y1++)
         {
           val = MRIgetVoxVal(mri_slice_edited, x, y1, 0, 0) ;
