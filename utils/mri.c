@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/31 01:19:47 $
- *    $Revision: 1.408 $
+ *    $Date: 2008/02/07 00:37:21 $
+ *    $Revision: 1.409 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.408 $";
+const char *MRI_C_VERSION = "$Revision: 1.409 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -10184,6 +10184,39 @@ MRIneighbors(MRI *mri, int x0, int y0, int z0, int val)
   Description
   ------------------------------------------------------*/
 int
+MRIneighborsInRange(MRI *mri, int x0, int y0, int z0, int frame, float  low_val, float hi_val)
+{
+  int   nbrs = 0 ;
+  float val ;
+
+  val = MRIgetVoxVal(mri,mri->xi[x0-1],y0,z0,frame) ;
+  if (val >= low_val && val <= hi_val)
+    nbrs++ ;
+  val = MRIgetVoxVal(mri,mri->xi[x0+1],y0,z0,frame) ;
+  if (val >= low_val && val <= hi_val)
+    nbrs++ ;
+  val = MRIgetVoxVal(mri,x0,mri->yi[y0+1],z0,frame) ;
+  if (val >= low_val && val <= hi_val)
+    nbrs++ ;
+  val = MRIgetVoxVal(mri,x0,mri->yi[y0-1],z0,frame) ;
+  if (val >= low_val && val <= hi_val)
+    nbrs++ ;
+  val = MRIgetVoxVal(mri,x0,y0,mri->zi[z0+1],frame) ;
+  if (val >= low_val && val <= hi_val)
+    nbrs++ ;
+  val = MRIgetVoxVal(mri,x0,y0,mri->zi[z0-1],frame) ;
+  if (val >= low_val && val <= hi_val)
+    nbrs++ ;
+  return(nbrs) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
 MRIneighbors3x3(MRI *mri, int x, int y, int z, int val)
 {
   int   xk, yk, zk, xi, yi, zi, nbrs ;
@@ -15298,6 +15331,9 @@ MRI *
 MRIcloneDifferentType(MRI *mri_src, int type)
 {
   MRI *mri_dst ;
+
+  if (type == mri_src->type)
+    return(MRIclone(mri_src, NULL)) ;
 
   mri_dst = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth, 
                              mri_src->type, mri_src->nframes) ;

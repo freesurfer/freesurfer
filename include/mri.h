@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/31 01:20:02 $
- *    $Revision: 1.360 $
+ *    $Date: 2008/02/07 00:37:28 $
+ *    $Revision: 1.361 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -356,6 +356,7 @@ MRI   *MRIpolvMeanRegion(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
 MRI   *MRIpolvMedianRegion(MRI *mri_src, MRI *mri_dst,MRI *mri_polv,int wsize,
                            MRI_REGION *region);
 
+MRI   *MRIlaplacian(MRI *mri_src, MRI *mri_laplacian);
 MRI   *MRIsobel(MRI *mri_src, MRI *mri_grad, MRI *mri_mag);
 MRI   *MRIxSobel(MRI *mri_src, MRI *mri_x, int frame) ;
 MRI   *MRIxSobelForAllTypes(MRI *mri_src, MRI *mri_x, int frame) ;
@@ -785,6 +786,7 @@ MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y,
 MRI        *MRIfillBG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y,
                       int seed_z, int threshold, int fill_val, int *npix) ;
 
+int   MRIneighborsInRange(MRI *mri, int x0, int y0, int z0, int frame, float  low_val, float hi_val) ;
 int   MRIneighbors3x3(MRI *mri, int x, int y, int z, int val) ;
 int   MRIneighbors(MRI *mri, int x, int y, int z, int val) ;
 int   MRIneighborsOn(MRI *mri, int x0, int y0, int z0, int min_val) ;

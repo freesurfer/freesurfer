@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/31 01:19:47 $
- *    $Revision: 1.66 $
+ *    $Date: 2008/02/07 00:37:22 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -941,6 +941,39 @@ MRIzSobelRegion(MRI *mri_src, MRI *mri_z, int frame, MRI_REGION *region)
   return(mri_z) ;
 }
 #endif
+
+// compute the laplacian of the input volume (6-connected)
+MRI *
+MRIlaplacian(MRI *mri_src, MRI *mri_laplacian)
+{
+  int   x, y, z ;
+  float lap ;
+
+  if (mri_laplacian == NULL)
+    mri_laplacian = MRIcloneDifferentType(mri_src, MRI_FLOAT) ;
+
+  for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
+    {
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        lap = -6*MRIgetVoxVal(mri_src, x, y, z, 0) ;
+        lap += MRIgetVoxVal(mri_src, mri_src->xi[x-1], y, z, 0) ;
+        lap += MRIgetVoxVal(mri_src, mri_src->xi[x+1], y, z, 0) ;
+        lap += MRIgetVoxVal(mri_src, x, mri_src->yi[y-1], z, 0) ;
+        lap += MRIgetVoxVal(mri_src, x, mri_src->yi[y+1], z, 0) ;
+        lap += MRIgetVoxVal(mri_src, x, y, mri_src->zi[z-1], 0) ;
+        lap += MRIgetVoxVal(mri_src, x, y, mri_src->zi[z+1], 0) ;
+        MRIsetVoxVal(mri_laplacian, x, y, z, 0, lap) ;
+      }
+    }
+  }
+
+
+  return(mri_laplacian) ;
+}
+
 /*-----------------------------------------------------
         Parameters:
 
