@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/18 18:48:29 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/02/07 00:38:14 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,8 +50,11 @@ typedef struct
 }
 VOXEL_LIST ;
 
+VOXEL_LIST *VLSTalloc(int nvox) ;
+VOXEL_LIST *VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_index, int num) ;
 MRI         *VLSTtoMri(VOXEL_LIST *vl, MRI *mri) ;
 int         VLSTfree(VOXEL_LIST **pvoxel_list) ;
+VOXEL_LIST  *VLSTcreateFromDifference(MRI *mri1, MRI *mri2, VOXEL_LIST *vl, int target_label) ;
 VOXEL_LIST  *VLSTcreate(MRI *mri, float low_val, float hi_val ,
                         VOXEL_LIST *vl, int skip, int border_only) ;
 VOXEL_LIST  *VLSTcreateInRegion(MRI *mri, float low_val, float hi_val ,
