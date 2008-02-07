@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/02/06 19:25:21 $
-#    $Revision: 1.21 $
+#    $Date: 2008/02/07 22:58:11 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.21 2008/02/06 19:25:21 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.22 2008/02/07 22:58:11 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -401,6 +401,7 @@ while( $#argv != 0 )
       set regfile = $argv[1]; shift;
       breaksw
 
+    case "--bbr":
     case "--segreg":
       if ( $#argv < 1) goto arg1err;
       set segregfile = $argv[1]; shift;
