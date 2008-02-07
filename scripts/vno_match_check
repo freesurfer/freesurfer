@@ -72,6 +72,7 @@ foreach hemi ( $hemis )
     end
 
     # now check that the curvature files have the correct number of vertices
+    # mris_info does this check via the $hemi.orig input argument
     foreach curv ( curv sulc area thickness )
 
         if ("x$2" != "x") echo "Checking $subj/surf/$hemi.$curv..."
@@ -88,6 +89,7 @@ foreach hemi ( $hemis )
     end
 
     # now check that the annotation files have the correct number of vertices
+    # mris_info does this check via the $hemi.orig input argument
     set annot_list = ( aparc.annot aparc.a2005s.annot )
     if ("x$2" == "xaparc_edited") set annot_list = ( $annot_list aparc_edited.annot )
     foreach annot ( $annot_list )
