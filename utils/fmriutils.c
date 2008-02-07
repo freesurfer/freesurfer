@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/19 21:55:04 $
- *    $Revision: 1.48 $
+ *    $Date: 2008/02/07 21:15:33 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.48 2007/12/19 21:55:04 greve Exp $
+  $Id: fmriutils.c,v 1.49 2008/02/07 21:15:33 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.48 2007/12/19 21:55:04 greve Exp $");
+  return("$Id: fmriutils.c,v 1.49 2008/02/07 21:15:33 greve Exp $");
 }
 
 
@@ -1473,27 +1473,22 @@ MRI *MRIvolMax(MRI *invol, MRI *out)
   int c, r, s, f;
   double v, max;
 
-  if (out==NULL)
-  {
+  if(out==NULL){
     out = MRIalloc(invol->width,invol->height,invol->depth,invol->type);
-    if (out == NULL) return(NULL);
+    if(out == NULL) return(NULL);
+    MRIcopyHeader(invol,out);
   }
   if (out->width != invol->width || out->height != invol->height ||
-      out->depth != invol->depth)
-  {
+      out->depth != invol->depth){
     printf("ERROR: MRIvolMax: dimension mismatch\n");
     return(NULL);
   }
 
-  for (c=0; c < invol->width; c++)
-  {
-    for (r=0; r < invol->height; r++)
-    {
-      for (s=0; s < invol->depth; s++)
-      {
+  for (c=0; c < invol->width; c++)  {
+    for (r=0; r < invol->height; r++) {
+      for (s=0; s < invol->depth; s++) {
         max = MRIgetVoxVal(invol,c,r,s,0);
-        for (f=1; f < invol->nframes; f++)
-        {
+        for (f=1; f < invol->nframes; f++) {
           v = MRIgetVoxVal(invol,c,r,s,f);
           if (max < v) max = v;
         }
