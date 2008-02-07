@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/19 21:55:20 $
- *    $Revision: 1.22 $
+ *    $Date: 2008/02/07 21:48:46 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.22 2007/12/19 21:55:20 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.23 2008/02/07 21:48:46 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -80,6 +80,13 @@ int DoPairedDiffNorm2=0;
 int DoVote=0;
 int DoSort=0;
 int DoCombine=0;
+
+int DoMultiply=0;
+double MultiplyVal=0;
+
+int DoAdd=0;
+double AddVal=0;
+int DoBonfCor=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -219,6 +226,11 @@ int main(int argc, char **argv) {
     mriout = mritmp;
   }
 
+  if(DoBonfCor){
+    DoAdd = 1;
+    AddVal = -log10(mriout->nframes);
+  }
+
   if(DoMean) {
     printf("Computing mean across frames\n");
     mritmp = MRIframeMean(mriout,NULL);
@@ -267,6 +279,16 @@ int main(int argc, char **argv) {
     mriout = mritmp;
   }
 
+  if(DoMultiply){
+    printf("Multiplying by %lf\n",MultiplyVal);
+    MRImultiplyConst(mriout, MultiplyVal, mriout);
+  }
+
+  if(DoAdd){
+    printf("Adding %lf\n",AddVal);
+    MRIaddConst(mriout, AddVal, mriout);
+  }
+
   printf("Writing to %s\n",out);
   MRIwrite(mriout,out);
 
@@ -303,6 +325,10 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--max"))    DoMax = 1;
     else if (!strcasecmp(option, "--vote"))   DoVote = 1;
     else if (!strcasecmp(option, "--sort"))   DoSort = 1;
+    else if (!strcasecmp(option, "--max-bonfcor")){
+      DoMax = 1;
+      DoBonfCor = 1;
+    }
     else if (!strcasecmp(option, "--asl")){
       DoPairedDiff = 1;
       DoMean = 1;
@@ -346,6 +372,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       maskfile = pargv[0];
       nargsused = 1;
+    } else if ( !strcmp(option, "--mul") ) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&MultiplyVal);
+      DoMultiply = 1;
+      nargsused = 1;
+    } else if ( !strcmp(option, "--add") ) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&AddVal);
+      DoAdd = 1;
+      nargsused = 1;
     } else {
       inlist[ninputs] = option;
       ninputs ++;
@@ -387,6 +423,10 @@ static void print_usage(void) {
   printf("   --max  : compute max  of concatenated volumes\n");
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
+  printf("\n");
+  printf("   --max-bonfcor  : compute max and bonferroni correct (assumes -log10(p))\n");
+  printf("   --mul mulval   : multiply by mulval\n");
+  printf("   --add addval   : add addval\n");
   printf("\n");
   printf("   --mask maskfile : mask used with --vote or --sort\n");
   printf("   --help      print out information on how to use this program\n");
