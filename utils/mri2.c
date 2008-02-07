@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/20 20:06:18 $
- *    $Revision: 1.43 $
+ *    $Date: 2008/02/07 21:47:00 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.43 2007/12/20 20:06:18 greve Exp $
+  $Id: mri2.c,v 1.44 2008/02/07 21:47:00 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -1494,26 +1494,20 @@ double MRImaxAbsDiff(MRI *vol1, MRI *vol2,
   return(maxdiff);
 }
 /* --------------------------------------------------------------- */
-MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst)
-{
+MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst){
   int r,c,s,f;
   double v;
 
-  if (dst==NULL)
-  {
+  if (dst==NULL)  {
     dst = MRIallocSequence(src->width,src->height,src->depth,
                            MRI_FLOAT,src->nframes) ;
     MRIcopyHeader(src, dst);
   }
 
-  for (c=0; c < src->width; c++)
-  {
-    for (r=0; r < src->height; r++)
-    {
-      for (s=0; s < src->depth; s++)
-      {
-        for (f=0; f < src->nframes; f++)
-        {
+  for (c=0; c < src->width; c++)  {
+    for (r=0; r < src->height; r++)    {
+      for (s=0; s < src->depth; s++)      {
+        for (f=0; f < src->nframes; f++)        {
           v = MRIgetVoxVal(src,c,r,s,f);
           MRIsetVoxVal(dst,c,r,s,f,v*vconst);
         }
@@ -1523,6 +1517,31 @@ MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst)
 
   return(dst);
 }
+/* --------------------------------------------------------------- */
+MRI *MRIaddConst(MRI *src, double vconst, MRI *dst){
+  int r,c,s,f;
+  double v;
+
+  if (dst==NULL)  {
+    dst = MRIallocSequence(src->width,src->height,src->depth,
+                           MRI_FLOAT,src->nframes) ;
+    MRIcopyHeader(src, dst);
+  }
+
+  for (c=0; c < src->width; c++)  {
+    for (r=0; r < src->height; r++)    {
+      for (s=0; s < src->depth; s++)      {
+        for (f=0; f < src->nframes; f++)        {
+          v = MRIgetVoxVal(src,c,r,s,f);
+          MRIsetVoxVal(dst,c,r,s,f,v+vconst);
+        }
+      }
+    }
+  }
+
+  return(dst);
+}
+
 /*--------------------------------------------------------------------
   MRIframeBinarize() - creates a binary mask of voxels for which the
   abs(mri->val) of all frames are > thresh. If input mask is not null,
