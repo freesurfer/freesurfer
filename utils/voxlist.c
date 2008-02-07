@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:34 $
- *    $Revision: 1.12 $
+ *    $Author: fischl $
+ *    $Date: 2008/02/07 00:38:35 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -147,6 +147,9 @@ VLSTcreate(MRI *mri,
           DiagBreak() ;
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
+        if (border_only && 
+            (MRIneighborsInRange(mri, x, y, z, 0, low_val, hi_val) < 6))
+          continue ;  // must be nbring at least one voxel not in [low_val, hi_val]
         if (val >= low_val && val <= hi_val)
           nvox++ ;
       }
@@ -191,9 +194,11 @@ VLSTcreate(MRI *mri,
           if (x == Gx && y == Gy && z == Gz)
             DiagBreak() ;
           if ((border_only == 0) ||
-              (MRIneighbors(mri, x, y, z, 0) > 0))
+              (MRIneighborsInRange(mri, x, y, z, 0, low_val, hi_val) < 6))
           {
             i = nvox++ ;
+            if (i == Gdiag_no)
+              DiagBreak() ;
             vl->xi[i] = x ;
             vl->yi[i] = y ;
             vl->zi[i] = z ;
@@ -456,3 +461,141 @@ VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
   return(NO_ERROR) ;
 }
 
+VOXEL_LIST  *
+VLSTcreateFromDifference(MRI *mri1, MRI *mri2, VOXEL_LIST *vl, int target_label)
+{
+  int   x, y, z, nvox, i ;
+  Real  val1, val2 ;
+
+  for (nvox = x = 0 ; x < mri1->width ; x++)
+  {
+    for (y = 0 ; y < mri1->height ; y++)
+    {
+      for (z = 0 ; z < mri1->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        val1 = MRIgetVoxVal(mri1, x, y, z, 0) ;
+        val2 = MRIgetVoxVal(mri2, x, y, z, 0) ;
+        if (val1 > 0)
+          DiagBreak() ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if ((target_label >= 0) && (!FEQUAL(target_label,val1) && !FEQUAL(target_label,val2)))
+          continue ;
+        if (!FEQUAL(val1, val2))
+          nvox++ ;
+      }
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("allocating %d voxel indices...\n", nvox) ;
+  if (vl == NULL)
+    vl = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST)) ;
+  else if (vl->nvox < nvox)
+  {
+    free(vl->xi) ;
+    free(vl->yi) ;
+    free(vl->zi) ;
+    vl->xi = vl->yi = vl->zi = NULL ;
+  }
+  if (vl->xi == NULL)
+  {
+    vl->xd = (float *)calloc(nvox, sizeof(float)) ;
+    vl->yd = (float *)calloc(nvox, sizeof(float)) ;
+    vl->zd = (float *)calloc(nvox, sizeof(float)) ;
+    vl->vsrc = (float *)calloc(nvox, sizeof(float)) ;
+    vl->vdst = (float *)calloc(nvox, sizeof(float)) ;
+    vl->xi = (int *)calloc(nvox, sizeof(int)) ;
+    vl->yi = (int *)calloc(nvox, sizeof(int)) ;
+    vl->zi = (int *)calloc(nvox, sizeof(int)) ;
+  }
+  if (!vl || !vl->xi || !vl->yi || !vl->zi)
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d voxel list\n",
+              Progname, nvox) ;
+  vl->nvox = nvox ;
+  for (nvox = x = 0 ; x < mri1->width ; x++)
+  {
+    for (y = 0 ; y < mri1->height ; y++)
+    {
+      for (z = 0 ; z < mri1->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        val1 = MRIgetVoxVal(mri1, x, y, z, 0) ;
+        val2 = MRIgetVoxVal(mri2, x, y, z, 0) ;
+        if (val1 > 0)
+          DiagBreak() ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if ((target_label >= 0) && (!FEQUAL(target_label,val1) && !FEQUAL(target_label,val2)))
+          continue ;
+        if (!FEQUAL(val1, val2))
+        {
+          i = nvox++ ;
+          vl->xi[i] = x ;
+          vl->yi[i] = y ;
+          vl->zi[i] = z ;
+          vl->vsrc[i] = val1 ;
+          vl->vdst[i] = val2 ;
+        }
+      }
+    }
+  }
+
+  vl->mri = mri1 ;
+  vl->mri2 = mri2 ;
+  return(vl) ;
+}
+VOXEL_LIST *
+VLSTalloc(int nvox)
+{
+  VOXEL_LIST *vl ;
+
+  vl = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST)) ;
+  if (vl == NULL)
+    ErrorExit(ERROR_NOMEMORY, "VLSTalloc(%d): could not allocate VL struct", nvox) ;
+  vl->xd = (float *)calloc(nvox, sizeof(float)) ;
+  vl->yd = (float *)calloc(nvox, sizeof(float)) ;
+  vl->zd = (float *)calloc(nvox, sizeof(float)) ;
+  vl->vsrc = (float *)calloc(nvox, sizeof(float)) ;
+  vl->vdst = (float *)calloc(nvox, sizeof(float)) ;
+  vl->xi = (int *)calloc(nvox, sizeof(int)) ;
+  vl->yi = (int *)calloc(nvox, sizeof(int)) ;
+  vl->zi = (int *)calloc(nvox, sizeof(int)) ;
+  vl->nvox = nvox ;
+  if (vl->xi == NULL ||
+      vl->yi == NULL ||
+      vl->zi == NULL ||
+      vl->xd == NULL ||
+      vl->yd == NULL ||
+      vl->zd == NULL ||
+      vl->vsrc == NULL ||
+      vl->vdst == NULL)
+    ErrorExit(ERROR_NOMEMORY, "VLSTalloc(%d): could not allocate VL struct", nvox) ;
+  return(vl) ;
+}
+VOXEL_LIST *
+VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_index, int num)
+{
+  int  i ;
+  if (vl_dst == NULL)
+    vl_dst = VLSTalloc(num) ;
+
+  for (i = 0 ; i < num ; i++)
+  {
+    vl_dst->xi[i] = vl_src->xi[i+start_index] ;
+    vl_dst->yi[i] = vl_src->yi[i+start_index] ;
+    vl_dst->zi[i] = vl_src->zi[i+start_index] ;
+
+    vl_dst->xd[i] = vl_src->xd[i+start_index] ;
+    vl_dst->yd[i] = vl_src->yd[i+start_index] ;
+    vl_dst->zd[i] = vl_src->zd[i+start_index] ;
+
+    vl_dst->vsrc[i] = vl_src->vsrc[i+start_index] ;
+    vl_dst->vdst[i] = vl_src->vdst[i+start_index] ;
+  }
+
+  return(vl_dst) ;
+}
