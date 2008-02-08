@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/25 21:17:12 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/02/08 19:49:48 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -279,7 +279,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
 
     char factor[1024];
     strncpy( factor, token, sizeof(factor) );
-    //    printf("factor: %s\n",factor);
+    //printf("factor: %s\n",factor);
 
     // if there exists a file called 'factor'.levels, where 'factor' is the
     // token read from the line, then it is a discrete factor, in which
@@ -292,11 +292,12 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
     if( string::npos != nPreLastSlash )
       fnPath = fnDataTable.substr( 0, nPreLastSlash );
     else
-      fnPath = isFileName;
+      fnPath = ".";
 
     // Build the levels file name.
     stringstream fnLevels;
     fnLevels << fnPath << "/" << factor << ".levels";
+    //cout << fnLevels.str().c_str() << endl;
 
     // Try to open the levels file.
     ifstream ifsLevelFile( fnLevels.str().c_str(), ios::in );
