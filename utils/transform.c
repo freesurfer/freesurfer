@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/27 01:45:25 $
- *    $Revision: 1.121 $
+ *    $Date: 2008/02/08 00:05:56 $
+ *    $Revision: 1.122 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -245,9 +245,11 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
     }
     else if (!strcmp(param, "filename"))
     {
-      sscanf(line, "%s %s %s\n", param, eq, buf);
-      strcpy(vg->fname, buf);
-      counter++;
+      if (sscanf(line, "%s %s %s\n", param, eq, buf) >= 3)
+      {
+        strcpy(vg->fname, buf);
+        counter++;
+      }
     }
     else if (!strcmp(param, "volume"))
     {

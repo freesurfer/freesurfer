@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/01/24 21:10:58 $
- *    $Revision: 1.588 $
+ *    $Author: fischl $
+ *    $Date: 2008/02/08 00:05:57 $
+ *    $Revision: 1.589 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.588 2008/01/24 21:10:58 greve Exp $");
+  return("$Id: mrisurf.c,v 1.589 2008/02/08 00:05:57 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -3786,7 +3786,7 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
       sprintf(transform_fname,
               "%s/../mri/orig", fpref) ; // reuse of the buffer
       rStat = stat (transform_fname, &info);
-      if (S_ISREG(info.st_mode))
+      if (!rStat && S_ISREG(info.st_mode))
       {
         orig = MRIreadHeader(transform_fname, -1);
       }
