@@ -9,10 +9,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/04 23:44:45 $
- *    $Revision: 1.7.2.2 $
+ *    $Date: 2008/02/08 19:51:40 $
+ *    $Revision: 1.7.2.3 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -289,7 +289,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
     if( string::npos != nPreLastSlash )
       fnPath = fnDataTable.substr( 0, nPreLastSlash );
     else
-      fnPath = isFileName;
+      fnPath = ".";
 
     // Build the levels file name.
     stringstream fnLevels;
