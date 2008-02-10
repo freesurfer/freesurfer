@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/02/07 22:58:11 $
-#    $Revision: 1.26 $
+#    $Date: 2008/02/10 17:45:01 $
+#    $Revision: 1.27 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.26 2008/02/07 22:58:11 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.27 2008/02/10 17:45:01 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -44,6 +44,8 @@ set MGZ = ();
 set nolog = 0;
 set matlab = matlab
 set DoSegReg = 0;
+set segregfile = ();
+set OutVol = ();
 
 if($?FS_SPMREG_MATLAB) then
   set matlab = $FS_SPMREG_MATLAB
@@ -282,6 +284,19 @@ if($DoSegReg) then
   endif
 endif
 
+if($#OutVol) then
+  set v2vreg = $regfile
+  if($DoSegReg) set v2vreg = $segregfile
+  set cmd = (mri_vol2vol --mov $movvolimg --fstarg \
+    --o $OutVol --reg $v2vreg --no-save-reg)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mri_vol2vol failed" | tee -a $LF
+    exit 1;
+  endif
+endif
+
 # Cleanup
 if($cleanup) then
   echo "Cleaning up" |& tee -a $LF
@@ -361,6 +376,11 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set segregfile = $argv[1]; shift;
       set DoSegReg = 1;
+      breaksw
+
+    case "--o":
+      if ( $#argv < 1) goto arg1err;
+      set OutVol = $argv[1]; shift;
       breaksw
 
     case "--tmp":
@@ -496,6 +516,7 @@ usage_exit:
   echo "   --template-out template : save template (good with --frame)"
   echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
   echo "   --force-ras : force input geometry to be RAS"
+  echo "   --o outvol : resample mov and save as outvol"
   echo ""
   echo "   --tmp tmpdir  : temporary dir (implies --nocleanup)"
   echo "   --nocleanup  : do not delete temporary files"
