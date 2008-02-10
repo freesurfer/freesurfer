@@ -21,7 +21,17 @@ noinst_LIBRARIES= libfsgdf.a
 libfsgdf_a_SOURCES = fsgdf.c fsgdf_wrap.c FsgdfPlot.cxx
 
 if ENABLE_TCLTK_APPS
-check_PROGRAMS=test
+# trick to get test data into the build directory
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/fsgdf/test_data.tar.gz"; then \
+		cp -v $(top_srcdir)/fsgdf/test_data.tar.gz \
+					$(top_builddir)/fsgdf/; fi;
+	if ! test -f "$(top_builddir)/fsgdf/test.tcl"; then \
+		cp -v $(top_srcdir)/fsgdf/test.tcl \
+					$(top_builddir)/fsgdf/; fi;
+
+check_PROGRAMS=foo test
 test_SOURCES=test.c fsgdf_wrap.c
 test_LDFLAGS=$(LDFLAGS_TCL)
 test_LDADD=libfsgdf.a $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LIBS_TCL)

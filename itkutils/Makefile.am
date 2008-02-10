@@ -39,7 +39,7 @@ libitkutils_a_SOURCES= \
 endif
 #end itk
 
-EXTRA_DIST=$(wildcard *.h) ui
+EXTRA_DIST=$(libitkutils_a_SOURCES) ui
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

@@ -2,8 +2,6 @@
 # Makefile.am for poistats
 #
 
-SUBDIRS=test
-
 #itk is required for building poistats
 # add ITK
 if HAVE_ITK_LIBS
@@ -46,6 +44,7 @@ IO_SRCS = \
 	io/TensorReaderStrategy.h
 
 AM_CPPFLAGS =	$(X_CFLAGS) $(VXL_CFLAGS) \
+  -I$(top_srcdir)/dmri_poistats \
   -I$(top_srcdir)/include \
 	-I$(top_srcdir)/itkio \
 	-I$(top_srcdir)/itkutils \
@@ -98,10 +97,95 @@ dmri_mask_LDADD = $(addprefix $(top_builddir)/, $(LIBS_MGH) ) \
 dmri_mask_LDFLAGS = $(OS_LDFLAGS)
 dmri_mask_CXXFLAGS = 
 
+# tests
+if HAVE_CPPUNIT
+
+# trick to get test data into the build directory
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/dmri_poistats/test/data/Path.nii.gz"; then \
+		mkdir -p $(top_builddir)/dmri_poistats/test/data/; \
+		cp -v $(top_srcdir)/dmri_poistats/test/data/*.nii.gz \
+					$(top_builddir)/dmri_poistats/test/data/; fi;
+
+check_PROGRAMS = \
+	foo \
+  TestPoistatsReplica \
+  TestPoistatsReplicas \
+  TestPoistats
+
+TESTS = \
+	TestPoistatsReplica \
+  TestPoistatsReplicas \
+  TestPoistats
+
+# TestPoistatsReplica
+TestPoistatsReplica_SOURCES= \
+  $(DATAMODEL_SRCS) \
+  $(DATA_SRCS) \
+  $(EVENTS_SRCS) \
+  $(UTILS_SRCS) \
+  TestPoistatsReplica.cxx
+
+TestPoistatsReplica_CXXFLAGS=$(CPPUNIT_CFLAGS) -Wno-non-virtual-dtor
+
+TestPoistatsReplica_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+	$(top_builddir)/itkio/libitkio.a \
+	$(top_builddir)/itkutils/libitkutils.a \
+	$(CPPUNIT_LIBS) -lcppunit -ldl 	\
+	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
+	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
+	-litkvnl -litkvcl -lITKMetaIO -litksys -lITKEXPAT -lITKniftiio \
+	-lITKznz -litkzlib
+
+# TestPoistatsReplicas
+TestPoistatsReplicas_SOURCES= \
+  $(DATAMODEL_SRCS) \
+  $(DATA_SRCS) \
+  $(EVENTS_SRCS) \
+  $(UTILS_SRCS) \
+  TestPoistatsReplicas.cxx
+
+TestPoistatsReplicas_CXXFLAGS=$(CPPUNIT_CFLAGS) -Wno-non-virtual-dtor
+
+TestPoistatsReplicas_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+	$(top_builddir)/itkio/libitkio.a \
+	$(top_builddir)/itkutils/libitkutils.a \
+	$(CPPUNIT_LIBS) -lcppunit -ldl 	\
+	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
+	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
+	-litkvnl -litkvcl -lITKMetaIO -litksys -lITKEXPAT -lITKniftiio \
+	-lITKznz -litkzlib
+
+# TestPoistats
+TestPoistats_SOURCES= \
+  $(DATAMODEL_SRCS) \
+  $(DATA_SRCS) \
+  $(EVENTS_SRCS) \
+  $(UTILS_SRCS) \
+  $(IO_SRCS) \
+  TestPoistats.cxx
+
+TestPoistats_CXXFLAGS=$(CPPUNIT_CFLAGS) -Wno-non-virtual-dtor
+
+TestPoistats_LDADD= \
+	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+	$(top_builddir)/itkio/libitkio.a \
+	$(top_builddir)/itkutils/libitkutils.a \
+	$(LIBS_ITK) \
+	$(CPPUNIT_LIBS)	-lcppunit \
+	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
+	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib -litkvnl -litkvcl \
+	-lITKIO 	-lITKMetaIO -litksys -lITKEXPAT -lITKniftiio -lITKznz -litkzlib
+
+TestPoistats_LDFLAGS = $(OS_LDFLAGS)
+endif
+#end cppunit
+
 endif
 #end itk
 
-EXTRA_DIST=datamodel io test $(wildcard *.h) $(wildcard *.txx)
+EXTRA_DIST=datamodel io test $(dmri_poistats_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

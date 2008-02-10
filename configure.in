@@ -763,6 +763,17 @@ AC_ARG_WITH(mni-dir,
      MNI_DIR="$withval"
   ])
 
+if test "x$MNI_DIR" = "x"; then
+  # if an MNI root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/mni/current" ; then
+    withval=/usr/pubsw/packages/mni/current
+    MNI_DIR="$withval"
+    ac_mni_includes="$withval"/include
+    ac_mni_libraries="$withval"/lib
+  fi
+fi
+
 if test ! "$ac_mni_includes" = "NO"; then
   AC_MSG_RESULT(MNI directory is $withval)
   MNI_CFLAGS=-I$ac_mni_includes
@@ -859,6 +870,22 @@ AC_ARG_WITH(vxl-dir,
      VXL_DIR="$withval"
      AC_SUBST(VXL_DIR)
   ])
+
+if test "x$VXL_DIR" = "x"; then
+  # if a VXL root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/vxl/current" ; then
+    withval=/usr/pubsw/packages/vxl/current
+    VXL_DIR="$withval"
+    if test -d "$withval/include/vxl"; then
+      vxl_i="$withval/include/vxl"
+    else
+      vxl_i="$withval/include"
+    fi
+    ac_vxl_includes="$vxl_i/core $vxl_i/vcl $vxl_i/v3p/netlib $vxl_i/v3p/netlib/opt"
+    ac_vxl_libraries="$withval"/lib
+  fi
+fi
 
 AC_ARG_WITH(vxl-include,
   [  --with-vxl-include=DIR      root of VXL include directory.],
@@ -993,6 +1020,17 @@ AC_ARG_WITH(tcl-dir,
      ac_tcl_dir="$withval"
   ])
 
+if test "x$ac_tcl_dir" = "x"; then
+  # if a Tcl/Tk/Tix/BLT root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/tcltktixblt/current" ; then
+    withval=/usr/pubsw/packages/tcltktixblt/current
+    ac_tcl_dir="$withval"
+    ac_tcl_includes="$withval"/include
+    ac_tcl_libraries="$withval"/lib
+  fi
+fi
+
 AC_ARG_WITH(tcl-include,
   [  --with-tcl-include=DIR      root of Tcl/Tk include directory.],
   [  ac_tcl_includes="$withval"
@@ -1114,6 +1152,17 @@ AC_ARG_WITH(kwwidgets-dir,
      ac_kwwidgets_libraries="$withval"/lib/KWWidgets
      ac_kwwidgets_dir="$withval"
   ])
+
+if test "x$ac_kwwidgets_dir" = "x"; then
+  # if a KWWidgets root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/KWWidgets/current" ; then
+    withval=/usr/pubsw/packages/KWWidgets/current
+    ac_kwwidgets_includes="$withval"/include/KWWidgets
+    ac_kwwidgets_libraries="$withval"/lib/KWWidgets
+    ac_kwwidgets_dir="$withval"
+  fi
+fi
 
 if test ! "$ac_kwwidgets_includes" = "NO"; then
   AC_MSG_RESULT(KWWidgets directory is $withval)
@@ -1352,6 +1401,18 @@ AC_ARG_WITH(cppunit-dir,
      ac_cppunit_dir="$withval"
   ])
 
+if test "x$ac_cppunit_dir" = "x"; then
+  # if a CppUnit root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/cppunit/current" ; then
+    withval=/usr/pubsw/packages/cppunit/current
+    ac_cppunit_includes="$withval"/include
+    ac_cppunit_libraries="$withval"/lib
+    ac_cppunit_bindir="$withval"/bin
+    ac_cppunit_dir="$withval"
+  fi
+fi
+
 if test ! "$ac_cppunit_includes" = "NO"; then
   AC_MSG_RESULT(CppUnit directory is $withval)
   CPPUNIT_CFLAGS=-I$ac_cppunit_includes
@@ -1395,6 +1456,18 @@ AC_ARG_WITH(vtk-dir,
      ac_vtk_dir="$withval"
      VTK_DIR=$ac_vtk_dir
   ])
+
+if test "x$VTK_DIR" = "x"; then
+  # if a VTK root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/vtk/current" ; then
+    withval=/usr/pubsw/packages/vtk/current
+    ac_vtk_includes="$withval/include"
+    ac_vtk_libraries="$withval"/lib
+    ac_vtk_dir="$withval"
+    VTK_DIR=$ac_vtk_dir
+  fi
+fi
 
 AC_ARG_WITH(vtk-include,
   [  --with-vtk-include=DIR      root of VTK include directory.],
@@ -2266,7 +2339,6 @@ AC_OUTPUT([Makefile
            distribution/sessions/Makefile
            distribution/subjects/Makefile
            dmri_poistats/Makefile
-           dmri_poistats/test/Makefile
            dmri_tensoreig/Makefile
            dngtester/Makefile
            dummy/Makefile

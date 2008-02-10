@@ -4,29 +4,67 @@
 SUBDIRS=surf
 
 foodir=$(prefix)/average
+
+GCA=\
+	face.gca \
+	RB_all_2007-12-05.gca \
+	RB_all_withskull_2007-12-05.gca
+
+GCS=\
+	lh.atlas2002_simple.gcs \
+	lh.atlas2005_simple.gcs \
+	lh.curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs \
+	lh_trans_toSulc.gcs \
+	rh.atlas2002_simple.gcs \
+	rh.atlas2005_simple.gcs \
+	rh.curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs \
+	rh_trans_toSulc.gcs
+
+TIF=\
+	lh.average.curvature.filled.buckner40.tif \
+	lh.average.CURVATURE.tif \
+	lh.average.tif \
+	rh.average.curvature.filled.buckner40.tif \
+	rh.average.CURVATURE.tif \
+	rh.average.tif \
+	rigidly_aligned_brain_template.tif
+
+TXT=\
+	colortable_desikan_killiany.txt \
+	tissue_parms.txt
+
+MGZ=\
+	HPMarch022005_ras.mgz \
+	mni305.cor.mgz \
+	mni305.cor.subfov1.mgz \
+	mni305.cor.subfov2.mgz \
+	mni305.mask.cor.mgz
+
 if NMR_INSTALL
-foo_DATA=$(wildcard *.gcs) \
- $(wildcard *.gca) \
- $(wildcard *.tif) \
- $(wildcard *.txt) \
- $(wildcard *.mgz) \
- mni305.cor.readme \
- mni305.cor.subfov1.reg \
- mni305.cor.subfov2.reg \
- mni152.register.dat 
+foo_DATA=\
+	$(GCA) \
+	$(GCS) \
+	$(TIF) \
+	$(TXT) \
+	$(MGZ) \
+	mni305.cor.readme \
+	mni305.cor.subfov1.reg \
+	mni305.cor.subfov2.reg \
+	mni152.register.dat
 else
-foo_DATA=$(wildcard *.gcs) \
- $(wildcard *.gca) \
- $(wildcard *.tif) \
- $(wildcard *.txt) \
- mni305.cor.mgz \
- mni305.cor.readme \
- mni305.mask.cor.mgz \
- mni305.cor.subfov1.mgz \
- mni305.cor.subfov2.mgz \
- mni305.cor.subfov1.reg \
- mni305.cor.subfov2.reg \
- mni152.register.dat 
+foo_DATA=\
+	$(GCA) \
+	$(GCS) \
+	$(TIF) \
+	$(TXT) \
+	mni305.cor.mgz \
+	mni305.cor.readme \
+	mni305.mask.cor.mgz \
+	mni305.cor.subfov1.mgz \
+	mni305.cor.subfov2.mgz \
+	mni305.cor.subfov1.reg \
+	mni305.cor.subfov2.reg \
+	mni152.register.dat
 endif
 
 EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz
@@ -41,10 +79,6 @@ install: install-fooDATA
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES="HPMarch022005_ras.mgz \
-RB_all_2006-02-15.gca \
-RB_all_withskull_2006-02-15.gca \
-lh.curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs \
-rh.curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs"
+EXCLUDE_FILES="HPMarch022005_ras.mgz"
 
 include $(top_srcdir)/Makefile.extra

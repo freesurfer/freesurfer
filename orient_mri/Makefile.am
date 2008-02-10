@@ -109,7 +109,29 @@ vtkKWOrientMRIView3DTcl.cxx:
 OrientMRILibInit.cxx:
 endif
 
-EXTRA_DIST=$(wildcard *.h) $(wildcard *.cxx) $(wildcard *.data) $(orient_mri_DATA)
+EXTRA_DIST=$(orient_mri_DATA) \
+OrientMRIEvents.h \
+OrientMRILibInit.cxx \
+OrientMRILibInit.data \
+OrientMRIMain.cxx \
+vtkKWOrientMRIApp.cxx \
+vtkKWOrientMRIApp.h \
+vtkKWOrientMRIAppTcl.cxx \
+vtkKWOrientMRIView2D.cxx \
+vtkKWOrientMRIView2D.h \
+vtkKWOrientMRIView2DTcl.cxx \
+vtkKWOrientMRIView3D.cxx \
+vtkKWOrientMRIView3D.h \
+vtkKWOrientMRIView3DTcl.cxx \
+vtkKWOrientMRIViewTcl.cxx \
+vtkKWOrientMRIWindow.cxx \
+vtkKWOrientMRIWindow.h \
+vtkKWOrientMRIWindowTcl.cxx \
+vtkOrientMRIInteractorStyleView2D.cxx \
+vtkOrientMRIInteractorStyleView2D.h \
+vtkOrientMRIInteractorStyleView3D.cxx \
+vtkOrientMRIInteractorStyleView3D.h
+
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

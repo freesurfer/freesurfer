@@ -7,7 +7,34 @@
 
 foodir=$(prefix)/fsfast/docs
 # cannot specify *, since Makefile etc will be copied
-TEXFILES=$(wildcard *.tex)
+TEXFILES=\
+	bert-functional.howto.tex\
+	bfile.tex\
+	condfit.tex\
+	fmri-analysis-theory.tex\
+	func2roi-sess.tex\
+	inorm.tex\
+	INSTALL.tex\
+	intergroup-sess.tex\
+	isxavg-fe.tex\
+	isxavg-re.tex\
+	mc-afni.tex\
+	mkcontrast.tex\
+	mkmosaic16.tex\
+	mkmosaic.tex\
+	mtp-repack.tex\
+	optseq.tex\
+	overview.tex\
+	paint.tex\
+	paradigm.tex\
+	selfreq.tex\
+	selxavg.tex\
+	seqefficiency.tex\
+	stxgrinder.tex\
+	univar-analysis.tex\
+	vol2roi.tex\
+	yakview.tex
+
 foo_DATA = $(TEXFILES:%.tex=%.pdf)
 
 .ps.pdf:
@@ -23,6 +50,8 @@ foo_DATA = $(TEXFILES:%.tex=%.pdf)
 
 clean:
 	rm -f *.aux *.log *.ps
+
+EXTRA_DIST=$(TEXFILES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

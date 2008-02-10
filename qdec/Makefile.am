@@ -107,8 +107,25 @@ vtkKWQdecViewTcl.cxx:
 QdecLibInit.cxx:
 endif
 
-EXTRA_DIST=QdecIcons.txt $(wildcard *.h) $(wildcard *.cxx) $(wildcard *.data) \
-qdec2.table.dat $(dist_bin_SCRIPTS)
+EXTRA_DIST=QdecIcons.txt \
+qdec2.table.dat $(dist_bin_SCRIPTS) \
+QdecEvents.h \
+QdecLibInit.cxx \
+QdecLibInit.data \
+QdecMain.cxx \
+QdecUtilities.cxx \
+QdecUtilities.h \
+QdecVertexAnnotationLookup.h \
+vtkKWQdecApp.cxx \
+vtkKWQdecApp.h \
+vtkKWQdecAppTcl.cxx \
+vtkKWQdecView.cxx \
+vtkKWQdecView.h \
+vtkKWQdecViewTcl.cxx \
+vtkKWQdecWindow.cxx \
+vtkKWQdecWindow.h \
+vtkKWQdecWindowTcl.cxx
+
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

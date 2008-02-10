@@ -15,14 +15,17 @@ noinst_LIBRARIES= libvtkfsio.a
 
 libvtkfsio_a_SOURCES=\
 	vtkFSSurfaceLabelSource.cxx \
+	vtkFSSurfaceLabelSource.h \
 	vtkFSSurfaceWriter.cxx \
+	vtkFSSurfaceWriter.h \
 	vtkFSSurfaceScalarsReader.cxx \
+	vtkFSSurfaceScalarsReader.h \
 	vtkFSSurfaceSource.cxx \
-	vtkFSVolumeSource.cxx
+	vtkFSSurfaceSource.h \
+	vtkFSVolumeSource.cxx \
+	vtkFSVolumeSource.h
 
-am_libvtkfsio_a_OBJECTS=$(libvtkfsio_a_SOURCES:%.cxx=%.o)
-
-EXTRA_DIST=$(wildcard *.h)
+EXTRA_DIST=$(libvtkfsio_a_SOURCES)
 
 if ENABLE_KWWIDGETS_APPS
 check_PROGRAMS = vtkFSSurfaceWriterTester

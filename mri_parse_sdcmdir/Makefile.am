@@ -10,6 +10,16 @@ mri_parse_sdcmdir_SOURCES=mri_parse_sdcmdir.c
 mri_parse_sdcmdir_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_parse_sdcmdir_LDFLAGS=$(OS_LDFLAGS)
 
+# trick to get test data into build dir
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/mri_parse_sdcmdirmri_mc/98915109"; then \
+		cp -v $(top_srcdir)/mri_parse_sdcmdir/98915109 \
+					$(top_srcdir)/mri_parse_sdcmdir/test_dicomdir.sumfile \
+					$(top_builddir)/mri_parse_sdcmdir/; fi;
+
+check_PROGRAMS=foo
+
 TESTS=test_mri_parse_sdcmdir
 
 EXTRA_DIST=test_mri_parse_sdcmdir 98915109 test_dicomdir.sumfile 

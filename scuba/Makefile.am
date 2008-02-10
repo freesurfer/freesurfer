@@ -108,10 +108,38 @@ scuba_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 scuba_LDFLAGS=$(AM_LDFLAGS)
 
 foodir=$(prefix)/lib/tcl
-foo_SCRIPTS=scuba.tcl tkcon.tcl histolabel.tcl TclChartWindow.tcl
+foo_SCRIPTS=\
+	histolabel.tcl \
+	scuba_glut.tcl \
+	scuba.tcl \
+	TclChartWindow.tcl \
+	test_layers.tcl \
+	test_ScubaFrame.tcl \
+	test_ScubaLayers.tcl \
+	test_TclCommandManager.tcl \
+	test_tkUtils.tcl \
+	test_ToglManager.tcl \
+	test_view.tcl \
+	tkcon.tcl
 
 if ENABLE_TCLTK_APPS
-check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
+# trick to get test data into the build directory
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/scuba/test_data.tar.gz"; then \
+		cp -v $(top_srcdir)/scuba/test_data.tar.gz \
+					$(top_builddir)/scuba/; fi;
+	if ! test -f "$(top_builddir)/scuba/test_TclCommandManager.tcl"; then \
+		cp -v $(top_srcdir)/scuba/test_TclCommandManager.tcl \
+					$(top_builddir)/scuba/; fi;
+	if ! test -f "$(top_builddir)/scuba/testLUT.lut"; then \
+		cp -v $(top_srcdir)/scuba/testLUT.lut \
+					$(top_builddir)/scuba/; fi;
+	if ! test -f "$(top_builddir)/scuba/testSegmentationVolumeReport-correct.txt"; then \
+		cp -v $(top_srcdir)/scuba/testSegmentationVolumeReport-correct.txt \
+					$(top_builddir)/scuba/; fi;
+
+check_PROGRAMS=foo testIDTracker testBroadcaster testUtilities \
 	testMatrix44 testTransform44 testVolume3 testPath \
 	testShortestPathFinder testToglManager testDataManager \
 	testTclCommandManager testPreferencesManager testUndoManager \
@@ -124,11 +152,11 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testVolumeCollection testTclChartWindow
 endif
 
-EXTRA_DIST=$(wildcard *.xpm) $(foo_SCRIPTS) $(wildcard *.tcl) \
+EXTRA_DIST=$(foo_SCRIPTS) \
 	testSetup.csh testCleanup.csh test_data.tar.gz \
 	testSegmentationVolumeReport-correct.txt \
 	testSegmentationVolumeReportIntReport-correct.txt \
-	testLUT.lut
+	testLUT.lut test_TclCommandManager.tcl
 
 if ENABLE_TCLTK_APPS
 TESTS=testSetup.csh \

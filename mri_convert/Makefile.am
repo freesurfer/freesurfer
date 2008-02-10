@@ -9,6 +9,15 @@ mri_convert_SOURCES=mri_convert.c
 mri_convert_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_convert_LDFLAGS=$(OS_LDFLAGS)
 
+# trick to get test data into the build directory
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/mri_convert/testdata.tar.gz"; then \
+		cp -v $(top_srcdir)/mri_convert/testdata.tar.gz \
+					$(top_builddir)/mri_convert/; fi;
+
+check_PROGRAMS=foo
+
 TESTS=test_mri_convert
 
 EXTRA_DIST=test_mri_convert testdata.tar.gz

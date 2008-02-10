@@ -28,7 +28,11 @@ am_libitkio_a_OBJECTS=$(libitkio_a_SOURCES:%.cxx=%.o)
 endif
 #end itk
 
-EXTRA_DIST=$(wildcard *.h)
+EXTRA_DIST=\
+	itkMGHImageIO.cxx \
+	itkMGHImageIO.h \
+  itkMGHImageIOFactory.cxx \
+	itkMGHImageIOFactory.h
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

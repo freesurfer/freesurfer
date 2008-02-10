@@ -22,11 +22,24 @@ $(VTK_Z_LIB) $(VTK_EXPAT_LIB) $(VTK_METAIO_LIB) \
 -lvtksys \
 $(VTK_MPEG2ENCODE_LIB) -lvtkexoIIc -lvtkNetCDF
 
+# trick to get test data into the build directory
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/mri_aparc2aseg/testdata2.tar.gz"; then \
+		cp -v $(top_srcdir)/mri_aparc2aseg/testdata2.tar.gz \
+					$(top_builddir)/mri_aparc2aseg/; fi;
+	if ! test -f "$(top_builddir)/scripts/vtk_setup"; then \
+		cp -v $(top_srcdir)/scripts/*_setup \
+					$(top_builddir)/scripts/; fi;
+
+check_PROGRAMS=foo
+
 TESTS=test_mris_volmask
 
 # put a wrapper around the bin, used to setup VTK enviro vars
 install-exec-hook:
-	cp $(top_builddir)/mris_volmask/mris_volmask $(DESTDIR)$(bindir)/mris_volmask.bin
+	cp $(top_builddir)/mris_volmask/mris_volmask \
+		$(DESTDIR)$(bindir)/mris_volmask.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/mris_volmask
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
 		>> $(DESTDIR)$(bindir)/mris_volmask

@@ -21,15 +21,24 @@ BROKEN=difftool test_mriio mri_compute_stats \
 	mri_apply_INU mri_edit_wm mri_apply_EM_mask \
 	mri_extract mri_ms_gca_EM
 
+# trick to get test data into the build directory
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/utils/test/test_data.tar.gz"; then \
+		cp -v $(top_srcdir)/utils/test/test_data.tar.gz \
+					$(top_builddir)/utils/test/; fi;
+	if ! test -f "$(top_builddir)/distribution/lib/bem/ic0.tri"; then \
+		cp -v $(top_srcdir)/distribution/lib/bem/*.tri \
+					$(top_builddir)/distribution/lib/bem/; fi;
+
 if HAVE_CPPUNIT
 CPPUNIT_CHECKS=test_nr_wrapper test_matrix
-check_PROGRAMS=$(CHECKS) $(CPPUNIT_CHECKS)
 else
 CPPUNIT_CHECKS=
-check_PROGRAMS=$(CHECKS)
 endif
+check_PROGRAMS=foo $(CHECKS) $(CPPUNIT_CHECKS)
 
-TESTS=setup_test_data $(check_PROGRAMS) cleanup_test_data
+TESTS=setup_test_data $(CHECKS) $(CPPUNIT_CHECKS) cleanup_test_data
 
 mnitest_SOURCES=mnitest.cpp
 i2rtest_SOURCES=i2rtest.cpp

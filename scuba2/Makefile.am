@@ -276,8 +276,8 @@ vtkKWScubaToolEdit2DMRITcl.cxx:
 ScubaLibInit.cxx:
 endif
 
-EXTRA_DIST=ScubaIcons.txt $(wildcard *.h) $(wildcard *.cxx) \
-	$(wildcard *.data) ScubaIcons.txt
+EXTRA_DIST=ScubaIcons.txt ScubaIcons.txt ScubaLibInit.data \
+	$(scuba2_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

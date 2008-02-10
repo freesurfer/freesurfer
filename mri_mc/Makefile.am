@@ -6,7 +6,14 @@ bin_PROGRAMS = mri_mc mri_pretess mris_extract_main_component
 mri_mc_SOURCES=mri_mc.c
 mri_mc_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 
-check_PROGRAMS=build_test_volume
+# trick to get test data into build dir
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/mri_mc/test_volume_reference.mgz"; then \
+		cp -v $(top_srcdir)/mri_mc/test_volume_reference.mgz \
+					$(top_builddir)/mri_mc/; fi;
+
+check_PROGRAMS=foo build_test_volume
 #build_MC_table
 
 TESTS=compare_test_volumes
