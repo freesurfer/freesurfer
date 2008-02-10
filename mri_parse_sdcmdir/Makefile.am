@@ -13,7 +13,7 @@ mri_parse_sdcmdir_LDFLAGS=$(OS_LDFLAGS)
 # trick to get test data into build dir
 foo_SOURCES=
 foo:
-	if ! test -f "$(top_builddir)/mri_parse_sdcmdirmri_mc/98915109"; then \
+	if ! test -f "$(top_builddir)/mri_parse_sdcmdir/98915109"; then \
 		cp -v $(top_srcdir)/mri_parse_sdcmdir/98915109 \
 					$(top_srcdir)/mri_parse_sdcmdir/test_dicomdir.sumfile \
 					$(top_builddir)/mri_parse_sdcmdir/; fi;
