@@ -6,7 +6,6 @@ foodir=$(prefix)/lib/images
 
 GIF=\
 	icon_analysis_open.gif \
-	icon_annot_open.gif \
 	icon_arrow_ccw.gif \
 	icon_arrow_cw.gif \
 	icon_arrow_down.gif \
