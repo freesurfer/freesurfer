@@ -548,7 +548,7 @@ case "$CPUTYPE" in
      CPUFLAGS="-m64"
      ;;
   itanium)
-     CPUFLAGS="-m64"
+     CPUFLAGS="-mtune=itanium2"
      ;;
   athlon64)
 #     CPUFLAGS="-march=x86-64"
