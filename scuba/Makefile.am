@@ -128,15 +128,10 @@ foo_SOURCES=
 foo:
 	if ! test -f "$(top_builddir)/scuba/test_data.tar.gz"; then \
 		cp -v $(top_srcdir)/scuba/test_data.tar.gz \
-					$(top_builddir)/scuba/; fi;
-	if ! test -f "$(top_builddir)/scuba/test_TclCommandManager.tcl"; then \
-		cp -v $(top_srcdir)/scuba/test_TclCommandManager.tcl \
-					$(top_builddir)/scuba/; fi;
-	if ! test -f "$(top_builddir)/scuba/testLUT.lut"; then \
-		cp -v $(top_srcdir)/scuba/testLUT.lut \
-					$(top_builddir)/scuba/; fi;
-	if ! test -f "$(top_builddir)/scuba/testSegmentationVolumeReport-correct.txt"; then \
-		cp -v $(top_srcdir)/scuba/testSegmentationVolumeReport-correct.txt \
+					$(top_srcdir)/scuba/test_TclCommandManager.tcl \
+					$(top_srcdir)/scuba/testLUT.lut \
+					$(top_srcdir)/scuba/testSegmentationVolumeReport-correct.txt \
+				$(top_srcdir)/scuba/testSegmentationVolumeReportIntReport-correct.txt \
 					$(top_builddir)/scuba/; fi;
 
 check_PROGRAMS=foo testIDTracker testBroadcaster testUtilities \
