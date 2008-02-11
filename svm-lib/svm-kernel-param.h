@@ -1,17 +1,34 @@
 /**
  * @file  svm-kernel-param.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief defines various kernel types and functionality.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Name: KernelParam (abstract), LinearKernelParam, PolyKernelParam,
+ *       RbfKernelParam, Kernel
+ *
+ * This file defines various kernel types and functionality. Different
+ * KernelParam derived classes implement various types of kernels.
+ * Kernel is the class that should be used in the user code. It can
+ * initialize itself from a parameter string or a file, compute its
+ * value given two inputs and differentiate itself with respect to the
+ * first parameter.
+ *
+ * I/O format: type followed by the parameters. Right now, we have defined:
+ *
+ * "1" - linear
+ * "2 d" - polynomial of degree d
+ * "3 gamma" - rbf of width gamma (gamma = (2*signma^2))
+ *
+ * As new types are defines, Kernel:parse function should be exanded
+ * to handle a new type.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Polina Golland polina@ai.mit.edu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:17 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/02/11 21:54:06 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,33 +41,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-////SVM-LIB////////////////////////////////////////////////////////////////
-//
-// Name: KernelParam (abstract), LinearKernelParam, PolyKernelParam,
-//       RbfKernelParam, Kernel
-//
-// This file defines various kernel types and functionality. Different
-// KernelParam derived classes implement various types of kernels.
-// Kernel is the class that should be used in the user code. It can
-// initialize itself from a parameter string or a file, compute its
-// value given two inputs and differentiate itself with respect to the
-// first parameter.
-//
-// I/O format: type followed by the parameters. Right now, we have defined:
-//
-// "1" - linear
-// "2 d" - polynomial of degree d
-// "3 gamma" - rbf of width gamma (gamma = (2*signma^2))
-//
-//  As new types are defines, Kernel:parse function should be exanded
-//  to handle a new type.
-//
-//
-//  Polina Golland polina@ai.mit.edu
-//
-///////////////////////////////////////////////////////////////////////////
 
 #ifndef __SVM_KERNEL_PARAM_H__
 #define __SVM_KERNEL_PARAM_H__
@@ -74,6 +64,7 @@ protected:
 
 public:
   KernelParam() : _type(NO_KERNEL) {};
+  virtual ~KernelParam() {};
 
   // Value
   virtual double operator() (const SvmReal* v1, const SvmReal* v2, int n) const {
