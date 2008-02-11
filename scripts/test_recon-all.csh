@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/01/17 13:48:29 $
-#    $Revision: 1.20 $
+#    $Date: 2008/02/11 18:03:44 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.20 2008/01/17 13:48:29 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.21 2008/02/11 18:03:44 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -219,6 +219,17 @@ source $FREESURFER_HOME/SetUpFreeSurfer.csh
 if ($?SKIP_RECON) goto compare
 echo "Starting recon-all in five seconds... (Ctrl-C to stop)"
 sleep 5
+
+# check if mni tools were built against /usr/pubsw/bin/perl 
+# instead of /usr/bin/perl
+grep pubsw `which nu_correct`
+if ( ! $status ) then
+    echo "***FAILED :: MNI tools built using /usr/pubsw/perl!"  >>& $OUTPUTF
+    mail -s "test_recon-all -all FAILED: MNI tools build using /usr/pubsw/perl!" $FMAIL_LIST < $RECON_LOG
+    cp $RECON_LOG $LOG_DIR/
+    touch $SUBJECTS_DIR/test_recon-all_FAILED
+    exit 1
+endif
 
 #
 # run recon-all
