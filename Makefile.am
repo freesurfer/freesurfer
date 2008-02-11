@@ -342,6 +342,9 @@ install-data-hook:
 		fi; \
 	fi;
 
+uninstall:
+	rm -f $(DESTDIR)$(prefix)/build-stamp.txt
+
 EXTRA_DIST=setup_configure Makefile.extra x86cpucaps INSTALL \
 	doxy-file-header Doxyfile
 
