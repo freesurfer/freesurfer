@@ -71,3 +71,8 @@ freesurfer/subjects/mri
 freesurfer/matlab/read_meas_dat.m
 freesurfer/dmri_poistats/dmri_initialize_path
 freesurfer/dmri_poistats/dmri_mask
+freesurfer/subjects/fsaverage/surf/lh.inflated6
+freesurfer/subjects/fsaverage/surf/lh.inflated2
+freesurfer/subjects/fsaverage/surf/lh.inflated_more
+freesurfer/subjects/fsaverage/surf/lh.inflated200
+freesurfer/subjects/fsaverage/surf/lh.inflated-dng
