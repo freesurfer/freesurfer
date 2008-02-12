@@ -212,8 +212,8 @@ install-exec-hook:
 	echo "unpacksdcmdir.tcl \$$argv" >> $(DESTDIR)$(bindir)/unpacksdcmdir
 	chmod a+x $(DESTDIR)$(bindir)/unpacksdcmdir
 
-uninstall:
-	rm -f $(DESTDIR)$(bindir)/*
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/unpacksdcmdir.tcl
 
 EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup \
 extract_talairach_avi_QA.awk

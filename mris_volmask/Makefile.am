@@ -46,6 +46,9 @@ install-exec-hook:
 	echo "mris_volmask.bin \$$argv" >> $(DESTDIR)$(bindir)/mris_volmask
 	chmod a+x $(DESTDIR)$(bindir)/mris_volmask
 
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/mris_volmask.bin
+
 EXTRA_DIST=cmd_line_interface.h test_mris_volmask
 
 # Our release target. Include files to be excluded here. They will be

@@ -5,9 +5,6 @@
 foodir=$(prefix)/subjects
 foo_DATA=README sample-001.mgz sample-002.mgz
 
-uninstall:
-	rm -Rf $(DESTDIR)$(prefix)/subjects/*
-
 EXTRA_DIST=$(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be

@@ -30,6 +30,8 @@ mris_register_LDFLAGS=$(OS_LDFLAGS)
 #PETSC 		>> $(DESTDIR)$(bindir)/mris_register
 #PETSC 	echo "mris_register.bin \$$argv" >> $(DESTDIR)$(bindir)/mris_register
 #PETSC 	chmod a+x $(DESTDIR)$(bindir)/mris_register
+#PETSC uninstall-hook:
+#PETSC 	rm -f $(DESTDIR)$(bindir)/mris_register.bin
 #PETSC else
 #PETSC install-exec-hook:
 #PETSC endif

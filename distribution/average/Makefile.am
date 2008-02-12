@@ -73,8 +73,12 @@ install: install-fooDATA
 	mkdir -p $(DESTDIR)$(prefix)/subjects
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
 	gunzip -c $(top_srcdir)/distribution/average/fsaverage.tar.gz | tar xvf -
-	mv $(top_builddir)/distribution/average/fsaverage $(DESTDIR)$(prefix)/subjects
+	mv $(top_builddir)/distribution/average/fsaverage \
+		$(DESTDIR)$(prefix)/subjects
 	cd surf; make install
+
+uninstall-hook:
+	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

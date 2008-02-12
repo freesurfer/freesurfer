@@ -31,6 +31,10 @@ install-exec-hook:
 		>> $(DESTDIR)$(bindir)/tksurfer
 	echo "tksurfer.bin \$$argv" >> $(DESTDIR)$(bindir)/tksurfer
 	chmod a+x $(DESTDIR)$(bindir)/tksurfer
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/tksurfer.bin
+
 else
 all:
 	@echo "Building Tcl/Tk apps not enabled."

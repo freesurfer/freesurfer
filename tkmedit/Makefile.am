@@ -37,6 +37,10 @@ install-exec-hook:
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/tkmedit
 	echo "exec tkmedit.bin \$$argv" >> $(DESTDIR)$(bindir)/tkmedit
 	chmod a+x $(DESTDIR)$(bindir)/tkmedit
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/tkmedit.bin
+
 else
 all:
 	@echo "Building Tcl/Tk apps not enabled."

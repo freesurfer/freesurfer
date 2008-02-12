@@ -211,6 +211,9 @@ install-exec-hook:scuba2
 	echo "scuba2.bin \$$argv" >> $(DESTDIR)$(bindir)/scuba2
 	chmod a+x $(DESTDIR)$(bindir)/scuba2
 
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/scuba2.bin
+
 else
 bin_PROGRAMS = 
 

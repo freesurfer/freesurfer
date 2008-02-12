@@ -26,12 +26,17 @@ endif
 
 if ENABLE_TCLTK_APPS
 install-exec-hook:
-	cp $(top_builddir)/tkregister2/tkregister2 $(DESTDIR)$(bindir)/tkregister2.bin
+	cp $(top_builddir)/tkregister2/tkregister2 \
+		$(DESTDIR)$(bindir)/tkregister2.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/tkregister2
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/tkregister2
 	echo "tkregister2.bin \$$argv" >> $(DESTDIR)$(bindir)/tkregister2
 	chmod a+x $(DESTDIR)$(bindir)/tkregister2
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/tkregister2.bin
+
 else
 all:
 	@echo ""

@@ -323,12 +323,14 @@ testScubaROIVolume_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testSegmentationVolumeReport_SOURCES=test_SegmentationVolumeReport.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(CHART_SRCS)
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) \
+	$(LAYER_SRCS) $(CHART_SRCS)
 testSegmentationVolumeReport_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 testTclChartWindow_SOURCES=test_TclChartWindow.cpp TclChartWindow.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(CHART_SRCS)
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) \
+	$(LAYER_SRCS) $(CHART_SRCS)
 testTclChartWindow_LDADD=$(LIBS_TCL_OPENGL) \
 	$(addprefix $(top_builddir)/, $(LIBS_MGH))
 endif
@@ -341,6 +343,10 @@ install-exec-hook:
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/scuba
 	echo "scuba.bin \$$argv" >> $(DESTDIR)$(bindir)/scuba
 	chmod a+x $(DESTDIR)$(bindir)/scuba
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/scuba.bin
+
 else
 install-exec-hook:
 endif

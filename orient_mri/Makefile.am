@@ -78,6 +78,9 @@ install-exec-hook:orient_mri
 	echo "orient_mri.bin \$$argv" >> $(DESTDIR)$(bindir)/orient_mri
 	chmod a+x $(DESTDIR)$(bindir)/orient_mri
 
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/orient_mri.bin
+
 else
 bin_PROGRAMS = 
 

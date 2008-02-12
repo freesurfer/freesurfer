@@ -79,6 +79,9 @@ install-exec-hook:qdec
 	echo "qdec.bin \$$argv" >> $(DESTDIR)$(bindir)/qdec
 	chmod a+x $(DESTDIR)$(bindir)/qdec
 
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/qdec.bin
+
 else
 bin_PROGRAMS = 
 
