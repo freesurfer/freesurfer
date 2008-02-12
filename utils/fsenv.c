@@ -1,17 +1,16 @@
 /**
  * @file  fsenv.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Utils to get, set, and print freesurfer environment vars
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:32 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/02/12 00:41:45 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2006-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,10 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-// $Id: fsenv.c,v 1.3 2006/12/29 01:49:32 nicks Exp $
-
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -46,7 +41,7 @@
 // Return the CVS version of this file.
 const char *FSENVsrcVersion(void)
 {
-  return("$Id: fsenv.c,v 1.3 2006/12/29 01:49:32 nicks Exp $");
+  return("$Id: fsenv.c,v 1.4 2008/02/12 00:41:45 nicks Exp $");
 }
 
 FSENV *FSENVgetenv(void)
@@ -130,6 +125,21 @@ int FSENVprintenv(FILE *fp,FSENV *env)
   fprintf(fp,"machine %s\n",env->machine);
   return(0);
 }
+
+
+/*-----------------------------------------------*/
+char *FSENVgetSUBJECTS_DIR(void)
+{
+  char *pc = getenv("SUBJECTS_DIR");
+  if (pc == NULL)
+  {
+    printf("FSENVgetSUBJECTS_DIR: SUBJECTS_DIR not defined\n");
+    return(NULL);
+  }
+  return strcpyalloc(pc);
+}
+
+
 /*-----------------------------------------------*/
 int FSENVsetSUBJECTS_DIR(char *SUBJECTS_DIR)
 {
