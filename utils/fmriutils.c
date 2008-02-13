@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/07 21:15:33 $
- *    $Revision: 1.49 $
+ *    $Date: 2008/02/13 03:28:15 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.49 2008/02/07 21:15:33 greve Exp $
+  $Id: fmriutils.c,v 1.50 2008/02/13 03:28:15 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.49 2008/02/07 21:15:33 greve Exp $");
+  return("$Id: fmriutils.c,v 1.50 2008/02/13 03:28:15 greve Exp $");
 }
 
 
@@ -1493,6 +1493,51 @@ MRI *MRIvolMax(MRI *invol, MRI *out)
           if (max < v) max = v;
         }
         MRIsetVoxVal(out,c,r,s,0,max);
+      }
+    }
+  }
+  return(out);
+}
+
+/*----------------------------------------------------------------
+  MRI *MRIvolMaxIndex(MRI *vol, MRI *out) - the value at each voxel
+  is the frame index of the maximum over the frames at that voxel.
+  base is added to the index.
+  --------------------------------------------------------------*/
+MRI *MRIvolMaxIndex(MRI *invol, int base, MRI *mask, MRI *out)
+{
+  int c, r, s, f, index;
+  double v, max, m;
+
+  if(out==NULL){
+    out = MRIalloc(invol->width,invol->height,invol->depth,MRI_INT);
+    if(out == NULL) return(NULL);
+    MRIcopyHeader(invol,out);
+  }
+  if (out->width != invol->width || out->height != invol->height ||
+      out->depth != invol->depth){
+    printf("ERROR: MRIvolMax: dimension mismatch\n");
+    return(NULL);
+  }
+
+  for (c=0; c < invol->width; c++)  {
+    for (r=0; r < invol->height; r++) {
+      for (s=0; s < invol->depth; s++) {
+        MRIsetVoxVal(out,c,r,s,0,0);
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+        max = MRIgetVoxVal(invol,c,r,s,0);
+	index = 0;
+        for (f=1; f < invol->nframes; f++) {
+          v = MRIgetVoxVal(invol,c,r,s,f);
+          if(max < v){
+	    max = v;
+	    index = f;
+	  }
+        }
+        MRIsetVoxVal(out,c,r,s,0,index+base);
       }
     }
   }
