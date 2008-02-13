@@ -11,6 +11,14 @@
 ########################################################################
 AC_PREREQ(2.57)
 AC_INIT(Freesurfer, dev4, freesurfer@nmr.mgh.harvard.edu)
+# if $FREESURFER_HOME is defined, then use that as default install dir:
+if test ! "x${FREESURFER_HOME}" = "x"; then
+  ac_default_prefix=${FREESURFER_HOME}
+else
+# else use this as default install dir:
+  ac_default_prefix=/usr/local/freesurfer/${PACKAGE_VERSION}
+fi
+AC_PREFIX_DEFAULT($ac_default_prefix)
 AC_CONFIG_AUX_DIR([config])
 # create special dir for intermediate files
 AC_MSG_NOTICE(Setting System...)
