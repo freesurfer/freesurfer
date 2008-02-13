@@ -101,15 +101,15 @@ dmri_mask_CXXFLAGS =
 if HAVE_CPPUNIT
 
 # trick to get test data into the build directory
-foo_SOURCES=
-foo:
+foobar_SOURCES=
+foobar:
 	if ! test -f "$(top_builddir)/dmri_poistats/test/data/Path.nii.gz"; then \
 		mkdir -p $(top_builddir)/dmri_poistats/test/data/; \
 		cp -v $(top_srcdir)/dmri_poistats/test/data/*.nii.gz \
 					$(top_builddir)/dmri_poistats/test/data/; fi;
 
 check_PROGRAMS = \
-	foo \
+	foobar \
   TestPoistatsReplica \
   TestPoistatsReplicas \
   TestPoistats
