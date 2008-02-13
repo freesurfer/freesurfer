@@ -185,7 +185,10 @@ endif
 endif
 #end itk
 
-EXTRA_DIST=datamodel io test $(dmri_poistats_SOURCES)
+EXTRA_DIST=test/data/FinalSeeds.nii.gz \
+	test/data/Path.nii.gz \
+	test/data/HelixTensors.nii.gz
+
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
