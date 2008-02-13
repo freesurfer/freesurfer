@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/19 01:19:16 $
-#    $Revision: 1.3 $
+#    $Date: 2008/02/13 22:37:43 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,11 +24,16 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_anatomical_stats,v 1.3 2007/12/19 01:19:16 nicks Exp $'
+set VERSION='$Id: test_mris_anatomical_stats,v 1.4 2008/02/13 22:37:43 nicks Exp $'
 
 umask 002
 
 setenv SUBJECTS_DIR $PWD
+
+if ( $?SKIP_MRIS_ANATOMICAL_STATS_TEST ) then
+  echo "skipping test_mris_anatomical_stats"
+  exit 0
+endif
 
 if ( -e testdata2) then
   echo "rm -Rf testdata2"
