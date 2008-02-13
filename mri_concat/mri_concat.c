@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/07 21:48:46 $
- *    $Revision: 1.23 $
+ *    $Date: 2008/02/13 03:28:35 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.23 2008/02/07 21:48:46 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.24 2008/02/13 03:28:35 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -70,6 +70,7 @@ int DoMean=0;
 int DoSum=0;
 int DoStd=0;
 int DoMax=0;
+int DoMaxIndex=0;
 int DoPaired=0;
 int DoPairedAvg=0;
 int DoPairedSum=0;
@@ -87,6 +88,7 @@ double MultiplyVal=0;
 int DoAdd=0;
 double AddVal=0;
 int DoBonfCor=0;
+int DoAbs = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -170,6 +172,10 @@ int main(int argc, char **argv) {
     if(nthin == 0) {
       MRIcopyHeader(mritmp, mriout);
       //mriout->nframes = nframestot;
+    }
+    if(DoAbs) {
+      if(Gdiag_no > 0 || debug) printf("Removing sign from input\n");
+      MRIabs(mritmp,mritmp);
     }
     for(f=0; f < mritmp->nframes; f++) {
       for(c=0; c < nc; c++) {
@@ -265,6 +271,13 @@ int main(int argc, char **argv) {
     mriout = mritmp;
   }
 
+  if(DoMaxIndex) {
+    printf("Computing max index across all frames \n");
+    mritmp = MRIvolMaxIndex(mriout,1,NULL,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
+
   if(DoSort) {
     printf("Sorting \n");
     mritmp = MRIsort(mriout,mask,NULL);
@@ -322,7 +335,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mean"))   DoMean = 1;
     else if (!strcasecmp(option, "--sum"))    DoSum = 1;
     else if (!strcasecmp(option, "--std"))    DoStd = 1;
+    else if (!strcasecmp(option, "--abs"))    DoAbs = 1;
     else if (!strcasecmp(option, "--max"))    DoMax = 1;
+    else if (!strcasecmp(option, "--max-index")) DoMaxIndex = 1;
     else if (!strcasecmp(option, "--vote"))   DoVote = 1;
     else if (!strcasecmp(option, "--sort"))   DoSort = 1;
     else if (!strcasecmp(option, "--max-bonfcor")){
@@ -417,10 +432,12 @@ static void print_usage(void) {
   printf("   --combine : combine non-zero values into a one-frame volume\n");
   printf("             (useful to combine lh.ribbon.mgz and rh.ribbon.mgz)\n");
   printf("\n");
+  printf("   --abs  : take abs of input\n");
   printf("   --mean : compute mean of concatenated volumes\n");
   printf("   --sum  : compute sum of concatenated volumes\n");
   printf("   --std  : compute std  of concatenated volumes\n");
   printf("   --max  : compute max  of concatenated volumes\n");
+  printf("   --max-index  : compute index of max of concatenated volumes (1-based)\n");
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
   printf("\n");
