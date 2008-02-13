@@ -29,7 +29,9 @@ BSPLINES_SRCS = \
 
 UI_SRCS = \
   ui/CommandParser.cxx \
-  ui/FreeSurferExecutable.cxx
+  ui/CommandParser.h \
+  ui/FreeSurferExecutable.cxx \
+  ui/FreeSurferExecutable.h
 
 libitkutils_a_SOURCES= \
   $(BSPLINES_SRCS) \
@@ -39,7 +41,7 @@ libitkutils_a_SOURCES= \
 endif
 #end itk
 
-EXTRA_DIST=$(libitkutils_a_SOURCES) ui
+EXTRA_DIST=$(libitkutils_a_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
