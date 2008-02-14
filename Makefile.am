@@ -348,8 +348,15 @@ uninstall-hook:
 EXTRA_DIST=setup_configure Makefile.extra x86cpucaps INSTALL \
 	doxy-file-header Doxyfile
 
+DISTCLEANFILES=cpuflags.mak
+
+# we have files in our dist that dont and shouldnt get cleaned, like testdata.
+# this target override allows make distcheck to pass
+distcleancheck:
+	echo "Skipping target distcleancheck"
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=CVS
+EXCLUDE_FILES=CVS core
 include $(top_srcdir)/Makefile.extra

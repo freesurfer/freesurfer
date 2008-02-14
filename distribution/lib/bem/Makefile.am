@@ -4,11 +4,8 @@
 
 foodir=$(prefix)/lib/bem
 foo_DATA=\
-	ic0.tri  ic2.tri  ic4.tri  ic6.tri \
-	ic1.tri  ic3.tri  ic5.tri  ic7.tri \
-	inner_skull.dat \
-	outer_skull.dat \
-	outer_skin.dat
+	ic0.tri ic2.tri ic4.tri ic6.tri ic1.tri ic3.tri ic5.tri ic7.tri \
+	inner_skull.dat outer_skull.dat outer_skin.dat
 
 EXTRA_DIST=$(foo_DATA)
 

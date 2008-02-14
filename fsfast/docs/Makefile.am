@@ -48,8 +48,11 @@ foo_DATA = $(TEXFILES:%.tex=%.pdf)
 .tex.dvi:
 	latex $< >& /dev/null
 
-clean:
+clean-local:
 	rm -f *.aux *.log *.ps
+
+distclean-local:
+	rm -f *.pdf Makefile
 
 EXTRA_DIST=$(TEXFILES)
 
