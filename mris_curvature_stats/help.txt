@@ -134,7 +134,7 @@
 
           The {..}Frac flags use fractional operations, weighing or
           normalizing by the fractional vertex area which is defined by
-          fractionalArea = (vertexArea/TotalSurfaceArea)
+          fractionalArea = (vertexArea/TotalSurfaceArea).
 
     [--shapeIndex]
 

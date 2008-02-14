@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/02/14 01:48:27 $
- *    $Revision: 1.41 $
+ *    $Date: 2008/02/14 01:49:02 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.41 2008/02/14 01:48:27 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.42 2008/02/14 01:49:02 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -408,7 +408,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.41 2008/02/14 01:48:27 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.42 2008/02/14 01:49:02 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2300,7 +2300,7 @@ print_help(void) {
  \n\
           The {..}Frac flags use fractional operations, weighing or \n\
           normalizing by the fractional vertex area which is defined by \n\
-          fractionalArea = (vertexArea/TotalSurfaceArea) \n\
+          fractionalArea = (vertexArea/TotalSurfaceArea). \n\
  \n\
     [--shapeIndex] \n\
  \n\
