@@ -34,13 +34,13 @@
  	  PRINCIPLE CURVATURES AND FUNCTIONS
 
 	  Given a surface file, 'mris_curvature_stats' can also compute
-	  all the principle curvatures relating to each point on the 
-	  surface as well as several functions of these principle 
+	  all the principal curvatures relating to each point on the 
+	  surface as well as several functions of these principal 
 	  curvatures.
 
-	  To calculate these principle curvatures, use a '-G' flag on the
+	  To calculate these principal curvatures, use a '-G' flag on the
 	  command line. In such an instance, you do need (nor probably even 
-	  want) any <curvFile> arguments. The following principle curvatures
+	  want) any <curvFile> arguments. The following principal curvatures
 	  and derived measures are calculated (and statistics on each are
 	  presented) for each vertex on the surface:
 
@@ -53,14 +53,19 @@
 	  		BE	Bending Energy 	= k1*k1 + k2*k2
 			SI	Shape Index	= atan((k1+k2)/(k2-k1))
 	  
-	  Note that the SI is not calculated by default due to some issues
+	  Note that the 'BE' is not the same as the Willmore Bending Energy.
+	  The Willmore Bending Energy is the same as 'S' (sharpness). The 
+	  BE in this case only considers the square of the principal
+	  curvatures.
+
+	  Also note that the SI is not calculated by default due to some issues
 	  with atan calculations. Use the '--shapeIndex' flag on the command
 	  line to force SI.
 
 	  In addition, if a '--writeCurvatureFiles' is specified, each of the
 	  above are written to a FreeSurfer format curvature file.
 
-	  Note that there are two methods to calculate principle curvatures. 
+	  Note that there are two methods to calculate principal curvatures. 
 	  The first method is based on calculating the Second Fundamental
 	  Form, and is the method used by 'mris_anatomical_stats'. This
 	  approach can be selected by the '--continuous' command line
@@ -95,7 +100,7 @@
 
           The '-G' flag triggers a series of derived curvature values that
           are calculated from the current <FreeSurferSurface>. These curvatures
-          include the Gaussian, K, the mean, H, and the principle curvatures
+          include the Gaussian, K, the mean, H, and the principal curvatures
           K1 and K2. Additionally, several curvature maps based off these
           values are also determined.
 
@@ -114,7 +119,7 @@
           assigned the fabs(min) solution. By specifying '--signedPrinciples',
           K1 is assigned the (signed) max and K2 the (signed) min.
 
-          Thus, if the solution principle curves at a vertex are -10 and 0.5,
+          Thus, if the solution principal curves at a vertex are -10 and 0.5,
           the default assignment would be:
 
                 K1 = -10 and K2 = 0.5
@@ -423,7 +428,7 @@
 
           Similarly, the Gaussian curvature can be processed, scaled, and 
           displayed, yielding very useful visual information. First  
-          create and save the principle curvature based files:
+          create and save the principal curvature based files:
 
     $>mris_curvature_stats --writeCurvatureFiles -G 801_recon rh curv 
 
