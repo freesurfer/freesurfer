@@ -123,13 +123,18 @@
 
                 K1 = 0.5 and K2 = -10
 
-    [--vertexAreaWeigh] [--vertexAreaNormalize]
+    [--vertexAreaWeigh]         [--vertexAreaNormalize]
+    [--vertexAreaWeighFrac]     [--vertexAreaNormalizeFrac]
 
 	  If specified, will change the value of the curvature value
 	  at each point. The '--vertexAreaWeigh' will multiply each
 	  curvature value by the area of its vertex, and 
 	  '--vertexAreaNormalize' will divide each curvature value by
 	  the area of its vertex.
+
+          The {..}Frac flags use fractional operations, weighing or
+          normalizing by the fractional vertex area which is defined by
+          fractionalArea = (vertexArea/TotalSurfaceArea)
 
     [--shapeIndex]
 
