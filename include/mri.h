@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/07 00:37:28 $
- *    $Revision: 1.361 $
+ *    $Date: 2008/02/15 18:19:42 $
+ *    $Revision: 1.362 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -218,6 +218,7 @@ float MRIvoxelDz(MRI *mri, int x, int y, int z) ;
 float MRIvoxelGradient(MRI *mri, int x, int y, int z, float *pdx, float *pdy,
                        float *pdz) ;
 float MRIvoxelDirection(MRI *mri, int x, int y, int z, int wsize) ;
+MRI *MRI2ndDirectionalDerivative(MRI *mri_src, MRI *mri_deriv, float nx, float ny, float nz) ;
 float MRIvoxelGradientDir2ndDerivative(MRI *mri, int x0, int y0, int z0,
                                        int wsize) ;
 MRI  * MRIgradientDir2ndDerivative(MRI *mri_src, MRI *mri_dst, int wsize) ;
@@ -432,6 +433,9 @@ int   MRIcenterOfMass(MRI *mri,double *means, BUFTYPE threshold) ;
 int   MRIbinaryPrincipleComponents(MRI *mri, MATRIX *mEvectors,
                                    float *evalues,
                                    double *means, BUFTYPE theshold) ;
+int   MRIprincipleComponentsRange(MRI *mri, MATRIX *mEvectors,
+                                   float *evalues,
+                                   double *means, float low_thresh, float hi_thresh) ;
 int   MRIclear(MRI *mri_src) ;
 
 /* these routines use trilinear interpolation */
@@ -470,6 +474,8 @@ MRI   *MRIremoveHoles(MRI *mri_src, MRI*mri_dst, int wsize, float pct,
 #else
 MRI   *MRIremoveHoles(MRI *mri_src, MRI*mri_dst, int wsize, float pct) ;
 #endif
+
+MRI   *MRInormalizeFrameVectorLength(MRI *mri_src, MRI *mri_dst) ;
 
 /* morphology */
 MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
@@ -1174,11 +1180,14 @@ int MRIcomputeLabelCentroid(MRI *mri_aseg, int label,
 MRI *MRIdivideAseg(MRI *mri_src, MRI *mri_dst, int label, int nunits);
 int MRIgeometryMatched(MRI *mri1, MRI *mri2) ;
 
+MRI *MRIsegmentationSurfaceNormals(MRI *mri_seg, MRI *mri_normals, int target_label, MRI **pmri_ctrl) ;
 MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol);
 MRI *MRIfillHoles(MRI *mri_src, MRI *mri_fill, int thresh)  ;
 int  MRIfillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf) ;
 MRI *MRIfloodFillRegion(MRI *mri_src, MRI *mri_dst, 
                         int threshold, int fill_val, int max_count) ;
+int  MRIcomputeBorderNormalAtVoxel(MRI *mri_seg, int x0, int y0, int z0, 
+                                   float *pnx, float *pny,float *pnz, int label) ;
 MRI  *MRImatchIntensityRatio(MRI *mri_source, MRI *_target, MRI *mri_matched, 
                              double min_scale, double max_scale,
                              double low_thresh, double high_thresh);

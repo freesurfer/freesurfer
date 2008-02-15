@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/07 00:38:35 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/02/15 18:19:23 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -416,30 +416,13 @@ VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
 {
   Real   val, xd, yd, zd ;
   int    i, x, y, z ;
-  static VECTOR *v1 = NULL, *v2 ;
 
-  if (v1 == NULL)
-  {
-    v1 = VectorAlloc(4, MATRIX_REAL) ;
-    v2 = VectorAlloc(4, MATRIX_REAL) ;
-    *MATRIX_RELT(v1, 4, 1) = 1.0 ;
-    *MATRIX_RELT(v2, 4, 1) = 1.0 ;
-  }
-
+  VLSTtransformCoords(vl, m) ;
   for (i = 0 ; i < vl->nvox ; i++)
   {
-    x = vl->xi[i] ;
-    y = vl->yi[i] ;
-    z = vl->zi[i] ;
-    V3_X(v1) = x ;
-    V3_Y(v1) = y ;
-    V3_Z(v1) = z ;
-    MatrixMultiply(m, v1, v2) ;
     val = MRIgetVoxVal(vl->mri, x, y, z, 0) ;
     vl->vsrc[i] = val ;
-    xd = V3_X(v2) ;
-    yd = V3_Y(v2) ;
-    zd = V3_Z(v2) ;
+    xd = vl->xd[i] ; yd = vl->yd[i] ; zd = vl->zd[i] ;
     if (xd < 0)
       xd = 0 ;
     else if (xd >= mri->width-1)
@@ -457,6 +440,36 @@ VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
     vl->zd[i] = zd ;
     MRIsampleVolumeType(mri, xd, yd, zd, &val, sample_type) ;
     vl->vdst[i] = val ;
+  }
+  return(NO_ERROR) ;
+}
+int
+VLSTtransformCoords(VOXEL_LIST *vl, MATRIX *m)
+{
+  Real   xd, yd, zd, val ;
+  int    i, x, y, z ;
+  static VECTOR *v1 = NULL, *v2 ;
+
+  if (v1 == NULL)
+  {
+    v1 = VectorAlloc(4, MATRIX_REAL) ;
+    v2 = VectorAlloc(4, MATRIX_REAL) ;
+    *MATRIX_RELT(v1, 4, 1) = 1.0 ;
+    *MATRIX_RELT(v2, 4, 1) = 1.0 ;
+  }
+
+  for (i = 0 ; i < vl->nvox ; i++)
+  {
+    x = vl->xi[i] ; y = vl->yi[i] ; z = vl->zi[i] ;
+    if (vl->mri)
+    {
+      val = MRIgetVoxVal(vl->mri, x, y, z, 0) ;
+      vl->vsrc[i] = val ;
+    }
+    V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+    MatrixMultiply(m, v1, v2) ;
+    xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ;
+    vl->xd[i] = xd ; vl->yd[i] = yd ; vl->zd[i] = zd ;
   }
   return(NO_ERROR) ;
 }

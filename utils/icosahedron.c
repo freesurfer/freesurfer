@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/29 16:16:37 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/02/15 18:19:23 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,46 @@
 #include "diag.h"
 #include "utils.h" //fgetl
 
+
+IC_VERTEX ic0_vertices[12] =
+{
+  {   .0000,   .0000,  1.0000},
+  {   .8944,   .0000,   .4472},
+  {   .2764,   .8507,   .4472},
+  {  -.7236,   .5257,   .4472},
+  {  -.7236,  -.5257,   .4472},
+  {   .2764,  -.8507,   .4472},
+  {   .7236,  -.5257,  -.4472},
+  {   .7236,   .5257,  -.4472},
+  {  -.2764,   .8507,  -.4472},
+  {  -.8944,   .0000,  -.4472},
+  {  -.2764,  -.8507,  -.4472},
+  {   .0000,   .0000, -1.0000}
+} ;
+
+IC_FACE   ic0_faces[20] =
+{
+  {{   1,   5,   4}},
+  {{   1,   6,   5}},
+  {{   1,   2,   6}},
+  {{   1,   3,   2}},
+  {{   1,   4,   3}},
+  {{   4,   9,   3}},
+  {{   4,  10,   9}},
+  {{   4,   5,  10}},
+  {{   5,  11,  10}},
+  {{   5,   6,  11}},
+  {{   6,   7,  11}},
+  {{   6,   2,   7}},
+  {{   2,   8,   7}},
+  {{   2,   3,   8}},
+  {{   3,   9,   8}},
+  {{   9,  10,  12}},
+  {{  10,  11,  12}},
+  {{  11,   7,  12}},
+  {{   7,   8,  12}},
+  {{   8,   9,  12}}
+} ;
 
 IC_VERTEX ic4_vertices[2562] =
   {
@@ -8350,3 +8390,64 @@ int IcoNVtxsFromOrder(int IcoOrder)
   return(nIcoVtxs);
 }
 
+int
+IcoFindNClosestVertices(IC_VERTEX *vertices, int nvertices, float nx, float ny, float nz, int num, int *pv)
+{
+  int    index, max_n, nout, found, n ;
+  double max_dot, dot ;
+
+  max_n = IcoFindClosestVertex(vertices, nvertices, nx, ny, nz) ;
+
+  nout = 0 ; pv[0] = max_n ;   // largest
+  for (nout = 1 ; nout < num ; nout++)
+  {
+    max_dot = -1 ; max_n = -1 ;
+    for (n = 0 ; n < nvertices ; n++)
+    {
+      for (found = index = 0 ; index < nout ; index++)
+        if (pv[index] == n)
+        {
+          found = 1 ;
+          break ;
+        }
+      if (found)  // already in list - don't let it be the max
+        continue ;
+      dot = 
+        nx * vertices[n].x +
+        ny * vertices[n].y +
+        nz * vertices[n].z ;
+      if (dot > max_dot)
+      {
+        max_dot = dot ;
+        max_n = n ;
+      }
+    }
+    pv[nout] = max_n ;
+  }
+  return(pv[0]) ;
+}
+
+int
+IcoFindClosestVertex(IC_VERTEX *vertices, int nvertices, float nx, float ny, float nz)
+{
+  int   n, max_n ;
+  float mag, dot, max_dot ;
+
+  mag = sqrt(nx*nx + ny*ny + nz*nz) ;
+  nx /= mag ; ny /= mag ; nz /= mag ;
+
+  max_dot = -1 ; max_n = -1 ;
+  for (n = 0 ; n < nvertices ; n++)
+  {
+    dot = 
+      nx * vertices[n].x +
+      ny * vertices[n].y +
+      nz * vertices[n].z ;
+    if (dot > max_dot)
+    {
+      max_dot = dot ;
+      max_n = n ;
+    }
+  }
+  return(max_n) ;
+}

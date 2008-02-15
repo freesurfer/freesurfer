@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/29 16:16:11 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/02/15 18:19:42 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -73,9 +73,12 @@ int          IcoNVtxsFromOrder(int IcoOrder);
 
 #define ICO4_NVERTICES    2562
 #define ICO4_NFACES       5120
+#define ICO0_NVERTICES    12
 
 extern IC_VERTEX ic2562_vertices[] ;
 extern IC_FACE   ic2562_faces[] ;
+extern IC_VERTEX ic0_vertices[12] ;
+extern IC_FACE ic0_faces[20] ;
 
 
 // version of ic2562 used for testing mrishash.c, contributed by G. Wideman
@@ -84,6 +87,8 @@ MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1,
 
 ICOSAHEDRON *read_icosahedron(char *fname) ;
 ICOSAHEDRON *read_icosahedron_by_order(int order) ;
+int IcoFindClosestVertex(IC_VERTEX *vertices, int nvertices, float nx, float ny, float nz) ;
+int IcoFindNClosestVertices(IC_VERTEX *vertices, int nvertices, float nx, float ny, float nz, int num, int *pv) ;
 
 
 #endif

@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/10/04 08:00:25 $
- *    $Revision: 1.86 $
+ *    $Author: fischl $
+ *    $Date: 2008/02/15 18:19:23 $
+ *    $Revision: 1.87 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3447,43 +3447,52 @@ static MRI *
 mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i,
-  *pxi, *pyi, *pzi, num ;
+          *pxi, *pyi, *pzi, num, x1, y1, z1, x2, y2, z2 ;
   BUFTYPE *pctrl, ctrl ;
   float   *ptmp ;
   float     mean ;
   MRI     *mri_tmp ;
+  MRI_REGION box ;
 
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
+  if (mri_ctrl->type != MRI_UCHAR)
+    ErrorExit(ERROR_UNSUPPORTED, "mriSoapBubbleFloat: ctrl must be UCHAR");
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
   if (!mri_dst)
     mri_dst = MRIcopy(mri_src, NULL) ;
 
-  pxi = mri_src->xi ;
-  pyi = mri_src->yi ;
-  pzi = mri_src->zi ;
+  pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
 
   mri_tmp = MRIcopy(mri_dst, NULL) ;
 
-  for ( z = 0 ; z < depth ; z++)
+#ifdef WHALF 
+#undef WHALF
+#endif
+#define WHALF 2
+
+  MRIboundingBox(mri_ctrl, CONTROL_MARKED-1, &box) ;
+  x1 = box.x ; x2 = box.x+box.dx-1 ;
+  y1 = box.y ; y2 = box.y+box.dy-1 ;
+  z1 = box.z ; z2 = box.z+box.dz-1 ;
+
+  for ( z = MAX(0,z1-WHALF) ; z <= MIN(z2+WHALF,depth-1) ; z++)
   {
-    for (y = 0 ; y < height ; y++)
+    for (y = MAX(0,y1-WHALF) ; y <= MIN(y2+WHALF,height-1) ; y++)
     {
-      pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
-      ptmp = &MRIFvox(mri_tmp, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
+      pctrl = &MRIvox(mri_ctrl, MAX(0,x1-WHALF), y, z) ;
+      ptmp = &MRIFvox(mri_tmp, MAX(x1-WHALF, 0), y, z) ;
+      for (x = MAX(0,x1-WHALF) ; x <= MIN(x2+WHALF,width-1) ; x++)
       {
         ctrl = *pctrl++ ;
         if (ctrl == CONTROL_MARKED)
           continue ;
         num = mean = 0 ;
-        for (zk = -1 ; zk <= 1 ; zk++)
+        for (zk = -WHALF ; zk <= WHALF ; zk++)
         {
           zi = pzi[z+zk] ;
-          for (yk = -1 ; yk <= 1 ; yk++)
+          for (yk = -WHALF ; yk <= WHALF ; yk++)
           {
             yi = pyi[y+yk] ;
-            for (xk = -1 ; xk <= 1 ; xk++)
+            for (xk = -WHALF ; xk <= WHALF ; xk++)
             {
               xi = pxi[x+xk] ;
               if (MRIvox(mri_ctrl, xi, yi, zi) != CONTROL_MARKED)
@@ -3506,17 +3515,16 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   {
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "soap bubble iteration %d of %d\n", i+1, niter) ;
-    for ( z = 0 ; z < depth ; z++)
+    for ( z = z1 ; z <= z2 ; z++)
     {
-      for (y = 0 ; y < height ; y++)
+      for (y = y1 ; y <= y2 ; y++)
       {
-        pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
-        ptmp = &MRIFvox(mri_tmp, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
+        pctrl = &MRIvox(mri_ctrl, x1, y, z) ;
+        ptmp = &MRIFvox(mri_tmp, x1, y, z) ;
+        for (x = x1 ; x <= x2 ; x++)
         {
           ctrl = *pctrl++ ;
-          if (ctrl == CONTROL_MARKED)   /* marked point - don't
-            change it */
+          if (ctrl == CONTROL_MARKED)  // marked point - don't change it
           {
             ptmp++ ;
             continue ;
@@ -3543,6 +3551,8 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
       }
     }
     MRIcopy(mri_tmp, mri_dst) ;
+    x1 = MAX(x1-1, 0) ; y1 = MAX(y1-1, 0) ; z1 = MAX(z1-1, 0) ;
+    x2 = MIN(x2+1,width-1); y2 = MIN(y2+1,height-1); z2 = MIN(z2+1, depth-1);
   }
 
   MRIfree(&mri_tmp) ;

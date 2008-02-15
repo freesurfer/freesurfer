@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/07 00:37:22 $
- *    $Revision: 1.67 $
+ *    $Date: 2008/02/15 18:19:23 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,7 @@
 #include "region.h"
 #include "talairachex.h"
 #include "fftutils.h"
+#include "mrinorm.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -973,7 +974,130 @@ MRIlaplacian(MRI *mri_src, MRI *mri_laplacian)
 
   return(mri_laplacian) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+          Two orthogonal basis vectors
+
+        Description
+          Compute two vectors orthogonal to each other and to a third
+------------------------------------------------------*/
+int
+compute_tangent_vectors(float nx, float ny, float nz, 
+                        float *pe1x, float *pe1y, float *pe1z, float *pe2x, float *pe2y, float *pe2z)
+{
+  float vx, vy, vz, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, len ;
+
+  /* pick some other unit non-linearly dependent vector */
+  if (!FEQUAL(nx, ny))
+  {
+    vx = ny ;
+    vy = nx ;
+    vz = nz ;
+  }
+  else
+  {
+    vx = ny ;
+    vy = nz ;
+    vz = nx ;
+  }
+
+  /* don't care about sign (right-hand rule) */
+  e1_x = vy*nz - vz*ny ;
+  e1_y = vz*nx - vx*nz ;
+  e1_z = vx*ny - vy*nx ;
+
+  len = sqrt(e1_x*e1_x+e1_y*e1_y+e1_z*e1_z) ;
+  if (FZERO(len))
+  {
+    fprintf(stderr, "zero tangent vector computed!!\n") ;
+    DiagBreak() ;
+    exit(0) ;
+  }
+  else
+  {
+    e1_x /= len ; e1_y /= len ; e1_z /= len ; 
+  }
+
+  e2_x = e1_y*nz - e1_z*ny ;
+  e2_y = e1_x*nz - e1_z*nx ;
+  e2_z = e1_y*nx - e1_x*ny ;
+  len = sqrt(e2_x*e2_x+e2_y*e2_y+e2_z*e2_z) ;
+  e2_x /= len ; e2_y /= len ; e2_z /= len ; 
+  
+  *pe1x = e1_x ; *pe1y = e1_y ; *pe1z = e1_z ; 
+  *pe2x = e2_x ; *pe2y = e2_y ; *pe2z = e2_z ; 
+
+#if 0
+  DiagFprintf(0L,
+              "vertex %d: (%2.2f, %2.2f, %2.2f) --> (%2.2f, %2.2f, %2.2f) "
+              "x (%2.2f, %2.2f, %2.2f)\n",
+              vertex, ic_x_vertices[vertex], ic_y_vertices[vertex],
+              ic_z_vertices[vertex], e1_x_v[vertex], e1_y_v[vertex],
+              e1_z_v[vertex],e2_x_v[vertex], e2_y_v[vertex], e2_z_v[vertex]) ;
+  DiagFprintf(0L, "lengths: %2.3f, %2.3f, %2.3f\n",
+              sqrt(nx*nx+ny*ny+nz*nz),
+              sqrt(e1_x*e1_x+e1_y*e1_y+e1_z*e1_z),
+              sqrt(e2_x*e2_x+e2_y*e2_y+e2_z*e2_z)) ;
+#endif
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+          a volume with the 2nd derivative values
+
+        Description
+          compute the 2nd derivative in the specified direction
+------------------------------------------------------*/
+MRI *
+MRI2ndDirectionalDerivative(MRI *mri_src, MRI *mri_deriv, float nx, float ny, float nz)
+{
+  int   x, y, z, dn, d1, d2 ;
+  float deriv, xf, yf, zf, e1x, e1y, e1z, e2x, e2y, e2z, wt ;
+  Real  val ;
+
+  if (mri_deriv == NULL)
+    mri_deriv = MRIcloneDifferentType(mri_src, MRI_FLOAT) ;
+
+  compute_tangent_vectors(nx, ny, nz, &e1x, &e1y, &e1z, &e2x, &e2y, &e2z) ;
+  for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
+    {
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        deriv = 0 ;
+        for (dn = -1 ; dn <= 1 ; dn++)  // normal direction
+        {
+          switch (dn)
+          {
+          case 1:
+          case -1: wt = 1 ; break ;
+          case 0:  wt = -2; break ;
+          }
+          for (d1 = -1 ; d1 <= 1 ; d1++)   // first tangent direction
+            for (d2 = -1 ; d2 <= 1 ; d2++)   // secont tangent direction
+            {
+              xf = x + dn * nx + d1 * e1x + d2 * e2x ; 
+              yf = y + dn * ny + d1 * e1y + d2 * e2y ; 
+              zf = z + dn * nz + d1 * e1z + d2 * e2z ; 
+              MRIsampleVolume(mri_src, xf, yf, zf, &val) ;
+              deriv += (val*wt) ;
+            }
+        }
+        MRIsetVoxVal(mri_deriv, x, y, z, 0, deriv) ;
+      }
+    }
+  }
+
+
+  return(mri_deriv) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -5223,15 +5347,32 @@ MRIgradientDir2ndDerivative(MRI *mri_src, MRI *mri_dst, int wsize)
   height = mri_dst->height ;
   depth = mri_dst->depth ;
 
-  for (z = 0 ; z < depth ; z++)
+  if (mri_dst->type == MRI_UCHAR)
   {
-    for (y = 0 ; y < height ; y++)
+    for (z = 0 ; z < depth ; z++)
     {
-      for (x = 0 ; x < width ; x++)
+      for (y = 0 ; y < height ; y++)
       {
-        dI_d2 = MRIvoxelGradientDir2ndDerivative(mri_src, x, y, z, wsize) ;
-        MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(127*(1+tanh(dI_d2/30))) ;
-
+        for (x = 0 ; x < width ; x++)
+        {
+          dI_d2 = MRIvoxelGradientDir2ndDerivative(mri_src, x, y, z, wsize) ;
+          MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(127*(1+tanh(dI_d2/30))) ;
+          
+        }
+      }
+    }
+  }
+  else
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          dI_d2 = MRIvoxelGradientDir2ndDerivative(mri_src, x, y, z, wsize) ;
+          MRIsetVoxVal(mri_dst, x, y, z, 0, 127*(1+tanh(dI_d2/30))) ;
+        }
       }
     }
   }
@@ -6011,5 +6152,136 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
   if(vs) MatrixFree(&vs);
 
   return(targ);
+}
+
+MRI *
+MRIsegmentationSurfaceNormals(MRI *mri_seg, MRI *mri_normals, int label, MRI **pmri_ctrl)
+{
+  int    x, y, z, border ;
+  float  nx, ny, nz ;
+  MRI    *mri_border ;
+
+  mri_border = MRImarkLabelBorderVoxels(mri_seg, NULL, label, 1, 0) ;
+  mri_normals = MRIallocSequence(mri_seg->width, mri_seg->height, mri_seg->depth, MRI_FLOAT, 3) ;
+  MRIcopyHeader(mri_seg, mri_normals) ;
+
+  for (x = 0; x < mri_seg->width; x++)
+  {
+    for (y = 0; y < mri_seg->height; y++)
+    {
+      for (z = 0; z < mri_seg->height; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        border = nint(MRIgetVoxVal(mri_border, x, y, z, 0)) ;
+        if (border == 0)
+          continue ;
+        MRIcomputeBorderNormalAtVoxel(mri_seg, x, y, z, &nx, &ny, &nz, label) ;
+        MRIsetVoxVal(mri_normals, x, y, z, 0, nx) ;
+        MRIsetVoxVal(mri_normals, x, y, z, 1, ny) ;
+        MRIsetVoxVal(mri_normals, x, y, z, 2, nz) ;
+        if (pmri_ctrl)
+          MRIsetVoxVal(*pmri_ctrl, x, y, z, 0, CONTROL_MARKED) ;
+      }
+    }
+  }
+
+  MRIfree(&mri_border) ;
+  return(mri_normals) ;
+}
+
+int
+MRIcomputeBorderNormalAtVoxel(MRI *mri_seg, 
+                              int x0, int y0, int z0, 
+                              float *pnx, float *pny,float *pnz, int target_label)
+{
+  int   olabel, x1, y1, z1, xk, yk, zk, label, num, max_n ;
+  float nx, ny, nz, mag ;
+
+  olabel = (int)MRIgetVoxVal(mri_seg, x0, y0, z0, 0) ;
+
+  for (nx = ny = nz = 0.0, num = 0, xk = -1 ; xk <= 1 ; xk++)
+  {
+    x1 = mri_seg->xi[x0+xk] ;
+    for (yk = -1 ; yk <= 1 ; yk++)
+    {
+      y1 = mri_seg->yi[y0+yk] ;
+      for (zk = -1 ; zk <= 1 ; zk++)
+      {
+        z1 = mri_seg->zi[z0+zk] ;
+        if (fabs(xk) + fabs(yk) + fabs(zk) > 1)
+          continue ;  // only 6-connected
+        label = (int)MRIgetVoxVal(mri_seg, x1, y1, z1, 0) ;
+        if ((label == target_label && olabel != target_label) ||
+            (label != target_label && olabel == target_label))
+        {
+          nx += xk ;
+          ny += yk ;
+          nz += zk ;
+          num++ ;
+        }
+      }
+    }
+  }
+
+  if (!FZERO(num))
+  {
+    nx /= num ;
+    ny /= num ;
+    nz /= num ;
+  }
+  else
+    DiagBreak() ;
+
+  if (olabel != target_label) // make normal point outwards
+  {
+
+    nx *= -1 ; ny *= -1 ; nz *= -1 ;
+  }
+
+  mag = sqrt(nx*nx + ny*ny  + nz*nz) ;
+  if (!FZERO(mag))
+  {
+    nx /= mag ; ny /= mag ; nz /= mag ;
+  }
+  *pnx = nx ; *pny = ny ; *pnz = nz ;  // return in image coords
+
+  return(max_n) ;
+}
+
+/*
+  normalize the length of the sequence at each voxel to be unity.
+*/
+MRI   *
+MRInormalizeFrameVectorLength(MRI *mri_src, MRI *mri_dst)
+{
+  int   x, y, z, f ;
+  float val, mag ;
+
+  if (mri_src != mri_dst)
+    MRIcopy(mri_src, mri_dst) ;
+
+  for (x = 0 ; x < mri_dst->width ; x++)
+    for (y = 0 ; y < mri_dst->height ; y++)
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+        for (mag = 0.0, f = 0 ; f < mri_dst->nframes ; f++)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+          mag += (val*val) ;
+        }
+        mag = sqrt(mag) ;
+        if (!FZERO(mag))
+        {
+          for (f = 0 ; f < mri_dst->nframes ; f++)
+          {
+            val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+            val /= mag ;
+            MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+          }
+        }
+      }
+
+  return(mri_dst) ;
 }
 

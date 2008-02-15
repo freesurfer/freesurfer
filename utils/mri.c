@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/07 00:37:21 $
- *    $Revision: 1.409 $
+ *    $Date: 2008/02/15 18:19:22 $
+ *    $Revision: 1.410 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.409 $";
+const char *MRI_C_VERSION = "$Revision: 1.410 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -3907,6 +3907,96 @@ MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
       {
         val = *psrc++ ;
         if (val > threshold)
+        {
+          mX->rptr[1][1] = (x - (int)mx)*val ;
+          mX->rptr[2][1] = (y - (int)my)*val ;
+          mX->rptr[3][1] = (z - (int)mz)*val ;
+          mXT = MatrixTranspose(mX, mXT) ;
+          mTmp = MatrixMultiply(mX, mXT, mTmp) ;
+          mCov = MatrixAdd(mTmp, mCov, mCov) ;
+        }
+      }
+    }
+  }
+
+  if (weight > 0)
+    MatrixScalarMul(mCov, 1.0f/weight, mCov) ;
+
+  MatrixEigenSystem(mCov, evalues, mEvectors) ;
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  find the principle components of a (binary) MRI. The
+  eigenvectors are the columns of the matrix mEvectors, the
+  eigenvalues are returned in the array evalues and the means
+  in means (these last two must be three elements long) of values
+  low_thresh <= val <= hi_thresh
+  ------------------------------------------------------*/
+int
+MRIprincipleComponentsRange(MRI *mri, MATRIX *mEvectors, float *evalues,
+                            double *means, float low_thresh, float hi_thresh)
+{
+  int     width, height, depth, x, y, z ;
+  long    npoints ;
+  MATRIX  *mCov, *mX, *mXT, *mTmp ;
+  double  mx, my, mz, weight ;
+  float   val ;
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+
+  mx = my = mz = weight = 0.0f ;
+  npoints = 0L ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        val = MRIgetVoxVal(mri, x, y, z, 0) ;
+        if (val >= low_thresh && val <= hi_thresh)
+        {
+          weight += val ;
+          mx += (float)x*val ;
+          my += (float)y*val ;
+          mz += (float)z*val ;
+          npoints++ ;
+        }
+      }
+    }
+  }
+
+  if (weight > 0.0)
+  {
+    mx /= weight ;
+    my /= weight  ;
+    mz /= weight ;
+    means[0] = mx ;
+    means[1] = my ;
+    means[2] = mz ;
+  }
+  else
+    means[0] = means[1] = means[2] = 0.0f ;
+
+  mX = MatrixAlloc(3, 1, MATRIX_REAL) ;     /* zero-mean coordinate vector */
+  mXT = NULL ;                              /* transpose of above */
+  mTmp = MatrixAlloc(3, 3, MATRIX_REAL) ;   /* tmp matrix for covariance */
+  mCov = MatrixAlloc(3, 3, MATRIX_REAL) ;   /* covariance matrix */
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        val = MRIgetVoxVal(mri, x, y,z, 0) ;
+        if (val >= low_thresh && val <= hi_thresh)
         {
           mX->rptr[1][1] = (x - (int)mx)*val ;
           mX->rptr[2][1] = (y - (int)my)*val ;
@@ -15336,7 +15426,7 @@ MRIcloneDifferentType(MRI *mri_src, int type)
     return(MRIclone(mri_src, NULL)) ;
 
   mri_dst = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth, 
-                             mri_src->type, mri_src->nframes) ;
+                             type, mri_src->nframes) ;
   MRIcopyHeader(mri_src, mri_dst) ;
   return(mri_dst) ;
 }

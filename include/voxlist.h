@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/07 00:38:14 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/02/15 18:19:42 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@ typedef struct
   double  mean;
   double  std;
 }
-VOXEL_LIST ;
+VOXEL_LIST, VOXLIST ;
 
 VOXEL_LIST *VLSTalloc(int nvox) ;
 VOXEL_LIST *VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_index, int num) ;
@@ -59,6 +59,7 @@ VOXEL_LIST  *VLSTcreate(MRI *mri, float low_val, float hi_val ,
                         VOXEL_LIST *vl, int skip, int border_only) ;
 VOXEL_LIST  *VLSTcreateInRegion(MRI *mri, float low_val, float hi_val ,
                                 VOXEL_LIST *vl, int skip, int border_only, MRI_REGION *box) ;
+int         VLSTtransformCoords(VOXEL_LIST *vl, MATRIX *m) ;
 int         VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type) ;
 
 MRI         *VLSTcreateMri(VOXEL_LIST *vl, int val) ;
