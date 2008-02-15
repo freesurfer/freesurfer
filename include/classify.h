@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.3 $
+ *    $Author: fischl $
+ *    $Date: 2008/02/15 18:49:26 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,5 +35,6 @@
 #define CLASSIFIER_ARTMAP          2
 #define CLASSIFIER_GAUSSIAN_ARRAY  3
 #define CLASSIFIER_RBF             4   /* radial basis function */
+#define CLASSIFIER_SVM             5
 
 #endif
