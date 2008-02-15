@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/15 18:19:23 $
- *    $Revision: 1.68 $
+ *    $Date: 2008/02/15 23:31:40 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1056,7 +1056,7 @@ MRI *
 MRI2ndDirectionalDerivative(MRI *mri_src, MRI *mri_deriv, float nx, float ny, float nz)
 {
   int   x, y, z, dn, d1, d2 ;
-  float deriv, xf, yf, zf, e1x, e1y, e1z, e2x, e2y, e2z, wt ;
+  float deriv, xf, yf, zf, e1x, e1y, e1z, e2x, e2y, e2z, wt  = 1;
   Real  val ;
 
   if (mri_deriv == NULL)
@@ -1078,6 +1078,7 @@ MRI2ndDirectionalDerivative(MRI *mri_src, MRI *mri_deriv, float nx, float ny, fl
           {
           case 1:
           case -1: wt = 1 ; break ;
+          default:
           case 0:  wt = -2; break ;
           }
           for (d1 = -1 ; d1 <= 1 ; d1++)   // first tangent direction
@@ -6176,12 +6177,14 @@ MRIsegmentationSurfaceNormals(MRI *mri_seg, MRI *mri_normals, int label, MRI **p
         border = nint(MRIgetVoxVal(mri_border, x, y, z, 0)) ;
         if (border == 0)
           continue ;
-        MRIcomputeBorderNormalAtVoxel(mri_seg, x, y, z, &nx, &ny, &nz, label) ;
-        MRIsetVoxVal(mri_normals, x, y, z, 0, nx) ;
-        MRIsetVoxVal(mri_normals, x, y, z, 1, ny) ;
-        MRIsetVoxVal(mri_normals, x, y, z, 2, nz) ;
-        if (pmri_ctrl)
-          MRIsetVoxVal(*pmri_ctrl, x, y, z, 0, CONTROL_MARKED) ;
+        if (MRIcomputeBorderNormalAtVoxel(mri_seg, x, y, z, &nx, &ny, &nz, label) > 0)
+        {
+          MRIsetVoxVal(mri_normals, x, y, z, 0, nx) ;
+          MRIsetVoxVal(mri_normals, x, y, z, 1, ny) ;
+          MRIsetVoxVal(mri_normals, x, y, z, 2, nz) ;
+          if (pmri_ctrl)
+            MRIsetVoxVal(*pmri_ctrl, x, y, z, 0, CONTROL_MARKED) ;
+        }
       }
     }
   }
@@ -6195,7 +6198,7 @@ MRIcomputeBorderNormalAtVoxel(MRI *mri_seg,
                               int x0, int y0, int z0, 
                               float *pnx, float *pny,float *pnz, int target_label)
 {
-  int   olabel, x1, y1, z1, xk, yk, zk, label, num, max_n ;
+  int   olabel, x1, y1, z1, xk, yk, zk, label, num ;
   float nx, ny, nz, mag ;
 
   olabel = (int)MRIgetVoxVal(mri_seg, x0, y0, z0, 0) ;
@@ -6246,7 +6249,7 @@ MRIcomputeBorderNormalAtVoxel(MRI *mri_seg,
   }
   *pnx = nx ; *pny = ny ; *pnz = nz ;  // return in image coords
 
-  return(max_n) ;
+  return(num) ;
 }
 
 /*
