@@ -382,8 +382,6 @@ case "${target}" in
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
  CPPFLAGS="-gfull -O2 $NSALIASING $WALL $WERROR $LFS_CFLAGS"
- # -mmacosx-version-min=10.4 ensures that builds on Leopard work on Tiger:
- LDFLAGS="-mmacosx-version-min=10.4 $LDFLAGS"
  FCLIBS="-L/usr/lib -lgcc"
  ;;
  i*86-*-solaris*)
