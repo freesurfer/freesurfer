@@ -126,7 +126,6 @@ vtkKWOrientMRIView2DTcl.cxx \
 vtkKWOrientMRIView3D.cxx \
 vtkKWOrientMRIView3D.h \
 vtkKWOrientMRIView3DTcl.cxx \
-vtkKWOrientMRIViewTcl.cxx \
 vtkKWOrientMRIWindow.cxx \
 vtkKWOrientMRIWindow.h \
 vtkKWOrientMRIWindowTcl.cxx \
