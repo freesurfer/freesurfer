@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/15 18:19:23 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/02/16 02:44:09 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -415,12 +415,12 @@ int
 VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
 {
   Real   val, xd, yd, zd ;
-  int    i, x, y, z ;
+  int    i ;
 
   VLSTtransformCoords(vl, m) ;
   for (i = 0 ; i < vl->nvox ; i++)
   {
-    val = MRIgetVoxVal(vl->mri, x, y, z, 0) ;
+    val = MRIgetVoxVal(vl->mri, vl->xi[i], vl->yi[i], vl->zi[i], 0) ;
     vl->vsrc[i] = val ;
     xd = vl->xd[i] ; yd = vl->yd[i] ; zd = vl->zd[i] ;
     if (xd < 0)
@@ -435,9 +435,7 @@ VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
       zd = 0 ;
     else if (zd >= mri->depth-1)
       zd = mri->depth-1 ;
-    vl->xd[i] = xd ;
-    vl->yd[i] = yd ;
-    vl->zd[i] = zd ;
+    vl->xd[i] = xd ; vl->yd[i] = yd ; vl->zd[i] = zd ;
     MRIsampleVolumeType(mri, xd, yd, zd, &val, sample_type) ;
     vl->vdst[i] = val ;
   }
