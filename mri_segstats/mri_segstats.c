@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/20 20:08:20 $
- *    $Revision: 1.38 $
+ *    $Date: 2008/02/16 00:34:40 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -200,8 +200,9 @@ For each segmentation, compute an average waveform across all the
 voxels in the segmentation (excluding voxels masked out). The results
 are saved in an ascii text file with number of rows equal to the
 number of frames and number of columns equal to the number of
-segmentations reported plus 2. The first two columns are: (1) 0-based
-frame number and (2) 0-based frame number times TR.
+segmentations reported plus 2. The first row is -1 -1 then all
+of the segid numbers. After that, the first two columns are: 
+(1) 0-based frame number and (2) 0-based frame number times TR.
 
 --avgwfvol mrivol
 
@@ -416,7 +417,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.38 2007/12/20 20:08:20 greve Exp $";
+"$Id: mri_segstats.c,v 1.39 2008/02/16 00:34:40 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1254,9 +1255,12 @@ int main(int argc, char **argv) {
     }
 
     // Save as a simple text file
-    if (FrameAvgFile) {
+    if(FrameAvgFile) {
       printf("Writing to %s\n",FrameAvgFile);
       fp = fopen(FrameAvgFile,"w");
+      fprintf(fp,"-1 -1 ");
+      for (n=0; n < nsegid; n++) fprintf(fp,"%4d ", StatSumTable[n].id);
+      fprintf(fp,"\n");
       for (f=0; f < invol->nframes; f++) {
         fprintf(fp,"%3d %7.3f ",f,f*invol->tr/1000);
         for (n=0; n < nsegid; n++) fprintf(fp,"%g ",favg[n][f]);
@@ -1266,7 +1270,7 @@ int main(int argc, char **argv) {
     }
 
     // Save as an MRI "volume"
-    if (FrameAvgVolFile) {
+    if(FrameAvgVolFile) {
       printf("Writing to %s\n",FrameAvgVolFile);
       famri = MRIallocSequence(nsegid,1,1,MRI_FLOAT,invol->nframes);
       for (f=0; f < invol->nframes; f++) {
@@ -1694,8 +1698,9 @@ printf("For each segmentation, compute an average waveform across all the\n");
 printf("voxels in the segmentation (excluding voxels masked out). The results\n");
 printf("are saved in an ascii text file with number of rows equal to the\n");
 printf("number of frames and number of columns equal to the number of\n");
-printf("segmentations reported plus 2. The first two columns are: (1) 0-based\n");
-printf("frame number and (2) 0-based frame number times TR.\n");
+printf("segmentations reported plus 2. The first row is -1 -1 then all\n");
+printf("of the segid numbers. After that, the first two columns are: \n");
+printf("(1) 0-based frame number and (2) 0-based frame number times TR.\n");
 printf("\n");
 printf("--avgwfvol mrivol\n");
 printf("\n");
