@@ -46,7 +46,7 @@ foo_DATA = $(TEXFILES:%.tex=%.pdf)
 	rm -f $<
 
 .tex.dvi:
-	latex $< >& /dev/null
+	latex --src -interaction=nonstopmode $< >& /dev/null
 
 clean-local:
 	rm -f *.aux *.log *.ps
