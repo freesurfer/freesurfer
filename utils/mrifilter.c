@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/15 23:31:40 $
- *    $Revision: 1.69 $
+ *    $Date: 2008/02/18 15:14:25 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -6182,7 +6182,7 @@ MRIsegmentationSurfaceNormals(MRI *mri_seg, MRI *mri_normals, int label, MRI **p
           MRIsetVoxVal(mri_normals, x, y, z, 0, nx) ;
           MRIsetVoxVal(mri_normals, x, y, z, 1, ny) ;
           MRIsetVoxVal(mri_normals, x, y, z, 2, nz) ;
-          if (pmri_ctrl)
+          if (pmri_ctrl && (!FZERO(nx) || !FZERO(ny) || !(FZERO(nz))))
             MRIsetVoxVal(*pmri_ctrl, x, y, z, 0, CONTROL_MARKED) ;
         }
       }
