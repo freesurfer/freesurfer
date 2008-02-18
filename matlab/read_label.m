@@ -15,9 +15,9 @@ function [l] = read_label(sname, lname)
 %
 % Original Author: Bruce Fischl
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:10 $
-%    $Revision: 1.5 $
+%    $Author: fischl $
+%    $Date: 2008/02/18 14:37:57 $
+%    $Revision: 1.6 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,12 @@ if(~isempty(sname))
   sdir = getenv('SUBJECTS_DIR') ;
   fname = sprintf('%s/%s/label/%s.label', sdir, sname, lname) ;
 else
-  fname = lname;
+	ind = findstr(lname, '.label') ;
+	if (length(ind) > 0)
+        fname = lname ;
+    else
+		fname = sprintf('%s.label', lname);
+	end
 end
 
 % open it as an ascii file
