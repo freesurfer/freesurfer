@@ -9,8 +9,8 @@
  * Original Author: Gheorghe Postelnicu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 03:06:20 $
- *    $Revision: 1.10.2.1 $
+ *    $Date: 2008/02/18 20:28:56 $
+ *    $Revision: 1.10.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,8 +25,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
 
 // STL
 #include <iostream>
@@ -455,11 +453,16 @@ LoadInputFiles(const IoParams& params,
   pathMriInput,
   pathOutput;
 
-  FSENV* fsenv= FSENVgetenv();
+  char* sd= FSENVgetSUBJECTS_DIR();
+  if ( NULL == sd ) 
+  {
+    cerr << "Could not get SUBJECTS_DIR" << endl;
+    exit(1);
+  }
 
   if ( !params.subject.empty() ) // application is in subject-mode
   {
-    std::string subjDir = std::string( fsenv->SUBJECTS_DIR ) / params.subject;
+    std::string subjDir = std::string( sd ) / params.subject;
     std::string pathSurf(subjDir / "surf");
     pathSurfLeftWhite = pathSurf / "lh.white";
     pathSurfLeftPial = pathSurf / "lh.pial";
@@ -469,8 +472,6 @@ LoadInputFiles(const IoParams& params,
 
     pathOutput = subjDir / "mri";
   }
-
-  FSENVfree(&fsenv);
 
   // load actual files now
   surfLeftWhite = MRISread

@@ -1,17 +1,16 @@
 /**
  * @file  fsenv.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Load, set freesurfer environment variables
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/02/18 20:28:54 $
+ *    $Revision: 1.3.2.1 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2006-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,10 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-// $Id: fsenv.h,v 1.3 2006/12/29 02:08:59 nicks Exp $
-// Load, set freesurfer environment variables
 
 #ifndef FSENV_INC
 #define FSENV_INC
@@ -53,6 +48,7 @@ const char *FSENVsrcVersion(void);
 FSENV *FSENVgetenv(void);
 int FSENVprintenv(FILE *fp,FSENV *env);
 int FSENVsetSUBJECTS_DIR(char *SUBJECTS_DIR);
+char *FSENVgetSUBJECTS_DIR(void);
 int FSENVfree(FSENV **ppenv);
 
 #endif //#ifndef FSENV_INC
