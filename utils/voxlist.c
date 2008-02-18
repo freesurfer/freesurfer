@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/16 02:44:09 $
- *    $Revision: 1.15 $
+ *    $Date: 2008/02/18 14:36:08 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -199,6 +199,11 @@ VLSTcreate(MRI *mri,
             i = nvox++ ;
             if (i == Gdiag_no)
               DiagBreak() ;
+            if (x == Gx && y == Gy && z == Gz)
+            {
+              printf("voxel (%d, %d, %d) = %2.1f added to voxlist at %d\n",
+                     x, y, z, val, i) ;
+            }
             vl->xi[i] = x ;
             vl->yi[i] = y ;
             vl->zi[i] = z ;
