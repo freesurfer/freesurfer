@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/15 21:51:39 $
- *    $Revision: 1.68 $
+ *    $Date: 2008/02/19 21:53:41 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.68 2007/12/15 21:51:39 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.69 2008/02/19 21:53:41 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -453,7 +453,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.68 2007/12/15 21:51:39 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.69 2008/02/19 21:53:41 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1579,6 +1579,11 @@ static void check_options(void) {
           exit(1);
         }
       }
+    }
+  } else {
+    if(srcvalfile != NULL){
+      printf("ERROR: cannot spec both --sval-xyz and --sval\n");
+      exit(1);
     }
   }
 
