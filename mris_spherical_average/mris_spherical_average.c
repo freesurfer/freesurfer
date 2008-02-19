@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/13 14:23:21 $
- *    $Revision: 1.20 $
+ *    $Date: 2008/02/19 18:25:57 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.20 2007/02/13 14:23:21 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.21 2008/02/19 18:25:57 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -84,10 +84,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.20 2007/02/13 14:23:21 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.21 2008/02/19 18:25:57 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.20 2007/02/13 14:23:21 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.21 2008/02/19 18:25:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -214,6 +214,17 @@ main(int argc, char *argv[]) {
         LabelSetStat(area, 1) ;
       else
         printf("only %d subject - copying statistics...\n", argc-1-FIRST_SUBJECT );
+      if (navgs > 0)
+      {
+        int i ;
+        LabelMarkStats(area, mris) ;
+        LabelFree(&area) ;
+        MRISaverageMarkedStats(mris, navgs) ;
+        area = LabelFromMarkedSurface(mris) ;
+        for (i = 0 ; i < area->n_points ; i++)
+          if (FZERO(area->lv[i].stat))
+            DiagBreak() ;
+      }
       area_avg = LabelSphericalCombine(mris, area, mht, mris_avg, area_avg) ;
       break ;
     case VERTEX_CURVATURE:
