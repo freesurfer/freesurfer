@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/02/14 22:08:55 $
- *    $Revision: 1.43 $
+ *    $Date: 2008/02/19 03:43:21 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.43 2008/02/14 22:08:55 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.44 2008/02/19 03:43:21 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -408,7 +408,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.43 2008/02/14 22:08:55 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.44 2008/02/19 03:43:21 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -782,6 +782,8 @@ MRIS_curvatures_prepare(
   case e_ScaledTrans:
     break;
   }
+
+  // Check for possible normalizing / weighing factors
   if(   Gb_vertexAreaNormalize          || 
         Gb_vertexAreaWeigh              || 
         Gb_vertexAreaNormalizeFrac      || 
@@ -1343,7 +1345,6 @@ MRISusePrincipleCurvatureFunction(
   VERTEX*	pvertex ;
   float		f_k1;
   float		f_k2;
-  float         f_surfaceArea   = pmris->total_area;
 
   float  	f_min           =  pmris->vertices[0].curv;
   float  	f_max           = f_min;
@@ -1355,10 +1356,6 @@ MRISusePrincipleCurvatureFunction(
     f_k1		= pvertex->k1;
     f_k2		= pvertex->k2;
     pvertex->curv 	= (*f)(f_k1, f_k2);
-    if (Gb_vertexAreaNormalize)         pvertex->curv /= pvertex->area;
-    if (Gb_vertexAreaWeigh) 	        pvertex->curv *= pvertex->area;
-    if (Gb_vertexAreaNormalizeFrac)     pvertex->curv /= (pvertex->area/f_surfaceArea);
-    if (Gb_vertexAreaWeighFrac)         pvertex->curv *= (pvertex->area/f_surfaceArea);
     if (pvertex->curv < f_min) f_min = pvertex->curv;
     if (pvertex->curv > f_max) f_max = pvertex->curv;
   }
@@ -1385,6 +1382,7 @@ MRISvertexAreaPostProcess(
 
   int    	vno ;
   VERTEX*	pvertex ;
+  float         f_surfaceArea   = pmris->total_area;
 
   float  	f_min =  pmris->vertices[0].curv;
   float  	f_max = f_min;
@@ -1393,8 +1391,10 @@ MRISvertexAreaPostProcess(
       pvertex = &pmris->vertices[vno] ;
       if (pvertex->ripflag)
         continue ;
-      if (Gb_vertexAreaNormalize) pvertex->curv /= pvertex->area;
-      if (Gb_vertexAreaWeigh) 	pvertex->curv *= pvertex->area;
+      if (Gb_vertexAreaNormalize)       pvertex->curv /= pvertex->area;
+      if (Gb_vertexAreaWeigh)           pvertex->curv *= pvertex->area;
+      if (Gb_vertexAreaNormalizeFrac)   pvertex->curv /= (pvertex->area/f_surfaceArea);
+      if (Gb_vertexAreaWeighFrac)       pvertex->curv *= (pvertex->area/f_surfaceArea);
       if (pvertex->curv < f_min) f_min = pvertex->curv;
       if (pvertex->curv > f_max) f_max = pvertex->curv;
   }
