@@ -31,7 +31,7 @@
           curvatures that result from the above calculations can be 
           saved to a series of text and binary-curvature files.  
 
- 	  PRINCIPLE CURVATURES AND FUNCTIONS
+ 	  PRINCIPAL CURVATURES AND FUNCTIONS
 
 	  Given a surface file, 'mris_curvature_stats' can also compute
 	  all the principal curvatures relating to each point on the 

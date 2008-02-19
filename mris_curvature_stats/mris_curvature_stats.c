@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/02/19 03:56:42 $
- *    $Revision: 1.45 $
+ *    $Date: 2008/02/19 04:00:22 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.45 2008/02/19 03:56:42 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.46 2008/02/19 04:00:22 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -408,7 +408,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.45 2008/02/19 03:56:42 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.46 2008/02/19 04:00:22 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2181,7 +2181,7 @@ print_help(void) {
           curvatures that result from the above calculations can be \n\
           saved to a series of text and binary-curvature files. \n\
  \n\
-          PRINCIPLE CURVATURES AND FUNCTIONS \n\
+          PRINCIPAL CURVATURES AND FUNCTIONS \n\
  \n\
           Given a surface file, 'mris_curvature_stats' can also compute \n\
           all the principal curvatures relating to each point on the \n\
