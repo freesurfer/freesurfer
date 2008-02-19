@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/07 20:10:39 $
- *    $Revision: 1.67 $
+ *    $Date: 2008/02/19 18:57:43 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1263,3 +1263,67 @@ double sum2stddev(double xsum, double xsum2, int nx)
   //printf("%g %g %d %g %g\n",xsum,xsum2,nx,xmean,xstd);
   return(xstd);
 }
+
+/* --------------------------------------------- */
+/*!
+  \fn int compare_ints(const void *v1,const void *v2) 
+  \brief Int comparison function suitable for qsort.
+*/
+int compare_ints(const void *v1,const void *v2) 
+{
+  int i1, i2;
+  i1 = *((int*)v1);
+  i2 = *((int*)v2);
+  if (i1 < i2) return(-1);
+  if (i1 > i2) return(+1);
+  return(0); // equal
+}
+/* ---------------------------------------------------*/
+/*!
+  \fn int nunqiue_int_list(int *idlist, int nlist)
+  \brief Returns/counts the number of unique items in a 
+  list of integers. The list will be sorted.
+*/
+int nunqiue_int_list(int *idlist, int nlist) 
+{
+  int idprev, nunique, n;
+
+  qsort(idlist,nlist,sizeof(int),compare_ints);
+  nunique = 1;
+  idprev = idlist[0];
+  for (n=1; n<nlist; n++) {
+    if (idprev != idlist[n]) {
+      nunique++;
+      idprev = idlist[n];
+    }
+  }
+  return(nunique);
+}
+/* ---------------------------------------------------*/
+/*!
+  \fn int *unqiue_int_list(int *idlist, int nlist, int *nunique) 
+  \brief Returns the unique items in a list of integers. 
+  The list will be sorted.
+*/
+int *unqiue_int_list(int *idlist, int nlist, int *nunique) 
+{
+  int n, *ulist, nthu;
+
+  /* count number of unique elements in the list,
+     this also sorts the list */
+  *nunique = nunqiue_int_list(idlist, nlist);
+
+  /* alloc the unqiue list */
+  ulist = (int *) calloc(sizeof(int),*nunique);
+
+  nthu = 0;
+  ulist[nthu] = idlist[0];
+  for (n=1; n<nlist; n++) {
+    if (ulist[nthu] != idlist[n]) {
+      nthu ++;
+      ulist[nthu] = idlist[n];
+    }
+  }
+  return(ulist);
+}
+

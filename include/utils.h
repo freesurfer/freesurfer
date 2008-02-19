@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/07 20:10:38 $
- *    $Revision: 1.31 $
+ *    $Date: 2008/02/19 18:57:42 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -89,6 +89,9 @@ int  ItemsInString(char *str);
 char *deblank(char *str);
 char *str_toupper(char *str);
 double sum2stddev(double xsum, double xsum2, int nx);
+int compare_ints(const void *v1,const void *v2);
+int nunqiue_int_list(int *idlist, int nlist);
+int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 
 /* Necessary when Intel C/C++ compiler is used... */
 void __ltoq(void);

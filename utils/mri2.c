@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/07 21:47:00 $
- *    $Revision: 1.44 $
+ *    $Date: 2008/02/19 18:57:43 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.44 2008/02/07 21:47:00 greve Exp $
+  $Id: mri2.c,v 1.45 2008/02/19 18:57:43 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -2319,3 +2319,37 @@ MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int 
 
   return(uncrop);
 }
+/* ----------------------------------------------------------*/
+/*!
+  \fn int *MRIsegIdList(MRI *seg, int *nlist, int frame) 
+  \brief Returns a list of the unique segmentation ids in
+   the volume. The number in the list is *nlist. The volume need not
+   be an int or char, but it is probably what it will be.
+*/
+int *MRIsegIdList(MRI *seg, int *nlist, int frame) 
+{
+  int nvoxels,r,c,s,nth;
+  int *tmplist = NULL;
+  int *segidlist = NULL;
+
+  nvoxels = seg->width * seg->height * seg->depth;
+  tmplist = (int *) calloc(sizeof(int),nvoxels);
+
+  // First, load all voxels into a list
+  nth = 0;
+  for (c=0; c < seg->width; c++) {
+    for (r=0; r < seg->height; r++) {
+      for (s=0; s < seg->depth; s++) {
+        tmplist[nth] = (int) MRIgetVoxVal(seg,c,r,s,frame);
+        nth++;
+      }
+    }
+  }
+
+  segidlist = unqiue_int_list(tmplist, nvoxels, nlist);
+  free(tmplist);
+  //for(nth=0; nth < *nlist; nth++)
+  //printf("%3d %3d\n",nth,segidlist[nth]);
+  return(segidlist);
+}
+

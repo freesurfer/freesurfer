@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/16 00:34:40 $
- *    $Revision: 1.39 $
+ *    $Date: 2008/02/19 18:57:44 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -372,6 +372,7 @@ SEE ALSO:
 #include "macros.h"
 #include "mrisurf.h"
 #include "mrisutils.h"
+#include "utils.h"
 #include "error.h"
 #include "diag.h"
 #include "mri.h"
@@ -402,14 +403,10 @@ typedef struct {
 STATSUMENTRY;
 
 int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg);
-int *MRIsegIdList(MRI *seg, int *nlist, int frame);
 int MRIsegCount(MRI *seg, int id, int frame);
 int MRIsegStats(MRI *seg, int segid, MRI *mri,  int frame,
                 float *min, float *max, float *range,
                 float *mean, float *std);
-int compare_ints(const void *v1,const void *v2);
-int nunqiue_int_list(int *idlist, int nlist);
-int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 STATSUMENTRY *LoadStatSumFile(char *fname, int *nsegid);
 int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 
@@ -417,7 +414,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.39 2008/02/16 00:34:40 greve Exp $";
+"$Id: mri_segstats.c,v 1.40 2008/02/19 18:57:44 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1903,91 +1900,6 @@ int MRIsegCount(MRI *seg, int id, int frame) {
   }
   return(nhits);
 }
-/* ----------------------------------------------------------
-   MRIsegIdList() - returns a list of the unique segmentation ids in
-   the volume. The number in the list is *nlist. The volume need not
-   be an int or char, but it is probably what it will be.
-   --------------------------------------------------------- */
-int *MRIsegIdList(MRI *seg, int *nlist, int frame) {
-  int nvoxels,r,c,s,nth;
-  int *tmplist = NULL;
-  int *segidlist = NULL;
-
-  nvoxels = seg->width * seg->height * seg->depth;
-  tmplist = (int *) calloc(sizeof(int),nvoxels);
-
-  // First, load all voxels into a list
-  nth = 0;
-  for (c=0; c < seg->width; c++) {
-    for (r=0; r < seg->height; r++) {
-      for (s=0; s < seg->depth; s++) {
-        tmplist[nth] = (int) MRIgetVoxVal(seg,c,r,s,frame);
-        nth++;
-      }
-    }
-  }
-
-  segidlist = unqiue_int_list(tmplist, nvoxels, nlist);
-  free(tmplist);
-  //for(nth=0; nth < *nlist; nth++)
-  //printf("%3d %3d\n",nth,segidlist[nth]);
-  return(segidlist);
-}
-
-/* --------------------------------------------- */
-int compare_ints(const void *v1,const void *v2) {
-  int i1, i2;
-
-  i1 = *((int*)v1);
-  i2 = *((int*)v2);
-
-  if (i1 < i2) return(-1);
-  if (i1 > i2) return(+1);
-  return(0);
-}
-/* ---------------------------------------------------
-   nunqiue_int_list() - counts the number of unique items
-   in a list of integers. The list will be sorted.
-   --------------------------------------------------- */
-int nunqiue_int_list(int *idlist, int nlist) {
-  int idprev, nunique, n;
-
-  qsort(idlist,nlist,sizeof(int),compare_ints);
-  nunique = 1;
-  idprev = idlist[0];
-  for (n=1; n<nlist; n++) {
-    if (idprev != idlist[n]) {
-      nunique++;
-      idprev = idlist[n];
-    }
-  }
-  return(nunique);
-}
-/* ---------------------------------------------------
-   unqiue_int_list() - the returns the unique items
-   in a list of integers. The list will be sorted.
-   --------------------------------------------------- */
-int *unqiue_int_list(int *idlist, int nlist, int *nunique) {
-  int n, *ulist, nthu;
-
-  /* count number of unique elements in the list,
-     this also sorts the list */
-  *nunique = nunqiue_int_list(idlist, nlist);
-
-  /* alloc the unqiue list */
-  ulist = (int *) calloc(sizeof(int),*nunique);
-
-  nthu = 0;
-  ulist[nthu] = idlist[0];
-  for (n=1; n<nlist; n++) {
-    if (ulist[nthu] != idlist[n]) {
-      nthu ++;
-      ulist[nthu] = idlist[n];
-    }
-  }
-  return(ulist);
-}
-
 /*---------------------------------------------------------
   MRIsegStats() - computes statistics within a given
   segmentation. Returns the number of voxels in the
