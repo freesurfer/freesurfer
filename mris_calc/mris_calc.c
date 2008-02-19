@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2007/12/12 15:42:01 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/02/19 00:01:20 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -59,7 +59,7 @@
 #define  START_i    3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.2 2007/12/12 15:42:01 rudolph Exp $";
+"$Id: mris_calc.c,v 1.3 2008/02/19 00:01:20 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -81,7 +81,16 @@ const char* Gppch_operation[] = {
   "divide",
   "add",
   "subtract",
-  "set"
+  "set",
+  "min",
+  "max",
+  "size",
+  "mini",
+  "maxi",
+  "mean",
+  "std",
+  "stats",
+  "ascii"
 };
 
 
@@ -89,31 +98,32 @@ const char* Gppch_operation[] = {
 // Global "class" member variables
 //--------------------------------
 
-char*     G_pch_progname ;
-char*     Progname ;
+char*           G_pch_progname ;
+char*           Progname ;
 
-static int  G_verbosity   = 0;
-static FILE*  G_FP      = NULL;
-
-// Curvature 1
-static int  G_sizeCurv1   = 0;
-static char*  G_pch_curvFile1   = NULL;
-static float* G_pf_arrayCurv1   = NULL;
-static int  G_nfaces    = 0;
-static int  G_valsPerVertex   = 0;
+static int      G_verbosity             = 0;
+static FILE*    G_FP                    = NULL;
 
 // Curvature 1
-static char*  G_pch_curvFile2   = NULL;
-static int  G_sizeCurv2   = 0;
-static float* G_pf_arrayCurv2   = NULL;
+static int      G_sizeCurv1             = 0;
+static char*    G_pch_curvFile1         = NULL;
+static float*   G_pf_arrayCurv1         = NULL;
+static int      G_nfaces                = 0;
+static int      G_valsPerVertex         = 0;
+
+// Curvature 2
+static int      Gb_curvFile2            = 0;            //  The second curvature file
+static char*    G_pch_curvFile2         = NULL;         //+ is optional.
+static int      G_sizeCurv2             = 0;
+static float*   G_pf_arrayCurv2         = NULL;
 
 // Operation to perform on Curvature1 and Curvature2
-static char*  G_pch_operator    = NULL;
+static char*    G_pch_operator          = NULL;
 
 // Output curvature file
-static int  G_sizeCurv3   = 0;
-static char*  G_pch_curvFile3   = "out.crv";
-static float* G_pf_arrayCurv3   = NULL;
+static int      G_sizeCurv3             = 0;
+static char*    G_pch_curvFile3         = "out.crv";
+static float*   G_pf_arrayCurv3         = NULL;
 
 //----------------
 // "class" methods
@@ -131,11 +141,98 @@ static int  options_parse(
 static int  options_print(void);
 
 // Simple functions on two float arguments
-float f_mul(float af_A, float af_B)   {return (af_A * af_B);}
-float f_div(float af_A, float af_B)   {return (af_B != 0 ? (af_A / af_B) : 0.0);}
-float f_add(float af_A, float af_B)   {return (af_A + af_B);}
-float f_sub(float af_A, float af_B)   {return (af_A - af_B);}
-float f_set(float af_A, float af_B)   {return (af_B);}
+double fn_mul(float af_A, float af_B)   {return (af_A * af_B);}
+double fn_div(float af_A, float af_B)   {return (af_B != 0 ? (af_A / af_B) : 0.0);}
+double fn_add(float af_A, float af_B)   {return (af_A + af_B);}
+double fn_sub(float af_A, float af_B)   {return (af_A - af_B);}
+double fn_set(float af_A, float af_B)   {return (af_B);}
+
+// Simple functions on one argument
+double fn_min(float af_A) {
+    static float        f_min  = 0;
+    static int          count  = 0;
+    if(!count) f_min = af_A;
+    if(af_A <= f_min)
+        f_min = af_A;
+    count++;
+    return f_min;
+}
+double fn_mini(float af_A) {
+    static float        f_min  = 0;
+    static int          mini   = -1;
+    static int          count  = 0;
+    if(!count) f_min = af_A;
+    if(af_A <= f_min) {
+        f_min   = af_A;
+        mini    = count;
+    }
+    count++;
+    return (float) mini;
+}
+double fn_max(float af_A) {
+    static float        f_max  = 0;
+    static int          count  = 0;
+    if(!count) f_max = af_A;
+    if(af_A >= f_max)
+        f_max = af_A;
+    count++;
+    return f_max;
+}
+double fn_maxi(float af_A) {
+    static float        f_max  = 0;
+    static int          maxi   = -1;
+    static int          count  = 0;
+    if(!count) f_max = af_A;
+    if(af_A >= f_max) {
+        f_max   = af_A;
+        maxi    = count;
+    }
+    count++;
+    return maxi;
+}
+
+//  The following two functions are identical. When the "stats" operator
+//+ is called, the fn_sum() cannot be re-used since the static f_sum
+//+ will corrupt the recalculation of the sum as determined by a call
+//+ to fn_mean() 
+double fn_sum(float af_A) {
+    static double f_sum  = 0.;
+    f_sum += af_A;
+    return f_sum;
+}
+
+double fn2_sum(float af_A) {
+    static double f_sum  = 0.;
+    f_sum += af_A;
+    return f_sum;
+}
+
+double fn_sum2(float af_A) {
+    static double f_sum2 = 0.;
+    f_sum2  += af_A * af_A;
+    return f_sum2;
+}
+
+double fn_mean(float af_A) {
+    static int  count   = 0;
+    float       f_sum   = 0.;
+    float       f_mean  = 0.;
+    f_sum       = fn_sum(af_A);
+    f_mean      = f_sum / ++count;
+    return(f_mean);
+}
+
+double fn_dev(float af_A) {
+    double      f_sum   = 0.0;
+    double      f_sum2  = 0.0;
+    static int  count   = 1;
+    double      f_dev   = 0.;
+    f_sum       = fn2_sum(af_A);
+    f_sum2      = fn_sum2(af_A);
+    f_dev       = (count*f_sum2 - f_sum*f_sum)/count;
+    count++;
+    return f_dev;
+}
 
 // I/O functions
 short CURV_arrayProgress_print(
@@ -156,8 +253,9 @@ short   CURV_fileWrite(
   float*  apf_curv
   );
 
-short CURV_process(void);
-short CURV_functionRun( float (*F)(float f_A, float f_B) );
+short   CURV_process(void);
+short   CURV_functionRunABC( double (*F)(float f_A, float f_B) );
+double  CURV_functionRunAC( double (*F)(float f_A) );
 
 int main(int argc, char *argv[]) ;
 
@@ -171,124 +269,146 @@ synopsis_show(void) {
 
   sprintf(pch_synopsis, "\n\
  \n\
- \n\
     NAME \n\
  \n\
           mris_calc \n\
  \n\
     SYNOPSIS \n\
  \n\
-          mris_calc [OPTIONS]					\\ \n\
-          	<curvFile1> <ACTION> [<curvFile2> | <floatNumber>] \n\
+          mris_calc [OPTIONS]                                   \\ \n\
+                <curvFile1> <ACTION> [<curvFile2> | <floatNumber>] \n\
  \n\
     DESCRIPTION \n\
  \n\
-	'mris_calc' is a simple calculator that operates on FreeSurfer \n\
-	curvature files. \n\
+        'mris_calc' is a simple calculator that operates on FreeSurfer \n\
+        curvature files. \n\
  \n\
-	In most cases, the calculator functions on two curvature files, \n\
-	<curvFile1> and <curvFile2>, and performs a simple mathematical \n\
-	<ACTION> on them. See the ACTION section below. \n\
+        In most cases, the calculator functions with three arguments: \n\
+        two inputs and an <ACTION> linking them. Some actions, however, \n\
+        operate with only one input <curvFile1>. \n\
  \n\
-	If <curvFile2> is not found on the filesystem, then the calculator \n\
-	attempts to parse it as a float number, which is then processed \n\
-	according to <ACTION>. \n\
+        In all cases, the first input <curvFile1> is the name of a FreeSurfer \n\
+        curvature file. \n\
+ \n\
+        For two inputs, the calculator first assumes that the second input \n\
+        is the name of a second curvature file. If, however, this second input \n\
+        is not found on the filesystem, the calculator attempts to parse this \n\
+        input as a float number, which is then processed according to <ACTION>. \n\
  \n\
     OPTIONS \n\
  \n\
-    	--output <outputCurvFile> \n\
-   	 -o <outputCurvFile> \n\
+        --output <outputCurvFile> \n\
+         -o <outputCurvFile> \n\
  \n\
-    	By default, 'mris_calc' will save the output curvature to a file \n\
-    	in the current working directory called 'out.crv'. This name can be \n\
-	set to something more meaningful with the '--output' option. \n\
+        By default, 'mris_calc' will save the output curvature to a file \n\
+        in the current working directory called 'out.crv'. This name can be \n\
+        set to something more meaningful with the '--output' option. \n\
  \n\
-    	--version \n\
-    	-v \n\
+        --version \n\
+        -v \n\
  \n\
-	Print out version number. \n\
+        Print out version number. \n\
  \n\
-    	--verbosity <value> \n\
+        --verbosity <value> \n\
  \n\
-	Set the verbosity of the program. Any positive value will trigger \n\
-	verbose output, displaying intermediate results. The <value> can be \n\
-	set arbitrarily. Useful mostly for debugging. \n\
+        Set the verbosity of the program. Any positive value will trigger \n\
+        verbose output, displaying intermediate results. The <value> can be \n\
+        set arbitrarily. Useful mostly for debugging. \n\
  \n\
     ACTION \n\
  \n\
-	The action to be perfomed on the two curvature files. This is a \n\
-	text string that defines the mathematical operation to execute. In all \n\
-	cases, this action is applied in an indexed element-by-element fashion, \n\
-	i.e. <curvFile1>[n] <ACTION> <curvFile2>[n] where 'n' is an index \n\
-	counter. \n\
+        The action to be perfomed on the two curvature files. This is a \n\
+        text string that defines the mathematical operation to execute. For two\n\
+        inputs, this action is applied in an indexed element-by-element fashion, \n\
+        i.e. <curvFile1>[n] <ACTION> <curvFile2>[n] where 'n' is an index \n\
+        counter. \n\
  \n\
-	ACTION		EFFECT \n\
-	mul		<outputCurvFile> = <curvFile1> * <curvFile2> \n\
-	div		<outputCurvFile> = <curvFile1> / <curvFile2> \n\
-	add		<outputCurvFile> = <curvFile1> + <curvFile2> \n\
-	sub		<outputCurvFile> = <curvFile1> - <curvFile2> \n\
-	set		<outputCurvFile> = <curvFile2> \n\
+        ACTION  INPUTS OUTPUTS                  EFFECT \n\
+          mul      2      1     <outputCurvFile> = <curvFile1> * <curvFile2> \n\
+          div      2      1     <outputCurvFile> = <curvFile1> / <curvFile2> \n\
+          add      2      1     <outputCurvFile> = <curvFile1> + <curvFile2> \n\
+          sub      2      1     <outputCurvFile> = <curvFile1> - <curvFile2> \n\
+          set      2      1     <outputCurvFile> = <curvFile2> \n\
  \n\
-	The 'set' command is somewhat different in that for practical purposes \n\
-	the contents of <curvFile1> are ignored. It is still important to \n\
-	specifiy a valid <curvFile1> since it is parsed by 'mris_calc' \n\
-	to determine the size of output curvature file to create. In most \n\
-	instances, <curvFile2> will denote a float value, and not an actual \n\
-	curvature file, i.e. 'mris_calc set rh.pial 0.005' will create \n\
-	an output curvature, 'out.crv' of the same size as rh.pial, and with \n\
-	each element set to 0.005. \n\
+          size     1      0     print the size of <curvFile1> \n\
+          min      1      0     print the min value (and index) of <curvFile1> \n\
+          max      1      0     print the max value (and index) of <curvFile1> \n\
+          mean     1      0     print the mean value of <curvFile1> \n\
+          std      1      0     print the standard deviation of <curvFile1> \n\
+          stats    1      0     process 'size', 'min', 'max', 'mean', 'std' \n\
  \n\
-    ARBITRARY FLOAT ARGUMENTS \n\
+        The 'set' command is somewhat different in that for practical purposes \n\
+        the contents of <curvFile1> are ignored. It is still important to \n\
+        specifiy a valid <curvFile1> since it is parsed by 'mris_calc' \n\
+        to determine the size of output curvature file to create. In most \n\
+        instances, <curvFile2> will denote a float value, and not an actual \n\
+        curvature file, i.e. 'mris_calc set rh.pial 0.005' will create \n\
+        an output curvature, 'out.crv' of the same size as rh.pial, and with \n\
+        each element set to 0.005. \n\
  \n\
-	'mris_calc' will always attempt to open the argument following \n\
-	<ACTION> as if it were a curvature file. Should this file not exist, \n\
-	'mricurc_calc' will attempt to parse the argument as if it were \n\
-	a float value. \n\
+        Note also that the standard deviation can suffer from float rounding \n\
+        errors and is only accurate to 4 digits of precision. \n\
  \n\
-	In such a case, 'mris_calc' will create a dummy internal \n\
-	curvature file and set all its elements to this float value. \n\
+    ARBITRARY FLOATS AS SECOND INPUT ARGUMENT \n\
+ \n\
+        If a second input argument is specified, 'mris_calc' will attempt to \n\
+        open the argument following <ACTION> as if it were a curvature file. \n\
+        Should this file not exist, 'mricurc_calc' will attempt to parse the \n\
+        argument as if it were a float value. \n\
+ \n\
+        In such a case, 'mris_calc' will create a dummy internal \n\
+        curvature file and set all its elements to this float value. \n\
  \n\
     NOTES \n\
  \n\
-	<curvFile1> and <curvFile2> should typically be generated on the \n\
-	same subject. \n\
+        <curvFile1> and <curvFile2> should typically be generated on the \n\
+        same subject. \n\
  \n\
     EXAMPLES \n\
  \n\
-    	$>mris_calc rh.pial mul rh.thickness \n\
+        $>mris_calc rh.pial mul rh.thickness \n\
  \n\
-	Multiply each value in <rh.pial> with the corresponding value \n\
-	in <rh.thickness>, creating a new file called 'out.crv' that \n\
-	contains the result. \n\
+        Multiply each value in <rh.pial> with the corresponding value \n\
+        in <rh.thickness>, creating a new file called 'out.crv' that \n\
+        contains the result. \n\
  \n\
-    	$>mris_calc --output rh.weightedCortex rh.pial mul rh.thickness \n\
+        $>mris_calc --output rh.weightedCortex rh.pial mul rh.thickness \n\
  \n\
-	Same as above, but give the ouput file the more meaningful name \n\
-	of 'rh.weightedCortex'. \n\
+        Same as above, but give the ouput file the more meaningful name \n\
+        of 'rh.weightedCortex'. \n\
+ \n\
+        $>mris_calc rh.pial max \n\
+ \n\
+        Determine the maximum value in 'rh.pial' and print to stdout. In \n\
+        addition to the max value, the index offset in 'rh.pial' containing \n\
+        this value is also printed. \n\
+ \n\
+        $>mris_calc rh.pial stats \n\
+ \n\
+        Determine the size, min, max, mean, and std of 'rh.pial'. \n\
  \n\
     ADVANCED EXAMPLES \n\
  \n\
-	Consider the case when calculating the right hemisphere pseudo volume \n\
-	formed by the FreeSurfer generated white matter 'rh.area' curvature \n\
-	file, and the cortical thickness, 'rh.thickness'. Imagine this is to \n\
-	be expressed as a percentage of intercranial volume. \n\
+        Consider the case when calculating the right hemisphere pseudo volume \n\
+        formed by the FreeSurfer generated white matter 'rh.area' curvature \n\
+        file, and the cortical thickness, 'rh.thickness'. Imagine this is to \n\
+        be expressed as a percentage of intercranial volume. \n\
  \n\
-	$>mris_calc -o rh.cortexVol rh.area mul rh.thickness \n\
-	Calculate the volume and store in a curvature format: \n\
+        $>mris_calc -o rh.cortexVol rh.area mul rh.thickness \n\
+        Calculate the volume and store in a curvature format: \n\
  \n\
-	Now, find the intercranial volume (ICV) in the corresponding output \n\
-	file generated by FreeSurfer for this subject. Assume ICV = 100000. \n\
+        Now, find the intercranial volume (ICV) in the corresponding output \n\
+        file generated by FreeSurfer for this subject. Assume ICV = 100000. \n\
  \n\
-	$>mris_calc -o rh.cortexVolICV rh.cortexVol div 100000 \n\
-	Here the second <ACTION> argument is a number and not a curvature file. \n\
+        $>mris_calc -o rh.cortexVolICV rh.cortexVol div 100000 \n\
+        Here the second <ACTION> argument is a number and not a curvature file. \n\
  \n\
-	We could have achieved the same effect by first creating an \n\
-	intermediate curvature file, 'rh.ICV' with each element set to \n\
-	the ICV, and then divided by this curvature: \n\
+        We could have achieved the same effect by first creating an \n\
+        intermediate curvature file, 'rh.ICV' with each element set to \n\
+        the ICV, and then divided by this curvature: \n\
  \n\
-	$>mris_calc -o rh.ICV rh.area set 100000 \n\
-	$>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
- \n\
+        $>mris_calc -o rh.ICV rh.area set 100000 \n\
+        $>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
  \n\
 \n");
 
@@ -302,7 +422,7 @@ simpleSynopsis_show(void) {
 
   sprintf(pch_errorMessage, "Insufficient number of arguments.");
   sprintf(pch_errorMessage,
-          "%s\nYou should specify '<curvFile1> <ACTION> <curvFile2>'",
+          "%s\nYou should specify '<curvFile1> <ACTION> [<curvFile2> | <floatNumber>]'",
           pch_errorMessage);
   sprintf(pch_errorMessage,
           "%s\nUse a '-u' for full usage instructions.",
@@ -388,7 +508,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.2 2007/12/12 15:42:01 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.3 2008/02/19 00:01:20 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -401,15 +521,19 @@ main(
     argc -= nargs ;
     argv += nargs ;
   }
-  if(argc != 4) simpleSynopsis_show();
 
-  G_pch_curvFile1 = argv[1];
-  G_pch_operator  = argv[2];
-  G_pch_curvFile2 = argv[3];
+  // Process command line surface options and operator
+  if((argc != 4) && (argc != 3)) simpleSynopsis_show();
+  if(argc==4) Gb_curvFile2              = 1;
+  G_pch_curvFile1                       = argv[1];
+  G_pch_operator                        = argv[2];
+  if(Gb_curvFile2) G_pch_curvFile2      = argv[3];
   verbosity_set();
 
+  //    Read in relevant curvature files -
+  //+   the second curvature file is optional.
   ret     = CURV_fileRead(G_pch_curvFile1, &G_sizeCurv1, &G_pf_arrayCurv1);
-  curv2_fileRead();
+  if(Gb_curvFile2) curv2_fileRead();
   output_init();
   ret     = CURV_process();
 
@@ -420,7 +544,7 @@ static int
 options_print(void) {
   cprints("Curvature file 1:", G_pch_curvFile1);
   cprints("ACTION:", G_pch_operator);
-  cprints("Curvature file 2:", G_pch_curvFile2);
+  if(G_pch_curvFile2) cprints("Curvature file 2:", G_pch_curvFile2);
   cprints("Output curvature file:", G_pch_curvFile3);
 
   return 1;
@@ -513,6 +637,33 @@ CURV_fileRead(
 }
 
 /*!
+  \fn ascii_fileWrite(char* apch_curvFileName, float* apf_curv)
+  \brief Write a FreeSurfer curvature array to an ascii text file
+  \param apch_curvFileName The name of a FreeSurfer curvature file.
+  \param apf_curv Array containing the curvature values.
+  \return If curvature file is successfully written, return a 1, else return 0.
+*/
+short
+ascii_fileWrite(
+  char* apch_curvFileName,
+  float*  apf_curv
+  ) {
+  FILE* FP_curv;
+  int   i;
+  char  pch_readMessage[STRBUF];
+
+  if((FP_curv = fopen(apch_curvFileName, "w")) == NULL)
+    return(0);
+  sprintf(pch_readMessage, "Writing %s", apch_curvFileName);
+  for(i=0; i<G_sizeCurv1; i++) {
+    CURV_arrayProgress_print(G_sizeCurv1, i, pch_readMessage);
+    fprintf(FP_curv, "%f\n", apf_curv[i]);
+  }
+  return(1);
+}
+
+
+/*!
   \fn CURV_fileWrite(char* apch_curvFileName, int* ap_vectorSize, float* apf_curv)
   \brief Write a FreeSurfer curvature array to a file
   \param apch_curvFileName The name of a FreeSurfer curvature file.
@@ -600,26 +751,64 @@ CURV_process(void)
   //  o G_pf_arrayCurv3 is saved to G_pch_curvFile3
   //
 
-  if(     !strcmp(G_pch_operator, "mul")) {CURV_functionRun(f_mul);}
-  else if(!strcmp(G_pch_operator, "div")) {CURV_functionRun(f_div);}
-  else if(!strcmp(G_pch_operator, "add")) {CURV_functionRun(f_add);}
-  else if(!strcmp(G_pch_operator, "sub")) {CURV_functionRun(f_sub);}
-  else if(!strcmp(G_pch_operator, "set")) {CURV_functionRun(f_set);}
+  float f_min           = 0.;
+  float f_max           = 0.;
+  int   mini            = -1;
+  int   maxi            = -1;
+  int   b_canWrite      = 1;
+  float f_mean  = 0.;
+  float f_std   = 0.;
+  float f_dev   = 0.;
 
-  CURV_fileWrite(G_pch_curvFile3, &G_sizeCurv3, G_pf_arrayCurv3);
+  if(     !strcmp(G_pch_operator, "mul")) {CURV_functionRunABC(fn_mul);}
+  else if(!strcmp(G_pch_operator, "div")) {CURV_functionRunABC(fn_div);}
+  else if(!strcmp(G_pch_operator, "add")) {CURV_functionRunABC(fn_add);}
+  else if(!strcmp(G_pch_operator, "sub")) {CURV_functionRunABC(fn_sub);}
+  else if(!strcmp(G_pch_operator, "set")) {CURV_functionRunABC(fn_set);}
+
+  b_canWrite    = 0;
+  if(!strcmp(G_pch_operator, "ascii"))
+    ascii_fileWrite(G_pch_curvFile3, G_pf_arrayCurv1);
+
+  if(!strcmp(G_pch_operator, "size") || !strcmp(G_pch_operator, "stats")) {
+    cprintd("Size", G_sizeCurv1);
+  }
+  if(!strcmp(G_pch_operator, "min") || !strcmp(G_pch_operator, "stats")) {
+    f_min       = CURV_functionRunAC(fn_min);
+    mini        = (int) CURV_functionRunAC(fn_mini);    
+    cprintf("Min", f_min);
+    cprintd("Index", mini);
+  }
+  if(!strcmp(G_pch_operator, "max") || !strcmp(G_pch_operator, "stats")) {
+    f_max       = CURV_functionRunAC(fn_max);
+    maxi        = (int) CURV_functionRunAC(fn_maxi);
+    cprintf("Max", f_max);
+    cprintd("Index", maxi);
+  }
+  if(!strcmp(G_pch_operator, "mean") || !strcmp(G_pch_operator, "stats")) {
+    f_mean      = CURV_functionRunAC(fn_mean);
+    cprintf("Mean", f_mean);
+  }
+  if(!strcmp(G_pch_operator, "std") || !strcmp(G_pch_operator, "stats")) {
+    f_dev       = CURV_functionRunAC(fn_dev);
+    f_std       = sqrt(f_dev/(G_sizeCurv1-1));
+    cprintf("Std", f_std);
+  }
+
+  if(b_canWrite) CURV_fileWrite(G_pch_curvFile3, &G_sizeCurv3, G_pf_arrayCurv3);
 
   return 1;
 }
 
 /*!
-  \fn CURV_functionRun( (*F)(float f_A, float f_B) )
+  \fn CURV_functionRunABC( (*F)(float f_A, float f_B) )
   \brief Loops over the internal curvature arrays and applies (*F) at each index
   \param (*F) A function of two floats that is applied at each curvature index.
   \see
   \return Internal "class" global variables are set by this process.
 */
 short
-CURV_functionRun( float (*F)(float f_A, float f_B) )
+CURV_functionRunABC( double (*F)(float f_A, float f_B) )
 {
   // PRECONDITIONS
   //  o The following internal "class" variables are extant and valid:
@@ -632,16 +821,47 @@ CURV_functionRun( float (*F)(float f_A, float f_B) )
   //  o G_pf_arrayCurv3 is saved to G_pch_curvFile3
   //
   int   i;
-  float f_a = 0.;
-  float f_b = 0.;
-  float f_c = 0.;
+  double f_a = 0.;
+  double f_b = 0.;
+  double f_c = 0.;
 
   for(i=0; i<G_sizeCurv1; i++) {
-    f_a     = G_pf_arrayCurv1[i];
-    f_b     = G_pf_arrayCurv2[i];
-    f_c     = (F)(f_a, f_b);
+    f_a                 = G_pf_arrayCurv1[i];
+    f_b                 = G_pf_arrayCurv2[i];
+    f_c                 = (F)(f_a, f_b);
     G_pf_arrayCurv3[i]  = f_c;
   }
   return 1;
 }
 
+/*!
+  \fn CURV_functionRunAC( (*F)(float f_A) )
+  \brief Loops over the internal curvature arrays and applies (*F) at each index
+  \param (*F) A function of two floats that is applied at each curvature index.
+  \see
+  \return Internal "class" global variables are set by this process.
+*/
+double
+CURV_functionRunAC( double (*F)(float f_A) )
+{
+  // PRECONDITIONS
+  //  o The following internal "class" variables are extant and valid:
+  //    - G_pf_arrayCurv1, G_pf_arrayCurv3
+  //    - G_pch_operator
+  //
+  // POSTCONDITIONS
+  //  o Depending on <G_pch_operator>, a simple calculation is performed
+  //    to generate G_pf_arrayCurv3.
+  //  o G_pf_arrayCurv3 is saved to G_pch_curvFile3
+  //
+  int   i;
+  double f_a = 0.;
+  double f_c = 0.;
+
+  for(i=0; i<G_sizeCurv1; i++) {
+    f_a                 = G_pf_arrayCurv1[i];
+    f_c                 = (F)(f_a);
+    G_pf_arrayCurv3[i]  = f_c;
+  }
+  return f_c;
+}
