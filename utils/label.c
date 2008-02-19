@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/03 00:23:47 $
- *    $Revision: 1.79 $
+ *    $Date: 2008/02/19 18:25:21 $
+ *    $Revision: 1.80 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -518,7 +518,7 @@ LabelWrite(LABEL *area, char *label_name)
   }
   for (n = 0 ; n < area->n_points ; n++)
     if (!area->lv[n].deleted){
-      nbytes = fprintf(fp, "%d  %2.3f  %2.3f  %2.3f %f\n",
+      nbytes = fprintf(fp, "%d  %2.3f  %2.3f  %2.3f %10.10f\n",
 		       area->lv[n].vno, area->lv[n].x,
 		       area->lv[n].y, area->lv[n].z, area->lv[n].stat) ;
       if(nbytes < 0){
@@ -1386,11 +1386,15 @@ LabelFromMarkedSurface(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (!v->marked)
       continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     area->lv[n].x = v->x ;
     area->lv[n].y = v->y ;
     area->lv[n].z = v->z ;
     area->lv[n].vno = vno ;
     area->lv[n].stat = v->stat ;
+    if (FZERO(v->stat))
+      DiagBreak() ;
     n++ ;
   }
   area->n_points = npoints ;

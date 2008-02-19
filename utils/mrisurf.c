@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/08 00:05:57 $
- *    $Revision: 1.589 $
+ *    $Date: 2008/02/19 18:25:19 $
+ *    $Revision: 1.590 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.589 2008/02/08 00:05:57 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.590 2008/02/19 18:25:19 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -63424,3 +63424,51 @@ mrisComputeSurfaceRepulsionEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht)
   return(sse) ;
 }
 
+
+// average the stats on the surface, and propagate marks outwards to new non-zero locations
+int
+MRISaverageMarkedStats(MRI_SURFACE *mris, int navgs)
+{
+  int    i, vno, vnb, *pnb, vnum ;
+  float  val, num ;
+  VERTEX *v, *vn ;
+
+  for (i = 0 ; i < navgs ; i++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->ripflag)
+        continue ;
+      val = v->stat ;
+      pnb = v->v ;
+      vnum = v->vnum ;
+      for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        if (vn->ripflag)
+          continue ;
+        num++ ;
+        val += vn->stat ;
+      }
+      num++ ;  /*  account for central vertex */
+      v->tdx = val / num ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->ripflag)
+        continue ;
+      v->stat = v->tdx ;
+      if (v->marked == 0 && !FZERO(v->stat))
+        v->marked = 2 ;
+      if (FZERO(v->stat))
+        DiagBreak() ;
+    }
+  }
+  return(NO_ERROR) ;
+}
