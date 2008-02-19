@@ -23,7 +23,7 @@
           Curvatures can also be normalised and constrained to a given 
           range before computation.     
 
-          Principle curvature (K, H, k1 and k2) calculations on a surface
+          Principal curvature (K, H, k1 and k2) calculations on a surface
 	  structure can also be performed, as well as several functions
 	  derived from k1 and k2.
 
@@ -96,7 +96,7 @@
 
           Average the curvature <numberOfAverages> times.   
 
-    [-G] [--discrete] [--continuous] [--signedPrinciples]
+    [-G] [--discrete] [--continuous] [--signedPrincipals]
 
           The '-G' flag triggers a series of derived curvature values that
           are calculated from the current <FreeSurferSurface>. These curvatures
@@ -116,7 +116,7 @@
           In the '--discrete' mode, 'mris_curvature_stats' solves first for
           K and H, and then solves a quadratic function to determine K1 and K2.
           By default, K1 is assigned the fabs(max) solution, and K2 is
-          assigned the fabs(min) solution. By specifying '--signedPrinciples',
+          assigned the fabs(min) solution. By specifying '--signedPrincipals',
           K1 is assigned the (signed) max and K2 the (signed) min.
 
           Thus, if the solution principal curves at a vertex are -10 and 0.5,
@@ -124,7 +124,7 @@
 
                 K1 = -10 and K2 = 0.5
 
-           but with '--signedPrinciples', this becomes:
+           but with '--signedPrincipals', this becomes:
 
                 K1 = 0.5 and K2 = -10
 

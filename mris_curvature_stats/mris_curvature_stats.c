@@ -5,15 +5,15 @@
  * 'mris_curvature_stats' calculates statistics on curvature across a surface. 
  * It also creates simple histograms on curvature distribution. 
  * Additionally, it can also be used to analyze a surface and determine the 
- * principle curvatures and save to extra curvature files, e.g. K, H, k1, k2.
+ * principal curvatures and save to extra curvature files, e.g. K, H, k1, k2.
  *
  */
 /*
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/02/19 03:43:21 $
- *    $Revision: 1.44 $
+ *    $Date: 2008/02/19 03:56:42 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.44 2008/02/19 03:43:21 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.45 2008/02/19 03:56:42 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -133,7 +133,7 @@ static void  print_version(void) ;
 // Function Prototypes: START //
 //----------------------------// 
 
-// Simple functions of principle curvatures
+// Simple functions of principal curvatures
 float 	f_sharpnessCurvature(float af_k1, float af_k2) 
 {return ((af_k1 - af_k2)*(af_k1 - af_k2));}
 float 	f_bendingEnergyCurvature(float af_k1, float af_k2) 
@@ -150,7 +150,7 @@ short 	f_allVertices(VERTEX*		pv) {return 1;}
 short 	f_greaterEqualZero(VERTEX*	pv) {return (pv->curv >= 0 ? 1 : 0);}
 short 	f_lessThanZero(VERTEX*		pv) {return (pv->curv <0 ? 1 : 0);}
 
-int 	MRISusePrincipleCurvatureFunction(
+int 	MRISusePrincipalCurvatureFunction(
 	MRI_SURFACE*		pmris, 
 	float 			(*f)(float k1, float k2)
   );
@@ -289,7 +289,7 @@ static float	Gf_highPassFilter		= 0.;
 static int	Gb_highPassFilterGaussian	= 0;
 static float	Gf_highPassFilterGaussian	= 0.;
 
-static int	Gb_signedPrinciples		= 0;
+static int	Gb_signedPrincipals		= 0;
 
 // All possible output file name and suffixes
 static	short	Gb_writeCurvatureFiles		= 0;
@@ -408,7 +408,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.44 2008/02/19 03:43:21 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.45 2008/02/19 03:56:42 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -529,18 +529,18 @@ main(int argc, char *argv[]) {
       MRIS_curvatureStats_analyze(mris, e_Raw); stats_update(i);
     }
 
-  // Should we calculate all the principle curvature based curvatures? 
+  // Should we calculate all the principal curvature based curvatures? 
   // This is a surface-based calculation, and does not depend on the 
   // curvature processing loop - thus the 'curv' input is irrelevant
   if (Gb_gaussianAndMean) {
     MRISsetNeighborhoodSize(mris, G_nbrs);
     if(!Gb_discreteCurvaturesUse) {
-      cprints("Calculating Continuous Principle Curvatures...", "");
+      cprints("Calculating Continuous Principal Curvatures...", "");
       MRIScomputeSecondFundamentalForm(mris);
       cprints("", "ok");
     } else {
-      cprints("Calculating Discrete Principle Curvatures...", "");
-      MRIScomputeSecondFundamentalFormDiscrete(mris, Gb_signedPrinciples);
+      cprints("Calculating Discrete Principal Curvatures...", "");
+      MRIScomputeSecondFundamentalFormDiscrete(mris, Gb_signedPrincipals);
     }
 
     MRIS_curvatureStats_analyze(mris, e_Gaussian); stats_update(i++);
@@ -761,19 +761,19 @@ MRIS_curvatures_prepare(
     ret = MRISuseK2Curvature(apmris);
     break;
 	case e_S:
-    ret = MRISusePrincipleCurvatureFunction(apmris, 
+    ret = MRISusePrincipalCurvatureFunction(apmris, 
                                             f_sharpnessCurvature);
     break;
 	case e_C:
-    ret = MRISusePrincipleCurvatureFunction(apmris, 
+    ret = MRISusePrincipalCurvatureFunction(apmris, 
                                             f_curvednessCurvature);
     break;
 	case e_BE:
-    ret = MRISusePrincipleCurvatureFunction(apmris,
+    ret = MRISusePrincipalCurvatureFunction(apmris,
                                             f_bendingEnergyCurvature);
     break;
 	case e_SI:
-    ret = MRISusePrincipleCurvatureFunction(apmris, 
+    ret = MRISusePrincipalCurvatureFunction(apmris, 
                                             f_shapeIndexCurvature);
     break;
   case e_Raw:
@@ -1267,22 +1267,6 @@ MRISminMaxCurvatureIndicesLookup(
 }
 
 int
-MRISusePrincipleCurvature(
-	MRIS*		apmris,
-	int		(*f)(MRIS* apmris)
-  ) {
-  //
-  // 	This is a thin wrapper/dispatch about an underlying
-  //	MRISuse[Gaussian|Mean|k1|k2]Curvature() function.
-  //
-  int	ret	= 0;
-
-  ret		= f(apmris);
-
-  return(ret);
-}
-
-int
 MRISuseK1Curvature(MRI_SURFACE *mris) {
   int    vno ;
   VERTEX *vertex ;
@@ -1327,12 +1311,12 @@ MRISuseK2Curvature(MRI_SURFACE *mris) {
 }
 
 int
-MRISusePrincipleCurvatureFunction(
+MRISusePrincipalCurvatureFunction(
 	MRI_SURFACE*		pmris, 
 	float 			(*f)(float k1, float k2)) {
   //
   // PRECONDITIONS
-  //	o The principle curvatures k1 and k2 for each vertex point on the 
+  //	o The principal curvatures k1 and k2 for each vertex point on the 
   //	  surface have been defined.
   //
   // POSTCONDITIONS
@@ -1888,9 +1872,9 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "-writeCurvatureFiles")) {
     Gb_writeCurvatureFiles	= 1;
     cprints("Toggling save flag on curvature files", "ok");
-  } else if (!stricmp(option, "-signedPrinciples")) {
-    Gb_signedPrinciples	= 1;
-    cprints("Toggling 'signedPrinciples' flag ON", "ok");
+  } else if (!stricmp(option, "-signedPrincipals")) {
+    Gb_signedPrincipals	= 1;
+    cprints("Toggling 'signedPrincipals' flag ON", "ok");
   } else switch (toupper(*option)) {
   case 'O':
     output_fname  		= argv[2] ;
@@ -2171,16 +2155,16 @@ print_help(void) {
  \n\
     SYNOPSIS \n\
  \n\
-          mris_curvature_stats [options] 			\\ \n\
-          	<subjectName> <hemi> [<curvFile1> ... <curvFileN] \n\
+          mris_curvature_stats [options]                        \\ \n\
+                <subjectName> <hemi> [<curvFile1> ... <curvFileN] \n\
  \n\
     DESCRIPTION \n\
  \n\
           In its simplest usage, 'mris_curvature_stats' will compute a set \n\
-	  of statistics on its input <curvFile>. These statistics are the \n\
-	  mean and standard deviation of the particular curvature on the \n\
-	  surface, as well as the results from several surface-based \n\
-	  integrals. \n\
+          of statistics on its input <curvFile>. These statistics are the \n\
+          mean and standard deviation of the particular curvature on the \n\
+          surface, as well as the results from several surface-based \n\
+          integrals. \n\
  \n\
           Additionally, 'mris_curvature_stats' can report the max/min \n\
           curvature values, and compute a simple histogram based on \n\
@@ -2189,72 +2173,72 @@ print_help(void) {
           Curvatures can also be normalised and constrained to a given \n\
           range before computation. \n\
  \n\
-          Principle curvature (K, H, k1 and k2) calculations on a surface \n\
-	  structure can also be performed, as well as several functions \n\
-	  derived from k1 and k2. \n\
+          Principal curvature (K, H, k1 and k2) calculations on a surface \n\
+          structure can also be performed, as well as several functions \n\
+          derived from k1 and k2. \n\
  \n\
           Finally, all output to the console, as well as any new \n\
           curvatures that result from the above calculations can be \n\
           saved to a series of text and binary-curvature files. \n\
  \n\
- 	  PRINCIPLE CURVATURES AND FUNCTIONS \n\
+          PRINCIPLE CURVATURES AND FUNCTIONS \n\
  \n\
-	  Given a surface file, 'mris_curvature_stats' can also compute \n\
-	  all the principal curvatures relating to each point on the \n\
-	  surface as well as several functions of these principal \n\
-	  curvatures. \n\
+          Given a surface file, 'mris_curvature_stats' can also compute \n\
+          all the principal curvatures relating to each point on the \n\
+          surface as well as several functions of these principal \n\
+          curvatures. \n\
  \n\
-	  To calculate these principal curvatures, use a '-G' flag on the \n\
-	  command line. In such an instance, you do need (nor probably even \n\
-	  want) any <curvFile> arguments. The following principal curvatures \n\
-	  and derived measures are calculated (and statistics on each are \n\
-	  presented) for each vertex on the surface: \n\
+          To calculate these principal curvatures, use a '-G' flag on the \n\
+          command line. In such an instance, you do need (nor probably even \n\
+          want) any <curvFile> arguments. The following principal curvatures \n\
+          and derived measures are calculated (and statistics on each are \n\
+          presented) for each vertex on the surface: \n\
  \n\
-	  		k1 	maximum curvature \n\
-	  		k2 	minimum curvature	 \n\
-	  		K 	Gaussian 	= k1*k2 \n\
-	  		H	Mean 		= 0.5*(k1+k2) \n\
-          		C	Curvedness 	= sqrt(0.5*(k1*k1+k2*k2)) \n\
-			S	Sharpness 	= (k1 - k2)^2 \n\
-	  		BE	Bending Energy 	= k1*k1 + k2*k2 \n\
-			SI	Shape Index	= atan((k1+k2)/(k2-k1)) \n\
-	 \n\
-	  Note that the 'BE' is not the same as the Willmore Bending Energy. \n\
-	  The Willmore Bending Energy is the same as 'S' (sharpness). The \n\
-	  BE in this case only considers the square of the principal \n\
-	  curvatures. \n\
+                        k1      maximum curvature \n\
+                        k2      minimum curvature        \n\
+                        K       Gaussian        = k1*k2 \n\
+                        H       Mean            = 0.5*(k1+k2) \n\
+                        C       Curvedness      = sqrt(0.5*(k1*k1+k2*k2)) \n\
+                        S       Sharpness       = (k1 - k2)^2 \n\
+                        BE      Bending Energy  = k1*k1 + k2*k2 \n\
+                        SI      Shape Index     = atan((k1+k2)/(k2-k1)) \n\
+         \n\
+          Note that the 'BE' is not the same as the Willmore Bending Energy. \n\
+          The Willmore Bending Energy is the same as 'S' (sharpness). The \n\
+          BE in this case only considers the square of the principal \n\
+          curvatures. \n\
  \n\
-	  Also note that the SI is not calculated by default due to some issues \n\
-	  with atan calculations. Use the '--shapeIndex' flag on the command \n\
-	  line to force SI. \n\
+          Also note that the SI is not calculated by default due to some issues \n\
+          with atan calculations. Use the '--shapeIndex' flag on the command \n\
+          line to force SI. \n\
  \n\
-	  In addition, if a '--writeCurvatureFiles' is specified, each of the \n\
-	  above are written to a FreeSurfer format curvature file. \n\
+          In addition, if a '--writeCurvatureFiles' is specified, each of the \n\
+          above are written to a FreeSurfer format curvature file. \n\
  \n\
-	  Note that there are two methods to calculate principal curvatures. \n\
-	  The first method is based on calculating the Second Fundamental \n\
-	  Form, and is the method used by 'mris_anatomical_stats'. This \n\
-	  approach can be selected by the '--continuous' command line \n\
-	  argument. This method, however, suffers occassionally from \n\
-	  accuracy problems and can have very large curvature outliers. \n\
+          Note that there are two methods to calculate principal curvatures. \n\
+          The first method is based on calculating the Second Fundamental \n\
+          Form, and is the method used by 'mris_anatomical_stats'. This \n\
+          approach can be selected by the '--continuous' command line \n\
+          argument. This method, however, suffers occassionally from \n\
+          accuracy problems and can have very large curvature outliers. \n\
  \n\
-	  A slower, more accurate method using discrete methods is available \n\
-       	  and can be selected with the '--discrete' command line argument. \n\
-	  This is in fact the default mode for 'mris_curvature_stats'. \n\
+          A slower, more accurate method using discrete methods is available \n\
+          and can be selected with the '--discrete' command line argument. \n\
+          This is in fact the default mode for 'mris_curvature_stats'. \n\
  \n\
     SURFACE INTEGRALS \n\
  \n\
-	  The surface integrals for a given curvature map are filtered/modified \n\
-	  in several ways. \n\
+          The surface integrals for a given curvature map are filtered/modified \n\
+          in several ways. \n\
  \n\
-    		- 'natural':	no change/filtering on the vertex curv values \n\
-    		- 'abs':	the fabs(...) of each vertex curv value \n\
-    		- 'pos':	process only the positive vertex curv values \n\
-    		- 'neg':	process only the negative vertex curv values \n\
-    	 \n\
-	  In addition, the following qualifiers are also evaluated: \n\
-    		- 'Mean':	the integral normalized to number of vertices \n\
-    		- 'AreaNorm':	the integral value normalized to unit surface \n\
+                - 'natural':    no change/filtering on the vertex curv values \n\
+                - 'abs':        the fabs(...) of each vertex curv value \n\
+                - 'pos':        process only the positive vertex curv values \n\
+                - 'neg':        process only the negative vertex curv values \n\
+         \n\
+          In addition, the following qualifiers are also evaluated: \n\
+                - 'Mean':       the integral normalized to number of vertices \n\
+                - 'AreaNorm':   the integral value normalized to unit surface \n\
  \n\
     OPTIONS \n\
  \n\
@@ -2262,7 +2246,7 @@ print_help(void) {
  \n\
           Average the curvature <numberOfAverages> times. \n\
  \n\
-    [-G] [--discrete] [--continuous] [--signedPrinciples] \n\
+    [-G] [--discrete] [--continuous] [--signedPrincipals] \n\
  \n\
           The '-G' flag triggers a series of derived curvature values that \n\
           are calculated from the current <FreeSurferSurface>. These curvatures \n\
@@ -2282,7 +2266,7 @@ print_help(void) {
           In the '--discrete' mode, 'mris_curvature_stats' solves first for \n\
           K and H, and then solves a quadratic function to determine K1 and K2. \n\
           By default, K1 is assigned the fabs(max) solution, and K2 is \n\
-          assigned the fabs(min) solution. By specifying '--signedPrinciples', \n\
+          assigned the fabs(min) solution. By specifying '--signedPrincipals', \n\
           K1 is assigned the (signed) max and K2 the (signed) min. \n\
  \n\
           Thus, if the solution principal curves at a vertex are -10 and 0.5, \n\
@@ -2290,18 +2274,18 @@ print_help(void) {
  \n\
                 K1 = -10 and K2 = 0.5 \n\
  \n\
-           but with '--signedPrinciples', this becomes: \n\
+           but with '--signedPrincipals', this becomes: \n\
  \n\
                 K1 = 0.5 and K2 = -10 \n\
  \n\
     [--vertexAreaWeigh]         [--vertexAreaNormalize] \n\
     [--vertexAreaWeighFrac]     [--vertexAreaNormalizeFrac] \n\
  \n\
-	  If specified, will change the value of the curvature value \n\
-	  at each point. The '--vertexAreaWeigh' will multiply each \n\
-	  curvature value by the area of its vertex, and \n\
-	  '--vertexAreaNormalize' will divide each curvature value by \n\
-	  the area of its vertex. \n\
+          If specified, will change the value of the curvature value \n\
+          at each point. The '--vertexAreaWeigh' will multiply each \n\
+          curvature value by the area of its vertex, and \n\
+          '--vertexAreaNormalize' will divide each curvature value by \n\
+          the area of its vertex. \n\
  \n\
           The {..}Frac flags use fractional operations, weighing or \n\
           normalizing by the fractional vertex area which is defined by \n\
@@ -2309,10 +2293,10 @@ print_help(void) {
  \n\
     [--shapeIndex] \n\
  \n\
-	  The 'Shape Index' curvature map can be problematic due to \n\
-	  issues with some atan calculations. By default the shape index \n\
-	  is not calculated. Use this flag to force shape index \n\
-	  calculations. \n\
+          The 'Shape Index' curvature map can be problematic due to \n\
+          issues with some atan calculations. By default the shape index \n\
+          is not calculated. Use this flag to force shape index \n\
+          calculations. \n\
  \n\
     [-o <outputFileStem>] \n\
  \n\
@@ -2331,50 +2315,50 @@ print_help(void) {
           the contents are identical to 'mris_curvature -w' created files. \n\
  \n\
           All possible files that can be saved are: \n\
-	  (where	O	= <outputFileStem> \n\
-			H	= <hemisphere> \n\
-			S	= <surface> \n\
-			C	= <curvature>) \n\
+          (where        O       = <outputFileStem> \n\
+                        H       = <hemisphere> \n\
+                        S       = <surface> \n\
+                        C       = <curvature>) \n\
  \n\
-          <O> 			Log only a single  mean+-sigma. If several \n\
-          			curvature files have been specified, log the \n\
-				mean+-sigma across all the curvatures. Note \n\
-				also that this file is *appended* for each \n\
-				new run. \n\
-          <OHSC>.log		Full output, i.e the output of each curvature \n\
-				file mean +- sigma, as well as min/max and \n\
-				surface integrals \n\
-          <OHS>.raw.hist  	Raw histogram file. By 'raw' is implied that \n\
-				the curvature has not been further processed \n\
-          			in any manner. \n\
-          <OHS>.norm.hist  	Normalised histogram file \n\
-          <OHS>.scaled.hist 	Scaled histogram file \n\
-          <OHS>.K.hist  	Gaussian histogram file \n\
-          <OHS>.H.hist  	Mean histogram file \n\
-	  <OHS>.k1.hist		k1 histogram file \n\
-	  <OHS>.k2.hist		k2 histogram file \n\
-	  <OHS>.C.hist		C 'curvedness' histogram file \n\
-	  <OHS>.S.hist		S 'sharpness' histogram file \n\
-	  <OHS>.BE.hist		BE 'bending energy' histogram file \n\
+          <O>                   Log only a single  mean+-sigma. If several \n\
+                                curvature files have been specified, log the \n\
+                                mean+-sigma across all the curvatures. Note \n\
+                                also that this file is *appended* for each \n\
+                                new run. \n\
+          <OHSC>.log            Full output, i.e the output of each curvature \n\
+                                file mean +- sigma, as well as min/max and \n\
+                                surface integrals \n\
+          <OHS>.raw.hist        Raw histogram file. By 'raw' is implied that \n\
+                                the curvature has not been further processed \n\
+                                in any manner. \n\
+          <OHS>.norm.hist       Normalised histogram file \n\
+          <OHS>.scaled.hist     Scaled histogram file \n\
+          <OHS>.K.hist          Gaussian histogram file \n\
+          <OHS>.H.hist          Mean histogram file \n\
+          <OHS>.k1.hist         k1 histogram file \n\
+          <OHS>.k2.hist         k2 histogram file \n\
+          <OHS>.C.hist          C 'curvedness' histogram file \n\
+          <OHS>.S.hist          S 'sharpness' histogram file \n\
+          <OHS>.BE.hist         BE 'bending energy' histogram file \n\
  \n\
-          <HS>.norm.crv   	Normalised curv file	('-n') \n\
-          <HS>.scaled.crv  	Scaled curv file	('-c' or '-d' '-e') \n\
-          <HS>.K.crv   		Gaussian curv file  	('-G') \n\
-          <HS>.H.crv   		Mean curv file  	('-G') \n\
-          <HS>.k1.crv   	k1 curv file  		('-G') \n\
-          <HS>.k2.crv   	k2 curv file  		('-G') \n\
-          <HS>.S.crv   		S curv file  		('-G') \n\
-          <HS>.C.crv   		C curv file  		('-G') \n\
-          <HS>.BE.crv   	BE curv file  		('-G') \n\
+          <HS>.norm.crv         Normalised curv file    ('-n') \n\
+          <HS>.scaled.crv       Scaled curv file        ('-c' or '-d' '-e') \n\
+          <HS>.K.crv            Gaussian curv file      ('-G') \n\
+          <HS>.H.crv            Mean curv file          ('-G') \n\
+          <HS>.k1.crv           k1 curv file            ('-G') \n\
+          <HS>.k2.crv           k2 curv file            ('-G') \n\
+          <HS>.S.crv            S curv file             ('-G') \n\
+          <HS>.C.crv            C curv file             ('-G') \n\
+          <HS>.BE.crv           BE curv file            ('-G') \n\
  \n\
-	  (The above *.crv files can also be created with a \n\
-	  '--writeCurvatureFiles' flag) \n\
+          (The above *.crv files can also be created with a \n\
+          '--writeCurvatureFiles' flag) \n\
  \n\
           Note that curvature files are saved to \n\
  \n\
-			$SUBJECTS_DIR/<subjectname>/surf \n\
+                        $SUBJECTS_DIR/<subjectname>/surf \n\
  \n\
-	  and *not* to the current working directory. \n\
+          and *not* to the current working directory. \n\
  \n\
     [-h <numberOfBins>] [-p <numberOfBins] \n\
  \n\
@@ -2501,7 +2485,7 @@ print_help(void) {
     $>mris_curvature_stats 801_recon rh curv \n\
  \n\
           For subject '801_recon', determine the mean+-sigma and surface \n\
-	  integrals for the curvature file 'curv' on the right hemisphere. \n\
+          integrals for the curvature file 'curv' on the right hemisphere. \n\
  \n\
     $>mris_curvature_stats -m 801_recon rh curv \n\
  \n\
@@ -2526,46 +2510,46 @@ print_help(void) {
  \n\
     $>mris_curvature_stats -G 801_recon rh \n\
  \n\
-	  Calculate all the second order measures for the right hemisphere \n\
-	  of subject '801_recon'. By default, the 'smoothwm' surface is \n\
-	  selected. \n\
+          Calculate all the second order measures for the right hemisphere \n\
+          of subject '801_recon'. By default, the 'smoothwm' surface is \n\
+          selected. \n\
  \n\
     $>mris_curvature_stats -G -F inflated 801_recon rh \n\
  \n\
-	  Same as above, but use the 'inflated' surface. \n\
+          Same as above, but use the 'inflated' surface. \n\
  \n\
     $>mris_curvature_stats -h 10 -G -m 801_recon rh \n\
  \n\
           Same as above, with the addition of a histogram and min/max \n\
-	  curvatures for all the second order measures. \n\
+          curvatures for all the second order measures. \n\
  \n\
     $>mris_curvature_stats -h 10 -G -m -o foo 801_recon rh \n\
  \n\
           Generate several output text files using the stem 'foo' that \n\
-	  capture the min/max and histograms for each curvature processed. \n\
-	  Also create new second order curvature files. \n\
+          capture the min/max and histograms for each curvature processed. \n\
+          Also create new second order curvature files. \n\
  \n\
           In this case, the curvature files created are called: \n\
  \n\
-          		rh.smoothwm.K.crv \n\
-          		rh.smoothwm.H.crv \n\
-          		rh.smoothwm.k1.crv \n\
-          		rh.smoothwm.k2.crv \n\
-          		rh.smoothwm.S.crv \n\
-          		rh.smoothwm.C.crv \n\
-          		rh.smoothwm.BE.crv \n\
+                        rh.smoothwm.K.crv \n\
+                        rh.smoothwm.H.crv \n\
+                        rh.smoothwm.k1.crv \n\
+                        rh.smoothwm.k2.crv \n\
+                        rh.smoothwm.S.crv \n\
+                        rh.smoothwm.C.crv \n\
+                        rh.smoothwm.BE.crv \n\
  \n\
           and are saved to the $SUBJECTS_DIR/<subjectname>/surf directory. \n\
           These can be re-read by 'mris_curvature_stats' using \n\
  \n\
-    $>mris_curvature_stats -m 801_recon rh 		\\ \n\
-			smoothwm.K.crv			\\ \n\
-			smoothwm.H.crv			\\ \n\
-			smoothwm.k1.crv			\\ \n\
-			smoothwm.k2.crv   		\\ \n\
-			smoothwm.S.crv			\\ \n\
-			smoothwm.C.crv			\\ \n\
-			smoothwm.BE.crv			\\ \n\
+    $>mris_curvature_stats -m 801_recon rh              \\ \n\
+                        smoothwm.K.crv                  \\ \n\
+                        smoothwm.H.crv                  \\ \n\
+                        smoothwm.k1.crv                 \\ \n\
+                        smoothwm.k2.crv                 \\ \n\
+                        smoothwm.S.crv                  \\ \n\
+                        smoothwm.C.crv                  \\ \n\
+                        smoothwm.BE.crv                 \\ \n\
  \n\
     ADVANCED EXAMPLES \n\
  \n\
@@ -2587,7 +2571,7 @@ print_help(void) {
           This scales each curvature value by 10. A new curvature file \n\
           is saved in \n\
  \n\
-          	$SUBJECTS_DIR/801_recon/surf/rh.smoothwm.scaled.crv \n\
+                $SUBJECTS_DIR/801_recon/surf/rh.smoothwm.scaled.crv \n\
  \n\
           Comparing the two curvatures in 'tksurfer' will clearly show \n\
           the scaled file as much brighter. \n\
@@ -2598,21 +2582,21 @@ print_help(void) {
  \n\
     $>mris_curvature_stats --writeCurvatureFiles -G 801_recon rh curv \n\
  \n\
-	  This command will create Gaussian and Mean curvature files in the \n\
+          This command will create Gaussian and Mean curvature files in the \n\
           $SUBJECTS_DIR/<subjectName>/surf directory: \n\
  \n\
-          		rh.smoothwm.K.crv \n\
-          		rh.smoothwm.H.crv \n\
+                        rh.smoothwm.K.crv \n\
+                        rh.smoothwm.H.crv \n\
  \n\
           Now, process the created Gaussian with the scaled curvature: \n\
  \n\
-    $>mris_curvature_stats --writeCurvatureFiles -c 10 	\\ \n\
-			801_recon rh smoothwm.K.crv \n\
+    $>mris_curvature_stats --writeCurvatureFiles -c 10  \\ \n\
+                        801_recon rh smoothwm.K.crv \n\
  \n\
           The final scaled Gaussian curvature is saved to (again in the \n\
-	  $SUBJECTS_DIR/801_recon/surf directory): \n\
+          $SUBJECTS_DIR/801_recon/surf directory): \n\
  \n\
-          		rh.smoothwm.scaled.crv \n\
+                        rh.smoothwm.scaled.crv \n\
  \n\
           which is a much better candidate to view in 'tksurfer' than \n\
           the original Gaussian curvature file. \n\
