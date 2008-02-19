@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/02/19 00:01:20 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/02/19 00:12:25 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -59,7 +59,7 @@
 #define  START_i    3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.3 2008/02/19 00:01:20 rudolph Exp $";
+"$Id: mris_calc.c,v 1.4 2008/02/19 00:12:25 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -318,7 +318,7 @@ synopsis_show(void) {
     ACTION \n\
  \n\
         The action to be perfomed on the two curvature files. This is a \n\
-        text string that defines the mathematical operation to execute. For two\n\
+        text string that defines the mathematical operation to execute. For two \n\
         inputs, this action is applied in an indexed element-by-element fashion, \n\
         i.e. <curvFile1>[n] <ACTION> <curvFile2>[n] where 'n' is an index \n\
         counter. \n\
@@ -329,6 +329,8 @@ synopsis_show(void) {
           add      2      1     <outputCurvFile> = <curvFile1> + <curvFile2> \n\
           sub      2      1     <outputCurvFile> = <curvFile1> - <curvFile2> \n\
           set      2      1     <outputCurvFile> = <curvFile2> \n\
+ \n\
+          ascii    1      1     <outputCurvFile> = ascii <curvFile1> \n\
  \n\
           size     1      0     print the size of <curvFile1> \n\
           min      1      0     print the min value (and index) of <curvFile1> \n\
@@ -345,6 +347,9 @@ synopsis_show(void) {
         curvature file, i.e. 'mris_calc set rh.pial 0.005' will create \n\
         an output curvature, 'out.crv' of the same size as rh.pial, and with \n\
         each element set to 0.005. \n\
+ \n\
+        The 'ascii' command converts <curvFile1> to a text format file, \n\
+        suitable for reading into MatLAB, for example. \n\
  \n\
         Note also that the standard deviation can suffer from float rounding \n\
         errors and is only accurate to 4 digits of precision. \n\
@@ -508,7 +513,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.3 2008/02/19 00:01:20 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.4 2008/02/19 00:12:25 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

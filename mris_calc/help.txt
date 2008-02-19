@@ -60,6 +60,8 @@
 	  sub	   2	  1     <outputCurvFile> = <curvFile1> - <curvFile2>
 	  set	   2	  1     <outputCurvFile> = <curvFile2>
 
+          ascii    1      1     <outputCurvFile> = ascii <curvFile1>
+
           size     1      0     print the size of <curvFile1>
           min      1      0     print the min value (and index) of <curvFile1>
           max      1      0     print the max value (and index) of <curvFile1>
@@ -75,6 +77,9 @@
 	curvature file, i.e. 'mris_calc set rh.pial 0.005' will create
 	an output curvature, 'out.crv' of the same size as rh.pial, and with
 	each element set to 0.005.
+
+        The 'ascii' command converts <curvFile1> to a text format file, 
+        suitable for reading into MatLAB, for example.
 
         Note also that the standard deviation can suffer from float rounding
         errors and is only accurate to 4 digits of precision.
