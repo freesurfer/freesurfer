@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/16 20:32:50 $
- *    $Revision: 1.15 $
+ *    $Date: 2008/02/19 18:15:13 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.15 2007/11/16 20:32:50 greve Exp $
+  $Id: mri_annotation2label.c,v 1.16 2008/02/19 18:15:13 greve Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -50,6 +50,7 @@
 #include "annotation.h"
 #include "version.h"
 #include "mri.h"
+#include "fio.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -63,7 +64,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.15 2007/11/16 20:32:50 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.16 2008/02/19 18:15:13 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -103,7 +104,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.15 2007/11/16 20:32:50 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.16 2008/02/19 18:15:13 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -147,7 +148,8 @@ int main(int argc, char **argv) {
   }
 
   /* ------ Load annotation ------ */
-  sprintf(annotfile,"%s/%s/label/%s.%s.annot",
+  if(fio_FileExistsReadable(annotation)) strcpy(annotfile,annotation);
+  else  sprintf(annotfile,"%s/%s/label/%s.%s.annot",
           SUBJECTS_DIR,subject,hemi,annotation);
   printf("Loading annotations from %s\n",annotfile);
   err = MRISreadAnnotation(Surf, annotfile);
