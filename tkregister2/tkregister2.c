@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/20 22:22:58 $
- *    $Revision: 1.92 $
+ *    $Date: 2008/02/20 22:24:06 $
+ *    $Revision: 1.93 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.92 2008/02/20 22:22:58 greve Exp $";
+"$Id: tkregister2.c,v 1.93 2008/02/20 22:24:06 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1363,8 +1363,8 @@ static void print_usage(void) {
   printf("   --fsl-targ : use FSLDIR/etc/standard/avg152T1.img\n");
   printf("   --fsl-targ-lr : use FSLDIR/etc/standard/avg152T1_LR-marked.img\n");
   printf("   --fstal : set mov to be tal and reg to be tal xfm  \n");
-  printf("   --gca : check linear GCA registration  \n");
-  printf("   --gca-skull : check linear 'with skull' GCA registration  \n");
+  printf("   --gca subject : check linear GCA registration  \n");
+  printf("   --gca-skull subject : check linear 'with skull' GCA registration  \n");
   printf("   --no-zero-cras : do not zero target cras (done with --fstal)\n");
   printf("   --movbright  f : brightness of movable volume\n");
   printf("   --no-inorm  : turn off intensity normalization\n");
@@ -4581,7 +4581,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.92 2008/02/20 22:22:58 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.93 2008/02/20 22:24:06 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
