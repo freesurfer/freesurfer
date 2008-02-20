@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/19 18:57:43 $
- *    $Revision: 1.25 $
+ *    $Date: 2008/02/20 05:35:03 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -79,5 +79,6 @@ MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int 
 MRI *MRIsquare(MRI *in, MRI *mask, MRI *out);
 MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out);
 int *MRIsegIdList(MRI *seg, int *nlist, int frame);
+double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist);
 
 #endif

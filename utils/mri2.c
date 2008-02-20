@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/19 18:57:43 $
- *    $Revision: 1.45 $
+ *    $Date: 2008/02/20 05:35:03 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.45 2008/02/19 18:57:43 greve Exp $
+  $Id: mri2.c,v 1.46 2008/02/20 05:35:03 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -2351,5 +2351,76 @@ int *MRIsegIdList(MRI *seg, int *nlist, int frame)
   //for(nth=0; nth < *nlist; nth++)
   //printf("%3d %3d\n",nth,segidlist[nth]);
   return(segidlist);
+}
+
+/* ----------------------------------------------------------*/
+/*!
+  \fn double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist)
+  \brief Computes dice coefficient for each segmentation. seg1 and seg2
+  should have the same number of segs. Note: to get the name of
+  the seg, CTABcopyName(ctab,segidlist[k],tmpstr,sizeof(tmpstr));
+*/
+double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist)
+{
+  int k,c,r,s,id1,id2,k1=0,k2=0;
+  int nsegid1, *segidlist1;
+  int nsegid2, *segidlist2;
+  int *n1, *n2, *n12;
+  double *dice;
+  *nsegs = -1;
+
+  // Extract a unique, sorted list of the ids
+  segidlist1 = MRIsegIdList(seg1, &nsegid1,0);
+  segidlist2 = MRIsegIdList(seg1, &nsegid2,0);
+
+  if(nsegid1 != nsegid2){
+    printf("ERROR: MRIsegDice(): nsegs do not match %d %d\n",
+	   nsegid1,nsegid2);
+    return(NULL);
+  }
+  printf("MRIsegDice(): found %d segs\n",nsegid1);
+  *nsegs = nsegid1;
+
+  n1  = (int *) calloc(nsegid1,sizeof(int));
+  n2  = (int *) calloc(nsegid1,sizeof(int));
+  n12 = (int *) calloc(nsegid1,sizeof(int));
+
+  for(c=0; c < seg1->width; c++){
+    for(r=0; r < seg1->height; r++){
+      for(s=0; s < seg1->depth; s++){
+	// segid for 1st seg vol
+	id1 = MRIgetVoxVal(seg1,c,r,s,0);
+	for(k=0; k < nsegid1; k++) {
+	  if(id1 == segidlist1[k]){
+	    k1 = k; 
+	    break;
+	  }
+	}
+	// segid for 2nd seg vol
+	id2 = MRIgetVoxVal(seg2,c,r,s,0);
+	for(k=0; k < nsegid2; k++) {
+	  if(id2 == segidlist2[k]){
+	    k2 = k; 
+	    break;
+	  }
+	}
+	n1[k1]++;
+	n2[k2]++;
+	if(id1 == id2) n12[k1]++;
+      }
+    }
+  }
+
+  dice  = (double *) calloc(nsegid1,sizeof(double));
+  for(k=0; k < nsegid1; k++)
+    dice[k] = (double)n12[k]/((n1[k]+n2[k])/2.0);
+
+  free(n1);
+  free(n2);
+  free(n12);
+  free(segidlist2);
+  *segidlist = segidlist1;
+
+  return(dice);
 }
 
