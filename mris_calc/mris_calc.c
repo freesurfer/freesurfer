@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/02/19 00:12:25 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/02/20 18:57:45 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -59,7 +59,7 @@
 #define  START_i    3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.4 2008/02/19 00:12:25 rudolph Exp $";
+"$Id: mris_calc.c,v 1.5 2008/02/20 18:57:45 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -253,6 +253,7 @@ short   CURV_fileWrite(
   float*  apf_curv
   );
 
+short   b_outCurvFile_write(char* apch_operator);
 short   CURV_process(void);
 short   CURV_functionRunABC( double (*F)(float f_A, float f_B) );
 double  CURV_functionRunAC( double (*F)(float f_A) );
@@ -513,7 +514,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.4 2008/02/19 00:12:25 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.5 2008/02/20 18:57:45 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -734,6 +735,39 @@ CURV_arrayProgress_print(
   return 1;
 }
 
+/*!
+  \fn b_outCurvFile_write(char* apch_operator)
+  \brief A simple function that determines if an output file should be saved.
+  \param void
+  \see
+  \return Internal "class" global variables are set by this process.
+*/
+short
+b_outCurvFile_write(char* apch_operator)
+{
+    // PRECONDITIONS
+    //	pch_operator		in		Action to perform
+    //
+    // POSTCONDITIONS
+    //	Internally an output curvature data structure is always generated.
+    //	Saving this output file to disk is only meaningful for a given
+    //	set of actions -- usually the typical mathematical operators.
+    //	Other actions don't require an output file to be saved, e.g the
+    //	'stats' action.
+    //
+
+    short	b_ret	= 0;
+
+    if( (!strcmp(apch_operator, "mul"))		|| 	
+    	(!strcmp(apch_operator, "div")) 	||	
+    	(!strcmp(apch_operator, "add")) 	||	
+    	(!strcmp(apch_operator, "sub")) 	||
+    	(!strcmp(apch_operator, "set")) 	||
+    	(!strcmp(apch_operator, "ascii")) )
+	b_ret = 1;
+
+    return b_ret;	
+}
 
 /*!
   \fn CURV_process(void)
@@ -760,10 +794,12 @@ CURV_process(void)
   float f_max           = 0.;
   int   mini            = -1;
   int   maxi            = -1;
-  int   b_canWrite      = 1;
+  int   b_canWrite      = 0;
   float f_mean  = 0.;
   float f_std   = 0.;
   float f_dev   = 0.;
+
+  b_canWrite	= b_outCurvFile_write(G_pch_operator);
 
   if(     !strcmp(G_pch_operator, "mul")) {CURV_functionRunABC(fn_mul);}
   else if(!strcmp(G_pch_operator, "div")) {CURV_functionRunABC(fn_div);}
@@ -771,7 +807,6 @@ CURV_process(void)
   else if(!strcmp(G_pch_operator, "sub")) {CURV_functionRunABC(fn_sub);}
   else if(!strcmp(G_pch_operator, "set")) {CURV_functionRunABC(fn_set);}
 
-  b_canWrite    = 0;
   if(!strcmp(G_pch_operator, "ascii"))
     ascii_fileWrite(G_pch_curvFile3, G_pf_arrayCurv1);
 
