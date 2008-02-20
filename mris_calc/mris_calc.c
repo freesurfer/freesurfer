@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/02/20 18:57:45 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/02/20 19:05:04 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -59,7 +59,7 @@
 #define  START_i    3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.5 2008/02/20 18:57:45 rudolph Exp $";
+"$Id: mris_calc.c,v 1.6 2008/02/20 19:05:04 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -514,7 +514,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.5 2008/02/20 18:57:45 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.6 2008/02/20 19:05:04 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -639,6 +639,7 @@ CURV_fileRead(
               "\n%s: curvature file '%s' has wrong magic number.\n",
               G_pch_progname, apch_curvFileName);
   *apf_curv   = pf_data;
+  fclose(FP_curv);
   return(1);
 }
 
@@ -665,6 +666,7 @@ ascii_fileWrite(
     CURV_arrayProgress_print(G_sizeCurv1, i, pch_readMessage);
     fprintf(FP_curv, "%f\n", apf_curv[i]);
   }
+  fclose(FP_curv);
   return(1);
 }
 
@@ -698,6 +700,7 @@ CURV_fileWrite(
     CURV_arrayProgress_print(G_sizeCurv1, i, pch_readMessage);
     fwriteFloat(apf_curv[i], FP_curv);
   }
+  fclose(FP_curv);
   return(1);
 }
 
