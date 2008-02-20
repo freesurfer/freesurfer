@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/20 02:41:00 $
- *    $Revision: 1.15 $
+ *    $Date: 2008/02/20 05:05:11 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,5 +53,6 @@ MRI *MRISannot2seg(MRIS *surf, int base);
 MRI *MRISannot2border(MRIS *surf);
 int MRISaparc2lobes(MRIS *surf);
 int MRISfbirnAnnot(MRIS *surf);
+double *MRISannotDice(MRIS *surf1, MRIS *surf2, int *nsegs, int **segidlist);
 
 #endif

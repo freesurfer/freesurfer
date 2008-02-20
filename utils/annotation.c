@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/20 02:41:00 $
- *    $Revision: 1.24 $
+ *    $Date: 2008/02/20 05:05:11 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,6 +38,7 @@
 #include "label.h"
 #include "colortab.h"
 #include "diag.h"
+#include "mri2.h"
 
 #define ANNOTATION_SRC
 #include "annotation.h"
@@ -865,3 +866,86 @@ int MRISfbirnAnnot(MRIS *surf)
 
   return(0);
 }
+
+
+/*---------------------------------------------------------------*/
+/*!
+  \fn double *MRISannotDice(MRIS *surf1, MRIS *surf2, int *nsegs, int **segidlist)
+  \brief Computes dice coefficient for each parcellation unit. surf1
+  and surf2 should be the same surface with different parcellations
+  loaded.  *nsegs returns the number of parcellations. **segidlist is
+  a list of the parcellation id numbers (usually just 0 to nsegs-1.
+*/
+double *MRISannotDice(MRIS *surf1, MRIS *surf2, int *nsegs, int **segidlist)
+{
+  MRI *seg1, *seg2;
+  int k,id1,id2,k1=0,k2=0,vtxno;
+  int nsegid1, *segidlist1;
+  int nsegid2, *segidlist2;
+  double *area1, *area2, *area12, *dice;
+  *nsegs = -1;
+
+  // Create a seg from the 1st annot
+  seg1 = MRISannot2seg(surf1,0);
+  // Extract a unique, sorted list of the ids
+  segidlist1 = MRIsegIdList(seg1, &nsegid1,0);
+
+  // Create a seg from the 2nd annot
+  seg2 = MRISannot2seg(surf2,0);
+  // Extract a unique, sorted list of the ids
+  segidlist2 = MRIsegIdList(seg1, &nsegid2,0);
+
+  if(nsegid1 != nsegid2){
+    printf("ERROR: MRISannotDice(): nsegs do not match %d %d\n",
+	   nsegid1,nsegid2);
+    return(NULL);
+  }
+  // Note: segidlist1 and 2 should be the same too
+  printf("MRISannotDice(): found %d segs\n",nsegid1);
+  *nsegs = nsegid1;
+
+  area1  = (double *) calloc(nsegid1,sizeof(double));
+  area2  = (double *) calloc(nsegid1,sizeof(double));
+  area12 = (double *) calloc(nsegid1,sizeof(double));
+
+  for(vtxno=0; vtxno < surf1->nvertices; vtxno++){
+    // id at vtxno for 1st annot
+    id1 = MRIgetVoxVal(seg1,vtxno,0,0,0);
+    // determine its index in the segidlist
+    for(k=0; k < nsegid1; k++) {
+      if(id1 == segidlist1[k]){
+	k1 = k; 
+	break;
+      }
+    }
+    // id at vtxno for 2nd annot
+    id2 = MRIgetVoxVal(seg2,vtxno,0,0,0);
+    // determine its index in the segidlist
+    for(k=0; k < nsegid1; k++) {
+      if(id2 == segidlist2[k]){
+	k2 = k; 
+	break;
+      }
+    }
+    // accum areas
+    area1[k1] += surf1->vertices[vtxno].area;
+    area2[k2] += surf1->vertices[vtxno].area;
+    if(id1 == id2) area12[k1] += surf1->vertices[vtxno].area;
+  }
+
+  // Compute dice for each area
+  dice  = (double *) calloc(nsegid1,sizeof(double));
+  for(k=0; k < nsegid1; k++)
+    dice[k] = area12[k]/((area1[k]+area2[k])/2.0);
+
+  MRIfree(&seg1);
+  MRIfree(&seg2);
+  free(area1);
+  free(area2);
+  free(area12);
+  free(segidlist2);
+  *segidlist = segidlist1;
+
+  return(dice);
+}
+
