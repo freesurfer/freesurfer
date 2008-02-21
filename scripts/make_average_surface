@@ -1,4 +1,4 @@
-#! /bin/tcsh -ef
+#! /bin/tcsh -f
 
 #
 # make_average_surface
@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/02/11 17:50:03 $
-#    $Revision: 1.44 $
+#    $Date: 2008/02/21 20:39:49 $
+#    $Revision: 1.45 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.44 2008/02/11 17:50:03 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.45 2008/02/21 20:39:49 greve Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
