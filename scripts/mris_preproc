@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/02/21 19:45:03 $
-#    $Revision: 1.47 $
+#    $Date: 2008/02/22 20:01:53 $
+#    $Revision: 1.48 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.47 2008/02/21 19:45:03 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.48 2008/02/22 20:01:53 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -810,14 +810,14 @@ if(! -e $SUBJECTS_DIR) then
 endif
 
 # Add xhemi
-set tmplist = ();
 if($DoXHemi) then
+  set tmplist = ();
   foreach subj ($subjlist)
     if($srchemi == lh) set tmplist = ($tmplist $subj $subj/xhemi)
     if($srchemi == rh) set tmplist = ($tmplist $subj/xhemi $subj)
   end
+  set subjlist = ($tmplist);
 endif
-set subjlist = ($tmplist);
 
 echo "nsubjects = $#subjlist";
 @ nthsubj = 1;
