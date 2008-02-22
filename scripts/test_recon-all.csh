@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/11 18:03:44 $
-#    $Revision: 1.21 $
+#    $Date: 2008/02/22 23:42:25 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.21 2008/02/11 18:03:44 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.22 2008/02/22 23:42:25 nicks Exp $'
 
 #set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -316,7 +316,8 @@ if (! -e $SUBJECTS_DIR/$TEST_SUBJ) then
 endif
 
 set TEST_VOLUMES=(rawavg.mgz orig.mgz nu.mgz T1.mgz brainmask.mgz \
-norm.mgz aseg.mgz brain.mgz wm.mgz filled.mgz aparc+aseg.mgz)
+norm.mgz aseg.mgz brain.mgz wm.mgz filled.mgz aparc+aseg.mgz \
+lh.ribbon.mgz rh.ribbon.mgz)
 
 foreach tstvol ($TEST_VOLUMES)
   set REF_VOL  = $SUBJECTS_DIR/ref_subj/mri/$tstvol
