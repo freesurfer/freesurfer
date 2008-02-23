@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/01/08 06:52:47 $
-#    $Revision: 1.30 $
+#    $Date: 2008/02/23 19:25:43 $
+#    $Revision: 1.31 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.30 2008/01/08 06:52:47 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.31 2008/02/23 19:25:43 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -165,7 +165,7 @@ foreach hemi ($hemilist)
     set cmd = ($cmd -subject $subject)
     set cmd = ($cmd -hemi $hemi)
     if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
-    if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
+    if($DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
   endif
   set cmd = ($cmd $sessargs);
   echo "cd `pwd`" |& tee -a $LF
@@ -225,7 +225,7 @@ foreach hemi ($hemilist)
         set cmd = ($cmd -hemi $hemi)
         set cmd = ($cmd -subject $subject)
         if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
-        if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
+        if($DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
       endif
       set cmd = ($cmd $sessargs);
       echo "cd `pwd`" |& tee -a $LF
@@ -294,7 +294,7 @@ foreach hemi ($hemilist)
       set cmd = ($cmd -hemi $hemi)
       set cmd = ($cmd -subject $subject)
       if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
-      if($#DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
+      if($DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
     endif
     set cmd = ($cmd $sessargs);
     echo "cd `pwd`" |& tee -a $LF
