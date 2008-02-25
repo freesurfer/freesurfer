@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.113 2008/02/11 21:31:43 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.114 2008/02/25 18:11:46 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -64,7 +64,7 @@ setenv PLATFORM       "`cat ${LOCAL_FS}/PLATFORM`"
 setenv BUILD_PLATFORM "`cat ${BUILD_HOSTNAME_DIR}/PLATFORM`"
 
 # SRC_DIR is the CVS checkout of either the main trunk and the stable branch.
-# BUILD_DIR is where the build occurs.
+# BUILD_DIR is where the build occurs (doesnt have to be SRC_DIR)
 # INSTALL_DIR is where the build will be installed.
 if ("$RELEASE_TYPE" == "dev") then
   set SRC_DIR=${BUILD_HOSTNAME_DIR}/trunk/dev
@@ -199,12 +199,12 @@ echo "PLATFORM $PLATFORM" >>& $OUTPUTF
 echo "HOSTNAME $HOSTNAME" >>& $OUTPUTF
 if ($?CC) then
   if ("$CC" == "icc") then
-    echo "icc      `icc --version | grep icc`" >>& $OUTPUTF
+    echo "ICC      `icc --version | grep icc`" >>& $OUTPUTF
   else
-    echo "gcc      `gcc --version | grep gcc`" >>& $OUTPUTF
+    echo "GCC      `gcc --version | grep gcc`" >>& $OUTPUTF
   endif
 else
-  echo "gcc      `gcc --version | grep gcc`" >>& $OUTPUTF
+  echo "GCC      `gcc --version | grep gcc`" >>& $OUTPUTF
 endif
 echo "BUILD_HOSTNAME_DIR $BUILD_HOSTNAME_DIR" >>& $OUTPUTF
 echo "SCRIPT_DIR         $SCRIPT_DIR" >>& $OUTPUTF
@@ -249,8 +249,13 @@ echo "##########################################################" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
 cd ${BUILD_DIR} >>& $OUTPUTF
-echo "CMD: make distclean" >>& $OUTPUTF
-if (-e Makefile) make distclean >>& $OUTPUTF
+if ( "${BUILD_DIR}" == "${SRC_DIR}" ) then
+  echo "CMD: make distclean" >>& $OUTPUTF
+  if (-e Makefile) make distclean >>& $OUTPUTF
+else
+  echo "CMD: rm -Rf ${BUILD_DIR}/*" >>& $OUTPUTF
+  rm -Rf ${BUILD_DIR}/* >>& $OUTPUTF
+endif
 
 
 #
@@ -607,7 +612,7 @@ chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
 #goto make_distcheck_done
 if ("$RELEASE_TYPE" == "dev") then
 # just do this once a week, as it takes a few hours to run
-date | grep "Sat "
+date | grep "Sat " >& /dev/null
 if ( ! $status ) then
   echo "########################################################" >>& $OUTPUTF
   echo "Make distcheck $BUILD_DIR" >>& $OUTPUTF
@@ -737,6 +742,7 @@ if ("$RELEASE_TYPE" == "stable-pub" || -e ${BUILD_HOSTNAME_DIR}/TARBALL ) then
   endif
   rm -f ${BUILD_HOSTNAME_DIR}/TARBALL >& /dev/null
 endif
+
 
 #
 # copy libraries and include filed needed by those who want to 
