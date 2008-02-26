@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/26 22:04:11 $
-#    $Revision: 1.133.2.21 $
+#    $Date: 2008/02/26 23:10:15 $
+#    $Revision: 1.133.2.22 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.21 2008/02/26 22:04:11 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.22 2008/02/26 23:10:15 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1398,23 +1398,19 @@ if($DoCALabel) then
     # default stream:
     set cmd = ($cmd $xopts norm.mgz \
         transforms/talairach.m3z $FREESURFER_HOME/average/$GCA \
-        aseg.auto.mgz);
+        aseg.auto_noCCseg.mgz);
   else
     # longitudinal processing:
     set cmd = ($cmd $xopts -l $tp1dir/mri/aseg.mgz \
         $tp1dir/mri/transforms/$tp1totp2_regfile norm.mgz \
         transforms/talairach.m3z $FREESURFER_HOME/average/$GCA \
-        aseg.auto.mgz);
+        aseg.auto_noCCseg.mgz);
   endif
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
 
   #--- Corpus Callosum Segmentation ---#
-  set cmd = (cp aseg.auto.mgz aseg.auto_noCCseg.mgz)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
   set xopts = `fsr-getxopts mri_cc $XOptsFile`;
   set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz \
     $subjid $xopts);
