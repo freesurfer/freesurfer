@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 23:19:44 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/02/26 23:16:44 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 #include <stdexcept>
 #include <sstream>
 extern "C" {
-#include "GL/glut.h"
+#include "glut.h"
 #define USE_NON_CONST
 #include "tcl.h"
 #undef USE_NON_CONST

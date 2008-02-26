@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 23:32:25 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/02/26 23:16:44 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 
 
 #include <string>
-#include <GL/glut.h>
+#include "glut.h"
 #include <GL/glx.h>
 #include <GL/gl.h>
 #include <GL/glu.h>

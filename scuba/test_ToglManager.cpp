@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 23:19:44 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/02/26 23:16:44 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
 #include "Scuba-impl.h"
 
 extern "C" {
-#include "GL/glut.h"
+#include "glut.h"
 }
 
 using namespace std;
