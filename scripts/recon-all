@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/26 00:31:09 $
-#    $Revision: 1.166 $
+#    $Date: 2008/02/26 00:35:34 $
+#    $Revision: 1.167 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.166 2008/02/26 00:31:09 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.167 2008/02/26 00:35:34 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1452,6 +1452,8 @@ if($DoCALabel) then
   #--- Corpus Callosum Segmentation ---#
   set cmd = (cp aseg.auto.mgz aseg.auto_noCCseg.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
   set xopts = `fsr-getxopts mri_cc $XOptsFile`;
   set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz \
     $subjid $xopts);
