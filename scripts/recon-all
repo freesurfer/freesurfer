@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/26 00:37:57 $
-#    $Revision: 1.133.2.19 $
+#    $Date: 2008/02/26 19:55:07 $
+#    $Revision: 1.133.2.20 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.19 2008/02/26 00:37:57 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.20 2008/02/26 19:55:07 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -346,6 +346,11 @@ if (-e /usr/bin/free) then
   /usr/bin/free -o >> $LF
   echo "" >> $LF
 endif
+if ("`uname -s`" == "Darwin") then
+  echo "" >> $LF
+  /usr/bin/top -l 1 | grep PhysMem >> $LF
+  echo "" >> $LF
+endif
 
 ## gather all versions here
 echo "########################################" >> $LF
@@ -413,9 +418,12 @@ if($DoIsRunning) then
     echo "also be that recon-all was running at one point but"
     echo "died in an unexpected way. If it is the case that there"
     echo "is a process running, you can kill it and start over or"
-    echo "just let it run. If the process has died, you should"
-    echo "rm $bailfile and re-run. Or you can add -no-isrunning"
-    echo "to the recon-all command-line. The contents of this file are:"
+    echo "just let it run. If the process has died, you should type:"
+    echo ""
+    echo "rm $bailfile"
+    echo ""
+    echo "and re-run. Or you can add -no-isrunning to the recon-all"
+    echo "command-line. The contents of this file are:"
     echo "----------------------------------------------------------"
     cat  $bailfile
     echo "----------------------------------------------------------"
