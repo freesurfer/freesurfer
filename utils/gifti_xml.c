@@ -2364,7 +2364,8 @@ static int gxml_write_gifti(gxml_data * xd, FILE * fp)
     gxml_write_preamble(xd, fp);
     fprintf(fp,"<%s",enames[GXML_ETYPE_GIFTI]);
     if(gim->version){ fprintf(fp," Version=\"%s\"", gim->version); first = 0; }
-    fprintf(fp,"%sNumberOfDataArrays=\"%d\"", first ? "" : "  ", gim->numDA);
+    /* add space if no version, requested by E Anderson */
+    fprintf(fp,"%sNumberOfDataArrays=\"%d\"", first ? " " : "  ", gim->numDA);
 
     /* add any extra attributes */
     offset = strlen(enames[GXML_ETYPE_GIFTI]) + 2;

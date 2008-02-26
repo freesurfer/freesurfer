@@ -184,7 +184,9 @@ int    gifti_check_swap         (void *data, int endian, long long nsets,
                                  int swapsize);
 int    gifti_datatype_sizes     (int datatype, int *nbyper, int *swapsize);
 char * gifti_datatype2str       (int type);
+char * gifti_get_meta_value     (nvpairs * nvp, char * name);
 int    gifti_get_this_endian    (void);
+int    gifti_image_has_data     (const gifti_image * gim);
 int    gifti_intent_from_string (const char * name);
 int    gifti_intent_is_valid    (int code);
 char * gifti_intent_to_string   (int code);
