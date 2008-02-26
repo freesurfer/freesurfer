@@ -1,15 +1,18 @@
 /**
  * @file  backprop.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief back-propagation neural net
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * backprop files can store multiple networks of varying size. In order to
+ * accomodate this, I mimic the tiff file structure with a header indicating
+ * the # of networks, and a pointer to the 1st one. Each one then starts with
+ * a pointer to the next network, or NULL for the last network in the file.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/02/26 00:53:00 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,45 +28,10 @@
  *
  */
 
-
-/*
-  @(#)backprop.h  1.12
-  10/23/95
-*/
-/*----------------------------------------------------------------------
-
-      File Name:   backprop.h
-
-      Description:
-
-  $Header: /space/repo/1/dev/dev/include/backprop.h,v 1.5 2006/12/29 02:08:59 nicks Exp $
-  $Log: backprop.h,v $
-  Revision 1.5  2006/12/29 02:08:59  nicks
-  added license header; ran astyle to set to kr and ansi code styling
-
-  Revision 1.4  2004/08/26 15:27:12  tosa
-  long to long32
-
-  Revision 1.3  2002/05/28 21:00:19  fischl
-  added BP_ prefix.
-
-  Revision 1.2  1996/06/27 16:57:42  fischl
-  made constants floats
-
-----------------------------------------------------------------------*/
-
 #ifndef BACKPROP_H
 #define BACKPROP_H
 
-
 #include "machine.h"
-
-/*
-  backprop files can store multiple networks of varying size. In order to
-  accomodate this, I mimic the tiff file structure with a header indicating
-  the # of networks, and a pointer to the 1st one. Each one then starts with
-  a pointer to the next network, or NULL for the last network in the file.
-*/
 
 typedef struct
 {

@@ -1,15 +1,18 @@
 /**
- * @file  backprop.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
+* @file  backprop.c
+* @brief back-propagation neural net
+*
+* backprop files can store multiple networks of varying size. In order to
+* accomodate this, I mimic the tiff file structure with a header indicating
+* the # of networks, and a pointer to the 1st one. Each one then starts with
+* a pointer to the next network, or NULL for the last network in the file.
+*/
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:30 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/02/26 00:53:00 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,33 +27,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
-  @(#)backprop.c  1.1
-  3/28/94
-*/
-/*----------------------------------------------------------------------
-
-      File Name:   backprop.c
-
-      Description:
-
-  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.10 2006/12/29 01:49:30 nicks Exp $
-  $Log: backprop.c,v $
-  Revision 1.10  2006/12/29 01:49:30  nicks
-  added license header; ran astyle to set to kr and ansi code styling
-
-  Revision 1.9  2004/08/26 15:30:25  tosa
-  long to long32
-
-  Revision 1.8  2002/05/28 21:00:30  fischl
-  added BP_ prefix.
-
-  Revision 1.7  1996/06/28 18:29:05  fischl
-  don't use fprintf or exit
-
-----------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------------
               INCLUDE FILES
