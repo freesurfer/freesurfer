@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/02 19:56:50 $
- *    $Revision: 1.36 $
+ *    $Date: 2008/02/26 00:59:30 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,11 +38,7 @@
 #include <X11/keysymdef.h>
 
 #define OPENGL_CODE  1
-#ifdef HAVE_APPLE_GLUT_FRAMEWORK
-#  include <GLUT/glut.h>
-#else
-#  include <GL/glut.h>
-#endif
+#include <glut.h>
 #include <GL/glx.h>
 
 /*#if defined(Linux)|| defined(__sun__)*/
@@ -69,7 +65,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.36 2007/01/02 19:56:50 nicks Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.37 2008/02/26 00:59:30 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -221,7 +217,7 @@ main(int argc, char *argv[]) {
   unsigned char   *rgb=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.36 2007/01/02 19:56:50 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.37 2008/02/26 00:59:30 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

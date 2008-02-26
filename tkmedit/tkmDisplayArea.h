@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/18 18:27:03 $
- *    $Revision: 1.64 $
+ *    $Author: nicks $
+ *    $Date: 2008/02/26 00:59:31 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -31,11 +31,7 @@
 #define tkmDisplayArea_h
 
 #include "xTypes.h"
-#ifdef HAVE_APPLE_GLUT_FRAMEWORK
-#  include <GLUT/glut.h>
-#else
-#  include <GL/glut.h>
-#endif
+#include "glut.h"
 #include "xVoxel.h"
 #include "tkmedit.h"
 #include "xGLutWindow.h"

@@ -1,13 +1,14 @@
 #
 # Makefile.am for scuba
 #
-AM_CPPFLAGS=$(GLUT_CFLAGS) \
+AM_CPPFLAGS=\
 	$(GL_FLAGS) \
 	$(X_CFLAGS) \
 	$(TCL_CFLAGS) \
 	$(tcl_includes) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/dicom \
+	-I$(top_srcdir)/glut \
 	-I/opt/intel/mkl70/include \
 	-Iqconsole -Iqconsole/include
 
@@ -16,7 +17,7 @@ AM_CPPFLAGS=$(GLUT_CFLAGS) \
 # these warnings appear with gcc 4.#
 AM_CXXFLAGS=-Wno-non-virtual-dtor
 
-AM_LDFLAGS=$(LDFLAGS_TCL) $(GLUT_LIBS)
+AM_LDFLAGS=$(LDFLAGS_TCL) $(top_builddir)/glut/libglut.a
 
 UTILITIES_SRCS=Volume3.cpp Volume3.h \
 	Point2.h \

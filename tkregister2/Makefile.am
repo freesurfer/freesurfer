@@ -7,16 +7,18 @@ SUBDIRS=cmdl
 
 if ENABLE_TCLTK_APPS
 
-AM_CPPFLAGS=$(GLUT_CFLAGS) $(TCL_CFLAGS) $(tcl_includes) \
+AM_CPPFLAGS=$(TCL_CFLAGS) $(tcl_includes) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/unix \
+	-I$(top_srcdir)/glut \
 	$(X_CFLAGS)
 AM_LDFLAGS= $(LDFLAGS_TCL)
 bin_PROGRAMS = tkregister2
 tkregister2_SOURCES=tkregister2.c
 tkregister2_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
-	$(X_LIBS) $(GLUT_LIBS) -lGL
+	$(X_LIBS) -lGL \
+	$(top_builddir)/glut/libglut.a
 
 else
 

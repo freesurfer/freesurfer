@@ -2,17 +2,17 @@
 # Makefile.am
 ##
 
-AM_CFLAGS=$(GLUT_CFLAGS) \
+AM_CFLAGS=\
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/include/dicom \
 	$(X_CFLAGS)
 
-if HAVE_GLUT_LIBS
-bin_PROGRAMS = test_window_env
+if HAVE_OPENGL_LIBS
+check_PROGRAMS = test_window_env
 test_window_env_SOURCES=test_window_env.c
 test_window_env_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-	$(LIBS_OPENGL) $(GLUT_LIBS) $(X_LIBS) -lGL  
+	$(LIBS_OPENGL) $(X_LIBS) -lGL
 test_window_env_LDFLAGS=
+TESTS=test_window_env
 else
 bin_PROGRAMS=
 endif

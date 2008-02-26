@@ -2,15 +2,16 @@
 # Makefile.am
 ##
 
-AM_CFLAGS=$(GLUT_CFLAGS) \
-	-I$(top_srcdir)/include
+AM_CFLAGS=\
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/glut
 AM_LDFLAGS=
 
-if HAVE_GLUT_LIBS
+if HAVE_OPENGL_LIBS
 bin_PROGRAMS = stim_polar
 stim_polar_SOURCES=stim_polar.c $(top_srcdir)/utils/machine.c
 stim_polar_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-	$(GLUT_LIBS)
+	$(X_LIBS) $(LIBS_OPENGL) $(top_builddir)/glut/libglut.a
 stim_polar_LDFLAGS=
 else
 bin_PROGRAMS=

@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/01/22 07:13:23 $
- *    $Revision: 1.298 $
+ *    $Author: nicks $
+ *    $Date: 2008/02/26 00:59:32 $
+ *    $Revision: 1.299 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -144,20 +144,12 @@ int stricmp(const char* const str1, const char* const  str2)
 #endif // Windows_NT
 #include <unistd.h>
 #include <GL/gl.h>
-/* begin rkt */
-#ifdef HAVE_APPLE_GLUT_FRAMEWORK
-#  include <GLUT/glut.h>
-#else
-#  include <GL/glut.h>
-#endif
-/* end rkt */
+#include "glut.h"
 #include "typedefs.h"
 #include "mgh_matrix.h"
 #include "label.h"
-/*#include "surfer.h"*/
 #include "fio.h"
 #include "MRIio_old.h"
-/*#include "volume_io.h"*/
 #include "rgb_image.h"
 #include "transform.h"
 #include "proto.h"
@@ -20630,7 +20622,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.298 2008/01/22 07:13:23 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.299 2008/02/26 00:59:32 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

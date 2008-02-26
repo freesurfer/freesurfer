@@ -11,9 +11,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/22 04:39:28 $
- *    $Revision: 1.43 $
+ *    $Author: nicks $
+ *    $Date: 2008/02/26 00:59:31 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,11 +34,7 @@
 #include <math.h>
 #include "PreferencesManager.h"
 extern "C" {
-#ifdef HAVE_APPLE_OPENGL_FRAMEWORK
-#  include "GLUT/glut.h"
-#else
-#  include "GL/glut.h"
-#endif
+#include "glut.h"
 #include "rgb_image.h"
 #include "tiffio.h"
 }

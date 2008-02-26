@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:15 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/02/26 00:59:32 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -29,11 +29,7 @@
 #ifndef xGLutWindow_h
 #define xGLutWindow_h
 
-#ifdef HAVE_APPLE_OPENGL_FRAMEWORK
-#  include <GLUT/glut.h>
-#else
-#  include <GL/glut.h>
-#endif
+#include <glut.h>
 #include "xTypes.h"
 
 typedef enum {

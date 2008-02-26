@@ -2,11 +2,12 @@
 # Makefile.am
 ##
 
-AM_CPPFLAGS=$(GLUT_CFLAGS) \
+AM_CPPFLAGS=\
 	$(TCL_CFLAGS) \
 	$(X_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/dicom \
+	-I$(top_srcdir)/glut \
 	-I$(top_srcdir)/unix
 
 AM_LDFLAGS=$(LDFLAGS_TCL)
@@ -14,10 +15,11 @@ AM_LDFLAGS=$(LDFLAGS_TCL)
 if ENABLE_TCLTK_APPS
 bin_PROGRAMS=tksurfer
 tksurfer_SOURCES=tksurfer.c
-tksurfer_LDADD= 	$(top_builddir)/fsgdf/libfsgdf.a \
+tksurfer_LDADD= $(top_builddir)/fsgdf/libfsgdf.a \
   $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
-	$(X_LIBS) $(GLUT_LIBS) -lGL
+	$(X_LIBS) -lGL \
+	$(top_builddir)/glut/libglut.a
 tksurfer_LDFLAGS=$(LDFLAGS_TCL)
 else
 bin_PROGRAMS=
