@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/26 22:02:40 $
-#    $Revision: 1.169 $
+#    $Date: 2008/02/26 22:04:53 $
+#    $Revision: 1.170 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.169 2008/02/26 22:02:40 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.170 2008/02/26 22:04:53 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -900,7 +900,7 @@ if($DoTalCheck) then
       set zscoreThreshold=(-4) # conservative value, but catches M.Harms subjs.
       if ($zscore <= $zscoreThreshold) then
         echo "ERROR: Talairach QA check failed!" |& tee -a $LF
-        echo "       z-score = ${zscore} < ${zscoreThreshold} = threshold" \
+        echo "       z-score = ${zscore} <= ${zscoreThreshold} = threshold" \
              |& tee -a $LF
         echo "Manual Talairach alignment may be necessary, or" |& tee -a $LF
         echo "include the -notal-check flag to skip this test." |& tee -a $LF
