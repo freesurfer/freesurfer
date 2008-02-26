@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.114 2008/02/25 18:11:46 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.115 2008/02/26 18:35:22 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -99,6 +99,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
+  set EXPATDIR=/usr/pubsw/packages/expat/2.0.1
   set TJGDIR=/usr/pubsw/packages/tiffjpegglut/1.1
   setenv FSLDIR /usr/pubsw/packages/fsl/4.0.2
   if ( "x`uname -m`" == "xx86_64" ) then
@@ -114,7 +115,6 @@ else
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
-  set TJGDIR=/usr/pubsw/packages/tiffjpegglut/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
   if ( "x`uname -m`" == "xx86_64" ) then
     setenv FSLDIR /usr/pubsw/packages/fsl.64bit/current
@@ -419,14 +419,19 @@ endif
 set cnfgr=($cnfgr --with-mni-dir=${MNIDIR})
 set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 if ($?VTKDIR) then
-    set cnfgr=($cnfgr --with-vtk-dir=${VTKDIR})
+  set cnfgr=($cnfgr --with-vtk-dir=${VTKDIR})
 endif
 if ($?KWWDIR) then
-    set cnfgr=($cnfgr --with-kwwidgets-dir=${KWWDIR})
+  set cnfgr=($cnfgr --with-kwwidgets-dir=${KWWDIR})
 endif
-set cnfgr=($cnfgr --with-tiff-dir=${TJGDIR})
-set cnfgr=($cnfgr --with-jpeg-dir=${TJGDIR})
-set cnfgr=($cnfgr --with-glut-dir=${TJGDIR})
+if ($?EXPATDIR) then
+  set cnfgr=($cnfgr --with-expat-dir=${EXPATDIR})
+endif
+if ($?TJGDIR) then
+  set cnfgr=($cnfgr --with-tiff-dir=${TJGDIR})
+  set cnfgr=($cnfgr --with-jpeg-dir=${TJGDIR})
+  set cnfgr=($cnfgr --with-glut-dir=${TJGDIR})
+endif
 set cnfgr=($cnfgr --with-tcl-dir=${TCLDIR})
 set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
 if ($?CPPUNITDIR) then
