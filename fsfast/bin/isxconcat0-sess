@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/20 03:42:36 $
-#    $Revision: 1.8 $
+#    $Date: 2008/02/26 01:00:24 $
+#    $Revision: 1.8.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.8 2007/07/20 03:42:36 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.8.2.1 2008/02/26 01:00:24 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -214,7 +214,7 @@ if($nframes > 1 && $DoSplit) then
     set frmid = `printf %03d $nthframe`;
     set frmoutvol = $outstem.$frmid.$ext
     set cmd = (mri_convert $outvol $frmoutvol \
-      --fsubsample $nthframe $nSessions -1)
+      --fsubsample $nthframe $nframes -1)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) then
