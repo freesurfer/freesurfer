@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/13 20:11:22 $
-#    $Revision: 1.7 $
+#    $Date: 2008/02/26 16:01:48 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,14 +24,14 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_aparc2aseg,v 1.7 2008/02/13 20:11:22 nicks Exp $'
+set VERSION='$Id: test_mri_aparc2aseg,v 1.8 2008/02/26 16:01:48 nicks Exp $'
 
 umask 002
 
 # backdoor bypass:
 if ( $?SKIP_MRI_APARC2ASEG_TEST ) then
   echo "skipping test_mri_aparc2aseg"
-  exit 0
+  exit 77
 endif
 
 setenv SUBJECTS_DIR $PWD
