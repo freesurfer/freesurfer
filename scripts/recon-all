@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/01/17 13:49:01 $
-#    $Revision: 1.133.2.18 $
+#    $Date: 2008/02/26 00:37:57 $
+#    $Revision: 1.133.2.19 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.18 2008/01/17 13:49:01 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.19 2008/02/26 00:37:57 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -192,7 +192,6 @@ set DoCAReg          = 0;
 set DoRemoveNeck     = 0;
 set DoSkullLTA       = 0;
 set DoCALabel        = 0;
-set DoCCSeg          = 0;
 set DoSegStats       = 0;
 set DoFill           = 0;
 #----- Surface -----------#
@@ -1403,6 +1402,18 @@ if($DoCALabel) then
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
 
+  #--- Corpus Callosum Segmentation ---#
+  set cmd = (cp aseg.auto.mgz aseg.auto_noCCseg.mgz)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  set xopts = `fsr-getxopts mri_cc $XOptsFile`;
+  set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz \
+    $subjid $xopts);
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+
   if($DoCleanASeg || ! $ASegDiff) then
     set cmd = (cp aseg.auto.mgz aseg.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -1415,45 +1426,6 @@ if($DoCALabel) then
   echo $cmd > $touchdir/ca_label.touch
 endif
 
-#-------------- Corpus Callosum Segmentation --------------#
-if($DoCCSeg) then
-  echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
-  echo "#@# CC Seg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir/mri > /dev/null
-
-  # Check whether there is a difference between aseg.auto_CCseg.mgz
-  # and aseg.mgz, which indicates an edit. Must do this
-  # prior to doing labeling.
-  if(-e aseg.auto_CCseg.mgz && -e aseg.mgz) then
-    set cmd = (mri_diff aseg.auto_CCseg.mgz aseg.mgz);
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    set ASegDiff = $status;
-    if($ASegDiff == 1) goto error_exit;
-    # ASegDiff will = 0 if no diff or !0 for diff
-  else
-    set ASegDiff = 0;
-  endif
-  echo $ASegDiff
-
-  set xopts = `fsr-getxopts mri_cc $XOptsFile`;
-  set cmd = (mri_cc -aseg aseg.auto.mgz -o aseg.auto_CCseg.mgz $subjid $xopts);
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-
-  if($DoCleanASeg || ! $ASegDiff) then
-    set cmd = (cp aseg.auto_CCseg.mgz aseg.mgz)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      sleep 1; # Sleep here to assure that they have diff time stamps
-      $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-  endif
-
-  echo $cmd > $touchdir/cc_seg.touch
-endif
 
 # ----------- Intensity Normalization2 ------------------------#
 if($DoNormalization2) then
@@ -2679,13 +2651,6 @@ while( $#argv != 0 )
       set DoCALabel = 0;
       breaksw
 
-    case "-ccseg":
-      set DoCCSeg = 1;
-      breaksw
-    case "-noccseg":
-      set DoCCSeg = 0;
-      breaksw
-
     case "-subcortseg":
       set DoGCAReg         = 1;
       set DoCARegInv       = 1;
@@ -2694,7 +2659,6 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoCCSeg          = 1;
       set DoSegStats       = 1;
       breaksw
 
@@ -2706,7 +2670,6 @@ while( $#argv != 0 )
       set DoCANormalize    = 0;
       set DoCAReg          = 0;
       set DoCALabel        = 0;
-      set DoCCSeg          = 0;
       set DoSegStats       = 0;
       set NoNormMGZ        = 1;
       breaksw
@@ -2720,7 +2683,6 @@ while( $#argv != 0 )
       set DoCANormalize    = 0;
       set DoCAReg          = 0;
       set DoCALabel        = 0;
-      set DoCCSeg          = 0;
       set DoSegStats       = 0;
       set NoNormMGZ        = 1;
       set DoAParc2ASeg     = 0;
@@ -3140,7 +3102,6 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoCCSeg          = 1;
       set DoSegStats       = 1;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
@@ -3185,7 +3146,6 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoCCSeg          = 1;
       set DoSegStats       = 1;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
@@ -3210,7 +3170,6 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoCCSeg          = 1;
       set DoSegStats       = 1;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
@@ -3239,7 +3198,6 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoCCSeg          = 1;
       set DoSegStats       = 1;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
@@ -3923,7 +3881,7 @@ check_params:
      ! $DoSurfReg  && ! $DoContraSurfReg  && ! $DoAvgCurv && ! $DoSegStats &&\
      ! $DoMorphRGB && ! $DoFinalSurfs && ! $DoContraSurfRegWithinSubject &&\
      ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
-     ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && ! $DoCCSeg && \
+     ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && \
      ! $DoMaskBFS && \
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
      ! $DoSurfVolume && ! $DoLocalGyriIndex ) then
