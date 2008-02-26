@@ -1,6 +1,6 @@
 #! /bin/tcsh -ef
 set echo=1
-rm -f testout*
+if (-e testout.ppm) rm -f testout*
 ./djpeg -dct int -ppm -outfile testout.ppm  ./testorig.jpg
 ./djpeg -dct int -bmp -colors 256 -outfile testout.bmp  ./testorig.jpg
 ./cjpeg -dct int -outfile testout.jpg  ./testimg.ppm
