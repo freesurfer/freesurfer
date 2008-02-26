@@ -9,9 +9,9 @@
 /*
  * Original Author: Kevin Teich 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/08/02 21:14:07 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2008/02/26 01:02:51 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,14 +30,13 @@
 #ifndef GIFTI_LOCAL_H
 #define GIFTI_LOCAL_H
 
-#include "gifti.h"
-
+#include "gifti_io.h"
 
 /* Create a new DataArray in an image and return a pointer to it. */
-DataArray* gifti_alloc_and_add_darray (gifti_image* image);
+giiDataArray* gifti_alloc_and_add_darray (gifti_image* image);
 
 /* Get or set a single value out of a data array. */
-double gifti_get_DA_value_2D (DataArray* da, int row, int col);
-void   gifti_set_DA_value_2D (DataArray* da, int row, int col, double value);
+double gifti_get_DA_value_2D (giiDataArray* da, int row, int col);
+void gifti_set_DA_value_2D (giiDataArray* da, int row, int col, double value);
 
 #endif

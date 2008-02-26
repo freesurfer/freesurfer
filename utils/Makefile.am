@@ -20,21 +20,25 @@ else
 NIFTI_THINGS=
 endif
 
-if HAVE_GLUT_LIBS
-GLUT_THINGS=$(GLUT_CFLAGS) -DHAVE_GLUT_LIBS
+if HAVE_OPENGL_LIBS
+GLUT_THINGS=-I$(top_srcdir)/glut -DHAVE_GLUT_LIBS
 else
 GLUT_THINGS=
 endif
 
+NRRDIO_CPPFLAGS=-I$(top_srcdir)/include/NrrdIO \
+	-DTEEM_DIO=$(TEEM_DIO) -DTEEM_32BIT=$(TEEM_32BIT) \
+	-DTEEM_QNANHIBIT=$(TEEM_QNANHIBIT) -DTEEM_ENDIAN=$(TEEM_ENDIAN)
+
 AM_CPPFLAGS=$(X_CFLAGS) $(VXL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
-	-I$(top_srcdir)/include/NrrdIO \
-	-DTEEM_DIO=$(TEEM_DIO) -DTEEM_32BIT=$(TEEM_32BIT) \
-	-DTEEM_QNANHIBIT=$(TEEM_QNANHIBIT) -DTEEM_ENDIAN=$(TEEM_ENDIAN) \
+	$(NRRDIO_CPPFLAGS) \
 	$(ITK_THINGS) $(NIFTI_THINGS) $(GLUT_THINGS) -DHAVE_ZLIB
 
 AM_LDFLAGS=
+
+LIBS=
 
 noinst_LIBRARIES=libutils.a
 
@@ -82,7 +86,7 @@ libutils_main_SOURCES=\
 	gcsa.c \
 	getdelim.c \
 	getline.c \
-	gifti.c \
+	gifti_io.c \
 	gifti_local.c \
 	gifti_xml.c \
 	gw_ic2562.c \
@@ -265,9 +269,16 @@ libutils_nrrdio_SOURCES=\
 	$(srcdir)/$(NrrdIO_dir)/formatNRRD.c
 
 libutils_a_SOURCES=\
-$(libutils_main_SOURCES) \
-$(libutils_cephes_SOURCES) \
-$(libutils_nrrdio_SOURCES)
+	$(libutils_main_SOURCES) \
+	$(libutils_cephes_SOURCES) \
+	$(libutils_nrrdio_SOURCES)
+
+bin_PROGRAMS=gifti_tool gifti_test
+gifti_tool_SOURCES=gifti_tool.c gifti_tool.h \
+	gifti_io.c gifti_xml.c nifti1_io.c znzlib.c
+gifti_tool_LDADD=$(top_builddir)/expat/libexpat.a -lz
+gifti_test_SOURCES=gifti_test.c gifti_test.h gifti_io.c gifti_xml.c
+gifti_test_LDADD=$(top_builddir)/expat/libexpat.a -lz
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

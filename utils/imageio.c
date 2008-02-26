@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/27 02:23:44 $
- *    $Revision: 1.42 $
+ *    $Date: 2008/02/26 01:02:52 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1439,7 +1439,7 @@ PGMWriteImage(IMAGE *I, char *fname, int frame)
   if ((outf = fopen(fname, "wb")) == NULL)
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED,
-                 "JPEGWrite: only PFBYTE currently supported")) ;
+                 "PGMWrite: could not open file")) ;
 
   pgm_writepgminit(outf, I->ocols, I->orows, 255, 0);
   for (i=I->orows-1;i>=0;i--)

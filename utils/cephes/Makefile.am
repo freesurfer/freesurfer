@@ -2,29 +2,4 @@
 # Makefile.am for cephes directory
 #
 
-AM_CPPFLAGS=-I$(top_srcdir)/include
-
-noinst_LIBRARIES= libcephes.a
-libcephes_a_SOURCES = \
-bdtr.c \
-chdtr.c \
-const.c \
-fdtr.c \
-gamma.c \
-igam.c \
-igami.c \
-incbet.c \
-incbi.c \
-mtherr.c \
-ndtr.c \
-ndtri.c \
-polevl.c \
-stdtr.c
-
-EXTRA_DIST=$(libcephes_a_SOURCES)
-
-# Our release target. Include files to be excluded here. They will be
-# found and removed after 'make install' is run during the 'make
-# release' target.
-EXCLUDE_FILES=
-include $(top_srcdir)/Makefile.extra
+# (source files included in libutils build)
