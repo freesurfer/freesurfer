@@ -5,12 +5,17 @@
 foodir=$(prefix)
 foo_DATA=README COPYING NEWS AUTHORS
 
-DMRISUBDIRS=dmri_poistats \
+DMRISUBDIRS=\
+	dmri_poistats \
   dmri_tensoreig  
 
-GLSUBDIRS=mris2rgb \
+GLSUBDIRS=\
+	glut \
+	mris2rgb \
 	nmovie \
 	mris_show \
+	stim \
+	stim_polar \
 	tkmedit \
 	tkregister2 \
 	tksurfer \
@@ -18,7 +23,8 @@ GLSUBDIRS=mris2rgb \
 	orient_mri \
 	qdec
 
-MRISUBDIRS=check_siemens_dir \
+MRISUBDIRS=\
+	check_siemens_dir \
 	repair_siemens_file \
 	mkxsubjreg \
 	rbftest \
@@ -150,13 +156,12 @@ MRISUBDIRS=check_siemens_dir \
 	mri_log_likelihood \
 	mri_apply_inu_correction
 
-MRISSUBDIRS=label_area \
+MRISSUBDIRS=\
+	label_area \
 	label_border \
 	label2patch \
 	label2flat \
 	spherical_stats \
-	stim \
-	stim_polar \
 	tridec \
 	mris_calc \
 	mris_shrinkwrap \
@@ -236,17 +241,20 @@ MRISSUBDIRS=label_area \
 	mris_ms_surface_CNR \
 	mris_surface_stats
 
-FSGDF=	fsgdf \
+FSGDF=\
+	fsgdf \
 	mri_gdfglm \
 	mri_glmfit \
 	mris_glm
 
 FSLUTILS=fslutils
 
-STATSDIRS=optseq2 \
+STATSDIRS=\
+	optseq2 \
 	stat_normalize
 
-MISCDIRS=histo_compute_joint_density \
+MISCDIRS=\
+	histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \
 	test_window_env \
@@ -261,10 +269,14 @@ MISCDIRS=histo_compute_joint_density \
 	hiam_make_template\
 	hiam_register
 
-SUBDIRS=include \
+SUBDIRS=\
+	include \
 	unix \
 	dicom \
 	hipsstubs \
+	expat \
+	jpeg \
+	tiff \
 	rgb \
 	log \
 	utils \

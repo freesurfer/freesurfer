@@ -987,25 +987,23 @@ AC_SUBST(PETSC_DIR)
 AM_CONDITIONAL(HAVE_PETSC_LIBS, ! test "x$ac_petsc_dir" = "xNO")
 
 
-##########################################################
-# Catch-all flag to enable GLut, Tcl/Tk, ITK and KWW apps
-##########################################################
+############################################################
+# Catch-all flag to enable OpenGL, Tcl/Tk, ITK and KWW apps
+############################################################
 tcltk_apps="NO"
 itk_apps="NO"
 kww_apps="NO"
 AC_ARG_ENABLE(all-apps,
- [  --enable-all-apps       enable building Tcl/Tk, ITK, KWW, and GLut-based apps],
- [ glut_apps="yes"
-   tcltk_apps="yes"
+ [  --enable-all-apps       enable building Tcl/Tk, ITK, KWW, and OpenGL-based apps],
+ [ tcltk_apps="yes"
    itk_apps="yes"
    kww_apps="yes"
    need_opengl="yes"
  ])
 
-AC_ARG_ENABLE(glut-apps,
- [  --enable-glut-apps      enable building GLut-based apps],
- [ glut_apps="yes"
-   need_opengl="yes"
+AC_ARG_ENABLE(gl-apps,
+ [  --enable-gl-apps      enable building OpenGL-based apps],
+ [ need_opengl="yes"
  ])
 
 
@@ -1271,6 +1269,9 @@ AC_SUBST(XAWPLUS_LIBS)
 ################################################################
 # tiff
 ################################################################
+# default is to use the libtiff included in freesurfer src tree,
+# local libtiff static lib declared later in LIBS_MGH.
+# allow someone to override with their own using --with-tiff-dir:
 ac_tiff_includes="NO"
 ac_tiff_libraries="NO"
 ac_tiff_bindir="NO"
@@ -1302,6 +1303,9 @@ AC_SUBST(TIFF_LIBS)
 ################################################################
 # jpeg
 ################################################################
+# default is to use the libjpeg included in freesurfer src tree,
+# allow someone to override with their own using --with-jpeg-dir.
+# local libjpeg static lib declared later in LIBS_MGH:
 ac_jpeg_includes="NO"
 ac_jpeg_libraries="NO"
 ac_jpeg_bindir="NO"
@@ -1610,12 +1614,15 @@ AC_SUBST(LIBS_ITK)
 
 
 ################################################################
-# eXpat - allow for explicitly specifying path
+# eXpat
 ################################################################
+# default is to use the libexpat included in freesurfer src tree,
+# local libexpat static lib declared later in LIBS_MGH.
+# allow someone to override with their own using --with-expat-dir:
 ac_expat_includes="NO"
 ac_expat_libraries="NO"
 ac_expat_bindir="NO"
-EXPAT_CFLAGS=""
+EXPAT_CFLAGS="-I${srcdir}/expat"
 EXPAT_LIBS=""
 AC_MSG_CHECKING(Expat directory)
 
@@ -1639,116 +1646,61 @@ fi
 AC_SUBST(EXPAT_CFLAGS)
 AC_SUBST(EXPAT_LIBS)
 
+#
+# these are used by the local freesurfer expat source, declared in config.h
+# 
+AC_DEFINE([XML_NS], 1,
+[Define to make XML Namespaces functionality available.])
+AC_DEFINE([XML_DTD], 1,
+[Define to make parameter entity parsing functionality available.])
+AC_DEFINE([XML_CONTEXT_BYTES], 1024,
+[Define to specify how much context to retain around the current parse point.])
+
 
 #####################################################
 # OpenGL
 #####################################################
 AC_MSG_NOTICE(Getting OpenGL info...)
-
 mac_gl_libs=
-if test "X$with_apple_opengl_framework" = "Xyes"; then
-  AC_MSG_RESULT([Using the Apple OpenGL and GLUT Frameworks])
-  AC_DEFINE([HAVE_APPLE_OPENGL_FRAMEWORK], [1],
-           [Use the Apple OpenGL framework.])
-  AC_DEFINE([HAVE_APPLE_GLUT_FRAMEWORK], [1],
-            [Use the Apple GLUT framework.])
-  CPPFLAGS="$CPPFLAGS -DHAVE_APPLE_OPENGL_FRAMEWORK"
-  CPPFLAGS="$CPPFLAGS -DHAVE_APPLE_GLUT_FRAMEWORK"
-  GL_CFLAGS="-I/System/Libraries/Frameworks"
-  GL_LIBS="-framework OpenGL"
-  GLU_CFLAGS="-I/System/Libraries/Frameworks"
-  GLU_LIBS="-framework OpenGL"
-  glut_cflags="-I/System/Libraries/Frameworks"
-  glut_libs="-framework GLUT"
-  with_apple_opengl_framework="yes"
-  AC_SUBST([GL_CFLAGS])
-  AC_SUBST([GL_LIBS])
-  AC_SUBST([GLU_CFLAGS])
-  AC_SUBST([GLU_LIBS])
-  AC_SUBST([glut_cflags])
-  AC_SUBST([glut_libs])
-  AC_SUBST(with_apple_opengl_framework)
+#####
+# GL
+#####
+ac_gl_includes="NO"
+ac_gl_libraries="NO"
+ac_gl_bindir="NO"
+# these are lower-case because later AX_CHECK_GL trounces
+# GL_CLFLAGS and GL_LIBS:
+gl_cflags=""
+gl_libs=""
+AC_MSG_CHECKING(GL directory)
+
+AC_ARG_WITH(gl-dir,
+  [  --with-gl-dir=DIR       where the root of OpenGL is installed.],
+  [  ac_gl_includes="$withval"/include
+     ac_gl_libraries="$withval"/lib
+     ac_gl_bindir="$withval"/bin
+  ])
+
+if test ! "$ac_gl_includes" = "NO"; then
+  AC_MSG_RESULT(gl directory is $withval)
+  gl_cflags=-I$ac_gl_includes
 else
-  #####
-  # GL
-  #####
-  ac_gl_includes="NO"
-  ac_gl_libraries="NO"
-  ac_gl_bindir="NO"
-  # these are lower-case because later AX_CHECK_GL trounces
-  # GL_CLFLAGS and GL_LIBS:
-  gl_cflags=""
-  gl_libs=""
-  AC_MSG_CHECKING(GL directory)
+  AC_MSG_RESULT(OpenGL directory is not supplied)
+fi
+if test ! "$ac_gl_libraries" = "NO"; then
+  gl_libs=-L$ac_gl_libraries
+fi
 
-  AC_ARG_WITH(gl-dir,
-    [  --with-gl-dir=DIR       where the root of OpenGL is installed.],
-    [  ac_gl_includes="$withval"/include
-       ac_gl_libraries="$withval"/lib
-       ac_gl_bindir="$withval"/bin
-    ])
-
-  if test ! "$ac_gl_includes" = "NO"; then
-    AC_MSG_RESULT(gl directory is $withval)
-    gl_cflags=-I$ac_gl_includes
-  else
-    AC_MSG_RESULT(OpenGL directory is not supplied)
-  fi
-  if test ! "$ac_gl_libraries" = "NO"; then
-    gl_libs=-L$ac_gl_libraries
-  fi
-
-  # stupid Mac OS Leopard fix:
-  if test "$OS" = "Darwin"; then
-    gl_libs="$gl_libs $X_LIBS -Wl,-dylib_file,\
+# stupid Mac OS Leopard fix:
+if test "$OS" = "Darwin"; then
+  gl_libs="$gl_libs $X_LIBS -Wl,-dylib_file,\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib"
-    mac_gl_libs=$gl_libs
-  fi
-
-  AC_SUBST(gl_cflags)
-  AC_SUBST(gl_libs)
-
-  #######
-  # GLUT
-  #######
-  ac_glut_includes="NO"
-  ac_glut_libraries="NO"
-  ac_glut_bindir="NO"
-  # these are lower-case because later AX_CHECK_GLUT trounces
-  # GLUT_CLFLAGS and GLUT_LIBS:
-  glut_cflags=""
-  glut_libs=""
-  glut_fixup="no"
-  glut_static="no"
-  AC_MSG_CHECKING(GLUT directory)
-
-  AC_ARG_WITH(glut-dir,
-    [  --with-glut-dir=DIR     where the root of GLUT is installed.],
-    [  ac_glut_includes="$withval"/include
-       ac_glut_libraries="$withval"/lib
-       ac_glut_bindir="$withval"/bin
-    ])
-
-  if test ! "$ac_glut_includes" = "NO"; then
-    AC_MSG_RESULT(GLUT directory is $withval)
-    glut_cflags=-I$ac_glut_includes
-  else
-    AC_MSG_RESULT(GLUT directory is not supplied)
-  fi
-  if test ! "$ac_glut_libraries" = "NO"; then
-    glut_libs="-L$ac_glut_libraries -lglut"
-    # use static libglut if available:
-    if test -e "$ac_glut_libraries"/libglut.a ; then
-      glut_libs="$ac_glut_libraries"/libglut.a
-      glut_fixup="yes"
-      glut_static="yes"
-    fi
-  fi
-
-  AC_SUBST(glut_cflags)
-  AC_SUBST(glut_libs)
+  mac_gl_libs=$gl_libs
 fi
+
+AC_SUBST(gl_cflags)
+AC_SUBST(gl_libs)
 
 
 #####################################################
@@ -1791,70 +1743,12 @@ else
   AC_MSG_RESULT([GLu found:
 Setting GLU_CFLAGS='$GLU_CFLAGS'
 and GLU_LIBS='$GLU_LIBS'])
-  #redundant: LIBS_OPENGL="$LIBS_OPENGL $GLU_LIBS"
-fi
-CFLAGS=$ac_save_cflags
-LDFLAGS=$ac_save_ldflags
-#####################################################
-# AX_CHECK_GLUT produces GLUT_CFLAGS GLUT_LIBS
-ac_save_cflags=$CFLAGS
-ac_save_ldflags=$LDFLAGS
-CFLAGS="$glut_cflags $GL_CFLAGS $GLU_CFLAGS $CFLAGS"
-LDFLAGS="$glut_libs $GL_LIBS $GLU_LIBS $LDFLAGS"
-AX_CHECK_GLUT
-if test "X$glut_static" = "Xyes"; then
-  no_glut=no
-fi
-if test "X$no_glut" = "Xyes"; then
-  # AX_CHECK_GLUT wants GL/glut.h, but Debian doesnt have that,
-  # so try a simpler test
-  AC_CHECK_LIB([glut],[glutMainLoop],
-  [ no_glut=no 
-    GLUT_LIBS=-lglut
-  ],
-  [no_glut=yes])
-fi
-if test "X$no_glut" = "Xyes"; then
-  if test "X$need_opengl" = "Xyes"; then
-    AC_MSG_ERROR([FATAL: GLut not found. Use --with-glut-dir=... to specify])
-  else
-    AC_MSG_RESULT([GLut not found])
-  fi
-else
-  if test "$OS" = "Darwin"; then
-    glut_fixup=yes
-  fi
-  if test "$OS" = "SunOS"; then
-    glut_fixup=yes
-  fi
-  if test "$OS" = "Windows_NT"; then
-    glut_fixup=yes
-  fi
-  if test "$glut_fixup" = "yes"; then
-    #AX_CHECK_GLUT really fudges these,
-    #so use proper settings (from above)
-    GLUT_CFLAGS="$glut_cflags"
-    GLUT_LIBS="$glut_libs"
-    #Also, we use these as catch-all, for GL and GLU:
-    GLUT_CFLAGS="$GLU_CFLAGS $GLUT_CFLAGS"
-    GLUT_LIBS="$GLUT_LIBS $GLU_LIBS $X_LIBS"
-    AC_SUBST([GLUT_CFLAGS])
-    AC_SUBST([GLUT_LIBS])
-  fi
-  AC_MSG_RESULT([GLut found:
-Setting GLUT_CFLAGS='$GLUT_CFLAGS'
-and GLUT_LIBS='$GLUT_LIBS'])
-  LIBS_OPENGL="$LIBS_OPENGL $GLUT_LIBS"
+  LIBS_OPENGL="$GLU_LIBS"
 fi
 CFLAGS=$ac_save_cflags
 LDFLAGS=$ac_save_ldflags
 
-GLUT_LIBS="$mac_gl_libs $GLUT_LIBS"
-AC_SUBST(GLUT_LIBS)
 AC_SUBST(LIBS_OPENGL)
-
-AM_CONDITIONAL(HAVE_GLUT_LIBS, ! test "X$no_glut" = "Xyes")
-
 
 ###################################################################
 # Install NMR Martinos Center files (not included in distribution)
@@ -1889,6 +1783,20 @@ LIBS_MGH="\
   dicom/libdicom.a \
   hipsstubs/libhipsstubs.a \
   log/liblog.a"
+
+# use local libjpeg if --with-jpeg-dir not used:
+if test "$ac_jpeg_libraries" = "NO"; then
+  LIBS_MGH="${LIBS_MGH} jpeg/libjpeg.a"
+fi
+# use local libtiff if --with-tiff-dir not used:
+if test "$ac_tiff_libraries" = "NO"; then
+  LIBS_MGH="${LIBS_MGH} tiff/libtiff.a"
+fi
+# use local libexpat if --with-expat-dir not used:
+if test "$ac_expat_libraries" = "NO"; then
+  LIBS_MGH="${LIBS_MGH} expat/libexpat.a"
+fi
+
 AC_SUBST(LIBS_MGH)
 
 
@@ -1908,12 +1816,12 @@ LDFLAGS="$LDFLAGS $OS_LDFLAGS"
 ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
-CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS $JPEG_CFLAGS $PETSC_CFLAGS $ITK_CFLAGS \
+CPPFLAGS="$CPPFLAGS $PETSC_CFLAGS $ITK_CFLAGS \
 $MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS $NIFTI_CFLAGS \
-$GL_CFLAGS $GLU_CFLAGS $GLUT_CFLAGS $VTK_CFLAGS $KWWIDGETS_CFLAGS \
+$GL_CFLAGS $GLU_CFLAGS $VTK_CFLAGS $KWWIDGETS_CFLAGS \
 $EXPAT_CFLAGS"
-LDFLAGS="$LDFLAGS $TIFF_LIBS $JPEG_LIBS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
-$gl_libs $GL_LIBS $GLU_LIBS $GLUT_LIBS $VTK_LIBS $ITK_LIBS $KWWIDGETS_LIBS \
+LDFLAGS="$LDFLAGS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
+$gl_libs $GL_LIBS $GLU_LIBS $VTK_LIBS $ITK_LIBS $KWWIDGETS_LIBS \
 $PETSC_LIBS $NIFTI_LIBS $XAWPLUS_LIBS $EXPAT_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 # AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
@@ -1927,11 +1835,22 @@ if test "$OS" = "Darwin"; then
 fi
 AC_SUBST(LIB_CRYPT)
 
-AC_CHECK_LIB([tiff], [TIFFGetVersion],[],
-  [AC_MSG_ERROR([FATAL: tiff lib not found. \
+# test for libtiff only if --with-tiff-dir was used:
+if test ! "$ac_tiff_libraries" = "NO"; then
+  CPPFLAGS="$CPPFLAGS $TIFF_CFLAGS"
+  LDFLAGS="$LDFLAGS $TIFF_LIBS"
+  AC_CHECK_LIB([tiff], [TIFFGetVersion],[],
+    [AC_MSG_ERROR([FATAL: tiff lib not found. \
 Please install tiff header files and libs.])] )
-AC_CHECK_LIB([jpeg], [jpeg_start_compress],[],
-  [AC_MSG_ERROR([FATAL: jpeg lib not found. Please install jpeg lib.])] )
+fi
+
+# test for libjpeg only if --with-jpeg-dir was used:
+if test ! "$ac_jpeg_libraries" = "NO"; then
+  CPPFLAGS="$CPPFLAGS $JPEG_CFLAGS"
+  LDFLAGS="$LDFLAGS $JPEG_LIBS"
+  AC_CHECK_LIB([jpeg], [jpeg_start_compress],[],
+    [AC_MSG_ERROR([FATAL: jpeg lib not found. Please install jpeg lib.])] )
+fi
 
 # three mni libs
 AC_CHECK_LIB([netcdf], [nccreate],[],
@@ -2021,7 +1940,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
 
   #################### Tk needs X11 (or Aqua)
   LIBS="$X_LIBS $LIBS"
-  CPPFLAGS="$GLUT_CFLAGS $GL_CFLAGS $CPPFLAGS"
+  CPPFLAGS="$GL_CFLAGS $CPPFLAGS"
   LDFLAGS="$X_LIBS $LDFLAGS"
   # check tk8.5
   AC_CHECK_LIB([tk8.5],[Tk_Init],
@@ -2087,18 +2006,18 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
   AC_SUBST(LIB_TIX)
 
   ######## BLT (we cannot build BLT in Aqua) must use X11
-  AC_CHECK_LIB([BltExt30 -lBltCore30],[Blt_Init],
+  AC_CHECK_LIB([BltExt30 -lBltCore30 -ljpeg],[Blt_Init],
     [LIB_BLT="-lBltExt30 -lBltCore30"],
     [
-    AC_CHECK_LIB([BLT],[Blt_Init],
+    AC_CHECK_LIB([BLT -ljpeg],[Blt_Init],
       [LIB_BLT=-lBLT],
     # check BLT.2 (MacOSX)
       [
-        AC_CHECK_LIB([BLT.2],[Blt_Init],
+        AC_CHECK_LIB([BLT.2 -ljpeg],[Blt_Init],
         [LIB_BLT=-lBLT.2],
         [
     # check BLT24 (Fedora)
-          AC_CHECK_LIB([BLT24],[Blt_Init],
+          AC_CHECK_LIB([BLT24 -ljpeg],[Blt_Init],
           [LIB_BLT=-lBLT24],
               [AC_MSG_ERROR([FATAL: libBLT not found. \
 Check config.log. Set LDFLAGS or --with-BLT-dir.])
@@ -2127,17 +2046,20 @@ VTK_Z_LIB="-lz"
 local_cppflags_save=$CPPFLAGS
 local_ldflags_save=$LDFLAGS
 local_libs_save=$LIBS
-CPPFLAGS="$EXPAT_CFLAGS $TIFF_CFLAGS $JPEG_CFLAGS"
-LDFLAGS="$EXPAT_LIBS $TIFF_LIBS $JPEG_LIBS -L/usr/lib64"
 LIBS=""
-# AC_MSG_RESULT(CFLAGS: $CFLAGS)
-# AC_MSG_RESULT(LDFLAGS: $LDFLAGS)
-# AC_MSG_RESULT(LIBS: $LIBS)
+CPPFLAGS="$EXPAT_CFLAGS"
+LDFLAGS="$EXPAT_LIBS -L/usr/lib64"
 AC_CHECK_LIB([expat], [main], [], [VTK_EXPAT_LIB="-lvtkexpat"])
+CPPFLAGS="$TIFF_CFLAGS"
+LDFLAGS="$TIFF_LIBS -L/usr/lib64"
+AC_CHECK_LIB([tiff], [TIFFGetVersion], [], [VTK_TIFF_LIB="-lvtktiff"])
+CPPFLAGS="$JPEG_CFLAGS"
+LDFLAGS="$JPEG_LIBS -L/usr/lib64"
+AC_CHECK_LIB([jpeg], [jpeg_start_compress], [], [VTK_JPEG_LIB="-lvtkjpeg"])
+CPPFLAGS=""
+LDFLAGS="-L/usr/lib64"
 AC_CHECK_LIB([freetype], [FTC_Manager_LookupSize], 
                          [], [VTK_FREETYPE_LIB="-lvtkfreetype"])
-AC_CHECK_LIB([tiff], [TIFFGetVersion], [], [VTK_TIFF_LIB="-lvtktiff"])
-AC_CHECK_LIB([jpeg], [jpeg_start_compress], [], [VTK_JPEG_LIB="-lvtkjpeg"])
 AC_CHECK_LIB([png], [main], [], [VTK_PNG_LIB="-lvtkpng"])
 AC_CHECK_LIB([z], [gzopen], [], [VTK_Z_LIB="-lvtkzlib"])
 CPPFLAGS=$local_cppflags_save
@@ -2247,7 +2169,6 @@ AM_CONDITIONAL(HAVE_INTEL_COMPILER, test "x$CC" = "xicc" )
 # BLT_CFLAGS, BLT_LIBS, LIB_BLT
 # GL_CFLAGS, GL_LIBS
 # GLU_CFLAGS, GLU_LIBS
-# GLUT_CFLAGS, GLUT_LIBS
 # VXL_CFLAGS, VXL_LIBS
 # VTK_CFLAGS, VTK_LIBS
 # KWWIDGETS_CFLAGS, KWWIDGETS_LIBS, ENABLE_KWWIDGETS_APPS
@@ -2277,12 +2198,24 @@ $ITK_LIBS $EXPAT_LIBS"
 # The order is important here. When adding or removing a lib, be sure
 # to test the link line to make sure you don't need to adjust the
 # order.
-LIBS="$VTK_EXPAT_LIB -ljpeg -ltiff -lz -lm $LIB_CRYPT -ldl -lpthread $LIBS"
+LIBS="-lz -lm $LIB_CRYPT -ldl -lpthread $LIBS"
 LIBS="$LIBS $LIBS_MNI"
 LIBS="$LIBS $LIBS_VXL"
 LIBS="$LIBS $LIBS_NIFTI"
 LIBS="$LIBS_ITK $LIBS"
 LIBS="$LIBS_ICC $LIBS "
+# include libjpeg only if --with-jpeg-dir used:
+if test ! "$ac_jpeg_libraries" = "NO"; then
+  LIBS="$LIBS -ljpeg "
+fi
+# include libtiff only if --with-tiff-dir used:
+if test ! "$ac_tiff_libraries" = "NO"; then
+  LIBS="$LIBS -ltiff "
+fi
+# include libexpat only if --with-expat-dir used:
+if test ! "$ac_expat_libraries" = "NO"; then
+  LIBS="$LIBS -lexpat "
+fi
 
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
@@ -2312,6 +2245,7 @@ if test "x$GL_LIBS" = "x"; then
   HAVE_OPENGL=""
 fi
 AC_SUBST(HAVE_OPENGL)
+AM_CONDITIONAL(HAVE_OPENGL_LIBS, ! test "X$GL_LIBS" = "X")
 
 
 #########################################################################
@@ -2350,12 +2284,14 @@ AC_OUTPUT([Makefile
            dmri_tensoreig/Makefile
            dngtester/Makefile
            dummy/Makefile
+           expat/Makefile
            fsfast/Makefile
            fsfast/bin/Makefile
            fsfast/docs/Makefile
            fsfast/toolbox/Makefile
            fsgdf/Makefile
            fslutils/Makefile
+           glut/Makefile
            hiam_make_surfaces/Makefile
            hiam_register/Makefile
            hiam_make_template/Makefile
@@ -2373,6 +2309,7 @@ AC_OUTPUT([Makefile
            include/fs_vnl/Makefile
            itkio/Makefile
            itkutils/Makefile
+           jpeg/Makefile
            label_area/Makefile
            label_border/Makefile
            label2patch/Makefile
@@ -2613,14 +2550,15 @@ AC_OUTPUT([Makefile
            test_tiff/Makefile
            test_window_env/Makefile
            tetgen/Makefile
+           tiff/Makefile
            tkmedit/Makefile
            tkregister2/Makefile
            tkregister2/cmdl/Makefile
            tksurfer/Makefile
            tridec/Makefile
            unix/Makefile
-           utils/cephes/Makefile
            utils/Makefile
+           utils/cephes/Makefile
            utils/NrrdIO/Makefile
            utils/test/Makefile
            utils/test/mrishash/Makefile
@@ -2632,6 +2570,7 @@ AC_OUTPUT([Makefile
            vtkutils/Makefile])
 
 ########################################################################
+
 builddir=`pwd`
 AC_MSG_RESULT(
 [
