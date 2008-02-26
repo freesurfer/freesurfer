@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/26 00:59:31 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/02/26 15:53:48 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,15 +46,22 @@ void PrintAttributeList ( FILE* iOutput,
 int main ( int argc, char** argv ) {
 
   int nargs;
+  char *env;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: test_window_env.c,v 1.7 2008/02/26 00:59:31 nicks Exp $", 
+     "$Id: test_window_env.c,v 1.8 2008/02/26 15:53:48 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
+
+  env = getenv("DISPLAY");
+  if ( NULL == env ) {
+    printf("DISPLAY env var not set.  Skipping test.\n");
+    exit (77);
+  }
 
 #if 0
   GLenum bSuccess;
