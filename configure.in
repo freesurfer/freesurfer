@@ -2555,7 +2555,6 @@ AC_OUTPUT([Makefile
            talairach_afd/Makefile
            talairach_avi/Makefile
            test_makevol/Makefile
-           test_tiff/Makefile
            test_window_env/Makefile
            tetgen/Makefile
            tiff/Makefile
