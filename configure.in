@@ -2203,7 +2203,7 @@ AC_SUBST(LIBS_TCL_OPENGL)
 ###########################################################
 # some common flags and libs
 ###########################################################
-CPPFLAGS="$CPPFLAGS $MNI_CFLAGS $JPEG_CFLAGS $TIFF_CFLAGS $EXPAT_CFLAGS"
+CPPFLAGS="$CPPFLAGS $MNI_CFLAGS"
 LDFLAGS="$LDFLAGS $JPEG_LIBS $TIFF_LIBS $MNI_LIBS $VXL_LIBS $NIFTI_LIBS \
 $ITK_LIBS $EXPAT_LIBS"
 # The order is important here. When adding or removing a lib, be sure

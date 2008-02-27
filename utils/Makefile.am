@@ -33,7 +33,7 @@ NRRDIO_CPPFLAGS=-I$(top_srcdir)/include/NrrdIO \
 AM_CPPFLAGS=$(X_CFLAGS) $(VXL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
-	$(NRRDIO_CPPFLAGS) \
+	$(NRRDIO_CPPFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(EXPAT_CFLAGS) \
 	$(ITK_THINGS) $(NIFTI_THINGS) $(GLUT_THINGS) -DHAVE_ZLIB
 
 AM_LDFLAGS=
