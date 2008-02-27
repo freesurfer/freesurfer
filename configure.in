@@ -1275,7 +1275,7 @@ AC_SUBST(XAWPLUS_LIBS)
 ac_tiff_includes="NO"
 ac_tiff_libraries="NO"
 ac_tiff_bindir="NO"
-TIFF_CFLAGS=""
+TIFF_CFLAGS="-I${srcdir}/tiff"
 TIFF_LIBS=""
 LIB_TIFF=""
 AC_MSG_CHECKING(Tiff directory)
@@ -1312,7 +1312,7 @@ AC_SUBST(LIB_TIFF)
 ac_jpeg_includes="NO"
 ac_jpeg_libraries="NO"
 ac_jpeg_bindir="NO"
-JPEG_CFLAGS=""
+JPEG_CFLAGS="-I${srcdir}/jpeg"
 JPEG_LIBS=""
 LIB_JPEG=""
 AC_MSG_CHECKING(Jpeg directory)
