@@ -71,7 +71,7 @@ void _check_set_test_info(char const *function,
  * Prototypes for the actual implementation.
  */
 
-void _fail_unless(int condition, const char *file, int line, char *msg);
+void _fail_unless(int condition, const char *file, int line, const char *msg);
 Suite *suite_create(char *name);
 TCase *tcase_create(char *name);
 void suite_add_tcase(Suite *suite, TCase *tc);

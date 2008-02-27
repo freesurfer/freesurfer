@@ -156,7 +156,7 @@ srunner_run_all(SRunner *runner, int verbosity)
 }
 
 void
-_fail_unless(int condition, const char *file, int line, char *msg)
+_fail_unless(int condition, const char *file, int line, const char *msg)
 {
     /* Always print the error message so it isn't lost.  In this case,
        we have a failure, so there's no reason to be quiet about what
