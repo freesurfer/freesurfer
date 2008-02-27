@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/21 17:43:24 $
- *    $Revision: 1.240 $
+ *    $Date: 2008/02/27 20:10:06 $
+ *    $Revision: 1.241 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -8197,10 +8197,10 @@ static int
 gcaReclassifyVoxel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                    int x, int y, int z, int old_label, TRANSFORM *transform)
 {
-  int     nbr_labels[255], xi, yi, zi, xk, yk, zk, i, new_label ;
+  int     nbr_labels[MAX_CMA_LABELS], xi, yi, zi, xk, yk, zk, i, new_label ;
   double  max_p, p ;
 
-  memset(nbr_labels, 0, sizeof(nbr_labels)) ;
+  memset(nbr_labels, 0, sizeof(int)*MAX_CMA_LABELS) ;
   // get 6 neighbors
   for (zk = -1 ; zk <= 1 ; zk++)
   {
