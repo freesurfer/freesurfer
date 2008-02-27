@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/27 23:53:52 $
- *    $Revision: 1.242 $
+ *    $Date: 2008/02/27 23:59:08 $
+ *    $Revision: 1.243 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -16821,9 +16821,31 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       h_gca = gcaGetLabelHistogram(gca, l, 0) ;
       gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
       HISTOmakePDF(h_gca, h_gca) ;
+
+      if (gca_peak < 0)
+      {
+        //fprintf(stderr,
+        //      "INFO: GCAmapRenormalizeWithAlignment: "
+        //      "gca peak(=%d) < 0\n",gca_peak);
+        //fflush(stderr);
+        continue;
+      }
+      if (gca_peak >= h_gca->nbins)
+      {
+        fprintf(stderr,
+                "ERROR: GCAmapRenormalizeWithAlignment: "
+                "gca peak(=%d) >= h_gca->nbins(=%d)\n",
+                gca_peak,h_gca->nbins);
+        fflush(stderr);
+        exit(1);
+      }
       if (gca_peak >= 0)
+      {
         printf("gca peak = %2.5f (%2.0f)\n", 
-               h_gca->counts[gca_peak], h_gca->bins[gca_peak]) ;
+               h_gca->counts[gca_peak], 
+               h_gca->bins[gca_peak]) ;
+      }
+
       label_peaks[l] = h_gca->bins[gca_peak] ;
       fflush(stdout);
 
@@ -17038,6 +17060,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         h_gca = gcaGetLabelHistogram(gca, l, 0) ;
         gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
         HISTOmakePDF(h_gca, h_gca) ;
+
         if (gca_peak < 0)
         {
           //fprintf(stderr,
@@ -17062,6 +17085,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                  h_gca->counts[gca_peak], 
                  h_gca->bins[gca_peak]) ;
         }
+
         label_peaks[l] = h_gca->bins[gca_peak] ;
         fflush(stdout);
       }
