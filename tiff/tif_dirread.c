@@ -1,4 +1,4 @@
-/* $Header: /space/repo/1/dev/dev/tiff/tif_dirread.c,v 1.1 2008/02/26 00:49:04 nicks Exp $ */
+/* $Header: /space/repo/1/dev/dev/tiff/tif_dirread.c,v 1.2 2008/02/27 00:13:53 nicks Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -86,7 +86,7 @@ TIFFReadDirectory(TIFF* tif)
 	TIFFDirEntry* dir;
 	int iv;
 	long v;
-	double dv;
+	double dv=0.0;
 	const TIFFFieldInfo* fip;
 	int fix;
 	uint16 dircount;
