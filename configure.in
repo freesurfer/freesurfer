@@ -1275,7 +1275,7 @@ AC_SUBST(XAWPLUS_LIBS)
 ac_tiff_includes="NO"
 ac_tiff_libraries="NO"
 ac_tiff_bindir="NO"
-TIFF_CFLAGS="-I${srcdir}/tiff"
+TIFF_CFLAGS=""
 TIFF_LIBS=""
 LIB_TIFF=""
 AC_MSG_CHECKING(Tiff directory)
@@ -1298,6 +1298,8 @@ if test ! "$ac_tiff_libraries" = "NO"; then
   LIB_TIFF="-ltiff"
 fi
 
+AM_CONDITIONAL(USE_LOCAL_TIFF, test "$ac_tiff_libraries" = "NO")
+
 AC_SUBST(TIFF_CFLAGS)
 AC_SUBST(TIFF_LIBS)
 AC_SUBST(LIB_TIFF)
@@ -1312,7 +1314,7 @@ AC_SUBST(LIB_TIFF)
 ac_jpeg_includes="NO"
 ac_jpeg_libraries="NO"
 ac_jpeg_bindir="NO"
-JPEG_CFLAGS="-I${srcdir}/jpeg"
+JPEG_CFLAGS=""
 JPEG_LIBS=""
 LIB_JPEG=""
 AC_MSG_CHECKING(Jpeg directory)
@@ -1334,6 +1336,8 @@ if test ! "$ac_jpeg_libraries" = "NO"; then
   JPEG_LIBS=-L$ac_jpeg_libraries
   LIB_JPEG="-ljpeg"
 fi
+
+AM_CONDITIONAL(USE_LOCAL_JPEG, test "$ac_jpeg_libraries" = "NO")
 
 AC_SUBST(JPEG_CFLAGS)
 AC_SUBST(JPEG_LIBS)
@@ -1628,7 +1632,7 @@ AC_SUBST(LIBS_ITK)
 ac_expat_includes="NO"
 ac_expat_libraries="NO"
 ac_expat_bindir="NO"
-EXPAT_CFLAGS="-I${srcdir}/expat"
+EXPAT_CFLAGS=""
 EXPAT_LIBS=""
 LIB_EXPAT=""
 AC_MSG_CHECKING(Expat directory)
@@ -1650,6 +1654,8 @@ if test ! "$ac_expat_libraries" = "NO"; then
   EXPAT_LIBS=-L$ac_expat_libraries
   LIB_EXPAT="-lexpat"
 fi
+
+AM_CONDITIONAL(USE_LOCAL_EXPAT, test "$ac_expat_libraries" = "NO")
 
 AC_SUBST(EXPAT_CFLAGS)
 AC_SUBST(EXPAT_LIBS)

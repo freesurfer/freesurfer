@@ -26,6 +26,24 @@ else
 GLUT_THINGS=
 endif
 
+if USE_LOCAL_TIFF
+TIFF_THINGS=-I$(top_srcdir)/tiff
+else
+TIFF_THINGS=
+endif
+
+if USE_LOCAL_JPEG
+JPEG_THINGS=-I$(top_srcdir)/jpeg
+else
+JPEG_THINGS=
+endif
+
+if USE_LOCAL_EXPAT
+EXPAT_THINGS=-I$(top_srcdir)/expat
+else
+EXPAT_THINGS=
+endif
+
 NRRDIO_CPPFLAGS=-I$(top_srcdir)/include/NrrdIO \
 	-DTEEM_DIO=$(TEEM_DIO) -DTEEM_32BIT=$(TEEM_32BIT) \
 	-DTEEM_QNANHIBIT=$(TEEM_QNANHIBIT) -DTEEM_ENDIAN=$(TEEM_ENDIAN)
@@ -33,7 +51,7 @@ NRRDIO_CPPFLAGS=-I$(top_srcdir)/include/NrrdIO \
 AM_CPPFLAGS=$(X_CFLAGS) $(GL_CFLAGS) $(VXL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
-	$(NRRDIO_CPPFLAGS) $(JPEG_CFLAGS) $(TIFF_CFLAGS) $(EXPAT_CFLAGS) \
+	$(NRRDIO_CPPFLAGS) $(JPEG_THINGS) $(TIFF_THINGS) $(EXPAT_THINGS) \
 	$(ITK_THINGS) $(NIFTI_THINGS) $(GLUT_THINGS) -DHAVE_ZLIB
 
 AM_LDFLAGS=
@@ -66,7 +84,6 @@ libutils_main_SOURCES=\
 	DICOMRead.c \
 	diffuse.c \
 	dti.c \
-	eigen.c \
 	error.c \
 	evschutils.c \
 	fftutils.c \
@@ -156,7 +173,6 @@ libutils_main_SOURCES=\
 	pdf.c \
 	pgmstubs.c \
 	prime.c \
-	qdecutils.c \
 	queue.c \
 	randomfields.c \
 	rbf.c \
@@ -171,7 +187,6 @@ libutils_main_SOURCES=\
 	signa.c \
 	stats.c \
 	stc.c \
-	stub.c \
 	surfcluster.c \
 	svm.c \
 	tags.c \
@@ -247,7 +262,6 @@ libutils_nrrdio_SOURCES=\
 	$(srcdir)/$(NrrdIO_dir)/encodingBzip2.c \
 	$(srcdir)/$(NrrdIO_dir)/parseNrrd.c \
 	$(srcdir)/$(NrrdIO_dir)/encoding.c \
-	$(srcdir)/$(NrrdIO_dir)/preamble.c \
 	$(srcdir)/$(NrrdIO_dir)/encodingGzip.c \
 	$(srcdir)/$(NrrdIO_dir)/qnanhibit.c \
 	$(srcdir)/$(NrrdIO_dir)/encodingHex.c \
@@ -279,6 +293,8 @@ gifti_tool_SOURCES=gifti_tool.c gifti_tool.h \
 gifti_tool_LDADD=$(top_builddir)/expat/libexpat.a -lz
 gifti_test_SOURCES=gifti_test.c gifti_test.h gifti_io.c gifti_xml.c
 gifti_test_LDADD=$(top_builddir)/expat/libexpat.a -lz
+
+EXTRA_DIST=$(srcdir)/$(NrrdIO_dir)/copyright.NrrdIO
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
