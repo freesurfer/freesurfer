@@ -1,6 +1,11 @@
 #ifndef GIFTI_IO_H
 #define GIFTI_IO_H
 
+#ifdef Darwin
+#define __MACTYPES__
+#define Byte unsigned char
+#endif
+
 #include <zlib.h>
 #include <expat.h>
 #include <nifti1_io.h>
