@@ -1,0 +1,404 @@
+#! /bin/csh -f
+
+#
+# surfsmooth-sess - surface-based smoothing in the volume
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2008/02/27 05:34:11 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION    = '$Id: surfsmooth-sess,v 1.1 2008/02/27 05:34:11 greve Exp $';
+set cmdargs = ($argv);
+
+set fsd = "bold";
+set PerRun = 0;
+set instem   = fmc;  # stem of functional volume
+set outstem   = ();
+set fwhm = ();
+set niters = ();
+set regfile = "register.dat";
+set ProjFrac = 0.5;
+set DoProjFrac = 1;
+set DoProjFracAvg = 0;
+set PFMin = 0;
+set PFMax = 1;
+set PFDel = .2;
+set RunListFile = ();
+set UpdateOnly = 0;
+set nolog = 0;
+#set mask = brain;
+
+set outfmt = bhdr;
+if($?FSF_OUTPUT_FORMAT) then
+  set outfmt = $FSF_OUTPUT_FORMAT;
+endif
+
+set PrintHelp = 0;
+set cmdargs = ($argv);
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | egrep -e -version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 1;
+endif
+set n = `echo $argv | egrep -e -help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo $SessList
+  exit 1;
+endif
+
+# Parse the command-line arguments
+goto parse_args;
+parse_args_return:
+
+# Check the command-line arguments
+goto check_params;
+check_params_return:
+
+set ProjectDir = `pwd`;
+
+## Check each session ##
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"  
+    exit 1;
+  endif
+  if(! -d $sess/$fsd) then
+    echo "ERROR: $sess/$fsd does not exist"  
+    exit 1;
+  endif
+end
+
+## Now analyze each session ##
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  # Create a log file #
+  if(! $nolog ) then
+    mkdir -p log
+    set LF = $ProjectDir/log/surfsmooth-$sessid-$fsd.log
+    rm -f $LF
+    touch $LF
+  else
+    set LF = /dev/null
+  endif
+  echo Logfile is $LF
+
+  echo "surfsmooth-sess" >> $LF
+  echo $sessid      >> $LF
+  echo $VERSION  >> $LF
+  echo $LF       >> $LF
+  uname -a       >> $LF
+  date           >> $LF
+  echo $cmdargs  >> $LF
+  pwd            >> $LF
+  echo "ProjectDir $ProjectDir" >> $LF
+
+  echo ""|& tee -a $LF
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+
+  pushd $sess/$fsd > /dev/null
+
+  if($#RunListFile == 0) then
+    set RunList = `getrunlist .`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
+    endif
+  else
+    if(! -e $RunListFile) then
+      echo "ERROR: cannot find runlistfile $RunListFile" |& tee -a $LF
+      exit 1;
+    endif
+    set RunList = `cat $RunListFile`;
+  endif
+  echo "RunList: $RunList" |& tee -a $LF
+
+  if(! $PerRun) set reg = $regfile
+
+  foreach run ($RunList)  
+    set invol  = `stem2fname $run/$instem`;
+    if($status) then
+      echo "$invol" |& tee -a $LF
+      exit 1;
+    endif
+    if($PerRun) set reg = $run/$regfile
+    if(! -e $reg) then
+      echo "ERROR: cannot find $reg" |& tee -a $LF
+      exit 1
+    endif
+
+    set outvol = $run/$outstem.$outfmt
+
+    test $outvol -nt $invol
+    if($status || ! $UpdateOnly) then
+      echo "Update needed" | tee -a $LF
+      set cmd = (mris_volsmooth --i $invol --o $outvol --reg $reg)
+      if($#fwhm)   set cmd = ($cmd --fwhm  $fwhm);
+      if($#niters) set cmd = ($cmd --niters $niters)
+      if($DoProjFrac) set cmd = ($cmd --projfrac $ProjFrac);
+      if($DoProjFracAvg) set cmd = ($cmd --projfrac-avg $PFMin $PFMax $PFDel);
+      pwd | tee -a $LF
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      echo "" | tee -a $LF
+    else
+      echo "Update not needed " | tee -a $LF
+      pwd | tee -a $LF
+      ls -lt $invol $outvol | tee -a $LF
+    endif
+
+  end # Loop over sessions 
+
+  echo "" |& tee -a $LF
+  echo "" |& tee -a $LF
+
+  popd > /dev/null
+end
+
+date | tee -a $LF
+echo "surfsmooth-sess completed " | tee -a $LF
+echo ""
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set instem = $argv[1]; shift;
+      breaksw
+
+    case "-projfrac":
+      if ( $#argv == 0) goto arg1err;
+      set ProjFrac = $argv[1]; shift;
+      set DoProjFrac = 1;
+      set DoProjFracAvg = 0;
+      breaksw
+
+    case "-projfrac-avg":
+      set DoProjFracAvg = 1;
+      set DoProjFrac = 0;
+      breaksw
+
+    case "-reg":
+      if ( $#argv == 0) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv == 0) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-runlistfile":
+    case "-rlf":
+      if ( $#argv == 0) goto arg1err;
+      set RunListFile = $argv[1]; shift;
+      breaksw
+
+    case "-fwhm":
+      if($#argv < 1) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-niters":
+      if ( $#argv == 0) goto arg1err;
+      set niters = $argv[1]; shift;
+      breaksw
+
+    case "-perrun":
+      set PerRun = 1;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-update":
+      set UpdateOnly = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+    case "-g":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#SessList == 0) then
+     echo "ERROR: no sessions specified"
+     exit 1
+  endif
+
+  if($#outstem == 0) then
+    echo "ERROR: no output specified"
+    exit 1;
+  endif
+
+  if($#fwhm == 0 && $#niters == 0) then
+    echo "ERROR: no smoothing level specified"
+    exit 1;
+  endif
+
+  if($#fwhm && $#niters) then
+    echo "ERROR: cannot spec -fwhm and -niters"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: surfsmooth-sess"
+  echo ""
+  echo "   -o outstem         : output stem"
+  echo "   -fwhm fwhm_mm      : fwhm (mm) on the surface"
+  echo "   -niters niters     : specicfy smoothing by number of iters instead of fwhm"
+  echo ""
+  echo "   -projfrac frac     : fraction of thickness (0.5)"
+  echo "   -projfrac-avg      : average along the ribbon"
+  echo ""
+  echo "   -i instem          : stem of input volume <fmc>"
+  echo "   -rlf  runlistfile  : only process those in the runlist file"
+  echo ""
+  echo "   -reg regfile       : default is register.dat"
+  echo "   -perrun            : regfile is per-run"
+  echo ""
+  echo "   -version           : print version and exit"
+  echo "   -update            : only smooth if input is newer than output"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo "   -fsd dir        (optional - default = bold)"
+  echo ""
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Smooth raw functional data on the surface but keep the data in the
+volume so it can be processed with the standard volumetric processing
+tools. Sessions front-end for mris_volsmooth (see mris_volsmooth --help
+for more info).
+
+-o outstem
+
+Output will be stored as outstem.fmt where fmt is the current fsfast
+output format.
+
+-fwhm fwhm
+
+Full-width/half-max in mm for surface smoothing.
+
+-niters niterations
+
+Specify smoothing as a number of nearest-neighbor smoothing (probably 
+better to use -fwhm).
+
+-projfrac frac
+
+Projection fraction. Fraction of the thickness in which to sample the
+cortical ribbon.
+
+-projfrac-avg 
+
+Average over the cortical ribbon from fractions of 0.0 to 1.0 step
+0.2.
+
+-i instem
+
+Input raw functional data. Default is fmc (you probably do not want
+to use data smoothed in the volume for this).
+
