@@ -5,6 +5,7 @@
 # Note: the pdf files should be committed to CVS, so as not to require a
 # latex installation on all build systems.
 
+if HAVE_LATEX
 foodir=$(prefix)/fsfast/docs
 # cannot specify *, since Makefile etc will be copied
 TEXFILES=\
@@ -53,6 +54,9 @@ clean-local:
 
 distclean-local:
 	rm -f *.pdf Makefile
+
+# endif HAVE_LATEX
+endif
 
 EXTRA_DIST=$(TEXFILES)
 

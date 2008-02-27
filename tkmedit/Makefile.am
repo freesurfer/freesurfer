@@ -2,13 +2,21 @@
 # Makefile.am
 ##
 
+if USE_LOCAL_TIFF
+TIFFCFLAGS=-I$(top_srcdir)/tiff
+LIBTIFF=$(top_builddir)/tiff/libtiff.a
+else
+TIFFCFLAGS=$(TIFF_CFLAGS)
+LIBTIFF=$(LIB_TIFF)
+endif
+
 AM_CPPFLAGS=\
-	$(TCL_CFLAGS) \
-	$(tcl_includes) \
+	$(TCL_CFLAGS) $(TIFFCFLAGS) \
+	$(tcl_includes) $(GL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/glut \
 	-fno-strict-aliasing
-AM_LDFLAGS=$(LDFLAGS_TCL)
+AM_LDFLAGS=$(LDFLAGS_TCL) $(TIFF_LIBS)
 
 if ENABLE_TCLTK_APPS
 bin_PROGRAMS=tkmedit
@@ -24,7 +32,7 @@ tkmedit_SOURCES=tkmedit.c \
 tkmedit_LDADD= $(top_builddir)/fsgdf/libfsgdf.a \
 	$(addprefix $(top_builddir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
-	$(X_LIBS) \
+	$(X_LIBS) $(LIBTIFF) \
 	$(top_builddir)/glut/libglut.a
 tkmedit_LDFLAGS=$(LDFLAGS_TCL)
 else

@@ -2,10 +2,16 @@
 # Makefile.am for libvtkutils.a
 #
 
+if USE_LOCAL_TIFF
+TIFFCFLAGS=-I$(top_srcdir)/tiff
+else
+TIFFCFLAGS=$(TIFF_CFLAGS)
+endif
+
 AM_CPPFLAGS= -Wno-deprecated \
-	$(X_CFLAGS) \
+	$(GL_CFLAGS) \
 	$(TCL_CFLAGS) \
-	$(VXL_CFLAGS) \
+	$(VXL_CFLAGS) $(TIFFCFLAGS) \
 	-I$(top_srcdir)/include \
 	$(VTK_CXXFLAGS) \
 	$(KWWIDGETS_CXXFLAGS)

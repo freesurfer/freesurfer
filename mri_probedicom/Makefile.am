@@ -2,7 +2,7 @@
 # Makefile.am
 ##
 
-AM_CFLAGS=-I$(top_srcdir)/glut \
+AM_CFLAGS=-I$(top_srcdir)/glut $(GL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom
 AM_LDFLAGS=

@@ -1,23 +1,29 @@
 #
 # Makefile.am for scuba
 #
+
+if USE_LOCAL_TIFF
+TIFFCFLAGS=-I$(top_srcdir)/tiff
+LIBTIFF=$(top_builddir)/tiff/libtiff.a
+else
+TIFFCFLAGS=$(TIFF_CFLAGS)
+LIBTIFF=$(LIB_TIFF)
+endif
+
 AM_CPPFLAGS=\
-	$(GL_FLAGS) \
-	$(X_CFLAGS) \
+	$(GL_CFLAGS) $(TIFFCFLAGS) \
 	$(TCL_CFLAGS) \
 	$(tcl_includes) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/dicom \
-	-I$(top_srcdir)/glut \
-	-I/opt/intel/mkl70/include \
-	-Iqconsole -Iqconsole/include
+	-I$(top_srcdir)/glut
 
 # -Wno-non-virtual-dtor suppresses valid scuba and cppunit warnings:
 # "has virtual functions but non-virtual destructor"
 # these warnings appear with gcc 4.#
 AM_CXXFLAGS=-Wno-non-virtual-dtor
 
-AM_LDFLAGS=$(LDFLAGS_TCL) $(top_builddir)/glut/libglut.a
+AM_LDFLAGS=$(LDFLAGS_TCL) $(TIFF_LIBS) $(top_builddir)/glut/libglut.a
 
 UTILITIES_SRCS=Volume3.cpp Volume3.h \
 	Point2.h \
@@ -105,7 +111,7 @@ scuba_SOURCES=$(UTILITIES_SRCS) \
 	$(SCUBA1_SRCS) \
 	scuba.cpp
 scuba_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-	$(LIBS_TCL_OPENGL) $(X_LIBS) -lX11 -lXmu -lGL
+	$(LIBTIFF) $(LIBS_TCL_OPENGL) $(X_LIBS) -lX11 -lXmu -lGL
 scuba_LDFLAGS=$(AM_LDFLAGS)
 
 foodir=$(prefix)/lib/tcl

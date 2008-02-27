@@ -2,9 +2,10 @@
 # Makefile.am
 ##
 
-AM_CPPFLAGS=-I$(top_srcdir)/glut \
+AM_CPPFLAGS=\
+	-I$(top_srcdir)/glut \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/unix
+	-I$(top_srcdir)/unix $(GL_CFLAGS)
 AM_LDFLAGS=
 
 if HAVE_OPENGL_LIBS

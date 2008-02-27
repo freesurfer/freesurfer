@@ -97,19 +97,19 @@ dmri_mask_LDADD = $(addprefix $(top_builddir)/, $(LIBS_MGH) ) \
 dmri_mask_LDFLAGS = $(OS_LDFLAGS)
 dmri_mask_CXXFLAGS = 
 
-# tests
-if HAVE_CPPUNIT
-
 # trick to get test data into the build directory
-foobar_SOURCES=
-foobar:
+foo_SOURCES=
+foo:
 	if ! test -f "$(top_builddir)/dmri_poistats/test/data/Path.nii.gz"; then \
 		mkdir -p $(top_builddir)/dmri_poistats/test/data/; \
 		cp -v $(top_srcdir)/dmri_poistats/test/data/*.nii.gz \
 					$(top_builddir)/dmri_poistats/test/data/; fi;
 
+# tests
+if HAVE_CPPUNIT
+
 check_PROGRAMS = \
-	foobar \
+	foo \
   TestPoistatsReplica \
   TestPoistatsReplicas \
   TestPoistats

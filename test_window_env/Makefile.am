@@ -2,9 +2,7 @@
 # Makefile.am
 ##
 
-AM_CFLAGS=\
-	-I$(top_srcdir)/include \
-	$(X_CFLAGS)
+AM_CFLAGS=-I$(top_srcdir)/include $(GL_CFLAGS)
 
 if HAVE_OPENGL_LIBS
 check_PROGRAMS = test_window_env

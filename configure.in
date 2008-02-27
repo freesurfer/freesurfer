@@ -279,6 +279,11 @@ if test ! "$HAS_GZIP" = "1"; then
 Put it in the path.])
 fi
 
+#
+# latex is optionally used to regenerate some fsfast docs
+AC_CHECK_PROG(LATEX, latex, latex)
+AM_CONDITIONAL(HAVE_LATEX, ! test -z "$LATEX")
+
 ################################################################
 # set platform related variable defaults for (Teem) NrrdIO
 # in utils
@@ -1737,7 +1742,7 @@ else
   AC_MSG_RESULT([GL found:
 Setting GL_CFLAGS='$GL_CFLAGS'
 and GL_LIBS='$GL_LIBS'])
-  LIBS_OPENGL="$LIBS_OPENGL $GL_LIBS $mac_gl_libs"
+  LIBS_OPENGL="$GL_LIBS $mac_gl_libs"
 fi
 CFLAGS=$ac_save_cflags
 LDFLAGS=$ac_save_ldflags
@@ -1758,7 +1763,7 @@ else
   AC_MSG_RESULT([GLu found:
 Setting GLU_CFLAGS='$GLU_CFLAGS'
 and GLU_LIBS='$GLU_LIBS'])
-  LIBS_OPENGL="$GLU_LIBS"
+  LIBS_OPENGL="$GLU_LIBS $mac_gl_libs"
 fi
 CFLAGS=$ac_save_cflags
 LDFLAGS=$ac_save_ldflags
