@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/28 19:05:46 $
-#    $Revision: 1.172 $
+#    $Date: 2008/02/28 22:32:49 $
+#    $Revision: 1.173 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.172 2008/02/28 19:05:46 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.173 2008/02/28 22:32:49 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1575,7 +1575,9 @@ if($DoSegmentation) then
 
   if($longitudinal) then
     # transfer wm matter edits (voxels=255) from tp1 wm.mgz to tp2 wm.mgz
+    # and -keep_mask_deletion_edits transfers voxel-deletion (voxels=1) edits
     set cmd = (mri_mask -transfer 255)
+    set cmd = ($cmd -keep_mask_deletion_edits)
     set cmd = ($cmd -xform $tp1dir/mri/transforms/$tp1totp2_regfile)
     set cmd = ($cmd wm.mgz $tp1dir/mri/wm.mgz wm.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
