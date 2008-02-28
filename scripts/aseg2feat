@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/06 00:01:13 $
-#    $Revision: 1.12 $
+#    $Author: greve $
+#    $Date: 2008/02/28 03:37:44 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,13 +27,14 @@
 # aseg2feat
 #
 
-set VERSION = '$Id: aseg2feat,v 1.12 2007/01/06 00:01:13 nicks Exp $';
+set VERSION = '$Id: aseg2feat,v 1.13 2008/02/28 03:37:44 greve Exp $';
 set FeatDirList = ();
 set debug = 0;
 set usedev = 0;
 set asegvol = aseg
 set svstats = 0;
 set space = "native";
+set regfile = "anat2exf.register.dat"
 
 set PrintHelp = 0;
 
@@ -77,7 +78,7 @@ foreach FeatDir ($FeatDirList)
   echo "subject is $subject" | tee -a $LF
 
   if($space == native) then
-    set reg_anat2exf = $FeatDir/reg/freesurfer/anat2exf.register.dat
+    set reg_anat2exf = $FeatDir/reg/freesurfer/$regfile
   else
     set reg_anat2exf = $FeatDir/reg/freesurfer/anat2std.register.dat
   endif
@@ -136,9 +137,14 @@ while( $#argv != 0 )
 
   switch($flag)
 
+    case "--seg":
     case "--aseg":
       if ( $#argv == 0) goto arg1err;
       set asegvol = $argv[1]; shift;
+      breaksw
+
+    case "--aparc+aseg":
+      set asegvol = "aparc+aseg"
       breaksw
 
     case "--feat":
@@ -154,6 +160,11 @@ while( $#argv != 0 )
         exit 1;
       endif
       set FeatDirList = ($FeatDirList `cat $FeatFile`); shift;
+      breaksw
+
+    case "--reg":
+      if ( $#argv == 0) goto arg1err;
+      set regfile = $argv[1]; shift;
       breaksw
 
     case "--svstats":
@@ -244,12 +255,13 @@ usage_exit:
   echo ""
   echo "Optional flags and arguments:"
   echo ""
-  echo " --aseg asegvol       : change aseg volume (default is aseg)"
-  echo " --svstats            : save in featdir/stats"
-  echo " --standard           : map to standard space"
-  echo " --help               : print help and exit"
-  echo " --debug              : turn on debugging"
-  echo " --version            : print version and exit"
+  echo " --seg segvol       : change seg volume (default is aseg)"
+  echo " --aparc+aseg       : use aparc+aseg"
+  echo " --svstats          : save in featdir/stats"
+  echo " --standard         : map to standard space"
+  echo " --help             : print help and exit"
+  echo " --debug            : turn on debugging"
+  echo " --version          : print version and exit"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -283,11 +295,16 @@ file is an ASCII file with a list of feat directories. This may be more convenie
 than specifying all of them with --feat on the command-line. Multiple
 --featdirfile flags are allowed. Can be used in conjunction with --feat.
 
---aseg asegvol
+--seg segvol
 
-Change the aseg volume. Default is aseg. Newer version of recon-all
-will also create an aparc+aseg.mgz, which has all the subcortical and
-cortical segmentations in it (see $FREESURFER_HOME/FreeSurferColorLUT.txt).
+Change the segmentation volume. Default is aseg. Newer version of
+recon-all will also create an aparc+aseg.mgz, which has all the
+subcortical and cortical segmentations in it (see
+$FREESURFER_HOME/FreeSurferColorLUT.txt).
+
+--aparc+aseg 
+
+Use aparc+aseg.mgz. Same as --seg aparc+aseg.mgz.
 
 --standard
 
@@ -298,11 +315,16 @@ Map results to standard space instead of native functional space. Implies
 
 Flag to save result in featdir/stats instead of featdir/reg/freesurfer
 
+--reg regfile
+
+By default uses anat2exf.register.dat in reg/freesurfer (for native
+only).
+
 EXAMPLES
 
 aseg2feat --feat fbert.feat
 
-aseg2feat --feat fbert.feat --aseg aparc+aseg
+aseg2feat --feat fbert.feat --seg aparc+aseg
 
 To view the segmentation in the functional space:
 
