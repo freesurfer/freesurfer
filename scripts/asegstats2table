@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.15 2008/02/22 20:03:18 greve Exp $
+# $Id: asegstats2table,v 1.16 2008/02/28 05:17:59 greve Exp $
 import sys;
 import os;
 import string;
@@ -113,7 +113,7 @@ def argnerr(narg,flag):
 def parse_args(argv):
   global Version,debug,OKToSkip,DoDirect;
   global tablefile, SUBJECTS, nsubjects, meas, maxsegno;
-  global subdir, statsname, DoChoroid;
+  global subdir, statsname, DoChoroid, DoVessel;
 
   del argv[0]; # get past program name (del is like shift)
 
@@ -169,6 +169,8 @@ def parse_args(argv):
       OKToSkip = 1;
     elif(flag == "--no-choroid"):
       DoChoroid = 0;
+    elif(flag == "--no-vessel"):
+      DoVessel = 0;
     elif(flag == "--help"):
       print_usage();
       print_help();
@@ -227,7 +229,7 @@ def check_args():
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.15 2008/02/22 20:03:18 greve Exp $';
+Version = '$Id: asegstats2table,v 1.16 2008/02/28 05:17:59 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
@@ -235,6 +237,7 @@ meas = 'volume';
 maxsegno = -1;
 OKToSkip = 0;
 DoChoroid = 1;
+DoVessel = 1;
 DoDirect = 0;
 debug = 0;
 statsname = 'aseg.stats';
@@ -295,6 +298,7 @@ for subject in list:
         segno = string.atoi(tmp[1]);
         if(maxsegno > 0 and segno > maxsegno): continue
         if(not DoChoroid and (segno == 31 or segno == 63)): continue
+        if(not DoVessel  and (segno == 30 or segno == 62)): continue
         segid = tmp[4];
         fptbl.write(' %s' % (segid) );
       #endif
@@ -348,6 +352,7 @@ for subject in list:
       segno = string.atoi(tmp[1]);
       if(maxsegno > 0 and segno > maxsegno): continue
       if(not DoChoroid and (segno == 31 or segno == 63)): continue
+      if(not DoVessel  and (segno == 30 or segno == 62)): continue
       if(meas == 'volume'):  val = string.atof(tmp[3]);
       if(meas == 'mean'):    val = string.atof(tmp[5]);
       if(meas == 'std'):     val = string.atof(tmp[6]);
