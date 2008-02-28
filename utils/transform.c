@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 06:01:14 $
- *    $Revision: 1.112.2.2 $
+ *    $Date: 2008/02/28 20:44:06 $
+ *    $Revision: 1.112.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2549,11 +2549,15 @@ LTA *ltaMNIreadEx(const char *fname)
 {
   LTA *lta = 0;
   LINEAR_TRANSFORM *lt ;
-  char             *cp, line[1000], infoline[1024], infoline2[1024];
+  char             *cp, line[2048], infoline[2048], infoline2[2048];
   FILE             *fp ;
   int              row ;
   MATRIX           *m_L ;
   int             no_volinfo = 0;
+
+  line[0]=0;
+  infoline[0]=0;
+  infoline2[0]=0;
 
   fp = fopen(fname, "r") ;
   if (!fp)
