@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/24 20:54:40 $
- *    $Revision: 1.54.2.1 $
+ *    $Date: 2008/02/28 18:43:56 $
+ *    $Revision: 1.54.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -201,12 +201,13 @@ HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
     histo_dst = HISTOalloc(histo_src->nbins) ;
   histo_dst->nbins = histo_src->nbins ;
   histo_dst->bin_size = histo_src->bin_size ;
-  memcpy(histo_dst->counts, 
-         histo_src->counts, 
-         sizeof(*histo_src->counts)*histo_src->nbins) ;
-  memcpy(histo_dst->bins, 
-         histo_src->bins, 
-         sizeof(*histo_src->bins)*histo_src->nbins) ;
+  // use memmove, not memcpy, as src and dst could overlap
+  memmove(histo_dst->counts, 
+          histo_src->counts, 
+          sizeof(*histo_src->counts)*histo_src->nbins) ;
+  memmove(histo_dst->bins, 
+          histo_src->bins, 
+          sizeof(*histo_src->bins)*histo_src->nbins) ;
   histo_dst->min = histo_src->min ;
   histo_dst->max = histo_src->max ;
 
