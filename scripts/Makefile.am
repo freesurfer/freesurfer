@@ -27,6 +27,7 @@ dt_recon \
 epidewarp.fsl\
 extract_talairach_avi_QA.awk \
 feat2surf \
+feat2segstats \
 findsession \
 fixup_mni_paths \
 fix_subject \
