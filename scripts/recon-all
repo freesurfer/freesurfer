@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/28 22:33:02 $
-#    $Revision: 1.133.2.24 $
+#    $Date: 2008/02/28 23:03:01 $
+#    $Revision: 1.133.2.25 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.24 2008/02/28 22:33:02 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.25 2008/02/28 23:03:01 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -859,6 +859,7 @@ if($DoTalCheck) then
              |& tee -a $LF
         echo "Manual Talairach alignment may be necessary, or" |& tee -a $LF
         echo "include the -notal-check flag to skip this test." |& tee -a $LF
+        echo "See http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach" |& tee -a $LF
         goto error_exit;
       endif
     endif
