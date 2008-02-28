@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/02/28 03:37:44 $
-#    $Revision: 1.13 $
+#    $Date: 2008/02/28 05:34:52 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # aseg2feat
 #
 
-set VERSION = '$Id: aseg2feat,v 1.13 2008/02/28 03:37:44 greve Exp $';
+set VERSION = '$Id: aseg2feat,v 1.14 2008/02/28 05:34:52 greve Exp $';
 set FeatDirList = ();
 set debug = 0;
 set usedev = 0;
@@ -204,22 +204,24 @@ if($#FeatDirList == 0) then
   echo "ERROR: must specify at least one feat dir"
   exit 1;
 endif
+echo "There are $#FeatDirList input FEAT dirs"
 
+if($?SUBJECTS_DIR == 0) then
+  echo "ERROR: FreeSurfer environment variable SUBJECTS_DIR not defined"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR) then
+  echo "ERROR: FreeSurfer SUBJECTS_DIR $SUBJECTS_DIR not found"
+  exit 1;
+endif
+
+echo "Checking inputs"
 foreach FeatDir ($FeatDirList)
-  set reg_anat2exf = $FeatDir/reg/freesurfer/anat2exf.register.dat
+  set reg_anat2exf = $FeatDir/reg/freesurfer/$regfile
   if(! -e $reg_anat2exf) then
     echo "ERROR: cannot find $reg_anat2exf. You must run reg-feat2anat first."
     exit 1;
   endif
-  if($?SUBJECTS_DIR == 0) then
-    echo "ERROR: FreeSurfer environment variable SUBJECTS_DIR not defined"
-    exit 1;
-  endif
-  if(! -e $SUBJECTS_DIR) then
-    echo "ERROR: FreeSurfer SUBJECTS_DIR $SUBJECTS_DIR not found"
-    exit 1;
-  endif
-
   set subject = `cat $reg_anat2exf| head -n 1`;
   if(! -e $SUBJECTS_DIR/$subject) then
     echo "ERROR: cannot find FreeSurfer subject $subject in $SUBJECTS_DIR"
