@@ -243,7 +243,6 @@ MISCDIRS=histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \
 	test_window_env \
-	test_tiff \
 	dngtester \
 	test_makevol \
 	scripts \
