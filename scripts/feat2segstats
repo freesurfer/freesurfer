@@ -1,0 +1,354 @@
+#! /bin/tcsh -f
+
+#
+# feat2segstats
+#
+# Computes segmentation summaries for a feat directory
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2008/02/28 05:22:50 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: feat2segstats,v 1.1 2008/02/28 05:22:50 greve Exp $';
+set FeatDirList = ();
+set seg = ();
+set ctab = ();
+set DoAllSegs = 1;
+
+set StatList0 = ();
+
+set DoAllCopes = 0;
+set DoAllVarCopes = 0;
+set DoAllZStats = 0;
+set DoAllPEs = 0;
+
+set debug = 0;
+set NoLog = 0;
+set PrintHelp = 0;
+
+set cmdargs = ($argv);
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | egrep -e --version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 1;
+endif
+set n = `echo $argv | egrep -e --help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+# Parse the command-line arguments
+goto parse_args;
+parse_args_return:
+
+# Check the command-line arguments
+goto check_params;
+check_params_return:
+
+
+# --------------------------------------------#
+foreach FeatDir ($FeatDirList)
+
+  # Set up a log file
+  if(! $NoLog) then
+    set LF = $FeatDir/reg/freesurfer/feat2segstats.log
+    echo log file is $LF
+    if(-e $LF) mv $LF $LF.bak
+  else
+    set LF = /dev/null
+  endif
+
+  echo FeatDir is $FeatDir | tee -a $LF
+  date | tee -a $LF
+  pwd | tee -a $LF
+  echo $0 | tee -a $LF
+  echo $cmdargs | tee -a $LF
+  uname -a | tee -a $LF
+
+  set segstem = $FeatDir/reg/freesurfer/$seg
+  set segfile = `stem2fname $segstem`
+  if($status) then
+    echo "$segfile" | tee -a $LF
+    echo "Make sure to run aseg2feat" | tee -a $LF
+    exit 1;
+  endif
+
+  set statsdir = $FeatDir/stats
+  pushd $statsdir
+
+  set StatList = ($StatList0);
+  if($DoAllCopes) then
+    set copelist = (cope*.nii*)
+    foreach cope ($copelist)
+      set stem = `fname2stem $cope`
+      set StatList = ($StatList $stem);
+    end
+  endif
+  if($DoAllVarCopes) then
+    set varcopelist = (varcope*.nii*)
+    foreach varcope ($varcopelist)
+      set stem = `fname2stem $varcope`
+      set StatList = ($StatList $stem);
+    end
+  endif
+  if($DoAllZStats) then
+    set zlist = (zstat*.nii*)
+    foreach z ($zlist)
+      set stem = `fname2stem $z`
+      set StatList = ($StatList $stem);
+    end
+  endif
+  if($DoAllPEs) then
+    set pelist = (pe*.nii*)
+    foreach pe ($pelist)
+      set stem = `fname2stem $pe`
+      set StatList = ($StatList $stem);
+    end
+  endif
+  popd
+
+  echo $StatList | tee -a $LF
+  set outdir = $FeatDir/freesurfer/segstats/$seg
+  mkdir -p $outdir
+
+  foreach stat ($StatList)
+    set statfile = `stem2fname $statsdir/$stat`
+    if($status) then
+      echo "$statfile" | tee -a $LF
+      exit 1;
+    endif
+    set bstat = `basename $stat`
+    set segstatfile = $outdir/$bstat.dat
+    set cmd = (mri_segstats --seg $segfile --sum $segstatfile \
+      --in $statfile)
+    if($DoAllSegs == 1) set cmd = ($cmd --nonempty)
+    if($#ctab) set cmd = ($cmd --ctab $ctab);
+    if($#ctab == 0) set cmd = ($cmd --ctab-default $ctab);
+    pwd | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  end
+
+end # FeatDir List
+
+date 
+echo "feat2segstats done" 
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--feat":
+      if ( $#argv == 0) goto arg1err;
+      set FeatDirList = ($FeatDirList $argv[1]); shift;
+      breaksw
+
+    case "--featdirfile":
+      if ( $#argv == 0) goto arg1err;
+      set FeatFile = $argv[1];
+      if(! -e $FeatFile) then
+        echo "ERROR: cannot find $FeatFile"
+        exit 1;
+      endif
+      set FeatDirList = ($FeatDirList `cat $FeatFile`); shift;
+      breaksw
+
+    case "--seg":
+      if ( $#argv == 0) goto arg1err;
+      set seg = $argv[1]; shift;
+      breaksw
+
+    case "--ctab":
+      if($#argv < 1) goto arg1err;
+      set ctab = $argv[1]; shift;
+      if(! -e $ctab) then
+        echo "ERROR: cannot find $ctab"
+        exit 1;
+      endif
+      breaksw
+
+    case "--all-segs":
+      set DoAllSegs = 1;
+      breaksw
+
+    case "--aseg":
+      set seg = aseg;
+      breaksw
+
+    case "--aparc+aseg":
+      set seg = aparc+aseg
+      breaksw
+
+    case "--copes":
+      set DoAllCopes = 1;
+      breaksw
+
+    case "--varcopes":
+      set DoAllVarCopes = 1;
+      breaksw
+
+    case "--zstats":
+      set DoAllZStats = 1;
+      breaksw
+
+    case "--pes":
+      set DoAllPEs = 1;
+      breaksw
+
+    case "--rvar":
+      set StatList0 = ($StatList0 sigmasquareds)
+      breaksw
+
+    case "--exf":
+    case "--example_func":
+      set StatList0 = ($StatList0 ../example_func)
+      breaksw
+
+    case "--mean_func":
+      set StatList0 = ($StatList0 ../mean_func)
+      breaksw
+
+    # Not sure this is usefull
+    case "--mask":
+      set StatList0 = ($StatList0 ../mask)
+      breaksw
+
+    case "--stat":
+      if($#argv < 1) goto arg1err;
+      set StatList0 = ($StatList0 $argv[1]); shift;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      set debug = 1;
+      breaksw
+
+    case "--nolog":
+      set NoLog = 1;
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag not recognized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#FeatDirList == 0) then
+  echo "ERROR: must specify at least one feat dir"
+  exit 1;
+endif
+
+if($#seg == 0) then
+  echo "ERROR: must specify a segmentation"
+  exit 1;
+endif
+
+if(! $DoAllCopes && ! $DoAllVarCopes && ! $DoAllZStats && \
+   ! $DoAllPEs && $#StatList0 == 0) then
+  echo "ERROR: nothing to do"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "feat2segstats"
+  echo ""
+  echo " --feat dir  <--feat dir>  : Feat output directory"
+  echo " --featdirfile file : file with a list of feat directories"
+  echo ""
+  echo " --seg segvol"
+  echo " --aseg"
+  echo " --aparc+aseg"
+  echo " "
+  echo " --ctab ctab : default is FREESURFER_HOME/FreeSurferColorLUT.txt"
+  echo " --all-segs : report on all segs, even empty ones"
+  echo " "
+  echo " --copes : do all copes"
+  echo " --varcopes : do all varcopes"
+  echo " --zstats : do all zstats"
+  echo " --pes : do all pes"
+  echo " "
+  echo " --rvar : sigmasquareds"
+  echo " --exf : example_func"
+  echo " --mask : probably not too useful"
+  echo " --mean_func : "
+  echo " "
+  echo " --stat stat <--stat stat>"
+  echo " "
+  echo " --version : print version and exit"
+  echo " --help    : print help and exit"
+  echo " --debug   : turn on debugging"
+  echo " --nolog   : do not create a log file"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes segmentation summaries.  Stores output in
+featdir/freesurfer/segstats/segvol/statname.dat
+
+Once you have run this on several feat dirs, you can then
+
+asegstats2table --inputs \
+  featdir1/freesurfer/segstats/aparc+aseg/cope1.dat \
+  featdir2/freesurfer/segstats/aparc+aseg/cope1.dat \
+  featdir3/freesurfer/segstats/aparc+aseg/cope1.dat \
+  --meas mean --t cope1.table.dat 
+
+
