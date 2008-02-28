@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/02/28 05:34:52 $
-#    $Revision: 1.14 $
+#    $Date: 2008/02/28 05:42:26 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # aseg2feat
 #
 
-set VERSION = '$Id: aseg2feat,v 1.14 2008/02/28 05:34:52 greve Exp $';
+set VERSION = '$Id: aseg2feat,v 1.15 2008/02/28 05:42:26 greve Exp $';
 set FeatDirList = ();
 set debug = 0;
 set usedev = 0;
@@ -62,12 +62,19 @@ check_params_return:
 
 if($?DEV == 0) set DEV = "";
 
+echo ""
+echo ""
+@ nth = 0;
 foreach FeatDir ($FeatDirList)
+  @ nth = $nth + 1;
 
   # Set up a log file
   set LF = $FeatDir/reg/freesurfer/$asegvol"2feat.log"
-  echo log file is $LF
   if(-e $LF) mv $LF $LF.bak
+
+  echo "#@# $nth `date` --------------" | tee -a $LF
+  echo $FeatDir  | tee -a $LF
+  echo log file is $LF | tee -a $LF
   echo FeatDir is $FeatDir | tee -a $LF
   date | tee -a $LF
   pwd | tee -a $LF
@@ -113,16 +120,20 @@ foreach FeatDir ($FeatDirList)
   echo $cmd | tee -a $LF
   $cmd  | tee -a $LF
   if($status) then
-     echo "ERROR: with $cmd" | tee -a $LF
      pwd
-     exit 1;
+     echo "ERROR: with $cmd" | tee -a $LF
+     echo "Continuing"  | tee -a $LF
+     continue
   endif
-  echo " " | tee -a $LF
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
 
 end # FeatDir List
+echo "" 
+echo "" 
 
-date | tee -a $LF
-echo "aseg2feat done" | tee -a $LF
+date 
+echo "aseg2feat done" 
 
 exit 0;
 ###############################################
