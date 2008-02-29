@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/01/10 15:32:34 $
- *    $Revision: 1.30 $
+ *    $Author: nicks $
+ *    $Date: 2008/02/29 20:45:17 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -155,8 +155,11 @@ SurfaceCollection::LoadSurface () {
 
     // Get transform.
 #if 1
-    {
-      MRI *mri_cor = MRIalloc(mMRIS->vg.width, mMRIS->vg.height, mMRIS->vg.depth, MRI_UCHAR) ;
+    if (mMRIS->vg.valid) {
+      MRI *mri_cor = MRIalloc(mMRIS->vg.width, 
+                              mMRIS->vg.height, 
+                              mMRIS->vg.depth, 
+                              MRI_UCHAR) ;
       MATRIX *m_RAS2SurfaceRAS ;
       
       MRIcopyVolGeomToMRI(mri_cor, &mMRIS->vg) ;
