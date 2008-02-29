@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.44 2008/01/29 17:57:46 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.45 2008/02/29 00:52:24 greve Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -194,6 +194,9 @@
 253 CC_Central                              0   0   160 0
 254 CC_Mid_Anterior                         0   0   208 0
 255 CC_Anterior                             0   0   255 0
+
+# This is for keeping track of voxel changes
+256 Voxel-Unchanged                           0   0   0 0
 
 # lymph node and vascular labels
 331 Aorta                                   255 0   0   0
