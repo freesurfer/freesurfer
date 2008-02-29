@@ -8,10 +8,10 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/06 00:01:14 $
-#    $Revision: 1.7 $
+#    $Date: 2008/02/29 20:14:51 $
+#    $Revision: 1.8 $
 #
-# Copyright (C) 2002-2007,
+# Copyright (C) 2005-2008,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mri_motion_correct.fsl,v 1.7 2007/01/06 00:01:14 nicks Exp $';
+set VERSION = '$Id: mri_motion_correct.fsl,v 1.8 2008/02/29 20:14:51 nicks Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -36,6 +36,7 @@ set LF          = ();
 set CleanUp     = 1;
 set CleanUpList = ();
 set PWD = pwd;
+if ( -e /bin/pwd ) set PWD = /bin/pwd
 set HiRes = '';
 set outfmt = ();
 set AllowWild = 0;

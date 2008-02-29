@@ -6,13 +6,13 @@
 # Performs motion correction of anatomicals. This should produce
 # the same output as mri_motion_correct
 #
-# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/09/13 19:43:52 $
-#    $Revision: 1.14 $
+#    $Author: nicks $
+#    $Date: 2008/02/29 20:14:51 $
+#    $Revision: 1.15 $
 #
-# Copyright (C) 2002-2007,
+# Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -26,7 +26,7 @@
 #
 
 
-set VERSION = '$Id: mri_motion_correct2,v 1.14 2007/09/13 19:43:52 greve Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.15 2008/02/29 20:14:51 nicks Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -37,6 +37,7 @@ set CleanUp     = 1;
 set CleanUpList = ();
 set SaveXFM     = 1;
 set PWD = pwd;
+if ( -e /bin/pwd ) set PWD = /bin/pwd
 set HiRes = '';
 set outfmt = ();
 set AllowWild = 0;
