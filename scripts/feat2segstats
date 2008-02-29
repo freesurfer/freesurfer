@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/02/28 05:22:50 $
-#    $Revision: 1.1 $
+#    $Date: 2008/02/29 23:38:37 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: feat2segstats,v 1.1 2008/02/28 05:22:50 greve Exp $';
+set VERSION = '$Id: feat2segstats,v 1.2 2008/02/29 23:38:37 greve Exp $';
 set FeatDirList = ();
 set seg = ();
 set ctab = ();
@@ -66,7 +66,11 @@ check_params_return:
 
 
 # --------------------------------------------#
+echo ""
+echo ""
+@ nth = 0;
 foreach FeatDir ($FeatDirList)
+  @ nth = $nth + 1;
 
   # Set up a log file
   if(! $NoLog) then
@@ -77,7 +81,8 @@ foreach FeatDir ($FeatDirList)
     set LF = /dev/null
   endif
 
-  echo FeatDir is $FeatDir | tee -a $LF
+  echo "#@# $nth `date` --------------" | tee -a $LF
+  echo $FeatDir  | tee -a $LF
   date | tee -a $LF
   pwd | tee -a $LF
   echo $0 | tee -a $LF
@@ -148,8 +153,12 @@ foreach FeatDir ($FeatDirList)
     $cmd | tee -a $LF
     if($status) exit 1;
   end
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
 
 end # FeatDir List
+echo "" 
+echo "" 
 
 date 
 echo "feat2segstats done" 
