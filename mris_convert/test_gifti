@@ -1,0 +1,127 @@
+#!/bin/tcsh -f
+
+#
+# test_gifti
+#
+# tests ability to read/write GIFTI format file
+#
+# Original Author: Nick Schmansky
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2008/02/29 22:01:27 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2008,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION='$Id: test_gifti,v 1.1 2008/02/29 22:01:27 nicks Exp $'
+
+umask 002
+
+#
+# extract testing data
+#
+gunzip -c ./giftidata.tar.gz | tar xvf -
+
+#
+# run mris_convert, converting to freesurfer surface files
+#
+
+set cmd=(./mris_convert lh.caret.gifti.ascii.pial.gii \
+    lh.caret.gifti.ascii.pial)
+echo ""
+echo $cmd
+echo $cmd >& test_mris_convert.log
+echo ""
+$cmd >>& test_mris_convert.log
+if ($status != 0) then
+  echo "mris_convert FAILED"
+  exit 1
+endif
+
+set cmd=(./mris_convert lh.caret.gifti.base64.pial.gii \
+    lh.caret.gifti.base64.pial)
+echo ""
+echo $cmd
+echo $cmd >& test_mris_convert.log
+echo ""
+$cmd >>& test_mris_convert.log
+if ($status != 0) then
+  echo "mris_convert FAILED"
+  exit 1
+endif
+
+set cmd=(./mris_convert lh.caret.gifti.gzip_base64.pial.gii \
+    lh.caret.gifti.gzip_base64.pial)
+echo ""
+echo $cmd
+echo $cmd >& test_mris_convert.log
+echo ""
+$cmd >>& test_mris_convert.log
+if ($status != 0) then
+  echo "mris_convert FAILED"
+  exit 1
+endif
+
+#
+# compare expected results against each other and with expected result
+#
+
+set REF=(lh.caret.gifti.pial)
+set TST=(lh.caret.gifti.ascii.pial)
+set cmd=(../mris_diff/mris_diff --debug --thresh 0.0001 $REF $TST);
+echo ""
+echo $cmd
+echo $cmd >>& test_mris_convert.log
+$cmd >>& test_mris_convert.log
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+set REF=(lh.caret.gifti.ascii.pial)
+set TST=(lh.caret.gifti.base64.pial)
+set cmd=(../mris_diff/mris_diff --debug --thresh 0.0001 $REF $TST);
+echo ""
+echo $cmd
+echo $cmd >>& test_mris_convert.log
+$cmd >>& test_mris_convert.log
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+set REF=(lh.caret.gifti.base64.pial)
+set TST=(lh.caret.gifti.gzip_base64.pial)
+set cmd=(../mris_diff/mris_diff --debug --thresh 0.0001 $REF $TST);
+echo ""
+echo $cmd
+echo $cmd >>& test_mris_convert.log
+$cmd >>& test_mris_convert.log
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+#
+# cleanup
+#
+end:
+rm -f lh.*
+
+echo ""
+echo "test_gifti passed all tests"
+exit 0
