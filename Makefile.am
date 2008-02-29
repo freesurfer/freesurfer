@@ -107,6 +107,7 @@ MRISUBDIRS=\
 	mri_remove_neck \
 	mri_ribbon \
 	mri_rigid_register \
+	mri_seg_diff \
 	mri_segment \
 	mri_seghead \
 	mri_surfacemask \
