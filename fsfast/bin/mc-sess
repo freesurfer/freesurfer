@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/01/18 06:09:33 $
-#    $Revision: 1.17 $
+#    $Date: 2008/02/29 22:13:19 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION    = '$Id: mc-sess,v 1.17 2008/01/18 06:09:33 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.18 2008/02/29 22:13:19 greve Exp $'
 set cmdargs = ($argv);
 
 set fsd = "bold";
@@ -38,6 +38,7 @@ set targnthrun = 1;  # use nth run as target
 set targrun = ();    # use explicit run as target
 set RunListFile = ();
 set targstem = ();
+set targstem0 = ();
 set DoInorm = 0;
 set UpdateOnly = 0;
 set mask = brain;
@@ -178,21 +179,21 @@ foreach sess ($SessList)
       echo "   number of runs ($#RunList)."
       exit 1;
     endif
-    if(! $PerRun) set targstem = $RunList[$targnthrun]/$funcstem
+    if(! $PerRun) set targstem = $RunList[$targnthrun]/$targstem0
   else
-    if(! $PerRun) set targstem = $targrun/$funcstem
+    if(! $PerRun) set targstem = $targrun/$targstem0
   endif
   if($#targstem) echo "Targ Stem is $targstem"
 
   foreach run ($RunList)  
-    set instem  = $run/$funcstem
+    set instem = $run/$funcstem
     set infmtuse = `getformat_from_stem $instem $infmt`
     if($status) then
       echo "$infmtuse" 
       exit 1;
     endif
     set outstem = $run/$funcmcstem
-    if($PerRun) set targstem = $instem
+    if($PerRun) set targstem = $run/$targstem0
     if($targoffmid) then
       set nframes = `getnframes $instem`;
       set targoff = `echo $nframes/2 | bc`;
@@ -278,6 +279,11 @@ while( $#argv != 0 )
     case "-toff":
       if ( $#argv == 0) goto arg1err;
       set targoff = $argv[1]; shift;
+      breaksw
+
+    case "-targstem":
+      if ( $#argv == 0) goto arg1err;
+      set targstem0 = $argv[1]; shift;
       breaksw
 
     case "-fstem":
@@ -409,6 +415,8 @@ check_params:
      exit 1
   endif
 
+  if($#targstem0 == 0) set targstem0 = $funcstem;
+
 goto check_params_return;
 ############--------------##################
 
@@ -428,10 +436,10 @@ usage_exit:
   echo "   -targnthrun n      : use nth run as target (default=1)"
   echo "   -targrun RRR       : use run RRR as target"
   echo "   -toff m            : target image offset ($targoff)"
-  echo "   -fstem stem        : stem of input volume <f>"
-  echo "   -fmcstem stem      : stem of output motion-corrected volume (fmc)"
-  echo "   -umask umask       : set unix file permission mask"
-  echo "   -version           : print version and exit"
+  echo "   -fstem fstem       : stem of input volume <f>"
+  echo "   -fmcstem fmcstem   : stem of output motion-corrected volume (fmc)"
+  echo "   -targstem tstem    : use tstem as the target (default is fstem)"
+  echo ""
   echo "   -rlf  runlistfile  : only process those in the runlist file"
   echo "   -perrun            : MC each run separately (targ=mid)"
   echo "   -infmt  format     : <auto>, bhdr, mgh, mgz, nii, nii.gz"
@@ -439,6 +447,8 @@ usage_exit:
   echo "   -inorm             : perform intensity normalization"
   echo "   -no-inorm          : do not intensity normalize (default)"
   echo "   -update            : only mc if input is newer than output"
+  echo ""
+  echo "   -version           : print version and exit"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
