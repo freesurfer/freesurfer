@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/20 05:35:03 $
- *    $Revision: 1.46 $
+ *    $Date: 2008/02/29 01:02:59 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.46 2008/02/20 05:35:03 greve Exp $
+  $Id: mri2.c,v 1.47 2008/02/29 01:02:59 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -48,6 +48,7 @@
 #include "proto.h"
 #include "mri2.h"
 #include "sig.h"
+#include "cma.h"
 
 /*-------------------------------------------------------------
   mri_load_bvolume() -- same as bf_ldvolume() but returns an
@@ -2424,3 +2425,75 @@ double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist)
   return(dice);
 }
 
+/* ----------------------------------------------------------*/
+/*!
+  \fn MRI *MRIsegDiff(MRI *old, MRI *new, int *DiffFlag)
+  \brief Determines differences between old and new segmentation.
+  Voxels that are different will take the value of the new 
+  segmentation. Voxels that are NOT different will take the
+  value of VOXEL_UNCHANGED (defined as 256 in cma.h and LUT.txt).
+  This allows the diff to be loaded as a segmentation in tkmedit.
+  If a difference was detected DiffFlag is set to 1, otherwise 0.
+  Note that if there is no difference, all voxels will have the
+  value of VOXEL_UNCHANGED. See also MRIsegMergeDiff().
+*/
+MRI *MRIsegDiff(MRI *old, MRI *new, int *DiffFlag)
+{
+  MRI *diff;
+  int c,r,s;
+  int vold, vnew, vdiff;
+
+  diff = MRIallocSequence(new->width, new->height, new->depth, MRI_INT, 1);
+  MRIcopyHeader(new,diff);
+
+  *DiffFlag = 0;
+  for(c=0; c < new->width; c++){
+    for(r=0; r < new->height; r++){
+      for(s=0; s < new->depth; s++){
+	vold = MRIgetVoxVal(old,c,r,s,0);
+	vnew = MRIgetVoxVal(new,c,r,s,0);
+	if(vold == vnew) vdiff = VOXEL_UNCHANGED;
+	else {
+	  vdiff = vnew;
+	  *DiffFlag = 1;
+	}
+	MRIsetVoxVal(diff,c,r,s,0,vdiff);
+      }
+    }
+  }
+
+  return(diff);
+}
+
+/* ----------------------------------------------------------*/
+/*!
+  \fn MRI *MRIsegMergeDiff(MRI *old, MRI *diff)
+  \brief Merges a segmentation with a "diff" segmentation to create a
+  new segmentation. Voxels that have a diff value of VOXEL_UNCHANGED
+  (cma.h) take their value from the "old" segmentation. Voxels that
+  have a diff value other than VOXEL_UNCHANGED take their value from
+  the "diff" segmentation.  See also MRIsegDiff().
+*/
+MRI *MRIsegMergeDiff(MRI *old, MRI *diff)
+{
+  MRI *new;
+  int c,r,s;
+  int vold, vdiff, vnew;
+
+  new = MRIallocSequence(old->width, old->height, old->depth, MRI_INT, 1);
+  MRIcopyHeader(old,new);
+
+  for(c=0; c < new->width; c++){
+    for(r=0; r < new->height; r++){
+      for(s=0; s < new->depth; s++){
+	vold  = MRIgetVoxVal(old,c,r,s,0);
+	vdiff = MRIgetVoxVal(diff,c,r,s,0);
+	if(vdiff == VOXEL_UNCHANGED) vnew = vold;
+	else                         vnew = MRIgetVoxVal(diff,c,r,s,0);
+	MRIsetVoxVal(new,c,r,s,0,vnew);
+      }
+    }
+  }
+
+  return(new);
+}

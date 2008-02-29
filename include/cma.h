@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/09/22 21:34:50 $
- *    $Revision: 1.45 $
+ *    $Author: greve $
+ *    $Date: 2008/02/29 01:02:59 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -195,6 +195,8 @@
 #define CC_Anterior       255
 
 #define IS_CC(l) (l >= CC_Posterior && l <= CC_Anterior)
+
+#define VOXEL_UNCHANGED 256
 
 // vascular and lymph labels (from Alex G)
 #define Aorta                    331
