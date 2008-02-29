@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/26 01:02:52 $
- *    $Revision: 1.591 $
+ *    $Date: 2008/02/29 23:03:00 $
+ *    $Revision: 1.592 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.591 2008/02/26 01:02:52 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.592 2008/02/29 23:03:00 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -21199,7 +21199,7 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
   coords->num_dim = 2;
   coords->dims[0] = mris->nvertices; /* In highest first, dim0 = rows */
   coords->dims[1] = 3;               /* In highest first, dim1 = cols */
-  coords->encoding = GIFTI_ENCODING_ASCII;
+  coords->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   coords->endian = GIFTI_ENDIAN_LITTLE;
 #else
@@ -21249,7 +21249,7 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
   faces->num_dim = 2;
   faces->dims[0] = mris->nfaces;    /* In highest first, dim0 = rows */
   faces->dims[1] = 3;               /* In highest first, dim1 = cols */
-  faces->encoding = GIFTI_ENCODING_ASCII;
+  faces->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   faces->endian = GIFTI_ENDIAN_LITTLE;
 #else
@@ -21298,7 +21298,7 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
   normals->num_dim = 2;
   normals->dims[0] = mris->nvertices; /* In highest first, dim0 = rows */
   normals->dims[1] = 3;               /* In highest first, dim1 = cols */
-  normals->encoding = GIFTI_ENCODING_ASCII;
+  normals->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   normals->endian = GIFTI_ENDIAN_LITTLE;
 #else
