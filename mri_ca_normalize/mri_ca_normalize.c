@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/10/12 20:38:01 $
- *    $Revision: 1.40 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/01 23:40:08 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -137,13 +137,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.40 2007/10/12 20:38:01 nicks Exp $",
+     "$Id: mri_ca_normalize.c,v 1.41 2008/03/01 23:40:08 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.40 2007/10/12 20:38:01 nicks Exp $",
+     "$Id: mri_ca_normalize.c,v 1.41 2008/03/01 23:40:08 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -305,7 +305,7 @@ main(int argc, char *argv[])
       // now the type is set gca->type = GCA_FLASH
       GCAfree(&gca) ;
       gca = gca_tmp ;
-      GCAhistoScaleImageIntensities(gca, mri_in) ;
+      GCAhistoScaleImageIntensities(gca, mri_in, 1) ;
     }
     else if (gca->type == GCA_FLASH)
     {
@@ -337,10 +337,10 @@ main(int argc, char *argv[])
       if (novar)
         GCAunifyVariance(gca) ;
 
-      GCAhistoScaleImageIntensities(gca, mri_in) ;
+      GCAhistoScaleImageIntensities(gca, mri_in, 1) ;
     }
     else
-      GCAhistoScaleImageIntensities(gca, mri_in) ;
+      GCAhistoScaleImageIntensities(gca, mri_in, 1) ;
 
     if (example_T1)
     {
