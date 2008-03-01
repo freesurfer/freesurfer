@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/08 18:36:08 $
- *    $Revision: 1.47 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/01 01:45:18 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "version.h"
 
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.47 2007/03/08 18:36:08 greve Exp $";
+  "$Id: mris_sphere.c,v 1.48 2008/03/01 01:45:18 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -119,13 +119,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.47 2007/03/08 18:36:08 greve Exp $",
+   "$Id: mris_sphere.c,v 1.48 2008/03/01 01:45:18 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.47 2007/03/08 18:36:08 greve Exp $",
+           "$Id: mris_sphere.c,v 1.48 2008/03/01 01:45:18 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -314,9 +314,11 @@ main(int argc, char *argv[]) {
     MRISresetNeighborhoodSize(mris, nbrs) ;
   }
 
-  MRISwrite(mris, "before") ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRISwrite(mris, "before") ;
   MRISprojectOntoSphere(mris, mris, target_radius) ;
-  MRISwrite(mris, "after") ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRISwrite(mris, "after") ;
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
   MRISsetNeighborhoodSize(mris, nbrs) ;
   if (quick) {
