@@ -58,7 +58,7 @@ EXTRA_DIST=\
 	general.h \
 	getdelim.h \
 	getline.h \
-	gifti.h \
+	gifti_io.h \
 	gifti_local.h \
 	gifti_xml.h \
 	gw_utils.h \
