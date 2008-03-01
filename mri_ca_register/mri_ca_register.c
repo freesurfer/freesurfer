@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/19 12:49:28 $
- *    $Revision: 1.64 $
+ *    $Date: 2008/03/01 22:43:16 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -161,6 +161,7 @@ main(int argc, char *argv[]) {
   parms.uncompress = 0 ;
   parms.npasses = 1 ;
   parms.diag_write_snapshots = 1 ;
+  parms.diag_sample_type = SAMPLE_TRILINEAR ;
   parms.relabel_avgs = -1 ;  /* never relabel, was 1 */
   parms.reset_avgs = 0 ;  /* reset metric properties when navgs=0 */
   parms.dt = 0.05 ;  /* was 5e-6 */
@@ -191,7 +192,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ca_register.c,v 1.64 2007/09/19 12:49:28 fischl Exp $", 
+     "$Id: mri_ca_register.c,v 1.65 2008/03/01 22:43:16 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -331,7 +332,7 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_BADPARM,
                 "%s: must specify %d inputs, not %d for this atlas\n",
                 Progname, gca->ninputs, ninputs) ;
-    GCAhistoScaleImageIntensities(gca, mri_inputs) ;
+    GCAhistoScaleImageIntensities(gca, mri_inputs, 1) ;
     if (novar)
       GCAunifyVariance(gca) ;
   }
@@ -361,7 +362,7 @@ main(int argc, char *argv[]) {
       gca = gca_tmp ;
     }
 
-    GCAhistoScaleImageIntensities(gca, mri_inputs) ;// added by tosa
+    GCAhistoScaleImageIntensities(gca, mri_inputs, 1) ;// added by tosa
   }
 
   if (gca->flags & GCA_XGRAD)
@@ -756,14 +757,31 @@ main(int argc, char *argv[]) {
       //   if (read_lta == 0)
       {
         int old_diag ;
+        MRI *mri_morphed ;
+
         old_diag = Gdiag ;
         if (parms.write_iterations == 0)
           Gdiag &= ~DIAG_WRITE ;
 
+#if 0
+        {
+          parms.tol *= 10 ;
+          parms.l_smoothness *= 10 ;
+          printf("---------------- doing initial registration ----------------------\n") ;
+          GCAMregister(gcam, mri_inputs, &parms) ;
+          parms.tol /= 10 ;
+          parms.l_smoothness /= 10 ;
+          mri_morphed = GCAMmorphToAtlas(mri_inputs, gcam, NULL, -1) ;
+          printf("---------------- initial registration complete ----------------------\n") ;
+        }
+#else
+        mri_morphed = mri_inputs ;
+#endif
+
         if (do_secondpass_renorm) {
           GCAmapRenormalizeWithAlignment
           (gcam->gca,
-           mri_inputs,
+           mri_morphed,
            transform,
            parms.log_fp,
            parms.base_name,
@@ -775,7 +793,7 @@ main(int argc, char *argv[]) {
 
         GCAmapRenormalizeWithAlignment
         (gcam->gca,
-         mri_inputs,
+         mri_morphed,
          transform,
          parms.log_fp,
          parms.base_name,
