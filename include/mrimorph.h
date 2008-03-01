@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 14:37:51 $
- *    $Revision: 1.23 $
+ *    $Date: 2008/03/01 22:56:42 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -161,7 +161,10 @@ int       MRIrigidAlign(MRI *mri_in,MRI *mri_ref, MORPH_PARMS *parms,
                         MATRIX *m_L);
 int       MRIquasiNewtonAlignVolumes(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX *m_L);
 int       MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L);
-MATRIX    *MRIpowellAlignImages(MRI *mri_in, MRI *mri_target, MATRIX *m_L, float *pscale_factor, MATRIX *m_constraint) ;
+MATRIX    *MRIpowellAlignImages(MRI *mri_in, MRI *mri_target, MATRIX *m_L, 
+                                float *pscale_factor, MATRIX *m_constraint, 
+                                MRI *mri_source_mask, MRI *mri_target_mask,
+                                int map_both_ways) ;
 MATRIX *
 MRIpowellAlignLabels(MRI *mri_source, MRI *mri_target, MATRIX *m_L);
 
@@ -194,7 +197,7 @@ double MRIcomputeOptimalLinearXform(
   float min_trans, float max_trans,
   float angle_steps, float scale_steps,
   float trans_steps,
-  int nreductions, char *base_name) ;
+  int nreductions, char *base_name, int map_both_ways) ;
 
 
 #define M3D_MAGIC  0xabcdef42
