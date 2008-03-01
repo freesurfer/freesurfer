@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/02 21:34:40 $
- *    $Revision: 1.52 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/01 19:11:12 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -105,14 +105,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.52 2007/01/02 21:34:40 nicks Exp $",
+   "$Id: mri_normalize.c,v 1.53 2008/03/01 19:11:12 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.52 2007/01/02 21:34:40 nicks Exp $",
+           "$Id: mri_normalize.c,v 1.53 2008/03/01 19:11:12 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -213,6 +213,8 @@ main(int argc, char *argv[]) {
       ErrorExit
       (ERROR_NOFILE,
        "%s: could not read aseg from file %s", Progname, aseg_fname) ;
+    if (!mriConformed(mri_aseg))
+      ErrorExit(ERROR_UNSUPPORTED, "%s: aseg volume %s must be conformed", Progname, aseg_fname) ;
   } else
     mri_aseg = NULL ;
 
@@ -267,8 +269,13 @@ main(int argc, char *argv[]) {
       MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
       mri_dst = MRInormalize(mri_src, NULL, &mni) ;
       if (!mri_dst)
-        ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
-    } else {
+      {
+        no1d = 1 ;
+        printf("1d normalization failed - trying no1d...\n") ;
+        //        ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
+      }
+    } 
+    if (no1d) {
       if ((file_only && nosnr) ||
           ((gentle_flag != 0) && (control_point_fname != NULL))) {
         if (mri_dst == NULL)
