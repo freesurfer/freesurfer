@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:32 $
- *    $Revision: 1.69 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/01 22:56:13 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -8530,9 +8530,10 @@ MRIquasiNewtonAlignVolumes(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX
 }
 #include "voxlist.h"
 static int    powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat, float *pscale_factor,
-                              MATRIX *m_constraint);
+                              MATRIX *m_constraint,
+                              int map_both_ways);
 static float compute_powell_sse(float *p) ;
-static double compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, float scale_factor) ;
+static double compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, float scale_factor, int map_both_ways) ;
 #if 0
 static int write_snapshot(MRI *mri_source, MRI *mri_target,
                           MATRIX *m_vox_xform, char *base_name, int fno) ;
@@ -8565,10 +8566,10 @@ write_snapshot(MRI *mri_source, MRI *mri_target, MATRIX *m_vox_xform,
 #endif
 /* compute mean squared error of two images with a transform */
 static double
-compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, float scale_factor)
+compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, float scale_factor, int map_both_ways)
 {
   int     x, y, z, width, height, depth,
-  hwidth, hheight, hdepth, i ;
+    hwidth, hheight, hdepth, i ;
   VECTOR  *v1, *v2 ;
   MRI     *mri_target, *mri_source ;
   double  sse, error ;
@@ -8577,7 +8578,10 @@ compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, fl
 
   m_L_inv = MatrixInverse(m_L, NULL) ;
   if (m_L_inv == NULL)
-    ErrorExit(ERROR_BADPARM, "compute_distance_transform_sse: singular matrix.") ;
+  {
+    //    ErrorPrintf(ERROR_BADPARM, "compute_likelihood: singular matrix.") ;
+    return(-(vl_source->nvox+vl_target->nvox)*1e4) ;
+  }
 
   mri_target = vl_target->mri2 ;
   mri_source = vl_source->mri2 ;
@@ -8596,7 +8600,7 @@ compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, fl
 
 
   /* go through both voxel lists and compute the sse
-    map it to the source, and if the source hasn't been counted yet, count it.
+     map it to the source, and if the source hasn't been counted yet, count it.
   */
 
   sse = 0.0 ;
@@ -8631,38 +8635,39 @@ compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, fl
     sse += error*error ;
   }
 
-#if 0
+#if 1
   /* now count target voxels that weren't mapped to in union */
-  for (i = 0 ; i < vl_target->nvox ; i++)
-  {
-    x = vl_target->xi[i] ;
-    y = vl_target->yi[i] ;
-    z = vl_target->zi[i] ;
-    V3_X(v1) = x ;
-    V3_Y(v1) = y ;
-    V3_Z(v1) = z ;
-    MatrixMultiply(m_L_inv, v1, v2) ;
-    d1 = MRIgetVoxVal(vl_target->mri2, x, y, z, 0) ;
+  if (map_both_ways)
+    for (i = 0 ; i < vl_target->nvox ; i++)
+    {
+      x = vl_target->xi[i] ;
+      y = vl_target->yi[i] ;
+      z = vl_target->zi[i] ;
+      V3_X(v1) = x ;
+      V3_Y(v1) = y ;
+      V3_Z(v1) = z ;
+      MatrixMultiply(m_L_inv, v1, v2) ;
+      d1 = MRIgetVoxVal(vl_target->mri2, x, y, z, 0) ;
 
-    xd = V3_X(v2) ;
-    yd = V3_Y(v2) ;
-    zd = V3_Z(v2) ;
-    if (xd < 0)
-      xd = 0 ;
-    else if (xd >= hwidth-1)
-      xd = hwidth-1 ;
-    if (yd < 0)
-      yd = 0 ;
-    else if (yd >= hheight-1)
-      yd = hheight-1 ;
-    if (zd < 0)
-      zd = 0 ;
-    else if (zd >= hdepth-1)
-      zd = hdepth-1 ;
-    MRIsampleVolume(vl_source->mri2, xd, yd, zd, &d2) ;
-    error = d1-d2 ;
-    sse += error*error ;
-  }
+      xd = V3_X(v2) ;
+      yd = V3_Y(v2) ;
+      zd = V3_Z(v2) ;
+      if (xd < 0)
+        xd = 0 ;
+      else if (xd >= hwidth-1)
+        xd = hwidth-1 ;
+      if (yd < 0)
+        yd = 0 ;
+      else if (yd >= hheight-1)
+        yd = hheight-1 ;
+      if (zd < 0)
+        zd = 0 ;
+      else if (zd >= hdepth-1)
+        zd = hdepth-1 ;
+      MRIsampleVolume(vl_source->mri2, xd, yd, zd, &d2) ;
+      error = d1-d2 ;
+      sse += error*error ;
+    }
 #endif
 
   VectorFree(&v1) ;
@@ -8671,7 +8676,10 @@ compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, fl
   return(-sqrt(sse / (double)(vl_target->nvox + vl_source->nvox))) ;
 }
 MATRIX *
-MRIpowellAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L, float *pscale_factor, MATRIX *m_constraint)
+MRIpowellAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L, 
+                     float *pscale_factor, MATRIX *m_constraint, 
+                     MRI *mri_source_mask, MRI *mri_target_mask,
+                     int map_both_ways)
 {
   int    i ;
   float  fmin, fmax ;
@@ -8680,21 +8688,32 @@ MRIpowellAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L, float *pscal
   if (m_L == NULL)
     m_L = MRIgetVoxelToVoxelXform(mri_source, mri_target) ;
 
-  MRIvalRange(mri_target, &fmin, &fmax) ;
-  vl_target = VLSTcreate(mri_target,1,fmax+1,NULL,0,0);
+  if (mri_target_mask)
+    vl_target = VLSTcreate(mri_target_mask,1,2,NULL,0,0);
+  else
+  {
+    MRIvalRange(mri_target, &fmin, &fmax) ;
+    vl_target = VLSTcreate(mri_target,1,fmax+1,NULL,0,0);
+  }
   vl_target->mri2 = mri_target ;
   for (i = 0 ; i < 1 ; i++)
   {
-    MRIvalRange(mri_target, &fmin, &fmax) ;
-    vl_source = VLSTcreate(mri_source, 1, fmax+1, NULL, 0, 0) ;
+    if (mri_source_mask)
+      vl_source = VLSTcreate(mri_source_mask, 1, 2, NULL, 0, 0) ;
+    else
+    {
+      MRIvalRange(mri_source, &fmin, &fmax) ;
+      vl_source = VLSTcreate(mri_source, 1, fmax+1, NULL, 0, 0) ;
+    }
     vl_source->mri2 = mri_source ;
-    powell_minimize(vl_source, vl_target, m_L, pscale_factor, m_constraint) ;
+    powell_minimize(vl_source, vl_target, m_L, pscale_factor, m_constraint,
+                    map_both_ways) ;
     VLSTfree(&vl_source) ;
   }
   if (pscale_factor)
     printf("best matching intensity scaling = %2.4f\n", *pscale_factor) ;
   VLSTfree(&vl_target) ;
-  // write_snapshot(mri_source, mri_target, m_L, "after_powell", 0) ;
+  //  write_snapshot(mri_source, mri_target, m_L, "after_powell", 0) ;
   return(m_L) ;
 }
 #define NPARMS (3*4)
@@ -8704,15 +8723,17 @@ MRIpowellAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L, float *pscal
 #define TOL 1e-5
 
 static VOXEL_LIST *Gvl_target, *Gvl_source ;
-
+static int Gmap_both_ways = 0 ;
 static int
-powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat, float *pscale_factor, MATRIX *m_constraint)
+powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat, float *pscale_factor, MATRIX *m_constraint, int map_both_ways)
 {
-  float *p, **xi, fret, fstart, scale_factor;
+  float *p, **xi, fret, fstart, scale_factor, min_sse;
   int   i, r, c, iter ;
   p = vector(1, NPARMS+1) ;
   xi = matrix(1, NPARMS+1, 1, NPARMS+1) ;
-  p[i=1] = *MATRIX_RELT(mat, 1, 4) ;
+  i = 1 ;
+  Gmap_both_ways = map_both_ways;
+  p[i++] = *MATRIX_RELT(mat, 1, 4) ;
   p[i++] = *MATRIX_RELT(mat, 2, 4) ;
   p[i++] = *MATRIX_RELT(mat, 3, 4) ;
   for ( r = 1 ; r <= 3 ; r++)
@@ -8748,7 +8769,7 @@ powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat, float
 
 #if 0
   {
-    float scale, min_sse, sse, min_scale ;
+    float scale, sse, min_scale ;
     MATRIX *m_scale = NULL, *m_tot = NULL, *m_min, *m_origin, *m_origin_inv,
                                      *m_tmp = NULL;
     double   in_means[3] ;
@@ -8818,11 +8839,12 @@ powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat, float
   }
 #endif
 
+  min_sse = compute_powell_sse(p) ;
   if (pscale_factor)
     OpenPowell(p, xi, NPARMS+1, TOL, &iter, &fret, compute_powell_sse);
   else
     OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
-  scale_factor = p[i] ;
+  scale_factor = p[NPARMS+1] ;
   do
   {
     // reinitialize powell directions
@@ -8851,7 +8873,8 @@ powell_minimize(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat, float
     else
       OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_sse);
 
-    *MATRIX_RELT(mat, 1, 4) = p[i=1] ;
+    i = 1 ;
+    *MATRIX_RELT(mat, 1, 4) = p[i++] ;
     *MATRIX_RELT(mat, 2, 4) = p[i++] ;
     *MATRIX_RELT(mat, 3, 4) = p[i++] ;
     for ( r = 1 ; r <= 3 ; r++)
@@ -8888,7 +8911,8 @@ compute_powell_sse(float *p)
 
   if (mat == NULL)
     mat = MatrixAlloc(4, 4, MATRIX_REAL) ;
-  *MATRIX_RELT(mat, 1, 4) = p[i=1] ;
+  i=1 ;
+  *MATRIX_RELT(mat, 1, 4) = p[i++] ;
   *MATRIX_RELT(mat, 2, 4) = p[i++] ;
   *MATRIX_RELT(mat, 3, 4) = p[i++] ;
   for (r = 1 ; r <= 3 ; r++)
@@ -8903,7 +8927,8 @@ compute_powell_sse(float *p)
   *MATRIX_RELT(mat, 4, 2) = 0.0 ;
   *MATRIX_RELT(mat, 4, 3) = 0.0 ;
   *MATRIX_RELT(mat, 4, 4) = 1.0 ;
-  error = -compute_likelihood(Gvl_source, Gvl_target, mat, scale_factor) ;
+  error = -compute_likelihood(Gvl_source, Gvl_target, mat, scale_factor,
+                              Gmap_both_ways) ;
   return(error) ;
 }
 
@@ -9328,7 +9353,7 @@ compute_label_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m
 
   m_L_inv = MatrixInverse(m_L, NULL) ;
   if (m_L_inv == NULL)
-    ErrorExit(ERROR_BADPARM, "compute_distance_transform_sse: singular matrix.") ;
+    ErrorExit(ERROR_BADPARM, "compute_label_likelihood: singular matrix.") ;
 
   mri_target = vl_target->mri2 ;
   mri_source = vl_source->mri2 ;
@@ -9423,7 +9448,8 @@ powell_minimize_label(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat)
   int   i, r, c, iter ;
   p = vector(1, NPARMS) ;
   xi = matrix(1, NPARMS, 1, NPARMS) ;
-  p[i=1] = *MATRIX_RELT(mat, 1, 4) ;
+  i=1;
+  p[i++] = *MATRIX_RELT(mat, 1, 4) ;
   p[i++] = *MATRIX_RELT(mat, 2, 4) ;
   p[i++] = *MATRIX_RELT(mat, 3, 4) ;
   for ( r = 1 ; r <= 3 ; r++)
@@ -9461,7 +9487,8 @@ powell_minimize_label(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat)
     fstart = fret ;
     OpenPowell(p, xi, NPARMS, TOL, &iter, &fret, compute_powell_label_sse);
 
-    *MATRIX_RELT(mat, 1, 4) = p[i=1] ;
+    i=1;
+    *MATRIX_RELT(mat, 1, 4) = p[i++] ;
     *MATRIX_RELT(mat, 2, 4) = p[i++] ;
     *MATRIX_RELT(mat, 3, 4) = p[i++] ;
     for ( r = 1 ; r <= 3 ; r++)
@@ -9496,7 +9523,8 @@ compute_powell_label_sse(float *p)
 
   if (mat == NULL)
     mat = MatrixAlloc(4, 4, MATRIX_REAL) ;
-  *MATRIX_RELT(mat, 1, 4) = p[i=1] ;
+  i=1;
+  *MATRIX_RELT(mat, 1, 4) = p[i++] ;
   *MATRIX_RELT(mat, 2, 4) = p[i++] ;
   *MATRIX_RELT(mat, 3, 4) = p[i++] ;
   for (r = 1 ; r <= 3 ; r++)
@@ -9525,7 +9553,8 @@ MRIcomputeOptimalLinearXform
   float min_trans, float max_trans,
   float angle_steps, float scale_steps, float trans_steps,
   int nreductions,
-  char *base_name)
+  char *base_name,
+  int map_both_ways)
 {
   MATRIX   *m_rot, *m_x_rot, *m_y_rot, *m_z_rot, *m_tmp,*m_L_tmp,*m_origin_inv,
   *m_tmp2, *m_scale, *m_trans, *m_tmp3 = NULL, *m_origin ;
@@ -9540,6 +9569,7 @@ MRIcomputeOptimalLinearXform
   float      fmin, fmax ;
   MRI        *mri_tmp ;
 
+  Gmap_both_ways = map_both_ways ;
   MRIcenterOfMass(mri_source, src_means, 0) ;
   // unit matrix
   m_origin = MatrixIdentity(4, NULL) ;
@@ -9569,7 +9599,7 @@ MRIcomputeOptimalLinearXform
   VLSTcomputeStats(vl_source);
   if (Gdiag & DIAG_SHOW)
     printf("source mean =%g, std = %g\n", vl_source->mean, vl_source->std);
-  max_log_p = compute_likelihood(vl_source, vl_target, m_L, 1.0) ;
+  max_log_p = compute_likelihood(vl_source, vl_target, m_L, 1.0,map_both_ways);
   if (Gdiag & DIAG_WRITE)
   {
     char fname[STRLEN] ;
@@ -9672,7 +9702,7 @@ MRIcomputeOptimalLinearXform
 
                       m_L_tmp = MatrixMultiply
                                 (m_trans, m_tmp3, m_L_tmp) ;
-                      log_p = compute_likelihood(vl_source, vl_target, m_L_tmp, 1.0) ;
+                      log_p = compute_likelihood(vl_source, vl_target, m_L_tmp, 1.0, Gmap_both_ways) ;
 
                       if (log_p > max_log_p)
                       {
