@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/19 12:49:35 $
- *    $Revision: 1.21 $
+ *    $Date: 2008/03/01 22:43:01 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -281,7 +281,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_deface.c,v 1.21 2007/09/19 12:49:35 fischl Exp $", "$Name:  $");
+           "$Id: mri_deface.c,v 1.22 2008/03/01 22:43:01 fischl Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     ErrorExit
@@ -750,7 +750,7 @@ find_optimal_transform(MRI *mri,
     }
 
     if (!noiscale)
-      GCAhistoScaleImageIntensities(gca, mri) ;
+      GCAhistoScaleImageIntensities(gca, mri, 0) ;
 
     if (Gdiag & DIAG_WRITE && write_iterations > 0) {
       char fname[STRLEN] ;

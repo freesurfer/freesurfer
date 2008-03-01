@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/01 22:54:04 $
- *    $Revision: 1.84 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/01 22:43:10 $
+ *    $Revision: 1.85 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,13 +171,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.84 2007/11/01 22:54:04 nicks Exp $",
+   "$Id: mri_ca_label.c,v 1.85 2008/03/01 22:43:10 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.84 2007/11/01 22:54:04 nicks Exp $",
+           "$Id: mri_ca_label.c,v 1.85 2008/03/01 22:43:10 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -424,7 +424,7 @@ main(int argc, char *argv[]) {
       GCAregularizeCovariance(gca,1.0);
     //      GCAunifyVariance(gca) ;
 
-    GCAhistoScaleImageIntensities(gca, mri_inputs) ;
+    GCAhistoScaleImageIntensities(gca, mri_inputs, 1) ;
   }
   // -flash option
   if (map_to_flash || gca->type == GCA_PARAM) {
@@ -439,9 +439,9 @@ main(int argc, char *argv[]) {
                mri_inputs->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
     GCAfree(&gca) ;
     gca = gca_tmp ;
-    GCAhistoScaleImageIntensities(gca, mri_inputs) ;
+    GCAhistoScaleImageIntensities(gca, mri_inputs, 1) ;
   } else if (histo_norm)
-    GCAhistoScaleImageIntensities(gca, mri_inputs) ;
+    GCAhistoScaleImageIntensities(gca, mri_inputs, 1) ;
 
 
   if (gca->flags & GCA_GRAD) {

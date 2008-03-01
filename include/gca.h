@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/12/10 15:16:10 $
- *    $Revision: 1.88 $
+ *    $Date: 2008/03/01 22:42:27 $
+ *    $Revision: 1.89 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -341,7 +341,7 @@ MATRIX  *GCAlabelCovariance(GCA *gca, int label, MATRIX *m_total) ;
 int     GCAregularizeConditionalDensities(GCA *gca, float smooth) ;
 int     GCAmeanFilterConditionalDensities(GCA *gca, float navgs) ;
 int     GCArenormalizeToFlash(GCA *gca, char *tissue_parms_fname, MRI *mri) ;
-int     GCAhistoScaleImageIntensities(GCA *gca, MRI *mri) ;
+int     GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull) ;
 int     GCAhisto(GCA *gca, int nbins, int **pcounts) ;
 int     GCAcomputeVoxelLikelihoods(GCA *gca, MRI *mri_in, int x, int y, int z,
                                    TRANSFORM *transform, int *labels, double *likelihoods);
