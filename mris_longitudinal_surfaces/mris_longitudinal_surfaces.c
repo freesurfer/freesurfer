@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/03/02 02:53:20 $
+ *    $Revision: 1.3.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_longitudinal_surfaces.c,v 1.3 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = "$Id: mris_longitudinal_surfaces.c,v 1.3.2.1 2008/03/02 02:53:20 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -186,10 +186,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.3 2006/12/29 02:09:10 nicks Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.3.2.1 2008/03/02 02:53:20 nicks Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.3 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_longitudinal_surfaces.c,v 1.3.2.1 2008/03/02 02:53:20 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -316,12 +316,12 @@ main(int argc, char *argv[]) {
     MRI *mri_tmp ;
 
     fprintf(stderr, "applying median filter to T1 image...\n") ;
-    mri_tmp = MRImedian(mri_T1, NULL, 3) ;
+    mri_tmp = MRImedian(mri_T1, NULL, 3, NULL) ;
     MRIfree(&mri_T1) ;
     mri_T1 = mri_tmp ;
 
     if (mri_T1_white) {
-      mri_tmp = MRImedian(mri_T1_white, NULL, 3) ;
+      mri_tmp = MRImedian(mri_T1_white, NULL, 3, NULL) ;
       MRIfree(&mri_T1_white) ;
       mri_T1_white = mri_tmp ; // swap
     }

@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 02:10:25 $
- *    $Revision: 1.395.2.2 $
+ *    $Date: 2008/03/02 02:53:22 $
+ *    $Revision: 1.395.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-const char *MRI_C_VERSION = "$Revision: 1.395.2.2 $";
+const char *MRI_C_VERSION = "$Revision: 1.395.2.3 $";
 extern const char* Progname;
 
 /*-----------------------------------------------------
@@ -15019,6 +15019,28 @@ MRIgeometryMatched(MRI *mri1, MRI *mri2)
 }
 
       
+int 
+MRIfillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf)
+{
+  int   xi, xk, yi, yk, zi, zk ;
+
+  for (xk = -whalf ; xk <= whalf ; xk++)
+  {
+    xi = mri->xi[x+xk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (zk = -whalf ; zk <= whalf ; zk++)
+      {
+        zi = mri->zi[z+zk] ;
+        MRIsetVoxVal(mri, xi, yi, zi, 0, fill_val) ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+
 MRI *
 MRIfillHoles(MRI *mri_src, MRI *mri_fill, int thresh) 
 {
@@ -15113,5 +15135,63 @@ MRIlabelBoundingBox(MRI *mri, int label, MRI_REGION *region)
   region->dy = y1-region->y+1 ;
   region->dz = z1-region->z+1 ;
   return(NO_ERROR) ;
+}
+
+
+int
+MRIcountThreshInNbhd(MRI *mri, int wsize, int x, int y, int z, float thresh)
+{
+  int   xk, yk, zk, xi, yi, zi, whalf, total ;
+
+  whalf = (wsize-1)/2 ;
+  for (total = 0, zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        if (MRIgetVoxVal(mri, xi, yi, zi,0) > thresh)
+          total++ ;
+      }
+    }
+  }
+  return(total) ;
+}
+
+
+int
+MRIfillBox(MRI *mri, MRI_REGION *box, float fillval)
+{
+  int   x, y, z, xmin, xmax, ymin, ymax, zmin, zmax ;
+
+  xmin = MAX(0, box->x) ;
+  xmax = MIN(mri->width-1, box->x+box->dx-1) ;
+  ymin = MAX(0, box->y) ;
+  ymax = MIN(mri->height-1, box->y+box->dy-1) ;
+  zmin = MAX(0, box->z) ;
+  zmax = MIN(mri->depth-1, box->z+box->dz-1) ;
+  for (x = xmin ; x <= xmax ; x++)
+    for (y = ymin ; y <= ymax ; y++)
+      for (z = zmin ; z <= zmax ; z++)
+        MRIsetVoxVal(mri, x, y, z, 0, fillval) ;
+  return(NO_ERROR) ;
+}
+
+
+MRI *
+MRIcloneDifferentType(MRI *mri_src, int type)
+{
+  MRI *mri_dst ;
+
+  if (type == mri_src->type)
+    return(MRIclone(mri_src, NULL)) ;
+
+  mri_dst = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth, 
+                             type, mri_src->nframes) ;
+  MRIcopyHeader(mri_src, mri_dst) ;
+  return(mri_dst) ;
 }
 

@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/09 19:16:11 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/03/02 02:53:21 $
+ *    $Revision: 1.12.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 #include "label.h"
 
 static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.12 2007/01/09 19:16:11 nicks Exp $";
+"$Id: mris_refine_surfaces.c,v 1.12.2.1 2008/03/02 02:53:21 nicks Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -189,7 +189,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.12 2007/01/09 19:16:11 nicks Exp $", 
+     "$Id: mris_refine_surfaces.c,v 1.12.2.1 2008/03/02 02:53:21 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -304,7 +304,7 @@ main(int argc, char *argv[]) {
     MRI *mri_tmp ;
 
     fprintf(stderr, "applying median filter to T1 image...\n") ;
-    mri_tmp = MRImedian(mri_hires, NULL, 3) ;
+    mri_tmp = MRImedian(mri_hires, NULL, 3, NULL) ;
     MRIfree(&mri_hires) ;
     mri_hires = mri_tmp ;
   }

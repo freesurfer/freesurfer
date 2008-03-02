@@ -1,16 +1,14 @@
 /**
  * @file  mri_vol2vol.c
- * @brief program for transforming a volume from one coordinate system
- *        to another.
+ * @brief converts values in one volume to another volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: Greg Grev
+ * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/01 22:32:43 $
- *    $Revision: 1.34 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/02 02:53:20 $
+ *    $Revision: 1.34.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,16 +24,6 @@
  *
  */
 
-
-/*
-  Name:    mri_vol2vol
-  Author:  Douglas N. Greve
-  email:   analysis-bugs@nmr.mgh.harvard.edu
-  Date:    2/27/02
-  Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.34 2007/08/01 22:32:43 greve Exp $
-
-*/
 
 /*
 BEGINUSAGE --------------------------------------------------------------
@@ -421,7 +409,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.34 2007/08/01 22:32:43 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.34.2.1 2008/03/02 02:53:20 nicks Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -489,12 +477,12 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.34 2007/08/01 22:32:43 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.34.2.1 2008/03/02 02:53:20 nicks Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.34 2007/08/01 22:32:43 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.34.2.1 2008/03/02 02:53:20 nicks Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -663,7 +651,7 @@ int main(int argc, char **argv) {
     GCAMapplyTransform(gcam, Rtransform);  //voxel2voxel
 
     printf("Applying morph to input\n");
-    out = GCAMmorphToAtlas(in, gcam, NULL, -1);
+    out = GCAMmorphToAtlas(in, gcam, NULL, -1, interpcode);
 
     printf("Extracting region\n");
     region.x = 51;
