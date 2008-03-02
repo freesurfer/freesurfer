@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/29 23:03:00 $
- *    $Revision: 1.592 $
+ *    $Date: 2008/03/02 01:29:24 $
+ *    $Revision: 1.593 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <pwd.h>
 
 #include "diag.h"
 #include "error.h"
@@ -628,7 +629,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.592 2008/02/29 23:03:00 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.593 2008/03/02 01:29:24 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -21205,7 +21206,96 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
 #else
   coords->endian = GIFTI_ENDIAN_BIG;
 #endif
-  coords->coordsys = NULL;
+
+  if (mris->fname)
+  {
+    const char *primary=NULL, *secondary=NULL, *geotype=NULL;
+    char *name = mris->fname;
+    char *topotype="Closed";
+    if (strstr(name, "lh.")) primary = "CortexLeft";
+    if (strstr(name, "rh.")) primary = "CortexRight";
+    if (strstr(name, ".orig"))     secondary = "GrayWhite";
+    if (strstr(name, ".smoothwm")) secondary = "GrayWhite";
+    if (strstr(name, ".white"))    secondary = "GrayWhite";
+    if (strstr(name, ".pial"))     secondary = "Pial";
+    if (strstr(name, ".orig"))     geotype = "Reconstruction";
+    if (strstr(name, ".smoothwm")) geotype = "Anatomical";
+    if (strstr(name, ".white"))    geotype = "Anatomical";
+    if (strstr(name, ".pial"))     geotype = "Anatomical";
+    if (strstr(name, ".inflated")) geotype = "Inflated";
+    if (strstr(name, ".sphere"))   geotype = "Sphere";
+    if (strstr(name,"pial-outer")) geotype = "Hull";
+    if (mris->patch)
+    {
+      geotype = "Flat";
+      topotype = "Cut";
+    }
+
+    if (primary) gifti_add_to_meta( &coords->meta, 
+                                    "AnatomicalStructurePrimary", 
+                                    primary,
+                                    1 );
+    if (secondary) gifti_add_to_meta( &coords->meta, 
+                                      "AnatomicalStructureSecondary", 
+                                      secondary,
+                                      1 );
+    if (geotype) gifti_add_to_meta( &coords->meta, 
+                                    "GeometricType", 
+                                    geotype,
+                                    1 );
+    gifti_add_to_meta( &coords->meta, 
+                       "TopologicalType", 
+                       topotype,
+                       1 );
+    gifti_add_to_meta( &coords->meta, 
+                       "Name", 
+                       name,
+                       1 );
+  }
+  
+  if (strlen(mris->subject_name))
+  {
+    gifti_add_to_meta( &coords->meta, 
+                       "SubjectID", 
+                       mris->subject_name,
+                       1 );
+  }
+
+#if 0
+  #include <uuid/uuid.h>
+  uuid_t uuid;
+  char uuidstr[2048];
+  uuid_generate(uuid);
+  uuid_unparse(uuid, uuidstr);
+  gifti_add_to_meta( &coords->meta, 
+                     "UniqueID", 
+                     uuidstr,
+                     1 );
+#endif
+
+  struct passwd *pw = getpwuid(geteuid());
+  if ((pw != NULL) && (pw->pw_name != NULL))
+  {
+    gifti_add_to_meta( &coords->meta, 
+                       "UserName", 
+                       pw->pw_name,
+                       1 );
+  }
+
+  coords->coordsys = NULL; // empty, unless we find something here...
+  if (mris->SRASToTalSRAS_ && 
+      mris->SRASToTalSRAS_->rows==4 &&
+      mris->SRASToTalSRAS_->cols==4) 
+  { // found a valid xform, so use it...
+    coords->coordsys->dataspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
+    coords->coordsys->xformspace = strcpyalloc("NIFTI_XFORM_TALAIRACH");
+    MATRIX *xform = mris->SRASToTalSRAS_;
+    int r,c;
+    for (r=1; r <= 4; r++)
+      for (c=1; c <= 4; c++)
+        coords->coordsys->xform[r-1][c-1] = xform->rptr[r][c];
+  }
+
   coords->nvals = gifti_darray_nvals (coords);
   gifti_datatype_sizes (coords->datatype, &coords->nbyper, NULL); 
 
