@@ -1,15 +1,16 @@
 /**
  * @file  mri_em_register.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief linear registration to a gca atlas
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * pick a bunch of samples and use them to find the transform that
+ * maximizes the likelihood of the image given the atlas and the transform
  */
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/19 12:49:38 $
- *    $Revision: 1.58 $
+ *    $Date: 2008/03/02 00:01:21 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +35,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/09/19 12:49:38 $
-// Revision       : $Revision: 1.58 $
+// Revision Date  : $Date: 2008/03/02 00:01:21 $
+// Revision       : $Revision: 1.59 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -101,6 +102,7 @@ static int map_to_flash = 0 ;
 static double TR = -1 ;
 static double alpha = -1 ;
 static double TE = -1 ;
+static int baby = 0 ;
 
 static int nomap = 0 ;
 
@@ -189,7 +191,7 @@ main(int argc, char *argv[]) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.58 2007/09/19 12:49:38 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.59 2008/03/02 00:01:21 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -247,6 +249,8 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
 
+  if (baby)
+    GCArenormalizeClass(gca, CSF_CLASS, 240.0/190.0) ; // for T2 space
   /////////  -novar option //////////////////////////////////////////////
   if (novar)
     GCAregularizeCovariance(gca,1.0);
@@ -351,13 +355,13 @@ main(int argc, char *argv[]) {
       GCAnormalizeMeans(gca, 100) ;
       MRInormalizeSequence(mri_in, 100) ;
     } else
-      GCAhistoScaleImageIntensities(gca, mri_in) ;
+      GCAhistoScaleImageIntensities(gca, mri_in, skull==0) ;
     if (ninputs != gca->ninputs)
       ErrorExit
       (ERROR_BADPARM,
        "%s: must specify %d inputs, not %d for this atlas\n",
        Progname, gca->ninputs, ninputs) ;
-    /*                GCAhistoScaleImageIntensities(gca, mri_in) ;*/
+    /*                GCAhistoScaleImageIntensities(gca, mri_in, skull==0) ;*/
     if (novar)
       GCAregularizeCovariance(gca,1.0);
     //      GCAunifyVariance(gca) ;
@@ -392,7 +396,7 @@ main(int argc, char *argv[]) {
       MRInormalizeSequence(mri_in, 100) ;
     } else
 #endif
-      GCAhistoScaleImageIntensities(gca, mri_in) ;
+      GCAhistoScaleImageIntensities(gca, mri_in, skull == 0) ;
     if (novar)
       GCAregularizeCovariance(gca,1.0);
     //      GCAunifyVariance(gca) ;
@@ -582,6 +586,10 @@ main(int argc, char *argv[]) {
     sprintf(fname, "%s%3.3d_fsamples.mgz",
             parms.base_name, parms.start_t++) ;
     GCAtransformAndWriteSamples
+    (gca, mri_in, parms.gcas, nsamples, fname, transform) ;
+    sprintf(fname, "%s%3.3d_pvals.mgz",
+            parms.base_name, parms.start_t++) ;
+    GCAtransformAndWriteSamplePvals
     (gca, mri_in, parms.gcas, nsamples, fname, transform) ;
   }
   /////////////////////////////////////////////////////////////////////////
@@ -911,8 +919,8 @@ register_mri
 
 #define DEFAULT_MAX_STEPS 5
 static double MAX_ANGLES = DEFAULT_MAX_STEPS ;
-#define MAX_ANGLE       RADIANS(15)
-#define MIN_ANGLE       RADIANS(2)
+static double MAX_ANGLE  = RADIANS(15);
+//static double MIN_ANGLE  = RADIANS(2) ;
 
 #define MAX_SCALE       2.0
 #define MIN_SCALE       0.5
@@ -974,7 +982,7 @@ find_optimal_transform
 
   if (transform_loaded) {
     if (!noiscale)
-      GCAhistoScaleImageIntensities(gca, mri) ;
+      GCAhistoScaleImageIntensities(gca, mri, skull == 0) ;
     //////////////// diagnostics ////////////////////////////////
     if (Gdiag & DIAG_WRITE && write_iterations > 0) {
       char fname[STRLEN] ;
@@ -1005,7 +1013,7 @@ find_optimal_transform
 #endif
     // default is noiscale = 0 and thus perform
     if (!noiscale)
-      GCAhistoScaleImageIntensities(gca, mri) ;
+      GCAhistoScaleImageIntensities(gca, mri, skull==0) ;
 
     //////////////// diagnostics ////////////////////////////////
     if (Gdiag & DIAG_WRITE && write_iterations > 0) {
@@ -1020,6 +1028,9 @@ find_optimal_transform
       sprintf(fname, "%s_fsamples_centering0.mgz", parms.base_name) ;
       GCAtransformAndWriteSamples(gca, mri, gcas, nsamples,
                                   fname, transform) ;
+      sprintf(fname, "%s_pvals_centering0.mgz", parms.base_name) ;
+      GCAtransformAndWriteSamplePvals(gca, mri, gcas, nsamples,
+                                      fname, transform) ;
     }
     /////////////////////////////////////////////////////////////
     /* first align centroids */
@@ -1043,6 +1054,7 @@ find_optimal_transform
     min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
     min_real_val = h_smooth->bins[min_real_bin] ;
     printf("using real data threshold=%2.1f\n", min_real_val) ;
+    
     MRIfindApproximateSkullBoundingBox(mri, min_real_val, &box) ;
     HISTOfree(&h_mri) ;
     HISTOfree(&h_smooth) ;
@@ -1097,6 +1109,41 @@ find_optimal_transform
     fprintf(stdout, "************************************************\n");
     fprintf(stdout, "First Search limited to translation only.\n");
     fprintf(stdout, "************************************************\n");
+    if (skull)  // remove excess neck
+    {
+      MRI_REGION box ;
+      int        min_real_bin, mri_peak ;
+      float      min_real_val, fmax, fmin ;
+      HISTOGRAM  *h_mri, *h_smooth ;
+
+      MRIvalRange(mri, &fmin, &fmax) ;
+      h_mri = MRIhistogram(mri, nint(fmax-fmin+1)) ;
+      h_mri->counts[0] = 0 ; /* ignore background */
+      h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+      mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 0, h_smooth->nbins/3) ;
+      min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
+      min_real_val = 2*h_smooth->bins[min_real_bin] ;
+      
+      if (mriConformed(mri) && min_real_val > fmax/2)
+        min_real_val = fmax/2 ;
+      printf("using real data threshold=%2.1f\n", min_real_val) ;
+      MRIfindApproximateSkullBoundingBox(mri, min_real_val, &box) ;
+      box.y = (box.y+1.1*box.dx) ;  // use saggital to estimate s/i extent
+      box.dy = (mri->height-1)-box.y ;
+      box.x = box.z = 0 ; box.dx = mri->width ; box.dz = mri->depth;
+      if (mriConformed(mri))
+      {
+        if (box.y < 190)
+        {
+          box.y = 190 ;
+          box.dy = (mri->height-1)-box.y ;
+        }
+      }
+      MRIfillBox(mri, &box, 0) ;
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+        MRIwrite(mri, "i.mgz") ;
+      HISTOfree(&h_mri) ; HISTOfree(&h_smooth) ;
+    }
     max_log_p = find_optimal_translation(gca, gcas, mri, nsamples, m_L,
                                          -100, 100, 11, 5) ;
     max_log_p = local_GCAcomputeLogSampleProbability
@@ -1125,9 +1172,11 @@ find_optimal_transform
 #else
       Glta->xforms[0].m_L = m_L ;
       sprintf(fname, "%s_fsamples_centering1.mgz", parms.base_name) ;
-      printf("writing samples after centering to %s...\n", fname) ;
       GCAtransformAndWriteSamples(gca, mri, gcas, nsamples,
                                   fname, transform) ;
+      sprintf(fname, "%s_pvals_centering1.mgz", parms.base_name) ;
+      GCAtransformAndWriteSamplePvals(gca, mri, gcas, nsamples,
+                                      fname, transform) ;
 #endif
       MRIfree(&mri_aligned) ;
     }
@@ -1156,8 +1205,8 @@ find_optimal_transform
     max_log_p = find_optimal_linear_xform
                 (gca, gcas, mri, nsamples,
                  m_L, m_origin,
-                 -RADIANS(2*spacing*scale),
-                 RADIANS(2*spacing*scale),
+                 -(max_angle/scale),
+                 (max_angle/scale),
                  1-.25*(spacing/16.0)*scale, 1+.25*(spacing/16.0)*scale,
                  -scale*(spacing/16.0)*MAX_TRANS, scale*(spacing/16.0)*MAX_TRANS,
                  scale_samples, 3, 3, 2);
@@ -1290,6 +1339,9 @@ find_optimal_translation
     // create a new transform by multiplying the previous one.
     MatrixMultiply(m_trans, m_L, m_L_tmp) ;
     MatrixCopy(m_L_tmp, m_L) ;
+    max_log_p = local_GCAcomputeLogSampleProbability
+      (gca, gcas, mri, m_L,nsamples) ;
+
     x_max = y_max = z_max = 0.0 ;
     /* we've translated transform by old maxs */
 
@@ -1361,6 +1413,7 @@ static void printUsage(void) {
   printf("  -b blur_sigma\n");
   printf("  -v diagno\n");
   printf("  -s max_angles\n");
+  printf("  -max_angle max_angle in radians (def=15 deg)\n");
   printf("  -n niters\n");
   printf("  -w write_iters\n");
   printf("  -p ctl_point_pct : use top pct percent wm points as control points\n");
@@ -1387,6 +1440,14 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "FLASH")) {
     map_to_flash = 1 ;
     printf("using FLASH forward model to predict intensity values...\n") ;
+  } else if (!stricmp(option, "MAX_ANGLE")) {
+    MAX_ANGLE = RADIANS(atof(argv[2])) ;
+    printf("using %2.2f deg as max angle for rotational search\n",
+           DEGREES(MAX_ANGLE)) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "BABY")) {
+    baby = 1 ;
+    printf("using baby brain intensity model\n") ;
   } else if (!strcmp(option, "MASK")) {
     mask_fname = argv[2] ;
     nargs = 1 ;
