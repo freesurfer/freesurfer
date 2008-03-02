@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/01 22:54:57 $
- *    $Revision: 1.80.2.2 $
+ *    $Date: 2008/03/02 02:00:11 $
+ *    $Revision: 1.80.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,13 +171,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.80.2.2 2007/11/01 22:54:57 nicks Exp $",
+   "$Id: mri_ca_label.c,v 1.80.2.3 2008/03/02 02:00:11 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.80.2.2 2007/11/01 22:54:57 nicks Exp $",
+           "$Id: mri_ca_label.c,v 1.80.2.3 2008/03/02 02:00:11 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -346,7 +346,7 @@ main(int argc, char *argv[]) {
        "%s: could not read example T1 from %s",
        Progname, example_T1) ;
     printf("scaling atlas intensities using specified examples...\n") ;
-    MRIeraseBorderPlanes(mri_seg) ;
+    MRIeraseBorderPlanes(mri_seg, 1) ;
     GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
     MRIfree(&mri_seg) ;
     MRIfree(&mri_T1) ;
@@ -424,7 +424,7 @@ main(int argc, char *argv[]) {
       GCAregularizeCovariance(gca,1.0);
     //      GCAunifyVariance(gca) ;
 
-    GCAhistoScaleImageIntensities(gca, mri_inputs) ;
+    GCAhistoScaleImageIntensities(gca, mri_inputs, 1) ;
   }
   // -flash option
   if (map_to_flash || gca->type == GCA_PARAM) {
@@ -439,9 +439,9 @@ main(int argc, char *argv[]) {
                mri_inputs->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
     GCAfree(&gca) ;
     gca = gca_tmp ;
-    GCAhistoScaleImageIntensities(gca, mri_inputs) ;
+    GCAhistoScaleImageIntensities(gca, mri_inputs, 1) ;
   } else if (histo_norm)
-    GCAhistoScaleImageIntensities(gca, mri_inputs) ;
+    GCAhistoScaleImageIntensities(gca, mri_inputs, 1) ;
 
 
   if (gca->flags & GCA_GRAD) {
@@ -501,7 +501,7 @@ main(int argc, char *argv[]) {
 
     if (TransformFileNameType(xform_fname) == MORPH_3D_TYPE) {
       gcam = (GCA_MORPH *)(transform->xform);
-      printf("Atlas used< for the 3D morph was %s\n", gcam->atlas.fname);
+      printf("Atlas used for the 3D morph was %s\n", gcam->atlas.fname);
     }
 
     TransformInvert(transform, mri_inputs) ;

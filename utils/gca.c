@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/27 23:58:45 $
- *    $Revision: 1.231.2.6 $
+ *    $Date: 2008/03/02 02:00:13 $
+ *    $Revision: 1.231.2.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -242,7 +242,7 @@ static double gcaGibbsImageLogLikelihood(GCA *gca,
     MRI *mri_inputs,
     TRANSFORM *transform) ;
 
-static int mriFillRegion(MRI *mri, int x,int y,int z,int fill_val,int whalf);
+static int mriFillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf);
 static int gcaFindMaxPriors(GCA *gca, float *max_priors) ;
 static int gcaFindIntensityBounds(GCA *gca, float *pmin, float *pmax) ;
 static int dump_gcan(GCA *gca,
@@ -308,7 +308,9 @@ static void  set_equilavent_classes(int *equivalent_classes);
 static int initialize_ventricle_alignment(MRI *mri_seg, 
                                           MRI *mri, 
                                           MATRIX *m_L, 
-                                          char *base_name) ;
+                                          char *base_name,
+                                          int border,
+                                          int label) ;
 
 
 void GCAsetVolGeom(GCA *gca, VOL_GEOM *vg)
@@ -964,9 +966,40 @@ GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
   GCAvoxelToNodeReal(gca, mri, xv, yv, zv, &xn, &yn, &zn);
 
   // xn, yn, zn are double.  we use voxel center as integer
+#if 0
   ixn = (int) floor(xn);
   iyn = (int) floor(yn);
   izn = (int) floor(zn);
+#else
+  ixn = (int) floor(xn);
+  iyn = (int) floor(yn);
+  izn = (int) floor(zn);
+#endif
+  // if outofbounds, tell it
+  errCode = boundsCheck(&ixn, &iyn, &izn, gca->mri_node__);
+  //
+  *pxn = ixn;
+  *pyn = iyn;
+  *pzn = izn;
+
+  return errCode;
+}
+
+// use rounding to compute the index, not truncation
+int
+GCAvoxelToNodeNearest(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
+                      int *pyn, int *pzn)
+{
+  Real xn, yn, zn;
+  int   ixn, iyn, izn;
+  int errCode = NO_ERROR;
+
+  GCAvoxelToNodeReal(gca, mri, xv, yv, zv, &xn, &yn, &zn);
+
+  // xn, yn, zn are double.  we use voxel center as integer
+  ixn = (int) nint(xn);
+  iyn = (int) nint(yn);
+  izn = (int) nint(zn);
   // if outofbounds, tell it
   errCode = boundsCheck(&ixn, &iyn, &izn, gca->mri_node__);
   //
@@ -1011,6 +1044,31 @@ GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv,
   ixp = (int) floor(xp);
   iyp = (int) floor(yp);
   izp = (int) floor(zp);
+  // bound check
+  // if outofbounds, tell it
+  errCode = boundsCheck(&ixp, &iyp, &izp, gca->mri_prior__);
+  //
+  *pxp = ixp;
+  *pyp = iyp;
+  *pzp = izp;
+
+  return errCode;
+}
+
+// use rounding to compute the index, not truncation
+int
+GCAvoxelToPriorNearest(GCA *gca, MRI *mri, int xv, int yv, int zv,
+                       int *pxp, int *pyp, int *pzp)
+{
+  Real xp, yp, zp;
+  int ixp, iyp, izp;
+  int errCode = NO_ERROR;
+
+  GCAvoxelToPriorReal(gca, mri, xv, yv, zv, &xp, &yp, &zp);
+
+  ixp = (int) nint(xp);
+  iyp = (int) nint(yp);
+  izp = (int) nint(zp);
   // bound check
   // if outofbounds, tell it
   errCode = boundsCheck(&ixp, &iyp, &izp, gca->mri_prior__);
@@ -1224,7 +1282,7 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
                      int *pxn, int *pyn, int *pzn)
 {
   float xt, yt, zt;
-  Real  xrt, yrt, zrt ;
+  Real  xrt, yrt, zrt, xrn, yrn, zrn ;
   LTA *lta;
 
   if (transform->type != MORPH_3D_TYPE)
@@ -1248,13 +1306,26 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
   {
     TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
   }
+  GCAvoxelToNodeReal(gca, gca->mri_tal__, xt, yt, zt, &xrn,&yrn,&zrn);
+  *pxn = nint(xrn) ;
+  *pyn = nint(yrn) ;
+  *pzn = nint(zrn) ;
+
   if (Ggca_x == xv && Ggca_y == yv && Ggca_z == zv && DIAG_VERBOSE_ON)
+  {
     fprintf(stdout, "source (%d, %d, %d) to talposition (%.2f, %.2f, %.2f)\n",
             xv, yv, zv, xt, yt, zt);
-  fflush(stdout) ;
+    fflush(stdout) ;
+  }
+
+  if (*pxn < 0 || *pyn < 0 || *pzn < 0 ||
+      *pxn >= gca->node_width ||
+      *pyn >= gca->node_height ||
+      *pzn >= gca->node_depth)
+    return(ERROR_BADPARM) ;
 
   // get the position in node from the talairach position
-  return GCAvoxelToNode(gca, gca->mri_tal__, xt, yt, zt, pxn, pyn, pzn) ;
+  return(NO_ERROR) ;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -4182,6 +4253,9 @@ GCAcomputeLogSampleProbability(GCA *gca,
     if (!GCApriorToSourceVoxel(gca, mri_inputs, transform,
                                xp, yp, zp, &x, &y, &z))
     {
+      if (x == Gx && y == Gy && z == Gz)
+        DiagBreak() ;
+
       // (x,y,z) is the source voxel position
       gcas[i].x = x ;
       gcas[i].y = y ;
@@ -4189,6 +4263,12 @@ GCAcomputeLogSampleProbability(GCA *gca,
       // get values from all inputs
       load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
       log_p = gcaComputeSampleLogDensity(&gcas[i], vals, gca->ninputs) ;
+      if (FZERO(vals[0]) && gcas[i].label == Gdiag_no)
+      {
+        if (fabs(log_p) < 5)
+          DiagBreak() ;
+        DiagBreak() ;
+      }
       total_log_p += log_p ;
       gcas[i].log_p = log_p ;
 
@@ -5195,13 +5275,13 @@ GCAfindStableSamples(GCA *gca,
   /* compute the max priors and min variances for each class */
   for (nzeros = nfound = x = 0 ; x < width ; x += prior_stride)
   {
-    fflush(stdout);//nicknote: this prevents a segfault on Linux PowerPC 
+    fflush(stdout);//nicknote: this prevents a segfault on Linux PowerPC
                    //when -O2 optimization is used w/ gcc 3.3.3
 
     xi = nint(x) ;
     for (y = 0 ; y < height ; y += prior_stride)
     {
-      fflush(stdout);//nicknote: this prevents a segfault on Linux PowerPC 
+      fflush(stdout);//nicknote: this prevents a segfault on Linux PowerPC
                      //when -O2 optimization is used w/ gcc 3.3.3
 
       yi = nint(y) ;
@@ -5973,6 +6053,54 @@ gcaFindClosestMeanSample(GCA *gca,
 }
 #endif
 
+// same as GCAtransformAndWriteSamples except here we write
+// the -logp into the volume instead of the seg label
+int
+GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri, 
+                                GCA_SAMPLE *gcas,int nsamples,
+                                char *fname,TRANSFORM *transform)
+{
+  int    n, xv, yv, zv ;
+  MRI    *mri_dst ;
+
+  mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
+  MRIcopyHeader(mri, mri_dst);
+
+  TransformInvert(transform, mri) ;
+  for (n = 0 ; n < nsamples ; n++)
+  {
+    if (gcas[n].label == Gdiag_no)
+      DiagBreak() ;
+    if (!GCApriorToSourceVoxel(gca, mri_dst, transform,
+                               gcas[n].xp, gcas[n].yp, gcas[n].zp,
+                               &xv, &yv, &zv))
+    {
+      mriFillRegion(mri_dst, xv, yv, zv, -gcas[n].log_p, 1) ;
+
+      if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
+        DiagBreak() ;
+
+      gcas[n].x = xv ;
+      gcas[n].y = yv ;
+      gcas[n].z = zv ;
+
+      //////////// diag /////////////////////////
+      if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
+        DiagBreak() ;
+      if (DIAG_VERBOSE_ON && Gdiag & DIAG_SHOW)
+        printf("label %d: (%d, %d, %d) <-- (%d, %d, %d)\n",
+               gcas[n].label,gcas[n].xp,gcas[n].yp,gcas[n].zp,
+               xv, yv, zv) ;
+      //////////////////////////////////////////////
+    }
+  }
+  fprintf(stdout, "writing sample pvals to %s...\n", fname) ;
+  MRIwrite(mri_dst, fname) ;
+  MRIfree(&mri_dst) ;
+  fflush(stdout) ;
+
+  return(NO_ERROR) ;
+}
 // create a volume mapped to the current mri volume
 int
 GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
@@ -6028,7 +6156,7 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
 }
 
 static int
-mriFillRegion(MRI *mri, int x, int y, int z, int fill_val, int whalf)
+mriFillRegion(MRI *mri, int x, int y, int z, float fill_val, int whalf)
 {
   int   xi, xk, yi, yk, zi, zk ;
 
@@ -6041,7 +6169,8 @@ mriFillRegion(MRI *mri, int x, int y, int z, int fill_val, int whalf)
       for (zk = -whalf ; zk <= whalf ; zk++)
       {
         zi = mri->zi[z+zk] ;
-        MRIvox(mri, xi, yi, zi) = fill_val ;
+        MRIsetVoxVal(mri, xi, yi, zi, 0, fill_val) ;
+        //        MRIvox(mri, xi, yi, zi) = fill_val ;
       }
     }
   }
@@ -7797,10 +7926,10 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         // get node value
-        if (GCAvoxelToNode(gca, mri, x, y, z, &xn, &yn, &zn) == NO_ERROR)
+        if (GCAvoxelToNodeNearest(gca,mri, x, y, z, &xn, &yn, &zn) == NO_ERROR)
         {
           // get prior value
-          if (GCAvoxelToPrior(gca, mri, x, y, z,
+          if (GCAvoxelToPriorNearest(gca, mri, x, y, z,
                               &xp, &yp, &zp) == NO_ERROR)
           {
             gcan = &gca->nodes[xn][yn][zn] ;
@@ -12540,7 +12669,7 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
 double BOX_SIZE =   60;   /* mm */
 double HALF_BOX=   (60/2);
 int
-GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
+GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
 {
   float      x0, y0, z0, fmin, fmax, min_real_val ;
   int        mri_peak, r, max_T1_weighted_image = 0, min_real_bin, peak ;
@@ -12548,7 +12677,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
   scales[MAX_GCA_INPUTS], max_wm/*, scale*/ ;
   HISTOGRAM *h_mri, *h_smooth, *h_gca ;
   MRI_REGION box ;
-  MRI        *mri_frame, *mri_mask ;
+  MRI        *mri_frame, *mri_mask, *mri_tmp ;
 
   float      gm_means[MAX_GCA_INPUTS], gray_white_CNR;
 
@@ -12610,6 +12739,8 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
   max_wm = wm_means[max_T1_weighted_image];
 
   mri_frame = MRIcopyFrame(mri, NULL, max_T1_weighted_image, 0) ;
+  mri_tmp = MRImean(mri_frame, NULL, 5) ;
+  MRIfree(&mri_frame) ; mri_frame = mri_tmp ;
   MRIvalRange(mri_frame, &fmin, &fmax) ;
   h_mri = MRIhistogram(mri_frame, nint(fmax-fmin+1)) ;
   HISTOclearZeroBin(h_mri) ; /* ignore background */
@@ -12621,8 +12752,16 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 #endif
   min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
   min_real_val = h_smooth->bins[min_real_bin] ;
-  if (min_real_val > 0.25*fmax)   /* for skull-stripped images */
-    min_real_val = 0.25*fmax ;
+  if (noskull)
+  {
+    if (min_real_val > 0.25*fmax)   /* for skull-stripped images */
+      min_real_val = 0.25*fmax ;
+  }
+  else
+  {
+    if (min_real_val > 0.5*fmax)   /* for non skull-stripped images */
+      min_real_val = 0.5*fmax ;
+  }
   printf("using real data threshold=%2.1f\n", min_real_val) ;
 
   MRIfindApproximateSkullBoundingBox(mri_frame, min_real_val, &box) ;
@@ -12632,6 +12771,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
   HISTOfree(&h_smooth) ;
 
   //why divided by 3 for x and y?? mistake or experience?? -xh
+  // experience - don't want to be near midline (BRF)
   x0 = box.x+box.dx/3 ;
   y0 = box.y+box.dy/3 ;
   z0 = box.z+box.dz/2 ;
@@ -15463,10 +15603,10 @@ GCAlabelMeanFromImage(GCA *gca, TRANSFORM *transform,
 #if 1
 static int align_labels[] =
   {
+    Left_Lateral_Ventricle,
+    Right_Lateral_Ventricle,
     Right_Pallidum,
     Left_Pallidum,
-    Right_Lateral_Ventricle,
-    Left_Lateral_Ventricle,
     Right_Hippocampus,
     Left_Hippocampus,
     Right_Cerebral_White_Matter,
@@ -15696,7 +15836,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
           fflush(stdout);
           m_L = MRIgetVoxelToVoxelXform(mri_seg, mri) ;
           MRIpowellAlignImages
-          (mri_seg, mri,  m_L, &scale_factor, NULL) ;
+          (mri_seg, mri,  m_L, &scale_factor, NULL, NULL, NULL, 0) ;
           det = MatrixDeterminant(m_L) ;
           m_evectors = MatrixEigenSystem(m_L, evalues, NULL) ;
           printf("eigen values (%2.2f, %2.2f, %2.2f, %2.2f), "
@@ -16294,10 +16434,10 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 
 static int lh_labels[] =
   {
+    Left_Lateral_Ventricle,
     Left_Cerebral_White_Matter,
     Left_Hippocampus,
     Left_Cerebral_Cortex,
-    Left_Lateral_Ventricle,
     Left_Caudate,
     Left_Cerebellum_Cortex,
     Left_Cerebellum_White_Matter,
@@ -16309,10 +16449,10 @@ static int lh_labels[] =
   } ;
 static int rh_labels[] =
   {
+    Right_Lateral_Ventricle,
     Right_Cerebral_White_Matter,
     Right_Hippocampus,
     Right_Cerebral_Cortex,
-    Right_Lateral_Ventricle,
     Right_Caudate,
     Right_Cerebellum_Cortex,
     Right_Cerebellum_White_Matter,
@@ -16506,7 +16646,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
           if (! IS_GM(l))
           { // will use alignment of WM for GM
             //  MRIpowellAlignImages(mri_seg, mri,
-            // m_L, &scale_factor, NULL) ;
+            // m_L, &scale_factor, NULL,NULL, NULL, 0) ;
             if ((l == Left_Lateral_Ventricle ||
                  l == Right_Lateral_Ventricle) &&
                 (transform->type != MORPH_3D_TYPE) &&
@@ -16515,7 +16655,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
               char label_base_name[STRLEN] ;
               sprintf(label_base_name, "%s_label%d", base_name, l) ;
               initialize_ventricle_alignment
-                (mri_seg, mri, m_L, label_base_name) ;
+                (mri_seg, mri, m_L, label_base_name, border, l) ;
             }
             MRIfaridAlignImages(mri_seg, mri,  m_L) ;
           }
@@ -16812,7 +16952,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         case Left_Putamen:
         case Right_Putamen:
           lower_thresh = 60 ;
-          upper_thresh = 100 ;
+          upper_thresh = 107 ;
           break ;
         case Left_Lateral_Ventricle:
         case Right_Lateral_Ventricle:
@@ -16820,7 +16960,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         case Fourth_Ventricle:
         case CSF:
           lower_thresh = 0 ;
-          upper_thresh = 40 ;
+          upper_thresh = 45 ;
           break ;
         case Left_Inf_Lat_Vent:
         case Right_Inf_Lat_Vent:
@@ -16839,9 +16979,11 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         {
           //          if (transform->type != MORPH_3D_TYPE)
           {
-            printf("unreasonable value (%2.1f/%2.1f), "
+            printf("%s: unreasonable value (%2.1f/%2.1f), "
                    "not in range [%2.0f, %2.0f] - rejecting\n",
-                   val, h_mri->bins[mri_peak], lower_thresh, upper_thresh) ;
+                   cma_label_to_name(l), val, 
+                   h_mri->bins[mri_peak], 
+                   lower_thresh, upper_thresh) ;
             label_scales[l] = 1.0 ;
             label_offsets[l] = 1.0 ;
             continue ;
@@ -16931,6 +17073,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         h_gca = gcaGetLabelHistogram(gca, l, 0) ;
         gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
         HISTOmakePDF(h_gca, h_gca) ;
+
         if (gca_peak < 0)
         {
           //fprintf(stderr,
@@ -16955,6 +17098,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                  h_gca->counts[gca_peak], 
                  h_gca->bins[gca_peak]) ;
         }
+
         label_peaks[l] = h_gca->bins[gca_peak] ;
         fflush(stdout);
       }
@@ -20167,20 +20311,151 @@ GCAlabelWMandWMSAs(GCA *gca,
   MRIfree(&mri_tmp) ;
   return(mri_dst_labels) ;
 }
+#ifdef WSIZE
+#undef WSIZE
+#endif
+#define WSIZE 7
+static MRI *
+expand_ventricle(MRI *mri_src, MRI *mri, MRI *mri_dst, float thresh, 
+                 int nvox_thresh, int xdir)
+{
+  int        nfilled, x, y, z, xmin, xmax, ymin, ymax, zmin, zmax, nvox,
+             prev_nfilled, iter = 0 ;
+  MRI_REGION box ;
+  MRI        *mri_tmp = NULL ;
+
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+  mri_tmp = MRIcopy(mri_dst, NULL) ;
+  nfilled = 0 ;
+  nvox_thresh = WSIZE*WSIZE*WSIZE-2 ;
+  do
+  {
+    MRIboundingBox(mri_dst, 0, &box) ;
+    prev_nfilled = nfilled ;
+    nfilled = 0 ;
+
+    if (xdir > 0)
+    {
+      xmin = MAX(0, box.x) ;
+      xmax = MIN(mri->width-1, box.x+box.dx) ; // expand by 1
+    }
+    else
+    {
+      xmin = MAX(0, box.x-1) ;
+      xmax = MIN(mri->width-1, box.x+box.dx-1) ;
+    }
+    ymin = MAX(0, box.y-1) ;
+    ymax = MIN(mri->height-1, box.y+box.dy) ; // expand by 1
+    zmin = MAX(0, box.z-1) ;
+    zmax = MIN(mri->depth-1, box.z+box.dz) ; // expand by 1
+    for (x = xmin ; x <= xmax ; x++)
+      for (y = ymin ; y <= ymax ; y++)
+        for (z = zmin ; z <= zmax ; z++)
+        {
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
+          if (MRIgetVoxVal(mri_dst, x, y, z, 0) > 0) // already on
+            continue ;
+          if (MRIcountNonzeroInNbhd(mri_dst, WSIZE, x, y, z) < (WSIZE*WSIZE))
+            continue ;   // doesn't nbr any enough voxels
+          nvox = MRIcountThreshInNbhd(mri, WSIZE, x, y, z, thresh) ;
+          nvox = (WSIZE*WSIZE*WSIZE)-nvox ;  // # below thresh instead of above it
+          if (nvox < nvox_thresh)
+            continue ;   // doesn't nbr any on voxels
+          nfilled++ ;
+          MRIsetVoxVal(mri_tmp, x, y, z, 0, 1) ;
+        }
+
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "v%d.mgz", iter) ;
+      MRIwrite(mri_tmp, fname) ;
+    }
+    MRIcopy(mri_tmp, mri_dst) ;
+    iter++ ;
+    /*    prev_nfilled = nfilled ; */// disable check for now
+  } while (nfilled > 0 && nfilled >= prev_nfilled) ;
+  MRIfree(&mri_tmp) ;
+  return(mri_dst) ;
+}
+static MRI *
+fill_ventricles(MRI *mri_seg, MRI *mri, int border, MRI *mri_dst, int label)
+{
+  int        i, left ;
+  float      fmin, fmax ;
+
+  for (i = 0 ; i < border+2 ; i++)
+  {
+    if (i == 0)
+      mri_dst = MRIerode(mri_seg, mri_dst) ;
+    else
+      MRIerode(mri_dst, mri_dst) ;
+  }
+
+  MRIbinarize(mri_dst, mri_dst, 1, 0, 1) ;
+  MRIlabelValRange(mri,mri_dst, 1, &fmin, &fmax) ;
+
+  left = label == Left_Lateral_Ventricle ;
+  expand_ventricle(mri_dst, mri, mri_dst, fmax, 26, left) ;
+
+  return(mri_dst) ;
+}
 static int
 initialize_ventricle_alignment(MRI *mri_seg, 
                                MRI *mri, 
                                MATRIX *m_L, 
-                               char *base_name)
+                               char *base_name,
+                               int border,
+                               int label)
 {
+  MRI       *mri_vent, *mri_vent_dist, *mri_gca_vent, *mri_gca_vent_dist,
+             *mri_mask ;
+  MRI_REGION box ;
+
   printf("Handling expanded ventricles... "
          "(gca::initialize_ventricle_alignment)\n");
 
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_seg, "s.mgz") ;
+  mri_gca_vent =  MRIbinarize(mri_seg, NULL, 1, 0, 1) ;
+  while (border-- > 0)
+    MRIerode(mri_gca_vent, mri_gca_vent) ;
+
+  mri_vent = fill_ventricles(mri_seg, mri, border, NULL, label) ;
+  mri_vent_dist = MRIdistanceTransform(mri_vent, NULL, 1, mri_vent->width, 
+                                       DTRANS_MODE_SIGNED) ;
+  mri_gca_vent_dist = MRIdistanceTransform(mri_gca_vent, NULL, 1, 
+                                           mri_gca_vent->width, 
+                                           DTRANS_MODE_SIGNED) ;
+  MRIwrite(mri_gca_vent, "gv.mgz") ; 
+  MRIwrite(mri_vent, "v.mgz") ; 
+  MRIwrite(mri_gca_vent_dist, "gvd.mgz") ; 
+  MRIwrite(mri_vent_dist, "vd.mgz") ; 
+  mri_mask = MRIcopy(mri_gca_vent, NULL) ;
+  MRIcopyLabel(mri_vent, mri_mask, 1) ;
+  MRIboundingBox(mri_mask, 0, &box) ;
+  box.x -= 1 ; box.y -= 1; box.z -= 1 ; box.dx += 2; box.dy += 2; box.dz += 2;
+  MRIcropBoundingBox(mri_mask, &box) ;
+  MRIfillBox(mri_mask, &box, 1.0) ;
+  MRIpowellAlignImages(mri_gca_vent_dist, mri_vent_dist,  m_L, NULL, NULL,
+                       mri_gca_vent, mri_vent, 1) ;
+
+  MRIfree(&mri_gca_vent) ; MRIfree(&mri_vent) ; MRIfree(&mri_mask) ;
+  MRIfree(&mri_gca_vent_dist) ; MRIfree(&mri_vent_dist) ;
+  
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_seg, "s.mgz") ;
   MRIcomputeOptimalLinearXform(mri_seg, mri, m_L,
-                               -RADIANS(10), RADIANS(10),
-                               .9, 2,  // allow for ventriular expansion
+                               -RADIANS(20), RADIANS(20),
+                               .75, 1.5,  // allow for ventricular expansion
                                -10, 10,
-                               4, 3, 3, 3, base_name) ;
+                               3, 4, 3, 4, base_name, 0) ;
+  MRIcomputeOptimalLinearXform(mri_seg, mri, m_L,
+                               -RADIANS(5), RADIANS(5),
+                               .8, 1.2,  // allow for ventricular expansion
+                               -5, 5,
+                               3, 3, 3, 3, base_name, 0) ;
   return(NO_ERROR) ;
 }
 
@@ -21192,3 +21467,45 @@ GCAstructureBoundingBox(GCA *gca, int label, MRI_REGION *box)
   box->dx = xmax-xmin+1 ;  box->dy = ymax-ymin+1 ;  box->dz = zmax-zmin+1 ; 
   return(NO_ERROR) ;
 }
+int
+GCArenormalizeClass(GCA *gca, int class, float scale_to_wm)
+{
+  float     wm_mode, class_mode, scale ;
+  int       x, y, z, n, same_class, r ;
+  GCA_NODE  *gcan ;
+
+  GCAclassMode(gca, WM_CLASS, &wm_mode) ;
+  GCAclassMode(gca, class, &class_mode) ;
+  
+  scale = scale_to_wm * wm_mode / class_mode ;
+  printf("current wm/csf ratio = %2.2f (%2.0f/%2.0f), scaling by %2.3f\n", 
+         wm_mode/class_mode, wm_mode, class_mode, scale) ;
+  for (x = 0 ; x < gca->node_width ; x++)
+  {
+    for (y = 0 ; y < gca->node_height ; y++)
+    {
+      for (z = 0 ; z < gca->node_depth ; z++)
+      {
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          switch (class)
+          {
+          case CSF_CLASS: same_class = IS_CSF_CLASS(gcan->labels[n]) ;   break ;
+          case GM_CLASS:  same_class = IS_GRAY_CLASS(gcan->labels[n]) ;  break ;
+          case WM_CLASS:  same_class = IS_WHITE_CLASS(gcan->labels[n]) ; break ;
+          default: same_class = 0 ; break ;
+          }
+          if (same_class)
+          {
+            for (r = 0 ; r < gca->ninputs ; r++)
+              gcan->gcs[n].means[r] *= scale ;
+          }
+        }
+      }
+    }
+  }
+
+  return(NO_ERROR) ;
+}
+

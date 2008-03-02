@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/04 00:43:48 $
- *    $Revision: 1.84 $
+ *    $Date: 2008/03/02 02:00:11 $
+ *    $Revision: 1.84.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -189,6 +189,10 @@ int  GCAvoxelToPrior(GCA *gca, MRI *mri,
                      int xv, int yv, int zv, int *pxp,int *pyp,int *pzp);
 int  GCAvoxelToNode(GCA *gca, MRI *mri,
                     int xv, int yv, int zv, int *pxn,int *pyn,int *pzn);
+int  GCAvoxelToPriorNearest(GCA *gca, MRI *mri,
+                            int xv, int yv, int zv,int *pxp,int *pyp,int *pzp);
+int  GCAvoxelToNodeNearest(GCA *gca, MRI *mri,
+                           int xv, int yv, int zv, int *pxn,int *pyn,int *pzn);
 GCA  *GCAalloc(int ninputs, float prior_spacing, float node_spacing, int width, int height, int depth, int flags) ;
 int  GCAfree(GCA **pgca) ;
 int  GCANfree(GCA_NODE *gcan, int ninputs) ;
@@ -268,6 +272,9 @@ int        GCAwriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, int nsamples,
                            char *fname) ;
 int        GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
                                        int nsamples,char *fname,TRANSFORM *transform) ;
+int        GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri, 
+                                           GCA_SAMPLE *gcas,int nsamples,
+                                           char *fname,TRANSFORM *transform) ;
 int        GCAcomputeSampleCoords(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
                                   int nsamples,TRANSFORM *transform) ;
 MRI        *GCAmri(GCA *gca, MRI *mri) ;
@@ -312,7 +319,7 @@ int   GCArenormalizeWithEntropyMinimization(GCA *gca_affine, MRI *mri, TRANSFORM
 double GCAcomputeMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 int  GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
 int  GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform) ;
-int  GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, char *base_name, LTA **plta, int handle_expanded_ventricles) ;
+int  GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, char *base_name, LTA **plta, int handle_expanded_ventricles);
 int  GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
                             int wsize, float pthresh) ;
 int  GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
@@ -334,7 +341,7 @@ MATRIX  *GCAlabelCovariance(GCA *gca, int label, MATRIX *m_total) ;
 int     GCAregularizeConditionalDensities(GCA *gca, float smooth) ;
 int     GCAmeanFilterConditionalDensities(GCA *gca, float navgs) ;
 int     GCArenormalizeToFlash(GCA *gca, char *tissue_parms_fname, MRI *mri) ;
-int     GCAhistoScaleImageIntensities(GCA *gca, MRI *mri) ;
+int     GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull) ;
 int     GCAhisto(GCA *gca, int nbins, int **pcounts) ;
 int     GCAcomputeVoxelLikelihoods(GCA *gca, MRI *mri_in, int x, int y, int z,
                                    TRANSFORM *transform, int *labels, double *likelihoods);
@@ -417,6 +424,8 @@ int copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs) ;
 
 #include "colortab.h"
 COLOR_TABLE *GCAcolorTableCMA(GCA *gca);
+int GCAstructureBoundingBox(GCA *gca, int label, MRI_REGION *box) ;
 
+int GCArenormalizeClass(GCA *gca, int the_class, float scale_to_wm) ;
 
 #endif
