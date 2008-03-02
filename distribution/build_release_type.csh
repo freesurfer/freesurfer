@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.115 2008/02/26 18:35:22 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.116 2008/03/02 17:53:52 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,15 +13,15 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v4.0.2"
-set STABLE_PUB_VER_NUM="v4.0.2"
+set STABLE_VER_NUM="v4.0.3"
+set STABLE_PUB_VER_NUM="v4.0.3"
 
 set HOSTNAME=`hostname -s`
 
 # note: Mac's need full email addr
 set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu fischl@nmr.mgh.harvard.edu greve@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
+#set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
 if ("$HOSTNAME" == "blade") then
   set FAILURE_MAIL_LIST=(nicks)
 endif
@@ -347,6 +347,15 @@ if ($status != 0 && ! -e ${FAILED_FILE} ) then
   exit 0
 endif
 
+echo "CMD: grep -e "No such file" $CVSUPDATEF" >>& $OUTPUTF
+grep -e "No such file" $CVSUPDATEF >& $CVSUPDATEF-nosuchfiles
+if ($status == 0) then
+  set msg="$HOSTNAME $RELEASE_TYPE build problem - cvs update "
+  echo "$msg" >>& $CVSUPDATEF-nosuchfiles
+  tail -n 200 $CVSUPDATEF-nosuchfiles | mail -s "$msg" $SUCCESS_MAIL_LIST
+  rm -f $CVSUPDATEF-nosuchfiles
+endif
+
 # assume failure (file removed only after successful build)
 rm -f ${FAILED_FILE}
 touch ${FAILED_FILE}
@@ -502,7 +511,7 @@ endif
 # make check (run available unit tests)
 ######################################################################
 #
-#goto make_check_done
+if ($?SKIP_ALL_MAKE_CHECKS) goto make_check_done
 if ("$RELEASE_TYPE" != "stable-pub") then
   echo "########################################################" >>& $OUTPUTF
   echo "Make check $BUILD_DIR" >>& $OUTPUTF
