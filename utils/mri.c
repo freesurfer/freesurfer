@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 06:01:09 $
- *    $Revision: 1.395.2.1 $
+ *    $Date: 2008/03/02 02:10:25 $
+ *    $Revision: 1.395.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-const char *MRI_C_VERSION = "$Revision: 1.395.2.1 $";
+const char *MRI_C_VERSION = "$Revision: 1.395.2.2 $";
 extern const char* Progname;
 
 /*-----------------------------------------------------
@@ -12341,30 +12341,46 @@ MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count)
 } /* end MRIsmoothParcellation() */
 
 int
-MRIeraseBorderPlanes(MRI *mri)
+MRIeraseBorderPlanes(MRI *mri, int border_size)
 {
-  int  x, y, z ;
+  int  x, y, z, i, f ;
 
-  for (x = 0 ; x < mri->width ; x++)
+  for (f = 0 ; f < mri->nframes ; f++)
+    for (x = 0 ; x < mri->width ; x++)
+      for (y = 0 ; y < mri->height ; y++)
+      {
+        for (i = 0 ; i < border_size ; i++)
+        {
+          MRIsetVoxVal(mri, x, y, i, f, 0)  ;
+          MRIsetVoxVal(mri, x, y, mri->depth-i-1, f, 0) ;
+      }
+    }
+
+  for (f = 0 ; f < mri->nframes ; f++)
     for (y = 0 ; y < mri->height ; y++)
-    {
-      MRIvox(mri, x, y, 0) = MRIvox(mri, x, y, mri->depth-1) = 0 ;
-    }
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+        for (i = 0 ; i < border_size ; i++)
+        {
+          MRIsetVoxVal(mri, i, y, z, f, 0) ;
+          MRIsetVoxVal(mri, mri->width-i-1, y, z, f,0) ;
+        }
+      }
 
-  for (y = 0 ; y < mri->height ; y++)
-    for (z = 0 ; z < mri->depth ; z++)
-    {
-      MRIvox(mri, 0, y, z) = MRIvox(mri, mri->width-1, y, z) = 0 ;
-    }
-
-  for (x = 0 ; x < mri->width ; x++)
-    for (z = 0 ; z < mri->depth ; z++)
-    {
-      MRIvox(mri, x, 0, z) = MRIvox(mri, x, mri->height-1, z) = 0 ;
-    }
+  for (f = 0 ; f < mri->nframes ; f++)
+    for (x = 0 ; x < mri->width ; x++)
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+        for (i = 0 ; i < border_size ; i++)
+        {
+          MRIsetVoxVal(mri, x, i, z, f, 0) ;
+          MRIsetVoxVal(mri, x, mri->height-i-1, z, f, 0) ;
+        }
+      }
 
   return(NO_ERROR) ;
 }
+
 int
 MRIcopyPulseParameters(MRI *mri_src, MRI *mri_dst)
 {
@@ -12374,8 +12390,10 @@ MRIcopyPulseParameters(MRI *mri_src, MRI *mri_dst)
   mri_dst->ti = mri_src->ti ;
   return(NO_ERROR) ;
 }
+
 float
-MRIfindNearestNonzero(MRI *mri, int wsize, Real xr, Real yr, Real zr, float max_dist)
+MRIfindNearestNonzero(MRI *mri, int wsize, 
+                      Real xr, Real yr, Real zr, float max_dist)
 {
   int   xk, yk, zk, xi, yi, zi, whalf, x, y, z ;
   float dist, min_dist, min_val, dx, dy, dz ;
