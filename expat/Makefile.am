@@ -39,7 +39,6 @@ foo_DATA=license.expat
 EXTRA_DIST=\
 	xmltok_impl.c \
 	xmltok_ns.c \
-	expat_test \
 	README \
 	license.expat
 
