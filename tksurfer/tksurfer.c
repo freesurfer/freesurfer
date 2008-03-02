@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/26 00:59:32 $
- *    $Revision: 1.299 $
+ *    $Date: 2008/03/02 01:30:43 $
+ *    $Revision: 1.300 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -1181,11 +1181,6 @@ void bpfilter(FLOATTYPE **data, int nchan, int nsamp,float lo,float hi);
 /* begin rkt */
 
 /* -------------------------------------------------- the window and events */
-
-#ifdef Darwin
-// NJS: event loop redrawing does not work on Tiger build w/glut
-//  #define USE_XGLUT_WINDOW
-#endif
 
 #ifdef USE_XGLUT_WINDOW
 
@@ -20622,7 +20617,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.299 2008/02/26 00:59:32 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.300 2008/03/02 01:30:43 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
