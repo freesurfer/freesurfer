@@ -1,6 +1,6 @@
 /**
  * @file  annotation.c
- * @brief REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief utilities for surface-based parcellations
  *
  * utilities for surface-based parcellations (see Fischl et al., 
  * Cerebral Cortex)
@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 06:00:46 $
- *    $Revision: 1.19.2.1 $
+ *    $Date: 2008/03/02 18:35:53 $
+ *    $Revision: 1.19.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,12 +38,11 @@
 #include "label.h"
 #include "colortab.h"
 #include "diag.h"
+#include "mri2.h"
 
 #define ANNOTATION_SRC
 #include "annotation.h"
 #undef ANNOTATION_SRC
-
-extern const char* Progname;
 
 typedef struct
 {
@@ -384,8 +383,10 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) {
   MRIScomputeSecondFundamentalForm(mris) ;
   done = (int *)calloc(mris->ct->nentries, sizeof(int)) ;
   if (done == NULL)
-    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d index table",
-              Progname, mris->ct->nentries) ;
+    ErrorExit
+      (ERROR_NOMEMORY, 
+       "ERROR: MRISdivideAnnotation: could not allocate %d index table\n",
+       mris->ct->nentries) ;
 
   MRISclearMarks(mris) ;
   MRISsetNeighborhoodSize(mris, 2) ;
@@ -685,3 +686,266 @@ int MRISmergeAnnotations(MRIS *mris, int nparcs, char **parcnames, char *newparc
 
   return(NO_ERROR);
 }
+
+/*---------------------------------------------------------------*/
+/*!
+  \fn MRI *MRISannot2seg(MRIS *surf, int base)
+  \brief Constructs a 'segmentation' MRI from an annotation. The
+  segmentation index is the annotation ID + base. See mri_annnotation2label 
+  for more details on setting the base. The returned
+  MRI is a volume-encoded surface.   
+*/
+MRI *MRISannot2seg(MRIS *surf, int base)
+{
+  int k, annot, annotid;
+  MRI *seg;
+  
+  seg = MRIalloc(surf->nvertices,1,1,MRI_INT);
+
+  for(k=0; k < surf->nvertices; k++){
+    annot = surf->vertices[k].annotation;
+    if(surf->ct)  CTABfindAnnotation(surf->ct, annot, &annotid);
+    else          annotid = annotation_to_index(annot);
+    MRIsetVoxVal(seg,k,0,0,0, annotid + base);
+  }
+  return(seg);
+}
+/*---------------------------------------------------------------*/
+/*!
+  \fn MRI *MRISannot2border(MRIS *surf)
+  Creates a binary overlay that is 1 for vertices as the border
+  of parcellations and 0 everywhere else.
+*/
+MRI *MRISannot2border(MRIS *surf)
+{
+  int k, annot, nnbrs, nthnbr, knbr, nbrannot, isborder;
+  MRI *border;
+
+  border = MRIalloc(surf->nvertices,1,1,MRI_INT);
+
+  for(k=0; k < surf->nvertices; k++){
+    annot = surf->vertices[k].annotation;
+    nnbrs = surf->vertices[k].vnum;
+    isborder = 0;
+    for (nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+      knbr = surf->vertices[k].v[nthnbr];
+      nbrannot = surf->vertices[knbr].annotation;
+      if(nbrannot != annot) {
+	isborder = 1;
+	break;
+      }
+    }
+    MRIsetVoxVal(border,k,0,0,0, isborder);
+  }
+  return(border);
+}
+
+/*---------------------------------------------------------------*/
+/*!
+  \fn int MRISaparc2lobes(MRIS *surf)
+  Merges aparc labels into lobes.  
+*/
+int MRISaparc2lobes(MRIS *surf)
+{
+  char *parcnames[10];
+  parcnames[0] = "caudalmiddlefrontal";
+  parcnames[1] = "superiorfrontal";
+  parcnames[2] = "rostralmiddlefrontal";
+  parcnames[3] = "parsopercularis";
+  parcnames[4] = "parstriangularis";
+  parcnames[5] = "parsorbitalis";
+  parcnames[6] = "lateralorbitofrontal";
+  parcnames[7] = "medialorbitofrontal";
+  parcnames[8] = "paracentral";
+  parcnames[9] = "frontalpole";
+  MRISmergeAnnotations(surf, 10, parcnames, "frontal");
+
+  parcnames[0] = "superiortemporal";
+  parcnames[1] = "entorhinal";
+  parcnames[2] = "temporalpole";
+  parcnames[3] = "fusiform";
+  parcnames[4] = "inferiortemporal";
+  parcnames[5] = "middletemporal";
+  parcnames[6] = "parahippocampal";
+  parcnames[7] = "bankssts";
+  parcnames[8] = "transversetemporal";
+  MRISmergeAnnotations(surf, 9, parcnames, "temporal");
+
+  parcnames[0] = "supramarginal";
+  parcnames[1] = "inferiorparietal";
+  parcnames[2] = "superiorparietal";
+  parcnames[3] = "precuneus";
+  MRISmergeAnnotations(surf, 4, parcnames, "parietal");
+
+  parcnames[0] = "pericalcarine";
+  parcnames[1] = "cuneus";
+  parcnames[2] = "lingual";
+  parcnames[3] = "lateraloccipital";
+  MRISmergeAnnotations(surf, 4, parcnames, "occipital");
+
+  parcnames[0] = "isthmuscingulate";  
+  parcnames[1] = "posteriorcingulate";
+  parcnames[2] = "caudalanteriorcingulate";
+  parcnames[3] = "rostralanteriorcingulate";
+  MRISmergeAnnotations(surf, 4, parcnames, "cingulate");
+
+  return(0);
+}
+
+/* -------------------------------------------------------------------
+   int MRISfbirnAnnot(MRIS *surf) - creates an annotation for fBIRN
+   by dividing some aparcs or other geometric manipulations. Based on 
+   conversations with Jim Fallon.
+   -----------------------------------------------------------------*/
+int MRISfbirnAnnot(MRIS *surf)
+{
+  int *nunits;
+  int area32p,area32v,superiorfrontal,medialorbitofrontal;
+  int rostralanteriorcingulate, rostralmiddlefrontal;
+  int index;
+  COLOR_TABLE *ct ;
+  MRI *mri;
+
+  // Create new entries in the CTAB for area32p and area32v
+  ct = CTABaddEntry(surf->ct,"area32p");
+  CTABfree(&surf->ct);
+  surf->ct = ct;
+  ct = CTABaddEntry(surf->ct,"area32v");
+  CTABfree(&surf->ct);
+  surf->ct = ct;
+
+  // Get indices into CTAB for labels of interest
+  CTABfindName(surf->ct, "area32p", &area32p);
+  CTABfindName(surf->ct, "area32v", &area32v);
+  CTABfindName(surf->ct, "superiorfrontal", &superiorfrontal);
+  CTABfindName(surf->ct, "medialorbitofrontal", &medialorbitofrontal);
+  CTABfindName(surf->ct, "rostralanteriorcingulate", &rostralanteriorcingulate);
+  CTABfindName(surf->ct, "rostralmiddlefrontal", &rostralmiddlefrontal);
+
+  /* Create area32v by creating a mask of the region bordering 
+     MOF and RA Cingulate, then dilating 12 times and constraining 
+     to be in MOF. The new area is carved out of MOF.*/
+  mri = MRISfbirnMask_MOF_RACing(surf);
+  MRISdilateConfined(surf, mri, medialorbitofrontal, 12, area32v);
+  MRIfree(&mri);
+
+  /* Create area32p by creating a mask of the region bordering 
+     SFG and several Cingulates, then dilating 12 times and constraining 
+     to be in SFG. The new area is carved out of MOF.*/
+  mri = MRISfbirnMask_SFG_Cing(surf);
+  MRISdilateConfined(surf, mri, superiorfrontal, 12, area32p);
+  MRIfree(&mri);
+
+  // Now, divide up some units
+  nunits = (int *)calloc(surf->ct->nentries, sizeof(int)) ;
+  nunits[rostralanteriorcingulate] = 3;
+  nunits[rostralmiddlefrontal] = 3;
+  nunits[superiorfrontal] = 5;
+  nunits[area32p] = 2;
+  //nunits[area32v] = 2;
+
+  MRISdivideAnnotation(surf, nunits) ;
+
+  CTABfindName(surf->ct, "area32p", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area32p_pseudo");
+  CTABfindName(surf->ct, "area32p_div2", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area32a_pseudo");
+  CTABfindName(surf->ct, "area32v", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area32v_pseudo");
+  //CTABfindName(surf->ct, "area32v_div2", &index);
+  //sprintf(surf->ct->entries[index]->name, "%s","area32v_pseudo");
+
+  CTABfindName(surf->ct, "rostralanteriorcingulate", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area24d_pseudo");
+  CTABfindName(surf->ct, "rostralanteriorcingulate_div2", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area24pg_pseudo");
+  CTABfindName(surf->ct, "rostralanteriorcingulate_div3", &index);
+  sprintf(surf->ct->entries[index]->name, "%s","area24v_pseudo");
+
+  free(nunits);
+
+  return(0);
+}
+
+
+/*---------------------------------------------------------------*/
+/*!
+  \fn double *MRISannotDice(MRIS *surf1, MRIS *surf2, int *nsegs, int **segidlist)
+  \brief Computes dice coefficient for each parcellation unit. surf1
+  and surf2 should be the same surface with different parcellations
+  loaded.  *nsegs returns the number of parcellations. **segidlist is
+  a list of the parcellation id numbers (usually just 0 to nsegs-1.
+*/
+double *MRISannotDice(MRIS *surf1, MRIS *surf2, int *nsegs, int **segidlist)
+{
+  MRI *seg1, *seg2;
+  int k,id1,id2,k1=0,k2=0,vtxno;
+  int nsegid1, *segidlist1;
+  int nsegid2, *segidlist2;
+  double *area1, *area2, *area12, *dice;
+  *nsegs = -1;
+
+  // Create a seg from the 1st annot
+  seg1 = MRISannot2seg(surf1,0);
+  // Extract a unique, sorted list of the ids
+  segidlist1 = MRIsegIdList(seg1, &nsegid1,0);
+
+  // Create a seg from the 2nd annot
+  seg2 = MRISannot2seg(surf2,0);
+  // Extract a unique, sorted list of the ids
+  segidlist2 = MRIsegIdList(seg1, &nsegid2,0);
+
+  if(nsegid1 != nsegid2){
+    printf("ERROR: MRISannotDice(): nsegs do not match %d %d\n",
+	   nsegid1,nsegid2);
+    return(NULL);
+  }
+  // Note: segidlist1 and 2 should be the same too
+  printf("MRISannotDice(): found %d segs\n",nsegid1);
+  *nsegs = nsegid1;
+
+  area1  = (double *) calloc(nsegid1,sizeof(double));
+  area2  = (double *) calloc(nsegid1,sizeof(double));
+  area12 = (double *) calloc(nsegid1,sizeof(double));
+
+  for(vtxno=0; vtxno < surf1->nvertices; vtxno++){
+    // id at vtxno for 1st annot
+    id1 = MRIgetVoxVal(seg1,vtxno,0,0,0);
+    // determine its index in the segidlist
+    for(k=0; k < nsegid1; k++) {
+      if(id1 == segidlist1[k]){
+	k1 = k; 
+	break;
+      }
+    }
+    // id at vtxno for 2nd annot
+    id2 = MRIgetVoxVal(seg2,vtxno,0,0,0);
+    // determine its index in the segidlist
+    for(k=0; k < nsegid1; k++) {
+      if(id2 == segidlist2[k]){
+	k2 = k; 
+	break;
+      }
+    }
+    // accum areas
+    area1[k1] += surf1->vertices[vtxno].area;
+    area2[k2] += surf1->vertices[vtxno].area;
+    if(id1 == id2) area12[k1] += surf1->vertices[vtxno].area;
+  }
+
+  // Compute dice for each area
+  dice  = (double *) calloc(nsegid1,sizeof(double));
+  for(k=0; k < nsegid1; k++)
+    dice[k] = area12[k]/((area1[k]+area2[k])/2.0);
+
+  MRIfree(&seg1);
+  MRIfree(&seg2);
+  free(area1);
+  free(area2);
+  free(area12);
+  free(segidlist2);
+  *segidlist = segidlist1;
+
+  return(dice);
+}
+

@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/07 19:41:51 $
- *    $Revision: 1.18 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/02 18:35:52 $
+ *    $Revision: 1.18.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,7 @@ typedef struct
   int   nentries;  /* Size of entries array. */
   char  fname[STRLEN];  /* Original file name. */
   int   version;  /* Version number, if read from binary */
+  int   idbase;   // Add this to structure number when writing
 }
 COLOR_TABLE, CT ;
 

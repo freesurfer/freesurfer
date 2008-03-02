@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/07 18:40:18 $
- *    $Revision: 1.44 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/02 18:35:52 $
+ *    $Revision: 1.44.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -196,6 +196,8 @@
 
 #define IS_CC(l) (l >= CC_Posterior && l <= CC_Anterior)
 
+#define VOXEL_UNCHANGED 256
+
 // vascular and lymph labels (from Alex G)
 #define Aorta                    331
 #define Left_Common_IliacA       332
@@ -303,6 +305,8 @@
    ((l) == Left_non_WM_hypointensities) || \
    ((l) == Left_WM_hypointensities) || \
    ((l) == Right_WM_hypointensities) || \
+   ((l) == Left_choroid_plexus) || \
+   ((l) == Right_choroid_plexus) || \
    ((l) == WM_hypointensities) || \
    ((l) == Dura) || \
    ((l) == Bone) || \

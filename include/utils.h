@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/28 01:53:44 $
- *    $Revision: 1.27 $
+ *    $Date: 2008/03/02 18:35:52 $
+ *    $Revision: 1.27.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -81,10 +81,20 @@ int devIsinf(float value);
 int devIsnan(float value);
 int devFinite(float value);
 
-int getMemoryUsed(); // return total virtual memory used by Progname in Kbytes
-                     // works only under Linux /proc system
-void printMemoryUsed(); // print function of the above.
+int getMemoryUsed(void); // return total virtual memory used by Progname 
+                     // in Kbytes. works only under Linux /proc system
+void printMemoryUsed(void); // print function of the above.
 char *strcpyalloc(char *str);
 int  ItemsInString(char *str);
+char *deblank(char *str);
+char *str_toupper(char *str);
+double sum2stddev(double xsum, double xsum2, int nx);
+int compare_ints(const void *v1,const void *v2);
+int nunqiue_int_list(int *idlist, int nlist);
+int *unqiue_int_list(int *idlist, int nlist, int *nunique);
+
+/* Necessary when Intel C/C++ compiler is used... */
+void __ltoq(void);
+void __qtol(void);
 
 #endif

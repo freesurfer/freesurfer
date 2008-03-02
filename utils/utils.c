@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/27 02:23:44 $
- *    $Revision: 1.62 $
+ *    $Date: 2008/03/02 18:36:00 $
+ *    $Revision: 1.62.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -243,10 +243,10 @@ QuadEqual(double a1, double a2)
 void
 fComplementCode(double *pdIn, double *pdOut, int iLen)
 {
-  int     i, iFullLen ;
+  int     i ;
   double  d ;
 
-  iFullLen = iLen * 2 ;
+//  int iFullLen = iLen * 2 ;
   for (i = 0 ; i < iLen ; i++, pdOut++)
   {
     d = *pdIn++ ;
@@ -414,7 +414,7 @@ StrReplace(char *src, char *dst, char csrc, int cdst)
   for (cp_src = src, cp_dst = dst ; *cp_src ; cp_src++, cp_dst++)
   {
     if (*cp_src == csrc)
-      *cp_dst = cdst ;
+      *cp_dst = (char)cdst ;
     else
       *cp_dst = *cp_src ;
   }
@@ -891,9 +891,9 @@ deltaAngle(float angle1, float angle2)
 
   delta = angle1 - angle2 ;
   if (delta > M_PI)
-    delta = 2.0 * M_PI - delta ;
+    delta = 2.0f * (float)M_PI - delta ;
   else if (delta < -M_PI)
-    delta = -2.0f * M_PI - delta ;
+    delta = -2.0f * (float)M_PI - delta ;
 
   return(delta) ;
 }
@@ -1010,11 +1010,12 @@ int devIsinf(float value)
 /* isnan non-zero if NaN, 0 otherwise */
 int devIsnan(float value)
 {
-  unsigned int s, e, f;
+  unsigned int e, f;
+//  unsigned int s;
 
   union ieee754_float v;
   v.f = value;
-  s = v.ieee.negative;
+//  s = v.ieee.negative;
   e = v.ieee.exponent;
   f = v.ieee.mantissa;
 
@@ -1192,3 +1193,137 @@ int ItemsInString(char *str)
 
   return(items); // should never get here
 }
+
+
+/*!
+  \fn char *deblank(char *str)
+  \brief removes blanks from a string.
+*/
+char *deblank(char *str)
+{
+  char *dbstr;
+  int n,m;
+
+  dbstr = (char *) calloc(strlen(str)+1,sizeof(char));
+  
+  m = 0;
+  for(n=0; n < strlen(str); n++){
+    //printf("%d %c %d\n",n,str[n],isspace(str[n]));
+    if(isspace(str[n])) continue;
+    dbstr[m] = str[n];
+    //printf("   %d %c\n",m,dbstr[m]);
+    m++;
+  }
+  //printf("*%s*  *%s*\n",str,dbstr);
+
+  return(dbstr);
+}
+/*!
+  \fn int str_toupper(char *str)
+  \brief Converts each char in str to upper case. Done in place.
+*/
+char *str_toupper(char *str)
+{
+  int n;
+  for(n=0; n < strlen(str); n++) str[n] = toupper(str[n]);
+  return(0);
+}
+
+
+/*
+ * The Intel C/C++ compiler references the routines 'ltoq' and 'qtol', which
+ * don't seem to exist anywhere (not even in Google-land).  So dead-end
+ * routines are declared here (instead of trying to guess how long to quad
+ * should be implemented)...
+ */
+void __ltoq(void)
+{
+  printf("ERROR: Attempting usage of '__ltoq' routine!\n");
+  exit(1);
+}
+void __qtol(void)
+{
+  printf("ERROR: Attempting usage of '__qtol' routine!\n");
+  exit(1);
+}
+
+/*------------------------------------------------------------------*/
+/*!
+  \fn double sum2stddev(double xsum, double xsum2, int nx)
+  \brief Computes the stddev of a list of numbers given: the sum of
+  the numbers (xsum), the sum of the square of the numbers (xsum2),
+  and the number in the list (nx). This allows the computation of the
+  stddev with only one trip through the list.
+*/
+double sum2stddev(double xsum, double xsum2, int nx)
+{
+  double xmean, xstd;
+  xmean = xsum/nx;
+  xstd = sqrt( (xsum2 - 2*xmean*xsum + nx*xmean*xmean)/(nx-1) );
+  //printf("%g %g %d %g %g\n",xsum,xsum2,nx,xmean,xstd);
+  return(xstd);
+}
+
+/* --------------------------------------------- */
+/*!
+  \fn int compare_ints(const void *v1,const void *v2) 
+  \brief Int comparison function suitable for qsort.
+*/
+int compare_ints(const void *v1,const void *v2) 
+{
+  int i1, i2;
+  i1 = *((int*)v1);
+  i2 = *((int*)v2);
+  if (i1 < i2) return(-1);
+  if (i1 > i2) return(+1);
+  return(0); // equal
+}
+/* ---------------------------------------------------*/
+/*!
+  \fn int nunqiue_int_list(int *idlist, int nlist)
+  \brief Returns/counts the number of unique items in a 
+  list of integers. The list will be sorted.
+*/
+int nunqiue_int_list(int *idlist, int nlist) 
+{
+  int idprev, nunique, n;
+
+  qsort(idlist,nlist,sizeof(int),compare_ints);
+  nunique = 1;
+  idprev = idlist[0];
+  for (n=1; n<nlist; n++) {
+    if (idprev != idlist[n]) {
+      nunique++;
+      idprev = idlist[n];
+    }
+  }
+  return(nunique);
+}
+/* ---------------------------------------------------*/
+/*!
+  \fn int *unqiue_int_list(int *idlist, int nlist, int *nunique) 
+  \brief Returns the unique items in a list of integers. 
+  The list will be sorted.
+*/
+int *unqiue_int_list(int *idlist, int nlist, int *nunique) 
+{
+  int n, *ulist, nthu;
+
+  /* count number of unique elements in the list,
+     this also sorts the list */
+  *nunique = nunqiue_int_list(idlist, nlist);
+
+  /* alloc the unqiue list */
+  ulist = (int *) calloc(sizeof(int),*nunique);
+
+  nthu = 0;
+  ulist[nthu] = idlist[0];
+  for (n=1; n<nlist; n++) {
+    if (ulist[nthu] != idlist[n]) {
+      nthu ++;
+      ulist[nthu] = idlist[n];
+    }
+  }
+  return(ulist);
+}
+

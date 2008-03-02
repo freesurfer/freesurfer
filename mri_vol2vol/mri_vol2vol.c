@@ -1,14 +1,16 @@
 /**
  * @file  mri_vol2vol.c
- * @brief converts values in one volume to another volume
+ * @brief program for transforming a volume from one coordinate system
+ *        to another.
  *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: Douglas N. Greve
+ * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 02:53:20 $
- *    $Revision: 1.34.2.1 $
+ *    $Date: 2008/03/02 18:35:53 $
+ *    $Revision: 1.34.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,6 +26,16 @@
  *
  */
 
+
+/*
+  Name:    mri_vol2vol
+  Author:  Douglas N. Greve
+  email:   analysis-bugs@nmr.mgh.harvard.edu
+  Date:    2/27/02
+  Purpose: converts values in one volume to another volume
+  $Id: mri_vol2vol.c,v 1.34.2.2 2008/03/02 18:35:53 nicks Exp $
+
+*/
 
 /*
 BEGINUSAGE --------------------------------------------------------------
@@ -52,6 +64,13 @@ mri_vol2vol
   --kernel            : save the trilinear interpolation kernel instead
 
   --no-resample : do not resample, just change vox2ras matrix
+
+  --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix
+  --trans Tx Ty Tz : translation (mm) to apply to reg matrix
+  --shear Sxy Sxz Syz : xz is in-plane
+  --reg-final regfinal.dat : final reg after rot and trans (but not inv)
+
+  --no-save-reg : do not write out output volume registration matrix
 
   --help : go ahead, make my day
   --debug
@@ -409,7 +428,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.34.2.1 2008/03/02 02:53:20 nicks Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.34.2.2 2008/03/02 18:35:53 nicks Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -471,18 +490,34 @@ char gcamfile[1000];
 MRI_REGION region;
 char *m3zfile = "talairach.m3z";
 
+double angles[3] = {0,0,0};
+MATRIX *Mrot = NULL;
+double xyztrans[3] = {0,0,0};
+MATRIX *Mtrans = NULL;
+double shear[3] = {0,0,0};
+MATRIX *Mshear = NULL;
+
+char *SegRegCostFile = NULL;
+char  *fspec;
+MRI *regseg;
+int CostOnly = 0;
+char *RegFileFinal=NULL;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char regfile[1000];
   char cmdline[CMD_LINE_LEN] ;
+  double costs[8];
+  FILE *fp;
+  int n;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.34.2.1 2008/03/02 02:53:20 nicks Exp $",
+                          "$Id: mri_vol2vol.c,v 1.34.2.2 2008/03/02 18:35:53 nicks Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.34.2.1 2008/03/02 02:53:20 nicks Exp $",
+                                "$Id: mri_vol2vol.c,v 1.34.2.2 2008/03/02 18:35:53 nicks Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -569,10 +604,47 @@ int main(int argc, char **argv) {
   if (R == NULL)
     ErrorExit(ERROR_BADPARM, "ERROR: no registration specified\n") ;
 
+  if(Mrot){
+    printf("Applying rotation matrix (R=M*R)\n");
+    printf("Current Reg Matrix is:\n");
+    MatrixPrint(stdout,R);
+    printf("  Angles (deg): %lf %lf %lf\n",angles[0]*180/M_PI,angles[1]*180/M_PI,angles[2]*180/M_PI);
+    printf("  Angles (rad): %lf %lf %lf\n",angles[0],angles[1],angles[2]);
+    printf("  Rotation matrix:\n");
+    MatrixPrint(stdout,Mrot);
+    R = MatrixMultiply(Mrot,R,R);
+  }
+
+  if(Mtrans){
+    printf("Applying translation matrix (R=M*R)\n");
+    printf("Current Reg Matrix is:\n");
+    MatrixPrint(stdout,R);
+    printf("  Trans (mm): %lf %lf %lf\n",xyztrans[0],xyztrans[1],xyztrans[2]);
+    printf("  Translation matrix:\n");
+    MatrixPrint(stdout,Mtrans);
+    R = MatrixMultiply(Mtrans,R,R);
+  }
+  if(Mshear){
+    printf("Applying shear matrix (R=M*R)\n");
+    printf("Current Reg Matrix is:\n");
+    MatrixPrint(stdout,R);
+    printf("  Shear: %lf %lf %lf\n",shear[0],shear[1],shear[2]);
+    printf("  Shear matrix:\n");
+    MatrixPrint(stdout,Mshear);
+    R = MatrixMultiply(Mshear,R,R);
+  }
+
+  if(RegFileFinal){
+    printf("Writing final tkRAS-to-tkRAS Matrix to %s\n",RegFileFinal);
+    regio_write_register(RegFileFinal,subject,in->xsize,
+			 in->zsize,1,R,FLT2INT_ROUND);
+  }
+
   if(invert) {
     printf("Inverting registration\n");
     R = MatrixInverse(R,NULL);
   }
+
   invR = MatrixInverse(R,NULL);
 
   printf("\n");
@@ -665,6 +737,24 @@ int main(int argc, char **argv) {
     out = tmpmri;
   }
 
+  if(SegRegCostFile){
+    sprintf(tmpstr,"%s/%s/mri/regseg",SUBJECTS_DIR,subject);
+    fspec = IDnameFromStem(tmpstr);
+    regseg = MRIread(fspec);
+    if(regseg == NULL) exit(1);
+    free(fspec);
+    SegRegCost(regseg,out,costs);
+    fp = fopen(SegRegCostFile,"a");
+    for(n=0; n<3; n++) fprintf(fp,"%7.3lf ",xyztrans[n]);
+    for(n=0; n<3; n++) fprintf(fp,"%5.1lf ",angles[n]*180/M_PI);
+    fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[0],costs[1],costs[2]); // WM  n mean std
+    fprintf(fp,"%7d %10.4lf %8.4lf ",(int)costs[3],costs[4],costs[5]); // CTX n mean std
+    fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
+    fprintf(fp,"\n");
+    fclose(fp);
+    if(CostOnly) exit(0);
+  }
+
   MRIwrite(out,outvolfile);
 
   sprintf(regfile,"%s.reg",outvolfile);
@@ -733,6 +823,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--kernel"))    DoKernel = 1;
     else if (!strcasecmp(option, "--delta"))     DoDelta = 1;
     else if (!strcasecmp(option, "--no-save-reg"))  SaveReg = 0;
+    else if (!strcasecmp(option, "--cost-only"))  CostOnly = 1;
     else if (!strcasecmp(option, "--morph")) {
       DoMorph = 1;
       fstarg = 1;
@@ -754,6 +845,10 @@ static int parse_commandline(int argc, char **argv) {
       err = regio_read_register(regfile, &subject, &ipr, &bpr,
                                 &intensity, &R, &float2int);
       if (err) exit(1);
+      nargsused = 1;
+    } else if (istringnmatch(option, "--reg-final",0)) {
+      if (nargc < 1) argnerr(option,1);
+      RegFileFinal = pargv[0];
       nargsused = 1;
     } else if (istringnmatch(option, "--s",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -814,6 +909,39 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       setenv("SUBJECTS_DIR",pargv[0],1);
       nargsused = 1;
+    } else if (istringnmatch(option, "--rot",0)) {
+      if (nargc < 3) argnerr(option,3);
+      // Angles are in degrees
+      sscanf(pargv[0],"%lf",&angles[0]);
+      sscanf(pargv[1],"%lf",&angles[1]);
+      sscanf(pargv[2],"%lf",&angles[2]);
+      angles[0] *= (M_PI/180);
+      angles[1] *= (M_PI/180);
+      angles[2] *= (M_PI/180);
+      Mrot = MRIangles2RotMat(angles);
+      nargsused = 3;
+    } else if (istringnmatch(option, "--trans",0)) {
+      if (nargc < 3) argnerr(option,3);
+      // Translation in mm
+      sscanf(pargv[0],"%lf",&xyztrans[0]);
+      sscanf(pargv[1],"%lf",&xyztrans[1]);
+      sscanf(pargv[2],"%lf",&xyztrans[2]);
+      Mtrans = MatrixIdentity(4,NULL);
+      Mtrans->rptr[1][4] = xyztrans[0];
+      Mtrans->rptr[2][4] = xyztrans[1];
+      Mtrans->rptr[3][4] = xyztrans[2];
+      nargsused = 3;
+    } else if (istringnmatch(option, "--shear",0)) {
+      if (nargc < 3) argnerr(option,3);
+      // Shear
+      sscanf(pargv[0],"%lf",&shear[0]);
+      sscanf(pargv[1],"%lf",&shear[1]);
+      sscanf(pargv[2],"%lf",&shear[2]);
+      Mshear = MatrixIdentity(4,NULL);
+      Mshear->rptr[1][2] = shear[0]; // xy/col-slice
+      Mshear->rptr[1][3] = shear[1]; // xz/col-row - in-plane
+      Mshear->rptr[2][3] = shear[2]; // yz/row-slice
+      nargsused = 3;
     } else if ( !strcmp(option, "--gdiagno") ) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&gdiagno);
@@ -821,6 +949,10 @@ static int parse_commandline(int argc, char **argv) {
     } else if (istringnmatch(option, "--subject",0)) {
       if (nargc < 1) argnerr(option,1);
       subject = pargv[0];
+      nargsused = 1;
+    } else if (istringnmatch(option, "--cost",0)) {
+      if (nargc < 1) argnerr(option,1);
+      SegRegCostFile = pargv[0];
       nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
@@ -840,34 +972,43 @@ static void usage_exit(void) {
 }
 /* --------------------------------------------- */
 static void print_usage(void) {
-  printf("\n");
-  printf("mri_vol2vol\n");
-  printf("\n");
-  printf("  --mov  movvol       : input (or output template with --inv)\n");
-  printf("  --targ targvol      : output template (or input with --inv)\n");
-  printf("  --o    outvol       : output volume\n");
-  printf("\n");
-  printf("  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)\n");
-  printf("  --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)\n");
-  printf("  --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)\n");
-  printf("  --regheader         : ScannerRAS-to-ScannerRAS matrix = identity\n");
-  printf("\n");
-  printf("  --inv               : sample from targ to mov\n");
-  printf("\n");
-  printf("  --tal               : map to a sub FOV of MNI305 (with --reg only)\n");
-  printf("  --talres resolution : set voxel size 1mm or 2mm (def is 1)\n");
-  printf("  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)\n");  
-  printf("\n");
-  printf("  --fstarg            : use orig.mgz from subject in --reg as target\n");
-  printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
-  printf("  --precision precisionid : output precision (def is float)\n");
-  printf("\n");
-  printf("  --no-resample : do not resample, just change vox2ras matrix\n");
-  printf("\n");
-  printf("  --help : go ahead, make my day\n");
-  printf("  --debug\n");
-  printf("  --version \n");
-  printf("\n");
+printf("\n");
+printf("mri_vol2vol\n");
+printf("\n");
+printf("  --mov  movvol       : input (or output template with --inv)\n");
+printf("  --targ targvol      : output template (or input with --inv)\n");
+printf("  --o    outvol       : output volume\n");
+printf("\n");
+printf("  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)\n");
+printf("  --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)\n");
+printf("  --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)\n");
+printf("  --regheader         : ScannerRAS-to-ScannerRAS matrix = identity\n");
+printf("  --s subject         : set matrix = identity and use subject for any templates\n");
+printf("\n");
+printf("  --inv               : sample from targ to mov\n");
+printf("\n");
+printf("  --tal               : map to a sub FOV of MNI305 (with --reg only)\n");
+printf("  --talres resolution : set voxel size 1mm or 2mm (def is 1)\n");
+printf("  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)\n");
+printf("\n");
+printf("  --fstarg            : use orig.mgz from subject in --reg as target\n");
+printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
+printf("  --precision precisionid : output precision (def is float)\n");
+printf("  --kernel            : save the trilinear interpolation kernel instead\n");
+printf("\n");
+printf("  --no-resample : do not resample, just change vox2ras matrix\n");
+printf("\n");
+printf("  --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
+printf("  --trans Tx Ty Tz : translation (mm) to apply to reg matrix\n");
+printf("  --shear Sxy Sxz Syz : xz is in-plane\n");
+printf("  --reg-final regfinal.dat : final reg after rot and trans (but not inv)\n");
+printf("\n");
+printf("  --no-save-reg : do not write out output volume registration matrix\n");
+printf("\n");
+printf("  --help : go ahead, make my day\n");
+printf("  --debug\n");
+printf("  --version\n");
+printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void) {

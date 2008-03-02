@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/10 22:58:09 $
- *    $Revision: 1.21 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/02 18:35:52 $
+ *    $Revision: 1.21.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,6 +57,9 @@ double MRImaxAbsDiff(MRI *vol1, MRI *vol2,
                      int *cmax, int *rmax, int *smax, int *fmax);
 MRI *MRImax(MRI *mri1, MRI *mri2, MRI *out);
 MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst);
+MRI *MRIaddConst(MRI *src, double vconst, MRI *dst);
+int MRIvol2VolTkReg(MRI *mov, MRI *targ, MATRIX *Rtkreg,
+		    int InterpCode, float param);
 MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s);
 MRI *MRIvol2VolDelta(MRI *mov, MRI *targ, MATRIX *Rt2s);
 MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out);
@@ -73,6 +76,11 @@ double MRIsum2All(MRI *mri);
 MRI *MRIchecker(MRI *mri, MRI *checker);
 MRI *MRIcrop(MRI *mri,int c1, int r1, int s1, int c2, int r2, int s2);
 MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int s2);
-
+MRI *MRIsquare(MRI *in, MRI *mask, MRI *out);
+MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out);
+int *MRIsegIdList(MRI *seg, int *nlist, int frame);
+double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist);
+MRI *MRIsegDiff(MRI *oldseg, MRI *newseg, int *DiffFlag);
+MRI *MRIsegMergeDiff(MRI *oldseg, MRI *diff);
 
 #endif

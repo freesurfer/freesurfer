@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/28 20:44:06 $
- *    $Revision: 1.112.2.3 $
+ *    $Date: 2008/03/02 18:35:58 $
+ *    $Revision: 1.112.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -245,9 +245,11 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
     }
     else if (!strcmp(param, "filename"))
     {
-      sscanf(line, "%s %s %s\n", param, eq, buf);
-      strcpy(vg->fname, buf);
-      counter++;
+      if (sscanf(line, "%s %s %s\n", param, eq, buf) >= 3)
+      {
+        strcpy(vg->fname, buf);
+        counter++;
+      }
     }
     else if (!strcmp(param, "volume"))
     {
@@ -2225,7 +2227,8 @@ TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
   case MORPH_3D_TYPE:
     // does take care of the dst c_ras position using atlas information
     mri_dst = GCAMmorphToAtlas(mri_src,
-                               (GCA_MORPH*)transform->xform, NULL, -1) ;
+                               (GCA_MORPH*)transform->xform, NULL, -1,
+                               SAMPLE_TRILINEAR) ;
     break ;
   default:
     // now assumes that this is the LTA type
@@ -3725,3 +3728,244 @@ TransformSampleDirection(TRANSFORM *transform, float x0, float y0, float z0, flo
   return(NO_ERROR) ;
 }
 
+/*!
+  \fn MATRIX *MRIangles2RotMat(double *angles)
+  \brief Convert 3 euler angles into a 4x4 rotation matrix
+  \param angles is a 3x1 vector in radians. 
+    angles[0] - pitch - rotation about x or LR axis (gamma)
+    angles[1] - yaw   - rotation about y or AP axis (beta)
+    angles[2] - roll  - rotation about z or SI axis (alpha)
+  Ref: Craig, Intro to Robotics
+*/
+MATRIX *MRIangles2RotMat(double *angles)
+{
+  double gamma, beta, alpha;
+  int r,c;
+  MATRIX *R, *R3, *Rx, *Ry, *Rz;
+
+  gamma = angles[0];
+  beta  = angles[1];
+  alpha = angles[2];
+
+  //printf("angles %g %g %g\n",angles[0],angles[1],angles[2]);
+
+  Rx = MatrixZero(3,3,NULL);
+  Rx->rptr[1][1] = +1;
+  Rx->rptr[2][2] = +cos(gamma);
+  Rx->rptr[2][3] = -sin(gamma);
+  Rx->rptr[3][2] = +sin(gamma);
+  Rx->rptr[3][3] = +cos(gamma);
+  //printf("Rx ----------------\n");
+  //MatrixPrint(stdout,Rx);
+
+  Ry = MatrixZero(3,3,NULL);
+  Ry->rptr[1][1] = +cos(beta);
+  Ry->rptr[1][3] = +sin(beta);
+  Ry->rptr[2][2] = 1;
+  Ry->rptr[3][1] = -sin(beta);
+  Ry->rptr[3][3] = +cos(beta);
+  //printf("Ry ----------------\n");
+  //MatrixPrint(stdout,Ry);
+
+  Rz = MatrixZero(3,3,NULL);
+  Rz->rptr[1][1] = +cos(alpha);
+  Rz->rptr[1][2] = -sin(alpha);
+  Rz->rptr[2][1] = +sin(alpha);
+  Rz->rptr[2][2] = +cos(alpha);
+  Rz->rptr[3][3] = +1;
+  //printf("Rz ----------------\n");
+  //MatrixPrint(stdout,Rz);
+
+  // This will be a 3x3 matrix
+  R3 = MatrixMultiply(Rz,Ry,NULL);
+  R3 = MatrixMultiply(R3,Rx,R3);
+
+  // Stuff 3x3 into a 4x4 matrix, with (4,4) = 1
+  R = MatrixZero(4,4,NULL);
+  for(c=1; c <= 3; c++){
+    for(r=1; r <= 3; r++){
+      R->rptr[r][c] = R3->rptr[r][c];
+    }
+  }
+  R->rptr[4][4] = 1;
+
+  MatrixFree(&Rx);
+  MatrixFree(&Ry);
+  MatrixFree(&Rz);
+  MatrixFree(&R3);
+
+  //printf("R ----------------\n");
+  //MatrixPrint(stdout,R);
+
+  return(R);
+}
+
+/*!
+  \fn double *SegRegCost(MRI *regseg, MRI *f, double *costs)
+  \brief Compute cost function for segmentation-based registration.
+  \param regseg - segmentation used to identify WM and Ctx voxels.
+    Must be uchar, int, or float
+  \param f - volume of intensities used to compute the cost function.
+    Must be float (usually is because of resampling).
+  \param costs - 8 element array with cost measures. If NULL, it will 
+    be allocated.
+*/
+double *SegRegCost(MRI *regseg, MRI *f, double *costs)
+{
+  double wmsum, wmsum2, wmmean, wmstd;
+  double ctxsum, ctxsum2, ctxmean, ctxstd;
+  double vseg=0, vf, t, cost;
+  int r,c,s,nwmhits,nctxhits;
+  float *pf;
+  void *pseg;
+  int psegincr=0;
+
+  if(regseg->type == MRI_INT)        psegincr = sizeof(int);
+  else if(regseg->type == MRI_UCHAR) psegincr = sizeof(unsigned char);
+  else if(regseg->type == MRI_FLOAT) psegincr = sizeof(float);
+  else {
+    printf("ERROR: SegRegCost(): regseg type must be int, uchar, or float\n");
+    return(NULL);
+  }
+  if(f->type != MRI_FLOAT) {
+    printf("ERROR: SegRegCost(): f type must be int, uchar, or float\n");
+    return(NULL);
+  }
+
+  // Should check that f and regseg have consistent dims
+
+  if(costs == NULL) costs = (double *) calloc(sizeof(double),8);
+
+  nwmhits = 0;
+  nctxhits = 0;
+  wmsum = 0;
+  wmsum2 = 0;
+  ctxsum = 0;
+  ctxsum2 = 0;
+  for(s=0; s < f->depth; s++){
+    for(r=0; r < f->height; r++){
+      pf = (float*)f->slices[s][r];
+      pseg = regseg->slices[s][r];
+      // Start loop over column
+      for(c=0; c < f->width; c++){
+  	vf = (*pf);
+	// If the f vol is zero, then skip this vox
+	if(vf == 0) {
+	  pf++;
+	  pseg += psegincr;
+	  continue;
+	}
+	// Determine tissue class
+	if(regseg->type == MRI_UCHAR) vseg = (*(unsigned char*)pseg);
+	if(regseg->type == MRI_INT)   vseg = (*(int*)pseg);
+	if(regseg->type == MRI_FLOAT) vseg = (*(float*)pseg);
+	if(vseg == 2 || vseg == 41){
+	  // white matter
+	  wmsum  += vf;
+	  wmsum2 += (vf*vf);
+	  nwmhits ++;
+	}
+	if(vseg == 3 || vseg == 42){
+	  // cortex
+	  ctxsum  += vf;
+	  ctxsum2 += (vf*vf);
+	  nctxhits ++;
+	}
+	pf++;
+	pseg += psegincr;
+      }
+    }
+  }
+
+  //printf("wmsum2 = %lf ctxsum2 = %lf\n",wmsum2,ctxsum2);
+
+  wmmean = wmsum/nwmhits;
+  wmstd = sum2stddev(wmsum,wmsum2,nwmhits);
+  //wmstd = sqrt( (wmsum2 - 2*wmmean*wmsum + nwmhits*wmmean*wmmean)/(nwmhits-1) );
+
+  ctxmean = ctxsum/nctxhits;
+  ctxstd = sum2stddev(ctxsum,ctxsum2,nctxhits);
+  //ctxstd = sqrt( (ctxsum2 - 2*ctxmean*ctxsum + nctxhits*ctxmean*ctxmean)/nctxhits );
+
+  t = fabs(ctxmean-wmmean)/sqrt(ctxstd*ctxstd + wmstd*wmstd);
+  cost = 1/t;
+
+  //printf("WM: %6d %6.1f %6.1f   CTX: %6d %6.1f %6.1f  Cost: %g\n",
+  // nwmhits,wmmean,wmstd, nctxhits,ctxmean,ctxstd, cost);
+
+  costs[0] = nwmhits;
+  costs[1] = wmmean;
+  costs[2] = wmstd;
+  costs[3] = nctxhits;
+  costs[4] = ctxmean;
+  costs[5] = ctxstd;
+  costs[6] = t;
+  costs[7] = cost;
+
+  return(0);
+}
+
+#if 0
+// This is the old version that uses MRIgetVoxVal(), which is somewhat
+// slower.
+double *SegRegCost(MRI *regseg, MRI *f, double *costs)
+{
+  double wmsum, wmsum2, wmmean, wmstd;
+  double ctxsum, ctxsum2, ctxmean, ctxstd;
+  double vseg, vf, t, cost;
+  int r,c,s,nwmhits,nctxhits;
+
+  if(costs == NULL) costs = (double *) calloc(sizeof(double),8);
+
+  nwmhits = 0;
+  nctxhits = 0;
+  wmsum = 0;
+  wmsum2 = 0;
+  ctxsum = 0;
+  ctxsum2 = 0;
+  for(c=0; c < f->width; c++){
+    for(r=0; r < f->height; r++){
+      for(s=0; s < f->depth; s++){
+	vf = MRIgetVoxVal(f,c,r,s,0);
+	if(vf == 0) continue;
+	vseg = MRIgetVoxVal(regseg,c,r,s,0);
+	if(vseg == 2 || vseg == 41){
+	  wmsum  += vf;
+	  wmsum2 += (vf*vf);
+	  nwmhits ++;
+	}
+	if(vseg == 3 || vseg == 42){
+	  ctxsum  += vf;
+	  ctxsum2 += (vf*vf);
+	  nctxhits ++;
+	}
+      }
+    }
+  }
+
+  //printf("wmsum2 = %lf ctxsum2 = %lf\n",wmsum2,ctxsum2);
+
+  wmmean = wmsum/nwmhits;
+  wmstd = sqrt( (wmsum2 - 2*wmmean*wmsum + nwmhits*wmmean*wmmean)/nwmhits );
+
+  ctxmean = ctxsum/nctxhits;
+  ctxstd = sqrt( (ctxsum2 - 2*ctxmean*ctxsum + nctxhits*ctxmean*ctxmean)/nctxhits );
+
+  t = fabs(ctxmean-wmmean)/sqrt(ctxstd*ctxstd + wmstd*wmstd);
+  cost = 1/t;
+
+  //printf("WM: %6d %6.1f %6.1f   CTX: %6d %6.1f %6.1f  Cost: %g\n",
+  // nwmhits,wmmean,wmstd, nctxhits,ctxmean,ctxstd, cost);
+
+  costs[0] = nwmhits;
+  costs[1] = wmmean;
+  costs[2] = wmstd;
+  costs[3] = nctxhits;
+  costs[4] = ctxmean;
+  costs[5] = ctxstd;
+  costs[6] = t;
+  costs[7] = cost;
+
+  return(0);
+}
+#endif

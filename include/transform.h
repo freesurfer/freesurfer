@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/13 14:32:28 $
- *    $Revision: 1.57 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/02 18:35:52 $
+ *    $Revision: 1.57.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -234,5 +234,8 @@ int TransformSampleDirection(TRANSFORM *transform, float x0, float y0, float z0,
 
 int TransformRas2Vox(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
 int TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
+
+MATRIX *MRIangles2RotMat(double *angles);
+double *SegRegCost(MRI *regseg, MRI *f, double *costs);
 
 #endif

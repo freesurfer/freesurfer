@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 20:21:58 $
- *    $Revision: 1.298.2.2 $
+ *    $Date: 2008/03/02 18:35:52 $
+ *    $Revision: 1.298.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1533,6 +1533,11 @@ int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) ;
 int MRIScopyMarked2ToMarked(MRI_SURFACE *mris) ;
 int MRISexpandMarked(MRI_SURFACE *mris) ;
 double MRISsmoothingArea(MRIS *mris, int vtxno, int niters);
+
+MRI *MRISdilateConfined(MRIS *surf, MRI *mask, int annotidmask, 
+                        int niters, int newid);
+MRI *MRISfbirnMask_MOF_RACing(MRIS *surf);
+MRI *MRISfbirnMask_SFG_Cing(MRIS *surf);
 
 int MRISopenMarked(MRI_SURFACE *mris, int order) ;
 int MRIScloseMarked(MRI_SURFACE *mris, int order) ;
