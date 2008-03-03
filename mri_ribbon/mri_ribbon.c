@@ -10,8 +10,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/02 18:17:19 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/03/03 02:20:46 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -58,31 +58,32 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ribbon.c,v 1.9 2008/01/02 18:17:19 fischl Exp $", 
+     "$Id: mri_ribbon.c,v 1.10 2008/03/03 02:20:46 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
   Progname=argv[0];
-  while (*argv[1] == '-')
-  {
-    int nargs = 0 ;
-    switch (toupper(argv[1][1]))
+  if (argc > 1)
+    while (*argv[1] == '-')
     {
-    case 'L':
-      printf("cropping ribbon to label file %s\n", argv[2]) ;
-      nargs = 1 ;
-      area = LabelRead(NULL, argv[2]) ;
-      if (area == NULL)
-        ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", argv[2]) ;
-      break ;
-    default:
-      break ;
+      int nargs = 0 ;
+      switch (toupper(argv[1][1]))
+      {
+      case 'L':
+        printf("cropping ribbon to label file %s\n", argv[2]) ;
+        nargs = 1 ;
+        area = LabelRead(NULL, argv[2]) ;
+        if (area == NULL)
+          ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", argv[2]) ;
+        break ;
+      default:
+        break ;
+      }
+      argc -= (nargs+1) ;
+      argv += (nargs+1) ;
     }
-    argc -= (nargs+1) ;
-    argv += (nargs+1) ;
-  }
 
   /* Set command-line parameters */
   if (argc!=5) {
