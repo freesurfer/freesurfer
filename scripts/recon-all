@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2008/02/29 20:14:51 $
-#    $Revision: 1.175 $
+#    $Author: greve $
+#    $Date: 2008/03/04 01:27:52 $
+#    $Revision: 1.176 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.175 2008/02/29 20:14:51 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.176 2008/03/04 01:27:52 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -195,6 +195,7 @@ set DoCAReg          = 0;
 set DoRemoveNeck     = 0;
 set DoSkullLTA       = 0;
 set DoCALabel        = 0;
+set DoASegMerge      = 0;
 set DoSegStats       = 0;
 set DoAParcASegStats = 0;
 set DoFill           = 0;
@@ -1422,22 +1423,51 @@ if($DoCALabel) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# SubCort Seg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
+  set DoASegMerge = 1; # Force
 
-  # Check whether there is a difference between aseg.auto.mgz
-  # and aseg.mgz, which indicates an edit. Must do this
-  # prior to doing labeling.
-  if(-e aseg.auto.mgz && -e aseg.mgz) then
-    set cmd = (mri_diff aseg.auto.mgz aseg.mgz);
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    set ASegDiff = $status;
-    if($ASegDiff == 1) goto error_exit;
-    # ASegDiff will = 0 if no diff or !0 for diff
-  else
-    set ASegDiff = 0;
+  if($DoCleanASeg) then
+    set cmd = (rm -f aseg.mgz aseg.manedits.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
   endif
-  echo $ASegDiff
 
+  # ----------- Prior to changing aseg.auto.mgz -------------------#
+  if( -e aseg.mgz &&  -e aseg.auto.mgz) then
+    # aseg.mgz and aseg.auto.mgz DO exit (at least 2nd pass)
+    if(! -e aseg.manedit.mgz) then
+      # aseg.manedit.mgz does NOT exist
+      # Check for diffs between aseg.auto and aseg
+      # Note: if there are no diffs, then aseg.manedit.mgz is not created
+      set cmd = (mri_seg_diff --seg1 aseg.auto.mgz \
+        --seg2 aseg.mgz --diff aseg.manedit.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    else
+      # aseg.manedit.mgz DOES exist
+      # This has to be handled in two stages in case manedit itself has 
+      # been edited.
+      # 1. Check for diffs bettween aseg.auto and aseg (new and old edits)
+      set cmd = (mri_seg_diff --seg1 aseg.auto.mgz \
+        --seg2 aseg.mgz --diff aseg.manedit.tmp.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      # 2. Merge new and old edits with manedit. If manedit has not
+      # been edited, then there will be no change.
+      if(-e aseg.manedit.tmp.mgz) then
+        set cmd = (mri_seg_diff --seg aseg.manedit.mgz \
+          --diff-in aseg.manedit.tmp.mgz --merged aseg.manedit.mgz)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $cmd |& tee -a $LF
+        if($status) goto error_exit;
+        rm aseg.manedit.tmp.mgz
+      endif   
+    endif   
+  endif
+
+  # Run mri_ca_label to create aseg.auto_noCCseg.mgz
   set xopts = `fsr-getxopts mri_ca_label $XOptsFile`;
   set cmd = (mri_ca_label)
   set cmd = ($cmd $UseCAAlign)
@@ -1461,25 +1491,39 @@ if($DoCALabel) then
   if($status) goto error_exit;
 
   #--- Corpus Callosum Segmentation ---#
+  # Run mri_cc to create aseg.auto.mgz
   set xopts = `fsr-getxopts mri_cc $XOptsFile`;
   set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz \
     $subjid $xopts);
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
-
-  if($DoCleanASeg || ! $ASegDiff) then
-    set cmd = (cp aseg.auto.mgz aseg.mgz)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      sleep 1; # Sleep here to assure that they have diff time stamps
-      $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-  endif
   echo $cmd > $touchdir/ca_label.touch
 endif
 
+# --------- Incorporate Manual ASeg Changes ----------------------
+# Allow it to be done outside of CALabel. Note that DoASegMerge
+# will be 1 if CALabel is run. This just allows the user to
+# merge with Man Edits even if CALabel was not run, which will
+# only have an effect if the user has actually changed aseg.manedit
+if($DoASegMerge) then
+  echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "#@# Merge ASeg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  if(-e aseg.manedit.mgz ) then
+    set cmd = (mri_seg_diff --seg aseg.auto.mgz \
+      --diff-in aseg.manedit.mgz --merged aseg.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  else
+    set cmd = (cp aseg.auto.mgz aseg.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  echo $cmd > $touchdir/asegmerge.touch
+endif
 
 # ----------- Intensity Normalization2 ------------------------#
 if($DoNormalization2) then
@@ -2791,6 +2835,14 @@ while( $#argv != 0 )
       set DoCALabel = 0;
       breaksw
 
+    case "-asegmerge":
+      set DoASegMerge = 1;
+      breaksw
+    case "-no-asegmerge":
+      # Note: this will be overriden if DoCALabel=1
+      set DoASegMerge = 0;
+      breaksw
+
     case "-subcortseg":
       set DoGCAReg         = 1;
       set DoCARegInv       = 1;
@@ -4048,7 +4100,7 @@ check_params:
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && \
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
-     ! $DoSurfVolume ) then
+     ! $DoSurfVolume && ! $DoASegMerge) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
