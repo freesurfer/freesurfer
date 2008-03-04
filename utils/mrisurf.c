@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/02 01:29:24 $
- *    $Revision: 1.593 $
+ *    $Author: greve $
+ *    $Date: 2008/03/04 18:33:40 $
+ *    $Revision: 1.594 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -629,7 +629,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.593 2008/03/02 01:29:24 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.594 2008/03/04 18:33:40 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -19334,8 +19334,9 @@ MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
       ErrorReturn
       (ERROR_BADFILE,
        (ERROR_BADFILE,
-        "MRISreadVertexPositions(%s): surfaces differ. "
-        "Main: %d verts %d faces, %s: %d verts %d faces\n",
+        "\nERROR: \n      MRISreadVertexPositions(%s): surfaces differ. "
+        "Main: %d verts %d faces, %s: %d verts %d faces\n"
+	"Surfaces may be out-of-date\n\n",
         fname, mris->nvertices, mris->nfaces,
         name, nvertices, nfaces)) ;
     }
