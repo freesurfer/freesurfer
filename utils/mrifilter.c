@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 02:03:08 $
- *    $Revision: 1.60.2.2 $
+ *    $Date: 2008/03/04 18:40:44 $
+ *    $Revision: 1.60.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2057,7 +2057,7 @@ MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
                 continue ;
               for (x0 = -whalf ; x0 <= whalf ; x0++)
               {
-                if (x+x0 < 0 || y+y0 >= mri_src->width)
+                if (x+x0 < 0 || x+x0 >= mri_src->width)
                   continue ;
                 val += MRIgetVoxVal(mri_src, x+x0, y+y0, z+z0, 0) ;
                 num++ ;
