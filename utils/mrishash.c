@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/02 18:17:17 $
- *    $Revision: 1.43 $
+ *    $Date: 2008/03/04 22:01:28 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1754,7 +1754,11 @@ int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht,
   // However, for now just duplicate existing output
   //----------------------------------------------------------
   if (-1 == rslt)
-    rslt = 0;
+  {
+    // brf - should always find one that is closest
+    rslt = mhtBruteForceClosestVertex(mris, x, y, z, 
+                                          mht->which_vertices, min_dist);    
+  }
   return vtxnum;
 }
 
