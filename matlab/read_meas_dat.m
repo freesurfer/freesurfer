@@ -82,10 +82,10 @@ function varargout = read_meas_dat(filename, options)
 
 
 % jonathan polimeni <jonp@nmr.mgh.harvard.edu>, 10/04/2006
-% $Id: read_meas_dat.m,v 1.9 2008/03/04 04:06:31 jonnyreb Exp $
+% $Id: read_meas_dat.m,v 1.10 2008/03/04 04:10:31 jonnyreb Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.9 $';
+  VERSION = '$Revision: 1.10 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
 
@@ -116,7 +116,7 @@ function varargout = read_meas_dat(filename, options)
 
   DO__FLIP_REFLECTED_LINES = 1;
   DO__PHASCOR_COLLAPSE_SEGMENTS = 1;
-  DO__CANONICAL_REORDER_COIL_CHANNELS = 1;
+  DO__CANONICAL_REORDER_COIL_CHANNELS = 0;
   DO__APPLY_FFT_SCALEFACTORS = 0;
   DO__READ_MULTIPLE_REPETITIONS = 1;
 
@@ -361,7 +361,8 @@ function varargout = read_meas_dat(filename, options)
       end;
 
     else,
-%      coil_order = 1:dimensions.NChaMeas;
+      % clear flag if auxiliary function not in path
+      DO__CANONICAL_REORDER_COIL_CHANNELS = 0;
     end;
 
     %------------------------------------------------------------------------%
@@ -496,7 +497,7 @@ function varargout = read_meas_dat(filename, options)
 
 %      timestamp(mdh(idx).ulScanCounter).mdh = mdh(idx).ulTimeStamp;
 %      timestamp(mdh(idx).ulScanCounter).pmu = mdh(idx).ulPMUTimeStamp;
-      
+
       mdh(idx).aulEvalInfoMask(1:MDH_NUMBEROFEVALINFOMASK) = uint32(fread(fp, MDH_NUMBEROFEVALINFOMASK, 'uint32'));
 
       % build 64-bit mask from two 32-bit integers
@@ -1097,19 +1098,19 @@ function varargout = read_meas_dat(filename, options)
         end;
       end; % IF (to determine category assignment)
     end;  % WHILE
-    
-    
+
+
     %------------------------------------------------------------------------%
 
   catch,
-    
+
     caught = lasterror;
     status = dbstatus;
-    
+
     disp(sprintf('<!> [%s]:  trouble at line %d...', mfilename, caught.stack(1).line));
-    
+
     if ( feof(fp) ),
-      
+
       caught.message = sprintf('EOF encountered before ACQEND! last scan number = %d ', ...
                                scan_num);
 
@@ -1135,7 +1136,7 @@ function varargout = read_meas_dat(filename, options)
 
   end;
 
-  
+
   %------------------------------------------------------------------------%
   %%% post file I/O reorganization
 
@@ -1146,19 +1147,19 @@ function varargout = read_meas_dat(filename, options)
 
   if ( FLAG__patrefscan_phascor_orderswap ),
     patrefscan_phascor(:, 2:end+1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
-	patrefscan_phascor(:, 1:end, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
+        patrefscan_phascor(:, 1:end, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
 
     patrefscan_phascor(:, 1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
-	patrefscan_phascor(:, 3, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
+        patrefscan_phascor(:, 3, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
   end;
 
 
   if ( FLAG__data_phascor1d_orderswap ),
     data_phascor1d(:, 2:end+1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
-	data_phascor1d(:, 1:end, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
+        data_phascor1d(:, 1:end, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
 
     data_phascor1d(:, 1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
-	data_phascor1d(:, 3, :, :, :, :, :, :, :, :, :, :, :,: , :, :);
+        data_phascor1d(:, 3, :, :, :, :, :, :, :, :, :, :, :,: , :, :);
   end;
 
 
@@ -1245,7 +1246,7 @@ function varargout = read_meas_dat(filename, options)
     end;
 
 %    meas.timestamp = timestamp;
-    
+
     meas.options = options;
 
 
