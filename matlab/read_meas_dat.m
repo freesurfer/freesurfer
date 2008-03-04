@@ -82,10 +82,10 @@ function varargout = read_meas_dat(filename, options)
 
 
 % jonathan polimeni <jonp@nmr.mgh.harvard.edu>, 10/04/2006
-% $Id: read_meas_dat.m,v 1.8 2008/01/15 23:19:32 jonnyreb Exp $
+% $Id: read_meas_dat.m,v 1.9 2008/03/04 04:06:31 jonnyreb Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.8 $';
+  VERSION = '$Revision: 1.9 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
 
@@ -470,9 +470,6 @@ function varargout = read_meas_dat(filename, options)
     while ( ~ACQEND ),
 
 
-
-
-
       %----------------------------------------------------------------------%
 
       meas_num = meas_num + 1;
@@ -497,6 +494,9 @@ function varargout = read_meas_dat(filename, options)
       mdh(idx).ulTimeStamp                = uint32(fread(fp, 1, 'uint32')*2.5); % milliseconds
       mdh(idx).ulPMUTimeStamp             = uint32(fread(fp, 1, 'uint32')*2.5); % milliseconds
 
+%      timestamp(mdh(idx).ulScanCounter).mdh = mdh(idx).ulTimeStamp;
+%      timestamp(mdh(idx).ulScanCounter).pmu = mdh(idx).ulPMUTimeStamp;
+      
       mdh(idx).aulEvalInfoMask(1:MDH_NUMBEROFEVALINFOMASK) = uint32(fread(fp, MDH_NUMBEROFEVALINFOMASK, 'uint32'));
 
       % build 64-bit mask from two 32-bit integers
@@ -1236,14 +1236,16 @@ function varargout = read_meas_dat(filename, options)
       meas.refphasestabscan = refphasestabscan;
     end;
 
-%    if ( DO__MDH_SAVE ),
+    if ( DO__MDH_SAVE ),
       meas.mdh = mdh;
-%    end;
+    end;
 
     if ( exist('read_meas_prot', 'file') ),
       [meas.prot, meas.evp] = read_meas_prot(filename, header);
     end;
 
+%    meas.timestamp = timestamp;
+    
     meas.options = options;
 
 
