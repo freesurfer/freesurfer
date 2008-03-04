@@ -2,9 +2,9 @@
 ## tkmedit.tcl
 ##
 ## CVS Revision Info:
-##    $Author: kteich $
-##    $Date: 2007/08/01 19:47:29 $
-##    $Revision: 1.128 $
+##    $Author: nicks $
+##    $Date: 2008/03/04 17:23:02 $
+##    $Revision: 1.128.2.1 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -192,9 +192,9 @@ set tFunctionalVolume_TimeCourse 1
 
 # mri_tCoordSpace
 set mri_tCoordSpace_VolumeIdx  0
-set mri_tCoordSpace_SurfaceRAS 3
-set mri_tCoordSpace_RAS        1
-set mri_tCoordSpace_Talairach  2
+set mri_tCoordSpace_SurfaceRAS 1
+set mri_tCoordSpace_RAS        2
+set mri_tCoordSpace_Talairach  3
 
 # Volm_tSampleType
 set Volm_tSampleType(nearest)   0
