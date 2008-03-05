@@ -37,5 +37,11 @@ fi
 # Enable or disable fsfast (enabled by default)
 #export NO_FSFAST=1
 
+# HACK: on 64bit systems, the VTK/KWWidgets HistogramEditor seems to
+# cause segfaults on qdec, so disable its usage:
+if [ "`uname -m`" == "x86_64" ]; then
+    export QDEC_DONT_USE_HISTOGRAM_EDITOR=1
+fi
+
 # Call configuration script:
 source $FREESURFER_HOME/FreeSurferEnv.sh
