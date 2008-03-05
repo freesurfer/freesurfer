@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/02/19 18:25:34 $
- *    $Revision: 1.311 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/05 22:50:25 $
+ *    $Revision: 1.312 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -658,7 +658,6 @@ int          MRISwriteVTK(MRI_SURFACE *mris, char *fname);
 int          MRISwriteGeo(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteICO(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteSTL(MRI_SURFACE *mris, char *fname) ;
-int          MRISwriteGIFTI(MRI_SURFACE *mris, char* fname) ;
 int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteDists(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;

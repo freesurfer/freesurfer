@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/11/01 21:13:42 $
- *    $Revision: 1.26 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/05 22:50:25 $
+ *    $Revision: 1.27 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -42,12 +42,12 @@
 #include "version.h"
 #include "matrix.h"
 #include "transform.h"
+#include "gifti_local.h"
 
-int MRISmatrixMultiply(MRIS *mris, MATRIX *M);
 
 //------------------------------------------------------------------------
 static char vcid[] =
-  "$Id: mris_convert.c,v 1.26 2007/11/01 21:13:42 greve Exp $";
+"$Id: mris_convert.c,v 1.27 2008/03/05 22:50:25 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -91,15 +91,15 @@ int
 main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
   char         **av, *in_fname, *out_fname, fname[STRLEN], hemi[10],
-  *cp, path[STRLEN], *dot, ext[STRLEN] ;
+    *cp, path[STRLEN], *dot, ext[STRLEN] ;
   int          ac, nargs,nthvtx ;
   FILE *fp=NULL;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_convert.c,v 1.26 2007/11/01 21:13:42 greve Exp $",
-           "$Name:  $");
+    (argc, argv,
+     "$Id: mris_convert.c,v 1.27 2008/03/05 22:50:25 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -211,6 +211,8 @@ main(int argc, char *argv[]) {
     type = MRISfileNameType(out_fname) ;
     if (type == MRIS_ASCII_FILE)
       writeAsciiCurvFile(mris, out_fname) ;
+    else if (type == MRIS_GIFTI_FILE)
+      MRISwriteGIFTI(mris, out_fname, curv_fname);
     else
       MRISwriteCurvature(mris, out_fname) ;
   } else if (mris->patch)
@@ -224,7 +226,7 @@ main(int argc, char *argv[]) {
     fp = fopen(out_fname,"w");
     for(nthvtx = 0; nthvtx < mris->nvertices; nthvtx++){
       fprintf(fp,"%9.4f %9.4f %9.4f\n",mris->vertices[nthvtx].x,
-	      mris->vertices[nthvtx].y,mris->vertices[nthvtx].z);
+              mris->vertices[nthvtx].y,mris->vertices[nthvtx].z);
     }
     fclose(fp);
   }
@@ -254,53 +256,53 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "-version"))
     print_version() ;
   else switch (toupper(*option)) {
-    case 'A':
-      PrintXYZOnly = 1;
-      break ;
-    case 'C':
-      curv_file_flag = 1 ;
-      curv_fname = argv[2] ;
-      nargs = 1 ;
-      break ;
-    case 'N':
-      output_normals = 1;
-      break ;
-    case 'O':
-      read_orig_positions = 1 ;
-      orig_surf_name = argv[2] ;
-      nargs = 1 ;
-      break ;
-    case 'S':
-      sscanf(argv[2],"%lf",&scale);
-      nargs = 1 ;
-      break ;
-    case 'R':
-      rescale = 1;
-      break ;
-    case 'P':
-      patch_flag = 1 ;
-      nargs = 0 ;
-      break ;
-    case 'T':
-      talairach_flag = 1 ;
-      talxfmsubject = argv[2] ;
-      nargs = 1 ;
-      break ;
-    case 'V':
-      write_vertex_neighbors = 1;
-      nargs = 0 ;
-      break ;
-    case '?':
-    case 'U':
-    case 'H':
-      print_help() ;
-      exit(1) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+  case 'A':
+    PrintXYZOnly = 1;
+    break ;
+  case 'C':
+    curv_file_flag = 1 ;
+    curv_fname = argv[2] ;
+    nargs = 1 ;
+    break ;
+  case 'N':
+    output_normals = 1;
+    break ;
+  case 'O':
+    read_orig_positions = 1 ;
+    orig_surf_name = argv[2] ;
+    nargs = 1 ;
+    break ;
+  case 'S':
+    sscanf(argv[2],"%lf",&scale);
+    nargs = 1 ;
+    break ;
+  case 'R':
+    rescale = 1;
+    break ;
+  case 'P':
+    patch_flag = 1 ;
+    nargs = 0 ;
+    break ;
+  case 'T':
+    talairach_flag = 1 ;
+    talxfmsubject = argv[2] ;
+    nargs = 1 ;
+    break ;
+  case 'V':
+    write_vertex_neighbors = 1;
+    nargs = 0 ;
+    break ;
+  case '?':
+  case 'U':
+  case 'H':
+    print_help() ;
+    exit(1) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
 
   return(nargs) ;
 }
@@ -340,11 +342,11 @@ print_help(void) {
   printf( "     column is the vertex number, the 2nd col is the number of neighbors,\n");
   printf( "     the remaining cols are the vertex numbers of the neighbors.  \n");
   printf( "     Note: there can be a different number of neighbors for each vertex.\n") ;
-  printf( "\n") ;
   printf( "  -a Print only surface xyz to ascii file\n") ;
   printf( "\n") ;
-  printf( "Surface and scalar files can be ascii or binary.\n") ;
+  printf( "Surface and scalar files can be ascii, gifti or binary.\n") ;
   printf( "Ascii file is assumed if filename ends with .asc\n") ;
+  printf( "Gifti format is assumed if filename ends with .gii\n") ;
   printf( "\n") ;
   printf( "EXAMPLES:\n") ;
   printf( "\n");
