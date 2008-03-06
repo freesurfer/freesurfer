@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/06 01:39:32 $
- *    $Revision: 1.66 $
+ *    $Date: 2008/03/06 23:55:12 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.66 $";
+char *MRI_INFO_VERSION = "$Revision: 1.67 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.66 2007/11/06 01:39:32 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.67 2008/03/06 23:55:12 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -373,7 +373,7 @@ static void do_file(char *fname) {
   }
   if (!PrintVoxel)  mri = MRIreadHeader(fname, intype) ;
   else             mri = MRIread(fname);
-  if (!mri) return;
+  if(!mri) exit(1); // should exit with error here
 
   if (PrintTR) {
     fprintf(fpout,"%g\n",mri->tr);
