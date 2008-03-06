@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/01 00:33:45 $
- *    $Revision: 1.148 $
+ *    $Date: 2008/03/06 20:25:42 $
+ *    $Revision: 1.149 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -527,7 +527,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.148 2008/02/01 00:33:45 greve Exp $";
+"$Id: mri_glmfit.c,v 1.149 2008/03/06 20:25:42 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1753,6 +1753,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
     else if (!strcasecmp(option, "--nii")) format = "nii";
+    else if (!strcasecmp(option, "--nii.gz")) format = "nii.gz";
     else if (!strcasecmp(option, "--allowsubjrep"))
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
