@@ -2,7 +2,13 @@
 ## Makefile.am 
 ##
 
-AM_CFLAGS=-I$(top_srcdir)/include
+if USE_LOCAL_EXPAT
+EXPAT_THINGS=-I$(top_srcdir)/expat
+else
+EXPAT_THINGS=
+endif
+
+AM_CFLAGS=-I$(top_srcdir)/include $(EXPAT_THINGS)
 AM_LDFLAGS=
 
 bin_PROGRAMS = mris_convert
