@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/02 01:30:43 $
- *    $Revision: 1.300 $
+ *    $Author: greve $
+ *    $Date: 2008/03/06 00:11:58 $
+ *    $Revision: 1.301 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2260,6 +2260,15 @@ int  main(int argc,char *argv[])
       nargs = 1 ;
       overlay_reg_type = FunD_tRegistration_Identity;
     }
+    else if ( !stricmp(argv[i], "-mni152reg" ) ){
+      sprintf(overlay_reg,"%s/average/mni152.register.dat",
+	      getenv("FREESURFER_HOME"));
+      sprintf(timecourse_reg,"%s/average/mni152.register.dat",
+	      getenv("FREESURFER_HOME"));
+      overlay_reg_type = FunD_tRegistration_File;
+      timecourse_reg_type = FunD_tRegistration_File;
+      nargs = 1;
+    } 
     else if (!stricmp(argv[i], "-fslope"))
     {
       nargs = 2 ;
@@ -18606,6 +18615,7 @@ print_help_tksurfer(void)
   printf("-overlay-reg-find            : look in the data directory for a register.dat\n");
   printf("                             : file\n");
   printf("-overlay-reg-identity        : calculate an identity transform for registration\n");
+  printf("-mni152reg : for use with average subject when overlay is mni152\n");
   printf("-fslope <value>              : set the overlay threshold slope value\n");
   printf("-fmid <value>                : set the overlay threshold midpoint value\n");
   printf("-fthresh <value>             : set the overlay threshold minimum value\n");
@@ -20617,7 +20627,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.300 2008/03/02 01:30:43 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.301 2008/03/06 00:11:58 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
