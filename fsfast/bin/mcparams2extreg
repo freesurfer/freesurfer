@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/03/06 03:56:32 $
-#    $Revision: 1.6 $
+#    $Date: 2008/03/06 04:48:14 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: mcparams2extreg,v 1.6 2008/03/06 03:56:32 greve Exp $';
+set VERSION = '$Id: mcparams2extreg,v 1.7 2008/03/06 04:48:14 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -55,6 +55,7 @@ set pctorthog  = ();
 set DoGradient   = 0;
 set mfile      = ();
 set monly      =  0;
+set MergeFileList = ();
 
 goto parse_args;
 parse_args_return:
@@ -104,8 +105,9 @@ tee $MLF > /dev/null <<EOF
   nkeep     = [$nkeep];
   northog   = [$northog];
   pctorthog = [$pctorthog];
-  DoGradient  = [$DoGradient];
   monly     = $monly;
+  DoGradient  = [$DoGradient];
+  MergeFileList = splitstring('$MergeFileList');
 
   mc = textread(mcfile);
   mc = mc(:,2:7);
@@ -125,27 +127,47 @@ tee $MLF > /dev/null <<EOF
     mc = gradient(mc);
   end
 
-  if(~isempty(nkeep))
-    x = mc(:,1:nkeep);
-  elseif(~isempty(northog))
+  nMerge = size(MergeFileList,1);
+  fprintf('nMerge = %d\n',nMerge);
+  for nth = 1:nMerge
+    MergeFile = deblank(MergeFileList(nth,:));
+    mf = textread(MergeFile);
+    if(isempty(mf))
+      fprintf('ERROR: cannot read %s\n',MergeFile);
+      return;
+    end
+    if(size(mf,1) ~= ntrs)
+      fprintf('ERROR: %s has wrong number of rows\n',MergeFile);
+      fprintf('       Found %d, expected %d\n',size(mf,1),ntrs);
+      return;
+    end
+    mc = [mc mf];
+  end
+  if(isempty(nkeep)) nkeep = size(mc,2); end
+
+  % Demean (new as of Mar 5, 2008)
+  mcmn = mean(mc);
+  mc = mc - repmat(mcmn, [ntrs 1]);
+
+  x = mc;
+  if(~isempty(northog))
     [u s v] = svd(mc);
-    ds = diag(s);
+    ds = diag(s).^2;
     pct = 100*cumsum(ds)/sum(ds);
     x = u(:,1:northog);
     nkeep = northog;
     fprintf('INFO: northog = %d, pct = %g\n',northog,pct(nkeep));
-  else
+  elseif(~isempty(pctorthog))
     [u s v] = svd(mc);
-    ds = diag(s);
+    ds = diag(s).^2;
     pct = 100*cumsum(ds)/sum(ds);
     nkeep = min(find(pct > pctorthog));
     x = u(:,1:nkeep);
     fprintf('INFO: pctorthog = %g, nkeep = %d\n',pctorthog,nkeep);
   end
 
-  x2 = zeros(1,1,nkeep,ntrs);
+  x2 = zeros(1,1,size(x,2),ntrs);
   x2(1,1,:,:) = x'; %'
-  %fmri_svbvolume(x2,extreg);
 
   mri.vol = permute(x2,[1 3 2 4]);
   mri.tr = 0;
@@ -230,6 +252,12 @@ while( $#argv != 0 )
       set mcfile = $argv[1]; shift;
       breaksw
 
+    case "-merge":
+      if ( $#argv < 1) goto arg1err;
+      set MergeFileList = ($MergeFileList $argv[1]); shift;
+      breaksw
+
+
     case "-extreg":
       if ( $#argv < 1) goto arg1err;
       set extreg = $argv[1]; shift;
@@ -249,19 +277,11 @@ while( $#argv != 0 )
     case "-nkeep":
       if ( $#argv < 1) goto arg1err;
       set nkeep = $argv[1]; shift;
-      if($nkeep > 6) then
-        echo "ERROR: cannot keep more than 6"
-        exit 1;
-      endif
       breaksw
 
     case "-northog":
       if ( $#argv < 1) goto arg1err;
       set northog = $argv[1]; shift;
-      if($northog > 6) then
-        echo "ERROR: cannot keep more than 6"
-        exit 1;
-      endif
       breaksw
 
     case "-pctorthog":
@@ -327,10 +347,6 @@ check_params:
     exit 1;
   endif
 
-  if(! $#nkeep && ! $#northog && ! $#pctorthog) then
-    set nkeep = 6;
-  endif
-
 goto check_params_return;
 ############--------------##################
 
@@ -369,4 +385,35 @@ exit 1;
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
+
+This converts a motion correction parameter file created with
+preproc-sess, mc-sess, or mc-afni2 into a file that can be used for
+external nuisance regressors.  This is automatically called by mc-sess
+and preproc-sess to create mcextreg.bhdr. It can also merge other data
+files to create on external regressor file. It can also orthogonalize
+the regressor. All inputs are demeaned.
+
+Example 1:
+
+  mcparams2extreg  -mcfile fmc.mcdat -extreg mcextreg -northog 5
+
+Takes 6 columns (2-7) from fmc.mcdat, demeans them, orthogonalizes
+them, and keeps the top 5 regressors which are stored in
+mcextreg.bhdr. To use this in analysis, 
+  mkanalysis-sess ... -mcextreg ...
+
+Example 2:
+
+  mcparams2extreg  -mcfile fmc.mcdat \
+     -merge heartrate.dat \
+     -merge respiration.dat \
+     -pctorthog 95 -extreg nuisance
+
+Takes 6 columns (2-7) from fmc.mcdat, merges (horizontally concats)
+with all columns in heartrate.dat and respiration.dat, demeans them,
+orthogonalizes them, and keeps enough regressors to span 95 of the
+variance. The output is stored in nuisance.bhdr.  heartrate.dat and
+respiration.dat should be simple text files with columns of data where
+the number of rows equals to the number of time points. To use this in
+analysis, mkanalysis-sess ... -extreg nuisance ...
 
