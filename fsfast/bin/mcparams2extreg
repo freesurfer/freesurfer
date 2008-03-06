@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/12/07 23:24:38 $
-#    $Revision: 1.5 $
+#    $Date: 2008/03/06 03:56:32 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: mcparams2extreg,v 1.5 2007/12/07 23:24:38 greve Exp $';
+set VERSION = '$Id: mcparams2extreg,v 1.6 2008/03/06 03:56:32 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -52,6 +52,7 @@ set ascpoly    = ();
 set nkeep      = ();
 set northog    = ();
 set pctorthog  = ();
+set DoGradient   = 0;
 set mfile      = ();
 set monly      =  0;
 
@@ -103,6 +104,7 @@ tee $MLF > /dev/null <<EOF
   nkeep     = [$nkeep];
   northog   = [$northog];
   pctorthog = [$pctorthog];
+  DoGradient  = [$DoGradient];
   monly     = $monly;
 
   mc = textread(mcfile);
@@ -115,6 +117,12 @@ tee $MLF > /dev/null <<EOF
       quit; 
       fprintf('should not be here\n');
     end
+  end
+
+  mc0 = mc;
+  if(DoGradient)
+    fprintf('Computing gradient\n');
+    mc = gradient(mc);
   end
 
   if(~isempty(nkeep))
@@ -261,6 +269,10 @@ while( $#argv != 0 )
       set pctorthog = $argv[1]; shift;
       breaksw
 
+    case "-gradient":
+      set DoGradient = 1; 
+      breaksw
+
     case "-monly":
       if ( $#argv == 0) goto arg1err;
       set mfile = $argv[1]; shift;
@@ -340,6 +352,7 @@ usage_exit:
   echo "  -pctorthog pctkeep : orthogonalize and keep enough for pctkeep"
   echo "  -asc ascfile       : save in ascii file (demeaned)"
   echo "  -ascpoly order     : add polnomial to ascii file"
+  echo "  -gradient          : compute temporal gradient of mc params"
   echo "  -umask umask      : set unix file permission mask"
   echo "  -version          : print version and exit"
   echo "  -monly mfile      : only create matlab file"
