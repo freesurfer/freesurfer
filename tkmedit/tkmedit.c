@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/01/18 18:03:33 $
- *    $Revision: 1.325 $
+ *    $Author: greve $
+ *    $Date: 2008/03/06 00:01:13 $
+ *    $Revision: 1.326 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.325 $";
+char *VERSION = "$Revision: 1.326 $";
 
 #define TCL
 #define TKMEDIT
@@ -1186,7 +1186,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.325 2008/01/18 18:03:33 nicks Exp $",
+     "$Id: tkmedit.c,v 1.326 2008/03/06 00:01:13 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1782,7 +1782,17 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg ++;
         }
 
-      } else if ( MATCH( sArg, "-register" ) ) {
+      } 
+      else if ( MATCH( sArg, "-mni152reg" ) ){
+	sprintf(sOverlayRegistration,"%s/average/mni152.register.dat",
+		getenv("FREESURFER_HOME"));
+	sprintf(sTimeCourseRegistration,"%s/average/mni152.register.dat",
+		getenv("FREESURFER_HOME"));
+	overlayRegType = FunD_tRegistration_File;
+	timecourseRegType = FunD_tRegistration_File;
+	nCurrentArg += 1;
+      } 
+      else if ( MATCH( sArg, "-register" ) ) {
 
         /* set our flag */
         DebugNote( ("Enabling registration.") );
@@ -5784,7 +5794,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.325 2008/01/18 18:03:33 nicks Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.326 2008/03/06 00:01:13 greve Exp $ $Name:  $\n"
         )
       );
 
