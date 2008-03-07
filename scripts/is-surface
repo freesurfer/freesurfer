@@ -1,0 +1,81 @@
+#!/bin/csh -f
+
+#
+# is-surface
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2008/03/07 00:03:23 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2008,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+if($#argv != 1) then
+  echo "is-surface file"
+  echo ""
+  echo "Determines whether file is a volume-encoded surface file"
+  echo "by looking at the number of columns and rows."
+  echo "If there are more than 1000 columns and the number"
+  echo "of rows is 1, then it is assumed to be a surface."
+  echo ""
+  echo "Prints 0 (is NOT surface) or 1 (IS surface) to stdout. "
+  echo ""
+  echo "If an error occurs, exists with 1"
+  echo ""
+  echo "$Id: is-surface,v 1.1 2008/03/07 00:03:23 greve Exp $"
+  exit 1;
+endif
+
+set fname = $argv[1]; shift;
+if(! -e $fname) then
+  echo "ERROR: cannot find $fname"
+  exit 1;
+endif
+
+set tmpfile = /tmp/is-surface.$$.tmp
+rm -f $tmpfile
+
+set tmpfile2 = /tmp/is-surface.$$.tmp2
+rm -f $tmpfile2
+
+set cmd = (mri_info --o $tmpfile --ncols $fname)
+$cmd >& $tmpfile2
+if($status) then
+  cat $tmpfile2
+  rm -f $tmpfile $tmpfile2
+  exit 1;
+endif
+@ ncols = `cat $tmpfile`
+
+set cmd = (mri_info --o $tmpfile --nrows $fname)
+$cmd >& $tmpfile2
+if($status) then
+  cat $tmpfile2
+  rm -f $tmpfile $tmpfile2
+  exit 1;
+endif
+@ nrows = `cat $tmpfile`
+
+# Assume it is a surface if there are more than 1000 columns
+# and the number of rows == 1
+if($ncols > 1000 && $nrows == 1) then
+  echo 1
+else
+  echo 0
+endif
+
+rm -f $tmpfile $tmpfile2
+
+exit 0
