@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/07 00:11:58 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/03/07 22:34:12 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -471,7 +471,7 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
     }
     else
     {
-      MRIScomputeNormals(mris);
+      // can't call MRIScomputeNormals just yet, do this after faces copied...
     }
   }
   mris->xlo = xlo ;
@@ -538,6 +538,7 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
    *  MRIScomputeMetricProperties(mris) ;
    *  MRISstoreCurrentPositions(mris) ;
    */
+  if (NULL != normals) MRIScomputeNormals(mris);
   UpdateMRIS(mris,fname);
 
   /* And we're done. */
@@ -681,6 +682,7 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
       mris->SRASToTalSRAS_->rows==4 &&
       mris->SRASToTalSRAS_->cols==4)
   { // found a valid xform, so use it...
+    coords->coordsys = (giiCoordSystem*)calloc(1,sizeof(giiCoordSystem));
     coords->coordsys->dataspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
     coords->coordsys->xformspace = strcpyalloc("NIFTI_XFORM_TALAIRACH");
     MATRIX *xform = mris->SRASToTalSRAS_;
