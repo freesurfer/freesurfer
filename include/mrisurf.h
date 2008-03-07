@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/05 22:50:25 $
- *    $Revision: 1.312 $
+ *    $Date: 2008/03/07 00:11:57 $
+ *    $Revision: 1.313 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -99,19 +99,19 @@ typedef struct vertex_type_
   float dx, dy, dz ;     /* current change in position */
   float odx, ody, odz ;  /* last change of position (for momentum) */
   float tdx, tdy, tdz ;  /* temporary storage for averaging gradient */
-  float  curv;            /* curr curvature */
-  float  curvbak ;
-  float  val;             /* scalar data value (file: rh.val, sig2-rh.w) */
-  float  imag_val ;       /* imaginary part of complex data value */
-  float  cx, cy, cz ;     /* coordinates in canonical coordinate system */
-  float  tx, ty, tz ;     /* tmp coordinate storage */
-  float  tx2, ty2, tz2 ;     /* tmp coordinate storage */
-  float  origx, origy, origz ;          /* original coordinates */
-  float  pialx, pialy, pialz ;  /* pial surface coordinates */
-  float  whitex, whitey, whitez ;  /* white surface coordinates */
-  float  infx, infy, infz; /* inflated coordinates */
-  float  fx, fy, fz ;      /* flattened coordinates */
-  int    px,qx, py,qy, pz,qz; /* rational coordinates for exact calculations */
+  float curv;            /* curr curvature */
+  float curvbak ;
+  float val;             /* scalar data value (file: rh.val, sig2-rh.w) */
+  float imag_val ;       /* imaginary part of complex data value */
+  float cx, cy, cz ;     /* coordinates in canonical coordinate system */
+  float tx, ty, tz ;     /* tmp coordinate storage */
+  float tx2, ty2, tz2 ;  /* tmp coordinate storage */
+  float origx, origy, origz ;   /* original coordinates */
+  float pialx, pialy, pialz ;   /* pial surface coordinates */
+  float whitex, whitey, whitez ;/* white surface coordinates */
+  float infx, infy, infz; /* inflated coordinates */
+  float fx, fy, fz ;      /* flattened coordinates */
+  int   px,qx, py,qy, pz,qz; /* rational coordinates for exact calculations */
   float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
   float e2x, e2y, e2z ;  /* 2nd basis vector for the local tangent plane */
 #if 0
@@ -1812,4 +1812,7 @@ int	MRISuseK2Curvature(
   	MRI_SURFACE*  		mris
 );
 
-// Discrete Principal Curvature and Related ^^^^^^^^^^^^^^^^^^
+// end Discrete Principal Curvature and Related ^^^^^^^^^^^^^^^^^^
+
+void UpdateMRIS(MRI_SURFACE *mris, char *fname);
+int  MRISreadTransform(MRIS *mris, char *fname);

@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/05 22:50:25 $
- *    $Revision: 1.595 $
+ *    $Date: 2008/03/07 00:11:58 $
+ *    $Revision: 1.596 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.595 2008/03/05 22:50:25 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.596 2008/03/07 00:11:58 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1389,7 +1389,7 @@ MRISwrite(MRI_SURFACE *mris, char *name)
   else if (type == MRIS_STL_FILE)
     return MRISwriteSTL(mris, fname);
   else if (type == MRIS_GIFTI_FILE)
-    return MRISwriteGIFTI(mris, fname, NULL);
+    return MRISwriteGIFTI(mris, fname);
 
   if (mris->type == MRIS_TRIANGULAR_SURFACE)
     return(MRISwriteTriangularSurface(mris, fname)) ;
@@ -1534,6 +1534,7 @@ MRISalloc(int nvertices, int nfaces)
     ErrorExit(ERROR_NO_MEMORY,
               "MRISalloc(%d, %d): could not allocate mris structure",
               nvertices, nfaces);
+  else memset(mris,0,sizeof(MRI_SURFACE));
 
   mris->nsize = 1 ;  /* only 1-connected neighbors initially */
   mris->nvertices = nvertices ;
@@ -1543,13 +1544,18 @@ MRISalloc(int nvertices, int nfaces)
     ErrorExit(ERROR_NO_MEMORY,
               "MRISalloc(%d, %d): could not allocate vertices",
               nvertices, sizeof(VERTEX));
+  else memset(mris->vertices,0,nvertices * sizeof(VERTEX));
+
   mris->faces = (FACE *)calloc(nfaces, sizeof(FACE)) ;
   if (!mris->faces)
     ErrorExit(ERROR_NO_MEMORY,
               "MRISalloc(%d, %d): could not allocate faces",
               nfaces, sizeof(FACE));
+  else memset(mris->faces,0,nfaces*sizeof(FACE));
+
   mris->useRealRAS = 0; /* just initialize */
   mris->vg.valid = 0;   /* mark invalid */
+
   return(mris) ;
 }
 
@@ -1793,7 +1799,8 @@ mrisFindNeighbors(MRI_SURFACE *mris)
       for (i=0;i<v->num && k!=v->f[i];i++);
       if (i==v->num)   /* face has vertex, but vertex doesn't have face */
         ErrorExit(ERROR_BADPARM,
-                  "%s: face[%d].v[%d] = %d, but face %d not in vertex %d "
+                  "mrisFindNeighbors: %s: face[%d].v[%d] = %d, "
+                  "but face %d not in vertex %d "
                   "face list\n", mris->fname,k,m,f->v[m], k, f->v[m]);
     }
   }
@@ -3887,6 +3894,13 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
 
   return(NO_ERROR) ;
 }
+
+// public
+int MRISreadTransform(MRIS *mris, char *fname)
+{
+  return mrisReadTransform(mris, fname);
+}
+
 
 
 /*-----------------------------------------------------
@@ -63105,7 +63119,8 @@ mrisComputeSurfaceRepulsionEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht)
 }
 
 
-// average the stats on the surface, and propagate marks outwards to new non-zero locations
+// average the stats on the surface, and propagate marks 
+// outwards to new non-zero locations
 int
 MRISaverageMarkedStats(MRI_SURFACE *mris, int navgs)
 {
@@ -63151,4 +63166,15 @@ MRISaverageMarkedStats(MRI_SURFACE *mris, int navgs)
     }
   }
   return(NO_ERROR) ;
+}
+
+
+void UpdateMRIS(MRI_SURFACE *mris, char *fname)
+{
+  mrisFindNeighbors(mris);
+  mrisComputeVertexDistances(mris);
+  if (fname) mrisReadTransform(mris, fname);
+  mris->radius = MRISaverageRadius(mris);
+  MRIScomputeMetricProperties(mris);
+  MRISstoreCurrentPositions(mris);
 }

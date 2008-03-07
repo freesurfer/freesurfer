@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/05 22:50:25 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/03/07 00:11:58 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -39,7 +39,6 @@
 #include "utils.h" // strcpyalloc
 #include "nifti1.h"
 #include "gifti_local.h"
-
 
 /*
  *
@@ -426,9 +425,19 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
   }
 
   /* Set some meta data in the mris. */
+  strcpy(mris->fname,fname);
   mris->type = MRIS_TRIANGULAR_SURFACE;
+  char* hemi = gifti_get_meta_value(&coords->meta,
+                                    "AnatomicalStructurePrimary'");
+  if (hemi && (strcmp(hemi,"CortexRight")==0))
+    mris->hemisphere = RIGHT_HEMISPHERE ;
+  else if (hemi && (strcmp(hemi,"CortexLeft")==0))
+    mris->hemisphere = LEFT_HEMISPHERE ;
 
   /* Copy in the vertices. */
+  float x, y, z, xhi, xlo, yhi, ylo, zhi, zlo ;
+  xhi=yhi=zhi= -10000;
+  xlo=ylo=zlo= 10000;
   int vertex_index;
   for (vertex_index = 0; vertex_index < num_vertices; vertex_index++)
   {
@@ -439,6 +448,16 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
     mris->vertices[vertex_index].z =
       (float) gifti_get_DA_value_2D (coords, vertex_index, 2);
     mris->vertices[vertex_index].num = 0;
+    mris->vertices[vertex_index].origarea = -1;
+    x = mris->vertices[vertex_index].x;
+    y = mris->vertices[vertex_index].y;
+    z = mris->vertices[vertex_index].z;
+    if (x>xhi) xhi=x;
+    if (x<xlo) xlo=x;
+    if (y>yhi) yhi=y;
+    if (y<ylo) ylo=y;
+    if (z>zhi) zhi=z;
+    if (z<zlo) zlo=z;
 
     /* If we have normals, set normals values. */
     if (NULL != normals)
@@ -450,7 +469,20 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
       mris->vertices[vertex_index].nz =
         (float) gifti_get_DA_value_2D (normals, vertex_index, 2);
     }
+    else
+    {
+      MRIScomputeNormals(mris);
+    }
   }
+  mris->xlo = xlo ;
+  mris->ylo = ylo ;
+  mris->zlo = zlo ;
+  mris->xhi = xhi ;
+  mris->yhi = yhi ;
+  mris->zhi = zhi ;
+  mris->xctr = (xhi+xlo)/2;
+  mris->yctr = (yhi+ylo)/2;
+  mris->zctr = (zhi+zlo)/2;
 
   /* Copy in the faces. */
   int face_index;
@@ -467,6 +499,46 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
       mris->vertices[vertex_index].num++;
     }
   }
+  // each vertex has a face list (faster that face list in some operations)
+  for (vertex_index = 0; vertex_index < num_vertices; vertex_index++)
+  {
+    mris->vertices[vertex_index].f =
+      (int *)calloc(mris->vertices[vertex_index].num,sizeof(int));
+    mris->vertices[vertex_index].n =
+      (uchar *)calloc(mris->vertices[vertex_index].num,sizeof(uchar));
+    mris->vertices[vertex_index].num = 0; // this gets re-calc'd next...
+  }
+  for (face_index = 0 ; face_index < mris->nfaces ; face_index++)
+  {
+    FACE *face = &mris->faces[face_index] ;
+    int n;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      mris->vertices[face->v[n]].f[mris->vertices[face->v[n]].num++]
+        = face_index; // note that .num is auto-incremented!
+  }
+  for (vertex_index = 0; vertex_index < num_vertices; vertex_index++)
+  {
+    int n,m;
+    for (n=0;n<mris->vertices[vertex_index].num;n++)
+    {
+      for (m=0;m<VERTICES_PER_FACE;m++)
+      {
+        if (mris->faces[mris->vertices[vertex_index].f[n]].v[m] == 
+            vertex_index)
+          mris->vertices[vertex_index].n[n] = m;
+      }
+    }
+  }
+
+  /* other data structure essentials, namely:
+   *  mrisFindNeighbors(mris);
+   *  mrisComputeVertexDistances(mris);
+   *  mrisReadTransform(mris, fname) ;
+   *  mris->radius = MRISaverageRadius(mris) ;
+   *  MRIScomputeMetricProperties(mris) ;
+   *  MRISstoreCurrentPositions(mris) ;
+   */
+  UpdateMRIS(mris,fname);
 
   /* And we're done. */
   gifti_free_image (image);
@@ -475,56 +547,11 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
 }
 
 
-/*-----------------------------------------------------
-  Parameters:    MRIS_SURFACE structure,
-                 output file name of GIFTI file,
-                 optional input scalar data file
-
-  Returns value: 0 if passed, else error code
-
-  Description:   writes a GIFTI file, putting vertices, 
-                 faces, and face normals from input 
-                 MRIS_SURFACE structure.
-  ------------------------------------------------------*/
-int MRISwriteGIFTI(MRIS* mris, char *fname, char *scalar_fname)
+/*
+ *
+ */
+static void insertMetaData(MRIS* mris, giiDataArray* dataArray)
 {
-  if (NULL == mris || NULL == fname)
-  {
-    fprintf (stderr,"MRISwriteGIFTI: invalid parameter\n");
-    return ERROR_BADPARM;
-  }
-
-  gifti_image* image = (gifti_image *)calloc(1,sizeof(gifti_image));
-  if (NULL == image)
-  {
-    fprintf (stderr,"MRISwriteGIFTI: couldn't allocate image\n");
-    return ERROR_NOMEMORY;
-  }
-  image->version = strcpyalloc(GIFTI_XML_VERSION);
-
-  /* Make coords array. */
-  giiDataArray* coords = gifti_alloc_and_add_darray (image);
-  if (NULL == coords)
-  {
-    fprintf (stderr,"MRISwriteGIFTI: couldn't allocate giiDataArray\n");
-    gifti_free_image (image);
-    return ERROR_NOMEMORY;
-  }
-
-  /* Set its attributes. */
-  coords->intent = NIFTI_INTENT_POINTSET;
-  coords->datatype = NIFTI_TYPE_FLOAT32;
-  coords->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
-  coords->num_dim = 2;
-  coords->dims[0] = mris->nvertices; /* In highest first, dim0 = rows */
-  coords->dims[1] = 3;               /* In highest first, dim1 = cols */
-  coords->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
-#if (BYTE_ORDER == LITTLE_ENDIAN)
-  coords->endian = GIFTI_ENDIAN_LITTLE;
-#else
-  coords->endian = GIFTI_ENDIAN_BIG;
-#endif
-
   if (mris->fname)
   {
     const char *primary=NULL, *secondary=NULL, *geotype=NULL;
@@ -550,34 +577,25 @@ int MRISwriteGIFTI(MRIS* mris, char *fname, char *scalar_fname)
       topotype = "Cut";
     }
 
-    if (primary) gifti_add_to_meta( &coords->meta,
+    if (primary) gifti_add_to_meta( &dataArray->meta,
                                     "AnatomicalStructurePrimary",
                                     primary,
                                     1 );
-    if (secondary) gifti_add_to_meta( &coords->meta,
+    if (secondary) gifti_add_to_meta( &dataArray->meta,
                                       "AnatomicalStructureSecondary",
                                       secondary,
                                       1 );
-    if (geotype) gifti_add_to_meta( &coords->meta,
+    if (geotype) gifti_add_to_meta( &dataArray->meta,
                                     "GeometricType",
                                     geotype,
                                     1 );
-    gifti_add_to_meta( &coords->meta,
-                       "TopologicalType",
-                       topotype,
-                       1 );
-    gifti_add_to_meta( &coords->meta,
-                       "Name",
-                       name,
-                       1 );
+    gifti_add_to_meta( &dataArray->meta, "TopologicalType", topotype, 1 );
+    gifti_add_to_meta( &dataArray->meta, "Name", name, 1 );
   }
 
   if (strlen(mris->subject_name))
   {
-    gifti_add_to_meta( &coords->meta,
-                       "SubjectID",
-                       mris->subject_name,
-                       1 );
+    gifti_add_to_meta( &dataArray->meta, "SubjectID", mris->subject_name, 1 );
   }
 
 #if 0
@@ -586,19 +604,13 @@ int MRISwriteGIFTI(MRIS* mris, char *fname, char *scalar_fname)
   char uuidstr[2048];
   uuid_generate(uuid);
   uuid_unparse(uuid, uuidstr);
-  gifti_add_to_meta( &coords->meta,
-                     "UniqueID",
-                     uuidstr,
-                     1 );
+  gifti_add_to_meta( &dataArray->meta, "UniqueID", uuidstr, 1 );
 #endif
 
   struct passwd *pw = getpwuid(geteuid());
   if ((pw != NULL) && (pw->pw_name != NULL))
   {
-    gifti_add_to_meta( &coords->meta,
-                       "UserName",
-                       pw->pw_name,
-                       1 );
+    gifti_add_to_meta( &dataArray->meta, "UserName", pw->pw_name, 1 );
   }
 
   time_t tyme = time(NULL);
@@ -608,9 +620,63 @@ int MRISwriteGIFTI(MRIS* mris, char *fname, char *scalar_fname)
   if (chr) *chr = 0; // remove carriage return
   chr = strchr(date,'\n');
   if (chr) *chr = 0; // remove linefeed
-  gifti_add_to_meta( &coords->meta, "Date", date, 1 );
+  gifti_add_to_meta( &dataArray->meta, "Date", date, 1 );
+}
+
+
+/*-----------------------------------------------------
+  Parameters:    MRIS_SURFACE structure,
+                 output file name of GIFTI file
+
+  Returns value: 0 if passed, else error code
+
+  Description:   writes a GIFTI file, putting vertices, 
+                 faces, and face normals from input 
+                 MRIS_SURFACE structure.
+  ------------------------------------------------------*/
+int MRISwriteGIFTI(MRIS* mris, char *fname)
+{
+  if (NULL == mris || NULL == fname)
+  {
+    fprintf (stderr,"MRISwriteGIFTI: invalid parameter\n");
+    return ERROR_BADPARM;
+  }
+
+  gifti_image* image = (gifti_image *)calloc(1,sizeof(gifti_image));
+  if (NULL == image)
+  {
+    fprintf (stderr,"MRISwriteGIFTI: couldn't allocate image\n");
+    return ERROR_NOMEMORY;
+  }
+  image->version = strcpyalloc(GIFTI_XML_VERSION);
+
+  /* -------------------------------------------------------
+   * Coordinates array.
+   */
+  giiDataArray* coords = gifti_alloc_and_add_darray (image);
+  if (NULL == coords)
+  {
+    fprintf (stderr,"MRISwriteGIFTI: couldn't allocate giiDataArray\n");
+    gifti_free_image (image);
+    return ERROR_NOMEMORY;
+  }
+
+  /* Set its attributes. */
+  coords->intent = NIFTI_INTENT_POINTSET;
+  coords->datatype = NIFTI_TYPE_FLOAT32;
+  coords->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
+  coords->num_dim = 2;
+  coords->dims[0] = mris->nvertices; /* In highest first, dim0 = rows */
+  coords->dims[1] = 3;               /* In highest first, dim1 = cols */
+  coords->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  coords->endian = GIFTI_ENDIAN_LITTLE;
+#else
+  coords->endian = GIFTI_ENDIAN_BIG;
+#endif
 
   coords->coordsys = NULL; // empty, unless we find something here...
+  MRISreadTransform(mris, fname) ; // tries to get xform based on fname
   if (mris->SRASToTalSRAS_ &&
       mris->SRASToTalSRAS_->rows==4 &&
       mris->SRASToTalSRAS_->cols==4)
@@ -623,6 +689,8 @@ int MRISwriteGIFTI(MRIS* mris, char *fname, char *scalar_fname)
       for (c=1; c <= 4; c++)
         coords->coordsys->xform[r-1][c-1] = xform->rptr[r][c];
   }
+
+  insertMetaData (mris, coords); /* standard meta data */
 
   coords->nvals = gifti_darray_nvals (coords);
   gifti_datatype_sizes (coords->datatype, &coords->nbyper, NULL);
@@ -756,75 +824,6 @@ int MRISwriteGIFTI(MRIS* mris, char *fname, char *scalar_fname)
                            mris->vertices[normal_index].nz);
   }
 
-  /* -------------------------------------------------------
-   * Scalars array (if optionally specified in mris_convert)
-   */
-  if (scalar_fname)
-  {
-    if (MRISreadCurvatureFile(mris, scalar_fname))
-    {
-      fprintf (stderr,"MRISwriteGIFTI: couldn't read %s\n",scalar_fname);
-      gifti_free_image (image);
-      return ERROR_BADFILE;
-    }
-
-    giiDataArray* scalars = gifti_alloc_and_add_darray (image);
-    if (NULL == scalars)
-    {
-      fprintf (stderr,"MRISwriteGIFTI: couldn't allocate giiDataArray\n");
-      gifti_free_image (image);
-      return ERROR_NOMEMORY;
-    }
-
-    /* Set its attributes. */
-    scalars->intent = NIFTI_INTENT_SHAPE;
-    scalars->datatype = NIFTI_TYPE_FLOAT32;
-    scalars->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
-    scalars->num_dim = 2;
-    scalars->dims[0] = mris->nvertices;
-    scalars->dims[1] = 1;
-    scalars->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
-#if (BYTE_ORDER == LITTLE_ENDIAN)
-    scalars->endian = GIFTI_ENDIAN_LITTLE;
-#else
-    scalars->endian = GIFTI_ENDIAN_BIG;
-#endif
-    scalars->coordsys = NULL;
-    scalars->nvals = gifti_darray_nvals (scalars);
-    gifti_datatype_sizes (scalars->datatype, &scalars->nbyper, NULL);
-
-    /* include some metadata describing this thing */
-    char *meta=NULL;
-    if (strstr(scalar_fname, ".thickness")) meta = "Thickness";
-    if (strstr(scalar_fname, ".curv"))      meta = "CurvatureRadial";
-    if (strstr(scalar_fname, ".sulc"))      meta = "SulcalDepth";
-    if (strstr(scalar_fname, ".area"))      meta = "Area";
-    if (strstr(scalar_fname, ".volume"))    meta = "Volume";
-    if (strstr(scalar_fname, ".jacobian"))  meta = "Jacobian";
-    if (meta) gifti_add_to_meta( &scalars->meta, "ScalarDataType", meta, 1 );
-
-    /* Allocate the data array. */
-    scalars->data = NULL;
-    scalars->data = (void*) calloc (scalars->nvals, scalars->nbyper);
-    if (NULL == scalars->data)
-    {
-      fprintf (stderr,"MRISwriteGIFTI: couldn't allocate scalars data of "
-               "length %d, element size %d\n",
-               (int)scalars->nvals,scalars->nbyper);
-      gifti_free_image (image);
-      return ERROR_NOMEMORY;
-    }
-
-    /* Copy in all our data. */
-    int scalar_index;
-    for (scalar_index = 0; scalar_index < mris->nvertices; scalar_index++)
-    {
-      if (mris->vertices[scalar_index].ripflag) continue;
-      gifti_set_DA_value_2D (scalars, scalar_index, 0,
-                             mris->vertices[scalar_index].curv);
-    }
-  }
-
   /* check for compliance */
   int valid = gifti_valid_gifti_image (image, 1);
   if (valid == 0)
@@ -838,6 +837,124 @@ int MRISwriteGIFTI(MRIS* mris, char *fname, char *scalar_fname)
   if (gifti_write_image (image, fname, 1))
   {
     fprintf (stderr,"MRISwriteGIFTI: couldn't write image\n");
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  gifti_free_image (image);
+
+  return ERROR_NONE;
+}
+
+
+/*-----------------------------------------------------
+  Parameters:    MRIS_SURFACE structure,
+                 output file name of GIFTI file,
+                 input scalar data file
+
+  Returns value: 0 if passed, else error code
+
+  Description:   writes a GIFTI file containing 'shape'
+                 data, ie. thickness, curv, sulc...
+  ------------------------------------------------------*/
+int MRISwriteScalarGIFTI(MRIS* mris, char *fname, char *scalar_fname)
+{
+  if (NULL == mris || NULL == fname)
+  {
+    fprintf (stderr,"MRISwriteScalarGIFTI: invalid parameter\n");
+    return ERROR_BADPARM;
+  }
+
+  gifti_image* image = (gifti_image *)calloc(1,sizeof(gifti_image));
+  if (NULL == image)
+  {
+    fprintf (stderr,"MRISwriteScalarGIFTI: couldn't allocate image\n");
+    return ERROR_NOMEMORY;
+  }
+  image->version = strcpyalloc(GIFTI_XML_VERSION);
+
+  /* -------------------------------------------------------
+   * Scalars array
+   */
+  if (MRISreadCurvatureFile(mris, scalar_fname))
+  {
+    fprintf (stderr,"MRISwriteScalarGIFTI: couldn't read %s\n",scalar_fname);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  giiDataArray* scalars = gifti_alloc_and_add_darray (image);
+  if (NULL == scalars)
+  {
+    fprintf (stderr,"MRISwriteScalarGIFTI: couldn't allocate giiDataArray\n");
+    gifti_free_image (image);
+    return ERROR_NOMEMORY;
+  }
+
+  /* Set its attributes. */
+  scalars->intent = NIFTI_INTENT_SHAPE;
+  scalars->datatype = NIFTI_TYPE_FLOAT32;
+  scalars->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
+  scalars->num_dim = 2;
+  scalars->dims[0] = mris->nvertices;
+  scalars->dims[1] = 1;
+  scalars->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  scalars->endian = GIFTI_ENDIAN_LITTLE;
+#else
+  scalars->endian = GIFTI_ENDIAN_BIG;
+#endif
+  scalars->coordsys = NULL;
+  scalars->nvals = gifti_darray_nvals (scalars);
+  gifti_datatype_sizes (scalars->datatype, &scalars->nbyper, NULL);
+
+  /* include some metadata describing this thing */
+  insertMetaData (mris, scalars); /* standard meta data */
+  gifti_add_to_meta( &scalars->meta, "Name", scalar_fname, 1 );
+  char *meta=NULL;
+  if (strstr(scalar_fname, ".thickness")) meta = "Thickness";
+  if (strstr(scalar_fname, ".curv"))      meta = "CurvatureRadial";
+  if (strstr(scalar_fname, ".sulc"))      meta = "SulcalDepth";
+  if (strstr(scalar_fname, ".area"))      meta = "Area";
+  if (strstr(scalar_fname, ".volume"))    meta = "Volume";
+  if (strstr(scalar_fname, ".jacobian"))  meta = "Jacobian";
+  if (meta) gifti_add_to_meta( &scalars->meta, "ScalarDataType", meta, 1 );
+
+  /* Allocate the data array. */
+  scalars->data = NULL;
+  scalars->data = (void*) calloc (scalars->nvals, scalars->nbyper);
+  if (NULL == scalars->data)
+  {
+    fprintf (stderr,"MRISwriteScalarGIFTI: couldn't allocate scalars data of "
+             "length %d, element size %d\n",
+             (int)scalars->nvals,scalars->nbyper);
+    gifti_free_image (image);
+    return ERROR_NOMEMORY;
+  }
+
+  /* Copy in all our data. */
+  int scalar_index;
+  for (scalar_index = 0; scalar_index < mris->nvertices; scalar_index++)
+  {
+    if (mris->vertices[scalar_index].ripflag) continue;
+    gifti_set_DA_value_2D (scalars, scalar_index, 0,
+                           mris->vertices[scalar_index].curv);
+  }
+
+  /* check for compliance */
+  int valid = gifti_valid_gifti_image (image, 1);
+  if (valid == 0)
+  {
+    fprintf (stderr,"MRISwriteScalarGIFTI: GIFTI file %s is invalid!\n", 
+             fname);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  /* Write the file. */
+  if (gifti_write_image (image, fname, 1))
+  {
+    fprintf (stderr,"MRISwriteScalarGIFTI: couldn't write image\n");
     gifti_free_image (image);
     return ERROR_BADFILE;
   }
