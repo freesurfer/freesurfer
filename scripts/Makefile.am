@@ -59,6 +59,7 @@ inflate_subject-rh \
 inflate_subject_sc \
 isanalyze \
 isnifti \
+is-surface \
 kww_setup \
 label_child \
 label_elderly_subject \
