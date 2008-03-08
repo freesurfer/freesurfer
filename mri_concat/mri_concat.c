@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/13 03:28:35 $
- *    $Revision: 1.24 $
+ *    $Date: 2008/03/08 09:25:25 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.24 2008/02/13 03:28:35 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.25 2008/03/08 09:25:25 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -67,6 +67,7 @@ char *out = NULL;
 MRI *mritmp, *mritmp0, *mriout, *mask=NULL;
 char *maskfile = NULL;
 int DoMean=0;
+int DoMean2=0;
 int DoSum=0;
 int DoStd=0;
 int DoMax=0;
@@ -93,7 +94,7 @@ int DoAbs = 0;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, nthin, nframestot=0, nr=0,nc=0,ns=0, fout;
-  int r,c,s,f;
+  int r,c,s,f,nframes;
   double v, v1, v2, vavg;
 
   /* rkt: check for and handle version tag */
@@ -231,6 +232,8 @@ int main(int argc, char **argv) {
     MRIfree(&mriout);
     mriout = mritmp;
   }
+  nframes = mriout->nframes;
+  printf("nframes = %d\n",nframes);
 
   if(DoBonfCor){
     DoAdd = 1;
@@ -242,6 +245,13 @@ int main(int argc, char **argv) {
     mritmp = MRIframeMean(mriout,NULL);
     MRIfree(&mriout);
     mriout = mritmp;
+  }
+  if(DoMean2) {
+    printf("Computing mean2 = sum/(nframes^2)\n");
+    mritmp = MRIframeSum(mriout,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+    MRImultiplyConst(mriout, 1.0/(nframes*nframes), mriout);
   }
   if(DoSum) {
     printf("Computing sum across frames\n");
@@ -333,6 +343,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--mean"))   DoMean = 1;
+    else if (!strcasecmp(option, "--mean2"))  DoMean2 = 1;
     else if (!strcasecmp(option, "--sum"))    DoSum = 1;
     else if (!strcasecmp(option, "--std"))    DoStd = 1;
     else if (!strcasecmp(option, "--abs"))    DoAbs = 1;
@@ -434,6 +445,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --abs  : take abs of input\n");
   printf("   --mean : compute mean of concatenated volumes\n");
+  printf("   --mean2 : compute sum/(nframes.^2) \n");
   printf("   --sum  : compute sum of concatenated volumes\n");
   printf("   --std  : compute std  of concatenated volumes\n");
   printf("   --max  : compute max  of concatenated volumes\n");
