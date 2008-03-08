@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/03/01 00:34:03 $
-#    $Revision: 1.2 $
+#    $Date: 2008/03/08 00:16:37 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2008,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_gifti,v 1.2 2008/03/01 00:34:03 nicks Exp $'
+set VERSION='$Id: test_gifti,v 1.3 2008/03/08 00:16:37 nicks Exp $'
 
 umask 002
 
@@ -42,9 +42,9 @@ set cmd=(./mris_convert lh.caret.gifti.ascii.pial.gii \
     lh.caret.gifti.ascii.pial)
 echo ""
 echo $cmd
-echo $cmd >& test_mris_convert.log
+echo $cmd >& test_gifti.log
 echo ""
-$cmd >>& test_mris_convert.log
+$cmd >>& test_gifti.log
 if ($status != 0) then
   echo "mris_convert FAILED"
   exit 1
@@ -55,9 +55,9 @@ set cmd=(./mris_convert lh.caret.gifti.base64.pial.gii \
     lh.caret.gifti.base64.pial)
 echo ""
 echo $cmd
-echo $cmd >& test_mris_convert.log
+echo $cmd >& test_gifti.log
 echo ""
-$cmd >>& test_mris_convert.log
+$cmd >>& test_gifti.log
 if ($status != 0) then
   echo "mris_convert FAILED"
   exit 1
@@ -68,9 +68,9 @@ set cmd=(./mris_convert lh.caret.gifti.gzip_base64.pial.gii \
     lh.caret.gifti.gzip_base64.pial)
 echo ""
 echo $cmd
-echo $cmd >& test_mris_convert.log
+echo $cmd >& test_gifti.log
 echo ""
-$cmd >>& test_mris_convert.log
+$cmd >>& test_gifti.log
 if ($status != 0) then
   echo "mris_convert FAILED"
   exit 1
@@ -81,9 +81,9 @@ set cmd=(./mris_convert lh.caret.gifti.fs.pial \
     lh.caret.gifti.fs.pial.gii)
 echo ""
 echo $cmd
-echo $cmd >& test_mris_convert.log
+echo $cmd >& test_gifti.log
 echo ""
-$cmd >>& test_mris_convert.log
+$cmd >>& test_gifti.log
 if ($status != 0) then
   echo "mris_convert FAILED"
   exit 1
@@ -94,9 +94,24 @@ set cmd=(./mris_convert lh.caret.gifti.fs.pial.gii \
     lh.caret.gifti.fs.new-pial)
 echo ""
 echo $cmd
-echo $cmd >& test_mris_convert.log
+echo $cmd >& test_gifti.log
 echo ""
-$cmd >>& test_mris_convert.log
+$cmd >>& test_gifti.log
+if ($status != 0) then
+  echo "mris_convert FAILED"
+  exit 1
+endif
+
+# create freesurfer ascii scalar file from gifti
+set cmd=(./mris_convert \
+    -c lh.caret.gifti.gzip_base64.shape.gii \
+    lh.caret.gifti.base64.pial.gii \
+    lh.caret.gifti.fs.shape.asc)
+echo ""
+echo $cmd
+echo $cmd >& test_gifti.log
+echo ""
+$cmd >>& test_gifti.log
 if ($status != 0) then
   echo "mris_convert FAILED"
   exit 1
@@ -111,8 +126,8 @@ set TST=(lh.caret.gifti.ascii.pial)
 set cmd=(../mris_diff/mris_diff --debug $REF $TST);
 echo ""
 echo $cmd
-echo $cmd >>& test_mris_convert.log
-$cmd >>& test_mris_convert.log
+echo $cmd >>& test_gifti.log
+$cmd >>& test_gifti.log
 set diff_status=$status
 if ($diff_status != 0) then
   echo "$cmd FAILED (exit status=$diff_status)"
@@ -124,8 +139,8 @@ set TST=(lh.caret.gifti.base64.pial)
 set cmd=(../mris_diff/mris_diff --debug $REF $TST);
 echo ""
 echo $cmd
-echo $cmd >>& test_mris_convert.log
-$cmd >>& test_mris_convert.log
+echo $cmd >>& test_gifti.log
+$cmd >>& test_gifti.log
 set diff_status=$status
 if ($diff_status != 0) then
   echo "$cmd FAILED (exit status=$diff_status)"
@@ -137,8 +152,8 @@ set TST=(lh.caret.gifti.gzip_base64.pial)
 set cmd=(../mris_diff/mris_diff --debug $REF $TST);
 echo ""
 echo $cmd
-echo $cmd >>& test_mris_convert.log
-$cmd >>& test_mris_convert.log
+echo $cmd >>& test_gifti.log
+$cmd >>& test_gifti.log
 set diff_status=$status
 if ($diff_status != 0) then
   echo "$cmd FAILED (exit status=$diff_status)"
@@ -150,8 +165,21 @@ set TST=(lh.caret.gifti.fs.new-pial)
 set cmd=(../mris_diff/mris_diff --debug $REF $TST);
 echo ""
 echo $cmd
-echo $cmd >>& test_mris_convert.log
-$cmd >>& test_mris_convert.log
+echo $cmd >>& test_gifti.log
+$cmd >>& test_gifti.log
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+set REF=(lh.caret.gifti.shape.expected.asc)
+set TST=(lh.caret.gifti.fs.shape.asc)
+set cmd=(diff $REF $TST);
+echo ""
+echo $cmd
+echo $cmd >>& test_gifti.log
+$cmd >>& test_gifti.log
 set diff_status=$status
 if ($diff_status != 0) then
   echo "$cmd FAILED (exit status=$diff_status)"

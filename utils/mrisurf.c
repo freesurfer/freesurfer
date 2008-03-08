@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/07 23:21:09 $
- *    $Revision: 1.597 $
+ *    $Date: 2008/03/08 00:16:38 $
+ *    $Revision: 1.598 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.597 2008/03/07 23:21:09 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.598 2008/03/08 00:16:38 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -4011,6 +4011,9 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
   type = MRISfileNameType(fname) ;
   if (type == MRIS_ASCII_TRIANGLE_FILE)
     return(mrisReadAsciiCurvatureFile(mris, fname)) ;
+
+  if (type == MRIS_GIFTI_FILE)
+    return(mrisReadScalarGIFTIfile(mris, fname)) ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "reading curvature file...") ;

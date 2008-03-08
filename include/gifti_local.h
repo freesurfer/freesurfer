@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/07 00:11:57 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/03/08 00:16:30 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,7 @@
 #include "mrisurf.h"
 
 MRI_SURFACE * mrisReadGIFTIfile(char *fname);
+int mrisReadScalarGIFTIfile(MRI_SURFACE *mris, char *fname);
 int MRISwriteGIFTI(MRIS* mris, char *fname);
 int MRISwriteScalarGIFTI(MRIS* mris, char *fname, char *scalar_fname);
 

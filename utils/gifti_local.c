@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/07 22:34:12 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/03/08 00:16:37 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -459,20 +459,19 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
     if (z>zhi) zhi=z;
     if (z<zlo) zlo=z;
 
-    /* If we have normals, set normals values. */
-    if (NULL != normals)
-    {
-      mris->vertices[vertex_index].nx =
-        (float) gifti_get_DA_value_2D (normals, vertex_index, 0);
-      mris->vertices[vertex_index].ny =
-        (float) gifti_get_DA_value_2D (normals, vertex_index, 1);
-      mris->vertices[vertex_index].nz =
-        (float) gifti_get_DA_value_2D (normals, vertex_index, 2);
-    }
-    else
-    {
-      // can't call MRIScomputeNormals just yet, do this after faces copied...
-    }
+    /* Do not use the normals found in the gifti file!
+     * To ensure consistency, compute them ourselves (and do 
+     * this after faces copied...
+     if (NULL != normals)
+     {
+     mris->vertices[vertex_index].nx =
+     (float) gifti_get_DA_value_2D (normals, vertex_index, 0);
+     mris->vertices[vertex_index].ny =
+     (float) gifti_get_DA_value_2D (normals, vertex_index, 1);
+     mris->vertices[vertex_index].nz =
+     (float) gifti_get_DA_value_2D (normals, vertex_index, 2);
+     }
+    */
   }
   mris->xlo = xlo ;
   mris->ylo = ylo ;
@@ -538,13 +537,82 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
    *  MRIScomputeMetricProperties(mris) ;
    *  MRISstoreCurrentPositions(mris) ;
    */
-  if (NULL != normals) MRIScomputeNormals(mris);
+  MRIScomputeNormals(mris);
   UpdateMRIS(mris,fname);
 
   /* And we're done. */
   gifti_free_image (image);
 
   return mris;
+}
+
+
+/*
+ *
+ */
+int mrisReadScalarGIFTIfile(MRI_SURFACE *mris, char *fname)
+{
+  /* Attempt to read the file. */
+  gifti_image* image = gifti_read_image (fname, 1);
+  if (NULL == image)
+  {
+    fprintf 
+      (stderr,
+       "mrisReadScalarGIFTIfile: gifti_read_image() returned NULL\n");
+    return ERROR_BADFILE;
+  }
+
+  /* check for compliance */
+  int valid = gifti_valid_gifti_image (image, 1);
+  if (valid == 0)
+  {
+    fprintf 
+      (stderr,
+       "mrisReadScalarGIFTIfile: GIFTI file %s is invalid!\n", fname);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  /* check for 'shape' data */
+  giiDataArray* scalars = gifti_find_DA (image, NIFTI_INTENT_SHAPE, 0);
+  if (NULL == scalars)
+  {
+    fprintf 
+      (stderr,
+       "mrisReadScalarGIFTIfile: no coordinates in file %s\n", fname);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  /* Check the number of vertices */
+  long long num_vertices = 0;
+  long long num_cols = 0;
+  gifti_DA_rows_cols (scalars, &num_vertices, &num_cols);
+  if (num_vertices <= 0 ||
+      num_vertices != mris->nvertices ||
+      num_cols != 1)
+  {
+    fprintf 
+      (stderr,
+       "mrisReadScalarGIFTIfile: malformed coords data array in file "
+       "%s: num_vertices=%d num_cols=%d expected nvertices=%d\n",
+       fname, (int)num_vertices, (int)num_cols, mris->nvertices);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  /* Copy in all our data. */
+  int scalar_index;
+  for (scalar_index = 0; scalar_index < mris->nvertices; scalar_index++)
+  {
+    if (mris->vertices[scalar_index].ripflag) continue;
+    mris->vertices[scalar_index].curv =
+      (float) gifti_get_DA_value_2D (scalars, scalar_index, 0);
+  }
+
+  /* And we're done. */
+  gifti_free_image (image);
+  return(NO_ERROR) ;
 }
 
 

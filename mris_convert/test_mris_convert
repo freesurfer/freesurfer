@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/29 22:01:27 $
-#    $Revision: 1.2 $
+#    $Date: 2008/03/08 00:16:37 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_convert,v 1.2 2008/02/29 22:01:27 nicks Exp $'
+set VERSION='$Id: test_mris_convert,v 1.3 2008/03/08 00:16:37 nicks Exp $'
 
 umask 002
 
@@ -92,6 +92,17 @@ if ($status != 0) then
   exit 1
 endif
 
+set cmd=(./mris_convert -c lh.thickness lh.white lh.thickness.gii)
+echo ""
+echo $cmd
+echo $cmd >& test_mris_convert.log
+echo ""
+$cmd >>& test_mris_convert.log
+if ($status != 0) then
+  echo "mris_convert FAILED"
+  exit 1
+endif
+
 set cmd=(./mris_convert -c lh.thickness.asc lh.white lh.new-thickness)
 echo ""
 echo $cmd
@@ -104,6 +115,17 @@ if ($status != 0) then
 endif
 
 set cmd=(./mris_convert -c lh.new-thickness lh.white lh.newer-thickness.asc)
+echo ""
+echo $cmd
+echo $cmd >& test_mris_convert.log
+echo ""
+$cmd >>& test_mris_convert.log
+if ($status != 0) then
+  echo "mris_convert FAILED"
+  exit 1
+endif
+set cmd=(./mris_convert -c lh.thickness.gii lh.white.gii \
+    lh.gifti-thickness.asc)
 echo ""
 echo $cmd
 echo $cmd >& test_mris_convert.log
@@ -159,6 +181,19 @@ endif
 
 set REF=(lh.new-thickness.asc)
 set TST=(lh.newer-thickness.asc)
+set cmd=(diff $REF $TST);
+echo ""
+echo $cmd
+echo $cmd >>& test_mris_convert.log
+$cmd >>& test_mris_convert.log
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+set REF=(lh.thickness.asc)
+set TST=(lh.gifti-thickness.asc)
 set cmd=(diff $REF $TST);
 echo ""
 echo $cmd
