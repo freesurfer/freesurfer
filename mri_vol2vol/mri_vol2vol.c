@@ -8,9 +8,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/01/26 01:35:19 $
- *    $Revision: 1.41 $
+ *    $Author: greve $
+ *    $Date: 2008/03/08 09:53:52 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.41 2008/01/26 01:35:19 fischl Exp $
+  $Id: mri_vol2vol.c,v 1.42 2008/03/08 09:53:52 greve Exp $
 
 */
 
@@ -69,6 +69,9 @@ mri_vol2vol
   --trans Tx Ty Tz : translation (mm) to apply to reg matrix
   --shear Sxy Sxz Syz : xz is in-plane
   --reg-final regfinal.dat : final reg after rot and trans (but not inv)
+
+  --synth : replace input with white gaussian noise
+  --seed seed : seed for synth (def is to set from time of day)
 
   --no-save-reg : do not write out output volume registration matrix
 
@@ -402,6 +405,8 @@ ENDHELP --------------------------------------------------------------
 #include "gca.h"
 #include "gcamorph.h"
 #include "fio.h"
+#include "pdf.h"
+#include "cmdargs.h"
 
 #ifdef X
 #undef X
@@ -428,7 +433,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.41 2008/01/26 01:35:19 fischl Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.42 2008/03/08 09:53:52 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -503,6 +508,9 @@ MRI *regseg;
 int CostOnly = 0;
 char *RegFileFinal=NULL;
 
+int SynthSeed = -1;
+int synth = 0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char regfile[1000];
@@ -512,12 +520,12 @@ int main(int argc, char **argv) {
   int n;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.41 2008/01/26 01:35:19 fischl Exp $",
+                          "$Id: mri_vol2vol.c,v 1.42 2008/03/08 09:53:52 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.41 2008/01/26 01:35:19 fischl Exp $",
+                                "$Id: mri_vol2vol.c,v 1.42 2008/03/08 09:53:52 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -537,6 +545,11 @@ int main(int argc, char **argv) {
   parse_commandline(argc, argv);
   if(gdiagno > -1) Gdiag_no = gdiagno;
   check_options();
+
+  // Seed the random number generator just in case
+  if (SynthSeed < 0) SynthSeed = PDFtodSeed();
+  srand48(SynthSeed);
+
   dump_options(stdout);
 
   /*-----------------------------------------------------*/
@@ -589,6 +602,10 @@ int main(int argc, char **argv) {
     in = targ;
     template = mov;
     tempvolfile = movvolfile;
+  }
+  if(synth) {
+    printf("Replacing input data with synthetic white noise\n");
+    MRIrandn(in->width,in->height,in->depth,in->nframes,0,1,in);
   }
 
   if(regheader) {
@@ -824,6 +841,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--delta"))     DoDelta = 1;
     else if (!strcasecmp(option, "--no-save-reg"))  SaveReg = 0;
     else if (!strcasecmp(option, "--cost-only"))  CostOnly = 1;
+    else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--morph")) {
       DoMorph = 1;
       fstarg = 1;
@@ -904,6 +922,11 @@ static int parse_commandline(int argc, char **argv) {
         printf("       legal values are uchar, short, int, long, and float\n");
         exit(1);
       }
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--seed")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&SynthSeed);
+      synth = 1;
       nargsused = 1;
     } else if (istringnmatch(option, "--sd",4)) {
       if (nargc < 1) argnerr(option,1);
@@ -1002,6 +1025,9 @@ printf("  --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
 printf("  --trans Tx Ty Tz : translation (mm) to apply to reg matrix\n");
 printf("  --shear Sxy Sxz Syz : xz is in-plane\n");
 printf("  --reg-final regfinal.dat : final reg after rot and trans (but not inv)\n");
+printf("\n");
+printf("  --synth : replace input with white gaussian noise\n");
+printf("  --seed seed : seed for synth (def is to set from time of day)\n");
 printf("\n");
 printf("  --no-save-reg : do not write out output volume registration matrix\n");
 printf("\n");
@@ -1388,6 +1414,9 @@ static void dump_options(FILE *fp) {
   if (interpcode == SAMPLE_SINC) fprintf(fp,"sinc hw  %d\n",sinchw);
   fprintf(fp,"precision  %s (%d)\n",precision,precisioncode);
   fprintf(fp,"Gdiag_no  %d\n",Gdiag_no);
+
+  fprintf(fp,"Synth      %d\n",synth);
+  fprintf(fp,"SynthSeed  %d\n",SynthSeed);
 
   return;
 }
