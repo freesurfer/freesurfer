@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/08 00:16:38 $
- *    $Revision: 1.598 $
+ *    $Date: 2008/03/08 01:08:44 $
+ *    $Revision: 1.599 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.598 2008/03/08 00:16:38 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.599 2008/03/08 01:08:44 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -643,6 +643,9 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
   int         tag,nread;
   char        tmpstr[2000];
   MRI         *mri;
+
+  // default:
+  version = -3;
 
   chklc() ;    /* check to make sure license.dat is present */
   type = MRISfileNameType(fname) ; /* using extension to get type */
@@ -681,6 +684,13 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
     if (!mris)
       return(NULL) ;
     version = -3 ; /* Not really sure what is appropriate here */
+  }
+  else if (type == MRI_MGH_FILE)  /* .mgh */
+  {
+    ErrorExit
+      (ERROR_BADFILE,
+       "ERROR: MRISread: cannot read surface data from file %s!\n",
+       fname);
   }
   else // default type MRIS_BINARY_QUADRANGLE_FILE ... use magic number
   {
@@ -735,7 +745,7 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
          "ERROR: MRISread: file '%s' has %d vertices!\n"
          "Probably trying to use a scalar data file as a surface!\n",
          fname,nvertices);
-     if (nquads > nvertices) /* sanity-checks */
+    if (nquads > nvertices) /* sanity-checks */
       ErrorExit
         (ERROR_BADFILE,
          "ERROR: MRISread: file '%s' has more faces than vertices!\n"
@@ -3976,8 +3986,9 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
     nv = TempMRI->width * TempMRI->height * TempMRI->depth;
     if (nv != mris->nvertices)
     {
-      printf("ERROR: number of vertices in %s does not match surface (%d,%d)",
-             sname,nv,mris->nvertices);
+      printf
+        ("ERROR: number of vertices in %s does not match surface (%d,%d)\n",
+         sname,nv,mris->nvertices);
       return(1);
     }
     MRIfree(&TempMRI);
@@ -4007,12 +4018,10 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
     return(NO_ERROR);
   }
 
-
   type = MRISfileNameType(fname) ;
   if (type == MRIS_ASCII_TRIANGLE_FILE)
     return(mrisReadAsciiCurvatureFile(mris, fname)) ;
-
-  if (type == MRIS_GIFTI_FILE)
+  else if (type == MRIS_GIFTI_FILE)
     return(mrisReadScalarGIFTIfile(mris, fname)) ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -20090,6 +20099,8 @@ MRISfileNameType(char *fname)
     type = MRIS_STL_FILE ;
   else if (!strcmp(ext, "GII"))
     type = MRIS_GIFTI_FILE ;
+  else if (!strcmp(ext, "MGH"))
+    type = MRI_MGH_FILE ; // surface-encoded volume
   else
     type = MRIS_BINARY_QUADRANGLE_FILE ;
 
@@ -58863,7 +58874,7 @@ mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, char *fname)
   if (!fp)
     ErrorReturn
     (ERROR_BADFILE,
-     (ERROR_BADFILE, "%s could not open output file %s.\n",
+     (ERROR_BADFILE, "%s could not open file %s.\n",
       mrisReadAsciiCurvatureFile, fname)) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
