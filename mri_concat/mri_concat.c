@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/03/08 09:25:25 $
- *    $Revision: 1.25 $
+ *    $Date: 2008/03/09 01:13:07 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.25 2008/03/08 09:25:25 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.26 2008/03/09 01:13:07 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -69,6 +69,7 @@ char *maskfile = NULL;
 int DoMean=0;
 int DoMean2=0;
 int DoSum=0;
+int DoVar=0;
 int DoStd=0;
 int DoMax=0;
 int DoMaxIndex=0;
@@ -260,16 +261,15 @@ int main(int argc, char **argv) {
     mriout = mritmp;
   }
 
-  if(DoStd) {
-    printf("Computing std across frames\n");
+  if(DoStd || DoVar) {
+    printf("Computing std/var across frames\n");
     if(mriout->nframes < 2){
       printf("ERROR: cannot compute std from one frame\n");
       exit(1);
     }
     //mritmp = fMRIvariance(mriout, -1, 1, NULL);
     mritmp = fMRIcovariance(mriout, 0, -1, NULL, NULL);
-
-    MRIsqrt(mritmp, mritmp);
+    if(DoStd) MRIsqrt(mritmp, mritmp);
     MRIfree(&mriout);
     mriout = mritmp;
   }
@@ -346,6 +346,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mean2"))  DoMean2 = 1;
     else if (!strcasecmp(option, "--sum"))    DoSum = 1;
     else if (!strcasecmp(option, "--std"))    DoStd = 1;
+    else if (!strcasecmp(option, "--var"))    DoVar = 1;
     else if (!strcasecmp(option, "--abs"))    DoAbs = 1;
     else if (!strcasecmp(option, "--max"))    DoMax = 1;
     else if (!strcasecmp(option, "--max-index")) DoMaxIndex = 1;
@@ -447,6 +448,7 @@ static void print_usage(void) {
   printf("   --mean : compute mean of concatenated volumes\n");
   printf("   --mean2 : compute sum/(nframes.^2) \n");
   printf("   --sum  : compute sum of concatenated volumes\n");
+  printf("   --var  : compute var  of concatenated volumes\n");
   printf("   --std  : compute std  of concatenated volumes\n");
   printf("   --max  : compute max  of concatenated volumes\n");
   printf("   --max-index  : compute index of max of concatenated volumes (1-based)\n");
@@ -525,6 +527,10 @@ static void check_options(void) {
   }
   if(mask && !DoVote && !DoSort){
     printf("ERROR: --mask only valid with --vote or --sort\n");
+    exit(1);
+  }
+  if(DoStd && DoVar){
+    printf("ERROR: cannot compute std and var, you bonehead.\n");
     exit(1);
   }
 
