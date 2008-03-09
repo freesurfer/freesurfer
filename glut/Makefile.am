@@ -17,7 +17,7 @@ libglut_a_SOURCES=\
 	glut_8x13.c \
 	glut_9x15.c \
 	glut_bitmap.c \
-	glut_bitmap.h \
+	glutbitmap.h \
 	glutint.h \
 	glut_bwidth.c \
 	glut_cindex.c \
