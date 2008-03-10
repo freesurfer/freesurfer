@@ -8,8 +8,8 @@
 # Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/06 00:01:13 $
-#    $Revision: 1.5 $
+#    $Date: 2008/03/10 14:16:07 $
+#    $Revision: 1.5.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: bblabel,v 1.5 2007/01/06 00:01:13 nicks Exp $';
+set VERSION = '$Id: bblabel,v 1.5.2.1 2008/03/10 14:16:07 nicks Exp $';
 
 set cmdargs = ($argv);
 set PrintHelp = 0;
@@ -60,11 +60,11 @@ set tmpfile =  $outlabelfile.tmp$$
 touch $tmpfile
 
 set firstline = `head -n 1 $labelfile`;
-set lno = `tail +3 $labelfile | awk '{print $1}'`;
-set x = `tail +3 $labelfile | awk '{print $2}'`;
-set y = `tail +3 $labelfile | awk '{print $3}'`;
-set z = `tail +3 $labelfile | awk '{print $4}'`;
-set s = `tail +3 $labelfile | awk '{print $5}'`;
+set lno = `tail -n +3 $labelfile | awk '{print $1}'`;
+set x = `tail -n +3 $labelfile | awk '{print $2}'`;
+set y = `tail -n +3 $labelfile | awk '{print $3}'`;
+set z = `tail -n +3 $labelfile | awk '{print $4}'`;
+set s = `tail -n +3 $labelfile | awk '{print $5}'`;
 
 echo "Finding points within bounds"
 @ nth = 1;
