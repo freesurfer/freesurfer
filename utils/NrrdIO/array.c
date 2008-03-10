@@ -178,7 +178,7 @@ airArrayLenPreSet(airArray *a, unsigned int newlen)
         _airSetData(a, NULL);
         return;
       }
-      memcpy(newdata, a->data, AIR_MIN(a->len*a->unit,
+      memmove(newdata, a->data, AIR_MIN(a->len*a->unit,
                                        newsize*a->incr*a->unit));
       free(a->data);
       _airSetData(a, newdata);
@@ -260,7 +260,7 @@ airArrayLenSet(airArray *a, unsigned int newlen)
           _airSetData(a, NULL);
           return;
         }
-        memcpy(newdata, a->data, AIR_MIN(a->len*a->unit,
+        memmove(newdata, a->data, AIR_MIN(a->len*a->unit,
                                          newsize*a->incr*a->unit));
         free(a->data);
         _airSetData(a, newdata);

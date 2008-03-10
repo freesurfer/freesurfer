@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/05/21 15:22:51 $
- *    $Revision: 1.25 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:35:22 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.25 2007/05/21 15:22:51 kteich Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.26 2008/03/10 13:35:22 nicks Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
   return(0);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.25 2007/05/21 15:22:51 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.26 2008/03/10 13:35:22 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -893,7 +893,7 @@ char *MDHascPath(char *measoutdir) {
   if (fio_FileExistsReadable(fname)) {
     len = strlen(fname);
     mrprot = (char *) calloc(sizeof(char),len+1);
-    memcpy(mrprot,fname,len);
+    memmove(mrprot,fname,len);
     return(mrprot);
   }
 
@@ -901,7 +901,7 @@ char *MDHascPath(char *measoutdir) {
   if (fio_FileExistsReadable(fname)) {
     len = strlen(fname);
     mrprot = (char *) calloc(sizeof(char),len+1);
-    memcpy(mrprot,fname,len);
+    memmove(mrprot,fname,len);
     return(mrprot);
   }
 
@@ -909,7 +909,7 @@ char *MDHascPath(char *measoutdir) {
   if (fio_FileExistsReadable(fname)) {
     len = strlen(fname);
     mrprot = (char *) calloc(sizeof(char),len+1);
-    memcpy(mrprot,fname,len);
+    memmove(mrprot,fname,len);
     return(mrprot);
   }
 
@@ -1668,7 +1668,7 @@ char *MDHparseMrProt(char *file, char *TagString) {
       /* match found */
       sscanf(linestr,"%*s %*s %s",tmpstr2);
       VariableValue = (char *) calloc(strlen(tmpstr2)+1,sizeof(char));
-      memcpy(VariableValue, tmpstr2, strlen(tmpstr2));
+      memmove(VariableValue, tmpstr2, strlen(tmpstr2));
       break;
     }
   }

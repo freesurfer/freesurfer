@@ -10,9 +10,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/02/19 21:53:41 $
- *    $Revision: 1.69 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:35:23 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.69 2008/02/19 21:53:41 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.70 2008/03/10 13:35:23 nicks Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -453,7 +453,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.69 2008/02/19 21:53:41 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.70 2008/03/10 13:35:23 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -531,7 +531,7 @@ int main(int argc, char **argv) {
   if (!strcmp(srctypestring,"curv")) { /* curvature file */
     if (fio_FileExistsReadable(srcvalfile)) {
       memset(fname,0,strlen(srcvalfile)+1);
-      memcpy(fname,srcvalfile,strlen(srcvalfile));
+      memmove(fname,srcvalfile,strlen(srcvalfile));
     } else
       sprintf(fname,"%s/%s/surf/%s.%s",
               SUBJECTS_DIR,srcsubject,srchemi,srcvalfile);

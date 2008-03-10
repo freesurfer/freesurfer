@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/03/06 00:01:13 $
- *    $Revision: 1.326 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:35:23 $
+ *    $Revision: 1.327 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.326 $";
+char *VERSION = "$Revision: 1.327 $";
 
 #define TCL
 #define TKMEDIT
@@ -1186,7 +1186,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.326 2008/03/06 00:01:13 greve Exp $",
+     "$Id: tkmedit.c,v 1.327 2008/03/10 13:35:23 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -3010,8 +3010,8 @@ void save_tiff (char* fname) {
 
   /* Write line by line (bottom to top). */
   for (row = 0; row < height; row++) {
-    memcpy (line_buffer, &pixel_data[(height-row-1) * line_bytes],
-            line_bytes);
+    memmove (line_buffer, &pixel_data[(height-row-1) * line_bytes],
+             line_bytes);
     TIFFWriteScanline (tiff, line_buffer, row, 0);
   }
 
@@ -5794,7 +5794,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.326 2008/03/06 00:01:13 greve Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.327 2008/03/10 13:35:23 nicks Exp $ $Name:  $\n"
         )
       );
 

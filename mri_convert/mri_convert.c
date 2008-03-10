@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/01/25 23:49:28 $
- *    $Revision: 1.150 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:35:22 $
+ *    $Revision: 1.151 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -183,7 +183,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.150 2008/01/25 23:49:28 fischl Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.151 2008/03/10 13:35:22 nicks Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -285,7 +285,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.150 2008/01/25 23:49:28 fischl Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.151 2008/03/10 13:35:22 nicks Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -968,7 +968,7 @@ int main(int argc, char *argv[]) {
       }
       i++;
       SDCMStatusFile = (char *) calloc(strlen(argv[i])+1,sizeof(char));
-      memcpy(SDCMStatusFile,argv[i],strlen(argv[i]));
+      memmove(SDCMStatusFile,argv[i],strlen(argv[i]));
       fptmp = fopen(SDCMStatusFile,"w");
       if (fptmp == NULL) {
         fprintf(stderr,"ERROR: could not open %s for writing\n",
@@ -992,7 +992,7 @@ int main(int argc, char *argv[]) {
       }
       i++;
       SDCMListFile = (char *) calloc(strlen(argv[i])+1,sizeof(char));
-      memcpy(SDCMListFile,argv[i],strlen(argv[i]));
+      memmove(SDCMListFile,argv[i],strlen(argv[i]));
       fptmp = fopen(SDCMListFile,"r");
       if (fptmp == NULL) {
         fprintf(stderr,"ERROR: could not open %s for reading\n",
@@ -1280,7 +1280,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.150 2008/01/25 23:49:28 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.151 2008/03/10 13:35:22 nicks Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {

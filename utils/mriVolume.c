@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/08/24 17:45:18 $
- *    $Revision: 1.90 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:35:31 $
+ *    $Revision: 1.91 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -332,9 +332,9 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
                  sizeof(clone->msOriginalPath) );
 
   /* allocate and copy color tables */
-  memcpy( clone->mafColorTable, this->mafColorTable,
+  memmove( clone->mafColorTable, this->mafColorTable,
           sizeof( this->manColorTable ));
-  memcpy( clone->manColorTable, this->manColorTable,
+  memmove( clone->manColorTable, this->manColorTable,
           sizeof( this->mafColorTable ));
 
   /* Copy the resample information then calc the resample matrices,
@@ -2832,7 +2832,7 @@ Volm_tErr Volm_SaveToSnapshot ( mriVolumeRef this )
                      eResult, Volm_tErr_AllocationFailed );
 
   /* copy it in */
-  memcpy( this->mpSnapshot, this->mpMriValues->slices, nSize );
+  memmove( this->mpSnapshot, this->mpMriValues->slices, nSize );
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -2880,7 +2880,7 @@ Volm_tErr Volm_RestoreFromSnapshot ( mriVolumeRef this )
   default:
     break ;
   }
-  memcpy( this->mpMriValues->slices, this->mpSnapshot, nSize );
+  memmove( this->mpMriValues->slices, this->mpSnapshot, nSize );
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );

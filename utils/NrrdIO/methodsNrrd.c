@@ -709,7 +709,7 @@ _nrrdCopy(Nrrd *nout, const Nrrd *nin, int bitflag)
       biffAdd(NRRD, err);
       return 1;
     }
-    memcpy(nout->data, nin->data,
+    memmove(nout->data, nin->data,
            nrrdElementNumber(nin)*nrrdElementSize(nin));
   }
   else

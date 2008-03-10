@@ -1,15 +1,14 @@
 /**
  * @file  region.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for the REGION data structure
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:39 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/03/10 13:35:36 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,17 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
- *       FILE NAME:   region.c
- *
- *       DESCRIPTION: utilities for the REGION  data structure
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
- *
-*/
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -162,7 +150,7 @@ REGIONcopy(MRI_REGION *rsrc, MRI_REGION *rdst)
   if (!rdst)
     rdst = REGIONalloc() ;
 
-  memcpy(rdst, rsrc, sizeof(*rsrc)) ;
+  memmove(rdst, rsrc, sizeof(*rsrc)) ;
   return(rdst) ;
 }
 /*-----------------------------------------------------

@@ -45,8 +45,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/17 19:21:07 $
- *    $Revision: 1.44 $
+ *    $Date: 2008/03/10 13:35:21 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1615,7 +1615,7 @@ char **gdfCopySubjIdppc(FSGD *fsgd) {
   for (n=0; n < fsgd->ninputs; n++) {
     len = strlen(fsgd->subjid[n]);
     ppc[n] = (char *) calloc(sizeof(char),len+1);
-    memcpy(ppc[n],fsgd->subjid[n],len);
+    memmove(ppc[n],fsgd->subjid[n],len);
     //printf("n=%d, %s\n",n,ppc[n]);
   }
 

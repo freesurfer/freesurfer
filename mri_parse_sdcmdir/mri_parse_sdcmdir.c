@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/27 02:23:42 $
- *    $Revision: 1.18 $
+ *    $Date: 2008/03/10 13:35:22 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ extern int isblank(int c);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.18 2007/04/27 02:23:42 nicks Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.19 2008/03/10 13:35:22 nicks Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -244,7 +244,7 @@ static int parse_commandline(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.18 2007/04/27 02:23:42 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.19 2008/03/10 13:35:22 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -279,7 +279,7 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--status")) {
       if (nargc < 1) argnerr(option,1);
       SDCMStatusFile = (char *) calloc(strlen(pargv[0])+1,sizeof(char));
-      memcpy(SDCMStatusFile,pargv[0],strlen(pargv[0]));
+      memmove(SDCMStatusFile,pargv[0],strlen(pargv[0]));
       fptmp = fopen(SDCMStatusFile,"w");
       if (fptmp == NULL) {
         fprintf(stderr,"ERROR: could not open %s for writing\n",

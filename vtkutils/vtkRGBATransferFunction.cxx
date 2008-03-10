@@ -1,6 +1,6 @@
 /**
  * @file  vtkRGBATransferFunction.cxx
- * @brief Defines a transfer function for mapping a property to an RGBA color value.
+ * @brief Defines transfer function for mapping a property to an RGBA color value
  *
  * This code is based on vtkColorTransferFunction. It was modified to
  * add an alpha element to all color output. This required adding a
@@ -11,9 +11,9 @@
 /*
  * Original Author: Kitware, Inc, modified by Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/02/20 22:18:59 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:35:37 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkPiecewiseFunction.h"
 
-vtkCxxRevisionMacro(vtkRGBATransferFunction, "$Revision: 1.2 $");
+vtkCxxRevisionMacro(vtkRGBATransferFunction, "$Revision: 1.3 $");
 vtkStandardNewMacro(vtkRGBATransferFunction);
 
 //----------------------------------------------------------------------------
@@ -126,10 +126,10 @@ int vtkRGBATransferFunction::AddRGBAPoint( double x, double r,
 
     double *tmp = new double[this->FunctionSize*5];
     if ( i > 0 ) {
-      memcpy( tmp, this->Function, i*sizeof(double)*5 );
+      memmove( tmp, this->Function, i*sizeof(double)*5 );
     }
     if ( i < this->NumberOfPoints ) {
-      memcpy( tmp+((i+1)*5), this->Function+(i*5),
+      memmove( tmp+((i+1)*5), this->Function+(i*5),
               (this->NumberOfPoints-i)*sizeof(double)*5 );
     }
     if ( this->Function ) {
@@ -811,7 +811,7 @@ void vtkRGBATransferFunction::DeepCopy( vtkRGBATransferFunction *f ) {
 
   if ( this->FunctionSize > 0 ) {
     this->Function     = new double [5*this->FunctionSize];
-    memcpy(this->Function, f->Function, 5*sizeof(double)*this->FunctionSize);
+    memmove(this->Function, f->Function, 5*sizeof(double)*this->FunctionSize);
   } else {
     this->Function = NULL;
   }

@@ -1,15 +1,14 @@
 /**
  * @file  heap_mesh.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief list utils
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Xaio Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:44 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/03/10 13:35:36 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,13 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*----------------------------------------------------------------------------
-//
-//      File: heap.c (renamed from pgutil.c)
-//
-//--------------------------------------------------------------------------*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -175,7 +167,7 @@ void pgListAddElement(PGlist list, void *element)
     pgListSetData(list, data);
   }
 
-  memcpy((char *)data+size*elementSize, (char *)element, elementSize);
+  memmove((char *)data+size*elementSize, (char *)element, elementSize);
   pgListSetSize(list, size+1);
 }
 
@@ -207,10 +199,10 @@ int pgListInsertElementAt(PGlist list, int index, void *element)
   {
     currentPtr = (char *)data+i*elementSize;
     nextPtr    = (char *)currentPtr + elementSize;
-    memcpy(nextPtr, currentPtr, elementSize);
+    memmove(nextPtr, currentPtr, elementSize);
   }
 
-  memcpy((char *)data+index*elementSize, (char *)element, elementSize);
+  memmove((char *)data+index*elementSize, (char *)element, elementSize);
 
   return(PG_OK);
 }
@@ -233,7 +225,7 @@ int pgListElementAt(PGlist list, int index, void *element)
   {
     return(PG_ERROR); /* out of bound error */
   }
-  memcpy((char *)element, (char *)data+index*elementSize, elementSize);
+  memmove((char *)element, (char *)data+index*elementSize, elementSize);
 
   return(PG_OK);
 }
@@ -255,7 +247,7 @@ int pgListSetElementAt(PGlist list, int index, void *element)
     return(PG_ERROR); /* out of bound error */
   }
 
-  memcpy((char *)data+index*elementSize, (char *)element, elementSize);
+  memmove((char *)data+index*elementSize, (char *)element, elementSize);
 
   return(PG_OK);
 }
@@ -283,7 +275,7 @@ int pgListRemoveElementAt(PGlist list, int index)
   {
     currentPtr = (char *)data+i*elementSize;
     nextPtr    = (char *)currentPtr + elementSize;
-    memcpy(currentPtr, nextPtr, elementSize);
+    memmove(currentPtr, nextPtr, elementSize);
   }
 
   pgListSetSize(list, size-1);

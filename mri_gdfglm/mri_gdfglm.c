@@ -11,8 +11,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:28 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/03/10 13:35:22 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2003-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -93,7 +93,7 @@ static int WriteClassDat(char *base, char *Class, FSGD *fsgd,
 //static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gdfglm.c,v 1.6 2007/11/18 05:55:28 nicks Exp $";
+static char vcid[] = "$Id: mri_gdfglm.c,v 1.7 2008/03/10 13:35:22 nicks Exp $";
 const char *Progname = "mri_gdfglm";
 
 typedef struct tagCOVARPRUNE {
@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_gdfglm.c,v 1.6 2007/11/18 05:55:28 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_gdfglm.c,v 1.7 2008/03/10 13:35:22 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -397,7 +397,7 @@ static int parse_commandline(int argc, char **argv) {
         nargsused++;
       }
       wDepVar = (float *)calloc(sizeof(float),nwDepVar);
-      memcpy(wDepVar,ftmp,sizeof(float)*nwDepVar);
+      memmove(wDepVar,ftmp,sizeof(float)*nwDepVar);
     } else if (!strcmp(option, "--wlms")) {
       if (nargc < 1) argnerr(option,1);
       WLMSDepVar = pargv[0];
@@ -410,7 +410,7 @@ static int parse_commandline(int argc, char **argv) {
         nargsused++;
       }
       wClass = (float *)calloc(sizeof(float),nwClass);
-      memcpy(wClass,ftmp,sizeof(float)*nwClass);
+      memmove(wClass,ftmp,sizeof(float)*nwClass);
     } else if (!strcmp(option, "--wcovar")) {
       if (nargc < 1) argnerr(option,1);
       while (nth_is_arg(nargc, pargv, nargsused)) {
@@ -419,7 +419,7 @@ static int parse_commandline(int argc, char **argv) {
         nargsused++;
       }
       wCovar = (float *)calloc(sizeof(float),nwCovar+1);
-      memcpy(&wCovar[1],ftmp,sizeof(float)*nwCovar);
+      memmove(&wCovar[1],ftmp,sizeof(float)*nwCovar);
       wCovar[0] = 0.0;
       //Note: the first weight is for offset
     } else if (!strcmp(option, "--testoffset")) TestOffset = 1;
@@ -1081,7 +1081,7 @@ DVT *DVTalloc(int nrows, int ncols, char *dvtfile) {
 
   if (dvtfile != NULL) {
     dvt->dvtfile = (char *) calloc(sizeof(char),strlen(dvtfile)+1);
-    memcpy(dvt->dvtfile,dvtfile,strlen(dvtfile));
+    memmove(dvt->dvtfile,dvtfile,strlen(dvtfile));
   }
 
   dvt->D = MatrixAlloc(nrows,ncols,MATRIX_REAL);
@@ -1107,10 +1107,10 @@ int DVTsetName(DVT *dvt, int nth, char *Name, int dimid) {
   len = strlen(Name);
   if (dimid == 1) {
     dvt->RowNames[nth] = (char *) calloc(sizeof(char),len+1);
-    memcpy(dvt->RowNames[nth],Name,len);
+    memmove(dvt->RowNames[nth],Name,len);
   } else {
     dvt->ColNames[nth] = (char *) calloc(sizeof(char),len+1);
-    memcpy(dvt->ColNames[nth],Name,len);
+    memmove(dvt->ColNames[nth],Name,len);
   }
 
   return(0);

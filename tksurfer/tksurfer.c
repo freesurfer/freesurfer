@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/03/06 00:11:58 $
- *    $Revision: 1.301 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:35:24 $
+ *    $Revision: 1.302 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -5483,7 +5483,7 @@ save_rgb_cmp_frame(char *dir, int ilat)    /* open/close version */
 #else
   fwriteFloat(firstflat, fp) ;
 #endif
-  memcpy(framebuff,framebuff3,frame_xdim*frame_ydim*sizeof(long));
+  memmove(framebuff,framebuff3,frame_xdim*frame_ydim*sizeof(long));
   do_rgb_cmp_frame(xsize,ysize,fp);
   /* don't save first=last frame to framebuff2 (because backup/overwrite) */
   fclose(fp);
@@ -5664,7 +5664,7 @@ close_rgb_cmp_named(void)      /* load first; save; write total frames */
 #else
   fwriteFloat(cmpfilenamedfirstlat,fpcmpfilenamed) ;
 #endif
-  memcpy(framebuff,framebuff3,frame_xdim*frame_ydim*sizeof(long));
+  memmove(framebuff,framebuff3,frame_xdim*frame_ydim*sizeof(long));
   do_rgb_cmp_frame(xsize,ysize,fpcmpfilenamed);
   fseek(fpcmpfilenamed,4L,SEEK_SET);
   fwrite2(cmpfilenamedframe,fpcmpfilenamed);
@@ -20627,7 +20627,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.301 2008/03/06 00:11:58 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.302 2008/03/10 13:35:24 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -26203,7 +26203,7 @@ int labl_update_cache (int force_rebuild_all)
         {
           new = (int*)
                 calloc (labl_num_labels_at_cache_vno[vno]+1, sizeof(int));
-          memcpy (new, labl_cache[vno],
+          memmove (new, labl_cache[vno],
                   labl_num_labels_at_cache_vno[vno] * sizeof(int));
           free (labl_cache[vno]);
           labl_cache[vno] = new;
@@ -27545,15 +27545,15 @@ int labl_find_label_by_vno (int vno, int min_label, int* index_array,
         num_to_copy_from_beginning = 0;
 
 
-      memcpy (index_array, &(labl_cache[vno][i]),
+      memmove (index_array, &(labl_cache[vno][i]),
               num_to_copy * sizeof(int));
 
-      memcpy (&(index_array[num_to_copy]), labl_cache[vno],
+      memmove (&(index_array[num_to_copy]), labl_cache[vno],
               num_to_copy_from_beginning * sizeof(int));
     }
     else
     {
-      memcpy (index_array, labl_cache[vno], num_to_copy * sizeof(int));
+      memmove (index_array, labl_cache[vno], num_to_copy * sizeof(int));
     }
   }
 
@@ -27907,7 +27907,7 @@ int path_add (int num_vertices, int* vertices, int* new_index)
     printf ("path_add: calloc failed with %d elements\n", num_vertices);
     return (ERROR_NO_MEMORY);
   }
-  memcpy (path_paths[index].vertices, vertices, num_vertices * sizeof(int));
+  memmove (path_paths[index].vertices, vertices, num_vertices * sizeof(int));
 
   /* Go through the path and find the bounds of the vertices. */
   min_x = min_y = min_z = 500;
@@ -28687,7 +28687,7 @@ int edit_vertex ( int vno, int action, int argument )
 
   /* Save the old marks. */
   saved_marks = (int*) calloc (mris->nvertices, sizeof(int));
-  memcpy (saved_marks, marked, sizeof(int) * mris->nvertices);
+  memmove (saved_marks, marked, sizeof(int) * mris->nvertices);
   saved_nmarked = nmarked;
 
   /* Clear marks. */
@@ -28719,7 +28719,7 @@ int edit_vertex ( int vno, int action, int argument )
   }
 
   /* Restore the marks. */
-  memcpy (marked, saved_marks, sizeof(int) * mris->nvertices);
+  memmove (marked, saved_marks, sizeof(int) * mris->nvertices);
   for (i = 0; i < mris->nvertices; i++)
     mris->vertices[i].marked = saved_marks[i];
   nmarked = saved_nmarked;
@@ -29393,7 +29393,7 @@ int save_tiff (char* fname)
   /* Write line by line (bottom to top). */
   for (row = 0; row < height; row++)
   {
-    memcpy (line_buffer, &pixel_data[(height-row-1) * line_bytes],
+    memmove (line_buffer, &pixel_data[(height-row-1) * line_bytes],
             line_bytes);
     TIFFWriteScanline (tiff, line_buffer, row, 0);
   }

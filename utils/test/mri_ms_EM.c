@@ -1,17 +1,28 @@
 /**
  * @file  mri_ms_EM.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief performs EM-segmentation on the multidimensional intensity space
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This program takes an arbitrary # of FLASH images as input,
+ * and performs EM-segmentation on the multidimensional intensity space.
+ *
+ * Implementation based on: H. Ichihashi et al. "Gaussian Mixture PDF
+ * approximation and fuzzy c-means clustering with Entropy Regularization
+ * Things to do:
+ * 1. use correct Gauss-Seidel iteration when performing ICM iteration of MRF
+ * 2. Is it more robust if I ignore correlation terms in covariance matrix?
+ * 3. Should I incorporae PVE model as mmfast?
+ * 1-31-05: added regularization for covariance matrix according to
+ * C. Archambeau et al Flexible and Robust Bayesian Classification
+ * by Finite Mixture Models, ESANN'2004
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:45 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/03/10 13:35:36 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,27 +35,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// mri_ms_EM.c
-//
-// original author: Xiao Han
-// Implementation based on: H. Ichihashi et al. "Gaussian Mixture PDF
-//  approximation and fuzzy c-means clustering with Entropy Regularization
-//  Things to do:
-//  1. use correct Gauss-Seidel iteration when performing ICM iteration of MRF
-//  2. Is it more robust if I ignore correlation terms in covariance matrix?
-//  3. Should I incorporae PVE model as mmfast?
-// 1-31-05: added regularization for covariance matrix according to
-// C. Archambeau et al Flexible and Robust Bayesian Classification
-// by Finite Mixture Models, ESANN'2004
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 01:49:45 $
-// Revision       : $Revision: 1.9 $
-//
-////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -222,7 +212,7 @@ main(int argc, char *argv[])
   int indexmap[MAX_CLASSES + 1];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.9 2006/12/29 01:49:45 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.10 2008/03/10 13:35:36 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1891,7 +1881,7 @@ void compute_inverseF(MATRIX **F, int num_classes)
 
     for (row=1; row <= rows; row++)
     {
-      memcpy((char *)(F[c]->rptr[row]), (char *)mTmp->rptr[row],
+      memmove((char *)(F[c]->rptr[row]), (char *)mTmp->rptr[row],
              (cols+1)*sizeof(float)) ;
     }
 

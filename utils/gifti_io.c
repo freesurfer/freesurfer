@@ -1832,7 +1832,7 @@ giiDataArray * gifti_copy_DataArray(const giiDataArray * orig, int get_data)
         if(!gnew->data)       /* continue? */
             fprintf(stderr,"** copy DA, failed to alloc %lld bytes for data\n",
                     gnew->nvals * gnew->nbyper);
-        memcpy(gnew->data, orig->data, gnew->nvals * gnew->nbyper);
+        memmove(gnew->data, orig->data, gnew->nvals * gnew->nbyper);
     } else
         gnew->data = NULL;
 

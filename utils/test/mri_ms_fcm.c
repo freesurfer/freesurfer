@@ -1,17 +1,16 @@
 /**
  * @file  mri_ms_fcm.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief 
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:45 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/03/10 13:35:36 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,19 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// mri_ms_fcm.c
-//
-// original author: Xiao Han
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 01:49:45 $
-// Revision       : $Revision: 1.4 $
-//
-////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -183,7 +169,7 @@ main(int argc, char *argv[])
   int setsize = 0; /* Allow to change size for once */
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fcm.c,v 1.4 2006/12/29 01:49:45 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fcm.c,v 1.5 2008/03/10 13:35:36 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1484,7 +1470,7 @@ void compute_inverseF(MATRIX **F, int num_classes)
 
     for (row=1; row <= rows; row++)
     {
-      memcpy((char *)(F[c]->rptr[row]), (char *)mTmp->rptr[row],
+      memmove((char *)(F[c]->rptr[row]), (char *)mTmp->rptr[row],
              (cols+1)*sizeof(float)) ;
     }
 

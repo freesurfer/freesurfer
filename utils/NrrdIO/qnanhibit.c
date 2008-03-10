@@ -46,7 +46,7 @@ main(int argc, char *argv[])
   //type-punning not allowed when treating compiler warnings as errors
   //replaced w/ memcpy
   //i = *(int*)(&qnan);
-  memcpy(&i, &qnan, sizeof(int));
+  memmove(&i, &qnan, sizeof(int));
   printf("-DTEEM_QNANHIBIT=%d\n", (i >> 22) & 1);
   return (int)((i >> 22) & 1);
 }

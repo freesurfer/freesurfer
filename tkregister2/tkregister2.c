@@ -7,9 +7,9 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/02/20 22:24:06 $
- *    $Revision: 1.93 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:35:24 $
+ *    $Revision: 1.94 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.93 2008/02/20 22:24:06 greve Exp $";
+"$Id: tkregister2.c,v 1.94 2008/03/10 13:35:24 nicks Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -445,7 +445,7 @@ int Register(ClientData clientData,
 
   if (argc == 0) usage_exit();
 
-  memcpy(subjectid,"subject-unknown",strlen("subject-unknown"));
+  memmove(subjectid,"subject-unknown",strlen("subject-unknown"));
 
   subjectsdir = getenv("SUBJECTS_DIR");
   if (subjectsdir==NULL) {
@@ -531,7 +531,7 @@ int Register(ClientData clientData,
     }
   } else {
     // Full path is specified
-    memcpy(targ_vol_path,targ_vol_id,strlen(targ_vol_id));
+    memmove(targ_vol_path,targ_vol_id,strlen(targ_vol_id));
     if (! fio_FileExistsReadable(targ_vol_path)) {
       printf("ERROR: could not find %s\n",targ_vol_path);
       exit(1);
@@ -1301,7 +1301,7 @@ static int parse_commandline(int argc, char **argv) {
                 !strcmp(option, "--s") ) {
       if (nargc < 1) argnerr(option,1);
       memset(subjectid,'\0',1000);
-      memcpy(subjectid,pargv[0],strlen(pargv[0]));
+      memmove(subjectid,pargv[0],strlen(pargv[0]));
       nargsused = 1;
     } else if ( !strcmp(option, "--sd") ) {
       if (nargc < 1) argnerr(option,1);
@@ -4581,7 +4581,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.93 2008/02/20 22:24:06 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.94 2008/03/10 13:35:24 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

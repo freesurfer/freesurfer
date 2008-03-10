@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/02/19 18:57:43 $
- *    $Revision: 1.68 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:35:36 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -922,7 +922,7 @@ char *AppendString(char *src, char *app)
   else
   {
     src = (char *) calloc(sizeof(char),(sz2+1));
-    memcpy(src,app,sz2);
+    memmove(src,app,sz2);
     return(src);
   }
 

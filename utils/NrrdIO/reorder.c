@@ -251,7 +251,7 @@ nrrdAxesPermute(Nrrd *nout, const Nrrd *nin, const unsigned int *axes)
       return 1;
     }
     airMopAdd(mop, dataIn, airFree, airMopAlways);
-    memcpy(dataIn, nin->data, nrrdElementNumber(nin)*nrrdElementSize(nin));
+    memmove(dataIn, nin->data, nrrdElementNumber(nin)*nrrdElementSize(nin));
   }
   if (lowPax < nin->dim)
   {
@@ -301,7 +301,7 @@ nrrdAxesPermute(Nrrd *nout, const Nrrd *nin, const unsigned int *axes)
         cIn[laxes[ai]] = cOut[ai];
       }
       NRRD_INDEX_GEN(idxIn, cIn, lszIn, ldim);
-      memcpy(dataOut + idxOut*lineSize, dataIn + idxIn*lineSize, lineSize);
+      memmove(dataOut + idxOut*lineSize, dataIn + idxIn*lineSize, lineSize);
       NRRD_COORD_INCR(cOut, lszOut, ldim, 0);
     }
     /* set content */
@@ -463,11 +463,11 @@ nrrdShuffle(Nrrd *nout, const Nrrd *nin, unsigned int axis,
   memset(cOut, 0, (NRRD_DIM_MAX+1)*sizeof(int));
   for (idxOut=0; idxOut<numLines; idxOut++)
   {
-    memcpy(cIn, cOut, ldim*sizeof(int));
+    memmove(cIn, cOut, ldim*sizeof(int));
     cIn[0] = perm[cOut[0]];
     NRRD_INDEX_GEN(idxIn, cIn, lsize, ldim);
     NRRD_INDEX_GEN(idxOut, cOut, lsize, ldim);
-    memcpy(dataOut + idxOut*lineSize, dataIn + idxIn*lineSize, lineSize);
+    memmove(dataOut + idxOut*lineSize, dataIn + idxIn*lineSize, lineSize);
     NRRD_COORD_INCR(cOut, lsize, ldim, 0);
   }
   /* content */

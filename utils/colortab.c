@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/11/18 17:53:52 $
- *    $Revision: 1.27 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:35:25 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1270,7 +1270,7 @@ COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name)
   ct = CTABalloc(nentries+1);
 
   for (i = 0 ; i < nentries ; i++) 
-    memcpy(ct->entries[i],ctold->entries[i],sizeof(COLOR_TABLE_ENTRY)) ;
+    memmove(ct->entries[i],ctold->entries[i],sizeof(COLOR_TABLE_ENTRY)) ;
 
   //    *(ct->entries[i]) = *(ctold->entries[i]) ;
 

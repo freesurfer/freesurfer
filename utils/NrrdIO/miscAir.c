@@ -215,14 +215,14 @@ airSinglePrintf(FILE *file, char *str, const char *_fmt, ...)
     case airFP_NEG_INF:
       if (isF)
       {
-        memcpy(conv, "%s", 2);
+        memmove(conv, "%s", 2);
       }
       else
       {
         /* this sneakiness allows us to replace a 3-character conversion
            sequence for a double (such as %lg) with a 3-character conversion
            for a string, which we know has at most 4 characters */
-        memcpy(conv, "%4s", 3);
+        memmove(conv, "%4s", 3);
       }
       break;
     }
@@ -252,11 +252,11 @@ airSinglePrintf(FILE *file, char *str, const char *_fmt, ...)
           /* using %g (or %lg) lost precision!! Use %f (or %lf) instead */
           if (p2)
           {
-            memcpy(conv, "%f", 2);
+            memmove(conv, "%f", 2);
           }
           else
           {
-            memcpy(conv, "%lf", 3);
+            memmove(conv, "%lf", 3);
           }
         }
       }

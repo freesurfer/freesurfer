@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 02:48:24 $
- *    $Revision: 1.112 $
+ *    $Date: 2008/03/10 13:35:27 $
+ *    $Revision: 1.113 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -94,7 +94,7 @@ MatrixCopy(MATRIX *mIn, MATRIX *mOut)
               "MatrixCopy: couldn't allocate mOut") ;
 
   for (row = 1 ; row <= rows ; row++)
-    memcpy((char *)(mOut->rptr[row]), (char *)mIn->rptr[row],
+    memmove((char *)(mOut->rptr[row]), (char *)mIn->rptr[row],
            (cols+1)*sizeof(float)) ;
 
   return(mOut) ;

@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 02:48:25 $
- *    $Revision: 1.342 $
+ *    $Date: 2008/03/10 13:35:32 $
+ *    $Revision: 1.343 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3654,7 +3654,7 @@ static int bvolumeWrite(MRI *vol, char *fname_passed, int type)
     {
       for (j = 0;j < mri->height;j++)
       {
-        memcpy(buf,mri->slices[t*mri->depth + i][j], bufsize);
+        memmove(buf,mri->slices[t*mri->depth + i][j], bufsize);
 
         if (swap_bytes_flag)
         {
@@ -5855,7 +5855,7 @@ int CountAnalyzeFiles(char *analyzefname, int nzpad, char **ppstem)
 
   /* Get the stem (ie, everything without the .img */
   stem = (char *) calloc(len+1,sizeof(char));
-  memcpy(stem,analyzefname,ncopy);
+  memmove(stem,analyzefname,ncopy);
 
   if (ppstem != NULL) *ppstem = stem;
 
@@ -6390,7 +6390,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
           //nflip(buf, bytes_per_voxel, mri->width); /* byte swap */
         }
 
-        memcpy(mri->slices[k][row], buf, bytes_per_voxel*mri->width); /*copy*/
+        memmove(mri->slices[k][row], buf, bytes_per_voxel*mri->width); /*copy*/
 
       } /* End Row Loop */
     }  /* End Slice Loop */
@@ -6570,7 +6570,7 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
   hdr.dime.dim[4] = 1; /* time */
   hdr.dime.pixdim[4] = mri->tr/1000.0; // convert to sec
   hdr.dime.bitpix = 8*bytes_per_voxel;
-  memcpy(hdr.dime.vox_units,"mm\0",3);
+  memmove(hdr.dime.vox_units,"mm\0",3);
   /*----------------------------*/
 
   hdr.dime.dim[1] = mri->width;    /* ncols */
@@ -6618,11 +6618,11 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
   /* Load the CRS into the originator field as 3 shorts for SPM */
   /* These come from the last column of invT */
   i1 = (short)(rint(*MATRIX_RELT(invT, 1, 4)));
-  memcpy( (&hdr.hist.originator[0]), &i1, sizeof(short));
+  memmove( (&hdr.hist.originator[0]), &i1, sizeof(short));
   i2 = (short)(rint(*MATRIX_RELT(invT, 2, 4)));
-  memcpy( (&hdr.hist.originator[0] + sizeof(short)), &i2, sizeof(short));
+  memmove( (&hdr.hist.originator[0] + sizeof(short)), &i2, sizeof(short));
   i3 = (short)(rint(*MATRIX_RELT(invT, 3, 4)));
-  memcpy( (&hdr.hist.originator[0] + 2*sizeof(short)), &i3, sizeof(short));
+  memmove( (&hdr.hist.originator[0] + 2*sizeof(short)), &i3, sizeof(short));
 
   MatrixFree(&T);
   MatrixFree(&invT);
@@ -6875,7 +6875,7 @@ static int analyzeWrite4D(MRI *mri, char *fname)
   }
 
   hdr.dime.bitpix = 8*bytes_per_voxel;
-  memcpy(hdr.dime.vox_units,"mm\0",3);
+  memmove(hdr.dime.vox_units,"mm\0",3);
 
   hdr.dime.dim[1] = mri->width;    /* ncols */
   hdr.dime.dim[2] = mri->height;   /* nrows */
@@ -6946,11 +6946,11 @@ static int analyzeWrite4D(MRI *mri, char *fname)
   /* Load the CRS into the originator field as 3 shorts for SPM */
   /* These come from the last column of invT */
   i1 = (short)(rint(*MATRIX_RELT(invT, 1, 4)));
-  memcpy( (&hdr.hist.originator[0]), &i1, sizeof(short));
+  memmove( (&hdr.hist.originator[0]), &i1, sizeof(short));
   i2 = (short)(rint(*MATRIX_RELT(invT, 2, 4)));
-  memcpy( (&hdr.hist.originator[0] + sizeof(short)), &i2, sizeof(short));
+  memmove( (&hdr.hist.originator[0] + sizeof(short)), &i2, sizeof(short));
   i3 = (short)(rint(*MATRIX_RELT(invT, 3, 4)));
-  memcpy( (&hdr.hist.originator[0] + 2*sizeof(short)), &i3, sizeof(short));
+  memmove( (&hdr.hist.originator[0] + 2*sizeof(short)), &i3, sizeof(short));
 
   MatrixFree(&T);
   MatrixFree(&invT);
@@ -7900,7 +7900,7 @@ static int gdfWrite(MRI *mri, char *fname)
 
     for (j = 0;j < mri->height;j++)
     {
-      memcpy(buf, mri->slices[i][j], buf_size);
+      memmove(buf, mri->slices[i][j], buf_size);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
       if (mri->type == MRI_FLOAT)
         byteswapbuffloat(buf, buf_size);
@@ -9941,7 +9941,7 @@ static MRI *nifti1Read(char *fname, int read_volume)
               for (i = 0;i < mri->width;i++)
               {
                 cbuf = (unsigned char *)&buf[i];
-                memcpy(ccbuf, cbuf, 8);
+                memmove(ccbuf, cbuf, 8);
                 cbuf[0] = ccbuf[7];
                 cbuf[1] = ccbuf[6];
                 cbuf[2] = ccbuf[5];
@@ -10183,7 +10183,7 @@ static int nifti1Write(MRI *mri, char *fname)
   // This just copies the vox2ras into the sform
   mriToNiftiSform(mri, &hdr);
 
-  memcpy(hdr.magic, NIFTI1_MAGIC, 4);
+  memmove(hdr.magic, NIFTI1_MAGIC, 4);
 
   strcpy(fname_stem, fname);
   dot = strrchr(fname_stem, '.');
@@ -10710,7 +10710,7 @@ static MRI *niiRead(char *fname, int read_volume)
               for (i = 0;i < mri->width;i++)
               {
                 cbuf = (unsigned char *)&buf[i];
-                memcpy(ccbuf, cbuf, 8);
+                memmove(ccbuf, cbuf, 8);
                 cbuf[0] = ccbuf[7];
                 cbuf[1] = ccbuf[6];
                 cbuf[2] = ccbuf[5];
@@ -10957,7 +10957,7 @@ static int niiWrite(MRI *mri, char *fname)
   // This just copies the vox2ras into the sform
   mriToNiftiSform(mri, &hdr);
 
-  memcpy(hdr.magic, NII_MAGIC, 4);
+  memmove(hdr.magic, NII_MAGIC, 4);
 
   fp = znzopen(fname, "w", use_compression);
   if (fp == NULL)
@@ -11840,7 +11840,7 @@ int_local_buffer_to_image(int *buf, MRI *mri, int slice, int frame)
   for (y = 0 ; y < height ; y++)
   {
     pslice = &MRIIseq_vox(mri, 0, y, slice, frame) ;
-    memcpy(pslice, buf, width*sizeof(int)) ;
+    memmove(pslice, buf, width*sizeof(int)) ;
     buf += width ;
   }
 }
@@ -11878,7 +11878,7 @@ image_to_int_buffer(int *buf, MRI *mri, int slice)
     }
     else
     {
-      memcpy(buf, mri->slices[slice][y], width*sizeof(int)) ;
+      memmove(buf, mri->slices[slice][y], width*sizeof(int)) ;
     }
 
     buf += width ;
@@ -11916,7 +11916,7 @@ image_to_long_buffer(long *buf, MRI *mri, int slice)
     }
     else
     {
-      memcpy(buf, mri->slices[slice][y], width*sizeof(long)) ;
+      memmove(buf, mri->slices[slice][y], width*sizeof(long)) ;
     }
 
     buf += width ;
@@ -11954,7 +11954,7 @@ image_to_float_buffer(float *buf, MRI *mri, int slice)
     }
     else
     {
-      memcpy(buf, mri->slices[slice][y], width*sizeof(float)) ;
+      memmove(buf, mri->slices[slice][y], width*sizeof(float)) ;
     }
 
     buf += width ;
@@ -11973,7 +11973,7 @@ long32_local_buffer_to_image(long32 *buf, MRI *mri, int slice, int frame)
   for (y = 0 ; y < height ; y++)
   {
     pslice = &MRILseq_vox(mri, 0, y, slice, frame) ;
-    memcpy(pslice, buf, width*sizeof(long)) ;
+    memmove(pslice, buf, width*sizeof(long)) ;
     buf += width ;
   }
 }
@@ -11990,7 +11990,7 @@ float_local_buffer_to_image(float *buf, MRI *mri, int slice, int frame)
   for (y = 0 ; y < height ; y++)
   {
     pslice = &MRIFseq_vox(mri, 0, y, slice, frame) ;
-    memcpy(pslice, buf, width*sizeof(float)) ;
+    memmove(pslice, buf, width*sizeof(float)) ;
     buf += width ;
   }
 }
@@ -12006,7 +12006,7 @@ short_local_buffer_to_image(short *buf, MRI *mri, int slice, int frame)
   for (y = 0 ; y < height ; y++)
   {
     pslice = &MRISseq_vox(mri, 0, y, slice, frame) ;
-    memcpy(pslice, buf, width*sizeof(short)) ;
+    memmove(pslice, buf, width*sizeof(short)) ;
     buf += width ;
   }
 }
@@ -12022,7 +12022,7 @@ local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
   for (y = 0 ; y < height ; y++)
   {
     pslice = &MRIseq_vox(mri, 0, y, slice, frame) ;
-    memcpy(pslice, buf, width*sizeof(BUFTYPE)) ;
+    memmove(pslice, buf, width*sizeof(BUFTYPE)) ;
     buf += width ;
   }
 }
@@ -13409,7 +13409,7 @@ static int bfloatWrite(MRI *vol, char *stem)
     {
       for (j = 0;j < mri->height;j++)
       {
-        memcpy(buf, mri->slices[t*mri->depth + i][j],
+        memmove(buf, mri->slices[t*mri->depth + i][j],
                mri->width * sizeof(float));
 #if 0
         /* this byte swapping routine does not seem to work */
@@ -13418,7 +13418,7 @@ static int bfloatWrite(MRI *vol, char *stem)
              pos += sizeof(float))
         {
           c = (char *) (&(buf[pos]));
-          memcpy(&(swap_buf[0]), c, 4);
+          memmove(&(swap_buf[0]), c, 4);
           c[0] = swap_buf[3];
           c[1] = swap_buf[2];
           c[2] = swap_buf[1];
@@ -13610,7 +13610,7 @@ static int bshortWrite(MRI *vol, char *fname_passed)
         swab(mri->slices[t*mri->depth + i][j], buf,
              mri->width * sizeof(short));
 #else
-        memcpy(buf, mri->slices[t*mri->depth + i][j],
+        memmove(buf, mri->slices[t*mri->depth + i][j],
                mri->width * sizeof(short));
 #endif
 
@@ -14573,7 +14573,7 @@ static void nflip(unsigned char *buf, int b, int n)
   copy = (unsigned char *)malloc(b);
   for (i = 0;i < n;i++)
   {
-    memcpy(copy, &buf[i*b], b);
+    memmove(copy, &buf[i*b], b);
     for (j = 0;j < b;j++)
       buf[i*b+j] = copy[b-j-1];
   }

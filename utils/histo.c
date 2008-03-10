@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/28 18:42:19 $
- *    $Revision: 1.57 $
+ *    $Date: 2008/03/10 13:35:26 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -335,7 +335,7 @@ HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   if (!histo_dst)
   {
     histo_dst = HISTOalloc(histo_src->nbins) ;
-    memcpy(histo_dst->bins, histo_src->bins, sizeof(*histo_src->bins)) ;
+    memmove(histo_dst->bins, histo_src->bins, sizeof(*histo_src->bins)) ;
   }
 
   memset(histo_dst->counts, 0, sizeof(histo_dst->counts)) ;

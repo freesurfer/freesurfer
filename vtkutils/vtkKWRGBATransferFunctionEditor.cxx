@@ -16,9 +16,9 @@
 /*
  * Original Author: Kitware, Inc, modified by Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/08 22:56:48 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:35:37 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,7 +71,7 @@
 #include <vtksys/stl/string>
 
 vtkStandardNewMacro(vtkKWRGBATransferFunctionEditor);
-vtkCxxRevisionMacro(vtkKWRGBATransferFunctionEditor, "$Revision: 1.5 $");
+vtkCxxRevisionMacro(vtkKWRGBATransferFunctionEditor, "$Revision: 1.6 $");
 
 #define VTK_KW_CTFE_COLOR_RAMP_TAG "color_ramp_tag"
 
@@ -255,7 +255,7 @@ int vtkKWRGBATransferFunctionEditor::GetFunctionPointValues(
 
   int dim = this->GetFunctionPointDimensionality();
 
-  memcpy(values,
+  memmove(values,
          (this->RGBATransferFunction->GetDataPointer() + id * (1 + dim) + 1),
          dim * sizeof(double));
 
@@ -1433,7 +1433,7 @@ void vtkKWRGBATransferFunctionEditor::RedrawColorRamp() {
 
     img_ptr = img_buffer + img_width * 3;
     for (i = 1; i < img_height; i++) {
-      memcpy(img_ptr, img_buffer, img_width * 3);
+      memmove(img_ptr, img_buffer, img_width * 3);
       img_ptr += img_width * 3;
     }
 

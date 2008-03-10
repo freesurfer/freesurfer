@@ -389,7 +389,7 @@ _nrrdGzRead (gzFile file, voidp buf, unsigned int len, unsigned int* read)
       if (n > s->stream.avail_out) n = s->stream.avail_out;
       if (n > 0)
       {
-        memcpy(s->stream.next_out, s->stream.next_in, n);
+        memmove(s->stream.next_out, s->stream.next_in, n);
         next_out += n;
         s->stream.next_out = next_out;
         s->stream.next_in   += n;

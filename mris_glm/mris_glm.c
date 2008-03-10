@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:29 $
- *    $Revision: 1.51 $
+ *    $Date: 2008/03/10 13:35:23 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -95,7 +95,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.51 2007/11/18 05:55:29 nicks Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.52 2008/03/10 13:35:23 nicks Exp $";
 const char *Progname = "mris_glm";
 
 char *hemi        = NULL;
@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_glm.c,v 1.51 2007/11/18 05:55:29 nicks Exp $", "$Name:  $");
+                                 "$Id: mris_glm.c,v 1.52 2008/03/10 13:35:23 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -758,7 +758,7 @@ static int parse_commandline(int argc, char **argv) {
       }
       while (fscanf(fp,"%s",tmpstr) != EOF) {
         inputlist[ninputs] = (char *) calloc(strlen(tmpstr)+1,sizeof(char));
-        memcpy(inputlist[ninputs],tmpstr,strlen(tmpstr));
+        memmove(inputlist[ninputs],tmpstr,strlen(tmpstr));
         ninputs++;
       }
       fclose(fp);
@@ -1687,7 +1687,7 @@ int ReadDesignMatrix(char *desmtxfname) {
 
     fscanf(fp,"%s",tmpstring);
     subjectlist[r] = (char *)calloc(strlen(tmpstring)+1,sizeof(char));
-    memcpy(subjectlist[r],tmpstring,strlen(tmpstring)+1);
+    memmove(subjectlist[r],tmpstring,strlen(tmpstring)+1);
     //printf("%2d %s\n",r+1,subjectlist[r]);
 
     for (c=0; c < ncols-1; c++)
@@ -1849,14 +1849,14 @@ static char *getstem(char *filename) {
 
   switch (filetype) {
   case BFLOAT_FILE:
-    memcpy(stem,filename,len-11);
+    memmove(stem,filename,len-11);
     break;
   case MRI_MGH_FILE:
   case MRI_ANALYZE_FILE:
   case MRI_ANALYZE4D_FILE:
   case NIFTI1_FILE:
   case NII_FILE:
-    memcpy(stem,filename,len-4);
+    memmove(stem,filename,len-4);
     break;
   default:
     printf("ERROR: cannot determine stem for %s\n",filename);

@@ -1,15 +1,14 @@
 /**
  * @file  xGrowableArray.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief arrays that grow
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Dr. Inverse
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/03/10 13:35:36 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -164,7 +163,7 @@ xGArr_tErr xGArr_Add ( xGrowableArrayRef this,
     }
 
     /* copy our current data in */
-    memcpy( pNewStorage, this->mpData, this->mnMaxSizeBytes );
+    memmove( pNewStorage, this->mpData, this->mnMaxSizeBytes );
 
     /* delete old storage and point to new one */
     free( this->mpData );
@@ -177,7 +176,7 @@ xGArr_tErr xGArr_Add ( xGrowableArrayRef this,
   }
 
   /* copy data into this location */
-  memcpy( &((char*)this->mpData)[ this->mnNumItems * this->mnItemSizeBytes ],
+  memmove( &((char*)this->mpData)[ this->mnNumItems * this->mnItemSizeBytes ],
           ipSrc, this->mnItemSizeBytes );
 
   /* inc num items */
@@ -243,7 +242,7 @@ xGArr_tErr xGArr_NextItem ( xGrowableArrayRef this,
   }
 
   /* return data at this location */
-  memcpy( opDest,
+  memmove( opDest,
           &((char*)this->mpData)[ this->mnNext * this->mnItemSizeBytes ],
           this->mnItemSizeBytes );
 

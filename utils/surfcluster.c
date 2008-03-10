@@ -1,15 +1,17 @@
 /**
  * @file  surfcluster.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief routines for growing clusters on the surface
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * routines for growing clusters on the surface
+ * based on intensity thresholds and area threshold. Note: this
+ * makes use of the undefval in the MRI_SURFACE structure.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/12/08 23:05:00 $
- *    $Revision: 1.20 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:35:36 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,13 +27,6 @@
  *
  */
 
-
-/*----------------------------------------------------------------
-  surfcluster.c - routines for growing clusters on the surface
-  based on intensity thresholds and area threshold. Note: this
-  makes use of the undefval in the MRI_SURFACE structure.
-  $Id: surfcluster.c,v 1.20 2007/12/08 23:05:00 greve Exp $
-  ----------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -389,7 +384,7 @@ SCS *SortSurfClusterSum(SCS *scs, int nClusters)
   scs_sorted = (SCS *) calloc(nClusters, sizeof(SCS));
 
   for (n=0; n < nClusters; n++)
-    memcpy(&scs_sorted[n],&scs[n],sizeof(SCS));
+    memmove(&scs_sorted[n],&scs[n],sizeof(SCS));
 
   /* Note: scs_sorted.clusterno does not changed */
   qsort((void *) scs_sorted, nClusters, sizeof(SCS), sclustCompare);
@@ -489,7 +484,7 @@ SCS *sclustPruneByCWPval(SCS *ClusterList, int nclusters,
   nth = 0;
   for(n=0; n < nclusters; n++){
     if(ClusterList[n].pval_clusterwise <= cwpvalthresh){
-      memcpy(&scs[nth],&ClusterList[n],sizeof(SCS));
+      memmove(&scs[nth],&ClusterList[n],sizeof(SCS));
       map[n] = nth;
       nth++;
     }

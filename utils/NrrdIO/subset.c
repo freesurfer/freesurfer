@@ -129,8 +129,8 @@ nrrdSlice(Nrrd *nout, const Nrrd *nin, unsigned int saxi, size_t pos)
   src += rowLen*pos;
   for (I=0; I<colLen; I++)
   {
-    /* HEY: replace with AIR_MEMCPY() or similar, when applicable */
-    memcpy(dest, src, rowLen);
+    /* HEY: replace with AIR_MEMMOVE() or similar, when applicable */
+    memmove(dest, src, rowLen);
     src += colStep;
     dest += rowLen;
   }
@@ -292,7 +292,7 @@ nrrdCrop(Nrrd *nout, const Nrrd *nin, size_t *min, size_t *max)
     printf("!%s: %5d:  cIn=(%3d,%3d,%3d) -->  idxIn = %5d\n",
            me, (int)I, cIn[0], cIn[1], cIn[2], (int)idxIn);
     */
-    memcpy(dataOut + idxOut*typeSize, dataIn + idxIn*typeSize, lineSize);
+    memmove(dataOut + idxOut*typeSize, dataIn + idxIn*typeSize, lineSize);
     /* the lowest coordinate in cOut[] will stay zero, since we are
        copying one (1-D) scanline at a time */
     NRRD_COORD_INCR(cOut, szOut, nin->dim, 1);

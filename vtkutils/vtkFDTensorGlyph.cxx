@@ -211,7 +211,7 @@ void vtkFDTensorGlyph::Execute() {
 //     //cout << "out: " << outPtr[1500 * 4] << endl;
 //     unsigned char *inPtr = colors->GetPointer(0);
 //     //cout << "in: " << inPtr[1500 * 4] << endl;
-//     memcpy(outPtr, inPtr, colorCount * 4 - 4);
+//     memmove(outPtr, inPtr, colorCount * 4 - 4);
 //     //cout << "new out: " << outPtr[1500 * 4] << endl;
     for (int i = 0; i < colorCount; i++) {
       double *tuple = colors->GetTuple(i);

@@ -5,11 +5,11 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:07 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/03/10 13:35:22 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,14 +24,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*----------------------------------------------------------------------------
-//
-//      File: myutil.c
-//      A utility library
-//
-//--------------------------------------------------------------------------*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,7 +150,7 @@ void myListAddElement(MYlist list, void *element) {
     myListSetData(list, data);
   }
 
-  memcpy((char *)data+size*elementSize, (char *)element, elementSize);
+  memmove((char *)data+size*elementSize, (char *)element, elementSize);
   myListSetSize(list, size+1);
 }
 
@@ -219,7 +211,7 @@ void    myListAddArray(MYlist list, void *array, int num) {
     myListSetData(list, data);
   }
 
-  memcpy((char *)data+size*elementSize, (char *)array, num*elementSize);
+  memmove((char *)data+size*elementSize, (char *)array, num*elementSize);
   myListSetSize(list, size+num);
 }
 
@@ -248,10 +240,10 @@ int myListInsertElementAt(MYlist list, int index, void *element) {
   for (i=size-1; i>=index; i--) {
     currentPtr = (char *)data+i*elementSize;
     nextPtr    = (char *)currentPtr + elementSize;
-    memcpy(nextPtr, currentPtr, elementSize);
+    memmove(nextPtr, currentPtr, elementSize);
   }
 
-  memcpy((char *)data+index*elementSize, (char *)element, elementSize);
+  memmove((char *)data+index*elementSize, (char *)element, elementSize);
 
   return(0);
 }
@@ -272,7 +264,7 @@ int myListElementAt(MYlist list, int index, void *element) {
   if (index<0 || index>size-1) {
     return(-1); /* out of bound error */
   }
-  memcpy((char *)element, (char *)data+index*elementSize, elementSize);
+  memmove((char *)element, (char *)data+index*elementSize, elementSize);
 
   return(0);
 }
@@ -292,7 +284,7 @@ int myListSetElementAt(MYlist list, int index, void *element) {
     return(-1); /* out of bound error */
   }
 
-  memcpy((char *)data+index*elementSize, (char *)element, elementSize);
+  memmove((char *)data+index*elementSize, (char *)element, elementSize);
 
   return(0);
 }
@@ -317,7 +309,7 @@ int myListRemoveElementAt(MYlist list, int index) {
   for (i=index; i<size-1; i++) {
     currentPtr = (char *)data+i*elementSize;
     nextPtr    = (char *)currentPtr + elementSize;
-    memcpy(currentPtr, nextPtr, elementSize);
+    memmove(currentPtr, nextPtr, elementSize);
   }
 
   myListSetSize(list, size-1);
@@ -375,7 +367,7 @@ void myStackPop(MYstack stack, void *element) {
   elementSize = myListElementSize(stack);
   data        = myListData(stack);
 
-  memcpy((char *)element, (char *)data+(size-1)*elementSize, elementSize);
+  memmove((char *)element, (char *)data+(size-1)*elementSize, elementSize);
   myListSetSize(stack, size-1);
 }
 
@@ -542,7 +534,7 @@ void*   myQueueToArray(MYqueue queue) {
   } else {
     data = myListData(queue->list);
     arr = (void *)myMalloc(elementSize*size);
-    memcpy(arr, (char*)data + queue->start*elementSize, size*elementSize);
+    memmove(arr, (char*)data + queue->start*elementSize, size*elementSize);
   }
 
   return(arr);

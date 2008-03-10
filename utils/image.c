@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/23 00:49:47 $
- *    $Revision: 1.106 $
+ *    $Date: 2008/03/10 13:35:26 $
+ *    $Revision: 1.107 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1263,9 +1263,9 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
       switch (outImage->pixel_format)
       {
       case PFRGB:
-        memcpy(outImage->image+(dst_frame*outImage->sizeimage),
-               inImage->image+(start*inImage->sizeimage),
-               inImage->sizeimage*nframes);
+        memmove(outImage->image+(dst_frame*outImage->sizeimage),
+                inImage->image+(start*inImage->sizeimage),
+                inImage->sizeimage*nframes);
         break;
       default:
         ErrorExit(ERROR_UNSUPPORTED,
